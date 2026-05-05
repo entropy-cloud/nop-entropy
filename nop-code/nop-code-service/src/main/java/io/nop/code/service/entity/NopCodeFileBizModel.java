@@ -6,6 +6,8 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.beans.PageBean;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeFileBiz;
 import io.nop.code.core.model.*;
@@ -37,20 +39,12 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizQuery
-    public List<CodeFileAnalysisResult> findFiles(
+    public PageBean<CodeFileAnalysisResult> findPage_files(
             @Name("indexId") String indexId,
-            @Name("packageName") String packageName,
-            @Name("limit") int limit) {
-        List<CodeFileAnalysisResult> files = codeIndexService.getFiles(indexId);
-        if (packageName != null) {
-            files = files.stream()
-                    .filter(f -> packageName.equals(f.getPackageName()))
-                    .collect(Collectors.toList());
-        }
-        if (limit > 0 && files.size() > limit) {
-            return files.subList(0, limit);
-        }
-        return files;
+            @Name("packageName") @Optional String packageName,
+            @Name("offset") @Optional long offset,
+            @Name("limit") @Optional int limit) {
+        return codeIndexService.findFilesPage(indexId, packageName, offset, limit > 0 ? limit : 20);
     }
 
     @BizQuery

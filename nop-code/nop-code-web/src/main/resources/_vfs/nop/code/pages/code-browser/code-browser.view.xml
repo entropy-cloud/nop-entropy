@@ -2,7 +2,16 @@
 <view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
 
     <grids>
-        <grid id="outlineGrid" x:abstract="true">
+        <grid id="filesGrid">
+            <cols>
+                <col id="filePath" sortable="true" width="300"/>
+                <col id="packageName" sortable="true"/>
+                <col id="language" sortable="true"/>
+                <col id="lineCount" ui:number="true" sortable="true"/>
+            </cols>
+        </grid>
+
+        <grid id="outlineGrid">
             <cols>
                 <col id="name" sortable="true"/>
                 <col id="kind" sortable="true"/>
@@ -10,22 +19,18 @@
                 <col id="line" ui:number="true" sortable="true"/>
             </cols>
         </grid>
-
-        <grid id="symbolsGrid" x:abstract="true">
-            <cols>
-                <col id="name" sortable="true"/>
-                <col id="kind" sortable="true"/>
-                <col id="qualifiedName" sortable="true" width="300"/>
-            </cols>
-        </grid>
     </grids>
 
     <forms>
-        <form id="queryForm" editMode="query" title="文件浏览">
+        <form id="queryForm" editMode="edit" title="文件浏览">
             <layout>
  indexId[索引ID]
             </layout>
+            <cells>
+                <cell id="indexId" label="索引ID" domain="string"/>
+            </cells>
         </form>
+
         <form id="fileDetailForm" editMode="view" title="文件详情">
             <layout>
  filePath[文件路径]
@@ -34,23 +39,46 @@
  lineCount[行数]
             </layout>
         </form>
-        <form id="fileTreeForm" editMode="view" title="文件树">
-            <layout>
- indexId[索引ID]
-            </layout>
-        </form>
     </forms>
 
     <pages>
-        <simple name="main" form="queryForm">
-        </simple>
+        <crud name="main" grid="filesGrid" filterForm="queryForm">
+            <table autoFillHeight="true" loadDataOnce="true">
+                <api url="@query:NopCodeFile__findPage_files?indexId=$indexId" gql:selection="total,page,items{filePath,packageName,language,lineCount}"/>
+            </table>
+            <rowActions>
+                <action id="row-view" level="primary" label="查看符号">
+                    <dialog page="symbolsView"/>
+                </action>
+            </rowActions>
+        </crud>
 
-        <simple name="fileDetail" form="fileDetailForm">
-            <initApi url="@query:NopCodeFile__getByPath?filePath=$filePath&amp;indexId=$indexId"/>
-        </simple>
-
-        <simple name="fileTree" form="fileTreeForm">
-            <initApi url="@query:NopCodeFile__fileTree?indexId=$indexId"/>
+        <simple name="symbolsView" form="fileDetailForm">
+            <initApi url="@query:NopCodeFile__getByPath?filePath=$filePath&amp;indexId=$indexId" gql:selection="filePath,packageName,language,lineCount,symbols{name,kind,accessModifier,line,qualifiedName}"/>
+            <afterForm>
+[
+    {
+        "type": "divider"
+    },
+    {
+        "type": "panel",
+        "title": "符号列表",
+        "visibleOn": "this.symbols != null && this.symbols.length > 0",
+        "body": {
+            "type": "table",
+            "source": "${symbols}",
+            "columnsTogglable": false,
+            "columns": [
+                { "name": "name", "label": "名称", "width": 200 },
+                { "name": "kind", "label": "类型", "width": 100 },
+                { "name": "accessModifier", "label": "访问修饰符", "width": 100 },
+                { "name": "line", "label": "行号", "width": 80 },
+                { "name": "qualifiedName", "label": "全限定名", "width": 350 }
+            ]
+        }
+    }
+]
+            </afterForm>
         </simple>
     </pages>
 </view>

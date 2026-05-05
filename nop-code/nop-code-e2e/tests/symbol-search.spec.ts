@@ -29,7 +29,7 @@ test.describe('符号搜索', () => {
     const resp = await rpc<{
       total: number;
       items: { name: string; kind: string }[];
-    }>(request, 'NopCodeSymbol__findSymbols', {
+    }>(request, 'NopCodeSymbol__findPage_symbols', {
       indexId: INDEX_ID,
       query: 'CodeIndex',
       offset: 0,
@@ -45,7 +45,7 @@ test.describe('符号搜索', () => {
     const resp = await rpc<{
       total: number;
       items: { name: string }[];
-    }>(request, 'NopCodeSymbol__findSymbols', {
+    }>(request, 'NopCodeSymbol__findPage_symbols', {
       indexId: INDEX_ID,
       offset: 1,
       limit: 1,
@@ -77,13 +77,13 @@ test.describe('符号搜索', () => {
     const responsePromise = page.waitForResponse(
       (resp) =>
         resp.url().includes('/graphql') &&
-        resp.request().postData()?.includes('findSymbols'),
+        resp.request().postData()?.includes('findPage_symbols'),
     );
     await page.getByRole('button', { name: '查询' }).click();
     const response = await responsePromise;
 
     const json = await response.json();
-    const result = json?.data?.NopCodeSymbol__findSymbols;
+    const result = json?.data?.NopCodeSymbol__findPage_symbols;
     expect(result).toBeDefined();
     expect(result.total).toBeGreaterThan(0);
     expect(result.items.length).toBeGreaterThan(0);
@@ -105,7 +105,7 @@ test.describe('符号搜索', () => {
     const searchResp = page.waitForResponse(
       (resp) =>
         resp.url().includes('/graphql') &&
-        resp.request().postData()?.includes('findSymbols'),
+        resp.request().postData()?.includes('findPage_symbols'),
     );
     await page.getByRole('button', { name: '查询' }).click();
     await searchResp;

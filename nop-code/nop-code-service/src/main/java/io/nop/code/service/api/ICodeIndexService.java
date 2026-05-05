@@ -71,6 +71,18 @@ public interface ICodeIndexService {
     CallHierarchyDTO getCallHierarchy(String indexId, String qualifiedName,
                                       String direction, int maxDepth);
 
+    // ==================== Graph Analysis ====================
+
+    CommunityDetectionResultDTO detectCommunities(String indexId);
+
+    GraphAnalysisResultDTO getGraphAnalysis(String indexId, int topN);
+
+    ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth);
+
+    // ==================== Incremental Indexing ====================
+
+    int triggerIncrementalIndex(String indexId, Path projectPath, Path manifestPath);
+
     // ==================== Index Management ====================
 
     IndexStatsDTO getIndexStats(String indexId);
@@ -78,4 +90,6 @@ public interface ICodeIndexService {
     List<String> getIndexIds();
 
     void deleteIndex(String indexId);
+
+    PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit);
 }

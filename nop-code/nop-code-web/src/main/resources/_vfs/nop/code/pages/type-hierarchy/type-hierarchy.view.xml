@@ -20,8 +20,49 @@
     </forms>
 
     <pages>
-        <simple name="main" form="queryForm">
-            <api url="@query:NopCodeSymbol__getTypeHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
+        <simple name="main" form="queryForm" useFormActions="true">
+            <api url="@query:NopCodeSymbol__getTypeHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth" gql:selection="symbol{name,qualifiedName,kind,accessModifier},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}}}"/>
+            <afterForm>
+[
+    {
+        "type": "divider"
+    },
+    {
+        "type": "panel",
+        "title": "查询结果",
+        "visibleOn": "this.symbol != null",
+        "body": [
+            {
+                "type": "alert",
+                "level": "info",
+                "body": "当前类型: ${symbol.qualifiedName | default:'-'} (${symbol.kind | default:'-'})"
+            },
+            {
+                "type": "panel",
+                "title": "父类型 (Super Types)",
+                "visibleOn": "this.superTypes != null && this.superTypes.length > 0",
+                "collapsable": true,
+                "body": {
+                    "type": "json",
+                    "source": "${superTypes}",
+                    "levelExpand": 10
+                }
+            },
+            {
+                "type": "panel",
+                "title": "子类型 (Sub Types)",
+                "visibleOn": "this.subTypes != null && this.subTypes.length > 0",
+                "collapsable": true,
+                "body": {
+                    "type": "json",
+                    "source": "${subTypes}",
+                    "levelExpand": 10
+                }
+            }
+        ]
+    }
+]
+            </afterForm>
         </simple>
     </pages>
 </view>

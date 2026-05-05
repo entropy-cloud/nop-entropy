@@ -20,8 +20,49 @@
     </forms>
 
     <pages>
-        <simple name="main" form="queryForm">
-            <initApi url="@query:NopCodeSymbol__getCallHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
+        <simple name="main" form="queryForm" useFormActions="true">
+            <api url="@query:NopCodeSymbol__getCallHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth" gql:selection="symbol{name,qualifiedName,kind,accessModifier},callers{symbol{name,qualifiedName,kind},callers{symbol{name,qualifiedName,kind},callers{symbol{name,qualifiedName,kind}},callees{symbol{name,qualifiedName,kind}}},callees{symbol{name,qualifiedName,kind},callers{symbol{name,qualifiedName,kind}},callees{symbol{name,qualifiedName,kind}}}},callees{symbol{name,qualifiedName,kind},callers{symbol{name,qualifiedName,kind},callers{symbol{name,qualifiedName,kind}},callees{symbol{name,qualifiedName,kind}}},callees{symbol{name,qualifiedName,kind},callers{symbol{name,qualifiedName,kind}},callees{symbol{name,qualifiedName,kind}}}}"/>
+            <afterForm>
+[
+    {
+        "type": "divider"
+    },
+    {
+        "type": "panel",
+        "title": "查询结果",
+        "visibleOn": "this.symbol != null",
+        "body": [
+            {
+                "type": "alert",
+                "level": "info",
+                "body": "当前符号: ${symbol.qualifiedName | default:'-'} (${symbol.kind | default:'-'})"
+            },
+            {
+                "type": "panel",
+                "title": "调用者 (Callers)",
+                "visibleOn": "this.callers != null && this.callers.length > 0",
+                "collapsable": true,
+                "body": {
+                    "type": "json",
+                    "source": "${callers}",
+                    "levelExpand": 10
+                }
+            },
+            {
+                "type": "panel",
+                "title": "被调用者 (Callees)",
+                "visibleOn": "this.callees != null && this.callees.length > 0",
+                "collapsable": true,
+                "body": {
+                    "type": "json",
+                    "source": "${callees}",
+                    "levelExpand": 10
+                }
+            }
+        ]
+    }
+]
+            </afterForm>
         </simple>
     </pages>
 </view>

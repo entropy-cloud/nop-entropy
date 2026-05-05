@@ -1,0 +1,73 @@
+package io.nop.code.service.api.dto;
+
+import io.nop.api.core.annotations.data.DataBean;
+import io.nop.code.core.model.CodeFileAnalysisResult;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@DataBean
+public class FileAnalysisDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private String filePath;
+    private String packageName;
+    private String language;
+    private int lineCount;
+    private List<SymbolDTO> symbols;
+
+    public static FileAnalysisDTO fromCodeFileAnalysisResult(CodeFileAnalysisResult file) {
+        FileAnalysisDTO dto = new FileAnalysisDTO();
+        dto.setFilePath(file.getFilePath());
+        dto.setPackageName(file.getPackageName());
+        dto.setLanguage(file.getLanguage() != null ? file.getLanguage().name() : null);
+        dto.setLineCount(file.getLineCount());
+        if (file.getSymbols() != null) {
+            dto.setSymbols(file.getSymbols().stream()
+                    .map(SymbolDTO::fromCodeSymbol)
+                    .collect(Collectors.toList()));
+        }
+        return dto;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public String getPackageName() {
+        return packageName;
+    }
+
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public int getLineCount() {
+        return lineCount;
+    }
+
+    public void setLineCount(int lineCount) {
+        this.lineCount = lineCount;
+    }
+
+    public List<SymbolDTO> getSymbols() {
+        return symbols;
+    }
+
+    public void setSymbols(List<SymbolDTO> symbols) {
+        this.symbols = symbols;
+    }
+}
