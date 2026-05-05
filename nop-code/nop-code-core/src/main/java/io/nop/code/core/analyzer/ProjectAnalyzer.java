@@ -9,6 +9,10 @@ import io.nop.code.core.incremental.IncrementalDetector;
 import io.nop.code.core.incremental.ManifestStore;
 import io.nop.code.core.model.*;
 import io.nop.code.core.model.LanguageFamily;
+import io.nop.commons.batch.BatchQueue;
+import io.nop.commons.collections.IterableIterator;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,12 +20,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,10 +42,26 @@ public class ProjectAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectAnalyzer.class);
 
+    private static final int DEFAULT_BATCH_SIZE = 1000;
+
     private final LanguageAdapterRegistry registry;
+    private final ExecutorService executor;
+    private final int batchSize;
 
     public ProjectAnalyzer(LanguageAdapterRegistry registry) {
         this.registry = registry;
+        this.executor = null;
+        this.batchSize = DEFAULT_BATCH_SIZE;
+    }
+
+    public ProjectAnalyzer(LanguageAdapterRegistry registry, ExecutorService executor) {
+        this(registry, executor, DEFAULT_BATCH_SIZE);
+    }
+
+    public ProjectAnalyzer(LanguageAdapterRegistry registry, ExecutorService executor, int batchSize) {
+        this.registry = registry;
+        this.executor = executor;
+        this.batchSize = batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE;
     }
 
     /**
@@ -67,7 +91,7 @@ public class ProjectAnalyzer {
     public ProjectAnalysisResult analyzeProject(Path projectRoot, ProgressCallback progressCallback) throws IOException {
         LOG.info("Starting project analysis: {}", projectRoot);
 
-        // 第一阶段：收集所有源文件
+        // Phase 1: 收集所有源文件
         List<Path> sourceFiles = findSourceFiles(projectRoot);
         LOG.info("Found {} source files", sourceFiles.size());
 
@@ -75,63 +99,184 @@ public class ProjectAnalyzer {
             progressCallback.onProgress(0, sourceFiles.size(), "Scanning files...");
         }
 
-        // 第二阶段：分析所有文件，收集符号
-        SymbolTable globalSymbolTable = new SymbolTable();
+        // Phase 2: 分析所有文件，收集符号
         List<CodeFileAnalysisResult> fileResults = new ArrayList<>();
 
-        int processed = 0;
-        for (Path file : sourceFiles) {
-            processed++;
+        if (executor != null && sourceFiles.size() > batchSize) {
+            // 并行批量分析
+            List<List<Path>> batches = partition(sourceFiles, batchSize);
+            List<Future<List<CodeFileAnalysisResult>>> futures = new ArrayList<>();
 
-            if (progressCallback != null) {
-                progressCallback.onProgress(processed, sourceFiles.size(),
-                        "Analyzing: " + projectRoot.relativize(file));
+            for (List<Path> batch : batches) {
+                futures.add(executor.submit(() -> analyzeBatch(batch, projectRoot)));
             }
 
-            try {
-                String sourceCode = Files.readString(file);
-                String relativePath = projectRoot.relativize(file).toString();
+            int completedBatches = 0;
+            for (Future<List<CodeFileAnalysisResult>> future : futures) {
+                try {
+                    fileResults.addAll(future.get());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted during parallel analysis", e);
+                } catch (ExecutionException e) {
+                    throw new IOException("Failed during parallel analysis", e.getCause());
+                }
+                completedBatches++;
+                if (progressCallback != null) {
+                    int processed = Math.min(completedBatches * batchSize, sourceFiles.size());
+                    progressCallback.onProgress(processed, sourceFiles.size(),
+                            "Analyzed batch " + completedBatches + "/" + batches.size());
+                }
+            }
+        } else {
+            // 单线程 fallback（原有逻辑）
+            int processed = 0;
+            for (Path file : sourceFiles) {
+                processed++;
 
-                ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
-                if (analyzer == null) {
-                    continue;
+                if (progressCallback != null) {
+                    progressCallback.onProgress(processed, sourceFiles.size(),
+                            "Analyzing: " + projectRoot.relativize(file));
                 }
 
-                CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
+                try {
+                    String sourceCode = Files.readString(file);
+                    String relativePath = projectRoot.relativize(file).toString();
 
-                if (result != null) {
-                    fileResults.add(result);
-
-                    // 注册符号到全局表
-                    for (CodeSymbol symbol : result.getSymbols()) {
-                        String qualifiedName = symbol.getQualifiedName();
-                        if (qualifiedName != null && !qualifiedName.isEmpty()) {
-                            globalSymbolTable.add(symbol);
-                        }
+                    ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
+                    if (analyzer == null) {
+                        continue;
                     }
+
+                    CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
+
+                    if (result != null) {
+                        fileResults.add(result);
+                    }
+                } catch (Exception e) {
+                    LOG.warn("Failed to analyze file: {} - {}", file, e.getMessage());
                 }
-            } catch (Exception e) {
-                LOG.warn("Failed to analyze file: {} - {}", file, e.getMessage());
+            }
+        }
+
+        // Phase 3: 构建全局符号表
+        SymbolTable globalSymbolTable = new SymbolTable();
+        for (CodeFileAnalysisResult file : fileResults) {
+            for (CodeSymbol symbol : file.getSymbols()) {
+                String qualifiedName = symbol.getQualifiedName();
+                if (qualifiedName != null && !qualifiedName.isEmpty()) {
+                    globalSymbolTable.add(symbol);
+                }
             }
         }
 
         LOG.info("Collected {} symbols from {} files", globalSymbolTable.size(), fileResults.size());
 
-        // 第三阶段：填充 calleeId
+        // Phase 4: 跨文件调用解析
+        int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
+        int resolvedCalls = callCounts[0];
+        int unresolvedCalls = callCounts[1];
+
+        // 构建统计信息
+        ProjectStats stats = buildStats(fileResults, globalSymbolTable, resolvedCalls, unresolvedCalls);
+
+        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+    }
+
+    /**
+     * 基于 VFS 资源加载器的项目分析。使用 depthIterator 惰性遍历文件系统，
+     * 用 BatchQueue 缓冲分析结果，避免一次性加载所有文件到内存。
+     */
+    public ProjectAnalysisResult analyzeProject(IResourceLoader resourceLoader, String vfsPath, String filePattern) {
+        LOG.info("Starting project analysis from VFS: {}", vfsPath);
+
+        Set<String> allExtensions = collectExtensions();
+
+        List<CodeFileAnalysisResult> fileResults = new ArrayList<>();
+        SymbolTable globalSymbolTable = new SymbolTable();
+        int[] fileCount = {0};
+
+        // BatchQueue 缓冲：满 batchSize 个文件后自动将符号注册到全局符号表
+        BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(batchSize, batch -> {
+            for (CodeFileAnalysisResult result : batch) {
+                fileResults.add(result);
+                for (CodeSymbol symbol : result.getSymbols()) {
+                    String qn = symbol.getQualifiedName();
+                    if (qn != null && !qn.isEmpty()) {
+                        globalSymbolTable.add(symbol);
+                    }
+                }
+            }
+        });
+
+        // 用 depthIterator 惰性遍历 VFS，边遍历边分析
+        IterableIterator<IResource> it = resourceLoader.depthIterator(vfsPath, false, resource -> {
+            if (resource.isDirectory()) return false;
+            if (filePattern != null && !filePattern.isEmpty() && !"*".equals(filePattern)) {
+                return true;
+            }
+            for (String ext : allExtensions) {
+                if (resource.getName().endsWith(ext)) return true;
+            }
+            return false;
+        });
+
+        while (it.hasNext()) {
+            IResource resource = it.next();
+            String relativePath = resource.getStdPath();
+            if (relativePath.startsWith(vfsPath)) {
+                relativePath = relativePath.substring(vfsPath.length());
+                if (relativePath.startsWith("/")) relativePath = relativePath.substring(1);
+            }
+
+            ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
+            if (fileAnalyzer == null) continue;
+
+            try {
+                String sourceCode = resource.readText();
+                CodeFileAnalysisResult result = fileAnalyzer.analyze(relativePath, sourceCode);
+                if (result != null) {
+                    batchQueue.add(result);
+                    fileCount[0]++;
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to analyze resource: {} - {}", relativePath, e.getMessage());
+            }
+        }
+        batchQueue.flush();
+
+        LOG.info("Analyzed {} files from VFS, collected {} symbols", fileCount[0], globalSymbolTable.size());
+
+        int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
+        ProjectStats stats = buildStats(fileResults, globalSymbolTable, callCounts[0], callCounts[1]);
+
+        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+    }
+
+    private Set<String> collectExtensions() {
+        Set<String> allExtensions = new HashSet<>();
+        for (CodeLanguage lang : registry.getSupportedLanguages()) {
+            ILanguageAdapter adapter = registry.getAdapter(lang);
+            allExtensions.addAll(adapter.getFileExtensions());
+        }
+        return allExtensions;
+    }
+
+    private int[] resolveCalls(List<CodeFileAnalysisResult> fileResults, SymbolTable globalSymbolTable) {
         int resolvedCalls = 0;
         int unresolvedCalls = 0;
 
         for (CodeFileAnalysisResult file : fileResults) {
             for (CodeMethodCall call : file.getCalls()) {
-                String calleeQualifiedName = call.getCalleeQualifiedName();
-                if (calleeQualifiedName != null && !calleeQualifiedName.isEmpty()) {
-                    CodeSymbol callee = globalSymbolTable.getByQualifiedName(calleeQualifiedName);
+                String calleeQn = call.getCalleeQualifiedName();
+                if (calleeQn != null && !calleeQn.isEmpty()) {
+                    CodeSymbol callee = globalSymbolTable.getByQualifiedName(calleeQn);
                     if (callee != null) {
                         call.setCalleeId(callee.getId());
                         call.setConfidence("EXTRACTED");
                         resolvedCalls++;
                     } else {
-                        callee = fuzzyMatchSymbol(calleeQualifiedName, globalSymbolTable);
+                        callee = fuzzyMatchSymbol(calleeQn, globalSymbolTable);
                         if (callee != null) {
                             call.setCalleeId(callee.getId());
                             call.setConfidence("EXTRACTED");
@@ -139,20 +284,18 @@ public class ProjectAnalyzer {
                         } else {
                             call.setConfidence("INFERRED");
                             unresolvedCalls++;
-                            if (LOG.isTraceEnabled()) {
-                                LOG.trace("Unresolved callee: {} in file {}",
-                                        calleeQualifiedName, file.getFilePath());
-                            }
                         }
                     }
                 }
             }
         }
 
-        LOG.info("Call resolution complete: {} resolved, {} unresolved",
-                resolvedCalls, unresolvedCalls);
+        LOG.info("Call resolution complete: {} resolved, {} unresolved", resolvedCalls, unresolvedCalls);
+        return new int[]{resolvedCalls, unresolvedCalls};
+    }
 
-        // 构建统计信息
+    private ProjectStats buildStats(List<CodeFileAnalysisResult> fileResults,
+                                    SymbolTable globalSymbolTable, int resolvedCalls, int unresolvedCalls) {
         ProjectStats stats = new ProjectStats();
         stats.setTotalFiles(fileResults.size());
         stats.setTotalSymbols(globalSymbolTable.size());
@@ -160,7 +303,6 @@ public class ProjectAnalyzer {
         stats.setResolvedCalls(resolvedCalls);
         stats.setUnresolvedCalls(unresolvedCalls);
 
-        // 按符号类型统计
         Map<CodeSymbolKind, Integer> symbolCounts = new HashMap<>();
         for (CodeSymbol symbol : globalSymbolTable.getAll()) {
             symbolCounts.merge(symbol.getKind(), 1, Integer::sum);
@@ -173,7 +315,7 @@ public class ProjectAnalyzer {
         }
         stats.setLanguageFamilyCounts(languageFamilyCounts);
 
-        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        return stats;
     }
 
     /**
@@ -286,55 +428,12 @@ public class ProjectAnalyzer {
         }
 
         // 第三阶段：重新解析跨文件调用引用
-        int resolvedCalls = 0;
-        int unresolvedCalls = 0;
-
-        for (CodeFileAnalysisResult file : fileResults) {
-            for (CodeMethodCall call : file.getCalls()) {
-                String calleeQualifiedName = call.getCalleeQualifiedName();
-                if (calleeQualifiedName != null && !calleeQualifiedName.isEmpty()) {
-                    CodeSymbol callee = globalSymbolTable.getByQualifiedName(calleeQualifiedName);
-                    if (callee != null) {
-                        call.setCalleeId(callee.getId());
-                        call.setConfidence("EXTRACTED");
-                        resolvedCalls++;
-                    } else {
-                        callee = fuzzyMatchSymbol(calleeQualifiedName, globalSymbolTable);
-                        if (callee != null) {
-                            call.setCalleeId(callee.getId());
-                            call.setConfidence("EXTRACTED");
-                            resolvedCalls++;
-                        } else {
-                            call.setConfidence("INFERRED");
-                            unresolvedCalls++;
-                        }
-                    }
-                }
-            }
-        }
+        int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
 
         LOG.info("Incremental analysis complete: {} files, {} resolved, {} unresolved",
-                fileResults.size(), resolvedCalls, unresolvedCalls);
+                fileResults.size(), callCounts[0], callCounts[1]);
 
-        // 构建统计信息
-        ProjectStats stats = new ProjectStats();
-        stats.setTotalFiles(fileResults.size());
-        stats.setTotalSymbols(globalSymbolTable.size());
-        stats.setTotalCalls(countTotalCalls(fileResults));
-        stats.setResolvedCalls(resolvedCalls);
-        stats.setUnresolvedCalls(unresolvedCalls);
-
-        Map<CodeSymbolKind, Integer> symbolCounts = new HashMap<>();
-        for (CodeSymbol symbol : globalSymbolTable.getAll()) {
-            symbolCounts.merge(symbol.getKind(), 1, Integer::sum);
-        }
-        stats.setSymbolCounts(symbolCounts);
-
-        Map<LanguageFamily, Integer> languageFamilyCounts = new HashMap<>();
-        for (CodeFileAnalysisResult fr : fileResults) {
-            languageFamilyCounts.merge(LanguageFamily.fromLanguage(fr.getLanguage()), 1, Integer::sum);
-        }
-        stats.setLanguageFamilyCounts(languageFamilyCounts);
+        ProjectStats stats = buildStats(fileResults, globalSymbolTable, callCounts[0], callCounts[1]);
 
         return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
     }
@@ -416,6 +515,41 @@ public class ProjectAnalyzer {
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
+    }
+
+    /**
+     * 分析一批源文件，返回分析结果列表。
+     */
+    private List<CodeFileAnalysisResult> analyzeBatch(List<Path> files, Path projectRoot) {
+        List<CodeFileAnalysisResult> results = new ArrayList<>();
+        for (Path file : files) {
+            try {
+                String sourceCode = Files.readString(file);
+                String relativePath = projectRoot.relativize(file).toString();
+                ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
+                if (analyzer == null) {
+                    continue;
+                }
+                CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
+                if (result != null) {
+                    results.add(result);
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to analyze file: {} - {}", file, e.getMessage());
+            }
+        }
+        return results;
+    }
+
+    /**
+     * 将列表按指定大小拆分为多个子列表。
+     */
+    private static <T> List<List<T>> partition(List<T> list, int size) {
+        List<List<T>> parts = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += size) {
+            parts.add(list.subList(i, Math.min(i + size, list.size())));
+        }
+        return parts;
     }
 
     /**
