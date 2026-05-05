@@ -2,19 +2,26 @@
 <view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
 
     <forms>
-        <form id="queryForm" editMode="query" title="调用链查询">
+        <form id="queryForm" editMode="edit" title="调用链查询">
             <layout>
  indexId[索引ID]
  qualifiedName[方法全限定名]
  direction[方向]
  maxDepth[最大深度]
             </layout>
+
+            <cells>
+                <cell id="indexId" label="索引ID" domain="string"/>
+                <cell id="qualifiedName" label="方法全限定名" domain="string"/>
+                <cell id="direction" label="方向" domain="string"/>
+                <cell id="maxDepth" label="最大深度" domain="int"/>
+            </cells>
         </form>
     </forms>
 
     <pages>
         <simple name="main" form="queryForm">
-            <initApi url="@query:NopCodeCallHierarchy__get?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
+            <initApi url="@query:NopCodeSymbol__getCallHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
         </simple>
     </pages>
 </view>

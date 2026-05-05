@@ -13,6 +13,9 @@ import io.nop.code.biz.INopCodeSymbolBiz;
 import io.nop.code.core.model.*;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.service.api.ICodeIndexService;
+import io.nop.code.service.api.dto.CallHierarchyDTO;
+import io.nop.code.service.api.dto.TypeHierarchyDTO;
+import io.nop.code.service.api.dto.TypeOutlineDTO;
 import jakarta.inject.Inject;
 
 import java.util.List;
@@ -83,5 +86,34 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
             @Name("linesAfter") int linesAfter) {
         return codeIndexService.getSymbolSourceCode(indexId != null ? indexId : "test",
                 symbol.getId(), linesBefore, linesAfter > 0 ? linesAfter : 5);
+    }
+
+    @BizQuery
+    public List<TypeOutlineDTO> batchGetOutlines(
+            @Name("qualifiedNames") List<String> qualifiedNames,
+            @Name("indexId") String indexId) {
+        return codeIndexService.batchGetTypeOutlines(indexId, qualifiedNames);
+    }
+
+    @BizQuery
+    public TypeHierarchyDTO getTypeHierarchy(
+            @Name("qualifiedName") String qualifiedName,
+            @Name("indexId") String indexId,
+            @Name("direction") String direction,
+            @Name("maxDepth") int maxDepth) {
+        String dir = direction != null ? direction : "both";
+        int depth = maxDepth > 0 ? maxDepth : 5;
+        return codeIndexService.getTypeHierarchy(indexId, qualifiedName, dir, depth);
+    }
+
+    @BizQuery
+    public CallHierarchyDTO getCallHierarchy(
+            @Name("qualifiedName") String qualifiedName,
+            @Name("indexId") String indexId,
+            @Name("direction") String direction,
+            @Name("maxDepth") int maxDepth) {
+        String dir = direction != null ? direction : "both";
+        int depth = maxDepth > 0 ? maxDepth : 3;
+        return codeIndexService.getCallHierarchy(indexId, qualifiedName, dir, depth);
     }
 }

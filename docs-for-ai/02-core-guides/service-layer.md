@@ -65,6 +65,24 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 | 更新实体 | `updateEntity(entity, action, context)` |
 | 删除实体 | `deleteEntity(entity, action, context)` / `delete(id, context)` |
 
+## BizModel 必须对应真实聚合根
+
+**每个 `@BizModel` 必须对应一个有 xmeta 的实体（聚合根）。** 不允许创建无 ORM 实体、无 xmeta 的"伪 BizModel"。
+
+原因：
+
+1. GraphQL 引擎通过 xmeta 构建 object definition。没有 xmeta，`@query:` 前端请求会报"未定义的对象"。
+2. RPC `/r/` 路径不校验 GraphQL schema，所以伪 BizModel 在 RPC 测试中能通过，但浏览器页面会失败。
+3. 方法应该属于它所操作的聚合根。如果操作的是符号，方法就放 `NopCodeSymbolBizModel`；如果是索引级操作，放 `NopCodeIndexBizModel`。
+
+判断规则：
+
+| 操作对象 | 应归属的 BizModel |
+|---------|-----------------|
+| 符号的类型层级/调用链/类型信息 | `NopCodeSymbol` |
+| 索引级别的分析（图分析、社区检测等） | `NopCodeIndex` |
+| 某实体的派生查询 | 该实体本身的 BizModel |
+
 ## 默认不要这样写
 
 | 不推荐 | 原因 |
@@ -74,6 +92,7 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 | `dao().saveEntity(entity)` 作为默认模板 | 绕过上层封装与默认行为 |
 | `@BizMutation @Transactional` | 重复事务包裹 |
 | 直接注入其他 BizModel 实现类 | 降低跨模块可替换性 |
+| 创建无 xmeta 的伪 BizModel | GraphQL 无法识别，浏览器页面报"未定义的对象" |
 
 ## 何时拆 Processor
 

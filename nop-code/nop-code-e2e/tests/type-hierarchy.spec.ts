@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { rpc } from './helpers/graphql.js';
+import { rpc, loginRpc } from './helpers/graphql.js';
 
 const INDEX_ID = 'test-e2e';
 const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../nop-code/nop-code-service');
@@ -16,6 +16,7 @@ async function login(page) {
 
 test.describe('类型层级查询', () => {
   test.beforeAll(async ({ request }) => {
+    await loginRpc(request);
     const resp = await rpc(request, 'NopCodeIndex__indexDirectory', {
       indexId: INDEX_ID,
       directoryPath: TEST_PROJECT_DIR,
@@ -27,7 +28,7 @@ test.describe('类型层级查询', () => {
   test('RPC: 查询 super 方向类型层级', async ({ request }) => {
     const resp = await rpc<{ symbol: { name: string; qualifiedName: string }; superTypes: unknown[] }>(
       request,
-      'NopCodeTypeHierarchy__getTypeHierarchy',
+      'NopCodeSymbol__getTypeHierarchy',
       {
         indexId: INDEX_ID,
         qualifiedName: 'io.nop.code.service.impl.CodeIndexService',
@@ -44,7 +45,7 @@ test.describe('类型层级查询', () => {
   test('RPC: 查询 sub 方向类型层级', async ({ request }) => {
     const resp = await rpc<{ symbol: { name: string }; subTypes: unknown[] }>(
       request,
-      'NopCodeTypeHierarchy__getTypeHierarchy',
+      'NopCodeSymbol__getTypeHierarchy',
       {
         indexId: INDEX_ID,
         qualifiedName: 'io.nop.code.service.api.ICodeIndexService',
@@ -59,7 +60,7 @@ test.describe('类型层级查询', () => {
   });
 
   test('RPC: 查询不存在的类型正常返回', async ({ request }) => {
-    const resp = await rpc(request, 'NopCodeTypeHierarchy__getTypeHierarchy', {
+    const resp = await rpc(request, 'NopCodeSymbol__getTypeHierarchy', {
       indexId: INDEX_ID,
       qualifiedName: 'com.nonexistent.FooBar',
       direction: 'both',
@@ -93,7 +94,7 @@ test.describe('类型层级查询', () => {
     await page.locator('input[name="maxDepth"]').fill('3');
 
     const responsePromise = page.waitForResponse(
-      (resp) => resp.url().includes('/graphql') && resp.request().postData()?.includes('NopCodeTypeHierarchy'),
+      (resp) => resp.url().includes('/graphql') && resp.request().postData()?.includes('NopCodeSymbol'),
     );
     await page.getByRole('button', { name: '提交' }).click();
     await responsePromise;

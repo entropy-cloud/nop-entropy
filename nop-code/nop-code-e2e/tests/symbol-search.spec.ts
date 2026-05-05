@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { rpc } from './helpers/graphql.js';
+import { rpc, loginRpc } from './helpers/graphql.js';
 
 const INDEX_ID = 'test-symbol-e2e';
 const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../nop-code/nop-code-service');
@@ -16,6 +16,7 @@ async function login(page) {
 
 test.describe('符号搜索', () => {
   test.beforeAll(async ({ request }) => {
+    await loginRpc(request);
     const resp = await rpc(request, 'NopCodeIndex__indexDirectory', {
       indexId: INDEX_ID,
       directoryPath: TEST_PROJECT_DIR,

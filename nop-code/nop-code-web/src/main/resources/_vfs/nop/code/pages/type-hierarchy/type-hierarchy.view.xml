@@ -21,7 +21,7 @@
 
     <pages>
         <simple name="main" form="queryForm">
-            <api url="@query:NopCodeTypeHierarchy__getTypeHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
+            <api url="@query:NopCodeSymbol__getTypeHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
         </simple>
     </pages>
 </view>

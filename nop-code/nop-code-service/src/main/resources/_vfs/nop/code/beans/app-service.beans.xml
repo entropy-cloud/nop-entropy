@@ -10,9 +10,4 @@
 
     <bean id="io.nop.code.service.impl.CodeIndexService" ioc:default="true"
           class="io.nop.code.service.impl.CodeIndexService"/>
-
-    <bean id="io.nop.code.service.entity.NopCodeAnalysisBizModel" ioc:type="@bean:id" ioc:default="true"/>
-    <bean id="io.nop.code.service.entity.NopCodeCallHierarchyBizModel" ioc:type="@bean:id" ioc:default="true"/>
-    <bean id="io.nop.code.service.entity.NopCodeTypeHierarchyBizModel" ioc:type="@bean:id" ioc:default="true"/>
-    <bean id="io.nop.code.service.entity.NopCodeTypeBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>
