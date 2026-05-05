@@ -4,157 +4,132 @@
     "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
-  Checkstyle Configuration for Nop Platform
-  Code quality check rules based on project coding standards
+  Checkstyle Configuration for Nop Platform 2.0
+
+  设计原则：
+  1. 只检测真正的 BUG 和潜在缺陷，不强制编码风格
+  2. 风格相关规则已按 nop-entropy 项目实际编码习惯配置
+  3. 自动生成文件（_gen/、_前缀文件）由 sonar.exclusions 排除，此处不重复处理
+  4. 与 SonarQube 互补：Checkstyle 做编译前快速拦截，SonarQube 做深度分析
 -->
 <module name="Checker">
 
-    <!-- Property definitions -->
     <property name="charset" value="UTF-8"/>
     <property name="severity" value="warning"/>
-    <property name="fileExtensions" value="java, properties, xml"/>
+    <property name="fileExtensions" value="java"/>
 
-       <!-- Empty block checks -->
-    <module name="EmptyBlock">
-        <property name="option" value="text"/>
-    </module>
+    <!-- ================================================================== -->
+    <!--  Checker 级别规则（文件级检查）                                       -->
+    <!-- ================================================================== -->
 
-    <!-- Code block checks -->
-    <module name="LeftCurly">
-        <property name="option" value="eol"/>
-        <message key="line.previous" value="'{' should be at the end of the line"/>
-    </module>
-
-    <module name="RightCurly">
-        <property name="option" value="alone"/>
-        <message key="line.alone" value="'}' should be alone on a line"/>
-    </module>
-
-    <module name="NeedBraces">
-        <property name="allowSingleLineStatement" value="false"/>
-        <property name="allowEmptyLoopBody" value="false"/>
-        <property name="tokens" value="LITERAL_IF, LITERAL_ELSE, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO"/>
-    </module>
-
-   
-    <!-- Naming convention checks -->
-    <module name="Naming">
-        <!-- Class names: PascalCase -->
-        <module name="TypeName">
-            <property name="format" value="^[A-Z][a-zA-Z0-9]*$"/>
-            <message key="name.invalidPattern" value="Class name ''{0}'' should follow PascalCase format"/>
-        </module>
-
-        <!-- Method names: camelCase -->
-        <module name="MethodName">
-            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
-            <message key="name.invalidPattern" value="Method name ''{0}'' should follow camelCase format"/>
-        </module>
-
-        <!-- Variable names: camelCase -->
-        <module name="LocalVariableName">
-            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
-            <message key="name.invalidPattern" value="Variable name ''{0}'' should follow camelCase format"/>
-        </module>
-
-        <!-- Constant names: UPPER_SNAKE_CASE -->
-        <module name="ConstantName">
-            <property name="format" value="^[A-Z][A-Z0-9_]*$"/>
-            <message key="name.invalidPattern" value="Constant name ''{0}'' should follow UPPER_SNAKE_CASE format"/>
-        </module>
-
-        <!-- Parameter names: camelCase -->
-        <module name="ParameterName">
-            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
-            <message key="name.invalidPattern" value="Parameter name ''{0}'' should follow camelCase format"/>
-        </module>
-    </module>
-
-    <!-- Import checks -->
-    <module name="UnusedImports"/>
-    <module name="RedundantImport"/>
-    <module name="AvoidStarImport">
-        <message key="import.avoidStar" value="Avoid using star import statements"/>
-    </module>
-
-    <module name="MissingDeprecated">
-        <property name="skipJavadoc" value="false"/>
-    </module>
-
-    <!-- Code complexity checks -->
-    <module name="CyclomaticComplexity">
-        <property name="max" value="10"/>
-        <property name="switchMax" value="10"/>
-        <message key="cyclomaticComplexity" value="Cyclomatic complexity is {0}, recommended maximum is 10"/>
-    </module>
-
-    <module name="JavaNCSS">
-        <property name="methodMaximum" value="50"/>
-        <property name="classMaximum" value="500"/>
-        <message key="ncs.method" value="Method non-commented source statement count is {0}, recommended maximum is 50"/>
-    </module>
-
-    <!-- Code duplication checks -->
+    <!--
+      System.out/err 检测
+      cli/、boot/、benchmark 模块合法使用 System.out，通过 suppression 过滤
+    -->
     <module name="RegexpSingleline">
-        <property name="format" value="System\.out\.println"/>
-        <property name="message" value="Please use SLF4J logging framework instead of System.out.println"/>
+        <property name="format" value="System\.(out|err)\.print"/>
+        <property name="message" value="核心模块请使用 SLF4J Logger 替代 System.out/err"/>
     </module>
 
-    <module name="RegexpSingleline">
-        <property name="format" value="System\.err\.println"/>
-        <property name="message" value="Please use SLF4J logging framework instead of System.err.println"/>
+    <!-- ================================================================== -->
+    <!--  TreeWalker 级别规则（AST 检查）                                     -->
+    <!-- ================================================================== -->
+    <module name="TreeWalker">
+
+        <!-- ========== 一、BUG 检测（质量红线） ================ -->
+
+        <!-- 空块检测：允许空块但必须有注释说明原因 -->
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+        </module>
+
+        <!-- 空 catch 块：仅允许变量名为 "expected" 的空 catch -->
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="expected"/>
+        </module>
+
+        <!-- 共变 equals：定义了 equals() 但没有覆盖 Object.equals() -->
+        <module name="CovariantEquals"/>
+
+        <!-- 禁止 finalize() 方法 -->
+        <module name="NoFinalizer"/>
+
+        <!-- 字符串字面量用 == 比较而非 equals() -->
+        <module name="StringLiteralEquality"/>
+
+        <!-- 禁止 native 方法 -->
+        <module name="IllegalToken">
+            <property name="tokens" value="LITERAL_NATIVE"/>
+        </module>
+
+        <!-- 未使用的 import -->
+        <module name="UnusedImports"/>
+
+        <!-- 冗余 import -->
+        <module name="RedundantImport"/>
+
+        <!-- @Deprecated 标注一致性 -->
+        <module name="MissingDeprecated"/>
+
+        <!-- ========== 二、按项目实际风格调整的复杂度规则 ========== -->
+
+        <!--
+          圈复杂度：放宽到 15
+          项目框架代码逻辑分支多，原值 10 产生大量噪音
+        -->
+        <module name="CyclomaticComplexity">
+            <property name="max" value="15"/>
+        </module>
+
+        <!--
+          方法长度：150 行
+          项目实际大部分方法在 50 行内，150 行是合理的上限
+        -->
+        <module name="MethodLength">
+            <property name="max" value="150"/>
+            <property name="countEmpty" value="false"/>
+        </module>
+
+        <!--
+          参数数量：7 个
+          Nop 平台 API 方法参数较多，7 个是合理上限
+        -->
+        <module name="ParameterNumber">
+            <property name="max" value="7"/>
+        </module>
+
+        <!--
+          匿名内部类长度：放宽到 40 行
+          项目中 Lambda 和 Stream 使用广泛，20 行限制太严格
+        -->
+        <module name="AnonInnerLength">
+            <property name="max" value="40"/>
+        </module>
+
+        <!--
+          MagicNumber：允许 -1, 0, 1, 2, 3, 10, 100
+          项目大量使用常见字面量，这些数字语义清晰无需常量化
+        -->
+        <module name="MagicNumber">
+            <property name="ignoreNumbers" value="-1, 0, 1, 2, 3, 10, 100"/>
+            <property name="ignoreHashCodeMethod" value="true"/>
+        </module>
+
+        <!--
+          IllegalThrows：保留检测，但允许 throws Exception
+          Nop 平台统一使用 NopException 体系，标注 throws Exception 是合法模式
+        -->
+        <module name="IllegalThrows">
+            <property name="illegalClassNames" value="java.lang.Error, java.lang.RuntimeException, java.lang.Throwable"/>
+        </module>
+
+        <!--
+          Star import：允许 static star import（项目常用 import static xxx.*）
+          普通星号导入仍然禁止
+        -->
+        <module name="AvoidStarImport">
+            <property name="allowStaticMemberImports" value="true"/>
+        </module>
+
     </module>
-
-    <!-- Equals and hashCode checks -->
-    <module name="CovariantEquals"/>
-
-    <!-- Finalizer checks -->
-    <module name="NoFinalizer"/>
-
-    <!-- Magic numbers and strings checks -->
-    <module name="MagicNumber">
-        <property name="ignoreNumbers" value="-1, 0, 1, 2"/>
-        <property name="ignoreHashCodeMethod" value="true"/>
-        <property name="ignoreEqualsMethod" value="true"/>
-        <message key="magic.number" value="Please define a constant for number {0}"/>
-    </module>
-
-    <module name="StringLiteralEquality">
-        <message key="string.literal.equality" value="String comparison should use equals() method instead of =="/>
-    </module>
-
-    <!-- Exception handling checks -->
-    <module name="EmptyCatch">
-        <property name="exceptionVariableName" value="expected"/>
-        <message key="catch.block.empty" value="Catch block should not be empty"/>
-    </module>
-
-    <module name="IllegalThrows">
-        <property name="illegalClassNames" value="java.lang.Error, java.lang.RuntimeException, java.lang.Throwable, java.lang.Exception"/>
-        <message key="illegal.throws" value="Do not throw {0}, throw more specific exceptions"/>
-    </module>
-
-    <module name="IllegalToken">
-        <property name="tokens" value="LITERAL_NATIVE"/>
-        <message key="illegal.token" value="Do not use native method"/>
-    </module>
-
-
-    <!-- Size checks -->
-    <module name="MethodLength">
-        <property name="max" value="150"/>
-        <property name="countEmpty" value="false"/>
-        <message key="maxLen.method" value="Method length is {0} lines, recommended maximum is 150 lines"/>
-    </module>
-
-    <module name="ParameterNumber">
-        <property name="max" value="7"/>
-        <message key="maxParam" value="Parameter count is {0}, recommended maximum is 7 parameters"/>
-    </module>
-
-    <module name="AnonInnerLength">
-        <property name="max" value="20"/>
-        <message key="maxLen.anonInner" value="Anonymous inner class length is {0} lines, recommended maximum is 20 lines"/>
-    </module>
-
 </module>
