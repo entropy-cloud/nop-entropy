@@ -237,6 +237,106 @@ Nop 平台大量使用代码生成，以下文件不参与质量检查：
 | `**/cli/**` | 排除 S106 | CLI 工具合法使用 System.out |
 | `**/boot/**` | 排除 S106 | 启动 banner 使用 System.out |
 
+## PMD 规则设计
+
+### 设计原则
+
+与 checkstyle 一致：**仅检测真正的 BUG 和安全缺陷**，不强制编码风格。
+
+### 为什么使用显式规则列表而非 category 排除
+
+PMD 版本升级会大量重命名规则（PMD 7.7.0 → 7.17.0 已发生），导致 `<exclude>` 引用失效、规则泄露。
+使用显式列表 `category/java/errorprone.xml/RuleName` 仅启用确认的规则，PMD 升级时规则若被删除会直接报错（而非静默丢失）。
+
+### 启用的规则
+
+| 规则 | 类别 | 检测内容 |
+|------|------|----------|
+| `EmptyCatchBlock` | Error Prone | 空 catch 块吞掉异常 |
+| `JumbledIncrementer` | Error Prone | 嵌套循环使用相同变量 |
+| `AvoidBranchingStatementAsLastInLoop` | Error Prone | 循环末尾 break/return 可能是逻辑错误 |
+| `ImplicitSwitchFallThrough` | Error Prone | switch 隐式穿透 |
+| `CloneMethodMustImplementCloneable` | Error Prone | clone() 但未实现 Cloneable |
+| `CloneMethodReturnTypeMustMatchClassName` | Error Prone | clone() 返回类型不匹配 |
+| `ProperCloneImplementation` | Error Prone | clone() 实现不正确 |
+| `HardCodedCryptoKey` | Security | 硬编码加密密钥 |
+| `InsecureCryptoIv` | Security | 不安全的加密 IV |
+
+### 审计数据
+
+nop-commons 初始 PMD 审计（PMD 7.17.0，使用默认规则集）：
+
+| 排名 | 规则 | 数量 | 处理 |
+|------|------|------|------|
+| 1 | UselessParentheses | 75 | 排除（风格偏好，括号增加可读性） |
+| 2 | UnnecessaryFullyQualifiedName | 73 | 排除（风格偏好，显式引用更清晰） |
+| 3 | CollapsibleIfStatements | 33 | 排除（风格偏好，分开写更可读） |
+| 4 | TooManyStaticImports | 11 | 排除（项目惯用 static import 模式） |
+| 5-12 | Error Prone 规则 | 14 | 保留（真正的 BUG） |
+
+配置后：**206 → 13 violations**（nop-commons）、**53 violations**（nop-kernel 全模块）
+
+## SpotBugs 规则设计
+
+### 设计原则
+
+SpotBugs 检测范围更广（字节码级分析），但也对项目架构模式产生大量误报。排除与 Nop 架构冲突的规则后，保留真正有价值的发现。
+
+### 排除的规则及原因
+
+| 排除的规则 | 数量(nop-commons) | 删除原因 |
+|-----------|---------|----------|
+| `EI_EXPOSE_REP` | 44 | getter 返回可变对象是项目标准模式 |
+| `EI_EXPOSE_REP2` | 61 | setter 接收可变对象是项目标准模式 |
+| `CT_CONSTRUCTOR_THROW` | 19 | 构造函数验证抛异常是标准验证模式 |
+| `AT_STALE_THREAD_WRITE_OF_PRIMITIVE` | 12 | NopIoC 管理生命周期，setter 不需 volatile |
+| `PA_PUBLIC_PRIMITIVE_ATTRIBUTE` | 11 | NopIoC 要求 public/protected 字段 |
+| `MS_SHOULD_BE_FINAL` | 7 | 框架层需要可变 static 字段（注册表、缓存） |
+| `MS_EXPOSE_REP` | 5 | static 方法返回内部可变对象是有意设计 |
+| `MS_PKGPROTECT` | 5 | 字段可见性是框架设计选择 |
+| `AT_NONATOMIC_64BIT_PRIMITIVE` | 5 | 同 AT_STALE，IoC 管理生命周期 |
+| `AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE` | 5 | 同上 |
+
+### 保留的 SpotBugs 发现类型（nop-kernel 全模块）
+
+| 类型 | 数量 | 说明 |
+|------|------|------|
+| `SE_BAD_FIELD` | 38 | 序列化字段类型不可序列化 |
+| `SING_SINGLETON_HAS_NONPRIVATE_CONSTRUCTOR` | 16 | 单例构造器非 private |
+| `NP_BOOLEAN_RETURN_NULL` | 14 | Boolean 方法返回 null |
+| `SF_SWITCH_NO_DEFAULT` | 12 | switch 无 default 分支 |
+| `EQ_COMPARETO_USE_OBJECT_EQUALS` | 12 | compareTo 使用 Object.equals |
+| `NP_LOAD_OF_KNOWN_NULL_VALUE` | 10 | 加载已知 null 值 |
+| `IS2_INCONSISTENT_SYNC` | 10 | 不一致的同步 |
+| `URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD` | 9 | 未读取的字段 |
+| `RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE` | 9 | 冗余 null 检查 |
+| `其他` (20+ types) | ~100 | 资源泄漏、死存储等 |
+
+配置后：**199 → 48 findings**（nop-commons）、**~450 findings**（nop-kernel 全模块）
+
+## 运行方式（已验证）
+
+```bash
+# 从 nop-kernel 目录运行（qa profile 在此定义）
+cd nop-kernel
+
+# PMD（仅 nop-commons）
+mvn pmd:pmd -pl nop-commons -Pqa
+
+# PMD（全 nop-kernel）
+mvn pmd:pmd -Pqa
+
+# SpotBugs（仅 nop-commons）
+mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs -pl nop-commons -Pqa
+
+# SpotBugs（全 nop-kernel）
+mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs -Pqa
+```
+
+> **重要**：由于项目结构（nop-kernel 子模块无 parent 继承），qa profile 仅在 `nop-kernel/pom.xml` 中定义并生效。
+> 从根目录使用 `-pl` 时 profile 不会激活（Maven 3.9/4.0 已验证）。
+> 检查结果位于各模块的 `target/pmd.xml` 和 `target/spotbugsXml.xml`。
+
 ## 文件变更记录
 
 | 文件 | 变更类型 | 说明 |
@@ -247,7 +347,10 @@ Nop 平台大量使用代码生成，以下文件不参与质量检查：
 | `pom.xml` | 更新 sonar.exclusions | 新增 `**/_*.java`、`**/_*.xml` |
 | `pom.xml` | 更新 jacoco excludes | 新增 `_*.java`、`_*.xml`，路径改为 `**` 递归匹配 |
 | `spotbugs-exclude.xml` | 新增 | 排除生成文件 |
-| `pmd-ruleset.xml` | 新增 | 精选规则集 |
+| `pmd-ruleset.xml` | 重写 | 改为显式规则列表（避免 PMD 版本升级噪声） |
+| `spotbugs-exclude.xml` | 扩展 | 排除 EI_EXPOSE_REP*、CT_CONSTRUCTOR_THROW、AT_* 等架构冲突规则 |
+| `pom.xml` | PMD 升级 | maven-pmd-plugin 3.26.0 → 3.28.0（PMD 7.17.0） |
+| `nop-kernel/pom.xml` | 新增 qa profile | 与根 pom 一致的 QA 工具配置 |
 | `nop-kernel/pom.xml` | 同步 sonar 属性 | 与根 pom 保持一致 |
 
 ## Open Questions
