@@ -32,17 +32,23 @@
         <main.basedir>${basedir}</main.basedir>
         <docs.main>${project.artifactId}</docs.main>
 
-        <!-- Sonar -->
-        <!--        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>-->
-        <!--        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>-->
+        <!-- Sonar: 使用 mvn sonar:sonar 主动触发，不参与日常构建 -->
         <sonar.coverage.jacoco.xmlReportPaths>
             ${maven.multiModuleProjectDirectory}/tests/target/site/jacoco-aggregate/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
         <sonar.language>java</sonar.language>
+        <sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
 
+        <!-- 排除自动生成文件：_gen 目录、_ 前缀文件、Errors/Configs/Constants -->
         <sonar.exclusions>
-            **/_gen/**, **/*Errors.java,**/*Configs.java,**/*Constants.java
+            **/_gen/**,**/_*.java,**/_*.xml,**/*Errors.java,**/*Configs.java,**/*Constants.java
         </sonar.exclusions>
+        <sonar.coverage.exclusions>
+            **/_gen/**,**/_*.java,**/*Errors.java,**/*Configs.java,**/*Constants.java,**/parse/antlr/**
+        </sonar.coverage.exclusions>
+        <sonar.cpd.exclusions>
+            **/_gen/**,**/_*.java,**/*Errors.java,**/*Configs.java,**/*Constants.java
+        </sonar.cpd.exclusions>
 
         <!-- Plugins -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
@@ -438,12 +444,67 @@
                         </executions>
                         <configuration>
                             <excludes>
-                                <exclude>**/_gen/*.*</exclude>
+                                <exclude>**/_gen/**</exclude>
+                                <exclude>**/_*.java</exclude>
+                                <exclude>**/_*.xml</exclude>
                                 <exclude>**/*Errors.*</exclude>
                                 <exclude>**/*Configs.*</exclude>
                                 <exclude>**/*Constants*</exclude>
-                                <exclude>**/parse/antlr/*.*</exclude>
+                                <exclude>**/parse/antlr/**</exclude>
                             </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- QA Profile: spotbugs + checkstyle + PMD 本地代码质量审计，仅主动调用 -->
+        <!-- 使用方式: ./mvnw checkstyle:check -Pqa  或  ./mvnw pmd:check -Pqa -->
+        <profile>
+            <id>qa</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.puppycrawl.tools</groupId>
+                                <artifactId>checkstyle</artifactId>
+                                <version>10.21.1</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <failOnViolation>false</failOnViolation>
+                            <configLocation>${main.basedir}/checkstyle.xml</configLocation>
+                            <consoleOutput>true</consoleOutput>
+                            <excludes>**/_gen/**,**/_*.java</excludes>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-pmd-plugin</artifactId>
+                        <version>3.26.0</version>
+                        <configuration>
+                            <failOnViolation>false</failOnViolation>
+                            <printFailingErrors>true</printFailingErrors>
+                            <excludes>
+                                <exclude>**/_gen/**</exclude>
+                                <exclude>**/_*.java</exclude>
+                            </excludes>
+                            <rulesets>
+                                <ruleset>${main.basedir}/pmd-ruleset.xml</ruleset>
+                            </rulesets>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <version>4.9.8.3</version>
+                        <configuration>
+                            <failOnError>false</failOnError>
+                            <excludeFilterFile>${main.basedir}/spotbugs-exclude.xml</excludeFilterFile>
+                            <threshold>low</threshold>
                         </configuration>
                     </plugin>
                 </plugins>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- 排除自动生成文件 -->
+    <Match>
+        <Package name="~.*\._gen.*"/>
+    </Match>
+    <Match>
+        <Class name="~.*_.*"/>
+    </Match>
+    <!-- 排除 Errors/Configs/Constants -->
+    <Match>
+        <Class name="~.*Errors"/>
+    </Match>
+    <Match>
+        <Class name="~.*Configs"/>
+    </Match>
+    <Match>
+        <Class name="~.*Constants"/>
+    </Match>
+    <!-- 排除 ANTLR 生成的解析器 -->
+    <Match>
+        <Package name="~.*\.parse\.antlr.*"/>
+    </Match>
+</FindBugsFilter>

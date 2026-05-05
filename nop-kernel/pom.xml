@@ -31,17 +31,23 @@
         <main.basedir>${basedir}</main.basedir>
         <docs.main>${project.artifactId}</docs.main>
 
-        <!-- Sonar -->
-        <!--        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>-->
-        <!--        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>-->
+        <!-- Sonar: 使用 mvn sonar:sonar 主动触发，不参与日常构建 -->
         <sonar.coverage.jacoco.xmlReportPaths>
             ${maven.multiModuleProjectDirectory}/tests/target/site/jacoco-aggregate/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
         <sonar.language>java</sonar.language>
+        <sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
 
+        <!-- 排除自动生成文件：_gen 目录、_ 前缀文件、Errors/Configs/Constants -->
         <sonar.exclusions>
-            **/_gen/**, **/*Errors.java,**/*Configs.java,**/*Constants.java
+            **/_gen/**,**/_*.java,**/_*.xml,**/*Errors.java,**/*Configs.java,**/*Constants.java
         </sonar.exclusions>
+        <sonar.coverage.exclusions>
+            **/_gen/**,**/_*.java,**/*Errors.java,**/*Configs.java,**/*Constants.java,**/parse/antlr/**
+        </sonar.coverage.exclusions>
+        <sonar.cpd.exclusions>
+            **/_gen/**,**/_*.java,**/*Errors.java,**/*Configs.java,**/*Constants.java
+        </sonar.cpd.exclusions>
 
         <!-- Plugins -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>

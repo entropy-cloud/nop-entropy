@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="nop-entropy-pmd-ruleset"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>Nop Entropy PMD 规则集 - 对应 SonarQube 主要检测类别</description>
+
+    <!-- 错误处理 -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="BeanMembersShouldSerialize"/>
+        <exclude name="DataflowAnomalyAnalysis"/>
+    </rule>
+
+    <!-- 代码设计 -->
+    <rule ref="category/java/design.xml">
+        <exclude name="LawOfDemeter"/>
+        <!-- 平台有很多抽象层，GodClass 暂不检测 -->
+        <exclude name="GodClass"/>
+    </rule>
+
+    <!-- 最佳实践 -->
+    <rule ref="category/java/bestpractices.xml">
+        <exclude name="JUnitTestContainsTooManyAsserts"/>
+        <exclude name="UseVarargs"/>
+    </rule>
+
+    <!-- 代码风格 -->
+    <rule ref="category/java/codestyle.xml">
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="CallSuperInConstructor"/>
+        <exclude name="CommentDefaultAccessModifier"/>
+        <exclude name="DefaultPackage"/>
+        <exclude name="LongVariable"/>
+    </rule>
+
+    <!-- 安全性 -->
+    <rule ref="category/java/security.xml"/>
+
+    <!-- 性能 -->
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+    </rule>
+
+    <!-- 多线程 -->
+    <rule ref="category/java/multithreading.xml">
+        <exclude name="UseConcurrentHashMap"/>
+        <exclude name="AvoidSynchronizedAtMethodLevel"/>
+    </rule>
+
+    <!-- 文档 -->
+    <rule ref="category/java/documentation.xml">
+        <exclude name="CommentRequired"/>
+        <exclude name="CommentSize"/>
+    </rule>
+</ruleset>
