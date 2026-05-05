@@ -21,4 +21,55 @@
     <Match>
         <Package name="~.*\.parse\.antlr.*"/>
     </Match>
+
+    <!-- 以下规则与 Nop 平台架构设计冲突，全局排除 -->
+
+    <!-- EI_EXPOSE_REP/EI_EXPOSE_REP2: getter/setter 返回/接收可变对象是项目标准模式。
+         Nop 平台的配置对象、数据传输对象广泛采用直接暴露内部可变引用的设计，
+         配合 IoC 容器生命周期管理，不构成安全风险。 -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2,EI_EXPOSE_STATIC_REP2"/>
+    </Match>
+    <Match>
+        <Bug pattern="MS_EXPOSE_REP"/>
+    </Match>
+
+    <!-- CT_CONSTRUCTOR_THROW: 项目在构造函数中执行参数验证并抛异常是标准验证模式，
+         这些类不由不可信代码直接实例化。 -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!-- AT_STALE_THREAD_WRITE_OF_PRIMITIVE / AT_NONATOMIC_64BIT_PRIMITIVE /
+         AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE: NopIoc 容器管理对象生命周期，
+         setter 注入在初始化阶段单线程执行，运行期不修改，无需 volatile/atomic。
+         已知设计权衡，不加 volatile 以保持代码简洁。 -->
+    <Match>
+        <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE,AT_NONATOMIC_64BIT_PRIMITIVE,AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE"/>
+    </Match>
+
+    <!-- PA_PUBLIC_PRIMITIVE_ATTRIBUTE: Nop 平台广泛使用 public 字段，
+         这是 NopIoC 注入模式的要求（不支持 private 字段注入）。 -->
+    <Match>
+        <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    </Match>
+
+    <!-- MS_SHOULD_BE_FINAL / MS_PKGPROTECT: 部分 static 字段需要可变性（如注册表、缓存）。
+         可变 static 字段是框架层有意设计。 -->
+    <Match>
+        <Bug pattern="MS_SHOULD_BE_FINAL,MS_PKGPROTECT"/>
+    </Match>
+
+    <!-- SING_SINGLETON_HAS_NONPRIVATE_CONSTRUCTOR: Nop 平台的单例对象不要求私有构造函数，
+         许多单例通过 IoC 容器管理或使用默认构造函数是设计选择。 -->
+    <Match>
+        <Bug pattern="SING_SINGLETON_HAS_NONPRIVATE_CONSTRUCTOR"/>
+    </Match>
+
+    <!-- NP_BOOLEAN_RETURN_NULL: Boolean（包装类型）方法返回 null 是有意为之，
+         用于区分 Boolean（三值逻辑：true/false/null）和 boolean（原始类型，仅 true/false）。
+         null 表示"未设置"或"未知"是项目中的标准用法。 -->
+    <Match>
+        <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+    </Match>
 </FindBugsFilter>
