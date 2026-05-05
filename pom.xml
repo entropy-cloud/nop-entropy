@@ -476,7 +476,7 @@
                         </dependencies>
                         <configuration>
                             <failOnViolation>false</failOnViolation>
-                            <configLocation>${main.basedir}/checkstyle.xml</configLocation>
+                            <configLocation>${maven.multiModuleProjectDirectory}/checkstyle.xml</configLocation>
                             <consoleOutput>true</consoleOutput>
                             <excludes>**/_gen/**,**/_*.java</excludes>
                         </configuration>
@@ -493,7 +493,7 @@
                                 <exclude>**/_*.java</exclude>
                             </excludes>
                             <rulesets>
-                                <ruleset>${main.basedir}/pmd-ruleset.xml</ruleset>
+                                <ruleset>${maven.multiModuleProjectDirectory}/pmd-ruleset.xml</ruleset>
                             </rulesets>
                         </configuration>
                     </plugin>
@@ -503,7 +503,7 @@
                         <version>4.9.8.3</version>
                         <configuration>
                             <failOnError>false</failOnError>
-                            <excludeFilterFile>${main.basedir}/spotbugs-exclude.xml</excludeFilterFile>
+                            <excludeFilterFile>${maven.multiModuleProjectDirectory}/spotbugs-exclude.xml</excludeFilterFile>
                             <threshold>low</threshold>
                         </configuration>
                     </plugin>

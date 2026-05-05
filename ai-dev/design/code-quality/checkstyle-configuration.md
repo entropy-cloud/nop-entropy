@@ -22,21 +22,30 @@ Nop Entropy 使用 Checkstyle + PMD + SpotBugs 三件套做本地代码质量审
 ## 运行方式
 
 ```bash
-# Checkstyle（不需要编译）
-./mvnw org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check \
-  -Dcheckstyle.config.location="file://$(pwd)/checkstyle.xml" \
+# Checkstyle（不需要编译，Maven 3.9+ 和 Maven 4 均可）
+mvn checkstyle:check \
+  -Dcheckstyle.config.location="$(pwd)/checkstyle.xml" \
   -Dcheckstyle.excludes="**/_gen/**,**/_*.java" \
   -Dcheckstyle.failOnViolation=false
 
-# PMD（不需要编译）
-./mvnw pmd:pmd -Pqa
+# 指定单个模块
+mvn checkstyle:check -pl nop-kernel/nop-commons \
+  -Dcheckstyle.config.location="$(pwd)/checkstyle.xml" \
+  -Dcheckstyle.excludes="**/_gen/**,**/_*.java" \
+  -Dcheckstyle.failOnViolation=false
+
+# PMD
+mvn pmd:pmd -Pqa
 
 # SpotBugs（需要先编译）
-./mvnw compile spotbugs:check -Pqa
+mvn compile spotbugs:check -Pqa
 
 # SonarQube（需要 SonarQube Server）
-./mvnw sonar:sonar -Dsonar.host.url=... -Dsonar.login=...
+mvn sonar:sonar -Dsonar.host.url=... -Dsonar.login=...
 ```
+
+> **注意**：checkstyle 的 `configLocation` 必须通过 `-Dcheckstyle.config.location` 系统属性传递。
+> 不能依赖 pom 中 qa profile 的 `<configLocation>`，因为 Maven 3/4 的 CLI goal 调用不读取 profile 中的 plugin configuration。
 
 ## 自动生成文件排除
 
