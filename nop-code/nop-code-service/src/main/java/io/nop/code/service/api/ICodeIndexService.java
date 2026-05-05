@@ -4,7 +4,6 @@ import io.nop.api.core.beans.PageBean;
 import io.nop.code.core.model.*;
 import io.nop.code.service.api.dto.*;
 
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -17,7 +16,7 @@ public interface ICodeIndexService {
     /**
      * 索引一个目录
      */
-    int indexDirectory(String indexId, Path directoryPath, String filePattern);
+    int indexDirectory(String indexId, String vfsPath, String filePattern);
 
     /**
      * 索引指定文件
@@ -81,7 +80,7 @@ public interface ICodeIndexService {
 
     // ==================== Incremental Indexing ====================
 
-    int triggerIncrementalIndex(String indexId, Path projectPath, Path manifestPath);
+    int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath);
 
     // ==================== Index Management ====================
 

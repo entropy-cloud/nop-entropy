@@ -8,10 +8,16 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.analyzer.CommunityDetector;
 import io.nop.code.core.analyzer.EntryPointScorer;
+import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.analyzer.ImpactAnalyzer;
+import io.nop.code.core.analyzer.ILanguageAdapter;
 import io.nop.code.core.analyzer.ProjectAnalyzer;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.incremental.ChangeSet;
+import io.nop.code.core.incremental.FileFingerprint;
+import io.nop.code.core.incremental.IncrementalDetector;
+import io.nop.code.core.incremental.ManifestStore;
 import io.nop.code.core.model.*;
 import io.nop.code.dao.entity.NopCodeAnnotationUsage;
 import io.nop.code.dao.entity.NopCodeCall;
@@ -22,8 +28,15 @@ import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.lang.java.JavaLanguageAdapter;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.*;
+import io.nop.commons.batch.BatchQueue;
+import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmSession;
+import io.nop.orm.IOrmTemplate;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceLoader;
+import io.nop.core.resource.VirtualFileSystem;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +45,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static io.nop.code.service.NopCodeErrors.*;
 
@@ -40,11 +52,16 @@ public class CodeIndexService implements ICodeIndexService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeIndexService.class);
 
+    private static final int BATCH_SIZE = 1000;
+
     protected final LanguageAdapterRegistry registry;
     protected final ProjectAnalyzer analyzer;
 
     @Inject
     protected IDaoProvider daoProvider;
+
+    @Inject
+    protected IOrmTemplate ormTemplate;
 
     public CodeIndexService() {
         this.registry = new LanguageAdapterRegistry();
@@ -153,24 +170,28 @@ public class CodeIndexService implements ICodeIndexService {
     // ==================== Indexing ====================
 
     @Override
-    public int indexDirectory(String indexId, Path directoryPath, String filePattern) {
-        try {
-            ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(directoryPath);
-            persistAnalysisResult(indexId, result);
+    public int indexDirectory(String indexId, String vfsPath, String filePattern) {
+        return ormTemplate.runInSession(session -> {
+            ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(
+                    VirtualFileSystem.instance(), vfsPath, filePattern);
+
+            persistInSession(indexId, result, session);
             return result.getFileResults().size();
-        } catch (IOException e) {
-            throw new NopException(ERR_INDEX_DIRECTORY_FAILED).param(ARG_PATH, directoryPath).cause(e);
-        }
+        });
     }
 
     @Override
     public CodeFileAnalysisResult indexFile(String indexId, String filePath, String sourceCode) {
-        var fileAnalyzer = registry.getAnalyzer(filePath);
+        ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(filePath);
         if (fileAnalyzer == null) {
             throw new NopException(ERR_NO_ANALYZER_FOR_FILE).param(ARG_FILE_PATH, filePath);
         }
         CodeFileAnalysisResult result = fileAnalyzer.analyze(filePath, sourceCode);
-        persistSingleFileResult(indexId, result);
+
+        ormTemplate.runInSession(session -> {
+            persistSingleFileInSession(indexId, result, session);
+            return null;
+        });
         return result;
     }
 
@@ -612,39 +633,39 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public void deleteIndex(String indexId) {
-        if (daoProvider == null) return;
+        ormTemplate.runInSession(session -> {
+            try {
+                IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
+                QueryBean annotQuery = new QueryBean();
+                annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
+                annotDao.batchDeleteEntities(annotDao.findAllByQuery(annotQuery));
 
-        try {
-            // Delete in reverse dependency order using targeted QueryBean
-            IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
-            QueryBean annotQuery = new QueryBean();
-            annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            annotDao.batchDeleteEntities(annotDao.findAllByQuery(annotQuery));
+                IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
+                QueryBean inhQuery = new QueryBean();
+                inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
+                inhDao.batchDeleteEntities(inhDao.findAllByQuery(inhQuery));
 
-            IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
-            QueryBean inhQuery = new QueryBean();
-            inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            inhDao.batchDeleteEntities(inhDao.findAllByQuery(inhQuery));
+                IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
+                QueryBean callQuery = new QueryBean();
+                callQuery.addFilter(FilterBeans.eq("indexId", indexId));
+                callDao.batchDeleteEntities(callDao.findAllByQuery(callQuery));
 
-            IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
-            QueryBean callQuery = new QueryBean();
-            callQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            callDao.batchDeleteEntities(callDao.findAllByQuery(callQuery));
+                IEntityDao<NopCodeSymbol> symDao = daoProvider.daoFor(NopCodeSymbol.class);
+                QueryBean symQuery = new QueryBean();
+                symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+                symDao.batchDeleteEntities(symDao.findAllByQuery(symQuery));
 
-            IEntityDao<NopCodeSymbol> symDao = daoProvider.daoFor(NopCodeSymbol.class);
-            QueryBean symQuery = new QueryBean();
-            symQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            symDao.batchDeleteEntities(symDao.findAllByQuery(symQuery));
+                IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+                QueryBean fileQuery = new QueryBean();
+                fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
+                fileDao.batchDeleteEntities(fileDao.findAllByQuery(fileQuery));
 
-            IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
-            QueryBean fileQuery = new QueryBean();
-            fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            fileDao.batchDeleteEntities(fileDao.findAllByQuery(fileQuery));
-
-            daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
-        } catch (Exception e) {
-            LOG.warn("Failed to cleanup DB records for index {}", indexId, e);
-        }
+                daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
+            } catch (Exception e) {
+                LOG.warn("Failed to cleanup DB records for index {}", indexId, e);
+            }
+            return null;
+        });
     }
 
     // ==================== Graph Analysis ====================
@@ -732,14 +753,70 @@ public class CodeIndexService implements ICodeIndexService {
     // ==================== Incremental Indexing ====================
 
     @Override
-    public int triggerIncrementalIndex(String indexId, Path projectPath, Path manifestPath) {
-        try {
-            ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeIncremental(projectPath, manifestPath);
-            persistAnalysisResult(indexId, result);
-            return result.getFileResults().size();
-        } catch (IOException e) {
-            throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
-        }
+    public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
+        return ormTemplate.runInSession(session -> {
+            try {
+                ManifestStore manifestStore = new ManifestStore();
+                IncrementalDetector detector = new IncrementalDetector();
+
+                Path manifestFilePath = Path.of(manifestPath);
+                List<FileFingerprint> previousFingerprints = manifestStore.load(manifestFilePath);
+
+                IResourceLoader vfs = VirtualFileSystem.instance();
+                List<IResource> currentResources = collectSourceResourcesFromVfs(vfs, vfsPath);
+
+                List<Path> allFiles = currentResources.stream()
+                        .map(res -> Path.of(res.getStdPath()))
+                        .collect(Collectors.toList());
+
+                ChangeSet changes = detector.detectChanges(previousFingerprints, allFiles);
+
+                List<Path> changedFiles = changes.getAddedAndModified();
+                List<Path> deletedFiles = changes.getDeletedFiles();
+
+                LOG.info("Incremental index for {}: {} changed, {} deleted, {} unchanged",
+                        indexId, changedFiles.size(), deletedFiles.size(),
+                        changes.getUnchangedFiles().size());
+
+                if (changedFiles.isEmpty() && deletedFiles.isEmpty()) {
+                    return 0;
+                }
+
+                deleteFileRecords(indexId, deletedFiles);
+                deleteFileRecords(indexId, changedFiles.stream()
+                        .map(Path::toString).collect(Collectors.toList()));
+
+                List<CodeFileAnalysisResult> changedResults = new ArrayList<>();
+                for (Path file : changedFiles) {
+                    try {
+                        String relativePath = file.toString();
+                        ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
+                        if (fileAnalyzer == null) continue;
+
+                        IResource resource = vfs.getResource(file.toString());
+                        if (resource == null) continue;
+                        String sourceCode = resource.readText();
+                        CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
+                        if (fileResult != null) changedResults.add(fileResult);
+                    } catch (Exception e) {
+                        LOG.warn("Failed to re-analyze file: {} - {}", file, e.getMessage());
+                    }
+                }
+
+                for (CodeFileAnalysisResult fileResult : changedResults) {
+                    persistSingleFileInSession(indexId, fileResult, session);
+                }
+
+                updateIndexStats(indexId);
+
+                List<FileFingerprint> newFingerprints = detector.computeFingerprints(allFiles);
+                manifestStore.save(manifestFilePath, newFingerprints);
+
+                return changedResults.size();
+            } catch (IOException e) {
+                throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+            }
+        });
     }
 
     // ==================== File Page Query ====================
@@ -781,252 +858,199 @@ public class CodeIndexService implements ICodeIndexService {
 
     // ==================== ORM Persistence ====================
 
-    private void persistAnalysisResult(String indexId, ProjectAnalyzer.ProjectAnalysisResult result) {
-        if (daoProvider == null)
-            return;
+    private void persistInSession(String indexId, ProjectAnalyzer.ProjectAnalysisResult result,
+                                  IOrmSession session) {
+        NopCodeIndex indexEntity = (NopCodeIndex) session.get(
+                NopCodeIndex.class.getName(), indexId);
+        if (indexEntity != null) {
+            indexEntity.setName(indexId);
+            indexEntity.setFileCount(result.getFileResults().size());
+            indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
+            indexEntity.setStatus("COMPLETED");
+            indexEntity.setLastIndexed(System.currentTimeMillis());
+        } else {
+            indexEntity = (NopCodeIndex) ormTemplate.newEntity(NopCodeIndex.class.getName());
+            indexEntity.setId(indexId);
+            indexEntity.setName(indexId);
+            indexEntity.setRootPath("");
+            indexEntity.setLanguage("Java");
+            indexEntity.setFileCount(result.getFileResults().size());
+            indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
+            indexEntity.setStatus("COMPLETED");
+            indexEntity.setLastIndexed(System.currentTimeMillis());
+            session.save(indexEntity);
+        }
 
-        try {
-            IEntityDao<NopCodeIndex> indexDao = daoProvider.daoFor(NopCodeIndex.class);
+        BatchQueue<CodeFileAnalysisResult> queue = new BatchQueue<>(BATCH_SIZE, batch -> {
+            LOG.debug("Flushed batch of {} file results for index {}", batch.size(), indexId);
+        });
 
-            NopCodeIndex existing = indexDao.getEntityById(indexId);
-            if (existing != null) {
-                existing.setName(indexId);
-                existing.setFileCount(result.getFileResults().size());
-                existing.setSymbolCount(result.getGlobalSymbolTable().size());
-                existing.setStatus("COMPLETED");
-                existing.setLastIndexed(System.currentTimeMillis());
-            } else {
-                NopCodeIndex indexEntity = indexDao.newEntity();
-                indexEntity.setId(indexId);
-                indexEntity.setName(indexId);
-                indexEntity.setRootPath("");
-                indexEntity.setLanguage("Java");
-                indexEntity.setFileCount(result.getFileResults().size());
-                indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
-                indexEntity.setStatus("COMPLETED");
-                indexEntity.setLastIndexed(System.currentTimeMillis());
-                indexDao.saveEntity(indexEntity);
+        for (CodeFileAnalysisResult file : result.getFileResults()) {
+            saveFileResultInSession(indexId, file, session);
+            queue.add(file);
+        }
+        queue.flush();
+    }
+
+    private void persistSingleFileInSession(String indexId, CodeFileAnalysisResult result,
+                                            IOrmSession session) {
+        saveFileResultInSession(indexId, result, session);
+    }
+
+    private void saveFileResultInSession(String indexId, CodeFileAnalysisResult file,
+                                         IOrmSession session) {
+        String fileEntityId = indexId + "_" + Math.abs(file.getFilePath().hashCode());
+
+        NopCodeFile fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
+        fileEntity.setId(fileEntityId);
+        fileEntity.setIndexId(indexId);
+        fileEntity.setFilePath(file.getFilePath());
+        fileEntity.setPackageName(file.getPackageName());
+        fileEntity.setLanguage(file.getLanguage() != null ? file.getLanguage().name() : null);
+        fileEntity.setLineCount(file.getLineCount());
+        session.save(fileEntity);
+
+        if (file.getSymbols() != null) {
+            for (CodeSymbol sym : file.getSymbols()) {
+                NopCodeSymbol symEntity = (NopCodeSymbol) ormTemplate.newEntity(NopCodeSymbol.class.getName());
+                symEntity.setId(sym.getId());
+                symEntity.setIndexId(indexId);
+                symEntity.setFileId(fileEntityId);
+                symEntity.setKind(sym.getKind() != null ? sym.getKind().name() : null);
+                symEntity.setName(sym.getName());
+                symEntity.setQualifiedName(sym.getQualifiedName());
+                symEntity.setAccessModifier(sym.getAccessModifier() != null ? sym.getAccessModifier().name() : null);
+                symEntity.setDeprecated(sym.isDeprecated());
+                symEntity.setDocumentation(sym.getDocumentation());
+                symEntity.setLine(sym.getLine());
+                symEntity.setColumn(sym.getColumn());
+                symEntity.setEndLine(sym.getEndLine());
+                symEntity.setEndColumn(sym.getEndColumn());
+                symEntity.setParentId(sym.getParentId());
+                symEntity.setDeclaringSymbolId(sym.getDeclaringSymbolId());
+                symEntity.setSuperClassName(sym.getSuperClassName());
+                symEntity.setIsAbstract(sym.isAbstractFlag());
+                symEntity.setIsFinal(sym.isFinalFlag());
+                symEntity.setSignature(sym.getSignature());
+                symEntity.setReturnType(sym.getReturnType());
+                symEntity.setIsStatic(sym.isStaticFlag());
+                symEntity.setFieldType(sym.getFieldType());
+                symEntity.setExtData(sym.getExtData());
+                symEntity.setAsyncFlag(sym.isAsyncFlag());
+                symEntity.setReadonlyFlag(sym.isReadonlyFlag());
+                session.save(symEntity);
             }
+        }
 
-            List<CodeFileAnalysisResult> files = result.getFileResults();
-            SymbolTable symbolTable = result.getGlobalSymbolTable();
-
-            IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
-            IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-            IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
-            IEntityDao<NopCodeInheritance> inheritanceDao = daoProvider.daoFor(NopCodeInheritance.class);
-            IEntityDao<NopCodeAnnotationUsage> annotationDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
-
-            List<NopCodeFile> fileEntities = new ArrayList<>();
-            List<NopCodeSymbol> symbolEntities = new ArrayList<>();
-            List<NopCodeCall> callEntities = new ArrayList<>();
-            List<NopCodeInheritance> inheritanceEntities = new ArrayList<>();
-            List<NopCodeAnnotationUsage> annotationEntities = new ArrayList<>();
-
-            for (CodeFileAnalysisResult file : files) {
-                NopCodeFile fileEntity = fileDao.newEntity();
-                String fileEntityId = indexId + "_" + Math.abs(file.getFilePath().hashCode());
-                fileEntity.setId(fileEntityId);
-                fileEntity.setIndexId(indexId);
-                fileEntity.setFilePath(file.getFilePath());
-                fileEntity.setPackageName(file.getPackageName());
-                fileEntity.setLanguage(file.getLanguage() != null ? file.getLanguage().name() : null);
-                fileEntity.setLineCount(file.getLineCount());
-                fileEntities.add(fileEntity);
-
-                if (file.getSymbols() != null) {
-                    for (CodeSymbol sym : file.getSymbols()) {
-                        NopCodeSymbol symEntity = symbolDao.newEntity();
-                        symEntity.setId(sym.getId());
-                        symEntity.setIndexId(indexId);
-                        symEntity.setFileId(fileEntityId);
-                        symEntity.setKind(sym.getKind() != null ? sym.getKind().name() : null);
-                        symEntity.setName(sym.getName());
-                        symEntity.setQualifiedName(sym.getQualifiedName());
-                        symEntity.setAccessModifier(sym.getAccessModifier() != null ? sym.getAccessModifier().name() : null);
-                        symEntity.setDeprecated(sym.isDeprecated());
-                        symEntity.setDocumentation(sym.getDocumentation());
-                        symEntity.setLine(sym.getLine());
-                        symEntity.setColumn(sym.getColumn());
-                        symEntity.setEndLine(sym.getEndLine());
-                        symEntity.setEndColumn(sym.getEndColumn());
-                        symEntity.setParentId(sym.getParentId());
-                        symEntity.setDeclaringSymbolId(sym.getDeclaringSymbolId());
-                        symEntity.setSuperClassName(sym.getSuperClassName());
-                        symEntity.setIsAbstract(sym.isAbstractFlag());
-                        symEntity.setIsFinal(sym.isFinalFlag());
-                        symEntity.setSignature(sym.getSignature());
-                        symEntity.setReturnType(sym.getReturnType());
-                        symEntity.setIsStatic(sym.isStaticFlag());
-                        symEntity.setFieldType(sym.getFieldType());
-                        symEntity.setExtData(sym.getExtData());
-                        symEntity.setAsyncFlag(sym.isAsyncFlag());
-                        symEntity.setReadonlyFlag(sym.isReadonlyFlag());
-                        symbolEntities.add(symEntity);
-                    }
-                }
-
-                if (file.getCalls() != null) {
-                    for (CodeMethodCall call : file.getCalls()) {
-                        NopCodeCall callEntity = callDao.newEntity();
-                        callEntity.setId(call.getId());
-                        callEntity.setIndexId(indexId);
-                        callEntity.setCallerId(call.getCallerId());
-                        callEntity.setCalleeId(call.getCalleeId());
-                        callEntity.setFileId(fileEntityId);
-                        callEntity.setLine(call.getLine());
-                        callEntity.setColumn(call.getColumn());
-                        callEntity.setCallType(call.getCallType());
-                        callEntity.setContext(call.getContext());
-                        callEntities.add(callEntity);
-                    }
-                }
-
-                if (file.getInheritances() != null) {
-                    for (CodeInheritance inh : file.getInheritances()) {
-                        NopCodeInheritance inhEntity = inheritanceDao.newEntity();
-                        inhEntity.setId(inh.getId());
-                        inhEntity.setIndexId(indexId);
-                        inhEntity.setSubTypeId(inh.getSubTypeId());
-                        inhEntity.setSuperTypeId(inh.getSuperTypeQualifiedName());
-                        inhEntity.setRelationType(inh.getRelationType() != null ? inh.getRelationType().name() : null);
-                        inheritanceEntities.add(inhEntity);
-                    }
-                }
-
-                if (file.getAnnotationUsages() != null) {
-                    for (CodeAnnotationUsage annot : file.getAnnotationUsages()) {
-                        NopCodeAnnotationUsage annotEntity = annotationDao.newEntity();
-                        annotEntity.setId(annot.getId());
-                        annotEntity.setIndexId(indexId);
-                        annotEntity.setAnnotationTypeId(annot.getAnnotationTypeQualifiedName());
-                        annotEntity.setAnnotatedSymbolId(annot.getAnnotatedSymbolId());
-                        annotEntity.setLine(annot.getLine());
-                        annotEntity.setColumn(annot.getColumn());
-                        annotEntity.setAttributes(annot.getAttributes());
-                        annotationEntities.add(annotEntity);
-                    }
-                }
+        if (file.getCalls() != null) {
+            for (CodeMethodCall call : file.getCalls()) {
+                NopCodeCall callEntity = (NopCodeCall) ormTemplate.newEntity(NopCodeCall.class.getName());
+                callEntity.setId(call.getId());
+                callEntity.setIndexId(indexId);
+                callEntity.setCallerId(call.getCallerId());
+                callEntity.setCalleeId(call.getCalleeId());
+                callEntity.setFileId(fileEntityId);
+                callEntity.setLine(call.getLine());
+                callEntity.setColumn(call.getColumn());
+                callEntity.setCallType(call.getCallType());
+                callEntity.setContext(call.getContext());
+                session.save(callEntity);
             }
+        }
 
-            if (!fileEntities.isEmpty()) fileDao.batchSaveEntities(fileEntities);
-            if (!symbolEntities.isEmpty()) symbolDao.batchSaveEntities(symbolEntities);
-            if (!callEntities.isEmpty()) callDao.batchSaveEntities(callEntities);
-            if (!inheritanceEntities.isEmpty()) inheritanceDao.batchSaveEntities(inheritanceEntities);
-            if (!annotationEntities.isEmpty()) annotationDao.batchSaveEntities(annotationEntities);
-        } catch (Exception e) {
-            LOG.warn("Failed to persist analysis result for index {}", indexId, e);
+        if (file.getInheritances() != null) {
+            for (CodeInheritance inh : file.getInheritances()) {
+                NopCodeInheritance inhEntity = (NopCodeInheritance) ormTemplate.newEntity(NopCodeInheritance.class.getName());
+                inhEntity.setId(inh.getId());
+                inhEntity.setIndexId(indexId);
+                inhEntity.setSubTypeId(inh.getSubTypeId());
+                inhEntity.setSuperTypeId(inh.getSuperTypeQualifiedName());
+                inhEntity.setRelationType(inh.getRelationType() != null ? inh.getRelationType().name() : null);
+                session.save(inhEntity);
+            }
+        }
+
+        if (file.getAnnotationUsages() != null) {
+            for (CodeAnnotationUsage annot : file.getAnnotationUsages()) {
+                NopCodeAnnotationUsage annotEntity = (NopCodeAnnotationUsage) ormTemplate.newEntity(NopCodeAnnotationUsage.class.getName());
+                annotEntity.setId(annot.getId());
+                annotEntity.setIndexId(indexId);
+                annotEntity.setAnnotationTypeId(annot.getAnnotationTypeQualifiedName());
+                annotEntity.setAnnotatedSymbolId(annot.getAnnotatedSymbolId());
+                annotEntity.setLine(annot.getLine());
+                annotEntity.setColumn(annot.getColumn());
+                annotEntity.setAttributes(annot.getAttributes());
+                session.save(annotEntity);
+            }
         }
     }
 
-    private void persistSingleFileResult(String indexId, CodeFileAnalysisResult result) {
-        if (daoProvider == null) return;
+    // ==================== Incremental Indexing Helpers ====================
 
-        try {
+    private List<IResource> collectSourceResourcesFromVfs(IResourceLoader resourceLoader, String vfsPath) {
+        List<String> allExtensions = new ArrayList<>();
+        for (CodeLanguage lang : registry.getSupportedLanguages()) {
+            ILanguageAdapter adapter = registry.getAdapter(lang);
+            allExtensions.addAll(adapter.getFileExtensions());
+        }
+
+        List<IResource> result = new ArrayList<>();
+        for (String ext : allExtensions) {
+            Collection<? extends IResource> resources = resourceLoader.getAllResources(vfsPath, ext);
+            result.addAll(resources);
+        }
+        return result;
+    }
+
+    private void deleteFileRecords(String indexId, List<?> filePaths) {
+        if (daoProvider == null || filePaths.isEmpty()) return;
+
+        for (Object pathObj : filePaths) {
+            String filePath = pathObj instanceof Path ? ((Path) pathObj).toString() : pathObj.toString();
+            String fileId = indexId + "_" + Math.abs(filePath.hashCode());
+
+            deleteEntitiesByFilter(NopCodeAnnotationUsage.class, "fileId", fileId);
+            deleteEntitiesByFilter(NopCodeInheritance.class, "fileId", fileId);
+            deleteEntitiesByFilter(NopCodeCall.class, "fileId", fileId);
+            deleteEntitiesByFilter(NopCodeSymbol.class, "fileId", fileId);
+
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
-            IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-            IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
-            IEntityDao<NopCodeInheritance> inheritanceDao = daoProvider.daoFor(NopCodeInheritance.class);
-            IEntityDao<NopCodeAnnotationUsage> annotationDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.eq("indexId", indexId));
+            q.addFilter(FilterBeans.eq("id", fileId));
+            fileDao.batchDeleteEntities(fileDao.findAllByQuery(q));
+        }
+    }
 
-            // Save file entity
-            NopCodeFile fileEntity = fileDao.newEntity();
-            String fileEntityId = indexId + "_" + Math.abs(result.getFilePath().hashCode());
-            fileEntity.setId(fileEntityId);
-            fileEntity.setIndexId(indexId);
-            fileEntity.setFilePath(result.getFilePath());
-            fileEntity.setPackageName(result.getPackageName());
-            fileEntity.setLanguage(result.getLanguage() != null ? result.getLanguage().name() : null);
-            fileEntity.setLineCount(result.getLineCount());
-            fileDao.saveEntity(fileEntity);
+    private <T extends IDaoEntity> void deleteEntitiesByFilter(Class<T> entityClass, String field, String value) {
+        IEntityDao<T> dao = daoProvider.daoFor(entityClass);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(field, value));
+        List<T> entities = dao.findAllByQuery(q);
+        if (!entities.isEmpty()) {
+            dao.batchDeleteEntities(entities);
+        }
+    }
 
-            // Save symbols
-            if (result.getSymbols() != null) {
-                List<NopCodeSymbol> symbolEntities = new ArrayList<>();
-                for (CodeSymbol sym : result.getSymbols()) {
-                    NopCodeSymbol symEntity = symbolDao.newEntity();
-                    symEntity.setId(sym.getId());
-                    symEntity.setIndexId(indexId);
-                    symEntity.setFileId(fileEntityId);
-                    symEntity.setKind(sym.getKind() != null ? sym.getKind().name() : null);
-                    symEntity.setName(sym.getName());
-                    symEntity.setQualifiedName(sym.getQualifiedName());
-                    symEntity.setAccessModifier(sym.getAccessModifier() != null ? sym.getAccessModifier().name() : null);
-                    symEntity.setDeprecated(sym.isDeprecated());
-                    symEntity.setDocumentation(sym.getDocumentation());
-                    symEntity.setLine(sym.getLine());
-                    symEntity.setColumn(sym.getColumn());
-                    symEntity.setEndLine(sym.getEndLine());
-                    symEntity.setEndColumn(sym.getEndColumn());
-                    symEntity.setParentId(sym.getParentId());
-                    symEntity.setDeclaringSymbolId(sym.getDeclaringSymbolId());
-                    symEntity.setSuperClassName(sym.getSuperClassName());
-                    symEntity.setIsAbstract(sym.isAbstractFlag());
-                    symEntity.setIsFinal(sym.isFinalFlag());
-                    symEntity.setSignature(sym.getSignature());
-                    symEntity.setReturnType(sym.getReturnType());
-                    symEntity.setIsStatic(sym.isStaticFlag());
-                    symEntity.setFieldType(sym.getFieldType());
-                    symEntity.setExtData(sym.getExtData());
-                    symEntity.setAsyncFlag(sym.isAsyncFlag());
-                    symEntity.setReadonlyFlag(sym.isReadonlyFlag());
-                    symbolEntities.add(symEntity);
-                }
-                if (!symbolEntities.isEmpty()) symbolDao.batchSaveEntities(symbolEntities);
-            }
+    private void updateIndexStats(String indexId) {
+        if (daoProvider == null) return;
+        try {
+            IEntityDao<NopCodeIndex> indexDao = daoProvider.daoFor(NopCodeIndex.class);
+            NopCodeIndex index = indexDao.getEntityById(indexId);
+            if (index != null) {
+                IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+                QueryBean fq = new QueryBean();
+                fq.addFilter(FilterBeans.eq("indexId", indexId));
+                index.setFileCount(fileDao.findAllByQuery(fq).size());
 
-            // Save calls
-            if (result.getCalls() != null) {
-                List<NopCodeCall> callEntities = new ArrayList<>();
-                for (CodeMethodCall call : result.getCalls()) {
-                    NopCodeCall callEntity = callDao.newEntity();
-                    callEntity.setId(call.getId());
-                    callEntity.setIndexId(indexId);
-                    callEntity.setCallerId(call.getCallerId());
-                    callEntity.setCalleeId(call.getCalleeId());
-                    callEntity.setFileId(fileEntityId);
-                    callEntity.setLine(call.getLine());
-                    callEntity.setColumn(call.getColumn());
-                    callEntity.setCallType(call.getCallType());
-                    callEntity.setContext(call.getContext());
-                    callEntities.add(callEntity);
-                }
-                if (!callEntities.isEmpty()) callDao.batchSaveEntities(callEntities);
-            }
-
-            // Save inheritances
-            if (result.getInheritances() != null) {
-                List<NopCodeInheritance> inhEntities = new ArrayList<>();
-                for (CodeInheritance inh : result.getInheritances()) {
-                    NopCodeInheritance inhEntity = inheritanceDao.newEntity();
-                    inhEntity.setId(inh.getId());
-                    inhEntity.setIndexId(indexId);
-                    inhEntity.setSubTypeId(inh.getSubTypeId());
-                    inhEntity.setSuperTypeId(inh.getSuperTypeQualifiedName());
-                    inhEntity.setRelationType(inh.getRelationType() != null ? inh.getRelationType().name() : null);
-                    inhEntities.add(inhEntity);
-                }
-                if (!inhEntities.isEmpty()) inheritanceDao.batchSaveEntities(inhEntities);
-            }
-
-            // Save annotation usages
-            if (result.getAnnotationUsages() != null) {
-                List<NopCodeAnnotationUsage> annotEntities = new ArrayList<>();
-                for (CodeAnnotationUsage annot : result.getAnnotationUsages()) {
-                    NopCodeAnnotationUsage annotEntity = annotationDao.newEntity();
-                    annotEntity.setId(annot.getId());
-                    annotEntity.setIndexId(indexId);
-                    annotEntity.setAnnotationTypeId(annot.getAnnotationTypeQualifiedName());
-                    annotEntity.setAnnotatedSymbolId(annot.getAnnotatedSymbolId());
-                    annotEntity.setLine(annot.getLine());
-                    annotEntity.setColumn(annot.getColumn());
-                    annotEntity.setAttributes(annot.getAttributes());
-                    annotEntities.add(annotEntity);
-                }
-                if (!annotEntities.isEmpty()) annotationDao.batchSaveEntities(annotEntities);
+                IEntityDao<NopCodeSymbol> symDao = daoProvider.daoFor(NopCodeSymbol.class);
+                QueryBean sq = new QueryBean();
+                sq.addFilter(FilterBeans.eq("indexId", indexId));
+                index.setSymbolCount(symDao.findAllByQuery(sq).size());
+                index.setLastIndexed(System.currentTimeMillis());
             }
         } catch (Exception e) {
-            LOG.warn("Failed to persist single file result for index {}", indexId, e);
+            LOG.warn("Failed to update index stats for {}", indexId, e);
         }
     }
 

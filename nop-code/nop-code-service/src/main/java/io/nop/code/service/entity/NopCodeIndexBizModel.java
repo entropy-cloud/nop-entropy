@@ -16,7 +16,6 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -38,8 +37,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     public String triggerFullIndex(
             @Name("indexId") String indexId,
             @Name("projectPath") String projectPath) {
-        Path path = Path.of(projectPath);
-        int fileCount = codeIndexService.indexDirectory(indexId, path, "**/*.java");
+        int fileCount = codeIndexService.indexDirectory(indexId, projectPath, "**/*.java");
 
         IncrementalStatus status = new IncrementalStatus();
         status.setIndexId(indexId);
@@ -58,7 +56,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("projectPath") String projectPath,
             @Name("manifestPath") String manifestPath) {
         int fileCount = codeIndexService.triggerIncrementalIndex(
-                indexId, Path.of(projectPath), Path.of(manifestPath));
+                indexId, projectPath, manifestPath);
 
         IncrementalStatus status = new IncrementalStatus();
         status.setIndexId(indexId);
@@ -81,9 +79,8 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("indexId") String indexId,
             @Name("directoryPath") String directoryPath,
             @Name("filePattern") String filePattern) {
-        Path path = Path.of(directoryPath);
         String pattern = filePattern != null ? filePattern : "**/*.java";
-        return codeIndexService.indexDirectory(indexId, path, pattern);
+        return codeIndexService.indexDirectory(indexId, directoryPath, pattern);
     }
 
     @BizMutation
