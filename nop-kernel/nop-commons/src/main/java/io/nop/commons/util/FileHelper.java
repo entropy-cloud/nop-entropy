@@ -10,6 +10,7 @@ package io.nop.commons.util;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.path.AntPathMatcher;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +86,7 @@ public class FileHelper {
         return names == null || names.length == 0;
     }
 
+    @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
     public static void writeBytes(File file, byte[] bytes) {
         file.getParentFile().mkdirs();
         FileOutputStream os = null;
@@ -168,6 +170,7 @@ public class FileHelper {
         writeText(file, text, encoding);
     }
 
+    @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
     public static Properties readProperties(@Nonnull File file) {
         InputStream is = null;
         try {
