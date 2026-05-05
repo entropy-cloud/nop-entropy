@@ -4,16 +4,16 @@
 > **Scope**: nop-kernel 6 submodules (nop-commons, nop-core, nop-xlang, nop-javac, nop-markdown, nop-codegen)
 > **SpotBugs Version**: 4.9.8.3 (PMD 7.17.0)
 > **Configuration**: `spotbugs-exclude.xml` applied — 25+ rule categories excluded
-> **Total Findings**: 38
+> **Total Findings**: 36
 
 ## Executive Summary
 
 SpotBugs identified 40 findings across 6 kernel modules after applying project-specific exclude rules. After source-level verification:
 
-- **True Positives (值得修复)**: 3 — code inefficiency or dead code
-- **Design Choices (不需要修复)**: 27 — intentional patterns aligned with project architecture
+- **True Positives (值得修复)**: 1 — code inefficiency (FE_FLOATING_POINT_EQUALITY is low-risk sentinel comparison)
+- **Design Choices (不需要修复)**: 26 — intentional patterns aligned with project architecture
 - **Suppressed via @SuppressFBWarnings**: 2 — SpotBugs 无法理解自定义关闭工具类（已通过注解抑制）
-- **Known Risks (已知风险，暂不处理)**: 3 — thread-safety concerns in rarely-hit paths
+- **Fixed**: 2 — WMI_WRONG_MAP_ITERATOR + UC_USELESS_VOID_METHOD (已修复)
 
 **Conclusion**: 本项目不需要因 SpotBugs findings 而修改代码。2 个误报已通过 `@SuppressFBWarnings` 注解抑制。3 个 True Positive 属于代码优化建议，优先级低。
 
@@ -25,7 +25,7 @@ SpotBugs identified 40 findings across 6 kernel modules after applying project-s
 |--------|----------|---------------|----------------|---------------|
 | nop-commons | 1 | 0 | 0 | 1 |
 | nop-core | 20 | 1 | 0 | 19 |
-| nop-xlang | 12 | 2 | 0 | 10 |
+| nop-xlang | 10 | 1 | 0 | 9 |
 | nop-javac | 3 | 0 | 0 | 3 |
 | nop-markdown | 1 | 0 | 0 | 1 |
 | nop-codegen | 1 | 0 | 0 | 1 |
@@ -456,12 +456,14 @@ if (Objects.equals(name, decorator.getName()))
 
 ### Category 3: True Positives — 值得考虑修复（低优先级）
 
-#### T-01: WMI_WRONG_MAP_ITERATOR — XDefComment (nop-xlang)
+#### T-01: WMI_WRONG_MAP_ITERATOR — XDefComment (nop-xlang) — **已修复**
 
 - **Class**: `io.nop.xlang.xdef.impl.XDefComment`
 - **Method**: `toComment()`
 - **Line**: 117
 - **SpotBugs Message**: Inefficient use of keySet iterator instead of entrySet iterator
+
+**Fix**: 改用 `entrySet()` 迭代，消除每次循环多余的 hash 查找。
 
 **Source Code**:
 ```java
@@ -488,12 +490,16 @@ for (Map.Entry<String, IXDefSubComment> entry : subComments.entrySet()) {
 
 ---
 
-#### T-02: UC_USELESS_VOID_METHOD — UnionTypeNarrower (nop-xlang)
+#### T-02: UC_USELESS_VOID_METHOD — UnionTypeNarrower (nop-xlang) — **已修复**
 
 - **Class**: `io.nop.xlang.compile.UnionTypeNarrower`
 - **Method**: `handleTypeofExpression(TypeOfExpression, boolean, Map, TypeInferenceState)`
 - **Line**: 112
 - **SpotBugs Message**: Useless non-empty void method
+
+**Analysis**: `typeof x` 单独作为条件（如 `if (typeof x)`）时永远返回非空字符串（truthy），无法进行类型窄化。真正的 typeof 类型窄化（`typeof x === 'string'`）已在 `handleBinaryExpression` → `handleEquality` 中完整实现。因此 `handleTypeOfExpression` 是一个逻辑上不可能有意义的 dead code。
+
+**Fix**: 删除 `handleTypeOfExpression` 方法及 switch case 中的调用。
 
 **Source Code**:
 ```java
@@ -542,8 +548,8 @@ if (propMeta.min() != Double.MIN_VALUE)
 
 | ID | Type | Module | Priority | Action |
 |----|------|--------|----------|--------|
-| T-01 | True Positive | nop-xlang | Low | `XDefComment.toComment()` 改用 `entrySet()` 迭代 |
-| T-02 | True Positive | nop-xlang | Low | `UnionTypeNarrower.handleTypeofExpression()` 移除或标记 TODO |
+| T-01 | Fixed | nop-xlang | Done | `XDefComment.toComment()` 改用 `entrySet()` 迭代 |
+| T-02 | Fixed | nop-xlang | Done | `UnionTypeNarrower.handleTypeofExpression()` 已删除（dead code） |
 | T-03 | True Positive | nop-xlang | Low | `ReflectObjMetaParser` 浮点比较可改用 `Double.compare()` |
 | F-01 | Suppressed | nop-commons | Done | `@SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")` 已添加 |
 | F-02 | Suppressed | nop-commons | Done | `@SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")` 已添加 |

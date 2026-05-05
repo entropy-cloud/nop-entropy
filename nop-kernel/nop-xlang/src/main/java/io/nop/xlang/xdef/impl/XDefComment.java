@@ -18,6 +18,8 @@ import io.nop.core.resource.component.AbstractFreezable;
 import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefSubComment;
 
+import java.util.Map;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -113,8 +115,9 @@ public class XDefComment extends AbstractFreezable implements IXDefComment {
         if (!subComments.isEmpty()) {
             if (hasMainComment())
                 sb.append("\n\n");
-            for (String name : subComments.keySet()) {
-                IXDefSubComment subComment = subComments.get(name);
+            for (Map.Entry<String, XDefSubComment> entry : subComments.entrySet()) {
+                String name = entry.getKey();
+                IXDefSubComment subComment = entry.getValue();
                 sb.append("@").append(name).append(' ');
                 String displayName = subComment.getDisplayName();
                 String desc = subComment.getDescription();

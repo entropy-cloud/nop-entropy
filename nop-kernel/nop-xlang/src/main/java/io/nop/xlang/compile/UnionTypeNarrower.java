@@ -59,10 +59,6 @@ public class UnionTypeNarrower {
 
     private static void collectNarrowedTypes(Expression condition, boolean isTrue, Map<String, IGenericType> result, TypeInferenceState state) {
         switch (condition.getASTKind()) {
-            case TypeOfExpression:
-                handleTypeOfExpression((TypeOfExpression) condition, isTrue, result);
-                break;
-
             case InstanceOfExpression:
                 handleInstanceOfExpression((InstanceOfExpression) condition, isTrue, result, state);
                 break;
@@ -90,25 +86,6 @@ public class UnionTypeNarrower {
             default:
                 break;
         }
-    }
-
-    /**
-     * 处理 typeof x === 'string' 形式
-     */
-    private static void handleTypeOfExpression(TypeOfExpression expr, boolean isTrue, Map<String, IGenericType> result) {
-        Expression argument = expr.getArgument();
-        if (!(argument instanceof Identifier)) {
-            return;
-        }
-
-        String varName = ((Identifier) argument).getName();
-        IGenericType varType = result.get(varName);
-        if (varType == null) {
-            return;
-        }
-
-        // typeof 返回类型名字符串，这里无法直接窄化
-        // 实际窄化在 BinaryExpression 中处理 typeof x === 'string'
     }
 
     /**
