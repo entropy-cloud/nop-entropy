@@ -5,8 +5,10 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.incremental.ChangeSet;
 import io.nop.code.core.incremental.FileFingerprint;
+import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
 import io.nop.code.core.incremental.ManifestStore;
+import io.nop.code.core.incremental.PathFingerprintStore;
 import io.nop.code.core.model.*;
 import io.nop.code.core.model.LanguageFamily;
 import io.nop.commons.batch.BatchQueue;
@@ -439,6 +441,40 @@ public class ProjectAnalyzer {
     }
 
     public ProjectAnalysisResult analyzeIncremental(Path projectRoot,
+                                                    String indexId,
+                                                    IFingerprintStore fingerprintStore) throws IOException {
+        LOG.info("Starting store-based incremental analysis: {}", projectRoot);
+
+        List<FileFingerprint> previousFingerprints = fingerprintStore.loadFingerprints(indexId);
+
+        List<Path> sourceFiles = findSourceFiles(projectRoot);
+
+        IncrementalDetector detector = new IncrementalDetector();
+        ChangeSet changes = detector.detectChanges(previousFingerprints, sourceFiles);
+
+        LOG.info("Store changes: added={}, modified={}, deleted={}, unchanged={}",
+                changes.getAddedFiles().size(),
+                changes.getModifiedFiles().size(),
+                changes.getDeletedFiles().size(),
+                changes.getUnchangedFiles().size());
+
+        if (changes.getAddedFiles().isEmpty()
+                && changes.getModifiedFiles().isEmpty()
+                && changes.getDeletedFiles().isEmpty()) {
+            LOG.info("No changes detected, performing full analysis");
+            return analyzeProject(projectRoot);
+        }
+
+        ProjectAnalysisResult result = analyzeIncremental(projectRoot,
+                (ProjectAnalysisResult) null);
+
+        List<FileFingerprint> newFingerprints = detector.computeFingerprints(sourceFiles);
+        fingerprintStore.saveFingerprints(indexId, newFingerprints);
+
+        return result;
+    }
+
+    public ProjectAnalysisResult analyzeIncremental(Path projectRoot,
                                                     Path manifestPath) throws IOException {
         LOG.info("Starting manifest-based incremental analysis: {}", projectRoot);
 
@@ -456,7 +492,6 @@ public class ProjectAnalyzer {
                 changes.getDeletedFiles().size(),
                 changes.getUnchangedFiles().size());
 
-        // 如果没有变更，尝试返回之前的结果（如果有的话）
         if (changes.getAddedFiles().isEmpty()
                 && changes.getModifiedFiles().isEmpty()
                 && changes.getDeletedFiles().isEmpty()) {
