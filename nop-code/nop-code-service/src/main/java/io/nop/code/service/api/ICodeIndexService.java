@@ -1,6 +1,7 @@
 package io.nop.code.service.api;
 
 import io.nop.api.core.beans.PageBean;
+import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.model.*;
 import io.nop.code.service.api.dto.*;
 
@@ -77,6 +78,23 @@ public interface ICodeIndexService {
     GraphAnalysisResultDTO getGraphAnalysis(String indexId, int topN);
 
     ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth);
+
+    // ==================== Batch File Records ====================
+
+    /**
+     * 批量保存文件指纹记录到数据库
+     */
+    void batchSaveFileRecords(String indexId, List<FileFingerprint> fingerprints);
+
+    /**
+     * 批量加载数据库中的文件指纹记录
+     */
+    List<FileFingerprint> batchLoadFileRecords(String indexId);
+
+    /**
+     * 批量删除指定 filePath 的文件记录
+     */
+    void batchDeleteFileRecords(String indexId, List<String> filePaths);
 
     // ==================== Incremental Indexing ====================
 

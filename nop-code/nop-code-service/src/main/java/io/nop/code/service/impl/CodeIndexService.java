@@ -16,8 +16,9 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.incremental.ChangeSet;
 import io.nop.code.core.incremental.FileFingerprint;
+import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
-import io.nop.code.core.incremental.ManifestStore;
+import io.nop.code.core.incremental.InMemoryFingerprintStore;
 import io.nop.code.core.model.*;
 import io.nop.code.dao.entity.NopCodeAnnotationUsage;
 import io.nop.code.dao.entity.NopCodeCall;
@@ -42,7 +43,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -62,6 +66,12 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Inject
     protected IOrmTemplate ormTemplate;
+
+    protected IFingerprintStore fingerprintStore = new InMemoryFingerprintStore();
+
+    public void setFingerprintStore(IFingerprintStore fingerprintStore) {
+        this.fingerprintStore = fingerprintStore;
+    }
 
     public CodeIndexService() {
         this.registry = new LanguageAdapterRegistry();
@@ -756,11 +766,10 @@ public class CodeIndexService implements ICodeIndexService {
     public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
         return ormTemplate.runInSession(session -> {
             try {
-                ManifestStore manifestStore = new ManifestStore();
                 IncrementalDetector detector = new IncrementalDetector();
 
-                Path manifestFilePath = Path.of(manifestPath);
-                List<FileFingerprint> previousFingerprints = manifestStore.load(manifestFilePath);
+                // Load previous fingerprints from store
+                List<FileFingerprint> previousFingerprints = fingerprintStore.loadFingerprints(indexId);
 
                 IResourceLoader vfs = VirtualFileSystem.instance();
                 List<IResource> currentResources = collectSourceResourcesFromVfs(vfs, vfsPath);
@@ -809,8 +818,9 @@ public class CodeIndexService implements ICodeIndexService {
 
                 updateIndexStats(indexId);
 
+                // Save new fingerprints to store
                 List<FileFingerprint> newFingerprints = detector.computeFingerprints(allFiles);
-                manifestStore.save(manifestFilePath, newFingerprints);
+                fingerprintStore.saveFingerprints(indexId, newFingerprints);
 
                 return changedResults.size();
             } catch (IOException e) {
@@ -908,6 +918,12 @@ public class CodeIndexService implements ICodeIndexService {
         fileEntity.setPackageName(file.getPackageName());
         fileEntity.setLanguage(file.getLanguage() != null ? file.getLanguage().name() : null);
         fileEntity.setLineCount(file.getLineCount());
+        String sourceCode = file.getSourceCode();
+        if (sourceCode != null) {
+            fileEntity.setFileHash(sha256Hex(sourceCode.getBytes(StandardCharsets.UTF_8)));
+            fileEntity.setFileSize((long) sourceCode.length());
+        }
+        fileEntity.setLastModified(System.currentTimeMillis());
         session.save(fileEntity);
 
         if (file.getSymbols() != null) {
@@ -1118,5 +1134,86 @@ public class CodeIndexService implements ICodeIndexService {
         dto.setDepth(symbol.getDepth());
         dto.setFilePath(symbol.getFilePath());
         return dto;
+    }
+
+    // ==================== Batch File Records ====================
+
+    @Override
+    public void batchSaveFileRecords(String indexId, List<FileFingerprint> fingerprints) {
+        if (daoProvider == null || fingerprints == null || fingerprints.isEmpty()) return;
+
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+
+        for (FileFingerprint fp : fingerprints) {
+            String fileId = indexId + "_" + Math.abs(fp.getFilePath().hashCode());
+
+            // Try to find existing
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("indexId", indexId));
+            query.addFilter(FilterBeans.eq("filePath", fp.getFilePath()));
+            List<NopCodeFile> existing = fileDao.findAllByQuery(query);
+
+            NopCodeFile fileEntity;
+            if (!existing.isEmpty()) {
+                fileEntity = existing.get(0);
+            } else {
+                fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
+                fileEntity.setId(fileId);
+                fileEntity.setIndexId(indexId);
+                fileEntity.setFilePath(fp.getFilePath());
+            }
+
+            fileEntity.setFileHash(fp.getContentHash());
+            fileEntity.setLastModified(fp.getLastModified());
+            fileEntity.setFileSize(fp.getFileSize());
+
+            if (existing.isEmpty()) {
+                fileDao.saveEntity(fileEntity);
+            }
+        }
+    }
+
+    @Override
+    public List<FileFingerprint> batchLoadFileRecords(String indexId) {
+        if (daoProvider == null) return new ArrayList<>();
+
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+
+        List<NopCodeFile> entities = fileDao.findAllByQuery(query);
+        List<FileFingerprint> fingerprints = new ArrayList<>(entities.size());
+
+        for (NopCodeFile entity : entities) {
+            FileFingerprint fp = new FileFingerprint();
+            fp.setFilePath(entity.getFilePath());
+            fp.setContentHash(entity.getFileHash());
+            fp.setLastModified(entity.getLastModified() != null ? entity.getLastModified() : 0L);
+            fp.setFileSize(entity.getFileSize() != null ? entity.getFileSize() : 0L);
+            fingerprints.add(fp);
+        }
+
+        return fingerprints;
+    }
+
+    @Override
+    public void batchDeleteFileRecords(String indexId, List<String> filePaths) {
+        deleteFileRecords(indexId, filePaths);
+    }
+
+    private static String sha256Hex(byte[] data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(data);
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            char[] hexChars = "0123456789abcdef".toCharArray();
+            for (byte b : hash) {
+                sb.append(hexChars[(b >> 4) & 0x0f]);
+                sb.append(hexChars[b & 0x0f]);
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
     }
 }
