@@ -12,6 +12,10 @@
 
 *   [**可逆计算理论速览**](reversible-computation-theory-overview): 提供了（广义）可逆计算理论的快速概览，总结了其核心公式 `App = Delta x-extends Generator<DSL>`、对传统理论（如模型驱动架构）的继承与发展，以及关键技术实现。
 
+*   [**《广义可逆计算》论文评价**](generalized-reversible-computation-paper-review.md): 对《广义可逆计算：统一软件构造与演化的新范式》进行结构化评价，分析其核心贡献、理论缺口、工程证据和修订优先级。
+
+*   [**GRC 差量合并结合律的条件化形式化证明**](grc-delta-associativity-formal-proof.md): 对 GRC 结构差量合并的结合律给出条件化形式化证明，明确潜在模型、最终投影、树形 `x-extends`、扩展合并语义和反例边界。
+
 *   [**可逆的含义**](what-does-reversible-mean.md): 解释了可逆计算理论中“可逆”一词的真正含义。它并非指运行时指令的逆向执行，而是与物理学中的熵增概念相关，指的是一种面向演化、能够控制混乱度增长的软件构造规律。
 
 *   [**可逆计算方法论来源**](methodology-source): 追溯了可逆计算理论的思想来源，指出它并非源于计算机科学本身，而是受到了统计物理学（熵增原理）和量子力学等理论物理学思想的启发。
