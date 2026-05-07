@@ -1,5 +1,7 @@
 package io.nop.code.core.incremental;
 
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.FileResource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -11,7 +13,9 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -303,5 +307,140 @@ class TestIncrementalDetector {
 
         assertEquals(1, cs.getAddedFiles().size());
         assertTrue(cs.getAddedFiles().contains(addedFile));
+    }
+
+    // ---- IResource-based tests ----
+
+    private IResource toResource(Path file) {
+        return new FileResource(file.toFile());
+    }
+
+    @Test
+    void testComputeFingerprintFromResource() throws IOException {
+        Path file = tempDir.resolve("resource_hello.txt");
+        Files.writeString(file, "hello from resource");
+
+        IResource resource = toResource(file);
+        FileFingerprint fp = detector.computeFingerprint(resource);
+
+        assertEquals(resource.getStdPath(), fp.getFilePath());
+        assertNotNull(fp.getContentHash());
+        assertEquals(64, fp.getContentHash().length(), "SHA-256 hex string must be 64 chars");
+        assertTrue(fp.getContentHash().matches("[0-9a-f]{64}"), "Hash must be lowercase hex");
+        assertTrue(fp.getLastModified() > 0, "mtime must be positive");
+        assertEquals(Files.size(file), fp.getFileSize());
+    }
+
+    @Test
+    void testDetectChangesFromResources() throws IOException {
+        Path file1 = tempDir.resolve("r_keep.txt");
+        Path file2 = tempDir.resolve("r_modify.txt");
+        Path file3 = tempDir.resolve("r_delete.txt");
+        Files.writeString(file1, "keep");
+        Files.writeString(file2, "original");
+        Files.writeString(file3, "to be deleted");
+
+        List<IResource> allResources = List.of(toResource(file1), toResource(file2), toResource(file3));
+        List<FileFingerprint> previous = detector.computeResourceFingerprints(allResources);
+
+        // Modify file2
+        Files.writeString(file2, "modified!", StandardOpenOption.TRUNCATE_EXISTING);
+        Files.setLastModifiedTime(file2, FileTime.fromMillis(System.currentTimeMillis() + 5000));
+
+        // Add new file
+        Path addedFile = tempDir.resolve("r_added.txt");
+        Files.writeString(addedFile, "new file");
+
+        // Current: file1 + modified file2 + addedFile (file3 deleted)
+        List<IResource> currentResources = List.of(toResource(file1), toResource(file2), toResource(addedFile));
+
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
+
+        assertEquals(1, cs.getUnchangedFiles().size());
+        assertEquals(1, cs.getModifiedFiles().size());
+        assertEquals(1, cs.getDeletedFiles().size());
+        assertEquals(1, cs.getAddedFiles().size());
+    }
+
+    @Test
+    void testComputeFingerprintsFromResources() throws IOException {
+        Path f1 = tempDir.resolve("r_a.txt");
+        Path f2 = tempDir.resolve("r_b.txt");
+        Files.writeString(f1, "alpha");
+        Files.writeString(f2, "beta");
+
+        List<IResource> resources = List.of(toResource(f1), toResource(f2));
+        List<FileFingerprint> fps = detector.computeResourceFingerprints(resources);
+
+        assertEquals(2, fps.size());
+        assertEquals(toResource(f1).getStdPath(), fps.get(0).getFilePath());
+        assertEquals(toResource(f2).getStdPath(), fps.get(1).getFilePath());
+
+        for (FileFingerprint fp : fps) {
+            assertNotNull(fp.getContentHash());
+            assertEquals(64, fp.getContentHash().length());
+            assertTrue(fp.getLastModified() > 0);
+            assertTrue(fp.getFileSize() > 0);
+        }
+    }
+
+    @Test
+    void testDetectChangesFromStore() throws IOException {
+        IFingerprintStore store = new InMemoryFingerprintStore();
+
+        Path file1 = tempDir.resolve("s_keep.txt");
+        Path file2 = tempDir.resolve("s_modify.txt");
+        Files.writeString(file1, "keep");
+        Files.writeString(file2, "original");
+
+        // Save initial fingerprints
+        List<IResource> initialResources = List.of(toResource(file1), toResource(file2));
+        detector.computeAndSaveFingerprints(store, "test-index", initialResources);
+
+        // Modify file2
+        Files.writeString(file2, "changed", StandardOpenOption.TRUNCATE_EXISTING);
+        Files.setLastModifiedTime(file2, FileTime.fromMillis(System.currentTimeMillis() + 5000));
+
+        // Add new file
+        Path addedFile = tempDir.resolve("s_added.txt");
+        Files.writeString(addedFile, "brand new");
+
+        // Detect changes using store
+        List<IResource> currentResources = List.of(toResource(file1), toResource(file2), toResource(addedFile));
+        ChangeSet cs = detector.detectChangesFromStore(store, "test-index", currentResources);
+
+        assertEquals(1, cs.getUnchangedFiles().size());
+        assertEquals(1, cs.getModifiedFiles().size());
+        assertEquals(1, cs.getAddedFiles().size());
+        assertTrue(cs.getDeletedFiles().isEmpty());
+    }
+
+    @Test
+    void testComputeAndSaveFingerprints() throws IOException {
+        IFingerprintStore store = new InMemoryFingerprintStore();
+
+        Path f1 = tempDir.resolve("save_a.txt");
+        Path f2 = tempDir.resolve("save_b.txt");
+        Files.writeString(f1, "content a");
+        Files.writeString(f2, "content b");
+
+        List<IResource> resources = List.of(toResource(f1), toResource(f2));
+        List<FileFingerprint> saved = detector.computeAndSaveFingerprints(store, "my-index", resources);
+
+        assertEquals(2, saved.size());
+
+        // Verify fingerprints are actually stored
+        List<FileFingerprint> loaded = store.loadFingerprints("my-index");
+        assertEquals(2, loaded.size());
+        // Order from HashMap may differ, so compare by lookup
+        Map<String, FileFingerprint> loadedMap = new HashMap<>();
+        for (FileFingerprint fp : loaded) {
+            loadedMap.put(fp.getFilePath(), fp);
+        }
+        for (FileFingerprint fp : saved) {
+            FileFingerprint loadedFp = loadedMap.get(fp.getFilePath());
+            assertNotNull(loadedFp, "Missing fingerprint for " + fp.getFilePath());
+            assertEquals(fp.getContentHash(), loadedFp.getContentHash());
+        }
     }
 }
