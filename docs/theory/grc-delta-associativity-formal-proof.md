@@ -18,7 +18,7 @@
 2. 形式化删除标记与最终投影，说明结合律成立于潜在空间，而不是每步投影后的物理模型空间。
 3. 给出理想化坐标 tombstone carrier 下树形 `x:extends` 核心 merge/remove 语义到偏函数合并的编码关系。
 4. 给出逐坐标局部操作幺半群的提升定理，并补充操作 carrier 对值 carrier 的作用律。
-5. 给出 `merge/remove/replace`、ancestor/descendant 重叠等混合树操作的端函数语义、有限表达式规范化和商代数结合律。
+5. 给出 `merge/bounded-merge/remove/replace`、ancestor/descendant 重叠等混合树操作的端函数语义、有限表达式规范化和商代数结合律。
 6. 明确 Nop/XLang 实际操作与本文抽象 carrier 的对应边界，区分已证明结论、证明义务和未覆盖语义。
 
 ## 0.1 全局假设
@@ -400,13 +400,17 @@ $$
 
 #### 5.1a 坐标 carrier 的跨层次交错示例
 
-以下示例验证坐标 tombstone carrier 在 `merge/remove/replace` 跨层次交错时仍然保持结合律。基础模型为：
+以下示例验证坐标 tombstone carrier 在跨层次 `merge/remove` 以及**已展开为有限坐标写入的 replace-like delta** 中仍然保持结合律。这里的 `replace` 不是当前 Nop 实现的通用 `replace` 证明；在坐标 carrier 中，它必须被展开为有限个坐标写入：保留的新子树写入普通值，被清除的旧后代坐标必须显式写入 tombstone。若某个 replace 不枚举被清除的旧后代，或需要表达“对未知旧子树整体清空”，它不属于本节坐标 LWW carrier，应转入第六节的 `Replace(T)` 端函数语义。
+
+基础模型为：
 
 ```xml
 <Page>                          <!-- π = Page -->
   <Panel id="p1">               <!-- π = Page/Panel[@id='p1'] -->
     <Field id="f1" />           <!-- π = Page/Panel[@id='p1']/Field[@id='f1'] -->
-    <Field id="f2" />
+    <Field id="f2" label="旧备注">
+      <Validator id="v1" />
+    </Field>
   </Panel>
   <Panel id="p2">
     <Field id="f3" />
@@ -414,7 +418,7 @@ $$
 </Page>
 ```
 
-**示例 1：remove 后 merge 重建。** Δ₁ 在 Page 层 merge，但 remove Panel p1；Δ₂ 在 Page 层 merge，merge Panel p1 并新增后代。
+**示例 1：remove 后同根声明重建。** Δ₁ 在 Page 层 merge，但 remove Panel p1；Δ₂ 在 Page 层 merge，并且同根重新声明 Panel p1 后新增后代。
 
 ```xml
 <!-- Δ₁ -->
@@ -430,7 +434,7 @@ $$
 </Page>
 ```
 
-坐标编码中，Δ₁ 在 $root(\text{p1})$ 写入 $\bot$。Δ₂ 在 $root(\text{p1})$ 写入 $\mathsf{present}$，在 $root(\text{p1}/\text{btn})$ 写入节点内容。由 LWW：
+坐标编码中，Δ₁ 在 $root(\text{p1})$ 写入 $\bot$。本示例显式规定 Δ₂ 的 Panel p1 是同根声明，因此在 $root(\text{p1})$ 写入 $\mathsf{present}$，并在 $root(\text{p1}/\text{btn})$ 写入节点内容。由 LWW：
 
 $$
 E(\Delta_1)\oplus E(\Delta_2):\quad
@@ -438,9 +442,9 @@ root(\text{p1})\mapsto\mathsf{present},\;
 root(\text{p1}/\text{btn})\mapsto\{\ldots\}
 $$
 
-Δ₂ 的 $\mathsf{present}$ 覆盖 Δ₁ 的 $\bot$，Panel p1 被重建，Button btn 作为新后代出现。两种括号化给出相同的 LWW 结果。
+Δ₂ 的 $\mathsf{present}$ 覆盖 Δ₁ 的 $\bot$，Panel p1 被重建，Button btn 作为新后代出现。两种括号化给出相同的 LWW 结果。若某 DSL 把 Δ₂ 的 `<Panel id="p1">` 只解释为后代路径上下文而不写入 $root(\text{p1})\mapsto\mathsf{present}$，则 Δ₁ 的 tombstone 仍会屏蔽 p1；那是另一个明确不同的 denotation，但仍按逐坐标 LWW 保持结合。
 
-**示例 2：replace 清空后代后 merge 恢复部分内容。** Δ₁ replace Panel p1 为仅含 Field f1 的子树（清除 f2）；Δ₂ merge Panel p1，恢复 f2 并新增 f2 上的属性。
+**示例 2：有限展开的 replace-like delta 清空后代后 merge 恢复部分内容。** Δ₁ 把 Panel p1 展开为仅含 Field f1 的坐标 delta，并显式 tombstone 旧 Field f2；Δ₂ merge Panel p1，恢复 f2 并新增 f2 上的属性。
 
 ```xml
 <!-- Δ₁ -->
@@ -458,9 +462,9 @@ $$
 </Page>
 ```
 
-坐标编码中，Δ₁ 的 `replace` 等价于：写入 $root(\text{p1})\mapsto\mathsf{present}$，写入 f1 后代坐标，不写入 f2 后代坐标（或显式在 $root(\text{p1}/\text{f2})$ 写入 $\bot$）。Δ₂ 在 f2 坐标写入 merge 内容。由 LWW，f2 坐标由 Δ₂ 决定（若 Δ₁ 未写入则为新增，若 Δ₁ 写了 $\bot$ 则 Δ₂ 的值覆盖 $\bot$）。两种括号化结果一致。
+坐标编码中，Δ₁ 必须写入 $root(\text{p1})\mapsto\mathsf{present}$、写入 f1 后代坐标，并在 $root(\text{p1}/\text{f2})$、$root(\text{p1}/\text{f2})/@label$、$root(\text{p1}/\text{f2}/\text{v1})$ 等所有要清除的有限旧后代坐标写入 $\bot$；否则基础模型中的 f2 属性或旧子节点会在后续同根恢复时重新暴露。Δ₂ 在 f2 根坐标写入 $\mathsf{present}$ 并写入 f2 的新属性。由 LWW，f2 根的 $\mathsf{present}$ 覆盖 Δ₁ 的根 tombstone；但旧 label 或 v1 是否恢复，取决于 Δ₂ 是否也覆盖对应坐标。若希望它们不恢复，Δ₁ 的后代 tombstone 必须保留到最终投影。两种括号化结果一致，因为每个坐标都只取最右有定义值。
 
-**示例 3：三级交错——ancestor replace、middle remove、descendant merge。**
+**示例 3：三级交错，ancestor replace-like delta、middle remove、descendant merge。**
 
 ```xml
 <!-- Δ₁：replace Page 全部内容 -->
@@ -484,13 +488,14 @@ $$
 </Page>
 ```
 
-预合并 $E(\Delta_1)\oplus E(\Delta_2)\oplus E(\Delta_3)$：
-- Page 层：Δ₁ 的 replace 在 $root(\text{Page})$ 写入 $\mathsf{present}$，Δ₂/Δ₃ 同样写入 $\mathsf{present}$，LWW 无冲突。
-- Panel p1：Δ₁ 写入 present（含 f1），Δ₂ 写入 $\bot$，Δ₃ 写入 present（含 f1+btn）。LWW 链：present → $\bot$ → present。最终 present。
+在坐标 carrier 中，Δ₁ 的 Page-level replace-like delta 必须显式写出其闭包效果：Page 和 p1 写入 $\mathsf{present}$，f1 写入普通坐标值，p2 以及被清除的其他旧后代写入 tombstone。预合并 $E(\Delta_1)\oplus E(\Delta_2)\oplus E(\Delta_3)$：
+- Page 层：Δ₁ 写入 $root(\text{Page})\mapsto\mathsf{present}$；Δ₂/Δ₃ 若也声明 Page，则写入同一值，LWW 无冲突。
+- Panel p1：Δ₁ 写入 present，Δ₂ 写入 $\bot$，Δ₃ 写入 present。LWW 链：present → $\bot$ → present。最终 present。
 - Field f1：Δ₁ 写入，Δ₂ 不写，Δ₃ 写入 required=true。最终 Δ₃ 胜出。
 - Button btn：仅 Δ₃ 写入。新增。
+- Panel p2：Δ₁ 写入 $\bot$，Δ₂/Δ₃ 不写。最终仍被删除。
 
-任意括号化后逐坐标 LWW 都得到同一结果。坐标 tombstone carrier 通过"每个坐标独立 LWW"天然支持这种跨层次交错。
+在 replace-like delta 已经展开为有限坐标写入、且所有需要清除的旧后代都显式 tombstone 的前提下，任意括号化后逐坐标 LWW 都得到同一结果。坐标 tombstone carrier 通过“每个坐标独立 LWW”支持这种跨层次交错；若要清空未知旧子树，不能只靠本节有限 LWW 示例，必须使用第六节端函数 `Replace(T)` 或扩展坐标 carrier。
 
 设潜在树集合为 $Tree^P$，其中允许 tombstone、virtual 节点和可被 LWW 坐标表达的结构证据。编码函数为偏函数：
 
@@ -757,7 +762,7 @@ $$
 
 本文还假设 key 提取函数在每个父路径内是确定且单射的：同一父节点下不得存在两个具有相同 stable key 的 children；若输入违反唯一性，编码函数 $E$ 未定义或验证失败。作为 stable key 的字段必须被视为身份字段，不允许通过普通属性覆盖改变其身份；所谓“改名”必须编码为删除旧 key 并新增新 key，或编码为包含完整新子树的 `Replace(T)`。
 
-定义路径 $p$ 处的潜在子树状态空间：
+定义路径 $p$ 处的潜在子树状态空间为最小归纳集合：
 
 $$
 S_p ::= \varnothing_p \mid Node_p(\ell,\chi)
@@ -769,6 +774,8 @@ $$
 - $\ell \in L_p$ 是节点本地潜在信息，包括 tag、属性、文本、virtual 标记、顺序约束等。
 - $\chi:K_p \rightharpoonup S_{p\cdot k}$ 是按稳定 key 索引的有限 children 映射。
 - 若 $k\notin Dom(\chi)$，则约定 $\chi(k)=\varnothing_{p\cdot k}$。
+
+“最小归纳集合”意味着 $S_p$ 只包含有限深度、有限分支的树状态：$\chi$ 的定义域有限，且每个非空 child 又是对应 $S_{p\cdot k}$ 中的有限状态。本文不允许无限深度树、惰性无限 children 或循环引用进入本节定理。对有限树状态定义高度 $rank_S(T)$，$\varnothing_p$ 的高度为 $0$，$Node_p(\ell,\chi)$ 的高度为 $1+\max\{rank_S(\chi(k))\mid k\in Dom(\chi)\}$，空最大值取 $0$。
 
 为保持 children 映射有限，定义更新算子 $put_k$：若 $t\ne\varnothing_{p\cdot k}$，则 $put_k(\chi,t)$ 在 key $k$ 处取 $t$；若 $t=\varnothing_{p\cdot k}$，则 $put_k(\chi,t)$ 从有限映射中移除 $k$。在两种情况下，未列出的 key 仍按约定取 $\varnothing$。
 
@@ -837,7 +844,7 @@ $$
 在每个路径 $p$ 上，同时定义正规操作语法 $NOp_p$ 和 merge 差量体 $D_p$：
 
 $$
-NOp_p ::= Remove \mid Replace(T) \mid Merge(D)
+NOp_p ::= Remove \mid Replace(T) \mid Merge(D) \mid BoundedMerge(D)
 $$
 
 $$
@@ -845,6 +852,8 @@ D_p ::= (\mu,\delta)
 $$
 
 其中 $T\in S_p$，$\mu\in M_p$，$\delta:K_p\rightharpoonup_{fin} NOp_{p\cdot k}$ 是按稳定 key 索引的有限 child 操作映射。该定义是沿树路径的归纳族：一个 $D_p$ 只能引用严格后代路径 $p\cdot k$ 上的有限正规操作，因此任何实际差量语法项都是有限对象。
+
+`Merge(D)` 与 `BoundedMerge(D)` 使用同一个差量体 $D=(\mu,\delta)$，但 children 保留规则不同。`Merge(D)` 只更新 $Dom(\delta)$ 中声明的 child，未声明 child 保持不变；`BoundedMerge(D)` 只处理右侧声明的 child keys，未声明 child 被删除。记 $R(D)=Dom(\delta)$ 为 bounded-merge 的声明保留集合。这个集合来自右侧 delta 的 stable-key children，不得由物理数组下标、哈希遍历顺序或括号化过程生成。这里“保留”是语法层的声明集合，不承诺每个 key 最终非空：若 $\delta(k)=Remove$，该 key 会被处理后变为 $\varnothing$；规范形中保留冗余的 $k\mapsto Remove$ 也是语义无害的。
 
 定义递归合并函数 $merge_p:S_p\times D_p\to S_p$。若 $D=(\mu,\delta)$，则：
 
@@ -866,7 +875,33 @@ $$
 \end{cases}
 $$
 
-因为 $\delta$ 是有限映射，且每个 child 操作由归纳假设返回 $S_{p\cdot k}$ 中的状态，所以 $merge_p$ 返回 $S_p$ 中的有限潜在树。新增 child 就是对 $\varnothing_{p\cdot k}$ 执行 child 操作；删除 child 则得到 $\varnothing_{p\cdot k}$，并可由 $put_k$ 在规范化表示中移出有限 map。
+定义有界递归合并函数 $bmerge_p:S_p\times D_p\to S_p$。若 $D=(\mu,\delta)$，则：
+
+$$
+bmerge_p(\varnothing_p,D)=bmerge_p(empty_p,D)
+$$
+
+$$
+bmerge_p(Node_p(\ell,\chi),(\mu,\delta))=Node_p(act_p(\ell,\mu),\chi^b)
+$$
+
+其中：
+
+$$
+\chi^b(k)=
+\begin{cases}
+\llbracket \delta(k)\rrbracket_{p\cdot k}(\chi(k)), & k\in Dom(\delta) \\
+\varnothing_{p\cdot k}, & k\notin Dom(\delta)
+\end{cases}
+$$
+
+在有限表示中，只需要把 $Dom(\delta)$ 中结果非空的 child 写回 map；$Dom(\delta)$ 中结果为空的 key 和所有未声明 key 都按约定为 $\varnothing$。因此 `BoundedMerge` 是 `merge` 加上“删除未声明 child”的确定性过滤，而不是普通 `Merge` 的特例。
+
+#### 引理 6.5.1：`merge_p` 对有限状态封闭
+
+若 $s\in S_p$ 且 $D\in D_p$，则 $merge_p(s,D)\in S_p$ 且 $bmerge_p(s,D)\in S_p$，二者结果都仍是有限深度、有限分支状态。
+
+证明。对 $D$ 的最大 child 深度做归纳。若 $D$ 不含 child 操作，$merge_p$ 只把本地信息 $\ell$ 更新为 $act_p(\ell,\mu)$，children map 不变；$bmerge_p$ 只保留空 child 集合，因此闭包显然成立。若 $D$ 含有限 child map $\delta$，对每个 $k\in Dom(\delta)$，归纳假设给出 $\llbracket\delta(k)\rrbracket_{p\cdot k}(\chi(k))\in S_{p\cdot k}$；$put_k$ 只在有限 map 上替换或移除该 key，不会引入无限 children。由于 $Dom(\delta)$ 有限，有限次 $put_k$ 后仍为有限 map，故 $merge_p$ 属于 $S_p$。对 $bmerge_p$，输出 child map 的定义域至多为 $Dom(\delta)$ 中结果非空的 keys，因此也有限。输入为 $\varnothing_p$ 时先提升为 $empty_p$，仍落在同一证明中。新增 child 就是对 $\varnothing_{p\cdot k}$ 执行 child 操作；删除 child 则得到 $\varnothing_{p\cdot k}$，并可由 $put_k$ 在规范化表示中移出有限 map。
 
 ### 6.6 操作表达式、`Lift_q` 与 denotation
 
@@ -878,7 +913,13 @@ $$
 
 其中 $n\in NOp_p$，$k\in K_p$，$e\in Expr_{p\cdot k}$。组合 $e_1\odot e_2$ 的方向固定为“先 $e_1$ 后 $e_2$”。
 
-相对路径 $q=k_1\cdots k_m$ 是稳定 key 的有限序列。定义：
+相对路径 $q=k_1\cdots k_m$ 是稳定 key 的有限序列。更正式地，若从路径 $p$ 出发依次有 $k_i\in K_{p\cdot k_1\cdots k_{i-1}}$，则称 $q$ 是从 $p$ 出发的合法有限 stable-key 路径，并记 $p\cdot q=p\cdot k_1\cdots k_m$。定义类型化提升：
+
+$$
+Lift_q^p:Expr_{p\cdot q}\to Expr_p
+$$
+
+下文省略上标 $p$，但所有 $Lift_q(e)$ 都默认满足 $e\in Expr_{p\cdot q}$ 且 $q$ 从 $p$ 出发合法。递归定义为：
 
 $$
 Lift_\epsilon(e)=e
@@ -888,7 +929,7 @@ $$
 Lift_{k\cdot q}(e)=Lift_k(Lift_q(e))
 $$
 
-其中 $e$ 的类型位于路径 $p\cdot k\cdot q$，$Lift_{k\cdot q}(e)$ 的类型位于路径 $p$。
+其中 $e$ 的类型位于路径 $p\cdot k\cdot q$，$Lift_{k\cdot q}(e)$ 的类型位于路径 $p$。若 $q$ 不是合法路径，或 `Replace(T)` 改变了后续 key 宇宙而未采用第 6.4 节所述依赖类型状态空间，则该表达式无类型，不属于本节定理前提。
 
 所有表达式的 denotation 都是确定性端函数。对正规操作：
 
@@ -902,6 +943,10 @@ $$
 
 $$
 \llbracket Merge(D)\rrbracket_p(s)=merge_p(s,D)
+$$
+
+$$
+\llbracket BoundedMerge(D)\rrbracket_p(s)=bmerge_p(s,D)
 $$
 
 对组合表达式：
@@ -930,7 +975,7 @@ $$
 
 ### 6.7 `NF`、同路径组合与 `diamond` 的构造性规约
 
-为了把有限表达式重新写成只含 `Merge/Remove/Replace` 的正规操作，定义：
+为了把有限表达式重新写成只含 `Merge/BoundedMerge/Remove/Replace` 的正规操作，定义：
 
 $$
 NF_p:Expr_p\to NOp_p
@@ -943,28 +988,52 @@ $$
 | $n\odot Remove$ | `Remove` |
 | $n\odot Replace(T)$ | `Replace(T)` |
 | $Remove\odot Merge(D)$ | `Replace(merge_p(empty_p,D))` |
+| $Remove\odot BoundedMerge(D)$ | `Replace(bmerge_p(empty_p,D))` |
 | $Replace(T)\odot Merge(D)$ | `Replace(merge_p(T,D))` |
-| $Merge(D_1)\odot Merge(D_2)$ | `Merge(D_1\diamond_p D_2)` |
+| $Replace(T)\odot BoundedMerge(D)$ | `Replace(bmerge_p(T,D))` |
+| $Merge(D_1)\odot Merge(D_2)$ | `Merge(D_1\diamond^{MM}_p D_2)` |
+| $Merge(D_1)\odot BoundedMerge(D_2)$ | `BoundedMerge(D_1\diamond^{MB}_p D_2)` |
+| $BoundedMerge(D_1)\odot Merge(D_2)$ | `BoundedMerge(D_1\diamond^{BM}_p D_2)` |
+| $BoundedMerge(D_1)\odot BoundedMerge(D_2)$ | `BoundedMerge(D_1\diamond^{BB}_p D_2)` |
 
-其中 $D_1\diamond_p D_2$ 是 merge body 的递归组合。若 $D_i=(\mu_i,\delta_i)$，则：
+其中 $D_1\diamond^{xy}_p D_2$ 是带模式的 merge body 递归组合，$x,y\in\{M,B\}$ 分别表示左、右操作是普通 `Merge` 还是 `BoundedMerge`。若 $D_i=(\mu_i,\delta_i)$，则所有模式的本地部分相同：
 
 $$
-D_1\diamond_pD_2=(\mu_1\diamond^{loc}_p\mu_2,\delta)
+D_1\diamond^{xy}_pD_2=(\mu_1\diamond^{loc}_p\mu_2,\delta^{xy})
+$$
+
+child map 的定义域和取值由“左操作后右操作”的真实 denotation 决定：
+
+$$
+Dom(\delta^{MM})=Dom(\delta_1)\cup Dom(\delta_2)
 $$
 
 $$
-\delta(k)=
-\begin{cases}
-NF_{p\cdot k}(\delta_1(k)\odot\delta_2(k)), & k\in Dom(\delta_1)\cap Dom(\delta_2) \\
-\delta_1(k), & k\in Dom(\delta_1)\setminus Dom(\delta_2) \\
-\delta_2(k), & k\in Dom(\delta_2)\setminus Dom(\delta_1)
-\end{cases}
+Dom(\delta^{MB})=Dom(\delta_2)
 $$
+
+$$
+Dom(\delta^{BM})=Dom(\delta_1)\cup Dom(\delta_2)
+$$
+
+$$
+Dom(\delta^{BB})=Dom(\delta_2)
+$$
+
+为避免把“不触及 child”误解为会在 $\varnothing$ 上创建空节点的 `Merge((\mathbf{1},\varnothing))`，这里引入只用于定义 $\diamond^{xy}$ 的元操作 $Skip_{p\cdot k}$，其 denotation 是恒等函数且永远不会写入稀疏 child map。它不是 $NOp$ 的构造子，最终正规形不会包含 `Skip`。
+
+对这些定义域中的每个 $k$，令 $op_1(k)$ 和 $op_2(k)$ 分别表示第一、第二步在 child $k$ 上实际执行的操作：若相应 $\delta_i(k)$ 有定义则取该操作；若无定义，则普通 `Merge` 对该 key 执行 $Skip$，而 `BoundedMerge` 对未声明 key 执行 `Remove`。定义辅助函数 $NormSeq_p(a,b)$：若 $a=Skip$ 则返回 $b$；若 $b=Skip$ 则返回 $a$；否则返回 $NF_p(a\odot b)$。然后：
+
+$$
+\delta^{xy}(k)=NormSeq_{p\cdot k}(op_1(k),op_2(k))
+$$
+
+在 $BM$ 模式中，若 $k\in Dom(\delta_2)\setminus Dom(\delta_1)$，第一步 bounded-merge 已经删除该 key，因此 $op_1(k)=Remove$，$op_2(k)=\delta_2(k)$，例如普通 merge child 会按 `Remove\odot Merge(D)=Replace(merge(empty,D))` 重建。这是枚举层面 `BOUNDED_MERGE + MERGE => BOUNDED_MERGE` 若要满足结合律所需的抽象 denotation：bounded 约束继续保留，但当前右侧 `MERGE` 可以新增自己声明的 child，并且这些重新声明的 child 必须从空状态重建。当前 Nop 实现仍需证明或补充对应的 child-level rewrite；仅把父节点 override 标为 `BOUNDED_MERGE` 不足以自动满足本规则。
 
 该定义是良基的。为避免同步递归的循环性，定义一个同时作用于正规操作、merge body 和表达式的秩。先定义 $rank_S(T)$ 为有限树状态 $T\in S_p$ 的最大子树高度；然后定义正规操作秩 $rank_N$：
 
 $$
-rank_N(Remove)=rank_N(Merge((\mu,\varnothing)))=(0,1)
+rank_N(Remove)=(0,1)
 $$
 
 $$
@@ -972,11 +1041,11 @@ rank_N(Replace(T))=(rank_S(T),1)
 $$
 
 $$
-rank_N(Merge((\mu,\delta)))=(1+\max_{k\in Dom(\delta)}rank_N(\delta(k))_1,
+rank_N(Merge((\mu,\delta)))=rank_N(BoundedMerge((\mu,\delta)))=(1+\max(\{0\}\cup\{rank_N(\delta(k))_1\mid k\in Dom(\delta)\}),
 1+\sum_{k\in Dom(\delta)}rank_N(\delta(k))_2)
 $$
 
-其中空最大值取 $-1$，$rank_N(x)_1$ 和 $rank_N(x)_2$ 分别表示第一、第二分量。表达式秩 $rank_E$ 定义为：
+其中 $rank_N(x)_1$ 和 $rank_N(x)_2$ 分别表示第一、第二分量。`Merge((\mu,\varnothing))` 和 `BoundedMerge((\mu,\varnothing))` 的第一分量为 $1$，因为它们在 $\varnothing_p$ 上会提升出 $empty_p$ 并更新本地信息；这保证 `Remove\odot Merge((\mu,\varnothing))` 规约为 `Replace(merge_p(empty_p,(\mu,\varnothing)))`、`Remove\odot BoundedMerge((\mu,\varnothing))` 规约为 `Replace(bmerge_p(empty_p,(\mu,\varnothing)))` 时秩不增加。只有在 $\mu=\mathbf{1}_p$ 或 $act_p(\ell^0_p,\mu)=\ell^0_p$ 时，这些常量状态才等于 $empty_p$。表达式秩 $rank_E$ 定义为：
 
 $$
 rank_E(n)=rank_N(n)\quad(n\in NOp_p)
@@ -990,25 +1059,19 @@ $$
 rank_E(Lift_k(e))=(1+rank_E(e)_1,1+rank_E(e)_2)
 $$
 
-merge body 的秩定义为 $rank_D(D)=rank_N(Merge(D))$。所有秩按自然数对的字典序比较。直观地，第一分量记录从当前路径向下可触及的最大 child 深度，第二分量记录语法大小。
-
-等价地，对任意有限表达式 $e$，可写作：
+merge body 的秩定义为 $rank_D(D)=rank_N(Merge(D))$。第一分量表示从当前路径向下触及的最大高度，用于外层良基归纳；第二分量只用于同高度内对表达式语法大小做归纳。本文不要求所有中间构造在第二分量上单调，因为多个重叠 child 的 body 组合可能为每个重叠 key 各引入一个局部 `NF` 代表元。对二元对象使用组合秩：
 
 $$
-\rho_p(e)=(depth(e),size(e))
-$$
-
-其中 $depth(e)$ 是第一分量，$size(e)$ 是第二分量。对二元对象使用组合秩：
-
-$$
-rank_{DD}(D_1,D_2)=rank_E(Merge(D_1)\odot Merge(D_2))
+rank_{DD}^{xy}(D_1,D_2)=rank_E(Op_x(D_1)\odot Op_y(D_2))
 $$
 
 $$
 rank_{NN}(n_1,n_2)=rank_E(n_1\odot n_2)
 $$
 
-在 $D_1\diamond_pD_2$ 的递归分支中，$NF$ 只作用于两个外层 `Merge` 的严格 child 子项 $\delta_1(k)$ 和 $\delta_2(k)$，其表达式秩的第一分量严格小于 $rank_{DD}(D_1,D_2)$ 的第一分量；在同一路径处理 $e_1\odot e_2$ 时，归纳调用只作用于真子表达式 $e_1,e_2$，因而第一分量不增且第二分量严格下降。`Compose_p(n_1,n_2)` 的非 `Merge/Merge` 分支不递归；`Merge/Merge` 分支只调用具有同一组合秩的 $D_1\diamond_pD_2$，而 $diamond$ 的内部递归再转入严格更小的 child 表达式。由自然数字典序的良基性，`diamond`、`Compose` 与 `NF` 的同步定义不会循环。
+其中 $Op_M(D)=Merge(D)$，$Op_B(D)=BoundedMerge(D)$。在 $D_1\diamond^{xy}_pD_2$ 的递归分支中，$NF$ 只作用于严格 child 路径上的子项，因此第一分量严格下降；在同一路径处理 $e_1\odot e_2$ 时，归纳调用只作用于真子表达式，因而第一分量不增且第二分量严格下降。
+
+更形式地，对高度 $h$ 做外层归纳。假设所有高度小于 $h$ 的 $\diamond^{xy}$、`Compose` 和 $NF$ 已定义且保持 denotation。当前高度 $h$ 分三步构造：第一，定义所有组合高度不超过 $h$ 的 $\diamond^{xy}$，其递归调用只落到严格 child 高度 $<h$ 的 $NF$；第二，定义所有组合高度不超过 $h$ 的 `Compose`，其中 merge/bounded-merge 分支只引用刚完成的 $\diamond^{xy}$，其他分支不递归；第三，定义所有高度不超过 $h$ 的 $NF$，并在固定高度内按表达式第二分量做语法归纳，$e_1\odot e_2$ 只调用真子表达式的 $NF$，再调用已对整个高度层开放的 `Compose`，$Lift_k(e)$ 则调用严格 child 高度 $<h$ 的 $NF$。因此，同高度阶段不存在循环；外层高度归纳由自然数良基性保证终止。
 
 现在定义 $NF_p$：
 
@@ -1024,48 +1087,47 @@ $$
 NF_p(Lift_k(e))=Merge((\mathbf{1}_p,\{k\mapsto NF_{p\cdot k}(e)\}))
 $$
 
-这里 $\mathbf{1}_p$ 是本地差量幺元。最后一个等式说明：对子节点 $k$ 的 lift，在父节点上就是一个本地无变化、仅 child map 含 $k$ 的 `Merge`。这一定义同时覆盖了不存在 child、删除 child、替换 child 和递归 merge child 的情况。
+这里 $\mathbf{1}_p$ 是本地差量幺元。最后一个等式说明：对子节点 $k$ 的 lift，在父节点上就是一个本地无变化、仅 child map 含 $k$ 的普通 `Merge`。这一定义不会裁剪 sibling，因此不能使用 `BoundedMerge`。
 
-`diamond`、`Compose` 与 `NF` 是按上述良基度量做的同步归纳定义：固定最大深度 $h$，先假设所有严格 child 路径上的 $NF$ 已定义且保持 denotation，再定义当前路径上的 $diamond$、`Compose` 和 $NF$。由于每个实际差量只包含有限深度的语法树，归纳从叶子路径开始，逐层回到根路径。
+`diamond^{xy}`、`Compose` 与 `NF` 是按上述“高度外归纳 + 同高度表达式大小内归纳”的同步定义：固定高度 $h$ 时，先假设所有较小高度上的三个分量都已定义且保持 denotation，再依次处理当前高度层的 $\diamond^{xy}$、`Compose` 和 $NF$。由于每个实际差量只包含有限深度的语法树，归纳从叶子路径开始，逐层回到根路径。
 
-由构造可得以下闭包性质：若 $D_1,D_2\in D_p$，则 $D_1\diamond_pD_2\in D_p$；若 $n_1,n_2\in NOp_p$，则 $Compose_p(n_1,n_2)\in NOp_p$；若 $e\in Expr_p$，则 $NF_p(e)\in NOp_p$。闭包依赖 $M_p$ 对 $\diamond^{loc}_p$ 封闭、child 操作映射有限、以及严格 child 路径上的归纳闭包假设。
-
-下面三个引理是同一个同步归纳定理的三个分量。归纳命题 $\mathcal P(r)$ 为：对所有秩小于等于 $r$ 的对象，`diamond` 闭包且保持 denotation、`Compose` 闭包且保持 denotation、`NF` 闭包且保持 denotation。证明按秩字典序归纳。引理 1 在严格 child 路径上使用引理 3 的较小秩归纳假设；引理 3 在同一路径组合分支使用同一秩阶段已由引理 2 建立的 `Compose` 正确性；引理 2 的 `Merge/Merge` 情形使用引理 1。由于 `Merge/Merge` 只调用已定义的 $D_1\diamond D_2$，而 $diamond$ 的递归调用都转入严格 child 或较小表达式，循环依赖被秩归纳消除。
-
-#### 引理 1：`diamond` 保持 denotation
-
-对任意 $D_1,D_2\in D_p$，有：
+为使同步归纳完全闭合，同时维护以下高度有界性不变式：
 
 $$
-\llbracket Merge(D_1\diamond_pD_2)\rrbracket_p
+rank_N(NF_p(e))_1\le rank_E(e)_1
+$$
+
+$$
+rank_N(Compose_p(n_1,n_2))_1\le rank_{NN}(n_1,n_2)_1
+$$
+
+$$
+rank_D(D_1\diamond^{xy}_pD_2)_1\le rank_{DD}^{xy}(D_1,D_2)_1
+$$
+
+这些不变式按同一个同步归纳证明。非递归分支直接由定义得到；`Lift_k(e)` 分支把 $NF(e)$ 放入严格 child，第一分量只增加一层；四种 merge/bounded-merge 组合的 $\diamond^{xy}$ 只在严格 child 上调用较小高度的 $NF$，再把结果放回有限 child map，因此高度不超过两个输入 body 的最大触达高度。于是，在证明 $NF(e_1\odot e_2)$ 时，$NF(e_1)$ 和 $NF(e_2)$ 的组合高度不超过原表达式组合高度；所需的 `Compose` 正确性已经在同一高度层的第二阶段对全部有限正规操作建立。
+
+由构造可得以下闭包性质：若 $D_1,D_2\in D_p$，则 $D_1\diamond^{xy}_pD_2\in D_p$；若 $n_1,n_2\in NOp_p$，则 $Compose_p(n_1,n_2)\in NOp_p$；若 $e\in Expr_p$，则 $NF_p(e)\in NOp_p$。闭包依赖 $M_p$ 对 $\diamond^{loc}_p$ 封闭、child 操作映射有限、以及严格 child 路径上的归纳闭包假设。具体地，$D_1\diamond^{xy}_pD_2$ 的本地部分属于 $M_p$；child map 的定义域是 $Dom(\delta_1)\cup Dom(\delta_2)$ 或 $Dom(\delta_2)$，仍为有限；每个 child 操作要么来自原有限 map，要么是严格 child 路径上的 $NF$，由归纳闭包假设属于 $NOp_{p\cdot k}$。`Compose(Remove,Merge/BoundedMerge)` 和 `Compose(Replace,Merge/BoundedMerge)` 中出现的 $merge_p$ 或 $bmerge_p$ 结果属于 $S_p$，由引理 6.5.1 保证。
+
+下面三个引理是同一个同步归纳定理的三个分量。归纳命题 $\mathcal P(h)$ 为：所有高度不超过 $h$ 的 $\diamond^{xy}$、`Compose` 和 $NF$ 都满足闭包且保持 denotation，其中 $NF$ 分量在固定高度内再按表达式语法大小归纳。引理 1 在严格 child 路径上使用较小高度的引理 3；引理 2 的 merge/bounded-merge 组合情形使用当前高度层已完成的引理 1；引理 3 在同一路径组合分支使用当前高度层已对全部正规操作建立的引理 2。
+
+#### 引理 1：带模式 `diamond` 保持 denotation
+
+对任意 $D_1,D_2\in D_p$ 和 $x,y\in\{M,B\}$，令 $z=x\vee y$，其中只有 $x=y=M$ 时 $z=M$，否则 $z=B$，有：
+
+$$
+\llbracket Op_z(D_1\diamond^{xy}_pD_2)\rrbracket_p
 =
-\llbracket Merge(D_2)\rrbracket_p\circ\llbracket Merge(D_1)\rrbracket_p
+\llbracket Op_y(D_2)\rrbracket_p\circ\llbracket Op_x(D_1)\rrbracket_p
 $$
 
-证明。令 $D_i=(\mu_i,\delta_i)$。若输入为 $\varnothing_p$，两侧都先按定义提升到 $empty_p$，因此只需证明输入为 $Node_p(\ell,\chi)$ 的情况。
-
-本地部分由 $M_p$ 的作用律得到：
+证明。令 $D_i=(\mu_i,\delta_i)$。若输入为 $\varnothing_p$，两侧都先按定义提升到 $empty_p$，因此只需证明输入为 $Node_p(\ell,\chi)$ 的情况。本地部分由 $M_p$ 的作用律得到：
 
 $$
-act_p(act_p(\ell,\mu_1),\mu_2)
-=
-act_p(\ell,\mu_1\diamond^{loc}_p\mu_2)
+act_p(act_p(\ell,\mu_1),\mu_2)=act_p(\ell,\mu_1\diamond^{loc}_p\mu_2)
 $$
 
-children 部分逐 key 比较。若 $k$ 同时属于 $Dom(\delta_1)$ 和 $Dom(\delta_2)$，左后右的结果为：
-
-$$
-\llbracket \delta_2(k)\rrbracket_{p\cdot k}
-(\llbracket \delta_1(k)\rrbracket_{p\cdot k}(\chi(k)))
-$$
-
-根据 $NF$ 的归纳假设，它等于：
-
-$$
-\llbracket NF_{p\cdot k}(\delta_1(k)\odot\delta_2(k))\rrbracket_{p\cdot k}(\chi(k))
-$$
-
-这正是 $(D_1\diamond_pD_2)$ 在 key $k$ 的 child 操作。若 $k$ 只在 $\delta_1$ 中出现，第二次 merge 不触及该 key；若只在 $\delta_2$ 中出现，第一次 merge 不触及该 key；若二者都不出现，child 保持 $\chi(k)$。四种情况穷尽 $K_p$，因此两个端函数相等。
+children 部分逐 key 比较。若结果模式 $z=M$，就是普通 `Merge/Merge`，每个 key 的四种出现情况由 $\delta^{MM}$ 的定义、$Skip$ 恒等语义和 $NF$ 归纳假设处理。若 $z=B$，最终未在结果保留集合中的 key 被 $BoundedMerge$ 过滤为 $\varnothing$；这与右侧实际执行的最后一次 bounded 过滤（$MB,BB$）或左侧 bounded 后普通 merge 只能重建 $Dom(\delta_2)$ 中 keys（$BM$）一致。对结果保留集合内的 key，$\delta^{xy}(k)=NormSeq(op_1(k),op_2(k))$，由 $Skip$ 恒等语义和归纳假设可知其 denotation 等于先执行第一步 child 操作再执行第二步 child 操作。所有 key 穷尽，因此两个端函数相等。
 
 #### 引理 2：`Compose` 保持 denotation
 
@@ -1077,7 +1139,7 @@ $$
 \llbracket n_2\rrbracket_p\circ\llbracket n_1\rrbracket_p
 $$
 
-证明按上表五种情形逐项检查。若右侧操作是 `Remove`，复合结果是常量函数 $s\mapsto\varnothing_p$；若右侧操作是 `Replace(T)`，复合结果是常量函数 $s\mapsto T$；若左侧是 `Remove` 且右侧是 `Merge(D)`，则结果为常量 $merge_p(empty_p,D)$；若左侧是 `Replace(T)` 且右侧是 `Merge(D)`，则结果为常量 $merge_p(T,D)$；若两侧都是 `Merge`，由引理 1 得证。
+证明按上表情形逐项检查。若右侧操作是 `Remove`，复合结果是常量函数 $s\mapsto\varnothing_p$；若右侧操作是 `Replace(T)`，复合结果是常量函数 $s\mapsto T$；若左侧是 `Remove` 或 `Replace(T)` 且右侧是 `Merge/BoundedMerge(D)`，结果分别是常量 $merge_p(empty_p,D)$、$bmerge_p(empty_p,D)$、$merge_p(T,D)$ 或 $bmerge_p(T,D)$；若两侧都是 `Merge/BoundedMerge`，由引理 1 得证。
 
 #### 引理 3：`NF` 保持 denotation
 
@@ -1087,7 +1149,7 @@ $$
 \llbracket NF_p(e)\rrbracket_p=\llbracket e\rrbracket_p
 $$
 
-证明按 $e$ 的语法结构归纳。$e$ 为正规操作时结论显然。$e=e_1\odot e_2$ 时，由归纳假设和引理 2 得证。$e=Lift_k(e')$ 时，$NF_p(e)$ 是 `Merge((\mathbf{1}_p,{k\mapsto NF(e')}))`。对 $\varnothing_p$，两侧都先提升为 $empty_p$；对 $Node_p(\ell,\chi)$，本地部分由 $act_p(\ell,\mathbf{1}_p)=\ell$ 保持不变，key $k$ 处由归纳假设等于 $\llbracket e'\rrbracket(\chi(k))$，其他 key 不变。因此 denotation 相同。
+证明是上述同步良基归纳的 $NF$ 分量，并在固定高度内按 $e$ 的语法大小分情况。$e$ 为正规操作时结论显然。$e=e_1\odot e_2$ 时，$NF(e_1)$ 和 $NF(e_2)$ 的正确性来自同高度较小语法项的归纳假设或较小高度外归纳假设，当前高度层的引理 2 已对全部正规操作给出 `Compose` 正确性，因此得证。$e=Lift_k(e')$ 时，$e'$ 位于严格 child 路径，使用较小高度的 $NF$ 正确性；$NF_p(e)$ 是 `Merge((\mathbf{1}_p,{k\mapsto NF(e')}))`。对 $\varnothing_p$，两侧都先提升为 $empty_p$；对 $Node_p(\ell,\chi)$，本地部分由 $act_p(\ell,\mathbf{1}_p)=\ell$ 保持不变，key $k$ 处由归纳假设等于 $\llbracket e'\rrbracket(\chi(k))$，其他 key 不变。因此 denotation 相同。
 
 ### 6.8 祖先/后代重叠操作的规范化
 
@@ -1108,13 +1170,13 @@ $$
 后代操作发生在 ancestor `Merge(D)` 之后时：
 
 $$
-NF_p(Merge(D)\odot Lift_k(e))=Merge(D\diamond_pD_k(e))
+NF_p(Merge(D)\odot Lift_k(e))=Merge(D\diamond^{MM}_pD_k(e))
 $$
 
 展开到 child map，就是：
 
 $$
-(D\diamond_pD_k(e)).\delta(k)=
+(D\diamond^{MM}_pD_k(e)).\delta(k)=
 \begin{cases}
 NF_{p\cdot k}(D.\delta(k)\odot NF_{p\cdot k}(e)), & k\in Dom(D.\delta) \\
 NF_{p\cdot k}(e), & k\notin Dom(D.\delta)
@@ -1124,10 +1186,24 @@ $$
 后代操作先发生、ancestor `Merge(D)` 后发生时：
 
 $$
-NF_p(Lift_k(e)\odot Merge(D))=Merge(D_k(e)\diamond_pD)
+NF_p(Lift_k(e)\odot Merge(D))=Merge(D_k(e)\diamond^{MM}_pD)
 $$
 
 若 $D$ 触及同一个 child key，则该 key 下得到 $NF(NF(e)\odot D.\delta(k))$；若 $D$ 不触及该 key，则 lift 出来的 child 操作保留，并与 $D$ 的其他 child 操作按稳定 key 合并到同一个有限 map 中。
+
+若 ancestor 操作是 `BoundedMerge(D)`，则同样由第 6.7 节四模式组合表得到：
+
+$$
+NF_p(BoundedMerge(D)\odot Lift_k(e))=BoundedMerge(D\diamond^{BM}_pD_k(e))
+$$
+
+此时结果的保留集合为 $Dom(D.\delta)\cup\{k\}$。若 $k\notin Dom(D.\delta)$，第一步 bounded-merge 先删除旧 child $k$，后续 lift 再在 $\varnothing_{p\cdot k}$ 上解释 $e$，因此 key $k$ 下得到 $NF(Remove\odot NF(e))$。
+
+$$
+NF_p(Lift_k(e)\odot BoundedMerge(D))=BoundedMerge(D_k(e)\diamond^{MB}_pD)
+$$
+
+此时结果的保留集合为 $Dom(D.\delta)$。若 $k\notin Dom(D.\delta)$，先发生的 descendant lift 会被后续 bounded-merge 的保留集合过滤掉；若 $k\in Dom(D.\delta)$，该 key 下得到 $NF(NF(e)\odot D.\delta(k))$。
 
 后代操作发生在 ancestor `Replace(T)` 之后时：
 
@@ -1177,7 +1253,7 @@ $$
 
 这些规则保证规范形中不会出现“ancestor `Remove/Replace` 与 descendant patch 并列悬挂”的非法形态。所有重叠操作都被吸收到同一个祖先操作的 denotation 中。
 
-### 6.9 `merge/remove/replace` 与 children 树结构的结合律定理
+### 6.9 `merge/bounded-merge/remove/replace` 与 children 树结构的结合律定理
 
 定义语义等价关系：
 
@@ -1237,7 +1313,9 @@ $$
 \llbracket Compose_p(n'_1,n'_2)\rrbracket_p
 $$
 
-因此 $Compose_p(n_1,n_2)\equiv_p Compose_p(n'_1,n'_2)$，商代数操作 $\bar\odot$ 与代表元选择无关。函数复合结合律保证 $\bar\odot$ 在商代数上严格结合。因此，`merge/remove/replace` 以及通过 stable-key children 表达的祖先/后代 patch，在语义商上构成结合的预合并代数。
+因此 $Compose_p(n_1,n_2)\equiv_p Compose_p(n'_1,n'_2)$，商代数操作 $\bar\odot$ 与代表元选择无关。函数复合结合律保证 $\bar\odot$ 在商代数上严格结合。因此，`merge/bounded-merge/remove/replace` 以及通过 stable-key children 表达的祖先/后代 patch，在语义商上构成结合的预合并代数。
+
+由 $Lift_q$ 的递归定义，任意有限相对路径 $q=k_1\cdots k_m$ 上的嵌套操作 $Lift_q(n)$ 都属于 $Expr_p$。因此，任意有限深度、任意层次交错的 `Remove`、`Replace(T)`、`Merge(D)`、`BoundedMerge(D)` 以及它们的后代 patch 序列，只要每个操作都类型正确且状态空间 $S_p$ 封闭，就都是定理 4C 的实例。所谓“跨层次结合律”不需要额外按层数分类证明：所有括号化的 denotation 都等于同一个按原始线性顺序排列的函数复合 $\llbracket e_n\rrbracket\circ\cdots\circ\llbracket e_1\rrbracket$。$NF$ 和 $Compose/diamond$ 只负责给出一个有限正规操作代表元，并由引理 3 保证该代表元与原表达式同 denotation。
 
 工程实现若还要求 byte-for-byte 的规范 delta 文本，需要额外提供确定性的 $Canon_p:\overline{NOp}_p\to NOp_p$，例如固定本地差量代表元、按 stable key 排序 children、把 denotation 相同的常量删除折叠到同一代表元。此时可得到：
 
@@ -1251,33 +1329,114 @@ $$
 
 ### 6.9a 端函数 carrier 的跨层次交错示例
 
-以下示例与第 5.1a 节对应，验证端函数 carrier 在 `merge/remove/replace` 跨层次交错时保持结合律。基础模型同前：Page 含 Panel p1（含 Field f1、f2）和 Panel p2（含 Field f3）。
+以下示例与第 5.1a 节对应，验证端函数 carrier 在 `merge/remove/replace/bounded-merge` 跨层次交错时保持结合律。基础模型同前：Page 含 Panel p1（含 Field f1、f2）和 Panel p2（含 Field f3）。为避免层级歧义，所有表达式都视为 Page 路径 $p$ 上的表达式，`p1`、`f1` 等是 stable key 形成的相对路径片段，不是坐标 tombstone carrier 中的 `root(...)` 坐标；对子节点 p1 的操作写作 $Lift_{p1}(e)$，对 p1 下 f1 的操作写作 $Lift_{p1}(Lift_{f1}(e))$。示例只说明 NF 如何保持 denotation；结合律本身来自第 6.9 节的函数复合等式。除非显式提到 $Canon$，下文的“相同”均指同 denotation 或商代数相等，不指 NF 文本逐字相同。
 
-**示例 1：remove 后 merge 重建（同一 stable key）。** 使用第 6.8 节的 NF 规则：
+每个示例都分三步说明：第一给出便于阅读的 XML 表面写法；第二明确本文采用的端函数 denotation；第三给出 NF 或结合律等式。XML 片段本身不自动决定语义，只有在实现证明它确实映射到列出的 denotation 时，才能引用本节结论。
+
+**示例 1：remove 后 merge 重建（同一 stable key）。** XML 表面写法：
+
+```xml
+<!-- Δ₁：删除 Panel p1 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="remove" />
+</Page>
+
+<!-- Δ₂：在同一 p1 下 merge 新 Button -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Button id="btn" color="red" />
+  </Panel>
+</Page>
+
+<!-- Δ₃：继续修改刚创建的 btn，用于显式检查三元结合 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Button id="btn" text="OK" />
+  </Panel>
+</Page>
+```
+
+本文在端函数 carrier 中采用如下 denotation：
 
 $$
-NF_p(\text{Remove}\odot\text{Lift}_{\text{p1}}(e))
+\Delta_1=Lift_{p1}(Remove),\quad
+\Delta_2=Lift_{p1}(Merge(D_{btn,color})),\quad
+\Delta_3=Lift_{p1}(Lift_{btn}(Merge(D_{btn,text})))
+$$
+
+其中 $D_{btn,color}$ 表示在 p1 子树上新增或 merge `Button btn` 的 merge body，$D_{btn,text}$ 表示在 btn 子树上设置 `text="OK"` 的 merge body。令 $e=Merge(D_{btn,color})$。在 Page 层表达式为：
+
+$$
+Lift_{p1}(Remove)\odot Lift_{p1}(e)
 =
-\text{Replace}(\llbracket\text{Lift}_{\text{p1}}(e)\rrbracket_p(\varnothing_p))
+Lift_{p1}(Remove\odot e)
+\quad\text{在 denotation 上等价}
 $$
 
-其中 $e$ 是对 p1 子树的 merge 操作（包含新增 Button btn）。$\text{Lift}_{\text{p1}}$ 在 $\varnothing_p$ 上创建空虚拟 Panel，然后 Merge 写入 btn。最终 `Replace` 包含一个带 btn 的 Panel p1。
-
-两种括号化的验证：
-- 左结合 $(\Delta_1\odot\Delta_2)\odot\Delta_3$：先 NF 前两个得到 `Replace(Node({btn}))`，再与 Δ₃ 复合。
-- 右结合 $\Delta_1\odot(\Delta_2\odot\Delta_3)$：先 NF 后两个，再与 Δ₁ 复合。
-
-两者 denotation 都是 $\llbracket\Delta_3\rrbracket\circ\llbracket\Delta_2\rrbracket\circ\llbracket\Delta_1\rrbracket$，由函数复合结合律必然相等。
-
-**示例 2：replace 后 merge 覆盖。** Δ₁ 的 `Replace(T)` 将 Panel p1 替换为仅含 f1 的子树；Δ₂ merge Panel p1 恢复 f2。
+对 p1 子树使用第 6.7 节 `Compose(Remove,Merge(D))` 规则：
 
 $$
-NF_p(\text{Replace}(T)\odot\text{Lift}_{\text{p1}}(\text{Merge}(\{f2\})))
+NF_{p1}(Remove\odot Merge(D_{btn,color}))
 =
-\text{Replace}(\llbracket\text{Lift}_{\text{p1}}(\text{Merge}(\{f2\}))\rrbracket_p(T))
+Replace(merge_{p1}(empty_{p1},D_{btn,color}))
 $$
 
-NF 把后代 merge 吸收到 `Replace` 的 denotation 内：先在 $T$（含 f1）上执行 merge f2，得到含 f1+f2 的子树。两个方向的 NF 规则一致：
+外层 NF 再把这个 p1 规范操作 lift 回 Page 层：
+
+$$
+NF_p(Lift_{p1}(Remove)\odot Lift_{p1}(Merge(D_{btn,color})))
+=
+Merge((\mathbf{1}_p,\{p1\mapsto Replace(merge_{p1}(empty_{p1},D_{btn,color}))\}))
+$$
+
+含义是：p1 先变为 $\varnothing_{p1}$，后续 merge 在空虚拟 p1 上写入 btn。注意这不是 Page 层的 `Replace(PageWithOnlyP1)`；它只更新 p1 这个 child key，Page 的其他 child（如 p2）保持不变。
+
+对上面的 XML 三段，两种括号化的 denotation 都是：
+
+$$
+\llbracket\Delta_3\rrbracket\circ
+\llbracket\Delta_2\rrbracket\circ
+\llbracket\Delta_1\rrbracket
+$$
+
+由函数复合结合律必然相等。注意左侧预合并前两个在 Page 层得到的是 `Merge({p1 -> Replace(...)})`，不是 Page 层 `Replace(...)`。
+
+**示例 2：replace 后 merge 覆盖。** XML 表面写法：
+
+```xml
+<!-- Δ₁：将 Panel p1 替换为仅含 f1 的子树 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="replace">
+    <Field id="f1" />
+  </Panel>
+</Page>
+
+<!-- Δ₂：在 p1 下 merge 恢复 f2 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f2" label="备注" />
+  </Panel>
+</Page>
+```
+
+本文采用的 denotation 是：
+
+$$
+\Delta_1=Lift_{p1}(Replace(T_{p1})),\quad
+\Delta_2=Lift_{p1}(Merge(D_{f2}))
+$$
+
+其中 $T_{p1}$ 是仅含 f1 的 p1 状态，$D_{f2}$ 是在 p1 子树上新增或 merge f2 的 merge body。Page 层表达式为 $Lift_{p1}(Replace(T_{p1}))\odot Lift_{p1}(Merge(D_{f2}))$，在 p1 子树上应用规则：
+
+$$
+NF_{p1}(Replace(T_{p1})\odot Merge(D_{f2}))
+=
+Replace(merge_{p1}(T_{p1},D_{f2}))
+$$
+
+NF 把后续 merge 吸收到 `Replace` 的 denotation 内：先在 $T_{p1}$（含 f1）上执行 merge f2，得到含 f1+f2 的子树。外层 Page 结果是一个只更新 p1 的 `Merge`。若 `Replace(T)` 出现在右侧，则由 `n\odot Replace(T)=Replace(T)`，它是常量覆盖此前 p1 上所有操作；这同样是确定 denotation。
+
+对真正的“ancestor replace 后 descendant merge”，例如 Page 层 $Replace(T_{page})\odot Lift_{p1}(e)$，使用第 6.8 节规则：
 
 $$
 NF_p(\text{Replace}(T)\odot\text{Lift}_q(e))
@@ -1285,11 +1444,41 @@ NF_p(\text{Replace}(T)\odot\text{Lift}_q(e))
 \text{Replace}(\llbracket\text{Lift}_q(e)\rrbracket_p(T))
 $$
 
-无论 $\text{Replace}$ 在左还是在右（但右侧时为常量覆盖），NF 都给出确定结果。
+其中 $T$ 是 Page 状态，$q$ 是从 Page 到目标后代的路径。
 
-**示例 3：三级交错——ancestor replace、middle remove、descendant merge。** 与第 5.1a 节示例 3 同构，但用端函数解释。
+**示例 3：三级交错，ancestor replace、middle remove、descendant merge。** XML 表面写法：
 
-Δ₁ = Page 层 `Replace(T_page)`（含 p1/f1）；Δ₂ = Page 层 `Lift_p1(Remove)`；Δ₃ = Page 层 `Lift_p1(Merge({f1', btn}))`。
+```xml
+<!-- Δ₁：replace Page 全部内容 -->
+<Page x:override="replace">
+  <Panel id="p1">
+    <Field id="f1" />
+  </Panel>
+</Page>
+
+<!-- Δ₂：remove Panel p1 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="remove" />
+</Page>
+
+<!-- Δ₃：merge Panel p1 并添加后代 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f1" required="true" />
+    <Button id="btn" />
+  </Panel>
+</Page>
+```
+
+本文采用的 denotation 是：
+
+$$
+\Delta_1=Replace(T_{page}),\quad
+\Delta_2=Lift_{p1}(Remove),\quad
+\Delta_3=Lift_{p1}(Merge(D_{f1',btn}))
+$$
+
+其中 $T_{page}$ 是只含 p1/f1 的 Page 状态，$D_{f1',btn}$ 是在 p1 子树上设置 f1 的 `required=true` 并新增 btn 的 merge body。
 
 逐步应用：
 1. $\llbracket\Delta_1\rrbracket(s_0)$：Page 被 Replace 为 $T_{\text{page}}$（含 p1/f1，无 p2）。
@@ -1301,21 +1490,21 @@ $$
 预合并 NF 逐步：
 $$
 NF(\Delta_1\odot\Delta_2):\quad
-\text{Replace}(T_{\text{page}})\odot\text{Lift}_{\text{p1}}(\text{Remove})
+Replace(T_{\text{page}})\odot Lift_{p1}(Remove)
 $$
 由 NF 规则，`Replace` 的后代 `Lift(Remove)` 被吸收：
 $$
-= \text{Replace}(\llbracket\text{Lift}_{\text{p1}}(\text{Remove})\rrbracket(T_{\text{page}}))
-= \text{Replace}(T_{\text{page}}[\text{p1}\mapsto\varnothing])
+= Replace(\llbracket Lift_{p1}(Remove)\rrbracket(T_{\text{page}}))
+= Replace(T_{\text{page}}[p1\mapsto\varnothing])
 $$
 
 然后与 Δ₃ 复合：
 $$
-NF(\text{Replace}(T')\odot\text{Lift}_{\text{p1}}(\text{Merge}(\{f1',\text{btn}\})))
-= \text{Replace}(\llbracket\text{Lift}_{\text{p1}}(\text{Merge}(\{f1',\text{btn}\}))\rrbracket(T'))
+NF(Replace(T')\odot Lift_{p1}(Merge(D_{f1',btn})))
+= Replace(\llbracket Lift_{p1}(Merge(D_{f1',btn}))\rrbracket(T'))
 $$
 
-其中 $T'=T_{\text{page}}[\text{p1}\mapsto\varnothing]$。$\text{Lift}_{\text{p1}}$ 在 p1=$\varnothing$ 上创建虚拟空节点，然后 Merge 写入 f1' 和 btn。最终 `Replace` 包含 p1 含 f1'+btn 的 Page。
+其中 $T'=T_{\text{page}}[p1\mapsto\varnothing]$。$Lift_{p1}$ 在 p1=$\varnothing$ 上创建虚拟空节点，然后 Merge 写入 f1' 和 btn。最终 `Replace` 包含 p1 含 f1'+btn 的 Page。
 
 右结合 $NF(\Delta_1\odot(\Delta_2\odot\Delta_3))$ 得到的 denotation 完全相同，因为：
 $$
@@ -1326,7 +1515,7 @@ $$
 \llbracket\Delta_1\odot(\Delta_2\odot\Delta_3)\rrbracket
 $$
 
-**示例 4：remove 后代后 merge 恢复、但 ancestor replace 覆盖全部。**
+**示例 4：replace 空 p1、remove 后代、再 merge 恢复。** XML 表面写法：
 
 ```xml
 <!-- Δ₁：replace Panel p1 为空面板 -->
@@ -1350,34 +1539,112 @@ $$
 </Page>
 ```
 
-端函数逐步：
+本文采用的 denotation 是：
+
+$$
+\Delta_1=Lift_{p1}(Replace(\varepsilon_{p1})),\quad
+\Delta_2=Lift_{p1}(Lift_{f1}(Remove)),\quad
+\Delta_3=Lift_{p1}(Lift_{f1}(Merge(D_{label})))\odot Lift_{p1}(Lift_{f3}(Merge(D_{f3})))
+$$
+
+其中 $\varepsilon_{p1}=empty_{p1}$，$D_{label}$ 设置 f1 的 `label`，$D_{f3}$ 新增或 merge f3。端函数逐步：
 1. Δ₁ 的 `Replace(empty)` 清空 p1（f1、f2 均消失）。
 2. Δ₂ 的 `Lift_{f1}(Remove)` 在 p1 上执行：从空 children map 中 lift f1 得虚拟空节点，再 Remove → $\varnothing$。实际无效果。
 3. Δ₃ 的 `Lift_{f1}(Merge)` 和 `Lift_{f3}(Merge)`：f1 从虚拟空节点 merge 得到带 label 的 Field，f3 新增。
 
-预合并 $(\Delta_1\odot\Delta_2)$：
+令 $\varepsilon_{p1}=empty_{p1}$。在 p1 子树层面预合并 $(\Delta_1\odot\Delta_2)$：
 $$
-NF(\text{Lift}_{\text{p1}}(\text{Replace}(\varepsilon))\odot\text{Lift}_{\text{p1}}(\text{Lift}_{\text{f1}}(\text{Remove})))
+NF_{p1}(Replace(\varepsilon_{p1})\odot Lift_{f1}(Remove))
 $$
 
-后代 `Replace(ε)` 与后代 `Lift_{f1}(Remove)` 复合时，`Replace` 是常量函数：
+`Replace(ε_{p1})` 与后代 `Lift_{f1}(Remove)` 复合时，`Replace` 是 p1 层的常量函数：
 $$
-NF(\text{Replace}(\varepsilon)\odot\text{Lift}_{\text{f1}}(\text{Remove}))
+NF_{p1}(Replace(\varepsilon_{p1})\odot Lift_{f1}(Remove))
 =
-\text{Replace}(\llbracket\text{Lift}_{\text{f1}}(\text{Remove})\rrbracket(\varepsilon))
-= \text{Replace}(\varepsilon)
+Replace(\llbracket Lift_{f1}(Remove)\rrbracket(\varepsilon_{p1}))
+= Replace(\varepsilon_{p1})
 $$
 
 空子树 f1 Remove 后仍是空。再与 Δ₃ 复合：
 $$
-NF(\text{Replace}(\varepsilon)\odot\text{Lift}_{\text{f1}}(\text{Merge}(\{label\}))\odot\text{Lift}_{\text{f3}}(\text{Merge}))
+NF_{p1}(Replace(\varepsilon_{p1})\odot Lift_{f1}(Merge(D_{label}))\odot Lift_{f3}(Merge(D_{f3})))
 $$
 
-`Replace(ε)` 的后代 `Lift_{f1}(Merge)` 在空子树上执行：f1 不存在 → 提升为虚拟空 → merge 写入 label。`Lift_{f3}(Merge)` 新增 f3。最终 p1 含 f1（带 label）和 f3。
+`Replace(ε)` 后的 `Lift_{f1}(Merge)` 在空 p1 上执行：f1 不存在 → 提升为虚拟空 → merge 写入 label。`Lift_{f3}(Merge)` 新增 f3。最终 p1 含 f1（带 label）和 f3；外层 Page 表达为 $Lift_{p1}$ 包裹这个 p1 规范操作。
 
-右结合路径：先 $NF(\Delta_2\odot\Delta_3)$，再与 Δ₁ 复合。Δ₂ 的 `Lift_{f1}(Remove)` 与 Δ₃ 的 `Lift_{f1}(Merge)` 先复合为 `Lift_{f1}(Remove⊙Merge)`，由 NF 规则：在基础有 f1 时，Remove 后 Merge 等价于 Replace(空+merge)=Replace(f1{label})。再与 Δ₁ 的 `Replace(ε)` 复合：`Replace(ε)` 的后代吸收所有操作 → `Replace(ε[f1→虚拟空{label}, f3→新增])` = 同一结果。
+右结合路径：先 $NF(\Delta_2\odot\Delta_3)$，再与 Δ₁ 复合。Δ₂ 的 `Lift_{f1}(Remove)` 与 Δ₃ 的 `Lift_{f1}(Merge)` 先复合为 `Lift_{f1}(Remove\odot Merge)`，由 NF 规则得到 `Lift_{f1}(Replace(merge_{f1}(empty_{f1},D_{label})))`，并与 `Lift_{f3}(Merge(D_{f3}))` 合并到同一个 child map。再与 Δ₁ 的 `Replace(ε_{p1})` 复合：`Replace(ε_{p1})` 的后代 lift 被吸收到常量状态中，得到同一 p1 状态。
 
 函数复合结合律保证两种路径的 denotation 完全一致。
+
+**示例 5：bounded-merge 裁剪未声明 children，后续 merge 重新声明部分 key。** XML 表面写法：
+
+```xml
+<!-- Δ₁：普通 merge 修改 f1，并添加临时 f3 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f1" label="名称" />
+    <Field id="f3" label="临时" />
+  </Panel>
+</Page>
+
+<!-- Δ₂：bounded-merge 只保留本次声明的 f2 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="bounded-merge">
+    <Field id="f2" label="备注" />
+  </Panel>
+</Page>
+
+<!-- Δ₃：普通 merge 在 bounded 之后重新声明 f3 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f3" label="恢复" />
+  </Panel>
+</Page>
+```
+
+本文采用的 denotation 是：
+
+$$
+\Delta_1=Lift_{p1}(Merge(D_{f1,f3old})),\quad
+\Delta_2=Lift_{p1}(BoundedMerge(D_{f2})),\quad
+\Delta_3=Lift_{p1}(Merge(D_{f3new}))
+$$
+
+其中 $D_{f1,f3old}$ 声明 p1 下的 f1 和临时 f3，$D_{f2}$ 只声明 f2，$D_{f3new}$ 再声明 f3。`bounded-merge` 的保留集合在 p1 子树层面是 $Dom(D_{f2})=\{f2\}$；它不会删除 Page 的 sibling p2，因为外层 Page 仍是普通 `Merge`，只把 `BoundedMerge(D_{f2})` 作为 p1 这个 child key 上的操作。
+
+在 p1 子树层面，左结合先得到：
+
+$$
+Compose(Merge(D_{f1,f3old}),BoundedMerge(D_{f2}))
+=
+BoundedMerge(D_{f1,f3old}\diamond^{MB}D_{f2})
+$$
+
+这里右侧 bounded-merge 是最后一步，所以保留集合为 $\{f2\}$，Δ₁ 写入的 f1 和临时 f3 被裁剪。再与 Δ₃ 普通 merge 复合：
+
+$$
+Compose(BoundedMerge(D_{f1,f3old}\diamond^{MB}D_{f2}),Merge(D_{f3new}))
+$$
+
+按 $BM$ 规则，结果仍是 `BoundedMerge`，保留集合扩展为 $\{f2,f3\}$：f2 来自 Δ₂，f3 是 Δ₃ 在 bounded 之后重新声明的 key，f1 仍被裁剪。
+
+右结合先计算：
+
+$$
+Compose(BoundedMerge(D_{f2}),Merge(D_{f3new}))
+=
+BoundedMerge(D_{f2}\diamond^{BM}D_{f3new})
+$$
+
+其保留集合同样为 $\{f2,f3\}$。再把 Δ₁ 的普通 merge 放在左侧与这个 bounded 结果复合时，按 $MB$ 规则仍只保留右侧 bounded 结果声明的 $\{f2,f3\}$。两种括号化不必产生逐字相同的 NF，但 denotation 都是：
+
+$$
+\llbracket\Delta_3\rrbracket\circ
+\llbracket\Delta_2\rrbracket\circ
+\llbracket\Delta_1\rrbracket
+$$
+
+因此在抽象端函数语义中，最终 p1 下保留 f2 和重新声明的 f3，f1 被 Δ₂ 的 bounded-merge 裁剪；Page 的其他未触及 siblings 保持不变。这个例子同时给出一个实现级证明义务：若当前实现预合并后只在 p1 上生成父级 `bounded-merge`，却让重新声明的 f3 仍以普通 merge 作用到原始基础 f3 上，那么旧 f3 的未声明后代可能被错误保留，无法继承本节结合律。实现必须把这类 $Dom(\delta_2)\setminus Dom(\delta_1)$ 的 child 操作重写为 `Replace(merge(empty,D))` 或保留等价 tombstone/empty-base 证据。
 
 ### 6.10 有序列表与插入约束
 
@@ -1431,7 +1698,7 @@ $$
 | `replace` | 端函数常量操作已覆盖 | 若工程语义要求清空旧子树未声明内容，应映射为 `Replace(T)`，不能只用父坐标普通值覆盖。 |
 | `append` / `prepend` | 纯序列 concat/pre-concat 抽象 carrier 已覆盖 | 当前 XNode 级实现还合并属性、移动 children、处理 XPL，并且 `APPEND/PREPEND` 与既有 `APPEND/PREPEND` 组合可能经 `OverrideHelper` 规约为 `MERGE_SUPER`。其预合并闭包依赖 `x:super` 存在性、缺失时的错误 denotation，以及相关组合表证明。 |
 | `merge-replace` | 可作为“本地属性 merge + body replace”的端函数建模 | 需证明属性 carrier 和 body 常量替换组合满足 `Compose` 表。 |
-| `bounded-merge` | 不能由第 6.5 节的普通 `Merge(D)` 自动覆盖 | 若语义是“只保留右侧声明 children”，它会删除输入中未列出的既有 key，而普通 `Merge(D)` 只更新 $Dom(\delta)$。需扩展为 `FilterThenMerge(retainKeys,D)`、wildcard/filter 端函数，或在有限 key 宇宙中显式列出删除，并重新证明闭包与 `Compose/NF` soundness。 |
+| `bounded-merge` | 端函数 carrier 已作为 `BoundedMerge(D)` 覆盖抽象语义 | 当前实现需证明其语义确实是“本地字段按同一 $M_p$ 合并，children 只处理右侧 stable-key 声明集合 $Dom(\delta)$，未声明旧 child 被删除”，并且 `OverrideHelper` 中 `MERGE/BOUNDED_MERGE`、`BOUNDED_MERGE/MERGE`、`BOUNDED_MERGE/BOUNDED_MERGE` 等组合实现对应第 6.7 节的四模式 $\diamond^{xy}$ 表。尤其是 `BOUNDED_MERGE/MERGE` 和 `BOUNDED_MERGE/BOUNDED_MERGE` 中，若右侧重新声明此前被 bounded 裁剪的 child，抽象规则要求该 child 从空状态或等价 tombstone 证据重建；当前 `DeltaMerger` 若只设置父级 bounded override 而未把该 child 重写为 `REPLACE`/empty-base 语义，则不能视为已证明符合，且可能出现旧未声明后代被保留的反例。它仍不是普通 `Merge(D)` 的特例。 |
 | `merge-super` / `x:super` | 不由第 6.3 抽象单洞二元组自动覆盖 | 应按 XNode 子树端函数建模；若允许条件、多次或缺失 `super`，需要定义错误 denotation 或排除。 |
 | `x:before` / `x:after` | 约束自由幺半群抽象已覆盖 | 需证明实际规范化算法收集完整约束，tie-breaker 来自稳定来源序号，不依赖括号化或哈希遍历。 |
 | `x:virtual` | 可作为 carrier 中的潜在本地证据 | 数学 virtual node 不等同于 Nop 实现中最终会移除的 `x:virtual` 属性；若当前实现中 `x:virtual` 的移除或过滤会影响后续 matching、append/prepend 或 remove，则必须纳入端函数状态，或证明其移除时机不影响括号化。 |
@@ -1551,7 +1818,7 @@ $$
 
 ### 定理 4C：树状态端函数 carrier 的预合并结合律
 
-设 $S=S_\epsilon$ 是第 6.4 节的根状态空间，$Expr_\epsilon$ 是第 6.6 节的有限表达式语言。对任意 $s_0\in S$ 和任意 $e_1,e_2,e_3\in Expr_\epsilon$：
+设 $S=S_\epsilon$ 是第 6.4 节的根状态空间，$Expr_\epsilon$ 是第 6.6 节的有限表达式语言。这里默认第 6.4 节的路径定型前提成立：每个 `Replace(T)` 都满足 $T\in S_p$ 并保持该路径的 sort/key 宇宙；每个 $Lift_q$ 的相对路径 $q$ 都是合法有限 stable-key 路径；$merge_p$、`Lift` 和 $NF$ 都按第 6.5-6.7 节的闭包引理作用在有限状态和有限表达式上。对任意 $s_0\in S$ 和任意 $e_1,e_2,e_3\in Expr_\epsilon$：
 
 $$
 \llbracket (e_1\odot e_2)\odot e_3\rrbracket_\epsilon(s_0)
