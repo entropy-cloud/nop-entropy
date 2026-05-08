@@ -587,13 +587,15 @@ $$
 Result ::= Ok(Model) \mid Err(ErrorSet)
 $$
 
-其中 `ErrorSet` 是规范化后的错误集合，不依赖遍历顺序、对象地址或调用栈文本。最终可观测结果由一个总的确定性函数给出：
+其中 `ErrorSet` 是规范化后的错误集合，不依赖遍历顺序、对象地址或调用栈文本。端函数 carrier 的最终可观测结果由一个总的确定性函数给出：
 
 $$
 Final = Validate \circ Pr \circ Norm : S \to Result
 $$
 
 其中 $Norm$ 必须作用于潜在状态并保留会影响后续 $Pr$ 或排序的 tombstone、virtual、顺序约束等证据。
+
+对应地，坐标 tombstone carrier 可定义同型的确定性函数 $Final_P:P\to Result$。下文在不引起歧义时用 $Final$ 统称二者；具体使用哪一个由所选 carrier 决定。
 
 结合律只在 $S$ 或其端函数空间 $End(S)$ 上证明，不能在每一步后投影到最终物理树。
 
@@ -950,7 +952,7 @@ $$
 有序列表是最容易破坏结合律的地方。若用物理下标作为坐标，则在列表头部插入一个元素会改变后续所有元素的坐标，导致差量不再稳定。因此 GRC 需要把列表拆成两部分：
 
 - 元素身份：由稳定键确定，使用映射空间合并。
-- 元素顺序：由顺序约束表达，例如 `x:after="stockChecking"`。
+- 元素顺序：由顺序约束表达，例如 `x:after="stockChecking"`。在 Nop 语义中，`x:before` / `x:after` 会规范化到通用 merge 语义中：顺序约束不创建第二个同 key 节点，多个约束共同参与确定性规约，最终每个 stable key 仍只保留一个节点。
 
 顺序约束可以作为一个局部操作集合。若组合方式是“收集约束列表，再在最终规范化阶段执行确定性拓扑排序或稳定排序”，则约束收集本身满足结合律，因为列表连接满足结合律。
 
@@ -974,6 +976,10 @@ Ord_p = List(Constraint_p),\quad x\diamond^{ord}_p y = x ++ y,\quad \mathbf{1}^{
 $$
 
 每个 $Constraint_p$ 必须引用 stable key，而不是物理下标。最终 $Norm$ 将完整列表作为输入，按固定算法解析 anchor、删除已失效约束、检测环，并用 stable key 与约束记录中的确定性来源序号打破并列。若改用集合 carrier，则 $Norm$ 的 tie-breaker 不得依赖收集顺序。
+
+因此，`x:after` 的证明义务不是把列表下标操作证明为结合，而是证明“stable-key 节点合并 + 顺序约束收集 + 终端确定性规约”整体保持同一 denotation。若多个差量触及同一 stable key，节点内容按对应 merge/replace/remove 语义规约，顺序证据按上述 carrier 合并，最终仍投影为单一节点。
+
+这里的约束列表是证明层抽象。Nop 工程实现可以在规范化阶段把 `x:before` / `x:after` 规约到通用 merge 语义中；只要规约对同一输入约束集合确定，并且最终仍按 stable key 投影为唯一节点，就满足本节定理所需条件。
 
 ## 七、生成器与合并顺序
 
@@ -1022,7 +1028,7 @@ $$
 - 单坐标扩展语义：模型级算子 $\bullet=\otimes$，每个坐标的操作空间 $(O_c,\star_c,e_c)$ 都是幺半群，且跨坐标副作用已被排除或提升到下一种语义。
 - 混合扩展语义：每个差量要么是 $Expr_p$ 中的有限表达式，并由第 6.6-6.9 节给出 denotation 与 $NF$；要么被显式提升为 $End(S)$ 中的确定性端函数，此时只证明函数复合的结合律，不再声称存在第 6.7 节形式的语法规范形。
 
-同时，若使用第五节坐标 tombstone carrier，则树形合并使用第五节定义的潜在树合并 $MergeTree^P$，中间结果保留 tombstone、顺序约束等证据。若使用第六节端函数 carrier，则树形合并使用 $S_p$ 与 $Expr_p$ 的 denotation，不再把中间状态解释为第四节的坐标 tombstone 模型。所有投影、规范化、排序和验证都在合并链完成后统一执行，且最终后处理统一表示为确定性函数 $Final:S\to Result$ 或其坐标模型对应物。
+同时，若使用第五节坐标 tombstone carrier，则树形合并使用第五节定义的潜在树合并 $MergeTree^P$，中间结果保留 tombstone、顺序约束等证据，最终后处理为 $Final_P:P\to Result$。若使用第六节端函数 carrier，则树形合并使用 $S_p$ 与 $Expr_p$ 的 denotation，不再把中间状态解释为第四节的坐标 tombstone 模型，最终后处理为 $Final:S\to Result$。所有投影、规范化、排序和验证都在合并链完成后统一执行。
 
 在核心覆盖语义或单坐标扩展语义下，对任意基础模型 $P_0$ 和任意有限差量序列 $\Delta_1,\dots,\Delta_n$，任意括号化方式得到的潜在合并结果相同，并且最终可观测结果相同：
 
