@@ -35,6 +35,7 @@
 | A6 | 合并链在潜在空间中完成；中间步骤不得执行会丢弃 tombstone、顺序约束、virtual node 或其他影响后续语义证据的有损投影。 |
 | A7 | 最终错误结果按错误码、规范坐标和规范参数形成 `ErrorSet`；不包含对象地址、调用栈文本、遍历偶然顺序、未规范化 source location 等非语义字段。 |
 | A8 | 若声称得到可序列化 delta artifact，必须证明差量语言对预合并闭包；任意 $End(S)$ 函数复合只给出语义组合，不自动给出可保存的 DSL 差量文本。 |
+| A9 | 所有纳入预合并定理的操作组合必须在所选 carrier 中是全函数并保持闭包；实现级“禁止组合”或局部失败只有被建模为确定性 total error carrier 并证明结合律时才可进入定理，否则必须排除或推迟到最终统一验证。 |
 
 ## 0.2 记号表
 
@@ -337,6 +338,8 @@ $$
 
 含义是：如果某坐标或其祖先坐标在最终潜在模型中被标记为删除，则该坐标在可观测模型中不存在。
 
+这里的 $Pr$ 首先是坐标级可观测偏函数投影。若最终输出需要真实树模型，还必须把 `present`、`#node` 等编码哨兵的过滤、从坐标重建树、well-formedness 检查和语法糖消解纳入确定性的 $Norm_P/Pr_P/Validate_P$ 链条；这些后处理可以拒绝不良输入，但不能在合并链中间丢弃会影响后续语义的证据。
+
 ### 定理 2：最终投影保持结合律的可观测结果
 
 对任意潜在模型 $p,q,r$，有：
@@ -389,11 +392,107 @@ $$
 - 属性值：$root(\pi)/@attr \mapsto value$。
 - 文本内容：$root(\pi)/\#text \mapsto text$。
 - 子节点：用父路径、子标签和稳定键形成子路径，例如 $\pi\cdot column[@name='status']$，再映射为 $root(\pi\cdot column[@name='status'])$。
-- 顺序信息：不直接用数组下标做身份坐标，而是用稳定键加顺序约束或规范化排序规则表达。
+- 顺序信息：本节的坐标 LWW 证明只允许两种处理方式：一是最终顺序由 stable key 和规范化排序规则确定；二是把每条原子顺序约束编码到带稳定 source id 的独立坐标。若多个约束需要在同一坐标上累积，不能使用本节的 $\oplus$ 证明，而应使用第 6.10 节的约束幺半群或第六节的端函数 carrier。
 
 若某差量删除路径 $\pi$ 处的子树，则编码包含 $root(\pi)\mapsto \bot_{root(\pi)}$。若某差量以坐标 tombstone carrier 重新声明同一子树根，则必须同时写入 $root(\pi)\mapsto \mathsf{present}$ 或节点摘要，从而在同一坐标上覆盖旧 tombstone；否则旧 tombstone 会继续屏蔽后代坐标。这一规则只属于第五节的理想化 carrier。
 
-设潜在树集合为 $Tree^P$，其中允许 tombstone、virtual 节点和顺序约束等结构证据。编码函数为偏函数：
+因此，在坐标 tombstone carrier 中，“重新声明同一根坐标”只是解除祖先 tombstone 的屏蔽，不是自动的子树替换。旧后代坐标可能重新暴露；若工程语义要求删除后重建必须清空旧子树，应使用 `Replace(T)` 或第六节的端函数 carrier。
+
+#### 5.1a 坐标 carrier 的跨层次交错示例
+
+以下示例验证坐标 tombstone carrier 在 `merge/remove/replace` 跨层次交错时仍然保持结合律。基础模型为：
+
+```xml
+<Page>                          <!-- π = Page -->
+  <Panel id="p1">               <!-- π = Page/Panel[@id='p1'] -->
+    <Field id="f1" />           <!-- π = Page/Panel[@id='p1']/Field[@id='f1'] -->
+    <Field id="f2" />
+  </Panel>
+  <Panel id="p2">
+    <Field id="f3" />
+  </Panel>
+</Page>
+```
+
+**示例 1：remove 后 merge 重建。** Δ₁ 在 Page 层 merge，但 remove Panel p1；Δ₂ 在 Page 层 merge，merge Panel p1 并新增后代。
+
+```xml
+<!-- Δ₁ -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="remove" />
+</Page>
+
+<!-- Δ₂ -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Button id="btn" color="red" x:override="merge" />
+  </Panel>
+</Page>
+```
+
+坐标编码中，Δ₁ 在 $root(\text{p1})$ 写入 $\bot$。Δ₂ 在 $root(\text{p1})$ 写入 $\mathsf{present}$，在 $root(\text{p1}/\text{btn})$ 写入节点内容。由 LWW：
+
+$$
+E(\Delta_1)\oplus E(\Delta_2):\quad
+root(\text{p1})\mapsto\mathsf{present},\;
+root(\text{p1}/\text{btn})\mapsto\{\ldots\}
+$$
+
+Δ₂ 的 $\mathsf{present}$ 覆盖 Δ₁ 的 $\bot$，Panel p1 被重建，Button btn 作为新后代出现。两种括号化给出相同的 LWW 结果。
+
+**示例 2：replace 清空后代后 merge 恢复部分内容。** Δ₁ replace Panel p1 为仅含 Field f1 的子树（清除 f2）；Δ₂ merge Panel p1，恢复 f2 并新增 f2 上的属性。
+
+```xml
+<!-- Δ₁ -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="replace">
+    <Field id="f1" />
+  </Panel>
+</Page>
+
+<!-- Δ₂ -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f2" label="备注" />
+  </Panel>
+</Page>
+```
+
+坐标编码中，Δ₁ 的 `replace` 等价于：写入 $root(\text{p1})\mapsto\mathsf{present}$，写入 f1 后代坐标，不写入 f2 后代坐标（或显式在 $root(\text{p1}/\text{f2})$ 写入 $\bot$）。Δ₂ 在 f2 坐标写入 merge 内容。由 LWW，f2 坐标由 Δ₂ 决定（若 Δ₁ 未写入则为新增，若 Δ₁ 写了 $\bot$ 则 Δ₂ 的值覆盖 $\bot$）。两种括号化结果一致。
+
+**示例 3：三级交错——ancestor replace、middle remove、descendant merge。**
+
+```xml
+<!-- Δ₁：replace Page 全部内容 -->
+<Page x:override="replace">
+  <Panel id="p1">
+    <Field id="f1" />
+  </Panel>
+</Page>
+
+<!-- Δ₂：remove Panel p1 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="remove" />
+</Page>
+
+<!-- Δ₃：merge Panel p1 并添加后代 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f1" required="true" />
+    <Button id="btn" />
+  </Panel>
+</Page>
+```
+
+预合并 $E(\Delta_1)\oplus E(\Delta_2)\oplus E(\Delta_3)$：
+- Page 层：Δ₁ 的 replace 在 $root(\text{Page})$ 写入 $\mathsf{present}$，Δ₂/Δ₃ 同样写入 $\mathsf{present}$，LWW 无冲突。
+- Panel p1：Δ₁ 写入 present（含 f1），Δ₂ 写入 $\bot$，Δ₃ 写入 present（含 f1+btn）。LWW 链：present → $\bot$ → present。最终 present。
+- Field f1：Δ₁ 写入，Δ₂ 不写，Δ₃ 写入 required=true。最终 Δ₃ 胜出。
+- Button btn：仅 Δ₃ 写入。新增。
+
+任意括号化后逐坐标 LWW 都得到同一结果。坐标 tombstone carrier 通过"每个坐标独立 LWW"天然支持这种跨层次交错。
+
+设潜在树集合为 $Tree^P$，其中允许 tombstone、virtual 节点和可被 LWW 坐标表达的结构证据。编码函数为偏函数：
 
 $$
 E: Tree^P \rightharpoonup P
@@ -413,7 +512,7 @@ Nop/XLang 中常见的树合并算法可以概括为：
 - 差量中新出现的子节点视为新增。
 - `x:override="remove"` 记录删除意图。
 
-为了与第四节保持一致，这里的树合并函数必须理解为**坐标 tombstone carrier 上的潜在树合并**，记为 $MergeTree^P(T,D)$。它的结果不是已经丢弃 tombstone 的可观测树，而是仍保留 `remove`、`virtual`、顺序约束等中间证据的潜在树。工程实现若在某一步直接返回物理树或 `NULL` 并丢弃删除证据，则不能把该结果继续作为本节结合律中的中间项；它只能作为整条合并链结束后的投影实现，或转入第六节的端函数 carrier 重新解释。
+为了与第四节保持一致，这里的树合并函数必须理解为**坐标 tombstone carrier 上的潜在树合并**，记为 $MergeTree^P(T,D)$。它的结果不是已经丢弃 tombstone 的可观测树，而是仍保留 `remove` tombstone、`virtual` 标记以及第 5.1 节允许的 LWW 可编码证据的潜在树。累积型顺序约束不属于本节的 LWW 证明范围，必须转入第 6.10 节的约束 carrier 或第六节的端函数 carrier。工程实现若在某一步直接返回物理树或 `NULL` 并丢弃删除证据，则不能把该结果继续作为本节结合律中的中间项；它只能作为整条合并链结束后的投影实现，或转入第六节的端函数 carrier 重新解释。
 
 下面的等价性只对一种显式的坐标化潜在树成立：`remove` 不物理删除左侧子树坐标，而是在被删除子树根坐标写入 $\bot$；旧后代坐标仍可保留在潜在表示中，并由最终 $Pr$ 的删除闭包屏蔽。若某递归树合并实现直接从 children map 中移除节点并丢弃其旧后代，则它不满足本节的 $E(MergeTree^P(T,D))=E(T)\oplus E(D)$，只能作为最终投影或第六节端函数语义的一种实现。
 
@@ -423,15 +522,17 @@ $$
 MergeTree^P(T,D)=E^{-1}_{can}(E(T)\oplus E(D))
 $$
 
-其中 $E^{-1}_{can}$ 是对编码后潜在模型选择一个确定性规范树代表元的偏函数。它只在 stable-key 唯一、元模型约束满足、顺序证据可规范表示的输入上有定义。等价地，可以把 $MergeTree^P$ 看作以下递归算法的规范化实现：属性和文本按坐标右覆盖，同 key child 递归合并，新增 child 写入新子路径坐标，删除 child 在 $root(\pi)$ 写入 $\bot$ 且不物理删除旧后代坐标，顺序证据作为本地潜在信息合并。这个定义确保合并结果仍在 $Tree^P$ 中，并保留最终投影需要的 tombstone 证据。
+其中 $E^{-1}_{can}$ 是对编码后潜在模型选择一个确定性规范树代表元的偏函数，满足 $E^{-1}_{can}(p)\in Dom(E)$ 且 $E(E^{-1}_{can}(p))=p$。它只在 stable-key 唯一、元模型约束满足、以及所有附加证据都可用 LWW 坐标表示的输入上有定义。等价地，可以把 $MergeTree^P$ 看作以下递归算法的规范化实现：属性和文本按坐标右覆盖，同 key child 递归合并，新增 child 写入新子路径坐标，删除 child 在 $root(\pi)$ 写入 $\bot$ 且不物理删除旧后代坐标，可被 LWW 编码的本地潜在信息按坐标覆盖。这个定义确保合并结果仍在 $Tree^P$ 中，并保留最终投影需要的 tombstone 证据。
 
-形式化地，本文把 $Tree^P$ 限定为对所讨论的有限合并链封闭的规范树表示域：若 $T_i\in Tree^P$，且 $E(T_1)\oplus\cdots\oplus E(T_m)$ 满足 stable-key 唯一性、元模型约束和顺序证据可规范表示，则该潜在模型属于 $Dom(E^{-1}_{can})$。后文定理 3 只对所有中间 $\oplus$ 结果均落在该定义域内的 $A,B,C$ 陈述。
+形式化地，本节把 $MergeTree^P$ 当作偏操作处理：只有当 $T,D\in Dom(E)$ 且 $E(T)\oplus E(D)\in Dom(E^{-1}_{can})$ 时，$MergeTree^P(T,D)$ 才有定义。后文定理 3 只对所有需要的 $E$ 和 $E^{-1}_{can}$ 调用均有定义的 $A,B,C$ 陈述，而不是把闭包结论预先塞进 $Tree^P$ 的定义。
+
+反例边界很重要：如果把父节点下所有顺序约束都编码到同一个坐标，例如 $root(\pi)/\#orderConstraints$，并期望合并时收集约束，那么 $\Delta_1$ 写入 “$A$ after $B$”、$\Delta_2$ 写入 “$C$ after $D$” 时，$E(\Delta_1)\oplus E(\Delta_2)$ 只会保留后者。这不是顺序约束收集语义。因此，累积型顺序约束必须使用第 6.10 节的自由幺半群、独立 source-id 坐标，或端函数 carrier。
 
 由定义可得以下编码引理。
 
 #### 引理 5.2：理想化潜在树合并与坐标合并等价
 
-若 $T,D\in Tree^P$ 且 $E(T)\oplus E(D)\in Dom(E^{-1}_{can})$，则对核心 merge/remove 语义有：
+若 $T,D\in Dom(E)$ 且 $E(T)\oplus E(D)\in Dom(E^{-1}_{can})$，则对核心 merge/remove 语义有：
 
 $$
 E(MergeTree^P(T,D)) = E(T) \oplus E(D)
@@ -455,7 +556,7 @@ $$
 
 ### 定理 3：理想化坐标 tombstone carrier 下的核心树合并满足结合律
 
-对任意三棵可编码为同一稳定坐标空间中潜在模型的 XDSL 树或差量 $A,B,C$，若合并使用本节定义的理想化核心 merge/remove 语义，中间结果按坐标 tombstone carrier 保留删除、顺序约束等潜在证据，并且 $E(A)\oplus E(B)$、$E(B)\oplus E(C)$、$(E(A)\oplus E(B))\oplus E(C)$、$E(A)\oplus(E(B)\oplus E(C))$ 都属于 $Dom(E^{-1}_{can})$，则：
+对任意三棵可编码为同一稳定坐标空间中潜在模型的 XDSL 树或差量 $A,B,C$，若合并使用本节定义的理想化核心 merge/remove 语义，中间结果按坐标 tombstone carrier 保留删除和第 5.1 节允许的 LWW 可编码证据，并且 $E(A)\oplus E(B)$、$E(B)\oplus E(C)$、$(E(A)\oplus E(B))\oplus E(C)$、$E(A)\oplus(E(B)\oplus E(C))$ 都属于 $Dom(E^{-1}_{can})$，则：
 
 $$
 E(MergeTree^P(MergeTree^P(A,B),C))
@@ -502,7 +603,7 @@ $$
 - 对互不重叠、只在单坐标上组合的扩展操作，使用局部幺半群提升定理。
 - 对 `replace/remove/merge`、祖先/后代重叠、混合操作等跨坐标语义，统一解释为潜在状态空间上的确定性端函数，结合律来自函数复合。
 
-### 6.1 局部结合算子定理
+### 6.1 局部操作 delta 结合算子定理
 
 逐坐标扩展语义必须区分“值空间”和“操作空间”。对每个坐标 $c$，令 $W_c$ 为该坐标最终可被作用的局部值空间，令 $O_c$ 为局部操作集合。设存在二元组合 $\star_c:O_c \times O_c \to O_c$ 和单位元 $e_c \in O_c$，使 $(O_c,\star_c,e_c)$ 构成幺半群，即满足闭包、结合律和左右单位元律：
 
@@ -552,7 +653,7 @@ $$
 \end{cases}
 $$
 
-等价地，也可以显式保留定义域并集上的单位元；本文采用“单位元不写入稀疏模型”的规范表示。
+等价地，也可以显式保留定义域并集上的单位元；本文采用“单位元不写入稀疏模型”的规范表示。该规范表示是本定理的一部分：后续组合、序列化、规范化和验证都不得区分“显式写入单位元”和“省略单位元”。若某 DSL 需要保留显式 no-op 的来源位置、注释或审计信息，则这些信息必须进入新的操作值或 provenance carrier，并重新证明对应的幺半群律。
 
 则 $\otimes$ 在操作潜在模型上满足结合律；并且由 $act_c$ 的作用律，先逐步应用操作与先预合并操作再应用到基础值等价。
 
@@ -651,6 +752,8 @@ $$
 当不同操作会影响同一棵子树，或祖先坐标与后代坐标同时出现操作时，逐坐标独立性不再是一个安全假设。此时应选择一个潜在树状态空间，并把差量解释为这个状态空间上的确定性端函数。
 
 对任意路径 $p$，令 $K_p$ 为该路径下同级 children 的稳定 key 集合。一个 key 可以形式化为 `(role, tag, keyName, keyValue)`，其中 `keyName/keyValue` 来自 XDef 或 DSL 元模型指定的身份字段；`name`、`id`、`value`、`x:id` 等属性只有在 schema 或通用 XNode fallback 规则把它们声明为身份字段时才可进入 key。物理数组下标不属于 $K_p$。
+
+为使下面的端函数严格定型，本文采用“路径定型”的抽象：每个路径 $p$ 的可接受节点 sort、tag、可用本地字段和 child key 宇宙已经由 schema 固定在 $L_p$ 和 $K_p$ 中，所有 $T\in S_p$ 都满足该类型约束，`Replace(T)` 也必须保持 $T\in S_p$。若真实 DSL 允许某路径处替换为会改变 child key 提取规则的不同 sort，则应把状态空间改写为按 sort/tag 索引的依赖和类型，例如 $S_p=\sum_{\sigma\in\Sigma_p}S_{p,\sigma}$，并为跨 sort 的 `Replace` 重新给出类型规则和后续证明；不能直接套用本节的固定 $K_p/L_p$ 表述。
 
 本文还假设 key 提取函数在每个父路径内是确定且单射的：同一父节点下不得存在两个具有相同 stable key 的 children；若输入违反唯一性，编码函数 $E$ 未定义或验证失败。作为 stable key 的字段必须被视为身份字段，不允许通过普通属性覆盖改变其身份；所谓“改名”必须编码为删除旧 key 并新增新 key，或编码为包含完整新子树的 `Replace(T)`。
 
@@ -895,7 +998,17 @@ $$
 \rho_p(e)=(depth(e),size(e))
 $$
 
-其中 $depth(e)$ 是第一分量，$size(e)$ 是第二分量。在 $D_1\diamond_pD_2$ 的递归分支中，$NF$ 只作用于两个外层 `Merge` 的严格 child 子项 $\delta_1(k)$ 和 $\delta_2(k)$，因此第一分量严格下降；在同一路径处理 $e_1\odot e_2$ 时，归纳调用只作用于真子表达式，因而第二分量严格下降。由自然数字典序的良基性，`diamond`、`Compose` 与 `NF` 不会循环。
+其中 $depth(e)$ 是第一分量，$size(e)$ 是第二分量。对二元对象使用组合秩：
+
+$$
+rank_{DD}(D_1,D_2)=rank_E(Merge(D_1)\odot Merge(D_2))
+$$
+
+$$
+rank_{NN}(n_1,n_2)=rank_E(n_1\odot n_2)
+$$
+
+在 $D_1\diamond_pD_2$ 的递归分支中，$NF$ 只作用于两个外层 `Merge` 的严格 child 子项 $\delta_1(k)$ 和 $\delta_2(k)$，其表达式秩的第一分量严格小于 $rank_{DD}(D_1,D_2)$ 的第一分量；在同一路径处理 $e_1\odot e_2$ 时，归纳调用只作用于真子表达式 $e_1,e_2$，因而第一分量不增且第二分量严格下降。`Compose_p(n_1,n_2)` 的非 `Merge/Merge` 分支不递归；`Merge/Merge` 分支只调用具有同一组合秩的 $D_1\diamond_pD_2$，而 $diamond$ 的内部递归再转入严格更小的 child 表达式。由自然数字典序的良基性，`diamond`、`Compose` 与 `NF` 的同步定义不会循环。
 
 现在定义 $NF_p$：
 
@@ -1034,6 +1147,14 @@ $$
 
 这是一种端函数语义下的设计选择，含义是“删除之后的后代操作可以在空虚拟祖先上重建子树”。它不同于第四节坐标 tombstone 语义中“祖先 $\bot$ 持续屏蔽后代，直到同一祖先坐标被覆盖”的规则。实际 DSL 必须选择其中一种语义并保持一致；不能在同一证明链中混用二者。
 
+一个容易误读的特例是：
+
+$$
+NF_p(Remove\odot Lift_k(Remove))=Replace(empty_p)
+$$
+
+而不是 `Remove`。因为 `Lift_k` 在 $\varnothing_p$ 上会先提升为空虚拟祖先，再删除 child $k$。最终这个 $empty_p$ 是否投影为不存在节点，必须由确定性的 $Norm_S/Pr_S$ 规定；若工程语义要求“父节点删除后，后代 remove 不重建父节点”，则需要采用另一套 denotation 并重新证明 `NF` soundness。
+
 反过来，若 ancestor `Remove` 或 `Replace(T)` 发生在后代操作之后，它们是常量函数，因此覆盖此前后代操作：
 
 $$
@@ -1128,6 +1249,136 @@ $$
 
 这个字面相等是规范化工程层的额外性质；本文结合律证明所需的数学结论是上面的 $\equiv_p$ 和商代数结合律。任意等价的预合并结果作用到同一个基础潜在树 $s\in S_p$ 上，得到同一个潜在树；在根状态上再经过确定性的 $Final_S:S\to Result$，得到同一个 `Ok(Model)` 或同一个规范化 `Err(ErrorSet)`。
 
+### 6.9a 端函数 carrier 的跨层次交错示例
+
+以下示例与第 5.1a 节对应，验证端函数 carrier 在 `merge/remove/replace` 跨层次交错时保持结合律。基础模型同前：Page 含 Panel p1（含 Field f1、f2）和 Panel p2（含 Field f3）。
+
+**示例 1：remove 后 merge 重建（同一 stable key）。** 使用第 6.8 节的 NF 规则：
+
+$$
+NF_p(\text{Remove}\odot\text{Lift}_{\text{p1}}(e))
+=
+\text{Replace}(\llbracket\text{Lift}_{\text{p1}}(e)\rrbracket_p(\varnothing_p))
+$$
+
+其中 $e$ 是对 p1 子树的 merge 操作（包含新增 Button btn）。$\text{Lift}_{\text{p1}}$ 在 $\varnothing_p$ 上创建空虚拟 Panel，然后 Merge 写入 btn。最终 `Replace` 包含一个带 btn 的 Panel p1。
+
+两种括号化的验证：
+- 左结合 $(\Delta_1\odot\Delta_2)\odot\Delta_3$：先 NF 前两个得到 `Replace(Node({btn}))`，再与 Δ₃ 复合。
+- 右结合 $\Delta_1\odot(\Delta_2\odot\Delta_3)$：先 NF 后两个，再与 Δ₁ 复合。
+
+两者 denotation 都是 $\llbracket\Delta_3\rrbracket\circ\llbracket\Delta_2\rrbracket\circ\llbracket\Delta_1\rrbracket$，由函数复合结合律必然相等。
+
+**示例 2：replace 后 merge 覆盖。** Δ₁ 的 `Replace(T)` 将 Panel p1 替换为仅含 f1 的子树；Δ₂ merge Panel p1 恢复 f2。
+
+$$
+NF_p(\text{Replace}(T)\odot\text{Lift}_{\text{p1}}(\text{Merge}(\{f2\})))
+=
+\text{Replace}(\llbracket\text{Lift}_{\text{p1}}(\text{Merge}(\{f2\}))\rrbracket_p(T))
+$$
+
+NF 把后代 merge 吸收到 `Replace` 的 denotation 内：先在 $T$（含 f1）上执行 merge f2，得到含 f1+f2 的子树。两个方向的 NF 规则一致：
+
+$$
+NF_p(\text{Replace}(T)\odot\text{Lift}_q(e))
+=
+\text{Replace}(\llbracket\text{Lift}_q(e)\rrbracket_p(T))
+$$
+
+无论 $\text{Replace}$ 在左还是在右（但右侧时为常量覆盖），NF 都给出确定结果。
+
+**示例 3：三级交错——ancestor replace、middle remove、descendant merge。** 与第 5.1a 节示例 3 同构，但用端函数解释。
+
+Δ₁ = Page 层 `Replace(T_page)`（含 p1/f1）；Δ₂ = Page 层 `Lift_p1(Remove)`；Δ₃ = Page 层 `Lift_p1(Merge({f1', btn}))`。
+
+逐步应用：
+1. $\llbracket\Delta_1\rrbracket(s_0)$：Page 被 Replace 为 $T_{\text{page}}$（含 p1/f1，无 p2）。
+2. $\llbracket\Delta_2\rrbracket$：在 p1 上 Remove → p1 变为 $\varnothing$。
+3. $\llbracket\Delta_3\rrbracket$：Lift p1 从 $\varnothing$ 创建空虚拟节点，Merge 写入 f1'（required=true）和 btn。
+
+最终状态：Page 含 Panel p1（含 Field f1 with required=true + Button btn），无 p2。
+
+预合并 NF 逐步：
+$$
+NF(\Delta_1\odot\Delta_2):\quad
+\text{Replace}(T_{\text{page}})\odot\text{Lift}_{\text{p1}}(\text{Remove})
+$$
+由 NF 规则，`Replace` 的后代 `Lift(Remove)` 被吸收：
+$$
+= \text{Replace}(\llbracket\text{Lift}_{\text{p1}}(\text{Remove})\rrbracket(T_{\text{page}}))
+= \text{Replace}(T_{\text{page}}[\text{p1}\mapsto\varnothing])
+$$
+
+然后与 Δ₃ 复合：
+$$
+NF(\text{Replace}(T')\odot\text{Lift}_{\text{p1}}(\text{Merge}(\{f1',\text{btn}\})))
+= \text{Replace}(\llbracket\text{Lift}_{\text{p1}}(\text{Merge}(\{f1',\text{btn}\}))\rrbracket(T'))
+$$
+
+其中 $T'=T_{\text{page}}[\text{p1}\mapsto\varnothing]$。$\text{Lift}_{\text{p1}}$ 在 p1=$\varnothing$ 上创建虚拟空节点，然后 Merge 写入 f1' 和 btn。最终 `Replace` 包含 p1 含 f1'+btn 的 Page。
+
+右结合 $NF(\Delta_1\odot(\Delta_2\odot\Delta_3))$ 得到的 denotation 完全相同，因为：
+$$
+\llbracket\Delta_3\rrbracket\circ\llbracket\Delta_2\rrbracket\circ\llbracket\Delta_1\rrbracket
+=
+\llbracket(\Delta_1\odot\Delta_2)\odot\Delta_3\rrbracket
+=
+\llbracket\Delta_1\odot(\Delta_2\odot\Delta_3)\rrbracket
+$$
+
+**示例 4：remove 后代后 merge 恢复、但 ancestor replace 覆盖全部。**
+
+```xml
+<!-- Δ₁：replace Panel p1 为空面板 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="replace" />
+</Page>
+
+<!-- Δ₂：remove Field f1 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f1" x:override="remove" />
+  </Panel>
+</Page>
+
+<!-- Δ₃：merge Field f1 恢复，新增 Field f3 -->
+<Page x:override="merge">
+  <Panel id="p1" x:override="merge">
+    <Field id="f1" x:override="merge" label="名称" />
+    <Field id="f3" />
+  </Panel>
+</Page>
+```
+
+端函数逐步：
+1. Δ₁ 的 `Replace(empty)` 清空 p1（f1、f2 均消失）。
+2. Δ₂ 的 `Lift_{f1}(Remove)` 在 p1 上执行：从空 children map 中 lift f1 得虚拟空节点，再 Remove → $\varnothing$。实际无效果。
+3. Δ₃ 的 `Lift_{f1}(Merge)` 和 `Lift_{f3}(Merge)`：f1 从虚拟空节点 merge 得到带 label 的 Field，f3 新增。
+
+预合并 $(\Delta_1\odot\Delta_2)$：
+$$
+NF(\text{Lift}_{\text{p1}}(\text{Replace}(\varepsilon))\odot\text{Lift}_{\text{p1}}(\text{Lift}_{\text{f1}}(\text{Remove})))
+$$
+
+后代 `Replace(ε)` 与后代 `Lift_{f1}(Remove)` 复合时，`Replace` 是常量函数：
+$$
+NF(\text{Replace}(\varepsilon)\odot\text{Lift}_{\text{f1}}(\text{Remove}))
+=
+\text{Replace}(\llbracket\text{Lift}_{\text{f1}}(\text{Remove})\rrbracket(\varepsilon))
+= \text{Replace}(\varepsilon)
+$$
+
+空子树 f1 Remove 后仍是空。再与 Δ₃ 复合：
+$$
+NF(\text{Replace}(\varepsilon)\odot\text{Lift}_{\text{f1}}(\text{Merge}(\{label\}))\odot\text{Lift}_{\text{f3}}(\text{Merge}))
+$$
+
+`Replace(ε)` 的后代 `Lift_{f1}(Merge)` 在空子树上执行：f1 不存在 → 提升为虚拟空 → merge 写入 label。`Lift_{f3}(Merge)` 新增 f3。最终 p1 含 f1（带 label）和 f3。
+
+右结合路径：先 $NF(\Delta_2\odot\Delta_3)$，再与 Δ₁ 复合。Δ₂ 的 `Lift_{f1}(Remove)` 与 Δ₃ 的 `Lift_{f1}(Merge)` 先复合为 `Lift_{f1}(Remove⊙Merge)`，由 NF 规则：在基础有 f1 时，Remove 后 Merge 等价于 Replace(空+merge)=Replace(f1{label})。再与 Δ₁ 的 `Replace(ε)` 复合：`Replace(ε)` 的后代吸收所有操作 → `Replace(ε[f1→虚拟空{label}, f3→新增])` = 同一结果。
+
+函数复合结合律保证两种路径的 denotation 完全一致。
+
 ### 6.10 有序列表与插入约束
 
 有序列表是最容易破坏结合律的地方。若用物理下标作为坐标，则在列表头部插入一个元素会改变后续所有元素的坐标，导致差量不再稳定。因此 GRC 需要把列表拆成两部分：
@@ -1137,7 +1388,7 @@ $$
 
 顺序约束可以作为一个局部操作集合。若组合方式是“收集约束列表，再在最终规范化阶段执行确定性拓扑排序或稳定排序”，则约束收集本身满足结合律，因为列表连接满足结合律。
 
-若约束之间矛盾，例如同时要求 `A after B` 和 `B after A`，则结构合并仍可得到确定的约束集合，最终规范化或验证阶段报告错误。只要验证函数是确定性的，任意括号化方式都会得到同一个错误结果。
+若约束之间矛盾，例如同时要求 `A after B` 和 `B after A`，则结构合并仍可得到确定的约束集合，最终规范化或验证阶段报告错误。只要验证函数是确定性的，任意括号化方式都会得到同一个错误结果。删除 anchor、删除目标元素、清理失效约束或把约束转化为错误，也必须在最终统一 $Norm/Validate$ 中完成，除非清理规则本身已经被建模为一个与括号无关的 carrier 操作并完成证明。
 
 因此，有序列表的结合律成立需要以下条件：
 
@@ -1180,7 +1431,7 @@ $$
 | `replace` | 端函数常量操作已覆盖 | 若工程语义要求清空旧子树未声明内容，应映射为 `Replace(T)`，不能只用父坐标普通值覆盖。 |
 | `append` / `prepend` | 纯序列 concat/pre-concat 抽象 carrier 已覆盖 | 当前 XNode 级实现还合并属性、移动 children、处理 XPL，并且 `APPEND/PREPEND` 与既有 `APPEND/PREPEND` 组合可能经 `OverrideHelper` 规约为 `MERGE_SUPER`。其预合并闭包依赖 `x:super` 存在性、缺失时的错误 denotation，以及相关组合表证明。 |
 | `merge-replace` | 可作为“本地属性 merge + body replace”的端函数建模 | 需证明属性 carrier 和 body 常量替换组合满足 `Compose` 表。 |
-| `bounded-merge` | 可作为特定 `Merge(D)` denotation 建模 | 需证明“只保留右侧声明 children”的清理规则确定且与 children stable-key 映射闭包。 |
+| `bounded-merge` | 不能由第 6.5 节的普通 `Merge(D)` 自动覆盖 | 若语义是“只保留右侧声明 children”，它会删除输入中未列出的既有 key，而普通 `Merge(D)` 只更新 $Dom(\delta)$。需扩展为 `FilterThenMerge(retainKeys,D)`、wildcard/filter 端函数，或在有限 key 宇宙中显式列出删除，并重新证明闭包与 `Compose/NF` soundness。 |
 | `merge-super` / `x:super` | 不由第 6.3 抽象单洞二元组自动覆盖 | 应按 XNode 子树端函数建模；若允许条件、多次或缺失 `super`，需要定义错误 denotation 或排除。 |
 | `x:before` / `x:after` | 约束自由幺半群抽象已覆盖 | 需证明实际规范化算法收集完整约束，tie-breaker 来自稳定来源序号，不依赖括号化或哈希遍历。 |
 | `x:virtual` | 可作为 carrier 中的潜在本地证据 | 数学 virtual node 不等同于 Nop 实现中最终会移除的 `x:virtual` 属性；若当前实现中 `x:virtual` 的移除或过滤会影响后续 matching、append/prepend 或 remove，则必须纳入端函数状态，或证明其移除时机不影响括号化。 |
@@ -1190,18 +1441,19 @@ $$
 
 ## 七、生成器与合并顺序
 
-GRC 的完整公式包含生成器。主文常用 $Y=F(X)\oplus\Delta$ 表示“生成式基线加结构差量”的核心直觉；在本技术报告中，该公式必须按所选 carrier 重新解释：坐标 tombstone carrier 中使用 $\oplus$，局部操作 carrier 中使用 $Apply(s,Fold_{\otimes}(...))$，树状态端函数 carrier 中使用端函数复合作用于生成结果。混合扩展语义的 $\odot$ 组合的是差量函数；端函数最终作用到基础状态上，而不是把基础状态也当作 $\odot$ 的左操作数。
+GRC 的完整公式包含生成器。主文常用 $Y=F(X)\oplus\Delta$ 表示“生成式基线加结构差量”的核心直觉；在本技术报告中，该公式必须按所选 carrier 重新解释：坐标 tombstone carrier 中使用 $\oplus$，局部操作 carrier 中使用 $Apply(s,Fold_{\otimes}(...))$，树状态端函数 carrier 中使用端函数复合作用于生成结果。混合扩展语义的 $\odot$ 组合的是差量函数；端函数最终作用到基础状态上，而不是把基础状态也当作 $\odot$ 的左操作数。为避免 carrier 混用，下面分别记坐标编码为 $E_P$，树状态编码为 $E_S$。
 
 $$
-Y = Final_P(E(F(X))\oplus \Delta) \quad\text{或}\quad
-Y = Final_S((\llbracket e\rrbracket)(G))
+Y = Final_P(E_P(F(X))\oplus \Delta_P) \quad\text{或}\quad
+Y = Final_O(Apply(s_F,\Delta_O)) \quad\text{或}\quad
+Y = Final_S((\llbracket e\rrbracket)(E_S(F(X))))
 $$
 
 结合律证明本身只针对结构合并算子或端函数复合。若生成器参与合并链，需要满足以下条件：
 
 - 生成器在给定输入下确定。
-- 生成结果被编码到同一语义坐标空间。
-- 生成器输出可以视为一个普通潜在模型、差量或确定性端函数。
+- 生成结果被编码到所选 carrier 的同一空间：$E_P(F(X))\in P$、值状态 $s_F\in ValState_O$，或 $E_S(F(X))\in S$。
+- 生成器输出可以视为该 carrier 中的普通潜在模型、值状态、差量或确定性端函数，且类型不能跨 carrier 混用。
 - 生成阶段与结构合并阶段的顺序由加载规则确定。
 
 对 Nop/XLang 而言，`x:extends`、`x:gen-extends`、当前节点和 `x:post-extends` 必须先被确定性线性化。例如主论文中给出的顺序在坐标 carrier 下可写为：
@@ -1210,32 +1462,36 @@ $$
 A \oplus B \oplus C \oplus D \oplus currentNode \oplus E \oplus F
 $$
 
-其中 $A,B$ 来自多值 `x:extends`，$C,D$ 来自 `x:gen-extends`，$E,F$ 来自 `x:post-extends`。在端函数 carrier 下，同一顺序应写为：
+其中 $A,B$ 来自多值 `x:extends`，$C,D$ 来自 `x:gen-extends`，$E,F$ 来自 `x:post-extends`。在端函数 carrier 下，令 $G_S^0\in S$ 为加载链开始前的初始树状态，同一顺序应写为：
 
 $$
-Final_S((\llbracket F\rrbracket\circ\llbracket E\rrbracket\circ\llbracket currentNode\rrbracket\circ\llbracket D\rrbracket\circ\llbracket C\rrbracket\circ\llbracket B\rrbracket\circ\llbracket A\rrbracket)(G_0))
+Final_S((\llbracket F\rrbracket\circ\llbracket E\rrbracket\circ\llbracket currentNode\rrbracket\circ\llbracket D\rrbracket\circ\llbracket C\rrbracket\circ\llbracket B\rrbracket\circ\llbracket A\rrbracket)(G_S^0))
 $$
 
 结合律只允许改变这个序列的括号，不允许交换元素顺序或让括号化影响生成器执行输入。
 
-在这些条件下，令：
+在这些条件下，若使用坐标 tombstone carrier，令 $G_P=E_P(F(X))\in P$，后续证明退化为定理 4A 的实例：
 
 $$
-G = E(F(X))
-$$
-
-若 $G$ 是潜在模型，后续证明退化为：
-
-$$
-(G \bullet \Delta_1) \bullet \Delta_2 = G \bullet (\Delta_1 \bullet \Delta_2)
-$$
-
-若使用端函数语义，则先把差量折叠为端函数，再作用到生成结果：
-
-$$
-Fold_{\odot}(\Delta_1,\Delta_2)(G)
+(G_P \oplus \Delta_1) \oplus \Delta_2
 =
-(\llbracket \Delta_2 \rrbracket \circ \llbracket \Delta_1 \rrbracket)(G)
+G_P \oplus (\Delta_1 \oplus \Delta_2)
+$$
+
+若使用局部操作 carrier，令生成结果为值状态 $s_F\in ValState_O$，只能写为：
+
+$$
+Apply(Apply(s_F,\Delta_1),\Delta_2)
+=
+Apply(s_F,\Delta_1\otimes\Delta_2)
+$$
+
+除非额外存在第 6.1 节所述嵌入 $\eta_c$，否则不能把 $s_F$ 或基础模型写成 $\otimes$ 的左操作数。若使用端函数语义，令 $G_S=E_S(F(X))\in S$，先把差量折叠为端函数，再作用到生成结果：
+
+$$
+Fold_{\odot}(\Delta_1,\Delta_2)(G_S)
+=
+(\llbracket \Delta_2 \rrbracket \circ \llbracket \Delta_1 \rrbracket)(G_S)
 $$
 
 如果生成器在合并过程中读取外部状态、产生随机结果、依赖当前时间或执行副作用，则它不再是单纯的结构值生成器，不能纳入本文的结合律证明。
@@ -1262,7 +1518,24 @@ $$
 
 ### 定理 4B：局部操作 carrier 的预合并结合律
 
-对每个坐标 $c$，设 $(O_c,\star_c,e_c)$ 是第 6.1 节的局部操作幺半群，且存在右作用 $act_c:W_c\times O_c\to W_c$ 满足作用律。令 $P_O$ 为有限局部操作偏函数空间，$\otimes:P_O\times P_O\to P_O$ 是第 6.1 节定义的稀疏操作组合。令基础值状态 $s_0$ 是带默认值族的有限 support 状态：只有有限多个坐标显式偏离默认值，未列出坐标按默认值解释。对任意 $s_0$ 和任意有限操作差量序列 $\Delta_1,\dots,\Delta_n\in P_O$，逐步应用差量与先预合并差量再应用等价：
+对每个坐标 $c$，设 $(O_c,\star_c,e_c)$ 是第 6.1 节的局部操作幺半群，且存在右作用 $act_c:W_c\times O_c\to W_c$ 满足作用律。令 $P_O$ 为有限局部操作偏函数空间，$\otimes:P_O\times P_O\to P_O$ 是第 6.1 节定义的稀疏操作组合。
+
+为正式定义作用对象，给定默认值族 $d_c\in W_c$。与第 2.3 节相同，下面的 $\bigcup_c W_c$ 按 tagged union 理解，避免不同坐标值域重叠造成类型歧义。定义值状态空间：
+
+$$
+ValState_O=\{s:C\to\bigcup_c W_c\mid s(c)\in W_c,
+\{c\mid s(c)\ne d_c\}\text{ 有限}\}
+$$
+
+未显式存储的坐标按 $d_c$ 解释。对 $s\in ValState_O$ 和 $\Delta\in P_O$，定义：
+
+$$
+Apply(s,\Delta)(c)=act_c(s(c),\widehat{\Delta}(c))
+$$
+
+本文要求 $Apply$ 对 $ValState_O$ 封闭：若输入状态和操作差量有限 support，则输出仍只有有限多个坐标偏离默认值。这个闭包可由具体 carrier 证明，例如操作只触及有限坐标且 $act_c(d_c,e_c)=d_c$；若某操作能从默认状态生成无限 support，则不属于本定理前提。若需要可观测结果，令 $Final_O:ValState_O\to Result$ 为确定性后处理函数。
+
+对任意 $s_0\in ValState_O$ 和任意有限操作差量序列 $\Delta_1,\dots,\Delta_n\in P_O$，逐步应用差量与先预合并差量再应用等价：
 
 $$
 Apply(\cdots Apply(Apply(s_0,\Delta_1),\Delta_2)\cdots,\Delta_n)
@@ -1270,7 +1543,7 @@ Apply(\cdots Apply(Apply(s_0,\Delta_1),\Delta_2)\cdots,\Delta_n)
 Apply(s_0,Fold_{\otimes}(\Delta_1,\dots,\Delta_n))
 $$
 
-其中 $Apply$ 按坐标使用 $act_c$，$Fold_{\otimes}$ 用 $\otimes$ 折叠操作差量，空序列结果为全坐标单位元的稀疏空操作模型。若需要比较最终可观测结果，则对上式两侧应用同一个确定性 $Final_O$。若还存在满足“设置值”语义的嵌入 $\eta_c:V_c\to O_c$，则基础模型也可嵌入 $P_O$，此时才可把上式写成 $P_0\otimes Fold_{\otimes}(\Delta_1,\dots,\Delta_n)$。
+其中 $Fold_{\otimes}$ 用 $\otimes$ 折叠操作差量，空序列结果为全坐标单位元的稀疏空操作模型。若需要比较最终可观测结果，则对上式两侧应用同一个确定性 $Final_O$。若还存在满足“设置值”语义的嵌入 $\eta_c:V_c\to O_c$，则基础模型也可嵌入 $P_O$，此时才可把上式写成 $P_0\otimes Fold_{\otimes}(\Delta_1,\dots,\Delta_n)$。
 
 #### 证明
 
@@ -1334,7 +1607,9 @@ $$
 
 ### 9.7 覆盖表中未闭包或禁止的操作组合
 
-若工程实现的 override 组合表对某些操作对返回“不允许合并”，或某些组合被标注为存在问题，则这些操作对不属于本文闭包定理的前提。对这类组合，系统可以在确定性位置报告错误；但不能声称它们在差量语言内可预合并为同类 delta artifact，除非额外定义错误 carrier 或给出端函数闭包证明。
+若工程实现的 override 组合表对某些操作对返回“不允许合并”，或某些组合被标注为存在问题，则这些操作对不属于本文闭包定理的前提。一个最小反例是：若 $A\odot B$ 被判为 forbidden，但 $B\odot C$ 可先规约为 $D$ 且 $A\odot D$ 可成功，则 $(A\odot B)\odot C$ 失败而 $A\odot(B\odot C)$ 成功，结合律立即破坏。
+
+因此，禁止组合只有三种安全处理方式：第一，直接排除出可预合并闭包定理；第二，不在预合并过程中提前失败，而是在最终统一 $Validate$ 中对完整规范表达报告同一个错误集合；第三，把结果类型扩展为 total carrier，例如 `Ok(op) | Err(ErrorSet)`，并定义确定、闭包且结合的错误组合规则，通常需要 `Err` 吸收或错误集合按规范方式合并。若预合并阶段报告错误，错误是否出现和错误集合必须只由原始线性化输入决定，不能由括号化路径决定。
 
 ## 十、限制与发表级证明义务
 
