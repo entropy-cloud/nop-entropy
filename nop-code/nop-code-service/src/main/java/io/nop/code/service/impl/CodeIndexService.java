@@ -266,6 +266,43 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     @Override
+    public FileOutlineDTO getFileOutline(String indexId, String filePath) {
+        CodeFileAnalysisResult file = getFile(indexId, filePath);
+        if (file == null) return null;
+
+        List<CodeSymbol> symbols = getFileSymbols(indexId, filePath);
+
+        List<CodeSymbol> typeSymbols = symbols.stream()
+                .filter(s -> s.getKind() == CodeSymbolKind.CLASS
+                        || s.getKind() == CodeSymbolKind.INTERFACE
+                        || s.getKind() == CodeSymbolKind.ENUM
+                        || s.getKind() == CodeSymbolKind.ANNOTATION_TYPE)
+                .collect(Collectors.toList());
+
+        List<SymbolInfoDTO> types = new ArrayList<>();
+        for (CodeSymbol type : typeSymbols) {
+            types.add(toSymbolInfoDTO(type));
+        }
+
+        FileOutlineDTO outline = new FileOutlineDTO();
+        outline.setFilePath(file.getFilePath());
+        outline.setPackageName(file.getPackageName());
+        outline.setImports(file.getImports());
+        outline.setLineCount(file.getLineCount());
+        outline.setTypes(types);
+        return outline;
+    }
+
+    private SymbolInfoDTO toSymbolInfoDTO(CodeSymbol symbol) {
+        SymbolInfoDTO dto = new SymbolInfoDTO();
+        dto.setName(symbol.getName());
+        dto.setQualifiedName(symbol.getQualifiedName());
+        dto.setKind(symbol.getKind() != null ? symbol.getKind().name() : null);
+        dto.setAccessModifier(symbol.getAccessModifier() != null ? symbol.getAccessModifier().name() : null);
+        return dto;
+    }
+
+    @Override
     public List<FileTreeNode> getFileTree(String indexId) {
         List<CodeFileAnalysisResult> files = getFiles(indexId);
 
@@ -318,6 +355,56 @@ public class CodeIndexService implements ICodeIndexService {
         }
 
         return root.getChildren();
+    }
+
+    @Override
+    public List<ModuleDigestDTO> getModuleDigest(String indexId, String dirPath, boolean includePrivate) {
+        if (daoProvider == null) return Collections.emptyList();
+
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean fileQuery = new QueryBean();
+        fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        if (dirPath != null && !dirPath.isEmpty()) {
+            fileQuery.addFilter(FilterBeans.startsWith("filePath", dirPath));
+        }
+        List<NopCodeFile> files = fileDao.findAllByQuery(fileQuery);
+
+        Set<String> allowedKinds = new HashSet<>(Arrays.asList(
+                "CLASS", "INTERFACE", "ENUM", "ANNOTATION_TYPE", "METHOD", "FUNCTION"));
+
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+
+        List<ModuleDigestDTO> result = new ArrayList<>();
+        for (NopCodeFile file : files) {
+            String fileId = file.getId();
+
+            QueryBean symQuery = new QueryBean();
+            symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            symQuery.addFilter(FilterBeans.eq("fileId", fileId));
+            if (!includePrivate) {
+                symQuery.addFilter(FilterBeans.ne("accessModifier", "PRIVATE"));
+            }
+
+            List<SymbolInfoDTO> symbols = new ArrayList<>();
+            for (NopCodeSymbol sym : symbolDao.findAllByQuery(symQuery)) {
+                if (!allowedKinds.contains(sym.getKind())) continue;
+                SymbolInfoDTO info = new SymbolInfoDTO();
+                info.setName(sym.getName());
+                info.setQualifiedName(sym.getQualifiedName());
+                info.setKind(sym.getKind());
+                info.setAccessModifier(sym.getAccessModifier());
+                symbols.add(info);
+            }
+
+            ModuleDigestDTO dto = new ModuleDigestDTO();
+            dto.setFilePath(file.getFilePath());
+            dto.setPackageName(file.getPackageName());
+            dto.setSymbols(symbols);
+            result.add(dto);
+        }
+
+        result.sort(Comparator.comparing(ModuleDigestDTO::getFilePath));
+        return result;
     }
 
     // ==================== Symbol Queries ====================
@@ -429,6 +516,40 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public String getSymbolSourceCode(String indexId, String symbolId, int linesBefore, int linesAfter) {
         return null; // sourceCode not stored in DB — TODO: future disk-based loading
+    }
+
+    @Override
+    public SymbolSourceDTO showSymbolSource(String indexId, String qualifiedName, boolean includeBody) {
+        if (daoProvider == null) return null;
+
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
+        List<NopCodeSymbol> results = symbolDao.findAllByQuery(query);
+        if (results.isEmpty()) return null;
+
+        NopCodeSymbol entity = results.get(0);
+
+        SymbolSourceDTO dto = new SymbolSourceDTO();
+        dto.setQualifiedName(entity.getQualifiedName());
+        dto.setStartLine(entity.getLine() != null ? entity.getLine() : 0);
+        dto.setEndLine(entity.getEndLine() != null ? entity.getEndLine() : 0);
+        dto.setSignature(entity.getSignature());
+
+        String fileId = entity.getFileId();
+        if (fileId != null) {
+            IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+            NopCodeFile file = fileDao.getEntityById(fileId);
+            if (file != null) {
+                dto.setFilePath(file.getFilePath());
+            }
+        }
+
+        // Source code not stored in DB — future SourceCodeProvider will populate this
+        dto.setSourceCode(null);
+
+        return dto;
     }
 
     // ==================== Type Queries ====================

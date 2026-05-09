@@ -17,7 +17,10 @@ import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.AnnotationUsageDTO;
 import io.nop.code.service.api.dto.CallHierarchyDTO;
+import io.nop.code.service.api.dto.FileOutlineDTO;
+import io.nop.code.service.api.dto.ModuleDigestDTO;
 import io.nop.code.service.api.dto.SymbolDTO;
+import io.nop.code.service.api.dto.SymbolSourceDTO;
 import io.nop.code.service.api.dto.TypeHierarchyDTO;
 import io.nop.code.service.api.dto.TypeOutlineDTO;
 import jakarta.inject.Inject;
@@ -107,6 +110,22 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    public SymbolSourceDTO showSymbol(
+            @Name("indexId") String indexId,
+            @Name("qualifiedName") String qualifiedName,
+            @Name("includeBody") @Optional boolean includeBody) {
+        return codeIndexService.showSymbolSource(indexId, qualifiedName, includeBody);
+    }
+
+    @BizQuery
+    public List<ModuleDigestDTO> moduleDigest(
+            @Name("indexId") String indexId,
+            @Name("dirPath") String dirPath,
+            @Name("includePrivate") @Optional boolean includePrivate) {
+        return codeIndexService.getModuleDigest(indexId, dirPath, includePrivate);
+    }
+
+    @BizQuery
     public List<TypeOutlineDTO> batchGetOutlines(
             @Name("qualifiedNames") List<String> qualifiedNames,
             @Name("indexId") String indexId) {
@@ -133,5 +152,12 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
         String dir = direction != null ? direction : "both";
         int depth = maxDepth > 0 ? maxDepth : 3;
         return codeIndexService.getCallHierarchy(indexId, qualifiedName, dir, depth);
+    }
+
+    @BizQuery
+    public FileOutlineDTO fileOutline(
+            @Name("indexId") String indexId,
+            @Name("filePath") String filePath) {
+        return codeIndexService.getFileOutline(indexId, filePath);
     }
 }

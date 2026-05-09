@@ -37,9 +37,19 @@ public interface ICodeIndexService {
     List<CodeSymbol> getFileTypes(String indexId, String filePath);
 
     /**
+     * 获取文件结构大纲
+     */
+    FileOutlineDTO getFileOutline(String indexId, String filePath);
+
+    /**
      * 获取文件树结构（按包名分层）
      */
     List<FileTreeNode> getFileTree(String indexId);
+
+    /**
+     * 获取目录下所有文件的公开符号摘要
+     */
+    List<ModuleDigestDTO> getModuleDigest(String indexId, String dirPath, boolean includePrivate);
 
     // ==================== Symbol Queries ====================
 
@@ -56,6 +66,8 @@ public interface ICodeIndexService {
     List<CodeAnnotationUsage> getSymbolUsages(String indexId, String symbolId, int limit);
 
     String getSymbolSourceCode(String indexId, String symbolId, int linesBefore, int linesAfter);
+
+    SymbolSourceDTO showSymbolSource(String indexId, String qualifiedName, boolean includeBody);
 
     // ==================== Type Queries ====================
 
