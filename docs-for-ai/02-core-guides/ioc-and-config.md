@@ -71,6 +71,7 @@ nop:
 3. app 容器自动加载的通常是 `/<moduleId>/beans/app.beans.xml` 和 `app-*.beans.xml`。
 4. `/nop/autoconfig/*.beans` 和 `nop.ioc.app-beans.files` 也可以补充 bean 文件。
 5. `_service.beans.xml` 这类生成文件通常是被 `app-service.beans.xml` 导入，而不是自己被自动发现。
+6. **所有以 `_` 开头的文件都是 codegen 管线自动生成的，不允许手动修改**。包括但不限于 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml`、`_gen/*.java` 等。如需定制 IoC 注册，修改对应的非下划线文件（如 `app-service.beans.xml`）。如需添加新 BizModel 但 `codegen` 尚未生成，在 `app-service.beans.xml` 中手动添加 bean 定义。
 
 ## 不要默认传播的模式
 
