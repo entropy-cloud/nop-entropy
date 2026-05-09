@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @BizModel("NopCodeIndex")
@@ -136,6 +137,42 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("depth") @Optional Integer depth) {
         int maxDepth = depth != null && depth > 0 ? depth : 3;
         return codeIndexService.getImpactAnalysis(indexId, symbolId, maxDepth);
+    }
+
+    @BizQuery
+    public DepGraphDTO getDeps(
+            @Name("indexId") String indexId,
+            @Name("filePath") String filePath,
+            @Name("depth") @Optional Integer depth) {
+        int maxDepth = depth != null && depth > 0 ? depth : 3;
+        return codeIndexService.getDeps(indexId, filePath, maxDepth);
+    }
+
+    @BizQuery
+    public DepGraphDTO getReverseDeps(
+            @Name("indexId") String indexId,
+            @Name("filePath") String filePath,
+            @Name("depth") @Optional Integer depth,
+            @Name("limit") @Optional Integer limit) {
+        int maxDepth = depth != null && depth > 0 ? depth : 3;
+        int maxLimit = limit != null && limit > 0 ? limit : 100;
+        return codeIndexService.getReverseDeps(indexId, filePath, maxDepth, maxLimit);
+    }
+
+    @BizQuery
+    public List<List<String>> findCycles(
+            @Name("indexId") String indexId,
+            @Name("minSize") @Optional Integer minSize) {
+        int min = minSize != null && minSize > 0 ? minSize : 2;
+        return codeIndexService.findCycles(indexId, min);
+    }
+
+    @BizQuery
+    public DepGraphDTO getDepGraph(
+            @Name("indexId") String indexId,
+            @Name("includeExternal") @Optional Boolean includeExternal) {
+        return codeIndexService.getDepGraph(indexId,
+                includeExternal != null && includeExternal);
     }
 
     public static class IncrementalStatus {

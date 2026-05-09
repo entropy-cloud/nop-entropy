@@ -17,6 +17,7 @@ import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.AnnotationUsageDTO;
 import io.nop.code.service.api.dto.CallHierarchyDTO;
+import io.nop.code.service.api.dto.CodeSearchResultDTO;
 import io.nop.code.service.api.dto.FileOutlineDTO;
 import io.nop.code.service.api.dto.ModuleDigestDTO;
 import io.nop.code.service.api.dto.SymbolDTO;
@@ -159,5 +160,18 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
             @Name("indexId") String indexId,
             @Name("filePath") String filePath) {
         return codeIndexService.getFileOutline(indexId, filePath);
+    }
+
+    @BizQuery
+    public List<CodeSearchResultDTO> searchCode(
+            @Name("indexId") String indexId,
+            @Name("query") String query,
+            @Name("searchType") @Optional String searchType,
+            @Name("language") @Optional String language,
+            @Name("filePattern") @Optional String filePattern,
+            @Name("limit") @Optional int limit) {
+        String type = searchType != null ? searchType : "COMBINED";
+        int lim = limit > 0 ? limit : 50;
+        return codeIndexService.searchCode(indexId, query, type, language, filePattern, lim);
     }
 }

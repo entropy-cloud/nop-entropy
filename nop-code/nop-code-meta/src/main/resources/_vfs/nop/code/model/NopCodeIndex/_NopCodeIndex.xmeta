@@ -66,6 +66,12 @@
                 <item bizObjName="NopCodeSymbol"/>
             </schema>
         </prop>
+        <prop name="dependencies" displayName="依赖列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" ext:joinRightDisplayProp="sourceFilePath" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeDependency"/>
+            </schema>
+        </prop>
         <prop name="usages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="indexId" lazy="true" published="false">
             <schema>

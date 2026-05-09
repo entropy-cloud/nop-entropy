@@ -31,63 +31,77 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeFile-main" displayName="代码文件" orderNo="10007" icon="ant-design:appstore-twotone"
+                <resource id="NopCodeDependency-main" displayName="文件依赖" orderNo="10007"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/code/pages/NopCodeDependency/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopCodeDependency:query" displayName="查询文件依赖" orderNo="10008"
+                                  resourceType="FNPT">
+                            <permissions>NopCodeDependency:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopCodeDependency:mutation" displayName="修改文件依赖" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopCodeDependency:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopCodeFile-main" displayName="代码文件" orderNo="10010" icon="ant-design:appstore-twotone"
                           component="AMIS" resourceType="SUBM" url="/nop/code/pages/NopCodeFile/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeFile:query" displayName="查询代码文件" orderNo="10008" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeFile:query" displayName="查询代码文件" orderNo="10011" resourceType="FNPT">
                             <permissions>NopCodeFile:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeFile:mutation" displayName="修改代码文件" orderNo="10009"
+                        <resource id="FNPT:NopCodeFile:mutation" displayName="修改代码文件" orderNo="10012"
                                   resourceType="FNPT">
                             <permissions>NopCodeFile:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeIndex-main" displayName="代码索引" orderNo="10010" icon="ant-design:appstore-twotone"
+                <resource id="NopCodeIndex-main" displayName="代码索引" orderNo="10013" icon="ant-design:appstore-twotone"
                           component="AMIS" resourceType="SUBM" url="/nop/code/pages/NopCodeIndex/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeIndex:query" displayName="查询代码索引" orderNo="10011" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeIndex:query" displayName="查询代码索引" orderNo="10014" resourceType="FNPT">
                             <permissions>NopCodeIndex:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeIndex:mutation" displayName="修改代码索引" orderNo="10012"
+                        <resource id="FNPT:NopCodeIndex:mutation" displayName="修改代码索引" orderNo="10015"
                                   resourceType="FNPT">
                             <permissions>NopCodeIndex:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeInheritance-main" displayName="继承关系" orderNo="10013"
+                <resource id="NopCodeInheritance-main" displayName="继承关系" orderNo="10016"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/NopCodeInheritance/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeInheritance:query" displayName="查询继承关系" orderNo="10014"
+                        <resource id="FNPT:NopCodeInheritance:query" displayName="查询继承关系" orderNo="10017"
                                   resourceType="FNPT">
                             <permissions>NopCodeInheritance:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeInheritance:mutation" displayName="修改继承关系" orderNo="10015"
+                        <resource id="FNPT:NopCodeInheritance:mutation" displayName="修改继承关系" orderNo="10018"
                                   resourceType="FNPT">
                             <permissions>NopCodeInheritance:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeSymbol-main" displayName="符号" orderNo="10016" icon="ant-design:appstore-twotone"
+                <resource id="NopCodeSymbol-main" displayName="符号" orderNo="10019" icon="ant-design:appstore-twotone"
                           component="AMIS" resourceType="SUBM" url="/nop/code/pages/NopCodeSymbol/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeSymbol:query" displayName="查询符号" orderNo="10017" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeSymbol:query" displayName="查询符号" orderNo="10020" resourceType="FNPT">
                             <permissions>NopCodeSymbol:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeSymbol:mutation" displayName="修改符号" orderNo="10018"
+                        <resource id="FNPT:NopCodeSymbol:mutation" displayName="修改符号" orderNo="10021"
                                   resourceType="FNPT">
                             <permissions>NopCodeSymbol:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeUsage-main" displayName="符号引用" orderNo="10019" icon="ant-design:appstore-twotone"
+                <resource id="NopCodeUsage-main" displayName="符号引用" orderNo="10022" icon="ant-design:appstore-twotone"
                           component="AMIS" resourceType="SUBM" url="/nop/code/pages/NopCodeUsage/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeUsage:query" displayName="查询符号引用" orderNo="10020" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeUsage:query" displayName="查询符号引用" orderNo="10023" resourceType="FNPT">
                             <permissions>NopCodeUsage:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeUsage:mutation" displayName="修改符号引用" orderNo="10021"
+                        <resource id="FNPT:NopCodeUsage:mutation" displayName="修改符号引用" orderNo="10024"
                                   resourceType="FNPT">
                             <permissions>NopCodeUsage:mutation</permissions>
                         </resource>

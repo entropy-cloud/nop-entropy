@@ -19,6 +19,14 @@
         <property name="bizObjName" value="NopCodeFile"/>
     </bean>
 
+    <bean id="io.nop.code.service.entity.NopCodeDependencyBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeDependency" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeDependencyBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopCodeDependency"/>
+    </bean>
+
     <bean id="io.nop.code.service.entity.NopCodeSymbolBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopCodeSymbol" class="io.nop.biz.proxy.BizProxyFactoryBean"

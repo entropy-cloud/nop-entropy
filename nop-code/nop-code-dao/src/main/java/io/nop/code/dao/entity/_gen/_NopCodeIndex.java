@@ -66,6 +66,9 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     /* relation: 符号列表 */
     public static final String PROP_NAME_symbols = "symbols";
     
+    /* relation: 依赖列表 */
+    public static final String PROP_NAME_dependencies = "dependencies";
+    
     /* relation: 引用 */
     public static final String PROP_NAME_usages = "usages";
     
@@ -612,6 +615,16 @@ public class _NopCodeIndex extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeSymbol> getSymbols(){
        return _symbols;
+    }
+       
+    private final OrmEntitySet<io.nop.code.dao.entity.NopCodeDependency> _dependencies = new OrmEntitySet<>(this, PROP_NAME_dependencies,
+        io.nop.code.dao.entity.NopCodeDependency.PROP_NAME_index, null,io.nop.code.dao.entity.NopCodeDependency.class);
+
+    /**
+     * 依赖列表。 refPropName: index, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeDependency> getDependencies(){
+       return _dependencies;
     }
        
     private final OrmEntitySet<io.nop.code.dao.entity.NopCodeUsage> _usages = new OrmEntitySet<>(this, PROP_NAME_usages,

@@ -69,6 +69,9 @@ public interface ICodeIndexService {
 
     SymbolSourceDTO showSymbolSource(String indexId, String qualifiedName, boolean includeBody);
 
+    List<CodeSearchResultDTO> searchCode(String indexId, String query, String searchType,
+                                         String language, String filePattern, int limit);
+
     // ==================== Type Queries ====================
 
     TypeOutlineDTO getTypeOutline(String indexId, String qualifiedName);
@@ -90,6 +93,16 @@ public interface ICodeIndexService {
     GraphAnalysisResultDTO getGraphAnalysis(String indexId, int topN);
 
     ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth);
+
+    // ==================== Dependency Graph ====================
+
+    DepGraphDTO getDeps(String indexId, String filePath, int depth);
+
+    DepGraphDTO getReverseDeps(String indexId, String filePath, int depth, int limit);
+
+    List<List<String>> findCycles(String indexId, int minSize);
+
+    DepGraphDTO getDepGraph(String indexId, boolean includeExternal);
 
     // ==================== Batch File Records ====================
 

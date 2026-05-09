@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="文件依赖" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.code.dao.entity.NopCodeDependency</entityName>
+
+    <primaryKey>depId</primaryKey>
+
+    <displayProp>sourceFilePath</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="depId" displayName="依赖ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="indexId" displayName="索引ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="index">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="sourceFilePath" displayName="源文件路径" propId="3" tagSet="disp" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="filePath" type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="targetFilePath" displayName="目标文件路径" propId="4" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="filePath" type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="importStatement" displayName="导入语句" propId="5" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="resolved" displayName="是否已解析" propId="6" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
+              ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeIndex"/>
+        </prop>
+    </props>
+</meta>

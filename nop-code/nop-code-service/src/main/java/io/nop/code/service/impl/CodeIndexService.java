@@ -23,8 +23,13 @@ import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
 import io.nop.code.core.incremental.InMemoryFingerprintStore;
 import io.nop.code.core.model.*;
+import io.nop.code.core.resolver.IImportResolver;
+import io.nop.code.core.resolver.JavaImportResolver;
+import io.nop.code.core.resolver.PythonImportResolver;
+import io.nop.code.core.resolver.TypeScriptImportResolver;
 import io.nop.code.dao.entity.NopCodeAnnotationUsage;
 import io.nop.code.dao.entity.NopCodeCall;
+import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeFile;
 import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.dao.entity.NopCodeInheritance;
@@ -61,6 +66,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     protected final LanguageAdapterRegistry registry;
     protected final ProjectAnalyzer analyzer;
+    protected final Map<String, IImportResolver> importResolvers = new HashMap<>();
 
     @Inject
     protected IDaoProvider daoProvider;
@@ -78,11 +84,24 @@ public class CodeIndexService implements ICodeIndexService {
         this.registry = new LanguageAdapterRegistry();
         this.registry.registerAdapter(new JavaLanguageAdapter());
         this.analyzer = new ProjectAnalyzer(registry);
+        registerImportResolvers();
     }
 
     public CodeIndexService(LanguageAdapterRegistry registry, ProjectAnalyzer analyzer) {
         this.registry = registry;
         this.analyzer = analyzer;
+        registerImportResolvers();
+    }
+
+    private void registerImportResolvers() {
+        IImportResolver[] resolvers = {
+                new JavaImportResolver(),
+                new PythonImportResolver(),
+                new TypeScriptImportResolver()
+        };
+        for (IImportResolver resolver : resolvers) {
+            importResolvers.put(resolver.getLanguage(), resolver);
+        }
     }
 
     // ==================== Entity-to-Model Conversion ====================
@@ -501,6 +520,177 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     @Override
+    public List<CodeSearchResultDTO> searchCode(String indexId, String query, String searchType,
+                                                 String language, String filePattern, int limit) {
+        if (daoProvider == null || query == null || query.isEmpty()) return Collections.emptyList();
+
+        String type = searchType != null ? searchType : "COMBINED";
+        int lim = limit > 0 ? limit : 50;
+
+        switch (type) {
+            case "SYMBOL_NAME":
+                return searchBySymbolName(indexId, query, language, filePattern, lim);
+            case "FULL_TEXT":
+                return searchFullText(indexId, query, language, filePattern, lim);
+            case "COMBINED":
+            default:
+                return searchCombined(indexId, query, language, filePattern, lim);
+        }
+    }
+
+    private List<CodeSearchResultDTO> searchBySymbolName(String indexId, String query,
+                                                          String language, String filePattern, int limit) {
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean qb = new QueryBean();
+        qb.addFilter(FilterBeans.eq("indexId", indexId));
+        TreeBean nameFilter = FilterBeans.contains("name", query);
+        TreeBean qnFilter = FilterBeans.contains("qualifiedName", query);
+        qb.addFilter(FilterBeans.or(nameFilter, qnFilter));
+        if (language != null && !language.isEmpty()) {
+            qb.addFilter(FilterBeans.eq("kind", language));
+        }
+        qb.setLimit(limit * 2);
+
+        List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(qb);
+        Map<String, String> filePathCache = buildFilePathCache(indexId);
+
+        List<CodeSearchResultDTO> results = new ArrayList<>();
+        for (NopCodeSymbol sym : symbols) {
+            CodeSearchResultDTO dto = toSearchResult(sym, filePathCache, "SYMBOL_NAME");
+            dto.setScore(scoreSymbolNameMatch(query, sym.getName(), sym.getQualifiedName()));
+            results.add(dto);
+        }
+
+        results.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+        if (results.size() > limit) results = results.subList(0, limit);
+
+        return filterByFilePattern(results, filePattern);
+    }
+
+    private List<CodeSearchResultDTO> searchFullText(String indexId, String query,
+                                                      String language, String filePattern, int limit) {
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean qb = new QueryBean();
+        qb.addFilter(FilterBeans.eq("indexId", indexId));
+        TreeBean sigFilter = FilterBeans.contains("signature", query);
+        TreeBean docFilter = FilterBeans.contains("documentation", query);
+        qb.addFilter(FilterBeans.or(sigFilter, docFilter));
+        qb.setLimit(limit * 2);
+
+        List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(qb);
+        Map<String, String> filePathCache = buildFilePathCache(indexId);
+
+        List<CodeSearchResultDTO> results = new ArrayList<>();
+        for (NopCodeSymbol sym : symbols) {
+            CodeSearchResultDTO dto = toSearchResult(sym, filePathCache, "FULL_TEXT");
+            dto.setScore(scoreFullTextMatch(query, sym.getSignature(), sym.getDocumentation()));
+            results.add(dto);
+        }
+
+        results.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+        if (results.size() > limit) results = results.subList(0, limit);
+
+        return filterByFilePattern(results, filePattern);
+    }
+
+    private List<CodeSearchResultDTO> searchCombined(String indexId, String query,
+                                                      String language, String filePattern, int limit) {
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean qb = new QueryBean();
+        qb.addFilter(FilterBeans.eq("indexId", indexId));
+
+        TreeBean nameFilter = FilterBeans.contains("name", query);
+        TreeBean qnFilter = FilterBeans.contains("qualifiedName", query);
+        TreeBean sigFilter = FilterBeans.contains("signature", query);
+        TreeBean docFilter = FilterBeans.contains("documentation", query);
+        qb.addFilter(FilterBeans.or(nameFilter, qnFilter, sigFilter, docFilter));
+        qb.setLimit(limit * 3);
+
+        List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(qb);
+        Map<String, String> filePathCache = buildFilePathCache(indexId);
+
+        Set<String> seen = new HashSet<>();
+        List<CodeSearchResultDTO> results = new ArrayList<>();
+        for (NopCodeSymbol sym : symbols) {
+            String dedupeKey = sym.getId();
+            if (seen.contains(dedupeKey)) continue;
+            seen.add(dedupeKey);
+
+            CodeSearchResultDTO dto = toSearchResult(sym, filePathCache, "COMBINED");
+            dto.setScore(scoreCombined(query, sym.getName(), sym.getQualifiedName(),
+                    sym.getSignature(), sym.getDocumentation()));
+            results.add(dto);
+        }
+
+        results.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+        if (results.size() > limit) results = results.subList(0, limit);
+
+        return filterByFilePattern(results, filePattern);
+    }
+
+    private Map<String, String> buildFilePathCache(String indexId) {
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean fq = new QueryBean();
+        fq.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeFile> files = fileDao.findAllByQuery(fq);
+        Map<String, String> cache = new HashMap<>();
+        for (NopCodeFile f : files) {
+            cache.put(f.getId(), f.getFilePath());
+        }
+        return cache;
+    }
+
+    private CodeSearchResultDTO toSearchResult(NopCodeSymbol sym, Map<String, String> filePathCache,
+                                                String matchType) {
+        CodeSearchResultDTO dto = new CodeSearchResultDTO();
+        dto.setMatchedSymbolName(sym.getName());
+        dto.setMatchedQualifiedName(sym.getQualifiedName());
+        dto.setMatchType(matchType);
+        dto.setLine(sym.getLine() != null ? sym.getLine() : 0);
+        dto.setFilePath(filePathCache.getOrDefault(sym.getFileId(), ""));
+        dto.setContext(sym.getSignature());
+        return dto;
+    }
+
+    private double scoreSymbolNameMatch(String query, String name, String qualifiedName) {
+        if (name != null && name.equals(query)) return 1.0;
+        if (name != null && name.startsWith(query)) return 0.8;
+        if (name != null && name.contains(query)) return 0.6;
+        if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
+        return 0.1;
+    }
+
+    private double scoreFullTextMatch(String query, String signature, String documentation) {
+        boolean sigMatch = signature != null && signature.contains(query);
+        boolean docMatch = documentation != null && documentation.contains(query);
+        if (sigMatch && docMatch) return 0.5;
+        if (sigMatch) return 0.4;
+        if (docMatch) return 0.3;
+        return 0.1;
+    }
+
+    private double scoreCombined(String query, String name, String qualifiedName,
+                                  String signature, String documentation) {
+        if (name != null && name.equals(query)) return 1.0;
+        if (name != null && name.startsWith(query)) return 0.8;
+        if (name != null && name.contains(query)) return 0.6;
+        if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
+        boolean sigMatch = signature != null && signature.contains(query);
+        boolean docMatch = documentation != null && documentation.contains(query);
+        if (sigMatch) return 0.3;
+        if (docMatch) return 0.3;
+        return 0.1;
+    }
+
+    private List<CodeSearchResultDTO> filterByFilePattern(List<CodeSearchResultDTO> results, String filePattern) {
+        if (filePattern == null || filePattern.isEmpty()) return results;
+        String pattern = filePattern.replace("*", ".*").replace("?", ".");
+        return results.stream()
+                .filter(r -> r.getFilePath() != null && r.getFilePath().matches(pattern))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<CodeAnnotationUsage> getSymbolUsages(String indexId, String symbolId, int limit) {
         if (daoProvider == null) return Collections.emptyList();
         IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
@@ -888,6 +1078,237 @@ public class CodeIndexService implements ICodeIndexService {
         return convertImpactResult(result);
     }
 
+    // ==================== Dependency Graph ====================
+
+    @Override
+    public DepGraphDTO getDeps(String indexId, String filePath, int depth) {
+        if (daoProvider == null) return new DepGraphDTO();
+        Map<String, List<DepEdgeDTO>> adj = buildForwardAdjacency(indexId);
+        Set<String> visited = new HashSet<>();
+        List<DepEdgeDTO> resultEdges = new ArrayList<>();
+        bfsCollect(filePath, adj, depth, visited, resultEdges);
+        return buildGraphFromEdges(resultEdges);
+    }
+
+    @Override
+    public DepGraphDTO getReverseDeps(String indexId, String filePath, int depth, int limit) {
+        if (daoProvider == null) return new DepGraphDTO();
+        Map<String, List<DepEdgeDTO>> adj = buildReverseAdjacency(indexId);
+        Set<String> visited = new HashSet<>();
+        List<DepEdgeDTO> resultEdges = new ArrayList<>();
+        bfsCollect(filePath, adj, depth, visited, resultEdges);
+        if (limit > 0 && resultEdges.size() > limit) {
+            resultEdges = resultEdges.subList(0, limit);
+        }
+        return buildGraphFromEdges(resultEdges);
+    }
+
+    @Override
+    public List<List<String>> findCycles(String indexId, int minSize) {
+        if (daoProvider == null) return Collections.emptyList();
+        Map<String, List<String>> adj = buildForwardStringAdjacency(indexId);
+        List<List<String>> sccs = tarjanSCC(adj);
+        int min = minSize > 0 ? minSize : 2;
+        sccs.removeIf(scc -> scc.size() < min);
+        return sccs;
+    }
+
+    @Override
+    public DepGraphDTO getDepGraph(String indexId, boolean includeExternal) {
+        if (daoProvider == null) return new DepGraphDTO();
+        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+
+        List<DepEdgeDTO> edges = new ArrayList<>();
+        Map<String, int[]> degreeMap = new LinkedHashMap<>();
+        for (NopCodeDependency dep : deps) {
+            if (!includeExternal && !Boolean.TRUE.equals(dep.getResolved() != null && dep.getResolved() == 1)) {
+                continue;
+            }
+            String src = dep.getSourceFilePath();
+            String tgt = dep.getTargetFilePath();
+            if (src == null || tgt == null) continue;
+
+            DepEdgeDTO edge = new DepEdgeDTO();
+            edge.setSource(src);
+            edge.setTarget(tgt);
+            edge.setImportStatement(dep.getImportStatement());
+            edge.setResolved(dep.getResolved() != null && dep.getResolved() == 1);
+            edges.add(edge);
+
+            int[] srcDeg = degreeMap.computeIfAbsent(src, k -> new int[2]);
+            srcDeg[1]++;
+            int[] tgtDeg = degreeMap.computeIfAbsent(tgt, k -> new int[2]);
+            tgtDeg[0]++;
+        }
+
+        List<DepNodeDTO> nodes = new ArrayList<>();
+        for (Map.Entry<String, int[]> entry : degreeMap.entrySet()) {
+            DepNodeDTO node = new DepNodeDTO();
+            node.setFilePath(entry.getKey());
+            node.setInDegree(entry.getValue()[0]);
+            node.setOutDegree(entry.getValue()[1]);
+            nodes.add(node);
+        }
+
+        DepGraphDTO graph = new DepGraphDTO();
+        graph.setNodes(nodes);
+        graph.setEdges(edges);
+        return graph;
+    }
+
+    private Map<String, List<DepEdgeDTO>> buildForwardAdjacency(String indexId) {
+        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+
+        Map<String, List<DepEdgeDTO>> adj = new HashMap<>();
+        for (NopCodeDependency dep : deps) {
+            if (dep.getSourceFilePath() == null || dep.getTargetFilePath() == null) continue;
+            DepEdgeDTO edge = new DepEdgeDTO();
+            edge.setSource(dep.getSourceFilePath());
+            edge.setTarget(dep.getTargetFilePath());
+            edge.setImportStatement(dep.getImportStatement());
+            edge.setResolved(dep.getResolved() != null && dep.getResolved() == 1);
+            adj.computeIfAbsent(dep.getSourceFilePath(), k -> new ArrayList<>()).add(edge);
+        }
+        return adj;
+    }
+
+    private Map<String, List<DepEdgeDTO>> buildReverseAdjacency(String indexId) {
+        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+
+        Map<String, List<DepEdgeDTO>> adj = new HashMap<>();
+        for (NopCodeDependency dep : deps) {
+            if (dep.getSourceFilePath() == null || dep.getTargetFilePath() == null) continue;
+            DepEdgeDTO edge = new DepEdgeDTO();
+            edge.setSource(dep.getSourceFilePath());
+            edge.setTarget(dep.getTargetFilePath());
+            edge.setImportStatement(dep.getImportStatement());
+            edge.setResolved(dep.getResolved() != null && dep.getResolved() == 1);
+            adj.computeIfAbsent(dep.getTargetFilePath(), k -> new ArrayList<>()).add(edge);
+        }
+        return adj;
+    }
+
+    private Map<String, List<String>> buildForwardStringAdjacency(String indexId) {
+        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+
+        Map<String, List<String>> adj = new HashMap<>();
+        for (NopCodeDependency dep : deps) {
+            if (dep.getSourceFilePath() == null || dep.getTargetFilePath() == null) continue;
+            adj.computeIfAbsent(dep.getSourceFilePath(), k -> new ArrayList<>())
+                    .add(dep.getTargetFilePath());
+        }
+        return adj;
+    }
+
+    private void bfsCollect(String start, Map<String, List<DepEdgeDTO>> adj, int maxDepth,
+                            Set<String> visited, List<DepEdgeDTO> result) {
+        Queue<String[]> queue = new LinkedList<>();
+        queue.add(new String[]{start, "0"});
+        visited.add(start);
+        while (!queue.isEmpty()) {
+            String[] current = queue.poll();
+            String node = current[0];
+            int d = Integer.parseInt(current[1]);
+            if (d >= maxDepth) continue;
+            List<DepEdgeDTO> edges = adj.getOrDefault(node, Collections.emptyList());
+            for (DepEdgeDTO edge : edges) {
+                result.add(edge);
+                if (!visited.contains(edge.getTarget())) {
+                    visited.add(edge.getTarget());
+                    queue.add(new String[]{edge.getTarget(), String.valueOf(d + 1)});
+                }
+            }
+        }
+    }
+
+    private DepGraphDTO buildGraphFromEdges(List<DepEdgeDTO> edges) {
+        Map<String, int[]> degreeMap = new LinkedHashMap<>();
+        for (DepEdgeDTO edge : edges) {
+            int[] srcDeg = degreeMap.computeIfAbsent(edge.getSource(), k -> new int[2]);
+            srcDeg[1]++;
+            int[] tgtDeg = degreeMap.computeIfAbsent(edge.getTarget(), k -> new int[2]);
+            tgtDeg[0]++;
+        }
+
+        List<DepNodeDTO> nodes = new ArrayList<>();
+        for (Map.Entry<String, int[]> entry : degreeMap.entrySet()) {
+            DepNodeDTO node = new DepNodeDTO();
+            node.setFilePath(entry.getKey());
+            node.setInDegree(entry.getValue()[0]);
+            node.setOutDegree(entry.getValue()[1]);
+            nodes.add(node);
+        }
+
+        DepGraphDTO graph = new DepGraphDTO();
+        graph.setNodes(nodes);
+        graph.setEdges(edges);
+        return graph;
+    }
+
+    private List<List<String>> tarjanSCC(Map<String, List<String>> adj) {
+        List<List<String>> result = new ArrayList<>();
+        int[] index = {0};
+        Map<String, Integer> nodeIndex = new HashMap<>();
+        Map<String, Integer> lowLink = new HashMap<>();
+        Map<String, Boolean> onStack = new HashMap<>();
+        Deque<String> stack = new ArrayDeque<>();
+
+        Set<String> allNodes = new LinkedHashSet<>(adj.keySet());
+        for (List<String> targets : adj.values()) {
+            allNodes.addAll(targets);
+        }
+
+        for (String node : allNodes) {
+            if (!nodeIndex.containsKey(node)) {
+                tarjanDFS(node, adj, index, nodeIndex, lowLink, onStack, stack, result);
+            }
+        }
+        return result;
+    }
+
+    private void tarjanDFS(String v, Map<String, List<String>> adj, int[] index,
+                           Map<String, Integer> nodeIndex, Map<String, Integer> lowLink,
+                           Map<String, Boolean> onStack, Deque<String> stack,
+                           List<List<String>> result) {
+        nodeIndex.put(v, index[0]);
+        lowLink.put(v, index[0]);
+        index[0]++;
+        stack.push(v);
+        onStack.put(v, true);
+
+        for (String w : adj.getOrDefault(v, Collections.emptyList())) {
+            if (!nodeIndex.containsKey(w)) {
+                tarjanDFS(w, adj, index, nodeIndex, lowLink, onStack, stack, result);
+                lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
+            } else if (Boolean.TRUE.equals(onStack.get(w))) {
+                lowLink.put(v, Math.min(lowLink.get(v), nodeIndex.get(w)));
+            }
+        }
+
+        if (lowLink.get(v).equals(nodeIndex.get(v))) {
+            List<String> scc = new ArrayList<>();
+            String w;
+            do {
+                w = stack.pop();
+                onStack.put(w, false);
+                scc.add(w);
+            } while (!w.equals(v));
+            result.add(scc);
+        }
+    }
+
     // ==================== Incremental Indexing ====================
 
     @Override
@@ -1130,9 +1551,46 @@ public class CodeIndexService implements ICodeIndexService {
                 session.save(annotEntity);
             }
         }
+
+        if (file.getImports() != null && !file.getImports().isEmpty() && file.getLanguage() != null) {
+            IImportResolver resolver = importResolvers.get(file.getLanguage().name());
+            if (resolver != null) {
+                Set<String> projectFiles = getProjectFilePaths(indexId);
+                List<CodeFileDependency> deps = resolver.resolveImports(
+                        file.getFilePath(), file.getImports(), projectFiles);
+                for (CodeFileDependency dep : deps) {
+                    NopCodeDependency depEntity = (NopCodeDependency) ormTemplate.newEntity(
+                            NopCodeDependency.class.getName());
+                    String depId = indexId + "_" + Math.abs(
+                            (dep.getSourceFilePath() + "|" + dep.getImportStatement()).hashCode());
+                    depEntity.setDepId(depId);
+                    depEntity.setIndexId(indexId);
+                    depEntity.setSourceFilePath(dep.getSourceFilePath());
+                    depEntity.setTargetFilePath(dep.getTargetFilePath());
+                    depEntity.setImportStatement(dep.getImportStatement());
+                    depEntity.setResolved(dep.isResolved() ? 1 : 0);
+                    session.save(depEntity);
+                }
+            }
+        }
     }
 
     // ==================== Incremental Indexing Helpers ====================
+
+    private Set<String> getProjectFilePaths(String indexId) {
+        if (daoProvider == null) return Collections.emptySet();
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeFile> files = fileDao.findAllByQuery(q);
+        Set<String> paths = new HashSet<>();
+        for (NopCodeFile f : files) {
+            if (f.getFilePath() != null) {
+                paths.add(f.getFilePath());
+            }
+        }
+        return paths;
+    }
 
     private List<IResource> collectSourceResourcesFromVfs(IResourceLoader resourceLoader, String vfsPath) {
         List<String> allExtensions = new ArrayList<>();
@@ -1160,6 +1618,7 @@ public class CodeIndexService implements ICodeIndexService {
             deleteEntitiesByFilter(NopCodeInheritance.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeCall.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeSymbol.class, "fileId", fileId);
+            deleteEntitiesByFilter(NopCodeDependency.class, "sourceFilePath", filePath);
 
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
             QueryBean q = new QueryBean();

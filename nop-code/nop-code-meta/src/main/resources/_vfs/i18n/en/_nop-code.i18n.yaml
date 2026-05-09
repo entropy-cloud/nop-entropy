@@ -2,6 +2,7 @@ entity:
   label:
     NopCodeAnnotationUsage: null
     NopCodeCall: null
+    NopCodeDependency: null
     NopCodeFile: null
     NopCodeIndex: null
     NopCodeInheritance: null
@@ -40,6 +41,14 @@ prop:
       callee.name: null
       file: null
       file.filePath: null
+    NopCodeDependency:
+      depId: null
+      indexId: null
+      sourceFilePath: null
+      targetFilePath: null
+      importStatement: null
+      resolved: null
+      index: null
     NopCodeFile:
       id: null
       indexId: null
@@ -71,6 +80,7 @@ prop:
       indexVersion: null
       files: null
       symbols: null
+      dependencies: null
       usages: null
       calls: null
       inheritances: null

@@ -2,6 +2,7 @@ entity:
   label:
     NopCodeAnnotationUsage: 注解使用
     NopCodeCall: 方法调用
+    NopCodeDependency: 文件依赖
     NopCodeFile: 代码文件
     NopCodeIndex: 代码索引
     NopCodeInheritance: 继承关系
@@ -40,6 +41,14 @@ prop:
       index: null
       indexId: 索引ID
       line: 行号
+    NopCodeDependency:
+      depId: 依赖ID
+      importStatement: 导入语句
+      index: null
+      indexId: 索引ID
+      resolved: 是否已解析
+      sourceFilePath: 源文件路径
+      targetFilePath: 目标文件路径
     NopCodeFile:
       calls: 调用
       fileHash: 文件内容哈希
@@ -61,6 +70,7 @@ prop:
     NopCodeIndex:
       annotationUsages: 注解使用
       calls: 调用
+      dependencies: 依赖列表
       fileCount: 文件数量
       files: 文件列表
       id: 索引ID

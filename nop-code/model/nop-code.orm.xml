@@ -119,6 +119,12 @@
                         <on leftProp="id" rightProp="indexId"/>
                     </join>
                 </to-many>
+                <to-many displayName="依赖列表" name="dependencies" refEntityName="io.nop.code.dao.entity.NopCodeDependency"
+                         refPropName="index">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
             </relations>
         </entity>
 
@@ -549,6 +555,49 @@
                 </index>
                 <index name="idx_annotation_symbol">
                     <column name="annotatedSymbolId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- ========================================
+             文件依赖关系
+             ======================================== -->
+
+        <!-- 文件依赖 -->
+        <entity className="io.nop.code.dao.entity.NopCodeDependency" displayName="文件依赖"
+                name="io.nop.code.dao.entity.NopCodeDependency" registerShortName="true"
+                tableName="nop_code_dependency">
+            <columns>
+                <column code="DEP_ID" displayName="依赖ID" domain="codeId" mandatory="true" name="depId"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="SOURCE_FILE_PATH" displayName="源文件路径" domain="filePath" mandatory="true" name="sourceFilePath"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"/>
+                <column code="TARGET_FILE_PATH" displayName="目标文件路径" domain="filePath" name="targetFilePath"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="IMPORT_STATEMENT" displayName="导入语句" name="importStatement"
+                        precision="500" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="RESOLVED" displayName="是否已解析" name="resolved"
+                        propId="6" stdDataType="int" stdSqlType="SMALLINT"/>
+            </columns>
+            <comment>文件级别的依赖关系，记录源文件导入了哪些目标文件</comment>
+            <relations>
+                <to-one name="index" refDisplayName="依赖" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="dependencies" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="idx_dep_source">
+                    <column name="indexId"/>
+                    <column name="sourceFilePath"/>
+                </index>
+                <index name="idx_dep_target">
+                    <column name="indexId"/>
+                    <column name="targetFilePath"/>
                 </index>
             </indexes>
         </entity>
