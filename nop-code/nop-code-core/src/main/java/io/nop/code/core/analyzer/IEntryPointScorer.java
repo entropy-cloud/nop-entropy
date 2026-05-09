@@ -1,7 +1,12 @@
 package io.nop.code.core.analyzer;
 
-/**
- * 入口点评分器接口（标记接口，待后续补充方法定义）
- */
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+
+import java.util.List;
+
 public interface IEntryPointScorer {
+    List<EntryPointScorer.EntryPointScore> scoreEntryPoints(CallGraph callGraph, SymbolTable symbolTable);
+
+    List<EntryPointScorer.EntryPointScore> scoreEntryPoints(CallGraph callGraph, SymbolTable symbolTable, EntryPointScorer.ScoringConfig config);
 }

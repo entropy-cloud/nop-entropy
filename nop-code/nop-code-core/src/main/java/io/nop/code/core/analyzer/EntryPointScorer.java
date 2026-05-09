@@ -190,7 +190,7 @@ public class EntryPointScorer implements IEntryPointScorer {
      * @param symbolTable 符号表
      * @return 评分结果列表，按分数降序排列
      */
-    public static List<EntryPointScore> scoreEntryPoints(
+    public List<EntryPointScore> scoreEntryPoints(
             CallGraph callGraph,
             SymbolTable symbolTable) {
         return scoreEntryPoints(callGraph, symbolTable, ScoringConfig.defaultConfig());
@@ -199,7 +199,7 @@ public class EntryPointScorer implements IEntryPointScorer {
     /**
      * 对项目中的方法进行入口点评分（带配置）
      */
-    public static List<EntryPointScore> scoreEntryPoints(
+    public List<EntryPointScore> scoreEntryPoints(
             CallGraph callGraph,
             SymbolTable symbolTable,
             ScoringConfig config) {

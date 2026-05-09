@@ -1,7 +1,10 @@
 package io.nop.code.core.analyzer;
 
-/**
- * 影响分析器接口（标记接口，待后续补充方法定义）
- */
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+
 public interface IImpactAnalyzer {
+    ImpactAnalyzer.ImpactResult analyzeImpact(String symbolId, CallGraph callGraph, SymbolTable symbolTable, int maxDepth);
+
+    ImpactAnalyzer.ImpactResult analyzeImpact(String symbolId, CallGraph callGraph, SymbolTable symbolTable, ImpactAnalyzer.ImpactConfig config);
 }

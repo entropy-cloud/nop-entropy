@@ -37,7 +37,7 @@ import java.util.concurrent.*;
  * 3. 限制迭代次数
  * 4. 支持超时控制
  */
-public class CommunityDetector {
+public class CommunityDetector implements ICommunityDetector {
     
     private static final Logger LOG = LoggerFactory.getLogger(CommunityDetector.class);
     
@@ -355,7 +355,7 @@ public class CommunityDetector {
     /**
      * 检测调用图中的社区
      */
-    public static CommunityDetectionResult detectCommunities(
+    public CommunityDetectionResult detectCommunities(
             CallGraph callGraph,
             SymbolTable symbolTable) {
         return detectCommunities(callGraph, symbolTable, CommunityConfig.defaultConfig());
@@ -364,7 +364,7 @@ public class CommunityDetector {
     /**
      * 检测调用图中的社区（带配置）
      */
-    public static CommunityDetectionResult detectCommunities(
+    public CommunityDetectionResult detectCommunities(
             CallGraph callGraph,
             SymbolTable symbolTable,
             CommunityConfig config) {

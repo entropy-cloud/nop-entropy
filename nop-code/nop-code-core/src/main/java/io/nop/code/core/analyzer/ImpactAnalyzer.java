@@ -12,7 +12,7 @@ import java.util.*;
  * 
  * 分析代码变更的影响范围，支持上游（调用者）和下游（被调用者）分析
  */
-public class ImpactAnalyzer {
+public class ImpactAnalyzer implements IImpactAnalyzer {
     
     /**
      * 影响分析结果
@@ -199,7 +199,7 @@ public class ImpactAnalyzer {
      * @param maxDepth 最大分析深度
      * @return 影响分析结果
      */
-    public static ImpactResult analyzeImpact(
+    public ImpactResult analyzeImpact(
             String targetQualifiedName,
             CallGraph callGraph,
             SymbolTable symbolTable,
@@ -213,7 +213,7 @@ public class ImpactAnalyzer {
     /**
      * 分析指定符号的影响范围（带配置）
      */
-    public static ImpactResult analyzeImpact(
+    public ImpactResult analyzeImpact(
             String targetQualifiedName,
             CallGraph callGraph,
             SymbolTable symbolTable,

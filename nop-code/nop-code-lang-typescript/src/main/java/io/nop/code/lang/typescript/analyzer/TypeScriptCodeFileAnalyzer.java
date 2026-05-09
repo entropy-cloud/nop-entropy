@@ -531,10 +531,4 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         return normalized.replace('/', '.');
     }
 
-    private int countLines(String source) {
-        if (source == null || source.isBlank()) {
-            return 0;
-        }
-        return source.split("\r?\n").length;
-    }
 }

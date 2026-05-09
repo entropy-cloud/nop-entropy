@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 public class PathFingerprintStore implements IFingerprintStore {
 
@@ -35,12 +37,13 @@ public class PathFingerprintStore implements IFingerprintStore {
         if (filePaths == null || filePaths.isEmpty()) {
             return;
         }
+        Set<String> pathSet = new HashSet<>(filePaths);
         Path manifestPath = resolveManifestPath(indexId);
         List<FileFingerprint> fingerprints = manifestStore.load(manifestPath);
         Iterator<FileFingerprint> it = fingerprints.iterator();
         while (it.hasNext()) {
             FileFingerprint fp = it.next();
-            if (fp != null && filePaths.contains(fp.getFilePath())) {
+            if (fp != null && pathSet.contains(fp.getFilePath())) {
                 it.remove();
             }
         }

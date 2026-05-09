@@ -6,13 +6,10 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
-/**
- * 项目分析器接口
- */
 public interface IProjectAnalyzer {
-    Object analyzeProject(Path projectRoot);
+    ProjectAnalysisResult analyzeProject(Path projectRoot);
 
-    Object analyzeProject(Path projectRoot, Set<CodeLanguage> languages);
+    ProjectAnalysisResult analyzeProject(Path projectRoot, Set<CodeLanguage> languages);
 
-    Object analyzeIncremental(Path projectRoot, List<String> changedFilePaths);
+    ProjectAnalysisResult analyzeIncremental(Path projectRoot, List<String> changedFilePaths);
 }

@@ -1,13 +1,12 @@
 package io.nop.code.core.incremental;
 
+import io.nop.code.core.util.DigestHelper;
 import io.nop.core.resource.IResource;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,14 +18,10 @@ import java.util.Map;
  */
 public class IncrementalDetector {
 
-    private static final int BUFFER_SIZE = 64 * 1024;
-    private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
-
     // ========== Path-based methods ==========
 
     public FileFingerprint computeFingerprint(Path file) throws IOException {
-        byte[] hash = computeSha256(file);
-        String contentHash = bytesToHex(hash);
+        String contentHash = DigestHelper.sha256Hex(file);
         long lastModified = Files.getLastModifiedTime(file).toMillis();
         long fileSize = Files.size(file);
         return new FileFingerprint(file.toString(), contentHash, lastModified, fileSize);
@@ -67,8 +62,7 @@ public class IncrementalDetector {
                 if (currentMtime == prev.getLastModified() && currentSize == prev.getFileSize()) {
                     unchangedFiles.add(currentFile);
                 } else {
-                    byte[] currentHash = computeSha256(currentFile);
-                    String currentHashHex = bytesToHex(currentHash);
+                    String currentHashHex = DigestHelper.sha256Hex(currentFile);
 
                     if (currentHashHex.equals(prev.getContentHash())) {
                         unchangedFiles.add(currentFile);
@@ -101,8 +95,10 @@ public class IncrementalDetector {
      * 从 IResource 计算文件指纹
      */
     public FileFingerprint computeFingerprint(IResource resource) throws IOException {
-        byte[] hash = computeSha256FromStream(resource.getInputStream());
-        String contentHash = bytesToHex(hash);
+        String contentHash;
+        try (InputStream is = resource.getInputStream()) {
+            contentHash = DigestHelper.sha256HexFromStream(is);
+        }
         long lastModified = resource.lastModified();
         long fileSize = resource.length();
         return new FileFingerprint(resource.getStdPath(), contentHash, lastModified, fileSize);
@@ -148,8 +144,10 @@ public class IncrementalDetector {
                 if (currentMtime == prev.getLastModified() && currentSize == prev.getFileSize()) {
                     unchangedFiles.add(currentResource);
                 } else {
-                    byte[] currentHash = computeSha256FromStream(currentResource.getInputStream());
-                    String currentHashHex = bytesToHex(currentHash);
+                    String currentHashHex;
+                    try (InputStream is = currentResource.getInputStream()) {
+                        currentHashHex = DigestHelper.sha256HexFromStream(is);
+                    }
 
                     if (currentHashHex.equals(prev.getContentHash())) {
                         unchangedFiles.add(currentResource);
@@ -200,42 +198,11 @@ public class IncrementalDetector {
 
     // ========== Private helpers ==========
 
-    private byte[] computeSha256(Path file) throws IOException {
-        return computeSha256FromStream(Files.newInputStream(file));
-    }
-
-    private byte[] computeSha256FromStream(InputStream in) throws IOException {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 algorithm not available", e);
-        }
-
-        byte[] buffer = new byte[BUFFER_SIZE];
-        try (InputStream input = in) {
-            int read;
-            while ((read = input.read(buffer)) != -1) {
-                digest.update(buffer, 0, read);
-            }
-        }
-        return digest.digest();
-    }
-
     private static List<Path> toPaths(List<IResource> resources) {
         List<Path> paths = new ArrayList<>(resources.size());
         for (IResource r : resources) {
             paths.add(Path.of(r.getStdPath()));
         }
         return paths;
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            sb.append(HEX_CHARS[(b >> 4) & 0x0f]);
-            sb.append(HEX_CHARS[b & 0x0f]);
-        }
-        return sb.toString();
     }
 }

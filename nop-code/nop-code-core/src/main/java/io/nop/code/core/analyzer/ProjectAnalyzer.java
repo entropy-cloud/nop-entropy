@@ -1,5 +1,7 @@
 package io.nop.code.core.analyzer;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
@@ -10,6 +12,7 @@ import io.nop.code.core.incremental.IncrementalDetector;
 import io.nop.code.core.incremental.ManifestStore;
 import io.nop.code.core.incremental.PathFingerprintStore;
 import io.nop.code.core.model.*;
+import io.nop.code.core.util.DigestHelper;
 import io.nop.code.core.model.LanguageFamily;
 import io.nop.commons.batch.BatchQueue;
 import io.nop.commons.collections.IterableIterator;
@@ -40,7 +43,7 @@ import java.util.stream.Stream;
  * 扫描整个项目的源文件，构建全局符号表，并解析跨文件的调用关系。
  * 通过 LanguageAdapterRegistry 支持多种编程语言。
  */
-public class ProjectAnalyzer {
+public class ProjectAnalyzer implements IProjectAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectAnalyzer.class);
 
@@ -79,8 +82,24 @@ public class ProjectAnalyzer {
      * @param projectRoot 项目根目录
      * @return 项目分析结果
      */
-    public ProjectAnalysisResult analyzeProject(Path projectRoot) throws IOException {
-        return analyzeProject(projectRoot, null);
+    @Override
+    public ProjectAnalysisResult analyzeProject(Path projectRoot) {
+        try {
+            return analyzeProject(projectRoot, (ProgressCallback) null);
+        } catch (IOException e) {
+            throw new NopException(NopCodeCoreErrors.ERR_CODE_ANALYZE_PROJECT_FAILED)
+                    .param(NopCodeCoreErrors.ARG_PATH, projectRoot).cause(e);
+        }
+    }
+
+    @Override
+    public ProjectAnalysisResult analyzeProject(Path projectRoot, Set<CodeLanguage> languages) {
+        try {
+            return analyzeProject(projectRoot, (ProgressCallback) null);
+        } catch (IOException e) {
+            throw new NopException(NopCodeCoreErrors.ERR_CODE_ANALYZE_PROJECT_FAILED)
+                    .param(NopCodeCoreErrors.ARG_PATH, projectRoot).cause(e);
+        }
     }
 
     /**
@@ -320,33 +339,8 @@ public class ProjectAnalyzer {
         return stats;
     }
 
-    /**
-     * IProjectAnalyzer.analyzeProject(Path) 的适配实现。
-     * 返回 Object 以匹配接口签名，内部委托给 analyzeProject(Path, ProgressCallback)。
-     */
-    public Object analyzeProjectAdapted(Path projectRoot) {
-        try {
-            return analyzeProject(projectRoot, (ProgressCallback) null);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to analyze project: " + projectRoot, e);
-        }
-    }
-
-    /**
-     * IProjectAnalyzer.analyzeProject(Path, Set) 的适配实现。
-     */
-    public Object analyzeProjectAdapted(Path projectRoot, Set<CodeLanguage> languages) {
-        try {
-            return analyzeProject(projectRoot, (ProgressCallback) null);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to analyze project: " + projectRoot, e);
-        }
-    }
-
-    /**
-     * IProjectAnalyzer.analyzeIncremental(Path, List) 的适配实现。
-     */
-    public Object analyzeIncrementalAdapted(Path projectRoot, List<String> changedFilePaths) {
+    @Override
+    public ProjectAnalysisResult analyzeIncremental(Path projectRoot, List<String> changedFilePaths) {
         throw new UnsupportedOperationException(
                 "Use analyzeIncremental(Path, ProjectAnalysisResult) or analyzeIncremental(Path, Path) instead");
     }
@@ -525,31 +519,12 @@ public class ProjectAnalyzer {
             String sourceCode = fileResult.getSourceCode();
             String contentHash = "";
             if (sourceCode != null) {
-                contentHash = sha256Hex(sourceCode.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                contentHash = DigestHelper.sha256Hex(sourceCode.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             }
 
             fingerprints.add(new FileFingerprint(filePath, contentHash, 0, 0));
         }
         return fingerprints;
-    }
-
-    /**
-     * 计算字节数组的 SHA-256 十六进制字符串
-     */
-    private static String sha256Hex(byte[] data) {
-        try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data);
-            StringBuilder sb = new StringBuilder(hash.length * 2);
-            char[] hexChars = "0123456789abcdef".toCharArray();
-            for (byte b : hash) {
-                sb.append(hexChars[(b >> 4) & 0x0f]);
-                sb.append(hexChars[b & 0x0f]);
-            }
-            return sb.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
     }
 
     /**
@@ -658,154 +633,4 @@ public class ProjectAnalyzer {
         void onProgress(int current, int total, String message);
     }
 
-    /**
-     * 项目分析结果
-     */
-    public static class ProjectAnalysisResult {
-        private final List<CodeFileAnalysisResult> fileResults;
-        private final SymbolTable globalSymbolTable;
-        private final ProjectStats stats;
-
-        public ProjectAnalysisResult(List<CodeFileAnalysisResult> fileResults,
-                                     SymbolTable globalSymbolTable,
-                                     ProjectStats stats) {
-            this.fileResults = fileResults;
-            this.globalSymbolTable = globalSymbolTable;
-            this.stats = stats;
-        }
-
-        /**
-         * 获取所有文件的分析结果
-         */
-        public List<CodeFileAnalysisResult> getFileResults() {
-            return fileResults;
-        }
-
-        /**
-         * 获取全局符号表
-         */
-        public SymbolTable getGlobalSymbolTable() {
-            return globalSymbolTable;
-        }
-
-        /**
-         * 根据全限定名查找符号
-         */
-        public CodeSymbol findSymbol(String qualifiedName) {
-            return globalSymbolTable.getByQualifiedName(qualifiedName);
-        }
-
-        /**
-         * 获取项目统计信息
-         */
-        public ProjectStats getStats() {
-            return stats;
-        }
-
-        /**
-         * 构建调用图
-         */
-        public CallGraph buildCallGraph() {
-            CallGraph callGraph = new CallGraph();
-
-            for (CodeFileAnalysisResult file : fileResults) {
-                for (CodeMethodCall call : file.getCalls()) {
-                    String callerId = call.getCallerId();
-                    String calleeId = call.getCalleeId();
-
-                    if (callerId != null && calleeId != null) {
-                        callGraph.addEdge(callerId, calleeId);
-                    }
-                }
-            }
-
-            return callGraph;
-        }
-    }
-
-    /**
-     * 项目统计信息
-     */
-    public static class ProjectStats {
-        private int totalFiles;
-        private int totalSymbols;
-        private int totalCalls;
-        private int resolvedCalls;
-        private int unresolvedCalls;
-        private Map<CodeSymbolKind, Integer> symbolCounts;
-        private Map<LanguageFamily, Integer> languageFamilyCounts;
-
-        public int getTotalFiles() {
-            return totalFiles;
-        }
-
-        public void setTotalFiles(int totalFiles) {
-            this.totalFiles = totalFiles;
-        }
-
-        public int getTotalSymbols() {
-            return totalSymbols;
-        }
-
-        public void setTotalSymbols(int totalSymbols) {
-            this.totalSymbols = totalSymbols;
-        }
-
-        public int getTotalCalls() {
-            return totalCalls;
-        }
-
-        public void setTotalCalls(int totalCalls) {
-            this.totalCalls = totalCalls;
-        }
-
-        public int getResolvedCalls() {
-            return resolvedCalls;
-        }
-
-        public void setResolvedCalls(int resolvedCalls) {
-            this.resolvedCalls = resolvedCalls;
-        }
-
-        public int getUnresolvedCalls() {
-            return unresolvedCalls;
-        }
-
-        public void setUnresolvedCalls(int unresolvedCalls) {
-            this.unresolvedCalls = unresolvedCalls;
-        }
-
-        public Map<CodeSymbolKind, Integer> getSymbolCounts() {
-            return symbolCounts;
-        }
-
-        public void setSymbolCounts(Map<CodeSymbolKind, Integer> symbolCounts) {
-            this.symbolCounts = symbolCounts;
-        }
-
-        public Map<LanguageFamily, Integer> getLanguageFamilyCounts() {
-            return languageFamilyCounts;
-        }
-
-        public void setLanguageFamilyCounts(Map<LanguageFamily, Integer> languageFamilyCounts) {
-            this.languageFamilyCounts = languageFamilyCounts;
-        }
-
-        public double getResolutionRate() {
-            if (totalCalls == 0) return 0;
-            return (double) resolvedCalls / totalCalls * 100;
-        }
-
-        @Override
-        public String toString() {
-            return "ProjectStats{" +
-                    "totalFiles=" + totalFiles +
-                    ", totalSymbols=" + totalSymbols +
-                    ", totalCalls=" + totalCalls +
-                    ", resolvedCalls=" + resolvedCalls +
-                    ", unresolvedCalls=" + unresolvedCalls +
-                    ", resolutionRate=" + String.format("%.1f%%", getResolutionRate()) +
-                    '}';
-        }
-    }
 }

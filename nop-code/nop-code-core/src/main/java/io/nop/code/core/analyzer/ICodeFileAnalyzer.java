@@ -14,4 +14,11 @@ public interface ICodeFileAnalyzer {
     CodeFileAnalysisResult analyze(String filePath, String sourceCode);
 
     List<String> getFileExtensions();
+
+    default int countLines(String source) {
+        if (source == null || source.isBlank()) {
+            return 0;
+        }
+        return source.split("\r?\n").length;
+    }
 }

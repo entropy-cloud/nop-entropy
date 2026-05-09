@@ -149,13 +149,6 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
         return result;
     }
 
-    private int countLines(String source) {
-        if (source == null || source.isBlank()) {
-            return 0;
-        }
-        return source.split("\r?\n").length;
-    }
-
     private class IndexVisitor extends VoidVisitorAdapter<Void> {
         private final CodeFileAnalysisResult result;
         private final MethodCallFilter methodCallFilter;
