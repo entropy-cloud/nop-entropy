@@ -16,7 +16,9 @@
 
 *   [**《广义可逆计算》论文评价**](generalized-reversible-computation-paper-review.md): 对《广义可逆计算：统一软件构造与演化的新范式》给出明确发表判断与创新性评估，区分真实贡献、当前硬伤和可行投稿路线。
 
-*   [**GRC 差量合并结合律的条件化形式化证明**](grc-delta-associativity-formal-proof.md): 对 GRC 结构差量合并的结合律给出条件化形式化证明，明确潜在模型、最终投影、树形 `x-extends`、扩展合并语义和反例边界。
+*   [**GRC 差量合并结合律的条件化形式化证明**](grc-delta-associativity-formal-proof.md): 长版技术报告，包含更细的 carrier 分层、边界讨论、反例与实现符合性证明义务。
+
+*   [**GRC/XLang Delta 结合律的精简形式化证明**](proof-v2.md): 自完备的附录版本，可直接作为 paper appendix 或 supplementary artifact；只保留 `remove`、`replace`、`merge`、`bounded-merge` 在抽象端函数语义中的严格结合律与最终结果一致性。
 
 *   [**可逆的含义**](what-does-reversible-mean.md): 解释了可逆计算理论中“可逆”一词的真正含义。它并非指运行时指令的逆向执行，而是与物理学中的熵增概念相关，指的是一种面向演化、能够控制混乱度增长的软件构造规律。
 
