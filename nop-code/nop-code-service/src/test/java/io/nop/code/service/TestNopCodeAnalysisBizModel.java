@@ -62,7 +62,7 @@ public class TestNopCodeAnalysisBizModel extends JunitAutoTestCase {
 
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", indexId);
-        ApiResponse<?> response = rpcQuery("NopCodeAnalysis__detectCommunities", data);
+        ApiResponse<?> response = rpcQuery("NopCodeIndex__detectCommunities", data);
 
         assertTrue(response.isOk());
         assertNotNull(response.getData());
@@ -81,7 +81,7 @@ public class TestNopCodeAnalysisBizModel extends JunitAutoTestCase {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", indexId);
         data.put("topN", 5);
-        ApiResponse<?> response = rpcQuery("NopCodeAnalysis__getGraphAnalysis", data);
+        ApiResponse<?> response = rpcQuery("NopCodeIndex__getGraphAnalysis", data);
 
         assertTrue(response.isOk());
         assertNotNull(response.getData());
@@ -109,7 +109,7 @@ public class TestNopCodeAnalysisBizModel extends JunitAutoTestCase {
         data.put("indexId", indexId);
         data.put("symbolId", "com.example.service.UserService");
         data.put("depth", 2);
-        ApiResponse<?> response = rpcQuery("NopCodeAnalysis__getImpactAnalysis", data);
+        ApiResponse<?> response = rpcQuery("NopCodeIndex__getImpactAnalysis", data);
 
         assertTrue(response.isOk());
         assertNotNull(response.getData());
@@ -125,7 +125,7 @@ public class TestNopCodeAnalysisBizModel extends JunitAutoTestCase {
     void testDetectCommunitiesOnEmptyIndex() {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", "nonexistent-index-999");
-        ApiResponse<?> response = rpcQuery("NopCodeAnalysis__detectCommunities", data);
+        ApiResponse<?> response = rpcQuery("NopCodeIndex__detectCommunities", data);
 
         // Either the engine returns an error, or we get a valid but empty result
         if (response.isOk()) {

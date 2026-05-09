@@ -34,7 +34,7 @@ public class TestNopCodeHierarchyQueries extends JunitAutoTestCase {
     @BeforeEach
     void setUp() {
         codeIndexService.indexDirectory("test",
-                Paths.get("src/test/resources/test-project/src/main/java"), "**/*.java");
+                Paths.get("src/test/resources/test-project/src/main/java").toString(), "**/*.java");
     }
 
     private ApiResponse<?> rpcQuery(String operation, Map<String, Object> data) {
@@ -52,7 +52,7 @@ public class TestNopCodeHierarchyQueries extends JunitAutoTestCase {
         data.put("indexId", "test");
         data.put("direction", "super");
         data.put("maxDepth", 3);
-        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__getTypeHierarchy", data);
         assertTrue(response.isOk());
         assertNotNull(response.getData());
     }
@@ -64,7 +64,7 @@ public class TestNopCodeHierarchyQueries extends JunitAutoTestCase {
         data.put("indexId", "test");
         data.put("direction", "sub");
         data.put("maxDepth", 3);
-        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__getTypeHierarchy", data);
         assertTrue(response.isOk());
         assertNotNull(response.getData());
     }
@@ -76,7 +76,7 @@ public class TestNopCodeHierarchyQueries extends JunitAutoTestCase {
         data.put("indexId", "test");
         data.put("direction", "outgoing");
         data.put("maxDepth", 2);
-        ApiResponse<?> response = rpcQuery("NopCodeCallHierarchy__get", data);
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__getCallHierarchy", data);
         assertTrue(response.isOk());
         assertNotNull(response.getData());
     }
@@ -86,7 +86,7 @@ public class TestNopCodeHierarchyQueries extends JunitAutoTestCase {
         Map<String, Object> data = new HashMap<>();
         data.put("qualifiedNames", List.of("com.example.domain.User", "com.example.domain.Status"));
         data.put("indexId", "test");
-        ApiResponse<?> response = rpcQuery("NopCodeType__batchGetOutlines", data);
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__batchGetOutlines", data);
         assertTrue(response.isOk());
         assertNotNull(response.getData());
     }

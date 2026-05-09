@@ -5,15 +5,18 @@ import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.analyzer.CommunityDetector;
 import io.nop.code.core.analyzer.EntryPointScorer;
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.analyzer.ImpactAnalyzer;
 import io.nop.code.core.analyzer.ILanguageAdapter;
+import io.nop.code.core.analyzer.ProjectAnalysisResult;
 import io.nop.code.core.analyzer.ProjectAnalyzer;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.util.DigestHelper;
 import io.nop.code.core.incremental.ChangeSet;
 import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.incremental.IFingerprintStore;
@@ -45,8 +48,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -182,10 +183,16 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
         return ormTemplate.runInSession(session -> {
-            ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(
-                    VirtualFileSystem.instance(), vfsPath, filePattern);
+            ProjectAnalysisResult result;
+            java.io.File localFile = new java.io.File(vfsPath);
+            if (localFile.isDirectory()) {
+                result = analyzer.analyzeProject(localFile.toPath());
+            } else {
+                result = analyzer.analyzeProject(
+                        VirtualFileSystem.instance(), vfsPath, filePattern);
+            }
 
-            persistInSession(indexId, result, session);
+            persistInSession(indexId, vfsPath, result, session);
             return result.getFileResults().size();
         });
     }
@@ -690,7 +697,7 @@ public class CodeIndexService implements ICodeIndexService {
             return null;
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(callGraph, symbolTable);
+                new CommunityDetector().detectCommunities(callGraph, symbolTable);
 
         return convertCommunityResult(result);
     }
@@ -705,7 +712,7 @@ public class CodeIndexService implements ICodeIndexService {
         int limit = topN > 0 ? topN : 20;
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(callGraph, symbolTable);
+                new EntryPointScorer().scoreEntryPoints(callGraph, symbolTable);
 
         List<GodNodeDTO> godNodes = scores.stream()
                 .limit(limit)
@@ -755,7 +762,7 @@ public class CodeIndexService implements ICodeIndexService {
         String qualifiedName = symbol != null ? symbol.getQualifiedName() : symbolId;
 
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact(qualifiedName, callGraph, symbolTable, maxDepth);
+                new ImpactAnalyzer().analyzeImpact(qualifiedName, callGraph, symbolTable, maxDepth);
 
         return convertImpactResult(result);
     }
@@ -868,12 +875,13 @@ public class CodeIndexService implements ICodeIndexService {
 
     // ==================== ORM Persistence ====================
 
-    private void persistInSession(String indexId, ProjectAnalyzer.ProjectAnalysisResult result,
+    private void persistInSession(String indexId, String rootPath, ProjectAnalysisResult result,
                                   IOrmSession session) {
         NopCodeIndex indexEntity = (NopCodeIndex) session.get(
                 NopCodeIndex.class.getName(), indexId);
         if (indexEntity != null) {
             indexEntity.setName(indexId);
+            indexEntity.setRootPath(rootPath != null ? rootPath : "/");
             indexEntity.setFileCount(result.getFileResults().size());
             indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
             indexEntity.setStatus("COMPLETED");
@@ -882,7 +890,7 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity = (NopCodeIndex) ormTemplate.newEntity(NopCodeIndex.class.getName());
             indexEntity.setId(indexId);
             indexEntity.setName(indexId);
-            indexEntity.setRootPath("");
+            indexEntity.setRootPath(rootPath != null ? rootPath : "/");
             indexEntity.setLanguage("Java");
             indexEntity.setFileCount(result.getFileResults().size());
             indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
@@ -920,7 +928,7 @@ public class CodeIndexService implements ICodeIndexService {
         fileEntity.setLineCount(file.getLineCount());
         String sourceCode = file.getSourceCode();
         if (sourceCode != null) {
-            fileEntity.setFileHash(sha256Hex(sourceCode.getBytes(StandardCharsets.UTF_8)));
+            fileEntity.setFileHash(DigestHelper.sha256Hex(sourceCode.getBytes(StandardCharsets.UTF_8)));
             fileEntity.setFileSize((long) sourceCode.length());
         }
         fileEntity.setLastModified(System.currentTimeMillis());
@@ -960,6 +968,8 @@ public class CodeIndexService implements ICodeIndexService {
 
         if (file.getCalls() != null) {
             for (CodeMethodCall call : file.getCalls()) {
+                if (call.getCalleeId() == null || call.getCallerId() == null)
+                    continue;
                 NopCodeCall callEntity = (NopCodeCall) ormTemplate.newEntity(NopCodeCall.class.getName());
                 callEntity.setId(call.getId());
                 callEntity.setIndexId(indexId);
@@ -1199,21 +1209,5 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public void batchDeleteFileRecords(String indexId, List<String> filePaths) {
         deleteFileRecords(indexId, filePaths);
-    }
-
-    private static String sha256Hex(byte[] data) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data);
-            StringBuilder sb = new StringBuilder(hash.length * 2);
-            char[] hexChars = "0123456789abcdef".toCharArray();
-            for (byte b : hash) {
-                sb.append(hexChars[(b >> 4) & 0x0f]);
-                sb.append(hexChars[b & 0x0f]);
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
     }
 }

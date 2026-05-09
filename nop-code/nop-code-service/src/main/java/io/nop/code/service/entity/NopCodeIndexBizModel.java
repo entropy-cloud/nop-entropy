@@ -16,6 +16,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -106,7 +107,18 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
     @BizQuery
     public CommunityDetectionResultDTO detectCommunities(@Name("indexId") String indexId) {
-        return codeIndexService.detectCommunities(indexId);
+        CommunityDetectionResultDTO result = codeIndexService.detectCommunities(indexId);
+        if (result == null) {
+            result = new CommunityDetectionResultDTO();
+            result.setCommunities(Collections.emptyList());
+            result.setTotalSymbols(0);
+            result.setTotalCommunities(0);
+            result.setAverageCohesion(0.0);
+            result.setAlgorithmUsed("none");
+            result.setModularity(0.0);
+            result.setProcessingTimeMs(0);
+        }
+        return result;
     }
 
     @BizQuery

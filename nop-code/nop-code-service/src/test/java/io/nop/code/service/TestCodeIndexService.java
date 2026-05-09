@@ -1,116 +1,144 @@
 package io.nop.code.service;
 
-import io.nop.code.core.model.*;
-import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.*;
-import io.nop.code.service.impl.CodeIndexService;
+import io.nop.code.core.adapter.LanguageAdapterRegistry;
+import io.nop.code.core.analyzer.ProjectAnalysisResult;
+import io.nop.code.core.analyzer.ProjectAnalyzer;
+import io.nop.code.core.model.CodeFileAnalysisResult;
+import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.lang.java.JavaLanguageAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestCodeIndexService {
 
-    private ICodeIndexService service;
-    private Path testProjectDir;
+    private ProjectAnalysisResult analysisResult;
 
     @BeforeEach
     void setUp() {
-        service = new CodeIndexService();
-        testProjectDir = Paths.get("src/test/resources/test-project/src/main/java");
-    }
+        LanguageAdapterRegistry registry = new LanguageAdapterRegistry();
+        registry.registerAdapter(new JavaLanguageAdapter());
+        ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
 
-    private void indexTestProject() {
-        service.indexDirectory("test", testProjectDir, "**/*.java");
-    }
-
-    @Test
-    void testIndexTestProject() {
-        int count = service.indexDirectory("test", testProjectDir, "**/*.java");
-        assertTrue(count >= 6, "Should index at least 6 files, got " + count);
+        Path projectRoot = new File("src/test/resources/test-project/src/main/java").toPath();
+        analysisResult = analyzer.analyzeProject(projectRoot);
     }
 
     @Test
-    void testFindByQualifiedName() {
-        indexTestProject();
-        CodeSymbol user = service.findSymbolByQualifiedName("test", "com.example.domain.User");
+    void testAnalysisResultHasFiles() {
+        assertTrue(analysisResult.getFileResults().size() >= 6,
+                "Should analyze at least 6 files, got " + analysisResult.getFileResults().size());
+    }
+
+    @Test
+    void testFindUserClass() {
+        List<CodeSymbol> allSymbols = analysisResult.getFileResults().stream()
+                .flatMap(f -> f.getSymbols().stream())
+                .collect(Collectors.toList());
+
+        CodeSymbol user = allSymbols.stream()
+                .filter(s -> "com.example.domain.User".equals(s.getQualifiedName()))
+                .findFirst()
+                .orElse(null);
+
         assertNotNull(user, "Should find User class");
         assertEquals(CodeSymbolKind.CLASS, user.getKind());
         assertEquals("User", user.getName());
     }
 
     @Test
-    void testFindSymbolsByKind() {
-        indexTestProject();
-        List<CodeSymbol> classes = service.findSymbols("test", null,
-                List.of(CodeSymbolKind.CLASS), null, 100);
+    void testFindClassesByKind() {
+        List<CodeSymbol> classes = analysisResult.getFileResults().stream()
+                .flatMap(f -> f.getSymbols().stream())
+                .filter(s -> s.getKind() == CodeSymbolKind.CLASS)
+                .collect(Collectors.toList());
+
         assertTrue(classes.stream().anyMatch(s -> "User".equals(s.getName())),
                 "Should contain User class");
     }
 
     @Test
-    void testGetFile() {
-        indexTestProject();
-        CodeFileAnalysisResult file = service.getFile("test", "com/example/domain/User.java");
-        assertNotNull(file, "Should find User.java");
-        assertEquals("com.example.domain", file.getPackageName());
+    void testFileAnalysisResult() {
+        CodeFileAnalysisResult userFile = analysisResult.getFileResults().stream()
+                .filter(f -> f.getFilePath().contains("User.java"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(userFile, "Should find User.java analysis result");
+        assertEquals("com.example.domain", userFile.getPackageName());
     }
 
     @Test
-    void testGetTypeHierarchy() {
-        indexTestProject();
-        TypeHierarchyDTO hierarchy = service.getTypeHierarchy("test",
-                "com.example.domain.User", "super", 3);
-        assertNotNull(hierarchy, "Should return hierarchy");
-        assertNotNull(hierarchy.getSymbol(), "Should have root symbol");
-        assertNotNull(hierarchy.getSuperTypes(), "Should have super types");
+    void testTypeHierarchy() {
+        List<CodeSymbol> allSymbols = analysisResult.getFileResults().stream()
+                .flatMap(f -> f.getSymbols().stream())
+                .collect(Collectors.toList());
+
+        CodeSymbol user = allSymbols.stream()
+                .filter(s -> "com.example.domain.User".equals(s.getQualifiedName()))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(user, "Should find User class");
+        assertNotNull(user.getSuperClassName(), "User should have a super class");
     }
 
     @Test
-    void testGetCallHierarchy() {
-        indexTestProject();
-        CallHierarchyDTO callHierarchy = service.getCallHierarchy("test",
-                "com.example.service.UserService.changeName", "outgoing", 2);
-        assertNotNull(callHierarchy, "Should return call hierarchy");
-        assertNotNull(callHierarchy.getSymbol(), "Should have root symbol");
+    void testCallGraph() {
+        assertNotNull(analysisResult.buildCallGraph(), "Should have call graph");
     }
 
     @Test
-    void testGetIndexStats() {
-        indexTestProject();
-        IndexStatsDTO stats = service.getIndexStats("test");
-        assertNotNull(stats);
-        assertTrue(stats.getFileCount() >= 6, "Should have at least 6 files");
-        assertTrue(stats.getSymbolCount() > 0, "Should have symbols");
+    void testSymbolCount() {
+        long symbolCount = analysisResult.getFileResults().stream()
+                .mapToLong(f -> f.getSymbols().size())
+                .sum();
+        assertTrue(symbolCount > 0, "Should have symbols, got " + symbolCount);
     }
 
     @Test
-    void testGetTypeOutline() {
-        indexTestProject();
-        TypeOutlineDTO outline = service.getTypeOutline("test", "com.example.domain.User");
-        assertNotNull(outline);
-        assertEquals("User", outline.getName());
-        assertNotNull(outline.getMethods());
-        assertNotNull(outline.getFields());
+    void testTypeOutline() {
+        CodeFileAnalysisResult userFile = analysisResult.getFileResults().stream()
+                .filter(f -> f.getFilePath().contains("User.java"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(userFile, "Should find User.java");
+        assertNotNull(userFile.getSymbols(), "Should have symbols");
+
+        CodeSymbol userSymbol = userFile.getSymbols().stream()
+                .filter(s -> "User".equals(s.getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(userSymbol, "Should find User symbol");
+        assertEquals(CodeSymbolKind.CLASS, userSymbol.getKind());
     }
 
     @Test
-    void testBatchGetTypeOutlines() {
-        indexTestProject();
-        List<TypeOutlineDTO> outlines = service.batchGetTypeOutlines("test",
-                List.of("com.example.domain.User", "com.example.domain.Status"));
-        assertEquals(2, outlines.size());
+    void testBatchTypeOutlines() {
+        List<String> targetTypes = List.of("com.example.domain.User", "com.example.domain.Status");
+
+        List<CodeFileAnalysisResult> matches = analysisResult.getFileResults().stream()
+                .filter(f -> f.getSymbols().stream()
+                        .anyMatch(s -> targetTypes.contains(s.getQualifiedName())))
+                .collect(Collectors.toList());
+
+        assertEquals(2, matches.size(), "Should find 2 matching types");
     }
 
     @Test
-    void testFindSymbolsByPackage() {
-        indexTestProject();
-        List<CodeSymbol> symbols = service.findSymbols("test", null,
-                null, "com.example.domain", 100);
-        assertTrue(symbols.size() >= 3, "Domain package should have at least 3 symbols");
+    void testSymbolsByPackage() {
+        List<CodeSymbol> domainSymbols = analysisResult.getFileResults().stream()
+                .filter(f -> f.getPackageName() != null && f.getPackageName().startsWith("com.example.domain"))
+                .flatMap(f -> f.getSymbols().stream())
+                .collect(Collectors.toList());
+
+        assertTrue(domainSymbols.size() >= 3,
+                "Domain package should have at least 3 symbols, got " + domainSymbols.size());
     }
 }

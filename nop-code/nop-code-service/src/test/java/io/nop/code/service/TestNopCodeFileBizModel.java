@@ -35,7 +35,7 @@ public class TestNopCodeFileBizModel extends JunitAutoTestCase {
     void setUp() {
         // Index directly via service (same singleton as BizModel uses)
         codeIndexService.indexDirectory("test",
-                Paths.get("src/test/resources/test-project/src/main/java"), "**/*.java");
+                Paths.get("src/test/resources/test-project/src/main/java").toString(), "**/*.java");
     }
 
     private ApiResponse<?> rpcQuery(String operation, Map<String, Object> data) {

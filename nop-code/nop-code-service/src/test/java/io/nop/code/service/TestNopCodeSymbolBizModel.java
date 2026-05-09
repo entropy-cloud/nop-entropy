@@ -34,7 +34,7 @@ public class TestNopCodeSymbolBizModel extends JunitAutoTestCase {
     @BeforeEach
     void setUp() {
         codeIndexService.indexDirectory("test",
-                Paths.get("src/test/resources/test-project/src/main/java"), "**/*.java");
+                Paths.get("src/test/resources/test-project/src/main/java").toString(), "**/*.java");
     }
 
     private ApiResponse<?> rpcQuery(String operation, Map<String, Object> data) {

@@ -75,7 +75,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         }
         Path rootPath = Path.of(projectRoot);
         long start = System.currentTimeMillis();
-        int count = codeIndexService.indexDirectory(INDEX_ID, rootPath, "**/*.java");
+        int count = codeIndexService.indexDirectory(INDEX_ID, rootPath.toString(), "**/*.java");
         long elapsed = System.currentTimeMillis() - start;
         System.out.println("\n=== INDEX: " + count + " Java files from " + projectRoot + " in " + elapsed + "ms ===\n");
         assertTrue(count > 100, "应该索引到至少 100 个 Java 文件，实际: " + count);
