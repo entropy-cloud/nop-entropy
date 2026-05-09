@@ -27,7 +27,7 @@ import io.nop.report.core.engine.ReportEngine;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelHelper;
-import io.quarkus.arc.impl.Sets;
+import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -91,7 +91,7 @@ public class TestOrmCodeGen extends BaseTestCase {
         col.setStdSqlType(StdSqlType.VARCHAR);
         col.setPrecision(32);
         col.setPrimary(true);
-        col.setTagSet(Sets.of("seq"));
+        col.setTagSet(Set.of("seq"));
         entity.addColumn(col);
         model.addEntity(entity);
 

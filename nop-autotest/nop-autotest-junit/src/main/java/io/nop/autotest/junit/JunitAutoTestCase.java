@@ -50,6 +50,11 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
         if (displayName.startsWith("[") && displayName.indexOf(']') > 0) {
             int pos = displayName.indexOf(']');
             String variant = displayName.substring(pos + 1).trim();
+            // JUnit 5.10+ renders string arguments with quotes in display names, e.g. [1] "_default"
+            // Strip surrounding quotes if present
+            if (variant.length() >= 2 && variant.startsWith("\"") && variant.endsWith("\"")) {
+                variant = variant.substring(1, variant.length() - 1);
+            }
             setVariant(variant);
         }
     }
