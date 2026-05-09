@@ -67,6 +67,7 @@ ai-dev/logs/
 - [05-19](2026/05-19.md) — Plan 21 nop-job Adversarial Review Remediation 完成
 - [05-18](2026/05-18.md) — nop-job 深度审核完成 + 并发模式文档化
 - [05-11](2026/05-11.md) — Plan 14 nop-job 质量优化：TimeoutChecker N+1 批量预加载、Planner 锁冲突 Micrometer counter + DEBUG 日志、ErrorCode 规范化（5 个新定义）、LocalJobScheduler @Deprecated 标记
+- [05-09](2026/05-09.md) — 微调 GRC 结合律技术报告，前置澄清 carrier、潜在空间与 replace/remove 的证明边界，并补研究文档与开发规范的入口边界
 - [05-08](2026/05-08.md) — 修订 GRC paper 的 P1 审查问题，将附录 D/G 与潜在结构空间、终端投影和 stable-key children 证明边界对齐
 - [05-07](2026/05-07.md) — 新增《广义可逆计算》论文评价与 GRC 差量合并结合律形式化证明，使用多轮子 agent 审核收敛核心 LWW、局部幺半群和统一端函数三层证明边界
 - [05-05](2026/05-05.md) — SpotBugs findings 详细分析文档：nop-kernel 6 子模块 40 个 findings 源码级验证（3 true positive / 2 false positive / 35 design choice）
