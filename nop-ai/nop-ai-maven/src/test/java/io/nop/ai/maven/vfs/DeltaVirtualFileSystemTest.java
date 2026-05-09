@@ -1,8 +1,8 @@
 package io.nop.ai.maven.vfs;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * DeltaVirtualFileSystem 单元测试
@@ -24,7 +24,7 @@ public class DeltaVirtualFileSystemTest {
     private File deltaDir;
     private DeltaVirtualFileSystem vfs;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         // 创建临时目录
         Path basePath = Files.createTempDirectory("vfs-base-");
@@ -42,7 +42,7 @@ public class DeltaVirtualFileSystemTest {
         vfs = new DeltaVirtualFileSystem(baseDir, deltaDir);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         // 清理临时目录
         deleteDirectory(baseDir);

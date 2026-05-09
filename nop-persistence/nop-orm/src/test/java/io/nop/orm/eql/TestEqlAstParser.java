@@ -6,7 +6,7 @@ import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.orm.eql.parse.EqlExprASTParser;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestEqlAstParser {
     @Test

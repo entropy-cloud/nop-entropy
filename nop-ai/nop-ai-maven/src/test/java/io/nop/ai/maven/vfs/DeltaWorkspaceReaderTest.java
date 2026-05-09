@@ -1,8 +1,8 @@
 package io.nop.ai.maven.vfs;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * DeltaWorkspaceReader 单元测试
@@ -23,7 +23,7 @@ public class DeltaWorkspaceReaderTest {
     private File deltaRepo;
     private DeltaWorkspaceReader reader;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         // 创建临时目录
         Path basePath = Files.createTempDirectory("repo-base-");
@@ -41,7 +41,7 @@ public class DeltaWorkspaceReaderTest {
         reader = new DeltaWorkspaceReader(baseRepo, deltaRepo);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         // 清理临时目录
         deleteDirectory(baseRepo);
