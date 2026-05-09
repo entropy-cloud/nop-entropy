@@ -124,8 +124,8 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalFromScratch() throws IOException {
         createTestProject(tempDir);
 
-        ProjectAnalyzer.ProjectAnalysisResult result =
-                analyzer.analyzeIncremental(tempDir, (ProjectAnalyzer.ProjectAnalysisResult) null);
+        ProjectAnalysisResult result =
+                analyzer.analyzeIncremental(tempDir, (ProjectAnalysisResult) null);
 
         assertNotNull(result);
         assertEquals(2, result.getFileResults().size());
@@ -139,10 +139,10 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalNoChanges() throws IOException {
         createTestProject(tempDir);
 
-        ProjectAnalyzer.ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
         assertEquals(2, first.getFileResults().size());
 
-        ProjectAnalyzer.ProjectAnalysisResult second =
+        ProjectAnalysisResult second =
                 analyzer.analyzeIncremental(tempDir, first);
 
         assertNotNull(second);
@@ -157,13 +157,13 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalWithModification() throws IOException, InterruptedException {
         createTestProject(tempDir);
 
-        ProjectAnalyzer.ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
         assertEquals(2, first.getFileResults().size());
 
         Thread.sleep(50);
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { int x; }");
 
-        ProjectAnalyzer.ProjectAnalysisResult second =
+        ProjectAnalysisResult second =
                 analyzer.analyzeIncremental(tempDir, first);
 
         assertNotNull(second);
@@ -177,13 +177,13 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalWithAddition() throws IOException {
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { }");
 
-        ProjectAnalyzer.ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
         assertEquals(1, first.getFileResults().size());
         assertNotNull(first.findSymbol("Foo"));
 
         Files.writeString(tempDir.resolve("Baz.java"), "public class Baz { }");
 
-        ProjectAnalyzer.ProjectAnalysisResult second =
+        ProjectAnalysisResult second =
                 analyzer.analyzeIncremental(tempDir, first);
 
         assertNotNull(second);
@@ -197,12 +197,12 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalWithDeletion() throws IOException {
         createTestProject(tempDir);
 
-        ProjectAnalyzer.ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
         assertEquals(2, first.getFileResults().size());
 
         Files.delete(tempDir.resolve("Bar.java"));
 
-        ProjectAnalyzer.ProjectAnalysisResult second =
+        ProjectAnalysisResult second =
                 analyzer.analyzeIncremental(tempDir, first);
 
         assertNotNull(second);
@@ -219,7 +219,7 @@ class TestProjectAnalyzerIncremental {
 
         assertFalse(Files.exists(manifestFile));
 
-        ProjectAnalyzer.ProjectAnalysisResult result =
+        ProjectAnalysisResult result =
                 analyzer.analyzeIncremental(tempDir, manifestFile);
 
         assertNotNull(result);
@@ -229,7 +229,7 @@ class TestProjectAnalyzerIncremental {
         assertFalse(content.isEmpty());
         assertTrue(content.startsWith("["));
 
-        ProjectAnalyzer.ProjectAnalysisResult result2 =
+        ProjectAnalysisResult result2 =
                 analyzer.analyzeIncremental(tempDir, manifestFile);
 
         assertNotNull(result2);
@@ -240,8 +240,8 @@ class TestProjectAnalyzerIncremental {
     void testLanguageFamilyCountsInStats() throws IOException {
         createTestProject(tempDir);
 
-        ProjectAnalyzer.ProjectAnalysisResult result =
-                analyzer.analyzeIncremental(tempDir, (ProjectAnalyzer.ProjectAnalysisResult) null);
+        ProjectAnalysisResult result =
+                analyzer.analyzeIncremental(tempDir, (ProjectAnalysisResult) null);
 
         assertNotNull(result);
         Map<LanguageFamily, Integer> familyCounts = result.getStats().getLanguageFamilyCounts();

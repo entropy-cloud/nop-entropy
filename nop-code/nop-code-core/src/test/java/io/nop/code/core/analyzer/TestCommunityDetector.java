@@ -55,7 +55,7 @@ class TestCommunityDetector {
         config.setResolution(1.0);
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(graph, symbols, config);
+                new CommunityDetector().detectCommunities(graph, symbols, config);
 
         assertTrue(result.getTotalCommunities() >= 1,
                 "Should detect at least 1 community, got " + result.getTotalCommunities());
@@ -71,7 +71,7 @@ class TestCommunityDetector {
         config.setResolution(1.0);
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(graph, symbols, config);
+                new CommunityDetector().detectCommunities(graph, symbols, config);
 
         // Find the community that contains both E and F
         List<CommunityDetector.Community> communities = result.getCommunities();
@@ -100,7 +100,7 @@ class TestCommunityDetector {
         config.setResolution(1.0);
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(graph, symbols, config);
+                new CommunityDetector().detectCommunities(graph, symbols, config);
 
         for (CommunityDetector.Community c : result.getCommunities()) {
             assertTrue(c.getCohesion() >= 0 && c.getCohesion() <= 1,
@@ -118,7 +118,7 @@ class TestCommunityDetector {
         config.setMinCommunitySize(2);
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(graph, symbols, config);
+                new CommunityDetector().detectCommunities(graph, symbols, config);
 
         assertEquals(CommunityDetector.AlgorithmType.LABEL_PROPAGATION, result.getAlgorithmUsed());
         assertTrue(result.getTotalCommunities() >= 1,
@@ -131,7 +131,7 @@ class TestCommunityDetector {
         SymbolTable symbols = new SymbolTable();
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(graph, symbols);
+                new CommunityDetector().detectCommunities(graph, symbols);
 
         assertEquals(0, result.getTotalCommunities());
         assertTrue(result.getCommunities().isEmpty());
@@ -162,7 +162,7 @@ class TestCommunityDetector {
         config.setMinCommunitySize(2);
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(graph, symbols, config);
+                new CommunityDetector().detectCommunities(graph, symbols, config);
 
         // With a single edge A->B, the algorithm should find at most 1 community with 2 nodes
         assertTrue(result.getTotalCommunities() <= 1);
@@ -179,7 +179,7 @@ class TestCommunityDetector {
         config.setResolution(1.0);
 
         CommunityDetector.CommunityDetectionResult result =
-                CommunityDetector.detectCommunities(graph, symbols, config);
+                new CommunityDetector().detectCommunities(graph, symbols, config);
 
         // Test getCommunityForSymbol helper for each node that appears in a community
         Set<String> allClustered = result.getCommunities().stream()

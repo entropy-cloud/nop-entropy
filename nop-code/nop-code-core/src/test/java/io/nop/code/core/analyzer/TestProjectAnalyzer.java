@@ -115,7 +115,7 @@ class TestProjectAnalyzer {
 
         // Run analysis
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
 
         // fileResults contains both files
         assertEquals(2, result.getFileResults().size());
@@ -143,7 +143,7 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
 
         assertEquals(2, result.getStats().getTotalSymbols());
     }
@@ -154,7 +154,7 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
 
         assertEquals(0, result.getFileResults().size());
         assertEquals(0, result.getStats().getTotalFiles());
@@ -170,7 +170,7 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
 
         CodeSymbol found = result.findSymbol("Foo");
         assertNotNull(found);
@@ -187,7 +187,7 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalyzer.ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
 
         // Build call graph (should be empty since mock has no calls)
         CallGraph callGraph = result.buildCallGraph();
@@ -213,7 +213,7 @@ class TestProjectAnalyzer {
             callbackCount[0]++;
         };
 
-        ProjectAnalyzer.ProjectAnalysisResult result =
+        ProjectAnalysisResult result =
                 analyzer.analyzeProject(tempDir, callback);
 
         assertTrue(callbackCount[0] > 0, "Progress callback should have been called");

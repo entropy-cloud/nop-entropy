@@ -46,7 +46,7 @@ class TestImpactAnalyzer {
 
         // Analyze impact of B: upstream should contain A
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("pkg.B", graph, symbols, 2);
+                new ImpactAnalyzer().analyzeImpact("pkg.B", graph, symbols, 2);
 
         assertNotNull(result);
         assertNotEquals("not-found", result.getRiskLevel());
@@ -64,7 +64,7 @@ class TestImpactAnalyzer {
 
         // Analyze impact of B: downstream should contain C (depth=1) and D (depth=2)
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("pkg.B", graph, symbols, 2);
+                new ImpactAnalyzer().analyzeImpact("pkg.B", graph, symbols, 2);
 
         List<ImpactAnalyzer.ImpactedSymbol> downstream = result.getDownstream();
 
@@ -83,7 +83,7 @@ class TestImpactAnalyzer {
         SymbolTable symbols = buildLinearSymbolTable();
 
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("nonexistent.Symbol", graph, symbols, 3);
+                new ImpactAnalyzer().analyzeImpact("nonexistent.Symbol", graph, symbols, 3);
 
         assertEquals("not-found", result.getRiskLevel());
         assertTrue(result.getUpstream().isEmpty());
@@ -97,7 +97,7 @@ class TestImpactAnalyzer {
 
         // With maxDepth=1, analyzing B should only reach C (depth=1), not D (depth=2)
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("pkg.B", graph, symbols, 1);
+                new ImpactAnalyzer().analyzeImpact("pkg.B", graph, symbols, 1);
 
         List<ImpactAnalyzer.ImpactedSymbol> downstream = result.getDownstream();
         assertTrue(downstream.stream().anyMatch(s -> "pkg.C".equals(s.getQualifiedName())),
@@ -113,7 +113,7 @@ class TestImpactAnalyzer {
 
         // B: upstream=A(1), downstream=C(1)+D(2) => total=3
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("pkg.B", graph, symbols, 3);
+                new ImpactAnalyzer().analyzeImpact("pkg.B", graph, symbols, 3);
 
         assertEquals(3, result.getTotalImpacted());
     }
@@ -124,7 +124,7 @@ class TestImpactAnalyzer {
         SymbolTable symbols = buildLinearSymbolTable();
 
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("pkg.B", graph, symbols, 5);
+                new ImpactAnalyzer().analyzeImpact("pkg.B", graph, symbols, 5);
 
         // upstream max depth = 1 (A), downstream max depth = 2 (D)
         assertEquals(2, result.getMaxDepth());
@@ -136,7 +136,7 @@ class TestImpactAnalyzer {
         SymbolTable symbols = buildLinearSymbolTable();
 
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("pkg.B", graph, symbols, 3);
+                new ImpactAnalyzer().analyzeImpact("pkg.B", graph, symbols, 3);
 
         Map<Integer, List<ImpactAnalyzer.ImpactedSymbol>> grouped =
                 ImpactAnalyzer.groupByDepth(result.getDownstream());
@@ -166,7 +166,7 @@ class TestImpactAnalyzer {
         SymbolTable symbols = buildLinearSymbolTable();
 
         ImpactAnalyzer.ImpactResult result =
-                ImpactAnalyzer.analyzeImpact("pkg.B", graph, symbols, 2);
+                new ImpactAnalyzer().analyzeImpact("pkg.B", graph, symbols, 2);
 
         assertEquals("low", result.getRiskLevel());
     }

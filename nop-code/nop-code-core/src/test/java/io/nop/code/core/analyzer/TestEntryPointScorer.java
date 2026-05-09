@@ -70,7 +70,7 @@ class TestEntryPointScorer {
         SymbolTable symbols = buildTestSymbolTable();
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(graph, symbols);
+                new EntryPointScorer().scoreEntryPoints(graph, symbols);
 
         assertFalse(scores.isEmpty(), "Should have scored methods");
 
@@ -87,7 +87,7 @@ class TestEntryPointScorer {
         SymbolTable symbols = buildTestSymbolTable();
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(graph, symbols);
+                new EntryPointScorer().scoreEntryPoints(graph, symbols);
 
         EntryPointScorer.EntryPointScore util1Score = scores.stream()
                 .filter(s -> "util1".equals(s.getSymbolId()))
@@ -105,7 +105,7 @@ class TestEntryPointScorer {
         SymbolTable symbols = buildTestSymbolTable();
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(graph, symbols);
+                new EntryPointScorer().scoreEntryPoints(graph, symbols);
 
         EntryPointScorer.EntryPointScore util2Score = scores.stream()
                 .filter(s -> "util2".equals(s.getSymbolId()))
@@ -126,7 +126,7 @@ class TestEntryPointScorer {
         SymbolTable symbols = buildTestSymbolTable();
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(graph, symbols);
+                new EntryPointScorer().scoreEntryPoints(graph, symbols);
 
         for (int i = 1; i < scores.size(); i++) {
             assertTrue(scores.get(i - 1).getScore() >= scores.get(i).getScore(),
@@ -140,7 +140,7 @@ class TestEntryPointScorer {
         SymbolTable symbols = new SymbolTable();
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(graph, symbols);
+                new EntryPointScorer().scoreEntryPoints(graph, symbols);
 
         assertTrue(scores.isEmpty());
     }
@@ -151,7 +151,7 @@ class TestEntryPointScorer {
         SymbolTable symbols = buildTestSymbolTable();
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(graph, symbols);
+                new EntryPointScorer().scoreEntryPoints(graph, symbols);
 
         List<EntryPointScorer.EntryPointScore> entryPoints =
                 EntryPointScorer.getEntryPoints(scores);
@@ -168,7 +168,7 @@ class TestEntryPointScorer {
         SymbolTable symbols = buildTestSymbolTable();
 
         List<EntryPointScorer.EntryPointScore> scores =
-                EntryPointScorer.scoreEntryPoints(graph, symbols);
+                new EntryPointScorer().scoreEntryPoints(graph, symbols);
 
         java.util.Map<EntryPointScorer.EntryPointType, Long> counts =
                 EntryPointScorer.countByType(scores);

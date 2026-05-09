@@ -112,14 +112,14 @@ class TestProjectAnalyzerWithStore {
     void testIncrementalWithStoreDetectsChanges() throws IOException, InterruptedException {
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { }");
 
-        ProjectAnalyzer.ProjectAnalysisResult first =
+        ProjectAnalysisResult first =
                 analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
         assertNotNull(first);
 
         Thread.sleep(50);
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { int x; }");
 
-        ProjectAnalyzer.ProjectAnalysisResult second =
+        ProjectAnalysisResult second =
                 analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
         assertNotNull(second);
         assertEquals(1, second.getFileResults().size());
@@ -130,11 +130,11 @@ class TestProjectAnalyzerWithStore {
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { }");
         Files.writeString(tempDir.resolve("Bar.java"), "public class Bar { }");
 
-        ProjectAnalyzer.ProjectAnalysisResult first =
+        ProjectAnalysisResult first =
                 analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
         assertNotNull(first);
 
-        ProjectAnalyzer.ProjectAnalysisResult second =
+        ProjectAnalysisResult second =
                 analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
         assertNotNull(second);
         assertEquals(2, second.getFileResults().size());
@@ -145,7 +145,7 @@ class TestProjectAnalyzerWithStore {
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { }");
         Files.writeString(tempDir.resolve("Bar.java"), "public class Bar { }");
 
-        ProjectAnalyzer.ProjectAnalysisResult first =
+        ProjectAnalysisResult first =
                 analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
         assertNotNull(first);
 
@@ -154,7 +154,7 @@ class TestProjectAnalyzerWithStore {
         Files.delete(tempDir.resolve("Bar.java"));
         Files.writeString(tempDir.resolve("Baz.java"), "public class Baz { }");
 
-        ProjectAnalyzer.ProjectAnalysisResult second =
+        ProjectAnalysisResult second =
                 analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
         assertNotNull(second);
         assertEquals(2, second.getFileResults().size());
