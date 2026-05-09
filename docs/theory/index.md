@@ -10,7 +10,7 @@
 
 *   [**可逆计算范式宣言**](reversible-computation-a-paradigm-manifesto.md): 为“广义可逆计算”（GRC）正名，阐释了其核心思想——以“差量”（Delta）为第一类公民，系统性地管理软件构造过程中的可逆性与不可逆性，旨在解决“复杂性”这一核心工程难题。
 
-*   [**广义可逆计算论文 v2**](generalized-reversible-computation-paper-v2.md): 面向发表标准重写的 GRC 论文稿，收束为“语义坐标系 + 生成器 + 差量代数 + Nop/XLang 参考实现”的范式与系统论文，并引用独立形式证明文档。
+*   [**广义可逆计算论文 v2**](generalized-reversible-computation-paper-v2.md): 面向 arXiv 预印本目标重构的 GRC 范式与系统论文，采用“构造命题 → 变化空间设计 → 形式核心 → Nop/XLang 参考架构 → 产品线场景 → 相关工作”的主线，并引用独立形式证明文档。
 
 *   [**可逆计算理论速览**](reversible-computation-theory-overview): 提供了（广义）可逆计算理论的快速概览，总结了其核心公式 `App = Delta x-extends Generator<DSL>`、对传统理论（如模型驱动架构）的继承与发展，以及关键技术实现。
 
