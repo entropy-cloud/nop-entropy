@@ -8,10 +8,24 @@
 
 | Helper | 适用场景 | 常用方法 |
 |------|---------|---------|
+| `CoreMetrics` | 获取当前时间戳、日期、可测试时钟 | `currentTimeMillis()`、`currentTimestamp()`、`currentDate()`、`currentDateTime()`、`nanoTime()` |
 | `StringHelper` | 字符串判空、拆分、命名转换、文件类型处理 | `isEmpty`、`isBlank`、`join`、`splitToArray`、`camelCaseToUnderscore`、`camelCase`、`generateUUID`、`fileType` |
 | `DateHelper` | 日期解析、格式化、月初月末、时区转换 | `parseDate`、`parseDateTime`、`formatDate`、`formatDateTime`、`firstDayOfMonth`、`lastDayOfMonth`、`dateDiff`、`toUTC` |
 | `ConvertHelper` | 类型转换、CSV 转列表、字符串转日期时间 | `toInt`、`toLong`、`toDouble`、`toBoolean`、`toLocalDate`、`toLocalDateTime`、`toList`、`toSet`、`toCsvList`、`convertTo` |
 | `JsonTool` | JSON / YAML 解析、序列化、资源加载 | `parseMap`、`parseBeanFromText`、`parseBeanFromYaml`、`stringify`、`serialize`、`loadBean` |
+
+## `CoreMetrics`
+
+获取当前时间戳、日期。**禁止使用 `System.currentTimeMillis()` 或 `System.nanoTime()`**，一律改用 `CoreMetrics`，这样单元测试可以通过 `IClock` 注入可控时钟。
+
+```java
+long now = CoreMetrics.currentTimeMillis();
+java.sql.Timestamp ts = CoreMetrics.currentTimestamp();
+LocalDate today = CoreMetrics.currentDate();
+LocalDateTime dt = CoreMetrics.currentDateTime();
+```
+
+定义锚点：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/time/CoreMetrics.java`
 
 ## `StringHelper`
 

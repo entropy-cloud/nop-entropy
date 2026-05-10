@@ -52,6 +52,10 @@
 
 | 反模式 | 默认替代做法 |
 |--------|-------------|
+| `System.currentTimeMillis()` / `System.nanoTime()` | `CoreMetrics.currentTimeMillis()` / `CoreMetrics.nanoTime()` |
+| 手写 JSON 拼接 / 引入第三方 JSON 库 | `JsonTool.stringify()` / `JsonTool.parseMap()` |
+| 手写字符串工具逻辑 / Apache Commons `StringUtils` | `StringHelper`（`isBlank`、`join`、`splitToArray` 等） |
+| 手写日期解析格式化 | `DateHelper`（`parseDate`、`formatDate` 等） |
 | 直接编辑 `_gen/` 或 `_` 前缀生成文件 | 改模型、改 Delta、改非下划线保留文件 |
 | 直接编辑 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml` 等以 `_` 开头的配置文件 | 这些文件由 codegen 管线从 ORM 模型自动生成，改了会在 `mvn install` 时被覆盖。应改对应的非下划线文件（如 `app-service.beans.xml`）或改源模型文件（如 `model/*.orm.xml`） |
 | `dao().getEntityById(id)` 作为 BizModel 模板 | `requireEntity(id, action, context)` |
