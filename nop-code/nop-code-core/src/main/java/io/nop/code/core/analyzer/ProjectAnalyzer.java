@@ -274,6 +274,74 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
     }
 
+    public ProjectAnalysisResult analyzeProject(IResourceLoader resourceLoader, String vfsPath,
+                                                 String filePattern, BatchCallback batchCallback) {
+        LOG.info("Starting streaming project analysis from VFS: {}", vfsPath);
+
+        Set<String> allExtensions = collectExtensions();
+
+        List<CodeFileAnalysisResult> allFileResults = new ArrayList<>();
+        SymbolTable globalSymbolTable = new SymbolTable();
+        int[] fileCount = {0};
+
+        BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(batchSize, batch -> {
+            for (CodeFileAnalysisResult result : batch) {
+                allFileResults.add(result);
+                for (CodeSymbol symbol : result.getSymbols()) {
+                    String qn = symbol.getQualifiedName();
+                    if (qn != null && !qn.isEmpty()) {
+                        globalSymbolTable.add(symbol);
+                    }
+                }
+            }
+            if (batchCallback != null) {
+                batchCallback.onBatchComplete(batch);
+            }
+        });
+
+        IterableIterator<IResource> it = resourceLoader.depthIterator(vfsPath, false, resource -> {
+            if (resource.isDirectory()) return false;
+            if (filePattern != null && !filePattern.isEmpty() && !"*".equals(filePattern)) {
+                return true;
+            }
+            for (String ext : allExtensions) {
+                if (resource.getName().endsWith(ext)) return true;
+            }
+            return false;
+        });
+
+        while (it.hasNext()) {
+            IResource resource = it.next();
+            String relativePath = resource.getStdPath();
+            if (relativePath.startsWith(vfsPath)) {
+                relativePath = relativePath.substring(vfsPath.length());
+                if (relativePath.startsWith("/")) relativePath = relativePath.substring(1);
+            }
+
+            ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
+            if (fileAnalyzer == null) continue;
+
+            try {
+                String sourceCode = resource.readText();
+                CodeFileAnalysisResult result = fileAnalyzer.analyze(relativePath, sourceCode);
+                if (result != null) {
+                    batchQueue.add(result);
+                    fileCount[0]++;
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to analyze resource: {} - {}", relativePath, e.getMessage());
+            }
+        }
+        batchQueue.flush();
+
+        LOG.info("Streaming analysis: {} files, {} symbols", fileCount[0], globalSymbolTable.size());
+
+        int[] callCounts = resolveCalls(allFileResults, globalSymbolTable);
+        ProjectStats stats = buildStats(allFileResults, globalSymbolTable, callCounts[0], callCounts[1]);
+
+        return new ProjectAnalysisResult(allFileResults, globalSymbolTable, stats);
+    }
+
     private Set<String> collectExtensions() {
         Set<String> allExtensions = new HashSet<>();
         for (CodeLanguage lang : registry.getSupportedLanguages()) {
@@ -631,6 +699,11 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     @FunctionalInterface
     public interface ProgressCallback {
         void onProgress(int current, int total, String message);
+    }
+
+    @FunctionalInterface
+    public interface BatchCallback {
+        void onBatchComplete(List<CodeFileAnalysisResult> batchResults);
     }
 
 }

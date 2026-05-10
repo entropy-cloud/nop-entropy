@@ -21,7 +21,7 @@ import io.nop.code.core.incremental.ChangeSet;
 import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
-import io.nop.code.core.incremental.InMemoryFingerprintStore;
+import io.nop.code.service.incremental.OrmFingerprintStore;
 import io.nop.code.core.model.*;
 import io.nop.code.core.resolver.IImportResolver;
 import io.nop.code.core.resolver.JavaImportResolver;
@@ -74,10 +74,17 @@ public class CodeIndexService implements ICodeIndexService {
     @Inject
     protected IOrmTemplate ormTemplate;
 
-    protected IFingerprintStore fingerprintStore = new InMemoryFingerprintStore();
+    protected IFingerprintStore fingerprintStore;
 
     public void setFingerprintStore(IFingerprintStore fingerprintStore) {
         this.fingerprintStore = fingerprintStore;
+    }
+
+    protected IFingerprintStore getFingerprintStore() {
+        if (fingerprintStore == null) {
+            fingerprintStore = new OrmFingerprintStore(daoProvider, ormTemplate);
+        }
+        return fingerprintStore;
     }
 
     public CodeIndexService() {
@@ -129,6 +136,8 @@ public class CodeIndexService implements ICodeIndexService {
         symbol.setReturnType(entity.getReturnType());
         symbol.setStaticFlag(Boolean.TRUE.equals(entity.getIsStatic()));
         symbol.setFieldType(entity.getFieldType());
+        symbol.setRawReturnType(entity.getRawReturnType());
+        symbol.setRawFieldType(entity.getRawFieldType());
         symbol.setAsyncFlag(Boolean.TRUE.equals(entity.getAsyncFlag()));
         symbol.setReadonlyFlag(Boolean.TRUE.equals(entity.getReadonlyFlag()));
         return symbol;
@@ -202,17 +211,26 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
         return ormTemplate.runInSession(session -> {
-            ProjectAnalysisResult result;
+            ensureIndexEntity(indexId, vfsPath, session);
+
             java.io.File localFile = new java.io.File(vfsPath);
             if (localFile.isDirectory()) {
-                result = analyzer.analyzeProject(localFile.toPath());
+                ProjectAnalysisResult result = analyzer.analyzeProject(localFile.toPath());
+                persistInSession(indexId, vfsPath, result, session);
+                return result.getFileResults().size();
             } else {
-                result = analyzer.analyzeProject(
-                        VirtualFileSystem.instance(), vfsPath, filePattern);
+                int[] count = {0};
+                ProjectAnalysisResult result = analyzer.analyzeProject(
+                        VirtualFileSystem.instance(), vfsPath, filePattern,
+                        batch -> {
+                            for (CodeFileAnalysisResult fileResult : batch) {
+                                saveFileResultInSession(indexId, fileResult, session);
+                                count[0]++;
+                            }
+                        });
+                updateIndexStats(indexId, result);
+                return result.getFileResults().size();
             }
-
-            persistInSession(indexId, vfsPath, result, session);
-            return result.getFileResults().size();
         });
     }
 
@@ -1318,7 +1336,7 @@ public class CodeIndexService implements ICodeIndexService {
                 IncrementalDetector detector = new IncrementalDetector();
 
                 // Load previous fingerprints from store
-                List<FileFingerprint> previousFingerprints = fingerprintStore.loadFingerprints(indexId);
+                List<FileFingerprint> previousFingerprints = getFingerprintStore().loadFingerprints(indexId);
 
                 IResourceLoader vfs = VirtualFileSystem.instance();
                 List<IResource> currentResources = collectSourceResourcesFromVfs(vfs, vfsPath);
@@ -1369,7 +1387,7 @@ public class CodeIndexService implements ICodeIndexService {
 
                 // Save new fingerprints to store
                 List<FileFingerprint> newFingerprints = detector.computeFingerprints(allFiles);
-                fingerprintStore.saveFingerprints(indexId, newFingerprints);
+                getFingerprintStore().saveFingerprints(indexId, newFingerprints);
 
                 return changedResults.size();
             } catch (IOException e) {
@@ -1452,6 +1470,32 @@ public class CodeIndexService implements ICodeIndexService {
         queue.flush();
     }
 
+    private void ensureIndexEntity(String indexId, String rootPath, IOrmSession session) {
+        NopCodeIndex indexEntity = (NopCodeIndex) session.get(
+                NopCodeIndex.class.getName(), indexId);
+        if (indexEntity == null) {
+            indexEntity = (NopCodeIndex) ormTemplate.newEntity(NopCodeIndex.class.getName());
+            indexEntity.setId(indexId);
+            indexEntity.setName(indexId);
+            indexEntity.setRootPath(rootPath != null ? rootPath : "/");
+            indexEntity.setLanguage("Java");
+            indexEntity.setStatus("INDEXING");
+            indexEntity.setLastIndexed(System.currentTimeMillis());
+            session.save(indexEntity);
+        }
+    }
+
+    private void updateIndexStats(String indexId, ProjectAnalysisResult result) {
+        IEntityDao<NopCodeIndex> indexDao = daoProvider.daoFor(NopCodeIndex.class);
+        NopCodeIndex indexEntity = indexDao.getEntityById(indexId);
+        if (indexEntity != null) {
+            indexEntity.setFileCount(result.getFileResults().size());
+            indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
+            indexEntity.setStatus("COMPLETED");
+            indexEntity.setLastIndexed(System.currentTimeMillis());
+        }
+    }
+
     private void persistSingleFileInSession(String indexId, CodeFileAnalysisResult result,
                                             IOrmSession session) {
         saveFileResultInSession(indexId, result, session);
@@ -1472,6 +1516,12 @@ public class CodeIndexService implements ICodeIndexService {
         if (sourceCode != null) {
             fileEntity.setFileHash(DigestHelper.sha256Hex(sourceCode.getBytes(StandardCharsets.UTF_8)));
             fileEntity.setFileSize((long) sourceCode.length());
+        }
+        if (sourceCode != null) {
+            fileEntity.setSourceCode(sourceCode);
+        }
+        if (file.getImports() != null && !file.getImports().isEmpty()) {
+            fileEntity.setImports(String.join("\n", file.getImports()));
         }
         fileEntity.setLastModified(System.currentTimeMillis());
         session.save(fileEntity);
@@ -1501,6 +1551,8 @@ public class CodeIndexService implements ICodeIndexService {
                 symEntity.setReturnType(sym.getReturnType());
                 symEntity.setIsStatic(sym.isStaticFlag());
                 symEntity.setFieldType(sym.getFieldType());
+                symEntity.setRawReturnType(sym.getRawReturnType());
+                symEntity.setRawFieldType(sym.getRawFieldType());
                 symEntity.setExtData(sym.getExtData());
                 symEntity.setAsyncFlag(sym.isAsyncFlag());
                 symEntity.setReadonlyFlag(sym.isReadonlyFlag());

@@ -30,6 +30,8 @@ public class CodeSymbol {
     private String fieldType;
     private boolean readonlyFlag;
     private String extData;
+    private String rawReturnType;
+    private String rawFieldType;
 
     public String getId() {
         return id;
@@ -213,5 +215,21 @@ public class CodeSymbol {
 
     public void setExtData(String extData) {
         this.extData = extData;
+    }
+
+    public String getRawReturnType() {
+        return rawReturnType;
+    }
+
+    public void setRawReturnType(String rawReturnType) {
+        this.rawReturnType = rawReturnType;
+    }
+
+    public String getRawFieldType() {
+        return rawFieldType;
+    }
+
+    public void setRawFieldType(String rawFieldType) {
+        this.rawFieldType = rawFieldType;
     }
 }

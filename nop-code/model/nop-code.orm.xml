@@ -147,8 +147,8 @@
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="IMPORTS" displayName="导入列表" domain="jsonContent" name="imports"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
-                <column code="SOURCE_CODE" displayName="源代码" domain="jsonContent" name="sourceCode"
-                        propId="8" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="SOURCE_CODE" displayName="源代码" name="sourceCode"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" precision="65536" ui:control="textarea"/>
                 <column code="FILE_HASH" displayName="文件内容哈希" name="fileHash"
                         precision="64" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="LAST_MODIFIED" displayName="最后修改时间" name="lastModified"
@@ -250,6 +250,10 @@
                         propId="29" stdDataType="boolean" stdSqlType="BOOLEAN"/>
                 <column code="READONLY_FLAG" displayName="只读" name="readonlyFlag"
                         propId="30" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="RAW_RETURN_TYPE" displayName="原始返回类型" domain="qualifiedName" name="rawReturnType"
+                        propId="31" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="RAW_FIELD_TYPE" displayName="原始字段类型" domain="qualifiedName" name="rawFieldType"
+                        propId="32" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>
                 符号统一表。extData存储JSON格式的扩展信息：

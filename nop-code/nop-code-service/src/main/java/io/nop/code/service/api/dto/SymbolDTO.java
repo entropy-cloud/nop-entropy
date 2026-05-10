@@ -32,6 +32,8 @@ public class SymbolDTO implements Serializable {
     private boolean staticFlag;
     private boolean asyncFlag;
     private String fieldType;
+    private String rawReturnType;
+    private String rawFieldType;
     private boolean readonlyFlag;
     private String extData;
 
@@ -58,6 +60,8 @@ public class SymbolDTO implements Serializable {
         dto.setStaticFlag(symbol.isStaticFlag());
         dto.setAsyncFlag(symbol.isAsyncFlag());
         dto.setFieldType(symbol.getFieldType());
+        dto.setRawReturnType(symbol.getRawReturnType());
+        dto.setRawFieldType(symbol.getRawFieldType());
         dto.setReadonlyFlag(symbol.isReadonlyFlag());
         dto.setExtData(symbol.getExtData());
         return dto;
@@ -229,6 +233,22 @@ public class SymbolDTO implements Serializable {
 
     public void setFieldType(String fieldType) {
         this.fieldType = fieldType;
+    }
+
+    public String getRawReturnType() {
+        return rawReturnType;
+    }
+
+    public void setRawReturnType(String rawReturnType) {
+        this.rawReturnType = rawReturnType;
+    }
+
+    public String getRawFieldType() {
+        return rawFieldType;
+    }
+
+    public void setRawFieldType(String rawFieldType) {
+        this.rawFieldType = rawFieldType;
     }
 
     public boolean isReadonlyFlag() {

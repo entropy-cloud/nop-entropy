@@ -38,11 +38,12 @@ nop-code 是 Nop 平台的代码分析与索引模块，提供符号搜索、类
 - [ ] 框架特定依赖（Quarkus/Spring）是否隔离到 app 模块？
 - [ ] 各模块之间是否存在循环依赖？
 - [ ] 其他模块需要引用 nop-code 接口时，是否必须依赖整个 service 模块？
+- 注：`dao/biz/` 下的 `IXxxBiz extends ICrudBiz<Entity>` 接口是代码生成的 DAO 层 CRUD 契约，绑定 DAO 实体，放在 dao 模块是正确的。不应作为"业务接口放错位置"的审计发现。
 
 #### 1.2 层级职责划分
 
 检查项：
-- [ ] core 层是否保持纯计算，无框架依赖？
+- [ ] core 层是否保持纯计算，无框架特定依赖（Quarkus/Spring/MyBatis 等）？注：`jakarta.inject`/`jakarta.annotation` 是 Java 标准规范（JSR-330/JSR-250），Nop IoC 基于此标准，不算框架依赖。
 - [ ] dao 层的 ORM 实体是否被实际使用？是否存在定义了但从未读写的实体？
 - [ ] service 层是否通过 dao 层访问数据？是否存在绕过 DAO 直接使用内存存储的情况？
 - [ ] web 层页面是否功能完整？是否存在空壳页面？
@@ -71,9 +72,15 @@ nop-code 是 Nop 平台的代码分析与索引模块，提供符号搜索、类
 #### 3.1 API 层模型隔离
 
 检查项：
-- [ ] BizModel 方法是否返回 DTO 而非内部模型类？
-- [ ] 是否存在 core 层模型直接暴露到 GraphQL/RPC API 的情况？
-- [ ] API 契约是否与内部实现解耦，可以独立演进？
+- [ ] BizModel 的公开方法（`@BizQuery`/`@BizMutation`/`@BizLoader`）返回值是否合理？
+- [ ] 是否存在返回值中包含敏感字段但 xmeta 未限制其可见性的情况？
+- 注（BizModel 返回实体是标准做法）：**BizModel 方法返回实体对象（包括 ORM 实体和 core 层模型）是 Nop 平台的标准模式，不需要返回 DTO。** 原因：
+  - `CrudBizModel.get()` 直接返回 `T extends IOrmEntity`（平台基类设计）
+  - `GraphQLExecutor.fetchSelections()` 根据客户端 GraphQL selection 逐字段获取值（`BeanPropertyFetcher` → `BeanTool.getProperty()`）
+  - 客户端只能看到 xmeta 中定义的、且在 selection 中请求的字段，不会暴露整个实体
+  - API 契约由 xmeta（字段可见性/类型）和 GraphQL selection（客户端实际获取的字段）共同决定
+  - **不应将"BizModel 返回实体"作为审计发现**，这不是架构问题
+- 注（内部服务接口）：`ICodeIndexService` 等内部服务接口不对外暴露，返回 core 层模型（如 `CodeSymbol`、`CodeFileAnalysisResult`）是合理的——内部以高性能、高便捷性为目标。
 
 #### 3.2 接口抽象完整性
 
@@ -86,7 +93,7 @@ nop-code 是 Nop 平台的代码分析与索引模块，提供符号搜索、类
 
 检查项：
 - [ ] 是否统一使用 `NopException` + `ErrorCode`？
-- [ ] 是否存在 `throw new RuntimeException(...)` 的违规？
+- [ ] 是否存在 `throw new RuntimeException(...)` 的违规？注：底层工具类（如 `DigestHelper`）使用 `IllegalStateException` 表示前置条件违反是可接受的，不属于违规。
 - [ ] 异常是否包含足够的上下文参数（`.param(...)`）？
 
 #### 3.4 API 参数一致性
@@ -170,6 +177,12 @@ nop-code 是 Nop 平台的代码分析与索引模块，提供符号搜索、类
 - [ ] 是否有集成测试覆盖关键流程？
 - [ ] 是否有并发/线程安全测试？
 - [ ] 是否有性能基准测试？
+- 注（不需要测试的模块）：
+  - `nop-code-api`：空壳模块，无代码可测
+  - `nop-code-app`：打包工程（仅含 Application 启动类），不需要测试
+  - `nop-code-codegen`：代码生成辅助功能，`NopCodeCodeGen` 是调试用的 main 方法，不需要测试
+  - `nop-code-meta`：无 Java 源码，仅含 xmeta 资源文件和代码生成模板，不需要测试
+- 注（内存管理——当前存在全量累积问题）：`ProjectAnalyzer` 虽然分批提交任务，但所有批次结果通过 `fileResults.addAll()` 累积在内存中，分析完成后才一次性持久化。**不符合"内存中最多保留一个批次数据"的要求**。应检查是否需要改为流式持久化（每批次即时写入 DB 并释放）。
 
 ## 审计输出格式
 

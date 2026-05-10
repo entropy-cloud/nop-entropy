@@ -66,7 +66,6 @@ prop:
       usages: null
       calls: null
       importsComponent: null
-      sourceCodeComponent: null
     NopCodeIndex:
       id: null
       name: null
@@ -129,6 +128,8 @@ prop:
       extData: null
       asyncFlag: null
       readonlyFlag: null
+      rawReturnType: null
+      rawFieldType: null
       index: null
       file: null
       file.filePath: null

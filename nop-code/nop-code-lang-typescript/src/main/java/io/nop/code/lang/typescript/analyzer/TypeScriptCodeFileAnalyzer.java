@@ -289,7 +289,9 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         TSNode typeNode = node.getChildByFieldName("type");
         if (!typeNode.isNull()) {
-            symbol.setFieldType(getNodeText(typeNode, source));
+            String fieldTypeName = getNodeText(typeNode, source);
+            symbol.setFieldType(fieldTypeName);
+            symbol.setRawFieldType(extractRawType(fieldTypeName));
         }
 
         String qualifiedName;
@@ -529,6 +531,12 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             normalized = normalized.substring(0, dotIdx);
         }
         return normalized.replace('/', '.');
+    }
+
+    private static String extractRawType(String typeText) {
+        if (typeText == null) return null;
+        int idx = typeText.indexOf('<');
+        return idx >= 0 ? typeText.substring(0, idx) : typeText;
     }
 
 }

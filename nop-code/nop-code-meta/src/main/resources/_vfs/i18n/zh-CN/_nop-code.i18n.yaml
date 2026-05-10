@@ -64,7 +64,6 @@ prop:
       lineCount: 行数
       packageName: 包名
       sourceCode: 源代码
-      sourceCodeComponent: null
       symbols: 符号列表
       usages: 引用
     NopCodeIndex:
@@ -142,6 +141,8 @@ prop:
       parentId: 父符号ID
       qualifiedName: 全限定名
       query: 名称关键词
+      rawFieldType: 原始字段类型
+      rawReturnType: 原始返回类型
       readonlyFlag: 只读
       returnType: 返回类型
       signature: 签名

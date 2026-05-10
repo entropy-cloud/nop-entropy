@@ -51,8 +51,8 @@
             <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="65536"/>
         </prop>
         <prop name="sourceCode" displayName="源代码" propId="8" queryable="true" sortable="true" insertable="true"
-              updatable="true" graphql:jsonComponentProp="sourceCodeComponent" ui:control="textarea">
-            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="65536"/>
+              updatable="true" ui:control="textarea">
+            <schema type="java.lang.String" precision="65536"/>
         </prop>
         <prop name="fileHash" displayName="文件内容哈希" propId="9" queryable="true" sortable="true" insertable="true"
               updatable="true">
@@ -89,10 +89,6 @@
             </schema>
         </prop>
         <prop name="importsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
-              updatable="true" lazy="true">
-            <schema type="io.nop.orm.component.JsonOrmComponent"/>
-        </prop>
-        <prop name="sourceCodeComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>

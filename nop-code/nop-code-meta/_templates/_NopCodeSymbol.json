@@ -31,6 +31,8 @@
   "extData": "",
   "asyncFlag": false,
   "readonlyFlag": false,
+  "rawReturnType": "",
+  "rawFieldType": "",
   "index": null,
   "file": null,
   "file.filePath": "",

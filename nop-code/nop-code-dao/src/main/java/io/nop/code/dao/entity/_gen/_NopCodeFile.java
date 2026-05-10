@@ -83,9 +83,6 @@ public class _NopCodeFile extends DynamicOrmEntity{
     /* component:  */
     public static final String PROP_NAME_importsComponent = "importsComponent";
     
-    /* component:  */
-    public static final String PROP_NAME_sourceCodeComponent = "sourceCodeComponent";
-    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
@@ -760,23 +757,6 @@ public class _NopCodeFile extends DynamicOrmEntity{
           _importsComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_importsComponent);
       }
       return _importsComponent;
-   }
-
-   private io.nop.orm.component.JsonOrmComponent _sourceCodeComponent;
-
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_sourceCodeComponent = new HashMap<>();
-   static{
-      
-         COMPONENT_PROP_ID_MAP_sourceCodeComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_sourceCode);
-      
-   }
-
-   public final io.nop.orm.component.JsonOrmComponent getSourceCodeComponent(){
-      if(_sourceCodeComponent == null){
-          _sourceCodeComponent = new io.nop.orm.component.JsonOrmComponent();
-          _sourceCodeComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_sourceCodeComponent);
-      }
-      return _sourceCodeComponent;
    }
 
 }

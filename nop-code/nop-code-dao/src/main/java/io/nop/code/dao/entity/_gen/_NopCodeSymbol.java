@@ -140,8 +140,16 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     public static final String PROP_NAME_readonlyFlag = "readonlyFlag";
     public static final int PROP_ID_readonlyFlag = 30;
     
+    /* 原始返回类型: RAW_RETURN_TYPE VARCHAR */
+    public static final String PROP_NAME_rawReturnType = "rawReturnType";
+    public static final int PROP_ID_rawReturnType = 31;
+    
+    /* 原始字段类型: RAW_FIELD_TYPE VARCHAR */
+    public static final String PROP_NAME_rawFieldType = "rawFieldType";
+    public static final int PROP_ID_rawFieldType = 32;
+    
 
-    private static int _PROP_ID_BOUND = 31;
+    private static int _PROP_ID_BOUND = 33;
 
     
     /* relation:  */
@@ -193,7 +201,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[31];
+    private static final String[] PROP_ID_TO_NAME = new String[33];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -287,6 +295,12 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_readonlyFlag] = PROP_NAME_readonlyFlag;
           PROP_NAME_TO_ID.put(PROP_NAME_readonlyFlag, PROP_ID_readonlyFlag);
       
+          PROP_ID_TO_NAME[PROP_ID_rawReturnType] = PROP_NAME_rawReturnType;
+          PROP_NAME_TO_ID.put(PROP_NAME_rawReturnType, PROP_ID_rawReturnType);
+      
+          PROP_ID_TO_NAME[PROP_ID_rawFieldType] = PROP_NAME_rawFieldType;
+          PROP_NAME_TO_ID.put(PROP_NAME_rawFieldType, PROP_ID_rawFieldType);
+      
     }
 
     
@@ -379,6 +393,12 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     
     /* 只读: READONLY_FLAG */
     private java.lang.Boolean _readonlyFlag;
+    
+    /* 原始返回类型: RAW_RETURN_TYPE */
+    private java.lang.String _rawReturnType;
+    
+    /* 原始字段类型: RAW_FIELD_TYPE */
+    private java.lang.String _rawFieldType;
     
 
     public _NopCodeSymbol(){
@@ -543,6 +563,12 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
         
             case PROP_ID_readonlyFlag:
                return getReadonlyFlag();
+        
+            case PROP_ID_rawReturnType:
+               return getRawReturnType();
+        
+            case PROP_ID_rawFieldType:
+               return getRawFieldType();
         
            default:
               return super.orm_propValue(propId);
@@ -855,6 +881,26 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_rawReturnType:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_rawReturnType));
+               }
+               setRawReturnType(typedValue);
+               break;
+            }
+        
+            case PROP_ID_rawFieldType:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_rawFieldType));
+               }
+               setRawFieldType(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1070,6 +1116,20 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
             case PROP_ID_readonlyFlag:{
                onInitProp(propId);
                this._readonlyFlag = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_rawReturnType:{
+               onInitProp(propId);
+               this._rawReturnType = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_rawFieldType:{
+               onInitProp(propId);
+               this._rawFieldType = (java.lang.String)value;
                
                break;
             }
@@ -1646,6 +1706,44 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_readonlyFlag,value)){
             this._readonlyFlag = value;
             internalClearRefs(PROP_ID_readonlyFlag);
+            
+        }
+    }
+    
+    /**
+     * 原始返回类型: RAW_RETURN_TYPE
+     */
+    public final java.lang.String getRawReturnType(){
+         onPropGet(PROP_ID_rawReturnType);
+         return _rawReturnType;
+    }
+
+    /**
+     * 原始返回类型: RAW_RETURN_TYPE
+     */
+    public final void setRawReturnType(java.lang.String value){
+        if(onPropSet(PROP_ID_rawReturnType,value)){
+            this._rawReturnType = value;
+            internalClearRefs(PROP_ID_rawReturnType);
+            
+        }
+    }
+    
+    /**
+     * 原始字段类型: RAW_FIELD_TYPE
+     */
+    public final java.lang.String getRawFieldType(){
+         onPropGet(PROP_ID_rawFieldType);
+         return _rawFieldType;
+    }
+
+    /**
+     * 原始字段类型: RAW_FIELD_TYPE
+     */
+    public final void setRawFieldType(java.lang.String value){
+        if(onPropSet(PROP_ID_rawFieldType,value)){
+            this._rawFieldType = value;
+            internalClearRefs(PROP_ID_rawFieldType);
             
         }
     }

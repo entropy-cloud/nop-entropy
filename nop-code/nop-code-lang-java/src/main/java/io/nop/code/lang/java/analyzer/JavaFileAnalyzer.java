@@ -254,7 +254,9 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
             // 方法特有信息
             symbol.setSignature(buildMethodSignature(decl));
-            symbol.setReturnType(decl.getType().asString());
+            String methodReturnType = decl.getType().asString();
+            symbol.setReturnType(methodReturnType);
+            symbol.setRawReturnType(extractRawType(methodReturnType));
             symbol.setStaticFlag(decl.isStatic());
             buildExtData(decl.isSynchronized(), decl.isNative(), false, false, symbol);
             symbol.setAbstractFlag(decl.isAbstract());
@@ -300,7 +302,9 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
             // 构造器签名
             symbol.setSignature(buildConstructorSignature(decl));
-            symbol.setReturnType(decl.getNameAsString());
+            String ctorReturnType = decl.getNameAsString();
+            symbol.setReturnType(ctorReturnType);
+            symbol.setRawReturnType(extractRawType(ctorReturnType));
 
             // 设置所属类型
             if (currentTypeSymbol != null) {
@@ -342,7 +346,9 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                 });
 
                 // 字段特有信息
-                symbol.setFieldType(decl.getElementType().asString());
+                String fieldTypeName = decl.getElementType().asString();
+                symbol.setFieldType(fieldTypeName);
+                symbol.setRawFieldType(extractRawType(fieldTypeName));
                 symbol.setStaticFlag(decl.isStatic());
                 symbol.setFinalFlag(decl.isFinal());
                 buildExtData(false, false, decl.isVolatile(), decl.isTransient(), symbol);
@@ -417,7 +423,9 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                 symbol.setEndColumn(range.end.column);
             });
 
-            symbol.setFieldType(decl.getType().asString());
+            String enumFieldType = decl.getType().asString();
+            symbol.setFieldType(enumFieldType);
+            symbol.setRawFieldType(extractRawType(enumFieldType));
 
             // 设置所属类型
             if (currentTypeSymbol != null) {
@@ -712,5 +720,11 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             sb.append("}");
             return sb.toString();
         }
+    }
+
+    private static String extractRawType(String typeText) {
+        if (typeText == null) return null;
+        int idx = typeText.indexOf('<');
+        return idx >= 0 ? typeText.substring(0, idx) : typeText;
     }
 }
