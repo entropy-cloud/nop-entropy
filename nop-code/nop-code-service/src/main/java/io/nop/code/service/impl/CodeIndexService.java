@@ -5,6 +5,7 @@ import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.analyzer.CommunityDetector;
@@ -46,6 +47,7 @@ import io.nop.orm.IOrmTemplate;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.lang.json.JsonTool;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1445,7 +1447,7 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity.setFileCount(result.getFileResults().size());
             indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
             indexEntity.setStatus("COMPLETED");
-            indexEntity.setLastIndexed(System.currentTimeMillis());
+            indexEntity.setLastIndexed(CoreMetrics.currentTimeMillis());
         } else {
             indexEntity = (NopCodeIndex) ormTemplate.newEntity(NopCodeIndex.class.getName());
             indexEntity.setId(indexId);
@@ -1455,7 +1457,7 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity.setFileCount(result.getFileResults().size());
             indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
             indexEntity.setStatus("COMPLETED");
-            indexEntity.setLastIndexed(System.currentTimeMillis());
+            indexEntity.setLastIndexed(CoreMetrics.currentTimeMillis());
             session.save(indexEntity);
         }
 
@@ -1480,7 +1482,7 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity.setRootPath(rootPath != null ? rootPath : "/");
             indexEntity.setLanguage("Java");
             indexEntity.setStatus("INDEXING");
-            indexEntity.setLastIndexed(System.currentTimeMillis());
+            indexEntity.setLastIndexed(CoreMetrics.currentTimeMillis());
             session.save(indexEntity);
         }
     }
@@ -1492,7 +1494,7 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity.setFileCount(result.getFileResults().size());
             indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
             indexEntity.setStatus("COMPLETED");
-            indexEntity.setLastIndexed(System.currentTimeMillis());
+            indexEntity.setLastIndexed(CoreMetrics.currentTimeMillis());
         }
     }
 
@@ -1521,9 +1523,9 @@ public class CodeIndexService implements ICodeIndexService {
             fileEntity.setSourceCode(sourceCode);
         }
         if (file.getImports() != null && !file.getImports().isEmpty()) {
-            fileEntity.setImports(String.join("\n", file.getImports()));
+            fileEntity.setImports(JsonTool.stringify(file.getImports()));
         }
-        fileEntity.setLastModified(System.currentTimeMillis());
+        fileEntity.setLastModified(CoreMetrics.currentTimeMillis());
         session.save(fileEntity);
 
         if (file.getSymbols() != null) {
@@ -1705,7 +1707,7 @@ public class CodeIndexService implements ICodeIndexService {
                 QueryBean sq = new QueryBean();
                 sq.addFilter(FilterBeans.eq("indexId", indexId));
                 index.setSymbolCount(symDao.findAllByQuery(sq).size());
-                index.setLastIndexed(System.currentTimeMillis());
+                index.setLastIndexed(CoreMetrics.currentTimeMillis());
             }
         } catch (Exception e) {
             LOG.warn("Failed to update index stats for {}", indexId, e);
