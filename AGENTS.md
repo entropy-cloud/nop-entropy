@@ -13,6 +13,7 @@ This file is the **project-local** quick reference for AI assistants contributin
 - Error handling: `docs-for-ai/02-core-guides/error-handling.md`
 - Testing: `docs-for-ai/02-core-guides/testing.md`
 - Task-based runbook: `docs-for-ai/03-runbooks/README.md`
+- **Developing the platform**: see [Documentation Domains](#documentation-domains) below
 
 ## Generated Files And Docs
 
@@ -21,6 +22,42 @@ This file is the **project-local** quick reference for AI assistants contributin
 - `docs-for-ai/` is the only runtime guidance source for normal development AI work. Do **not** read `docs/` or `docs-for-ai-old/` during ordinary development tasks.
 - If `docs-for-ai/` is insufficient, prefer LSP / definition lookup on classes and methods referenced from `docs-for-ai/04-reference/`. Only read raw source in exceptional blocker cases or for documentation maintenance, and then update `docs-for-ai/`.
 - If normal development reveals that `docs-for-ai/` is inaccurate, incomplete, or missing a high-frequency rule, treat that as a docs bug and fix the relevant owner doc in the same task whenever feasible.
+
+## Documentation Domains
+
+本仓库有两组互补的文档，服务于不同的读者和目的：
+
+| | `docs-for-ai/` | `ai-dev/` |
+|---|---|---|
+| **定位** | **使用** Nop 平台所需的知识 | **开发** Nop 平台本身所需的知识 |
+| **内容** | API、约定、开发模式、runbook | 设计决策、执行计划、复杂 bug 分析、经验教训 |
+| **读者** | 基于 Nop 构建应用的 AI / 开发者 | 改造 Nop 框架本身的 AI / 开发者 |
+| **权威性** | source of truth（规范性文档） | 开发过程记录（非规范性） |
+| **路由入口** | `docs-for-ai/INDEX.md` | `ai-dev/logs/index.md` |
+
+### `ai-dev/` 目录角色
+
+| 目录 | 用途 | 什么时候写 |
+|---|---|---|
+| `logs/` | 每日开发上下文、决策记录 | 每次 significant code/doc change（一天一个文件，追加在顶部） |
+| `plans/` | 执行计划（含 status、exit criteria） | 方案已确定、进入实施阶段时。先读 `00-plan-authoring-and-execution-guide.md` |
+| `design/` | 平台子系统的当前设计 truth | 方案确定后。按子系统组织子目录（如 `crud/`、`nop-code/`） |
+| `analysis/` | AI 单方面调研、对比、评估 | 对比多个技术方案、评估现有代码质量时。结论可能被推翻 |
+| `discussions/` | 人与 AI 多轮对话，澄清模糊需求 | 需求不明确、需要多轮问答才能确定时 |
+| `bugs/` | 复杂 bug 的修复记录 | 根因不明显、跨模块、表面与实际原因不一致的 bug。简单 typo 不需要写 |
+| `audits/` | 代码审计记录 | 执行代码审计时 |
+| `lessons/` | 经验教训索引 | 踩坑后总结，按编号递增 |
+| `skills/` | 可复用的 AI 技能提示词 | 定义审计、review 等可复用工作流 |
+
+每个子目录都有 `00-*-guide.md` 或 `README.md` 定义写作规范，写之前先读对应的 guide。
+
+### 开发平台时的路由
+
+1. 先看 `ai-dev/plans/` 了解当前执行计划和状态
+2. 需要设计上下文看 `ai-dev/design/{subsystem}/`
+3. 排查复杂 bug 参考 `ai-dev/bugs/`（简单 bug 不需要）
+4. 需求不清晰时启动 `ai-dev/discussions/`
+5. 每个工作日更新 `ai-dev/logs/`
 
 ## Docs Maintenance
 
@@ -34,8 +71,8 @@ After any significant code/doc change, or whenever ordinary development reveals 
 
 Rules:
 
-- `docs-for-ai/` remains the source of truth.
-- `ai-dev/logs/` records short-term execution context and decisions; it is not normative documentation.
+- `docs-for-ai/` remains the source of truth for platform usage knowledge.
+- `ai-dev/` records the development process of the platform itself; it is not normative documentation for platform users.
 - Prefer fixing doc gaps immediately instead of leaving a note for later.
 
 ## Git Workflow
@@ -146,3 +183,8 @@ Windows PowerShell:
 | Source anchors | `docs-for-ai/04-reference/source-anchors.md` |
 | Docs maintenance | `docs-for-ai/90-maintenance/maintenance-rules.md` |
 | Daily dev log guide | `ai-dev/logs/index.md` |
+| Plan authoring guide | `ai-dev/plans/00-plan-authoring-and-execution-guide.md` |
+| Bug fix note guide | `ai-dev/bugs/00-bug-fix-note-writing-guide.md` |
+| Analysis writing guide | `ai-dev/analysis/00-analysis-writing-guide.md` |
+| Discussion writing guide | `ai-dev/discussions/00-discussion-writing-guide.md` |
+| Lessons learned index | `ai-dev/lessons/README.md` |
