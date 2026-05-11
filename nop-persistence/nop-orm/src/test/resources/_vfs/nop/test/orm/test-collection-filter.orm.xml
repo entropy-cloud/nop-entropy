@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <!-- 实体1：固定过滤器 -->
+        <entity name="test.entity.TestFilterEntity" tableName="TEST_FILTER_ENTITY">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="status" code="STATUS" stdSqlType="VARCHAR" precision="20" propId="2"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+            </columns>
+            <filters>
+                <filter name="status" value="active"/>
+            </filters>
+        </entity>
+
+        <!-- 实体2：租户隔离 -->
+        <entity name="test.entity.TestTenantEntity" tableName="TEST_TENANT_ENTITY" useTenant="true">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+            </columns>
+        </entity>
+
+        <!-- 实体3：逻辑删除 -->
+        <entity name="test.entity.TestLogicalDeleteEntity" tableName="TEST_LOGICAL_DELETE_ENTITY"
+                useLogicalDelete="true" deleteFlagProp="delFlag">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+                <column name="delFlag" code="DEL_FLAG" stdSqlType="TINYINT" propId="20" mandatory="true"/>
+            </columns>
+        </entity>
+
+        <!-- 实体4：版本修订 -->
+        <entity name="test.entity.TestRevisionEntity" tableName="TEST_REVISION_ENTITY" useRevision="true">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+                <column name="nopRevExtChange" code="NOP_REV_EXT_CHANGE" stdSqlType="BIGINT" propId="4"/>
+            </columns>
+        </entity>
+
+        <!-- 实体5：所有过滤条件组合 -->
+        <entity name="test.entity.TestAllFilterEntity" tableName="TEST_ALL_FILTER_ENTITY"
+                useTenant="true" useLogicalDelete="true" deleteFlagProp="delFlag">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="type" code="TYPE" stdSqlType="VARCHAR" precision="20" propId="2"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+                <column name="delFlag" code="DEL_FLAG" stdSqlType="TINYINT" propId="20" mandatory="true"/>
+            </columns>
+            <filters>
+                <filter name="type" value="normal"/>
+            </filters>
+        </entity>
+
+        <!-- 实体6：无任何过滤条件 -->
+        <entity name="test.entity.TestNoFilterEntity" tableName="TEST_NO_FILTER_ENTITY">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
