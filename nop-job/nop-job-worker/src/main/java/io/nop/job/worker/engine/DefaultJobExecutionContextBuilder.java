@@ -12,6 +12,8 @@ import io.nop.job.dao.entity.NopJobTask;
 import java.util.Collections;
 import java.util.Map;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_EXECUTION_FAILED;
+
 public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBuilder {
     @Override
     public IJobExecutionContext buildContext(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
@@ -21,7 +23,7 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
     @Override
     public JobTaskExecutionUpdate buildResultUpdate(NopJobTask task, JobFireResult result, Throwable err) {
         if (err != null) {
-            ErrorBean error = new ErrorBean("JOB_EXECUTION_FAILED").description(err.getMessage());
+            ErrorBean error = new ErrorBean(ERR_JOB_EXECUTION_FAILED.getErrorCode()).description(err.getMessage());
             return new JobTaskExecutionUpdate(_NopJobCoreConstants.TASK_STATUS_FAILED, error, null, true);
         }
 
@@ -32,7 +34,7 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
         if (result.isErrorResult()) {
             ErrorBean error = result.getError();
             if (error == null) {
-                error = new ErrorBean("JOB_EXECUTION_FAILED");
+                error = new ErrorBean(ERR_JOB_EXECUTION_FAILED.getErrorCode());
             }
             return new JobTaskExecutionUpdate(_NopJobCoreConstants.TASK_STATUS_FAILED, error, null, true);
         }

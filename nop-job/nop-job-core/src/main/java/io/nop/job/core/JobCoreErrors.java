@@ -15,4 +15,22 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL = define("nop.err.job.trigger.parse-cron-expr-fail",
             "解析定时器表达式失败:{cronExpr}", ARG_CRON_EXPR);
+
+    // Error codes stored in task/fire errorCode field - status markers, not thrown exceptions.
+    // Using the same string values for backward compatibility with stored data and test assertions.
+
+    ErrorCode ERR_JOB_TIMEOUT = define("JOB_TIMEOUT",
+            "Job task timed out");
+
+    ErrorCode ERR_JOB_INVOKER_NOT_FOUND = define("JOB_INVOKER_NOT_FOUND",
+            "Job invoker not found for schedule");
+
+    ErrorCode ERR_JOB_CANCELED = define("JOB_CANCELED",
+            "Job fire/task canceled");
+
+    ErrorCode ERR_JOB_OVERLAID = define("JOB_OVERLAID",
+            "Job fire/task canceled by overlay");
+
+    ErrorCode ERR_JOB_EXECUTION_FAILED = define("JOB_EXECUTION_FAILED",
+            "Job execution failed");
 }

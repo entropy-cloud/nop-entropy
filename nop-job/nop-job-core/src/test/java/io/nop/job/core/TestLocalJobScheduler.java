@@ -1,5 +1,6 @@
 package io.nop.job.core;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.job.api.JobState;
 import io.nop.job.api.execution.IJobExecutionContext;
@@ -189,6 +190,189 @@ public class TestLocalJobScheduler {
         scheduler.addJob(spec, false);
         scheduler.deactivate();
         assertEquals(0, scheduler.getJobNames().size());
+    }
+
+    @Test
+    void testCancelWhileRunning() throws Exception {
+        CountDownLatch executionStarted = new CountDownLatch(1);
+        CountDownLatch allowComplete = new CountDownLatch(1);
+        AtomicInteger invokeCount = new AtomicInteger();
+
+        IJobInvoker blockingInvoker = new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                invokeCount.incrementAndGet();
+                executionStarted.countDown();
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        allowComplete.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return JobFireResult.CONTINUE;
+                });
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext ctx) {
+                return CompletableFuture.completedFuture(true);
+            }
+        };
+
+        LocalJobScheduler sched = new LocalJobScheduler(
+                GlobalExecutors.globalTimer(),
+                name -> blockingInvoker
+        );
+        sched.activate();
+        try {
+            JobSpec spec = newSpec("test-cancel-running", 10, true);
+            sched.addJob(spec, false);
+
+            assertTrue(executionStarted.await(2, TimeUnit.SECONDS));
+            assertTrue(sched.cancelJob("test-cancel-running"));
+            assertEquals(JobState.COMPLETED, sched.getJobState("test-cancel-running"));
+
+            allowComplete.countDown();
+            Thread.sleep(200);
+
+            assertEquals(JobState.COMPLETED, sched.getJobState("test-cancel-running"));
+            assertEquals(1, invokeCount.get());
+        } finally {
+            sched.deactivate();
+        }
+    }
+
+    @Test
+    void testRemoveWhileRunning() throws Exception {
+        CountDownLatch executionStarted = new CountDownLatch(1);
+        CountDownLatch allowComplete = new CountDownLatch(1);
+        AtomicInteger invokeCount = new AtomicInteger();
+
+        IJobInvoker blockingInvoker = new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                invokeCount.incrementAndGet();
+                executionStarted.countDown();
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        allowComplete.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return JobFireResult.CONTINUE;
+                });
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext ctx) {
+                return CompletableFuture.completedFuture(true);
+            }
+        };
+
+        LocalJobScheduler sched = new LocalJobScheduler(
+                GlobalExecutors.globalTimer(),
+                name -> blockingInvoker
+        );
+        sched.activate();
+        try {
+            JobSpec spec = newSpec("test-remove-running", 10, true);
+            sched.addJob(spec, false);
+
+            assertTrue(executionStarted.await(2, TimeUnit.SECONDS));
+            assertTrue(sched.removeJob("test-remove-running"));
+            assertNull(sched.getJobDetail("test-remove-running"));
+
+            allowComplete.countDown();
+            Thread.sleep(200);
+
+            assertNull(sched.getJobDetail("test-remove-running"));
+            assertEquals(1, invokeCount.get());
+        } finally {
+            sched.deactivate();
+        }
+    }
+
+    @Test
+    void testUpdateWhileRunningPreservesOldSpec() throws Exception {
+        CountDownLatch executionStarted = new CountDownLatch(1);
+        CountDownLatch allowComplete = new CountDownLatch(1);
+        AtomicInteger invokeCount = new AtomicInteger();
+
+        IJobInvoker blockingInvoker = new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                invokeCount.incrementAndGet();
+                executionStarted.countDown();
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        allowComplete.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return JobFireResult.CONTINUE;
+                });
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext ctx) {
+                return CompletableFuture.completedFuture(true);
+            }
+        };
+
+        IJobInvoker secondInvoker = new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                invokeCount.incrementAndGet();
+                return null;
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext ctx) {
+                return CompletableFuture.completedFuture(true);
+            }
+        };
+
+        AtomicInteger invokerIndex = new AtomicInteger(0);
+        LocalJobScheduler sched = new LocalJobScheduler(
+                GlobalExecutors.globalTimer(),
+                name -> {
+                    if (invokerIndex.getAndIncrement() == 0)
+                        return blockingInvoker;
+                    return secondInvoker;
+                }
+        );
+        sched.activate();
+        try {
+            JobSpec oldSpec = newSpec("test-update-running", 10, true);
+            oldSpec.setOnceTask(false);
+            sched.addJob(oldSpec, false);
+
+            assertTrue(executionStarted.await(2, TimeUnit.SECONDS));
+
+            JobSpec newSpec = newSpec("test-update-running", 100, true);
+            newSpec.setOnceTask(true);
+            sched.addJob(newSpec, true);
+
+            allowComplete.countDown();
+            Thread.sleep(300);
+
+            assertNotNull(sched.getJobDetail("test-update-running"));
+            assertTrue(invokeCount.get() >= 2);
+        } finally {
+            sched.deactivate();
+        }
+    }
+
+    @Test
+    void testCheckActiveThrowsCorrectError() {
+        LocalJobScheduler sched = new LocalJobScheduler(
+                GlobalExecutors.globalTimer(),
+                name -> mockInvoker()
+        );
+
+        NopException ex = assertThrows(NopException.class,
+                () -> sched.addJob(newSpec("test", 10, true), false));
+        assertEquals("nop.err.job.scheduler-not-active", ex.getErrorCode());
     }
 
     private JobSpec newSpec(String name, long interval, boolean fixedDelay) {

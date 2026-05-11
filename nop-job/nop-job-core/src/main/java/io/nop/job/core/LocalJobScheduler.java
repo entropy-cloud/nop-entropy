@@ -26,8 +26,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
+import static io.nop.job.api.JobApiErrors.ERR_JOB_SCHEDULER_NOT_ACTIVE;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB;
 
+/**
+ * @deprecated Use the new coordinator/worker architecture instead.
+ * This legacy in-memory scheduler is being replaced.
+ */
+@Deprecated
 public class LocalJobScheduler implements IJobScheduler {
     static final Logger LOG = LoggerFactory.getLogger(LocalJobScheduler.class);
 
@@ -203,11 +209,13 @@ public class LocalJobScheduler implements IJobScheduler {
 
     void checkActive() {
         if (!active)
-            throw new NopException(io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB)
-                    .param(ARG_JOB_NAME, "scheduler is not active");
+            throw new NopException(ERR_JOB_SCHEDULER_NOT_ACTIVE);
     }
 
     private void scheduleNext(ScheduledJob job) {
+        if (!jobs.containsKey(job.spec.getJobName())) {
+            return;
+        }
         long now = currentTime();
         long nextTime = job.trigger.nextScheduleTime(now, job.state);
         if (nextTime <= 0) {
@@ -277,6 +285,15 @@ public class LocalJobScheduler implements IJobScheduler {
             return;
         }
 
+        // Guard: only schedule next if job is still registered and not externally terminated
+        if (!jobs.containsKey(job.spec.getJobName())) {
+            job.state.internal = InternalState.COMPLETED;
+            return;
+        }
+        if (job.state.internal == InternalState.COMPLETED || job.state.internal == InternalState.FAILED) {
+            return;
+        }
+
         scheduleNext(job);
     }
 
@@ -315,10 +332,12 @@ public class LocalJobScheduler implements IJobScheduler {
         }
 
         void update(JobSpec spec, IJobInvoker invoker, ITrigger trigger, SimpleJobState state) {
-            this.spec = spec;
-            this.invoker = invoker;
             this.trigger = trigger;
             this.state.copyFrom(state);
+            if (this.running == null) {
+                this.spec = spec;
+                this.invoker = invoker;
+            }
         }
 
         JobDetail toJobDetail() {

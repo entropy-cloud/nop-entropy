@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVOKER_NOT_FOUND;
+
 public class JobWorkerScannerImpl implements IJobWorkerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobWorkerScannerImpl.class);
 
@@ -136,7 +138,7 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
         IJobInvoker invoker = invokerResolver.resolveInvoker(schedule, fire);
         if (invoker == null) {
-            completeTaskWithFailure(task, "JOB_INVOKER_NOT_FOUND", "Job invoker not found");
+            completeTaskWithFailure(task, ERR_JOB_INVOKER_NOT_FOUND.getErrorCode(), ERR_JOB_INVOKER_NOT_FOUND.getDescription());
             return;
         }
 

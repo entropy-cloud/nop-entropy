@@ -20,6 +20,10 @@ import java.util.Set;
 import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB;
 
+/**
+ * @deprecated This legacy scheduler interface is being replaced by the new coordinator/worker architecture.
+ */
+@Deprecated
 public interface IJobScheduler {
 
     List<String> getJobNames();
