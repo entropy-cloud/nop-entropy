@@ -1,7 +1,7 @@
 # nop-code 功能补齐实现计划
 
-> Plan Status: **ready for execution**
-> Last Reviewed: 2026-05-03
+> Plan Status: **near completion** — Phase 0-4 全部实现，仅剩 P2/P3 扩展功能未实现
+> Last Reviewed: 2026-05-11
 > Source: graphify 对比分析、design/ai-code-index-graphql-design.md
 > Prerequisite: 05-nop-code-multi-language-index-plan.md (已完成)
 > Binding Decision: io.github.tree-sitter:jtreesitter (官方 Panama/FFM, JDK 22+)
@@ -16,11 +16,11 @@
 |------|------|------|
 | nop-code-core | ✅ 完成 | 通用模型（5 枚举 + 5 @DataBean + 6 接口 + 2 图结构 + 1 Registry）、4 个分析算法 |
 | nop-code-lang-java | ✅ 完成 | JavaCodeFileAnalyzer + JavaLanguageAdapter，31 tests pass |
-| nop-code-lang-python | ❌ 不存在 | CodeLanguage.PYTHON 已定义，无实现 |
-| nop-code-lang-typescript | ❌ 不存在 | CodeLanguage.TYPESCRIPT 已定义，无实现 |
-| nop-code-service | ⚠️ CRUD only | 7 个 BizModel extends CrudBizModel，无 @BizQuery 自定义查询 |
-| nop-code.orm.xml | ✅ 完成 | 7 表（Index/File/Symbol/Usage/Call/Inheritance/AnnotationUsage），扩展字典 |
-| GraphQL 设计 | 📄 设计完成 | design/ai-code-index-graphql-design.md 1493 行，零行实现代码 |
+| nop-code-lang-python | ✅ 完成 | PythonCodeFileAnalyzer + PythonLanguageAdapter，15 tests pass (tree-sitter) |
+| nop-code-lang-typescript | ✅ 完成 | TypeScriptCodeFileAnalyzer + TypeScriptLanguageAdapter，15 tests pass (tree-sitter) |
+| nop-code-service | ✅ 完成 | 10+ @BizQuery 自定义查询 + @BizLoader 关联加载 + 图分析 BizModel |
+| nop-code.orm.xml | ✅ 完成 | 8 表（含 NopCodeDependency），扩展字典 |
+| GraphQL 设计 | ✅ 已实现 | design/ai-code-index-graphql-design.md 设计 → CodeIndexService + BizModel 实现 |
 
 ### 已有 GraphQL 能力澄清
 
@@ -28,9 +28,9 @@ CrudBizModel 已自动暴露 GraphQL CRUD 操作。7 个 BizModel **已经可以
 - `NopCodeSymbol__get`、`NopCodeSymbol__findPage`、`NopCodeSymbol__save` 等
 - 同理 NopCodeFile、NopCodeCall、NopCodeInheritance 等均有标准 CRUD
 
-缺失的是：
-1. **@BizQuery 自定义查询**（符号搜索、调用链、继承树、outline 等）
-2. **@BizLoader 关联字段**（嵌套加载 symbols、callers、superTypes 等）
+缺失的是（已全部实现）：
+1. ~~**@BizQuery 自定义查询**~~（符号搜索、调用链、继承树、outline 等）→ ✅ 已实现
+2. ~~**@BizLoader 关联字段**~~（嵌套加载 symbols、callers、superTypes 等）→ ✅ 已实现
 
 ### ORM 实体与 GraphQL 设计文档的差异
 
@@ -150,7 +150,7 @@ CrudBizModel 已自动暴露 GraphQL CRUD 操作。7 个 BizModel **已经可以
 
 ### Task C1: 清理 nop-java-parser 残留依赖
 
-Status: pending
+Status: completed
 
 Instructions:
 
@@ -180,7 +180,7 @@ Exit Criteria:
 
 ### Task P1: 创建 nop-code-lang-python 模块
 
-Status: pending
+Status: completed
 Depends On: nop-code-core (已完成), C1
 
 Instructions:
@@ -273,7 +273,7 @@ Exit Criteria:
 
 ### Task P2: Python 适配器单元测试
 
-Status: pending
+Status: completed
 Depends On: P1
 
 测试类与源码 1:1 对应：
@@ -320,7 +320,7 @@ Exit Criteria:
 
 ### Task I1: ORM 模型增加增量索引字段
 
-Status: pending
+Status: completed
 Depends On: nop-code-dao (已完成)
 
 Instructions:
@@ -360,7 +360,7 @@ Exit Criteria:
 
 ### Task I2: 增量检测与文件指纹工具
 
-Status: pending
+Status: completed
 Depends On: I1, nop-code-core (已完成)
 
 参考 graphify 实现：
@@ -424,7 +424,7 @@ Exit Criteria:
 
 ### Task I3: ProjectAnalyzer 增量分析实现
 
-Status: pending
+Status: completed
 Depends On: I2
 
 参考 graphify 实现：
@@ -494,7 +494,7 @@ Exit Criteria:
 
 ### Task I4: 增量索引 BizModel 与 GraphQL Mutation
 
-Status: pending
+Status: completed
 Depends On: I3, G1
 
 Instructions:
@@ -579,7 +579,7 @@ Exit Criteria:
 
 ### Task T1: 创建 nop-code-lang-typescript 模块
 
-Status: pending
+Status: completed
 Depends On: nop-code-core (已完成), C1
 
 Instructions:
@@ -619,7 +619,7 @@ Exit Criteria:
 
 ### Task T2: TypeScript 适配器单元测试
 
-Status: pending
+Status: completed
 Depends On: T1
 
 测试类与源码 1:1 对应：
@@ -657,7 +657,7 @@ Exit Criteria:
 
 ### Task G1: NopCodeSymbolBizModel — 符号搜索与查找
 
-Status: pending
+Status: completed
 Depends On: nop-code-dao (已完成)
 
 在现有 `NopCodeSymbolBizModel` 上添加 @BizQuery 方法：
@@ -717,7 +717,7 @@ Exit Criteria:
 
 ### Task G2: NopCodeFileBizModel — 文件查询与 Outline
 
-Status: pending
+Status: completed
 Depends On: G1
 
 ```java
@@ -762,7 +762,7 @@ Exit Criteria:
 
 ### Task G3: 调用链与继承关系查询
 
-Status: pending
+Status: completed
 Depends On: G1
 
 利用现有 `nop_code_call`（callerId/calleeId）和 `nop_code_inheritance`（parentId/childId/relationType）表。
@@ -859,7 +859,7 @@ Exit Criteria:
 
 ### Task G4: 索引触发与统计查询
 
-Status: pending
+Status: completed
 Depends On: G3, P2, T2（需要新语言适配器注册后才可触发多语言索引）
 
 ```java
@@ -897,7 +897,7 @@ Exit Criteria:
 
 ### Task G5: 集成测试
 
-Status: pending
+Status: completed
 Depends On: G4
 
 使用 Nop AutoTest 框架（参考 docs-for-ai/03-runbooks/write-integration-test-with-noptestconfig.md）：
@@ -932,7 +932,7 @@ Exit Criteria:
 
 ### Task R1: 跨文件调用解析（全语言）
 
-Status: pending
+Status: completed
 Depends On: P1, T1, I3
 
 背景：当前 ProjectAnalyzer 的第二遍 resolve 只在内存中工作，且仅限 Java。
@@ -991,7 +991,7 @@ Exit Criteria:
 
 ### Task R2: 社区检测 BizModel（接入已有 CommunityDetector）
 
-Status: pending
+Status: completed
 Depends On: G1, R1
 
 背景：nop-code-core 已有完整的 CommunityDetector（Leiden + LabelPropagation + cohesion scoring），
@@ -1082,7 +1082,7 @@ Exit Criteria:
 
 ### Task R3: 图分析指标（God Nodes + Cohesion + Impact）
 
-Status: pending
+Status: completed
 Depends On: R2
 
 背景：graphify 的核心图分析能力。nop-code-core 已有 ImpactAnalyzer 和 EntryPointScorer，
@@ -1178,7 +1178,7 @@ Exit Criteria:
 
 ### Task V1: 全量构建与测试
 
-Status: pending
+Status: completed
 Depends On: C1, P2, T2, G5
 
 ```bash

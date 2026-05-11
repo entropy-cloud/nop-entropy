@@ -105,6 +105,12 @@
                 <!--只读-->
                 <col id="readonlyFlag" sortable="true"/>
 
+                <!--原始返回类型-->
+                <col id="rawReturnType" sortable="true"/>
+
+                <!--原始字段类型-->
+                <col id="rawFieldType" sortable="true"/>
+
                 <!--名称关键词-->
                 <col id="query"/>
 
@@ -135,7 +141,8 @@
  isNative[native] fieldType[字段类型]
  isVolatile[volatile] isTransient[transient]
  extData[扩展数据] asyncFlag[异步]
- readonlyFlag[只读] query[名称关键词]
+ readonlyFlag[只读] rawReturnType[原始返回类型]
+ rawFieldType[原始字段类型] query[名称关键词]
  kinds[符号类型] packageName[包名]
 </layout>
         </form>
@@ -156,7 +163,8 @@
  isNative[native] fieldType[字段类型]
  isVolatile[volatile] isTransient[transient]
  extData[扩展数据] asyncFlag[异步]
- readonlyFlag[只读] 
+ readonlyFlag[只读] rawReturnType[原始返回类型]
+ rawFieldType[原始字段类型] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -35,6 +35,7 @@ import io.nop.code.dao.entity.NopCodeFile;
 import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
+import io.nop.code.dao.entity.NopCodeUsage;
 import io.nop.code.lang.java.JavaLanguageAdapter;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.*;
@@ -446,6 +447,56 @@ public class CodeIndexService implements ICodeIndexService {
         return result;
     }
 
+    @Override
+    public List<PublicAPIDTO> getPublicSurface(String indexId, String dirPath) {
+        if (daoProvider == null) return Collections.emptyList();
+
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean fileQuery = new QueryBean();
+        fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        if (dirPath != null && !dirPath.isEmpty()) {
+            fileQuery.addFilter(FilterBeans.startsWith("filePath", dirPath));
+        }
+        List<NopCodeFile> files = fileDao.findAllByQuery(fileQuery);
+
+        Set<String> allowedKinds = new HashSet<>(Arrays.asList(
+                "CLASS", "INTERFACE", "ENUM", "METHOD", "FIELD"));
+
+        Map<String, String> fileIdToPath = new HashMap<>();
+        Set<String> fileIds = new HashSet<>();
+        for (NopCodeFile file : files) {
+            fileIds.add(file.getId());
+            fileIdToPath.put(file.getId(), file.getFilePath());
+        }
+
+        if (fileIds.isEmpty()) return Collections.emptyList();
+
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean symQuery = new QueryBean();
+        symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        symQuery.addFilter(FilterBeans.in("fileId", fileIds));
+        symQuery.addFilter(FilterBeans.eq("accessModifier", "PUBLIC"));
+
+        List<PublicAPIDTO> result = new ArrayList<>();
+        for (NopCodeSymbol sym : symbolDao.findAllByQuery(symQuery)) {
+            if (!allowedKinds.contains(sym.getKind())) continue;
+
+            PublicAPIDTO dto = new PublicAPIDTO();
+            dto.setFilePath(fileIdToPath.get(sym.getFileId()));
+            dto.setSymbolName(sym.getName());
+            dto.setQualifiedName(sym.getQualifiedName());
+            dto.setKind(sym.getKind());
+            dto.setSignature(sym.getSignature());
+            dto.setDocumentation(sym.getDocumentation());
+            dto.setReturnType(sym.getReturnType());
+            result.add(dto);
+        }
+
+        result.sort(Comparator.comparing(PublicAPIDTO::getFilePath)
+                .thenComparing(PublicAPIDTO::getSymbolName));
+        return result;
+    }
+
     // ==================== Symbol Queries ====================
 
     @Override
@@ -721,6 +772,56 @@ public class CodeIndexService implements ICodeIndexService {
         return annotDao.findAllByQuery(qb).stream()
                 .map(this::entityToAnnotationUsage)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReferenceDTO> findReferencedBy(String indexId, String qualifiedName, String kind, int limit) {
+        if (daoProvider == null) return Collections.emptyList();
+
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean symbolQuery = new QueryBean();
+        symbolQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        symbolQuery.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
+        List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(symbolQuery);
+        if (symbols.isEmpty()) return Collections.emptyList();
+
+        String symbolId = symbols.get(0).getId();
+
+        IEntityDao<NopCodeUsage> usageDao = daoProvider.daoFor(NopCodeUsage.class);
+        QueryBean qb = new QueryBean();
+        qb.addFilter(FilterBeans.eq("indexId", indexId));
+        qb.addFilter(FilterBeans.eq("symbolId", symbolId));
+        if (kind != null && !kind.isEmpty()) {
+            qb.addFilter(FilterBeans.eq("kind", kind));
+        }
+        if (limit > 0) qb.setLimit(limit);
+        List<NopCodeUsage> usages = usageDao.findAllByQuery(qb);
+
+        return usages.stream().map(usage -> {
+            ReferenceDTO dto = new ReferenceDTO();
+            dto.setKind(usage.getKind());
+            dto.setLine(usage.getLine() != null ? usage.getLine() : 0);
+            dto.setColumn(usage.getColumn() != null ? usage.getColumn() : 0);
+            dto.setContext(usage.getContext());
+
+            if (usage.getFileId() != null) {
+                IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+                NopCodeFile file = fileDao.getEntityById(usage.getFileId());
+                if (file != null) {
+                    dto.setFilePath(file.getFilePath());
+                }
+            }
+
+            if (usage.getEnclosingSymbolId() != null) {
+                NopCodeSymbol enclosing = symbolDao.getEntityById(usage.getEnclosingSymbolId());
+                if (enclosing != null) {
+                    dto.setEnclosingSymbolName(enclosing.getName());
+                    dto.setEnclosingQualifiedName(enclosing.getQualifiedName());
+                }
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     @Override

@@ -8,6 +8,8 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.ModuleDigestDTO;
+import io.nop.code.service.api.dto.PublicAPIDTO;
+import io.nop.code.service.api.dto.ReferenceDTO;
 import io.nop.code.service.api.dto.SymbolInfoDTO;
 import io.nop.code.service.api.dto.SymbolSourceDTO;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -21,6 +23,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -148,5 +152,60 @@ public class TestNopCodeSymbolBizModel extends JunitAutoTestCase {
         SymbolSourceDTO result = codeIndexService.showSymbolSource("test",
                 "com.example.nonexistent.Foo", false);
         assertNull(result, "Should return null for nonexistent symbol");
+    }
+
+    @Test
+    void testPublicSurface() {
+        List<PublicAPIDTO> surface = codeIndexService.getPublicSurface("test",
+                "com/example/domain");
+        assertFalse(surface.isEmpty());
+
+        for (PublicAPIDTO sym : surface) {
+            assertNotNull(sym.getFilePath());
+            assertNotNull(sym.getSymbolName());
+            assertNotNull(sym.getKind());
+            assertTrue(List.of("CLASS", "INTERFACE", "ENUM", "METHOD", "FIELD").contains(sym.getKind()),
+                    "Kind should be one of CLASS/INTERFACE/ENUM/METHOD/FIELD: " + sym.getKind());
+        }
+
+        assertTrue(surface.stream().anyMatch(s -> "User".equals(s.getSymbolName())),
+                "Should contain User class in public surface");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("indexId", "test");
+        data.put("dirPath", "com/example/domain");
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__publicSurface", data);
+        assertTrue(response.isOk());
+    }
+
+    @Test
+    void testPublicSurfaceEmptyDir() {
+        List<PublicAPIDTO> surface = codeIndexService.getPublicSurface("test",
+                "nonexistent/path");
+        assertTrue(surface.isEmpty(), "Should return empty for nonexistent directory");
+    }
+
+    @Test
+    void testFindReferencedBy() {
+        List<ReferenceDTO> refs = codeIndexService.findReferencedBy("test",
+                "com.example.domain.User", null, 50);
+        assertNotNull(refs);
+    }
+
+    @Test
+    void testFindReferencedByNotFound() {
+        List<ReferenceDTO> refs = codeIndexService.findReferencedBy("test",
+                "com.example.nonexistent.Foo", null, 50);
+        assertNotNull(refs);
+        assertTrue(refs.isEmpty(), "Nonexistent symbol should have no references");
+    }
+
+    @Test
+    void testFindReferencedByViaRpc() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("indexId", "test");
+        data.put("qualifiedName", "com.example.domain.User");
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__findReferencedBy", data);
+        assertTrue(response.isOk());
     }
 }

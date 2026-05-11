@@ -51,6 +51,11 @@ public interface ICodeIndexService {
      */
     List<ModuleDigestDTO> getModuleDigest(String indexId, String dirPath, boolean includePrivate);
 
+    /**
+     * 获取目录的公共 API Surface — 只返回 accessModifier=PUBLIC 的符号
+     */
+    List<PublicAPIDTO> getPublicSurface(String indexId, String dirPath);
+
     // ==================== Symbol Queries ====================
 
     CodeSymbol getSymbolById(String indexId, String symbolId);
@@ -85,6 +90,11 @@ public interface ICodeIndexService {
 
     CallHierarchyDTO getCallHierarchy(String indexId, String qualifiedName,
                                       String direction, int maxDepth);
+
+    /**
+     * 查找谁引用了指定符号（反向引用）
+     */
+    List<ReferenceDTO> findReferencedBy(String indexId, String qualifiedName, String kind, int limit);
 
     // ==================== Graph Analysis ====================
 

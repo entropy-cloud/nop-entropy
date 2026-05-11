@@ -20,6 +20,8 @@ import io.nop.code.service.api.dto.CallHierarchyDTO;
 import io.nop.code.service.api.dto.CodeSearchResultDTO;
 import io.nop.code.service.api.dto.FileOutlineDTO;
 import io.nop.code.service.api.dto.ModuleDigestDTO;
+import io.nop.code.service.api.dto.PublicAPIDTO;
+import io.nop.code.service.api.dto.ReferenceDTO;
 import io.nop.code.service.api.dto.SymbolDTO;
 import io.nop.code.service.api.dto.SymbolSourceDTO;
 import io.nop.code.service.api.dto.TypeHierarchyDTO;
@@ -127,6 +129,13 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    public List<PublicAPIDTO> publicSurface(
+            @Name("indexId") String indexId,
+            @Name("dirPath") String dirPath) {
+        return codeIndexService.getPublicSurface(indexId, dirPath);
+    }
+
+    @BizQuery
     public List<TypeOutlineDTO> batchGetOutlines(
             @Name("qualifiedNames") List<String> qualifiedNames,
             @Name("indexId") String indexId) {
@@ -173,5 +182,15 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
         String type = searchType != null ? searchType : "COMBINED";
         int lim = limit > 0 ? limit : 50;
         return codeIndexService.searchCode(indexId, query, type, language, filePattern, lim);
+    }
+
+    @BizQuery
+    public List<ReferenceDTO> findReferencedBy(
+            @Name("indexId") String indexId,
+            @Name("qualifiedName") String qualifiedName,
+            @Name("kind") @Optional String kind,
+            @Name("limit") @Optional int limit) {
+        int lim = limit > 0 ? limit : 50;
+        return codeIndexService.findReferencedBy(indexId, qualifiedName, kind, lim);
     }
 }
