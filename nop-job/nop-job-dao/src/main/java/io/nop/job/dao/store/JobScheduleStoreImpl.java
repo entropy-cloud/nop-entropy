@@ -20,9 +20,14 @@ import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static io.nop.job.dao.entity._gen._NopJobSchedule.*;
+
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_OVERLAID;
 
 public class JobScheduleStoreImpl implements IJobScheduleStore {
     private static final int SCHEDULE_STATUS_ENABLED = 10;
@@ -168,6 +173,22 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     }
 
     @Override
+    public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> scheduleIds) {
+        if (scheduleIds == null || scheduleIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in(PROP_NAME_jobScheduleId, new ArrayList<>(scheduleIds)));
+        List<NopJobSchedule> schedules = scheduleDao().findAllByQuery(query);
+        Map<String, NopJobSchedule> result = new HashMap<>(schedules.size());
+        for (NopJobSchedule schedule : schedules) {
+            result.put(schedule.getJobScheduleId(), schedule);
+        }
+        return result;
+    }
+
+    @Override
     public long getCurrentTime() {
         return scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
     }
@@ -220,8 +241,8 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         fire.setFireStatus(FIRE_STATUS_CANCELED);
         fire.setEndTime(cancelTime);
         fire.setDurationMs(calculateDuration(fire.getStartTime(), cancelTime));
-        fire.setErrorCode("JOB_OVERLAID");
-        fire.setErrorMessage("Job fire canceled by overlay");
+        fire.setErrorCode(ERR_JOB_OVERLAID.getErrorCode());
+        fire.setErrorMessage(ERR_JOB_OVERLAID.getDescription());
         fire.setUpdatedBy("system");
         fire.setUpdateTime(cancelTime);
         fireDao().updateEntityDirectly(fire);
@@ -239,8 +260,8 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             task.setTaskStatus(TASK_STATUS_CANCELED);
             task.setEndTime(cancelTime);
             task.setDurationMs(calculateDuration(task.getStartTime(), cancelTime));
-            task.setErrorCode("JOB_OVERLAID");
-            task.setErrorMessage("Job task canceled by overlay");
+            task.setErrorCode(ERR_JOB_OVERLAID.getErrorCode());
+            task.setErrorMessage(ERR_JOB_OVERLAID.getDescription());
             task.setUpdatedBy("system");
             task.setUpdateTime(cancelTime);
             taskDao().updateEntityDirectly(task);

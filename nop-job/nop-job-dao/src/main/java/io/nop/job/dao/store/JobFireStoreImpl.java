@@ -22,9 +22,14 @@ import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static io.nop.job.dao.entity._gen._NopJobFire.*;
+
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
 
 public class JobFireStoreImpl implements IJobFireStore {
     private static final int FIRE_STATUS_WAITING = 0;
@@ -118,8 +123,8 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setFireStatus(FIRE_STATUS_CANCELED);
         fire.setEndTime(cancelTime);
         fire.setDurationMs(calculateDuration(fire.getStartTime(), cancelTime));
-        fire.setErrorCode("JOB_CANCELED");
-        fire.setErrorMessage("Job fire canceled manually");
+        fire.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
+        fire.setErrorMessage(ERR_JOB_CANCELED.getDescription());
         fire.setUpdatedBy("system");
         fire.setUpdateTime(cancelTime);
         fireDao().updateEntityDirectly(fire);
@@ -132,8 +137,8 @@ public class JobFireStoreImpl implements IJobFireStore {
             task.setTaskStatus(TASK_STATUS_CANCELED);
             task.setEndTime(cancelTime);
             task.setDurationMs(calculateDuration(task.getStartTime(), cancelTime));
-            task.setErrorCode("JOB_CANCELED");
-            task.setErrorMessage("Job task canceled manually");
+            task.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
+            task.setErrorMessage(ERR_JOB_CANCELED.getDescription());
             task.setUpdatedBy("system");
             task.setUpdateTime(cancelTime);
             taskDao().updateEntityDirectly(task);
@@ -154,6 +159,22 @@ public class JobFireStoreImpl implements IJobFireStore {
     @Override
     public NopJobFire loadFire(String jobFireId) {
         return fireDao().requireEntityById(jobFireId);
+    }
+
+    @Override
+    public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) {
+        if (fireIds == null || fireIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in(PROP_NAME_jobFireId, new ArrayList<>(fireIds)));
+        List<NopJobFire> fires = fireDao().findAllByQuery(query);
+        Map<String, NopJobFire> result = new HashMap<>(fires.size());
+        for (NopJobFire fire : fires) {
+            result.put(fire.getJobFireId(), fire);
+        }
+        return result;
     }
 
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {

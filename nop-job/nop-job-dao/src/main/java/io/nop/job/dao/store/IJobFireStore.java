@@ -6,6 +6,8 @@ import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface IJobFireStore {
     List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions);
@@ -22,4 +24,6 @@ public interface IJobFireStore {
     boolean cancelFire(String jobFireId);
 
     NopJobFire loadFire(String jobFireId);
+
+    Map<String, NopJobFire> batchLoadFires(Set<String> fireIds);
 }

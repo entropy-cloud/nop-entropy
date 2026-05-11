@@ -6,6 +6,8 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.job.core._NopJobCoreConstants;
+
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -17,7 +19,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -101,22 +108,59 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     void scanOnce() {
         try {
             List<NopJobTask> tasks = taskStore.fetchRunningTasks(batchSize, assignedPartitions);
+            if (tasks.isEmpty()) {
+                return;
+            }
+
+            Set<String> fireIds = new HashSet<>();
             for (NopJobTask task : tasks) {
-                tryMarkTimeout(task);
+                String fireId = task.getJobFireId();
+                if (fireId != null) {
+                    fireIds.add(fireId);
+                }
+            }
+
+            Map<String, NopJobFire> fireMap = fireIds.isEmpty()
+                    ? Collections.emptyMap()
+                    : fireStore.batchLoadFires(fireIds);
+
+            Set<String> scheduleIds = new HashSet<>();
+            for (NopJobFire fire : fireMap.values()) {
+                String scheduleId = fire.getJobScheduleId();
+                if (scheduleId != null) {
+                    scheduleIds.add(scheduleId);
+                }
+            }
+
+            Map<String, NopJobSchedule> scheduleMap = scheduleIds.isEmpty()
+                    ? Collections.emptyMap()
+                    : scheduleStore.batchLoadSchedules(scheduleIds);
+
+            for (NopJobTask task : tasks) {
+                tryMarkTimeout(task, fireMap, scheduleMap);
             }
         } catch (Exception e) {
             LOG.error("nop.job.timeout.scan-failed", e);
         }
     }
 
-    private void tryMarkTimeout(NopJobTask task) {
+    private void tryMarkTimeout(NopJobTask task, Map<String, NopJobFire> fireMap,
+                                Map<String, NopJobSchedule> scheduleMap) {
         Timestamp startTime = task.getStartTime();
         if (startTime == null) {
             return;
         }
 
-        NopJobFire fire = fireStore.loadFire(task.getJobFireId());
-        NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+        NopJobFire fire = fireMap.get(task.getJobFireId());
+        if (fire == null) {
+            return;
+        }
+
+        NopJobSchedule schedule = scheduleMap.get(fire.getJobScheduleId());
+        if (schedule == null) {
+            return;
+        }
+
         int timeoutSeconds = defaultInt(schedule.getTimeoutSeconds());
         if (timeoutSeconds <= 0) {
             return;
@@ -141,8 +185,8 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_TIMEOUT);
         task.setEndTime(endTime);
         task.setDurationMs(Math.max(endTime.getTime() - startTime.getTime(), 0L));
-        task.setErrorCode("JOB_TIMEOUT");
-        task.setErrorMessage("Job task timed out");
+        task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
+        task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
         task.setUpdatedBy("system");
         task.setUpdateTime(endTime);
         taskStore.updateTask(task);
