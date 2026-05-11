@@ -10,6 +10,7 @@
 ai-dev/logs/
 ├── index.md
 ├── 2026/
+│   ├── 05-11.md
 │   ├── 05-05.md
 │   ├── 05-03.md
 │   ├── 05-02.md
@@ -48,6 +49,7 @@ ai-dev/logs/
 
 ### 2026-05
 
+- [05-11](2026/05-11.md) — Plan 14 nop-job 质量优化：TimeoutChecker N+1 批量预加载、Planner 锁冲突 Micrometer counter + DEBUG 日志、ErrorCode 规范化（5 个新定义）、LocalJobScheduler @Deprecated 标记
 - [05-05](2026/05-05.md) — SpotBugs findings 详细分析文档：nop-kernel 6 子模块 40 个 findings 源码级验证（3 true positive / 2 false positive / 35 design choice）
 - [05-03](2026/05-03.md) — SpotBugs 排除规则扩展、PMD 升级 3.28.0、nop-kernel qa profile、设计文档更新
 - [05-02](2026/05-02.md) — nop-code 多语言代码索引设计：nop-java-parser 精简为适配器，新增 nop-code-core 通用模型+分析算法，新增三个语言适配器子模块（Java/Python/TypeScript），tree-sitter NG 确认可用

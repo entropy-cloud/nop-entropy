@@ -14,3 +14,4 @@
 | # | 文件 | 标题 | 日期 |
 |---|------|------|------|
 | 01 | [01-batch-memory-accumulation.md](01-batch-memory-accumulation.md) | 分批处理≠流式处理：累积后再持久化仍会 OOM | 2026-05-10 |
+| 02 | [02-metrics-design-convention.md](02-metrics-design-convention.md) | 禁止直接注入 MeterRegistry：Nop Metrics 三件套规范 | 2026-05-11 |
