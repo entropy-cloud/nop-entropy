@@ -10,6 +10,8 @@ import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
+import io.nop.job.coordinator.metrics.EmptyJobPlannerMetrics;
+import io.nop.job.coordinator.metrics.IJobPlannerMetrics;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.store.IJobScheduleStore;
@@ -24,11 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class JobPlannerScannerImpl implements IJobPlannerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobPlannerScannerImpl.class);
 
     private IJobScheduleStore scheduleStore;
+    private IJobPlannerMetrics plannerMetrics = new EmptyJobPlannerMetrics();
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long planningTimeoutMs = 60000;
@@ -39,6 +43,10 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     @Inject
     public void setScheduleStore(IJobScheduleStore scheduleStore) {
         this.scheduleStore = scheduleStore;
+    }
+
+    public void setPlannerMetrics(IJobPlannerMetrics plannerMetrics) {
+        this.plannerMetrics = plannerMetrics;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.scan-interval-ms|5000")
@@ -107,6 +115,27 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
                     AppConfig.hostId(),
                     planningTimeoutMs
             );
+
+            int dueCount = schedules.size();
+            int lockedCount = locked.size();
+            int conflictCount = dueCount - lockedCount;
+
+            if (dueCount > 0) {
+                plannerMetrics.onDueSchedules(dueCount);
+            }
+
+            if (conflictCount > 0) {
+                plannerMetrics.onLockConflicts(conflictCount);
+            }
+
+            if (conflictCount > 0 && LOG.isDebugEnabled()) {
+                List<String> conflictIds = schedules.stream()
+                        .map(NopJobSchedule::getJobScheduleId)
+                        .filter(id -> locked.stream().noneMatch(l -> l.getJobScheduleId().equals(id)))
+                        .collect(Collectors.toList());
+                LOG.debug("nop.job.planner.lock-conflict:dueCount={},lockedCount={},conflictIds={}",
+                        dueCount, lockedCount, conflictIds);
+            }
 
             for (NopJobSchedule schedule : locked) {
                 Timestamp dueFireTime = dueFireTimes.get(schedule.getJobScheduleId());
