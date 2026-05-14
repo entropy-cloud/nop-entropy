@@ -56,6 +56,7 @@
 | 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
 | 定制 view / page 页面 | `02-core-guides/view-and-page-customization.md` |
 | 查复杂页面 DSL 配置模式 | `02-core-guides/page-dsl-pattern-catalog.md` |
+| 理解认证与权限控制 | `02-core-guides/auth-and-permissions.md` |
 | 调试与排障 | `02-core-guides/debugging-and-diagnostics.md` |
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |

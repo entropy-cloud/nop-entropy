@@ -63,6 +63,9 @@
 | `XLANG-006` | `nop-runner/nop-cli-core/tasks/gen-web.xrun` | `xpl:lib` 调用 XLib 的 runner 任务例子 |
 | `XLANG-007` | `nop-kernel/nop-core/precompile/src/main/java/io/nop/core/type/PredefinedGenericTypes.java.xgen` | 文本输出型 `.xgen` 模板例子 |
 | `XLANG-008` | `nop-kernel/nop-xlang/precompile/gen-xlang-xdsl.xgen` + `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/obj-schema.xdef` + `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef` | XDef schema 变更会驱动 `nop-xlang` 的 XDSL 生成链；共享 prop 定义常同时分布在 `obj-schema.xdef` / `schema.xdef` |
+| `AUTH-001` | `nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml` (bean `nopAuthFilterConfig`) | HTTP 路径认证配置：`defaultPublic`/`publicPaths`/`authPaths`/`servicePaths` |
+| `AUTH-002` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthFilterConfig.java` | 认证配置类，`isPublicPath()` 判定逻辑 |
+| `AUTH-003` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthHttpServerFilter.java` | 认证过滤器实现，token 解析、OAuth、cookie 处理 |
 
 ## 当前最重要的校准点
 
