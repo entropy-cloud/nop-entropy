@@ -900,6 +900,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-web-site-legacy</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-web-amis-editor</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>

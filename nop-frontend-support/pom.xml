@@ -24,6 +24,7 @@
         <module>nop-web</module>
         <module>nop-web-amis-editor</module>
         <module>nop-web-site</module>
+        <module>nop-web-site-legacy</module>
         <module>nop-web-page</module>
     </modules>
 
