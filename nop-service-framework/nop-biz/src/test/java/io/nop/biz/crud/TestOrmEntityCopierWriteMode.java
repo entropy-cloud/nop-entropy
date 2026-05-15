@@ -20,9 +20,11 @@ import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmEntityState;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjSchema;
 import io.nop.xlang.xmeta.ObjRelationWriteMode;
+import io.nop.xlang.xmeta.impl.ObjConditionExpr;
 import io.nop.xlang.xmeta.impl.ObjMetaImpl;
 import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -174,6 +177,69 @@ public class TestOrmEntityCopierWriteMode {
         assertEquals(2, refSet.size());
     }
 
+    @Test
+    public void testChildAutoExprCanAccessParentDuringInlineCopy() {
+        FakeDaoProvider daoProvider = new FakeDaoProvider();
+        OrmEntityCopier copier = new OrmEntityCopier(daoProvider, new NoopBizObjectManager());
+
+        FakeOrmEntity parent = new FakeOrmEntity("parent-1");
+        ObjMetaImpl rootMeta = new ObjMetaImpl();
+        ObjPropMetaImpl childProp = relationProp("child", ObjRelationWriteMode.INLINE, null);
+        ObjMetaImpl childMeta = new ObjMetaImpl();
+
+        ObjPropMetaImpl derivedFromParent = new ObjPropMetaImpl();
+        derivedFromParent.setName("derivedFromParent");
+        ObjConditionExpr autoExpr = new ObjConditionExpr();
+        autoExpr.setWhen(Collections.singleton(BizConstants.METHOD_SAVE));
+        autoExpr.setSource(ctx -> {
+            io.nop.core.lang.eval.IEvalScope scope = ctx.getEvalScope();
+            IOrmEntity entity = (IOrmEntity) scope.getValue(BizConstants.VAR_ENTITY);
+            IOrmEntity owner = (IOrmEntity) entity.orm_propValueByName("parent");
+            return owner == null ? "missing" : owner.orm_idString();
+        });
+        derivedFromParent.setAutoExpr(autoExpr);
+        childMeta.addProp(derivedFromParent);
+        childProp.setSchema(childMeta);
+        rootMeta.addProp(childProp);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("child", new LinkedHashMap<>());
+
+        copier.copyToEntity(payload, parent.asOrmEntity(), null, rootMeta, "ParentBiz",
+                BizConstants.METHOD_SAVE, null);
+
+        IOrmEntity child = (IOrmEntity) parent.get("child");
+        assertNotNull(child);
+        assertSame(parent.asOrmEntity(), child.orm_propValueByName("parent"));
+        assertEquals("parent-1", child.orm_propValueByName("derivedFromParent"));
+    }
+
+    @Test
+    public void testAutoExprUsesChildScopeWithoutOverwritingCallerEntity() {
+        ObjMetaImpl objMeta = new ObjMetaImpl();
+        ObjPropMetaImpl propMeta = new ObjPropMetaImpl();
+        propMeta.setName("computed");
+        Map<String, Object> outerEntity = new HashMap<>();
+        ObjConditionExpr autoExpr = new ObjConditionExpr();
+        autoExpr.setWhen(Collections.singleton(BizConstants.METHOD_SAVE));
+        autoExpr.setSource(ctx -> {
+            io.nop.core.lang.eval.IEvalScope exprScope = ctx.getEvalScope();
+            assertFalse(exprScope == null);
+            return exprScope.getValue(BizConstants.VAR_ENTITY) != outerEntity ? "ok" : null;
+        });
+        propMeta.setAutoExpr(autoExpr);
+        objMeta.addProp(propMeta);
+
+        Map<String, Object> entity = new HashMap<>();
+        io.nop.core.lang.eval.IEvalScope scope = io.nop.xlang.api.XLang.newEvalScope();
+        scope.setLocalValue(BizConstants.VAR_ENTITY, outerEntity);
+
+        AutoExprRunner.runAutoExpr(BizConstants.METHOD_SAVE, entity, Collections.emptyMap(), objMeta, scope, Collections.emptySet());
+
+        assertSame(outerEntity, scope.getValue(BizConstants.VAR_ENTITY));
+        assertEquals("ok", entity.get("computed"));
+    }
+
     private static Object invoke(Object target, String methodName, Class<?>[] argTypes, Object... args) throws Exception {
         Method method = target.getClass().getDeclaredMethod(methodName, argTypes);
         method.setAccessible(true);
@@ -201,6 +267,10 @@ public class TestOrmEntityCopierWriteMode {
                     return !toOne;
                 case "getRefEntityName":
                     return "ChildEntity";
+                case "getRefPropName":
+                    return "parent";
+                case "getOwnerEntityModel":
+                    return ownerEntityModel();
                 case "getRefEntityModel":
                     return refEntityModel();
                 case "getKeyProp":
@@ -359,7 +429,7 @@ public class TestOrmEntityCopierWriteMode {
             this.id = id;
             this.proxy = (IOrmEntity) Proxy.newProxyInstance(
                     TestOrmEntityCopierWriteMode.class.getClassLoader(),
-                    new Class[]{IOrmEntity.class}, this::invoke);
+                    new Class[]{IOrmEntity.class, FakeEntityBean.class}, this::invoke);
         }
 
         IOrmEntity asOrmEntity() { return proxy; }
@@ -396,9 +466,36 @@ public class TestOrmEntityCopierWriteMode {
                 case "equals":
                     return proxy == args[0];
                 default:
+                    if (method.getName().startsWith("get") && method.getParameterCount() == 0) {
+                        return props.get(decapitalize(method.getName().substring(3)));
+                    }
+                    if (method.getName().startsWith("is") && method.getParameterCount() == 0) {
+                        return props.get(decapitalize(method.getName().substring(2)));
+                    }
+                    if (method.getName().startsWith("set") && method.getParameterCount() == 1) {
+                        props.put(decapitalize(method.getName().substring(3)), args[0]);
+                        return null;
+                    }
                     return defaultValue(method.getReturnType());
             }
         }
+    }
+
+    private interface FakeEntityBean {
+        IOrmEntity getParent();
+
+        void setParent(IOrmEntity parent);
+
+        String getDerivedFromParent();
+
+        void setDerivedFromParent(String value);
+    }
+
+    private static String decapitalize(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        return Character.toLowerCase(name.charAt(0)) + name.substring(1);
     }
 
     private static IEntityModel ownerEntityModel() {

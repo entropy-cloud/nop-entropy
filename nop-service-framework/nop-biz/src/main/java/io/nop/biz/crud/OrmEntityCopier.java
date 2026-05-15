@@ -253,9 +253,9 @@ public class OrmEntityCopier {
     }
 
     private void copyRefEntity(Object fromValue, Map<String, Object> map,
-                                IOrmEntity target, IEntityRelationModel propModel,
-                                FieldSelectionBean field, IObjPropMeta propMeta,
-                                IObjSchema objMeta, String baseBizObjName, IEvalScope scope) {
+                                 IOrmEntity target, IEntityRelationModel propModel,
+                                 FieldSelectionBean field, IObjPropMeta propMeta,
+                                 IObjSchema objMeta, String baseBizObjName, IEvalScope scope) {
         ObjRelationWriteMode writeMode = resolveWriteMode(propMeta, map, propModel.getName());
         if (StringHelper.isEmptyObject(fromValue)) {
             if (writeMode == ObjRelationWriteMode.BIZ) {
@@ -299,6 +299,7 @@ public class OrmEntityCopier {
                     } else {
                         if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_ADD)) {
                             Object refEntity = daoProvider.dao(propModel.getRefEntityName()).newEntity();
+                            bindRefOwner((IOrmEntity) refEntity, target, propModel);
                             copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName,
                                     BizConstants.METHOD_SAVE, scope);
                             target.orm_propValueByName(propName, refEntity);
@@ -308,6 +309,7 @@ public class OrmEntityCopier {
                     if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         IOrmEntity refEntity = (IOrmEntity) daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
                         checkRefEntity(refEntity, fromValue, target, propModel);
+                        bindRefOwner(refEntity, target, propModel);
 
                         copyToEntity(fromValue, refEntity, field, objMeta, baseBizObjName,
                                 BizConstants.METHOD_UPDATE, scope);
@@ -525,6 +527,7 @@ public class OrmEntityCopier {
                             if (chgType != null && !chgType.contains(DaoConstants.CHANGE_TYPE_ADD))
                                 continue;
                             refEntity = dao.newEntity();
+                            bindRefOwner(refEntity, owner, refModel);
                             action = BizConstants.METHOD_SAVE;
                         } else {
                             // 如果明确配置了不允许更新集合中的元素
@@ -534,6 +537,7 @@ public class OrmEntityCopier {
                             }
                             action = BizConstants.METHOD_UPDATE;
                         }
+                        bindRefOwner(refEntity, owner, refModel);
                         checkRefEntity(refEntity, item, null, null);
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, action, scope);
                         ret.add(refEntity);
@@ -543,6 +547,7 @@ public class OrmEntityCopier {
                         IOrmEntity refEntity = dao.loadEntityById(id);
                         // 不检查owner
                         checkRefEntity(refEntity, item, null, refModel);
+                        bindRefOwner(refEntity, owner, refModel);
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, BizConstants.METHOD_UPDATE, scope);
                         ret.add(refEntity);
                     }
@@ -593,6 +598,17 @@ public class OrmEntityCopier {
                     BeanTool.instance().setProperty(item, rightProp, leftValue);
             }
         }
+    }
+
+    private void bindRefOwner(IOrmEntity refEntity, IOrmEntity owner, IEntityRelationModel refModel) {
+        if (refEntity == null || owner == null) {
+            return;
+        }
+        String refPropName = refModel.getRefPropName();
+        if (StringHelper.isEmpty(refPropName)) {
+            return;
+        }
+        refEntity.orm_propValueByName(refPropName, owner);
     }
 
     Object getId(Object bean, IEntityModel entityModel) {
