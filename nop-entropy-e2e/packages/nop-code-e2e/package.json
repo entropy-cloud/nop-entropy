@@ -12,10 +12,12 @@
     "install:browsers": "playwright install --with-deps chromium",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@nop-entropy/e2e-shared": "workspace:*"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
-    "@types/node": "^22.0.0",
-    "typescript": "^5.8.0",
-    "vite": "^8.0.0"
+    "@playwright/test": "~1.60.0",
+    "@types/node": "~22.15.0",
+    "typescript": "~5.9.3"
   }
 }

@@ -1,6 +1,4 @@
 node_modules/
-dist/
 test-results/
 playwright-report/
-blob-report/
-pnpm-lock.yaml
+dist/
