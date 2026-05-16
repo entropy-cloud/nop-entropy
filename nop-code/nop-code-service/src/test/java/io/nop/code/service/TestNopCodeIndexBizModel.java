@@ -44,7 +44,7 @@ public class TestNopCodeIndexBizModel extends JunitAutoTestCase {
         assertTrue(response.isOk());
         Integer count = (Integer) response.getData();
         assertNotNull(count);
-        assertTrue(count >= 6, "Should index at least 6 files, got " + count);
+        assertEquals(6, count, "Should index exactly 6 Java files in test-project, got " + count);
     }
 
     @Test
@@ -54,6 +54,7 @@ public class TestNopCodeIndexBizModel extends JunitAutoTestCase {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", "stats-test");
         data.put("directoryPath", testProjectPath);
+        data.put("filePattern", "**/*.java");
         indexRequest.setData(data);
         IGraphQLExecutionContext indexCtx = graphQLEngine.newRpcContext(
                 GraphQLOperationType.mutation, "NopCodeIndex__indexDirectory", indexRequest);
@@ -67,7 +68,18 @@ public class TestNopCodeIndexBizModel extends JunitAutoTestCase {
                 GraphQLOperationType.query, "NopCodeIndex__getStats", statsRequest);
         ApiResponse<?> statsResponse = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(statsCtx));
 
+        assertNotNull(statsResponse);
         assertTrue(statsResponse.isOk());
         assertNotNull(statsResponse.getData());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> stats = (Map<String, Object>) statsResponse.getData();
+        assertEquals("stats-test", stats.get("indexId"));
+        int fileCount = ((Number) stats.get("fileCount")).intValue();
+        assertTrue(fileCount >= 6,
+                "Expected at least 6 files indexed, got " + fileCount);
+        int symbolCount = ((Number) stats.get("symbolCount")).intValue();
+        assertTrue(symbolCount > 0,
+                "Expected some symbols indexed, got " + symbolCount);
     }
 }

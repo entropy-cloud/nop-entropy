@@ -2801,6 +2801,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.code.dao.entity.NopCodeDependency"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.code.dao.entity.NopCodeFile"
   },
   {
@@ -2886,6 +2896,21 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.code.dao.entity._gen._NopCodeDependency"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.code.dao.entity._gen._NopCodeFile"
   },
   {
@@ -2956,7 +2981,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.code.service.api.dto.AnnotationUsageDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.code.service.api.dto.CallHierarchyDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.CodeSearchResultDTO"
   },
   {
     "allDeclaredConstructors": true,
@@ -2987,6 +3032,46 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.code.service.api.dto.CommunityDetectionResultDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.DepEdgeDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.DepGraphDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.DepNodeDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.FileAnalysisDTO"
   },
   {
     "allDeclaredConstructors": true,
@@ -3066,7 +3151,57 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.code.service.api.dto.ModuleDigestDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.PublicAPIDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.ReferenceDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.SymbolDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.code.service.api.dto.SymbolInfoDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.api.dto.SymbolSourceDTO"
   },
   {
     "allDeclaredConstructors": true,
@@ -3137,6 +3272,16 @@
     ],
     "methods": [],
     "name": "io.nop.code.service.entity.NopCodeCallHierarchyBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.entity.NopCodeDependencyBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -3254,10 +3399,30 @@
         "name": "analyzer"
       },
       {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "fingerprintStore"
+      },
+      {
+        "name": "importResolvers"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      },
+      {
         "name": "registry"
       }
     ],
-    "methods": [],
+    "methods": [
+      {
+        "name": "getFingerprintStore",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.code.service.impl.CodeIndexService"
   },
   {

@@ -30,23 +30,31 @@ public class OrmFingerprintStore implements IFingerprintStore {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
 
         for (FileFingerprint fp : fingerprints) {
+            String entityId = indexId + "_" + Math.abs(fp.getFilePath().hashCode());
             NopCodeFile existing = findByIndexAndPath(fileDao, indexId, fp.getFilePath());
 
             NopCodeFile fileEntity;
+            boolean isNew = false;
             if (existing != null) {
                 fileEntity = existing;
             } else {
-                fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
-                fileEntity.setId(indexId + "_" + Math.abs(fp.getFilePath().hashCode()));
-                fileEntity.setIndexId(indexId);
-                fileEntity.setFilePath(fp.getFilePath());
+                io.nop.orm.IOrmEntity cached = ormTemplate.get(NopCodeFile.class.getName(), entityId);
+                if (cached != null) {
+                    fileEntity = (NopCodeFile) cached;
+                } else {
+                    fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
+                    fileEntity.setId(entityId);
+                    fileEntity.setIndexId(indexId);
+                    fileEntity.setFilePath(fp.getFilePath());
+                    isNew = true;
+                }
             }
 
             fileEntity.setFileHash(fp.getContentHash());
             fileEntity.setLastModified(fp.getLastModified());
             fileEntity.setFileSize(fp.getFileSize());
 
-            if (existing == null) {
+            if (isNew) {
                 fileDao.saveEntity(fileEntity);
             }
         }

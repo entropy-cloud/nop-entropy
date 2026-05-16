@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -63,6 +62,16 @@ public class TestNopCodeSymbolBizModel extends JunitAutoTestCase {
         data.put("indexId", "test");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__findByQualifiedName", data);
         assertTrue(response.isOk());
+        assertNotNull(response.getData());
+        Object responseData = response.getData();
+        if (responseData instanceof Map) {
+            Map<?, ?> symbolData = (Map<?, ?>) responseData;
+            assertNotNull(symbolData.get("name"));
+            assertEquals("User", symbolData.get("name"));
+        } else if (responseData instanceof SymbolInfoDTO) {
+            SymbolInfoDTO symbolDTO = (SymbolInfoDTO) responseData;
+            assertEquals("User", symbolDTO.getName());
+        }
     }
 
     @Test
@@ -106,6 +115,30 @@ public class TestNopCodeSymbolBizModel extends JunitAutoTestCase {
         data.put("dirPath", "com/example/domain");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__moduleDigest", data);
         assertTrue(response.isOk());
+        assertNotNull(response.getData());
+        Object responseData = response.getData();
+        if (responseData instanceof List) {
+            List<?> digestList = (List<?>) responseData;
+            assertFalse(digestList.isEmpty());
+            boolean hasUser = false;
+            for (Object entry : digestList) {
+                if (entry instanceof Map) {
+                    Map<?, ?> entryMap = (Map<?, ?>) entry;
+                    Object filePath = entryMap.get("filePath");
+                    if (filePath != null && filePath.toString().contains("User.java")) {
+                        hasUser = true;
+                        break;
+                    }
+                }
+            }
+            assertTrue(hasUser, "Module digest should contain User.java");
+        } else if (responseData instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<ModuleDigestDTO> digestList = (List<ModuleDigestDTO>) responseData;
+            assertFalse(digestList.isEmpty());
+            assertTrue(digestList.stream().anyMatch(d ->
+                    d.getFilePath().contains("User.java")));
+        }
     }
 
     @Test
@@ -145,6 +178,19 @@ public class TestNopCodeSymbolBizModel extends JunitAutoTestCase {
         data.put("includeBody", true);
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__showSymbol", data);
         assertTrue(response.isOk());
+        assertNotNull(response.getData());
+        Object responseData = response.getData();
+        if (responseData instanceof Map) {
+            Map<?, ?> sourceData = (Map<?, ?>) responseData;
+            assertEquals("com.example.domain.User", sourceData.get("qualifiedName"));
+            assertNotNull(sourceData.get("filePath"));
+            assertNotNull(sourceData.get("startLine"));
+        } else if (responseData instanceof SymbolSourceDTO) {
+            SymbolSourceDTO sourceDTO = (SymbolSourceDTO) responseData;
+            assertEquals("com.example.domain.User", sourceDTO.getQualifiedName());
+            assertNotNull(sourceDTO.getFilePath());
+            assertNotNull(sourceDTO.getSourceCode());
+        }
     }
 
     @Test
@@ -176,6 +222,28 @@ public class TestNopCodeSymbolBizModel extends JunitAutoTestCase {
         data.put("dirPath", "com/example/domain");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__publicSurface", data);
         assertTrue(response.isOk());
+        assertNotNull(response.getData());
+        Object responseData = response.getData();
+        if (responseData instanceof List) {
+            List<?> surfaceList = (List<?>) responseData;
+            assertFalse(surfaceList.isEmpty());
+            boolean hasUser = false;
+            for (Object sym : surfaceList) {
+                if (sym instanceof Map) {
+                    Map<?, ?> symMap = (Map<?, ?>) sym;
+                    if ("User".equals(symMap.get("symbolName"))) {
+                        hasUser = true;
+                        break;
+                    }
+                }
+            }
+            assertTrue(hasUser, "Public surface should contain User class");
+        } else if (responseData instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<PublicAPIDTO> surfaceList = (List<PublicAPIDTO>) responseData;
+            assertFalse(surfaceList.isEmpty());
+            assertTrue(surfaceList.stream().anyMatch(s -> "User".equals(s.getSymbolName())));
+        }
     }
 
     @Test
@@ -207,5 +275,11 @@ public class TestNopCodeSymbolBizModel extends JunitAutoTestCase {
         data.put("qualifiedName", "com.example.domain.User");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__findReferencedBy", data);
         assertTrue(response.isOk());
+        assertNotNull(response.getData());
+        Object responseData = response.getData();
+        if (responseData instanceof List) {
+            List<?> refsList = (List<?>) responseData;
+            assertNotNull(refsList);
+        }
     }
 }

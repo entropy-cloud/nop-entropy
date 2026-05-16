@@ -43,7 +43,9 @@ import io.nop.commons.batch.BatchQueue;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmSession;
+import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.IOrmTemplate;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
@@ -1445,7 +1447,7 @@ public class CodeIndexService implements ICodeIndexService {
                 List<IResource> currentResources = collectSourceResourcesFromVfs(vfs, vfsPath);
 
                 List<Path> allFiles = currentResources.stream()
-                        .map(res -> Path.of(res.getStdPath()))
+                        .map(res -> res.toFile().toPath())
                         .collect(Collectors.toList());
 
                 ChangeSet changes = detector.detectChanges(previousFingerprints, allFiles);
@@ -1472,9 +1474,7 @@ public class CodeIndexService implements ICodeIndexService {
                         ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
                         if (fileAnalyzer == null) continue;
 
-                        IResource resource = vfs.getResource(file.toString());
-                        if (resource == null) continue;
-                        String sourceCode = resource.readText();
+                        String sourceCode = java.nio.file.Files.readString(file);
                         CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
                         if (fileResult != null) changedResults.add(fileResult);
                     } catch (Exception e) {
@@ -1627,7 +1627,7 @@ public class CodeIndexService implements ICodeIndexService {
             fileEntity.setImports(JsonTool.stringify(file.getImports()));
         }
         fileEntity.setLastModified(CoreMetrics.currentTimeMillis());
-        session.save(fileEntity);
+        saveReplacingExisting(session, fileEntity);
 
         if (file.getSymbols() != null) {
             for (CodeSymbol sym : file.getSymbols()) {
@@ -1659,7 +1659,7 @@ public class CodeIndexService implements ICodeIndexService {
                 symEntity.setExtData(sym.getExtData());
                 symEntity.setAsyncFlag(sym.isAsyncFlag());
                 symEntity.setReadonlyFlag(sym.isReadonlyFlag());
-                session.save(symEntity);
+                saveReplacingExisting(session, symEntity);
             }
         }
 
@@ -1667,6 +1667,7 @@ public class CodeIndexService implements ICodeIndexService {
             for (CodeMethodCall call : file.getCalls()) {
                 if (call.getCalleeId() == null || call.getCallerId() == null)
                     continue;
+
                 NopCodeCall callEntity = (NopCodeCall) ormTemplate.newEntity(NopCodeCall.class.getName());
                 callEntity.setId(call.getId());
                 callEntity.setIndexId(indexId);
@@ -1677,7 +1678,7 @@ public class CodeIndexService implements ICodeIndexService {
                 callEntity.setColumn(call.getColumn());
                 callEntity.setCallType(call.getCallType());
                 callEntity.setContext(call.getContext());
-                session.save(callEntity);
+                saveReplacingExisting(session, callEntity);
             }
         }
 
@@ -1689,7 +1690,7 @@ public class CodeIndexService implements ICodeIndexService {
                 inhEntity.setSubTypeId(inh.getSubTypeId());
                 inhEntity.setSuperTypeId(inh.getSuperTypeQualifiedName());
                 inhEntity.setRelationType(inh.getRelationType() != null ? inh.getRelationType().name() : null);
-                session.save(inhEntity);
+                saveReplacingExisting(session, inhEntity);
             }
         }
 
@@ -1703,7 +1704,7 @@ public class CodeIndexService implements ICodeIndexService {
                 annotEntity.setLine(annot.getLine());
                 annotEntity.setColumn(annot.getColumn());
                 annotEntity.setAttributes(annot.getAttributes());
-                session.save(annotEntity);
+                saveReplacingExisting(session, annotEntity);
             }
         }
 
@@ -1769,17 +1770,53 @@ public class CodeIndexService implements ICodeIndexService {
             String filePath = pathObj instanceof Path ? ((Path) pathObj).toString() : pathObj.toString();
             String fileId = indexId + "_" + Math.abs(filePath.hashCode());
 
-            deleteEntitiesByFilter(NopCodeAnnotationUsage.class, "fileId", fileId);
-            deleteEntitiesByFilter(NopCodeInheritance.class, "fileId", fileId);
+            List<String> symbolIds = findSymbolIdsByFileId(fileId);
+
             deleteEntitiesByFilter(NopCodeCall.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeSymbol.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeDependency.class, "sourceFilePath", filePath);
+            deleteRelationalBySymbolIds(NopCodeAnnotationUsage.class, "annotatedSymbolId", symbolIds);
+            deleteRelationalBySymbolIds(NopCodeInheritance.class, "subTypeId", symbolIds);
 
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
             QueryBean q = new QueryBean();
             q.addFilter(FilterBeans.eq("indexId", indexId));
             q.addFilter(FilterBeans.eq("id", fileId));
             fileDao.batchDeleteEntities(fileDao.findAllByQuery(q));
+        }
+    }
+
+    private void saveReplacingExisting(IOrmSession session, IOrmEntity entity) {
+        try {
+            session.save(entity);
+        } catch (OrmException e) {
+            if ("nop.err.orm.save-entity-replace-existing-entity".equals(e.getErrorCode())) {
+                session.evictAll(entity.orm_entityName());
+                session.flush();
+                session.save(entity);
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    private List<String> findSymbolIdsByFileId(String fileId) {
+        IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("fileId", fileId));
+        return dao.findAllByQuery(q).stream()
+                .map(NopCodeSymbol::getId)
+                .collect(Collectors.toList());
+    }
+
+    private <T extends IDaoEntity> void deleteRelationalBySymbolIds(Class<T> entityClass, String field, List<String> symbolIds) {
+        if (symbolIds.isEmpty()) return;
+        IEntityDao<T> dao = daoProvider.daoFor(entityClass);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.in(field, symbolIds));
+        List<T> entities = dao.findAllByQuery(q);
+        if (!entities.isEmpty()) {
+            dao.batchDeleteEntities(entities);
         }
     }
 

@@ -80,7 +80,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     public int indexDirectory(
             @Name("indexId") String indexId,
             @Name("directoryPath") String directoryPath,
-            @Name("filePattern") String filePattern) {
+            @Name("filePattern") @Optional String filePattern) {
         String pattern = filePattern != null ? filePattern : "**/*.java";
         return codeIndexService.indexDirectory(indexId, directoryPath, pattern);
     }

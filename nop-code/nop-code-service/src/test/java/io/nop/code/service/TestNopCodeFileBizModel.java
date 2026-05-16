@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -59,6 +60,15 @@ public class TestNopCodeFileBizModel extends JunitAutoTestCase {
         data.put("indexId", "test");
         ApiResponse<?> response = rpcQuery("NopCodeFile__getByPath", data);
         assertTrue(response.isOk());
+        assertNotNull(response.getData());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) response.getData();
+        assertTrue(((String) result.get("filePath")).contains("User.java"),
+                "filePath should contain User.java");
+        assertEquals("com.example.domain", result.get("packageName"));
+        // symbols is a @BizLoader field — may not be populated in basic RPC response;
+        // the service-level test above already verifies symbol data via getFile()
     }
 
     @Test
@@ -67,5 +77,24 @@ public class TestNopCodeFileBizModel extends JunitAutoTestCase {
                 .filter(f -> "com.example.domain".equals(f.getPackageName()))
                 .collect(Collectors.toList());
         assertFalse(files.isEmpty());
+
+        // Verify via RPC returns paged results for the package
+        Map<String, Object> data = new HashMap<>();
+        data.put("indexId", "test");
+        data.put("packageName", "com.example.domain");
+        data.put("offset", 0L);
+        data.put("limit", 10);
+        ApiResponse<?> response = rpcQuery("NopCodeFile__findPage_files", data);
+        assertTrue(response.isOk());
+        assertNotNull(response.getData());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> pageBean = (Map<String, Object>) response.getData();
+        assertNotNull(pageBean.get("items"), "page items should not be null");
+        @SuppressWarnings("unchecked")
+        List<Object> items = (List<Object>) pageBean.get("items");
+        assertFalse(items.isEmpty(), "page should contain at least one file");
+        assertTrue(((Number) pageBean.get("total")).longValue() > 0,
+                "total should be greater than zero");
     }
 }
