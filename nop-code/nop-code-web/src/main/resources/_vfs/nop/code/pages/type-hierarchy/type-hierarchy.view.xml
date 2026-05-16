@@ -40,7 +40,7 @@
             {
                 "type": "panel",
                 "title": "父类型 (Super Types)",
-                "visibleOn": "this.superTypes != null && this.superTypes.length > 0",
+                "visibleOn": "this.superTypes != null &amp;&amp; this.superTypes.length > 0",
                 "collapsable": true,
                 "body": {
                     "type": "json",
@@ -51,7 +51,7 @@
             {
                 "type": "panel",
                 "title": "子类型 (Sub Types)",
-                "visibleOn": "this.subTypes != null && this.subTypes.length > 0",
+                "visibleOn": "this.subTypes != null &amp;&amp; this.subTypes.length > 0",
                 "collapsable": true,
                 "body": {
                     "type": "json",

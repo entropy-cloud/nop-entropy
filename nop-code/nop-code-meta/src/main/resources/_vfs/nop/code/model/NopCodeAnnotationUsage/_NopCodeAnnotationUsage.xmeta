@@ -44,7 +44,7 @@
         </prop>
         <prop name="attributes" displayName="属性值" propId="7" queryable="true" sortable="true" insertable="true"
               updatable="true" graphql:jsonComponentProp="attributesComponent" ui:control="textarea">
-            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="65536"/>
+            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="4096"/>
         </prop>
         <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
               ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">

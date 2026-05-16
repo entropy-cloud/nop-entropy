@@ -48,11 +48,11 @@
         </prop>
         <prop name="imports" displayName="导入列表" propId="7" queryable="true" sortable="true" insertable="true"
               updatable="true" graphql:jsonComponentProp="importsComponent" ui:control="textarea">
-            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="65536"/>
+            <schema stdDomain="json" domain="jsonImport" type="java.lang.String" precision="8192"/>
         </prop>
         <prop name="sourceCode" displayName="源代码" propId="8" queryable="true" sortable="true" insertable="true"
               updatable="true" ui:control="textarea">
-            <schema type="java.lang.String" precision="65536"/>
+            <schema type="java.lang.String" precision="524288"/>
         </prop>
         <prop name="fileHash" displayName="文件内容哈希" propId="9" queryable="true" sortable="true" insertable="true"
               updatable="true">

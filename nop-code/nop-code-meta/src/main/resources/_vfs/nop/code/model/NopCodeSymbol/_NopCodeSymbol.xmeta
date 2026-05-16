@@ -98,7 +98,7 @@
         </prop>
         <prop name="signature" displayName="签名" propId="20" queryable="true" sortable="true" insertable="true"
               updatable="true">
-            <schema domain="signature" type="java.lang.String" precision="1000"/>
+            <schema domain="signature" type="java.lang.String" precision="2000"/>
         </prop>
         <prop name="returnType" displayName="返回类型" propId="21" queryable="true" sortable="true" insertable="true"
               updatable="true">
@@ -130,7 +130,7 @@
         </prop>
         <prop name="extData" displayName="扩展数据" propId="28" queryable="true" sortable="true" insertable="true"
               updatable="true" graphql:jsonComponentProp="extDataComponent" ui:control="textarea">
-            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="65536"/>
+            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="4096"/>
         </prop>
         <prop name="asyncFlag" displayName="异步" propId="29" queryable="true" sortable="true" insertable="true"
               updatable="true">

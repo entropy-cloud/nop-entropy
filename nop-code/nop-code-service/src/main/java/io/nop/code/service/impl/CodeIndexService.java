@@ -1113,6 +1113,11 @@ public class CodeIndexService implements ICodeIndexService {
                 fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
                 fileDao.batchDeleteEntities(fileDao.findAllByQuery(fileQuery));
 
+                IEntityDao<NopCodeDependency> depDao = daoProvider.daoFor(NopCodeDependency.class);
+                QueryBean depQuery = new QueryBean();
+                depQuery.addFilter(FilterBeans.eq("indexId", indexId));
+                depDao.batchDeleteEntities(depDao.findAllByQuery(depQuery));
+
                 daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
             } catch (Exception e) {
                 LOG.warn("Failed to cleanup DB records for index {}", indexId, e);
@@ -1736,11 +1741,16 @@ public class CodeIndexService implements ICodeIndexService {
                 Set<String> projectFiles = getProjectFilePaths(indexId);
                 List<CodeFileDependency> deps = resolver.resolveImports(
                         file.getFilePath(), file.getImports(), projectFiles);
+                Set<String> usedDepIds = new HashSet<>();
                 for (CodeFileDependency dep : deps) {
+                    String key = dep.getSourceFilePath() + "|" + dep.getTargetFilePath() + "|" + dep.getImportStatement();
+                    String depId = indexId + "_" + Integer.toHexString(key.hashCode());
+                    int suffix = 1;
+                    while (!usedDepIds.add(depId)) {
+                        depId = indexId + "_" + Integer.toHexString(key.hashCode()) + "_" + suffix++;
+                    }
                     NopCodeDependency depEntity = (NopCodeDependency) ormTemplate.newEntity(
                             NopCodeDependency.class.getName());
-                    String depId = indexId + "_" + Math.abs(
-                            (dep.getSourceFilePath() + "|" + dep.getImportStatement()).hashCode());
                     depEntity.setDepId(depId);
                     depEntity.setIndexId(indexId);
                     depEntity.setSourceFilePath(dep.getSourceFilePath());

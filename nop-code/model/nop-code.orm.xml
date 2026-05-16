@@ -10,12 +10,13 @@
         <domain name="qualifiedName" precision="500" stdSqlType="VARCHAR"/>
         <domain name="symbolName" precision="200" stdSqlType="VARCHAR"/>
         <domain name="packageName" precision="200" stdSqlType="VARCHAR"/>
-        <domain name="signature" precision="1000" stdSqlType="VARCHAR"/>
+        <domain name="signature" precision="2000" stdSqlType="VARCHAR"/>
         <domain name="documentation" precision="4000" stdSqlType="VARCHAR"/>
         <domain name="language" precision="20" stdSqlType="VARCHAR"/>
         <domain name="lineNumber" stdSqlType="INTEGER"/>
         <domain name="columnNumber" stdSqlType="INTEGER"/>
-        <domain name="jsonContent" precision="65536" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="jsonContent" precision="4096" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="jsonImport" precision="8192" stdDomain="json" stdSqlType="VARCHAR"/>
     </domains>
 
     <dicts>
@@ -145,10 +146,10 @@
                         precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="LINE_COUNT" displayName="行数" name="lineCount"
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="IMPORTS" displayName="导入列表" domain="jsonContent" name="imports"
+                <column code="IMPORTS" displayName="导入列表" domain="jsonImport" name="imports"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="SOURCE_CODE" displayName="源代码" name="sourceCode"
-                        propId="8" stdDataType="string" stdSqlType="VARCHAR" precision="65536" ui:control="textarea"/>
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" precision="524288" ui:control="textarea"/>
                 <column code="FILE_HASH" displayName="文件内容哈希" name="fileHash"
                         precision="64" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="LAST_MODIFIED" displayName="最后修改时间" name="lastModified"
@@ -420,9 +421,9 @@
                 <column code="COLUMN" displayName="列号" domain="columnNumber" name="column"
                         propId="7" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="CALL_TYPE" displayName="调用类型" name="callType"
-                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
+                        precision="500" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CONTEXT" displayName="上下文" name="context"
-                        precision="1000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
+                        precision="2000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>方法调用关系</comment>
             <relations>

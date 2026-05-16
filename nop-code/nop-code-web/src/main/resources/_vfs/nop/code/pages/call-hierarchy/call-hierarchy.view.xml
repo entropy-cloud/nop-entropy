@@ -40,7 +40,7 @@
             {
                 "type": "panel",
                 "title": "调用者 (Callers)",
-                "visibleOn": "this.callers != null && this.callers.length > 0",
+                "visibleOn": "this.callers != null &amp;&amp; this.callers.length > 0",
                 "collapsable": true,
                 "body": {
                     "type": "json",
@@ -51,7 +51,7 @@
             {
                 "type": "panel",
                 "title": "被调用者 (Callees)",
-                "visibleOn": "this.callees != null && this.callees.length > 0",
+                "visibleOn": "this.callees != null &amp;&amp; this.callees.length > 0",
                 "collapsable": true,
                 "body": {
                     "type": "json",
