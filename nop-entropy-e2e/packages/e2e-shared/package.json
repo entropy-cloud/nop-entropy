@@ -1,0 +1,23 @@
+{
+  "name": "@nop-entropy/e2e-shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.60.0",
+    "typescript": "~5.9.3",
+    "vite": "~8.0.3"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.50.0"
+  }
+}

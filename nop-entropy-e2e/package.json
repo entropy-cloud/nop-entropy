@@ -1,0 +1,15 @@
+{
+  "name": "nop-entropy-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:auth": "pnpm --filter nop-auth-e2e test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "~8.0.3"
+  }
+}
