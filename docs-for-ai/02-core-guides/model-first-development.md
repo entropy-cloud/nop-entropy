@@ -72,6 +72,43 @@ model/{app}.orm.xml
 - `_service.beans.xml`。
 - `_*.xbiz`、`_*.view.xml`、`_*.java`。
 
+## ORM 列类型与 JSON 组件
+
+### VARCHAR precision → 实际 SQL 类型的自动选择
+
+框架在 `SqlDataTypeMapping` 中根据 dialect 配置自动将 `stdSqlType="VARCHAR"` + `precision` 映射为最合适的数据库类型（以 MySQL 为例）：
+
+| precision 范围 | 实际 SQL 类型 |
+|---|---|
+| ≤ 16383 | `VARCHAR(N)` |
+| 16384 ~ 65535 | `TEXT` |
+| 65536 ~ 16777215 | `MEDIUMTEXT` |
+| 更大或无限制 | `LONGTEXT`（即 CLOB） |
+
+H2 等 embedded 数据库没有中间类型，超过 VARCHAR 上限直接映射为 `CLOB`。
+
+**设计建议**：按实际数据大小设置 precision，框架会自动选类型。不要为了避免截断而设置过大的值——过大会导致 MySQL 用 TEXT/MEDIUMTEXT 而非 VARCHAR，影响索引和查询性能。
+
+### stdDomain="json" 自动生成 JsonOrmComponent
+
+当 ORM 模型的 column 满足以下任一条件时（由 `orm-gen.xlib` 的 `JsonComponentSupport` 在元编程阶段处理）：
+
+1. `stdDomain="json"`
+2. `tagSet` 包含 `"json"`
+
+框架自动为该字段生成一个 `JsonOrmComponent`，命名为 `{fieldName}Component`。代码中可直接操作 JSON 对象：
+
+```java
+// 不需要手动序列化
+entity.getExtDataComponent().set_jsonValue(Map.of("key", "value"));
+// 读取时自动反序列化
+Object data = entity.getExtDataComponent().get_jsonValue();
+```
+
+同时生成的 XMeta 中会自动设置 `graphql:jsonComponentProp`，GraphQL API 直接暴露结构化 JSON 而非原始字符串。
+
+类似的自动组件还有：`stdDomain="xml"` → `XmlOrmComponent`，`stdDomain="file"` / `"file-list"` → `OrmFileComponent` / `OrmFileListComponent`。
+
 ## 常见误区
 
 1. 先手写 Entity / DAO / Biz 接口，再回头补模型。
