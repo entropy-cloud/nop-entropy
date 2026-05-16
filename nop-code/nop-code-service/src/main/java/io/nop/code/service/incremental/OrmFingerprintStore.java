@@ -12,15 +12,23 @@ import io.nop.orm.IOrmTemplate;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class OrmFingerprintStore implements IFingerprintStore {
 
     private final IDaoProvider daoProvider;
     private final IOrmTemplate ormTemplate;
+    private final Function<String, String> pathMapper;
 
     public OrmFingerprintStore(IDaoProvider daoProvider, IOrmTemplate ormTemplate) {
+        this(daoProvider, ormTemplate, Function.identity());
+    }
+
+    public OrmFingerprintStore(IDaoProvider daoProvider, IOrmTemplate ormTemplate,
+                               Function<String, String> pathMapper) {
         this.daoProvider = daoProvider;
         this.ormTemplate = ormTemplate;
+        this.pathMapper = pathMapper != null ? pathMapper : Function.identity();
     }
 
     @Override
@@ -30,8 +38,9 @@ public class OrmFingerprintStore implements IFingerprintStore {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
 
         for (FileFingerprint fp : fingerprints) {
-            String entityId = indexId + "_" + Math.abs(fp.getFilePath().hashCode());
-            NopCodeFile existing = findByIndexAndPath(fileDao, indexId, fp.getFilePath());
+            String canonicalPath = pathMapper.apply(fp.getFilePath());
+            String entityId = indexId + "_" + Math.abs(canonicalPath.hashCode());
+            NopCodeFile existing = findByIndexAndPath(fileDao, indexId, canonicalPath);
 
             NopCodeFile fileEntity;
             boolean isNew = false;
@@ -45,7 +54,7 @@ public class OrmFingerprintStore implements IFingerprintStore {
                     fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
                     fileEntity.setId(entityId);
                     fileEntity.setIndexId(indexId);
-                    fileEntity.setFilePath(fp.getFilePath());
+                    fileEntity.setFilePath(canonicalPath);
                     isNew = true;
                 }
             }
@@ -71,7 +80,7 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
         for (NopCodeFile entity : entities) {
             FileFingerprint fp = new FileFingerprint();
-            fp.setFilePath(entity.getFilePath());
+            fp.setFilePath(pathMapper.apply(entity.getFilePath()));
             fp.setContentHash(entity.getFileHash());
             fp.setLastModified(entity.getLastModified() != null ? entity.getLastModified() : 0L);
             fp.setFileSize(entity.getFileSize() != null ? entity.getFileSize() : 0L);

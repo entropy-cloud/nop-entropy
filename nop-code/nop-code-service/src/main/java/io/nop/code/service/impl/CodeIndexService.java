@@ -47,6 +47,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.IOrmTemplate;
+import io.nop.commons.collections.IterableIterator;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.VirtualFileSystem;
@@ -59,6 +60,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static io.nop.code.service.NopCodeErrors.*;
@@ -1440,17 +1442,18 @@ public class CodeIndexService implements ICodeIndexService {
             try {
                 IncrementalDetector detector = new IncrementalDetector();
 
-                // Load previous fingerprints from store
-                List<FileFingerprint> previousFingerprints = getFingerprintStore().loadFingerprints(indexId);
+                Function<String, String> pathMapper = buildPathMapper(vfsPath);
+                IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
+                List<FileFingerprint> previousFingerprints = store.loadFingerprints(indexId);
 
                 IResourceLoader vfs = VirtualFileSystem.instance();
-                List<IResource> currentResources = collectSourceResourcesFromVfs(vfs, vfsPath);
+                List<IResource> currentResources = collectResourcesFromVfs(vfs, vfsPath);
 
-                List<Path> allFiles = currentResources.stream()
-                        .map(res -> res.toFile().toPath())
+                List<Path> currentPaths = currentResources.stream()
+                        .map(res -> Path.of(pathMapper.apply(res.getPath())))
                         .collect(Collectors.toList());
 
-                ChangeSet changes = detector.detectChanges(previousFingerprints, allFiles);
+                ChangeSet changes = detector.detectChanges(previousFingerprints, currentPaths);
 
                 List<Path> changedFiles = changes.getAddedAndModified();
                 List<Path> deletedFiles = changes.getDeletedFiles();
@@ -1467,32 +1470,51 @@ public class CodeIndexService implements ICodeIndexService {
                 deleteFileRecords(indexId, changedFiles.stream()
                         .map(Path::toString).collect(Collectors.toList()));
 
-                List<CodeFileAnalysisResult> changedResults = new ArrayList<>();
-                for (Path file : changedFiles) {
+                Map<String, IResource> resourceByPath = new HashMap<>();
+                for (IResource res : currentResources) {
+                    resourceByPath.put(pathMapper.apply(res.getPath()), res);
+                }
+
+                int[] count = {0};
+                BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(BATCH_SIZE, batch -> {
+                    for (CodeFileAnalysisResult result : batch) {
+                        persistSingleFileInSession(indexId, result, session);
+                    }
+                    LOG.debug("Flushed batch of {} analysis results for index {}", batch.size(), indexId);
+                });
+
+                for (Path changedFile : changedFiles) {
                     try {
-                        String relativePath = file.toString();
+                        String relativePath = changedFile.toString();
                         ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
                         if (fileAnalyzer == null) continue;
 
-                        String sourceCode = java.nio.file.Files.readString(file);
+                        IResource resource = resourceByPath.get(relativePath);
+                        if (resource == null) {
+                            LOG.warn("Resource not found for path: {}", relativePath);
+                            continue;
+                        }
+                        String sourceCode = resource.readText();
                         CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
-                        if (fileResult != null) changedResults.add(fileResult);
+                        if (fileResult != null) {
+                            batchQueue.add(fileResult);
+                            count[0]++;
+                        }
                     } catch (Exception e) {
-                        LOG.warn("Failed to re-analyze file: {} - {}", file, e.getMessage());
+                        LOG.warn("Failed to re-analyze file: {} - {}", changedFile, e.getMessage());
                     }
                 }
-
-                for (CodeFileAnalysisResult fileResult : changedResults) {
-                    persistSingleFileInSession(indexId, fileResult, session);
-                }
+                batchQueue.flush();
 
                 updateIndexStats(indexId);
 
-                // Save new fingerprints to store
-                List<FileFingerprint> newFingerprints = detector.computeFingerprints(allFiles);
-                getFingerprintStore().saveFingerprints(indexId, newFingerprints);
+                List<FileFingerprint> newFingerprints = new ArrayList<>(currentResources.size());
+                for (IResource res : currentResources) {
+                    newFingerprints.add(detector.computeFingerprint(res));
+                }
+                store.saveFingerprints(indexId, newFingerprints);
 
-                return changedResults.size();
+                return count[0];
             } catch (IOException e) {
                 throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
             }
@@ -1748,17 +1770,27 @@ public class CodeIndexService implements ICodeIndexService {
         return paths;
     }
 
-    private List<IResource> collectSourceResourcesFromVfs(IResourceLoader resourceLoader, String vfsPath) {
-        List<String> allExtensions = new ArrayList<>();
+    private List<IResource> collectResourcesFromVfs(IResourceLoader resourceLoader, String vfsPath) {
+        Set<String> allExtensions = new LinkedHashSet<>();
         for (CodeLanguage lang : registry.getSupportedLanguages()) {
             ILanguageAdapter adapter = registry.getAdapter(lang);
             allExtensions.addAll(adapter.getFileExtensions());
         }
 
         List<IResource> result = new ArrayList<>();
-        for (String ext : allExtensions) {
-            Collection<? extends IResource> resources = resourceLoader.getAllResources(vfsPath, ext);
-            result.addAll(resources);
+        IterableIterator<IResource> it = resourceLoader.depthIterator(vfsPath, false, resource -> {
+            if (resource.isDirectory()) return true;
+            for (String ext : allExtensions) {
+                if (resource.getName().endsWith(ext)) return true;
+            }
+            return false;
+        });
+
+        while (it.hasNext()) {
+            IResource res = it.next();
+            if (!res.isDirectory()) {
+                result.add(res);
+            }
         }
         return result;
     }
@@ -1828,6 +1860,21 @@ public class CodeIndexService implements ICodeIndexService {
         if (!entities.isEmpty()) {
             dao.batchDeleteEntities(entities);
         }
+    }
+
+    private Function<String, String> buildPathMapper(String vfsPath) {
+        String normalizedPrefix = vfsPath;
+        if (!normalizedPrefix.endsWith("/")) {
+            normalizedPrefix = normalizedPrefix + "/";
+        }
+        // Strip VFS prefix: "file:/abs/dir/" + "file:/abs/dir/com/Foo.java" → "com/Foo.java"
+        String prefix = normalizedPrefix;
+        return path -> {
+            if (path.startsWith(prefix)) {
+                return path.substring(prefix.length());
+            }
+            return path;
+        };
     }
 
     private void updateIndexStats(String indexId) {

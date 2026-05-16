@@ -66,6 +66,11 @@
 | Spring `@Value` | `@InjectValue` |
 | `Map<String, Object>` 作为复杂返回 DTO | 定义 `@DataBean` DTO |
 | 直接注入另一个 BizModel 实现类 | 注入 `I*Biz` 接口 |
+| `Files.readString(path)` / `new FileInputStream(file)` 直接读写文件 | VFS 层：`IResource.readText()` / `IResource.getInputStream()` |
+| `resource.toFile().toPath()` 绕过 VFS 做路径运算 | `IResource.getPath()` / `getStdPath()`；遍历时用 `depthIterator` |
+| 一次性 `getAllResources` 全量加载 | `depthIterator` 惰性遍历 + `BatchQueue` 分块处理 |
+
+**VFS 优先原则**：除非需求明确要求使用本地文件（如 `ProjectAnalyzer.analyzeProject(Path)` 处理本地目录），否则默认通过 VFS 抽象层（`VirtualFileSystem.instance()`、`IResource`、`IResourceLoader`）访问资源。VFS 统一了本地文件、classpath、远程存储等来源，直接使用 `java.nio.file` / `java.io` 会丢失这层抽象。
 
 ## 例外场景
 
