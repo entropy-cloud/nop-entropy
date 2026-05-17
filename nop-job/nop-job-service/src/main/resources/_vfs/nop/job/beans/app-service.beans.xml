@@ -7,4 +7,6 @@
     <import resource="_service.beans.xml"/>
 
     <import resource="app-engine.beans.xml"/>
+
+    <bean id="nopE2eTestInvoker" class="io.nop.job.service.executor.NopE2eTestJobInvoker"/>
 </beans>
