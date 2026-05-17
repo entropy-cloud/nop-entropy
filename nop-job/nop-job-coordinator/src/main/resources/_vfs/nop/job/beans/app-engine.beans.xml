@@ -13,8 +13,12 @@
         </property>
     </bean>
 
+    <bean id="nopJobTaskBuilder_default" class="io.nop.job.coordinator.engine.DefaultJobTaskBuilder"/>
+
     <bean id="io.nop.job.coordinator.engine.IJobDispatcherScanner"
-          class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl"/>
+          class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl">
+        <property name="defaultTaskBuilder" ref="nopJobTaskBuilder_default"/>
+    </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobCancelHandler"
           class="io.nop.job.coordinator.engine.DefaultJobCancelHandler"/>

@@ -302,6 +302,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
     private JobDispatcherScannerImpl newDispatcher() {
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
+        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");

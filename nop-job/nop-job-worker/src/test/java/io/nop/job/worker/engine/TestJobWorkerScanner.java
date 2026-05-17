@@ -68,7 +68,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
     public void testWorkerExecutesTaskSuccess() {
         rememberOriginalBeanContainer();
         StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("testInvoker", new IJobInvoker() {
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
             @Override
             public java.util.concurrent.CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
                 return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
@@ -112,7 +112,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
     public void testWorkerExecutesTaskFailure() {
         rememberOriginalBeanContainer();
         StaticBeanContainer container = new StaticBeanContainer();
-        container.registerBean("testInvoker", new IJobInvoker() {
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
             @Override
             public java.util.concurrent.CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
                 return CompletableFuture.completedFuture(JobFireResult.ERROR(
@@ -163,7 +163,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
         schedule.setExecutorKind(EXECUTOR_KIND_BEAN);
-        schedule.setExecutorRef("testInvoker");
+        schedule.setExecutorRef("test");
         schedule.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
         schedule.setRepeatIntervalMs(1000L);

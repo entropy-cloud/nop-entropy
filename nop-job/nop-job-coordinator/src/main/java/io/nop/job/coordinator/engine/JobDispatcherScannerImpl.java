@@ -4,9 +4,9 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
-import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
@@ -14,15 +14,17 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobDispatcherScannerImpl.class);
+    static final String TASK_BUILDER_PREFIX = "nopJobTaskBuilder_";
 
     private IJobFireStore fireStore;
+    private IJobTaskBuilder defaultTaskBuilder;
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long lockTimeoutMs = 60000;
@@ -33,6 +35,11 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     @Inject
     public void setFireStore(IJobFireStore fireStore) {
         this.fireStore = fireStore;
+    }
+
+    @Inject
+    public void setDefaultTaskBuilder(IJobTaskBuilder defaultTaskBuilder) {
+        this.defaultTaskBuilder = defaultTaskBuilder;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.scan-interval-ms|5000")
@@ -93,36 +100,28 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
             var locked = fireStore.tryLockFiresForDispatch(fires, AppConfig.hostId(), lockTimeoutMs);
             for (NopJobFire fire : locked) {
-                fireStore.insertTaskAndMarkFireDispatching(fire, buildTask(fire));
+                IJobTaskBuilder builder = resolveTaskBuilder(fire);
+                List<NopJobTask> tasks = builder.buildTasks(fire);
+                fireStore.insertTasksAndMarkFireDispatching(fire, tasks);
             }
         } catch (Exception e) {
             LOG.error("nop.job.dispatcher.scan-failed", e);
         }
     }
 
-    private NopJobTask buildTask(NopJobFire fire) {
-        long now = System.currentTimeMillis();
-
-        NopJobTask task = new NopJobTask();
-        task.setJobFireId(fire.getJobFireId());
-        task.setTaskNo(1);
-        task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
-        task.setWorkerInstanceId(AppConfig.hostId());
-        task.getTaskPayloadComponent().set_jsonValue(Map.of(
-                "jobFireId", fire.getJobFireId(),
-                "executorSnapshot", emptyIfNull(fire.getExecutorSnapshotComponent().get_jsonMap()),
-                "jobParamsSnapshot", emptyIfNull(fire.getJobParamsSnapshotComponent().get_jsonMap())
-        ));
-        task.setPartitionIndex(fire.getPartitionIndex());
-        task.setCreatedBy("system");
-        task.setCreateTime(new Timestamp(now));
-        task.setUpdatedBy("system");
-        task.setUpdateTime(new Timestamp(now));
-        return task;
-    }
-
-    private Map<String, Object> emptyIfNull(Map<String, Object> map) {
-        return map == null ? Map.of() : map;
+    private IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
+        Map<String, Object> executorSnapshot = fire.getExecutorSnapshotComponent().get_jsonMap();
+        if (executorSnapshot != null) {
+            Object executorRef = executorSnapshot.get("executorRef");
+            if (executorRef instanceof String && !((String) executorRef).isBlank()) {
+                String beanName = TASK_BUILDER_PREFIX + executorRef;
+                Object bean = BeanContainer.tryGetBean(beanName);
+                if (bean instanceof IJobTaskBuilder) {
+                    return (IJobTaskBuilder) bean;
+                }
+            }
+        }
+        return defaultTaskBuilder;
     }
 
     protected IScheduledExecutor getExecutor() {

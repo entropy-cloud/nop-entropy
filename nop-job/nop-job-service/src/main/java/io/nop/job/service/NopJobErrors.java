@@ -34,4 +34,11 @@ public interface NopJobErrors{
             "nop.err.job.fire.rerun-not-allowed",
             "Fire rerun is not allowed for the current fire status"
     );
+
+    String ARG_PARAM_NAME = "paramName";
+
+    ErrorCode ERR_RPC_INVOKER_MISSING_PARAM = ErrorCode.define(
+            "nop.err.job.rpc-invoker-missing-param",
+            "RPC invoker missing required parameter: {paramName}"
+    );
 }

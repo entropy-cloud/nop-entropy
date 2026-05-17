@@ -103,6 +103,21 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
+    public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
+        NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
+        if (currentFire.getFireStatus() == null || currentFire.getFireStatus() != FIRE_STATUS_DISPATCHING) {
+            return;
+        }
+
+        for (NopJobTask task : tasks) {
+            taskDao().saveEntityDirectly(task);
+        }
+        currentFire.setFireStatus(FIRE_STATUS_RUNNING);
+        fireDao().updateEntityDirectly(currentFire);
+    }
+
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
     public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
         fireDao().updateEntityDirectly(fire);
         scheduleDao().updateEntityDirectly(schedule);

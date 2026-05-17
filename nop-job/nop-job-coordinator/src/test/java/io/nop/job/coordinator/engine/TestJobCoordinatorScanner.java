@@ -83,6 +83,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
+        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
@@ -426,6 +427,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
+        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");

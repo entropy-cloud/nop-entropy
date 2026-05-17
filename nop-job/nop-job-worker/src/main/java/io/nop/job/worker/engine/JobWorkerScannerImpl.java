@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.json.JsonTool;
@@ -25,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVOKER_NOT_FOUND;
 
 public class JobWorkerScannerImpl implements IJobWorkerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobWorkerScannerImpl.class);
@@ -136,9 +135,12 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     private void executeTask(NopJobTask task) {
         NopJobFire fire = fireStore.loadFire(task.getJobFireId());
         NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
-        IJobInvoker invoker = invokerResolver.resolveInvoker(schedule, fire);
-        if (invoker == null) {
-            completeTaskWithFailure(task, ERR_JOB_INVOKER_NOT_FOUND.getErrorCode(), ERR_JOB_INVOKER_NOT_FOUND.getDescription());
+        IJobInvoker invoker;
+        try {
+            invoker = invokerResolver.resolveInvoker(schedule, fire);
+        } catch (NopException e) {
+            LOG.error("nop.job.worker.invoker-resolve-failed", e);
+            completeTaskWithFailure(task, e.getErrorCode(), e.getDescription());
             return;
         }
 
