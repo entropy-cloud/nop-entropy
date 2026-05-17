@@ -114,14 +114,19 @@ public interface _NopJobCoreConstants {
     int TRIGGER_SOURCE_RECOVERY = 3;
                     
     /**
-     * 执行器类型: Bean执行器 
+     * 执行器类型: 测试执行器 
      */
-    int EXECUTOR_KIND_BEAN = 1;
+    String EXECUTOR_KIND_test = "test";
                     
     /**
      * 执行器类型: RPC执行器 
      */
-    int EXECUTOR_KIND_RPC = 2;
+    String EXECUTOR_KIND_rpc = "rpc";
+                    
+    /**
+     * 执行器类型: RPC广播执行器 
+     */
+    String EXECUTOR_KIND_rpcBroadcast = "rpcBroadcast";
                     
     /**
      * 阻塞策略: 丢弃 

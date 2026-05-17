@@ -80,9 +80,9 @@ public class _NopJobFire extends DynamicOrmEntity{
     public static final String PROP_NAME_jobParamsSnapshot = "jobParamsSnapshot";
     public static final int PROP_ID_jobParamsSnapshot = 15;
     
-    /* 执行器快照: EXECUTOR_SNAPSHOT VARCHAR */
-    public static final String PROP_NAME_executorSnapshot = "executorSnapshot";
-    public static final int PROP_ID_executorSnapshot = 16;
+    /* 执行器类型: EXECUTOR_KIND VARCHAR */
+    public static final String PROP_NAME_executorKind = "executorKind";
+    public static final int PROP_ID_executorKind = 16;
     
     /* 重试策略ID: RETRY_POLICY_ID VARCHAR */
     public static final String PROP_NAME_retryPolicyId = "retryPolicyId";
@@ -138,9 +138,6 @@ public class _NopJobFire extends DynamicOrmEntity{
     /* component:  */
     public static final String PROP_NAME_jobParamsSnapshotComponent = "jobParamsSnapshotComponent";
     
-    /* component:  */
-    public static final String PROP_NAME_executorSnapshotComponent = "executorSnapshotComponent";
-    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobFireId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobFireId};
@@ -194,8 +191,8 @@ public class _NopJobFire extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_jobParamsSnapshot] = PROP_NAME_jobParamsSnapshot;
           PROP_NAME_TO_ID.put(PROP_NAME_jobParamsSnapshot, PROP_ID_jobParamsSnapshot);
       
-          PROP_ID_TO_NAME[PROP_ID_executorSnapshot] = PROP_NAME_executorSnapshot;
-          PROP_NAME_TO_ID.put(PROP_NAME_executorSnapshot, PROP_ID_executorSnapshot);
+          PROP_ID_TO_NAME[PROP_ID_executorKind] = PROP_NAME_executorKind;
+          PROP_NAME_TO_ID.put(PROP_NAME_executorKind, PROP_ID_executorKind);
       
           PROP_ID_TO_NAME[PROP_ID_retryPolicyId] = PROP_NAME_retryPolicyId;
           PROP_NAME_TO_ID.put(PROP_NAME_retryPolicyId, PROP_ID_retryPolicyId);
@@ -278,8 +275,8 @@ public class _NopJobFire extends DynamicOrmEntity{
     /* 参数快照: JOB_PARAMS_SNAPSHOT */
     private java.lang.String _jobParamsSnapshot;
     
-    /* 执行器快照: EXECUTOR_SNAPSHOT */
-    private java.lang.String _executorSnapshot;
+    /* 执行器类型: EXECUTOR_KIND */
+    private java.lang.String _executorKind;
     
     /* 重试策略ID: RETRY_POLICY_ID */
     private java.lang.String _retryPolicyId;
@@ -433,8 +430,8 @@ public class _NopJobFire extends DynamicOrmEntity{
             case PROP_ID_jobParamsSnapshot:
                return getJobParamsSnapshot();
         
-            case PROP_ID_executorSnapshot:
-               return getExecutorSnapshot();
+            case PROP_ID_executorKind:
+               return getExecutorKind();
         
             case PROP_ID_retryPolicyId:
                return getRetryPolicyId();
@@ -630,13 +627,13 @@ public class _NopJobFire extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_executorSnapshot:{
+            case PROP_ID_executorKind:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_executorSnapshot));
+                       err-> newTypeConversionError(PROP_NAME_executorKind));
                }
-               setExecutorSnapshot(typedValue);
+               setExecutorKind(typedValue);
                break;
             }
         
@@ -864,9 +861,9 @@ public class _NopJobFire extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_executorSnapshot:{
+            case PROP_ID_executorKind:{
                onInitProp(propId);
-               this._executorSnapshot = (java.lang.String)value;
+               this._executorKind = (java.lang.String)value;
                
                break;
             }
@@ -1240,20 +1237,20 @@ public class _NopJobFire extends DynamicOrmEntity{
     }
     
     /**
-     * 执行器快照: EXECUTOR_SNAPSHOT
+     * 执行器类型: EXECUTOR_KIND
      */
-    public final java.lang.String getExecutorSnapshot(){
-         onPropGet(PROP_ID_executorSnapshot);
-         return _executorSnapshot;
+    public final java.lang.String getExecutorKind(){
+         onPropGet(PROP_ID_executorKind);
+         return _executorKind;
     }
 
     /**
-     * 执行器快照: EXECUTOR_SNAPSHOT
+     * 执行器类型: EXECUTOR_KIND
      */
-    public final void setExecutorSnapshot(java.lang.String value){
-        if(onPropSet(PROP_ID_executorSnapshot,value)){
-            this._executorSnapshot = value;
-            internalClearRefs(PROP_ID_executorSnapshot);
+    public final void setExecutorKind(java.lang.String value){
+        if(onPropSet(PROP_ID_executorKind,value)){
+            this._executorKind = value;
+            internalClearRefs(PROP_ID_executorKind);
             
         }
     }
@@ -1505,23 +1502,6 @@ public class _NopJobFire extends DynamicOrmEntity{
           _jobParamsSnapshotComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_jobParamsSnapshotComponent);
       }
       return _jobParamsSnapshotComponent;
-   }
-
-   private io.nop.orm.component.JsonOrmComponent _executorSnapshotComponent;
-
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_executorSnapshotComponent = new HashMap<>();
-   static{
-      
-         COMPONENT_PROP_ID_MAP_executorSnapshotComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_executorSnapshot);
-      
-   }
-
-   public final io.nop.orm.component.JsonOrmComponent getExecutorSnapshotComponent(){
-      if(_executorSnapshotComponent == null){
-          _executorSnapshotComponent = new io.nop.orm.component.JsonOrmComponent();
-          _executorSnapshotComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_executorSnapshotComponent);
-      }
-      return _executorSnapshotComponent;
    }
 
 }

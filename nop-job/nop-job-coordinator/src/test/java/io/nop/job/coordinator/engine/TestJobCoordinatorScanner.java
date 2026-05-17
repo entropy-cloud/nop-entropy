@@ -36,7 +36,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     private static final int TASK_STATUS_SUCCESS = 30;
     private static final int TASK_STATUS_TIMEOUT = 50;
     private static final int TASK_STATUS_CANCELED = 60;
-    private static final int EXECUTOR_KIND_BEAN = 1;
+    private static final String EXECUTOR_KIND_TEST = "test";
     private static final int TRIGGER_TYPE_FIXED_RATE = 2;
     private static final int TRIGGER_TYPE_FIXED_DELAY = 3;
     private static final int BLOCK_STRATEGY_DISCARD = 1;
@@ -461,8 +461,8 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         schedule.setJobName(jobName);
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
-        schedule.setExecutorKind(EXECUTOR_KIND_BEAN);
-        schedule.setExecutorRef("testInvoker");
+        schedule.setExecutorKind(EXECUTOR_KIND_TEST);
+        schedule.setExecutorKind("testInvoker");
         schedule.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
         schedule.setRepeatIntervalMs(1000L);

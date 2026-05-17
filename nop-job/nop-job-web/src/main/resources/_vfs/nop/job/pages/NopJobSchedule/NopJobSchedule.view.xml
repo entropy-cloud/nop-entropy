@@ -20,7 +20,7 @@
             <layout>
  jobName[作业名] displayName[显示名]
  scheduleStatus[调度状态] blockStrategy[阻塞策略]
- executorKind[执行器类型] executorRef[执行器引用]
+ executorKind[执行器类型] jobParams[任务参数]
  nextFireTime[下次触发时间] lastFireTime[上次触发时间]
  lastEndTime[上次结束时间] lastFireStatus[上次触发状态]
  fireCount[已触发次数] activeFireCount[活跃触发数]

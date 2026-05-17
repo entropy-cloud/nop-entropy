@@ -10,7 +10,6 @@
         <form id="view">
             <cells>
                 <cell id="jobParamsSnapshot" control="textarea"/>
-                <cell id="executorSnapshot" control="textarea"/>
                 <cell id="errorMessage" control="textarea"/>
             </cells>
         </form>

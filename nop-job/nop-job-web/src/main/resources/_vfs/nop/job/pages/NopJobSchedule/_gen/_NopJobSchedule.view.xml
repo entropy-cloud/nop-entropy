@@ -40,10 +40,7 @@
                 <col id="scheduleStatus" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--执行器类型-->
-                <col id="executorKind" ui:number="true" sortable="true"/>
-
-                <!--执行器引用-->
-                <col id="executorRef" mandatory="true" sortable="true"/>
+                <col id="executorKind" sortable="true"/>
 
                 <!--任务参数-->
                 <col id="jobParams" sortable="true"/>
@@ -131,19 +128,19 @@
  groupId[分组] jobName[作业名]
  displayName[显示名] description[描述]
  scheduleStatus[调度状态] executorKind[执行器类型]
- executorRef[执行器引用] jobParams[任务参数]
- triggerType[触发器类型] cronExpr[CRON表达式]
- repeatIntervalMs[重复间隔(毫秒)] maxExecutionCount[最大执行次数]
- minScheduleTime[最早调度时间] maxScheduleTime[最晚调度时间]
- misfireThresholdMs[Misfire阈值(毫秒)] useDefaultCalendar[使用默认日历]
- pauseCalendarSpec[暂停日历配置] blockStrategy[阻塞策略]
- timeoutSeconds[超时时间(秒)] retryPolicyId[重试策略ID]
- partitionIndex[分区索引] fireCount[已触发次数]
- activeFireCount[活跃触发数] lastFireTime[上次触发时间]
- lastEndTime[上次结束时间] nextFireTime[下次触发时间]
- lastFireStatus[上次触发状态] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ jobParams[任务参数] triggerType[触发器类型]
+ cronExpr[CRON表达式] repeatIntervalMs[重复间隔(毫秒)]
+ maxExecutionCount[最大执行次数] minScheduleTime[最早调度时间]
+ maxScheduleTime[最晚调度时间] misfireThresholdMs[Misfire阈值(毫秒)]
+ useDefaultCalendar[使用默认日历] pauseCalendarSpec[暂停日历配置]
+ blockStrategy[阻塞策略] timeoutSeconds[超时时间(秒)]
+ retryPolicyId[重试策略ID] partitionIndex[分区索引]
+ fireCount[已触发次数] activeFireCount[活跃触发数]
+ lastFireTime[上次触发时间] lastEndTime[上次结束时间]
+ nextFireTime[下次触发时间] lastFireStatus[上次触发状态]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-调度定义" i18n-en:title="Add Job Schedule" x:prototype="edit"/>
@@ -153,17 +150,17 @@
  groupId[分组] jobName[作业名]
  displayName[显示名] description[描述]
  scheduleStatus[调度状态] executorKind[执行器类型]
- executorRef[执行器引用] jobParams[任务参数]
- triggerType[触发器类型] cronExpr[CRON表达式]
- repeatIntervalMs[重复间隔(毫秒)] maxExecutionCount[最大执行次数]
- minScheduleTime[最早调度时间] maxScheduleTime[最晚调度时间]
- misfireThresholdMs[Misfire阈值(毫秒)] useDefaultCalendar[使用默认日历]
- pauseCalendarSpec[暂停日历配置] blockStrategy[阻塞策略]
- timeoutSeconds[超时时间(秒)] retryPolicyId[重试策略ID]
- partitionIndex[分区索引] fireCount[已触发次数]
- activeFireCount[活跃触发数] lastFireTime[上次触发时间]
- lastEndTime[上次结束时间] nextFireTime[下次触发时间]
- lastFireStatus[上次触发状态] remark[备注]
+ jobParams[任务参数] triggerType[触发器类型]
+ cronExpr[CRON表达式] repeatIntervalMs[重复间隔(毫秒)]
+ maxExecutionCount[最大执行次数] minScheduleTime[最早调度时间]
+ maxScheduleTime[最晚调度时间] misfireThresholdMs[Misfire阈值(毫秒)]
+ useDefaultCalendar[使用默认日历] pauseCalendarSpec[暂停日历配置]
+ blockStrategy[阻塞策略] timeoutSeconds[超时时间(秒)]
+ retryPolicyId[重试策略ID] partitionIndex[分区索引]
+ fireCount[已触发次数] activeFireCount[活跃触发数]
+ lastFireTime[上次触发时间] lastEndTime[上次结束时间]
+ nextFireTime[下次触发时间] lastFireStatus[上次触发状态]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

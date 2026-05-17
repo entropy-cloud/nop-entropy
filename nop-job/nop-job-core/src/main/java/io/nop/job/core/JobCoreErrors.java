@@ -10,6 +10,7 @@ public interface JobCoreErrors {
     String ARG_LOOP_COUNT = "loopCount";
     String ARG_CRON_EXPR = "cronExpr";
     String ARG_EXECUTOR_REF = "executorRef";
+    String ARG_EXECUTOR_KIND = "executorKind";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
             "计算下一次触发时间时似乎陷入死循环，循环次数超过最大限制", ARG_LOOP_COUNT);
@@ -37,4 +38,7 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_EXECUTOR_REF_EMPTY = define("nop.err.job.executor-ref-empty",
             "Job的执行器引用为空");
+
+    ErrorCode ERR_JOB_EXECUTOR_KIND_EMPTY = define("nop.err.job.executor-kind-empty",
+            "Job的执行器类型为空");
 }

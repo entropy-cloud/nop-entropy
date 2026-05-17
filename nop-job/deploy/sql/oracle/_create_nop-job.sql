@@ -7,8 +7,7 @@ CREATE TABLE nop_job_schedule(
   DISPLAY_NAME VARCHAR2(200) NOT NULL ,
   DESCRIPTION VARCHAR2(4000)  ,
   SCHEDULE_STATUS INTEGER NOT NULL ,
-  EXECUTOR_KIND INTEGER  ,
-  EXECUTOR_REF VARCHAR2(200) NOT NULL ,
+  EXECUTOR_KIND VARCHAR2(50)  ,
   JOB_PARAMS VARCHAR2(4000)  ,
   TRIGGER_TYPE INTEGER  ,
   CRON_EXPR VARCHAR2(100)  ,
@@ -54,7 +53,7 @@ CREATE TABLE nop_job_fire(
   END_TIME TIMESTAMP  ,
   DURATION_MS NUMBER(20)  ,
   JOB_PARAMS_SNAPSHOT VARCHAR2(4000)  ,
-  EXECUTOR_SNAPSHOT VARCHAR2(4000)  ,
+  EXECUTOR_KIND VARCHAR2(50)  ,
   RETRY_POLICY_ID VARCHAR2(32)  ,
   RETRY_RECORD_ID VARCHAR2(32)  ,
   ERROR_CODE VARCHAR2(200)  ,
@@ -111,8 +110,6 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_schedule.SCHEDULE_STATUS IS '调度状态';
                     
       COMMENT ON COLUMN nop_job_schedule.EXECUTOR_KIND IS '执行器类型';
-                    
-      COMMENT ON COLUMN nop_job_schedule.EXECUTOR_REF IS '执行器引用';
                     
       COMMENT ON COLUMN nop_job_schedule.JOB_PARAMS IS '任务参数';
                     
@@ -198,7 +195,7 @@ CREATE TABLE nop_job_task(
                     
       COMMENT ON COLUMN nop_job_fire.JOB_PARAMS_SNAPSHOT IS '参数快照';
                     
-      COMMENT ON COLUMN nop_job_fire.EXECUTOR_SNAPSHOT IS '执行器快照';
+      COMMENT ON COLUMN nop_job_fire.EXECUTOR_KIND IS '执行器类型';
                     
       COMMENT ON COLUMN nop_job_fire.RETRY_POLICY_ID IS '重试策略ID';
                     

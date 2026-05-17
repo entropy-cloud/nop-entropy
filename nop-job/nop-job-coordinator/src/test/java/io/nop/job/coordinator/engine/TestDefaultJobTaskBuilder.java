@@ -18,7 +18,7 @@ public class TestDefaultJobTaskBuilder {
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId("fire-1");
         fire.setPartitionIndex((short) 1);
-        fire.getExecutorSnapshotComponent().set_jsonValue(Map.of("executorRef", "rpc"));
+        fire.setExecutorKind("rpc");
         fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", "myService"));
 
         List<NopJobTask> tasks = builder.buildTasks(fire);

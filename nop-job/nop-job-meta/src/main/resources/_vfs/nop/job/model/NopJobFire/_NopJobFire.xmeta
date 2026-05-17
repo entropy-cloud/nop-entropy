@@ -81,10 +81,9 @@
               graphql:jsonComponentProp="jobParamsSnapshotComponent">
             <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="executorSnapshot" displayName="执行器快照" propId="16" i18n-en:displayName="Executor Snapshot"
-              queryable="true" sortable="true" insertable="true" updatable="true"
-              graphql:jsonComponentProp="executorSnapshotComponent">
-            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        <prop name="executorKind" displayName="执行器类型" propId="16" i18n-en:displayName="Executor Kind" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50" dict="job/executor-kind"/>
         </prop>
         <prop name="retryPolicyId" displayName="重试策略ID" propId="17" i18n-en:displayName="Retry Policy Id"
               queryable="true" sortable="true" insertable="true" updatable="true">
@@ -141,10 +140,6 @@
             <schema type="String"/>
         </prop>
         <prop name="jobParamsSnapshotComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
-              insertable="true" updatable="true" lazy="true">
-            <schema type="io.nop.orm.component.JsonOrmComponent"/>
-        </prop>
-        <prop name="executorSnapshotComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
               insertable="true" updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>

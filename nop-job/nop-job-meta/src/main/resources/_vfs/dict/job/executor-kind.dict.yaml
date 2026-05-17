@@ -1,15 +1,19 @@
 # __XGEN_FORCE_OVERRIDE__
 label: 执行器类型
 locale: zh-CN
-valueType: int
+valueType: string
 description: 
 options:
 
-  - label: Bean执行器
-    value: 1
+  - label: 测试执行器
+    value: test
     description: 
   
   - label: RPC执行器
-    value: 2
+    value: rpc
+    description: 
+  
+  - label: RPC广播执行器
+    value: rpcBroadcast
     description: 
   

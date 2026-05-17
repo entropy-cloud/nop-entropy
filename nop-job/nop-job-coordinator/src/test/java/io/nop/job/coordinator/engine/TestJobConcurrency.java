@@ -38,7 +38,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
     private static final int TASK_STATUS_RUNNING = 20;
     private static final int TASK_STATUS_SUCCESS = 30;
     private static final int TASK_STATUS_TIMEOUT = 50;
-    private static final int EXECUTOR_KIND_BEAN = 1;
+    private static final String EXECUTOR_KIND_TEST = "test";
     private static final int TRIGGER_TYPE_FIXED_RATE = 2;
 
     @Inject
@@ -329,8 +329,8 @@ public class TestJobConcurrency extends JunitBaseTestCase {
         schedule.setJobName(jobName);
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
-        schedule.setExecutorKind(EXECUTOR_KIND_BEAN);
-        schedule.setExecutorRef("testInvoker");
+        schedule.setExecutorKind(EXECUTOR_KIND_TEST);
+        schedule.setExecutorKind("testInvoker");
         schedule.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
         schedule.setRepeatIntervalMs(1000L);
@@ -360,8 +360,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
         fire.setStartTime(new Timestamp(now - 1000));
         fire.setPartitionIndex(schedule.getPartitionIndex());
         fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("k", "v"));
-        fire.getExecutorSnapshotComponent().set_jsonValue(
-                Map.of("executorKind", schedule.getExecutorKind(), "executorRef", schedule.getExecutorRef()));
+        fire.setExecutorKind(schedule.getExecutorKind());
         fire.setVersion(0L);
         fire.setCreatedBy("test");
         fire.setCreateTime(new Timestamp(now));
@@ -379,7 +378,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
         task.setTaskStatus(TASK_STATUS_WAITING);
         task.setPartitionIndex(fire.getPartitionIndex());
         task.getTaskPayloadComponent().set_jsonValue(
-                Map.of("jobFireId", fire.getJobFireId(), "executorSnapshot", Map.of(), "jobParamsSnapshot", Map.of()));
+                Map.of("jobFireId", fire.getJobFireId(), "jobParamsSnapshot", Map.of()));
         task.setVersion(0L);
         task.setCreatedBy("test");
         task.setCreateTime(new Timestamp(now));

@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -110,15 +109,12 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     }
 
     private IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
-        Map<String, Object> executorSnapshot = fire.getExecutorSnapshotComponent().get_jsonMap();
-        if (executorSnapshot != null) {
-            Object executorRef = executorSnapshot.get("executorRef");
-            if (executorRef instanceof String && !((String) executorRef).isBlank()) {
-                String beanName = TASK_BUILDER_PREFIX + executorRef;
-                Object bean = BeanContainer.tryGetBean(beanName);
-                if (bean instanceof IJobTaskBuilder) {
-                    return (IJobTaskBuilder) bean;
-                }
+        String executorKind = fire.getExecutorKind();
+        if (executorKind != null && !executorKind.isBlank()) {
+            String beanName = TASK_BUILDER_PREFIX + executorKind;
+            Object bean = BeanContainer.tryGetBean(beanName);
+            if (bean instanceof IJobTaskBuilder) {
+                return (IJobTaskBuilder) bean;
             }
         }
         return defaultTaskBuilder;

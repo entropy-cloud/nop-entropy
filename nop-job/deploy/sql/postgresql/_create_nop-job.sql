@@ -7,8 +7,7 @@ CREATE TABLE nop_job_schedule(
   display_name VARCHAR(200) NOT NULL ,
   description VARCHAR(4000)  ,
   schedule_status INT4 NOT NULL ,
-  executor_kind INT4  ,
-  executor_ref VARCHAR(200) NOT NULL ,
+  executor_kind VARCHAR(50)  ,
   job_params VARCHAR(4000)  ,
   trigger_type INT4  ,
   cron_expr VARCHAR(100)  ,
@@ -54,7 +53,7 @@ CREATE TABLE nop_job_fire(
   end_time TIMESTAMP  ,
   duration_ms INT8  ,
   job_params_snapshot VARCHAR(4000)  ,
-  executor_snapshot VARCHAR(4000)  ,
+  executor_kind VARCHAR(50)  ,
   retry_policy_id VARCHAR(32)  ,
   retry_record_id VARCHAR(32)  ,
   error_code VARCHAR(200)  ,
@@ -111,8 +110,6 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_schedule.schedule_status IS '调度状态';
                     
       COMMENT ON COLUMN nop_job_schedule.executor_kind IS '执行器类型';
-                    
-      COMMENT ON COLUMN nop_job_schedule.executor_ref IS '执行器引用';
                     
       COMMENT ON COLUMN nop_job_schedule.job_params IS '任务参数';
                     
@@ -198,7 +195,7 @@ CREATE TABLE nop_job_task(
                     
       COMMENT ON COLUMN nop_job_fire.job_params_snapshot IS '参数快照';
                     
-      COMMENT ON COLUMN nop_job_fire.executor_snapshot IS '执行器快照';
+      COMMENT ON COLUMN nop_job_fire.executor_kind IS '执行器类型';
                     
       COMMENT ON COLUMN nop_job_fire.retry_policy_id IS '重试策略ID';
                     

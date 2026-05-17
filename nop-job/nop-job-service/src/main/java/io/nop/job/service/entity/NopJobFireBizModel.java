@@ -124,7 +124,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         fire.setUpdatedBy("system");
         fire.setUpdateTime(fireTime);
         fire.setJobParamsSnapshot(sourceFire.getJobParamsSnapshot());
-        fire.setExecutorSnapshot(sourceFire.getExecutorSnapshot());
+        fire.setExecutorKind(sourceFire.getExecutorKind());
         return fire;
     }
 

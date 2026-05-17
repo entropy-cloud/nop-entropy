@@ -40,7 +40,7 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
     private static final int TASK_STATUS_RUNNING = 20;
     private static final int TASK_STATUS_SUCCESS = 30;
     private static final int TASK_STATUS_CANCELED = 60;
-    private static final int EXECUTOR_KIND_BEAN = 1;
+    private static final String EXECUTOR_KIND_TEST = "test";
     private static final int TRIGGER_TYPE_FIXED_RATE = 2;
     private static final int TRIGGER_TYPE_FIXED_DELAY = 3;
     private static final int TRIGGER_SOURCE_SCHEDULE = 1;
@@ -193,14 +193,14 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         schedule.setFireCount(1L);
         schedule.setActiveFireCount(0);
         schedule.setNextFireTime(nextFireTime);
-        schedule.setExecutorRef("currentInvoker");
+        schedule.setExecutorKind("currentInvoker");
         schedule.setJobParams(JsonTool.stringify(Map.of("k", "current")));
         saveSchedule(schedule);
 
         NopJobFire sourceFire = newFire("fire-rerun-1", schedule, _NopJobCoreConstants.FIRE_STATUS_FAILED,
                 TRIGGER_SOURCE_MANUAL, new Timestamp(now - 5_000L));
         sourceFire.setJobParamsSnapshot(JsonTool.stringify(Map.of("k", "source", "x", 1)));
-        sourceFire.setExecutorSnapshot(JsonTool.stringify(Map.of("executorRef", "sourceInvoker", "executorKind", EXECUTOR_KIND_BEAN)));
+        sourceFire.setExecutorKind("sourceInvoker");
         sourceFire.setRetryPolicyId("retry-policy-1");
         saveFire(sourceFire);
 
@@ -223,7 +223,7 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         assertEquals(FIRE_STATUS_WAITING, rerunFire.getFireStatus());
         assertEquals("bob", rerunFire.getTriggeredBy());
         assertEquals(JsonTool.parseMap(sourceFire.getJobParamsSnapshot()), JsonTool.parseMap(rerunFire.getJobParamsSnapshot()));
-        assertEquals(JsonTool.parseMap(sourceFire.getExecutorSnapshot()), JsonTool.parseMap(rerunFire.getExecutorSnapshot()));
+        assertEquals(sourceFire.getExecutorKind(), rerunFire.getExecutorKind());
         assertEquals(sourceFire.getRetryPolicyId(), rerunFire.getRetryPolicyId());
         assertNotNull(rerunFire.getScheduledFireTime());
 
@@ -322,8 +322,7 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         schedule.setJobName(jobName);
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
-        schedule.setExecutorKind(EXECUTOR_KIND_BEAN);
-        schedule.setExecutorRef("testInvoker");
+        schedule.setExecutorKind(EXECUTOR_KIND_TEST);
         schedule.setJobParams(JsonTool.stringify(Map.of("k", "v")));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
         schedule.setRepeatIntervalMs(1000L);
@@ -353,7 +352,7 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         fire.setScheduledFireTime(scheduledFireTime);
         fire.setFireStatus(fireStatus);
         fire.setJobParamsSnapshot(JsonTool.stringify(Map.of("k", "v")));
-        fire.setExecutorSnapshot(JsonTool.stringify(Map.of("executorRef", schedule.getExecutorRef())));
+        fire.setExecutorKind(schedule.getExecutorKind());
         fire.setPartitionIndex(schedule.getPartitionIndex());
         fire.setVersion(0L);
         fire.setCreatedBy("test");

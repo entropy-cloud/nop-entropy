@@ -13,7 +13,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -40,24 +39,24 @@ public class TestDefaultJobInvokerResolver {
         BeanContainer.registerInstance(container);
     }
 
-    private NopJobSchedule buildSchedule(String executorRef) {
+    private NopJobSchedule buildSchedule(String executorKind) {
         NopJobSchedule schedule = new NopJobSchedule();
         schedule.setJobName("testJob");
         schedule.setGroupId("testGroup");
-        schedule.setExecutorRef(executorRef);
+        schedule.setExecutorKind(executorKind);
         return schedule;
     }
 
-    private NopJobFire buildFire(Map<String, Object> executorSnapshot) {
+    private NopJobFire buildFire(String executorKind) {
         NopJobFire fire = new NopJobFire();
-        if (executorSnapshot != null) {
-            fire.getExecutorSnapshotComponent().set_jsonValue(executorSnapshot);
+        if (executorKind != null) {
+            fire.setExecutorKind(executorKind);
         }
         return fire;
     }
 
     @Test
-    void testResolveWithExecutorRef() {
+    void testResolveWithExecutorKind() {
         setupContainer("nopJobInvoker_test", new StubJobInvoker());
         DefaultJobInvokerResolver resolver = new DefaultJobInvokerResolver();
         NopJobSchedule schedule = buildSchedule("test");
@@ -68,18 +67,18 @@ public class TestDefaultJobInvokerResolver {
     }
 
     @Test
-    void testResolveFromExecutorSnapshot() {
+    void testResolveFromFireExecutorKind() {
         setupContainer("nopJobInvoker_myRpc", new StubJobInvoker());
         DefaultJobInvokerResolver resolver = new DefaultJobInvokerResolver();
         NopJobSchedule schedule = buildSchedule("test");
-        NopJobFire fire = buildFire(Map.of("executorRef", "myRpc"));
+        NopJobFire fire = buildFire("myRpc");
 
         IJobInvoker result = resolver.resolveInvoker(schedule, fire);
         assertNotNull(result);
     }
 
     @Test
-    void testEmptyExecutorRefThrows() {
+    void testEmptyExecutorKindThrows() {
         setupContainer("nopJobInvoker_test", new StubJobInvoker());
         DefaultJobInvokerResolver resolver = new DefaultJobInvokerResolver();
         NopJobSchedule schedule = buildSchedule("");
@@ -89,7 +88,7 @@ public class TestDefaultJobInvokerResolver {
     }
 
     @Test
-    void testNullExecutorRefThrows() {
+    void testNullExecutorKindThrows() {
         setupContainer("nopJobInvoker_test", new StubJobInvoker());
         DefaultJobInvokerResolver resolver = new DefaultJobInvokerResolver();
         NopJobSchedule schedule = buildSchedule(null);

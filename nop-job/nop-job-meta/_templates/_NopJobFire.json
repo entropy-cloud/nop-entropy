@@ -16,7 +16,8 @@
   "endTime": "2000-01-01 14:00:00",
   "durationMs": 0,
   "jobParamsSnapshot": "",
-  "executorSnapshot": "",
+  "executorKind": "",
+  "executorKind_label": "",
   "retryPolicyId": "",
   "retryRecordId": "",
   "errorCode": "",
@@ -30,6 +31,5 @@
   "remark": "",
   "jobSchedule": null,
   "jobSchedule.displayName": "",
-  "jobParamsSnapshotComponent": null,
-  "executorSnapshotComponent": null
+  "jobParamsSnapshotComponent": null
 }

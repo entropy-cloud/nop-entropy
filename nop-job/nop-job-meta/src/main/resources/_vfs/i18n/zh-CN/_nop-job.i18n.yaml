@@ -55,8 +55,8 @@ prop:
       endTime: 结束时间
       errorCode: 错误码
       errorMessage: 错误消息
-      executorSnapshot: 执行器快照
-      executorSnapshotComponent: null
+      executorKind: 执行器类型
+      executorKind_label: 执行器类型
       fireStatus: 批次状态
       fireStatus_label: 批次状态
       groupId: 分组
@@ -156,7 +156,6 @@ prop:
       displayName: 显示名
       executorKind: 执行器类型
       executorKind_label: 执行器类型
-      executorRef: 执行器引用
       fireCount: 已触发次数
       groupId: 分组
       jobName: 作业名

@@ -1,5 +1,6 @@
 package io.nop.job.worker.engine;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.job.api.JobInstanceState;
 import io.nop.job.api.execution.IJobExecutionContext;
@@ -10,6 +11,7 @@ import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_EXECUTION_FAILED;
@@ -60,7 +62,7 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
             setJobGroup(schedule.getGroupId());
             setJobName(schedule.getJobName());
             setJobVersion(0L);
-            setJobParams(resolveJobParams(schedule, fire));
+            setJobParams(resolveJobParams(schedule, fire, task));
             setInstanceId(task.getJobTaskId());
             setExecCount(defaultLong(schedule.getFireCount()));
             setScheduledExecTime(toTime(fire.getScheduledFireTime()));
@@ -77,7 +79,7 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
             setAttribute("jobScheduleId", schedule.getJobScheduleId());
             setAttribute("jobFireId", fire.getJobFireId());
             setAttribute("jobTaskId", task.getJobTaskId());
-            setAttribute("executorRef", schedule.getExecutorRef());
+            setAttribute("executorKind", schedule.getExecutorKind());
 
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());
@@ -125,13 +127,28 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
             return scheduleEnabled;
         }
 
-        private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire) {
+        private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
             Map<String, Object> jobParams = fire.getJobParamsSnapshotComponent().get_jsonMap();
-            if (jobParams != null) {
-                return jobParams;
+            if (jobParams == null) {
+                jobParams = schedule.getJobParamsComponent().get_jsonMap();
             }
-            Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
-            return scheduleParams == null ? Collections.emptyMap() : scheduleParams;
+            if (jobParams == null) {
+                jobParams = new HashMap<>();
+            } else {
+                jobParams = new HashMap<>(jobParams);
+            }
+
+            Map<String, Object> taskPayload = task.getTaskPayloadComponent().get_jsonMap();
+            if (taskPayload != null) {
+                Object targetHost = taskPayload.get("targetHost");
+                if (targetHost instanceof String && !((String) targetHost).isBlank()) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> headers = (Map<String, Object>) jobParams.computeIfAbsent("headers", k -> new HashMap<String, Object>());
+                    headers.put(ApiConstants.HEADER_SVC_TARGET_HOST, targetHost);
+                }
+            }
+
+            return jobParams;
         }
 
         private static long toTime(java.sql.Timestamp value) {

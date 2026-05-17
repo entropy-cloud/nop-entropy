@@ -22,7 +22,6 @@ public class DefaultJobTaskBuilder implements IJobTaskBuilder {
         task.setWorkerInstanceId(AppConfig.hostId());
         task.getTaskPayloadComponent().set_jsonValue(Map.of(
                 "jobFireId", fire.getJobFireId(),
-                "executorSnapshot", emptyIfNull(fire.getExecutorSnapshotComponent().get_jsonMap()),
                 "jobParamsSnapshot", emptyIfNull(fire.getJobParamsSnapshotComponent().get_jsonMap())
         ));
         task.setPartitionIndex(fire.getPartitionIndex());

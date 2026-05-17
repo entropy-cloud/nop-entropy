@@ -191,10 +191,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         fire.setUpdatedBy("system");
         fire.setUpdateTime(fireTime);
         fire.setJobParamsSnapshot(JsonTool.stringify(resolveJobParams(schedule, overrideParams)));
-        fire.setExecutorSnapshot(JsonTool.stringify(Map.of(
-                "executorKind", schedule.getExecutorKind(),
-                "executorRef", schedule.getExecutorRef()
-        )));
+        fire.setExecutorKind(schedule.getExecutorKind());
         return fire;
     }
 

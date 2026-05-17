@@ -17,14 +17,15 @@ import java.util.concurrent.CompletionStage;
 
 public class DefaultJobCancelHandler implements IJobCancelHandler {
     static final Logger LOG = LoggerFactory.getLogger(DefaultJobCancelHandler.class);
+    static final String INVOKER_PREFIX = "nopJobInvoker_";
 
     @Override
     public void cancelRunningTask(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-        String executorRef = resolveExecutorRef(schedule, fire);
-        IJobInvoker invoker = resolveInvoker(executorRef);
+        String executorKind = resolveExecutorKind(schedule, fire);
+        IJobInvoker invoker = resolveInvoker(executorKind);
         if (invoker == null) {
-            LOG.debug("nop.job.cancel.invoker-not-found:scheduleId={},fireId={},taskId={},executorRef={}",
-                    schedule.getJobScheduleId(), fire.getJobFireId(), task.getJobTaskId(), executorRef);
+            LOG.debug("nop.job.cancel.invoker-not-found:scheduleId={},fireId={},taskId={},executorKind={}",
+                    schedule.getJobScheduleId(), fire.getJobFireId(), task.getJobTaskId(), executorKind);
             return;
         }
 
@@ -44,22 +45,17 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
         }
     }
 
-    private IJobInvoker resolveInvoker(String executorRef) {
-        if (executorRef == null || executorRef.isBlank() || !BeanContainer.isInitialized()) {
+    private IJobInvoker resolveInvoker(String executorKind) {
+        if (executorKind == null || executorKind.isBlank() || !BeanContainer.isInitialized()) {
             return null;
         }
-
-        Object bean = BeanContainer.tryGetBean(executorRef);
-        if (!(bean instanceof IJobInvoker)) {
-            bean = BeanContainer.tryGetBean("jobInvoker_" + executorRef);
-        }
+        Object bean = BeanContainer.tryGetBean(INVOKER_PREFIX + executorKind);
         return bean instanceof IJobInvoker ? (IJobInvoker) bean : null;
     }
 
-    private String resolveExecutorRef(NopJobSchedule schedule, NopJobFire fire) {
-        Map<String, Object> executorSnapshot = fire.getExecutorSnapshotComponent().get_jsonMap();
-        Object executorRef = executorSnapshot == null ? null : executorSnapshot.get("executorRef");
-        return executorRef instanceof String ? (String) executorRef : schedule.getExecutorRef();
+    private String resolveExecutorKind(NopJobSchedule schedule, NopJobFire fire) {
+        String kind = fire.getExecutorKind();
+        return kind != null ? kind : schedule.getExecutorKind();
     }
 
     private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire) {
@@ -101,7 +97,7 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
             setAttribute("jobScheduleId", schedule.getJobScheduleId());
             setAttribute("jobFireId", fire.getJobFireId());
             setAttribute("jobTaskId", task.getJobTaskId());
-            setAttribute("executorRef", schedule.getExecutorRef());
+            setAttribute("executorKind", schedule.getExecutorKind());
 
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());

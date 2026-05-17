@@ -48,120 +48,116 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     public static final String PROP_NAME_scheduleStatus = "scheduleStatus";
     public static final int PROP_ID_scheduleStatus = 7;
     
-    /* 执行器类型: EXECUTOR_KIND INTEGER */
+    /* 执行器类型: EXECUTOR_KIND VARCHAR */
     public static final String PROP_NAME_executorKind = "executorKind";
     public static final int PROP_ID_executorKind = 8;
     
-    /* 执行器引用: EXECUTOR_REF VARCHAR */
-    public static final String PROP_NAME_executorRef = "executorRef";
-    public static final int PROP_ID_executorRef = 9;
-    
     /* 任务参数: JOB_PARAMS VARCHAR */
     public static final String PROP_NAME_jobParams = "jobParams";
-    public static final int PROP_ID_jobParams = 10;
+    public static final int PROP_ID_jobParams = 9;
     
     /* 触发器类型: TRIGGER_TYPE INTEGER */
     public static final String PROP_NAME_triggerType = "triggerType";
-    public static final int PROP_ID_triggerType = 11;
+    public static final int PROP_ID_triggerType = 10;
     
     /* CRON表达式: CRON_EXPR VARCHAR */
     public static final String PROP_NAME_cronExpr = "cronExpr";
-    public static final int PROP_ID_cronExpr = 12;
+    public static final int PROP_ID_cronExpr = 11;
     
     /* 重复间隔(毫秒): REPEAT_INTERVAL_MS BIGINT */
     public static final String PROP_NAME_repeatIntervalMs = "repeatIntervalMs";
-    public static final int PROP_ID_repeatIntervalMs = 13;
+    public static final int PROP_ID_repeatIntervalMs = 12;
     
     /* 最大执行次数: MAX_EXECUTION_COUNT INTEGER */
     public static final String PROP_NAME_maxExecutionCount = "maxExecutionCount";
-    public static final int PROP_ID_maxExecutionCount = 14;
+    public static final int PROP_ID_maxExecutionCount = 13;
     
     /* 最早调度时间: MIN_SCHEDULE_TIME TIMESTAMP */
     public static final String PROP_NAME_minScheduleTime = "minScheduleTime";
-    public static final int PROP_ID_minScheduleTime = 15;
+    public static final int PROP_ID_minScheduleTime = 14;
     
     /* 最晚调度时间: MAX_SCHEDULE_TIME TIMESTAMP */
     public static final String PROP_NAME_maxScheduleTime = "maxScheduleTime";
-    public static final int PROP_ID_maxScheduleTime = 16;
+    public static final int PROP_ID_maxScheduleTime = 15;
     
     /* Misfire阈值(毫秒): MISFIRE_THRESHOLD_MS INTEGER */
     public static final String PROP_NAME_misfireThresholdMs = "misfireThresholdMs";
-    public static final int PROP_ID_misfireThresholdMs = 17;
+    public static final int PROP_ID_misfireThresholdMs = 16;
     
     /* 使用默认日历: USE_DEFAULT_CALENDAR TINYINT */
     public static final String PROP_NAME_useDefaultCalendar = "useDefaultCalendar";
-    public static final int PROP_ID_useDefaultCalendar = 18;
+    public static final int PROP_ID_useDefaultCalendar = 17;
     
     /* 暂停日历配置: PAUSE_CALENDAR_SPEC VARCHAR */
     public static final String PROP_NAME_pauseCalendarSpec = "pauseCalendarSpec";
-    public static final int PROP_ID_pauseCalendarSpec = 19;
+    public static final int PROP_ID_pauseCalendarSpec = 18;
     
     /* 阻塞策略: BLOCK_STRATEGY INTEGER */
     public static final String PROP_NAME_blockStrategy = "blockStrategy";
-    public static final int PROP_ID_blockStrategy = 20;
+    public static final int PROP_ID_blockStrategy = 19;
     
     /* 超时时间(秒): TIMEOUT_SECONDS INTEGER */
     public static final String PROP_NAME_timeoutSeconds = "timeoutSeconds";
-    public static final int PROP_ID_timeoutSeconds = 21;
+    public static final int PROP_ID_timeoutSeconds = 20;
     
     /* 重试策略ID: RETRY_POLICY_ID VARCHAR */
     public static final String PROP_NAME_retryPolicyId = "retryPolicyId";
-    public static final int PROP_ID_retryPolicyId = 22;
+    public static final int PROP_ID_retryPolicyId = 21;
     
     /* 分区索引: PARTITION_INDEX SMALLINT */
     public static final String PROP_NAME_partitionIndex = "partitionIndex";
-    public static final int PROP_ID_partitionIndex = 23;
+    public static final int PROP_ID_partitionIndex = 22;
     
     /* 已触发次数: FIRE_COUNT BIGINT */
     public static final String PROP_NAME_fireCount = "fireCount";
-    public static final int PROP_ID_fireCount = 24;
+    public static final int PROP_ID_fireCount = 23;
     
     /* 活跃触发数: ACTIVE_FIRE_COUNT INTEGER */
     public static final String PROP_NAME_activeFireCount = "activeFireCount";
-    public static final int PROP_ID_activeFireCount = 25;
+    public static final int PROP_ID_activeFireCount = 24;
     
     /* 上次触发时间: LAST_FIRE_TIME TIMESTAMP */
     public static final String PROP_NAME_lastFireTime = "lastFireTime";
-    public static final int PROP_ID_lastFireTime = 26;
+    public static final int PROP_ID_lastFireTime = 25;
     
     /* 上次结束时间: LAST_END_TIME TIMESTAMP */
     public static final String PROP_NAME_lastEndTime = "lastEndTime";
-    public static final int PROP_ID_lastEndTime = 27;
+    public static final int PROP_ID_lastEndTime = 26;
     
     /* 下次触发时间: NEXT_FIRE_TIME TIMESTAMP */
     public static final String PROP_NAME_nextFireTime = "nextFireTime";
-    public static final int PROP_ID_nextFireTime = 28;
+    public static final int PROP_ID_nextFireTime = 27;
     
     /* 上次触发状态: LAST_FIRE_STATUS INTEGER */
     public static final String PROP_NAME_lastFireStatus = "lastFireStatus";
-    public static final int PROP_ID_lastFireStatus = 29;
+    public static final int PROP_ID_lastFireStatus = 28;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 30;
+    public static final int PROP_ID_version = 29;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 31;
+    public static final int PROP_ID_createdBy = 30;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 32;
+    public static final int PROP_ID_createTime = 31;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 33;
+    public static final int PROP_ID_updatedBy = 32;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 34;
+    public static final int PROP_ID_updateTime = 33;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 35;
+    public static final int PROP_ID_remark = 34;
     
 
-    private static int _PROP_ID_BOUND = 36;
+    private static int _PROP_ID_BOUND = 35;
 
     
     /* component:  */
@@ -174,7 +170,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobScheduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobScheduleId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[36];
+    private static final String[] PROP_ID_TO_NAME = new String[35];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -201,9 +197,6 @@ public class _NopJobSchedule extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_executorKind] = PROP_NAME_executorKind;
           PROP_NAME_TO_ID.put(PROP_NAME_executorKind, PROP_ID_executorKind);
-      
-          PROP_ID_TO_NAME[PROP_ID_executorRef] = PROP_NAME_executorRef;
-          PROP_NAME_TO_ID.put(PROP_NAME_executorRef, PROP_ID_executorRef);
       
           PROP_ID_TO_NAME[PROP_ID_jobParams] = PROP_NAME_jobParams;
           PROP_NAME_TO_ID.put(PROP_NAME_jobParams, PROP_ID_jobParams);
@@ -308,10 +301,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     private java.lang.Integer _scheduleStatus;
     
     /* 执行器类型: EXECUTOR_KIND */
-    private java.lang.Integer _executorKind;
-    
-    /* 执行器引用: EXECUTOR_REF */
-    private java.lang.String _executorRef;
+    private java.lang.String _executorKind;
     
     /* 任务参数: JOB_PARAMS */
     private java.lang.String _jobParams;
@@ -489,9 +479,6 @@ public class _NopJobSchedule extends DynamicOrmEntity{
             case PROP_ID_executorKind:
                return getExecutorKind();
         
-            case PROP_ID_executorRef:
-               return getExecutorRef();
-        
             case PROP_ID_jobParams:
                return getJobParams();
         
@@ -652,22 +639,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
             }
         
             case PROP_ID_executorKind:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_executorKind));
-               }
-               setExecutorKind(typedValue);
-               break;
-            }
-        
-            case PROP_ID_executorRef:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_executorRef));
+                       err-> newTypeConversionError(PROP_NAME_executorKind));
                }
-               setExecutorRef(typedValue);
+               setExecutorKind(typedValue);
                break;
             }
         
@@ -991,14 +968,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         
             case PROP_ID_executorKind:{
                onInitProp(propId);
-               this._executorKind = (java.lang.Integer)value;
-               
-               break;
-            }
-        
-            case PROP_ID_executorRef:{
-               onInitProp(propId);
-               this._executorRef = (java.lang.String)value;
+               this._executorKind = (java.lang.String)value;
                
                break;
             }
@@ -1327,7 +1297,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     /**
      * 执行器类型: EXECUTOR_KIND
      */
-    public final java.lang.Integer getExecutorKind(){
+    public final java.lang.String getExecutorKind(){
          onPropGet(PROP_ID_executorKind);
          return _executorKind;
     }
@@ -1335,29 +1305,10 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     /**
      * 执行器类型: EXECUTOR_KIND
      */
-    public final void setExecutorKind(java.lang.Integer value){
+    public final void setExecutorKind(java.lang.String value){
         if(onPropSet(PROP_ID_executorKind,value)){
             this._executorKind = value;
             internalClearRefs(PROP_ID_executorKind);
-            
-        }
-    }
-    
-    /**
-     * 执行器引用: EXECUTOR_REF
-     */
-    public final java.lang.String getExecutorRef(){
-         onPropGet(PROP_ID_executorRef);
-         return _executorRef;
-    }
-
-    /**
-     * 执行器引用: EXECUTOR_REF
-     */
-    public final void setExecutorRef(java.lang.String value){
-        if(onPropSet(PROP_ID_executorRef,value)){
-            this._executorRef = value;
-            internalClearRefs(PROP_ID_executorRef);
             
         }
     }

@@ -65,7 +65,8 @@ prop:
       endTime: End Time
       durationMs: Duration Ms
       jobParamsSnapshot: Job Params Snapshot
-      executorSnapshot: Executor Snapshot
+      executorKind: Executor Kind
+      executorKind_label: null
       retryPolicyId: Retry Policy Id
       retryRecordId: Retry Record Id
       errorCode: Error Code
@@ -80,7 +81,6 @@ prop:
       jobSchedule: Job Schedule
       jobSchedule.displayName: Job Schedule
       jobParamsSnapshotComponent: null
-      executorSnapshotComponent: null
     NopJobInstance:
       jobInstanceId: Job Instance Id
       jobDefId: Job Definition Id
@@ -156,7 +156,6 @@ prop:
       scheduleStatus_label: null
       executorKind: Executor Kind
       executorKind_label: null
-      executorRef: Executor Ref
       jobParams: Job Params
       triggerType: Trigger Type
       triggerType_label: null
