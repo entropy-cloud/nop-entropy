@@ -40,8 +40,8 @@ This file is the **project-local** quick reference for AI assistants contributin
 | 目录 | 用途 | 什么时候写 |
 |---|---|---|
 | `logs/` | 每日开发上下文、决策记录 | 每次 significant code/doc change（一天一个文件，追加在顶部） |
-| `plans/` | 执行计划（含 status、exit criteria） | 方案已确定、进入实施阶段时。先读 `00-plan-authoring-and-execution-guide.md` |
-| `design/` | 平台子系统的当前设计 truth | 方案确定后。按子系统组织子目录（如 `crud/`、`nop-code/`） |
+| `plans/` | 执行计划（含 status、exit criteria） | 方案已确定、进入实施阶段时。先读 `00-plan-authoring-and-execution-guide.md`。**所有 AI 开发计划必须写在 `ai-dev/plans/` 下，禁止写入 `docs/plans/`** |
+| `design/` | 架构决策 + 使用契约 + 需求规格（**attractor layer**） | 方案确定后。按子系统组织子目录（如 `nop-job/`）。**代码细节以源码为准，不写类签名/方法/字段**。本项目没有独立的需求文档，需求层面的内容也落实到 design 文档中。层级和 precedence model 见 `ai-dev/design/README.md`，编写规范见 `ai-dev/design/00-design-writing-guide.md` |
 | `analysis/` | AI 单方面调研、对比、评估 | 对比多个技术方案、评估现有代码质量时。结论可能被推翻 |
 | `discussions/` | 人与 AI 多轮对话，澄清模糊需求 | 需求不明确、需要多轮问答才能确定时 |
 | `bugs/` | 复杂 bug 的修复记录 | 根因不明显、跨模块、表面与实际原因不一致的 bug。简单 typo 不需要写 |
@@ -54,7 +54,7 @@ This file is the **project-local** quick reference for AI assistants contributin
 ### 开发平台时的路由
 
 1. 先看 `ai-dev/plans/` 了解当前执行计划和状态
-2. 需要设计上下文看 `ai-dev/design/{subsystem}/`
+2. 需要设计上下文先看 `ai-dev/design/README.md` 了解子系统索引和层级，再看具体子系统的 design 文档
 3. 排查复杂 bug 参考 `ai-dev/bugs/`（简单 bug 不需要）
 4. 需求不清晰时启动 `ai-dev/discussions/`
 5. 每个工作日更新 `ai-dev/logs/`
