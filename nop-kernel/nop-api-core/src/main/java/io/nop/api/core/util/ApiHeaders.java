@@ -421,6 +421,14 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_SVC_TAGS, ApiStringHelper.join(tags, ","));
     }
 
+    public static String getSvcTargetHost(ApiMessage message) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_SVC_TARGET_HOST);
+    }
+
+    public static void setSvcTargetHost(ApiMessage message, String host) {
+        message.setHeader(ApiConstants.HEADER_SVC_TARGET_HOST, host);
+    }
+
 
     public static String getBizKey(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_BIZ_KEY);

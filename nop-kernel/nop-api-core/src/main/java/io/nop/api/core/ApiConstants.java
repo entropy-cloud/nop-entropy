@@ -139,6 +139,8 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String HEADER_SVC_TAGS = "nop-svc-tags";
 
+    String HEADER_SVC_TARGET_HOST = "nop-svc-target-host";
+
     /**
      * 服务端的域名和端口
      */
@@ -190,8 +192,6 @@ public interface ApiConstants extends FilterBeanConstants {
      * 服务调用返回success，但是业务层面服务调用没有成功，比如下发订单失败等，在tcc调用端会导致tcc事务回滚。
      */
     String HEADER_BIZ_FAIL = "nop-biz-fail";
-
-    String PROP_TARGET_HOST = "targetHost";
 
     String SYS_PARAM_SELECTION = "@selection";
 
