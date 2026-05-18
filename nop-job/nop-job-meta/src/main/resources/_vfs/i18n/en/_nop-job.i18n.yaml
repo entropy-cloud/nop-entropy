@@ -185,6 +185,10 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      lastDurationMs: Last Duration Ms
+      totalFireCount: Total Fire Count
+      successFireCount: Success Fire Count
+      failFireCount: Fail Fire Count
       jobParamsComponent: null
       pauseCalendarSpecComponent: null
     NopJobTask:
@@ -209,6 +213,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      progress: Progress
+      progressMessage: Progress Message
       jobFire: Job Fire
       taskPayloadComponent: null
       resultPayloadComponent: null

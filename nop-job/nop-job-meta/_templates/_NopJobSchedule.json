@@ -38,6 +38,10 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
+  "lastDurationMs": 0,
+  "totalFireCount": 0,
+  "successFireCount": 0,
+  "failFireCount": 0,
   "jobParamsComponent": null,
   "pauseCalendarSpecComponent": null
 }

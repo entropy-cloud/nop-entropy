@@ -156,12 +156,14 @@ prop:
       displayName: 显示名
       executorKind: 执行器类型
       executorKind_label: 执行器类型
+      failFireCount: 失败触发次数
       fireCount: 已触发次数
       groupId: 分组
       jobName: 作业名
       jobParams: 任务参数
       jobParamsComponent: null
       jobScheduleId: 调度ID
+      lastDurationMs: 上次执行耗时(毫秒)
       lastEndTime: 上次结束时间
       lastFireStatus: 上次触发状态
       lastFireStatus_label: 上次触发状态
@@ -180,7 +182,9 @@ prop:
       retryPolicyId: 重试策略ID
       scheduleStatus: 调度状态
       scheduleStatus_label: 调度状态
+      successFireCount: 成功触发次数
       timeoutSeconds: 超时时间(秒)
+      totalFireCount: 总触发次数
       triggerType: 触发器类型
       triggerType_label: 触发器类型
       updateTime: 修改时间
@@ -198,6 +202,8 @@ prop:
       jobFireId: 批次ID
       jobTaskId: 任务ID
       partitionIndex: 分区索引
+      progress: 执行进度
+      progressMessage: 进度消息
       remark: 备注
       resultPayload: 执行结果
       resultPayloadComponent: null

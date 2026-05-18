@@ -74,6 +74,12 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--执行进度-->
+                <col id="progress" ui:number="true" sortable="true"/>
+
+                <!--进度消息-->
+                <col id="progressMessage" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -91,7 +97,8 @@
  errorMessage[错误消息] partitionIndex[分区索引]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ remark[备注] progress[执行进度]
+ progressMessage[进度消息] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行任务" i18n-en:title="Add Job Task" x:prototype="edit"/>
@@ -104,7 +111,8 @@
  endTime[结束时间] durationMs[执行时长(毫秒)]
  resultPayload[执行结果] errorCode[错误码]
  errorMessage[错误消息] partitionIndex[分区索引]
- remark[备注] 
+ remark[备注] progress[执行进度]
+ progressMessage[进度消息] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

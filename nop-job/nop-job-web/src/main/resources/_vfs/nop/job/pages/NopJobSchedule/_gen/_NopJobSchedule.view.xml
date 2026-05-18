@@ -116,6 +116,18 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--上次执行耗时(毫秒)-->
+                <col id="lastDurationMs" ui:number="true" sortable="true"/>
+
+                <!--总触发次数-->
+                <col id="totalFireCount" ui:number="true" sortable="true"/>
+
+                <!--成功触发次数-->
+                <col id="successFireCount" ui:number="true" sortable="true"/>
+
+                <!--失败触发次数-->
+                <col id="failFireCount" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -140,7 +152,9 @@
  nextFireTime[下次触发时间] lastFireStatus[上次触发状态]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ remark[备注] lastDurationMs[上次执行耗时(毫秒)]
+ totalFireCount[总触发次数] successFireCount[成功触发次数]
+ failFireCount[失败触发次数] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-调度定义" i18n-en:title="Add Job Schedule" x:prototype="edit"/>
@@ -160,7 +174,9 @@
  fireCount[已触发次数] activeFireCount[活跃触发数]
  lastFireTime[上次触发时间] lastEndTime[上次结束时间]
  nextFireTime[下次触发时间] lastFireStatus[上次触发状态]
- remark[备注] 
+ remark[备注] lastDurationMs[上次执行耗时(毫秒)]
+ totalFireCount[总触发次数] successFireCount[成功触发次数]
+ failFireCount[失败触发次数] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

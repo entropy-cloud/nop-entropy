@@ -100,6 +100,14 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="progress" displayName="执行进度" propId="21" i18n-en:displayName="Progress" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="progressMessage" displayName="进度消息" propId="22" i18n-en:displayName="Progress Message"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
         <prop name="jobFire" displayName="触发批次" i18n-en:displayName="Job Fire" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="jobFireId" ext:joinRightProp="jobFireId"
               insertable="false" updatable="false" mandatory="true" lazy="true">
