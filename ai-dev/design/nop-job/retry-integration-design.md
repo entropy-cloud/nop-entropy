@@ -69,7 +69,7 @@ public interface IJobRetryBridge {
      *
      * @return retry_record_id，null 表示未提交重试
      */
-    String onFireFailed(NopJobFire fire, NopJobSchedule schedule);
+    String onFireFailed(JobFireFailedEvent event);
 }
 ```
 
@@ -101,7 +101,7 @@ fire 失败 (FIRE_STATUS_FAILED)
   ↓
 检查 fire.getRetryPolicyId() 或 schedule.getRetryPolicyId()
   ↓ (非空)
-调用 IJobRetryBridge.onFireFailed(fire, schedule)
+调用 IJobRetryBridge.onFireFailed(event)
   ↓
 将返回的 retry_record_id 回填到 fire.setRetryRecordId(...)
   ↓

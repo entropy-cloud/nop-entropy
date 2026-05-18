@@ -36,11 +36,11 @@
 
 Fire 触发时 (快照):
   NopJobFire
-  ├── executorSnapshot   = {"executorKind": "rpc"}      ← JSON，从 schedule 拷贝
+  ├── executorKind       = "rpc"                        ← string，从 schedule 拷贝
   ├── jobParamsSnapshot  = { "serviceName": "..." }     ← JSON，从 schedule 拷贝
 
 Resolver 优先级:
-  1. fire.executorSnapshot → executorKind（优先，保证历史一致性）
+  1. fire.executorKind（优先，保证历史一致性）
   2. schedule.executorKind（fallback）
   3. 拼接 bean name → "nopJobInvoker_rpc"
   4. BeanContainer.tryGetBean → 找不到抛异常
@@ -51,7 +51,6 @@ Resolver 优先级:
 ```java
 public class DefaultJobInvokerResolver implements IJobInvokerResolver {
     static final String INVOKER_PREFIX = "nopJobInvoker_";
-    static final String EXECUTOR_KIND_KEY = "executorKind";
 
     @Override
     public IJobInvoker resolveInvoker(NopJobSchedule schedule, NopJobFire fire) {
@@ -69,15 +68,8 @@ public class DefaultJobInvokerResolver implements IJobInvokerResolver {
     }
 
     protected String resolveExecutorKind(NopJobSchedule schedule, NopJobFire fire) {
-        // 从 executorSnapshot 中取 executorKind
-        Map<String, Object> snapshot = fire.getExecutorSnapshotComponent().get_jsonMap();
-        if (snapshot != null) {
-            Object kind = snapshot.get(EXECUTOR_KIND_KEY);
-            if (kind instanceof String && !((String) kind).isBlank())
-                return (String) kind;
-        }
-        // fallback to schedule's executorKind
-        return schedule.getExecutorKind();
+        String kind = fire.getExecutorKind();
+        return kind != null ? kind : schedule.getExecutorKind();
     }
 }
 ```
@@ -287,7 +279,7 @@ public class RpcDistributedTaskBuilder implements IJobTaskBuilder {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("jobFireId", fire.getJobFireId());
-        payload.put("executorSnapshot", emptyIfNull(fire.getExecutorSnapshotComponent().get_jsonMap()));
+        payload.put("executorKind", fire.getExecutorKind());
         payload.put("jobParamsSnapshot", injectShardingHeaders(fire, instance, shardingIndex, shardingTotal));
         task.getTaskPayloadComponent().set_jsonValue(payload);
 
@@ -342,9 +334,8 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     }
 
     private IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
-        Map<String, Object> snapshot = fire.getExecutorSnapshotComponent().get_jsonMap();
-        Object kind = snapshot == null ? null : snapshot.get("executorKind");
-        if (kind instanceof String executorKind && !executorKind.isBlank()) {
+        String executorKind = fire.getExecutorKind();
+        if (executorKind != null && !executorKind.isBlank()) {
             String beanName = TASK_BUILDER_PREFIX + executorKind;
             IJobTaskBuilder builder = BeanContainer.tryGetBean(beanName);
             if (builder != null)
