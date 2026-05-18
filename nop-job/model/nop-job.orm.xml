@@ -366,6 +366,11 @@
                 <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex"
                         propId="14" stdDataType="short" stdSqlType="SMALLINT"
                         i18n-en:displayName="Partition Index"/>
+                <column code="PROGRESS" displayName="执行进度" name="progress" propId="21"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Progress"/>
+                <column code="PROGRESS_MESSAGE" displayName="进度消息" name="progressMessage" precision="500"
+                        propId="22" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Progress Message"/>
                 <!-- 审计字段 -->
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
                         propId="15" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>

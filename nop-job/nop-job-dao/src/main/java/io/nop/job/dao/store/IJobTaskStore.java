@@ -23,4 +23,6 @@ public interface IJobTaskStore {
     NopJobTask loadTask(String jobTaskId);
 
     long countRunningTasks(String workerInstanceId);
+
+    void updateTaskProgress(String jobTaskId, int progress, String progressMessage);
 }

@@ -93,6 +93,8 @@ CREATE TABLE nop_job_task(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  progress INT4  ,
+  progress_message VARCHAR(500)  ,
   constraint PK_nop_job_task primary key (job_task_id)
 );
 
@@ -272,4 +274,8 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_task.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_job_task.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_job_task.progress IS '执行进度';
+                    
+      COMMENT ON COLUMN nop_job_task.progress_message IS '进度消息';
                     

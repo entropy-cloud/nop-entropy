@@ -33,10 +33,10 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
 
     private IJobScheduleStore scheduleStore;
     private IJobPlannerMetrics plannerMetrics = new EmptyJobPlannerMetrics();
+    private JobPartitionResolver partitionResolver;
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long planningTimeoutMs = 60000;
-    private IntRangeSet assignedPartitions;
     private volatile boolean running;
     private Future<?> scanFuture;
 
@@ -47,6 +47,11 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
 
     public void setPlannerMetrics(IJobPlannerMetrics plannerMetrics) {
         this.plannerMetrics = plannerMetrics;
+    }
+
+    @Inject
+    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
+        this.partitionResolver = partitionResolver;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.scan-interval-ms|5000")
@@ -66,9 +71,10 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
 
     @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
     public void setAssignedPartitions(String partitions) {
-        if (partitions != null && !partitions.isEmpty()) {
-            this.assignedPartitions = IntRangeSet.parse(partitions);
+        if (partitionResolver == null) {
+            partitionResolver = new JobPartitionResolver();
         }
+        partitionResolver.setAssignedPartitions(partitions);
     }
 
     @Override
@@ -100,7 +106,8 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
 
     void scanOnce() {
         try {
-            List<NopJobSchedule> schedules = scheduleStore.fetchDueSchedules(batchSize, assignedPartitions);
+            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+            List<NopJobSchedule> schedules = scheduleStore.fetchDueSchedules(batchSize, partitions);
             if (schedules.isEmpty()) {
                 return;
             }

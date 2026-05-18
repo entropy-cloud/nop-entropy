@@ -100,8 +100,16 @@ public class _NopJobTask extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 20;
     
+    /* 执行进度: PROGRESS INTEGER */
+    public static final String PROP_NAME_progress = "progress";
+    public static final int PROP_ID_progress = 21;
+    
+    /* 进度消息: PROGRESS_MESSAGE VARCHAR */
+    public static final String PROP_NAME_progressMessage = "progressMessage";
+    public static final int PROP_ID_progressMessage = 22;
+    
 
-    private static int _PROP_ID_BOUND = 21;
+    private static int _PROP_ID_BOUND = 23;
 
     
     /* relation: 触发批次 */
@@ -117,7 +125,7 @@ public class _NopJobTask extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobTaskId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobTaskId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[21];
+    private static final String[] PROP_ID_TO_NAME = new String[23];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -181,6 +189,12 @@ public class _NopJobTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_progress] = PROP_NAME_progress;
+          PROP_NAME_TO_ID.put(PROP_NAME_progress, PROP_ID_progress);
+      
+          PROP_ID_TO_NAME[PROP_ID_progressMessage] = PROP_NAME_progressMessage;
+          PROP_NAME_TO_ID.put(PROP_NAME_progressMessage, PROP_ID_progressMessage);
+      
     }
 
     
@@ -243,6 +257,12 @@ public class _NopJobTask extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 执行进度: PROGRESS */
+    private java.lang.Integer _progress;
+    
+    /* 进度消息: PROGRESS_MESSAGE */
+    private java.lang.String _progressMessage;
     
 
     public _NopJobTask(){
@@ -377,6 +397,12 @@ public class _NopJobTask extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_progress:
+               return getProgress();
+        
+            case PROP_ID_progressMessage:
+               return getProgressMessage();
         
            default:
               return super.orm_propValue(propId);
@@ -589,6 +615,26 @@ public class _NopJobTask extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_progress:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_progress));
+               }
+               setProgress(typedValue);
+               break;
+            }
+        
+            case PROP_ID_progressMessage:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_progressMessage));
+               }
+               setProgressMessage(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -734,6 +780,20 @@ public class _NopJobTask extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_progress:{
+               onInitProp(propId);
+               this._progress = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_progressMessage:{
+               onInitProp(propId);
+               this._progressMessage = (java.lang.String)value;
                
                break;
             }
@@ -1120,6 +1180,44 @@ public class _NopJobTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 执行进度: PROGRESS
+     */
+    public final java.lang.Integer getProgress(){
+         onPropGet(PROP_ID_progress);
+         return _progress;
+    }
+
+    /**
+     * 执行进度: PROGRESS
+     */
+    public final void setProgress(java.lang.Integer value){
+        if(onPropSet(PROP_ID_progress,value)){
+            this._progress = value;
+            internalClearRefs(PROP_ID_progress);
+            
+        }
+    }
+    
+    /**
+     * 进度消息: PROGRESS_MESSAGE
+     */
+    public final java.lang.String getProgressMessage(){
+         onPropGet(PROP_ID_progressMessage);
+         return _progressMessage;
+    }
+
+    /**
+     * 进度消息: PROGRESS_MESSAGE
+     */
+    public final void setProgressMessage(java.lang.String value){
+        if(onPropSet(PROP_ID_progressMessage,value)){
+            this._progressMessage = value;
+            internalClearRefs(PROP_ID_progressMessage);
             
         }
     }

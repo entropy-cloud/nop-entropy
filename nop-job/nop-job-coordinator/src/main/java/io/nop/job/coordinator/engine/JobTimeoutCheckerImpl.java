@@ -35,9 +35,9 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     private IJobFireStore fireStore;
     private IJobScheduleStore scheduleStore;
     private IJobCancelHandler cancelHandler;
+    private JobPartitionResolver partitionResolver;
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
-    private IntRangeSet assignedPartitions;
     private volatile boolean running;
     private Future<?> scanFuture;
 
@@ -61,6 +61,11 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         this.cancelHandler = cancelHandler;
     }
 
+    @Inject
+    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
+        this.partitionResolver = partitionResolver;
+    }
+
     @InjectValue("@cfg:nop.job.coordinator.timeout.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
         this.scanIntervalMs = scanIntervalMs;
@@ -73,9 +78,10 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
 
     @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
     public void setAssignedPartitions(String partitions) {
-        if (partitions != null && !partitions.isEmpty()) {
-            this.assignedPartitions = IntRangeSet.parse(partitions);
+        if (partitionResolver == null) {
+            partitionResolver = new JobPartitionResolver();
         }
+        partitionResolver.setAssignedPartitions(partitions);
     }
 
     @Override
@@ -107,7 +113,8 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
 
     void scanOnce() {
         try {
-            List<NopJobTask> tasks = taskStore.fetchRunningTasks(batchSize, assignedPartitions);
+            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+            List<NopJobTask> tasks = taskStore.fetchRunningTasks(batchSize, partitions);
             if (tasks.isEmpty()) {
                 return;
             }

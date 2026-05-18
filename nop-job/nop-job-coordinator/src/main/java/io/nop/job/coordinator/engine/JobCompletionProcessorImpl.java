@@ -6,6 +6,10 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.job.api.alarm.IJobAlarmHandler;
+import io.nop.job.api.alarm.JobAlarmEvent;
+import io.nop.job.api.retry.IJobRetryBridge;
+import io.nop.job.api.retry.JobFireFailedEvent;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
@@ -36,9 +40,11 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
     private IJobScheduleStore scheduleStore;
     private IJobTaskStore taskStore;
     private IJobCompletionMetrics completionMetrics = new EmptyJobCompletionMetrics();
+    private IJobRetryBridge retryBridge = new io.nop.job.coordinator.retry.NoOpJobRetryBridge();
+    private IJobAlarmHandler alarmHandler = new io.nop.job.coordinator.alarm.NoOpJobAlarmHandler();
+    private JobPartitionResolver partitionResolver;
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
-    private IntRangeSet assignedPartitions;
     private volatile boolean running;
     private Future<?> scanFuture;
 
@@ -61,6 +67,21 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         this.completionMetrics = completionMetrics;
     }
 
+    @Inject
+    public void setRetryBridge(IJobRetryBridge retryBridge) {
+        this.retryBridge = retryBridge;
+    }
+
+    @Inject
+    public void setAlarmHandler(IJobAlarmHandler alarmHandler) {
+        this.alarmHandler = alarmHandler;
+    }
+
+    @Inject
+    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
+        this.partitionResolver = partitionResolver;
+    }
+
     @InjectValue("@cfg:nop.job.coordinator.completion.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
         this.scanIntervalMs = scanIntervalMs;
@@ -73,9 +94,10 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
 
     @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
     public void setAssignedPartitions(String partitions) {
-        if (partitions != null && !partitions.isEmpty()) {
-            this.assignedPartitions = IntRangeSet.parse(partitions);
+        if (partitionResolver == null) {
+            partitionResolver = new JobPartitionResolver();
         }
+        partitionResolver.setAssignedPartitions(partitions);
     }
 
     @Override
@@ -107,7 +129,8 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
 
     void scanOnce() {
         try {
-            List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, assignedPartitions);
+            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+            List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, partitions);
             int completedCount = 0;
             for (NopJobFire fire : fires) {
                 if (tryCompleteFireAndGetStatus(fire) != null) {
@@ -182,10 +205,52 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             completionMetrics.onFireSuccess(duration);
         } else if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT) {
             completionMetrics.onFireTimeout(duration);
+            handleAlarmTimeout(fire, schedule, duration);
         } else {
             completionMetrics.onFireFailure(duration);
+            handleRetryAndAlarm(fire, schedule, duration);
         }
         return finalFireStatus;
+    }
+
+    private void handleRetryAndAlarm(NopJobFire fire, NopJobSchedule schedule, long duration) {
+        String retryPolicyId = fire.getRetryPolicyId() != null
+                ? fire.getRetryPolicyId() : schedule.getRetryPolicyId();
+        if (retryPolicyId != null && !retryPolicyId.isEmpty()) {
+            try {
+                JobFireFailedEvent event = new JobFireFailedEvent(
+                        fire.getJobFireId(), fire.getJobScheduleId(), retryPolicyId,
+                        schedule.getNamespaceId(), schedule.getGroupId(), schedule.getJobName(),
+                        fire.getExecutorKind(), fire.getErrorCode(), fire.getErrorMessage());
+                String retryRecordId = retryBridge.onFireFailed(event);
+                if (retryRecordId != null) {
+                    fire.setRetryRecordId(retryRecordId);
+                }
+            } catch (Exception e) {
+                LOG.error("nop.job.retry.bridge-failed:fireId={}", fire.getJobFireId(), e);
+            }
+        }
+        try {
+            JobAlarmEvent alarmEvent = new JobAlarmEvent(
+                    fire.getJobFireId(), fire.getJobScheduleId(), schedule.getJobName(),
+                    schedule.getNamespaceId(), schedule.getGroupId(), fire.getErrorCode(),
+                    fire.getErrorMessage(), duration);
+            alarmHandler.onFireFailed(alarmEvent);
+        } catch (Exception e) {
+            LOG.error("nop.job.alarm.failed:fireId={}", fire.getJobFireId(), e);
+        }
+    }
+
+    private void handleAlarmTimeout(NopJobFire fire, NopJobSchedule schedule, long duration) {
+        try {
+            JobAlarmEvent alarmEvent = new JobAlarmEvent(
+                    fire.getJobFireId(), fire.getJobScheduleId(), schedule.getJobName(),
+                    schedule.getNamespaceId(), schedule.getGroupId(), fire.getErrorCode(),
+                    fire.getErrorMessage(), duration);
+            alarmHandler.onFireTimeout(alarmEvent);
+        } catch (Exception e) {
+            LOG.error("nop.job.alarm.timeout-failed:fireId={}", fire.getJobFireId(), e);
+        }
     }
 
     private FireCompletionDecision resolveCompletionDecision(List<NopJobTask> tasks) {

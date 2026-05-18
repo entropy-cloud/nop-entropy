@@ -6,11 +6,20 @@
 
     <import resource="_engine.beans.xml"/>
 
+    <bean id="jobPartitionResolver" class="io.nop.job.coordinator.engine.JobPartitionResolver"/>
+
+    <bean id="io.nop.job.api.retry.IJobRetryBridge"
+          class="io.nop.job.coordinator.retry.NoOpJobRetryBridge"/>
+
+    <bean id="io.nop.job.api.alarm.IJobAlarmHandler"
+          class="io.nop.job.coordinator.alarm.LoggingJobAlarmHandler"/>
+
     <bean id="io.nop.job.coordinator.engine.IJobPlannerScanner"
           class="io.nop.job.coordinator.engine.JobPlannerScannerImpl">
         <property name="plannerMetrics">
             <bean class="io.nop.job.coordinator.metrics.JobPlannerMetricsImpl"/>
         </property>
+        <property name="partitionResolver" ref="jobPartitionResolver"/>
     </bean>
 
     <bean id="nopJobTaskBuilder_default" class="io.nop.job.coordinator.engine.DefaultJobTaskBuilder"/>
@@ -19,16 +28,21 @@
     <bean id="io.nop.job.coordinator.engine.IJobDispatcherScanner"
           class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl">
         <property name="defaultTaskBuilder" ref="nopJobTaskBuilder_default"/>
+        <property name="partitionResolver" ref="jobPartitionResolver"/>
     </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobCancelHandler"
           class="io.nop.job.coordinator.engine.DefaultJobCancelHandler"/>
 
     <bean id="io.nop.job.coordinator.engine.IJobCompletionProcessor"
-          class="io.nop.job.coordinator.engine.JobCompletionProcessorImpl"/>
+          class="io.nop.job.coordinator.engine.JobCompletionProcessorImpl">
+        <property name="partitionResolver" ref="jobPartitionResolver"/>
+    </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobTimeoutChecker"
-          class="io.nop.job.coordinator.engine.JobTimeoutCheckerImpl"/>
+          class="io.nop.job.coordinator.engine.JobTimeoutCheckerImpl">
+        <property name="partitionResolver" ref="jobPartitionResolver"/>
+    </bean>
 
     <bean id="io.nop.job.coordinator.engine.JobCoordinator"
           class="io.nop.job.coordinator.engine.JobCoordinator"/>

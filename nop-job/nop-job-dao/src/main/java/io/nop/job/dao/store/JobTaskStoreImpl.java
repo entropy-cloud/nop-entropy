@@ -113,6 +113,15 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         return taskDao().countByQuery(query);
     }
 
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public void updateTaskProgress(String jobTaskId, int progress, String progressMessage) {
+        NopJobTask task = taskDao().requireEntityById(jobTaskId);
+        task.setProgress(progress);
+        task.setProgressMessage(progressMessage);
+        taskDao().updateEntityDirectly(task);
+    }
+
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
         if (partitions == null || partitions.isEmpty()) {
             return;

@@ -27,10 +27,10 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     private IJobFireStore fireStore;
     private IJobTaskBuilder defaultTaskBuilder;
     private IJobDispatcherMetrics dispatcherMetrics = new EmptyJobDispatcherMetrics();
+    private JobPartitionResolver partitionResolver;
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long lockTimeoutMs = 60000;
-    private IntRangeSet assignedPartitions;
     private volatile boolean running;
     private Future<?> scanFuture;
 
@@ -46,6 +46,11 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
     public void setDispatcherMetrics(IJobDispatcherMetrics dispatcherMetrics) {
         this.dispatcherMetrics = dispatcherMetrics;
+    }
+
+    @Inject
+    public void setPartitionResolver(JobPartitionResolver partitionResolver) {
+        this.partitionResolver = partitionResolver;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.scan-interval-ms|5000")
@@ -65,9 +70,10 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
     @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
     public void setAssignedPartitions(String partitions) {
-        if (partitions != null && !partitions.isEmpty()) {
-            this.assignedPartitions = IntRangeSet.parse(partitions);
+        if (partitionResolver == null) {
+            partitionResolver = new JobPartitionResolver();
         }
+        partitionResolver.setAssignedPartitions(partitions);
     }
 
     @Override
@@ -99,7 +105,8 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
     void scanOnce() {
         try {
-            var fires = fireStore.fetchWaitingFires(batchSize, assignedPartitions);
+            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+            var fires = fireStore.fetchWaitingFires(batchSize, partitions);
             if (fires.isEmpty()) {
                 return;
             }
