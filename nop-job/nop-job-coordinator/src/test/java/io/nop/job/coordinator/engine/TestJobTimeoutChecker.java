@@ -289,6 +289,84 @@ public class TestJobTimeoutChecker {
         assertEquals(_NopJobCoreConstants.TASK_STATUS_RUNNING, task.getTaskStatus());
     }
 
+    @Test
+    void testBatchResilience_taskTimeout_singleFailureDoesNotAbortBatch() {
+        NopJobTask task1 = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task1.setWorkerInstanceId("worker-a");
+        task1.setStartTime(new Timestamp(currentTime - 120000));
+
+        NopJobTask task2 = createTask("t2", "f2", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task2.setWorkerInstanceId("worker-a");
+        task2.setStartTime(new Timestamp(currentTime - 120000));
+
+        MockTaskStore explodingStore = new MockTaskStore() {
+            @Override
+            public void updateTask(NopJobTask task) {
+                if ("t2".equals(task.getJobTaskId())) {
+                    throw new RuntimeException("simulated update failure for t2");
+                }
+                super.updateTask(task);
+            }
+        };
+        explodingStore.addRunningTask(task1);
+        explodingStore.addRunningTask(task2);
+        checker.setTaskStore(explodingStore);
+
+        namingService.setAliveInstances(List.of("worker-a"));
+
+        NopJobFire fire1 = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        NopJobFire fire2 = createFire("f2", "s2", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f1", fire1);
+        fireStore.addFire("f2", fire2);
+
+        NopJobSchedule schedule1 = createSchedule("s1", "job1");
+        schedule1.setTimeoutSeconds(60);
+        NopJobSchedule schedule2 = createSchedule("s2", "job2");
+        schedule2.setTimeoutSeconds(60);
+        scheduleStore.addSchedule("s1", schedule1);
+        scheduleStore.addSchedule("s2", schedule2);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task1.getTaskStatus());
+    }
+
+    @Test
+    void testBatchResilience_dispatchTimeout_singleFailureDoesNotAbortBatch() {
+        NopJobFire fire1 = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_DISPATCHING,
+                new Timestamp(currentTime - 10000));
+        NopJobFire fire2 = createFire("f2", "s2", _NopJobCoreConstants.FIRE_STATUS_DISPATCHING,
+                new Timestamp(currentTime - 10000));
+
+        fireStore.addDispatchingFire(fire1);
+        fireStore.addDispatchingFire(fire2);
+
+        NopJobSchedule schedule1 = createSchedule("s1", "job1");
+        scheduleStore.addSchedule("s1", schedule1);
+
+        MockScheduleStore explodingScheduleStore = new MockScheduleStore() {
+            @Override
+            public NopJobSchedule loadSchedule(String scheduleId) {
+                if ("s2".equals(scheduleId)) {
+                    throw new RuntimeException("simulated load failure for s2");
+                }
+                return super.loadSchedule(scheduleId);
+            }
+        };
+        explodingScheduleStore.addSchedule("s1", schedule1);
+        NopJobSchedule schedule2 = createSchedule("s2", "job2");
+        explodingScheduleStore.addSchedule("s2", schedule2);
+        explodingScheduleStore.setCurrentTime(currentTime);
+        checker.setScheduleStore(explodingScheduleStore);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire1.getFireStatus());
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING, fire2.getFireStatus());
+    }
+
     private NopJobTask createTask(String taskId, String fireId, int status) {
         NopJobTask task = new NopJobTask();
         task.setJobTaskId(taskId);

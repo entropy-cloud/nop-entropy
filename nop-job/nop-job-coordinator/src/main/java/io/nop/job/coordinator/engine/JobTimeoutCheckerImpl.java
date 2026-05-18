@@ -174,10 +174,14 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         Set<String> aliveWorkerIds = resolveAliveWorkerIds();
 
         for (NopJobTask task : tasks) {
-            if (aliveWorkerIds != null) {
-                tryMarkSuspiciousIfWorkerGone(task, aliveWorkerIds);
+            try {
+                if (aliveWorkerIds != null) {
+                    tryMarkSuspiciousIfWorkerGone(task, aliveWorkerIds);
+                }
+                tryMarkTimeout(task, fireMap, scheduleMap);
+            } catch (Exception e) {
+                LOG.error("nop.job.timeout.task-check-failed:taskId={}", task.getJobTaskId(), e);
             }
-            tryMarkTimeout(task, fireMap, scheduleMap);
         }
     }
 
@@ -235,17 +239,21 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         long now = scheduleStore.getCurrentTime();
 
         for (NopJobFire fire : dispatchingFires) {
-            Timestamp startTime = fire.getStartTime();
-            if (startTime == null) {
-                continue;
-            }
+            try {
+                Timestamp startTime = fire.getStartTime();
+                if (startTime == null) {
+                    continue;
+                }
 
-            long deadline = startTime.getTime() + dispatchTimeoutMs;
-            if (now < deadline) {
-                continue;
-            }
+                long deadline = startTime.getTime() + dispatchTimeoutMs;
+                if (now < deadline) {
+                    continue;
+                }
 
-            tryMarkDispatchTimeout(fire, now);
+                tryMarkDispatchTimeout(fire, now);
+            } catch (Exception e) {
+                LOG.error("nop.job.timeout.dispatch-check-failed:fireId={}", fire.getJobFireId(), e);
+            }
         }
     }
 
