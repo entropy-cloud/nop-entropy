@@ -21,4 +21,6 @@ public interface IJobTaskStore {
     List<NopJobTask> findTasksByFireId(String jobFireId);
 
     NopJobTask loadTask(String jobTaskId);
+
+    long countRunningTasks(String workerInstanceId);
 }

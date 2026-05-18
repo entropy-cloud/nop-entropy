@@ -160,6 +160,22 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="lastDurationMs" displayName="上次执行耗时(毫秒)" propId="35" i18n-en:displayName="Last Duration Ms"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="totalFireCount" displayName="总触发次数" propId="36" i18n-en:displayName="Total Fire Count"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="successFireCount" displayName="成功触发次数" propId="37" i18n-en:displayName="Success Fire Count"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="failFireCount" displayName="失败触发次数" propId="38" i18n-en:displayName="Fail Fire Count"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Long"/>
+        </prop>
         <prop name="jobParamsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

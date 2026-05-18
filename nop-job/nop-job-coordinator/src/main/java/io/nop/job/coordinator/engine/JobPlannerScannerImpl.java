@@ -146,6 +146,11 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
                     continue;
                 }
 
+                if (shouldRecovery(schedule)) {
+                    scheduleStore.recoveryFireAndAdvanceSchedule(schedule, nextFireTime);
+                    continue;
+                }
+
                 NopJobFire fire = buildFire(schedule, dueFireTime);
                 if (shouldOverlay(schedule)) {
                     scheduleStore.overlayFireAndAdvanceSchedule(schedule, fire, nextFireTime,
@@ -268,6 +273,11 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
         return defaultInt(schedule.getActiveFireCount()) > 0
                 && schedule.getBlockStrategy() != null
                 && schedule.getBlockStrategy() == _NopJobCoreConstants.BLOCK_STRATEGY_OVERLAY;
+    }
+
+    private boolean shouldRecovery(NopJobSchedule schedule) {
+        return schedule.getBlockStrategy() != null
+                && schedule.getBlockStrategy() == _NopJobCoreConstants.BLOCK_STRATEGY_RECOVERY;
     }
 
     private long toTime(Timestamp value) {

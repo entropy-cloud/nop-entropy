@@ -35,9 +35,13 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     private static final int FIRE_STATUS_DISPATCHING = 10;
     private static final int FIRE_STATUS_RUNNING = 20;
     private static final int FIRE_STATUS_CANCELED = 60;
+    private static final int FIRE_STATUS_FAILED = 40;
+    private static final int FIRE_STATUS_TIMEOUT = 50;
     private static final int TASK_STATUS_WAITING = 0;
     private static final int TASK_STATUS_CLAIMED = 10;
     private static final int TASK_STATUS_RUNNING = 20;
+    private static final int TASK_STATUS_FAILED = 40;
+    private static final int TASK_STATUS_TIMEOUT = 50;
     private static final int TASK_STATUS_CANCELED = 60;
 
     private IDaoProvider daoProvider;
@@ -133,6 +137,42 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         }
         schedule.setUpdatedBy("system");
         schedule.setUpdateTime(cancelTime);
+        scheduleDao().updateEntityDirectly(schedule);
+    }
+
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public void recoveryFireAndAdvanceSchedule(NopJobSchedule schedule, Timestamp nextFireTime) {
+        List<NopJobFire> failedFires = findFailedFires(schedule.getJobScheduleId());
+
+        if (failedFires.isEmpty()) {
+            long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+            schedule.setNextFireTime(nextFireTime);
+            schedule.setUpdatedBy("system");
+            schedule.setUpdateTime(new Timestamp(now));
+            scheduleDao().updateEntityDirectly(schedule);
+            return;
+        }
+
+        long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+        Timestamp recoveryTime = new Timestamp(now);
+
+        NopJobFire failedFire = failedFires.get(0);
+        failedFire.setFireStatus(FIRE_STATUS_WAITING);
+        failedFire.setErrorCode(null);
+        failedFire.setErrorMessage(null);
+        failedFire.setEndTime(null);
+        failedFire.setDurationMs(null);
+        failedFire.setUpdatedBy("system");
+        failedFire.setUpdateTime(recoveryTime);
+        fireDao().updateEntityDirectly(failedFire);
+
+        resetFailedTasks(failedFire.getJobFireId(), recoveryTime);
+
+        schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
+        schedule.setNextFireTime(nextFireTime);
+        schedule.setUpdatedBy("system");
+        schedule.setUpdateTime(recoveryTime);
         scheduleDao().updateEntityDirectly(schedule);
     }
 
@@ -235,6 +275,44 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     private boolean isOverlay(NopJobSchedule schedule) {
         return schedule.getBlockStrategy() != null
                 && schedule.getBlockStrategy() == _NopJobCoreConstants.BLOCK_STRATEGY_OVERLAY;
+    }
+
+    private List<NopJobFire> findFailedFires(String jobScheduleId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_jobScheduleId, jobScheduleId));
+        query.addFilter(FilterBeans.in(_NopJobFire.PROP_NAME_fireStatus,
+                List.of(FIRE_STATUS_FAILED, FIRE_STATUS_TIMEOUT)));
+        query.addOrderField(_NopJobFire.PROP_NAME_scheduledFireTime, false);
+        query.addOrderField(_NopJobFire.PROP_NAME_jobFireId, false);
+        query.setLimit(1);
+        return fireDao().findAllByQuery(query);
+    }
+
+    private void resetFailedTasks(String jobFireId, Timestamp recoveryTime) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(_NopJobTask.PROP_NAME_jobFireId, jobFireId));
+        List<NopJobTask> tasks = taskDao().findAllByQuery(query);
+        for (NopJobTask task : tasks) {
+            if (!isTaskFailed(task.getTaskStatus())) {
+                continue;
+            }
+            task.setTaskStatus(TASK_STATUS_WAITING);
+            task.setStartTime(null);
+            task.setEndTime(null);
+            task.setDurationMs(null);
+            task.setErrorCode(null);
+            task.setErrorMessage(null);
+            task.setUpdatedBy("system");
+            task.setUpdateTime(recoveryTime);
+            taskDao().updateEntityDirectly(task);
+        }
+    }
+
+    private boolean isTaskFailed(Integer taskStatus) {
+        return taskStatus != null
+                && (taskStatus == TASK_STATUS_CANCELED
+                || taskStatus == TASK_STATUS_FAILED
+                || taskStatus == TASK_STATUS_TIMEOUT);
     }
 
     private void cancelFire(NopJobFire fire, Timestamp cancelTime) {

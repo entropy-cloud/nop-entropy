@@ -34,6 +34,10 @@ CREATE TABLE nop_job_schedule(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  last_duration_ms INT8  ,
+  total_fire_count INT8 default 0   ,
+  success_fire_count INT8 default 0   ,
+  fail_fire_count INT8 default 0   ,
   constraint PK_nop_job_schedule primary key (job_schedule_id)
 );
 
@@ -162,6 +166,14 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_schedule.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_job_schedule.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_job_schedule.last_duration_ms IS '上次执行耗时(毫秒)';
+                    
+      COMMENT ON COLUMN nop_job_schedule.total_fire_count IS '总触发次数';
+                    
+      COMMENT ON COLUMN nop_job_schedule.success_fire_count IS '成功触发次数';
+                    
+      COMMENT ON COLUMN nop_job_schedule.fail_fire_count IS '失败触发次数';
                     
       COMMENT ON TABLE nop_job_fire IS '触发批次';
                 

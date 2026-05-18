@@ -23,6 +23,8 @@ public interface IJobScheduleStore {
     void overlayFireAndAdvanceSchedule(NopJobSchedule schedule, NopJobFire fire, Timestamp nextFireTime,
                                        Integer lastFireStatus);
 
+    void recoveryFireAndAdvanceSchedule(NopJobSchedule schedule, Timestamp nextFireTime);
+
     void insertManualFire(NopJobSchedule schedule, NopJobFire fire);
 
     NopJobSchedule loadSchedule(String jobScheduleId);

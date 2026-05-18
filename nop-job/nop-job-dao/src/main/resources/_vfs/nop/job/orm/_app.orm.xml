@@ -54,6 +54,7 @@
             <option code="DISCARD" label="丢弃" value="1"/>
             <option code="OVERLAY" label="覆盖" value="2"/>
             <option code="PARALLEL" label="并行" value="3"/>
+            <option code="RECOVERY" label="恢复" value="4"/>
         </dict>
         <dict label="触发器类型" name="job/trigger-type" valueType="int" i18n-en:label="Trigger Type">
             <option code="CRON" label="CRON" value="1"/>
@@ -169,6 +170,14 @@
                         propId="33" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="34"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="LAST_DURATION_MS" displayName="上次执行耗时(毫秒)" name="lastDurationMs" propId="35"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Last Duration Ms"/>
+                <column code="TOTAL_FIRE_COUNT" defaultValue="0" displayName="总触发次数" name="totalFireCount" propId="36"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Total Fire Count"/>
+                <column code="SUCCESS_FIRE_COUNT" defaultValue="0" displayName="成功触发次数" name="successFireCount"
+                        propId="37" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Success Fire Count"/>
+                <column code="FAIL_FIRE_COUNT" defaultValue="0" displayName="失败触发次数" name="failFireCount" propId="38"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Fail Fire Count"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_SCHEDULE_SCAN" unique="false">

@@ -44,6 +44,7 @@
             <option code="DISCARD" label="丢弃" value="1"/>
             <option code="OVERLAY" label="覆盖" value="2"/>
             <option code="PARALLEL" label="并行" value="3"/>
+            <option code="RECOVERY" label="恢复" value="4"/>
         </dict>
         <dict label="触发器类型" name="job/trigger-type" valueType="int" i18n-en:label="Trigger Type">
             <option code="CRON" label="CRON" value="1"/>
@@ -159,6 +160,14 @@
                 <column code="LAST_FIRE_STATUS" displayName="上次触发状态" name="lastFireStatus" propId="28"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Last Fire Status"
                         ext:dict="job/fire-status"/>
+                <column code="LAST_DURATION_MS" displayName="上次执行耗时(毫秒)" name="lastDurationMs" propId="35"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Last Duration Ms"/>
+                <column code="TOTAL_FIRE_COUNT" defaultValue="0" displayName="总触发次数" name="totalFireCount"
+                        propId="36" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Total Fire Count"/>
+                <column code="SUCCESS_FIRE_COUNT" defaultValue="0" displayName="成功触发次数" name="successFireCount"
+                        propId="37" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Success Fire Count"/>
+                <column code="FAIL_FIRE_COUNT" defaultValue="0" displayName="失败触发次数" name="failFireCount"
+                        propId="38" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Fail Fire Count"/>
                 <!-- 审计字段 -->
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
                         propId="29" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>

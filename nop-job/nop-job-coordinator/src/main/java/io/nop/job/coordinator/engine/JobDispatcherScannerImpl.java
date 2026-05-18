@@ -10,6 +10,8 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
+import io.nop.job.coordinator.metrics.EmptyJobDispatcherMetrics;
+import io.nop.job.coordinator.metrics.IJobDispatcherMetrics;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,7 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
     private IJobFireStore fireStore;
     private IJobTaskBuilder defaultTaskBuilder;
+    private IJobDispatcherMetrics dispatcherMetrics = new EmptyJobDispatcherMetrics();
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long lockTimeoutMs = 60000;
@@ -39,6 +42,10 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     @Inject
     public void setDefaultTaskBuilder(IJobTaskBuilder defaultTaskBuilder) {
         this.defaultTaskBuilder = defaultTaskBuilder;
+    }
+
+    public void setDispatcherMetrics(IJobDispatcherMetrics dispatcherMetrics) {
+        this.dispatcherMetrics = dispatcherMetrics;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.scan-interval-ms|5000")
@@ -97,11 +104,23 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
                 return;
             }
 
+            dispatcherMetrics.onWaitingFires(fires.size());
+
             var locked = fireStore.tryLockFiresForDispatch(fires, AppConfig.hostId(), lockTimeoutMs);
+
+            int conflictCount = fires.size() - locked.size();
+            if (conflictCount > 0) {
+                dispatcherMetrics.onDispatchConflicts(conflictCount);
+            }
+
             for (NopJobFire fire : locked) {
                 IJobTaskBuilder builder = resolveTaskBuilder(fire);
                 List<NopJobTask> tasks = builder.buildTasks(fire);
                 fireStore.insertTasksAndMarkFireDispatching(fire, tasks);
+            }
+
+            if (!locked.isEmpty()) {
+                dispatcherMetrics.onFiresDispatched(locked.size());
             }
         } catch (Exception e) {
             LOG.error("nop.job.dispatcher.scan-failed", e);

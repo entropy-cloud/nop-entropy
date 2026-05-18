@@ -156,8 +156,24 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 34;
     
+    /* 上次执行耗时(毫秒): LAST_DURATION_MS BIGINT */
+    public static final String PROP_NAME_lastDurationMs = "lastDurationMs";
+    public static final int PROP_ID_lastDurationMs = 35;
+    
+    /* 总触发次数: TOTAL_FIRE_COUNT BIGINT */
+    public static final String PROP_NAME_totalFireCount = "totalFireCount";
+    public static final int PROP_ID_totalFireCount = 36;
+    
+    /* 成功触发次数: SUCCESS_FIRE_COUNT BIGINT */
+    public static final String PROP_NAME_successFireCount = "successFireCount";
+    public static final int PROP_ID_successFireCount = 37;
+    
+    /* 失败触发次数: FAIL_FIRE_COUNT BIGINT */
+    public static final String PROP_NAME_failFireCount = "failFireCount";
+    public static final int PROP_ID_failFireCount = 38;
+    
 
-    private static int _PROP_ID_BOUND = 35;
+    private static int _PROP_ID_BOUND = 39;
 
     
     /* component:  */
@@ -170,7 +186,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobScheduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobScheduleId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[35];
+    private static final String[] PROP_ID_TO_NAME = new String[39];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -276,6 +292,18 @@ public class _NopJobSchedule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_lastDurationMs] = PROP_NAME_lastDurationMs;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastDurationMs, PROP_ID_lastDurationMs);
+      
+          PROP_ID_TO_NAME[PROP_ID_totalFireCount] = PROP_NAME_totalFireCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_totalFireCount, PROP_ID_totalFireCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_successFireCount] = PROP_NAME_successFireCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_successFireCount, PROP_ID_successFireCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_failFireCount] = PROP_NAME_failFireCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_failFireCount, PROP_ID_failFireCount);
+      
     }
 
     
@@ -380,6 +408,18 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 上次执行耗时(毫秒): LAST_DURATION_MS */
+    private java.lang.Long _lastDurationMs;
+    
+    /* 总触发次数: TOTAL_FIRE_COUNT */
+    private java.lang.Long _totalFireCount;
+    
+    /* 成功触发次数: SUCCESS_FIRE_COUNT */
+    private java.lang.Long _successFireCount;
+    
+    /* 失败触发次数: FAIL_FIRE_COUNT */
+    private java.lang.Long _failFireCount;
     
 
     public _NopJobSchedule(){
@@ -556,6 +596,18 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_lastDurationMs:
+               return getLastDurationMs();
+        
+            case PROP_ID_totalFireCount:
+               return getTotalFireCount();
+        
+            case PROP_ID_successFireCount:
+               return getSuccessFireCount();
+        
+            case PROP_ID_failFireCount:
+               return getFailFireCount();
         
            default:
               return super.orm_propValue(propId);
@@ -908,6 +960,46 @@ public class _NopJobSchedule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_lastDurationMs:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_lastDurationMs));
+               }
+               setLastDurationMs(typedValue);
+               break;
+            }
+        
+            case PROP_ID_totalFireCount:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_totalFireCount));
+               }
+               setTotalFireCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_successFireCount:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_successFireCount));
+               }
+               setSuccessFireCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_failFireCount:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_failFireCount));
+               }
+               setFailFireCount(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1151,6 +1243,34 @@ public class _NopJobSchedule extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_lastDurationMs:{
+               onInitProp(propId);
+               this._lastDurationMs = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_totalFireCount:{
+               onInitProp(propId);
+               this._totalFireCount = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_successFireCount:{
+               onInitProp(propId);
+               this._successFireCount = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_failFireCount:{
+               onInitProp(propId);
+               this._failFireCount = (java.lang.Long)value;
                
                break;
             }
@@ -1803,6 +1923,82 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 上次执行耗时(毫秒): LAST_DURATION_MS
+     */
+    public final java.lang.Long getLastDurationMs(){
+         onPropGet(PROP_ID_lastDurationMs);
+         return _lastDurationMs;
+    }
+
+    /**
+     * 上次执行耗时(毫秒): LAST_DURATION_MS
+     */
+    public final void setLastDurationMs(java.lang.Long value){
+        if(onPropSet(PROP_ID_lastDurationMs,value)){
+            this._lastDurationMs = value;
+            internalClearRefs(PROP_ID_lastDurationMs);
+            
+        }
+    }
+    
+    /**
+     * 总触发次数: TOTAL_FIRE_COUNT
+     */
+    public final java.lang.Long getTotalFireCount(){
+         onPropGet(PROP_ID_totalFireCount);
+         return _totalFireCount;
+    }
+
+    /**
+     * 总触发次数: TOTAL_FIRE_COUNT
+     */
+    public final void setTotalFireCount(java.lang.Long value){
+        if(onPropSet(PROP_ID_totalFireCount,value)){
+            this._totalFireCount = value;
+            internalClearRefs(PROP_ID_totalFireCount);
+            
+        }
+    }
+    
+    /**
+     * 成功触发次数: SUCCESS_FIRE_COUNT
+     */
+    public final java.lang.Long getSuccessFireCount(){
+         onPropGet(PROP_ID_successFireCount);
+         return _successFireCount;
+    }
+
+    /**
+     * 成功触发次数: SUCCESS_FIRE_COUNT
+     */
+    public final void setSuccessFireCount(java.lang.Long value){
+        if(onPropSet(PROP_ID_successFireCount,value)){
+            this._successFireCount = value;
+            internalClearRefs(PROP_ID_successFireCount);
+            
+        }
+    }
+    
+    /**
+     * 失败触发次数: FAIL_FIRE_COUNT
+     */
+    public final java.lang.Long getFailFireCount(){
+         onPropGet(PROP_ID_failFireCount);
+         return _failFireCount;
+    }
+
+    /**
+     * 失败触发次数: FAIL_FIRE_COUNT
+     */
+    public final void setFailFireCount(java.lang.Long value){
+        if(onPropSet(PROP_ID_failFireCount,value)){
+            this._failFireCount = value;
+            internalClearRefs(PROP_ID_failFireCount);
             
         }
     }

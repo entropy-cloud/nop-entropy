@@ -16,6 +16,8 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.job.worker.metrics.EmptyJobWorkerMetrics;
+import io.nop.job.worker.metrics.IJobWorkerMetrics;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +37,11 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     private IJobScheduleStore scheduleStore;
     private IJobInvokerResolver invokerResolver;
     private IJobExecutionContextBuilder executionContextBuilder;
+    private IJobWorkerMetrics workerMetrics = new EmptyJobWorkerMetrics();
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long lockTimeoutMs = 60000;
+    private int maxConcurrency = 0;
     private IntRangeSet assignedPartitions;
     private volatile boolean running;
     private Future<?> scanFuture;
@@ -67,6 +71,10 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         this.executionContextBuilder = executionContextBuilder;
     }
 
+    public void setWorkerMetrics(IJobWorkerMetrics workerMetrics) {
+        this.workerMetrics = workerMetrics;
+    }
+
     @InjectValue("@cfg:nop.job.worker.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
         this.scanIntervalMs = scanIntervalMs;
@@ -87,6 +95,11 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         if (partitions != null && !partitions.isEmpty()) {
             this.assignedPartitions = IntRangeSet.parse(partitions);
         }
+    }
+
+    @InjectValue("@cfg:nop.job.worker.max-concurrency|0")
+    public void setMaxConcurrency(int maxConcurrency) {
+        this.maxConcurrency = maxConcurrency;
     }
 
     @Override
@@ -118,12 +131,27 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
 
     void scanOnce() {
         try {
-            List<NopJobTask> tasks = taskStore.fetchWaitingTasks(batchSize, assignedPartitions);
+            int effectiveBatchSize = batchSize;
+
+            if (maxConcurrency > 0) {
+                long runningCount = taskStore.countRunningTasks(AppConfig.hostId());
+                int remaining = maxConcurrency - (int) runningCount;
+                if (remaining <= 0) {
+                    workerMetrics.onRejected((int) runningCount);
+                    return;
+                }
+                effectiveBatchSize = Math.min(batchSize, remaining);
+            }
+
+            List<NopJobTask> tasks = taskStore.fetchWaitingTasks(effectiveBatchSize, assignedPartitions);
             if (tasks.isEmpty()) {
                 return;
             }
 
             List<NopJobTask> lockedTasks = taskStore.tryLockTasksForExecute(tasks, AppConfig.hostId(), lockTimeoutMs);
+            if (!lockedTasks.isEmpty()) {
+                workerMetrics.onTasksClaimed(lockedTasks.size());
+            }
             for (NopJobTask task : lockedTasks) {
                 executeTask(task);
             }
@@ -207,6 +235,15 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             task.setUpdatedBy("system");
             task.setUpdateTime(endTime);
             taskStore.updateTask(task);
+
+            long duration = task.getStartTime() != null ? Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L) : 0L;
+            if (update.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUCCESS) {
+                workerMetrics.onTaskSuccess(duration);
+            } else if (update.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT) {
+                workerMetrics.onTaskTimeout(duration);
+            } else {
+                workerMetrics.onTaskFailure(duration);
+            }
         } catch (Exception e) {
             LOG.error("nop.job.worker.handle-result-failed:taskId={}", jobTaskId, e);
         }

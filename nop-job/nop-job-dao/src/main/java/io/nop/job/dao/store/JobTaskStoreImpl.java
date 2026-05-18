@@ -22,6 +22,7 @@ import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_createTime;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_startTime;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_taskNo;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_taskStatus;
+import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_workerInstanceId;
 
 public class JobTaskStoreImpl implements IJobTaskStore {
     private static final int TASK_STATUS_WAITING = 0;
@@ -102,6 +103,14 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     @Override
     public NopJobTask loadTask(String jobTaskId) {
         return taskDao().requireEntityById(jobTaskId);
+    }
+
+    @Override
+    public long countRunningTasks(String workerInstanceId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, TASK_STATUS_RUNNING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_workerInstanceId, workerInstanceId));
+        return taskDao().countByQuery(query);
     }
 
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {

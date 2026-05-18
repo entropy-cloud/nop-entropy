@@ -36,6 +36,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
     private static final int FIRE_STATUS_SUCCESS = 30;
     private static final int FIRE_STATUS_FAILED = 40;
     private static final int TASK_STATUS_WAITING = 0;
+    private static final int TASK_STATUS_RUNNING = 20;
     private static final int TASK_STATUS_SUCCESS = 30;
     private static final int TASK_STATUS_FAILED = 40;
     private static final String EXECUTOR_KIND_TEST = "test";
@@ -150,6 +151,71 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         NopJobFire savedFire = fireStore.loadFire(prepared.fire.getJobFireId());
         assertEquals(FIRE_STATUS_FAILED, savedFire.getFireStatus());
         assertEquals("JOB_TEST_ERROR", savedFire.getErrorCode());
+    }
+
+    @Test
+    public void testMaxConcurrencySkipsWhenAtLimit() {
+        PreparedTask prepared = prepareWaitingTask("schedule-worker-3", "job-worker-3");
+
+        NopJobTask runningTask = taskStore.loadTask(prepared.task.getJobTaskId());
+        runningTask.setTaskStatus(TASK_STATUS_RUNNING);
+        runningTask.setWorkerInstanceId(AppConfig.hostId());
+        runningTask.setStartTime(new Timestamp(System.currentTimeMillis()));
+        runningTask.setUpdatedBy("test");
+        runningTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        taskStore.updateTask(runningTask);
+
+        PreparedTask prepared2 = prepareWaitingTask("schedule-worker-4", "job-worker-4");
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setMaxConcurrency(1);
+        worker.scanOnce();
+
+        NopJobTask task2 = taskStore.loadTask(prepared2.task.getJobTaskId());
+        assertEquals(TASK_STATUS_WAITING, task2.getTaskStatus());
+    }
+
+    @Test
+    public void testMaxConcurrencyAllowsWhenBelowLimit() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public java.util.concurrent.CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask prepared = prepareWaitingTask("schedule-worker-5", "job-worker-5");
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setMaxConcurrency(5);
+        worker.scanOnce();
+
+        NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, savedTask.getTaskStatus());
     }
 
     private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {

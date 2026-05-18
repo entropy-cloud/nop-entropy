@@ -17,3 +17,7 @@ options:
     value: 3
     description: 
   
+  - label: 恢复
+    value: 4
+    description: 
+  

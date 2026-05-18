@@ -16,6 +16,8 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.job.coordinator.metrics.EmptyJobCompletionMetrics;
+import io.nop.job.coordinator.metrics.IJobCompletionMetrics;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,7 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
     private IJobFireStore fireStore;
     private IJobScheduleStore scheduleStore;
     private IJobTaskStore taskStore;
+    private IJobCompletionMetrics completionMetrics = new EmptyJobCompletionMetrics();
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private IntRangeSet assignedPartitions;
@@ -52,6 +55,10 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
     @Inject
     public void setTaskStore(IJobTaskStore taskStore) {
         this.taskStore = taskStore;
+    }
+
+    public void setCompletionMetrics(IJobCompletionMetrics completionMetrics) {
+        this.completionMetrics = completionMetrics;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.completion.scan-interval-ms|5000")
@@ -101,23 +108,29 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
     void scanOnce() {
         try {
             List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, assignedPartitions);
+            int completedCount = 0;
             for (NopJobFire fire : fires) {
-                tryCompleteFire(fire);
+                if (tryCompleteFireAndGetStatus(fire) != null) {
+                    completedCount++;
+                }
+            }
+            if (completedCount > 0) {
+                completionMetrics.onFiresCompleted(completedCount);
             }
         } catch (Exception e) {
             LOG.error("nop.job.completion.scan-failed", e);
         }
     }
 
-    private void tryCompleteFire(NopJobFire fire) {
+    private Integer tryCompleteFireAndGetStatus(NopJobFire fire) {
         List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
         if (tasks.isEmpty()) {
-            return;
+            return null;
         }
 
         Integer finalFireStatus = resolveFinalFireStatus(tasks);
         if (finalFireStatus == null) {
-            return;
+            return null;
         }
 
         NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
@@ -144,6 +157,13 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
         schedule.setLastEndTime(fireEndTime);
         schedule.setLastFireStatus(finalFireStatus);
+        schedule.setLastDurationMs(fire.getDurationMs());
+        schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
+        if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
+            schedule.setSuccessFireCount(defaultLong(schedule.getSuccessFireCount()) + 1);
+        } else {
+            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
+        }
         if (completionDecision.completed) {
             schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED);
             schedule.setNextFireTime(null);
@@ -156,6 +176,16 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         schedule.setUpdateTime(new Timestamp(scheduleStore.getCurrentTime()));
 
         fireStore.completeFireAndUpdateSchedule(fire, schedule);
+
+        long duration = fire.getDurationMs() != null ? fire.getDurationMs() : 0L;
+        if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
+            completionMetrics.onFireSuccess(duration);
+        } else if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT) {
+            completionMetrics.onFireTimeout(duration);
+        } else {
+            completionMetrics.onFireFailure(duration);
+        }
+        return finalFireStatus;
     }
 
     private FireCompletionDecision resolveCompletionDecision(List<NopJobTask> tasks) {

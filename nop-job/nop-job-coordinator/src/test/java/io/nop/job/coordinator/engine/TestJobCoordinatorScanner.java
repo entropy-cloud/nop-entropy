@@ -31,7 +31,9 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     private static final int FIRE_STATUS_TIMEOUT = 50;
     private static final int FIRE_STATUS_CANCELED = 60;
     private static final int FIRE_STATUS_WAITING = 0;
+    private static final int FIRE_STATUS_FAILED = 40;
     private static final int TASK_STATUS_WAITING = 0;
+    private static final int TASK_STATUS_FAILED = 40;
     private static final int TASK_STATUS_RUNNING = 20;
     private static final int TASK_STATUS_SUCCESS = 30;
     private static final int TASK_STATUS_TIMEOUT = 50;
@@ -41,6 +43,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     private static final int TRIGGER_TYPE_FIXED_DELAY = 3;
     private static final int BLOCK_STRATEGY_DISCARD = 1;
     private static final int BLOCK_STRATEGY_OVERLAY = 2;
+    private static final int BLOCK_STRATEGY_RECOVERY = 4;
 
     @Inject
     IDaoProvider daoProvider;
@@ -513,6 +516,80 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         task.setUpdatedBy("test");
         task.setUpdateTime(new Timestamp(now));
         return task;
+    }
+
+    @Test
+    public void testRecoveryBlockStrategyResetsFailedFire() {
+        NopJobSchedule schedule = newSchedule("schedule-11", "job-11");
+        schedule.setBlockStrategy(BLOCK_STRATEGY_RECOVERY);
+        schedule.setFireCount(1L);
+        schedule.setActiveFireCount(0);
+        Timestamp failedFireTime = new Timestamp(schedule.getNextFireTime().getTime() - 1000);
+        schedule.setLastFireTime(failedFireTime);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire failedFire = newActiveFire(schedule, failedFireTime);
+        failedFire.setFireStatus(FIRE_STATUS_FAILED);
+        failedFire.setEndTime(new Timestamp(failedFireTime.getTime() + 1000));
+        failedFire.setDurationMs(1000L);
+        failedFire.setErrorCode("TEST_ERROR");
+        failedFire.setErrorMessage("test error");
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(failedFire);
+
+        NopJobTask failedTask = newActiveTask(failedFire, TASK_STATUS_FAILED,
+                new Timestamp(System.currentTimeMillis() - 500));
+        failedTask.setEndTime(new Timestamp(System.currentTimeMillis()));
+        failedTask.setDurationMs(500L);
+        failedTask.setErrorCode("TEST_ERROR");
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(failedTask);
+
+        JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
+        planner.setScheduleStore(scheduleStore);
+        planner.setBatchSize(10);
+        planner.setPlanningTimeoutMs(1000);
+        planner.setAssignedPartitions("1");
+        planner.scanOnce();
+
+        NopJobFire recoveredFire = (NopJobFire) daoProvider.daoFor(NopJobFire.class).findAll().stream()
+                .filter(item -> failedFire.getJobFireId().equals(item.getJobFireId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(FIRE_STATUS_WAITING, recoveredFire.getFireStatus());
+        assertEquals(null, recoveredFire.getErrorCode());
+        assertEquals(null, recoveredFire.getErrorMessage());
+
+        NopJobTask recoveredTask = (NopJobTask) daoProvider.daoFor(NopJobTask.class).findAll().stream()
+                .filter(item -> failedTask.getJobTaskId().equals(item.getJobTaskId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(TASK_STATUS_WAITING, recoveredTask.getTaskStatus());
+
+        NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        assertEquals(1, savedSchedule.getActiveFireCount());
+        assertNotNull(savedSchedule.getNextFireTime());
+    }
+
+    @Test
+    public void testRecoveryBlockStrategyNoFailedFireAdvancesSchedule() {
+        NopJobSchedule schedule = newSchedule("schedule-12", "job-12");
+        schedule.setBlockStrategy(BLOCK_STRATEGY_RECOVERY);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
+        planner.setScheduleStore(scheduleStore);
+        planner.setBatchSize(10);
+        planner.setPlanningTimeoutMs(1000);
+        planner.setAssignedPartitions("1");
+        planner.scanOnce();
+
+        List<NopJobFire> fires = daoProvider.daoFor(NopJobFire.class).findAll().stream()
+                .filter(item -> schedule.getJobScheduleId().equals(item.getJobScheduleId()))
+                .collect(Collectors.toList());
+        assertEquals(0, fires.size());
+
+        NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        assertNotNull(savedSchedule.getNextFireTime());
+        assertEquals(0L, savedSchedule.getFireCount());
     }
 
     private static final class PreparedChain {

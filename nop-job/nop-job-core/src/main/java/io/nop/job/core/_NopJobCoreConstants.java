@@ -144,6 +144,11 @@ public interface _NopJobCoreConstants {
     int BLOCK_STRATEGY_PARALLEL = 3;
                     
     /**
+     * 阻塞策略: 恢复 
+     */
+    int BLOCK_STRATEGY_RECOVERY = 4;
+                    
+    /**
      * 触发器类型: CRON 
      */
     int TRIGGER_TYPE_CRON = 1;
