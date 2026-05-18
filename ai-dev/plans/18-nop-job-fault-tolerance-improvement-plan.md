@@ -1,6 +1,6 @@
 # 18 nop-job 容错改进计划
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-05-18
 > Source: `ai-dev/analysis/2026-05-18-fault-tolerance-deep-dive.md`, `ai-dev/analysis/2026-05-18a-powerjob-vs-nop-job-features.md`, `ai-dev/analysis/2026-05-18b-powerjob-vs-nop-job-fault-tolerance.md`, `ai-dev/design/nop-job/cluster-ha-design.md`, `ai-dev/design/nop-job/retry-integration-design.md`
 > Related: `14-nop-job-quality-fixes.md`, `17-nop-job-block-strategy-metrics.md`, `16-nop-job-core-redesign.md`
