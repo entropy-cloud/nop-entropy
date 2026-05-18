@@ -54,6 +54,28 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 - 多字段返回优先 `@DataBean`
 - 不要把复杂返回值做成 `Map<String, Object>`
 
+### 返回值：实体 vs DTO
+
+**BizModel 方法返回实体对象是默认模式，不需要返回 DTO。**
+
+原因：
+
+1. `CrudBizModel.get()` 直接返回 `T extends IOrmEntity`（平台基类设计）。
+2. `GraphQLExecutor.fetchSelections()` 根据客户端 GraphQL selection 逐字段获取值。
+3. 客户端只能看到 xmeta 中定义的、且在 selection 中请求的字段，不会暴露整个实体。
+4. API 契约由 xmeta（字段可见性/类型）和 GraphQL selection（客户端实际获取的字段）共同决定。
+
+因此：
+
+| 场景 | 返回什么 |
+|------|---------|
+| 标准 CRUD 操作 | 直接返回实体（`CrudBizModel` 已实现） |
+| 自定义查询/修改 | 直接返回实体 |
+| 返回值需要组合多个来源的数据 | `@DataBean` |
+| 内部服务接口（不对外暴露） | 返回 core 层模型（以高性能为优先） |
+
+不要把"返回实体"当作架构问题。如果需要限制字段可见性，在 xmeta 中配置，而不是改返回类型为 DTO。
+
 ## 普通 BizModel 默认优先的 API
 
 | 场景 | 默认方法 |
