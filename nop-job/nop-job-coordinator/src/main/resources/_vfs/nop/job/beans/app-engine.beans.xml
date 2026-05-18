@@ -37,6 +37,8 @@
     <bean id="io.nop.job.coordinator.engine.IJobCompletionProcessor"
           class="io.nop.job.coordinator.engine.JobCompletionProcessorImpl">
         <property name="partitionResolver" ref="jobPartitionResolver"/>
+        <property name="retryBridge" ref="io.nop.job.api.retry.IJobRetryBridge"/>
+        <property name="alarmHandler" ref="io.nop.job.api.alarm.IJobAlarmHandler"/>
     </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobTimeoutChecker"
