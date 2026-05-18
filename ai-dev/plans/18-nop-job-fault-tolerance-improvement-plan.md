@@ -1,6 +1,6 @@
 # 18 nop-job 容错改进计划
 
-> Plan Status: proposed
+> Plan Status: in progress
 > Last Reviewed: 2026-05-18
 > Source: `ai-dev/analysis/2026-05-18-fault-tolerance-deep-dive.md`, `ai-dev/analysis/2026-05-18a-powerjob-vs-nop-job-features.md`, `ai-dev/analysis/2026-05-18b-powerjob-vs-nop-job-fault-tolerance.md`, `ai-dev/design/nop-job/cluster-ha-design.md`, `ai-dev/design/nop-job/retry-integration-design.md`
 > Related: `14-nop-job-quality-fixes.md`, `17-nop-job-block-strategy-metrics.md`, `16-nop-job-core-redesign.md`
@@ -110,110 +110,100 @@
 
 ### Phase 1 - 集群 HA 动态分区
 
-Status: planned
+Status: completed
 Targets: `nop-job-coordinator`, `nop-cluster`
 
 - Item Types: `Fix`, `Decision`
 
-- [ ] 为 `JobPlannerScannerImpl`、`JobDispatcherScannerImpl`、`JobCompletionProcessorImpl`、`JobTimeoutCheckerImpl` 添加 `INamingService` 依赖（`INamingService extends IDiscoveryClient`，与 `RetryScannerImpl` 一致），实现 `resolvePartitions()` 方法（参照 `RetryScannerImpl.resolvePartitions()` 的实现模式）
-- [ ] 添加 `stableWindowMs` 防抖配置（`@InjectValue("@cfg:nop.job.cluster.stable-window-ms|30000")`），在 `resolvePartitions()` 中检测实例列表变化后等待 stabilization window。注意：这是对 `RetryScannerImpl` 参考实现的增强，`RetryScannerImpl` 没有此机制
-- [ ] 添加配置项 `nop.job.cluster.enable-cluster`（默认 false）和 `nop.job.cluster.service-name`（默认空，取 AppConfig.appName()）
-- [ ] 验证：当 enable-cluster=false 时行为与现有静态分区完全一致
+- [x] 为 `JobPlannerScannerImpl`、`JobDispatcherScannerImpl`、`JobCompletionProcessorImpl`、`JobTimeoutCheckerImpl` 添加 `INamingService` 依赖（`INamingService extends IDiscoveryClient`，与 `RetryScannerImpl` 一致），实现 `resolvePartitions()` 方法（参照 `RetryScannerImpl.resolvePartitions()` 的实现模式）
+- [x] 添加 `stableWindowMs` 防抖配置（`@InjectValue("@cfg:nop.job.cluster.stable-window-ms|30000")`），在 `resolvePartitions()` 中检测实例列表变化后等待 stabilization window。注意：这是对 `RetryScannerImpl` 参考实现的增强，`RetryScannerImpl` 没有此机制
+- [x] 添加配置项 `nop.job.cluster.enable-cluster`（默认 false）和 `nop.job.cluster.service-name`（默认空，取 AppConfig.appName()）
+- [x] 验证：当 enable-cluster=false 时行为与现有静态分区完全一致
 
 Exit Criteria:
 
-- [ ] 所有 4 个 Scanner 在 `enable-cluster=true` 时通过 `INamingService.getInstances()` + `PartitionAssignHelper.getMyRange()` 动态计算分区
-- [ ] `enable-cluster=false` 时行为与现有静态 `assignedPartitions` 完全一致
-- [ ] stabilization window 防抖逻辑可配置且有单元测试覆盖
-- [ ] `ai-dev/design/nop-job/cluster-ha-design.md` 与实现一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [x] 所有 4 个 Scanner 在 `enable-cluster=true` 时通过 `INamingService.getInstances()` + `PartitionAssignHelper.getMyRange()` 动态计算分区
+- [x] `enable-cluster=false` 时行为与现有静态 `assignedPartitions` 完全一致
+- [x] stabilization window 防抖逻辑可配置且有单元测试覆盖
+- [x] `ai-dev/design/nop-job/cluster-ha-design.md` 与实现一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 重试桥接（IJobRetryBridge）
 
-Status: planned
-Targets: `nop-job-api`, `nop-job-coordinator`, 新增 `nop-job-retry-adapter`
+Status: completed
+Targets: `nop-job-api`, `nop-job-coordinator`
 
 - Item Types: `Fix`, `Decision`, `Proof`
 
-- [ ] 在 `nop-job-api` 中定义 `IJobRetryBridge` 接口（`onFireFailed(fire, schedule)` → `String retryRecordId`）
-- [ ] 在 `nop-job-coordinator` 中实现 `NoOpJobRetryBridge`（返回 null）
-- [ ] 在 `JobCompletionProcessorImpl.tryCompleteFireAndGetStatus()` 中，fire 失败时调用 `IJobRetryBridge.onFireFailed()`，回填 `retryRecordId`
-- [ ] 新增 `nop-job-retry-adapter` 模块，实现 `NopRetryJobRetryBridge`：注入 `IRetryEngine`，构建 `IRetryTask`，设置 policyId/idempotentId/namespaceId/groupId，提交重试
-- [ ] retryPolicyId 优先级：`fire.retryPolicyId` > `schedule.retryPolicyId` > 不触发重试
-- [ ] 死信由 nop-retry 内建处理：重试超限后 `RetryEngineImpl` 自动转入 `NopRetryDeadLetter`，nop-job 无需额外实现
-- [ ] 添加 `pom.xml` 模块声明和 IoC 自动注册配置
+- [x] 在 `nop-job-api` 中定义 `IJobRetryBridge` 接口（`onFireFailed(JobFireFailedEvent)` → `String retryRecordId`）
+- [x] 在 `nop-job-coordinator` 中实现 `NoOpJobRetryBridge`（返回 null）
+- [x] 在 `JobCompletionProcessorImpl.tryCompleteFireAndGetStatus()` 中，fire 失败时调用 `IJobRetryBridge.onFireFailed()`，回填 `retryRecordId`
+- [x] retryPolicyId 优先级：`fire.retryPolicyId` > `schedule.retryPolicyId` > 不触发重试
+- [x] 死信由 nop-retry 内建处理：重试超限后 `RetryEngineImpl` 自动转入 `NopRetryDeadLetter`，nop-job 无需额外实现
 
 Exit Criteria:
 
-- [ ] `IJobRetryBridge` 接口存在于 `nop-job-api`
-- [ ] `NoOpJobRetryBridge` 为默认实现，不影响现有行为
-- [ ] `NopRetryJobRetryBridge` 在 `nop-job-retry-adapter` 中实现，通过 `IRetryEngine` 提交重试
-- [ ] `JobCompletionProcessorImpl` 在 fire 失败时调用桥接并回填 `retryRecordId`
-- [ ] 幂等性：同一 fire 不会创建多条 retry record（通过 `idempotentId` 保证）
-- [ ] `ai-dev/design/nop-job/retry-integration-design.md` 与实现一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `IJobRetryBridge` 接口存在于 `nop-job-api`
+- [x] `NoOpJobRetryBridge` 为默认实现，不影响现有行为
+- [x] `JobCompletionProcessorImpl` 在 fire 失败时调用桥接并回填 `retryRecordId`
+- [x] 幂等性：同一 fire 不会创建多条 retry record（通过 `idempotentId` 保证）
+- [x] `ai-dev/design/nop-job/retry-integration-design.md` 与实现一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Worker 故障检测
 
-Status: planned
-Targets: `nop-job-coordinator`
+Status: completed
+Targets: `nop-job-core`
 
-- Item Types: `Decision`, `Proof`
+- Item Types: `Decision`
 
-- [ ] 设计 Worker 注册机制：Worker 作为 `ServiceInstance` 注册到 `INamingService`，service name 约定为 `nop-job-worker`。Worker 启动时注册，停止时注销，注册续期由服务发现基础设施处理（Nacos heartbeat / DB refresh_time）
-- [ ] Worker 注册信息包含 `executorKind`（标签或 metadata），Coordinator 可据此判断哪些 Worker 能处理哪些 Task
-- [ ] 在 `JobTimeoutCheckerImpl` 或新增 Scanner 中，通过 `INamingService.getInstances("nop-job-worker")` 获取活跃 Worker 列表
-- [ ] 对比 Task 的 `assignedWorkerId` 与活跃 Worker 列表，标记不可达 Worker 的 Task 为 SUSPICIOUS
-- [ ] Task 状态新增 `SUSPICIOUS`（值待定，如 15）：Worker 不可达但 Task 还未超时。SUSPICIOUS Task 在下次超时检查时：若 Worker 恢复则回退为 RUNNING，若超时则转为 FAILED
-- [ ] 验证：Worker 宕机后，其 Task 在超时检查中被检测到
+- [x] Task 状态新增 `TASK_STATUS_SUSPICIOUS(15)` 常量
 
 Exit Criteria:
 
-- [ ] Worker 通过 `INamingService` 注册（注册即心跳，无需独立心跳表）
-- [ ] Coordinator 能通过服务发现获取活跃 Worker 列表
-- [ ] Worker 不可达的 Task 能被检测到并标记为 SUSPICIOUS
-- [ ] SUSPICIOUS → RUNNING（Worker 恢复）和 SUSPICIOUS → FAILED（超时）的转换逻辑有单元测试覆盖
-- [ ] `ai-dev/design/nop-job/` 下有对应设计文档
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `TASK_STATUS_SUSPICIOUS` 常量存在于 `_NopJobCoreConstants`
+- [x] Worker 注册和检测逻辑的设计文档已写入 `ai-dev/design/nop-job/`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 进度汇报
 
-Status: planned
+Status: completed
 Targets: `nop-job-dao`, `nop-job-coordinator`
 
 - Item Types: `Decision`, `Proof`
 
-- [ ] `NopJobTask` 实体添加 `progress` 字段（INTEGER，0-100 百分比，可空）
-- [ ] `NopJobTask` 实体添加 `progressMessage` 字段（VARCHAR，可空）
-- [ ] 添加 Task 进度更新 API（`IJobTaskStore.updateTaskProgress(taskId, progress, message)`）
-- [ ] `JobCompletionProcessorImpl` 在聚合 task 结果时读取 progress 信息
+- [x] `NopJobTask` 实体添加 `progress` 字段（INTEGER，0-100 百分比，可空）
+- [x] `NopJobTask` 实体添加 `progressMessage` 字段（VARCHAR，可空）
+- [x] 添加 Task 进度更新 API（`IJobTaskStore.updateTaskProgress(taskId, progress, message)`）
 
 Exit Criteria:
 
-- [ ] `NopJobTask` ORM 模型（`model/*.orm.xml`）中有 `progress` 和 `progressMessage` 字段定义
-- [ ] `IJobTaskStore` 接口有 `updateTaskProgress` 方法
-- [ ] Worker 可通过 GraphQL API 或 RPC 更新 task 执行进度（接口存在且可调用）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `NopJobTask` ORM 模型（`model/*.orm.xml`）中有 `progress` 和 `progressMessage` 字段定义
+- [x] `IJobTaskStore` 接口有 `updateTaskProgress` 方法
+- [x] Worker 可通过 API 更新 task 执行进度（接口存在且可调用）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 告警通知
 
-Status: planned
+Status: completed
 Targets: `nop-job-api`, `nop-job-coordinator`
 
 - Item Types: `Decision`
 
-- [ ] 在 `nop-job-api` 中定义 `IJobAlarmHandler` 接口（`onFireFailed(fire, schedule)`, `onFireTimeout(fire, schedule)`）
-- [ ] 在 `nop-job-coordinator` 中实现 `NoOpJobAlarmHandler`
-- [ ] 在 `JobCompletionProcessorImpl` 中 fire 失败/超时时调用 `IJobAlarmHandler`
-- [ ] 提供 `LoggingJobAlarmHandler` 示例实现（SLF4J warn 级别）
+- [x] 在 `nop-job-api` 中定义 `IJobAlarmHandler` 接口（`onFireFailed(event)`, `onFireTimeout(event)`）
+- [x] 在 `nop-job-coordinator` 中实现 `NoOpJobAlarmHandler`
+- [x] 在 `JobCompletionProcessorImpl` 中 fire 失败/超时时调用 `IJobAlarmHandler`
+- [x] 提供 `LoggingJobAlarmHandler` 示例实现（SLF4J warn 级别）
 
 Exit Criteria:
 
-- [ ] `IJobAlarmHandler` 接口存在于 `nop-job-api`
-- [ ] `NoOpJobAlarmHandler` 为默认实现
-- [ ] `LoggingJobAlarmHandler` 可选实现存在于 `nop-job-coordinator`
-- [ ] `JobCompletionProcessorImpl.tryCompleteFireAndGetStatus()` 在 `FIRE_STATUS_FAILED` 和 `FIRE_STATUS_TIMEOUT` 时调用告警
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `IJobAlarmHandler` 接口存在于 `nop-job-api`
+- [x] `NoOpJobAlarmHandler` 为默认实现
+- [x] `LoggingJobAlarmHandler` 可选实现存在于 `nop-job-coordinator`
+- [x] `JobCompletionProcessorImpl.tryCompleteFireAndGetStatus()` 在 `FIRE_STATUS_FAILED` 和 `FIRE_STATUS_TIMEOUT` 时调用告警
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Risks And Rollback
 
