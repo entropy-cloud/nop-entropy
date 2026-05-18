@@ -1,56 +1,48 @@
-# nop-job 重写设计文档
+# nop-job 分布式调度设计文档
 
-**日期**：2026-04-04  
-**范围**：`nop-job/` 全模块重写方案  
-**目标**：把当前以内存调度器为中心的 `nop-job` 重写为以数据库为中心的调度执行系统，同时复用现有 trigger 定义逻辑和 cron 表达式实现，并与 `nop-retry` 清晰分层。
+> Status: resolved — 新架构已实现
+> Date: 2026-04-04 (updated 2026-05-18)
+> Scope: `nop-job/` 分布式调度架构
+
+## 概述
+
+nop-job 提供两套可并存的调度方案：
+
+1. **LocalJobScheduler**（`nop-job-core`）— 轻量内存调度器，适用于单机嵌入式场景。使用 `ConcurrentHashMap` 保存运行态，无持久化依赖。
+2. **Coordinator/Worker 架构**（`nop-job-coordinator` + `nop-job-worker` + `nop-job-dao`）— 数据库驱动的分布式调度系统，采用 schedule/fire/task 三层模型。
+
+本文档主要描述 coordinator/worker 架构的设计。
 
 ---
 
-## 一、设计结论
+## 一、核心设计
 
-`nop-job` 应重写为一个**数据库驱动的 schedule/fire/task 三层模型**：
+nop-job 采用**数据库驱动的 schedule/fire/task 三层模型**：
 
 1. `JobSchedule` 负责保存调度定义和下一次触发游标。
 2. `JobFire` 负责表示一次具体的触发批次。
-3. `JobTask` 负责表示一次具体执行投递，哪怕 V1 只有单任务模式，也保留这一层。
+3. `JobTask` 负责表示一次具体执行投递，即使单任务模式也保留这一层。
 
-这次重写的核心决策如下：
+核心设计决策：
 
-1. **彻底放弃当前以内存 `DefaultJobScheduler` 为主、数据库为辅的运行模型**。
-2. **保留 trigger 定义模型、calendar 逻辑、`CronExpression` 实现**，但把它们降格为纯计算组件。
-3. **`nop-job` 不再内建重试编排逻辑**，失败重试交由 `nop-retry`，`nop-job` 只保留失败事件与桥接点。
-4. **不复用任何外部项目的代码实现**，只吸收业内成熟调度系统常见的领域拆分方式：命名空间/分组、任务定义与执行批次分离、执行器与调度记录分离。
-5. **删除当前 `definition + instance + instance_his + assignment` 的旧模型**，替换为新的 `schedule + fire + task` 模型。
+1. **trigger 只负责"算时间"，不负责"保存状态"** — `CronTrigger`、`PeriodicTrigger` 等被降格为纯计算组件。
+2. **`nop-job` 不内建重试编排逻辑** — 失败重试交由 `nop-retry`，`nop-job` 通过 `IJobRetryBridge` 保留桥接点。
+3. **不复用任何外部项目的代码实现**，只吸收领域拆分思路：命名空间/分组、任务定义与执行批次分离、执行器与调度记录分离。
+4. **旧模型**（`definition + instance + instance_his + assignment`）不再演进，由新 `schedule + fire + task` 模型取代。
 
 ---
 
-## 二、现状问题
+## 二、设计背景
 
-当前 `nop-job` 的根本问题不是“没有 ORM 文件”，而是**运行时并不真正以数据库为权威状态源**。
+重写前的 `nop-job` 存在两个层面的实现：
 
-### 2.1 当前实现的具体问题
+**1. `LocalJobScheduler`（`nop-job-core`）** — 刻意保留的轻量内存调度器，适用于单机嵌入式场景。使用 `ConcurrentHashMap` 保存运行态，无持久化要求。**这不是"旧实现"**，而是与 coordinator 架构并列的最小化部署选项。
 
-| 问题 | 代码证据 | 影响 |
-|------|----------|------|
-| 持久化接口未完成 | `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/DaoJobSchedulerStore.java` 中 `loadJobDetail()` 直接返回 `null`，`saveInstanceState()` 为空 | 数据库状态无法支撑真实调度 |
-| 调度中心以内存为主 | `nop-job/nop-job-core/.../DefaultJobScheduler.java` 使用 `ConcurrentHashMap<String, JobExecution>` 保存运行态 | 重启恢复、主从切换、集群一致性都不可靠 |
-| 运行态持久化链路空转 | `TriggerContextImpl.onChange()` 会调用 `jobStore.saveInstanceState(this)`，但 store 为空实现 | 表面上支持持久化，实际上无效 |
-| 运行模型混乱 | `NopJobInstance` 同时承载“待调度状态”和“执行状态”；`NopJobInstanceHis` 只是复制一份历史表 | 定义层、触发层、执行层语义没有分开 |
-| 集群分区设计不完整 | `DaoJobSchedulerStore.addPartitionFilter()` 只有在 `enableCluster=false` 时才读 `NopJobAssignment`；集群模式下没有形成稳定的分区隔离 | 多节点扫描时容易重复调度 |
-| 调度分发器不存在 | `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/queue/DaoJobPlanDispatcher.java` 是空类 | 没有完整的“计划 -> 分发 -> 执行”链路 |
-| Service 层只有 CRUD | `NopJobDefinitionBizModel`、`NopJobInstanceBizModel` 等仅继承 `CrudBizModel`，没有领域方法 | 外部只能改表，不能管理调度生命周期 |
-| retry 与 job 边界混乱 | `TriggerSpec.maxFailedCount` 与 `TriggerExecutorImpl.onException()` 把失败终止逻辑写进 job 触发器 | 与 `nop-retry` 职责重叠 |
-
-### 2.2 现有模型为什么不适合继续修补
-
-当前模型的问题不是“少几个方法”，而是方向错了：
-
-1. `JobDefinition` 和 `JobInstance` 没有形成清晰的控制面/运行面分层。
-2. 调度游标存在内存中的 `TriggerContextImpl`，而不是数据库中的 schedule 记录。
-3. `JobInstance` 既像“下一次待执行记录”，又像“当前执行状态快照”，导致语义不断打架。
-4. 一旦需要集群安全、超时恢复、手工触发、取消、失败追踪，就会继续把更多状态堆进一个类里。
-
-因此本次不建议在现有表结构上继续补丁式演化，而应直接切到新的领域模型。
+**2. 基于旧 ORM 模型（`NopJobDefinition/NopJobInstance/NopJobInstanceHis/NopJobAssignment`）** 的尝试。该模型存在以下局限，因此需要新的 schedule/fire/task 模型取代它：
+- `JobDefinition` 和 `JobInstance` 没有形成清晰的控制面/运行面分层
+- `JobInstance` 同时承载"待调度状态"和"执行状态"
+- `NopJobInstanceHis` 只是复制一份历史表，语义重叠
+- 集群环境下调度状态缺少统一的数据库权威视图
 
 ---
 
