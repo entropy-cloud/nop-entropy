@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopJobSchedule.xmeta">
 
-    <props/>
+    <props>
+        <prop name="scheduleStatus" insertable="false" updatable="false"/>
+        <prop name="fireCount" insertable="false" updatable="false"/>
+        <prop name="activeFireCount" insertable="false" updatable="false"/>
+        <prop name="lastFireTime" insertable="false" updatable="false"/>
+        <prop name="lastEndTime" insertable="false" updatable="false"/>
+        <prop name="nextFireTime" insertable="false" updatable="false"/>
+        <prop name="lastFireStatus" insertable="false" updatable="false"/>
+        <prop name="lastDurationMs" insertable="false" updatable="false"/>
+        <prop name="totalFireCount" insertable="false" updatable="false"/>
+        <prop name="successFireCount" insertable="false" updatable="false"/>
+        <prop name="failFireCount" insertable="false" updatable="false"/>
+    </props>
 </meta>

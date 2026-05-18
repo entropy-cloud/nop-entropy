@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopJobFire.xmeta">
 
-    <props/>
+    <props>
+        <prop name="fireStatus" insertable="false" updatable="false"/>
+        <prop name="plannerInstanceId" insertable="false" updatable="false"/>
+        <prop name="dispatchInstanceId" insertable="false" updatable="false"/>
+        <prop name="startTime" insertable="false" updatable="false"/>
+        <prop name="endTime" insertable="false" updatable="false"/>
+        <prop name="durationMs" insertable="false" updatable="false"/>
+        <prop name="errorCode" insertable="false" updatable="false"/>
+        <prop name="errorMessage" insertable="false" updatable="false"/>
+    </props>
 </meta>
