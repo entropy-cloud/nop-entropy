@@ -25,6 +25,9 @@ export interface ScheduleFormData {
   blockStrategy?: number;
   timeoutSeconds?: number;
   partitionIndex?: number;
+  retryPolicyId?: string;
+  namespaceId?: string;
+  groupId?: string;
   remark?: string;
 }
 
@@ -62,6 +65,15 @@ export class SchedulePO extends AmisCrudPage {
     }
     if (data.timeoutSeconds !== undefined) {
       await fillModalField(this.page, 'timeoutSeconds', String(data.timeoutSeconds));
+    }
+    if (data.retryPolicyId) {
+      await fillModalField(this.page, 'retryPolicyId', data.retryPolicyId);
+    }
+    if (data.namespaceId) {
+      await fillModalField(this.page, 'namespaceId', data.namespaceId);
+    }
+    if (data.groupId) {
+      await fillModalField(this.page, 'groupId', data.groupId);
     }
     if (data.remark) {
       await fillModalField(this.page, 'remark', data.remark);
