@@ -30,10 +30,9 @@ import static io.nop.job.api.JobApiErrors.ERR_JOB_SCHEDULER_NOT_ACTIVE;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB;
 
 /**
- * @deprecated Use the new coordinator/worker architecture instead.
- * This legacy in-memory scheduler is being replaced.
+ * 轻量级内存调度器，适用于单机嵌入式场景。
+ * 对于分布式集群场景，请使用 coordinator/worker 架构下的分布式调度器。
  */
-@Deprecated
 public class LocalJobScheduler implements IJobScheduler {
     static final Logger LOG = LoggerFactory.getLogger(LocalJobScheduler.class);
 

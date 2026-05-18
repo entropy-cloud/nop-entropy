@@ -21,9 +21,9 @@ import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB;
 
 /**
- * @deprecated This legacy scheduler interface is being replaced by the new coordinator/worker architecture.
+ * 内存调度器接口，提供任务注册、触发调度、状态查询等基本能力。
+ * 适用于单机嵌入式场景。对于分布式集群场景，请使用 coordinator/worker 架构。
  */
-@Deprecated
 public interface IJobScheduler {
 
     List<String> getJobNames();
