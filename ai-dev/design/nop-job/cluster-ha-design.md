@@ -1,7 +1,8 @@
 # nop-job 集群 HA 与动态分区设计
 
-> Status: draft
+> Status: active
 > Created: 2026-05-18
+> Last Verified: 2026-05-18
 > Related: `ai-dev/design/nop-job/rewrite-design.md` §12, `ai-dev/analysis/2026-05-18-fault-tolerance-deep-dive.md`, `ai-dev/analysis/2026-05-18b-powerjob-vs-nop-job-fault-tolerance.md`
 
 ## 1. 决策：基于服务发现 + 纯函数分区计算，不需要选主
