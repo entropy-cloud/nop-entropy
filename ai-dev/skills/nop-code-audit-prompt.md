@@ -209,9 +209,23 @@ nop-code 是 Nop 平台的代码分析与索引模块，提供符号搜索、类
 
 审计报告存放于 `ai-dev/audits/nop-code-audit-YYYY-MM-DD.md`。
 
+## 与通用审计技能的关系
+
+本文件是针对 nop-code 模块的特定审计提示词。除了本文件，以下通用审计技能也适用于 nop-code 模块：
+
+- **`ai-dev/skills/deep-audit-prompts.md`**：20 维度系统性深度审核手册，支持多轮迭代深挖 + 独立复核。本文件的维度与 deep-audit 的维度存在交叉（如维度一 ≈ deep-audit 维度 01+02，维度三 ≈ deep-audit 维度 07+09），但 deep-audit 提供了更严格的子 agent 调度、深挖追加和独立复核机制。
+- **`ai-dev/skills/open-ended-adversarial-review-prompt.md`**：开放式对抗性审查，不绑定固定维度，以代码中的异常信号为切入点发现高价值问题。
+
+推荐组合使用方式：
+1. **快速审计**：直接使用本文件，按维度逐项检查。
+2. **系统性深度审核**：使用 `deep-audit-prompts.md` 的多轮迭代 + 独立复核机制，目标模块设为 nop-code。
+3. **发现意外问题**：使用 `open-ended-adversarial-review-prompt.md`，目标模块设为 nop-code，找出维度化审计容易遗漏的跨领域问题。
+4. **互补验证**：先用 deep-audit 系统扫描，再用 adversarial review 补充发现。
+
 ## 使用方式
 
 1. **每次重大迭代前**，使用此提示词对相关维度重新审计
 2. **PR 审查时**，重点检查维度三（API 规范）和维度四（core 层质量）
 3. **季度回顾时**，全面覆盖所有维度，评估改进路线图进展
 4. 审计时使用 explore agent 并行探索相关代码，而非凭记忆填写
+5. **需要更严格审计时**，使用 `deep-audit-prompts.md` 的多轮迭代机制
