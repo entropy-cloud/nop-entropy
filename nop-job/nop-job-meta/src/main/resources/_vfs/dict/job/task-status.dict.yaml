@@ -13,6 +13,10 @@ options:
     value: 10
     description: 
   
+  - label: 可疑
+    value: 15
+    description: 
+  
   - label: 执行中
     value: 20
     description: 

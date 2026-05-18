@@ -24,6 +24,7 @@
         <dict label="执行任务状态" name="job/task-status" valueType="int" i18n-en:label="Task Status">
             <option code="WAITING" label="等待执行" value="0"/>
             <option code="CLAIMED" label="已认领" value="10"/>
+            <option code="SUSPICIOUS" label="可疑" value="15" i18n-en:label="Suspicious"/>
             <option code="RUNNING" label="执行中" value="20"/>
             <option code="SUCCESS" label="执行成功" value="30"/>
             <option code="FAILED" label="执行失败" value="40"/>

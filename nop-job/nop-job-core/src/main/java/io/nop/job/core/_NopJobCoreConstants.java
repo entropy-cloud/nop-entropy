@@ -74,6 +74,11 @@ public interface _NopJobCoreConstants {
     int TASK_STATUS_CLAIMED = 10;
                     
     /**
+     * 执行任务状态: 可疑 
+     */
+    int TASK_STATUS_SUSPICIOUS = 15;
+                    
+    /**
      * 执行任务状态: 执行中 
      */
     int TASK_STATUS_RUNNING = 20;
