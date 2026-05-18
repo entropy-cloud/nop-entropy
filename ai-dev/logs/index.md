@@ -51,7 +51,7 @@ ai-dev/logs/
 
 ### 2026-05
 
-- [05-17](2026/05-17.md) — 吸引子层治理：`ai-dev/design/README.md` 新增（层级+precedence model）；对比 chaos-flux PPT 方法论分析；Plan 15 完成+Plan 16 迁移+Plan 17 新建；文档治理（plan guide 同步、design guide 新建、AGENTS.md 更新）
+- [05-17](2026/05-17.md) — Plan 17 nop-job 阻塞策略+Metrics 全部完成（RECOVERY策略+三套Metrics+Schedule聚合+限流设计文档）；吸引子层治理：`ai-dev/design/README.md` 新增；Plan 15 完成+Plan 16 迁移+Plan 17 新建；文档治理
 - [05-11](2026/05-11.md) — Plan 14 nop-job 质量优化：TimeoutChecker N+1 批量预加载、Planner 锁冲突 Micrometer counter + DEBUG 日志、ErrorCode 规范化（5 个新定义）、LocalJobScheduler @Deprecated 标记
 - [05-05](2026/05-05.md) — SpotBugs findings 详细分析文档：nop-kernel 6 子模块 40 个 findings 源码级验证（3 true positive / 2 false positive / 35 design choice）
 - [05-03](2026/05-03.md) — SpotBugs 排除规则扩展、PMD 升级 3.28.0、nop-kernel qa profile、设计文档更新

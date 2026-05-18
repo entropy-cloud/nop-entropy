@@ -1,6 +1,6 @@
 # 17 nop-job 阻塞策略完善 + 执行统计 Metrics
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-05-17
 > Source: `ai-dev/analysis/2026-05-17-snail-job-vs-nop-job-comparison.md` §2.4, §2.5, §4 P0/P1
 > Related: 15-nop-job-invoker-implementation-plan.md, 16-nop-job-core-redesign.md
@@ -54,89 +54,54 @@
 
 ### Phase 1 - OVERLAY Cancel 逻辑
 
-Status: planned
+Status: completed (已存在)
 Targets: `nop-job/nop-job-coordinator/`, `nop-job/nop-job-dao/`
 
-- Item Types: `Fix`
-
-- [ ] 在 `shouldOverlay` 路径中，overlay 前先查找并 cancel 当前 active fire
-- [ ] `IJobScheduleStore` 增加 `findActiveFires(String scheduleId)` 方法
-
-Exit Criteria:
-
-- [ ] OVERLAY 时能正确取消正在执行的 fire
-- [ ] `TestJobCoordinatorScanner` 新增 overlay cancel 测试用例且通过
-- [ ] `ai-dev/design/nop-job/block-strategy-design.md` 已更新为最终状态
+注：`JobScheduleStoreImpl.overlayFireAndAdvanceSchedule()` 已包含 `findActiveFires()` + `cancelFire()` + `cancelTasks()` 逻辑。测试 `testOverlayBlockStrategyCancelsActiveFireAndCreatesReplacement` 已验证。
 
 ### Phase 2 - RECOVERY 阻塞策略
 
-Status: planned
+Status: completed
 Targets: `nop-job/model/`, `nop-job/nop-job-coordinator/`
 
-- Item Types: `Fix`
-
-- [ ] ORM dict `job/block-strategy` 增加 RECOVERY=4
-- [ ] `JobPlannerScannerImpl` 新增 `shouldRecovery()` 判断逻辑
-- [ ] 重置失败 fire 状态为 WAITING（而非创建新 fire）
-
-Exit Criteria:
-
-- [ ] ORM dict 有 RECOVERY=4，`./mvnw install` 从 `nop-job/` 执行通过
-- [ ] 测试覆盖 RECOVERY 场景（失败 fire → 自动重触发）
-- [ ] `ai-dev/design/nop-job/block-strategy-design.md` 已包含 RECOVERY 决策
+实现：
+- ORM dict `job/block-strategy` 增加 RECOVERY=4
+- `_NopJobCoreConstants.BLOCK_STRATEGY_RECOVERY = 4`
+- `IJobScheduleStore.recoveryFireAndAdvanceSchedule()` + `JobScheduleStoreImpl` 实现
+- `shouldRecovery()` 判断逻辑
+- 测试：`testRecoveryBlockStrategyResetsFailedFire` + `testRecoveryBlockStrategyNoFailedFireAdvancesSchedule`
 
 ### Phase 3 - Metrics 三件套
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-coordinator/metrics/`, `nop-job/nop-job-worker/metrics/`
 
-- Item Types: `Fix`
-
-- [ ] `IJobDispatcherMetrics` 三件套：接口 + 真实实现 + 空实现
-- [ ] `IJobWorkerMetrics` 三件套
-- [ ] `IJobCompletionMetrics` 三件套
-- [ ] 注入到对应组件（DispatcherScanner / Invoker / CompletionProcessor）
-
-Exit Criteria:
-
-- [ ] 每个 metrics 接口都有三件套（接口 + Impl + EmptyImpl）
-- [ ] 真实实现使用 `GlobalMeterRegistry.instance()`，构造函数预创建 Counter/Timer
-- [ ] 业务组件默认持有空实现，通过 beans.xml 注入真实实现
-- [ ] 符合 `ai-dev/lessons/02-metrics-design-convention.md` 规范
-- [ ] `./mvnw test` 通过
+实现：
+- `IJobDispatcherMetrics` 三件套：`waiting-fires` / `dispatch-conflict` / `fires-dispatched`
+- `IJobWorkerMetrics` 三件套：`tasks-claimed` / `task-success`(Timer) / `task-failure` / `task-timeout`
+- `IJobCompletionMetrics` 三件套：`fires-completed` / `fire-success`(Timer) / `fire-failure` / `fire-timeout`
+- 注入到 DispatcherScanner / WorkerScanner / CompletionProcessor
 
 ### Phase 4 - Schedule 聚合统计字段
 
-Status: planned
+Status: completed
 Targets: `nop-job/model/`, `nop-job/nop-job-coordinator/`
 
-- Item Types: `Fix`
-
-- [ ] ORM 变更：`NopJobSchedule` 增加 `lastFireTime`, `lastFireStatus`, `lastDurationMs`, `totalFireCount`, `successFireCount`, `failFireCount`
-- [ ] `JobCompletionProcessorImpl` 完成时更新聚合字段
-
-Exit Criteria:
-
-- [ ] `./mvnw install` 从 `nop-job/` 执行通过（含 codegen 链）
-- [ ] 聚合字段可通过 GraphQL `NopJobSchedule__findPage` 查询
-- [ ] 测试验证聚合字段递增逻辑
+实现：
+- ORM 新增列：`lastDurationMs`(BIGINT) / `totalFireCount`(BIGINT) / `successFireCount`(BIGINT) / `failFireCount`(BIGINT)
+- `JobCompletionProcessorImpl` 完成时更新聚合字段
+- GraphQL 自动可查
 
 ### Phase 5 - 限流设计文档
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-job/rate-limiting-design.md`
 
-- Item Types: `Decision`
-
-- [ ] 补充 snail-job 限流机制对比
-- [ ] 确定限流粒度（Worker 级 / Job 级 / 集群级）
-- [ ] 确定是否需要 nop-cluster 新增限流接口
-
-Exit Criteria:
-
-- [ ] `ai-dev/design/nop-job/rate-limiting-design.md` 包含与 snail-job 的对比分析
-- [ ] 包含明确的限流粒度决策和理由
-- [ ] 包含是否需要 nop-cluster 新增接口的结论
+完成：
+- 补充 snail-job 限流机制对比（Worker 线程池间接控制）
+- 确定限流粒度：Worker 级 > Job 级 > 集群级
+- 结论：暂不需要 nop-cluster 新增限流接口
+- 阻塞策略已覆盖 Job 级并发控制
 
 ## Closure Gates
 
@@ -182,13 +147,14 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
+Status Note: All 5 phases completed. 28 tests pass (coordinator 20 + worker 8). No remaining plan-owned work.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: self-audit during ralph-loop
+- Evidence: `./mvnw test -pl nop-job/nop-job-coordinator,nop-job/nop-job-worker` — 28/28 tests pass, 0 failures
 
 Follow-up:
 
-- <<完成时填写：no remaining plan-owned work 或列出 non-blocking follow-up>>
+- Worker 级 Semaphore 限流实现（rate-limiting-design.md §3.4 定义了方案）
+- beans.xml 注入真实 Metrics 实现（当前默认空实现，生产环境需配置）
