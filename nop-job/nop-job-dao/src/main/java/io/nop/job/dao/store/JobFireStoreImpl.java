@@ -116,10 +116,23 @@ public class JobFireStoreImpl implements IJobFireStore {
         fireDao().updateEntityDirectly(currentFire);
     }
 
+    private static final Set<Integer> TERMINAL_FIRE_STATUSES = Set.of(
+            _NopJobCoreConstants.FIRE_STATUS_CANCELED,
+            _NopJobCoreConstants.FIRE_STATUS_TIMEOUT
+    );
+
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
-        fireDao().updateEntityDirectly(fire);
+        NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
+        if (TERMINAL_FIRE_STATUSES.contains(currentFire.getFireStatus())) {
+            return;
+        }
+
+        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fire));
+        if (updated.isEmpty()) {
+            return;
+        }
         scheduleDao().updateEntityDirectly(schedule);
     }
 
@@ -142,7 +155,10 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setErrorMessage(ERR_JOB_CANCELED.getDescription());
         fire.setUpdatedBy("system");
         fire.setUpdateTime(cancelTime);
-        fireDao().updateEntityDirectly(fire);
+        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fire));
+        if (updated.isEmpty()) {
+            return false;
+        }
 
         for (NopJobTask task : tasks) {
             if (isTaskFinished(task.getTaskStatus())) {
