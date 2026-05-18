@@ -44,6 +44,7 @@
     <bean id="io.nop.job.coordinator.engine.IJobTimeoutChecker"
           class="io.nop.job.coordinator.engine.JobTimeoutCheckerImpl">
         <property name="partitionResolver" ref="jobPartitionResolver"/>
+        <property name="alarmHandler" ref="io.nop.job.api.alarm.IJobAlarmHandler"/>
     </bean>
 
     <bean id="io.nop.job.coordinator.engine.JobCoordinator"

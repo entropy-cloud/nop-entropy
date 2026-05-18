@@ -28,4 +28,6 @@ public interface IJobFireStore {
     NopJobFire loadFire(String jobFireId);
 
     Map<String, NopJobFire> batchLoadFires(Set<String> fireIds);
+
+    List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions);
 }

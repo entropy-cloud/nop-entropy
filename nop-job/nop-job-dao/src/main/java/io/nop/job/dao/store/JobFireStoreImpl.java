@@ -192,6 +192,16 @@ public class JobFireStoreImpl implements IJobFireStore {
         return result;
     }
 
+    @Override
+    public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions) {
+        QueryBean query = new QueryBean();
+        query.setLimit(limit);
+        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, FIRE_STATUS_DISPATCHING));
+        addPartitionFilter(query, partitions);
+        query.addOrderField(PROP_NAME_startTime, false);
+        return fireDao().findAllByQuery(query);
+    }
+
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
         if (partitions == null || partitions.isEmpty()) {
             return;
