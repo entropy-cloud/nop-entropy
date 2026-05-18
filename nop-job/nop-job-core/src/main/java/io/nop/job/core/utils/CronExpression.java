@@ -93,7 +93,7 @@ public class CronExpression implements ICronExpression {
         try {
             parse(expression);
         } catch (Exception e) {
-            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL).param(ARG_CRON_EXPR, expression);
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL).param(ARG_CRON_EXPR, expression).cause(e);
         }
     }
 
@@ -194,8 +194,9 @@ public class CronExpression implements ICronExpression {
         int updateMonth = findNext(this.months, month, calendar, Calendar.MONTH, Calendar.YEAR, resets);
         if (month != updateMonth) {
             if (calendar.get(Calendar.YEAR) - dot > 4) {
-                throw new IllegalArgumentException(
-                        "Invalid cron expression \"" + this.expression + "\" led to runaway search for next core");
+                throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                        .param(ARG_CRON_EXPR, this.expression)
+                        .param("reason", "led to runaway search for next core");
             }
             doNext(calendar, dot);
         }
@@ -216,7 +217,9 @@ public class CronExpression implements ICronExpression {
             reset(calendar, resets);
         }
         if (count >= max) {
-            throw new IllegalArgumentException("Overflow in day for expression \"" + this.expression + "\"");
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                    .param(ARG_CRON_EXPR, this.expression)
+                    .param("reason", "Overflow in day for expression");
         }
         return dayOfMonth;
     }
@@ -263,16 +266,20 @@ public class CronExpression implements ICronExpression {
     /**
      * Parse the given pattern expression.
      */
-    private void parse(String expression) throws IllegalArgumentException {
+    private void parse(String expression) {
         if (expression == null || expression.isEmpty())
-            throw new IllegalArgumentException("empty cron expression");
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                    .param(ARG_CRON_EXPR, expression)
+                    .param("reason", "empty cron expression");
         String[] fields = StringHelper.tokenizeToStringArray(expression, " ");
         if (fields == null)
             fields =  new String[0];
 
         if (!areValidCronFields(fields)) {
-            throw new IllegalArgumentException(String.format(
-                    "Cron expression must consist of 6 fields (found %d in \"%s\")",fields.length, expression));
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                    .param(ARG_CRON_EXPR, expression)
+                    .param("reason", String.format(
+                            "Cron expression must consist of 6 fields (found %d in \"%s\")", fields.length, expression));
         }
         doParse(fields);
     }
@@ -345,8 +352,10 @@ public class CronExpression implements ICronExpression {
             } else {
                 String[] split = StringHelper.delimitedListToStringArray(field, "/");
                 if (split.length > 2) {
-                    throw new IllegalArgumentException("Incrementer has more than two fields: '" + field
-                            + "' in expression \"" + this.expression + "\"");
+                    throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                            .param(ARG_CRON_EXPR, this.expression)
+                            .param("reason", "Incrementer has more than two fields: '" + field
+                                    + "' in expression \"" + this.expression + "\"");
                 }
                 int[] range = getRange(split[0], min, max);
                 if (!split[0].contains("-")) {
@@ -354,8 +363,10 @@ public class CronExpression implements ICronExpression {
                 }
                 int delta = Integer.parseInt(split[1]);
                 if (delta <= 0) {
-                    throw new IllegalArgumentException("Incrementer delta must be 1 or higher: '" + field
-                            + "' in expression \"" + this.expression + "\"");
+                    throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                            .param(ARG_CRON_EXPR, this.expression)
+                            .param("reason", "Incrementer delta must be 1 or higher: '" + field
+                                    + "' in expression \"" + this.expression + "\"");
                 }
                 for (int i = range[0]; i <= range[1]; i += delta) {
                     bits.set(i);
@@ -376,23 +387,31 @@ public class CronExpression implements ICronExpression {
         } else {
             String[] split = StringHelper.delimitedListToStringArray(field, "-");
             if (split.length > 2) {
-                throw new IllegalArgumentException(
-                        "Range has more than two fields: '" + field + "' in expression \"" + this.expression + "\"");
+                throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                        .param(ARG_CRON_EXPR, this.expression)
+                        .param("reason",
+                                "Range has more than two fields: '" + field + "' in expression \"" + this.expression + "\"");
             }
             result[0] = Integer.parseInt(split[0]);
             result[1] = Integer.parseInt(split[1]);
         }
         if (result[0] >= max || result[1] >= max) {
-            throw new IllegalArgumentException(
-                    "Range exceeds maximum (" + max + "): '" + field + "' in expression \"" + this.expression + "\"");
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                    .param(ARG_CRON_EXPR, this.expression)
+                    .param("reason",
+                            "Range exceeds maximum (" + max + "): '" + field + "' in expression \"" + this.expression + "\"");
         }
         if (result[0] < min || result[1] < min) {
-            throw new IllegalArgumentException(
-                    "Range less than minimum (" + min + "): '" + field + "' in expression \"" + this.expression + "\"");
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                    .param(ARG_CRON_EXPR, this.expression)
+                    .param("reason",
+                            "Range less than minimum (" + min + "): '" + field + "' in expression \"" + this.expression + "\"");
         }
         if (result[0] > result[1]) {
-            throw new IllegalArgumentException(
-                    "Invalid inverted range: '" + field + "' in expression \"" + this.expression + "\"");
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL)
+                    .param(ARG_CRON_EXPR, this.expression)
+                    .param("reason",
+                            "Invalid inverted range: '" + field + "' in expression \"" + this.expression + "\"");
         }
         return result;
     }
@@ -415,7 +434,7 @@ public class CronExpression implements ICronExpression {
         try {
             new CronExpression(expression, fields);
             return true;
-        } catch (IllegalArgumentException ex) {
+        } catch (NopException ex) {
             return false;
         }
     }
