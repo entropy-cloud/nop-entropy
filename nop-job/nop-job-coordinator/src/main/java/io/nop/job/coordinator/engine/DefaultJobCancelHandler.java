@@ -98,6 +98,12 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
             setAttribute("jobFireId", fire.getJobFireId());
             setAttribute("jobTaskId", task.getJobTaskId());
             setAttribute("executorKind", schedule.getExecutorKind());
+            if (task.getShardingIndex() != null)
+                setAttribute("shardingIndex", task.getShardingIndex());
+            if (task.getShardingTotal() != null)
+                setAttribute("shardingTotal", task.getShardingTotal());
+            if (task.getWorkerAddress() != null)
+                setAttribute("targetHost", task.getWorkerAddress());
 
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());

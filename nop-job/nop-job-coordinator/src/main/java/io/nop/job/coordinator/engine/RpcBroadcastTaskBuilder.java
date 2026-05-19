@@ -18,15 +18,14 @@ import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Builds one NopJobTask per registered service instance for broadcast RPC.
- * Each task carries the target host, shardingIndex, and shardingTotal in its payload
- * so that the worker's execution context can inject the {@code nop-svc-target-host} header
- * for per-instance routing.
+ * Each task carries the target host, shardingIndex, and shardingTotal as
+ * entity columns so that the worker can read them via typed getters and
+ * inject the {@code nop-svc-target-host} header for per-instance routing.
  * <p>
  * Falls back to {@link DefaultJobTaskBuilder} when no discovery client is available,
  * no service name is configured, or no instances are found.
@@ -63,7 +62,6 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
         }
 
         long now = System.currentTimeMillis();
-        Map<String, Object> baseJobParamsSnapshot = emptyIfNull(jobParams);
 
         List<NopJobTask> tasks = new ArrayList<>();
         int total = instances.size();
@@ -77,13 +75,10 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             task.setWorkerInstanceId(AppConfig.hostId());
             task.setPartitionIndex(fire.getPartitionIndex());
 
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("jobFireId", fire.getJobFireId());
-            payload.put("jobParamsSnapshot", baseJobParamsSnapshot);
-            payload.put("targetHost", instance.getAddr() + ":" + instance.getPort());
-            payload.put("shardingIndex", i);
-            payload.put("shardingTotal", total);
-            task.getTaskPayloadComponent().set_jsonValue(payload);
+            // Dispatch routing: columns instead of JSON payload
+            task.setTargetHost(instance.getAddr() + ":" + instance.getPort());
+            task.setShardingIndex(i);
+            task.setShardingTotal(total);
 
             task.setCreatedBy("system");
             task.setCreateTime(new Timestamp(now));

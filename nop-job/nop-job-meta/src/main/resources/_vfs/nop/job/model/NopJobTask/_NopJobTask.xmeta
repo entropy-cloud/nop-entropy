@@ -108,6 +108,18 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="500"/>
         </prop>
+        <prop name="targetHost" displayName="目标节点地址" propId="23" i18n-en:displayName="Target Host" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="shardingIndex" displayName="分片索引" propId="24" i18n-en:displayName="Sharding Index" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="shardingTotal" displayName="总分片数" propId="25" i18n-en:displayName="Sharding Total" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="jobFire" displayName="触发批次" i18n-en:displayName="Job Fire" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="jobFireId" ext:joinRightProp="jobFireId"
               insertable="false" updatable="false" mandatory="true" lazy="true">

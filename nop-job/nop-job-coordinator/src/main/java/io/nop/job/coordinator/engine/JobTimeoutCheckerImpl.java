@@ -301,6 +301,10 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
 
     private long startTimeOrNow(NopJobFire fire, long now) {
         Timestamp startTime = fire.getStartTime();
+        if (startTime == null) {
+            Timestamp updateTime = fire.getUpdateTime();
+            startTime = updateTime;
+        }
         return startTime != null ? Math.max(now - startTime.getTime(), 0L) : 0L;
     }
 
@@ -366,12 +370,18 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         }
 
         int timeoutSeconds = defaultInt(schedule.getTimeoutSeconds());
-        if (timeoutSeconds <= 0) {
+        long effectiveTimeoutMs;
+        if (timeoutSeconds > 0) {
+            effectiveTimeoutMs = timeoutSeconds * 1000L;
+        } else {
+            effectiveTimeoutMs = dispatchTimeoutMs;
+        }
+        if (effectiveTimeoutMs <= 0) {
             return;
         }
 
         long now = scheduleStore.getCurrentTime();
-        long deadline = startTime.getTime() + timeoutSeconds * 1000L;
+        long deadline = startTime.getTime() + effectiveTimeoutMs;
         if (now < deadline) {
             return;
         }

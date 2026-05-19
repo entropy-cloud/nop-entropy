@@ -22,6 +22,9 @@
   "remark": "",
   "progress": 0,
   "progressMessage": "",
+  "targetHost": "",
+  "shardingIndex": 0,
+  "shardingTotal": 0,
   "jobFire": null,
   "taskPayloadComponent": null,
   "resultPayloadComponent": null

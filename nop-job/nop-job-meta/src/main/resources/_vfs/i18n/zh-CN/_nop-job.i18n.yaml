@@ -101,7 +101,10 @@ prop:
       remark: 备注
       resultPayload: 执行结果
       resultPayloadComponent: null
+      shardingIndex: 分片索引
+      shardingTotal: 总分片数
       startTime: 开始时间
+      targetHost: 目标节点地址
       taskNo: 任务序号
       taskPayload: 投递参数
       taskPayloadComponent: null

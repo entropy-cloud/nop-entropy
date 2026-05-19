@@ -343,6 +343,12 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Progress"/>
                 <column code="PROGRESS_MESSAGE" displayName="进度消息" name="progressMessage" precision="500" propId="22"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Progress Message"/>
+                <column code="TARGET_HOST" displayName="目标节点地址" name="targetHost" precision="200" propId="23"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Target Host"/>
+                <column code="SHARDING_INDEX" displayName="分片索引" name="shardingIndex" propId="24" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Sharding Index"/>
+                <column code="SHARDING_TOTAL" displayName="总分片数" name="shardingTotal" propId="25" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Sharding Total"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_TASK_RUN_SCAN" unique="false">

@@ -155,6 +155,12 @@ class NopJobTask{
 
   String taskPayload; //投递参数
 
+  String targetHost; //目标节点地址
+
+  Integer shardingIndex; //分片索引
+
+  Integer shardingTotal; //总分片数
+
   Timestamp startTime; //开始时间
 
   Timestamp endTime; //结束时间

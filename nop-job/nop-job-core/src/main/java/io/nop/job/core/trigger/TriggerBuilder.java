@@ -23,6 +23,8 @@ public class TriggerBuilder {
         if (!StringHelper.isEmpty(spec.getCronExpr())) {
             CronExpression cronExpr = new CronExpression(spec.getCronExpr());
             trigger = new CronTrigger(cronExpr);
+        } else if (spec.getRepeatInterval() <= 0) {
+            trigger = new OnceTrigger(spec.getMinScheduleTime());
         } else {
             trigger = new PeriodicTrigger(spec.getRepeatInterval(), spec.isRepeatFixedDelay());
         }

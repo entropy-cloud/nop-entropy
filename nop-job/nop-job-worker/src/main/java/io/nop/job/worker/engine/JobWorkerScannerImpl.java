@@ -203,7 +203,8 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         try {
             NopJobTask task = taskStore.loadTask(jobTaskId);
             if (task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                    || task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED) {
+                    || task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
+                    || task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
                 return;
             }
 
@@ -250,17 +251,25 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     }
 
     private void completeTaskWithFailure(NopJobTask task, String errorCode, String errorMessage) {
+        NopJobTask freshTask = taskStore.loadTask(task.getJobTaskId());
+        if (freshTask.getTaskStatus() != null
+                && (freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS
+                || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED)) {
+            return;
+        }
+
         Timestamp endTime = new Timestamp(scheduleStore.getCurrentTime());
-        task.setTaskStatus(io.nop.job.core._NopJobCoreConstants.TASK_STATUS_FAILED);
-        task.setStartTime(endTime);
-        task.setEndTime(endTime);
-        task.setDurationMs(0L);
-        task.setErrorCode(errorCode);
-        task.setErrorMessage(errorMessage);
-        task.setWorkerInstanceId(AppConfig.hostId());
-        task.setUpdatedBy("system");
-        task.setUpdateTime(endTime);
-        taskStore.updateTask(task);
+        freshTask.setTaskStatus(io.nop.job.core._NopJobCoreConstants.TASK_STATUS_FAILED);
+        freshTask.setStartTime(endTime);
+        freshTask.setEndTime(endTime);
+        freshTask.setDurationMs(0L);
+        freshTask.setErrorCode(errorCode);
+        freshTask.setErrorMessage(errorMessage);
+        freshTask.setWorkerInstanceId(AppConfig.hostId());
+        freshTask.setUpdatedBy("system");
+        freshTask.setUpdateTime(endTime);
+        taskStore.updateTask(freshTask);
     }
 
     protected IScheduledExecutor getExecutor() {

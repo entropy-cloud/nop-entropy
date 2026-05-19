@@ -36,16 +36,6 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         this.daoProvider = daoProvider;
     }
 
-    @Override
-    public NopJobTask newTask() {
-        return taskDao().newEntity();
-    }
-
-    @Override
-    public void saveTask(NopJobTask task) {
-        taskDao().saveEntityDirectly(task);
-    }
-
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void updateTask(NopJobTask task) {
@@ -63,6 +53,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         return taskDao().findAllByQuery(query);
     }
 
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) {
         if (tasks == null || tasks.isEmpty()) {
@@ -111,15 +102,6 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, TASK_STATUS_RUNNING));
         query.addFilter(FilterBeans.eq(PROP_NAME_workerInstanceId, workerInstanceId));
         return taskDao().countByQuery(query);
-    }
-
-    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-    @Override
-    public void updateTaskProgress(String jobTaskId, int progress, String progressMessage) {
-        NopJobTask task = taskDao().requireEntityById(jobTaskId);
-        task.setProgress(progress);
-        task.setProgressMessage(progressMessage);
-        taskDao().updateEntityDirectly(task);
     }
 
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {

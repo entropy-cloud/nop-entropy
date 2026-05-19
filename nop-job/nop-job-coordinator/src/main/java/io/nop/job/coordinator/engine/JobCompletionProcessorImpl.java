@@ -14,6 +14,7 @@ import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
+import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -275,6 +276,16 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         return new FireCompletionDecision(false, nextScheduleTime);
     }
 
+    /**
+     * Resolves the aggregate fire status from individual task statuses.
+     * <p>
+     * Priority chain: TIMEOUT &gt; FAILED &gt; CANCELED &gt; SUCCESS.
+     * For broadcast fires, a single CANCELED/FAILED/TIMEOUT shard determines
+     * the fire's aggregate status. Operators should inspect individual task
+     * statuses for partial success details.
+     * SUSPICIOUS tasks are treated as pending (fire stays RUNNING) and will
+     * be escalated to TIMEOUT by the timeout checker.
+     */
     private Integer resolveFinalFireStatus(List<NopJobTask> tasks) {
         boolean hasPendingTask = false;
         boolean hasTimeoutTask = false;
@@ -285,7 +296,8 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             Integer taskStatus = task.getTaskStatus();
             if (taskStatus == null || taskStatus == _NopJobCoreConstants.TASK_STATUS_WAITING
                     || taskStatus == _NopJobCoreConstants.TASK_STATUS_CLAIMED
-                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING) {
+                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING
+                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
                 hasPendingTask = true;
                 continue;
             }
@@ -371,58 +383,11 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
     }
 
     private TriggerSpec toTriggerSpec(NopJobSchedule schedule) {
-        TriggerSpec spec = new TriggerSpec();
-        spec.setCronExpr(schedule.getCronExpr());
-        spec.setRepeatInterval(defaultLong(schedule.getRepeatIntervalMs()));
-        spec.setRepeatFixedDelay(isFixedDelay(schedule));
-        spec.setMaxExecutionCount(defaultInt(schedule.getMaxExecutionCount()));
-        spec.setMinScheduleTime(toTime(schedule.getMinScheduleTime()));
-        spec.setMaxScheduleTime(toTime(schedule.getMaxScheduleTime()));
-        spec.setMisfireThreshold(defaultInt(schedule.getMisfireThresholdMs()));
-        spec.setUseDefaultCalendar(schedule.getUseDefaultCalendar() != null && schedule.getUseDefaultCalendar() == 1);
-        spec.setPauseCalendars(Collections.emptyList());
-        spec.setMaxFailedCount(0);
-        return spec;
+        return TriggerSpecHelper.toTriggerSpec(schedule);
     }
 
     private ITriggerEvalContext toEvalContext(NopJobSchedule schedule) {
-        return new ITriggerEvalContext() {
-            @Override
-            public long getFireCount() {
-                return defaultLong(schedule.getFireCount());
-            }
-
-            @Override
-            public long getLastScheduledTime() {
-                return toTime(schedule.getLastFireTime());
-            }
-
-            @Override
-            public long getLastEndTime() {
-                return toTime(schedule.getLastEndTime());
-            }
-
-            @Override
-            public long getMinScheduleTime() {
-                return toTime(schedule.getMinScheduleTime());
-            }
-
-            @Override
-            public long getMaxScheduleTime() {
-                return toTime(schedule.getMaxScheduleTime());
-            }
-
-            @Override
-            public long getMaxExecutionCount() {
-                return defaultInt(schedule.getMaxExecutionCount());
-            }
-
-            @Override
-            public boolean isScheduleCompleted() {
-                return schedule.getScheduleStatus() != null
-                        && schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED;
-            }
-        };
+        return TriggerSpecHelper.toEvalContext(schedule);
     }
 
     private boolean isFixedDelay(NopJobSchedule schedule) {

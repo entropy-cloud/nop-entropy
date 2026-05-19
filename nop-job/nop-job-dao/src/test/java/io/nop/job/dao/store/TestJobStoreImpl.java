@@ -12,6 +12,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -72,7 +73,7 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals("dispatcher-1", lockedFires.get(0).getDispatchInstanceId());
 
         NopJobTask task = newTask("task-1", fire);
-        fireStore.insertTaskAndMarkFireDispatching(lockedFires.get(0), task);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
 
         NopJobTask savedTask = taskStore.loadTask("task-1");
         assertNotNull(savedTask);
@@ -98,7 +99,7 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals(true, fireStore.cancelFire(fire.getJobFireId()));
 
         NopJobTask task = newTask("task-2", fire);
-        fireStore.insertTaskAndMarkFireDispatching(lockedFires.get(0), task);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
 
         List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
         assertEquals(0, tasks.size());

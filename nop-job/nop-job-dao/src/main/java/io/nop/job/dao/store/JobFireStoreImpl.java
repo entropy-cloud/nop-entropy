@@ -16,6 +16,7 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.entity._gen._NopJobTask;
+import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
@@ -83,22 +84,10 @@ public class JobFireStoreImpl implements IJobFireStore {
         for (NopJobFire fire : fires) {
             fire.setFireStatus(FIRE_STATUS_DISPATCHING);
             fire.setDispatchInstanceId(dispatchInstanceId);
+            fire.setStartTime(lockTime);
             fire.setUpdateTime(lockTime);
         }
         return fireDao().tryUpdateManyWithVersionCheck(fires);
-    }
-
-    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-    @Override
-    public void insertTaskAndMarkFireDispatching(NopJobFire fire, NopJobTask task) {
-        NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-        if (currentFire.getFireStatus() == null || currentFire.getFireStatus() != FIRE_STATUS_DISPATCHING) {
-            return;
-        }
-
-        taskDao().saveEntityDirectly(task);
-        currentFire.setFireStatus(FIRE_STATUS_RUNNING);
-        fireDao().updateEntityDirectly(currentFire);
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -117,6 +106,8 @@ public class JobFireStoreImpl implements IJobFireStore {
     }
 
     private static final Set<Integer> TERMINAL_FIRE_STATUSES = Set.of(
+            _NopJobCoreConstants.FIRE_STATUS_SUCCESS,
+            _NopJobCoreConstants.FIRE_STATUS_FAILED,
             _NopJobCoreConstants.FIRE_STATUS_CANCELED,
             _NopJobCoreConstants.FIRE_STATUS_TIMEOUT
     );
@@ -299,59 +290,11 @@ public class JobFireStoreImpl implements IJobFireStore {
     }
 
     private TriggerSpec toTriggerSpec(NopJobSchedule schedule) {
-        TriggerSpec spec = new TriggerSpec();
-        spec.setCronExpr(schedule.getCronExpr());
-        spec.setRepeatInterval(defaultLong(schedule.getRepeatIntervalMs()));
-        spec.setRepeatFixedDelay(schedule.getTriggerType() != null
-                && schedule.getTriggerType() == _NopJobCoreConstants.TRIGGER_TYPE_FIXED_DELAY);
-        spec.setMaxExecutionCount(defaultInt(schedule.getMaxExecutionCount()));
-        spec.setMinScheduleTime(toTime(schedule.getMinScheduleTime()));
-        spec.setMaxScheduleTime(toTime(schedule.getMaxScheduleTime()));
-        spec.setMisfireThreshold(defaultInt(schedule.getMisfireThresholdMs()));
-        spec.setUseDefaultCalendar(schedule.getUseDefaultCalendar() != null && schedule.getUseDefaultCalendar() == 1);
-        spec.setPauseCalendars(Collections.emptyList());
-        spec.setMaxFailedCount(0);
-        return spec;
+        return TriggerSpecHelper.toTriggerSpec(schedule);
     }
 
     private ITriggerEvalContext toEvalContext(NopJobSchedule schedule) {
-        return new ITriggerEvalContext() {
-            @Override
-            public long getFireCount() {
-                return defaultLong(schedule.getFireCount());
-            }
-
-            @Override
-            public long getLastScheduledTime() {
-                return toTime(schedule.getLastFireTime());
-            }
-
-            @Override
-            public long getLastEndTime() {
-                return toTime(schedule.getLastEndTime());
-            }
-
-            @Override
-            public long getMinScheduleTime() {
-                return toTime(schedule.getMinScheduleTime());
-            }
-
-            @Override
-            public long getMaxScheduleTime() {
-                return toTime(schedule.getMaxScheduleTime());
-            }
-
-            @Override
-            public long getMaxExecutionCount() {
-                return defaultInt(schedule.getMaxExecutionCount());
-            }
-
-            @Override
-            public boolean isScheduleCompleted() {
-                return schedule.getScheduleStatus() != null
-                        && schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED;
-            }
-        };
+        return TriggerSpecHelper.toEvalContext(schedule);
     }
 
     private Long calculateDuration(Timestamp startTime, Timestamp endTime) {

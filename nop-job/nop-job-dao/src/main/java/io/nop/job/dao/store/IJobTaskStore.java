@@ -6,10 +6,6 @@ import io.nop.job.dao.entity.NopJobTask;
 import java.util.List;
 
 public interface IJobTaskStore {
-    NopJobTask newTask();
-
-    void saveTask(NopJobTask task);
-
     void updateTask(NopJobTask task);
 
     List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions);
@@ -23,6 +19,4 @@ public interface IJobTaskStore {
     NopJobTask loadTask(String jobTaskId);
 
     long countRunningTasks(String workerInstanceId);
-
-    void updateTaskProgress(String jobTaskId, int progress, String progressMessage);
 }

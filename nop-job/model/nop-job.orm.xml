@@ -348,6 +348,16 @@
                 <column code="TASK_PAYLOAD" displayName="投递参数" domain="json-4000" name="taskPayload"
                         precision="4000" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Task Payload"/>
+                <!-- 分派路由信息：由任务构建器设置，worker 通过 getter 读取 -->
+                <column code="TARGET_HOST" displayName="目标节点地址" name="targetHost" precision="200"
+                        propId="23" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Target Host"/>
+                <column code="SHARDING_INDEX" displayName="分片索引" name="shardingIndex"
+                        propId="24" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Sharding Index"/>
+                <column code="SHARDING_TOTAL" displayName="总分片数" name="shardingTotal"
+                        propId="25" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Sharding Total"/>
                 <!-- 生命周期 -->
                 <column code="START_TIME" displayName="开始时间" name="startTime" propId="8"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Start Time"/>

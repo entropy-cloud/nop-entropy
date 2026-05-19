@@ -413,15 +413,12 @@ public class TestJobTimeoutChecker {
             return new ArrayList<>(runningTasks);
         }
 
-        @Override public NopJobTask newTask() { return new NopJobTask(); }
-        @Override public void saveTask(NopJobTask task) {}
         @Override public void updateTask(NopJobTask task) {}
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
         @Override public List<NopJobTask> findTasksByFireId(String jobFireId) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countRunningTasks(String workerInstanceId) { return 0; }
-        @Override public void updateTaskProgress(String jobTaskId, int progress, String progressMessage) {}
     }
 
     static class MockFireStore implements IJobFireStore {
@@ -454,7 +451,6 @@ public class TestJobTimeoutChecker {
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
-        @Override public void insertTaskAndMarkFireDispatching(NopJobFire fire, NopJobTask task) {}
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
         @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {}
         @Override public boolean cancelFire(String jobFireId) { return false; }
@@ -499,7 +495,7 @@ public class TestJobTimeoutChecker {
         @Override public void insertFireAndAdvanceSchedule(NopJobSchedule schedule, NopJobFire fire, Timestamp nextFireTime, Integer lastFireStatus) {}
         @Override public void overlayFireAndAdvanceSchedule(NopJobSchedule schedule, NopJobFire fire, Timestamp nextFireTime, Integer lastFireStatus) {}
         @Override public void recoveryFireAndAdvanceSchedule(NopJobSchedule schedule, Timestamp nextFireTime) {}
-        @Override public void insertManualFire(NopJobSchedule schedule, NopJobFire fire) {}
+        @Override public boolean insertManualFire(NopJobSchedule schedule, NopJobFire fire) { return true; }
     }
 
     static class MockNamingService implements INamingService {

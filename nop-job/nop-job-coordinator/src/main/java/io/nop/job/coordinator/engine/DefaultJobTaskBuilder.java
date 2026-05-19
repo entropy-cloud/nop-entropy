@@ -20,6 +20,8 @@ public class DefaultJobTaskBuilder implements IJobTaskBuilder {
         task.setTaskNo(1);
         task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
         task.setWorkerInstanceId(AppConfig.hostId());
+        // targetHost is reserved for future use: populate when a naming service
+        // is available to resolve workerInstanceId to a network address.
         task.getTaskPayloadComponent().set_jsonValue(Map.of(
                 "jobFireId", fire.getJobFireId(),
                 "jobParamsSnapshot", emptyIfNull(fire.getJobParamsSnapshotComponent().get_jsonMap())

@@ -17,6 +17,7 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobScheduleStore;
 import jakarta.inject.Inject;
 
@@ -28,6 +29,7 @@ import java.util.Map;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_DISCARDED;
 
 @BizModel("NopJobSchedule")
 public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> implements INopJobScheduleBiz{
@@ -100,7 +102,12 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         validateManualTriggerSchedule(schedule, "triggerNow");
 
         NopJobFire fire = buildManualFire(schedule, overrideParams, context);
-        scheduleStore.insertManualFire(schedule, fire);
+        boolean created = scheduleStore.insertManualFire(schedule, fire);
+        if (!created) {
+            throw new NopException(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_DISCARDED)
+                    .param("jobScheduleId", schedule.getJobScheduleId())
+                    .param("jobName", schedule.getJobName());
+        }
         afterEntityChange(schedule, "triggerNow", context);
     }
 
@@ -237,70 +244,10 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     }
 
     private TriggerSpec toTriggerSpec(NopJobSchedule schedule) {
-        TriggerSpec spec = new TriggerSpec();
-        spec.setCronExpr(schedule.getCronExpr());
-        spec.setRepeatInterval(defaultLong(schedule.getRepeatIntervalMs()));
-        spec.setRepeatFixedDelay(schedule.getTriggerType() != null
-                && schedule.getTriggerType() == _NopJobCoreConstants.TRIGGER_TYPE_FIXED_DELAY);
-        spec.setMaxExecutionCount(defaultInt(schedule.getMaxExecutionCount()));
-        spec.setMinScheduleTime(toTime(schedule.getMinScheduleTime()));
-        spec.setMaxScheduleTime(toTime(schedule.getMaxScheduleTime()));
-        spec.setMisfireThreshold(defaultInt(schedule.getMisfireThresholdMs()));
-        spec.setUseDefaultCalendar(schedule.getUseDefaultCalendar() != null && schedule.getUseDefaultCalendar() == 1);
-        spec.setPauseCalendars(Collections.emptyList());
-        spec.setMaxFailedCount(0);
-        return spec;
+        return TriggerSpecHelper.toTriggerSpec(schedule);
     }
 
     private ITriggerEvalContext toEvalContext(NopJobSchedule schedule) {
-        return new ITriggerEvalContext() {
-            @Override
-            public long getFireCount() {
-                return defaultLong(schedule.getFireCount());
-            }
-
-            @Override
-            public long getLastScheduledTime() {
-                return toTime(schedule.getLastFireTime());
-            }
-
-            @Override
-            public long getLastEndTime() {
-                return toTime(schedule.getLastEndTime());
-            }
-
-            @Override
-            public long getMinScheduleTime() {
-                return toTime(schedule.getMinScheduleTime());
-            }
-
-            @Override
-            public long getMaxScheduleTime() {
-                return toTime(schedule.getMaxScheduleTime());
-            }
-
-            @Override
-            public long getMaxExecutionCount() {
-                return defaultInt(schedule.getMaxExecutionCount());
-            }
-
-            @Override
-            public boolean isScheduleCompleted() {
-                return schedule.getScheduleStatus() != null
-                        && schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED;
-            }
-        };
-    }
-
-    private long toTime(Timestamp value) {
-        return value == null ? 0L : value.getTime();
-    }
-
-    private long defaultLong(Long value) {
-        return value == null ? 0L : value;
-    }
-
-    private int defaultInt(Integer value) {
-        return value == null ? 0 : value;
+        return TriggerSpecHelper.toEvalContext(schedule);
     }
 }

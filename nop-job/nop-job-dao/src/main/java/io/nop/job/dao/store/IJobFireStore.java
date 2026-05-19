@@ -17,8 +17,6 @@ public interface IJobFireStore {
     List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId,
                                              long lockTimeoutMs);
 
-    void insertTaskAndMarkFireDispatching(NopJobFire fire, NopJobTask task);
-
     void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks);
 
     void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule);

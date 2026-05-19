@@ -95,6 +95,9 @@ CREATE TABLE nop_job_task(
   remark VARCHAR(200)  ,
   progress INT4  ,
   progress_message VARCHAR(500)  ,
+  target_host VARCHAR(200)  ,
+  sharding_index INT4  ,
+  sharding_total INT4  ,
   constraint PK_nop_job_task primary key (job_task_id)
 );
 
@@ -278,4 +281,10 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_task.progress IS '执行进度';
                     
       COMMENT ON COLUMN nop_job_task.progress_message IS '进度消息';
+                    
+      COMMENT ON COLUMN nop_job_task.target_host IS '目标节点地址';
+                    
+      COMMENT ON COLUMN nop_job_task.sharding_index IS '分片索引';
+                    
+      COMMENT ON COLUMN nop_job_task.sharding_total IS '总分片数';
                     

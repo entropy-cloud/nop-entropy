@@ -108,8 +108,20 @@ public class _NopJobTask extends DynamicOrmEntity{
     public static final String PROP_NAME_progressMessage = "progressMessage";
     public static final int PROP_ID_progressMessage = 22;
     
+    /* 目标节点地址: TARGET_HOST VARCHAR */
+    public static final String PROP_NAME_targetHost = "targetHost";
+    public static final int PROP_ID_targetHost = 23;
+    
+    /* 分片索引: SHARDING_INDEX INTEGER */
+    public static final String PROP_NAME_shardingIndex = "shardingIndex";
+    public static final int PROP_ID_shardingIndex = 24;
+    
+    /* 总分片数: SHARDING_TOTAL INTEGER */
+    public static final String PROP_NAME_shardingTotal = "shardingTotal";
+    public static final int PROP_ID_shardingTotal = 25;
+    
 
-    private static int _PROP_ID_BOUND = 23;
+    private static int _PROP_ID_BOUND = 26;
 
     
     /* relation: 触发批次 */
@@ -125,7 +137,7 @@ public class _NopJobTask extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobTaskId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobTaskId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[23];
+    private static final String[] PROP_ID_TO_NAME = new String[26];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -195,6 +207,15 @@ public class _NopJobTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_progressMessage] = PROP_NAME_progressMessage;
           PROP_NAME_TO_ID.put(PROP_NAME_progressMessage, PROP_ID_progressMessage);
       
+          PROP_ID_TO_NAME[PROP_ID_targetHost] = PROP_NAME_targetHost;
+          PROP_NAME_TO_ID.put(PROP_NAME_targetHost, PROP_ID_targetHost);
+      
+          PROP_ID_TO_NAME[PROP_ID_shardingIndex] = PROP_NAME_shardingIndex;
+          PROP_NAME_TO_ID.put(PROP_NAME_shardingIndex, PROP_ID_shardingIndex);
+      
+          PROP_ID_TO_NAME[PROP_ID_shardingTotal] = PROP_NAME_shardingTotal;
+          PROP_NAME_TO_ID.put(PROP_NAME_shardingTotal, PROP_ID_shardingTotal);
+      
     }
 
     
@@ -263,6 +284,15 @@ public class _NopJobTask extends DynamicOrmEntity{
     
     /* 进度消息: PROGRESS_MESSAGE */
     private java.lang.String _progressMessage;
+    
+    /* 目标节点地址: TARGET_HOST */
+    private java.lang.String _targetHost;
+    
+    /* 分片索引: SHARDING_INDEX */
+    private java.lang.Integer _shardingIndex;
+    
+    /* 总分片数: SHARDING_TOTAL */
+    private java.lang.Integer _shardingTotal;
     
 
     public _NopJobTask(){
@@ -403,6 +433,15 @@ public class _NopJobTask extends DynamicOrmEntity{
         
             case PROP_ID_progressMessage:
                return getProgressMessage();
+        
+            case PROP_ID_targetHost:
+               return getTargetHost();
+        
+            case PROP_ID_shardingIndex:
+               return getShardingIndex();
+        
+            case PROP_ID_shardingTotal:
+               return getShardingTotal();
         
            default:
               return super.orm_propValue(propId);
@@ -635,6 +674,36 @@ public class _NopJobTask extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_targetHost:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_targetHost));
+               }
+               setTargetHost(typedValue);
+               break;
+            }
+        
+            case PROP_ID_shardingIndex:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_shardingIndex));
+               }
+               setShardingIndex(typedValue);
+               break;
+            }
+        
+            case PROP_ID_shardingTotal:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_shardingTotal));
+               }
+               setShardingTotal(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -794,6 +863,27 @@ public class _NopJobTask extends DynamicOrmEntity{
             case PROP_ID_progressMessage:{
                onInitProp(propId);
                this._progressMessage = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_targetHost:{
+               onInitProp(propId);
+               this._targetHost = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_shardingIndex:{
+               onInitProp(propId);
+               this._shardingIndex = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_shardingTotal:{
+               onInitProp(propId);
+               this._shardingTotal = (java.lang.Integer)value;
                
                break;
             }
@@ -1218,6 +1308,63 @@ public class _NopJobTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_progressMessage,value)){
             this._progressMessage = value;
             internalClearRefs(PROP_ID_progressMessage);
+            
+        }
+    }
+    
+    /**
+     * 目标节点地址: TARGET_HOST
+     */
+    public final java.lang.String getTargetHost(){
+         onPropGet(PROP_ID_targetHost);
+         return _targetHost;
+    }
+
+    /**
+     * 目标节点地址: TARGET_HOST
+     */
+    public final void setTargetHost(java.lang.String value){
+        if(onPropSet(PROP_ID_targetHost,value)){
+            this._targetHost = value;
+            internalClearRefs(PROP_ID_targetHost);
+            
+        }
+    }
+    
+    /**
+     * 分片索引: SHARDING_INDEX
+     */
+    public final java.lang.Integer getShardingIndex(){
+         onPropGet(PROP_ID_shardingIndex);
+         return _shardingIndex;
+    }
+
+    /**
+     * 分片索引: SHARDING_INDEX
+     */
+    public final void setShardingIndex(java.lang.Integer value){
+        if(onPropSet(PROP_ID_shardingIndex,value)){
+            this._shardingIndex = value;
+            internalClearRefs(PROP_ID_shardingIndex);
+            
+        }
+    }
+    
+    /**
+     * 总分片数: SHARDING_TOTAL
+     */
+    public final java.lang.Integer getShardingTotal(){
+         onPropGet(PROP_ID_shardingTotal);
+         return _shardingTotal;
+    }
+
+    /**
+     * 总分片数: SHARDING_TOTAL
+     */
+    public final void setShardingTotal(java.lang.Integer value){
+        if(onPropSet(PROP_ID_shardingTotal,value)){
+            this._shardingTotal = value;
+            internalClearRefs(PROP_ID_shardingTotal);
             
         }
     }

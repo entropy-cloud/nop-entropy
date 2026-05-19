@@ -5,6 +5,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
+import io.nop.job.api.NopJobApiConstants;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.execution.JobFireResult;
@@ -36,23 +37,25 @@ public class RpcJobInvoker implements IJobInvoker {
         String serviceName = requireString(jobParams, "serviceName");
         String serviceMethod = getString(jobParams, "serviceMethod", "invokeJob");
 
+        ApiRequest<Object> request = new ApiRequest<>();
+
+        // Inject framework-level execution context as headers (always present)
+        injectFrameworkHeaders(request, jobCtx);
+
+        // User-configured headers (override framework defaults if needed)
         @SuppressWarnings("unchecked")
         Map<String, Object> headers = (Map<String, Object>) jobParams.get("headers");
+        if (headers != null) {
+            request.addHeaders(headers);
+        }
+
+        // Body: business payload only
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) jobParams.get("data");
-
-        ApiRequest<Object> request = new ApiRequest<>();
-        if (headers != null) {
-            request.setHeaders(headers);
-        }
         if (data != null) {
             request.setData(data);
         } else {
-            request.setData(Map.of(
-                    "jobName", jobCtx.getJobName() != null ? jobCtx.getJobName() : "",
-                    "jobGroup", jobCtx.getJobGroup() != null ? jobCtx.getJobGroup() : "",
-                    "execCount", jobCtx.getExecCount()
-            ));
+            request.setData(Collections.emptyMap());
         }
 
         return rpcServiceInvoker.invokeAsync(serviceName, serviceMethod, request, null)
@@ -69,21 +72,53 @@ public class RpcJobInvoker implements IJobInvoker {
         String serviceName = requireString(jobParams, "serviceName");
         String cancelMethod = getString(jobParams, "cancelMethod", "cancelJob");
 
+        ApiRequest<Object> request = new ApiRequest<>();
+
+        injectFrameworkHeaders(request, jobCtx);
+
         @SuppressWarnings("unchecked")
         Map<String, Object> headers = (Map<String, Object>) jobParams.get("headers");
-
-        ApiRequest<Object> request = new ApiRequest<>();
         if (headers != null) {
-            request.setHeaders(headers);
+            request.addHeaders(headers);
         }
+
         request.setData(Map.of(
-                "jobName", jobCtx.getJobName() != null ? jobCtx.getJobName() : "",
-                "jobGroup", jobCtx.getJobGroup() != null ? jobCtx.getJobGroup() : "",
                 "instanceId", jobCtx.getInstanceId() != null ? jobCtx.getInstanceId() : ""
         ));
 
         return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, request, null)
                 .thenApply(ApiResponse::isOk);
+    }
+
+    private void injectFrameworkHeaders(ApiRequest<Object> request, IJobExecutionContext jobCtx) {
+        // Job identity
+        if (jobCtx.getJobName() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_NAME, jobCtx.getJobName());
+        }
+        if (jobCtx.getJobGroup() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_GROUP, jobCtx.getJobGroup());
+        }
+
+        // Execution context IDs — stored in attributes by DefaultJobExecutionContextBuilder
+        Map<String, Object> attrs = jobCtx.getAttributes();
+        if (attrs != null) {
+            Object fireId = attrs.get("jobFireId");
+            if (fireId != null) {
+                request.setHeader(NopJobApiConstants.HEADER_JOB_FIRE_ID, fireId);
+            }
+            Object taskId = attrs.get("jobTaskId");
+            if (taskId != null) {
+                request.setHeader(NopJobApiConstants.HEADER_JOB_TASK_ID, taskId);
+            }
+            Object shardingIndex = attrs.get("shardingIndex");
+            if (shardingIndex != null) {
+                request.setHeader(NopJobApiConstants.HEADER_JOB_SHARDING_INDEX, shardingIndex);
+            }
+            Object shardingTotal = attrs.get("shardingTotal");
+            if (shardingTotal != null) {
+                request.setHeader(NopJobApiConstants.HEADER_JOB_SHARDING_TOTAL, shardingTotal);
+            }
+        }
     }
 
     private JobFireResult toJobFireResult(ApiResponse<?> response) {

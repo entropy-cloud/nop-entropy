@@ -25,7 +25,7 @@ public interface IJobScheduleStore {
 
     void recoveryFireAndAdvanceSchedule(NopJobSchedule schedule, Timestamp nextFireTime);
 
-    void insertManualFire(NopJobSchedule schedule, NopJobFire fire);
+    boolean insertManualFire(NopJobSchedule schedule, NopJobFire fire);
 
     NopJobSchedule loadSchedule(String jobScheduleId);
 

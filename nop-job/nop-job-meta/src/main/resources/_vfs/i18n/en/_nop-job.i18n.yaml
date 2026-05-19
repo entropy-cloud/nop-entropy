@@ -109,6 +109,9 @@ prop:
       remark: Remark
       progress: Progress
       progressMessage: Progress Message
+      targetHost: Target Host
+      shardingIndex: Sharding Index
+      shardingTotal: Sharding Total
       jobFire: Job Fire
       taskPayloadComponent: null
       resultPayloadComponent: null

@@ -81,6 +81,16 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
             setAttribute("jobTaskId", task.getJobTaskId());
             setAttribute("executorKind", schedule.getExecutorKind());
 
+            // Sharding info and target host are now stored as entity columns (set by
+            // RpcBroadcastTaskBuilder). RpcJobInvoker reads them from attributes and
+            // injects them as RPC headers.
+            if (task.getShardingIndex() != null) {
+                setAttribute("shardingIndex", task.getShardingIndex());
+            }
+            if (task.getShardingTotal() != null) {
+                setAttribute("shardingTotal", task.getShardingTotal());
+            }
+
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());
             this.maxExecutionCount = defaultLong(schedule.getMaxExecutionCount());
@@ -138,14 +148,12 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
                 jobParams = new HashMap<>(jobParams);
             }
 
-            Map<String, Object> taskPayload = task.getTaskPayloadComponent().get_jsonMap();
-            if (taskPayload != null) {
-                Object targetHost = taskPayload.get("targetHost");
-                if (targetHost instanceof String && !((String) targetHost).isBlank()) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> headers = (Map<String, Object>) jobParams.computeIfAbsent("headers", k -> new HashMap<String, Object>());
-                    headers.put(ApiConstants.HEADER_SVC_TARGET_HOST, targetHost);
-                }
+            // Inject targetHost as header so that RpcJobInvoker can propagate it.
+            // targetHost is stored as a column on NopJobTask by RpcBroadcastTaskBuilder.
+            if (task.getTargetHost() != null && !task.getTargetHost().isBlank()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> headers = (Map<String, Object>) jobParams.computeIfAbsent("headers", k -> new HashMap<String, Object>());
+                headers.put(ApiConstants.HEADER_SVC_TARGET_HOST, task.getTargetHost());
             }
 
             return jobParams;

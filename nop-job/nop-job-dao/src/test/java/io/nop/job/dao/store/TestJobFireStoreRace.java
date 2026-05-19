@@ -13,6 +13,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -78,7 +79,7 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         assertEquals(1, lockedFires.size());
 
         NopJobTask task = newTask("race-task-2", fire);
-        fireStore.insertTaskAndMarkFireDispatching(lockedFires.get(0), task);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
 
         NopJobFire runningFire = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_RUNNING, runningFire.getFireStatus());
@@ -109,7 +110,7 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         assertEquals(1, lockedFires.size());
 
         NopJobTask task = newTask("race-task-3", fire);
-        fireStore.insertTaskAndMarkFireDispatching(lockedFires.get(0), task);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
 
         NopJobFire runningFire = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_RUNNING, runningFire.getFireStatus());
@@ -143,7 +144,7 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         assertEquals(1, lockedFires.size());
 
         NopJobTask task = newTask("race-task-4", fire);
-        fireStore.insertTaskAndMarkFireDispatching(lockedFires.get(0), task);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
 
         NopJobFire runningFire = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_RUNNING, runningFire.getFireStatus());

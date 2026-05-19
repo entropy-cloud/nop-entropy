@@ -35,6 +35,16 @@ public interface NopJobErrors{
             "Fire rerun is not allowed for the current fire status"
     );
 
+    ErrorCode ERR_JOB_SCHEDULE_MANUAL_TRIGGER_DISCARDED = ErrorCode.define(
+            "nop.err.job.schedule.manual-trigger-discarded",
+            "Manual trigger discarded because active fires exist and block strategy is DISCARD"
+    );
+
+    ErrorCode ERR_JOB_TASK_DELETE_NOT_ALLOWED = ErrorCode.define(
+            "nop.err.job.task.delete-not-allowed",
+            "Job tasks must be managed via the Store layer, not through direct CRUD operations"
+    );
+
     String ARG_PARAM_NAME = "paramName";
 
     ErrorCode ERR_RPC_INVOKER_MISSING_PARAM = ErrorCode.define(

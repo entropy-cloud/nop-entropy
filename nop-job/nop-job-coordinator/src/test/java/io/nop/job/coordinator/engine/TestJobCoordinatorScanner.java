@@ -570,26 +570,27 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     }
 
     @Test
-    public void testRecoveryBlockStrategyNoFailedFireAdvancesSchedule() {
-        NopJobSchedule schedule = newSchedule("schedule-12", "job-12");
-        schedule.setBlockStrategy(BLOCK_STRATEGY_RECOVERY);
-        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+     public void testRecoveryBlockStrategyNoFailedFireCreatesFire() {
+         // R2-12 fix: RECOVERY schedule with no failed fires should fire normally (not skip forever)
+         NopJobSchedule schedule = newSchedule("schedule-12", "job-12");
+         schedule.setBlockStrategy(BLOCK_STRATEGY_RECOVERY);
+         daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
 
-        JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
-        planner.setScheduleStore(scheduleStore);
-        planner.setBatchSize(10);
-        planner.setPlanningTimeoutMs(1000);
-        planner.setAssignedPartitions("1");
-        planner.scanOnce();
+         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
+         planner.setScheduleStore(scheduleStore);
+         planner.setBatchSize(10);
+         planner.setPlanningTimeoutMs(1000);
+         planner.setAssignedPartitions("1");
+         planner.scanOnce();
 
-        List<NopJobFire> fires = daoProvider.daoFor(NopJobFire.class).findAll().stream()
-                .filter(item -> schedule.getJobScheduleId().equals(item.getJobScheduleId()))
-                .collect(Collectors.toList());
-        assertEquals(0, fires.size());
+         List<NopJobFire> fires = daoProvider.daoFor(NopJobFire.class).findAll().stream()
+                 .filter(item -> schedule.getJobScheduleId().equals(item.getJobScheduleId()))
+                 .collect(Collectors.toList());
+         assertEquals(1, fires.size());
 
-        NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
-        assertNotNull(savedSchedule.getNextFireTime());
-        assertEquals(0L, savedSchedule.getFireCount());
+         NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+         assertNotNull(savedSchedule.getNextFireTime());
+         assertEquals(1L, savedSchedule.getFireCount());
     }
 
     private static final class PreparedChain {

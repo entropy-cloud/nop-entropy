@@ -16,6 +16,8 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.entity._gen._NopJobFire;
 import io.nop.job.dao.entity._gen._NopJobTask;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -30,6 +32,8 @@ import static io.nop.job.dao.entity._gen._NopJobSchedule.*;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_OVERLAID;
 
 public class JobScheduleStoreImpl implements IJobScheduleStore {
+    static final Logger LOG = LoggerFactory.getLogger(JobScheduleStoreImpl.class);
+
     private static final int SCHEDULE_STATUS_ENABLED = 10;
     private static final int FIRE_STATUS_WAITING = 0;
     private static final int FIRE_STATUS_DISPATCHING = 10;
@@ -119,11 +123,20 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         List<NopJobFire> activeFires = findActiveFires(schedule.getJobScheduleId());
 
         for (NopJobFire activeFire : activeFires) {
-            cancelFire(activeFire, cancelTime);
-            cancelTasks(activeFire.getJobFireId(), cancelTime);
+            try {
+                cancelFire(activeFire, cancelTime);
+                cancelTasks(activeFire.getJobFireId(), cancelTime);
+            } catch (Exception e) {
+                LOG.warn("nop.job.schedule.cancel-fire-failed:fireId={}", activeFire.getJobFireId(), e);
+            }
         }
 
         fireDao().saveEntityDirectly(fire);
+
+        // Count overlay-cancelled fires as completed failures
+        int cancelledCount = activeFires.size();
+        schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
+        schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
 
         schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
         schedule.setActiveFireCount(1);
@@ -147,9 +160,30 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         if (failedFires.isEmpty()) {
             long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+            Timestamp fireTime = new Timestamp(now);
+
+            NopJobFire newFire = new NopJobFire();
+            newFire.setJobScheduleId(schedule.getJobScheduleId());
+            newFire.setNamespaceId(schedule.getNamespaceId());
+            newFire.setGroupId(schedule.getGroupId());
+            newFire.setJobName(schedule.getJobName());
+            newFire.setScheduledFireTime(fireTime);
+            newFire.setFireStatus(FIRE_STATUS_WAITING);
+            newFire.setCreatedBy("system");
+            newFire.setCreateTime(fireTime);
+            newFire.setUpdatedBy("system");
+            newFire.setUpdateTime(fireTime);
+            newFire.setPartitionIndex(schedule.getPartitionIndex());
+            newFire.setExecutorKind(schedule.getExecutorKind());
+
+            fireDao().saveEntityDirectly(newFire);
+
+            schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
+            schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
+            schedule.setLastFireTime(fireTime);
             schedule.setNextFireTime(nextFireTime);
             schedule.setUpdatedBy("system");
-            schedule.setUpdateTime(new Timestamp(now));
+            schedule.setUpdateTime(fireTime);
             scheduleDao().updateEntityDirectly(schedule);
             return;
         }
@@ -178,13 +212,13 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public void insertManualFire(NopJobSchedule schedule, NopJobFire fire) {
+    public boolean insertManualFire(NopJobSchedule schedule, NopJobFire fire) {
         long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
         Timestamp updateTime = new Timestamp(now);
         List<NopJobFire> activeFires = findActiveFires(schedule.getJobScheduleId());
 
         if (isDiscard(schedule) && !activeFires.isEmpty()) {
-            return;
+            return false;
         }
 
         if (isOverlay(schedule)) {
@@ -205,6 +239,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         schedule.setUpdatedBy("system");
         schedule.setUpdateTime(updateTime);
         scheduleDao().updateEntityDirectly(schedule);
+        return true;
     }
 
     @Override
