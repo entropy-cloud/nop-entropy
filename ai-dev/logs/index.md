@@ -66,6 +66,8 @@ ai-dev/logs/
 - [05-20](2026/05-20.md) — Plan 30 nop-stream 审计发现修复全部完成；nop-nosql 深度审计
 - [05-19](2026/05-19.md) — Plan 21 nop-job Adversarial Review Remediation 完成
 - [05-18](2026/05-18.md) — nop-job 深度审核完成 + 并发模式文档化
+- [05-17](2026/05-17.md) — Plan 17 nop-job 阻塞策略+Metrics 全部完成（RECOVERY策略+三套Metrics+Schedule聚合+限流设计文档）；吸引子层治理：`ai-dev/design/README.md` 新增；Plan 15 完成+Plan 16 迁移+Plan 17 新建；文档治理
+- [05-15](2026/05-15.md) — 修复 `OrmEntityCopier` inline 主子表复制时子表 `autoExpr` 读取主实体为 `null` 的时序问题，并补 `AutoExprRunner` scope 隔离回归测试
 - [05-11](2026/05-11.md) — Plan 14 nop-job 质量优化：TimeoutChecker N+1 批量预加载、Planner 锁冲突 Micrometer counter + DEBUG 日志、ErrorCode 规范化（5 个新定义）、LocalJobScheduler @Deprecated 标记
 - [05-09](2026/05-09.md) — 微调 GRC 结合律技术报告，前置澄清 carrier、潜在空间与 replace/remove 的证明边界，并补研究文档与开发规范的入口边界
 - [05-08](2026/05-08.md) — 修订 GRC paper 的 P1 审查问题，将附录 D/G 与潜在结构空间、终端投影和 stable-key children 证明边界对齐
