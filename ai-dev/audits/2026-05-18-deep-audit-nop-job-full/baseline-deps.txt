@@ -1,0 +1,42 @@
+nop-job Module Dependency Baseline (from pom.xml analysis)
+
+Module Structure (11 submodules):
+- nop-job-api          → nop-api-core
+- nop-job-core         → nop-commons, nop-job-api
+- nop-job-codegen      → nop-ooxml-xlsx, nop-orm
+- nop-job-dao          → nop-api-core, nop-orm, nop-job-api, nop-job-core, nop-cluster-core
+- nop-job-meta         → nop-job-codegen(test), nop-job-dao(test)
+- nop-job-service      → nop-job-dao, nop-job-meta, nop-job-core, nop-biz, nop-config, nop-ioc, nop-sys-dao, nop-rpc-cluster
+- nop-job-coordinator  → nop-job-dao, nop-job-core, nop-job-api, nop-config, nop-ioc, nop-cluster-core
+- nop-job-worker       → nop-job-dao, nop-job-api, nop-job-core, nop-config, nop-ioc
+- nop-job-web          → nop-job-meta, nop-web, nop-job-service(test)
+- nop-job-app          → nop-quarkus-web-orm-starter, nop-job-service, nop-job-coordinator, nop-job-worker, nop-job-web, nop-auth-web, nop-auth-service, nop-web-amis-editor, nop-web-site, quarkus-jdbc-mysql, quarkus-jdbc-h2
+- nop-job-retry-adapter→ nop-job-api, nop-retry-engine, nop-ioc
+
+Non-standard submodules (beyond standard domain pattern):
+- nop-job-coordinator: Job scheduling coordinator (scheduler, planner, timeout checker, completion processor)
+- nop-job-worker: Job worker (executor, scanner)
+- nop-job-retry-adapter: Integration adapter for nop-retry-engine
+
+File Size Baseline (top files by line count):
+20129 total Java lines
+2041 _NopJobSchedule.java (generated)
+1508 _NopJobFire.java (generated)
+1283 _NopJobTask.java (generated)
+619  TestJobCoordinatorScanner.java
+512  DailyCalendar.java
+474  TestJobTimeoutChecker.java
+466  JobCompletionProcessorImpl.java
+451  CronExpression.java
+442  LocalJobScheduler.java
+402  JobTimeoutCheckerImpl.java
+
+Generated files (_*.xml, _*.java):
+- _gen/_NopJobSchedule.java, _NopJobFire.java, _NopJobTask.java (dao entity gen)
+- _app.orm.xml (dao orm gen)
+- _dao.beans.xml, _service.beans.xml, _engine.beans.xml (beans gen)
+- _NopJobSchedule.xbiz, _NopJobFire.xbiz, _NopJobTask.xbiz, etc (xbiz gen)
+- _NopJobSchedule.xmeta, _NopJobFire.xmeta, etc (xmeta gen)
+- _NopJobAssignment.view.xml, _NopJobDefinition.view.xml, etc (view gen)
+
+Entities in ORM model: NopJobSchedule, NopJobFire, NopJobTask, NopJobPlan, NopJobDefinition, NopJobInstance, NopJobInstanceHis, NopJobAssignment
