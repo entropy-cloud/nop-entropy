@@ -45,6 +45,9 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 - 持久化优先走 `updateEntity()`、`save()`、`delete()`
 - 提交后副作用优先走 `txn().afterCommit(...)`
 
+如果修改入口最终走 `CrudBizModel.copyToEntity()` / `OrmEntityCopier`，则 xmeta 中的 `autoExpr` 会在实体拷贝阶段执行。
+对 inline 主子表关系，子实体的 `autoExpr` 可以依赖已绑定的主实体反向 relation（例如 `refPropName` 对应的 owner 属性）；不要假设必须等到整棵对象图挂载完成后才可读取主表字段。
+
 注意：`txn().afterCommit(...)` 只有在当前已经处于事务中时才能注册。普通 `@BizMutation` 场景满足这个前提；`@BizQuery` 和其他无事务场景下不要直接套用。
 
 ### 参数与返回值
