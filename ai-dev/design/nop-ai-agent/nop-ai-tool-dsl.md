@@ -161,7 +161,7 @@
 
 ## 7. 最小例子
 
-### 6.1 工具定义
+### 7.1 工具定义
 
 ```xml
 <tool name="read-file">
@@ -172,7 +172,7 @@
 </tool>
 ```
 
-### 6.2 工具调用
+### 7.2 工具调用
 
 ```xml
 <call-tools paralllel="true" maxConcurrency="2">
@@ -181,7 +181,23 @@
 </call-tools>
 ```
 
-## 8. 文档应补充而不是重复的部分
+## 8. 工具执行上下文
+
+### 8.1 上下文可见性
+
+工具执行时，引擎提供有限的上下文信息。工具不应该能访问 Agent 的全部内部状态。
+
+上下文可见性的详细定义见 `nop-ai-agent-context-model.md` §4。
+
+### 8.2 与 Toolkit 的关系
+
+nop-ai-toolkit 已有 Toolkit 抽象。工具执行上下文应在 Toolkit 层注入，工具实现通过 Toolkit 提供的上下文接口访问环境信息。
+
+**Phase 1 实现**：工具通过 Toolkit 上下文获取工作目录、sessionId、环境变量等基本信息。
+
+**Phase 2 扩展**：增加文件锁注册、资源声明等协同信息。
+
+## 9. 文档应补充而不是重复的部分
 
 围绕工具 DSL，文档最应该补的不是 schema 本身，而是：
 
@@ -190,7 +206,7 @@
 - `description/examples` 对 XML tool calling 的作用
 - `timeoutMs`、`maxConcurrency` 这类字段的运行时解释
 
-## 9. 本篇结论
+## 10. 本篇结论
 
 AI 工具设计的第一主角同样是 DSL，而不是 Java 执行器类。
 

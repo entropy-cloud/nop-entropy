@@ -47,23 +47,45 @@ public interface IAgentExecutor {
 - `ChatOptions effectiveOptions`
 - 预算与状态字段
 
-## 5. ReAct 主循环
+## 5. 双循环与 ReAct 主循环
 
-推荐循环：
+### 5.1 双循环模型
 
-```text
+ReAct 引擎采用双循环结构（参见 `nop-ai-agent-core-architecture.md` §4.1）：
+
+**外层循环（followUp 循环）**：
+
+- Agent 完成一次完整执行后，检查 followUp 队列
+- 如果有排队的后续消息 → 注入消息，启动新的内层循环
+- 如果没有 → Agent 执行结束，发布最终结果
+
+**内层循环（steering + ReAct 循环）**：
+
+- 标准 ReAct 循环（见 §5.2）
+- 每轮工具执行后检查 steering 队列
+- steering 消息注入后跳过剩余工具，进入下一轮推理
+
+### 5.2 ReAct 内层循环
+
+推荐内层循环的行为语义：
+
+```
 build request
  -> before_reasoning
- -> call LLM
+ -> call LLM (返回完整 assistant message)
  -> after_reasoning
  -> extract tool calls
- -> if empty: finish
+ -> if empty: 跳出内层循环
+ -> check steering queue:
+    -> if has steering: 注入 steering, 跳出当前轮
  -> before_acting
- -> execute tools
+ -> execute tools (支持并行)
  -> after_acting (per tool result)
  -> append tool response messages
  -> next iteration
 ```
+
+循环粒度是完整消息：引擎在收到 LLM 的完整响应后才做决策，不在流式输出过程中做判断。
 
 ## 6. 结束条件
 

@@ -54,6 +54,29 @@ ReAct 引擎负责调用：
 - 解析 Skill 激活条件
 - 管理 Hook 优先级规则
 
-## 6. 本篇结论
+## 6. 内部 Agent 化
+
+### 6.1 概念
+
+部分引擎内部能力可以用 Agent 来实现——接口的提供者是引擎，接口的实现者可以是硬编码逻辑，也可以是一个 Agent。
+
+详见 `nop-ai-agent-context-model.md` §6。
+
+### 6.2 与 Hook/Skill 的关系
+
+内部 Agent 化的能力可以通过 Hook 挂接到引擎生命周期上：
+
+- 上下文压缩 → 挂接在 `POST_REASONING` 或独立触发
+- 错误修复 → 挂接在 `ON_ERROR`
+- 结果评审 → 挂接在 `POST_CALL`
+
+Hook 负责触发时机，内部 Agent 负责具体逻辑。
+
+### 6.3 阶段归属
+
+Phase 1：所有内部能力用硬编码逻辑实现。
+Phase 2：逐步将硬编码逻辑替换为 Agent 实现，接口不变。
+
+## 7. 本篇结论
 
 Hook 和 Skill 都属于 Java 引擎扩展层。
