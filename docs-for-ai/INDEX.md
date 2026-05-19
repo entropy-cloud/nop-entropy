@@ -41,6 +41,7 @@
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
 | 判断 IoC 注入和配置写法 | `02-core-guides/ioc-and-config.md` |
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
+| 判断并发控制与事务边界 | `02-core-guides/concurrency-and-transactions.md` |
 | 查询当前仓库代码风格 | `02-core-guides/code-style.md` |
 | 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
 | 定制 view / page 页面 | `02-core-guides/view-and-page-customization.md` |
