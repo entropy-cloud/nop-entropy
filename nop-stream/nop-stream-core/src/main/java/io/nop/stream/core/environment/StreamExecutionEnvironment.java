@@ -324,6 +324,13 @@ public class StreamExecutionEnvironment {
             ((AbstractStreamOperator<?>) head).processWatermark(
                     io.nop.stream.core.streamrecord.watermark.Watermark.MAX_WATERMARK);
         }
+
+        // Close all operators in head-to-tail order after source completes
+        for (Object op : operators) {
+            if (op instanceof StreamOperator) {
+                ((StreamOperator<?>) op).close();
+            }
+        }
     }
 
     // ------------------------------------------------------------------------

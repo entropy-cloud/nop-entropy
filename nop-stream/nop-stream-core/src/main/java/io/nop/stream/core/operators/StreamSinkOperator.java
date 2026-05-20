@@ -35,4 +35,11 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
     @Override
     public void processWatermark(Watermark mark) throws Exception {
     }
+
+    @Override
+    public void close() throws Exception {
+        if (userFunction instanceof AutoCloseable) {
+            ((AutoCloseable) userFunction).close();
+        }
+    }
 }
