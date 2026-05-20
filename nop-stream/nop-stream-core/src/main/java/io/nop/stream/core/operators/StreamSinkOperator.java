@@ -7,7 +7,12 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 
@@ -37,9 +42,55 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
     }
 
     @Override
+    public void processBarrier(CheckpointBarrier barrier) throws Exception {
+        OperatorSnapshotResult snapshotResult = null;
+        if (barrier.snapshot()) {
+            StateSnapshotContext context = new StateSnapshotContext(barrier.getId(), barrier.getTimestamp());
+            snapshotResult = snapshotState(context);
+            this.lastSnapshotResult = snapshotResult;
+
+            if (userFunction instanceof TwoPhaseCommitSinkFunction) {
+                ((TwoPhaseCommitSinkFunction<?>) userFunction).preCommit(barrier.getId());
+            }
+        }
+        if (snapshotCallback != null && snapshotResult != null) {
+            snapshotCallback.accept(snapshotResult);
+        }
+    }
+
+    @Override
     public void close() throws Exception {
         if (userFunction instanceof AutoCloseable) {
             ((AutoCloseable) userFunction).close();
+        }
+    }
+
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+        if (userFunction instanceof TwoPhaseCommitSinkFunction) {
+            ((TwoPhaseCommitSinkFunction<?>) userFunction).commit(checkpointId);
+        } else if (userFunction instanceof CheckpointListener) {
+            ((CheckpointListener) userFunction).notifyCheckpointComplete(checkpointId);
+        }
+    }
+
+    @Override
+    public void notifyCheckpointAborted(long checkpointId) throws Exception {
+        if (userFunction instanceof TwoPhaseCommitSinkFunction) {
+            ((TwoPhaseCommitSinkFunction<?>) userFunction).rollback();
+        } else if (userFunction instanceof CheckpointListener) {
+            ((CheckpointListener) userFunction).notifyCheckpointAborted(checkpointId);
+        }
+    }
+
+    @Override
+    public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
+        super.restoreState(snapshotResult);
+        if (userFunction instanceof TwoPhaseCommitSinkFunction) {
+            @SuppressWarnings("unchecked")
+            TwoPhaseCommitSinkFunction<Object> tpcSink = (TwoPhaseCommitSinkFunction<Object>) userFunction;
+            tpcSink.rollback();
+            tpcSink.beginTransaction();
         }
     }
 }

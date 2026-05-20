@@ -18,8 +18,8 @@ nop-stream 是 Nop 平台的流处理引擎，定位为 Flink 的简化实现。
 | `window-design.md` | 窗口机制：WindowAssigner/Trigger/Evictor、WindowOperator 两条处理路径、聚合语义 | active |
 | `time-model-design.md` | 时间模型：WatermarkStrategy、TimestampAssigner、WatermarkGenerator、传播机制 | active（未对接） |
 | `state-management-design.md` | 状态管理：存储模型、序列化策略、内存控制、与 Flink 对比 | active |
-| `graph-model-design.md` | 图模型与执行引擎：StreamGraph、JobGraph、算子链优化、TaskExecutor | active（未对接） |
-| `checkpoint-design.md` | Checkpoint 与 Exactly-Once：barrier 对齐、协调器生命周期、2PC Sink、恢复流程 | active |
+| `graph-model-design.md` | 图模型与执行引擎：StreamGraph、JobGraph、算子链优化、TaskExecutor | active（单链管线已对接） |
+| `checkpoint-design.md` | Checkpoint 与 Exactly-Once：barrier 对齐、协调器生命周期、2PC Sink、恢复流程 | active（已对接） |
 | `cep-design.md` | CEP 引擎设计：NFA、Pattern DSL、SharedBuffer、事件匹配语义 | active |
 | `comparison.md` | 简化分析：与 Flink / SeaTunnel 的架构对比，取舍决策 | active |
 | `connector-design.md` | 连接器设计：基于 Nop 平台通用抽象（IRecordInput/Output、IMessageService、IEntityDao）的 Source/Sink 适配 | active（设计阶段） |
@@ -44,8 +44,9 @@ nop-stream 是 Nop 平台的流处理引擎，定位为 Flink 的简化实现。
 nop-stream 的运行方式可以概括为 3 步：
 
 1. **用户通过 DataStream API 构建 Transformation DAG**：`env.addSource(...)` → `.map(...)` → `.keyBy(...)` → `.timeWindow(...)` → `.aggregate(...)` → `.addSink(...)`
-2. **`env.execute()` 将 DAG 折叠为线性算子链**：从 Sink 回溯到 Source，实例化算子，用 `ChainingOutput` 串联。数据通过推模型从 Source 流向 Sink。
-3. **Source.run() 推送每条记录穿过链**：`processElement()` → `ChainingOutput.collect()` → 下一个算子的 `processElement()`。Source 结束后发送 `MAX_WATERMARK` 触发最终窗口计算。
+2. **`env.execute()` 将 DAG 折叠为线性算子链**（快速路径）：从 Sink 回溯到 Source，实例化算子，用 `ChainingOutput` 串联。数据通过推模型从 Source 流向 Sink。
+3. **或 `env.executeWithGraphModel()` 走图模型路径**（单链管线）：Transformation → StreamGraph → JobGraph → Task → TaskExecutor。支持 checkpoint 集成（barrier 注入 → 快照 → ACK → 恢复）。
+4. **Source.run() 推送每条记录穿过链**：`processElement()` → `ChainingOutput.collect()` → 下一个算子的 `processElement()`。Source 结束后发送 `MAX_WATERMARK` 触发最终窗口计算。
 
 **与 Flink 的核心区别**：没有 JobManager/TaskManager 分布式调度，没有 Netty RPC，没有 key-group 重分布。所有算子在同一线程中同步执行，每条记录立即被处理完毕。
 

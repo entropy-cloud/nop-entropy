@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.core.test;
+package io.nop.stream.runtime.checkpoint;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.operators.Output;
@@ -22,7 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Test output implementation that collects all emitted elements.
- * 
+ *
  * <p>Thread-safe for concurrent test scenarios.
  *
  * @param <T> The type of output elements
@@ -41,8 +41,6 @@ public class TestOutput<T> implements Output<StreamRecord<T>> {
 
     @Override
     public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        // Side output - for now, just add to main records with tag info
-        // Can be extended to track side outputs separately
         throw new UnsupportedOperationException("Side output not yet supported in test harness");
     }
 
@@ -79,7 +77,7 @@ public class TestOutput<T> implements Output<StreamRecord<T>> {
         for (StreamRecord<T> record : records) {
             elements.add(record.getValue());
         }
- return Collections.unmodifiableList(elements);
+        return Collections.unmodifiableList(elements);
     }
 
     /**

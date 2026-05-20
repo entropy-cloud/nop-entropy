@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
@@ -14,6 +17,9 @@ import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+
+import java.util.Map;
+import java.util.function.Consumer;
 
 public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT> {
     protected transient Output<StreamRecord<OUT>> output;
@@ -28,6 +34,10 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     protected IStateBackend stateBackend;
     protected IKeyedStateBackend<?> keyedStateBackend;
+
+    protected transient OperatorSnapshotResult lastSnapshotResult;
+
+    protected transient Consumer<OperatorSnapshotResult> snapshotCallback;
 
     // ------------------------------------------------------------------------
     //  life cycle
@@ -77,6 +87,49 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
         this.keyedStateBackend = keyedStateBackend;
     }
 
+    /**
+     * Restores operator state from a previously taken snapshot.
+     * Default implementation restores keyed state from the state backend.
+     *
+     * @param snapshotResult the snapshot to restore from
+     * @throws Exception if restoration fails
+     */
+    public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
+        if (snapshotResult == null) {
+            return;
+        }
+
+        // Restore keyed state
+        Map<String, byte[]> keyedStates = snapshotResult.getKeyedStates();
+        if (keyedStateBackend != null && keyedStates != null && !keyedStates.isEmpty()) {
+            for (Map.Entry<String, byte[]> entry : keyedStates.entrySet()) {
+                keyedStateBackend.restoreState(entry.getValue());
+                break; // Only restore once — all keyed state is serialized together
+            }
+        }
+    }
+
+    public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
+        OperatorSnapshotResult result = new OperatorSnapshotResult();
+
+        if (keyedStateBackend != null) {
+            byte[] keyedStateBytes = keyedStateBackend.snapshotState();
+            if (keyedStateBytes != null && keyedStateBytes.length > 0) {
+                result.putKeyedState("keyed-state", keyedStateBytes);
+            }
+        }
+
+        return result;
+    }
+
+    public OperatorSnapshotResult getLastSnapshotResult() {
+        return lastSnapshotResult;
+    }
+
+    public void setSnapshotCallback(Consumer<OperatorSnapshotResult> callback) {
+        this.snapshotCallback = callback;
+    }
+
     @Override
     public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
 
@@ -90,6 +143,14 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     @Override
     public void setKeyContextElement2(StreamRecord<?> record) throws Exception {
 
+    }
+
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+    }
+
+    @Override
+    public void notifyCheckpointAborted(long checkpointId) throws Exception {
     }
 
     @SuppressWarnings("unchecked")
@@ -136,6 +197,21 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 //            timeServiceManager.advanceWatermark(mark);
 //        }
         output.emitWatermark(mark);
+    }
+
+    public void processBarrier(CheckpointBarrier barrier) throws Exception {
+        OperatorSnapshotResult snapshotResult = null;
+        if (barrier.snapshot()) {
+            StateSnapshotContext context = new StateSnapshotContext(barrier.getId(), barrier.getTimestamp());
+            snapshotResult = snapshotState(context);
+            this.lastSnapshotResult = snapshotResult;
+        }
+        if (snapshotCallback != null && snapshotResult != null) {
+            snapshotCallback.accept(snapshotResult);
+        }
+        if (output != null) {
+            output.emitBarrier(barrier);
+        }
     }
 
     private void processWatermark(Watermark mark, int index) throws Exception {

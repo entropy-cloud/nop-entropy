@@ -19,23 +19,44 @@ public class TaskStateSnapshot implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final long taskId;
+    private final long checkpointId;
     private final Map<String, byte[]> operatorStates;
     private final Map<String, byte[]> keyedStates;
 
     public TaskStateSnapshot(long taskId) {
         this.taskId = taskId;
+        this.checkpointId = -1;
+        this.operatorStates = new HashMap<>();
+        this.keyedStates = new HashMap<>();
+    }
+
+    public TaskStateSnapshot(long taskId, long checkpointId) {
+        this.taskId = taskId;
+        this.checkpointId = checkpointId;
         this.operatorStates = new HashMap<>();
         this.keyedStates = new HashMap<>();
     }
 
     public TaskStateSnapshot(long taskId, Map<String, byte[]> operatorStates, Map<String, byte[]> keyedStates) {
         this.taskId = taskId;
+        this.checkpointId = -1;
+        this.operatorStates = operatorStates != null ? operatorStates : new HashMap<>();
+        this.keyedStates = keyedStates != null ? keyedStates : new HashMap<>();
+    }
+
+    public TaskStateSnapshot(long taskId, long checkpointId, Map<String, byte[]> operatorStates, Map<String, byte[]> keyedStates) {
+        this.taskId = taskId;
+        this.checkpointId = checkpointId;
         this.operatorStates = operatorStates != null ? operatorStates : new HashMap<>();
         this.keyedStates = keyedStates != null ? keyedStates : new HashMap<>();
     }
 
     public long getTaskId() {
         return taskId;
+    }
+
+    public long getCheckpointId() {
+        return checkpointId;
     }
 
     public Map<String, byte[]> getOperatorStates() {
@@ -91,11 +112,17 @@ public class TaskStateSnapshot implements Serializable {
 
     public static class Builder {
         private final long taskId;
+        private long checkpointId = -1;
         private final Map<String, byte[]> operatorStates = new HashMap<>();
         private final Map<String, byte[]> keyedStates = new HashMap<>();
 
         public Builder(long taskId) {
             this.taskId = taskId;
+        }
+
+        public Builder checkpointId(long checkpointId) {
+            this.checkpointId = checkpointId;
+            return this;
         }
 
         public Builder putOperatorState(String name, byte[] state) {
@@ -109,7 +136,7 @@ public class TaskStateSnapshot implements Serializable {
         }
 
         public TaskStateSnapshot build() {
-            return new TaskStateSnapshot(taskId, operatorStates, keyedStates);
+            return new TaskStateSnapshot(taskId, checkpointId, operatorStates, keyedStates);
         }
     }
 }

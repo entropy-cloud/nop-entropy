@@ -1,0 +1,109 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+package io.nop.stream.core.execution;
+
+import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.streamrecord.watermark.Watermark;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class TestGraphModelExecution {
+
+    @Test
+    public void testSingleChainPipeline() throws Exception {
+        List<String> results = new ArrayList<>();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromElements("a", "b", "c")
+                .map(String::toUpperCase)
+                .sink(results::add);
+        env.executeWithGraphModel("testSingleChainPipeline");
+
+        assertEquals(Arrays.asList("A", "B", "C"), results);
+    }
+
+    @Test
+    public void testMultiOperatorChain() throws Exception {
+        List<Integer> results = new ArrayList<>();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromElements(1, 2, 3, 4, 5)
+                .map(x -> x * 10)
+                .map(x -> x + 1)
+                .filter(x -> x > 20)
+                .sink(results::add);
+        env.executeWithGraphModel("testMultiOperatorChain");
+
+        assertEquals(Arrays.asList(21, 31, 41, 51), results);
+    }
+
+    @Test
+    public void testWatermarkPropagation() throws Exception {
+        AtomicLong lastWatermark = new AtomicLong(Long.MIN_VALUE);
+        List<String> results = new ArrayList<>();
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromElements("x", "y")
+                .map(String::toUpperCase)
+                .sink(new SinkFunction<String>() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public void consume(String value) {
+                        results.add(value);
+                    }
+                });
+        env.executeWithGraphModel("testWatermarkPropagation");
+
+        assertEquals(Arrays.asList("X", "Y"), results);
+    }
+
+    @Test
+    public void testMultiChainPipelineRejected() {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromElements(1, 2, 3)
+                .keyBy(x -> x)
+                .map(x -> x)
+                .sink(v -> {
+                });
+
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> env.executeWithGraphModel("testMultiChainRejected"));
+        assertNotNull(exception.getCause());
+        assertTrue(exception.getCause() instanceof IllegalStateException);
+        assertTrue(exception.getCause().getMessage().contains("Multi-chain"),
+                "Expected error message about multi-chain, got: " + exception.getCause().getMessage());
+    }
+
+    @Test
+    public void testGraphModelMatchesFastPath() throws Exception {
+        List<Integer> fastPathResults = new ArrayList<>();
+        StreamExecutionEnvironment env1 = StreamExecutionEnvironment.getExecutionEnvironment();
+        env1.fromElements(1, 2, 3, 4, 5)
+                .map(x -> x * 2)
+                .filter(x -> x > 4)
+                .sink(fastPathResults::add);
+        env1.execute("Fast Path");
+
+        List<Integer> graphModelResults = new ArrayList<>();
+        StreamExecutionEnvironment env2 = StreamExecutionEnvironment.getExecutionEnvironment();
+        env2.fromElements(1, 2, 3, 4, 5)
+                .map(x -> x * 2)
+                .filter(x -> x > 4)
+                .sink(graphModelResults::add);
+        env2.executeWithGraphModel("Graph Model");
+
+        assertEquals(fastPathResults, graphModelResults);
+        assertEquals(Arrays.asList(6, 8, 10), graphModelResults);
+    }
+}

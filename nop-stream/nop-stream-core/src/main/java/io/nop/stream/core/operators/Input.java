@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -67,4 +68,8 @@ public interface Input<IN> {
      * guaranteed to not be called concurrently with other methods of the operator.
      */
     void setKeyContextElement(StreamRecord<IN> record) throws Exception;
+
+    default void processBarrier(CheckpointBarrier barrier) throws Exception {
+        // default: no-op
+    }
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -71,6 +72,15 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
             input.processLatencyMarker(latencyMarker);
         } catch (Exception e) {
             throw new RuntimeException("Error forwarding latency marker", e);
+        }
+    }
+
+    @Override
+    public void emitBarrier(CheckpointBarrier barrier) {
+        try {
+            input.processBarrier(barrier);
+        } catch (Exception e) {
+            throw new RuntimeException("Error forwarding barrier to next operator", e);
         }
     }
 }

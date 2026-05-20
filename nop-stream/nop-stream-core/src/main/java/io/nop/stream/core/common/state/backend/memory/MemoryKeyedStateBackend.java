@@ -20,7 +20,11 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -188,6 +192,47 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         return new TypedNamespaceAndKey(currentNamespace, currentKey);
     }
 
+    @Override
+    public byte[] snapshotState() throws Exception {
+        if (states.isEmpty()) {
+            return null;
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(this);
+        }
+        return baos.toByteArray();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void restoreState(byte[] stateBytes) throws Exception {
+        if (stateBytes == null || stateBytes.length == 0) {
+            return;
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(stateBytes))) {
+            MemoryKeyedStateBackend<K> restored = (MemoryKeyedStateBackend<K>) ois.readObject();
+            states.clear();
+            states.putAll(restored.states);
+            rebindStateBackends();
+        }
+    }
+
+    void rebindStateBackends() {
+        for (Map.Entry<String, Object> entry : states.entrySet()) {
+            Object stateObj = entry.getValue();
+            if (stateObj instanceof MemoryValueState) {
+                ((MemoryValueState<?>) stateObj).rebind(this);
+            } else if (stateObj instanceof MemoryMapState) {
+                ((MemoryMapState<?, ?>) stateObj).rebind(this);
+            } else if (stateObj instanceof MemoryInternalAppendingState) {
+                ((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj).rebind(this);
+            } else if (stateObj instanceof MemoryInternalListState) {
+                ((MemoryInternalListState<?, ?, ?>) stateObj).rebind(this);
+            }
+        }
+    }
+
     // ==================== 内部状态实现类 ====================
 
     /**
@@ -196,13 +241,17 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     private static class MemoryValueState<T> implements ValueState<T>, Serializable {
         private static final long serialVersionUID = 1L;
 
-        private final MemoryKeyedStateBackend<?> backend;
+        private MemoryKeyedStateBackend<?> backend;
         private final ValueStateDescriptor<T> descriptor;
         private final Map<TypedNamespaceAndKey, T> storage = new HashMap<>();
 
         MemoryValueState(MemoryKeyedStateBackend<?> backend, ValueStateDescriptor<T> descriptor) {
             this.backend = backend;
             this.descriptor = descriptor;
+        }
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
         }
 
         @Override
@@ -232,7 +281,11 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     private static class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable {
         private static final long serialVersionUID = 1L;
 
-        private final MemoryKeyedStateBackend<?> backend;
+        private MemoryKeyedStateBackend<?> backend;
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
+        }
         private final Map<TypedNamespaceAndKey, Map<UK, UV>> storage = new HashMap<>();
 
         MemoryMapState(MemoryKeyedStateBackend<?> backend, MapStateDescriptor<UK, UV> descriptor) {
@@ -321,7 +374,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             implements InternalAppendingState<K, N, IN, ACC, ACC>, Serializable {
         private static final long serialVersionUID = 1L;
 
-        private final MemoryKeyedStateBackend<?> backend;
+        private MemoryKeyedStateBackend<?> backend;
         private final ReducingStateDescriptor<IN> descriptor;
         private final SimpleAccumulator<IN> accumulator;
         private final Map<TypedNamespaceAndKey, ACC> storage = new HashMap<>();
@@ -338,6 +391,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             } catch (Exception e) {
                 throw new RuntimeException("Failed to create accumulator", e);
             }
+        }
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
         }
 
         @Override
@@ -395,7 +452,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             implements InternalListState<K, N, T>, Serializable {
         private static final long serialVersionUID = 1L;
 
-        private final MemoryKeyedStateBackend<?> backend;
+        private MemoryKeyedStateBackend<?> backend;
         private final ListStateDescriptor<T> descriptor;
         private final Map<TypedNamespaceAndKey, List<T>> storage = new HashMap<>();
         
@@ -404,6 +461,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         MemoryInternalListState(MemoryKeyedStateBackend<?> backend, ListStateDescriptor<T> descriptor) {
             this.backend = backend;
             this.descriptor = descriptor;
+        }
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
         }
 
         @Override

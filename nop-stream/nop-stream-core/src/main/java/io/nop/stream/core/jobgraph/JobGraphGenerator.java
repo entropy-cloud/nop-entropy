@@ -8,6 +8,7 @@
 package io.nop.stream.core.jobgraph;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamNode;
@@ -374,21 +375,7 @@ public class JobGraphGenerator implements Serializable {
      * @return an Invokable instance
      */
     private Invokable<?> createInvokable(final OperatorChain operatorChain) {
-        return new Invokable<Object>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public void invoke() throws Exception {
-                // Open the chain before processing
-                operatorChain.open();
-
-                // Process elements (actual implementation would read from input)
-                // This is a placeholder - real implementation would process actual data
-
-                // Close the chain after processing
-                operatorChain.close();
-            }
-        };
+        return new StreamTaskInvokable(operatorChain);
     }
 
     /**

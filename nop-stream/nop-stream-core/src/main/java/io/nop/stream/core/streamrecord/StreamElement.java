@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.streamrecord;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 
@@ -63,6 +64,15 @@ public abstract class StreamElement {
     }
 
     /**
+     * Checks whether this element is a checkpoint barrier.
+     *
+     * @return True, if this element is a checkpoint barrier, false otherwise.
+     */
+    public final boolean isCheckpointBarrier() {
+        return getClass() == CheckpointBarrier.class;
+    }
+
+    /**
      * Casts this element into a StreamRecord.
      *
      * @return This element as a stream record.
@@ -102,5 +112,9 @@ public abstract class StreamElement {
      */
     public final LatencyMarker asLatencyMarker() {
         return (LatencyMarker) this;
+    }
+
+    public final CheckpointBarrier asCheckpointBarrier() {
+        return (CheckpointBarrier) this;
     }
 }

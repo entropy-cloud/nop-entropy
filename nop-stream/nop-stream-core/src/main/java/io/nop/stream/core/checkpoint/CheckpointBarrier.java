@@ -7,15 +7,14 @@
  */
 package io.nop.stream.core.checkpoint;
 
-import java.io.Serializable;
+import io.nop.stream.core.streamrecord.StreamElement;
+
 import java.util.Objects;
 
 /**
  * Checkpoint 屏障，在数据流中传播以触发 checkpoint。
  */
-public class CheckpointBarrier implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class CheckpointBarrier extends StreamElement {
 
     private final long id;
     private final long timestamp;

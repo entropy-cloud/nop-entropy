@@ -9,6 +9,16 @@ package io.nop.stream.runtime.checkpoint;
 
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
+import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.common.state.ValueState;
+import io.nop.stream.core.common.state.ValueStateDescriptor;
+import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
+import io.nop.stream.core.operators.*;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import org.junit.jupiter.api.*;
 
@@ -16,6 +26,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -261,6 +273,156 @@ class TestCheckpointRecovery {
         assertEquals(CheckpointType.SAVEPOINT, restored.getCheckpointType());
 
         recoveredCoordinator.shutdown();
+    }
+
+    @Test
+    void testKeyedStateBackendRestore() throws Exception {
+        MemoryStateBackend stateBackend = new MemoryStateBackend();
+        IKeyedStateBackend<String> backend = stateBackend.createKeyedStateBackend(String.class);
+
+        ValueStateDescriptor<Integer> descriptor = new ValueStateDescriptor<>("counter", Integer.class);
+        backend.setCurrentKey("key1");
+        ValueState<Integer> counter = backend.getState(descriptor);
+        counter.update(42);
+
+        backend.setCurrentKey("key2");
+        ValueState<Integer> counter2 = backend.getState(descriptor);
+        counter2.update(99);
+
+        byte[] snapshot = backend.snapshotState();
+        assertNotNull(snapshot);
+        assertTrue(snapshot.length > 0);
+
+        IKeyedStateBackend<String> restored = stateBackend.createKeyedStateBackend(String.class);
+        restored.restoreState(snapshot);
+
+        ValueState<Integer> restoredCounter = restored.getState(descriptor);
+        restored.setCurrentKey("key1");
+        assertEquals(42, restoredCounter.value());
+
+        restored.setCurrentKey("key2");
+        ValueState<Integer> restoredCounter2 = restored.getState(descriptor);
+        assertEquals(99, restoredCounter2.value());
+    }
+
+    @Test
+    void testOperatorStateRestore() throws Exception {
+        MemoryStateBackend stateBackend = new MemoryStateBackend();
+
+        // Create operator with keyed state backend
+        AbstractStreamOperator<String> op = new AbstractStreamOperator<String>() {
+            private static final long serialVersionUID = 1L;
+        };
+        op.setStateBackend(stateBackend);
+        IKeyedStateBackend<String> keyedBackend = stateBackend.createKeyedStateBackend(String.class);
+        op.setKeyedStateBackend(keyedBackend);
+
+        // Set some state
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("count", Integer.class);
+        keyedBackend.setCurrentKey("test-key");
+        ValueState<Integer> state = keyedBackend.getState(desc);
+        state.update(100);
+
+        // Snapshot
+        OperatorSnapshotResult snapshot = op.snapshotState(
+                new StateSnapshotContext(1L, System.currentTimeMillis()));
+        assertFalse(snapshot.isEmpty());
+
+        // Create new operator and restore
+        AbstractStreamOperator<String> restoredOp = new AbstractStreamOperator<String>() {
+            private static final long serialVersionUID = 1L;
+        };
+        IKeyedStateBackend<String> restoredBackend = stateBackend.createKeyedStateBackend(String.class);
+        restoredOp.setKeyedStateBackend(restoredBackend);
+        restoredOp.setStateBackend(stateBackend);
+
+        restoredOp.restoreState(snapshot);
+
+        ValueState<Integer> restoredState = restoredBackend.getState(desc);
+        restoredBackend.setCurrentKey("test-key");
+        assertEquals(100, restoredState.value());
+    }
+
+    @Test
+    void testSourceOffsetRecovery() throws Exception {
+        AtomicLong restoredOffset = new AtomicLong(-1);
+        AtomicLong currentOffset = new AtomicLong(500);
+
+        CheckpointedSourceFunction<String> source = new CheckpointedSourceFunction<String>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void run(SourceContext<String> ctx) {
+            }
+
+            @Override
+            public void cancel() {
+            }
+
+            @Override
+            public OperatorSnapshotResult snapshotState(long checkpointId) {
+                return OperatorSnapshotResult.builder()
+                        .putOperatorState("offset", String.valueOf(currentOffset.get()).getBytes())
+                        .build();
+            }
+
+            @Override
+            public void initializeState(TaskStateSnapshot state) {
+                byte[] offsetBytes = state.getOperatorState("offset");
+                if (offsetBytes != null) {
+                    restoredOffset.set(Long.parseLong(new String(offsetBytes)));
+                }
+            }
+        };
+
+        OperatorSnapshotResult snapshot = source.snapshotState(1L);
+        assertFalse(snapshot.isEmpty());
+
+        StreamSourceOperator<String> sourceOp = new StreamSourceOperator<>(source);
+        sourceOp.restoreState(snapshot);
+
+        assertEquals(500, restoredOffset.get());
+    }
+
+    @Test
+    void testSinkRollbackOnRecovery() throws Exception {
+        AtomicInteger beginCount = new AtomicInteger(0);
+        AtomicInteger rollbackCount = new AtomicInteger(0);
+
+        TwoPhaseCommitSinkFunction<String> sink = new TwoPhaseCommitSinkFunction<String>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void beginTransaction() {
+                beginCount.incrementAndGet();
+            }
+
+            @Override
+            public void invoke(String value) {
+            }
+
+            @Override
+            public void preCommit(long checkpointId) {
+            }
+
+            @Override
+            public void commit(long checkpointId) {
+            }
+
+            @Override
+            public void rollback() {
+                rollbackCount.incrementAndGet();
+            }
+        };
+
+        sink.beginTransaction();
+        assertEquals(1, beginCount.get());
+
+        StreamSinkOperator<String> sinkOp = new StreamSinkOperator<>(sink);
+        sinkOp.restoreState(OperatorSnapshotResult.empty());
+
+        assertEquals(1, rollbackCount.get());
+        assertEquals(2, beginCount.get());
     }
 
     private static void deleteDirectory(File dir) {

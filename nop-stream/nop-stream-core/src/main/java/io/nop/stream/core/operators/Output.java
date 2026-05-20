@@ -19,7 +19,9 @@
 package io.nop.stream.core.operators;
 
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.streamrecord.LatencyMarker;
+import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
@@ -54,4 +56,17 @@ public interface Output<T> extends Collector<T> {
     <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record);
 
     void emitLatencyMarker(LatencyMarker latencyMarker);
+
+    void emitBarrier(CheckpointBarrier barrier);
+
+    @SuppressWarnings("unchecked")
+    default void collectElement(StreamElement element) {
+        if (element.isRecord()) {
+            collect((T) element);
+        } else if (element.isWatermark()) {
+            emitWatermark((Watermark) element);
+        } else if (element.isCheckpointBarrier()) {
+            emitBarrier((CheckpointBarrier) element);
+        }
+    }
 }

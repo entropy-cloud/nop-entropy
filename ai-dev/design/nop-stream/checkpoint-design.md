@@ -402,6 +402,8 @@ AbstractUdfStreamOperator.notifyCheckpointComplete(id)
 
 ## 10. 当前集成状态
 
+> **Updated: 2026-05-20** — Checkpoint 子系统已通过 Plan 26 与图模型执行路径端到端对接。
+
 ### 10.1 已实现
 
 checkpoint 子系统的核心组件已**完整实现**并通过测试：
@@ -415,55 +417,61 @@ checkpoint 子系统的核心组件已**完整实现**并通过测试：
 - CheckpointConfig 可配置参数
 - TaskStateSnapshot 的 operator/keyed state 分离
 - CompletedCheckpoint 持久化和恢复
-- 集成测试：TestCheckpointCoordinator、TestCheckpointRecovery、TestBarrierAligner、TestCheckpointIntegration
+- CheckpointBarrier 继承 StreamElement，随数据流在算子间传播
+- AbstractStreamOperator.snapshotState() / restoreState() 算子级状态快照与恢复
+- IKeyedStateBackend.snapshotState() / restoreState() 状态后端序列化
+- StreamSourceOperator.injectBarrier() barrier 注入点
+- StreamSourceOperator / StreamSinkOperator / WindowOperator 各自的快照/恢复实现
+- CheckpointBarrierTracker 单链管线 barrier 传播与 ACK 跟踪
+- GraphModelCheckpointExecutor (runtime) 将 Coordinator 与执行引擎对接
+- 集成测试覆盖：TestCheckpointCoordinator、TestCheckpointRecovery、TestBarrierAligner、TestCheckpointEndToEnd、TestBarrierPropagation、TestOperatorSnapshot
 
-### 10.2 未对接（关键缺口）
+### 10.2 已对接（Plan 26 完成）
 
-checkpoint 子系统**已实现但未与执行引擎集成**。具体缺口：
+checkpoint 子系统**已通过图模型执行路径（`executeWithGraphModel()`）与执行引擎对接**。对接范围：
 
-1. **StreamExecutionEnvironment.execute() 未使用 CheckpointCoordinator**
-   - 当前 execute() 使用快速路径：直接从 Transformation 构建算子链，同步执行
-   - CheckpointCoordinator 没有被创建、没有注册 task、没有启动调度器
+1. **StreamExecutionEnvironment.executeWithGraphModel() 集成 CheckpointCoordinator**
+   - `enableCheckpointing(long interval)` 配置 checkpoint 参数
+   - `GraphModelCheckpointExecutor`（runtime 模块）创建 Coordinator、注册 task、启动调度器
+   - 定时触发 barrier 注入到 Source 算子
 
-2. **Barrier 未注入数据流**
-   - `CheckpointBarrier` 已定义但没有任何代码将其注入到 Source 的输出中
-   - 算子的 `processElement()` 不识别 barrier，不会触发快照
+2. **Barrier 注入与传播**
+   - `CheckpointBarrier` 继承 `StreamElement`，成为流元素类型体系的一部分
+   - `Output.emitBarrier()` / `Input.processBarrier()` 统一分发模型
+   - `ChainingOutput`、`TimestampedCollector`、`KeyExtractingOutput` 均已适配
+   - Source 端通过 `injectBarrier()` 注入 barrier
 
-3. **算子快照逻辑未实现**
-   - `AbstractUdfStreamOperator.snapshotState()` 被注释掉
-   - 算子没有在收到 barrier 时将自身状态序列化为 `TaskStateSnapshot` 并 ACK
-
-4. **Source offset 没有被 checkpoint 管理**
-   - 当前 Source 只是简单地从头读取或从配置位置读取
-   - 没有在 checkpoint 中记录消费 offset
-
-这意味着：**端到端 exactly-once 的所有组件都已实现，但"胶水代码"——将 checkpoint 绑定到执行引擎的集成逻辑——尚未编写。**
-
-### 10.3 集成所需的工作
-
-要使 checkpoint 在实际执行中生效，需要：
-
-1. **StreamExecutionEnvironment.execute() 中创建并启动 CheckpointCoordinator**
-   - 根据 CheckpointConfig 创建 Coordinator
-   - 注册所有算子的 taskId
-   - 启动调度器
-
-2. **Source 端注入 barrier**
-   - Source 在定期触发时向输出注入 `CheckpointBarrier`
-   - Source 记录当前消费 offset 到 `TaskStateSnapshot`
-
-3. **算子链处理 barrier**
-   - 算子收到 barrier 时调用状态后端的 snapshot
-   - 将快照序列化为 `TaskStateSnapshot`
-   - 上报 ACK 到 Coordinator
+3. **算子快照与 ACK**
+   - `AbstractStreamOperator.processBarrier()` 调用 `snapshotState()` 后传播 barrier
+   - `OperatorSnapshotResult` 通过回调上报给 `CheckpointBarrierTracker`
+   - Tracker 收齐后调用 `coordinator.acknowledgeTask()`
 
 4. **Sink 端 2PC 集成**
-   - SinkFunction 如果是 TwoPhaseCommitSinkFunction，在收到 barrier 时 preCommit
-   - 在 notifyCheckpointComplete 时 commit
+   - `TwoPhaseCommitSinkFunction.preCommit()` 在 barrier 到达时调用
+   - `commit()` 在 checkpoint 完成通知时调用
+   - `rollback()` 在 checkpoint 中止或恢复时调用
 
-5. **恢复时重建状态**
-   - execute() 启动时检查是否有可恢复的 checkpoint
-   - 将恢复的状态注入到对应算子
+5. **恢复流程**
+   - `GraphModelCheckpointExecutor` 启动时检查可恢复的 checkpoint
+   - 各算子 `restoreState()` 从快照反序列化恢复状态
+   - Source 恢复消费 offset（通过 `CheckpointedSourceFunction`）
+   - Sink 恢复时 rollback 残留事务并 beginTransaction
+
+6. **执行约束**
+   - 图模型路径仅支持**单链管线**（所有算子在一个 chain 内）
+   - 多链管线（含 keyBy 产生 PartitionTransformation）被明确拒绝
+   - 快速路径 `execute()` 不受影响，保持不变
+
+### 10.3 未对接（后续工作）
+
+以下功能仍为独立计划，不阻塞当前闭环：
+
+1. **跨 Task 数据交换**（RecordWriter/RecordReader/InputGate）— 解锁多链管线
+2. **多链管线图模型执行** — 依赖跨 Task 数据交换
+3. **Savepoint 深度实现**（手动触发、schema 兼容）
+4. **增量快照优化**
+5. **Unaligned checkpoint 模式**
+6. **Key-group 重分布**
 
 ## 11. 与 Flink 的差异
 

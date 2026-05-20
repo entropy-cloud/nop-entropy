@@ -19,6 +19,7 @@
 package io.nop.stream.core.operators;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.util.OutputTag;
@@ -92,5 +93,10 @@ public final class TimestampedCollector<T> implements Output<T> {
     @Override
     public void emitLatencyMarker(LatencyMarker latencyMarker) {
         output.emitLatencyMarker(latencyMarker);
+    }
+
+    @Override
+    public void emitBarrier(CheckpointBarrier barrier) {
+        output.emitBarrier(barrier);
     }
 }

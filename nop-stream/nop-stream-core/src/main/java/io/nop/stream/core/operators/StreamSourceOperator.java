@@ -7,8 +7,16 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
+
+import java.util.Map;
 
 /**
  * A stream operator that wraps a {@link SourceFunction} and emits elements through the
@@ -98,5 +106,49 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
     @Override
     public void notifyCheckpointComplete(long checkpointId) throws Exception {
+        if (sourceFunction instanceof CheckpointListener) {
+            ((CheckpointListener) sourceFunction).notifyCheckpointComplete(checkpointId);
+        }
+    }
+
+    @Override
+    public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
+        OperatorSnapshotResult result = super.snapshotState(context);
+        if (sourceFunction instanceof CheckpointedSourceFunction) {
+            ((CheckpointedSourceFunction<?>) sourceFunction).snapshotState(context.getCheckpointId());
+        }
+        return result;
+    }
+
+    @Override
+    public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
+        super.restoreState(snapshotResult);
+        if (sourceFunction instanceof CheckpointedSourceFunction) {
+            TaskStateSnapshot taskState = new TaskStateSnapshot(0L);
+            if (snapshotResult != null) {
+                for (Map.Entry<String, byte[]> entry : snapshotResult.getOperatorStates().entrySet()) {
+                    taskState.putOperatorState(entry.getKey(), entry.getValue());
+                }
+                for (Map.Entry<String, byte[]> entry : snapshotResult.getKeyedStates().entrySet()) {
+                    taskState.putKeyedState(entry.getKey(), entry.getValue());
+                }
+            }
+            ((CheckpointedSourceFunction<?>) sourceFunction).initializeState(taskState);
+        }
+    }
+
+    public void injectBarrier(CheckpointBarrier barrier) throws Exception {
+        OperatorSnapshotResult snapshotResult = null;
+        if (barrier.snapshot()) {
+            StateSnapshotContext context = new StateSnapshotContext(barrier.getId(), barrier.getTimestamp());
+            snapshotResult = snapshotState(context);
+            this.lastSnapshotResult = snapshotResult;
+        }
+        if (snapshotCallback != null && snapshotResult != null) {
+            snapshotCallback.accept(snapshotResult);
+        }
+        if (output != null) {
+            output.emitBarrier(barrier);
+        }
     }
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -55,6 +56,11 @@ public class KeyExtractingOutput<IN> implements Input<IN> {
     @Override
     public void processLatencyMarker(LatencyMarker latencyMarker) throws Exception {
         delegate.processLatencyMarker(latencyMarker);
+    }
+
+    @Override
+    public void processBarrier(CheckpointBarrier barrier) throws Exception {
+        delegate.processBarrier(barrier);
     }
 
     @Override

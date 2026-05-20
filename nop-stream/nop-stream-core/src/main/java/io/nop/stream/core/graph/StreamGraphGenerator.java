@@ -13,6 +13,8 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
+import io.nop.stream.core.operators.StreamSinkOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
@@ -330,9 +332,7 @@ public class StreamGraphGenerator {
         
         @Override
         public StreamOperator<OUT> createStreamOperator(TypeInformation<OUT> outputType) {
-            // Source operators are handled specially by the runtime
-            // This returns null as the actual source execution is through SourceFunction
-            return null;
+            return new StreamSourceOperator<>(sourceFunction);
         }
         
         @Override
@@ -370,9 +370,7 @@ public class StreamGraphGenerator {
         
         @Override
         public StreamOperator<Void> createStreamOperator(TypeInformation<Void> outputType) {
-            // Sink operators are handled specially by the runtime
-            // This returns null as the actual sink execution is through SinkFunction
-            return null;
+            return new StreamSinkOperator<>(sinkFunction);
         }
         
         @Override

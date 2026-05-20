@@ -7,11 +7,20 @@
  */
 package io.nop.stream.core.environment;
 
+import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.datastream.DataStreamSource;
 import io.nop.stream.core.datastream.SingleOutputStreamOperatorImpl;
+import io.nop.stream.core.execution.ICheckpointExecutorFactory;
+import io.nop.stream.core.execution.Task;
+import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.graph.StreamGraph;
+import io.nop.stream.core.graph.StreamGraphGenerator;
+import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobGraphGenerator;
+import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.ChainingOutput;
 import io.nop.stream.core.operators.Input;
@@ -49,6 +58,10 @@ public class StreamExecutionEnvironment {
 
     private boolean executed = false;
 
+    private final CheckpointConfig checkpointConfig = new CheckpointConfig();
+
+    private static ICheckpointExecutorFactory checkpointExecutorFactory;
+
     // ------------------------------------------------------------------------
     //  Factory Methods
     // ------------------------------------------------------------------------
@@ -80,6 +93,20 @@ public class StreamExecutionEnvironment {
 
     public int getParallelism() {
         return parallelism;
+    }
+
+    public CheckpointConfig getCheckpointConfig() {
+        return checkpointConfig;
+    }
+
+    public StreamExecutionEnvironment enableCheckpointing(long interval) {
+        checkpointConfig.setCheckpointEnabled(true);
+        checkpointConfig.setCheckpointInterval(interval);
+        return this;
+    }
+
+    public static void setCheckpointExecutorFactory(ICheckpointExecutorFactory factory) {
+        checkpointExecutorFactory = factory;
     }
 
     // ------------------------------------------------------------------------
@@ -165,6 +192,69 @@ public class StreamExecutionEnvironment {
             return new StreamExecutionResult(jobName, executionTime);
         } catch (Exception e) {
             throw new RuntimeException("Failed to execute job: " + jobName, e);
+        }
+    }
+
+    public StreamExecutionResult executeWithGraphModel() throws Exception {
+        return executeWithGraphModel("Streaming Job (Graph Model)");
+    }
+
+    public StreamExecutionResult executeWithGraphModel(String jobName) throws Exception {
+        if (executed) {
+            throw new IllegalStateException("A streaming job can only be executed once");
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            List<SinkTransformation<?>> sinks = findSinkTransformations();
+            if (sinks.isEmpty()) {
+                throw new IllegalStateException("No sinks found in the streaming job");
+            }
+
+            StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
+            @SuppressWarnings("unchecked")
+            List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
+            StreamGraph streamGraph = graphGenerator.generate(sinkList);
+
+            JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
+            JobGraph jobGraph = jobGraphGenerator.generate(streamGraph);
+
+            if (!jobGraph.getEdges().isEmpty()) {
+                throw new IllegalStateException(
+                    "Multi-chain pipeline detected in graph model path. " +
+                    "Cross-task data exchange is not yet supported. " +
+                    "Use the fast path execute() instead, or wait for future versions.");
+            }
+
+            if (jobGraph.getNumberOfVertices() != 1) {
+                throw new IllegalStateException(
+                    "Expected exactly 1 vertex in single-chain pipeline, got: " + jobGraph.getNumberOfVertices());
+            }
+
+            JobVertex vertex = jobGraph.getVertices().values().iterator().next();
+
+            if (checkpointConfig.isCheckpointEnabled() && checkpointExecutorFactory != null) {
+                StreamExecutionResult result = checkpointExecutorFactory.executeWithCheckpoint(
+                    jobGraph, jobName, checkpointConfig);
+                executed = true;
+                return result;
+            }
+
+            Task task = new Task(vertex, 0);
+            TaskExecutor executor = new TaskExecutor();
+            executor.submitTask(task);
+            executor.awaitCompletion();
+
+            if (task.getState() == Task.State.FAILED) {
+                throw new RuntimeException("Task failed", task.getError());
+            }
+
+            executed = true;
+            long executionTime = System.currentTimeMillis() - startTime;
+            return new StreamExecutionResult(jobName, executionTime);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to execute job with graph model: " + jobName, e);
         }
     }
 

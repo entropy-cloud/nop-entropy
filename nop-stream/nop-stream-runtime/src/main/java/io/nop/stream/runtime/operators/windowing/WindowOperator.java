@@ -25,6 +25,8 @@ import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.KeyedStateStore;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
@@ -277,6 +279,52 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         processContext = null;
         windowAssignerContext = null;
         windowContentsState = null;
+    }
+
+    @Override
+    public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
+        OperatorSnapshotResult result = super.snapshotState(context);
+
+        if (windowContentsState != null) {
+            java.util.Map<String, Object> windowData = new java.util.HashMap<>();
+            for (java.util.Iterator<java.util.Map.Entry<String, ACC>> it = windowContentsState.iterator();
+                 it.hasNext(); ) {
+                java.util.Map.Entry<String, ACC> entry = it.next();
+                windowData.put(entry.getKey(), entry.getValue());
+            }
+
+            if (!windowData.isEmpty()) {
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos)) {
+                    oos.writeObject(windowData);
+                }
+                result.putOperatorState("window-contents", baos.toByteArray());
+            }
+        }
+
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void restoreState(io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotResult) throws Exception {
+        super.restoreState(snapshotResult);
+        if (snapshotResult == null) {
+            return;
+        }
+        java.util.Map<String, byte[]> operatorStates = snapshotResult.getOperatorStates();
+        if (operatorStates != null && operatorStates.containsKey("window-contents")) {
+            byte[] windowStateBytes = operatorStates.get("window-contents");
+            if (windowStateBytes != null && windowStateBytes.length > 0 && windowContentsState != null) {
+                try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(
+                        new java.io.ByteArrayInputStream(windowStateBytes))) {
+                    java.util.Map<String, ACC> windowData = (java.util.Map<String, ACC>) ois.readObject();
+                    for (java.util.Map.Entry<String, ACC> entry : windowData.entrySet()) {
+                        windowContentsState.put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+        }
     }
 
     @Override

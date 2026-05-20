@@ -1,6 +1,6 @@
 # 图模型与执行引擎设计
 
-> Status: active（**核心组件已实现，未与执行路径对接**）
+> Status: active（**已通过 Plan 26 对接单链管线执行路径，checkpoint 已集成**）
 > Created: 2026-05-19
 > Parent: `architecture.md` §3（执行模型）
 
@@ -242,11 +242,19 @@ Transformation DAG → StreamGraph → JobGraph → Task[] → TaskExecutor
 
 | 维度 | 快速路径 | 图模型路径 |
 |---|---|---|
-| 执行方式 | 单线程同步 | 多线程并行 |
-| 算子链 | 简单线性链（无分支合并处理） | 通用 DAG（支持分支、合并、多 Source） |
-| 分区 | keyBy 被跳过，实际不做 hash 分区 | keyBy 产生独立 vertex，真正按 key 分区 |
-| Checkpoint | 未集成 | 可与 CheckpointCoordinator 集成（每个 Task 独立做快照） |
-| 适用场景 | 简单的单流处理 | 需要并行、多条流合并/分支的场景 |
+| 执行方式 | 单线程同步 | 单线程（单链）→ 未来多线程并行 |
+| 算子链 | 简单线性链（无分支合并处理） | 单链管线已支持（多链待实现） |
+| 分区 | keyBy 被跳过，实际不做 hash 分区 | keyBy 产生多 vertex，当前被拒绝（需跨 Task 数据交换） |
+| Checkpoint | 未集成 | 已集成（barrier 注入→传播→快照→ACK→持久化→恢复） |
+| 适用场景 | 简单的单流处理、无需 checkpoint | 需要容错/cp 的单链管线；未来支持多链 |
+
+### 7.4 单链约束（Plan 26 引入）
+
+图模型路径当前仅支持**单链管线**——所有算子在一个 `OperatorChain` 内通过 `ChainingOutput` 直连，无跨 Task 数据交换。
+
+**验证逻辑**：`executeWithGraphModel()` 检查 `JobGraph.getEdges()` 是否为空。非空时抛出 `IllegalStateException`，提示使用快速路径。
+
+**未来扩展**：实现 `RecordWriter/RecordReader/InputGate` 后，移除单链约束，支持多链管线。
 
 ## 8. 与 Flink 的差异
 
@@ -268,29 +276,36 @@ Transformation DAG → StreamGraph → JobGraph → Task[] → TaskExecutor
 
 ## 9. 对接所需的工作
 
-将图模型路径接入 `StreamExecutionEnvironment.execute()`，需要以下步骤：
+> **Updated: 2026-05-20** — 以下第 1、3、4 项已通过 Plan 26 完成（单链管线）。第 2、5 项为后续独立计划。
 
-1. **execute() 中走图模型路径**
+### 已完成（Plan 26）
+
+1. ✅ **executeWithGraphModel() 走图模型路径**（单链管线）
    - 收集所有 SinkTransformation
-   - `StreamGraphGenerator.generate(sinkTransformations)` → StreamGraph
-   - `JobGraphGenerator.generate(streamGraph)` → JobGraph
-   - 将 JobGraph 提交给 TaskExecutor
+   - `StreamGraphGenerator.generate()` → StreamGraph
+   - `JobGraphGenerator.generate()` → JobGraph
+   - 验证单链约束 → 创建 Task → TaskExecutor 提交执行
+   - `StreamTaskInvokable` 替代 placeholder Invokable，实际执行数据流
 
-2. **实现数据交换组件**
+3. ✅ **Invokable 的实际执行逻辑**（单链管线）
+   - `StreamTaskInvokable.invoke()`：wire operators → Task.open() → source.run() → MAX_WATERMARK → Task.close()
+   - 数据通过 `ChainingOutput` 在算子间传播
+
+4. ✅ **与 Checkpoint 集成**（单链管线）
+   - `GraphModelCheckpointExecutor`（runtime）创建 `CheckpointCoordinator`
+   - `CheckpointBarrierTracker` 跟踪 barrier 传播和 ACK
+   - Source 端 `injectBarrier()` 注入 barrier
+   - 算子 `processBarrier()` → `snapshotState()` → 传播 → ACK
+   - 2PC Sink 的 preCommit/commit/rollback 生命周期
+   - 恢复流程：从 checkpoint 反序列化状态 → 注入算子
+
+### 未完成（后续独立计划）
+
+2. **实现数据交换组件**（解锁多链管线）
    - `RecordWriter<T>`：将记录写入对应分区的输出缓冲区
    - `RecordReader<T>`：从输入缓冲区读取记录
    - `InputGate`：管理多输入端的屏障对齐（与 BarrierAligner 集成）
    - 内部可基于 `BlockingQueue<StreamRecord>` 实现单机数据交换
-
-3. **实现 Invokable 的实际执行逻辑**
-   - Source Task：调用 SourceFunction.run()，输出通过 RecordWriter
-   - Middle Task：从 InputGate 读取 → 通过 OperatorChain 处理 → 输出到 RecordWriter
-   - Sink Task：从 InputGate 读取 → 通过 OperatorChain 处理（最后一个算子是 SinkFunction）
-
-4. **与 Checkpoint 集成**
-   - CheckpointCoordinator 按 JobVertex 的 Task 注册为需要 ACK 的 task
-   - Barrier 通过 RecordWriter/RecordReader 传播
-   - InputGate 在收到 barrier 时触发 BarrierAligner 对齐
 
 5. **拓扑排序调度**
    - 当前 TaskExecutor 不考虑 vertex 间的依赖顺序
