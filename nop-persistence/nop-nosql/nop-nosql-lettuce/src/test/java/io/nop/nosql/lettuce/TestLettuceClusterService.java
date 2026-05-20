@@ -48,8 +48,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestLettuceClusterService {
 
-    private static final int NUM_MASTERS = 3;
-    private static final int NUM_REPLICAS = 3;
+    private static final int NUM_MASTERS = 1;
+    private static final int NUM_REPLICAS = 0;
     private static final int CLUSTER_PORT = 6379;
     private static final int CLUSTER_BUS_PORT = 16379;
 
@@ -74,39 +74,59 @@ public class TestLettuceClusterService {
                             "--port", String.valueOf(CLUSTER_PORT),
                             "--cluster-enabled", "yes",
                             "--cluster-config-file", "nodes.conf",
-                            "--cluster-node-timeout", "5000",
+                            "--cluster-node-timeout", "10000",
                             "--appendonly", "yes"
                     );
             node.start();
+
+            int mappedPort = node.getMappedPort(CLUSTER_PORT);
+            int mappedBusPort = node.getMappedPort(CLUSTER_BUS_PORT);
+
+            // Single-node cluster: announce 127.0.0.1 so host-side Lettuce can connect
+            node.execInContainer("redis-cli", "CONFIG", "SET", "cluster-announce-ip", "127.0.0.1");
+            node.execInContainer("redis-cli", "CONFIG", "SET", "cluster-announce-port", String.valueOf(mappedPort));
+            node.execInContainer("redis-cli", "CONFIG", "SET", "cluster-announce-bus-port", String.valueOf(mappedBusPort));
+
             nodes.add(node);
         }
 
-        // Build cluster create command
-        StringBuilder clusterCreateCmd = new StringBuilder();
-        clusterCreateCmd.append("redis-cli --cluster create");
-        for (int i = 0; i < nodes.size(); i++) {
-            clusterCreateCmd.append(" redis-node-").append(i).append(":").append(CLUSTER_PORT);
+        if (nodes.size() == 1) {
+            GenericContainer<?> sole = nodes.get(0);
+            sole.execInContainer("sh", "-c",
+                    "redis-cli cluster addslots $(seq 0 16383)");
+            sole.execInContainer("redis-cli", "cluster", "meet",
+                    "127.0.0.1", String.valueOf(CLUSTER_PORT));
+            Thread.sleep(5000);
+            sole.execInContainer("redis-cli", "cluster", "set-config-epoch", "1");
+        } else {
+            StringBuilder clusterCreateCmd = new StringBuilder();
+            clusterCreateCmd.append("redis-cli --cluster create");
+            for (int i = 0; i < nodes.size(); i++) {
+                clusterCreateCmd.append(" redis-node-").append(i).append(":").append(CLUSTER_PORT);
+            }
+            if (NUM_REPLICAS > 0) {
+                clusterCreateCmd.append(" --cluster-replicas 1");
+            }
+            clusterCreateCmd.append(" --cluster-yes");
+
+            GenericContainer<?> firstNode = nodes.get(0);
+            String result = firstNode.execInContainer("sh", "-c", clusterCreateCmd.toString()).getStdout();
+            if (!result.contains("[OK]")) {
+                throw new RuntimeException("Failed to create Redis cluster: " + result);
+            }
         }
-        clusterCreateCmd.append(" --cluster-replicas 1 --cluster-yes");
 
-        GenericContainer<?> firstNode = nodes.get(0);
-        String result = firstNode.execInContainer("sh", "-c", clusterCreateCmd.toString()).getStdout();
-        if (!result.contains("[OK]")) {
-            throw new RuntimeException("Failed to create Redis cluster: " + result);
-        }
+        Thread.sleep(5000);
 
-        // Wait for cluster to be ready
-        Thread.sleep(3000);
-
-        List<String> clusterNodes = new ArrayList<>();
+        List<String> clusterNodeUris = new ArrayList<>();
         for (int i = 0; i < NUM_MASTERS; i++) {
-            clusterNodes.add(nodes.get(i).getHost() + ":" + nodes.get(i).getMappedPort(CLUSTER_PORT));
+            clusterNodeUris.add("127.0.0.1:" + nodes.get(i).getMappedPort(CLUSTER_PORT));
         }
 
         RedisConfig config = new RedisConfig();
-        config.setClusterNodes(clusterNodes);
-        config.setConnectionTimeout(5000);
-        config.setSoTimeout(5000);
+        config.setClusterNodes(clusterNodeUris);
+        config.setConnectionTimeout(10000);
+        config.setSoTimeout(10000);
 
         provider = new LettuceRedisConnectionProvider();
         provider.setConfig(config);

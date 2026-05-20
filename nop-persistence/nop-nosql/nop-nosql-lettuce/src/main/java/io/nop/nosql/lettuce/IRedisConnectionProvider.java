@@ -7,8 +7,11 @@
  */
 package io.nop.nosql.lettuce;
 
-import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
+import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
 
 public interface IRedisConnectionProvider {
-    StatefulRedisConnection<String, Object> getConnection();
+    RedisClusterAsyncCommands<String, Object> getAsyncCommands();
+
+    RedisClusterCommands<String, Object> getSyncCommands();
 }

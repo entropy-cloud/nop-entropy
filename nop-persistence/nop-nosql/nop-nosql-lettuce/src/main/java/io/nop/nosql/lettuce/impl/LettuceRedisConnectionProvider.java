@@ -12,9 +12,12 @@ import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SocketOptions;
 import io.lettuce.core.TimeoutOptions;
+import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.cluster.ClusterClientOptions;
 import io.lettuce.core.cluster.RedisClusterClient;
-import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
+import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.resource.ClientResources;
 import io.lettuce.core.resource.DefaultClientResources;
@@ -39,7 +42,7 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
     private RedisClient standaloneClient;
     private RedisClusterClient clusterClient;
 
-    private RoundRobinSupplier<StatefulRedisConnection<String, Object>> connectionSupplier;
+    private RoundRobinSupplier<? extends AutoCloseable> connectionSupplier;
 
     @Inject
     public void setConfig(RedisConfig config) {
@@ -50,9 +53,36 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         this.codec = codec;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public RedisClusterAsyncCommands<String, Object> getAsyncCommands() {
+        checkIsActive();
+        Object conn = connectionSupplier.get();
+        if (conn instanceof StatefulRedisClusterConnection) {
+            return ((StatefulRedisClusterConnection<String, Object>) conn).async();
+        }
+        return ((StatefulRedisConnection<String, Object>) conn).async();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public RedisClusterCommands<String, Object> getSyncCommands() {
+        checkIsActive();
+        Object conn = connectionSupplier.get();
+        if (conn instanceof StatefulRedisClusterConnection) {
+            return ((StatefulRedisClusterConnection<String, Object>) conn).sync();
+        }
+        return ((StatefulRedisConnection<String, Object>) conn).sync();
+    }
+
+    @SuppressWarnings("unchecked")
     public StatefulRedisConnection<String, Object> getConnection() {
         checkIsActive();
-        return connectionSupplier.get();
+        Object conn = connectionSupplier.get();
+        if (conn instanceof StatefulRedisConnection) {
+            return (StatefulRedisConnection<String, Object>) conn;
+        }
+        throw new UnsupportedOperationException("Use getAsyncCommands()/getSyncCommands() for cluster mode");
     }
 
     @Override
@@ -79,12 +109,13 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
             clusterClient = RedisClusterClient.create(buildClientResources(), uris);
             clusterClient.setOptions(buildClusterOptions());
             this.connectionSupplier = new RoundRobinSupplier<>(
-                    () -> (StatefulRedisConnection<String, Object>) clusterClient.connect(codec), n);
+                    () -> clusterClient.connect(codec), n);
         } else {
             RedisURI uri = buildRedisURI();
             standaloneClient = RedisClient.create(buildClientResources(), uri);
             standaloneClient.setOptions(buildStandaloneOptions());
-            this.connectionSupplier = new RoundRobinSupplier<>(() -> standaloneClient.connect(codec), n);
+            this.connectionSupplier = new RoundRobinSupplier<>(
+                    () -> standaloneClient.connect(codec), n);
         }
     }
 
