@@ -26,6 +26,8 @@ import io.nop.nosql.lettuce.codec.PrefixTextCodec;
 
 import jakarta.inject.Inject;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 public class LettuceRedisConnectionProvider extends LifeCycleSupport
         implements IRedisConnectionProvider, IConfigRefreshable {
@@ -69,7 +71,12 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         if (n <= 0)
             n = 1;
 
-        client = RedisClusterClient.create(buildClientResources(), buildRedisURI());
+        if (config.getClusterNodes() != null && !config.getClusterNodes().isEmpty()) {
+            List<RedisURI> uris = buildClusterURIs();
+            client = RedisClusterClient.create(buildClientResources(), uris);
+        } else {
+            client = RedisClusterClient.create(buildClientResources(), buildRedisURI());
+        }
         client.setOptions(buildOptions());
 
         this.connectionSupplier = new RoundRobinSupplier<>(() -> client.connect(codec), n);
@@ -105,6 +112,23 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         builder.withPort(config.getPort());
 
         return builder.build();
+    }
+
+    private List<RedisURI> buildClusterURIs() {
+        List<RedisURI> uris = new ArrayList<>();
+        for (String node : config.getClusterNodes()) {
+            String[] parts = node.split(":");
+            RedisURI.Builder builder = RedisURI.builder()
+                    .withHost(parts[0].trim())
+                    .withPort(Integer.parseInt(parts[1].trim()));
+            if (config.getUsername() != null && config.getPassword() != null) {
+                builder.withAuthentication(config.getUsername(), config.getPassword().toCharArray());
+            } else if (config.getPassword() != null) {
+                builder.withPassword(config.getPassword().toCharArray());
+            }
+            uris.add(builder.build());
+        }
+        return uris;
     }
 
     private ClusterClientOptions buildOptions() {
