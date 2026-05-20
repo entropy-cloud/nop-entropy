@@ -66,7 +66,7 @@ public class LettuceRanking extends AbstractLettuceOperations implements INosqlR
     @Override
     public double getScore(String member) {
         Double score = FutureHelper.syncGet(getScoreAsync(member));
-        return score != null ? score : Double.NaN;
+        return score != null ? score : 0.0;
     }
 
     @Override

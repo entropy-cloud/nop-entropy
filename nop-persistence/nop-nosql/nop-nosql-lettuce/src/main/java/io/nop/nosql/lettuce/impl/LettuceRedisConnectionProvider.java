@@ -7,12 +7,14 @@
  */
 package io.nop.nosql.lettuce.impl;
 
+import io.lettuce.core.ClientOptions;
+import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SocketOptions;
 import io.lettuce.core.TimeoutOptions;
 import io.lettuce.core.cluster.ClusterClientOptions;
 import io.lettuce.core.cluster.RedisClusterClient;
-import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.resource.ClientResources;
 import io.lettuce.core.resource.DefaultClientResources;
@@ -34,9 +36,10 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
     private RedisConfig config;
 
     private RedisCodec<String, Object> codec = new PrefixTextCodec();
-    private RedisClusterClient client;
+    private RedisClient standaloneClient;
+    private RedisClusterClient clusterClient;
 
-    private RoundRobinSupplier<StatefulRedisClusterConnection<String, Object>> connectionSupplier;
+    private RoundRobinSupplier<StatefulRedisConnection<String, Object>> connectionSupplier;
 
     @Inject
     public void setConfig(RedisConfig config) {
@@ -47,7 +50,7 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         this.codec = codec;
     }
 
-    public StatefulRedisClusterConnection<String, Object> getConnection() {
+    public StatefulRedisConnection<String, Object> getConnection() {
         checkIsActive();
         return connectionSupplier.get();
     }
@@ -73,19 +76,24 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
 
         if (config.getClusterNodes() != null && !config.getClusterNodes().isEmpty()) {
             List<RedisURI> uris = buildClusterURIs();
-            client = RedisClusterClient.create(buildClientResources(), uris);
+            clusterClient = RedisClusterClient.create(buildClientResources(), uris);
+            clusterClient.setOptions(buildClusterOptions());
+            this.connectionSupplier = new RoundRobinSupplier<>(
+                    () -> (StatefulRedisConnection<String, Object>) clusterClient.connect(codec), n);
         } else {
-            client = RedisClusterClient.create(buildClientResources(), buildRedisURI());
+            RedisURI uri = buildRedisURI();
+            standaloneClient = RedisClient.create(buildClientResources(), uri);
+            standaloneClient.setOptions(buildStandaloneOptions());
+            this.connectionSupplier = new RoundRobinSupplier<>(() -> standaloneClient.connect(codec), n);
         }
-        client.setOptions(buildOptions());
-
-        this.connectionSupplier = new RoundRobinSupplier<>(() -> client.connect(codec), n);
     }
 
     @Override
     protected void doStop() {
-        if (client != null)
-            client.shutdown();
+        if (clusterClient != null)
+            clusterClient.shutdown();
+        if (standaloneClient != null)
+            standaloneClient.shutdown();
     }
 
     private ClientResources buildClientResources() {
@@ -131,7 +139,21 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         return uris;
     }
 
-    private ClusterClientOptions buildOptions() {
+    private ClientOptions buildStandaloneOptions() {
+        ClientOptions.Builder builder = ClientOptions.builder();
+        builder.autoReconnect(true);
+
+        SocketOptions socketOptions = buildSocketOptions();
+        builder.socketOptions(socketOptions);
+
+        TimeoutOptions timeoutOptions = buildTimeoutOptions();
+        if (timeoutOptions != null) {
+            builder.timeoutOptions(timeoutOptions);
+        }
+        return builder.build();
+    }
+
+    private ClusterClientOptions buildClusterOptions() {
         ClusterClientOptions.Builder builder = ClusterClientOptions.builder();
         builder.autoReconnect(true).maxRedirects(config.getMaxRedirections());
 

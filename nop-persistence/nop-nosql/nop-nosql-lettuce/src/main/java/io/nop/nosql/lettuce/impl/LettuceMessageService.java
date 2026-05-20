@@ -11,7 +11,7 @@ import io.lettuce.core.GetExArgs;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
-import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.lettuce.core.api.sync.RedisCommands;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
@@ -57,7 +57,7 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public Object computeIfAbsent(String key, Function<? super String, ?> mappingFunction) {
-        RedisAdvancedClusterCommands<String, Object> commands = sync();
+        RedisCommands<String, Object> commands = sync();
         Object value = commands.get(key);
         if (value == null) {
             value = mappingFunction.apply(key);

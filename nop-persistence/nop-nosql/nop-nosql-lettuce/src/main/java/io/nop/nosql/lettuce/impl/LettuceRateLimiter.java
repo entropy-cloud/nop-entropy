@@ -15,6 +15,7 @@ import io.nop.nosql.core.RateLimitResult;
 import io.nop.nosql.core.RateLimiterConfig;
 import io.nop.nosql.core.script.RedisScripts;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -35,7 +36,7 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
     public CompletableFuture<RateLimitResult> tryAcquireAsync(int permits) {
         String tokensKey = key + ":tokens";
         String timestampKey = key + ":timestamp";
-        long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis() / 1000;
 
         return LettuceExecutor.evalScript(async(), RedisScripts.RATE_LIMIT,
                         ScriptOutputType.MULTI,
@@ -45,11 +46,15 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
                                 String.valueOf(now),
                                 String.valueOf(permits)})
                 .thenApply(result -> {
-                    if (!(result instanceof Object[])) {
+                    Object[] arr;
+                    if (result instanceof Object[]) {
+                        arr = (Object[]) result;
+                    } else if (result instanceof List) {
+                        arr = ((List<?>) result).toArray();
+                    } else {
                         throw NopException.adapt(new IllegalStateException(
                                 "Rate limiter script returned unexpected result type: " + result));
                     }
-                    Object[] arr = (Object[]) result;
                     boolean allowed = Long.valueOf(1L).equals(arr[0]);
                     long remaining = ((Number) arr[1]).longValue();
                     return new RateLimitResult(allowed, remaining);

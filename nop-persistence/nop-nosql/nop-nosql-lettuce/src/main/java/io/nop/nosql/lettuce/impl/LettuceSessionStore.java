@@ -7,7 +7,7 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.nosql.core.INosqlSessionStore;
@@ -31,7 +31,7 @@ public class LettuceSessionStore extends AbstractLettuceOperations implements IN
     @Override
     public CompletableFuture<Map<String, Object>> getAsync(String sessionId) {
         String key = sessionKey(sessionId);
-        RedisAdvancedClusterAsyncCommands<String, Object> cmd = async();
+        RedisAsyncCommands<String, Object> cmd = async();
         return cmd.hgetall(key)
                 .<Map<String, Object>>thenApply(map -> {
                     if (map == null)

@@ -7,8 +7,8 @@
  */
 package io.nop.nosql.lettuce;
 
-import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.api.StatefulRedisConnection;
 
 public interface IRedisConnectionProvider {
-    StatefulRedisClusterConnection<String, Object> getConnection();
+    StatefulRedisConnection<String, Object> getConnection();
 }

@@ -7,8 +7,8 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
-import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.lettuce.core.api.sync.RedisCommands;
 
 public abstract class AbstractLettuceOperations {
     protected final LettuceRedisConnectionProvider client;
@@ -17,11 +17,11 @@ public abstract class AbstractLettuceOperations {
         this.client = client;
     }
 
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
+    protected RedisAsyncCommands<String, Object> async() {
         return client.getConnection().async();
     }
 
-    protected RedisAdvancedClusterCommands<String, Object> sync() {
+    protected RedisCommands<String, Object> sync() {
         return client.getConnection().sync();
     }
 }
