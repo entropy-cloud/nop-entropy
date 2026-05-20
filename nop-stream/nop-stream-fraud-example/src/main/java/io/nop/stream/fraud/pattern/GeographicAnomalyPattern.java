@@ -8,7 +8,7 @@
 package io.nop.stream.fraud.pattern;
 
 import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.cep.pattern.conditions.SimpleCondition;
+import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
 
@@ -72,13 +72,33 @@ public class GeographicAnomalyPattern {
      */
     public static Pattern<TransactionEvent, ?> createPattern() {
         return Pattern.<TransactionEvent>begin("city1")
-                .where(SimpleCondition.of(event -> true)) // First transaction from any city
+                .where(new IterativeCondition<TransactionEvent>() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public boolean filter(TransactionEvent value, Context<TransactionEvent> ctx) throws Exception {
+                        // First transaction from any city — accept all
+                        return true;
+                    }
+                })
                 .next("city2")
-                .where(SimpleCondition.of(event -> {
-                    // For demo purposes, we'll use a simplified approach
-                    // In a real implementation, this would compare with the first transaction's city
-                    return true; // Will be filtered in generateAlert
-                }))
+                .where(new IterativeCondition<TransactionEvent>() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public boolean filter(TransactionEvent value, Context<TransactionEvent> ctx) throws Exception {
+                        // Get the previously matched city1 event
+                        for (TransactionEvent city1Event : ctx.getEventsForPattern("city1")) {
+                            // Must be from the same user
+                            if (!value.getUserId().equals(city1Event.getUserId())) {
+                                return false;
+                            }
+                            // Must be from a different city
+                            return !value.getCity().equals(city1Event.getCity());
+                        }
+                        return false;
+                    }
+                })
                 .within(Duration.ofHours(TIME_WINDOW_HOURS));
     }
 
@@ -103,17 +123,7 @@ public class GeographicAnomalyPattern {
         TransactionEvent city1Event = city1Events.get(0);
         TransactionEvent city2Event = city2Events.get(0);
 
-
-
-        // Verify that the transactions are from different cities
-        if (city1Event.getCity().equals(city2Event.getCity())) {
-            throw new IllegalArgumentException("Geographic anomaly requires transactions from different cities");
-        }
-        
-        // Verify that the transactions are from the same user
-        if (!city1Event.getUserId().equals(city2Event.getUserId())) {
-            throw new IllegalArgumentException("Geographic anomaly requires transactions from the same user");
-        }
+        // City comparison and same-user check are already enforced by the CEP IterativeCondition
 
         // Collect all triggering events
         List<TransactionEvent> triggeringEvents = new ArrayList<>();
@@ -123,19 +133,12 @@ public class GeographicAnomalyPattern {
         // Generate alert ID
         String alertId = UUID.randomUUID().toString();
         
-        // Get user ID from the city1 event (assuming same user)
+        // Get user ID from the city1 event (same user enforced by CEP condition)
         String userId = city1Event.getUserId();
         
         // Use the timestamp of the city2 event (the one that completed the pattern)
         long timestamp = city2Event.getTimestamp();
 
-        // Collect all triggering events
-
-
-
-        
-
-        
         // Build description
         String description = String.format(
             "Geographic anomaly detected: User %s made transactions from different cities within %d hour. " +

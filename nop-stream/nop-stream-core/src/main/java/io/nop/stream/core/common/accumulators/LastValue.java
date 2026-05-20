@@ -7,8 +7,13 @@
  */
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.time.CoreMetrics;
 
+/**
+ * @Internal
+ */
+@Internal
 public class LastValue<T> implements SimpleAccumulator<T> {
     private T value;
 

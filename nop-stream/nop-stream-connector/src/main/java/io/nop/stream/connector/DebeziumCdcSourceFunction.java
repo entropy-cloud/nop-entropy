@@ -13,6 +13,9 @@ import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Adapts nop-message-debezium's {@link DebeziumMessageSource} to nop-stream's {@link SourceFunction}.
  * <p>
@@ -26,6 +29,7 @@ public class DebeziumCdcSourceFunction implements SourceFunction<ChangeEvent> {
     private final DebeziumConfig config;
 
     private volatile boolean running = true;
+    private final CountDownLatch completionLatch = new CountDownLatch(1);
     private DebeziumMessageSource source;
     private ICancellable subscription;
 
@@ -42,13 +46,16 @@ public class DebeziumCdcSourceFunction implements SourceFunction<ChangeEvent> {
         subscription = source.subscribe(ctx::collect);
 
         while (running) {
-            Thread.sleep(1000);
+            if (completionLatch.await(1, TimeUnit.SECONDS)) {
+                break;
+            }
         }
     }
 
     @Override
     public void cancel() {
         running = false;
+        completionLatch.countDown();
         if (subscription != null) {
             subscription.cancel();
         }

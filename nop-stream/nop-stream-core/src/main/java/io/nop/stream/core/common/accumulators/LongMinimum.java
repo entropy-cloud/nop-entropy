@@ -18,9 +18,14 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
+
 /**
  * An accumulator that finds the minimum {@code long} value.
+ *
+ * @Internal
  */
+@Internal
 public class LongMinimum implements SimpleAccumulator<Long> {
 
     private static final long serialVersionUID = 1L;

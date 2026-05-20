@@ -14,6 +14,7 @@ import jakarta.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * Timer service implementation for WindowOperator.
@@ -27,10 +28,28 @@ public class WindowOperatorTimerService<K, N> implements InternalTimerService<N>
             Comparator.comparingLong(InternalTimer::getTimestamp)
     );
     private final Triggerable<K, N> triggerable;
+    private final Supplier<K> currentKeySupplier;
     private long currentWatermark = Long.MIN_VALUE;
     private long currentProcessingTime = Long.MIN_VALUE;
-    public WindowOperatorTimerService(Triggerable<K, N> triggerable) {
+
+    /**
+     * Creates a timer service with a supplier for the current key.
+     *
+     * @param triggerable the triggerable callback for timer firing
+     * @param currentKeySupplier supplies the current key when creating timers; may be null
+     */
+    public WindowOperatorTimerService(Triggerable<K, N> triggerable, Supplier<K> currentKeySupplier) {
         this.triggerable = triggerable;
+        this.currentKeySupplier = currentKeySupplier;
+    }
+
+    /**
+     * Backward-compatible constructor that creates timers with null keys.
+     *
+     * @param triggerable the triggerable callback for timer firing
+     */
+    public WindowOperatorTimerService(Triggerable<K, N> triggerable) {
+        this(triggerable, null);
     }
     @Override
     public long currentProcessingTime() {
@@ -51,14 +70,16 @@ public class WindowOperatorTimerService<K, N> implements InternalTimerService<N>
     }
     @Override
     public void registerEventTimeTimer(N namespace, long time) {
-        InternalTimer<K, N> timer = new SimpleInternalTimer<>(time, null, namespace);
+        K key = currentKeySupplier != null ? currentKeySupplier.get() : null;
+        InternalTimer<K, N> timer = new SimpleInternalTimer<>(time, key, namespace);
         if (!eventTimeTimers.contains(timer)) {
             eventTimeTimers.add(timer);
         }
     }
     @Override
     public void registerProcessingTimeTimer(N namespace, long time) {
-        InternalTimer<K, N> timer = new SimpleInternalTimer<>(time, null, namespace);
+        K key = currentKeySupplier != null ? currentKeySupplier.get() : null;
+        InternalTimer<K, N> timer = new SimpleInternalTimer<>(time, key, namespace);
         if (!processingTimeTimers.contains(timer)) {
             processingTimeTimers.add(timer);
         }

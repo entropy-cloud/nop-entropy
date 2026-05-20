@@ -7,5 +7,11 @@
  */
 package io.nop.stream.core.common.functions;
 
+import io.nop.api.core.annotations.core.Internal;
+
+/**
+ * @Internal
+ */
+@Internal
 public interface IterationRuntimeContext extends RuntimeContext {
 }

@@ -86,6 +86,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     private static final long serialVersionUID = 1L;
     private static final String WINDOW_VALUE_KEY = "__window_value__";
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(WindowOperator.class);
 
     // ------------------------------------------------------------------------
     // Configuration values and user functions
@@ -97,7 +98,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     private final Trigger<? super IN, ? super W> trigger;
 
-    // private final StateDescriptor<? extends AppendingState<IN, ACC>, ?> windowStateDescriptor;
     protected transient InternalAppendingState<K, W, IN, ACC, ACC> windowState;
 
     /**
@@ -142,13 +142,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     // ------------------------------------------------------------------------
 
     /** The state in which the window contents is stored. Each window is a namespace */
-    // private transient InternalAppendingState<K, W, IN, ACC, ACC> windowState;
-
-    /**
-     * The {@link #windowState}, typed to merging state for merging windows. Null if the window
-     * state is not mergeable.
-     */
-    //private transient InternalMergingState<K, W, IN, ACC, ACC> windowMergingState;
 
     /** The state that holds the merging window metadata (the sets that describe what is merged). */
     private transient InternalListState<K, VoidNamespace, Tuple2<W, W>> mergingSetsState;
@@ -187,7 +180,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             KeySelector<IN, K> keySelector,
             TypeSerializer<K> keySerializer,
             Class<K> keyClass,
-            // StateDescriptor<? extends AppendingState<IN, ACC>, ?> windowStateDescriptor,
             InternalWindowFunction<ACC, OUT, K, W> windowFunction,
             Trigger<? super IN, ? super W> trigger,
             long allowedLateness,
@@ -197,21 +189,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         checkArgument(allowedLateness >= 0);
 
-//        checkArgument(
-//                windowStateDescriptor == null || windowStateDescriptor.isSerializerInitialized(),
-//                "window state serializer is not properly initialized");
-
         this.windowAssigner = checkNotNull(windowAssigner);
         this.windowSerializer = checkNotNull(windowSerializer);
         this.keySelector = checkNotNull(keySelector);
         this.keySerializer = checkNotNull(keySerializer);
         this.keyClass = checkNotNull(keyClass);
-        // this.windowStateDescriptor = windowStateDescriptor;
         this.trigger = checkNotNull(trigger);
         this.allowedLateness = allowedLateness;
         this.lateDataOutputTag = lateDataOutputTag;
-
-        // setChainingStrategy(ChainingStrategy.ALWAYS);
     }
 
     @Override
@@ -232,7 +217,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 new MapStateDescriptor<>("window-contents", String.class, accType);
         windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
 
-        internalTimerService = new WindowOperatorTimerService<>(this); // getInternalTimerService("window-timers", windowSerializer, this);
+        internalTimerService = new WindowOperatorTimerService<>(this,
+                () -> getKeyedStateBackend() != null ? (K) getKeyedStateBackend().getCurrentKey() : null);
 
         triggerContext = new Context(null, null);
         processContext = new WindowContext(null);
@@ -247,11 +233,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         // create (or restore) the state that hold the actual window contents
         // NOTE - the state may be null in the case of the overriding evicting window operator
-//        if (windowStateDescriptor != null) {
-//            windowState =
-//                    (InternalAppendingState<K, W, IN, ACC, ACC>)
-//                            getOrCreateKeyedState(windowSerializer, windowStateDescriptor);
-//        }
 
         // create the typed and helper states for merging windows
         if (windowAssigner instanceof MergingWindowAssigner) {
@@ -283,48 +264,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @Override
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
-        OperatorSnapshotResult result = super.snapshotState(context);
-
-        if (windowContentsState != null) {
-            java.util.Map<String, Object> windowData = new java.util.HashMap<>();
-            for (java.util.Iterator<java.util.Map.Entry<String, ACC>> it = windowContentsState.iterator();
-                 it.hasNext(); ) {
-                java.util.Map.Entry<String, ACC> entry = it.next();
-                windowData.put(entry.getKey(), entry.getValue());
-            }
-
-            if (!windowData.isEmpty()) {
-                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos)) {
-                    oos.writeObject(windowData);
-                }
-                result.putOperatorState("window-contents", baos.toByteArray());
-            }
-        }
-
-        return result;
+        // The keyed state backend (MemoryKeyedStateBackend) already snapshots all keyed state
+        // including windowContentsState and mergingSetsState via its own snapshotState().
+        // No need for manual serialization here.
+        return super.snapshotState(context);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void restoreState(io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotResult) throws Exception {
+        // The keyed state backend handles restoring all keyed state including
+        // windowContentsState. No manual deserialization needed.
         super.restoreState(snapshotResult);
-        if (snapshotResult == null) {
-            return;
-        }
-        java.util.Map<String, byte[]> operatorStates = snapshotResult.getOperatorStates();
-        if (operatorStates != null && operatorStates.containsKey("window-contents")) {
-            byte[] windowStateBytes = operatorStates.get("window-contents");
-            if (windowStateBytes != null && windowStateBytes.length > 0 && windowContentsState != null) {
-                try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(
-                        new java.io.ByteArrayInputStream(windowStateBytes))) {
-                    java.util.Map<String, ACC> windowData = (java.util.Map<String, ACC>) ois.readObject();
-                    for (java.util.Map.Entry<String, ACC> entry : windowData.entrySet()) {
-                        windowContentsState.put(entry.getKey(), entry.getValue());
-                    }
-                }
-            }
-        }
     }
 
     @Override
@@ -429,7 +379,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 if (triggerResult.isFire()) {
                     ACC contents = getWindowContents(key, stateWindow);
                     if (contents != null) {
-                        emitWindowContents(actualWindow, contents);
+                        emitWindowContents(key, actualWindow, contents);
                     }
                 }
 
@@ -459,7 +409,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 if (triggerResult.isFire()) {
                     ACC contents = getWindowContents(key, window);
                     if (contents != null) {
-                        emitWindowContents(window, contents);
+                        emitWindowContents(key, window, contents);
                     }
                 }
 
@@ -500,10 +450,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 // window and therefore the Trigger state, however, so nothing to do.
                 return;
             } else {
-                //windowState.setCurrentNamespace(stateWindow);
             }
         } else {
-            //windowState.setCurrentNamespace(triggerContext.window);
             mergingWindows = null;
         }
 
@@ -515,7 +463,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     : triggerContext.window;
             ACC contents = getWindowContents(triggerContext.key, stateWindow);
             if (contents != null) {
-                emitWindowContents(triggerContext.window, contents);
+                emitWindowContents(triggerContext.key, triggerContext.window, contents);
             }
         }
 
@@ -558,10 +506,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 // window and therefore the Trigger state, however, so nothing to do.
                 return;
             } else {
-                //windowState.setCurrentNamespace(stateWindow);
             }
         } else {
-            //windowState.setCurrentNamespace(triggerContext.window);
             mergingWindows = null;
         }
 
@@ -573,7 +519,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     : triggerContext.window;
             ACC contents = getWindowContents(triggerContext.key, stateWindow);
             if (contents != null) {
-                emitWindowContents(triggerContext.window, contents);
+                emitWindowContents(triggerContext.key, triggerContext.window, contents);
             }
         }
 
@@ -600,16 +546,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
     }
 
-//    @Override
-//    public OperatorAttributes getOperatorAttributes() {
-//        boolean isOutputOnlyAfterEndOfStream =
-//                windowAssigner instanceof GlobalWindows
-//                        && trigger instanceof GlobalWindows.EndOfStreamTrigger;
-//        return new OperatorAttributesBuilder()
-//                .setOutputOnlyAfterEndOfStream(isOutputOnlyAfterEndOfStream)
-//                .build();
-//    }
-
     /**
      * Drops all state for the given window and calls {@link Trigger#clear(Window,
      * Trigger.TriggerContext)}.
@@ -617,28 +553,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      * <p>The caller must ensure that the correct key is set in the state backend and the
      * triggerContext object.
      */
-//    private void clearAllState(
-//            W window, AppendingState<IN, ACC> windowState, MergingWindowSet<W> mergingWindows)
-//            throws Exception {
-//        windowState.clear();
-//        triggerContext.clear();
-//        processContext.window = window;
-//        processContext.clear();
-//        if (mergingWindows != null) {
-//            mergingWindows.retireWindow(window);
-//            mergingWindows.persist();
-//        }
-//    }
-
     /**
      * Emits the contents of the given window using the {@link InternalWindowFunction}.
      */
     @SuppressWarnings("unchecked")
-    private void emitWindowContents(W window, ACC contents) throws Exception {
+    private void emitWindowContents(K key, W window, ACC contents) throws Exception {
         timestampedCollector.setAbsoluteTimestamp(window.maxTimestamp());
         processContext.window = window;
         userFunction.process(
-                triggerContext.key, window, processContext, contents, timestampedCollector);
+                key, window, processContext, contents, timestampedCollector);
     }
 
     /**
@@ -661,9 +584,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         @SuppressWarnings("unchecked")
         MergingWindowAssigner<? super IN, W> mergingAssigner =
                 (MergingWindowAssigner<? super IN, W>) windowAssigner;
-        return new MergingWindowSet<>(mergingAssigner
-                //, mergingSetsState
-        );
+        return new MergingWindowSet<>(mergingAssigner, mergingSetsState);
     }
 
     /**
@@ -762,7 +683,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (current instanceof SimpleAccumulator) {
             SimpleAccumulator<IN> accumulator = (SimpleAccumulator<IN>) current;
             accumulator.add(value);
-            setWindowContents(key, window, (ACC) accumulator.getLocalValue());
+            // Store the accumulator reference itself (not getLocalValue()) so that
+            // subsequent addWindowElement calls can detect it as a SimpleAccumulator
+            // and keep accumulating, instead of falling through to last-write-wins.
+            setWindowContents(key, window, (ACC) accumulator);
             return;
         }
 
@@ -814,8 +738,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 try {
                     SimpleAccumulator<IN> accumulator = (SimpleAccumulator<IN>) targetValue;
                     accumulator.add((IN) sourceValue);
-                    targetValue = (ACC) accumulator.getLocalValue();
-                } catch (ClassCastException ignored) {
+                    // Keep the accumulator reference, not getLocalValue(), so that
+                    // subsequent merges still see it as a SimpleAccumulator.
+                    targetValue = (ACC) accumulator;
+                } catch (ClassCastException e) {
+                    LOG.warn("ClassCastException in mergeWindowContents: cannot merge sourceValue into target accumulator. " +
+                            "targetType={}, sourceType={}", targetValue.getClass().getName(),
+                            sourceValue.getClass().getName(), e);
                     targetValue = sourceValue;
                 }
             } else {
@@ -832,7 +761,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     private String windowNamespace(W window) {
-        return window == null ? "_null_window_" : window.toString();
+        if (window == null) {
+            return "_null_window_";
+        }
+        return window.getClass().getName() + "#" + window.toString();
     }
 
     /**
@@ -845,62 +777,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // we have this in the base class even though it's not used in MergingKeyStore so that
         // we can always set it and ignore what actual implementation we have
         protected W window;
-
-//        public AbstractPerWindowStateStore(
-//                KeyedStateBackend<?> keyedStateBackend, ExecutionConfig executionConfig) {
-//            super(
-//                    keyedStateBackend,
-//                    new SerializerFactory() {
-//                        @Override
-//                        public <T> TypeSerializer<T> createSerializer(
-//                                TypeInformation<T> typeInformation) {
-//                            return typeInformation.createSerializer(
-//                                    executionConfig.getSerializerConfig());
-//                        }
-//                    });
-//        }
     }
 
     /**
      * Special {@link AbstractPerWindowStateStore} that doesn't allow access to per-window state.
      */
     public class MergingWindowStateStore extends AbstractPerWindowStateStore {
-
-//        public MergingWindowStateStore(
-//                KeyedStateBackend<?> keyedStateBackend, ExecutionConfig executionConfig) {
-//            super(keyedStateBackend, executionConfig);
-//        }
-
-//        @Override
-//        public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
-//            throw new UnsupportedOperationException(
-//                    "Per-window state is not allowed when using merging windows.");
-//        }
-//
-//        @Override
-//        public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
-//            throw new UnsupportedOperationException(
-//                    "Per-window state is not allowed when using merging windows.");
-//        }
-//
-//        @Override
-//        public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
-//            throw new UnsupportedOperationException(
-//                    "Per-window state is not allowed when using merging windows.");
-//        }
-//
-//        @Override
-//        public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
-//                AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
-//            throw new UnsupportedOperationException(
-//                    "Per-window state is not allowed when using merging windows.");
-//        }
-//
-//        @Override
-//        public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
-//            throw new UnsupportedOperationException(
-//                    "Per-window state is not allowed when using merging windows.");
-//        }
     }
 
     /**
@@ -908,17 +790,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      * org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction}.
      */
     public class PerWindowStateStore extends AbstractPerWindowStateStore {
-
-//        public PerWindowStateStore(
-//                KeyedStateBackend<?> keyedStateBackend, ExecutionConfig executionConfig) {
-//            super(keyedStateBackend, executionConfig);
-//        }
-//
-//        @Override
-//        protected <S extends State> S getPartitionedState(StateDescriptor<S, ?> stateDescriptor)
-//                throws Exception {
-//            return keyedStateBackend.getPartitionedState(window, windowSerializer, stateDescriptor);
-//        }
     }
 
     /**
@@ -934,10 +805,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         public WindowContext(W window) {
             this.window = window;
             this.windowState = null;
-//                    windowAssigner instanceof MergingWindowAssigner
-//                            ? new MergingWindowStateStore(
-//                            getKeyedStateBackend(), getExecutionConfig())
-//                            : new PerWindowStateStore(getKeyedStateBackend(), getExecutionConfig());
         }
 
         @Override
@@ -999,83 +866,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             this.window = window;
         }
 
-//        @Override
-//        public MetricGroup getMetricGroup() {
-//            return WindowOperator.this.getMetricGroup();
-//        }
-
         public long getCurrentWatermark() {
             return internalTimerService.currentWatermark();
         }
-
-//        @Override
-//        public <S extends Serializable> ValueState<S> getKeyValueState(
-//                String name, Class<S> stateType, S defaultState) {
-//            checkNotNull(stateType, "The state type class must not be null");
-//
-//            TypeInformation<S> typeInfo;
-//            try {
-//                typeInfo = TypeExtractor.getForClass(stateType);
-//            } catch (Exception e) {
-//                throw new RuntimeException(
-//                        "Cannot analyze type '"
-//                                + stateType.getName()
-//                                + "' from the class alone, due to generic type parameters. "
-//                                + "Please specify the TypeInformation directly.",
-//                        e);
-//            }
-//
-//            return getKeyValueState(name, typeInfo, defaultState);
-//        }
-
-//        @Override
-//        public <S extends Serializable> ValueState<S> getKeyValueState(
-//                String name, TypeInformation<S> stateType, S defaultState) {
-//
-//            checkNotNull(name, "The name of the state must not be null");
-//            checkNotNull(stateType, "The state type information must not be null");
-//
-//            ValueStateDescriptor<S> stateDesc =
-//                    new ValueStateDescriptor<>(
-//                            name,
-//                            stateType.createSerializer(getExecutionConfig().getSerializerConfig()),
-//                            defaultState);
-//            return getPartitionedState(stateDesc);
-//        }
-//
-//        @SuppressWarnings("unchecked")
-//        public <S extends State> S getPartitionedState(StateDescriptor<S, ?> stateDescriptor) {
-//            try {
-//                return WindowOperator.this.getPartitionedState(
-//                        window, windowSerializer, stateDescriptor);
-//            } catch (Exception e) {
-//                throw new RuntimeException("Could not retrieve state", e);
-//            }
-//        }
-//
-//        @Override
-//        public <S extends MergingState<?, ?>> void mergePartitionedState(
-//                StateDescriptor<S, ?> stateDescriptor) {
-//            if (mergedWindows != null && mergedWindows.size() > 0) {
-//                try {
-//                    S rawState =
-//                            getKeyedStateBackend()
-//                                    .getOrCreateKeyedState(windowSerializer, stateDescriptor);
-//
-//                    if (rawState instanceof InternalMergingState) {
-//                        @SuppressWarnings("unchecked")
-//                        InternalMergingState<K, W, ?, ?, ?> mergingState =
-//                                (InternalMergingState<K, W, ?, ?, ?>) rawState;
-//                        mergingState.mergeNamespaces(window, mergedWindows);
-//                    } else {
-//                        throw new IllegalArgumentException(
-//                                "The given state descriptor does not refer to a mergeable state (MergingState)");
-//                    }
-//                } catch (Exception e) {
-//                    throw new RuntimeException("Error while merging state.", e);
-//                }
-//            }
-//        }
 
         @Override
         public long getCurrentProcessingTime() {
@@ -1125,7 +918,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         @Override
         public <T> SimpleAccumulator<T> getSimpleAccumulator(StateDescriptor<T> descriptor) {
-            return null;
+            throw new UnsupportedOperationException(
+                    "SimpleAccumulator is not supported in the current trigger context. " +
+                    "Use a ReducingStateDescriptor or AggregateFunction instead.");
         }
 
         @Override
@@ -1208,9 +1003,4 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     public WindowAssigner<? super IN, W> getWindowAssigner() {
         return windowAssigner;
     }
-
-//    @VisibleForTesting
-//    public StateDescriptor<? extends AppendingState<IN, ACC>, ?> getStateDescriptor() {
-//        return windowStateDescriptor;
-//    }
 }

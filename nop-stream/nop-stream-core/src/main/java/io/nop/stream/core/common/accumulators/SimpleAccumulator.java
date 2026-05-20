@@ -18,8 +18,13 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
+
 /**
  * Similar to Accumulator, but the type of items to add and the result value must be the same.
+ *
+ * @Internal
  */
+@Internal
 public interface SimpleAccumulator<T> extends Accumulator<T, T> {
 }

@@ -18,10 +18,14 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
 
 /**
  * An accumulator that sums up {@code double} values.
+ *
+ * @Internal
  */
+@Internal
 public class DoubleCounter implements SimpleAccumulator<Double> {
 
     private static final long serialVersionUID = 1L;

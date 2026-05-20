@@ -9,6 +9,10 @@ package io.nop.stream.core.operators;
 
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<OUT>, Serializable {
@@ -31,6 +35,26 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
     
     @Override
     public StreamOperator<OUT> createStreamOperator(TypeInformation<OUT> outputType) {
+        // If the operator is Serializable, create a deep copy so each invocation
+        // returns an independent instance. Otherwise fall back to returning the
+        // shared template instance (documented limitation for non-serializable operators).
+        if (operator instanceof Serializable) {
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+                    oos.writeObject(operator);
+                }
+                ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+                try (ObjectInputStream ois = new ObjectInputStream(bais)) {
+                    @SuppressWarnings("unchecked")
+                    StreamOperator<OUT> copy = (StreamOperator<OUT>) ois.readObject();
+                    return copy;
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        "Failed to create copy of operator via serialization: " + name, e);
+            }
+        }
         return operator;
     }
     

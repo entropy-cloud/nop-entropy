@@ -62,7 +62,8 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
      * @param keySelector The key selector for partitioning
      */
     public KeyedStreamImpl(DataStream<T> parentStream, KeySelector<T, KEY> keySelector) {
-        super(null, null);
+        super(parentStream instanceof DataStreamImpl ? ((DataStreamImpl<T>) parentStream).getEnvironment() : null,
+              parentStream instanceof DataStreamImpl ? ((DataStreamImpl<T>) parentStream).getTransformation() : null);
         this.keySelector = keySelector;
         this.parentStream = parentStream;
     }

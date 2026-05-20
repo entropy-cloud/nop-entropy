@@ -18,6 +18,8 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -27,7 +29,10 @@ import java.util.TreeMap;
  *
  * <p>This class does not extend to continuous values later, because it makes no attempt to put the
  * data in bins.
+ *
+ * @Internal
  */
+@Internal
 public class Histogram implements Accumulator<Integer, TreeMap<Integer, Integer>> {
 
     private static final long serialVersionUID = 1L;

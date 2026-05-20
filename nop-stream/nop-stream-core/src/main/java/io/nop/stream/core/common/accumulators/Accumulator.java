@@ -18,6 +18,8 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import java.io.Serializable;
 
 /**
@@ -33,7 +35,9 @@ import java.io.Serializable;
  *
  * @param <V> Type of values that are added to the accumulator
  * @param <R> Type of the accumulator result as it will be reported to the client
+ * @Internal
  */
+@Internal
 public interface Accumulator<V, R> extends Serializable, Cloneable {
     /**
      * @param value The value to add to the accumulator object

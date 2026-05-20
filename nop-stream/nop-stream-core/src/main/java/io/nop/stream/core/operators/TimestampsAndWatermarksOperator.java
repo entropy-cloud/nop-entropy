@@ -38,15 +38,22 @@ public class TimestampsAndWatermarksOperator<T>
     private static final long serialVersionUID = 1L;
 
     private static final long INITIAL_TIME = Long.MIN_VALUE + 1;
+    private static final long DEFAULT_WATERMARK_INTERVAL_MS = 200;
 
     private final WatermarkStrategy<T> watermarkStrategy;
+    private final long watermarkInterval;
     private transient TimestampAssigner<T> timestampAssigner;
     private transient WatermarkGenerator<T> watermarkGenerator;
     private transient long lastWatermarkTimestamp;
     private transient long nextWatermarkTime;
 
     public TimestampsAndWatermarksOperator(WatermarkStrategy<T> watermarkStrategy) {
+        this(watermarkStrategy, DEFAULT_WATERMARK_INTERVAL_MS);
+    }
+
+    public TimestampsAndWatermarksOperator(WatermarkStrategy<T> watermarkStrategy, long watermarkInterval) {
         this.watermarkStrategy = watermarkStrategy;
+        this.watermarkInterval = watermarkInterval;
     }
 
     @Override
@@ -72,7 +79,7 @@ public class TimestampsAndWatermarksOperator<T>
         long now = System.currentTimeMillis();
         if (now >= nextWatermarkTime) {
             watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
-            nextWatermarkTime = now + 200;
+            nextWatermarkTime = now + watermarkInterval;
         }
     }
 

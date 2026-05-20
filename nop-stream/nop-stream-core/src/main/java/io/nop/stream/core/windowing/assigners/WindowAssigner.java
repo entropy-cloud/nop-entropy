@@ -21,6 +21,7 @@ package io.nop.stream.core.windowing.assigners;
 import io.nop.core.context.IServiceContext;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
+import jakarta.annotation.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -52,8 +53,11 @@ public abstract class WindowAssigner<T, W extends Window> implements Serializabl
 
     /**
      * Returns the default trigger associated with this {@code WindowAssigner}.
+     *
+     * @param env the service context; may be {@code null} during stream plan construction
+     *            when no runtime context is available yet
      */
-    public abstract Trigger<T, W> getDefaultTrigger(IServiceContext env);
+    public abstract Trigger<T, W> getDefaultTrigger(@Nullable IServiceContext env);
 
     /**
      * Returns {@code true} if elements are assigned to windows based on event time, {@code false}

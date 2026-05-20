@@ -282,6 +282,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         private static final long serialVersionUID = 1L;
 
         private MemoryKeyedStateBackend<?> backend;
+        private final MapStateDescriptor<UK, UV> descriptor;
 
         void rebind(MemoryKeyedStateBackend<?> newBackend) {
             this.backend = newBackend;
@@ -290,6 +291,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
         MemoryMapState(MemoryKeyedStateBackend<?> backend, MapStateDescriptor<UK, UV> descriptor) {
             this.backend = backend;
+            this.descriptor = descriptor;
         }
 
         private Map<UK, UV> getOrCreateMap() {
@@ -376,7 +378,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
         private MemoryKeyedStateBackend<?> backend;
         private final ReducingStateDescriptor<IN> descriptor;
-        private final SimpleAccumulator<IN> accumulator;
+        private transient SimpleAccumulator<IN> accumulator;
         private final Map<TypedNamespaceAndKey, ACC> storage = new HashMap<>();
         
         private transient N currentNamespace;
@@ -386,8 +388,12 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 ReducingStateDescriptor<IN> descriptor) {
             this.backend = backend;
             this.descriptor = descriptor;
+            this.accumulator = createAccumulator();
+        }
+
+        private SimpleAccumulator<IN> createAccumulator() {
             try {
-                this.accumulator = descriptor.getAccumulatorType().getDeclaredConstructor().newInstance();
+                return descriptor.getAccumulatorType().getDeclaredConstructor().newInstance();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to create accumulator", e);
             }
@@ -395,6 +401,9 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
         void rebind(MemoryKeyedStateBackend<?> newBackend) {
             this.backend = newBackend;
+            if (this.accumulator == null) {
+                this.accumulator = createAccumulator();
+            }
         }
 
         @Override
@@ -427,7 +436,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             TypedNamespaceAndKey key = getStorageKey();
             @SuppressWarnings("unchecked")
             ACC current = storage.get(key);
-            // 重置 accumulator 并添加当前值
+            // Reset accumulator to avoid carrying over state from previous add() calls
+            accumulator.resetLocal();
             if (current != null) {
                 accumulator.add((IN) current);
             }
@@ -441,6 +451,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         }
 
         private TypedNamespaceAndKey getStorageKey() {
+            if (currentNamespace == null) {
+                throw new IllegalStateException(
+                        "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
+            }
             return new TypedNamespaceAndKey(currentNamespace, backend.getCurrentKey());
         }
     }
@@ -511,6 +525,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         }
 
         private TypedNamespaceAndKey getStorageKey() {
+            if (currentNamespace == null) {
+                throw new IllegalStateException(
+                        "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
+            }
             return new TypedNamespaceAndKey(currentNamespace, backend.getCurrentKey());
         }
     }

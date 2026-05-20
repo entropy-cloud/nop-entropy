@@ -55,7 +55,7 @@ public class ValueStateDescriptor<T> extends StateDescriptor<T> {
      * @param typeInfo The type of the values in the state.
      */
     public ValueStateDescriptor(String name, TypeInformation<T> typeInfo) {
-        super(name, null);
+        super(name, typeInfo != null ? typeInfo.getTypeClass() : null);
     }
 
     /**

@@ -7,5 +7,15 @@
  */
 package io.nop.stream.core.configuration;
 
+import io.nop.api.core.annotations.core.Internal;
+
+/**
+ * Placeholder configuration interface.
+ *
+ * <p>Not yet implemented. Reserved for future configuration API.
+ *
+ * @Internal
+ */
+@Internal
 public interface Configuration {
 }

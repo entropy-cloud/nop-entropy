@@ -87,7 +87,6 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
         isRunning = true;
         sourceFunction.run(ctx);
-        sourceFunction.cancel();
     }
 
     @Override

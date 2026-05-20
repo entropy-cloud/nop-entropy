@@ -18,10 +18,16 @@
 
 package io.nop.stream.core.time;
 
+import io.nop.api.core.annotations.core.Internal;
 
 /**
  * Interface for working with time and timers.
+ *
+ * @deprecated Not used within nop-stream. Retained for backward compatibility only.
+ *             Use {@code io.nop.stream.core.operators.InternalTimerService} instead.
  */
+@Deprecated
+@Internal
 public interface TimerService {
 
     /**

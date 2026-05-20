@@ -43,9 +43,7 @@ import java.io.Serializable;
  * 
  * @param <T> The type of the elements in this stream
  */
-public class DataStreamImpl<T> implements DataStream<T>, Serializable {
-    
-    private static final long serialVersionUID = 1L;
+public class DataStreamImpl<T> implements DataStream<T> {
     
     /**
      * The execution environment that this data stream belongs to
@@ -128,6 +126,18 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
             new StreamMap<>(mapper)
         );
     }
+
+    /**
+     * Applies a map transformation to this data stream with explicit type information.
+     *
+     * @param mapper the map function to apply
+     * @param typeInfo the type information for the output elements
+     * @param <R> the type of the output elements
+     * @return a new data stream with the mapped elements
+     */
+    public <R> SingleOutputStreamOperator<R> map(MapFunction<T, R> mapper, TypeInformation<R> typeInfo) {
+        return transform("Map", typeInfo, new StreamMap<>(mapper));
+    }
     
     /**
      * Applies a filter transformation to this data stream. The filter function is called for
@@ -158,6 +168,18 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
             (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
             new StreamFlatMap<>(flatMapper)
         );
+    }
+
+    /**
+     * Applies a flat map transformation to this data stream with explicit type information.
+     *
+     * @param flatMapper the flat map function to apply
+     * @param typeInfo the type information for the output elements
+     * @param <R> the type of the output elements
+     * @return a new data stream with the flat mapped elements
+     */
+    public <R> SingleOutputStreamOperator<R> flatMap(FlatMapFunction<T, R> flatMapper, TypeInformation<R> typeInfo) {
+        return transform("FlatMap", typeInfo, new StreamFlatMap<>(flatMapper));
     }
 
     @Override
@@ -281,7 +303,10 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
         public int partition(T value, int numPartitions) {
             try {
                 Object key = keySelector.getKey(value);
-                return Math.abs(key.hashCode()) % numPartitions;
+                if (key == null) {
+                    return 0;
+                }
+                return (key.hashCode() & Integer.MAX_VALUE) % numPartitions;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to extract key for partitioning", e);
             }

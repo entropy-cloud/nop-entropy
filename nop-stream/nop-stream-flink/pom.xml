@@ -10,5 +10,6 @@
     </parent>
 
     <artifactId>nop-stream-flink</artifactId>
+    <!-- placeholder, planned but not implemented -->
 
 </project>

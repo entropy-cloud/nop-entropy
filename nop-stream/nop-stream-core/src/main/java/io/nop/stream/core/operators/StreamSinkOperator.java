@@ -89,7 +89,11 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
         if (userFunction instanceof TwoPhaseCommitSinkFunction) {
             @SuppressWarnings("unchecked")
             TwoPhaseCommitSinkFunction<Object> tpcSink = (TwoPhaseCommitSinkFunction<Object>) userFunction;
-            tpcSink.rollback();
+            if (snapshotResult == null || snapshotResult.isEmpty()) {
+                // Failure recovery: rollback any pending transaction
+                tpcSink.rollback();
+            }
+            // Always start a new transaction for the recovered session
             tpcSink.beginTransaction();
         }
     }

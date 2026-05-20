@@ -22,7 +22,10 @@ import java.util.List;
 /**
  * JDBC database storage implementation using JSON serialization.
  *
- * <p>设计原型，未接入执行路径
+ * <p>Design prototype. MySQL only — DDL uses AUTO_INCREMENT and other MySQL-specific syntax.
+ * Not connected to the main execution path.
+ *
+ * <p>设计原型，MySQL only, 未接入执行路径
  */
 @Internal
 public class JdbcCheckpointStorage implements ICheckpointStorage {

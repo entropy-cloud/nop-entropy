@@ -18,7 +18,9 @@ package io.nop.stream.core.common.typeinfo;
  * @param <T> the (unknown) element type
  */
 @SuppressWarnings("unchecked")
-public class UnknownTypeInformation<T> implements TypeInformation<T> {
+public class UnknownTypeInformation<T> implements TypeInformation<T>, java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** Singleton instance – safe to share across all unknown-type transformations. */
     public static final UnknownTypeInformation<?> INSTANCE = new UnknownTypeInformation<>();

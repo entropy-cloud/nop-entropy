@@ -38,6 +38,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         super(extractEnvironment(keyedStream), extractTransformation(keyedStream));
         this.keyedStream = keyedStream;
         this.windowAssigner = windowAssigner;
+        // No IServiceContext available during stream plan construction; all current
+        // WindowAssigner implementations ignore this parameter, so null is safe here.
         this.trigger = windowAssigner.getDefaultTrigger(null);
     }
 
@@ -104,6 +106,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return keyedStream;
     }
 
+    @Deprecated
     @Override
     public <R> SingleOutputStreamOperator<R> apply(WindowFunction<T, R, K, W> function) {
         throw new UnsupportedOperationException(
@@ -112,6 +115,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 + "that wraps a WindowOperator<K,T,?,R,W>.");
     }
 
+    @Deprecated
     @Override
     public <ACC, R> SingleOutputStreamOperator<R> aggregate(AggregateFunction<T, ACC, R> function) {
         throw new UnsupportedOperationException(
@@ -120,6 +124,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 + "that wraps a WindowOperator<K,T,ACC,R,W>.");
     }
 
+    @Deprecated
     @Override
     public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function) {
         throw new UnsupportedOperationException(

@@ -10,5 +10,6 @@
     </parent>
 
     <artifactId>nop-stream-api</artifactId>
+    <!-- placeholder, planned but not implemented -->
 
 </project>

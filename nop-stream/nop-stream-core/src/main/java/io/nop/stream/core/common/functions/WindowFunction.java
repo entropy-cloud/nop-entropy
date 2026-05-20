@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.common.functions;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.windows.Window;
 
@@ -30,7 +31,9 @@ import java.io.Serializable;
  * @param <OUT> The type of the output value.
  * @param <KEY> The type of the key.
  * @param <W> The type of {@code Window} that this window function can be applied on.
+ * @Internal
  */
+@Internal
 public interface WindowFunction<IN, OUT, KEY, W extends Window> extends Serializable {
 
     /**

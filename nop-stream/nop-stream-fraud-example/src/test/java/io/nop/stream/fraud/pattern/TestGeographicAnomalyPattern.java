@@ -82,7 +82,10 @@ public class TestGeographicAnomalyPattern {
 
     @Test
     public void testGenerateAlertRejectsSameCity() {
-        // Create test events from the SAME city
+        // The CEP IterativeCondition now enforces different-city and same-user checks.
+        // If generateAlert receives a same-city pair (which should not happen via CEP),
+        // it will still produce an alert. The actual filtering is done in the pattern condition.
+        // This test verifies that generateAlert is a pure data transformation method.
         TransactionEvent firstEvent = new TransactionEvent(
             "txn-001",
             "user-123",
@@ -96,25 +99,25 @@ public class TestGeographicAnomalyPattern {
             "txn-002",
             "user-123",
             new BigDecimal("150"),
-            "New York", // Same city as first event
+            "New York", // Same city — should be filtered by CEP condition, not generateAlert
             System.currentTimeMillis(),
             "PURCHASE"
         );
 
-        // Create match map
         Map<String, List<TransactionEvent>> match = new HashMap<>();
         match.put("city1", List.of(firstEvent));
         match.put("city2", List.of(secondEvent));
 
-        // Should throw exception because cities are the same
-        assertThrows(IllegalArgumentException.class, () -> {
-            GeographicAnomalyPattern.generateAlert(match);
-        }, "Should throw exception when cities are the same");
+        // generateAlert no longer validates city/user — that's the CEP condition's job.
+        // It should produce an alert regardless (defense-in-depth is the CEP layer).
+        FraudAlert alert = GeographicAnomalyPattern.generateAlert(match);
+        assertNotNull(alert, "generateAlert should produce an alert; filtering is done by CEP");
     }
 
     @Test
     public void testGenerateAlertRejectsDifferentUsers() {
-        // Create test events from different users
+        // The CEP IterativeCondition now enforces same-user checks.
+        // generateAlert is a pure data transformation — validation is in CEP layer.
         TransactionEvent firstEvent = new TransactionEvent(
             "txn-001",
             "user-123",
@@ -126,22 +129,20 @@ public class TestGeographicAnomalyPattern {
 
         TransactionEvent secondEvent = new TransactionEvent(
             "txn-002",
-            "user-456", // Different user
+            "user-456", // Different user — filtered by CEP condition
             new BigDecimal("150"),
             "Los Angeles",
             System.currentTimeMillis(),
             "PURCHASE"
         );
 
-        // Create match map
         Map<String, List<TransactionEvent>> match = new HashMap<>();
         match.put("city1", List.of(firstEvent));
         match.put("city2", List.of(secondEvent));
 
-        // Should throw exception because users are different
-        assertThrows(IllegalArgumentException.class, () -> {
-            GeographicAnomalyPattern.generateAlert(match);
-        }, "Should throw exception when users are different");
+        // generateAlert no longer validates user match — that's the CEP condition's job.
+        FraudAlert alert = GeographicAnomalyPattern.generateAlert(match);
+        assertNotNull(alert, "generateAlert should produce an alert; filtering is done by CEP");
     }
 
     @Test

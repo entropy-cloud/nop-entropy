@@ -19,6 +19,7 @@
 package io.nop.stream.runtime.operators.windowing;
 
 import io.nop.commons.tuple.Tuple2;
+import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.windows.Window;
 import org.slf4j.Logger;
@@ -29,7 +30,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Utility for keeping track of merging {@link Window Windows} when using a {@link
@@ -66,28 +66,29 @@ public class MergingWindowSet<W extends Window> {
      */
     private final Map<W, W> initialMapping;
 
-   // private final ListState<Tuple2<W, W>> state;
+    private final ListState<Tuple2<W, W>> state;
 
     /** Our window assigner. */
     private final MergingWindowAssigner<?, W> windowAssigner;
 
     /** Restores a {@link MergingWindowSet} from the given state. */
     public MergingWindowSet(
-            MergingWindowAssigner<?, W> windowAssigner
-            //, ListState<Tuple2<W, W>> state
-            )
+            MergingWindowAssigner<?, W> windowAssigner,
+            ListState<Tuple2<W, W>> state)
             throws Exception {
         this.windowAssigner = windowAssigner;
         mapping = new HashMap<>();
 
-        Iterable<Tuple2<W, W>> windowState = null;// state.get();
-        if (windowState != null) {
-            for (Tuple2<W, W> window : windowState) {
-                mapping.put(window.f0, window.f1);
+        if (state != null) {
+            Iterable<Tuple2<W, W>> windowState = state.get();
+            if (windowState != null) {
+                for (Tuple2<W, W> window : windowState) {
+                    mapping.put(window.f0, window.f1);
+                }
             }
         }
 
-       // this.state = state;
+        this.state = state;
 
         initialMapping = new HashMap<>();
         initialMapping.putAll(mapping);
@@ -98,10 +99,13 @@ public class MergingWindowSet<W extends Window> {
      */
     public void persist() throws Exception {
         if (!mapping.equals(initialMapping)) {
-//            state.update(
-//                    mapping.entrySet().stream()
-//                            .map((w) -> new Tuple2<>(w.getKey(), w.getValue()))
-//                            .collect(Collectors.toList()));
+            if (state != null) {
+                List<Tuple2<W, W>> newState = new ArrayList<>();
+                for (Map.Entry<W, W> entry : mapping.entrySet()) {
+                    newState.add(new Tuple2<>(entry.getKey(), entry.getValue()));
+                }
+                state.update(newState);
+            }
         }
     }
 

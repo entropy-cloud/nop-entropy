@@ -49,18 +49,24 @@ public class BatchLoaderSourceFunction<S> implements SourceFunction<S> {
     public void run(SourceContext<S> ctx) throws Exception {
         IBatchTaskContext taskContext = new BatchTaskContextImpl();
         IBatchLoaderProvider.IBatchLoader<S> loader = loaderProvider.setup(taskContext);
-        IBatchChunkContext chunkContext = taskContext.newChunkContext();
+        try {
+            IBatchChunkContext chunkContext = taskContext.newChunkContext();
 
-        while (running) {
-            List<S> batch = loader.load(batchSize, chunkContext);
-            if (batch == null || batch.isEmpty()) {
-                break;
-            }
-            for (S item : batch) {
-                if (!running) {
-                    return;
+            while (running) {
+                List<S> batch = loader.load(batchSize, chunkContext);
+                if (batch == null || batch.isEmpty()) {
+                    break;
                 }
-                ctx.collect(item);
+                for (S item : batch) {
+                    if (!running) {
+                        return;
+                    }
+                    ctx.collect(item);
+                }
+            }
+        } finally {
+            if (loader instanceof AutoCloseable) {
+                ((AutoCloseable) loader).close();
             }
         }
     }

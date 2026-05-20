@@ -18,6 +18,8 @@
 
 package io.nop.stream.core.common.functions;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import java.io.Serializable;
 
 /**
@@ -74,7 +76,9 @@ import java.io.Serializable;
  * @param <IN> The type of the values that are aggregated (input values)
  * @param <ACC> The type of the accumulator (intermediate aggregate state)
  * @param <OUT> The type of the aggregated result
+ * @Internal
  */
+@Internal
 public interface AggregateFunction<IN, ACC, OUT> extends Serializable {
 
     /**

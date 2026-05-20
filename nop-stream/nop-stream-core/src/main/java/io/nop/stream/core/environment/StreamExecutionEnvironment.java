@@ -30,10 +30,12 @@ import io.nop.stream.core.operators.KeyExtractingOutput;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
+import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 
 import java.util.ArrayList;
@@ -61,7 +63,9 @@ public class StreamExecutionEnvironment {
 
     private final CheckpointConfig checkpointConfig = new CheckpointConfig();
 
-    private static ICheckpointExecutorFactory checkpointExecutorFactory;
+    private static ICheckpointExecutorFactory defaultCheckpointExecutorFactory;
+
+    private ICheckpointExecutorFactory checkpointExecutorFactory;
 
     // ------------------------------------------------------------------------
     //  Factory Methods
@@ -78,6 +82,7 @@ public class StreamExecutionEnvironment {
     }
 
     public StreamExecutionEnvironment() {
+        this.checkpointExecutorFactory = defaultCheckpointExecutorFactory;
     }
 
     // ------------------------------------------------------------------------
@@ -107,7 +112,14 @@ public class StreamExecutionEnvironment {
     }
 
     public static void setCheckpointExecutorFactory(ICheckpointExecutorFactory factory) {
-        checkpointExecutorFactory = factory;
+        defaultCheckpointExecutorFactory = factory;
+    }
+
+    /**
+     * Returns the checkpoint executor factory for this environment instance.
+     */
+    public ICheckpointExecutorFactory getCheckpointExecutorFactory() {
+        return checkpointExecutorFactory;
     }
 
     // ------------------------------------------------------------------------
@@ -430,6 +442,10 @@ public class StreamExecutionEnvironment {
                 } else {
                     operators.add(factory.createStreamOperator(null));
                 }
+            } else if (t instanceof TimestampsAndWatermarksTransformation) {
+                @SuppressWarnings("unchecked")
+                TimestampsAndWatermarksTransformation<Object> twt = (TimestampsAndWatermarksTransformation<Object>) t;
+                operators.add(new TimestampsAndWatermarksOperator<>(twt.getWatermarkStrategy()));
             } else if (t instanceof SinkTransformation) {
                 operators.add(new StreamSinkOperator<>(((SinkTransformation<?>) t).getSinkFunction()));
             }

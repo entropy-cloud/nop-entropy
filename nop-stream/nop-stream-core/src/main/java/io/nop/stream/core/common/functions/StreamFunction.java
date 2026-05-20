@@ -7,7 +7,15 @@
  */
 package io.nop.stream.core.common.functions;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import java.io.Serializable;
 
+/**
+ * Base marker interface for stream functions.
+ *
+ * @Internal
+ */
+@Internal
 public interface StreamFunction extends Serializable {
 }

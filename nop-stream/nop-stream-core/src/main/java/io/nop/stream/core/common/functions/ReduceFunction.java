@@ -17,6 +17,8 @@
 
 package io.nop.stream.core.common.functions;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import java.io.Serializable;
 
 /**
@@ -24,7 +26,9 @@ import java.io.Serializable;
  * The reduce function takes two values and returns a new value.
  *
  * @param <T> The type of the values that are reduced.
+ * @Internal
  */
+@Internal
 public interface ReduceFunction<T> extends Serializable {
 
     /**

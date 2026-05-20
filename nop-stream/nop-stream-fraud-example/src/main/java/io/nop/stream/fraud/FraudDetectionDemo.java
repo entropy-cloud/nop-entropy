@@ -23,6 +23,7 @@ import io.nop.stream.fraud.pattern.AccountTakeoverPattern;
 import io.nop.stream.fraud.pattern.GeographicAnomalyPattern;
 import io.nop.stream.fraud.pattern.RapidTransactionPattern;
 import io.nop.stream.fraud.pattern.UnusualAmountPattern;
+import io.nop.stream.fraud.util.MockTransactionGenerator;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -49,7 +50,12 @@ public class FraudDetectionDemo {
         // Demo 1: Rapid Transactions
         System.out.println("1. Rapid Transaction Pattern:");
         System.out.println("   Detects 2+ large transactions (>$1000) within 30 seconds\n");
-        List<TransactionEvent> rapid = createRapidTransactions();
+        List<TransactionEvent> rapid = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
+        // Add some normal transactions first (below threshold)
+        rapid.addAll(MockTransactionGenerator.generateNormal("user-alice", 2, baseTime - 60000, 15000));
+        // Add rapid fraud transactions
+        rapid.addAll(MockTransactionGenerator.generateRapidFraud("user-alice", baseTime - 15000));
         runPattern(RapidTransactionPattern.createPattern(), rapid, (match) -> {
             FraudAlert alert = RapidTransactionPattern.generateAlert(match);
             printAlert(alert);
@@ -58,13 +64,13 @@ public class FraudDetectionDemo {
         // Demo 2: Unusual Amount
         System.out.println("\n2. Unusual Amount Pattern:");
         System.out.println("   Detects transactions >10x user's historical average (requires 3+ prior transactions)\n");
-        List<TransactionEvent> unusual = createUnusualAmountTransactions();
+        List<TransactionEvent> unusual = MockTransactionGenerator.generateUnusualAmount("user-bob", baseTime);
         runUnusualAmountPattern(unusual);
 
         // Demo 3: Geographic Anomaly
         System.out.println("\n3. Geographic Anomaly Pattern:");
         System.out.println("   Detects transactions from different cities within 1 hour\n");
-        List<TransactionEvent> geo = createGeographicAnomalyTransactions();
+        List<TransactionEvent> geo = MockTransactionGenerator.generateGeographicAnomaly("user-charlie", baseTime - 1800000);
         runPattern(GeographicAnomalyPattern.createPattern(), geo, (match) -> {
             FraudAlert alert = GeographicAnomalyPattern.generateAlert(match);
             printAlert(alert);
@@ -73,97 +79,13 @@ public class FraudDetectionDemo {
         // Demo 4: Account Takeover
         System.out.println("\n4. Account Takeover Pattern:");
         System.out.println("   Detects login -> password change -> withdrawal within 15 minutes\n");
-        List<TransactionEvent> takeover = createAccountTakeoverTransactions();
+        List<TransactionEvent> takeover = MockTransactionGenerator.generateAccountTakeover("user-david", baseTime - 600000);
         runPattern(AccountTakeoverPattern.createPattern(), takeover, (match) -> {
             FraudAlert alert = AccountTakeoverPattern.generateAlert(match);
             printAlert(alert);
         });
 
         System.out.println("\n=== Demo Complete ===");
-    }
-
-    /**
-     * Creates test data for rapid transaction pattern.
-     * Two large transactions within 30 seconds.
-     */
-    private static List<TransactionEvent> createRapidTransactions() {
-        List<TransactionEvent> events = new ArrayList<>();
-        long now = System.currentTimeMillis();
-
-        // Add some normal transactions first (below threshold)
-        events.add(new TransactionEvent("txn-normal-1", "user-alice",
-                new BigDecimal("100"), "New York", now - 60000, "PURCHASE"));
-        events.add(new TransactionEvent("txn-normal-2", "user-alice",
-                new BigDecimal("200"), "New York", now - 45000, "PURCHASE"));
-
-        // Add two rapid large transactions (fraud pattern)
-        events.add(new TransactionEvent("txn-001", "user-alice",
-                new BigDecimal("1500"), "New York", now - 15000, "PURCHASE"));
-        events.add(new TransactionEvent("txn-002", "user-alice",
-                new BigDecimal("2000"), "New York", now - 5000, "PURCHASE"));
-
-        return events;
-    }
-
-    /**
-     * Creates test data for unusual amount pattern.
-     * Normal transactions followed by an unusually large one.
-     */
-    private static List<TransactionEvent> createUnusualAmountTransactions() {
-        List<TransactionEvent> events = new ArrayList<>();
-        long now = System.currentTimeMillis();
-
-        // Normal transactions with average around $100
-        events.add(new TransactionEvent("txn-avg-1", "user-bob",
-                new BigDecimal("80"), "Chicago", now - 300000, "PURCHASE"));
-        events.add(new TransactionEvent("txn-avg-2", "user-bob",
-                new BigDecimal("120"), "Chicago", now - 240000, "PURCHASE"));
-        events.add(new TransactionEvent("txn-avg-3", "user-bob",
-                new BigDecimal("100"), "Chicago", now - 180000, "PURCHASE"));
-
-        // Unusual transaction - 15x the average (should trigger alert)
-        events.add(new TransactionEvent("txn-unusual", "user-bob",
-                new BigDecimal("1500"), "Chicago", now - 120000, "PURCHASE"));
-
-        return events;
-    }
-
-    /**
-     * Creates test data for geographic anomaly pattern.
-     * Transactions from different cities within a short time.
-     */
-    private static List<TransactionEvent> createGeographicAnomalyTransactions() {
-        List<TransactionEvent> events = new ArrayList<>();
-        long now = System.currentTimeMillis();
-
-        // Transaction in Los Angeles
-        events.add(new TransactionEvent("geo-1", "user-charlie",
-                new BigDecimal("500"), "Los Angeles", now - 1800000, "PURCHASE"));
-
-        // Transaction in Miami (different city) within 1 hour
-        events.add(new TransactionEvent("geo-2", "user-charlie",
-                new BigDecimal("750"), "Miami", now - 1200000, "PURCHASE"));
-
-        return events;
-    }
-
-    /**
-     * Creates test data for account takeover pattern.
-     * Login followed by password change and withdrawal.
-     */
-    private static List<TransactionEvent> createAccountTakeoverTransactions() {
-        List<TransactionEvent> events = new ArrayList<>();
-        long now = System.currentTimeMillis();
-
-        // Suspicious sequence: login -> password change -> withdrawal
-        events.add(new TransactionEvent("evt-login", "user-david",
-                BigDecimal.ZERO, "Seattle", now - 600000, "LOGIN"));
-        events.add(new TransactionEvent("evt-change", "user-david",
-                BigDecimal.ZERO, "Seattle", now - 540000, "CHANGE_PASSWORD"));
-        events.add(new TransactionEvent("evt-withdraw", "user-david",
-                new BigDecimal("3000"), "Seattle", now - 480000, "WITHDRAWAL"));
-
-        return events;
     }
 
     /**

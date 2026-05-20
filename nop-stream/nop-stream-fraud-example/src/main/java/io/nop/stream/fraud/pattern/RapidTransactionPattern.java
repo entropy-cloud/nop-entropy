@@ -8,7 +8,7 @@
 package io.nop.stream.fraud.pattern;
 
 import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.cep.pattern.conditions.SimpleCondition;
+import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
 
@@ -64,7 +64,7 @@ public class RapidTransactionPattern {
      * <p>The pattern matches when:</p>
      * <ul>
      *   <li>First transaction with amount > 1000 is detected</li>
-     *   <li>Second transaction with amount > 1000 follows immediately (strict contiguity)</li>
+     *   <li>Second transaction with amount > 1000 from the same user follows immediately (strict contiguity)</li>
      *   <li>Both transactions occur within 30 seconds</li>
      * </ul>
      * 
@@ -72,9 +72,33 @@ public class RapidTransactionPattern {
      */
     public static Pattern<TransactionEvent, ?> createPattern() {
         return Pattern.<TransactionEvent>begin("first")
-                .where(SimpleCondition.of(event -> event.getAmount().compareTo(AMOUNT_THRESHOLD) > 0))
+                .where(new IterativeCondition<TransactionEvent>() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public boolean filter(TransactionEvent value, Context<TransactionEvent> ctx) throws Exception {
+                        return value.getAmount().compareTo(AMOUNT_THRESHOLD) > 0;
+                    }
+                })
                 .next("second")
-                .where(SimpleCondition.of(event -> event.getAmount().compareTo(AMOUNT_THRESHOLD) > 0))
+                .where(new IterativeCondition<TransactionEvent>() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public boolean filter(TransactionEvent value, Context<TransactionEvent> ctx) throws Exception {
+                        // Must be a large transaction
+                        if (value.getAmount().compareTo(AMOUNT_THRESHOLD) <= 0) {
+                            return false;
+                        }
+
+                        // Must be from the same user as the first transaction
+                        for (TransactionEvent firstEvent : ctx.getEventsForPattern("first")) {
+                            return value.getUserId().equals(firstEvent.getUserId());
+                        }
+
+                        return false;
+                    }
+                })
                 .within(Duration.ofSeconds(TIME_WINDOW_SECONDS));
     }
 
@@ -107,7 +131,7 @@ public class RapidTransactionPattern {
         // Generate alert ID
         String alertId = UUID.randomUUID().toString();
         
-        // Get user ID from the first event (assuming same user)
+        // Get user ID from the first event (same user enforced by CEP condition)
         String userId = firstEvent.getUserId();
         
         // Use the timestamp of the second event (the one that completed the pattern)

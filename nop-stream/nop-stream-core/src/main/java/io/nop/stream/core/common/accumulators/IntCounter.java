@@ -18,9 +18,14 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
+
 /**
  * An accumulator that sums up {@code Integer} values.
+ *
+ * @Internal
  */
+@Internal
 public class IntCounter implements SimpleAccumulator<Integer> {
 
     private static final long serialVersionUID = 1L;

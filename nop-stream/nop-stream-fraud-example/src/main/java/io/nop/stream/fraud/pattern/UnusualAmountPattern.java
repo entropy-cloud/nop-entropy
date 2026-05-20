@@ -82,11 +82,18 @@ public class UnusualAmountPattern {
 
     /**
      * Checks if a transaction amount is unusually high compared to the user's average.
-     * This is a simplified implementation for demo purposes.
+     * <p>
+     * <b>DEMO STUB:</b> Uses a hardcoded average of $100 for demonstration purposes.
+     * A production implementation would integrate with {@code UserTransactionHistory} via
+     * keyed state (KeyedStateStore) in a Flink process function that feeds events into
+     * the CEP pattern after maintaining per-user running averages. CEP pattern conditions
+     * do not have access to keyed state, so the state management must happen outside the
+     * CEP pattern — typically in a preceding ProcessFunction that enriches events with
+     * the user's current average before they reach the CEP detector.
+     * </p>
      */
     private static boolean isUnusualAmount(TransactionEvent event) {
-        // For demo purposes, we use a fixed average
-        // In a real implementation, this would use state management
+        // DEMO STUB: fixed average for demo purposes
         BigDecimal average = getAverageForUser(event.getUserId());
         BigDecimal threshold = average.multiply(UNUSUAL_MULTIPLIER);
         return event.getAmount().compareTo(threshold) > 0;
@@ -94,10 +101,18 @@ public class UnusualAmountPattern {
 
     /**
      * Gets the average transaction amount for a user.
-     * For demo purposes, returns a fixed value.
+     * <p>
+     * <b>DEMO STUB:</b> Returns a fixed $100 average regardless of userId.
+     * In production, this data would come from {@code UserTransactionHistory} maintained
+     * by a preceding keyed process function that tracks per-user statistics via Flink state.
+     * The CEP pattern condition itself cannot access keyed state.
+     * </p>
+     *
+     * @param userId the user ID (ignored in this demo stub)
+     * @return a fixed average of $100 for demonstration
      */
     private static BigDecimal getAverageForUser(String userId) {
-        // Simplified: return a fixed average for demo
+        // DEMO STUB: return a fixed average for demo
         return new BigDecimal("100");
     }
 

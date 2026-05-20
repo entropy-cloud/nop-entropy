@@ -23,6 +23,8 @@ import io.nop.stream.core.util.OutputTag;
  */
 public class ChainingOutput<T> implements Output<StreamRecord<T>> {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ChainingOutput.class);
+
     private final Input<T> input;
 
     public ChainingOutput(Input<T> input) {
@@ -63,7 +65,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
 
     @Override
     public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        // Side outputs not supported in simplified execution
+        LOG.warn("Side output '{}' discarded in simplified chaining mode. Side outputs are not forwarded in the fast-path execution.", outputTag);
     }
 
     @Override

@@ -183,7 +183,7 @@ public class MockTransactionGenerator {
                 BigDecimal.ZERO,
                 "New York",
                 startTimestamp + 120000,
-                "PASSWORD_CHANGE"
+                "CHANGE_PASSWORD"
         ));
 
         // Event 3: Withdrawal 5 minutes after password change
