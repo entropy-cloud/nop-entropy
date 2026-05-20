@@ -16,10 +16,13 @@ nop-stream 是 Nop 平台的流处理引擎，定位为 Flink 的简化实现。
 | `architecture.md` | 整体架构：模块划分、执行模型、数据流、分层设计 | active |
 | `core-design.md` | 核心引擎设计：DataStream API、算子模型、状态管理 | active |
 | `window-design.md` | 窗口机制：WindowAssigner/Trigger/Evictor、WindowOperator 两条处理路径、聚合语义 | active |
+| `time-model-design.md` | 时间模型：WatermarkStrategy、TimestampAssigner、WatermarkGenerator、传播机制 | active（未对接） |
+| `state-management-design.md` | 状态管理：存储模型、序列化策略、内存控制、与 Flink 对比 | active |
 | `graph-model-design.md` | 图模型与执行引擎：StreamGraph、JobGraph、算子链优化、TaskExecutor | active（未对接） |
 | `checkpoint-design.md` | Checkpoint 与 Exactly-Once：barrier 对齐、协调器生命周期、2PC Sink、恢复流程 | active |
 | `cep-design.md` | CEP 引擎设计：NFA、Pattern DSL、SharedBuffer、事件匹配语义 | active |
 | `comparison.md` | 简化分析：与 Flink / SeaTunnel 的架构对比，取舍决策 | active |
+| `connector-design.md` | 连接器设计：基于 Nop 平台通用抽象（IRecordInput/Output、IMessageService、IEntityDao）的 Source/Sink 适配 | active（设计阶段） |
 | `design-review.md` | 设计质量评估（2026-04-02，独立审查结论） | historical |
 
 ## 阅读顺序
@@ -27,11 +30,14 @@ nop-stream 是 Nop 平台的流处理引擎，定位为 Flink 的简化实现。
 1. `architecture.md` — 理解整体模块结构和执行模型
 2. `core-design.md` — 理解 DataStream API、算子模型和状态管理
 3. `window-design.md` — 理解窗口机制和 WindowOperator 的核心逻辑
-4. `graph-model-design.md` — 理解图模型的两层转换和算子链优化机制
-5. `checkpoint-design.md` — 理解 Checkpoint 机制和端到端 Exactly-Once 语义
-6. `cep-design.md` — 理解 CEP 引擎的设计（当前最成熟的子模块）
-7. `comparison.md` — 理解简化决策，以及与 Flink/SeaTunnel 的能力边界
-8. `design-review.md` — 了解已知问题和改进方向（参考性质）
+4. `time-model-design.md` — 理解事件时间语义、Watermark 生成和传播机制
+5. `state-management-design.md` — 理解状态存储、序列化策略和内存控制
+6. `graph-model-design.md` — 理解图模型的两层转换和算子链优化机制
+7. `checkpoint-design.md` — 理解 Checkpoint 机制和端到端 Exactly-Once 语义
+8. `cep-design.md` — 理解 CEP 引擎的设计（当前最成熟的子模块）
+9. `comparison.md` — 理解简化决策，以及与 Flink/SeaTunnel 的能力边界
+10. `connector-design.md` — 理解如何利用 Nop 平台现有抽象构建 Source/Sink
+11. `design-review.md` — 了解已知问题和改进方向（参考性质）
 
 ## 快速心智模型
 

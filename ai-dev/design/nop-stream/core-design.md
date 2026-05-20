@@ -117,62 +117,27 @@ Source → [ChainingOutput] → Map → [ChainingOutput] → Window → [Chainin
 
 ## 3. 状态管理
 
-### 3.1 状态后端接口
+状态管理的完整设计详见 `state-management-design.md`。
 
-```
-IStateBackend                          状态后端工厂
-  └── IKeyedStateBackend<K>            按 key 分区的状态存储
-        ├── setCurrentKey(K)           设置当前 key
-        ├── setCurrentNamespace(String) 设置命名空间（用于 Window 隔离）
-        ├── getState(ValueStateDescriptor)
-        ├── getListState(ListStateDescriptor)
-        └── getMapState(MapStateDescriptor)
-```
+该文档覆盖：状态类型体系（ValueState / MapState / ListState / AppendingState）、状态后端接口层次（IStateBackend → IKeyedStateBackend → IInternalStateBackend）、MemoryKeyedStateBackend 的 HashMap 存储结构、序列化策略（运行时无序列化 + Checkpoint 用 JsonTool）、内存模型与消耗控制、与 Flink 状态管理的完整对比、以及各算子的状态使用方式。
 
-### 3.2 实现类
+**快速参考**：当前唯一实现是 `MemoryStateBackend` → `MemoryKeyedStateBackend`，底层为 `HashMap<TypedNamespaceAndKey, value>`。无 TTL、无 spill、无内存限制。
 
-| 实现类 | 位置 | 特点 |
-|---|---|---|
-| `MemoryStateBackend` | core | 内存实现，HashMap 存储 |
-| `MemoryKeyedStateBackend<K>` | core | 按 (key, namespace) 二元组分区的内存状态 |
-| `SimpleKeyedStateStore` | core | **非键控**的全局状态存储，无 key 隔离 |
+## 4. 时间与 Watermark 模型
 
-### 3.3 设计决策
+事件时间语义和 Watermark 机制的完整设计详见 `time-model-design.md`。
 
-**选了什么**：简化状态后端接口，去除 key-group 分区和分布式快照。
+该文档覆盖：WatermarkStrategy 统一抽象（时间戳分配 + watermark 生成）、TimestampAssigner 和 WatermarkGenerator 接口、两种内置生成策略（AscendingTimestampsWatermarks / BoundedOutOfOrdernessWatermarks）、WatermarkOutput 和 WatermarkOutputMultiplexer 的传播机制、TimestampsAndWatermarksOperator 的桥接角色，以及与当前快速路径的关系。
 
-**简化了什么**（对比 Flink）：
-- Flink 的 `KeyedStateBackend` 有 key-group 概念用于分布式重分布 → nop-stream 去除
-- Flink 有 `OperatorStateBackend` 用于非键控算子 → nop-stream 未实现
-- Flink 有 `RocksDBStateBackend` 等多种实现 → nop-stream 当前仅内存
-
-**已知限制**：
-- `SimpleKeyedStateStore` 不感知 key，所有 key 共享同一状态 → CepOperator 和 CepWindowOperator 受影响
-- `WindowOperator` 使用 `MapState<String, ACC>` 而非标准的 `AppendingState` → 聚合语义有偏差（last-write-wins）
-
-### 3.4 状态使用方式
-
-```java
-// 状态后端创建
-IStateBackend stateBackend = new MemoryStateBackend();
-IKeyedStateBackend<String> keyedBackend = stateBackend.createKeyedStateBackend(String.class);
-
-// 在算子中使用
-keyedBackend.setCurrentKey("user123");
-keyedBackend.setCurrentNamespace("window-1h");
-ValueState<Long> countState = keyedBackend.getState(
-    new ValueStateDescriptor<>("count", Long.class));
-```
-
-## 4. 窗口机制
+## 5. 窗口机制
 
 窗口机制的完整设计详见 `window-design.md`。
 
 该文档覆盖：窗口模型四要素（WindowAssigner + Trigger + Evictor + WindowFunction）的交互流程、窗口类型和 Trigger 体系、WindowOperator 的非合并/合并窗口两条处理路径、聚合语义的三路分支（null / SimpleAccumulator / last-write-wins）、Timer Service 的工作机制、以及与 Flink 窗口的差异和已知限制。
 
-## 5. 函数接口
+## 6. 函数接口
 
-### 5.1 用户函数接口
+### 6.1 用户函数接口
 
 | 接口 | 用途 | 语义 |
 |------|------|------|
@@ -186,11 +151,11 @@ ValueState<Long> countState = keyedBackend.getState(
 | `SourceFunction<T>` | 数据源 | → N |
 | `SinkFunction<T>` | 输出 | IN → void |
 
-### 5.2 设计决策
+### 6.2 设计决策
 
 所有函数接口都是 `Serializable`，因为 Flink 中需要跨 JVM 传输。nop-stream 保留了这个约束以保持兼容性，虽然当前单 JVM 执行不需要序列化函数。
 
-## 6. 图模型
+## 7. 图模型
 
 StreamGraph（逻辑拓扑）和 JobGraph（优化后的执行计划）的设计详见 `graph-model-design.md`。
 

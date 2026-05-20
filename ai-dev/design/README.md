@@ -36,6 +36,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-job/` | Job Scheduling | *(not yet created)* | active — invoker routing, block strategy, metrics |
 | `nop-code/` | Code Indexing & Semantic Analysis | *(not yet created)* | active |
 | `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — architecture, core engine, CEP, Flink/SeaTunnel comparison |
+| `nop-nosql/` | NoSQL Data Access | [README](nop-nosql/README.md) | active — business-semantic NoSQL abstraction, Redis driver comparison |
 | `crud/` | CRUD Relation Write Mode | *(not yet created)* | active |
 | `word-editor/` | Online Word Editor Model | *(not yet created)* | active |
 

@@ -30,6 +30,7 @@ nop-stream 是 Nop 平台的流处理引擎，定位为 **Flink 的简化实现*
 nop-stream/
 ├── nop-stream-api          [空]  公共 API 接口定义（规划中）
 ├── nop-stream-core         [完整] 核心抽象和 API
+├── nop-stream-connector    [完整] 连接器适配层（Batch/Message/CDC）
 ├── nop-stream-runtime      [部分] 运行时实现
 ├── nop-stream-cep          [完整] CEP 复杂事件处理引擎
 ├── nop-stream-checkpoint   [空]  检查点模块（规划中）
@@ -45,6 +46,7 @@ nop-stream/
 | **nop-stream-core** | DataStream API 接口、算子基类、状态后端接口、Transformation DAG、StreamGraph/JobGraph 图模型、执行环境 | 无外部框架依赖 |
 | **nop-stream-runtime** | WindowOperator 实现、CepWindowOperator、CheckpointCoordinator、TimestampsAndWatermarksOperator | 依赖 core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator、事件匹配 | 依赖 core |
+| **nop-stream-connector** | 连接器适配层：BatchLoader/Consumer、MessageSource/Sink、DebeziumCdc | 依赖 core + nop-batch-core + nop-message-core(可选) + nop-message-debezium(可选) |
 | **nop-stream-fraud-example** | 4 种欺诈检测模式的完整演示 | 依赖 cep |
 
 ### 2.2 分层设计
