@@ -19,10 +19,10 @@
 package io.nop.stream.core.operators;
 
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.state.KeyExtractorFunction;
-import io.nop.stream.core.state.Keyed;
-import io.nop.stream.core.state.PriorityComparable;
-import io.nop.stream.core.state.PriorityComparator;
+import io.nop.stream.core.common.state.KeyExtractorFunction;
+import io.nop.stream.core.common.state.Keyed;
+import io.nop.stream.core.common.state.PriorityComparable;
+import io.nop.stream.core.common.state.PriorityComparator;
 import jakarta.annotation.Nonnull;
 
 /**

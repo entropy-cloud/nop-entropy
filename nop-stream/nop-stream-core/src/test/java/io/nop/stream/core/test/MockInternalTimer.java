@@ -8,7 +8,7 @@
 package io.nop.stream.core.test;
 
 import io.nop.stream.core.operators.InternalTimer;
-import io.nop.stream.core.state.PriorityComparable;
+import io.nop.stream.core.common.state.PriorityComparable;
 
 /**
  * Mock implementation of InternalTimer for testing.

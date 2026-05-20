@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -47,7 +48,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * @see Invokable
  * @see OperatorChain
  * @see TaskExecutor
+ *
+ * <p>设计原型，当前执行路径未使用
  */
+@Internal
 public class Task implements Runnable, Serializable {
 
     private static final long serialVersionUID = 1L;

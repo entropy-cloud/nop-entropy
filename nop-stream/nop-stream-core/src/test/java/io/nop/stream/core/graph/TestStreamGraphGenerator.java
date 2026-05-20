@@ -12,8 +12,8 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
-import io.nop.stream.core.operator.StreamOperator;
-import io.nop.stream.core.operator.StreamOperatorFactory;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
@@ -443,30 +443,40 @@ public class TestStreamGraphGenerator {
         }
 
         @Override
-        public TypeInformation<String> getOutputType() {
+        public void open() throws Exception {
+        }
+
+        @Override
+        public void finish() throws Exception {
+        }
+
+        @Override
+        public void close() throws Exception {
+        }
+
+        @Override
+        public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
+        }
+
+        @Override
+        public void setKeyContextElement1(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+
+        @Override
+        public void setKeyContextElement2(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+
+        @Override
+        public void setCurrentKey(Object key) {
+        }
+
+        @Override
+        public Object getCurrentKey() {
             return null;
         }
 
         @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public void initialize() {
-        }
-
-        @Override
-        public void open() {
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public ChainingStrategy getChainingStrategy() {
-            return ChainingStrategy.ALWAYS;
+        public void notifyCheckpointComplete(long checkpointId) throws Exception {
         }
     }
 

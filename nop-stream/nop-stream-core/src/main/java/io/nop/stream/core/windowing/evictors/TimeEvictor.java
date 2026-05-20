@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.windowing.evictors;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.Window;
 
@@ -30,7 +31,10 @@ import java.util.Iterator;
  * TimestampedValue}
  *
  * @param <W> The type of {@link Window Windows} on which this {@code Evictor} can operate.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class TimeEvictor<W extends Window> implements Evictor<Object, W> {
     private static final long serialVersionUID = 1L;
 

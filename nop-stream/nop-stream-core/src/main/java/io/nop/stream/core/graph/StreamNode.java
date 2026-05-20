@@ -9,7 +9,7 @@ package io.nop.stream.core.graph;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
-import io.nop.stream.core.operator.StreamOperatorFactory;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 

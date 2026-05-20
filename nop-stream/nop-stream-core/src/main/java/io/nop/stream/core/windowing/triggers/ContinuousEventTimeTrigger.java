@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
@@ -31,7 +32,10 @@ import java.time.Duration;
  *
  * @param <W> The type of {@link Window Windows} on which this trigger can operate.
  * @see org.apache.flink.streaming.api.watermark.Watermark
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object, W> {
     private static final long serialVersionUID = 1L;
 

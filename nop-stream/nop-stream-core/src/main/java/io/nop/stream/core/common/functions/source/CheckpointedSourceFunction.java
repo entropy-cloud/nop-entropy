@@ -7,12 +7,16 @@
  */
 package io.nop.stream.core.common.functions.source;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 
 /**
  * Source function with checkpoint support.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public interface CheckpointedSourceFunction<T> extends SourceFunction<T> {
 
     /**

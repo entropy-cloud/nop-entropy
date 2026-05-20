@@ -18,9 +18,14 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
+
 /**
  * An accumulator that finds the maximum {@code long} value.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class LongMaximum implements SimpleAccumulator<Long> {
 
     private static final long serialVersionUID = 1L;

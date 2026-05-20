@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint.barrier;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 
@@ -21,6 +22,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * 设计原型，未接入执行路径
+ */
+@Internal
 public class BarrierAligner {
 
     private final int numberOfInputs;

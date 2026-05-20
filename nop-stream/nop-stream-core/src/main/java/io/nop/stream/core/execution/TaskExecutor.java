@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.jobgraph.JobVertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @see Task
  * @see JobVertex
+ *
+ * <p>设计原型，当前执行路径未使用
  */
+@Internal
 public class TaskExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(TaskExecutor.class);

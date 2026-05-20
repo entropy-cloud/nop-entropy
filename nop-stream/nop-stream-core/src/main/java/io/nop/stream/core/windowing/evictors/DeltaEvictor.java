@@ -19,6 +19,7 @@
 package io.nop.stream.core.windowing.evictors;
 
 import com.google.common.collect.Iterables;
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.windowing.delta.DeltaFunction;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.Window;
@@ -32,7 +33,10 @@ import java.util.Iterator;
  * which have a higher delta then the threshold.
  *
  * @param <W> The type of {@link Window Windows} on which this {@code Evictor} can operate.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class DeltaEvictor<T, W extends Window> implements Evictor<T, W> {
     private static final long serialVersionUID = 1L;
 

@@ -11,7 +11,7 @@ import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
-import io.nop.stream.core.operator.StreamOperator;
+import io.nop.stream.core.operators.StreamOperator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -384,7 +384,7 @@ public class TestTaskExecutor {
         return new JobVertex(id, name, parallelism, Collections.singletonList(chain), invokable);
     }
 
-    private static class TestOperator implements StreamOperator<Object>, java.io.Serializable {
+    private static class TestOperator implements StreamOperator<Object> {
         private final String name;
 
         TestOperator(String name) {
@@ -392,35 +392,40 @@ public class TestTaskExecutor {
         }
 
         @Override
-        public TypeInformation<Object> getOutputType() {
-            return new TypeInformation<Object>() {
-                @Override
-                public Class<Object> getTypeClass() {
-                    return Object.class;
-                }
-            };
+        public void open() throws Exception {
         }
 
         @Override
-        public String getName() {
-            return name;
+        public void finish() throws Exception {
         }
 
         @Override
-        public void initialize() {
+        public void close() throws Exception {
         }
 
         @Override
-        public void open() {
+        public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
         }
 
         @Override
-        public void close() {
+        public void setKeyContextElement1(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
         }
 
         @Override
-        public ChainingStrategy getChainingStrategy() {
-            return ChainingStrategy.ALWAYS;
+        public void setKeyContextElement2(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+
+        @Override
+        public void setCurrentKey(Object key) {
+        }
+
+        @Override
+        public Object getCurrentKey() {
+            return null;
+        }
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) throws Exception {
         }
     }
 }

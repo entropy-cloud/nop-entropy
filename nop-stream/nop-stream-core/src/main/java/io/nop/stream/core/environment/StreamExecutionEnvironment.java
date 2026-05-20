@@ -259,13 +259,13 @@ public class StreamExecutionEnvironment {
                 operators.add(new StreamSourceOperator<>(((SourceTransformation<?>) t).getSourceFunction()));
             } else if (t instanceof OneInputTransformation) {
                 OneInputTransformation<?, ?> oneInput = (OneInputTransformation<?, ?>) t;
-                io.nop.stream.core.operator.StreamOperatorFactory<?> factory = oneInput.getOperatorFactory();
+                io.nop.stream.core.operators.StreamOperatorFactory<?> factory = oneInput.getOperatorFactory();
                 if (factory == null) {
                     throw new IllegalStateException(
                             "Transformation '" + t.getName() + "' has no operator factory.");
                 }
-                if (factory instanceof io.nop.stream.core.operator.SimpleStreamOperatorFactory) {
-                    operators.add(((io.nop.stream.core.operator.SimpleStreamOperatorFactory<?>) factory).getRawOperator());
+                if (factory instanceof io.nop.stream.core.operators.SimpleStreamOperatorFactory) {
+                    operators.add(((io.nop.stream.core.operators.SimpleStreamOperatorFactory<?>) factory).getRawOperator());
                 } else {
                     operators.add(factory.createStreamOperator(null));
                 }

@@ -16,8 +16,8 @@ import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamGraphGenerator;
 import io.nop.stream.core.jobgraph.*;
-import io.nop.stream.core.operator.StreamOperator;
-import io.nop.stream.core.operator.StreamOperatorFactory;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.transformation.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -345,65 +345,85 @@ public class TestEndToEndPipeline {
         }
     }
 
-    private static class TestMapOperator<IN, OUT> implements StreamOperator<OUT>, Serializable {
+    private static class TestMapOperator<IN, OUT> implements StreamOperator<OUT> {
         private static final long serialVersionUID = 1L;
 
         @Override
-        public TypeInformation<OUT> getOutputType() {
+        public void open() throws Exception {
+        }
+
+        @Override
+        public void finish() throws Exception {
+        }
+
+        @Override
+        public void close() throws Exception {
+        }
+
+        @Override
+        public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
+        }
+
+        @Override
+        public void setKeyContextElement1(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+
+        @Override
+        public void setKeyContextElement2(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+
+        @Override
+        public void setCurrentKey(Object key) {
+        }
+
+        @Override
+        public Object getCurrentKey() {
             return null;
         }
 
         @Override
-        public String getName() {
-            return "Map";
-        }
-
-        @Override
-        public void initialize() {
-        }
-
-        @Override
-        public void open() {
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public ChainingStrategy getChainingStrategy() {
-            return ChainingStrategy.ALWAYS;
+        public void notifyCheckpointComplete(long checkpointId) throws Exception {
         }
     }
 
-    private static class TestFilterOperator<T> implements StreamOperator<T>, Serializable {
+    private static class TestFilterOperator<T> implements StreamOperator<T> {
         private static final long serialVersionUID = 1L;
 
         @Override
-        public TypeInformation<T> getOutputType() {
+        public void open() throws Exception {
+        }
+
+        @Override
+        public void finish() throws Exception {
+        }
+
+        @Override
+        public void close() throws Exception {
+        }
+
+        @Override
+        public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
+        }
+
+        @Override
+        public void setKeyContextElement1(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+
+        @Override
+        public void setKeyContextElement2(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+
+        @Override
+        public void setCurrentKey(Object key) {
+        }
+
+        @Override
+        public Object getCurrentKey() {
             return null;
         }
 
         @Override
-        public String getName() {
-            return "Filter";
-        }
-
-        @Override
-        public void initialize() {
-        }
-
-        @Override
-        public void open() {
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public ChainingStrategy getChainingStrategy() {
-            return ChainingStrategy.ALWAYS;
+        public void notifyCheckpointComplete(long checkpointId) throws Exception {
         }
     }
 

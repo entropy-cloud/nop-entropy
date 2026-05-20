@@ -28,7 +28,7 @@ import java.util.List;
  *   <li>Enabling better CPU cache utilization</li>
  * </ul>
  *
- * <p>The chain maintains a list of operators that implement the {@link io.nop.stream.core.operator.StreamOperator}
+ * <p>The chain maintains a list of operators that implement the {@link io.nop.stream.core.operators.StreamOperator}
  * interface. During execution, records flow through each operator in sequence via the
  * {@link io.nop.stream.core.operators.Input#processElement} method.
  *
@@ -43,7 +43,7 @@ import java.util.List;
  * The operators list cannot be modified once the chain is created. Each parallel task instance
  * should have its own OperatorChain instance.
  *
- * @see io.nop.stream.core.operator.StreamOperator
+ * @see io.nop.stream.core.operators.StreamOperator
  * @see io.nop.stream.core.operators.Input
  * @see io.nop.stream.core.streamrecord.StreamRecord
  * @see JobVertex
@@ -56,7 +56,7 @@ public class OperatorChain implements Serializable {
      * The chain of operators to execute in sequence.
      * This list is immutable after construction.
      */
-    private final List<io.nop.stream.core.operator.StreamOperator<?>> operators;
+    private final List<io.nop.stream.core.operators.StreamOperator<?>> operators;
 
     /**
      * Constructs an OperatorChain with the specified list of operators.
@@ -67,7 +67,7 @@ public class OperatorChain implements Serializable {
      * @param operators the list of operators to chain together (must not be null or empty)
      * @throws IllegalArgumentException if operators is null or empty
      */
-    public OperatorChain(List<io.nop.stream.core.operator.StreamOperator<?>> operators) {
+    public OperatorChain(List<io.nop.stream.core.operators.StreamOperator<?>> operators) {
         if (operators == null || operators.isEmpty()) {
             throw new IllegalArgumentException("Operators list cannot be null or empty");
         }
@@ -91,7 +91,7 @@ public class OperatorChain implements Serializable {
      */
     public void processElement(io.nop.stream.core.streamrecord.StreamRecord<?> record) {
         // Process record through each operator in the chain
-        for (io.nop.stream.core.operator.StreamOperator<?> operator : operators) {
+        for (io.nop.stream.core.operators.StreamOperator<?> operator : operators) {
             if (operator instanceof io.nop.stream.core.operators.Input) {
                 try {
                     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -100,7 +100,7 @@ public class OperatorChain implements Serializable {
                     input.processElement(record);
                 } catch (Exception e) {
                     throw new RuntimeException(
-                        "Failed to process element in operator: " + operator.getName(), e);
+                        "Failed to process element in operator: " + operator.getClass().getName(), e);
                 }
             } else {
                 throw new IllegalStateException(
@@ -127,7 +127,7 @@ public class OperatorChain implements Serializable {
         int openedCount = 0;
 
         // Open operators in sequence
-        for (io.nop.stream.core.operator.StreamOperator<?> operator : operators) {
+        for (io.nop.stream.core.operators.StreamOperator<?> operator : operators) {
             try {
                 operator.open();
                 openedCount++;
@@ -194,7 +194,7 @@ public class OperatorChain implements Serializable {
      *
      * @return unmodifiable list of operators in the chain
      */
-    public List<io.nop.stream.core.operator.StreamOperator<?>> getOperators() {
+    public List<io.nop.stream.core.operators.StreamOperator<?>> getOperators() {
         return Collections.unmodifiableList(operators);
     }
 

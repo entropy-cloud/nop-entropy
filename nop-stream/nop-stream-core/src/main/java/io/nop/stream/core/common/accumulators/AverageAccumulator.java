@@ -18,11 +18,16 @@
 
 package io.nop.stream.core.common.accumulators;
 
+import io.nop.api.core.annotations.core.Internal;
+
 
 /**
  * An accumulator that computes the average value. Input can be {@code long}, {@code integer}, or
  * {@code double} and the result is {@code double}.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class AverageAccumulator implements SimpleAccumulator<Double> {
 
     private static final long serialVersionUID = 3672555084179165255L;

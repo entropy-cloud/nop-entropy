@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
@@ -24,7 +25,10 @@ import java.util.stream.Stream;
 
 /**
  * Local file system storage implementation using JSON serialization.
+ *
+ * <p>设计原型，未接入执行路径
  */
+@Internal
 public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(LocalFileCheckpointStorage.class);

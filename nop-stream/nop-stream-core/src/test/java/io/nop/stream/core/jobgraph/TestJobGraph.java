@@ -244,7 +244,7 @@ public class TestJobGraph {
     private JobVertex createTestVertex(String id, String name, int parallelism) {
         Invokable<Void> invokable = () -> {};
         
-        List<io.nop.stream.core.operator.StreamOperator<?>> operators = new ArrayList<>();
+        List<io.nop.stream.core.operators.StreamOperator<?>> operators = new ArrayList<>();
         operators.add(new TestOperator(name));
         
         OperatorChain chain = new OperatorChain(operators);
@@ -252,7 +252,7 @@ public class TestJobGraph {
         return new JobVertex(id, name, parallelism, Collections.singletonList(chain), invokable);
     }
     
-    private static class TestOperator implements io.nop.stream.core.operator.StreamOperator<Object>, java.io.Serializable {
+    private static class TestOperator implements io.nop.stream.core.operators.StreamOperator<Object> {
         private final String name;
         
         TestOperator(String name) {
@@ -260,35 +260,40 @@ public class TestJobGraph {
         }
         
         @Override
-        public io.nop.stream.core.common.typeinfo.TypeInformation<Object> getOutputType() {
-            return new TypeInformation<Object>() {
-                @Override
-                public Class<Object> getTypeClass() {
-                    return Object.class;
-                }
-            };
+        public void open() throws Exception {
         }
         
         @Override
-        public String getName() {
-            return name;
+        public void finish() throws Exception {
         }
         
         @Override
-        public void initialize() {
+        public void close() throws Exception {
         }
         
         @Override
-        public void open() {
+        public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
         }
         
         @Override
-        public void close() {
+        public void setKeyContextElement1(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
         }
         
         @Override
-        public io.nop.stream.core.operator.StreamOperator.ChainingStrategy getChainingStrategy() {
-            return io.nop.stream.core.operator.StreamOperator.ChainingStrategy.ALWAYS;
+        public void setKeyContextElement2(io.nop.stream.core.streamrecord.StreamRecord<?> record) throws Exception {
+        }
+        
+        @Override
+        public void setCurrentKey(Object key) {
+        }
+        
+        @Override
+        public Object getCurrentKey() {
+            return null;
+        }
+        
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) throws Exception {
         }
 
     }

@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.accumulators.LastValue;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
@@ -36,7 +37,10 @@ import java.time.Duration;
  *
  * @param <T> The type of elements on which this trigger can operate.
  * @param <W> The type of {@link Window} on which this trigger can operate.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class ProcessingTimeoutTrigger<T, W extends Window> extends Trigger<T, W> {
 
     private static final long serialVersionUID = 1L;

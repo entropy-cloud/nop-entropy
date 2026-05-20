@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.common.functions.co;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.functions.StreamFunction;
 
 import java.io.Serializable;
@@ -31,7 +32,10 @@ import java.io.Serializable;
  * @param <IN1> Type of the first input.
  * @param <IN2> Type of the second input.
  * @param <OUT> Output type.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public interface CoMapFunction<IN1, IN2, OUT> extends StreamFunction, Serializable {
 
     /**

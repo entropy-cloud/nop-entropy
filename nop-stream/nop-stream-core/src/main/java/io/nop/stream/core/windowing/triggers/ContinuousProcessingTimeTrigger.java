@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
@@ -30,7 +31,10 @@ import java.time.Duration;
  * of the machine on which the job is running.
  *
  * @param <W> The type of {@link Window Windows} on which this trigger can operate.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<Object, W> {
     private static final long serialVersionUID = 1L;
 

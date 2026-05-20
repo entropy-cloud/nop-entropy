@@ -18,6 +18,7 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.accumulators.LastValue;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
@@ -31,7 +32,10 @@ import io.nop.stream.core.windowing.windows.Window;
  * arrived data point. It triggers if the delta is higher than a specified threshold.
  *
  * @param <W> The type of {@link Window Windows} on which this trigger can operate.
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public class DeltaTrigger<T, W extends Window> extends Trigger<T, W> {
     private static final long serialVersionUID = 1L;
 

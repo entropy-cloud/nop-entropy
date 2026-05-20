@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.functions.sink;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.functions.SinkFunction;
 
 /**
@@ -22,7 +23,10 @@ import io.nop.stream.core.common.functions.SinkFunction;
  * </ol>
  *
  * @param <IN> 输入数据类型
+ *
+ * <p>API 预留，当前未被使用
  */
+@Internal
 public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN> {
 
     /**

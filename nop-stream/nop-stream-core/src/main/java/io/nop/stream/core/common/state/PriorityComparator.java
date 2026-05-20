@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.core.state;
+package io.nop.stream.core.common.state;
 
 /**
  * This interface works similar to {@link Comparable} and is used to prioritize between two objects.

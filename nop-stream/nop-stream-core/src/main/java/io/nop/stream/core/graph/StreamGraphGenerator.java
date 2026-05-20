@@ -7,11 +7,12 @@
  */
 package io.nop.stream.core.graph;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
-import io.nop.stream.core.operator.StreamOperator;
-import io.nop.stream.core.operator.StreamOperatorFactory;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
@@ -49,7 +50,10 @@ import java.util.Set;
  * @see StreamNode
  * @see StreamEdge
  * @see Transformation
+ *
+ * <p>设计原型，当前执行路径未使用
  */
+@Internal
 public class StreamGraphGenerator {
     
     /**

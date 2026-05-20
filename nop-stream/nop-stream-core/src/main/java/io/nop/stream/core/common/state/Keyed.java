@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.core.state;
+package io.nop.stream.core.common.state;
 
 /**
  * Interface for objects that have a key attribute.

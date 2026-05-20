@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.core.operator;
+package io.nop.stream.core.operators;
 
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 
@@ -15,27 +15,26 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
     
     private static final long serialVersionUID = 1L;
     
-    private final Object operator;
+    private final StreamOperator<OUT> operator;
     private final String name;
     private final int parallelism;
     
-    public SimpleStreamOperatorFactory(Object operator, String name, int parallelism) {
+    public SimpleStreamOperatorFactory(StreamOperator<OUT> operator, String name, int parallelism) {
         this.operator = operator;
         this.name = name;
         this.parallelism = parallelism;
     }
     
-    public SimpleStreamOperatorFactory(Object operator, String name) {
+    public SimpleStreamOperatorFactory(StreamOperator<OUT> operator, String name) {
         this(operator, name, 1);
     }
     
-    @SuppressWarnings("unchecked")
     @Override
     public StreamOperator<OUT> createStreamOperator(TypeInformation<OUT> outputType) {
-        return (StreamOperator<OUT>) operator;
+        return operator;
     }
     
-    public Object getRawOperator() {
+    public StreamOperator<OUT> getRawOperator() {
         return operator;
     }
     

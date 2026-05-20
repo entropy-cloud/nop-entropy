@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.core.state;
+package io.nop.stream.core.common.state;
 
 import jakarta.annotation.Nonnull;
 

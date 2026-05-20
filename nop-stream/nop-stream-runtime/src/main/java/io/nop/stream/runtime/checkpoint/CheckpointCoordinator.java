@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
@@ -24,7 +25,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Checkpoint 协调器，负责触发、跟踪和完成 checkpoint。
+ *
+ * <p>设计原型，未接入执行路径
  */
+@Internal
 public class CheckpointCoordinator {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointCoordinator.class);

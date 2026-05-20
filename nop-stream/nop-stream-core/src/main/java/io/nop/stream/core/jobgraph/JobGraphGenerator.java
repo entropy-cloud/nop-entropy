@@ -7,11 +7,12 @@
  */
 package io.nop.stream.core.jobgraph;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamNode;
-import io.nop.stream.core.operator.StreamOperator;
-import io.nop.stream.core.operator.StreamOperatorFactory;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -57,7 +58,10 @@ import java.util.Set;
  * @see JobVertex
  * @see JobEdge
  * @see OperatorChain
+ *
+ * <p>设计原型，当前执行路径未使用
  */
+@Internal
 public class JobGraphGenerator implements Serializable {
 
     private static final long serialVersionUID = 1L;
