@@ -7,7 +7,7 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.nosql.core.INosqlListOperations;
 
@@ -17,17 +17,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-public class LettuceListOperations implements INosqlListOperations {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceListOperations extends AbstractLettuceOperations implements INosqlListOperations {
     private final String key;
 
     public LettuceListOperations(LettuceRedisConnectionProvider client, String key) {
-        this.client = client;
+        super(client);
         this.key = key;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
     }
 
     @Override
@@ -36,8 +31,18 @@ public class LettuceListOperations implements INosqlListOperations {
     }
 
     @Override
+    public long getSize() {
+        return FutureHelper.syncGet(getSizeAsync());
+    }
+
+    @Override
     public CompletableFuture<Void> clearAsync() {
         return async().del(key).thenApply(Functionals.toVoid()).toCompletableFuture();
+    }
+
+    @Override
+    public void clear() {
+        FutureHelper.syncGet(clearAsync());
     }
 
     @Override
@@ -46,8 +51,18 @@ public class LettuceListOperations implements INosqlListOperations {
     }
 
     @Override
+    public void add(Object value) {
+        FutureHelper.syncGet(addAsync(value));
+    }
+
+    @Override
     public CompletableFuture<Void> addAllAsync(Collection<?> values) {
         return async().rpush(key, values.toArray()).thenApply(Functionals.toVoid()).toCompletableFuture();
+    }
+
+    @Override
+    public void addAll(Collection<?> values) {
+        FutureHelper.syncGet(addAllAsync(values));
     }
 
     @Override
@@ -56,8 +71,18 @@ public class LettuceListOperations implements INosqlListOperations {
     }
 
     @Override
+    public List<Object> getRange(long start, int maxCount) {
+        return FutureHelper.syncGet(getRangeAsync(start, maxCount));
+    }
+
+    @Override
     public CompletableFuture<Boolean> trimAsync(long start, long end) {
         return async().ltrim(key, start, end).thenApply(s -> "OK".equals(s)).toCompletableFuture();
+    }
+
+    @Override
+    public boolean trim(long start, long end) {
+        return FutureHelper.syncGet(trimAsync(start, end));
     }
 
     @Override
@@ -66,8 +91,18 @@ public class LettuceListOperations implements INosqlListOperations {
     }
 
     @Override
+    public Object leftPop() {
+        return FutureHelper.syncGet(leftPopAsync());
+    }
+
+    @Override
     public CompletableFuture<Object> rightPopAsync() {
         return async().rpop(key).toCompletableFuture();
+    }
+
+    @Override
+    public Object rightPop() {
+        return FutureHelper.syncGet(rightPopAsync());
     }
 
     @Override
@@ -80,6 +115,11 @@ public class LettuceListOperations implements INosqlListOperations {
     }
 
     @Override
+    public List<Object> leftPopMulti(int maxCount) {
+        return FutureHelper.syncGet(leftPopMultiAsync(maxCount));
+    }
+
+    @Override
     public CompletableFuture<Void> forEachItemAsync(Consumer<Object> consumer) {
         return async().lrange(key, 0, -1).thenAccept(list -> {
             if (list != null) {
@@ -88,5 +128,10 @@ public class LettuceListOperations implements INosqlListOperations {
                 }
             }
         }).toCompletableFuture();
+    }
+
+    @Override
+    public void forEachItem(Consumer<Object> consumer) {
+        FutureHelper.syncGet(forEachItemAsync(consumer));
     }
 }

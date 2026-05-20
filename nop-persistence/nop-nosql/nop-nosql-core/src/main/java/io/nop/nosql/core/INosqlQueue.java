@@ -22,6 +22,7 @@ public interface INosqlQueue {
 
     CompletableFuture<Object> dequeueAsync();
 
+    /** Returns null if the queue is empty */
     Object dequeue();
 
     CompletableFuture<List<Object>> dequeueBatchAsync(int maxCount);

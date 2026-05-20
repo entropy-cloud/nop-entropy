@@ -9,30 +9,25 @@ package io.nop.nosql.lettuce.impl;
 
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
-import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.nosql.core.INosqlLock;
 import io.nop.nosql.core.script.RedisScripts;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class LettuceLock implements INosqlLock {
-    private final LettuceRedisConnectionProvider client;
+/**
+ * A Redis-based distributed lock using SET NX PX and Lua CAS for unlock.
+ * This class is intended for single-thread use per instance.
+ * Concurrent tryLock/unlock calls on the same instance from different threads is undefined behavior.
+ */
+public class LettuceLock extends AbstractLettuceOperations implements INosqlLock {
     private final String key;
     private volatile String lockValue;
 
     public LettuceLock(LettuceRedisConnectionProvider client, String key) {
-        this.client = client;
+        super(client);
         this.key = key;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
-    }
-
-    protected RedisAdvancedClusterCommands<String, Object> sync() {
-        return client.getConnection().sync();
     }
 
     @Override
@@ -50,7 +45,7 @@ public class LettuceLock implements INosqlLock {
 
     @Override
     public boolean tryLock(long leaseTimeMs) {
-        return tryLockAsync(leaseTimeMs).join();
+        return FutureHelper.syncGet(tryLockAsync(leaseTimeMs));
     }
 
     @Override
@@ -66,7 +61,7 @@ public class LettuceLock implements INosqlLock {
 
     @Override
     public void unlock() {
-        unlockAsync().join();
+        FutureHelper.syncGet(unlockAsync());
     }
 
     @Override

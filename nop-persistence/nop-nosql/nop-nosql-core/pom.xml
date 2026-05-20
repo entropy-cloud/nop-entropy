@@ -22,10 +22,6 @@
             <artifactId>nop-core</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-dao</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

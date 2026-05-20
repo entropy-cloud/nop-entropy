@@ -8,7 +8,7 @@
 package io.nop.nosql.lettuce.impl;
 
 import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
-import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.nosql.core.INosqlSessionStore;
 
@@ -16,46 +16,35 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class LettuceSessionStore implements INosqlSessionStore {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceSessionStore extends AbstractLettuceOperations implements INosqlSessionStore {
     private final String prefix;
 
     public LettuceSessionStore(LettuceRedisConnectionProvider client, String prefix) {
-        this.client = client;
+        super(client);
         this.prefix = prefix;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
-    }
-
-    protected RedisAdvancedClusterCommands<String, Object> sync() {
-        return client.getConnection().sync();
     }
 
     private String sessionKey(String sessionId) {
         return prefix + ":" + sessionId;
     }
 
-    // get: HGETALL
     @Override
     public CompletableFuture<Map<String, Object>> getAsync(String sessionId) {
         String key = sessionKey(sessionId);
         RedisAdvancedClusterAsyncCommands<String, Object> cmd = async();
         return cmd.hgetall(key)
-                .thenApply((Map<String, Object> map) -> {
+                .<Map<String, Object>>thenApply(map -> {
                     if (map == null)
                         map = new HashMap<>();
-                    return (Map<String, Object>) new HashMap<>(map);
+                    return new HashMap<>(map);
                 }).toCompletableFuture();
     }
 
     @Override
     public Map<String, Object> get(String sessionId) {
-        return getAsync(sessionId).join();
+        return FutureHelper.syncGet(getAsync(sessionId));
     }
 
-    // getField: HGET
     @Override
     public CompletableFuture<Object> getFieldAsync(String sessionId, String field) {
         String key = sessionKey(sessionId);
@@ -64,10 +53,9 @@ public class LettuceSessionStore implements INosqlSessionStore {
 
     @Override
     public Object getField(String sessionId, String field) {
-        return getFieldAsync(sessionId, field).join();
+        return FutureHelper.syncGet(getFieldAsync(sessionId, field));
     }
 
-    // set: HMSET + PEXPIRE (non-atomic, noted in design doc)
     @Override
     public CompletableFuture<Void> setAsync(String sessionId, Map<String, Object> data, long ttlMs) {
         String key = sessionKey(sessionId);
@@ -84,10 +72,9 @@ public class LettuceSessionStore implements INosqlSessionStore {
 
     @Override
     public void set(String sessionId, Map<String, Object> data, long ttlMs) {
-        setAsync(sessionId, data, ttlMs).join();
+        FutureHelper.syncGet(setAsync(sessionId, data, ttlMs));
     }
 
-    // setField: HSET
     @Override
     public CompletableFuture<Void> setFieldAsync(String sessionId, String field, Object value) {
         String key = sessionKey(sessionId);
@@ -98,10 +85,9 @@ public class LettuceSessionStore implements INosqlSessionStore {
 
     @Override
     public void setField(String sessionId, String field, Object value) {
-        setFieldAsync(sessionId, field, value).join();
+        FutureHelper.syncGet(setFieldAsync(sessionId, field, value));
     }
 
-    // touch: PEXPIRE (refresh TTL)
     @Override
     public CompletableFuture<Boolean> touchAsync(String sessionId, long ttlMs) {
         String key = sessionKey(sessionId);
@@ -110,10 +96,9 @@ public class LettuceSessionStore implements INosqlSessionStore {
 
     @Override
     public boolean touch(String sessionId, long ttlMs) {
-        return touchAsync(sessionId, ttlMs).join();
+        return FutureHelper.syncGet(touchAsync(sessionId, ttlMs));
     }
 
-    // remove: DEL
     @Override
     public CompletableFuture<Void> removeAsync(String sessionId) {
         String key = sessionKey(sessionId);
@@ -124,10 +109,9 @@ public class LettuceSessionStore implements INosqlSessionStore {
 
     @Override
     public void remove(String sessionId) {
-        removeAsync(sessionId).join();
+        FutureHelper.syncGet(removeAsync(sessionId));
     }
 
-    // exists: EXISTS
     @Override
     public CompletableFuture<Boolean> existsAsync(String sessionId) {
         String key = sessionKey(sessionId);
@@ -138,6 +122,6 @@ public class LettuceSessionStore implements INosqlSessionStore {
 
     @Override
     public boolean exists(String sessionId) {
-        return existsAsync(sessionId).join();
+        return FutureHelper.syncGet(existsAsync(sessionId));
     }
 }

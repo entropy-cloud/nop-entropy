@@ -474,4 +474,60 @@ public class TestLettuceNosqlService {
         assertTrue(zsetOps.add("m1", 1.0));
         assertEquals(1.0, zsetOps.score("m1"), 0.001);
     }
+
+    // ===== Edge Case Tests =====
+
+    @Test
+    void testCounterGetNonExistent() {
+        INosqlCounter counter = service.counter("test:counter:missing");
+        assertEquals(0L, counter.get());
+    }
+
+    @Test
+    void testQueueDequeueBatchPartial() {
+        INosqlQueue queue = service.queue("test:queue:partial");
+        queue.enqueue("item1");
+        List<Object> items = queue.dequeueBatch(10);
+        assertEquals(1, items.size());
+        assertEquals("item1", items.get(0));
+        // Second batch should be empty
+        List<Object> empty = queue.dequeueBatch(10);
+        assertTrue(empty.isEmpty());
+    }
+
+    @Test
+    void testRankingGetRankMissing() {
+        INosqlRanking ranking = service.ranking("test:ranking:missing");
+        assertEquals(-1L, ranking.getRank("nonexistent"));
+    }
+
+    @Test
+    void testRankingGetScoreMissing() {
+        INosqlRanking ranking = service.ranking("test:ranking:scoremissing");
+        assertEquals(0.0, ranking.getScore("nonexistent"), 0.001);
+    }
+
+    @Test
+    void testRankingGetTopNEmpty() {
+        INosqlRanking ranking = service.ranking("test:ranking:empty");
+        List<RankingEntry> top = ranking.getTopN(10);
+        assertTrue(top.isEmpty());
+    }
+
+    @Test
+    void testLockDoubleUnlock() {
+        INosqlLock lock = service.lock("test:lock:double");
+        assertTrue(lock.tryLock(5000));
+        lock.unlock();
+        // Second unlock should not throw
+        lock.unlock();
+        assertFalse(lock.isHeld());
+    }
+
+    @Test
+    void testSessionStoreGetMissing() {
+        INosqlSessionStore store = service.sessionStore("test:session:missing:");
+        Map<String, Object> data = store.get("nonexistent");
+        assertTrue(data == null || data.isEmpty());
+    }
 }

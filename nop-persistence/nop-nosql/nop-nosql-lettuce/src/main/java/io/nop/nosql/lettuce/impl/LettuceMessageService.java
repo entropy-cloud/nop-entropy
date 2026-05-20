@@ -11,7 +11,6 @@ import io.lettuce.core.GetExArgs;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
 import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.util.FutureHelper;
@@ -35,23 +34,15 @@ import io.nop.nosql.core.script.RedisScripts;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class LettuceMessageService implements INosqlService {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceMessageService extends AbstractLettuceOperations implements INosqlService {
 
     public LettuceMessageService(LettuceRedisConnectionProvider client) {
-        this.client = client;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
-    }
-
-    protected RedisAdvancedClusterCommands<String, Object> sync() {
-        return client.getConnection().sync();
+        super(client);
     }
 
     @Override
@@ -95,6 +86,7 @@ public class LettuceMessageService implements INosqlService {
         sync().set(key, value);
     }
 
+    @SuppressWarnings("unchecked") // Lettuce mset requires Map<String, Object>, wildcard capture is safe at runtime
     @Override
     public void putAll(Map<? extends String, ?> map) {
         if (map == null || map.isEmpty())
@@ -105,12 +97,12 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public boolean putIfAbsent(String key, Object value) {
-        return putIfAbsentAsync(key, value).toCompletableFuture().join();
+        return FutureHelper.syncGet(putIfAbsentAsync(key, value));
     }
 
     @Override
     public Object getAndSet(String key, Object value) {
-        return getAndSetAsync(key, value).toCompletableFuture().join();
+        return FutureHelper.syncGet(getAndSetAsync(key, value));
     }
 
     @Override
@@ -120,7 +112,7 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public boolean removeIfMatch(String key, Object object) {
-        return removeIfMatchAsync(key, object).toCompletableFuture().join();
+        return FutureHelper.syncGet(removeIfMatchAsync(key, object));
     }
 
     @Override
@@ -135,7 +127,7 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public void forEachEntry(BiConsumer<? super String, ? super Object> consumer) {
-
+        throw new UnsupportedOperationException("forEachEntry is not supported for Redis hash operations");
     }
 
     @Override
@@ -171,6 +163,7 @@ public class LettuceMessageService implements INosqlService {
         return async().set(key, value).thenApply(Functionals.toVoid());
     }
 
+    @SuppressWarnings("unchecked") // Lettuce mset requires Map<String, Object>, wildcard capture is safe at runtime
     @Override
     public CompletionStage<Void> putAllAsync(Map<? extends String, ?> map) {
         return async().mset((Map) map);
@@ -209,7 +202,7 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public CompletionStage<Void> forEachEntryAsync(BiConsumer<? super String, ? super Object> consumer) {
-        return null;
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
@@ -292,7 +285,7 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public IMessageService getMessageService() {
-        return null;
+        throw new UnsupportedOperationException("Message service is not implemented");
     }
 
     @Override

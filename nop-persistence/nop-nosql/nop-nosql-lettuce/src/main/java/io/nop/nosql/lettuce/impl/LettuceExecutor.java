@@ -7,16 +7,41 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.lettuce.core.RedisFuture;
+import io.lettuce.core.RedisNoScriptException;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.api.async.RedisScriptingAsyncCommands;
 import io.nop.commons.util.objects.DigestedText;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+
 public class LettuceExecutor {
-    public static <T> RedisFuture<T> evalScript(RedisScriptingAsyncCommands<String, Object> async, DigestedText script,
-                                                ScriptOutputType outputType, String[] keys, Object[] values) {
+    public static <T> CompletionStage<T> evalScript(RedisScriptingAsyncCommands<String, Object> async, DigestedText script,
+                                                    ScriptOutputType outputType, String[] keys, Object[] values) {
         String digest = script.getDigestString();
 
-        return async.evalsha(digest, outputType, keys, values);
+        return async.<T>evalsha(digest, outputType, keys, values)
+                .handle((result, ex) -> {
+                    if (ex != null) {
+                        if (isNoScriptException(ex)) {
+                            return async.<T>eval(script.getText(), outputType, keys, values);
+                        }
+                        if (ex instanceof RuntimeException)
+                            throw (RuntimeException) ex;
+                        throw new CompletionException(ex);
+                    }
+                    @SuppressWarnings("unchecked")
+                    CompletionStage<T> completed = CompletableFuture.completedFuture(result);
+                    return completed;
+                })
+                .thenCompose(Function.identity());
+    }
+
+    private static boolean isNoScriptException(Throwable ex) {
+        if (ex instanceof RedisNoScriptException)
+            return true;
+        return ex instanceof CompletionException && ex.getCause() instanceof RedisNoScriptException;
     }
 }

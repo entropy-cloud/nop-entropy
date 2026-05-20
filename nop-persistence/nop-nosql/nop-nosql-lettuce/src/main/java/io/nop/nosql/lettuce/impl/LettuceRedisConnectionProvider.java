@@ -46,6 +46,7 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
     }
 
     public StatefulRedisClusterConnection<String, Object> getConnection() {
+        checkIsActive();
         return connectionSupplier.get();
     }
 

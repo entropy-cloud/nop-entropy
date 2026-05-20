@@ -21,10 +21,12 @@ public interface INosqlRanking {
 
     CompletableFuture<Long> getRankAsync(String member);
 
+    /** Returns -1 if the member does not exist in the ranking */
     long getRank(String member);
 
     CompletableFuture<Double> getScoreAsync(String member);
 
+    /** Returns 0.0 if the member does not exist */
     double getScore(String member);
 
     CompletableFuture<List<RankingEntry>> getTopNAsync(int n);

@@ -8,8 +8,8 @@
 package io.nop.nosql.lettuce.impl;
 
 import io.lettuce.core.ScriptOutputType;
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
-import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.nosql.core.INosqlRateLimiter;
 import io.nop.nosql.core.RateLimitResult;
 import io.nop.nosql.core.RateLimiterConfig;
@@ -17,37 +17,20 @@ import io.nop.nosql.core.script.RedisScripts;
 
 import java.util.concurrent.CompletableFuture;
 
-public class LettuceRateLimiter implements INosqlRateLimiter {
-    private final LettuceRedisConnectionProvider client;
+/**
+ * The rate limiter configuration (rate, capacity) is fixed per instance.
+ * Callers must use consistent configuration across all calls to the same rate limiter key.
+ */
+public class LettuceRateLimiter extends AbstractLettuceOperations implements INosqlRateLimiter {
     private final String key;
     private final RateLimiterConfig config;
 
     public LettuceRateLimiter(LettuceRedisConnectionProvider client, String key, RateLimiterConfig config) {
-        this.client = client;
+        super(client);
         this.key = key;
         this.config = config;
     }
 
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
-    }
-
-    protected RedisAdvancedClusterCommands<String, Object> sync() {
-        return client.getConnection().sync();
-    }
-
-    /**
-     * Uses rate_limit.lua script which implements token bucket algorithm.
-     * 
-     * KEYS[1] = tokens_key (key + ":tokens")
-     * KEYS[2] = timestamp_key (key + ":timestamp")
-     * ARGV[1] = rate (tokens per second)
-     * ARGV[2] = capacity (max burst)
-     * ARGV[3] = now (current timestamp in ms)
-     * ARGV[4] = requested (number of permits)
-     * 
-     * Returns: {allowed (0/1), remaining_tokens}
-     */
     @Override
     public CompletableFuture<RateLimitResult> tryAcquireAsync(int permits) {
         String tokensKey = key + ":tokens";
@@ -62,7 +45,10 @@ public class LettuceRateLimiter implements INosqlRateLimiter {
                                 String.valueOf(now),
                                 String.valueOf(permits)})
                 .thenApply(result -> {
-                    // Lua returns {allowed (0 or 1), new_tokens}
+                    if (!(result instanceof Object[])) {
+                        throw NopException.adapt(new IllegalStateException(
+                                "Rate limiter script returned unexpected result type: " + result));
+                    }
                     Object[] arr = (Object[]) result;
                     boolean allowed = Long.valueOf(1L).equals(arr[0]);
                     long remaining = ((Number) arr[1]).longValue();
@@ -73,7 +59,7 @@ public class LettuceRateLimiter implements INosqlRateLimiter {
 
     @Override
     public RateLimitResult tryAcquire(int permits) {
-        return tryAcquireAsync(permits).join();
+        return FutureHelper.syncGet(tryAcquireAsync(permits));
     }
 
     @Override
@@ -90,6 +76,6 @@ public class LettuceRateLimiter implements INosqlRateLimiter {
 
     @Override
     public long getAvailableTokens() {
-        return getAvailableTokensAsync().join();
+        return FutureHelper.syncGet(getAvailableTokensAsync());
     }
 }

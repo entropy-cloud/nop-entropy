@@ -8,7 +8,7 @@
 package io.nop.nosql.lettuce.impl;
 
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.nosql.core.INosqlZSetOperations;
 import io.nop.nosql.core.ZSetEntry;
 
@@ -17,17 +17,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class LettuceZSetOperations implements INosqlZSetOperations {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceZSetOperations extends AbstractLettuceOperations implements INosqlZSetOperations {
     private final String key;
 
     public LettuceZSetOperations(LettuceRedisConnectionProvider client, String key) {
-        this.client = client;
+        super(client);
         this.key = key;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
     }
 
     @Override
@@ -37,7 +32,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public boolean add(String member, double score) {
-        return addAsync(member, score).join();
+        return FutureHelper.syncGet(addAsync(member, score));
     }
 
     @Override
@@ -53,7 +48,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public long addAll(Collection<ZSetEntry> entries) {
-        return addAllAsync(entries).join();
+        return FutureHelper.syncGet(addAllAsync(entries));
     }
 
     @Override
@@ -63,7 +58,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public boolean remove(String member) {
-        return removeAsync(member).join();
+        return FutureHelper.syncGet(removeAsync(member));
     }
 
     @Override
@@ -73,7 +68,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public Double score(String member) {
-        return scoreAsync(member).join();
+        return FutureHelper.syncGet(scoreAsync(member));
     }
 
     @Override
@@ -83,7 +78,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public Long rank(String member) {
-        return rankAsync(member).join();
+        return FutureHelper.syncGet(rankAsync(member));
     }
 
     @Override
@@ -93,7 +88,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public Long revRank(String member) {
-        return revRankAsync(member).join();
+        return FutureHelper.syncGet(revRankAsync(member));
     }
 
     @Override
@@ -103,7 +98,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public long card() {
-        return cardAsync().join();
+        return FutureHelper.syncGet(cardAsync());
     }
 
     @Override
@@ -113,7 +108,7 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public double incrementScore(String member, double delta) {
-        return incrementScoreAsync(member, delta).join();
+        return FutureHelper.syncGet(incrementScoreAsync(member, delta));
     }
 
     @Override
@@ -132,6 +127,6 @@ public class LettuceZSetOperations implements INosqlZSetOperations {
 
     @Override
     public List<ZSetEntry> revRange(long start, long end) {
-        return revRangeAsync(start, end).join();
+        return FutureHelper.syncGet(revRangeAsync(start, end));
     }
 }

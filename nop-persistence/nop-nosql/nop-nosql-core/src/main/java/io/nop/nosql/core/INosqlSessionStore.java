@@ -21,6 +21,10 @@ public interface INosqlSessionStore {
 
     CompletableFuture<Void> setAsync(String sessionId, Map<String, Object> data, long ttlMs);
 
+    /**
+     * Note: This method is non-atomic. It uses HMSET followed by PEXPIRE.
+     * If PEXPIRE fails, the data will persist without TTL.
+     */
     void set(String sessionId, Map<String, Object> data, long ttlMs);
 
     CompletableFuture<Void> setFieldAsync(String sessionId, String field, Object value);

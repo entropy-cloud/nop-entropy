@@ -16,6 +16,7 @@ public interface INosqlCounter {
 
     CompletableFuture<Long> getAsync();
 
+    /** Returns 0 if the counter key does not exist */
     long get();
 
     CompletableFuture<Long> getAndIncrementAsync(long delta);

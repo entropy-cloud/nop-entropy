@@ -15,21 +15,41 @@ import java.util.function.Consumer;
 public interface INosqlListOperations {
     CompletableFuture<Long> getSizeAsync();
 
+    long getSize();
+
     CompletableFuture<Void> clearAsync();
+
+    void clear();
 
     CompletableFuture<Void> addAsync(Object value);
 
+    void add(Object value);
+
     CompletableFuture<Void> addAllAsync(Collection<?> values);
+
+    void addAll(Collection<?> values);
 
     CompletableFuture<List<Object>> getRangeAsync(long start, int maxCount);
 
+    List<Object> getRange(long start, int maxCount);
+
     CompletableFuture<Boolean> trimAsync(long start, long end);
+
+    boolean trim(long start, long end);
 
     CompletableFuture<Object> leftPopAsync();
 
+    Object leftPop();
+
     CompletableFuture<Object> rightPopAsync();
+
+    Object rightPop();
 
     CompletableFuture<List<Object>> leftPopMultiAsync(int maxCount);
 
+    List<Object> leftPopMulti(int maxCount);
+
     CompletableFuture<Void> forEachItemAsync(Consumer<Object> consumer);
+
+    void forEachItem(Consumer<Object> consumer);
 }

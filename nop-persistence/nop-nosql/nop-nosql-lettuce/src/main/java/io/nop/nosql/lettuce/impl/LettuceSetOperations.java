@@ -7,7 +7,7 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.nosql.core.INosqlSetOperations;
 
@@ -16,17 +16,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-public class LettuceSetOperations implements INosqlSetOperations {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceSetOperations extends AbstractLettuceOperations implements INosqlSetOperations {
     private final String key;
 
     public LettuceSetOperations(LettuceRedisConnectionProvider client, String key) {
-        this.client = client;
+        super(client);
         this.key = key;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
     }
 
     @Override
@@ -36,7 +31,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public boolean add(Object value) {
-        return addAsync(value).join();
+        return FutureHelper.syncGet(addAsync(value));
     }
 
     @Override
@@ -46,7 +41,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public boolean remove(Object value) {
-        return removeAsync(value).join();
+        return FutureHelper.syncGet(removeAsync(value));
     }
 
     @Override
@@ -56,7 +51,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public void removeAll(Collection<?> values) {
-        removeAllAsync(values).join();
+        FutureHelper.syncGet(removeAllAsync(values));
     }
 
     @Override
@@ -66,7 +61,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public boolean contains(Object value) {
-        return containsAsync(value).join();
+        return FutureHelper.syncGet(containsAsync(value));
     }
 
     @Override
@@ -84,7 +79,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public boolean containsAll(Collection<?> values) {
-        return containsAllAsync(values).join();
+        return FutureHelper.syncGet(containsAllAsync(values));
     }
 
     @Override
@@ -94,7 +89,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public long size() {
-        return sizeAsync().join();
+        return FutureHelper.syncGet(sizeAsync());
     }
 
     @Override
@@ -108,7 +103,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public Set<Object> members() {
-        return membersAsync().join();
+        return FutureHelper.syncGet(membersAsync());
     }
 
     @Override
@@ -118,7 +113,7 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public Object randomMember() {
-        return randomMemberAsync().join();
+        return FutureHelper.syncGet(randomMemberAsync());
     }
 
     @Override
@@ -128,6 +123,6 @@ public class LettuceSetOperations implements INosqlSetOperations {
 
     @Override
     public Object pop() {
-        return popAsync().join();
+        return FutureHelper.syncGet(popAsync());
     }
 }

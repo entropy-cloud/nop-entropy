@@ -16,8 +16,16 @@ public interface INosqlKeyValueOperations extends IAsyncMap<String, Object> {
 
     long getSize();
 
+    /**
+     * Note: Expiry applies to the entire hash key, not to individual fields.
+     * Redis hash fields do not support individual TTLs.
+     */
     CompletionStage<Void> putExAsync(String key, Object value, long timeout);
 
+    /**
+     * Note: Expiry applies to the entire hash key, not to individual fields.
+     * Redis hash fields do not support individual TTLs.
+     */
     CompletionStage<Object> getExAsync(String key, long timeout);
 
     CompletionStage<Boolean> putIfAbsentExAsync(String key, Object value, long timeout);
@@ -28,5 +36,9 @@ public interface INosqlKeyValueOperations extends IAsyncMap<String, Object> {
 
     CompletionStage<Long> getTimeoutAsync(String key);
 
+    /**
+     * Note: Expiry applies to the entire hash key, not to individual fields.
+     * Redis hash fields do not support individual TTLs.
+     */
     CompletionStage<Boolean> setTimeoutAsync(String key, long timeout);
 }

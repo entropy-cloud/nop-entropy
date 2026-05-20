@@ -7,18 +7,19 @@
  */
 package io.nop.nosql.core.cache;
 
-import io.nop.commons.cache.CacheConfig;
-import io.nop.commons.cache.CacheStats;
-import io.nop.commons.cache.ICache;
-import io.nop.nosql.core.INosqlKeyValueOperations;
-
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+
+import io.nop.commons.cache.CacheConfig;
+import io.nop.commons.cache.CacheStats;
+import io.nop.commons.cache.ICache;
+import io.nop.nosql.core.INosqlKeyValueOperations;
 
 public class NosqlCache implements ICache<String, Object> {
     private final INosqlKeyValueOperations ops;
@@ -192,6 +193,6 @@ public class NosqlCache implements ICache<String, Object> {
 
     @Override
     public CacheStats stats() {
-        return null;
+        return CacheStats.empty();
     }
 }

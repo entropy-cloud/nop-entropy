@@ -7,7 +7,7 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.nosql.core.INosqlHashOperations;
 
@@ -18,17 +18,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class LettuceHashOperations implements INosqlHashOperations {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceHashOperations extends AbstractLettuceOperations implements INosqlHashOperations {
     private final String key;
 
     public LettuceHashOperations(LettuceRedisConnectionProvider client, String key) {
-        this.client = client;
+        super(client);
         this.key = key;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
     }
 
     @Override
@@ -38,7 +33,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public Object get(String field) {
-        return getAsync(field).toCompletableFuture().join();
+        return FutureHelper.syncGet(getAsync(field));
     }
 
     @Override
@@ -55,7 +50,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public Object computeIfAbsent(String field, Function<? super String, ?> mappingFunction) {
-        return computeIfAbsentAsync(field, mappingFunction).toCompletableFuture().join();
+        return FutureHelper.syncGet(computeIfAbsentAsync(field, mappingFunction));
     }
 
     @Override
@@ -65,7 +60,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public Map<String, Object> getAll(Collection<? extends String> fields) {
-        return getAllAsync(fields).toCompletableFuture().join();
+        return FutureHelper.syncGet(getAllAsync(fields));
     }
 
     @Override
@@ -75,7 +70,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public boolean containsKey(String field) {
-        return containsKeyAsync(field).toCompletableFuture().join();
+        return FutureHelper.syncGet(containsKeyAsync(field));
     }
 
     @Override
@@ -85,9 +80,10 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public void put(String field, Object value) {
-        putAsync(field, value).toCompletableFuture().join();
+        FutureHelper.syncGet(putAsync(field, value));
     }
 
+    @SuppressWarnings("unchecked") // Lettuce hset requires Map<String, Object>, wildcard capture is safe at runtime
     @Override
     public CompletionStage<Void> putAllAsync(Map<? extends String, ?> map) {
         if (map == null || map.isEmpty())
@@ -97,7 +93,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public void putAll(Map<? extends String, ?> map) {
-        putAllAsync(map).toCompletableFuture().join();
+        FutureHelper.syncGet(putAllAsync(map));
     }
 
     @Override
@@ -107,7 +103,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public boolean putIfAbsent(String field, Object value) {
-        return putIfAbsentAsync(field, value).toCompletableFuture().join();
+        return FutureHelper.syncGet(putIfAbsentAsync(field, value));
     }
 
     @Override
@@ -118,7 +114,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public Object getAndSet(String field, Object value) {
-        return getAndSetAsync(field, value).toCompletableFuture().join();
+        return FutureHelper.syncGet(getAndSetAsync(field, value));
     }
 
     @Override
@@ -128,7 +124,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public void remove(String field) {
-        removeAsync(field).toCompletableFuture().join();
+        FutureHelper.syncGet(removeAsync(field));
     }
 
     @Override
@@ -143,7 +139,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public boolean removeIfMatch(String field, Object object) {
-        return removeIfMatchAsync(field, object).toCompletableFuture().join();
+        return FutureHelper.syncGet(removeIfMatchAsync(field, object));
     }
 
     @Override
@@ -153,7 +149,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public void removeAll(Collection<? extends String> fields) {
-        removeAllAsync(fields).toCompletableFuture().join();
+        FutureHelper.syncGet(removeAllAsync(fields));
     }
 
     @Override
@@ -163,7 +159,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public void clear() {
-        clearAsync().toCompletableFuture().join();
+        FutureHelper.syncGet(clearAsync());
     }
 
     @Override
@@ -177,7 +173,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public void forEachEntry(BiConsumer<? super String, ? super Object> consumer) {
-        forEachEntryAsync(consumer).toCompletableFuture().join();
+        FutureHelper.syncGet(forEachEntryAsync(consumer));
     }
 
     @Override
@@ -187,7 +183,7 @@ public class LettuceHashOperations implements INosqlHashOperations {
 
     @Override
     public long getSize() {
-        return getSizeAsync().toCompletableFuture().join();
+        return FutureHelper.syncGet(getSizeAsync());
     }
 
     @Override

@@ -8,8 +8,7 @@
 package io.nop.nosql.lettuce.impl;
 
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
-import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.nosql.core.INosqlRanking;
 import io.nop.nosql.core.RankingEntry;
 
@@ -17,21 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class LettuceRanking implements INosqlRanking {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceRanking extends AbstractLettuceOperations implements INosqlRanking {
     private final String key;
 
     public LettuceRanking(LettuceRedisConnectionProvider client, String key) {
-        this.client = client;
+        super(client);
         this.key = key;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
-    }
-
-    protected RedisAdvancedClusterCommands<String, Object> sync() {
-        return client.getConnection().sync();
     }
 
     @Override
@@ -43,7 +33,7 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public boolean add(String member, double score) {
-        return addAsync(member, score).join();
+        return FutureHelper.syncGet(addAsync(member, score));
     }
 
     @Override
@@ -53,10 +43,9 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public double incrementScore(String member, double delta) {
-        return incrementScoreAsync(member, delta).join();
+        return FutureHelper.syncGet(incrementScoreAsync(member, delta));
     }
 
-    // getRank = ZREVRANK (0-based, highest score = rank 0)
     @Override
     public CompletableFuture<Long> getRankAsync(String member) {
         return async().zrevrank(key, member)
@@ -66,7 +55,7 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public long getRank(String member) {
-        return getRankAsync(member).join();
+        return FutureHelper.syncGet(getRankAsync(member));
     }
 
     @Override
@@ -76,13 +65,12 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public double getScore(String member) {
-        Double score = getScoreAsync(member).join();
+        Double score = FutureHelper.syncGet(getScoreAsync(member));
         return score != null ? score : Double.NaN;
     }
 
     @Override
     public CompletableFuture<List<RankingEntry>> getTopNAsync(int n) {
-        // ZREVRANGE WITHSCORES returns members with highest scores first
         // Optimization: since ZREVRANGE is ordered, rank = offset + index
         return async().zrevrangeWithScores(key, 0, n - 1)
                 .<List<RankingEntry>>thenApply(list -> {
@@ -102,7 +90,7 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public List<RankingEntry> getTopN(int n) {
-        return getTopNAsync(n).join();
+        return FutureHelper.syncGet(getTopNAsync(n));
     }
 
     @Override
@@ -132,7 +120,7 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public List<RankingEntry> getAround(String member, int distance) {
-        return getAroundAsync(member, distance).join();
+        return FutureHelper.syncGet(getAroundAsync(member, distance));
     }
 
     @Override
@@ -142,7 +130,7 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public long size() {
-        return sizeAsync().join();
+        return FutureHelper.syncGet(sizeAsync());
     }
 
     @Override
@@ -154,6 +142,6 @@ public class LettuceRanking implements INosqlRanking {
 
     @Override
     public boolean remove(String member) {
-        return removeAsync(member).join();
+        return FutureHelper.syncGet(removeAsync(member));
     }
 }

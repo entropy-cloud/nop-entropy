@@ -7,27 +7,18 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
-import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.nosql.core.INosqlCounter;
 
 import java.util.concurrent.CompletableFuture;
 
-public class LettuceCounter implements INosqlCounter {
-    private final LettuceRedisConnectionProvider client;
+public class LettuceCounter extends AbstractLettuceOperations implements INosqlCounter {
     private final String key;
 
     public LettuceCounter(LettuceRedisConnectionProvider client, String key) {
-        this.client = client;
+        super(client);
         this.key = key;
-    }
-
-    protected RedisAdvancedClusterAsyncCommands<String, Object> async() {
-        return client.getConnection().async();
-    }
-
-    protected RedisAdvancedClusterCommands<String, Object> sync() {
-        return client.getConnection().sync();
     }
 
     private Long toLong(Object v) {
@@ -35,7 +26,11 @@ public class LettuceCounter implements INosqlCounter {
             return 0L;
         if (v instanceof Number)
             return ((Number) v).longValue();
-        return Long.parseLong(v.toString());
+        try {
+            return Long.parseLong(v.toString());
+        } catch (NumberFormatException e) {
+            throw NopException.adapt(e);
+        }
     }
 
     @Override
@@ -45,7 +40,7 @@ public class LettuceCounter implements INosqlCounter {
 
     @Override
     public long increment(long delta) {
-        return incrementAsync(delta).join();
+        return FutureHelper.syncGet(incrementAsync(delta));
     }
 
     @Override
@@ -55,7 +50,7 @@ public class LettuceCounter implements INosqlCounter {
 
     @Override
     public long get() {
-        return getAsync().join();
+        return FutureHelper.syncGet(getAsync());
     }
 
     @Override
@@ -65,7 +60,7 @@ public class LettuceCounter implements INosqlCounter {
 
     @Override
     public long getAndIncrement(long delta) {
-        return getAndIncrementAsync(delta).join();
+        return FutureHelper.syncGet(getAndIncrementAsync(delta));
     }
 
     @Override
@@ -75,7 +70,7 @@ public class LettuceCounter implements INosqlCounter {
 
     @Override
     public void reset(long value) {
-        resetAsync(value).join();
+        FutureHelper.syncGet(resetAsync(value));
     }
 
     @Override
@@ -85,6 +80,6 @@ public class LettuceCounter implements INosqlCounter {
 
     @Override
     public long getAndReset() {
-        return getAndResetAsync().join();
+        return FutureHelper.syncGet(getAndResetAsync());
     }
 }
