@@ -44,7 +44,7 @@ nop-stream/
 | 模块 | 职责 | 依赖 |
 |------|------|------|
 | **nop-stream-core** | DataStream API 接口、算子基类、状态后端接口、Transformation DAG、StreamGraph/JobGraph 图模型、执行环境 | 无外部框架依赖 |
-| **nop-stream-runtime** | WindowOperator 实现、CepWindowOperator、CheckpointCoordinator、TimestampsAndWatermarksOperator | 依赖 core |
+| **nop-stream-runtime** | WindowOperator 实现、CheckpointCoordinator（@Internal，设计原型） | 依赖 core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator、事件匹配 | 依赖 core |
 | **nop-stream-connector** | 连接器适配层：BatchLoader/Consumer、MessageSource/Sink、DebeziumCdc | 依赖 core + nop-batch-core + nop-message-core(可选) + nop-message-debezium(可选) |
 | **nop-stream-fraud-example** | 4 种欺诈检测模式的完整演示 | 依赖 cep |

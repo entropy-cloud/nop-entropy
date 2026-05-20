@@ -39,7 +39,7 @@ This file is the **project-local** quick reference for AI assistants contributin
 
 | 目录 | 用途 | 什么时候写 |
 |---|---|---|
-| `logs/` | 每日开发上下文、决策记录 | 每次 significant code/doc change（一天一个文件，追加在顶部） |
+| `logs/` | 每日开发上下文、决策记录 | 每次 significant code/doc change（一天一个文件，追加在顶部）。有 plan 时记录执行关键事实和偏差，不按 plan 的 phase 结构逐条复述 |
 | `plans/` | 执行计划（含 status、exit criteria） | 方案已确定、进入实施阶段时。先读 `00-plan-authoring-and-execution-guide.md`。**所有 AI 开发计划必须写在 `ai-dev/plans/` 下，禁止写入 `docs/plans/`** |
 | `design/` | 架构决策 + 使用契约 + 需求规格（**attractor layer**） | 方案确定后。按子系统组织子目录（如 `nop-job/`）。**代码细节以源码为准，不写类签名/方法/字段**。本项目没有独立的需求文档，需求层面的内容也落实到 design 文档中。层级和 precedence model 见 `ai-dev/design/README.md`，编写规范见 `ai-dev/design/00-design-writing-guide.md` |
 | `analysis/` | AI 单方面调研、对比、评估 | 对比多个技术方案、评估现有代码质量时。结论可能被推翻 |

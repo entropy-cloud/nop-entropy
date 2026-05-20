@@ -70,8 +70,10 @@ Transformation 通过 `getInputs()` 构成 DAG。执行时从 Sink 回溯到 Sou
 
 ### 2.1 核心接口层次
 
+> 所有算子相关类统一位于 `io.nop.stream.core.operators` 包（2026-05-20 清理后消除 operator/operators 分裂）。
+
 ```
-StreamOperator<OUT>           算子基础接口（生命周期 + checkpoint + key context）
+StreamOperator<OUT>           算子基础接口（io.nop.stream.core.operators，生命周期 + checkpoint + key context）
   └── OneInputStreamOperator<IN, OUT>   单输入算子（processElement + watermark）
         ├── StreamSourceOperator<T>     数据源算子
         ├── StreamSinkOperator<T>       输出算子
@@ -79,6 +81,11 @@ StreamOperator<OUT>           算子基础接口（生命周期 + checkpoint + k
         ├── StreamFilter<IN>            过滤算子
         ├── StreamFlatMap<IN, OUT>      扁平映射算子
         └── WindowOperator<K,IN,ACC,OUT,W>  窗口算子（在 runtime 模块）
+
+StreamOperatorFactory<OUT>    算子工厂接口（io.nop.stream.core.operators）
+  └── SimpleStreamOperatorFactory<OUT>  简单工厂实现
+
+ChainingStrategy              链化策略枚举（ALWAYS / NEVER / HEAD / HEAD_WITH_SOURCES）
 ```
 
 ### 2.2 算子生命周期
