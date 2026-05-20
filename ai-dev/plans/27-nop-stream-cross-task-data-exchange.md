@@ -1,6 +1,6 @@
 # 27 nop-stream 跨 Task 数据交换
 
-> Plan Status: proposed
+> Plan Status: completed
 > Last Reviewed: 2026-05-20
 > Source: `ai-dev/design/nop-stream/graph-model-design.md` §9.2（未完成项）、`checkpoint-design.md` §10.3（未对接项）
 > Related: `26-nop-stream-graph-model-and-checkpoint-integration.md`（单链管线已完成）、`03-nop-stream-improvement-plan.md`（旧改进计划，部分过时）
@@ -85,31 +85,31 @@
 
 ### Phase 1 - 数据交换核心抽象与实现
 
-Status: planned
+Status: completed (pre-existing from Plan 26)
 Targets: `nop-stream-core`（execution 包、jobgraph 包）
 
 - Item Types: `Proof`
 
 实现 RecordWriter / RecordReader / InputGate 的核心抽象和 BlockingQueue 实现。
 
-- [ ] 新增 `ResultPartition<T>` 类：封装一个 `BlockingQueue<StreamElement>`，提供 `write()` / `read()` / `close()` 方法。一个 `ResultPartition` 对应一个 JobEdge 的输出端
-- [ ] 新增 `InputChannel<T>` 类：持有对一个 `ResultPartition` 的引用，提供 `read()` 方法。一个 `InputChannel` 对应一个 Task 的一路输入
-- [ ] 新增 `RecordWriter<T>` 类：持有多个 `ResultPartition`（按下游 Task 数量），根据 partitioner（如果有）选择目标 partition 写入。无 partitioner 时（forward）直接写入唯一 partition。支持写入 `StreamRecord`、`Watermark`、`CheckpointBarrier`
-- [ ] 新增 `RecordReader<T>` 类：封装 `InputChannel`，提供 `read()` 方法返回 `StreamElement`。单输入时直接代理 InputChannel，多输入时委托给 `InputGate`
-- [ ] 新增 `InputGate` 类：管理多个 `InputChannel`，提供 `read()` 方法。多输入时实现 barrier 对齐逻辑（收到 barrier 时阻塞该路输入、等待其他路的 barrier 到达后对齐释放；watermark 取多路最小值）。注意：`BarrierAligner` 位于 runtime 模块，InputGate 位于 core 模块，需要在 core 中重新实现对齐逻辑或将 `BarrierAligner` 的核心算法下沉到 core
+- [x] 新增 `ResultPartition<T>` 类：封装一个 `BlockingQueue<StreamElement>`，提供 `write()` / `read()` / `close()` 方法。一个 `ResultPartition` 对应一个 JobEdge 的输出端
+- [x] 新增 `InputChannel<T>` 类：持有对一个 `ResultPartition` 的引用，提供 `read()` 方法。一个 `InputChannel` 对应一个 Task 的一路输入
+- [x] 新增 `RecordWriter<T>` 类：持有多个 `ResultPartition`（按下游 Task 数量），根据 partitioner（如果有）选择目标 partition 写入。无 partitioner 时（forward）直接写入唯一 partition。支持写入 `StreamRecord`、`Watermark`、`CheckpointBarrier`
+- [x] 新增 `RecordReader<T>` 类：封装 `InputChannel`，提供 `read()` 方法返回 `StreamElement`。单输入时直接代理 InputChannel，多输入时委托给 `InputGate`
+- [x] 新增 `InputGate` 类：管理多个 `InputChannel`，提供 `read()` 方法。多输入时实现 barrier 对齐逻辑（收到 barrier 时阻塞该路输入、等待其他路的 barrier 到达后对齐释放；watermark 取多路最小值）。注意：`BarrierAligner` 位于 runtime 模块，InputGate 位于 core 模块，需要在 core 中重新实现对齐逻辑或将 `BarrierAligner` 的核心算法下沉到 core
 
 Exit Criteria:
 
-- [ ] RecordWriter 能按 partitioner 将 StreamElement 分发到正确的 ResultPartition
-- [ ] RecordReader 能从 InputChannel 读取 StreamElement
-- [ ] InputGate 多输入时能对齐 barrier（复用 BarrierAligner）
-- [ ] InputGate 多输入时 watermark 取最小值
-- [ ] 新增单元测试验证上述行为
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core` 通过
+- [x] RecordWriter 能按 partitioner 将 StreamElement 分发到正确的 ResultPartition
+- [x] RecordReader 能从 InputChannel 读取 StreamElement
+- [x] InputGate 多输入时能对齐 barrier（复用 BarrierAligner）
+- [x] InputGate 多输入时 watermark 取最小值
+- [x] 新增单元测试验证上述行为
+- [x] `./mvnw test -pl nop-stream/nop-stream-core` 通过
 
 ### Phase 2 - StreamTaskInvokable 多角色重构
 
-Status: planned
+Status: completed (pre-existing from Plan 26)
 Targets: `nop-stream-core`（execution 包）
 
 - Item Types: `Proof`
@@ -133,60 +133,60 @@ Exit Criteria:
 
 ### Phase 3 - executeWithGraphModel() 多链支持
 
-Status: planned
+Status: completed
 Targets: `nop-stream-core`（environment 包、execution 包）、`nop-stream-runtime`（execution 包）
 
 - Item Types: `Proof`
 
 移除单链约束，支持多链管线的图模型执行。
 
-- [ ] 修改 `executeWithGraphModel()`：移除单链约束验证（`JobGraph.getEdges()` 非空的检查），改为创建数据交换通道
-- [ ] 创建数据交换通道：遍历 `JobGraph.getEdges()`，为每条 edge 创建 `ResultPartition`，连接到上游 Task 的 RecordWriter 和下游 Task 的 InputChannel
-- [ ] 拓扑排序提交：按依赖顺序（source 先、sink 后）提交 Task 到 TaskExecutor
-- [ ] 更新 `GraphModelCheckpointExecutor`（runtime）：多 Task 场景下每个 Task 独立注册 barrier tracker，checkpoint coordinator 收齐所有 Task 的 ACK
-- [ ] 端到端测试：`env.fromCollection(data).keyBy(k -> k).map(fn).addSink(collector)` 通过图模型路径正确执行
+- [x] 修改 `executeWithGraphModel()`：移除单链约束验证（`JobGraph.getEdges()` 非空的检查），改为创建数据交换通道
+- [x] 创建数据交换通道：遍历 `JobGraph.getEdges()`，为每条 edge 创建 `ResultPartition`，连接到上游 Task 的 RecordWriter 和下游 Task 的 InputChannel
+- [x] 拓扑排序提交：按依赖顺序（source 先、sink 后）提交 Task 到 TaskExecutor
+- [x] 更新 `GraphModelCheckpointExecutor`（runtime）：多 Task 场景下每个 Task 独立注册 barrier tracker，checkpoint coordinator 收齐所有 Task 的 ACK
+- [x] 端到端测试：`env.fromCollection(data).keyBy(k -> k).map(fn).addSink(collector)` 通过图模型路径正确执行
 
 Exit Criteria:
 
-- [ ] 含 keyBy 的多链管线（Source → keyBy → Map → Sink）在图模型路径中正确执行
-- [ ] 含多个 keyBy / 多个分支的管线正确执行
-- [ ] 单链管线行为不受影响（回归测试通过）
-- [ ] 多链场景下 checkpoint barrier 正确传播到每个 Task
-- [ ] 多链场景下 watermark 正确合并
-- [ ] 新增测试：多链管线端到端、多 Task + checkpoint、回归单链
-- [ ] `./mvnw test -pl nop-stream` 全通过
+- [x] 含 keyBy 的多链管线（Source → keyBy → Map → Sink）在图模型路径中正确执行
+- [x] 含多个 keyBy / 多个分支的管线正确执行
+- [x] 单链管线行为不受影响（回归测试通过）
+- [x] 多链场景下 checkpoint barrier 正确传播到每个 Task
+- [x] 多链场景下 watermark 正确合并
+- [x] 新增测试：多链管线端到端、多 Task + checkpoint、回归单链
+- [x] `./mvnw test -pl nop-stream` 全通过
 
 ### Phase 4 - 集成测试与文档更新
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime`（test）、`ai-dev/design/nop-stream/`
 
 - Item Types: `Proof`、`Follow-up`
 
-- [ ] 端到端测试：Source → keyBy → map → aggregate → Sink，验证数据按 key 正确分区
-- [ ] 端到端测试：Source → keyBy → timeWindow → aggregate → Sink，验证窗口在多链场景下正确触发
-- [ ] 端到端测试：多链 + checkpoint，验证 barrier 在 Task 间传播、每个 Task 独立快照
-- [ ] 更新 `graph-model-design.md` §9.2：数据交换组件从"未完成"改为"已完成"
-- [ ] 更新 `graph-model-design.md` §10：移除已知限制 1-6 中与数据交换相关的项
-- [ ] 更新 `checkpoint-design.md` §10.3：多 Task checkpoint 已支持
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 端到端测试：Source → keyBy → map → aggregate → Sink，验证数据按 key 正确分区
+- [x] 端到端测试：Source → keyBy → timeWindow → aggregate → Sink，验证窗口在多链场景下正确触发
+- [x] 端到端测试：多链 + checkpoint，验证 barrier 在 Task 间传播、每个 Task 独立快照
+- [x] 更新 `graph-model-design.md` §9.2：数据交换组件从"未完成"改为"已完成"
+- [x] 更新 `graph-model-design.md` §10：移除已知限制 1-6 中与数据交换相关的项
+- [x] 更新 `checkpoint-design.md` §10.3：多 Task checkpoint 已支持
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 所有端到端测试通过
-- [ ] 设计文档已更新
-- [ ] `./mvnw test -pl nop-stream` 全通过
+- [x] 所有端到端测试通过
+- [x] 设计文档已更新
+- [x] `./mvnw test -pl nop-stream` 全通过
 
 ## Closure Gates
 
-- [ ] 含 keyBy 的管线可通过 `executeWithGraphModel()` 正确执行（数据按 key 分区）
-- [ ] 跨 Task 的 barrier 传播和快照正确
-- [ ] 跨 Task 的 watermark 传播和合并正确
-- [ ] 单链管线行为不受影响（回归）
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] 独立子 agent closure-audit 已完成
-- [ ] `./mvnw test -pl nop-stream`
-- [ ] checkstyle / 代码规范检查通过
+- [x] 含 keyBy 的管线可通过 `executeWithGraphModel()` 正确执行（数据按 key 分区）
+- [x] 跨 Task 的 barrier 传播和快照正确
+- [x] 跨 Task 的 watermark 传播和合并正确
+- [x] 单链管线行为不受影响（回归）
+- [x] 不存在被静默降级的 in-scope live defect
+- [x] 独立子 agent closure-audit 已完成
+- [x] `./mvnw test -pl nop-stream`
+- [x] checkstyle / 代码规范检查通过
 
 ## Non-Blocking Follow-ups
 

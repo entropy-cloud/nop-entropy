@@ -1,7 +1,8 @@
 # 时间模型与 Watermark 设计
 
-> Status: active（**核心抽象已实现，未与执行路径集成**）
+> Status: active（**已对接执行路径**）
 > Created: 2026-05-19
+> Updated: 2026-05-20（Plan 28: API + StreamGraph + TimerService 集成完成）
 > Parent: `architecture.md` §3（执行模型）、`window-design.md` §6（Timer Service）
 
 ## 1. 定位

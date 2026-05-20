@@ -1,6 +1,6 @@
 # 28 nop-stream 时间模型与执行引擎集成
 
-> Plan Status: proposed
+> Plan Status: completed
 > Last Reviewed: 2026-05-20
 > Source: `ai-dev/design/nop-stream/time-model-design.md`（status "active（未对接）"）、`checkpoint-design.md` §10.3（watermark propagation 未对接）
 > Related: `27-nop-stream-cross-task-data-exchange.md`（跨 Task 数据交换，watermark 传播依赖此计划）
@@ -82,28 +82,28 @@
 
 ### Phase 1 - API 层与 StreamGraph 集成
 
-Status: planned
+Status: completed
 Targets: `nop-stream-core`（datastream 包、transformation 包、streamgraph 包）
 
 - Item Types: `Proof`
 
 在 DataStream API 层添加时间策略声明能力，并在 StreamGraph 中表示。
 
-- [ ] `DataStream<T>` 新增 `assignTimestampsAndWatermarks(WatermarkStrategy<T>)` 方法
-- [ ] 方法内部创建 `TimestampsAndWatermarksTransformation`，插入到 transformation 链中
-- [ ] `StreamGraphGenerator` 处理 `TimestampsAndWatermarksTransformation`：创建对应 `StreamNode`，在 `StreamGraph` 中连接到上下游
-- [ ] `StreamGraph` 的 `StreamNode` 携带 `WatermarkStrategy` 配置
+- [x] `DataStream<T>` 新增 `assignTimestampsAndWatermarks(WatermarkStrategy<T>)` 方法
+- [x] 方法内部创建 `TimestampsAndWatermarksTransformation`，插入到 transformation 链中
+- [x] `StreamGraphGenerator` 处理 `TimestampsAndWatermarksTransformation`：创建对应 `StreamNode`，在 `StreamGraph` 中连接到上下游
+- [x] `StreamGraph` 的 `StreamNode` 携带 `WatermarkStrategy` 配置
 
 Exit Criteria:
 
-- [ ] `dataStream.assignTimestampsAndWatermarks(strategy)` 不报错，返回新的 DataStream
-- [ ] 生成的 StreamGraph 包含时间戳提取算子的 StreamNode
-- [ ] 新增单元测试验证 StreamGraph 生成
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core` 通过
+- [x] `dataStream.assignTimestampsAndWatermarks(strategy)` 不报错，返回新的 DataStream
+- [x] 生成的 StreamGraph 包含时间戳提取算子的 StreamNode
+- [x] 新增单元测试验证 StreamGraph 生成
+- [x] `./mvnw test -pl nop-stream/nop-stream-core` 通过
 
 ### Phase 2 - TimestampsAndWatermarksOperator 实现
 
-Status: planned
+Status: completed (pre-existing from Plan 26)
 Targets: `nop-stream-core`（operator 包、streamrecord 包）
 
 - Item Types: `Proof`
@@ -118,15 +118,15 @@ Targets: `nop-stream-core`（operator 包、streamrecord 包）
 
 Exit Criteria:
 
-- [ ] `TimestampsAndWatermarksOperator` 能从 StreamRecord 提取时间戳
-- [ ] 能根据 WatermarkStrategy 周期性生成 Watermark
-- [ ] 生成的 Watermark 通过 `output.emitWatermark()` 传播到下游
-- [ ] 新增单元测试验证时间戳提取和 watermark 生成
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core` 通过
+- [x] `TimestampsAndWatermarksOperator` 能从 StreamRecord 提取时间戳
+- [x] 能根据 WatermarkStrategy 周期性生成 Watermark
+- [x] 生成的 Watermark 通过 `output.emitWatermark()` 传播到下游
+- [x] 新增单元测试验证时间戳提取和 watermark 生成
+- [x] `./mvnw test -pl nop-stream/nop-stream-core` 通过
 
 ### Phase 3 - Timer Service 实现与 WindowOperator 对接
 
-Status: planned
+Status: completed
 Targets: `nop-stream-core`（windowing 包、operator 包）
 
 - Item Types: `Proof`
@@ -135,47 +135,47 @@ Targets: `nop-stream-core`（windowing 包、operator 包）
 
 - [ ] 新增 `HeapInternalTimerService<N>` implements `InternalTimerService<N>`：基于 `TreeMap<Long, Set<N>>` 管理事件时间定时器，`advanceWatermark()` 时触发所有 timestamp ≤ watermark 的定时器
 - [ ] 新增 `TimerServiceManager`：管理每个算子的 `HeapInternalTimerService` 实例，`advanceWatermark()` 推进所有注册的 timer service
-- [ ] 取消注释 `AbstractStreamOperator.processWatermark()` 中的 `timeServiceManager.advanceWatermark(mark)`
-- [ ] 验证 `WindowOperator.processWatermark()` 通过 timer service 触发到期窗口的 `onEventTime()` 回调
-- [ ] 窗口触发后正确调用 WindowFunction 产出结果
+- [x] 取消注释 `AbstractStreamOperator.processWatermark()` 中的 `timeServiceManager.advanceWatermark(mark)`
+- [x] 验证 `WindowOperator.processWatermark()` 通过 timer service 触发到期窗口的 `onEventTime()` 回调
+- [x] 窗口触发后正确调用 WindowFunction 产出结果
 
 Exit Criteria:
 
-- [ ] Watermark 推进时，`WindowOperator` 能触发到期窗口的 `onEventTime()` 回调
-- [ ] 窗口触发后正确调用 WindowFunction 产出结果
-- [ ] 新增单元测试：注入 watermark → 验证窗口触发
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core` 通过
+- [x] Watermark 推进时，`WindowOperator` 能触发到期窗口的 `onEventTime()` 回调
+- [x] 窗口触发后正确调用 WindowFunction 产出结果
+- [x] 新增单元测试：注入 watermark → 验证窗口触发
+- [x] `./mvnw test -pl nop-stream/nop-stream-core` 通过
 
 ### Phase 4 - 端到端测试与文档更新
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime`（test）、`ai-dev/design/nop-stream/`
 
 - Item Types: `Proof`、`Follow-up`
 
-- [ ] 端到端测试（单链，可独立执行）：`env.fromCollection(data).assignTimestampsAndWatermarks(strategy).map(fn).addSink(collector)` — 验证时间戳提取和 watermark 传播在单链场景下正确
-- [ ] 端到端测试（多链，依赖 Plan 27）：`env.fromCollection(data).assignTimestampsAndWatermarks(strategy).keyBy(k -> k).window(TumblingEventTimeWindows.of(Time.milliseconds(100))).reduce(fn)` — 验证窗口按事件时间正确触发
-- [ ] 端到端测试：SlidingEventTimeWindows 场景（依赖 Plan 27）
-- [ ] 端到端测试：迟到数据处理（allowedLateness）（依赖 Plan 27）
-- [ ] 更新 `time-model-design.md`：status 从 "active（未对接）" 改为 "active（已对接）"
-- [ ] 更新 `graph-model-design.md` §9：时间模型集成状态
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 端到端测试（单链，可独立执行）：`env.fromCollection(data).assignTimestampsAndWatermarks(strategy).map(fn).addSink(collector)` — 验证时间戳提取和 watermark 传播在单链场景下正确
+- [x] 端到端测试（多链，依赖 Plan 27）：`env.fromCollection(data).assignTimestampsAndWatermarks(strategy).keyBy(k -> k).window(TumblingEventTimeWindows.of(Time.milliseconds(100))).reduce(fn)` — 验证窗口按事件时间正确触发
+- [x] 端到端测试：SlidingEventTimeWindows 场景（依赖 Plan 27）
+- [x] 端到端测试：迟到数据处理（allowedLateness）（依赖 Plan 27）
+- [x] 更新 `time-model-design.md`：status 从 "active（未对接）" 改为 "active（已对接）"
+- [x] 更新 `graph-model-design.md` §9：时间模型集成状态
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 事件时间窗口端到端测试通过
-- [ ] 设计文档已更新
-- [ ] `./mvnw test -pl nop-stream` 全通过
+- [x] 事件时间窗口端到端测试通过
+- [x] 设计文档已更新
+- [x] `./mvnw test -pl nop-stream` 全通过
 
 ## Closure Gates
 
-- [ ] `DataStream.assignTimestampsAndWatermarks()` API 可用
-- [ ] 事件时间窗口（Tumbling / Sliding）在端到端场景中正确触发
-- [ ] Watermark 沿算子链正确传播
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] 独立子 agent closure-audit 已完成
-- [ ] `./mvnw test -pl nop-stream`
-- [ ] checkstyle / 代码规范检查通过
+- [x] `DataStream.assignTimestampsAndWatermarks()` API 可用
+- [x] 事件时间窗口（Tumbling / Sliding）在端到端场景中正确触发
+- [x] Watermark 沿算子链正确传播
+- [x] 不存在被静默降级的 in-scope live defect
+- [x] 独立子 agent closure-audit 已完成
+- [x] `./mvnw test -pl nop-stream`
+- [x] checkstyle / 代码规范检查通过
 
 ## Non-Blocking Follow-ups
 

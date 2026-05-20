@@ -1,6 +1,6 @@
 # 29 nop-stream Savepoint 深度实现
 
-> Plan Status: proposed
+> Plan Status: completed
 > Last Reviewed: 2026-05-20
 > Source: `ai-dev/design/nop-stream/checkpoint-design.md` §5.3（savepoint 触发与恢复）、§10.3（savepoint 存储未对接）
 > Related: `26-nop-stream-graph-model-and-checkpoint-integration.md`（checkpoint 基础设施已完成）、`27-nop-stream-cross-task-data-exchange.md`（多链 savepoint 恢复依赖此计划）
@@ -82,7 +82,7 @@
 
 ### Phase 1 - CheckpointStorage 审查与接入
 
-Status: planned
+Status: completed (pre-existing from Plan 26)
 Targets: `nop-stream-core`（checkpoint 包）、`nop-stream-runtime`（checkpoint 包、execution 包）
 
 - Item Types: `Proof`
@@ -105,7 +105,7 @@ Exit Criteria:
 
 ### Phase 2 - Savepoint 元数据格式
 
-Status: planned
+Status: completed (pre-existing from Plan 26)
 Targets: `nop-stream-core`（checkpoint 包）
 
 - Item Types: `Proof`
@@ -126,55 +126,55 @@ Exit Criteria:
 
 ### Phase 3 - Savepoint 触发与恢复 API
 
-Status: planned
+Status: completed
 Targets: `nop-stream-core`（environment 包）、`nop-stream-runtime`（execution 包）
 
 - Item Types: `Proof`
 
 在执行环境中暴露 savepoint 触发和恢复 API。
 
-- [ ] `StreamExecutionEnvironment.triggerSavepoint(String targetPath)`：调用 `CheckpointCoordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT)` + 设置 targetPath
-- [ ] `StreamExecutionEnvironment.executeWithSavepoint(String savepointPath)`：加载 savepoint → 配置状态恢复 → 执行作业
-- [ ] `StreamExecutionEnvironment.execute(String jobName, String savepointPath)` 重载：支持指定 savepoint 路径
-- [ ] 恢复流程：`ICheckpointStorage.loadCheckpoint()` → `CompletedCheckpoint` → 遍历 `TaskStateSnapshot` → `Map<String, byte[]> operatorStates` → 传入算子的 `restoreState(Map<String, byte[]>)` 方法
+- [x] `StreamExecutionEnvironment.triggerSavepoint(String targetPath)`：调用 `CheckpointCoordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT)` + 设置 targetPath
+- [x] `StreamExecutionEnvironment.executeWithSavepoint(String savepointPath)`：加载 savepoint → 配置状态恢复 → 执行作业
+- [x] `StreamExecutionEnvironment.execute(String jobName, String savepointPath)` 重载：支持指定 savepoint 路径
+- [x] 恢复流程：`ICheckpointStorage.loadCheckpoint()` → `CompletedCheckpoint` → 遍历 `TaskStateSnapshot` → `Map<String, byte[]> operatorStates` → 传入算子的 `restoreState(Map<String, byte[]>)` 方法
 
 Exit Criteria:
 
-- [ ] `triggerSavepoint()` 能触发 savepoint 并将数据写入指定路径
-- [ ] `executeWithSavepoint()` 能从指定路径恢复作业状态
-- [ ] 恢复后的作业状态与 savepoint 时一致
-- [ ] 新增单元测试验证触发和恢复
-- [ ] `./mvnw test -pl nop-stream` 通过
+- [x] `triggerSavepoint()` 能触发 savepoint 并将数据写入指定路径
+- [x] `executeWithSavepoint()` 能从指定路径恢复作业状态
+- [x] 恢复后的作业状态与 savepoint 时一致
+- [x] 新增单元测试验证触发和恢复
+- [x] `./mvnw test -pl nop-stream` 通过
 
 ### Phase 4 - 端到端测试与文档更新
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime`（test）、`ai-dev/design/nop-stream/`
 
 - Item Types: `Proof`、`Follow-up`
 
-- [ ] 端到端测试：执行作业 → 触发 savepoint → 停止 → 从 savepoint 恢复 → 验证状态一致（source offset、算子内部状态）
-- [ ] 端到端测试：savepoint + 多算子链状态恢复
-- [ ] 端到端测试：savepoint 后继续处理新数据（处理不重复、不丢失）
-- [ ] 更新 `checkpoint-design.md` §5.3：savepoint 触发与恢复已实现
-- [ ] 更新 `checkpoint-design.md` §10.3：savepoint 存储已对接
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 端到端测试：执行作业 → 触发 savepoint → 停止 → 从 savepoint 恢复 → 验证状态一致（source offset、算子内部状态）
+- [x] 端到端测试：savepoint + 多算子链状态恢复
+- [x] 端到端测试：savepoint 后继续处理新数据（处理不重复、不丢失）
+- [x] 更新 `checkpoint-design.md` §5.3：savepoint 触发与恢复已实现
+- [x] 更新 `checkpoint-design.md` §10.3：savepoint 存储已对接
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] Savepoint 端到端测试通过
-- [ ] 设计文档已更新
-- [ ] `./mvnw test -pl nop-stream` 全通过
+- [x] Savepoint 端到端测试通过
+- [x] 设计文档已更新
+- [x] `./mvnw test -pl nop-stream` 全通过
 
 ## Closure Gates
 
-- [ ] `triggerSavepoint()` 能将作业状态持久化到文件系统
-- [ ] `executeWithSavepoint()` 能从文件系统恢复作业状态
-- [ ] 恢复后的作业从 savepoint 点继续处理，不丢失不重复
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] 独立子 agent closure-audit 已完成
-- [ ] `./mvnw test -pl nop-stream`
-- [ ] checkstyle / 代码规范检查通过
+- [x] `triggerSavepoint()` 能将作业状态持久化到文件系统
+- [x] `executeWithSavepoint()` 能从文件系统恢复作业状态
+- [x] 恢复后的作业从 savepoint 点继续处理，不丢失不重复
+- [x] 不存在被静默降级的 in-scope live defect
+- [x] 独立子 agent closure-audit 已完成
+- [x] `./mvnw test -pl nop-stream`
+- [x] checkstyle / 代码规范检查通过
 
 ## Non-Blocking Follow-ups
 

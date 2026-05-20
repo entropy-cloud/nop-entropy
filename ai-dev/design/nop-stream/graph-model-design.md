@@ -242,19 +242,15 @@ Transformation DAG → StreamGraph → JobGraph → Task[] → TaskExecutor
 
 | 维度 | 快速路径 | 图模型路径 |
 |---|---|---|
-| 执行方式 | 单线程同步 | 单线程（单链）→ 未来多线程并行 |
-| 算子链 | 简单线性链（无分支合并处理） | 单链管线已支持（多链待实现） |
-| 分区 | keyBy 被跳过，实际不做 hash 分区 | keyBy 产生多 vertex，当前被拒绝（需跨 Task 数据交换） |
+| 执行方式 | 单线程同步 | 单线程（支持单链和多链管线） |
+| 算子链 | 简单线性链（无分支合并处理） | 单链和多链管线均已支持 |
+| 分区 | keyBy 被跳过，实际不做 hash 分区 | keyBy 产生多 vertex，通过 RecordWriter/InputGate 跨 Task 传递数据 |
 | Checkpoint | 未集成 | 已集成（barrier 注入→传播→快照→ACK→持久化→恢复） |
-| 适用场景 | 简单的单流处理、无需 checkpoint | 需要容错/cp 的单链管线；未来支持多链 |
+| 适用场景 | 简单的单流处理、无需 checkpoint | 需要容错/cp 的管线（单链和多链） |
 
-### 7.4 单链约束（Plan 26 引入）
+### 7.4 多链管线支持（Plan 27 实现）
 
-图模型路径当前仅支持**单链管线**——所有算子在一个 `OperatorChain` 内通过 `ChainingOutput` 直连，无跨 Task 数据交换。
-
-**验证逻辑**：`executeWithGraphModel()` 检查 `JobGraph.getEdges()` 是否为空。非空时抛出 `IllegalStateException`，提示使用快速路径。
-
-**未来扩展**：实现 `RecordWriter/RecordReader/InputGate` 后，移除单链约束，支持多链管线。
+图模型路径支持**单链和多链管线**。数据交换组件（RecordWriter / RecordReader / InputGate / ResultPartition / InputChannel）基于 `BlockingQueue` 实现同进程内 Task 间数据传递。`GraphExecutionPlan` 负责拓扑排序和数据交换通道创建。`StreamTaskInvokable` 根据 Task 在 JobGraph 中的位置扮演 SOURCE / MIDDLE / SINK / SELF_CONTAINED 四种角色。
 
 ## 8. 与 Flink 的差异
 
@@ -299,24 +295,26 @@ Transformation DAG → StreamGraph → JobGraph → Task[] → TaskExecutor
    - 2PC Sink 的 preCommit/commit/rollback 生命周期
    - 恢复流程：从 checkpoint 反序列化状态 → 注入算子
 
-### 未完成（后续独立计划）
+### 已完成
 
-2. **实现数据交换组件**（解锁多链管线）
-   - `RecordWriter<T>`：将记录写入对应分区的输出缓冲区
-   - `RecordReader<T>`：从输入缓冲区读取记录
-   - `InputGate`：管理多输入端的屏障对齐（与 BarrierAligner 集成）
-   - 内部可基于 `BlockingQueue<StreamRecord>` 实现单机数据交换
+以下组件已在 Plan 26-27 中实现：
+
+2. **数据交换组件**（解锁多链管线）
+   - `RecordWriter<T>`：按 partitioner 将记录分发到对应 ResultPartition
+   - `RecordReader<T>`：从 InputChannel 读取记录
+   - `InputGate`：管理多输入端的 barrier 对齐和 watermark 合并
+   - `ResultPartition` / `InputChannel`：基于 `BlockingQueue` 的单机数据交换
 
 5. **拓扑排序调度**
-   - 当前 TaskExecutor 不考虑 vertex 间的依赖顺序
-   - 对于流式作业，所有 vertex 可以同时启动（Source 先产出数据，其他 vertex 等待输入）
-   - 但需要确保所有 InputGate 在数据到达前已就绪
+   - `GraphExecutionPlan` 负责构建执行计划，按依赖顺序提交 Task
+   - Source Task 先启动，Sink Task 最后启动
+   - 所有 InputGate 在数据到达前已就绪
 
 ## 10. 已知限制
 
-1. **Invokable 是 placeholder** — 只做 open/close，不读取输入也不处理数据
-2. **无数据交换实现** — RecordWriter/RecordReader/InputGate 均未实现
-3. **无拓扑调度** — TaskExecutor 不判断 vertex 依赖顺序，假设所有 vertex 可同时启动
+1. ~~**Invokable 是 placeholder**~~ — Plan 26 已实现 `StreamTaskInvokable`，支持四种角色
+2. ~~**无数据交换实现**~~ — Plan 27 已实现 RecordWriter/RecordReader/InputGate/ResultPartition/InputChannel
+3. ~~**无拓扑调度**~~ — Plan 27 已实现 `GraphExecutionPlan` 拓扑排序
 4. **PartitionTransformation 在 StreamGraph 中保留为独立节点** — 它在 JobGraph 阶段不产生独立 vertex，但其 partitioner 信息被传递到 JobEdge。如果 PartitionTransformation 的前后节点被链化到不同 vertex，分区逻辑才能生效；如果它们被链化到同一 vertex，partitioner 信息被忽略（与快速路径行为一致）
 5. **并行度固定为 1** — 当前所有 Transformation 的 parallelism 默认为 1。图模型路径支持 parallelism > 1 的拓扑结构，但数据交换组件需要按 parallelism 创建对应的 RecordWriter 分区
 6. **Invokable 与 Task 重复管理 OperatorChain 生命周期** — `Task.run()` 在 finally 块中调用 `closeOperatorChains()`，而 placeholder `Invokable.invoke()` 内部也调用 `operatorChain.open()` 和 `operatorChain.close()`。实际的 Invokable 实现不应自行管理链生命周期，应交给 Task 统一处理

@@ -458,20 +458,25 @@ checkpoint 子系统**已通过图模型执行路径（`executeWithGraphModel()`
    - Sink 恢复时 rollback 残留事务并 beginTransaction
 
 6. **执行约束**
-   - 图模型路径仅支持**单链管线**（所有算子在一个 chain 内）
-   - 多链管线（含 keyBy 产生 PartitionTransformation）被明确拒绝
+   - 图模型路径支持单链和多链管线（Plan 27 移除了单链约束）
    - 快速路径 `execute()` 不受影响，保持不变
 
-### 10.3 未对接（后续工作）
+### 10.3 已对接
+
+以下功能已在 Plan 27-29 中实现：
+
+1. **跨 Task 数据交换**（RecordWriter/RecordReader/InputGate）— Plan 27 已实现
+2. **多链管线图模型执行** — Plan 27 已实现
+3. **Savepoint 深度实现**（手动触发、恢复）— Plan 29 已实现
+4. **时间模型对接**（TimestampAssigner/WatermarkGenerator/TimerService）— Plan 28 已实现
+
+### 10.4 未对接（后续工作）
 
 以下功能仍为独立计划，不阻塞当前闭环：
 
-1. **跨 Task 数据交换**（RecordWriter/RecordReader/InputGate）— 解锁多链管线
-2. **多链管线图模型执行** — 依赖跨 Task 数据交换
-3. **Savepoint 深度实现**（手动触发、schema 兼容）
-4. **增量快照优化**
-5. **Unaligned checkpoint 模式**
-6. **Key-group 重分布**
+1. **增量快照优化**
+2. **Unaligned checkpoint 模式**
+3. **Key-group 重分布**
 
 ## 11. 与 Flink 的差异
 
@@ -482,7 +487,7 @@ checkpoint 子系统**已通过图模型执行路径（`executeWithGraphModel()`
 | State 分区 | Key-Group + KeyGroupRange 支持重分布 | 无 key-group，直接 Map 存储 |
 | Coordinator 通信 | RPC（Akka/Netty），JM ↔ TM | 方法调用，同一进程内 |
 | 存储后端 | FileSystem / S3 / State Backend 集成 | LocalFile / JDBC |
-| Savepoint | 完整支持（手动触发、恢复、schema 兼容） | 接口存在但未深度实现 |
+| Savepoint | 完整支持（手动触发、恢复、schema 兼容） | 手动触发 + 恢复已实现（Plan 29），schema 兼容为后续工作 |
 | 增量快照 | RocksDB 支持增量 | 仅全量快照 |
 | 对齐超时 | 可配置切换为 unaligned | 不支持 unaligned |
 
