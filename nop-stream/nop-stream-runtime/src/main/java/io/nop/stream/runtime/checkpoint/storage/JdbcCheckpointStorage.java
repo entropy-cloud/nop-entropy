@@ -10,6 +10,7 @@ package io.nop.stream.runtime.checkpoint.storage;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.SavepointMetadata;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 
 import javax.sql.DataSource;
@@ -184,6 +185,25 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 return 0;
             }
         }
+    }
+
+    @Override
+    public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception {
+        return storeCheckPoint(checkpoint);
+    }
+
+    @Override
+    public CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception {
+        return getLatestCheckpoint(1L, 1);
+    }
+
+    @Override
+    public SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception {
+        CompletedCheckpoint checkpoint = loadSavepoint(savepointPath);
+        if (checkpoint == null) {
+            return null;
+        }
+        return SavepointMetadata.fromCompletedCheckpoint(checkpoint);
     }
 
     private byte[] serializeCheckpoint(CompletedCheckpoint checkpoint) {

@@ -13,6 +13,7 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.datastream.DataStreamSource;
 import io.nop.stream.core.datastream.SingleOutputStreamOperatorImpl;
+import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.ICheckpointExecutorFactory;
 import io.nop.stream.core.execution.Task;
 import io.nop.stream.core.execution.TaskExecutor;
@@ -220,20 +221,6 @@ public class StreamExecutionEnvironment {
             JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
             JobGraph jobGraph = jobGraphGenerator.generate(streamGraph);
 
-            if (!jobGraph.getEdges().isEmpty()) {
-                throw new IllegalStateException(
-                    "Multi-chain pipeline detected in graph model path. " +
-                    "Cross-task data exchange is not yet supported. " +
-                    "Use the fast path execute() instead, or wait for future versions.");
-            }
-
-            if (jobGraph.getNumberOfVertices() != 1) {
-                throw new IllegalStateException(
-                    "Expected exactly 1 vertex in single-chain pipeline, got: " + jobGraph.getNumberOfVertices());
-            }
-
-            JobVertex vertex = jobGraph.getVertices().values().iterator().next();
-
             if (checkpointConfig.isCheckpointEnabled() && checkpointExecutorFactory != null) {
                 StreamExecutionResult result = checkpointExecutorFactory.executeWithCheckpoint(
                     jobGraph, jobName, checkpointConfig);
@@ -241,13 +228,24 @@ public class StreamExecutionEnvironment {
                 return result;
             }
 
-            Task task = new Task(vertex, 0);
+            GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph);
+
             TaskExecutor executor = new TaskExecutor();
-            executor.submitTask(task);
+            List<Task> tasks = new ArrayList<>();
+
+            for (String vertexId : plan.getSortedVertexIds()) {
+                JobVertex vertex = plan.getExecutionVertices().get(vertexId);
+                Task task = new Task(vertex, 0);
+                tasks.add(task);
+                executor.submitTask(task);
+            }
+
             executor.awaitCompletion();
 
-            if (task.getState() == Task.State.FAILED) {
-                throw new RuntimeException("Task failed", task.getError());
+            for (Task task : tasks) {
+                if (task.getState() == Task.State.FAILED) {
+                    throw new RuntimeException("Task failed", task.getError());
+                }
             }
 
             executed = true;
@@ -256,6 +254,60 @@ public class StreamExecutionEnvironment {
         } catch (Exception e) {
             throw new RuntimeException("Failed to execute job with graph model: " + jobName, e);
         }
+    }
+
+    public String triggerSavepoint(String targetPath) throws Exception {
+        if (checkpointExecutorFactory == null) {
+            throw new IllegalStateException(
+                    "No checkpoint executor factory registered. "
+                  + "Ensure the runtime module is on the classpath and the factory has been set.");
+        }
+
+        JobGraph jobGraph = buildJobGraph("Savepoint Job");
+        return checkpointExecutorFactory.triggerSavepoint(jobGraph, checkpointConfig, targetPath);
+    }
+
+    public StreamExecutionResult executeWithSavepoint(String savepointPath) throws Exception {
+        if (executed) {
+            throw new IllegalStateException("A streaming job can only be executed once");
+        }
+
+        if (checkpointExecutorFactory == null) {
+            throw new IllegalStateException(
+                    "No checkpoint executor factory registered. "
+                  + "Ensure the runtime module is on the classpath and the factory has been set.");
+        }
+
+        if (savepointPath == null || savepointPath.isEmpty()) {
+            throw new IllegalArgumentException("Savepoint path must not be null or empty");
+        }
+
+        JobGraph jobGraph = buildJobGraph("Streaming Job (Savepoint Recovery)");
+        StreamExecutionResult result = checkpointExecutorFactory.executeWithSavepoint(
+                jobGraph, "Streaming Job (Savepoint Recovery)", checkpointConfig, savepointPath);
+        executed = true;
+        return result;
+    }
+
+    public StreamExecutionResult execute(String jobName, String savepointPath) throws Exception {
+        if (savepointPath == null || savepointPath.isEmpty()) {
+            return execute(jobName);
+        }
+        if (executed) {
+            throw new IllegalStateException("A streaming job can only be executed once");
+        }
+
+        if (checkpointExecutorFactory == null) {
+            throw new IllegalStateException(
+                    "No checkpoint executor factory registered. "
+                  + "Ensure the runtime module is on the classpath and the factory has been set.");
+        }
+
+        JobGraph jobGraph = buildJobGraph(jobName);
+        StreamExecutionResult result = checkpointExecutorFactory.executeWithSavepoint(
+                jobGraph, jobName, checkpointConfig, savepointPath);
+        executed = true;
+        return result;
     }
 
     // ------------------------------------------------------------------------
@@ -282,6 +334,25 @@ public class StreamExecutionEnvironment {
             }
         }
         return sinks;
+    }
+
+    private JobGraph buildJobGraph(String jobName) {
+        List<SinkTransformation<?>> sinks = findSinkTransformations();
+        if (sinks.isEmpty()) {
+            throw new IllegalStateException("No sinks found in the streaming job");
+        }
+
+        if (!checkpointConfig.isCheckpointEnabled()) {
+            checkpointConfig.setCheckpointEnabled(true);
+        }
+
+        StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
+        @SuppressWarnings("unchecked")
+        List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
+        StreamGraph streamGraph = graphGenerator.generate(sinkList);
+
+        JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
+        return jobGraphGenerator.generate(streamGraph);
     }
 
     /**

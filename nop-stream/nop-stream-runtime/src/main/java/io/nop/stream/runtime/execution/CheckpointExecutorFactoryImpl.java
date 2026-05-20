@@ -27,4 +27,19 @@ public class CheckpointExecutorFactoryImpl implements ICheckpointExecutorFactory
             CheckpointConfig checkpointConfig) throws Exception {
         return GraphModelCheckpointExecutor.executeWithCheckpoint(jobGraph, jobName, checkpointConfig);
     }
+
+    @Override
+    public String triggerSavepoint(JobGraph jobGraph,
+                                   CheckpointConfig checkpointConfig,
+                                   String targetPath) throws Exception {
+        return GraphModelCheckpointExecutor.triggerSavepoint(jobGraph, checkpointConfig, targetPath);
+    }
+
+    @Override
+    public StreamExecutionResult executeWithSavepoint(JobGraph jobGraph,
+                                                      String jobName,
+                                                      CheckpointConfig checkpointConfig,
+                                                      String savepointPath) throws Exception {
+        return GraphModelCheckpointExecutor.executeWithSavepoint(jobGraph, jobName, checkpointConfig, savepointPath);
+    }
 }

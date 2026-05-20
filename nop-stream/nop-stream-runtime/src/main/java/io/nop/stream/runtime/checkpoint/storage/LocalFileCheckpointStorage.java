@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.SavepointMetadata;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import org.slf4j.Logger;
@@ -35,6 +36,8 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     private static final String CHECKPOINT_SUFFIX = ".checkpoint";
     private static final String TEMP_SUFFIX = ".tmp";
+    private static final String SAVEPOINT_DIR_PREFIX = "savepoint-";
+    private static final String METADATA_SUFFIX = ".metadata";
 
     private final String baseDir;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -357,6 +360,88 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         try {
             Files.deleteIfExists(path);
         } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception {
+        String savepointDirName = SAVEPOINT_DIR_PREFIX + checkpoint.getCheckpointId();
+        Path savepointDir = Paths.get(targetPath, savepointDirName);
+
+        lock.writeLock().lock();
+        try {
+            ensureDirectoryExists(savepointDir.toString());
+
+            Path checkpointFile = savepointDir.resolve(checkpoint.getCheckpointId() + CHECKPOINT_SUFFIX);
+            Path tempFile = Paths.get(checkpointFile.toString() + TEMP_SUFFIX);
+
+            byte[] data = serializeCheckpoint(checkpoint);
+            Files.write(tempFile, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.move(tempFile, checkpointFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+
+            SavepointMetadata metadata = SavepointMetadata.fromCompletedCheckpoint(checkpoint);
+            Path metadataFile = savepointDir.resolve("savepoint-" + checkpoint.getCheckpointId() + METADATA_SUFFIX);
+            Path tempMetadata = Paths.get(metadataFile.toString() + TEMP_SUFFIX);
+
+            byte[] metadataBytes = JsonTool.serialize(metadata, false).getBytes(StandardCharsets.UTF_8);
+            Files.write(tempMetadata, metadataBytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.move(tempMetadata, metadataFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+
+            LOG.info("Stored savepoint {} to {}", checkpoint.getCheckpointId(), savepointDir);
+            return savepointDir.toString();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception {
+        Path dir = Paths.get(savepointPath);
+        if (!Files.isDirectory(dir)) {
+            LOG.warn("Savepoint path does not exist or is not a directory: {}", savepointPath);
+            return null;
+        }
+
+        lock.readLock().lock();
+        try {
+            try (Stream<Path> files = Files.list(dir)) {
+                Optional<Path> checkpointFile = files
+                        .filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
+                        .findFirst();
+
+                if (checkpointFile.isPresent()) {
+                    return deserializeCheckpoint(checkpointFile.get());
+                }
+                return null;
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception {
+        Path dir = Paths.get(savepointPath);
+        if (!Files.isDirectory(dir)) {
+            return null;
+        }
+
+        lock.readLock().lock();
+        try {
+            try (Stream<Path> files = Files.list(dir)) {
+                Optional<Path> metadataFile = files
+                        .filter(p -> p.toString().endsWith(METADATA_SUFFIX))
+                        .findFirst();
+
+                if (metadataFile.isPresent()) {
+                    byte[] data = Files.readAllBytes(metadataFile.get());
+                    String json = new String(data, StandardCharsets.UTF_8);
+                    return JsonTool.parseBeanFromText(json, SavepointMetadata.class);
+                }
+                return null;
+            }
+        } finally {
+            lock.readLock().unlock();
         }
     }
 }

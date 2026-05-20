@@ -8,6 +8,7 @@
 package io.nop.stream.core.checkpoint.storage;
 
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.SavepointMetadata;
 
 import java.util.List;
 
@@ -99,4 +100,10 @@ public interface ICheckpointStorage {
      * @return checkpoint 数量
      */
     int getCheckpointCount(long jobId) throws Exception;
+
+    String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception;
+
+    CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception;
+
+    SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception;
 }
