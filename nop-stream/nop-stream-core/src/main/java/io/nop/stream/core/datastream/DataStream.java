@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.datastream;
 
+import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.FlatMapFunction;
@@ -58,6 +59,19 @@ public interface DataStream<T> {
      * @return The transformed {@link DataStream}.
      */
     <R> SingleOutputStreamOperator<R> flatMap(FlatMapFunction<T, R> flatMapper);
+
+    /**
+     * Assigns timestamps to the elements in the data stream and generates watermarks
+     * based on the provided {@link WatermarkStrategy}.
+     *
+     * <p>This method creates a transformation that extracts event-time timestamps from
+     * stream elements and generates watermarks to signal event time progress to downstream
+     * operators.
+     *
+     * @param strategy the watermark strategy that defines how to assign timestamps and generate watermarks
+     * @return a new data stream with timestamps and watermarks assigned
+     */
+    SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(WatermarkStrategy<T> strategy);
 
     /**
      * Method for passing user defined operators along with the type information that will transform

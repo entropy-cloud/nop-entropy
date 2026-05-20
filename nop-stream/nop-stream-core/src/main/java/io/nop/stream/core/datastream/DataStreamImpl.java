@@ -8,6 +8,7 @@
 package io.nop.stream.core.datastream;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.*;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
@@ -20,9 +21,11 @@ import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.StreamFilter;
 import io.nop.stream.core.operators.StreamFlatMap;
 import io.nop.stream.core.operators.StreamMap;
+import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
+import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 
 import java.io.Serializable;
@@ -155,6 +158,19 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
             (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
             new StreamFlatMap<>(flatMapper)
         );
+    }
+
+    @Override
+    public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(WatermarkStrategy<T> strategy) {
+        TimestampsAndWatermarksTransformation<T> transformation = new TimestampsAndWatermarksTransformation<>(
+            "Timestamps/Watermarks",
+            getType(),
+            environment.getParallelism(),
+            this.transformation,
+            strategy
+        );
+        environment.addTransformation(transformation);
+        return new SingleOutputStreamOperatorImpl<>(environment, transformation);
     }
     
     /**

@@ -35,6 +35,8 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     protected IStateBackend stateBackend;
     protected IKeyedStateBackend<?> keyedStateBackend;
 
+    protected transient TimerServiceManager timeServiceManager;
+
     protected transient OperatorSnapshotResult lastSnapshotResult;
 
     protected transient Consumer<OperatorSnapshotResult> snapshotCallback;
@@ -85,6 +87,14 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     public void setKeyedStateBackend(IKeyedStateBackend<?> keyedStateBackend) {
         this.keyedStateBackend = keyedStateBackend;
+    }
+
+    public TimerServiceManager getTimeServiceManager() {
+        return timeServiceManager;
+    }
+
+    public void setTimeServiceManager(TimerServiceManager timeServiceManager) {
+        this.timeServiceManager = timeServiceManager;
     }
 
     /**
@@ -193,9 +203,9 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     }
 
     public void processWatermark(Watermark mark) throws Exception {
-//        if (timeServiceManager != null) {
-//            timeServiceManager.advanceWatermark(mark);
-//        }
+        if (timeServiceManager != null) {
+            timeServiceManager.advanceWatermark(mark);
+        }
         output.emitWatermark(mark);
     }
 

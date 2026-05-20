@@ -11,14 +11,17 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
+import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 
 import java.io.Serializable;
@@ -128,6 +131,8 @@ public class StreamGraphGenerator {
             transformSink((SinkTransformation<?>) transformation);
         } else if (transformation instanceof PartitionTransformation) {
             transformPartition((PartitionTransformation<?>) transformation);
+        } else if (transformation instanceof TimestampsAndWatermarksTransformation) {
+            transformTimestampsAndWatermarks((TimestampsAndWatermarksTransformation<?>) transformation);
         } else {
             throw new IllegalArgumentException(
                 "Unknown transformation type: " + transformation.getClass().getName()
@@ -305,7 +310,33 @@ public class StreamGraphGenerator {
         
         streamGraph.addStreamEdge(edge);
     }
-    
+
+    private <T> void transformTimestampsAndWatermarks(TimestampsAndWatermarksTransformation<T> transformation) {
+        transform(transformation.getInput());
+
+        TimestampsAndWatermarksOperator<T> operator =
+            new TimestampsAndWatermarksOperator<>(transformation.getWatermarkStrategy());
+        StreamOperatorFactory<T> operatorFactory =
+            new SimpleStreamOperatorFactory<>(operator, transformation.getName(), transformation.getParallelism());
+
+        StreamNode node = new StreamNode(
+            transformation.getId(),
+            transformation.getName(),
+            operatorFactory,
+            transformation.getOutputType(),
+            transformation.getParallelism()
+        );
+
+        streamGraph.addStreamNode(node);
+
+        StreamEdge edge = new StreamEdge(
+            transformation.getInput().getId(),
+            node.getId()
+        );
+
+        streamGraph.addStreamEdge(edge);
+    }
+
     // ===== Inner classes for operator factory wrappers =====
     
     /**
