@@ -290,9 +290,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待完成后填写)
+Status Note: Plan 26 全部 6 个 Phase 实现完成，51 个测试全部通过，设计文档已同步。closure audit 通过，有 2 个低风险覆盖缺口（Window 未走完整 executeWithGraphModel 端到端、pre-existing checkstyle 债务），均不阻塞 closure。
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: Oracle (independent closure audit, ses_1bb7129d4ffe3t2IHK7NJVMaUy)
+- Date: 2026-05-20
+- Verdict: **PASS** (all 11 gates PASS)
 - Evidence:
+  - Gate 1: `StreamTaskInvokable` + `executeWithGraphModel()` 实现单链执行，多链 `IllegalStateException`，`TestGraphModelExecution` 5 tests PASS
+  - Gate 2: `GraphModelCheckpointExecutor` + `CheckpointBarrierTracker` 实现完整生命周期，`TestCheckpointEndToEnd` 3 tests PASS
+  - Gate 3: `restoreFromSnapshot` / `restoreState` 实现状态恢复，`TestCheckpointRecovery` 9 tests PASS
+  - Gate 4: `StreamSinkOperator.processBarrier()` 调用 `preCommit`，`TestE2ETwoPhaseCommitSink` 3 tests PASS
+  - Gate 5: 恢复语义在 plan §Phase5 + 代码注释 + 测试中明确体现（at-least-once + Sink 2PC）
+  - Gate 6: Deferred items 均为 `out-of-scope improvement`，有 adjudication，无静默降级
+  - Gate 7: 5 个 E2E 测试类共 19 test methods 覆盖所有流程
+  - Gate 8: `checkpoint-design.md` §10 更新为"已对接"，`graph-model-design.md` §7+§7.4 反映单链约束，`README.md` 状态标记已更新
+  - Gate 9: `./mvnw compile -pl nop-stream` BUILD SUCCESS
+  - Gate 10: `./mvnw test -pl nop-stream` BUILD SUCCESS (51 tests, 0 failures)
+  - Gate 11: checkstyle 违规 4435 条均为 pre-existing（非 Plan 26 引入），代码规范符合项目基线
+- Concerns (non-blocking):
+  - Window/aggregate 未通过 `executeWithGraphModel()` 完整端到端测试（operator 级已覆盖，低风险覆盖缺口）
+  - nop-stream-core 有 pre-existing checkstyle 债务，建议作为独立 follow-up 跟踪
