@@ -69,20 +69,17 @@ public class TestGraphModelExecution {
     }
 
     @Test
-    public void testMultiChainPipelineRejected() {
+    public void testMultiChainPipelineExecutes() throws Exception {
+        List<Integer> results = new ArrayList<>();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.fromElements(1, 2, 3)
                 .keyBy(x -> x)
                 .map(x -> x)
-                .sink(v -> {
-                });
+                .sink(results::add);
 
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> env.executeWithGraphModel("testMultiChainRejected"));
-        assertNotNull(exception.getCause());
-        assertTrue(exception.getCause() instanceof IllegalStateException);
-        assertTrue(exception.getCause().getMessage().contains("Multi-chain"),
-                "Expected error message about multi-chain, got: " + exception.getCause().getMessage());
+        env.executeWithGraphModel("testMultiChainPipeline");
+
+        assertEquals(Arrays.asList(1, 2, 3), results);
     }
 
     @Test
@@ -105,5 +102,41 @@ public class TestGraphModelExecution {
 
         assertEquals(fastPathResults, graphModelResults);
         assertEquals(Arrays.asList(6, 8, 10), graphModelResults);
+    }
+
+    @Test
+    public void testKeyByMapSinkGraphModel() throws Exception {
+        List<String> results = new ArrayList<>();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromElements("a", "b", "c")
+                .keyBy(x -> x)
+                .map(String::toUpperCase)
+                .sink(results::add);
+
+        env.executeWithGraphModel("testKeyByMapSink");
+
+        assertEquals(Arrays.asList("A", "B", "C"), results);
+    }
+
+    @Test
+    public void testMultiChainMatchesFastPath() throws Exception {
+        List<Integer> fastPathResults = new ArrayList<>();
+        StreamExecutionEnvironment env1 = StreamExecutionEnvironment.getExecutionEnvironment();
+        env1.fromElements(1, 2, 3)
+                .keyBy(x -> x)
+                .map(x -> x * 10)
+                .sink(fastPathResults::add);
+        env1.execute("Fast Path Multi-Chain");
+
+        List<Integer> graphModelResults = new ArrayList<>();
+        StreamExecutionEnvironment env2 = StreamExecutionEnvironment.getExecutionEnvironment();
+        env2.fromElements(1, 2, 3)
+                .keyBy(x -> x)
+                .map(x -> x * 10)
+                .sink(graphModelResults::add);
+        env2.executeWithGraphModel("Graph Model Multi-Chain");
+
+        assertEquals(fastPathResults, graphModelResults);
+        assertEquals(Arrays.asList(10, 20, 30), graphModelResults);
     }
 }

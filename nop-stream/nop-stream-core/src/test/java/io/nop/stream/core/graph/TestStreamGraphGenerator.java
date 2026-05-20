@@ -8,6 +8,7 @@
 package io.nop.stream.core.graph;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
@@ -18,6 +19,7 @@ import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
+import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -224,6 +226,50 @@ public class TestStreamGraphGenerator {
         assertEquals(1, sourceEdges.size());
         assertNotNull(sourceEdges.get(0).getPartitioner());
         assertEquals(partition.getId(), sourceEdges.get(0).getTargetId());
+    }
+
+    @Test
+    public void testTimestampsAndWatermarksTransformation() {
+        SourceTransformation<String> source = createSourceTransformation("Source", 2);
+        WatermarkStrategy<String> strategy = WatermarkStrategy.<String>forMonotonousTimestamps();
+        TimestampsAndWatermarksTransformation<String> tsTransform =
+            new TimestampsAndWatermarksTransformation<>("Timestamps/Watermarks", createStringTypeInformation(), 2, source, strategy);
+        OneInputTransformation<String, String> map = createOneInputTransformation(tsTransform, "Map", 2);
+
+        StreamGraph streamGraph = generator.generate(Collections.singletonList(map));
+
+        assertNotNull(streamGraph);
+        assertEquals(3, streamGraph.getStreamNodes().size());
+
+        assertNotNull(streamGraph.getStreamNode(source.getId()));
+        assertNotNull(streamGraph.getStreamNode(tsTransform.getId()));
+        assertNotNull(streamGraph.getStreamNode(map.getId()));
+
+        verifyEdge(streamGraph, source.getId(), tsTransform.getId());
+        verifyEdge(streamGraph, tsTransform.getId(), map.getId());
+
+        StreamNode tsNode = streamGraph.getStreamNode(tsTransform.getId());
+        assertEquals("Timestamps/Watermarks", tsNode.getName());
+        assertEquals(2, tsNode.getParallelism());
+    }
+
+    @Test
+    public void testTimestampsAndWatermarksChainWithSink() {
+        SourceTransformation<String> source = createSourceTransformation("Source", 2);
+        WatermarkStrategy<String> strategy = WatermarkStrategy.<String>forMonotonousTimestamps();
+        TimestampsAndWatermarksTransformation<String> tsTransform =
+            new TimestampsAndWatermarksTransformation<>("Timestamps/Watermarks", createStringTypeInformation(), 2, source, strategy);
+        SinkTransformation<String> sink = createSinkTransformation(tsTransform, "Sink", 2);
+
+        StreamGraph streamGraph = generator.generate(Collections.singletonList(sink));
+
+        assertNotNull(streamGraph);
+        assertEquals(3, streamGraph.getStreamNodes().size());
+        assertEquals(1, streamGraph.getSourceIDs().size());
+        assertEquals(1, streamGraph.getSinkIDs().size());
+
+        verifyEdge(streamGraph, source.getId(), tsTransform.getId());
+        verifyEdge(streamGraph, tsTransform.getId(), sink.getId());
     }
 
     @Test
