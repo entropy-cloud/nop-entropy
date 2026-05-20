@@ -18,11 +18,18 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.nosql.core.INosqlCounter;
 import io.nop.nosql.core.INosqlHashOperations;
 import io.nop.nosql.core.INosqlListOperations;
+import io.nop.nosql.core.INosqlLock;
+import io.nop.nosql.core.INosqlQueue;
+import io.nop.nosql.core.INosqlRanking;
+import io.nop.nosql.core.INosqlRateLimiter;
 import io.nop.nosql.core.INosqlService;
+import io.nop.nosql.core.INosqlSessionStore;
 import io.nop.nosql.core.INosqlSetOperations;
 import io.nop.nosql.core.INosqlZSetOperations;
+import io.nop.nosql.core.RateLimiterConfig;
 import io.nop.nosql.core.script.RedisScripts;
 
 import java.util.Collection;
@@ -98,12 +105,12 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public boolean putIfAbsent(String key, Object value) {
-        return false;
+        return putIfAbsentAsync(key, value).toCompletableFuture().join();
     }
 
     @Override
     public Object getAndSet(String key, Object value) {
-        return null;
+        return getAndSetAsync(key, value).toCompletableFuture().join();
     }
 
     @Override
@@ -113,7 +120,7 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public boolean removeIfMatch(String key, Object object) {
-        return false;
+        return removeIfMatchAsync(key, object).toCompletableFuture().join();
     }
 
     @Override
@@ -238,7 +245,9 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public CompletionStage<String> putIfAbsentOrMatchExAsync(String key, String value, long timeout) {
-        return null;
+        return LettuceExecutor.evalScript(async(), RedisScripts.PUT_IF_ABSENT_OR_MATCH,
+                ScriptOutputType.VALUE, new String[]{key}, new Object[]{value, timeout})
+                .thenApply(v -> (String) v);
     }
 
     @Override
@@ -263,26 +272,56 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public INosqlHashOperations hashOps(String key) {
-        return null;
+        return new LettuceHashOperations(client, key);
     }
 
     @Override
     public INosqlListOperations listOps(String key) {
-        return null;
+        return new LettuceListOperations(client, key);
     }
 
     @Override
     public INosqlSetOperations setOps(String key) {
-        return null;
+        return new LettuceSetOperations(client, key);
     }
 
     @Override
     public INosqlZSetOperations zSetOps(String key) {
-        return null;
+        return new LettuceZSetOperations(client, key);
     }
 
     @Override
     public IMessageService getMessageService() {
         return null;
+    }
+
+    @Override
+    public INosqlQueue queue(String key) {
+        return new LettuceQueue(client, key);
+    }
+
+    @Override
+    public INosqlLock lock(String key) {
+        return new LettuceLock(client, key);
+    }
+
+    @Override
+    public INosqlRateLimiter rateLimiter(String key, RateLimiterConfig config) {
+        return new LettuceRateLimiter(client, key, config);
+    }
+
+    @Override
+    public INosqlRanking ranking(String key) {
+        return new LettuceRanking(client, key);
+    }
+
+    @Override
+    public INosqlCounter counter(String key) {
+        return new LettuceCounter(client, key);
+    }
+
+    @Override
+    public INosqlSessionStore sessionStore(String prefix) {
+        return new LettuceSessionStore(client, prefix);
     }
 }

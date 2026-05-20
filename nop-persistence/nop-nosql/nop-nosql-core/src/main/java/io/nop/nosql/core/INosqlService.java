@@ -19,4 +19,16 @@ public interface INosqlService extends INosqlKeyValueOperations {
     INosqlZSetOperations zSetOps(String key);
 
     IMessageService getMessageService();
+
+    INosqlQueue queue(String key);
+
+    INosqlLock lock(String key);
+
+    INosqlRateLimiter rateLimiter(String key, RateLimiterConfig config);
+
+    INosqlRanking ranking(String key);
+
+    INosqlCounter counter(String key);
+
+    INosqlSessionStore sessionStore(String prefix);
 }

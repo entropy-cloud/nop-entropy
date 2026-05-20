@@ -7,5 +7,44 @@
  */
 package io.nop.nosql.core;
 
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+
 public interface INosqlSetOperations {
+    CompletableFuture<Boolean> addAsync(Object value);
+
+    boolean add(Object value);
+
+    CompletableFuture<Boolean> removeAsync(Object value);
+
+    boolean remove(Object value);
+
+    CompletableFuture<Void> removeAllAsync(Collection<?> values);
+
+    void removeAll(Collection<?> values);
+
+    CompletableFuture<Boolean> containsAsync(Object value);
+
+    boolean contains(Object value);
+
+    CompletableFuture<Boolean> containsAllAsync(Collection<?> values);
+
+    boolean containsAll(Collection<?> values);
+
+    CompletableFuture<Long> sizeAsync();
+
+    long size();
+
+    CompletableFuture<Set<Object>> membersAsync();
+
+    Set<Object> members();
+
+    CompletableFuture<Object> randomMemberAsync();
+
+    Object randomMember();
+
+    CompletableFuture<Object> popAsync();
+
+    Object pop();
 }

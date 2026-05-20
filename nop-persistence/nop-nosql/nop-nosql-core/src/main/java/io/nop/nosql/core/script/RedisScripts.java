@@ -20,4 +20,8 @@ public interface RedisScripts {
     }
 
     DigestedText REMOVE_IF_MATCH = loadScript("classpath:/nop/redis/remove_if_match.lua");
+    DigestedText RATE_LIMIT = loadScript("classpath:/nop/redis/rate_limit.lua");
+    DigestedText GET_AND_EXPIRE = loadScript("classpath:/nop/redis/get_and_expire.lua");
+    DigestedText GET_AND_SET = loadScript("classpath:/nop/redis/get_and_set.lua");
+    DigestedText PUT_IF_ABSENT_OR_MATCH = loadScript("classpath:/nop/redis/put_if_absent_or_match.lua");
 }
