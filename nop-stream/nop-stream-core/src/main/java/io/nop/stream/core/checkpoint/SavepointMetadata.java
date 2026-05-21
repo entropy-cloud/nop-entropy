@@ -58,8 +58,8 @@ public class SavepointMetadata implements Serializable {
         return new SavepointMetadata(
                 checkpoint.getCheckpointId(),
                 checkpoint.getCompletedTimestamp(),
-                String.valueOf(checkpoint.getJobId()),
-                String.valueOf(checkpoint.getPipelineId()),
+                checkpoint.getJobId(),
+                checkpoint.getPipelineId(),
                 operatorCount,
                 keyedCount
         );

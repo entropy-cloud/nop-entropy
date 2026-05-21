@@ -21,13 +21,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestCompletedCheckpoint {
 
+    private static final TaskLocation LOC_1 = new TaskLocation("1", "1", "v1", 1);
+    private static final TaskLocation LOC_2 = new TaskLocation("1", "1", "v2", 2);
+
     private CompletedCheckpoint checkpoint;
 
     @BeforeEach
     void setUp() {
         checkpoint = CompletedCheckpoint.builder()
-                .jobId(1L)
-                .pipelineId(1)
+                .jobId("1")
+                .pipelineId("1")
                 .checkpointId(100L)
                 .triggerTimestamp(1000L)
                 .completedTimestamp(2000L)
@@ -37,8 +40,8 @@ class TestCompletedCheckpoint {
 
     @Test
     void testBuilder() {
-        assertEquals(1L, checkpoint.getJobId());
-        assertEquals(1, checkpoint.getPipelineId());
+        assertEquals("1", checkpoint.getJobId());
+        assertEquals("1", checkpoint.getPipelineId());
         assertEquals(100L, checkpoint.getCheckpointId());
         assertEquals(1000L, checkpoint.getTriggerTimestamp());
         assertEquals(2000L, checkpoint.getCompletedTimestamp());
@@ -47,20 +50,20 @@ class TestCompletedCheckpoint {
 
     @Test
     void testTaskStates() {
-        TaskStateSnapshot state1 = TaskStateSnapshot.builder(1L)
+        TaskStateSnapshot state1 = TaskStateSnapshot.builder(LOC_1)
                 .putOperatorState("op1", "data1".getBytes())
                 .build();
-        TaskStateSnapshot state2 = TaskStateSnapshot.builder(2L)
+        TaskStateSnapshot state2 = TaskStateSnapshot.builder(LOC_2)
                 .putOperatorState("op2", "data2".getBytes())
                 .build();
 
-        checkpoint.addTaskState(1L, state1);
-        checkpoint.addTaskState(2L, state2);
+        checkpoint.addTaskState(LOC_1, state1);
+        checkpoint.addTaskState(LOC_2, state2);
 
         assertEquals(2, checkpoint.getTaskCount());
-        assertEquals(state1, checkpoint.getTaskState(1L));
-        assertEquals(state2, checkpoint.getTaskState(2L));
-        assertNull(checkpoint.getTaskState(999L));
+        assertEquals(state1, checkpoint.getTaskState(LOC_1));
+        assertEquals(state2, checkpoint.getTaskState(LOC_2));
+        assertNull(checkpoint.getTaskState(new TaskLocation("1", "1", "v999", 999)));
     }
 
     @Test
@@ -79,11 +82,11 @@ class TestCompletedCheckpoint {
     void testEstimateSize() {
         assertEquals(0, checkpoint.estimateSize());
 
-        TaskStateSnapshot state = TaskStateSnapshot.builder(1L)
+        TaskStateSnapshot state = TaskStateSnapshot.builder(LOC_1)
                 .putOperatorState("op1", new byte[100])
                 .putKeyedState("key1", new byte[50])
                 .build();
-        checkpoint.addTaskState(1L, state);
+        checkpoint.addTaskState(LOC_1, state);
 
         assertEquals(150, checkpoint.estimateSize());
     }
@@ -91,8 +94,8 @@ class TestCompletedCheckpoint {
     @Test
     void testEqualsAndHashCode() {
         CompletedCheckpoint other = CompletedCheckpoint.builder()
-                .jobId(1L)
-                .pipelineId(1)
+                .jobId("1")
+                .pipelineId("1")
                 .checkpointId(100L)
                 .triggerTimestamp(1000L)
                 .completedTimestamp(2000L)
@@ -106,16 +109,16 @@ class TestCompletedCheckpoint {
     @Test
     void testToString() {
         String str = checkpoint.toString();
-        assertTrue(str.contains("jobId=1"));
+        assertTrue(str.contains("jobId='1'"));
         assertTrue(str.contains("checkpointId=100"));
     }
 
     @Test
     void testSerialization() throws Exception {
-        TaskStateSnapshot state = TaskStateSnapshot.builder(1L)
+        TaskStateSnapshot state = TaskStateSnapshot.builder(LOC_1)
                 .putOperatorState("op1", "data".getBytes())
                 .build();
-        checkpoint.addTaskState(1L, state);
+        checkpoint.addTaskState(LOC_1, state);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);

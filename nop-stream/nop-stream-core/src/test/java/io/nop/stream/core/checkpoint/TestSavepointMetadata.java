@@ -17,6 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestSavepointMetadata {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "1", "v0", 0);
+
     @Test
     void testJsonRoundTrip() {
         SavepointMetadata metadata = new SavepointMetadata(
@@ -38,18 +40,18 @@ class TestSavepointMetadata {
 
     @Test
     void testFromCompletedCheckpoint() {
-        TaskStateSnapshot state = TaskStateSnapshot.builder(0L)
+        TaskStateSnapshot state = TaskStateSnapshot.builder(LOC_0)
                 .putOperatorState("operator-0", "opData".getBytes())
                 .putOperatorState("custom", "customData".getBytes())
                 .putKeyedState("keyed-state", "keyedData".getBytes())
                 .build();
 
-        Map<Long, TaskStateSnapshot> taskStates = new HashMap<>();
-        taskStates.put(0L, state);
+        Map<TaskLocation, TaskStateSnapshot> taskStates = new HashMap<>();
+        taskStates.put(LOC_0, state);
 
         CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
-                .jobId(1L)
-                .pipelineId(1)
+                .jobId("1")
+                .pipelineId("1")
                 .checkpointId(5L)
                 .triggerTimestamp(1000L)
                 .completedTimestamp(2000L)
@@ -70,8 +72,8 @@ class TestSavepointMetadata {
     @Test
     void testFromEmptyCheckpoint() {
         CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
-                .jobId(2L)
-                .pipelineId(3)
+                .jobId("2")
+                .pipelineId("3")
                 .checkpointId(10L)
                 .triggerTimestamp(1000L)
                 .completedTimestamp(2000L)

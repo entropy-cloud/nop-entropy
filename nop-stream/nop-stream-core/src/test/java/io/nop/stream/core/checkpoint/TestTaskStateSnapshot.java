@@ -19,16 +19,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestTaskStateSnapshot {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("job-1", "1", "v0", 0);
+    private static final TaskLocation LOC_12345 = new TaskLocation("job-1", "1", "v0", 12345);
+    private static final TaskLocation LOC_777 = new TaskLocation("job-1", "1", "v0", 777);
+    private static final TaskLocation LOC_999 = new TaskLocation("job-1", "1", "v0", 999);
+
     private TaskStateSnapshot snapshot;
 
     @BeforeEach
     void setUp() {
-        snapshot = new TaskStateSnapshot(12345L);
+        snapshot = new TaskStateSnapshot(LOC_12345);
     }
 
     @Test
     void testConstructor() {
-        assertEquals(12345L, snapshot.getTaskId());
+        assertEquals(12345, snapshot.getTaskId());
         assertTrue(snapshot.getOperatorStates().isEmpty());
         assertTrue(snapshot.getKeyedStates().isEmpty());
     }
@@ -37,14 +42,14 @@ class TestTaskStateSnapshot {
     void testPutAndGetOperatorState() {
         byte[] state1 = "operator-state-1".getBytes();
         byte[] state2 = "operator-state-2".getBytes();
-        
+
         snapshot.putOperatorState("state1", state1);
         snapshot.putOperatorState("state2", state2);
-        
+
         assertArrayEquals(state1, snapshot.getOperatorState("state1"));
         assertArrayEquals(state2, snapshot.getOperatorState("state2"));
         assertNull(snapshot.getOperatorState("nonexistent"));
-        
+
         assertEquals(2, snapshot.getOperatorStates().size());
     }
 
@@ -52,21 +57,21 @@ class TestTaskStateSnapshot {
     void testPutAndGetKeyedState() {
         byte[] state1 = "keyed-state-1".getBytes();
         byte[] state2 = "keyed-state-2".getBytes();
-        
+
         snapshot.putKeyedState("key1", state1);
         snapshot.putKeyedState("key2", state2);
-        
+
         assertArrayEquals(state1, snapshot.getKeyedState("key1"));
         assertArrayEquals(state2, snapshot.getKeyedState("key2"));
         assertNull(snapshot.getKeyedState("nonexistent"));
-        
+
         assertEquals(2, snapshot.getKeyedStates().size());
     }
 
     @Test
     void testIsEmpty() {
         assertTrue(snapshot.isEmpty());
-        
+
         snapshot.putOperatorState("state", "data".getBytes());
         assertFalse(snapshot.isEmpty());
     }
@@ -74,13 +79,13 @@ class TestTaskStateSnapshot {
     @Test
     void testGetStateCount() {
         assertEquals(0, snapshot.getStateCount());
-        
+
         snapshot.putOperatorState("op1", "data1".getBytes());
         assertEquals(1, snapshot.getStateCount());
-        
+
         snapshot.putKeyedState("key1", "data2".getBytes());
         assertEquals(2, snapshot.getStateCount());
-        
+
         snapshot.putKeyedState("key2", "data3".getBytes());
         assertEquals(3, snapshot.getStateCount());
     }
@@ -88,21 +93,21 @@ class TestTaskStateSnapshot {
     @Test
     void testEstimateSize() {
         assertEquals(0, snapshot.estimateSize());
-        
+
         byte[] data1 = new byte[100];
         byte[] data2 = new byte[200];
-        
+
         snapshot.putOperatorState("op1", data1);
         assertEquals(100, snapshot.estimateSize());
-        
+
         snapshot.putKeyedState("key1", data2);
         assertEquals(300, snapshot.estimateSize());
     }
 
     @Test
     void testEmptyFactory() {
-        TaskStateSnapshot empty = TaskStateSnapshot.empty(999L);
-        assertEquals(999L, empty.getTaskId());
+        TaskStateSnapshot empty = TaskStateSnapshot.empty(LOC_999);
+        assertEquals(999, empty.getTaskId());
         assertTrue(empty.isEmpty());
     }
 
@@ -110,13 +115,13 @@ class TestTaskStateSnapshot {
     void testBuilder() {
         byte[] opState = "operator".getBytes();
         byte[] keyState = "keyed".getBytes();
-        
-        TaskStateSnapshot built = TaskStateSnapshot.builder(777L)
+
+        TaskStateSnapshot built = TaskStateSnapshot.builder(LOC_777)
                 .putOperatorState("op1", opState)
                 .putKeyedState("key1", keyState)
                 .build();
-        
-        assertEquals(777L, built.getTaskId());
+
+        assertEquals(777, built.getTaskId());
         assertArrayEquals(opState, built.getOperatorState("op1"));
         assertArrayEquals(keyState, built.getKeyedState("key1"));
     }
@@ -125,16 +130,16 @@ class TestTaskStateSnapshot {
     void testSerialization() throws Exception {
         snapshot.putOperatorState("op1", "operator-data".getBytes());
         snapshot.putKeyedState("key1", "keyed-data".getBytes());
-        
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(snapshot);
         oos.close();
-        
+
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         ObjectInputStream ois = new ObjectInputStream(bais);
         TaskStateSnapshot deserialized = (TaskStateSnapshot) ois.readObject();
-        
+
         assertEquals(snapshot.getTaskId(), deserialized.getTaskId());
         assertArrayEquals(snapshot.getOperatorState("op1"), deserialized.getOperatorState("op1"));
         assertArrayEquals(snapshot.getKeyedState("key1"), deserialized.getKeyedState("key1"));

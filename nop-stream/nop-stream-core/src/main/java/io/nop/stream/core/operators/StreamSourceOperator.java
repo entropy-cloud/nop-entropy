@@ -10,12 +10,16 @@ package io.nop.stream.core.operators;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
+import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -31,12 +35,24 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
     private static final long serialVersionUID = 1L;
 
+    public static final String SOURCE_OFFSET_KEY = "source-offset";
+
     private final SourceFunction<OUT> sourceFunction;
 
     private volatile boolean isRunning = true;
 
+    private transient volatile CheckpointBarrierTracker barrierTracker;
+
     public StreamSourceOperator(SourceFunction<OUT> sourceFunction) {
         this.sourceFunction = sourceFunction;
+    }
+
+    public void setBarrierTracker(CheckpointBarrierTracker tracker) {
+        this.barrierTracker = tracker;
+    }
+
+    public CheckpointBarrierTracker getBarrierTracker() {
+        return barrierTracker;
     }
 
     /**
@@ -61,11 +77,13 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
             @Override
             public void collect(OUT element) {
+                injectPendingBarrier();
                 output.collect(new StreamRecord<>(element));
             }
 
             @Override
             public void collectWithTimestamp(OUT element, long timestamp) {
+                injectPendingBarrier();
                 output.collect(new StreamRecord<>(element, timestamp));
             }
 
@@ -87,6 +105,19 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
         isRunning = true;
         sourceFunction.run(ctx);
+    }
+
+    private void injectPendingBarrier() {
+        if (barrierTracker != null) {
+            CheckpointBarrier barrier = barrierTracker.pollPendingBarrier();
+            if (barrier != null) {
+                try {
+                    injectBarrier(barrier);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to inject pending barrier", e);
+                }
+            }
+        }
     }
 
     @Override
@@ -113,6 +144,11 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     @Override
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
+        if (sourceFunction instanceof ReplayableSourceFunction) {
+            long offset = ((ReplayableSourceFunction<?>) sourceFunction).getCurrentOffset();
+            result.putOperatorState(SOURCE_OFFSET_KEY,
+                    String.valueOf(offset).getBytes(StandardCharsets.UTF_8));
+        }
         if (sourceFunction instanceof CheckpointedSourceFunction) {
             ((CheckpointedSourceFunction<?>) sourceFunction).snapshotState(context.getCheckpointId());
         }
@@ -122,8 +158,15 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     @Override
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
+        if (sourceFunction instanceof ReplayableSourceFunction && snapshotResult != null) {
+            byte[] offsetBytes = snapshotResult.getOperatorStates().get(SOURCE_OFFSET_KEY);
+            if (offsetBytes != null) {
+                long offset = Long.parseLong(new String(offsetBytes, StandardCharsets.UTF_8));
+                ((ReplayableSourceFunction<?>) sourceFunction).seek(offset);
+            }
+        }
         if (sourceFunction instanceof CheckpointedSourceFunction) {
-            TaskStateSnapshot taskState = new TaskStateSnapshot(0L);
+            TaskStateSnapshot taskState = new TaskStateSnapshot(new TaskLocation("", "", "", 0));
             if (snapshotResult != null) {
                 for (Map.Entry<String, byte[]> entry : snapshotResult.getOperatorStates().entrySet()) {
                     taskState.putOperatorState(entry.getKey(), entry.getValue());

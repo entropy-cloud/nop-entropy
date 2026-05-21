@@ -32,6 +32,8 @@ public class CheckpointConfig implements Serializable {
     private int maxRetainedCheckpoints = DEFAULT_MAX_RETAINED_CHECKPOINTS;
     private String storageType = "local";
     private Map<String, String> storageConfig = new HashMap<>();
+    private String jobId = java.util.UUID.randomUUID().toString();
+    private String pipelineId = "1";
 
     public CheckpointConfig() {
     }
@@ -108,6 +110,22 @@ public class CheckpointConfig implements Serializable {
         return storageConfig.get(key);
     }
 
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
+
+    public String getPipelineId() {
+        return pipelineId;
+    }
+
+    public void setPipelineId(String pipelineId) {
+        this.pipelineId = pipelineId;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -157,6 +175,16 @@ public class CheckpointConfig implements Serializable {
 
         public Builder storageProperty(String key, String value) {
             config.setStorageProperty(key, value);
+            return this;
+        }
+
+        public Builder jobId(String jobId) {
+            config.setJobId(jobId);
+            return this;
+        }
+
+        public Builder pipelineId(String pipelineId) {
+            config.setPipelineId(pipelineId);
             return this;
         }
 

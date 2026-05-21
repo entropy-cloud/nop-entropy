@@ -8,110 +8,146 @@
 package io.nop.stream.core.execution;
 
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
-import io.nop.stream.core.checkpoint.CheckpointType;
-import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
-import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-/**
- * Tracks checkpoint barriers through a single-chain pipeline.
- *
- * <p>When a checkpoint is triggered, this tracker injects a barrier into the source operator.
- * As the barrier propagates through each operator, operators snapshot their state and report
- * back via {@link #acknowledgeOperator(int, OperatorSnapshotResult)}. When all operators have
- * acknowledged, the tracker invokes the completion callback with the aggregated
- * {@link TaskStateSnapshot}.
- *
- * <p>This class bridges the checkpoint coordinator (in runtime module) with the execution
- * engine (in core module) without creating a direct dependency between them.
- *
- * @see io.nop.stream.core.operators.AbstractStreamOperator#processBarrier
- */
 @Internal
 public class CheckpointBarrierTracker {
 
-    private final long taskId;
+    private final TaskLocation taskLocation;
     private final List<StreamOperator<?>> operators;
+    private final List<OperatorStateMapping> stateMappings;
     private final Consumer<TaskStateSnapshot> completionCallback;
 
-    private long currentCheckpointId = -1;
-    private int operatorsToAck = 0;
-    private TaskStateSnapshot currentSnapshot;
+    private volatile long currentCheckpointId = -1;
+    private final AtomicInteger operatorsToAck = new AtomicInteger(0);
+    private volatile TaskStateSnapshot currentSnapshot;
+    private volatile CheckpointBarrier pendingBarrier;
 
-    public CheckpointBarrierTracker(long taskId,
+    public CheckpointBarrierTracker(TaskLocation taskLocation,
                                     List<StreamOperator<?>> operators,
+                                    List<OperatorStateMapping> stateMappings,
                                     Consumer<TaskStateSnapshot> completionCallback) {
-        this.taskId = taskId;
+        this.taskLocation = taskLocation;
         this.operators = operators;
+        this.stateMappings = stateMappings;
         this.completionCallback = completionCallback;
     }
 
-    /**
-     * Triggers a checkpoint by injecting a barrier into the source operator.
-     *
-     * @param checkpointId the checkpoint ID
-     * @param timestamp    the checkpoint timestamp
-     * @param type         the checkpoint type
-     */
-    public void triggerCheckpoint(long checkpointId, long timestamp, CheckpointType type) throws Exception {
-        this.currentCheckpointId = checkpointId;
-        this.currentSnapshot = new TaskStateSnapshot(taskId, checkpointId);
-        this.operatorsToAck = 0;
+    public CheckpointBarrierTracker(TaskLocation taskLocation,
+                                    List<StreamOperator<?>> operators,
+                                    Consumer<TaskStateSnapshot> completionCallback) {
+        this(taskLocation, operators, Collections.emptyList(), completionCallback);
+    }
 
-        // Count operators that need to ACK
+    public synchronized boolean triggerCheckpoint(long checkpointId, long timestamp, CheckpointType type) throws Exception {
+        if (operatorsToAck.get() > 0) {
+            return false;
+        }
+
+        this.currentCheckpointId = checkpointId;
+        this.currentSnapshot = new TaskStateSnapshot(taskLocation, checkpointId);
+
+        int count = 0;
         for (StreamOperator<?> op : operators) {
             if (op instanceof AbstractStreamOperator) {
-                operatorsToAck++;
+                count++;
+            }
+        }
+        this.operatorsToAck.set(count);
+        this.pendingBarrier = new CheckpointBarrier(checkpointId, timestamp, type);
+
+        if (!operators.isEmpty()) {
+            StreamOperator<?> head = operators.get(0);
+            if (head instanceof StreamSourceOperator) {
+                ((StreamSourceOperator<?>) head).setBarrierTracker(this);
+                CheckpointBarrier barrier = this.pendingBarrier;
+                if (barrier != null) {
+                    this.pendingBarrier = null;
+                    ((StreamSourceOperator<?>) head).injectBarrier(barrier);
+                }
             }
         }
 
-        // Inject barrier into source
-        StreamOperator<?> head = operators.get(0);
-        if (head instanceof StreamSourceOperator) {
-            CheckpointBarrier barrier = new CheckpointBarrier(checkpointId, timestamp, type);
-            ((StreamSourceOperator<?>) head).injectBarrier(barrier);
+        return true;
+    }
+
+    public synchronized CheckpointBarrier pollPendingBarrier() {
+        CheckpointBarrier barrier = this.pendingBarrier;
+        if (barrier != null) {
+            this.pendingBarrier = null;
+        }
+        return barrier;
+    }
+
+    public boolean hasPendingBarrier() {
+        return pendingBarrier != null;
+    }
+
+    public void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
+        TaskStateSnapshot snap = this.currentSnapshot;
+        if (snapshot != null && snap != null) {
+            String opStateKey = getOperatorStateKey(operatorIndex);
+            if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
+                for (Map.Entry<String, byte[]> entry : snapshot.getOperatorStates().entrySet()) {
+                    snap.getOperatorStates().put(opStateKey + "-" + entry.getKey(), entry.getValue());
+                }
+            }
+            String keyedKey = getKeyedStateStorageKey(operatorIndex);
+            if (keyedKey != null && snapshot.getKeyedStates() != null) {
+                for (Map.Entry<String, byte[]> entry : snapshot.getKeyedStates().entrySet()) {
+                    snap.getKeyedStates().put(keyedKey + "-" + entry.getKey(), entry.getValue());
+                }
+            } else if (snapshot.getKeyedStates() != null) {
+                for (Map.Entry<String, byte[]> entry : snapshot.getKeyedStates().entrySet()) {
+                    snap.getKeyedStates().put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        if (operatorsToAck.decrementAndGet() <= 0) {
+            if (completionCallback != null && snap != null) {
+                completionCallback.accept(snap);
+            }
         }
     }
 
-    /**
-     * Called by an operator when it has completed its snapshot.
-     *
-     * @param operatorIndex the index of the operator in the chain
-     * @param snapshot       the snapshot result from the operator
-     */
-    public void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
-        if (snapshot != null) {
-            String stateKey = "operator-" + operatorIndex;
-            if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
-                for (Map.Entry<String, byte[]> entry : snapshot.getOperatorStates().entrySet()) {
-                    currentSnapshot.getOperatorStates().put(stateKey + "-" + entry.getKey(), entry.getValue());
-                }
-            }
-            if (snapshot.getKeyedStates() != null) {
-                for (Map.Entry<String, byte[]> entry : snapshot.getKeyedStates().entrySet()) {
-                    currentSnapshot.getKeyedStates().put(entry.getKey(), entry.getValue());
+    private String getOperatorStateKey(int operatorIndex) {
+        if (stateMappings != null) {
+            for (OperatorStateMapping mapping : stateMappings) {
+                if (mapping.getOperatorIndex() == operatorIndex) {
+                    return mapping.getOperatorStateKey();
                 }
             }
         }
+        return "operator-" + operatorIndex;
+    }
 
-        operatorsToAck--;
-        if (operatorsToAck <= 0) {
-            // All operators acknowledged
-            if (completionCallback != null) {
-                completionCallback.accept(currentSnapshot);
+    private String getKeyedStateStorageKey(int operatorIndex) {
+        if (stateMappings != null) {
+            for (OperatorStateMapping mapping : stateMappings) {
+                if (mapping.getOperatorIndex() == operatorIndex) {
+                    return mapping.hasKeyedState() ? mapping.getKeyedStateStorageKey() : null;
+                }
             }
         }
+        return null;
+    }
+
+    public TaskLocation getTaskLocation() {
+        return taskLocation;
     }
 
     public long getTaskId() {
-        return taskId;
+        return taskLocation != null ? taskLocation.getTaskIndex() : -1;
     }
 
     public long getCurrentCheckpointId() {

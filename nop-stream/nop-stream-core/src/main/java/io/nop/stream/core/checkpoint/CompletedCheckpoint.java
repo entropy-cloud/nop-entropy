@@ -17,25 +17,25 @@ import java.util.Objects;
 @DataBean
 public class CompletedCheckpoint implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    private final long jobId;
-    private final int pipelineId;
+    private final String jobId;
+    private final String pipelineId;
     private final long checkpointId;
     private final long triggerTimestamp;
     private final long completedTimestamp;
     private final CheckpointType checkpointType;
-    private final Map<Long, TaskStateSnapshot> taskStates;
+    private final Map<TaskLocation, TaskStateSnapshot> taskStates;
     private boolean restored;
 
     public CompletedCheckpoint(
-            long jobId,
-            int pipelineId,
+            String jobId,
+            String pipelineId,
             long checkpointId,
             long triggerTimestamp,
             long completedTimestamp,
             CheckpointType checkpointType,
-            Map<Long, TaskStateSnapshot> taskStates) {
+            Map<TaskLocation, TaskStateSnapshot> taskStates) {
         this.jobId = jobId;
         this.pipelineId = pipelineId;
         this.checkpointId = checkpointId;
@@ -46,11 +46,11 @@ public class CompletedCheckpoint implements Serializable {
         this.restored = false;
     }
 
-    public long getJobId() {
+    public String getJobId() {
         return jobId;
     }
 
-    public int getPipelineId() {
+    public String getPipelineId() {
         return pipelineId;
     }
 
@@ -70,16 +70,16 @@ public class CompletedCheckpoint implements Serializable {
         return checkpointType;
     }
 
-    public Map<Long, TaskStateSnapshot> getTaskStates() {
+    public Map<TaskLocation, TaskStateSnapshot> getTaskStates() {
         return taskStates;
     }
 
-    public TaskStateSnapshot getTaskState(long taskId) {
-        return taskStates.get(taskId);
+    public TaskStateSnapshot getTaskState(TaskLocation taskLocation) {
+        return taskStates.get(taskLocation);
     }
 
-    public void addTaskState(long taskId, TaskStateSnapshot state) {
-        taskStates.put(taskId, state);
+    public void addTaskState(TaskLocation taskLocation, TaskStateSnapshot state) {
+        taskStates.put(taskLocation, state);
     }
 
     public boolean isRestored() {
@@ -111,11 +111,11 @@ public class CompletedCheckpoint implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CompletedCheckpoint that = (CompletedCheckpoint) o;
-        return jobId == that.jobId &&
-                pipelineId == that.pipelineId &&
-                checkpointId == that.checkpointId &&
+        return checkpointId == that.checkpointId &&
                 triggerTimestamp == that.triggerTimestamp &&
                 completedTimestamp == that.completedTimestamp &&
+                Objects.equals(jobId, that.jobId) &&
+                Objects.equals(pipelineId, that.pipelineId) &&
                 checkpointType == that.checkpointType &&
                 Objects.equals(taskStates, that.taskStates);
     }
@@ -128,8 +128,8 @@ public class CompletedCheckpoint implements Serializable {
     @Override
     public String toString() {
         return "CompletedCheckpoint{" +
-                "jobId=" + jobId +
-                ", pipelineId=" + pipelineId +
+                "jobId='" + jobId + '\'' +
+                ", pipelineId='" + pipelineId + '\'' +
                 ", checkpointId=" + checkpointId +
                 ", triggerTimestamp=" + triggerTimestamp +
                 ", completedTimestamp=" + completedTimestamp +
@@ -144,20 +144,20 @@ public class CompletedCheckpoint implements Serializable {
     }
 
     public static class Builder {
-        private long jobId;
-        private int pipelineId;
+        private String jobId;
+        private String pipelineId;
         private long checkpointId;
         private long triggerTimestamp;
         private long completedTimestamp;
         private CheckpointType checkpointType = CheckpointType.CHECKPOINT;
-        private Map<Long, TaskStateSnapshot> taskStates = new HashMap<>();
+        private Map<TaskLocation, TaskStateSnapshot> taskStates = new HashMap<>();
 
-        public Builder jobId(long jobId) {
+        public Builder jobId(String jobId) {
             this.jobId = jobId;
             return this;
         }
 
-        public Builder pipelineId(int pipelineId) {
+        public Builder pipelineId(String pipelineId) {
             this.pipelineId = pipelineId;
             return this;
         }
@@ -182,12 +182,12 @@ public class CompletedCheckpoint implements Serializable {
             return this;
         }
 
-        public Builder addTaskState(long taskId, TaskStateSnapshot state) {
-            this.taskStates.put(taskId, state);
+        public Builder addTaskState(TaskLocation taskLocation, TaskStateSnapshot state) {
+            this.taskStates.put(taskLocation, state);
             return this;
         }
 
-        public Builder taskStates(Map<Long, TaskStateSnapshot> taskStates) {
+        public Builder taskStates(Map<TaskLocation, TaskStateSnapshot> taskStates) {
             this.taskStates = taskStates != null ? taskStates : new HashMap<>();
             return this;
         }
