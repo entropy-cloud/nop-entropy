@@ -28,44 +28,56 @@ public class MultiMessageSubscription implements IMessageSubscription {
 
     @Override
     public void cancel() {
-        RuntimeException err = null;
+        RuntimeException first = null;
         for (IMessageSubscription subscription : subscriptions) {
             try {
                 subscription.cancel();
             } catch (RuntimeException e) {
-                err = e;
+                if (first == null) {
+                    first = e;
+                } else {
+                    first.addSuppressed(e);
+                }
             }
         }
-        if (err != null)
-            throw err;
+        if (first != null)
+            throw first;
     }
 
     @Override
     public void suspend() {
-        RuntimeException err = null;
+        RuntimeException first = null;
         for (IMessageSubscription subscription : subscriptions) {
             try {
                 subscription.suspend();
             } catch (RuntimeException e) {
-                err = e;
+                if (first == null) {
+                    first = e;
+                } else {
+                    first.addSuppressed(e);
+                }
             }
         }
-        if (err != null)
-            throw err;
+        if (first != null)
+            throw first;
     }
 
     @Override
     public void resume() {
-        RuntimeException err = null;
+        RuntimeException first = null;
 
         for (IMessageSubscription subscription : subscriptions) {
             try {
                 subscription.resume();
             } catch (RuntimeException e) {
-                err = e;
+                if (first == null) {
+                    first = e;
+                } else {
+                    first.addSuppressed(e);
+                }
             }
         }
-        if (err != null)
-            throw err;
+        if (first != null)
+            throw first;
     }
 }
