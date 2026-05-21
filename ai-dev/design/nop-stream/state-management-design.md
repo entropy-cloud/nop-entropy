@@ -13,8 +13,8 @@
 **选了什么**：纯内存 HashMap + Nop 平台通用 JSON 序列化（`JsonTool`）。
 
 **为什么不用 Flink 的方案**：
-- Flink 的 TypeSerializer 体系（30+ 序列化器）是为跨 JVM 传输和磁盘存储优化的二进制格式，nop-stream 单 JVM 运行不需要
-- Flink 的 RocksDB 后端是为超大状态设计的（TB 级），nop-stream 定位于单机 ETL 场景
+- Flink 的 TypeSerializer 体系（30+ 序列化器）是为跨 JVM 传输和磁盘存储优化的二进制格式，nop-stream 当前运行时不需要跨进程序列化
+- Flink 的 RocksDB 后端是为超大状态设计的（TB 级），nop-stream 定位于中等规模 ETL 场景
 - JSON 序列化利用 Nop 平台已有的 `JsonTool`，无需维护独立的序列化框架
 
 **代价**：
@@ -168,7 +168,7 @@ nop-stream 保留了 Flink 的 `TypeSerializer<T>` 接口，但大幅简化：
 | Schema Evolution | 支持（TypeSerializerSnapshot） | 有限（字段增删兼容） |
 | 适用场景 | 大规模分布式流处理 | 单机、中等数据量 |
 
-**设计判断**：nop-stream 定位于简化流处理，状态量通常在 GB 级别以下。JSON 序列化的性能损失在可接受范围内，换来了零序列化框架维护成本和与 Nop 平台的无缝集成。
+**设计判断**：nop-stream 定位于简化流处理，状态量通常在 GB 级别以下。JSON 序列化的性能损失在可接受范围内，换来了零序列化框架维护成本和与 Nop 平台的无缝集成。如果未来需要更高性能的序列化，可通过 `IStateBackend` 扩展点引入二进制序列化。
 
 ## 5. 内存模型与消耗控制
 

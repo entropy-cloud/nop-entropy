@@ -41,11 +41,7 @@ WindowedStream<T, K, W>          窗口化流
   └── transform(name, typeInfo, operator) → 唯一可用的入口
 ```
 
-**关键行为差异**：`WindowedStreamImpl` 的 `apply()`、`aggregate()`、`reduce()` 全部抛出 `UnsupportedOperationException`，提示"需要 nop-stream-runtime 模块的 WindowOperator"。这是因为 core 模块只定义 API 接口，不包含 WindowOperator 实现。实际使用时需要：
-1. 直接构造 `WindowOperator`（在 runtime 模块中）
-2. 通过 `WindowedStreamImpl.transform()` 将其包装为 `OneInputStreamOperator` 注册到 DataStream
-
-这种分层设计的原因：core 模块不依赖 runtime 模块，但 runtime 模块依赖 core。将 WindowOperator 的创建放在 runtime 模块保持了依赖方向的单向性。
+**关键行为**：`WindowedStreamImpl` 的 `apply()`、`aggregate()`、`reduce()` 当前抛出 `UnsupportedOperationException`。这是**实现缺口**，不是设计选择。需要 core 模块定义一个 `WindowOperatorFactory` 接口，runtime 模块提供实现，通过注册机制连接——保持 `runtime → core` 的依赖方向。详见 `component-roadmap.md` 阶段 2。
 
 ### 1.3 Transformation DAG
 

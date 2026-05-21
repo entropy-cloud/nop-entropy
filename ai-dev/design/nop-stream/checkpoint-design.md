@@ -2,7 +2,9 @@
 
 > Status: active
 > Created: 2026-05-19
+> Updated: 2026-05-21
 > Parent: `architecture.md` §3（执行模型）、`core-design.md` §3（状态管理）
+> See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 ## 1. 定位与目标
 
 nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一致性**保障。核心目标是实现端到端 exactly-once 语义：即使发生故障，每条记录的效果也**恰好出现一次**。
@@ -379,9 +381,47 @@ AbstractUdfStreamOperator.notifyCheckpointComplete(id)
 | 实现 | 存储方式 | 适用场景 |
 |---|---|---|
 | `LocalFileCheckpointStorage` | JSON 文件（目录结构：`{baseDir}/checkpoint-{jobId}-{pipelineId}-{checkpointId}.json`） | 单机开发测试 |
-| `JdbcCheckpointStorage` | JDBC 数据库表 | 生产环境、需要跨进程共享 |
+| `JdbcCheckpointStorage` | JDBC 数据库表（通过 `IJdbcTemplate` 多数据库适配） | 生产环境、需要跨进程共享 |
 
 两个实现都是 nop-stream-runtime 中的类，core 只定义接口。
+
+### 8.3 JdbcCheckpointStorage 多数据库设计
+
+#### 设计决策
+
+**选了什么**：`JdbcCheckpointStorage` 通过 Nop 平台的 `IJdbcTemplate` + `IDialect` 访问数据库，而非直接使用 `java.sql.Connection`。
+
+**为什么**：
+- `IJdbcTemplate` 封装了连接管理、事务管理、方言适配、分页——Nop 平台的 18 种方言（MySQL/PostgreSQL/Oracle/H2/DM/DB2/MariaDB/DuckDB 等）已通过 `.dialect.xml` 定义完毕
+- 同一存储实现自动适配所有数据库，无需为每种数据库写适配代码
+- `nop-batch-jdbc` 的 `JdbcBatchConsumerProvider` 已验证了这一模式
+
+**拒绝了什么**：
+- 直接 `DataSource.getConnection()` + 手写 SQL——违反 Nop 平台规范，维护成本高，只能支持 MySQL
+- `IOrmTemplate`（ORM）——checkpoint 存储只有一张简单表，不需要 ORM 的 session/cache 开销
+
+#### 依赖关系
+
+```
+JdbcCheckpointStorage
+  ├── IJdbcTemplate (NopIoC 注入)
+  ├── String querySpace (可配置，默认 "default")
+  └── 通过 IJdbcTemplate 获取 IDialect，自动适配数据库
+```
+
+#### 实现要求
+
+| 维度 | 当前（需替换） | 目标（正确） |
+|------|------------|------------|
+| 数据库访问 | `DataSource.getConnection()` | `IJdbcTemplate` 注入 |
+| SQL 构建 | 字符串拼接 | `SQL.begin()` 构建器 |
+| DDL | MySQL 专用（`AUTO_INCREMENT` 等） | `IDialect` 类型映射 + 方言感知 |
+| 分页 | `LIMIT 1` | `IJdbcTemplate.findPage()` |
+| 事务管理 | 手动 `commit/rollback` | `ITransactionTemplate.runInTransaction()` |
+| 表存在检查 | `INFORMATION_SCHEMA` | `IJdbcTemplate.existsTable()` |
+| ID 生成 | `AUTO_INCREMENT` | 应用侧生成（checkpointId 已有 AtomicLong） |
+
+参考实现模式：`nop-batch-jdbc` 的 `JdbcBatchConsumerProvider`（注入 `IJdbcTemplate`，通过 `getDialectForQuerySpace()` 获取方言，用 `SQL.begin()` 构建 SQL）。
 
 ## 9. 恢复流程
 
@@ -493,15 +533,16 @@ checkpoint 子系统**已通过图模型执行路径（`executeWithGraphModel()`
 
 ### 11.1 简化决策的理由
 
-- **单进程执行**：nop-stream 当前是单线程同步执行模型，不需要 RPC 通信
-- **无 key-group**：没有分布式重分布需求，状态按 Map 存储即可
-- **仅 aligned 模式**：unaligned 模式增加复杂度且主要解决高延迟场景，对 nop-stream 的目标场景（单机、低延迟）价值不大
-- **全量快照**：状态数据量小（内存中），全量快照足够快
+- **Coordinator 通信**：当前使用方法调用（同一进程内），但 Coordinator 接口设计为可扩展为 RPC
+- **无 key-group**：简化版不实现分布式状态重分布，状态按 Map 存储即可。如果未来需要，可通过 key-group 扩展
+- **仅 aligned 模式**：unaligned 模式增加复杂度且主要解决高延迟场景，对当前目标场景价值不大
+- **全量快照**：状态数据量小（内存中），全量快照足够快。增量快照为后续优化方向
 
 ## 12. 已知限制
 
-1. **未与执行引擎集成** — 所有组件已实现但未接入 execute()（详见 §10.2）
-2. **状态后端仅内存** — 故障恢复时如果进程重启，内存状态丢失，依赖持久化的 checkpoint 文件
-3. **无增量快照** — 每次全量序列化所有状态，状态量大时开销高
-4. **barrier 对齐可能阻塞** — 多输入场景下，如果一个输入的 barrier 延迟，其他输入的数据会被缓冲（当前实现中 BarrierAligner 仅记录 barrier 不缓冲数据，但实际的"对齐后处理"逻辑需要在集成时实现）
-5. **无 exactly-once source 支持** — 没有可回放的 Source 实现（如 Kafka consumer），无法实现 source 端的 offset 管理和重放
+1. **JdbcCheckpointStorage 仅支持 MySQL** — 当前实现直接使用 `java.sql.Connection` + MySQL 专用 DDL，需改为基于 `IJdbcTemplate` 的多数据库实现（详见 §8.3）
+2. **Barrier 注入线程安全问题** — 当前从独立 `ScheduledExecutorService` 线程注入 barrier，与 source 算子线程存在竞争。正确做法是让 barrier 作为数据流内的特殊元素注入
+3. **状态后端仅内存** — 故障恢复时如果进程重启，内存状态丢失，依赖持久化的 checkpoint 文件
+4. **无增量快照** — 每次全量序列化所有状态，状态量大时开销高
+5. **barrier 对齐可能阻塞** — 多输入场景下，如果一个输入的 barrier 延迟，其他输入的数据会被缓冲
+6. **无 exactly-once source 支持** — 没有可回放的 Source 实现（如 Kafka consumer），无法实现 source 端的 offset 管理和重放
