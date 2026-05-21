@@ -25,25 +25,29 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestPendingCheckpoint {
 
-    private Set<Long> tasksToAck;
+    private static final TaskLocation LOC_1 = new TaskLocation("1", "1", "v1", 1);
+    private static final TaskLocation LOC_2 = new TaskLocation("1", "1", "v2", 2);
+    private static final TaskLocation LOC_3 = new TaskLocation("1", "1", "v3", 3);
+
+    private Set<TaskLocation> tasksToAck;
     private PendingCheckpoint pending;
 
     @BeforeEach
     void setUp() {
         tasksToAck = new HashSet<>();
-        tasksToAck.add(1L);
-        tasksToAck.add(2L);
-        tasksToAck.add(3L);
+        tasksToAck.add(LOC_1);
+        tasksToAck.add(LOC_2);
+        tasksToAck.add(LOC_3);
 
         pending = new PendingCheckpoint(
-                1L, 1, 100L, System.currentTimeMillis(),
+                "1", "1", 100L, System.currentTimeMillis(),
                 CheckpointType.CHECKPOINT, tasksToAck);
     }
 
     @Test
     void testInitialState() {
-        assertEquals(1L, pending.getJobId());
-        assertEquals(1, pending.getPipelineId());
+        assertEquals("1", pending.getJobId());
+        assertEquals("1", pending.getPipelineId());
         assertEquals(100L, pending.getCheckpointId());
         assertEquals(CheckpointType.CHECKPOINT, pending.getCheckpointType());
         assertEquals(3, pending.getNumberOfTasks());
@@ -54,40 +58,40 @@ class TestPendingCheckpoint {
 
     @Test
     void testAcknowledgeTask() {
-        TaskStateSnapshot state = TaskStateSnapshot.builder(1L)
+        TaskStateSnapshot state = TaskStateSnapshot.builder(LOC_1)
                 .putOperatorState("op1", "data".getBytes())
                 .build();
 
-        pending.acknowledgeTask(1L, state);
+        pending.acknowledgeTask(LOC_1, state);
 
         assertEquals(1, pending.getNumberOfAcknowledgedTasks());
         assertEquals(2, pending.getNumberOfNotAcknowledgedTasks());
         assertFalse(pending.isFullyAcknowledged());
-        assertEquals(state, pending.getTaskStates().get(1L));
+        assertEquals(state, pending.getTaskStates().get(LOC_1));
     }
 
     @Test
     void testAllTasksAcknowledged() {
-        pending.acknowledgeTask(1L, TaskStateSnapshot.empty(1L));
+        pending.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
         assertFalse(pending.isFullyAcknowledged());
 
-        pending.acknowledgeTask(2L, TaskStateSnapshot.empty(2L));
+        pending.acknowledgeTask(LOC_2, TaskStateSnapshot.empty(LOC_2));
         assertFalse(pending.isFullyAcknowledged());
 
-        pending.acknowledgeTask(3L, TaskStateSnapshot.empty(3L));
+        pending.acknowledgeTask(LOC_3, TaskStateSnapshot.empty(LOC_3));
         assertTrue(pending.isFullyAcknowledged());
     }
 
     @Test
     void testToCompletedCheckpoint() {
-        pending.acknowledgeTask(1L, TaskStateSnapshot.empty(1L));
-        pending.acknowledgeTask(2L, TaskStateSnapshot.empty(2L));
-        pending.acknowledgeTask(3L, TaskStateSnapshot.empty(3L));
+        pending.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
+        pending.acknowledgeTask(LOC_2, TaskStateSnapshot.empty(LOC_2));
+        pending.acknowledgeTask(LOC_3, TaskStateSnapshot.empty(LOC_3));
 
         CompletedCheckpoint completed = pending.toCompletedCheckpoint();
 
-        assertEquals(1L, completed.getJobId());
-        assertEquals(1, completed.getPipelineId());
+        assertEquals("1", completed.getJobId());
+        assertEquals("1", completed.getPipelineId());
         assertEquals(100L, completed.getCheckpointId());
         assertEquals(CheckpointType.CHECKPOINT, completed.getCheckpointType());
         assertEquals(3, completed.getTaskCount());
@@ -99,9 +103,9 @@ class TestPendingCheckpoint {
 
         assertFalse(future.isDone());
 
-        pending.acknowledgeTask(1L, TaskStateSnapshot.empty(1L));
-        pending.acknowledgeTask(2L, TaskStateSnapshot.empty(2L));
-        pending.acknowledgeTask(3L, TaskStateSnapshot.empty(3L));
+        pending.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
+        pending.acknowledgeTask(LOC_2, TaskStateSnapshot.empty(LOC_2));
+        pending.acknowledgeTask(LOC_3, TaskStateSnapshot.empty(LOC_3));
 
         CompletedCheckpoint completed = future.get(1, TimeUnit.SECONDS);
         assertNotNull(completed);
@@ -128,7 +132,7 @@ class TestPendingCheckpoint {
     @Test
     void testAcknowledgeAfterDispose() {
         pending.dispose();
-        pending.acknowledgeTask(1L, TaskStateSnapshot.empty(1L));
+        pending.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
         assertEquals(0, pending.getNumberOfAcknowledgedTasks());
     }
 }

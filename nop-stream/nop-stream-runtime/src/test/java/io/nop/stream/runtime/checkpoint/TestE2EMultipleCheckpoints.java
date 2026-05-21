@@ -28,6 +28,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestE2EMultipleCheckpoints {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "0", "v0", 0);
+    private static final TaskLocation LOC_0_P1 = new TaskLocation("1", "1", "v0", 0);
+
     @TempDir
     Path tempDir;
 
@@ -35,7 +38,7 @@ class TestE2EMultipleCheckpoints {
 
     @AfterEach
     void teardown() throws Exception {
-        storage.deleteAllCheckpoints(1);
+        storage.deleteAllCheckpoints("1");
     }
 
     @Test
@@ -44,8 +47,8 @@ class TestE2EMultipleCheckpoints {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
-        CheckpointCoordinator coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
 
         try {
             List<Long> checkpointIds = new ArrayList<>();
@@ -56,12 +59,12 @@ class TestE2EMultipleCheckpoints {
                 long cpId = pending.getCheckpointId();
                 checkpointIds.add(cpId);
 
-                TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+                TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                         .checkpointId(cpId)
                         .putOperatorState("iteration", String.valueOf(i).getBytes())
                         .build();
 
-                coordinator.acknowledgeTask(0L, cpId, taskState);
+                coordinator.acknowledgeTask(LOC_0, cpId, taskState);
 
                 CompletedCheckpoint completed = pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
                 assertNotNull(completed);
@@ -76,7 +79,7 @@ class TestE2EMultipleCheckpoints {
             CompletedCheckpoint latest = coordinator.getLatestCheckpoint();
             assertNotNull(latest);
             assertEquals(checkpointIds.get(checkpointIds.size() - 1), latest.getCheckpointId());
-            assertEquals("4", new String(latest.getTaskState(0L).getOperatorState("iteration")));
+            assertEquals("4", new String(latest.getTaskState(LOC_0).getOperatorState("iteration")));
         } finally {
             coordinator.shutdown();
         }
@@ -88,8 +91,8 @@ class TestE2EMultipleCheckpoints {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
-        CheckpointCoordinator coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
 
         try {
             List<Long> completedOrder = Collections.synchronizedList(new ArrayList<>());
@@ -111,12 +114,12 @@ class TestE2EMultipleCheckpoints {
                 assertNotNull(pending);
                 long cpId = pending.getCheckpointId();
 
-                TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+                TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                         .checkpointId(cpId)
                         .putOperatorState("data", ("checkpoint-" + i).getBytes())
                         .build();
 
-                coordinator.acknowledgeTask(0L, cpId, taskState);
+                coordinator.acknowledgeTask(LOC_0, cpId, taskState);
                 pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
             }
 
@@ -137,37 +140,37 @@ class TestE2EMultipleCheckpoints {
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
         config.setMaxRetainedCheckpoints(2);
-        CheckpointCoordinator coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
 
         try {
             for (int i = 0; i < 5; i++) {
                 CheckpointIDCounter iterCounter = new CheckpointIDCounter();
-                CheckpointCoordinator iterCoordinator = new CheckpointCoordinator(1L, 0, iterCounter, storage, config);
-                iterCoordinator.registerTask(0L);
+                CheckpointCoordinator iterCoordinator = new CheckpointCoordinator("1", "0", iterCounter, storage, config);
+                iterCoordinator.registerTask(LOC_0);
 
                 PendingCheckpoint pending = iterCoordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
                 assertNotNull(pending);
                 long cpId = pending.getCheckpointId();
 
-                TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+                TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                         .checkpointId(cpId)
                         .putOperatorState("data", ("value-" + i).getBytes())
                         .build();
 
-                iterCoordinator.acknowledgeTask(0L, cpId, taskState);
+                iterCoordinator.acknowledgeTask(LOC_0, cpId, taskState);
                 pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
 
                 iterCoordinator.shutdown();
             }
 
-            List<CompletedCheckpoint> remaining = storage.getAllCheckpoints(1L);
+            List<CompletedCheckpoint> remaining = storage.getAllCheckpoints("1");
             assertTrue(remaining.size() <= 2,
                     "At most 2 checkpoints should be retained after cleanup, but found: " + remaining.size());
 
             if (!remaining.isEmpty()) {
                 CompletedCheckpoint last = remaining.get(remaining.size() - 1);
-                byte[] data = last.getTaskState(0L).getOperatorState("data");
+                byte[] data = last.getTaskState(LOC_0).getOperatorState("data");
                 assertNotNull(data);
                 assertEquals("value-4", new String(data));
             }
@@ -183,8 +186,8 @@ class TestE2EMultipleCheckpoints {
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(100);
         config.setCheckpointTimeout(5000);
-        CheckpointCoordinator coordinator = new CheckpointCoordinator(1L, 1, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);
+        coordinator.registerTask(LOC_0_P1);
 
         try {
             List<String> results = Collections.synchronizedList(new ArrayList<>());
@@ -240,9 +243,9 @@ class TestE2EMultipleCheckpoints {
                 CountDownLatch latch = new CountDownLatch(1);
                 AtomicReference<TaskStateSnapshot> snapshotRef = new AtomicReference<>();
 
-                CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
+                CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0_P1, operators, snapshot -> {
                     snapshotRef.set(snapshot);
-                    coordinator.acknowledgeTask(0L, snapshot.getCheckpointId(), snapshot);
+                    coordinator.acknowledgeTask(LOC_0_P1, snapshot.getCheckpointId(), snapshot);
                     latch.countDown();
                 });
 
@@ -294,8 +297,8 @@ class TestE2EMultipleCheckpoints {
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
 
-        CheckpointCoordinator coordinator1 = new CheckpointCoordinator(1L, 0, idCounter1, storage, config);
-        coordinator1.registerTask(0L);
+        CheckpointCoordinator coordinator1 = new CheckpointCoordinator("1", "0", idCounter1, storage, config);
+        coordinator1.registerTask(LOC_0);
 
         try {
             for (int i = 0; i < 3; i++) {
@@ -303,10 +306,10 @@ class TestE2EMultipleCheckpoints {
                 assertNotNull(pending);
                 firstRunIds.add(pending.getCheckpointId());
 
-                TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+                TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                         .putOperatorState("data", String.valueOf(i).getBytes())
                         .build();
-                coordinator1.acknowledgeTask(0L, pending.getCheckpointId(), taskState);
+                coordinator1.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
                 pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
             }
         } finally {
@@ -314,8 +317,8 @@ class TestE2EMultipleCheckpoints {
         }
 
         CheckpointIDCounter idCounter2 = new CheckpointIDCounter(firstRunIds.get(firstRunIds.size() - 1) + 1);
-        CheckpointCoordinator coordinator2 = new CheckpointCoordinator(1L, 0, idCounter2, storage, config);
-        coordinator2.registerTask(0L);
+        CheckpointCoordinator coordinator2 = new CheckpointCoordinator("1", "0", idCounter2, storage, config);
+        coordinator2.registerTask(LOC_0);
 
         try {
             PendingCheckpoint pending = coordinator2.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);

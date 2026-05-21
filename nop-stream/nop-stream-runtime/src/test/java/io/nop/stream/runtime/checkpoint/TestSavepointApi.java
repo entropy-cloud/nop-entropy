@@ -30,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestSavepointApi {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "0", "v0", 0);
+
     @TempDir
     Path tempDir;
 
@@ -43,14 +45,14 @@ class TestSavepointApi {
         idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
-        coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
     }
 
     @AfterEach
     void teardown() throws Exception {
         coordinator.shutdown();
-        storage.deleteAllCheckpoints(1);
+        storage.deleteAllCheckpoints("1");
     }
 
     @Test
@@ -58,13 +60,13 @@ class TestSavepointApi {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
         assertNotNull(pending);
 
-        TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+        TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(pending.getCheckpointId())
                 .putOperatorState("operator-0", "savepoint-data".getBytes())
                 .putKeyedState("keyed-state", "keyed-data".getBytes())
                 .build();
 
-        coordinator.acknowledgeTask(0L, pending.getCheckpointId(), taskState);
+        coordinator.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
 
         CompletedCheckpoint completed = pending.getCompletableFuture()
                 .get(5, TimeUnit.SECONDS);
@@ -74,11 +76,11 @@ class TestSavepointApi {
         assertNotNull(path);
         assertTrue(Files.exists(Path.of(path)));
 
-        CompletedCheckpoint loaded = storage.getLatestCheckpoint(1L, 0);
+        CompletedCheckpoint loaded = storage.getLatestCheckpoint("1", "0");
         assertNotNull(loaded);
         assertEquals(CheckpointType.SAVEPOINT, loaded.getCheckpointType());
 
-        TaskStateSnapshot loadedState = loaded.getTaskState(0L);
+        TaskStateSnapshot loadedState = loaded.getTaskState(LOC_0);
         assertNotNull(loadedState);
         assertArrayEquals("savepoint-data".getBytes(), loadedState.getOperatorState("operator-0"));
         assertArrayEquals("keyed-data".getBytes(), loadedState.getKeyedState("keyed-state"));
@@ -89,23 +91,22 @@ class TestSavepointApi {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
         assertNotNull(pending);
 
-        TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+        TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(pending.getCheckpointId())
                 .putOperatorState("operator-0", "original-state".getBytes())
                 .build();
 
-        coordinator.acknowledgeTask(0L, pending.getCheckpointId(), taskState);
+        coordinator.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
 
         CompletedCheckpoint completed = pending.getCompletableFuture()
                 .get(5, TimeUnit.SECONDS);
         String savepointPath = storage.storeCheckPoint(completed);
 
-        // Simulate restore from a different storage pointing at the same dir
         LocalFileCheckpointStorage restoreStorage = new LocalFileCheckpointStorage(tempDir.toString());
-        CompletedCheckpoint loaded = restoreStorage.getLatestCheckpoint(1L, 0);
+        CompletedCheckpoint loaded = restoreStorage.getLatestCheckpoint("1", "0");
         assertNotNull(loaded);
 
-        TaskStateSnapshot restoredState = loaded.getTaskState(0L);
+        TaskStateSnapshot restoredState = loaded.getTaskState(LOC_0);
         assertNotNull(restoredState);
         assertArrayEquals("original-state".getBytes(), restoredState.getOperatorState("operator-0"));
     }
@@ -137,13 +138,13 @@ class TestSavepointApi {
         assertNotNull(snapshot);
         assertFalse(snapshot.isEmpty());
 
-        TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+        TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(1L)
                 .putKeyedState("keyed-state", snapshot.getKeyedStates().values().iterator().next())
                 .build();
 
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
-        coordinator.acknowledgeTask(0L, pending.getCheckpointId(), taskState);
+        coordinator.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
         CompletedCheckpoint completed = pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
         String savepointPath = storage.storeCheckPoint(completed);
 
@@ -173,13 +174,13 @@ class TestSavepointApi {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
         assertNotNull(pending);
 
-        TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+        TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(pending.getCheckpointId())
                 .putOperatorState("op-0", "data".getBytes())
                 .putKeyedState("keyed", "kdata".getBytes())
                 .build();
 
-        coordinator.acknowledgeTask(0L, pending.getCheckpointId(), taskState);
+        coordinator.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
         CompletedCheckpoint completed = pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
 
         SavepointMetadata metadata = SavepointMetadata.fromCompletedCheckpoint(completed);

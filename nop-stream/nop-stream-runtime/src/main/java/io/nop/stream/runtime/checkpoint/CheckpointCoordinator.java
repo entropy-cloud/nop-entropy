@@ -13,9 +13,11 @@ import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,18 +25,13 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Checkpoint 协调器，负责触发、跟踪和完成 checkpoint。
- *
- * <p>已接入 GraphModelCheckpointExecutor 执行路径
- */
 @Internal
 public class CheckpointCoordinator {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointCoordinator.class);
 
-    private final long jobId;
-    private final int pipelineId;
+    private final String jobId;
+    private final String pipelineId;
     private final CheckpointIDCounter checkpointIdCounter;
     private final ICheckpointStorage checkpointStorage;
     private final CheckpointConfig config;
@@ -42,17 +39,18 @@ public class CheckpointCoordinator {
     private final ConcurrentHashMap<Long, PendingCheckpoint> pendingCheckpoints;
     private final AtomicInteger numPendingCheckpoints;
     private volatile CompletedCheckpoint latestCompletedCheckpoint;
-    private final Set<Long> tasksToAcknowledge;
+    private final Set<TaskLocation> tasksToAcknowledge;
 
     private ScheduledExecutorService scheduler;
     private final ScheduledExecutorService timeoutScheduler;
     private volatile boolean isSchedulerStarted = false;
 
     private final List<CheckpointListener> listeners = new CopyOnWriteArrayList<>();
+    private final CheckpointMetrics metrics = new CheckpointMetrics();
 
     public CheckpointCoordinator(
-            long jobId,
-            int pipelineId,
+            String jobId,
+            String pipelineId,
             CheckpointIDCounter checkpointIdCounter,
             ICheckpointStorage checkpointStorage,
             CheckpointConfig config) {
@@ -141,15 +139,15 @@ public class CheckpointCoordinator {
         long checkpointId = checkpointIdCounter.getAndIncrement();
         long timestamp = System.currentTimeMillis();
 
-        Set<Long> tasksToAcknowledge = getTasksToAcknowledge();
-        if (tasksToAcknowledge.isEmpty()) {
+        Set<TaskLocation> tasksToAck = getTasksToAcknowledge();
+        if (tasksToAck.isEmpty()) {
             LOG.debug("No tasks to acknowledge for checkpoint {}", checkpointId);
             return null;
         }
 
         PendingCheckpoint pending = new PendingCheckpoint(
                 jobId, pipelineId, checkpointId, timestamp,
-                checkpointType, tasksToAcknowledge);
+                checkpointType, tasksToAck);
 
         pendingCheckpoints.put(checkpointId, pending);
         numPendingCheckpoints.incrementAndGet();
@@ -168,16 +166,16 @@ public class CheckpointCoordinator {
         return pending;
     }
 
-    public boolean acknowledgeTask(long taskId, long checkpointId, TaskStateSnapshot state) {
+    public boolean acknowledgeTask(TaskLocation taskLocation, long checkpointId, TaskStateSnapshot state) {
         PendingCheckpoint pending = pendingCheckpoints.get(checkpointId);
         if (pending == null) {
-            LOG.warn("Received ACK for unknown checkpoint {} from task {}", checkpointId, taskId);
+            LOG.warn("Received ACK for unknown checkpoint {} from task {}", checkpointId, taskLocation);
             return false;
         }
 
-        pending.acknowledgeTask(taskId, state);
+        pending.acknowledgeTask(taskLocation, state);
         LOG.debug("Task {} acknowledged checkpoint {}, pending tasks: {}",
-                taskId, checkpointId, pending.getNumberOfNotAcknowledgedTasks());
+                taskLocation, checkpointId, pending.getNumberOfNotAcknowledgedTasks());
         return true;
     }
 
@@ -205,6 +203,9 @@ public class CheckpointCoordinator {
         latestCompletedCheckpoint = completed;
         decrementPendingCheckpointCount();
 
+        metrics.incrementCompletedCheckpoints();
+        metrics.updateLatestCheckpoint(completed.estimateSize(), completed.getDuration());
+
         cleanupOldCheckpoints();
 
         notifyCheckpointCompleted(checkpointId);
@@ -223,6 +224,8 @@ public class CheckpointCoordinator {
 
         removed.abort(reason);
         decrementPendingCheckpointCount();
+
+        metrics.incrementFailedCheckpoints();
 
         notifyCheckpointAborted(checkpointId);
 
@@ -251,27 +254,31 @@ public class CheckpointCoordinator {
         return numPendingCheckpoints.get();
     }
 
-    protected Set<Long> getTasksToAcknowledge() {
+    public CheckpointMetrics getMetrics() {
+        return metrics;
+    }
+
+    protected Set<TaskLocation> getTasksToAcknowledge() {
         return new HashSet<>(tasksToAcknowledge);
     }
 
-    public void setTasksToAcknowledge(Collection<Long> taskIds) {
+    public void setTasksToAcknowledge(Collection<TaskLocation> taskLocations) {
         tasksToAcknowledge.clear();
-        if (taskIds != null) {
-            for (Long taskId : taskIds) {
-                if (taskId != null) {
-                    tasksToAcknowledge.add(taskId);
+        if (taskLocations != null) {
+            for (TaskLocation loc : taskLocations) {
+                if (loc != null) {
+                    tasksToAcknowledge.add(loc);
                 }
             }
         }
     }
 
-    public void registerTask(long taskId) {
-        tasksToAcknowledge.add(taskId);
+    public void registerTask(TaskLocation taskLocation) {
+        tasksToAcknowledge.add(taskLocation);
     }
 
-    public void unregisterTask(long taskId) {
-        tasksToAcknowledge.remove(taskId);
+    public void unregisterTask(TaskLocation taskLocation) {
+        tasksToAcknowledge.remove(taskLocation);
     }
 
     private void scheduleTimeout(PendingCheckpoint pending) {

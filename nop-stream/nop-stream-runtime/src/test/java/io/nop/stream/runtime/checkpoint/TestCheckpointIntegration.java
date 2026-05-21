@@ -25,6 +25,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestCheckpointIntegration {
 
+    private static final TaskLocation LOC_1 = new TaskLocation("1", "1", "v1", 1);
+    private static final TaskLocation LOC_2 = new TaskLocation("1", "1", "v2", 2);
+
     @TempDir
     Path tempDir;
 
@@ -43,8 +46,8 @@ class TestCheckpointIntegration {
                 .maxRetainedCheckpoints(5)
                 .build();
 
-        coordinator = new CheckpointCoordinator(1L, 1, idCounter, storage, config);
-        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
+        coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
     }
 
     @AfterEach
@@ -77,20 +80,20 @@ class TestCheckpointIntegration {
 
         assertFalse(pending.isFullyAcknowledged(), "Checkpoint should not be fully acknowledged initially");
 
-        TaskStateSnapshot state1 = TaskStateSnapshot.builder(1L)
+        TaskStateSnapshot state1 = TaskStateSnapshot.builder(LOC_1)
                 .putOperatorState("op1", "data1".getBytes())
                 .putKeyedState("key1", "keyedData1".getBytes())
                 .build();
 
-        TaskStateSnapshot state2 = TaskStateSnapshot.builder(2L)
+        TaskStateSnapshot state2 = TaskStateSnapshot.builder(LOC_2)
                 .putOperatorState("op2", "data2".getBytes())
                 .putKeyedState("key2", "keyedData2".getBytes())
                 .build();
 
-        coordinator.acknowledgeTask(1L, checkpointId, state1);
+        coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
         assertEquals(1, pending.getNumberOfAcknowledgedTasks());
 
-        coordinator.acknowledgeTask(2L, checkpointId, state2);
+        coordinator.acknowledgeTask(LOC_2, checkpointId, state2);
         assertEquals(2, pending.getNumberOfAcknowledgedTasks());
 
         assertTrue(pending.isFullyAcknowledged(), "Checkpoint should be fully acknowledged");
@@ -102,7 +105,7 @@ class TestCheckpointIntegration {
         assertEquals(checkpointId, completed.getCheckpointId());
         assertEquals(2, completed.getTaskCount());
 
-        CompletedCheckpoint stored = storage.getLatestCheckpoint(1L, 1);
+        CompletedCheckpoint stored = storage.getLatestCheckpoint("1", "1");
         assertNotNull(stored, "Checkpoint should be stored");
         assertEquals(checkpointId, stored.getCheckpointId());
 
@@ -117,22 +120,22 @@ class TestCheckpointIntegration {
             assertNotNull(pending);
 
             long checkpointId = pending.getCheckpointId();
-            coordinator.acknowledgeTask(1L, checkpointId, TaskStateSnapshot.empty(1L));
-            coordinator.acknowledgeTask(2L, checkpointId, TaskStateSnapshot.empty(2L));
+            coordinator.acknowledgeTask(LOC_1, checkpointId, TaskStateSnapshot.empty(LOC_1));
+            coordinator.acknowledgeTask(LOC_2, checkpointId, TaskStateSnapshot.empty(LOC_2));
 
             CompletedCheckpoint completed = pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
             assertEquals(i, completed.getCheckpointId());
         }
 
-        int count = storage.getCheckpointCount(1L);
+        int count = storage.getCheckpointCount("1");
         assertEquals(3, count, "Should have 3 stored checkpoints");
     }
 
     @Test
     void testCheckpointRecovery() throws Exception {
         PendingCheckpoint pending1 = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-        coordinator.acknowledgeTask(1L, pending1.getCheckpointId(), TaskStateSnapshot.empty(1L));
-        coordinator.acknowledgeTask(2L, pending1.getCheckpointId(), TaskStateSnapshot.empty(2L));
+        coordinator.acknowledgeTask(LOC_1, pending1.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+        coordinator.acknowledgeTask(LOC_2, pending1.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
         CompletedCheckpoint completed1 = pending1.getCompletableFuture().get(10, TimeUnit.SECONDS);
 
         coordinator.shutdown();
@@ -140,7 +143,7 @@ class TestCheckpointIntegration {
         CheckpointIDCounter newIdCounter = new CheckpointIDCounter();
         newIdCounter.set(completed1.getCheckpointId() + 1);
         CheckpointConfig config = CheckpointConfig.builder().checkpointEnabled(true).build();
-        CheckpointCoordinator newCoordinator = new CheckpointCoordinator(1L, 1, newIdCounter, storage, config);
+        CheckpointCoordinator newCoordinator = new CheckpointCoordinator("1", "1", newIdCounter, storage, config);
 
         CompletedCheckpoint restored = newCoordinator.restoreFromCheckpoint();
         assertNotNull(restored);
@@ -163,8 +166,8 @@ class TestCheckpointIntegration {
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointCoordinator shortTimeoutCoordinator = new CheckpointCoordinator(
-                1L, 1, idCounter, storage, shortTimeoutConfig);
-        shortTimeoutCoordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
+                "1", "1", idCounter, storage, shortTimeoutConfig);
+        shortTimeoutCoordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
 
         AtomicBoolean aborted = new AtomicBoolean(false);
         shortTimeoutCoordinator.addListener(new CheckpointListener() {
@@ -181,7 +184,7 @@ class TestCheckpointIntegration {
         PendingCheckpoint pending = shortTimeoutCoordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         assertNotNull(pending);
 
-        shortTimeoutCoordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));
+        shortTimeoutCoordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
 
         Thread.sleep(1000);
 
@@ -194,21 +197,21 @@ class TestCheckpointIntegration {
     @Test
     void testCheckpointStorageOperations() throws Exception {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-        coordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));
-        coordinator.acknowledgeTask(2L, pending.getCheckpointId(), TaskStateSnapshot.empty(2L));
+        coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+        coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
         pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
 
-        CompletedCheckpoint latest = storage.getLatestCheckpoint(1L, 1);
+        CompletedCheckpoint latest = storage.getLatestCheckpoint("1", "1");
         assertNotNull(latest);
 
-        java.util.List<CompletedCheckpoint> all = storage.getAllCheckpoints(1L);
+        java.util.List<CompletedCheckpoint> all = storage.getAllCheckpoints("1");
         assertFalse(all.isEmpty());
 
-        int count = storage.getCheckpointCount(1L);
+        int count = storage.getCheckpointCount("1");
         assertEquals(1, count);
 
-        storage.deleteCheckpoint(1L, 1, pending.getCheckpointId());
-        count = storage.getCheckpointCount(1L);
+        storage.deleteCheckpoint("1", "1", pending.getCheckpointId());
+        count = storage.getCheckpointCount("1");
         assertEquals(0, count);
     }
 }

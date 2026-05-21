@@ -34,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestE2EWindowOperatorWithCheckpoint {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "0", "v0", 0);
+
     @TempDir
     Path tempDir;
 
@@ -46,14 +48,14 @@ class TestE2EWindowOperatorWithCheckpoint {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
-        coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
     }
 
     @AfterEach
     void teardown() throws Exception {
         coordinator.shutdown();
-        storage.deleteAllCheckpoints(1);
+        storage.deleteAllCheckpoints("1");
     }
 
     @Test
@@ -260,7 +262,7 @@ class TestE2EWindowOperatorWithCheckpoint {
         sourceOp.setOutput(new ChainingOutput<>(windowSimOp));
         windowSimOp.setOutput(new ChainingOutput<>(sinkOp));
 
-        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
             capturedSnapshot.set(snapshot);
             checkpointComplete.countDown();
         });
@@ -281,8 +283,13 @@ class TestE2EWindowOperatorWithCheckpoint {
         // Process data first so keyed state is populated before snapshot
         sourceOp.run();
 
-        // Then trigger checkpoint to capture the state
+        // Then trigger checkpoint to capture the state.
+        // Since source has already finished, force-inject the pending barrier.
         tracker.triggerCheckpoint(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        CheckpointBarrier pendingBarrier = tracker.pollPendingBarrier();
+        if (pendingBarrier != null) {
+            sourceOp.injectBarrier(pendingBarrier);
+        }
 
         assertTrue(checkpointComplete.await(5, TimeUnit.SECONDS));
         assertEquals(Arrays.asList("a:1", "b:1", "c:1"), results);

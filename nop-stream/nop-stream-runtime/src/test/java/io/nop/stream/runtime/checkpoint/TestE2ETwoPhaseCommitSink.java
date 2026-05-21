@@ -29,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestE2ETwoPhaseCommitSink {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "0", "v0", 0);
+
     @TempDir
     Path tempDir;
 
@@ -41,14 +43,14 @@ class TestE2ETwoPhaseCommitSink {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
-        coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
     }
 
     @AfterEach
     void teardown() throws Exception {
         coordinator.shutdown();
-        storage.deleteAllCheckpoints(1);
+        storage.deleteAllCheckpoints("1");
     }
 
     @Test
@@ -113,9 +115,9 @@ class TestE2ETwoPhaseCommitSink {
         CountDownLatch checkpointComplete = new CountDownLatch(1);
         AtomicReference<TaskStateSnapshot> capturedSnapshot = new AtomicReference<>();
 
-        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
             capturedSnapshot.set(snapshot);
-            coordinator.acknowledgeTask(0L, snapshot.getCheckpointId(), snapshot);
+            coordinator.acknowledgeTask(LOC_0, snapshot.getCheckpointId(), snapshot);
             checkpointComplete.countDown();
         });
 
@@ -254,9 +256,9 @@ class TestE2ETwoPhaseCommitSink {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<TaskStateSnapshot> capturedSnapshot = new AtomicReference<>();
 
-        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
             capturedSnapshot.set(snapshot);
-            coordinator.acknowledgeTask(0L, snapshot.getCheckpointId(), snapshot);
+            coordinator.acknowledgeTask(LOC_0, snapshot.getCheckpointId(), snapshot);
             latch.countDown();
         });
 

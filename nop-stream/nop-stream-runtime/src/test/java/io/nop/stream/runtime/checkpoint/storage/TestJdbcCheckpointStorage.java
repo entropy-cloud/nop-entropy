@@ -7,54 +7,80 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
+import com.zaxxer.hikari.HikariDataSource;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.sql.SQL;
+import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.stream.core.checkpoint.*;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.*;
 
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class TestLocalFileCheckpointStorage {
+class TestJdbcCheckpointStorage {
 
     private static final TaskLocation LOC_1 = new TaskLocation("1", "1", "v1", 1);
     private static final TaskLocation LOC_2 = new TaskLocation("1", "1", "v2", 2);
 
-    @TempDir
-    Path tempDir;
+    private static HikariDataSource dataSource;
+    private IJdbcTemplate jdbcTemplate;
+    private JdbcCheckpointStorage storage;
 
-    private LocalFileCheckpointStorage storage;
+    @BeforeAll
+    static void initAll() {
+        CoreInitialization.initialize();
+        dataSource = new HikariDataSource();
+        dataSource.setDriverClassName("org.h2.Driver");
+        dataSource.setJdbcUrl("jdbc:h2:mem:" + StringHelper.generateUUID() + ";MODE=MySQL");
+        dataSource.setUsername("sa");
+        dataSource.setPassword("");
+        dataSource.setMaximumPoolSize(4);
+    }
+
+    @AfterAll
+    static void destroyAll() {
+        if (dataSource != null) {
+            dataSource.close();
+        }
+        CoreInitialization.destroy();
+    }
 
     @BeforeEach
     void setUp() {
-        storage = new LocalFileCheckpointStorage(tempDir.toString());
-    }
+        JdbcFactory factory = new JdbcFactory();
+        jdbcTemplate = factory.newJdbcTemplate(factory.newTransactionTemplate(dataSource));
 
-    @AfterEach
-    void tearDown() throws Exception {
-        storage.deleteAllCheckpoints("1");
+        try {
+            SQL dropSql = SQL.begin().sql("DROP TABLE IF EXISTS stream_checkpoint").end();
+            jdbcTemplate.executeUpdate(dropSql);
+        } catch (Exception ignored) {
+        }
+
+        storage = new JdbcCheckpointStorage(jdbcTemplate);
     }
 
     @Test
     void testGetName() {
-        assertEquals("LocalFileCheckpointStorage", storage.getName());
+        assertEquals("JdbcCheckpointStorage", storage.getName());
     }
 
     @Test
     void testStoreAndGetCheckpoint() throws Exception {
         CompletedCheckpoint checkpoint = createTestCheckpoint("1", "1", 100L);
 
-        String path = storage.storeCheckPoint(checkpoint);
-        assertNotNull(path);
-        assertTrue(path.contains("100"));
+        String handle = storage.storeCheckPoint(checkpoint);
+        assertNotNull(handle);
+        assertTrue(handle.contains("100"));
 
         CompletedCheckpoint retrieved = storage.getLatestCheckpoint("1", "1");
         assertNotNull(retrieved);
         assertEquals(100L, retrieved.getCheckpointId());
         assertEquals("1", retrieved.getJobId());
+        assertEquals("1", retrieved.getPipelineId());
+        assertEquals(CheckpointType.CHECKPOINT, retrieved.getCheckpointType());
     }
 
     @Test
@@ -69,6 +95,12 @@ class TestLocalFileCheckpointStorage {
     }
 
     @Test
+    void testGetLatestCheckpointNoData() throws Exception {
+        CompletedCheckpoint latest = storage.getLatestCheckpoint("nonexistent", "1");
+        assertNull(latest);
+    }
+
+    @Test
     void testGetAllCheckpoints() throws Exception {
         storage.storeCheckPoint(createTestCheckpoint("1", "1", 100L));
         storage.storeCheckPoint(createTestCheckpoint("1", "1", 200L));
@@ -76,6 +108,12 @@ class TestLocalFileCheckpointStorage {
 
         List<CompletedCheckpoint> all = storage.getAllCheckpoints("1");
         assertEquals(3, all.size());
+    }
+
+    @Test
+    void testGetAllCheckpointsEmpty() throws Exception {
+        List<CompletedCheckpoint> all = storage.getAllCheckpoints("nonexistent");
+        assertTrue(all.isEmpty());
     }
 
     @Test
@@ -120,16 +158,58 @@ class TestLocalFileCheckpointStorage {
 
         List<CompletedCheckpoint> latest = storage.getLatestCheckpoints("1", 2);
         assertEquals(2, latest.size());
+        assertEquals(400L, latest.get(0).getCheckpointId());
+        assertEquals(300L, latest.get(1).getCheckpointId());
     }
 
     @Test
-    void testExistsByCheckpointIdAndPipeline() throws Exception {
+    void testSerializationRoundTrip() throws Exception {
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(LOC_1)
+                .putOperatorState("op1", new byte[]{1, 2, 3})
+                .putKeyedState("key1", new byte[]{4, 5, 6})
+                .build();
+
+        CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
+                .jobId("job1")
+                .pipelineId("pipe1")
+                .checkpointId(999L)
+                .triggerTimestamp(1000L)
+                .completedTimestamp(2000L)
+                .checkpointType(CheckpointType.SAVEPOINT)
+                .addTaskState(LOC_1, snapshot)
+                .build();
+
+        storage.storeCheckPoint(checkpoint);
+        CompletedCheckpoint retrieved = storage.getLatestCheckpoint("job1", "pipe1");
+
+        assertNotNull(retrieved);
+        assertEquals("job1", retrieved.getJobId());
+        assertEquals("pipe1", retrieved.getPipelineId());
+        assertEquals(999L, retrieved.getCheckpointId());
+        assertEquals(CheckpointType.SAVEPOINT, retrieved.getCheckpointType());
+        assertEquals(1000L, retrieved.getTriggerTimestamp());
+        assertEquals(2000L, retrieved.getCompletedTimestamp());
+
+        TaskStateSnapshot retrievedSnapshot = retrieved.getTaskStates().get(LOC_1);
+        assertNotNull(retrievedSnapshot);
+        assertArrayEquals(new byte[]{1, 2, 3}, retrievedSnapshot.getOperatorState("op1"));
+        assertArrayEquals(new byte[]{4, 5, 6}, retrievedSnapshot.getKeyedState("key1"));
+    }
+
+    @Test
+    void testExists() throws Exception {
         storage.storeCheckPoint(createTestCheckpoint("1", "1", 100L));
         storage.storeCheckPoint(createTestCheckpoint("1", "2", 200L));
 
         assertTrue(storage.exists("1", "1", 100L));
         assertFalse(storage.exists("1", "1", 200L));
         assertFalse(storage.exists("1", "2", 999L));
+    }
+
+    @Test
+    void testDeleteNonExistentCheckpoint() throws Exception {
+        assertDoesNotThrow(() -> storage.deleteCheckpoint("nonexistent", "1", 999L));
+        assertDoesNotThrow(() -> storage.deleteAllCheckpoints("nonexistent"));
     }
 
     private CompletedCheckpoint createTestCheckpoint(String jobId, String pipelineId, long checkpointId) {

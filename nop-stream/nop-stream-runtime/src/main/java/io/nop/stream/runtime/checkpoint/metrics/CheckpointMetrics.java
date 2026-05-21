@@ -72,6 +72,15 @@ public class CheckpointMetrics {
         return lastCheckpointTimestamp.get();
     }
 
+    public void recordDuration(long durationMs) {
+        latestCheckpointDuration.set(durationMs);
+    }
+
+    public void recordStateSize(long bytes) {
+        latestCheckpointSize.set(bytes);
+        totalStateSize.addAndGet(bytes);
+    }
+
     public void reset() {
         numCompletedCheckpoints.set(0);
         numFailedCheckpoints.set(0);

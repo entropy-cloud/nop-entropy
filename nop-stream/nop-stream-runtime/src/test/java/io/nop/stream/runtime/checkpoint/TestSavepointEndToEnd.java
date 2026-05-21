@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestSavepointEndToEnd {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "1", "v0", 0);
+
     @TempDir
     Path tempDir;
 
@@ -78,17 +80,17 @@ class TestSavepointEndToEnd {
     void testGraphModelExecuteWithSavepointRestoresState() throws Exception {
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
 
-        TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+        TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(1L)
-                .putOperatorState("operator-0", "restored-data".getBytes())
+                .putOperatorState("operator-1", "restored-data".getBytes())
                 .build();
 
-        Map<Long, TaskStateSnapshot> taskStates = new HashMap<>();
-        taskStates.put(0L, taskState);
+        Map<TaskLocation, TaskStateSnapshot> taskStates = new HashMap<>();
+        taskStates.put(LOC_0, taskState);
 
         CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
-                .jobId(1L)
-                .pipelineId(1)
+                .jobId("1")
+                .pipelineId("1")
                 .checkpointId(1L)
                 .triggerTimestamp(System.currentTimeMillis())
                 .completedTimestamp(System.currentTimeMillis())
@@ -142,6 +144,8 @@ class TestSavepointEndToEnd {
         jobGraph.addVertex(vertex);
 
         CheckpointConfig config = new CheckpointConfig();
+        config.setJobId("1");
+        config.setPipelineId("1");
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(60000L);
         config.setStorageProperty("path", tempDir.toString());
@@ -154,6 +158,6 @@ class TestSavepointEndToEnd {
         assertEquals(1, restoredCount.get());
         assertArrayEquals("restored-data".getBytes(), restoredState.get());
 
-        storage.deleteAllCheckpoints(1);
+        storage.deleteAllCheckpoints("1");
     }
 }

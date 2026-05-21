@@ -34,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestE2ECheckpointAndRecovery {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "0", "v0", 0);
+
     @TempDir
     Path tempDir;
 
@@ -47,14 +49,14 @@ class TestE2ECheckpointAndRecovery {
         idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
-        coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
     }
 
     @AfterEach
     void teardown() throws Exception {
         coordinator.shutdown();
-        storage.deleteAllCheckpoints(1);
+        storage.deleteAllCheckpoints("1");
     }
 
     @Test
@@ -153,7 +155,7 @@ class TestE2ECheckpointAndRecovery {
         assertEquals("42", new String(snapshot.getOperatorStates().get("offset")));
 
         // Verify restore works through initializeState
-        TaskStateSnapshot taskSnapshot = new TaskStateSnapshot(0L, 1L);
+        TaskStateSnapshot taskSnapshot = new TaskStateSnapshot(LOC_0, 1L);
         taskSnapshot.putOperatorState("offset", "42".getBytes());
         source.initializeState(taskSnapshot);
 
@@ -199,7 +201,7 @@ class TestE2ECheckpointAndRecovery {
         sourceOp.setOutput(new ChainingOutput<>(mapOp));
         mapOp.setOutput(new ChainingOutput<>(sinkOp));
 
-        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
             capturedSnapshot.set(snapshot);
             checkpointComplete.countDown();
         });
@@ -276,13 +278,13 @@ class TestE2ECheckpointAndRecovery {
         assertNotNull(pending);
         long checkpointId = pending.getCheckpointId();
 
-        TaskStateSnapshot taskState = TaskStateSnapshot.builder(0L)
+        TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(checkpointId)
                 .putOperatorState("source-offset", "100".getBytes())
                 .putOperatorState("map-state", "mapped".getBytes())
                 .build();
 
-        coordinator.acknowledgeTask(0L, checkpointId, taskState);
+        coordinator.acknowledgeTask(LOC_0, checkpointId, taskState);
 
         CompletedCheckpoint completed = pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
         assertNotNull(completed);
@@ -291,13 +293,13 @@ class TestE2ECheckpointAndRecovery {
         coordinator.shutdown();
 
         CheckpointIDCounter recoveredCounter = new CheckpointIDCounter();
-        CheckpointCoordinator recoveredCoordinator = new CheckpointCoordinator(1L, 0, recoveredCounter, storage, new CheckpointConfig());
+        CheckpointCoordinator recoveredCoordinator = new CheckpointCoordinator("1", "0", recoveredCounter, storage, new CheckpointConfig());
         CompletedCheckpoint restored = recoveredCoordinator.restoreFromCheckpoint();
         assertNotNull(restored);
         assertEquals(checkpointId, restored.getCheckpointId());
         assertTrue(restored.isRestored());
 
-        TaskStateSnapshot restoredState = restored.getTaskState(0L);
+        TaskStateSnapshot restoredState = restored.getTaskState(LOC_0);
         assertNotNull(restoredState);
         assertArrayEquals("100".getBytes(), restoredState.getOperatorState("source-offset"));
         assertArrayEquals("mapped".getBytes(), restoredState.getOperatorState("map-state"));

@@ -22,6 +22,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestCheckpointCoordinator {
 
+    private static final TaskLocation LOC_1 = new TaskLocation("1", "1", "v1", 1);
+    private static final TaskLocation LOC_2 = new TaskLocation("1", "1", "v2", 2);
+    private static final TaskLocation LOC_11 = new TaskLocation("1", "1", "v11", 11);
+    private static final TaskLocation LOC_22 = new TaskLocation("1", "1", "v22", 22);
+    private static final TaskLocation LOC_33 = new TaskLocation("1", "1", "v33", 33);
+
     @TempDir
     Path tempDir;
 
@@ -42,8 +48,8 @@ class TestCheckpointCoordinator {
                 .maxRetainedCheckpoints(3)
                 .build();
 
-        coordinator = new CheckpointCoordinator(1L, 1, idCounter, storage, config);
-        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
+        coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
     }
 
     @AfterEach
@@ -65,17 +71,17 @@ class TestCheckpointCoordinator {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         assertNotNull(pending);
 
-        TaskStateSnapshot state = TaskStateSnapshot.builder(1L)
+        TaskStateSnapshot state = TaskStateSnapshot.builder(LOC_1)
                 .putOperatorState("op1", "data".getBytes())
                 .build();
 
-        boolean acknowledged = coordinator.acknowledgeTask(1L, pending.getCheckpointId(), state);
+        boolean acknowledged = coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), state);
         assertTrue(acknowledged);
     }
 
     @Test
     void testAcknowledgeUnknownCheckpoint() {
-        boolean acknowledged = coordinator.acknowledgeTask(1L, 999L, TaskStateSnapshot.empty(1L));
+        boolean acknowledged = coordinator.acknowledgeTask(LOC_1, 999L, TaskStateSnapshot.empty(LOC_1));
         assertFalse(acknowledged);
     }
 
@@ -93,8 +99,8 @@ class TestCheckpointCoordinator {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         assertNotNull(pending);
 
-        coordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));
-        coordinator.acknowledgeTask(2L, pending.getCheckpointId(), TaskStateSnapshot.empty(2L));
+        coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+        coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
         Thread.sleep(100);
 
@@ -117,7 +123,7 @@ class TestCheckpointCoordinator {
 
     @Test
     void testSetTasksToAcknowledge() {
-        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(11L, 22L, 33L));
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_11, LOC_22, LOC_33));
 
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         assertNotNull(pending);
@@ -140,8 +146,8 @@ class TestCheckpointCoordinator {
     @Test
     void testGetLatestCheckpoint() throws Exception {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-        coordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));
-        coordinator.acknowledgeTask(2L, pending.getCheckpointId(), TaskStateSnapshot.empty(2L));
+        coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+        coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
         CompletedCheckpoint completed = pending.getCompletableFuture().get();
         assertNotNull(completed);

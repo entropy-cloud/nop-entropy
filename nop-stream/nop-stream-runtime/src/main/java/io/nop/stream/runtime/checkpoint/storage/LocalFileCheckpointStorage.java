@@ -12,6 +12,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.SavepointMetadata;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import org.slf4j.Logger;
@@ -24,11 +25,6 @@ import java.util.Base64;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
-/**
- * Local file system storage implementation using JSON serialization.
- *
- * <p>已接入 GraphModelCheckpointExecutor 执行路径
- */
 @Internal
 public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
@@ -79,7 +75,7 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public CompletedCheckpoint getLatestCheckpoint(long jobId, int pipelineId) throws Exception {
+    public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) throws Exception {
         Path jobDir = getJobDir(jobId, pipelineId);
 
         lock.readLock().lock();
@@ -106,12 +102,12 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public List<CompletedCheckpoint> getAllCheckpoints(long jobId) throws Exception {
+    public List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws Exception {
         List<CompletedCheckpoint> result = new ArrayList<>();
 
         lock.readLock().lock();
         try {
-            Path jobRootDir = Paths.get(baseDir, String.valueOf(jobId));
+            Path jobRootDir = Paths.get(baseDir, jobId);
             if (!Files.exists(jobRootDir)) {
                 return result;
             }
@@ -145,12 +141,12 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public List<CompletedCheckpoint> getLatestCheckpoints(long jobId, int count) throws Exception {
+    public List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws Exception {
         List<CompletedCheckpoint> all = new ArrayList<>();
 
         lock.readLock().lock();
         try {
-            Path jobDir = getJobDir(jobId, -1).getParent();
+            Path jobDir = getJobDir(jobId, "-1").getParent();
             if (!Files.exists(jobDir)) {
                 return all;
             }
@@ -180,7 +176,7 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public void deleteCheckpoint(long jobId, int pipelineId, long checkpointId) throws Exception {
+    public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) throws Exception {
         Path checkpointPath = getCheckpointPath(jobId, pipelineId, checkpointId);
 
         lock.writeLock().lock();
@@ -192,8 +188,8 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public void deleteAllCheckpoints(long jobId) throws Exception {
-        Path jobRootDir = Paths.get(baseDir, String.valueOf(jobId));
+    public void deleteAllCheckpoints(String jobId) throws Exception {
+        Path jobRootDir = Paths.get(baseDir, jobId);
 
         lock.writeLock().lock();
         try {
@@ -215,9 +211,9 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public int getCheckpointCount(long jobId) throws Exception {
+    public int getCheckpointCount(String jobId) throws Exception {
         int[] count = {0};
-        Path jobRootDir = Paths.get(baseDir, String.valueOf(jobId));
+        Path jobRootDir = Paths.get(baseDir, jobId);
 
         lock.readLock().lock();
         try {
@@ -235,12 +231,12 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         }
     }
 
-    private Path getJobDir(long jobId, int pipelineId) {
-        return Paths.get(baseDir, String.valueOf(jobId), String.valueOf(pipelineId));
+    private Path getJobDir(String jobId, String pipelineId) {
+        return Paths.get(baseDir, jobId, pipelineId);
     }
 
-    private Path getCheckpointPath(long jobId, int pipelineId, long checkpointId) {
-        return Paths.get(baseDir, String.valueOf(jobId), String.valueOf(pipelineId),
+    private Path getCheckpointPath(String jobId, String pipelineId, long checkpointId) {
+        return Paths.get(baseDir, jobId, pipelineId,
                 checkpointId + CHECKPOINT_SUFFIX);
     }
 
@@ -254,7 +250,35 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     private byte[] serializeCheckpoint(CompletedCheckpoint checkpoint) {
-        return JsonTool.serialize(checkpoint, false).getBytes(StandardCharsets.UTF_8);
+        Map<String, Object> serializable = new LinkedHashMap<>();
+        serializable.put("jobId", checkpoint.getJobId());
+        serializable.put("pipelineId", checkpoint.getPipelineId());
+        serializable.put("checkpointId", checkpoint.getCheckpointId());
+        serializable.put("triggerTimestamp", checkpoint.getTriggerTimestamp());
+        serializable.put("completedTimestamp", checkpoint.getCompletedTimestamp());
+        serializable.put("checkpointType", checkpoint.getCheckpointType().name());
+        serializable.put("restored", checkpoint.isRestored());
+
+        Map<String, Object> taskStatesMap = new LinkedHashMap<>();
+        for (Map.Entry<TaskLocation, TaskStateSnapshot> entry : checkpoint.getTaskStates().entrySet()) {
+            String key = taskLocationToString(entry.getKey());
+            taskStatesMap.put(key, entry.getValue());
+        }
+        serializable.put("taskStates", taskStatesMap);
+
+        return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String taskLocationToString(TaskLocation loc) {
+        return loc.getJobId() + "|" + loc.getPipelineId() + "|" + loc.getVertexId() + "|" + loc.getTaskIndex();
+    }
+
+    private static TaskLocation stringToTaskLocation(String str) {
+        String[] parts = str.split("\\|");
+        if (parts.length != 4) {
+            throw new IllegalArgumentException("Invalid TaskLocation string: " + str);
+        }
+        return new TaskLocation(parts[0], parts[1], parts[2], Integer.parseInt(parts[3]));
     }
 
     private CompletedCheckpoint deserializeCheckpoint(Path path) throws Exception {
@@ -271,9 +295,9 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         if (map == null) {
             return null;
         }
-        
-        Long jobId = map.get("jobId") instanceof Number ? ((Number) map.get("jobId")).longValue() : null;
-        Integer pipelineId = map.get("pipelineId") instanceof Number ? ((Number) map.get("pipelineId")).intValue() : null;
+
+        String jobId = (String) map.get("jobId");
+        String pipelineId = (String) map.get("pipelineId");
         Long checkpointId = map.get("checkpointId") instanceof Number ? ((Number) map.get("checkpointId")).longValue() : null;
         Long triggerTimestamp = map.get("triggerTimestamp") instanceof Number ? ((Number) map.get("triggerTimestamp")).longValue() : null;
         Long completedTimestamp = map.get("completedTimestamp") instanceof Number ? ((Number) map.get("completedTimestamp")).longValue() : null;
@@ -285,18 +309,23 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         String checkpointTypeName = (String) map.get("checkpointType");
         CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : CheckpointType.CHECKPOINT;
         Boolean restored = (Boolean) map.get("restored");
-        
+
         Map<String, Object> taskStatesMap = (Map<String, Object>) map.get("taskStates");
-        Map<Long, TaskStateSnapshot> taskStates = new HashMap<>();
+        Map<TaskLocation, TaskStateSnapshot> taskStates = new HashMap<>();
         if (taskStatesMap != null) {
             for (Map.Entry<String, Object> entry : taskStatesMap.entrySet()) {
-                Long taskId = Long.parseLong(entry.getKey());
+                TaskLocation taskLocation;
+                try {
+                    taskLocation = stringToTaskLocation(entry.getKey());
+                } catch (Exception e) {
+                    taskLocation = new TaskLocation(jobId, pipelineId, entry.getKey(), 0);
+                }
                 Map<String, Object> stateMap = (Map<String, Object>) entry.getValue();
-                TaskStateSnapshot snapshot = deserializeTaskStateSnapshot(stateMap);
-                taskStates.put(taskId, snapshot);
+                TaskStateSnapshot snapshot = deserializeTaskStateSnapshot(stateMap, taskLocation);
+                taskStates.put(taskLocation, snapshot);
             }
         }
-        
+
         CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
                 .jobId(jobId)
                 .pipelineId(pipelineId)
@@ -306,24 +335,20 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
                 .checkpointType(checkpointType)
                 .taskStates(taskStates)
                 .build();
-        
+
         if (restored != null) {
             checkpoint.setRestored(restored);
         }
-        
+
         return checkpoint;
     }
-    
-    private TaskStateSnapshot deserializeTaskStateSnapshot(Map<String, Object> map) {
+
+    private TaskStateSnapshot deserializeTaskStateSnapshot(Map<String, Object> map, TaskLocation taskLocation) {
         if (map == null) {
             return null;
         }
-        Long taskId = map.get("taskId") instanceof Number ? ((Number) map.get("taskId")).longValue() : null;
-        if (taskId == null) {
-            return null;
-        }
-        TaskStateSnapshot snapshot = new TaskStateSnapshot(taskId);
-        
+        TaskStateSnapshot snapshot = new TaskStateSnapshot(taskLocation);
+
         Map<String, Object> operatorStates = (Map<String, Object>) map.get("operatorStates");
         if (operatorStates != null) {
             for (Map.Entry<String, Object> entry : operatorStates.entrySet()) {
@@ -345,7 +370,7 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
                 }
             }
         }
-        
+
         return snapshot;
     }
 

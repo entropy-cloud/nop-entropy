@@ -36,6 +36,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestCheckpointEndToEnd {
 
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "1", "v0", 0);
+
     @TempDir
     Path tempDir;
 
@@ -106,8 +108,8 @@ public class TestCheckpointEndToEnd {
         config.setCheckpointTimeout(5000);
 
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
-        CheckpointCoordinator coordinator = new CheckpointCoordinator(1L, 1, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
 
         // Register listeners
         coordinator.addListener((CheckpointListener) sinkOp.getUserFunction());
@@ -116,9 +118,9 @@ public class TestCheckpointEndToEnd {
         AtomicInteger ackCount = new AtomicInteger(0);
         AtomicReference<TaskStateSnapshot> lastSnapshot = new AtomicReference<>();
 
-        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
             lastSnapshot.set(snapshot);
-            coordinator.acknowledgeTask(0L, snapshot.getCheckpointId(), snapshot);
+            coordinator.acknowledgeTask(LOC_0, snapshot.getCheckpointId(), snapshot);
             ackCount.incrementAndGet();
         });
 
@@ -229,13 +231,13 @@ public class TestCheckpointEndToEnd {
         config.setCheckpointTimeout(5000);
 
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
-        CheckpointCoordinator coordinator = new CheckpointCoordinator(1L, 1, idCounter, storage, config);
-        coordinator.registerTask(0L);
+        CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);
+        coordinator.registerTask(LOC_0);
 
         coordinator.addListener(sinkOp);
 
-        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
-            coordinator.acknowledgeTask(0L, snapshot.getCheckpointId(), snapshot);
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
+            coordinator.acknowledgeTask(LOC_0, snapshot.getCheckpointId(), snapshot);
         });
 
         for (int i = 0; i < operators.size(); i++) {
@@ -317,7 +319,7 @@ public class TestCheckpointEndToEnd {
         CountDownLatch checkpointComplete = new CountDownLatch(1);
         AtomicReference<TaskStateSnapshot> capturedSnapshot = new AtomicReference<>();
 
-        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(0L, operators, snapshot -> {
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
             capturedSnapshot.set(snapshot);
             checkpointComplete.countDown();
         });

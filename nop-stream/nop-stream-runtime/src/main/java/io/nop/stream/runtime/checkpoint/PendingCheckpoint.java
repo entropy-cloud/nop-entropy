@@ -9,36 +9,34 @@ package io.nop.stream.runtime.checkpoint;
 
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * 正在进行的 checkpoint，跟踪任务 ACK 状态。
- */
 public class PendingCheckpoint {
 
-    private final long jobId;
-    private final int pipelineId;
+    private final String jobId;
+    private final String pipelineId;
     private final long checkpointId;
     private final long triggerTimestamp;
     private final CheckpointType checkpointType;
 
-    private final Set<Long> notYetAcknowledgedTasks;
-    private final Map<Long, TaskStateSnapshot> taskStates;
+    private final Set<TaskLocation> notYetAcknowledgedTasks;
+    private final Map<TaskLocation, TaskStateSnapshot> taskStates;
     private final CompletableFuture<CompletedCheckpoint> completableFuture;
 
     private volatile boolean isDisposed = false;
 
     public PendingCheckpoint(
-            long jobId,
-            int pipelineId,
+            String jobId,
+            String pipelineId,
             long checkpointId,
             long triggerTimestamp,
             CheckpointType checkpointType,
-            Set<Long> tasksToAcknowledge) {
+            Set<TaskLocation> tasksToAcknowledge) {
         this.jobId = jobId;
         this.pipelineId = pipelineId;
         this.checkpointId = checkpointId;
@@ -50,11 +48,11 @@ public class PendingCheckpoint {
         this.completableFuture = new CompletableFuture<>();
     }
 
-    public long getJobId() {
+    public String getJobId() {
         return jobId;
     }
 
-    public int getPipelineId() {
+    public String getPipelineId() {
         return pipelineId;
     }
 
@@ -90,22 +88,22 @@ public class PendingCheckpoint {
         return notYetAcknowledgedTasks.size() + taskStates.size();
     }
 
-    public Set<Long> getNotYetAcknowledgedTasks() {
+    public Set<TaskLocation> getNotYetAcknowledgedTasks() {
         return Collections.unmodifiableSet(notYetAcknowledgedTasks);
     }
 
-    public Map<Long, TaskStateSnapshot> getTaskStates() {
+    public Map<TaskLocation, TaskStateSnapshot> getTaskStates() {
         return Collections.unmodifiableMap(taskStates);
     }
 
-    public void acknowledgeTask(long taskId, TaskStateSnapshot state) {
+    public void acknowledgeTask(TaskLocation taskLocation, TaskStateSnapshot state) {
         if (isDisposed) {
             return;
         }
 
-        notYetAcknowledgedTasks.remove(taskId);
+        notYetAcknowledgedTasks.remove(taskLocation);
         if (state != null) {
-            taskStates.put(taskId, state);
+            taskStates.put(taskLocation, state);
         }
 
         if (isFullyAcknowledged() && !completableFuture.isDone()) {
@@ -115,8 +113,6 @@ public class PendingCheckpoint {
     }
 
     public void acknowledgePrecedingCheckpoint(long checkpointId) {
-        // 当更早的 checkpoint 完成时，可以安全地清理资源
-        // 这里是空实现，可以扩展
     }
 
     public CompletedCheckpoint toCompletedCheckpoint() {
@@ -165,8 +161,8 @@ public class PendingCheckpoint {
     @Override
     public String toString() {
         return "PendingCheckpoint{" +
-                "jobId=" + jobId +
-                ", pipelineId=" + pipelineId +
+                "jobId='" + jobId + '\'' +
+                ", pipelineId='" + pipelineId + '\'' +
                 ", checkpointId=" + checkpointId +
                 ", checkpointType=" + checkpointType +
                 ", acknowledgedTasks=" + taskStates.size() +
