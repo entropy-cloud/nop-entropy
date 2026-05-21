@@ -39,15 +39,15 @@ public class OrderFieldBean implements Serializable, ICloneable {
     }
 
     public static OrderFieldBean desc(String name) {
-        return orderBy(name, false);
-    }
-
-    public static OrderFieldBean asc(String name) {
         return orderBy(name, true);
     }
 
-    public static OrderFieldBean orderBy(String name, boolean asc) {
-        return forField(name, asc);
+    public static OrderFieldBean asc(String name) {
+        return orderBy(name, false);
+    }
+
+    public static OrderFieldBean orderBy(String name, boolean desc) {
+        return forField(name, desc);
     }
 
     public static OrderFieldBean forField(String name, boolean desc) {
