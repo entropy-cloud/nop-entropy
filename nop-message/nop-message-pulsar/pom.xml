@@ -19,7 +19,19 @@
 
         <dependency>
             <groupId>org.apache.pulsar</groupId>
-            <artifactId>pulsar-client-api</artifactId>
+            <artifactId>pulsar-client-original</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

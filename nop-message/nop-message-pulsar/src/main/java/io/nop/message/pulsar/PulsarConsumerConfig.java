@@ -7,5 +7,35 @@
  */
 package io.nop.message.pulsar;
 
+import io.nop.api.core.annotations.data.DataBean;
+
+@DataBean
 public class PulsarConsumerConfig {
+    private int ackTimeout;
+    private int negativeAckRedeliveryDelay;
+    private int maxTotalReceiverQueueSizeAcrossPartitions;
+
+    public int getAckTimeout() {
+        return ackTimeout;
+    }
+
+    public void setAckTimeout(int ackTimeout) {
+        this.ackTimeout = ackTimeout;
+    }
+
+    public int getNegativeAckRedeliveryDelay() {
+        return negativeAckRedeliveryDelay;
+    }
+
+    public void setNegativeAckRedeliveryDelay(int negativeAckRedeliveryDelay) {
+        this.negativeAckRedeliveryDelay = negativeAckRedeliveryDelay;
+    }
+
+    public int getMaxTotalReceiverQueueSizeAcrossPartitions() {
+        return maxTotalReceiverQueueSizeAcrossPartitions;
+    }
+
+    public void setMaxTotalReceiverQueueSizeAcrossPartitions(int maxTotalReceiverQueueSizeAcrossPartitions) {
+        this.maxTotalReceiverQueueSizeAcrossPartitions = maxTotalReceiverQueueSizeAcrossPartitions;
+    }
 }

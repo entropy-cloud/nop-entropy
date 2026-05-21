@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+    <bean id="nopPulsarClientConfig" class="io.nop.message.pulsar.PulsarClientConfig" ioc:default="true"/>
+
+    <bean id="nopPulsarProducerConfig" class="io.nop.message.pulsar.PulsarProducerConfig" ioc:default="true"/>
+
+    <bean id="nopPulsarConsumerConfig" class="io.nop.message.pulsar.PulsarConsumerConfig" ioc:default="true"/>
+
+    <bean id="nopPulsarMessageService"
+          class="io.nop.message.pulsar.PulsarMessageService"
+          ioc:default="true"
+          init-method="init"
+          destroy-method="destroy">
+        <property name="config" ref="nopPulsarClientConfig"/>
+        <property name="defaultProducerConfig" ref="nopPulsarProducerConfig"/>
+        <property name="defaultConsumerConfig" ref="nopPulsarConsumerConfig"/>
+    </bean>
+</beans>

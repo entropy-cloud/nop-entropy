@@ -28,34 +28,46 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class PulsarConsumeTask {
     static final Logger LOG = LoggerFactory.getLogger(PulsarConsumeTask.class);
 
-    private final Executor executor;
+    private static final long DEFAULT_CONSUME_ERROR_BACKOFF_MS = 1000;
+
+    private final ExecutorService executor;
     private final Consumer<Object> pulsarConsumer;
     private final PulsarMessageService service;
     private final MessageSubscriptionConfig config;
+    private final long consumeErrorBackoffMs;
 
     private volatile boolean active = false;
 
-    public PulsarConsumeTask(PulsarMessageService service, Executor executor,
+    public PulsarConsumeTask(PulsarMessageService service, ExecutorService executor,
                              Consumer<Object> pulsarConsumer, MessageSubscriptionConfig config) {
+        this(service, executor, pulsarConsumer, config, DEFAULT_CONSUME_ERROR_BACKOFF_MS);
+    }
+
+    public PulsarConsumeTask(PulsarMessageService service, ExecutorService executor,
+                             Consumer<Object> pulsarConsumer, MessageSubscriptionConfig config,
+                             long consumeErrorBackoffMs) {
         this.service = service;
         this.executor = executor;
         this.pulsarConsumer = pulsarConsumer;
         this.config = config;
+        this.consumeErrorBackoffMs = consumeErrorBackoffMs;
     }
 
     public void start() {
+        active = true;
         executor.execute(() -> {
             seekToPosition();
             this.runTask();
         });
     }
 
+    // TODO: implement seekToPosition based on SeekMode/seekToMessage/seekToTime from MessageSubscribeOptions
     private void seekToPosition() {
 
     }
@@ -75,12 +87,24 @@ public class PulsarConsumeTask {
             } catch (Exception e) {
                 LOG.error("nop.err.message.pulsar.consume-fail", e);
                 config.getConsumer().onException(e);
+                if (active) {
+                    try {
+                        Thread.sleep(consumeErrorBackoffMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
             }
         } while (active);
     }
 
     public void stop() {
         active = false;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     void batchConsume() throws Exception {

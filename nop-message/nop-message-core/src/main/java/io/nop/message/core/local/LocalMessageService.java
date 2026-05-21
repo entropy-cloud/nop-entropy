@@ -169,17 +169,21 @@ public class LocalMessageService implements IMessageService {
                 if (subscription.suspended)
                     continue;
                 IMessageConsumer consumer = subscription.consumer;
-                Object ret = consumer.onMessage(topic, message, context);
-                if (ret instanceof CompletionStage) {
-                    ((CompletionStage) ret).whenComplete((r, e) -> {
-                        if (e != null) {
-                            LOG.error("nop.message.consumer-error:topic={},message={},error={}", topic, message, e);
-                        } else {
-                            handleMessageResult(ret, topic, message, context);
-                        }
-                    });
-                } else {
-                    handleMessageResult(ret, topic, message, context);
+                try {
+                    Object ret = consumer.onMessage(topic, message, context);
+                    if (ret instanceof CompletionStage) {
+                        ((CompletionStage<?>) ret).whenComplete((r, e) -> {
+                            if (e != null) {
+                                LOG.error("nop.message.consumer-error:topic={},message={},error={}", topic, message, e);
+                            } else {
+                                handleMessageResult(r, topic, message, context);
+                            }
+                        });
+                    } else {
+                        handleMessageResult(ret, topic, message, context);
+                    }
+                } catch (Exception e) {
+                    LOG.error("nop.message.consumer-error:topic={},message={}", topic, message, e);
                 }
             }
             return context;
