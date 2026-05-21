@@ -25,7 +25,7 @@ import java.util.List;
  * <p>Design prototype. MySQL only — DDL uses AUTO_INCREMENT and other MySQL-specific syntax.
  * Not connected to the main execution path.
  *
- * <p>设计原型，MySQL only, 未接入执行路径
+ * <p>MySQL only，DDL 使用 AUTO_INCREMENT 等 MySQL 特定语法。可通过 GraphModelCheckpointExecutor 接入
  */
 @Internal
 public class JdbcCheckpointStorage implements ICheckpointStorage {

@@ -23,7 +23,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 设计原型，未接入执行路径
+ * 多输入 Barrier 对齐器，用于多输入顶点的 barrier 同步。当前 GraphModelCheckpointExecutor 未使用
  */
 @Internal
 public class BarrierAligner {

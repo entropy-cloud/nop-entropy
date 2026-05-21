@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Checkpoint 协调器，负责触发、跟踪和完成 checkpoint。
  *
- * <p>设计原型，未接入执行路径
+ * <p>已接入 GraphModelCheckpointExecutor 执行路径
  */
 @Internal
 public class CheckpointCoordinator {

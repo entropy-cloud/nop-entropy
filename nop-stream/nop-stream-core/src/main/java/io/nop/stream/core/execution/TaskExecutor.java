@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @see Task
  * @see JobVertex
  *
- * <p>设计原型，当前执行路径未使用
+ * <p>Graph Path 执行层：管理线程池、提交 Task、跟踪完成状态
  */
 @Internal
 public class TaskExecutor {

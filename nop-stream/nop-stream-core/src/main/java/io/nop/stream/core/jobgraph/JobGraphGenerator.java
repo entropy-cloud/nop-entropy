@@ -60,7 +60,7 @@ import java.util.Set;
  * @see JobEdge
  * @see OperatorChain
  *
- * <p>设计原型，当前执行路径未使用
+ * <p>Graph Path 编译管线第二阶段：StreamGraph → JobGraph（含算子链化优化）
  */
 @Internal
 public class JobGraphGenerator implements Serializable {

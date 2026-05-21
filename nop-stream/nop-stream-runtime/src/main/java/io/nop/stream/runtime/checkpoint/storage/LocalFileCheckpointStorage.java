@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 /**
  * Local file system storage implementation using JSON serialization.
  *
- * <p>设计原型，未接入执行路径
+ * <p>已接入 GraphModelCheckpointExecutor 执行路径
  */
 @Internal
 public class LocalFileCheckpointStorage implements ICheckpointStorage {

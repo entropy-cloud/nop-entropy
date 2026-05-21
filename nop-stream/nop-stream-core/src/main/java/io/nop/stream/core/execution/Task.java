@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @see OperatorChain
  * @see TaskExecutor
  *
- * <p>设计原型，当前执行路径未使用
+ * <p>Graph Path 执行单元：封装 JobVertex 在线程池中的运行逻辑
  */
 @Internal
 public class Task implements Runnable, Serializable {

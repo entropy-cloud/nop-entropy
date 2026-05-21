@@ -56,7 +56,7 @@ import java.util.Set;
  * @see StreamEdge
  * @see Transformation
  *
- * <p>设计原型，当前执行路径未使用
+ * <p>Graph Path 编译管线第一阶段：Transformation DAG → StreamGraph
  */
 @Internal
 public class StreamGraphGenerator {
