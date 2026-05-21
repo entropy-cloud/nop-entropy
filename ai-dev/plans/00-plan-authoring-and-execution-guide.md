@@ -1,7 +1,7 @@
 # Plan Authoring And Execution Guide
 
 > Status: active workflow guide
-> Last Reviewed: 2026-05-05
+> Last Reviewed: 2026-05-21
 > Sources: `docs/logs/2026/03-31.md`, `docs/logs/2026/04-03.md`, `docs/logs/2026/04-04.md`, `docs/logs/2026/04-07.md`, `docs/logs/2026/04-08.md`, `docs/logs/2026/04-09.md`, `docs/logs/2026/04-10.md`, `docs/logs/2026/05-04.md`, `docs/logs/2026/05-05.md`
 
 ## Goal
@@ -17,15 +17,17 @@
 
 ## Lessons From History
 
-从历史日志看，最常见的问题主要有 7 类：
+从历史日志看，最常见的问题主要有 9 类：
 
 1. 没先审 current baseline，直接沿用旧计划或旧 completion note。
 2. 一个计划过宽，后面不得不重写或拆分。
 3. 只记录最近 landing 的改动，没有回头逐条核对整个 plan。
 4. 剩余工作没有明确归属，导致计划看起来完成，实际上还有隐含 debt。
-5. 把“最近一个 slice 已 landing”误当成“整份 plan 可关闭”，缺少独立 closure audit。
+5. 把"最近一个 slice 已 landing"误当成"整份 plan 可关闭"，缺少独立 closure audit。
 6. 看到接口、类型、方法名已经出现，就误判对应语义已经完整落地，没有继续核对 live behavior 和 focused tests。
-7. 顶部 `Plan Status`、slice `Status`、phase `Exit Criteria`、`Closure Gates` 没有一起同步，导致文本里同时出现“completed”与未勾选 closure checklist 的矛盾状态。
+7. 顶部 `Plan Status`、slice `Status`、phase `Exit Criteria`、`Closure Gates` 没有一起同步，导致文本里同时出现"completed"与未勾选 closure checklist 的矛盾状态。
+8. **空壳实现（Hollow Implementation）**：接口和类存在，单元测试通过，但组件之间的连线未接通（从入口点到出口点的路径不完整），或内部逻辑用 stub/placeholder/no-op 填充。典型案例：nop-stream 的 CheckpointCoordinator/BarrierAligner/ICheckpointStorage 全部存在且各有单测，但 `StreamExecutionEnvironment.execute()` 从未调用其中任何一个。根因：**组件级验证通过 ≠ 系统级功能可用**。
+9. **静默跳过（Silent No-Op）**：缺失的功能用 `continue`、空方法体、或吞掉异常的方式绕过，而非快速失败。单测不检查这些路径，所以不会暴露问题。根因：**缺失功能时应抛异常或返回错误，而非静默忽略**。
 
 所以本指南只保留最少规则，并把它们直接体现在模板里。
 
@@ -41,9 +43,9 @@
 8. `completed` 必须来自单独的 closure audit，不要在完成最后一个编码 slice 的同时顺手宣布 plan 关闭。
 9. 任何 execution slice 只要还有一项未完成、blocked、或未移出 scope，plan 就不能标 `completed`。
 10. 计划中不要放实现代码、类签名或具体实现方案。实现方案放 `ai-dev/design/`，代码放源码。计划只描述目标、步骤和验证标准。例外：描述期望行为语义的伪代码（算法规格、需求描述）可以出现在 Exit Criteria 或 Current Baseline 中，只要它是在回答"应该发生什么"而不是"代码怎么写"。
-11. 关闭计划时，必须区分“contract surface 已出现”和“contract semantics 已落地”；前者不能替代后者。
+11. 关闭计划时，必须区分"contract surface 已出现"和"contract semantics 已落地"；前者不能替代后者。
 12. 标记 `completed` 前，必须完成一次由独立审阅者或独立子 agent 执行的 closure audit，并把证据写进 plan 或对应 daily log。self-audit 可用于执行中的自查，但不能替代 `completed` 所需的独立 closure audit。
-13. **已经进入 `lint`、静态检查脚本、或 CI fail-fast 的固定规则，都是不可降级的硬约束。** 计划里不能把这些规则改写成 advisory、follow-up、或“如有时间再做”的事项。
+13. **已经进入 `lint`、静态检查脚本、或 CI fail-fast 的固定规则，都是不可降级的硬约束。** 计划里不能把这些规则改写成 advisory、follow-up、或"如有时间再做"的事项。
 14. `ai-dev/design/` 下的文档**只记录架构决策和使用契约**：选了什么方案、为什么选、拒绝了哪些替代方案及原因。属于 design 层面的包括：架构约束、模块边界、接口契约（如 Meter 命名、API 命名规范、数据流方向）。**不写代码层面的类签名、方法列表、字段定义、伪代码——源码是代码层面的唯一事实。** 不写历史变迁、不写"Proposed vs Current"对比、不写演进叙事。如果一个 design doc 包含 "Proposed Design" 或 "Current vs Proposed" 章节，说明它还停留在 draft 状态，实施完成后必须重写为最终设计文档。
 15. 每个 execution item 都必须能被归类为 `Fix`、`Decision`、`Proof`、或 `Follow-up`。已确认的 live defect 或 contract drift 只能属于 `Fix`，不能降级成 `Follow-up`。
 16. 允许 deferred 的是优化项或已裁定为 non-blocking 的 residual，不允许 deferred 的是已确认且仍在 scope 内的 live defect、contract gap、owner-doc drift、以及未满足的硬门禁。
@@ -52,10 +54,20 @@
 19. **标记 `completed` 前，必须做一次文本一致性核对。** 至少逐项确认以下五处彼此一致：`Plan Status`、每个 slice 的 `Status`、每个 slice 的 `Exit Criteria`、`Closure Gates`、以及对应 `ai-dev/logs/` 收口记录。任何一处仍显示未完成，都不能把 plan 视为真正关闭。
 20. **已标记 `completed` 的历史计划默认视为历史记录，不因后续规范演进、模板变化、或后续代码演化而主动回写。** 只有在用户明确要求、需要修复事实性错误/损坏链接、或当前活跃计划明确且经用户确认以"修订历史计划文本"为交付物时，才允许修改这类计划。对历史计划的新审计发现，默认记录在新的 analysis / active plan / daily log 中，而不是为了追求模板一致性去重写旧计划。
 21. **文件命名使用两位数字递增编号**：`NN-<简短描述>.md`，其中 `NN` 为当前最大编号 + 1（如已有 `01`~`19`，则下一个为 `20`）。不使用日期前缀。`00` 保留给本 guide 文件。
+22. **端到端验证规则（Anti-Hollow Rule）**：如果计划涉及管线/流程/链条式系统（如流处理引擎、批处理管线、HTTP 请求链），至少一个 Exit Criteria 必须要求**从用户入口点到最终输出**的端到端验证。组件级单测不能替代端到端验证。例如：流处理计划必须有一条测试从 `env.addSource()` 到 `sink` 输出完整跑通；checkpoint 计划必须有一条测试从 barrier 触发到状态恢复到重新处理数据完整走通。
+23. **接线验证规则（Wiring Verification Rule）**：如果计划引入了新组件 A 需要与已有组件 B 协作，Exit Criteria 必须包含一条验证：**A 确实被 B（或 B 被 A）在运行时调用**。不能只验证 A 的存在和 B 的存在。验证方式可以是：在端到端测试中添加断言检查 A 的方法确实被调用（如计数器、标志位、或 mock verify），或通过代码审查确认调用链的连通性。
+24. **禁止静默跳过规则（No Silent No-Op Rule）**：新代码中不允许出现以下模式作为"正常"实现：
+    - 空方法体（`{}`）
+    - `continue` 跳过应处理的逻辑分支
+    - 吞掉异常不抛出不记录（`catch (Exception e) {}`）
+    - 返回 null/0/false 的 placeholder 当作正常返回值
+    - `// TODO` 或 `// FIXME` 标记的代码被当作已完成
+
+    如果某个功能确实需要暂缓实现，正确做法是抛出 `UnsupportedOperationException("not yet implemented: ...")` 或返回错误码——让调用方快速失败，而非静默忽略。Exit Criteria 中必须验证：新增的每个公共方法/分支路径在未实现时是显式失败的，不是静默跳过的。
 
 ## Anti-Slacking Rule
 
-计划可以延期优化工作，但不能延期“这个 in-scope 项目到底是不是 closure 必需项”的裁定。
+计划可以延期优化工作，但不能延期"这个 in-scope 项目到底是不是 closure 必需项"的裁定。
 
 写法要求：
 
@@ -132,7 +144,7 @@
 - `Goals` / `Non-Goals` 应保留，它们在近期高质量计划里几乎是稳定项。
 - `Phase Status` 总表不应强制，因为历史上很多好计划只有 slice 内状态，没有总表。
 - `Phase` 与 `Workstream` 都应允许，取决于任务是顺序还是并行。
-- `Closure Gates`、`Deferred But Adjudicated`、`Non-Blocking Follow-ups` 用来防止把真实问题伪装成“后续再说”。
+- `Closure Gates`、`Deferred But Adjudicated`、`Non-Blocking Follow-ups` 用来防止把真实问题伪装成"后续再说"。
 
 ```md
 # NN <<计划标题>>
@@ -194,6 +206,9 @@ Exit Criteria:
 
 - [ ] <<完成判定>>
 - [ ] <<验证点>>
+- [ ] **端到端验证**（如适用）：从用户入口点到最终输出的完整路径已验证（见 Minimum Rules #22）
+- [ ] **接线验证**（如适用）：新组件与已有组件的运行时调用连通性已验证（见 Minimum Rules #23）
+- [ ] **无静默跳过**（如适用）：新增方法/分支在未实现时抛出异常而非静默返回（见 Minimum Rules #24）
 - [ ] <<若该 Phase 改变 live baseline：相关 `ai-dev/design/` / `docs-for-ai/` 已更新；否则明确写 `No owner-doc update required`>>
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
@@ -213,6 +228,9 @@ Exit Criteria:
 
 - [ ] <<完成判定>>
 - [ ] <<验证点>>
+- [ ] **端到端验证**（如适用）：从用户入口点到最终输出的完整路径已验证（见 Minimum Rules #22）
+- [ ] **接线验证**（如适用）：新组件与已有组件的运行时调用连通性已验证（见 Minimum Rules #23）
+- [ ] **无静默跳过**（如适用）：新增方法/分支在未实现时抛出异常而非静默返回（见 Minimum Rules #24）
 - [ ] <<若该 Phase 改变 live baseline：相关 `ai-dev/design/` / `docs-for-ai/` 已更新；否则明确写 `No owner-doc update required`>>
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
@@ -232,6 +250,9 @@ Exit Criteria:
 
 - [ ] <<完成判定>>
 - [ ] <<验证点>>
+- [ ] **端到端验证**（如适用）：从用户入口点到最终输出的完整路径已验证（见 Minimum Rules #22）
+- [ ] **接线验证**（如适用）：新组件与已有组件的运行时调用连通性已验证（见 Minimum Rules #23）
+- [ ] **无静默跳过**（如适用）：新增方法/分支在未实现时抛出异常而非静默返回（见 Minimum Rules #24）
 - [ ] <<若该 Workstream 改变 live baseline：相关 `ai-dev/design/` / `docs-for-ai/` 已更新；否则明确写 `No owner-doc update required`>>
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
@@ -248,6 +269,7 @@ Exit Criteria:
 - [ ] <<不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift>>
 - [ ] <<受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required>>
 - [ ] <<独立子 agent / 独立审阅者 closure-audit 已完成并记录证据>>
+- [ ] **Anti-Hollow Check**：closure audit 已验证（a）组件间调用链在运行时确实连通（不只是类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
 - [ ] `./mvnw compile` (或 `-pl` 指定模块)
 - [ ] `./mvnw test` (或 `-pl` 指定模块)
 - [ ] checkstyle / 代码规范检查通过
@@ -308,6 +330,7 @@ Follow-up:
 8. 为每个 execution item 标记类型：`Fix`、`Decision`、`Proof`、`Follow-up`。如果一个项已经被确认为 live defect 或 contract drift，就不能写成 `Follow-up`。
 9. 如果某个 Phase 改了代码或行为，该 Phase 的 exit criteria 必须列出需要更新的 `ai-dev/design/`、`docs-for-ai/` 或 `ai-dev/logs/` 条目；如果不需要 owner-doc 更新，也要显式写出 `No owner-doc update required`。文档更新不是全局收尾工作，而是 Phase 内的工作。`ai-dev/design/` 下的文档只写最终设计状态（见 Minimum Rules 第 14 条）。
 10. 如果你正在规划的是一个完整 feature，先问自己这份 plan 是否真的能把 feature 收口；如果答案是否定的，再考虑拆成 successor plans，而不是一开始就把 feature 切碎。
+11. **管线/流程/链条式系统的 Exit Criteria 必须包含端到端验证项**（见 Minimum Rules #22）。问自己：如果这个 phase 完成，用户能否从入口点开始、经过所有新增/修改的组件、到达出口点，完整地使用这个功能？如果答案是否定的，说明还有未接通的线。
 
 ### When Executing
 
@@ -317,25 +340,27 @@ Follow-up:
 4. 如果只完成了类型/接口/方法壳，而语义或测试还没对齐，不要把 slice 标成 `completed`；这类情况通常应保持 `in progress` 或改成 `partially completed` 的 plan-level 状态。
 5. 如果某个项决定延期，先把它移到 `Deferred But Adjudicated` 或 `Non-Blocking Follow-ups`，并写清 `Why Not Blocking Closure`；不能只在 execution list 里放着不勾选。
 6. 执行当前 active plan 时，如果读到的是已 `completed` 的旧计划，默认把它当作历史证据而不是待修正文档；除非用户明确要求，否则不要顺手按新模板回写历史计划。
+7. **禁止写空壳代码**（见 Minimum Rules #24）。如果某个功能确实需要暂缓，抛出 `UnsupportedOperationException`，不要写空方法体或 `continue` 跳过。空壳代码会让后续开发者误以为功能已实现，增加调试成本。
 
 ### When Closing The Plan
 
-关闭前必须做 8 件事：
+关闭前必须做 9 件事：
 
 1. 从头重读整份 plan，不只看最近 landing 的部分。
 2. 逐条核对每个 slice 的 `Exit Criteria`。
 3. 逐条核对 `Closure Gates`。
-4. 逐项核对文本一致性：`Plan Status`、每个 slice 的 `Status`、每个 slice 的 `Exit Criteria`、`Closure Gates`、`ai-dev/logs/` 收口记录必须彼此一致，不能保留“顶部已 completed、内部仍未勾选”的状态。
+4. 逐项核对文本一致性：`Plan Status`、每个 slice 的 `Status`、每个 slice 的 `Exit Criteria`、`Closure Gates`、`ai-dev/logs/` 收口记录必须彼此一致，不能保留"顶部已 completed、内部仍未勾选"的状态。
 5. 把剩余工作写进 `Follow-up`，明确 successor plan 或明确无剩余 debt。
-6. 明确区分“接口存在”与“行为完成”（对代码变更计划：至少抽查一轮 live code path 和 focused tests；对纯文档计划：抽查文档内容与 live repo 代码的一致性），确认实现语义真的满足 exit criteria。
+6. 明确区分"接口存在"与"行为完成"（对代码变更计划：至少抽查一轮 live code path 和 focused tests；对纯文档计划：抽查文档内容与 live repo 代码的一致性），确认实现语义真的满足 exit criteria。
 7. 由独立审阅者或独立子 agent 做 closure-audit，并在 plan 或对应 daily log 中记录证据。这里的独立子 agent 指为 closure audit 单独启动的 fresh session，而不是复用实现阶段的同一 task session 继续自查。
-8. 逐条检查 deferred / follow-up 项是否真的 non-blocking，确认没有把 in-scope live defect、contract drift、或硬门禁失败项偷偷改写成“后续再做”。
+8. 逐条检查 deferred / follow-up 项是否真的 non-blocking，确认没有把 in-scope live defect、contract drift、或硬门禁失败项偷偷改写成"后续再做"。
+9. **Anti-Hollow 检查**：closure audit 必须验证（a）新增组件被已有组件在运行时确实调用（不只是 import 存在），（b）端到端路径从入口点到出口点完整连通，（c）无空方法体/静默跳过/no-op 作为正常实现。验证方法：读代码追踪调用链（从 `execute()` 到算子到 sink），或运行端到端测试并检查关键断言。
 
 如果这些事没做完，就不要把 `Plan Status` 改成 `completed`。
 
 ### Closure Audit Rule
 
-把 plan 改成 `completed` 前，必须把“执行”与“收口审计”当成两件事。
+把 plan 改成 `completed` 前，必须把"执行"与"收口审计"当成两件事。
 
 最低要求：
 
@@ -345,9 +370,10 @@ Follow-up:
 4. 每个 `Phase` / `Workstream` 都必须已经是 `completed`，否则 plan 不能关闭。
 5. 如果某个 slice 的工作不再属于本 plan，先把它显式移到 successor plan 或标注取消原因，再关闭本 plan。
 6. `Closure Gates` 中的未完成项只能保留在 plan 仍未关闭时；若计划关闭，这些项也必须完成或被移出当前 scope。
-7. closure audit 必须抽查“关键行为是否真的被实现”，不能只因为接口、类型、方法名、或注释已经存在就判定完成。
+7. closure audit 必须抽查"关键行为是否真的被实现"，不能只因为接口、类型、方法名、或注释已经存在就判定完成。
 8. 如果 closure audit 发现 only-partial landing，必须把 plan 改成 `partially completed` 或 `in progress`，而不是勉强保留 `completed`。
 9. closure audit 必须检查 deferred / follow-up 项的分类是否诚实；已确认的 live defect、contract drift、owner-doc drift、或硬门禁失败项不能留在 non-blocking 区域。
+10. **closure audit 必须做 Anti-Hollow 检查**：验证组件间调用链在运行时确实连通（不只是类型系统），验证无空方法体/静默跳过/no-op 作为正常实现。具体操作：从用户入口点追踪代码到出口点，确认每个新增组件都在这条链上被调用。
 
 推荐 closure-audit 证据来源：
 
@@ -356,19 +382,28 @@ Follow-up:
 - daily log entry recording the closure pass and any final doc-sync work
 - independent reviewer / subagent findings with task id or cited review note that explicitly check for plan/doc drift and interface-vs-semantics mismatch
 - explicit justification for each deferred item that remained non-blocking at closure
+- **anti-hollow evidence**：端到端测试路径和结果，或代码追踪证明调用链连通的截图/日志
 
 实操上可以把 closure audit 理解为一轮独立复核：
 
-- 不是“我刚做完最后一项，所以应该没问题”
-- 而是“我现在重新核对整份计划，确认没有剩余 plan-owned work”
+- 不是"我刚做完最后一项，所以应该没问题"
+- 而是"我现在重新核对整份计划，确认没有剩余 plan-owned work"
 
 一个常见误区：
 
-- “接口已经有了，所以这一 phase 应该算完成”
+- "接口已经有了，所以这一 phase 应该算完成"
 
 正确做法：
 
 - 继续核对该接口是否真的被调用、是否满足文档语义、是否有 focused tests 证明行为成立；否则最多算 partial landing。
+
+另一个常见误区：
+
+- "单元测试通过了，所以功能应该没问题"
+
+正确做法：
+
+- 单元测试只验证组件级行为。如果组件之间的连线没有接通（如 CheckpointCoordinator 从未被 execute() 调用），组件级单测全部通过也不能证明系统功能可用。必须额外验证端到端路径的连通性。
 
 ## Practical Rule
 
@@ -380,5 +415,5 @@ Follow-up:
 
 补充判断：
 
-- 如果读者看完 plan 仍然不知道“这个 feature 什么时候算真正可用”，说明计划可能被切得过碎。
+- 如果读者看完 plan 仍然不知道"这个 feature 什么时候算真正可用"，说明计划可能被切得过碎。
 - 如果计划中的多个 slice 只有全部完成后 feature 才第一次成立，那么默认应把它们放在同一个 owner plan 下，直到 live repo 证据证明需要拆分。
