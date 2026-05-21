@@ -67,8 +67,148 @@ checkpoint 子系统由以下组件构成，分布在 core 和 runtime 两个模
 
 | 层 | 组件 | 模块 | 职责 |
 |---|---|---|---|
-| 抽象层 | `CheckpointBarrier` / `CheckpointConfig` / `CheckpointIDCounter` / `ICheckpointStorage` / `CheckpointListener` / `TwoPhaseCommitSinkFunction` / `CheckpointedSourceFunction` / `TaskStateSnapshot` / `OperatorSnapshotResult` / `CompletedCheckpoint` | core | 定义 checkpoint 相关的数据结构、配置和接口契约 |
+| 抽象层 | `CheckpointBarrier` / `CheckpointConfig` / `CheckpointIDCounter` / `ICheckpointStorage` / `CheckpointListener` / `TwoPhaseCommitSinkFunction` / `CheckpointedSourceFunction` / `TaskStateSnapshot` / `OperatorSnapshotResult` / `CompletedCheckpoint` / **`CheckpointPlan`** / **`TaskLocation`** | core | 定义 checkpoint 相关的数据结构、配置和接口契约 |
+| 计划层 | **`CheckpointPlanBuilder`** | runtime | 从 GraphExecutionPlan 生成 CheckpointPlan（依赖 runtime 的 GraphExecutionPlan 类） |
 | 实现层 | `CheckpointCoordinator` / `PendingCheckpoint` / `BarrierAligner` / `AlignedBarrier` / `CheckpointMetrics` / `LocalFileCheckpointStorage` / `JdbcCheckpointStorage` | runtime | 提供 checkpoint 的协调、状态跟踪、barrier 对齐、指标统计和持久化实现 |
+
+### 2.2 CheckpointPlan：执行计划与 Checkpoint 的桥梁
+
+CheckpointPlan 是 checkpoint 子系统对管线拓扑的**只读视图**。它在执行计划生成阶段一次性构建，将 checkpoint 需要的拓扑信息从执行引擎中解耦出来。
+
+**为什么需要 CheckpointPlan**（设计决策）：
+
+Coordinator 需要 three 类拓扑信息才能工作：barrier 注入点（source task 在哪）、ACK 跟踪集合（哪些 task 必须全部 ACK）、状态恢复路由（恢复时哪块状态分给哪个 task）。如果这些信息隐式地从执行计划中推导（当前做法），checkpoint 逻辑与执行引擎耦合——执行引擎改了，checkpoint 就坏了。CheckpointPlan 把这个依赖显式化、稳定化。
+
+**参考**：Apache SeaTunnel 的 `CheckpointPlan` 在 `PhysicalPlanGenerator.generate()` 阶段生成，nop-stream 采纳同一模式。
+
+**拒绝了什么**：
+- 让 Coordinator 直接遍历 GraphExecutionPlan——违反关注点分离，执行引擎变更会破坏 checkpoint
+- 不做 CheckpointPlan、只在 Coordinator 里硬编码拓扑假设——只适用于单链管线，不可扩展
+- 只修 BUG 1/4 的 key names 不引入 CheckpointPlan——可以修 bug 但不解决架构耦合问题，且无法支持分布式执行
+
+**诚实评估**：BUG 1（keyed state 碰撞）和 BUG 4（状态恢复路由错误）确实可以通过直接修改 `CheckpointBarrierTracker.acknowledgeOperator()` 和 `buildSnapshotFromTaskState()` 来修复，无需引入 CheckpointPlan。但这样修只是打补丁——checkpoint 逻辑仍然与执行引擎耦合，无法支持分布式执行。CheckpointPlan 的引入是为了长期架构正确性，而非最小 bug fix。
+
+#### CheckpointPlan 数据结构
+
+```
+CheckpointPlan {
+    int version = 1;                                // 序列化格式版本
+    String jobId;                                   // 作业标识
+    String pipelineId;                              // 管线标识
+    List<TaskLocation> allTasks;                    // 所有 task 实例（ACK 跟踪）
+    List<TaskLocation> sourceTasks;                 // barrier 注入点（source 顶点的所有并行实例）
+    Map<TaskLocation, List<OperatorStateMapping>> stateMappings;  // 每 task 的算子状态映射
+}
+
+TaskLocation {
+    String jobId;            // 作业标识（为分布式执行预留路由信息）
+    String pipelineId;       // 管线标识
+    String vertexId;         // 顶点 ID，如 "vertex-1"
+    int taskIndex;           // 0 到 parallelism-1
+}
+
+OperatorStateMapping {
+    int operatorIndex;            // 算子在链中的位置（从 0 开始）
+    String operatorStateKey;      // 该算子 operator state 的存储键名，如 "operator-0"
+    String keyedStateStorageKey;  // 该算子 keyed state 的存储键名，如 "operator-0-keyed"（null 表示无 keyed state）
+    boolean isTwoPhaseCommit;     // 该算子是否为 TwoPhaseCommitSink（决定 preCommit/commit/rollback 生命周期）
+}
+```
+
+**设计要点说明**：
+
+1. **`TaskLocation` 包含 `jobId` + `pipelineId`**：为分布式执行预留路由信息。当前单进程执行时，Coordinator 通过 `TaskLocation` 的 `vertexId` + `taskIndex` 定位本地 task；分布式执行时，通过 `jobId` + `pipelineId` 路由到正确的节点。参考 SeaTunnel 的 `TaskLocation` 包含 `TaskGroupLocation`（jobId + pipelineId + taskGroupId）。
+
+2. **`TaskLocation` 不含 task 角色，角色在 `OperatorStateMapping` 级别**：一个 task 包含算子链，链内可以有多个角色（如 `[SourceOperator, MapOperator, TwoPhaseCommitSinkOperator]`）。角色不是 task 级别的属性，而是算子级别的属性。Coordinator 通过 `sourceTasks.contains(taskLocation)` 判断是否为 source task，通过 `OperatorStateMapping.isTwoPhaseCommit` 判断哪个算子需要 2PC 生命周期。不需要 `TaskCheckpointRole` 枚举。
+
+3. **`OperatorStateMapping` 用 `keyedStateStorageKey` 显式命名 keyed state**：如果为 null 表示该算子无 keyed state。快照时，算子的 operator state 存储在 `operatorStateKey` 下，keyed state 存储在 `keyedStateStorageKey` 下（如 `"operator-0-keyed"`）。恢复时，按 `keyedStateStorageKey` 精确取出对应算子的 keyed state blob，反序列化到 `IKeyedStateBackend`。dual-state 路由（同一算子同时有 operator state 和 keyed state）通过两个不同的键名自然解决。
+
+4. **去掉了 `vertexParallelism`**：并行度信息已隐含在 `allTasks` 的基数中（同一 `vertexId` 的 TaskLocation 数量就是并行度）。`CheckpointPlanBuilder` 在构建时验证一致性，不单独存储以避免冗余不一致的风险。
+
+5. **`sourceTasks` 包含所有并行实例**：如果 source 顶点的 parallelism=3，则 `sourceTasks` 包含 3 个 TaskLocation（taskIndex 0, 1, 2）。每个 source 实例独立注入 barrier。
+
+6. **`version` 语义**：`version=1` 表示本文档描述的格式。恢复逻辑检查 `version <= CURRENT_VERSION`，拒绝未知版本。
+
+#### 快照侧：OperatorStateMapping 如何传入 CheckpointBarrierTracker
+
+`CheckpointBarrierTracker`（core 模块）在构建时接收 `List<OperatorStateMapping>`（由 `CheckpointPlanBuilder` 生成，经 `GraphModelCheckpointExecutor` 传入）。`acknowledgeOperator(operatorIndex, snapshotResult)` 使用 `mappings[operatorIndex]` 确定存储键名：
+
+```
+acknowledgeOperator(operatorIndex, snapshotResult):
+    mapping = operatorStateMappings[operatorIndex]
+    if snapshotResult has operator states:
+        for each (name, bytes) in snapshotResult.operatorStates:
+            currentSnapshot.operatorStates.put(mapping.operatorStateKey, bytes)
+    if snapshotResult has keyed states:
+        if mapping.keyedStateStorageKey != null:
+            currentSnapshot.keyedStates.put(mapping.keyedStateStorageKey, bytes)
+```
+
+#### CheckpointPlan 如何修复 BUG 1 和 BUG 4
+
+**BUG 1（keyed state 碰撞）**：当前所有算子用 `"keyed-state"` 作为存储键名。引入 CheckpointPlan 后，`OperatorStateMapping` 为每个算子分配唯一的 `keyedStateStorageKey`（如 `"operator-0-keyed"`, `"operator-1-keyed"`）——不再碰撞。
+
+注意：这只是存储层的修复。`IKeyedStateBackend` 本身也需要按算子隔离——同一链中的多个算子如果都使用 keyed state，需要各自独立的 state backend 实例，或在 state name 中加入算子 ID 前缀。这是一个独立于 CheckpointPlan 的 state backend 层修复。
+
+**BUG 4（状态恢复路由错误）**：当前 `buildSnapshotFromTaskState()` 把所有状态发给每个算子。引入 CheckpointPlan 后，恢复路由如下：
+
+```
+对每个 TaskLocation:
+  mappings = CheckpointPlan.stateMappings[taskLocation]
+  对每个 OperatorStateMapping mapping:
+    operatorState = taskSnapshot.operatorStates[mapping.operatorStateKey]
+    if (mapping.keyedStateStorageKey != null):
+      keyedState = taskSnapshot.keyedStates[mapping.keyedStateStorageKey]
+    将 (operatorState, keyedState) 路由到第 mapping.operatorIndex 个算子
+```
+
+Dual-state 路由（同一算子同时有 operator state 和 keyed state）通过 `operatorStateKey` + `keyedStateStorageKey` 两个独立键名自然解决——恢复时按这两个键名分别从 `operatorStates` 和 `keyedStates` Map 中取出对应的数据。
+
+#### CheckpointPlan 与 Savepoint 的交互
+
+Savepoint 是手动触发的 checkpoint，可以跨管线版本保留和恢复。交互规则：
+
+1. **CheckpointPlan 随 savepoint 序列化存储**：savepoint 目录中包含 `checkpoint-plan.json`（`JsonTool` 序列化），记录生成时的管线拓扑
+2. **恢复时检查兼容性**：新的 `CheckpointPlan` 与 savepoint 中的旧 plan 对比，验证算子数量和状态键名是否匹配。不匹配的具体含义：算子数量不同、`operatorStateKey` 找不到、或 `keyedStateStorageKey` 不一致
+3. **恢复模式**：`STRICT`（默认）—— 任何不匹配都拒绝恢复并报告具体不兼容项；`LENIENT` —— 忽略不匹配的算子（记录警告），恢复可以匹配的部分。`LENIENT` 模式允许管线小幅修改后恢复，避免全部状态丢失
+4. **不支持自动 schema 迁移**：当前不支持算子增删、并行度变更后的自动状态重分布。这是一个显式限制，未来可通过 `pipelineActions` 扩展
+
+#### CheckpointPlan 与 BarrierAligner 的关系
+
+`BarrierAligner` 的配置（多输入算子的输入数量）不从 CheckpointPlan 中获取——它从执行引擎的 `GraphExecutionPlan` 中获取。CheckpointPlan 不记录边（edge）信息，只记录顶点（task）和状态映射。恢复时，执行引擎先从 `GraphExecutionPlan` 重建算子拓扑（包括 `BarrierAligner` 的输入数量），然后从 CheckpointPlan 恢复状态。
+
+**跨执行引擎的 Savepoint 恢复假设**：如果 savepoint 是在引擎 A 上生成的，恢复到引擎 B（如从嵌入式切换到分布式），CheckpointPlan 假设两个引擎产生**相同的算子链拓扑**（相同的 chain 配置、相同的并行度）。如果链拓扑不同（如引擎 B 将某两个算子拆分为不同 chain），恢复可能失败。这是一个显式限制——跨引擎恢复要求管线拓扑一致。
+
+#### CheckpointPlan 的生成时机
+
+```
+JobGraph
+  ↓ GraphExecutionPlan 构建
+GraphExecutionPlan
+  ↓ CheckpointPlanBuilder.build(graphExecutionPlan)
+CheckpointPlan
+  ↓ 传入 CheckpointCoordinator 构造器
+CheckpointCoordinator 使用 CheckpointPlan 驱动 barrier 注入和 ACK 跟踪
+```
+
+#### Coordinator 内部类型对齐
+
+引入 `TaskLocation` 后，`CheckpointCoordinator` 及相关类的以下字段需要类型变更：
+
+| 类 | 字段 | 当前类型 | 目标类型 |
+|---|---|---|---|
+| `CheckpointCoordinator` | `tasksToAcknowledge` | `Set<Long>` | `Set<TaskLocation>` |
+| `CheckpointCoordinator` | `acknowledgeTask()` 参数 | `long taskId` | `TaskLocation` |
+| `PendingCheckpoint` | `notYetAcknowledgedTasks` | `Set<Long>` | `Set<TaskLocation>` |
+| `PendingCheckpoint` | `taskStates` key | `Long` | `TaskLocation` |
+| `CompletedCheckpoint` | `taskStates` key | `Map<Long, TaskStateSnapshot>` | `Map<TaskLocation, TaskStateSnapshot>` |
+| `CompletedCheckpoint` | `getTaskState` / `addTaskState` 参数 | `long taskId` | `TaskLocation` |
+| `CompletedCheckpoint` | `jobId` / `pipelineId` | `long` / `int` | `String`（与 `TaskLocation` 对齐） |
+| `CheckpointBarrierTracker` | `taskId` 字段 + 构造器参数 | `long` | `TaskLocation` |
+| `CheckpointBarrierTracker` | `currentSnapshot` 构建 | `new TaskStateSnapshot(long, long)` | `new TaskStateSnapshot(TaskLocation, long)` |
+| `TaskStateSnapshot` | `taskId` | `long` | `TaskLocation` |
+
+所有变更统一使用 `TaskLocation`，避免 `long` ↔ `TaskLocation` 转换的维护负担。
 
 ## 3. 核心数据结构
 

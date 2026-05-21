@@ -252,6 +252,25 @@ Transformation DAG → StreamGraph → JobGraph → Task[] → TaskExecutor
 
 图模型路径支持**单链和多链管线**。数据交换组件（RecordWriter / RecordReader / InputGate / ResultPartition / InputChannel）基于 `BlockingQueue` 实现同进程内 Task 间数据传递。`GraphExecutionPlan` 负责拓扑排序和数据交换通道创建。`StreamTaskInvokable` 根据 Task 在 JobGraph 中的位置扮演 SOURCE / MIDDLE / SINK / SELF_CONTAINED 四种角色。
 
+### 7.5 CheckpointPlan 的生成（规划）
+
+图模型路径在构建 `GraphExecutionPlan` 阶段同时生成 `CheckpointPlan`：
+
+```
+JobGraph
+  ↓ GraphExecutionPlan 构建
+GraphExecutionPlan
+  ↓ CheckpointPlanBuilder.build(graphExecutionPlan)
+CheckpointPlan（传入 CheckpointCoordinator）
+```
+
+`CheckpointPlanBuilder` 遍历 `GraphExecutionPlan` 的拓扑排序结果，提取：
+- source task 列表（从 `StreamTaskInvokable` 角色为 SOURCE 的顶点中提取）
+- 所有 task 列表（所有顶点的所有 task 实例）
+- 每个 task 内的算子状态映射（从 `OperatorChain` 中提取每个算子的 state key）
+
+生成后的 `CheckpointPlan` 是只读的，checkpoint 子系统不再需要反向引用执行引擎。详见 `checkpoint-design.md` §2.2。
+
 ## 8. 与 Flink 的差异
 
 | 维度 | Flink | nop-stream |

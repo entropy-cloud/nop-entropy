@@ -142,7 +142,19 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 
 #### C5 Checkpoint
 
-**已完成度**：中。核心流程已实现，但存储层需要重新设计。
+**已完成度**：中。核心流程已实现，但需要引入 CheckpointPlan 解耦拓扑信息，并修复多个正确性 bug。
+
+**关键设计——引入 CheckpointPlan**：
+
+当前 checkpoint 逻辑与执行引擎耦合（`GraphModelCheckpointExecutor` 直接遍历执行计划推导拓扑信息），导致：状态键名碰撞（BUG 1）、恢复时状态路由错误（BUG 4）、无法支持分布式执行。需要引入 `CheckpointPlan` 显式建模 checkpoint 需要的拓扑信息。
+
+CheckpointPlan 的职责：
+- 记录 source task 列表（barrier 注入点）
+- 记录所有 task 列表（ACK 跟踪集合）
+- 记录每个 task 的算子状态映射（恢复时的状态路由）
+- 在 GraphExecutionPlan 构建阶段一次性生成，checkpoint 子系统只读使用
+
+这个设计参考了 Apache SeaTunnel 的 `CheckpointPlan`。详见 `checkpoint-design.md` §2.2。
 
 **关键设计要求——JdbcCheckpointStorage 重新设计**：
 
@@ -166,7 +178,14 @@ JdbcCheckpointStorage
   └── 通过 IJdbcTemplate 获取 IDialect，自动适配 MySQL/PostgreSQL/Oracle/H2/DM 等
 ```
 
-同时，Checkpoint 协调器的 Barrier 注入存在线程安全问题——当前从独立 `ScheduledExecutorService` 线程注入 barrier，与 source 算子线程存在竞争。正确做法是让 barrier 作为数据流内的特殊元素注入，而非从外部线程干预。
+**必须修复的 Bug**：
+
+| Bug | 严重度 | 描述 | CheckpointPlan 是否解决 |
+|-----|--------|------|------------------------|
+| Keyed state 碰撞 | 严重 | 所有算子的 keyed state 用同一个 key 写入 Map，互相覆盖 | ✅ `keyedStateStorageKey` 为每个算子分配唯一键名（如 `"operator-0-keyed"`）。但 `IKeyedStateBackend` 也需按算子隔离（独立修复） |
+| Barrier 注入线程安全 | 严重 | 从独立线程注入 barrier，与 source 线程竞争 | 不解决——需修改 source 算子的 barrier 检查机制 |
+| 状态恢复路由错误 | 中等 | 恢复时把所有状态发给每个算子 | ✅ `stateMappings` 精确路由，dual-state 通过 `operatorStateKey` + `keyedStateStorageKey` 双键解决 |
+| CheckpointBarrierTracker 无重叠保护 | 中等 | triggerCheckpoint 覆盖进行中的状态 | 不直接解决，需 Coordinator 层面修复 |
 
 #### C6 CEP 引擎
 
@@ -243,11 +262,19 @@ JdbcCheckpointStorage
 
 ### 阶段 3：Checkpoint 生产化（C5）
 
-**目标**：Checkpoint 子系统达到生产可用水平——多数据库、线程安全、正确恢复。
+**目标**：Checkpoint 子系统达到生产可用水平——CheckpointPlan 解耦、多数据库存储、线程安全、正确恢复。
 
 **工作项**：
 
-1. **C5：重新设计 `JdbcCheckpointStorage`**
+1. **C5：实现 CheckpointPlan + CheckpointPlanBuilder**
+   - 定义 `CheckpointPlan`、`TaskLocation`、`OperatorStateMapping` 数据结构（core 模块）
+   - 实现 `CheckpointPlanBuilder`：从 `GraphExecutionPlan` 中提取 source task、all tasks、state mappings（runtime 模块）
+   - 修改 `CheckpointCoordinator` 构造器接收 `CheckpointPlan`，不再隐式遍历执行计划
+   - 修改 `CheckpointBarrierTracker.acknowledgeOperator()`：用 `OperatorStateMapping.operatorStateKey` 代替硬编码 `"keyed-state"`（修复 BUG 1）
+   - 修改 `buildSnapshotFromTaskState()`：按 `stateMappings` 精确路由状态（修复 BUG 4）
+   - 编写测试：多算子链的 keyed state 不互相覆盖、恢复时状态精确路由
+
+2. **C5：重新设计 `JdbcCheckpointStorage`**
    - 基于 `IJdbcTemplate` + `IDialect` 实现，支持 MySQL/PostgreSQL/Oracle/H2/DM 等
    - 使用 `SQL.begin()` 构建所有 SQL
    - 使用 `IJdbcTemplate.existsTable()` 检查表是否存在
@@ -256,17 +283,20 @@ JdbcCheckpointStorage
    - 通过 NopIoC 注册为 bean
    - 编写测试：使用 H2 内存数据库验证多数据库兼容性
 
-2. **C5：修复 Barrier 注入线程安全问题**
+3. **C5：修复 Barrier 注入线程安全问题**
    - Barrier 应作为数据流内的特殊元素注入，而非从外部线程干预
-   - 需要重新设计注入机制——可能需要 source 算子在 `collect()` 调用之间检查是否需要注入 barrier
+   - Source 算子在 `run()` 循环中检查 `volatile` 标志或 `BlockingQueue`，需要时在 source 线程上注入 barrier
    - 编写测试：并发 checkpoint 触发不丢数据
 
-3. **C5：统一执行路径**
+4. **C5：统一执行路径**
    - 明确 `executeWithGraphModel()` 为生产路径
    - `execute()` 保留为简化测试路径，但在文档中标注
    - 清理 `GraphModelCheckpointExecutor` 中的代码重复
 
 **交付标准**：
+- `CheckpointPlan` 从 `GraphExecutionPlan` 正确生成并通过测试
+- 多算子链的 keyed state 快照/恢复正确（BUG 1 修复）
+- 状态恢复精确路由到对应算子（BUG 4 修复）
 - Checkpoint 存储支持至少 MySQL 和 H2（通过 `IJdbcTemplate` 自动适配）
 - 多次 checkpoint 循环后恢复验证正确性
 
