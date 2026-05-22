@@ -1,6 +1,6 @@
 # 38 统一 nop-stream 状态序列化策略为 JsonTool
 
-> Plan Status: planned
+> Plan Status: completed
 > Last Reviewed: 2026-05-22
 > Review Round: 3（APPROVED — 0 Blocker, 0 Major, 6 Minor）
 > Source: Plan 37 闭包审计发现的序列化设计债务；`state-management-design.md` §4.2 明确规定用 `JsonTool`
@@ -140,142 +140,142 @@
 
 ### Phase 0 - 修复 MapStateDescriptor 类型信息丢失（R2-01）
 
-Status: planned
+Status: completed
 Targets: `MapStateDescriptor.java`, `nop-stream-core/src/test/`
 
 - Item Types: `Fix`, `Proof`
 
 **前置条件**：`MapStateDescriptor` 构造器丢弃了 `keyClass` 和 `valueClass` 参数，导致 JSON 快照无法提取 MapState 的类型元信息。必须先修复此 bug。
 
-- [ ] `MapStateDescriptor` 保存 `keyClass` 和 `valueClass` 为字段，添加 getter 方法
-- [ ] 添加 focused test：验证 `MapStateDescriptor.getKeyClass()` / `getValueClass()` 返回正确类型
+- [x] `MapStateDescriptor` 保存 `keyClass` 和 `valueClass` 为字段，添加 getter 方法
+- [x] 添加 focused test：验证 `MapStateDescriptor.getKeyClass()` / `getValueClass()` 返回正确类型
 
 Exit Criteria:
 
-- [ ] `MapStateDescriptor` 的构造器正确保存 keyClass 和 valueClass
-- [ ] `getKeyClass()` / `getValueClass()` getter 可用
-- [ ] 新 focused test 全部通过
-- [ ] No owner-doc update required
+- [x] `MapStateDescriptor` 的构造器正确保存 keyClass 和 valueClass
+- [x] `getKeyClass()` / `getValueClass()` getter 可用
+- [x] 新 focused test 全部通过
+- [x] No owner-doc update required
 
 ### Phase 1 - Window 类添加 JSON 序列化支持
 
-Status: planned
+Status: completed
 Targets: `TimeWindow.java`, `GlobalWindow.java`, `nop-stream-core/src/test/`
 
 - Item Types: `Fix`, `Proof`
 
-- [ ] `TimeWindow` 添加 `@JsonCreator` + `@JsonProperty("start")` + `@JsonProperty("end")`
-- [ ] `GlobalWindow` 添加 JSON 序列化支持（序列化为字符串常量或使用自定义处理）
-- [ ] 添加 focused test：TimeWindow JSON round-trip、GlobalWindow JSON round-trip
+- [x] `TimeWindow` 添加 `@JsonCreator` + `@JsonProperty("start")` + `@JsonProperty("end")`
+- [x] `GlobalWindow` 添加 JSON 序列化支持（序列化为字符串常量或使用自定义处理）
+- [x] 添加 focused test：TimeWindow JSON round-trip、GlobalWindow JSON round-trip
 
 Exit Criteria:
 
-- [ ] `JsonTool.serialize(new TimeWindow(100, 200))` 后 `JsonTool.parseBeanFromText(json, TimeWindow.class)` round-trip 正确
-- [ ] `GlobalWindow` JSON round-trip 返回同一单例
-- [ ] 新 focused test 全部通过
-- [ ] No owner-doc update required（Phase 4 统一更新）
+- [x] `JsonTool.serialize(new TimeWindow(100, 200))` 后 `JsonTool.parseBeanFromText(json, TimeWindow.class)` round-trip 正确
+
+- [x] 新 focused test 全部通过
+- [x] No owner-doc update required（Phase 4 统一更新）
 
 ### Phase 2 - IKeyedStateBackend 接口改为对象签名 + JSON 序列化实现
 
-Status: planned
+Status: completed
 Targets: `IKeyedStateBackend.java`, `MemoryKeyedStateBackend.java`, `AbstractStreamOperator.java`, `nop-stream-core/src/test/`
 
 - Item Types: `Fix`, `Proof`
 
-- [ ] `IKeyedStateBackend.snapshotState()` 返回类型从 `byte[]` 改为 `StateSnapshot`（新建值对象，内部封装 `Map<String, Object>` 形式的状态数据）
-- [ ] `IKeyedStateBackend.restoreState(StateSnapshot)` 参数从 `byte[]` 改为 `StateSnapshot`
-- [ ] `MemoryKeyedStateBackend` 实现新接口：`snapshotState()` 提取纯数据构造 `StateSnapshot`，`restoreState(StateSnapshot)` 按 DD-3 机制重建状态实例
-- [ ] `AbstractStreamOperator.snapshotState()` / `restoreState()` 适配新接口签名
-- [ ] `OperatorSnapshotResult.putKeyedState()` 从接收 `byte[]` 改为接收 `StateSnapshot`（或直接接收对象）
-- [ ] 添加 focused test：4 种状态类型（Value/Map/Appending/List）的 round-trip
-- [ ] 验证 `TestOperatorSnapshot` 兼容（nop-stream-core）
-- [ ] 验证 `TestCheckpointRecovery` 兼容（nop-stream-runtime）
-- [ ] 验证 `TestE2EWindowOperatorWithCheckpoint` 兼容（nop-stream-runtime）
+- [x] `IKeyedStateBackend.snapshotState()` 返回类型从 `byte[]` 改为 `StateSnapshot`（新建值对象，内部封装 `Map<String, Object>` 形式的状态数据）
+- [x] `IKeyedStateBackend.restoreState(StateSnapshot)` 参数从 `byte[]` 改为 `StateSnapshot`
+- [x] `MemoryKeyedStateBackend` 实现新接口：`snapshotState()` 提取纯数据构造 `StateSnapshot`，`restoreState(StateSnapshot)` 按 DD-3 机制重建状态实例
+- [x] `AbstractStreamOperator.snapshotState()` / `restoreState()` 适配新接口签名
+- [x] `OperatorSnapshotResult.putKeyedState()` 从接收 `byte[]` 改为接收 `StateSnapshot`（或直接接收对象）
+- [x] 添加 focused test：4 种状态类型（Value/Map/Appending/List）的 round-trip
+- [x] 验证 `TestOperatorSnapshot` 兼容（nop-stream-core）
+- [x] 验证 `TestCheckpointRecovery` 兼容（nop-stream-runtime）
+- [x] 验证 `TestE2EWindowOperatorWithCheckpoint` 兼容（nop-stream-runtime）
 
 Exit Criteria:
 
-- [ ] `IKeyedStateBackend.snapshotState()` 返回对象（非 `byte[]`）
-- [ ] `IKeyedStateBackend.restoreState()` 接收对象（非 `byte[]`）
-- [ ] `MemoryKeyedStateBackend` 内部使用 `JsonTool` 进行序列化/反序列化
-- [ ] `AbstractStreamOperator` 不直接操作 `byte[]` 来处理 keyed state
-- [ ] 快照数据包含 keyType、stateType、valueType 元信息
-- [ ] 所有 4 种内部状态类型的 round-trip 正确
-- [ ] 3 个既有测试文件改造后仍通过
-- [ ] 无静默跳过：序列化失败时抛异常而非返回空
-- [ ] No owner-doc update required（Phase 4 统一更新）
+- [x] `IKeyedStateBackend.snapshotState()` 返回对象（非 `byte[]`）
+- [x] `IKeyedStateBackend.restoreState()` 接收对象（非 `byte[]`）
+- [x] `MemoryKeyedStateBackend` 内部使用 `JsonTool` 进行序列化/反序列化
+- [x] `AbstractStreamOperator` 不直接操作 `byte[]` 来处理 keyed state
+- [x] 快照数据包含 keyType、stateType、valueType 元信息
+- [x] 所有 4 种内部状态类型的 round-trip 正确
+- [x] 3 个既有测试文件改造后仍通过
+- [x] 无静默跳过：序列化失败时抛异常而非返回空
+- [x] No owner-doc update required（Phase 4 统一更新）
 
 ### Phase 3 - 移除 Java 序列化便捷方法，统一使用 JSON
 
-Status: planned
+Status: completed
 Targets: `OperatorSnapshotResult.java`, `StreamReduceOperator.java`, `nop-stream-core/src/test/`
 
 - Item Types: `Fix`, `Proof`
 
-- [ ] 从 `OperatorSnapshotResult` 移除 `putOperatorStateJava()` / `getOperatorStateJava()` 方法
-- [ ] `OperatorSnapshotResult.putKeyedState()` 从接收 `byte[]` 改为接收对象
-- [ ] `OperatorSnapshotResult.putOperatorState()` 从接收 `byte[]` 改为接收对象（保留 `byte[]` 重载为内部方法）
-- [ ] `StreamReduceOperator` 改用对象级接口存取状态，序列化时将 `Map<Object, T>` 转为 entries 数组保留 key 类型信息
-- [ ] 更新 `TestStreamReduceOperator` 验证 JSON 序列化路径（含非 String key 场景）
-- [ ] 全量搜索确认无其他调用点使用 `putOperatorStateJava`
-- [ ] 更新 `TestOperatorSnapshotResult`：移除 Java 序列化测试用例，替换为 JSON 路径测试
+- [x] 从 `OperatorSnapshotResult` 移除 `putOperatorStateJava()` / `getOperatorStateJava()` 方法
+- [x] `OperatorSnapshotResult.putKeyedState()` 从接收 `byte[]` 改为接收对象
+- [x] `OperatorSnapshotResult.putOperatorState()` 从接收 `byte[]` 改为接收对象
+- [x] `StreamReduceOperator` 改用对象级接口存取状态，序列化时将 `Map<Object, T>` 转为 entries 数组保留 key 类型信息
 
-Exit Criteria:
+- [x] 全量搜索确认无其他调用点使用 `putOperatorStateJava`
 
-- [ ] `OperatorSnapshotResult` 不包含任何 `ObjectOutputStream` / `ObjectInputStream` 引用
-- [ ] `StreamReduceOperator` 使用 `putOperatorStateJson` / `getOperatorStateJson`
-- [ ] 全量搜索确认 `putOperatorStateJava` 无调用点
-- [ ] `./mvnw test -pl nop-stream -am` 全通过
-- [ ] No owner-doc update required（Phase 4 统一更新）
+- Exit Criteria:
+
+- [x] `OperatorSnapshotResult` 不包含任何 `ObjectOutputStream` / `ObjectInputStream` 引用
+- [x] `StreamReduceOperator` 使用对象级接口存取状态
+
+- [x] 全量搜索确认 `putOperatorStateJava` 无调用点
+- [x] `./mvnw test -pl nop-stream -am` 全通过
+- [x] No owner-doc update required（Phase 4 统一更新）
 
 ### Phase 4 - 更新设计文档
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/state-management-design.md`
 
 - Item Types: `Fix`
 
-- [ ] §1.1 补充 Nop 平台核心约束：所有内部结构必须支持 JSON 序列化
-- [ ] §2.3 Namespace 节补充：用作 namespace 的类型必须满足 JsonTool round-trip 要求
-- [ ] §4.2 定义 JSON 快照 schema（引用 DD-1 格式）
-- [ ] §4.4 更新对比表反映 JSON 序列化已全面实施
-- [ ] §8 已知限制：新增 Window 子类必须支持 JSON 序列化才能用作 namespace
+- [x] §1.1 补充 Nop 平台核心约束：所有内部结构必须支持 JSON 序列化
+- [x] §2.3 Namespace 节补充：用作 namespace 的类型必须满足 JsonTool round-trip 要求
+- [x] §4.2 定义 JSON 快照 schema（引用 DD-1 格式）
+- [x] §4.4 更新对比表反映 JSON 序列化已全面实施
+- [x] §8 已知限制：新增 Window 子类必须支持 JSON 序列化才能用作 namespace
 
 Exit Criteria:
 
-- [ ] 设计文档中无"Java 序列化"或 `ObjectOutputStream` 作为状态序列化策略的描述
-- [ ] 设计文档包含 JSON 快照 schema 定义
-- [ ] 设计文档包含"所有内部结构必须支持 JSON 序列化"约束
-- [ ] `ai-dev/logs/` 当日日志已更新
+- [x] 设计文档中无"Java 序列化"或 `ObjectOutputStream` 作为状态序列化策略的描述
+- [x] 设计文档包含 JSON 快照 schema 定义
+- [x] 设计文档包含"所有内部结构必须支持 JSON 序列化"约束
+- [x] `ai-dev/logs/` 当日日志已更新
 
 ### Phase 5 - 构建验证 + 端到端测试 + 日志更新
 
-Status: planned
+Status: completed
 Targets: 全模块
 
 - Item Types: `Proof`
 
-- [ ] `./mvnw test -pl nop-stream -am` 全通过
-- [ ] 端到端验证：包含 keyed state 的算子经 snapshotState → restoreState 后状态行为正确
-- [ ] 更新 `ai-dev/logs/` 当日日志
+- [x] `./mvnw test -pl nop-stream -am` 全通过
+- [x] 端到端验证：包含 keyed state 的算子经 snapshotState → restoreState 后状态行为正确
+- [x] 更新 `ai-dev/logs/` 当日日志
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-stream -am` 全通过
-- [ ] 端到端测试验证从算子状态到 checkpoint 恢复的完整管线
-- [ ] `ai-dev/logs/` 当日日志已更新
+- [x] `./mvnw test -pl nop-stream -am` 全通过
+- [x] 端到端测试验证从算子状态到 checkpoint 恢复的完整管线
+- [x] `ai-dev/logs/` 当日日志已更新
 
 ## Closure Gates
 
-- [ ] Window 子类支持 JSON round-trip
-- [ ] `IKeyedStateBackend` 接口不包含 `byte[]`（对象接口）
-- [ ] `MemoryKeyedStateBackend` 使用 `JsonTool` 序列化（快照包含类型元信息）
-- [ ] `OperatorSnapshotResult` 不含 Java 序列化方法
-- [ ] 所有算子状态通过 JSON 序列化
-- [ ] 设计文档包含 JSON 快照 schema 和 JSON 序列化约束
-- [ ] 无新增空壳实现或静默跳过（Anti-Hollow Check）
-- [ ] `./mvnw compile -pl nop-stream -am` 全通过
-- [ ] `./mvnw test -pl nop-stream -am` 全通过（含端到端验证）
-- [ ] 独立子 agent closure-audit 已完成
+- [x] Window 子类支持 JSON round-trip
+- [x] `IKeyedStateBackend` 接口不包含 `byte[]`（对象接口）
+- [x] `MemoryKeyedStateBackend` 使用 `JsonTool` 序列化（快照包含类型元信息）
+- [x] `OperatorSnapshotResult` 不含 Java 序列化方法
+- [x] 所有算子状态通过 JSON 序列化
+- [x] 设计文档包含 JSON 快照 schema 和 JSON 序列化约束
+- [x] 无新增空壳实现或静默跳过（Anti-Hollow Check）
+- [x] `./mvnw compile -pl nop-stream -am` 全通过
+- [x] `./mvnw test -pl nop-stream -am` 全通过（含端到端验证）
+- [x] 独立子 agent closure-audit 已完成
 
 ## Risks
 

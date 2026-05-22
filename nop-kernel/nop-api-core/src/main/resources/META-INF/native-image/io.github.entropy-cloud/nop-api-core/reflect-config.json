@@ -120,7 +120,7 @@
     "allPublicMethods": true
   },
   {
-    "name": "io.nop.api.core.beans.PointBean",
+    "name": "io.nop.api.core.beans.geometry.PointBean",
     "allPublicConstructors": true,
     "allPublicMethods": true
   },
