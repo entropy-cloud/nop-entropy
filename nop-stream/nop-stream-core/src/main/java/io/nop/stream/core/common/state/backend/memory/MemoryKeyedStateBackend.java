@@ -8,12 +8,15 @@
 package io.nop.stream.core.common.state.backend.memory;
 
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
+import io.nop.stream.core.common.state.AggregatingState;
+import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
@@ -146,6 +149,22 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             states.put(stateProperties.getName(), state);
         }
         return state;
+    }
+
+    @Override
+    public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
+        throw new UnsupportedOperationException("Use getInternalListState for namespace-aware list state");
+    }
+
+    @Override
+    public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
+        throw new UnsupportedOperationException("Use getInternalAppendingState for namespace-aware reducing state");
+    }
+
+    @Override
+    public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
+            AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
+        throw new UnsupportedOperationException("getAggregatingState not yet implemented");
     }
 
     @Override

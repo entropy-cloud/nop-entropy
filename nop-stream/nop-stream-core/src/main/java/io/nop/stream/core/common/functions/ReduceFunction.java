@@ -29,7 +29,7 @@ import java.io.Serializable;
  * @Internal
  */
 @Internal
-public interface ReduceFunction<T> extends Serializable {
+public interface ReduceFunction<T> extends StreamFunction {
 
     /**
      * Combines two values into one value. The reduce function is consecutively applied to pairs

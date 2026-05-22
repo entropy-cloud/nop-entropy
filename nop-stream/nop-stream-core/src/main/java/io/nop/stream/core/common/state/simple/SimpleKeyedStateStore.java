@@ -7,16 +7,25 @@
  */
 package io.nop.stream.core.common.state.simple;
 
+import io.nop.stream.core.common.accumulators.SimpleAccumulator;
+import io.nop.stream.core.common.state.AggregatingState;
+import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.KeyedStateStore;
+import io.nop.stream.core.common.state.ListState;
+import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.ReducingState;
+import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class SimpleKeyedStateStore implements KeyedStateStore {
@@ -48,22 +57,114 @@ public class SimpleKeyedStateStore implements KeyedStateStore {
             }
         };
     }
-//
-//    @Override
-//    public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
-//        throw new UnsupportedOperationException();
-//    }
-//
-//    @Override
-//    public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
-//        throw new UnsupportedOperationException();
-//    }
-//
-//    @Override
-//    public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
-//            AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
-//        throw new UnsupportedOperationException();
-//    }
+    @Override
+    public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
+        return new ListState<T>() {
+            private final List<T> list = new ArrayList<>();
+
+            @Override
+            public Iterable<T> get() throws IOException {
+                stateReads++;
+                return list;
+            }
+
+            @Override
+            public void add(T value) throws IOException {
+                stateWrites++;
+                list.add(value);
+            }
+
+            @Override
+            public void addAll(Iterable<T> values) throws IOException {
+                stateWrites++;
+                for (T v : values) {
+                    list.add(v);
+                }
+            }
+
+            @Override
+            public void update(Iterable<T> values) throws IOException {
+                stateWrites++;
+                list.clear();
+                for (T v : values) {
+                    list.add(v);
+                }
+            }
+
+            @Override
+            public void clear() {
+                stateWrites++;
+                list.clear();
+            }
+        };
+    }
+
+    @Override
+    public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
+        return new ReducingState<T>() {
+            private SimpleAccumulator<T> accumulator;
+
+            private SimpleAccumulator<T> getOrCreate() throws Exception {
+                if (accumulator == null) {
+                    accumulator = stateProperties.getAccumulatorType().getDeclaredConstructor().newInstance();
+                }
+                return accumulator;
+            }
+
+            @Override
+            public T get() throws Exception {
+                stateReads++;
+                if (accumulator == null) {
+                    return null;
+                }
+                return accumulator.get();
+            }
+
+            @Override
+            public void add(T value) throws Exception {
+                stateWrites++;
+                getOrCreate().add(value);
+            }
+
+            @Override
+            public void clear() {
+                stateWrites++;
+                accumulator = null;
+            }
+        };
+    }
+
+    @Override
+    public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
+            AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
+        return new AggregatingState<IN, OUT>() {
+            private ACC accumulator;
+
+            @Override
+            public OUT get() throws Exception {
+                stateReads++;
+                if (accumulator == null) {
+                    return null;
+                }
+                return stateProperties.getAggregateFunction().getResult(accumulator);
+            }
+
+            @Override
+            public void add(IN value) throws Exception {
+                stateWrites++;
+                if (accumulator == null) {
+                    accumulator = stateProperties.getAggregateFunction().createAccumulator();
+                }
+                accumulator = stateProperties.getAggregateFunction().add(value, accumulator);
+            }
+
+            @Override
+            public void clear() {
+                stateWrites++;
+                accumulator = null;
+            }
+        };
+    }
 
     protected <UK, UV> Map<UK, UV> newMap() {
         return new HashMap<>();
