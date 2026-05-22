@@ -54,9 +54,12 @@ import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -72,7 +75,6 @@ import java.util.stream.Stream;
 public class CepOperator<IN, KEY, OUT>
         extends AbstractUdfStreamOperator<OUT, PatternProcessFunction<IN, OUT>>
         implements OneInputStreamOperator<IN, OUT>
-        //, Triggerable<KEY, VoidNamespace>
 {
 
     private static final long serialVersionUID = -4166778210774160757L;
@@ -93,6 +95,8 @@ public class CepOperator<IN, KEY, OUT>
     private transient ValueState<NFAState> computationStates;
     private transient MapState<Long, List<IN>> elementQueueState;
     private transient SharedBuffer<IN> partialMatches;
+
+    private transient SimpleKeyedStateStore stateStore;
 
     private transient InternalTimerService<VoidNamespace> timerService;
 
@@ -166,61 +170,18 @@ public class CepOperator<IN, KEY, OUT>
         }
     }
 
-//    @Override
-//    public void setup(
-//            StreamTask<?, ?> containingTask,
-//            StreamConfig config,
-//            Output<StreamRecord<OUT>> output) {
-//        super.setup(containingTask, config, output);
-//        this.cepRuntimeContext = new CepRuntimeContext(getRuntimeContext());
-//        FunctionUtils.setFunctionRuntimeContext(getUserFunction(), this.cepRuntimeContext);
-//    }
-
-//    @Override
-//    public void initializeState(StateInitializationContext context) throws Exception {
-//        super.initializeState(context);
-//
-//        // initializeState through the provided context
-//        computationStates =
-//                context.getKeyedStateStore()
-//                        .getState(
-//                                new ValueStateDescriptor<>(
-//                                        NFA_STATE_NAME, new NFAStateSerializer()));
-//
-//        partialMatches =
-//                new SharedBuffer<>(
-//                        context.getKeyedStateStore(),
-//                        inputSerializer,
-//                        SharedBufferCacheConfig.of(getOperatorConfig().getConfiguration()));
-//
-//        elementQueueState =
-//                context.getKeyedStateStore()
-//                        .getMapState(
-//                                new MapStateDescriptor<>(
-//                                        EVENT_QUEUE_STATE_NAME,
-//                                        LongSerializer.INSTANCE,
-//                                        new ListSerializer<>(inputSerializer)));
-//
-//        if (context.isRestored()) {
-//            partialMatches.migrateOldState(getKeyedStateBackend(), computationStates);
-//        }
-//    }
-
     @Override
     public void open() throws Exception {
         super.open();
 
-        // Initialize keyed state stores
-        SimpleKeyedStateStore stateStore = new SimpleKeyedStateStore();
+        stateStore = new SimpleKeyedStateStore();
         computationStates = stateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
         elementQueueState = stateStore.getMapState(
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(stateStore, inputSerializer, new SharedBufferCacheConfig());
 
-        // Initialize a minimal InternalTimerService backed by the ProcessingTimeService.
-        // Full timer scheduling (event-time / processing-time callbacks) is handled by the
-        // containing task at a higher level; here we only need currentProcessingTime() and a
-        // no-op watermark to satisfy the interface contract.
+        final Set<Long> registeredEventTimeTimers = new TreeSet<>();
+
         timerService = new InternalTimerService<VoidNamespace>() {
             @Override
             public long currentProcessingTime() {
@@ -234,42 +195,50 @@ public class CepOperator<IN, KEY, OUT>
 
             @Override
             public void registerProcessingTimeTimer(VoidNamespace namespace, long time) {
-                getProcessingTimeService().registerTimer(time, t -> onProcessingTime(t));
+                getProcessingTimeService().registerTimer(time, t -> {
+                    try {
+                        onProcessingTime(t);
+                    } catch (Exception e) {
+                        throw NopException.adapt(e);
+                    }
+                });
             }
 
             @Override
             public void deleteProcessingTimeTimer(VoidNamespace namespace, long time) {
-                // not supported in simple implementation
             }
 
             @Override
             public void registerEventTimeTimer(VoidNamespace namespace, long time) {
-                // event-time timers are driven by watermarks at the task level
+                registeredEventTimeTimers.add(time);
             }
 
             @Override
             public void deleteEventTimeTimer(VoidNamespace namespace, long time) {
-                // not supported in simple implementation
+                registeredEventTimeTimers.remove(time);
             }
 
             @Override
             public void forEachEventTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
-                // no-op
+                for (Long time : new TreeSet<>(registeredEventTimeTimers)) {
+                    consumer.accept(VoidNamespace.INSTANCE, time);
+                }
             }
 
             @Override
             public void forEachProcessingTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
-                // no-op
             }
         };
 
         nfa = nfaFactory.createNFA();
 
+        cepRuntimeContext = new CepRuntimeContext(new io.nop.stream.core.common.functions.RuntimeContext() {}, stateStore);
+        nfa.open(cepRuntimeContext, null);
+
         context = new ContextFunctionImpl();
         collector = new TimestampedCollector<>(output);
         cepTimerService = new TimerServiceImpl();
 
-        // metrics
         this.numLateRecordsDropped = Metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
     }
 
@@ -300,7 +269,6 @@ public class CepOperator<IN, KEY, OUT>
     public void processElement(StreamRecord<IN> element) throws Exception {
         if (isProcessingTime) {
             if (comparator == null) {
-                // there can be no out of order elements in processing time
                 NFAState nfaState = getNFAState();
                 long timestamp = getProcessingTimeService().getCurrentProcessingTime();
                 advanceTime(nfaState, timestamp);
@@ -316,18 +284,8 @@ public class CepOperator<IN, KEY, OUT>
             long timestamp = element.getTimestamp();
             IN value = element.getValue();
 
-            // In event-time processing we assume correctness of the watermark.
-            // Events with timestamp smaller than or equal with the last seen watermark are
-            // considered late.
-            // Late events are put in a dedicated side output, if the user has specified one.
-
             if (timestamp > timerService.currentWatermark()) {
-
-                // we have an event with a valid timestamp, so
-                // we buffer it until we receive the proper watermark.
-
                 bufferEvent(value, timestamp);
-
             } else if (lateDataOutputTag != null) {
                 output.collect(lateDataOutputTag, element);
             } else {
@@ -356,14 +314,6 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     public void onEventTime(long time) throws Exception {
-
-        // 1) get the queue of pending elements for the key and the corresponding NFA,
-        // 2) process the pending elements in event time order and custom comparator if exists
-        //		by feeding them in the NFA
-        // 3) advance the time to the current watermark, so that expired patterns are discarded.
-        // 4) update the stored state for the key, by only storing the new NFA and MapState iff they
-        //		have state to be used later.
-        // 5) update the last seen watermark.
 
         // STEP 1
         PriorityQueue<Long> sortedTimestamps = getSortedTimestamps();
@@ -400,12 +350,6 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     public void onProcessingTime(long time) throws Exception {
-        // 1) get the queue of pending elements for the key and the corresponding NFA,
-        // 2) process the pending elements in process time order and custom comparator if exists
-        //		by feeding them in the NFA
-        // 3) update the stored state for the key, by only storing the new NFA and MapState iff they
-        //		have state to be used later.
-
         // STEP 1
         PriorityQueue<Long> sortedTimestamps = getSortedTimestamps();
         NFAState nfa = getNFAState();
@@ -460,14 +404,6 @@ public class CepOperator<IN, KEY, OUT>
         return sortedTimestamps;
     }
 
-    /**
-     * Process the given event by giving it to the NFA and outputting the produced set of matched
-     * event sequences.
-     *
-     * @param nfaState  Our NFAState object
-     * @param event     The current event to be processed
-     * @param timestamp The timestamp of the event
-     */
     private void processEvent(NFAState nfaState, IN event, long timestamp) throws Exception {
         try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor()) {
             Collection<Map<String, List<IN>>> patterns =
@@ -485,11 +421,6 @@ public class CepOperator<IN, KEY, OUT>
         }
     }
 
-    /**
-     * Advances the time for the given NFA to the given timestamp. This means that no more events
-     * with timestamp <b>lower</b> than the given timestamp should be passed to the nfa, This can
-     * lead to pruning and timeouts.
-     */
     private void advanceTime(NFAState nfaState, long timestamp) throws Exception {
         try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor()) {
             Tuple2<
@@ -624,8 +555,28 @@ public class CepOperator<IN, KEY, OUT>
         return counter;
     }
 
-//    @VisibleForTesting
-//    long getLateRecordsNumber() {
-//        return numLateRecordsDropped.getCount();
-//    }
+    @VisibleForTesting
+    public NFAState getNFAStateForTesting() throws IOException {
+        return getNFAState();
+    }
+
+    @VisibleForTesting
+    public void updateNFAStateForTesting(NFAState state) throws IOException {
+        computationStates.update(state);
+    }
+
+    @VisibleForTesting
+    public SimpleKeyedStateStore getStateStore() {
+        return stateStore;
+    }
+
+    @VisibleForTesting
+    public CepRuntimeContext getCepRuntimeContext() {
+        return cepRuntimeContext;
+    }
+
+    @VisibleForTesting
+    public SharedBuffer<IN> getPartialMatches() {
+        return partialMatches;
+    }
 }
