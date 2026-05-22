@@ -7,6 +7,8 @@
  */
 package io.nop.stream.cep;
 
+import java.util.Objects;
+
 public class SubEvent extends Event {
     private double volume;
 
@@ -21,5 +23,19 @@ public class SubEvent extends Event {
 
     public void setVolume(double volume) {
         this.volume = volume;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        SubEvent subEvent = (SubEvent) o;
+        return Double.compare(subEvent.volume, volume) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), volume);
     }
 }

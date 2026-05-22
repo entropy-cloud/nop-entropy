@@ -1,13 +1,5 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.stream.cep;
 
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.nfa.NFA;
@@ -25,6 +17,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPattern {
     @Test
@@ -45,9 +40,11 @@ public class TestPattern {
         SharedBuffer<Event> partialMatches = new SharedBuffer<>(new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
 
         List<Event> events = getData();
-        for (Event event : events) {
-            Collection<Map<String, List<Event>>> matches = consumeEvent(nfa, partialMatches, nfaState, event, CoreMetrics.currentTimeMillis());
-            System.out.println(matches);
+        List<Map<String, List<Event>>> allMatches = new ArrayList<>();
+        for (int i = 0; i < events.size(); i++) {
+            long timestamp = i + 1;
+            Collection<Map<String, List<Event>>> matches = consumeEvent(nfa, partialMatches, nfaState, events.get(i), timestamp);
+            allMatches.addAll(matches);
 
             if (nfaState.isStateChanged()) {
                 nfaState.resetStateChanged();
@@ -55,6 +52,26 @@ public class TestPattern {
             }
         }
         nfa.close();
+
+        assertEquals(1, allMatches.size());
+        Map<String, List<Event>> match = allMatches.get(0);
+        assertEquals(3, match.size());
+        assertTrue(match.containsKey("start"));
+        assertTrue(match.containsKey("middle"));
+        assertTrue(match.containsKey("end"));
+
+        Event startEvent = match.get("start").get(0);
+        assertEquals(42, startEvent.getId());
+        assertEquals("a42", startEvent.getName());
+
+        Event middleEvent = match.get("middle").get(0);
+        assertTrue(middleEvent instanceof SubEvent);
+        assertEquals(44, middleEvent.getId());
+        assertEquals(12.0, ((SubEvent) middleEvent).getVolume(), 0.001);
+
+        Event endEvent = match.get("end").get(0);
+        assertEquals(46, endEvent.getId());
+        assertEquals("end", endEvent.getName());
     }
 
     Collection<Map<String, List<Event>>> consumeEvent(NFA<Event> nfa, SharedBuffer<Event> partialMatches,

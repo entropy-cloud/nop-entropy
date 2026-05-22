@@ -7,6 +7,8 @@
  */
 package io.nop.stream.cep;
 
+import java.util.Objects;
+
 public class Event {
     private int id;
     private String name;
@@ -37,5 +39,18 @@ public class Event {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Event event = (Event) o;
+        return id == event.id && Objects.equals(name, event.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name);
     }
 }
