@@ -202,6 +202,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             @SuppressWarnings("unchecked")
             Input<Object> headInput = (Input<Object>) head;
             processInputGate(headInput);
+            headInput.processWatermark(Watermark.MAX_WATERMARK);
         }
 
         if (outputWriter != null) {
@@ -217,6 +218,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             @SuppressWarnings("unchecked")
             Input<Object> headInput = (Input<Object>) head;
             processInputGate(headInput);
+            headInput.processWatermark(Watermark.MAX_WATERMARK);
         }
     }
 
@@ -248,6 +250,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 headInput.processWatermark(element.asWatermark());
             } else if (element.isCheckpointBarrier()) {
                 headInput.processBarrier(element.asCheckpointBarrier());
+            } else if (element.isWatermarkStatus()) {
+                headInput.processWatermarkStatus(element.asWatermarkStatus());
             }
         }
     }

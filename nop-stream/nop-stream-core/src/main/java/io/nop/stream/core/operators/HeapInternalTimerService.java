@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * Heap-based implementation of {@link InternalTimerService} that stores event-time timers
@@ -28,10 +29,16 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
     private final TreeMap<Long, Set<TimerEntry<N>>> eventTimeTimers = new TreeMap<>();
     private final Triggerable<Object, N> triggerable;
+    private final Supplier<Object> currentKeySupplier;
     private long currentWatermark = Long.MIN_VALUE;
 
     public HeapInternalTimerService(Triggerable<Object, N> triggerable) {
+        this(triggerable, null);
+    }
+
+    public HeapInternalTimerService(Triggerable<Object, N> triggerable, Supplier<Object> currentKeySupplier) {
         this.triggerable = triggerable;
+        this.currentKeySupplier = currentKeySupplier;
     }
 
     @Override
@@ -56,15 +63,17 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
     @Override
     public void registerEventTimeTimer(N namespace, long time) {
+        Object key = currentKeySupplier != null ? currentKeySupplier.get() : null;
         eventTimeTimers.computeIfAbsent(time, k -> new java.util.HashSet<>())
-                .add(new TimerEntry<>(namespace, time));
+                .add(new TimerEntry<>(key, namespace, time));
     }
 
     @Override
     public void deleteEventTimeTimer(N namespace, long time) {
+        Object key = currentKeySupplier != null ? currentKeySupplier.get() : null;
         Set<TimerEntry<N>> timers = eventTimeTimers.get(time);
         if (timers != null) {
-            timers.remove(new TimerEntry<>(namespace, time));
+            timers.remove(new TimerEntry<>(key, namespace, time));
             if (timers.isEmpty()) {
                 eventTimeTimers.remove(time);
             }
@@ -104,8 +113,9 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
         // Fire timers and remove them
         for (Map.Entry<Long, Set<TimerEntry<N>>> entry : toFire) {
-            for (TimerEntry<N> timer : entry.getValue()) {
-                triggerable.onEventTime(new HeapInternalTimer<>(timer.timestamp, timer.namespace));
+            List<TimerEntry<N>> timersToFire = new ArrayList<>(entry.getValue());
+            for (TimerEntry<N> timer : timersToFire) {
+                triggerable.onEventTime(new HeapInternalTimer<>(timer.key, timer.timestamp, timer.namespace));
             }
             eventTimeTimers.remove(entry.getKey());
         }
@@ -116,10 +126,12 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
     }
 
     private static class TimerEntry<N> {
+        final Object key;
         final N namespace;
         final long timestamp;
 
-        TimerEntry(N namespace, long timestamp) {
+        TimerEntry(Object key, N namespace, long timestamp) {
+            this.key = key;
             this.namespace = namespace;
             this.timestamp = timestamp;
         }
@@ -129,20 +141,24 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             TimerEntry<?> that = (TimerEntry<?>) o;
-            return timestamp == that.timestamp && java.util.Objects.equals(namespace, that.namespace);
+            return timestamp == that.timestamp
+                    && java.util.Objects.equals(key, that.key)
+                    && java.util.Objects.equals(namespace, that.namespace);
         }
 
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(namespace, timestamp);
+            return java.util.Objects.hash(key, namespace, timestamp);
         }
     }
 
     private static class HeapInternalTimer<N> implements InternalTimer<Object, N> {
+        private final Object key;
         private final long timestamp;
         private final N namespace;
 
-        HeapInternalTimer(long timestamp, N namespace) {
+        HeapInternalTimer(Object key, long timestamp, N namespace) {
+            this.key = key;
             this.timestamp = timestamp;
             this.namespace = namespace;
         }
@@ -154,7 +170,7 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
         @Override
         public Object getKey() {
-            return null;
+            return key;
         }
 
         @Override

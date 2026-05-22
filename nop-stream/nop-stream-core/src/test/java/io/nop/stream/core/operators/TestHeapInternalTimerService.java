@@ -127,4 +127,79 @@ public class TestHeapInternalTimerService {
         timerService.advanceWatermark(Long.MAX_VALUE);
         assertEquals(2, firedTimers.size());
     }
+
+    @Test
+    void testDeleteTimerInCallbackDoesNotThrowCME() throws Exception {
+        final List<InternalTimer<Object, String>> deleted = new ArrayList<>();
+        Triggerable<Object, String> triggerable = new Triggerable<Object, String>() {
+            @Override
+            public void onEventTime(InternalTimer<Object, String> timer) throws Exception {
+                timerService.deleteEventTimeTimer(timer.getNamespace(), timer.getTimestamp());
+                deleted.add(timer);
+            }
+
+            @Override
+            public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+            }
+        };
+        timerService = new HeapInternalTimerService<>(triggerable);
+
+        timerService.registerEventTimeTimer("w1", 1000L);
+        timerService.registerEventTimeTimer("w2", 1000L);
+        timerService.registerEventTimeTimer("w3", 2000L);
+
+        assertDoesNotThrow(() -> timerService.advanceWatermark(3000L));
+        assertEquals(3, deleted.size());
+        assertEquals(0, timerService.numEventTimeTimers());
+    }
+
+    @Test
+    void testTimerKeyFromSupplier() throws Exception {
+        final List<Object> capturedKeys = new ArrayList<>();
+        Triggerable<Object, String> triggerable = new Triggerable<Object, String>() {
+            @Override
+            public void onEventTime(InternalTimer<Object, String> timer) throws Exception {
+                capturedKeys.add(timer.getKey());
+            }
+
+            @Override
+            public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+            }
+        };
+
+        String[] keyHolder = {"key-A"};
+        timerService = new HeapInternalTimerService<>(triggerable, () -> keyHolder[0]);
+
+        timerService.registerEventTimeTimer("ns1", 1000L);
+        keyHolder[0] = "key-B";
+        timerService.registerEventTimeTimer("ns2", 2000L);
+
+        timerService.advanceWatermark(3000L);
+
+        assertEquals(2, capturedKeys.size());
+        assertEquals("key-A", capturedKeys.get(0));
+        assertEquals("key-B", capturedKeys.get(1));
+    }
+
+    @Test
+    void testNullSupplierReturnsNullKey() throws Exception {
+        firedTimers.clear();
+        Triggerable<Object, String> triggerable = new Triggerable<Object, String>() {
+            @Override
+            public void onEventTime(InternalTimer<Object, String> timer) throws Exception {
+                firedTimers.add(timer);
+            }
+
+            @Override
+            public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+            }
+        };
+        timerService = new HeapInternalTimerService<>(triggerable);
+
+        timerService.registerEventTimeTimer("ns1", 1000L);
+        timerService.advanceWatermark(2000L);
+
+        assertEquals(1, firedTimers.size());
+        assertNull(firedTimers.get(0).getKey());
+    }
 }

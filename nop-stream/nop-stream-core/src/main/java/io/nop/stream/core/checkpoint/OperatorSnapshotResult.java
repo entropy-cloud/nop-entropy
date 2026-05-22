@@ -7,7 +7,14 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import io.nop.core.lang.json.JsonTool;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,6 +94,34 @@ public class OperatorSnapshotResult implements Serializable {
 
     public void putRawKeyedState(String name, byte[] state) {
         rawKeyedStates.put(name, state);
+    }
+
+    public void putOperatorStateJson(String name, Object state) {
+        operatorStates.put(name,
+                JsonTool.serialize(state, false).getBytes(StandardCharsets.UTF_8));
+    }
+
+    public <T> T getOperatorStateJson(String name, Class<T> type) {
+        byte[] data = operatorStates.get(name);
+        if (data == null) return null;
+        return JsonTool.parseBeanFromText(new String(data, StandardCharsets.UTF_8), type);
+    }
+
+    public void putOperatorStateJava(String name, Serializable state) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(state);
+        }
+        operatorStates.put(name, baos.toByteArray());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Serializable> T getOperatorStateJava(String name) throws Exception {
+        byte[] data = operatorStates.get(name);
+        if (data == null) return null;
+        try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data))) {
+            return (T) ois.readObject();
+        }
     }
 
     public static Builder builder() {

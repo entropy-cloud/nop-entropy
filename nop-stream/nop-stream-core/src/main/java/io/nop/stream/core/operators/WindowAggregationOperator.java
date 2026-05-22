@@ -28,7 +28,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private transient Map<WindowKey<K, W>, ACC> windowState;
     private transient TreeMap<Long, Set<WindowKey<K, W>>> eventTimeTimers;
     private transient Map<WindowKey<K, W>, Set<Long>> windowTimerLookup;
-    private transient Map<String, SimpleAccumulator<?>> triggerState;
+    private transient Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> triggerState;
     private transient long currentWatermark;
     private transient Object currentKeyField;
     private transient WindowAssigner.WindowAssignerContext assignerContext;
@@ -188,8 +188,26 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
         trigger.clear(window, triggerCtx);
 
-        String prefix = String.valueOf(key) + "#" + window + "#";
-        triggerState.keySet().removeIf(k -> k.startsWith(prefix));
+        Set<Long> windowTimers = windowTimerLookup.remove(wk);
+        if (windowTimers != null) {
+            for (Long time : windowTimers) {
+                Set<WindowKey<K, W>> keysAtTime = eventTimeTimers.get(time);
+                if (keysAtTime != null) {
+                    keysAtTime.remove(wk);
+                    if (keysAtTime.isEmpty()) {
+                        eventTimeTimers.remove(time);
+                    }
+                }
+            }
+        }
+
+        Iterator<TriggerStateKey<K, W>> it = triggerState.keySet().iterator();
+        while (it.hasNext()) {
+            TriggerStateKey<K, W> k = it.next();
+            if (k.windowKey.equals(wk)) {
+                it.remove();
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -223,6 +241,29 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         @Override
         public int hashCode() {
             return Objects.hash(key, window);
+        }
+    }
+
+    static final class TriggerStateKey<K, W extends Window> {
+        final WindowKey<K, W> windowKey;
+        final String descriptorName;
+
+        TriggerStateKey(WindowKey<K, W> windowKey, String descriptorName) {
+            this.windowKey = windowKey;
+            this.descriptorName = descriptorName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TriggerStateKey<?, ?> that = (TriggerStateKey<?, ?>) o;
+            return windowKey.equals(that.windowKey) && descriptorName.equals(that.descriptorName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(windowKey, descriptorName);
         }
     }
 
@@ -282,7 +323,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         @Override
         @SuppressWarnings("unchecked")
         public <T> SimpleAccumulator<T> getSimpleAccumulator(StateDescriptor<T> descriptor) {
-            String stateKey = String.valueOf(key) + "#" + window + "#" + descriptor.getName();
+            TriggerStateKey<K, W> stateKey = new TriggerStateKey<>(new WindowKey<>(key, window), descriptor.getName());
             SimpleAccumulator<T> existing = (SimpleAccumulator<T>) triggerState.get(stateKey);
             if (existing != null) {
                 return existing;
