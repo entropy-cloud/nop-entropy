@@ -2,7 +2,7 @@
 
 > Plan Status: planned
 > Last Reviewed: 2026-05-22
-> Review Round: 2（Round 1: 3 Blocker + 6 Major 已整合；Round 2: 2 Blocker + 4 Major 已整合）
+> Review Round: 3（APPROVED — 0 Blocker, 0 Major, 6 Minor）
 > Source: Plan 37 闭包审计发现的序列化设计债务；`state-management-design.md` §4.2 明确规定用 `JsonTool`
 > Related: `ai-dev/plans/37-nop-stream-round3-critical-fixes.md`
 
@@ -104,10 +104,11 @@
 - `entries` 列表替代 `HashMap<TypedNamespaceAndKey, T>`（避免 JSON Map key 限制）
 - `valueType` 类名用于 `JsonTool.parseBeanFromText(json, Class.forName(valueType))` 的类型推断
 
-### DD-2: Window 类的 JSON 序列化（解决 B-01）
+### DD-2: Window 类和特殊类型的 JSON 序列化（解决 B-01）
 
 - `TimeWindow`：添加 `@JsonCreator` + `@JsonProperty` 注解（项目已有先例：`CheckpointPlan.java`）
 - `GlobalWindow`：序列化为字符串常量 `"GlobalWindow"`，反序列化时返回 `GlobalWindow.get()` 单例。通过自定义 `JsonTool` 配置或 `@JsonDeserialize` 实现
+- `VoidNamespace`：与 GlobalWindow 策略相同，序列化为字符串常量 `"VoidNamespace"`，反序列化时返回 `VoidNamespace.INSTANCE` 单例
 
 ### DD-3: StateDescriptor 恢复机制（解决 B-03、R2-02）
 
@@ -115,8 +116,9 @@
 
 1. 从快照读取 stateType + keyType + valueType + accumulatorType 等元信息
 2. 用 `Class.forName()` 重建所需 Class 对象
-3. 直接构造 `MemoryValueState` / `MemoryMapState` / `MemoryInternalAppendingState` / `MemoryInternalListState` 实例
-4. 直接构造对应的 `storage` HashMap，填充快照中的 entries 数据
+3. 用 stateName + Class 对象重建 `StateDescriptor`（如 `new ValueStateDescriptor<>(name, valueType)`）
+4. 直接构造 `MemoryValueState` / `MemoryMapState` / `MemoryInternalAppendingState` / `MemoryInternalListState` 实例
+5. 直接构造对应的 `storage` HashMap，填充快照中的 entries 数据
 5. 将构造好的状态实例放入 `states` Map
 6. 调用 `rebindStateBackends()` 绑定 backend 引用
 
@@ -201,6 +203,7 @@ Targets: `OperatorSnapshotResult.java`, `StreamReduceOperator.java`, `nop-stream
 - [ ] `StreamReduceOperator` 改用 `putOperatorStateJson()` / `getOperatorStateJson()`，序列化时将 `Map<Object, T>` 转为 entries 数组保留 key 类型信息
 - [ ] 更新 `TestStreamReduceOperator` 验证 JSON 序列化路径（含非 String key 场景）
 - [ ] 全量搜索确认无其他调用点使用 `putOperatorStateJava`
+- [ ] 更新 `TestOperatorSnapshotResult`：移除 Java 序列化测试用例，替换为 JSON 路径测试
 
 Exit Criteria:
 
@@ -254,7 +257,8 @@ Exit Criteria:
 - [ ] `OperatorSnapshotResult` 不含 Java 序列化方法
 - [ ] 所有算子状态通过 JSON 序列化
 - [ ] 设计文档包含 JSON 快照 schema 和 JSON 序列化约束
-- [ ] 无新增空壳实现或静默跳过
+- [ ] 无新增空壳实现或静默跳过（Anti-Hollow Check）
+- [ ] `./mvnw compile -pl nop-stream -am` 全通过
 - [ ] `./mvnw test -pl nop-stream -am` 全通过（含端到端验证）
 - [ ] 独立子 agent closure-audit 已完成
 
