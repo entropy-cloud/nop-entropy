@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
-import java.util.Base64;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
@@ -352,22 +351,14 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         Map<String, Object> operatorStates = (Map<String, Object>) map.get("operatorStates");
         if (operatorStates != null) {
             for (Map.Entry<String, Object> entry : operatorStates.entrySet()) {
-                String key = entry.getKey();
-                Object value = entry.getValue();
-                if (value instanceof String) {
-                    snapshot.putOperatorState(key, Base64.getDecoder().decode((String) value));
-                }
+                snapshot.putOperatorState(entry.getKey(), entry.getValue());
             }
         }
 
         Map<String, Object> keyedStates = (Map<String, Object>) map.get("keyedStates");
         if (keyedStates != null) {
             for (Map.Entry<String, Object> entry : keyedStates.entrySet()) {
-                String key = entry.getKey();
-                Object value = entry.getValue();
-                if (value instanceof String) {
-                    snapshot.putKeyedState(key, Base64.getDecoder().decode((String) value));
-                }
+                snapshot.putKeyedState(entry.getKey(), entry.getValue());
             }
         }
 

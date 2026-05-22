@@ -96,6 +96,10 @@ public class PendingCheckpoint {
         return Collections.unmodifiableMap(taskStates);
     }
 
+    public TaskStateSnapshot getTaskState(TaskLocation taskLocation) {
+        return taskStates.get(taskLocation);
+    }
+
     public void acknowledgeTask(TaskLocation taskLocation, TaskStateSnapshot state) {
         if (isDisposed) {
             return;

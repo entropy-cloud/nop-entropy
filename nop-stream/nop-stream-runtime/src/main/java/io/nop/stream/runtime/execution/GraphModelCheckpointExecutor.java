@@ -487,7 +487,7 @@ public class GraphModelCheckpointExecutor {
         if (mappings != null) {
             for (OperatorStateMapping mapping : mappings) {
                 if (mapping.getOperatorIndex() == operatorIndex) {
-                    byte[] opState = taskState.getOperatorState(mapping.getOperatorStateKey());
+                    Object opState = taskState.getOperatorState(mapping.getOperatorStateKey());
                     if (opState != null) {
                         builder.putOperatorState(mapping.getOperatorStateKey(), opState);
                         found = true;
@@ -495,7 +495,7 @@ public class GraphModelCheckpointExecutor {
 
                     if (mapping.hasKeyedState()) {
                         String keyedPrefix = mapping.getKeyedStateStorageKey();
-                        for (Map.Entry<String, byte[]> entry : taskState.getKeyedStates().entrySet()) {
+                        for (Map.Entry<String, Object> entry : taskState.getKeyedStates().entrySet()) {
                             if (entry.getKey().startsWith(keyedPrefix)) {
                                 builder.putKeyedState(entry.getKey(), entry.getValue());
                                 found = true;
@@ -509,13 +509,13 @@ public class GraphModelCheckpointExecutor {
 
         if (!found) {
             String opStateKey = "operator-" + operatorIndex;
-            byte[] opState = taskState.getOperatorState(opStateKey);
+            Object opState = taskState.getOperatorState(opStateKey);
             if (opState != null) {
                 builder.putOperatorState(opStateKey, opState);
                 LOG.warn("Operator index {} not found in state mappings, using default key '{}'", operatorIndex, opStateKey);
             }
 
-            for (Map.Entry<String, byte[]> entry : taskState.getKeyedStates().entrySet()) {
+            for (Map.Entry<String, Object> entry : taskState.getKeyedStates().entrySet()) {
                 builder.putKeyedState(entry.getKey(), entry.getValue());
             }
         }
