@@ -11,6 +11,7 @@ import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -48,13 +49,18 @@ public class TestMessageAdapters {
     @Test
     void testMessageSinkSendsMessages() {
         LocalMessageService messageService = new LocalMessageService();
+        List<Object> received = new ArrayList<>();
+        messageService.subscribe("test-topic", (topic, msg, context) -> {
+            received.add(msg);
+            return null;
+        });
+
         MessageSinkFunction<String> sink = new MessageSinkFunction<>(messageService, "test-topic");
 
         sink.consume("hello");
         sink.consume("world");
 
-        List<LocalMessageService.Subscription> subs = messageService.getConsumers().get("test-topic");
-        assertNull(subs);
+        assertEquals(List.of("hello", "world"), received);
     }
 
     @Test
@@ -67,7 +73,8 @@ public class TestMessageAdapters {
         Thread runner = new Thread(() -> {
             try {
                 source.run(collectingContext(collected));
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                throw new RuntimeException("Source.run() failed", e);
             }
         });
         runner.start();
@@ -94,7 +101,8 @@ public class TestMessageAdapters {
         Thread runner = new Thread(() -> {
             try {
                 source.run(collectingContext(collected));
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                throw new RuntimeException("Source.run() failed", e);
             }
         });
         runner.start();

@@ -88,7 +88,8 @@ public class TestBatchLoaderSourceFunction {
         Thread runner = new Thread(() -> {
             try {
                 source.run(collectingContext(collected));
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                throw new RuntimeException("Source.run() failed", e);
             }
         });
         runner.start();
