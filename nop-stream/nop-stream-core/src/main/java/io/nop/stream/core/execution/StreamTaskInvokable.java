@@ -9,11 +9,14 @@ package io.nop.stream.core.execution;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.ChainingOutput;
 import io.nop.stream.core.operators.Input;
+import io.nop.stream.core.operators.KeyContext;
+import io.nop.stream.core.operators.KeyExtractingOutput;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
@@ -50,6 +53,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     private CheckpointBarrierTracker barrierTracker;
 
+    private Input<Object> headInput;
+
     public StreamTaskInvokable(OperatorChain operatorChain) {
         if (operatorChain == null) {
             throw new IllegalArgumentException("OperatorChain cannot be null");
@@ -84,8 +89,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
         return TaskRole.SELF_CONTAINED;
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void wireOperators() {
         List<StreamOperator<?>> operators = operatorChain.getOperators();
+        List<KeySelector<?, ?>> keySelectors = operatorChain.getKeySelectors();
         int lastIndex = operators.size() - 1;
 
         for (int i = 0; i < lastIndex; i++) {
@@ -93,9 +100,26 @@ public class StreamTaskInvokable implements Invokable<Void> {
             StreamOperator<?> next = operators.get(i + 1);
 
             if (current instanceof AbstractStreamOperator && next instanceof Input) {
-                AbstractStreamOperator<?> currentOp = (AbstractStreamOperator<?>) current;
-                Input<?> nextInput = (Input<?>) next;
-                currentOp.setOutput(new ChainingOutput(nextInput));
+                AbstractStreamOperator currentOp = (AbstractStreamOperator) current;
+                Input nextInput = (Input) next;
+
+                Input wiredInput;
+                if (i + 1 < keySelectors.size() && keySelectors.get(i + 1) != null && next instanceof KeyContext) {
+                    wiredInput = new KeyExtractingOutput<>(nextInput, keySelectors.get(i + 1), (KeyContext) next);
+                } else {
+                    wiredInput = nextInput;
+                }
+
+                currentOp.setOutput(new ChainingOutput<>(wiredInput));
+            }
+        }
+
+        if (!operators.isEmpty() && operators.get(0) instanceof Input) {
+            Input rawHeadInput = (Input) operators.get(0);
+            if (!keySelectors.isEmpty() && keySelectors.get(0) != null && operators.get(0) instanceof KeyContext) {
+                headInput = new KeyExtractingOutput<>(rawHeadInput, keySelectors.get(0), (KeyContext) operators.get(0));
+            } else {
+                headInput = rawHeadInput;
             }
         }
 
@@ -194,13 +218,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void invokeMiddle() throws Exception {
-        List<StreamOperator<?>> operators = operatorChain.getOperators();
-        StreamOperator<?> head = operators.get(0);
-
-        if (head instanceof Input) {
-            @SuppressWarnings("unchecked")
-            Input<Object> headInput = (Input<Object>) head;
+        if (headInput != null) {
             processInputGate(headInput);
             headInput.processWatermark(Watermark.MAX_WATERMARK);
         }
@@ -210,13 +230,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void invokeSink() throws Exception {
-        List<StreamOperator<?>> operators = operatorChain.getOperators();
-        StreamOperator<?> head = operators.get(0);
-
-        if (head instanceof Input) {
-            @SuppressWarnings("unchecked")
-            Input<Object> headInput = (Input<Object>) head;
+        if (headInput != null) {
             processInputGate(headInput);
             headInput.processWatermark(Watermark.MAX_WATERMARK);
         }

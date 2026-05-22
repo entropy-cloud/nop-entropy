@@ -1,14 +1,15 @@
 # 图模型与执行引擎设计
 
-> Status: active（**已通过 Plan 26 对接单链管线执行路径，checkpoint 已集成**）
+> Status: active（**已通过 Plan 26-27 对接，为唯一执行路径**）
 > Created: 2026-05-19
+> Updated: 2026-05-22
 > Parent: `architecture.md` §3（执行模型）
 
 ## 1. 定位
 
 nop-stream 的图模型是 DataStream API 与执行引擎之间的中间表示。它将用户通过 API 构建的 Transformation DAG 经过两层转换——StreamGraph 和 JobGraph——最终变为可执行的 Task 集合，由 TaskExecutor 调度执行。
 
-这套设计的目标是：**将"用户描述的计算逻辑"与"如何执行这些逻辑"解耦**。当前 `StreamExecutionEnvironment.execute()` 走的是快速路径（直接折叠 Transformation 为算子链），绕过了图模型。未来对接后，图模型将支持算子链优化、并行度调整、分区策略和数据交换模式。
+这套设计的目标是：**将"用户描述的计算逻辑"与"如何执行这些逻辑"解耦**。`StreamExecutionEnvironment.execute()` 通过图模型路径执行，支持算子链优化、并行度调整、分区策略和数据交换模式。
 
 ### 1.1 设计决策
 
@@ -70,7 +71,7 @@ DataStream API         StreamGraph               JobGraph                    Tas
 | `SinkTransformation` | 递归处理 input → 创建 StreamNode（用 SinkOperatorFactory 包装 SinkFunction）→ 创建 StreamEdge → 注册为 sinkID |
 | `PartitionTransformation` | 递归处理 input → 创建 StreamNode（用 PartitionOperatorFactory 占位）→ 创建 StreamEdge（**在入边上设置 partitioner，出边为 forward/null partitioner**） |
 
-**关键点**：PartitionTransformation 在 StreamGraph 中被保留为一个独立节点（不像快速路径中直接被移除）。这个节点在 JobGraph 阶段会被优化掉（不产生独立的 JobVertex），但它的分区策略信息被保留在 JobEdge 的 `ResultPartitionType` 中。注意 partitioner 被设置在 Partition 节点的**入边**（从上游节点到 Partition 节点），而 Partition 节点的出边始终是 forward（null partitioner）。
+**关键点**：PartitionTransformation 在 StreamGraph 中被保留为一个独立节点。这个节点在 JobGraph 阶段会被优化掉（不产生独立的 JobVertex），但它的分区策略信息被保留在 JobEdge 的 `ResultPartitionType` 中。注意 partitioner 被设置在 Partition 节点的**入边**（从上游节点到 Partition 节点），而 Partition 节点的出边始终是 forward（null partitioner）。
 
 ### 3.3 设计约束
 
@@ -220,39 +221,28 @@ TaskExecutor:
   两个 Task 并行运行，通过 RecordWriter/RecordReader 交换数据
 ```
 
-## 7. 与当前快速路径的关系
+## 7. 执行路径统一
 
-### 7.1 快速路径（当前 execute()）
+> **Updated: 2026-05-22** — 去除双执行路径，`execute()` 统一走图模型路径。
 
-```
-Transformation DAG → 直接构建算子链 → Source.run() 同步执行
-```
+`execute()` 内部直接委托给图模型执行路径（Transformation → StreamGraph → JobGraph → Task → TaskExecutor）。历史上曾存在"快速路径"（直接折叠 Transformation 为算子链，单线程同步执行），但因其不支持 checkpoint、watermark、savepoint，且与图模型路径的算子生命周期假设不同，已统一移除。
 
-快速路径跳过了 StreamGraph/JobGraph/TaskExecutor，直接从 Transformation 列表中提取算子工厂，用 `ChainingOutput` 串联，在同一线程中同步执行。
+**统一路径的能力**：
 
-### 7.2 图模型路径（设计目标）
+| 维度 | 能力 |
+|---|---|
+| 执行方式 | TaskExecutor 线程池（支持单链和多链管线） |
+| 算子链 | JobGraphGenerator 自动识别可链化算子并融合 |
+| 分区 | keyBy 产生多 vertex，通过 RecordWriter/InputGate 跨 Task 传递数据 |
+| Checkpoint | 已集成（barrier 注入→传播→快照→ACK→持久化→恢复） |
+| Watermark | 已集成（TimestampsAndWatermarksOperator 插入算子链） |
+| 适用场景 | 所有流处理管线 |
 
-```
-Transformation DAG → StreamGraph → JobGraph → Task[] → TaskExecutor
-```
-
-图模型路径增加了算子链优化、分区策略和并行执行的能力。
-
-### 7.3 两条路径的适用场景
-
-| 维度 | 快速路径 | 图模型路径 |
-|---|---|---|
-| 执行方式 | 单线程同步 | 单线程（支持单链和多链管线） |
-| 算子链 | 简单线性链（无分支合并处理） | 单链和多链管线均已支持 |
-| 分区 | keyBy 被跳过，实际不做 hash 分区 | keyBy 产生多 vertex，通过 RecordWriter/InputGate 跨 Task 传递数据 |
-| Checkpoint | 未集成 | 已集成（barrier 注入→传播→快照→ACK→持久化→恢复） |
-| 适用场景 | 简单的单流处理、无需 checkpoint | 需要容错/cp 的管线（单链和多链） |
-
-### 7.4 多链管线支持（Plan 27 实现）
+### 7.1 多链管线支持（Plan 27 实现）
 
 图模型路径支持**单链和多链管线**。数据交换组件（RecordWriter / RecordReader / InputGate / ResultPartition / InputChannel）基于 `BlockingQueue` 实现同进程内 Task 间数据传递。`GraphExecutionPlan` 负责拓扑排序和数据交换通道创建。`StreamTaskInvokable` 根据 Task 在 JobGraph 中的位置扮演 SOURCE / MIDDLE / SINK / SELF_CONTAINED 四种角色。
 
-### 7.5 CheckpointPlan 的生成（规划）
+### 7.2 CheckpointPlan 的生成
 
 图模型路径在构建 `GraphExecutionPlan` 阶段同时生成 `CheckpointPlan`：
 
@@ -291,11 +281,11 @@ CheckpointPlan（传入 CheckpointCoordinator）
 
 ## 9. 对接所需的工作
 
-> **Updated: 2026-05-20** — 以下第 1、3、4 项已通过 Plan 26 完成（单链管线）。第 2、5 项为后续独立计划。
+> **Updated: 2026-05-22** — 执行路径已统一，`execute()` 内部直接走图模型路径。
 
 ### 已完成（Plan 26）
 
-1. ✅ **executeWithGraphModel() 走图模型路径**（单链管线）
+1. ✅ **execute() 走图模型路径**（单链管线）
    - 收集所有 SinkTransformation
    - `StreamGraphGenerator.generate()` → StreamGraph
    - `JobGraphGenerator.generate()` → JobGraph
@@ -334,6 +324,6 @@ CheckpointPlan（传入 CheckpointCoordinator）
 1. ~~**Invokable 是 placeholder**~~ — Plan 26 已实现 `StreamTaskInvokable`，支持四种角色
 2. ~~**无数据交换实现**~~ — Plan 27 已实现 RecordWriter/RecordReader/InputGate/ResultPartition/InputChannel
 3. ~~**无拓扑调度**~~ — Plan 27 已实现 `GraphExecutionPlan` 拓扑排序
-4. **PartitionTransformation 在 StreamGraph 中保留为独立节点** — 它在 JobGraph 阶段不产生独立 vertex，但其 partitioner 信息被传递到 JobEdge。如果 PartitionTransformation 的前后节点被链化到不同 vertex，分区逻辑才能生效；如果它们被链化到同一 vertex，partitioner 信息被忽略（与快速路径行为一致）
+4. **PartitionTransformation 在 StreamGraph 中保留为独立节点** — 它在 JobGraph 阶段不产生独立 vertex，但其 partitioner 信息被传递到 JobEdge。如果 PartitionTransformation 的前后节点被链化到不同 vertex，分区逻辑才能生效；如果它们被链化到同一 vertex，partitioner 信息被忽略
 5. **并行度固定为 1** — 当前所有 Transformation 的 parallelism 默认为 1。图模型路径支持 parallelism > 1 的拓扑结构，但数据交换组件需要按 parallelism 创建对应的 RecordWriter 分区
 6. **Invokable 与 Task 重复管理 OperatorChain 生命周期** — `Task.run()` 在 finally 块中调用 `closeOperatorChains()`，而 placeholder `Invokable.invoke()` 内部也调用 `operatorChain.open()` 和 `operatorChain.close()`。实际的 Invokable 实现不应自行管理链生命周期，应交给 Task 统一处理

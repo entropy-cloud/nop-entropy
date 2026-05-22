@@ -28,7 +28,7 @@ env.fromElements(1, 2, 3, 4, 5)
    .map(x -> x * 2)
    .filter(x -> x > 4)
    .print();
-env.execute("simple-pipeline");
+env.execute("simple-pipeline");  // 统一走图模型路径：StreamGraph → JobGraph → TaskExecutor
 ```
 
 ## 构建

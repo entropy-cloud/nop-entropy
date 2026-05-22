@@ -9,7 +9,6 @@ package io.nop.stream.core.execution;
 
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
-import io.nop.stream.core.streamrecord.watermark.Watermark;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -28,7 +27,7 @@ public class TestGraphModelExecution {
         env.fromElements("a", "b", "c")
                 .map(String::toUpperCase)
                 .sink(results::add);
-        env.executeWithGraphModel("testSingleChainPipeline");
+        env.execute("testSingleChainPipeline");
 
         assertEquals(Arrays.asList("A", "B", "C"), results);
     }
@@ -42,7 +41,7 @@ public class TestGraphModelExecution {
                 .map(x -> x + 1)
                 .filter(x -> x > 20)
                 .sink(results::add);
-        env.executeWithGraphModel("testMultiOperatorChain");
+        env.execute("testMultiOperatorChain");
 
         assertEquals(Arrays.asList(21, 31, 41, 51), results);
     }
@@ -63,7 +62,7 @@ public class TestGraphModelExecution {
                         results.add(value);
                     }
                 });
-        env.executeWithGraphModel("testWatermarkPropagation");
+        env.execute("testWatermarkPropagation");
 
         assertEquals(Arrays.asList("X", "Y"), results);
     }
@@ -77,35 +76,26 @@ public class TestGraphModelExecution {
                 .map(x -> x)
                 .sink(results::add);
 
-        env.executeWithGraphModel("testMultiChainPipeline");
+        env.execute("testMultiChainPipeline");
 
         assertEquals(Arrays.asList(1, 2, 3), results);
     }
 
     @Test
-    public void testGraphModelMatchesFastPath() throws Exception {
-        List<Integer> fastPathResults = new ArrayList<>();
-        StreamExecutionEnvironment env1 = StreamExecutionEnvironment.getExecutionEnvironment();
-        env1.fromElements(1, 2, 3, 4, 5)
+    public void testMapFilterSink() throws Exception {
+        List<Integer> results = new ArrayList<>();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromElements(1, 2, 3, 4, 5)
                 .map(x -> x * 2)
                 .filter(x -> x > 4)
-                .sink(fastPathResults::add);
-        env1.execute("Fast Path");
+                .sink(results::add);
+        env.execute("testMapFilterSink");
 
-        List<Integer> graphModelResults = new ArrayList<>();
-        StreamExecutionEnvironment env2 = StreamExecutionEnvironment.getExecutionEnvironment();
-        env2.fromElements(1, 2, 3, 4, 5)
-                .map(x -> x * 2)
-                .filter(x -> x > 4)
-                .sink(graphModelResults::add);
-        env2.executeWithGraphModel("Graph Model");
-
-        assertEquals(fastPathResults, graphModelResults);
-        assertEquals(Arrays.asList(6, 8, 10), graphModelResults);
+        assertEquals(Arrays.asList(6, 8, 10), results);
     }
 
     @Test
-    public void testKeyByMapSinkGraphModel() throws Exception {
+    public void testKeyByMapSink() throws Exception {
         List<String> results = new ArrayList<>();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.fromElements("a", "b", "c")
@@ -113,30 +103,21 @@ public class TestGraphModelExecution {
                 .map(String::toUpperCase)
                 .sink(results::add);
 
-        env.executeWithGraphModel("testKeyByMapSink");
+        env.execute("testKeyByMapSink");
 
         assertEquals(Arrays.asList("A", "B", "C"), results);
     }
 
     @Test
-    public void testMultiChainMatchesFastPath() throws Exception {
-        List<Integer> fastPathResults = new ArrayList<>();
-        StreamExecutionEnvironment env1 = StreamExecutionEnvironment.getExecutionEnvironment();
-        env1.fromElements(1, 2, 3)
+    public void testKeyByMapMultiplier() throws Exception {
+        List<Integer> results = new ArrayList<>();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromElements(1, 2, 3)
                 .keyBy(x -> x)
                 .map(x -> x * 10)
-                .sink(fastPathResults::add);
-        env1.execute("Fast Path Multi-Chain");
+                .sink(results::add);
+        env.execute("testKeyByMapMultiplier");
 
-        List<Integer> graphModelResults = new ArrayList<>();
-        StreamExecutionEnvironment env2 = StreamExecutionEnvironment.getExecutionEnvironment();
-        env2.fromElements(1, 2, 3)
-                .keyBy(x -> x)
-                .map(x -> x * 10)
-                .sink(graphModelResults::add);
-        env2.executeWithGraphModel("Graph Model Multi-Chain");
-
-        assertEquals(fastPathResults, graphModelResults);
-        assertEquals(Arrays.asList(10, 20, 30), graphModelResults);
+        assertEquals(Arrays.asList(10, 20, 30), results);
     }
 }

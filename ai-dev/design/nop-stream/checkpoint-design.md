@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-21
+> Updated: 2026-05-22
 > Parent: `architecture.md` §3（执行模型）、`core-design.md` §3（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 ## 1. 定位与目标
@@ -608,9 +608,9 @@ checkpoint 子系统的核心组件已**完整实现**并通过测试：
 
 ### 10.2 已对接（Plan 26 完成）
 
-checkpoint 子系统**已通过图模型执行路径（`executeWithGraphModel()`）与执行引擎对接**。对接范围：
+checkpoint 子系统**已通过图模型执行路径（`execute()`）与执行引擎对接**。对接范围：
 
-1. **StreamExecutionEnvironment.executeWithGraphModel() 集成 CheckpointCoordinator**
+1. **StreamExecutionEnvironment.execute() 集成 CheckpointCoordinator**
    - `enableCheckpointing(long interval)` 配置 checkpoint 参数
    - `GraphModelCheckpointExecutor`（runtime 模块）创建 Coordinator、注册 task、启动调度器
    - 定时触发 barrier 注入到 Source 算子
@@ -639,7 +639,6 @@ checkpoint 子系统**已通过图模型执行路径（`executeWithGraphModel()`
 
 6. **执行约束**
    - 图模型路径支持单链和多链管线（Plan 27 移除了单链约束）
-   - 快速路径 `execute()` 不受影响，保持不变
 
 ### 10.3 已对接
 

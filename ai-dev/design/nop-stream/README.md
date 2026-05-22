@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-21
+> Updated: 2026-05-22
 
 ## 定位
 
@@ -47,8 +47,9 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**可分布式执行的 F
 nop-stream 的运行方式可以概括为：
 
 1. **用户通过 DataStream API 构建 Transformation DAG**：`env.addSource(...)` → `.map(...)` → `.keyBy(...)` → `.timeWindow(...)` → `.aggregate(...)` → `.addSink(...)`
-2. **`env.execute()` 快速路径**：将 DAG 折叠为线性算子链，单线程同步执行。适合简单场景。
-3. **`env.executeWithGraphModel()` 图模型路径**：Transformation → StreamGraph → JobGraph → Task → TaskExecutor。支持算子链优化、多 Task 并行执行、checkpoint 集成。
+2. **`env.execute()` 统一走图模型路径**：Transformation → StreamGraph → JobGraph → Task → TaskExecutor。支持算子链优化、多 Task 并行执行、checkpoint 集成。
+
+> **设计决策（2026-05-22）**：已去除历史上的双执行路径（快速路径 + 图模型路径），统一为图模型路径。详见 `architecture.md` §3。
 
 ## 设计原则
 

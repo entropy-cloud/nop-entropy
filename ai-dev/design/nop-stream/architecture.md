@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-21
+> Updated: 2026-05-22
 
 ## 1. 定位与设计目标
 
@@ -63,9 +63,8 @@ nop-stream/
 ├──────────────────────────────────────────┤
 │  执行层                                   │
 │  StreamExecutionEnvironment               │
-│  ├── 快速路径: chain + push（单线程）     │
-│  └── 图模型路径: StreamGraph → JobGraph   │
-│               → Task → TaskExecutor       │
+│  统一路径: Transformation → StreamGraph   │
+│               → JobGraph → Task → Executor│
 │               支持 checkpoint 集成        │
 ├──────────────────────────────────────────┤
 │  算子层                                   │
@@ -87,29 +86,7 @@ nop-stream/
 
 ## 3. 执行模型
 
-### 3.1 快速路径（Chain + Push）
-
-`StreamExecutionEnvironment.execute()` 实现了一个**单线程、同步**的执行模型：
-
-```
-execute()
-  └── executePipeline(sinkTransform)
-        ├── buildTransformationChain()    // 从 sink 回溯到 source，构建有序链
-        ├── extractKeySelectors()         // 提取 PartitionTransformation 中的 KeySelector
-        │                                 // PartitionTransformation 本身从链中移除
-        ├── instantiateOperators()        // 按链顺序实例化算子
-        ├── wireOperatorChain()           // 用 ChainingOutput 串联相邻算子
-        │                                 // 若下游有 KeySelector，插入 KeyExtractingOutput
-        └── runSource()                   // open() 所有算子（tail→head 逆序）
-                                        // → source.run() 推数据通过链
-                                        // → 发送 MAX_WATERMARK 触发最终窗口计算
-```
-
-**适用场景**：简单的单链流处理，不需要 checkpoint。
-
-### 3.2 图模型路径（StreamGraph → JobGraph → TaskExecutor）
-
-`StreamExecutionEnvironment.executeWithGraphModel()` 走图模型路径，支持 checkpoint 集成和多 Task 并行执行：
+`StreamExecutionEnvironment.execute()` 使用统一的图模型执行路径：
 
 ```
 Transformation DAG
@@ -121,6 +98,29 @@ JobGraph (JobVertex + JobEdge)
 Task[] → TaskExecutor（线程池并行执行）
 ```
 
+**设计决策（2026-05-22）**：去除历史上的双执行路径（快速路径 + 图模型路径），统一为图模型路径。原因：
+
+1. **架构分裂**：两条路径对算子的生命周期假设不同，导致维护负担和正确性风险
+2. **功能不一致**：快速路径不支持 checkpoint、watermark、savepoint，用户可能误用
+3. **图模型路径已完备**：单链和多链管线均已支持，checkpoint 集成已完成
+
+**执行流程**：
+
+```
+execute(jobName)
+  ├── 收集所有 SinkTransformation
+  ├── StreamGraphGenerator.generate() → StreamGraph
+  ├── JobGraphGenerator.generate() → JobGraph
+  ├── GraphExecutionPlan 构建 → CheckpointPlan 生成
+  └── TaskExecutor 提交 Task 执行
+       └── StreamTaskInvokable
+            ├── wire operators（ChainingOutput 串联）
+            ├── open() 所有算子
+            ├── source.run() 推数据
+            ├── MAX_WATERMARK 触发最终窗口计算
+            └── close() 所有算子
+```
+
 **已实现**：
 - StreamGraph / JobGraph 两层转换
 - 算子链融合优化
@@ -129,7 +129,7 @@ Task[] → TaskExecutor（线程池并行执行）
 - 单链和多链管线均支持
 - Checkpoint 集成（barrier 注入 → 传播 → 快照 → ACK → 持久化 → 恢复）
 
-### 3.3 CEP 独立执行路径
+### 3.1 CEP 独立执行路径
 
 CEP 模块可以直接使用，不依赖 `StreamExecutionEnvironment`：
 
@@ -176,13 +176,13 @@ DataStream<T>
 
 ### 4.3 算子链（Operator Chain）
 
-快速路径中，算子通过 Output 接口串联：
+算子通过 Output 接口串联（链内通过 ChainingOutput 直接调用，跨链通过 RecordWriter/InputGate 传递）：
 
 ```
 StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOperator → ChainingOutput → StreamSink
 ```
 
-图模型路径中，算子链被融合为 JobVertex，跨链数据通过 RecordWriter/InputGate 传递。
+算子链融合在 JobGraphGenerator 阶段完成：多个满足链接条件的 StreamNode 被合并为一个 JobVertex，在同一个线程中顺序执行。跨链数据通过 RecordWriter/InputGate 传递。
 
 ## 5. 与 Nop 平台的集成
 

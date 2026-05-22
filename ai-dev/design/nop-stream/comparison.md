@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-21
+> Updated: 2026-05-22
 
 ## 1. 设计定位
 
@@ -25,8 +25,8 @@
 | 并行 | 多 TaskManager 并行处理 | 多 Task 并行执行（基于线程池） |
 | 通信 | Netty RPC | BlockingQueue（进程内）+ RecordWriter/InputGate |
 | 部署 | YARN/K8s/Standalone | 嵌入式（作为库使用）或独立部署 |
-| Checkpoint | 分布式 barrier 对齐 + 状态快照 | Barrier 对齐 + CheckpointCoordinator（已对接图模型路径） |
-| 故障恢复 | 基于 checkpoint 的 exactly-once | Checkpoint 恢复已实现（图模型路径） |
+| Checkpoint | 分布式 barrier 对齐 + 状态快照 | Barrier 对齐 + CheckpointCoordinator（统一执行路径） |
+| 故障恢复 | 基于 checkpoint 的 exactly-once | Checkpoint 恢复已实现（统一执行路径） |
 
 ### 2.2 API 层
 
@@ -54,7 +54,7 @@
 
 | 维度 | Flink | nop-stream |
 |------|-------|------------|
-| 事件时间 | ✅ watermark 机制完整 | ✅ WatermarkStrategy 已实现，图模型路径已对接 |
+| 事件时间 | ✅ watermark 机制完整 | ✅ WatermarkStrategy 已实现，统一执行路径已集成 |
 | 处理时间 | ✅ | ✅ |
 | Watermark 生成 | ✅ 多种策略 | ✅ AscendingTimestamps / BoundedOutOfOrderness |
 
@@ -126,7 +126,7 @@
 - ✅ 单流 ETL：map / filter / flatMap
 - ✅ 窗口聚合：tumbling / sliding / count window
 - ✅ CEP 模式匹配：基于 NFA 的复杂事件处理
-- ✅ Checkpoint 容错：Barrier 对齐 + 多数据库持久化（图模型路径）
+- ✅ Checkpoint 容错：Barrier 对齐 + 多数据库持久化
 - ✅ 多 Task 并行执行：基于线程池的 TaskExecutor
 - ✅ 连接器：通过 nop-batch 桥接覆盖多种数据源
 - ✅ 嵌入式使用：作为 Java 库在应用内运行

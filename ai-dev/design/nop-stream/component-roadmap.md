@@ -112,7 +112,7 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 
 **待完善**：
 - `WindowedStreamImpl.apply/aggregate/reduce` 需要实现，不能抛 UnsupportedOperationException。这需要 C3 提供一个 `WindowOperatorFactory` 接口（core 定义），runtime 模块实现
-- `assignTimestampsAndWatermarks()` 在 Fast Path 中不生效（`instantiateOperators` 未处理 `TimestampsAndWatermarksTransformation`），需要修复
+   - `assignTimestampsAndWatermarks()` 在 `execute()` 中通过图模型路径的 StreamGraph 自动插入 TimestampsAndWatermarksOperator
 
 #### C2 编译管线
 
@@ -289,8 +289,8 @@ JdbcCheckpointStorage
    - 编写测试：并发 checkpoint 触发不丢数据
 
 4. **C5：统一执行路径**
-   - 明确 `executeWithGraphModel()` 为生产路径
-   - `execute()` 保留为简化测试路径，但在文档中标注
+   - `execute()` 已统一走图模型路径，无需单独维护快速路径
+   - 移除 `executeWithGraphModel()` 方法（已由 `execute()` 统一替代）
    - 清理 `GraphModelCheckpointExecutor` 中的代码重复
 
 **交付标准**：

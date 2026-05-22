@@ -8,6 +8,7 @@
 package io.nop.stream.core.graph;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
@@ -25,8 +26,10 @@ import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -66,11 +69,9 @@ public class StreamGraphGenerator {
      */
     private final StreamGraph streamGraph;
     
-    /**
-     * Set of transformation IDs that have already been processed.
-     * Used to avoid processing the same transformation multiple times.
-     */
     private final Set<Integer> processedTransformations;
+    
+    private final Map<Integer, KeySelector<?, ?>> partitionKeySelectors = new HashMap<>();
     
     /**
      * Creates a new StreamGraphGenerator with an empty graph.
@@ -99,6 +100,8 @@ public class StreamGraphGenerator {
         for (Transformation<?> transformation : transformations) {
             transform(transformation);
         }
+        
+        propagateKeySelectors();
         
         return streamGraph;
     }
@@ -284,12 +287,8 @@ public class StreamGraphGenerator {
      * @param <T> the element type
      */
     private <T> void transformPartition(PartitionTransformation<T> transformation) {
-        // 1. Recursively process the input transformation
         transform(transformation.getInput());
         
-        // 2. Create the StreamNode for this partition transformation
-        // Partition nodes don't have an operator factory - they're logical
-        // We use a placeholder factory that returns null
         StreamNode node = new StreamNode(
             transformation.getId(),
             transformation.getName(),
@@ -298,10 +297,12 @@ public class StreamGraphGenerator {
             transformation.getParallelism()
         );
         
-        // Add node to graph
         streamGraph.addStreamNode(node);
         
-        // 3. Create the StreamEdge with partitioner
+        if (transformation.getKeySelector() != null) {
+            partitionKeySelectors.put(node.getId(), transformation.getKeySelector());
+        }
+        
         StreamEdge edge = new StreamEdge(
             transformation.getInput().getId(),
             node.getId()
@@ -335,6 +336,25 @@ public class StreamGraphGenerator {
         );
 
         streamGraph.addStreamEdge(edge);
+    }
+
+    private void propagateKeySelectors() {
+        if (partitionKeySelectors.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<Integer, List<StreamEdge>> entry : streamGraph.getAllStreamEdges().entrySet()) {
+            int sourceId = entry.getKey();
+            if (!partitionKeySelectors.containsKey(sourceId)) {
+                continue;
+            }
+            KeySelector<?, ?> keySelector = partitionKeySelectors.get(sourceId);
+            for (StreamEdge edge : entry.getValue()) {
+                StreamNode target = streamGraph.getStreamNode(edge.getTargetId());
+                if (target != null && target.getKeySelector() == null) {
+                    target.setKeySelector(keySelector);
+                }
+            }
+        }
     }
 
     // ===== Inner classes for operator factory wrappers =====

@@ -8,6 +8,7 @@
 package io.nop.stream.core.jobgraph;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
@@ -97,11 +98,19 @@ public class JobGraphGenerator implements Serializable {
 
         // Step 2: Create JobVertex for each chain
         for (List<StreamNode> chain : chains) {
-            JobVertex vertex = createJobVertex(chain, streamGraph);
-            jobGraph.addVertex(vertex);
-            // Map every node in the chain to this vertex
-            for (StreamNode node : chain) {
-                nodeToVertexMap.put(node.getId(), vertex.getId());
+            if (hasNonVirtualOperator(chain)) {
+                JobVertex vertex = createJobVertex(chain, streamGraph);
+                jobGraph.addVertex(vertex);
+                for (StreamNode node : chain) {
+                    nodeToVertexMap.put(node.getId(), vertex.getId());
+                }
+            } else {
+                for (StreamNode node : chain) {
+                    String upstreamVertex = findUpstreamVertex(node.getId(), streamGraph, nodeToVertexMap);
+                    if (upstreamVertex != null) {
+                        nodeToVertexMap.put(node.getId(), upstreamVertex);
+                    }
+                }
             }
         }
 
@@ -302,11 +311,9 @@ public class JobGraphGenerator implements Serializable {
             throw new IllegalArgumentException("Chain cannot be null or empty");
         }
 
-        // Generate vertex ID from the first node in the chain
         StreamNode firstNode = chain.get(0);
         String vertexId = "vertex-" + firstNode.getId();
 
-        // Build vertex name from chain
         StringBuilder nameBuilder = new StringBuilder();
         for (int i = 0; i < chain.size(); i++) {
             if (i > 0) {
@@ -316,27 +323,41 @@ public class JobGraphGenerator implements Serializable {
         }
         String vertexName = nameBuilder.toString();
 
-        // All nodes in chain have same parallelism
         int parallelism = firstNode.getParallelism();
 
-        // Create operators from factories
         List<StreamOperator<?>> operators = new ArrayList<>();
+        List<KeySelector<?, ?>> keySelectors = new ArrayList<>();
         for (StreamNode node : chain) {
             StreamOperator<?> operator = createOperatorFromFactory(node);
+            keySelectors.add(node.getKeySelector());
             if (operator != null) {
                 operators.add(operator);
             }
         }
-        // Create operator chain
-        OperatorChain operatorChain = new OperatorChain(operators);
+
+        List<KeySelector<?, ?>> filteredKeySelectors = filterKeySelectorsForOperators(chain, operators);
+
+        OperatorChain operatorChain = new OperatorChain(operators, filteredKeySelectors);
         List<OperatorChain> operatorChains = new ArrayList<>();
         operatorChains.add(operatorChain);
 
-        // Create a simple invokable (placeholder for actual execution logic)
         Invokable<?> invokable = createInvokable(operatorChain);
 
-        // Create and return JobVertex
         return new JobVertex(vertexId, vertexName, parallelism, operatorChains, invokable);
+    }
+
+    private List<KeySelector<?, ?>> filterKeySelectorsForOperators(
+            List<StreamNode> chain, List<StreamOperator<?>> operators) {
+        List<KeySelector<?, ?>> result = new ArrayList<>();
+        int opIndex = 0;
+        for (StreamNode node : chain) {
+            StreamOperator<?> operator = createOperatorFromFactory(node);
+            if (operator != null) {
+                result.add(node.getKeySelector());
+                opIndex++;
+            }
+        }
+        return result;
     }
 
     /**
@@ -356,8 +377,10 @@ public class JobGraphGenerator implements Serializable {
             return null;
         }
 
-        // Cast to raw type to handle wildcard capture
-        // Type safety is guaranteed because factory and outputType come from the same node
+        if (factory instanceof io.nop.stream.core.operators.SimpleStreamOperatorFactory) {
+            return ((io.nop.stream.core.operators.SimpleStreamOperatorFactory<?>) factory).getRawOperator();
+        }
+
         StreamOperatorFactory rawFactory = (StreamOperatorFactory) factory;
         io.nop.stream.core.common.typeinfo.TypeInformation outputType =
             (io.nop.stream.core.common.typeinfo.TypeInformation) node.getOutputType();
@@ -453,6 +476,29 @@ public class JobGraphGenerator implements Serializable {
      * @param streamEdge the StreamEdge to analyze
      * @return the appropriate ResultPartitionType
      */
+    private boolean hasNonVirtualOperator(List<StreamNode> chain) {
+        for (StreamNode node : chain) {
+            if (createOperatorFromFactory(node) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String findUpstreamVertex(int nodeId, StreamGraph streamGraph, Map<Integer, String> nodeToVertexMap) {
+        for (Map.Entry<Integer, List<StreamEdge>> entry : streamGraph.getAllStreamEdges().entrySet()) {
+            for (StreamEdge edge : entry.getValue()) {
+                if (edge.getTargetId() == nodeId) {
+                    String vertex = nodeToVertexMap.get(edge.getSourceId());
+                    if (vertex != null) {
+                        return vertex;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private ResultPartitionType determinePartitionType(StreamEdge streamEdge) {
         if (streamEdge.getPartitioner() == null) {
             // Forward partitioning - use PIPELINED for low latency

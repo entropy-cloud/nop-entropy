@@ -130,7 +130,7 @@ Source → [ChainingOutput] → Map → [ChainingOutput] → Window → [Chainin
 
 事件时间语义和 Watermark 机制的完整设计详见 `time-model-design.md`。
 
-该文档覆盖：WatermarkStrategy 统一抽象（时间戳分配 + watermark 生成）、TimestampAssigner 和 WatermarkGenerator 接口、两种内置生成策略（AscendingTimestampsWatermarks / BoundedOutOfOrdernessWatermarks）、WatermarkOutput 和 WatermarkOutputMultiplexer 的传播机制、TimestampsAndWatermarksOperator 的桥接角色，以及与当前快速路径的关系。
+该文档覆盖：WatermarkStrategy 统一抽象（时间戳分配 + watermark 生成）、TimestampAssigner 和 WatermarkGenerator 接口、两种内置生成策略（AscendingTimestampsWatermarks / BoundedOutOfOrdernessWatermarks）、WatermarkOutput 和 WatermarkOutputMultiplexer 的传播机制、TimestampsAndWatermarksOperator 的桥接角色。
 
 ## 5. 窗口机制
 
@@ -162,4 +162,4 @@ Source → [ChainingOutput] → Map → [ChainingOutput] → Window → [Chainin
 
 StreamGraph（逻辑拓扑）和 JobGraph（优化后的执行计划）的设计详见 `graph-model-design.md`。
 
-该文档覆盖：两层图模型的职责边界、StreamGraphGenerator 的 Transformation 分发逻辑、JobGraphGenerator 的算子链判定条件和融合算法、ResultPartitionType 的数据交换模式、Task/TaskExecutor 的运行时执行模型，以及与当前快速路径的关系和对接所需的工作。
+该文档覆盖：两层图模型的职责边界、StreamGraphGenerator 的 Transformation 分发逻辑、JobGraphGenerator 的算子链判定条件和融合算法、ResultPartitionType 的数据交换模式、Task/TaskExecutor 的运行时执行模型。

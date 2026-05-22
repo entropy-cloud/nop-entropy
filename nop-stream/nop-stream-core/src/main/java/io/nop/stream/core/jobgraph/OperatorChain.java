@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.jobgraph;
 
+import io.nop.stream.core.common.functions.KeySelector;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,20 +60,19 @@ public class OperatorChain implements Serializable {
      */
     private final List<io.nop.stream.core.operators.StreamOperator<?>> operators;
 
-    /**
-     * Constructs an OperatorChain with the specified list of operators.
-     *
-     * <p>The operators list is defensively copied to ensure immutability.
-     * The list must not be null or empty.
-     *
-     * @param operators the list of operators to chain together (must not be null or empty)
-     * @throws IllegalArgumentException if operators is null or empty
-     */
+    private final List<KeySelector<?, ?>> keySelectors;
+
     public OperatorChain(List<io.nop.stream.core.operators.StreamOperator<?>> operators) {
+        this(operators, Collections.emptyList());
+    }
+
+    public OperatorChain(List<io.nop.stream.core.operators.StreamOperator<?>> operators,
+                         List<KeySelector<?, ?>> keySelectors) {
         if (operators == null || operators.isEmpty()) {
             throw new IllegalArgumentException("Operators list cannot be null or empty");
         }
-        this.operators = new ArrayList<>(operators); // Defensive copy
+        this.operators = new ArrayList<>(operators);
+        this.keySelectors = keySelectors != null ? new ArrayList<>(keySelectors) : Collections.emptyList();
     }
 
     /**
@@ -126,10 +127,9 @@ public class OperatorChain implements Serializable {
         Exception firstException = null;
         int openedCount = 0;
 
-        // Open operators in sequence
-        for (io.nop.stream.core.operators.StreamOperator<?> operator : operators) {
+        for (int i = operators.size() - 1; i >= 0; i--) {
             try {
-                operator.open();
+                operators.get(i).open();
                 openedCount++;
             } catch (Exception e) {
                 firstException = e;
@@ -137,13 +137,11 @@ public class OperatorChain implements Serializable {
             }
         }
 
-        // If opening failed, close already opened operators
         if (firstException != null) {
-            for (int i = 0; i < openedCount; i++) {
+            for (int i = operators.size() - 1; i >= operators.size() - openedCount; i--) {
                 try {
                     operators.get(i).close();
                 } catch (Exception closeException) {
-                    // Log but don't override the first exception
                     firstException.addSuppressed(closeException);
                 }
             }
@@ -168,10 +166,9 @@ public class OperatorChain implements Serializable {
     public void close() {
         Exception firstException = null;
 
-        // Close operators in reverse order
-        for (int i = operators.size() - 1; i >= 0; i--) {
+        for (io.nop.stream.core.operators.StreamOperator<?> operator : operators) {
             try {
-                operators.get(i).close();
+                operator.close();
             } catch (Exception e) {
                 if (firstException == null) {
                     firstException = e;
@@ -205,5 +202,9 @@ public class OperatorChain implements Serializable {
      */
     public int getNumberOfOperators() {
         return operators.size();
+    }
+
+    public List<KeySelector<?, ?>> getKeySelectors() {
+        return Collections.unmodifiableList(keySelectors);
     }
 }
