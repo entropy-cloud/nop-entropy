@@ -348,7 +348,7 @@ public class GraphModelCheckpointExecutor {
                 snap.getTotalStateSize());
     }
 
-    private static ICheckpointStorage createStorage(CheckpointConfig config) {
+    static ICheckpointStorage createStorage(CheckpointConfig config) {
         String storageType = config.getStorageType();
         if ("jdbc".equalsIgnoreCase(storageType)) {
             throw new IllegalStateException(
@@ -476,7 +476,7 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
-    private static OperatorSnapshotResult buildSnapshotFromTaskState(
+    static OperatorSnapshotResult buildSnapshotFromTaskState(
             TaskStateSnapshot taskState,
             int operatorIndex,
             List<OperatorStateMapping> mappings) {
