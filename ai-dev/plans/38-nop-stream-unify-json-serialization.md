@@ -2,7 +2,7 @@
 
 > Plan Status: planned
 > Last Reviewed: 2026-05-22
-> Review Round: 1（发现 3 Blocker + 6 Major，已整合）
+> Review Round: 2（Round 1: 3 Blocker + 6 Major 已整合；Round 2: 2 Blocker + 4 Major 已整合）
 > Source: Plan 37 闭包审计发现的序列化设计债务；`state-management-design.md` §4.2 明确规定用 `JsonTool`
 > Related: `ai-dev/plans/37-nop-stream-round3-critical-fixes.md`
 
@@ -47,6 +47,7 @@
 - 不引入 `TypeSerializer` 体系 — 设计文档明确排除
 - 不修改 `SimpleStreamOperatorFactory` 的 Java 深拷贝 — 非状态序列化（`MemoryKeyedStateBackend` 保留 `Serializable` 接口以兼容此路径）
 - 不修改 `ICheckpointStorage` — 已使用 `JsonTool`
+- 不修改 `IKeyedStateBackend.snapshotState()` 的 `byte[]` 返回签名 — 接口签名变更影响面大，当前仅在实现层将 `byte[]` 的内容从 Java 序列化改为 JSON。设计文档 §4.2 的"对象接口"描述是目标架构，本计划实现内部 JSON 序列化但不改接口
 - 不为所有可能的 namespace 类型提供通用 JSON 支持 — 仅确保 TimeWindow、GlobalWindow、String、VoidNamespace 等已知类型的 round-trip
 
 ## Scope
@@ -64,6 +65,7 @@
   - `nop-stream-runtime/.../TestCheckpointRecovery.java` — 验证兼容
   - `nop-stream-runtime/.../TestE2EWindowOperatorWithCheckpoint.java` — 验证兼容
   - `nop-stream-core/.../TestOperatorSnapshot.java` — 验证兼容
+  - `nop-stream-core/.../TestOperatorSnapshotResult.java` — 移除 Java 序列化测试用例（Phase 3）
 
 ### Out Of Scope
 
@@ -107,20 +109,43 @@
 - `TimeWindow`：添加 `@JsonCreator` + `@JsonProperty` 注解（项目已有先例：`CheckpointPlan.java`）
 - `GlobalWindow`：序列化为字符串常量 `"GlobalWindow"`，反序列化时返回 `GlobalWindow.get()` 单例。通过自定义 `JsonTool` 配置或 `@JsonDeserialize` 实现
 
-### DD-3: StateDescriptor 恢复机制（解决 B-03）
+### DD-3: StateDescriptor 恢复机制（解决 B-03、R2-02）
 
-快照中保存 descriptor 关键信息（stateType、valueType、accumulatorType），不直接序列化 `StateDescriptor` 对象。恢复时：
-1. 从快照读取 stateType + valueType
-2. 用 `Class.forName(valueType)` 重建 `Class<T>`
-3. 创建对应类型的 `StateDescriptor`
-4. 通过 `getState()` / `getMapState()` 等方法让 backend 内部创建状态实例
-5. 将快照数据逐条填充到新创建的状态实例中
+快照中保存 descriptor 关键信息（stateType、valueType、accumulatorType），不直接序列化 `StateDescriptor` 对象。恢复时直接构建状态实例（**不走 `getState()` → 逐条填充的路径**，因为内部状态类的 `storage` 是 `private final`，无法批量填充）：
+
+1. 从快照读取 stateType + keyType + valueType + accumulatorType 等元信息
+2. 用 `Class.forName()` 重建所需 Class 对象
+3. 直接构造 `MemoryValueState` / `MemoryMapState` / `MemoryInternalAppendingState` / `MemoryInternalListState` 实例
+4. 直接构造对应的 `storage` HashMap，填充快照中的 entries 数据
+5. 将构造好的状态实例放入 `states` Map
+6. 调用 `rebindStateBackends()` 绑定 backend 引用
+
+注意：因为内部状态类是 `MemoryKeyedStateBackend` 的 `private static` 内部类，恢复代码在 `MemoryKeyedStateBackend.restoreState()` 内部，可以直接访问 `storage` 字段。
 
 ### DD-4: MemoryKeyedStateBackend 保留 Serializable
 
 `MemoryKeyedStateBackend` 保留 `Serializable` 接口以兼容 `SimpleStreamOperatorFactory` 的 Java 深拷贝路径。`snapshotState()` / `restoreState()` 改用 JSON，但 `writeObject()` / `readObject()` 路径（用于深拷贝）仍通过 Java 序列化。
 
 ## Execution Plan
+
+### Phase 0 - 修复 MapStateDescriptor 类型信息丢失（R2-01）
+
+Status: planned
+Targets: `MapStateDescriptor.java`, `nop-stream-core/src/test/`
+
+- Item Types: `Fix`, `Proof`
+
+**前置条件**：`MapStateDescriptor` 构造器丢弃了 `keyClass` 和 `valueClass` 参数，导致 JSON 快照无法提取 MapState 的类型元信息。必须先修复此 bug。
+
+- [ ] `MapStateDescriptor` 保存 `keyClass` 和 `valueClass` 为字段，添加 getter 方法
+- [ ] 添加 focused test：验证 `MapStateDescriptor.getKeyClass()` / `getValueClass()` 返回正确类型
+
+Exit Criteria:
+
+- [ ] `MapStateDescriptor` 的构造器正确保存 keyClass 和 valueClass
+- [ ] `getKeyClass()` / `getValueClass()` getter 可用
+- [ ] 新 focused test 全部通过
+- [ ] No owner-doc update required
 
 ### Phase 1 - Window 类添加 JSON 序列化支持
 
@@ -173,8 +198,8 @@ Targets: `OperatorSnapshotResult.java`, `StreamReduceOperator.java`, `nop-stream
 - Item Types: `Fix`, `Proof`
 
 - [ ] 从 `OperatorSnapshotResult` 移除 `putOperatorStateJava()` / `getOperatorStateJava()` 方法
-- [ ] `StreamReduceOperator` 改用 `putOperatorStateJson()` / `getOperatorStateJson()`
-- [ ] 更新 `TestStreamReduceOperator` 验证 JSON 序列化路径
+- [ ] `StreamReduceOperator` 改用 `putOperatorStateJson()` / `getOperatorStateJson()`，序列化时将 `Map<Object, T>` 转为 entries 数组保留 key 类型信息
+- [ ] 更新 `TestStreamReduceOperator` 验证 JSON 序列化路径（含非 String key 场景）
 - [ ] 全量搜索确认无其他调用点使用 `putOperatorStateJava`
 
 Exit Criteria:
@@ -238,3 +263,5 @@ Exit Criteria:
 1. **JsonTool 对 `Class` 对象的序列化**：`Class<K>` 不能直接 JSON 化。缓解：快照中存储类名字符串，恢复时 `Class.forName()` 重建
 2. **向后兼容性**：已有的 Java 序列化 checkpoint 数据无法被新版本读取。缓解：nop-stream 当前尚无生产部署，不存在需要迁移的历史 checkpoint 数据
 3. **MapState 嵌套 Map 的 value 类型**：JSON 反序列化默认丢失精确类型（如 Long → Integer）。缓解：使用 `valueType` 元信息 + `JsonTool.parseBeanFromText(json, type)` 精确反序列化
+4. **SimpleAccumulator 子类无参构造器**：恢复 AppendingState 时通过 `Class.forName(accumulatorType).getDeclaredConstructor().newInstance()` 重建 accumulator。需确保所有 SimpleAccumulator 子类有无参构造器。缓解：验证现有实现均满足此约束
+5. **namespace @type 多态反序列化**：DD-1 使用 `@type` 字段标识 namespace 类型。`JsonTool` 内置不直接支持 `@type` 多态，需在 `snapshotState()` / `restoreState()` 中手动处理 namespace 的序列化和反序列化
