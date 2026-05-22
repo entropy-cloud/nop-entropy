@@ -8,6 +8,7 @@
 package io.nop.stream.core.datastream;
 
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
@@ -90,4 +91,18 @@ public interface KeyedStream<T, KEY> extends DataStream<T> {
      * @return The windowed data stream.
      */
     <W extends Window> WindowedStream<T, KEY, W> window(WindowAssigner<? super T, W> assigner);
+
+    SingleOutputStreamOperator<T> reduce(ReduceFunction<T> reducer);
+
+    SingleOutputStreamOperator<T> sum(int field);
+
+    SingleOutputStreamOperator<T> sum(String field);
+
+    SingleOutputStreamOperator<T> min(int field);
+
+    SingleOutputStreamOperator<T> min(String field);
+
+    SingleOutputStreamOperator<T> max(int field);
+
+    SingleOutputStreamOperator<T> max(String field);
 }

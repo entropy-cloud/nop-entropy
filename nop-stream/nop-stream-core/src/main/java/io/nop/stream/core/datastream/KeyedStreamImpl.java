@@ -11,6 +11,7 @@ import io.nop.stream.core.common.functions.*;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.StreamReduceOperator;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.windowing.assigners.GlobalWindows;
 import io.nop.stream.core.windowing.assigners.SlidingEventTimeWindows;
@@ -23,29 +24,14 @@ import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
 
-/**
- * A {@code KeyedStreamImpl} represents a {@link DataStream} on which operator state is partitioned by
- * key using a provided {@link KeySelector}.
- *
- * <p>This implementation wraps either a transformation (for the full DataStreamImpl case)
- * or directly wraps a parent DataStream (for the SimpleDataStreamSource case).
- *
- * @param <T> The type of elements in the stream.
- * @param <KEY> The type of the key.
- */
+import java.lang.reflect.Field;
+
 public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedStream<T, KEY> {
     private static final long serialVersionUID = 1L;
 
     private final KeySelector<T, KEY> keySelector;
     private final DataStream<T> parentStream;
 
-    /**
-     * Creates a new KeyedStream from a transformation (used by DataStreamImpl).
-     *
-     * @param environment The execution environment
-     * @param transformation The transformation that produces this stream
-     * @param keySelector The key selector for partitioning
-     */
     public KeyedStreamImpl(
             StreamExecutionEnvironment environment,
             Transformation<T> transformation,
@@ -55,12 +41,6 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
         this.parentStream = null;
     }
 
-    /**
-     * Creates a new KeyedStream from a parent DataStream (used by SimpleDataStreamSource).
-     *
-     * @param parentStream The parent data stream
-     * @param keySelector The key selector for partitioning
-     */
     public KeyedStreamImpl(DataStream<T> parentStream, KeySelector<T, KEY> keySelector) {
         super(parentStream instanceof DataStreamImpl ? ((DataStreamImpl<T>) parentStream).getEnvironment() : null,
               parentStream instanceof DataStreamImpl ? ((DataStreamImpl<T>) parentStream).getTransformation() : null);
@@ -83,7 +63,6 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
 
     @Override
     public <K> KeyedStream<T, K> keyBy(KeySelector<T, K> key) {
-        // KeyedStream is already keyed, return a new KeyedStream with the new key selector
         if (parentStream != null) {
             return new KeyedStreamImpl<>(parentStream, key);
         }
@@ -184,5 +163,157 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     @Override
     public <W extends Window> WindowedStream<T, KEY, W> window(WindowAssigner<? super T, W> assigner) {
         return new WindowedStreamImpl<>(this, assigner);
+    }
+
+    @Override
+    public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> reducer) {
+        return transform("Reduce", getType(), new StreamReduceOperator<>(reducer));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public SingleOutputStreamOperator<T> sum(int field) {
+        if (field != 0) {
+            throw new UnsupportedOperationException(
+                    "sum(int field) with field != 0 requires Tuple types");
+        }
+        ReduceFunction<T> reducer = (v1, v2) -> {
+            if (v1 instanceof Integer) return (T) (Integer) (((Integer) v1) + ((Number) v2).intValue());
+            if (v1 instanceof Long) return (T) (Long) (((Long) v1) + ((Number) v2).longValue());
+            if (v1 instanceof Double) return (T) (Double) (((Double) v1) + ((Number) v2).doubleValue());
+            if (v1 instanceof Float) return (T) (Float) (((Float) v1) + ((Number) v2).floatValue());
+            throw new UnsupportedOperationException("sum(int field) requires Number elements");
+        };
+        return transform("Sum", getType(), new StreamReduceOperator<>(reducer));
+    }
+
+    @Override
+    public SingleOutputStreamOperator<T> sum(String field) {
+        return transform("Sum", getType(),
+                new StreamReduceOperator<>(new FieldAggregationReducer<>(field, FieldAggregationReducer.AggregationType.SUM)));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public SingleOutputStreamOperator<T> min(int field) {
+        if (field != 0) {
+            throw new UnsupportedOperationException(
+                    "min(int field) with field != 0 requires Tuple types");
+        }
+        ReduceFunction<T> reducer = (v1, v2) -> {
+            if (v1 instanceof Comparable) {
+                return ((Comparable<T>) v1).compareTo(v2) <= 0 ? v1 : v2;
+            }
+            throw new UnsupportedOperationException("min(int field) requires Comparable elements");
+        };
+        return transform("Min", getType(), new StreamReduceOperator<>(reducer));
+    }
+
+    @Override
+    public SingleOutputStreamOperator<T> min(String field) {
+        return transform("Min", getType(),
+                new StreamReduceOperator<>(new FieldAggregationReducer<>(field, FieldAggregationReducer.AggregationType.MIN)));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public SingleOutputStreamOperator<T> max(int field) {
+        if (field != 0) {
+            throw new UnsupportedOperationException(
+                    "max(int field) with field != 0 requires Tuple types");
+        }
+        ReduceFunction<T> reducer = (v1, v2) -> {
+            if (v1 instanceof Comparable) {
+                return ((Comparable<T>) v1).compareTo(v2) >= 0 ? v1 : v2;
+            }
+            throw new UnsupportedOperationException("max(int field) requires Comparable elements");
+        };
+        return transform("Max", getType(), new StreamReduceOperator<>(reducer));
+    }
+
+    @Override
+    public SingleOutputStreamOperator<T> max(String field) {
+        return transform("Max", getType(),
+                new StreamReduceOperator<>(new FieldAggregationReducer<>(field, FieldAggregationReducer.AggregationType.MAX)));
+    }
+
+    static class FieldAggregationReducer<T> implements ReduceFunction<T> {
+
+        private static final long serialVersionUID = 1L;
+
+        enum AggregationType { SUM, MIN, MAX }
+
+        private final String fieldName;
+        private final AggregationType type;
+        private transient Field fieldAccessor;
+
+        FieldAggregationReducer(String fieldName, AggregationType type) {
+            this.fieldName = fieldName;
+            this.type = type;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public T reduce(T acc, T value) throws Exception {
+            initField(acc.getClass());
+            Number accVal = (Number) fieldAccessor.get(acc);
+            Number newVal = (Number) fieldAccessor.get(value);
+            Number result = aggregate(accVal, newVal);
+            fieldAccessor.set(acc, convert(accVal, result));
+            return acc;
+        }
+
+        private void initField(Class<?> clazz) throws NoSuchFieldException {
+            if (fieldAccessor == null) {
+                Field f = findField(clazz, fieldName);
+                f.setAccessible(true);
+                fieldAccessor = f;
+            }
+        }
+
+        private static Field findField(Class<?> clazz, String name) throws NoSuchFieldException {
+            Class<?> c = clazz;
+            while (c != null) {
+                try {
+                    return c.getDeclaredField(name);
+                } catch (NoSuchFieldException e) {
+                    c = c.getSuperclass();
+                }
+            }
+            throw new NoSuchFieldException("Field '" + name + "' not found in " + clazz.getName());
+        }
+
+        private Number aggregate(Number a, Number b) {
+            switch (type) {
+                case SUM: return add(a, b);
+                case MIN: return compare(a, b) <= 0 ? a : b;
+                case MAX: return compare(a, b) >= 0 ? a : b;
+                default: throw new IllegalStateException("Unknown type: " + type);
+            }
+        }
+
+        private static Number add(Number a, Number b) {
+            if (a instanceof Integer) return a.intValue() + b.intValue();
+            if (a instanceof Long) return a.longValue() + b.longValue();
+            if (a instanceof Double) return a.doubleValue() + b.doubleValue();
+            if (a instanceof Float) return a.floatValue() + b.floatValue();
+            return a.doubleValue() + b.doubleValue();
+        }
+
+        private static int compare(Number a, Number b) {
+            if (a instanceof Integer) return Integer.compare(a.intValue(), b.intValue());
+            if (a instanceof Long) return Long.compare(a.longValue(), b.longValue());
+            if (a instanceof Double) return Double.compare(a.doubleValue(), b.doubleValue());
+            if (a instanceof Float) return Float.compare(a.floatValue(), b.floatValue());
+            return Double.compare(a.doubleValue(), b.doubleValue());
+        }
+
+        private static Object convert(Number template, Number result) {
+            if (template instanceof Integer) return result.intValue();
+            if (template instanceof Long) return result.longValue();
+            if (template instanceof Double) return result.doubleValue();
+            if (template instanceof Float) return result.floatValue();
+            return result.doubleValue();
+        }
     }
 }

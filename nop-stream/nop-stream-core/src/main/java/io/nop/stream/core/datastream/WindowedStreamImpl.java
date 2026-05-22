@@ -11,8 +11,14 @@ import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.operators.AggregateAggregationFunction;
+import io.nop.stream.core.operators.ApplyAggregationFunction;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.ReduceAggregationFunction;
+import io.nop.stream.core.operators.WindowAggregationFunction;
+import io.nop.stream.core.operators.WindowAggregationOperator;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
@@ -106,31 +112,31 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return keyedStream;
     }
 
-    @Deprecated
     @Override
     public <R> SingleOutputStreamOperator<R> apply(WindowFunction<T, R, K, W> function) {
-        throw new UnsupportedOperationException(
-                "WindowedStream.apply() requires the nop-stream-runtime module's WindowOperator. "
-                + "Use WindowedStreamImpl.transform() to provide a custom OneInputStreamOperator "
-                + "that wraps a WindowOperator<K,T,?,R,W>.");
+        WindowAggregationFunction<T, java.util.List<T>, R, K, W> aggFn =
+                new ApplyAggregationFunction<>(function);
+        WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
+                new WindowAggregationOperator<>(windowAssigner, trigger, aggFn, keyedStream.getKeySelector());
+        return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
-    @Deprecated
     @Override
     public <ACC, R> SingleOutputStreamOperator<R> aggregate(AggregateFunction<T, ACC, R> function) {
-        throw new UnsupportedOperationException(
-                "WindowedStream.aggregate() requires the nop-stream-runtime module's WindowOperator. "
-                + "Use WindowedStreamImpl.transform() to provide a custom OneInputStreamOperator "
-                + "that wraps a WindowOperator<K,T,ACC,R,W>.");
+        WindowAggregationFunction<T, ACC, R, K, W> aggFn =
+                new AggregateAggregationFunction<>(function);
+        WindowAggregationOperator<T, ACC, R, K, W> operator =
+                new WindowAggregationOperator<>(windowAssigner, trigger, aggFn, keyedStream.getKeySelector());
+        return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
-    @Deprecated
     @Override
     public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function) {
-        throw new UnsupportedOperationException(
-                "WindowedStream.reduce() requires the nop-stream-runtime module's WindowOperator. "
-                + "Use WindowedStreamImpl.transform() to provide a custom OneInputStreamOperator "
-                + "that wraps a WindowOperator<K,T,T,T,W>.");
+        WindowAggregationFunction<T, T, T, K, W> aggFn =
+                new ReduceAggregationFunction<>(function);
+        WindowAggregationOperator<T, T, T, K, W> operator =
+                new WindowAggregationOperator<>(windowAssigner, trigger, aggFn, keyedStream.getKeySelector());
+        return transform("WindowReduce", getType(), operator);
     }
 
     @Override
