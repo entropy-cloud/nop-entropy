@@ -35,6 +35,7 @@
 ## Goals
 
 - 所有 Window 子类支持 JSON round-trip
+- `IKeyedStateBackend.snapshotState()` / `restoreState()` 改为对象接口（`byte[]` → `StateSnapshot`）
 - `MemoryKeyedStateBackend.snapshotState()` / `restoreState()` 改用 `JsonTool`，快照包含完整类型元信息
 - `OperatorSnapshotResult` 移除 `putOperatorStateJava` / `getOperatorStateJava` 方法
 - `StreamReduceOperator` 改用 `putOperatorStateJson` / `getOperatorStateJson`
@@ -46,8 +47,7 @@
 
 - 不引入 `TypeSerializer` 体系 — 设计文档明确排除
 - 不修改 `SimpleStreamOperatorFactory` 的 Java 深拷贝 — 非状态序列化（`MemoryKeyedStateBackend` 保留 `Serializable` 接口以兼容此路径）
-- 不修改 `ICheckpointStorage` — 已使用 `JsonTool`
-- 不修改 `IKeyedStateBackend.snapshotState()` 的 `byte[]` 返回签名 — 接口签名变更影响面大，当前仅在实现层将 `byte[]` 的内容从 Java 序列化改为 JSON。设计文档 §4.2 的"对象接口"描述是目标架构，本计划实现内部 JSON 序列化但不改接口
+- 不修改 `ICheckpointStorage` — 已使用 `JsonTool`，已是对象接口
 - 不为所有可能的 namespace 类型提供通用 JSON 支持 — 仅确保 TimeWindow、GlobalWindow、String、VoidNamespace 等已知类型的 round-trip
 
 ## Scope
@@ -56,7 +56,9 @@
 
 - `nop-stream-core/.../windowing/windows/TimeWindow.java` — 添加 `@JsonCreator`
 - `nop-stream-core/.../windowing/windows/GlobalWindow.java` — 添加 JSON 支持
-- `nop-stream-core/.../common/state/backend/memory/MemoryKeyedStateBackend.java` — JSON 序列化
+- `nop-stream-core/.../common/state/backend/memory/MemoryKeyedStateBackend.java`
+- `nop-stream-core/.../common/state/backend/IKeyedStateBackend.java`
+- `nop-stream-core/.../operators/AbstractStreamOperator.java` — 适配新接口签名 — JSON 序列化
 - `nop-stream-core/.../checkpoint/OperatorSnapshotResult.java` — 移除 Java 序列化方法
 - `nop-stream-core/.../operators/StreamReduceOperator.java` — 改用 JSON
 - `ai-dev/design/nop-stream/state-management-design.md` — 更新
@@ -124,9 +126,15 @@
 
 注意：因为内部状态类是 `MemoryKeyedStateBackend` 的 `private static` 内部类，恢复代码在 `MemoryKeyedStateBackend.restoreState()` 内部，可以直接访问 `storage` 字段。
 
-### DD-4: MemoryKeyedStateBackend 保留 Serializable
+### DD-4: StateSnapshot 值对象
 
-`MemoryKeyedStateBackend` 保留 `Serializable` 接口以兼容 `SimpleStreamOperatorFactory` 的 Java 深拷贝路径。`snapshotState()` / `restoreState()` 改用 JSON，但 `writeObject()` / `readObject()` 路径（用于深拷贝）仍通过 Java 序列化。
+新建 `StateSnapshot` 类，作为 `IKeyedStateBackend.snapshotState()` 的返回类型。内部封装 `Map<String, Object>` 形式的状态数据（含 DD-1 定义的元信息）。`MemoryKeyedStateBackend` 内部使用 `JsonTool` 将 `StateSnapshot` 序列化/反序列化为 JSON，但这个序列化过程完全在 backend 实现内部，不暴露给调用方。
+
+`StateSnapshot` 需要 `Serializable`（兼容 `SimpleStreamOperatorFactory` 的 Java 深拷贝路径）。
+
+### DD-5: MemoryKeyedStateBackend 保留 Serializable
+
+`MemoryKeyedStateBackend` 保留 `Serializable` 接口以兼容 `SimpleStreamOperatorFactory` 的 Java 深拷贝路径。`snapshotState()` / `restoreState()` 返回/接收 `StateSnapshot` 对象，内部用 JSON 实现序列化。
 
 ## Execution Plan
 
@@ -167,27 +175,31 @@ Exit Criteria:
 - [ ] 新 focused test 全部通过
 - [ ] No owner-doc update required（Phase 4 统一更新）
 
-### Phase 2 - 重构 MemoryKeyedStateBackend 序列化为 JSON
+### Phase 2 - IKeyedStateBackend 接口改为对象签名 + JSON 序列化实现
 
 Status: planned
-Targets: `MemoryKeyedStateBackend.java`, `nop-stream-core/src/test/`
+Targets: `IKeyedStateBackend.java`, `MemoryKeyedStateBackend.java`, `AbstractStreamOperator.java`, `nop-stream-core/src/test/`
 
 - Item Types: `Fix`, `Proof`
 
-- [ ] 按 DD-1 格式重构 `snapshotState()`：提取元信息 + 数据 → `JsonTool.serialize()` → `byte[]`
-- [ ] 按 DD-3 机制重构 `restoreState(byte[])`：解析元信息 → 重建 descriptor → 创建状态实例 → 填充数据 → rebind
-- [ ] 添加 `StateSnapshotSchema` 内部类封装快照格式
-- [ ] 添加 focused test：4 种状态类型（Value/Map/Appending/List）的 JSON round-trip
+- [ ] `IKeyedStateBackend.snapshotState()` 返回类型从 `byte[]` 改为 `StateSnapshot`（新建值对象，内部封装 `Map<String, Object>` 形式的状态数据）
+- [ ] `IKeyedStateBackend.restoreState(StateSnapshot)` 参数从 `byte[]` 改为 `StateSnapshot`
+- [ ] `MemoryKeyedStateBackend` 实现新接口：`snapshotState()` 提取纯数据构造 `StateSnapshot`，`restoreState(StateSnapshot)` 按 DD-3 机制重建状态实例
+- [ ] `AbstractStreamOperator.snapshotState()` / `restoreState()` 适配新接口签名
+- [ ] `OperatorSnapshotResult.putKeyedState()` 从接收 `byte[]` 改为接收 `StateSnapshot`（或直接接收对象）
+- [ ] 添加 focused test：4 种状态类型（Value/Map/Appending/List）的 round-trip
 - [ ] 验证 `TestOperatorSnapshot` 兼容（nop-stream-core）
 - [ ] 验证 `TestCheckpointRecovery` 兼容（nop-stream-runtime）
 - [ ] 验证 `TestE2EWindowOperatorWithCheckpoint` 兼容（nop-stream-runtime）
 
 Exit Criteria:
 
-- [ ] `MemoryKeyedStateBackend.snapshotState()` 内部不使用 `ObjectOutputStream`
-- [ ] `MemoryKeyedStateBackend.restoreState()` 内部不使用 `ObjectInputStream`
-- [ ] 快照 JSON 包含 keyType、stateType、valueType 元信息
-- [ ] 所有 4 种内部状态类型的 JSON round-trip 正确
+- [ ] `IKeyedStateBackend.snapshotState()` 返回对象（非 `byte[]`）
+- [ ] `IKeyedStateBackend.restoreState()` 接收对象（非 `byte[]`）
+- [ ] `MemoryKeyedStateBackend` 内部使用 `JsonTool` 进行序列化/反序列化
+- [ ] `AbstractStreamOperator` 不直接操作 `byte[]` 来处理 keyed state
+- [ ] 快照数据包含 keyType、stateType、valueType 元信息
+- [ ] 所有 4 种内部状态类型的 round-trip 正确
 - [ ] 3 个既有测试文件改造后仍通过
 - [ ] 无静默跳过：序列化失败时抛异常而非返回空
 - [ ] No owner-doc update required（Phase 4 统一更新）
@@ -200,7 +212,9 @@ Targets: `OperatorSnapshotResult.java`, `StreamReduceOperator.java`, `nop-stream
 - Item Types: `Fix`, `Proof`
 
 - [ ] 从 `OperatorSnapshotResult` 移除 `putOperatorStateJava()` / `getOperatorStateJava()` 方法
-- [ ] `StreamReduceOperator` 改用 `putOperatorStateJson()` / `getOperatorStateJson()`，序列化时将 `Map<Object, T>` 转为 entries 数组保留 key 类型信息
+- [ ] `OperatorSnapshotResult.putKeyedState()` 从接收 `byte[]` 改为接收对象
+- [ ] `OperatorSnapshotResult.putOperatorState()` 从接收 `byte[]` 改为接收对象（保留 `byte[]` 重载为内部方法）
+- [ ] `StreamReduceOperator` 改用对象级接口存取状态，序列化时将 `Map<Object, T>` 转为 entries 数组保留 key 类型信息
 - [ ] 更新 `TestStreamReduceOperator` 验证 JSON 序列化路径（含非 String key 场景）
 - [ ] 全量搜索确认无其他调用点使用 `putOperatorStateJava`
 - [ ] 更新 `TestOperatorSnapshotResult`：移除 Java 序列化测试用例，替换为 JSON 路径测试
@@ -253,6 +267,7 @@ Exit Criteria:
 ## Closure Gates
 
 - [ ] Window 子类支持 JSON round-trip
+- [ ] `IKeyedStateBackend` 接口不包含 `byte[]`（对象接口）
 - [ ] `MemoryKeyedStateBackend` 使用 `JsonTool` 序列化（快照包含类型元信息）
 - [ ] `OperatorSnapshotResult` 不含 Java 序列化方法
 - [ ] 所有算子状态通过 JSON 序列化
