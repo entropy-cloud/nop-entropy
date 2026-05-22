@@ -324,8 +324,7 @@ class TestReplayableSourceRecovery {
         List<String> data = buildData(100);
 
         OperatorSnapshotResult snapshot = OperatorSnapshotResult.builder()
-                .putOperatorState(StreamSourceOperator.SOURCE_OFFSET_KEY,
-                        "30".getBytes(StandardCharsets.UTF_8))
+                .putOperatorState(StreamSourceOperator.SOURCE_OFFSET_KEY, 30L)
                 .build();
 
         CollectionReplayableSource<String> source = new CollectionReplayableSource<>(data);
