@@ -38,7 +38,7 @@ class TestE2EMultipleJobsIsolation {
 
         TaskStateSnapshot stateA = TaskStateSnapshot.builder(locA)
                 .checkpointId(pendingA.getCheckpointId())
-                .putOperatorState("source-offset", "100".getBytes())
+                .putOperatorState("source-offset", "100")
                 .build();
         coordinatorA.acknowledgeTask(locA, pendingA.getCheckpointId(), stateA);
 
@@ -60,7 +60,7 @@ class TestE2EMultipleJobsIsolation {
 
         TaskStateSnapshot stateB = TaskStateSnapshot.builder(locB)
                 .checkpointId(pendingB.getCheckpointId())
-                .putOperatorState("source-offset", "200".getBytes())
+                .putOperatorState("source-offset", "200")
                 .build();
         coordinatorB.acknowledgeTask(locB, pendingB.getCheckpointId(), stateB);
 
@@ -73,12 +73,12 @@ class TestE2EMultipleJobsIsolation {
         CompletedCheckpoint restoredA = storage.getLatestCheckpoint(jobA, pipelineId);
         assertNotNull(restoredA);
         assertEquals(jobA, restoredA.getJobId());
-        assertArrayEquals("100".getBytes(), restoredA.getTaskState(locA).getOperatorState("source-offset"));
+        assertEquals("100", restoredA.getTaskState(locA).getOperatorState("source-offset"));
 
         CompletedCheckpoint restoredB = storage.getLatestCheckpoint(jobB, pipelineId);
         assertNotNull(restoredB);
         assertEquals(jobB, restoredB.getJobId());
-        assertArrayEquals("200".getBytes(), restoredB.getTaskState(locB).getOperatorState("source-offset"));
+        assertEquals("200", restoredB.getTaskState(locB).getOperatorState("source-offset"));
 
         storage.deleteAllCheckpoints(jobA);
         storage.deleteAllCheckpoints(jobB);

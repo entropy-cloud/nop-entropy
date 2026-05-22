@@ -171,9 +171,9 @@ class TestE2EMultiVertexCheckpoint {
 
         for (TaskLocation loc : plan.getAllTasks()) {
             TaskStateSnapshot taskState = TaskStateSnapshot.builder(loc)
-                    .checkpointId(pending.getCheckpointId())
-                    .putOperatorState("operator-0", ("state-for-" + loc.getVertexId()).getBytes())
-                    .build();
+                        .checkpointId(pending.getCheckpointId())
+                        .putOperatorState("operator-0", "state-for-" + loc.getVertexId())
+                        .build();
             coordinator.acknowledgeTask(loc, pending.getCheckpointId(), taskState);
         }
 
@@ -183,9 +183,9 @@ class TestE2EMultiVertexCheckpoint {
         for (TaskLocation loc : plan.getAllTasks()) {
             TaskStateSnapshot taskState = completed.getTaskState(loc);
             assertNotNull(taskState, "Should have state for vertex " + loc.getVertexId());
-            byte[] state = taskState.getOperatorState("operator-0");
+            Object state = taskState.getOperatorState("operator-0");
             assertNotNull(state, "Should have operator state for vertex " + loc.getVertexId());
-            assertTrue(new String(state).contains(loc.getVertexId()),
+            assertTrue(String.valueOf(state).contains(loc.getVertexId()),
                     "State for " + loc.getVertexId() + " should contain its vertexId");
         }
 

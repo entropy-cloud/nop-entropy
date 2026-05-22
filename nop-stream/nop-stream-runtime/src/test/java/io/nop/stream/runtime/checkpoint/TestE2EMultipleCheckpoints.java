@@ -61,7 +61,7 @@ class TestE2EMultipleCheckpoints {
 
                 TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                         .checkpointId(cpId)
-                        .putOperatorState("iteration", String.valueOf(i).getBytes())
+                        .putOperatorState("iteration", String.valueOf(i))
                         .build();
 
                 coordinator.acknowledgeTask(LOC_0, cpId, taskState);
@@ -79,7 +79,7 @@ class TestE2EMultipleCheckpoints {
             CompletedCheckpoint latest = coordinator.getLatestCheckpoint();
             assertNotNull(latest);
             assertEquals(checkpointIds.get(checkpointIds.size() - 1), latest.getCheckpointId());
-            assertEquals("4", new String(latest.getTaskState(LOC_0).getOperatorState("iteration")));
+            assertEquals("4", latest.getTaskState(LOC_0).getOperatorState("iteration"));
         } finally {
             coordinator.shutdown();
         }
@@ -116,7 +116,7 @@ class TestE2EMultipleCheckpoints {
 
                 TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                         .checkpointId(cpId)
-                        .putOperatorState("data", ("checkpoint-" + i).getBytes())
+                        .putOperatorState("data", "checkpoint-" + i)
                         .build();
 
                 coordinator.acknowledgeTask(LOC_0, cpId, taskState);
@@ -155,7 +155,7 @@ class TestE2EMultipleCheckpoints {
 
                 TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                         .checkpointId(cpId)
-                        .putOperatorState("data", ("value-" + i).getBytes())
+                        .putOperatorState("data", "value-" + i)
                         .build();
 
                 iterCoordinator.acknowledgeTask(LOC_0, cpId, taskState);
@@ -170,9 +170,9 @@ class TestE2EMultipleCheckpoints {
 
             if (!remaining.isEmpty()) {
                 CompletedCheckpoint last = remaining.get(remaining.size() - 1);
-                byte[] data = last.getTaskState(LOC_0).getOperatorState("data");
+                Object data = last.getTaskState(LOC_0).getOperatorState("data");
                 assertNotNull(data);
-                assertEquals("value-4", new String(data));
+                assertEquals("value-4", data);
             }
         } finally {
             coordinator.shutdown();
@@ -307,7 +307,7 @@ class TestE2EMultipleCheckpoints {
                 firstRunIds.add(pending.getCheckpointId());
 
                 TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
-                        .putOperatorState("data", String.valueOf(i).getBytes())
+                        .putOperatorState("data", String.valueOf(i))
                         .build();
                 coordinator1.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
                 pending.getCompletableFuture().get(5, TimeUnit.SECONDS);

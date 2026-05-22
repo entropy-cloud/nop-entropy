@@ -17,6 +17,7 @@ import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
+import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.operators.*;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -56,12 +57,12 @@ public class TestOperatorSnapshot {
         assertNotNull(snapshot);
         assertFalse(snapshot.isEmpty());
 
-        byte[] keyedStateBytes = snapshot.getKeyedStates().get("keyed-state");
-        assertNotNull(keyedStateBytes);
-        assertTrue(keyedStateBytes.length > 0);
+        Object keyedStateObj = snapshot.getKeyedState("keyed-state");
+        assertNotNull(keyedStateObj);
+        assertTrue(keyedStateObj instanceof StateSnapshot);
 
         IKeyedStateBackend<String> restoredBackend = stateBackend.createKeyedStateBackend(String.class);
-        restoredBackend.restoreState(keyedStateBytes);
+        restoredBackend.restoreState((StateSnapshot) keyedStateObj);
         ValueState<Long> restoredState = restoredBackend.getState(descriptor);
         restoredBackend.setCurrentKey("key1");
         assertEquals(Long.valueOf(42L), restoredState.value());
@@ -98,11 +99,12 @@ public class TestOperatorSnapshot {
         assertNotNull(snapshot);
         assertFalse(snapshot.isEmpty());
 
-        byte[] keyedStateBytes = snapshot.getKeyedStates().get("keyed-state");
-        assertNotNull(keyedStateBytes);
+        Object keyedStateObj = snapshot.getKeyedState("keyed-state");
+        assertNotNull(keyedStateObj);
+        assertTrue(keyedStateObj instanceof StateSnapshot);
 
         IKeyedStateBackend<String> restoredBackend = stateBackend.createKeyedStateBackend(String.class);
-        restoredBackend.restoreState(keyedStateBytes);
+        restoredBackend.restoreState((StateSnapshot) keyedStateObj);
         MapState<String, Integer> restoredState = restoredBackend.getMapState(descriptor);
         restoredBackend.setCurrentKey("user1");
         assertEquals(Integer.valueOf(1), restoredState.get("a"));

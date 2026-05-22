@@ -16,6 +16,7 @@ import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.operators.*;
@@ -190,7 +191,7 @@ class TestE2EWindowOperatorWithCheckpoint {
         assertNotNull(snapshot);
 
         IKeyedStateBackend<String> restoredBackend = stateBackend.createKeyedStateBackend(String.class);
-        restoredBackend.restoreState(snapshot.getKeyedStates().get("keyed-state"));
+        restoredBackend.restoreState(snapshot.getKeyedState("keyed-state", StateSnapshot.class));
 
         ValueState<Long> restoredSum = restoredBackend.getState(sumDescriptor);
         restoredBackend.setCurrentKey("window-X");
@@ -300,7 +301,7 @@ class TestE2EWindowOperatorWithCheckpoint {
 
         ValueStateDescriptor<Long> countDesc = new ValueStateDescriptor<>("window-count", Long.class, 0L);
         IKeyedStateBackend<String> restoredBackend = stateBackend.createKeyedStateBackend(String.class);
-        restoredBackend.restoreState(windowSnapshot.getKeyedStates().get("keyed-state"));
+        restoredBackend.restoreState(windowSnapshot.getKeyedState("keyed-state", StateSnapshot.class));
 
         restoredBackend.setCurrentKey("a");
         assertEquals(1L, restoredBackend.getState(countDesc).value());

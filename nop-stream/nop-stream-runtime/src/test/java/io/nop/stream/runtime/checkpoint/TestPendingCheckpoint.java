@@ -67,7 +67,7 @@ class TestPendingCheckpoint {
         assertEquals(1, pending.getNumberOfAcknowledgedTasks());
         assertEquals(2, pending.getNumberOfNotAcknowledgedTasks());
         assertFalse(pending.isFullyAcknowledged());
-        assertEquals(state, pending.getTaskStates().get(LOC_1));
+        assertEquals(state, pending.getTaskState(LOC_1));
     }
 
     @Test

@@ -127,15 +127,19 @@ class TestE2ECheckpointAndRecovery {
             @Override
             public OperatorSnapshotResult snapshotState(long checkpointId) throws Exception {
                 return OperatorSnapshotResult.builder()
-                        .putOperatorState("offset", String.valueOf(currentOffset.get()).getBytes())
+                        .putOperatorState("offset", currentOffset.get())
                         .build();
             }
 
             @Override
             public void initializeState(TaskStateSnapshot state) {
-                byte[] offsetBytes = state.getOperatorState("offset");
-                if (offsetBytes != null) {
-                    restoredOffset.set(Long.parseLong(new String(offsetBytes)));
+                Object offsetObj = state.getOperatorState("offset");
+                if (offsetObj != null) {
+                    if (offsetObj instanceof Number) {
+                        restoredOffset.set(((Number) offsetObj).longValue());
+                    } else {
+                        restoredOffset.set(Long.parseLong(String.valueOf(offsetObj)));
+                    }
                 }
             }
         };
@@ -152,11 +156,10 @@ class TestE2ECheckpointAndRecovery {
         // merged into the operator's lastSnapshotResult. Test snapshot directly.
         OperatorSnapshotResult snapshot = source.snapshotState(1L);
         assertFalse(snapshot.isEmpty());
-        assertEquals("42", new String(snapshot.getOperatorStates().get("offset")));
+        assertEquals(42L, snapshot.getOperatorState("offset"));
 
-        // Verify restore works through initializeState
         TaskStateSnapshot taskSnapshot = new TaskStateSnapshot(LOC_0, 1L);
-        taskSnapshot.putOperatorState("offset", "42".getBytes());
+        taskSnapshot.putOperatorState("offset", 42L);
         source.initializeState(taskSnapshot);
 
         assertEquals(42L, restoredOffset.get());
@@ -280,8 +283,8 @@ class TestE2ECheckpointAndRecovery {
 
         TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(checkpointId)
-                .putOperatorState("source-offset", "100".getBytes())
-                .putOperatorState("map-state", "mapped".getBytes())
+                .putOperatorState("source-offset", "100")
+                .putOperatorState("map-state", "mapped")
                 .build();
 
         coordinator.acknowledgeTask(LOC_0, checkpointId, taskState);
@@ -301,8 +304,8 @@ class TestE2ECheckpointAndRecovery {
 
         TaskStateSnapshot restoredState = restored.getTaskState(LOC_0);
         assertNotNull(restoredState);
-        assertArrayEquals("100".getBytes(), restoredState.getOperatorState("source-offset"));
-        assertArrayEquals("mapped".getBytes(), restoredState.getOperatorState("map-state"));
+        assertEquals("100", restoredState.getOperatorState("source-offset"));
+        assertEquals("mapped", restoredState.getOperatorState("map-state"));
 
         recoveredCoordinator.shutdown();
     }

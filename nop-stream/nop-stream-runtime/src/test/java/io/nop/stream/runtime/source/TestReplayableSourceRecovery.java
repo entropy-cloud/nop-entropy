@@ -130,9 +130,10 @@ class TestReplayableSourceRecovery {
         OperatorSnapshotResult snapshot = operator.snapshotState(
                 new StateSnapshotContext(1L, System.currentTimeMillis()));
 
-        byte[] offsetBytes = snapshot.getOperatorStates().get(StreamSourceOperator.SOURCE_OFFSET_KEY);
-        assertNotNull(offsetBytes);
-        assertEquals("42", new String(offsetBytes, StandardCharsets.UTF_8));
+        Object offsetObj = snapshot.getOperatorState(StreamSourceOperator.SOURCE_OFFSET_KEY);
+        assertNotNull(offsetObj);
+        assertTrue(offsetObj instanceof Number);
+        assertEquals(42L, ((Number) offsetObj).longValue());
     }
 
     @Test
@@ -194,9 +195,9 @@ class TestReplayableSourceRecovery {
         OperatorSnapshotResult snapshot = op1.snapshotState(
                 new StateSnapshotContext(1L, System.currentTimeMillis()));
 
-        byte[] offsetBytes = snapshot.getOperatorStates().get(StreamSourceOperator.SOURCE_OFFSET_KEY);
-        assertNotNull(offsetBytes);
-        long savedOffset = Long.parseLong(new String(offsetBytes, StandardCharsets.UTF_8));
+        Long savedOffset = snapshot.getOperatorState(StreamSourceOperator.SOURCE_OFFSET_KEY, Long.class);
+        assertNotNull(savedOffset);
+        assertEquals(100L, savedOffset.longValue());
         assertEquals(100, savedOffset);
 
         CollectionReplayableSource<String> source2 = new CollectionReplayableSource<>(data);

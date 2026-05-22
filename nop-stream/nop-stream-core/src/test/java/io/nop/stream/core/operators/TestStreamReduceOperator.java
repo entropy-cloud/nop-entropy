@@ -1,5 +1,6 @@
 package io.nop.stream.core.operators;
 
+import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.functions.ReduceFunction;
@@ -118,13 +119,13 @@ public class TestStreamReduceOperator {
     void testOperatorSnapshotResultJsonMethods() throws Exception {
         OperatorSnapshotResult result = new OperatorSnapshotResult();
 
-        result.putOperatorStateJson("test-state", new java.util.HashMap<String, Integer>() {{
-            put("a", 1);
-            put("b", 2);
-        }});
+        java.util.Map<String, Integer> map = new java.util.HashMap<>();
+        map.put("a", 1);
+        map.put("b", 2);
+        result.putOperatorState("test-state", JsonTool.stringify(map));
 
-        java.util.Map<String, Integer> restored =
-                result.getOperatorStateJson("test-state", java.util.Map.class);
+        String json = (String) result.getOperatorState("test-state");
+        java.util.Map<?, ?> restored = JsonTool.parseBeanFromText(json, java.util.Map.class);
         assertNotNull(restored);
         assertEquals(1, restored.get("a"));
         assertEquals(2, restored.get("b"));

@@ -83,12 +83,12 @@ class TestCompletedCheckpoint {
         assertEquals(0, checkpoint.estimateSize());
 
         TaskStateSnapshot state = TaskStateSnapshot.builder(LOC_1)
-                .putOperatorState("op1", new byte[100])
-                .putKeyedState("key1", new byte[50])
+                .putOperatorState("op1", "operator-data")
+                .putKeyedState("key1", "keyed-data")
                 .build();
         checkpoint.addTaskState(LOC_1, state);
 
-        assertEquals(150, checkpoint.estimateSize());
+        assertEquals(2, checkpoint.estimateSize());
     }
 
     @Test

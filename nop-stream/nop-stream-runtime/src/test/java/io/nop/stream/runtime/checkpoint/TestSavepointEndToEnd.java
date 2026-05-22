@@ -82,7 +82,7 @@ class TestSavepointEndToEnd {
 
         TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(1L)
-                .putOperatorState("operator-1", "restored-data".getBytes())
+                .putOperatorState("operator-1", "restored-data")
                 .build();
 
         Map<TaskLocation, TaskStateSnapshot> taskStates = new HashMap<>();
@@ -102,7 +102,7 @@ class TestSavepointEndToEnd {
         assertNotNull(savepointPath);
 
         AtomicInteger restoredCount = new AtomicInteger(0);
-        AtomicReference<byte[]> restoredState = new AtomicReference<>();
+        AtomicReference<Object> restoredState = new AtomicReference<>();
 
         SourceFunction<String> source = new SourceFunction<>() {
             private static final long serialVersionUID = 1L;
@@ -156,7 +156,7 @@ class TestSavepointEndToEnd {
         assertNotNull(result);
 
         assertEquals(1, restoredCount.get());
-        assertArrayEquals("restored-data".getBytes(), restoredState.get());
+        assertEquals("restored-data", restoredState.get());
 
         storage.deleteAllCheckpoints("1");
     }

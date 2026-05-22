@@ -62,8 +62,8 @@ class TestSavepointApi {
 
         TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(pending.getCheckpointId())
-                .putOperatorState("operator-0", "savepoint-data".getBytes())
-                .putKeyedState("keyed-state", "keyed-data".getBytes())
+                .putOperatorState("operator-0", "savepoint-data")
+                .putKeyedState("keyed-state", "keyed-data")
                 .build();
 
         coordinator.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
@@ -82,8 +82,8 @@ class TestSavepointApi {
 
         TaskStateSnapshot loadedState = loaded.getTaskState(LOC_0);
         assertNotNull(loadedState);
-        assertArrayEquals("savepoint-data".getBytes(), loadedState.getOperatorState("operator-0"));
-        assertArrayEquals("keyed-data".getBytes(), loadedState.getKeyedState("keyed-state"));
+        assertEquals("savepoint-data", loadedState.getOperatorState("operator-0"));
+        assertEquals("keyed-data", loadedState.getKeyedState("keyed-state"));
     }
 
     @Test
@@ -93,7 +93,7 @@ class TestSavepointApi {
 
         TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(pending.getCheckpointId())
-                .putOperatorState("operator-0", "original-state".getBytes())
+                .putOperatorState("operator-0", "original-state")
                 .build();
 
         coordinator.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);
@@ -108,7 +108,7 @@ class TestSavepointApi {
 
         TaskStateSnapshot restoredState = loaded.getTaskState(LOC_0);
         assertNotNull(restoredState);
-        assertArrayEquals("original-state".getBytes(), restoredState.getOperatorState("operator-0"));
+        assertEquals("original-state", restoredState.getOperatorState("operator-0"));
     }
 
     @Test
@@ -176,8 +176,8 @@ class TestSavepointApi {
 
         TaskStateSnapshot taskState = TaskStateSnapshot.builder(LOC_0)
                 .checkpointId(pending.getCheckpointId())
-                .putOperatorState("op-0", "data".getBytes())
-                .putKeyedState("keyed", "kdata".getBytes())
+                .putOperatorState("op-0", "data")
+                .putKeyedState("keyed", "kdata")
                 .build();
 
         coordinator.acknowledgeTask(LOC_0, pending.getCheckpointId(), taskState);

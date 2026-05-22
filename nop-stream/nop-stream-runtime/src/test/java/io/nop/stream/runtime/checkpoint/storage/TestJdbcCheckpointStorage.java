@@ -165,8 +165,8 @@ class TestJdbcCheckpointStorage {
     @Test
     void testSerializationRoundTrip() throws Exception {
         TaskStateSnapshot snapshot = TaskStateSnapshot.builder(LOC_1)
-                .putOperatorState("op1", new byte[]{1, 2, 3})
-                .putKeyedState("key1", new byte[]{4, 5, 6})
+                .putOperatorState("op1", "op-data-123")
+                .putKeyedState("key1", "keyed-data-456")
                 .build();
 
         CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
@@ -190,10 +190,10 @@ class TestJdbcCheckpointStorage {
         assertEquals(1000L, retrieved.getTriggerTimestamp());
         assertEquals(2000L, retrieved.getCompletedTimestamp());
 
-        TaskStateSnapshot retrievedSnapshot = retrieved.getTaskStates().get(LOC_1);
+        TaskStateSnapshot retrievedSnapshot = retrieved.getTaskState(LOC_1);
         assertNotNull(retrievedSnapshot);
-        assertArrayEquals(new byte[]{1, 2, 3}, retrievedSnapshot.getOperatorState("op1"));
-        assertArrayEquals(new byte[]{4, 5, 6}, retrievedSnapshot.getKeyedState("key1"));
+        assertEquals("op-data-123", retrievedSnapshot.getOperatorState("op1"));
+        assertEquals("keyed-data-456", retrievedSnapshot.getKeyedState("key1"));
     }
 
     @Test

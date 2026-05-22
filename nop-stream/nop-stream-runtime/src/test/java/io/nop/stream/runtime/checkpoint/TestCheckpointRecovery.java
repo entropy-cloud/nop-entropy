@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.functions.SinkFunction;
@@ -16,6 +17,7 @@ import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.operators.*;
@@ -74,10 +76,10 @@ class TestCheckpointRecovery {
         long checkpointId = pending.getCheckpointId();
 
         TaskStateSnapshot state1 = TaskStateSnapshot.builder(LOC_1)
-                .putOperatorState("state1", "data1".getBytes())
+                .putOperatorState("state1", "data1")
                 .build();
         TaskStateSnapshot state2 = TaskStateSnapshot.builder(LOC_2)
-                .putOperatorState("state2", "data2".getBytes())
+                .putOperatorState("state2", "data2")
                 .build();
 
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
@@ -102,11 +104,11 @@ class TestCheckpointRecovery {
 
         TaskStateSnapshot restoredState1 = restored.getTaskState(LOC_1);
         assertNotNull(restoredState1);
-        assertArrayEquals("data1".getBytes(), restoredState1.getOperatorState("state1"));
+        assertEquals("data1", restoredState1.getOperatorState("state1"));
 
         TaskStateSnapshot restoredState2 = restored.getTaskState(LOC_2);
         assertNotNull(restoredState2);
-        assertArrayEquals("data2".getBytes(), restoredState2.getOperatorState("state2"));
+        assertEquals("data2", restoredState2.getOperatorState("state2"));
 
         recoveredCoordinator.shutdown();
     }
@@ -123,10 +125,10 @@ class TestCheckpointRecovery {
             long checkpointId = pending.getCheckpointId();
 
             TaskStateSnapshot state1 = TaskStateSnapshot.builder(LOC_1)
-                    .putOperatorState("iteration", String.valueOf(i).getBytes())
+                    .putOperatorState("iteration", String.valueOf(i))
                     .build();
             TaskStateSnapshot state2 = TaskStateSnapshot.builder(LOC_2)
-                    .putOperatorState("iteration", String.valueOf(i).getBytes())
+                    .putOperatorState("iteration", String.valueOf(i))
                     .build();
 
             iterCoordinator.acknowledgeTask(LOC_1, checkpointId, state1);
@@ -145,8 +147,8 @@ class TestCheckpointRecovery {
         CompletedCheckpoint restored = recoveredCoordinator.getLatestCheckpoint();
         assertNotNull(restored);
 
-        byte[] restoredState = restored.getTaskState(LOC_1).getOperatorState("iteration");
-        assertEquals("2", new String(restoredState));
+        Object restoredState = restored.getTaskState(LOC_1).getOperatorState("iteration");
+        assertEquals("2", restoredState);
 
         recoveredCoordinator.shutdown();
     }
@@ -158,10 +160,10 @@ class TestCheckpointRecovery {
         long checkpointId = pending.getCheckpointId();
 
         TaskStateSnapshot state1 = TaskStateSnapshot.builder(LOC_1)
-                .putOperatorState("operator", "op-data".getBytes())
+                .putOperatorState("operator", "op-data")
                 .build();
         TaskStateSnapshot state2 = TaskStateSnapshot.builder(LOC_2)
-                .putOperatorState("operator", "op-data-2".getBytes())
+                .putOperatorState("operator", "op-data-2")
                 .build();
 
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
@@ -181,7 +183,7 @@ class TestCheckpointRecovery {
         TaskStateSnapshot restoredState = restored.getTaskState(LOC_1);
         assertNotNull(restoredState);
 
-        assertArrayEquals("op-data".getBytes(), restoredState.getOperatorState("operator"));
+        assertEquals("op-data", restoredState.getOperatorState("operator"));
 
         recoveredCoordinator.shutdown();
     }
@@ -193,7 +195,7 @@ class TestCheckpointRecovery {
         long checkpointId1 = pending1.getCheckpointId();
 
         TaskStateSnapshot state1 = TaskStateSnapshot.builder(LOC_1)
-                .putOperatorState("data", "task1-data".getBytes())
+                .putOperatorState("data", "task1-data")
                 .build();
         coordinator.acknowledgeTask(LOC_1, checkpointId1, state1);
 
@@ -206,10 +208,10 @@ class TestCheckpointRecovery {
         long checkpointId2 = pending2.getCheckpointId();
 
         TaskStateSnapshot state1v2 = TaskStateSnapshot.builder(LOC_1)
-                .putOperatorState("data", "task1-data-v2".getBytes())
+                .putOperatorState("data", "task1-data-v2")
                 .build();
         TaskStateSnapshot state2v2 = TaskStateSnapshot.builder(LOC_2)
-                .putOperatorState("data", "task2-data".getBytes())
+                .putOperatorState("data", "task2-data")
                 .build();
 
         coordinator.acknowledgeTask(LOC_1, checkpointId2, state1v2);
@@ -231,8 +233,8 @@ class TestCheckpointRecovery {
         assertNotNull(restored);
         assertEquals(checkpointId2, restored.getCheckpointId());
 
-        assertArrayEquals("task1-data-v2".getBytes(), restored.getTaskState(LOC_1).getOperatorState("data"));
-        assertArrayEquals("task2-data".getBytes(), restored.getTaskState(LOC_2).getOperatorState("data"));
+        assertEquals("task1-data-v2", restored.getTaskState(LOC_1).getOperatorState("data"));
+        assertEquals("task2-data", restored.getTaskState(LOC_2).getOperatorState("data"));
 
         recoveredCoordinator.shutdown();
     }
@@ -244,10 +246,10 @@ class TestCheckpointRecovery {
         long checkpointId = pending.getCheckpointId();
 
         TaskStateSnapshot state1 = TaskStateSnapshot.builder(LOC_1)
-                .putOperatorState("savepoint-data", "important".getBytes())
+                .putOperatorState("savepoint-data", "important")
                 .build();
         TaskStateSnapshot state2 = TaskStateSnapshot.builder(LOC_2)
-                .putOperatorState("savepoint-data", "important-2".getBytes())
+                .putOperatorState("savepoint-data", "important-2")
                 .build();
 
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
@@ -286,9 +288,9 @@ class TestCheckpointRecovery {
         ValueState<Integer> counter2 = backend.getState(descriptor);
         counter2.update(99);
 
-        byte[] snapshot = backend.snapshotState();
+        StateSnapshot snapshot = backend.snapshotState();
         assertNotNull(snapshot);
-        assertTrue(snapshot.length > 0);
+        assertFalse(snapshot.isEmpty());
 
         IKeyedStateBackend<String> restored = stateBackend.createKeyedStateBackend(String.class);
         restored.restoreState(snapshot);
@@ -355,15 +357,19 @@ class TestCheckpointRecovery {
             @Override
             public OperatorSnapshotResult snapshotState(long checkpointId) {
                 return OperatorSnapshotResult.builder()
-                        .putOperatorState("offset", String.valueOf(currentOffset.get()).getBytes())
+                        .putOperatorState("offset", currentOffset.get())
                         .build();
             }
 
             @Override
             public void initializeState(TaskStateSnapshot state) {
-                byte[] offsetBytes = state.getOperatorState("offset");
-                if (offsetBytes != null) {
-                    restoredOffset.set(Long.parseLong(new String(offsetBytes)));
+                Object offsetObj = state.getOperatorState("offset");
+                if (offsetObj != null) {
+                    if (offsetObj instanceof Number) {
+                        restoredOffset.set(((Number) offsetObj).longValue());
+                    } else {
+                        restoredOffset.set(Long.parseLong(String.valueOf(offsetObj)));
+                    }
                 }
             }
         };
