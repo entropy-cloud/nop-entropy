@@ -7,13 +7,12 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.common.eventtime.WatermarkGenerator;
 import io.nop.stream.core.common.eventtime.WatermarkOutput;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.test.TestOutput;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -21,45 +20,63 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Disabled("Bug N46: markIdle/markActive are no-ops. Fix should pass.")
 public class TestWatermarkIdleDetection {
 
     @Test
-    void testIdleSourceDoesNotBlockWatermark() throws Exception {
+    void testIdleSuppressesWatermarkEmission() throws Exception {
+        WatermarkStrategy<String> strategy = WatermarkStrategy
+                .<String>forGenerator(ctx -> new IdleTestGenerator())
+                .withTimestampAssigner((event, ts) -> Long.parseLong(event.split(":")[1]));
+
+        TestOutput<String> output = new TestOutput<>();
+        TimestampsAndWatermarksOperator<String> operator = new TimestampsAndWatermarksOperator<>(strategy, 1);
+        operator.setOutput((Output) output);
+        operator.open();
+
+        operator.processElement(new StreamRecord<>("e1:100"));
+        List<Watermark> wms1 = output.getWatermarks();
+        assertFalse(wms1.isEmpty(), "First event should produce a watermark");
+        long firstTs = wms1.get(wms1.size() - 1).getTimestamp();
+        assertTrue(firstTs > Long.MIN_VALUE, "Watermark should advance past initial value");
+
+        int countBeforeIdle = output.getWatermarks().size();
+
+        operator.processElement(new StreamRecord<>("e2:200"));
+        int countAfterIdle = output.getWatermarks().size();
+        assertEquals(countBeforeIdle, countAfterIdle,
+                "Watermark emission should be suppressed when idle (event 2 calls markIdle)");
+
+        operator.processElement(new StreamRecord<>("e3:300"));
+        int countWhileIdle = output.getWatermarks().size();
+        assertEquals(countBeforeIdle, countWhileIdle,
+                "Watermark should still be suppressed while idle (event 3 tries emitWatermark)");
+
+        operator.processElement(new StreamRecord<>("e4:400"));
+
+        operator.processElement(new StreamRecord<>("e5:500"));
+        int countAfterActive = output.getWatermarks().size();
+        assertTrue(countAfterActive > countWhileIdle,
+                "Watermark should resume after markActive (event 4 calls markActive, event 5 emits)");
+    }
+
+    @Test
+    void testActiveSourceWatermarkAdvances() throws Exception {
         WatermarkStrategy<TestEvent> strategy = WatermarkStrategy
                 .<TestEvent>forBoundedOutOfOrderness(Duration.ofMillis(10))
                 .withTimestampAssigner((event, ts) -> event.timestamp);
 
-        TestOutput<TestEvent> activeOutput = new TestOutput<>();
-        TimestampsAndWatermarksOperator<TestEvent> activeOp = new TimestampsAndWatermarksOperator<>(strategy, 1);
-        activeOp.setOutput((Output) activeOutput);
-        activeOp.open();
+        TestOutput<TestEvent> output = new TestOutput<>();
+        TimestampsAndWatermarksOperator<TestEvent> operator = new TimestampsAndWatermarksOperator<>(strategy, 0);
+        operator.setOutput((Output) output);
+        operator.open();
 
-        TestOutput<TestEvent> idleOutput = new TestOutput<>();
-        TimestampsAndWatermarksOperator<TestEvent> idleOp = new TimestampsAndWatermarksOperator<>(strategy, 1);
-        idleOp.setOutput((Output) idleOutput);
-        idleOp.open();
+        operator.processElement(new StreamRecord<>(new TestEvent("a", 100)));
+        operator.processElement(new StreamRecord<>(new TestEvent("b", 200)));
 
-        idleOp.processElement(new StreamRecord<>(new TestEvent("idle", 50)));
-
-        activeOp.processElement(new StreamRecord<>(new TestEvent("active", 100)));
-        activeOp.processElement(new StreamRecord<>(new TestEvent("active", 200)));
-
-        idleOp.processWatermarkStatus(WatermarkStatus.IDLE);
-
-        List<Watermark> activeWatermarks = activeOutput.getWatermarks();
-        assertFalse(activeWatermarks.isEmpty(), "Active source should emit watermarks");
-
-        Watermark lastActive = activeWatermarks.get(activeWatermarks.size() - 1);
-        assertTrue(lastActive.getTimestamp() > Long.MIN_VALUE,
+        List<Watermark> watermarks = output.getWatermarks();
+        assertFalse(watermarks.isEmpty(), "Active source should emit watermarks");
+        assertTrue(watermarks.get(watermarks.size() - 1).getTimestamp() > Long.MIN_VALUE,
                 "Active source watermark should advance past initial value");
-
-        activeOp.processElement(new StreamRecord<>(new TestEvent("active", 300)));
-
-        List<Watermark> updatedWatermarks = activeOutput.getWatermarks();
-        Watermark latest = updatedWatermarks.get(updatedWatermarks.size() - 1);
-        assertTrue(latest.getTimestamp() > lastActive.getTimestamp(),
-                "Watermark should keep advancing from active source even after idle source goes idle");
     }
 
     static class TestEvent {
@@ -69,6 +86,30 @@ public class TestWatermarkIdleDetection {
         TestEvent(String id, long timestamp) {
             this.id = id;
             this.timestamp = timestamp;
+        }
+    }
+
+    static class IdleTestGenerator implements WatermarkGenerator<String> {
+        int eventCount = 0;
+
+        @Override
+        public void onEvent(String event, long eventTimestamp, WatermarkOutput output) {
+            eventCount++;
+            if (eventCount == 1) {
+                output.emitWatermark(new Watermark(eventTimestamp));
+            } else if (eventCount == 2) {
+                output.markIdle();
+            } else if (eventCount == 3) {
+                output.emitWatermark(new Watermark(eventTimestamp));
+            } else if (eventCount == 4) {
+                output.markActive();
+            } else if (eventCount == 5) {
+                output.emitWatermark(new Watermark(eventTimestamp));
+            }
+        }
+
+        @Override
+        public void onPeriodicEmit(WatermarkOutput output) {
         }
     }
 }
