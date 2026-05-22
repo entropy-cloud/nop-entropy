@@ -45,6 +45,7 @@ import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.TimestampedCollector;
 import io.nop.stream.core.operators.Triggerable;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
@@ -250,6 +251,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 mergingSetsState.setCurrentNamespace(VoidNamespace.INSTANCE);
             }
         }
+    }
+
+    @Override
+    public void processWatermark(Watermark mark) throws Exception {
+        if (internalTimerService instanceof WindowOperatorTimerService) {
+            ((WindowOperatorTimerService<K, W>) internalTimerService).advanceWatermark(mark.getTimestamp());
+        }
+        super.processWatermark(mark);
     }
 
     @Override

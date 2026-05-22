@@ -14,23 +14,6 @@ import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 
-/**
- * An operator that extracts timestamps from stream elements and generates watermarks
- * based on a {@link WatermarkStrategy}.
- *
- * <p>For each incoming element, this operator:
- * <ol>
- *   <li>Extracts the event-time timestamp via {@link TimestampAssigner}</li>
- *   <li>Sets the timestamp on the {@link StreamRecord}</li>
- *   <li>Feeds the event to the {@link WatermarkGenerator} for punctuated watermark emission</li>
- *   <li>Forwards the record downstream</li>
- * </ol>
- *
- * <p>Periodic watermark emission is triggered on every element if the auto-watermark interval
- * has elapsed since the last emission.
- *
- * @param <T> the type of elements processed by this operator
- */
 public class TimestampsAndWatermarksOperator<T>
         extends AbstractStreamOperator<T>
         implements OneInputStreamOperator<T, T> {
@@ -46,6 +29,7 @@ public class TimestampsAndWatermarksOperator<T>
     private transient WatermarkGenerator<T> watermarkGenerator;
     private transient long lastWatermarkTimestamp;
     private transient long nextWatermarkTime;
+    private transient boolean idle;
 
     public TimestampsAndWatermarksOperator(WatermarkStrategy<T> watermarkStrategy) {
         this(watermarkStrategy, DEFAULT_WATERMARK_INTERVAL_MS);
@@ -63,6 +47,7 @@ public class TimestampsAndWatermarksOperator<T>
         this.watermarkGenerator = watermarkStrategy.createWatermarkGenerator(() -> null);
         this.lastWatermarkTimestamp = INITIAL_TIME;
         this.nextWatermarkTime = INITIAL_TIME;
+        this.idle = false;
     }
 
     @Override
@@ -75,7 +60,6 @@ public class TimestampsAndWatermarksOperator<T>
 
         output.collect(element);
 
-        // Periodic watermark check
         long now = System.currentTimeMillis();
         if (now >= nextWatermarkTime) {
             watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
@@ -85,7 +69,6 @@ public class TimestampsAndWatermarksOperator<T>
 
     @Override
     public void processWatermark(Watermark mark) throws Exception {
-        // Forward watermark downstream only if it advances the current watermark
         if (mark.getTimestamp() > lastWatermarkTimestamp) {
             lastWatermarkTimestamp = mark.getTimestamp();
             output.emitWatermark(mark);
@@ -102,6 +85,7 @@ public class TimestampsAndWatermarksOperator<T>
 
         @Override
         public void emitWatermark(Watermark watermark) {
+            if (idle) return;
             long ts = watermark.getTimestamp();
             if (ts > lastWatermarkTimestamp) {
                 lastWatermarkTimestamp = ts;
@@ -111,12 +95,12 @@ public class TimestampsAndWatermarksOperator<T>
 
         @Override
         public void markIdle() {
-            // Idle detection not implemented
+            idle = true;
         }
 
         @Override
         public void markActive() {
-            // Idle detection not implemented
+            idle = false;
         }
     }
 }
