@@ -118,30 +118,57 @@ MemoryKeyedStateBackend<K>
 
 ## 4. 序列化策略
 
+### 4.0 核心原则
+
+1. **对象存取，屏蔽序列化**：状态存取接口是对象级别的。算子代码调用 `putState(name, object)` / `<T> getState(name, type)`，不需要关心内部如何序列化。序列化是实现细节，不是接口契约。
+2. **所有内部结构必须支持 JSON 序列化**：Nop 平台要求所有内部数据结构（包括 Window 子类、状态 key/value、namespace 等）都能通过 `JsonTool` 进行 JSON round-trip。这是添加新类型的强制前置约束。
+3. **默认 JSON，可替换**：内部默认使用 `JsonTool`（JSON 序列化），但序列化策略可替换（如未来引入二进制格式），不影响调用方。
+4. **byte[] 是内部传输格式，不暴露给算子**：`byte[]` 仅出现在 checkpoint 存储层和 state backend 内部实现中。算子代码永远不直接操作 `byte[]`。
+
 ### 4.1 运行时：无序列化
 
 运行时状态以 Java 对象直接存储在 HashMap 中。`MemoryValueState` 存 `T`，`MemoryMapState` 存 `Map<UK, UV>`，没有序列化/反序列化开销。
 
 **代价**：状态对象就是用户对象的直接引用——修改用户对象会直接修改状态（与 Flink 的深拷贝语义不同）。
 
-### 4.2 Checkpoint 快照：JSON 序列化
+### 4.2 Checkpoint 快照：JSON 序列化（内部实现）
 
-Checkpoint 时状态通过 Nop 平台的 `JsonTool` 序列化为 JSON：
+Checkpoint 时状态通过 Nop 平台的 `JsonTool` 序列化为 JSON。这是内部实现细节，对外接口是对象级别的。
+
+**整条链路的对象接口**：
 
 ```
-状态对象 → JsonTool.serialize() → JSON String → byte[] (UTF-8)
+算子层     putState(name, object) / getState(name, type)      ← 对象接口
+  ↓
+Backend层  snapshotState() → Object / restoreState(Object)     ← 对象接口
+  ↓
+Storage层  storeCheckPoint(CompletedCheckpoint)                ← 对象接口
+  ↓        getLatestCheckpoint() → CompletedCheckpoint
+  ↓
+实现层     内部: JsonTool.serialize() → JSON → 持久化          ← 实现细节
 ```
 
-两个 CheckpointStorage 实现均使用 `JsonTool.serialize()` 进行序列化，但反序列化策略不同：`LocalFileCheckpointStorage` 使用 `JsonTool.parseMap()` 手动提取字段（含 Base64 解码 `byte[]`），`JdbcCheckpointStorage` 使用 `JsonTool.parseBeanFromText()` 直接反序列化。
+每一层都是对象存取，序列化只在**实现层**内部发生，不向上层暴露。
 
-**TaskStateSnapshot 的结构**：
+**调用方视角**：
+```java
+// 算子存状态 — 直接传对象
+snapshot.putState("my-state", myStateObject);
 
-| 字段 | 类型 | 含义 |
-|---|---|---|
-| `operatorStates` | `Map<String, byte[]>` | 算子级状态（名称 → 序列化值） |
-| `keyedStates` | `Map<String, byte[]>` | 键控状态（名称 → 序列化值） |
+// 算子取状态 — 指定类型，直接拿对象
+MyState state = snapshot.getState("my-state", MyState.class);
 
-状态在快照时序列化为 `byte[]`，存储在 TaskStateSnapshot 的 Map 中。
+// CheckpointStorage 存取 — 直接传对象
+storage.storeCheckPoint(completedCheckpoint);
+CompletedCheckpoint restored = storage.getLatestCheckpoint(jobId, pipelineId);
+```
+
+**快照内部格式要求**：
+- 快照必须包含类型元信息（stateType、valueType、keyType），确保反序列化时能正确重建对象
+- 用作 namespace 的类型必须支持 `JsonTool` round-trip（如 TimeWindow、GlobalWindow）
+- 序列化策略可替换，只要满足对象存取接口契约
+
+`JdbcCheckpointStorage` 和 `LocalFileCheckpointStorage` 内部使用 `JsonTool.serialize()` 将 `CompletedCheckpoint` 序列化后持久化，反序列化时用 `JsonTool.parseBeanFromText()` 还原。这些是内部实现，调用方不感知。
 
 ### 4.3 TypeSerializer 接口
 
@@ -283,3 +310,4 @@ nop-stream **没有**任何内存控制机制：
 4. **状态对象是引用** — MemoryValueState 直接存储用户对象引用，没有深拷贝。用户代码意外修改对象会影响状态一致性
 5. **MemoryInternalAppendingState 的 accumulator 复用问题** — 单个 accumulator 实例在 add() 时先重置再加入，多线程不安全，且 `getLocalValue()` 的累加器存在初始值问题（详见 `window-design.md` §5.3）
 6. **无状态恢复路径** — 虽然 Checkpoint 序列化代码存在，但 `AbstractUdfStreamOperator.snapshotState()` 被注释掉，当前运行时不实际执行状态快照
+7. **JSON 序列化类型约束** — 所有通过 checkpoint 持久化的内部结构（包括 Window 子类、状态 key/value）必须满足 `JsonTool` round-trip 要求。新增 Window 子类或状态类型时，这是强制前置约束
