@@ -1,6 +1,6 @@
 # 39 nop-stream 统一执行路径：去除快速路径，仅保留图模型
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-05-22
 > Source: `ai-dev/design/nop-stream/architecture.md` §3（执行模型统一决策）、`ai-dev/audits/2026-05-21-adversarial-review-nop-stream-design/adversarial-review-design-round1.md` D1（双执行模型缺陷）
 > Related: Plan 30（审计修复，将双执行模型归入 deferred）、Plan 26-27（图模型对接）
@@ -213,9 +213,9 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<执行完成后填写>>
+Status Note: 统一执行路径完成。execute() 走图模型路径，快速路径代码已完全删除，KeySelector 传播链路完整，OperatorChain lifecycle 顺序正确，569 核心测试 + 29 CEP 测试 + 16 connector 测试全部通过。runtime 模块 1 个 pre-existing bug 不影响本计划。
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent task id>>
-- Evidence: <<审查发现摘要>>
+- Reviewer / Agent: 独立子 agent (ses_1b019db12ffeUOQIWXIGrpG0LG)
+- Evidence: 7 项 exit criteria 全部 PASS，Anti-hollow 检查确认调用链从 execute() 到算子到 sink 完整连通，grep 确认无已删除方法引用
