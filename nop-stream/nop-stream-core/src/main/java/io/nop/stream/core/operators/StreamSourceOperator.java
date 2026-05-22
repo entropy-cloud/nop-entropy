@@ -163,6 +163,8 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 long offset;
                 if (offsetObj instanceof Number) {
                     offset = ((Number) offsetObj).longValue();
+                } else if (offsetObj instanceof byte[]) {
+                    offset = Long.parseLong(new String((byte[]) offsetObj, java.nio.charset.StandardCharsets.UTF_8));
                 } else {
                     offset = Long.parseLong(String.valueOf(offsetObj));
                 }
