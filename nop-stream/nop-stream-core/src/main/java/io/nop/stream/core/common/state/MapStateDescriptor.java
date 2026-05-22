@@ -41,6 +41,8 @@ public class MapStateDescriptor<UK, UV> extends StateDescriptor<UV> {
 
     private static final long serialVersionUID = 1L;
 
+    private final Class<UK> keyClass;
+
     /**
      * Create a new {@code MapStateDescriptor} with the given name and the given type information.
      *
@@ -53,7 +55,12 @@ public class MapStateDescriptor<UK, UV> extends StateDescriptor<UV> {
      * @param valueClass The class of the type of values in the state.
      */
     public MapStateDescriptor(String name, Class<UK> keyClass, Class<UV> valueClass) {
-        super(name, null);
+        super(name, valueClass);
+        this.keyClass = keyClass;
+    }
+
+    public Class<UK> getKeyClass() {
+        return keyClass;
     }
 
 }

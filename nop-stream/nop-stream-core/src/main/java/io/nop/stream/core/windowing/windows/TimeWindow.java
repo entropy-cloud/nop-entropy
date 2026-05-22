@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.windowing.windows;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.commons.util.MathHelper;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
@@ -34,12 +37,14 @@ import java.util.Set;
  * A {@link Window} that represents a time interval from {@code start} (inclusive) to {@code end}
  * (exclusive).
  */
+@DataBean
 public class TimeWindow extends Window {
 
     private final long start;
     private final long end;
 
-    public TimeWindow(long start, long end) {
+    @JsonCreator
+    public TimeWindow(@JsonProperty("start") long start, @JsonProperty("end") long end) {
         this.start = start;
         this.end = end;
     }

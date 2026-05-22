@@ -97,18 +97,18 @@ public class CheckpointBarrierTracker {
         if (snapshot != null && snap != null) {
             String opStateKey = getOperatorStateKey(operatorIndex);
             if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
-                for (Map.Entry<String, byte[]> entry : snapshot.getOperatorStates().entrySet()) {
-                    snap.getOperatorStates().put(opStateKey + "-" + entry.getKey(), entry.getValue());
+                for (Map.Entry<String, Object> entry : snapshot.getOperatorStates().entrySet()) {
+                    snap.putOperatorState(opStateKey + "-" + entry.getKey(), entry.getValue());
                 }
             }
             String keyedKey = getKeyedStateStorageKey(operatorIndex);
             if (keyedKey != null && snapshot.getKeyedStates() != null) {
-                for (Map.Entry<String, byte[]> entry : snapshot.getKeyedStates().entrySet()) {
-                    snap.getKeyedStates().put(keyedKey + "-" + entry.getKey(), entry.getValue());
+                for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
+                    snap.putKeyedState(keyedKey + "-" + entry.getKey(), entry.getValue());
                 }
             } else if (snapshot.getKeyedStates() != null) {
-                for (Map.Entry<String, byte[]> entry : snapshot.getKeyedStates().entrySet()) {
-                    snap.getKeyedStates().put(entry.getKey(), entry.getValue());
+                for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
+                    snap.putKeyedState(entry.getKey(), entry.getValue());
                 }
             }
         }

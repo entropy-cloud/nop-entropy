@@ -16,12 +16,12 @@ import java.util.Map;
 @DataBean
 public class TaskStateSnapshot implements Serializable {
 
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
 
     private final TaskLocation taskLocation;
     private final long checkpointId;
-    private final Map<String, byte[]> operatorStates;
-    private final Map<String, byte[]> keyedStates;
+    private final Map<String, Object> operatorStates;
+    private final Map<String, Object> keyedStates;
 
     public TaskStateSnapshot(TaskLocation taskLocation) {
         this.taskLocation = taskLocation;
@@ -37,14 +37,14 @@ public class TaskStateSnapshot implements Serializable {
         this.keyedStates = new HashMap<>();
     }
 
-    public TaskStateSnapshot(TaskLocation taskLocation, Map<String, byte[]> operatorStates, Map<String, byte[]> keyedStates) {
+    public TaskStateSnapshot(TaskLocation taskLocation, Map<String, Object> operatorStates, Map<String, Object> keyedStates) {
         this.taskLocation = taskLocation;
         this.checkpointId = -1;
         this.operatorStates = operatorStates != null ? operatorStates : new HashMap<>();
         this.keyedStates = keyedStates != null ? keyedStates : new HashMap<>();
     }
 
-    public TaskStateSnapshot(TaskLocation taskLocation, long checkpointId, Map<String, byte[]> operatorStates, Map<String, byte[]> keyedStates) {
+    public TaskStateSnapshot(TaskLocation taskLocation, long checkpointId, Map<String, Object> operatorStates, Map<String, Object> keyedStates) {
         this.taskLocation = taskLocation;
         this.checkpointId = checkpointId;
         this.operatorStates = operatorStates != null ? operatorStates : new HashMap<>();
@@ -63,28 +63,40 @@ public class TaskStateSnapshot implements Serializable {
         return checkpointId;
     }
 
-    public Map<String, byte[]> getOperatorStates() {
+    public Map<String, Object> getOperatorStates() {
         return operatorStates;
     }
 
-    public Map<String, byte[]> getKeyedStates() {
+    public Map<String, Object> getKeyedStates() {
         return keyedStates;
     }
 
-    public void putOperatorState(String name, byte[] state) {
+    public void putOperatorState(String name, Object state) {
         operatorStates.put(name, state);
     }
 
-    public byte[] getOperatorState(String name) {
+    public Object getOperatorState(String name) {
         return operatorStates.get(name);
     }
 
-    public void putKeyedState(String name, byte[] state) {
+    public <T> T getOperatorState(String name, Class<T> typeClass) {
+        Object value = operatorStates.get(name);
+        if (value == null) return null;
+        return typeClass.cast(value);
+    }
+
+    public void putKeyedState(String name, Object state) {
         keyedStates.put(name, state);
     }
 
-    public byte[] getKeyedState(String name) {
+    public Object getKeyedState(String name) {
         return keyedStates.get(name);
+    }
+
+    public <T> T getKeyedState(String name, Class<T> typeClass) {
+        Object value = keyedStates.get(name);
+        if (value == null) return null;
+        return typeClass.cast(value);
     }
 
     public boolean isEmpty() {
@@ -96,14 +108,7 @@ public class TaskStateSnapshot implements Serializable {
     }
 
     public long estimateSize() {
-        long size = 0;
-        for (byte[] state : operatorStates.values()) {
-            if (state != null) size += state.length;
-        }
-        for (byte[] state : keyedStates.values()) {
-            if (state != null) size += state.length;
-        }
-        return size;
+        return operatorStates.size() + keyedStates.size();
     }
 
     public static TaskStateSnapshot empty(TaskLocation taskLocation) {
@@ -117,8 +122,8 @@ public class TaskStateSnapshot implements Serializable {
     public static class Builder {
         private final TaskLocation taskLocation;
         private long checkpointId = -1;
-        private final Map<String, byte[]> operatorStates = new HashMap<>();
-        private final Map<String, byte[]> keyedStates = new HashMap<>();
+        private final Map<String, Object> operatorStates = new HashMap<>();
+        private final Map<String, Object> keyedStates = new HashMap<>();
 
         public Builder(TaskLocation taskLocation) {
             this.taskLocation = taskLocation;
@@ -129,12 +134,12 @@ public class TaskStateSnapshot implements Serializable {
             return this;
         }
 
-        public Builder putOperatorState(String name, byte[] state) {
+        public Builder putOperatorState(String name, Object state) {
             operatorStates.put(name, state);
             return this;
         }
 
-        public Builder putKeyedState(String name, byte[] state) {
+        public Builder putKeyedState(String name, Object state) {
             keyedStates.put(name, state);
             return this;
         }

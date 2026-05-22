@@ -79,16 +79,16 @@ public interface IKeyedStateBackend<K> extends KeyedStateStore, AutoCloseable {
     String DEFAULT_NAMESPACE = "_default_";
 
     /**
-     * Snapshot all keyed state to a byte array for checkpoint persistence.
+     * Snapshot all keyed state to a StateSnapshot for checkpoint persistence.
      *
-     * @return serialized state bytes, or null if no state
+     * @return snapshot object, or null if no state
      */
-    byte[] snapshotState() throws Exception;
+    StateSnapshot snapshotState() throws Exception;
 
     /**
-     * Restore keyed state from previously serialized bytes.
+     * Restore keyed state from a previously taken snapshot.
      *
-     * @param stateBytes the serialized state
+     * @param snapshot the state snapshot
      */
-    void restoreState(byte[] stateBytes) throws Exception;
+    void restoreState(StateSnapshot snapshot) throws Exception;
 }

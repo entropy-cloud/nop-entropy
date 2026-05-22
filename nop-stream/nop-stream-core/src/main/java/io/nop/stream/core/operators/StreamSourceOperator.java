@@ -146,8 +146,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
         OperatorSnapshotResult result = super.snapshotState(context);
         if (sourceFunction instanceof ReplayableSourceFunction) {
             long offset = ((ReplayableSourceFunction<?>) sourceFunction).getCurrentOffset();
-            result.putOperatorState(SOURCE_OFFSET_KEY,
-                    String.valueOf(offset).getBytes(StandardCharsets.UTF_8));
+            result.putOperatorState(SOURCE_OFFSET_KEY, offset);
         }
         if (sourceFunction instanceof CheckpointedSourceFunction) {
             ((CheckpointedSourceFunction<?>) sourceFunction).snapshotState(context.getCheckpointId());
@@ -159,19 +158,24 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
         if (sourceFunction instanceof ReplayableSourceFunction && snapshotResult != null) {
-            byte[] offsetBytes = snapshotResult.getOperatorStates().get(SOURCE_OFFSET_KEY);
-            if (offsetBytes != null) {
-                long offset = Long.parseLong(new String(offsetBytes, StandardCharsets.UTF_8));
+            Object offsetObj = snapshotResult.getOperatorState(SOURCE_OFFSET_KEY);
+            if (offsetObj != null) {
+                long offset;
+                if (offsetObj instanceof Number) {
+                    offset = ((Number) offsetObj).longValue();
+                } else {
+                    offset = Long.parseLong(String.valueOf(offsetObj));
+                }
                 ((ReplayableSourceFunction<?>) sourceFunction).seek(offset);
             }
         }
         if (sourceFunction instanceof CheckpointedSourceFunction) {
             TaskStateSnapshot taskState = new TaskStateSnapshot(new TaskLocation("", "", "", 0));
             if (snapshotResult != null) {
-                for (Map.Entry<String, byte[]> entry : snapshotResult.getOperatorStates().entrySet()) {
+                for (Map.Entry<String, Object> entry : snapshotResult.getOperatorStates().entrySet()) {
                     taskState.putOperatorState(entry.getKey(), entry.getValue());
                 }
-                for (Map.Entry<String, byte[]> entry : snapshotResult.getKeyedStates().entrySet()) {
+                for (Map.Entry<String, Object> entry : snapshotResult.getKeyedStates().entrySet()) {
                     taskState.putKeyedState(entry.getKey(), entry.getValue());
                 }
             }

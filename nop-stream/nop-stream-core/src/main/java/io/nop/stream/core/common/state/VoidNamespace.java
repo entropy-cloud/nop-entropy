@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.common.state;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.io.ObjectStreamException;
 
 /** Singleton placeholder class for state without a namespace. */
@@ -55,6 +58,20 @@ public final class VoidNamespace {
     @Override
     public String toString() {
         return getClass().getSimpleName();
+    }
+
+    // ------------------------------------------------------------------------
+    //  JSON serialization support
+    // ------------------------------------------------------------------------
+
+    @JsonCreator
+    public static VoidNamespace fromJson(String value) {
+        return INSTANCE;
+    }
+
+    @JsonValue
+    public String toJson() {
+        return "VoidNamespace";
     }
 
     // ------------------------------------------------------------------------

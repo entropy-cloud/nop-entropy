@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.windowing.windows;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 
 /**
  * The default window into which all data is placed (via {@link
@@ -32,6 +35,16 @@ public class GlobalWindow extends Window {
 
     public static GlobalWindow get() {
         return INSTANCE;
+    }
+
+    @JsonCreator
+    public static GlobalWindow fromJson(String value) {
+        return INSTANCE;
+    }
+
+    @JsonValue
+    public String toJson() {
+        return "GlobalWindow";
     }
 
     @Override

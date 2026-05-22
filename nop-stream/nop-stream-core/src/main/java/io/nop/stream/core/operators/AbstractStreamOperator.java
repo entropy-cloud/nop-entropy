@@ -13,6 +13,7 @@ import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
+import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -109,12 +110,18 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
             return;
         }
 
-        // Restore keyed state
-        Map<String, byte[]> keyedStates = snapshotResult.getKeyedStates();
+        Map<String, Object> keyedStates = snapshotResult.getKeyedStates();
         if (keyedStateBackend != null && keyedStates != null && !keyedStates.isEmpty()) {
-            for (Map.Entry<String, byte[]> entry : keyedStates.entrySet()) {
-                keyedStateBackend.restoreState(entry.getValue());
-                break; // Only restore once — all keyed state is serialized together
+            for (Map.Entry<String, Object> entry : keyedStates.entrySet()) {
+                Object stateObj = entry.getValue();
+                if (stateObj instanceof StateSnapshot) {
+                    keyedStateBackend.restoreState((StateSnapshot) stateObj);
+                } else if (stateObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    StateSnapshot snapshot = new StateSnapshot((Map<String, Object>) stateObj);
+                    keyedStateBackend.restoreState(snapshot);
+                }
+                break;
             }
         }
     }
@@ -123,9 +130,9 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
         OperatorSnapshotResult result = new OperatorSnapshotResult();
 
         if (keyedStateBackend != null) {
-            byte[] keyedStateBytes = keyedStateBackend.snapshotState();
-            if (keyedStateBytes != null && keyedStateBytes.length > 0) {
-                result.putKeyedState("keyed-state", keyedStateBytes);
+            StateSnapshot snapshot = keyedStateBackend.snapshotState();
+            if (snapshot != null && !snapshot.isEmpty()) {
+                result.putKeyedState("keyed-state", snapshot);
             }
         }
 

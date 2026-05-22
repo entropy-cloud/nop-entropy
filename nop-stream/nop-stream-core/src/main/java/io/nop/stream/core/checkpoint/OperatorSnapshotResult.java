@@ -7,40 +7,30 @@
  */
 package io.nop.stream.core.checkpoint;
 
-import io.nop.core.lang.json.JsonTool;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 算子快照结果，保存算子的状态数据。
- */
 public class OperatorSnapshotResult implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private static final OperatorSnapshotResult EMPTY = 
+    private static final OperatorSnapshotResult EMPTY =
             new OperatorSnapshotResult(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
 
-    private final Map<String, byte[]> operatorStates;
-    private final Map<String, byte[]> keyedStates;
-    private final Map<String, byte[]> rawKeyedStates;
+    private final Map<String, Object> operatorStates;
+    private final Map<String, Object> keyedStates;
+    private final Map<String, Object> rawKeyedStates;
 
     public OperatorSnapshotResult() {
         this(new HashMap<>(), new HashMap<>(), new HashMap<>());
     }
 
     public OperatorSnapshotResult(
-            Map<String, byte[]> operatorStates,
-            Map<String, byte[]> keyedStates,
-            Map<String, byte[]> rawKeyedStates) {
+            Map<String, Object> operatorStates,
+            Map<String, Object> keyedStates,
+            Map<String, Object> rawKeyedStates) {
         this.operatorStates = operatorStates != null ? operatorStates : new HashMap<>();
         this.keyedStates = keyedStates != null ? keyedStates : new HashMap<>();
         this.rawKeyedStates = rawKeyedStates != null ? rawKeyedStates : new HashMap<>();
@@ -50,15 +40,15 @@ public class OperatorSnapshotResult implements Serializable {
         return EMPTY;
     }
 
-    public Map<String, byte[]> getOperatorStates() {
+    public Map<String, Object> getOperatorStates() {
         return operatorStates;
     }
 
-    public Map<String, byte[]> getKeyedStates() {
+    public Map<String, Object> getKeyedStates() {
         return keyedStates;
     }
 
-    public Map<String, byte[]> getRawKeyedStates() {
+    public Map<String, Object> getRawKeyedStates() {
         return rawKeyedStates;
     }
 
@@ -71,57 +61,49 @@ public class OperatorSnapshotResult implements Serializable {
     }
 
     public long estimateSize() {
-        long size = 0;
-        for (byte[] state : operatorStates.values()) {
-            if (state != null) size += state.length;
-        }
-        for (byte[] state : keyedStates.values()) {
-            if (state != null) size += state.length;
-        }
-        for (byte[] state : rawKeyedStates.values()) {
-            if (state != null) size += state.length;
-        }
-        return size;
+        return operatorStates.size() + keyedStates.size() + rawKeyedStates.size();
     }
 
-    public void putOperatorState(String name, byte[] state) {
+    public void putOperatorState(String name, Object state) {
         operatorStates.put(name, state);
     }
 
-    public void putKeyedState(String name, byte[] state) {
+    public Object getOperatorState(String name) {
+        return operatorStates.get(name);
+    }
+
+    public <T> T getOperatorState(String name, Class<T> typeClass) {
+        Object value = operatorStates.get(name);
+        if (value == null) return null;
+        return typeClass.cast(value);
+    }
+
+    public void putKeyedState(String name, Object state) {
         keyedStates.put(name, state);
     }
 
-    public void putRawKeyedState(String name, byte[] state) {
+    public Object getKeyedState(String name) {
+        return keyedStates.get(name);
+    }
+
+    public <T> T getKeyedState(String name, Class<T> typeClass) {
+        Object value = keyedStates.get(name);
+        if (value == null) return null;
+        return typeClass.cast(value);
+    }
+
+    public void putRawKeyedState(String name, Object state) {
         rawKeyedStates.put(name, state);
     }
 
-    public void putOperatorStateJson(String name, Object state) {
-        operatorStates.put(name,
-                JsonTool.serialize(state, false).getBytes(StandardCharsets.UTF_8));
+    public Object getRawKeyedState(String name) {
+        return rawKeyedStates.get(name);
     }
 
-    public <T> T getOperatorStateJson(String name, Class<T> type) {
-        byte[] data = operatorStates.get(name);
-        if (data == null) return null;
-        return JsonTool.parseBeanFromText(new String(data, StandardCharsets.UTF_8), type);
-    }
-
-    public void putOperatorStateJava(String name, Serializable state) throws Exception {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
-            oos.writeObject(state);
-        }
-        operatorStates.put(name, baos.toByteArray());
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends Serializable> T getOperatorStateJava(String name) throws Exception {
-        byte[] data = operatorStates.get(name);
-        if (data == null) return null;
-        try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data))) {
-            return (T) ois.readObject();
-        }
+    public <T> T getRawKeyedState(String name, Class<T> typeClass) {
+        Object value = rawKeyedStates.get(name);
+        if (value == null) return null;
+        return typeClass.cast(value);
     }
 
     public static Builder builder() {
@@ -129,21 +111,21 @@ public class OperatorSnapshotResult implements Serializable {
     }
 
     public static class Builder {
-        private final Map<String, byte[]> operatorStates = new HashMap<>();
-        private final Map<String, byte[]> keyedStates = new HashMap<>();
-        private final Map<String, byte[]> rawKeyedStates = new HashMap<>();
+        private final Map<String, Object> operatorStates = new HashMap<>();
+        private final Map<String, Object> keyedStates = new HashMap<>();
+        private final Map<String, Object> rawKeyedStates = new HashMap<>();
 
-        public Builder putOperatorState(String name, byte[] state) {
+        public Builder putOperatorState(String name, Object state) {
             operatorStates.put(name, state);
             return this;
         }
 
-        public Builder putKeyedState(String name, byte[] state) {
+        public Builder putKeyedState(String name, Object state) {
             keyedStates.put(name, state);
             return this;
         }
 
-        public Builder putRawKeyedState(String name, byte[] state) {
+        public Builder putRawKeyedState(String name, Object state) {
             rawKeyedStates.put(name, state);
             return this;
         }

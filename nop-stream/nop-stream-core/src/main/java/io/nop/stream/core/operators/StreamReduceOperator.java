@@ -12,7 +12,10 @@ import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class StreamReduceOperator<T>
@@ -71,10 +74,18 @@ public class StreamReduceOperator<T>
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
-        result.putOperatorStateJava(REDUCE_STATE_KEY, (java.io.Serializable) values);
+
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (Map.Entry<Object, T> e : values.entrySet()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("key", e.getKey());
+            entry.put("value", e.getValue());
+            entries.add(entry);
+        }
+        result.putOperatorState(REDUCE_STATE_KEY, entries);
+
         return result;
     }
 
@@ -82,9 +93,19 @@ public class StreamReduceOperator<T>
     @SuppressWarnings("unchecked")
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
-        Map<Object, T> restored = snapshotResult.getOperatorStateJava(REDUCE_STATE_KEY);
-        if (restored != null) {
-            values = restored;
+
+        Object stateObj = snapshotResult.getOperatorState(REDUCE_STATE_KEY);
+        if (stateObj instanceof List) {
+            values = new HashMap<>();
+            List<?> entries = (List<?>) stateObj;
+            for (Object item : entries) {
+                if (item instanceof Map) {
+                    Map<String, Object> entry = (Map<String, Object>) item;
+                    Object key = entry.get("key");
+                    Object value = entry.get("value");
+                    values.put(key, (T) value);
+                }
+            }
         }
     }
 }
