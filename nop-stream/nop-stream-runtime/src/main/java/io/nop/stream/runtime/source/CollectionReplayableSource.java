@@ -19,6 +19,7 @@ public class CollectionReplayableSource<T> implements ReplayableSourceFunction<T
 
     private final List<T> data;
     private long currentOffset = 0;
+    private volatile boolean running = true;
 
     public CollectionReplayableSource(List<T> data) {
         this.data = data;
@@ -26,7 +27,7 @@ public class CollectionReplayableSource<T> implements ReplayableSourceFunction<T
 
     @Override
     public void run(SourceContext<T> ctx) throws Exception {
-        while (currentOffset < data.size()) {
+        while (running && currentOffset < data.size()) {
             ctx.collect(data.get((int) currentOffset));
             currentOffset++;
         }
@@ -34,6 +35,7 @@ public class CollectionReplayableSource<T> implements ReplayableSourceFunction<T
 
     @Override
     public void cancel() {
+        running = false;
     }
 
     @Override

@@ -199,12 +199,57 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
 
     @Override
     public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception {
-        return storeCheckPoint(checkpoint);
+        ensureTable();
+        byte[] stateData = serializeCheckpoint(checkpoint);
+        long sid = nextSid();
+
+        SQL sql = SQL.begin().name("storeSavepoint").querySpace(querySpace)
+                .sql("INSERT INTO " + TABLE_NAME +
+                        " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
+                        "completed_timestamp, state_data, savepoint_path) VALUES (?,?,?,?,?,?,?,?,?)",
+                        sid,
+                        checkpoint.getJobId(),
+                        checkpoint.getPipelineId(),
+                        checkpoint.getCheckpointId(),
+                        checkpoint.getCheckpointType().name(),
+                        checkpoint.getTriggerTimestamp(),
+                        checkpoint.getCompletedTimestamp(),
+                        stateData,
+                        targetPath)
+                .end();
+
+        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+            jdbcTemplate.executeUpdate(sql);
+            return null;
+        });
+
+        return targetPath;
     }
 
     @Override
     public CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception {
-        return getLatestCheckpoint("1", "1");
+        if (!tableExists()) {
+            return null;
+        }
+        if (savepointPath == null || savepointPath.isEmpty()) {
+            return null;
+        }
+
+        SQL sql = SQL.begin().name("loadSavepoint").querySpace(querySpace)
+                .sql("SELECT state_data FROM " + TABLE_NAME +
+                        " WHERE savepoint_path = ?" +
+                        " ORDER BY checkpoint_id DESC LIMIT 1", savepointPath)
+                .end();
+
+        byte[][] result = {null};
+        jdbcTemplate.executeQuery(sql, dataSet -> {
+            for (IDataRow row : dataSet) {
+                result[0] = row.getBytes(0);
+                break;
+            }
+            return null;
+        });
+        return deserializeCheckpoint(result[0]);
     }
 
     @Override
@@ -248,6 +293,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                     "trigger_timestamp BIGINT NOT NULL, " +
                     "completed_timestamp BIGINT NOT NULL, " +
                     "state_data BLOB, " +
+                    "savepoint_path VARCHAR(1024), " +
                     "created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "PRIMARY KEY (sid)" +
                     ")";

@@ -117,6 +117,7 @@ public class PendingCheckpoint {
     }
 
     public void acknowledgePrecedingCheckpoint(long checkpointId) {
+        throw new UnsupportedOperationException("not yet implemented: acknowledgePrecedingCheckpoint");
     }
 
     public CompletedCheckpoint toCompletedCheckpoint() {

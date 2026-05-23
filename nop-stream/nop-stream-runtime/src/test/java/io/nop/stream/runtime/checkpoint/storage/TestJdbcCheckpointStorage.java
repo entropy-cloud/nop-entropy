@@ -212,6 +212,32 @@ class TestJdbcCheckpointStorage {
         assertDoesNotThrow(() -> storage.deleteAllCheckpoints("nonexistent"));
     }
 
+    @Test
+    void testSavepointStoreAndLoad() throws Exception {
+        CompletedCheckpoint checkpoint = createTestCheckpoint("job-sp", "pipe-sp", 500L);
+        String savepointPath = "/savepoints/sp-500";
+
+        String handle = storage.storeSavepoint(checkpoint, savepointPath);
+        assertNotNull(handle);
+
+        CompletedCheckpoint loaded = storage.loadSavepoint(savepointPath);
+        assertNotNull(loaded, "loadSavepoint should return the checkpoint stored with the given path");
+        assertEquals(500L, loaded.getCheckpointId());
+        assertEquals("job-sp", loaded.getJobId());
+    }
+
+    @Test
+    void testLoadSavepointWithNullPath() throws Exception {
+        CompletedCheckpoint result = storage.loadSavepoint(null);
+        assertNull(result, "loadSavepoint with null path should return null");
+    }
+
+    @Test
+    void testLoadSavepointWithNonexistentPath() throws Exception {
+        CompletedCheckpoint result = storage.loadSavepoint("/nonexistent/path");
+        assertNull(result, "loadSavepoint with nonexistent path should return null");
+    }
+
     private CompletedCheckpoint createTestCheckpoint(String jobId, String pipelineId, long checkpointId) {
         return CompletedCheckpoint.builder()
                 .jobId(jobId)

@@ -132,6 +132,32 @@ class TestLocalFileCheckpointStorage {
         assertFalse(storage.exists("1", "2", 999L));
     }
 
+    @Test
+    void testSavepointStoreAndLoad() throws Exception {
+        CompletedCheckpoint checkpoint = createTestCheckpoint("job-sp", "pipe-sp", 500L);
+        String savepointPath = tempDir.resolve("savepoints").toString();
+
+        String handle = storage.storeSavepoint(checkpoint, savepointPath);
+        assertNotNull(handle);
+
+        CompletedCheckpoint loaded = storage.loadSavepoint(handle);
+        assertNotNull(loaded, "loadSavepoint should return the checkpoint stored at savepoint path");
+        assertEquals(500L, loaded.getCheckpointId());
+        assertEquals("job-sp", loaded.getJobId());
+    }
+
+    @Test
+    void testSavepointMetadata() throws Exception {
+        CompletedCheckpoint checkpoint = createTestCheckpoint("job-meta", "pipe-meta", 600L);
+        String savepointPath = tempDir.resolve("savepoints-meta").toString();
+
+        storage.storeSavepoint(checkpoint, savepointPath);
+
+        SavepointMetadata metadata = storage.loadSavepointMetadata(
+                savepointPath + "/savepoint-600");
+        assertNotNull(metadata, "loadSavepointMetadata should return metadata");
+    }
+
     private CompletedCheckpoint createTestCheckpoint(String jobId, String pipelineId, long checkpointId) {
         return CompletedCheckpoint.builder()
                 .jobId(jobId)

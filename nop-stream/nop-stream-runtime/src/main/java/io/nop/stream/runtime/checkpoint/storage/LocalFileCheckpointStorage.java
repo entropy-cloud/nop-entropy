@@ -368,14 +368,16 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     private void ensureDirectoryExists(String dir) {
         try {
             Files.createDirectories(Paths.get(dir));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LOG.warn("Failed to create directory: {}", dir, e);
         }
     }
 
     private void deleteIfExists(Path path) {
         try {
             Files.deleteIfExists(path);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LOG.warn("Failed to delete file: {}", path, e);
         }
     }
 
