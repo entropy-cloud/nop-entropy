@@ -8,6 +8,8 @@
 package io.nop.stream.core.common.functions.sink;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.SinkFunction;
 
 /**
@@ -27,7 +29,7 @@ import io.nop.stream.core.common.functions.SinkFunction;
  * <p>API 预留，当前未被使用
  */
 @Internal
-public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN> {
+public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN>, CheckpointParticipant {
 
     /**
      * 开始一个新事务。
@@ -85,8 +87,31 @@ public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN> {
      * @throws Exception 恢复失败
      */
     default void recover(long checkpointId) throws Exception {
-        // 默认实现：回滚后开始新事务
         rollback();
         beginTransaction();
+    }
+
+    @Override
+    default TaskStateSnapshot saveState(long epochId) throws Exception {
+        return null;
+    }
+
+    @Override
+    default void prepareCommit(long epochId) throws Exception {
+        preCommit(epochId);
+    }
+
+    @Override
+    default void finishCommit(long epochId, boolean success) throws Exception {
+        if (success) {
+            commit(epochId);
+        } else {
+            rollback();
+        }
+    }
+
+    @Override
+    default void restoreFromEpoch(long epochId, TaskStateSnapshot state) throws Exception {
+        recover(epochId);
     }
 }

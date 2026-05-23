@@ -16,11 +16,13 @@ class TestCheckpointType {
     @Test
     void testCheckpointTypeEnumValues() {
         CheckpointType[] types = CheckpointType.values();
-        assertEquals(3, types.length);
+        assertEquals(5, types.length);
         
         assertEquals(CheckpointType.CHECKPOINT, CheckpointType.valueOf("CHECKPOINT"));
         assertEquals(CheckpointType.SAVEPOINT, CheckpointType.valueOf("SAVEPOINT"));
         assertEquals(CheckpointType.COMPLETED_POINT_TYPE, CheckpointType.valueOf("COMPLETED_POINT_TYPE"));
+        assertEquals(CheckpointType.TERMINAL_SAVEPOINT, CheckpointType.valueOf("TERMINAL_SAVEPOINT"));
+        assertEquals(CheckpointType.EXPORTED_SAVEPOINT, CheckpointType.valueOf("EXPORTED_SAVEPOINT"));
     }
 
     @Test

@@ -17,7 +17,7 @@ import java.util.*;
 @DataBean
 public class CheckpointPlan implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
     private final int version;
     private final String jobId;
@@ -25,6 +25,8 @@ public class CheckpointPlan implements Serializable {
     private final List<TaskLocation> allTasks;
     private final List<TaskLocation> sourceTasks;
     private final Map<TaskLocation, List<OperatorStateMapping>> stateMappings;
+    private final List<String> checkpointParticipants;
+    private final ProcessingGuarantee processingGuarantee;
 
     @JsonCreator
     public CheckpointPlan(
@@ -33,19 +35,31 @@ public class CheckpointPlan implements Serializable {
             @JsonProperty("pipelineId") String pipelineId,
             @JsonProperty("allTasks") List<TaskLocation> allTasks,
             @JsonProperty("sourceTasks") List<TaskLocation> sourceTasks,
-            @JsonProperty("stateMappings") Map<TaskLocation, List<OperatorStateMapping>> stateMappings) {
+            @JsonProperty("stateMappings") Map<TaskLocation, List<OperatorStateMapping>> stateMappings,
+            @JsonProperty("checkpointParticipants") List<String> checkpointParticipants,
+            @JsonProperty("processingGuarantee") ProcessingGuarantee processingGuarantee) {
         this.version = version;
         this.jobId = jobId;
         this.pipelineId = pipelineId;
         this.allTasks = allTasks != null ? Collections.unmodifiableList(new ArrayList<>(allTasks)) : Collections.emptyList();
         this.sourceTasks = sourceTasks != null ? Collections.unmodifiableList(new ArrayList<>(sourceTasks)) : Collections.emptyList();
         this.stateMappings = stateMappings != null ? Collections.unmodifiableMap(new LinkedHashMap<>(stateMappings)) : Collections.emptyMap();
+        this.checkpointParticipants = checkpointParticipants != null
+                ? Collections.unmodifiableList(new ArrayList<>(checkpointParticipants))
+                : Collections.emptyList();
+        this.processingGuarantee = processingGuarantee != null ? processingGuarantee : ProcessingGuarantee.AT_LEAST_ONCE;
     }
 
     public CheckpointPlan(String jobId, String pipelineId,
                           List<TaskLocation> allTasks, List<TaskLocation> sourceTasks,
                           Map<TaskLocation, List<OperatorStateMapping>> stateMappings) {
-        this(1, jobId, pipelineId, allTasks, sourceTasks, stateMappings);
+        this(1, jobId, pipelineId, allTasks, sourceTasks, stateMappings, Collections.emptyList(), ProcessingGuarantee.AT_LEAST_ONCE);
+    }
+
+    public CheckpointPlan(int version, String jobId, String pipelineId,
+                          List<TaskLocation> allTasks, List<TaskLocation> sourceTasks,
+                          Map<TaskLocation, List<OperatorStateMapping>> stateMappings) {
+        this(version, jobId, pipelineId, allTasks, sourceTasks, stateMappings, Collections.emptyList(), ProcessingGuarantee.AT_LEAST_ONCE);
     }
 
     public int getVersion() { return version; }
@@ -54,6 +68,8 @@ public class CheckpointPlan implements Serializable {
     public List<TaskLocation> getAllTasks() { return allTasks; }
     public List<TaskLocation> getSourceTasks() { return sourceTasks; }
     public Map<TaskLocation, List<OperatorStateMapping>> getStateMappings() { return stateMappings; }
+    public List<String> getCheckpointParticipants() { return checkpointParticipants; }
+    public ProcessingGuarantee getProcessingGuarantee() { return processingGuarantee; }
 
     public List<OperatorStateMapping> getStateMappings(TaskLocation taskLocation) {
         List<OperatorStateMapping> mappings = stateMappings.get(taskLocation);

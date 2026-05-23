@@ -21,6 +21,10 @@ import io.nop.stream.core.graph.StreamGraphGenerator;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobGraphGenerator;
 import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.model.StreamBackendCapability;
+import io.nop.stream.core.model.StreamComponents;
+import io.nop.stream.core.model.StreamModel;
+import io.nop.stream.core.model.StreamRequirementValidator;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
@@ -28,7 +32,9 @@ import io.nop.stream.core.transformation.Transformation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class StreamExecutionEnvironment {
 
@@ -150,6 +156,9 @@ public class StreamExecutionEnvironment {
                 throw new IllegalStateException("No sinks found in the streaming job");
             }
 
+            StreamModel streamModel = buildStreamModel(sinks);
+            StreamRequirementValidator.validate(streamModel, StreamBackendCapability.localRuntime());
+
             StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
             @SuppressWarnings("unchecked")
             List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
@@ -263,6 +272,17 @@ public class StreamExecutionEnvironment {
             }
         }
         return sinks;
+    }
+
+    private StreamModel buildStreamModel(List<SinkTransformation<?>> sinks) {
+        StreamComponents components = new StreamComponents();
+        Map<String, Transformation<?>> transformMap = new LinkedHashMap<>();
+
+        for (Transformation<?> t : transformations) {
+            transformMap.put(String.valueOf(t.getId()), t);
+        }
+
+        return new StreamModel(components, transformMap);
     }
 
     private JobGraph buildJobGraph(String jobName) {

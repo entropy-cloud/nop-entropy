@@ -33,7 +33,17 @@ public enum CheckpointType {
     /**
      * 任务完成时的最终 checkpoint，确保所有数据都已处理。
      */
-    COMPLETED_POINT_TYPE(true, "completed");
+    COMPLETED_POINT_TYPE(true, "completed"),
+
+    /**
+     * 作业终止时的 savepoint，用于 DRAIN/SUSPEND 模式。
+     */
+    TERMINAL_SAVEPOINT(false, "terminal_savepoint"),
+
+    /**
+     * 导出用的 savepoint，用于 EXPORT_SAVEPOINT 终止模式。
+     */
+    EXPORTED_SAVEPOINT(false, "exported_savepoint");
 
     private final boolean auto;
     private final String name;
@@ -62,14 +72,15 @@ public enum CheckpointType {
     }
 
     /**
-     * 是否为最终 checkpoint（任务结束或 savepoint）。
-     * 
+     * 是否为最终 checkpoint（任务结束、savepoint 或终止 savepoint）。
+     *
      * <p>最终 checkpoint 会触发特殊的关闭逻辑。
-     * 
+     *
      * @return true 表示是最终 checkpoint
      */
     public boolean isFinalCheckpoint() {
-        return this == COMPLETED_POINT_TYPE || this == SAVEPOINT;
+        return this == COMPLETED_POINT_TYPE || this == SAVEPOINT
+                || this == TERMINAL_SAVEPOINT || this == EXPORTED_SAVEPOINT;
     }
 
     /**
