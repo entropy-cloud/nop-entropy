@@ -2,510 +2,688 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-22
+> Updated: 2026-05-23
 > Parent: `architecture.md` §3（执行模型）、`core-design.md` §3（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
+
 ## 1. 定位与目标
 
 nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一致性**保障。核心目标是实现端到端 exactly-once 语义：即使发生故障，每条记录的效果也**恰好出现一次**。
 
-本文档描述 checkpoint 子系统的完整架构、端到端 exactly-once 的实现机制，以及当前的集成状态。
+本文档描述以下内容：
 
-### 1.1 设计决策
+- **Epoch Checkpoint 协议**：以 `checkpointId` 提升为 `epochId` 为中心，绑定 source offset、operator state、sink transaction 到同一个一致切点
+- **CheckpointParticipant**：泛化的事务参与接口，统一 source、sink、外部状态 operator 的 checkpoint 生命周期
+- **ProcessingGuarantee**：四种处理保证级别及其 barrier 行为差异
+- **Source / Sink Exactly-Once 协议**：能力分级、offset cut、transaction identity
+- **JobTerminationMode**：四种运维终止语义
+- **故障恢复模型**：全局 epoch 恢复、fencing、coordinator HA
+- **存储、可观测性与校验**
 
-**选了什么**：采用 Chandy-Lamport 分布式快照算法的 barrier 对齐模式，与 Flink 的 checkpoint 机制保持概念一致。
+设计采用 Chandy-Lamport 分布式快照算法的 barrier 对齐模式，以 Nop 平台的模型驱动和可逆计算思想表达分布式流处理的不变量。
 
-**为什么不用其他方案**：
-- WAL（Write-Ahead Log）：需要重放整个日志，恢复慢，不适合长时间运行的流任务
-- 事务日志（Kafka-style offset commit）：仅保证 source 位移一致，无法覆盖 sink 端外部副作用
-- Barrier 模式可以在单进程和多进程场景下使用同一套抽象，且天然支持增量快照
+## 2. Epoch Checkpoint 协议
 
-## 2. 组件总览
+### 2.1 Epoch 是一致性的中心
 
-checkpoint 子系统由以下组件构成，分布在 core 和 runtime 两个模块中：
+`checkpointId` 在分布式语义中提升为 `epochId`。一个 epoch 绑定以下内容：
+
+| 内容 | 说明 |
+|---|---|
+| source offset | 每个 source split 在 epoch 切点的读取位置 |
+| operator state | 每个 operator/subtask/state shard 的状态快照 |
+| timer state | event-time 和 processing-time timer 的待触发集合 |
+| watermark state | 输入 watermark 和 idle 状态 |
+| sink transaction | 每个 sink subtask 的 pending transaction |
+| plan fingerprint | 生成该 epoch 时的 PartitionedPlan 指纹 |
+| participant states | 所有 CheckpointParticipant 的快照和 transaction handle |
+| fencing token | 允许提交该 epoch 的 coordinator token |
+
+Exactly-once 的含义是：系统恢复到 epoch N 后，对外可见副作用等价于所有 epoch ≤ N 已提交，所有 epoch > N 未提交。
+
+### 2.2 Epoch 生命周期
 
 ```
-                          ┌──────────────────┐
-     定时触发 ───────────►│ CheckpointCoordinator │
-                          │   (runtime)        │
-                          └───────┬───────────┘
-                                  │ trigger
-                                  ▼
-                          ┌──────────────────┐
-     数据流中注入 ────────►│ CheckpointBarrier  │
-                          │   (core)          │
-                          └───────┬───────────┘
-                                  │ 传播
-                                  ▼
-                          ┌──────────────────┐
-     多输入对齐 ──────────►│  BarrierAligner    │
-                          │   (runtime)        │
-                          └───────┬───────────┘
-                                  │ aligned
-                                  ▼
-                          ┌──────────────────┐
-     状态快照 ────────────►│  PendingCheckpoint │◄─── ACK from tasks
-                          │   (runtime)        │
-                          └───────┬───────────┘
-                                  │ complete
-                                  ▼
-                    ┌─────────────────────────────┐
-                    │                             │
-                    ▼                             ▼
-          ┌──────────────┐             ┌──────────────────────┐
-          │ICheckpointStorage│          │ CheckpointListener    │
-          │  (core 抽象)     │          │  (core 抽象)          │
-          └──────┬───────┘             └──────────────────────┘
-                 │                               │
-         ┌───────┴───────┐               ┌───────┴───────────────┐
-         ▼               ▼               ▼                       ▼
- LocalFileStorage  JdbcStorage    AbstractUdfStream     TwoPhaseCommit
-                                Operator.notify()     SinkFunction
+CREATED → INJECTING → ALIGNING → SNAPSHOTTING → PRECOMMITTED → DURABLE → COMMITTED
+
+任意阶段 → ABORTED
 ```
 
-### 2.1 模块分层
+| 状态 | 含义 |
+|---|---|
+| `CREATED` | Coordinator 分配 epochId，建立待 ACK 集合 |
+| `INJECTING` | source subtask 在读取线程中注入 barrier |
+| `ALIGNING` | 多输入 task 等待所有输入 channel barrier 到齐 |
+| `SNAPSHOTTING` | task 生成本地 state snapshot |
+| `PRECOMMITTED` | sink 已完成 epoch 对应 transaction 的 preCommit |
+| `DURABLE` | epoch manifest 和 state segment 已持久化 |
+| `COMMITTED` | sink commit 通知已完成或可重试完成 |
+| `ABORTED` | epoch 未 durable。若作业继续运行，已 preCommit 的 sink transaction 保留等待后续 durable epoch subsuming commit；若进入全局恢复，回滚最新 durable epoch 之后的 non-durable transaction |
 
-| 层 | 组件 | 模块 | 职责 |
-|---|---|---|---|
-| 抽象层 | `CheckpointBarrier` / `CheckpointConfig` / `CheckpointIDCounter` / `ICheckpointStorage` / `CheckpointListener` / `TwoPhaseCommitSinkFunction` / `CheckpointedSourceFunction` / `TaskStateSnapshot` / `OperatorSnapshotResult` / `CompletedCheckpoint` / **`CheckpointPlan`** / **`TaskLocation`** | core | 定义 checkpoint 相关的数据结构、配置和接口契约 |
-| 计划层 | **`CheckpointPlanBuilder`** | runtime | 从 GraphExecutionPlan 生成 CheckpointPlan（依赖 runtime 的 GraphExecutionPlan 类） |
-| 实现层 | `CheckpointCoordinator` / `PendingCheckpoint` / `BarrierAligner` / `AlignedBarrier` / `CheckpointMetrics` / `LocalFileCheckpointStorage` / `JdbcCheckpointStorage` | runtime | 提供 checkpoint 的协调、状态跟踪、barrier 对齐、指标统计和持久化实现 |
+### 2.3 Barrier 注入规则
 
-### 2.2 CheckpointPlan：执行计划与 Checkpoint 的桥梁
+Barrier 只能从 source subtask 注入，且必须由 source 读取线程注入。
 
-CheckpointPlan 是 checkpoint 子系统对管线拓扑的**只读视图**。它在执行计划生成阶段一次性构建，将 checkpoint 需要的拓扑信息从执行引擎中解耦出来。
+禁止行为：
 
-**为什么需要 CheckpointPlan**（设计决策）：
+| 禁止行为 | 原因 |
+|---|---|
+| 从 scheduler 线程直接调用 operator 注入 barrier | 会与 source collect 并发交错，破坏切点 |
+| 对非 source task 主动注入 barrier | 会绕过真实数据流，破坏 Chandy-Lamport 快照语义 |
+| barrier 不进入 transport channel | 下游无法按 channel 对齐 |
 
-Coordinator 需要 three 类拓扑信息才能工作：barrier 注入点（source task 在哪）、ACK 跟踪集合（哪些 task 必须全部 ACK）、状态恢复路由（恢复时哪块状态分给哪个 task）。如果这些信息隐式地从执行计划中推导（当前做法），checkpoint 逻辑与执行引擎耦合——执行引擎改了，checkpoint 就坏了。CheckpointPlan 把这个依赖显式化、稳定化。
+Source 注入规则：
 
-**参考**：Apache SeaTunnel 的 `CheckpointPlan` 在 `PhysicalPlanGenerator.generate()` 阶段生成，nop-stream 采纳同一模式。
+```
+source reader observes pending epoch N
+    stop emitting records after current safe point
+    snapshot split offset for records before N
+    emit CheckpointBarrier(N) to all output channels
+    resume emitting records after N
+```
 
-**拒绝了什么**：
-- 让 Coordinator 直接遍历 GraphExecutionPlan——违反关注点分离，执行引擎变更会破坏 checkpoint
-- 不做 CheckpointPlan、只在 Coordinator 里硬编码拓扑假设——只适用于单链管线，不可扩展
-- 只修 BUG 1/4 的 key names 不引入 CheckpointPlan——可以修 bug 但不解决架构耦合问题，且无法支持分布式执行
+Safe point 由 source connector 定义。文件、批量加载、消息队列、CDC 的 safe point 不同，但都必须能给出可恢复 offset。
 
-**诚实评估**：BUG 1（keyed state 碰撞）和 BUG 4（状态恢复路由错误）确实可以通过直接修改 `CheckpointBarrierTracker.acknowledgeOperator()` 和 `buildSnapshotFromTaskState()` 来修复，无需引入 CheckpointPlan。但这样修只是打补丁——checkpoint 逻辑仍然与执行引擎耦合，无法支持分布式执行。CheckpointPlan 的引入是为了长期架构正确性，而非最小 bug fix。
+### 2.4 Barrier 对齐规则
 
-#### CheckpointPlan 数据结构
+单输入 task 收到 barrier 后立即 snapshot。
+
+多输入 task 的规则（STRICT_EXACTLY_ONCE 模式）：
+
+```
+on barrier N from channel C:
+    mark C aligned for N
+    block records after barrier N from C
+    continue processing records from unaligned channels
+    when all input channels aligned for N:
+        snapshot local state
+        emit barrier N to all output channels
+        unblock aligned channels
+```
+
+AT_LEAST_ONCE 模式的差异：已收到 barrier 的 channel **不阻塞** barrier 后 records，允许继续处理。代价是恢复后可能重复处理。详见 §4。
+
+Aligned checkpoint 是基线能力。Unaligned checkpoint 是性能优化，不是 exactly-once 正确性的前置条件。
+
+### 2.5 Snapshot 内容
+
+每个 task 对 epoch N 上报 `TaskEpochSnapshot`。
+
+| 内容 | 说明 |
+|---|---|
+| task identity | 稳定 task 身份（jobId / pipelineId / vertexId / subtaskIndex），不含 attemptId |
+| operator snapshots | 按 operatorId 分组 |
+| keyed state shards | 每个 shard 独立引用（shard 路由规则见 `state-management-design.md` §3） |
+| timer state | 事件时间和处理时间 timer |
+| watermark state | 输入 channel watermark 和 idle 标记 |
+| source split state | source offset 或 split cursor |
+| sink transaction state | pending transaction handle |
+| participant states | CheckpointParticipant 快照 |
+| metrics | snapshot size、duration、alignment duration |
+
+### 2.6 Epoch Manifest
+
+Coordinator 收齐所有 task snapshot 后生成 epoch manifest。manifest 是恢复的唯一入口，必须持久化。
+
+| 字段 | 说明 |
+|---|---|
+| `epochId` | checkpoint epoch |
+| `jobId` / `pipelineId` | 作业身份 |
+| `planFingerprint` | PartitionedPlan 指纹（含 StreamComponents fingerprint） |
+| `requirements` | 恢复时校验 backend 能力 |
+| `taskSnapshots` | task 到 state segment 的映射 |
+| `sourceOffsets` | source split offset 汇总 |
+| `sourceEnumeratorSnapshots` | source split registry、assignment、finished split、discovery cursor |
+| `sinkTransactions` | sink pending transaction 汇总 |
+| `participantStates` | operatorId → CheckpointParticipantState |
+| `stateFormatVersion` | 状态格式版本 |
+| `createdTime` / `durableTime` | 时间戳 |
+| `checksum` | manifest 完整性校验 |
+
+Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit 只能发生在 manifest durable 之后。
+
+### 2.7 Commit 与 Subsuming
+
+Checkpoint complete 通知遵守 **subsuming contract**：收到 epoch N 完成通知时，sink 可以提交所有 `epoch ≤ N` 且未提交的 pending transaction。
+
+Sink commit 必须幂等。即使 coordinator 在 durable 后、通知过程中失败，恢复后的 coordinator 也可以重新通知 commit，不得产生重复外部副作用。
+
+Epoch log 必须持久化 `DURABLE` 和 `COMMITTED` 的状态变化。`COMMITTED` 是优化状态，不是恢复前提；恢复逻辑必须能够从 `DURABLE` epoch 重试 sink commit，并依赖 sink 幂等 commit 保证不会重复外部副作用。
+
+### 2.8 Checkpoint 并发策略
+
+基线设计只允许一个 checkpoint epoch in-flight。原因：
+
+| 原因 | 说明 |
+|---|---|
+| 简化 sink pending transaction | 每个 subtask 最多只有一个正在对齐或快照的 epoch |
+| 简化 barrier 对齐 | 不需要同时维护多个 epoch 的 channel 阻塞状态 |
+| 简化恢复 | 最新 durable epoch 之后的状态全部 abort 或重试 commit |
+| 满足首版语义 | exactly-once 正确性优先于 checkpoint 吞吐 |
+
+后续可以扩展多个 in-flight checkpoint，但必须同时定义 barrier N/N+1 的对齐顺序、sink pending transaction 队列、subsuming 和 abort 规则。
+
+### 2.9 Bounded Source 与 Final Epoch
+
+有限输入作业必须以 final epoch 收尾。
+
+| 场景 | 规则 |
+|---|---|
+| 单 source 完成 | source 发出 final barrier 后再发出 finished 标记 |
+| 多 source 部分完成 | 已完成 source 的 input channel 标记为 finished，不再阻塞后续 epoch 对齐 |
+| 所有 source 完成 | Coordinator 触发 final epoch，manifest durable 后通知 sink commit 并结束作业 |
+| final epoch 失败 | 按普通 epoch failure 恢复 |
+
+Final epoch 的语义是：所有对外可见 sink 副作用都已绑定到某个 durable epoch，作业结束不是绕过 checkpoint 的特殊路径。
+
+### 2.10 CheckpointPlan：执行计划与 Checkpoint 的桥梁
+
+CheckpointPlan 是 checkpoint 子系统对管线拓扑的**只读视图**，从 PartitionedPlan 派生，将 checkpoint 需要的拓扑信息从执行引擎中解耦出来。
 
 ```
 CheckpointPlan {
-    int version = 1;                                // 序列化格式版本
-    String jobId;                                   // 作业标识
-    String pipelineId;                              // 管线标识
-    List<TaskLocation> allTasks;                    // 所有 task 实例（ACK 跟踪）
-    List<TaskLocation> sourceTasks;                 // barrier 注入点（source 顶点的所有并行实例）
-    Map<TaskLocation, List<OperatorStateMapping>> stateMappings;  // 每 task 的算子状态映射
+    int version = 1;
+    String jobId;
+    String pipelineId;
+    List<TaskLocation> allTasks;                    // ACK 跟踪
+    List<TaskLocation> sourceTasks;                 // barrier 注入点
+    Set<String> checkpointParticipants;             // participant operatorId 集合
+    Map<TaskLocation, List<OperatorStateMapping>> stateMappings;
 }
 
 TaskLocation {
-    String jobId;            // 作业标识（为分布式执行预留路由信息）
-    String pipelineId;       // 管线标识
-    String vertexId;         // 顶点 ID，如 "vertex-1"
-    int taskIndex;           // 0 到 parallelism-1
+    String jobId;
+    String pipelineId;
+    String vertexId;
+    int taskIndex;
 }
 
 OperatorStateMapping {
-    int operatorIndex;            // 算子在链中的位置（从 0 开始）
-    String operatorStateKey;      // 该算子 operator state 的存储键名，如 "operator-0"
-    String keyedStateStorageKey;  // 该算子 keyed state 的存储键名，如 "operator-0-keyed"（null 表示无 keyed state）
-    boolean isTwoPhaseCommit;     // 该算子是否为 TwoPhaseCommitSink（决定 preCommit/commit/rollback 生命周期）
+    int operatorIndex;
+    String operatorStateKey;       // 如 "operator-0"
+    String keyedStateStorageKey;   // 如 "operator-0-keyed"（null 表示无 keyed state）
+    boolean isTwoPhaseCommit;
 }
 ```
 
-**设计要点说明**：
+**设计要点**：
 
-1. **`TaskLocation` 包含 `jobId` + `pipelineId`**：为分布式执行预留路由信息。当前单进程执行时，Coordinator 通过 `TaskLocation` 的 `vertexId` + `taskIndex` 定位本地 task；分布式执行时，通过 `jobId` + `pipelineId` 路由到正确的节点。参考 SeaTunnel 的 `TaskLocation` 包含 `TaskGroupLocation`（jobId + pipelineId + taskGroupId）。
+1. `TaskLocation` 包含 `jobId` + `pipelineId`：为分布式执行预留路由信息
+2. `sourceTasks` 包含所有并行实例：每个 source 实例独立注入 barrier
+3. `checkpointParticipants` 从 `StreamComponents.checkpointParticipants` 获取
+4. `OperatorStateMapping` 用 `keyedStateStorageKey` 显式命名 keyed state，解决同一链中多算子 keyed state 碰撞
 
-2. **`TaskLocation` 不含 task 角色，角色在 `OperatorStateMapping` 级别**：一个 task 包含算子链，链内可以有多个角色（如 `[SourceOperator, MapOperator, TwoPhaseCommitSinkOperator]`）。角色不是 task 级别的属性，而是算子级别的属性。Coordinator 通过 `sourceTasks.contains(taskLocation)` 判断是否为 source task，通过 `OperatorStateMapping.isTwoPhaseCommit` 判断哪个算子需要 2PC 生命周期。不需要 `TaskCheckpointRole` 枚举。
+**CheckpointPlan 与 Savepoint 的交互**：
 
-3. **`OperatorStateMapping` 用 `keyedStateStorageKey` 显式命名 keyed state**：如果为 null 表示该算子无 keyed state。快照时，算子的 operator state 存储在 `operatorStateKey` 下，keyed state 存储在 `keyedStateStorageKey` 下（如 `"operator-0-keyed"`）。恢复时，按 `keyedStateStorageKey` 精确取出对应算子的 keyed state blob，反序列化到 `IKeyedStateBackend`。dual-state 路由（同一算子同时有 operator state 和 keyed state）通过两个不同的键名自然解决。
+- CheckpointPlan 随 savepoint 序列化存储（`checkpoint-plan.json`）
+- 恢复时检查兼容性：算子数量、`operatorStateKey`、`keyedStateStorageKey` 是否匹配
+- 恢复模式：`STRICT`（默认，不匹配则拒绝）和 `LENIENT`（忽略不匹配，记录警告）
+- 不支持自动 schema 迁移
 
-4. **去掉了 `vertexParallelism`**：并行度信息已隐含在 `allTasks` 的基数中（同一 `vertexId` 的 TaskLocation 数量就是并行度）。`CheckpointPlanBuilder` 在构建时验证一致性，不单独存储以避免冗余不一致的风险。
+## 3. CheckpointParticipant：泛化事务参与
 
-5. **`sourceTasks` 包含所有并行实例**：如果 source 顶点的 parallelism=3，则 `sourceTasks` 包含 3 个 TaskLocation（taskIndex 0, 1, 2）。每个 source 实例独立注入 barrier。
+### 3.1 设计动机
 
-6. **`version` 语义**：`version=1` 表示本文档描述的格式。恢复逻辑检查 `version <= CURRENT_VERSION`，拒绝未知版本。
+`TwoPhaseCommitSinkFunction` 的 2PC lifecycle 是 sink 专用的。将 2PC 泛化为 `CheckpointParticipant`，使所有 transactional operator（source、sink、外部状态 operator）拥有统一的 checkpoint 生命周期。
 
-#### 快照侧：OperatorStateMapping 如何传入 CheckpointBarrierTracker
+### 3.2 CheckpointParticipant 接口
 
-`CheckpointBarrierTracker`（core 模块）在构建时接收 `List<OperatorStateMapping>`（由 `CheckpointPlanBuilder` 生成，经 `GraphModelCheckpointExecutor` 传入）。`acknowledgeOperator(operatorIndex, snapshotResult)` 使用 `mappings[operatorIndex]` 确定存储键名：
+```java
+interface CheckpointParticipant {
+    /** 阶段 1：保存状态到快照。可多次调用直到完成。 */
+    void saveState(long checkpointId) throws Exception;
 
-```
-acknowledgeOperator(operatorIndex, snapshotResult):
-    mapping = operatorStateMappings[operatorIndex]
-    if snapshotResult has operator states:
-        for each (name, bytes) in snapshotResult.operatorStates:
-            currentSnapshot.operatorStates.put(mapping.operatorStateKey, bytes)
-    if snapshotResult has keyed states:
-        if mapping.keyedStateStorageKey != null:
-            currentSnapshot.keyedStates.put(mapping.keyedStateStorageKey, bytes)
-```
+    /** 阶段 2：准备提交（2PC 第一阶段）。Pending transaction handle 必须写入 snapshot。 */
+    void prepareCommit(long checkpointId) throws Exception;
 
-#### CheckpointPlan 如何修复 BUG 1 和 BUG 4
+    /**
+     * 阶段 3：完成提交（2PC 第二阶段）。
+     * success=true 时必须 commit。
+     * success=false 时不应 abort prepared transaction，而是保留等待后续 durable epoch subsuming commit。
+     */
+    void finishCommit(long checkpointId, boolean success) throws Exception;
 
-**BUG 1（keyed state 碰撞）**：当前所有算子用 `"keyed-state"` 作为存储键名。引入 CheckpointPlan 后，`OperatorStateMapping` 为每个算子分配唯一的 `keyedStateStorageKey`（如 `"operator-0-keyed"`, `"operator-1-keyed"`）——不再碰撞。
-
-注意：这只是存储层的修复。`IKeyedStateBackend` 本身也需要按算子隔离——同一链中的多个算子如果都使用 keyed state，需要各自独立的 state backend 实例，或在 state name 中加入算子 ID 前缀。这是一个独立于 CheckpointPlan 的 state backend 层修复。
-
-**BUG 4（状态恢复路由错误）**：当前 `buildSnapshotFromTaskState()` 把所有状态发给每个算子。引入 CheckpointPlan 后，恢复路由如下：
-
-```
-对每个 TaskLocation:
-  mappings = CheckpointPlan.stateMappings[taskLocation]
-  对每个 OperatorStateMapping mapping:
-    operatorState = taskSnapshot.operatorStates[mapping.operatorStateKey]
-    if (mapping.keyedStateStorageKey != null):
-      keyedState = taskSnapshot.keyedStates[mapping.keyedStateStorageKey]
-    将 (operatorState, keyedState) 路由到第 mapping.operatorIndex 个算子
+    /** 阶段 4：从 epoch 恢复。Durable transaction 必须 commit 或证明 already committed。 */
+    void restoreFromEpoch(long checkpointId) throws Exception;
+}
 ```
 
-Dual-state 路由（同一算子同时有 operator state 和 keyed state）通过 `operatorStateKey` + `keyedStateStorageKey` 两个独立键名自然解决——恢复时按这两个键名分别从 `operatorStates` 和 `keyedStates` Map 中取出对应的数据。
+### 3.3 注册机制
 
-#### CheckpointPlan 与 Savepoint 的交互
+1. Operator 构造时，如果实现了 `CheckpointParticipant`，将其 `operatorId` 注册到 `StreamComponents.checkpointParticipants`
+2. `CheckpointPlan` 从 `PartitionedPlan` 派生时，从 `StreamComponents.checkpointParticipants` 获取所有 participant 的 operatorId
+3. `CheckpointCoordinator` 在触发 checkpoint 时，按 `CheckpointPlan` 中的 participant 列表依次调用
 
-Savepoint 是手动触发的 checkpoint，可以跨管线版本保留和恢复。交互规则：
+恢复时的 participant 发现：
 
-1. **CheckpointPlan 随 savepoint 序列化存储**：savepoint 目录中包含 `checkpoint-plan.json`（`JsonTool` 序列化），记录生成时的管线拓扑
-2. **恢复时检查兼容性**：新的 `CheckpointPlan` 与 savepoint 中的旧 plan 对比，验证算子数量和状态键名是否匹配。不匹配的具体含义：算子数量不同、`operatorStateKey` 找不到、或 `keyedStateStorageKey` 不一致
-3. **恢复模式**：`STRICT`（默认）—— 任何不匹配都拒绝恢复并报告具体不兼容项；`LENIENT` —— 忽略不匹配的算子（记录警告），恢复可以匹配的部分。`LENIENT` 模式允许管线小幅修改后恢复，避免全部状态丢失
-4. **不支持自动 schema 迁移**：当前不支持算子增删、并行度变更后的自动状态重分布。这是一个显式限制，未来可通过 `pipelineActions` 扩展
+- 从 Epoch Manifest 读取 `participantStates`
+- 从 `StreamComponents.checkpointParticipants` 读取当前 participant 列表
+- 当前列表是 manifest 的超集（新增 participant）→ 兼容
+- 当前列表是 manifest 的子集（删除 participant）→ 需要迁移 action
+- participant 类型变化 → 需要迁移 action
 
-#### CheckpointPlan 与 BarrierAligner 的关系
+### 3.4 调用顺序与失败处理
 
-`BarrierAligner` 的配置（多输入算子的输入数量）不从 CheckpointPlan 中获取——它从执行引擎的 `GraphExecutionPlan` 中获取。CheckpointPlan 不记录边（edge）信息，只记录顶点（task）和状态映射。恢复时，执行引擎先从 `GraphExecutionPlan` 重建算子拓扑（包括 `BarrierAligner` 的输入数量），然后从 CheckpointPlan 恢复状态。
-
-**跨执行引擎的 Savepoint 恢复假设**：如果 savepoint 是在引擎 A 上生成的，恢复到引擎 B（如从嵌入式切换到分布式），CheckpointPlan 假设两个引擎产生**相同的算子链拓扑**（相同的 chain 配置、相同的并行度）。如果链拓扑不同（如引擎 B 将某两个算子拆分为不同 chain），恢复可能失败。这是一个显式限制——跨引擎恢复要求管线拓扑一致。
-
-#### CheckpointPlan 的生成时机
-
-```
-JobGraph
-  ↓ GraphExecutionPlan 构建
-GraphExecutionPlan
-  ↓ CheckpointPlanBuilder.build(graphExecutionPlan)
-CheckpointPlan
-  ↓ 传入 CheckpointCoordinator 构造器
-CheckpointCoordinator 使用 CheckpointPlan 驱动 barrier 注入和 ACK 跟踪
-```
-
-#### Coordinator 内部类型对齐
-
-引入 `TaskLocation` 后，`CheckpointCoordinator` 及相关类的以下字段需要类型变更：
-
-| 类 | 字段 | 当前类型 | 目标类型 |
-|---|---|---|---|
-| `CheckpointCoordinator` | `tasksToAcknowledge` | `Set<Long>` | `Set<TaskLocation>` |
-| `CheckpointCoordinator` | `acknowledgeTask()` 参数 | `long taskId` | `TaskLocation` |
-| `PendingCheckpoint` | `notYetAcknowledgedTasks` | `Set<Long>` | `Set<TaskLocation>` |
-| `PendingCheckpoint` | `taskStates` key | `Long` | `TaskLocation` |
-| `CompletedCheckpoint` | `taskStates` key | `Map<Long, TaskStateSnapshot>` | `Map<TaskLocation, TaskStateSnapshot>` |
-| `CompletedCheckpoint` | `getTaskState` / `addTaskState` 参数 | `long taskId` | `TaskLocation` |
-| `CompletedCheckpoint` | `jobId` / `pipelineId` | `long` / `int` | `String`（与 `TaskLocation` 对齐） |
-| `CheckpointBarrierTracker` | `taskId` 字段 + 构造器参数 | `long` | `TaskLocation` |
-| `CheckpointBarrierTracker` | `currentSnapshot` 构建 | `new TaskStateSnapshot(long, long)` | `new TaskStateSnapshot(TaskLocation, long)` |
-| `TaskStateSnapshot` | `taskId` | `long` | `TaskLocation` |
-
-所有变更统一使用 `TaskLocation`，避免 `long` ↔ `TaskLocation` 转换的维护负担。
-
-## 3. 核心数据结构
-
-### 3.1 CheckpointBarrier
-
-Barrier 是注入到数据流中的特殊标记，随数据一起在算子间传播。它的作用是"切割"数据流——barrier 之前的数据属于上一个快照，barrier 之后的数据属于下一个快照。
-
-| 字段 | 类型 | 含义 |
-|---|---|---|
-| `id` | long | checkpoint 的唯一递增 ID |
-| `timestamp` | long | 触发时间戳 |
-| `checkpointType` | `CheckpointType` | CHECKPOINT / SAVEPOINT / COMPLETED_POINT_TYPE |
-
-`snapshot()` 始终返回 true（当前所有 barrier 都触发快照）。`prepareClose()` 对 `COMPLETED_POINT_TYPE` 和 `SAVEPOINT` 类型返回 true（通过 `isFinalCheckpoint()` 判断），用于作业关闭前的最终快照。
-
-### 3.2 CheckpointConfig
-
-| 参数 | 默认值 | 含义 |
-|---|---|---|
-| `checkpointEnabled` | true | 是否启用 checkpoint |
-| `checkpointInterval` | 60000ms（1 分钟） | 触发间隔 |
-| `checkpointTimeout` | 600000ms（10 分钟） | 单次 checkpoint 超时 |
-| `minPause` | 500ms | 两次 checkpoint 之间的最小间隔 |
-| `maxConcurrentCheckpoints` | 1 | 最大并发 checkpoint 数 |
-| `maxRetainedCheckpoints` | 5 | 保留的已完成 checkpoint 数 |
-| `storageType` | "local" | 存储类型（"local" / "jdbc"） |
-
-### 3.3 TaskStateSnapshot
-
-单个 task 的状态快照，包含 operator state 和 keyed state 两部分：
-
-| 字段 | 类型 | 含义 |
-|---|---|---|
-| `taskId` | long | task 标识 |
-| `operatorStates` | `Map<String, byte[]>` | 算子级状态（名称 → 序列化值） |
-| `keyedStates` | `Map<String, byte[]>` | 键控状态（名称 → 序列化值） |
-
-这是一个简化的设计：Flink 使用 `OperatorSubtaskState` + `KeyGroupRange` 支持分布式状态重分布，nop-stream 去除了 key-group 概念，直接用 Map 存储。
-
-## 4. CheckpointCoordinator：生命周期管理
-
-`CheckpointCoordinator` 是整个 checkpoint 子系统的中枢，负责 checkpoint 的触发、跟踪、完成、中止和恢复。
-
-### 4.1 核心状态
+**触发 checkpoint 时**（按 DAG 拓扑顺序：source → operator → sink）：
 
 ```
-checkpointIdCounter: CheckpointIDCounter         // 生成单调递增的 checkpoint ID
-pendingCheckpoints: ConcurrentHashMap<Long, PendingCheckpoint>  // checkpointId → 进行中的快照
-latestCompletedCheckpoint: CompletedCheckpoint                  // 最近完成的快照
-tasksToAcknowledge: Set<Long>                                   // 需要 ACK 的 task 集合
-scheduler: ScheduledExecutorService                             // 定时触发器
-timeoutScheduler: ScheduledExecutorService                      // 超时检查器
-listeners: List<CheckpointListener>                             // 完成通知监听器
+对每个 participant（拓扑序）:
+    saveState(epochId)
+    prepareCommit(epochId)
+
+所有 participant 成功后:
+    emitBarrier(epochId)
 ```
 
-`CheckpointIDCounter`（core 模块）使用 `AtomicLong.getAndIncrement()` 生成单调递增的 checkpoint ID，是整个生命周期的基础。
-
-`OperatorSnapshotResult`（core 模块）是单个算子的快照结果，包含 `operatorStates`、`keyedStates`、`rawKeyedStates` 三个 Map。`CheckpointedSourceFunction.snapshotState()` 返回此类型。多个算子的快照聚合为 `TaskStateSnapshot`。
-
-### 4.2 完整生命周期
-
-一个 checkpoint 从触发到结束经历以下阶段：
+**Checkpoint 完成时**（按相反拓扑顺序：sink → operator → source）：
 
 ```
-trigger ──► pending ──► (all ACKed) ──► store ──► notify ──► completed
-                │
-                └──► (timeout/error) ──► abort ──► notify aborted
+对每个 participant（逆拓扑序）:
+    finishCommit(epochId, true)
 ```
 
-#### 阶段 1：触发（trigger）
+**失败处理规则**：
 
-```
-CheckpointCoordinator.tryTriggerPendingCheckpoint()
-    ├─ 检查并发限制: numPending < maxConcurrent
-    ├─ 递增 checkpointIdCounter 获取新 ID
-    ├─ 创建 PendingCheckpoint（包含所有待 ACK 的 task）
-    ├─ 注册到 pendingCheckpoints
-    ├─ 注册 CompletableFuture 回调
-    │   ├─ 成功 → completePendingCheckpoint()
-    │   └─ 异常 → abortPendingCheckpoint()
-    └─ 注册超时调度（超时后自动 abort）
-```
-
-触发后，Coordinator 应将 `CheckpointBarrier` 注入数据流。当前实现中，触发和 barrier 注入是分离的——Coordinator 负责"决定要做什么"，barrier 的实际注入需要由执行引擎完成。
-
-#### 阶段 2：ACK 收集（acknowledge）
-
-```
-CheckpointCoordinator.acknowledgeTask(taskId, checkpointId, state)
-    └─ PendingCheckpoint.acknowledgeTask(taskId, state)
-        ├─ 从 notYetAcknowledgedTasks 中移除 taskId
-        ├─ 将 state 记录到 taskStates
-        └─ 如果 notYetAcknowledgedTasks 为空
-            └─ completableFuture.complete(toCompletedCheckpoint())
-```
-
-每个 task 在处理完 barrier 后，将自身的状态快照上报给 Coordinator。当所有 task 都上报完毕，PendingCheckpoint 自动通过 CompletableFuture 触发完成回调。
-
-#### 阶段 3：完成（complete）
-
-```
-CheckpointCoordinator.completePendingCheckpoint(completed)
-    ├─ checkpointStorage.storeCheckPoint(completed)    // 持久化
-    │   └─ 失败 → abortPendingCheckpoint("Failed to store")
-    ├─ pendingCheckpoints.remove(checkpointId, pending)
-    ├─ latestCompletedCheckpoint = completed
-    ├─ decrementPendingCheckpointCount
-    ├─ cleanupOldCheckpoints()                         // 保留 maxRetained 个
-    └─ notifyCheckpointCompleted(checkpointId)          // 通知所有 listener
-```
-
-#### 阶段 4：中止（abort）
-
-```
-CheckpointCoordinator.abortPendingCheckpoint(pending, reason)
-    ├─ pendingCheckpoints.remove(checkpointId)
-    ├─ removed.abort(reason)
-    ├─ decrementPendingCheckpointCount
-    └─ notifyCheckpointAborted(checkpointId)
-```
-
-中止原因包括：超时（timeoutScheduler 触发）、存储失败、主动取消。
-
-#### 阶段 5：恢复（restore）
-
-```
-CheckpointCoordinator.restoreFromCheckpoint()
-    ├─ checkpointStorage.getLatestCheckpoint(jobId, pipelineId)
-    ├─ checkpoint.setRestored(true)
-    └─ latestCompletedCheckpoint = checkpoint
-```
-
-恢复逻辑从存储中读取最近完成的 checkpoint，标记为已恢复。下游算子可以据此重建状态。
-
-### 4.3 定时调度
-
-`startCheckpointScheduler()` 启动一个 `SingleThreadScheduledExecutor`，按 `checkpointInterval` 间隔定时调用 `tryTriggerPendingCheckpoint(CHECKPOINT)`。调度器是 daemon 线程，随 JVM 退出。
-
-### 4.4 超时机制
-
-每次触发 checkpoint 后，通过 `timeoutScheduler` 注册一个延迟任务。如果在 `checkpointTimeout`（默认 10 分钟）内未收到所有 ACK，自动中止该 checkpoint。
-
-## 5. CheckpointedSourceFunction：Source 端状态管理
-
-`CheckpointedSourceFunction` 是 `SourceFunction` 的扩展接口，支持 source 端的 checkpoint：
-
-| 方法 | 含义 |
+| 阶段 | 失败处理 |
 |---|---|
-| `snapshotState(checkpointId)` | 将 source 当前的消费位置（如 Kafka offset）序列化为 `OperatorSnapshotResult` |
-| `initializeState(state)` | 从 checkpoint 恢复 source 的消费位置 |
+| `saveState()` 失败 | Checkpoint abort，不触发 barrier，不传播到其他 task |
+| `prepareCommit()` 失败 | Checkpoint abort，已保存的状态丢弃，不触发 barrier |
+| `finishCommit(true)` 失败 | 记录日志，不中止 checkpoint（manifest 已 durable），恢复时重试 |
+| `finishCommit(false)` 失败 | 记录日志，不中止 abort 流程，恢复时处理 |
+| `restoreFromEpoch()` 失败 | 恢复失败，需要人工干预 |
 
-Source 端的 exactly-once 依赖这个接口：source 在 barrier 到达时记录当前 offset，恢复时从记录的 offset 重新开始消费。如果 source 没有实现这个接口，checkpoint 无法保证 source 端不丢不重。
-
-## 6. BarrierAligner：多输入屏障对齐
-
-当算子有多个输入（如 join、union 后的算子）时，需要等待所有输入通道都收到同一 checkpoint 的 barrier 后，才能认为该 checkpoint 的 barrier 已经完全到达。这就是 barrier 对齐。
-
-### 6.1 对齐算法
+### 3.5 Lifecycle 完整流程
 
 ```
-BarrierAligner(numberOfInputs)
-    ├─ 每个输入通道维护一个 TreeMap<checkpointId, CheckpointBarrier>
-    ├─ 输出队列: Queue<AlignedBarrier>
+onEpochBarrier(N):
+    saveState(N) until complete
+    prepareCommit(N) until complete
+    emit barrier N to all output channels
 
-processBarrier(barrier, inputIndex)
-    ├─ lock.lock()
-    ├─ 将 barrier 放入 inputBarriers[inputIndex]
-    └─ checkComplete()
-        ├─ 统计每个 checkpointId 在所有输入中出现的次数
-        ├─ 如果 count == numberOfInputs → 对齐完成
-        │   ├─ 创建 AlignedBarrier（包含对齐耗时）
-        │   ├─ 放入 alignedBarriers 队列
-        │   ├─ signalAll() 唤醒等待者
-        │   └─ 从所有输入的 TreeMap 中移除该 barrier
-        └─ 否则 → 等待更多输入
+onEpochDecision(N, success):
+    finishCommit(N, success) until complete
 
-findCompletedCheckpointId()
-    ├─ 遍历所有输入的 TreeMap，统计每个 checkpointId 的出现次数
-    ├─ 找到 count == numberOfInputs 的最小 checkpointId
-    └─ 返回（保证按序完成）
+onRestore(epoch N):
+    restoreStateSegments(N)
+    restoreFromEpoch(N)
 ```
 
-### 6.2 关键设计点
+关键语义：
 
-- **TreeMap 保序**：每个输入通道的 barrier 按 checkpointId 排序，保证按序对齐
-- **ReentrantLock + Condition**：支持阻塞等待（`pollAlignedBarrier(timeout, unit)`），用于消费端同步
-- **最小 ID 优先**：对齐时选择所有输入中都已到达的最小 checkpointId，保证 checkpoint 按序完成
-- **线程安全**：所有操作在 lock 保护下进行，支持多线程并发调用 `processBarrier()`
+1. `saveState()` 和 `prepareCommit()` 可以分步执行，避免阻塞所有 task
+2. `finishCommit(false)` 不 abort prepared transaction——保留等待后续 durable epoch subsuming commit
+3. `restoreFromEpoch()` 必须幂等——coordinator failover 后可能重复调用
 
-### 6.3 AlignedBarrier
+### 3.6 TwoPhaseCommitSinkFunction 作为实现
 
-对齐结果，记录：
+`TwoPhaseCommitSinkFunction` 实现 `CheckpointParticipant`：
 
-| 字段 | 含义 |
+| CheckpointParticipant 方法 | TwoPhaseCommitSink 实现 |
 |---|---|
-| `checkpointId` | 对齐的 checkpoint ID |
-| `checkpointType` | checkpoint 类型 |
-| `triggerTimestamp` | 触发时间 |
-| `alignedTimestamp` | 对齐完成时间 |
-| `inputCount` | 参与对齐的输入数量 |
-| `alignmentDuration` | 对齐耗时（alignedTimestamp - triggerTimestamp） |
+| `saveState(N)` | `snapshotState(operatorStateBackend)` |
+| `prepareCommit(N)` | `currentTransaction.preCommit()` |
+| `finishCommit(N, true)` | `currentTransaction.commit()` |
+| `finishCommit(N, false)` | 不 abort，保留 prepared transaction |
+| `restoreFromEpoch(N)` | `rollback() + beginTransaction() + restoreState()` |
 
-## 7. Exactly-Once 语义实现
+### 3.7 Source 作为 CheckpointParticipant
 
-### 7.1 Exactly-Once 的含义
+消息队列 source 和 CDC source 可以实现 `CheckpointParticipant`，在 sink commit 成功后才 ack offset：
 
-在流处理中，exactly-once 语义意味着：**每条记录对系统状态和外部副作用的影响恰好发生一次**。这需要三个层面的保证：
+| CheckpointParticipant 方法 | MessageQueueSource 实现 |
+|---|---|
+| `saveState(N)` | 快照当前 offset |
+| `prepareCommit(N)` | 无操作 |
+| `finishCommit(N, true)` | `subscription.ack(offset)` |
+| `restoreFromEpoch(N)` | 从最新 durable offset 恢复订阅 |
 
-1. **Source 端**：记录不丢失、不重复读取（通过 checkpoint 记录 offset）
-2. **处理端**：算子状态可以通过 checkpoint 恢复（通过 TaskStateSnapshot）
-3. **Sink 端**：外部写入不重复（通过 TwoPhaseCommitSinkFunction）
+## 4. ProcessingGuarantee
 
-### 7.2 端到端 Exactly-Once 流程
+### 4.1 四种保证级别
 
-以下是 nop-stream 中端到端 exactly-once 的完整流程（假设各组件均已正确对接）：
+| 保证 | 语义 | 要求 |
+|---|---|---|
+| `STRICT_EXACTLY_ONCE` | 恢复后从 durable epoch 重放，不重复外部副作用 | source REPLAYABLE，sink 两阶段提交 |
+| `AT_LEAST_ONCE` | 恢复后从 durable epoch 重放，可能重复处理 | source REPLAYABLE，sink 幂等 |
+| `EFFECTIVELY_ONCE` | 数据层可按 exactly-once 或 at-least-once 执行，外部效果依赖幂等/upsert/去重键 | sink 至少 IDEMPOTENT |
+| `BEST_EFFORT` | 可禁用 checkpoint，不保证状态一致性 | 无要求 |
+
+### 4.2 Barrier 行为差异
+
+| 行为 | STRICT_EXACTLY_ONCE | AT_LEAST_ONCE |
+|---|---|---|
+| 已收到 barrier 的 channel | 阻塞 barrier 后 records | 继续处理 barrier 后 records |
+| Snapshot 时机 | 所有 channel barrier 到齐后 | 所有 channel barrier 到齐后 |
+| 恢复后行为 | 从 durable epoch 重放，不重复副作用 | 从 durable epoch 重放，可能重复处理 |
+| 对齐延迟 | 高（等待最慢 channel） | 低（不阻塞已收到 barrier 的 channel） |
+| 状态大小 | 对齐期间缓冲 barrier 后 records | 不缓冲，直接处理 |
+
+### 4.3 配置映射
+
+| 用户配置 | ProcessingGuarantee | 要求 |
+|---|---|---|
+| `semanticMode=STRICT_EXACTLY_ONCE` | `STRICT_EXACTLY_ONCE` | source REPLAYABLE，sink 两阶段提交 |
+| `semanticMode=EFFECTIVELY_ONCE` | `EFFECTIVELY_ONCE` | sink 至少 IDEMPOTENT |
+| `semanticMode=AT_LEAST_ONCE` | `AT_LEAST_ONCE` | source REPLAYABLE |
+| `semanticMode=BEST_EFFORT` | `BEST_EFFORT` | 无要求 |
+
+如果 source 不可重放或 sink 不具备严格提交能力，不允许声明 `STRICT_EXACTLY_ONCE`。运行时和指标必须暴露当前语义等级。
+
+## 5. Source Exactly-Once 协议
+
+### 5.1 Source 能力分级
+
+Source 必须声明一致性能力。
+
+| 能力 | 语义 | exactly-once 可用性 |
+|---|---|---|
+| `REPLAYABLE` | 可从 checkpoint offset 重放 | 可参与 exactly-once |
+| `TRANSACTIONAL_READ` | 外部系统支持事务读或一致快照 | 可参与 exactly-once |
+| `AT_LEAST_ONCE` | 可恢复但可能重复 | 不能单独提供 exactly-once |
+| `BEST_EFFORT` | 无可靠 offset | 禁止声明 exactly-once |
+
+如果作业声明 `semanticMode=STRICT_EXACTLY_ONCE`，所有 source 必须满足 `REPLAYABLE` 或 `TRANSACTIONAL_READ`，否则作业构建失败。
+
+### 5.2 Source Split
+
+分布式 source 由 split 构成。
+
+| 概念 | 说明 |
+|---|---|
+| source split | 可独立读取和恢复的输入分片 |
+| split owner | 当前负责该 split 的 source subtask |
+| split cursor | 该 split 的可恢复读取位置 |
+| split assignment | split 到 source subtask 的分配模型 |
+
+Split assignment 必须进入 `PartitionedPlan` 或其运行时可持久化扩展中。恢复时 split owner 可以变化，但 split cursor 必须从最新 durable epoch 恢复。
+
+### 5.3 Source Enumerator State
+
+分布式 source 除 reader cursor 外，还必须 checkpoint 全局 split registry 和 assignment state。
+
+| 状态 | 说明 |
+|---|---|
+| discovered splits | 已发现的 split 集合 |
+| unassigned splits | 尚未分配给 reader 的 split |
+| assigned splits | 已分配但尚未完成的 split 及 ownerSubtask |
+| finished splits | 已完成且不应重复分配的 split |
+| pending acknowledgements | 已下发但 reader 尚未确认接管的 split |
+| discovery cursor | 文件发现、partition discovery、CDC snapshot 阶段等枚举进度 |
+
+恢复规则：先从 epoch manifest 恢复 enumerator state，再恢复 reader split cursor。ownerSubtask 可以重新计算，但 split 不能因为 owner 改变而重复分配或漏分配。
+
+### 5.4 Source Offset Cut
+
+Source 在 barrier 注入前必须定义 offset cut。
+
+| Source 类型 | Offset Cut |
+|---|---|
+| 文件/批量加载 | 下一条允许发出的文件路径、行号、页游标或主键游标 |
+| 消息队列 | 下一条允许发出的 topic/partition/offset 或 message id |
+| CDC | 下一条允许发出的 binlog/LSN/SCN 和表快照阶段 |
+| 数据库分页 | 下一条允许发出的 query identity、last key、page token |
+
+统一语义是：**恢复后第一条允许重新发出的记录位置**（exclusive cut）。Cut 之前的记录已纳入 epoch N 的状态，恢复到 epoch N 后不得再次发出；cut 位置及之后的记录可以重新发出。
+
+## 6. Sink Exactly-Once 协议
+
+### 6.1 Sink 能力分级
+
+Sink 必须声明一致性能力。
+
+| 能力 | 语义 | `STRICT_EXACTLY_ONCE` 可用性 |
+|---|---|---|
+| `TWO_PHASE_COMMIT` | 支持 begin/preCommit/commit/abort/recover | 首选 |
+| `STAGED_ATOMIC_COMMIT` | 先写 staging，checkpoint durable 后原子发布 | 可用 |
+| `OUTBOX_EPOCH_LOG` | 外部可见性由 epoch log 控制 | 可用 |
+| `IDEMPOTENT` | 写入带确定性业务键或去重键 | 仅可声明 `EFFECTIVELY_ONCE` |
+| `UPSERT_BY_KEY` | 最终效果由 key 覆盖决定 | 仅可声明 `EFFECTIVELY_ONCE` |
+| `AT_LEAST_ONCE` | 可能重复写 | 禁止声明 exactly-once |
+| `BEST_EFFORT` | 不保证成功或幂等 | 禁止声明 exactly-once |
+
+`IDEMPOTENT` 和 `UPSERT_BY_KEY` 只有在外部可见性同样由 epoch commit 控制时才能升级为严格 exactly-once；否则必须降级为 `EFFECTIVELY_ONCE`。
+
+### 6.2 Transaction Identity
+
+严格提交型 sink 的 transaction id 必须由稳定身份和 epoch 决定。
+
+推荐格式：`{jobId}:{pipelineId}:{operatorId}:{subtaskIndex}:{epochId}`
+
+不允许 transaction id 包含随机数作为唯一身份。可以附加 attemptId 作为诊断字段，但外部可见事务身份必须以 epoch 为中心，以便恢复后幂等 commit/abort。
+
+### 6.3 Sink Lifecycle
 
 ```
-时间线 ─────────────────────────────────────────────────────────────►
-
-[Source]          [Operator-1]      [Operator-N]      [Sink(2PC)]
-   │                   │                 │                 │
-   │── data ──────────►│── data ────────►│── data ────────►│ invoke()
-   │                   │                 │                 │
-   │── barrier ───────►│── barrier ─────►│── barrier ─────►│ preCommit(id)
-   │  [snapshot]       │  [snapshot]     │  [snapshot]     │
-   │  ACK(id,state)    │  ACK(id,state)  │  ACK(id,state)  │
-   │       │           │       │         │       │         │
-   └───────┴───────────┴───────┴─────────┴───────┘         │
-                           │                                │
-                    CheckpointCoordinator                   │
-                    store + notifyComplete ──────────────────│ commit(id)
-                                                            │ beginTransaction()
+begin epoch N transaction
+write records before barrier N into transaction N
+on barrier N:
+    preCommit transaction N
+    snapshot transaction handle
+    begin epoch N+1 transaction immediately
+on notifyCheckpointComplete(N):
+    commit all transactions ≤ N
+on notifyCheckpointAborted(N):
+    if job continues:
+        keep precommitted transaction N for later subsuming commit
+    if global recovery starts:
+        abort non-durable transactions after latest durable epoch
+on recovery:
+    inspect pending transactions
+    commit durable epochs
+    abort non-durable epochs
 ```
 
-**注意**：Barrier 从 Source 注入，随数据流向下游传播。Source 最先做快照，Sink 最后收到 barrier 并执行 preCommit。所有 ACK 收齐后 Coordinator 持久化并通知完成，Sink 才执行 commit。
+Barrier N 之后的数据必须写入 epoch N+1 或更高 epoch 的 transaction，不能继续写入 epoch N。`notifyCheckpointAborted(N)` 不等价于"丢弃 N 之前已经处理的数据"——transaction N 必须作为 precommitted pending transaction 保留，由后续 durable epoch 通过 subsuming commit 提交。
 
-**步骤详解**：
+### 6.4 Sink Abort 与 Orphan 清理
 
-1. **触发**：CheckpointCoordinator 定时触发，生成 CheckpointBarrier（id=N）
-2. **注入**：Barrier 注入 Source 的数据流，随数据一起向下游传播
-3. **处理**：
-   - 算子收到 barrier 时，暂停处理新数据，对当前状态做快照
-   - 多输入算子通过 BarrierAligner 等待所有输入的 barrier 到齐后才做快照
-4. **ACK**：每个算子完成快照后，将 TaskStateSnapshot 上报给 Coordinator
-5. **完成**：Coordinator 收到所有 ACK → 持久化到 ICheckpointStorage → 通知所有 CheckpointListener
-6. **提交**：
-   - 普通算子：收到 `notifyCheckpointComplete(id)` 后确认状态已持久化
-   - 2PC Sink：收到 `notifyCheckpointComplete(id)` 后调用 `commit(id)` 提交外部事务，然后 `beginTransaction()` 开启新事务
-7. **中止**：如果 checkpoint 超时或失败，2PC Sink 调用 `rollback()` 回滚未提交的事务
+| 资源 | 清理规则 |
+|---|---|
+| non-durable sink transaction | 作业继续运行时保留等待后续 subsuming commit；全局恢复时 abort 最新 durable epoch 之后且未被后续 durable manifest subsume 的 transaction |
+| durable but not committed transaction | 不得 abort，恢复后必须重试 commit |
+| state segment orphan | manifest 未引用的 segment 可异步清理 |
+| source assignment transient state | 未进入 durable manifest 的临时 assignment 可丢弃 |
+| commit uncertainty | 依赖 transaction id 幂等查询或重复 commit 解决 |
 
-### 7.3 TwoPhaseCommitSinkFunction：Sink 端一致性
+### 6.5 外部系统约束
 
-2PC（两阶段提交）是端到端 exactly-once 的关键。nop-stream 的 `TwoPhaseCommitSinkFunction` 定义了五个阶段：
+| 外部系统 | exactly-once 条件 |
+|---|---|
+| JDBC | 使用事务表、唯一键、epoch transaction log 或 outbox pattern |
+| 消息队列 | 支持事务 producer，或业务幂等 key 并降级为 effectively-once |
+| 文件 | 使用临时文件 + atomic rename + manifest commit |
+| HTTP/RPC | 需要外部事务或 epoch outbox；只有幂等键时不能声明 strict exactly-once |
+| CDC 输出 | 需要目标端事务、staging publish 或 epoch outbox |
 
-| 阶段 | 方法 | 调用时机 | 作用 |
-|---|---|---|---|
-| 开始事务 | `beginTransaction()` | 作业启动 / 上一次 commit 后 | 开启外部事务（如 DB transaction、Kafka transaction） |
-| 写入数据 | `invoke(value)` | 每条记录到达时 | 在当前事务中写入 |
-| 预提交 | `preCommit(checkpointId)` | checkpoint barrier 到达时 | 准备提交，不再接受新数据到该事务 |
-| 提交 | `commit(checkpointId)` | 收到 `notifyCheckpointComplete` 时 | 外部提交事务，数据对外可见 |
-| 回滚 | `rollback()` | checkpoint 失败 / 恢复时 | 回滚当前事务，丢弃未提交数据 |
+## 7. JobTerminationMode
 
-**恢复语义**：`recover(checkpointId)` 默认实现为 `rollback() + beginTransaction()`。即恢复时先回滚任何残留事务，再开始新事务。这保证了故障恢复后的状态干净。
+### 7.1 四种模式
 
-### 7.4 CheckpointListener：完成通知契约
+| 模式 | 语义 | 适用场景 |
+|---|---|---|
+| `CANCEL` | 尽快停止，可 abort non-durable work，不保证输出完整 | 强制停止、开发调试 |
+| `DRAIN` | Source truncate 成有限 work，terminal epoch durable 后结束 | 优雅关闭、版本升级 |
+| `SUSPEND` | 停止新输入，导出可恢复 savepoint | 暂停作业、状态迁移 |
+| `EXPORT_SAVEPOINT` | 生成 protected checkpointNamespace，不停止作业 | 定期备份、状态快照 |
 
-`CheckpointListener` 定义了两个回调：
+### 7.2 各模式流程
 
-- `notifyCheckpointComplete(checkpointId)` — checkpoint 成功持久化后调用
-- `notifyCheckpointAborted(checkpointId)` — checkpoint 中止后调用
-
-**Checkpoint Subsuming Contract**（关键契约）：
-
-> Checkpoint ID 严格递增。收到 `notifyCheckpointComplete(N)` 时，可以安全假设所有 ID < N 的 checkpoint 都已完成（无论是否收到过通知）。实现者应一次性提交所有 ≤ N 的未提交事务。
-
-这意味着即使中间某些 checkpoint 的通知丢失，只要收到更大的 ID，就可以安全地提交所有挂起的工作。这个契约简化了实现，不需要严格依赖每个通知都到达。
-
-### 7.5 传播路径
-
-Checkpoint 完成通知的传播路径：
+**CANCEL**：
 
 ```
-CheckpointCoordinator.notifyCheckpointCompleted(id)
-    └─ 遍历 listeners
-        └─ 直接注册的 listener.notifyCheckpointComplete(id)
-
-算子内部的传播：
-AbstractUdfStreamOperator.notifyCheckpointComplete(id)
-    └─ if (userFunction instanceof CheckpointListener)
-        └─ userFunction.notifyCheckpointComplete(id)
+1. 发送 CANCEL 信号到所有 task
+2. Task 停止处理新数据
+3. 如果 abortTransactions=true，abort 所有 pending transactions
+4. Coordinator 等待 task 停止（或超时）
+5. 作业结束，不保证输出完整
 ```
 
-即：算子的 UDF 如果实现了 `CheckpointListener`（如 `TwoPhaseCommitSinkFunction`），会自动收到通知。
+**DRAIN**：
 
-## 8. ICheckpointStorage：持久化
+```
+1. 如果 source 实现了 DrainableSource，调用 truncateForDrain()
+2. Source 继续处理 primary work，residual work 暂停
+3. Coordinator 触发 terminal epoch（TERMINAL_SAVEPOINT）
+4. Task 完成 primary work 后，terminal epoch durable
+5. 如果 waitForSinkCommit=true，等待所有 sink commit
+6. 作业结束
+```
 
-### 8.1 接口契约
+**SUSPEND**：
+
+```
+1. Coordinator 停止 source 发送新数据
+2. Coordinator 触发 savepoint
+3. Savepoint durable 后，task 停止
+4. Sink 不要求 final commit 到作业完成状态
+5. 作业暂停，状态保存在 savepoint 中
+```
+
+**EXPORT_SAVEPOINT**：
+
+```
+1. Coordinator 触发 savepoint（不停止作业）
+2. Savepoint 写入 protected namespace
+3. 作业继续运行
+```
+
+### 7.3 CheckpointType 扩展
+
+| 类型 | 说明 |
+|---|---|
+| `CHECKPOINT` | 定时 checkpoint |
+| `SAVEPOINT` | 手动 savepoint |
+| `TERMINAL_SAVEPOINT` | DRAIN/SUSPEND 模式的 terminal savepoint |
+| `EXPORTED_SAVEPOINT` | EXPORT_SAVEPOINT 模式的 savepoint |
+| `COMPLETED_POINT_TYPE` | bounded source 的最终 checkpoint |
+
+### 7.4 JobTerminationContext
+
+```
+JobTerminationContext {
+    JobTerminationMode mode;
+    Duration timeout;                    // 默认 10 分钟
+    boolean waitForSinkCommit;           // DRAIN 专用，默认 true
+    String savepointNamespace;           // SUSPEND/EXPORT_SAVEPOINT 专用
+    boolean abortTransactions;           // CANCEL 专用，默认 false
+}
+```
+
+## 8. 故障恢复模型
+
+### 8.1 基线恢复策略
+
+成熟 exactly-once 的正确性基线采用**全局 epoch 恢复**。
+
+```
+detect failure
+    fence failed runId/attempts
+    stop or isolate all tasks of the pipeline
+    load latest durable epoch manifest
+    rebuild DeploymentPlan if node assignment changed
+    restore source offsets, operator state, timers, sink transactions
+    restart tasks with new attemptId and fencingToken
+    resume from epoch + 1
+```
+
+全局恢复比局部恢复更简单，但语义完整。Region/local failover 是后续优化，不是 exactly-once 的前置条件。
+
+### 8.2 Fencing
+
+分布式 exactly-once 必须防止旧 attempt 继续输出。
+
+| 场景 | Fencing 规则 |
+|---|---|
+| task restart | 新 attempt 获得新 token，旧 token 输出被拒绝 |
+| coordinator failover | 新 coordinator 获得集群 lease，旧 coordinator commit 被拒绝 |
+| sink commit | external transaction 带 epoch identity，重复 commit 幂等 |
+| transport write | channel 校验 attempt token，旧 attempt channel 关闭 |
+
+### 8.3 Coordinator HA
+
+Coordinator 是逻辑单点，但不能成为 exactly-once 的单点故障。
+
+| 能力 | 说明 |
+|---|---|
+| durable epoch log | CREATED、DURABLE、COMMITTED 等关键状态必须持久化 |
+| cluster lease | 同一 pipeline 同时只能有一个 active coordinator |
+| fencing token | coordinator 切换后旧 token 全部失效 |
+| idempotent recovery | 新 coordinator 可重复 commit durable epoch，重复 abort non-durable epoch |
+
+Nop 平台可以通过已有集群锁、数据库锁或外部协调服务提供 lease。具体实现是 runtime backend 决策，语义必须一致。
+
+### 8.4 恢复兼容性
+
+恢复时必须检查：
+
+| 检查项 | 失败处理 |
+|---|---|
+| plan fingerprint | 不兼容则拒绝自动恢复 |
+| operatorId 集合 | 缺失状态的 operator 按策略拒绝或使用初始状态 |
+| state schema version | 不兼容则要求显式迁移 |
+| stateShardCount | 不一致则要求 rescale manifest 或拒绝 |
+| sink transaction protocol | 不兼容则拒绝 exactly-once 恢复 |
+| StreamComponents fingerprint | 不匹配则拒绝恢复或要求迁移 action |
+| checkpointParticipants 列表 | 新增兼容，删除或类型变化需迁移 action |
+
+Savepoint 可以支持显式迁移，但迁移必须通过模型级 action 描述，不能由运行时猜测。
+
+### 8.5 Rescale 与状态重分配
+
+Parallelism 变化必须通过显式 rescale manifest 或 migration action 描述。
+
+| 状态类型 | Rescale 规则 |
+|---|---|
+| keyed state | `stateShardCount` 不变时，按 `StateShard.ownerSubtask` 重新归属 |
+| non-keyed operator state | operator 必须声明 redistribution policy，否则拒绝自动 rescale |
+| union/list operator state | 可声明 union redistribution，所有新 subtask 读取同一集合后自行过滤 |
+| broadcast state | 所有 subtask 获取完整副本，必须校验版本一致 |
+| source split state | 按 split registry 重新分配 owner，split cursor 不随 subtask 下标绑定 |
+| sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议 |
+
+`stateShardCount` 默认不可改变。改变 `stateShardCount` 等价于 keyed state 重分片，必须提供显式 migration action 和校验报告。
+
+### 8.6 模型演化边界
+
+| 变化 | 默认策略 |
+|---|---|
+| 新增无状态 operator | 可兼容 |
+| 删除无状态 operator | 可兼容，前提是不改变状态 operator 的输入语义 |
+| 新增有状态 operator | 默认使用初始状态，必须显式确认 |
+| 删除有状态 operator | 默认拒绝，除非 migration action 丢弃其状态 |
+| 修改 operatorId | 默认拒绝，除非提供 old→new 映射 |
+| 修改 key selector/hash policy | 默认拒绝 |
+| 修改 state schema/codec | 默认拒绝，除非提供 schema migration |
+| 修改 stateShardCount | 默认拒绝，除非提供 reshard migration |
+| 修改 sink protocol | 默认拒绝 strict exactly-once 恢复 |
+
+## 9. 存储与 Manifest 发布
+
+### 9.1 Atomic Publish
+
+Epoch manifest 的发布必须是原子的。
+
+| 存储 | Atomic Publish 规则 |
+|---|---|
+| LocalFile | 先写临时文件，fsync 后 rename 到 final manifest |
+| JDBC | 在事务中写入 manifest、segments index 和 epoch status |
+| Object Storage | 写 segment 后写 manifest，manifest key 作为唯一提交点 |
+| Message Log | manifest 作为 compacted key 的最后记录 |
+
+如果 state segment 已写入但 manifest 未发布，该 epoch 不可恢复，后续 cleanup 可删除孤儿 segment。
+
+### 9.2 Checkpoint Retention
+
+Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 namespace 计数后删除当前 namespace 的 checkpoint。默认 `checkpointNamespace` 由 `jobId + pipelineId` 决定。
+
+| 策略 | 说明 |
+|---|---|
+| latest N | 每个 checkpointNamespace 保留最近 N 个 durable epoch |
+| savepoint protected | savepoint 不受普通 retention 删除 |
+| referenced segments | 被 manifest 引用的 segment 才可保留 |
+| orphan cleanup | 未被 durable manifest 引用的 segment 可异步清理 |
+
+### 9.3 ICheckpointStorage 接口
 
 | 方法 | 含义 |
 |---|---|
@@ -516,172 +694,80 @@ AbstractUdfStreamOperator.notifyCheckpointComplete(id)
 | `deleteCheckpoint(jobId, pipelineId, checkpointId)` | 删除指定 checkpoint |
 | `deleteAllCheckpoints(jobId)` | 删除作业的所有 checkpoint |
 
-### 8.2 实现
+| 实现 | 适用场景 |
+|---|---|
+| `LocalFileCheckpointStorage` | JSON 文件，单机开发测试 |
+| `JdbcCheckpointStorage` | JDBC 数据库（通过 `IJdbcTemplate` + `IDialect` 多数据库适配），生产环境 |
 
-| 实现 | 存储方式 | 适用场景 |
+### 9.4 CheckpointConfig
+
+| 参数 | 默认值 | 含义 |
 |---|---|---|
-| `LocalFileCheckpointStorage` | JSON 文件（目录结构：`{baseDir}/checkpoint-{jobId}-{pipelineId}-{checkpointId}.json`） | 单机开发测试 |
-| `JdbcCheckpointStorage` | JDBC 数据库表（通过 `IJdbcTemplate` 多数据库适配） | 生产环境、需要跨进程共享 |
+| `checkpointEnabled` | true | 是否启用 checkpoint |
+| `checkpointInterval` | 60000ms | 触发间隔 |
+| `checkpointTimeout` | 600000ms | 单次 checkpoint 超时 |
+| `minPause` | 500ms | 两次 checkpoint 之间的最小间隔 |
+| `maxConcurrentCheckpoints` | 1 | 最大并发 checkpoint 数 |
+| `maxRetainedCheckpoints` | 5 | 保留的已完成 checkpoint 数 |
+| `storageType` | "local" | 存储类型（"local" / "jdbc"） |
 
-两个实现都是 nop-stream-runtime 中的类，core 只定义接口。
+## 10. 可观测性契约
 
-### 8.3 JdbcCheckpointStorage 多数据库设计
+分布式 exactly-once 必须有可观测指标。
 
-#### 设计决策
+核心指标：
 
-**选了什么**：`JdbcCheckpointStorage` 通过 Nop 平台的 `IJdbcTemplate` + `IDialect` 访问数据库，而非直接使用 `java.sql.Connection`。
+| 指标 | 说明 |
+|---|---|
+| checkpoint epoch id | 最新触发、durable、committed epoch |
+| checkpoint duration | 端到端耗时 |
+| alignment duration | barrier 对齐耗时 |
+| snapshot size | state segment 总大小 |
+| pending epochs | 未完成 epoch 数 |
+| source lag | source split lag |
+| sink pending transactions | 未提交事务数 |
+| recovery count | 作业恢复次数 |
+| fenced attempts | 被拒绝的旧 attempt 数 |
+| semantic mode | strict-exactly-once / effectively-once / at-least-once / best-effort |
 
-**为什么**：
-- `IJdbcTemplate` 封装了连接管理、事务管理、方言适配、分页——Nop 平台的 18 种方言（MySQL/PostgreSQL/Oracle/H2/DM/DB2/MariaDB/DuckDB 等）已通过 `.dialect.xml` 定义完毕
-- 同一存储实现自动适配所有数据库，无需为每种数据库写适配代码
-- `nop-batch-jdbc` 的 `JdbcBatchConsumerProvider` 已验证了这一模式
+诊断信息必须能从 epochId 追溯到 source offset、operator state segment 和 sink transaction。
 
-**拒绝了什么**：
-- 直接 `DataSource.getConnection()` + 手写 SQL——违反 Nop 平台规范，维护成本高，只能支持 MySQL
-- `IOrmTemplate`（ORM）——checkpoint 存储只有一张简单表，不需要 ORM 的 session/cache 开销
+## 11. Exactly-Once 作业校验
 
-#### 依赖关系
+当作业声明 exactly-once 时，编译阶段必须执行静态校验。
 
-```
-JdbcCheckpointStorage
-  ├── IJdbcTemplate (NopIoC 注入)
-  ├── String querySpace (可配置，默认 "default")
-  └── 通过 IJdbcTemplate 获取 IDialect，自动适配数据库
-```
+| 校验 | 失败条件 |
+|---|---|
+| source 能力 | 存在非 replayable/transactional source |
+| sink 能力 | strict 模式下存在非严格提交能力 sink；effectively-once 模式下存在非幂等 sink |
+| operatorId | 存在不稳定或冲突的 operatorId |
+| state descriptor | 状态缺少名称、类型或 schema version |
+| partition policy | keyBy 边缺少 hash policy 或 stateShardCount |
+| timer support | 使用窗口/CEP 但 timer 不可 checkpoint |
+| checkpoint storage | storage 不支持 manifest durable 和 atomic publish |
+| plan persistence | PartitionedPlan 或 DeploymentPlan 不可序列化 |
+| fencing | distributed backend 不支持 attempt fencing |
+| StreamRequirement | 存在 backend 不支持的 requirement |
+| checkpointParticipants | participant 列表与 manifest 不兼容 |
 
-#### 实现要求
+校验失败时，作业不能以声明的语义模式启动。允许用户显式选择更低级别的保证，但运行时和指标必须暴露实际语义等级。
 
-| 维度 | 当前（需替换） | 目标（正确） |
-|------|------------|------------|
-| 数据库访问 | `DataSource.getConnection()` | `IJdbcTemplate` 注入 |
-| SQL 构建 | 字符串拼接 | `SQL.begin()` 构建器 |
-| DDL | MySQL 专用（`AUTO_INCREMENT` 等） | `IDialect` 类型映射 + 方言感知 |
-| 分页 | `LIMIT 1` | `IJdbcTemplate.findPage()` |
-| 事务管理 | 手动 `commit/rollback` | `ITransactionTemplate.runInTransaction()` |
-| 表存在检查 | `INFORMATION_SCHEMA` | `IJdbcTemplate.existsTable()` |
-| ID 生成 | `AUTO_INCREMENT` | 应用侧生成（checkpointId 已有 AtomicLong） |
+## 12. 设计不变量
 
-参考实现模式：`nop-batch-jdbc` 的 `JdbcBatchConsumerProvider`（注入 `IJdbcTemplate`，通过 `getDialectForQuerySpace()` 获取方言，用 `SQL.begin()` 构建 SQL）。
+1. 所有持久状态必须有稳定 `operatorId`
+2. 所有 keyed state 必须有确定性 `StateShard` 路由
+3. `PartitionedPlan` 是 parallelism、edge partition、state route、checkpoint route 的唯一语义来源
+4. Barrier 只能由 source 读取线程注入，并随数据 channel 传播
+5. Epoch manifest durable 之前，sink transaction 不得 commit
+6. 恢复必须从最新 durable epoch manifest 开始
+7. Source 不可重放或 sink 不具备严格提交能力时，不允许声明 `STRICT_EXACTLY_ONCE`
+8. 旧 attempt 和旧 coordinator 必须被 fencing
+9. Timer state 是窗口和 CEP exactly-once 的必要状态
+10. Delta 只能修改模型，不能 patch runtime object 来改变语义
+11. 所有 `StreamModel` 必须包含 `StreamComponents` registry
+12. 所有 `StreamRequirement` 必须在编译时和运行时校验
+13. 所有 transactional operator 必须实现 `CheckpointParticipant`
+14. 所有分布式 edge 必须配置 `EdgeConfig`
+15. 所有作业终止必须明确 `JobTerminationMode`
 
-## 9. 恢复流程
-
-故障恢复时，完整的恢复流程为：
-
-```
-1. 新的 CheckpointCoordinator 创建
-2. restoreFromCheckpoint()
-   └─ storage.getLatestCheckpoint(jobId, pipelineId)
-3. 从 CompletedCheckpoint 中提取各 task 的 TaskStateSnapshot
-4. 将状态分发给对应的算子
-5. 算子用恢复的状态初始化
-6. TwoPhaseCommitSinkFunction.recover(checkpointId)
-   └─ rollback() + beginTransaction()  // 回滚残留事务，开始新事务
-7. Source 从 checkpoint 中记录的 offset 恢复读取
-8. 继续正常的数据处理和 checkpoint 流程
-```
-
-## 10. 当前集成状态
-
-> **Updated: 2026-05-20** — Checkpoint 子系统已通过 Plan 26 与图模型执行路径端到端对接。
-
-### 10.1 已实现
-
-checkpoint 子系统的核心组件已**完整实现**并通过测试：
-
-- CheckpointCoordinator 完整生命周期（trigger → ACK → complete/abort → restore）
-- PendingCheckpoint 的 ACK 跟踪和 CompletableFuture 自动完成
-- BarrierAligner 多输入对齐（ReentrantLock + TreeMap + Condition）
-- TwoPhaseCommitSinkFunction 接口定义（5 个阶段）
-- CheckpointListener 通知契约（含 Subsuming Contract 文档）
-- ICheckpointStorage 接口 + LocalFileCheckpointStorage + JdbcCheckpointStorage
-- CheckpointConfig 可配置参数
-- TaskStateSnapshot 的 operator/keyed state 分离
-- CompletedCheckpoint 持久化和恢复
-- CheckpointBarrier 继承 StreamElement，随数据流在算子间传播
-- AbstractStreamOperator.snapshotState() / restoreState() 算子级状态快照与恢复
-- IKeyedStateBackend.snapshotState() / restoreState() 状态后端序列化
-- StreamSourceOperator.injectBarrier() barrier 注入点
-- StreamSourceOperator / StreamSinkOperator / WindowOperator 各自的快照/恢复实现
-- CheckpointBarrierTracker 单链管线 barrier 传播与 ACK 跟踪
-- GraphModelCheckpointExecutor (runtime) 将 Coordinator 与执行引擎对接
-- 集成测试覆盖：TestCheckpointCoordinator、TestCheckpointRecovery、TestBarrierAligner、TestCheckpointEndToEnd、TestBarrierPropagation、TestOperatorSnapshot
-
-### 10.2 已对接（Plan 26 完成）
-
-checkpoint 子系统**已通过图模型执行路径（`execute()`）与执行引擎对接**。对接范围：
-
-1. **StreamExecutionEnvironment.execute() 集成 CheckpointCoordinator**
-   - `enableCheckpointing(long interval)` 配置 checkpoint 参数
-   - `GraphModelCheckpointExecutor`（runtime 模块）创建 Coordinator、注册 task、启动调度器
-   - 定时触发 barrier 注入到 Source 算子
-
-2. **Barrier 注入与传播**
-   - `CheckpointBarrier` 继承 `StreamElement`，成为流元素类型体系的一部分
-   - `Output.emitBarrier()` / `Input.processBarrier()` 统一分发模型
-   - `ChainingOutput`、`TimestampedCollector`、`KeyExtractingOutput` 均已适配
-   - Source 端通过 `injectBarrier()` 注入 barrier
-
-3. **算子快照与 ACK**
-   - `AbstractStreamOperator.processBarrier()` 调用 `snapshotState()` 后传播 barrier
-   - `OperatorSnapshotResult` 通过回调上报给 `CheckpointBarrierTracker`
-   - Tracker 收齐后调用 `coordinator.acknowledgeTask()`
-
-4. **Sink 端 2PC 集成**
-   - `TwoPhaseCommitSinkFunction.preCommit()` 在 barrier 到达时调用
-   - `commit()` 在 checkpoint 完成通知时调用
-   - `rollback()` 在 checkpoint 中止或恢复时调用
-
-5. **恢复流程**
-   - `GraphModelCheckpointExecutor` 启动时检查可恢复的 checkpoint
-   - 各算子 `restoreState()` 从快照反序列化恢复状态
-   - Source 恢复消费 offset（通过 `CheckpointedSourceFunction`）
-   - Sink 恢复时 rollback 残留事务并 beginTransaction
-
-6. **执行约束**
-   - 图模型路径支持单链和多链管线（Plan 27 移除了单链约束）
-
-### 10.3 已对接
-
-以下功能已在 Plan 27-29 中实现：
-
-1. **跨 Task 数据交换**（RecordWriter/RecordReader/InputGate）— Plan 27 已实现
-2. **多链管线图模型执行** — Plan 27 已实现
-3. **Savepoint 深度实现**（手动触发、恢复）— Plan 29 已实现
-4. **时间模型对接**（TimestampAssigner/WatermarkGenerator/TimerService）— Plan 28 已实现
-
-### 10.4 未对接（后续工作）
-
-以下功能仍为独立计划，不阻塞当前闭环：
-
-1. **增量快照优化**
-2. **Unaligned checkpoint 模式**
-3. **Key-group 重分布**
-
-## 11. 与 Flink 的差异
-
-| 维度 | Flink | nop-stream |
-|---|---|---|
-| Barrier 对齐 | aligned / unaligned 两种模式 | 仅 aligned 模式 |
-| State Backend | HeapStateBackend / RocksDBStateBackend | 仅 MemoryStateBackend |
-| State 分区 | Key-Group + KeyGroupRange 支持重分布 | 无 key-group，直接 Map 存储 |
-| Coordinator 通信 | RPC（Akka/Netty），JM ↔ TM | 方法调用，同一进程内 |
-| 存储后端 | FileSystem / S3 / State Backend 集成 | LocalFile / JDBC |
-| Savepoint | 完整支持（手动触发、恢复、schema 兼容） | 手动触发 + 恢复已实现（Plan 29），schema 兼容为后续工作 |
-| 增量快照 | RocksDB 支持增量 | 仅全量快照 |
-| 对齐超时 | 可配置切换为 unaligned | 不支持 unaligned |
-
-### 11.1 简化决策的理由
-
-- **Coordinator 通信**：当前使用方法调用（同一进程内），但 Coordinator 接口设计为可扩展为 RPC
-- **无 key-group**：简化版不实现分布式状态重分布，状态按 Map 存储即可。如果未来需要，可通过 key-group 扩展
-- **仅 aligned 模式**：unaligned 模式增加复杂度且主要解决高延迟场景，对当前目标场景价值不大
-- **全量快照**：状态数据量小（内存中），全量快照足够快。增量快照为后续优化方向
-
-## 12. 已知限制
-
-1. **JdbcCheckpointStorage 仅支持 MySQL** — 当前实现直接使用 `java.sql.Connection` + MySQL 专用 DDL，需改为基于 `IJdbcTemplate` 的多数据库实现（详见 §8.3）
-2. **Barrier 注入线程安全问题** — 当前从独立 `ScheduledExecutorService` 线程注入 barrier，与 source 算子线程存在竞争。正确做法是让 barrier 作为数据流内的特殊元素注入
-3. **状态后端仅内存** — 故障恢复时如果进程重启，内存状态丢失，依赖持久化的 checkpoint 文件
-4. **无增量快照** — 每次全量序列化所有状态，状态量大时开销高
-5. **barrier 对齐可能阻塞** — 多输入场景下，如果一个输入的 barrier 延迟，其他输入的数据会被缓冲
-6. **无 exactly-once source 支持** — 没有可回放的 Source 实现（如 Kafka consumer），无法实现 source 端的 offset 管理和重放
+> 完整不变量列表以 `architecture.md` §9 为权威来源。
