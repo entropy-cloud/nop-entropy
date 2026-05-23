@@ -114,12 +114,14 @@ public class RecordWriter<T> {
      * @param element the element to write
      */
     public void emitElement(StreamElement element) {
-        int channel = 0;
-        if (partitioner != null) {
-            channel = 0;
-        }
         try {
-            partitions[channel].write(element);
+            if (partitioner != null) {
+                for (ResultPartition partition : partitions) {
+                    partition.write(element);
+                }
+            } else {
+                partitions[0].write(element);
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while writing element", e);

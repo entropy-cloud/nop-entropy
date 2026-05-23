@@ -21,13 +21,15 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private static final long serialVersionUID = 1L;
 
     private final WindowAssigner<? super IN, W> windowAssigner;
-    private final Trigger<? super IN, ? super W> trigger;
+    Trigger<? super IN, ? super W> trigger;
     private final WindowAggregationFunction<IN, ACC, OUT, K, W> aggregationFunction;
     private final KeySelector<IN, K> keySelector;
 
     private transient Map<WindowKey<K, W>, ACC> windowState;
     private transient TreeMap<Long, Set<WindowKey<K, W>>> eventTimeTimers;
+    private transient TreeMap<Long, Set<WindowKey<K, W>>> processingTimeTimers;
     private transient Map<WindowKey<K, W>, Set<Long>> windowTimerLookup;
+    private transient Map<WindowKey<K, W>, Set<Long>> processingTimeTimerLookup;
     private transient Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> triggerState;
     private transient long currentWatermark;
     private transient Object currentKeyField;
@@ -49,7 +51,9 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         super.open();
         this.windowState = new LinkedHashMap<>();
         this.eventTimeTimers = new TreeMap<>();
+        this.processingTimeTimers = new TreeMap<>();
         this.windowTimerLookup = new HashMap<>();
+        this.processingTimeTimerLookup = new HashMap<>();
         this.triggerState = new HashMap<>();
         this.currentWatermark = Long.MIN_VALUE;
         this.currentKeyField = null;
@@ -66,7 +70,9 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         super.close();
         windowState = null;
         eventTimeTimers = null;
+        processingTimeTimers = null;
         windowTimerLookup = null;
+        processingTimeTimerLookup = null;
         triggerState = null;
     }
 
@@ -150,6 +156,35 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         }
 
         output.emitWatermark(mark);
+    }
+
+    public void advanceProcessingTime(long timestamp) throws Exception {
+        while (!processingTimeTimers.isEmpty() && processingTimeTimers.firstKey() <= timestamp) {
+            Map.Entry<Long, Set<WindowKey<K, W>>> entry = processingTimeTimers.pollFirstEntry();
+            long timerTimestamp = entry.getKey();
+
+            for (WindowKey<K, W> wk : entry.getValue()) {
+                processingTimeTimerLookup.remove(wk);
+
+                ACC acc = windowState.get(wk);
+                if (acc == null) {
+                    continue;
+                }
+
+                K key = wk.key;
+                W window = wk.window;
+                TriggerContextImpl triggerCtx = new TriggerContextImpl(key, window);
+                TriggerResult result = trigger.onProcessingTime(timerTimestamp, window, triggerCtx);
+
+                if (result.isFire()) {
+                    emitWindowResult(key, window, acc);
+                }
+
+                if (result.isPurge()) {
+                    purgeWindow(key, window, wk, triggerCtx);
+                }
+            }
+        }
     }
 
     private void emitWindowResult(K key, W window, ACC acc) throws Exception {
@@ -314,10 +349,28 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
         @Override
         public void registerProcessingTimeTimer(long time) {
+            WindowKey<K, W> wk = new WindowKey<>(key, window);
+            processingTimeTimers.computeIfAbsent(time, t -> new LinkedHashSet<>()).add(wk);
+            processingTimeTimerLookup.computeIfAbsent(wk, w -> new LinkedHashSet<>()).add(time);
         }
 
         @Override
         public void deleteProcessingTimeTimer(long time) {
+            WindowKey<K, W> wk = new WindowKey<>(key, window);
+            Set<WindowKey<K, W>> keysAtTime = processingTimeTimers.get(time);
+            if (keysAtTime != null) {
+                keysAtTime.remove(wk);
+                if (keysAtTime.isEmpty()) {
+                    processingTimeTimers.remove(time);
+                }
+            }
+            Set<Long> timersForWindow = processingTimeTimerLookup.get(wk);
+            if (timersForWindow != null) {
+                timersForWindow.remove(time);
+                if (timersForWindow.isEmpty()) {
+                    processingTimeTimerLookup.remove(wk);
+                }
+            }
         }
 
         @Override

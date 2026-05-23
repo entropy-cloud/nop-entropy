@@ -130,4 +130,66 @@ public class TestRecordWriter {
                 new ResultPartition[]{p1, p2}, null);
         assertEquals(2, multi.getNumberOfPartitions());
     }
+
+    @Test
+    public void testEmitElementBroadcastsWithPartitioner() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        ResultPartition p2 = new ResultPartition();
+
+        IPartitioner<String> partitioner = (key, numPartitions) ->
+                Math.abs(key.hashCode()) % numPartitions;
+
+        RecordWriter<String> writer = new RecordWriter<>(
+                new ResultPartition[]{p0, p1, p2}, partitioner);
+
+        Watermark wm = new Watermark(100L);
+        writer.emitElement(wm);
+
+        assertEquals(1, p0.size(), "p0 should receive the watermark element");
+        assertEquals(1, p1.size(), "p1 should receive the watermark element");
+        assertEquals(1, p2.size(), "p2 should receive the watermark element");
+
+        writer.close();
+    }
+
+    @Test
+    public void testEmitElementSinglePartitionWithoutPartitioner() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+
+        RecordWriter<String> writer = new RecordWriter<>(
+                new ResultPartition[]{p0, p1}, null);
+
+        Watermark wm = new Watermark(100L);
+        writer.emitElement(wm);
+
+        assertEquals(1, p0.size(), "p0 should receive the element");
+        assertEquals(0, p1.size(), "p1 should not receive the element without partitioner");
+
+        writer.close();
+    }
+
+    @Test
+    public void testPartitionerSelectsDifferentChannels() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        ResultPartition p2 = new ResultPartition();
+
+        IPartitioner<Integer> partitioner = (key, numPartitions) -> key % numPartitions;
+
+        RecordWriter<Integer> writer = new RecordWriter<>(
+                new ResultPartition[]{p0, p1, p2}, partitioner);
+
+        writer.emit(new StreamRecord<>(0));
+        writer.emit(new StreamRecord<>(1));
+        writer.emit(new StreamRecord<>(2));
+        writer.emit(new StreamRecord<>(3));
+
+        assertEquals(2, p0.size(), "p0 should have records for key 0 and 3");
+        assertEquals(1, p1.size(), "p1 should have record for key 1");
+        assertEquals(1, p2.size(), "p2 should have record for key 2");
+
+        writer.close();
+    }
 }

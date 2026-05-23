@@ -8,6 +8,7 @@
 package io.nop.stream.core.common.state.backend.memory;
 
 import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
@@ -168,7 +169,13 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     @Override
     public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
             AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
-        throw new UnsupportedOperationException("getAggregatingState not yet implemented");
+        @SuppressWarnings("unchecked")
+        AggregatingState<IN, OUT> state = (AggregatingState<IN, OUT>) states.get(stateProperties.getName());
+        if (state == null) {
+            state = new MemoryAggregatingState<>(this, stateProperties);
+            states.put(stateProperties.getName(), state);
+        }
+        return state;
     }
 
     @Override
@@ -852,6 +859,50 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     // ==================== 辅助类 ====================
+
+    private static class MemoryAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private MemoryKeyedStateBackend<?> backend;
+        private final AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
+        private final Map<TypedNamespaceAndKey, ACC> storage = new HashMap<>();
+
+        MemoryAggregatingState(MemoryKeyedStateBackend<?> backend,
+                               AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
+            this.backend = backend;
+            this.descriptor = descriptor;
+        }
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
+        }
+
+        @Override
+        public OUT get() throws Exception {
+            ACC acc = storage.get(backend.getTypedNamespaceAndKey());
+            if (acc == null) {
+                return null;
+            }
+            return descriptor.getAggregateFunction().getResult(acc);
+        }
+
+        @Override
+        public void add(IN value) throws Exception {
+            TypedNamespaceAndKey key = backend.getTypedNamespaceAndKey();
+            ACC acc = storage.get(key);
+            AggregateFunction<IN, ACC, OUT> fn = descriptor.getAggregateFunction();
+            if (acc == null) {
+                acc = fn.createAccumulator();
+            }
+            acc = fn.add(value, acc);
+            storage.put(key, acc);
+        }
+
+        @Override
+        public void clear() {
+            storage.remove(backend.getTypedNamespaceAndKey());
+        }
+    }
 
     /**
      * TypedNamespace + Key 的组合键

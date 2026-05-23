@@ -8,6 +8,7 @@
 package io.nop.stream.core.execution;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
@@ -95,7 +96,8 @@ public class GraphExecutionPlan {
                 for (int i = 0; i < outEdges.size(); i++) {
                     partitions[i] = edgePartitions.get(outEdges.get(i));
                 }
-                recordWriter = new RecordWriter<>(partitions, null);
+                IPartitioner partitioner = outEdges.get(0).getPartitioner();
+                recordWriter = new RecordWriter<>(partitions, partitioner);
             }
 
             if (!inEdges.isEmpty()) {

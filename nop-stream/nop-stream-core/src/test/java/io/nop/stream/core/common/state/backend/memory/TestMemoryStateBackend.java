@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
+import io.nop.stream.core.common.functions.AggregateFunction;
+import io.nop.stream.core.common.state.AggregatingState;
+import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
@@ -240,5 +243,57 @@ public class TestMemoryStateBackend {
         // 测试 null namespace 应该设置为默认值
         keyedBackend.setCurrentNamespace(null);
         assertEquals(IKeyedStateBackend.DEFAULT_NAMESPACE, keyedBackend.getCurrentNamespace());
+    }
+
+    @Test
+    public void testAggregatingState() throws Exception {
+        AggregateFunction<Integer, int[], Double> avgFn = new AggregateFunction<Integer, int[], Double>() {
+            @Override
+            public int[] createAccumulator() {
+                return new int[]{0, 0};
+            }
+
+            @Override
+            public int[] add(Integer value, int[] accumulator) {
+                accumulator[0] += value;
+                accumulator[1]++;
+                return accumulator;
+            }
+
+            @Override
+            public Double getResult(int[] accumulator) {
+                return accumulator[1] == 0 ? 0.0 : (double) accumulator[0] / accumulator[1];
+            }
+
+            @Override
+            public int[] merge(int[] a, int[] b) {
+                return new int[]{a[0] + b[0], a[1] + b[1]};
+            }
+        };
+
+        AggregatingStateDescriptor<Integer, int[], Double> descriptor =
+                new AggregatingStateDescriptor<>("avg-state", avgFn, int[].class);
+
+        keyedBackend.setCurrentKey("key1");
+        AggregatingState<Integer, Double> state = keyedBackend.getAggregatingState(descriptor);
+
+        state.add(10);
+        state.add(20);
+        state.add(30);
+
+        Double result = state.get();
+        assertNotNull(result);
+        assertEquals(20.0, result, 0.001, "Average of 10,20,30 should be 20.0");
+
+        keyedBackend.setCurrentKey("key2");
+        AggregatingState<Integer, Double> state2 = keyedBackend.getAggregatingState(descriptor);
+        assertNull(state2.get(), "Different key should have independent state");
+
+        state2.add(100);
+        assertEquals(100.0, state2.get(), 0.001);
+
+        keyedBackend.setCurrentKey("key1");
+        state.clear();
+        assertNull(state.get(), "Clear should remove state");
     }
 }

@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
@@ -128,6 +129,43 @@ public class TestGraphExecutionPlan {
         assertEquals(2, invokables.size());
         assertNotNull(invokables.get("A"));
         assertNotNull(invokables.get("B"));
+    }
+
+    @Test
+    public void testPartitionerWiredThroughJobEdge() throws Exception {
+        IPartitioner<String> partitioner = (key, numPartitions) ->
+                Math.abs(key.hashCode()) % numPartitions;
+
+        JobGraph graph = new JobGraph("partitioner-test");
+        graph.addVertex(vertex("source"));
+        graph.addVertex(vertex("sink"));
+
+        JobEdge edgeWithPartitioner = new JobEdge("source", "sink",
+                ResultPartitionType.PIPELINED_BOUNDED, partitioner);
+        graph.addEdge(edgeWithPartitioner);
+
+        GraphExecutionPlan plan = GraphExecutionPlan.build(graph);
+
+        StreamTaskInvokable sourceInvokable = plan.getInvokables().get("source");
+        assertNotNull(sourceInvokable, "source invokable should exist");
+
+        RecordWriter<Object> writer = sourceInvokable.getOutputWriter();
+        assertNotNull(writer, "source should have a RecordWriter");
+
+        writer.emit(new StreamRecord<>("test-key-1"));
+        writer.emit(new StreamRecord<>("test-key-2"));
+        writer.close();
+
+        StreamTaskInvokable sinkInvokable = plan.getInvokables().get("sink");
+        assertNotNull(sinkInvokable);
+        InputGate inputGate = sinkInvokable.getInputGate();
+        assertNotNull(inputGate, "sink should have an InputGate");
+
+        int received = 0;
+        while (inputGate.read().isPresent()) {
+            received++;
+        }
+        assertEquals(2, received, "sink should receive both records");
     }
 
     private static class StubOperator implements StreamOperator<Object> {

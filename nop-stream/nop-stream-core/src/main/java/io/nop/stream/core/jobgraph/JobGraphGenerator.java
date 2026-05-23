@@ -8,6 +8,7 @@
 package io.nop.stream.core.jobgraph;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.graph.StreamEdge;
@@ -448,11 +449,10 @@ public class JobGraphGenerator implements Serializable {
                     // Create unique edge key to avoid duplicates
                     String edgeKey = sourceVertexId + "->" + targetVertexId;
                     if (!createdEdges.contains(edgeKey)) {
-                        // Determine partition type based on partitioner
                         ResultPartitionType partitionType = determinePartitionType(streamEdge);
+                        IPartitioner<?> partitioner = streamEdge.getPartitioner();
 
-                        // Create and add JobEdge
-                        JobEdge jobEdge = new JobEdge(sourceVertexId, targetVertexId, partitionType);
+                        JobEdge jobEdge = new JobEdge(sourceVertexId, targetVertexId, partitionType, partitioner);
                         jobGraph.addEdge(jobEdge);
 
                         createdEdges.add(edgeKey);
