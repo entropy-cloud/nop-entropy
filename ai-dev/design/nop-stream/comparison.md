@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-22
+> Updated: 2026-05-24
 
 ## 1. 设计定位
 
@@ -21,10 +21,11 @@
 
 | 维度 | Flink | nop-stream |
 |------|-------|------------|
-| 调度 | JobManager + TaskManager 分布式调度 | TaskExecutor（线程池） |
-| 并行 | 多 TaskManager 并行处理 | 多 Task 并行执行（基于线程池） |
-| 通信 | Netty RPC | BlockingQueue（进程内）+ RecordWriter/InputGate |
-| 部署 | YARN/K8s/Standalone | 嵌入式（作为库使用）或独立部署 |
+| 调度 | JobManager + TaskManager 分布式调度 | LOCAL: TaskExecutor（线程池）；DISTRIBUTED: IStreamExecutionDispatcher SPI + EmbeddedDistributedExecutor |
+| 并行 | 多 TaskManager 并行处理 | LOCAL: 多 Task 线程池并行；DISTRIBUTED: 多 TaskManager 实例并行 |
+| 通信 | Netty RPC | LOCAL: BlockingQueue；DISTRIBUTED: IMessageService + RemoteResultPartition/RemoteInputChannel |
+| 部署 | YARN/K8s/Standalone | 嵌入式（LOCAL 线程池 或 DISTRIBUTED 多 TaskManager）或独立部署 |
+| RPC | Akka/RPC 抽象 | IStreamTaskRpcService / IStreamCoordinatorRpcService 强类型接口 |
 | Checkpoint | 分布式 barrier 对齐 + 状态快照 | Barrier 对齐 + CheckpointCoordinator（统一执行路径） |
 | 故障恢复 | 基于 checkpoint 的 exactly-once | Checkpoint 恢复已实现（统一执行路径） |
 
@@ -103,8 +104,7 @@
 | 去除的 Flink 概念 | 原因 |
 |---|---|
 | 双流 Join（Interval/Window/Hash） | 复杂度极高，用例有限 |
-| JobManager / TaskManager 分布式调度 | 线程池模型足够 |
-| Netty RPC | 进程内 BlockingQueue 足够 |
+| ExecutionGraph（三层调度） | nop-stream 用 IStreamExecutionDispatcher SPI 替代，不需要 ExecutionVertex + ExecutionAttempt |
 | Key-group 重分布 | 当前不需要动态并行度调整 |
 | Slot sharing / slot sharing group | 不需要资源隔离 |
 | StreamTask / MailboxThread | 简化线程模型 |
@@ -128,6 +128,7 @@
 - ✅ CEP 模式匹配：基于 NFA 的复杂事件处理
 - ✅ Checkpoint 容错：Barrier 对齐 + 多数据库持久化
 - ✅ 多 Task 并行执行：基于线程池的 TaskExecutor
+- ✅ 分布式执行：DeploymentMode.DISTRIBUTED + IStreamExecutionDispatcher SPI，多 TaskManager 实例
 - ✅ 连接器：通过 nop-batch 桥接覆盖多种数据源
 - ✅ 嵌入式使用：作为 Java 库在应用内运行
 

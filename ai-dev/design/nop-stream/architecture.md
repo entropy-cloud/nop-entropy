@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-23
+> Updated: 2026-05-24
 
 ## 1. 定位与设计目标
 
@@ -160,20 +160,30 @@ StreamModel
 
 ```
 execute(jobName)
-  ├── 收集所有 SinkTransformation
-  ├── 构建 StreamModel（含 StreamComponents）
-  ├── StreamGraphGenerator.generate() → StreamGraph
-  ├── JobGraphGenerator.generate() → JobGraph（算子链融合优化）
-  ├── PartitionedPlanGenerator.generate() → PartitionedPlan（并行展开、状态分片、分区策略）
-  ├── DeploymentPlanGenerator.generate() → DeploymentPlan（节点映射、transport、资源配置）
-  └── 提交到 TaskExecutor 执行
-       └── StreamTaskInvokable
-            ├── wire operators（ChainingOutput 串联）
-            ├── open() 所有算子
-            ├── source.run() 推数据
-            ├── MAX_WATERMARK 触发最终窗口计算
-            └── close() 所有算子
+   ├── 收集所有 SinkTransformation
+   ├── 构建 StreamModel（含 StreamComponents）
+   ├── StreamGraphGenerator.generate() → StreamGraph
+   ├── JobGraphGenerator.generate() → JobGraph（算子链融合优化）
+   ├── PartitionedPlanGenerator.generate() → PartitionedPlan
+   ├── DeploymentPlanGenerator.generate() → DeploymentPlan
+   └── 根据 DeploymentMode 分发执行
+        ├── LOCAL → GraphExecutionPlan → TaskExecutor
+        │     └── StreamTaskInvokable
+        │          ├── wire operators（ChainingOutput 串联）
+        │          ├── open() 所有算子
+        │          ├── source.run() 推数据
+        │          ├── MAX_WATERMARK 触发最终窗口计算
+        │          └── close() 所有算子
+        └── DISTRIBUTED → IStreamExecutionDispatcher.execute()
+             └── EmbeddedDistributedExecutor
+                  ├── 创建 JobCoordinator（持有 canonical plan）
+                  ├── 创建 N 个 TaskManager（各自持有 TaskExecutor）
+                  ├── 将 TaskManager 注册为 IStreamTaskRpcService
+                  ├── RemoteGraphExecutionPlanBuilder 构建跨节点执行计划
+                  └── JobCoordinator 分发 subtask 到各 TaskManager
 ```
+
+`DeploymentMode` 枚举（`LOCAL` / `DISTRIBUTED`）定义在 core 模块。`IStreamExecutionDispatcher` SPI 接口由 runtime 模块实现，`StreamExecutionEnvironment.execute()` 通过 `executionDispatcher` 字段路由到正确的执行器。
 
 ### 4.5 CEP 独立执行路径
 
@@ -195,6 +205,35 @@ Collection<Map<String, List<Transaction>>> matches = nfa.process(event, timestam
 ## 5. 分布式控制面契约
 
 nop-stream 需要最小分布式控制面契约，保证 `DeploymentPlan` 能被可靠下发、执行、监控和恢复。不复制 Flink 的控制面结构，但 task attempt、lease、assignment、fencing 这些分布式正确性概念不能省略。
+
+### 5.0 三面架构
+
+分布式执行采用三面分离架构：
+
+| 面 | 职责 | 传输方式 |
+|---|---|---|
+| **控制面** | 作业调度、task 分配、cancel、状态查询 | `IStreamTaskRpcService` / `IStreamCoordinatorRpcService` 强类型接口 |
+| **数据面** | 记录传输、barrier 传播、watermark 传播 | `IMessageService` + RemoteResultPartition / RemoteInputChannel |
+| **编排面** | Invokable 安装、算子链配置 | 直接 Java 调用（同进程内） |
+
+**控制面接口**：
+
+```java
+// TaskManager 暴露给 Coordinator 的服务接口
+interface IStreamTaskRpcService {
+    void submitTask(Subtask subtask);
+    void cancelTask(String vertexId, int taskIndex);
+    TaskState getTaskState(String vertexId, int taskIndex);
+}
+
+// Coordinator 暴露给 TaskManager 的服务接口
+interface IStreamCoordinatorRpcService {
+    void registerTaskManager(String nodeId, IStreamTaskRpcService taskRpcService);
+    void unregisterTaskManager(String nodeId);
+}
+```
+
+**关键设计决策**：不使用适配器模式包装 `IRpcService`。`TaskManager IS-A IStreamTaskRpcService`，`JobCoordinator IS-A IStreamCoordinatorRpcService`。嵌入式模式下直接 Java 调用；分布式模式下由 Nop RPC 框架生成远程代理。
 
 ### 5.1 控制面角色
 

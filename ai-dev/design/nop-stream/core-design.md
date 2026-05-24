@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-23
+> Updated: 2026-05-24
 
 ## 1. DataStream API 设计
 
@@ -53,6 +53,47 @@ Transformation 通过 `getInputs()` 构成 DAG。执行时从 Sink 回溯到 Sou
 - 用户必须显式调用 `env.execute()` 触发执行，`addSink()` / `print()` 只注册 Transformation
 - `env.execute()` 只能调用一次（设 `executed = true` 防止重复）
 - `map()` 和 `flatMap()` 的输出类型信息当前为 `UnknownTypeInformation`，不影响运行时，但类型检查不完整
+
+### 1.5 执行分发：StreamExecutionEnvironment
+
+`StreamExecutionEnvironment` 是所有流处理程序的入口，负责收集 Transformation DAG 并在 `execute()` 时分发到正确的执行后端。
+
+**核心字段**：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `deploymentMode` | `DeploymentMode` | LOCAL（线程池）或 DISTRIBUTED（多 TaskManager） |
+| `executionDispatcher` | `IStreamExecutionDispatcher` | 执行分发 SPI，runtime 模块实现 |
+
+**`execute()` 的四路分发**：
+
+```
+execute(jobName)
+   ├── 构建 StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
+   ├── 如果 executionDispatcher != null
+   │   └── executionDispatcher.execute(jobGraph, partitionedPlan, deploymentPlan)
+   ├── 否则如果 deploymentMode == DISTRIBUTED
+   │   └── EmbeddedDistributedExecutor（自动创建 N 个 TaskManager + JobCoordinator）
+   ├── 否则
+   │   └── GraphExecutionPlan → TaskExecutor（LOCAL 线程池模式）
+   └── 返回 StreamExecutionResult
+```
+
+**`DeploymentMode` 枚举**（core 模块）：
+
+| 值 | 语义 |
+|---|---|
+| `LOCAL` | 单进程线程池执行，TaskExecutor 管理 |
+| `DISTRIBUTED` | 多 TaskManager 实例，通过 IStreamExecutionDispatcher 分发 |
+
+**`IStreamExecutionDispatcher` SPI**（core 模块定义，runtime 实现）：
+
+```java
+interface IStreamExecutionDispatcher {
+    boolean supportsDeploymentMode(DeploymentMode mode);
+    StreamExecutionResult execute(JobGraph, PartitionedPlan, DeploymentPlan) throws Exception;
+}
+```
 
 ## 2. StreamModel 与 StreamComponents
 

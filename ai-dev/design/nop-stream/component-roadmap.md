@@ -1,7 +1,7 @@
 # nop-stream 组件分解与开发路线
 
 > Status: active
-> Created: 2026-05-21
+> Updated: 2026-05-24
 > Parent: `ai-dev/design/nop-stream/README.md`
 
 ---
@@ -31,14 +31,36 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 | C5 | **Checkpoint** | nop-stream-core (checkpoint 包) + nop-stream-runtime (checkpoint 包) | Barrier 传播、协调器、持久化存储（基于 IJdbcTemplate 多数据库） | 依赖 C3, C4 |
 | C6 | **CEP 引擎** | nop-stream-cep | NFA 编译、SharedBuffer、Pattern API、声明式模型 | 依赖 C1, nop-xlang |
 
-### 2.2 连接器与集成组件
+### 2.2 分布式运行时组件
+
+> **Updated: 2026-05-24** — Plan 47 已实现核心分布式执行框架。
+
+| # | 组件 | 对应模块 | 职责 | 状态 |
+|---|------|---------|------|------|
+| D1 | **DeploymentMode + IStreamExecutionDispatcher** | nop-stream-core (execution 包) | 部署模式枚举 + 执行分发 SPI 接口 | ✅ 已实现 |
+| D2 | **SubtaskTask** | nop-stream-core (execution 包) | 分布式模式下按 Subtask 实例执行的 Task 变体 | ✅ 已实现 |
+| D3 | **IStreamTaskRpcService** | nop-stream-runtime (rpc 包) | TaskManager 暴露给 Coordinator 的强类型控制面接口 | ✅ 已实现 |
+| D4 | **IStreamCoordinatorRpcService** | nop-stream-runtime (rpc 包) | Coordinator 暴露给 TaskManager 的强类型控制面接口 | ✅ 已实现 |
+| D5 | **TaskManager** | nop-stream-runtime (taskmanager 包) | 管理本节点 TaskExecutor，实现 IStreamTaskRpcService | ✅ 已实现 |
+| D6 | **JobCoordinator** | nop-stream-runtime (coordinator 包) | 持有 canonical plan，分发 subtask，实现 IStreamCoordinatorRpcService | ✅ 已实现 |
+| D7 | **EmbeddedDistributedExecutor** | nop-stream-runtime (execution 包) | 嵌入式分布式执行器，创建 N 个 TaskManager + JobCoordinator | ✅ 已实现 |
+| D8 | **InMemoryClusterRegistry** | nop-stream-runtime (cluster 包) | 嵌入式模式下的集群注册表（CoordinatorInfo、NodeInfo、LeaseInfo） | ✅ 已实现 |
+| D9 | **RemoteGraphExecutionPlanBuilder** | nop-stream-runtime (execution 包) | 构建跨节点的 RemoteGraphExecutionPlan | ✅ 已实现 |
+
+**设计要点**：
+- 不使用适配器模式——`TaskManager IS-A IStreamTaskRpcService`，`JobCoordinator IS-A IStreamCoordinatorRpcService`
+- 嵌入式分布式模式下，TaskManager 和 JobCoordinator 在同一 JVM 内通过直接 Java 调用通信
+- 真正分布式部署时，由 Nop RPC 框架为接口生成远程代理
+- SourceEnumerator（split-based source）延迟到后续 Plan 实现
+
+### 2.3 连接器与集成组件
 
 | # | 组件 | 对应模块 | 职责 | 依赖 |
 |---|------|---------|------|------|
 | C7 | **连接器** | nop-stream-connector | Source/Sink 适配：nop-batch Loader/Consumer、IMessageService、Debezium CDC | 依赖 C1, nop-batch-core |
 | C8 | **欺诈检测示例** | nop-stream-fraud-example | 端到端使用范例 | 依赖 C6 |
 
-### 2.3 规划组件（保留 pom 占位）
+### 2.4 规划组件（保留 pom 占位）
 
 | # | 组件 | 对应模块 | 规划职责 |
 |---|------|---------|---------|
@@ -47,7 +69,7 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 | P3 | **Flink 后端** | nop-stream-flink | 将 Transformation 映射到 Flink DataStream |
 | P4 | **流编排** | nop-stream-flow | 基于 XLang DSL 的声明式流任务编排 |
 
-### 2.4 依赖关系
+### 2.5 依赖关系
 
 ```
         ┌─────────────────────────────────────────┐
