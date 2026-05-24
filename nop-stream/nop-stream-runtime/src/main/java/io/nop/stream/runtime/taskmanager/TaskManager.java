@@ -15,11 +15,14 @@ import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
+import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
+import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.transport.RemoteInputChannel;
 import io.nop.stream.runtime.transport.RemoteResultPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * rejects any operation carrying an old fencing token.
  */
 @Internal
-public class TaskManager {
+public class TaskManager implements IStreamTaskRpcService {
 
     private static final Logger LOG = LoggerFactory.getLogger(TaskManager.class);
 
@@ -63,11 +66,17 @@ public class TaskManager {
     /** fencingToken → RunningTask */
     private final ConcurrentHashMap<String, RunningTask> runningTasks;
 
+    /** taskKey → TaskResult for completed tasks */
+    private final ConcurrentHashMap<String, TaskResult> completedTasks;
+
     /** The currently active fencing token for this node (updated on global recovery) */
     private final AtomicReference<String> currentFencingToken;
 
-    /** Control topic for sending ACKs and status back to coordinator */
+    /** Control topic for sending ACKs via message service (fallback when no RPC service) */
     private final String controlTopic;
+
+    /** RPC service for sending ACKs directly to coordinator */
+    private volatile IStreamCoordinatorRpcService coordinatorRpcService;
 
     private volatile boolean running;
 
@@ -90,6 +99,7 @@ public class TaskManager {
             return t;
         });
         this.runningTasks = new ConcurrentHashMap<>();
+        this.completedTasks = new ConcurrentHashMap<>();
         this.currentFencingToken = new AtomicReference<>();
         this.running = false;
     }
@@ -167,6 +177,7 @@ public class TaskManager {
      *
      * @param assignment the task assignment from the coordinator
      */
+    @Override
     public void receiveAssignment(TaskAssignment assignment) {
         if (!running) {
             LOG.warn("TaskManager {} not running, rejecting assignment", nodeId);
@@ -246,8 +257,8 @@ public class TaskManager {
      * @param barrier       the checkpoint barrier
      * @param fencingToken  the fencing token of the current epoch
      */
-    public void handleCheckpointSignal(CheckpointBarrier barrier, String fencingToken) {
-        // Fencing check
+    @Override
+    public void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken) {
         String activeToken = currentFencingToken.get();
         if (activeToken != null && !activeToken.equals(fencingToken)) {
             LOG.warn("Ignoring checkpoint signal with stale fencing token");
@@ -258,6 +269,18 @@ public class TaskManager {
             if (task.getFencingToken().equals(fencingToken)) {
                 task.triggerCheckpoint(barrier);
             }
+        }
+    }
+
+    @Override
+    public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
+        String taskKey = taskKey(jobId, vertexId, subtaskIndex);
+        RunningTask task = runningTasks.remove(taskKey);
+        if (task != null) {
+            task.cancel();
+            LOG.info("Canceled task {}/{}/{}", jobId, vertexId, subtaskIndex);
+        } else {
+            LOG.warn("No running task to cancel for {}/{}/{}", jobId, vertexId, subtaskIndex);
         }
     }
 
@@ -275,7 +298,11 @@ public class TaskManager {
                 currentFencingToken.get());
 
         try {
-            messageService.send(controlTopic, ack);
+            if (coordinatorRpcService != null) {
+                coordinatorRpcService.receiveCheckpointAck(ack);
+            } else {
+                messageService.send(controlTopic, ack);
+            }
             LOG.debug("Sent checkpoint ACK for checkpoint {} from {}",
                     checkpointId, snapshot.getTaskLocation());
         } catch (Exception e) {
@@ -311,8 +338,16 @@ public class TaskManager {
         return nodeId;
     }
 
+    public void setCoordinatorRpcService(IStreamCoordinatorRpcService coordinatorRpcService) {
+        this.coordinatorRpcService = coordinatorRpcService;
+    }
+
     public int getRunningTaskCount() {
         return runningTasks.size();
+    }
+
+    public Map<String, TaskResult> getCompletedTaskResults() {
+        return Collections.unmodifiableMap(completedTasks);
     }
 
     public boolean isRunning() {
@@ -345,6 +380,7 @@ public class TaskManager {
         private volatile StreamTaskInvokable invokable;
         private volatile Future<?> future;
         private volatile boolean canceled;
+        private volatile Throwable error;
 
         public RunningTask(String jobId, String vertexId, int subtaskIndex,
                            String fencingToken, String attemptId) {
@@ -380,10 +416,14 @@ public class TaskManager {
                 }
             } catch (Exception e) {
                 if (!canceled) {
+                    this.error = e;
                     LOG.error("Task {}/{}/{} failed", jobId, vertexId, subtaskIndex, e);
                 }
             } finally {
-                runningTasks.remove(taskKey(jobId, vertexId, subtaskIndex));
+                String key = taskKey(jobId, vertexId, subtaskIndex);
+                completedTasks.put(key, new TaskResult(jobId, vertexId, subtaskIndex,
+                        error == null && !canceled, canceled, error));
+                runningTasks.remove(key);
             }
         }
 
@@ -441,5 +481,31 @@ public class TaskManager {
         public String getVertexId() { return vertexId; }
         public int getSubtaskIndex() { return subtaskIndex; }
         public TaskLocation getTaskLocation() { return taskLocation; }
+    }
+
+    public static class TaskResult {
+        private final String jobId;
+        private final String vertexId;
+        private final int subtaskIndex;
+        private final boolean success;
+        private final boolean canceled;
+        private final Throwable error;
+
+        public TaskResult(String jobId, String vertexId, int subtaskIndex,
+                          boolean success, boolean canceled, Throwable error) {
+            this.jobId = jobId;
+            this.vertexId = vertexId;
+            this.subtaskIndex = subtaskIndex;
+            this.success = success;
+            this.canceled = canceled;
+            this.error = error;
+        }
+
+        public String getJobId() { return jobId; }
+        public String getVertexId() { return vertexId; }
+        public int getSubtaskIndex() { return subtaskIndex; }
+        public boolean isSuccess() { return success; }
+        public boolean isCanceled() { return canceled; }
+        public Throwable getError() { return error; }
     }
 }

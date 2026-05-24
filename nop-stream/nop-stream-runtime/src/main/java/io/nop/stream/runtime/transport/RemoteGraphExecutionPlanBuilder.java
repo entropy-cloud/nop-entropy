@@ -147,7 +147,9 @@ public class RemoteGraphExecutionPlanBuilder {
             List<Subtask> vertexSubtasks = new ArrayList<>(parallelism);
 
             for (int taskIndex = 0; taskIndex < parallelism; taskIndex++) {
-                OperatorChain chain = original.getOperatorChains().get(0);
+                OperatorChain chain = taskIndex == 0
+                        ? original.getOperatorChains().get(0)
+                        : original.getOperatorChains().get(0).deepCopy();
 
                 RecordWriter<Object> recordWriter = null;
                 InputGate inputGate = null;

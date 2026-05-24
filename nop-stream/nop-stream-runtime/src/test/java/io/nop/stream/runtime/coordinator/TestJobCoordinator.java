@@ -85,7 +85,7 @@ class TestJobCoordinator {
         coordinator = new JobCoordinator(
                 JOB_ID, COORDINATOR_ID, deploymentPlan,
                 clusterRegistry, messageService, checkpointCoordinator,
-                CONTROL_TOPIC);
+                null, CONTROL_TOPIC);
     }
 
     @AfterEach

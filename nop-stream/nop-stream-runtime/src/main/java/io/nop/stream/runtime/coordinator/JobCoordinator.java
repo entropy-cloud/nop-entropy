@@ -16,6 +16,8 @@ import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
+import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
+import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * </ol>
  */
 @Internal
-public class JobCoordinator {
+public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     private static final Logger LOG = LoggerFactory.getLogger(JobCoordinator.class);
 
@@ -63,6 +65,7 @@ public class JobCoordinator {
     private final ClusterRegistry clusterRegistry;
     private final IMessageService messageService;
     private final CheckpointCoordinator checkpointCoordinator;
+    private final Map<String, IStreamTaskRpcService> taskRpcServices;
 
     /** The current fencing token for this job execution epoch */
     private final AtomicReference<String> fencingToken;
@@ -91,6 +94,7 @@ public class JobCoordinator {
                           ClusterRegistry clusterRegistry,
                           IMessageService messageService,
                           CheckpointCoordinator checkpointCoordinator,
+                          Map<String, IStreamTaskRpcService> taskRpcServices,
                           String controlTopic) {
         this.jobId = jobId;
         this.coordinatorId = coordinatorId;
@@ -98,6 +102,7 @@ public class JobCoordinator {
         this.clusterRegistry = clusterRegistry;
         this.messageService = messageService;
         this.checkpointCoordinator = checkpointCoordinator;
+        this.taskRpcServices = taskRpcServices != null ? taskRpcServices : Collections.emptyMap();
         this.controlTopic = controlTopic;
         this.fencingToken = new AtomicReference<>();
         this.taskAssignmentMap = new ConcurrentHashMap<>();
@@ -122,9 +127,12 @@ public class JobCoordinator {
             return;
         }
 
-        // Generate initial fencing token
-        String token = UUID.randomUUID().toString();
-        fencingToken.set(token);
+        // Use existing fencing token if already set via setFencingToken(), otherwise generate new one
+        String token = fencingToken.get();
+        if (token == null) {
+            token = UUID.randomUUID().toString();
+            fencingToken.set(token);
+        }
 
         // Register coordinator in the registry
         clusterRegistry.registerCoordinator(jobId, coordinatorId, token);
@@ -210,17 +218,17 @@ public class JobCoordinator {
                             targetNode.getNodeId(), attemptId, token,
                             System.currentTimeMillis());
 
-                    // Record in ClusterRegistry
                     clusterRegistry.assignTask(
                             jobId, vertexId, subtaskIndex,
                             targetNode.getNodeId(), attemptId, token);
 
-                    // Send assignment message via control topic
-                    TaskAssignmentMessage msg = new TaskAssignmentMessage(assignment, targetNode.getNodeId());
-                    try {
+                    IStreamTaskRpcService rpc = taskRpcServices.get(targetNode.getNodeId());
+                    if (rpc != null) {
+                        rpc.receiveAssignment(assignment);
+                    } else {
+                        LOG.warn("No RPC service for node {}, sending via control topic", targetNode.getNodeId());
+                        TaskAssignmentMessage msg = new TaskAssignmentMessage(assignment, targetNode.getNodeId());
                         messageService.send(controlTopic, msg);
-                    } catch (Exception e) {
-                        LOG.error("Failed to send assignment message for {}/{}", vertexId, subtaskIndex, e);
                     }
 
                     vertexAssignments.add(assignment);
@@ -270,16 +278,24 @@ public class JobCoordinator {
                 pending.getTriggerTimestamp(),
                 pending.getCheckpointType());
 
-        CheckpointBarrierSignal signal = new CheckpointBarrierSignal(
-                barrier, fencingToken.get(), jobId);
+        String token = fencingToken.get();
 
-        try {
-            messageService.send(controlTopic, signal);
-            LOG.info("Sent checkpoint barrier signal for checkpoint {} to {} tasks",
-                    pending.getCheckpointId(), allTaskLocations.size());
-        } catch (Exception e) {
-            LOG.error("Failed to send checkpoint barrier signal", e);
-            checkpointCoordinator.abortPendingCheckpoint(pending, "Failed to send barrier signal");
+        if (!taskRpcServices.isEmpty()) {
+            for (Map.Entry<String, IStreamTaskRpcService> entry : taskRpcServices.entrySet()) {
+                try {
+                    entry.getValue().triggerCheckpoint(barrier, token);
+                } catch (Exception e) {
+                    LOG.error("Failed to send checkpoint signal to node {}", entry.getKey(), e);
+                }
+            }
+        } else {
+            CheckpointBarrierSignal signal = new CheckpointBarrierSignal(barrier, token, jobId);
+            try {
+                messageService.send(controlTopic, signal);
+            } catch (Exception e) {
+                LOG.error("Failed to send checkpoint barrier signal", e);
+                checkpointCoordinator.abortPendingCheckpoint(pending, "Failed to send barrier signal");
+            }
         }
 
         return pending;
@@ -318,6 +334,11 @@ public class JobCoordinator {
         }
 
         return accepted;
+    }
+
+    @Override
+    public void receiveCheckpointAck(CheckpointAckMessage ack) {
+        collectAck(ack);
     }
 
     /**
@@ -542,6 +563,10 @@ public class JobCoordinator {
 
     public String getFencingToken() {
         return fencingToken.get();
+    }
+
+    public void setFencingToken(String token) {
+        fencingToken.set(token);
     }
 
     public boolean isRunning() {
