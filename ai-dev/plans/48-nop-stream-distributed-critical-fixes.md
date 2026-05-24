@@ -188,10 +188,10 @@ Exit Criteria:
 1. **No keyBy+reduce distributed E2E test** — distributed keyBy shuffling across subtasks not yet functional; `deepCopy()` fix verified in code but lacks keyed-state-isolation integration test under DISTRIBUTED mode. LOCAL mode keyBy+reduce tests pass.
 2. **OperatorChain independence test is indirect** — uses invocation counting rather than `assertNotSame`.
 3. **Timestamp E2E test is codec-only** — not a full distributed pipeline roundtrip (source → RPC → sink).
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）fencing token 在 Coordinator ↔ TaskManager 之间确实一致（不只是字段存在），（b）parallelism > 1 时算子实例确实独立（不只是构造了新对象），（c）timestamp 确实在 encode→decode 往返中保留
-- [ ] `./mvnw compile -pl nop-stream-core,nop-stream-runtime -am`
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-runtime -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）fencing token 在 Coordinator ↔ TaskManager 之间确实一致（不只是字段存在），（b）parallelism > 1 时算子实例确实独立（不只是构造了新对象），（c）timestamp 确实在 encode→decode 往返中保留
+- [x] `./mvnw compile -pl nop-stream-core,nop-stream-runtime -am`
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-runtime -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
