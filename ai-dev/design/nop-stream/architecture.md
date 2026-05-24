@@ -214,26 +214,33 @@ nop-stream 需要最小分布式控制面契约，保证 `DeploymentPlan` 能被
 |---|---|---|
 | **控制面** | 作业调度、task 分配、cancel、状态查询 | `IStreamTaskRpcService` / `IStreamCoordinatorRpcService` 强类型接口 |
 | **数据面** | 记录传输、barrier 传播、watermark 传播 | `IMessageService` + RemoteResultPartition / RemoteInputChannel |
-| **编排面** | Invokable 安装、算子链配置 | 直接 Java 调用（同进程内） |
+| **编排面** | Invokable 安装、算子链配置 | 同进程：直接 Java 调用；跨进程：各节点 Bean 容器本地构建，编排面只下发 DSL/plan 描述 |
 
 **控制面接口**：
 
 ```java
-// TaskManager 暴露给 Coordinator 的服务接口
+// TaskManager 暴露给 Coordinator 的服务接口（仅含可序列化参数）
 interface IStreamTaskRpcService {
-    void submitTask(Subtask subtask);
-    void cancelTask(String vertexId, int taskIndex);
-    TaskState getTaskState(String vertexId, int taskIndex);
+    void receiveAssignment(TaskAssignment assignment);
+    void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken);
+    void cancelTask(String jobId, String vertexId, int subtaskIndex);
 }
 
 // Coordinator 暴露给 TaskManager 的服务接口
 interface IStreamCoordinatorRpcService {
-    void registerTaskManager(String nodeId, IStreamTaskRpcService taskRpcService);
-    void unregisterTaskManager(String nodeId);
+    void receiveCheckpointAck(CheckpointAckMessage ack);
 }
 ```
 
 **关键设计决策**：不使用适配器模式包装 `IRpcService`。`TaskManager IS-A IStreamTaskRpcService`，`JobCoordinator IS-A IStreamCoordinatorRpcService`。嵌入式模式下直接 Java 调用；分布式模式下由 Nop RPC 框架生成远程代理。
+
+**跨 JVM 编排面设计**：`StreamTaskInvokable` 包含 live operator 对象，不可跨进程序列化传输。跨 JVM 部署不依赖 invokable 序列化，而是基于以下机制：
+
+1. **DSL 驱动**：引擎执行 DSL（XLang StreamModel），各节点从 DSL 构建本地的 StreamGraph → JobGraph → OperatorChain，无需跨进程传输 invokable 对象。
+2. **Bean 容器**：NopIoC 容器中注册了所需的 operator、source、sink 等 bean，各节点通过容器获取依赖，本地构建完整的执行单元。
+3. **编排面只传 plan 描述**：跨 JVM 时编排面不下发 invokable 对象，只下发 `PartitionedPlan` / `DeploymentPlan` 描述（可序列化），各节点根据描述从 Bean 容器构建对应的执行实例。
+
+因此 invokable 的生命周期始终是节点本地的，跨 JVM 通信仅发生在控制面（RPC）和数据面（IMessageService）。
 
 ### 5.1 控制面角色
 
