@@ -103,7 +103,7 @@ public class TestTaskExecutor {
 
     @Test
     public void testSubmitNullTask() {
-        assertThrows(IllegalArgumentException.class, () -> taskExecutor.submitTask(null));
+        assertThrows(IllegalArgumentException.class, () -> taskExecutor.submitTask((Task) null));
     }
 
     @Test

@@ -48,7 +48,8 @@ public class StreamElementCodec {
             String effectiveType = valueType != null ? valueType
                     : (record.getValue() != null ? record.getValue().getClass().getName() : null);
             return new StreamMessageEnvelope(fencingToken, epochId,
-                    StreamMessageEnvelope.TYPE_STREAM_RECORD, effectiveType, serializedPayload);
+                    StreamMessageEnvelope.TYPE_STREAM_RECORD, effectiveType, serializedPayload,
+                    record.getTimestamp(), record.hasTimestamp());
         }
 
         if (element.isCheckpointBarrier()) {
@@ -99,7 +100,11 @@ public class StreamElementCodec {
                         throw new RuntimeException("Failed to load valueType class: " + envelope.getValueType(), e);
                     }
                 }
-                return new StreamRecord<>(value);
+                if (envelope.isHasTimestamp()) {
+                    return new StreamRecord<>(value, envelope.getTimestamp());
+                } else {
+                    return new StreamRecord<>(value);
+                }
             }
 
             case StreamMessageEnvelope.TYPE_CHECKPOINT_BARRIER: {

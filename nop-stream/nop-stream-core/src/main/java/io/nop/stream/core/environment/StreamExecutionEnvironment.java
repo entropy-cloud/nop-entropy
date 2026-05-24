@@ -13,10 +13,13 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.datastream.DataStreamSource;
 import io.nop.stream.core.datastream.SingleOutputStreamOperatorImpl;
+import io.nop.stream.core.execution.DeploymentMode;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.ICheckpointExecutorFactory;
 import io.nop.stream.core.execution.IDeploymentPlanProvider;
-import io.nop.stream.core.execution.Task;
+import io.nop.stream.core.execution.IStreamExecutionDispatcher;
+import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.SubtaskTask;
 import io.nop.stream.core.execution.TaskExecutor;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -56,6 +59,10 @@ public class StreamExecutionEnvironment {
     private static ICheckpointExecutorFactory defaultCheckpointExecutorFactory;
 
     private ICheckpointExecutorFactory checkpointExecutorFactory;
+
+    private DeploymentMode deploymentMode = DeploymentMode.LOCAL;
+
+    private IStreamExecutionDispatcher executionDispatcher;
 
     public static StreamExecutionEnvironment getExecutionEnvironment() {
         return new StreamExecutionEnvironment();
@@ -121,6 +128,27 @@ public class StreamExecutionEnvironment {
 
     public ICheckpointExecutorFactory getCheckpointExecutorFactory() {
         return checkpointExecutorFactory;
+    }
+
+    public StreamExecutionEnvironment setDeploymentMode(DeploymentMode deploymentMode) {
+        if (deploymentMode == null) {
+            throw new IllegalArgumentException("DeploymentMode cannot be null");
+        }
+        this.deploymentMode = deploymentMode;
+        return this;
+    }
+
+    public DeploymentMode getDeploymentMode() {
+        return deploymentMode;
+    }
+
+    public StreamExecutionEnvironment setExecutionDispatcher(IStreamExecutionDispatcher dispatcher) {
+        this.executionDispatcher = dispatcher;
+        return this;
+    }
+
+    public IStreamExecutionDispatcher getExecutionDispatcher() {
+        return executionDispatcher;
     }
 
     @SafeVarargs
@@ -214,22 +242,37 @@ public class StreamExecutionEnvironment {
                 return result;
             }
 
+            if (deploymentMode == DeploymentMode.DISTRIBUTED && executionDispatcher != null) {
+                StreamExecutionResult result = executionDispatcher.execute(
+                    jobGraph, partitionedPlan, deploymentPlan);
+                executed = true;
+                return result;
+            }
+
+            if (deploymentMode == DeploymentMode.DISTRIBUTED && executionDispatcher == null) {
+                throw new IllegalStateException(
+                    "DISTRIBUTED mode requires an IStreamExecutionDispatcher. "
+                  + "Ensure the runtime module is on the classpath and the dispatcher has been configured.");
+            }
+
             GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan);
 
             TaskExecutor executor = new TaskExecutor();
-            List<Task> tasks = new ArrayList<>();
+            List<SubtaskTask> subtaskTasks = new ArrayList<>();
 
             for (String vertexId : plan.getSortedVertexIds()) {
-                JobVertex vertex = plan.getExecutionVertices().get(vertexId);
-                Task task = new Task(vertex, 0);
-                tasks.add(task);
-                executor.submitTask(task);
+                List<Subtask> vertexSubtasks = plan.getSubtasks(vertexId);
+                for (Subtask subtask : vertexSubtasks) {
+                    SubtaskTask subtaskTask = new SubtaskTask(subtask, plan.getExecutionVertices().get(vertexId));
+                    subtaskTasks.add(subtaskTask);
+                    executor.submitTask(subtaskTask);
+                }
             }
 
             executor.awaitCompletion();
 
-            for (Task task : tasks) {
-                if (task.getState() == Task.State.FAILED) {
+            for (SubtaskTask task : subtaskTasks) {
+                if (task.getState() == SubtaskTask.State.FAILED) {
                     throw new RuntimeException("Task failed", task.getError());
                 }
             }

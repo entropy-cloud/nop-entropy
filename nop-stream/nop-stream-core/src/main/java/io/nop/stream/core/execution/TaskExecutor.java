@@ -187,6 +187,29 @@ public class TaskExecutor {
     }
 
     /**
+     * Submits a SubtaskTask for execution.
+     *
+     * @param subtaskTask the subtask task to submit (must not be null)
+     * @throws IllegalArgumentException if subtaskTask is null
+     * @throws IllegalStateException if executor has been shut down
+     */
+    public void submitTask(SubtaskTask subtaskTask) {
+        if (subtaskTask == null) {
+            throw new IllegalArgumentException("SubtaskTask cannot be null");
+        }
+
+        if (isShutdown.get()) {
+            throw new IllegalStateException("TaskExecutor has been shut down");
+        }
+
+        String taskId = subtaskTask.getTaskName();
+        Future<?> future = executorService.submit(subtaskTask);
+        taskFutures.put(taskId, future);
+
+        LOG.info("Submitted subtask task: {}", subtaskTask.getTaskName());
+    }
+
+    /**
      * Gets a task by its vertex ID and task index.
      *
      * @param vertexId the vertex ID

@@ -44,15 +44,28 @@ public class StreamMessageEnvelope implements Serializable {
     /** 序列化后的载荷数据 */
     private Object payload;
 
+    /** StreamRecord 的时间戳（仅 STREAM_RECORD 使用） */
+    private long timestamp;
+
+    /** StreamRecord 是否设置了时间戳（仅 STREAM_RECORD 使用） */
+    private boolean hasTimestamp;
+
     public StreamMessageEnvelope() {
     }
 
     public StreamMessageEnvelope(String fencingToken, long epochId, String type, String valueType, Object payload) {
+        this(fencingToken, epochId, type, valueType, payload, 0, false);
+    }
+
+    public StreamMessageEnvelope(String fencingToken, long epochId, String type, String valueType,
+                                  Object payload, long timestamp, boolean hasTimestamp) {
         this.fencingToken = fencingToken;
         this.epochId = epochId;
         this.type = type;
         this.valueType = valueType;
         this.payload = payload;
+        this.timestamp = timestamp;
+        this.hasTimestamp = hasTimestamp;
     }
 
     public String getFencingToken() {
@@ -93,6 +106,22 @@ public class StreamMessageEnvelope implements Serializable {
 
     public void setPayload(Object payload) {
         this.payload = payload;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public boolean isHasTimestamp() {
+        return hasTimestamp;
+    }
+
+    public void setHasTimestamp(boolean hasTimestamp) {
+        this.hasTimestamp = hasTimestamp;
     }
 
     @Override

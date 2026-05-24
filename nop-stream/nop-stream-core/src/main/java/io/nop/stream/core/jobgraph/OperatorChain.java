@@ -9,6 +9,11 @@ package io.nop.stream.core.jobgraph;
 
 import io.nop.stream.core.common.functions.KeySelector;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -206,5 +211,28 @@ public class OperatorChain implements Serializable {
 
     public List<KeySelector<?, ?>> getKeySelectors() {
         return Collections.unmodifiableList(keySelectors);
+    }
+
+    /**
+     * Creates a deep copy of this OperatorChain using Java serialization.
+     * Each parallel task instance must have its own OperatorChain to avoid shared mutable state.
+     *
+     * @return a new OperatorChain with independent copies of all operators
+     * @throws RuntimeException if serialization fails (e.g., operators contain non-serializable state)
+     */
+    public OperatorChain deepCopy() {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+                oos.writeObject(this);
+            }
+            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            try (ObjectInputStream ois = new ObjectInputStream(bais)) {
+                return (OperatorChain) ois.readObject();
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException("Failed to deep-copy OperatorChain. " +
+                    "Ensure all operators and their state are Serializable.", e);
+        }
     }
 }
