@@ -63,7 +63,7 @@ Direct 路径的并行度 bug：`execute()` 第 222-227 行遍历 `plan.getSorte
 ## Non-Goals
 
 - IRpcService / IMessageService 的具体传输实现（由 IoC 配置）
-- 跨 JVM 独立进程部署（需要 invokable 序列化，后续计划）
+- 跨 JVM 独立进程部署（需要 Bean 容器提供所需 bean + DSL 引擎，后续计划）
 - Coordinator HA / leader election
 - 二进制序列化、CREDIT_BASED 流控、rescale
 
@@ -76,7 +76,7 @@ Direct 路径的并行度 bug：`execute()` 第 222-227 行遍历 `plan.getSorte
 
 ### Out Of Scope
 
-- 跨 JVM 部署（invokable 序列化机制）
+- 跨 JVM 部署（Bean 容器 + DSL 引擎）
 - HA / leader election
 - 流控优化
 
@@ -179,7 +179,7 @@ Exit Criteria:
 
 - [x] `EmbeddedDistributedExecutor` 实现完整编排流程
 - [x] TaskManager 直接作为 `IStreamTaskRpcService` 注入 JobCoordinator（无 adapter 层）
-- [x] invokable 通过编排面直接传递（不经 RPC 序列化）
+- [x] invokable 通过编排面直接传递（嵌入式同 JVM 引用传递；跨 JVM 场景下各节点通过 Bean 容器本地构建）
 - [x] subtask-to-node 映射使用 round-robin
 - [x] 测试：2 个嵌入式 TaskManager + source→map→sink 在 DISTRIBUTED 模式下完整跑通并验证结果正确
 - [x] **端到端验证**: `env.addSource().map().sink()` 在 DISTRIBUTED 模式下完整执行并产出正确结果
@@ -265,8 +265,8 @@ Exit Criteria:
 ### 跨 JVM 独立进程部署
 
 - Classification: `out-of-scope improvement`
-- Why Not Blocking Closure: StreamTaskInvokable 不可序列化，需要引入 invokable 描述符机制。当前嵌入式模式通过引用传递足够
-- Successor Required: yes (future plan)
+- Why Not Blocking Closure: 跨 JVM 部署不依赖 invokable 序列化。设计方向是：引擎执行 DSL，各 JVM 节点的 Bean 容器（NopIoC）中可获取到所需的 bean，因此 invokable 在各节点本地构建，无需跨进程传输。当前嵌入式模式通过引用传递足够
+- Successor Required: yes (当需要跨 JVM 部署时，需定义 DSL + 各节点 IoC 配置)
 
 ### SourceEnumerator 集成（Phase 5 全部内容）
 
@@ -292,7 +292,7 @@ Exit Criteria:
 - 二进制序列化优化
 - Rescale / state redistribution
 - ZooKeeper ClusterRegistry 实现
-- 跨 JVM 部署（invokable 描述符 + 远程构建）
+- 跨 JVM 部署（DSL 引擎 + 各节点 Bean 容器本地构建）
 
 ## Closure
 
