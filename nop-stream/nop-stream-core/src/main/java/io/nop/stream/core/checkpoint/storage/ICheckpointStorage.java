@@ -8,6 +8,7 @@
 package io.nop.stream.core.checkpoint.storage;
 
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.SavepointMetadata;
 
 import java.util.List;
@@ -46,4 +47,8 @@ public interface ICheckpointStorage {
     CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception;
 
     SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception;
+
+    void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws Exception;
+
+    EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws Exception;
 }

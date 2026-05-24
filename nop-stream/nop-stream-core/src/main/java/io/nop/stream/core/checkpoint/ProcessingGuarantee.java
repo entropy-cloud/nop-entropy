@@ -10,7 +10,7 @@ package io.nop.stream.core.checkpoint;
 public enum ProcessingGuarantee {
 
     STRICT_EXACTLY_ONCE(true, true),
-    AT_LEAST_ONCE(true, false),
+    AT_LEAST_ONCE(false, false),
     EFFECTIVELY_ONCE(false, true),
     BEST_EFFORT(false, false);
 

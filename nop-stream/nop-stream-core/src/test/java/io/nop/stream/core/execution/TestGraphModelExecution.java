@@ -23,7 +23,7 @@ public class TestGraphModelExecution {
     @Test
     public void testSingleChainPipeline() throws Exception {
         List<String> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements("a", "b", "c")
                 .map(String::toUpperCase)
                 .sink(results::add);
@@ -35,7 +35,7 @@ public class TestGraphModelExecution {
     @Test
     public void testMultiOperatorChain() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3, 4, 5)
                 .map(x -> x * 10)
                 .map(x -> x + 1)
@@ -51,7 +51,7 @@ public class TestGraphModelExecution {
         AtomicLong lastWatermark = new AtomicLong(Long.MIN_VALUE);
         List<String> results = new ArrayList<>();
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements("x", "y")
                 .map(String::toUpperCase)
                 .sink(new SinkFunction<String>() {
@@ -70,7 +70,7 @@ public class TestGraphModelExecution {
     @Test
     public void testMultiChainPipelineExecutes() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3)
                 .keyBy(x -> x)
                 .map(x -> x)
@@ -84,7 +84,7 @@ public class TestGraphModelExecution {
     @Test
     public void testMapFilterSink() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3, 4, 5)
                 .map(x -> x * 2)
                 .filter(x -> x > 4)
@@ -97,7 +97,7 @@ public class TestGraphModelExecution {
     @Test
     public void testKeyByMapSink() throws Exception {
         List<String> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements("a", "b", "c")
                 .keyBy(x -> x)
                 .map(String::toUpperCase)
@@ -111,7 +111,7 @@ public class TestGraphModelExecution {
     @Test
     public void testKeyByMapMultiplier() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3)
                 .keyBy(x -> x)
                 .map(x -> x * 10)

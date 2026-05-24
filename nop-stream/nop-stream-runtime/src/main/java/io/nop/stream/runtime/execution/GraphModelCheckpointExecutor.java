@@ -9,17 +9,23 @@ package io.nop.stream.runtime.execution;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.environment.StreamExecutionResult;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.execution.Task;
 import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.model.StreamModel;
+import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
@@ -51,27 +57,28 @@ public class GraphModelCheckpointExecutor {
 
         long startTime = System.currentTimeMillis();
 
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph);
+        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId);
+        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
-        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan);
+        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, null);
 
         Map<String, Task> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
 
         try {
             submitAndRun(execPlan, tasks, executor);
-            triggerFinalCheckpoint(allInvokables, coordinator);
+            handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
 
             logCheckpointMetrics(coordinator);
@@ -83,12 +90,89 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
+    /**
+     * Executes with checkpoint support using PartitionedPlan and DeploymentPlan.
+     * This is the new execution path called from StreamExecutionEnvironment
+     * when checkpointing is enabled.
+     */
+    public static StreamExecutionResult executeWithCheckpoint(
+            StreamModel streamModel,
+            PartitionedPlan partitionedPlan,
+            DeploymentPlan deploymentPlan) throws Exception {
+
+        long startTime = System.currentTimeMillis();
+
+        // Build JobGraph from the stream model's transformations
+        JobGraph jobGraph = buildJobGraphFromStreamModel(streamModel);
+        String jobName = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "Streaming Job";
+
+        CheckpointConfig checkpointConfig = new CheckpointConfig();
+        checkpointConfig.setCheckpointEnabled(true);
+        String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
+        String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
+        checkpointConfig.setJobId(jobId);
+        checkpointConfig.setPipelineId(pipelineId);
+
+        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment);
+
+        CheckpointIDCounter idCounter = new CheckpointIDCounter();
+        ICheckpointStorage storage = createStorage(checkpointConfig);
+        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
+
+        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+
+        // Compute and set fingerprint for EpochManifest persistence
+        StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
+        coordinator.setCurrentFingerprint(fingerprint);
+
+        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+
+        ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
+
+        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
+
+        Map<String, Task> tasks = buildTasks(execPlan);
+        TaskExecutor executor = new TaskExecutor();
+
+        try {
+            submitAndRun(execPlan, tasks, executor);
+            handleJobTermination(allInvokables, coordinator, checkpointConfig);
+            checkTaskFailures(tasks);
+
+            logCheckpointMetrics(coordinator);
+
+            long executionTime = System.currentTimeMillis() - startTime;
+            return new StreamExecutionResult(jobName, executionTime);
+        } finally {
+            shutdown(barrierScheduler, coordinator);
+        }
+    }
+
+    private static JobGraph buildJobGraphFromStreamModel(StreamModel streamModel) {
+        io.nop.stream.core.graph.StreamGraphGenerator graphGenerator = new io.nop.stream.core.graph.StreamGraphGenerator();
+
+        java.util.List<io.nop.stream.core.transformation.Transformation<?>> sinkList = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, io.nop.stream.core.transformation.Transformation<?>> entry
+                : streamModel.getTransformations().entrySet()) {
+            io.nop.stream.core.transformation.Transformation<?> t = entry.getValue();
+            if (t instanceof io.nop.stream.core.transformation.SinkTransformation) {
+                sinkList.add(t);
+            }
+        }
+
+        io.nop.stream.core.graph.StreamGraph streamGraph = graphGenerator.generate(sinkList);
+        io.nop.stream.core.jobgraph.JobGraphGenerator jobGraphGenerator = new io.nop.stream.core.jobgraph.JobGraphGenerator();
+        return jobGraphGenerator.generate(streamGraph);
+    }
+
     public static String triggerSavepoint(
             JobGraph jobGraph,
             CheckpointConfig checkpointConfig,
-            String targetPath) throws Exception {
+             String targetPath) throws Exception {
 
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph);
+        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 
@@ -97,7 +181,7 @@ public class GraphModelCheckpointExecutor {
         if (targetPath != null && !targetPath.isEmpty()) {
             storage = new LocalFileCheckpointStorage(targetPath);
         }
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId);
+        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
@@ -137,13 +221,14 @@ public class GraphModelCheckpointExecutor {
 
         long startTime = System.currentTimeMillis();
 
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph);
+        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId);
+        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
@@ -169,8 +254,104 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
+    /**
+     * Handles job termination based on the configured JobTerminationMode.
+     * <ul>
+     *   <li>CANCEL - default, triggers COMPLETED_POINT_TYPE final checkpoint</li>
+     *   <li>DRAIN - triggers TERMINAL_SAVEPOINT, waits for all in-flight data</li>
+     *   <li>SUSPEND - triggers SAVEPOINT, then stops sources</li>
+     * </ul>
+     */
+    private static void handleJobTermination(
+            List<StreamTaskInvokable> allInvokables,
+            CheckpointCoordinator coordinator,
+            CheckpointConfig config) {
+
+        JobTerminationMode mode = config.getJobTerminationMode();
+        if (mode == null) {
+            mode = JobTerminationMode.CANCEL;
+        }
+
+        switch (mode) {
+            case DRAIN:
+                LOG.info("Job termination mode: DRAIN - triggering terminal savepoint");
+                triggerTerminalSavepoint(allInvokables, coordinator, config, CheckpointType.TERMINAL_SAVEPOINT);
+                break;
+            case SUSPEND:
+                LOG.info("Job termination mode: SUSPEND - triggering savepoint then stopping sources");
+                triggerTerminalSavepoint(allInvokables, coordinator, config, CheckpointType.SAVEPOINT);
+                stopSources(allInvokables);
+                break;
+            case CANCEL:
+            default:
+                triggerFinalCheckpoint(allInvokables, coordinator);
+                break;
+        }
+    }
+
+    /**
+     * Triggers a terminal savepoint (for DRAIN or SUSPEND mode).
+     * Waits for the savepoint to complete within the configured timeout.
+     */
+    private static void triggerTerminalSavepoint(
+            List<StreamTaskInvokable> allInvokables,
+            CheckpointCoordinator coordinator,
+            CheckpointConfig config,
+            CheckpointType checkpointType) {
+
+        if (allInvokables.isEmpty()) {
+            return;
+        }
+        try {
+            PendingCheckpoint terminalPending = coordinator.tryTriggerPendingCheckpoint(checkpointType);
+            if (terminalPending != null) {
+                triggerBarrierOnAllInvokables(allInvokables, terminalPending);
+
+                // Wait for terminal savepoint completion
+                Object result = terminalPending.getCompletableFuture()
+                        .get(config.getCheckpointTimeout(), TimeUnit.MILLISECONDS);
+                if (result != null) {
+                    LOG.info("Terminal savepoint completed: checkpointId={}",
+                            terminalPending.getCheckpointId());
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to trigger terminal savepoint", e);
+        }
+    }
+
+    /**
+     * Stops source tasks by closing their input/output.
+     * Used in SUSPEND mode after savepoint is taken.
+     */
+    private static void stopSources(List<StreamTaskInvokable> allInvokables) {
+        for (StreamTaskInvokable invokable : allInvokables) {
+            try {
+                // Close the output writer to stop data flow from sources
+                if (invokable.getOutputWriter() != null) {
+                    invokable.getOutputWriter().close();
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to stop source invokable", e);
+            }
+        }
+    }
+
     private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph) {
         return GraphExecutionPlan.build(jobGraph);
+    }
+
+    private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, boolean barrierAlignment) {
+        return GraphExecutionPlan.build(jobGraph, null, barrierAlignment);
+    }
+
+    private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                                         boolean barrierAlignment) {
+        return GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
+    }
+
+    private static boolean resolveBarrierAlignment(CheckpointConfig config) {
+        return config.getProcessingGuarantee().isBarrierAlignment();
     }
 
     private static String resolveJobId(CheckpointConfig config) {
@@ -224,6 +405,14 @@ public class GraphModelCheckpointExecutor {
                         if (udf instanceof CheckpointListener && udf != op) {
                             coordinator.addListener((CheckpointListener) udf);
                         }
+                        // Register CheckpointParticipant instances with coordinator
+                        if (udf instanceof CheckpointParticipant && udf != op) {
+                            coordinator.addParticipant((CheckpointParticipant) udf);
+                        }
+                    }
+                    // Also check if operator itself implements CheckpointParticipant
+                    if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
+                        coordinator.addParticipant((CheckpointParticipant) op);
                     }
                 }
             }
@@ -365,8 +554,40 @@ public class GraphModelCheckpointExecutor {
     private static void restoreFromCheckpoint(
             GraphExecutionPlan execPlan,
             CheckpointCoordinator coordinator,
-            CheckpointPlan checkpointPlan) throws Exception {
+            CheckpointPlan checkpointPlan,
+            StreamModel streamModel) throws Exception {
 
+        // Try EpochManifest first (preferred recovery path)
+        EpochManifest epochManifest = coordinator.restoreLatestEpochManifest();
+        if (epochManifest != null) {
+            LOG.info("Recovering from EpochManifest epoch {} (jobId={})",
+                    epochManifest.getEpochId(), epochManifest.getJobId());
+
+            // Validate fingerprint compatibility
+            validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
+
+            for (String vertexId : execPlan.getSortedVertexIds()) {
+                StreamTaskInvokable invokable = execPlan.getInvokables().get(vertexId);
+                if (invokable == null) continue;
+
+                TaskLocation taskLocation = findTaskLocationForVertex(checkpointPlan, vertexId);
+                TaskStateSnapshot taskState = epochManifest.getTaskSnapshots().get(taskLocation);
+
+                if (taskState == null) {
+                    throw new StreamException(
+                            "No exact task state found for vertex " + vertexId +
+                                    " (taskLocation=" + taskLocation + ") in EpochManifest epoch " +
+                                    epochManifest.getEpochId() + ". Available keys: " +
+                                    epochManifest.getTaskSnapshots().keySet());
+                }
+
+                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
+                restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
+            }
+            return;
+        }
+
+        // Fall back to CompletedCheckpoint
         CompletedCheckpoint latestCheckpoint = coordinator.restoreFromCheckpoint();
         if (latestCheckpoint == null) {
             LOG.info("No recoverable checkpoint found, starting fresh");
@@ -383,20 +604,54 @@ public class GraphModelCheckpointExecutor {
             TaskLocation taskLocation = findTaskLocationForVertex(checkpointPlan, vertexId);
             TaskStateSnapshot taskState = latestCheckpoint.getTaskState(taskLocation);
 
-            if (taskState == null && !latestCheckpoint.getTaskStates().isEmpty()) {
-                LOG.warn("No exact task state found for vertex {}, falling back to first available", vertexId);
-                taskState = latestCheckpoint.getTaskStates().values().iterator().next();
-            }
-
             if (taskState == null) {
-                LOG.warn("No task state found in checkpoint {} for vertex {}",
-                        latestCheckpoint.getCheckpointId(), vertexId);
-                continue;
+                throw new StreamException(
+                        "No exact task state found for vertex " + vertexId +
+                                " (taskLocation=" + taskLocation + ") in checkpoint " +
+                                latestCheckpoint.getCheckpointId() + ". Available keys: " +
+                                latestCheckpoint.getTaskStates().keySet());
             }
 
             List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
             restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
         }
+    }
+
+    /**
+     * Validates that the current StreamModel fingerprint is compatible with the
+     * fingerprint stored in the EpochManifest. Throws StreamException if incompatible.
+     */
+    private static void validateFingerprintCompatibility(
+            EpochManifest epochManifest,
+            StreamModel streamModel,
+            CheckpointCoordinator coordinator) {
+
+        StreamModelFingerprint storedFingerprint = epochManifest.getStreamModelFingerprint();
+        if (storedFingerprint == null) {
+            LOG.info("No fingerprint in EpochManifest epoch={}, skipping compatibility check",
+                    epochManifest.getEpochId());
+            return;
+        }
+
+        StreamModelFingerprint currentFingerprint;
+        if (streamModel != null) {
+            currentFingerprint = streamModel.computeFingerprint();
+        } else if (coordinator.getCurrentFingerprint() != null) {
+            currentFingerprint = coordinator.getCurrentFingerprint();
+        } else {
+            LOG.warn("No current fingerprint available, skipping compatibility check");
+            return;
+        }
+
+        if (!currentFingerprint.isCompatibleWith(storedFingerprint)) {
+            throw new StreamException(
+                    "StreamModel fingerprint incompatible on restore. " +
+                            "stored=" + storedFingerprint + ", current=" + currentFingerprint +
+                            ". DAG topology or requirements have changed since the checkpoint was taken.");
+        }
+
+        LOG.info("Fingerprint compatibility check passed for epoch {}",
+                epochManifest.getEpochId());
     }
 
     private static void restoreFromSavepointPath(
@@ -435,15 +690,12 @@ public class GraphModelCheckpointExecutor {
             TaskLocation taskLocation = findTaskLocationForVertex(checkpointPlan, vertexId);
             TaskStateSnapshot taskState = savepointCheckpoint.getTaskState(taskLocation);
 
-            if (taskState == null && !savepointCheckpoint.getTaskStates().isEmpty()) {
-                LOG.warn("No exact task state found for vertex {} in savepoint, falling back to first available", vertexId);
-                taskState = savepointCheckpoint.getTaskStates().values().iterator().next();
-            }
-
             if (taskState == null) {
-                LOG.warn("No task state found in savepoint {} for vertex {}",
-                        savepointCheckpoint.getCheckpointId(), vertexId);
-                continue;
+                throw new StreamException(
+                        "No exact task state found for vertex " + vertexId +
+                                " (taskLocation=" + taskLocation + ") in savepoint " +
+                                savepointCheckpoint.getCheckpointId() + ". Available keys: " +
+                                savepointCheckpoint.getTaskStates().keySet());
             }
 
             List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);

@@ -1,5 +1,8 @@
 package io.nop.stream.core.operators;
 
+import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
@@ -11,6 +14,8 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.Window;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -18,7 +23,8 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         extends AbstractStreamOperator<OUT>
         implements OneInputStreamOperator<IN, OUT>, KeyContext {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
+    private static final Logger LOG = LoggerFactory.getLogger(WindowAggregationOperator.class);
 
     private final WindowAssigner<? super IN, W> windowAssigner;
     Trigger<? super IN, ? super W> trigger;
@@ -49,20 +55,35 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     @Override
     public void open() throws Exception {
         super.open();
-        this.windowState = new LinkedHashMap<>();
-        this.eventTimeTimers = new TreeMap<>();
-        this.processingTimeTimers = new TreeMap<>();
-        this.windowTimerLookup = new HashMap<>();
-        this.processingTimeTimerLookup = new HashMap<>();
-        this.triggerState = new HashMap<>();
-        this.currentWatermark = Long.MIN_VALUE;
-        this.currentKeyField = null;
-        this.assignerContext = new WindowAssigner.WindowAssignerContext() {
-            @Override
-            public long getCurrentProcessingTime() {
-                return System.currentTimeMillis();
-            }
-        };
+        if (this.windowState == null) {
+            this.windowState = new LinkedHashMap<>();
+        }
+        if (this.eventTimeTimers == null) {
+            this.eventTimeTimers = new TreeMap<>();
+        }
+        if (this.processingTimeTimers == null) {
+            this.processingTimeTimers = new TreeMap<>();
+        }
+        if (this.windowTimerLookup == null) {
+            this.windowTimerLookup = new HashMap<>();
+        }
+        if (this.processingTimeTimerLookup == null) {
+            this.processingTimeTimerLookup = new HashMap<>();
+        }
+        if (this.triggerState == null) {
+            this.triggerState = new HashMap<>();
+        }
+        if (this.currentWatermark == 0) {
+            this.currentWatermark = Long.MIN_VALUE;
+        }
+        if (this.assignerContext == null) {
+            this.assignerContext = new WindowAssigner.WindowAssignerContext() {
+                @Override
+                public long getCurrentProcessingTime() {
+                    return System.currentTimeMillis();
+                }
+            };
+        }
     }
 
     @Override
@@ -74,6 +95,84 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         windowTimerLookup = null;
         processingTimeTimerLookup = null;
         triggerState = null;
+    }
+
+    @Override
+    public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
+        OperatorSnapshotResult result = new OperatorSnapshotResult();
+
+        WindowAggregationState state = new WindowAggregationState();
+        state.setVersion(WindowAggregationState.CURRENT_VERSION);
+
+        if (!windowState.isEmpty()) {
+            K firstKey = windowState.keySet().iterator().next().key;
+            state.setKeyClassName(firstKey.getClass().getName());
+        }
+        if (!windowState.isEmpty()) {
+            W firstWindow = windowState.keySet().iterator().next().window;
+            state.setWindowClassName(firstWindow.getClass().getName());
+        }
+
+        state.setWindowState(serializeWindowState(windowState));
+        state.setEventTimeTimers(serializeTimers(eventTimeTimers));
+        state.setProcessingTimeTimers(serializeTimers(processingTimeTimers));
+        state.setTriggerState(serializeTriggerState(triggerState));
+        state.setCurrentWatermark(currentWatermark);
+
+        result.putOperatorState("window-aggregation-state", state);
+        return result;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
+        Object stateObj = snapshotResult.getOperatorState("window-aggregation-state");
+        if (stateObj == null) {
+            throw new IllegalStateException("No window-aggregation-state found in snapshot");
+        }
+
+        WindowAggregationState state;
+        if (stateObj instanceof WindowAggregationState) {
+            state = (WindowAggregationState) stateObj;
+        } else if (stateObj instanceof Map) {
+            state = JsonTool.parseBeanFromText(JsonTool.stringify(stateObj), WindowAggregationState.class);
+        } else {
+            throw new IllegalStateException("Unexpected state type: " + stateObj.getClass().getName());
+        }
+
+        if (state.getVersion() != WindowAggregationState.CURRENT_VERSION) {
+            throw new IllegalStateException("Unsupported state version: " + state.getVersion());
+        }
+
+        String keyClassName = state.getKeyClassName();
+        String windowClassName = state.getWindowClassName();
+
+        Class<?> keyClass = keyClassName != null ? Class.forName(keyClassName) : null;
+        Class<?> windowClass = windowClassName != null ? Class.forName(windowClassName) : null;
+
+        this.windowState = new LinkedHashMap<>();
+        deserializeWindowState(state.getWindowState(), keyClass, windowClass, this.windowState);
+
+        this.eventTimeTimers = new TreeMap<>();
+        deserializeTimers(state.getEventTimeTimers(), keyClass, windowClass, this.eventTimeTimers);
+
+        this.processingTimeTimers = new TreeMap<>();
+        deserializeTimers(state.getProcessingTimeTimers(), keyClass, windowClass, this.processingTimeTimers);
+
+        this.triggerState = new HashMap<>();
+        deserializeTriggerState(state.getTriggerState(), keyClass, windowClass, this.triggerState);
+
+        this.currentWatermark = state.getCurrentWatermark();
+
+        rebuildTimerLookups();
+
+        this.currentKeyField = null;
+        this.assignerContext = new WindowAssigner.WindowAssignerContext() {
+            @Override
+            public long getCurrentProcessingTime() {
+                return System.currentTimeMillis();
+            }
+        };
     }
 
     @Override
@@ -91,6 +190,12 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     public void processElement(StreamRecord<IN> element) throws Exception {
         IN value = element.getValue();
         long timestamp = element.getTimestamp();
+
+        // Late data handling: discard elements with valid timestamps below current watermark
+        if (element.hasTimestamp() && timestamp < currentWatermark) {
+            LOG.debug("Dropping late element with timestamp {} below current watermark {}", timestamp, currentWatermark);
+            return;
+        }
 
         K key = resolveKey(value);
 
@@ -133,7 +238,14 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             long timerTimestamp = entry.getKey();
 
             for (WindowKey<K, W> wk : entry.getValue()) {
-                windowTimerLookup.remove(wk);
+                // Only remove the current timestamp from the lookup, not the entire key
+                Set<Long> eventTimersForWindow = windowTimerLookup.get(wk);
+                if (eventTimersForWindow != null) {
+                    eventTimersForWindow.remove(timerTimestamp);
+                    if (eventTimersForWindow.isEmpty()) {
+                        windowTimerLookup.remove(wk);
+                    }
+                }
 
                 ACC acc = windowState.get(wk);
                 if (acc == null) {
@@ -164,7 +276,14 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             long timerTimestamp = entry.getKey();
 
             for (WindowKey<K, W> wk : entry.getValue()) {
-                processingTimeTimerLookup.remove(wk);
+                // Only remove the current timestamp from the lookup, not the entire key
+                Set<Long> ptTimersForWindow = processingTimeTimerLookup.get(wk);
+                if (ptTimersForWindow != null) {
+                    ptTimersForWindow.remove(timerTimestamp);
+                    if (ptTimersForWindow.isEmpty()) {
+                        processingTimeTimerLookup.remove(wk);
+                    }
+                }
 
                 ACC acc = windowState.get(wk);
                 if (acc == null) {
@@ -223,19 +342,6 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
         trigger.clear(window, triggerCtx);
 
-        Set<Long> windowTimers = windowTimerLookup.remove(wk);
-        if (windowTimers != null) {
-            for (Long time : windowTimers) {
-                Set<WindowKey<K, W>> keysAtTime = eventTimeTimers.get(time);
-                if (keysAtTime != null) {
-                    keysAtTime.remove(wk);
-                    if (keysAtTime.isEmpty()) {
-                        eventTimeTimers.remove(time);
-                    }
-                }
-            }
-        }
-
         Iterator<TriggerStateKey<K, W>> it = triggerState.keySet().iterator();
         while (it.hasNext()) {
             TriggerStateKey<K, W> k = it.next();
@@ -254,6 +360,144 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             return keySelector.getKey(value);
         }
         throw new IllegalStateException("No key available: setCurrentKey() not called and no keySelector provided");
+    }
+
+    private Map<String, Object> serializeWindowState(Map<WindowKey<K, W>, ACC> state) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<WindowKey<K, W>, ACC> entry : state.entrySet()) {
+            WindowKey<K, W> wk = entry.getKey();
+            String key = serializeWindowKey(wk);
+            ACC acc = entry.getValue();
+            if (acc instanceof SimpleAccumulator) {
+                Map<String, Object> accMap = new LinkedHashMap<>();
+                accMap.put("@type", acc.getClass().getName());
+                accMap.put("value", ((SimpleAccumulator<?>) acc).getLocalValue());
+                result.put(key, accMap);
+            } else {
+                result.put(key, acc);
+            }
+        }
+        return result;
+    }
+
+    private String serializeWindowKey(WindowKey<K, W> wk) {
+        return JsonTool.stringify(wk.key) + "#" + JsonTool.stringify(wk.window);
+    }
+
+    private Map<String, Object> serializeTimers(TreeMap<Long, Set<WindowKey<K, W>>> timers) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<Long, Set<WindowKey<K, W>>> entry : timers.entrySet()) {
+            Set<String> keys = new LinkedHashSet<>();
+            for (WindowKey<K, W> wk : entry.getValue()) {
+                keys.add(serializeWindowKey(wk));
+            }
+            result.put(String.valueOf(entry.getKey()), keys);
+        }
+        return result;
+    }
+
+    private Map<String, Object> serializeTriggerState(Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> state) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<TriggerStateKey<K, W>, SimpleAccumulator<?>> entry : state.entrySet()) {
+            TriggerStateKey<K, W> tsk = entry.getKey();
+            String key = serializeWindowKey(tsk.windowKey) + ":" + tsk.descriptorName;
+            SimpleAccumulator<?> acc = entry.getValue();
+            Map<String, Object> accMap = new LinkedHashMap<>();
+            accMap.put("@type", acc.getClass().getName());
+            accMap.put("value", acc.getLocalValue());
+            result.put(key, accMap);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void deserializeWindowState(Map<String, Object> data, Class<?> keyClass, Class<?> windowClass,
+                                        Map<WindowKey<K, W>, ACC> target) throws Exception {
+        if (data == null) return;
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            String[] parts = entry.getKey().split("#", 2);
+            K key = (K) JsonTool.parseBeanFromText(parts[0], keyClass);
+            W window = (W) JsonTool.parseBeanFromText(parts[1], windowClass);
+            WindowKey<K, W> wk = new WindowKey<>(key, window);
+
+            Object value = entry.getValue();
+            if (value instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) value;
+                if (map.containsKey("@type")) {
+                    String accType = (String) map.get("@type");
+                    Object accValue = map.get("value");
+                    SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();
+                    acc.add(accValue);
+                    target.put(wk, (ACC) acc);
+                } else {
+                    target.put(wk, (ACC) value);
+                }
+            } else {
+                target.put(wk, (ACC) value);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void deserializeTimers(Map<String, Object> data, Class<?> keyClass, Class<?> windowClass,
+                                   TreeMap<Long, Set<WindowKey<K, W>>> target) throws Exception {
+        if (data == null) return;
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            long timestamp = Long.parseLong(entry.getKey());
+            Set<WindowKey<K, W>> keys = new LinkedHashSet<>();
+            Object value = entry.getValue();
+            if (value instanceof Collection) {
+                for (Object item : (Collection<?>) value) {
+                    String[] parts = item.toString().split("#", 2);
+                    K key = (K) JsonTool.parseBeanFromText(parts[0], keyClass);
+                    W window = (W) JsonTool.parseBeanFromText(parts[1], windowClass);
+                    keys.add(new WindowKey<>(key, window));
+                }
+            }
+            target.put(timestamp, keys);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void deserializeTriggerState(Map<String, Object> data, Class<?> keyClass, Class<?> windowClass,
+                                         Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> target) throws Exception {
+        if (data == null) return;
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            String[] mainParts = entry.getKey().split(":", 2);
+            String[] keyParts = mainParts[0].split("#", 2);
+            K key = (K) JsonTool.parseBeanFromText(keyParts[0], keyClass);
+            W window = (W) JsonTool.parseBeanFromText(keyParts[1], windowClass);
+            WindowKey<K, W> wk = new WindowKey<>(key, window);
+            String descriptorName = mainParts[1];
+
+            Object value = entry.getValue();
+            if (value instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) value;
+                String accType = (String) map.get("@type");
+                Object accValue = map.get("value");
+                SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();
+                acc.add(accValue);
+                target.put(new TriggerStateKey<>(wk, descriptorName), acc);
+            }
+        }
+    }
+
+    private void rebuildTimerLookups() {
+        this.windowTimerLookup = new HashMap<>();
+        for (Map.Entry<Long, Set<WindowKey<K, W>>> entry : eventTimeTimers.entrySet()) {
+            long timestamp = entry.getKey();
+            for (WindowKey<K, W> wk : entry.getValue()) {
+                windowTimerLookup.computeIfAbsent(wk, w -> new LinkedHashSet<>()).add(timestamp);
+            }
+        }
+
+        this.processingTimeTimerLookup = new HashMap<>();
+        for (Map.Entry<Long, Set<WindowKey<K, W>>> entry : processingTimeTimers.entrySet()) {
+            long timestamp = entry.getKey();
+            for (WindowKey<K, W> wk : entry.getValue()) {
+                processingTimeTimerLookup.computeIfAbsent(wk, w -> new LinkedHashSet<>()).add(timestamp);
+            }
+        }
     }
 
     static final class WindowKey<K, W extends Window> {

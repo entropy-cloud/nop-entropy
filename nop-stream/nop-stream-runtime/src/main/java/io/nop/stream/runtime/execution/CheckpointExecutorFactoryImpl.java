@@ -11,7 +11,10 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.execution.ICheckpointExecutorFactory;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.model.StreamModel;
 
 /**
  * Implementation of {@link ICheckpointExecutorFactory} that delegates to
@@ -37,9 +40,18 @@ public class CheckpointExecutorFactoryImpl implements ICheckpointExecutorFactory
 
     @Override
     public StreamExecutionResult executeWithSavepoint(JobGraph jobGraph,
-                                                      String jobName,
-                                                      CheckpointConfig checkpointConfig,
-                                                      String savepointPath) throws Exception {
+                                                       String jobName,
+                                                       CheckpointConfig checkpointConfig,
+                                                       String savepointPath) throws Exception {
         return GraphModelCheckpointExecutor.executeWithSavepoint(jobGraph, jobName, checkpointConfig, savepointPath);
+    }
+
+    @Override
+    public StreamExecutionResult executeWithCheckpoint(
+            StreamModel streamModel,
+            PartitionedPlan partitionedPlan,
+            DeploymentPlan deploymentPlan) throws Exception {
+        return GraphModelCheckpointExecutor.executeWithCheckpoint(
+                streamModel, partitionedPlan, deploymentPlan);
     }
 }

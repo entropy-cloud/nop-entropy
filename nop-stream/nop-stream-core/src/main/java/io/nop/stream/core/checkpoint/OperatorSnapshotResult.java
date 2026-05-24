@@ -106,6 +106,13 @@ public class OperatorSnapshotResult implements Serializable {
         return typeClass.cast(value);
     }
 
+    public void merge(OperatorSnapshotResult other) {
+        if (other == null) return;
+        operatorStates.putAll(other.operatorStates);
+        keyedStates.putAll(other.keyedStates);
+        rawKeyedStates.putAll(other.rawKeyedStates);
+    }
+
     public static Builder builder() {
         return new Builder();
     }

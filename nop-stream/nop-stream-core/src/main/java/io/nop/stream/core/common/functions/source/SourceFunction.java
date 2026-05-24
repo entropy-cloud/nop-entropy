@@ -37,6 +37,17 @@ public interface SourceFunction<T> extends StreamFunction, Serializable {
     void cancel();
 
     /**
+     * Returns the consistency capability of this source.
+     * Default is {@link SourceConsistencyCapability#BEST_EFFORT}.
+     * Connectors should override this to declare their actual capability.
+     *
+     * @return the source consistency capability
+     */
+    default SourceConsistencyCapability getSourceConsistency() {
+        return SourceConsistencyCapability.BEST_EFFORT;
+    }
+
+    /**
      * Interface that sources use to emit elements.
      *
      * @param <T> The type of the elements produced by the source

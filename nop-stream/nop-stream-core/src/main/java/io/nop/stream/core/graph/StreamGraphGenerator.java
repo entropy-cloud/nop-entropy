@@ -316,7 +316,7 @@ public class StreamGraphGenerator {
         transform(transformation.getInput());
 
         TimestampsAndWatermarksOperator<T> operator =
-            new TimestampsAndWatermarksOperator<>(transformation.getWatermarkStrategy());
+            new TimestampsAndWatermarksOperator<>(transformation.getWatermarkStrategy(), transformation.getWatermarkInterval());
         StreamOperatorFactory<T> operatorFactory =
             new SimpleStreamOperatorFactory<>(operator, transformation.getName(), transformation.getParallelism());
 

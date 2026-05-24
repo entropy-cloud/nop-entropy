@@ -139,6 +139,14 @@ public class ResultPartition {
     }
 
     /**
+     * Marks this partition as finished. Used by remote partition implementations
+     * that do not use the internal queue.
+     */
+    protected void markFinished() {
+        this.finished = true;
+    }
+
+    /**
      * Returns the current number of elements waiting in the queue.
      *
      * @return approximate queue size

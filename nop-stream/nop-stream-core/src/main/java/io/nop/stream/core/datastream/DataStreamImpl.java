@@ -189,7 +189,8 @@ public class DataStreamImpl<T> implements DataStream<T> {
             getType(),
             environment.getParallelism(),
             this.transformation,
-            strategy
+            strategy,
+            environment.getWatermarkInterval()
         );
         environment.addTransformation(transformation);
         return new SingleOutputStreamOperatorImpl<>(environment, transformation);

@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.common.functions;
 
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+
 /**
  * A sink function that consumes elements from the stream.
  *
@@ -22,4 +24,15 @@ public interface SinkFunction<T> extends StreamFunction {
      * @throws Exception This method may throw exceptions
      */
     void consume(T value) throws Exception;
+
+    /**
+     * Returns the consistency capability of this sink.
+     * Default is {@link SinkConsistencyCapability#AT_LEAST_ONCE}.
+     * Connectors should override this to declare their actual capability.
+     *
+     * @return the sink consistency capability
+     */
+    default SinkConsistencyCapability getSinkConsistency() {
+        return SinkConsistencyCapability.AT_LEAST_ONCE;
+    }
 }

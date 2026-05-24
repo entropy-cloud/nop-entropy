@@ -22,7 +22,7 @@ public class TestE2ESimplePipeline {
     @Test
     public void testSourceMapSink() throws Exception {
         List<String> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements("a", "b", "c").map(String::toUpperCase).sink(results::add);
         env.execute("testSourceMapSink");
 
@@ -32,7 +32,7 @@ public class TestE2ESimplePipeline {
     @Test
     public void testSourceFilterSink() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3, 4, 5, 6)
                 .filter(x -> x % 2 == 0)
                 .sink(results::add);
@@ -44,7 +44,7 @@ public class TestE2ESimplePipeline {
     @Test
     public void testMultiOperatorChain() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3, 4, 5)
                 .map(x -> x * 10)
                 .map(x -> x + 1)
@@ -58,7 +58,7 @@ public class TestE2ESimplePipeline {
     @Test
     public void testEmptySource() throws Exception {
         List<String> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements("keep", "drop")
                 .filter(x -> false)
                 .sink(results::add);

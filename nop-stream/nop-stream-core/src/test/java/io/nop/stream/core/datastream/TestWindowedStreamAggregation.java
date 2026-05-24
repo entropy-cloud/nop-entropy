@@ -44,7 +44,7 @@ public class TestWindowedStreamAggregation {
 
     @Test
     void testReduceDoesNotThrow() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Arrays.asList(
                 new Event("a", 1, 10),
                 new Event("a", 2, 20));
@@ -65,7 +65,7 @@ public class TestWindowedStreamAggregation {
 
     @Test
     void testAggregateDoesNotThrow() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Arrays.asList(
                 new Event("a", 1, 10),
                 new Event("a", 2, 20));
@@ -86,7 +86,7 @@ public class TestWindowedStreamAggregation {
 
     @Test
     void testApplyDoesNotThrow() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Arrays.asList(
                 new Event("a", 1, 10),
                 new Event("a", 2, 20));
@@ -119,7 +119,7 @@ public class TestWindowedStreamAggregation {
 
         List<Event> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
@@ -170,7 +170,7 @@ public class TestWindowedStreamAggregation {
 
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
@@ -209,7 +209,7 @@ public class TestWindowedStreamAggregation {
 
         List<String> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
@@ -249,7 +249,7 @@ public class TestWindowedStreamAggregation {
 
     @Test
     void testReduceCreatesCorrectTransformation() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Collections.singletonList(new Event("a", 1, 10));
 
         SingleOutputStreamOperator<Event> result = env.fromCollection(events)
@@ -267,7 +267,7 @@ public class TestWindowedStreamAggregation {
 
     @Test
     void testAggregateCreatesCorrectTransformation() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Collections.singletonList(new Event("a", 1, 10));
 
         SingleOutputStreamOperator<Integer> result = env.fromCollection(events)

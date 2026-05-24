@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestSavepointEndToEnd {
 
-    private static final TaskLocation LOC_0 = new TaskLocation("1", "1", "v0", 0);
+    private static final TaskLocation LOC_0 = new TaskLocation("1", "1", "v1", 0);
 
     @TempDir
     Path tempDir;

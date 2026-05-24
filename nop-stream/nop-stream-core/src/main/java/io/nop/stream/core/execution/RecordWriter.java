@@ -9,6 +9,8 @@ package io.nop.stream.core.execution;
 
 import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.execution.flow.EdgeConfig;
+import io.nop.stream.core.execution.flow.FlowControlPolicy;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -31,6 +33,8 @@ public class RecordWriter<T> {
 
     private final ResultPartition[] partitions;
     private final IPartitioner<T> partitioner;
+    private final EdgeConfig edgeConfig;
+    private final PartitionRouter partitionRouter;
 
     /**
      * Creates a RecordWriter that forwards to a single partition.
@@ -38,11 +42,24 @@ public class RecordWriter<T> {
      * @param partition the single downstream partition
      */
     public RecordWriter(ResultPartition partition) {
+        this(partition, null);
+    }
+
+    /**
+     * Creates a RecordWriter that forwards to a single partition with optional EdgeConfig.
+     *
+     * @param partition  the single downstream partition
+     * @param edgeConfig optional edge configuration for flow control (nullable)
+     */
+    public RecordWriter(ResultPartition partition, EdgeConfig edgeConfig) {
         if (partition == null) {
             throw new IllegalArgumentException("ResultPartition must not be null");
         }
         this.partitions = new ResultPartition[]{partition};
         this.partitioner = null;
+        this.edgeConfig = edgeConfig;
+        this.partitionRouter = null;
+        validateFlowControlPolicy();
     }
 
     /**
@@ -52,11 +69,60 @@ public class RecordWriter<T> {
      * @param partitioner optional partitioner for record routing; null means forward to partition 0
      */
     public RecordWriter(ResultPartition[] partitions, IPartitioner<T> partitioner) {
+        this(partitions, partitioner, null);
+    }
+
+    /**
+     * Creates a RecordWriter with multiple partitions, an optional partitioner, and edge configuration.
+     *
+     * @param partitions  the downstream partitions (must not be null or empty)
+     * @param partitioner optional partitioner for record routing; null means forward to partition 0
+     * @param edgeConfig  optional edge configuration for flow control (nullable)
+     */
+    public RecordWriter(ResultPartition[] partitions, IPartitioner<T> partitioner, EdgeConfig edgeConfig) {
+        this(partitions, partitioner, edgeConfig, null);
+    }
+
+    /**
+     * Creates a RecordWriter with multiple partitions, an optional partitioner, edge configuration,
+     * and an explicit {@link PartitionRouter} for advanced partition routing.
+     *
+     * <p>When a PartitionRouter is provided, it takes precedence over the partitioner for
+     * channel selection. This enables HASH/FORWARD/REBALANCE routing strategies independent
+     * of the IPartitioner interface.
+     *
+     * @param partitions      the downstream partitions (must not be null or empty)
+     * @param partitioner     optional partitioner for record routing (nullable)
+     * @param edgeConfig      optional edge configuration for flow control (nullable)
+     * @param partitionRouter explicit partition router (nullable; falls back to partitioner)
+     */
+    public RecordWriter(ResultPartition[] partitions, IPartitioner<T> partitioner,
+                        EdgeConfig edgeConfig, PartitionRouter partitionRouter) {
         if (partitions == null || partitions.length == 0) {
             throw new IllegalArgumentException("Partitions must not be null or empty");
         }
         this.partitions = partitions;
         this.partitioner = partitioner;
+        this.edgeConfig = edgeConfig;
+        this.partitionRouter = partitionRouter;
+        validateFlowControlPolicy();
+    }
+
+    /**
+     * Validates that the flow control policy is supported in the local runtime.
+     *
+     * <p>BLOCKING_QUEUE (the default) is the only supported policy for local execution.
+     * CREDIT_BASED and ACK_WINDOW are reserved for distributed runtime and will throw
+     * UnsupportedOperationException if used locally.
+     */
+    private void validateFlowControlPolicy() {
+        if (edgeConfig != null) {
+            FlowControlPolicy policy = edgeConfig.getFlowControlPolicy();
+            if (policy != FlowControlPolicy.BLOCKING_QUEUE) {
+                throw new UnsupportedOperationException(
+                        "Flow control policy " + policy + " is not supported in local runtime");
+            }
+        }
     }
 
     /**
@@ -145,6 +211,11 @@ public class RecordWriter<T> {
     }
 
     private int selectChannel(StreamRecord<T> record) {
+        // Priority 1: Explicit PartitionRouter (HASH/FORWARD/REBALANCE strategies)
+        if (partitionRouter != null) {
+            return partitionRouter.selectChannel(record);
+        }
+        // Priority 2: Legacy IPartitioner
         if (partitioner != null) {
             int channel = partitioner.partition(record.getValue(), partitions.length);
             return Math.abs(channel % partitions.length);

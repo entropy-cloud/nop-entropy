@@ -8,6 +8,7 @@
 package io.nop.stream.core.execution;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import org.slf4j.Logger;
@@ -20,11 +21,19 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Manages multiple {@link InputChannel} instances and provides merged reading
- * with barrier alignment and watermark merging.
+ * with optional barrier alignment and watermark merging.
  *
- * <p><strong>Barrier Alignment:</strong> When a barrier is received on one channel,
- * that channel is blocked until barriers arrive on all other channels. Once all
- * barriers are collected, they are released together as a single aligned barrier.
+ * <p><strong>Barrier Alignment (barrierAlignment=true, STRICT_EXACTLY_ONCE):</strong>
+ * When a barrier is received on one channel, that channel is blocked until barriers
+ * arrive on all other channels. Once all barriers are collected, they are released
+ * together as a single aligned barrier. This ensures exactly-once semantics but
+ * may introduce latency as channels wait for each other.
+ *
+ * <p><strong>No Barrier Alignment (barrierAlignment=false, AT_LEAST_ONCE):</strong>
+ * When a barrier is received, it is tracked but the channel is NOT blocked. Records
+ * from other channels continue to flow through. Each barrier is emitted immediately
+ * upon receipt (first barrier triggers emission, subsequent barriers for the same
+ * checkpoint are coalesced). This provides lower latency but at-least-once semantics.
  *
  * <p><strong>Watermark Merging:</strong> Tracks the watermark per channel and only
  * emits the minimum watermark when it advances. This ensures downstream operators
@@ -36,6 +45,8 @@ public class InputGate {
 
     private final List<InputChannel> channels;
     private final long[] currentWatermarks;
+    private final EdgeConfig edgeConfig;
+    private final boolean barrierAlignment;
 
     // Barrier alignment state
     private final boolean[] barrierReceived;
@@ -45,10 +56,36 @@ public class InputGate {
     private int currentChannelIndex;
 
     public InputGate(List<InputChannel> channels) {
+        this(channels, null, true);
+    }
+
+    /**
+     * Creates an InputGate with multiple channels and optional edge configuration.
+     * Uses default barrier alignment (true = STRICT_EXACTLY_ONCE behavior).
+     *
+     * @param channels   the input channels (must not be null or empty)
+     * @param edgeConfig optional edge configuration for flow control (nullable)
+     */
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig) {
+        this(channels, edgeConfig, true);
+    }
+
+    /**
+     * Creates an InputGate with multiple channels, edge configuration, and
+     * barrier alignment mode.
+     *
+     * @param channels         the input channels (must not be null or empty)
+     * @param edgeConfig       optional edge configuration for flow control (nullable)
+     * @param barrierAlignment if true, block channels after receiving barrier
+     *                         (STRICT_EXACTLY_ONCE); if false, don't block (AT_LEAST_ONCE)
+     */
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig, boolean barrierAlignment) {
         if (channels == null || channels.isEmpty()) {
             throw new IllegalArgumentException("Channels must not be null or empty");
         }
         this.channels = new ArrayList<>(channels);
+        this.edgeConfig = edgeConfig;
+        this.barrierAlignment = barrierAlignment;
         this.currentWatermarks = new long[channels.size()];
         for (int i = 0; i < currentWatermarks.length; i++) {
             currentWatermarks[i] = Long.MIN_VALUE;
@@ -63,11 +100,23 @@ public class InputGate {
      * Creates an InputGate with a single channel.
      */
     public InputGate(InputChannel channel) {
+        this(channel, null);
+    }
+
+    /**
+     * Creates an InputGate with a single channel and optional edge configuration.
+     *
+     * @param channel    the input channel (must not be null)
+     * @param edgeConfig optional edge configuration for flow control (nullable)
+     */
+    public InputGate(InputChannel channel, EdgeConfig edgeConfig) {
         if (channel == null) {
             throw new IllegalArgumentException("InputChannel must not be null");
         }
         this.channels = new ArrayList<>();
         this.channels.add(channel);
+        this.edgeConfig = edgeConfig;
+        this.barrierAlignment = true;
         this.currentWatermarks = new long[]{Long.MIN_VALUE};
         this.barrierReceived = new boolean[1];
         this.barriersRemaining = 0;
@@ -77,12 +126,16 @@ public class InputGate {
 
     /**
      * Reads the next element from the input channels, performing round-robin
-     * selection and barrier alignment.
+     * selection and optional barrier alignment.
      *
      * <p>For single-channel gates, delegates directly to the channel.
-     * For multi-channel gates, uses round-robin with barrier alignment:
-     * channels that have delivered a barrier are skipped until all channels
-     * have delivered their barriers.
+     * For multi-channel gates:
+     * <ul>
+     *   <li><b>barrierAlignment=true:</b> channels that have delivered a barrier are
+     *       skipped until all channels have delivered their barriers.</li>
+     *   <li><b>barrierAlignment=false:</b> channels are never blocked after barrier
+     *       receipt; records continue flowing through (AT_LEAST_ONCE semantics).</li>
+     * </ul>
      *
      * @return Optional containing the next element, or empty on end-of-stream
      */
@@ -152,8 +205,8 @@ public class InputGate {
             currentChannelIndex = (currentChannelIndex + 1) % totalChannels;
             channelsChecked++;
 
-            // Skip channels that are blocked by barrier alignment
-            if (barrierReceived[channelIndex]) {
+            // Skip channels that are blocked by barrier alignment (only when alignment enabled)
+            if (barrierAlignment && barrierReceived[channelIndex]) {
                 continue;
             }
 
@@ -201,6 +254,14 @@ public class InputGate {
                 barriersRemaining = channels.size();
             }
             barriersRemaining--;
+
+            if (!barrierAlignment) {
+                // AT_LEAST_ONCE: emit barrier immediately on first receipt, don't block
+                if (barriersRemaining <= 0) {
+                    resetBarrierState();
+                }
+                return Optional.of(barrier);
+            }
 
             if (barriersRemaining <= 0) {
                 // All barriers received - reset and emit aligned barrier

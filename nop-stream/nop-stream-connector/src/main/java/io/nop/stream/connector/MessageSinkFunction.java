@@ -9,6 +9,7 @@ package io.nop.stream.connector;
 
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 
 /**
  * Adapts nop-message's {@link IMessageService} to nop-stream's {@link SinkFunction}.
@@ -36,5 +37,10 @@ public class MessageSinkFunction<T> implements SinkFunction<T> {
     @Override
     public void consume(T value) {
         messageService.send(topic, value);
+    }
+
+    @Override
+    public SinkConsistencyCapability getSinkConsistency() {
+        return SinkConsistencyCapability.AT_LEAST_ONCE;
     }
 }

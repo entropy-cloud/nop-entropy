@@ -25,6 +25,8 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
+import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
+import io.nop.stream.core.common.state.shard.StateShard;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 
@@ -68,6 +70,11 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     private final Class<K> keyType;
 
     /**
+     * 分片数量。当 shardCount > 1 时，key 会被路由到不同的分片。
+     */
+    private final int shardCount;
+
+    /**
      * 当前 key
      */
     private transient K currentKey;
@@ -84,12 +91,26 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     private final Map<String, Object> states = new HashMap<>();
 
     /**
-     * 构造函数
+     * 构造函数（无分片，向后兼容）
      *
      * @param keyType key 的类型
      */
     public MemoryKeyedStateBackend(Class<K> keyType) {
+        this(keyType, 1);
+    }
+
+    /**
+     * 构造函数
+     *
+     * @param keyType    key 的类型
+     * @param shardCount 分片数量，必须 >= 1
+     */
+    public MemoryKeyedStateBackend(Class<K> keyType, int shardCount) {
+        if (shardCount < 1) {
+            throw new IllegalArgumentException("shardCount must be at least 1");
+        }
         this.keyType = keyType;
+        this.shardCount = shardCount;
     }
 
     @Override
@@ -157,8 +178,14 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
-        throw new UnsupportedOperationException("Use getInternalListState for namespace-aware list state");
+        ListState<T> state = (ListState<T>) states.get(stateProperties.getName());
+        if (state == null) {
+            state = new MemoryListState<>(this, stateProperties);
+            states.put(stateProperties.getName(), state);
+        }
+        return state;
     }
 
     @Override
@@ -216,10 +243,36 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     /**
-     * 生成 namespace + key 的组合键，用于存储状态
+     * 生成 namespace + key 的组合键，用于存储状态。
+     * 当 shardCount > 1 时，key 会被路由到对应的分片。
      */
     protected TypedNamespaceAndKey getTypedNamespaceAndKey() {
-        return new TypedNamespaceAndKey(currentNamespace, currentKey);
+        return new TypedNamespaceAndKey(currentNamespace, routeKey(currentKey));
+    }
+
+    /**
+     * 将用户 key 路由为存储 key。
+     * <ul>
+     *   <li>shardCount == 1 时直接返回原 key（零开销）</li>
+     *   <li>shardCount > 1 时返回 ShardPrefixedKey(shardId, key)</li>
+     * </ul>
+     */
+    Object routeKey(Object key) {
+        if (shardCount <= 1) {
+            return key;
+        }
+        int shardId = Math.abs(StateShard.stableHash(key)) % shardCount;
+        return new ShardPrefixedKey(shardId, key);
+    }
+
+    /**
+     * 从存储 key 中还原出原始用户 key（用于 snapshot 序列化）
+     */
+    private Object unwrapStorageKey(Object storageKey) {
+        if (storageKey instanceof ShardPrefixedKey) {
+            return ((ShardPrefixedKey) storageKey).key;
+        }
+        return storageKey;
     }
 
     @Override
@@ -240,6 +293,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 statesMap.put(stateName, snapshotValueState((MemoryValueState<?>) stateObj));
             } else if (stateObj instanceof MemoryMapState) {
                 statesMap.put(stateName, snapshotMapState((MemoryMapState<?, ?>) stateObj));
+            } else if (stateObj instanceof MemoryListState) {
+                statesMap.put(stateName, snapshotListStateFromPublic((MemoryListState<?>) stateObj));
             } else if (stateObj instanceof MemoryInternalAppendingState) {
                 statesMap.put(stateName, snapshotAppendingState((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj));
             } else if (stateObj instanceof MemoryInternalListState) {
@@ -284,6 +339,9 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 case "ListState":
                     restoreListState(stateName, stateInfo);
                     break;
+                case "InternalListState":
+                    restoreInternalListState(stateName, stateInfo);
+                    break;
                 default:
                     throw new IOException("Unknown state type: " + stateType);
             }
@@ -294,7 +352,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     @SuppressWarnings("unchecked")
     private void restoreValueState(String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
 
         ValueStateDescriptor<Object> descriptor = new ValueStateDescriptor<>(stateName, valueClass);
@@ -305,7 +366,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             for (Map<String, Object> e : entries) {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
-                        deserializeKey(e.get("key")));
+                        routeKey(deserializeKey(e.get("key"))));
                 Object value = deserializeValue(e.get("value"), valueClass);
                 state.storage.put(nk, value);
             }
@@ -316,9 +377,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     @SuppressWarnings("unchecked")
     private void restoreMapState(String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String keyTypeName = (String) stateInfo.get("mapKeyType");
+        String keyTypeName = (String) stateInfo.get("mapKeyTypeName");
+        if (keyTypeName == null) {
+            keyTypeName = (String) stateInfo.get("mapKeyType");
+        }
         Class<Object> mapKeyClass = keyTypeName != null ? (Class<Object>) Class.forName(keyTypeName) : null;
 
         MapStateDescriptor<Object, Object> descriptor = new MapStateDescriptor<>(stateName, mapKeyClass, valueClass);
@@ -329,7 +396,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             for (Map<String, Object> e : entries) {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
-                        deserializeKey(e.get("key")));
+                        routeKey(deserializeKey(e.get("key"))));
                 Map<Object, Object> mapValue = new LinkedHashMap<>();
                 List<List<Object>> mapEntries = (List<List<Object>>) e.get("mapValue");
                 if (mapEntries != null) {
@@ -348,9 +415,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     @SuppressWarnings("unchecked")
     private void restoreAppendingState(String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String accumulatorTypeName = (String) stateInfo.get("accumulatorType");
+        String accumulatorTypeName = (String) stateInfo.get("accumulatorTypeName");
+        if (accumulatorTypeName == null) {
+            accumulatorTypeName = (String) stateInfo.get("accumulatorType");
+        }
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
 
@@ -364,7 +437,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             for (Map<String, Object> e : entries) {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
-                        deserializeKey(e.get("key")));
+                        routeKey(deserializeKey(e.get("key"))));
                 Object value = deserializeValue(e.get("value"), valueClass);
                 state.storage.put(nk, value);
             }
@@ -375,7 +448,41 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     @SuppressWarnings("unchecked")
     private void restoreListState(String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
+        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
+
+        ListStateDescriptor<Object> descriptor = new ListStateDescriptor<>(stateName, valueClass);
+        MemoryListState<Object> state = new MemoryListState<>(this, descriptor);
+
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
+        if (entries != null) {
+            for (Map<String, Object> e : entries) {
+                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
+                        deserializeNamespace(e.get("namespace")),
+                        routeKey(deserializeKey(e.get("key"))));
+                List<Object> list = new ArrayList<>();
+                List<Object> values = (List<Object>) e.get("listValue");
+                if (values != null) {
+                    for (Object v : values) {
+                        list.add(deserializeValue(v, valueClass));
+                    }
+                }
+                state.storage.put(nk, list);
+            }
+        }
+
+        states.put(stateName, state);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void restoreInternalListState(String stateName, Map<String, Object> stateInfo) throws Exception {
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
 
         ListStateDescriptor<Object> descriptor = new ListStateDescriptor<>(stateName, valueClass);
@@ -387,7 +494,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             for (Map<String, Object> e : entries) {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
-                        deserializeKey(e.get("key")));
+                        routeKey(deserializeKey(e.get("key"))));
                 List<Object> list = new ArrayList<>();
                 List<Object> values = (List<Object>) e.get("listValue");
                 if (values != null) {
@@ -406,12 +513,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("stateType", "ValueState");
         info.put("valueType", state.descriptor.getValueType().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
 
         List<Map<String, Object>> entries = new ArrayList<>();
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(e.getKey().key));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
             entry.put("value", e.getValue());
             entries.add(entry);
         }
@@ -424,12 +534,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         info.put("stateType", "MapState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("mapKeyType", state.descriptor.getKeyClass().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
 
         List<Map<String, Object>> entries = new ArrayList<>();
         for (Map.Entry<TypedNamespaceAndKey, ? extends Map<?, ?>> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(e.getKey().key));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
             List<List<Object>> mapEntries = new ArrayList<>();
             for (Map.Entry<?, ?> me : e.getValue().entrySet()) {
                 List<Object> pair = new ArrayList<>();
@@ -449,13 +562,36 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         info.put("stateType", "AppendingState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("accumulatorType", state.descriptor.getAccumulatorType().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
 
         List<Map<String, Object>> entries = new ArrayList<>();
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(e.getKey().key));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
             entry.put("value", e.getValue());
+            entries.add(entry);
+        }
+        info.put("entries", entries);
+        return info;
+    }
+
+    private Map<String, Object> snapshotListStateFromPublic(MemoryListState<?> state) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("stateType", "ListState");
+        info.put("valueType", state.descriptor.getValueType().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
+
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("namespace", serializeNamespace(e.getKey().namespace));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
+            entry.put("listValue", new ArrayList<>(e.getValue()));
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -464,14 +600,17 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     private Map<String, Object> snapshotListState(MemoryInternalListState<?, ?, ?> state) {
         Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "ListState");
+        info.put("stateType", "InternalListState");
         info.put("valueType", state.descriptor.getValueType().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
 
         List<Map<String, Object>> entries = new ArrayList<>();
         for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(e.getKey().key));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
             entry.put("listValue", new ArrayList<>(e.getValue()));
             entries.add(entry);
         }
@@ -550,6 +689,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 ((MemoryValueState<?>) stateObj).rebind(this);
             } else if (stateObj instanceof MemoryMapState) {
                 ((MemoryMapState<?, ?>) stateObj).rebind(this);
+            } else if (stateObj instanceof MemoryListState) {
+                ((MemoryListState<?>) stateObj).rebind(this);
             } else if (stateObj instanceof MemoryInternalAppendingState) {
                 ((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj).rebind(this);
             } else if (stateObj instanceof MemoryInternalListState) {
@@ -559,6 +700,62 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     // ==================== 内部状态实现类 ====================
+
+    /**
+     * 内存 ListState 实现（基于字符串 namespace）
+     * <p>
+     * 使用 backend 的 getTypedNamespaceAndKey() 组合键，
+     * 与 MemoryValueState 的存储模式一致。
+     */
+    private static class MemoryListState<T> implements ListState<T>, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private MemoryKeyedStateBackend<?> backend;
+        private final ListStateDescriptor<T> descriptor;
+        private final Map<TypedNamespaceAndKey, List<T>> storage = new HashMap<>();
+
+        MemoryListState(MemoryKeyedStateBackend<?> backend, ListStateDescriptor<T> descriptor) {
+            this.backend = backend;
+            this.descriptor = descriptor;
+        }
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
+        }
+
+        @Override
+        public Iterable<T> get() throws IOException {
+            List<T> list = storage.get(backend.getTypedNamespaceAndKey());
+            return list != null ? list : java.util.Collections.emptyList();
+        }
+
+        @Override
+        public void add(T value) throws IOException {
+            storage.computeIfAbsent(backend.getTypedNamespaceAndKey(), k -> new ArrayList<>()).add(value);
+        }
+
+        @Override
+        public void addAll(Iterable<T> values) throws IOException {
+            List<T> list = storage.computeIfAbsent(backend.getTypedNamespaceAndKey(), k -> new ArrayList<>());
+            for (T value : values) {
+                list.add(value);
+            }
+        }
+
+        @Override
+        public void update(Iterable<T> values) throws IOException {
+            List<T> newList = new ArrayList<>();
+            for (T value : values) {
+                newList.add(value);
+            }
+            storage.put(backend.getTypedNamespaceAndKey(), newList);
+        }
+
+        @Override
+        public void clear() {
+            storage.remove(backend.getTypedNamespaceAndKey());
+        }
+    }
 
     /**
      * 内存 ValueState 实现
@@ -694,6 +891,54 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     /**
+     * 内存 AggregatingState 实现
+     */
+    private static class MemoryAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private MemoryKeyedStateBackend<?> backend;
+        private final AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
+        private final Map<TypedNamespaceAndKey, ACC> storage = new HashMap<>();
+
+        MemoryAggregatingState(MemoryKeyedStateBackend<?> backend, AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
+            this.backend = backend;
+            this.descriptor = descriptor;
+        }
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public OUT get() throws Exception {
+            ACC accumulator = storage.get(backend.getTypedNamespaceAndKey());
+            if (accumulator == null) {
+                return null;
+            }
+            return descriptor.getAggregateFunction().getResult(accumulator);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void add(IN value) throws Exception {
+            TypedNamespaceAndKey key = backend.getTypedNamespaceAndKey();
+            AggregateFunction<IN, ACC, OUT> aggFn = descriptor.getAggregateFunction();
+            ACC accumulator = storage.get(key);
+            if (accumulator == null) {
+                accumulator = aggFn.createAccumulator();
+            }
+            accumulator = aggFn.add(value, accumulator);
+            storage.put(key, accumulator);
+        }
+
+        @Override
+        public void clear() {
+            storage.remove(backend.getTypedNamespaceAndKey());
+        }
+    }
+
+    /**
      * 内存 InternalAppendingState 实现
      * 使用 SimpleAccumulator 进行元素累积
      */
@@ -780,7 +1025,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 throw new IllegalStateException(
                         "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
             }
-            return new TypedNamespaceAndKey(currentNamespace, backend.getCurrentKey());
+            return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
         }
     }
 
@@ -854,53 +1099,43 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 throw new IllegalStateException(
                         "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
             }
-            return new TypedNamespaceAndKey(currentNamespace, backend.getCurrentKey());
+            return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
         }
     }
 
     // ==================== 辅助类 ====================
 
-    private static class MemoryAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>, Serializable {
+    /**
+     * 分片前缀键：将 shardId 与原始 key 组合，用于 HashMap 存储。
+     * 仅当 shardCount > 1 时使用。
+     */
+    static class ShardPrefixedKey implements Serializable {
         private static final long serialVersionUID = 1L;
 
-        private MemoryKeyedStateBackend<?> backend;
-        private final AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
-        private final Map<TypedNamespaceAndKey, ACC> storage = new HashMap<>();
+        final int shardId;
+        final Object key;
 
-        MemoryAggregatingState(MemoryKeyedStateBackend<?> backend,
-                               AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
-            this.backend = backend;
-            this.descriptor = descriptor;
-        }
-
-        void rebind(MemoryKeyedStateBackend<?> newBackend) {
-            this.backend = newBackend;
+        ShardPrefixedKey(int shardId, Object key) {
+            this.shardId = shardId;
+            this.key = key;
         }
 
         @Override
-        public OUT get() throws Exception {
-            ACC acc = storage.get(backend.getTypedNamespaceAndKey());
-            if (acc == null) {
-                return null;
-            }
-            return descriptor.getAggregateFunction().getResult(acc);
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ShardPrefixedKey that = (ShardPrefixedKey) o;
+            return shardId == that.shardId && Objects.equals(key, that.key);
         }
 
         @Override
-        public void add(IN value) throws Exception {
-            TypedNamespaceAndKey key = backend.getTypedNamespaceAndKey();
-            ACC acc = storage.get(key);
-            AggregateFunction<IN, ACC, OUT> fn = descriptor.getAggregateFunction();
-            if (acc == null) {
-                acc = fn.createAccumulator();
-            }
-            acc = fn.add(value, acc);
-            storage.put(key, acc);
+        public int hashCode() {
+            return Objects.hash(shardId, key);
         }
 
         @Override
-        public void clear() {
-            storage.remove(backend.getTypedNamespaceAndKey());
+        public String toString() {
+            return shardId + "/" + key;
         }
     }
 

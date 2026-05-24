@@ -10,6 +10,8 @@ package io.nop.stream.core.operators;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
@@ -121,13 +123,26 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
                     StateSnapshot snapshot = new StateSnapshot((Map<String, Object>) stateObj);
                     keyedStateBackend.restoreState(snapshot);
                 }
-                break;
             }
         }
     }
 
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = new OperatorSnapshotResult();
+
+        // If this operator directly implements CheckpointParticipant,
+        // save its state first and merge into the operator snapshot.
+        if (this instanceof CheckpointParticipant) {
+            TaskStateSnapshot participantState = ((CheckpointParticipant) this).saveState(context.getCheckpointId());
+            if (participantState != null) {
+                for (Map.Entry<String, Object> entry : participantState.getOperatorStates().entrySet()) {
+                    result.putOperatorState(entry.getKey(), entry.getValue());
+                }
+                for (Map.Entry<String, Object> entry : participantState.getKeyedStates().entrySet()) {
+                    result.putKeyedState(entry.getKey(), entry.getValue());
+                }
+            }
+        }
 
         if (keyedStateBackend != null) {
             StateSnapshot snapshot = keyedStateBackend.snapshotState();

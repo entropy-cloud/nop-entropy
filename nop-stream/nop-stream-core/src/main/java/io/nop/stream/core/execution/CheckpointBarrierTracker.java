@@ -12,6 +12,8 @@ import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +24,8 @@ import java.util.function.Consumer;
 @Internal
 public class CheckpointBarrierTracker {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CheckpointBarrierTracker.class);
+
     private final TaskLocation taskLocation;
     private final List<StreamOperator<?>> operators;
     private final List<OperatorStateMapping> stateMappings;
@@ -30,7 +34,6 @@ public class CheckpointBarrierTracker {
     private volatile long currentCheckpointId = -1;
     private final AtomicInteger operatorsToAck = new AtomicInteger(0);
     private volatile TaskStateSnapshot currentSnapshot;
-    private volatile CheckpointBarrier pendingBarrier;
 
     public CheckpointBarrierTracker(TaskLocation taskLocation,
                                     List<StreamOperator<?>> operators,
@@ -63,33 +66,23 @@ public class CheckpointBarrierTracker {
             }
         }
         this.operatorsToAck.set(count);
-        this.pendingBarrier = new CheckpointBarrier(checkpointId, timestamp, type);
+
+        CheckpointBarrier barrier = new CheckpointBarrier(checkpointId, timestamp, type);
 
         if (!operators.isEmpty()) {
             StreamOperator<?> head = operators.get(0);
             if (head instanceof StreamSourceOperator) {
-                ((StreamSourceOperator<?>) head).setBarrierTracker(this);
-                CheckpointBarrier barrier = this.pendingBarrier;
-                if (barrier != null) {
-                    this.pendingBarrier = null;
-                    ((StreamSourceOperator<?>) head).injectBarrier(barrier);
+                // Source-pull: offer barrier to the operator's queue.
+                // The source reading thread will poll and inject it during collect().
+                boolean accepted = ((StreamSourceOperator<?>) head).offerBarrier(barrier);
+                if (!accepted) {
+                    LOG.warn("Checkpoint {} rejected: source operator already has a pending barrier", checkpointId);
+                    return false;
                 }
             }
         }
 
         return true;
-    }
-
-    public synchronized CheckpointBarrier pollPendingBarrier() {
-        CheckpointBarrier barrier = this.pendingBarrier;
-        if (barrier != null) {
-            this.pendingBarrier = null;
-        }
-        return barrier;
-    }
-
-    public boolean hasPendingBarrier() {
-        return pendingBarrier != null;
     }
 
     public void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {

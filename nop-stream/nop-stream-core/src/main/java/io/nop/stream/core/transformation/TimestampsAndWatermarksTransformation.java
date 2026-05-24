@@ -26,6 +26,7 @@ public class TimestampsAndWatermarksTransformation<T> extends PhysicalTransforma
 
     private final Transformation<T> input;
     private final WatermarkStrategy<T> watermarkStrategy;
+    private final long watermarkInterval;
 
     /**
      * Creates a new timestamps and watermarks transformation.
@@ -37,13 +38,33 @@ public class TimestampsAndWatermarksTransformation<T> extends PhysicalTransforma
      * @param watermarkStrategy the strategy for assigning timestamps and generating watermarks
      */
     public TimestampsAndWatermarksTransformation(String name,
-                                                  TypeInformation<T> outputType,
-                                                  int parallelism,
-                                                  Transformation<T> input,
-                                                  WatermarkStrategy<T> watermarkStrategy) {
+                                                   TypeInformation<T> outputType,
+                                                   int parallelism,
+                                                   Transformation<T> input,
+                                                   WatermarkStrategy<T> watermarkStrategy) {
+        this(name, outputType, parallelism, input, watermarkStrategy, 200L);
+    }
+
+    /**
+     * Creates a new timestamps and watermarks transformation with configurable watermark interval.
+     *
+     * @param name              the name of the transformation
+     * @param outputType        the output type information
+     * @param parallelism       the parallelism for the transformation
+     * @param input             the upstream transformation
+     * @param watermarkStrategy the strategy for assigning timestamps and generating watermarks
+     * @param watermarkInterval the interval in milliseconds for periodic watermark emission
+     */
+    public TimestampsAndWatermarksTransformation(String name,
+                                                   TypeInformation<T> outputType,
+                                                   int parallelism,
+                                                   Transformation<T> input,
+                                                   WatermarkStrategy<T> watermarkStrategy,
+                                                   long watermarkInterval) {
         super(name, outputType, parallelism);
         this.input = input;
         this.watermarkStrategy = watermarkStrategy;
+        this.watermarkInterval = watermarkInterval;
     }
 
     /**
@@ -62,6 +83,15 @@ public class TimestampsAndWatermarksTransformation<T> extends PhysicalTransforma
      */
     public WatermarkStrategy<T> getWatermarkStrategy() {
         return watermarkStrategy;
+    }
+
+    /**
+     * Returns the watermark interval in milliseconds.
+     *
+     * @return the watermark interval
+     */
+    public long getWatermarkInterval() {
+        return watermarkInterval;
     }
 
     @Override

@@ -39,7 +39,7 @@ public class TestKeyedStreamAggregation {
 
     @Test
     void testSumAggregation() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Integer> results = new ArrayList<>();
 
         env.fromElements(1, 2, 3, 4, 5, 6)
@@ -54,7 +54,7 @@ public class TestKeyedStreamAggregation {
 
     @Test
     void testMinMaxAggregation() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Integer> minResults = new ArrayList<>();
 
         env.fromElements(3, 1, 4, 1, 5, 9)
@@ -68,7 +68,7 @@ public class TestKeyedStreamAggregation {
         // key 1: 3,1,1,5,9 -> min: 3,1,1,1,1   key 0: 4 -> min: 4
         assertEquals(Arrays.asList(3, 1, 4, 1, 1, 1), minResults);
 
-        StreamExecutionEnvironment env2 = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env2 = StreamExecutionEnvironment.createTestEnvironment();
         List<Integer> maxResults = new ArrayList<>();
 
         env2.fromElements(3, 1, 4, 1, 5, 9)
@@ -84,7 +84,7 @@ public class TestKeyedStreamAggregation {
 
     @Test
     void testReduceCustomAggregation() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<String> results = new ArrayList<>();
 
         ReduceFunction<String> concatReducer = (v1, v2) -> v1 + "|" + v2;
@@ -101,7 +101,7 @@ public class TestKeyedStreamAggregation {
 
     @Test
     void testNonKeyedStreamReduceRejected() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         StreamReduceOperator<Integer> reduceOp = new StreamReduceOperator<>((ReduceFunction<Integer>) (v1, v2) -> v1 + v2);
         env.fromElements(1, 2, 3)
@@ -115,7 +115,7 @@ public class TestKeyedStreamAggregation {
 
     @Test
     void testSumByFieldName() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Integer> results = new ArrayList<>();
 
         env.fromElements(
@@ -135,7 +135,7 @@ public class TestKeyedStreamAggregation {
 
     @Test
     void testMinByFieldName() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Integer> results = new ArrayList<>();
 
         env.fromElements(
@@ -154,7 +154,7 @@ public class TestKeyedStreamAggregation {
 
     @Test
     void testMaxByFieldName() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Integer> results = new ArrayList<>();
 
         env.fromElements(

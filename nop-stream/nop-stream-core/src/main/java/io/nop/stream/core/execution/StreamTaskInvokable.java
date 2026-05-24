@@ -132,22 +132,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.barrierTracker = tracker;
         if (tracker != null) {
             setupSnapshotCallbacks();
-            setupSourceBarrierTracker();
         }
     }
 
     public CheckpointBarrierTracker getBarrierTracker() {
         return barrierTracker;
-    }
-
-    private void setupSourceBarrierTracker() {
-        List<StreamOperator<?>> operators = operatorChain.getOperators();
-        if (!operators.isEmpty()) {
-            StreamOperator<?> head = operators.get(0);
-            if (head instanceof StreamSourceOperator) {
-                ((StreamSourceOperator<?>) head).setBarrierTracker(barrierTracker);
-            }
-        }
     }
 
     public OperatorChain getOperatorChain() {

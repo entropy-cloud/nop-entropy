@@ -246,7 +246,7 @@ public class TestEventTimeWindowE2E {
         List<WindowResult> results = Collections.synchronizedList(new ArrayList<>());
 
         // Build pipeline
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<TimedEvent> strategy = WatermarkStrategy
                 .<TimedEvent>forBoundedOutOfOrderness(outOfOrderness)

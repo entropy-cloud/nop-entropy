@@ -170,6 +170,7 @@ public class TestCheckpointEndToEnd {
 
         TwoPhaseCommitSinkFunction<String> tpcSink = new TwoPhaseCommitSinkFunction<String>() {
             private static final long serialVersionUID = 1L;
+            private Map<Long, Object> pendingCommits;
 
             @Override
             public void beginTransaction() {
@@ -196,6 +197,9 @@ public class TestCheckpointEndToEnd {
             public void rollback() {
                 actions.add("rollback");
             }
+
+            @Override public Map<Long, Object> getPendingCommits() { return pendingCommits; }
+            @Override public void setPendingCommits(Map<Long, Object> pending) { this.pendingCommits = pending; }
         };
 
         tpcSink.beginTransaction();
@@ -235,6 +239,8 @@ public class TestCheckpointEndToEnd {
         coordinator.registerTask(LOC_0);
 
         coordinator.addListener(sinkOp);
+        // Register TPC sink as participant so coordinator calls finishCommit
+        coordinator.addParticipant(tpcSink);
 
         CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC_0, operators, snapshot -> {
             coordinator.acknowledgeTask(LOC_0, snapshot.getCheckpointId(), snapshot);

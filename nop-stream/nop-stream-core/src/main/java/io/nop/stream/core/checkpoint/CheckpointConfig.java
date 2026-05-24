@@ -30,10 +30,12 @@ public class CheckpointConfig implements Serializable {
     private long minPause = DEFAULT_MIN_PAUSE;
     private int maxConcurrentCheckpoints = DEFAULT_MAX_CONCURRENT_CHECKPOINTS;
     private int maxRetainedCheckpoints = DEFAULT_MAX_RETAINED_CHECKPOINTS;
+    private ProcessingGuarantee processingGuarantee = ProcessingGuarantee.STRICT_EXACTLY_ONCE;
     private String storageType = "local";
     private Map<String, String> storageConfig = new HashMap<>();
     private String jobId = java.util.UUID.randomUUID().toString();
     private String pipelineId = "1";
+    private JobTerminationMode jobTerminationMode = JobTerminationMode.CANCEL;
 
     public CheckpointConfig() {
     }
@@ -126,6 +128,22 @@ public class CheckpointConfig implements Serializable {
         this.pipelineId = pipelineId;
     }
 
+    public ProcessingGuarantee getProcessingGuarantee() {
+        return processingGuarantee;
+    }
+
+    public void setProcessingGuarantee(ProcessingGuarantee processingGuarantee) {
+        this.processingGuarantee = processingGuarantee != null ? processingGuarantee : ProcessingGuarantee.STRICT_EXACTLY_ONCE;
+    }
+
+    public JobTerminationMode getJobTerminationMode() {
+        return jobTerminationMode;
+    }
+
+    public void setJobTerminationMode(JobTerminationMode jobTerminationMode) {
+        this.jobTerminationMode = jobTerminationMode != null ? jobTerminationMode : JobTerminationMode.CANCEL;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -185,6 +203,16 @@ public class CheckpointConfig implements Serializable {
 
         public Builder pipelineId(String pipelineId) {
             config.setPipelineId(pipelineId);
+            return this;
+        }
+
+        public Builder processingGuarantee(ProcessingGuarantee guarantee) {
+            config.setProcessingGuarantee(guarantee);
+            return this;
+        }
+
+        public Builder jobTerminationMode(JobTerminationMode mode) {
+            config.setJobTerminationMode(mode);
             return this;
         }
 

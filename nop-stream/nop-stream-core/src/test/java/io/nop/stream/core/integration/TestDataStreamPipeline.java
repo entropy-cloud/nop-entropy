@@ -22,7 +22,7 @@ public class TestDataStreamPipeline {
     @Test
     public void testSourceMapFilterSink() throws Exception {
         List<String> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements("hello", "world", "hi")
                 .map(String::toUpperCase)
                 .filter(s -> s.length() > 2)
@@ -35,7 +35,7 @@ public class TestDataStreamPipeline {
     @Test
     public void testSourceFilterSink() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3, 4, 5)
                 .filter(x -> x % 2 == 0)
                 .sink(results::add);
@@ -47,7 +47,7 @@ public class TestDataStreamPipeline {
     @Test
     public void testSourceFlatMapSink() throws Exception {
         List<String> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements("hello world", "foo bar")
                 .flatMap((FlatMapFunction<String, String>) (value, out) -> {
                     for (String word : value.split(" ")) {
@@ -63,7 +63,7 @@ public class TestDataStreamPipeline {
     @Test
     public void testSourceMapMapFilterSink() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3, 4, 5)
                 .map(x -> x * 10)
                 .map(x -> x + 1)
@@ -77,7 +77,7 @@ public class TestDataStreamPipeline {
     @Test
     public void testFromCollection() throws Exception {
         List<String> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromCollection(Arrays.asList("a", "b", "c"))
                 .map(String::toUpperCase)
                 .sink(results::add);
@@ -89,7 +89,7 @@ public class TestDataStreamPipeline {
     @Test
     public void testExecutionResult() throws Exception {
         List<Integer> results = new ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1, 2, 3).sink(results::add);
         var result = env.execute("Result Test");
 
@@ -101,7 +101,7 @@ public class TestDataStreamPipeline {
 
     @Test
     public void testCannotExecuteTwice() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1).sink(x -> {});
         env.execute("First");
         assertThrows(IllegalStateException.class, () -> env.execute("Second"));

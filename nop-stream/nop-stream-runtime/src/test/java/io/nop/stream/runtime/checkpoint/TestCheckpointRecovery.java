@@ -390,6 +390,7 @@ class TestCheckpointRecovery {
 
         TwoPhaseCommitSinkFunction<String> sink = new TwoPhaseCommitSinkFunction<String>() {
             private static final long serialVersionUID = 1L;
+            private Map<Long, Object> pendingCommits;
 
             @Override
             public void beginTransaction() {
@@ -412,6 +413,9 @@ class TestCheckpointRecovery {
             public void rollback() {
                 rollbackCount.incrementAndGet();
             }
+
+            @Override public Map<Long, Object> getPendingCommits() { return pendingCommits; }
+            @Override public void setPendingCommits(Map<Long, Object> pending) { this.pendingCommits = pending; }
         };
 
         sink.beginTransaction();

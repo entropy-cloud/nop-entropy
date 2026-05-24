@@ -32,6 +32,7 @@ import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
@@ -56,6 +57,8 @@ import io.nop.stream.runtime.operators.WindowOperatorTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.api.core.util.Guard.checkArgument;
@@ -173,6 +176,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     private transient MapState<String, ACC> windowContentsState;
 
     /**
+     * Per-trigger SimpleAccumulator state, keyed by composite key (key + window + descriptor name).
+     * Used by triggers like CountTrigger that need to maintain state via getSimpleAccumulator().
+     */
+    private transient Map<String, SimpleAccumulator<?>> triggerAccumulators;
+
+    /**
      * Creates a new {@code WindowOperator} based on the given policies and user functions.
      */
     public WindowOperator(
@@ -206,6 +215,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         this.numLateRecordsDropped = null; // metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
         timestampedCollector = new TimestampedCollector<>(output);
+        this.triggerAccumulators = new HashMap<>();
 
         if (this.stateBackend == null) {
             this.stateBackend = new MemoryStateBackend();
@@ -269,6 +279,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         processContext = null;
         windowAssignerContext = null;
         windowContentsState = null;
+        triggerAccumulators = null;
     }
 
     @Override
@@ -685,7 +696,18 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         ACC current = windowContentsState.get(WINDOW_VALUE_KEY);
         if (current == null) {
-            setWindowContents(key, window, (ACC) value);
+            // First element: create a new accumulator and add the value to it.
+            // This handles cases where IN != ACC (e.g. AggregateFunction with distinct types)
+            // by ensuring the first element goes through createAccumulator() -> add(),
+            // NOT a direct cast (ACC) value.
+            SimpleAccumulator<IN> accumulator = createAccumulatorForWindow();
+            if (accumulator != null) {
+                accumulator.add(value);
+                setWindowContents(key, window, (ACC) accumulator);
+            } else {
+                // No accumulator factory available; direct store (IN == ACC case)
+                setWindowContents(key, window, (ACC) value);
+            }
             return;
         }
 
@@ -701,6 +723,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         // Last-write-wins keeps behavior deterministic for non-accumulator ACC types.
         setWindowContents(key, window, (ACC) value);
+    }
+
+    /**
+     * Creates a new SimpleAccumulator for a window.
+     * Returns null if no accumulator factory is available.
+     * Subclasses can override to provide custom accumulator creation logic.
+     */
+    @SuppressWarnings("unchecked")
+    protected SimpleAccumulator<IN> createAccumulatorForWindow() {
+        return null;
     }
 
     private ACC getWindowContents(K key, W window) {
@@ -744,18 +776,21 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (targetValue == null) {
                 targetValue = sourceValue;
             } else if (targetValue instanceof SimpleAccumulator) {
-                try {
-                    SimpleAccumulator<IN> accumulator = (SimpleAccumulator<IN>) targetValue;
-                    accumulator.add((IN) sourceValue);
-                    // Keep the accumulator reference, not getLocalValue(), so that
-                    // subsequent merges still see it as a SimpleAccumulator.
-                    targetValue = (ACC) accumulator;
-                } catch (ClassCastException e) {
-                    LOG.warn("ClassCastException in mergeWindowContents: cannot merge sourceValue into target accumulator. " +
-                            "targetType={}, sourceType={}", targetValue.getClass().getName(),
-                            sourceValue.getClass().getName(), e);
-                    targetValue = sourceValue;
+                SimpleAccumulator<ACC> accumulator = (SimpleAccumulator<ACC>) targetValue;
+                if (sourceValue instanceof SimpleAccumulator) {
+                    // Both are SimpleAccumulators: merge source accumulator into target.
+                    // This is the correct path for session window merging where both
+                    // windows have been accumulating values independently.
+                    accumulator.merge((SimpleAccumulator<ACC>) sourceValue);
+                } else {
+                    // Source is a raw value, target is an accumulator.
+                    // Type incompatibility should cause a fast failure, not silent data loss.
+                    throw new IllegalStateException(
+                            "Cannot merge non-accumulator value into accumulator target. " +
+                            "targetType=" + targetValue.getClass().getName() +
+                            ", sourceType=" + sourceValue.getClass().getName());
                 }
+                targetValue = (ACC) accumulator;
             } else {
                 // Deterministic fallback for non-accumulator values.
                 targetValue = sourceValue;
@@ -926,10 +961,30 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <T> SimpleAccumulator<T> getSimpleAccumulator(StateDescriptor<T> descriptor) {
+            // Build a composite key from key + window + descriptor name
+            String stateKey = "trigger_" + key + "_" + window + "_" + descriptor.getName();
+
+            // Check for existing accumulator in trigger state map
+            SimpleAccumulator<T> existing = (SimpleAccumulator<T>) triggerAccumulators.get(stateKey);
+            if (existing != null) {
+                return existing;
+            }
+
+            // Create new accumulator from ReducingStateDescriptor if applicable
+            if (descriptor instanceof ReducingStateDescriptor) {
+                ReducingStateDescriptor<T> rsd = (ReducingStateDescriptor<T>) descriptor;
+                try {
+                    SimpleAccumulator<T> acc = rsd.getAccumulatorType().getDeclaredConstructor().newInstance();
+                    triggerAccumulators.put(stateKey, acc);
+                    return acc;
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to create trigger state accumulator", e);
+                }
+            }
             throw new UnsupportedOperationException(
-                    "SimpleAccumulator is not supported in the current trigger context. " +
-                    "Use a ReducingStateDescriptor or AggregateFunction instead.");
+                    "getSimpleAccumulator not supported for descriptor: " + descriptor.getName());
         }
 
         @Override

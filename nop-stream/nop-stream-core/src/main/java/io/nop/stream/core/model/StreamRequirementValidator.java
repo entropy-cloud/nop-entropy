@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.model;
 
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.exceptions.StreamException;
 
 import java.util.ArrayList;
@@ -38,8 +40,8 @@ public class StreamRequirementValidator {
     }
 
     public static void validateStrictExactlyOnce(Set<StreamRequirement> requirements,
-                                                 boolean sourceReplayable,
-                                                 boolean sinkTwoPhaseCommit) {
+                                                  boolean sourceReplayable,
+                                                  boolean sinkTwoPhaseCommit) {
         if (!requirements.contains(StreamRequirement.STRICT_EXACTLY_ONCE)) {
             return;
         }
@@ -55,5 +57,63 @@ public class StreamRequirementValidator {
         if (!errors.isEmpty()) {
             throw new StreamException("STRICT_EXACTLY_ONCE validation failed: " + String.join("; ", errors));
         }
+    }
+
+    /**
+     * Validates that connector consistency capabilities meet the pipeline's processing guarantee requirements.
+     * <p>
+     * When the pipeline declares {@link io.nop.stream.core.checkpoint.ProcessingGuarantee#STRICT_EXACTLY_ONCE}:
+     * <ul>
+     *   <li>All sources must have at least {@link SourceConsistencyCapability#REPLAYABLE} capability
+     *       (REPLAYABLE or TRANSACTIONAL_READ are acceptable)</li>
+     *   <li>All sinks must have at least {@link SinkConsistencyCapability#TWO_PHASE_COMMIT} capability
+     *       (TWO_PHASE_COMMIT or STAGED_ATOMIC_COMMIT are acceptable)</li>
+     * </ul>
+     *
+     * @param guarantee          the pipeline's processing guarantee requirement
+     * @param sourceCapabilities consistency capabilities of all source connectors
+     * @param sinkCapabilities   consistency capabilities of all sink connectors
+     * @throws StreamException if any connector does not meet the required capability level
+     */
+    public static void validateConnectorConsistency(
+            io.nop.stream.core.checkpoint.ProcessingGuarantee guarantee,
+            List<SourceConsistencyCapability> sourceCapabilities,
+            List<SinkConsistencyCapability> sinkCapabilities) {
+        if (guarantee != io.nop.stream.core.checkpoint.ProcessingGuarantee.STRICT_EXACTLY_ONCE) {
+            return;
+        }
+
+        List<String> errors = new ArrayList<>();
+
+        for (int i = 0; i < sourceCapabilities.size(); i++) {
+            SourceConsistencyCapability cap = sourceCapabilities.get(i);
+            if (!isSourceReplayableOrStronger(cap)) {
+                errors.add("source[" + i + "] has capability " + cap.name()
+                        + " but STRICT_EXACTLY_ONCE requires at least REPLAYABLE");
+            }
+        }
+
+        for (int i = 0; i < sinkCapabilities.size(); i++) {
+            SinkConsistencyCapability cap = sinkCapabilities.get(i);
+            if (!isSinkTwoPhaseCommitOrStronger(cap)) {
+                errors.add("sink[" + i + "] has capability " + cap.name()
+                        + " but STRICT_EXACTLY_ONCE requires at least TWO_PHASE_COMMIT");
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new StreamException("Connector consistency validation failed for STRICT_EXACTLY_ONCE: "
+                    + String.join("; ", errors));
+        }
+    }
+
+    private static boolean isSourceReplayableOrStronger(SourceConsistencyCapability cap) {
+        return cap == SourceConsistencyCapability.REPLAYABLE
+                || cap == SourceConsistencyCapability.TRANSACTIONAL_READ;
+    }
+
+    private static boolean isSinkTwoPhaseCommitOrStronger(SinkConsistencyCapability cap) {
+        return cap == SinkConsistencyCapability.TWO_PHASE_COMMIT
+                || cap == SinkConsistencyCapability.STAGED_ATOMIC_COMMIT;
     }
 }

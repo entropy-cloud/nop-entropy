@@ -21,7 +21,7 @@ public class TestAssignTimestampsAndWatermarks {
 
     @Test
     void testAssignTimestampsAndWatermarksCreatesTransformation() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<String> strategy = WatermarkStrategy
                 .<String>forBoundedOutOfOrderness(Duration.ofMillis(100))
@@ -42,7 +42,7 @@ public class TestAssignTimestampsAndWatermarks {
 
     @Test
     void testTransformationChainLinksToInput() {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<String> strategy = WatermarkStrategy
                 .<String>forBoundedOutOfOrderness(Duration.ofMillis(100));
@@ -60,7 +60,7 @@ public class TestAssignTimestampsAndWatermarks {
     @Test
     void testPipelineWithTimestampsAndWatermarks() throws Exception {
         java.util.List<String> results = new java.util.ArrayList<>();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<String> strategy = WatermarkStrategy
                 .<String>forBoundedOutOfOrderness(Duration.ofMillis(100))

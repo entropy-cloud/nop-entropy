@@ -9,12 +9,9 @@ package io.nop.stream.runtime.checkpoint.storage;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.stream.core.checkpoint.CheckpointType;
-import io.nop.stream.core.checkpoint.CompletedCheckpoint;
-import io.nop.stream.core.checkpoint.SavepointMetadata;
-import io.nop.stream.core.checkpoint.TaskLocation;
-import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import io.nop.stream.core.model.StreamModelFingerprint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +27,7 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     private static final Logger LOG = LoggerFactory.getLogger(LocalFileCheckpointStorage.class);
 
     private static final String CHECKPOINT_SUFFIX = ".checkpoint";
+    private static final String EPOCH_MANIFEST_SUFFIX = ".epoch";
     private static final String TEMP_SUFFIX = ".tmp";
     private static final String SAVEPOINT_DIR_PREFIX = "savepoint-";
     private static final String METADATA_SUFFIX = ".metadata";
@@ -240,7 +238,11 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     private long extractCheckpointId(String fileName) {
-        String name = fileName.replace(CHECKPOINT_SUFFIX, "");
+        return extractIdFromFileName(fileName, CHECKPOINT_SUFFIX);
+    }
+
+    private long extractIdFromFileName(String fileName, String suffix) {
+        String name = fileName.replace(suffix, "");
         try {
             return Long.parseLong(name);
         } catch (NumberFormatException e) {
@@ -461,5 +463,188 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    @Override
+    public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws Exception {
+        Path manifestPath = getEpochManifestPath(jobId, pipelineId, manifest.getEpochId());
+        Path tempPath = Paths.get(manifestPath.toString() + TEMP_SUFFIX);
+
+        lock.writeLock().lock();
+        try {
+            ensureDirectoryExists(manifestPath.getParent().toString());
+
+            byte[] data = serializeEpochManifest(manifest);
+            Files.write(tempPath, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.move(tempPath, manifestPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+
+            LOG.debug("Stored epoch manifest {} for job {}/{}", manifest.getEpochId(), jobId, pipelineId);
+        } finally {
+            lock.writeLock().unlock();
+            deleteIfExists(tempPath);
+        }
+    }
+
+    @Override
+    public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws Exception {
+        Path jobDir = getJobDir(jobId, pipelineId);
+
+        lock.readLock().lock();
+        try {
+            if (!Files.exists(jobDir)) {
+                return null;
+            }
+
+            try (Stream<Path> files = Files.list(jobDir)) {
+                Optional<Path> latest = files
+                        .filter(p -> p.toString().endsWith(EPOCH_MANIFEST_SUFFIX))
+                        .max((a, b) -> Long.compare(
+                                extractIdFromFileName(a.getFileName().toString(), EPOCH_MANIFEST_SUFFIX),
+                                extractIdFromFileName(b.getFileName().toString(), EPOCH_MANIFEST_SUFFIX)));
+
+                if (latest.isPresent()) {
+                    return deserializeEpochManifest(latest.get());
+                }
+                return null;
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    private Path getEpochManifestPath(String jobId, String pipelineId, long epochId) {
+        return Paths.get(baseDir, jobId, pipelineId, epochId + EPOCH_MANIFEST_SUFFIX);
+    }
+
+    private byte[] serializeEpochManifest(EpochManifest manifest) {
+        Map<String, Object> serializable = new LinkedHashMap<>();
+        serializable.put("epochId", manifest.getEpochId());
+        serializable.put("jobId", manifest.getJobId());
+        serializable.put("pipelineId", manifest.getPipelineId());
+        serializable.put("timestamp", manifest.getTimestamp());
+        if (manifest.getCheckpointType() != null) {
+            serializable.put("checkpointType", manifest.getCheckpointType().name());
+        }
+        if (manifest.getState() != null) {
+            serializable.put("state", manifest.getState().name());
+        }
+
+        Map<String, Object> taskSnapshotsMap = new LinkedHashMap<>();
+        for (Map.Entry<TaskLocation, TaskStateSnapshot> entry : manifest.getTaskSnapshots().entrySet()) {
+            String key = taskLocationToString(entry.getKey());
+            taskSnapshotsMap.put(key, serializeTaskStateSnapshot(entry.getValue()));
+        }
+        serializable.put("taskSnapshots", taskSnapshotsMap);
+
+        if (manifest.getStreamModelFingerprint() != null) {
+            StreamModelFingerprint fp = manifest.getStreamModelFingerprint();
+            Map<String, Object> fpMap = new LinkedHashMap<>();
+            fpMap.put("version", fp.getVersion());
+            fpMap.put("dagTopologyHash", fp.getDagTopologyHash());
+            fpMap.put("requirementsHash", fp.getRequirementsHash());
+            fpMap.put("checkpointParticipantsHash", fp.getCheckpointParticipantsHash());
+            fpMap.put("componentHashes", fp.getComponentHashes());
+            serializable.put("streamModelFingerprint", fpMap);
+        }
+
+        if (manifest.getSegments() != null && !manifest.getSegments().isEmpty()) {
+            java.util.List<Map<String, Object>> segmentsList = new java.util.ArrayList<>();
+            for (StateSegmentDescriptor seg : manifest.getSegments()) {
+                Map<String, Object> segMap = new LinkedHashMap<>();
+                segMap.put("segmentType", seg.getSegmentType());
+                segMap.put("path", seg.getPath());
+                segMap.put("codec", seg.getCodec());
+                segMap.put("checksum", seg.getChecksum());
+                segMap.put("schemaVersion", seg.getSchemaVersion());
+                segmentsList.add(segMap);
+            }
+            serializable.put("segments", segmentsList);
+        }
+
+        return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
+    }
+
+    private Map<String, Object> serializeTaskStateSnapshot(TaskStateSnapshot snapshot) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
+            map.put("operatorStates", snapshot.getOperatorStates());
+        }
+        if (snapshot.getKeyedStates() != null && !snapshot.getKeyedStates().isEmpty()) {
+            map.put("keyedStates", snapshot.getKeyedStates());
+        }
+        return map;
+    }
+
+    private EpochManifest deserializeEpochManifest(Path path) throws Exception {
+        byte[] data = Files.readAllBytes(path);
+        if (data == null || data.length == 0) {
+            return null;
+        }
+        String json = new String(data, StandardCharsets.UTF_8);
+        Map<String, Object> map = JsonTool.parseMap(json);
+        if (map == null) {
+            return null;
+        }
+
+        long epochId = map.get("epochId") instanceof Number ? ((Number) map.get("epochId")).longValue() : -1;
+        String jobId = (String) map.get("jobId");
+        String pipelineId = (String) map.get("pipelineId");
+        long timestamp = map.get("timestamp") instanceof Number ? ((Number) map.get("timestamp")).longValue() : 0;
+
+        String checkpointTypeName = (String) map.get("checkpointType");
+        CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : null;
+
+        String stateName = (String) map.get("state");
+        EpochState epochState = stateName != null ? EpochState.valueOf(stateName) : null;
+
+        Map<TaskLocation, TaskStateSnapshot> taskSnapshots = new LinkedHashMap<>();
+        Map<String, Object> taskSnapshotsMap = (Map<String, Object>) map.get("taskSnapshots");
+        if (taskSnapshotsMap != null) {
+            for (Map.Entry<String, Object> entry : taskSnapshotsMap.entrySet()) {
+                TaskLocation taskLocation;
+                try {
+                    taskLocation = stringToTaskLocation(entry.getKey());
+                } catch (Exception e) {
+                    taskLocation = new TaskLocation(jobId, pipelineId, entry.getKey(), 0);
+                }
+                Map<String, Object> stateMap = (Map<String, Object>) entry.getValue();
+                TaskStateSnapshot snapshot = deserializeTaskStateSnapshot(stateMap, taskLocation);
+                taskSnapshots.put(taskLocation, snapshot);
+            }
+        }
+
+        StreamModelFingerprint fingerprint = null;
+        Map<String, Object> fpMap = (Map<String, Object>) map.get("streamModelFingerprint");
+        if (fpMap != null) {
+            StreamModelFingerprint.Builder fpBuilder = StreamModelFingerprint.builder();
+            fpBuilder.version((String) fpMap.get("version"));
+            fpBuilder.dagTopologyHash((String) fpMap.get("dagTopologyHash"));
+            fpBuilder.requirementsHash((String) fpMap.get("requirementsHash"));
+            fpBuilder.checkpointParticipantsHash((String) fpMap.get("checkpointParticipantsHash"));
+            Map<String, String> compHashes = (Map<String, String>) fpMap.get("componentHashes");
+            if (compHashes != null) {
+                for (Map.Entry<String, String> e : compHashes.entrySet()) {
+                    fpBuilder.addComponentHash(e.getKey(), e.getValue());
+                }
+            }
+            fingerprint = fpBuilder.build();
+        }
+
+        java.util.List<StateSegmentDescriptor> segments = new java.util.ArrayList<>();
+        java.util.List<Map<String, Object>> segmentsList = (java.util.List<Map<String, Object>>) map.get("segments");
+        if (segmentsList != null) {
+            for (Map<String, Object> segMap : segmentsList) {
+                segments.add(new StateSegmentDescriptor(
+                        (String) segMap.get("segmentType"),
+                        (String) segMap.get("path"),
+                        (String) segMap.get("codec"),
+                        (String) segMap.get("checksum"),
+                        segMap.get("schemaVersion") instanceof Number ? ((Number) segMap.get("schemaVersion")).intValue() : 1
+                ));
+            }
+        }
+
+        return new EpochManifest(epochId, jobId, pipelineId, timestamp, checkpointType, epochState,
+                taskSnapshots, fingerprint, segments);
     }
 }

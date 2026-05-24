@@ -5,6 +5,8 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestCheckpointParticipant {
@@ -32,11 +34,12 @@ class TestCheckpointParticipant {
     }
 
     @Test
-    void testFinishCommitFailureCallsRollback() throws Exception {
+    void testFinishCommitFailureKeepsPreparedTransaction() throws Exception {
         TestTwoPhaseSink sink = new TestTwoPhaseSink();
         sink.finishCommit(1, false);
         assertFalse(sink.committed);
-        assertTrue(sink.rolledBack);
+        // finishCommit(false) does NOT call rollback — prepared tx is kept for subsuming commit
+        assertFalse(sink.rolledBack);
     }
 
     @Test
@@ -50,6 +53,7 @@ class TestCheckpointParticipant {
         boolean committed = false;
         boolean rolledBack = false;
         boolean recovered = false;
+        private Map<Long, Object> pendingCommits;
 
         @Override public void beginTransaction() {}
         @Override public void invoke(String value) {}
@@ -57,5 +61,7 @@ class TestCheckpointParticipant {
         @Override public void commit(long checkpointId) { committed = true; }
         @Override public void rollback() { rolledBack = true; }
         @Override public void recover(long checkpointId) { recovered = true; }
+        @Override public Map<Long, Object> getPendingCommits() { return pendingCommits; }
+        @Override public void setPendingCommits(Map<Long, Object> pending) { this.pendingCommits = pending; }
     }
 }

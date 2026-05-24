@@ -8,15 +8,12 @@
 package io.nop.stream.runtime.checkpoint;
 
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
-import io.nop.stream.core.checkpoint.CheckpointConfig;
-import io.nop.stream.core.checkpoint.CheckpointIDCounter;
-import io.nop.stream.core.checkpoint.CheckpointType;
-import io.nop.stream.core.checkpoint.CompletedCheckpoint;
-import io.nop.stream.core.checkpoint.TaskLocation;
-import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.core.model.StreamModelFingerprint;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +43,11 @@ public class CheckpointCoordinator {
     private volatile boolean isSchedulerStarted = false;
 
     private final List<CheckpointListener> listeners = new CopyOnWriteArrayList<>();
+    private final List<CheckpointParticipant> participants = new CopyOnWriteArrayList<>();
     private final CheckpointMetrics metrics = new CheckpointMetrics();
+
+    private static final int DEFAULT_COMMIT_RETRIES = 3;
+    private final TreeMap<Long, Set<Integer>> failedCommitParticipants = new TreeMap<>();
 
     public CheckpointCoordinator(
             String jobId,
@@ -75,6 +76,18 @@ public class CheckpointCoordinator {
 
     public void removeListener(CheckpointListener listener) {
         listeners.remove(listener);
+    }
+
+    public void addParticipant(CheckpointParticipant participant) {
+        participants.add(participant);
+    }
+
+    public void removeParticipant(CheckpointParticipant participant) {
+        participants.remove(participant);
+    }
+
+    public List<CheckpointParticipant> getParticipants() {
+        return Collections.unmodifiableList(participants);
     }
 
     public void startCheckpointScheduler() {
@@ -195,6 +208,17 @@ public class CheckpointCoordinator {
             return;
         }
 
+        // Build and persist EpochManifest
+        try {
+            EpochManifest manifest = buildEpochManifest(completed);
+            checkpointStorage.storeEpochManifest(jobId, pipelineId, manifest);
+            LOG.debug("Stored EpochManifest for epoch {}", checkpointId);
+        } catch (Exception e) {
+            LOG.error("Failed to store EpochManifest for checkpoint {}, aborting checkpoint", checkpointId, e);
+            abortPendingCheckpoint(pending, "Failed to store EpochManifest: " + e.getMessage());
+            return;
+        }
+
         if (!pendingCheckpoints.remove(checkpointId, pending)) {
             LOG.debug("Skip completing checkpoint {} because pending state changed", checkpointId);
             return;
@@ -207,6 +231,12 @@ public class CheckpointCoordinator {
         metrics.updateLatestCheckpoint(completed.estimateSize(), completed.getDuration());
 
         cleanupOldCheckpoints();
+
+        // Retry previously failed commits before processing current epoch
+        retryFailedCommits();
+
+        // Notify participants first: finishCommit in reverse topology order
+        notifyParticipantsFinishCommit(checkpointId, true);
 
         notifyCheckpointCompleted(checkpointId);
 
@@ -226,6 +256,9 @@ public class CheckpointCoordinator {
         decrementPendingCheckpointCount();
 
         metrics.incrementFailedCheckpoints();
+
+        // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
+        notifyParticipantsFinishCommit(checkpointId, false);
 
         notifyCheckpointAborted(checkpointId);
 
@@ -333,6 +366,58 @@ public class CheckpointCoordinator {
         }
     }
 
+    private void notifyParticipantsFinishCommit(long checkpointId, boolean success) {
+        for (int i = participants.size() - 1; i >= 0; i--) {
+            int retries = DEFAULT_COMMIT_RETRIES;
+            while (retries > 0) {
+                try {
+                    participants.get(i).finishCommit(checkpointId, success);
+                    break;
+                } catch (Exception e) {
+                    retries--;
+                    if (retries > 0) {
+                        LOG.warn("finishCommit({}) failed for participant {} on checkpoint {}, retrying ({} left)",
+                                success, i, checkpointId, retries, e);
+                    } else {
+                        LOG.error("finishCommit({}) failed for participant {} on checkpoint {} after {} retries",
+                                success, i, checkpointId, DEFAULT_COMMIT_RETRIES, e);
+                        failedCommitParticipants.computeIfAbsent(checkpointId, k -> new TreeSet<>()).add(i);
+                    }
+                }
+            }
+        }
+    }
+
+    private void retryFailedCommits() {
+        if (failedCommitParticipants.isEmpty()) return;
+
+        Iterator<Map.Entry<Long, Set<Integer>>> it = failedCommitParticipants.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Long, Set<Integer>> entry = it.next();
+            long failedEpoch = entry.getKey();
+            Set<Integer> failedIdx = entry.getValue();
+            Set<Integer> stillFailing = new TreeSet<>();
+
+            for (Integer idx : failedIdx) {
+                if (idx < participants.size()) {
+                    try {
+                        participants.get(idx).finishCommit(failedEpoch, true);
+                        LOG.info("Retried finishCommit for participant {} on epoch {} succeeded", idx, failedEpoch);
+                    } catch (Exception e) {
+                        LOG.warn("Retry finishCommit for participant {} on epoch {} still failing", idx, failedEpoch, e);
+                        stillFailing.add(idx);
+                    }
+                }
+            }
+
+            if (stillFailing.isEmpty()) {
+                it.remove();
+            } else {
+                entry.setValue(stillFailing);
+            }
+        }
+    }
+
     public void shutdown() {
         stopCheckpointScheduler();
 
@@ -343,7 +428,45 @@ public class CheckpointCoordinator {
         }
         pendingCheckpoints.clear();
         listeners.clear();
+        participants.clear();
+        failedCommitParticipants.clear();
 
         LOG.info("Checkpoint coordinator shutdown for job {}", jobId);
+    }
+
+    /**
+     * Build an EpochManifest from a CompletedCheckpoint.
+     */
+    private EpochManifest buildEpochManifest(CompletedCheckpoint completed) {
+        return new EpochManifest(
+                completed.getCheckpointId(),
+                completed.getJobId(),
+                completed.getPipelineId(),
+                completed.getCompletedTimestamp(),
+                completed.getCheckpointType(),
+                EpochState.COMMITTED,
+                completed.getTaskStates(),
+                currentFingerprint,
+                null  // segments - will be populated when segment-based storage is integrated
+        );
+    }
+
+    /**
+     * Try to restore from EpochManifest first, fall back to CompletedCheckpoint.
+     */
+    public EpochManifest restoreLatestEpochManifest() throws Exception {
+        return checkpointStorage.loadLatestEpochManifest(jobId, pipelineId);
+    }
+
+    // --- Fingerprint management ---
+
+    private StreamModelFingerprint currentFingerprint;
+
+    public void setCurrentFingerprint(StreamModelFingerprint fingerprint) {
+        this.currentFingerprint = fingerprint;
+    }
+
+    public StreamModelFingerprint getCurrentFingerprint() {
+        return currentFingerprint;
     }
 }

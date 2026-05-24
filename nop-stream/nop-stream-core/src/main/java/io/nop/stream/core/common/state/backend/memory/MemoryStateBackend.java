@@ -34,6 +34,27 @@ public class MemoryStateBackend implements IStateBackend, Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private final int shardCount;
+
+    /**
+     * 默认构造函数（无分片）
+     */
+    public MemoryStateBackend() {
+        this(1);
+    }
+
+    /**
+     * 构造函数
+     *
+     * @param shardCount 分片数量，必须 >= 1。当 > 1 时，key 会被路由到不同的分片。
+     */
+    public MemoryStateBackend(int shardCount) {
+        if (shardCount < 1) {
+            throw new IllegalArgumentException("shardCount must be at least 1");
+        }
+        this.shardCount = shardCount;
+    }
+
     @Override
     public String getName() {
         return "MemoryStateBackend";
@@ -41,6 +62,6 @@ public class MemoryStateBackend implements IStateBackend, Serializable {
 
     @Override
     public <K> IKeyedStateBackend<K> createKeyedStateBackend(Class<K> keyType) {
-        return new MemoryKeyedStateBackend<>(keyType);
+        return new MemoryKeyedStateBackend<>(keyType, shardCount);
     }
 }

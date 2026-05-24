@@ -24,6 +24,7 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -155,6 +156,7 @@ public class TestOperatorSnapshot {
 
         TwoPhaseCommitSinkFunction<String> sink = new TwoPhaseCommitSinkFunction<>() {
             private static final long serialVersionUID = 1L;
+            private Map<Long, Object> pendingCommits;
 
             @Override
             public void beginTransaction() {
@@ -177,6 +179,9 @@ public class TestOperatorSnapshot {
             @Override
             public void rollback() {
             }
+
+            @Override public Map<Long, Object> getPendingCommits() { return pendingCommits; }
+            @Override public void setPendingCommits(Map<Long, Object> pending) { this.pendingCommits = pending; }
         };
 
         StreamSinkOperator<String> sinkOperator = new StreamSinkOperator<>(sink);

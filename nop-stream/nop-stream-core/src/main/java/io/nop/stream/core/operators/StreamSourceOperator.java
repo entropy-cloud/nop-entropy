@@ -16,11 +16,12 @@ import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
-import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * A stream operator that wraps a {@link SourceFunction} and emits elements through the
@@ -33,26 +34,74 @@ import java.util.Map;
  */
 public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(StreamSourceOperator.class);
+
     private static final long serialVersionUID = 1L;
 
     public static final String SOURCE_OFFSET_KEY = "source-offset";
+
+    /**
+     * Queue of pending barriers to be injected by the source reading thread.
+     * Capacity 1: if a barrier is already queued, new triggers are rejected
+     * (overlapping checkpoints are not allowed).
+     */
+    private final LinkedBlockingQueue<CheckpointBarrier> pendingBarriers = new LinkedBlockingQueue<>(1);
 
     private final SourceFunction<OUT> sourceFunction;
 
     private volatile boolean isRunning = true;
 
-    private transient volatile CheckpointBarrierTracker barrierTracker;
+    /**
+     * Set to true once sourceFunction.run() has returned.
+     * After this point, offerBarrier() directly injects instead of queueing.
+     */
+    private volatile boolean finished = false;
 
     public StreamSourceOperator(SourceFunction<OUT> sourceFunction) {
         this.sourceFunction = sourceFunction;
     }
 
-    public void setBarrierTracker(CheckpointBarrierTracker tracker) {
-        this.barrierTracker = tracker;
+    /**
+     * Non-blocking offer of a barrier into the pending queue.
+     * Called by the scheduler/checkpoint thread (source-pull pattern).
+     *
+     * <p>If the source has already finished ({@code finished == true}), the barrier
+     * is directly injected instead of being queued. This handles the case where
+     * a checkpoint/savepoint is triggered after a finite source completes.
+     *
+     * @return true if the barrier was accepted, false if a barrier is already queued
+     */
+    public boolean offerBarrier(CheckpointBarrier barrier) {
+        if (finished) {
+            // Source has finished running; directly inject the barrier.
+            try {
+                injectBarrier(barrier);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to inject barrier after source finished", e);
+            }
+            return true;
+        }
+        boolean accepted = pendingBarriers.offer(barrier);
+        if (!accepted) {
+            LOG.warn("Barrier {} rejected: pending queue already has a barrier", barrier.getId());
+        }
+        return accepted;
     }
 
-    public CheckpointBarrierTracker getBarrierTracker() {
-        return barrierTracker;
+    /**
+     * Returns true if there is a pending barrier waiting to be injected.
+     */
+    public boolean hasPendingBarrier() {
+        return !pendingBarriers.isEmpty();
+    }
+
+    /**
+     * Drains and returns a pending barrier from the queue, if any.
+     * Useful for testing or when the source has already finished and
+     * barriers need to be manually injected.
+     */
+    public CheckpointBarrier drainPendingBarrier() {
+        return pendingBarriers.poll();
     }
 
     /**
@@ -105,17 +154,36 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
         isRunning = true;
         sourceFunction.run(ctx);
+        // Mark finished BEFORE draining so that concurrent offerBarrier() calls
+        // will either (a) see finished=true and inject directly, or (b) see
+        // finished=false, queue the barrier, and we drain it here.
+        finished = true;
+        drainAndInjectPendingBarriers();
+    }
+
+    /**
+     * Drains all barriers from the pending queue and injects them.
+     * Called after the source function finishes to ensure any barriers
+     * that were queued during the last collect() calls are processed.
+     */
+    private void drainAndInjectPendingBarriers() {
+        CheckpointBarrier barrier;
+        while ((barrier = pendingBarriers.poll()) != null) {
+            try {
+                injectBarrier(barrier);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to inject pending barrier after source finished", e);
+            }
+        }
     }
 
     private void injectPendingBarrier() {
-        if (barrierTracker != null) {
-            CheckpointBarrier barrier = barrierTracker.pollPendingBarrier();
-            if (barrier != null) {
-                try {
-                    injectBarrier(barrier);
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to inject pending barrier", e);
-                }
+        CheckpointBarrier barrier = pendingBarriers.poll();
+        if (barrier != null) {
+            try {
+                injectBarrier(barrier);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to inject pending barrier", e);
             }
         }
     }
@@ -149,7 +217,11 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             result.putOperatorState(SOURCE_OFFSET_KEY, offset);
         }
         if (sourceFunction instanceof CheckpointedSourceFunction) {
-            ((CheckpointedSourceFunction<?>) sourceFunction).snapshotState(context.getCheckpointId());
+            OperatorSnapshotResult sourceResult =
+                    ((CheckpointedSourceFunction<?>) sourceFunction).snapshotState(context.getCheckpointId());
+            if (sourceResult != null) {
+                result.merge(sourceResult);
+            }
         }
         return result;
     }

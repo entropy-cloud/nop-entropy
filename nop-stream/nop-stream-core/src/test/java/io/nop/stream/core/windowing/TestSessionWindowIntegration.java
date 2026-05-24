@@ -75,7 +75,7 @@ public class TestSessionWindowIntegration {
 
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))
@@ -105,7 +105,7 @@ public class TestSessionWindowIntegration {
 
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))
@@ -135,7 +135,7 @@ public class TestSessionWindowIntegration {
 
         List<Event> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))
@@ -166,7 +166,7 @@ public class TestSessionWindowIntegration {
 
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))
@@ -199,7 +199,7 @@ public class TestSessionWindowIntegration {
 
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))
@@ -356,7 +356,7 @@ public class TestSessionWindowIntegration {
 
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
                 .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))

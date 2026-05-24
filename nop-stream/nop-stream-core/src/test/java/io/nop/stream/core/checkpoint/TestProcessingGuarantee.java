@@ -13,8 +13,9 @@ class TestProcessingGuarantee {
     }
 
     @Test
-    void testAtLeastOnceBarrierAlignment() {
-        assertTrue(ProcessingGuarantee.AT_LEAST_ONCE.isBarrierAlignment());
+    void testAtLeastOnceNoBarrierAlignment() {
+        assertFalse(ProcessingGuarantee.AT_LEAST_ONCE.isBarrierAlignment(),
+                "AT_LEAST_ONCE should not use barrier alignment to allow records to flow through");
         assertFalse(ProcessingGuarantee.AT_LEAST_ONCE.requiresDurableCheckpoint());
     }
 

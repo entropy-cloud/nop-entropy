@@ -12,6 +12,7 @@ import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,5 +67,10 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
     @Override
     public void close() {
         flush();
+    }
+
+    @Override
+    public SinkConsistencyCapability getSinkConsistency() {
+        return SinkConsistencyCapability.IDEMPOTENT;
     }
 }

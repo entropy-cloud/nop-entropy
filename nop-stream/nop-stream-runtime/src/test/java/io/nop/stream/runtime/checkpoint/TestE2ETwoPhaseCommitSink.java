@@ -60,6 +60,7 @@ class TestE2ETwoPhaseCommitSink {
 
         TwoPhaseCommitSinkFunction<String> tpcSink = new TwoPhaseCommitSinkFunction<String>() {
             private static final long serialVersionUID = 1L;
+            private Map<Long, Object> pendingCommits;
 
             @Override
             public void beginTransaction() {
@@ -86,6 +87,9 @@ class TestE2ETwoPhaseCommitSink {
             public void rollback() {
                 actions.add("rollback");
             }
+
+            @Override public Map<Long, Object> getPendingCommits() { return pendingCommits; }
+            @Override public void setPendingCommits(Map<Long, Object> pending) { this.pendingCommits = pending; }
         };
 
         tpcSink.beginTransaction();
@@ -131,6 +135,8 @@ class TestE2ETwoPhaseCommitSink {
         }
 
         coordinator.addListener(sinkOp);
+        // Register TPC sink as participant so coordinator calls finishCommit
+        coordinator.addParticipant(tpcSink);
 
         sourceOp.open();
         sinkOp.open();
@@ -168,6 +174,7 @@ class TestE2ETwoPhaseCommitSink {
 
         TwoPhaseCommitSinkFunction<String> tpcSink = new TwoPhaseCommitSinkFunction<String>() {
             private static final long serialVersionUID = 1L;
+            private Map<Long, Object> pendingCommits;
 
             @Override
             public void beginTransaction() {
@@ -194,6 +201,9 @@ class TestE2ETwoPhaseCommitSink {
                 actions.add("rollback");
                 rollbackCount.incrementAndGet();
             }
+
+            @Override public Map<Long, Object> getPendingCommits() { return pendingCommits; }
+            @Override public void setPendingCommits(Map<Long, Object> pending) { this.pendingCommits = pending; }
         };
 
         tpcSink.beginTransaction();

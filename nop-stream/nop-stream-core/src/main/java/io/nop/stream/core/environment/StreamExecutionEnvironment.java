@@ -8,14 +8,19 @@
 package io.nop.stream.core.environment;
 
 import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.checkpoint.ProcessingGuarantee;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.datastream.DataStreamSource;
 import io.nop.stream.core.datastream.SingleOutputStreamOperatorImpl;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.ICheckpointExecutorFactory;
+import io.nop.stream.core.execution.IDeploymentPlanProvider;
 import io.nop.stream.core.execution.Task;
 import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.graph.PartitionedPlanGenerator;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamGraphGenerator;
 import io.nop.stream.core.jobgraph.JobGraph;
@@ -42,6 +47,8 @@ public class StreamExecutionEnvironment {
 
     private int parallelism = 1;
 
+    private long watermarkInterval = 200L;
+
     private boolean executed = false;
 
     private final CheckpointConfig checkpointConfig = new CheckpointConfig();
@@ -52,6 +59,16 @@ public class StreamExecutionEnvironment {
 
     public static StreamExecutionEnvironment getExecutionEnvironment() {
         return new StreamExecutionEnvironment();
+    }
+
+    /**
+     * Creates a test environment with AT_LEAST_ONCE processing guarantee,
+     * suitable for in-memory pipelines that use BEST_EFFORT/AT_LEAST_ONCE connectors.
+     */
+    public static StreamExecutionEnvironment createTestEnvironment() {
+        StreamExecutionEnvironment env = new StreamExecutionEnvironment();
+        env.getCheckpointConfig().setProcessingGuarantee(ProcessingGuarantee.AT_LEAST_ONCE);
+        return env;
     }
 
     public static StreamExecutionEnvironment createLocalEnvironment(int parallelism) {
@@ -74,6 +91,18 @@ public class StreamExecutionEnvironment {
 
     public int getParallelism() {
         return parallelism;
+    }
+
+    public StreamExecutionEnvironment setWatermarkInterval(long watermarkInterval) {
+        if (watermarkInterval < 0) {
+            throw new IllegalArgumentException("Watermark interval must be >= 0");
+        }
+        this.watermarkInterval = watermarkInterval;
+        return this;
+    }
+
+    public long getWatermarkInterval() {
+        return watermarkInterval;
     }
 
     public CheckpointConfig getCheckpointConfig() {
@@ -158,6 +187,11 @@ public class StreamExecutionEnvironment {
 
             StreamModel streamModel = buildStreamModel(sinks);
             StreamRequirementValidator.validate(streamModel, StreamBackendCapability.localRuntime());
+            StreamRequirementValidator.validateConnectorConsistency(
+                    checkpointConfig.getProcessingGuarantee(),
+                    streamModel.getSourceCapabilities(),
+                    streamModel.getSinkCapabilities()
+            );
 
             StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
             @SuppressWarnings("unchecked")
@@ -167,14 +201,20 @@ public class StreamExecutionEnvironment {
             JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
             JobGraph jobGraph = jobGraphGenerator.generate(streamGraph);
 
+            // Generate PartitionedPlan and DeploymentPlan for execution planning
+            PartitionedPlanGenerator partitionedPlanGenerator = new PartitionedPlanGenerator();
+            PartitionedPlan partitionedPlan = partitionedPlanGenerator.generate(
+                    jobGraph, streamModel.computeFingerprint());
+            DeploymentPlan deploymentPlan = generateDeploymentPlan(partitionedPlan);
+
             if (checkpointConfig.isCheckpointEnabled() && checkpointExecutorFactory != null) {
                 StreamExecutionResult result = checkpointExecutorFactory.executeWithCheckpoint(
-                    jobGraph, jobName, checkpointConfig);
+                    streamModel, partitionedPlan, deploymentPlan);
                 executed = true;
                 return result;
             }
 
-            GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph);
+            GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan);
 
             TaskExecutor executor = new TaskExecutor();
             List<Task> tasks = new ArrayList<>();
@@ -283,6 +323,16 @@ public class StreamExecutionEnvironment {
         }
 
         return new StreamModel(components, transformMap);
+    }
+
+    /**
+     * Generates a DeploymentPlan from a PartitionedPlan.
+     * Uses a ServiceLoader-based approach to find the DeploymentPlanGenerator
+     * in the runtime module, or creates a minimal local plan if unavailable.
+     */
+    private DeploymentPlan generateDeploymentPlan(PartitionedPlan partitionedPlan) {
+        return IDeploymentPlanProvider.getProvider()
+                .generateLocal(partitionedPlan);
     }
 
     private JobGraph buildJobGraph(String jobName) {

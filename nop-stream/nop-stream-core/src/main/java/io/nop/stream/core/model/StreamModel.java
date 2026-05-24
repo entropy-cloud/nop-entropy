@@ -8,6 +8,12 @@
 package io.nop.stream.core.model;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
+import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.transformation.SinkTransformation;
+import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
 
 import java.io.Serializable;
@@ -70,6 +76,42 @@ public class StreamModel implements Serializable {
         builder.checkpointParticipantsHash(StreamModelFingerprint.computeSHA256(String.join(",", participantIds)));
 
         return builder.build();
+    }
+
+    /**
+     * Collects consistency capabilities from all source connectors in this pipeline.
+     *
+     * @return list of source consistency capabilities
+     */
+    public List<SourceConsistencyCapability> getSourceCapabilities() {
+        List<SourceConsistencyCapability> caps = new ArrayList<>();
+        for (Transformation<?> t : transformations.values()) {
+            if (t instanceof SourceTransformation) {
+                SourceFunction<?> fn = ((SourceTransformation<?>) t).getSourceFunction();
+                if (fn != null) {
+                    caps.add(fn.getSourceConsistency());
+                }
+            }
+        }
+        return caps;
+    }
+
+    /**
+     * Collects consistency capabilities from all sink connectors in this pipeline.
+     *
+     * @return list of sink consistency capabilities
+     */
+    public List<SinkConsistencyCapability> getSinkCapabilities() {
+        List<SinkConsistencyCapability> caps = new ArrayList<>();
+        for (Transformation<?> t : transformations.values()) {
+            if (t instanceof SinkTransformation) {
+                SinkFunction<?> fn = ((SinkTransformation<?>) t).getSinkFunction();
+                if (fn != null) {
+                    caps.add(fn.getSinkConsistency());
+                }
+            }
+        }
+        return caps;
     }
 
     @Override

@@ -11,6 +11,8 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.flow.EdgeConfig;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamNode;
@@ -84,6 +86,22 @@ public class JobGraphGenerator implements Serializable {
      * @throws IllegalArgumentException if streamGraph is null
      */
     public JobGraph generate(StreamGraph streamGraph) {
+        return generate(streamGraph, null);
+    }
+
+    /**
+     * Generates an optimized JobGraph from the given StreamGraph with an optional DeploymentPlan.
+     *
+     * <p>When a DeploymentPlan is provided, its edge configurations are read and set on
+     * the corresponding JobEdge instances, enabling flow control policy selection
+     * during execution plan building.
+     *
+     * @param streamGraph    the StreamGraph to convert (must not be null)
+     * @param deploymentPlan optional deployment plan containing edge configurations (nullable)
+     * @return the optimized JobGraph ready for execution
+     * @throws IllegalArgumentException if streamGraph is null
+     */
+    public JobGraph generate(StreamGraph streamGraph, DeploymentPlan deploymentPlan) {
         if (streamGraph == null) {
             throw new IllegalArgumentException("StreamGraph cannot be null");
         }
@@ -116,7 +134,7 @@ public class JobGraphGenerator implements Serializable {
         }
 
         // Step 3: Create JobEdges to connect vertices
-        createJobEdges(streamGraph, jobGraph, nodeToVertexMap);
+        createJobEdges(streamGraph, jobGraph, nodeToVertexMap, deploymentPlan);
 
         return jobGraph;
     }
@@ -428,7 +446,8 @@ public class JobGraphGenerator implements Serializable {
      * @param nodeToVertexMap pre-built mapping from StreamNode ID to JobVertex ID
      */
     private void createJobEdges(StreamGraph streamGraph, JobGraph jobGraph,
-                                Map<Integer, String> nodeToVertexMap) {
+                                Map<Integer, String> nodeToVertexMap,
+                                DeploymentPlan deploymentPlan) {
 
         // Track created edges to avoid duplicates
         Set<String> createdEdges = new HashSet<>();
@@ -453,6 +472,15 @@ public class JobGraphGenerator implements Serializable {
                         IPartitioner<?> partitioner = streamEdge.getPartitioner();
 
                         JobEdge jobEdge = new JobEdge(sourceVertexId, targetVertexId, partitionType, partitioner);
+
+                        // Set EdgeConfig from DeploymentPlan if available
+                        if (deploymentPlan != null) {
+                            EdgeConfig config = deploymentPlan.getEdgeConfigs().get(edgeKey);
+                            if (config != null) {
+                                jobEdge.setEdgeConfig(config);
+                            }
+                        }
+
                         jobGraph.addEdge(jobEdge);
 
                         createdEdges.add(edgeKey);

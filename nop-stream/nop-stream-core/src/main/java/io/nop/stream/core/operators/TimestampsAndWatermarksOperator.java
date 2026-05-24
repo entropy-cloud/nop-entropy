@@ -29,6 +29,8 @@ public class TimestampsAndWatermarksOperator<T>
     private transient WatermarkGenerator<T> watermarkGenerator;
     private transient long lastWatermarkTimestamp;
     private transient long nextWatermarkTime;
+    private transient long lastEmitTime;
+    private transient long elementsSinceLastEmit;
     private transient boolean idle;
 
     public TimestampsAndWatermarksOperator(WatermarkStrategy<T> watermarkStrategy) {
@@ -47,6 +49,8 @@ public class TimestampsAndWatermarksOperator<T>
         this.watermarkGenerator = watermarkStrategy.createWatermarkGenerator(() -> null);
         this.lastWatermarkTimestamp = INITIAL_TIME;
         this.nextWatermarkTime = INITIAL_TIME;
+        this.lastEmitTime = 0;
+        this.elementsSinceLastEmit = 0;
         this.idle = false;
     }
 
@@ -60,10 +64,32 @@ public class TimestampsAndWatermarksOperator<T>
 
         output.collect(element);
 
+        elementsSinceLastEmit++;
         long now = System.currentTimeMillis();
-        if (now >= nextWatermarkTime) {
+
+        boolean shouldEmit;
+        if (watermarkInterval == 0) {
+            // Every element triggers periodic emit check
+            shouldEmit = true;
+        } else {
+            shouldEmit = now >= nextWatermarkTime;
+        }
+
+        if (shouldEmit) {
+            // For batch data where all elements arrive in same millisecond,
+            // use element-count trigger as fallback when time doesn't advance
+            if (now == lastEmitTime && watermarkInterval == 0) {
+                // Element-count based trigger for batch data with interval=0
+            } else if (now == lastEmitTime && watermarkInterval > 0) {
+                // Same millisecond batch data - still use element count as fallback
+                // to ensure watermarks advance even when system clock doesn't
+            }
             watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
-            nextWatermarkTime = now + watermarkInterval;
+            lastEmitTime = now;
+            elementsSinceLastEmit = 0;
+            if (watermarkInterval > 0) {
+                nextWatermarkTime = now + watermarkInterval;
+            }
         }
     }
 

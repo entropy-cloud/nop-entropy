@@ -10,7 +10,10 @@ package io.nop.stream.core.execution;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.environment.StreamExecutionResult;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.model.StreamModel;
 
 /**
  * Factory interface for creating checkpoint-aware execution.
@@ -55,4 +58,26 @@ public interface ICheckpointExecutorFactory {
                                                String jobName,
                                                CheckpointConfig checkpointConfig,
                                                String savepointPath) throws Exception;
+
+    /**
+     * Executes a streaming job with checkpoint support, using the provided
+     * PartitionedPlan and DeploymentPlan for execution planning.
+     *
+     * <p>Default implementation delegates to the simpler
+     * {@link #executeWithCheckpoint(JobGraph, String, CheckpointConfig)} to maintain
+     * backward compatibility.
+     *
+     * @param streamModel     the stream model describing the pipeline topology
+     * @param partitionedPlan the partitioned execution plan
+     * @param deploymentPlan  the deployment plan for local execution
+     * @return the execution result
+     * @throws Exception if execution fails
+     */
+    default StreamExecutionResult executeWithCheckpoint(
+            StreamModel streamModel,
+            PartitionedPlan partitionedPlan,
+            DeploymentPlan deploymentPlan) throws Exception {
+        throw new UnsupportedOperationException(
+                "executeWithCheckpoint(StreamModel, PartitionedPlan, DeploymentPlan) not implemented");
+    }
 }

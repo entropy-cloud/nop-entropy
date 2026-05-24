@@ -8,6 +8,7 @@
 package io.nop.stream.core.jobgraph;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.execution.flow.EdgeConfig;
 
 import java.io.Serializable;
 
@@ -40,6 +41,7 @@ public class JobEdge implements Serializable {
     private final String targetVertex;
     private final ResultPartitionType partitionType;
     private final IPartitioner<?> partitioner;
+    private EdgeConfig edgeConfig;
 
     public JobEdge(String sourceVertex, String targetVertex, ResultPartitionType partitionType) {
         this(sourceVertex, targetVertex, partitionType, null);
@@ -61,6 +63,29 @@ public class JobEdge implements Serializable {
         this.targetVertex = targetVertex;
         this.partitionType = partitionType;
         this.partitioner = partitioner;
+        this.edgeConfig = null;
+    }
+
+    /**
+     * Gets the optional edge configuration for flow control.
+     *
+     * <p>When set, this configuration controls the flow control policy
+     * (e.g., BLOCKING_QUEUE, CREDIT_BASED, ACK_WINDOW) and associated parameters
+     * for data exchange on this edge.
+     *
+     * @return the edge configuration, or null if not set
+     */
+    public EdgeConfig getEdgeConfig() {
+        return edgeConfig;
+    }
+
+    /**
+     * Sets the edge configuration for flow control.
+     *
+     * @param edgeConfig the edge configuration (nullable)
+     */
+    public void setEdgeConfig(EdgeConfig edgeConfig) {
+        this.edgeConfig = edgeConfig;
     }
 
     /**
@@ -102,6 +127,7 @@ public class JobEdge implements Serializable {
                 ", targetVertex='" + targetVertex + '\'' +
                 ", partitionType=" + partitionType +
                 ", partitioner=" + partitioner +
+                ", edgeConfig=" + edgeConfig +
                 '}';
     }
 }

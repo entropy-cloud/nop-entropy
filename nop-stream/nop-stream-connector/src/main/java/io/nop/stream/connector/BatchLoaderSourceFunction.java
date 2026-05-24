@@ -11,6 +11,7 @@ import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
+import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 
 import java.util.List;
@@ -74,5 +75,10 @@ public class BatchLoaderSourceFunction<S> implements SourceFunction<S> {
     @Override
     public void cancel() {
         running = false;
+    }
+
+    @Override
+    public SourceConsistencyCapability getSourceConsistency() {
+        return SourceConsistencyCapability.AT_LEAST_ONCE;
     }
 }
