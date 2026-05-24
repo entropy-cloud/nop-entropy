@@ -17,6 +17,7 @@ import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
+import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,6 +26,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -46,13 +48,14 @@ class TestJobCoordinator {
 
     private JobCoordinator coordinator;
     private MockClusterRegistry clusterRegistry;
-    private MockMessageService messageService;
     private CheckpointCoordinator checkpointCoordinator;
+    private MockTaskRpcService mockRpcService;
+    private Map<String, IStreamTaskRpcService> taskRpcServices;
+    private DeploymentPlan deploymentPlan;
 
     @BeforeEach
     void setUp() {
         clusterRegistry = new MockClusterRegistry();
-        messageService = new MockMessageService();
 
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
@@ -67,6 +70,12 @@ class TestJobCoordinator {
         checkpointCoordinator = new CheckpointCoordinator(
                 JOB_ID, "pipeline-0", idCounter, storage, config);
 
+        mockRpcService = new MockTaskRpcService();
+        taskRpcServices = new HashMap<>();
+        taskRpcServices.put("node-1", mockRpcService);
+
+        clusterRegistry.registerNode("node-1", "localhost:8080", 4);
+
         // Build a simple DeploymentPlan with 2 vertices, each parallelism 1
         Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();
         vertexPlans.put("source", new PartitionedPlan.VertexPlan("source", 1, null));
@@ -78,14 +87,14 @@ class TestJobCoordinator {
 
         PartitionedPlan partitionedPlan = new PartitionedPlan(
                 JOB_ID, "pipeline-0", vertexPlans, edgePlans, null, null);
-        DeploymentPlan deploymentPlan = new DeploymentPlan(
+        deploymentPlan = new DeploymentPlan(
                 JOB_ID, "pipeline-0", partitionedPlan,
                 "local", "memory", "local", null, null);
 
         coordinator = new JobCoordinator(
                 JOB_ID, COORDINATOR_ID, deploymentPlan,
-                clusterRegistry, messageService, checkpointCoordinator,
-                null, CONTROL_TOPIC);
+                clusterRegistry, checkpointCoordinator,
+                taskRpcServices);
     }
 
     @AfterEach
@@ -123,32 +132,37 @@ class TestJobCoordinator {
         assertEquals("node-1", assignments.get("source").get(0).getNodeId());
         assertEquals("node-1", assignments.get("sink").get(0).getNodeId());
 
-        // TaskAssignmentMessages sent via message service
-        assertFalse(messageService.sentMessages.isEmpty());
+        // TaskAssignment sent via RPC service
+        assertFalse(mockRpcService.assignments.isEmpty());
     }
 
     @Test
     void testAssignTasksWithMultipleNodes() {
         clusterRegistry.registerNode("node-1", "localhost:9090", 4);
         clusterRegistry.registerNode("node-2", "localhost:9091", 4);
+        MockTaskRpcService node2Rpc = new MockTaskRpcService();
+        taskRpcServices.put("node-2", node2Rpc);
 
         coordinator.start();
         coordinator.assignTasks();
 
         Map<String, List<TaskAssignment>> assignments = coordinator.getTaskAssignments();
-        // Round-robin: source goes to node-1, sink goes to node-2
         assertEquals("node-1", assignments.get("source").get(0).getNodeId());
         assertEquals("node-2", assignments.get("sink").get(0).getNodeId());
     }
 
     @Test
     void testAssignTasksNoActiveNodes() {
-        coordinator.start();
-        // No nodes registered
-        coordinator.assignTasks();
+        JobCoordinator emptyCoordinator = new JobCoordinator(
+                JOB_ID, COORDINATOR_ID, deploymentPlan,
+                new MockClusterRegistry(), checkpointCoordinator,
+                Collections.emptyMap());
+        emptyCoordinator.start();
+        emptyCoordinator.assignTasks();
 
-        Map<String, List<TaskAssignment>> assignments = coordinator.getTaskAssignments();
+        Map<String, List<TaskAssignment>> assignments = emptyCoordinator.getTaskAssignments();
         assertTrue(assignments.isEmpty());
+        emptyCoordinator.stop();
     }
 
     @Test
@@ -160,10 +174,8 @@ class TestJobCoordinator {
         PendingCheckpoint pending = coordinator.triggerCheckpoint();
         assertNotNull(pending);
 
-        // Check that barrier signal was sent
-        boolean hasBarrierSignal = messageService.sentMessages.stream()
-                .anyMatch(m -> m instanceof CheckpointBarrierSignal);
-        assertTrue(hasBarrierSignal);
+        // Check that barrier was sent via RPC
+        assertNotNull(mockRpcService.lastBarrier.get());
     }
 
     @Test
@@ -281,6 +293,25 @@ class TestJobCoordinator {
         assertFalse(coordinator.isRunning());
     }
 
+    @Test
+    void testRpcPath_ControlPlaneLoop() throws Exception {
+        coordinator.start();
+        coordinator.assignTasks();
+
+        PendingCheckpoint pending = coordinator.triggerCheckpoint();
+        assertNotNull(pending);
+
+        assertNotNull(mockRpcService.lastBarrier.get());
+        assertEquals(pending.getCheckpointId(), mockRpcService.lastBarrier.get().getId());
+        assertEquals(coordinator.getFencingToken(), mockRpcService.lastFencingToken.get());
+
+        TaskLocation loc = new TaskLocation(JOB_ID, "pipeline-0", "source", 0);
+        CheckpointAckMessage ack = new CheckpointAckMessage(
+                loc, pending.getCheckpointId(), null, coordinator.getFencingToken());
+        boolean accepted = coordinator.collectAck(ack);
+        assertTrue(accepted);
+    }
+
     // ==================== Mocks ====================
 
     static class MockClusterRegistry implements ClusterRegistry {
@@ -336,24 +367,24 @@ class TestJobCoordinator {
         }
     }
 
-    static class MockMessageService implements IMessageService {
-        final List<Object> sentMessages = new CopyOnWriteArrayList<>();
+    static class MockTaskRpcService implements IStreamTaskRpcService {
+        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
+        final AtomicReference<CheckpointBarrier> lastBarrier = new AtomicReference<>();
+        final AtomicReference<String> lastFencingToken = new AtomicReference<>();
 
         @Override
-        public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
-            return new IMessageSubscription() {
-                @Override public void cancel() {}
-                @Override public boolean isSuspended() { return false; }
-                @Override public boolean isCancelled() { return false; }
-                @Override public void suspend() {}
-                @Override public void resume() {}
-            };
+        public void receiveAssignment(TaskAssignment assignment) {
+            assignments.add(assignment);
         }
 
         @Override
-        public java.util.concurrent.CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-            sentMessages.add(message);
-            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        public void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken) {
+            lastBarrier.set(barrier);
+            lastFencingToken.set(fencingToken);
+        }
+
+        @Override
+        public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
         }
     }
 }

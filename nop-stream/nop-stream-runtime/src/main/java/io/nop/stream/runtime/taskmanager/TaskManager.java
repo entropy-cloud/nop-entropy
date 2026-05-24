@@ -301,7 +301,9 @@ public class TaskManager implements IStreamTaskRpcService {
             if (coordinatorRpcService != null) {
                 coordinatorRpcService.receiveCheckpointAck(ack);
             } else {
-                messageService.send(controlTopic, ack);
+                throw new IllegalStateException(
+                        "No coordinator RPC service available. "
+                        + "All checkpoint ACKs require IStreamCoordinatorRpcService.");
             }
             LOG.debug("Sent checkpoint ACK for checkpoint {} from {}",
                     checkpointId, snapshot.getTaskLocation());

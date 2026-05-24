@@ -63,24 +63,17 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private final String coordinatorId;
     private final DeploymentPlan deploymentPlan;
     private final ClusterRegistry clusterRegistry;
-    private final IMessageService messageService;
     private final CheckpointCoordinator checkpointCoordinator;
     private final Map<String, IStreamTaskRpcService> taskRpcServices;
 
     /** The current fencing token for this job execution epoch */
     private final AtomicReference<String> fencingToken;
 
-    /** Control topic for sending signals to TaskManagers and receiving ACKs */
-    private final String controlTopic;
-
     /** Ordered list of subtask assignments (vertexId → subtaskIndex → assignment) */
     private final Map<String, List<TaskAssignment>> taskAssignmentMap;
 
     /** Task locations that need to ACK the current checkpoint */
     private final Set<TaskLocation> allTaskLocations;
-
-    /** Subscription for checkpoint ACK messages from TaskManagers */
-    private IMessageSubscription ackSubscription;
 
     /** Failure detection scheduler */
     private final ScheduledExecutorService failureDetector;
@@ -92,18 +85,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                           String coordinatorId,
                           DeploymentPlan deploymentPlan,
                           ClusterRegistry clusterRegistry,
-                          IMessageService messageService,
                           CheckpointCoordinator checkpointCoordinator,
-                          Map<String, IStreamTaskRpcService> taskRpcServices,
-                          String controlTopic) {
+                          Map<String, IStreamTaskRpcService> taskRpcServices) {
         this.jobId = jobId;
         this.coordinatorId = coordinatorId;
         this.deploymentPlan = deploymentPlan;
         this.clusterRegistry = clusterRegistry;
-        this.messageService = messageService;
         this.checkpointCoordinator = checkpointCoordinator;
         this.taskRpcServices = taskRpcServices != null ? taskRpcServices : Collections.emptyMap();
-        this.controlTopic = controlTopic;
         this.fencingToken = new AtomicReference<>();
         this.taskAssignmentMap = new ConcurrentHashMap<>();
         this.allTaskLocations = ConcurrentHashMap.newKeySet();
@@ -137,9 +126,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // Register coordinator in the registry
         clusterRegistry.registerCoordinator(jobId, coordinatorId, token);
 
-        // Subscribe to the control topic to receive checkpoint ACKs
-        ackSubscription = messageService.subscribe(controlTopic, new AckMessageConsumer());
-
         // Start failure detection
         failureDetector.scheduleAtFixedRate(
                 this::detectFailures,
@@ -162,10 +148,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         running = false;
 
         failureDetector.shutdownNow();
-
-        if (ackSubscription != null && !ackSubscription.isCancelled()) {
-            ackSubscription.cancel();
-        }
 
         checkpointCoordinator.shutdown();
 
@@ -226,9 +208,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     if (rpc != null) {
                         rpc.receiveAssignment(assignment);
                     } else {
-                        LOG.warn("No RPC service for node {}, sending via control topic", targetNode.getNodeId());
-                        TaskAssignmentMessage msg = new TaskAssignmentMessage(assignment, targetNode.getNodeId());
-                        messageService.send(controlTopic, msg);
+                        throw new IllegalStateException(
+                                "No RPC service for node " + targetNode.getNodeId()
+                                + ". All control plane operations require IStreamTaskRpcService.");
                     }
 
                     vertexAssignments.add(assignment);
@@ -289,13 +271,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 }
             }
         } else {
-            CheckpointBarrierSignal signal = new CheckpointBarrierSignal(barrier, token, jobId);
-            try {
-                messageService.send(controlTopic, signal);
-            } catch (Exception e) {
-                LOG.error("Failed to send checkpoint barrier signal", e);
-                checkpointCoordinator.abortPendingCheckpoint(pending, "Failed to send barrier signal");
-            }
+            throw new IllegalStateException(
+                    "No RPC services available for checkpoint trigger. "
+                    + "All control plane operations require IStreamTaskRpcService.");
         }
 
         return pending;
@@ -480,16 +458,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             PendingCheckpoint finalCheckpoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
                     CheckpointType.COMPLETED_POINT_TYPE);
             if (finalCheckpoint != null) {
-                // Send barrier signal
                 CheckpointBarrier barrier = new CheckpointBarrier(
                         finalCheckpoint.getCheckpointId(),
                         finalCheckpoint.getTriggerTimestamp(),
                         finalCheckpoint.getCheckpointType());
-                CheckpointBarrierSignal signal = new CheckpointBarrierSignal(
-                        barrier, fencingToken.get(), jobId);
-                messageService.send(controlTopic, signal);
+                sendBarrierToAllTaskManagers(barrier);
 
-                // Wait for completion (with timeout)
                 finalCheckpoint.getCompletableFuture()
                         .get(60, TimeUnit.SECONDS);
                 LOG.info("DRAIN: final checkpoint {} completed for job {}",
@@ -511,9 +485,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         savepoint.getCheckpointId(),
                         savepoint.getTriggerTimestamp(),
                         savepoint.getCheckpointType());
-                CheckpointBarrierSignal signal = new CheckpointBarrierSignal(
-                        barrier, fencingToken.get(), jobId);
-                messageService.send(controlTopic, signal);
+                sendBarrierToAllTaskManagers(barrier);
 
                 savepoint.getCompletableFuture()
                         .get(60, TimeUnit.SECONDS);
@@ -536,9 +508,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         savepoint.getCheckpointId(),
                         savepoint.getTriggerTimestamp(),
                         savepoint.getCheckpointType());
-                CheckpointBarrierSignal signal = new CheckpointBarrierSignal(
-                        barrier, fencingToken.get(), jobId);
-                messageService.send(controlTopic, signal);
+                sendBarrierToAllTaskManagers(barrier);
 
                 savepoint.getCompletableFuture()
                         .get(60, TimeUnit.SECONDS);
@@ -573,20 +543,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         return running;
     }
 
-    // ==================== Inner Classes ====================
-
-    /**
-     * IMessageConsumer that processes checkpoint ACK messages from TaskManagers.
-     */
-    private class AckMessageConsumer implements IMessageConsumer {
-
-        @Override
-        public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
-            if (message instanceof CheckpointAckMessage) {
-                CheckpointAckMessage ack = (CheckpointAckMessage) message;
-                collectAck(ack);
+    private void sendBarrierToAllTaskManagers(CheckpointBarrier barrier) {
+        String token = fencingToken.get();
+        for (Map.Entry<String, IStreamTaskRpcService> entry : taskRpcServices.entrySet()) {
+            try {
+                entry.getValue().triggerCheckpoint(barrier, token);
+            } catch (Exception e) {
+                LOG.error("Failed to send barrier signal to node {}", entry.getKey(), e);
             }
-            return null;
         }
     }
+
 }

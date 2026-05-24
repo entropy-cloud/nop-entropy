@@ -92,8 +92,8 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
 
         JobCoordinator coordinator = new JobCoordinator(
                 jobId, "coordinator-" + jobId, deploymentPlan,
-                clusterRegistry, messageService, checkpointCoordinator,
-                taskRpcServices, "nop-stream.control." + jobId);
+                clusterRegistry, checkpointCoordinator,
+                taskRpcServices);
 
         coordinator.setFencingToken(fencingToken);
 
