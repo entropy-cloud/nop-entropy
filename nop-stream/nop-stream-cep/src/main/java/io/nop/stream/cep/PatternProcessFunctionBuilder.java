@@ -18,7 +18,7 @@
 
 package io.nop.stream.cep;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.functions.adaptors.PatternFlatSelectAdapter;
 import io.nop.stream.cep.functions.adaptors.PatternSelectAdapter;
@@ -60,7 +60,7 @@ class PatternProcessFunctionBuilder {
         private final PatternFlatSelectFunction<IN, OUT> flatSelectFunction;
 
         FlatSelectBuilder(PatternFlatSelectFunction<IN, OUT> function) {
-            this.flatSelectFunction = checkNotNull(function);
+            this.flatSelectFunction = notNull(function, "function");
         }
 
         <TIMED_OUT> FlatTimeoutSelectBuilder<IN, OUT, TIMED_OUT> withTimeoutHandler(
@@ -89,9 +89,9 @@ class PatternProcessFunctionBuilder {
                 final PatternFlatSelectFunction<IN, OUT> flatSelectFunction,
                 final PatternFlatTimeoutFunction<IN, TIMED_OUT> timeoutHandler,
                 final OutputTag<TIMED_OUT> outputTag) {
-            this.flatSelectFunction = checkNotNull(flatSelectFunction);
-            this.timeoutHandler = checkNotNull(timeoutHandler);
-            this.outputTag = checkNotNull(outputTag);
+            this.flatSelectFunction = notNull(flatSelectFunction, "flatSelectFunction");
+            this.timeoutHandler = notNull(timeoutHandler, "timeoutHandler");
+            this.outputTag = notNull(outputTag, "outputTag");
         }
 
         PatternProcessFunction<IN, OUT> build() {
@@ -109,7 +109,7 @@ class PatternProcessFunctionBuilder {
         private final PatternSelectFunction<IN, OUT> selectFunction;
 
         SelectBuilder(PatternSelectFunction<IN, OUT> function) {
-            this.selectFunction = checkNotNull(function);
+            this.selectFunction = notNull(function, "function");
         }
 
         <TIMED_OUT> TimeoutSelectBuilder<IN, OUT, TIMED_OUT> withTimeoutHandler(
@@ -138,9 +138,9 @@ class PatternProcessFunctionBuilder {
                 final PatternSelectFunction<IN, OUT> flatSelectFunction,
                 final PatternTimeoutFunction<IN, TIMED_OUT> timeoutHandler,
                 final OutputTag<TIMED_OUT> outputTag) {
-            this.selectFunction = checkNotNull(flatSelectFunction);
-            this.timeoutHandler = checkNotNull(timeoutHandler);
-            this.outputTag = checkNotNull(outputTag);
+            this.selectFunction = notNull(flatSelectFunction, "flatSelectFunction");
+            this.timeoutHandler = notNull(timeoutHandler, "timeoutHandler");
+            this.outputTag = notNull(outputTag, "outputTag");
         }
 
         PatternProcessFunction<IN, OUT> build() {

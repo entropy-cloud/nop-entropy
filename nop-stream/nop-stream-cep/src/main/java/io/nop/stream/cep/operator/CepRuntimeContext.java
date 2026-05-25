@@ -19,7 +19,7 @@
 package io.nop.stream.cep.operator;
 
 import io.nop.api.core.annotations.core.Internal;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.common.state.KeyedStateStore;
@@ -37,12 +37,12 @@ class CepRuntimeContext implements RuntimeContext {
     private final KeyedStateStore keyedStateStore;
 
     CepRuntimeContext(final RuntimeContext runtimeContext) {
-        this.runtimeContext = checkNotNull(runtimeContext);
+        this.runtimeContext = notNull(runtimeContext, "runtimeContext");
         this.keyedStateStore = null;
     }
 
     CepRuntimeContext(final RuntimeContext runtimeContext, final KeyedStateStore keyedStateStore) {
-        this.runtimeContext = checkNotNull(runtimeContext);
+        this.runtimeContext = notNull(runtimeContext, "runtimeContext");
         this.keyedStateStore = keyedStateStore;
     }
 

@@ -25,7 +25,7 @@ import java.util.Optional;
 
 import jakarta.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
+import io.nop.api.core.util.Guard;
 
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
@@ -173,7 +173,7 @@ public class Pattern<T, F extends T> {
      * @return The pattern with the new condition is set.
      */
     public Pattern<T, F> where(IterativeCondition<F> condition) {
-        Preconditions.checkNotNull(condition, "The condition cannot be null.");
+        Guard.notNull(condition, "The condition cannot be null.");
 
         // ClosureCleaner.clean(condition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
         if (this.condition == null) {
@@ -193,7 +193,7 @@ public class Pattern<T, F extends T> {
      * @return The pattern with the new condition is set.
      */
     public Pattern<T, F> or(IterativeCondition<F> condition) {
-        Preconditions.checkNotNull(condition, "The condition cannot be null.");
+        Guard.notNull(condition, "The condition cannot be null.");
 
         //ClosureCleaner.clean(condition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
 
@@ -214,7 +214,7 @@ public class Pattern<T, F extends T> {
      * @return The same pattern with the new subtype constraint
      */
     public <S extends F> Pattern<T, S> subtype(final Class<S> subtypeClass) {
-        Preconditions.checkNotNull(subtypeClass, "The class cannot be null.");
+        Guard.notNull(subtypeClass, "The class cannot be null.");
 
         if (condition == null) {
             this.condition = new SubtypeCondition<F>(subtypeClass);
@@ -237,7 +237,7 @@ public class Pattern<T, F extends T> {
      * @return The same pattern with applied untilCondition
      */
     public Pattern<T, F> until(IterativeCondition<F> untilCondition) {
-        Preconditions.checkNotNull(untilCondition, "The condition cannot be null");
+        Guard.notNull(untilCondition, "The condition cannot be null");
 
         if (this.untilCondition != null) {
             throw new MalformedPatternException("Only one until condition can be applied.");
@@ -442,7 +442,7 @@ public class Pattern<T, F extends T> {
     public Pattern<T, F> times(int times, @Nullable Duration windowTime) {
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
-        Preconditions.checkArgument(times > 0, "You should give a positive number greater than 0.");
+        Guard.checkArgument(times > 0, "You should give a positive number greater than 0.");
         this.quantifier = Quantifier.times(quantifier.getConsumingStrategy());
         this.times = Quantifier.Times.of(times, windowTime);
         return this;

@@ -21,7 +21,7 @@ package io.nop.stream.cep.functions.adaptors;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.PatternSelectFunction;
@@ -38,7 +38,7 @@ public class PatternSelectAdapter<IN, OUT> extends PatternProcessFunction<IN, OU
     private final PatternSelectFunction<IN, OUT> selectFunction;
 
     public PatternSelectAdapter(final PatternSelectFunction<IN, OUT> selectFunction) {
-        this.selectFunction = checkNotNull(selectFunction);
+        this.selectFunction = notNull(selectFunction, "selectFunction");
     }
 
     @Override

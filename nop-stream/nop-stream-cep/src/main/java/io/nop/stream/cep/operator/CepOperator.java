@@ -27,16 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Stream;
 import java.util.TreeSet;
 
 import jakarta.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Metrics;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.tuple.Tuple2;
 
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
@@ -144,7 +142,7 @@ public class CepOperator<IN, KEY, OUT>
     // Metrics
     // ------------------------------------------------------------------------
 
-    private transient Counter numLateRecordsDropped;
+    private transient LongAdder numLateRecordsDropped;
 
     private transient long currentWatermark = Long.MIN_VALUE;
 
@@ -158,8 +156,8 @@ public class CepOperator<IN, KEY, OUT>
             @Nullable final OutputTag<IN> lateDataOutputTag) {
         super(function);
 
-        this.inputSerializer = Preconditions.checkNotNull(inputSerializer);
-        this.nfaFactory = Preconditions.checkNotNull(nfaFactory);
+        this.inputSerializer = Guard.notNull(inputSerializer, "inputSerializer");
+        this.nfaFactory = Guard.notNull(nfaFactory, "nfaFactory");
 
         this.isProcessingTime = isProcessingTime;
         this.comparator = comparator;
@@ -181,6 +179,7 @@ public class CepOperator<IN, KEY, OUT>
         computationStates = stateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
         // MapStateDescriptor does not support generic type tokens for value class;
         // (Class) List.class is used as a raw class hint, actual generic safety is ensured by usage
+        // raw cast intentional - type erased at runtime
         elementQueueState = stateStore.getMapState(
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(stateStore, inputSerializer, new SharedBufferCacheConfig());
@@ -244,7 +243,7 @@ public class CepOperator<IN, KEY, OUT>
         collector = new TimestampedCollector<>(output);
         cepTimerService = new TimerServiceImpl();
 
-        this.numLateRecordsDropped = Metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
+        this.numLateRecordsDropped = new LongAdder();
     }
 
     @Override
@@ -538,19 +537,16 @@ public class CepOperator<IN, KEY, OUT>
 
     //////////////////////			Testing Methods			//////////////////////
 
-    @VisibleForTesting
     boolean hasNonEmptySharedBuffer(KEY key) throws Exception {
         setCurrentKey(key);
         return !partialMatches.isEmpty();
     }
 
-    @VisibleForTesting
     boolean hasNonEmptyPQ(KEY key) throws Exception {
         setCurrentKey(key);
         return !elementQueueState.isEmpty();
     }
 
-    @VisibleForTesting
     int getPQSize(KEY key) throws Exception {
         setCurrentKey(key);
         int counter = 0;
@@ -560,27 +556,22 @@ public class CepOperator<IN, KEY, OUT>
         return counter;
     }
 
-    @VisibleForTesting
     public NFAState getNFAStateForTesting() throws IOException {
         return getNFAState();
     }
 
-    @VisibleForTesting
     public void updateNFAStateForTesting(NFAState state) throws IOException {
         computationStates.update(state);
     }
 
-    @VisibleForTesting
     public SimpleKeyedStateStore getStateStore() {
         return stateStore;
     }
 
-    @VisibleForTesting
     public CepRuntimeContext getCepRuntimeContext() {
         return cepRuntimeContext;
     }
 
-    @VisibleForTesting
     public SharedBuffer<IN> getPartialMatches() {
         return partialMatches;
     }

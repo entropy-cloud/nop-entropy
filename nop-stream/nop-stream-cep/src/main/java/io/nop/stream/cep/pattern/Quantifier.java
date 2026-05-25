@@ -25,7 +25,7 @@ import java.util.Optional;
 
 import jakarta.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
+import io.nop.api.core.util.Guard;
 
 /**
  * A quantifier describing the Pattern. There are three main groups of {@link Quantifier}.
@@ -194,9 +194,9 @@ public class Quantifier {
         private final @Nullable Duration windowTime;
 
         private Times(int from, int to, @Nullable Duration windowTime) {
-            Preconditions.checkArgument(
+            Guard.checkArgument(
                     from > 0, "The from should be a positive number greater than 0.");
-            Preconditions.checkArgument(
+            Guard.checkArgument(
                     to >= from,
                     "The to should be a number greater than or equal to from: " + from + ".");
             this.from = from;

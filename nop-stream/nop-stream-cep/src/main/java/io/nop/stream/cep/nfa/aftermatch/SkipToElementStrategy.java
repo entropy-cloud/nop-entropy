@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.nfa.sharedbuffer.EventId;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
@@ -35,7 +35,7 @@ abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
     private final boolean shouldThrowException;
 
     SkipToElementStrategy(String patternName, boolean shouldThrowException) {
-        this.patternName = checkNotNull(patternName);
+        this.patternName = notNull(patternName, "patternName");
         this.shouldThrowException = shouldThrowException;
     }
 

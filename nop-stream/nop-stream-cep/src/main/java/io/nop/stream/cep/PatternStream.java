@@ -18,7 +18,7 @@
 
 package io.nop.stream.cep;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
@@ -48,7 +48,7 @@ public class PatternStream<T> {
     private final PatternStreamBuilder<T> builder;
 
     private PatternStream(final PatternStreamBuilder<T> builder) {
-        this.builder = checkNotNull(builder);
+        this.builder = notNull(builder, "builder");
     }
 
     PatternStream(final DataStream<T> inputStream, final Pattern<T, ?> pattern) {

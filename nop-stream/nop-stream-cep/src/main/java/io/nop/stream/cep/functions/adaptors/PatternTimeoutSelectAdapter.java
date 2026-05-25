@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.nop.api.core.annotations.core.Internal;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
@@ -48,8 +48,8 @@ public class PatternTimeoutSelectAdapter<IN, OUT, T> extends PatternSelectAdapte
             final PatternTimeoutFunction<IN, T> timeoutFunction,
             final OutputTag<T> timedOutPartialMatchesTag) {
         super(selectFunction);
-        this.timeoutFunction = checkNotNull(timeoutFunction);
-        this.timedOutPartialMatchesTag = checkNotNull(timedOutPartialMatchesTag);
+        this.timeoutFunction = notNull(timeoutFunction, "timeoutFunction");
+        this.timedOutPartialMatchesTag = notNull(timedOutPartialMatchesTag, "timedOutPartialMatchesTag");
     }
 
     @Override

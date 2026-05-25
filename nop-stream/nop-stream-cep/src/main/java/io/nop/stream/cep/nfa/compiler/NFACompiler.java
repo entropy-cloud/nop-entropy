@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.Stack;
 
 import io.nop.commons.tuple.Tuple2;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.nfa.NFA;
@@ -95,7 +95,7 @@ public class NFACompiler {
      * @return true if empty match could potentially match the pattern, false otherwise
      */
     public static boolean canProduceEmptyMatches(final Pattern<?, ?> pattern) {
-        NFAFactoryCompiler<?> compiler = new NFAFactoryCompiler<>(checkNotNull(pattern));
+        NFAFactoryCompiler<?> compiler = new NFAFactoryCompiler<>(notNull(pattern, "pattern"));
         compiler.compileFactory();
         State<?> startState =
                 compiler.getStates().stream()

@@ -240,6 +240,28 @@ public class TestCepSkipStrategyE2E {
     }
 
     @Test
+    void testSkipToNextWithOneOrMore() throws Exception {
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("start",
+                        AfterMatchSkipStrategy.skipToNext())
+                .where(SimpleCondition.of(e -> e.getName().startsWith("a")))
+                .oneOrMore()
+                .followedBy("end")
+                .where(SimpleCondition.of(e -> e.getName().equals("end")));
+
+        CepOperator<Event, Integer, String> op = createOperator(pattern);
+
+        op.processElement(new StreamRecord<>(new Event(1, "a1"), 1));
+        op.processElement(new StreamRecord<>(new Event(2, "a2"), 2));
+        op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
+        op.processWatermark(new Watermark(10));
+
+        assertTrue(results.size() >= 1,
+                "skipToNext+oneOrMore should produce at least one match, got: " + results);
+
+        op.close();
+    }
+
+    @Test
     void testSkipPastLastEventWithOneOrMore() throws Exception {
         Pattern<Event, ?> pattern = Pattern.<Event>begin("start",
                         AfterMatchSkipStrategy.skipPastLastEvent())

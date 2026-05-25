@@ -23,13 +23,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalCause;
-import com.google.common.cache.RemovalListener;
-import com.google.common.collect.Iterables;
 import io.nop.api.core.exceptions.NopException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,12 +76,12 @@ public class SharedBuffer<V> {
     /**
      * The cache of eventsBuffer State.
      */
-    private final Cache<EventId, Lockable<V>> eventsBufferCache;
+    private final ConcurrentHashMap<EventId, Lockable<V>> eventsBufferCache;
 
     /**
      * The cache of sharedBufferNode.
      */
-    private final Cache<NodeId, Lockable<SharedBufferNode>> entryCache;
+    private final ConcurrentHashMap<NodeId, Lockable<SharedBufferNode>> entryCache;
 
     private final Timer cacheStatisticsTimer;
 
@@ -95,15 +90,14 @@ public class SharedBuffer<V> {
             KeyedStateStore stateStore,
             TypeSerializer<V> valueSerializer,
             SharedBufferCacheConfig cacheConfig) {
-        // MapStateDescriptor does not support generic type tokens for value class;
-        // (Class) Lockable.class is used as a raw class hint, actual generic safety is ensured by usage
+        // raw cast intentional - type erased at runtime
         this.eventsBuffer =
                 stateStore.getMapState(
                         new MapStateDescriptor<EventId, Lockable<V>>(
                                 EVENTS_STATE_NAME,
                                 EventId.class,
                                 (Class) Lockable.class));
-
+        // raw cast intentional - type erased at runtime
         this.entries =
                 stateStore.getMapState(
                         new MapStateDescriptor<NodeId, Lockable<SharedBufferNode>>(
@@ -119,60 +113,10 @@ public class SharedBuffer<V> {
                                 Integer.class));
 
         // set the events buffer cache and strategy of exchanging out
-        this.eventsBufferCache =
-                CacheBuilder.newBuilder()
-                        .maximumSize(cacheConfig.getEventsBufferCacheSlots())
-                        .removalListener(
-                                (RemovalListener<EventId, Lockable<V>>)
-                                        removalNotification -> {
-                                            if (RemovalCause.SIZE
-                                                    == removalNotification.getCause()) {
-                                                try {
-                                                    eventsBuffer.put(
-                                                            removalNotification.getKey(),
-                                                            removalNotification.getValue());
-                                                } catch (Exception e) {
-                                                    LOG.error(
-                                                            "Error in putting value into eventsBuffer.",
-                                                            e);
-                                                }
-                                            }
-                                        })
-                        .build();
+        this.eventsBufferCache = new ConcurrentHashMap<>(cacheConfig.getEventsBufferCacheSlots());
         // set the entry cache and strategy of exchanging out
-        this.entryCache =
-                CacheBuilder.newBuilder()
-                        .maximumSize(cacheConfig.getEntryCacheSlots())
-                        .removalListener(
-                                (RemovalListener<NodeId, Lockable<SharedBufferNode>>)
-                                        removalNotification -> {
-                                            if (RemovalCause.SIZE
-                                                    == removalNotification.getCause()) {
-                                                try {
-                                                    entries.put(
-                                                            removalNotification.getKey(),
-                                                            removalNotification.getValue());
-                                                } catch (Exception e) {
-                                                    LOG.error(
-                                                            "Error in putting value into entries.",
-                                                            e);
-                                                }
-                                            }
-                                        })
-                        .build();
+        this.entryCache = new ConcurrentHashMap<>(cacheConfig.getEntryCacheSlots());
         cacheStatisticsTimer = new Timer(true);
-        cacheStatisticsTimer.schedule(
-                new TimerTask() {
-                    @Override
-                    public void run() {
-                        LOG.info(
-                                "Statistics details of eventsBufferCache: {}, statistics details of entryCache: {}.",
-                                eventsBufferCache.stats(),
-                                entryCache.stats());
-                    }
-                },
-                cacheConfig.getCacheStatisticsInterval().toMillis(),
-                cacheConfig.getCacheStatisticsInterval().toMillis());
     }
 
 //    public void migrateOldState(
@@ -288,8 +232,8 @@ public class SharedBuffer<V> {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public boolean isEmpty() throws Exception {
-        return Iterables.isEmpty(eventsBufferCache.asMap().keySet())
-                && Iterables.isEmpty(eventsBuffer.keys());
+        return eventsBufferCache.isEmpty()
+                && !eventsBuffer.keys().iterator().hasNext();
     }
 
     public void releaseCacheStatisticsTimer() {
@@ -324,7 +268,7 @@ public class SharedBuffer<V> {
      * @param eventId id of the event
      */
     void removeEvent(EventId eventId) {
-        this.eventsBufferCache.invalidate(eventId);
+        this.eventsBufferCache.remove(eventId);
         this.eventsBuffer.remove(eventId);
     }
 
@@ -334,7 +278,7 @@ public class SharedBuffer<V> {
      * @param nodeId id of the event
      */
     void removeEntry(NodeId nodeId) {
-        this.entryCache.invalidate(nodeId);
+        this.entryCache.remove(nodeId);
         this.entries.remove(nodeId);
     }
 
@@ -346,7 +290,7 @@ public class SharedBuffer<V> {
      */
     Lockable<SharedBufferNode> getEntry(NodeId nodeId) {
         try {
-            Lockable<SharedBufferNode> lockableFromCache = entryCache.getIfPresent(nodeId);
+            Lockable<SharedBufferNode> lockableFromCache = entryCache.get(nodeId);
             if (Objects.nonNull(lockableFromCache)) {
                 return lockableFromCache;
             } else {
@@ -369,7 +313,7 @@ public class SharedBuffer<V> {
      */
     Lockable<V> getEvent(EventId eventId) {
         try {
-            Lockable<V> lockableFromCache = eventsBufferCache.getIfPresent(eventId);
+            Lockable<V> lockableFromCache = eventsBufferCache.get(eventId);
             if (Objects.nonNull(lockableFromCache)) {
                 return lockableFromCache;
             } else {
@@ -390,37 +334,40 @@ public class SharedBuffer<V> {
      * @throws Exception Thrown if the system cannot access the state.
      */
     void flushCache() {
-        if (!entryCache.asMap().isEmpty()) {
-            entries.putAll(entryCache.asMap());
-            entryCache.invalidateAll();
+        if (!entryCache.isEmpty()) {
+            entries.putAll(entryCache);
+            entryCache.clear();
         }
-        if (!eventsBufferCache.asMap().isEmpty()) {
-            eventsBuffer.putAll(eventsBufferCache.asMap());
-            eventsBufferCache.invalidateAll();
+        if (!eventsBufferCache.isEmpty()) {
+            eventsBuffer.putAll(eventsBufferCache);
+            eventsBufferCache.clear();
         }
     }
 
-    @VisibleForTesting
     Iterator<Map.Entry<Long, Integer>> getEventCounters() throws Exception {
         return eventsCount.iterator();
     }
 
-    @VisibleForTesting
     public int getEventsBufferCacheSize() {
         return (int) eventsBufferCache.size();
     }
 
-    @VisibleForTesting
     public int getEventsBufferSize() throws Exception {
-        return Iterables.size(eventsBuffer.entries());
+        int count = 0;
+        for (Map.Entry<EventId, Lockable<V>> ignored : eventsBuffer.entries()) {
+            count++;
+        }
+        return count;
     }
 
-    @VisibleForTesting
     public int getSharedBufferNodeSize() throws Exception {
-        return Iterables.size(entries.entries());
+        int count = 0;
+        for (Map.Entry<NodeId, Lockable<SharedBufferNode>> ignored : entries.entries()) {
+            count++;
+        }
+        return count;
     }
 
-    @VisibleForTesting
     public int getSharedBufferNodeCacheSize() throws Exception {
         return (int) entryCache.size();
     }

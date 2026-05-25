@@ -30,7 +30,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Stack;
 
-import com.google.common.base.Preconditions;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.commons.util.CollectionHelper;
 
@@ -867,7 +867,7 @@ public class NFA<T> {
             return new HashMap<>();
         }
         // for a given computation state, we cannot have more than one matching patterns.
-        Preconditions.checkState(paths.size() == 1);
+        Guard.checkState(paths.size() == 1);
 
         return paths.get(0);
     }
@@ -908,7 +908,7 @@ public class NFA<T> {
 
         @Override
         public Iterable<T> getEventsForPattern(final String key) throws Exception {
-            Preconditions.checkNotNull(key);
+            Guard.notNull(key, "key");
 
             // the (partially) matched pattern is computed lazily when this method is called.
             // this is to avoid any overheads when using a simple, non-iterative condition.

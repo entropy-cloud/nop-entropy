@@ -18,7 +18,7 @@
 
 package io.nop.stream.cep.pattern.conditions;
 
-import com.google.common.base.Preconditions;
+import io.nop.api.core.util.Guard;
 
 import io.nop.stream.core.common.functions.IterationRuntimeContext;
 import io.nop.stream.core.common.functions.RichFunction;
@@ -44,7 +44,7 @@ public abstract class RichIterativeCondition<T> extends IterativeCondition<T>
 
     @Override
     public void setRuntimeContext(RuntimeContext runtimeContext) {
-        Preconditions.checkNotNull(runtimeContext);
+        Guard.notNull(runtimeContext, "runtimeContext");
         this.runtimeContext = runtimeContext;
     }
 

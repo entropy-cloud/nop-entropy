@@ -18,8 +18,8 @@
 
 package io.nop.stream.cep.pattern.conditions;
 
-import com.google.common.base.Preconditions;
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.api.core.util.Guard;
 
 /**
  * A {@link IterativeCondition condition} which filters elements of the given type. An element is
@@ -37,7 +37,7 @@ public class SubtypeCondition<T> extends SimpleCondition<T> {
     private final Class<? extends T> subtype;
 
     public SubtypeCondition(final Class<? extends T> subtype) {
-        this.subtype = Preconditions.checkNotNull(subtype, "The subtype cannot be null.");
+        this.subtype = Guard.notNull(subtype, "The subtype cannot be null.");
     }
 
     @Override

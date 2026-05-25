@@ -22,7 +22,7 @@ import java.util.Map;
 
 import jakarta.annotation.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
@@ -76,9 +76,9 @@ final class PatternStreamBuilder<IN> {
             final TimeBehaviour timeBehaviour,
             @Nullable final EventComparator<IN> comparator,
             @Nullable final OutputTag<IN> lateDataOutputTag) {
-        this.inputStream = checkNotNull(inputStream);
-        this.pattern = checkNotNull(pattern);
-        this.timeBehaviour = checkNotNull(timeBehaviour);
+        this.inputStream = notNull(inputStream, "inputStream");
+        this.pattern = notNull(pattern, "pattern");
+        this.timeBehaviour = notNull(timeBehaviour, "timeBehaviour");
         this.comparator = comparator;
         this.lateDataOutputTag = lateDataOutputTag;
     }
@@ -100,12 +100,12 @@ final class PatternStreamBuilder<IN> {
 
     PatternStreamBuilder<IN> withComparator(final EventComparator<IN> comparator) {
         return new PatternStreamBuilder<>(
-                inputStream, pattern, timeBehaviour, checkNotNull(comparator), lateDataOutputTag);
+                inputStream, pattern, timeBehaviour, notNull(comparator, "comparator"), lateDataOutputTag);
     }
 
     PatternStreamBuilder<IN> withLateDataOutputTag(final OutputTag<IN> lateDataOutputTag) {
         return new PatternStreamBuilder<>(
-                inputStream, pattern, timeBehaviour, comparator, checkNotNull(lateDataOutputTag));
+                inputStream, pattern, timeBehaviour, comparator, notNull(lateDataOutputTag, "lateDataOutputTag"));
     }
 
     PatternStreamBuilder<IN> inProcessingTime() {
@@ -133,8 +133,8 @@ final class PatternStreamBuilder<IN> {
             final TypeInformation<OUT> outTypeInfo,
             final PatternProcessFunction<IN, OUT> processFunction) {
 
-        checkNotNull(outTypeInfo);
-        checkNotNull(processFunction);
+        notNull(outTypeInfo, "outTypeInfo");
+        notNull(processFunction, "processFunction");
 
         final TypeSerializer<IN> inputSerializer = null;
 //                inputStream.getType().createSerializer(inputStream.getExecutionConfig());

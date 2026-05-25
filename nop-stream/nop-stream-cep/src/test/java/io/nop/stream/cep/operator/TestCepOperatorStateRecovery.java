@@ -209,6 +209,69 @@ public class TestCepOperatorStateRecovery {
         restored.close();
     }
 
+    /**
+     * Verifies that a new CepOperator instance, after having its NFA state restored
+     * from a previous operator's snapshot, has a properly initialized runtime
+     * infrastructure (state store, partial matches container), and that the restored
+     * NFA state is correctly accessible through the operator's accessor methods.
+     * This complements testRestoreFromCheckpoint by additionally verifying the
+     * operator's internal collaborators are functional after state restoration.
+     */
+    @Test
+    void testNewOperatorInfrastructureAfterStateRestore() throws Exception {
+        // Note: SharedBuffer state (event data) is not preserved through updateNFAStateForTesting;
+        // this is an infrastructure limitation. Full snapshot/restore requires the keyed state
+        // backend path via operator.snapshotState()/restoreState().
+        CepOperator<Event, Integer, String> original = createOperator();
+
+        original.processElement(new StreamRecord<>(new Event(1, "a1"), 1));
+        original.processElement(new StreamRecord<>(new Event(42, "start42"), 2));
+        original.processElement(new StreamRecord<>(new Event(43, "mid"), 3));
+        original.processWatermark(new Watermark(3));
+
+        assertTrue(results.isEmpty(), "No match before end event");
+
+        NFAState capturedState = original.getNFAStateForTesting();
+        assertNotNull(capturedState, "NFA state should exist after processing events");
+        assertFalse(capturedState.getPartialMatches().isEmpty(),
+                "NFA should have partial matches after start event");
+
+        original.close();
+
+        List<String> recoveredResults = new ArrayList<>();
+        CepOperator<Event, Integer, String> restored = new CepOperator<>(
+                new EventTypeSerializer(),
+                false,
+                nfaFactory,
+                null,
+                null,
+                function,
+                null
+        );
+        restored.setOutput(new TestOutput(recoveredResults));
+        setProcessingTimeService(restored, MOCK_PTS);
+        restored.open();
+
+        assertNotNull(restored.getNFAStateForTesting(),
+                "New operator should have initial NFA state after open()");
+        assertNotNull(restored.getPartialMatches(),
+                "New operator should have SharedBuffer after open()");
+        assertNotNull(restored.getStateStore(),
+                "New operator should have state store after open()");
+        assertTrue(restored.getPartialMatches().isEmpty(),
+                "New operator should have empty SharedBuffer before any events");
+
+        restored.updateNFAStateForTesting(capturedState);
+
+        NFAState afterRestore = restored.getNFAStateForTesting();
+        assertNotNull(afterRestore, "Restored operator should have NFA state after update");
+        assertEquals(capturedState.getPartialMatches().size(),
+                afterRestore.getPartialMatches().size(),
+                "Restored state should have the same number of partial matches as the captured state");
+
+        restored.close();
+    }
+
     @Test
     void testCepRuntimeContextGetState() throws Exception {
         SimpleKeyedStateStore stateStore = new SimpleKeyedStateStore();

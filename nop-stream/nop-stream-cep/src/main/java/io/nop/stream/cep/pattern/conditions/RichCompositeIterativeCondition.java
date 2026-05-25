@@ -18,7 +18,7 @@
 
 package io.nop.stream.cep.pattern.conditions;
 
-import com.google.common.base.Preconditions;
+import io.nop.api.core.util.Guard;
 
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.configuration.Configuration;
@@ -40,7 +40,7 @@ public abstract class RichCompositeIterativeCondition<T> extends RichIterativeCo
     @SafeVarargs
     public RichCompositeIterativeCondition(final IterativeCondition<T>... nestedConditions) {
         for (IterativeCondition<T> condition : nestedConditions) {
-            Preconditions.checkNotNull(condition, "The condition cannot be null.");
+            Guard.notNull(condition, "The condition cannot be null.");
         }
         this.nestedConditions = nestedConditions;
     }

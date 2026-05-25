@@ -21,7 +21,7 @@ package io.nop.stream.cep.functions.adaptors;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
@@ -49,8 +49,8 @@ public class PatternTimeoutFlatSelectAdapter<IN, OUT, T> extends PatternFlatSele
             PatternFlatTimeoutFunction<IN, T> flatTimeoutFunction,
             OutputTag<T> timedOutPartialMatchesTag) {
         super(flatSelectFunction);
-        this.flatTimeoutFunction = checkNotNull(flatTimeoutFunction);
-        this.timedOutPartialMatchesTag = checkNotNull(timedOutPartialMatchesTag);
+        this.flatTimeoutFunction = notNull(flatTimeoutFunction, "flatTimeoutFunction");
+        this.timedOutPartialMatchesTag = notNull(timedOutPartialMatchesTag, "timedOutPartialMatchesTag");
     }
 
     @Override
@@ -60,7 +60,7 @@ public class PatternTimeoutFlatSelectAdapter<IN, OUT, T> extends PatternFlatSele
         FunctionUtils.openFunction(flatTimeoutFunction, parameters);
 
         if (sideCollector == null) {
-            sideCollector = new SideCollector<>(checkNotNull(timedOutPartialMatchesTag));
+            sideCollector = new SideCollector<>(notNull(timedOutPartialMatchesTag, "timedOutPartialMatchesTag"));
         }
     }
 
@@ -88,7 +88,7 @@ public class PatternTimeoutFlatSelectAdapter<IN, OUT, T> extends PatternFlatSele
         private transient Context ctx;
 
         private SideCollector(OutputTag<T> timedOutPartialMatchesTag) {
-            this.timedOutPartialMatchesTag = checkNotNull(timedOutPartialMatchesTag);
+            this.timedOutPartialMatchesTag = notNull(timedOutPartialMatchesTag, "timedOutPartialMatchesTag");
         }
 
         public void setCtx(Context ctx) {

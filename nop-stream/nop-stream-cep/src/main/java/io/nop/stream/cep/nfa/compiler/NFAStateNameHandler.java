@@ -21,7 +21,7 @@ package io.nop.stream.cep.nfa.compiler;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
+import io.nop.api.core.util.Guard;
 
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.pattern.MalformedPatternException;
@@ -43,7 +43,7 @@ public class NFAStateNameHandler {
      * @return The original, user-specified name for the state.
      */
     public static String getOriginalNameFromInternal(String internalName) {
-        Preconditions.checkNotNull(internalName);
+        Guard.notNull(internalName, "internalName");
         return internalName.split(STATE_NAME_DELIM)[0];
     }
 
