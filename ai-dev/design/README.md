@@ -34,7 +34,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 |-----------|-----------|--------|--------|
 | `nop-ai-agent/` | AI Agent DSL + Engine | [README](nop-ai-agent/README.md) | active — 4-layer structure (DSL / Engine / Semantics / Strategy) |
 | `nop-job/` | Job Scheduling | *(not yet created)* | active — invoker routing, block strategy, metrics |
-| `nop-code/` | Code Indexing & Semantic Analysis | *(not yet created)* | active |
+| `nop-code/` | Code Indexing & Semantic Analysis | [README](nop-code/README.md) | active — multi-language index, CRG feature gap, query API, semantic edges |
 | `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — architecture, core engine, CEP, Flink/SeaTunnel comparison |
 | `nop-nosql/` | NoSQL Data Access | [README](nop-nosql/README.md) | active — business-semantic NoSQL abstraction, Redis driver comparison |
 | `crud/` | CRUD Relation Write Mode | *(not yet created)* | active |

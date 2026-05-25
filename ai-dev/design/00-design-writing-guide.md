@@ -62,6 +62,54 @@
 
 参考范例：`nop-ai-agent/README.md`（4 层结构：DSL / Engine / Semantics / Strategy）。
 
+### 命名规范
+
+| 场景 | 文件名格式 | 示例 |
+|------|-----------|------|
+| 子系统级设计 | `{topic}-design.md` | `core-design.md`、`invoker-design.md` |
+| 子系统架构总览 | `README.md` | `nop-code/README.md` |
+| 跨子系统专题 | `{topic}-design.md` | `semantic-edge-design.md` |
+| 目录名 | 模块名（与 Maven 模块一致） | `nop-job/`、`nop-stream/` |
+
+### 推荐模板
+
+```markdown
+# {子系统/专题} 设计
+
+**日期**：YYYY-MM-DD（更新于 YYYY-MM-DD）
+**范围**：涉及的模块和文件
+**状态**：active / resolved / superseded / 草案
+**灵感来源**：（可选）
+
+---
+
+## 一、设计结论
+（核心决策，1-5 条）
+
+## 二、背景与动机
+（为什么需要这个设计，当前痛点）
+
+## 三、核心设计
+（架构决策 + 使用契约 + 约束边界）
+
+## 四、拒绝了什么
+（替代方案及拒绝理由）
+
+## 五、与已有设计的关系
+（上下游依赖，相关设计文档链接）
+```
+
+## 与 docs-for-ai 的关系
+
+| | `docs-for-ai/` | `ai-dev/design/` |
+|---|---|---|
+| **定位** | 已实现的平台使用规范 | 设计决策和架构演进 |
+| **时态** | 描述当前已实现的能力 | 可包含未实现的目标架构 |
+| **读者** | 使用 Nop 构建应用的开发者 | 开发 Nop 框架本身的开发者 |
+| **权威性** | 必须与代码一致 | 先于代码，驱动实现 |
+
+设计实现后，关键结论应同步到 `docs-for-ai/`。设计文档保留决策上下文（"为什么"），`docs-for-ai/` 保留使用规范（"怎么做"）。
+
 ## 参考
 
 - `ai-dev/design/README.md` — 本目录的层级索引和 precedence model

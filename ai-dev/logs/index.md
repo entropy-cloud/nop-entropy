@@ -11,18 +11,25 @@
 ```text
 ai-dev/logs/
 ├── index.md
-├── 2026/
-│   ├── 05-20.md
-│   ├── 05-11.md
-│   ├── 05-05.md
-│   ├── 05-03.md
-│   ├── 05-02.md
-│   ├── 04-22.md
-│   ├── 04-19.md
-│   ├── 04-14.md
-│   ├── 04-10.md
-│   └── 04-09.md
-└── 2027/
+├── 00-log-writing-guide.md
+└── 2026/
+    ├── 05-24.md
+    ├── 05-23.md
+    ├── 05-22.md
+    ├── 05-21.md
+    ├── 05-20.md
+    ├── 05-19.md
+    ├── 05-18.md
+    ├── 05-17.md
+    ├── 05-11.md
+    ├── 05-05.md
+    ├── 05-03.md
+    ├── 05-02.md
+    ├── 04-22.md
+    ├── 04-19.md
+    ├── 04-14.md
+    ├── 04-10.md
+    └── 04-09.md
 ```
 
 **路径约定**：`ai-dev/logs/{year}/{month}-{day}.md`
@@ -52,7 +59,13 @@ ai-dev/logs/
 
 ### 2026-05
 
-- [05-17](2026/05-17.md) — Plan 17 nop-job 阻塞策略+Metrics 全部完成（RECOVERY策略+三套Metrics+Schedule聚合+限流设计文档）；吸引子层治理：`ai-dev/design/README.md` 新增；Plan 15 完成+Plan 16 迁移+Plan 17 新建；文档治理
+- [05-24](2026/05-24.md) — Plan 47 nop-stream 分布式执行路径接线完成
+- [05-23](2026/05-23.md) — Plan 42 nop-stream 设计实现 Phase 0-6 模型层（869 测试全通过）
+- [05-22](2026/05-22.md) — Plan 39 nop-stream 统一执行路径完成（快速路径删除）
+- [05-21](2026/05-21.md) — nop-message-pulsar 实现完成
+- [05-20](2026/05-20.md) — Plan 30 nop-stream 审计发现修复全部完成；nop-nosql 深度审计
+- [05-19](2026/05-19.md) — Plan 21 nop-job Adversarial Review Remediation 完成
+- [05-18](2026/05-18.md) — nop-job 深度审核完成 + 并发模式文档化
 - [05-11](2026/05-11.md) — Plan 14 nop-job 质量优化：TimeoutChecker N+1 批量预加载、Planner 锁冲突 Micrometer counter + DEBUG 日志、ErrorCode 规范化（5 个新定义）、LocalJobScheduler @Deprecated 标记
 - [05-05](2026/05-05.md) — SpotBugs findings 详细分析文档：nop-kernel 6 子模块 40 个 findings 源码级验证（3 true positive / 2 false positive / 35 design choice）
 - [05-03](2026/05-03.md) — SpotBugs 排除规则扩展、PMD 升级 3.28.0、nop-kernel qa profile、设计文档更新

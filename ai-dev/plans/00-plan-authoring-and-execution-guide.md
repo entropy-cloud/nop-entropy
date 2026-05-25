@@ -2,7 +2,7 @@
 
 > Status: active workflow guide
 > Last Reviewed: 2026-05-21
-> Sources: `docs/logs/2026/03-31.md`, `docs/logs/2026/04-03.md`, `docs/logs/2026/04-04.md`, `docs/logs/2026/04-07.md`, `docs/logs/2026/04-08.md`, `docs/logs/2026/04-09.md`, `docs/logs/2026/04-10.md`, `docs/logs/2026/05-04.md`, `docs/logs/2026/05-05.md`
+> Sources: `ai-dev/logs/2026/04-09.md`, `ai-dev/logs/2026/04-10.md`, `ai-dev/logs/2026/05-05.md` 及早期迁移前日志
 
 ## Goal
 
