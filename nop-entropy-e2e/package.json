@@ -6,6 +6,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:auth": "pnpm --filter nop-auth-e2e test",
+    "test:code": "pnpm --filter nop-code-e2e test",
     "test:job": "pnpm --filter nop-job-e2e test",
     "typecheck": "pnpm -r typecheck"
   },
