@@ -116,6 +116,52 @@ public class TestStreamReduceOperator {
     }
 
     @Test
+    void testKeyedStateIsolationTwoKeysDoNotInterfere() throws Exception {
+        processElement(1, 10);
+        processElement(2, 100);
+        processElement(1, 5);
+        processElement(2, 50);
+        processElement(1, 3);
+        processElement(2, 25);
+
+        assertEquals(6, output.getRecords().size());
+
+        assertEquals(10, output.getRecords().get(0).getValue());
+        assertEquals(100, output.getRecords().get(1).getValue());
+        assertEquals(15, output.getRecords().get(2).getValue());
+        assertEquals(150, output.getRecords().get(3).getValue());
+        assertEquals(18, output.getRecords().get(4).getValue());
+        assertEquals(175, output.getRecords().get(5).getValue());
+    }
+
+    @Test
+    void testKeyedStateRestoreIsolation() throws Exception {
+        processElement(1, 100);
+        processElement(2, 200);
+        processElement(1, 50);
+        processElement(2, 25);
+
+        OperatorSnapshotResult snapshot = operator.snapshotState(
+                new StateSnapshotContext(1L, System.currentTimeMillis()));
+
+        ReduceFunction<Integer> sum = (value1, value2) -> value1 + value2;
+        StreamReduceOperator<Integer> restored = new StreamReduceOperator<>(sum);
+        TestOutput<Integer> restoredOutput = new TestOutput<>();
+        restored.setOutput((Output) restoredOutput);
+        restored.open();
+        restored.restoreState(snapshot);
+
+        restored.setCurrentKey(1);
+        restored.processElement(new StreamRecord<>(1, System.currentTimeMillis()));
+        restored.setCurrentKey(2);
+        restored.processElement(new StreamRecord<>(2, System.currentTimeMillis()));
+
+        assertEquals(2, restoredOutput.getRecords().size());
+        assertEquals(151, restoredOutput.getRecords().get(0).getValue());
+        assertEquals(227, restoredOutput.getRecords().get(1).getValue());
+    }
+
+    @Test
     void testOperatorSnapshotResultJsonMethods() throws Exception {
         OperatorSnapshotResult result = new OperatorSnapshotResult();
 

@@ -20,8 +20,16 @@ package io.nop.stream.core.operators;
 
 import static java.util.Objects.requireNonNull;
 
+import io.nop.stream.core.checkpoint.FunctionInitializationContext;
+import io.nop.stream.core.checkpoint.FunctionSnapshotContext;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.common.functions.ICheckpointedFunction;
+import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
+
 import io.nop.stream.core.util.FunctionUtils;
 
 /**
@@ -60,40 +68,55 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends StreamFunction>
     //  operator life cycle
     // ------------------------------------------------------------------------
 
-//    @Override
-//    public void setup(
-//            StreamTask<?, ?> containingTask,
-//            StreamConfig config,
-//            Output<StreamRecord<OUT>> output) {
-//        super.setup(containingTask, config, output);
-//        FunctionUtils.setFunctionRuntimeContext(userFunction, getRuntimeContext());
-//    }
-
-//    @Override
-//    public void snapshotState(StateSnapshotContext context) throws Exception {
-//        super.snapshotState(context);
-//        StreamingFunctionUtils.snapshotFunctionState(
-//                context, getOperatorStateBackend(), userFunction);
-//    }
-
-//    @Override
-//    public void initializeState(StateInitializationContext context) throws Exception {
-//        super.initializeState(context);
-//        StreamingFunctionUtils.restoreFunctionState(context, userFunction);
-//    }
-
     @Override
     public void open() throws Exception {
         super.open();
-        // FunctionUtils.openFunction(userFunction, new Configuration());
+        FunctionUtils.openFunction(userFunction, new io.nop.stream.core.configuration.Configuration() {});
     }
 
     @Override
     public void finish() throws Exception {
         super.finish();
-//        if (userFunction instanceof SinkFunction) {
-//            ((SinkFunction<?>) userFunction).finish();
-//        }
+        if (userFunction instanceof SinkFunction) {
+            ((SinkFunction<?>) userFunction).finish();
+        }
+    }
+
+    @Override
+    public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
+        OperatorSnapshotResult result = super.snapshotState(context);
+        if (userFunction instanceof ICheckpointedFunction) {
+            FunctionSnapshotContext fnCtx = new FunctionSnapshotContext() {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public long getCheckpointId() {
+                    return context.getCheckpointId();
+                }
+
+                @Override
+                public long getCheckpointTimestamp() {
+                    return context.getTimestamp();
+                }
+            };
+            ((ICheckpointedFunction) userFunction).snapshotState(fnCtx);
+        }
+        return result;
+    }
+
+    @Override
+    public void initializeState(TaskStateSnapshot taskStateSnapshot) throws Exception {
+        if (userFunction instanceof ICheckpointedFunction) {
+            FunctionInitializationContext fnCtx = new FunctionInitializationContext() {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public boolean isRestored() {
+                    return taskStateSnapshot != null && !taskStateSnapshot.isEmpty();
+                }
+            };
+            ((ICheckpointedFunction) userFunction).initializeState(fnCtx);
+        }
     }
 
     @Override
@@ -127,34 +150,4 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends StreamFunction>
     // ------------------------------------------------------------------------
     //  Output type configuration
     // ------------------------------------------------------------------------
-//
-//    @Override
-//    public void setOutputType(TypeInformation<OUT> outTypeInfo, ExecutionConfig executionConfig) {
-//        StreamingFunctionUtils.setOutputType(userFunction, outTypeInfo, executionConfig);
-//    }
-//
-//    // ------------------------------------------------------------------------
-//    //  Utilities
-//    // ------------------------------------------------------------------------
-//
-//    /**
-//     * Since the streaming API does not implement any parametrization of functions via a
-//     * configuration, the config returned here is actually empty.
-//     *
-//     * @return The user function parameters (currently empty)
-//     */
-//    public Configuration getUserFunctionParameters() {
-//        return new Configuration();
-//    }
-//
-//    private void checkUdfCheckpointingPreconditions() {
-//
-//        if (userFunction instanceof CheckpointedFunction
-//                && userFunction instanceof ListCheckpointed) {
-//
-//            throw new IllegalStateException(
-//                    "User functions are not allowed to implement "
-//                            + "CheckpointedFunction AND ListCheckpointed.");
-//        }
-//    }
 }

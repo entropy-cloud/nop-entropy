@@ -22,6 +22,7 @@ import io.nop.stream.core.operators.ReduceAggregationFunction;
 import io.nop.stream.core.operators.WindowAggregationFunction;
 import io.nop.stream.core.operators.WindowAggregationOperator;
 import io.nop.stream.core.transformation.Transformation;
+import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -38,6 +39,9 @@ public class WindowedStreamImpl<T, K, W extends Window>
     private Evictor<? super T, W> evictor;
     private long allowedLateness = 0L;
 
+    private String windowingStrategyId;
+    private StreamComponents components;
+
     public WindowedStreamImpl(
             KeyedStream<T, K> keyedStream,
             WindowAssigner<? super T, W> windowAssigner) {
@@ -47,6 +51,27 @@ public class WindowedStreamImpl<T, K, W extends Window>
         // No IServiceContext available during stream plan construction; all current
         // WindowAssigner implementations ignore this parameter, so null is safe here.
         this.trigger = windowAssigner.getDefaultTrigger(null);
+    }
+
+    public WindowedStreamImpl(
+            KeyedStream<T, K> keyedStream,
+            String windowingStrategyId,
+            StreamComponents components) {
+        this(keyedStream, lookupAssigner(windowingStrategyId, components));
+        this.windowingStrategyId = windowingStrategyId;
+        this.components = components;
+    }
+
+    private static <T, W extends Window> WindowAssigner<? super T, W> lookupAssigner(
+            String windowingStrategyId, StreamComponents components) {
+        return components.getBean(windowingStrategyId, WindowAssigner.class);
+    }
+
+    private WindowAssigner<? super T, W> getEffectiveWindowAssigner() {
+        if (windowingStrategyId != null && components != null) {
+            return components.getBean(windowingStrategyId, WindowAssigner.class);
+        }
+        return windowAssigner;
     }
 
     private static <T, K> StreamExecutionEnvironment extractEnvironment(KeyedStream<T, K> keyedStream) {
@@ -114,28 +139,31 @@ public class WindowedStreamImpl<T, K, W extends Window>
 
     @Override
     public <R> SingleOutputStreamOperator<R> apply(WindowFunction<T, R, K, W> function) {
+        WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         WindowAggregationFunction<T, java.util.List<T>, R, K, W> aggFn =
                 new ApplyAggregationFunction<>(function);
         WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
-                new WindowAggregationOperator<>(windowAssigner, trigger, aggFn, keyedStream.getKeySelector());
+                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
     @Override
     public <ACC, R> SingleOutputStreamOperator<R> aggregate(AggregateFunction<T, ACC, R> function) {
+        WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         WindowAggregationFunction<T, ACC, R, K, W> aggFn =
                 new AggregateAggregationFunction<>(function);
         WindowAggregationOperator<T, ACC, R, K, W> operator =
-                new WindowAggregationOperator<>(windowAssigner, trigger, aggFn, keyedStream.getKeySelector());
+                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
     @Override
     public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function) {
+        WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         WindowAggregationFunction<T, T, T, K, W> aggFn =
                 new ReduceAggregationFunction<>(function);
         WindowAggregationOperator<T, T, T, K, W> operator =
-                new WindowAggregationOperator<>(windowAssigner, trigger, aggFn, keyedStream.getKeySelector());
+                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
         return transform("WindowReduce", getType(), operator);
     }
 

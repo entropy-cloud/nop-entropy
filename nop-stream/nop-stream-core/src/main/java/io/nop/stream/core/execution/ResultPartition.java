@@ -26,7 +26,7 @@ import io.nop.stream.core.streamrecord.StreamElement;
  * The consumer detects this via {@link #isFinished()} or by receiving an empty
  * result from {@link #read()} after the partition is closed and drained.
  */
-public class ResultPartition {
+public class ResultPartition implements IWriteStatus {
 
     private static final Logger LOG = LoggerFactory.getLogger(ResultPartition.class);
 
@@ -154,5 +154,20 @@ public class ResultPartition {
      */
     public int size() {
         return queue.size();
+    }
+
+    @Override
+    public boolean isBackpressured() {
+        return queue.remainingCapacity() < (queue.size() * 0.2 + 1);
+    }
+
+    @Override
+    public int getAvailableCapacity() {
+        return queue.remainingCapacity();
+    }
+
+    @Override
+    public int getTotalCapacity() {
+        return queue.size() + queue.remainingCapacity();
     }
 }

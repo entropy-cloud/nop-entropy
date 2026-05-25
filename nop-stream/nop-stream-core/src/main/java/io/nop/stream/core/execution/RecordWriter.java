@@ -7,9 +7,10 @@
  */
 package io.nop.stream.core.execution;
 
-import io.nop.commons.partition.IPartitioner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.nop.commons.partition.IPartitioner;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.execution.flow.EdgeConfig;
@@ -202,6 +203,13 @@ public class RecordWriter<T> {
         for (ResultPartition partition : partitions) {
             partition.close();
         }
+    }
+
+    /**
+     * Returns the write status for the first (or only) downstream partition.
+     */
+    public IWriteStatus getOutputStatus() {
+        return partitions[0];
     }
 
     /**

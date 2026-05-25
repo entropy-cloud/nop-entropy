@@ -16,6 +16,13 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests watermark advancement of {@link HeapInternalTimerService} via
+ * {@link AbstractStreamOperator#processWatermark}. Despite the class name, this
+ * does NOT directly test {@code WindowOperator}; it validates the timer service
+ * integration on the base operator. {@code WindowOperator}-specific watermark
+ * tests live in {@code nop-stream-runtime}'s equivalent test class.
+ */
 public class TestWindowOperatorWatermarkReception {
 
     private AbstractStreamOperator<String> createOperator(TimerServiceManager mgr, TestOutput<String> out) {

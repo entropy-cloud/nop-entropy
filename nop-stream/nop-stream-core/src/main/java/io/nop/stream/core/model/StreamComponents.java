@@ -128,6 +128,15 @@ public class StreamComponents implements Serializable {
         return windowingStrategies.get(id);
     }
 
+    @SuppressWarnings("unchecked")
+    public <T> T getBean(String id, Class<T> clazz) {
+        Object bean = windowingStrategies.get(id);
+        if (bean == null) {
+            throw new IllegalArgumentException("Bean not found: " + id);
+        }
+        return (T) bean;
+    }
+
     public void addRequirement(StreamRequirement requirement) {
         if (requirement == null) {
             throw new IllegalArgumentException("Requirement must not be null");

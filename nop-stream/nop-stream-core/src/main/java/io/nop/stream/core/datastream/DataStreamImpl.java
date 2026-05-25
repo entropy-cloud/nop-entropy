@@ -14,6 +14,7 @@ import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.*;
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
+import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
@@ -120,10 +121,12 @@ public class DataStreamImpl<T> implements DataStream<T> {
      * @param <R> the type of the output elements
      * @return a new data stream with the mapped elements
      */
+    @SuppressWarnings("unchecked")
     public <R> SingleOutputStreamOperator<R> map(MapFunction<T, R> mapper) {
+        TypeInformation<R> inferredType = inferMapReturnType(mapper);
         return transform(
             "Map",
-            (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
+            inferredType != null ? inferredType : (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
             new StreamMap<>(mapper)
         );
     }
@@ -287,6 +290,33 @@ public class DataStreamImpl<T> implements DataStream<T> {
         return transformation;
     }
     
+    @SuppressWarnings("unchecked")
+    private static <R> TypeInformation<R> inferMapReturnType(MapFunction<?, R> mapper) {
+        Class<?> clazz = mapper.getClass();
+        java.lang.reflect.Type genericSuper = clazz.getGenericSuperclass();
+        if (genericSuper instanceof java.lang.reflect.ParameterizedType) {
+            java.lang.reflect.ParameterizedType paramType = (java.lang.reflect.ParameterizedType) genericSuper;
+            if (MapFunction.class.equals(paramType.getRawType())) {
+                java.lang.reflect.Type[] typeArgs = paramType.getActualTypeArguments();
+                if (typeArgs.length >= 2 && typeArgs[1] instanceof Class) {
+                    return BasicTypeInfo.of((Class<R>) typeArgs[1]);
+                }
+            }
+        }
+        for (java.lang.reflect.Type iface : clazz.getGenericInterfaces()) {
+            if (iface instanceof java.lang.reflect.ParameterizedType) {
+                java.lang.reflect.ParameterizedType paramType = (java.lang.reflect.ParameterizedType) iface;
+                if (MapFunction.class.equals(paramType.getRawType())) {
+                    java.lang.reflect.Type[] typeArgs = paramType.getActualTypeArguments();
+                    if (typeArgs.length >= 2 && typeArgs[1] instanceof Class) {
+                        return BasicTypeInfo.of((Class<R>) typeArgs[1]);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * A partitioner that uses a KeySelector to extract keys for partitioning.
      * 

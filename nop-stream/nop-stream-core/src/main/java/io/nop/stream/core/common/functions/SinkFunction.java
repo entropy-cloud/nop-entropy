@@ -14,7 +14,6 @@ import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
  *
  * @param <T> The type of elements consumed by the sink
  */
-@FunctionalInterface
 public interface SinkFunction<T> extends StreamFunction {
     
     /**
@@ -34,5 +33,14 @@ public interface SinkFunction<T> extends StreamFunction {
      */
     default SinkConsistencyCapability getSinkConsistency() {
         return SinkConsistencyCapability.AT_LEAST_ONCE;
+    }
+
+    /**
+     * Called when all data has been consumed and the sink should flush any buffered data.
+     * Default implementation does nothing. Override to provide finish behavior.
+     *
+     * @throws Exception if finishing fails
+     */
+    default void finish() throws Exception {
     }
 }
