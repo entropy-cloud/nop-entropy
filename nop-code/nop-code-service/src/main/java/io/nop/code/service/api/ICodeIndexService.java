@@ -3,6 +3,9 @@ package io.nop.code.service.api;
 import io.nop.api.core.beans.PageBean;
 import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.model.*;
+import io.nop.code.flow.ChangeAnalysisResult;
+import io.nop.code.flow.DeadCodeReport;
+import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.service.api.dto.*;
 
 import java.util.List;
@@ -104,6 +107,14 @@ public interface ICodeIndexService {
 
     ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth);
 
+    CriticalNodeResultDTO getCriticalNodes(String indexId, int topN);
+
+    KnowledgeGapResultDTO getKnowledgeGaps(String indexId);
+
+    String exportGraph(String indexId, String format, boolean communityView);
+
+    GraphDiffDTO diffGraph(String baselineIndexId, String targetIndexId);
+
     // ==================== Dependency Graph ====================
 
     DepGraphDTO getDeps(String indexId, String filePath, int depth);
@@ -113,6 +124,20 @@ public interface ICodeIndexService {
     List<List<String>> findCycles(String indexId, int minSize);
 
     DepGraphDTO getDepGraph(String indexId, boolean includeExternal);
+
+    // ==================== Flow Analysis ====================
+
+    List<ExecutionFlow> detectFlows(String indexId);
+
+    List<ExecutionFlow> listFlows(String indexId);
+
+    ExecutionFlow getFlow(String indexId, String flowId);
+
+    List<ExecutionFlow> getAffectedFlows(String indexId, List<String> changedFilePaths);
+
+    ChangeAnalysisResult analyzeChanges(String indexId, String baselineCommitish, String targetCommitish);
+
+    DeadCodeReport detectDeadCode(String indexId);
 
     // ==================== Batch File Records ====================
 
@@ -144,4 +169,10 @@ public interface ICodeIndexService {
     void deleteIndex(String indexId);
 
     PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit);
+
+    List<CodeSymbol> findByAnnotation(String indexId, String annotationName);
+
+    List<CodeSymbol> findImplementations(String indexId, String qualifiedName, boolean directOnly, int maxDepth);
+
+    List<String> findDependentFiles(String indexId, String filePath);
 }

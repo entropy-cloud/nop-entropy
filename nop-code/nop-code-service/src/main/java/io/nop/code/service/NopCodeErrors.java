@@ -28,4 +28,7 @@ public interface NopCodeErrors {
 
     ErrorCode ERR_SYMBOL_NOT_FOUND =
             define("nop.err.code.symbol-not-found", "符号未找到: {symbolId}", ARG_SYMBOL_ID);
+
+    ErrorCode ERR_CODE_INDEX_ID_REQUIRED =
+            define("nop.err.code.index-id-required", "indexId is required", ARG_INDEX_ID);
 }

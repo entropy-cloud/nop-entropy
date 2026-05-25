@@ -63,4 +63,19 @@
           primary="true">
         <property name="bizObjName" value="NopCodeAnnotationUsage"/>
     </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeFlowBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeFlow" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeFlowBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopCodeFlow"/>
+    </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeFlowMembershipBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeFlowMembership" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeFlowMembershipBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopCodeFlowMembership"/>
+    </bean>
 </beans>

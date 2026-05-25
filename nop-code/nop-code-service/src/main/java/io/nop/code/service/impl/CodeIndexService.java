@@ -8,10 +8,17 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
-import io.nop.code.core.analyzer.CommunityDetector;
-import io.nop.code.core.analyzer.EntryPointScorer;
+import io.nop.code.graph.community.CommunityDetector;
+import io.nop.code.graph.entrypoint.EntryPointScorer;
+import io.nop.code.graph.critical.CriticalNodeAnalyzer;
+import io.nop.code.graph.critical.CriticalNodeResult;
+import io.nop.code.graph.knowledge.KnowledgeGapAnalyzer;
+import io.nop.code.graph.knowledge.KnowledgeGapResult;
+import io.nop.code.graph.export.GraphExporter;
+import io.nop.code.graph.diff.GraphDiffer;
+import io.nop.code.graph.diff.GraphSnapshot;
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
-import io.nop.code.core.analyzer.ImpactAnalyzer;
+import io.nop.code.graph.impact.ImpactAnalyzer;
 import io.nop.code.core.analyzer.ILanguageAdapter;
 import io.nop.code.core.analyzer.ProjectAnalysisResult;
 import io.nop.code.core.analyzer.ProjectAnalyzer;
@@ -32,13 +39,29 @@ import io.nop.code.dao.entity.NopCodeAnnotationUsage;
 import io.nop.code.dao.entity.NopCodeCall;
 import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeFile;
+import io.nop.code.dao.entity.NopCodeFlow;
+import io.nop.code.dao.entity.NopCodeFlowMembership;
 import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.dao.entity.NopCodeUsage;
+import io.nop.code.flow.ChangeAnalysisResult;
+import io.nop.code.flow.DeadCodeReport;
+import io.nop.code.flow.ExecutionFlow;
+import io.nop.code.flow.IChangeAnalyzer;
+import io.nop.code.flow.IDeadCodeDetector;
+import io.nop.code.flow.IFlowDetector;
 import io.nop.code.lang.java.JavaLanguageAdapter;
+import io.nop.code.lang.python.PythonLanguageAdapter;
+import io.nop.code.lang.typescript.TypeScriptLanguageAdapter;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.*;
+import io.nop.search.api.ISearchEngine;
+import io.nop.search.api.SearchRequest;
+import io.nop.search.api.SearchResponse;
+import io.nop.search.api.SearchType;
+import io.nop.search.api.SearchableDoc;
+import io.nop.search.api.SearchHit;
 import io.nop.commons.batch.BatchQueue;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
@@ -53,6 +76,7 @@ import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.lang.json.JsonTool;
 import jakarta.inject.Inject;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +95,13 @@ public class CodeIndexService implements ICodeIndexService {
 
     private static final int BATCH_SIZE = 1000;
 
+    private static class AnalysisCache {
+        SymbolTable symbolTable;
+        CallGraph callGraph;
+    }
+
+    private final Map<String, AnalysisCache> analysisCacheMap = new HashMap<>();
+
     protected final LanguageAdapterRegistry registry;
     protected final ProjectAnalyzer analyzer;
     protected final Map<String, IImportResolver> importResolvers = new HashMap<>();
@@ -80,6 +111,34 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Inject
     protected IOrmTemplate ormTemplate;
+
+    protected ISearchEngine searchEngine;
+
+    @Inject
+    public void setSearchEngine(@Nullable ISearchEngine searchEngine) {
+        this.searchEngine = searchEngine;
+    }
+
+    protected IFlowDetector flowDetector;
+
+    @Inject
+    public void setFlowDetector(@Nullable IFlowDetector flowDetector) {
+        this.flowDetector = flowDetector;
+    }
+
+    protected IChangeAnalyzer changeAnalyzer;
+
+    @Inject
+    public void setChangeAnalyzer(@Nullable IChangeAnalyzer changeAnalyzer) {
+        this.changeAnalyzer = changeAnalyzer;
+    }
+
+    protected IDeadCodeDetector deadCodeDetector;
+
+    @Inject
+    public void setDeadCodeDetector(@Nullable IDeadCodeDetector deadCodeDetector) {
+        this.deadCodeDetector = deadCodeDetector;
+    }
 
     protected IFingerprintStore fingerprintStore;
 
@@ -97,6 +156,8 @@ public class CodeIndexService implements ICodeIndexService {
     public CodeIndexService() {
         this.registry = new LanguageAdapterRegistry();
         this.registry.registerAdapter(new JavaLanguageAdapter());
+        this.registry.registerAdapter(new PythonLanguageAdapter());
+        this.registry.registerAdapter(new TypeScriptLanguageAdapter());
         this.analyzer = new ProjectAnalyzer(registry);
         registerImportResolvers();
     }
@@ -157,7 +218,7 @@ public class CodeIndexService implements ICodeIndexService {
         result.setLanguage(entity.getLanguage() != null
                 ? CodeLanguage.valueOf(entity.getLanguage()) : null);
         result.setLineCount(entity.getLineCount() != null ? entity.getLineCount() : 0);
-        result.setSourceCode(null); // sourceCode not stored in DB
+        result.setSourceCode(entity.getSourceCode());
         return result;
     }
 
@@ -213,10 +274,41 @@ public class CodeIndexService implements ICodeIndexService {
         return callGraph;
     }
 
+    private synchronized SymbolTable getOrRebuildSymbolTable(String indexId) {
+        AnalysisCache cache = analysisCacheMap.get(indexId);
+        if (cache != null && cache.symbolTable != null) {
+            return cache.symbolTable;
+        }
+        if (cache == null) {
+            cache = new AnalysisCache();
+            analysisCacheMap.put(indexId, cache);
+        }
+        cache.symbolTable = rebuildSymbolTable(indexId);
+        return cache.symbolTable;
+    }
+
+    private synchronized CallGraph getOrRebuildCallGraph(String indexId) {
+        AnalysisCache cache = analysisCacheMap.get(indexId);
+        if (cache != null && cache.callGraph != null) {
+            return cache.callGraph;
+        }
+        if (cache == null) {
+            cache = new AnalysisCache();
+            analysisCacheMap.put(indexId, cache);
+        }
+        cache.callGraph = rebuildCallGraph(indexId);
+        return cache.callGraph;
+    }
+
+    private synchronized void invalidateAnalysisCache(String indexId) {
+        analysisCacheMap.remove(indexId);
+    }
+
     // ==================== Indexing ====================
 
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
+        invalidateAnalysisCache(indexId);
         return ormTemplate.runInSession(session -> {
             ensureIndexEntity(indexId, vfsPath, session);
 
@@ -282,7 +374,13 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public String getFileSourceCode(String indexId, String filePath) {
-        return null; // sourceCode not stored in DB
+        if (daoProvider == null) return null;
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.addFilter(FilterBeans.eq("filePath", filePath));
+        List<NopCodeFile> files = fileDao.findAllByQuery(query);
+        return files.isEmpty() ? null : files.get(0).getSourceCode();
     }
 
     @Override
@@ -291,7 +389,7 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
-        String fileId = indexId + "_" + Math.abs(filePath.hashCode());
+        String fileId = generateFileId(indexId, filePath);
         query.addFilter(FilterBeans.eq("fileId", fileId));
         return symbolDao.findAllByQuery(query).stream()
                 .map(this::entityToCodeSymbol)
@@ -597,7 +695,13 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public List<CodeSearchResultDTO> searchCode(String indexId, String query, String searchType,
                                                  String language, String filePattern, int limit) {
-        if (daoProvider == null || query == null || query.isEmpty()) return Collections.emptyList();
+        if (query == null || query.isEmpty()) return Collections.emptyList();
+
+        if (searchEngine != null) {
+            return searchViaEngine(indexId, query, language, filePattern, limit);
+        }
+
+        if (daoProvider == null) return Collections.emptyList();
 
         String type = searchType != null ? searchType : "COMBINED";
         int lim = limit > 0 ? limit : 50;
@@ -610,6 +714,68 @@ public class CodeIndexService implements ICodeIndexService {
             case "COMBINED":
             default:
                 return searchCombined(indexId, query, language, filePattern, lim);
+        }
+    }
+
+    private List<CodeSearchResultDTO> searchViaEngine(String indexId, String query,
+                                                       String language, String filePattern, int limit) {
+        int lim = limit > 0 ? limit : 50;
+        String topic = "nop-code-" + indexId;
+
+        SearchRequest req = new SearchRequest();
+        req.setTopic(topic);
+        req.setQuery(query);
+        req.setSearchType(SearchType.HYBRID);
+        req.setLimit(lim);
+
+        Set<String> tags = new HashSet<>();
+        if (language != null && !language.isEmpty()) {
+            tags.add(language);
+        }
+        if (!tags.isEmpty()) {
+            req.setTags(tags);
+            req.setMatchAllTags(false);
+        }
+
+        try {
+            SearchResponse resp = searchEngine.search(req);
+            if (resp == null || resp.getItems() == null) {
+                return Collections.emptyList();
+            }
+
+            Map<String, String> filePathCache = buildFilePathCache(indexId);
+
+            List<CodeSearchResultDTO> results = new ArrayList<>();
+            for (SearchHit hit : resp.getItems()) {
+                CodeSearchResultDTO dto = new CodeSearchResultDTO();
+                dto.setMatchedSymbolName(hit.getName());
+                dto.setMatchedQualifiedName(hit.getTitle());
+                dto.setMatchType("SEARCH_ENGINE");
+                dto.setScore((double) hit.getScore());
+                dto.setContext(hit.getContent());
+                dto.setFilePath(hit.getPath() != null ? hit.getPath() : "");
+
+                if (hit.getHighlightedText() != null) {
+                    dto.setContext(hit.getHighlightedText());
+                }
+
+                if (hit.getTags() != null) {
+                    for (String tag : hit.getTags()) {
+                        try {
+                            CodeSymbolKind kind = CodeSymbolKind.valueOf(tag);
+                        } catch (IllegalArgumentException ignored) {
+                        }
+                    }
+                }
+
+                results.add(dto);
+            }
+
+            return filterByFilePattern(results, filePattern);
+        } catch (Exception e) {
+            LOG.warn("Search engine failed, falling back to DB query for index {}", indexId, e);
+            if (daoProvider == null) return Collections.emptyList();
+            return searchCombined(indexId, query, language, filePattern, lim);
         }
     }
 
@@ -926,7 +1092,7 @@ public class CodeIndexService implements ICodeIndexService {
                                              String direction, int maxDepth) {
         if (daoProvider == null) return null;
 
-        SymbolTable table = rebuildSymbolTable(indexId);
+        SymbolTable table = getOrRebuildSymbolTable(indexId);
         if (table == null) return null;
 
         CodeSymbol symbol = table.getByQualifiedName(qualifiedName);
@@ -992,8 +1158,8 @@ public class CodeIndexService implements ICodeIndexService {
                                              String direction, int maxDepth) {
         if (daoProvider == null) return null;
 
-        CallGraph callGraph = rebuildCallGraph(indexId);
-        SymbolTable table = rebuildSymbolTable(indexId);
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+        SymbolTable table = getOrRebuildSymbolTable(indexId);
 
         return buildCallHierarchy(qualifiedName, direction, maxDepth, callGraph, table);
     }
@@ -1018,20 +1184,28 @@ public class CodeIndexService implements ICodeIndexService {
             return node;
 
         if ("outgoing".equals(direction) || "both".equals(direction)) {
-            List<String> calleeIds = callGraph.getCallees(qualifiedName);
+            List<String> calleeIds = callGraph.getCallees(symbol != null ? symbol.getId() : qualifiedName);
             if (calleeIds != null) {
                 List<CallHierarchyDTO> callees = calleeIds.stream()
-                        .map(callee -> buildCallHierarchy(callee, direction, maxDepth - 1, callGraph, table))
+                        .map(calleeId -> {
+                            CodeSymbol calleeSymbol = table.getById(calleeId);
+                            String calleeQn = calleeSymbol != null ? calleeSymbol.getQualifiedName() : calleeId;
+                            return buildCallHierarchy(calleeQn, direction, maxDepth - 1, callGraph, table);
+                        })
                         .collect(Collectors.toList());
                 node.setCallees(callees);
             }
         }
 
         if ("incoming".equals(direction) || "both".equals(direction)) {
-            List<String> callerIds = callGraph.getCallers(qualifiedName);
+            List<String> callerIds = callGraph.getCallers(symbol != null ? symbol.getId() : qualifiedName);
             if (callerIds != null) {
                 List<CallHierarchyDTO> callers = callerIds.stream()
-                        .map(caller -> buildCallHierarchy(caller, direction, maxDepth - 1, callGraph, table))
+                        .map(callerId -> {
+                            CodeSymbol callerSymbol = table.getById(callerId);
+                            String callerQn = callerSymbol != null ? callerSymbol.getQualifiedName() : callerId;
+                            return buildCallHierarchy(callerQn, direction, maxDepth - 1, callGraph, table);
+                        })
                         .collect(Collectors.toList());
                 node.setCallers(callers);
             }
@@ -1086,6 +1260,16 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public void deleteIndex(String indexId) {
+        invalidateAnalysisCache(indexId);
+
+        if (searchEngine != null) {
+            try {
+                searchEngine.removeTopic("nop-code-" + indexId);
+            } catch (Exception e) {
+                LOG.warn("Failed to remove search topic for index {}", indexId, e);
+            }
+        }
+
         ormTemplate.runInSession(session -> {
             try {
                 IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
@@ -1132,8 +1316,8 @@ public class CodeIndexService implements ICodeIndexService {
     public CommunityDetectionResultDTO detectCommunities(String indexId) {
         if (daoProvider == null) return null;
 
-        CallGraph callGraph = rebuildCallGraph(indexId);
-        SymbolTable symbolTable = rebuildSymbolTable(indexId);
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
         if (symbolTable.size() == 0)
             return null;
 
@@ -1147,8 +1331,8 @@ public class CodeIndexService implements ICodeIndexService {
     public GraphAnalysisResultDTO getGraphAnalysis(String indexId, int topN) {
         if (daoProvider == null) return null;
 
-        CallGraph callGraph = rebuildCallGraph(indexId);
-        SymbolTable symbolTable = rebuildSymbolTable(indexId);
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
 
         int limit = topN > 0 ? topN : 20;
 
@@ -1195,8 +1379,8 @@ public class CodeIndexService implements ICodeIndexService {
     public ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth) {
         if (daoProvider == null) return null;
 
-        CallGraph callGraph = rebuildCallGraph(indexId);
-        SymbolTable symbolTable = rebuildSymbolTable(indexId);
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
 
         int maxDepth = depth > 0 ? depth : 3;
         CodeSymbol symbol = symbolTable.getById(symbolId);
@@ -1206,6 +1390,81 @@ public class CodeIndexService implements ICodeIndexService {
                 new ImpactAnalyzer().analyzeImpact(qualifiedName, callGraph, symbolTable, maxDepth);
 
         return convertImpactResult(result);
+    }
+
+    @Override
+    public CriticalNodeResultDTO getCriticalNodes(String indexId, int topN) {
+        if (daoProvider == null) return null;
+
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
+
+        CriticalNodeResult result = new CriticalNodeAnalyzer().analyze(callGraph, symbolTable, topN);
+
+        CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
+        dto.setTotalNodes(result.getTotalNodes());
+        dto.setTopN(result.getTopN());
+        dto.setHubNodes(convertNodeScores(result.getHubNodes()));
+        dto.setBridgeNodes(convertNodeScores(result.getBridgeNodes()));
+        return dto;
+    }
+
+    @Override
+    public KnowledgeGapResultDTO getKnowledgeGaps(String indexId) {
+        if (daoProvider == null) return null;
+
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
+
+        CommunityDetector.CommunityDetectionResult communities =
+                new CommunityDetector().detectCommunities(callGraph, symbolTable);
+
+        KnowledgeGapResult result = new KnowledgeGapAnalyzer().analyze(callGraph, symbolTable, communities);
+
+        KnowledgeGapResultDTO dto = new KnowledgeGapResultDTO();
+        dto.setIsolatedSymbols(result.getIsolatedSymbols().stream()
+                .map(this::toIsolatedSymbolDTO).collect(Collectors.toList()));
+        dto.setWeakCommunities(result.getWeakCommunities().stream()
+                .map(this::toWeakCommunityDTO).collect(Collectors.toList()));
+        return dto;
+    }
+
+    @Override
+    public String exportGraph(String indexId, String format, boolean communityView) {
+        if (daoProvider == null) return null;
+
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
+
+        CommunityDetector.CommunityDetectionResult communities = null;
+        if (communityView) {
+            communities = new CommunityDetector().detectCommunities(callGraph, symbolTable);
+        }
+
+        return new GraphExporter().export(callGraph, symbolTable, format, communityView, communities);
+    }
+
+    @Override
+    public GraphDiffDTO diffGraph(String baselineIndexId, String targetIndexId) {
+        if (daoProvider == null) return null;
+
+        CallGraph baselineCallGraph = getOrRebuildCallGraph(baselineIndexId);
+        SymbolTable baselineSymbolTable = getOrRebuildSymbolTable(baselineIndexId);
+        CommunityDetector baselineDetector = new CommunityDetector();
+        CommunityDetector.CommunityDetectionResult baselineCommunities =
+                baselineDetector.detectCommunities(baselineCallGraph, baselineSymbolTable);
+        GraphSnapshot baseline = GraphDiffer.buildSnapshot(baselineCallGraph, baselineCommunities);
+
+        CallGraph targetCallGraph = getOrRebuildCallGraph(targetIndexId);
+        SymbolTable targetSymbolTable = getOrRebuildSymbolTable(targetIndexId);
+        CommunityDetector targetDetector = new CommunityDetector();
+        CommunityDetector.CommunityDetectionResult targetCommunities =
+                targetDetector.detectCommunities(targetCallGraph, targetSymbolTable);
+        GraphSnapshot target = GraphDiffer.buildSnapshot(targetCallGraph, targetCommunities);
+
+        io.nop.code.graph.diff.GraphDiff diff = new GraphDiffer().diff(baseline, target);
+
+        return convertGraphDiff(diff);
     }
 
     // ==================== Dependency Graph ====================
@@ -1443,6 +1702,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
+        invalidateAnalysisCache(indexId);
         return ormTemplate.runInSession(session -> {
             try {
                 IncrementalDetector detector = new IncrementalDetector();
@@ -1633,7 +1893,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     private void saveFileResultInSession(String indexId, CodeFileAnalysisResult file,
                                          IOrmSession session) {
-        String fileEntityId = indexId + "_" + Math.abs(file.getFilePath().hashCode());
+        String fileEntityId = generateFileId(indexId, file.getFilePath());
 
         NopCodeFile fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
         fileEntity.setId(fileEntityId);
@@ -1688,6 +1948,40 @@ public class CodeIndexService implements ICodeIndexService {
                 symEntity.setReadonlyFlag(sym.isReadonlyFlag());
                 saveReplacingExisting(session, symEntity);
             }
+
+            if (searchEngine != null) {
+                String topic = "nop-code-" + indexId;
+                for (CodeSymbol sym : file.getSymbols()) {
+                    SearchableDoc doc = new SearchableDoc();
+                    doc.setId(sym.getId());
+                    doc.setTitle(sym.getQualifiedName());
+                    doc.setName(sym.getName());
+                    doc.setPath(file.getFilePath());
+                    StringBuilder content = new StringBuilder();
+                    if (sym.getDocumentation() != null) {
+                        content.append(sym.getDocumentation());
+                    }
+                    if (sym.getSignature() != null) {
+                        if (content.length() > 0) content.append(' ');
+                        content.append(sym.getSignature());
+                    }
+                    doc.setContent(content.toString());
+                    Set<String> tagSet = new HashSet<>();
+                    if (sym.getKind() != null) {
+                        tagSet.add(sym.getKind().name());
+                    }
+                    if (file.getLanguage() != null) {
+                        tagSet.add(file.getLanguage().name());
+                    }
+                    doc.setTagSet(tagSet);
+                    doc.setAutoGenerateEmbedding(true);
+                    try {
+                        searchEngine.addDoc(topic, doc);
+                    } catch (Exception e) {
+                        LOG.warn("Failed to sync symbol {} to search engine", sym.getId(), e);
+                    }
+                }
+            }
         }
 
         if (file.getCalls() != null) {
@@ -1732,6 +2026,92 @@ public class CodeIndexService implements ICodeIndexService {
                 annotEntity.setColumn(annot.getColumn());
                 annotEntity.setAttributes(annot.getAttributes());
                 saveReplacingExisting(session, annotEntity);
+            }
+        }
+
+        if (file.getCalls() != null) {
+            for (CodeMethodCall call : file.getCalls()) {
+                if (call.getCallerId() == null)
+                    continue;
+                String usageKind = "CALL";
+                String usageId = DigestHelper.sha256Hex(
+                        (indexId + ":" + usageKind + ":" + call.getCallerId() + ":" + fileEntityId + ":" + call.getLine())
+                                .getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+                NopCodeUsage usageEntity = (NopCodeUsage) ormTemplate.newEntity(NopCodeUsage.class.getName());
+                usageEntity.setId(usageId);
+                usageEntity.setIndexId(indexId);
+                usageEntity.setSymbolId(call.getCallerId());
+                usageEntity.setFileId(fileEntityId);
+                usageEntity.setKind(usageKind);
+                usageEntity.setLine(call.getLine());
+                usageEntity.setColumn(call.getColumn());
+                usageEntity.setEnclosingSymbolId(call.getCallerId());
+                saveReplacingExisting(session, usageEntity);
+            }
+        }
+
+        if (file.getAnnotationUsages() != null) {
+            for (CodeAnnotationUsage annot : file.getAnnotationUsages()) {
+                if (annot.getAnnotatedSymbolId() == null)
+                    continue;
+                String usageKind = "ANNOTATES";
+                String usageId = DigestHelper.sha256Hex(
+                        (indexId + ":" + usageKind + ":" + annot.getAnnotatedSymbolId() + ":" + fileEntityId + ":" + annot.getLine())
+                                .getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+                NopCodeUsage usageEntity = (NopCodeUsage) ormTemplate.newEntity(NopCodeUsage.class.getName());
+                usageEntity.setId(usageId);
+                usageEntity.setIndexId(indexId);
+                usageEntity.setSymbolId(annot.getAnnotatedSymbolId());
+                usageEntity.setFileId(fileEntityId);
+                usageEntity.setKind(usageKind);
+                usageEntity.setLine(annot.getLine());
+                usageEntity.setColumn(annot.getColumn());
+                saveReplacingExisting(session, usageEntity);
+            }
+        }
+
+        if (file.getInheritances() != null) {
+            for (CodeInheritance inh : file.getInheritances()) {
+                if (inh.getSubTypeId() == null)
+                    continue;
+                String usageKind = inh.getRelationType() != null ? inh.getRelationType().name() : "EXTENDS";
+                String usageId = DigestHelper.sha256Hex(
+                        (indexId + ":" + usageKind + ":" + inh.getSubTypeId() + ":" + fileEntityId)
+                                .getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+                NopCodeUsage usageEntity = (NopCodeUsage) ormTemplate.newEntity(NopCodeUsage.class.getName());
+                usageEntity.setId(usageId);
+                usageEntity.setIndexId(indexId);
+                usageEntity.setSymbolId(inh.getSubTypeId());
+                usageEntity.setFileId(fileEntityId);
+                usageEntity.setKind(usageKind);
+                usageEntity.setLine(0);
+                usageEntity.setColumn(0);
+                usageEntity.setEnclosingSymbolId(inh.getSubTypeId());
+                saveReplacingExisting(session, usageEntity);
+            }
+        }
+
+        if (file.getSymbols() != null && file.getFilePath() != null) {
+            boolean isTestFile = file.getFilePath().contains("Test.java")
+                    || file.getFilePath().contains("/test/");
+            if (isTestFile) {
+                for (CodeSymbol sym : file.getSymbols()) {
+                    if (sym.getName() == null) continue;
+                    String testUsageKind = "TESTED_BY";
+                    String usageId = DigestHelper.sha256Hex(
+                            (indexId + ":" + testUsageKind + ":" + sym.getId() + ":" + fileEntityId)
+                                    .getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+                    NopCodeUsage usageEntity = (NopCodeUsage) ormTemplate.newEntity(NopCodeUsage.class.getName());
+                    usageEntity.setId(usageId);
+                    usageEntity.setIndexId(indexId);
+                    usageEntity.setSymbolId(sym.getId());
+                    usageEntity.setFileId(fileEntityId);
+                    usageEntity.setKind(testUsageKind);
+                    usageEntity.setLine(sym.getLine());
+                    usageEntity.setColumn(sym.getColumn());
+                    usageEntity.setEnclosingSymbolId(sym.getId());
+                    saveReplacingExisting(session, usageEntity);
+                }
             }
         }
 
@@ -1810,7 +2190,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         for (Object pathObj : filePaths) {
             String filePath = pathObj instanceof Path ? ((Path) pathObj).toString() : pathObj.toString();
-            String fileId = indexId + "_" + Math.abs(filePath.hashCode());
+            String fileId = generateFileId(indexId, filePath);
 
             List<String> symbolIds = findSymbolIdsByFileId(fileId);
 
@@ -1909,6 +2289,164 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
+    // ==================== Flow Analysis ====================
+
+    @Override
+    public List<ExecutionFlow> detectFlows(String indexId) {
+        if (daoProvider == null) return Collections.emptyList();
+
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+
+        IFlowDetector detector = flowDetector;
+        if (detector == null) {
+            throw new UnsupportedOperationException("FlowDetector not available");
+        }
+
+        List<ExecutionFlow> flows = detector.detectFlows(indexId, symbolTable, callGraph);
+
+        persistFlows(indexId, flows);
+
+        return flows;
+    }
+
+    @Override
+    public List<ExecutionFlow> listFlows(String indexId) {
+        if (daoProvider == null) return Collections.emptyList();
+
+        IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeFlow> entities = flowDao.findAllByQuery(query);
+
+        return entities.stream()
+                .map(this::entityToExecutionFlow)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ExecutionFlow getFlow(String indexId, String flowId) {
+        if (daoProvider == null) return null;
+
+        IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
+        NopCodeFlow flowEntity = flowDao.getEntityById(flowId);
+        if (flowEntity == null || !indexId.equals(flowEntity.getIndexId())) {
+            return null;
+        }
+
+        ExecutionFlow flow = entityToExecutionFlow(flowEntity);
+
+        IEntityDao<NopCodeFlowMembership> membershipDao = daoProvider.daoFor(NopCodeFlowMembership.class);
+        QueryBean membershipQuery = new QueryBean();
+        membershipQuery.addFilter(FilterBeans.eq("flowId", flowId));
+        List<NopCodeFlowMembership> memberships = membershipDao.findAllByQuery(membershipQuery);
+        flow.setPathNodeIds(memberships.stream()
+                .map(NopCodeFlowMembership::getSymbolId)
+                .collect(Collectors.toList()));
+
+        return flow;
+    }
+
+    @Override
+    public List<ExecutionFlow> getAffectedFlows(String indexId, List<String> changedFilePaths) {
+        if (daoProvider == null) return Collections.emptyList();
+
+        IFlowDetector detector = flowDetector;
+        if (detector == null) {
+            throw new UnsupportedOperationException("FlowDetector not available");
+        }
+
+        return detector.getAffectedFlows(indexId, changedFilePaths);
+    }
+
+    @Override
+    public ChangeAnalysisResult analyzeChanges(String indexId, String baselineCommitish, String targetCommitish) {
+        if (daoProvider == null) return null;
+
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+
+        IChangeAnalyzer analyzer = changeAnalyzer;
+        if (analyzer == null) {
+            throw new UnsupportedOperationException("ChangeAnalyzer not available");
+        }
+
+        return analyzer.analyzeChanges(indexId, baselineCommitish, targetCommitish, symbolTable, callGraph);
+    }
+
+    @Override
+    public DeadCodeReport detectDeadCode(String indexId) {
+        if (daoProvider == null) return null;
+
+        SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
+        CallGraph callGraph = getOrRebuildCallGraph(indexId);
+
+        IDeadCodeDetector detector = deadCodeDetector;
+        if (detector == null) {
+            throw new UnsupportedOperationException("DeadCodeDetector not available");
+        }
+
+        return detector.detectDeadCode(indexId, symbolTable, callGraph);
+    }
+
+    private void persistFlows(String indexId, List<ExecutionFlow> flows) {
+        ormTemplate.runInSession(session -> {
+            IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
+            QueryBean deleteQuery = new QueryBean();
+            deleteQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            List<NopCodeFlow> existing = flowDao.findAllByQuery(deleteQuery);
+            for (NopCodeFlow existingFlow : existing) {
+                IEntityDao<NopCodeFlowMembership> membershipDao = daoProvider.daoFor(NopCodeFlowMembership.class);
+                QueryBean mQuery = new QueryBean();
+                mQuery.addFilter(FilterBeans.eq("flowId", existingFlow.getId()));
+                membershipDao.batchDeleteEntities(membershipDao.findAllByQuery(mQuery));
+            }
+            flowDao.batchDeleteEntities(existing);
+
+            for (ExecutionFlow flow : flows) {
+                NopCodeFlow flowEntity = (NopCodeFlow) ormTemplate.newEntity(NopCodeFlow.class.getName());
+                flowEntity.setId(flow.getId());
+                flowEntity.setIndexId(indexId);
+                flowEntity.setName(flow.getName());
+                flowEntity.setEntryPointId(flow.getEntryPointSymbolId());
+                flowEntity.setEntryPointQualifiedName(flow.getEntryPointQualifiedName());
+                flowEntity.setDepth(flow.getDepth());
+                flowEntity.setOverallScore(flow.getCriticality());
+                flowEntity.setStatus("DETECTED");
+                flowEntity.setCreatedTime(CoreMetrics.currentTimestamp());
+                session.save(flowEntity);
+
+                if (flow.getPathNodeIds() != null) {
+                    int depth = 0;
+                    for (String nodeId : flow.getPathNodeIds()) {
+                        NopCodeFlowMembership membership = (NopCodeFlowMembership) ormTemplate.newEntity(
+                                NopCodeFlowMembership.class.getName());
+                        membership.setId(flow.getId() + "_" + nodeId);
+                        membership.setFlowId(flow.getId());
+                        membership.setSymbolId(nodeId);
+                        membership.setDepth(depth++);
+                        membership.setIsEntry(nodeId.equals(flow.getEntryPointSymbolId()));
+                        membership.setCreatedTime(CoreMetrics.currentTimestamp());
+                        session.save(membership);
+                    }
+                }
+            }
+            return null;
+        });
+    }
+
+    private ExecutionFlow entityToExecutionFlow(NopCodeFlow entity) {
+        ExecutionFlow flow = new ExecutionFlow();
+        flow.setId(entity.getId());
+        flow.setName(entity.getName());
+        flow.setIndexId(entity.getIndexId());
+        flow.setEntryPointSymbolId(entity.getEntryPointId());
+        flow.setEntryPointQualifiedName(entity.getEntryPointQualifiedName());
+        flow.setDepth(entity.getDepth() != null ? entity.getDepth() : 0);
+        flow.setCriticality(entity.getOverallScore() != null ? entity.getOverallScore() : 0.0);
+        return flow;
+    }
+
     // ==================== Private Conversion Helpers ====================
 
     private CommunityDetectionResultDTO convertCommunityResult(
@@ -1975,6 +2513,206 @@ public class CodeIndexService implements ICodeIndexService {
         return dto;
     }
 
+    private List<CriticalNodeScoreDTO> convertNodeScores(List<CriticalNodeResult.NodeScore> scores) {
+        return scores.stream().map(ns -> {
+            CriticalNodeScoreDTO dto = new CriticalNodeScoreDTO();
+            dto.setSymbolId(ns.getSymbolId());
+            dto.setQualifiedName(ns.getQualifiedName());
+            dto.setScore(ns.getScore());
+            dto.setInDegree(ns.getInDegree());
+            dto.setOutDegree(ns.getOutDegree());
+            dto.setTotalDegree(ns.getTotalDegree());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    private IsolatedSymbolDTO toIsolatedSymbolDTO(KnowledgeGapResult.IsolatedSymbol iso) {
+        IsolatedSymbolDTO dto = new IsolatedSymbolDTO();
+        dto.setSymbolId(iso.getSymbolId());
+        dto.setQualifiedName(iso.getQualifiedName());
+        dto.setName(iso.getName());
+        dto.setKind(iso.getKind());
+        return dto;
+    }
+
+    private WeakCommunityDTO toWeakCommunityDTO(KnowledgeGapResult.WeakCommunity wc) {
+        WeakCommunityDTO dto = new WeakCommunityDTO();
+        dto.setCommunityId(wc.getCommunityId());
+        dto.setLabel(wc.getLabel());
+        dto.setSymbolCount(wc.getSymbolCount());
+        dto.setCohesion(wc.getCohesion());
+        dto.setThreshold(wc.getThreshold());
+        return dto;
+    }
+
+    private GraphDiffDTO convertGraphDiff(io.nop.code.graph.diff.GraphDiff diff) {
+        GraphDiffDTO dto = new GraphDiffDTO();
+        dto.setAddedNodes(diff.getAddedNodes());
+        dto.setRemovedNodes(diff.getRemovedNodes());
+        dto.setAddedEdges(diff.getAddedEdges().stream()
+                .map(e -> new EdgeKeyDTO(e.getSource(), e.getTarget()))
+                .collect(Collectors.toSet()));
+        dto.setRemovedEdges(diff.getRemovedEdges().stream()
+                .map(e -> new EdgeKeyDTO(e.getSource(), e.getTarget()))
+                .collect(Collectors.toSet()));
+        dto.setCommunityChanges(diff.getCommunityChanges().stream()
+                .map(cc -> {
+                    CommunityChangeDTO c = new CommunityChangeDTO();
+                    c.setNodeId(cc.getNodeId());
+                    c.setOldCommunity(cc.getOldCommunity());
+                    c.setNewCommunity(cc.getNewCommunity());
+                    return c;
+                }).collect(Collectors.toList()));
+        return dto;
+    }
+
+    @Override
+    public List<CodeSymbol> findByAnnotation(String indexId, String annotationName) {
+        if (daoProvider == null || annotationName == null || annotationName.isEmpty())
+            return Collections.emptyList();
+
+        IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
+        QueryBean annotQuery = new QueryBean();
+        annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        annotQuery.addFilter(FilterBeans.eq("annotationTypeId", annotationName));
+        List<NopCodeAnnotationUsage> exactMatches = annotDao.findAllByQuery(annotQuery);
+
+        if (exactMatches.isEmpty()) {
+            QueryBean fuzzyQuery = new QueryBean();
+            fuzzyQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            fuzzyQuery.addFilter(FilterBeans.contains("annotationTypeId", annotationName));
+            exactMatches = annotDao.findAllByQuery(fuzzyQuery);
+        }
+
+        if (exactMatches.isEmpty()) return Collections.emptyList();
+
+        Set<String> symbolIds = new LinkedHashSet<>();
+        for (NopCodeAnnotationUsage usage : exactMatches) {
+            if (usage.getAnnotatedSymbolId() != null) {
+                symbolIds.add(usage.getAnnotatedSymbolId());
+            }
+        }
+        if (symbolIds.isEmpty()) return Collections.emptyList();
+
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean symQuery = new QueryBean();
+        symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        symQuery.addFilter(FilterBeans.in("id", new ArrayList<>(symbolIds)));
+        return symbolDao.findAllByQuery(symQuery).stream()
+                .map(this::entityToCodeSymbol)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CodeSymbol> findImplementations(String indexId, String qualifiedName, boolean directOnly, int maxDepth) {
+        if (daoProvider == null || qualifiedName == null) return Collections.emptyList();
+
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean symQuery = new QueryBean();
+        symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        symQuery.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
+        List<NopCodeSymbol> targets = symbolDao.findAllByQuery(symQuery);
+        if (targets.isEmpty()) return Collections.emptyList();
+
+        IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
+        QueryBean inhQuery = new QueryBean();
+        inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        inhQuery.addFilter(FilterBeans.eq("relationType", "IMPLEMENTS"));
+        List<NopCodeInheritance> allInh = inhDao.findAllByQuery(inhQuery);
+
+        Map<String, List<String>> superToSubs = new HashMap<>();
+        for (NopCodeInheritance inh : allInh) {
+            superToSubs.computeIfAbsent(inh.getSuperTypeId(), k -> new ArrayList<>())
+                    .add(inh.getSubTypeId());
+        }
+
+        Set<String> resultIds = new LinkedHashSet<>();
+        int depth = maxDepth > 0 ? maxDepth : Integer.MAX_VALUE;
+
+        if (directOnly) {
+            List<String> directSubs = superToSubs.get(qualifiedName);
+            if (directSubs != null) {
+                resultIds.addAll(directSubs);
+            }
+        } else {
+            Queue<String[]> queue = new LinkedList<>();
+            queue.add(new String[]{qualifiedName, "0"});
+            Set<String> visited = new HashSet<>();
+            visited.add(qualifiedName);
+            while (!queue.isEmpty()) {
+                String[] current = queue.poll();
+                String superQn = current[0];
+                int d = Integer.parseInt(current[1]);
+                if (d >= depth) continue;
+                List<String> subs = superToSubs.get(superQn);
+                if (subs == null) continue;
+                for (String subId : subs) {
+                    if (visited.add(subId)) {
+                        resultIds.add(subId);
+                        queue.add(new String[]{subId, String.valueOf(d + 1)});
+                    }
+                }
+            }
+        }
+
+        if (resultIds.isEmpty()) return Collections.emptyList();
+
+        Map<String, CodeSymbol> symbolMap = new HashMap<>();
+        for (NopCodeSymbol sym : symbolDao.findAllByQuery(symQuery)) {
+            symbolMap.put(sym.getId(), entityToCodeSymbol(sym));
+        }
+
+        QueryBean allSymQuery = new QueryBean();
+        allSymQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        allSymQuery.addFilter(FilterBeans.in("id", new ArrayList<>(resultIds)));
+        return symbolDao.findAllByQuery(allSymQuery).stream()
+                .map(this::entityToCodeSymbol)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> findDependentFiles(String indexId, String filePath) {
+        if (daoProvider == null || filePath == null) return Collections.emptyList();
+
+        IEntityDao<NopCodeDependency> depDao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean depQuery = new QueryBean();
+        depQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeDependency> allDeps = depDao.findAllByQuery(depQuery);
+
+        Map<String, List<String>> targetToSources = new HashMap<>();
+        for (NopCodeDependency dep : allDeps) {
+            if (dep.getTargetFilePath() != null && dep.getSourceFilePath() != null) {
+                targetToSources.computeIfAbsent(dep.getTargetFilePath(), k -> new ArrayList<>())
+                        .add(dep.getSourceFilePath());
+            }
+        }
+
+        Set<String> result = new LinkedHashSet<>();
+        Set<String> visited = new HashSet<>();
+        Queue<String> queue = new LinkedList<>();
+        queue.add(filePath);
+        visited.add(filePath);
+
+        int hops = 0;
+        while (!queue.isEmpty() && hops < 2) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                String current = queue.poll();
+                List<String> sources = targetToSources.get(current);
+                if (sources == null) continue;
+                for (String source : sources) {
+                    if (visited.add(source)) {
+                        result.add(source);
+                        queue.add(source);
+                    }
+                }
+            }
+            hops++;
+        }
+
+        return new ArrayList<>(result);
+    }
+
     // ==================== Batch File Records ====================
 
     @Override
@@ -1984,7 +2722,7 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
 
         for (FileFingerprint fp : fingerprints) {
-            String fileId = indexId + "_" + Math.abs(fp.getFilePath().hashCode());
+            String fileId = generateFileId(indexId, fp.getFilePath());
 
             // Try to find existing
             QueryBean query = new QueryBean();
@@ -2038,5 +2776,9 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public void batchDeleteFileRecords(String indexId, List<String> filePaths) {
         deleteFileRecords(indexId, filePaths);
+    }
+
+    private String generateFileId(String indexId, String filePath) {
+        return DigestHelper.sha256Hex((indexId + ":" + filePath).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
     }
 }

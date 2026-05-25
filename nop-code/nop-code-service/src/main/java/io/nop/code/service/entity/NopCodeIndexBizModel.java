@@ -10,6 +10,8 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeIndexBiz;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.dao.entity.NopCodeIndex;
+import io.nop.code.flow.ChangeAnalysisResult;
+import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.*;
 import jakarta.inject.Inject;
@@ -173,6 +175,74 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("includeExternal") @Optional Boolean includeExternal) {
         return codeIndexService.getDepGraph(indexId,
                 includeExternal != null && includeExternal);
+    }
+
+    @BizQuery
+    public List<ExecutionFlow> detectFlows(@Name("indexId") String indexId) {
+        return codeIndexService.detectFlows(indexId);
+    }
+
+    @BizQuery
+    public List<ExecutionFlow> listFlows(@Name("indexId") String indexId) {
+        return codeIndexService.listFlows(indexId);
+    }
+
+    @BizQuery
+    public ExecutionFlow getFlow(
+            @Name("indexId") String indexId,
+            @Name("flowId") String flowId) {
+        return codeIndexService.getFlow(indexId, flowId);
+    }
+
+    @BizQuery
+    public List<ExecutionFlow> getAffectedFlows(
+            @Name("indexId") String indexId,
+            @Name("changedFilePaths") List<String> changedFilePaths) {
+        return codeIndexService.getAffectedFlows(indexId, changedFilePaths);
+    }
+
+    @BizQuery
+    public ChangeAnalysisResult analyzeChanges(
+            @Name("indexId") String indexId,
+            @Name("baselineCommitish") String baselineCommitish,
+            @Name("targetCommitish") String targetCommitish) {
+        return codeIndexService.analyzeChanges(indexId, baselineCommitish, targetCommitish);
+    }
+
+    @BizQuery
+    public CriticalNodeResultDTO getCriticalNodes(
+            @Name("indexId") String indexId,
+            @Name("topN") @Optional Integer topN) {
+        int limit = topN != null && topN > 0 ? topN : 20;
+        return codeIndexService.getCriticalNodes(indexId, limit);
+    }
+
+    @BizQuery
+    public KnowledgeGapResultDTO getKnowledgeGaps(@Name("indexId") String indexId) {
+        return codeIndexService.getKnowledgeGaps(indexId);
+    }
+
+    @BizQuery
+    public String exportGraph(
+            @Name("indexId") String indexId,
+            @Name("format") String format,
+            @Name("communityView") @Optional Boolean communityView) {
+        return codeIndexService.exportGraph(indexId, format,
+                communityView != null && communityView);
+    }
+
+    @BizQuery
+    public GraphDiffDTO diffGraph(
+            @Name("baselineIndexId") String baselineIndexId,
+            @Name("targetIndexId") String targetIndexId) {
+        return codeIndexService.diffGraph(baselineIndexId, targetIndexId);
+    }
+
+    @BizQuery
+    public List<String> findDependentFiles(
+            @Name("indexId") String indexId,
+            @Name("filePath") String filePath) {
+        return codeIndexService.findDependentFiles(indexId, filePath);
     }
 
     public static class IncrementalStatus {
