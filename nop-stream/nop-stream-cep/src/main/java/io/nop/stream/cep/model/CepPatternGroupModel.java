@@ -17,4 +17,8 @@ public class CepPatternGroupModel extends _CepPatternGroupModel implements ICepP
     public String getType() {
         return "group";
     }
+
+    @Override
+    public void setType(String type) {
+    }
 }

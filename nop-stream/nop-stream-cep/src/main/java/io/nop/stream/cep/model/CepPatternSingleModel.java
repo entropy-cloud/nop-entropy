@@ -17,4 +17,8 @@ public class CepPatternSingleModel extends _CepPatternSingleModel {
     public String getType() {
         return "single";
     }
+
+    @Override
+    public void setType(String type) {
+    }
 }

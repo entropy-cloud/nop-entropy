@@ -7,20 +7,20 @@
  */
 package io.nop.stream.cep.model.builder;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
+
 import io.nop.stream.cep.model.*;
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
+import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.WithinType;
-import io.nop.stream.cep.pattern.conditions.IterativeCondition;
-
-import java.util.HashSet;
-import java.util.Set;
-
 import static io.nop.stream.cep.NopCepErrors.*;
 
 public class CepPatternBuilder {
