@@ -7,7 +7,18 @@
  */
 package io.nop.stream.runtime.execution;
 
+import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.nop.api.core.annotations.core.Internal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
@@ -16,11 +27,12 @@ import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.execution.Task;
-import io.nop.stream.core.execution.TaskExecutor;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.SubtaskTask;
+import io.nop.stream.core.execution.TaskExecutor;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -31,19 +43,9 @@ import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
-import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetricsSnapshot;
+import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @Internal
 public class GraphModelCheckpointExecutor {
@@ -73,7 +75,7 @@ public class GraphModelCheckpointExecutor {
 
         restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, null);
 
-        Map<String, Task> tasks = buildTasks(execPlan);
+        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
 
         try {
@@ -132,7 +134,7 @@ public class GraphModelCheckpointExecutor {
 
         restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
 
-        Map<String, Task> tasks = buildTasks(execPlan);
+        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
 
         try {
@@ -188,7 +190,7 @@ public class GraphModelCheckpointExecutor {
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
-        Map<String, Task> tasks = buildTasks(execPlan);
+        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
 
         try {
@@ -239,7 +241,7 @@ public class GraphModelCheckpointExecutor {
             restoreFromSavepointPath(execPlan, storage, checkpointPlan, savepointPath);
         }
 
-        Map<String, Task> tasks = buildTasks(execPlan);
+        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
 
         try {
@@ -377,42 +379,44 @@ public class GraphModelCheckpointExecutor {
         List<StreamTaskInvokable> allInvokables = new ArrayList<>();
 
         for (String vertexId : execPlan.getSortedVertexIds()) {
-            StreamTaskInvokable invokable = execPlan.getInvokables().get(vertexId);
-            allInvokables.add(invokable);
-
-            TaskLocation taskLocation = findTaskLocationForVertex(checkpointPlan, vertexId);
-            coordinator.registerTask(taskLocation);
-
             JobVertex execVertex = execPlan.getExecutionVertices().get(vertexId);
-            List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
+            List<OperatorChain> chains = execVertex.getOperatorChains();
 
-            for (OperatorChain chain : execVertex.getOperatorChains()) {
-                List<StreamOperator<?>> operators = chain.getOperators();
+            for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
+                StreamTaskInvokable invokable = subtask.getInvokable();
+                allInvokables.add(invokable);
 
-                CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(
-                        taskLocation, operators, mappings,
-                        snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot)
-                );
+                TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
+                coordinator.registerTask(taskLocation);
 
-                invokable.setBarrierTracker(tracker);
+                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
 
-                for (StreamOperator<?> op : operators) {
-                    if (op instanceof CheckpointListener) {
-                        coordinator.addListener((CheckpointListener) op);
-                    }
-                    if (op instanceof AbstractUdfStreamOperator) {
-                        Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
-                        if (udf instanceof CheckpointListener && udf != op) {
-                            coordinator.addListener((CheckpointListener) udf);
+                for (OperatorChain chain : chains) {
+                    List<StreamOperator<?>> operators = chain.getOperators();
+
+                    CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(
+                            taskLocation, operators, mappings,
+                            snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot)
+                    );
+
+                    invokable.setBarrierTracker(tracker);
+
+                    for (StreamOperator<?> op : operators) {
+                        if (op instanceof CheckpointListener) {
+                            coordinator.addListener((CheckpointListener) op);
                         }
-                        // Register CheckpointParticipant instances with coordinator
-                        if (udf instanceof CheckpointParticipant && udf != op) {
-                            coordinator.addParticipant((CheckpointParticipant) udf);
+                        if (op instanceof AbstractUdfStreamOperator) {
+                            Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                            if (udf instanceof CheckpointListener && udf != op) {
+                                coordinator.addListener((CheckpointListener) udf);
+                            }
+                            if (udf instanceof CheckpointParticipant && udf != op) {
+                                coordinator.addParticipant((CheckpointParticipant) udf);
+                            }
                         }
-                    }
-                    // Also check if operator itself implements CheckpointParticipant
-                    if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
-                        coordinator.addParticipant((CheckpointParticipant) op);
+                        if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
+                            coordinator.addParticipant((CheckpointParticipant) op);
+                        }
                     }
                 }
             }
@@ -421,13 +425,13 @@ public class GraphModelCheckpointExecutor {
         return allInvokables;
     }
 
-    private static TaskLocation findTaskLocationForVertex(CheckpointPlan plan, String vertexId) {
+    private static TaskLocation findTaskLocationInPlan(CheckpointPlan plan, String vertexId, int taskIndex) {
         for (TaskLocation loc : plan.getAllTasks()) {
-            if (loc.getVertexId().equals(vertexId)) {
+            if (loc.getVertexId().equals(vertexId) && loc.getTaskIndex() == taskIndex) {
                 return loc;
             }
         }
-        throw new IllegalStateException("No TaskLocation found for vertex: " + vertexId);
+        throw new StreamException("No TaskLocation found for vertex " + vertexId + " subtask " + taskIndex);
     }
 
     private static ScheduledExecutorService startBarrierScheduler(
@@ -491,25 +495,28 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
-    private static Map<String, Task> buildTasks(GraphExecutionPlan execPlan) {
-        Map<String, Task> tasks = new LinkedHashMap<>();
+    private static Map<String, SubtaskTask> buildTasks(GraphExecutionPlan execPlan) {
+        Map<String, SubtaskTask> tasks = new LinkedHashMap<>();
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex vertex = execPlan.getExecutionVertices().get(vertexId);
-            tasks.put(vertexId, new Task(vertex, 0));
+            for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
+                String taskKey = vertexId + "-" + subtask.getTaskIndex();
+                tasks.put(taskKey, new SubtaskTask(subtask, vertex));
+            }
         }
         return tasks;
     }
 
-    private static void submitAndRun(GraphExecutionPlan execPlan, Map<String, Task> tasks, TaskExecutor executor) throws InterruptedException {
-        for (String vertexId : execPlan.getSortedVertexIds()) {
-            executor.submitTask(tasks.get(vertexId));
+    private static void submitAndRun(GraphExecutionPlan execPlan, Map<String, SubtaskTask> tasks, TaskExecutor executor) throws InterruptedException {
+        for (SubtaskTask task : tasks.values()) {
+            executor.submitTask(task);
         }
         executor.awaitCompletion();
     }
 
-    private static void checkTaskFailures(Map<String, Task> tasks) {
-        for (Task task : tasks.values()) {
-            if (task.getState() == Task.State.FAILED) {
+    private static void checkTaskFailures(Map<String, SubtaskTask> tasks) {
+        for (SubtaskTask task : tasks.values()) {
+            if (task.getState() == SubtaskTask.State.FAILED) {
                 throw new RuntimeException("Task failed", task.getError());
             }
         }
@@ -567,22 +574,25 @@ public class GraphModelCheckpointExecutor {
             validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
 
             for (String vertexId : execPlan.getSortedVertexIds()) {
-                StreamTaskInvokable invokable = execPlan.getInvokables().get(vertexId);
-                if (invokable == null) continue;
+                for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
+                    StreamTaskInvokable invokable = subtask.getInvokable();
+                    if (invokable == null) continue;
 
-                TaskLocation taskLocation = findTaskLocationForVertex(checkpointPlan, vertexId);
-                TaskStateSnapshot taskState = epochManifest.getTaskSnapshots().get(taskLocation);
+                    TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
+                    TaskStateSnapshot taskState = epochManifest.getTaskSnapshots().get(taskLocation);
 
-                if (taskState == null) {
-                    throw new StreamException(
-                            "No exact task state found for vertex " + vertexId +
-                                    " (taskLocation=" + taskLocation + ") in EpochManifest epoch " +
-                                    epochManifest.getEpochId() + ". Available keys: " +
-                                    epochManifest.getTaskSnapshots().keySet());
+                    if (taskState == null) {
+                        throw new StreamException(
+                                "No exact task state found for vertex " + vertexId +
+                                        " subtask " + subtask.getTaskIndex() +
+                                        " (taskLocation=" + taskLocation + ") in EpochManifest epoch " +
+                                        epochManifest.getEpochId() + ". Available keys: " +
+                                        epochManifest.getTaskSnapshots().keySet());
+                    }
+
+                    List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
+                    restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
                 }
-
-                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
-                restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
             }
             return;
         }
@@ -598,22 +608,25 @@ public class GraphModelCheckpointExecutor {
                 latestCheckpoint.getCheckpointId(), latestCheckpoint.getJobId());
 
         for (String vertexId : execPlan.getSortedVertexIds()) {
-            StreamTaskInvokable invokable = execPlan.getInvokables().get(vertexId);
-            if (invokable == null) continue;
+            for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
+                StreamTaskInvokable invokable = subtask.getInvokable();
+                if (invokable == null) continue;
 
-            TaskLocation taskLocation = findTaskLocationForVertex(checkpointPlan, vertexId);
-            TaskStateSnapshot taskState = latestCheckpoint.getTaskState(taskLocation);
+                TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
+                TaskStateSnapshot taskState = latestCheckpoint.getTaskState(taskLocation);
 
-            if (taskState == null) {
-                throw new StreamException(
-                        "No exact task state found for vertex " + vertexId +
-                                " (taskLocation=" + taskLocation + ") in checkpoint " +
-                                latestCheckpoint.getCheckpointId() + ". Available keys: " +
-                                latestCheckpoint.getTaskStates().keySet());
+                if (taskState == null) {
+                    throw new StreamException(
+                            "No exact task state found for vertex " + vertexId +
+                                    " subtask " + subtask.getTaskIndex() +
+                                    " (taskLocation=" + taskLocation + ") in checkpoint " +
+                                    latestCheckpoint.getCheckpointId() + ". Available keys: " +
+                                    latestCheckpoint.getTaskStates().keySet());
+                }
+
+                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
+                restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
             }
-
-            List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
-            restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
         }
     }
 
@@ -684,22 +697,25 @@ public class GraphModelCheckpointExecutor {
                 savepointCheckpoint.getCheckpointId(), savepointCheckpoint.getJobId());
 
         for (String vertexId : execPlan.getSortedVertexIds()) {
-            StreamTaskInvokable invokable = execPlan.getInvokables().get(vertexId);
-            if (invokable == null) continue;
+            for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
+                StreamTaskInvokable invokable = subtask.getInvokable();
+                if (invokable == null) continue;
 
-            TaskLocation taskLocation = findTaskLocationForVertex(checkpointPlan, vertexId);
-            TaskStateSnapshot taskState = savepointCheckpoint.getTaskState(taskLocation);
+                TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
+                TaskStateSnapshot taskState = savepointCheckpoint.getTaskState(taskLocation);
 
-            if (taskState == null) {
-                throw new StreamException(
-                        "No exact task state found for vertex " + vertexId +
-                                " (taskLocation=" + taskLocation + ") in savepoint " +
-                                savepointCheckpoint.getCheckpointId() + ". Available keys: " +
-                                savepointCheckpoint.getTaskStates().keySet());
+                if (taskState == null) {
+                    throw new StreamException(
+                            "No exact task state found for vertex " + vertexId +
+                                    " subtask " + subtask.getTaskIndex() +
+                                    " (taskLocation=" + taskLocation + ") in savepoint " +
+                                    savepointCheckpoint.getCheckpointId() + ". Available keys: " +
+                                    savepointCheckpoint.getTaskStates().keySet());
+                }
+
+                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
+                restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
             }
-
-            List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
-            restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
         }
     }
 
