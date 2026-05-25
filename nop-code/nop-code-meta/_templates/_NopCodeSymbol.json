@@ -44,6 +44,8 @@
   "members": null,
   "usages": null,
   "annotations": null,
+  "entryFlows": null,
+  "flowMemberships": null,
   "enclosingUsages": null,
   "callees": null,
   "callers": null,

@@ -199,6 +199,18 @@
                 <item bizObjName="NopCodeAnnotationUsage"/>
             </schema>
         </prop>
+        <prop name="entryFlows" displayName="入口执行流" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="entryPointId" ext:joinRightDisplayProp="name" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeFlow"/>
+            </schema>
+        </prop>
+        <prop name="flowMemberships" displayName="流成员" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="symbolId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeFlowMembership"/>
+            </schema>
+        </prop>
         <prop name="enclosingUsages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="enclosingSymbolId" lazy="true" published="false">
             <schema>

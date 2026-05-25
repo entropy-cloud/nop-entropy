@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="执行流成员" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.code.dao.entity.NopCodeFlowMembership</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="flowId" displayName="流ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="flow">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="symbolId" displayName="符号ID" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="symbol">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="depth" displayName="深度" propId="4" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="isEntry" displayName="是否入口" propId="5" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="createdTime" displayName="创建时间" propId="6" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="flow" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="flowId"
+              ext:joinRightProp="id" ext:joinRightDisplayProp="name" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeFlow"/>
+        </prop>
+        <prop name="flow.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="symbol" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="symbolId"
+              ext:joinRightProp="id" ext:joinRightDisplayProp="name" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeSymbol"/>
+        </prop>
+        <prop name="symbol.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

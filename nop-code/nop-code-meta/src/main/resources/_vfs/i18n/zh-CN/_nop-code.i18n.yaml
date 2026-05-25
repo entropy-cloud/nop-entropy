@@ -4,6 +4,8 @@ entity:
     NopCodeCall: 方法调用
     NopCodeDependency: 文件依赖
     NopCodeFile: 代码文件
+    NopCodeFlow: 执行流
+    NopCodeFlowMembership: 执行流成员
     NopCodeIndex: 代码索引
     NopCodeInheritance: 继承关系
     NopCodeSymbol: 符号
@@ -66,12 +68,48 @@ prop:
       sourceCode: 源代码
       symbols: 符号列表
       usages: 引用
+    NopCodeFlow:
+      createdBy: 创建人
+      createdTime: 创建时间
+      depth: 最大追踪深度
+      depthScore: 深度复杂度评分
+      entryPoint: null
+      entryPoint.name: null
+      entryPointId: 入口符号ID
+      entryPointQualifiedName: 入口全限定名
+      externalScore: 外部调用评分
+      fileSpread: 文件扩散评分
+      id: 流ID
+      index: null
+      indexId: 索引ID
+      memberships: 成员
+      modifiedBy: 修改人
+      modifiedTime: 修改时间
+      name: 流名称
+      overallScore: 综合关键度评分
+      securityScore: 安全敏感评分
+      status: 状态
+      status_label: 状态
+      symbolCount: 符号总数
+      testGap: 测试覆盖缺口评分
+    NopCodeFlowMembership:
+      createdTime: 创建时间
+      depth: 深度
+      flow: null
+      flow.name: null
+      flowId: 流ID
+      id: ID
+      isEntry: 是否入口
+      symbol: null
+      symbol.name: null
+      symbolId: 符号ID
     NopCodeIndex:
       annotationUsages: 注解使用
       calls: 调用
       dependencies: 依赖列表
       fileCount: 文件数量
       files: 文件列表
+      flows: 执行流
       id: 索引ID
       indexVersion: 索引版本
       inheritances: 继承
@@ -113,12 +151,14 @@ prop:
       enclosingUsages: 引用
       endColumn: 结束列
       endLine: 结束行
+      entryFlows: 入口执行流
       extData: 扩展数据
       extDataComponent: null
       fieldType: 字段类型
       file: null
       file.filePath: null
       fileId: 文件ID
+      flowMemberships: 流成员
       id: 符号ID
       index: null
       indexId: 索引ID

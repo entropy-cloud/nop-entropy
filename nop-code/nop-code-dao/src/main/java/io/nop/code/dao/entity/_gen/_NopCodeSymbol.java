@@ -176,6 +176,12 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     /* relation: 注解使用 */
     public static final String PROP_NAME_annotations = "annotations";
     
+    /* relation: 入口执行流 */
+    public static final String PROP_NAME_entryFlows = "entryFlows";
+    
+    /* relation: 流成员 */
+    public static final String PROP_NAME_flowMemberships = "flowMemberships";
+    
     /* relation: 引用 */
     public static final String PROP_NAME_enclosingUsages = "enclosingUsages";
     
@@ -1878,6 +1884,26 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeAnnotationUsage> getAnnotations(){
        return _annotations;
+    }
+       
+    private final OrmEntitySet<io.nop.code.dao.entity.NopCodeFlow> _entryFlows = new OrmEntitySet<>(this, PROP_NAME_entryFlows,
+        io.nop.code.dao.entity.NopCodeFlow.PROP_NAME_entryPoint, null,io.nop.code.dao.entity.NopCodeFlow.class);
+
+    /**
+     * 入口执行流。 refPropName: entryPoint, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeFlow> getEntryFlows(){
+       return _entryFlows;
+    }
+       
+    private final OrmEntitySet<io.nop.code.dao.entity.NopCodeFlowMembership> _flowMemberships = new OrmEntitySet<>(this, PROP_NAME_flowMemberships,
+        io.nop.code.dao.entity.NopCodeFlowMembership.PROP_NAME_symbol, null,io.nop.code.dao.entity.NopCodeFlowMembership.class);
+
+    /**
+     * 流成员。 refPropName: symbol, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeFlowMembership> getFlowMemberships(){
+       return _flowMemberships;
     }
        
     private final OrmEntitySet<io.nop.code.dao.entity.NopCodeUsage> _enclosingUsages = new OrmEntitySet<>(this, PROP_NAME_enclosingUsages,

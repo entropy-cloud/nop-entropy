@@ -72,6 +72,12 @@
                 <item bizObjName="NopCodeDependency"/>
             </schema>
         </prop>
+        <prop name="flows" displayName="执行流" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" ext:joinRightDisplayProp="name" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeFlow"/>
+            </schema>
+        </prop>
         <prop name="usages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="indexId" lazy="true" published="false">
             <schema>

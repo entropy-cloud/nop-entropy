@@ -126,6 +126,12 @@
                         <on leftProp="id" rightProp="indexId"/>
                     </join>
                 </to-many>
+                <to-many displayName="执行流" name="flows" refEntityName="io.nop.code.dao.entity.NopCodeFlow"
+                         refPropName="index">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
             </relations>
         </entity>
 
@@ -312,6 +318,18 @@
                          refPropName="annotatedSymbol">
                     <join>
                         <on leftProp="id" rightProp="annotatedSymbolId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="入口执行流" name="entryFlows" refEntityName="io.nop.code.dao.entity.NopCodeFlow"
+                         refPropName="entryPoint">
+                    <join>
+                        <on leftProp="id" rightProp="entryPointId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="流成员" name="flowMemberships" refEntityName="io.nop.code.dao.entity.NopCodeFlowMembership"
+                         refPropName="symbol">
+                    <join>
+                        <on leftProp="id" rightProp="symbolId"/>
                     </join>
                 </to-many>
             </relations>
@@ -603,6 +621,126 @@
                 <index name="idx_dep_target">
                     <column name="indexId"/>
                     <column name="targetFilePath"/>
+                </index>
+            </indexes>
+        </entity>
+        <!-- ========================================
+             执行流追踪
+             ======================================== -->
+
+        <!-- 执行流 -->
+        <entity className="io.nop.code.dao.entity.NopCodeFlow" displayName="执行流"
+                name="io.nop.code.dao.entity.NopCodeFlow" registerShortName="true"
+                tableName="nop_code_flow">
+            <columns>
+                <column code="ID" displayName="流ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR"/>
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="NAME" displayName="流名称" domain="symbolName" name="name"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"/>
+                <column code="ENTRY_POINT_ID" displayName="入口符号ID" domain="codeId" name="entryPointId"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="ENTRY_POINT_QUALIFIED_NAME" displayName="入口全限定名" domain="qualifiedName" name="entryPointQualifiedName"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="DEPTH" displayName="最大追踪深度" name="depth"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="SYMBOL_COUNT" displayName="符号总数" name="symbolCount"
+                        propId="7" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="FILE_SPREAD" displayName="文件扩散评分" name="fileSpread"
+                        propId="8" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="EXTERNAL_SCORE" displayName="外部调用评分" name="externalScore"
+                        propId="9" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="SECURITY_SCORE" displayName="安全敏感评分" name="securityScore"
+                        propId="10" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="TEST_GAP" displayName="测试覆盖缺口评分" name="testGap"
+                        propId="11" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="DEPTH_SCORE" displayName="深度复杂度评分" name="depthScore"
+                        propId="12" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="OVERALL_SCORE" displayName="综合关键度评分" name="overallScore"
+                        propId="13" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="STATUS" displayName="状态" name="status" precision="20"
+                        propId="14" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/index_status"/>
+                <column code="CREATED_TIME" displayName="创建时间" name="createdTime"
+                        propId="15" stdDataType="timestamp" stdSqlType="DATETIME"/>
+                <column code="MODIFIED_TIME" displayName="修改时间" name="modifiedTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="DATETIME"/>
+                <column code="CREATED_BY" displayName="创建人" name="createdBy"
+                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="MODIFIED_BY" displayName="修改人" name="modifiedBy"
+                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <comment>执行流追踪，记录从入口点出发的调用链路及关键度评分</comment>
+            <relations>
+                <to-one name="index" refDisplayName="执行流" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="flows" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="entryPoint" refDisplayName="执行流" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="entryFlows" tagSet="pub">
+                    <join>
+                        <on leftProp="entryPointId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-many displayName="成员" name="memberships" refEntityName="io.nop.code.dao.entity.NopCodeFlowMembership"
+                         refPropName="flow">
+                    <join>
+                        <on leftProp="id" rightProp="flowId"/>
+                    </join>
+                </to-many>
+            </relations>
+            <indexes>
+                <index name="idx_flow_entry_point">
+                    <column name="entryPointId"/>
+                </index>
+                <index name="idx_flow_status">
+                    <column name="indexId"/>
+                    <column name="status"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- 执行流-符号成员 -->
+        <entity className="io.nop.code.dao.entity.NopCodeFlowMembership" displayName="执行流成员"
+                name="io.nop.code.dao.entity.NopCodeFlowMembership" registerShortName="true"
+                tableName="nop_code_flow_membership">
+            <columns>
+                <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR"/>
+                <column code="FLOW_ID" displayName="流ID" domain="codeId" mandatory="true" name="flowId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="SYMBOL_ID" displayName="符号ID" domain="codeId" mandatory="true" name="symbolId"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="DEPTH" displayName="深度" name="depth"
+                        propId="4" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="IS_ENTRY" displayName="是否入口" name="isEntry"
+                        propId="5" stdDataType="boolean" stdSqlType="TINYINT"/>
+                <column code="CREATED_TIME" displayName="创建时间" name="createdTime"
+                        propId="6" stdDataType="timestamp" stdSqlType="DATETIME"/>
+            </columns>
+            <comment>执行流与符号的多对多关系，记录符号在流中的深度和入口标记</comment>
+            <relations>
+                <to-one name="flow" refDisplayName="成员" refEntityName="io.nop.code.dao.entity.NopCodeFlow"
+                        refPropName="memberships" tagSet="pub">
+                    <join>
+                        <on leftProp="flowId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="symbol" refDisplayName="流成员" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="flowMemberships" tagSet="pub">
+                    <join>
+                        <on leftProp="symbolId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="idx_flow_membership_flow">
+                    <column name="flowId"/>
+                </index>
+                <index name="idx_flow_membership_symbol">
+                    <column name="symbolId"/>
                 </index>
             </indexes>
         </entity>

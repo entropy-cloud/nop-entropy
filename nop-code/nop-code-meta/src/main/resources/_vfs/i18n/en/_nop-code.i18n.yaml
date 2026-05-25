@@ -4,6 +4,8 @@ entity:
     NopCodeCall: null
     NopCodeDependency: null
     NopCodeFile: null
+    NopCodeFlow: null
+    NopCodeFlowMembership: null
     NopCodeIndex: null
     NopCodeInheritance: null
     NopCodeSymbol: null
@@ -66,6 +68,41 @@ prop:
       usages: null
       calls: null
       importsComponent: null
+    NopCodeFlow:
+      id: null
+      indexId: null
+      name: null
+      entryPointId: null
+      entryPointQualifiedName: null
+      depth: null
+      symbolCount: null
+      fileSpread: null
+      externalScore: null
+      securityScore: null
+      testGap: null
+      depthScore: null
+      overallScore: null
+      status: null
+      status_label: null
+      createdTime: null
+      modifiedTime: null
+      createdBy: null
+      modifiedBy: null
+      index: null
+      entryPoint: null
+      entryPoint.name: null
+      memberships: null
+    NopCodeFlowMembership:
+      id: null
+      flowId: null
+      symbolId: null
+      depth: null
+      isEntry: null
+      createdTime: null
+      flow: null
+      flow.name: null
+      symbol: null
+      symbol.name: null
     NopCodeIndex:
       id: null
       name: null
@@ -80,6 +117,7 @@ prop:
       files: null
       symbols: null
       dependencies: null
+      flows: null
       usages: null
       calls: null
       inheritances: null
@@ -141,6 +179,8 @@ prop:
       members: null
       usages: null
       annotations: null
+      entryFlows: null
+      flowMemberships: null
       enclosingUsages: null
       callees: null
       callers: null
