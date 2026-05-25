@@ -1,6 +1,7 @@
 package io.nop.stream.runtime.execution;
 
 import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -18,7 +19,7 @@ class TestE2EStorageTypeRouting {
         CheckpointConfig config = new CheckpointConfig();
         config.setStorageType("jdbc");
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> GraphModelCheckpointExecutor.createStorage(config));
         assertTrue(ex.getMessage().toLowerCase().contains("jdbc"),
                 "Exception message should mention 'jdbc', got: " + ex.getMessage());
@@ -29,7 +30,7 @@ class TestE2EStorageTypeRouting {
         CheckpointConfig config = new CheckpointConfig();
         config.setStorageType("JDBC");
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(StreamException.class,
                 () -> GraphModelCheckpointExecutor.createStorage(config));
     }
 

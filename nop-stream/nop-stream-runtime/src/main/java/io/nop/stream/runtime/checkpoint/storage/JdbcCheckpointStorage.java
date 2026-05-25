@@ -393,6 +393,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 try {
                     taskLocation = stringToTaskLocation(entry.getKey());
                 } catch (Exception e) {
+                    LOG.warn("Failed to parse TaskLocation from key '{}', using fallback", entry.getKey(), e);
                     taskLocation = new TaskLocation(jobId, pipelineId, entry.getKey(), 0);
                 }
                 Map<String, Object> stateMap = (Map<String, Object>) entry.getValue();
@@ -643,6 +644,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 try {
                     taskLocation = stringToTaskLocation(entry.getKey());
                 } catch (Exception e) {
+                    LOG.warn("Failed to parse TaskLocation from key '{}' in epoch manifest, using fallback", entry.getKey(), e);
                     taskLocation = new TaskLocation(jobId, pipelineId, entry.getKey(), 0);
                 }
                 Map<String, Object> stateMap = (Map<String, Object>) entry.getValue();

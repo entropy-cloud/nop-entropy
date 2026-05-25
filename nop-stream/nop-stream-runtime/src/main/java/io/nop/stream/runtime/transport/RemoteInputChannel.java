@@ -211,7 +211,10 @@ public class RemoteInputChannel extends InputChannel {
             // Decode the element
             try {
                 StreamElement element = StreamElementCodec.decode(envelope);
-                queue.put(element);
+                // re-check finished flag after decode to avoid race with close()
+                if (!finished) {
+                    queue.put(element);
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 LOG.warn("Interrupted while enqueueing decoded element", e);

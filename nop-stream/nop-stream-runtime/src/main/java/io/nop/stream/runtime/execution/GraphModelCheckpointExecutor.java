@@ -517,7 +517,7 @@ public class GraphModelCheckpointExecutor {
     private static void checkTaskFailures(Map<String, SubtaskTask> tasks) {
         for (SubtaskTask task : tasks.values()) {
             if (task.getState() == SubtaskTask.State.FAILED) {
-                throw new RuntimeException("Task failed", task.getError());
+                throw new StreamException("Task failed", task.getError());
             }
         }
     }
@@ -547,7 +547,7 @@ public class GraphModelCheckpointExecutor {
     static ICheckpointStorage createStorage(CheckpointConfig config) {
         String storageType = config.getStorageType();
         if ("jdbc".equalsIgnoreCase(storageType)) {
-            throw new IllegalStateException(
+            throw new StreamException(
                     "JdbcCheckpointStorage requires IJdbcTemplate configuration. " +
                     "Use storageType='local' or provide JDBC configuration.");
         }

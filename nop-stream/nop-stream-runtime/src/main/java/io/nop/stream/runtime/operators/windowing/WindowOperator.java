@@ -22,15 +22,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.micrometer.core.instrument.Counter;
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.commons.tuple.Tuple2;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.api.core.util.Guard.checkArgument;
+import static io.nop.api.core.util.Guard.notNull;
+
+import io.nop.commons.tuple.Tuple2;
 
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
@@ -141,8 +142,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
-    protected transient Counter numLateRecordsDropped;
-
     // ------------------------------------------------------------------------
     // State that is not checkpointed
     // ------------------------------------------------------------------------
@@ -181,7 +180,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      * Per-trigger SimpleAccumulator state, keyed by composite key (key + window + descriptor name).
      * Used by triggers like CountTrigger that need to maintain state via getSimpleAccumulator().
      */
-    private transient Map<String, SimpleAccumulator<?>> triggerAccumulators;
+    protected Map<String, SimpleAccumulator<?>> triggerAccumulators;
 
     public WindowOperator(
             WindowAssigner<? super IN, W> windowAssigner,
@@ -214,24 +213,25 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         checkArgument(allowedLateness >= 0);
 
-        this.windowAssigner = checkNotNull(windowAssigner);
-        this.windowSerializer = checkNotNull(windowSerializer);
-        this.keySelector = checkNotNull(keySelector);
-        this.keySerializer = checkNotNull(keySerializer);
-        this.keyClass = checkNotNull(keyClass);
-        this.trigger = checkNotNull(trigger);
+        this.windowAssigner = notNull(windowAssigner, "windowAssigner");
+        this.windowSerializer = notNull(windowSerializer, "windowSerializer");
+        this.keySelector = notNull(keySelector, "keySelector");
+        this.keySerializer = notNull(keySerializer, "keySerializer");
+        this.keyClass = notNull(keyClass, "keyClass");
+        this.trigger = notNull(trigger, "trigger");
         this.allowedLateness = allowedLateness;
         this.lateDataOutputTag = lateDataOutputTag;
-        this.accClass = checkNotNull(accClass);
+        this.accClass = notNull(accClass, "accClass");
     }
 
     @Override
     public void open() throws Exception {
         super.open();
 
-        this.numLateRecordsDropped = null; // metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
         timestampedCollector = new TimestampedCollector<>(output);
-        this.triggerAccumulators = new HashMap<>();
+        if (this.triggerAccumulators == null) {
+            this.triggerAccumulators = new HashMap<>();
+        }
 
         if (this.stateBackend == null) {
             this.stateBackend = new MemoryStateBackend();
@@ -300,17 +300,23 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @Override
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
-        // The keyed state backend (MemoryKeyedStateBackend) already snapshots all keyed state
-        // including windowContentsState and mergingSetsState via its own snapshotState().
-        // No need for manual serialization here.
-        return super.snapshotState(context);
+        OperatorSnapshotResult result = super.snapshotState(context);
+        if (triggerAccumulators != null) {
+            result.putOperatorState("trigger-accumulators", new HashMap<>(triggerAccumulators));
+        }
+        return result;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void restoreState(io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotResult) throws Exception {
-        // The keyed state backend handles restoring all keyed state including
-        // windowContentsState. No manual deserialization needed.
         super.restoreState(snapshotResult);
+        if (snapshotResult != null) {
+            Object restored = snapshotResult.getOperatorState("trigger-accumulators");
+            if (restored instanceof Map) {
+                this.triggerAccumulators = (Map<String, SimpleAccumulator<?>>) restored;
+            }
+        }
     }
 
     @Override
@@ -996,7 +1002,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     triggerAccumulators.put(stateKey, acc);
                     return acc;
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to create trigger state accumulator", e);
+                    throw new StreamException("Failed to create trigger state accumulator", e);
                 }
             }
             throw new UnsupportedOperationException(
@@ -1069,17 +1075,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     // Getters for testing
     // ------------------------------------------------------------------------
 
-    @VisibleForTesting
-    public Trigger<? super IN, ? super W> getTrigger() {
-        return trigger;
-    }
-
-    @VisibleForTesting
     public KeySelector<IN, K> getKeySelector() {
         return keySelector;
     }
 
-    @VisibleForTesting
     public WindowAssigner<? super IN, W> getWindowAssigner() {
         return windowAssigner;
     }
