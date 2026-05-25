@@ -7,20 +7,21 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
-import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.checkpoint.*;
-import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
-import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
-import io.nop.stream.core.common.state.CheckpointListener;
-import io.nop.stream.core.model.StreamModelFingerprint;
-import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.nop.api.core.annotations.core.Internal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
+import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.model.StreamModelFingerprint;
+import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetrics;
 
 @Internal
 public class CheckpointCoordinator {
@@ -47,7 +48,7 @@ public class CheckpointCoordinator {
     private final CheckpointMetrics metrics = new CheckpointMetrics();
 
     private static final int DEFAULT_COMMIT_RETRIES = 3;
-    private final TreeMap<Long, Set<Integer>> failedCommitParticipants = new TreeMap<>();
+    private final ConcurrentSkipListMap<Long, Set<Integer>> failedCommitParticipants = new ConcurrentSkipListMap<>();
 
     public CheckpointCoordinator(
             String jobId,
@@ -381,7 +382,7 @@ public class CheckpointCoordinator {
                     } else {
                         LOG.error("finishCommit({}) failed for participant {} on checkpoint {} after {} retries",
                                 success, i, checkpointId, DEFAULT_COMMIT_RETRIES, e);
-                        failedCommitParticipants.computeIfAbsent(checkpointId, k -> new TreeSet<>()).add(i);
+                        failedCommitParticipants.computeIfAbsent(checkpointId, k -> ConcurrentHashMap.newKeySet()).add(i);
                     }
                 }
             }
@@ -396,7 +397,7 @@ public class CheckpointCoordinator {
             Map.Entry<Long, Set<Integer>> entry = it.next();
             long failedEpoch = entry.getKey();
             Set<Integer> failedIdx = entry.getValue();
-            Set<Integer> stillFailing = new TreeSet<>();
+            Set<Integer> stillFailing = ConcurrentHashMap.newKeySet();
 
             for (Integer idx : failedIdx) {
                 if (idx < participants.size()) {

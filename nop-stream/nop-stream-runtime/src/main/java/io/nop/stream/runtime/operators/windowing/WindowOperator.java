@@ -18,26 +18,33 @@
 
 package io.nop.stream.runtime.operators.windowing;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.micrometer.core.instrument.Counter;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.tuple.Tuple2;
-import io.nop.stream.core.common.accumulators.SimpleAccumulator;
-import io.nop.stream.core.common.functions.KeySelector;
-import io.nop.stream.core.common.state.KeyedStateStore;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static io.nop.api.core.util.Guard.checkArgument;
+
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.common.accumulators.SimpleAccumulator;
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.state.backend.IInternalStateBackend;
+import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.InternalListState;
+import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
-import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
-import io.nop.stream.core.common.state.backend.IInternalStateBackend;
-import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimer;
@@ -53,15 +60,8 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.Window;
-import io.nop.stream.runtime.operators.WindowOperatorTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static io.nop.api.core.util.Guard.checkArgument;
+import io.nop.stream.runtime.operators.WindowOperatorTimerService;
 
 /**
  * An operator that implements the logic for windowing based on a {@link WindowAssigner} and {@link
@@ -137,6 +137,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      */
     protected final OutputTag<IN> lateDataOutputTag;
 
+    protected final Class<?> accClass;
+
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
     protected transient Counter numLateRecordsDropped;
@@ -181,9 +183,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      */
     private transient Map<String, SimpleAccumulator<?>> triggerAccumulators;
 
-    /**
-     * Creates a new {@code WindowOperator} based on the given policies and user functions.
-     */
     public WindowOperator(
             WindowAssigner<? super IN, W> windowAssigner,
             TypeSerializer<W> windowSerializer,
@@ -194,6 +193,22 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             Trigger<? super IN, ? super W> trigger,
             long allowedLateness,
             OutputTag<IN> lateDataOutputTag) {
+        this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
+                windowFunction, trigger, allowedLateness, lateDataOutputTag,
+                (Class<ACC>) (Class<?>) Object.class);
+    }
+
+    public WindowOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            TypeSerializer<W> windowSerializer,
+            KeySelector<IN, K> keySelector,
+            TypeSerializer<K> keySerializer,
+            Class<K> keyClass,
+            InternalWindowFunction<ACC, OUT, K, W> windowFunction,
+            Trigger<? super IN, ? super W> trigger,
+            long allowedLateness,
+            OutputTag<IN> lateDataOutputTag,
+            Class<ACC> accClass) {
 
         super(windowFunction);
 
@@ -207,6 +222,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.trigger = checkNotNull(trigger);
         this.allowedLateness = allowedLateness;
         this.lateDataOutputTag = lateDataOutputTag;
+        this.accClass = checkNotNull(accClass);
     }
 
     @Override
@@ -223,7 +239,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
 
         @SuppressWarnings("unchecked")
-        Class<ACC> accType = (Class<ACC>) (Class<?>) Object.class;
+        Class<ACC> accType = (Class<ACC>) accClass;
         MapStateDescriptor<String, ACC> windowContentsDescriptor =
                 new MapStateDescriptor<>("window-contents", String.class, accType);
         windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
