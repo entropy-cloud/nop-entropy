@@ -7,19 +7,20 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.List;
+import java.util.Map;
+
 import io.nop.api.core.annotations.core.Internal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 @Internal
 public class CheckpointBarrierTracker {
@@ -85,7 +86,7 @@ public class CheckpointBarrierTracker {
         return true;
     }
 
-    public void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
+    public synchronized void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
         TaskStateSnapshot snap = this.currentSnapshot;
         if (snapshot != null && snap != null) {
             String opStateKey = getOperatorStateKey(operatorIndex);

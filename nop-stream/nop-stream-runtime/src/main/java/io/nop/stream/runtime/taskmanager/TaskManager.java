@@ -7,8 +7,18 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import java.util.Collections;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.message.IMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.execution.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
@@ -19,15 +29,6 @@ import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.transport.RemoteInputChannel;
 import io.nop.stream.runtime.transport.RemoteResultPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * TaskManager is the distributed runtime component on each worker node.
@@ -139,7 +140,15 @@ public class TaskManager implements IStreamTaskRpcService {
         heartbeatExecutor.shutdownNow();
         taskExecutor.shutdownNow();
 
-        // Cancel all running tasks
+        try {
+            if (!taskExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("TaskExecutor did not terminate within 5 seconds for node {}", nodeId);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.warn("Interrupted while waiting for TaskExecutor termination for node {}", nodeId);
+        }
+
         for (Map.Entry<String, RunningTask> entry : runningTasks.entrySet()) {
             entry.getValue().cancel();
         }
@@ -378,6 +387,7 @@ public class TaskManager implements IStreamTaskRpcService {
         private final String fencingToken;
         private final String attemptId;
         private final TaskLocation taskLocation;
+        private final CountDownLatch invokableLatch;
 
         private volatile StreamTaskInvokable invokable;
         private volatile Future<?> future;
@@ -392,6 +402,7 @@ public class TaskManager implements IStreamTaskRpcService {
             this.fencingToken = fencingToken;
             this.attemptId = attemptId;
             this.taskLocation = new TaskLocation(jobId, "pipeline-0", vertexId, subtaskIndex);
+            this.invokableLatch = new CountDownLatch(1);
         }
 
         @Override
@@ -430,19 +441,16 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         private StreamTaskInvokable waitForInvokable() throws InterruptedException {
-            long deadline = System.currentTimeMillis() + 30_000;
-            while (invokable == null && !canceled) {
-                if (System.currentTimeMillis() > deadline) {
-                    LOG.warn("Timed out waiting for invokable for {}/{}/{}", jobId, vertexId, subtaskIndex);
-                    return null;
-                }
-                Thread.sleep(100);
+            if (!invokableLatch.await(30, TimeUnit.SECONDS)) {
+                LOG.warn("Timed out waiting for invokable for {}/{}/{}", jobId, vertexId, subtaskIndex);
+                return null;
             }
             return invokable;
         }
 
         public void setInvokable(StreamTaskInvokable invokable) {
             this.invokable = invokable;
+            invokableLatch.countDown();
         }
 
         public void setFuture(Future<?> future) {
@@ -451,6 +459,7 @@ public class TaskManager implements IStreamTaskRpcService {
 
         public void cancel() {
             canceled = true;
+            invokableLatch.countDown();
             if (future != null) {
                 future.cancel(true);
             }

@@ -7,20 +7,21 @@
  */
 package io.nop.stream.runtime.transport;
 
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.streamrecord.StreamElement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Consumer-side channel that receives data from a {@link RemoteResultPartition}
@@ -171,6 +172,10 @@ public class RemoteInputChannel extends InputChannel {
 
         @Override
         public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
+            if (finished) {
+                return null;
+            }
+
             if (!(message instanceof StreamMessageEnvelope)) {
                 LOG.warn("Ignoring non-envelope message on topic={}: {}", topic, message);
                 return null;

@@ -7,11 +7,12 @@
  */
 package io.nop.stream.core.checkpoint;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class TaskStateSnapshot implements Serializable {
@@ -26,29 +27,29 @@ public class TaskStateSnapshot implements Serializable {
     public TaskStateSnapshot(TaskLocation taskLocation) {
         this.taskLocation = taskLocation;
         this.checkpointId = -1;
-        this.operatorStates = new HashMap<>();
-        this.keyedStates = new HashMap<>();
+        this.operatorStates = new ConcurrentHashMap<>();
+        this.keyedStates = new ConcurrentHashMap<>();
     }
 
     public TaskStateSnapshot(TaskLocation taskLocation, long checkpointId) {
         this.taskLocation = taskLocation;
         this.checkpointId = checkpointId;
-        this.operatorStates = new HashMap<>();
-        this.keyedStates = new HashMap<>();
+        this.operatorStates = new ConcurrentHashMap<>();
+        this.keyedStates = new ConcurrentHashMap<>();
     }
 
     public TaskStateSnapshot(TaskLocation taskLocation, Map<String, Object> operatorStates, Map<String, Object> keyedStates) {
         this.taskLocation = taskLocation;
         this.checkpointId = -1;
-        this.operatorStates = operatorStates != null ? operatorStates : new HashMap<>();
-        this.keyedStates = keyedStates != null ? keyedStates : new HashMap<>();
+        this.operatorStates = operatorStates != null ? new ConcurrentHashMap<>(operatorStates) : new ConcurrentHashMap<>();
+        this.keyedStates = keyedStates != null ? new ConcurrentHashMap<>(keyedStates) : new ConcurrentHashMap<>();
     }
 
     public TaskStateSnapshot(TaskLocation taskLocation, long checkpointId, Map<String, Object> operatorStates, Map<String, Object> keyedStates) {
         this.taskLocation = taskLocation;
         this.checkpointId = checkpointId;
-        this.operatorStates = operatorStates != null ? operatorStates : new HashMap<>();
-        this.keyedStates = keyedStates != null ? keyedStates : new HashMap<>();
+        this.operatorStates = operatorStates != null ? new ConcurrentHashMap<>(operatorStates) : new ConcurrentHashMap<>();
+        this.keyedStates = keyedStates != null ? new ConcurrentHashMap<>(keyedStates) : new ConcurrentHashMap<>();
     }
 
     public TaskLocation getTaskLocation() {
