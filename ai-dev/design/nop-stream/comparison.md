@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-24
+> Updated: 2026-05-25（新增 NiFi / Node-RED / StreamSets 对比 §6）
 
 ## 1. 设计定位
 
@@ -139,3 +139,51 @@
 - ❌ 大规模分布式处理（PB 级）
 - ❌ 动态并行度调整和状态重分布
 - ❌ 异步算子
+
+## 6. 与声明式流处理引擎的对比
+
+nop-stream 的定位更接近声明式/视觉化流处理引擎，而非程序式 API 框架。
+
+### 6.1 与 Apache NiFi 的对比
+
+| 维度 | NiFi | nop-stream |
+|------|------|------------|
+| **核心抽象** | Processor graph（可视化画布） | StreamModel（可序列化算子图模型） |
+| **定义方式** | UI 拖拽 | XDSL 声明式（规划中）+ Java API（当前 Builder） |
+| **运行时** | JVM 进程，单机或集群（NiFi Cluster） | LOCAL 线程池或 DISTRIBUTED 多 TaskManager |
+| **状态管理** | FlowFile + Provenance Repository | Keyed state + StateShard + epoch checkpoint |
+| **状态大小** | 磁盘（FlowFile 持久化） | 远程 Redis/RPC（几十 GB 级别） |
+| **窗口计算** | 通过 Processor 自定义 | 内置 TimeWindow + Trigger + Evictor |
+| **CEP** | ❌ 无原生 CEP | ✅ NFA + Pattern DSL + SharedBuffer |
+| **背压** | 背压传播 + 缓冲 | Flow control policy + EdgeConfig |
+| **数据源** | ~300 个 Processor | nop-batch 桥接（JDBC/ORM/CSV）+ CDC |
+| **声明式模型** | Processor 配置 + 属性 | StreamModel + StreamComponents + fingerprint |
+| **Delta 定制** | ❌ 无原生机制 | ✅ 可逆计算 + Delta 差量 |
+
+**nop-stream 的独特价值**：
+
+| 场景 | NiFi | nop-stream |
+|------|------|------------|
+| 需要 CEP 模式匹配 | ❌ 需自定义 Processor | ✅ 原生 NFA |
+| 需要 exactly-once 语义 | ⚠️ 通过去重/幂等保证 | ✅ Epoch checkpoint + 2PC |
+| 需要可编程状态操作 | ❌ 仅 FlowFile 属性 | ✅ ValueState/MapState/ListState |
+| 需要 Nop 平台集成 | ❌ | ✅ IJdbcTemplate + IDialect + IBatchLoader + IEvalFunction |
+
+### 6.2 与 Node-RED 的对比
+
+| 维度 | Node-RED | nop-stream |
+|------|----------|------------|
+| **定位** | IoT/轻量流编排 | 中等规模 ETL + CEP |
+| **运行时** | Node.js 单进程 | JVM 多线程/多进程 |
+| **状态保持** | context（内存/文件） | Keyed state + checkpoint |
+| **分布式** | ❌ 单实例 | ✅ LOCAL + DISTRIBUTED |
+| **窗口/CEP** | ❌ 无 | ✅ TimeWindow + NFA |
+
+### 6.3 与 StreamSets Data Collector 的对比
+
+| 维度 | StreamSets | nop-stream |
+|------|-----------|------------|
+| **定位** | 视觉 ETL + CDC | 声明式图模型 + CEP + 窗口聚合 |
+| **SDC 引擎** | 多线程 Stage 执行 | TaskExecutor + 算子链 |
+| **CDC 支持** | ✅ 完整 | ✅ Debezium 桥接 |
+| **DPA (Data Processing Agent)** | 轻量 Agent | TaskManager + IStreamTaskRpcService |

@@ -2,14 +2,18 @@
 
 > Status: active（**已通过 Plan 26-27 对接，为唯一执行路径**）
 > Created: 2026-05-19
-> Updated: 2026-05-24
+> Updated: 2026-05-25（更新定位：明确图模型从 StreamModel 构造，双入口描述）
 > Parent: `architecture.md` §3（执行模型）
 
 ## 1. 定位
 
-nop-stream 的图模型是 DataStream API 与执行引擎之间的中间表示。它将用户通过 API 构建的 Transformation DAG 经过两层转换——StreamGraph 和 JobGraph——最终变为可执行的 Task 集合，由 TaskExecutor 调度执行。
+nop-stream 的图模型是 StreamModel（canonical 管线模型）与执行引擎之间的中间表示。它将 StreamModel 经过两层转换——StreamGraph 和 JobGraph——最终变为可执行的 Task 集合，由 TaskExecutor 调度执行。
 
-这套设计的目标是：**将"用户描述的计算逻辑"与"如何执行这些逻辑"解耦**。`StreamExecutionEnvironment.execute()` 通过图模型路径执行，支持算子链优化、并行度调整、分区策略和数据交换模式。
+StreamModel 可从两个路径构造：
+- **DataStream API**：用户通过编程方式构建 Transformation DAG，经 `StreamGraphGenerator` 编译为 StreamGraph
+- **XDSL 声明式定义**（规划中，见 nop-stream-flow）：直接描述算子图拓扑，跳过 Transformation DAG 阶段
+
+这套设计的目标是：**将"用户描述的计算逻辑"与"如何执行这些逻辑"解耦**。`execute()` 通过图模型路径执行，支持算子链优化、并行度调整、分区策略和数据交换模式。
 
 ### 1.1 设计决策
 

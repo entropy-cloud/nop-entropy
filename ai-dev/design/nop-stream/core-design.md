@@ -2,104 +2,15 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-24
+> Updated: 2026-05-25（重组章节：StreamModel 前置为 §1，DataStream API 降为 §2）
 
-## 1. DataStream API 设计
+## 1. StreamModel 与 StreamComponents
 
-### 1.1 设计决策
+StreamModel 是 nop-stream 的核心模型，所有入口（XDSL、Java API、Delta）最终生成同一套 canonical StreamModel。本节定义模型结构和组件注册表。
 
-采用与 Flink DataStream API 一致的命名和概念模型。Flink 的 DataStream API 是业界事实标准，保持 API 兼容性使未来 nop-stream-flink 可将 nop-stream 的 Transformation 映射到 Flink Transformation。
+### 1.1 StreamModel
 
-### 1.2 流类型层次
-
-```
-DataStream<T>                    基础数据流
-  ├── map() → SingleOutputStreamOperator<R>
-  ├── filter() → SingleOutputStreamOperator<T>
-  ├── flatMap() → SingleOutputStreamOperator<R>
-  ├── keyBy(key) → KeyedStream<T, K>
-  └── addSink() / print()
-
-KeyedStream<T, KEY>              按键分区流
-  ├── timeWindow(size) → WindowedStream<T, K, TimeWindow>
-  ├── timeWindow(size, slide) → WindowedStream<T, K, TimeWindow>
-  ├── countWindow(size) → WindowedStream<T, K, GlobalWindow>
-  └── 继承 DataStream 的所有操作
-
-WindowedStream<T, K, W>          窗口化流
-  ├── apply(WindowFunction)     → 抛 UnsupportedOperationException
-  ├── aggregate(AggregateFunction) → 抛 UnsupportedOperationException
-  ├── reduce(ReduceFunction)     → 抛 UnsupportedOperationException
-  └── transform(name, typeInfo, operator) → 唯一可用的入口
-```
-
-`WindowedStreamImpl` 的 `apply()`/`aggregate()`/`reduce()` 当前抛出 `UnsupportedOperationException`。这是实现缺口——需要 core 模块定义 `WindowOperatorFactory` 接口，runtime 模块提供实现，通过注册机制连接。详见 `component-roadmap.md` 阶段 2。
-
-### 1.3 Transformation DAG
-
-每个 DataStream 操作在内部创建一个 `Transformation` 节点，注册到 `StreamExecutionEnvironment`：
-
-| Transformation | 用途 | 输入数 |
-|---|---|---|
-| `SourceTransformation` | 数据源 | 0 |
-| `OneInputTransformation` | map/filter/flatmap/window | 1 |
-| `PartitionTransformation` | keyBy 分区 | 1 |
-| `SinkTransformation` | 输出 | 1 |
-
-Transformation 通过 `getInputs()` 构成 DAG。执行时从 Sink 回溯到 Source。
-
-### 1.4 API 使用契约
-
-- 用户必须显式调用 `env.execute()` 触发执行，`addSink()` / `print()` 只注册 Transformation
-- `env.execute()` 只能调用一次（设 `executed = true` 防止重复）
-- `map()` 和 `flatMap()` 的输出类型信息当前为 `UnknownTypeInformation`，不影响运行时，但类型检查不完整
-
-### 1.5 执行分发：StreamExecutionEnvironment
-
-`StreamExecutionEnvironment` 是所有流处理程序的入口，负责收集 Transformation DAG 并在 `execute()` 时分发到正确的执行后端。
-
-**核心字段**：
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `deploymentMode` | `DeploymentMode` | LOCAL（线程池）或 DISTRIBUTED（多 TaskManager） |
-| `executionDispatcher` | `IStreamExecutionDispatcher` | 执行分发 SPI，runtime 模块实现 |
-
-**`execute()` 的四路分发**：
-
-```
-execute(jobName)
-   ├── 构建 StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
-   ├── 如果 executionDispatcher != null
-   │   └── executionDispatcher.execute(jobGraph, partitionedPlan, deploymentPlan)
-   ├── 否则如果 deploymentMode == DISTRIBUTED
-   │   └── EmbeddedDistributedExecutor（自动创建 N 个 TaskManager + JobCoordinator）
-   ├── 否则
-   │   └── GraphExecutionPlan → TaskExecutor（LOCAL 线程池模式）
-   └── 返回 StreamExecutionResult
-```
-
-**`DeploymentMode` 枚举**（core 模块）：
-
-| 值 | 语义 |
-|---|---|
-| `LOCAL` | 单进程线程池执行，TaskExecutor 管理 |
-| `DISTRIBUTED` | 多 TaskManager 实例，通过 IStreamExecutionDispatcher 分发 |
-
-**`IStreamExecutionDispatcher` SPI**（core 模块定义，runtime 实现）：
-
-```java
-interface IStreamExecutionDispatcher {
-    boolean supportsDeploymentMode(DeploymentMode mode);
-    StreamExecutionResult execute(JobGraph, PartitionedPlan, DeploymentPlan) throws Exception;
-}
-```
-
-## 2. StreamModel 与 StreamComponents
-
-### 2.1 StreamModel
-
-`StreamModel` 是 DataStream API 构建的 canonical 模型，包含 Transformation DAG 和统一的组件注册表：
+`StreamModel` 是 canonical 管线模型，包含 Transformation DAG 和统一的组件注册表：
 
 ```java
 class StreamModel {
@@ -114,7 +25,7 @@ class StreamModel {
 
 StreamModel 是唯一入口：Java DataStream API、XDSL 和测试构造器都必须生成同一类 canonical StreamModel。Delta 只能修改模型，不能 patch runtime object 来改变语义。
 
-### 2.2 StreamComponents：统一组件注册表
+### 1.2 StreamComponents：统一组件注册表
 
 `StreamComponents` 是所有可复用组件的 canonical 注册表，支持跨 backend 校验、fingerprint 和序列化：
 
@@ -140,7 +51,7 @@ class StreamComponents {
 4. checkpointParticipants 集合记录哪些 operator 实现了 `CheckpointParticipant`，用于 checkpoint 时发现和调用
 5. components registry 的所有内容参与 `PartitionedPlan` fingerprint，确保 savepoint 恢复时的兼容性
 
-### 2.3 StreamRequirement：能力声明
+### 1.3 StreamRequirement：能力声明
 
 ```java
 enum StreamRequirement {
@@ -181,7 +92,7 @@ enum StreamRequirement {
 | Backend | `StreamBackend` 声明 `StreamBackendCapability`，requirement 不在支持列表中则拒绝运行 |
 | Runtime | 作业启动时验证所有 required capabilities 是否可用 |
 
-### 2.4 StreamBackendCapability：Backend 能力声明
+### 1.4 StreamBackendCapability：Backend 能力声明
 
 ```java
 class StreamBackendCapability {
@@ -197,7 +108,7 @@ class StreamBackendCapability {
 
 本地线程 runtime（当前实现）仅支持 `STATEFUL_PROCESSING`、`KEYED_STATE_PROCESSING`、`DURABLE_CHECKPOINT`、`TWO_PHASE_COMMIT_SINK`，`supportsDistributedExecution = false`。分布式 runtime 在此基础上增加 `DISTRIBUTED_EXECUTION`、`REMOTE_STATE_SERVICE`、`SPLITTABLE_SOURCE` 等能力。
 
-### 2.5 StreamModelFingerprint
+### 1.5 StreamModelFingerprint
 
 `StreamModelFingerprint` 计算 StreamModel 的结构指纹，用于 savepoint 恢复时的兼容性检查：
 
@@ -224,6 +135,94 @@ class StreamModelFingerprint {
 - **Delta 定制**：Delta 修改 component 后必须重新计算 fingerprint
 
 `PartitionedPlan.fingerprint()` 调用 `StreamModelFingerprint`，再叠加并行度、分区策略、状态路由。`EpochManifest` 存储 `streamModelFingerprint` 和 `requirements` 列表，用于恢复时验证组件一致性。
+
+## 2. DataStream API 作为 StreamModel 的 Builder
+
+DataStream API 是 StreamModel 的编程构造器。用户通过 DataStream API 构建 Transformation DAG，经 `StreamGraphGenerator` 编译为 StreamModel。它不是最终用户的主入口（主入口是 XDSL 声明式定义），但作为开发阶段的便捷工具保留。
+
+### 2.1 设计决策
+
+采用与 Flink DataStream API 一致的命名和概念模型，保持 API 概念兼容。
+
+### 2.2 流类型层次
+
+```
+DataStream<T>                    基础数据流
+  ├── map() → SingleOutputStreamOperator<R>
+  ├── filter() → SingleOutputStreamOperator<T>
+  ├── flatMap() → SingleOutputStreamOperator<R>
+  ├── keyBy(key) → KeyedStream<T, K>
+  └── addSink() / print()
+
+KeyedStream<T, KEY>              按键分区流
+  ├── timeWindow(size) → WindowedStream<T, K, TimeWindow>
+  ├── timeWindow(size, slide) → WindowedStream<T, K, TimeWindow>
+  ├── countWindow(size) → WindowedStream<T, K, GlobalWindow>
+  └── 继承 DataStream 的所有操作
+
+WindowedStream<T, K, W>          窗口化流
+  ├── apply(WindowFunction)     → 通过 WindowOperatorFactory 代理（core 定义接口）
+  ├── aggregate(AggregateFunction) → 通过 WindowOperatorFactory 代理
+  ├── reduce(ReduceFunction)     → 通过 WindowOperatorFactory 代理
+  └── transform(name, typeInfo, operator) → 直接构造
+```
+
+`WindowedStreamImpl` 的 `apply()`/`aggregate()`/`reduce()` 需要通过 `WindowOperatorFactory` 接口连接 runtime 模块。当前是 core 模块接口定义与 runtime 实现的边界点，不是 API 缺口——DSL 路径通过图模型配置窗口参数，不需要这个 API。
+
+### 2.3 Transformation DAG
+
+每个 DataStream 操作在内部创建一个 `Transformation` 节点，注册到 `StreamExecutionEnvironment`：
+
+| Transformation | 用途 | 输入数 |
+|---|---|---|
+| `SourceTransformation` | 数据源 | 0 |
+| `OneInputTransformation` | map/filter/flatmap/window | 1 |
+| `PartitionTransformation` | keyBy 分区 | 1 |
+| `SinkTransformation` | 输出 | 1 |
+
+Transformation 通过 `getInputs()` 构成 DAG。执行时从 Sink 回溯到 Source。
+
+### 2.4 API 使用契约
+
+- 用户必须显式调用 `env.execute()` 触发执行，`addSink()` / `print()` 只注册 Transformation
+- `env.execute()` 只能调用一次（设 `executed = true` 防止重复）
+- `map()` 和 `flatMap()` 的输出类型信息当前为 `UnknownTypeInformation`，不影响运行时，但类型检查不完整
+
+### 2.5 执行分发：StreamExecutionEnvironment
+
+`StreamExecutionEnvironment` 负责收集 Transformation DAG 并在 `execute()` 时分发到正确的执行后端。
+
+**核心字段**：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `deploymentMode` | `DeploymentMode` | LOCAL（线程池）或 DISTRIBUTED（多 TaskManager） |
+| `executionDispatcher` | `IStreamExecutionDispatcher` | 执行分发 SPI，runtime 模块实现 |
+
+**`execute()` 的分发路径**：
+
+```
+execute(jobName)
+   ├── 构建 StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
+   ├── 根据 deploymentMode 分发（LOCAL / DISTRIBUTED）
+   └── 返回 StreamExecutionResult
+```
+
+**`DeploymentMode` 枚举**（core 模块）：
+
+| 值 | 语义 |
+|---|---|
+| `LOCAL` | 单进程线程池执行，TaskExecutor 管理 |
+| `DISTRIBUTED` | 多 TaskManager 实例，通过 IStreamExecutionDispatcher 分发 |
+
+**`IStreamExecutionDispatcher` SPI**（core 模块定义，runtime 实现）：
+
+```java
+interface IStreamExecutionDispatcher {
+    boolean supportsDeploymentMode(DeploymentMode mode);
+    StreamExecutionResult execute(JobGraph, PartitionedPlan, DeploymentPlan) throws Exception;
+}
+```
 
 ## 3. 算子模型
 
