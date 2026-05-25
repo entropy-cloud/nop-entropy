@@ -1,6 +1,6 @@
 # 开发计划：代码索引查询 API 扩展
 
-**设计文档**：`ai-dev/design/nop-code/code-index-query-api-design.md`
+**设计文档**：`ai-dev/design/nop-code/query-api-design.md`
 **日期**：2026-05-09
 
 ---

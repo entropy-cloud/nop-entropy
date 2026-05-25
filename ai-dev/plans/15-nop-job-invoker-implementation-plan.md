@@ -85,7 +85,7 @@
 ### Phase 2.1: 添加 nop-rpc-cluster 依赖
 
 **Exit Criteria**:
-- [ ] `nop-job-service/pom.xml` 添加 `nop-rpc-cluster` 依赖
+- [ ] `nop-job/nop-job-service/pom.xml` 添加 `nop-rpc-cluster` 依赖
 
 **Files**:
 - 修改: `nop-job/nop-job-service/pom.xml`
@@ -145,7 +145,7 @@
 
 **Files**:
 - 新增: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/DefaultJobTaskBuilder.java`
-- 修改: `nop-job/nop-job-coordinator/src/main/resources/_vfs/_delta/default/nop/job/beans/app-engine.beans.xml`
+- 修改: nop-job/nop-job-coordinator/src/main/resources/_vfs/_delta/default/nop/job/beans/app-engine.beans.xml
 
 ### Phase 3.3: 扩展 IJobFireStore 支持批量 task 插入
 

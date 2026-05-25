@@ -175,7 +175,7 @@ Instructions:
 
 Create `nop-code-service/src/test/resources/test-project/` with the following Java source files:
 
-1. `test-project/src/main/java/com/example/domain/User.java`:
+1. test-project/src/main/java/com/example/domain/User.java:
 ```java
 package com.example.domain;
 
@@ -221,7 +221,7 @@ public class User extends BaseEntity implements IUserService {
 }
 ```
 
-2. `test-project/src/main/java/com/example/domain/BaseEntity.java`:
+2. test-project/src/main/java/com/example/domain/BaseEntity.java:
 ```java
 package com.example.domain;
 
@@ -233,7 +233,7 @@ public abstract class BaseEntity {
 }
 ```
 
-3. `test-project/src/main/java/com/example/service/IUserService.java`:
+3. test-project/src/main/java/com/example/service/IUserService.java:
 ```java
 package com.example.service;
 
@@ -242,7 +242,7 @@ public interface IUserService {
 }
 ```
 
-4. `test-project/src/main/java/com/example/service/UserService.java`:
+4. test-project/src/main/java/com/example/service/UserService.java:
 ```java
 package com.example.service;
 
@@ -266,7 +266,7 @@ public class UserService {
 }
 ```
 
-5. `test-project/src/main/java/com/example/annotation/Audited.java`:
+5. test-project/src/main/java/com/example/annotation/Audited.java:
 ```java
 package com.example.annotation;
 
@@ -279,7 +279,7 @@ public @interface Audited {
 }
 ```
 
-6. `test-project/src/main/java/com/example/domain/Status.java`:
+6. test-project/src/main/java/com/example/domain/Status.java:
 ```java
 package com.example.domain;
 

@@ -345,7 +345,7 @@ Instructions:
            propId="11" stdDataType="long" stdSqlType="BIGINT"/>
    ```
 
-3. 在 `nop-code/model/nop-code-dict.xml` 中增加字典（如需要）
+3. 在 nop-code/model/nop-code-dict.xml 中增加字典（如需要）
 
 4. 重新生成 DAO：
    ```bash

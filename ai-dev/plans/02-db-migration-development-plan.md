@@ -1546,10 +1546,10 @@ java -jar nop-db-migration-cli.jar migrate \
 
 ### 8.1 Nop 平台文档
 
-- [XDef 核心概念](../05-xlang/xdef-core.md)
-- [代码生成基础](../02-architecture/code-generation.md)
-- [项目结构说明](../03-development-guide/project-structure.md)
-- [BizModel 开发指南](../03-development-guide/bizmodel-guide.md)
+- [XDef 核心概念](../../docs-for-ai/02-core-guides/xdef-and-xdsl.md)
+- [代码生成基础](../../docs-for-ai/02-core-guides/model-first-development.md)
+- [项目结构说明](../../docs-for-ai/01-repo-map/where-things-live.md)
+- [BizModel 开发指南](../../docs-for-ai/02-core-guides/service-layer.md)
 
 ### 8.2 外部参考
 

@@ -181,7 +181,7 @@ AMIS (前端渲染)       → 百度 AMIS 低代码框架渲染 CRUD/Table/Form/
 
 Kind: phase
 Status: pending
-Targets: `nop-code-web/_vfs/nop/code/pages/NopCodeIndex/`, `nop-code-meta/_vfs/nop/code/model/NopCodeIndex/`, `nop-code-service/entity/NopCodeIndexBizModel.java`
+Targets: `nop-code/nop-code-web/_vfs/nop/code/pages/NopCodeIndex/`, `nop-code/nop-code-meta/_vfs/nop/code/model/NopCodeIndex/`, nop-code-service/entity/NopCodeIndexBizModel.java
 
 Description:
 
@@ -203,7 +203,7 @@ Depends On:
 
 Instructions:
 
-编辑 `nop-code-web/src/main/resources/_vfs/nop/code/pages/NopCodeIndex/NopCodeIndex.view.xml`：
+编辑 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/NopCodeIndex/NopCodeIndex.view.xml`：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -320,7 +320,7 @@ Instructions:
 
 基础 xmeta 已有正确的 displayName（索引名称、根路径、编程语言等），此处一般无需额外修改。只需确认 dict 字典 `code/index_status` 是否已定义。
 
-检查 `nop-code-meta/_vfs/nop/code/model/nop-code-dict.xml` 中是否有 `code/index_status` 字典。若无，添加：
+检查 nop-code-meta/_vfs/nop/code/model/nop-code-dict.xml 中是否有 `code/index_status` 字典。若无，添加：
 
 ```xml
 <dict name="code/index_status">
@@ -344,7 +344,7 @@ Checks:
 
 Kind: phase
 Status: pending
-Targets: `nop-code-web/_vfs/nop/code/pages/code-browser/`, `nop-code-service/entity/NopCodeFileBizModel.java`
+Targets: `nop-code/nop-code-web/_vfs/nop/code/pages/code-browser/`, nop-code-service/entity/NopCodeFileBizModel.java
 
 Description:
 
@@ -413,14 +413,14 @@ Depends On: T3
 
 Instructions:
 
-创建文件 `nop-code-web/src/main/resources/_vfs/nop/code/pages/code-browser/main.page.yaml`：
+创建文件 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/code-browser/main.page.yaml`：
 
 ```yaml
 x:gen-extends: |
     <web:GenPage view="code-browser.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
 ```
 
-创建文件 `nop-code-web/src/main/resources/_vfs/nop/code/pages/code-browser/code-browser.view.xml`：
+创建文件 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/code-browser/code-browser.view.xml`：
 
 这是一个自定义视图，不基于标准 CRUD 模式。使用 AMIS 的 panel + nav + tabs 组件：
 
@@ -486,7 +486,7 @@ Depends On:
 
 Instructions:
 
-编辑 `nop-code-web/src/main/resources/_vfs/nop/code/pages/NopCodeSymbol/NopCodeSymbol.view.xml`：
+编辑 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/NopCodeSymbol/NopCodeSymbol.view.xml`：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -644,9 +644,9 @@ Depends On:
 
 Instructions:
 
-创建文件 `nop-code-web/src/main/resources/_vfs/nop/code/pages/type-hierarchy/main.page.yaml`
+创建文件 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/type-hierarchy/main.page.yaml`
 
-创建文件 `nop-code-web/src/main/resources/_vfs/nop/code/pages/type-hierarchy/type-hierarchy.view.xml`
+创建文件 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/type-hierarchy/type-hierarchy.view.xml`
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -709,8 +709,8 @@ Instructions：
 
 与 T7 类型层级页面对称，创建：
 
-1. `nop-code-web/src/main/resources/_vfs/nop/code/pages/call-hierarchy/main.page.yaml`
-2. `nop-code-web/src/main/resources/_vfs/nop/code/pages/call-hierarchy/call-hierarchy.view.xml`
+1. `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/call-hierarchy/main.page.yaml`
+2. `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/call-hierarchy/call-hierarchy.view.xml`
 
 查询参数：
 - `qualifiedName` — 方法全限定名（如 `com.example.service.UserService.changeName`）
@@ -755,9 +755,9 @@ Depends On: T1
 
 Instructions:
 
-创建 `nop-code-web/src/main/resources/_vfs/nop/code/pages/dashboard/main.page.yaml`
+创建 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/dashboard/main.page.yaml`
 
-创建 `nop-code-web/src/main/resources/_vfs/nop/code/pages/dashboard/dashboard.view.xml`
+创建 `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/pages/dashboard/dashboard.view.xml`
 
 使用 AMIS cards 组件：
 - 数据源：`NopCodeIndex__findPage` 获取所有索引

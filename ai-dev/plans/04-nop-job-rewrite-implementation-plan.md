@@ -2,7 +2,7 @@
 
 **版本**：v1.0  
 **日期**：2026-04-04  
-**依据**：`ai-dev/nop-job-rewrite-design.md`  
+**依据**：`ai-dev/design/nop-job/rewrite-design.md`  
 **目标**：将 `nop-job` 从旧的以内存调度器为中心的实现，重构为以数据库为中心的 `schedule -> fire -> task` 三层模型，并与 `nop-retry` 清晰分层。
 
 ---
@@ -165,9 +165,9 @@
 
 ### 4.3 涉及文件
 
-1. `nop-job-core/src/main/java/io/nop/job/core/trigger/*`
-2. `nop-job-core/src/main/java/io/nop/job/core/utils/CronExpression.java`
-3. `nop-job-core/src/test/java/io/nop/job/core/trigger/TestTrigger.java`
+1. `nop-job/nop-job-core/src/main/java/io/nop/job/core/trigger/*`
+2. `nop-job/nop-job-core/src/main/java/io/nop/job/core/utils/CronExpression.java`
+3. `nop-job/nop-job-core/src/test/java/io/nop/job/core/trigger/TestTrigger.java`
 
 ### 4.4 验证
 
@@ -262,7 +262,7 @@
 7. 明确 coordinator 的 Bean 暴露方式：
    - 新增 `beans.xml`
    - 或在现有模块资源中注册对应 Bean
-8. 修改 `nop-job-app/pom.xml`，把 `nop-job-coordinator` 纳入应用依赖。
+8. 修改 `nop-job/nop-job-app/pom.xml`，把 `nop-job-coordinator` 纳入应用依赖。
 9. 如果 scanner/processor 需要 worker 侧能力，明确通过 `nop-job-worker` 暴露接口并同步接入 `nop-job-app`。
 
 ### 6.3 fixed-delay 特殊处理
@@ -276,7 +276,7 @@
 
 1. `nop-job-coordinator/src/main/java/**`
 2. `nop-job-coordinator/src/main/resources/**`
-3. `nop-job-app/pom.xml`
+3. `nop-job/nop-job-app/pom.xml`
 4. 必要的 `beans.xml` 与启动配置
 
 ### 6.5 验证
@@ -317,7 +317,7 @@
 1. `nop-job-worker/src/main/java/**`
 2. `nop-job-worker/src/main/resources/**`
 3. `nop-job-api/src/main/java/io/nop/job/api/execution/*`
-4. `nop-job-app/pom.xml`（若 worker 模块需要被应用直接装配）
+4. `nop-job/nop-job-app/pom.xml`（若 worker 模块需要被应用直接装配）
 
 ### 7.4 验证
 

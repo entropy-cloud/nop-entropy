@@ -2,7 +2,7 @@
 
 > Status: active workflow guide
 > Last Reviewed: 2026-04-14
-> Source: adapted from `nop-chaos-flux/docs/bugs/00-bug-fix-note-writing-guide.md`
+> Source: adapted from nop-chaos-flux/docs/bugs/00-bug-fix-note-writing-guide.md
 
 ## Purpose
 
@@ -32,11 +32,7 @@
 
 使用 `YYYY-MM-DD-` 日期前缀加简短描述：
 
-- `2026-04-02-stream-operator-npe-fix.md`
-- `2026-04-05-cron-expression-timezone-fix.md`
-- `2026-04-10-dialect-exists-sql-compat-fix.md`
-
-名称应包含用户可见症状或修复主题，简短可搜索。
+示例名称（如 2026-04-02-stream-operator-npe-fix.md、2026-04-05-cron-expression-timezone-fix.md、2026-04-10-dialect-exists-sql-compat-fix.md），应包含用户可见症状或修复主题，简短可搜索。
 
 ## Required Sections
 

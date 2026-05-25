@@ -1,7 +1,7 @@
 # nop-stream 组件分解与开发路线
 
 > Status: active
-> Updated: 2026-05-24
+> Updated: 2026-05-25（阶段顺序重排：图模型执行/PartitionedPlan 生产化优先于 DataStream API 修复）
 > Parent: `ai-dev/design/nop-stream/README.md`
 
 ---
@@ -229,60 +229,41 @@ JdbcCheckpointStorage
 
 开发按依赖关系从底层到上层，每个阶段产出可测试、可集成的成果。
 
-### 阶段 1：修复基础设施（C4 状态管理 + C3 核心算子修复）
+> **优先级说明**：DataStream API 是 StreamModel 的编程构造器，不是最终用户的主入口。因此 WindowedStreamImpl 的 apply/aggregate/reduce 修复不高于图模型执行和 PartitionedPlan 生产化的优先级。
 
-**目标**：让状态管理和窗口算子的核心路径正确工作。
+### 阶段 1：图模型执行生产化 + PartitionedPlan 对接（C2 + C5）
 
-**工作项**：
-
-1. **C4：修复 `MemoryKeyedStateBackend`**
-   - 修复 `MemoryInternalAppendingState.add()` 累加器不重置的问题
-   - 修复 `ValueStateDescriptor(name, TypeInfo)` 丢弃 typeInfo 的问题
-   - 修复 `currentNamespace` 标记为 `transient` 导致反序列化后为 null 的问题
-   - 快照序列化从 Java 序列化改为 `JsonTool`
-   - 编写测试：累加连续 add、快照/恢复、namespace 切换
-
-2. **C3：修复 `WindowOperator` 核心正确性**
-   - 修复 `addWindowElement()` 累加器类型腐蚀
-   - 修复 `mergeWindowContents()` 静默吞 ClassCastException
-   - 修复 `MergingWindowSet.persist()` 空操作
-   - 修复 `getSimpleAccumulator()` 返回 null
-   - 修复 `KeySelectorPartitioner` 的 null key 和 `Integer.MIN_VALUE` 问题
-   - 编写测试：单 key 聚合正确性、多 key 隔离、合并窗口合并、checkpoint 恢复
-
-3. **C3：修复 `SimpleStreamOperatorFactory`**
-   - 改为每次 `createStreamOperator()` 创建新实例
-   - 编写测试：多次调用返回不同实例、parallelism > 1 场景
-
-**交付标准**：
-- `WindowOperator` 的聚合、合并窗口、checkpoint 恢复测试全部通过
-- `MemoryKeyedStateBackend` 的累加器正确性测试通过
-
-### 阶段 2：API 粘合层（C1 + C3 对接）
-
-**目标**：用户可以通过标准 DataStream API 完成完整的 `source → keyBy → window → aggregate → sink` 流程，无需手动构建 WindowOperator。
+**目标**：图模型执行管线完整可靠，PartitionedPlan / DeploymentPlan 可序列化持久化，checkpoint 通过 CheckpointPlan 正确工作。
 
 **工作项**：
 
-1. **C1：设计 `WindowOperatorFactory` 接口**（core 模块定义）
-   - 接口方法：`createOperator(WindowAssigner, Trigger, ...)` 等
-   - 这个接口使得 core 的 `WindowedStreamImpl` 可以创建 runtime 的 `WindowOperator`，而不需要 core 依赖 runtime
-   - 通过 SPI 或 `StreamExecutionEnvironment.registerOperatorFactory()` 注册
+1. **C2：PartitionedPlan 生产化**
+   - 确保 Migration Action 机制支持状态映射变更
+   - PartitionedPlan 序列化为 JSON 的可 round-trip 测试
+   - 验证 stateShard 路由规则在 plan 中的正确编码
 
-2. **C1：实现 `WindowedStreamImpl.apply/aggregate/reduce`**
-   - 内部通过 `WindowOperatorFactory` 创建 `WindowOperator`
-   - 调用 `transform()` 注册到 Transformation DAG
-   - 编写端到端测试：`env.addSource().keyBy().window().aggregate().sink()` 完整流程
+2. **C5：实现 CheckpointPlan + CheckpointPlanBuilder**
+   - 定义 `CheckpointPlan`、`TaskLocation`、`OperatorStateMapping` 数据结构（core 模块）
+   - 实现 `CheckpointPlanBuilder`：从 `GraphExecutionPlan` 中提取 source task、all tasks、state mappings（runtime 模块）
+   - 修改 `CheckpointCoordinator` 构造器接收 `CheckpointPlan`，不再隐式遍历执行计划
+   - 修复并行模式 checkpoint（getInvokables 收集全部 subtask）
+   - 编写测试：多算子链的 keyed state 不互相覆盖、恢复时状态精确路由
 
-3. **C1：修复 `assignTimestampsAndWatermarks` 在 Fast Path 中的处理**
-   - `instantiateOperators()` 需要处理 `TimestampsAndWatermarksTransformation`
-   - 编写测试：带 watermark 的窗口聚合端到端测试
+3. **C5：修复 Barrier 注入机制**
+   - Barrier 作为 StreamElement 在 source 读取线程中注入，而非外部 scheduler 线程
+   - 编写测试：并发 checkpoint 触发不丢数据
+
+4. **C5：统一执行路径**
+   - `execute()` 已统一走图模型路径，验证各 DeploymentMode 正确工作
+   - 清理 `GraphModelCheckpointExecutor` 中的代码重复
 
 **交付标准**：
-- 用户可以通过标准 API 写出完整的窗口聚合程序
-- 带事件时间的窗口聚合正确触发
+- PartitionedPlan 和 DeploymentPlan 可 JSON round-trip
+- CheckpointPlan 从 GraphExecutionPlan 正确生成
+- 多算子链的 keyed state 快照/恢复正确
+- 并行 mode 下 checkpoint 正确（不再是 P0 缺陷）
 
-### 阶段 3：Checkpoint 生产化（C5）
+### 阶段 2：Checkpoint 生产化（C5）
 
 **目标**：Checkpoint 子系统达到生产可用水平——CheckpointPlan 解耦、多数据库存储、线程安全、正确恢复。
 
@@ -338,7 +319,7 @@ JdbcCheckpointStorage
    - 编写测试：从 XML 加载 pattern 并执行匹配
 
 3. **C6：移除 runtime → cep 幽灵依赖**
-   - 从 `nop-stream-runtime/pom.xml` 移除对 `nop-stream-cep` 的依赖
+   - 从 `nop-stream/nop-stream-runtime/pom.xml` 移除对 `nop-stream-cep` 的依赖
    - 清理 `nop-stream-runtime` 中的 `CepWindowOperator` 及相关死代码
 
 **交付标准**：
@@ -399,7 +380,7 @@ JdbcCheckpointStorage
 
 | 问题 | 操作 |
 |------|------|
-| `runtime` 依赖 `cep`（零代码引用） | 从 `runtime/pom.xml` 移除 |
+| `runtime` 依赖 `cep`（零代码引用） | 从 `nop-stream/nop-stream-runtime/pom.xml` 移除 |
 | `JdbcCheckpointStorage` 直接使用 `DataSource` | 改为依赖 `nop-dao-jdbc`（通过 `IJdbcTemplate`） |
 | `Configuration` 接口为空 | 对接 Nop 的 `IConfigReference` |
 

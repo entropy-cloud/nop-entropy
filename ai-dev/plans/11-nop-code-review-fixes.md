@@ -247,8 +247,8 @@ public interface IEntryPointScorer {
 #### 3.3 补充关键边界测试
 
 **Files**:
-- NEW: `nop-code/nop-code-lang-java/src/test/java/io/nop/code/lang/java/analyzer/TestJavaCodeFileAnalyzerEdgeCases.java`
-- NEW: `nop-code/nop-code-lang-typescript/src/test/java/io/nop/code/lang/typescript/analyzer/TestTypeScriptCodeFileAnalyzerEdgeCases.java`
+- NEW: nop-code/nop-code-lang-java/src/test/java/io/nop/code/lang/java/analyzer/TestJavaCodeFileAnalyzerEdgeCases.java
+- NEW: nop-code/nop-code-lang-typescript/src/test/java/io/nop/code/lang/typescript/analyzer/TestTypeScriptCodeFileAnalyzerEdgeCases.java
 - NEW: `nop-code/nop-code-lang-python/src/test/java/io/nop/code/lang/python/TestPythonCodeFileAnalyzerEdgeCases.java`
 
 **What**: 为每个语言分析器补充空输入和语法错误输入的测试

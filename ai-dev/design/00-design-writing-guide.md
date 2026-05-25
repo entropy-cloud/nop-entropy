@@ -110,8 +110,19 @@
 
 设计实现后，关键结论应同步到 `docs-for-ai/`。设计文档保留决策上下文（"为什么"），`docs-for-ai/` 保留使用规范（"怎么做"）。
 
+## 设计文档的引用约束
+
+设计文档是**架构决策的最终记录**，不应引用具有时效性的过程文档：
+
+- **禁止引用** `ai-dev/discussions/` — 讨论是需求澄清的过程记录，设计应独立表达最终结论，而非依赖讨论的推导过程。讨论中有价值的洞察应直接融入设计文档。
+- **禁止引用** `ai-dev/analysis/` — 分析是调研和对比的过程记录，设计应呈现最终决策和理由，而非引用某次分析的结果。分析中的关键发现应作为设计文档的独立章节。
+- **可以引用** `ai-dev/lessons/`、`ai-dev/design/` 内的其他设计文档、以及 `docs-for-ai/` — 这些是规范性和持久性的文档。
+- **可以引用** 源码文件 — 用于锚定实现位置。
+
+简言之：设计文档引用的应是**持久的**文档（规范、设计、经验教训、源码），而非**时效性的**过程记录（讨论、分析、日志）。
+
 ## 参考
 
 - `ai-dev/design/README.md` — 本目录的层级索引和 precedence model
-- chaos-flux 项目的 `docs/architecture/README.md` 是同类索引的成熟范例
+- chaos-flux 项目的 docs/architecture/README.md 是同类索引的成熟范例
 - `ai-dev/lessons/02-metrics-design-convention.md` 是子系统级规范的好例子

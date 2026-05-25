@@ -2,7 +2,7 @@
 
 > Status: active workflow guide
 > Last Reviewed: 2026-04-14
-> Source: adapted from `nop-chaos-flux/docs/discussions/README.md`
+> Source: adapted from nop-chaos-flux/docs/discussions/README.md
 
 ## Purpose
 
@@ -33,13 +33,9 @@
 
 使用 `YYYY-MM-DD` 日期前缀：
 
-- `2026-04-14-ai-agent-core-requirements.md`
-- `2026-04-15-tool-calling-design.md`
+示例名称（如 2026-04-14-ai-agent-core-requirements.md、2026-04-15-tool-calling-design.md）。
 
-同一天多个讨论加序号后缀：
-
-- `2026-04-14a-ai-agent-core-requirements.md`
-- `2026-04-14b-agent-memory-model.md`
+同一天多个讨论加序号后缀（如 2026-04-14a-ai-agent-core-requirements.md、2026-04-14b-agent-memory-model.md）。
 
 ## Discussion Flow
 

@@ -163,7 +163,7 @@ OfficeDocModel
 7. 新模块 `pom.xml` 已增加 `exec-maven-plugin`
 8. `nop-format/pom.xml` 已注册 `nop-office-model`
 9. `nop-bom/pom.xml` 已加入 `nop-office-model`
-10. `nop-excel/pom.xml` 已增加对 `nop-office-model` 的依赖
+10. nop-excel/pom.xml 已增加对 `nop-office-model` 的依赖
 11. `nop-excel/precompile/gen-excel-xdsl.xgen` 已移除对 `excel/font.xdef` 的直接生成
 
 ## 9. 元模型调整

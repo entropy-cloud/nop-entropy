@@ -2,7 +2,7 @@
 
 **版本**：v1.0  
 **日期**：2026-04-02  
-**依据**：`ai-dev/nop-stream-design-review.md`
+**依据**：`ai-dev/analysis/2026-04-02-nop-stream-design-review.md`
 
 ---
 

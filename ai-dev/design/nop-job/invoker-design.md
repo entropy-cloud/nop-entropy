@@ -496,7 +496,7 @@ List<NopJobTask> locked = taskStore.tryLockTasksForExecute(pending, AppConfig.ho
 | 4 | 新增错误码 | `JobWorkerErrors.java` | `ERR_JOB_EXECUTOR_KIND_EMPTY`, `ERR_JOB_INVOKER_NOT_FOUND` |
 | 5 | 新增 RpcJobInvoker | 新文件 | 注入 IRpcServiceInvoker，从 jobParams 解析 serviceName/serviceMethod/headers/data |
 | 6 | 注册 bean | `app-service.beans.xml` | `nopJobInvoker_rpc`, `nopJobInvoker_test` |
-| 7 | 添加依赖 | `nop-job-service/pom.xml` | `nop-rpc-cluster` |
+| 7 | 添加依赖 | `nop-job/nop-job-service/pom.xml` | `nop-rpc-cluster` |
 | 8 | 新增 IJobTaskBuilder 接口 | nop-job-coordinator 或 nop-job-api | `List<NopJobTask> buildTasks(NopJobFire fire)` |
 | 9 | DefaultJobTaskBuilder | 新文件 | 当前 buildTask 逻辑移入 |
 | 10 | RpcDistributedTaskBuilder | 新文件 | 注入 IServerChooser，每个实例一个 task，注入 shardingIndex/shardingTotal/targetHost header |

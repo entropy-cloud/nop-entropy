@@ -155,7 +155,7 @@ Exit Criteria:
 - [x] **接线验证**：在端到端测试中添加断言，确认 PartitionedPlanGenerator.generate() 和 DeploymentPlanGenerator.generateLocal() 被调用且返回非空结果
 - [x] **无静默跳过**：PartitionedPlanGenerator.generate() 在 JobGraph 为空时抛出异常而非返回 null
 - [x] 所有现有端到端测试通过（无回归）
-- [x] 相关 `ai-dev/design/graph-model-design.md` 已更新反映五层管线中的后两层已接入
+- [x] 相关 `ai-dev/design/nop-stream/graph-model-design.md` 已更新反映五层管线中的后两层已接入
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -187,7 +187,7 @@ Exit Criteria:
 - [x] **接线验证**：快照路径中包含 StateShard 信息（通过检查 CompletedCheckpoint 的 state 内容验证）
 - [x] **无静默跳过**：StateShard 路由失败时抛出异常
 - [x] 所有现有状态后端测试通过
-- [x] 相关 `ai-dev/design/state-management-design.md` 已更新
+- [x] 相关 `ai-dev/design/nop-stream/state-management-design.md` 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -224,7 +224,7 @@ Exit Criteria:
 - [x] **接线验证**：在端到端测试中，TwoPhaseCommitSinkFunction.prepareCommit() 在 barrier 对齐后被调用，finishCommit() 在 checkpoint 完成后被调用
 - [x] **无静默跳过**：participant.saveState() 抛出异常时 checkpoint abort（不吞掉异常）
 - [x] 所有现有 checkpoint 端到端测试通过
-- [x] 相关 `ai-dev/design/checkpoint-design.md` §3 已更新反映集成状态
+- [x] 相关 `ai-dev/design/nop-stream/checkpoint-design.md` §3 已更新反映集成状态
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -260,7 +260,7 @@ Exit Criteria:
 - [x] **接线验证**：在端到端测试中验证 ProcessingGuarantee 被传入 InputGate（通过配置不同的 guarantee 并观察 barrier 行为差异）
 - [x] **无静默跳过**：未知 ProcessingGuarantee 值抛出异常
 - [x] 所有现有 checkpoint 测试通过（默认行为不变）
-- [x] 相关 `ai-dev/design/checkpoint-design.md` §4 已更新
+- [x] 相关 `ai-dev/design/nop-stream/checkpoint-design.md` §4 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -294,7 +294,7 @@ Exit Criteria:
 - [x] **无静默跳过**：CREDIT_BASED 和 ACK_WINDOW 策略抛出 UnsupportedOperationException（非分布式 runtime 不支持）
 - [x] 本地 runtime 默认使用 BLOCKING_QUEUE，不影响现有测试
 - [x] 所有现有端到端测试通过
-- [x] 相关 `ai-dev/design/architecture.md` §6.5 已更新
+- [x] 相关 `ai-dev/design/nop-stream/architecture.md` §6.5 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -330,7 +330,7 @@ Exit Criteria:
 - [x] **接线验证**：StreamRequirementValidator 在 execute() 中被调用，且读取了 source/sink 的能力声明
 - [x] **无静默跳过**：能力不足时抛出异常，不静默降级
 - [x] 所有现有 connector 测试通过
-- [x] 相关 `ai-dev/design/connector-design.md` 已更新
+- [x] 相关 `ai-dev/design/nop-stream/connector-design.md` 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -363,7 +363,7 @@ Exit Criteria:
 - [x] **接线验证**：CheckpointCoordinator 在 ACK 收齐后调用 storeEpochManifest()；恢复时调用 loadLatestEpochManifest()
 - [x] **无静默跳过**：EpochManifest 持久化失败时 checkpoint 标记为失败（不静默继续）
 - [x] 所有现有 checkpoint 恢复测试通过
-- [x] 相关 `ai-dev/design/checkpoint-design.md` §2.6 §9 已更新
+- [x] 相关 `ai-dev/design/nop-stream/checkpoint-design.md` §2.6 §9 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -397,7 +397,7 @@ Exit Criteria:
 - [x] **接线验证**：恢复路径读取 EpochManifest.planFingerprint 并与当前 fingerprint 比较
 - [x] **无静默跳过**：fingerprint 不匹配时抛出异常，不静默继续
 - [x] 所有现有 savepoint 测试通过
-- [x] 相关 `ai-dev/design/checkpoint-design.md` §7 已更新
+- [x] 相关 `ai-dev/design/nop-stream/checkpoint-design.md` §7 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---

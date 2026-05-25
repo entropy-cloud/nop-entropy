@@ -337,7 +337,7 @@ mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs -Pqa
 
 > **重要**：由于项目结构（nop-kernel 子模块无 parent 继承），qa profile 仅在 `nop-kernel/pom.xml` 中定义并生效。
 > 从根目录使用 `-pl` 时 profile 不会激活（Maven 3.9/4.0 已验证）。
-> 检查结果位于各模块的 `target/pmd.xml` 和 `target/spotbugsXml.xml`。
+> 检查结果位于各模块的 target/pmd.xml 和 target/spotbugsXml.xml。
 
 ## 文件变更记录
 
@@ -359,7 +359,7 @@ mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs -Pqa
 
 ## SpotBugs 审计结果（2026-05-05）
 
-详细分析文档：[`docs/analysis/spotbugs-kernel-findings.md`](../../docs/analysis/spotbugs-kernel-findings.md)
+详细分析文档：docs/analysis/spotbugs-kernel-findings.md（位于 docs/ 目录，不在 docs-for-ai 或 ai-dev 范围内）
 
 ### nop-kernel 6 子模块（已启用 qa profile）
 

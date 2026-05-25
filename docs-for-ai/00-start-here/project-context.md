@@ -14,7 +14,7 @@
 
 ## Active Work
 
-- **活跃计划**：`ai-dev/plans/` 下无活跃计划
+- **活跃计划**：ai-dev/plans/ 下无活跃计划
 - **AI autonomy**：`implement`
 - **当前阻塞**：无
 
@@ -42,15 +42,15 @@
 
 ## Active ai-dev/ Layers
 
-- [x] `ai-dev/logs/` — 每日开发日志
-- [x] `ai-dev/plans/` — 执行计划
-- [x] `ai-dev/analysis/` — 技术调研
-- [x] `ai-dev/design/` — 架构设计
-- [x] `ai-dev/bugs/` — Bug 修复记录
-- [x] `ai-dev/discussions/` — 需求澄清
-- [x] `ai-dev/lessons/` — 经验教训
-- [x] `ai-dev/skills/` — 可复用 AI 提示词
-- [x] `ai-dev/audits/` — 代码审计
+- [x] ai-dev/logs/ — 每日开发日志
+- [x] ai-dev/plans/ — 执行计划
+- [x] ai-dev/analysis/ — 技术调研
+- [x] ai-dev/design/ — 架构设计
+- [x] ai-dev/bugs/ — Bug 修复记录
+- [x] ai-dev/discussions/ — 需求澄清
+- [x] ai-dev/lessons/ — 经验教训
+- [x] ai-dev/skills/ — 可复用 AI 提示词
+- [x] ai-dev/audits/ — 代码审计
 
 ## AI Block Conditions
 

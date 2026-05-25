@@ -8,7 +8,7 @@
 
 ## 1. 设计规范
 
-严格遵循 `lessons/02-metrics-design-convention.md` 的三件套模式：接口（业务语义方法名）+ 真实实现（`GlobalMeterRegistry` + 构造函数预创建）+ 空实现（no-op fallback）。
+严格遵循 `../../../lessons/02-metrics-design-convention.md` 的三件套模式：接口（业务语义方法名）+ 真实实现（`GlobalMeterRegistry` + 构造函数预创建）+ 空实现（no-op fallback）。
 
 业务组件持有接口类型字段，默认值为空实现，通过 setter 注入真实实现。
 

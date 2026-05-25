@@ -100,7 +100,7 @@
 - **风险**：引入 CheckpointPlan 需要修改 `CheckpointCoordinator`、`PendingCheckpoint`、`CompletedCheckpoint`、`CheckpointBarrierTracker`、`TaskStateSnapshot`、`ICheckpointStorage` 的字段/参数类型（`long taskId` → `TaskLocation`，`long jobId / int pipelineId` → `String`）。这些变更影响面广但类型变更可安全重构。缓解：Phase 1 集中做全部类型变更，Phase 1 完成后其他 phase 不再改动这些基础类型
 - **风险（序列化不兼容）**：`TaskStateSnapshot.taskId` 从 `long` 改为 `TaskLocation`、`CompletedCheckpoint.taskStates` key 从 `Long` 改为 `TaskLocation`、`jobId/pipelineId` 类型变更会破坏已有 checkpoint 文件的 JSON 反序列化。缓解：**明确声明此变更不兼容旧格式 checkpoint**。Phase 1 之前的 checkpoint 文件不可用，需清空重建。在 Risks 中显式记录
 - **风险**：Barrier 注入方式从外部线程改为 SourceContext 拦截模式，需要修改 `StreamSourceOperator.run()` 中的匿名 `SourceContext` 实现。缓解：在 `SourceContext.collect()` 方法中增加 pending barrier 检查，每次 collect 前检查是否有待注入的 barrier——这对有限和无限 source 都有效，因为 barrier 注入点在 collect 调用链上
-- **风险**：JdbcCheckpointStorage 重写引入 `nop-dao` 依赖。缓解：`nop-dao` 是 Nop 平台核心模块，已在仓库中；只需在 `nop-stream-runtime/pom.xml` 添加依赖
+- **风险**：JdbcCheckpointStorage 重写引入 `nop-dao` 依赖。缓解：`nop-dao` 是 Nop 平台核心模块，已在仓库中；只需在 `nop-stream/nop-stream-runtime/pom.xml` 添加依赖
 - **回滚策略**：每个 Phase 独立提交。Phase 1-3 是正确性修复，必须全部完成。Phase 4-6 是能力增强，可按 Phase 粒度回退
 
 ## Execution Plan
@@ -209,7 +209,7 @@ Targets: `nop-stream-runtime`（checkpoint 包的 `JdbcCheckpointStorage`）
 
 基于 Nop 平台的 `IJdbcTemplate` + `IDialect` 重写 JdbcCheckpointStorage，替代当前的 raw JDBC + MySQL DDL 实现。
 
-- [x] 在 `nop-stream-runtime/pom.xml` 中添加 `nop-dao` 依赖（提供 `IJdbcTemplate` / `IDialect` / `ITransactionTemplate` 接口）。scope 为 provided（运行时由接入方提供实现）
+- [x] 在 `nop-stream/nop-stream-runtime/pom.xml` 中添加 `nop-dao` 依赖（提供 `IJdbcTemplate` / `IDialect` / `ITransactionTemplate` 接口）。scope 为 provided（运行时由接入方提供实现）
 - [x] 重写 `JdbcCheckpointStorage`：构造器接收 `IJdbcTemplate` 和 `String querySpace`（默认 `"default"`）。移除 `DataSource` 依赖。提供 `@Inject` setter 方法 `setJdbcTemplate(IJdbcTemplate)` 供 NopIoC 注入（参考 `nop-batch-jdbc` 的 `JdbcBatchConsumerProvider` 模式）
 - [x] 所有 SQL 使用 `SQL.begin()` 构建器（`io.nop.core.lang.sql.SQL`，仓库中已有 204 处使用），不手写 SQL 字符串。参考 `JdbcInsertBatchConsumer` 的用法：`SQL.begin().name(...).insertInto(tableName)...end()`
 - [x] DDL 使用 `IDialect` 类型映射生成建表语句（通过 `jdbcTemplate.getDialectForQuerySpace(querySpace)` 获取方言）。支持 `BIGINT` / `VARCHAR` / `CLOB/BLOB`（大状态列）等类型的跨数据库映射
@@ -228,7 +228,7 @@ Exit Criteria:
 - [x] 无 `DataSource.getConnection()` 调用，全部通过 `IJdbcTemplate` 访问数据库
 - [x] 序列化 round-trip 正确：存储 → 读取 → 反序列化后的 `CompletedCheckpoint` 与原始一致
 - [x] `CheckpointConfig.storageType = "jdbc"` 时，`createStorage()` 能创建 `JdbcCheckpointStorage` 实例
-- [x] `nop-stream-runtime/pom.xml` 包含 `nop-dao` 依赖
+- [x] `nop-stream/nop-stream-runtime/pom.xml` 包含 `nop-dao` 依赖
 - [x] 新增测试：`TestJdbcCheckpointStorage` 使用 H2 验证全量 CRUD
 - [x] `./mvnw test -pl nop-stream` 通过
 - [x] **端到端验证**：使用 JdbcCheckpointStorage（H2）运行完整的 checkpoint + 恢复流程

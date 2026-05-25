@@ -296,7 +296,7 @@ Exit Criteria:
 - [x] **接线验证**：通过线程名断言验证 barrier 注入发生在 source 读取线程
 - [x] **无静默跳过**：pendingBarriers 队列满时拒绝重复触发（不覆盖已有 barrier）
 - [x] 所有现有 checkpoint 测试通过
-- [x] 相关 `ai-dev/design/checkpoint-design.md` §2.3 已更新
+- [x] 相关 `ai-dev/design/nop-stream/checkpoint-design.md` §2.3 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -343,7 +343,7 @@ Exit Criteria:
 - [x] **接线验证**：CheckpointCoordinator.acknowledgeTask() 收齐所有 subtask 的 ACK
 - [x] **无静默跳过**：未知 PartitionPolicy 抛出异常
 - [x] 现有 parallelism=1 端到端测试不受影响
-- [x] 相关 `ai-dev/design/graph-model-design.md` 已更新
+- [x] 相关 `ai-dev/design/nop-stream/graph-model-design.md` 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -384,7 +384,7 @@ Exit Criteria:
 - [x] **接线验证**：RecordWriter.emitBarrier() 通过 RemoteResultPartition 发送，RemoteInputChannel 收到后 InputGate 正确对齐
 - [x] **无静默跳过**：发送失败时抛出异常；fencing token 不匹配拒绝消息
 - [x] Phase 2 的本地 queue 测试不受影响
-- [x] 相关 `ai-dev/design/architecture.md` §6 已更新
+- [x] 相关 `ai-dev/design/nop-stream/architecture.md` §6 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -451,7 +451,7 @@ Exit Criteria:
 - [x] **端到端验证**：coordinator 分配 task → TaskManager 接收 → 数据处理完成 → 结果正确
 - [x] **接线验证**：TaskManager 调用 ClusterRegistry.assignTask() 和 renewLease()
 - [x] **无静默跳过**：task 执行失败时报告到 coordinator
-- [x] 相关 `ai-dev/design/architecture.md` §5 已更新
+- [x] 相关 `ai-dev/design/nop-stream/architecture.md` §5 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -505,7 +505,7 @@ Exit Criteria:
 - [x] **接线验证**：fencing token 在 assignment、barrier 触发、ACK、commit 中全程传递和验证
 - [x] **无静默跳过**：fencing token 不匹配时拒绝操作
 - [x] 不变量验证：#4、#5、#8
-- [x] 相关 `ai-dev/design/architecture.md` §5、`checkpoint-design.md` §8 已更新
+- [x] 相关 `ai-dev/design/nop-stream/architecture.md` §5、`ai-dev/design/nop-stream/checkpoint-design.md` §8 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -539,7 +539,7 @@ Exit Criteria:
 - [x] **端到端验证**：DRAIN 模式下 terminal checkpoint 完成后作业结束
 - [x] **接线验证**：恢复时从 EpochManifest 恢复 SourceEnumeratorState
 - [x] **无静默跳过**：split 分配冲突时抛出异常
-- [x] 相关 `ai-dev/design/connector-design.md` §4 已更新
+- [x] 相关 `ai-dev/design/nop-stream/connector-design.md` §4 已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ---
@@ -623,7 +623,7 @@ Exit Criteria:
 - [x] 分布式端到端测试通过（2+ 节点 TaskManager）
 - [x] 分布式恢复测试通过（一节点故障 → 恢复 → 继续处理）
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
-- [x] 受影响的 owner docs 已同步：`architecture.md`、`checkpoint-design.md`、`graph-model-design.md`、`connector-design.md`、`state-management-design.md`、`core-design.md`、`component-roadmap.md`、`stream-model-design.md`、`window-design.md`
+- [x] 受影响的 owner docs 已同步：`architecture.md`、`checkpoint-design.md`、`graph-model-design.md`、`connector-design.md`、`state-management-design.md`、`core-design.md`、`component-roadmap.md`、`../design/nop-stream/time-model-design.md`、`window-design.md`
 - [x] 独立子 agent closure-audit 已完成并记录证据
 - [x] **Anti-Hollow Check**：closure audit 验证分布式控制面所有组件在运行时被调用
 - [x] `./mvnw compile -pl nop-stream -am`
