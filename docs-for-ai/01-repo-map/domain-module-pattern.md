@@ -48,7 +48,24 @@ model -> codegen -> dao -> meta -> service -> web -> app -> api
 | `*-service/` | BizModel、xbiz、beans、Processor | `XxxBizModel.java`、`*.xbiz` |
 | `*-web/` | 页面与视图资源 | `precompile/gen-page.xgen`、`*.view.xml`、`*.page.yaml` |
 | `*-app/` | 应用打包与启动 | 启动类、配置、部署相关文件 |
-| `*-api/` | 对外接口契约 | API 定义 |
+| `*-api/` | 外部系统调用本模块的 RPC 接口契约 | Typed Service Interface（如 `WorkflowService`）、Message Bean（如 `WfStartRequestBean`） |
+
+**关键区分：`*-api/` vs `*-dao/` vs `*-service/`**
+
+| 产物 | 放在哪里 | 用途 | 例子 |
+|------|---------|------|------|
+| `I*Biz` 接口 | `*-dao/.../biz/` | BizModel 之间跨模块调用的内部契约接口，由 BizModel 实现 | `INopAuthUserBiz`、`IOrderBiz` |
+| BizModel 内部使用的局部 DTO | `*-dao/.../dto/` 或 `*-service/` | BizModel / Processor 共享的局部数据结构，仅模块内部使用 | `CohesionBreakdownDTO` |
+| 外部 RPC Service Interface | `*-api/` | 外部系统通过 HTTP/RPC 调用本模块时使用的强类型接口，包装 `ApiRequest<>`/`ApiResponse<>` | `WorkflowService`、`IJobScheduler` |
+| 外部 RPC Message Bean | `*-api/.../beans/` | 上述 RPC 接口的请求/响应消息类，通常由 codegen 生成 | `WfStartRequestBean`、`ChatRequest` |
+
+**`*-api/` 的明确边界：**
+
+1. `*-api/` 只放外部系统调用本模块的接口和消息类。不是所有 DTO 都该放这里。
+2. BizModel 方法使用的局部 DTO（汇总数据、简化视图、组合数据等）放 `*-dao/.../dto/` 或 `*-service/`，**不属于** `*-api/`。实体能表达的优先用实体，字段可见性由 xmeta 控制。
+3. `I*Biz` 接口放在 `*-dao/`，不在 `*-api/`。它们是内部 BizModel 间调用的契约，不是外部 API。
+4. 很多模块的 `*-api/` 可以为空（如 `nop-auth-api`），只有需要给外部系统提供强类型 RPC 接口时才有内容。
+5. 平台回避 Controller / Service 这类命名（容易与 Spring 混淆），优先用 BizModel / Processor / Api 等名称。
 
 ## 真实生成链路
 

@@ -56,25 +56,35 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 
 ### 返回值：实体 vs DTO
 
-**BizModel 方法返回实体对象是默认模式，不需要返回 DTO。**
+**实体能表达的数据优先用实体，但 DTO 在很多场景下是正常选择。**
 
-原因：
+实体的优势：
 
 1. `CrudBizModel.get()` 直接返回 `T extends IOrmEntity`（平台基类设计）。
 2. `GraphQLExecutor.fetchSelections()` 根据客户端 GraphQL selection 逐字段获取值。
 3. 客户端只能看到 xmeta 中定义的、且在 selection 中请求的字段，不会暴露整个实体。
-4. API 契约由 xmeta（字段可见性/类型）和 GraphQL selection（客户端实际获取的字段）共同决定。
-
-因此：
+4. 字段可见性由 xmeta 控制，不需要靠改返回类型来隐藏字段。
 
 | 场景 | 返回什么 |
 |------|---------|
 | 标准 CRUD 操作 | 直接返回实体（`CrudBizModel` 已实现） |
 | 自定义查询/修改 | 直接返回实体 |
-| 返回值需要组合多个来源的数据 | `@DataBean` |
+| 汇总统计、聚合数据（如社区检测结果、影响分析） | `@DataBean` DTO |
+| 简化视图（如符号概要、文件树） | `@DataBean` DTO |
+| 组合多个来源的数据 | `@DataBean` DTO |
 | 内部服务接口（不对外暴露） | 返回 core 层模型（以高性能为优先） |
 
-不要把"返回实体"当作架构问题。如果需要限制字段可见性，在 xmeta 中配置，而不是改返回类型为 DTO。
+如果只是限制字段可见性，在 xmeta 中配置即可，不需要为此创建 DTO。但如果返回值本身是汇总、简化、计算后的数据结构，DTO 是正确选择。
+
+**DTO 的放置：**
+
+1. 局部 DTO 放在 `*-dao/.../dto/`（BizModel / Processor 共享时）或 `*-service/`（仅单个 BizModel 使用时）。
+2. **局部 DTO 不要放进 `*-api/` 模块。** `*-api/` 只放外部系统 RPC 调用本模块的接口和 Message Bean。详见 `dto-json-and-message-beans.md`。
+3. 外部 RPC 接口需要的 Message Bean 放 `*-api/.../beans/`。
+
+**命名约定：**
+
+Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有特定含义，容易产生误解。Nop 使用 BizModel（业务模型）、Processor（处理器）、`I*Biz`（跨模块调用接口）、Api（外部 RPC 接口）等名称。不要在 Nop 模块中创建 `*Controller` 或 `*Service` 类——这些职责由 BizModel 和 `I*Biz` 接口承担。
 
 ## 普通 BizModel 默认优先的 API
 
@@ -115,6 +125,9 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 | `@BizMutation @Transactional` | 重复事务包裹 |
 | 直接注入其他 BizModel 实现类 | 降低跨模块可替换性 |
 | 创建无 xmeta 的伪 BizModel | GraphQL 无法识别，浏览器页面报"未定义的对象" |
+| BizModel 返回值无脑用 DTO 代替 Entity | 实体能表达的优先用实体，字段可见性由 xmeta 控制 |
+| 创建 `*Service` / `*Controller` 类 | Nop 用 BizModel / `I*Biz` 承担这些职责，回避 Spring 命名 |
+| 将局部 DTO 放入 `*-api/` 模块 | `*-api/` 只放外部 RPC 接口，局部 DTO 放 `*-dao/.../dto/` 或 `*-service/` |
 
 ## 何时拆 Processor
 

@@ -9,6 +9,7 @@
 3. 不要把旧式直接 `dao()` 示例当作当前 GraphQL 默认模板。
 4. 返回复杂结构时优先 `@DataBean` DTO，而不是 `Map<String, Object>`。
 5. 扩展返回字段时优先 `@BizLoader`；字段不存在时优先 Delta + `@BizLoader(autoCreateField = true)` + `@LazyLoad`。
+6. **Nop 平台内置 BizModel 对象名以 `Nop` 为前缀**（如 `NopAuthUser`、`NopCodeIndex`），用于与用户业务对象区分，避免 GraphQL 类型名冲突。用户自定义 BizModel 不需要 `Nop` 前缀。
 
 ## 最小理解模型
 

@@ -65,6 +65,8 @@
 
     如果某个功能确实需要暂缓实现，正确做法是抛出 `UnsupportedOperationException("not yet implemented: ...")` 或返回错误码——让调用方快速失败，而非静默忽略。Exit Criteria 中必须验证：新增的每个公共方法/分支路径在未实现时是显式失败的，不是静默跳过的。
 
+25. **新功能必有测试规则（Test-Mandated Feature Rule）**：每个新增功能（新类、新方法、新算法、新 BizModel action 等）必须在同一 Phase 内编写对应的单元测试。Exit Criteria 不能只写"原有测试通过"——必须**显式列出新增功能的测试覆盖要求**，明确哪些测试验证了哪些新行为。纯重构、纯文档变更、纯配置调整不强制新增测试，但必须在 Exit Criteria 中注明"No new test required: <reason>"。
+
 ## Anti-Slacking Rule
 
 计划可以延期优化工作，但不能延期"这个 in-scope 项目到底是不是 closure 必需项"的裁定。

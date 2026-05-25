@@ -17,10 +17,27 @@
 
 1. 加 `@DataBean`。
 2. 如果这是普通局部 Bean，默认提供标准 getter / setter；只有需要跨边界序列化或周边代码已经这样做时，再补 `Serializable`。
-3. 默认放在最贴近复用边界的位置：BizModel 和 Processor 共享的局部 DTO 常见于 `*-dao/.../dto/`，API message bean 常见于 `*-api/.../messages` 或 `.../beans`，优先跟随周边模块。
+3. 默认放在最贴近复用边界的位置（详见下方"DTO 放置规则"）。
 4. 不要默认用 `Map<String, Object>` 代替强类型 DTO。
 
 如果只是当前任务中的局部请求和返回对象，通常不需要上升到 message bean 模式。
+
+## DTO 放置规则
+
+实体能表达的数据优先用实体（字段可见性由 xmeta 控制）。但汇总统计、简化视图、组合数据等场景使用 DTO 是正常的。
+
+| DTO 类型 | 放在哪里 | 例子 |
+|----------|----------|------|
+| BizModel / Processor 共享的局部 DTO | `*-dao/.../dto/` | `SubmitOrderRequest` |
+| 只在一个 BizModel 方法中使用的临时 DTO | `*-service/` 内靠近 BizModel | 简单 result bean |
+| 外部 RPC 接口的 Message Bean（跨模块/跨端） | `*-api/.../beans/` | `WfStartRequestBean`、`ChatRequest` |
+
+**关于 `*-api/` 的常见误解：**
+
+1. `*-api/` 只放外部系统通过 HTTP/RPC 调用本模块时使用的 Message Bean。这些通常由 codegen 生成，配合 typed service interface（如 `WorkflowService`）使用。
+2. **BizModel 方法内部使用的局部 DTO 不属于 `*-api/`。** 即使 BizModel 方法通过 GraphQL 暴露为 API，其返回值使用的 `@DataBean` 仍然是模块内部实现细节，放在 `*-dao/.../dto/` 或 `*-service/`。
+3. `I*Biz` 接口放在 `*-dao/.../biz/`，不在 `*-api/`。
+4. 判断标准：如果这个 DTO 的消费者是"同一模块内的 BizModel / Processor"，放 `*-dao/` 或 `*-service/`；如果消费者是"外部系统或其他模块通过 RPC 调用"，放 `*-api/`。
 
 ## 什么时候跟随 Message Bean 风格
 

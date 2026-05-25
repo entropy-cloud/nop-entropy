@@ -97,6 +97,7 @@ String yaml = JsonTool.serializeToYaml(result);
 1. 默认引入 Apache Commons / Guava / 另一套 JSON 工具完成仓库已有 helper 能做的事。
 2. 手写重复的 CSV split、布尔转换、日期转换逻辑。
 3. 因为未核对的方法名而误用仓库中不存在的 helper API。
+4. **使用 `String.getBytes()` 不指定字符集** — 禁止 `str.getBytes()`，必须使用 `str.getBytes(StandardCharsets.UTF_8)`。平台默认字符集因环境不同而不同，不指定字符集会导致跨平台数据不一致（hash/序列化/签名等场景尤其危险）。
 
 ## 相关文档
 

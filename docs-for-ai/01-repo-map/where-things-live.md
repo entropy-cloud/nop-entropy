@@ -20,6 +20,9 @@
 | 保留层 Entity | `*-dao/src/main/java/.../entity/Xxx.java` | 是 |
 | 生成的 `I*Biz` 接口 | `*-dao/src/main/java/.../biz/I*Biz.java` | 通常读多写少 |
 | BizModel | `*-service/src/main/java/.../entity/*BizModel.java` | 是 |
+| 局部 DTO（BizModel/Processor 共享） | `*-dao/src/main/java/.../dto/` | 是 |
+| 外部 RPC Service Interface | `*-api/src/main/java/.../XxxApi.java` | 是 |
+| 外部 RPC Message Bean | `*-api/src/main/java/.../beans/` | 通常由 codegen 生成 |
 | xbiz 基类 | `*-service/src/main/resources/_vfs/.../_Xxx.xbiz` | 否 |
 | xbiz 扩展文件 | `*-service/src/main/resources/_vfs/.../Xxx.xbiz` | 是 |
 | service beans 生成文件 | `*-service/src/main/resources/_vfs/.../beans/_service.beans.xml` | 否 |

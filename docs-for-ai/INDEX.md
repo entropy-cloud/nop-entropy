@@ -27,7 +27,7 @@
 
 - 先模型，再 Delta，最后 Java。
 - 默认不要修改 `_gen/`、`_*.java`、`_*.xml`、`_app.orm.xml`、`_service.beans.xml`。
-- BizModel 方法默认返回 Entity，不需要 DTO。字段可见性在 xmeta 中控制，不是靠改返回类型。详见 `02-core-guides/service-layer.md`。
+- BizModel 方法实体能表达的优先返回 Entity，汇总/简化/组合数据用 `@DataBean` DTO。字段可见性在 xmeta 中控制。详见 `02-core-guides/service-layer.md`。
 - 标准实体服务默认使用 `CrudBizModel<T>`。
 - 普通取数优先 `requireEntity()`、`doFindList()`、`doFindPage()`，不要先写原始 `dao()` 模板。
 - 普通 `@BizMutation` 已自动进入事务，不要默认叠加 `@Transactional`。

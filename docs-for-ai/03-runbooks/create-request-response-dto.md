@@ -9,7 +9,11 @@
 
 - 多参数输入优先 `@RequestBean`。
 - 多字段输出优先 `@DataBean`。
-- DTO 默认放在最贴近复用边界的位置：BizModel 与 Processor 共用时常见于 `*-dao/.../dto/`，API message bean 常见于 `*-api/.../messages` 或 `.../beans`。
+- DTO 默认放在最贴近复用边界的位置：
+  - BizModel 与 Processor 共享的局部 DTO 放 `*-dao/.../dto/`。
+  - 只在一个 BizModel 中使用的临时 DTO 放 `*-service/`。
+  - 外部 RPC 接口的 Message Bean（配合 typed service interface 如 `WorkflowService` 使用）放 `*-api/.../beans/`。
+  - **不要将 BizModel 方法内部使用的局部 DTO 放入 `*-api/`。**
 - 如果周边模块已经大量使用 `ExtensibleBean` + `@PropMeta`，优先跟随该风格，而不是另起一套 DTO 风格。
 
 ## 最小模板

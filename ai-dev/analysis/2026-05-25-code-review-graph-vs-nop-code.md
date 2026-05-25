@@ -31,7 +31,7 @@
 | 能力 | CRG | nop-code | 差距 |
 |------|-----|----------|------|
 | **AST 解析** | tree-sitter（所有语言统一） | Java: JavaParser+SymbolSolver；Python/TS: tree-sitter | nop-code Java 解析更强（符号解析），但通用性不如 CRG |
-| **边类型** | CALLS / IMPORTS_FROM / INHERITS / IMPLEMENTS / CONTAINS / TESTED_BY / DEPENDS_ON / REFERENCES（8 种） | calls / inheritances / annotationUsages / fileDependencies（4 种） | **nop-code 缺少**：CONTAINS（父子关系）、TESTED_BY（测试覆盖关联）、REFERENCES（通用引用） |
+| **边类型** | CALLS / IMPORTS_FROM / INHERITS / IMPLEMENTS / CONTAINS / TESTED_BY / DEPENDS_ON / REFERENCES（8 种） | calls / inheritances / annotationUsages / fileDependencies（4 种）。注意：CodeSymbol 已有 parentId/declaringSymbolId 字段存储父子关系，但无独立 CONTAINS 边表 | **nop-code 缺少**：TESTED_BY（测试覆盖关联）、REFERENCES（通用引用）。IMPLEMENTS 可从已有 inheritances 拆分。CONTAINS 是否需独立边表待讨论 |
 | **边置信度** | EXTRACTED / INFERRED / AMBIGUOUS 三级 | EXTRACTED / INFERRED 两级 | 小差距，nop-code 设计文档已规划 AMBIGUOUS |
 | **跨文件解析** | TS path alias / Dart pubspec / ReScript 跨模块 | Java/Python/TS import resolver | **nop-code 缺少**框架特定解析（Spring DI、Temporal、Kafka 等） |
 | **框架感知** | Spring @Autowired/@Inject / Temporal workflow / Kafka @KafkaListener / ~40 种框架装饰器模式 | 无 | **nop-code 完全缺失** |
@@ -54,7 +54,7 @@
 
 | 能力 | CRG | nop-code | 差距 |
 |------|-----|----------|------|
-| **全文搜索** | SQLite FTS5（Porter stemmer + unicode61） + BM25 排名 | DB LIKE 查询 + 评分排序 | **nop-code 差距大**：无倒排索引，大项目性能堪忧 |
+| **全文搜索** | SQLite FTS5（Porter stemmer + unicode61） + BM25 排名 | DB LIKE + 内存多因子评分（scoreSymbolNameMatch + scoreFullTextMatch + scoreCombined） | **nop-code 差距大**：无倒排索引/BM25，大项目性能堪忧（但评分逻辑比纯 LIKE 更精细） |
 | **语义向量搜索** | 4 Provider（sentence-transformers / Gemini / MiniMax / OpenAI 兼容） | 无 | **nop-code 完全缺失** |
 | **混合搜索** | FTS5 + 向量 → RRF 融合 + 查询感知 kind boosting | 无 | **nop-code 完全缺失** |
 | **搜索降级** | FTS5+向量 → FTS5 → LIKE 三级降级 | 仅 LIKE | **nop-code 缺失** |
@@ -617,9 +617,9 @@ private SymbolTable rebuildSymbolTable(String indexId) {
 
 #### 问题 7：缺少按注解搜索
 
-设计文档规划了 `NopCodeSymbol__findByAnnotation`，但未实现。对于理解 Nop 平台（大量使用 `@BizQuery`、`@BizMutation`、`@BizLoader` 等注解）非常关键。
+设计文档规划了 `NopCodeSymbol__findByAnnotation`，但未实现。`nop_code_annotation_usage` 表已存在且有数据，只是 BizModel 未暴露查询入口。
 
-**建议**：在 `NopCodeSymbolBizModel` 新增 `findByAnnotation(annotationName, indexId)` Query，利用已有的 `nop_code_annotation_usage` 表。
+**建议**：在 `NopCodeSymbolBizModel` 新增 `findByAnnotation(annotationName, indexId)` Query。
 
 #### 问题 8：BizLoader 中 indexId 硬编码
 
@@ -712,6 +712,36 @@ String fileEntityId = indexId + "_" + Math.abs(file.getFilePath().hashCode());
 - [ ] 重构工具的定位：nop-code 是否应该支持代码修改？还是保持只读索引，由上层工具负责修改？
 - [ ] BizLoader 中 indexId 传递机制：是通过实体冗余字段、GraphQL context、还是改为独立的 Query 方法？
 - [ ] 关系型聚合根（Call/Inheritance/Usage 等）是保留为聚合根添加业务方法，还是降级为内部表？
+
+## 八、审计纠正（2026-05-25）
+
+基于代码逐行审计，纠正本文档中的错误表述：
+
+### 确认的 Bug（文档说法准确）
+
+1. **CallHierarchy ID 不一致**（`CodeIndexService.java:1021`）：`buildCallHierarchy` 用 qualifiedName 查 CallGraph，但 `rebuildCallGraph`（`:211`）用 symbol ID 建边。调用层级查询永远返回空结果。
+2. **NopCodeUsage 未填充**（`saveFileResultInSession` 不写 Usage 实体）：`findReferencedBy` 读空表。
+3. **Python/TS 适配器未注册**（`:97-102` 仅注册 JavaLanguageAdapter）。
+4. **sourceCode 返回 null**（`:160` 显式设 null，但 `:1651` 确实写入了 DB）。
+5. **indexId 硬编码 "test"**（`NopCodeSymbolBizModel.java:98,111`）。
+6. **每次图查询全量重建**（5 个图方法均调 rebuildSymbolTable + rebuildCallGraph，无缓存）。
+7. **File ID 碰撞风险**（`:1636` 用 `Math.abs(hashCode())`）。
+
+### 纠正的表述
+
+1. **搜索能力**：原文说"DB LIKE 查询 + 评分排序"，实际 `searchCode` 包含内存多因子评分（`scoreSymbolNameMatch`、`scoreFullTextMatch`、`scoreCombined`），比纯 LIKE 精细。但结论正确：无倒排索引，大项目性能不可接受。已修正 1.4 节。
+2. **CONTAINS 边**：原文说"缺少 CONTAINS（父子关系）"，但 `CodeSymbol` 已有 `parentId`/`declaringSymbolId` 字段存储父子关系，只是没有独立边表。已修正 1.2 节。
+3. **analyzeIncremental 忽略 languages 参数**：原文此说法归因错误。`ICodeIndexService` 无 `analyzeIncremental` 方法；`IProjectAnalyzer.analyzeIncremental` 根本 throws `UnsupportedOperationException`。不存在"languages 参数被忽略"的情况。
+
+### 文档未覆盖的重要问题
+
+1. **源码存储浪费**：写入 DB 又丢弃，要么返回已存储的源码，要么改为 `ISourceCodeProvider` 按需读磁盘。
+2. **ORM 关系死重**：`NopCodeFile` 定义了对 Symbol/Usage/Call 的 ORM 关系但 BizModel 从未使用。
+3. **线程安全**：图分析方法直接调 `daoProvider.daoFor()` 不包装 session。
+4. **NopCodeAnalysisBizModel 残留**：`reflect-config.json` 引用和测试文件存在，但源码中没有此类。
+5. **安全模型**：`indexId` 无鉴权，任何认证用户可查询任何索引。
+
+---
 
 ## References
 

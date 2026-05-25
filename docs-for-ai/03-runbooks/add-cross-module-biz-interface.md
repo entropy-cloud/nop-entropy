@@ -8,9 +8,10 @@
 ## AI 决策提示
 
 - 被其他 BizModel 调用的方法，优先放到 `I*Biz` 接口。
-- `I*Biz` 通常放在 `*-dao/.../biz/`。
+- `I*Biz` 通常放在 `*-dao/.../biz/`。**不在 `*-api/`。**
 - BizModel 实现类 `implements I*Biz`。
 - 不要直接注入另一个 BizModel 实现类。
+- `I*Biz` 是模块内部 BizModel 间调用的契约接口。`*-api/` 中的 typed service interface（如 `WorkflowService`）是外部系统 RPC 调用的接口，两者定位不同。
 
 ## 最小闭环
 
