@@ -111,3 +111,6 @@ graphify-out/
 
 # Test results
 test-results/
+
+# AI temp files (scratch output, logs, analysis dumps)
+_tmp/
