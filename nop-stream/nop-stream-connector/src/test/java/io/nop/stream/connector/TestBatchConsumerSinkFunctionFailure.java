@@ -16,7 +16,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Disabled("Bug N53: flush failure causes duplicate processing. Fix should pass.")
+@Disabled("Genuinely broken: testFlushFailureOnClose sets batchSize=2 but only calls " +
+        "consume() once, so flush() during close is the first call and succeeds. " +
+        "The production code also has the underlying Bug N53: flush() does not clear " +
+        "buffer on failure, causing duplicate processing on retry.")
 public class TestBatchConsumerSinkFunctionFailure {
 
     @Test

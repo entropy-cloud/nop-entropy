@@ -21,7 +21,9 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Disabled("Bug N54: latch only counted down by cancel. Fix should pass.")
+@Disabled("Genuinely broken: DebeziumCdcSourceFunction.run() loops until cancel() or " +
+        "truncateForDrain() is called — it has no natural completion path. " +
+        "The test expects natural end without cancel, which is impossible by design.")
 public class TestDebeziumCdcSourceCompletion {
 
     @Test
