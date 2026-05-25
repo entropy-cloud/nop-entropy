@@ -18,29 +18,44 @@
 
 package io.nop.stream.cep.operator;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.function.BiConsumer;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.stream.Stream;
+import java.util.TreeSet;
+
+import jakarta.annotation.Nullable;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Metrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.tuple.Tuple2;
-import io.nop.stream.cep.EventComparator;
+
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
+import io.nop.stream.cep.EventComparator;
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
-import io.nop.stream.cep.nfa.NFA;
-import io.nop.stream.cep.nfa.NFAState;
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
+import io.nop.stream.cep.nfa.NFA;
+import io.nop.stream.cep.nfa.NFAState;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.time.TimerService;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
-import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
@@ -49,19 +64,6 @@ import io.nop.stream.core.operators.TimestampedCollector;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
-
-import jakarta.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.function.BiConsumer;
-import java.util.stream.Stream;
 
 /**
  * CEP pattern operator for a keyed input stream. For each key, the operator creates a {@link NFA}
@@ -171,11 +173,14 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void open() throws Exception {
         super.open();
 
         stateStore = new SimpleKeyedStateStore();
         computationStates = stateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
+        // MapStateDescriptor does not support generic type tokens for value class;
+        // (Class) List.class is used as a raw class hint, actual generic safety is ensured by usage
         elementQueueState = stateStore.getMapState(
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(stateStore, inputSerializer, new SharedBufferCacheConfig());

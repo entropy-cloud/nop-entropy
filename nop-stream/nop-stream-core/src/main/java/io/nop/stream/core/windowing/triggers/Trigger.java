@@ -18,13 +18,13 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import java.io.Serializable;
+
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.io.Serializable;
 
 /**
  * A {@code Trigger} determines when a pane of a window should be evaluated to emit the results for

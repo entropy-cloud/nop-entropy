@@ -18,10 +18,10 @@
 
 package io.nop.stream.cep.functions;
 
-import io.nop.stream.cep.pattern.Pattern;
-
 import java.util.List;
 import java.util.Map;
+
+import io.nop.stream.cep.pattern.Pattern;
 
 /**
  * Enables handling timed out partial matches. It shall be used in a mixin style. If you need your

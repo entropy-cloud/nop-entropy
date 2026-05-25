@@ -7,10 +7,10 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.stream.core.streamrecord.watermark.Watermark;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import io.nop.stream.core.streamrecord.watermark.Watermark;
 
 /**
  * Manages multiple {@link HeapInternalTimerService} instances and advances their watermarks

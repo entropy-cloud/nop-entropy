@@ -7,13 +7,13 @@
  */
 package io.nop.stream.core.transformation;
 
-import io.nop.commons.partition.IPartitioner;
-import io.nop.stream.core.common.functions.KeySelector;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-
-
 import java.util.Collections;
 import java.util.List;
+
+import io.nop.commons.partition.IPartitioner;
+
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 /**
  * A transformation that partitions a data stream based on a key selector and partitioner.

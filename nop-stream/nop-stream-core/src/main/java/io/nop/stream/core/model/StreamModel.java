@@ -7,17 +7,18 @@
  */
 package io.nop.stream.core.model;
 
+import java.io.Serializable;
+import java.util.*;
+
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.core.common.functions.SinkFunction;
+
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
-
-import java.io.Serializable;
-import java.util.*;
 
 @DataBean
 public class StreamModel implements Serializable {

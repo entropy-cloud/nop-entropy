@@ -18,11 +18,12 @@
 
 package io.nop.stream.core.common.functions;
 
+import java.io.Serializable;
+
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.io.Serializable;
 
 /**
  * Base interface for functions that are evaluated over keyed (grouped) windows.

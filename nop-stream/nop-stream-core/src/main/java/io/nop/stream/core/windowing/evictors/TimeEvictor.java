@@ -18,12 +18,13 @@
 
 package io.nop.stream.core.windowing.evictors;
 
-import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.windowing.utils.TimestampedValue;
-import io.nop.stream.core.windowing.windows.Window;
-
 import java.time.Duration;
 import java.util.Iterator;
+
+import io.nop.api.core.annotations.core.Internal;
+
+import io.nop.stream.core.windowing.utils.TimestampedValue;
+import io.nop.stream.core.windowing.windows.Window;
 
 /**
  * An {@link Evictor} that keeps elements for a certain amount of time. Elements older than {@code

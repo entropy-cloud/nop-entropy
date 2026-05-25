@@ -9,6 +9,7 @@ package io.nop.stream.connector;
 
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchLoaderProvider;
+
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.DataStreamSource;

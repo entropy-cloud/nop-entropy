@@ -9,6 +9,9 @@ package io.nop.stream.core.connector;
 
 import java.io.Serializable;
 
+import io.nop.api.core.annotations.core.Internal;
+
+@Internal
 public interface WatermarkEstimator extends Serializable {
 
     void observe(long timestamp);

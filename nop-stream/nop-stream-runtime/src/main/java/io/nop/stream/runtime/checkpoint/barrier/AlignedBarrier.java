@@ -7,10 +7,10 @@
  */
 package io.nop.stream.runtime.checkpoint.barrier;
 
+import java.io.Serializable;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
-
-import java.io.Serializable;
 
 public class AlignedBarrier implements Serializable {
 

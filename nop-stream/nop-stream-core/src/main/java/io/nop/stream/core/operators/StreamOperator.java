@@ -17,12 +17,12 @@
 
 package io.nop.stream.core.operators;
 
+import java.io.Serializable;
+
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
-
-import java.io.Serializable;
 
 /**
  * Basic interface for stream operators. Implementers would implement one of {@link

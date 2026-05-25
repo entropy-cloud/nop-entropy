@@ -18,12 +18,12 @@
 
 package io.nop.stream.cep.nfa;
 
-import io.nop.stream.cep.nfa.sharedbuffer.EventId;
-import io.nop.stream.cep.nfa.sharedbuffer.NodeId;
+import java.util.Objects;
 
 import jakarta.annotation.Nullable;
 
-import java.util.Objects;
+import io.nop.stream.cep.nfa.sharedbuffer.EventId;
+import io.nop.stream.cep.nfa.sharedbuffer.NodeId;
 
 /**
  * Helper class which encapsulates the currentStateName of the NFA computation. It points to the

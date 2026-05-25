@@ -18,12 +18,12 @@
 
 package io.nop.stream.cep;
 
+import java.util.List;
+import java.util.Map;
+
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.util.Collector;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Base interface for a pattern select function which can produce multiple resulting elements. A

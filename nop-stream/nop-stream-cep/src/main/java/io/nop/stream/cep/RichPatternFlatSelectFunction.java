@@ -18,13 +18,13 @@
 
 package io.nop.stream.cep;
 
+import java.util.List;
+import java.util.Map;
+
 import io.nop.stream.core.common.functions.AbstractRichFunction;
 import io.nop.stream.core.common.functions.RichFunction;
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.util.Collector;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Rich variant of the {@link PatternFlatSelectFunction}. As a {@link RichFunction}, it gives access

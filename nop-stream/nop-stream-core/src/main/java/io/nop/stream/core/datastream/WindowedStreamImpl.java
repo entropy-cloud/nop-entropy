@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.datastream;
 
+import java.io.Serializable;
+
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
@@ -24,8 +26,6 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.io.Serializable;
 
 public class WindowedStreamImpl<T, K, W extends Window>
         extends DataStreamImpl<T> implements WindowedStream<T, K, W>, Serializable {

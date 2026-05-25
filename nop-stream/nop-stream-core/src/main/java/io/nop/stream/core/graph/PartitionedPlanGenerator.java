@@ -7,14 +7,14 @@
  */
 package io.nop.stream.core.graph;
 
-import io.nop.stream.core.execution.plan.PartitionPolicy;
+import java.util.*;
+
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.model.StreamModelFingerprint;
-
-import java.util.*;
 
 public class PartitionedPlanGenerator {
 

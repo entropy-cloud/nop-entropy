@@ -7,13 +7,13 @@
  */
 package io.nop.stream.core.model;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class StreamModelFingerprint implements Serializable {

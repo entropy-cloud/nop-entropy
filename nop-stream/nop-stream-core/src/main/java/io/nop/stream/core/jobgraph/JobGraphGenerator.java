@@ -7,18 +7,6 @@
  */
 package io.nop.stream.core.jobgraph;
 
-import io.nop.api.core.annotations.core.Internal;
-import io.nop.commons.partition.IPartitioner;
-import io.nop.stream.core.common.functions.KeySelector;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.execution.flow.EdgeConfig;
-import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.graph.StreamEdge;
-import io.nop.stream.core.graph.StreamGraph;
-import io.nop.stream.core.graph.StreamNode;
-import io.nop.stream.core.operators.StreamOperator;
-import io.nop.stream.core.operators.StreamOperatorFactory;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +14,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.nop.api.core.annotations.core.Internal;
+import io.nop.commons.partition.IPartitioner;
+
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.execution.flow.EdgeConfig;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.graph.StreamEdge;
+import io.nop.stream.core.graph.StreamGraph;
+import io.nop.stream.core.graph.StreamNode;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 
 /**
  * Generates an optimized JobGraph from a StreamGraph through operator chaining.

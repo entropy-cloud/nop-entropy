@@ -7,10 +7,10 @@
  */
 package io.nop.stream.core.common.state.shard;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.util.Objects;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class StateShard implements Serializable {

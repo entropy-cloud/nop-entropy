@@ -17,9 +17,9 @@
 
 package io.nop.stream.core.common.functions;
 
-import io.nop.api.core.annotations.core.Internal;
-
 import java.io.Serializable;
+
+import io.nop.api.core.annotations.core.Internal;
 
 /**
  * A ReduceFunction that reduces a group of values to a single value.

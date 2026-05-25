@@ -7,10 +7,11 @@
  */
 package io.nop.stream.runtime.coordinator;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
-
 import java.io.Serializable;
+
+import io.nop.api.core.annotations.data.DataBean;
+
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 
 /**
  * Control message sent from JobCoordinator to TaskManagers to trigger a checkpoint.

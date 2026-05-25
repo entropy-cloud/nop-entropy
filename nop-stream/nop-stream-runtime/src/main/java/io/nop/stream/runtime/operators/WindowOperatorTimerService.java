@@ -7,14 +7,16 @@
  */
 package io.nop.stream.runtime.operators;
 
+import java.util.Comparator;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+import java.util.PriorityQueue;
+
+import jakarta.annotation.Nonnull;
+
 import io.nop.stream.core.operators.InternalTimer;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.Triggerable;
-import jakarta.annotation.Nonnull;
-import java.util.Comparator;
-import java.util.PriorityQueue;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 /**
  * Timer service implementation for WindowOperator.

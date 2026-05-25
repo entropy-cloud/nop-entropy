@@ -7,14 +7,14 @@
  */
 package io.nop.stream.runtime.execution;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.flow.FlowControlPolicy;
 import io.nop.stream.core.execution.flow.MemoryBudget;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class DeploymentPlanGenerator {
 

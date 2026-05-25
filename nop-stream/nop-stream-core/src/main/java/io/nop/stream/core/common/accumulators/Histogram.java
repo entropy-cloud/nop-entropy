@@ -18,10 +18,10 @@
 
 package io.nop.stream.core.common.accumulators;
 
-import io.nop.api.core.annotations.core.Internal;
-
 import java.util.Map;
 import java.util.TreeMap;
+
+import io.nop.api.core.annotations.core.Internal;
 
 /**
  * Histogram accumulator, which builds a histogram in a distributed manner. Implemented as a

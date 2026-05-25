@@ -19,12 +19,13 @@
 package io.nop.stream.core.operators;
 
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
-import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.util.OutputTag;
 
 /**
  * Wrapper around an {@link Output} for user functions that expect a {@link Output}. Before giving

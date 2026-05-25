@@ -7,12 +7,12 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import java.io.Serializable;
+import java.util.*;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
-
-import java.io.Serializable;
-import java.util.*;
 
 @DataBean
 public class CheckpointPlan implements Serializable {

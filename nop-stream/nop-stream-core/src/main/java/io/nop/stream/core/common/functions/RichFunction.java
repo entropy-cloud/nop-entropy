@@ -18,7 +18,6 @@
 
 package io.nop.stream.core.common.functions;
 
-
 import io.nop.stream.core.configuration.Configuration;
 
 /**

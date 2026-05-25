@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
-import io.nop.stream.core.streamrecord.StreamRecord;
-
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.nop.stream.core.streamrecord.StreamRecord;
 
 /**
  * REBALANCE routing: round-robin across all downstream partitions.

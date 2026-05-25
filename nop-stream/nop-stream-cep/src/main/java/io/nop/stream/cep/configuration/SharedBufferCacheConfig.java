@@ -18,11 +18,10 @@
 
 package io.nop.stream.cep.configuration;
 
-
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.time.Duration;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 import static io.nop.stream.cep.NopCepConfigs.CEP_CACHE_STATISTICS_INTERVAL;
 import static io.nop.stream.cep.NopCepConfigs.CEP_SHARED_BUFFER_ENTRY_CACHE_SLOTS;

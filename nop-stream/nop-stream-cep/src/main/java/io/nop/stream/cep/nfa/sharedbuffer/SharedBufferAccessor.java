@@ -18,15 +18,6 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
-import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.tuple.Tuple2;
-import io.nop.commons.util.CollectionHelper;
-import io.nop.commons.util.StringHelper;
-import io.nop.stream.cep.nfa.ComputationState;
-import io.nop.stream.cep.nfa.DeweyNumber;
-import io.nop.stream.cep.nfa.compiler.NFAStateNameHandler;
-
-import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -34,7 +25,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import jakarta.annotation.Nullable;
+
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.tuple.Tuple2;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 import static io.nop.api.core.util.Guard.checkState;
+
+import io.nop.stream.cep.nfa.compiler.NFAStateNameHandler;
+import io.nop.stream.cep.nfa.ComputationState;
+import io.nop.stream.cep.nfa.DeweyNumber;
 
 /**
  * Accessor to SharedBuffer that allows operations on the underlying structures in batches.

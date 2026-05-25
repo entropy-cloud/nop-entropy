@@ -18,7 +18,6 @@
 
 package io.nop.stream.core.operators;
 
-
 import java.util.function.BiConsumer;
 
 /**

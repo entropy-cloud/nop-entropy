@@ -7,8 +7,15 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.message.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
@@ -19,12 +26,6 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * JobCoordinator is the single point of control for a distributed streaming job.

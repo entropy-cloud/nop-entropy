@@ -1,11 +1,11 @@
 package io.nop.stream.core.common.state.backend;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class StateSnapshot implements Serializable {

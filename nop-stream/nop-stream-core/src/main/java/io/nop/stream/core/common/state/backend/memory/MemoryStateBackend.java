@@ -7,10 +7,10 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
+import java.io.Serializable;
+
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
-
-import java.io.Serializable;
 
 /**
  * 内存状态后端实现，用于测试和简单场景。

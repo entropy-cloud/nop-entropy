@@ -18,18 +18,19 @@
 
 package io.nop.stream.runtime.operators.windowing;
 
-import io.nop.commons.tuple.Tuple2;
-import io.nop.stream.core.common.state.ListState;
-import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
-import io.nop.stream.core.windowing.windows.Window;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.nop.commons.tuple.Tuple2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.nop.stream.core.common.state.ListState;
+import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
+import io.nop.stream.core.windowing.windows.Window;
 
 /**
  * Utility for keeping track of merging {@link Window Windows} when using a {@link

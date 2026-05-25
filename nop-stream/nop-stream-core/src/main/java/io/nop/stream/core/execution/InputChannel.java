@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
-import io.nop.stream.core.streamrecord.StreamElement;
-
 import java.util.concurrent.TimeUnit;
+
+import io.nop.stream.core.streamrecord.StreamElement;
 
 /**
  * Consumer-side handle to a {@link ResultPartition}. Wraps a single partition

@@ -18,9 +18,9 @@
 
 package io.nop.stream.core.windowing.assigners;
 
-import io.nop.stream.core.windowing.windows.Window;
-
 import java.util.Collection;
+
+import io.nop.stream.core.windowing.windows.Window;
 
 /**
  * A {@code WindowAssigner} that can merge windows.

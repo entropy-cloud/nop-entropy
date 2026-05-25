@@ -19,6 +19,7 @@
 package io.nop.stream.core.windowing.assigners;
 
 import io.nop.commons.util.MathHelper;
+
 import io.nop.stream.core.windowing.windows.TimeWindow;
 
 /**

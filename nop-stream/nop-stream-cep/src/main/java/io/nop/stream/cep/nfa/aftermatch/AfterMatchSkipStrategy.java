@@ -18,16 +18,16 @@
 
 package io.nop.stream.cep.nfa.aftermatch;
 
-import io.nop.stream.cep.nfa.ComputationState;
-import io.nop.stream.cep.nfa.sharedbuffer.EventId;
-import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import io.nop.stream.cep.nfa.ComputationState;
+import io.nop.stream.cep.nfa.sharedbuffer.EventId;
+import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 
 /** Indicate the skip strategy after a match process. */
 public abstract class AfterMatchSkipStrategy implements Serializable {

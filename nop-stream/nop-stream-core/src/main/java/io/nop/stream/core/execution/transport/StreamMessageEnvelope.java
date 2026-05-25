@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.execution.transport;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 /**
  * 统一消息信封格式，用于跨 TaskManager 通信。

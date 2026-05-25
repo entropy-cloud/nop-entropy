@@ -7,12 +7,13 @@
  */
 package io.nop.stream.core.execution;
 
-import io.nop.stream.core.streamrecord.StreamElement;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import io.nop.stream.core.streamrecord.StreamElement;
 
 /**
  * A bounded buffer that holds {@link StreamElement} instances for inter-task data exchange.

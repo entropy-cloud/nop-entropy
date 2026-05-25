@@ -7,11 +7,12 @@
  */
 package io.nop.stream.core.checkpoint;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.core.model.StreamModelFingerprint;
-
 import java.io.Serializable;
 import java.util.*;
+
+import io.nop.api.core.annotations.data.DataBean;
+
+import io.nop.stream.core.model.StreamModelFingerprint;
 
 @DataBean
 public class EpochManifest implements Serializable {

@@ -7,10 +7,10 @@
  */
 package io.nop.stream.core.model;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.util.*;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class StreamComponents implements Serializable {

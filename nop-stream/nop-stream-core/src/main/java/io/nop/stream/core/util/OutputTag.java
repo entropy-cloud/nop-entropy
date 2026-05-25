@@ -18,13 +18,15 @@
 
 package io.nop.stream.core.util;
 
-import com.google.common.base.Preconditions;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
+import java.io.Serializable;
+import java.util.Objects;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import java.io.Serializable;
-import java.util.Objects;
+
+import com.google.common.base.Preconditions;
+
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 /**
  * An {@link OutputTag} is a typed and named tag to use for tagging side outputs of an operator.

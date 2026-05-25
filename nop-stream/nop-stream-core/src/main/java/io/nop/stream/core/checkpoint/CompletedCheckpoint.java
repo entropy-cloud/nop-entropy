@@ -7,12 +7,12 @@
  */
 package io.nop.stream.core.checkpoint;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class CompletedCheckpoint implements Serializable {

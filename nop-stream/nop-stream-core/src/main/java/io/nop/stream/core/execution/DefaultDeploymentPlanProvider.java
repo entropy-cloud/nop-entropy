@@ -7,14 +7,15 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.flow.MemoryBudget;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Default fallback implementation of {@link IDeploymentPlanProvider}

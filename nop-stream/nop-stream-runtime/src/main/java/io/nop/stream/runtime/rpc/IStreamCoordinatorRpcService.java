@@ -7,8 +7,11 @@
  */
 package io.nop.stream.runtime.rpc;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 
+@Internal
 public interface IStreamCoordinatorRpcService {
 
     void receiveCheckpointAck(CheckpointAckMessage ack);

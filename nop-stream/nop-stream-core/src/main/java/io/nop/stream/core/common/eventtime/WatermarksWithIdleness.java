@@ -18,15 +18,14 @@
 
 package io.nop.stream.core.common.eventtime;
 
-
-import com.google.common.annotations.VisibleForTesting;
-import io.nop.stream.core.util.clock.Clock;
-import io.nop.stream.core.util.clock.SystemClock;
-
 import java.time.Duration;
 
+import com.google.common.annotations.VisibleForTesting;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.api.core.util.Guard.checkArgument;
+
+import io.nop.stream.core.util.clock.Clock;
+import io.nop.stream.core.util.clock.SystemClock;
 
 /**
  * A WatermarkGenerator that adds idleness detection to another WatermarkGenerator. If no events

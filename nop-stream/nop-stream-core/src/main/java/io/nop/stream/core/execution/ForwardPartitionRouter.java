@@ -8,6 +8,7 @@
 package io.nop.stream.core.execution;
 
 import io.nop.commons.partition.IPartitioner;
+
 import io.nop.stream.core.common.state.shard.StateShard;
 import io.nop.stream.core.streamrecord.StreamRecord;
 

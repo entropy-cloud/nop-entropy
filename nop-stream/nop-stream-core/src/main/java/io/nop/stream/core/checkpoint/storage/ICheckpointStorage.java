@@ -7,11 +7,11 @@
  */
 package io.nop.stream.core.checkpoint.storage;
 
+import java.util.List;
+
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.SavepointMetadata;
-
-import java.util.List;
 
 public interface ICheckpointStorage {
 

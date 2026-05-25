@@ -7,12 +7,19 @@
  */
 package io.nop.stream.fraud;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import io.nop.commons.tuple.Tuple2;
+
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
-import io.nop.stream.cep.nfa.NFA;
-import io.nop.stream.cep.nfa.NFAState;
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
+import io.nop.stream.cep.nfa.NFA;
+import io.nop.stream.cep.nfa.NFAState;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.pattern.Pattern;
@@ -24,12 +31,6 @@ import io.nop.stream.fraud.pattern.GeographicAnomalyPattern;
 import io.nop.stream.fraud.pattern.RapidTransactionPattern;
 import io.nop.stream.fraud.pattern.UnusualAmountPattern;
 import io.nop.stream.fraud.util.MockTransactionGenerator;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Demo class showcasing all 4 fraud detection patterns with mock data.

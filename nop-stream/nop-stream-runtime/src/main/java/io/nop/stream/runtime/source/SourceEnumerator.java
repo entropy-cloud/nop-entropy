@@ -7,11 +7,11 @@
  */
 package io.nop.stream.runtime.source;
 
-import io.nop.stream.core.checkpoint.SourceEnumeratorState;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import io.nop.stream.core.checkpoint.SourceEnumeratorState;
 
 /**
  * Manages source split discovery and assignment to subtasks.

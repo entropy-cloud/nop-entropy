@@ -7,28 +7,29 @@
  */
 package io.nop.stream.core.datastream;
 
+import java.io.Serializable;
+
 import io.nop.commons.partition.IPartitioner;
+
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.*;
+import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
-import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
-import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
-import io.nop.stream.core.operators.StreamOperatorFactory;
-import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
 import io.nop.stream.core.operators.StreamFilter;
 import io.nop.stream.core.operators.StreamFlatMap;
 import io.nop.stream.core.operators.StreamMap;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
-
-import java.io.Serializable;
 
 /**
  * The implementation of the {@link DataStream} interface. This class represents a data stream

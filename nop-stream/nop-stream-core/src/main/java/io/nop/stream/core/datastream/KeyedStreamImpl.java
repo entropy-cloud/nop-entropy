@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.datastream;
 
+import java.lang.reflect.Field;
+
 import io.nop.stream.core.common.functions.*;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
@@ -23,8 +25,6 @@ import io.nop.stream.core.windowing.triggers.PurgingTrigger;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.lang.reflect.Field;
 
 public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedStream<T, KEY> {
     private static final long serialVersionUID = 1L;

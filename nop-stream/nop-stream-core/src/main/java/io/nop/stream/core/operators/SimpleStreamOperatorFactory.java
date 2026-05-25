@@ -7,13 +7,13 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<OUT>, Serializable {
     

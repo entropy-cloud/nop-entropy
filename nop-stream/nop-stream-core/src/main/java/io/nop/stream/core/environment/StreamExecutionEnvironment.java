@@ -7,6 +7,13 @@
  */
 package io.nop.stream.core.environment;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.ProcessingGuarantee;
 import io.nop.stream.core.common.functions.source.SourceFunction;
@@ -18,11 +25,11 @@ import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.ICheckpointExecutorFactory;
 import io.nop.stream.core.execution.IDeploymentPlanProvider;
 import io.nop.stream.core.execution.IStreamExecutionDispatcher;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.Subtask;
 import io.nop.stream.core.execution.SubtaskTask;
 import io.nop.stream.core.execution.TaskExecutor;
-import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.graph.PartitionedPlanGenerator;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamGraphGenerator;
@@ -36,13 +43,6 @@ import io.nop.stream.core.model.StreamRequirementValidator;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 public class StreamExecutionEnvironment {
 

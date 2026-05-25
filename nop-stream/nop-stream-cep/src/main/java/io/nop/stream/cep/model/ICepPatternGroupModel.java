@@ -7,10 +7,10 @@
  */
 package io.nop.stream.cep.model;
 
+import java.util.List;
+
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ISourceLocationGetter;
-
-import java.util.List;
 
 import static io.nop.stream.cep.NopCepErrors.ARG_PART_NAME;
 import static io.nop.stream.cep.NopCepErrors.ERR_CEP_UNKNOWN_PATTERN_PART;

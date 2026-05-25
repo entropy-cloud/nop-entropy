@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
-import io.nop.stream.core.streamrecord.StreamElement;
-
 import java.util.Optional;
+
+import io.nop.stream.core.streamrecord.StreamElement;
 
 /**
  * Reads stream elements from a single {@link InputChannel}.

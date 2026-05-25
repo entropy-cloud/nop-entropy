@@ -14,6 +14,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for basic windowing infrastructure (assigners, triggers, window objects).
+ * Despite the class name, this does not directly test {@code WindowOperator};
+ * it validates the underlying {@code TumblingEventTimeWindows}, {@code EventTimeTrigger},
+ * and {@code TimeWindow} primitives used by the operator.
+ */
 public class TestWindowOperatorBasic {
 
     @Test

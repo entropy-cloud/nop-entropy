@@ -7,29 +7,6 @@
  */
 package io.nop.stream.runtime.transport;
 
-import io.nop.api.core.message.IMessageService;
-import io.nop.commons.partition.IPartitioner;
-import io.nop.stream.core.checkpoint.TaskLocation;
-import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.InputChannel;
-import io.nop.stream.core.execution.InputGate;
-import io.nop.stream.core.execution.PartitionRouter;
-import io.nop.stream.core.execution.RecordWriter;
-import io.nop.stream.core.execution.ResultPartition;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.execution.Subtask;
-import io.nop.stream.core.execution.flow.EdgeConfig;
-import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.plan.PartitionedPlan;
-import io.nop.stream.core.execution.plan.PartitionPolicy;
-import io.nop.stream.core.execution.transport.TypeRegistry;
-import io.nop.stream.core.jobgraph.JobEdge;
-import io.nop.stream.core.jobgraph.JobGraph;
-import io.nop.stream.core.jobgraph.JobVertex;
-import io.nop.stream.core.jobgraph.OperatorChain;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +15,30 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+
+import io.nop.api.core.message.IMessageService;
+import io.nop.commons.partition.IPartitioner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.execution.flow.EdgeConfig;
+import io.nop.stream.core.execution.GraphExecutionPlan;
+import io.nop.stream.core.execution.InputChannel;
+import io.nop.stream.core.execution.InputGate;
+import io.nop.stream.core.execution.PartitionRouter;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.execution.plan.PartitionPolicy;
+import io.nop.stream.core.execution.RecordWriter;
+import io.nop.stream.core.execution.ResultPartition;
+import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.transport.TypeRegistry;
+import io.nop.stream.core.jobgraph.JobEdge;
+import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.jobgraph.OperatorChain;
 
 /**
  * Builds a {@link GraphExecutionPlan} that uses {@link IMessageService} for

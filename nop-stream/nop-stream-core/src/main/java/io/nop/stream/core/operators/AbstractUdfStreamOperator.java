@@ -18,11 +18,11 @@
 
 package io.nop.stream.core.operators;
 
+import static java.util.Objects.requireNonNull;
+
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.util.FunctionUtils;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * This is used as the base class for operators that have a user-defined function. This class

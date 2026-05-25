@@ -7,11 +7,14 @@
  */
 package io.nop.stream.core.connector;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.core.checkpoint.TaskLocation;
-
 import java.io.Serializable;
 
+import io.nop.api.core.annotations.core.Internal;
+import io.nop.api.core.annotations.data.DataBean;
+
+import io.nop.stream.core.checkpoint.TaskLocation;
+
+@Internal
 @DataBean
 public class SourceWorkUnit implements Serializable {
 

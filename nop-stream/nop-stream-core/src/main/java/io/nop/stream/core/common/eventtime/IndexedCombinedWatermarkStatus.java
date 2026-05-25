@@ -18,11 +18,9 @@
 
 package io.nop.stream.core.common.eventtime;
 
-
-import io.nop.api.core.annotations.core.Internal;
-
 import java.util.stream.IntStream;
 
+import io.nop.api.core.annotations.core.Internal;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**

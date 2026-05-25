@@ -18,11 +18,11 @@
 
 package io.nop.stream.cep.pattern.conditions;
 
+import java.io.Serializable;
+
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.time.TimeContext;
 import io.nop.stream.core.common.functions.StreamFunction;
-
-import java.io.Serializable;
 
 /**
  * A user-defined condition that decides if an element should be accepted in the pattern or not.

@@ -18,9 +18,9 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
-import io.nop.stream.cep.nfa.DeweyNumber;
-
 import java.util.Objects;
+
+import io.nop.stream.cep.nfa.DeweyNumber;
 
 /**
  * Versioned edge in {@link SharedBuffer} that allows retrieving predecessors.

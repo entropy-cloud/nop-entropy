@@ -18,13 +18,6 @@
 
 package io.nop.stream.core.windowing.windows;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.commons.tuple.Tuple2;
-import io.nop.commons.util.MathHelper;
-import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +25,14 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.tuple.Tuple2;
+import io.nop.commons.util.MathHelper;
+
+import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 
 /**
  * A {@link Window} that represents a time interval from {@code start} (inclusive) to {@code end}

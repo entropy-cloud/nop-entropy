@@ -18,9 +18,6 @@
 
 package io.nop.stream.cep.nfa.aftermatch;
 
-import io.nop.stream.cep.nfa.sharedbuffer.EventId;
-import io.nop.stream.core.exceptions.StreamRuntimeException;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +25,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import io.nop.stream.cep.nfa.sharedbuffer.EventId;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 
 abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
     private static final long serialVersionUID = 7127107527654629026L;

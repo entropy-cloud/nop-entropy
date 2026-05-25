@@ -18,14 +18,12 @@
 
 package io.nop.stream.core.common.eventtime;
 
-
-import io.nop.stream.core.streamrecord.watermark.Watermark;
-
 import java.time.Duration;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.api.core.util.Guard.checkArgument;
 
+import io.nop.stream.core.streamrecord.watermark.Watermark;
 
 /**
  * A WatermarkGenerator for situations where records are out of order, but you can place an upper

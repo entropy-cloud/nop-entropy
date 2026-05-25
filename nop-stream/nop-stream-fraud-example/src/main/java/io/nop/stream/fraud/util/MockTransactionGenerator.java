@@ -7,12 +7,12 @@
  */
 package io.nop.stream.fraud.util;
 
-import io.nop.stream.fraud.model.TransactionEvent;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import io.nop.stream.fraud.model.TransactionEvent;
 
 /**
  * Utility class to generate test transactions for fraud detection demo.

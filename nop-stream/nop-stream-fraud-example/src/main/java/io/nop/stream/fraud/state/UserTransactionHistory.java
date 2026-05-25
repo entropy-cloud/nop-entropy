@@ -7,14 +7,14 @@
  */
 package io.nop.stream.fraud.state;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.fraud.model.TransactionEvent;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 /**
  * Utility class for managing user transaction statistics using MemoryStateBackend.

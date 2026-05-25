@@ -7,11 +7,11 @@
  */
 package io.nop.stream.runtime.source;
 
-import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
-import io.nop.stream.core.common.functions.source.SourceFunction;
-
 import java.io.Serializable;
 import java.util.List;
+
+import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
+import io.nop.stream.core.common.functions.source.SourceFunction;
 
 public class CollectionReplayableSource<T> implements ReplayableSourceFunction<T>, Serializable {
 

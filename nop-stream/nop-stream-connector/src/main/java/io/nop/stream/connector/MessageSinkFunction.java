@@ -8,8 +8,9 @@
 package io.nop.stream.connector;
 
 import io.nop.api.core.message.IMessageService;
-import io.nop.stream.core.common.functions.SinkFunction;
+
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+import io.nop.stream.core.common.functions.SinkFunction;
 
 /**
  * Adapts nop-message's {@link IMessageService} to nop-stream's {@link SinkFunction}.

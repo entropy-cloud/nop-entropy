@@ -1,11 +1,11 @@
 package io.nop.stream.core.operators;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class ApplyAggregationFunction<IN, OUT, K, W extends Window>
         implements WindowAggregationFunction<IN, List<IN>, OUT, K, W> {

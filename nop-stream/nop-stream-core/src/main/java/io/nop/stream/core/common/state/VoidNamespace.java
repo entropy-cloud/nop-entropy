@@ -18,10 +18,10 @@
 
 package io.nop.stream.core.common.state;
 
+import java.io.ObjectStreamException;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-
-import java.io.ObjectStreamException;
 
 /** Singleton placeholder class for state without a namespace. */
 public final class VoidNamespace {

@@ -18,7 +18,6 @@
 
 package io.nop.stream.cep.pattern.conditions;
 
-
 import io.nop.api.core.annotations.core.Internal;
 
 /**

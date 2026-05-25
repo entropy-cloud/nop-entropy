@@ -18,24 +18,6 @@
 
 package io.nop.stream.cep.nfa;
 
-import com.google.common.base.Preconditions;
-import io.nop.commons.tuple.Tuple2;
-import io.nop.commons.util.CollectionHelper;
-import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
-import io.nop.stream.cep.nfa.compiler.NFACompiler;
-import io.nop.stream.cep.nfa.sharedbuffer.EventId;
-import io.nop.stream.cep.nfa.sharedbuffer.NodeId;
-import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
-import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
-import io.nop.stream.cep.operator.CepOperator;
-import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.cep.pattern.conditions.IterativeCondition;
-import io.nop.stream.cep.time.TimerService;
-import io.nop.stream.core.common.functions.RuntimeContext;
-import io.nop.stream.core.configuration.Configuration;
-import io.nop.stream.core.exceptions.StreamRuntimeException;
-import io.nop.stream.core.util.FunctionUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +29,25 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Stack;
+
+import com.google.common.base.Preconditions;
+import io.nop.commons.tuple.Tuple2;
+import io.nop.commons.util.CollectionHelper;
+
+import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
+import io.nop.stream.cep.nfa.compiler.NFACompiler;
+import io.nop.stream.cep.nfa.sharedbuffer.EventId;
+import io.nop.stream.cep.nfa.sharedbuffer.NodeId;
+import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
+import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
+import io.nop.stream.cep.operator.CepOperator;
+import io.nop.stream.cep.pattern.conditions.IterativeCondition;
+import io.nop.stream.cep.pattern.Pattern;
+import io.nop.stream.cep.time.TimerService;
+import io.nop.stream.core.common.functions.RuntimeContext;
+import io.nop.stream.core.configuration.Configuration;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.util.FunctionUtils;
 
 /**
  * Non-deterministic finite automaton implementation.

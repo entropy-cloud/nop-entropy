@@ -1,13 +1,15 @@
 package io.nop.stream.core.windowing.assigners;
 
+import java.util.Collection;
+import java.util.Collections;
+
+import jakarta.annotation.Nullable;
+
 import io.nop.core.context.IServiceContext;
+
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-
-import jakarta.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
 public class EventTimeSessionWindows extends MergingWindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;

@@ -8,14 +8,15 @@
 package io.nop.stream.core.execution;
 
 import io.nop.commons.partition.IPartitioner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.flow.FlowControlPolicy;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Writes stream elements to one or more downstream {@link ResultPartition} instances.

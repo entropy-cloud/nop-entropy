@@ -8,6 +8,7 @@
 package io.nop.stream.core.operators;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;

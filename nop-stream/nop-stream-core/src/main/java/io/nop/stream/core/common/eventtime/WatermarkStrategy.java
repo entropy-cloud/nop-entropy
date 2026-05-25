@@ -18,13 +18,11 @@
 
 package io.nop.stream.core.common.eventtime;
 
-
 import java.io.Serializable;
 import java.time.Duration;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.api.core.util.Guard.checkArgument;
-
 
 /**
  * The WatermarkStrategy defines how to generate {@link Watermark}s in the stream sources. The

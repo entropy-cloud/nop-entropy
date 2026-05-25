@@ -18,19 +18,19 @@
 
 package io.nop.stream.cep.functions.adaptors;
 
-import io.nop.stream.cep.PatternFlatSelectFunction;
-import io.nop.stream.cep.PatternFlatTimeoutFunction;
-import io.nop.stream.cep.functions.PatternProcessFunction;
-import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
-import io.nop.stream.core.configuration.Configuration;
-import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.util.FunctionUtils;
-import io.nop.stream.core.util.OutputTag;
-
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import io.nop.stream.cep.functions.PatternProcessFunction;
+import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
+import io.nop.stream.cep.PatternFlatSelectFunction;
+import io.nop.stream.cep.PatternFlatTimeoutFunction;
+import io.nop.stream.core.configuration.Configuration;
+import io.nop.stream.core.util.Collector;
+import io.nop.stream.core.util.FunctionUtils;
+import io.nop.stream.core.util.OutputTag;
 
 /**
  * Adapter that expresses combination of {@link PatternFlatSelectFunction} and {@link

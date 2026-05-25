@@ -13,6 +13,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for {@link EmbeddedDistributedExecutor}.
+ *
+ * <p>Note: the current test uses {@code InProcessMessageService} which delivers messages
+ * synchronously within the caller's thread via {@code sendAsync}. Therefore, despite setting
+ * {@code parallelism=2} and {@code DeploymentMode.DISTRIBUTED}, execution is effectively
+ * single-threaded and synchronous. This test validates the wiring and data flow of the
+ * distributed execution path, but does <b>not</b> verify true concurrent/multi-process
+ * execution semantics such as race conditions, partition isolation, or fault tolerance.
+ */
 class TestEmbeddedDistributedExecution {
 
     @Test

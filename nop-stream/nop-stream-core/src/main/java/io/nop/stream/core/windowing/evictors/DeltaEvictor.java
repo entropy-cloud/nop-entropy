@@ -18,13 +18,14 @@
 
 package io.nop.stream.core.windowing.evictors;
 
+import java.util.Iterator;
+
 import com.google.common.collect.Iterables;
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.windowing.delta.DeltaFunction;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.util.Iterator;
 
 /**
  * An {@link Evictor} that keeps elements based on a {@link DeltaFunction} and a threshold.

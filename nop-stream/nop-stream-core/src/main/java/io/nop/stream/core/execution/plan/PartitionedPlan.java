@@ -7,11 +7,12 @@
  */
 package io.nop.stream.core.execution.plan;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.core.model.StreamModelFingerprint;
-
 import java.io.Serializable;
 import java.util.*;
+
+import io.nop.api.core.annotations.data.DataBean;
+
+import io.nop.stream.core.model.StreamModelFingerprint;
 
 @DataBean
 public class PartitionedPlan implements Serializable {

@@ -7,11 +7,14 @@
  */
 package io.nop.stream.core.operators;
 
+import java.util.function.Consumer;
+import java.util.Map;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
-import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
@@ -20,9 +23,6 @@ import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
-
-import java.util.Map;
-import java.util.function.Consumer;
 
 public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT> {
     protected transient Output<StreamRecord<OUT>> output;

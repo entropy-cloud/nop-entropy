@@ -18,12 +18,11 @@
 
 package io.nop.stream.cep.operator;
 
-
 import io.nop.api.core.annotations.core.Internal;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.common.state.KeyedStateStore;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A wrapper class for the {@link RuntimeContext}.

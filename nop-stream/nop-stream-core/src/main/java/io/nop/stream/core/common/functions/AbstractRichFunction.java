@@ -18,10 +18,11 @@
 
 package io.nop.stream.core.common.functions;
 
-import io.nop.api.core.config.IConfigProvider;
-import io.nop.stream.core.configuration.Configuration;
-
 import java.io.Serializable;
+
+import io.nop.api.core.config.IConfigProvider;
+
+import io.nop.stream.core.configuration.Configuration;
 
 /**
  * An abstract stub implementation for rich user-defined functions. Rich functions have additional

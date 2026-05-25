@@ -28,9 +28,11 @@
             <artifactId>nop-stream-cep</artifactId>
         </dependency>
 
+        <!-- nop-message-core: only used in tests (LocalMessageService for TestRemoteDataExchange) -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-message-core</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

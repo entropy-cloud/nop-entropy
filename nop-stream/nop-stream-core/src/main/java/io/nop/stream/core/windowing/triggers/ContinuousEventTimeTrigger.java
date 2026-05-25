@@ -18,13 +18,14 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import java.time.Duration;
+
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.time.Duration;
 
 /**
  * A {@link Trigger} that continuously fires based on a given time interval. This fires based on

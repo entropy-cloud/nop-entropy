@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.execution.flow;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class EdgeConfig implements Serializable {

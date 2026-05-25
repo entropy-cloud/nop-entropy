@@ -18,11 +18,10 @@
 
 package io.nop.stream.cep.operator;
 
-
-import io.nop.stream.core.streamrecord.StreamRecord;
-
 import java.io.Serializable;
 import java.util.Comparator;
+
+import io.nop.stream.core.streamrecord.StreamRecord;
 
 /**
  * Compares two {@link StreamRecord}s based on their timestamp.

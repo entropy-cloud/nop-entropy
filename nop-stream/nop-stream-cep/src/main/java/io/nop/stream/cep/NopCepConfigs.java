@@ -7,13 +7,12 @@
  */
 package io.nop.stream.cep;
 
-import io.nop.api.core.annotations.core.Description;
-import io.nop.api.core.config.IConfigReference;
-import io.nop.api.core.util.SourceLocation;
-
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
+import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.config.IConfigReference;
+import io.nop.api.core.util.SourceLocation;
 import static io.nop.api.core.config.AppConfig.varRef;
 
 public interface NopCepConfigs {

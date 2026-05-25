@@ -7,11 +7,11 @@
  */
 package io.nop.stream.core.transformation;
 
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-
 import java.io.Serializable;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
+
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 /**
  * Abstract base class representing a transformation operation in the streaming DAG.

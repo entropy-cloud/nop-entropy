@@ -11,5 +11,6 @@
 
     <artifactId>nop-stream-api</artifactId>
     <!-- placeholder, planned but not implemented -->
+    <!-- interfaces are in nop-stream-core; this module is reserved for future API extraction -->
 
 </project>

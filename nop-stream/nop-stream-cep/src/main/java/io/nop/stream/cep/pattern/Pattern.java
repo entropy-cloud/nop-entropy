@@ -18,21 +18,23 @@
 
 package io.nop.stream.cep.pattern;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import jakarta.annotation.Nullable;
+
 import com.google.common.base.Preconditions;
-import io.nop.stream.cep.nfa.NFA;
+
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
+import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.pattern.conditions.BooleanConditions;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import io.nop.stream.cep.pattern.conditions.RichAndCondition;
 import io.nop.stream.cep.pattern.conditions.RichOrCondition;
 import io.nop.stream.cep.pattern.conditions.SubtypeCondition;
-
-import jakarta.annotation.Nullable;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Base class for a pattern definition.

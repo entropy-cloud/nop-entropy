@@ -18,15 +18,14 @@
 
 package io.nop.stream.core.operators;
 
-
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
-import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.util.Collector;
+import io.nop.stream.core.util.OutputTag;
 
 /**
  * A {@link org.apache.flink.streaming.api.operators.StreamOperator} is supplied with an object of

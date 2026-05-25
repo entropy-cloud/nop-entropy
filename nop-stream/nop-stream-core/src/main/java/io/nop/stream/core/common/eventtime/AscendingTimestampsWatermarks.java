@@ -18,7 +18,6 @@
 
 package io.nop.stream.core.common.eventtime;
 
-
 import java.time.Duration;
 
 /**

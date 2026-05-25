@@ -18,9 +18,9 @@
 
 package io.nop.stream.core.common.accumulators;
 
-import io.nop.api.core.annotations.core.Internal;
-
 import java.io.Serializable;
+
+import io.nop.api.core.annotations.core.Internal;
 
 /**
  * Accumulators collect distributed statistics or aggregates in a from user functions and operators.

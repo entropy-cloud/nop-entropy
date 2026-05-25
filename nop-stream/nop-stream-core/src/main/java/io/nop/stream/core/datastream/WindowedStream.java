@@ -8,8 +8,8 @@
 package io.nop.stream.core.datastream;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
-import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
+import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;

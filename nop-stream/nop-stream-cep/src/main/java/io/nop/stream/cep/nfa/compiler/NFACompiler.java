@@ -18,22 +18,6 @@
 
 package io.nop.stream.cep.nfa.compiler;
 
-import io.nop.commons.tuple.Tuple2;
-import io.nop.stream.cep.nfa.NFA;
-import io.nop.stream.cep.nfa.State;
-import io.nop.stream.cep.nfa.StateTransition;
-import io.nop.stream.cep.nfa.StateTransitionAction;
-import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
-import io.nop.stream.cep.pattern.GroupPattern;
-import io.nop.stream.cep.pattern.MalformedPatternException;
-import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.cep.pattern.Quantifier;
-import io.nop.stream.cep.pattern.WithinType;
-import io.nop.stream.cep.pattern.conditions.BooleanConditions;
-import io.nop.stream.cep.pattern.conditions.IterativeCondition;
-import io.nop.stream.cep.pattern.conditions.RichAndCondition;
-import io.nop.stream.cep.pattern.conditions.RichNotCondition;
-
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -47,7 +31,23 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 
+import io.nop.commons.tuple.Tuple2;
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
+import io.nop.stream.cep.nfa.NFA;
+import io.nop.stream.cep.nfa.State;
+import io.nop.stream.cep.nfa.StateTransition;
+import io.nop.stream.cep.nfa.StateTransitionAction;
+import io.nop.stream.cep.pattern.conditions.BooleanConditions;
+import io.nop.stream.cep.pattern.conditions.IterativeCondition;
+import io.nop.stream.cep.pattern.conditions.RichAndCondition;
+import io.nop.stream.cep.pattern.conditions.RichNotCondition;
+import io.nop.stream.cep.pattern.GroupPattern;
+import io.nop.stream.cep.pattern.MalformedPatternException;
+import io.nop.stream.cep.pattern.Pattern;
+import io.nop.stream.cep.pattern.Quantifier;
+import io.nop.stream.cep.pattern.WithinType;
 
 /**
  * Compiler class containing methods to compile a {@link Pattern} into a {@link NFA} or a {@link

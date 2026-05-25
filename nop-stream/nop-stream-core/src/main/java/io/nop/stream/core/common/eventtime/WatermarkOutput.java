@@ -18,7 +18,6 @@ limitations under the License.
 
 package io.nop.stream.core.common.eventtime;
 
-
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 
 /**

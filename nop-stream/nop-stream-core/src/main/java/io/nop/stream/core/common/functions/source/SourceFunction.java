@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.common.functions.source;
 
-import io.nop.stream.core.common.functions.StreamFunction;
-
 import java.io.Serializable;
+
+import io.nop.stream.core.common.functions.StreamFunction;
 
 /**
  * Base interface for a stream data source. A SourceFunction emits data by implementing

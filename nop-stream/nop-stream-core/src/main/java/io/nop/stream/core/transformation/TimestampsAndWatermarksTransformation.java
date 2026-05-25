@@ -7,11 +7,11 @@
  */
 package io.nop.stream.core.transformation;
 
-import io.nop.stream.core.common.eventtime.WatermarkStrategy;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-
 import java.util.Collections;
 import java.util.List;
+
+import io.nop.stream.core.common.eventtime.WatermarkStrategy;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 /**
  * A transformation that assigns timestamps and generates watermarks for a data stream.

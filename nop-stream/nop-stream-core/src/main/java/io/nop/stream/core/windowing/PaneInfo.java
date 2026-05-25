@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.windowing;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class PaneInfo implements Serializable {

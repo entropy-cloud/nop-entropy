@@ -7,8 +7,11 @@
  */
 package io.nop.stream.core.connector;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.common.functions.source.SourceFunction;
 
+@Internal
 public interface DrainableSource<T> extends SourceFunction<T> {
     void truncateForDrain() throws Exception;
 }

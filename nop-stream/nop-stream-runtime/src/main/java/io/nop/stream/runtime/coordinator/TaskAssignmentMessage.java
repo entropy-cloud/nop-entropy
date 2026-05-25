@@ -7,10 +7,11 @@
  */
 package io.nop.stream.runtime.coordinator;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.runtime.cluster.TaskAssignment;
-
 import java.io.Serializable;
+
+import io.nop.api.core.annotations.data.DataBean;
+
+import io.nop.stream.runtime.cluster.TaskAssignment;
 
 /**
  * Control message sent from JobCoordinator to a specific TaskManager

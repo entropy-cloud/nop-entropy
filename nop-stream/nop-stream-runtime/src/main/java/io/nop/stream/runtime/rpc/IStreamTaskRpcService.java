@@ -7,9 +7,12 @@
  */
 package io.nop.stream.runtime.rpc;
 
+import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 
+@Internal
 public interface IStreamTaskRpcService {
 
     void receiveAssignment(TaskAssignment assignment);

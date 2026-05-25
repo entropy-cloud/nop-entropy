@@ -18,17 +18,15 @@
 
 package io.nop.stream.core.common.eventtime;
 
+import java.util.HashMap;
+import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import io.nop.api.core.annotations.core.Internal;
-
-import java.util.HashMap;
-import java.util.Map;
-import io.nop.stream.core.common.eventtime.CombinedWatermarkStatus.PartialWatermark;
-import io.nop.stream.core.streamrecord.watermark.Watermark;
-
 import static com.google.common.base.Preconditions.checkState;
 
+import io.nop.stream.core.common.eventtime.CombinedWatermarkStatus.PartialWatermark;
+import io.nop.stream.core.streamrecord.watermark.Watermark;
 
 /**
  * A {@link WatermarkOutputMultiplexer} combines the watermark (and idleness) updates of multiple

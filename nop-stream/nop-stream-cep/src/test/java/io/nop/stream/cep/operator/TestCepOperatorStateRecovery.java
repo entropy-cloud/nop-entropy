@@ -33,6 +33,7 @@ import java.util.concurrent.ScheduledFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -150,6 +151,62 @@ public class TestCepOperatorStateRecovery {
                 "Should contain the expected match, got: " + results);
 
         op.close();
+    }
+
+    @Test
+    void testRestoreFromCheckpoint() throws Exception {
+        CepOperator<Event, Integer, String> original = createOperator();
+
+        original.processElement(new StreamRecord<>(new Event(1, "a1"), 1));
+        original.processElement(new StreamRecord<>(new Event(42, "start42"), 2));
+        original.processElement(new StreamRecord<>(new Event(43, "mid"), 3));
+        original.processWatermark(new Watermark(3));
+
+        assertTrue(results.isEmpty(), "No match before end event");
+
+        NFAState capturedState = original.getNFAStateForTesting();
+        assertNotNull(capturedState, "NFA state should exist after processing events");
+        assertFalse(capturedState.getPartialMatches().isEmpty(),
+                "NFA should have partial matches after start event");
+
+        int originalPartialMatchCount = capturedState.getPartialMatches().size();
+        assertTrue(originalPartialMatchCount >= 2,
+                "Should have at least start state and a partial match for start42");
+
+        original.close();
+
+        List<String> restoredResults = new ArrayList<>();
+        CepOperator<Event, Integer, String> restored = new CepOperator<>(
+                new EventTypeSerializer(),
+                false,
+                nfaFactory,
+                null,
+                null,
+                function,
+                null
+        );
+        restored.setOutput(new TestOutput(restoredResults));
+        setProcessingTimeService(restored, MOCK_PTS);
+        restored.open();
+
+        NFAState initialState = restored.getNFAStateForTesting();
+        assertNotNull(initialState, "New operator should have initial NFA state");
+
+        int initialPartialMatchCount = initialState.getPartialMatches().size();
+
+        restored.updateNFAStateForTesting(capturedState);
+
+        NFAState afterRestore = restored.getNFAStateForTesting();
+        assertNotNull(afterRestore, "Restored operator should have NFA state after update");
+        assertEquals(originalPartialMatchCount,
+                afterRestore.getPartialMatches().size(),
+                "Restored state should have the same number of partial matches as the captured state");
+
+        assertNotEquals(initialPartialMatchCount,
+                afterRestore.getPartialMatches().size(),
+                "Restored state should differ from initial state (verifies state was actually applied)");
+
+        restored.close();
     }
 
     @Test

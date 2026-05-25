@@ -18,10 +18,10 @@
 
 package io.nop.stream.core.windowing.evictors;
 
+import java.util.Iterator;
+
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.util.Iterator;
 
 /**
  * An {@link Evictor} that keeps up to a certain amount of elements.

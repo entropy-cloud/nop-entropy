@@ -18,13 +18,15 @@
 
 package io.nop.stream.core.windowing.assigners;
 
-import io.nop.core.context.IServiceContext;
-import io.nop.stream.core.windowing.triggers.Trigger;
-import io.nop.stream.core.windowing.windows.Window;
-import jakarta.annotation.Nullable;
-
 import java.io.Serializable;
 import java.util.Collection;
+
+import jakarta.annotation.Nullable;
+
+import io.nop.core.context.IServiceContext;
+
+import io.nop.stream.core.windowing.triggers.Trigger;
+import io.nop.stream.core.windowing.windows.Window;
 
 /**
  * A {@code WindowAssigner} assigns zero or more {@link Window Windows} to an element.

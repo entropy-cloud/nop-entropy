@@ -18,26 +18,25 @@
 
 package io.nop.stream.cep;
 
+import java.util.Map;
+
+import jakarta.annotation.Nullable;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.operator.CepOperator;
 import io.nop.stream.cep.pattern.Pattern;
+import io.nop.stream.core.common.functions.impl.NullByteKeySelector;
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.KeyedStream;
 import io.nop.stream.core.datastream.SingleOutputStreamOperator;
-import io.nop.stream.core.common.functions.KeySelector;
-import io.nop.stream.core.common.functions.impl.NullByteKeySelector;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.util.OutputTag;
-
-import jakarta.annotation.Nullable;
-import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
 
 /**
  * Utility method for creating {@link PatternStream}.

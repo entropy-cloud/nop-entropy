@@ -19,10 +19,11 @@
 package io.nop.stream.core.util;
 
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.configuration.Configuration;
+
 import io.nop.stream.core.common.functions.RichFunction;
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.common.functions.StreamFunction;
+import io.nop.stream.core.configuration.Configuration;
 
 /**
  * Utility class that contains helper methods to work with Flink {@link Function} class.

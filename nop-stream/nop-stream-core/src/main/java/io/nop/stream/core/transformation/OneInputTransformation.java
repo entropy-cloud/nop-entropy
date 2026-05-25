@@ -7,13 +7,13 @@
  */
 package io.nop.stream.core.transformation;
 
-import io.nop.stream.core.common.functions.KeySelector;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-import io.nop.stream.core.operators.StreamOperatorFactory;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.operators.StreamOperatorFactory;
 
 /**
  * A transformation that takes a single input stream and applies an operator to produce an output stream.

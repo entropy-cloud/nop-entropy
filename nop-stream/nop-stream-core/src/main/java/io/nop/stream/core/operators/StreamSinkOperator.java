@@ -7,18 +7,18 @@
  */
 package io.nop.stream.core.operators;
 
+import java.util.Map;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
-import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
-import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-
-import java.util.Map;
 
 /**
  * A stream operator that wraps a {@link SinkFunction} and consumes elements from the stream.

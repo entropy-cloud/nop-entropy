@@ -7,22 +7,26 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
-import io.nop.stream.core.checkpoint.StateSnapshotContext;
-import io.nop.stream.core.common.functions.ReduceFunction;
-import io.nop.stream.core.streamrecord.StreamRecord;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.common.functions.ReduceFunction;
+import io.nop.stream.core.streamrecord.StreamRecord;
+
 public class StreamReduceOperator<T>
         extends AbstractUdfStreamOperator<T, ReduceFunction<T>>
         implements OneInputStreamOperator<T, T> {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger LOG = LoggerFactory.getLogger(StreamReduceOperator.class);
     private static final String REDUCE_STATE_KEY = "reduce-state";
 
     private transient Object currentKey;
@@ -103,6 +107,11 @@ public class StreamReduceOperator<T>
                     Map<String, Object> entry = (Map<String, Object>) item;
                     Object key = entry.get("key");
                     Object value = entry.get("value");
+                    // Defensive: skip entries where key or value is null after JSON round-trip
+                    if (key == null || value == null) {
+                        LOG.warn("Skipping restore entry with null key or value: key={}, value={}", key, value);
+                        continue;
+                    }
                     values.put(key, (T) value);
                 }
             }

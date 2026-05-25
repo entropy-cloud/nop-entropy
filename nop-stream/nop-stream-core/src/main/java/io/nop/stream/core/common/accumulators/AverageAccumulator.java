@@ -20,7 +20,6 @@ package io.nop.stream.core.common.accumulators;
 
 import io.nop.api.core.annotations.core.Internal;
 
-
 /**
  * An accumulator that computes the average value. Input can be {@code long}, {@code integer}, or
  * {@code double} and the result is {@code double}.

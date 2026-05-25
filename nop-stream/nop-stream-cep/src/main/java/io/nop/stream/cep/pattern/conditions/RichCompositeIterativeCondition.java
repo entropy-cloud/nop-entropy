@@ -19,6 +19,7 @@
 package io.nop.stream.cep.pattern.conditions;
 
 import com.google.common.base.Preconditions;
+
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.configuration.Configuration;
 import io.nop.stream.core.util.FunctionUtils;

@@ -8,6 +8,7 @@
 package io.nop.stream.core.execution;
 
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;

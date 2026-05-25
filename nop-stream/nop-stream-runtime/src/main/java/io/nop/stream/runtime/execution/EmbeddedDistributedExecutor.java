@@ -7,8 +7,15 @@
  */
 package io.nop.stream.runtime.execution;
 
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
 import io.nop.api.core.message.IMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.execution.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
@@ -16,7 +23,6 @@ import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.transport.TypeRegistry;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
-import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -26,11 +32,6 @@ import io.nop.stream.runtime.coordinator.JobCoordinator;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.TaskManager;
 import io.nop.stream.runtime.transport.RemoteGraphExecutionPlanBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
 

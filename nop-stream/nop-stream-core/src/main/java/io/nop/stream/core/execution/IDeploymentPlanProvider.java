@@ -7,11 +7,12 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.ServiceLoader;
+
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
-
-import java.util.ServiceLoader;
 
 /**
  * SPI interface for generating DeploymentPlan from PartitionedPlan.

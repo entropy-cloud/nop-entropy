@@ -7,13 +7,14 @@
  */
 package io.nop.stream.core.execution;
 
-import io.nop.stream.core.jobgraph.JobVertex;
-import io.nop.stream.core.jobgraph.OperatorChain;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.jobgraph.OperatorChain;
 
 public class SubtaskTask implements Runnable {
 

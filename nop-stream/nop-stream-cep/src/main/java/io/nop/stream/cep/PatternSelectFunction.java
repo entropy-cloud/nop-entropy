@@ -18,11 +18,11 @@
 
 package io.nop.stream.cep;
 
-import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.core.common.functions.StreamFunction;
-
 import java.util.List;
 import java.util.Map;
+
+import io.nop.stream.cep.pattern.Pattern;
+import io.nop.stream.core.common.functions.StreamFunction;
 
 /**
  * Base interface for a pattern select function. A pattern select function is called with a map

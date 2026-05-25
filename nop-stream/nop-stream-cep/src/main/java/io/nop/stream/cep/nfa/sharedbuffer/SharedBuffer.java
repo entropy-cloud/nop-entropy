@@ -18,6 +18,12 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -25,20 +31,15 @@ import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalListener;
 import com.google.common.collect.Iterables;
 import io.nop.api.core.exceptions.NopException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.nfa.DeweyNumber;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * A shared buffer implementation which stores values under according state. Additionally, the
@@ -89,10 +90,13 @@ public class SharedBuffer<V> {
 
     private final Timer cacheStatisticsTimer;
 
+    @SuppressWarnings("unchecked")
     public SharedBuffer(
             KeyedStateStore stateStore,
             TypeSerializer<V> valueSerializer,
             SharedBufferCacheConfig cacheConfig) {
+        // MapStateDescriptor does not support generic type tokens for value class;
+        // (Class) Lockable.class is used as a raw class hint, actual generic safety is ensured by usage
         this.eventsBuffer =
                 stateStore.getMapState(
                         new MapStateDescriptor<EventId, Lockable<V>>(

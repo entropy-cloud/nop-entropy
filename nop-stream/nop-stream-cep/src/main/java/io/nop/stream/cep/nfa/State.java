@@ -18,12 +18,12 @@
 
 package io.nop.stream.cep.nfa;
 
-import io.nop.stream.cep.pattern.conditions.IterativeCondition;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
+
+import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 
 /**
  * Represents a state of the {@link NFA}.

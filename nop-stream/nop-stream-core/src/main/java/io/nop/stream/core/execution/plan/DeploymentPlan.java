@@ -7,12 +7,13 @@
  */
 package io.nop.stream.core.execution.plan;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.core.execution.flow.EdgeConfig;
-import io.nop.stream.core.execution.flow.MemoryBudget;
-
 import java.io.Serializable;
 import java.util.*;
+
+import io.nop.api.core.annotations.data.DataBean;
+
+import io.nop.stream.core.execution.flow.EdgeConfig;
+import io.nop.stream.core.execution.flow.MemoryBudget;
 
 @DataBean
 public class DeploymentPlan implements Serializable {

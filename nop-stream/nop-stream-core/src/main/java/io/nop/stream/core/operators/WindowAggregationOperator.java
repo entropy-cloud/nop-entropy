@@ -1,6 +1,11 @@
 package io.nop.stream.core.operators;
 
+import java.util.*;
+
 import io.nop.core.lang.json.JsonTool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
@@ -14,10 +19,6 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.Window;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         extends AbstractStreamOperator<OUT>
@@ -354,6 +355,17 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     @SuppressWarnings("unchecked")
     private K resolveKey(IN value) throws Exception {
         if (currentKeyField != null) {
+            // Defensive: verify that the current key field is of the expected type;
+            // after JSON deserialization the key may be a different type (e.g. Integer vs Long)
+            if (keySelector != null) {
+                K selectorKey = keySelector.getKey(value);
+                if (selectorKey != null && !selectorKey.getClass().isInstance(currentKeyField)) {
+                    LOG.warn("Key type mismatch: currentKeyField type={} but expected type={}. "
+                            + "Falling back to keySelector result.",
+                            currentKeyField.getClass().getName(), selectorKey.getClass().getName());
+                    return selectorKey;
+                }
+            }
             return (K) currentKeyField;
         }
         if (keySelector != null) {

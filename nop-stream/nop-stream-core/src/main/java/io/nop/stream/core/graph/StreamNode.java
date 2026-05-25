@@ -7,13 +7,13 @@
  */
 package io.nop.stream.core.graph;
 
+import java.io.Serializable;
+
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
-
-import java.io.Serializable;
 
 /**
  * Represents a node in the streaming execution graph.

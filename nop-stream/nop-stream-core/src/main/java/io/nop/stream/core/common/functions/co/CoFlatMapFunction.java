@@ -18,11 +18,10 @@
 
 package io.nop.stream.core.common.functions.co;
 
+import java.io.Serializable;
 
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.util.Collector;
-
-import java.io.Serializable;
 
 /**
  * A CoFlatMapFunction implements a flat-map transformation over two connected streams.

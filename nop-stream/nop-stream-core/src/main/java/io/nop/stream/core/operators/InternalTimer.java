@@ -18,12 +18,14 @@
 
 package io.nop.stream.core.operators;
 
+import jakarta.annotation.Nonnull;
+
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.common.state.KeyExtractorFunction;
+
 import io.nop.stream.core.common.state.Keyed;
+import io.nop.stream.core.common.state.KeyExtractorFunction;
 import io.nop.stream.core.common.state.PriorityComparable;
 import io.nop.stream.core.common.state.PriorityComparator;
-import jakarta.annotation.Nonnull;
 
 /**
  * Internal interface for in-flight timers.

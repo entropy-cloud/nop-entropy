@@ -3,6 +3,7 @@ package io.nop.stream.core.common.state.backend.memory;
 import io.nop.stream.core.common.accumulators.LongCounter;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.InternalListState;
+import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
@@ -195,5 +196,120 @@ class TestStateSnapshotRoundTrip {
 
         assertEquals(Long.valueOf(42L), restored.getState(vDesc).value());
         assertEquals(Integer.valueOf(1), restored.getMapState(mDesc).get("x"));
+    }
+
+    @Test
+    void testShardedValueStateRoundTrip() throws Exception {
+        MemoryKeyedStateBackend<String> backend = new MemoryKeyedStateBackend<>(String.class, 4);
+        ValueStateDescriptor<Long> desc = new ValueStateDescriptor<>("v", Long.class, 0L);
+
+        backend.setCurrentKey("k1");
+        backend.getState(desc).update(10L);
+
+        backend.setCurrentKey("k2");
+        backend.getState(desc).update(20L);
+
+        backend.setCurrentKey("k3");
+        backend.getState(desc).update(30L);
+
+        backend.setCurrentKey("k4");
+        backend.getState(desc).update(40L);
+
+        StateSnapshot snapshot = backend.snapshotState();
+
+        MemoryKeyedStateBackend<String> restored = new MemoryKeyedStateBackend<>(String.class, 4);
+        restored.restoreState(snapshot);
+
+        restored.setCurrentKey("k1");
+        assertEquals(Long.valueOf(10L), restored.getState(desc).value());
+
+        restored.setCurrentKey("k2");
+        assertEquals(Long.valueOf(20L), restored.getState(desc).value());
+
+        restored.setCurrentKey("k3");
+        assertEquals(Long.valueOf(30L), restored.getState(desc).value());
+
+        restored.setCurrentKey("k4");
+        assertEquals(Long.valueOf(40L), restored.getState(desc).value());
+    }
+
+    @Test
+    void testShardedMapStateRoundTrip() throws Exception {
+        MemoryKeyedStateBackend<String> backend = new MemoryKeyedStateBackend<>(String.class, 2);
+        MapStateDescriptor<String, Integer> desc = new MapStateDescriptor<>("m", String.class, Integer.class);
+
+        backend.setCurrentKey("k1");
+        backend.getMapState(desc).put("a", 1);
+
+        backend.setCurrentKey("k2");
+        backend.getMapState(desc).put("b", 2);
+
+        StateSnapshot snapshot = backend.snapshotState();
+
+        MemoryKeyedStateBackend<String> restored = new MemoryKeyedStateBackend<>(String.class, 2);
+        restored.restoreState(snapshot);
+
+        restored.setCurrentKey("k1");
+        assertEquals(Integer.valueOf(1), restored.getMapState(desc).get("a"));
+
+        restored.setCurrentKey("k2");
+        assertEquals(Integer.valueOf(2), restored.getMapState(desc).get("b"));
+    }
+
+    @Test
+    void testListStateRoundTripPublic() throws Exception {
+        MemoryKeyedStateBackend<String> backend = createBackend();
+        ListStateDescriptor<String> desc = new ListStateDescriptor<>("list", String.class);
+
+        backend.setCurrentKey("k1");
+        ListState<String> state = backend.getListState(desc);
+        state.add("x");
+        state.add("y");
+
+        backend.setCurrentKey("k2");
+        backend.getListState(desc).add("z");
+
+        StateSnapshot snapshot = backend.snapshotState();
+
+        MemoryKeyedStateBackend<String> restored = createBackend();
+        restored.restoreState(snapshot);
+
+        restored.setCurrentKey("k1");
+        List<String> list1 = new ArrayList<>();
+        restored.getListState(desc).get().forEach(list1::add);
+        assertEquals(Arrays.asList("x", "y"), list1);
+
+        restored.setCurrentKey("k2");
+        List<String> list2 = new ArrayList<>();
+        restored.getListState(desc).get().forEach(list2::add);
+        assertEquals(Arrays.asList("z"), list2);
+    }
+
+    @Test
+    void testMultipleStateTypesRoundTrip() throws Exception {
+        MemoryKeyedStateBackend<String> backend = createBackend();
+
+        ValueStateDescriptor<Long> vDesc = new ValueStateDescriptor<>("v", Long.class, 0L);
+        MapStateDescriptor<String, Integer> mDesc = new MapStateDescriptor<>("m", String.class, Integer.class);
+        ListStateDescriptor<String> lDesc = new ListStateDescriptor<>("l", String.class);
+
+        backend.setCurrentKey("k");
+        backend.getState(vDesc).update(99L);
+        backend.getMapState(mDesc).put("key1", 42);
+        backend.getListState(lDesc).add("item1");
+        backend.getListState(lDesc).add("item2");
+
+        StateSnapshot snapshot = backend.snapshotState();
+
+        MemoryKeyedStateBackend<String> restored = createBackend();
+        restored.restoreState(snapshot);
+
+        restored.setCurrentKey("k");
+        assertEquals(Long.valueOf(99L), restored.getState(vDesc).value());
+        assertEquals(Integer.valueOf(42), restored.getMapState(mDesc).get("key1"));
+
+        List<String> items = new ArrayList<>();
+        restored.getListState(lDesc).get().forEach(items::add);
+        assertEquals(Arrays.asList("item1", "item2"), items);
     }
 }

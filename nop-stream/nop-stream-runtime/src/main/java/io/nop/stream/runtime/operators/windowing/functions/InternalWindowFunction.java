@@ -18,7 +18,6 @@
 
 package io.nop.stream.runtime.operators.windowing.functions;
 
-
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.util.Collector;

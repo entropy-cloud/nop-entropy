@@ -18,11 +18,10 @@
 
 package io.nop.stream.core.windowing.evictors;
 
+import java.io.Serializable;
 
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.io.Serializable;
 
 /**
  * An {@code Evictor} can remove elements from a pane before/after the evaluation of WindowFunction

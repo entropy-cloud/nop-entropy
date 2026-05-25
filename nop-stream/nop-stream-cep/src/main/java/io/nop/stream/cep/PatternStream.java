@@ -18,16 +18,16 @@
 
 package io.nop.stream.cep;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.pattern.Pattern;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.SingleOutputStreamOperator;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.util.OutputTag;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.stream.cep.PatternProcessFunctionBuilder.fromFlatSelect;
 import static io.nop.stream.cep.PatternProcessFunctionBuilder.fromSelect;
 

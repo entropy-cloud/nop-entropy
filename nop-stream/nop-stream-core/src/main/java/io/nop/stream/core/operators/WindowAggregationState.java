@@ -1,9 +1,9 @@
 package io.nop.stream.core.operators;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.util.Map;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class WindowAggregationState implements Serializable {

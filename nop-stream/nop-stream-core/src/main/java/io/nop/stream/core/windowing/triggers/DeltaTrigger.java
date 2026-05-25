@@ -19,6 +19,7 @@
 package io.nop.stream.core.windowing.triggers;
 
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.common.accumulators.LastValue;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;

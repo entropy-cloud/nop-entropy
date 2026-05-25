@@ -18,13 +18,14 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import java.time.Duration;
+
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.core.common.accumulators.LastValue;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.windowing.windows.Window;
-
-import java.time.Duration;
 
 /**
  * A {@link Trigger} that can turn any {@link Trigger} into a timeout {@code Trigger}.

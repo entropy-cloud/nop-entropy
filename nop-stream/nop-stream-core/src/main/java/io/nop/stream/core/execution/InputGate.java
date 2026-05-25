@@ -7,17 +7,18 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Manages multiple {@link InputChannel} instances and provides merged reading

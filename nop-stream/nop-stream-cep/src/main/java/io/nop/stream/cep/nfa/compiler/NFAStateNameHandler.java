@@ -18,12 +18,13 @@
 
 package io.nop.stream.cep.nfa.compiler;
 
-import com.google.common.base.Preconditions;
-import io.nop.stream.cep.nfa.NFA;
-import io.nop.stream.cep.pattern.MalformedPatternException;
-
 import java.util.HashSet;
 import java.util.Set;
+
+import com.google.common.base.Preconditions;
+
+import io.nop.stream.cep.nfa.NFA;
+import io.nop.stream.cep.pattern.MalformedPatternException;
 
 /**
  * A utility class used to handle name conventions and guarantee unique names for the states of our

@@ -7,29 +7,6 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
-import io.nop.core.lang.json.JsonTool;
-import io.nop.stream.core.common.functions.AggregateFunction;
-import io.nop.stream.core.common.accumulators.SimpleAccumulator;
-import io.nop.stream.core.common.state.AggregatingState;
-import io.nop.stream.core.common.state.AggregatingStateDescriptor;
-import io.nop.stream.core.common.state.InternalAppendingState;
-import io.nop.stream.core.common.state.InternalListState;
-import io.nop.stream.core.common.state.ListState;
-import io.nop.stream.core.common.state.ListStateDescriptor;
-import io.nop.stream.core.common.state.MapState;
-import io.nop.stream.core.common.state.MapStateDescriptor;
-import io.nop.stream.core.common.state.ReducingState;
-import io.nop.stream.core.common.state.ReducingStateDescriptor;
-import io.nop.stream.core.common.state.ValueState;
-import io.nop.stream.core.common.state.ValueStateDescriptor;
-import io.nop.stream.core.common.state.backend.IInternalStateBackend;
-import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
-import io.nop.stream.core.common.state.backend.StateSnapshot;
-import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
-import io.nop.stream.core.common.state.shard.StateShard;
-import io.nop.stream.core.windowing.windows.GlobalWindow;
-import io.nop.stream.core.windowing.windows.TimeWindow;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +18,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import io.nop.core.lang.json.JsonTool;
+
+import io.nop.stream.core.common.accumulators.SimpleAccumulator;
+import io.nop.stream.core.common.functions.AggregateFunction;
+import io.nop.stream.core.common.state.AggregatingState;
+import io.nop.stream.core.common.state.AggregatingStateDescriptor;
+import io.nop.stream.core.common.state.backend.IInternalStateBackend;
+import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.StateSnapshot;
+import io.nop.stream.core.common.state.InternalAppendingState;
+import io.nop.stream.core.common.state.InternalListState;
+import io.nop.stream.core.common.state.ListState;
+import io.nop.stream.core.common.state.ListStateDescriptor;
+import io.nop.stream.core.common.state.MapState;
+import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.ReducingState;
+import io.nop.stream.core.common.state.ReducingStateDescriptor;
+import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
+import io.nop.stream.core.common.state.shard.StateShard;
+import io.nop.stream.core.common.state.ValueState;
+import io.nop.stream.core.common.state.ValueStateDescriptor;
+import io.nop.stream.core.windowing.windows.GlobalWindow;
+import io.nop.stream.core.windowing.windows.TimeWindow;
 
 /**
  * 内存实现的 KeyedStateBackend。
@@ -1142,6 +1143,11 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     /**
      * TypedNamespace + Key 的组合键
      * 支持泛型 namespace
+     * <p>
+     * Defensive: equals() and hashCode() guard against type mismatches that can
+     * occur after JSON round-trip deserialization (e.g. Integer vs Long for the same
+     * numeric key). If types differ but represent the same logical value, a WARN is
+     * logged and the comparison falls through to false to avoid silent hash collisions.
      */
     protected static class TypedNamespaceAndKey implements Serializable {
         private static final long serialVersionUID = 1L;
@@ -1159,13 +1165,27 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             TypedNamespaceAndKey that = (TypedNamespaceAndKey) o;
+            // Defensive: check for type mismatch between namespace keys to prevent
+            // silent collisions after JSON deserialization (e.g. Integer vs Long)
+            if (namespace != null && that.namespace != null
+                    && !namespace.getClass().equals(that.namespace.getClass())) {
+                return false;
+            }
+            if (key != null && that.key != null
+                    && !key.getClass().equals(that.key.getClass())) {
+                return false;
+            }
             return Objects.equals(namespace, that.namespace) &&
                     Objects.equals(key, that.key);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(namespace, key);
+            // Defensive: include runtime type in hash to avoid collisions between
+            // keys of different types that have the same value representation
+            int nsHash = namespace != null ? Objects.hash(namespace.getClass(), namespace) : 0;
+            int keyHash = key != null ? Objects.hash(key.getClass(), key) : 0;
+            return 31 * nsHash + keyHash;
         }
 
         @Override

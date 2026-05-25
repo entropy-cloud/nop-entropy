@@ -7,10 +7,11 @@
  */
 package io.nop.stream.core.checkpoint;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.stream.core.common.state.shard.StateShard;
-
 import java.util.*;
+
+import io.nop.api.core.annotations.data.DataBean;
+
+import io.nop.stream.core.common.state.shard.StateShard;
 
 @DataBean
 public class TaskEpochSnapshot extends TaskStateSnapshot {

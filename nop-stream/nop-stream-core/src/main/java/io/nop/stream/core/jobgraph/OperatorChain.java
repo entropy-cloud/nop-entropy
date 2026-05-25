@@ -7,8 +7,6 @@
  */
 package io.nop.stream.core.jobgraph;
 
-import io.nop.stream.core.common.functions.KeySelector;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,6 +16,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import io.nop.stream.core.common.functions.KeySelector;
 
 /**
  * Represents a chain of operators that are executed together in a single task for optimization.

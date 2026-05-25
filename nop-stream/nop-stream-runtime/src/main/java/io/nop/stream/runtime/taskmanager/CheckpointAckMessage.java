@@ -7,11 +7,12 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import java.io.Serializable;
+
 import io.nop.api.core.annotations.data.DataBean;
+
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
-
-import java.io.Serializable;
 
 /**
  * Message sent from TaskManager to JobCoordinator to acknowledge a checkpoint.

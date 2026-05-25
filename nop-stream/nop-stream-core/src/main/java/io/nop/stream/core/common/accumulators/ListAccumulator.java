@@ -18,9 +18,9 @@
 
 package io.nop.stream.core.common.accumulators;
 
-import io.nop.api.core.annotations.core.Internal;
-
 import java.util.ArrayList;
+
+import io.nop.api.core.annotations.core.Internal;
 
 /**
  * This accumulator stores a collection of objects.

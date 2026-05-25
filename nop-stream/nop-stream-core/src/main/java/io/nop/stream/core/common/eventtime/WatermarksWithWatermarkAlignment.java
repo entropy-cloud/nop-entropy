@@ -18,10 +18,9 @@
 
 package io.nop.stream.core.common.eventtime;
 
+import java.time.Duration;
 
 import io.nop.api.core.annotations.core.Internal;
-
-import java.time.Duration;
 
 /**
  * A helper class to pass a watermark group and max allowed watermark drift to the runtime.

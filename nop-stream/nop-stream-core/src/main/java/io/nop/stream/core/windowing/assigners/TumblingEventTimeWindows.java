@@ -18,13 +18,14 @@
 
 package io.nop.stream.core.windowing.assigners;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import io.nop.core.context.IServiceContext;
+
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * A {@link WindowAssigner} that windows elements into windows based on the timestamp of the

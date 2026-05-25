@@ -7,13 +7,13 @@
  */
 package io.nop.stream.core.model;
 
-import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
-import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
-import io.nop.stream.core.exceptions.StreamException;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class StreamRequirementValidator {
 

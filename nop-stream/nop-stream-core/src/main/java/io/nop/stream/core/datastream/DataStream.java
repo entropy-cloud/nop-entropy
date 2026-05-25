@@ -8,13 +8,13 @@
 package io.nop.stream.core.datastream;
 
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
-import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.FlatMapFunction;
+import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.MapFunction;
-import io.nop.stream.core.operators.OneInputStreamOperator;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.operators.OneInputStreamOperator;
 
 public interface DataStream<T> {
     TypeInformation<T> getType();

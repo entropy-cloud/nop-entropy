@@ -18,7 +18,6 @@
 
 package io.nop.stream.core.common.state;
 
-
 import jakarta.annotation.Nonnull;
 
 /**

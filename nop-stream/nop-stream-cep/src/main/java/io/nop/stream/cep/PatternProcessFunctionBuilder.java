@@ -18,14 +18,14 @@
 
 package io.nop.stream.cep;
 
-import io.nop.stream.cep.functions.PatternProcessFunction;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.nop.stream.cep.functions.adaptors.PatternFlatSelectAdapter;
 import io.nop.stream.cep.functions.adaptors.PatternSelectAdapter;
 import io.nop.stream.cep.functions.adaptors.PatternTimeoutFlatSelectAdapter;
 import io.nop.stream.cep.functions.adaptors.PatternTimeoutSelectAdapter;
+import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.core.util.OutputTag;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Builder for adapting pre-1.8 functions like {@link PatternFlatSelectFunction}, {@link

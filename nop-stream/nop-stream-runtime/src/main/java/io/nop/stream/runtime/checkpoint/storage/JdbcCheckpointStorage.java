@@ -7,20 +7,21 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IDataRow;
-import io.nop.stream.core.checkpoint.*;
-import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
-import io.nop.stream.core.model.StreamModelFingerprint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import io.nop.stream.core.model.StreamModelFingerprint;
 
 @Internal
 public class JdbcCheckpointStorage implements ICheckpointStorage {

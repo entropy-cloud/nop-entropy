@@ -7,13 +7,14 @@
  */
 package io.nop.stream.core.windowing.assigners;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import io.nop.core.context.IServiceContext;
+
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
-
-import java.util.Collection;
-import java.util.Collections;
 
 public class GlobalWindows extends WindowAssigner<Object, GlobalWindow> {
     private static final long serialVersionUID = 1L;

@@ -18,16 +18,16 @@
 
 package io.nop.stream.cep.functions.adaptors;
 
-import io.nop.stream.cep.PatternSelectFunction;
-import io.nop.stream.cep.functions.PatternProcessFunction;
-import io.nop.stream.core.configuration.Configuration;
-import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.util.FunctionUtils;
-
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import io.nop.stream.cep.functions.PatternProcessFunction;
+import io.nop.stream.cep.PatternSelectFunction;
+import io.nop.stream.core.configuration.Configuration;
+import io.nop.stream.core.util.Collector;
+import io.nop.stream.core.util.FunctionUtils;
 
 /**
  * Adapter that expresses {@link PatternSelectFunction} with {@link PatternProcessFunction}.

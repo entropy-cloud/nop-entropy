@@ -7,10 +7,12 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import java.util.*;
+
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.Subtask;
-import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.model.StreamComponents;
@@ -18,8 +20,6 @@ import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
-
-import java.util.*;
 
 public class CheckpointPlanBuilder {
 

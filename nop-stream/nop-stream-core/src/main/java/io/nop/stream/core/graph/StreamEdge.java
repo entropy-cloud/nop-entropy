@@ -7,10 +7,11 @@
  */
 package io.nop.stream.core.graph;
 
-import io.nop.commons.partition.IPartitioner;
-import io.nop.stream.core.util.OutputTag;
-
 import java.io.Serializable;
+
+import io.nop.commons.partition.IPartitioner;
+
+import io.nop.stream.core.util.OutputTag;
 
 /**
  * Represents an edge in the streaming execution graph.

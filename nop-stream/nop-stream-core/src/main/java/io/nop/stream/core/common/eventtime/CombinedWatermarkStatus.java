@@ -18,12 +18,10 @@
 
 package io.nop.stream.core.common.eventtime;
 
-
-import io.nop.api.core.annotations.core.Internal;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import io.nop.api.core.annotations.core.Internal;
 import static com.google.common.base.Preconditions.checkState;
 
 /**

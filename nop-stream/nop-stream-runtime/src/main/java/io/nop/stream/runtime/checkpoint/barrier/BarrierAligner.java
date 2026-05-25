@@ -7,20 +7,21 @@
  */
 package io.nop.stream.runtime.checkpoint.barrier;
 
-import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
-import io.nop.stream.core.checkpoint.CheckpointType;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
+
+import io.nop.api.core.annotations.core.Internal;
+
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.CheckpointType;
 
 /**
  * 多输入 Barrier 对齐器，用于多输入顶点的 barrier 同步。当前 GraphModelCheckpointExecutor 未使用

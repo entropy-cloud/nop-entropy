@@ -7,14 +7,15 @@
  */
 package io.nop.stream.core.windowing.assigners;
 
-import io.nop.core.context.IServiceContext;
-import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
-import io.nop.stream.core.windowing.triggers.Trigger;
-import io.nop.stream.core.windowing.windows.TimeWindow;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import io.nop.core.context.IServiceContext;
+
+import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
+import io.nop.stream.core.windowing.triggers.Trigger;
+import io.nop.stream.core.windowing.windows.TimeWindow;
 
 public class SlidingEventTimeWindows extends WindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;

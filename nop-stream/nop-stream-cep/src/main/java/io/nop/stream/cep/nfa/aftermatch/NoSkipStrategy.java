@@ -18,11 +18,11 @@
 
 package io.nop.stream.cep.nfa.aftermatch;
 
-import io.nop.stream.cep.nfa.sharedbuffer.EventId;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import io.nop.stream.cep.nfa.sharedbuffer.EventId;
 
 /** Every possible match will be emitted. */
 public class NoSkipStrategy extends AfterMatchSkipStrategy {

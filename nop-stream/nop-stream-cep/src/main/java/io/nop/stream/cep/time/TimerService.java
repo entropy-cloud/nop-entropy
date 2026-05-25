@@ -19,6 +19,7 @@
 package io.nop.stream.cep.time;
 
 import io.nop.api.core.annotations.core.Internal;
+
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 

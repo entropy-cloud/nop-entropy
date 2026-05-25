@@ -7,15 +7,16 @@
  */
 package io.nop.stream.connector;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
-import io.nop.stream.core.common.functions.SinkFunction;
-import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+import io.nop.stream.core.common.functions.SinkFunction;
 
 /**
  * Adapts nop-batch's {@link IBatchConsumerProvider} to nop-stream's {@link SinkFunction}.

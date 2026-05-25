@@ -7,9 +7,9 @@
  */
 package io.nop.stream.core.checkpoint;
 
-import io.nop.stream.core.streamrecord.StreamElement;
-
 import java.util.Objects;
+
+import io.nop.stream.core.streamrecord.StreamElement;
 
 /**
  * Checkpoint 屏障，在数据流中传播以触发 checkpoint。

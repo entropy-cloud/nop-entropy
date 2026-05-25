@@ -7,11 +7,11 @@
  */
 package io.nop.stream.core.transformation;
 
-import io.nop.stream.core.common.functions.source.SourceFunction;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-
 import java.util.Collections;
 import java.util.List;
+
+import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 /**
  * A transformation that represents a data source in the streaming DAG.

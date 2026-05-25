@@ -7,6 +7,9 @@
  */
 package io.nop.stream.connector;
 
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.model.StreamRequirementValidator;
@@ -23,43 +26,32 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class TestConnectorConsistencyCapability {
 
-    // ---- Capability declaration tests ----
+    // ---- Capability declaration tests: verify actual connector instances ----
 
     @Test
     void testBatchLoaderSourceDeclaresAtLeastOnce() {
-        // BatchLoaderSourceFunction is a source, so it declares getSourceConsistency
-        // We verify the capability enum value directly since constructing the connector
-        // requires a real IBatchLoaderProvider
-        assertEquals(SourceConsistencyCapability.AT_LEAST_ONCE,
-                SourceConsistencyCapability.AT_LEAST_ONCE);
-        // Verify ordinal ordering: REPLAYABLE < AT_LEAST_ONCE (lower = stronger)
-        assertTrue(SourceConsistencyCapability.REPLAYABLE.ordinal()
-                < SourceConsistencyCapability.AT_LEAST_ONCE.ordinal());
-    }
-
-    @Test
-    void testDebeziumSourceDeclaresReplayable() {
-        // DebeziumCdcSourceFunction declares REPLAYABLE - the strongest source capability
-        assertEquals(0, SourceConsistencyCapability.REPLAYABLE.ordinal());
+        IBatchLoaderProvider<String> loaderProvider = context -> new IBatchLoaderProvider.IBatchLoader<>() {
+            @Override
+            public List<String> load(int batchSize, IBatchChunkContext chunkContext) {
+                return Collections.emptyList();
+            }
+        };
+        BatchLoaderSourceFunction<String> source = new BatchLoaderSourceFunction<>(loaderProvider);
+        assertEquals(SourceConsistencyCapability.AT_LEAST_ONCE, source.getSourceConsistency());
     }
 
     @Test
     void testBatchConsumerSinkDeclaresIdempotent() {
-        // BatchConsumerSinkFunction declares IDEMPOTENT
-        // Verify it's in the enum and stronger than AT_LEAST_ONCE
-        assertTrue(SinkConsistencyCapability.IDEMPOTENT.ordinal()
-                < SinkConsistencyCapability.AT_LEAST_ONCE.ordinal());
+        IBatchConsumerProvider<String> consumerProvider = context -> (items, chunkContext) -> {
+        };
+        BatchConsumerSinkFunction<String> sink = new BatchConsumerSinkFunction<>(consumerProvider);
+        assertEquals(SinkConsistencyCapability.IDEMPOTENT, sink.getSinkConsistency());
     }
 
-    @Test
-    void testMessageSinkDeclaresAtLeastOnce() {
-        // MessageSinkFunction declares AT_LEAST_ONCE
-        assertNotNull(SinkConsistencyCapability.AT_LEAST_ONCE);
-    }
+    // ---- Enum ordering tests ----
 
     @Test
     void testSourceConsistencyCapabilityOrdering() {
-        // Verify the capability ordering: REPLAYABLE > TRANSACTIONAL_READ > AT_LEAST_ONCE > BEST_EFFORT
         assertTrue(SourceConsistencyCapability.REPLAYABLE.ordinal()
                 < SourceConsistencyCapability.TRANSACTIONAL_READ.ordinal());
         assertTrue(SourceConsistencyCapability.TRANSACTIONAL_READ.ordinal()
@@ -70,7 +62,6 @@ class TestConnectorConsistencyCapability {
 
     @Test
     void testSinkConsistencyCapabilityOrdering() {
-        // Verify the capability ordering: TWO_PHASE_COMMIT is strongest
         assertTrue(SinkConsistencyCapability.TWO_PHASE_COMMIT.ordinal()
                 < SinkConsistencyCapability.IDEMPOTENT.ordinal());
         assertTrue(SinkConsistencyCapability.IDEMPOTENT.ordinal()
@@ -167,7 +158,6 @@ class TestConnectorConsistencyCapability {
 
     @Test
     void validateConnectorConsistency_debeziumPlusTwoPhaseCommit_passes() {
-        // Debezium source declares REPLAYABLE, sink has TWO_PHASE_COMMIT
         assertDoesNotThrow(() ->
                 StreamRequirementValidator.validateConnectorConsistency(
                         STRICT_EXACTLY_ONCE,
@@ -177,7 +167,6 @@ class TestConnectorConsistencyCapability {
 
     @Test
     void validateConnectorConsistency_batchLoaderPlusIdempotentSink_failsForStrict() {
-        // BatchLoader is AT_LEAST_ONCE (ordinal > REPLAYABLE), BatchConsumer is IDEMPOTENT (ordinal > TWO_PHASE_COMMIT)
         Exception ex = assertThrows(Exception.class, () ->
                 StreamRequirementValidator.validateConnectorConsistency(
                         STRICT_EXACTLY_ONCE,

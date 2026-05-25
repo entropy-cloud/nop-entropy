@@ -7,12 +7,12 @@
  */
 package io.nop.stream.core.model;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class StreamBackendCapability implements Serializable {

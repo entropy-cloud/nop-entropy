@@ -18,14 +18,14 @@
 
 package io.nop.stream.cep.functions;
 
+import java.util.List;
+import java.util.Map;
+
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.time.TimeContext;
 import io.nop.stream.core.common.functions.AbstractRichFunction;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * It is called with a map of detected events which are identified by their names. The names are

@@ -7,17 +7,17 @@
  */
 package io.nop.stream.fraud.pattern;
 
-import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.cep.pattern.conditions.IterativeCondition;
-import io.nop.stream.fraud.model.FraudAlert;
-import io.nop.stream.fraud.model.TransactionEvent;
-
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import io.nop.stream.cep.pattern.conditions.IterativeCondition;
+import io.nop.stream.cep.pattern.Pattern;
+import io.nop.stream.fraud.model.FraudAlert;
+import io.nop.stream.fraud.model.TransactionEvent;
 
 /**
  * CEP pattern for detecting rapid consecutive large transactions that may indicate fraud.

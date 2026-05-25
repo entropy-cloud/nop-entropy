@@ -7,10 +7,11 @@
  */
 package io.nop.stream.connector;
 
-import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageConsumeContext;
+import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
+
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 

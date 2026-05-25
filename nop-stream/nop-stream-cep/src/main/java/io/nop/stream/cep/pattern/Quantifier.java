@@ -18,13 +18,14 @@
 
 package io.nop.stream.cep.pattern;
 
-import com.google.common.base.Preconditions;
-
-import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
+
+import jakarta.annotation.Nullable;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A quantifier describing the Pattern. There are three main groups of {@link Quantifier}.

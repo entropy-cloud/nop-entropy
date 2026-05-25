@@ -7,12 +7,12 @@
  */
 package io.nop.stream.core.transformation;
 
-import io.nop.stream.core.common.functions.SinkFunction;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+
+import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 /**
  * A transformation that represents a sink operation in the streaming DAG.

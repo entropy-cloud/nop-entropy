@@ -18,7 +18,6 @@
 
 package io.nop.stream.core.common.typeutils;
 
-
 import java.io.Serializable;
 
 /**

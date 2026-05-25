@@ -7,10 +7,11 @@
  */
 package io.nop.stream.core.jobgraph;
 
-import io.nop.commons.partition.IPartitioner;
-import io.nop.stream.core.execution.flow.EdgeConfig;
-
 import java.io.Serializable;
+
+import io.nop.commons.partition.IPartitioner;
+
+import io.nop.stream.core.execution.flow.EdgeConfig;
 
 /**
  * Represents an edge in the job execution graph connecting vertices with partition type information.
