@@ -7,6 +7,12 @@ const TEST_ID = `e2e_res_${Date.now()}`;
 const createdResourceIds: string[] = [];
 const SITE_ID = 'main';
 
+async function ensureDefaultSite(request: import('@playwright/test').APIRequestContext): Promise<void> {
+  await rpc(request, 'NopAuthSite__save', {
+    data: { siteId: SITE_ID, displayName: 'Main Site', orderNo: 1, status: 1 },
+  }).catch(() => {});
+}
+
 async function cleanupTestResources(request: import('@playwright/test').APIRequestContext): Promise<void> {
   const resp = await rpc<{ items: { resourceId: string }[] }>(request, 'NopAuthResource__findPage', {
     query: { offset: 0, limit: 200 },
@@ -22,6 +28,7 @@ async function cleanupTestResources(request: import('@playwright/test').APIReque
 test.describe('资源管理 - RPC', () => {
   test.beforeAll(async ({ request }) => {
     await loginRpc(request);
+    await ensureDefaultSite(request);
     await cleanupTestResources(request);
   });
 
@@ -138,6 +145,7 @@ test.describe('资源管理 - RPC', () => {
 test.describe('资源管理 - 浏览器', () => {
   test.beforeEach(async ({ request }) => {
     await loginRpc(request);
+    await ensureDefaultSite(request);
   });
 
   test.afterEach(async ({ request }) => {

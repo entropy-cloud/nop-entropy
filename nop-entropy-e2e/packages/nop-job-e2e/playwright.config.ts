@@ -23,8 +23,8 @@ export default defineConfig({
   webServer: process.env.SKIP_WEBSERVER
     ? undefined
     : {
-        command: `./mvnw quarkus:dev -Dquarkus.http.port=${port} -Dquarkus.profile=dev`,
-        cwd: '../../../../../nop-job/nop-job-app',
+        command: `mvn quarkus:dev -Dquarkus.http.port=${port} -Dquarkus.profile=dev`,
+        cwd: '../../../nop-job/nop-job-app',
         port,
         timeout: 120_000,
         reuseExistingServer: !process.env.CI,

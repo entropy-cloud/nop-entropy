@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginRpc, rpc } from '@nop-entropy/e2e-shared';
+import { loginRpc, rpc, waitForTableLoad } from '@nop-entropy/e2e-shared';
 import { LoginPO } from './page-objects/login.po.js';
 import { RolePO } from './page-objects/role.po.js';
 
@@ -166,7 +166,7 @@ test.describe('角色管理 - 浏览器', () => {
     await rolePO.clickSave();
     createdRoleIds.push(roleId);
 
-    await rolePO.searchRole(roleId);
+    await rolePO.goto();
     await expect(rolePO.page.locator('tr').filter({ hasText: roleId }).first())
       .toBeVisible({ timeout: 10_000 });
   });
@@ -245,9 +245,10 @@ test.describe('角色管理 - 浏览器', () => {
 
     const rolePO = await browserLogin(page);
     await rolePO.goto();
-    await rolePO.searchRole(roleA);
     await expect(rolePO.page.locator('tr').filter({ hasText: roleA }).first())
       .toBeVisible({ timeout: 10_000 });
+    await expect(rolePO.page.locator('tr').filter({ hasText: roleB }).first())
+      .toBeVisible({ timeout: 5_000 });
   });
 
   test('浏览器: 打开角色用户分配', async ({ page, request }) => {

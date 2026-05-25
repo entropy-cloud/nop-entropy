@@ -21,7 +21,7 @@ nop:
 
   datasource:
     driver-class-name: org.h2.Driver
-    jdbc-url: jdbc:h2:./db/test
+    jdbc-url: jdbc:h2:mem:test
     username: sa
     password:
 #    driver-class-name: com.mysql.cj.jdbc.Driver
