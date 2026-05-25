@@ -12,7 +12,7 @@
 
 ## Documentation Routing
 
-**`docs-for-ai/INDEX.md` is the authoritative docs navigation baseline.** 下表覆盖最常见的 agent 工作流。
+**`docs-for-ai/INDEX.md` is the authoritative docs navigation baseline.** 下表覆盖最常见的 agent 工作流。**当 By Task 和 By Code Location 都命中时，合并去重阅读清单。**
 
 ### By Task
 
@@ -24,7 +24,9 @@
 | 修改 GraphQL API、crud 操作 | `docs-for-ai/02-core-guides/api-and-graphql.md` | `docs-for-ai/02-core-guides/service-layer.md` |
 | 修改 Delta 定制、覆盖已有模块 | `docs-for-ai/02-core-guides/delta-customization.md` | `docs-for-ai/02-core-guides/model-first-development.md` |
 | 处理错误码、异常处理 | `docs-for-ai/02-core-guides/error-handling.md` | — |
+| 修改平台框架核心（nop-core/nop-xlang/nop-xdef 等） | `docs-for-ai/02-core-guides/xlang-and-xpl-basics.md` | `docs-for-ai/02-core-guides/xdef-and-xdsl.md` |
 | 编写或修改测试 | `docs-for-ai/02-core-guides/testing.md` | — |
+| 编写或运行平台 E2E 测试（Playwright） | `nop-entropy-e2e/README.md` | — |
 | 执行特定类型任务（按 runbook） | `docs-for-ai/03-runbooks/README.md` | 对应 runbook 文件 |
 | 新增模块或修改包结构 | `docs-for-ai/01-repo-map/module-groups.md` | `docs-for-ai/01-repo-map/domain-module-pattern.md` |
 | Draft, execute, or audit a plan under `ai-dev/plans/` | `ai-dev/plans/00-plan-authoring-and-execution-guide.md` | `ai-dev/logs/00-log-writing-guide.md` |
@@ -36,6 +38,8 @@
 
 ### By Code Location
 
+> **⚠️动手前检查 Protected Areas**：如果代码位于下表 Protected Area 中，必须先遵守对应规则（plan-first / ask-first），再读技术文档。
+
 | When touching this code | Read this |
 |------------------------|-----------|
 | `nop-core/`, `nop-xlang/` | `docs-for-ai/01-repo-map/module-groups.md` |
@@ -43,6 +47,9 @@
 | `nop-dao/`, ORM/model 层 | `docs-for-ai/02-core-guides/model-first-development.md` |
 | `nop-graphql/` | `docs-for-ai/02-core-guides/api-and-graphql.md` |
 | `nop-chaos/` (demo app) | `docs-for-ai/01-repo-map/domain-module-pattern.md` |
+| 业务模块（`nop-auth/`, `nop-job/`, `nop-wf/`, `nop-task/` 等） | `docs-for-ai/02-core-guides/service-layer.md` + 对应 runbook |
+| 其他 `nop-*` 模块 | `docs-for-ai/01-repo-map/module-groups.md` |
+| `nop-entropy-e2e/` (e2e tests) | `nop-entropy-e2e/README.md` |
 | `ai-dev/` (any subdirectory) | 对应子目录的 `00-*-guide.md` 或 `README.md` |
 
 ---
@@ -60,7 +67,7 @@
 | **定位** | **使用** Nop 平台所需的知识 | **开发** Nop 平台本身所需的知识 |
 | **内容** | API、约定、开发模式、runbook | 设计决策、执行计划、复杂 bug 分析、经验教训 |
 | **读者** | 基于 Nop 构建应用的 AI / 开发者 | 改造 Nop 框架本身的 AI / 开发者 |
-| **权威性** | source of truth（规范性文档） | 开发过程记录（非规范性） |
+| **权威性** | source of truth（规范性文档） | `design/` 规范性；`logs/`、`plans/`、`bugs/` 过程记录 |
 | **路由入口** | `docs-for-ai/INDEX.md` | `ai-dev/logs/index.md` |
 
 ### Mandatory Updates
@@ -85,11 +92,46 @@ After completing any significant **CODE CHANGE**, you MUST:
 | `analysis/` | AI 单方面调研、对比、评估 | 对比多个技术方案、评估代码质量时 | `ai-dev/analysis/00-analysis-writing-guide.md` |
 | `discussions/` | 人与 AI 多轮对话，澄清模糊需求 | 需求不明确时 | `ai-dev/discussions/00-discussion-writing-guide.md` |
 | `bugs/` | 复杂 bug 的修复记录 | 根因不明显、跨模块的 bug | `ai-dev/bugs/00-bug-fix-note-writing-guide.md` |
-| `audits/` | 代码审计记录 | 执行代码审计时 | 对应审计 skill |
+| `audits/` | 代码和设计审计记录 | 执行代码审计时 | `ai-dev/audits/README.md` |
 | `lessons/` | 经验教训索引 | 踩坑后总结 | `ai-dev/lessons/README.md` |
-| `skills/` | 可复用的 AI 技能提示词 | 定义可复用工作流时 | — |
+| `skills/` | 可复用的 AI 审计/review prompt 模板 | 需要标准化审计流程时 | `ai-dev/audits/README.md` 中的 prompt 对照表 |
 
 **所有 AI 开发计划必须写在 `ai-dev/plans/` 下，禁止写入 `docs/plans/`。**
+
+---
+
+## AI Autonomy Levels
+
+当前项目状态和 autonomy 等级定义在 `docs-for-ai/00-start-here/project-context.md`。
+
+### 等级定义
+
+| 等级 | 含义 |
+|------|------|
+| `implement` | AI 可直接实施，前提是满足 Verification Checklist |
+| `plan-first` | AI 可起草/更新计划，但实施需等待 plan audit |
+| `ask-first` | AI 必须先询问，才能变更代码或用户可见行为 |
+| `research-only` | AI 可 inspect、summarize、propose，但不能修改产品行为 |
+| `blocked` | AI 不可继续，直到阻塞解除 |
+
+### Protected Areas
+
+以下区域变更需 `plan-first` 或 `ask-first`：
+
+| 区域 | Rule | Required Evidence |
+|------|------|-------------------|
+| ORM 模型结构（`model/*.orm.xml`） | plan-first | owner doc + test |
+| 跨模块公共 API（`nop-*-api`） | plan-first | owner doc + migration plan |
+| 权限/认证模型（`nop-auth`） | ask-first | owner doc + test |
+| 生成管线（`_gen/`、`_*.xml`、codegen 模板） | plan-first | 理解生成链路 |
+| 框架核心引擎（`nop-core`/`nop-xlang`/`nop-xdef` 内部） | plan-first | 设计文档 + 回归测试 |
+
+### AI Must Ask Before
+
+1. 变更产品范围且 requirement 或 owner doc 有歧义
+2. 跳过验证因为命令缺失或失败
+3. 关闭一个 audit/verification/docs 证据缺失的 plan
+4. 当 `docs-for-ai/` 与实际代码冲突且解决冲突会改变用户可见行为
 
 ---
 
