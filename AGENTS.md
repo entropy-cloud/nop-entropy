@@ -81,6 +81,11 @@ After completing any significant **CODE CHANGE**, you MUST:
    - API or GraphQL → `docs-for-ai/02-core-guides/api-and-graphql.md`
    - General conventions → the smallest owning doc under `docs-for-ai/`
 3. **Update `docs-for-ai/INDEX.md`** and `docs-for-ai/04-reference/source-anchors.md` if routing or implementation anchors changed.
+4. **Run doc link checker** after modifying any file in `docs-for-ai/` or `ai-dev/`:
+   ```bash
+   node ai-dev/tools/check-doc-links.mjs --strict
+   ```
+   Must exit with code 0 (0 errors). Fix any broken links before finishing the task.
 
 ### `ai-dev/` Directory Roles
 

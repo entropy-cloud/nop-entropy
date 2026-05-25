@@ -776,6 +776,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.IUserContextExtractor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "addHeaders",
@@ -5072,6 +5082,13 @@
         ]
       },
       {
+        "name": "buildLoginUrlWithState",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "checkLogoutUrl",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
@@ -5142,6 +5159,12 @@
         "name": "isAjaxRequest",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "isAllowedRedirectUri",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -12005,6 +12028,14 @@
         ]
       },
       {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthResource",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "getMenuTree",
         "parameterTypes": [
           "java.lang.String",
@@ -12821,6 +12852,14 @@
         ]
       },
       {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "appendOrderByPk",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
@@ -12953,6 +12992,13 @@
         ]
       },
       {
+        "name": "checkUniqueForSaveEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
         "name": "checkUniqueForUpdate",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -12967,6 +13013,15 @@
         ]
       },
       {
+        "name": "copyToEntity",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "countTreeEntity",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
@@ -12977,6 +13032,13 @@
         "parameterTypes": []
       },
       {
+        "name": "daoDeleteEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "daoFor",
         "parameterTypes": [
           "java.lang.Class"
@@ -12985,6 +13047,20 @@
       {
         "name": "daoProvider",
         "parameterTypes": []
+      },
+      {
+        "name": "daoSaveEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "daoUpdateEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
       },
       {
         "name": "defaultPrepareCopyForNew",
@@ -13036,6 +13112,14 @@
         ]
       },
       {
+        "name": "deleteReferences",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "deleted_findPage",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -13072,6 +13156,15 @@
         "name": "doDeleteEntity",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doDeleteEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.util.Set",
+          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -13155,6 +13248,13 @@
       },
       {
         "name": "doUpdateEntity",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "executeDelayedRelationActions",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData",
           "io.nop.core.context.IServiceContext"
@@ -13259,6 +13359,12 @@
         "parameterTypes": [
           "java.util.Map",
           "io.nop.dao.api.IEntityDao"
+        ]
+      },
+      {
+        "name": "getRefNamesToCheckExists",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -14991,6 +15097,16 @@
       }
     ],
     "name": "io.nop.biz.model._gen._BizReturnModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.proxy.BizProxyFactoryBean"
   },
   {
     "allDeclaredConstructors": true,
@@ -20532,6 +20648,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceDslNodeLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceDslNodeSaver"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getChildren",
@@ -20557,6 +20693,26 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.core.resource.IResourceLocator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceObjectLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceObjectSaver"
   },
   {
     "allDeclaredConstructors": true,
@@ -22185,6 +22341,16 @@
       }
     ],
     "name": "io.nop.core.type.IGenericType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.type.impl.PredefinedBoxType"
   },
   {
     "allDeclaredConstructors": true,
@@ -25316,6 +25482,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.seq.UuidSequenceGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "INSTANCE"
@@ -27679,6 +27855,16 @@
       }
     ],
     "name": "io.nop.http.client.jdk.JdkHttpClient"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.http.server.filters.CoreInitializationGuardFilter"
   },
   {
     "allDeclaredConstructors": true,
@@ -30773,6 +30959,26 @@
       }
     ],
     "name": "io.nop.orm.IOrmObject"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.biz.ICrudBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.biz.IOrmEntityBiz"
   },
   {
     "allDeclaredConstructors": true,
@@ -36510,6 +36716,12 @@
         ]
       },
       {
+        "name": "requireBiz",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
         "name": "requireEnhancer",
         "parameterTypes": []
       },
@@ -36815,6 +37027,16 @@
       }
     ],
     "name": "io.nop.quarkus.core.dao.DataSourceConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.proto.ProtoApiModelLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -41055,6 +41277,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.DynamicCssModelLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"
@@ -41093,6 +41325,16 @@
       }
     ],
     "name": "io.nop.web.page.DynamicJsLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.DynamicJsModelLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -41176,6 +41418,16 @@
       }
     ],
     "name": "io.nop.web.page.ModuleJsLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.PageModelLoaderFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -41427,6 +41679,16 @@
       }
     ],
     "name": "io.nop.web.page.SystemJsProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.ViewModelLoaderFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -41964,6 +42226,74 @@
       }
     ],
     "name": "io.nop.xlang.xdsl.AbstractDslModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "name": "dynamic"
+      },
+      {
+        "name": "resolveInDir"
+      },
+      {
+        "name": "schemaPath"
+      }
+    ],
+    "methods": [
+      {
+        "name": "loadXDef",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadXmlFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.core.resource.IResourceDslNodeLoader$ResolvePhase"
+        ]
+      },
+      {
+        "name": "transformBeanToNode",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xdsl.AbstractDslResourceLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xdsl.AbstractDslResourcePersister"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xdsl.IDslResourceLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xdsl.IDslResourcePersister"
   },
   {
     "allDeclaredConstructors": true,
@@ -44759,6 +45089,16 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.xjava.JaninoParser"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xmeta.xjava.JavaObjMetaLoader"
   },
   {
     "allDeclaredConstructors": true,
