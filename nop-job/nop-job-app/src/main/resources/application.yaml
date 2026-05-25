@@ -43,6 +43,10 @@ quarkus:
     devservices:
       enabled: false
 
+  http:
+    port: 8082
+    cors: true
+
   log:
     level: INFO
 
