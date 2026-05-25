@@ -37,7 +37,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processElement(record);
         } catch (Exception e) {
-            throw new RuntimeException("Error forwarding element to next operator", e);
+            throw new StreamRuntimeException("Error forwarding element to next operator", e);
         }
     }
 
@@ -51,7 +51,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processWatermark(mark);
         } catch (Exception e) {
-            throw new RuntimeException("Error forwarding watermark", e);
+            throw new StreamRuntimeException("Error forwarding watermark", e);
         }
     }
 
@@ -60,7 +60,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processWatermarkStatus(watermarkStatus);
         } catch (Exception e) {
-            throw new RuntimeException("Error forwarding watermark status", e);
+            throw new StreamRuntimeException("Error forwarding watermark status", e);
         }
     }
 
@@ -74,7 +74,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processLatencyMarker(latencyMarker);
         } catch (Exception e) {
-            throw new RuntimeException("Error forwarding latency marker", e);
+            throw new StreamRuntimeException("Error forwarding latency marker", e);
         }
     }
 
@@ -83,7 +83,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processBarrier(barrier);
         } catch (Exception e) {
-            throw new RuntimeException("Error forwarding barrier to next operator", e);
+            throw new StreamRuntimeException("Error forwarding barrier to next operator", e);
         }
     }
 }

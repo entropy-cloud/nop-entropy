@@ -71,6 +71,7 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends StreamFunction>
     @Override
     public void open() throws Exception {
         super.open();
+        FunctionUtils.setFunctionRuntimeContext(userFunction, new StreamingRuntimeContext());
         FunctionUtils.openFunction(userFunction, new io.nop.stream.core.configuration.Configuration() {});
     }
 
