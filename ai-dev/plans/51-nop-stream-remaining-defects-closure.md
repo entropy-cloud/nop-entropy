@@ -477,11 +477,13 @@ Plan 49 当前标记 `completed` 但 Phase 4-8 仍含未完成项（违反 Guide
 
 ## Closure
 
-Status Note: All phases completed. Phase 1-11 verified with `./mvnw test -pl nop-stream -am` BUILD SUCCESS.
+Status Note: All phases completed. Phase 1-11 verified with `./mvnw test -pl nop-stream -am` BUILD SUCCESS. Closure audit passed (conditional → fixed).
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: houyi (implementation), inline verification
+- Reviewer / Agent: Independent closure auditor (houyi subagent, separate task_id from implementation)
+- Audit Date: 2026-05-25
+- Verdict: **CONDITIONAL PASS → PASS** (after fixing F-1 and F-2)
 - Evidence: `./mvnw test -pl nop-stream -am` BUILD SUCCESS (all modules pass, 0 failures)
   - Phase 1: `TestOperatorLifecycle` — operator lifecycle (open/close/snapshot/restore) verified
   - Phase 2: `TypeSerializer`/`BasicTypeInfo`/`SimpleTypeSerializer` — type inference in `DataStreamImpl`/`WindowedStreamImpl`
@@ -494,6 +496,10 @@ Closure Audit Evidence:
   - Phase 9: CEP tests (NFA/Greedy/NotPattern/IterativeCondition/SharedBuffer) + connector tests
   - Phase 10: `check-import-order.sh` + all module imports sorted
   - Phase 11: Full `nop-stream` test suite passes
+
+Audit Findings (fixed post-audit):
+- **F-1 (Medium)**: `AbstractUdfStreamOperator.open()` 缺少 `setFunctionRuntimeContext()` 调用 → 已添加 `StreamingRuntimeContext` + 调用 (commit `64b6fd233`)
+- **F-2 (Low)**: `ChainingOutput` 5 处裸 `RuntimeException` → 替换为 `StreamRuntimeException` (commit `64b6fd233`)
 
 Follow-up:
 
