@@ -95,15 +95,15 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 
 1. GraphQL 引擎通过 xmeta 构建 object definition。没有 xmeta，`@query:` 前端请求会报"未定义的对象"。
 2. RPC `/r/` 路径不校验 GraphQL schema，所以伪 BizModel 在 RPC 测试中能通过，但浏览器页面会失败。
-3. 方法应该属于它所操作的聚合根。如果操作的是符号，方法就放 `NopCodeSymbolBizModel`；如果是索引级操作，放 `NopCodeIndexBizModel`。
+3. 方法应该属于它所操作的聚合根。如果操作的是任务实体，方法就放 `NopJobBizModel`；如果是跨实体的调度级操作，放 `NopJobScheduleBizModel`。
 
 判断规则：
 
 | 操作对象 | 应归属的 BizModel |
 |---------|-----------------|
-| 符号的类型层级/调用链/类型信息 | `NopCodeSymbol` |
-| 索引级别的分析（图分析、社区检测等） | `NopCodeIndex` |
-| 某实体的派生查询 | 该实体本身的 BizModel |
+| 某实体的类型信息/关联/派生查询 | 该实体本身的 BizModel |
+| 跨多个实体的编排级操作（调度、分析等） | 编排入口 BizModel（仍需有 xmeta） |
+| 某实体的标准 CRUD | 该实体的 `CrudBizModel` |
 
 ## 默认不要这样写
 
@@ -131,6 +131,7 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 
 ## 相关文档
 
+- `./architecture-principles.md` — 聚合根与数据库表的关系、DSL优先等跨切面原则
 - `./domain-logic-and-ddd.md`
 - `./dto-json-and-message-beans.md`
 - `./testing.md`

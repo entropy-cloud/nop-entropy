@@ -100,6 +100,7 @@ Step 只在下面两种情况同时满足时再抽：
 
 ## 相关文档
 
+- `./architecture-principles.md`
 - `./service-layer.md`
 - `../03-runbooks/choose-entity-bizmodel-processor.md`
 - `../03-runbooks/implement-complex-business-flow.md`

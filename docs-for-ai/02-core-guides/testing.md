@@ -1,5 +1,7 @@
 # 测试默认模式
 
+> **受众**：基于 Nop 平台构建业务应用的开发者和 AI。本页描述的测试类（`JunitAutoTestCase`、`JunitBaseTestCase`、`@NopTestConfig`）通过 Maven 依赖引入，适用于任何 Nop 项目。源码路径列仅为 nop-entropy 仓库内部参考，业务项目中不存在这些路径。
+
 本页只保留当前仓库里最适合 AI 使用的测试结论。
 
 ## 默认原则
@@ -9,6 +11,7 @@
 3. 普通进程内集成测试，优先 `JunitBaseTestCase`。
 4. `@Inject` 字段不能是 `private`。
 5. 外部依赖优先使用测试专用 bean、stub 或 fake，而不是默认从 HTTP E2E 开始。
+6. 不依赖 Nop 容器的纯逻辑测试，直接用 JUnit 5 `@Test`，无需 `@NopTestConfig`。
 
 ## 何时选哪种基类
 
@@ -75,45 +78,43 @@
 
 ## E2E 测试（Playwright）
 
-`nop-code/nop-code-e2e/` 是基于 pnpm + Vite 8 + Playwright 的 E2E 测试模块。
+Nop 平台提供基于 Playwright 的 E2E 测试模式，适用于验证 RPC API 和 AMIS 前端页面。平台自身在 `nop-entropy-e2e/` 中有完整的参考实现。
 
-### 启动被测应用
+### 何时写 E2E 测试
 
-```bash
-# 1. 先构建 nop-code-app
-cd nop-code && ../mvnw clean install -DskipTests -T 1C
+1. 需要验证 RPC API 端到端正确性（跨 HTTP 层）
+2. 需要验证 AMIS 前端页面的交互流程（登录、CRUD、搜索）
+3. 进程内集成测试不足以覆盖的场景（如前端路由、弹窗、表单提交）
 
-# 2. 启动（免认证模式）
-java -Dquarkus.profile=dev -Dnop.auth.service-public=true \
-  -jar nop-code-app/target/quarkus-app/quarkus-run.jar
-```
+### Nop RPC 调用模式
 
-### 运行 E2E 测试
-
-```bash
-cd nop-code/nop-code-e2e
-pnpm install
-pnpm exec playwright install chromium
-pnpm test
-```
-
-### Nop RPC 调用模式（Playwright 中）
+E2E 测试通过 `POST /r/{EntityName}__{action}` 调用后端：
 
 ```typescript
-// POST /r/{operation}，JSON body 参数平铺（不包裹 data）
-const resp = await request.post('/r/NopCodeTypeHierarchy__getTypeHierarchy', {
-  data: { indexId: 'test', qualifiedName: 'io.nop.Foo', direction: 'super', maxDepth: 3 },
+// 1. 登录获取 token
+const resp = await request.post('/r/LoginApi__login', {
+  data: { principalId: 'nop', principalSecret: '123', loginType: 1 },
 });
-const json = await resp.json();
+const { accessToken } = await resp.json();
+
+// 2. 带 token 调用业务 API
+const result = await request.post('/r/NopAuthUser__findPage', {
+  headers: { Authorization: `Bearer ${accessToken}` },
+  data: { query: { offset: 0, limit: 10 } },
+});
+const json = await result.json();
 // json.status === 0 表示成功, json.data 是返回数据
 ```
 
-### 页面 JSON 获取
+### 标准 CRUD 操作
 
-```typescript
-// 获取 AMIS 页面 schema
-const resp = await request.get('/p/PageProvider__getPage?path=/nop/code/pages/xxx/main.page.yaml');
-```
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `Entity__get` | `{ id }` | 按 ID 查询 |
+| `Entity__findPage` | `{ query: { offset, limit, filter? } }` | 分页查询 |
+| `Entity__save` | `{ data: { ...fields } }` | 新增（无 id）或全量更新（含 id） |
+| `Entity__update` | `{ data: { id, ...fields } }` | 部分更新 |
+| `Entity__delete` | `{ id }` | 按 ID 删除 |
 
 ### 浏览器 E2E 测试要点
 
@@ -123,6 +124,11 @@ const resp = await request.get('/p/PageProvider__getPage?path=/nop/code/pages/xx
 4. **字段名**：`editMode="query"` 自动加 `filter_` 前缀，`editMode="edit"` 不加前缀
 5. **无 meta 表单**：必须在 view.xml `<cells>` 中配置 `domain` 和 `label`，否则字段渲染为 `static` 且无标签
 6. **BizModel 命名**：方法名不得与标准 CRUD（`get`/`findPage`/`save`/`update`/`delete` 等）重名，否则前端 `@query:` API 参数被忽略
+
+### 参考
+
+- **在业务项目中搭建 E2E 测试**：创建标准 Playwright 项目，按上述 RPC 调用模式编写测试即可。后端 URL 格式与上面描述一致（`/r/{EntityName}__{action}`）。
+- **平台内部的参考实现**：nop-entropy 源码 `nop-entropy-e2e/README.md`。含共享库 API（RPC helpers、Page Objects、AMIS selectors）和新增测试包步骤。**注意**：该文档面向平台开发者，路径和模块结构是 nop-entropy 仓库特有的。
 
 ## 相关文档
 

@@ -1,6 +1,11 @@
 # Nop Entropy AI 文档索引
 
-`docs-for-ai/` 是当前仓库唯一有效、也是开发 AI 唯一应读取的开发文档目录。
+> **受众与定位**
+> 本目录描述 Nop 平台的 API 模式、约定和默认规则。主要面向**使用 Nop 平台构建业务应用**的开发者和 AI，也适用于需要理解平台使用模式的平台开发者。文中出现的源码路径为 nop-entropy 仓库内部锚点参考。
+>
+> 如果你是在**开发 nop-entropy 平台本身**，过程记录和开发计划在 `ai-dev/` 目录。
+
+`docs-for-ai/` 是 nop-entropy 仓库中唯一有效的平台使用文档目录。
 
 对于日常开发任务：
 
@@ -12,15 +17,17 @@
 ## 推荐查找顺序
 
 1. 先看本页
-2. 再看 `03-runbooks/` 中最贴近当前任务的手册
-3. 需要理解默认规则时，看 `02-core-guides/`
-4. 需要理解当前仓库结构时，看 `01-repo-map/`
-5. 需要确认实现锚点或符号定义时，看 `04-reference/`
+2. 再看 `00-start-here/project-context.md`（当前项目状态快照）
+3. 再看 `03-runbooks/` 中最贴近当前任务的手册
+4. 需要理解默认规则时，看 `02-core-guides/`
+5. 需要理解当前仓库结构时，看 `01-repo-map/`
+6. 需要确认实现锚点或符号定义时，看 `04-reference/`
 
 ## 默认规则
 
 - 先模型，再 Delta，最后 Java。
 - 默认不要修改 `_gen/`、`_*.java`、`_*.xml`、`_app.orm.xml`、`_service.beans.xml`。
+- BizModel 方法默认返回 Entity，不需要 DTO。字段可见性在 xmeta 中控制，不是靠改返回类型。详见 `02-core-guides/service-layer.md`。
 - 标准实体服务默认使用 `CrudBizModel<T>`。
 - 普通取数优先 `requireEntity()`、`doFindList()`、`doFindPage()`，不要先写原始 `dao()` 模板。
 - 普通 `@BizMutation` 已自动进入事务，不要默认叠加 `@Transactional`。
@@ -30,7 +37,9 @@
 ## 快速路由
 
 | 任务 | 首选文档 |
-|------|---------|
+|------|----------|
+| 获取项目当前状态快照 | `00-start-here/project-context.md` |
+| 理解文档冲突优先级和 stale 处理 | `00-start-here/truth-and-precedence.md` |
 | 理解整体仓库结构 | `01-repo-map/module-groups.md` |
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
@@ -38,6 +47,7 @@
 | 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
 | 理解 GraphQL / API 暴露方式 | `02-core-guides/api-and-graphql.md` |
 | 判断领域逻辑和 DDD 落位 | `02-core-guides/domain-logic-and-ddd.md` |
+| 理解跨切面架构原则（聚合根与表、模块依赖方向、DSL优先等） | `02-core-guides/architecture-principles.md` |
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
 | 判断 IoC 注入和配置写法 | `02-core-guides/ioc-and-config.md` |
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |

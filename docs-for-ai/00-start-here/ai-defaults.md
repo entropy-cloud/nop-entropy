@@ -1,5 +1,7 @@
 # AI 默认开发规则
 
+> **受众**：在 nop-entropy 仓库内进行平台开发的 AI agent。如果你在使用 Nop 构建业务应用，可跳过本文件。
+
 本文档只回答一个问题：
 
 **在当前 `nop-entropy` 仓库里，AI 默认应该怎样做判断、落代码和验证结果。**
@@ -34,6 +36,7 @@
 | 模型是源头 | 优先改 `model/*.orm.xml`，项目骨架和大量派生产物都从模型生成 |
 | 生成物不可直改 | `_gen/`、`_*.xml`、`_*.java`、`_app.orm.xml`、`_service.beans.xml` 默认都不手改 |
 | 服务入口是 BizModel | 普通服务代码默认写在 BizModel，复杂流程再拆 Processor |
+| BizModel 返回值 | 默认返回 Entity，由 xmeta 控制字段可见性。不要为了限制字段而改返回 DTO。仅计算结果（无对应实体）才用 DTO |
 | 普通实体服务默认基类 | `CrudBizModel<T>` |
 | 普通查询/取数默认路径 | `requireEntity()`、`doFindList()`、`doFindPage()` |
 | 普通写操作默认事务 | `@BizMutation` 已自动包事务 |
@@ -65,6 +68,8 @@
 | `@Inject private Foo foo;` | `protected` / package-private / setter 注入 |
 | Spring `@Value` | `@InjectValue` |
 | `Map<String, Object>` 作为复杂返回 DTO | 定义 `@DataBean` DTO |
+| 自定义 BizModel 查询返回 DTO 而不是 Entity | 直接返回 Entity，字段可见性在 xmeta 中配置。仅无对应实体的计算结果（图分析、层级树等）才用 DTO |
+| 将 XDSL→运行时 桥接器标 `@Deprecated` 并推荐绕过 DSL 直接用 Java API | Nop 平台 DSL 优先：桥接器有 bug 应修复，不应绕过。任何 Model→Runtime 桥接都是 DSL 体系的核心，不是可废弃的附属品 |
 | 直接注入另一个 BizModel 实现类 | 注入 `I*Biz` 接口 |
 | `Files.readString(path)` / `new FileInputStream(file)` 直接读写文件 | VFS 层：`IResource.readText()` / `IResource.getInputStream()` |
 | `resource.toFile().toPath()` 绕过 VFS 做路径运算 | `IResource.getPath()` / `getStdPath()`；遍历时用 `depthIterator` |

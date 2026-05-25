@@ -37,9 +37,9 @@ BizModel 方法
 4. **RPC JSON body 格式：参数直接平铺，不包裹 `data` 字段。**
    ```bash
    # 正确
-   curl -X POST /r/NopCodeTypeHierarchy__getTypeHierarchy -d '{"indexId":"test","qualifiedName":"com.example.Foo","direction":"super","maxDepth":3}'
+   curl -X POST /r/NopAuthUser__findPage -d '{"query":{"userName_like":"admin"},"offset":0,"limit":10}'
    # 错误（不要包裹 data）
-   curl -X POST /r/NopCodeTypeHierarchy__getTypeHierarchy -d '{"data":{"indexId":"test",...}}'
+   curl -X POST /r/NopAuthUser__findPage -d '{"data":{"query":{...}}}'
    ```
 5. `GET` 场景会通过 `@args` 和普通 query 参数做特殊处理。
 6. `/p/PageProvider__getPage?path=xxx.page.yaml` — 获取页面 AMIS JSON，返回前端渲染所需的完整 schema。
