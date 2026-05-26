@@ -829,6 +829,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         results.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
         if (results.size() > limit) results = results.subList(0, limit);
+        results = filterByLanguage(results, indexId, language, filePathCache);
 
         return filterByFilePattern(results, filePattern);
     }
@@ -2646,10 +2647,24 @@ public class CodeIndexService implements ICodeIndexService {
         inhQuery.addFilter(FilterBeans.eq("relationType", "IMPLEMENTS"));
         List<NopCodeInheritance> allInh = inhDao.findAllByQuery(inhQuery);
 
+        // Build super-qualifiedName -> sub-qualifiedName map
+        // Need to resolve superTypeId to qualifiedName via symbol lookup
+        IEntityDao<NopCodeSymbol> symDaoForInh = daoProvider.daoFor(NopCodeSymbol.class);
+        Map<String, String> idToQn = new HashMap<>();
+        for (NopCodeSymbol sym : symDaoForInh.findAllByQuery(new QueryBean() {{
+            addFilter(FilterBeans.eq("indexId", indexId));
+        }})) {
+            if (sym.getQualifiedName() != null) {
+                idToQn.put(sym.getId(), sym.getQualifiedName());
+            }
+        }
+
         Map<String, List<String>> superToSubs = new HashMap<>();
         for (NopCodeInheritance inh : allInh) {
-            superToSubs.computeIfAbsent(inh.getSuperTypeId(), k -> new ArrayList<>())
-                    .add(inh.getSubTypeId());
+            String superQn = idToQn.getOrDefault(inh.getSuperTypeId(), inh.getSuperTypeId());
+            String subQn = idToQn.getOrDefault(inh.getSubTypeId(), inh.getSubTypeId());
+            superToSubs.computeIfAbsent(superQn, k -> new ArrayList<>())
+                    .add(subQn);
         }
 
         Set<String> resultIds = new LinkedHashSet<>();
@@ -2682,11 +2697,6 @@ public class CodeIndexService implements ICodeIndexService {
         }
 
         if (resultIds.isEmpty()) return Collections.emptyList();
-
-        Map<String, CodeSymbol> symbolMap = new HashMap<>();
-        for (NopCodeSymbol sym : symbolDao.findAllByQuery(symQuery)) {
-            symbolMap.put(sym.getId(), entityToCodeSymbol(sym));
-        }
 
         QueryBean allSymQuery = new QueryBean();
         allSymQuery.addFilter(FilterBeans.eq("indexId", indexId));
@@ -2813,6 +2823,25 @@ public class CodeIndexService implements ICodeIndexService {
             return;
         if (path.contains(".."))
             throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+    }
+
+
+    private List<CodeSearchResultDTO> filterByLanguage(List<CodeSearchResultDTO> results,
+                                                         String indexId, String language,
+                                                         Map<String, String> filePathCache) {
+        if (language == null || language.isEmpty()) return results;
+        // Build reverse cache: filePath -> fileId, then filter by file language
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean fq = new QueryBean();
+        fq.addFilter(FilterBeans.eq("indexId", indexId));
+        fq.addFilter(FilterBeans.eq("language", language));
+        Set<String> matchingPaths = new HashSet<>();
+        for (NopCodeFile f : fileDao.findAllByQuery(fq)) {
+            matchingPaths.add(f.getFilePath());
+        }
+        if (matchingPaths.isEmpty()) return Collections.emptyList();
+        results.removeIf(dto -> !matchingPaths.contains(dto.getFilePath()));
+        return results;
     }
 
     private String extractLines(String source, int startLine, int endLine) {
