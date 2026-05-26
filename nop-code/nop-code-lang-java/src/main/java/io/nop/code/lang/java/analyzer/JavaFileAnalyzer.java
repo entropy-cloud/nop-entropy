@@ -9,6 +9,7 @@ import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumConstantDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
@@ -231,6 +232,42 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
             CodeSymbol parentType = currentTypeSymbol;
             currentTypeSymbol = symbol;
+            super.visit(decl, arg);
+            currentTypeSymbol = parentType;
+        }
+
+        @Override
+        public void visit(RecordDeclaration decl, Void arg) {
+            CodeSymbol symbol = new CodeSymbol();
+            symbol.setId(UUID.randomUUID().toString());
+            symbol.setName(decl.getNameAsString());
+            if (currentTypeSymbol != null) {
+                symbol.setDeclaringSymbolId(currentTypeSymbol.getId());
+                symbol.setQualifiedName(currentTypeSymbol.getQualifiedName() + "." + decl.getNameAsString());
+            } else {
+                symbol.setQualifiedName(decl.getNameAsString());
+            }
+            symbol.setKind(CodeSymbolKind.CLASS);
+            symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
+            symbol.setAbstractFlag(false);
+            symbol.setFinalFlag(decl.isFinal());
+            result.getSymbols().add(symbol);
+
+            CodeSymbol parentType = currentTypeSymbol;
+            currentTypeSymbol = symbol;
+
+            // Record implements listed types
+            for (ClassOrInterfaceType implType : decl.getImplementedTypes()) {
+                CodeInheritance inh = new CodeInheritance();
+                inh.setId(UUID.randomUUID().toString());
+                inh.setSubTypeId(symbol.getId());
+                inh.setSuperTypeQualifiedName(implType.getNameAsString());
+                inh.setRelationType(CodeRelationType.IMPLEMENTS);
+                result.getInheritances().add(inh);
+            }
+
+            processAnnotations(decl, symbol);
+
             super.visit(decl, arg);
             currentTypeSymbol = parentType;
         }

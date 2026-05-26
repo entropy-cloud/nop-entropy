@@ -9,6 +9,7 @@ import io.nop.code.core.model.CodeLanguage;
 import io.nop.code.core.model.CodeRelationType;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.model.CodeMethodCall;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.treesitter.TSLanguage;
@@ -418,6 +419,53 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         result.getAnnotationUsages().add(usage);
     }
 
+
+    /**
+     * Recursively walk the AST to find call_expression nodes and extract method calls.
+     */
+    private void walkNodeForCalls(TSNode node, String source,
+                                  CodeSymbol callerSymbol, CodeFileAnalysisResult result) {
+        String type = node.getType();
+
+        if ("call_expression".equals(type)) {
+            CodeMethodCall call = new CodeMethodCall();
+            call.setId(UUID.randomUUID().toString());
+            call.setCallerId(callerSymbol.getId());
+            call.setLine(node.getStartPoint().getRow() + 1);
+            call.setColumn(node.getStartPoint().getColumn());
+
+            TSNode funcNode = node.getChildByFieldName("function");
+            if (!funcNode.isNull()) {
+                String funcType = funcNode.getType();
+                if ("member_expression".equals(funcType)) {
+                    TSNode propNode = funcNode.getChildByFieldName("property");
+                    if (!propNode.isNull()) {
+                        call.setMethodName(getNodeText(propNode, source));
+                    }
+                    TSNode objNode = funcNode.getChildByFieldName("object");
+                    if (!objNode.isNull()) {
+                        call.setContext(getNodeText(objNode, source));
+                    }
+                } else if ("identifier".equals(funcType)) {
+                    call.setMethodName(getNodeText(funcNode, source));
+                } else {
+                    call.setMethodName(getNodeText(funcNode, source));
+                }
+            }
+
+            if (call.getMethodName() != null) {
+                result.getCalls().add(call);
+            }
+        }
+
+        for (int i = 0; i < node.getChildCount(); i++) {
+            TSNode child = node.getChild(i);
+            if (child != null && child.isNamed()) {
+                walkNodeForCalls(child, source, callerSymbol, result);
+            }
+        }
+    }
+
     private String extractDecoratorName(TSNode decoratorNode, String source) {
         int count = decoratorNode.getChildCount();
         for (int i = 0; i < count; i++) {
@@ -504,6 +552,12 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             }
         }
         return false;
+    }
+
+    private boolean isMethodLike(CodeSymbol symbol) {
+        return symbol.getKind() == CodeSymbolKind.METHOD
+                || symbol.getKind() == CodeSymbolKind.CONSTRUCTOR
+                || symbol.getKind() == CodeSymbolKind.FUNCTION;
     }
 
     private boolean isTypeSymbol(CodeSymbol symbol) {
