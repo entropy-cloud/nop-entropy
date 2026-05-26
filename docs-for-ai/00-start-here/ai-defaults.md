@@ -14,12 +14,11 @@
 4. 写 Java 时，优先走 BizModel 的安全路径，而不是先复制底层 DAO 写法。
 
 ## 默认查找顺序
-
-1. `docs-for-ai/INDEX.md`
-2. `docs-for-ai/03-runbooks/` 中命中的任务手册
-3. `docs-for-ai/02-core-guides/` 中对应规范
-4. `docs-for-ai/01-repo-map/` 中的结构说明
-5. `docs-for-ai/04-reference/` 中的实现锚点和速查
+1. 再看 `00-start-here/project-context.md`（当前项目状态快照）
+2. 再看 `03-runbooks/` 中最贴近当前任务的手册
+3. 需要理解默认规则时，看 `02-core-guides/`
+4. 需要理解当前仓库结构时，看 `01-repo-map/`
+5. 需要确认实现锚点或符号定义时，看 `04-reference/`
 
 ## 文档边界
 
