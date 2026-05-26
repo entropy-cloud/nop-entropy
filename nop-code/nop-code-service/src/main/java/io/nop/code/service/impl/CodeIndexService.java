@@ -208,6 +208,7 @@ public class CodeIndexService implements ICodeIndexService {
         symbol.setRawFieldType(entity.getRawFieldType());
         symbol.setAsyncFlag(Boolean.TRUE.equals(entity.getAsyncFlag()));
         symbol.setReadonlyFlag(Boolean.TRUE.equals(entity.getReadonlyFlag()));
+        symbol.setExtData(entity.getExtData());
         return symbol;
     }
 
