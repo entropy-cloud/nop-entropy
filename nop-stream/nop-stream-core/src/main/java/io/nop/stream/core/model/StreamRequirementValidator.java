@@ -19,10 +19,10 @@ public class StreamRequirementValidator {
 
     public static void validate(StreamModel model, StreamBackendCapability capability) {
         if (model == null) {
-            throw new IllegalArgumentException("StreamModel must not be null");
+            throw new StreamException("StreamModel must not be null");
         }
         if (capability == null) {
-            throw new IllegalArgumentException("StreamBackendCapability must not be null");
+            throw new StreamException("StreamBackendCapability must not be null");
         }
 
         List<String> errors = new ArrayList<>();

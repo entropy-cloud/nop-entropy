@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Unit tests for {@link TumblingEventTimeWindows}.
@@ -71,14 +72,14 @@ public class TestTumblingEventTimeWindows {
 
     @Test
     public void testInvalidWindowSize() {
-        assertThrows(IllegalArgumentException.class, () -> TumblingEventTimeWindows.of(0));
-        assertThrows(IllegalArgumentException.class, () -> TumblingEventTimeWindows.of(-1));
+        assertThrows(StreamException.class, () -> TumblingEventTimeWindows.of(0));
+        assertThrows(StreamException.class, () -> TumblingEventTimeWindows.of(-1));
     }
 
     @Test
     public void testInvalidOffset() {
-        assertThrows(IllegalArgumentException.class, () -> TumblingEventTimeWindows.of(WINDOW_SIZE, -1));
-        assertThrows(IllegalArgumentException.class, () -> TumblingEventTimeWindows.of(WINDOW_SIZE, WINDOW_SIZE));
+        assertThrows(StreamException.class, () -> TumblingEventTimeWindows.of(WINDOW_SIZE, -1));
+        assertThrows(StreamException.class, () -> TumblingEventTimeWindows.of(WINDOW_SIZE, WINDOW_SIZE));
     }
 
     @Test

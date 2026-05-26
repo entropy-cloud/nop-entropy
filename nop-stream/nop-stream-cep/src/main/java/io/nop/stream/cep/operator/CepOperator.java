@@ -85,6 +85,7 @@ public class CepOperator<IN, KEY, OUT>
 
     private final boolean isProcessingTime;
 
+    @Nullable
     private final TypeSerializer<IN> inputSerializer;
 
     ///////////////			State			//////////////
@@ -149,7 +150,7 @@ public class CepOperator<IN, KEY, OUT>
     private transient long currentWatermark = Long.MIN_VALUE;
 
     public CepOperator(
-            final TypeSerializer<IN> inputSerializer,
+            @Nullable final TypeSerializer<IN> inputSerializer,
             final boolean isProcessingTime,
             final NFACompiler.NFAFactory<IN> nfaFactory,
             @Nullable final EventComparator<IN> comparator,
@@ -158,7 +159,7 @@ public class CepOperator<IN, KEY, OUT>
             @Nullable final OutputTag<IN> lateDataOutputTag) {
         super(function);
 
-        this.inputSerializer = Guard.notNull(inputSerializer, "inputSerializer");
+        this.inputSerializer = inputSerializer; // nullable: SharedBuffer accepts but does not use the serializer
         this.nfaFactory = Guard.notNull(nfaFactory, "nfaFactory");
 
         this.isProcessingTime = isProcessingTime;

@@ -10,6 +10,7 @@ package io.nop.stream.connector;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import org.junit.jupiter.api.Test;
+import io.nop.stream.core.exceptions.StreamException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,7 +81,7 @@ public class TestBatchConsumerSinkFunction {
 
     @Test
     void testNullProviderRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new BatchConsumerSinkFunction<>(null));
+        assertThrows(StreamException.class, () -> new BatchConsumerSinkFunction<>(null));
     }
 
     @Test

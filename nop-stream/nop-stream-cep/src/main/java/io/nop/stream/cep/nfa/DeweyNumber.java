@@ -20,6 +20,7 @@ package io.nop.stream.cep.nfa;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Versioning scheme which allows to retrieve dependencies between different versions.
@@ -176,7 +177,7 @@ public class DeweyNumber implements Serializable {
 
             return new DeweyNumber(deweyNumber);
         } else {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                     "Failed to parse " + deweyNumberString + " as a Dewey number");
         }
     }

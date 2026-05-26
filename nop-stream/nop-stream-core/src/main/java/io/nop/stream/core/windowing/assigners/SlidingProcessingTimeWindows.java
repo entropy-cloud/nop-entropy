@@ -18,6 +18,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;
@@ -28,13 +29,13 @@ public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWin
 
     protected SlidingProcessingTimeWindows(long size, long slide, long offset) {
         if (size <= 0) {
-            throw new IllegalArgumentException("Window size must be positive.");
+            throw new StreamException("Window size must be positive.");
         }
         if (slide <= 0) {
-            throw new IllegalArgumentException("Window slide must be positive.");
+            throw new StreamException("Window slide must be positive.");
         }
         if (offset < 0 || offset >= slide) {
-            throw new IllegalArgumentException("Window offset must be in [0, slide)");
+            throw new StreamException("Window offset must be in [0, slide)");
         }
         this.size = size;
         this.slide = slide;

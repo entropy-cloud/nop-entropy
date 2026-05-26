@@ -22,6 +22,7 @@ import java.util.Map;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Comprehensive unit tests for JobGraph class.
@@ -51,7 +52,7 @@ public class TestJobGraph {
 
     @Test
     public void testJobGraphNullName() {
-        assertThrows(IllegalArgumentException.class, () -> new JobGraph(null));
+        assertThrows(StreamException.class, () -> new JobGraph(null));
     }
 
     @Test
@@ -64,13 +65,13 @@ public class TestJobGraph {
 
     @Test
     public void testAddNullVertex() {
-        assertThrows(IllegalArgumentException.class, () -> jobGraph.addVertex(null));
+        assertThrows(StreamException.class, () -> jobGraph.addVertex(null));
     }
 
     @Test
     public void testAddDuplicateVertex() {
         jobGraph.addVertex(sourceVertex);
-        assertThrows(IllegalArgumentException.class, () -> jobGraph.addVertex(sourceVertex));
+        assertThrows(StreamException.class, () -> jobGraph.addVertex(sourceVertex));
     }
 
     @Test
@@ -89,14 +90,14 @@ public class TestJobGraph {
     @Test
     public void testAddEdgeWithNonexistentSource() {
         JobEdge edge = new JobEdge("vertex-1", "vertex-2", ResultPartitionType.PIPELINED);
-        assertThrows(IllegalArgumentException.class, () -> jobGraph.addEdge(edge));
+        assertThrows(StreamException.class, () -> jobGraph.addEdge(edge));
     }
 
     @Test
     public void testAddEdgeWithNonexistentTarget() {
         jobGraph.addVertex(sourceVertex);
         JobEdge edge = new JobEdge("vertex-1", "vertex-2", ResultPartitionType.PIPELINED);
-        assertThrows(IllegalArgumentException.class, () -> jobGraph.addEdge(edge));
+        assertThrows(StreamException.class, () -> jobGraph.addEdge(edge));
     }
 
     @Test

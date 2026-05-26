@@ -15,12 +15,13 @@ import io.nop.stream.core.execution.flow.FlowControlPolicy;
 import io.nop.stream.core.execution.flow.MemoryBudget;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class DeploymentPlanGenerator {
 
     public DeploymentPlan generateLocal(PartitionedPlan partitionedPlan) {
         if (partitionedPlan == null) {
-            throw new IllegalArgumentException("PartitionedPlan must not be null");
+            throw new StreamException("PartitionedPlan must not be null");
         }
 
         Map<String, EdgeConfig> edgeConfigs = new LinkedHashMap<>();

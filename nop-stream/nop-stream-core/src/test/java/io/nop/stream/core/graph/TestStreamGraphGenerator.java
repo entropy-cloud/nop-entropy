@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Comprehensive unit tests for StreamGraphGenerator class.
@@ -45,7 +46,7 @@ public class TestStreamGraphGenerator {
 
     @Test
     public void testGenerateNullTransformations() {
-        assertThrows(IllegalArgumentException.class, () -> generator.generate(null));
+        assertThrows(StreamException.class, () -> generator.generate(null));
     }
 
     @Test

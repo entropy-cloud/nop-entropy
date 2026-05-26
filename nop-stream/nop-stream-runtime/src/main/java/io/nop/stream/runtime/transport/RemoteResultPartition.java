@@ -16,6 +16,7 @@ import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.execution.transport.TypeRegistry;
 import io.nop.stream.core.streamrecord.StreamElement;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * A {@link ResultPartition} that sends data across TaskManager boundaries via
@@ -80,7 +81,7 @@ public class RemoteResultPartition extends ResultPartition {
     @Override
     public void write(StreamElement element) throws InterruptedException {
         if (element == null) {
-            throw new IllegalArgumentException("Element must not be null");
+            throw new StreamException("Element must not be null");
         }
         if (isFinished()) {
             throw new IllegalStateException("Cannot write to a finished RemoteResultPartition");

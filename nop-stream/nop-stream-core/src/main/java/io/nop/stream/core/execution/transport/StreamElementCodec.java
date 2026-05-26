@@ -15,6 +15,7 @@ import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * StreamElement 的编码器/解码器，将 {@link StreamElement} 与 {@link StreamMessageEnvelope} 互转。
@@ -40,7 +41,7 @@ public class StreamElementCodec {
      */
     public static StreamMessageEnvelope encode(StreamElement element, String valueType, String fencingToken, long epochId) {
         if (element == null) {
-            throw new IllegalArgumentException("element must not be null");
+            throw new StreamException("element must not be null");
         }
 
         if (element.isRecord()) {
@@ -69,7 +70,7 @@ public class StreamElementCodec {
                     StreamMessageEnvelope.TYPE_WATERMARK_STATUS, null, element.asWatermarkStatus());
         }
 
-        throw new IllegalArgumentException("Unsupported StreamElement type: " + element.getClass().getName());
+        throw new StreamException("Unsupported StreamElement type: " + element.getClass().getName());
     }
 
     /**
@@ -81,12 +82,12 @@ public class StreamElementCodec {
     @SuppressWarnings("unchecked")
     public static StreamElement decode(StreamMessageEnvelope envelope) {
         if (envelope == null) {
-            throw new IllegalArgumentException("envelope must not be null");
+            throw new StreamException("envelope must not be null");
         }
 
         String type = envelope.getType();
         if (type == null) {
-            throw new IllegalArgumentException("envelope type must not be null");
+            throw new StreamException("envelope type must not be null");
         }
 
         switch (type) {
@@ -98,7 +99,7 @@ public class StreamElementCodec {
                         Class<?> clazz = Class.forName(envelope.getValueType());
                         value = JsonTool.parseBeanFromText((String) payload, clazz);
                     } catch (ClassNotFoundException e) {
-                        throw new RuntimeException("Failed to load valueType class: " + envelope.getValueType(), e);
+                        throw new StreamException("Failed to load valueType class: " + envelope.getValueType(), e);
                     }
                 }
                 if (envelope.isHasTimestamp()) {
@@ -131,7 +132,7 @@ public class StreamElementCodec {
             }
 
             default:
-                throw new IllegalArgumentException("Unsupported envelope type: " + type);
+                throw new StreamException("Unsupported envelope type: " + type);
         }
     }
 
@@ -144,7 +145,7 @@ public class StreamElementCodec {
             CheckpointType cpType = cpTypeName != null ? CheckpointType.valueOf(cpTypeName) : CheckpointType.CHECKPOINT;
             return new CheckpointBarrier(id, timestamp, cpType);
         }
-        throw new IllegalArgumentException("Cannot decode CheckpointBarrier from payload: " + payload);
+        throw new StreamException("Cannot decode CheckpointBarrier from payload: " + payload);
     }
 
     private static Watermark decodeWatermarkFromPayload(Object payload) {
@@ -156,7 +157,7 @@ public class StreamElementCodec {
             long timestamp = ((Number) map.get("timestamp")).longValue();
             return new Watermark(timestamp);
         }
-        throw new IllegalArgumentException("Cannot decode Watermark from payload: " + payload);
+        throw new StreamException("Cannot decode Watermark from payload: " + payload);
     }
 
     private static WatermarkStatus decodeWatermarkStatusFromPayload(Object payload) {
@@ -168,6 +169,6 @@ public class StreamElementCodec {
             int status = ((Number) map.get("status")).intValue();
             return new WatermarkStatus(status);
         }
-        throw new IllegalArgumentException("Cannot decode WatermarkStatus from payload: " + payload);
+        throw new StreamException("Cannot decode WatermarkStatus from payload: " + payload);
     }
 }

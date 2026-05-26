@@ -18,6 +18,7 @@ import io.nop.stream.core.execution.flow.FlowControlPolicy;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Writes stream elements to one or more downstream {@link ResultPartition} instances.
@@ -55,7 +56,7 @@ public class RecordWriter<T> {
      */
     public RecordWriter(ResultPartition partition, EdgeConfig edgeConfig) {
         if (partition == null) {
-            throw new IllegalArgumentException("ResultPartition must not be null");
+            throw new StreamException("ResultPartition must not be null");
         }
         this.partitions = new ResultPartition[]{partition};
         this.partitioner = null;
@@ -101,7 +102,7 @@ public class RecordWriter<T> {
     public RecordWriter(ResultPartition[] partitions, IPartitioner<T> partitioner,
                         EdgeConfig edgeConfig, PartitionRouter partitionRouter) {
         if (partitions == null || partitions.length == 0) {
-            throw new IllegalArgumentException("Partitions must not be null or empty");
+            throw new StreamException("Partitions must not be null or empty");
         }
         this.partitions = partitions;
         this.partitioner = partitioner;
@@ -139,7 +140,7 @@ public class RecordWriter<T> {
             partitions[targetChannel].write(record);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while writing record", e);
+            throw new StreamException("Interrupted while writing record", e);
         }
     }
 
@@ -154,7 +155,7 @@ public class RecordWriter<T> {
                 partition.write(watermark);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while writing watermark", e);
+                throw new StreamException("Interrupted while writing watermark", e);
             }
         }
     }
@@ -170,7 +171,7 @@ public class RecordWriter<T> {
                 partition.write(barrier);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while writing barrier", e);
+                throw new StreamException("Interrupted while writing barrier", e);
             }
         }
     }
@@ -192,7 +193,7 @@ public class RecordWriter<T> {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while writing element", e);
+            throw new StreamException("Interrupted while writing element", e);
         }
     }
 

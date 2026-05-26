@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestDataExchange {
 
@@ -83,8 +84,8 @@ public class TestDataExchange {
 
     @Test
     public void testResultPartitionInvalidCapacity() {
-        assertThrows(IllegalArgumentException.class, () -> new ResultPartition(0));
-        assertThrows(IllegalArgumentException.class, () -> new ResultPartition(-1));
+        assertThrows(StreamException.class, () -> new ResultPartition(0));
+        assertThrows(StreamException.class, () -> new ResultPartition(-1));
     }
 
     // ========== InputChannel Tests ==========
@@ -113,7 +114,7 @@ public class TestDataExchange {
 
     @Test
     public void testInputChannelNullPartition() {
-        assertThrows(IllegalArgumentException.class, () -> new InputChannel(null));
+        assertThrows(StreamException.class, () -> new InputChannel(null));
     }
 
     // ========== RecordWriter Tests ==========
@@ -191,7 +192,7 @@ public class TestDataExchange {
 
     @Test
     public void testRecordWriterNullPartition() {
-        assertThrows(IllegalArgumentException.class, () -> new RecordWriter<String>((ResultPartition) null));
+        assertThrows(StreamException.class, () -> new RecordWriter<String>((ResultPartition) null));
     }
 
     // ========== RecordReader Tests ==========
@@ -222,7 +223,7 @@ public class TestDataExchange {
 
     @Test
     public void testRecordReaderNullChannel() {
-        assertThrows(IllegalArgumentException.class, () -> new RecordReader<String>((InputChannel) null));
+        assertThrows(StreamException.class, () -> new RecordReader<String>((InputChannel) null));
     }
 
     // ========== InputGate Tests ==========
@@ -357,8 +358,8 @@ public class TestDataExchange {
 
     @Test
     public void testInputGateNullChannels() {
-        assertThrows(IllegalArgumentException.class, () -> new InputGate((List<InputChannel>) null));
-        assertThrows(IllegalArgumentException.class, () -> new InputGate(new ArrayList<>()));
+        assertThrows(StreamException.class, () -> new InputGate((List<InputChannel>) null));
+        assertThrows(StreamException.class, () -> new InputGate(new ArrayList<>()));
     }
 
     // ========== Producer-Consumer Concurrency Test ==========

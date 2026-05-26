@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestEventTimeSessionWindows {
 
@@ -107,9 +108,9 @@ public class TestEventTimeSessionWindows {
 
     @Test
     public void testInvalidGapRejected() {
-        assertThrows(IllegalArgumentException.class, () -> EventTimeSessionWindows.withGap(0));
-        assertThrows(IllegalArgumentException.class, () -> EventTimeSessionWindows.withGap(-1));
-        assertThrows(IllegalArgumentException.class, () -> EventTimeSessionWindows.withGap(-1000));
+        assertThrows(StreamException.class, () -> EventTimeSessionWindows.withGap(0));
+        assertThrows(StreamException.class, () -> EventTimeSessionWindows.withGap(-1));
+        assertThrows(StreamException.class, () -> EventTimeSessionWindows.withGap(-1000));
     }
 
     @Test

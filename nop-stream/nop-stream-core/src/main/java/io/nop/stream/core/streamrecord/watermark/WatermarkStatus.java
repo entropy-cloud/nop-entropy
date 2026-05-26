@@ -19,6 +19,7 @@
 package io.nop.stream.core.streamrecord.watermark;
 
 import io.nop.stream.core.streamrecord.StreamElement;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * A Watermark Status element informs stream tasks whether or not they should continue to expect
@@ -83,7 +84,7 @@ public final class WatermarkStatus extends StreamElement {
 
     public WatermarkStatus(int status) {
         if (status != IDLE_STATUS && status != ACTIVE_STATUS) {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                     "Invalid status value for WatermarkStatus; "
                             + "allowed values are "
                             + ACTIVE_STATUS

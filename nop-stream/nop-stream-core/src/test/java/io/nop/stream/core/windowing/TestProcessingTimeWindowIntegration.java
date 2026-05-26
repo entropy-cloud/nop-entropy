@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestProcessingTimeWindowIntegration {
 
@@ -118,8 +119,8 @@ public class TestProcessingTimeWindowIntegration {
 
     @Test
     void testTumblingProcessingTimeInvalidSizeThrows() {
-        assertThrows(IllegalArgumentException.class, () -> TumblingProcessingTimeWindows.of(0));
-        assertThrows(IllegalArgumentException.class, () -> TumblingProcessingTimeWindows.of(-100));
+        assertThrows(StreamException.class, () -> TumblingProcessingTimeWindows.of(0));
+        assertThrows(StreamException.class, () -> TumblingProcessingTimeWindows.of(-100));
     }
 
     @Test
@@ -178,10 +179,10 @@ public class TestProcessingTimeWindowIntegration {
 
     @Test
     void testSlidingProcessingTimeInvalidParamsThrow() {
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(0, 100));
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(100, 0));
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(100, 50, -1));
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(100, 50, 50));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(0, 100));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(100, 0));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(100, 50, -1));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(100, 50, 50));
     }
 
     @Test

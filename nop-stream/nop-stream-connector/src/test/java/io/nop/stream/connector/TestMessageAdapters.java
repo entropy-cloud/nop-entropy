@@ -10,6 +10,7 @@ package io.nop.stream.connector;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import org.junit.jupiter.api.Test;
+import io.nop.stream.core.exceptions.StreamException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,9 +120,9 @@ public class TestMessageAdapters {
 
     @Test
     void testNullArgumentsRejected() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> new MessageSourceFunction<>(null, "topic"));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> new MessageSinkFunction<>(new LocalMessageService(), null));
     }
 }

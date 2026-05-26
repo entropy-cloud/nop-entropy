@@ -17,6 +17,7 @@ import io.nop.batch.core.impl.BatchTaskContextImpl;
 
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Adapts nop-batch's {@link IBatchConsumerProvider} to nop-stream's {@link SinkFunction}.
@@ -38,10 +39,10 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
 
     public BatchConsumerSinkFunction(IBatchConsumerProvider<R> consumerProvider, int batchSize) {
         if (consumerProvider == null) {
-            throw new IllegalArgumentException("consumerProvider must not be null");
+            throw new StreamException("consumerProvider must not be null");
         }
         if (batchSize < 1) {
-            throw new IllegalArgumentException("batchSize must be at least 1");
+            throw new StreamException("batchSize must be at least 1");
         }
         IBatchTaskContext taskContext = new BatchTaskContextImpl();
         this.consumer = consumerProvider.setup(taskContext);

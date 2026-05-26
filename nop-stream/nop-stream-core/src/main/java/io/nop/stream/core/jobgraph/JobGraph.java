@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Represents the execution plan as a Directed Acyclic Graph (DAG).
@@ -74,7 +75,7 @@ public class JobGraph implements Serializable {
      */
     public JobGraph(String jobName) {
         if (jobName == null) {
-            throw new IllegalArgumentException("Job name cannot be null");
+            throw new StreamException("Job name cannot be null");
         }
         this.jobName = jobName;
         this.vertices = new HashMap<>();
@@ -98,12 +99,12 @@ public class JobGraph implements Serializable {
      */
     public void addVertex(JobVertex vertex) {
         if (vertex == null) {
-            throw new IllegalArgumentException("JobVertex cannot be null");
+            throw new StreamException("JobVertex cannot be null");
         }
 
         String vertexId = vertex.getId();
         if (vertices.containsKey(vertexId)) {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                 "JobVertex with ID " + vertexId + " already exists in the graph"
             );
         }
@@ -120,20 +121,20 @@ public class JobGraph implements Serializable {
      */
     public void addEdge(JobEdge edge) {
         if (edge == null) {
-            throw new IllegalArgumentException("JobEdge cannot be null");
+            throw new StreamException("JobEdge cannot be null");
         }
 
         String sourceId = edge.getSourceVertex();
         String targetId = edge.getTargetVertex();
 
         if (!vertices.containsKey(sourceId)) {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                 "Source vertex with ID " + sourceId + " does not exist in the graph"
             );
         }
 
         if (!vertices.containsKey(targetId)) {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                 "Target vertex with ID " + targetId + " does not exist in the graph"
             );
         }

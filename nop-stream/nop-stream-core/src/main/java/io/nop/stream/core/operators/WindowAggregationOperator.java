@@ -19,6 +19,7 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.Window;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         extends AbstractStreamOperator<OUT>
@@ -644,7 +645,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                     triggerState.put(stateKey, acc);
                     return acc;
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to create trigger state accumulator", e);
+                    throw new StreamException("Failed to create trigger state accumulator", e);
                 }
             }
             throw new UnsupportedOperationException(

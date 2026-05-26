@@ -12,6 +12,7 @@ import java.io.Serializable;
 import io.nop.commons.partition.IPartitioner;
 
 import io.nop.stream.core.execution.flow.EdgeConfig;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Represents an edge in the job execution graph connecting vertices with partition type information.
@@ -51,13 +52,13 @@ public class JobEdge implements Serializable {
     public JobEdge(String sourceVertex, String targetVertex, ResultPartitionType partitionType,
                    IPartitioner<?> partitioner) {
         if (sourceVertex == null) {
-            throw new IllegalArgumentException("sourceVertex cannot be null");
+            throw new StreamException("sourceVertex cannot be null");
         }
         if (targetVertex == null) {
-            throw new IllegalArgumentException("targetVertex cannot be null");
+            throw new StreamException("targetVertex cannot be null");
         }
         if (partitionType == null) {
-            throw new IllegalArgumentException("partitionType cannot be null");
+            throw new StreamException("partitionType cannot be null");
         }
 
         this.sourceVertex = sourceVertex;

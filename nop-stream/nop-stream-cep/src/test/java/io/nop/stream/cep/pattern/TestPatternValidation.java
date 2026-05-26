@@ -10,6 +10,7 @@ import io.nop.stream.cep.SubEvent;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestPatternValidation {
 

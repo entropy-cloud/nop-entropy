@@ -32,6 +32,7 @@ import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Converts a chain of Transformation objects into a StreamGraph representation.
@@ -95,7 +96,7 @@ public class StreamGraphGenerator {
      */
     public StreamGraph generate(List<Transformation<?>> transformations) {
         if (transformations == null) {
-            throw new IllegalArgumentException("Transformations list cannot be null");
+            throw new StreamException("Transformations list cannot be null");
         }
         
         for (Transformation<?> transformation : transformations) {
@@ -138,7 +139,7 @@ public class StreamGraphGenerator {
         } else if (transformation instanceof TimestampsAndWatermarksTransformation) {
             transformTimestampsAndWatermarks((TimestampsAndWatermarksTransformation<?>) transformation);
         } else {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                 "Unknown transformation type: " + transformation.getClass().getName()
             );
         }

@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Represents a vertex (node) in the streaming job execution graph.
@@ -94,19 +95,19 @@ public class JobVertex implements Serializable {
     public JobVertex(String id, String name, int parallelism,
                       List<OperatorChain> operatorChains, Invokable<?> invokable) {
         if (id == null) {
-            throw new IllegalArgumentException("Vertex ID cannot be null");
+            throw new StreamException("Vertex ID cannot be null");
         }
         if (name == null) {
-            throw new IllegalArgumentException("Vertex name cannot be null");
+            throw new StreamException("Vertex name cannot be null");
         }
         if (parallelism <= 0) {
-            throw new IllegalArgumentException("Parallelism must be greater than 0, got: " + parallelism);
+            throw new StreamException("Parallelism must be greater than 0, got: " + parallelism);
         }
         if (operatorChains == null || operatorChains.isEmpty()) {
-            throw new IllegalArgumentException("Operator chains cannot be null or empty");
+            throw new StreamException("Operator chains cannot be null or empty");
         }
         if (invokable == null) {
-            throw new IllegalArgumentException("Invokable cannot be null");
+            throw new StreamException("Invokable cannot be null");
         }
 
         this.id = id;

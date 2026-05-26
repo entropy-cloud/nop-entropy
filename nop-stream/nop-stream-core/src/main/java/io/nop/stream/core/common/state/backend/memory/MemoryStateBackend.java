@@ -11,6 +11,7 @@ import java.io.Serializable;
 
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * 内存状态后端实现，用于测试和简单场景。
@@ -50,7 +51,7 @@ public class MemoryStateBackend implements IStateBackend, Serializable {
      */
     public MemoryStateBackend(int shardCount) {
         if (shardCount < 1) {
-            throw new IllegalArgumentException("shardCount must be at least 1");
+            throw new StreamException("shardCount must be at least 1");
         }
         this.shardCount = shardCount;
     }

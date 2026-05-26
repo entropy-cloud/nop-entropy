@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Manages the execution of streaming tasks using a thread pool.
@@ -103,7 +104,7 @@ public class TaskExecutor {
      */
     public TaskExecutor(int poolSize) {
         if (poolSize <= 0) {
-            throw new IllegalArgumentException("Pool size must be positive, got: " + poolSize);
+            throw new StreamException("Pool size must be positive, got: " + poolSize);
         }
 
         this.executorService = Executors.newFixedThreadPool(poolSize);
@@ -128,7 +129,7 @@ public class TaskExecutor {
      */
     public List<Task> submitJobVertex(JobVertex jobVertex) {
         if (jobVertex == null) {
-            throw new IllegalArgumentException("JobVertex cannot be null");
+            throw new StreamException("JobVertex cannot be null");
         }
 
         if (isShutdown.get()) {
@@ -170,7 +171,7 @@ public class TaskExecutor {
      */
     public Task submitTask(Task task) {
         if (task == null) {
-            throw new IllegalArgumentException("Task cannot be null");
+            throw new StreamException("Task cannot be null");
         }
 
         if (isShutdown.get()) {
@@ -196,7 +197,7 @@ public class TaskExecutor {
      */
     public void submitTask(SubtaskTask subtaskTask) {
         if (subtaskTask == null) {
-            throw new IllegalArgumentException("SubtaskTask cannot be null");
+            throw new StreamException("SubtaskTask cannot be null");
         }
 
         if (isShutdown.get()) {

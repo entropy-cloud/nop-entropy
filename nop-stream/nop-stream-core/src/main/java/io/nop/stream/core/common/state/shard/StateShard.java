@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.util.Objects;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.stream.core.exceptions.StreamException;
 
 @DataBean
 public class StateShard implements Serializable {
@@ -24,10 +25,10 @@ public class StateShard implements Serializable {
 
     public StateShard(int stateShardCount, int stateShardId, int ownerSubtask, String hashPolicy) {
         if (stateShardCount < 1) {
-            throw new IllegalArgumentException("stateShardCount must be at least 1");
+            throw new StreamException("stateShardCount must be at least 1");
         }
         if (stateShardId < 0 || stateShardId >= stateShardCount) {
-            throw new IllegalArgumentException("stateShardId must be in [0, " + stateShardCount + ")");
+            throw new StreamException("stateShardId must be in [0, " + stateShardCount + ")");
         }
         this.stateShardCount = stateShardCount;
         this.stateShardId = stateShardId;

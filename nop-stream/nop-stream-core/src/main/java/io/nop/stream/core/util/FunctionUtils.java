@@ -66,6 +66,6 @@ public final class FunctionUtils {
      * Private constructor to prevent instantiation.
      */
     private FunctionUtils() {
-        throw new RuntimeException();
+        throw new UnsupportedOperationException("Utility class");
     }
 }

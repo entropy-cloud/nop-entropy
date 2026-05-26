@@ -10,13 +10,14 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 class TestPartitionedPlanGenerator {
 
     @Test
     void testNullJobGraphThrows() {
         PartitionedPlanGenerator generator = new PartitionedPlanGenerator();
-        assertThrows(IllegalArgumentException.class, () -> generator.generate(null, null));
+        assertThrows(StreamException.class, () -> generator.generate(null, null));
     }
 
     @Test

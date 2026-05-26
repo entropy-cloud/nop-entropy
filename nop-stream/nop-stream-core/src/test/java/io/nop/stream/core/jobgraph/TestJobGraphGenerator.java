@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Comprehensive unit tests for JobGraphGenerator class.
@@ -35,7 +36,7 @@ public class TestJobGraphGenerator {
 
     @Test
     public void testGenerateNullStreamGraph() {
-        assertThrows(IllegalArgumentException.class, () -> generator.generate(null));
+        assertThrows(StreamException.class, () -> generator.generate(null));
     }
 
     @Test

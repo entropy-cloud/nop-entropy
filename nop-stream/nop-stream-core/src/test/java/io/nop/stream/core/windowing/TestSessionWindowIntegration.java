@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestSessionWindowIntegration {
 
@@ -340,12 +341,12 @@ public class TestSessionWindowIntegration {
 
     @Test
     void testSessionWindowNegativeGapThrows() {
-        assertThrows(IllegalArgumentException.class, () -> EventTimeSessionWindows.withGap(-1));
+        assertThrows(StreamException.class, () -> EventTimeSessionWindows.withGap(-1));
     }
 
     @Test
     void testSessionWindowZeroGapThrows() {
-        assertThrows(IllegalArgumentException.class, () -> EventTimeSessionWindows.withGap(0));
+        assertThrows(StreamException.class, () -> EventTimeSessionWindows.withGap(0));
     }
 
     @Test

@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Represents a chain of operators that are executed together in a single task for optimization.
@@ -74,7 +75,7 @@ public class OperatorChain implements Serializable {
     public OperatorChain(List<io.nop.stream.core.operators.StreamOperator<?>> operators,
                          List<KeySelector<?, ?>> keySelectors) {
         if (operators == null || operators.isEmpty()) {
-            throw new IllegalArgumentException("Operators list cannot be null or empty");
+            throw new StreamException("Operators list cannot be null or empty");
         }
         this.operators = new ArrayList<>(operators);
         this.keySelectors = keySelectors != null ? new ArrayList<>(keySelectors) : Collections.emptyList();
@@ -105,7 +106,7 @@ public class OperatorChain implements Serializable {
                         (io.nop.stream.core.operators.Input) operator;
                     input.processElement(record);
                 } catch (Exception e) {
-                    throw new RuntimeException(
+                    throw new StreamException(
                         "Failed to process element in operator: " + operator.getClass().getName(), e);
                 }
             } else {
@@ -150,7 +151,7 @@ public class OperatorChain implements Serializable {
                     firstException.addSuppressed(closeException);
                 }
             }
-            throw new RuntimeException("Failed to open operator chain", firstException);
+            throw new StreamException("Failed to open operator chain", firstException);
         }
     }
 
@@ -184,7 +185,7 @@ public class OperatorChain implements Serializable {
         }
 
         if (firstException != null) {
-            throw new RuntimeException("Failed to close operator chain", firstException);
+            throw new StreamException("Failed to close operator chain", firstException);
         }
     }
 
@@ -231,7 +232,7 @@ public class OperatorChain implements Serializable {
                 return (OperatorChain) ois.readObject();
             }
         } catch (IOException | ClassNotFoundException e) {
-            throw new RuntimeException("Failed to deep-copy OperatorChain. " +
+            throw new StreamException("Failed to deep-copy OperatorChain. " +
                     "Ensure all operators and their state are Serializable.", e);
         }
     }

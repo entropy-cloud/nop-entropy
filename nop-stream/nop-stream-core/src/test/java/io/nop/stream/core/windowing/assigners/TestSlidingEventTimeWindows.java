@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestSlidingEventTimeWindows {
 
@@ -69,17 +70,17 @@ public class TestSlidingEventTimeWindows {
 
     @Test
     public void testInvalidArguments() {
-        assertThrows(IllegalArgumentException.class, () -> SlidingEventTimeWindows.of(0, 5));
-        assertThrows(IllegalArgumentException.class, () -> SlidingEventTimeWindows.of(-1, 5));
-        assertThrows(IllegalArgumentException.class, () -> SlidingEventTimeWindows.of(10, 0));
-        assertThrows(IllegalArgumentException.class, () -> SlidingEventTimeWindows.of(10, -1));
+        assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(0, 5));
+        assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(-1, 5));
+        assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(10, 0));
+        assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(10, -1));
     }
 
     @Test
     public void testInvalidOffset() {
-        assertThrows(IllegalArgumentException.class, () -> SlidingEventTimeWindows.of(10, 5, -1));
-        assertThrows(IllegalArgumentException.class, () -> SlidingEventTimeWindows.of(10, 5, 5));
-        assertThrows(IllegalArgumentException.class, () -> SlidingEventTimeWindows.of(10, 5, 10));
+        assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(10, 5, -1));
+        assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(10, 5, 5));
+        assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(10, 5, 10));
     }
 
     @Test

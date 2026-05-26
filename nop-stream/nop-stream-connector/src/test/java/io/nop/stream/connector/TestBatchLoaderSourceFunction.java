@@ -10,6 +10,7 @@ package io.nop.stream.connector;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import org.junit.jupiter.api.Test;
+import io.nop.stream.core.exceptions.StreamException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -126,7 +127,7 @@ public class TestBatchLoaderSourceFunction {
 
     @Test
     void testNullProviderRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new BatchLoaderSourceFunction<>(null));
+        assertThrows(StreamException.class, () -> new BatchLoaderSourceFunction<>(null));
     }
 
     @Test

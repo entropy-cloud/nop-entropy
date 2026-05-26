@@ -14,6 +14,7 @@ import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import org.junit.jupiter.api.Test;
+import io.nop.stream.core.exceptions.StreamException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +29,7 @@ public class TestDebeziumCdcSourceFunction {
 
     @Test
     void testNullConfigRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new DebeziumCdcSourceFunction(null));
+        assertThrows(StreamException.class, () -> new DebeziumCdcSourceFunction(null));
     }
 
     @Test

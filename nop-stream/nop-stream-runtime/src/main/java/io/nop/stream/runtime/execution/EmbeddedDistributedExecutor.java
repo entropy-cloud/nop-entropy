@@ -32,6 +32,7 @@ import io.nop.stream.runtime.coordinator.JobCoordinator;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.TaskManager;
 import io.nop.stream.runtime.transport.RemoteGraphExecutionPlanBuilder;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
 
@@ -173,7 +174,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
             }
             Thread.sleep(100);
         }
-        throw new RuntimeException("Timed out waiting for tasks to complete. Still running: "
+        throw new StreamException("Timed out waiting for tasks to complete. Still running: "
                 + taskManagers.stream().mapToInt(TaskManager::getRunningTaskCount).sum());
     }
 

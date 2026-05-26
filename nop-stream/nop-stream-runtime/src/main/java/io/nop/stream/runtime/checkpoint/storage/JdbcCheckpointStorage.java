@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.model.StreamModelFingerprint;
+import io.nop.stream.core.exceptions.StreamException;
 
 @Internal
 public class JdbcCheckpointStorage implements ICheckpointStorage {
@@ -356,7 +357,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
     private static TaskLocation stringToTaskLocation(String str) {
         String[] parts = str.split("\\|");
         if (parts.length != 4) {
-            throw new IllegalArgumentException("Invalid TaskLocation string: " + str);
+            throw new StreamException("Invalid TaskLocation string: " + str);
         }
         return new TaskLocation(parts[0], parts[1], parts[2], Integer.parseInt(parts[3]));
     }

@@ -15,12 +15,13 @@ import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.model.StreamModelFingerprint;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class PartitionedPlanGenerator {
 
     public PartitionedPlan generate(JobGraph jobGraph, StreamModelFingerprint fingerprint) {
         if (jobGraph == null) {
-            throw new IllegalArgumentException("JobGraph must not be null");
+            throw new StreamException("JobGraph must not be null");
         }
 
         Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();

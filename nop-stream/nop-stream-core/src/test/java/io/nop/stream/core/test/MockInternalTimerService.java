@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Mock implementation of InternalTimerService for testing.

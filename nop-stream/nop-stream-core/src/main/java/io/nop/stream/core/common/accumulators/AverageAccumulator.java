@@ -19,6 +19,7 @@
 package io.nop.stream.core.common.accumulators;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * An accumulator that computes the average value. Input can be {@code long}, {@code integer}, or
@@ -77,7 +78,7 @@ public class AverageAccumulator implements SimpleAccumulator<Double> {
             this.count += avg.count;
             this.sum += avg.sum;
         } else {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                     "The merged accumulator must be AverageAccumulator.");
         }
     }

@@ -11,6 +11,7 @@ import io.nop.api.core.message.IMessageService;
 
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Adapts nop-message's {@link IMessageService} to nop-stream's {@link SinkFunction}.
@@ -26,10 +27,10 @@ public class MessageSinkFunction<T> implements SinkFunction<T> {
 
     public MessageSinkFunction(IMessageService messageService, String topic) {
         if (messageService == null) {
-            throw new IllegalArgumentException("messageService must not be null");
+            throw new StreamException("messageService must not be null");
         }
         if (topic == null || topic.isEmpty()) {
-            throw new IllegalArgumentException("topic must not be null or empty");
+            throw new StreamException("topic must not be null or empty");
         }
         this.messageService = messageService;
         this.topic = topic;

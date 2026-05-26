@@ -16,6 +16,7 @@ import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * 测试 {@link StreamElementCodec} 的编码/解码往返正确性。
@@ -165,13 +166,13 @@ class TestStreamElementCodec {
 
     @Test
     void encode_nullElement_throws() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> StreamElementCodec.encode(null, null, FENCING_TOKEN, EPOCH_ID));
     }
 
     @Test
     void decode_nullEnvelope_throws() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> StreamElementCodec.decode(null));
     }
 
@@ -214,14 +215,14 @@ class TestStreamElementCodec {
     @Test
     void typeRegistry_nullEdgeId_throws() {
         TypeRegistry registry = new TypeRegistry();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> registry.register(null, "java.lang.String"));
     }
 
     @Test
     void typeRegistry_nullOutputType_throws() {
         TypeRegistry registry = new TypeRegistry();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> registry.register("edge-1", null));
     }
 }

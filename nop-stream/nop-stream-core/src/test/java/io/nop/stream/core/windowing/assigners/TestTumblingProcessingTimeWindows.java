@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestTumblingProcessingTimeWindows {
 
@@ -52,8 +53,8 @@ public class TestTumblingProcessingTimeWindows {
 
     @Test
     public void testInvalidArguments() {
-        assertThrows(IllegalArgumentException.class, () -> TumblingProcessingTimeWindows.of(0));
-        assertThrows(IllegalArgumentException.class, () -> TumblingProcessingTimeWindows.of(-1));
+        assertThrows(StreamException.class, () -> TumblingProcessingTimeWindows.of(0));
+        assertThrows(StreamException.class, () -> TumblingProcessingTimeWindows.of(-1));
     }
 
     @Test

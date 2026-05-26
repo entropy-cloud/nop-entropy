@@ -43,6 +43,7 @@ import io.nop.stream.core.model.StreamRequirementValidator;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class StreamExecutionEnvironment {
 
@@ -90,7 +91,7 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionEnvironment setParallelism(int parallelism) {
         if (parallelism < 1) {
-            throw new IllegalArgumentException("Parallelism must be at least 1");
+            throw new StreamException("Parallelism must be at least 1");
         }
         this.parallelism = parallelism;
         return this;
@@ -102,7 +103,7 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionEnvironment setWatermarkInterval(long watermarkInterval) {
         if (watermarkInterval < 0) {
-            throw new IllegalArgumentException("Watermark interval must be >= 0");
+            throw new StreamException("Watermark interval must be >= 0");
         }
         this.watermarkInterval = watermarkInterval;
         return this;
@@ -132,7 +133,7 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionEnvironment setDeploymentMode(DeploymentMode deploymentMode) {
         if (deploymentMode == null) {
-            throw new IllegalArgumentException("DeploymentMode cannot be null");
+            throw new StreamException("DeploymentMode cannot be null");
         }
         this.deploymentMode = deploymentMode;
         return this;
@@ -154,17 +155,17 @@ public class StreamExecutionEnvironment {
     @SafeVarargs
     public final <T> DataStreamSource<T> fromElements(T... data) {
         if (data == null || data.length == 0) {
-            throw new IllegalArgumentException("fromElements needs at least one element as argument");
+            throw new StreamException("fromElements needs at least one element as argument");
         }
         return fromCollection(Arrays.asList(data));
     }
 
     public <T> DataStreamSource<T> fromCollection(Collection<T> data) {
         if (data == null) {
-            throw new IllegalArgumentException("Collection must not be null");
+            throw new StreamException("Collection must not be null");
         }
         if (data.isEmpty()) {
-            throw new IllegalArgumentException("Collection must not be empty");
+            throw new StreamException("Collection must not be empty");
         }
         SourceFunction<T> sourceFunction = new CollectionSourceFunction<>(data);
         return addSource(sourceFunction, "Collection Source");
@@ -172,10 +173,10 @@ public class StreamExecutionEnvironment {
 
     public <T> DataStreamSource<T> fromCollection(Collection<T> data, TypeInformation<T> typeInfo) {
         if (data == null) {
-            throw new IllegalArgumentException("Collection must not be null");
+            throw new StreamException("Collection must not be null");
         }
         if (typeInfo == null) {
-            throw new IllegalArgumentException("TypeInformation must not be null");
+            throw new StreamException("TypeInformation must not be null");
         }
         SourceFunction<T> sourceFunction = new CollectionSourceFunction<>(data);
         return addSource(sourceFunction, "Collection Source", typeInfo);
@@ -273,7 +274,7 @@ public class StreamExecutionEnvironment {
 
             for (SubtaskTask task : subtaskTasks) {
                 if (task.getState() == SubtaskTask.State.FAILED) {
-                    throw new RuntimeException("Task failed", task.getError());
+                    throw new StreamException("Task failed", task.getError());
                 }
             }
 
@@ -281,7 +282,7 @@ public class StreamExecutionEnvironment {
             long executionTime = System.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to execute job: " + jobName, e);
+            throw new StreamException("Failed to execute job: " + jobName, e);
         }
     }
 
@@ -308,7 +309,7 @@ public class StreamExecutionEnvironment {
         }
 
         if (savepointPath == null || savepointPath.isEmpty()) {
-            throw new IllegalArgumentException("Savepoint path must not be null or empty");
+            throw new StreamException("Savepoint path must not be null or empty");
         }
 
         JobGraph jobGraph = buildJobGraph("Streaming Job (Savepoint Recovery)");

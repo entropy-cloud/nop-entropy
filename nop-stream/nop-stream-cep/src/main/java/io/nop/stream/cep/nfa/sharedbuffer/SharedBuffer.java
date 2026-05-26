@@ -158,7 +158,7 @@ public class SharedBuffer<V> {
                             try {
                                 entries.put(e.getKey(), e.getValue());
                             } catch (Exception exception) {
-                                throw new RuntimeException(exception);
+                                throw NopException.adapt(exception);
                             }
                         });
     }
@@ -190,7 +190,7 @@ public class SharedBuffer<V> {
                                 }
                             });
         } catch (Exception exception) {
-            throw new RuntimeException(exception);
+            throw NopException.adapt(exception);
         }
     }
 

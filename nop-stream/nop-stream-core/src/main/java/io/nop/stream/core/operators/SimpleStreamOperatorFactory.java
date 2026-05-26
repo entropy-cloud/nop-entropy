@@ -14,6 +14,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<OUT>, Serializable {
     
@@ -51,7 +52,7 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
                     return copy;
                 }
             } catch (Exception e) {
-                throw new RuntimeException(
+                throw new StreamException(
                         "Failed to create copy of operator via serialization: " + name, e);
             }
         }

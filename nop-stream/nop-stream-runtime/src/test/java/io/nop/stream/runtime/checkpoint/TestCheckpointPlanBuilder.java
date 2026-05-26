@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 class TestCheckpointPlanBuilder {
 
@@ -99,7 +100,7 @@ class TestCheckpointPlanBuilder {
 
     @Test
     void testNullExecutionPlanThrows() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 CheckpointPlanBuilder.build(null, "job-1", "pipeline-1"));
     }
 
@@ -107,7 +108,7 @@ class TestCheckpointPlanBuilder {
     void testNullJobIdThrows() {
         JobGraph jobGraph = buildThreeVertexJobGraph();
         GraphExecutionPlan executionPlan = GraphExecutionPlan.build(jobGraph);
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 CheckpointPlanBuilder.build(executionPlan, null, "pipeline-1"));
     }
 
@@ -115,7 +116,7 @@ class TestCheckpointPlanBuilder {
     void testEmptyJobIdThrows() {
         JobGraph jobGraph = buildThreeVertexJobGraph();
         GraphExecutionPlan executionPlan = GraphExecutionPlan.build(jobGraph);
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 CheckpointPlanBuilder.build(executionPlan, "", "pipeline-1"));
     }
 
@@ -123,7 +124,7 @@ class TestCheckpointPlanBuilder {
     void testNullPipelineIdThrows() {
         JobGraph jobGraph = buildThreeVertexJobGraph();
         GraphExecutionPlan executionPlan = GraphExecutionPlan.build(jobGraph);
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 CheckpointPlanBuilder.build(executionPlan, "job-1", null));
     }
 

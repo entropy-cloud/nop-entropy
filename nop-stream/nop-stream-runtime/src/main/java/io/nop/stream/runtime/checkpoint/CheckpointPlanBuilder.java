@@ -20,6 +20,7 @@ import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class CheckpointPlanBuilder {
 
@@ -57,13 +58,13 @@ public class CheckpointPlanBuilder {
     public static CheckpointPlan build(GraphExecutionPlan executionPlan, String jobId, String pipelineId,
                                        StreamComponents streamComponents, CheckpointConfig checkpointConfig) {
         if (executionPlan == null) {
-            throw new IllegalArgumentException("executionPlan must not be null");
+            throw new StreamException("executionPlan must not be null");
         }
         if (jobId == null || jobId.isEmpty()) {
-            throw new IllegalArgumentException("jobId must not be null or empty");
+            throw new StreamException("jobId must not be null or empty");
         }
         if (pipelineId == null || pipelineId.isEmpty()) {
-            throw new IllegalArgumentException("pipelineId must not be null or empty");
+            throw new StreamException("pipelineId must not be null or empty");
         }
 
         List<TaskLocation> allTasks = new ArrayList<>();

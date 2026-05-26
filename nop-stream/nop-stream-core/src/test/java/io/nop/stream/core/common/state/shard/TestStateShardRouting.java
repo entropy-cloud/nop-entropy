@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Tests for StateShard routing in MemoryKeyedStateBackend.
@@ -299,13 +300,13 @@ public class TestStateShardRouting {
 
     @Test
     public void testConstructor_RejectsInvalidShardCount() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 new MemoryKeyedStateBackend<>(String.class, 0));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 new MemoryKeyedStateBackend<>(String.class, -1));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 new MemoryStateBackend(0));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 new MemoryStateBackend(-1));
     }
 

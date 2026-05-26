@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 class TestStreamComponents {
 
@@ -36,8 +37,8 @@ class TestStreamComponents {
     @Test
     void testRegisterTransformRejectsNullId() {
         StreamComponents components = new StreamComponents();
-        assertThrows(IllegalArgumentException.class, () -> components.registerTransform(null, new Object()));
-        assertThrows(IllegalArgumentException.class, () -> components.registerTransform("", new Object()));
+        assertThrows(StreamException.class, () -> components.registerTransform(null, new Object()));
+        assertThrows(StreamException.class, () -> components.registerTransform("", new Object()));
     }
 
     @Test
@@ -51,7 +52,7 @@ class TestStreamComponents {
     @Test
     void testAddRequirementRejectsNull() {
         StreamComponents components = new StreamComponents();
-        assertThrows(IllegalArgumentException.class, () -> components.addRequirement(null));
+        assertThrows(StreamException.class, () -> components.addRequirement(null));
     }
 
     @Test

@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Tests for configurable watermark interval in TimestampsAndWatermarksOperator.
@@ -111,7 +112,7 @@ public class TestWatermarkIntervalConfig {
 
     @Test
     void testNegativeWatermarkIntervalThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(StreamException.class, () -> {
             new StreamExecutionEnvironment().setWatermarkInterval(-1L);
         }, "Setting negative watermark interval should throw IllegalArgumentException");
     }

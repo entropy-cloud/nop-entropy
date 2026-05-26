@@ -18,6 +18,7 @@ import io.nop.message.debezium.DebeziumMessageSource;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.DrainableSource;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Adapts nop-message-debezium's {@link DebeziumMessageSource} to nop-stream's {@link SourceFunction}.
@@ -43,7 +44,7 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     public DebeziumCdcSourceFunction(DebeziumConfig config) {
         if (config == null) {
-            throw new IllegalArgumentException("config must not be null");
+            throw new StreamException("config must not be null");
         }
         this.config = config;
     }

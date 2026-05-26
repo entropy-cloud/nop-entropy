@@ -26,6 +26,7 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * JobCoordinator is the single point of control for a distributed streaming job.
@@ -444,7 +445,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 terminateExportSavepoint();
                 break;
             default:
-                throw new IllegalArgumentException("Unknown termination mode: " + mode);
+                throw new StreamException("Unknown termination mode: " + mode);
         }
     }
 

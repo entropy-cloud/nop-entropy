@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Comprehensive unit tests for Task and TaskExecutor classes.
@@ -64,8 +65,8 @@ public class TestTaskExecutor {
 
     @Test
     public void testTaskExecutorInvalidPoolSize() {
-        assertThrows(IllegalArgumentException.class, () -> new TaskExecutor(0));
-        assertThrows(IllegalArgumentException.class, () -> new TaskExecutor(-1));
+        assertThrows(StreamException.class, () -> new TaskExecutor(0));
+        assertThrows(StreamException.class, () -> new TaskExecutor(-1));
     }
 
     // ========== TaskExecutor Submit Tests ==========
@@ -88,7 +89,7 @@ public class TestTaskExecutor {
 
     @Test
     public void testSubmitNullJobVertex() {
-        assertThrows(IllegalArgumentException.class, () -> taskExecutor.submitJobVertex(null));
+        assertThrows(StreamException.class, () -> taskExecutor.submitJobVertex(null));
     }
 
     @Test
@@ -103,7 +104,7 @@ public class TestTaskExecutor {
 
     @Test
     public void testSubmitNullTask() {
-        assertThrows(IllegalArgumentException.class, () -> taskExecutor.submitTask((Task) null));
+        assertThrows(StreamException.class, () -> taskExecutor.submitTask((Task) null));
     }
 
     @Test
@@ -242,13 +243,13 @@ public class TestTaskExecutor {
 
     @Test
     public void testTaskNullJobVertex() {
-        assertThrows(IllegalArgumentException.class, () -> new Task(null, 0));
+        assertThrows(StreamException.class, () -> new Task(null, 0));
     }
 
     @Test
     public void testTaskInvalidIndex() {
-        assertThrows(IllegalArgumentException.class, () -> new Task(testVertex, -1));
-        assertThrows(IllegalArgumentException.class, () -> new Task(testVertex, 100));
+        assertThrows(StreamException.class, () -> new Task(testVertex, -1));
+        assertThrows(StreamException.class, () -> new Task(testVertex, 100));
     }
 
     // ========== Task Execution Tests ==========

@@ -23,6 +23,7 @@ import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * A stream operator that wraps a {@link SourceFunction} and emits elements through the
@@ -78,7 +79,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             try {
                 injectBarrier(barrier);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to inject barrier after source finished", e);
+                throw new StreamException("Failed to inject barrier after source finished", e);
             }
             return true;
         }
@@ -173,7 +174,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             try {
                 injectBarrier(barrier);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to inject pending barrier after source finished", e);
+                throw new StreamException("Failed to inject pending barrier after source finished", e);
             }
         }
     }
@@ -184,7 +185,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             try {
                 injectBarrier(barrier);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to inject pending barrier", e);
+                throw new StreamException("Failed to inject pending barrier", e);
             }
         }
     }

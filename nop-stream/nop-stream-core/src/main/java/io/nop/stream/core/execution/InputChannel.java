@@ -10,6 +10,7 @@ package io.nop.stream.core.execution;
 import java.util.concurrent.TimeUnit;
 
 import io.nop.stream.core.streamrecord.StreamElement;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Consumer-side handle to a {@link ResultPartition}. Wraps a single partition
@@ -21,7 +22,7 @@ public class InputChannel {
 
     public InputChannel(ResultPartition partition) {
         if (partition == null) {
-            throw new IllegalArgumentException("ResultPartition must not be null");
+            throw new StreamException("ResultPartition must not be null");
         }
         this.partition = partition;
     }

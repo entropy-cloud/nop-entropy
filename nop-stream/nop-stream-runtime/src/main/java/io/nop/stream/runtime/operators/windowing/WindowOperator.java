@@ -910,7 +910,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         @Override
         public <X> void output(OutputTag<X> outputTag, X value) {
             if (outputTag == null) {
-                throw new IllegalArgumentException("OutputTag must not be null.");
+                throw new StreamException("OutputTag must not be null.");
             }
             output.collect(outputTag, new StreamRecord<>(value, window.maxTimestamp()));
         }

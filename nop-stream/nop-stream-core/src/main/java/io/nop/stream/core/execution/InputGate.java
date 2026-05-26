@@ -19,6 +19,7 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Manages multiple {@link InputChannel} instances and provides merged reading
@@ -82,7 +83,7 @@ public class InputGate {
      */
     public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig, boolean barrierAlignment) {
         if (channels == null || channels.isEmpty()) {
-            throw new IllegalArgumentException("Channels must not be null or empty");
+            throw new StreamException("Channels must not be null or empty");
         }
         this.channels = new ArrayList<>(channels);
         this.edgeConfig = edgeConfig;
@@ -112,7 +113,7 @@ public class InputGate {
      */
     public InputGate(InputChannel channel, EdgeConfig edgeConfig) {
         if (channel == null) {
-            throw new IllegalArgumentException("InputChannel must not be null");
+            throw new StreamException("InputChannel must not be null");
         }
         this.channels = new ArrayList<>();
         this.channels.add(channel);

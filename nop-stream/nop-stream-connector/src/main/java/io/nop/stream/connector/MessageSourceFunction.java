@@ -14,6 +14,7 @@ import io.nop.api.core.message.IMessageSubscription;
 
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Adapts nop-message's {@link IMessageService} to nop-stream's {@link SourceFunction}.
@@ -59,16 +60,16 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
     public MessageSourceFunction(IMessageService messageService, String topic,
                                   int subtaskIndex, int totalParallelism) {
         if (messageService == null) {
-            throw new IllegalArgumentException("messageService must not be null");
+            throw new StreamException("messageService must not be null");
         }
         if (topic == null || topic.isEmpty()) {
-            throw new IllegalArgumentException("topic must not be null or empty");
+            throw new StreamException("topic must not be null or empty");
         }
         if (subtaskIndex >= 0 && totalParallelism <= 0) {
-            throw new IllegalArgumentException("totalParallelism must be positive when subtaskIndex is set");
+            throw new StreamException("totalParallelism must be positive when subtaskIndex is set");
         }
         if (subtaskIndex >= 0 && subtaskIndex >= totalParallelism) {
-            throw new IllegalArgumentException("subtaskIndex must be < totalParallelism");
+            throw new StreamException("subtaskIndex must be < totalParallelism");
         }
         this.messageService = messageService;
         this.topic = topic;

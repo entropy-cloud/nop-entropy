@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class SubtaskTask implements Runnable {
 
@@ -35,10 +36,10 @@ public class SubtaskTask implements Runnable {
 
     public SubtaskTask(Subtask subtask, JobVertex jobVertex) {
         if (subtask == null) {
-            throw new IllegalArgumentException("Subtask cannot be null");
+            throw new StreamException("Subtask cannot be null");
         }
         if (jobVertex == null) {
-            throw new IllegalArgumentException("JobVertex cannot be null");
+            throw new StreamException("JobVertex cannot be null");
         }
         this.subtask = subtask;
         this.jobVertex = jobVertex;
@@ -108,7 +109,7 @@ public class SubtaskTask implements Runnable {
                         e.addSuppressed(closeEx);
                     }
                 }
-                throw new RuntimeException(
+                throw new StreamException(
                     "Failed to open operator chain " + i + " for subtask: " + getTaskName(), e);
             }
         }

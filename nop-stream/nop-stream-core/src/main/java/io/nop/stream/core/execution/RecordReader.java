@@ -10,6 +10,7 @@ package io.nop.stream.core.execution;
 import java.util.Optional;
 
 import io.nop.stream.core.streamrecord.StreamElement;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Reads stream elements from a single {@link InputChannel}.
@@ -22,7 +23,7 @@ public class RecordReader<T> {
 
     public RecordReader(InputChannel channel) {
         if (channel == null) {
-            throw new IllegalArgumentException("InputChannel must not be null");
+            throw new StreamException("InputChannel must not be null");
         }
         this.channel = channel;
     }

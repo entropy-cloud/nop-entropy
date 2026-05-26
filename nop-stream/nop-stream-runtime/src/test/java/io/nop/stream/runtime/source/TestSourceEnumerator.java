@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 class TestSourceEnumerator {
 
@@ -237,14 +238,14 @@ class TestSourceEnumerator {
 
     @Test
     void testInvalidParallelism() {
-        assertThrows(IllegalArgumentException.class, () -> new SourceEnumerator(0));
-        assertThrows(IllegalArgumentException.class, () -> new SourceEnumerator(-1));
+        assertThrows(StreamException.class, () -> new SourceEnumerator(0));
+        assertThrows(StreamException.class, () -> new SourceEnumerator(-1));
     }
 
     @Test
     void testInvalidSubtaskIndex() {
         enumerator.discoverSplits(Arrays.asList(new SourceSplit("split-0")));
-        assertThrows(IllegalArgumentException.class, () -> enumerator.assignSplits(-1));
-        assertThrows(IllegalArgumentException.class, () -> enumerator.assignSplits(4));
+        assertThrows(StreamException.class, () -> enumerator.assignSplits(-1));
+        assertThrows(StreamException.class, () -> enumerator.assignSplits(4));
     }
 }

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 public class TestSlidingProcessingTimeWindows {
 
@@ -51,16 +52,16 @@ public class TestSlidingProcessingTimeWindows {
 
     @Test
     public void testInvalidArguments() {
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(0, 5));
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(-1, 5));
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(10, 0));
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(10, -1));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(0, 5));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(-1, 5));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(10, 0));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(10, -1));
     }
 
     @Test
     public void testInvalidOffset() {
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(10, 5, -1));
-        assertThrows(IllegalArgumentException.class, () -> SlidingProcessingTimeWindows.of(10, 5, 5));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(10, 5, -1));
+        assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(10, 5, 5));
     }
 
     @Test

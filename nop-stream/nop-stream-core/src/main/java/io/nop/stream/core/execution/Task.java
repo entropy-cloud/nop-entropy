@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * Represents a runnable task that executes a JobVertex in the streaming job.
@@ -103,13 +104,13 @@ public class Task implements Runnable, Serializable {
      */
     public Task(JobVertex jobVertex, int taskIndex) {
         if (jobVertex == null) {
-            throw new IllegalArgumentException("JobVertex cannot be null");
+            throw new StreamException("JobVertex cannot be null");
         }
         if (taskIndex < 0) {
-            throw new IllegalArgumentException("Task index must be non-negative, got: " + taskIndex);
+            throw new StreamException("Task index must be non-negative, got: " + taskIndex);
         }
         if (taskIndex >= jobVertex.getParallelism()) {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                 "Task index " + taskIndex + " exceeds parallelism " + jobVertex.getParallelism());
         }
 
@@ -191,7 +192,7 @@ public class Task implements Runnable, Serializable {
                         e.addSuppressed(closeEx);
                     }
                 }
-                throw new RuntimeException(
+                throw new StreamException(
                     "Failed to open operator chain " + i + " for task: " + getTaskName(), e);
             }
         }

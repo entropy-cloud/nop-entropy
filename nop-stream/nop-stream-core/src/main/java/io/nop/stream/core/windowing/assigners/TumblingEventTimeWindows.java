@@ -26,6 +26,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * A {@link WindowAssigner} that windows elements into windows based on the timestamp of the
@@ -50,10 +51,10 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
 
     protected TumblingEventTimeWindows(long size, long offset, WindowStagger windowStagger) {
         if (size <= 0) {
-            throw new IllegalArgumentException("Window size must be positive.");
+            throw new StreamException("Window size must be positive.");
         }
         if (offset >= size || offset < 0) {
-            throw new IllegalArgumentException(
+            throw new StreamException(
                     "Window offset must be in [0, size), but is " + offset);
         }
         this.size = size;
@@ -71,7 +72,7 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
                             timestamp, (globalOffset + windowStagger.getStaggerOffset(context.getCurrentProcessingTime(), size)), size);
             return Collections.singletonList(new TimeWindow(start, start + size));
         } else {
-            throw new RuntimeException(
+            throw new StreamException(
                     "Record has Long.MIN_VALUE timestamp (= no timestamp marker). "
                             + "Is the time characteristic set to 'ProcessingTime', or "
                             + "did you forget to call 'DataStream.assignTimestampsAndWatermarks(...)'?");

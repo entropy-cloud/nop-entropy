@@ -3,6 +3,7 @@ package io.nop.stream.core.common.state.shard;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.stream.core.exceptions.StreamException;
 
 class TestStateShard {
 
@@ -52,12 +53,12 @@ class TestStateShard {
 
     @Test
     void testInvalidShardCount() {
-        assertThrows(IllegalArgumentException.class, () -> new StateShard(0, 0, 0, "DEFAULT"));
+        assertThrows(StreamException.class, () -> new StateShard(0, 0, 0, "DEFAULT"));
     }
 
     @Test
     void testInvalidShardIdOutOfRange() {
-        assertThrows(IllegalArgumentException.class, () -> new StateShard(4, 4, 0, "DEFAULT"));
-        assertThrows(IllegalArgumentException.class, () -> new StateShard(4, -1, 0, "DEFAULT"));
+        assertThrows(StreamException.class, () -> new StateShard(4, 4, 0, "DEFAULT"));
+        assertThrows(StreamException.class, () -> new StateShard(4, -1, 0, "DEFAULT"));
     }
 }
