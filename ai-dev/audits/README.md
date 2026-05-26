@@ -23,10 +23,10 @@ ai-dev/audits/
 
 | Prompt | 审计类型 |
 |--------|---------|
-| `deep-audit-prompts.md` | 多维度深度审计 |
-| `open-ended-adversarial-review-prompt.md` | 开放式对抗审查 |
-| `plan-closure-audit-prompt.md` | 计划结项审计 |
-| `plan-reviewer-prompt.md` | 计划实施前审计 |
+| `skills/deep-audit-prompts.md` | 多维度深度审计 |
+| `skills/open-ended-adversarial-review-prompt.md` | 开放式对抗审查 |
+| `skills/plan-closure-audit-prompt.md` | 计划结项审计 |
+| `skills/plan-reviewer-prompt.md` | 计划实施前审计 |
 
 这些 prompt 是方法论模板，审计记录是执行结果。Prompt 不含业务内容，审计记录包含具体的发现和建议。
 
