@@ -35,10 +35,15 @@ nop-code-dao / meta / web / app       ← 标准 Nop 分层
 ## 实现状态
 
 - ✅ `nop-code-core`：已实现（通用模型、图数据结构、分析算法）
-- ✅ `nop-code-lang-java`：已实现
-- ⚠️ `nop-code-lang-python/typescript`：仅有骨架
-- ⏳ `nop-code-graph` / `nop-code-flow`：规划中，算法暂未从 core 迁出
-- ⚠️ `nop-code-api`：目录存在但为空（接口定义在 service 模块）
+- ✅ `nop-code-lang-java`：已实现（JavaParser + SymbolSolver，覆盖 Java 17）
+- ✅ `nop-code-lang-python`：已实现（tree-sitter-python，符号/继承/装饰器/调用提取）
+- ✅ `nop-code-lang-typescript`：已实现（tree-sitter-typescript，符号/继承/装饰器提取，暂无调用图）
+- ✅ `nop-code-graph`：已实现（社区检测 Leiden/LabelPropagation、入口点评分、影响分析、Hub/Bridge、知识缺口、GraphML/Mermaid/JSON 导出、图快照对比）
+- ✅ `nop-code-flow`：已实现（执行流追踪、风险评分变更分析、死代码检测）
+- ✅ `nop-code-api`：已实现（CodeIndexApi 接口 + 5 个通用 API，由 CodeIndexService 2800+ 行实现支撑）
+- ✅ `nop-code-service`：已实现（全部 query-api-design.md 定义的 GraphQL API，nop-search 双路径集成）
+- ⏳ `语义边`：目标架构（semantic-edge-design.md），核心模型和确定性提取器待实现
+- ⏳ `nop-search 全功能集成`：双路径已实现（有搜索引擎时用 HYBRID 搜索，否则 DB LIKE），向量嵌入和混合搜索待部署时注入
 
 ## 设计文档约定
 
