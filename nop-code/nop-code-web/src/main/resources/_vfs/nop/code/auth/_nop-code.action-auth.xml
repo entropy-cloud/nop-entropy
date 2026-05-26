@@ -108,25 +108,39 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeSymbol-main" displayName="符号" orderNo="10025" icon="ant-design:appstore-twotone"
+                <resource id="NopCodeSemanticEdge-main" displayName="语义边" orderNo="10025"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/code/pages/NopCodeSemanticEdge/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopCodeSemanticEdge:query" displayName="查询语义边" orderNo="10026"
+                                  resourceType="FNPT">
+                            <permissions>NopCodeSemanticEdge:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopCodeSemanticEdge:mutation" displayName="修改语义边" orderNo="10027"
+                                  resourceType="FNPT">
+                            <permissions>NopCodeSemanticEdge:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopCodeSymbol-main" displayName="符号" orderNo="10028" icon="ant-design:appstore-twotone"
                           component="AMIS" resourceType="SUBM" url="/nop/code/pages/NopCodeSymbol/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeSymbol:query" displayName="查询符号" orderNo="10026" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeSymbol:query" displayName="查询符号" orderNo="10029" resourceType="FNPT">
                             <permissions>NopCodeSymbol:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeSymbol:mutation" displayName="修改符号" orderNo="10027"
+                        <resource id="FNPT:NopCodeSymbol:mutation" displayName="修改符号" orderNo="10030"
                                   resourceType="FNPT">
                             <permissions>NopCodeSymbol:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeUsage-main" displayName="符号引用" orderNo="10028" icon="ant-design:appstore-twotone"
+                <resource id="NopCodeUsage-main" displayName="符号引用" orderNo="10031" icon="ant-design:appstore-twotone"
                           component="AMIS" resourceType="SUBM" url="/nop/code/pages/NopCodeUsage/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeUsage:query" displayName="查询符号引用" orderNo="10029" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeUsage:query" displayName="查询符号引用" orderNo="10032" resourceType="FNPT">
                             <permissions>NopCodeUsage:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeUsage:mutation" displayName="修改符号引用" orderNo="10030"
+                        <resource id="FNPT:NopCodeUsage:mutation" displayName="修改符号引用" orderNo="10033"
                                   resourceType="FNPT">
                             <permissions>NopCodeUsage:mutation</permissions>
                         </resource>

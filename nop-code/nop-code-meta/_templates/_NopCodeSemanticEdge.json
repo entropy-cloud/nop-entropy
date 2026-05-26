@@ -1,0 +1,22 @@
+{
+  "id": "",
+  "indexId": "",
+  "sourceSymbolId": "",
+  "targetSymbolId": "",
+  "directed": false,
+  "relationType": "",
+  "confidence": 0,
+  "confidenceScore": 0.0,
+  "rationale": "",
+  "extractorId": "",
+  "extData": "",
+  "createdBy": "",
+  "createTime": 0,
+  "delFlag": 0,
+  "index": null,
+  "sourceSymbol": null,
+  "sourceSymbol.name": "",
+  "targetSymbol": null,
+  "targetSymbol.name": "",
+  "extDataComponent": null
+}

@@ -84,6 +84,9 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     /* relation: 注解使用 */
     public static final String PROP_NAME_annotationUsages = "annotationUsages";
     
+    /* relation:  */
+    public static final String PROP_NAME_semanticEdges = "semanticEdges";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
@@ -678,6 +681,16 @@ public class _NopCodeIndex extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeAnnotationUsage> getAnnotationUsages(){
        return _annotationUsages;
+    }
+       
+    private final OrmEntitySet<io.nop.code.dao.entity.NopCodeSemanticEdge> _semanticEdges = new OrmEntitySet<>(this, PROP_NAME_semanticEdges,
+        io.nop.code.dao.entity.NopCodeSemanticEdge.PROP_NAME_index, null,io.nop.code.dao.entity.NopCodeSemanticEdge.class);
+
+    /**
+     * 。 refPropName: index, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeSemanticEdge> getSemanticEdges(){
+       return _semanticEdges;
     }
        
 }

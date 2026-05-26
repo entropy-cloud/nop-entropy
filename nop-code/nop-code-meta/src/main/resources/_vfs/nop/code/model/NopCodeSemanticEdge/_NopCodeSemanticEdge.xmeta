@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="语义边" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.code.dao.entity.NopCodeSemanticEdge</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="边ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="indexId" displayName="索引ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="index">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="sourceSymbolId" displayName="源符号ID" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="sourceSymbol">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="targetSymbolId" displayName="目标符号ID" propId="4" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="targetSymbol">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="directed" displayName="有向" propId="5" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="relationType" displayName="关系类型" propId="6" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="40"/>
+        </prop>
+        <prop name="confidence" displayName="置信度级别" propId="7" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="confidenceScore" displayName="置信度分数" propId="8" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Double"/>
+        </prop>
+        <prop name="rationale" displayName="原因" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="extractorId" displayName="提取器ID" propId="10" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="40"/>
+        </prop>
+        <prop name="extData" displayName="扩展数据" propId="11" queryable="true" sortable="true" insertable="true"
+              updatable="true" graphql:jsonComponentProp="extDataComponent" ui:control="textarea">
+            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="4096"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="12" tagSet="seq" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="13" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="delFlag" displayName="逻辑删除" propId="14" tagSet="seq" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Integer" precision="1"/>
+        </prop>
+        <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
+              ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeIndex"/>
+        </prop>
+        <prop name="sourceSymbol" tagSet="pub" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="sourceSymbolId" ext:joinRightProp="id" ext:joinRightDisplayProp="name"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeSymbol"/>
+        </prop>
+        <prop name="sourceSymbol.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="targetSymbol" tagSet="pub" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="targetSymbolId" ext:joinRightProp="id" ext:joinRightDisplayProp="name"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeSymbol"/>
+        </prop>
+        <prop name="targetSymbol.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="extDataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

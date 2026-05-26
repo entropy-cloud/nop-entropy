@@ -71,6 +71,14 @@
         <property name="bizObjName" value="NopCodeFlow"/>
     </bean>
 
+    <bean id="io.nop.code.service.entity.NopCodeSemanticEdgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeSemanticEdge" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeSemanticEdgeBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopCodeSemanticEdge"/>
+    </bean>
+
     <bean id="io.nop.code.service.entity.NopCodeFlowMembershipBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopCodeFlowMembership" class="io.nop.biz.proxy.BizProxyFactoryBean"

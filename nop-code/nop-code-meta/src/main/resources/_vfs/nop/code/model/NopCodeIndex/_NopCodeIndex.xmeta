@@ -102,5 +102,11 @@
                 <item bizObjName="NopCodeAnnotationUsage"/>
             </schema>
         </prop>
+        <prop name="semanticEdges" ext:kind="to-many" internal="true" ext:joinLeftProp="id" ext:joinRightProp="indexId"
+              lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeSemanticEdge"/>
+            </schema>
+        </prop>
     </props>
 </meta>

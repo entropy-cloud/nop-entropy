@@ -16,5 +16,6 @@
   "usages": null,
   "calls": null,
   "inheritances": null,
-  "annotationUsages": null
+  "annotationUsages": null,
+  "semanticEdges": null
 }

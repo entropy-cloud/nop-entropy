@@ -776,5 +776,72 @@
                 <unique-key columns="flowId,symbolId" constraint="UK_NOP_CODE_FLOW_MEMBERSHIP" name="flowSymbolKey"/>
             </unique-keys>
         </entity>
+
+        <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" displayName="语义边"
+                name="io.nop.code.dao.entity.NopCodeSemanticEdge" registerShortName="true"
+                tableName="nop_code_semantic_edge">
+            <columns>
+                <column code="ID" displayName="边ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR"/>
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="SOURCE_SYMBOL_ID" displayName="源符号ID" domain="codeId" mandatory="true" name="sourceSymbolId"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="TARGET_SYMBOL_ID" displayName="目标符号ID" domain="codeId" mandatory="true" name="targetSymbolId"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="DIRECTED" displayName="有向" name="directed"
+                        propId="5" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="RELATION_TYPE" displayName="关系类型" mandatory="true" name="relationType"
+                        precision="40" propId="6" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="CONFIDENCE" displayName="置信度级别" mandatory="true" name="confidence"
+                        propId="7" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="CONFIDENCE_SCORE" displayName="置信度分数" name="confidenceScore"
+                        propId="8" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="RATIONALE" displayName="原因" name="rationale"
+                        precision="500" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="EXTRACTOR_ID" displayName="提取器ID" name="extractorId"
+                        precision="40" propId="10" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="EXT_DATA" displayName="扩展数据" domain="jsonContent" name="extData"
+                        propId="11" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="CREATED_BY" displayName="创建人" name="createdBy"
+                        propId="12" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                <column code="CREATE_TIME" displayName="创建时间" name="createTime"
+                        propId="13" stdDataType="long" stdSqlType="BIGINT"/>
+                <column code="DEL_FLAG" displayName="逻辑删除" name="delFlag" precision="1"
+                        propId="14" stdDataType="int" stdSqlType="SMALLINT" tagSet="seq"/>
+            </columns>
+            <indexes>
+                <index name="idx_semantic_index_id">
+                    <column name="indexId"/>
+                </index>
+                <index name="idx_semantic_source">
+                    <column name="sourceSymbolId"/>
+                </index>
+                <index name="idx_semantic_target">
+                    <column name="targetSymbolId"/>
+                </index>
+                <index name="idx_semantic_relation">
+                    <column name="relationType"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one name="index" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="semanticEdges" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="sourceSymbol" refEntityName="io.nop.code.dao.entity.NopCodeSymbol" tagSet="pub">
+                    <join>
+                        <on leftProp="sourceSymbolId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="targetSymbol" refEntityName="io.nop.code.dao.entity.NopCodeSymbol" tagSet="pub">
+                    <join>
+                        <on leftProp="targetSymbolId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
     </entities>
 </orm>

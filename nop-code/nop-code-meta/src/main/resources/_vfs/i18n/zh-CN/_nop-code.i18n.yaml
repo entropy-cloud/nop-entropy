@@ -8,6 +8,7 @@ entity:
     NopCodeFlowMembership: 执行流成员
     NopCodeIndex: 代码索引
     NopCodeInheritance: 继承关系
+    NopCodeSemanticEdge: 语义边
     NopCodeSymbol: 符号
     NopCodeUsage: 符号引用
 prop:
@@ -117,6 +118,7 @@ prop:
       lastIndexed: 最后索引时间
       name: 索引名称
       rootPath: 根路径
+      semanticEdges: null
       status: 状态
       status_label: 状态
       symbolCount: 符号数量
@@ -134,6 +136,27 @@ prop:
       superType: null
       superType.name: null
       superTypeId: 父类型ID
+    NopCodeSemanticEdge:
+      confidence: 置信度级别
+      confidenceScore: 置信度分数
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 逻辑删除
+      directed: 有向
+      extData: 扩展数据
+      extDataComponent: null
+      extractorId: 提取器ID
+      id: 边ID
+      index: null
+      indexId: 索引ID
+      rationale: 原因
+      relationType: 关系类型
+      sourceSymbol: null
+      sourceSymbol.name: null
+      sourceSymbolId: 源符号ID
+      targetSymbol: null
+      targetSymbol.name: null
+      targetSymbolId: 目标符号ID
     NopCodeSymbol:
       accessModifier: 访问修饰符
       accessModifier_label: 访问修饰符
