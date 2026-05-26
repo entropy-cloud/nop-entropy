@@ -256,7 +256,7 @@ public class TestCepOperatorStateRecovery {
                 "New operator should have initial NFA state after open()");
         assertNotNull(restored.getPartialMatches(),
                 "New operator should have SharedBuffer after open()");
-        assertNotNull(restored.getStateStore(),
+        assertNotNull(restored.getKeyedStateStore(),
                 "New operator should have state store after open()");
         assertTrue(restored.getPartialMatches().isEmpty(),
                 "New operator should have empty SharedBuffer before any events");

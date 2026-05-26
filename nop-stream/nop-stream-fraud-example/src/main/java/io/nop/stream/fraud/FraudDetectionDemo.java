@@ -46,47 +46,52 @@ import io.nop.stream.fraud.util.MockTransactionGenerator;
 public class FraudDetectionDemo {
 
     public static void main(String[] args) {
-        System.out.println("=== Fraud Detection Demo ===\n");
+        try {
+            System.out.println("=== Fraud Detection Demo ===\n");
 
-        // Demo 1: Rapid Transactions
-        System.out.println("1. Rapid Transaction Pattern:");
-        System.out.println("   Detects 2+ large transactions (>$1000) within 30 seconds\n");
-        List<TransactionEvent> rapid = new ArrayList<>();
-        long baseTime = System.currentTimeMillis();
-        // Add some normal transactions first (below threshold)
-        rapid.addAll(MockTransactionGenerator.generateNormal("user-alice", 2, baseTime - 60000, 15000));
-        // Add rapid fraud transactions
-        rapid.addAll(MockTransactionGenerator.generateRapidFraud("user-alice", baseTime - 15000));
-        runPattern(RapidTransactionPattern.createPattern(), rapid, (match) -> {
-            FraudAlert alert = RapidTransactionPattern.generateAlert(match);
-            printAlert(alert);
-        });
+            // Demo 1: Rapid Transactions
+            System.out.println("1. Rapid Transaction Pattern:");
+            System.out.println("   Detects 2+ large transactions (>$1000) within 30 seconds\n");
+            List<TransactionEvent> rapid = new ArrayList<>();
+            long baseTime = System.currentTimeMillis();
+            // Add some normal transactions first (below threshold)
+            rapid.addAll(MockTransactionGenerator.generateNormal("user-alice", 2, baseTime - 60000, 15000));
+            // Add rapid fraud transactions
+            rapid.addAll(MockTransactionGenerator.generateRapidFraud("user-alice", baseTime - 15000));
+            runPattern(RapidTransactionPattern.createPattern(), rapid, (match) -> {
+                FraudAlert alert = RapidTransactionPattern.generateAlert(match);
+                printAlert(alert);
+            });
 
-        // Demo 2: Unusual Amount
-        System.out.println("\n2. Unusual Amount Pattern:");
-        System.out.println("   Detects transactions >10x user's historical average (requires 3+ prior transactions)\n");
-        List<TransactionEvent> unusual = MockTransactionGenerator.generateUnusualAmount("user-bob", baseTime);
-        runUnusualAmountPattern(unusual);
+            // Demo 2: Unusual Amount
+            System.out.println("\n2. Unusual Amount Pattern:");
+            System.out.println("   Detects transactions >10x user's historical average (requires 3+ prior transactions)\n");
+            List<TransactionEvent> unusual = MockTransactionGenerator.generateUnusualAmount("user-bob", baseTime);
+            runUnusualAmountPattern(unusual);
 
-        // Demo 3: Geographic Anomaly
-        System.out.println("\n3. Geographic Anomaly Pattern:");
-        System.out.println("   Detects transactions from different cities within 1 hour\n");
-        List<TransactionEvent> geo = MockTransactionGenerator.generateGeographicAnomaly("user-charlie", baseTime - 1800000);
-        runPattern(GeographicAnomalyPattern.createPattern(), geo, (match) -> {
-            FraudAlert alert = GeographicAnomalyPattern.generateAlert(match);
-            printAlert(alert);
-        });
+            // Demo 3: Geographic Anomaly
+            System.out.println("\n3. Geographic Anomaly Pattern:");
+            System.out.println("   Detects transactions from different cities within 1 hour\n");
+            List<TransactionEvent> geo = MockTransactionGenerator.generateGeographicAnomaly("user-charlie", baseTime - 1800000);
+            runPattern(GeographicAnomalyPattern.createPattern(), geo, (match) -> {
+                FraudAlert alert = GeographicAnomalyPattern.generateAlert(match);
+                printAlert(alert);
+            });
 
-        // Demo 4: Account Takeover
-        System.out.println("\n4. Account Takeover Pattern:");
-        System.out.println("   Detects login -> password change -> withdrawal within 15 minutes\n");
-        List<TransactionEvent> takeover = MockTransactionGenerator.generateAccountTakeover("user-david", baseTime - 600000);
-        runPattern(AccountTakeoverPattern.createPattern(), takeover, (match) -> {
-            FraudAlert alert = AccountTakeoverPattern.generateAlert(match);
-            printAlert(alert);
-        });
+            // Demo 4: Account Takeover
+            System.out.println("\n4. Account Takeover Pattern:");
+            System.out.println("   Detects login -> password change -> withdrawal within 15 minutes\n");
+            List<TransactionEvent> takeover = MockTransactionGenerator.generateAccountTakeover("user-david", baseTime - 600000);
+            runPattern(AccountTakeoverPattern.createPattern(), takeover, (match) -> {
+                FraudAlert alert = AccountTakeoverPattern.generateAlert(match);
+                printAlert(alert);
+            });
 
-        System.out.println("\n=== Demo Complete ===");
+            System.out.println("\n=== Demo Complete ===");
+        } catch (Exception e) {
+            System.err.println("Demo failed: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**

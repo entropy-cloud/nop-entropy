@@ -1,7 +1,7 @@
 # nop-stream 组件分解与开发路线
 
 > Status: active
-> Updated: 2026-05-25（阶段顺序重排：图模型执行/PartitionedPlan 生产化优先于 DataStream API 修复）
+> Updated: 2026-05-26（基于 live repo 审计更新：已完成项标记 ✅，剩余工作重写为动态规划模式）
 > Parent: `ai-dev/design/nop-stream/README.md`
 
 ---
@@ -133,89 +133,62 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 **已完成度**：高。DataStream / KeyedStream / Transformation DAG 已稳定。
 
 **待完善**：
-- `WindowedStreamImpl.apply/aggregate/reduce` 需要实现，不能抛 UnsupportedOperationException。这需要 C3 提供一个 `WindowOperatorFactory` 接口（core 定义），runtime 模块实现
-   - `assignTimestampsAndWatermarks()` 在 `execute()` 中通过图模型路径的 StreamGraph 自动插入 TimestampsAndWatermarksOperator
+- `assignTimestampsAndWatermarks()` 在 `execute()` 中通过图模型路径的 StreamGraph 自动插入 TimestampsAndWatermarksOperator
 
 #### C2 编译管线
 
 **已完成度**：高。四层编译（Transformation → StreamGraph → JobGraph → ExecutionPlan）和算子链化已实现。
 
 **待完善**：
-- `SimpleStreamOperatorFactory.createStreamOperator()` 返回同一对象——parallelism > 1 时状态不隔离。需要改为每次创建新实例
 - StreamGraphGenerator 中的 `PartitionOperatorFactory.createStreamOperator()` 返回 null，这个设计需要改为在 JobGraphGenerator 阶段正确处理分区节点
+- 多 sink 管线、union 管线测试
+- 跨 Task 数据交换端到端验证
+- `KeySelectorPartitioner` 多并行度 key hash 分区
 
 #### C3 算子运行时
 
-**已完成度**：中。内置算子（map/filter/flatMap/source/sink）完整。WindowOperator 存在多处正确性问题。
+**已完成度**：高。内置算子（map/filter/flatMap/source/sink）完整。WindowOperator 已修复。
 
-**必须修复的核心问题**：
-- `WindowOperator.addWindowElement()` 的累加器类型腐蚀——首个元素直接存为裸值而非创建累加器初始值
-- `MergingWindowSet.persist()` 是空操作——合并窗口的映射关系在 checkpoint 后丢失
-- `WindowOperator.getSimpleAccumulator()` 返回 null——违反接口契约
+**已修复**（Plan 51）：
+- ✅ `WindowOperator.addWindowElement()` 累加器类型腐蚀 — 已通过 `createAccumulatorForWindow()` 修复
+- ✅ `MergingWindowSet.persist()` — 已完整实现（比较 initialMapping 后持久化变更）
+- ✅ `WindowAggregationOperator.getSimpleAccumulator()` — 对 ReducingStateDescriptor 正常工作
+- ✅ `SimpleStreamOperatorFactory.createStreamOperator()` — 已改为序列化深拷贝
+- ✅ `WindowedStreamImpl.apply/aggregate/reduce` — 已全部实现
 
 #### C4 状态管理
 
-**已完成度**：接口完整，Memory 实现基本可用。
+**已完成度**：高。接口完整，Memory 实现可用。
 
 **设计要求**：
 - 接口层次（`IStateBackend → IKeyedStateBackend → IInternalStateBackend`）保持不变——这是正确的分层，为后续 Redis/RocksDB 预留扩展点
-- `MemoryKeyedStateBackend` 的快照序列化需要从 Java 序列化改为 `JsonTool` 序列化——与 Nop 平台惯例一致，可读、可调试、可跨版本
-- `ValueStateDescriptor(name, TypeInformation)` 构造器丢弃 typeInfo 参数——必须修复
+- Keyed state 通过 `(namespace, key)` 复合键隔离，每个算子有独立 IKeyedStateBackend 实例
 
 #### C5 Checkpoint
 
-**已完成度**：中。核心流程已实现，但需要引入 CheckpointPlan 解耦拓扑信息，并修复多个正确性 bug。
+**已完成度**：中高。核心流程已实现，CheckpointPlan + CheckpointPlanBuilder 已存在。
 
-**关键设计——引入 CheckpointPlan**：
+**已修复**：
+- ✅ `JdbcCheckpointStorage` 已改用 `IJdbcTemplate`
+- ✅ CheckpointPlan + CheckpointPlanBuilder 已实现
+- ✅ Barrier 注入已改为 source-pull 模式（`LinkedBlockingQueue` + source 线程 `injectPendingBarrier`）
+- ✅ Keyed state 碰撞已通过 `(namespace, key)` 复合键解决
 
-当前 checkpoint 逻辑与执行引擎耦合（`GraphModelCheckpointExecutor` 直接遍历执行计划推导拓扑信息），导致：状态键名碰撞（BUG 1）、恢复时状态路由错误（BUG 4）、无法支持分布式执行。需要引入 `CheckpointPlan` 显式建模 checkpoint 需要的拓扑信息。
-
-CheckpointPlan 的职责：
-- 记录 source task 列表（barrier 注入点）
-- 记录所有 task 列表（ACK 跟踪集合）
-- 记录每个 task 的算子状态映射（恢复时的状态路由）
-- 在 GraphExecutionPlan 构建阶段一次性生成，checkpoint 子系统只读使用
-
-这个设计参考了 Apache SeaTunnel 的 `CheckpointPlan`。详见 `checkpoint-design.md` §2.2。
-
-**关键设计要求——JdbcCheckpointStorage 重新设计**：
-
-当前实现直接使用 `java.sql.Connection` + MySQL DDL，这不符合 Nop 平台规范。重新设计要求：
-
-| 维度 | 当前（错误） | 目标（正确） |
-|------|------------|------------|
-| 数据库访问 | `DataSource.getConnection()` | `IJdbcTemplate` 注入 |
-| SQL 构建 | 字符串拼接 | `SQL.begin()` 构建器 |
-| DDL | MySQL 专用（`AUTO_INCREMENT` 等） | `IDialect` 类型映射 + 方言感知 |
-| 分页 | `LIMIT 1` | `IJdbcTemplate.findPage()` |
-| 事务管理 | 手动 `commit/rollback` | `ITransactionTemplate.runInTransaction()` |
-| 表存在检查 | `INFORMATION_SCHEMA` | `IJdbcTemplate.existsTable()` |
-| ID 生成 | `AUTO_INCREMENT` | 应用侧生成（checkpointId 已有 AtomicLong） |
-
-`JdbcCheckpointStorage` 的正确依赖关系：
-```
-JdbcCheckpointStorage
-  ├── IJdbcTemplate (NopIoC 注入)
-  ├── String querySpace (可配置，默认 "default")
-  └── 通过 IJdbcTemplate 获取 IDialect，自动适配 MySQL/PostgreSQL/Oracle/H2/DM 等
-```
-
-**必须修复的 Bug**：
-
-| Bug | 严重度 | 描述 | CheckpointPlan 是否解决 |
-|-----|--------|------|------------------------|
-| Keyed state 碰撞 | 严重 | 所有算子的 keyed state 用同一个 key 写入 Map，互相覆盖 | ✅ `keyedStateStorageKey` 为每个算子分配唯一键名（如 `"operator-0-keyed"`）。但 `IKeyedStateBackend` 也需按算子隔离（独立修复） |
-| Barrier 注入线程安全 | 严重 | 从独立线程注入 barrier，与 source 线程竞争 | 不解决——需修改 source 算子的 barrier 检查机制 |
-| 状态恢复路由错误 | 中等 | 恢复时把所有状态发给每个算子 | ✅ `stateMappings` 精确路由，dual-state 通过 `operatorStateKey` + `keyedStateStorageKey` 双键解决 |
-| CheckpointBarrierTracker 无重叠保护 | 中等 | triggerCheckpoint 覆盖进行中的状态 | 不直接解决，需 Coordinator 层面修复 |
+**待完善**（需要审计验证）：
+- CheckpointCoordinator 是否已通过 CheckpointPlanBuilder 使用 CheckpointPlan
+- 多算子链 keyed state 快照/恢复端到端测试
+- 并行模式 checkpoint 正确性测试
+- 多次 checkpoint 循环后恢复验证
+- GraphModelCheckpointExecutor 代码重复清理
 
 #### C6 CEP 引擎
 
 **已完成度**：高。NFA、SharedBuffer、Pattern API、声明式模型都是 nop-stream 中最成熟的部分。
 
 **待完善**：
+- `CepOperator` 使用自建 `SimpleKeyedStateStore`，需对接 C4 的标准 `IKeyedStateBackend`
 - 需要实现 `DslModelParser` 对接 `pattern.xdef`——当前 XDEF schema 和 `_gen` 模型类存在但无加载器
-- `CepOperator` 的 `initializeState()` 被注释掉，需要对接 C4 的 `IKeyedStateBackend` 而非自建 `SimpleKeyedStateStore`
+- runtime → cep 幽灵依赖需移除
 
 #### C7 连接器
 
@@ -225,172 +198,94 @@ JdbcCheckpointStorage
 
 ---
 
-## 4. 开发顺序
+## 4. 开发方法：审计-规划-执行循环
 
-开发按依赖关系从底层到上层，每个阶段产出可测试、可集成的成果。
+**不在本文档中预设完整的阶段工作项清单**。原因是：经过 Plans 42-51 的大量迭代，roadmap 中描述的很多 bug 已经修复，预设的静态工作项与实际代码状态严重脱节。
 
-> **优先级说明**：DataStream API 是 StreamModel 的编程构造器，不是最终用户的主入口。因此 WindowedStreamImpl 的 apply/aggregate/reduce 修复不高于图模型执行和 PartitionedPlan 生产化的优先级。
+**正确的做法是动态规划**：
 
-### 阶段 1：图模型执行生产化 + PartitionedPlan 对接（C2 + C5）
+1. **审计当前代码**：运行构建和测试，检查各组件的实际完成度
+2. **拟定一个 plan**：基于审计结果，只规划**当前最紧迫的一个可交付单元**
+3. **执行 plan**：编码、测试、验证
+4. **plan 完成后，回到步骤 1**：重新审计代码，重新评估剩余工作，拟定下一个 plan
+5. **重复直到所有设计目标达成**
 
-**目标**：图模型执行管线完整可靠，PartitionedPlan / DeploymentPlan 可序列化持久化，checkpoint 通过 CheckpointPlan 正确工作。
+### 审计检查清单
 
-**工作项**：
+每次规划前，用以下检查清单评估各组件的真实状态：
 
-1. **C2：PartitionedPlan 生产化**
-   - 确保 Migration Action 机制支持状态映射变更
-   - PartitionedPlan 序列化为 JSON 的可 round-trip 测试
-   - 验证 stateShard 路由规则在 plan 中的正确编码
+#### C1 流式 API
+- [ ] `DataStreamImpl` / `KeyedStreamImpl` / `WindowedStreamImpl` 所有公共方法不抛 UnsupportedOperationException
+- [ ] `assignTimestampsAndWatermarks()` 在图模型路径中自动插入
 
-2. **C5：实现 CheckpointPlan + CheckpointPlanBuilder**
-   - 定义 `CheckpointPlan`、`TaskLocation`、`OperatorStateMapping` 数据结构（core 模块）
-   - 实现 `CheckpointPlanBuilder`：从 `GraphExecutionPlan` 中提取 source task、all tasks、state mappings（runtime 模块）
-   - 修改 `CheckpointCoordinator` 构造器接收 `CheckpointPlan`，不再隐式遍历执行计划
-   - 修复并行模式 checkpoint（getInvokables 收集全部 subtask）
-   - 编写测试：多算子链的 keyed state 不互相覆盖、恢复时状态精确路由
+#### C2 编译管线
+- [ ] `SimpleStreamOperatorFactory` 为每个并行实例创建独立拷贝
+- [ ] 多 sink 管线正确编译（多个 JobVertex）
+- [ ] Union 管线正确编译
+- [ ] 跨 Task 数据交换端到端正确
+- [ ] `KeySelectorPartitioner` 多并行度 key hash 分区正确
 
-3. **C5：修复 Barrier 注入机制**
-   - Barrier 作为 StreamElement 在 source 读取线程中注入，而非外部 scheduler 线程
-   - 编写测试：并发 checkpoint 触发不丢数据
+#### C3 算子运行时
+- [ ] `WindowOperator` 累加器在首个元素时正确创建
+- [ ] `MergingWindowSet.persist()` 持久化合并窗口映射
+- [ ] 所有算子的生命周期方法（setup/open/snapshotState/initializeState/finish）正常工作
 
-4. **C5：统一执行路径**
-   - `execute()` 已统一走图模型路径，验证各 DeploymentMode 正确工作
-   - 清理 `GraphModelCheckpointExecutor` 中的代码重复
+#### C4 状态管理
+- [ ] `IKeyedStateBackend` 按 (namespace, key) 复合键隔离状态
+- [ ] 每个算子有独立的 IKeyedStateBackend 实例
+- [ ] 状态快照/恢复 round-trip 正确
 
-**交付标准**：
-- PartitionedPlan 和 DeploymentPlan 可 JSON round-trip
-- CheckpointPlan 从 GraphExecutionPlan 正确生成
-- 多算子链的 keyed state 快照/恢复正确
-- 并行 mode 下 checkpoint 正确（不再是 P0 缺陷）
+#### C5 Checkpoint
+- [ ] `CheckpointCoordinator` 使用 `CheckpointPlanBuilder` 生成的 `CheckpointPlan`
+- [ ] `JdbcCheckpointStorage` 使用 `IJdbcTemplate`（不是 `java.sql.Connection`）
+- [ ] 多算子链 keyed state 快照/恢复不互相覆盖
+- [ ] 并行模式 checkpoint 正确
+- [ ] 多次 checkpoint 循环后恢复验证
 
-### 阶段 2：Checkpoint 生产化（C5）
+#### C6 CEP
+- [ ] `CepOperator` 使用标准 `IKeyedStateBackend`（不是自建 `SimpleKeyedStateStore`）
+- [ ] 可从 `.pattern.xml` 加载 CEP Pattern（通过 `DslModelParser`）
+- [ ] CEP 状态 checkpoint/恢复正确
 
-**目标**：Checkpoint 子系统达到生产可用水平——CheckpointPlan 解耦、多数据库存储、线程安全、正确恢复。
+#### C7 连接器
+- [ ] `BatchLoaderSourceFunction` 支持资源清理和 checkpoint 恢复
+- [ ] `BatchConsumerSinkFunction` 支持 TwoPhaseCommit（exactly-once）
 
-**工作项**：
+#### C8 示例
+- [ ] fraud-example 无条件恒真、硬编码等 bug
+- [ ] 展示窗口 + CEP 组合用法
 
-1. **C5：实现 CheckpointPlan + CheckpointPlanBuilder**
-   - 定义 `CheckpointPlan`、`TaskLocation`、`OperatorStateMapping` 数据结构（core 模块）
-   - 实现 `CheckpointPlanBuilder`：从 `GraphExecutionPlan` 中提取 source task、all tasks、state mappings（runtime 模块）
-   - 修改 `CheckpointCoordinator` 构造器接收 `CheckpointPlan`，不再隐式遍历执行计划
-   - 修改 `CheckpointBarrierTracker.acknowledgeOperator()`：用 `OperatorStateMapping.operatorStateKey` 代替硬编码 `"keyed-state"`（修复 BUG 1）
-   - 修改 `buildSnapshotFromTaskState()`：按 `stateMappings` 精确路由状态（修复 BUG 4）
-   - 编写测试：多算子链的 keyed state 不互相覆盖、恢复时状态精确路由
+#### 整体
+- [ ] `./mvnw clean install -pl nop-stream -am -T 1C` 全量构建通过
+- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全量测试通过
+- [ ] 端到端管线（source → 算子 → sink）从入口到出口完整跑通
 
-2. **C5：重新设计 `JdbcCheckpointStorage`**
-   - 基于 `IJdbcTemplate` + `IDialect` 实现，支持 MySQL/PostgreSQL/Oracle/H2/DM 等
-   - 使用 `SQL.begin()` 构建所有 SQL
-   - 使用 `IJdbcTemplate.existsTable()` 检查表是否存在
-   - 使用 `IDialect` 类型映射生成建表 DDL
-   - 使用 `ITransactionTemplate` 管理事务
-   - 通过 NopIoC 注册为 bean
-   - 编写测试：使用 H2 内存数据库验证多数据库兼容性
+### 规划优先级指引
 
-3. **C5：修复 Barrier 注入线程安全问题**
-   - Barrier 应作为数据流内的特殊元素注入，而非从外部线程干预
-   - Source 算子在 `run()` 循环中检查 `volatile` 标志或 `BlockingQueue`，需要时在 source 线程上注入 barrier
-   - 编写测试：并发 checkpoint 触发不丢数据
+当审计发现多个待完善项时，按以下优先级排序：
 
-4. **C5：统一执行路径**
-   - `execute()` 已统一走图模型路径，无需单独维护快速路径
-   - 移除 `executeWithGraphModel()` 方法（已由 `execute()` 统一替代）
-   - 清理 `GraphModelCheckpointExecutor` 中的代码重复
-
-**交付标准**：
-- `CheckpointPlan` 从 `GraphExecutionPlan` 正确生成并通过测试
-- 多算子链的 keyed state 快照/恢复正确（BUG 1 修复）
-- 状态恢复精确路由到对应算子（BUG 4 修复）
-- Checkpoint 存储支持至少 MySQL 和 H2（通过 `IJdbcTemplate` 自动适配）
-- 多次 checkpoint 循环后恢复验证正确性
-
-### 阶段 4：CEP 完善（C6）
-
-**目标**：CEP 模块完全对接 Nop 平台的状态管理和 DSL 加载。
-
-**工作项**：
-
-1. **C6：`CepOperator` 对接 `IKeyedStateBackend`**
-   - 移除自建的 `SimpleKeyedStateStore`，使用 C4 的标准状态后端
-   - 恢复 `initializeState()` 的初始化逻辑
-   - 编写测试：多 key CEP 匹配、checkpoint 恢复后 CEP 状态正确
-
-2. **C6：实现 `DslModelParser` 对接**
-   - 使用 Nop 的 `DslModelParser` 加载 `.pattern.xml` 文件
-   - 编写测试：从 XML 加载 pattern 并执行匹配
-
-3. **C6：移除 runtime → cep 幽灵依赖**
-   - 从 `nop-stream/nop-stream-runtime/pom.xml` 移除对 `nop-stream-cep` 的依赖
-   - 清理 `nop-stream-runtime` 中的 `CepWindowOperator` 及相关死代码
-
-**交付标准**：
-- CEP 通过标准状态后端管理状态
-- 可以从 XML 文件加载 CEP Pattern
-
-### 阶段 5：连接器增强 + 示例重写（C7 + C8）
-
-**目标**：连接器覆盖实际 ETL 场景，示例代码展示正确用法。
-
-**工作项**：
-
-1. **C7：增强 `BatchLoaderSourceFunction`**
-   - 添加资源清理（loader 的 close/cleanup）
-   - 支持 `CheckpointedSourceFunction`（记录读取位置，支持恢复）
-   - 编写测试：大文件读取 + checkpoint 恢复
-
-2. **C7：增强 `BatchConsumerSinkFunction`**
-   - 实现 `TwoPhaseCommitSinkFunction` 适配（基于 `ITransactionTemplate`）
-   - 编写测试：exactly-once 写入
-
-3. **C8：重写 fraud-example**
-   - 修复所有已知的示例 bug（条件恒真、事件类型不匹配、硬编码平均值等）
-   - 展示正确的 CEP 使用方式
-   - 展示与 runtime 模块的集成（窗口 + CEP 组合）
-
-**交付标准**：
-- 从数据库/文件读取 → 流处理 → 写入数据库的端到端 ETL 管线可用
-- 示例代码无误导
-
-### 阶段 6：编译管线增强（C2）
-
-**目标**：支持多链管线、并行度 > 1。
-
-**工作项**：
-
-1. **C2：修复 `JobGraphGenerator` 链节点映射**
-   - 修复 `buildNodeToVertexMap()` 只映射链头的问题
-   - 编写测试：多 sink 管线、union 管线
-
-2. **C2：支持 `ResultPartition` / `InputGate` 的跨 Task 数据交换**
-   - 当前为内存队列，验证多 Task 场景的正确性
-   - 编写测试：source → map → [跨 Task] → window → sink
-
-3. **C2：`KeySelectorPartitioner` 支持多并行度**
-   - 实现基于 key hash 的数据分区
-   - 编写测试：parallelism > 1 时状态隔离正确
-
-**交付标准**：
-- 多 sink、多 Task 的管线正确执行
-- 并行度 > 1 时数据按 key 正确分区
+1. **构建/测试失败** — 最高优先级，阻塞一切
+2. **正确性 bug** — 状态丢失、数据错误等
+3. **接线缺失** — 组件存在但未被调用（空壳问题）
+4. **功能补全** — 接口存在但实现不完整
+5. **测试覆盖** — 功能工作但缺少测试
+6. **代码清理** — 幽灵依赖、重复代码等
 
 ---
 
-## 5. 模块 POM 依赖清理
+## 5. 已知技术债
 
-### 必须立即清理
-
-| 问题 | 操作 |
-|------|------|
-| `runtime` 依赖 `cep`（零代码引用） | 从 `nop-stream/nop-stream-runtime/pom.xml` 移除 |
-| `JdbcCheckpointStorage` 直接使用 `DataSource` | 改为依赖 `nop-dao-jdbc`（通过 `IJdbcTemplate`） |
-| `Configuration` 接口为空 | 对接 Nop 的 `IConfigReference` |
-
-### 长期清理
-
-| 问题 | 操作 |
-|------|------|
-| 4 个空壳模块在 pom.xml 中 | 保留占位但标注"规划中"注释 |
-| `operator`（单数）包残留 | 统一到 `operators`（复数）包 |
-| ~200 行注释代码（WindowOperator） | 在阶段 1 修复过程中清理 |
+| 问题 | 状态 | 优先级 |
+|------|------|--------|
+| `runtime` 依赖 `cep`（零代码引用） | 未修复 | P2 |
+| 4 个空壳模块（api/checkpoint/flink/flow） | 保留占位 | P3 |
+| `JdbcCheckpointStorage` 已改用 `IJdbcTemplate` | ✅ 已修复 | — |
+| `WindowOperator` 累加器类型腐蚀 | ✅ 已修复（Plan 51） | — |
+| `MergingWindowSet.persist()` 空操作 | ✅ 已修复（Plan 51） | — |
+| `SimpleStreamOperatorFactory` 返回同一实例 | ✅ 已修复（Plan 51） | — |
+| `WindowedStreamImpl` apply/aggregate/reduce | ✅ 已修复（Plan 51） | — |
+| Barrier 注入线程安全 | ✅ 已修复（source-pull 模式） | — |
+| Keyed state 碰撞 | ✅ 已修复（(namespace, key) 复合键） | — |
 
 ---
 

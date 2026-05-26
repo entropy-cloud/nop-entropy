@@ -93,7 +93,9 @@ public class UnusualAmountPattern {
      * </p>
      */
     private static boolean isUnusualAmount(TransactionEvent event) {
-        // DEMO STUB: fixed average for demo purposes
+        // DEMO STUB: fixed average for demo purposes.
+        // In production, transaction count would come from keyed state.
+        // Here we skip the MIN_TRANSACTIONS check since this is a demo with mock data.
         BigDecimal average = getAverageForUser(event.getUserId());
         BigDecimal threshold = average.multiply(UNUSUAL_MULTIPLIER);
         return event.getAmount().compareTo(threshold) > 0;

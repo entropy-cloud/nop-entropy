@@ -61,8 +61,11 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
         if (buffer.isEmpty()) {
             return;
         }
-        consumer.consume(buffer, null);
-        buffer.clear();
+        try {
+            consumer.consume(buffer, null);
+        } finally {
+            buffer.clear();
+        }
     }
 
     @Override

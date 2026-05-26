@@ -50,6 +50,8 @@ import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.time.TimerService;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.KeyedStateStore;
+import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
@@ -96,7 +98,7 @@ public class CepOperator<IN, KEY, OUT>
     private transient MapState<Long, List<IN>> elementQueueState;
     private transient SharedBuffer<IN> partialMatches;
 
-    private transient SimpleKeyedStateStore stateStore;
+    private transient KeyedStateStore keyedStateStore;
 
     private transient InternalTimerService<VoidNamespace> timerService;
 
@@ -175,14 +177,24 @@ public class CepOperator<IN, KEY, OUT>
     public void open() throws Exception {
         super.open();
 
-        stateStore = new SimpleKeyedStateStore();
-        computationStates = stateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
+        IKeyedStateBackend<?> backend = getKeyedStateBackend();
+        if (backend == null && this.stateBackend != null) {
+            // Create a keyed state backend from the state backend, same pattern as WindowOperator
+            this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(Object.class);
+            backend = getKeyedStateBackend();
+        }
+        if (backend != null) {
+            keyedStateStore = backend;
+        } else {
+            keyedStateStore = new SimpleKeyedStateStore();
+        }
+        computationStates = keyedStateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
         // MapStateDescriptor does not support generic type tokens for value class;
         // (Class) List.class is used as a raw class hint, actual generic safety is ensured by usage
         // raw cast intentional - type erased at runtime
-        elementQueueState = stateStore.getMapState(
+        elementQueueState = keyedStateStore.getMapState(
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
-        partialMatches = new SharedBuffer<>(stateStore, inputSerializer, new SharedBufferCacheConfig());
+        partialMatches = new SharedBuffer<>(keyedStateStore, inputSerializer, new SharedBufferCacheConfig());
 
         final Set<Long> registeredEventTimeTimers = new TreeSet<>();
 
@@ -236,7 +248,7 @@ public class CepOperator<IN, KEY, OUT>
 
         nfa = nfaFactory.createNFA();
 
-        cepRuntimeContext = new CepRuntimeContext(new io.nop.stream.core.common.functions.RuntimeContext() {}, stateStore);
+        cepRuntimeContext = new CepRuntimeContext(new io.nop.stream.core.common.functions.RuntimeContext() {}, keyedStateStore);
         nfa.open(cepRuntimeContext, null);
 
         context = new ContextFunctionImpl();
@@ -564,8 +576,8 @@ public class CepOperator<IN, KEY, OUT>
         computationStates.update(state);
     }
 
-    public SimpleKeyedStateStore getStateStore() {
-        return stateStore;
+    public KeyedStateStore getKeyedStateStore() {
+        return keyedStateStore;
     }
 
     public CepRuntimeContext getCepRuntimeContext() {
