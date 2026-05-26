@@ -42,7 +42,8 @@ nop-code-dao / meta / web / app       ← 标准 Nop 分层
 - ✅ `nop-code-flow`：已实现（执行流追踪、风险评分变更分析、死代码检测）
 - ✅ `nop-code-api`：已实现（CodeIndexApi 接口 + 5 个通用 API，由 CodeIndexService 2800+ 行实现支撑）
 - ✅ `nop-code-service`：已实现（全部 query-api-design.md 定义的 GraphQL API，nop-search 双路径集成）
-- ⏳ `语义边`：目标架构（semantic-edge-design.md），核心模型和确定性提取器待实现
+- ✅ `语义边`：核心模型已实现（CodeSemanticEdge + ISemanticEdgeExtractor + 3 个确定性提取器），ORM 表已生成，BizModel 已生成
+- ⏳ `语义边 LLM 集成`：远期，依赖 nop-ai 模块
 - ⏳ `nop-search 全功能集成`：双路径已实现（有搜索引擎时用 HYBRID 搜索，否则 DB LIKE），向量嵌入和混合搜索待部署时注入
 
 ## 设计文档约定
