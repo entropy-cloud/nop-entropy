@@ -136,6 +136,14 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         processDecoratorsOnDefinition(node, source, symbol, result);
 
+        TSNode classBlock = getFirstChildByType(node, "block").orElse(null);
+        if (classBlock != null) {
+            String doc = extractDocstring(classBlock, source);
+            if (doc != null) {
+                symbol.setDocumentation(doc);
+            }
+        }
+
         result.getSymbols().add(symbol);
 
         TSNode block = getFirstChildByType(node, "block").orElse(null);
@@ -188,6 +196,14 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
         }
 
         processDecoratorsOnDefinition(node, source, symbol, result);
+
+        TSNode funcBlock = getFirstChildByType(node, "block").orElse(null);
+        if (funcBlock != null) {
+            String doc = extractDocstring(funcBlock, source);
+            if (doc != null) {
+                symbol.setDocumentation(doc);
+            }
+        }
 
         result.getSymbols().add(symbol);
 
@@ -266,6 +282,41 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
                 result.getInheritances().add(inheritance);
             }
         }
+    }
+
+
+    private boolean isTripleQuoted(String text) {
+        if (text == null || text.length() < 6) return false;
+        char c = text.charAt(0);
+        if (c != '"' && c != '\'') return false;
+        return text.charAt(1) == c && text.charAt(2) == c
+                && text.charAt(text.length() - 1) == c && text.charAt(text.length() - 2) == c
+                && text.charAt(text.length() - 3) == c;
+    }
+
+    private String extractDocstring(TSNode block, String source) {
+        if (block == null) return null;
+        for (int i = 0; i < block.getChildCount(); i++) {
+            TSNode child = block.getChild(i);
+            if (!child.isNamed()) continue;
+            if ("expression_statement".equals(child.getType())) {
+                for (int j = 0; j < child.getChildCount(); j++) {
+                    TSNode stmtChild = child.getChild(j);
+                    String nodeType = stmtChild.getType();
+                    if (stmtChild.isNamed() && ("string".equals(nodeType) || "string_literal".equals(nodeType))) {
+                        String text = nodeText(stmtChild, source);
+                        if (isTripleQuoted(text)) {
+                            return text.substring(3, text.length() - 3).trim();
+                        } else if (text.length() >= 2) {
+                            return text.substring(1, text.length() - 1).trim();
+                        }
+                        return text;
+                    }
+                }
+            }
+            break;
+        }
+        return null;
     }
 
     private void walkBlockChildren(TSNode block, String source, String modulePrefix,
