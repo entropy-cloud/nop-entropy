@@ -182,6 +182,8 @@ public class CepOperator<IN, KEY, OUT>
         if (backend == null && this.stateBackend != null) {
             // Create a keyed state backend from the state backend, same pattern as WindowOperator
             this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(Object.class);
+            // Apply deferred state restore (from checkpoint recovery before open())
+            applyPendingRestoreState();
             backend = getKeyedStateBackend();
         }
         if (backend != null) {

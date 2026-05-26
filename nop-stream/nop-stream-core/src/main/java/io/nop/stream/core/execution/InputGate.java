@@ -218,9 +218,17 @@ public class InputGate {
                 if (element == null) {
                     // Timeout or end-of-stream on this channel
                     if (channel.isFinished()) {
-                        barrierReceived[channelIndex] = true;
-                        barriersRemaining--;
-                        checkBarrierAlignmentComplete();
+                        // Mark this channel's barrier as received only if a checkpoint
+                        // alignment is in progress. Otherwise just skip the channel.
+                        // This prevents barriersRemaining from going negative when a
+                        // finite source finishes before any checkpoint is triggered.
+                        if (pendingBarrier != null) {
+                            if (!barrierReceived[channelIndex]) {
+                                barrierReceived[channelIndex] = true;
+                                barriersRemaining--;
+                                checkBarrierAlignmentComplete();
+                            }
+                        }
                     }
                     continue;
                 }

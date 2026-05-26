@@ -238,6 +238,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
         this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
 
+        // Apply deferred state restore (from checkpoint recovery before open())
+        applyPendingRestoreState();
+
         @SuppressWarnings("unchecked")
         Class<ACC> accType = (Class<ACC>) accClass;
         MapStateDescriptor<String, ACC> windowContentsDescriptor =

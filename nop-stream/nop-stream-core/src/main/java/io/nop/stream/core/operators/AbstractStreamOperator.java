@@ -44,6 +44,12 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     protected transient Consumer<OperatorSnapshotResult> snapshotCallback;
 
+    /**
+     * State snapshot saved by restoreState() when keyedStateBackend is not yet available.
+     * Applied later when open() sets up the keyed state backend.
+     */
+    private transient OperatorSnapshotResult pendingRestoreState;
+
     // ------------------------------------------------------------------------
     //  life cycle
     // ------------------------------------------------------------------------
@@ -114,15 +120,37 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
         Map<String, Object> keyedStates = snapshotResult.getKeyedStates();
         if (keyedStateBackend != null && keyedStates != null && !keyedStates.isEmpty()) {
-            for (Map.Entry<String, Object> entry : keyedStates.entrySet()) {
-                Object stateObj = entry.getValue();
-                if (stateObj instanceof StateSnapshot) {
-                    keyedStateBackend.restoreState((StateSnapshot) stateObj);
-                } else if (stateObj instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    StateSnapshot snapshot = new StateSnapshot((Map<String, Object>) stateObj);
-                    keyedStateBackend.restoreState(snapshot);
-                }
+            doRestoreKeyedStates(keyedStates);
+        } else {
+            // Backend not ready yet (open() hasn't run). Save for deferred restore.
+            this.pendingRestoreState = snapshotResult;
+        }
+    }
+
+    /**
+     * Applies deferred keyed state restore. Called by subclasses in their open() method
+     * after the keyed state backend has been created.
+     */
+    protected void applyPendingRestoreState() throws Exception {
+        if (pendingRestoreState == null) {
+            return;
+        }
+        Map<String, Object> keyedStates = pendingRestoreState.getKeyedStates();
+        if (keyedStateBackend != null && keyedStates != null && !keyedStates.isEmpty()) {
+            doRestoreKeyedStates(keyedStates);
+        }
+        pendingRestoreState = null;
+    }
+
+    private void doRestoreKeyedStates(Map<String, Object> keyedStates) throws Exception {
+        for (Map.Entry<String, Object> entry : keyedStates.entrySet()) {
+            Object stateObj = entry.getValue();
+            if (stateObj instanceof StateSnapshot) {
+                keyedStateBackend.restoreState((StateSnapshot) stateObj);
+            } else if (stateObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                StateSnapshot snapshot = new StateSnapshot((Map<String, Object>) stateObj);
+                keyedStateBackend.restoreState(snapshot);
             }
         }
     }

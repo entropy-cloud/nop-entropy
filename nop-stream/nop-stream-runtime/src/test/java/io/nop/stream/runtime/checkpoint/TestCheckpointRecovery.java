@@ -439,4 +439,52 @@ class TestCheckpointRecovery {
         }
         dir.delete();
     }
+
+    @Test
+    void testKeyedStateRestoreBeforeBackendCreated() throws Exception {
+        // Verifies F1 fix: restoreState() works even when keyedStateBackend
+        // is not yet set. State is deferred and applied when backend becomes available.
+        MemoryStateBackend stateBackend = new MemoryStateBackend();
+
+        // Create a test subclass that exposes applyPendingRestoreState
+        class TestOperator extends AbstractStreamOperator<String> {
+            private static final long serialVersionUID = 1L;
+            public void callApplyPendingRestoreState() throws Exception {
+                applyPendingRestoreState();
+            }
+        }
+
+        // Create operator and set up keyed state
+        TestOperator op = new TestOperator();
+        op.setStateBackend(stateBackend);
+        IKeyedStateBackend<String> keyedBackend = stateBackend.createKeyedStateBackend(String.class);
+        op.setKeyedStateBackend(keyedBackend);
+
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("count", Integer.class);
+        keyedBackend.setCurrentKey("test-key");
+        ValueState<Integer> state = keyedBackend.getState(desc);
+        state.update(42);
+
+        // Take a snapshot
+        OperatorSnapshotResult snapshot = op.snapshotState(
+                new StateSnapshotContext(1L, System.currentTimeMillis()));
+        assertFalse(snapshot.isEmpty());
+
+        // Create new operator, call restoreState BEFORE backend is set
+        TestOperator restoredOp = new TestOperator();
+        restoredOp.setStateBackend(stateBackend);
+        // Do NOT set keyedStateBackend yet — this simulates the lifecycle where
+        // restoreState() is called before open()
+        restoredOp.restoreState(snapshot);
+
+        // Now create the backend (simulating open() creating it)
+        IKeyedStateBackend<String> restoredBackend = stateBackend.createKeyedStateBackend(String.class);
+        restoredOp.setKeyedStateBackend(restoredBackend);
+        restoredOp.callApplyPendingRestoreState();
+
+        // Verify state was restored correctly
+        ValueState<Integer> restoredState = restoredBackend.getState(desc);
+        restoredBackend.setCurrentKey("test-key");
+        assertEquals(42, restoredState.value());
+    }
 }
