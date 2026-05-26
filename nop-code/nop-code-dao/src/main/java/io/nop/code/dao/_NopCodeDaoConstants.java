@@ -203,4 +203,14 @@ public interface _NopCodeDaoConstants {
      */
     int LANGUAGE_JAVASCRIPT = 40;
                     
+    /**
+     * 继承关系类型: 继承 
+     */
+    int RELATION_TYPE_EXTENDS = 10;
+                    
+    /**
+     * 继承关系类型: 实现 
+     */
+    int RELATION_TYPE_IMPLEMENTS = 20;
+                    
 }

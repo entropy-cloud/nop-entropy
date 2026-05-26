@@ -7,6 +7,10 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import io.nop.api.core.exceptions.NopException;
+
+import static io.nop.code.core.NopCodeCoreErrors.ERR_CODE_DIGEST_NOT_AVAILABLE;
+
 public class DigestHelper {
     private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
     private static final int BUFFER_SIZE = 64 * 1024;
@@ -17,7 +21,7 @@ public class DigestHelper {
             byte[] hash = digest.digest(data);
             return bytesToHex(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+            throw new NopException(ERR_CODE_DIGEST_NOT_AVAILABLE, e);
         }
     }
 
@@ -37,7 +41,7 @@ public class DigestHelper {
             }
             return bytesToHex(digest.digest());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+            throw new NopException(ERR_CODE_DIGEST_NOT_AVAILABLE, e);
         }
     }
 

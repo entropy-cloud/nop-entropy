@@ -100,7 +100,7 @@ public class CodeIndexService implements ICodeIndexService {
         CallGraph callGraph;
     }
 
-    private final Map<String, AnalysisCache> analysisCacheMap = new HashMap<>();
+    private final Map<String, AnalysisCache> analysisCacheMap = new java.util.concurrent.ConcurrentHashMap<>();
 
     protected final LanguageAdapterRegistry registry;
     protected final ProjectAnalyzer analyzer;
@@ -308,6 +308,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
+        validatePath(vfsPath);
         invalidateAnalysisCache(indexId);
         return ormTemplate.runInSession(session -> {
             ensureIndexEntity(indexId, vfsPath, session);
@@ -925,7 +926,8 @@ public class CodeIndexService implements ICodeIndexService {
 
     private List<CodeSearchResultDTO> filterByFilePattern(List<CodeSearchResultDTO> results, String filePattern) {
         if (filePattern == null || filePattern.isEmpty()) return results;
-        String pattern = filePattern.replace("*", ".*").replace("?", ".");
+        String pattern = java.util.regex.Pattern.quote(filePattern)
+                .replace("\\*", ".*").replace("\\?", ".");
         return results.stream()
                 .filter(r -> r.getFilePath() != null && r.getFilePath().matches(pattern))
                 .collect(Collectors.toList());
@@ -1271,41 +1273,52 @@ public class CodeIndexService implements ICodeIndexService {
         }
 
         ormTemplate.runInSession(session -> {
-            try {
-                IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
-                QueryBean annotQuery = new QueryBean();
-                annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
-                annotDao.batchDeleteEntities(annotDao.findAllByQuery(annotQuery));
+            IEntityDao<NopCodeUsage> usageDao = daoProvider.daoFor(NopCodeUsage.class);
+            QueryBean usageQuery = new QueryBean();
+            usageQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            usageDao.batchDeleteEntities(usageDao.findAllByQuery(usageQuery));
 
-                IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
-                QueryBean inhQuery = new QueryBean();
-                inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
-                inhDao.batchDeleteEntities(inhDao.findAllByQuery(inhQuery));
+            IEntityDao<NopCodeFlowMembership> fmDao = daoProvider.daoFor(NopCodeFlowMembership.class);
+            QueryBean fmQuery = new QueryBean();
+            fmQuery.addFilter(FilterBeans.eq("flow.indexId", indexId));
+            fmDao.batchDeleteEntities(fmDao.findAllByQuery(fmQuery));
 
-                IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
-                QueryBean callQuery = new QueryBean();
-                callQuery.addFilter(FilterBeans.eq("indexId", indexId));
-                callDao.batchDeleteEntities(callDao.findAllByQuery(callQuery));
+            IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
+            QueryBean flowQuery = new QueryBean();
+            flowQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            flowDao.batchDeleteEntities(flowDao.findAllByQuery(flowQuery));
 
-                IEntityDao<NopCodeSymbol> symDao = daoProvider.daoFor(NopCodeSymbol.class);
-                QueryBean symQuery = new QueryBean();
-                symQuery.addFilter(FilterBeans.eq("indexId", indexId));
-                symDao.batchDeleteEntities(symDao.findAllByQuery(symQuery));
+            IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
+            QueryBean annotQuery = new QueryBean();
+            annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            annotDao.batchDeleteEntities(annotDao.findAllByQuery(annotQuery));
 
-                IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
-                QueryBean fileQuery = new QueryBean();
-                fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
-                fileDao.batchDeleteEntities(fileDao.findAllByQuery(fileQuery));
+            IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
+            QueryBean inhQuery = new QueryBean();
+            inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            inhDao.batchDeleteEntities(inhDao.findAllByQuery(inhQuery));
 
-                IEntityDao<NopCodeDependency> depDao = daoProvider.daoFor(NopCodeDependency.class);
-                QueryBean depQuery = new QueryBean();
-                depQuery.addFilter(FilterBeans.eq("indexId", indexId));
-                depDao.batchDeleteEntities(depDao.findAllByQuery(depQuery));
+            IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
+            QueryBean callQuery = new QueryBean();
+            callQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            callDao.batchDeleteEntities(callDao.findAllByQuery(callQuery));
 
-                daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
-            } catch (Exception e) {
-                LOG.warn("Failed to cleanup DB records for index {}", indexId, e);
-            }
+            IEntityDao<NopCodeSymbol> symDao = daoProvider.daoFor(NopCodeSymbol.class);
+            QueryBean symQuery = new QueryBean();
+            symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            symDao.batchDeleteEntities(symDao.findAllByQuery(symQuery));
+
+            IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+            QueryBean fileQuery = new QueryBean();
+            fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            fileDao.batchDeleteEntities(fileDao.findAllByQuery(fileQuery));
+
+            IEntityDao<NopCodeDependency> depDao = daoProvider.daoFor(NopCodeDependency.class);
+            QueryBean depQuery = new QueryBean();
+            depQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            depDao.batchDeleteEntities(depDao.findAllByQuery(depQuery));
+
+            daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
             return null;
         });
     }
@@ -1702,6 +1715,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
+        validatePath(vfsPath);
         invalidateAnalysisCache(indexId);
         return ormTemplate.runInSession(session -> {
             try {
@@ -2131,7 +2145,7 @@ public class CodeIndexService implements ICodeIndexService {
                     }
                     NopCodeDependency depEntity = (NopCodeDependency) ormTemplate.newEntity(
                             NopCodeDependency.class.getName());
-                    depEntity.setDepId(depId);
+                    depEntity.setId(depId);
                     depEntity.setIndexId(indexId);
                     depEntity.setSourceFilePath(dep.getSourceFilePath());
                     depEntity.setTargetFilePath(dep.getTargetFilePath());
@@ -2300,7 +2314,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IFlowDetector detector = flowDetector;
         if (detector == null) {
-            throw new UnsupportedOperationException("FlowDetector not available");
+            throw new NopException(ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE);
         }
 
         List<ExecutionFlow> flows = detector.detectFlows(indexId, symbolTable, callGraph);
@@ -2353,7 +2367,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IFlowDetector detector = flowDetector;
         if (detector == null) {
-            throw new UnsupportedOperationException("FlowDetector not available");
+            throw new NopException(ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE);
         }
 
         return detector.getAffectedFlows(indexId, changedFilePaths);
@@ -2368,7 +2382,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IChangeAnalyzer analyzer = changeAnalyzer;
         if (analyzer == null) {
-            throw new UnsupportedOperationException("ChangeAnalyzer not available");
+            throw new NopException(ERR_CODE_CHANGE_ANALYZER_NOT_AVAILABLE);
         }
 
         return analyzer.analyzeChanges(indexId, baselineCommitish, targetCommitish, symbolTable, callGraph);
@@ -2383,7 +2397,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IDeadCodeDetector detector = deadCodeDetector;
         if (detector == null) {
-            throw new UnsupportedOperationException("DeadCodeDetector not available");
+            throw new NopException(ERR_CODE_DEAD_CODE_DETECTOR_NOT_AVAILABLE);
         }
 
         return detector.detectDeadCode(indexId, symbolTable, callGraph);
@@ -2780,5 +2794,12 @@ public class CodeIndexService implements ICodeIndexService {
 
     private String generateFileId(String indexId, String filePath) {
         return DigestHelper.sha256Hex((indexId + ":" + filePath).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+    }
+
+    private void validatePath(String path) {
+        if (path == null || path.isEmpty())
+            return;
+        if (path.contains(".."))
+            throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
     }
 }

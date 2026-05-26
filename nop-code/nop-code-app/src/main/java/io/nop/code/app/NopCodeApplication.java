@@ -10,9 +10,12 @@ import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
 import jakarta.enterprise.event.Observes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @QuarkusMain
 public class NopCodeApplication {
+    private static final Logger LOG = LoggerFactory.getLogger(NopCodeApplication.class);
     static String[] globalArgs;
 
     public void start(@Observes StartupEvent event) {
@@ -28,6 +31,6 @@ public class NopCodeApplication {
     public static void main(String... args) {
         globalArgs = args;
         Quarkus.run(args);
-        System.out.println("started");
+        LOG.info("started");
     }
 }

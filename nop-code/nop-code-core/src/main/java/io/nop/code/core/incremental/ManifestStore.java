@@ -3,6 +3,8 @@ package io.nop.code.core.incremental;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.core.reflect.ReflectionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,10 +12,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 指纹清单持久化。将文件指纹列表序列化为JSON数组保存到磁盘，用于增量检测的状态持久化。
- */
 public class ManifestStore {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ManifestStore.class);
 
     public void save(Path manifestFile, List<FileFingerprint> fingerprints) throws IOException {
         Path parent = manifestFile.getParent();
@@ -38,7 +39,7 @@ public class ManifestStore {
                             ReflectionManager.instance().buildRawType(FileFingerprint.class)));
             return result != null ? result : new ArrayList<>();
         } catch (Exception e) {
-            // Malformed JSON returns empty list (matches existing behavior)
+            LOG.warn("Failed to parse manifest file: {}", manifestFile, e);
             return new ArrayList<>();
         }
     }

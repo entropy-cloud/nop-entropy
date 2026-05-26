@@ -116,11 +116,10 @@ Nop 平台的 `*-app` 模块基于 Quarkus。以 `nop-code-app` 为例：
 
 ### 前提：构建
 
-`nop-code` 不在根 `pom.xml` 的 `<modules>` 中，需要单独构建：
+`nop-code` 已包含在根 `pom.xml` 的 `<modules>` 中，可以直接从根目录构建：
 
 ```bash
-cd nop-code
-../mvnw clean install -DskipTests -T 1C
+./mvnw clean install -pl nop-code -am -DskipTests -T 1C
 ```
 
 其他在根 `pom.xml` `<modules>` 中的模块（如 `nop-auth-app`）可以直接从根目录构建。

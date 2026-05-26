@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +30,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     @Inject
     protected ICodeIndexService codeIndexService;
 
-    private final Map<String, IncrementalStatus> incrementalStatusMap = new LinkedHashMap<>();
+    private final Map<String, IncrementalStatus> incrementalStatusMap = new java.util.concurrent.ConcurrentHashMap<>();
 
     public NopCodeIndexBizModel() {
         setEntityName(NopCodeIndex.class.getName());

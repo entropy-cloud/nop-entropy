@@ -20,9 +20,9 @@ import io.nop.code.dao.entity.NopCodeDependency;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeDependency extends DynamicOrmEntity{
     
-    /* 依赖ID: DEP_ID VARCHAR */
-    public static final String PROP_NAME_depId = "depId";
-    public static final int PROP_ID_depId = 1;
+    /* 依赖ID: ID VARCHAR */
+    public static final String PROP_NAME_id = "id";
+    public static final int PROP_ID_id = 1;
     
     /* 索引ID: INDEX_ID VARCHAR */
     public static final String PROP_NAME_indexId = "indexId";
@@ -52,15 +52,15 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     public static final String PROP_NAME_index = "index";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_depId);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_depId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
     private static final String[] PROP_ID_TO_NAME = new String[7];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_depId] = PROP_NAME_depId;
-          PROP_NAME_TO_ID.put(PROP_NAME_depId, PROP_ID_depId);
+          PROP_ID_TO_NAME[PROP_ID_id] = PROP_NAME_id;
+          PROP_NAME_TO_ID.put(PROP_NAME_id, PROP_ID_id);
       
           PROP_ID_TO_NAME[PROP_ID_indexId] = PROP_NAME_indexId;
           PROP_NAME_TO_ID.put(PROP_NAME_indexId, PROP_ID_indexId);
@@ -80,8 +80,8 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     }
 
     
-    /* 依赖ID: DEP_ID */
-    private java.lang.String _depId;
+    /* 依赖ID: ID */
+    private java.lang.String _id;
     
     /* 索引ID: INDEX_ID */
     private java.lang.String _indexId;
@@ -139,14 +139,14 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_depId);
+        return buildSimpleId(PROP_ID_id);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_depId;
+            return propId == PROP_ID_id;
           
     }
 
@@ -172,8 +172,8 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_depId:
-               return getDepId();
+            case PROP_ID_id:
+               return getId();
         
             case PROP_ID_indexId:
                return getIndexId();
@@ -201,13 +201,13 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_depId:{
+            case PROP_ID_id:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_depId));
+                       err-> newTypeConversionError(PROP_NAME_id));
                }
-               setDepId(typedValue);
+               setId(typedValue);
                break;
             }
         
@@ -270,9 +270,9 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_depId:{
+            case PROP_ID_id:{
                onInitProp(propId);
-               this._depId = (java.lang.String)value;
+               this._id = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -319,20 +319,20 @@ public class _NopCodeDependency extends DynamicOrmEntity{
 
     
     /**
-     * 依赖ID: DEP_ID
+     * 依赖ID: ID
      */
-    public final java.lang.String getDepId(){
-         onPropGet(PROP_ID_depId);
-         return _depId;
+    public final java.lang.String getId(){
+         onPropGet(PROP_ID_id);
+         return _id;
     }
 
     /**
-     * 依赖ID: DEP_ID
+     * 依赖ID: ID
      */
-    public final void setDepId(java.lang.String value){
-        if(onPropSet(PROP_ID_depId,value)){
-            this._depId = value;
-            internalClearRefs(PROP_ID_depId);
+    public final void setId(java.lang.String value){
+        if(onPropSet(PROP_ID_id,value)){
+            this._id = value;
+            internalClearRefs(PROP_ID_id);
             orm_id();
         }
     }

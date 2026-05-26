@@ -31,4 +31,16 @@ public interface NopCodeErrors {
 
     ErrorCode ERR_CODE_INDEX_ID_REQUIRED =
             define("nop.err.code.index-id-required", "indexId is required", ARG_INDEX_ID);
+
+    ErrorCode ERR_CODE_INVALID_PATH =
+            define("nop.err.code.invalid-path", "Invalid path: {path}", ARG_PATH);
+
+    ErrorCode ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE =
+            define("nop.err.code.flow-detector-not-available", "FlowDetector not available");
+
+    ErrorCode ERR_CODE_CHANGE_ANALYZER_NOT_AVAILABLE =
+            define("nop.err.code.change-analyzer-not-available", "ChangeAnalyzer not available");
+
+    ErrorCode ERR_CODE_DEAD_CODE_DETECTOR_NOT_AVAILABLE =
+            define("nop.err.code.dead-code-detector-not-available", "DeadCodeDetector not available");
 }

@@ -44,7 +44,7 @@ prop:
       indexId: 索引ID
       line: 行号
     NopCodeDependency:
-      depId: 依赖ID
+      id: 依赖ID
       importStatement: 导入语句
       index: null
       indexId: 索引ID
@@ -127,6 +127,7 @@ prop:
       index: null
       indexId: 索引ID
       relationType: 关系类型
+      relationType_label: 关系类型
       subType: null
       subType.name: null
       subTypeId: 子类型ID

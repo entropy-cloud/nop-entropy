@@ -13,7 +13,12 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ChangeAnalyzer implements IChangeAnalyzer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ChangeAnalyzer.class);
 
     private static final Pattern DIFF_HEADER_FILE = Pattern.compile("^\\+\\+\\+ b/(.+)$");
     private static final Pattern DIFF_HEADER_OLD_FILE = Pattern.compile("^--- a/(.+)$");
@@ -143,9 +148,11 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
             process.waitFor();
             reader.close();
         } catch (IOException e) {
+            LOG.warn("Failed to parse git diff output", e);
             return result;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            LOG.warn("Interrupted while parsing git diff output", e);
             return result;
         }
 

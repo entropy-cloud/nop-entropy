@@ -5,7 +5,7 @@
 
     <entityName>io.nop.code.dao.entity.NopCodeDependency</entityName>
 
-    <primaryKey>depId</primaryKey>
+    <primaryKey>id</primaryKey>
 
     <displayProp>sourceFilePath</displayProp>
 
@@ -20,7 +20,7 @@
     <keys/>
 
     <props>
-        <prop name="depId" displayName="依赖ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+        <prop name="id" displayName="依赖ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="false" internal="true" ui:show="X">
             <schema domain="codeId" type="java.lang.String" precision="36"/>
         </prop>

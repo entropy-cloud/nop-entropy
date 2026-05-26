@@ -44,7 +44,7 @@ prop:
       file: null
       file.filePath: null
     NopCodeDependency:
-      depId: null
+      id: null
       indexId: null
       sourceFilePath: null
       targetFilePath: null
@@ -128,6 +128,7 @@ prop:
       subTypeId: null
       superTypeId: null
       relationType: null
+      relationType_label: null
       index: null
       subType: null
       subType.name: null

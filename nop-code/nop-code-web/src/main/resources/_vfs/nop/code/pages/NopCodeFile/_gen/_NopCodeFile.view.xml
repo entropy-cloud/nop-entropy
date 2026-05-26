@@ -36,9 +36,6 @@
                 <!--导入列表-->
                 <col id="imports" sortable="true"/>
 
-                <!--源代码-->
-                <col id="sourceCode" sortable="true"/>
-
                 <!--文件内容哈希-->
                 <col id="fileHash" sortable="true"/>
 
@@ -55,21 +52,29 @@
     <forms>
         <form id="view" editMode="view" title="查看-代码文件" i18n-en:title="View ">
             <layout>
- indexId[索引ID] filePath[文件路径]
- packageName[包名] language[语言]
- lineCount[行数] imports[导入列表]
- sourceCode[源代码] fileHash[文件内容哈希]
- lastModified[最后修改时间] fileSize[文件大小]
+ indexId[索引ID]
+ filePath[文件路径]
+ packageName[包名]
+ language[语言]
+ lineCount[行数]
+ imports[导入列表]
+ fileHash[文件内容哈希]
+ lastModified[最后修改时间]
+ fileSize[文件大小]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-代码文件" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-代码文件" i18n-en:title="Edit ">
             <layout>
- indexId[索引ID] filePath[文件路径]
- packageName[包名] language[语言]
- lineCount[行数] imports[导入列表]
- sourceCode[源代码] fileHash[文件内容哈希]
- lastModified[最后修改时间] fileSize[文件大小]
+ indexId[索引ID]
+ filePath[文件路径]
+ packageName[包名]
+ language[语言]
+ lineCount[行数]
+ imports[导入列表]
+ fileHash[文件内容哈希]
+ lastModified[最后修改时间]
+ fileSize[文件大小]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

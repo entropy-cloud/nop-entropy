@@ -69,6 +69,11 @@
             <option code="TYPESCRIPT" label="TypeScript" value="30"/>
             <option code="JAVASCRIPT" label="JavaScript" value="40"/>
         </dict>
+        <dict label="继承关系类型" name="code/relation_type" valueType="int">
+            <description>类型继承关系</description>
+            <option code="EXTENDS" label="继承" value="10"/>
+            <option code="IMPLEMENTS" label="实现" value="20"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -111,26 +116,26 @@
             </columns>
             <comment>代码索引主表</comment>
             <relations>
-                <to-many displayName="文件列表" name="files" refEntityName="io.nop.code.dao.entity.NopCodeFile"
-                         refPropName="index">
+                <to-many cascadeDelete="true" displayName="文件列表" name="files"
+                         refEntityName="io.nop.code.dao.entity.NopCodeFile" refPropName="index">
                     <join>
                         <on leftProp="id" rightProp="indexId"/>
                     </join>
                 </to-many>
-                <to-many displayName="符号列表" name="symbols" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
-                         refPropName="index">
+                <to-many cascadeDelete="true" displayName="符号列表" name="symbols"
+                         refEntityName="io.nop.code.dao.entity.NopCodeSymbol" refPropName="index">
                     <join>
                         <on leftProp="id" rightProp="indexId"/>
                     </join>
                 </to-many>
-                <to-many displayName="依赖列表" name="dependencies" refEntityName="io.nop.code.dao.entity.NopCodeDependency"
-                         refPropName="index">
+                <to-many cascadeDelete="true" displayName="依赖列表" name="dependencies"
+                         refEntityName="io.nop.code.dao.entity.NopCodeDependency" refPropName="index">
                     <join>
                         <on leftProp="id" rightProp="indexId"/>
                     </join>
                 </to-many>
-                <to-many displayName="执行流" name="flows" refEntityName="io.nop.code.dao.entity.NopCodeFlow"
-                         refPropName="index">
+                <to-many cascadeDelete="true" displayName="执行流" name="flows"
+                         refEntityName="io.nop.code.dao.entity.NopCodeFlow" refPropName="index">
                     <join>
                         <on leftProp="id" rightProp="indexId"/>
                     </join>
@@ -312,6 +317,12 @@
                     <column name="indexId"/>
                     <column name="declaringSymbolId"/>
                 </index>
+                <index name="idx_symbol_file">
+                    <column name="fileId"/>
+                </index>
+                <index name="idx_symbol_parent">
+                    <column name="parentId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one name="index" refDisplayName="符号列表" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
@@ -444,6 +455,12 @@
                     <column name="indexId"/>
                     <column name="kind"/>
                 </index>
+                <index name="idx_usage_file">
+                    <column name="fileId"/>
+                </index>
+                <index name="idx_usage_enclosing">
+                    <column name="enclosingSymbolId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one name="index" refDisplayName="引用" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
@@ -502,6 +519,12 @@
                 <index name="idx_call_callee">
                     <column name="calleeId"/>
                 </index>
+                <index name="idx_call_file">
+                    <column name="fileId"/>
+                </index>
+                <index name="idx_call_index">
+                    <column name="indexId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one name="index" refDisplayName="调用" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
@@ -543,7 +566,7 @@
                 <column code="SUPER_TYPE_ID" displayName="父类型ID" domain="codeId" mandatory="true" name="superTypeId"
                         precision="36" propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="RELATION_TYPE" displayName="关系类型" mandatory="true" name="relationType" precision="20"
-                        propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/relation_type"/>
             </columns>
             <comment>
                 继承关系。relationType: EXTENDS(类继承类/接口继承接口), IMPLEMENTS(类实现接口)
@@ -554,6 +577,9 @@
                 </index>
                 <index name="idx_inheritance_super">
                     <column name="superTypeId"/>
+                </index>
+                <index name="idx_inheritance_index">
+                    <column name="indexId"/>
                 </index>
             </indexes>
             <relations>
@@ -606,6 +632,9 @@
                 <index name="idx_annotation_symbol">
                     <column name="annotatedSymbolId"/>
                 </index>
+                <index name="idx_annotation_usage_index">
+                    <column name="indexId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one name="index" refDisplayName="注解使用" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
@@ -631,7 +660,7 @@
         <entity className="io.nop.code.dao.entity.NopCodeDependency" displayName="文件依赖"
                 name="io.nop.code.dao.entity.NopCodeDependency" registerShortName="true" tableName="nop_code_dependency">
             <columns>
-                <column code="DEP_ID" displayName="依赖ID" domain="codeId" mandatory="true" name="depId" precision="36"
+                <column code="ID" displayName="依赖ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
                         precision="36" propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
@@ -775,6 +804,9 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="flowId,symbolId" constraint="UK_NOP_CODE_FLOW_MEMBERSHIP" name="flowSymbolKey"/>
+            </unique-keys>
         </entity>
     </entities>
 </orm>
