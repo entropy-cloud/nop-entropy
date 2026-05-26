@@ -15,6 +15,7 @@ pnpm check         # run all checks
 | Script | Purpose | Usage |
 |--------|---------|-------|
 | `check-doc-links.mjs` | Check `docs-for-ai/` and `ai-dev/` markdown path references | `pnpm check:doc-links` |
+| `check-doc-index.mjs` | Audit doc index health: broken links, orphans, missing sub-indexes, duplicated rules, sync drift | `node ai-dev/tools/check-doc-index.mjs [--fix] [--strict]` |
 | `check-import-order.mjs` | Check Java import grouping: `java.* → jakarta.* → third-party → io.nop.*` | `pnpm check:import-order` |
 | `check-oversized-files.mjs` | Detect oversized source files (>500 lines warn, >700 error) | `pnpm check:oversized` |
 | `check-docs-garbled.mjs` | Detect garbled/corrupted Unicode in documentation | `pnpm check:garbled` |
@@ -35,6 +36,26 @@ node check-doc-links.mjs --strict     # exit 1 on errors (CI mode)
 ```
 
 Skip rules: placeholder paths (`Xxx`), `_gen/` files, `ai-dev/logs/`, completed plans, and a configurable whitelist.
+
+### check-doc-index.mjs
+
+Audits `docs-for-ai/` and `ai-dev/` index health.
+
+```bash
+node ai-dev/tools/check-doc-index.mjs           # check only
+node ai-dev/tools/check-doc-index.mjs --fix     # auto-fix sync issues
+node ai-dev/tools/check-doc-index.mjs --strict  # exit 1 on errors
+```
+
+Checks performed:
+- Broken index links
+- Orphan markdown files not referenced by any index
+- Missing `README.md` in directories with many markdown files
+- Duplicated routing rules across docs
+- Sync drift between `docs-for-ai/INDEX.md` and `docs-for-ai/00-start-here/ai-defaults.md`
+- Sync drift in `ai-dev/logs/index.md`
+
+Writes a report to `_tmp/doc-index-audit-{timestamp}.md` and prints the summary to stdout.
 
 ### check-import-order.mjs
 
