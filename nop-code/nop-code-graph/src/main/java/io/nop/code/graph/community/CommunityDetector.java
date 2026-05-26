@@ -788,7 +788,7 @@ public class CommunityDetector {
         Map<String, Integer> packageCount = new HashMap<>();
         
         for (String symbolId : cluster) {
-            CodeSymbol symbol = symbolTable.getByQualifiedName(symbolId);
+            CodeSymbol symbol = symbolTable.getById(symbolId);
             if (symbol != null && symbol.getQualifiedName() != null) {
                 String pkg = extractPackage(symbol.getQualifiedName());
                 packageCount.merge(pkg, 1, Integer::sum);

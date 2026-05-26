@@ -788,9 +788,7 @@ public class CodeIndexService implements ICodeIndexService {
         TreeBean nameFilter = FilterBeans.contains("name", query);
         TreeBean qnFilter = FilterBeans.contains("qualifiedName", query);
         qb.addFilter(FilterBeans.or(nameFilter, qnFilter));
-        if (language != null && !language.isEmpty()) {
-            qb.addFilter(FilterBeans.eq("kind", language));
-        }
+
         qb.setLimit(limit * 2);
 
         List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(qb);
@@ -998,7 +996,14 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public String getSymbolSourceCode(String indexId, String symbolId, int linesBefore, int linesAfter) {
-        return null; // sourceCode not stored in DB — TODO: future disk-based loading
+        if (daoProvider == null) return null;
+        NopCodeSymbol entity = daoProvider.daoFor(NopCodeSymbol.class).getEntityById(symbolId);
+        if (entity == null || entity.getFileId() == null) return null;
+        NopCodeFile file = daoProvider.daoFor(NopCodeFile.class).getEntityById(entity.getFileId());
+        if (file == null || file.getSourceCode() == null) return null;
+        int startLine = (entity.getLine() != null ? entity.getLine() : 1) - linesBefore;
+        int endLine = (entity.getEndLine() != null ? entity.getEndLine() : entity.getLine() != null ? entity.getLine() : 1) + linesAfter;
+        return extractLines(file.getSourceCode(), Math.max(1, startLine), endLine);
     }
 
     @Override
@@ -1021,16 +1026,23 @@ public class CodeIndexService implements ICodeIndexService {
         dto.setSignature(entity.getSignature());
 
         String fileId = entity.getFileId();
+        NopCodeFile file = null;
         if (fileId != null) {
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
-            NopCodeFile file = fileDao.getEntityById(fileId);
+            file = fileDao.getEntityById(fileId);
             if (file != null) {
                 dto.setFilePath(file.getFilePath());
             }
         }
 
-        // Source code not stored in DB — future SourceCodeProvider will populate this
-        dto.setSourceCode(null);
+        // Extract source code from file stored in DB
+        if (file != null && file.getSourceCode() != null && includeBody) {
+            int start = dto.getStartLine();
+            int end = dto.getEndLine();
+            if (start > 0 && end >= start) {
+                dto.setSourceCode(extractLines(file.getSourceCode(), start, end));
+            }
+        }
 
         return dto;
     }
@@ -2801,5 +2813,19 @@ public class CodeIndexService implements ICodeIndexService {
             return;
         if (path.contains(".."))
             throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+    }
+
+    private String extractLines(String source, int startLine, int endLine) {
+        if (source == null || startLine < 1 || endLine < startLine) return null;
+        String[] lines = source.split("\n", -1);
+        int start = Math.max(1, startLine) - 1; // 0-based
+        int end = Math.min(lines.length, endLine); // exclusive
+        if (start >= end) return null;
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < end; i++) {
+            if (i > start) sb.append("\n");
+            sb.append(lines[i]);
+        }
+        return sb.toString();
     }
 }

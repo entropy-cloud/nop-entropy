@@ -3,6 +3,7 @@ package io.nop.code.flow;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.graph.entrypoint.EntryPointScorer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -426,16 +427,52 @@ public class FlowDetector implements IFlowDetector {
 
         @Override
         public boolean isEntryPoint(CodeSymbol symbol) {
+            // Annotation data is not available in the in-memory CodeSymbol model.
+            // Instead, match Spring entry point patterns by checking the symbol's
+            // qualified name against common Spring endpoint naming conventions.
             String qn = symbol.getQualifiedName();
             if (qn == null) {
                 return false;
             }
-            for (String annotation : SPRING_ENTRY_ANNOTATIONS) {
-                if (qn.contains(annotation)) {
-                    return true;
+
+            // Check if the symbol's class name suggests a Spring component
+            String className = extractClassName(qn);
+            if (className != null) {
+                if (className.endsWith("Controller") || className.endsWith("RestController")
+                        || className.endsWith("Endpoint") || className.endsWith("Listener")
+                        || className.endsWith("Handler") || className.endsWith("Scheduler")
+                        || className.endsWith("Consumer") || className.endsWith("Subscriber")) {
+                    // Methods in these classes are likely entry points
+                    CodeSymbolKind kind = symbol.getKind();
+                    if (kind == CodeSymbolKind.METHOD || kind == CodeSymbolKind.CONSTRUCTOR) {
+                        return true;
+                    }
                 }
             }
+
+            // Check extData for annotation short names
+            String extData = symbol.getExtData();
+            if (extData != null) {
+                for (String annotation : SPRING_ENTRY_ANNOTATIONS) {
+                    String shortName = annotation.substring(annotation.lastIndexOf('.') + 1);
+                    if (extData.contains(shortName)) {
+                        return true;
+                    }
+                }
+            }
+
             return false;
+        }
+
+        private static String extractClassName(String qualifiedName) {
+            // e.g., "com.example.controller.UserController.getMethod" -> "UserController"
+            int parenIdx = qualifiedName.indexOf('(');
+            String withoutParams = parenIdx > 0 ? qualifiedName.substring(0, parenIdx) : qualifiedName;
+            int lastDot = withoutParams.lastIndexOf('.');
+            if (lastDot < 0) return null;
+            String beforeMethod = withoutParams.substring(0, lastDot);
+            int prevDot = beforeMethod.lastIndexOf('.');
+            return prevDot >= 0 ? beforeMethod.substring(prevDot + 1) : beforeMethod;
         }
 
         @Override

@@ -86,15 +86,14 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String currentFile = null;
+                String oldFilePath = null;
+                boolean skipBinary = false;
+                String line;
 
-            String currentFile = null;
-            String oldFilePath = null;
-            boolean skipBinary = false;
-            String line;
-
-            while ((line = reader.readLine()) != null) {
+                while ((line = reader.readLine()) != null) {
                 if (line.startsWith("Binary files")) {
                     skipBinary = true;
                     continue;
@@ -145,8 +144,8 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
                 }
             }
 
-            process.waitFor();
-            reader.close();
+                process.waitFor();
+            }
         } catch (IOException e) {
             LOG.warn("Failed to parse git diff output", e);
             return result;
