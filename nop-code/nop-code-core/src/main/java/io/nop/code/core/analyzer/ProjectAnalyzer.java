@@ -4,6 +4,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.semantic.ISemanticEdgeExtractor;
+import io.nop.code.core.semantic.CodeSemanticEdge;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.incremental.ChangeSet;
 import io.nop.code.core.incremental.FileFingerprint;
@@ -45,6 +47,7 @@ import java.util.stream.Stream;
  */
 public class ProjectAnalyzer implements IProjectAnalyzer {
 
+    private final List<ISemanticEdgeExtractor> semanticExtractors = new ArrayList<>();
     private static final Logger LOG = LoggerFactory.getLogger(ProjectAnalyzer.class);
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
@@ -201,7 +204,27 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         // 构建统计信息
         ProjectStats stats = buildStats(fileResults, globalSymbolTable, resolvedCalls, unresolvedCalls);
 
-        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        ProjectAnalysisResult result = new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+
+        // Phase 5: Run semantic edge extractors
+        CallGraph callGraph = result.buildCallGraph();
+        List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
+        for (ISemanticEdgeExtractor extractor : semanticExtractors) {
+            if (!extractor.requiresLlm()) {
+                try {
+                    List<CodeSemanticEdge> extracted = extractor.extract(globalSymbolTable, callGraph);
+                    if (extracted != null) {
+                        semanticEdges.addAll(extracted);
+                    }
+                } catch (Exception e) {
+                    LOG.warn("Semantic extractor {} failed: {}", extractor.getExtractorId(), e.getMessage());
+                }
+            }
+        }
+        result.setSemanticEdges(semanticEdges);
+        LOG.info("Extracted {} semantic edges", semanticEdges.size());
+
+        return result;
     }
 
     /**

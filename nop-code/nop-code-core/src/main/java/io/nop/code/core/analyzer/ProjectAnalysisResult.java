@@ -5,6 +5,7 @@ import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.semantic.CodeSemanticEdge;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ public class ProjectAnalysisResult {
     private final List<CodeFileAnalysisResult> fileResults;
     private final SymbolTable globalSymbolTable;
     private final ProjectStats stats;
+    private List<CodeSemanticEdge> semanticEdges = List.of();
 
     public ProjectAnalysisResult(List<CodeFileAnalysisResult> fileResults,
                                  SymbolTable globalSymbolTable,
@@ -50,6 +52,14 @@ public class ProjectAnalysisResult {
      */
     public ProjectStats getStats() {
         return stats;
+    }
+
+    public List<CodeSemanticEdge> getSemanticEdges() {
+        return semanticEdges;
+    }
+
+    public void setSemanticEdges(List<CodeSemanticEdge> semanticEdges) {
+        this.semanticEdges = semanticEdges != null ? semanticEdges : List.of();
     }
 
     /**
