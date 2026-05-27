@@ -67,6 +67,10 @@
 
 25. **新功能必有测试规则（Test-Mandated Feature Rule）**：每个新增功能（新类、新方法、新算法、新 BizModel action 等）必须在同一 Phase 内编写对应的单元测试。Exit Criteria 不能只写"原有测试通过"——必须**显式列出新增功能的测试覆盖要求**，明确哪些测试验证了哪些新行为。纯重构、纯文档变更、纯配置调整不强制新增测试，但必须在 Exit Criteria 中注明"No new test required: <reason>"。
 
+26. **Checklist 勾选是 closure 的硬性前置条件，不是可选的附带动作。** 在将 Plan Status 改为 `completed` 之前，必须用 `grep -c '\- \[ \]' <plan-file>` 确认返回 0。如果返回值 > 0，要么勾选剩余项，要么将它们移入 `Deferred But Adjudicated`，但绝不能在有未勾选项的情况下标记 `completed`。
+
+27. **Closure Evidence 必须写入 plan 文件。** 独立子 agent 的 closure audit 结果必须记录在 plan 的 `Closure` 段落中，包含 Reviewer/Agent 标识、session ID、每条 Exit Criterion 和 Closure Gate 的验证结果。没有 evidence 记录的 closure 等于没有做 closure。
+
 ## Anti-Slacking Rule
 
 计划可以延期优化工作，但不能延期"这个 in-scope 项目到底是不是 closure 必需项"的裁定。
@@ -435,11 +439,13 @@ Follow-up:
 
 把 plan 改成 `completed` 前，必须把"执行"与"收口审计"当成两件事。
 
-最低要求：
+**核心原则：closure audit 是 plan 关闭的硬性前置条件，不是可选的善后动作。没有 evidence 的 closure audit 等于没有做 closure audit。**
+
+#### 最低要求
 
 1. 关闭动作必须发生在一次明确的 closure-audit pass 中，而不是某个实现 slice 的顺手附带动作。
 2. closure audit 要回看 live repo，而不是只看旧 completion note、旧 checklist、或最近一次提交说明。
-3. closure audit 必须由独立审阅者或独立子 agent 执行；实现者自己的 self-audit 不能单独作为 `completed` 的依据。
+3. **closure audit 必须由独立审阅者或独立子 agent 执行**；实现者自己的 self-audit 不能单独作为 `completed` 的依据。这里的独立子 agent 指为 closure audit 单独启动的 fresh session，而不是复用实现阶段的同一 agent session。
 4. 每个 `Phase` / `Workstream` 都必须已经是 `completed`，否则 plan 不能关闭。
 5. 如果某个 slice 的工作不再属于本 plan，先把它显式移到 successor plan 或标注取消原因，再关闭本 plan。
 6. `Closure Gates` 中的未完成项只能保留在 plan 仍未关闭时；若计划关闭，这些项也必须完成或被移出当前 scope。
@@ -448,7 +454,35 @@ Follow-up:
 9. closure audit 必须检查 deferred / follow-up 项的分类是否诚实；已确认的 live defect、contract drift、owner-doc drift、或硬门禁失败项不能留在 non-blocking 区域。
 10. **closure audit 必须做 Anti-Hollow 检查**：验证组件间调用链在运行时确实连通（不只是类型系统），验证无空方法体/静默跳过/no-op 作为正常实现。具体操作：从用户入口点追踪代码到出口点，确认每个新增组件都在这条链上被调用。
 
-推荐 closure-audit 证据来源：
+#### Evidence 必须写入 plan 文件（强制）
+
+closure audit 完成后，**必须**在 plan 文件的 `Closure` 段落中写入以下信息：
+
+```md
+## Closure
+
+Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: <<独立审阅者名称或独立子 agent 的 session ID / task ID>>
+- Audit Session: <<如用子 agent，记录 session ID>>
+- Evidence:
+  - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）
+  - 每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）
+  - `grep -c '\- \[ \]' <plan-file>` 返回 0（确认无未勾选项）
+  - Anti-Hollow 检查结果：<<端到端调用链追踪结果>>
+  - Deferred 项分类检查：<<确认无 in-scope live defect 被降级>>
+
+Follow-up:
+
+- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- <<或者明确写 no remaining plan-owned work>>
+```
+
+**没有写入 Evidence 的 plan 不能标记为 completed。** 这不是建议，是硬性要求。
+
+#### 推荐 closure-audit 证据来源
 
 - live code or docs paths that satisfy each slice exit criterion
 - focused verification results or a clearly cited already-green workspace baseline
@@ -456,27 +490,28 @@ Follow-up:
 - independent reviewer / subagent findings with task id or cited review note that explicitly check for plan/doc drift and interface-vs-semantics mismatch
 - explicit justification for each deferred item that remained non-blocking at closure
 - **anti-hollow evidence**：端到端测试路径和结果，或代码追踪证明调用链连通的截图/日志
+- **checklist 完整性证据**：`grep -c '\- \[ \]' <plan-file>` 的输出（必须为 0）
 
-实操上可以把 closure audit 理解为一轮独立复核：
+#### 实操理解
+
+把 closure audit 理解为一轮独立复核：
 
 - 不是"我刚做完最后一项，所以应该没问题"
 - 而是"我现在重新核对整份计划，确认没有剩余 plan-owned work"
 
-一个常见误区：
+#### 常见误区
 
-- "接口已经有了，所以这一 phase 应该算完成"
+**误区 1**："接口已经有了，所以这一 phase 应该算完成"
 
-正确做法：
+正确做法：继续核对该接口是否真的被调用、是否满足文档语义、是否有 focused tests 证明行为成立；否则最多算 partial landing。
 
-- 继续核对该接口是否真的被调用、是否满足文档语义、是否有 focused tests 证明行为成立；否则最多算 partial landing。
+**误区 2**："单元测试通过了，所以功能应该没问题"
 
-另一个常见误区：
+正确做法：单元测试只验证组件级行为。如果组件之间的连线没有接通（如 CheckpointCoordinator 从未被 execute() 调用），组件级单测全部通过也不能证明系统功能可用。必须额外验证端到端路径的连通性。
 
-- "单元测试通过了，所以功能应该没问题"
+**误区 3**："closure audit 做过了，但 evidence 还没写进 plan"
 
-正确做法：
-
-- 单元测试只验证组件级行为。如果组件之间的连线没有接通（如 CheckpointCoordinator 从未被 execute() 调用），组件级单测全部通过也不能证明系统功能可用。必须额外验证端到端路径的连通性。
+正确做法：**evidence 必须写入 plan 文件的 `Closure` 段落**。如果 evidence 没有写入 plan 文件，等于 closure audit 没有完成。不允许"口头确认了但没记录"的情况。
 
 ## Practical Rule
 
