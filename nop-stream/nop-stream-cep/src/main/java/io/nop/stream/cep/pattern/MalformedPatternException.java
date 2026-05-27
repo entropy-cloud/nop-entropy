@@ -18,11 +18,13 @@
 
 package io.nop.stream.cep.pattern;
 
+import io.nop.stream.core.exceptions.StreamRuntimeException;
+
 /**
  * An exception used to indicate that a {@link Pattern} was not
  * specified correctly.
  */
-public class MalformedPatternException extends RuntimeException {
+public class MalformedPatternException extends StreamRuntimeException {
 
     private static final long serialVersionUID = 7751134834983361543L;
 

@@ -229,6 +229,11 @@ public class Task implements Runnable, Serializable {
         if (firstException != null) {
             LOG.error("Errors occurred while closing operator chains for task: {}",
                 getTaskName(), firstException);
+            if (this.error != null) {
+                this.error.addSuppressed(firstException);
+            } else {
+                this.error = firstException;
+            }
         }
     }
 

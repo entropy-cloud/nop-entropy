@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 
 /**
  * Comprehensive unit tests for Task and TaskExecutor classes.
@@ -110,7 +111,7 @@ public class TestTaskExecutor {
     @Test
     public void testSubmitAfterShutdown() {
         taskExecutor.shutdown();
-        assertThrows(IllegalStateException.class, () -> taskExecutor.submitJobVertex(testVertex));
+        assertThrows(StreamException.class, () -> taskExecutor.submitJobVertex(testVertex));
     }
 
     // ========== TaskExecutor Task Tracking Tests ==========
@@ -374,7 +375,7 @@ public class TestTaskExecutor {
 
     private JobVertex createFailingVertex(String id, String name, int parallelism) {
         Invokable<Void> invokable = () -> {
-            throw new RuntimeException("Intentional test failure");
+            throw new StreamRuntimeException("Intentional test failure");
         };
         
         List<StreamOperator<?>> operators = new ArrayList<>();

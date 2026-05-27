@@ -8,6 +8,7 @@
 package io.nop.stream.core.integration;
 
 import io.nop.stream.core.common.functions.FlatMapFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import org.junit.jupiter.api.Test;
 
@@ -104,6 +105,6 @@ public class TestDataStreamPipeline {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.fromElements(1).sink(x -> {});
         env.execute("First");
-        assertThrows(IllegalStateException.class, () -> env.execute("Second"));
+        assertThrows(StreamException.class, () -> env.execute("Second"));
     }
 }

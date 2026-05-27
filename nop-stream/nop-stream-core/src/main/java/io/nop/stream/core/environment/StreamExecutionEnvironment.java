@@ -206,7 +206,7 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionResult execute(String jobName) throws Exception {
         if (executed) {
-            throw new IllegalStateException("A streaming job can only be executed once");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "A streaming job can only be executed once");
         }
 
         long startTime = System.currentTimeMillis();
@@ -214,7 +214,7 @@ public class StreamExecutionEnvironment {
         try {
             List<SinkTransformation<?>> sinks = findSinkTransformations();
             if (sinks.isEmpty()) {
-                throw new IllegalStateException("No sinks found in the streaming job");
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "No sinks found in the streaming job");
             }
 
             StreamModel streamModel = buildStreamModel(sinks);
@@ -254,7 +254,7 @@ public class StreamExecutionEnvironment {
             }
 
             if (deploymentMode == DeploymentMode.DISTRIBUTED && executionDispatcher == null) {
-                throw new IllegalStateException(
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "DISTRIBUTED mode requires an IStreamExecutionDispatcher. "
                   + "Ensure the runtime module is on the classpath and the dispatcher has been configured.");
             }
@@ -291,7 +291,7 @@ public class StreamExecutionEnvironment {
 
     public String triggerSavepoint(String targetPath) throws Exception {
         if (checkpointExecutorFactory == null) {
-            throw new IllegalStateException(
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "No checkpoint executor factory registered. "
                   + "Ensure the runtime module is on the classpath and the factory has been set.");
         }
@@ -302,11 +302,11 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionResult executeWithSavepoint(String savepointPath) throws Exception {
         if (executed) {
-            throw new IllegalStateException("A streaming job can only be executed once");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "A streaming job can only be executed once");
         }
 
         if (checkpointExecutorFactory == null) {
-            throw new IllegalStateException(
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "No checkpoint executor factory registered. "
                   + "Ensure the runtime module is on the classpath and the factory has been set.");
         }
@@ -327,11 +327,11 @@ public class StreamExecutionEnvironment {
             return execute(jobName);
         }
         if (executed) {
-            throw new IllegalStateException("A streaming job can only be executed once");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "A streaming job can only be executed once");
         }
 
         if (checkpointExecutorFactory == null) {
-            throw new IllegalStateException(
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "No checkpoint executor factory registered. "
                   + "Ensure the runtime module is on the classpath and the factory has been set.");
         }
@@ -385,7 +385,7 @@ public class StreamExecutionEnvironment {
     private JobGraph buildJobGraph(String jobName) {
         List<SinkTransformation<?>> sinks = findSinkTransformations();
         if (sinks.isEmpty()) {
-            throw new IllegalStateException("No sinks found in the streaming job");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "No sinks found in the streaming job");
         }
 
         if (!checkpointConfig.isCheckpointEnabled()) {

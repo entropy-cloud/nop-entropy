@@ -127,7 +127,7 @@ public class TaskExecutor {
      * @param jobVertex the JobVertex to execute (must not be null)
      * @return unmodifiable list of submitted tasks
      * @throws IllegalArgumentException if jobVertex is null
-     * @throws IllegalStateException if executor has been shut down
+     * @throws StreamException if executor has been shut down
      */
     public List<Task> submitJobVertex(JobVertex jobVertex) {
         if (jobVertex == null) {
@@ -135,7 +135,7 @@ public class TaskExecutor {
         }
 
         if (isShutdown.get()) {
-            throw new IllegalStateException("TaskExecutor has been shut down");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "TaskExecutor has been shut down");
         }
 
         LOG.info("Submitting JobVertex: {} with parallelism {}",
@@ -169,7 +169,7 @@ public class TaskExecutor {
      * @param task the task to submit (must not be null)
      * @return the submitted task
      * @throws IllegalArgumentException if task is null
-     * @throws IllegalStateException if executor has been shut down
+     * @throws StreamException if executor has been shut down
      */
     public Task submitTask(Task task) {
         if (task == null) {
@@ -177,7 +177,7 @@ public class TaskExecutor {
         }
 
         if (isShutdown.get()) {
-            throw new IllegalStateException("TaskExecutor has been shut down");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "TaskExecutor has been shut down");
         }
 
         String taskId = generateTaskId(task.getJobVertex().getId(), task.getTaskIndex());
@@ -195,7 +195,7 @@ public class TaskExecutor {
      *
      * @param subtaskTask the subtask task to submit (must not be null)
      * @throws IllegalArgumentException if subtaskTask is null
-     * @throws IllegalStateException if executor has been shut down
+     * @throws StreamException if executor has been shut down
      */
     public void submitTask(SubtaskTask subtaskTask) {
         if (subtaskTask == null) {
@@ -203,7 +203,7 @@ public class TaskExecutor {
         }
 
         if (isShutdown.get()) {
-            throw new IllegalStateException("TaskExecutor has been shut down");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "TaskExecutor has been shut down");
         }
 
         String taskId = subtaskTask.getTaskName();

@@ -321,6 +321,7 @@ public class GraphModelCheckpointExecutor {
             }
         } catch (Exception e) {
             LOG.error("Failed to trigger terminal savepoint", e);
+            throw new StreamException("Failed to trigger terminal savepoint", e);
         }
     }
 

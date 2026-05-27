@@ -134,6 +134,11 @@ public class SubtaskTask implements Runnable {
         }
         if (firstException != null) {
             LOG.error("Errors closing operator chains for subtask: {}", getTaskName(), firstException);
+            if (this.error != null) {
+                this.error.addSuppressed(firstException);
+            } else {
+                this.error = firstException;
+            }
         }
     }
 }

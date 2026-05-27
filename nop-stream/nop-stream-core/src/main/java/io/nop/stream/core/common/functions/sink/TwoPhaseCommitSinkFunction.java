@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import io.nop.api.core.annotations.core.Internal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
@@ -22,6 +24,8 @@ import io.nop.stream.core.common.functions.SinkFunction;
 public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN>, CheckpointParticipant {
 
     String PENDING_COMMITS_KEY = "pending-commits";
+
+    Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
 
     void beginTransaction() throws Exception;
 
@@ -88,7 +92,7 @@ public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN>, Checkp
                 try {
                     rollback();
                 } catch (Exception e) {
-                    // best effort
+                    LOG.warn("Rollback failed for pending transaction during recovery: {}", tx, e);
                 }
             }
             pending.clear();
