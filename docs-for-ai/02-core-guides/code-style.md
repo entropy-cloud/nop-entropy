@@ -20,7 +20,7 @@
 
 1. 避免 noisy refactor，diff 尽量聚焦。
 2. 日志使用 SLF4J，不使用 `System.out` / `System.err`。
-3. 错误处理优先 `NopException + ErrorCode + .param(...)`。
+3. 错误处理采用两档策略（详见 `./error-handling.md`）：公共 API 用 `NopException + ErrorCode + .param(...)`；模块内部可用模块级异常类 + 英文字符串消息。
 4. 不要把 Spring 专有注解、AOP 或注入模式当默认模板。
 
 ## IoC Bean 命名

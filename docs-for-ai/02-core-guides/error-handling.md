@@ -1,18 +1,25 @@
 # 错误处理与错误码
 
-当前仓库里，业务错误的默认写法是：
+## 两档策略
 
-**`NopException + ErrorCode + .param(...)`**
+根据代码的**消费方**选择错误处理方式：
 
-## 默认规则
+| 层次 | 适用场景 | 规范 |
+|------|---------|------|
+| **ErrorCode 模式** | 框架核心、跨模块公共 API、GraphQL 接口 | `NopException + ErrorCode + .param(...)` |
+| **模块异常类模式** | 模块内部实现、AI 驱动开发的增量代码 | 模块级异常类 + 英文字符串消息 |
 
-1. 业务错误使用 `NopException`。
-2. 统一定义 `ErrorCode`，不要随手抛 `RuntimeException("中文消息")`。
-3. 用 `.param(...)` 附带上下文参数。
-4. 保留原始异常链。
-5. 普通 BizModel 示例中，异常处理应与 `requireEntity()`、`updateEntity()` 这些安全 API 搭配出现。
+**判断依据**：该错误是否会被其他模块程序化消费（如按错误码匹配、国际化、前端展示）？如果是，用 ErrorCode；否则用模块异常类即可。
 
-## 默认写法
+---
+
+## 模式一：ErrorCode（框架/公共 API）
+
+### 默认规则
+
+1. 统一定义 `ErrorCode`，不要随手抛 `RuntimeException`。
+2. 用 `.param(...)` 附带上下文参数。
+3. 保留原始异常链。
 
 ### 定义错误码
 
@@ -22,7 +29,7 @@ public interface OrderErrors {
 
     ErrorCode ERR_ORDER_NOT_FOUND = ErrorCode.define(
         "nop.err.order.not-found",
-        "订单不存在:{orderId}",
+        "Order not found: {orderId}",
         ARG_ORDER_ID
     );
 }
@@ -44,25 +51,7 @@ catch (IOException e) {
 }
 ```
 
-## 普通 BizModel 中的推荐姿势
-
-1. 先用 `requireEntity()` 获取目标实体。
-2. 再做业务规则判断。
-3. 规则不满足时抛 `NopException`。
-
-## 不要这样写
-
-| 反模式 | 问题 |
-|--------|------|
-| `throw new RuntimeException("订单不存在")` | 没有稳定错误码，不利于 i18n 和 API 消费方处理 |
-| 丢失原始异常链 | 排查困难 |
-| 在普通 BizModel 示例中同时展示底层 DAO + 显式事务 | 容易把边界模式误当默认模板 |
-
-## 错误码设计建议
-
-### 命名
-
-推荐格式：
+### 错误码命名
 
 ```text
 nop.err.[模块].[子域].[错误]
@@ -76,11 +65,89 @@ nop.err.[模块].[子域].[错误]
 String ARG_ORDER_ID = "orderId";
 ```
 
+---
+
+## 模式二：模块异常类（内部实现 / AI 驱动开发）
+
+每个模块定义一个异常类，继承 `NopException`，接受英文字符串消息。错误消息统一使用**英文**。
+
+### 定义模块异常类
+
+```java
+// nop-ai-api 模块
+package io.nop.ai.api.exceptions;
+
+import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.exceptions.NopException;
+
+public class NopAiException extends NopException {
+    private static final long serialVersionUID = 1L;
+
+    public NopAiException(String message) {
+        super(message, null, true, true);
+    }
+
+    public NopAiException(String message, Throwable cause) {
+        super(message, cause, true, true);
+    }
+
+    public NopAiException(ErrorCode errorCode) {
+        super(errorCode);
+    }
+
+    public NopAiException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode, cause);
+    }
+}
+```
+
+**要点**：
+- 同时提供 `(String)` 和 `(ErrorCode)` 构造器——内部实现用字符串，公共 API 仍可用 ErrorCode
+- 调用 `super(message, null, true, true)` 匹配 `NopException` 的字符串构造器签名
+
+### 使用方式
+
+```java
+// 内部实现：直接使用英文字符串
+throw new NopAiException("LLM response is empty for prompt: " + promptName);
+
+// 包装底层异常
+throw new NopAiException("Failed to parse tool call response", e);
+
+// 仍然支持 ErrorCode（当需要稳定错误码时）
+throw new NopAiException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
+    .param(AiCoreErrors.ARG_LLM_NAME, llmName);
+```
+
+### 其他模块的参考实现
+
+`StreamException` / `StreamRuntimeException`（nop-stream 模块）采用相同模式：
+- `StreamRuntimeException extends NopException`
+- `StreamException extends StreamRuntimeException`
+- 均提供 `(String)` 和 `(ErrorCode)` 双构造器
+
+---
+
+## 普通 BizModel 中的推荐姿势
+
+1. 先用 `requireEntity()` 获取目标实体。
+2. 再做业务规则判断。
+3. 规则不满足时根据层次选择异常方式。
+
+## 不要这样写
+
+| 反模式 | 问题 |
+|--------|------|
+| `throw new RuntimeException("some message")` | 绕过框架异常体系，上层无法统一处理 |
+| 错误消息使用中文 | AI 读取英文消息更准确，避免编码问题 |
+| 丢失原始异常链 | 排查困难 |
+| 在普通 BizModel 示例中同时展示底层 DAO + 显式事务 | 容易把边界模式误当默认模板 |
+
 ## API 层的表现
 
-普通情况下，BizModel 抛出的 `NopException` 会被框架转换为结构化错误响应。对业务代码来说，最重要的是：
+BizModel 抛出的 `NopException`（包括子类）会被框架转换为结构化错误响应。对业务代码来说，最重要的是：
 
-1. 错误码稳定。
+1. 错误码/消息清晰。
 2. 参数完整。
 3. 异常链保留。
 

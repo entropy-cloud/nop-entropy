@@ -211,7 +211,7 @@ setx JAVA_HOME "$jdk"
 - **Formatting**: 4-space indentation, keep lines ~80–120 chars where reasonable
 - **Package names**: modules use `io.nop.<module-name>` (e.g., `io.nop.ai.core`, `io.nop.stream.core`)
 - **Imports**: grouped (java.* → jakarta.* → third-party → io.nop.*)
-- **Error handling**: Prefer `NopException` + ErrorCode for business errors; include parameters via `.param(...)`; log with SLF4J; do **not** hardcode Chinese error messages in code
+- **Error handling**: Two-tier strategy (see `docs-for-ai/02-core-guides/error-handling.md`): (1) Framework core & public APIs: `NopException` + `ErrorCode` + `.param(...)`. (2) Module internals & AI-driven code: module-level exception class (e.g. `NopAiException`) with English string messages. Never use bare `RuntimeException`. Error messages must be in English.
 - Avoid noisy refactors; keep diffs minimal and focused
 
 ---

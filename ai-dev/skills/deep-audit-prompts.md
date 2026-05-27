@@ -20,7 +20,7 @@
 | | 06 | Delta 定制合规性 | Delta 文件位置、x:extends 使用、升级兼容性 |
 | **C. 服务层与业务逻辑** | 07 | BizModel 规范遵循 | CrudBizModel 继承、注解使用、方法归属 |
 | | 08 | IoC 与 Bean 配置 | 注入方式、beans.xml 语法、生成文件不可手改 |
-| | 09 | 错误处理与错误码 | NopException 使用、ErrorCode 定义、异常链保留 |
+| | 09 | 错误处理与错误码 | 两档策略：公共 API 用 ErrorCode，内部实现可用模块异常类 + 英文字符串 |
 | **D. XLang 与模型层** | 10 | XDSL 与 XLang 正确性 | x:schema 引用、x:extends/x:override 语义、XDSL 合规 |
 | | 11 | XMeta 与 BizModel 对齐 | xmeta 字段与 BizModel 方法返回值、GraphQL schema 一致性 |
 | **E. 框架集成与运行时** | 12 | GraphQL 与 API 层 | GraphQL 引擎使用、selection 机制、字段权限 |
@@ -73,7 +73,7 @@
 2. **准备阶段**：
    a. 主 agent 读取目标模块的 `docs-for-ai/` 相关文档、`ai-dev/design/` 设计文档。
    b. 运行基础命令生成基线（如 Maven 依赖树、文件行数统计、checkstyle 等）。
-   c. 如果存在 `ai-dev/audits/` 下的历史审计报告，快速浏览已有发现类型，避免重复。
+   c. **禁止阅读 `ai-dev/audits/`、`ai-dev/plans/`、`ai-dev/bugs/`、`ai-dev/lessons/` 等历史记录**。只审计当前 live code，不要浪费时间回查历史。如果问题尚未修复，审计时自然会再次发现。
 3. **阶段一 — 迭代深挖**：
    a. 主 agent 用"共享提示词前缀 + 该维度正文"拼接出完整 prompt，派发**第 1 轮（初审）子 agent**。
    b. 初审完成后，将发现保存到 `ai-dev/audits/{日期}-deep-audit-{模块名}-{标识}/{维度编号}-{名}.md`。
@@ -741,25 +741,29 @@ Nop 平台常见误报校准（以下**不是**问题，不应作为审计发现
 
 审核维度 09：错误处理与错误码
 
-目标：检查错误处理是否遵循 NopException + ErrorCode 规范。
+目标：检查错误处理是否遵循两档策略（见 docs-for-ai/02-core-guides/error-handling.md）。
 
 必读文档：
 - docs-for-ai/02-core-guides/error-handling.md
-- 目标模块的 ErrorCode 定义和异常使用
+- 目标模块的 ErrorCode 定义、模块异常类和异常使用
+
+两档策略：
+- 框架核心、跨模块公共 API、GraphQL 接口：必须使用 ErrorCode 模式（NopException + ErrorCode + .param()）
+- 模块内部实现：可使用模块级异常类（如 NopAiException、StreamException）+ 英文字符串消息
 
 执行步骤：
 
-1. 搜索目标模块中所有 throw 语句，检查是否使用了 NopException。
-2. 检查是否有随手抛 RuntimeException("中文消息") 或 IllegalArgumentException 的反模式。
-3. 检查 ErrorCode 的定义是否规范：
-   - 错误码命名是否遵循 nop.err.{模块}.{错误描述} 格式
-   - 是否使用 ErrorCode.define() 定义
-   - 是否定义了参数常量（ARG_*）
-4. 检查 NopException 的 .param() 是否正确传递了上下文参数。
-5. 检查异常链是否被正确保留（catch 后 re-throw 是否传入 cause）。
-6. 检查是否有吞掉异常（catch 后什么都不做）的情况。
-7. 检查日志使用是否规范（SLF4J，不是 System.out/System.err）。
-8. 检查是否有硬编码中文错误消息（应使用错误码 + i18n）。
+1. 确认目标模块是否有模块级异常类（如 XxxException extends NopException）。如果有，检查是否同时提供 (String) 和 (ErrorCode) 构造器。
+2. 搜索目标模块中所有 throw 语句，检查是否使用了 NopException 或其子类。
+3. 检查是否有随手抛 RuntimeException 或 IllegalArgumentException 的反模式。
+4. 区分层次检查：
+   a. 公共 API（GraphQL、跨模块接口）：必须使用 ErrorCode，检查错误码命名是否遵循 nop.err.{模块}.{错误描述} 格式，是否使用 ErrorCode.define() 定义，是否定义了参数常量（ARG_*）。
+   b. 内部实现：如果使用模块异常类的字符串构造器，检查消息是否为英文、是否清晰描述了错误上下文。
+5. 检查 .param() 是否正确传递了上下文参数（ErrorCode 模式下）。
+6. 检查异常链是否被正确保留（catch 后 re-throw 是否传入 cause）。
+7. 检查是否有吞掉异常（catch 后什么都不做）的情况。
+8. 检查日志使用是否规范（SLF4J，不是 System.out/System.err）。
+9. 检查是否有硬编码中文错误消息（应使用英文）。
 
 输出格式：同标准发现格式。
 ```
