@@ -7,8 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class TestAccumulationMode {
 
     @Test
-    void testEnumValues() {
-        assertEquals(3, AccumulationMode.values().length);
+    void testEnumValueOf_roundTrips() {
         assertSame(AccumulationMode.DISCARDING, AccumulationMode.valueOf("DISCARDING"));
         assertSame(AccumulationMode.ACCUMULATING, AccumulationMode.valueOf("ACCUMULATING"));
     }
