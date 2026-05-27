@@ -19,29 +19,20 @@ class TestTypeScriptLanguageAdapter {
     }
 
     @Test
-    void testGetLanguage() {
+    void testAdapterMetadata_consistentLanguageAndExtensions() {
         assertEquals(CodeLanguage.TYPESCRIPT, adapter.getLanguage());
-    }
-
-    @Test
-    void testGetFileExtensions() {
         List<String> extensions = adapter.getFileExtensions();
         assertEquals(2, extensions.size());
         assertTrue(extensions.contains(".ts"));
         assertTrue(extensions.contains(".tsx"));
+        assertInstanceOf(TypeScriptCodeFileAnalyzer.class, adapter.getFileAnalyzer());
     }
 
     @Test
-    void testGetExcludePatterns() {
+    void testGetExcludePatterns_coversNodeModulesAndDist() {
         List<String> patterns = adapter.getExcludePatterns();
         assertTrue(patterns.contains("**/node_modules/**"));
         assertTrue(patterns.contains("**/dist/**"));
         assertTrue(patterns.contains("**/.git/**"));
-    }
-
-    @Test
-    void testGetFileAnalyzer() {
-        assertNotNull(adapter.getFileAnalyzer());
-        assertInstanceOf(TypeScriptCodeFileAnalyzer.class, adapter.getFileAnalyzer());
     }
 }

@@ -18,28 +18,19 @@ class TestPythonLanguageAdapter {
     }
 
     @Test
-    void testGetLanguage() {
+    void testAdapterMetadata_consistentLanguageAndExtensions() {
         assertEquals(CodeLanguage.PYTHON, adapter.getLanguage());
-    }
-
-    @Test
-    void testGetFileExtensions() {
         List<String> extensions = adapter.getFileExtensions();
         assertEquals(1, extensions.size());
-        assertEquals(".py", extensions.get(0));
+        assertTrue(extensions.contains(".py"));
+        assertInstanceOf(PythonCodeFileAnalyzer.class, adapter.getFileAnalyzer());
     }
 
     @Test
-    void testGetExcludePatterns() {
+    void testGetExcludePatterns_coversVenvAndPycache() {
         List<String> patterns = adapter.getExcludePatterns();
         assertTrue(patterns.contains("**/__pycache__/**"));
         assertTrue(patterns.contains("**/venv/**"));
         assertTrue(patterns.contains("**/.venv/**"));
-    }
-
-    @Test
-    void testGetFileAnalyzer() {
-        assertNotNull(adapter.getFileAnalyzer());
-        assertInstanceOf(PythonCodeFileAnalyzer.class, adapter.getFileAnalyzer());
     }
 }

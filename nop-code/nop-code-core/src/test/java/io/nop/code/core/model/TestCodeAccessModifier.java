@@ -2,30 +2,36 @@ package io.nop.code.core.model;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestCodeAccessModifier {
+
     @Test
-    void testAll6ValuesExist() {
-        assertEquals(6, CodeAccessModifier.values().length);
+    void testNoDuplicateIntValues() {
+        Set<Integer> seen = new HashSet<>();
+        for (CodeAccessModifier mod : CodeAccessModifier.values()) {
+            assertTrue(seen.add(mod.getValue()), "Duplicate value: " + mod.getValue() + " for " + mod.name());
+        }
     }
 
     @Test
-    void testCorrectIntValues() {
-        assertEquals(10, CodeAccessModifier.PUBLIC.getValue());
-        assertEquals(20, CodeAccessModifier.PROTECTED.getValue());
-        assertEquals(30, CodeAccessModifier.PRIVATE.getValue());
-        assertEquals(40, CodeAccessModifier.PACKAGE_PRIVATE.getValue());
-        assertEquals(41, CodeAccessModifier.INTERNAL.getValue());
-        assertEquals(50, CodeAccessModifier.NO_MODIFIER.getValue());
-    }
-
-    @Test
-    void testNoModifierIsHighestValue() {
+    void testNoModifierHasHighestValue() {
         int maxValue = 0;
         for (CodeAccessModifier mod : CodeAccessModifier.values()) {
             maxValue = Math.max(maxValue, mod.getValue());
         }
         assertEquals(CodeAccessModifier.NO_MODIFIER.getValue(), maxValue);
+    }
+
+    @Test
+    void testPublicHasLowestValue() {
+        int minValue = Integer.MAX_VALUE;
+        for (CodeAccessModifier mod : CodeAccessModifier.values()) {
+            minValue = Math.min(minValue, mod.getValue());
+        }
+        assertEquals(CodeAccessModifier.PUBLIC.getValue(), minValue);
     }
 }

@@ -19,33 +19,20 @@ class TestJavaLanguageAdapter {
     }
 
     @Test
-    void testGetLanguage() {
+    void testAdapterMetadata_consistentLanguageAndExtensions() {
         assertEquals(CodeLanguage.JAVA, adapter.getLanguage());
-    }
-
-    @Test
-    void testGetFileExtensions() {
         List<String> extensions = adapter.getFileExtensions();
         assertEquals(1, extensions.size());
-        assertEquals(".java", extensions.get(0));
-    }
-
-    @Test
-    void testGetExcludePatterns() {
-        List<String> patterns = adapter.getExcludePatterns();
-        assertTrue(patterns.contains("**/target/**"),
-                "Should exclude target directory");
-        assertTrue(patterns.contains("**/build/**"),
-                "Should exclude build directory");
-        assertTrue(patterns.contains("**/.git/**"),
-                "Should exclude .git directory");
-        assertTrue(patterns.contains("**/node_modules/**"),
-                "Should exclude node_modules directory");
-    }
-
-    @Test
-    void testGetFileAnalyzer() {
-        assertNotNull(adapter.getFileAnalyzer());
+        assertTrue(extensions.contains(".java"));
         assertInstanceOf(JavaFileAnalyzer.class, adapter.getFileAnalyzer());
+    }
+
+    @Test
+    void testGetExcludePatterns_coversBuildAndVcsDirs() {
+        List<String> patterns = adapter.getExcludePatterns();
+        assertTrue(patterns.contains("**/target/**"));
+        assertTrue(patterns.contains("**/build/**"));
+        assertTrue(patterns.contains("**/.git/**"));
+        assertTrue(patterns.contains("**/node_modules/**"));
     }
 }

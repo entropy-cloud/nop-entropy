@@ -65,60 +65,47 @@ public class TestNopSearchIntegration extends JunitAutoTestCase {
 
     @SuppressWarnings("unchecked")
     @Test
-    void testSearchFallbackWithoutSearchEngine() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("indexId", currentIndexId);
-        data.put("query", "User");
-        data.put("searchType", "COMBINED");
-        ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
-
-        assertTrue(response.isOk());
-        assertNotNull(response.getData());
-        List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
-        assertNotNull(results, "searchCode should return non-null list (fallback to DB LIKE query)");
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    void testSearchBySymbolNameReturnsResults() {
+    void testSearchBySymbolName_returnsResults() {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", currentIndexId);
         data.put("query", "User");
         data.put("searchType", "SYMBOL_NAME");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
 
-        assertTrue(response.isOk());
-        assertNotNull(response.getData());
+        assertTrue(response.isOk(), "searchCode SYMBOL_NAME should succeed, status=" + response.getStatus());
         List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
-        assertNotNull(results);
+        assertFalse(results.isEmpty(), "Searching 'User' should find at least one symbol");
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    void testSearchCombinedReturnsResults() {
+    void testSearchCombined_returnsResults() {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", currentIndexId);
         data.put("query", "setName");
         data.put("searchType", "COMBINED");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
 
-        assertTrue(response.isOk());
-        assertNotNull(response.getData());
+        assertTrue(response.isOk(), "searchCode COMBINED should succeed, status=" + response.getStatus());
         List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
-        assertNotNull(results);
+        assertFalse(results.isEmpty(), "Searching 'setName' should find at least one symbol");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    void testSearchEmptyQueryReturnsResponse() {
+    void testSearchEmptyQuery_doesNotThrow() {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", currentIndexId);
         data.put("query", "");
         data.put("searchType", "COMBINED");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
-        assertNotNull(response);
 
-        if (response.isOk()) {
-            assertNotNull(response.getData());
+        if (!response.isOk()) {
+            System.out.println("searchCode with empty query returned status=" + response.getStatus());
+            return;
         }
+
+        List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
+        assertNotNull(results);
     }
 }
