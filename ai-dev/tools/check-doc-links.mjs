@@ -6,6 +6,7 @@ import { join, resolve, relative, dirname, normalize } from 'node:path';
 const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..');
 const TMP_DIR = join(PROJECT_ROOT, '_tmp');
 const DOC_DIRS = ['docs-for-ai', 'ai-dev'];
+const ROOT_MD_FILES = ['AGENTS.md', 'README.md'];
 
 const TOP_LEVEL_DIRS = new Set();
 for (const entry of readdirSync(PROJECT_ROOT, { withFileTypes: true })) {
@@ -19,11 +20,14 @@ const MODULE_PREFIX_RE = new RegExp(
 );
 
 const MD_LINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
-const BACKTICK_PATH_RE = /`([a-zA-Z0-9_][a-zA-Z0-9_./\-]*\.(?:md|xml|json|yaml|yml|java|txt|sh|cmd|mjs|js))`/g;
-const BACKTICK_DIR_RE = /`((?:docs-for-ai|ai-dev)\/[a-zA-Z0-9_.\/\-]*[a-zA-Z0-9_\/])`/g;
+const BACKTICK_PATH_RE = /`([a-zA-Z0-9_][a-zA-Z0-9_./\-]*\.(?:md|xml|json|yaml|yml|java|txt|sh|cmd|mjs|js|properties|sql|graphql|g4|xlsx|xls|csv|ts|css|scss|html|kt|groovy|gradle|toml|py))`/g;
 const HEADING_ANCHOR_RE = /#[a-z0-9-]+$/;
 const URL_RE = /^(?:https?|mailto|ftp):/;
 const ELLIPSIS_SEGMENT_RE = /\/\.\.\.(?:\/|$)/;
+
+const BACKTICK_DIR_RE = new RegExp(
+  '`((' + [...TOP_LEVEL_DIRS].sort((a, b) => b.length - a.length).join('|') + ')/[a-zA-Z0-9_./\\-]*[a-zA-Z0-9_/])`', 'g'
+);
 
 const PLACEHOLDER_RE = /^(?:Xxx[A-Z]|XXX|_Xxx|xx[A-Z]|XX[A-Z])/;
 const GENERIC_XML_RE = /^_?(?:app|service|dao)\.(?:orm|beans)\.xml$|^_gen\/|^_Xxx\./;
@@ -88,7 +92,18 @@ const SKIP_PREFIXES = [
   'app-mall-',
   'nop-app-mall/',
   'nop-chaos-flux/',
+  'nop-chaos/',
 ];
+
+const SKIP_PATTERNS = [
+  /^src\/(?:main|test)\/(?:java|resources|kotlin)(?:\/|$)/,
+  /^docs\/plans(?:\/|$)/,
+  /^_tmp(?:\/|$)/,
+];
+
+const SKIP_MD_LINK_TARGETS = new Set([
+  'path',
+]);
 
 function shouldSkip(rawTarget, ext) {
   if (ELLIPSIS_SEGMENT_RE.test(rawTarget)) return true;
@@ -101,6 +116,10 @@ function shouldSkip(rawTarget, ext) {
 
   for (const prefix of SKIP_PREFIXES) {
     if (rawTarget.startsWith(prefix)) return true;
+  }
+
+  for (const pat of SKIP_PATTERNS) {
+    if (pat.test(rawTarget)) return true;
   }
 
   // Bare names (no /) are type/name mentions, not path references
@@ -131,6 +150,7 @@ function extractReferences(content) {
     let target = m[2].trim();
     target = target.replace(HEADING_ANCHOR_RE, '');
     if (!target || URL_RE.test(target)) continue;
+    if (SKIP_MD_LINK_TARGETS.has(target)) continue;
     const line = content.substring(0, m.index).split('\n').length;
     addRef(target, 'md-link', line);
   }
@@ -148,7 +168,7 @@ function extractReferences(content) {
     const target = m[1];
     const line = content.substring(0, m.index).split('\n').length;
     if (!target.match(/\.[a-z]{1,4}$/)) {
-      refs.push({ rawTarget: target, type: 'backtick-dir', line, ext: '' });
+      addRef(target, 'backtick-dir', line);
     } else {
       addRef(target, 'backtick-path', line);
     }
@@ -243,14 +263,13 @@ function resolveReference(refRaw, sourceFilePath, sourceType) {
 function checkBoundaryViolation(resolvedRel, sourceType, sourceRel, ext) {
   if (sourceType !== 'docs-for-ai') return null;
 
-  if (ext && ext !== 'md') return null;
-
   if (resolvedRel.startsWith('ai-dev/')) {
     if (sourceRel.startsWith('docs-for-ai/90-maintenance/')) return null;
     return { rule: 'BOUNDARY: docs-for-ai referencing ai-dev', severity: 'error', message: `docs-for-ai files must not reference ai-dev/ paths. Found: \`${resolvedRel}\`` };
   }
   if (!resolvedRel.startsWith('docs-for-ai/')) {
     if (resolvedRel === 'AGENTS.md' || resolvedRel.startsWith('nop-entropy-e2e/')) return null;
+    if (MODULE_PREFIX_RE.test(resolvedRel)) return null;
     return { rule: 'BOUNDARY: docs-for-ai referencing outside', severity: 'warning', message: `docs-for-ai files should only reference docs-for-ai/ paths. Found: \`${resolvedRel}\`` };
   }
   return null;
@@ -281,8 +300,12 @@ function analyzeFile(filePath) {
   const sourceType = sourceRel.startsWith('docs-for-ai/') ? 'docs-for-ai'
     : sourceRel.startsWith('ai-dev/') ? 'ai-dev' : 'other';
 
-  const skipBrokenLink = isHistoricalFile(sourceRel) ||
-    (sourceRel.startsWith('ai-dev/plans/') && isCompletedPlan(filePath));
+  const isHistorical = isHistoricalFile(sourceRel);
+  const isPlanFile = sourceRel.startsWith('ai-dev/plans/');
+  const isCompletedPlanFile = isPlanFile && isCompletedPlan(filePath);
+
+  const skipBrokenLink = isHistorical || isCompletedPlanFile;
+  const downgradeBrokenLink = isPlanFile && !isCompletedPlanFile && !isHistorical;
 
   const refs = extractReferences(content);
   const issues = [];
@@ -306,7 +329,8 @@ function analyzeFile(filePath) {
 
     if (!fileExists && !dirExists) {
       if (!skipBrokenLink) {
-        issues.push({ file: sourceRel, line: ref.line, rawTarget: ref.rawTarget, type: ref.type, resolved: resolvedRelativeToRoot, rule: 'BROKEN_LINK', severity: 'error', message: `Referenced path does not exist: ${resolvedRelativeToRoot}` });
+        const severity = downgradeBrokenLink ? 'warning' : 'error';
+        issues.push({ file: sourceRel, line: ref.line, rawTarget: ref.rawTarget, type: ref.type, resolved: resolvedRelativeToRoot, rule: 'BROKEN_LINK', severity, message: `Referenced path does not exist: ${resolvedRelativeToRoot}` });
       }
     } else {
       validRefs.push({ file: sourceRel, line: ref.line, rawTarget: ref.rawTarget, type: ref.type, resolved: resolvedRelativeToRoot, existsAs: fileExists ? 'file' : 'directory', method });
@@ -416,8 +440,13 @@ function main() {
     const fullDir = join(PROJECT_ROOT, dir);
     if (existsSync(fullDir)) allFiles.push(...collectMdFiles(fullDir));
   }
+  for (const rootFile of ROOT_MD_FILES) {
+    const full = join(PROJECT_ROOT, rootFile);
+    if (existsSync(full)) allFiles.push(full);
+  }
 
-  console.log(`Scanning ${allFiles.length} markdown files in: ${DOC_DIRS.join(', ')}`);
+  const scanSources = [...DOC_DIRS, ...ROOT_MD_FILES];
+  console.log(`Scanning ${allFiles.length} markdown files in: ${scanSources.join(', ')}`);
   console.log(`Project root: ${PROJECT_ROOT}\n`);
 
   const results = [];

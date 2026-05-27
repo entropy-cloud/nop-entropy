@@ -1,45 +1,111 @@
 # ai-dev/tools/
 
-开发辅助工具集。每个工具可独立运行。
+AI-assisted development tools for nop-entropy. A self-contained pnpm project.
 
-## 工具索引
-
-| 脚本 | 用途 | 运行 |
-|------|------|------|
-| `check-doc-links.mjs` | 检查 `docs-for-ai/` 和 `ai-dev/` 下所有 `.md` 文件的路径引用是否指向存在的文件 | `node ai-dev/tools/check-doc-links.mjs [--strict]` |
-
-## check-doc-links.mjs
-
-检查 markdown 文件中反引号路径和 `[链接]path` 是否指向存在的文件或目录。
+## Quick Start
 
 ```bash
-# 基本运行，输出报告但不阻断
-node ai-dev/tools/check-doc-links.mjs
-
-# 严格模式，有 error 时 exit code 1（用于 CI）
-node ai-dev/tools/check-doc-links.mjs --strict
+cd ai-dev/tools
+pnpm install       # first time only
+pnpm check         # run all checks
 ```
 
-### 跳过规则
+## Tool Index
 
-以下路径会被跳过不检查：
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `check-doc-links.mjs` | Check `docs-for-ai/` and `ai-dev/` markdown path references | `pnpm check:doc-links` |
+| `check-import-order.mjs` | Check Java import grouping: `java.* → jakarta.* → third-party → io.nop.*` | `pnpm check:import-order` |
+| `check-oversized-files.mjs` | Detect oversized source files (>500 lines warn, >700 error) | `pnpm check:oversized` |
+| `check-docs-garbled.mjs` | Detect garbled/corrupted Unicode in documentation | `pnpm check:garbled` |
+| `code-stats.mjs` | Per-module code statistics (files, LOC, test ratio) | `pnpm stats` |
+| `check-plan-checklist.mjs` | Verify all plan checklist items are checked before closure | `pnpm check:plan` |
+| `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
 
-- **占位符**：basename 以 `XX`、`Xxx` 等大写占位符开头的（如 `_gen/_Xxx.view.xml`）
-- **模板路径**：`/XX-` 或 `/xxx[/.]` 片段
-- **精确白名单**（`SKIP_TARGETS`，按需维护）：`view.xml/page.yaml`（两种文件类型并称）、`docs-for-ai/XX.md`（模板占位）、`_gen/_LitemallGoods.view.xml`（外部项目）
-- **外部项目前缀**（`SKIP_PREFIXES`）：`app-mall-`、`nop-app-mall/`、`nop-chaos-flux/`
-- **历史文件**：`ai-dev/logs/`、`ai-dev/analysis/`、`ai-dev/audits/`、`*/archive/` 下的文件跳过 BROKEN_LINK 检查
-- **已完成计划**：`ai-dev/plans/` 中标记 `Plan Status: completed` 的文件跳过 BROKEN_LINK 检查
-- **BOUNDARY 豁免**：`docs-for-ai/90-maintenance/` 允许引用 `ai-dev/`；`AGENTS.md`、`nop-entropy-e2e/` 允许外部引用
-- **单文件跳过**：`ai-dev/plans/50-doc-link-check-fix-all.md`（该计划本身描述的就是要修复的问题路径）
+## Per-Tool Details
 
-### 输出
+### check-doc-links.mjs
 
-报告写入 `_tmp/` 目录（JSON + Markdown），同时输出到终端。
+Checks markdown files for broken path references (backtick paths and `[link](path)` syntax).
 
-## 新增工具的约定
+```bash
+node check-doc-links.mjs              # report only
+node check-doc-links.mjs --strict     # exit 1 on errors (CI mode)
+```
 
-1. 工具脚本放 `ai-dev/tools/`，扩展名 `.mjs`
-2. 在本文件的"工具索引"表格中登记
-3. 每个工具脚本头部注释写清用途和参数
-4. `PROJECT_ROOT` 通过 `resolve(import.meta.dirname, '..', '..')` 获取
+Skip rules: placeholder paths (`Xxx`), `_gen/` files, `ai-dev/logs/`, completed plans, and a configurable whitelist.
+
+### check-import-order.mjs
+
+Verifies Java import ordering convention: `java.* → jakarta.* → third-party → io.nop.*`.
+
+```bash
+node check-import-order.mjs                       # all modules
+node check-import-order.mjs --module nop-stream   # single module
+node check-import-order.mjs --fix                 # show fix hints
+```
+
+Migrated from `check-import-order.sh` (original shell script preserved for reference).
+
+### check-oversized-files.mjs
+
+Finds Java files exceeding size thresholds. Defaults: warn at 500, error at 700 lines.
+
+```bash
+node check-oversized-files.mjs                          # defaults
+node check-oversized-files.mjs --module nop-stream      # single module
+node check-oversized-files.mjs --warn 400 --error 600   # custom thresholds
+```
+
+Adapted from `nop-chaos-flux/scripts/check-oversized-code-files.mjs`.
+
+### check-docs-garbled.mjs
+
+Scans `docs-for-ai/` and `ai-dev/` for garbled Unicode: mojibake, zero-width chars, BOM, control chars.
+
+```bash
+node check-docs-garbled.mjs
+```
+
+Reports written to `_tmp/docs-garbled-check/`. Exit 1 if likely-garbled files found.
+
+Adapted from `nop-chaos-flux/scripts/check-docs-garbled.mjs`.
+
+### code-stats.mjs
+
+Per-module Java code statistics: file counts, LOC breakdown (code/comment/blank), test-to-source ratio.
+
+```bash
+node code-stats.mjs                        # all modules
+node code-stats.mjs --module nop-stream    # single module
+```
+
+Adapted from `nop-chaos-flux/scripts/code-stats.mjs`.
+
+### check-plan-checklist.mjs
+
+Verifies that plan files in `ai-dev/plans/` have all checklist items checked (`[x]`) before the plan can be marked as `completed`. Also checks for Closure Evidence.
+
+```bash
+node check-plan-checklist.mjs                                    # all plans
+node check-plan-checklist.mjs 57-nop-stream-code-cleanup.md      # single plan
+node check-plan-checklist.mjs --strict                            # exit 1 on any failures
+node check-plan-checklist.mjs --verbose                           # show passing plans too
+```
+
+Checks performed:
+- All `- [ ]` items must be `- [x]` if plan status is `completed`
+- Each Phase/Workstream section is analyzed for unchecked items
+- Closure Gates must be fully checked
+- Closure Evidence must be present in the `Closure` section
+- Draft/pending plan broken links are reported as warnings, not errors
+
+Required by: `ai-dev/plans/00-plan-authoring-and-execution-guide.md` (Rule #26), `ai-dev/skills/codex-goal-driven-development-prompt.md` (C-4.1, C-4.2, C-6).
+
+## Adding New Tools
+
+1. Create `your-tool.mjs` in `ai-dev/tools/`
+2. Add script entry to `package.json` under `"scripts"`
+3. Register in the Tool Index table above
+4. Get `PROJECT_ROOT` via: `const PROJECT_ROOT = new URL('../../..', import.meta.url).pathname;`
+5. If you need external deps: `pnpm add <package>`

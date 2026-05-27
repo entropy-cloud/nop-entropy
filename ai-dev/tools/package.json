@@ -1,0 +1,22 @@
+{
+  "name": "nop-ai-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-assisted development tools for nop-entropy",
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "check:doc-links": "node check-doc-links.mjs",
+    "check:doc-links:strict": "node check-doc-links.mjs --strict",
+    "check:import-order": "node check-import-order.mjs",
+    "check:import-order:module": "node check-import-order.mjs --module",
+    "check:oversized": "node check-oversized-files.mjs",
+    "check:garbled": "node check-docs-garbled.mjs",
+    "stats": "node code-stats.mjs",
+    "check:plan": "node check-plan-checklist.mjs",
+    "check:plan:strict": "node check-plan-checklist.mjs --strict",
+    "check": "pnpm run check:doc-links:strict && pnpm run check:import-order && pnpm run check:oversized && pnpm run check:garbled"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
