@@ -17,6 +17,9 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 public class SubtaskTask implements Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubtaskTask.class);
@@ -36,10 +39,10 @@ public class SubtaskTask implements Runnable {
 
     public SubtaskTask(Subtask subtask, JobVertex jobVertex) {
         if (subtask == null) {
-            throw new StreamException("Subtask cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "subtask");
         }
         if (jobVertex == null) {
-            throw new StreamException("JobVertex cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jobVertex");
         }
         this.subtask = subtask;
         this.jobVertex = jobVertex;

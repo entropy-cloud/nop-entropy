@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.execution.*;
@@ -188,7 +189,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
             }
         }
         if (!failures.isEmpty()) {
-            RuntimeException ex = new RuntimeException(
+            StreamException ex = new StreamException(
                     failures.size() + " task(s) failed during distributed execution");
             for (Throwable t : failures) {
                 ex.addSuppressed(t);

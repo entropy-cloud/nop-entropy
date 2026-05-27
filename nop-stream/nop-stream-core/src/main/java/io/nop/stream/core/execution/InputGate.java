@@ -21,6 +21,9 @@ import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Manages multiple {@link InputChannel} instances and provides merged reading
  * with optional barrier alignment and watermark merging.
@@ -83,7 +86,7 @@ public class InputGate {
      */
     public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig, boolean barrierAlignment) {
         if (channels == null || channels.isEmpty()) {
-            throw new StreamException("Channels must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "channels");
         }
         this.channels = new ArrayList<>(channels);
         this.edgeConfig = edgeConfig;
@@ -113,7 +116,7 @@ public class InputGate {
      */
     public InputGate(InputChannel channel, EdgeConfig edgeConfig) {
         if (channel == null) {
-            throw new StreamException("InputChannel must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "channel");
         }
         this.channels = new ArrayList<>();
         this.channels.add(channel);

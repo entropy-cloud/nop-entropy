@@ -9,7 +9,7 @@ package io.nop.stream.core.common.typeinfo;
 
 import java.io.*;
 
-public class SimpleTypeSerializer<T> implements TypeSerializer<T> {
+public class SimpleTypeSerializer<T> implements SimpleSerializer<T> {
 
     private static final long serialVersionUID = 1L;
 

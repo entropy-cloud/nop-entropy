@@ -16,6 +16,9 @@ import org.slf4j.LoggerFactory;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * A bounded buffer that holds {@link StreamElement} instances for inter-task data exchange.
  *
@@ -55,7 +58,7 @@ public class ResultPartition implements IWriteStatus {
      */
     public ResultPartition(int capacity) {
         if (capacity <= 0) {
-            throw new StreamException("Capacity must be positive, got: " + capacity);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "capacity").param(ARG_DETAIL, "must be positive, got: " + capacity);
         }
         this.queue = new LinkedBlockingQueue<>(capacity);
         this.finished = false;
@@ -70,7 +73,7 @@ public class ResultPartition implements IWriteStatus {
      */
     public void write(StreamElement element) throws InterruptedException {
         if (element == null) {
-            throw new StreamException("Element must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
         if (finished) {
             throw new IllegalStateException("Cannot write to a finished ResultPartition");

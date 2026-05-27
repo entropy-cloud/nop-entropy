@@ -9,7 +9,12 @@ package io.nop.stream.core.common.typeinfo;
 
 import java.io.Serializable;
 
-public interface TypeSerializer<T> extends Serializable {
+/**
+ * Simple byte-level serializer for basic types.
+ * Not to be confused with {@link io.nop.stream.core.common.typeutils.TypeSerializer}
+ * which is the full-featured Flink-compatible serializer.
+ */
+public interface SimpleSerializer<T> extends Serializable {
     byte[] serialize(T value) throws Exception;
 
     T deserialize(byte[] data) throws Exception;

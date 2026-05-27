@@ -30,6 +30,8 @@ import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**
  * Invokable that executes a streaming pipeline through the graph model path,
@@ -59,7 +61,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     public StreamTaskInvokable(OperatorChain operatorChain) {
         if (operatorChain == null) {
-            throw new StreamException("OperatorChain cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
         }
         this.operatorChain = operatorChain;
         this.outputWriter = null;
@@ -72,7 +74,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                                RecordWriter<?> outputWriter,
                                InputGate inputGate) {
         if (operatorChain == null) {
-            throw new StreamException("OperatorChain cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
         }
         this.operatorChain = operatorChain;
         this.outputWriter = (RecordWriter<Object>) outputWriter;

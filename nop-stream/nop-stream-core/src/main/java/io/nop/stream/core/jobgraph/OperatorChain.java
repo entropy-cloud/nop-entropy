@@ -20,6 +20,9 @@ import java.util.List;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Represents a chain of operators that are executed together in a single task for optimization.
  *
@@ -75,7 +78,7 @@ public class OperatorChain implements Serializable {
     public OperatorChain(List<io.nop.stream.core.operators.StreamOperator<?>> operators,
                          List<KeySelector<?, ?>> keySelectors) {
         if (operators == null || operators.isEmpty()) {
-            throw new StreamException("Operators list cannot be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operators");
         }
         this.operators = new ArrayList<>(operators);
         this.keySelectors = keySelectors != null ? new ArrayList<>(keySelectors) : Collections.emptyList();

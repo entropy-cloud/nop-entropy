@@ -20,6 +20,8 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 public class TumblingProcessingTimeWindows extends WindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;
 
@@ -27,7 +29,7 @@ public class TumblingProcessingTimeWindows extends WindowAssigner<Object, TimeWi
 
     protected TumblingProcessingTimeWindows(long size) {
         if (size <= 0) {
-            throw new StreamException("Window size must be positive.");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size").param(ARG_DETAIL, "must be positive");
         }
         this.size = size;
     }

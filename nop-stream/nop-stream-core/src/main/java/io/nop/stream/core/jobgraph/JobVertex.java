@@ -13,6 +13,9 @@ import java.util.Collections;
 import java.util.List;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Represents a vertex (node) in the streaming job execution graph.
  *
@@ -95,19 +98,19 @@ public class JobVertex implements Serializable {
     public JobVertex(String id, String name, int parallelism,
                       List<OperatorChain> operatorChains, Invokable<?> invokable) {
         if (id == null) {
-            throw new StreamException("Vertex ID cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "id");
         }
         if (name == null) {
-            throw new StreamException("Vertex name cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "name");
         }
         if (parallelism <= 0) {
-            throw new StreamException("Parallelism must be greater than 0, got: " + parallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "parallelism").param(ARG_DETAIL, "must be greater than 0, got: " + parallelism);
         }
         if (operatorChains == null || operatorChains.isEmpty()) {
-            throw new StreamException("Operator chains cannot be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChains");
         }
         if (invokable == null) {
-            throw new StreamException("Invokable cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "invokable");
         }
 
         this.id = id;

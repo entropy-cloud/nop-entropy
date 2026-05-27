@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Represents the streaming topology as a Directed Acyclic Graph (DAG).
  * This is the core data structure that captures the structure of a streaming
@@ -78,14 +81,12 @@ public class StreamGraph implements Serializable {
      */
     public void addStreamNode(StreamNode node) {
         if (node == null) {
-            throw new StreamException("StreamNode cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "node");
         }
         
         int nodeId = node.getId();
         if (streamNodes.containsKey(nodeId)) {
-            throw new StreamException(
-                "StreamNode with ID " + nodeId + " already exists in the graph"
-            );
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "StreamNode with ID " + nodeId + " already exists in the graph");
         }
         
         streamNodes.put(nodeId, node);
@@ -100,7 +101,7 @@ public class StreamGraph implements Serializable {
      */
     public void addStreamEdge(StreamEdge edge) {
         if (edge == null) {
-            throw new StreamException("StreamEdge cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "edge");
         }
         
         int sourceId = edge.getSourceId();
@@ -108,14 +109,10 @@ public class StreamGraph implements Serializable {
         
         // Verify that both source and target nodes exist
         if (!streamNodes.containsKey(sourceId)) {
-            throw new StreamException(
-                "Source node " + sourceId + " does not exist in the graph"
-            );
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Source node " + sourceId + " does not exist in the graph");
         }
         if (!streamNodes.containsKey(targetId)) {
-            throw new StreamException(
-                "Target node " + targetId + " does not exist in the graph"
-            );
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Target node " + targetId + " does not exist in the graph");
         }
         
         // Add edge to the edges map

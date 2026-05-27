@@ -17,6 +17,9 @@ import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * StreamElement 的编码器/解码器，将 {@link StreamElement} 与 {@link StreamMessageEnvelope} 互转。
  *
@@ -41,7 +44,7 @@ public class StreamElementCodec {
      */
     public static StreamMessageEnvelope encode(StreamElement element, String valueType, String fencingToken, long epochId) {
         if (element == null) {
-            throw new StreamException("element must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
 
         if (element.isRecord()) {
@@ -70,7 +73,7 @@ public class StreamElementCodec {
                     StreamMessageEnvelope.TYPE_WATERMARK_STATUS, null, element.asWatermarkStatus());
         }
 
-        throw new StreamException("Unsupported StreamElement type: " + element.getClass().getName());
+        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Unsupported StreamElement type: " + element.getClass().getName());
     }
 
     /**
@@ -82,12 +85,12 @@ public class StreamElementCodec {
     @SuppressWarnings("unchecked")
     public static StreamElement decode(StreamMessageEnvelope envelope) {
         if (envelope == null) {
-            throw new StreamException("envelope must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "envelope");
         }
 
         String type = envelope.getType();
         if (type == null) {
-            throw new StreamException("envelope type must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "type");
         }
 
         switch (type) {
@@ -132,7 +135,7 @@ public class StreamElementCodec {
             }
 
             default:
-                throw new StreamException("Unsupported envelope type: " + type);
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Unsupported envelope type: " + type);
         }
     }
 
@@ -145,7 +148,7 @@ public class StreamElementCodec {
             CheckpointType cpType = cpTypeName != null ? CheckpointType.valueOf(cpTypeName) : CheckpointType.CHECKPOINT;
             return new CheckpointBarrier(id, timestamp, cpType);
         }
-        throw new StreamException("Cannot decode CheckpointBarrier from payload: " + payload);
+        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Cannot decode CheckpointBarrier from payload: " + payload);
     }
 
     private static Watermark decodeWatermarkFromPayload(Object payload) {
@@ -157,7 +160,7 @@ public class StreamElementCodec {
             long timestamp = ((Number) map.get("timestamp")).longValue();
             return new Watermark(timestamp);
         }
-        throw new StreamException("Cannot decode Watermark from payload: " + payload);
+        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Cannot decode Watermark from payload: " + payload);
     }
 
     private static WatermarkStatus decodeWatermarkStatusFromPayload(Object payload) {
@@ -169,6 +172,6 @@ public class StreamElementCodec {
             int status = ((Number) map.get("status")).intValue();
             return new WatermarkStatus(status);
         }
-        throw new StreamException("Cannot decode WatermarkStatus from payload: " + payload);
+        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Cannot decode WatermarkStatus from payload: " + payload);
     }
 }

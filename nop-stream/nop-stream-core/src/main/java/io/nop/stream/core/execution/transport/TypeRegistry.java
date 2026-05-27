@@ -10,6 +10,9 @@ package io.nop.stream.core.execution.transport;
 import java.util.concurrent.ConcurrentHashMap;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * 边（edge）到输出类型类名的注册表。
  *
@@ -28,10 +31,10 @@ public class TypeRegistry {
      */
     public void register(String edgeId, String outputTypeClassName) {
         if (edgeId == null || edgeId.isEmpty()) {
-            throw new StreamException("edgeId must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "edgeId");
         }
         if (outputTypeClassName == null || outputTypeClassName.isEmpty()) {
-            throw new StreamException("outputTypeClassName must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputTypeClassName");
         }
         edgeToOutputType.put(edgeId, outputTypeClassName);
     }

@@ -28,6 +28,8 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 /**
  * A {@link WindowAssigner} that windows elements into windows based on the timestamp of the
  * elements. Windows cannot overlap.
@@ -51,11 +53,11 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
 
     protected TumblingEventTimeWindows(long size, long offset, WindowStagger windowStagger) {
         if (size <= 0) {
-            throw new StreamException("Window size must be positive.");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size").param(ARG_DETAIL, "must be positive");
         }
         if (offset >= size || offset < 0) {
-            throw new StreamException(
-                    "Window offset must be in [0, size), but is " + offset);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "offset")
+                    .param(ARG_DETAIL, "must be in [0, size), but is " + offset);
         }
         this.size = size;
         this.globalOffset = offset;
@@ -72,8 +74,7 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
                             timestamp, (globalOffset + windowStagger.getStaggerOffset(context.getCurrentProcessingTime(), size)), size);
             return Collections.singletonList(new TimeWindow(start, start + size));
         } else {
-            throw new StreamException(
-                    "Record has Long.MIN_VALUE timestamp (= no timestamp marker). "
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Record has Long.MIN_VALUE timestamp (= no timestamp marker). "
                             + "Is the time characteristic set to 'ProcessingTime', or "
                             + "did you forget to call 'DataStream.assignTimestampsAndWatermarks(...)'?");
         }

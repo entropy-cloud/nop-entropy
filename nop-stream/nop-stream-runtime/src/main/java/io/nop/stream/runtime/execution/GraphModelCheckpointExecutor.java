@@ -320,7 +320,7 @@ public class GraphModelCheckpointExecutor {
                 }
             }
         } catch (Exception e) {
-            LOG.warn("Failed to trigger terminal savepoint", e);
+            LOG.error("Failed to trigger terminal savepoint", e);
         }
     }
 
@@ -336,7 +336,7 @@ public class GraphModelCheckpointExecutor {
                     invokable.getOutputWriter().close();
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to stop source invokable", e);
+                LOG.error("Failed to stop source invokable", e);
             }
         }
     }
@@ -468,7 +468,7 @@ public class GraphModelCheckpointExecutor {
                     triggerBarrierOnAllInvokables(allInvokables, pending);
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to inject checkpoint barrier", e);
+                LOG.error("Failed to inject checkpoint barrier", e);
             }
         }, config.getCheckpointInterval(), config.getCheckpointInterval(), TimeUnit.MILLISECONDS);
 
@@ -502,7 +502,7 @@ public class GraphModelCheckpointExecutor {
                 triggerBarrierOnAllInvokables(allInvokables, finalPending);
             }
         } catch (Exception e) {
-            LOG.warn("Failed to trigger final checkpoint", e);
+            LOG.error("Failed to trigger final checkpoint", e);
         }
     }
 

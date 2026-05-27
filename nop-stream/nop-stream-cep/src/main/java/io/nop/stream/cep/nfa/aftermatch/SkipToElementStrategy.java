@@ -27,7 +27,7 @@ import java.util.Optional;
 import static io.nop.api.core.util.Guard.notNull;
 
 import io.nop.stream.cep.nfa.sharedbuffer.EventId;
-import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.exceptions.StreamException;
 
 abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
     private static final long serialVersionUID = 7127107527654629026L;
@@ -56,7 +56,7 @@ abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
             List<EventId> pruningPattern = resultMap.get(patternName);
             if (pruningPattern == null || pruningPattern.isEmpty()) {
                 if (shouldThrowException) {
-                    throw new StreamRuntimeException(
+                    throw new StreamException(
                             String.format(
                                     "Could not skip to %s. No such element in the found match %s",
                                     patternName, resultMap));
@@ -76,7 +76,7 @@ abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
                                                         "Cannot prune based on empty match"));
 
                 if (pruningId != null && pruningId.equals(startEvent)) {
-                    throw new StreamRuntimeException("Could not skip to first element of a match.");
+                    throw new StreamException("Could not skip to first element of a match.");
                 }
             }
         }

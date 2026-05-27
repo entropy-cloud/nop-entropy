@@ -29,6 +29,9 @@ import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Generates an optimized JobGraph from a StreamGraph through operator chaining.
  *
@@ -105,7 +108,7 @@ public class JobGraphGenerator implements Serializable {
      */
     public JobGraph generate(StreamGraph streamGraph, DeploymentPlan deploymentPlan) {
         if (streamGraph == null) {
-            throw new StreamException("StreamGraph cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "streamGraph");
         }
 
         // Create a new JobGraph with the job name from streamGraph
@@ -329,7 +332,7 @@ public class JobGraphGenerator implements Serializable {
      */
     private JobVertex createJobVertex(List<StreamNode> chain, StreamGraph streamGraph) {
         if (chain == null || chain.isEmpty()) {
-            throw new StreamException("Chain cannot be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "chain");
         }
 
         StreamNode firstNode = chain.get(0);

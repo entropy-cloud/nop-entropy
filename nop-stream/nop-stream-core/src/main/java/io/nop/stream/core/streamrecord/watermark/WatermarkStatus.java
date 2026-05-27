@@ -21,6 +21,9 @@ package io.nop.stream.core.streamrecord.watermark;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * A Watermark Status element informs stream tasks whether or not they should continue to expect
  * watermarks from the input stream that sent them. There are 2 kinds of status, namely {@link
@@ -84,8 +87,8 @@ public final class WatermarkStatus extends StreamElement {
 
     public WatermarkStatus(int status) {
         if (status != IDLE_STATUS && status != ACTIVE_STATUS) {
-            throw new StreamException(
-                    "Invalid status value for WatermarkStatus; "
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "status")
+                    .param(ARG_DETAIL, "Invalid status value for WatermarkStatus; "
                             + "allowed values are "
                             + ACTIVE_STATUS
                             + " (for ACTIVE) and "

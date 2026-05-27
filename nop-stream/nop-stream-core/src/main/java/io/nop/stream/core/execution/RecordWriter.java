@@ -20,6 +20,9 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Writes stream elements to one or more downstream {@link ResultPartition} instances.
  *
@@ -56,7 +59,7 @@ public class RecordWriter<T> {
      */
     public RecordWriter(ResultPartition partition, EdgeConfig edgeConfig) {
         if (partition == null) {
-            throw new StreamException("ResultPartition must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "partition");
         }
         this.partitions = new ResultPartition[]{partition};
         this.partitioner = null;
@@ -102,7 +105,7 @@ public class RecordWriter<T> {
     public RecordWriter(ResultPartition[] partitions, IPartitioner<T> partitioner,
                         EdgeConfig edgeConfig, PartitionRouter partitionRouter) {
         if (partitions == null || partitions.length == 0) {
-            throw new StreamException("Partitions must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "partitions");
         }
         this.partitions = partitions;
         this.partitioner = partitioner;

@@ -44,6 +44,9 @@ import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * 内存实现的 KeyedStateBackend。
  * 
@@ -109,7 +112,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
      */
     public MemoryKeyedStateBackend(Class<K> keyType, int shardCount) {
         if (shardCount < 1) {
-            throw new StreamException("shardCount must be at least 1");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "shardCount").param(ARG_DETAIL, "must be at least 1");
         }
         this.keyType = keyType;
         this.shardCount = shardCount;
@@ -933,7 +936,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 try {
                     acc = descriptor.getAccumulatorType().getDeclaredConstructor().newInstance();
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to create accumulator for ReducingState", e);
+                    throw new StreamException("Failed to create accumulator for ReducingState", e);
                 }
             }
             acc.add(value);

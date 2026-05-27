@@ -18,6 +18,8 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 public class SlidingEventTimeWindows extends WindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;
 
@@ -27,13 +29,13 @@ public class SlidingEventTimeWindows extends WindowAssigner<Object, TimeWindow> 
 
     protected SlidingEventTimeWindows(long size, long slide, long offset) {
         if (size <= 0) {
-            throw new StreamException("Window size must be positive.");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size").param(ARG_DETAIL, "must be positive");
         }
         if (slide <= 0) {
-            throw new StreamException("Window slide must be positive.");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "slide").param(ARG_DETAIL, "must be positive");
         }
         if (offset < 0 || offset >= slide) {
-            throw new StreamException("Window offset must be in [0, slide)");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "offset").param(ARG_DETAIL, "must be in [0, slide)");
         }
         this.size = size;
         this.slide = slide;
@@ -53,8 +55,7 @@ public class SlidingEventTimeWindows extends WindowAssigner<Object, TimeWindow> 
             }
             return windows;
         } else {
-            throw new StreamException(
-                    "Record has Long.MIN_VALUE timestamp (= no timestamp marker). "
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Record has Long.MIN_VALUE timestamp (= no timestamp marker). "
                             + "Is the time characteristic set to 'ProcessingTime', or "
                             + "did you forget to call 'DataStream.assignTimestampsAndWatermarks(...)'?");
         }

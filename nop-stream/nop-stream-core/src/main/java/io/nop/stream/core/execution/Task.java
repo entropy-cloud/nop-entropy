@@ -20,6 +20,9 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Represents a runnable task that executes a JobVertex in the streaming job.
  *
@@ -104,14 +107,14 @@ public class Task implements Runnable, Serializable {
      */
     public Task(JobVertex jobVertex, int taskIndex) {
         if (jobVertex == null) {
-            throw new StreamException("JobVertex cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jobVertex");
         }
         if (taskIndex < 0) {
-            throw new StreamException("Task index must be non-negative, got: " + taskIndex);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "taskIndex").param(ARG_DETAIL, "must be non-negative, got: " + taskIndex);
         }
         if (taskIndex >= jobVertex.getParallelism()) {
-            throw new StreamException(
-                "Task index " + taskIndex + " exceeds parallelism " + jobVertex.getParallelism());
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "taskIndex")
+                .param(ARG_DETAIL, "Task index " + taskIndex + " exceeds parallelism " + jobVertex.getParallelism());
         }
 
         this.jobVertex = jobVertex;

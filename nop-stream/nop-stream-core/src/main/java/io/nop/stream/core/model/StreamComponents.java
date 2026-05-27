@@ -13,6 +13,9 @@ import java.util.*;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 @DataBean
 public class StreamComponents implements Serializable {
 
@@ -98,7 +101,7 @@ public class StreamComponents implements Serializable {
 
     public void registerTransform(String id, Object transform) {
         if (id == null || id.isEmpty()) {
-            throw new StreamException("Transform ID must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "id");
         }
         transforms.put(id, transform);
     }
@@ -109,7 +112,7 @@ public class StreamComponents implements Serializable {
 
     public void registerStream(String id, Object stream) {
         if (id == null || id.isEmpty()) {
-            throw new StreamException("Stream ID must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "id");
         }
         streams.put(id, stream);
     }
@@ -120,7 +123,7 @@ public class StreamComponents implements Serializable {
 
     public void registerWindowingStrategy(String id, Object strategy) {
         if (id == null || id.isEmpty()) {
-            throw new StreamException("WindowingStrategy ID must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "id");
         }
         windowingStrategies.put(id, strategy);
     }
@@ -133,14 +136,14 @@ public class StreamComponents implements Serializable {
     public <T> T getBean(String id, Class<T> clazz) {
         Object bean = windowingStrategies.get(id);
         if (bean == null) {
-            throw new StreamException("Bean not found: " + id);
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Bean not found: " + id);
         }
         return (T) bean;
     }
 
     public void addRequirement(StreamRequirement requirement) {
         if (requirement == null) {
-            throw new StreamException("Requirement must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "requirement");
         }
         if (!requirements.contains(requirement)) {
             requirements.add(requirement);
@@ -149,7 +152,7 @@ public class StreamComponents implements Serializable {
 
     public void addCheckpointParticipant(String operatorId) {
         if (operatorId == null || operatorId.isEmpty()) {
-            throw new StreamException("Operator ID must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorId");
         }
         checkpointParticipants.add(operatorId);
     }

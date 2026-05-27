@@ -25,6 +25,9 @@ import org.slf4j.LoggerFactory;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Manages the execution of streaming tasks using a thread pool.
  *
@@ -104,7 +107,7 @@ public class TaskExecutor {
      */
     public TaskExecutor(int poolSize) {
         if (poolSize <= 0) {
-            throw new StreamException("Pool size must be positive, got: " + poolSize);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "poolSize").param(ARG_DETAIL, "must be positive, got: " + poolSize);
         }
 
         this.executorService = Executors.newFixedThreadPool(poolSize);
@@ -129,7 +132,7 @@ public class TaskExecutor {
      */
     public List<Task> submitJobVertex(JobVertex jobVertex) {
         if (jobVertex == null) {
-            throw new StreamException("JobVertex cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jobVertex");
         }
 
         if (isShutdown.get()) {
@@ -171,7 +174,7 @@ public class TaskExecutor {
      */
     public Task submitTask(Task task) {
         if (task == null) {
-            throw new StreamException("Task cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "task");
         }
 
         if (isShutdown.get()) {
@@ -197,7 +200,7 @@ public class TaskExecutor {
      */
     public void submitTask(SubtaskTask subtaskTask) {
         if (subtaskTask == null) {
-            throw new StreamException("SubtaskTask cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "subtaskTask");
         }
 
         if (isShutdown.get()) {

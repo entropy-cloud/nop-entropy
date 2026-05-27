@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.exceptions;
 
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 
 public class StreamRuntimeException extends NopException {
@@ -18,5 +19,13 @@ public class StreamRuntimeException extends NopException {
 
     public StreamRuntimeException(String message, Throwable cause) {
         super(message, cause, true, true);
+    }
+
+    public StreamRuntimeException(ErrorCode errorCode) {
+        super(errorCode);
+    }
+
+    public StreamRuntimeException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode, cause);
     }
 }

@@ -15,14 +15,17 @@ import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 public class StreamRequirementValidator {
 
     public static void validate(StreamModel model, StreamBackendCapability capability) {
         if (model == null) {
-            throw new StreamException("StreamModel must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "model");
         }
         if (capability == null) {
-            throw new StreamException("StreamBackendCapability must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "capability");
         }
 
         List<String> errors = new ArrayList<>();
@@ -35,7 +38,7 @@ public class StreamRequirementValidator {
         }
 
         if (!errors.isEmpty()) {
-            throw new StreamException("Stream requirement validation failed: " + String.join("; ", errors));
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Stream requirement validation failed: " + String.join("; ", errors));
         }
     }
 
@@ -55,7 +58,7 @@ public class StreamRequirementValidator {
         }
 
         if (!errors.isEmpty()) {
-            throw new StreamException("STRICT_EXACTLY_ONCE validation failed: " + String.join("; ", errors));
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "STRICT_EXACTLY_ONCE validation failed: " + String.join("; ", errors));
         }
     }
 
@@ -102,7 +105,7 @@ public class StreamRequirementValidator {
         }
 
         if (!errors.isEmpty()) {
-            throw new StreamException("Connector consistency validation failed for STRICT_EXACTLY_ONCE: "
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Connector consistency validation failed for STRICT_EXACTLY_ONCE: "
                     + String.join("; ", errors));
         }
     }

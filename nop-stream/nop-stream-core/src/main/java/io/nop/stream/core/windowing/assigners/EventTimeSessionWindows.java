@@ -12,6 +12,8 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 public class EventTimeSessionWindows extends MergingWindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;
 
@@ -19,7 +21,7 @@ public class EventTimeSessionWindows extends MergingWindowAssigner<Object, TimeW
 
     public EventTimeSessionWindows(long sessionTimeout) {
         if (sessionTimeout <= 0) {
-            throw new StreamException("Session timeout must be positive: " + sessionTimeout);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "sessionTimeout").param(ARG_DETAIL, "must be positive, got: " + sessionTimeout);
         }
         this.sessionTimeout = sessionTimeout;
     }

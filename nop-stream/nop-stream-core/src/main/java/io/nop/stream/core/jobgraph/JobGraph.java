@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Represents the execution plan as a Directed Acyclic Graph (DAG).
  * This is the core data structure that captures the execution topology of a
@@ -75,7 +78,7 @@ public class JobGraph implements Serializable {
      */
     public JobGraph(String jobName) {
         if (jobName == null) {
-            throw new StreamException("Job name cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jobName");
         }
         this.jobName = jobName;
         this.vertices = new HashMap<>();
@@ -99,14 +102,12 @@ public class JobGraph implements Serializable {
      */
     public void addVertex(JobVertex vertex) {
         if (vertex == null) {
-            throw new StreamException("JobVertex cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "vertex");
         }
 
         String vertexId = vertex.getId();
         if (vertices.containsKey(vertexId)) {
-            throw new StreamException(
-                "JobVertex with ID " + vertexId + " already exists in the graph"
-            );
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "JobVertex with ID " + vertexId + " already exists in the graph");
         }
 
         vertices.put(vertexId, vertex);
@@ -121,22 +122,18 @@ public class JobGraph implements Serializable {
      */
     public void addEdge(JobEdge edge) {
         if (edge == null) {
-            throw new StreamException("JobEdge cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "edge");
         }
 
         String sourceId = edge.getSourceVertex();
         String targetId = edge.getTargetVertex();
 
         if (!vertices.containsKey(sourceId)) {
-            throw new StreamException(
-                "Source vertex with ID " + sourceId + " does not exist in the graph"
-            );
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Source vertex with ID " + sourceId + " does not exist in the graph");
         }
 
         if (!vertices.containsKey(targetId)) {
-            throw new StreamException(
-                "Target vertex with ID " + targetId + " does not exist in the graph"
-            );
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Target vertex with ID " + targetId + " does not exist in the graph");
         }
 
         edges.add(edge);

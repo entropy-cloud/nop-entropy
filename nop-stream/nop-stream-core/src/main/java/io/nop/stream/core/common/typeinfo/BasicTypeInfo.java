@@ -28,7 +28,7 @@ public class BasicTypeInfo<T> implements TypeInformation<T>, Serializable {
     public static final BasicTypeInfo<byte[]> BYTE_ARRAY = register(byte[].class);
 
     private final Class<T> typeClass;
-    private final TypeSerializer<T> serializer;
+    private final SimpleSerializer<T> serializer;
 
     private BasicTypeInfo(Class<T> typeClass) {
         this.typeClass = typeClass;
@@ -50,7 +50,7 @@ public class BasicTypeInfo<T> implements TypeInformation<T>, Serializable {
         return info;
     }
 
-    public TypeSerializer<T> getSerializer() {
+    public SimpleSerializer<T> getSerializer() {
         return serializer;
     }
 

@@ -45,6 +45,9 @@ import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 public class StreamExecutionEnvironment {
 
     private final List<Transformation<?>> transformations = new ArrayList<>();
@@ -91,7 +94,7 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionEnvironment setParallelism(int parallelism) {
         if (parallelism < 1) {
-            throw new StreamException("Parallelism must be at least 1");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "parallelism").param(ARG_DETAIL, "must be at least 1");
         }
         this.parallelism = parallelism;
         return this;
@@ -103,7 +106,7 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionEnvironment setWatermarkInterval(long watermarkInterval) {
         if (watermarkInterval < 0) {
-            throw new StreamException("Watermark interval must be >= 0");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "watermarkInterval").param(ARG_DETAIL, "must be >= 0");
         }
         this.watermarkInterval = watermarkInterval;
         return this;
@@ -133,7 +136,7 @@ public class StreamExecutionEnvironment {
 
     public StreamExecutionEnvironment setDeploymentMode(DeploymentMode deploymentMode) {
         if (deploymentMode == null) {
-            throw new StreamException("DeploymentMode cannot be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "deploymentMode");
         }
         this.deploymentMode = deploymentMode;
         return this;
@@ -155,17 +158,17 @@ public class StreamExecutionEnvironment {
     @SafeVarargs
     public final <T> DataStreamSource<T> fromElements(T... data) {
         if (data == null || data.length == 0) {
-            throw new StreamException("fromElements needs at least one element as argument");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "data").param(ARG_DETAIL, "needs at least one element");
         }
         return fromCollection(Arrays.asList(data));
     }
 
     public <T> DataStreamSource<T> fromCollection(Collection<T> data) {
         if (data == null) {
-            throw new StreamException("Collection must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "data");
         }
         if (data.isEmpty()) {
-            throw new StreamException("Collection must not be empty");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "data").param(ARG_DETAIL, "must not be empty");
         }
         SourceFunction<T> sourceFunction = new CollectionSourceFunction<>(data);
         return addSource(sourceFunction, "Collection Source");
@@ -173,10 +176,10 @@ public class StreamExecutionEnvironment {
 
     public <T> DataStreamSource<T> fromCollection(Collection<T> data, TypeInformation<T> typeInfo) {
         if (data == null) {
-            throw new StreamException("Collection must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "data");
         }
         if (typeInfo == null) {
-            throw new StreamException("TypeInformation must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "typeInfo");
         }
         SourceFunction<T> sourceFunction = new CollectionSourceFunction<>(data);
         return addSource(sourceFunction, "Collection Source", typeInfo);
@@ -309,7 +312,7 @@ public class StreamExecutionEnvironment {
         }
 
         if (savepointPath == null || savepointPath.isEmpty()) {
-            throw new StreamException("Savepoint path must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "savepointPath");
         }
 
         JobGraph jobGraph = buildJobGraph("Streaming Job (Savepoint Recovery)");

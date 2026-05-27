@@ -46,7 +46,7 @@ import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.time.TimerService;
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.configuration.Configuration;
-import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.util.FunctionUtils;
 
 /**
@@ -144,7 +144,7 @@ public class NFA<T> {
     private boolean isStartState(ComputationState state) {
         State<T> stateObject = getState(state);
         if (stateObject == null) {
-            throw new StreamRuntimeException(
+            throw new StreamException(
                     "State "
                             + state.getCurrentStateName()
                             + " does not exist in the NFA. NFA has states "
@@ -157,7 +157,7 @@ public class NFA<T> {
     private boolean isStopState(ComputationState state) {
         State<T> stateObject = getState(state);
         if (stateObject == null) {
-            throw new StreamRuntimeException(
+            throw new StreamException(
                     "State "
                             + state.getCurrentStateName()
                             + " does not exist in the NFA. NFA has states "
@@ -170,7 +170,7 @@ public class NFA<T> {
     private boolean isFinalState(ComputationState state) {
         State<T> stateObject = getState(state);
         if (stateObject == null) {
-            throw new StreamRuntimeException(
+            throw new StreamException(
                     "State "
                             + state.getCurrentStateName()
                             + " does not exist in the NFA. NFA has states "
@@ -785,7 +785,7 @@ public class NFA<T> {
                 }
             }
         } catch (Exception e) {
-            throw new StreamRuntimeException("Failure happened in filter function.", e);
+            throw new StreamException("Failure happened in filter function.", e);
         }
 
         return null;
@@ -829,7 +829,7 @@ public class NFA<T> {
                         }
                     }
                 } catch (Exception e) {
-                    throw new StreamRuntimeException("Failure happened in filter function.", e);
+                    throw new StreamException("Failure happened in filter function.", e);
                 }
             }
         }

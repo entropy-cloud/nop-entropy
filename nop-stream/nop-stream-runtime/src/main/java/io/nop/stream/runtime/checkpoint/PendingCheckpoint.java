@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -137,8 +138,8 @@ public class PendingCheckpoint {
             isDisposed = true;
             if (!completableFuture.isDone()) {
                 Exception error = cause != null
-                        ? new RuntimeException("Checkpoint aborted: " + reason, cause)
-                        : new RuntimeException("Checkpoint aborted: " + reason);
+                        ? new StreamException("Checkpoint aborted: " + reason, cause)
+                        : new StreamException("Checkpoint aborted: " + reason);
                 completableFuture.completeExceptionally(error);
             }
         }

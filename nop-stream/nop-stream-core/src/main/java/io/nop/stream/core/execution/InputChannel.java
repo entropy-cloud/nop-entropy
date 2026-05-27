@@ -12,6 +12,9 @@ import java.util.concurrent.TimeUnit;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Consumer-side handle to a {@link ResultPartition}. Wraps a single partition
  * for reading stream elements from an upstream task.
@@ -22,7 +25,7 @@ public class InputChannel {
 
     public InputChannel(ResultPartition partition) {
         if (partition == null) {
-            throw new StreamException("ResultPartition must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "partition");
         }
         this.partition = partition;
     }

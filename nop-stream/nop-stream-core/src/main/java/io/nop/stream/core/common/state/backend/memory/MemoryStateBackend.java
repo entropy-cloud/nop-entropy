@@ -13,6 +13,9 @@ import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.exceptions.StreamException;
 
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * 内存状态后端实现，用于测试和简单场景。
  * 
@@ -51,7 +54,7 @@ public class MemoryStateBackend implements IStateBackend, Serializable {
      */
     public MemoryStateBackend(int shardCount) {
         if (shardCount < 1) {
-            throw new StreamException("shardCount must be at least 1");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "shardCount").param(ARG_DETAIL, "must be at least 1");
         }
         this.shardCount = shardCount;
     }
