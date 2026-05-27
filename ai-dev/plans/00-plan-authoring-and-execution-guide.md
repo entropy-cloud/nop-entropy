@@ -67,7 +67,7 @@
 
 25. **新功能必有测试规则（Test-Mandated Feature Rule）**：每个新增功能（新类、新方法、新算法、新 BizModel action 等）必须在同一 Phase 内编写对应的单元测试。Exit Criteria 不能只写"原有测试通过"——必须**显式列出新增功能的测试覆盖要求**，明确哪些测试验证了哪些新行为。纯重构、纯文档变更、纯配置调整不强制新增测试，但必须在 Exit Criteria 中注明"No new test required: <reason>"。
 
-26. **Checklist 勾选是 closure 的硬性前置条件，不是可选的附带动作。** 在将 Plan Status 改为 `completed` 之前，必须用 `grep -c '\- \[ \]' <plan-file>` 确认返回 0。如果返回值 > 0，要么勾选剩余项，要么将它们移入 `Deferred But Adjudicated`，但绝不能在有未勾选项的情况下标记 `completed`。
+26. **Checklist 勾选是 closure 的硬性前置条件，不是可选的附带动作。** 在将 Plan Status 改为 `completed` 之前，必须运行 `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 确认退出码为 0。如果退出码非 0，要么勾选剩余项，要么将它们移入 `Deferred But Adjudicated`，但绝不能在有未勾选项的情况下标记 `completed`。此工具同时检查 Closure Evidence 是否已写入 plan 文件。
 
 27. **Closure Evidence 必须写入 plan 文件。** 独立子 agent 的 closure audit 结果必须记录在 plan 的 `Closure` 段落中，包含 Reviewer/Agent 标识、session ID、每条 Exit Criterion 和 Closure Gate 的验证结果。没有 evidence 记录的 closure 等于没有做 closure。
 
@@ -427,6 +427,7 @@ Follow-up:
 2. 逐条核对每个 slice 的 `Exit Criteria`。
 3. 逐条核对 `Closure Gates`。
 4. 逐项核对文本一致性：`Plan Status`、每个 slice 的 `Status`、每个 slice 的 `Exit Criteria`、`Closure Gates`、`ai-dev/logs/` 收口记录必须彼此一致，不能保留"顶部已 completed、内部仍未勾选"的状态。
+5. 运行 `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 确认所有 checklist 已勾选且 Closure Evidence 已写入。如果此命令退出码非 0，不能关闭 plan。
 5. 把剩余工作写进 `Follow-up`，明确 successor plan 或明确无剩余 debt。
 6. 明确区分"接口存在"与"行为完成"（对代码变更计划：至少抽查一轮 live code path 和 focused tests；对纯文档计划：抽查文档内容与 live repo 代码的一致性），确认实现语义真的满足 exit criteria。
 7. 由独立审阅者或独立子 agent 做 closure-audit，并在 plan 或对应 daily log 中记录证据。这里的独立子 agent 指为 closure audit 单独启动的 fresh session，而不是复用实现阶段的同一 task session 继续自查。
@@ -470,7 +471,7 @@ Closure Audit Evidence:
 - Evidence:
   - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）
   - 每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）
-  - `grep -c '\- \[ \]' <plan-file>` 返回 0（确认无未勾选项）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0（确认无未勾选项 + Closure Evidence 已写入）
   - Anti-Hollow 检查结果：<<端到端调用链追踪结果>>
   - Deferred 项分类检查：<<确认无 in-scope live defect 被降级>>
 
@@ -490,7 +491,7 @@ Follow-up:
 - independent reviewer / subagent findings with task id or cited review note that explicitly check for plan/doc drift and interface-vs-semantics mismatch
 - explicit justification for each deferred item that remained non-blocking at closure
 - **anti-hollow evidence**：端到端测试路径和结果，或代码追踪证明调用链连通的截图/日志
-- **checklist 完整性证据**：`grep -c '\- \[ \]' <plan-file>` 的输出（必须为 0）
+- **checklist 完整性证据**：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 的退出码（必须为 0）
 
 #### 实操理解
 
