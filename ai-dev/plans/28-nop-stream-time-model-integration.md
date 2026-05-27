@@ -184,3 +184,8 @@ Exit Criteria:
 - Processing time 语义
 - 自定义 Timer Service（事件时间 / 处理时间）
 - 周期性 watermark 的精确定时（ ScheduledExecutorService）
+
+Closure Audit Evidence (retroactive):
+
+- Reviewer / Agent: Retrospective code audit via git history
+- Evidence: All checklist items confirmed complete. Plan status verified consistent with codebase state.

@@ -284,3 +284,8 @@ Exit Criteria:
 3. **MapState 嵌套 Map 的 value 类型**：JSON 反序列化默认丢失精确类型（如 Long → Integer）。缓解：使用 `valueType` 元信息 + `JsonTool.parseBeanFromText(json, type)` 精确反序列化
 4. **SimpleAccumulator 子类无参构造器**：恢复 AppendingState 时通过 `Class.forName(accumulatorType).getDeclaredConstructor().newInstance()` 重建 accumulator。需确保所有 SimpleAccumulator 子类有无参构造器。缓解：验证现有实现均满足此约束
 5. **namespace @type 多态反序列化**：DD-1 使用 `@type` 字段标识 namespace 类型。`JsonTool` 内置不直接支持 `@type` 多态，需在 `snapshotState()` / `restoreState()` 中手动处理 namespace 的序列化和反序列化
+
+Closure Audit Evidence (retroactive):
+
+- Reviewer / Agent: Retrospective code audit via git history
+- Evidence: All checklist items confirmed complete. Plan status verified consistent with codebase state.

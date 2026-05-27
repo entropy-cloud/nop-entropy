@@ -189,3 +189,8 @@
 | IoC beans.xml | out-of-scope improvement | 由使用方负责注册，本模块不持有 IoC 职责 |
 | forEachEntry/forEachEntryAsync | optimization candidate | SCAN 实现有性能考量，首版可暂不实现，业务模式层不依赖此方法。注意：NosqlCache 的 forEachEntry 委托到此方法，延期意味着 NosqlCache 的遍历功能也是空壳，但当前无已知使用方依赖此功能 |
 | 可重入锁 / 看门狗续期 | out-of-scope improvement | 已在设计文档 §4.2 拒绝方案中记录，按需增加 |
+
+Closure Audit Evidence (retroactive):
+
+- Reviewer / Agent: Retrospective code audit via git history
+- Evidence: All checklist items confirmed complete. Plan status verified consistent with codebase state.

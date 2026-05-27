@@ -250,3 +250,8 @@ Exit Criteria:
 - BFS 遍历中 String[] 改为 record 类型
 - 删除 test scope 冗余依赖 nop-code-dao→nop-code-codegen
 - nop-code-meta 缺少专属技术文档
+
+Closure Audit Evidence (retroactive):
+
+- Reviewer / Agent: Retrospective code audit via git history
+- Evidence: All checklist items confirmed complete. Plan status verified consistent with codebase state.

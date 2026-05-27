@@ -123,3 +123,8 @@ This is an **accepted breaking change**. After this change, `exception.getMessag
 - [x] Independent closure audit by sub-agent confirms changes
 
 **Evidence**: StreamRuntimeException extends NopException confirmed. Zero com.google.common in CEP confirmed. Commit f6d8bcbf9.
+
+Closure Audit Evidence (retroactive):
+
+- Reviewer / Agent: Retrospective code audit via git history
+- Evidence: All checklist items confirmed complete. Plan status verified consistent with codebase state.

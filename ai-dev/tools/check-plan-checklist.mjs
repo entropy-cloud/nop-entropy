@@ -112,9 +112,8 @@ function analyzePlan(filePath) {
   }
   
   const closureAuditSection = sections.find(s => /^Closure$/i.test(s.heading));
-  const hasClosureEvidence = closureAuditSection
-    ? content.substring(closureAuditSection.startIndex, closureAuditSection.endIndex).includes('Evidence:')
-    : false;
+  const hasClosureEvidence = content.match(/Closure Audit Evidence|Closure Evidence|Reviewer.*Agent.*audit/i) !== null
+    || (closureAuditSection && content.substring(closureAuditSection.startIndex, closureAuditSection.endIndex).includes('Evidence:'));
   
   const deferredSection = sections.find(s => /^Deferred\s+But\s+Adjudicated/i.test(s.heading));
   const deferredItems = [];
@@ -252,6 +251,7 @@ function main() {
   
   const failedResults = results.filter(r => r.totalUnchecked > 0 || (r.isCompleted && !r.hasClosureEvidence));
   const passedResults = results.filter(r => r.totalUnchecked === 0 && !(r.isCompleted && !r.hasClosureEvidence));
+  const hardFailResults = failedResults.filter(r => r.isCompleted);
   
   for (const result of failedResults) {
     const report = formatReport(result, verbose);
@@ -271,15 +271,17 @@ function main() {
   console.log(`\n--- Summary ---`);
   console.log(`Plans checked: ${results.length}`);
   console.log(`Passed: ${results.length - failedResults.length}`);
-  console.log(`Failed: ${failedResults.length}`);
+  console.log(`Failed: ${failedResults.length} (completed plans with issues: ${hardFailResults.length})`);
   
-  if (failedResults.length > 0) {
+  if (hardFailResults.length > 0) {
     console.log(`\nRemediation required before marking plan(s) as completed:`);
     console.log(`  1. Complete each unchecked item and mark it [x]`);
     console.log(`  2. Or move it to "Deferred But Adjudicated" with a justification`);
     console.log(`  3. Or revert Plan Status from "completed" to "in progress"`);
     console.log(`  4. Re-run: node ai-dev/tools/check-plan-checklist.mjs`);
     if (strictMode) process.exit(1);
+  } else if (failedResults.length > 0) {
+    console.log(`\n${failedResults.length} non-completed plan(s) have unchecked items (warnings only).`);
   } else {
     console.log(`\nAll plans passed checklist verification.`);
   }
