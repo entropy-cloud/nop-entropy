@@ -11,10 +11,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.nop.api.core.annotations.core.Internal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
@@ -216,7 +216,7 @@ public class CheckpointCoordinator {
             LOG.debug("Stored EpochManifest for epoch {}", checkpointId);
         } catch (Exception e) {
             LOG.error("Failed to store EpochManifest for checkpoint {}, aborting checkpoint", checkpointId, e);
-            abortPendingCheckpoint(pending, "Failed to store EpochManifest: " + e.getMessage());
+            abortPendingCheckpoint(pending, "Failed to store EpochManifest for checkpoint " + checkpointId);
             return;
         }
 

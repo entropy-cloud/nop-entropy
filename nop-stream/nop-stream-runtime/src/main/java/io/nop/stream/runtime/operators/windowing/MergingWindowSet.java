@@ -24,10 +24,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.nop.commons.tuple.Tuple2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.windows.Window;

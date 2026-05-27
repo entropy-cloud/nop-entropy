@@ -2,16 +2,17 @@ package io.nop.stream.core.operators;
 
 import java.util.*;
 
-import io.nop.core.lang.json.JsonTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.Collector;
@@ -19,7 +20,6 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.Window;
-import io.nop.stream.core.exceptions.StreamException;
 
 public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         extends AbstractStreamOperator<OUT>

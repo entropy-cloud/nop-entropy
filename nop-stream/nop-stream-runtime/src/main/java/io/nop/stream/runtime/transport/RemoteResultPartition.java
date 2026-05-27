@@ -7,16 +7,16 @@
  */
 package io.nop.stream.runtime.transport;
 
-import io.nop.api.core.message.IMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.message.IMessageService;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.execution.transport.TypeRegistry;
 import io.nop.stream.core.streamrecord.StreamElement;
-import io.nop.stream.core.exceptions.StreamException;
 
 /**
  * A {@link ResultPartition} that sends data across TaskManager boundaries via

@@ -8,31 +8,33 @@
 package io.nop.stream.runtime.execution;
 
 import java.util.ArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import io.nop.api.core.annotations.core.Internal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.core.common.state.backend.IStateBackend;
+import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.execution.Subtask;
 import io.nop.stream.core.execution.SubtaskTask;
 import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -41,12 +43,10 @@ import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
-import io.nop.stream.core.common.state.backend.IStateBackend;
-import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
-import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetricsSnapshot;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
+import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetricsSnapshot;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 
 @Internal

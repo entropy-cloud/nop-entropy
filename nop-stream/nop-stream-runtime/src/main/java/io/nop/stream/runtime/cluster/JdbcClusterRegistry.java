@@ -8,8 +8,11 @@
 package io.nop.stream.runtime.cluster;
 
 import java.util.ArrayList;
-import java.util.function.Function;
 import java.util.List;
+import java.util.function.Function;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
@@ -17,8 +20,6 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Internal
 public class JdbcClusterRegistry implements ClusterRegistry {

@@ -10,12 +10,14 @@ package io.nop.stream.core.execution;
 import java.util.List;
 import java.util.Optional;
 
-import io.nop.api.core.annotations.core.Internal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.AbstractStreamOperator;
@@ -29,8 +31,6 @@ import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**

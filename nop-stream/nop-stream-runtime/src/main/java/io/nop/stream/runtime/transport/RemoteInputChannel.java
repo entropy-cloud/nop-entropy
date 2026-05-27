@@ -10,13 +10,13 @@ package io.nop.stream.runtime.transport;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.execution.transport.StreamElementCodec;

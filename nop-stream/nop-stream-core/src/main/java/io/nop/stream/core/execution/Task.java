@@ -8,19 +8,18 @@
 package io.nop.stream.core.execution;
 
 import java.io.Serializable;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
-import io.nop.api.core.annotations.core.Internal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
-import io.nop.stream.core.exceptions.StreamException;
-
-import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**

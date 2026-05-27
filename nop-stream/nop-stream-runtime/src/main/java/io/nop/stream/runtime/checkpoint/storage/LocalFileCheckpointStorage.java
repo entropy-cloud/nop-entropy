@@ -13,15 +13,15 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
-import io.nop.api.core.annotations.core.Internal;
-import io.nop.core.lang.json.JsonTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.annotations.core.Internal;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
-import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.model.StreamModelFingerprint;
 
 @Internal
 public class LocalFileCheckpointStorage implements ICheckpointStorage {

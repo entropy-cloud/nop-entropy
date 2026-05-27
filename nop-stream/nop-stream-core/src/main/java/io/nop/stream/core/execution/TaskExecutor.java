@@ -9,23 +9,22 @@ package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.nop.api.core.annotations.core.Internal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.nop.stream.core.jobgraph.JobVertex;
-import io.nop.stream.core.exceptions.StreamException;
-
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.jobgraph.JobVertex;
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**

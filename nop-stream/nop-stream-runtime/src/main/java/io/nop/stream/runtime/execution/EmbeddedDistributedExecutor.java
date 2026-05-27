@@ -10,14 +10,13 @@ package io.nop.stream.runtime.execution;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import io.nop.api.core.message.IMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.core.environment.StreamExecutionResult;
-import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.execution.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -33,7 +32,6 @@ import io.nop.stream.runtime.coordinator.JobCoordinator;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.TaskManager;
 import io.nop.stream.runtime.transport.RemoteGraphExecutionPlanBuilder;
-import io.nop.stream.core.exceptions.StreamException;
 
 public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
 

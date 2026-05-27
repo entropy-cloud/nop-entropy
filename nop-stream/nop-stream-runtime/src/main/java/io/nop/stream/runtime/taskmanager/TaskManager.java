@@ -8,17 +8,17 @@
 package io.nop.stream.runtime.taskmanager;
 
 import java.util.Collections;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
-import io.nop.api.core.annotations.core.Internal;
-import io.nop.api.core.message.IMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.annotations.core.Internal;
+import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.execution.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
