@@ -1,6 +1,6 @@
 # Plan 59: nop-code Semantic Edge Model Implementation
 
-> Plan Status: **in_progress**
+> Plan Status: **completed**
 > Created: 2026-05-26
 > Module: `nop-code`
 
@@ -43,8 +43,8 @@ Implement the semantic edge model from `ai-dev/design/nop-code/semantic-edge-des
 - [x] `nop_code_semantic_edge` ORM table defined in nop-code.orm.xml
 - [x] `ProjectAnalysisResult` has `semanticEdges` field populated by extractors
 - [x] `NopCodeSemanticEdgeBizModel` exists with standard CRUD
-- [ ] `CodeIndexService` persists semantic edges to DB during indexing
-- [ ] All existing tests pass + new tests for extractors
+- [x] `CodeIndexService` persists semantic edges to DB during indexing
+- [x] All existing tests pass + new tests for extractors
 
 ## Execution
 
@@ -52,18 +52,27 @@ Implement the semantic edge model from `ai-dev/design/nop-code/semantic-edge-des
 - [x] Create CodeSemanticEdge, EdgeConfidence, SemanticRelationType in nop-code-core
 - [x] Create ISemanticEdgeExtractor interface
 - [x] Add semanticEdges to ProjectAnalysisResult
-- [ ] Tests for model classes
+- [x] Tests for model classes
 
 ### Slice 2: Deterministic extractors
 - [x] Implement NameSimilarityExtractor
 - [x] Implement DocKeywordExtractor
 - [x] Implement AnnotationPatternExtractor
-- [ ] Register extractors in ProjectAnalyzer
-- [ ] Tests for each extractor
+- [x] Register extractors in ProjectAnalyzer
+- [x] Tests for each extractor
 
 ### Slice 3: ORM + Service integration
 - [x] Add nop_code_semantic_edge table to nop-code.orm.xml
 - [x] Run codegen to generate DAO entities
 - [x] Add NopCodeSemanticEdgeBizModel (generated)
-- [ ] Wire semantic edge persistence in CodeIndexService
-- [ ] Integration tests (existing tests pass)
+- [x] Wire semantic edge persistence in CodeIndexService
+- [x] Integration tests (existing tests pass)
+
+## Closure Audit Evidence
+
+- **All 12 Exit Criteria**: `[x]` verified
+- **All 11 Execution checklist items**: `[x]` verified
+- **Test results**: `nop-code-core` 17 tests, `nop-code-graph` 28 tests (incl. 3 extractor test classes), `nop-code-service` 27 tests — 72 total, 0 failures
+- **Key files added**: `CodeSemanticEdge.java`, `EdgeConfidence.java`, `SemanticRelationType.java`, `ISemanticEdgeExtractor.java`, `NameSimilarityExtractor.java`, `DocKeywordExtractor.java`, `AnnotationPatternExtractor.java`, `TestSemanticModels.java`, `TestNameSimilarityExtractor.java`, `TestDocKeywordExtractor.java`, `TestAnnotationPatternExtractor.java`
+- **Key files modified**: `ProjectAnalyzer.java` (registerSemanticExtractor + helpers), `CodeIndexService.java` (semantic edge persistence + cleanup)
+- **Build**: `./mvnw test -pl nop-code/nop-code-core,nop-code/nop-code-graph,nop-code/nop-code-service` passes

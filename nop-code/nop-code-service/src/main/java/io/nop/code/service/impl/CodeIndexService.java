@@ -45,6 +45,12 @@ import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.dao.entity.NopCodeUsage;
+import io.nop.code.dao.entity.NopCodeSemanticEdge;
+import io.nop.code.core.semantic.CodeSemanticEdge;
+import io.nop.code.core.semantic.ISemanticEdgeExtractor;
+import io.nop.code.graph.semantic.NameSimilarityExtractor;
+import io.nop.code.graph.semantic.DocKeywordExtractor;
+import io.nop.code.graph.semantic.AnnotationPatternExtractor;
 import io.nop.code.flow.ChangeAnalysisResult;
 import io.nop.code.flow.DeadCodeReport;
 import io.nop.code.flow.ExecutionFlow;
@@ -159,13 +165,29 @@ public class CodeIndexService implements ICodeIndexService {
         this.registry.registerAdapter(new PythonLanguageAdapter());
         this.registry.registerAdapter(new TypeScriptLanguageAdapter());
         this.analyzer = new ProjectAnalyzer(registry);
+        registerSemanticExtractors();
         registerImportResolvers();
     }
 
     public CodeIndexService(LanguageAdapterRegistry registry, ProjectAnalyzer analyzer) {
         this.registry = registry;
         this.analyzer = analyzer;
+        registerSemanticExtractors();
         registerImportResolvers();
+    }
+
+    private void registerSemanticExtractors() {
+        for (ISemanticEdgeExtractor extractor : discoverSemanticExtractors()) {
+            analyzer.registerSemanticExtractor(extractor);
+        }
+    }
+
+    private List<ISemanticEdgeExtractor> discoverSemanticExtractors() {
+        List<ISemanticEdgeExtractor> extractors = new ArrayList<>();
+        extractors.add(new NameSimilarityExtractor());
+        extractors.add(new DocKeywordExtractor());
+        extractors.add(new AnnotationPatternExtractor());
+        return extractors;
     }
 
     private void registerImportResolvers() {
@@ -1332,6 +1354,11 @@ public class CodeIndexService implements ICodeIndexService {
             depQuery.addFilter(FilterBeans.eq("indexId", indexId));
             depDao.batchDeleteEntities(depDao.findAllByQuery(depQuery));
 
+            IEntityDao<NopCodeSemanticEdge> edgeDao = daoProvider.daoFor(NopCodeSemanticEdge.class);
+            QueryBean edgeQuery = new QueryBean();
+            edgeQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            edgeDao.batchDeleteEntities(edgeDao.findAllByQuery(edgeQuery));
+
             daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
             return null;
         });
@@ -1886,6 +1913,27 @@ public class CodeIndexService implements ICodeIndexService {
             queue.add(file);
         }
         queue.flush();
+
+        // Persist semantic edges
+        if (result.getSemanticEdges() != null && !result.getSemanticEdges().isEmpty()) {
+            for (CodeSemanticEdge edge : result.getSemanticEdges()) {
+                NopCodeSemanticEdge edgeEntity = (NopCodeSemanticEdge) ormTemplate.newEntity(
+                        NopCodeSemanticEdge.class.getName());
+                edgeEntity.setId(edge.getId());
+                edgeEntity.setIndexId(indexId);
+                edgeEntity.setSourceSymbolId(edge.getSourceSymbolId());
+                edgeEntity.setTargetSymbolId(edge.getTargetSymbolId());
+                edgeEntity.setDirected(edge.isDirected());
+                edgeEntity.setRelationType(edge.getRelationType() != null ? edge.getRelationType().name() : null);
+                edgeEntity.setConfidence(edge.getConfidence() != null ? edge.getConfidence().getValue() : 0);
+                edgeEntity.setConfidenceScore(edge.getConfidenceScore());
+                edgeEntity.setRationale(edge.getRationale());
+                edgeEntity.setExtractorId(edge.getExtractorId());
+                edgeEntity.setExtData(edge.getExtData());
+                session.save(edgeEntity);
+            }
+            LOG.info("Persisted {} semantic edges for index {}", result.getSemanticEdges().size(), indexId);
+        }
     }
 
     private void ensureIndexEntity(String indexId, String rootPath, IOrmSession session) {

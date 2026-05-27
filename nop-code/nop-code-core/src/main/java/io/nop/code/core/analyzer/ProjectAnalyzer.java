@@ -7,6 +7,7 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.semantic.ISemanticEdgeExtractor;
 import io.nop.code.core.semantic.CodeSemanticEdge;
 import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.incremental.ChangeSet;
 import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.incremental.IFingerprintStore;
@@ -49,6 +50,10 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
 
     private final List<ISemanticEdgeExtractor> semanticExtractors = new ArrayList<>();
     private static final Logger LOG = LoggerFactory.getLogger(ProjectAnalyzer.class);
+
+    public void registerSemanticExtractor(ISemanticEdgeExtractor extractor) {
+        semanticExtractors.add(extractor);
+    }
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
 
@@ -209,18 +214,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         // Phase 5: Run semantic edge extractors
         CallGraph callGraph = result.buildCallGraph();
         List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
-        for (ISemanticEdgeExtractor extractor : semanticExtractors) {
-            if (!extractor.requiresLlm()) {
-                try {
-                    List<CodeSemanticEdge> extracted = extractor.extract(globalSymbolTable, callGraph);
-                    if (extracted != null) {
-                        semanticEdges.addAll(extracted);
-                    }
-                } catch (Exception e) {
-                    LOG.warn("Semantic extractor {} failed: {}", extractor.getExtractorId(), e.getMessage());
-                }
-            }
-        }
+        runSemanticExtractors(globalSymbolTable, callGraph, semanticEdges);
+        runFileResultExtractors(fileResults, globalSymbolTable, semanticEdges);
         result.setSemanticEdges(semanticEdges);
         LOG.info("Extracted {} semantic edges", semanticEdges.size());
 
@@ -294,7 +289,14 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
         ProjectStats stats = buildStats(fileResults, globalSymbolTable, callCounts[0], callCounts[1]);
 
-        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        ProjectAnalysisResult result = new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
+        runSemanticExtractors(globalSymbolTable, result.buildCallGraph(), semanticEdges);
+        runFileResultExtractors(fileResults, globalSymbolTable, semanticEdges);
+        result.setSemanticEdges(semanticEdges);
+        LOG.info("VFS analysis: extracted {} semantic edges", semanticEdges.size());
+
+        return result;
     }
 
     public ProjectAnalysisResult analyzeProject(IResourceLoader resourceLoader, String vfsPath,
@@ -362,7 +364,47 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         int[] callCounts = resolveCalls(allFileResults, globalSymbolTable);
         ProjectStats stats = buildStats(allFileResults, globalSymbolTable, callCounts[0], callCounts[1]);
 
-        return new ProjectAnalysisResult(allFileResults, globalSymbolTable, stats);
+        ProjectAnalysisResult result = new ProjectAnalysisResult(allFileResults, globalSymbolTable, stats);
+        List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
+        runSemanticExtractors(globalSymbolTable, result.buildCallGraph(), semanticEdges);
+        runFileResultExtractors(allFileResults, globalSymbolTable, semanticEdges);
+        result.setSemanticEdges(semanticEdges);
+        LOG.info("Streaming VFS analysis: extracted {} semantic edges", semanticEdges.size());
+
+        return result;
+    }
+
+    private void runSemanticExtractors(SymbolTable symbolTable, CallGraph callGraph,
+                                        List<CodeSemanticEdge> semanticEdges) {
+        for (ISemanticEdgeExtractor extractor : semanticExtractors) {
+            if (!extractor.requiresLlm()) {
+                try {
+                    List<CodeSemanticEdge> extracted = extractor.extract(symbolTable, callGraph);
+                    if (extracted != null) {
+                        semanticEdges.addAll(extracted);
+                    }
+                } catch (Exception e) {
+                    LOG.warn("Semantic extractor {} failed: {}", extractor.getExtractorId(), e.getMessage());
+                }
+            }
+        }
+    }
+
+    private void runFileResultExtractors(List<CodeFileAnalysisResult> fileResults,
+                                          SymbolTable symbolTable,
+                                          List<CodeSemanticEdge> semanticEdges) {
+        for (ISemanticEdgeExtractor extractor : semanticExtractors) {
+            if (!extractor.requiresLlm()) {
+                try {
+                    List<CodeSemanticEdge> extracted = extractor.extractFromFileResults(fileResults, symbolTable);
+                    if (extracted != null && !extracted.isEmpty()) {
+                        semanticEdges.addAll(extracted);
+                    }
+                } catch (Exception e) {
+                    LOG.warn("File-result extractor {} failed: {}", extractor.getExtractorId(), e.getMessage());
+                }
+            }
+        }
     }
 
     private Set<String> collectExtensions() {

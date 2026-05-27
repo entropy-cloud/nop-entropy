@@ -33,9 +33,7 @@ public class AnnotationPatternExtractor implements ISemanticEdgeExtractor {
         return Collections.emptyList();
     }
 
-    /**
-     * Extract semantic edges from file analysis results with annotation data.
-     */
+    @Override
     public List<CodeSemanticEdge> extractFromFileResults(List<CodeFileAnalysisResult> fileResults,
                                                           SymbolTable symbolTable) {
         // Build annotation -> symbol IDs mapping
