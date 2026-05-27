@@ -52,7 +52,7 @@ import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
-import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
+import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
@@ -189,7 +189,7 @@ public class CepOperator<IN, KEY, OUT>
         if (backend != null) {
             keyedStateStore = backend;
         } else {
-            keyedStateStore = new SimpleKeyedStateStore();
+            keyedStateStore = new MemoryKeyedStateBackend<>(Object.class);
         }
         computationStates = keyedStateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
         // MapStateDescriptor does not support generic type tokens for value class;

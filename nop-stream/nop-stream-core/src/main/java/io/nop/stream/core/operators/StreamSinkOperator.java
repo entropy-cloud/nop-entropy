@@ -43,6 +43,10 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
 
     @Override
     public void processWatermark(Watermark mark) throws Exception {
+        // Sink is the chain tail: advance timers but do not forward (no downstream).
+        if (timeServiceManager != null) {
+            timeServiceManager.advanceWatermark(mark);
+        }
     }
 
     @Override

@@ -51,7 +51,7 @@ class TestCheckpointType {
         assertEquals(CheckpointType.CHECKPOINT, CheckpointType.fromName("checkpoint"));
         assertEquals(CheckpointType.SAVEPOINT, CheckpointType.fromName("savepoint"));
         assertEquals(CheckpointType.COMPLETED_POINT_TYPE, CheckpointType.fromName("completed"));
-        assertNull(CheckpointType.fromName("unknown"));
-        assertNull(CheckpointType.fromName(null));
+        assertThrows(IllegalArgumentException.class, () -> CheckpointType.fromName("unknown"));
+        assertThrows(IllegalArgumentException.class, () -> CheckpointType.fromName(null));
     }
 }

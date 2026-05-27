@@ -95,6 +95,6 @@ public enum CheckpointType {
                 return type;
             }
         }
-        return null;
+        throw new IllegalArgumentException("Unknown CheckpointType name: " + name);
     }
 }

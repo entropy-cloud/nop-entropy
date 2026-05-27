@@ -192,7 +192,13 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     @Override
     public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
-        throw new UnsupportedOperationException("Use getInternalAppendingState for namespace-aware reducing state");
+        @SuppressWarnings("unchecked")
+        ReducingState<T> state = (ReducingState<T>) states.get(stateProperties.getName());
+        if (state == null) {
+            state = new MemoryReducingState<>(this, stateProperties);
+            states.put(stateProperties.getName(), state);
+        }
+        return state;
     }
 
     @Override
@@ -895,6 +901,51 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     /**
      * 内存 AggregatingState 实现
      */
+    private static class MemoryReducingState<T> implements ReducingState<T>, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private MemoryKeyedStateBackend<?> backend;
+        private final ReducingStateDescriptor<T> descriptor;
+        private final Map<TypedNamespaceAndKey, SimpleAccumulator<T>> storage = new HashMap<>();
+
+        MemoryReducingState(MemoryKeyedStateBackend<?> backend, ReducingStateDescriptor<T> descriptor) {
+            this.backend = backend;
+            this.descriptor = descriptor;
+        }
+
+        void rebind(MemoryKeyedStateBackend<?> newBackend) {
+            this.backend = newBackend;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public T get() throws Exception {
+            SimpleAccumulator<T> acc = storage.get(backend.getTypedNamespaceAndKey());
+            return acc != null ? acc.getLocalValue() : null;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void add(T value) throws Exception {
+            TypedNamespaceAndKey key = backend.getTypedNamespaceAndKey();
+            SimpleAccumulator<T> acc = storage.get(key);
+            if (acc == null) {
+                try {
+                    acc = descriptor.getAccumulatorType().getDeclaredConstructor().newInstance();
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to create accumulator for ReducingState", e);
+                }
+            }
+            acc.add(value);
+            storage.put(key, acc);
+        }
+
+        @Override
+        public void clear() {
+            storage.remove(backend.getTypedNamespaceAndKey());
+        }
+    }
+
     private static class MemoryAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>, Serializable {
         private static final long serialVersionUID = 1L;
 

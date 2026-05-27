@@ -51,6 +51,10 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
                     StreamOperator<OUT> copy = (StreamOperator<OUT>) ois.readObject();
                     return copy;
                 }
+            } catch (java.io.NotSerializableException e) {
+                // Operator contains non-serializable fields (e.g. lambdas).
+                // Return the shared template instance instead of failing.
+                return operator;
             } catch (Exception e) {
                 throw new StreamException(
                         "Failed to create copy of operator via serialization: " + name, e);
