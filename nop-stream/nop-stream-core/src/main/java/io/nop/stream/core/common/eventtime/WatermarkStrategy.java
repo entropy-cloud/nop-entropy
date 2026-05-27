@@ -21,7 +21,7 @@ package io.nop.stream.core.common.eventtime;
 import java.io.Serializable;
 import java.time.Duration;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import io.nop.api.core.util.Guard;
 import static io.nop.api.core.util.Guard.checkArgument;
 
 /**
@@ -106,7 +106,7 @@ public interface WatermarkStrategy<T>
      */
     default WatermarkStrategy<T> withTimestampAssigner(
             TimestampAssignerSupplier<T> timestampAssigner) {
-        checkNotNull(timestampAssigner, "timestampAssigner");
+        Guard.notNull(timestampAssigner, "timestampAssigner");
         return new WatermarkStrategyWithTimestampAssigner<>(this, timestampAssigner);
     }
 
@@ -125,7 +125,7 @@ public interface WatermarkStrategy<T>
      */
     default WatermarkStrategy<T> withTimestampAssigner(
             TimestampAssigner<T> timestampAssigner) {
-        checkNotNull(timestampAssigner, "timestampAssigner");
+        Guard.notNull(timestampAssigner, "timestampAssigner");
         return new WatermarkStrategyWithTimestampAssigner<>(
                 this, TimestampAssignerSupplier.of(timestampAssigner));
     }
@@ -143,7 +143,7 @@ public interface WatermarkStrategy<T>
      * progress of the application.
      */
     default WatermarkStrategy<T> withIdleness(Duration idleTimeout) {
-        checkNotNull(idleTimeout, "idleTimeout");
+        Guard.notNull(idleTimeout, "idleTimeout");
         checkArgument(
                 !(idleTimeout.isZero() || idleTimeout.isNegative()),
                 "idleTimeout must be greater than zero");
@@ -187,9 +187,9 @@ public interface WatermarkStrategy<T>
      */
     default WatermarkStrategy<T> withWatermarkAlignment(
             String watermarkGroup, Duration maxAllowedWatermarkDrift, Duration updateInterval) {
-        checkNotNull(watermarkGroup, "watermarkGroup cannot be null");
-        checkNotNull(maxAllowedWatermarkDrift, "maxAllowedWatermarkDrift cannot be null");
-        checkNotNull(updateInterval, "updateInterval cannot be null");
+        Guard.notNull(watermarkGroup, "watermarkGroup cannot be null");
+        Guard.notNull(maxAllowedWatermarkDrift, "maxAllowedWatermarkDrift cannot be null");
+        Guard.notNull(updateInterval, "updateInterval cannot be null");
         checkArgument(
                 !maxAllowedWatermarkDrift.isNegative(),
                 "maxAllowedWatermarkDrift must be greater than or equal to zero");

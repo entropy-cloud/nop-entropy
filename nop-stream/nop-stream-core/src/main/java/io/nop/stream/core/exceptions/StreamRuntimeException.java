@@ -7,12 +7,16 @@
  */
 package io.nop.stream.core.exceptions;
 
-public class StreamRuntimeException extends RuntimeException {
+import io.nop.api.core.exceptions.NopException;
+
+public class StreamRuntimeException extends NopException {
+    private static final long serialVersionUID = 1L;
+
     public StreamRuntimeException(String message) {
-        super(message);
+        super(message, null, true, true);
     }
 
     public StreamRuntimeException(String message, Throwable cause) {
-        super(message, cause);
+        super(message, cause, true, true);
     }
 }

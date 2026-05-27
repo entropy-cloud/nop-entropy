@@ -20,10 +20,10 @@ package io.nop.stream.core.common.eventtime;
 
 import java.time.Duration;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.api.core.util.Guard.checkArgument;
 
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.api.core.util.Guard;
 
 /**
  * A WatermarkGenerator for situations where records are out of order, but you can place an upper
@@ -51,7 +51,7 @@ public class BoundedOutOfOrdernessWatermarks<T> implements WatermarkGenerator<T>
      * @param maxOutOfOrderness The bound for the out-of-orderness of the event timestamps.
      */
     public BoundedOutOfOrdernessWatermarks(Duration maxOutOfOrderness) {
-        checkNotNull(maxOutOfOrderness, "maxOutOfOrderness");
+        Guard.notNull(maxOutOfOrderness, "maxOutOfOrderness");
         checkArgument(!maxOutOfOrderness.isNegative(), "maxOutOfOrderness cannot be negative");
 
         this.outOfOrdernessMillis = maxOutOfOrderness.toMillis();

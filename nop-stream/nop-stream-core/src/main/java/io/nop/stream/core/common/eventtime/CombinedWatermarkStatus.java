@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.nop.api.core.annotations.core.Internal;
-import static com.google.common.base.Preconditions.checkState;
+import io.nop.api.core.util.Guard;
 
 /**
  * A {@link CombinedWatermarkStatus} combines the watermark (and idleness) updates of multiple
@@ -106,7 +106,7 @@ final class CombinedWatermarkStatus {
          * the output is currently idle.
          */
         private long getWatermark() {
-            checkState(!idle, "Output is idle.");
+            Guard.checkState(!idle, "Output is idle.");
             return watermark;
         }
 

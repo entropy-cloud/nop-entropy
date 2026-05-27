@@ -7,6 +7,9 @@
  */
 package io.nop.stream.fraud;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,6 +47,8 @@ import io.nop.stream.fraud.util.MockTransactionGenerator;
  * </ul>
  */
 public class FraudDetectionDemo {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FraudDetectionDemo.class);
 
     public static void main(String[] args) {
         try {
@@ -89,8 +94,7 @@ public class FraudDetectionDemo {
 
             System.out.println("\n=== Demo Complete ===");
         } catch (Exception e) {
-            System.err.println("Demo failed: " + e.getMessage());
-            e.printStackTrace();
+            LOG.error("Demo failed", e);
         }
     }
 

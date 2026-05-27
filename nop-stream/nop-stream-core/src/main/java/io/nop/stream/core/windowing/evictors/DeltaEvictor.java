@@ -20,7 +20,6 @@ package io.nop.stream.core.windowing.evictors;
 
 import java.util.Iterator;
 
-import com.google.common.collect.Iterables;
 import io.nop.api.core.annotations.core.Internal;
 
 import io.nop.stream.core.windowing.delta.DeltaFunction;
@@ -74,7 +73,10 @@ public class DeltaEvictor<T, W extends Window> implements Evictor<T, W> {
     }
 
     private void evict(Iterable<TimestampedValue<T>> elements, int size, EvictorContext ctx) {
-        TimestampedValue<T> lastElement = Iterables.getLast(elements);
+        TimestampedValue<T> lastElement = null;
+        for (TimestampedValue<T> e : elements) {
+            lastElement = e;
+        }
         for (Iterator<TimestampedValue<T>> iterator = elements.iterator(); iterator.hasNext(); ) {
             TimestampedValue<T> element = iterator.next();
             if (deltaFunction.getDelta(element.getValue(), lastElement.getValue())

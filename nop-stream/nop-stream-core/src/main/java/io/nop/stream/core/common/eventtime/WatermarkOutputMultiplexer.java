@@ -21,9 +21,8 @@ package io.nop.stream.core.common.eventtime;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import io.nop.api.core.annotations.core.Internal;
-import static com.google.common.base.Preconditions.checkState;
+import io.nop.api.core.util.Guard;
 
 import io.nop.stream.core.common.eventtime.CombinedWatermarkStatus.PartialWatermark;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -91,7 +90,7 @@ public class WatermarkOutputMultiplexer {
 
         final PartialWatermark previouslyRegistered =
                 watermarkPerOutputId.putIfAbsent(id, outputState);
-        checkState(previouslyRegistered == null, "Already contains an output for ID %s", id);
+        Guard.checkState(previouslyRegistered == null, "Already contains an output for ID %s", id);
 
         combinedWatermarkStatus.add(outputState);
     }
@@ -114,7 +113,7 @@ public class WatermarkOutputMultiplexer {
      */
     public WatermarkOutput getImmediateOutput(String outputId) {
         final PartialWatermark outputState = watermarkPerOutputId.get(outputId);
-        Preconditions.checkArgument(
+        Guard.checkArgument(
                 outputState != null, "no output registered under id %s", outputId);
         return new ImmediateOutput(outputState);
     }
@@ -127,7 +126,7 @@ public class WatermarkOutputMultiplexer {
      */
     public WatermarkOutput getDeferredOutput(String outputId) {
         final PartialWatermark outputState = watermarkPerOutputId.get(outputId);
-        Preconditions.checkArgument(
+        Guard.checkArgument(
                 outputState != null, "no output registered under id %s", outputId);
         return new DeferredOutput(outputState);
     }

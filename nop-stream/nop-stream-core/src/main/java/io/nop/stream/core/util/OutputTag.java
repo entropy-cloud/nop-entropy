@@ -24,7 +24,7 @@ import java.util.Objects;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
+import io.nop.api.core.util.Guard;
 
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 
@@ -57,10 +57,10 @@ public class OutputTag<T> implements Serializable {
      * @param typeInfo The {@code TypeInformation} for the side output.
      */
     public OutputTag(String id, TypeInformation<T> typeInfo) {
-        Preconditions.checkNotNull(id, "OutputTag id cannot be null.");
-        Preconditions.checkArgument(!id.isEmpty(), "OutputTag id must not be empty.");
+        Guard.notNull(id, "OutputTag id cannot be null.");
+        Guard.checkArgument(!id.isEmpty(), "OutputTag id must not be empty.");
         this.id = id;
-        this.typeInfo = Preconditions.checkNotNull(typeInfo, "TypeInformation cannot be null.");
+        this.typeInfo = Guard.notNull(typeInfo, "TypeInformation cannot be null.");
     }
 
     public static boolean isResponsibleFor(

@@ -21,7 +21,7 @@ package io.nop.stream.core.common.eventtime;
 import java.util.stream.IntStream;
 
 import io.nop.api.core.annotations.core.Internal;
-import static com.google.common.base.Preconditions.checkArgument;
+import io.nop.api.core.util.Guard;
 
 /**
  * Represents combined value and status of a watermark for a set number of input partial watermarks.
@@ -59,7 +59,7 @@ public final class IndexedCombinedWatermarkStatus {
      *     checked separately via {@link #isIdle()}
      */
     public boolean updateWatermark(int index, long timestamp) {
-        checkArgument(index < partialWatermarks.length);
+        Guard.checkArgument(index < partialWatermarks.length);
         partialWatermarks[index].setWatermark(timestamp);
         return combinedWatermarkStatus.updateCombinedWatermark();
     }
@@ -76,7 +76,7 @@ public final class IndexedCombinedWatermarkStatus {
      *     checked separately via {@link #isIdle()}
      */
     public boolean updateStatus(int index, boolean idle) {
-        checkArgument(index < partialWatermarks.length);
+        Guard.checkArgument(index < partialWatermarks.length);
         partialWatermarks[index].setIdle(idle);
         return combinedWatermarkStatus.updateCombinedWatermark();
     }

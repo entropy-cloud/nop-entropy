@@ -20,12 +20,11 @@ package io.nop.stream.core.common.eventtime;
 
 import java.time.Duration;
 
-import com.google.common.annotations.VisibleForTesting;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.nop.api.core.util.Guard.checkArgument;
 
 import io.nop.stream.core.util.clock.Clock;
 import io.nop.stream.core.util.clock.SystemClock;
+import io.nop.api.core.util.Guard;
 
 /**
  * A WatermarkGenerator that adds idleness detection to another WatermarkGenerator. If no events
@@ -51,13 +50,12 @@ public class WatermarksWithIdleness<T> implements WatermarkGenerator<T> {
         this(watermarks, idleTimeout, SystemClock.getInstance());
     }
 
-    @VisibleForTesting
-    WatermarksWithIdleness(WatermarkGenerator<T> watermarks, Duration idleTimeout, Clock clock) {
-        checkNotNull(idleTimeout, "idleTimeout");
+        WatermarksWithIdleness(WatermarkGenerator<T> watermarks, Duration idleTimeout, Clock clock) {
+        Guard.notNull(idleTimeout, "idleTimeout");
         checkArgument(
                 !(idleTimeout.isZero() || idleTimeout.isNegative()),
                 "idleTimeout must be greater than zero");
-        this.watermarks = checkNotNull(watermarks, "watermarks");
+        this.watermarks = Guard.notNull(watermarks, "watermarks");
         this.idlenessTimer = new IdlenessTimer(clock, idleTimeout);
     }
 
@@ -82,8 +80,7 @@ public class WatermarksWithIdleness<T> implements WatermarkGenerator<T> {
 
     // ------------------------------------------------------------------------
 
-    @VisibleForTesting
-    static final class IdlenessTimer {
+        static final class IdlenessTimer {
 
         /** The clock used to measure elapsed time. */
         private final Clock clock;
