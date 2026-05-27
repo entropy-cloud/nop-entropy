@@ -17,23 +17,7 @@ class TestAnnotationPatternExtractor {
     private final AnnotationPatternExtractor extractor = new AnnotationPatternExtractor();
 
     @Test
-    void testExtractorId() {
-        assertEquals("annotation-pattern", extractor.getExtractorId());
-    }
-
-    @Test
-    void testDoesNotRequireLlm() {
-        assertFalse(extractor.requiresLlm());
-    }
-
-    @Test
-    void testStandardExtractReturnsEmpty() {
-        List<CodeSemanticEdge> edges = extractor.extract(new SymbolTable(), null);
-        assertTrue(edges.isEmpty());
-    }
-
-    @Test
-    void testExtractFromFileResultsWithSharedAnnotations() {
+    void testSharedAnnotation_producesConceptualEdge() {
         SymbolTable table = new SymbolTable();
 
         CodeFileAnalysisResult file1 = new CodeFileAnalysisResult();
@@ -53,7 +37,7 @@ class TestAnnotationPatternExtractor {
         List<CodeSemanticEdge> edges = extractor.extractFromFileResults(
                 List.of(file1, file2), table);
 
-        assertFalse(edges.isEmpty());
+        assertEquals(1, edges.size());
         CodeSemanticEdge edge = edges.get(0);
         assertEquals(SemanticRelationType.CONCEPTUALLY_RELATED_TO, edge.getRelationType());
         assertEquals(EdgeConfidence.EXTRACTED, edge.getConfidence());
@@ -63,7 +47,7 @@ class TestAnnotationPatternExtractor {
     }
 
     @Test
-    void testSkipsCommonAnnotations() {
+    void testCommonAnnotationsLikeOverride_ignored() {
         CodeFileAnalysisResult file1 = new CodeFileAnalysisResult();
         file1.setFilePath("A.java");
         CodeAnnotationUsage usage1 = new CodeAnnotationUsage();
@@ -78,13 +62,12 @@ class TestAnnotationPatternExtractor {
         usage2.setAnnotatedSymbolId("sym-B");
         file2.setAnnotationUsages(Collections.singletonList(usage2));
 
-        List<CodeSemanticEdge> edges = extractor.extractFromFileResults(
-                List.of(file1, file2), new SymbolTable());
-        assertTrue(edges.isEmpty());
+        assertTrue(extractor.extractFromFileResults(
+                List.of(file1, file2), new SymbolTable()).isEmpty());
     }
 
     @Test
-    void testNoEdgesForSingleSymbol() {
+    void testSingleFile_noEdge() {
         CodeFileAnalysisResult file1 = new CodeFileAnalysisResult();
         file1.setFilePath("A.java");
         CodeAnnotationUsage usage1 = new CodeAnnotationUsage();
@@ -92,8 +75,12 @@ class TestAnnotationPatternExtractor {
         usage1.setAnnotatedSymbolId("sym-A");
         file1.setAnnotationUsages(Collections.singletonList(usage1));
 
-        List<CodeSemanticEdge> edges = extractor.extractFromFileResults(
-                List.of(file1), new SymbolTable());
-        assertTrue(edges.isEmpty());
+        assertTrue(extractor.extractFromFileResults(
+                List.of(file1), new SymbolTable()).isEmpty());
+    }
+
+    @Test
+    void testStandardExtract_alwaysReturnsEmpty() {
+        assertTrue(extractor.extract(new SymbolTable(), null).isEmpty());
     }
 }

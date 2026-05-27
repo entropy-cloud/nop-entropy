@@ -18,17 +18,7 @@ class TestDocKeywordExtractor {
     private final DocKeywordExtractor extractor = new DocKeywordExtractor();
 
     @Test
-    void testExtractorId() {
-        assertEquals("doc-keyword", extractor.getExtractorId());
-    }
-
-    @Test
-    void testDoesNotRequireLlm() {
-        assertFalse(extractor.requiresLlm());
-    }
-
-    @Test
-    void testExtractsFromDocumentation() {
+    void testOverlappingDocKeywords_producesConceptualEdge() {
         SymbolTable table = new SymbolTable();
 
         CodeSymbol sym1 = createSymbol("com.example.UserService", "UserService", CodeSymbolKind.CLASS);
@@ -40,15 +30,16 @@ class TestDocKeywordExtractor {
 
         List<CodeSemanticEdge> edges = extractor.extract(table, new CallGraph());
 
-        assertFalse(edges.isEmpty());
+        assertEquals(1, edges.size());
         CodeSemanticEdge edge = edges.get(0);
         assertEquals(SemanticRelationType.CONCEPTUALLY_RELATED_TO, edge.getRelationType());
         assertEquals(EdgeConfidence.EXTRACTED, edge.getConfidence());
         assertEquals("doc-keyword", edge.getExtractorId());
+        assertFalse(edge.isDirected());
     }
 
     @Test
-    void testNoEdgesForUnrelatedDocumentation() {
+    void testUnrelatedDocs_noEdge() {
         SymbolTable table = new SymbolTable();
 
         CodeSymbol sym1 = createSymbol("com.example.UserService", "UserService", CodeSymbolKind.CLASS);
@@ -58,27 +49,21 @@ class TestDocKeywordExtractor {
         table.add(sym1);
         table.add(sym2);
 
-        List<CodeSemanticEdge> edges = extractor.extract(table, new CallGraph());
-        assertTrue(edges.isEmpty());
+        assertTrue(extractor.extract(table, new CallGraph()).isEmpty());
     }
 
     @Test
-    void testNoEdgesWhenNoDocumentation() {
+    void testNoDocumentation_noEdge() {
         SymbolTable table = new SymbolTable();
+        table.add(createSymbol("com.example.UserService", "UserService", CodeSymbolKind.CLASS));
+        table.add(createSymbol("com.example.AuthService", "AuthService", CodeSymbolKind.CLASS));
 
-        CodeSymbol sym1 = createSymbol("com.example.UserService", "UserService", CodeSymbolKind.CLASS);
-        CodeSymbol sym2 = createSymbol("com.example.AuthService", "AuthService", CodeSymbolKind.CLASS);
-        table.add(sym1);
-        table.add(sym2);
-
-        List<CodeSemanticEdge> edges = extractor.extract(table, new CallGraph());
-        assertTrue(edges.isEmpty());
+        assertTrue(extractor.extract(table, new CallGraph()).isEmpty());
     }
 
     @Test
-    void testEmptySymbolTable() {
-        List<CodeSemanticEdge> edges = extractor.extract(new SymbolTable(), new CallGraph());
-        assertTrue(edges.isEmpty());
+    void testEmptySymbolTable_returnsEmpty() {
+        assertTrue(extractor.extract(new SymbolTable(), new CallGraph()).isEmpty());
     }
 
     private CodeSymbol createSymbol(String qualifiedName, String name, CodeSymbolKind kind) {

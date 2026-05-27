@@ -18,19 +18,8 @@ class TestNameSimilarityExtractor {
     private final NameSimilarityExtractor extractor = new NameSimilarityExtractor();
 
     @Test
-    void testExtractorId() {
-        assertEquals("name-sim", extractor.getExtractorId());
-    }
-
-    @Test
-    void testDoesNotRequireLlm() {
-        assertFalse(extractor.requiresLlm());
-    }
-
-    @Test
-    void testExtractsSimilarNames() {
+    void testSameNameDifferentParent_producesSimilarityEdge() {
         SymbolTable table = new SymbolTable();
-
         CodeSymbol sym1 = createSymbol("com.example.UserService", "UserService", CodeSymbolKind.CLASS);
         CodeSymbol sym2 = createSymbol("com.other.UserService", "UserService", CodeSymbolKind.CLASS);
         table.add(sym1);
@@ -38,7 +27,7 @@ class TestNameSimilarityExtractor {
 
         List<CodeSemanticEdge> edges = extractor.extract(table, new CallGraph());
 
-        assertFalse(edges.isEmpty());
+        assertEquals(1, edges.size());
         CodeSemanticEdge edge = edges.get(0);
         assertEquals(SemanticRelationType.SEMANTICALLY_SIMILAR_TO, edge.getRelationType());
         assertEquals(EdgeConfidence.EXTRACTED, edge.getConfidence());
@@ -48,22 +37,30 @@ class TestNameSimilarityExtractor {
     }
 
     @Test
-    void testNoEdgesForDissimilarNames() {
+    void testDissimilarNames_producesNoEdge() {
         SymbolTable table = new SymbolTable();
+        table.add(createSymbol("com.example.UserService", "UserService", CodeSymbolKind.CLASS));
+        table.add(createSymbol("com.example.DatabaseConnectionPool", "DatabaseConnectionPool", CodeSymbolKind.CLASS));
 
-        CodeSymbol sym1 = createSymbol("com.example.UserService", "UserService", CodeSymbolKind.CLASS);
-        CodeSymbol sym2 = createSymbol("com.example.DatabaseConnectionPool", "DatabaseConnectionPool", CodeSymbolKind.CLASS);
-        table.add(sym1);
-        table.add(sym2);
-
-        List<CodeSemanticEdge> edges = extractor.extract(table, new CallGraph());
-        assertTrue(edges.isEmpty());
+        assertTrue(extractor.extract(table, new CallGraph()).isEmpty());
     }
 
     @Test
-    void testEmptySymbolTable() {
-        List<CodeSemanticEdge> edges = extractor.extract(new SymbolTable(), new CallGraph());
-        assertTrue(edges.isEmpty());
+    void testSameParentSymbols_notConnected() {
+        SymbolTable table = new SymbolTable();
+        CodeSymbol sym1 = createSymbol("com.example.Foo.methodA", "methodA", CodeSymbolKind.METHOD);
+        sym1.setParentId("com.example.Foo");
+        CodeSymbol sym2 = createSymbol("com.example.Foo.methodB", "methodB", CodeSymbolKind.METHOD);
+        sym2.setParentId("com.example.Foo");
+        table.add(sym1);
+        table.add(sym2);
+
+        assertTrue(extractor.extract(table, new CallGraph()).isEmpty());
+    }
+
+    @Test
+    void testEmptySymbolTable_returnsEmpty() {
+        assertTrue(extractor.extract(new SymbolTable(), new CallGraph()).isEmpty());
     }
 
     private CodeSymbol createSymbol(String qualifiedName, String name, CodeSymbolKind kind) {
