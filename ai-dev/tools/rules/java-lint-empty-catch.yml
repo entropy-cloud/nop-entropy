@@ -1,0 +1,26 @@
+# ast-grep rule: detect empty catch blocks
+#
+# Empty catch blocks silently swallow exceptions, making debugging
+# difficult and masking failures.
+#
+# Bad:
+#   catch (Exception e) { }
+#
+# Good:
+#   catch (Exception e) {
+#       throw new NopAiException("Failed to ...", e);
+#   }
+#   or
+#   catch (Exception e) {
+#       LOG.error("Failed to ...", e);
+#   }
+
+id: java-lint-empty-catch
+language: java
+message: "Empty catch block swallows exception without handling. Pass the exception to a logger, rethrow it, or add a comment explaining why it is intentionally ignored."
+severity: warning
+rule:
+  kind: catch_clause
+  has:
+    pattern: '{}'
+    stopBy: end

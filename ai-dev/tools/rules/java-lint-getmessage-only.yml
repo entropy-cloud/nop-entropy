@@ -1,0 +1,33 @@
+# ast-grep rule: catch blocks that use e.getMessage() but lose the full stack trace
+#
+# When logging an exception, always pass the exception object (not just its message)
+# to preserve the full stack trace. Skipping the re-throw or the full exception
+# argument loses critical debugging information.
+#
+# Bad:
+#   catch (Exception e) {
+#       LOG.error("Failed: {}", e.getMessage());
+#   }
+#
+# Good:
+#   catch (Exception e) {
+#       LOG.error("Failed: {}", e.getMessage(), e);  // pass e as extra arg
+#   }
+#   or
+#   catch (Exception e) {
+#       throw new NopAiException("Failed", e);
+#   }
+
+id: java-lint-getmessage-only
+language: java
+message: "Only e.getMessage() is used, full stack trace is lost. Pass the exception object to the logger (e.g. LOG.error(msg, e)), or rethrow a wrapped exception."
+severity: warning
+rule:
+  kind: catch_clause
+  has:
+    pattern: $E.getMessage()
+    stopBy: end
+  not:
+    has:
+      pattern: throw $$$
+      stopBy: end

@@ -21,6 +21,7 @@ pnpm check         # run all checks
 | `code-stats.mjs` | Per-module code statistics (files, LOC, test ratio) | `pnpm stats` |
 | `check-plan-checklist.mjs` | Verify all plan checklist items are checked before closure | `pnpm check:plan` |
 | `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
+| `run-java-lint.sh` | Run ast-grep Java lint rules (empty catches, getMessage-only, bare RuntimeException, etc.) | `pnpm lint:java` |
 
 ## Per-Tool Details
 
@@ -101,6 +102,41 @@ Checks performed:
 - Draft/pending plan broken links are reported as warnings, not errors
 
 Required by: `ai-dev/plans/00-plan-authoring-and-execution-guide.md` (Rule #26), `ai-dev/skills/codex-goal-driven-development-prompt.md` (C-4.1, C-4.2, C-6).
+
+### run-java-lint.sh (ast-grep rules)
+
+Uses [ast-grep](https://ast-grep.github.io/) (based on tree-sitter AST) to lint Java code for anti-patterns. Rules are YAML files in `rules/`.
+
+```bash
+pnpm lint:java                                          # scan entire project
+pnpm lint:java nop-ai                                   # scan a module
+pnpm lint:java --filter empty-catch                       # run a subset of rules
+pnpm lint:java --report-style medium                     # compact output
+```
+
+**Available rules** (in `rules/`):
+
+| Rule file | Checks for |
+|-----------|-----------|
+| `java-lint-empty-catch.yml` | Empty `catch (X e) {}` blocks that silently swallow exceptions |
+| `java-lint-getmessage-only.yml` | Catch blocks that use `e.getMessage()` but don't pass `e` to logger or rethrow |
+| `java-lint-bare-runtimeexception.yml` | `throw new RuntimeException(...)` — should use NopException subclass |
+
+**Pre-commit hook**: Staged `.java` files are automatically checked before each commit.
+
+```bash
+git config core.hooksPath .githooks       # activate (one-time setup per clone)
+```
+
+The hook lives at `.githooks/pre-commit` (project root), uses `ai-dev/tools/` rules.
+Use `--error` mode so lint findings block the commit; bypass with `git commit --no-verify`.
+
+**Adding new rules**:
+1. Create `rules/java-lint-<name>.yml`
+2. Run `pnpm lint:java --filter <name>` to test
+3. Rules auto-discovered from `rules/` directory
+
+**Design**: Each rule is a standalone YAML file. Rules can be composed (`any`/`all`/`not`) for complex patterns. No JS coding needed.
 
 ## Adding New Tools
 

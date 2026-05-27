@@ -1,0 +1,22 @@
+# ast-grep rule: detect bare RuntimeException / Exception throws
+#
+# Nop platform code should use NopException or module-level exception classes
+# (e.g. NopAiException, StreamException), never bare RuntimeException.
+#
+# Bad:
+#   throw new RuntimeException("something failed");
+#   throw new Exception("something failed");
+#
+# Good:
+#   throw new NopAiException("Something failed", cause);
+#   throw new NopException(MyErrors.ERR_CODE).param(...);
+
+id: java-lint-bare-runtimeexception
+language: java
+message: "Use NopException or module-level exception class (e.g. NopAiException, StreamException) instead of RuntimeException/Exception"
+severity: warning
+rule:
+  any:
+    - pattern: throw new RuntimeException($$$)
+    - pattern: throw new Exception($$$)
+    - pattern: throw new Throwable($$$)

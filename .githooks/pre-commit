@@ -1,0 +1,34 @@
+#!/bin/sh
+# ============================================================
+# pre-commit hook — run ast-grep Java lint on staged .java files
+# ============================================================
+# Designed for git's core.hooksPath mechanism (zero deps).
+# Activate with: git config core.hooksPath .githooks
+# ============================================================
+
+set -euo pipefail
+
+# Collect staged Java files (Added, Copied, Modified, Renamed)
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.java')
+
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+echo "--- Checking staged Java files with ast-grep rules..."
+
+# Run lint; report-style=medium gives compact output per finding
+# If sg exits non-zero, the hook aborts the commit
+echo "$staged" | tr '\n' '\0' | xargs -0 \
+  "$(dirname "$0")/../ai-dev/tools/run-java-lint.sh" --report-style medium --error
+
+result=$?
+
+if [ $result -eq 0 ]; then
+  echo "--- Java lint check passed."
+else
+  echo "--- Java lint check FAILED. Fix issues above before committing."
+  echo "--- To bypass: git commit --no-verify"
+fi
+
+exit $result

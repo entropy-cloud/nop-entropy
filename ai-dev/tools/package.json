@@ -15,8 +15,15 @@
     "stats": "node code-stats.mjs",
     "check:plan": "node check-plan-checklist.mjs",
     "check:plan:strict": "node check-plan-checklist.mjs --strict",
-    "check": "pnpm run check:doc-links:strict && pnpm run check:import-order && pnpm run check:oversized && pnpm run check:garbled"
+    "check": "pnpm run check:doc-links:strict && pnpm run check:import-order && pnpm run check:oversized && pnpm run check:garbled",
+    "lint:java": "./run-java-lint.sh"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@ast-grep/cli": "^0.43.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@ast-grep/cli"
+    ]
+  }
 }
