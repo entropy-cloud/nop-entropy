@@ -1,6 +1,6 @@
 # Plan 61: nop-stream Watermark Bug Fix and State Backend Provisioning
 
-> Plan Status: **active**
+> Plan Status: **completed**
 > Created: 2026-05-27
 > Module: `nop-stream`
 > Source: Phase B adversarial review
@@ -45,32 +45,34 @@ In `GraphModelCheckpointExecutor`, after creating invokables but before running 
 ## Execution Slices
 
 ### Slice 1: Watermark bug fix
-> Status: in_progress
+> Status: completed
 
-- [ ] Add `watermarkInitialized` boolean to `WindowAggregationOperator`
-- [ ] Replace `== 0` check with `!watermarkInitialized` in `open()`
-- [ ] Set `watermarkInitialized = true` in `open()` and `restoreState()`
-- [ ] Add test: restore from snapshot with `currentWatermark == 0`, verify it's preserved after `open()`
-- [ ] Verify: `./mvnw test -pl nop-stream -am -T 1C`
+- [x] Add `watermarkInitialized` boolean to `WindowAggregationOperator`
+- [x] Replace `== 0` check with `!watermarkInitialized` in `open()`
+- [x] Set `watermarkInitialized = true` in `open()` and `restoreState()`
+- [x] Add test: restore from snapshot with `currentWatermark == 0`, verify it's preserved after `open()`
+- [x] Verify: `./mvnw test -pl nop-stream -am -T 1C`
 
 ### Slice 2: State backend provisioning
-> Status: pending
+> Status: completed
 
-- [ ] Add state backend provisioning in `GraphModelCheckpointExecutor`
-- [ ] Verify CepOperator gets keyed state backend in checkpoint-enabled execution
-- [ ] Add test: CepOperator with multiple keys through checkpoint path
-- [ ] Verify: `./mvnw test -pl nop-stream -am -T 1C`
+- [x] Add state backend provisioning in `GraphModelCheckpointExecutor`
+- [x] Verify CepOperator gets keyed state backend in checkpoint-enabled execution
+- [x] Add test: CepOperator with multiple keys through checkpoint path
+- [x] Verify: `./mvnw test -pl nop-stream -am -T 1C`
 
 ## Exit Criteria
 
-- [ ] `currentWatermark == 0` no longer overwritten after checkpoint restore
-- [ ] `watermarkInitialized` flag used instead of value check
-- [ ] `GraphModelCheckpointExecutor` provisions state backends to operator chains
-- [ ] CepOperator receives `IKeyedStateBackend` in checkpoint-enabled execution
-- [ ] New tests added for both fixes
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` passes (306+ tests, 0 failures)
+- [x] `currentWatermark == 0` no longer overwritten after checkpoint restore
+- [x] `watermarkInitialized` flag used instead of value check
+- [x] `GraphModelCheckpointExecutor` provisions state backends to operator chains
+- [x] CepOperator receives `IKeyedStateBackend` in checkpoint-enabled execution
+- [x] New tests added for both fixes
+- [x] `./mvnw test -pl nop-stream -am -T 1C` passes (306+ tests, 0 failures)
 
 ## Closure Gates
 
-- [ ] All Exit Criteria items checked
-- [ ] Independent closure audit confirms fixes
+- [x] All Exit Criteria items checked
+- [x] Independent closure audit confirms fixes
+
+**Evidence**: watermarkInitialized field exists and works. State backend pre-provisioning verified. Commit 089e79849.

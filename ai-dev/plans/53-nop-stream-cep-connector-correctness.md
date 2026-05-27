@@ -61,4 +61,4 @@
 - [x] 所有 3 个 slice 的 exit criteria 满足
 - [x] 全量构建和测试通过
 - [x] Anti-hollow 检查：CepOperator 在 stateBackend 可用时创建 IKeyedStateBackend，自动参与 checkpoint
-- [ ] Daily log 更新
+- [x] Daily log 更新

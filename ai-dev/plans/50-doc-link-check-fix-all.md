@@ -215,8 +215,8 @@ Targets: 全量验证
 
 - [x] 运行 `node ai-dev/tools/check-doc-links.mjs --strict`，确认 exit code 0
 - [x] 检查 JSON 输出：errors = 0, warnings = 0
-- [ ] 抽查 5 个修改过的文件，确认内容可读性未降低
-- [ ] 更新 `_tmp/` 中最新检查报告作为验收证据
+- [x] 抽查 5 个修改过的文件，确认内容可读性未降低
+- [x] 更新 `_tmp/` 中最新检查报告作为验收证据
 
 Exit Criteria:
 

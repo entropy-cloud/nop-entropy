@@ -44,17 +44,17 @@
 在 nop-nosql-core 中定义 6 个业务模式接口，同时补齐 INosqlSetOperations 和 INosqlZSetOperations 的方法定义（业务模式的 Ranking 依赖 ZSet，Queue 依赖 List）。
 
 **Exit Criteria**:
-- [ ] 6 个业务模式接口定义完成：INosqlQueue、INosqlLock、INosqlRateLimiter、INosqlRanking、INosqlCounter、INosqlSessionStore
-- [ ] 每个接口包含同步 + 异步双轨方法（Async 后缀），与原语层约定一致
-- [ ] INosqlSetOperations 补齐方法定义（add/remove/removeAll/contains/containsAll/size/members/randomMember/pop 及其 Async 版本）
-- [ ] INosqlZSetOperations 补齐方法定义
-- [ ] RateLimiterConfig 数据类定义（rate、capacity 字段，含 equals/hashCode）
-- [ ] RankingEntry 数据类定义（member、score、rank 字段）
-- [ ] RateLimitResult 数据类定义（allowed、remainingTokens 字段）
-- [ ] INosqlService 接口新增 6 个工厂方法：queue()、lock()、rateLimiter()、ranking()、counter()、sessionStore()
-- [ ] nop-nosql-core 无驱动依赖（pom.xml 不含 lettuce/jedis）
-- [ ] `mvn compile -pl nop-persistence/nop-nosql/nop-nosql-core` 通过
-- [ ] No owner-doc update required: 接口尚无使用者，Phase 6 统一更新 docs-for-ai
+- [x] 6 个业务模式接口定义完成：INosqlQueue、INosqlLock、INosqlRateLimiter、INosqlRanking、INosqlCounter、INosqlSessionStore
+- [x] 每个接口包含同步 + 异步双轨方法（Async 后缀），与原语层约定一致
+- [x] INosqlSetOperations 补齐方法定义（add/remove/removeAll/contains/containsAll/size/members/randomMember/pop 及其 Async 版本）
+- [x] INosqlZSetOperations 补齐方法定义
+- [x] RateLimiterConfig 数据类定义（rate、capacity 字段，含 equals/hashCode）
+- [x] RankingEntry 数据类定义（member、score、rank 字段）
+- [x] RateLimitResult 数据类定义（allowed、remainingTokens 字段）
+- [x] INosqlService 接口新增 6 个工厂方法：queue()、lock()、rateLimiter()、ranking()、counter()、sessionStore()
+- [x] nop-nosql-core 无驱动依赖（pom.xml 不含 lettuce/jedis）
+- [x] `mvn compile -pl nop-persistence/nop-nosql/nop-nosql-core` 通过
+- [x] No owner-doc update required: 接口尚无使用者，Phase 6 统一更新 docs-for-ai
 
 ### Phase 2: 原语层实现补齐
 
@@ -63,14 +63,14 @@
 在 LettuceMessageService 中实现 INosqlListOperations、INosqlSetOperations、INosqlZSetOperations，为 Phase 3 的业务模式提供底层支撑。
 
 **Exit Criteria**:
-- [ ] INosqlListOperations 的 Lettuce 实现完成（getSize/clear/add/addAll/getRange/trim/leftPop/rightPop/leftPopMulti/forEachItem 及其 Async 版本）
-- [ ] INosqlSetOperations 的 Lettuce 实现完成（add/remove/removeAll/contains/containsAll/size/members/randomMember/pop 及其 Async 版本）
-- [ ] INosqlZSetOperations 的 Lettuce 实现完成（至少包含 add/remove/score/rank/revRank/revRange/card/incrementScore）
-- [ ] INosqlHashOperations 实现补齐（当前 hashOps() 返回 null）
-- [ ] LettuceMessageService 的 hashOps/listOps/setOps/zSetOps 不再返回 null
-- [ ] 修复 3 个同步桩方法：putIfAbsent、getAndSet、removeIfMatch 使用对应异步方法的 join() 实现
-- [ ] `mvn compile -pl nop-persistence/nop-nosql/nop-nosql-lettuce` 通过
-- [ ] No owner-doc update required: 原语层实现变更，Phase 6 统一更新
+- [x] INosqlListOperations 的 Lettuce 实现完成（getSize/clear/add/addAll/getRange/trim/leftPop/rightPop/leftPopMulti/forEachItem 及其 Async 版本）
+- [x] INosqlSetOperations 的 Lettuce 实现完成（add/remove/removeAll/contains/containsAll/size/members/randomMember/pop 及其 Async 版本）
+- [x] INosqlZSetOperations 的 Lettuce 实现完成（至少包含 add/remove/score/rank/revRank/revRange/card/incrementScore）
+- [x] INosqlHashOperations 实现补齐（当前 hashOps() 返回 null）
+- [x] LettuceMessageService 的 hashOps/listOps/setOps/zSetOps 不再返回 null
+- [x] 修复 3 个同步桩方法：putIfAbsent、getAndSet、removeIfMatch 使用对应异步方法的 join() 实现
+- [x] `mvn compile -pl nop-persistence/nop-nosql/nop-nosql-lettuce` 通过
+- [x] No owner-doc update required: 原语层实现变更，Phase 6 统一更新
 
 ### Phase 3: 业务模式实现 — P0（Lock、Counter、Queue）
 
@@ -79,27 +79,27 @@
 优先实现最常用的 3 个业务模式。Lock 和 Counter 有现成 Lua 脚本和原语支撑，Queue 直接基于 List。
 
 **Exit Criteria**:
-- [ ] INosqlLock 的 Lettuce 实现：
-  - [ ] tryLock：SET key uuid NX PX leaseTime
-  - [ ] unlock：使用 remove_if_match.lua（CAS 释放）
-  - [ ] isHeld：本地状态跟踪
-  - [ ] 锁值使用 UUID 防止误解锁
-- [ ] INosqlCounter 的 Lettuce 实现：
-  - [ ] increment：INCRBY
-  - [ ] get：GET
-  - [ ] getAndIncrement：Lua 脚本（GET + INCRBY 原子执行，返回旧值）
-  - [ ] reset：SET
-  - [ ] getAndReset：GETSET（复用 get_and_set.lua 或直接使用 GETSET 命令）
-- [ ] INosqlQueue 的 Lettuce 实现：
-  - [ ] enqueue/enqueueBatch：RPUSH
-  - [ ] dequeue：LPOP
-  - [ ] dequeueBatch：LPOP count（Redis 6.2+）或 Lua 降级
-  - [ ] peek：LINDEX 0
-  - [ ] size：LLEN
-  - [ ] clear：DEL
-- [ ] INosqlService 的 queue()/lock()/counter() 工厂方法返回可用的实现对象
-- [ ] `mvn compile -pl nop-persistence/nop-nosql` 通过
-- [ ] No owner-doc update required: Phase 6 统一更新
+- [x] INosqlLock 的 Lettuce 实现：
+  - [x] tryLock：SET key uuid NX PX leaseTime
+  - [x] unlock：使用 remove_if_match.lua（CAS 释放）
+  - [x] isHeld：本地状态跟踪
+  - [x] 锁值使用 UUID 防止误解锁
+- [x] INosqlCounter 的 Lettuce 实现：
+  - [x] increment：INCRBY
+  - [x] get：GET
+  - [x] getAndIncrement：Lua 脚本（GET + INCRBY 原子执行，返回旧值）
+  - [x] reset：SET
+  - [x] getAndReset：GETSET（复用 get_and_set.lua 或直接使用 GETSET 命令）
+- [x] INosqlQueue 的 Lettuce 实现：
+  - [x] enqueue/enqueueBatch：RPUSH
+  - [x] dequeue：LPOP
+  - [x] dequeueBatch：LPOP count（Redis 6.2+）或 Lua 降级
+  - [x] peek：LINDEX 0
+  - [x] size：LLEN
+  - [x] clear：DEL
+- [x] INosqlService 的 queue()/lock()/counter() 工厂方法返回可用的实现对象
+- [x] `mvn compile -pl nop-persistence/nop-nosql` 通过
+- [x] No owner-doc update required: Phase 6 统一更新
 
 ### Phase 4: 业务模式实现 — P1（RateLimiter、Ranking）
 
@@ -108,22 +108,22 @@
 接入已有的 rate_limit.lua，实现 Ranking（基于 ZSet）。
 
 **Exit Criteria**:
-- [ ] INosqlRateLimiter 的 Lettuce 实现：
-  - [ ] tryAcquire：使用 rate_limit.lua
-  - [ ] getAvailableTokens：GET tokens_key（只读不消费）
-  - [ ] RateLimiterConfig 实现 equals/hashCode
-- [ ] INosqlRanking 的 Lettuce 实现：
-  - [ ] add：ZADD
-  - [ ] incrementScore：ZINCRBY
-  - [ ] getRank：ZREVRANK
-  - [ ] getScore：ZSCORE
-  - [ ] getTopN：ZREVRANGE + ZREVRANK
-  - [ ] getAround：ZREVRANK → ZREVRANGE
-  - [ ] size：ZCARD
-  - [ ] remove：ZREM
-- [ ] INosqlService 的 rateLimiter()/ranking() 工厂方法返回可用实现
-- [ ] `mvn compile -pl nop-persistence/nop-nosql` 通过
-- [ ] No owner-doc update required: Phase 6 统一更新
+- [x] INosqlRateLimiter 的 Lettuce 实现：
+  - [x] tryAcquire：使用 rate_limit.lua
+  - [x] getAvailableTokens：GET tokens_key（只读不消费）
+  - [x] RateLimiterConfig 实现 equals/hashCode
+- [x] INosqlRanking 的 Lettuce 实现：
+  - [x] add：ZADD
+  - [x] incrementScore：ZINCRBY
+  - [x] getRank：ZREVRANK
+  - [x] getScore：ZSCORE
+  - [x] getTopN：ZREVRANGE + ZREVRANK
+  - [x] getAround：ZREVRANK → ZREVRANGE
+  - [x] size：ZCARD
+  - [x] remove：ZREM
+- [x] INosqlService 的 rateLimiter()/ranking() 工厂方法返回可用实现
+- [x] `mvn compile -pl nop-persistence/nop-nosql` 通过
+- [x] No owner-doc update required: Phase 6 统一更新
 
 ### Phase 5: 业务模式实现 — P2（SessionStore）
 
@@ -132,18 +132,18 @@
 实现 SessionStore（基于 Hash + TTL）。
 
 **Exit Criteria**:
-- [ ] INosqlSessionStore 的 Lettuce 实现：
-  - [ ] get：HGETALL
-  - [ ] getField：HGET
-  - [ ] set：HMSET + PEXPIRE（标注非原子性，建议 Lua 或 Pipeline）
-  - [ ] setField：HSET
-  - [ ] touch：PEXPIRE（或使用 get_and_expire.lua 的反向）
-  - [ ] remove：DEL
-  - [ ] exists：EXISTS
-  - [ ] key 格式：`{prefix}:{sessionId}`
-- [ ] INosqlService 的 sessionStore() 工厂方法返回可用实现
-- [ ] `mvn compile -pl nop-persistence/nop-nosql` 通过
-- [ ] No owner-doc update required: Phase 6 统一更新
+- [x] INosqlSessionStore 的 Lettuce 实现：
+  - [x] get：HGETALL
+  - [x] getField：HGET
+  - [x] set：HMSET + PEXPIRE（标注非原子性，建议 Lua 或 Pipeline）
+  - [x] setField：HSET
+  - [x] touch：PEXPIRE（或使用 get_and_expire.lua 的反向）
+  - [x] remove：DEL
+  - [x] exists：EXISTS
+  - [x] key 格式：`{prefix}:{sessionId}`
+- [x] INosqlService 的 sessionStore() 工厂方法返回可用实现
+- [x] `mvn compile -pl nop-persistence/nop-nosql` 通过
+- [x] No owner-doc update required: Phase 6 统一更新
 
 ### Phase 6: 测试 + 文档更新
 
@@ -154,30 +154,30 @@
 测试环境策略：使用 Testcontainers（Redis 容器）+ `@DisabledIf` 条件判断。无 Docker 的环境自动跳过测试，不阻塞构建。CI 环境配 Docker 跑完整测试。
 
 **Exit Criteria**:
-- [ ] 测试基类或工具方法实现 Docker 可用性检测（`DockerClientFactory.instance().client()` 探测），无 Docker 时 `@DisabledIf` 跳过
-- [ ] TestLettuceNosqlService 使用 Testcontainers 启动 `redis:7-alpine` 容器
-- [ ] Lock 测试：获取/释放/超时自动释放/CAS 防误解锁
-- [ ] Counter 测试：递增/递减/并发原子性/getAndReset
-- [ ] Queue 测试：入队/出队/批量/空队列出队返回 null
-- [ ] RateLimiter 测试：令牌消耗/桶满/桶空拒绝/令牌补充
-- [ ] Ranking 测试：添加/增量/排名/TopN/Around/删除
-- [ ] SessionStore 测试：创建/读取/更新字段/TTL 刷新/销毁
-- [ ] putIfAbsentOrMatchExAsync 接入 put_if_absent_or_match.lua（修复当前 return null）
-- [ ] 修改 `ai-dev/design/nop-nosql/architecture.md` §6 实现状态表，反映所有已完成项
-- [ ] 修改 `ai-dev/design/nop-nosql/README.md` 模块成熟度说明
-- [ ] `mvn test -pl nop-persistence/nop-nosql` 通过（新增测试全部 pass）
+- [x] 测试基类或工具方法实现 Docker 可用性检测（`DockerClientFactory.instance().client()` 探测），无 Docker 时 `@DisabledIf` 跳过
+- [x] TestLettuceNosqlService 使用 Testcontainers 启动 `redis:7-alpine` 容器
+- [x] Lock 测试：获取/释放/超时自动释放/CAS 防误解锁
+- [x] Counter 测试：递增/递减/并发原子性/getAndReset
+- [x] Queue 测试：入队/出队/批量/空队列出队返回 null
+- [x] RateLimiter 测试：令牌消耗/桶满/桶空拒绝/令牌补充
+- [x] Ranking 测试：添加/增量/排名/TopN/Around/删除
+- [x] SessionStore 测试：创建/读取/更新字段/TTL 刷新/销毁
+- [x] putIfAbsentOrMatchExAsync 接入 put_if_absent_or_match.lua（修复当前 return null）
+- [x] 修改 `ai-dev/design/nop-nosql/architecture.md` §6 实现状态表，反映所有已完成项
+- [x] 修改 `ai-dev/design/nop-nosql/README.md` 模块成熟度说明
+- [x] `mvn test -pl nop-persistence/nop-nosql` 通过（新增测试全部 pass）
 
 ## Closure Gates
 
 计划关闭前必须满足：
 
-- [ ] 6 个业务模式接口 + Lettuce 实现全部编译通过
-- [ ] INosqlService 的 6 个工厂方法可用
-- [ ] 原语层（Hash/List/Set/ZSet）不再返回 null
-- [ ] 所有新增测试 pass（Testcontainers，无 Docker 环境自动跳过）
-- [ ] 已知债务中与业务模式相关的项已处理（3 个同步桩、putIfAbsentOrMatchExAsync）
-- [ ] design 文档的实现状态表已更新
-- [ ] 独立 closure audit 完成
+- [x] 6 个业务模式接口 + Lettuce 实现全部编译通过
+- [x] INosqlService 的 6 个工厂方法可用
+- [x] 原语层（Hash/List/Set/ZSet）不再返回 null
+- [x] 所有新增测试 pass（Testcontainers，无 Docker 环境自动跳过）
+- [x] 已知债务中与业务模式相关的项已处理（3 个同步桩、putIfAbsentOrMatchExAsync）
+- [x] design 文档的实现状态表已更新
+- [x] 独立 closure audit 完成
 
 ## Deferred But Adjudicated
 

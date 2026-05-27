@@ -110,11 +110,11 @@ Targets: `nop-stream-core`（operator 包、streamrecord 包）
 
 实现时间戳提取和 watermark 生成的算子。
 
-- [ ] 新增 `TimestampsAndWatermarksOperator<T>` extends `AbstractStreamOperator<T>` implements `OneInputStreamOperator<T, T>`
-- [ ] `processElement()`：调用 `TimestampAssigner.extractTimestamp()` → 将时间戳设置到 `StreamRecord.setTimestamp()` → 调用 `WatermarkGenerator.onEvent()`
-- [ ] `processWatermark()`：直接转发到下游（watermark 递减语义由下游处理）
-- [ ] 周期性 watermark 生成：在 `processElement()` 中检查是否到达发射周期（基于元素计数或系统时间），到达时调用 `WatermarkGenerator.onPeriodicEmit()`
-- [ ] source 完成时：调用 `onPeriodicEmit()` 最后一次，然后发射 `MAX_WATERMARK`
+- [x] 新增 `TimestampsAndWatermarksOperator<T>` extends `AbstractStreamOperator<T>` implements `OneInputStreamOperator<T, T>`
+- [x] `processElement()`：调用 `TimestampAssigner.extractTimestamp()` → 将时间戳设置到 `StreamRecord.setTimestamp()` → 调用 `WatermarkGenerator.onEvent()`
+- [x] `processWatermark()`：直接转发到下游（watermark 递减语义由下游处理）
+- [x] 周期性 watermark 生成：在 `processElement()` 中检查是否到达发射周期（基于元素计数或系统时间），到达时调用 `WatermarkGenerator.onPeriodicEmit()`
+- [x] source 完成时：调用 `onPeriodicEmit()` 最后一次，然后发射 `MAX_WATERMARK`
 
 Exit Criteria:
 
@@ -133,8 +133,8 @@ Targets: `nop-stream-core`（windowing 包、operator 包）
 
 实现 `HeapInternalTimerService` 并将其集成到 `AbstractStreamOperator`，使 Watermark 能驱动 WindowOperator 的窗口触发。
 
-- [ ] 新增 `HeapInternalTimerService<N>` implements `InternalTimerService<N>`：基于 `TreeMap<Long, Set<N>>` 管理事件时间定时器，`advanceWatermark()` 时触发所有 timestamp ≤ watermark 的定时器
-- [ ] 新增 `TimerServiceManager`：管理每个算子的 `HeapInternalTimerService` 实例，`advanceWatermark()` 推进所有注册的 timer service
+- [x] 新增 `HeapInternalTimerService<N>` implements `InternalTimerService<N>`：基于 `TreeMap<Long, Set<N>>` 管理事件时间定时器，`advanceWatermark()` 时触发所有 timestamp ≤ watermark 的定时器
+- [x] 新增 `TimerServiceManager`：管理每个算子的 `HeapInternalTimerService` 实例，`advanceWatermark()` 推进所有注册的 timer service
 - [x] 取消注释 `AbstractStreamOperator.processWatermark()` 中的 `timeServiceManager.advanceWatermark(mark)`
 - [x] 验证 `WindowOperator.processWatermark()` 通过 timer service 触发到期窗口的 `onEventTime()` 回调
 - [x] 窗口触发后正确调用 WindowFunction 产出结果

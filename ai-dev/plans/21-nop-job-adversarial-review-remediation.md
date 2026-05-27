@@ -164,10 +164,10 @@ Exit Criteria:
 - [x] R2-4: Per-schedule `timeoutSeconds` enforced by timeout checker when configured
 - [x] R2-5: SUSPICIOUS tasks keep fire RUNNING; existing escalation resolves to TIMEOUT
 - [x] F12: Manual trigger with active fire throws descriptive exception
-- [ ] `./mvnw compile -pl nop-job` succeeds
-- [ ] `./mvnw test -pl nop-job` passes
+- [x] `./mvnw compile -pl nop-job` succeeds
+- [x] `./mvnw test -pl nop-job` passes
 - [x] `ai-dev/logs/` updated with daily entry
-- [ ] Owner-doc update: `docs-for-ai/` updated if dispatch timeout or recovery behavior changes affect documented API contracts; otherwise `No owner-doc update required`
+- [x] Owner-doc update: `docs-for-ai/` updated if dispatch timeout or recovery behavior changes affect documented API contracts; otherwise `No owner-doc update required`
 
 ### Phase 2 — High-Value P2 Fixes
 
@@ -212,10 +212,10 @@ Exit Criteria:
 - [x] F11: Broadcast fire resolution behavior documented in code comments
 - [x] F15: Overlay cancellation failure doesn't abort entire transaction
 - [x] R2-19: ONCE trigger type creates fires correctly via `OnceTrigger`
-- [ ] `./mvnw compile -pl nop-job` succeeds
-- [ ] `./mvnw test -pl nop-job` passes
+- [x] `./mvnw compile -pl nop-job` succeeds
+- [x] `./mvnw test -pl nop-job` passes
 - [x] `ai-dev/logs/` updated with daily entry
-- [ ] Owner-doc update: `No owner-doc update required` (internal behavior clarification only)
+- [x] Owner-doc update: `No owner-doc update required` (internal behavior clarification only)
 
 ### Phase 3 — Dead Feature Cleanup
 
@@ -247,9 +247,9 @@ Exit Criteria:
 - [x] R2-16: Dead task store methods removed
 - [x] R2-17: Dead progress tracking method removed
 - [x] R2-18: `workerAddress` either populated or documented as reserved
-- [ ] `./mvnw compile -pl nop-job` succeeds
-- [ ] `./mvnw test -pl nop-job` passes
-- [ ] No owner-doc update required (internal cleanup only)
+- [x] `./mvnw compile -pl nop-job` succeeds
+- [x] `./mvnw test -pl nop-job` passes
+- [x] No owner-doc update required (internal cleanup only)
 - [x] `ai-dev/logs/` updated with daily entry
 
 ---
@@ -262,10 +262,10 @@ Exit Criteria:
 - [x] High-value P2 defects fixed: SUSPICIOUS race, overlay resilience, OnceTrigger, task deletion guard
 - [x] Dead feature cleanup completed
 - [x] No in-scope live defect silently deferred
-- [ ] `./mvnw compile -pl nop-job` succeeds
-- [ ] `./mvnw test -pl nop-job` passes
-- [ ] checkstyle passes
-- [ ] Independent closure audit completed with evidence
+- [x] `./mvnw compile -pl nop-job` succeeds
+- [x] `./mvnw test -pl nop-job` passes
+- [x] checkstyle passes
+- [x] Independent closure audit completed with evidence
 
 ## Deferred But Adjudicated
 

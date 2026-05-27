@@ -76,48 +76,50 @@ This is an **accepted breaking change**. After this change, `exception.getMessag
 ### Slice 1: Exception Hierarchy Change
 > Status: completed
 
-- [ ] Change `StreamRuntimeException` to extend `NopException` with constructor bridge
-- [ ] Change `StreamException` to extend `StreamRuntimeException` (no change needed, cascades)
-- [ ] Verify compilation: `./mvnw clean install -pl nop-stream -am -T 1C -DskipTests`
-- [ ] Verify tests: `./mvnw test -pl nop-stream -am -T 1C`
+- [x] Change `StreamRuntimeException` to extend `NopException` with constructor bridge
+- [x] Change `StreamException` to extend `StreamRuntimeException` (no change needed, cascades)
+- [x] Verify compilation: `./mvnw clean install -pl nop-stream -am -T 1C -DskipTests`
+- [x] Verify tests: `./mvnw test -pl nop-stream -am -T 1C`
 
 ### Slice 2: Guava → Guard Replacement
 > Status: completed
 
-- [ ] Replace Guava in `OutputTag.java`
-- [ ] Replace Guava in `WatermarkOutputMultiplexer.java`
-- [ ] Replace Guava in `WatermarkStrategy.java`
-- [ ] Replace Guava in `CombinedWatermarkStatus.java`
-- [ ] Replace Guava in `IndexedCombinedWatermarkStatus.java`
-- [ ] Replace Guava in `WatermarksWithIdleness.java` (including `@VisibleForTesting`)
-- [ ] Replace Guava in `BoundedOutOfOrdernessWatermarks.java`
-- [ ] Replace Guava in `DeltaEvictor.java` (Iterables.getLast → inline)
-- [ ] Fix import ordering in all 8 files
-- [ ] Verify: `./mvnw test -pl nop-stream -am -T 1C`
+- [x] Replace Guava in `OutputTag.java`
+- [x] Replace Guava in `WatermarkOutputMultiplexer.java`
+- [x] Replace Guava in `WatermarkStrategy.java`
+- [x] Replace Guava in `CombinedWatermarkStatus.java`
+- [x] Replace Guava in `IndexedCombinedWatermarkStatus.java`
+- [x] Replace Guava in `WatermarksWithIdleness.java` (including `@VisibleForTesting`)
+- [x] Replace Guava in `BoundedOutOfOrdernessWatermarks.java`
+- [x] Replace Guava in `DeltaEvictor.java` (Iterables.getLast → inline)
+- [x] Fix import ordering in all 8 files
+- [x] Verify: `./mvnw test -pl nop-stream -am -T 1C`
 
 ### Slice 3: FraudDemo Fix + Final Verification
 > Status: completed
 
-- [ ] Replace `e.printStackTrace()` with `LOG.error()` in `FraudDetectionDemo.java`
-- [ ] Verify zero `com.google.common` imports in nop-stream production code
-- [ ] Verify zero `e.printStackTrace()` in nop-stream production code
-- [ ] Final build: `./mvnw clean install -pl nop-stream -am -T 1C`
-- [ ] Final tests: `./mvnw test -pl nop-stream -am -T 1C`
+- [x] Replace `e.printStackTrace()` with `LOG.error()` in `FraudDetectionDemo.java`
+- [x] Verify zero `com.google.common` imports in nop-stream production code
+- [x] Verify zero `e.printStackTrace()` in nop-stream production code
+- [x] Final build: `./mvnw clean install -pl nop-stream -am -T 1C`
+- [x] Final tests: `./mvnw test -pl nop-stream -am -T 1C`
 
 ## Exit Criteria
 
-- [ ] `StreamRuntimeException` extends `NopException` (not `RuntimeException`)
-- [ ] All 8 Guava-using files replaced with `Guard` equivalents
-- [ ] Zero `com.google.common` imports in nop-stream production code
-- [ ] `FraudDetectionDemo.java` uses `LOG.error()` instead of `e.printStackTrace()`
-- [ ] All modified files have correct import ordering
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` passes (306 tests, 0 failures)
-- [ ] `throw new StreamException("msg")` still compiles and works (backwards compatible)
+- [x] `StreamRuntimeException` extends `NopException` (not `RuntimeException`)
+- [x] All 8 Guava-using files replaced with `Guard` equivalents
+- [x] Zero `com.google.common` imports in nop-stream production code
+- [x] `FraudDetectionDemo.java` uses `LOG.error()` instead of `e.printStackTrace()`
+- [x] All modified files have correct import ordering
+- [x] `./mvnw test -pl nop-stream -am -T 1C` passes (306 tests, 0 failures)
+- [x] `throw new StreamException("msg")` still compiles and works (backwards compatible)
 
 ## Closure Gates
 
-- [ ] All Exit Criteria items checked
-- [ ] All Slice items checked
-- [ ] Build passes
-- [ ] Test count unchanged (306)
-- [ ] Independent closure audit by sub-agent confirms changes
+- [x] All Exit Criteria items checked
+- [x] All Slice items checked
+- [x] Build passes
+- [x] Test count unchanged (306)
+- [x] Independent closure audit by sub-agent confirms changes
+
+**Evidence**: StreamRuntimeException extends NopException confirmed. Zero com.google.common in CEP confirmed. Commit f6d8bcbf9.

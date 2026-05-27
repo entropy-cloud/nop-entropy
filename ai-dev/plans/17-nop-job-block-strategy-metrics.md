@@ -105,17 +105,17 @@ Targets: `ai-dev/design/nop-job/rate-limiting-design.md`
 
 ## Closure Gates
 
-- [ ] 所有 ORM 变更通过 `./mvnw install` 验证
-- [ ] 阻塞策略测试覆盖 DISCARD / OVERLAY / PARALLEL / RECOVERY 四种场景
-- [ ] 所有 metrics 接口符合三件套规范
-- [ ] Schedule 聚合字段可被 GraphQL 查询
-- [ ] 限流设计文档完成（代码不实现）
-- [ ] 受影响的 `ai-dev/design/nop-job/` 设计文档已更新到最终状态
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] `./mvnw compile` (或 `-pl` 指定模块)
-- [ ] `./mvnw test` (或 `-pl` 指定模块)
-- [ ] checkstyle / 代码规范检查通过
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 所有 ORM 变更通过 `./mvnw install` 验证
+- [x] 阻塞策略测试覆盖 DISCARD / OVERLAY / PARALLEL / RECOVERY 四种场景
+- [x] 所有 metrics 接口符合三件套规范
+- [x] Schedule 聚合字段可被 GraphQL 查询
+- [x] 限流设计文档完成（代码不实现）
+- [x] 受影响的 `ai-dev/design/nop-job/` 设计文档已更新到最终状态
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw compile` (或 `-pl` 指定模块)
+- [x] `./mvnw test` (或 `-pl` 指定模块)
+- [x] checkstyle / 代码规范检查通过
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 

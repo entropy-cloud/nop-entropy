@@ -72,4 +72,4 @@ Deep audit round 1 发现 nop-stream 存在两类 P1 问题：错误处理不一
 - [x] `rg "throw new RuntimeException" nop-stream/nop-stream-cep/src/main/java/` 仅剩 SharedBuffer 以外的结果（SharedBuffer 改用 NopException.adapt）
 - [x] `rg "throw new IllegalArgumentException" nop-stream/nop-stream-connector/src/main/java/` 返回 0 结果
 - [x] `./mvnw test -pl nop-stream -am -T 1C` 全量通过
-- [ ] daily log updated
+- [x] daily log updated

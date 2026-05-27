@@ -89,19 +89,19 @@ Targets: `nop-stream-core`（checkpoint 包）、`nop-stream-runtime`（checkpoi
 
 审查已有的 `LocalFileCheckpointStorage` 实现，将其接入 `CheckpointCoordinator` 的快照完成路径。
 
-- [ ] 审查 `LocalFileCheckpointStorage`：验证 `storeCheckPoint()` / `loadCheckpoint()` 与当前 `CompletedCheckpoint` 数据结构兼容
-- [ ] 审查 `CompletedCheckpoint`：确认其携带 `TaskStateSnapshot`（`Map<String, byte[]>` operatorStates + keyedStates），且 JSON 序列化可正确 round-trip
-- [ ] `CheckpointCoordinator` 增加 `ICheckpointStorage` 字段（构造注入）
-- [ ] `CheckpointCoordinator.completePendingCheckpoint()` 中调用 `storage.storeCheckPoint(completed)` 持久化
-- [ ] `GraphModelCheckpointExecutor`（runtime）在创建 `CheckpointCoordinator` 时注入 `LocalFileCheckpointStorage`
-- [ ] 单元测试：触发 checkpoint → 验证数据写入文件系统 → 重新加载 → 验证数据一致
+- [x] 审查 `LocalFileCheckpointStorage`：验证 `storeCheckPoint()` / `loadCheckpoint()` 与当前 `CompletedCheckpoint` 数据结构兼容
+- [x] 审查 `CompletedCheckpoint`：确认其携带 `TaskStateSnapshot`（`Map<String, byte[]>` operatorStates + keyedStates），且 JSON 序列化可正确 round-trip
+- [x] `CheckpointCoordinator` 增加 `ICheckpointStorage` 字段（构造注入）
+- [x] `CheckpointCoordinator.completePendingCheckpoint()` 中调用 `storage.storeCheckPoint(completed)` 持久化
+- [x] `GraphModelCheckpointExecutor`（runtime）在创建 `CheckpointCoordinator` 时注入 `LocalFileCheckpointStorage`
+- [x] 单元测试：触发 checkpoint → 验证数据写入文件系统 → 重新加载 → 验证数据一致
 
 Exit Criteria:
 
-- [ ] `CheckpointCoordinator` 完成快照后自动将 `CompletedCheckpoint` 持久化到文件系统
-- [ ] 持久化后的数据可通过 `ICheckpointStorage.loadCheckpoint()` 重新加载
-- [ ] 现有测试不受影响（回归）
-- [ ] `./mvnw test -pl nop-stream` 通过
+- [x] `CheckpointCoordinator` 完成快照后自动将 `CompletedCheckpoint` 持久化到文件系统
+- [x] 持久化后的数据可通过 `ICheckpointStorage.loadCheckpoint()` 重新加载
+- [x] 现有测试不受影响（回归）
+- [x] `./mvnw test -pl nop-stream` 通过
 
 ### Phase 2 - Savepoint 元数据格式
 
@@ -112,17 +112,17 @@ Targets: `nop-stream-core`（checkpoint 包）
 
 定义 Savepoint 的元数据格式，包含恢复所需的全部信息。
 
-- [ ] 新增 `SavepointMetadata` 类：checkpointId、createTime、jobId、pipelineId、operatorStateCount、keyedStateCount
-- [ ] JSON 序列化/反序列化（复用 `LocalFileCheckpointStorage` 已有的 JSON 工具链）
-- [ ] 元数据文件保存在 `targetPath/savepoint-<id>.metadata`
-- [ ] `SavepointMetadata` 从 `CompletedCheckpoint` 构建
+- [x] 新增 `SavepointMetadata` 类：checkpointId、createTime、jobId、pipelineId、operatorStateCount、keyedStateCount
+- [x] JSON 序列化/反序列化（复用 `LocalFileCheckpointStorage` 已有的 JSON 工具链）
+- [x] 元数据文件保存在 `targetPath/savepoint-<id>.metadata`
+- [x] `SavepointMetadata` 从 `CompletedCheckpoint` 构建
 
 Exit Criteria:
 
-- [ ] `SavepointMetadata` 可完整描述一个 savepoint 的内容
-- [ ] JSON 序列化/反序列化 round-trip 正确
-- [ ] 新增单元测试
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core` 通过
+- [x] `SavepointMetadata` 可完整描述一个 savepoint 的内容
+- [x] JSON 序列化/反序列化 round-trip 正确
+- [x] 新增单元测试
+- [x] `./mvnw test -pl nop-stream/nop-stream-core` 通过
 
 ### Phase 3 - Savepoint 触发与恢复 API
 

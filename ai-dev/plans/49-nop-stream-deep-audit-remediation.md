@@ -82,7 +82,7 @@ Exit Criteria:
 - [x] **端到端验证**：从 `executeWithCheckpoint()` → checkpoint 持久化 → 恢复 → 重新处理的完整路径已验证
 - [x] **接线验证**：所有 subtask 的 BarrierTracker 通过 CheckpointPlan 正确注册
 - [x] No owner-doc update required（修复实现缺陷，设计契约未变）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - P0/P1: CepPatternBuilder 处置决策与修复
 
@@ -112,7 +112,7 @@ Exit Criteria:
 - [x] **无静默跳过**：10-07 的 default 分支抛出异常
 - [x] `./mvnw test -pl nop-stream-cep -am` 全部通过（33 tests）
 - [x] No owner-doc update required（CepPatternBuilder 为零引用死代码）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - P1: 并发安全 + 类型安全 (14-02, 15-04)
 
@@ -124,17 +124,17 @@ Targets: `nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/Chec
 - [x] **Fix 14-02**：`failedCommitParticipants` 改为 `ConcurrentSkipListMap`，内部 Set 改为 `ConcurrentHashMap.newKeySet()`
 - [x] **Fix 15-04**：`WindowOperator` 新增带 `accClass` 参数的构造函数重载，`open()` 使用该参数
 - [x] 添加测试 15-04：`TestWindowOperatorAccType` 验证 ACC 类型保留（3 个测试）
-- [ ] 添加测试 14-02：多线程并发调用 `handleCheckpointAck` + `restoreFailedCommitParticipants`
+- [x] 添加测试 14-02：多线程并发调用 `handleCheckpointAck` + `restoreFailedCommitParticipants`
 
 Exit Criteria:
 
 - [x] `failedCommitParticipants` 使用线程安全的 `ConcurrentSkipListMap` + `ConcurrentHashMap.newKeySet()`
 - [x] `WindowOperator` 新增带 `accClass` 参数的构造函数重载，`open()` 使用该参数创建 `MapStateDescriptor`
 - [x] 所有现有 WindowOperator 调用点向后兼容（原有构造函数委托到新重载，默认 accClass=Object.class）
-- [ ] 14-02 并发测试通过：多线程无 CME
+- [x] 14-02 并发测试通过：多线程无 CME
 - [x] 15-04 类型安全测试通过：`TestWindowOperatorAccType` 3 个测试全通过
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - P1: 测试覆盖补充 (16-01, 16-05, 16-07, 16-09)
 
@@ -143,21 +143,21 @@ Targets: `nop-stream-cep/src/test/`, `nop-stream-connector/src/test/`, `nop-stre
 
 - Item Types: `Proof`
 
-- [ ] **Proof 16-01**：新增 `TestAfterMatchSkipStrategies.java`，覆盖 `SkipPastLastStrategy`、`SkipToFirstStrategy`、`SkipToLastStrategy` 的剪枝行为。每种策略至少 1 个测试用例
-- [ ] **Proof 16-05**：为 `DebeziumCdcSourceFunction` 新增至少 2 个测试：(1) mock `run()` 验证 source 正确读取变更事件并调用 `SourceContext.collect()`；(2) `snapshotState()` / `initializeState()` 往返测试
-- [ ] **Fix 16-07**：审查 `TestEmbeddedDistributedExecution.java`（位于 `nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/`）——当前测试实际为单线程同步执行。添加注释说明测试范围限制，或添加真正的 parallelism > 1 数据分发验证
-- [ ] **Fix 16-09**：处理 `TestDebeziumCdcSourceCompletion.java`（位于 `nop-stream-connector/src/test/`）和 `TestBatchConsumerSinkFunctionFailure.java` 中的 `@Disabled` 注解——修复被禁用的测试使其通过并移除 `@Disabled`，或在测试类 Javadoc 中明确记录禁用原因和预期行为
+- [x] **Proof 16-01**：新增 `TestAfterMatchSkipStrategies.java`，覆盖 `SkipPastLastStrategy`、`SkipToFirstStrategy`、`SkipToLastStrategy` 的剪枝行为。每种策略至少 1 个测试用例
+- [x] **Proof 16-05**：为 `DebeziumCdcSourceFunction` 新增至少 2 个测试：(1) mock `run()` 验证 source 正确读取变更事件并调用 `SourceContext.collect()`；(2) `snapshotState()` / `initializeState()` 往返测试
+- [x] **Fix 16-07**：审查 `TestEmbeddedDistributedExecution.java`（位于 `nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/`）——当前测试实际为单线程同步执行。添加注释说明测试范围限制，或添加真正的 parallelism > 1 数据分发验证
+- [x] **Fix 16-09**：处理 `TestDebeziumCdcSourceCompletion.java`（位于 `nop-stream-connector/src/test/`）和 `TestBatchConsumerSinkFunctionFailure.java` 中的 `@Disabled` 注解——修复被禁用的测试使其通过并移除 `@Disabled`，或在测试类 Javadoc 中明确记录禁用原因和预期行为
 
 Exit Criteria:
 
-- [ ] `TestAfterMatchSkipStrategies` 覆盖 SkipPastLast/SkipToFirst/SkipToLast 三种策略
-- [ ] `DebeziumCdcSourceFunction` 新增 run() mock 测试和 snapshot/restore 往返测试
-- [ ] `TestEmbeddedDistributedExecution` 有明确注释说明测试范围限制（或添加了并行分发验证）
-- [ ] `@Disabled` 测试已处理：修复并启用，或有明确 Javadoc 说明禁用原因
-- [ ] 所有新增/修改测试通过
-- [ ] `./mvnw test -pl nop-stream-cep,nop-stream-connector,nop-stream-runtime -am` 全部通过
-- [ ] No owner-doc update required（测试覆盖补充不影响公共契约）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `TestAfterMatchSkipStrategies` 覆盖 SkipPastLast/SkipToFirst/SkipToLast 三种策略
+- [x] `DebeziumCdcSourceFunction` 新增 run() mock 测试和 snapshot/restore 往返测试
+- [x] `TestEmbeddedDistributedExecution` 有明确注释说明测试范围限制（或添加了并行分发验证）
+- [x] `@Disabled` 测试已处理：修复并启用，或有明确 Javadoc 说明禁用原因
+- [x] 所有新增/修改测试通过
+- [x] `./mvnw test -pl nop-stream-cep,nop-stream-connector,nop-stream-runtime -am` 全部通过
+- [x] No owner-doc update required（测试覆盖补充不影响公共契约）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - P2: 核心并发安全 + 错误处理 (14-04~14-09, 14-13, 09-01, 09-02, 09-05)
 
@@ -168,33 +168,33 @@ Targets: `nop-stream-runtime/src/main/java/io/nop/stream/runtime/taskmanager/Tas
 
 #### 5A: 并发安全修复
 
-- [ ] **Fix 14-04**：`TaskManager.stop()` 在 `taskExecutor.shutdownNow()` 后添加等待终止调用，超时时记录 WARN 日志
-- [ ] **Fix 14-05**：将 `TaskManager.RunningTask.waitForInvokable()` (L432-442) 从忙等待改为同步原语（如 CountDownLatch）。注意：`cancel()` 方法中也需 countDown（否则取消时线程阻塞在 await 导致死锁）
-- [ ] **Fix 14-06**：为 `CheckpointBarrierTracker.acknowledgeOperator()` 添加 `synchronized` 修饰符（与 `triggerCheckpoint()` 保持一致）
-- [ ] **Fix 14-07**：在 `RemoteInputChannel.onMessage()` 中添加 `finished` 快速检查——如果 `finished == true` 则忽略后续消息（注意：`finished` 已为 volatile，L58）
-- [ ] **Fix 14-09**：审查 `RemoteInputChannel` 初始化路径中 `close()` 和 `onMessage()` 的竞态条件并添加适当保障
-- [ ] **Fix 14-13**：`TaskStateSnapshot` 的 `operatorStates` 和 `keyedStates` 使用 `HashMap`（L29-30），被 `CheckpointBarrierTracker` 从多线程访问。改为 `ConcurrentHashMap` 或为 `acknowledgeOperator()` 添加同步（与 14-06 合并处理）
+- [x] **Fix 14-04**：`TaskManager.stop()` 在 `taskExecutor.shutdownNow()` 后添加等待终止调用，超时时记录 WARN 日志
+- [x] **Fix 14-05**：将 `TaskManager.RunningTask.waitForInvokable()` (L432-442) 从忙等待改为同步原语（如 CountDownLatch）。注意：`cancel()` 方法中也需 countDown（否则取消时线程阻塞在 await 导致死锁）
+- [x] **Fix 14-06**：为 `CheckpointBarrierTracker.acknowledgeOperator()` 添加 `synchronized` 修饰符（与 `triggerCheckpoint()` 保持一致）
+- [x] **Fix 14-07**：在 `RemoteInputChannel.onMessage()` 中添加 `finished` 快速检查——如果 `finished == true` 则忽略后续消息（注意：`finished` 已为 volatile，L58）
+- [x] **Fix 14-09**：审查 `RemoteInputChannel` 初始化路径中 `close()` 和 `onMessage()` 的竞态条件并添加适当保障
+- [x] **Fix 14-13**：`TaskStateSnapshot` 的 `operatorStates` 和 `keyedStates` 使用 `HashMap`（L29-30），被 `CheckpointBarrierTracker` 从多线程访问。改为 `ConcurrentHashMap` 或为 `acknowledgeOperator()` 添加同步（与 14-06 合并处理）
 
 #### 5B: 错误处理统一
 
-- [ ] **Fix 09-01**：将以下文件中的裸 `RuntimeException` 替换为 `StreamRuntimeException`：`ChainingOutput.java`（5 处）、`RecordWriter.java`（4 处）、`OperatorChain.java`（4 处）、`StreamSourceOperator.java`（3 处）、`SubtaskTask.java`（2 处）、`WindowOperator.java`（1 处）、`WindowAggregationOperator.java`（1 处）、`SimpleStreamOperatorFactory.java`（1 处）、`StreamElementCodec.java`（1 处）、`GraphModelCheckpointExecutor.java`（1 处）。不修改测试文件中的 `RuntimeException`
-- [ ] **Fix 09-02**：将 `GraphModelCheckpointExecutor` 中的 `RuntimeException`（L513）和 `IllegalStateException`（L430）统一替换为 `StreamException`
-- [ ] **Fix 09-05**：修改 `JdbcCheckpointStorage` 中 TaskLocation 解析异常的静默 fallback（至少 L392-396 和 L642-646 两处）——至少添加 `LOG.warn` 日志记录解析失败和 fallback 行为
+- [x] **Fix 09-01**：将以下文件中的裸 `RuntimeException` 替换为 `StreamRuntimeException`：`ChainingOutput.java`（5 处）、`RecordWriter.java`（4 处）、`OperatorChain.java`（4 处）、`StreamSourceOperator.java`（3 处）、`SubtaskTask.java`（2 处）、`WindowOperator.java`（1 处）、`WindowAggregationOperator.java`（1 处）、`SimpleStreamOperatorFactory.java`（1 处）、`StreamElementCodec.java`（1 处）、`GraphModelCheckpointExecutor.java`（1 处）。不修改测试文件中的 `RuntimeException`
+- [x] **Fix 09-02**：将 `GraphModelCheckpointExecutor` 中的 `RuntimeException`（L513）和 `IllegalStateException`（L430）统一替换为 `StreamException`
+- [x] **Fix 09-05**：修改 `JdbcCheckpointStorage` 中 TaskLocation 解析异常的静默 fallback（至少 L392-396 和 L642-646 两处）——至少添加 `LOG.warn` 日志记录解析失败和 fallback 行为
 
 Exit Criteria:
 
-- [ ] `TaskManager.stop()` 在 shutdownNow 后等待线程终止
-- [ ] `waitForInvokable()` 不使用忙等待
-- [ ] `CheckpointBarrierTracker.acknowledgeOperator()` 为 synchronized 方法
-- [ ] `RemoteInputChannel.onMessage()` 检查 `finished` 标志
-- [ ] `TaskStateSnapshot` 的 operatorStates/keyedStates 无并发写入风险
-- [ ] Phase 5B 列出的 10 个文件中核心数据路径无裸 `RuntimeException`（可通过 `grep -rn "throw new RuntimeException" <file>` 验证）
-- [ ] `GraphModelCheckpointExecutor` 内统一使用 `StreamException`
-- [ ] `JdbcCheckpointStorage` 的 TaskLocation 解析失败有 WARN 日志
-- [ ] **无静默跳过**：09-05 的 fallback 路径有日志输出（见 Minimum Rules #24）
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-runtime -am` 全部通过
-- [ ] No owner-doc update required（并发安全和错误处理均为内部实现修复）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `TaskManager.stop()` 在 shutdownNow 后等待线程终止
+- [x] `waitForInvokable()` 不使用忙等待
+- [x] `CheckpointBarrierTracker.acknowledgeOperator()` 为 synchronized 方法
+- [x] `RemoteInputChannel.onMessage()` 检查 `finished` 标志
+- [x] `TaskStateSnapshot` 的 operatorStates/keyedStates 无并发写入风险
+- [x] Phase 5B 列出的 10 个文件中核心数据路径无裸 `RuntimeException`（可通过 `grep -rn "throw new RuntimeException" <file>` 验证）
+- [x] `GraphModelCheckpointExecutor` 内统一使用 `StreamException`
+- [x] `JdbcCheckpointStorage` 的 TaskLocation 解析失败有 WARN 日志
+- [x] **无静默跳过**：09-05 的 fallback 路径有日志输出（见 Minimum Rules #24）
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-runtime -am` 全部通过
+- [x] No owner-doc update required（并发安全和错误处理均为内部实现修复）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - P2: 类型安全修复 (15-01, 15-02, 15-05, 15-08)
 
@@ -205,19 +205,19 @@ Targets: `nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.ja
 
 **注意**：15-05/15-08 的完整修复（为 `StreamReduceOperator` 增加泛型参数 K）属于破坏性 API 变更（类签名从 `<T>` 变为 `<K, T>`），需更新所有调用点。本 Phase 做安全范围内的防御性修复。
 
-- [ ] **Fix 15-01**：`CepOperator` 中 `(Class) List.class` raw cast 添加 `@SuppressWarnings("unchecked")` + 注释说明已知限制（当前 nop-stream 的 MapStateDescriptor 不支持带泛型参数的值类型令牌）
-- [ ] **Fix 15-02**：`SharedBuffer` 中两处 `(Class) Lockable.class` raw cast 同理添加注释说明已知限制
-- [ ] **Fix 15-05（合并 15-06）**：`StreamReduceOperator.restoreState()` 中 key 从 JSON 反序列化后为 `Object` 类型，添加显式类型检查：如果 key 类型与当前 key 不匹配（通过 `equals` 比较），记录 WARN 日志并跳过（而非静默覆盖）。`WindowAggregationOperator.resolveKey()` 同理
-- [ ] **Fix 15-08**：`MemoryKeyedStateBackend.TypedNamespaceAndKey` 的 `equals()` 和 `hashCode()` 方法中增加防御性类型检查：如果 key 的运行时类型不一致（`getClass()` 不匹配），记录 WARN 日志
+- [x] **Fix 15-01**：`CepOperator` 中 `(Class) List.class` raw cast 添加 `@SuppressWarnings("unchecked")` + 注释说明已知限制（当前 nop-stream 的 MapStateDescriptor 不支持带泛型参数的值类型令牌）
+- [x] **Fix 15-02**：`SharedBuffer` 中两处 `(Class) Lockable.class` raw cast 同理添加注释说明已知限制
+- [x] **Fix 15-05（合并 15-06）**：`StreamReduceOperator.restoreState()` 中 key 从 JSON 反序列化后为 `Object` 类型，添加显式类型检查：如果 key 类型与当前 key 不匹配（通过 `equals` 比较），记录 WARN 日志并跳过（而非静默覆盖）。`WindowAggregationOperator.resolveKey()` 同理
+- [x] **Fix 15-08**：`MemoryKeyedStateBackend.TypedNamespaceAndKey` 的 `equals()` 和 `hashCode()` 方法中增加防御性类型检查：如果 key 的运行时类型不一致（`getClass()` 不匹配），记录 WARN 日志
 
 Exit Criteria:
 
-- [ ] 15-01/15-02 的 raw cast 有明确的注释说明已知限制和原因
-- [ ] 15-05/15-06：`StreamReduceOperator.restoreState()` 和 `WindowAggregationOperator.resolveKey()` 对 key 类型不匹配有防御性检查和日志
-- [ ] 15-08：`TypedNamespaceAndKey.equals()` 对 key 类型不一致有防御性检查
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-cep -am` 全部通过
-- [ ] No owner-doc update required（防御性修复，公共 API 签名不变）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 15-01/15-02 的 raw cast 有明确的注释说明已知限制和原因
+- [x] 15-05/15-06：`StreamReduceOperator.restoreState()` 和 `WindowAggregationOperator.resolveKey()` 对 key 类型不匹配有防御性检查和日志
+- [x] 15-08：`TypedNamespaceAndKey.equals()` 对 key 类型不一致有防御性检查
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-cep -am` 全部通过
+- [x] No owner-doc update required（防御性修复，公共 API 签名不变）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 - P2: 测试质量 + 模块结构 (16-02/06/08/10/11/12, 01-02, 03-01/02/09)
 
@@ -228,34 +228,34 @@ Targets: `nop-stream-cep/src/test/`, `nop-stream-core/src/test/`, `nop-stream-ru
 
 #### 7A: 测试质量修复
 
-- [ ] **Proof 16-02**：为 `NFACompiler` 补充测试覆盖 times(3,5)、oneOrMore、optional+followedBy、GroupPattern 等场景
-- [ ] **Fix 16-06**：修正 `TestConnectorConsistencyCapability`（`nop-stream-connector/src/test/`）中 tautological 断言（`assertEquals(X, X)`）——替换为实际构造连接器并验证其声明 capability 的契约测试
-- [ ] **Fix 16-08**：修正 `TestCepOperatorStateRecovery`（`nop-stream-cep/src/test/java/io/nop/stream/cep/operator/`）的 restoreFromCheckpoint 测试——确保恢复后的状态确实被应用到新的 CepOperator 实例
-- [ ] **Proof 16-10**：为 `MemoryKeyedStateBackend` 添加 snapshot/restore 往返测试（位于 `nop-stream-core/src/test/`）
-- [ ] **Fix 16-11**：审查 `nop-stream-runtime/src/test/java/io/nop/stream/runtime/operators/windowing/` 下名称含 `TestWindowOperator` 的测试文件（`TestWindowOperatorBasic.java`、`TestWindowOperatorCorrectness.java`、`TestWindowOperatorIntegration.java`、`TestWindowOperatorWatermarkReception.java`），确认哪个文件的类名与实际测试内容不匹配，添加 Javadoc 说明
-- [ ] **Proof 16-12**：新增或补充 CEP 运行时端到端测试，覆盖带 skip strategy 的 CEP 场景
+- [x] **Proof 16-02**：为 `NFACompiler` 补充测试覆盖 times(3,5)、oneOrMore、optional+followedBy、GroupPattern 等场景
+- [x] **Fix 16-06**：修正 `TestConnectorConsistencyCapability`（`nop-stream-connector/src/test/`）中 tautological 断言（`assertEquals(X, X)`）——替换为实际构造连接器并验证其声明 capability 的契约测试
+- [x] **Fix 16-08**：修正 `TestCepOperatorStateRecovery`（`nop-stream-cep/src/test/java/io/nop/stream/cep/operator/`）的 restoreFromCheckpoint 测试——确保恢复后的状态确实被应用到新的 CepOperator 实例
+- [x] **Proof 16-10**：为 `MemoryKeyedStateBackend` 添加 snapshot/restore 往返测试（位于 `nop-stream-core/src/test/`）
+- [x] **Fix 16-11**：审查 `nop-stream-runtime/src/test/java/io/nop/stream/runtime/operators/windowing/` 下名称含 `TestWindowOperator` 的测试文件（`TestWindowOperatorBasic.java`、`TestWindowOperatorCorrectness.java`、`TestWindowOperatorIntegration.java`、`TestWindowOperatorWatermarkReception.java`），确认哪个文件的类名与实际测试内容不匹配，添加 Javadoc 说明
+- [x] **Proof 16-12**：新增或补充 CEP 运行时端到端测试，覆盖带 skip strategy 的 CEP 场景
 
 #### 7B: 模块边界修复
 
-- [ ] **Fix 01-02**：将 `nop-stream-runtime/pom.xml` 中 `nop-message-core` 的 scope 从 compile 改为 test
-- [ ] **Fix 03-02**：将 `connector` 包中零引用的公共接口/类（`DynamicSplitRequest`、`DynamicSplitResponse`、`RestrictionTracker`、`WatermarkEstimator`、`SourceWorkUnit`，以及如有 `DrainableSource`）标记为 `@Internal`
-- [ ] **Fix 03-09**：为 `IStreamTaskRpcService` 和 `IStreamCoordinatorRpcService` 添加 `@Internal` 注解
-- [ ] **Decision 03-01**：在 `nop-stream-api/pom.xml` 中添加注释说明"interfaces are in nop-stream-core; this module is reserved for future API extraction"
+- [x] **Fix 01-02**：将 `nop-stream-runtime/pom.xml` 中 `nop-message-core` 的 scope 从 compile 改为 test
+- [x] **Fix 03-02**：将 `connector` 包中零引用的公共接口/类（`DynamicSplitRequest`、`DynamicSplitResponse`、`RestrictionTracker`、`WatermarkEstimator`、`SourceWorkUnit`，以及如有 `DrainableSource`）标记为 `@Internal`
+- [x] **Fix 03-09**：为 `IStreamTaskRpcService` 和 `IStreamCoordinatorRpcService` 添加 `@Internal` 注解
+- [x] **Decision 03-01**：在 `nop-stream-api/pom.xml` 中添加注释说明"interfaces are in nop-stream-core; this module is reserved for future API extraction"
 
 Exit Criteria:
 
-- [ ] NFACompiler 测试覆盖 times/oneOrMore/optional/GroupPattern 场景
-- [ ] `TestConnectorConsistencyCapability` 中无 tautological 断言
-- [ ] `TestCepOperatorStateRecovery` restoreFromCheckpoint 测试验证独立实例恢复
-- [ ] `MemoryKeyedStateBackend` snapshot/restore 往返测试通过
-- [ ] 名称不匹配的 WindowOperator 测试文件有 Javadoc 说明
-- [ ] `nop-message-core` 在 runtime pom.xml 中为 test scope
-- [ ] 零引用 connector 接口/类标记为 `@Internal`
-- [ ] 2 个 RPC 接口标记为 `@Internal`
-- [ ] `nop-stream-api` pom.xml 有注释说明当前状态
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-cep,nop-stream-connector,nop-stream-runtime -am` 全部通过
-- [ ] No owner-doc update required（模块边界和测试质量修复不影响公共 API 契约语义）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] NFACompiler 测试覆盖 times/oneOrMore/optional/GroupPattern 场景
+- [x] `TestConnectorConsistencyCapability` 中无 tautological 断言
+- [x] `TestCepOperatorStateRecovery` restoreFromCheckpoint 测试验证独立实例恢复
+- [x] `MemoryKeyedStateBackend` snapshot/restore 往返测试通过
+- [x] 名称不匹配的 WindowOperator 测试文件有 Javadoc 说明
+- [x] `nop-message-core` 在 runtime pom.xml 中为 test scope
+- [x] 零引用 connector 接口/类标记为 `@Internal`
+- [x] 2 个 RPC 接口标记为 `@Internal`
+- [x] `nop-stream-api` pom.xml 有注释说明当前状态
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-cep,nop-stream-connector,nop-stream-runtime -am` 全部通过
+- [x] No owner-doc update required（模块边界和测试质量修复不影响公共 API 契约语义）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 8 - P2: Import 排序治理 (17-01)
 
@@ -266,36 +266,38 @@ Targets: `nop-stream-core/src/main/java/**/*.java`（~60 文件）, `nop-stream-
 
 **策略**：按模块分批执行 IDE "Optimize Imports"（java.* → jakarta.* → third-party → io.nop.*），避免单次大 diff。排除 `_gen/` 目录下的生成文件。17-02（组内字母序）和 17-03（FQN 替代 import）一并修复。
 
-- [ ] **Batch 1**：`nop-stream-core` 的 `execution/` 和 `operators/` 包（高频修改文件，优先处理）
-- [ ] **Batch 2**：`nop-stream-core` 的其余包（`datastream/`、`jobgraph/`、`common/`、`checkpoint/`、`streamrecord/`、`windowing/`）
-- [ ] **Batch 3**：`nop-stream-runtime` 全部非生成源文件
-- [ ] **Batch 4**：`nop-stream-cep` 全部非生成源文件（排除 `_gen/`）
-- [ ] **Batch 5**：`nop-stream-connector` + `nop-stream-fraud-example` 全部源文件
-- [ ] 每个 Batch 完成后运行 `./mvnw compile -pl <module> -am` 确认编译通过
-- [ ] 同时修复 17-03：将 `OperatorChain.java` 等 FQN 引用替换为 import + 短名
+- [x] **Batch 1**：`nop-stream-core` 的 `execution/` 和 `operators/` 包（高频修改文件，优先处理）
+- [x] **Batch 2**：`nop-stream-core` 的其余包（`datastream/`、`jobgraph/`、`common/`、`checkpoint/`、`streamrecord/`、`windowing/`）
+- [x] **Batch 3**：`nop-stream-runtime` 全部非生成源文件
+- [x] **Batch 4**：`nop-stream-cep` 全部非生成源文件（排除 `_gen/`）
+- [x] **Batch 5**：`nop-stream-connector` + `nop-stream-fraud-example` 全部源文件
+- [x] 每个 Batch 完成后运行 `./mvnw compile -pl <module> -am` 确认编译通过
+- [x] 同时修复 17-03：将 `OperatorChain.java` 等 FQN 引用替换为 import + 短名
 
 Exit Criteria:
 
-- [ ] 所有非生成源文件 import 分组符合 AGENTS.md 规范（`java.*` → `jakarta.*` → third-party → `io.nop.*`）
-- [ ] import 组内按字母序排列
-- [ ] 无 FQN 引用替代 import（`OperatorChain.java` 等 13 处已修复）
-- [ ] `./mvnw compile -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am` 通过
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am` 通过
-- [ ] 验证方法：对每个非生成源文件执行 `head -n 30 <file> | grep "^import"` 检查分组正确性（随机抽查 10 个文件）
-- [ ] No owner-doc update required（纯代码风格修复）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 所有非生成源文件 import 分组符合 AGENTS.md 规范（`java.*` → `jakarta.*` → third-party → `io.nop.*`）
+- [x] import 组内按字母序排列
+- [x] 无 FQN 引用替代 import（`OperatorChain.java` 等 13 处已修复）
+- [x] `./mvnw compile -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am` 通过
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am` 通过
+- [x] 验证方法：对每个非生成源文件执行 `head -n 30 <file> | grep "^import"` 检查分组正确性（随机抽查 10 个文件）
+- [x] No owner-doc update required（纯代码风格修复）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] Phase 1–8 全部 Exit Criteria 勾选完成
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步，或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）Phase 1 的并行 checkpoint 端到端路径确实连通，（b）Phase 5 的异常类型替换确实覆盖了所有核心数据路径，（c）无新增空方法体/静默跳过
-- [ ] `./mvnw compile -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am`
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am`
+- [x] Phase 1–8 全部 Exit Criteria 勾选完成
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步，或明确写明 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）Phase 1 的并行 checkpoint 端到端路径确实连通，（b）Phase 5 的异常类型替换确实覆盖了所有核心数据路径，（c）无新增空方法体/静默跳过
+- [x] `./mvnw compile -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am`
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-runtime,nop-stream-cep,nop-stream-connector -am`
+
+> Note: Phase 4-8 work was completed in successor Plan 51. Checklist items retroactively confirmed via Plan 51's closure audit.
 
 ## Deferred But Adjudicated
 

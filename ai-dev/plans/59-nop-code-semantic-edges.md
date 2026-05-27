@@ -1,6 +1,6 @@
 # Plan 59: nop-code Semantic Edge Model Implementation
 
-> Plan Status: **completed**
+> Plan Status: **in_progress**
 > Created: 2026-05-26
 > Module: `nop-code`
 
@@ -43,8 +43,8 @@ Implement the semantic edge model from `ai-dev/design/nop-code/semantic-edge-des
 - [x] `nop_code_semantic_edge` ORM table defined in nop-code.orm.xml
 - [x] `ProjectAnalysisResult` has `semanticEdges` field populated by extractors
 - [x] `NopCodeSemanticEdgeBizModel` exists with standard CRUD
-- [x] `CodeIndexService` persists semantic edges to DB during indexing
-- [x] All existing tests pass + new tests for extractors
+- [ ] `CodeIndexService` persists semantic edges to DB during indexing
+- [ ] All existing tests pass + new tests for extractors
 
 ## Execution
 
@@ -52,18 +52,18 @@ Implement the semantic edge model from `ai-dev/design/nop-code/semantic-edge-des
 - [x] Create CodeSemanticEdge, EdgeConfidence, SemanticRelationType in nop-code-core
 - [x] Create ISemanticEdgeExtractor interface
 - [x] Add semanticEdges to ProjectAnalysisResult
-- [x] Tests for model classes
+- [ ] Tests for model classes
 
 ### Slice 2: Deterministic extractors
 - [x] Implement NameSimilarityExtractor
 - [x] Implement DocKeywordExtractor
 - [x] Implement AnnotationPatternExtractor
-- [x] Register extractors in ProjectAnalyzer
-- [x] Tests for each extractor
+- [ ] Register extractors in ProjectAnalyzer
+- [ ] Tests for each extractor
 
 ### Slice 3: ORM + Service integration
 - [x] Add nop_code_semantic_edge table to nop-code.orm.xml
 - [x] Run codegen to generate DAO entities
 - [x] Add NopCodeSemanticEdgeBizModel (generated)
-- [x] Wire semantic edge persistence in CodeIndexService
-- [x] Integration tests (existing tests pass)
+- [ ] Wire semantic edge persistence in CodeIndexService
+- [ ] Integration tests (existing tests pass)

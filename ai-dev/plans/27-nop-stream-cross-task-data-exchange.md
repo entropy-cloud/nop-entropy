@@ -116,20 +116,20 @@ Targets: `nop-stream-core`（execution 包）
 
 重构 `StreamTaskInvokable`，支持 Source Task、Middle Task、Sink Task 三种角色。
 
-- [ ] `StreamTaskInvokable` 增加构造参数：`RecordWriter`（可选，Source/Middle Task 有）和 `InputGate`（可选，Middle/Sink Task 有）
-- [ ] Source Task 角色：和当前单链行为一致（wire operators → run source → emit to output），但 output 最终连接到 RecordWriter 而非 ChainingOutput 到 sink
-- [ ] Middle Task 角色：从 InputGate 读取 StreamElement → 按 element 类型分发（StreamRecord → processElement，Watermark → processWatermark，CheckpointBarrier → processBarrier）→ 处理后写入 RecordWriter
-- [ ] Sink Task 角色：从 InputGate 读取 → 分发到算子链处理（链尾是 SinkFunction）
-- [ ] 新增 `StreamTaskInvokableFactory` 工厂方法：根据 JobVertex 在 JobGraph 中的位置（有无输入 JobEdge、有无输出 JobEdge）创建正确角色的 invokable
+- [x] `StreamTaskInvokable` 增加构造参数：`RecordWriter`（可选，Source/Middle Task 有）和 `InputGate`（可选，Middle/Sink Task 有）
+- [x] Source Task 角色：和当前单链行为一致（wire operators → run source → emit to output），但 output 最终连接到 RecordWriter 而非 ChainingOutput 到 sink
+- [x] Middle Task 角色：从 InputGate 读取 StreamElement → 按 element 类型分发（StreamRecord → processElement，Watermark → processWatermark，CheckpointBarrier → processBarrier）→ 处理后写入 RecordWriter
+- [x] Sink Task 角色：从 InputGate 读取 → 分发到算子链处理（链尾是 SinkFunction）
+- [x] 新增 `StreamTaskInvokableFactory` 工厂方法：根据 JobVertex 在 JobGraph 中的位置（有无输入 JobEdge、有无输出 JobEdge）创建正确角色的 invokable
 
 Exit Criteria:
 
-- [ ] Source Task 能通过 RecordWriter 输出数据到下游 Task
-- [ ] Middle Task 能从 InputGate 读取数据、处理后写入 RecordWriter
-- [ ] Sink Task 能从 InputGate 读取数据并交给 SinkFunction
-- [ ] 三种角色的 invokable 能正确处理 Watermark 和 CheckpointBarrier
-- [ ] 新增单元测试验证三种角色
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core` 通过
+- [x] Source Task 能通过 RecordWriter 输出数据到下游 Task
+- [x] Middle Task 能从 InputGate 读取数据、处理后写入 RecordWriter
+- [x] Sink Task 能从 InputGate 读取数据并交给 SinkFunction
+- [x] 三种角色的 invokable 能正确处理 Watermark 和 CheckpointBarrier
+- [x] 新增单元测试验证三种角色
+- [x] `./mvnw test -pl nop-stream/nop-stream-core` 通过
 
 ### Phase 3 - executeWithGraphModel() 多链支持
 

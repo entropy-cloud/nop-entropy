@@ -42,7 +42,7 @@ Fix 5 critical (P0) bugs found during deep audit round 1. These bugs cause incor
 - [x] `ChangeAnalyzer.parseGitDiff` uses try-with-resources to close Process and BufferedReader
 - [x] `FlowDetector` annotation-based entry point detection works correctly
 - [x] All existing tests pass: `./mvnw test -pl nop-code -am -T 1C`
-- [ ] New tests added for each fix
+- [x] New tests added for each fix
 
 ## Closure Gates
 

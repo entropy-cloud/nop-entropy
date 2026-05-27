@@ -88,21 +88,21 @@ StreamTaskInvokable.wireOperators():
   算子 2 (Reduce) 实现了 KeyContext → KeySelector[2] = ks → 插入 KeyExtractingOutput
 ```
 
-- [ ] **StreamGraphGenerator 后处理**：在 `generate()` 方法末尾新增后处理步骤——遍历所有 StreamEdge，如果 source 节点的 operatorFactory 是 PartitionOperatorFactory（或等价判断），从该节点对应的 PartitionTransformation 中提取 KeySelector，设置到 target 节点的 `keySelector` 字段
-- [ ] **JobGraphGenerator 层**：修改 `createJobVertex()` 方法，在构建 `OperatorChain` 时，从 chain 中各 StreamNode（Partition 节点已被过滤，不会出现在 chain 中）的 keySelector 收集为 `List<KeySelector<?,?>>`（等长，null 表示无 key selector），传入 `OperatorChain` 构造函数
-- [ ] **OperatorChain 层**：修改构造函数，新增 `List<KeySelector<?,?>>` 参数并存储，提供 getter
-- [ ] **StreamTaskInvokable 层**：修改 `wireOperators()` 方法，从 `OperatorChain` 获取 KeySelector 列表，当算子实现 `KeyContext` 且对应位置 KeySelector 非 null 时，在 `ChainingOutput` 前插入 `KeyExtractingOutput`
-- [ ] 编写/更新单元测试：验证 KeySelector 从 PartitionTransformation 正确传播到 StreamTaskInvokable 的 wireOperators 逻辑
+- [x] **StreamGraphGenerator 后处理**：在 `generate()` 方法末尾新增后处理步骤——遍历所有 StreamEdge，如果 source 节点的 operatorFactory 是 PartitionOperatorFactory（或等价判断），从该节点对应的 PartitionTransformation 中提取 KeySelector，设置到 target 节点的 `keySelector` 字段
+- [x] **JobGraphGenerator 层**：修改 `createJobVertex()` 方法，在构建 `OperatorChain` 时，从 chain 中各 StreamNode（Partition 节点已被过滤，不会出现在 chain 中）的 keySelector 收集为 `List<KeySelector<?,?>>`（等长，null 表示无 key selector），传入 `OperatorChain` 构造函数
+- [x] **OperatorChain 层**：修改构造函数，新增 `List<KeySelector<?,?>>` 参数并存储，提供 getter
+- [x] **StreamTaskInvokable 层**：修改 `wireOperators()` 方法，从 `OperatorChain` 获取 KeySelector 列表，当算子实现 `KeyContext` 且对应位置 KeySelector 非 null 时，在 `ChainingOutput` 前插入 `KeyExtractingOutput`
+- [x] 编写/更新单元测试：验证 KeySelector 从 PartitionTransformation 正确传播到 StreamTaskInvokable 的 wireOperators 逻辑
 
 Exit Criteria:
 
-- [ ] `StreamGraphGenerator` 生成的 StreamGraph 中，keyBy 下游的 StreamNode.keySelector 非 null
-- [ ] `OperatorChain` 持有 KeySelector 列表，可通过 getter 访问
-- [ ] `StreamTaskInvokable.wireOperators()` 正确插入 `KeyExtractingOutput`
-- [ ] `TestGraphModelExecution` 中使用 `executeWithGraphModel()` 的 keyed 操作测试通过（如 `testKeyByMapSinkGraphModel`）
-- [ ] **接线验证**：在图模型路径运行 keyed state 测试时，`KeyExtractingOutput` 被实际调用（通过 keyed state 测试的输出正确性间接验证）
-- [ ] No owner-doc update required（此 Phase 不改变公开行为，仅修复图模型路径内部正确性）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `StreamGraphGenerator` 生成的 StreamGraph 中，keyBy 下游的 StreamNode.keySelector 非 null
+- [x] `OperatorChain` 持有 KeySelector 列表，可通过 getter 访问
+- [x] `StreamTaskInvokable.wireOperators()` 正确插入 `KeyExtractingOutput`
+- [x] `TestGraphModelExecution` 中使用 `executeWithGraphModel()` 的 keyed 操作测试通过（如 `testKeyByMapSinkGraphModel`）
+- [x] **接线验证**：在图模型路径运行 keyed state 测试时，`KeyExtractingOutput` 被实际调用（通过 keyed state 测试的输出正确性间接验证）
+- [x] No owner-doc update required（此 Phase 不改变公开行为，仅修复图模型路径内部正确性）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 修复 OperatorChain lifecycle 顺序
 
@@ -113,17 +113,17 @@ Targets: `OperatorChain.java`（`io.nop.stream.core.jobgraph`）
 
 **问题分析**：快速路径 open tail-to-head（从 sink 到 source），close head-to-tail（从 source 到 sink）。图模型路径 `OperatorChain` 顺序相反。需统一为快速路径的顺序（与 Flink 语义一致：先 open 下游再 open 上游，先 close 上游再 close 下游）。
 
-- [ ] 修改 `OperatorChain.open()` 遍历顺序为 tail-to-head（`for (i = operators.size()-1; i >= 0; i--)`）
-- [ ] 修改 `OperatorChain.close()` 遍历顺序为 head-to-tail（`for (operator : operators)`）
-- [ ] 验证 `TimestampsAndWatermarksTransformation` 在图模型路径中通过 `StreamGraphGenerator.transformTimestampsAndWatermarks()` 正确处理（此 Transformation 生成的 StreamNode 在 chain 中的位置是否影响 lifecycle）
+- [x] 修改 `OperatorChain.open()` 遍历顺序为 tail-to-head（`for (i = operators.size()-1; i >= 0; i--)`）
+- [x] 修改 `OperatorChain.close()` 遍历顺序为 head-to-tail（`for (operator : operators)`）
+- [x] 验证 `TimestampsAndWatermarksTransformation` 在图模型路径中通过 `StreamGraphGenerator.transformTimestampsAndWatermarks()` 正确处理（此 Transformation 生成的 StreamNode 在 chain 中的位置是否影响 lifecycle）
 
 Exit Criteria:
 
-- [ ] `OperatorChain.open()` 按 tail-to-head 顺序调用各算子 open
-- [ ] `OperatorChain.close()` 按 head-to-tail 顺序调用各算子 close
-- [ ] 图模型路径已有的所有测试通过（含 runtime 模块的 checkpoint 测试）
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `OperatorChain.open()` 按 tail-to-head 顺序调用各算子 open
+- [x] `OperatorChain.close()` 按 head-to-tail 顺序调用各算子 close
+- [x] 图模型路径已有的所有测试通过（含 runtime 模块的 checkpoint 测试）
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 重写 execute() 并更新测试（原子提交）
 
@@ -134,63 +134,63 @@ Targets: `StreamExecutionEnvironment.java`（`io.nop.stream.core.environment`）
 
 **原子性要求**：删除 `executeWithGraphModel()` 和更新测试调用必须在同一次提交中完成，否则编译断档。
 
-- [ ] 将 `executeWithGraphModel(String jobName)` 的逻辑移入 `execute(String jobName)`，删除对 `executePipeline` 的调用
-- [ ] 删除 `executeWithGraphModel()` 和 `executeWithGraphModel(String)` 两个方法
-- [ ] 删除快速路径的 6 个私有方法：`executePipeline`、`buildTransformationChain`、`extractKeySelectors`、`instantiateOperators`、`wireOperatorChain`、`runSource`
-- [ ] 删除仅被快速路径使用的 import（逐一确认无其他引用后删除：`ChainingOutput`、`Input`、`KeyContext`、`KeyExtractingOutput`、`StreamSinkOperator`、`StreamSourceOperator`、`TimestampsAndWatermarksOperator`、`TimestampsAndWatermarksTransformation`、`PartitionTransformation`、`OneInputTransformation`、`HashMap`）
-- [ ] `TestGraphModelExecution`：将所有 `executeWithGraphModel()` 调用改为 `execute()`；移除 `testGraphModelMatchesFastPath` 和 `testMultiChainMatchesFastPath` 中的 fast-path 比较逻辑，改为纯 graph-model 断言
-- [ ] `TestE2ESimplePipeline`：移除 fast-path 测试分支，仅保留 graph-model 路径断言
-- [ ] 确认以下原 fast-path 测试在统一路径下通过：`TestDataStreamPipeline`、`TestKeyedStreamAggregation`、`TestWindowedStreamAggregation`、`TestSessionWindowIntegration`、`TestEventTimeWindowE2E`、`TestAssignTimestampsAndWatermarks`
-- [ ] 确认 runtime 模块所有测试通过（`TestCheckpointEndToEnd`、`TestCheckpointRecovery` 等）
-- [ ] 确认 cep 模块所有测试通过
-- [ ] 确认 connector 模块所有测试通过
+- [x] 将 `executeWithGraphModel(String jobName)` 的逻辑移入 `execute(String jobName)`，删除对 `executePipeline` 的调用
+- [x] 删除 `executeWithGraphModel()` 和 `executeWithGraphModel(String)` 两个方法
+- [x] 删除快速路径的 6 个私有方法：`executePipeline`、`buildTransformationChain`、`extractKeySelectors`、`instantiateOperators`、`wireOperatorChain`、`runSource`
+- [x] 删除仅被快速路径使用的 import（逐一确认无其他引用后删除：`ChainingOutput`、`Input`、`KeyContext`、`KeyExtractingOutput`、`StreamSinkOperator`、`StreamSourceOperator`、`TimestampsAndWatermarksOperator`、`TimestampsAndWatermarksTransformation`、`PartitionTransformation`、`OneInputTransformation`、`HashMap`）
+- [x] `TestGraphModelExecution`：将所有 `executeWithGraphModel()` 调用改为 `execute()`；移除 `testGraphModelMatchesFastPath` 和 `testMultiChainMatchesFastPath` 中的 fast-path 比较逻辑，改为纯 graph-model 断言
+- [x] `TestE2ESimplePipeline`：移除 fast-path 测试分支，仅保留 graph-model 路径断言
+- [x] 确认以下原 fast-path 测试在统一路径下通过：`TestDataStreamPipeline`、`TestKeyedStreamAggregation`、`TestWindowedStreamAggregation`、`TestSessionWindowIntegration`、`TestEventTimeWindowE2E`、`TestAssignTimestampsAndWatermarks`
+- [x] 确认 runtime 模块所有测试通过（`TestCheckpointEndToEnd`、`TestCheckpointRecovery` 等）
+- [x] 确认 cep 模块所有测试通过
+- [x] 确认 connector 模块所有测试通过
 
 Exit Criteria:
 
-- [ ] `StreamExecutionEnvironment` 不再包含 `executeWithGraphModel`、`executePipeline`、`buildTransformationChain`、`instantiateOperators`、`wireOperatorChain`、`runSource` 方法
-- [ ] `execute()` 内部走图模型路径（StreamGraph → JobGraph → TaskExecutor）
-- [ ] 代码中不再存在对 `executeWithGraphModel` 的调用（grep 验证）
-- [ ] 所有 `nop-stream-core` 测试通过（`./mvnw test -pl nop-stream/nop-stream-core -am`）
-- [ ] 所有 `nop-stream-runtime` 测试通过
-- [ ] 所有 `nop-stream-cep` 测试通过
-- [ ] 所有 `nop-stream-connector` 测试通过
-- [ ] **端到端验证**：`env.addSource().map().keyBy().window().aggregate().sink()` 通过 `execute()` 完整跑通
-- [ ] **端到端验证**：checkpoint 管线通过 `execute()` 完整跑通（barrier 注入→快照→恢复）
-- [ ] No owner-doc update required（设计文档已在 Plan 拟制前更新）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `StreamExecutionEnvironment` 不再包含 `executeWithGraphModel`、`executePipeline`、`buildTransformationChain`、`instantiateOperators`、`wireOperatorChain`、`runSource` 方法
+- [x] `execute()` 内部走图模型路径（StreamGraph → JobGraph → TaskExecutor）
+- [x] 代码中不再存在对 `executeWithGraphModel` 的调用（grep 验证）
+- [x] 所有 `nop-stream-core` 测试通过（`./mvnw test -pl nop-stream/nop-stream-core -am`）
+- [x] 所有 `nop-stream-runtime` 测试通过
+- [x] 所有 `nop-stream-cep` 测试通过
+- [x] 所有 `nop-stream-connector` 测试通过
+- [x] **端到端验证**：`env.addSource().map().keyBy().window().aggregate().sink()` 通过 `execute()` 完整跑通
+- [x] **端到端验证**：checkpoint 管线通过 `execute()` 完整跑通（barrier 注入→快照→恢复）
+- [x] No owner-doc update required（设计文档已在 Plan 拟制前更新）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 独立 Closure Audit
 
-Status: planned
+Status: completed
 Targets: 全部变更文件
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent 执行 closure audit（不同 task_id），验证所有 Phase 的 Exit Criteria
+- [x] 独立子 agent 执行 closure audit（不同 task_id），验证所有 Phase 的 Exit Criteria
 
 Exit Criteria:
 
-- [ ] 独立子 agent 确认：`execute()` 走图模型路径，快速路径代码已完全删除
-- [ ] 独立子 agent 确认：KeySelector 传播链路完整（从 PartitionTransformation 到 KeyExtractingOutput）
-- [ ] 独立子 agent 确认：全量测试通过（`./mvnw test -pl nop-stream -am`）
-- [ ] 独立子 agent 确认：无空壳代码、无静默跳过
-- [ ] 独立子 agent 确认：代码中不存在对已删除方法的引用（grep 验证）
-- [ ] Closure audit 证据已记录到本 plan 的 Closure section
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 独立子 agent 确认：`execute()` 走图模型路径，快速路径代码已完全删除
+- [x] 独立子 agent 确认：KeySelector 传播链路完整（从 PartitionTransformation 到 KeyExtractingOutput）
+- [x] 独立子 agent 确认：全量测试通过（`./mvnw test -pl nop-stream -am`）
+- [x] 独立子 agent 确认：无空壳代码、无静默跳过
+- [x] 独立子 agent 确认：代码中不存在对已删除方法的引用（grep 验证）
+- [x] Closure audit 证据已记录到本 plan 的 Closure section
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 快速路径代码已完全删除（6 个方法 + `executeWithGraphModel` + 专属 import）
-- [ ] KeySelector 传播链路完整修复（StreamGraphGenerator → OperatorChain → StreamTaskInvokable）
-- [ ] OperatorChain lifecycle 顺序与快速路径一致
-- [ ] 所有测试通过：`./mvnw test -pl nop-stream -am`
-- [ ] `./mvnw compile -pl nop-stream -am` 通过
-- [ ] 不存在对已删除方法的引用（grep 验证 `executeWithGraphModel`、`executePipeline`、`buildTransformationChain`、`wireOperatorChain`、`runSource`）
-- [ ] 端到端验证：source→map→keyBy→window→aggregate→sink 通过 `execute()` 完整跑通
-- [ ] 端到端验证：checkpoint 管线通过 `execute()` 完整跑通
-- [ ] Anti-Hollow Check：closure audit 验证调用链从 `execute()` 到算子到 sink 连通
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 快速路径代码已完全删除（6 个方法 + `executeWithGraphModel` + 专属 import）
+- [x] KeySelector 传播链路完整修复（StreamGraphGenerator → OperatorChain → StreamTaskInvokable）
+- [x] OperatorChain lifecycle 顺序与快速路径一致
+- [x] 所有测试通过：`./mvnw test -pl nop-stream -am`
+- [x] `./mvnw compile -pl nop-stream -am` 通过
+- [x] 不存在对已删除方法的引用（grep 验证 `executeWithGraphModel`、`executePipeline`、`buildTransformationChain`、`wireOperatorChain`、`runSource`）
+- [x] 端到端验证：source→map→keyBy→window→aggregate→sink 通过 `execute()` 完整跑通
+- [x] 端到端验证：checkpoint 管线通过 `execute()` 完整跑通
+- [x] Anti-Hollow Check：closure audit 验证调用链从 `execute()` 到算子到 sink 连通
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Deferred But Adjudicated
 

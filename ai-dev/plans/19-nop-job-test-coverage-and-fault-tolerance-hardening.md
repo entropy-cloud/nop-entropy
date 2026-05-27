@@ -109,8 +109,8 @@ Exit Criteria:
 - [x] Coordinator TimeoutChecker 能检测到 Worker 下线并标记 SUSPICIOUS → TIMEOUT
 - [x] Worker 端零代码改动，仅配置 `nop.cluster.registration.enabled=true`
 - [x] `enable-cluster=false` 时行为不变
-- [ ] `ai-dev/design/nop-job/` 文档已更新
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/design/nop-job/` 文档已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 1B - G2: nop-job-retry-adapter 实现
 
@@ -135,8 +135,8 @@ Exit Criteria:
 - [x] `nop-job-retry-adapter` 模块存在且可编译
 - [x] `NopRetryJobRetryBridge` 对接 `IRetryEngine` 可工作
 - [x] 不引入 adapter 时 NoOpJobRetryBridge 不受影响
-- [ ] `ai-dev/design/nop-job/retry-integration-design.md` 与实现一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/design/nop-job/retry-integration-design.md` 与实现一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 1C - G4: Dispatch 超时检查
 
@@ -159,8 +159,8 @@ Exit Criteria:
 - [x] 超时后 Fire 标记 TIMEOUT + 触发 alarm
 - [x] Schedule 统计正确更新
 - [x] 不影响现有 Task 级超时检测
-- [ ] `ai-dev/design/nop-job/` 文档已更新
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/design/nop-job/` 文档已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 动态分区单元测试
 
@@ -179,7 +179,7 @@ Exit Criteria:
 - [x] `TestJobTimeoutChecker` 存在且包含 dispatch timeout + worker liveness 场景
 - [x] `./mvnw test -pl nop-job/nop-job-coordinator` 通过
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Retry Bridge 与 Alarm Handler 调用路径测试
 
@@ -197,7 +197,7 @@ Exit Criteria:
 - [x] `TestNopRetryJobRetryBridge` 存在且包含 3 个场景
 - [x] 所有测试通过 `./mvnw test`
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 超时检测与进度汇报测试
 
@@ -215,7 +215,7 @@ Exit Criteria:
 - [x] `TestJobTaskProgress` 存在且包含上述 5 个场景
 - [x] 所有测试通过
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 阻塞策略测试
 
@@ -231,7 +231,7 @@ Exit Criteria:
 - [x] `TestBlockStrategies` 存在且覆盖 4 种策略
 - [x] 所有测试通过
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - 端到端生命周期测试
 
@@ -247,7 +247,7 @@ Exit Criteria:
 - [x] 4 个 E2E 测试存在且全部通过
 - [x] 每个测试验证完整的状态链
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 - 容错场景集成测试
 
@@ -264,7 +264,7 @@ Exit Criteria:
 
 - [x] 容错测试存在且全部通过
 - [x] 测试覆盖了 G1（Worker liveness）、G3（动态分区）的核心容错场景
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 8 - 测试中发现的问题修复与回归验证
 
@@ -282,7 +282,7 @@ Exit Criteria:
 - [x] `./mvnw test -pl nop-job/nop-job-coordinator` 全部通过（69 tests = 12+10+5+5+4+13+6+12+2）
 - [x] `./mvnw test -pl nop-job/nop-job-retry-adapter` 全部通过（3 tests）
 - [x] `./mvnw compile -pl nop-job -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Review History
 
@@ -317,15 +317,15 @@ Exit Criteria:
 - [x] `./mvnw compile -pl nop-job -am` 通过
 - [x] `./mvnw test -pl nop-job/nop-job-coordinator` 通过（69 tests）
 - [x] `./mvnw test -pl nop-job/nop-job-retry-adapter` 通过（3 tests）
-- [ ] checkstyle / 代码规范检查通过
-- [ ] G1 Worker 心跳：Worker 注册 INamingService + Coordinator SUSPICIOUS 检测已实现并有测试
-- [ ] G2 nop-retry 集成：nop-job-retry-adapter 模块存在且对接 IRetryEngine，集成测试通过
-- [ ] G4 Dispatch 超时：TimeoutChecker 扫描 DISPATCHING 超时 Fire，有测试覆盖
-- [ ] 每个容错机制（动态分区、retry bridge、alarm、进度汇报、超时检测）至少有 1 个 focused test
-- [ ] E2E 生命周期测试覆盖 happy path + failure + timeout + recovery
-- [ ] 容错场景测试覆盖 Coordinator 崩溃 + partition rebalance + Worker 故障
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] checkstyle / 代码规范检查通过
+- [x] G1 Worker 心跳：Worker 注册 INamingService + Coordinator SUSPICIOUS 检测已实现并有测试
+- [x] G2 nop-retry 集成：nop-job-retry-adapter 模块存在且对接 IRetryEngine，集成测试通过
+- [x] G4 Dispatch 超时：TimeoutChecker 扫描 DISPATCHING 超时 Fire，有测试覆盖
+- [x] 每个容错机制（动态分区、retry bridge、alarm、进度汇报、超时检测）至少有 1 个 focused test
+- [x] E2E 生命周期测试覆盖 happy path + failure + timeout + recovery
+- [x] 容错场景测试覆盖 Coordinator 崩溃 + partition rebalance + Worker 故障
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 

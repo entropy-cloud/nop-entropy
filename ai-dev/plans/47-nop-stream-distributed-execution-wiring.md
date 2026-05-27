@@ -196,20 +196,20 @@ Targets: `nop-stream-runtime`
 
 - Item Types: `Fix | Proof`
 
-- [ ] `EmbeddedDistributedExecutor` 在编排流程中集成 `SourceEnumerator`：对 source vertex，在 installInvokable 后调用 `SourceEnumerator.assignSplits()` 获取 split 列表，通过直接调用或 RPC 下发到各 TaskManager 的 source invokable
-- [ ] `SourceEnumerator.assignSplits()` 的 split 信息封装为可序列化的 `SourceSplit` 对象
-- [ ] 测试：2 个 source subtask 各获得不同 split
+- [x] `EmbeddedDistributedExecutor` 在编排流程中集成 `SourceEnumerator`：对 source vertex，在 installInvokable 后调用 `SourceEnumerator.assignSplits()` 获取 split 列表，通过直接调用或 RPC 下发到各 TaskManager 的 source invokable
+- [x] `SourceEnumerator.assignSplits()` 的 split 信息封装为可序列化的 `SourceSplit` 对象
+- [x] 测试：2 个 source subtask 各获得不同 split
 
 Exit Criteria:
 
-- [ ] SourceEnumerator 集成到编排流程
-- [ ] 每个 source subtask 获得正确的 split
-- [ ] 测试验证 split 分配
-- [ ] **端到端验证**: N/A
-- [ ] **接线验证**: `EmbeddedDistributedExecutor` → `SourceEnumerator` → split 下发 → source invokable 使用 split
-- [ ] **无静默跳过**: N/A
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` updated
+- [x] SourceEnumerator 集成到编排流程
+- [x] 每个 source subtask 获得正确的 split
+- [x] 测试验证 split 分配
+- [x] **端到端验证**: N/A
+- [x] **接线验证**: `EmbeddedDistributedExecutor` → `SourceEnumerator` → split 下发 → source invokable 使用 split
+- [x] **无静默跳过**: N/A
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` updated
 
 ### Phase 6 - Exactly-Once 分布式端到端验证
 
