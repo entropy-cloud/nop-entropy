@@ -40,6 +40,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private transient Map<WindowKey<K, W>, Set<Long>> processingTimeTimerLookup;
     private transient Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> triggerState;
     private transient long currentWatermark;
+    private transient boolean watermarkInitialized;
     private transient Object currentKeyField;
     private transient WindowAssigner.WindowAssignerContext assignerContext;
 
@@ -75,9 +76,10 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         if (this.triggerState == null) {
             this.triggerState = new HashMap<>();
         }
-        if (this.currentWatermark == 0) {
+        if (!this.watermarkInitialized) {
             this.currentWatermark = Long.MIN_VALUE;
         }
+        this.watermarkInitialized = true;
         if (this.assignerContext == null) {
             this.assignerContext = new WindowAssigner.WindowAssignerContext() {
                 @Override
@@ -165,6 +167,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         deserializeTriggerState(state.getTriggerState(), keyClass, windowClass, this.triggerState);
 
         this.currentWatermark = state.getCurrentWatermark();
+        this.watermarkInitialized = true;
 
         rebuildTimerLookups();
 

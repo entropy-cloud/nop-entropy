@@ -41,6 +41,8 @@ import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.common.state.backend.IStateBackend;
+import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetricsSnapshot;
@@ -416,6 +418,15 @@ public class GraphModelCheckpointExecutor {
                         }
                         if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
                             coordinator.addParticipant((CheckpointParticipant) op);
+                        }
+
+                        // Provision state backend for operators that need managed keyed state
+                        if (op instanceof AbstractStreamOperator) {
+                            AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
+                            if (abstractOp.getStateBackend() == null) {
+                                IStateBackend stateBackend = new MemoryStateBackend();
+                                abstractOp.setStateBackend(stateBackend);
+                            }
                         }
                     }
                 }

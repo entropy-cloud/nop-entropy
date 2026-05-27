@@ -328,4 +328,51 @@ public class TestWindowAggregationOperatorSnapshotRestore {
         assertEquals(1, collected.size());
         assertEquals(30L, collected.get(0));
     }
+
+    @Test
+    void testRestoreWatermarkZeroPreservedAfterOpen() throws Exception {
+        // Regression test: currentWatermark == 0 used to be overwritten to Long.MIN_VALUE by open()
+        // because the init check couldn't distinguish "unset" from "legitimately zero".
+        // After fix, watermarkInitialized flag is used instead.
+
+        WindowAggregationOperator<Integer, Long, Long, String, TimeWindow> op1 = createSumOperator();
+        op1.open();
+        op1.output = output;
+
+        // Advance watermark to 0 (from Long.MIN_VALUE default)
+        op1.processWatermark(new Watermark(0L));
+
+        op1.setCurrentKey("key1");
+        // Element at timestamp 50, within window [0,100), should be accepted if watermark is 0
+        op1.processElement(new StreamRecord<>(10, 50L));
+
+        StateSnapshotContext ctx = new StateSnapshotContext(1, System.currentTimeMillis());
+        OperatorSnapshotResult snapshot = op1.snapshotState(ctx);
+
+        // Verify snapshot contains watermark == 0
+        Object stateObj = snapshot.getOperatorState("window-aggregation-state");
+        if (stateObj instanceof WindowAggregationState) {
+            WindowAggregationState state = (WindowAggregationState) stateObj;
+            assertEquals(0L, state.getCurrentWatermark(),
+                    "Snapshot should preserve currentWatermark == 0");
+        }
+
+        // Restore into a new operator (simulates checkpoint recovery)
+        WindowAggregationOperator<Integer, Long, Long, String, TimeWindow> op2 = createSumOperator();
+        op2.restoreState(snapshot);
+        // open() is called by the execution framework after restoreState()
+        op2.open();
+        op2.output = output;
+
+        // Add more elements — these should be processed correctly with watermark at 0
+        op2.setCurrentKey("key1");
+        op2.processElement(new StreamRecord<>(20, 60L));
+
+        // Fire the window with watermark at 150
+        op2.processWatermark(new Watermark(150L));
+
+        // Window [0,100) should fire and produce sum = 30 (10 + 20)
+        assertFalse(collected.isEmpty(), "Window should have fired after restore");
+        assertEquals(30L, collected.get(0), "Window sum should be 30 (10+20)");
+    }
 }
