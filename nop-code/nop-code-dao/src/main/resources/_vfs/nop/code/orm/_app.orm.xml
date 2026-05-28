@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:registerShortName="true" ext:appName="nop-code" ext:entityPackageName="io.nop.code.dao.entity"
-     ext:basePackageName="io.nop.code" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-code"
-     ext:allowIdAsColName="true" ext:useStdFields="true" xmlns:ext="ext" x:schema="/nop/schema/orm/orm.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:orm-gen="orm-gen"
-     xmlns:xpl="xpl" xmlns:ui="ui">
+<orm ext:registerShortName="true" ext:appName="nop-code" ext:icon="code-2"
+     ext:entityPackageName="io.nop.code.dao.entity" ext:basePackageName="io.nop.code"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-code" ext:allowIdAsColName="true"
+     ext:useStdFields="true" xmlns:ext="ext" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>

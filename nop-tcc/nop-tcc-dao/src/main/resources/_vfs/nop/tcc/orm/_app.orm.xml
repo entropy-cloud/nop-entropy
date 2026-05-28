@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:registerShortName="true" ext:appName="nop-tcc" ext:entityPackageName="io.nop.tcc.dao.entity"
+<orm ext:registerShortName="true" ext:appName="nop-tcc" ext:icon="scale" ext:entityPackageName="io.nop.tcc.dao.entity"
      ext:basePackageName="io.nop.tcc" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-tcc"
      ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"

@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-ai" displayName="测试nop-ai" icon="ion:grid-outline" resourceType="TOPM"
-                  orderNo="10000" routePath="/test-orm-nop-ai" component="layouts/default/index">
+        <resource id="test-orm-nop-ai" displayName="测试nop-ai" icon="bot" resourceType="TOPM" orderNo="10000"
+                  routePath="/test-orm-nop-ai" component="layouts/default/index">
             <children>
                 <resource id="NopAiChatRequest-main" displayName="对话请求" orderNo="10001" icon="messages-square"
                           component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiChatRequest/main.page.yaml">

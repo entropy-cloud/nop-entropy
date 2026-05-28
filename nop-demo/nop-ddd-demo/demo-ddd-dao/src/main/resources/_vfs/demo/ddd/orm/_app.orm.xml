@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:registerShortName="true" ext:appName="demo-ddd" ext:entityPackageName="app.demo.ddd.entity"
+<orm ext:registerShortName="true" ext:appName="demo-ddd" ext:icon="ship" ext:entityPackageName="app.demo.ddd.entity"
      ext:basePackageName="app.demo" ext:mavenGroupId="app.demo" ext:mavenArtifactId="demo-ddd"
      ext:mavenVersion="1.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
      ext:allowIdAsColName="true" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"

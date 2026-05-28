@@ -166,6 +166,8 @@
 /nop/ai/model/NopAiTestResult/NopAiTestResult.xmeta
 /nop/ai/model/NopAiTestResult/_NopAiTestResult.xbiz
 /nop/ai/model/NopAiTestResult/_NopAiTestResult.xmeta
+/nop/ai/model/_module-meta.json
+/nop/ai/model/module-meta.json
 /nop/ai/orm/_app.orm.xml
 /nop/ai/orm/app.orm.xml
 /nop/ai/pages/NopAiChatRequest/NopAiChatRequest.lib.xjs
@@ -626,6 +628,8 @@
 /nop/dyn/model/NopDynSql/NopDynSql.xmeta
 /nop/dyn/model/NopDynSql/_NopDynSql.xbiz
 /nop/dyn/model/NopDynSql/_NopDynSql.xmeta
+/nop/dyn/model/_module-meta.json
+/nop/dyn/model/module-meta.json
 /nop/dyn/orm/_app.orm.xml
 /nop/dyn/orm/app.orm.xml
 /nop/dyn/pages/NopDynApp/NopDynApp.lib.xjs
@@ -1511,6 +1515,8 @@
 /nop/wf/model/WorkflowService/_WfStartRequestBean.xmeta
 /nop/wf/model/WorkflowService/_WfStartResponseBean.xmeta
 /nop/wf/model/WorkflowService/_WfSubFlowEndRequestBean.xmeta
+/nop/wf/model/_module-meta.json
+/nop/wf/model/module-meta.json
 /nop/wf/model/nop-wf.api.xml
 /nop/wf/orm/_app.orm.xml
 /nop/wf/orm/app.orm.xml

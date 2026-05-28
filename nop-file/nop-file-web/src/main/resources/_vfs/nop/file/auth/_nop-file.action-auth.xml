@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-file" displayName="测试nop-file" icon="ion:grid-outline" resourceType="TOPM"
-                  orderNo="10000" routePath="/test-orm-nop-file" component="layouts/default/index">
+        <resource id="test-orm-nop-file" displayName="测试nop-file" icon="paperclip" resourceType="TOPM" orderNo="10000"
+                  routePath="/test-orm-nop-file" component="layouts/default/index">
             <children>
                 <resource id="NopFileRecord-main" displayName="文件记录" orderNo="10001" i18n-en:displayName="File Record"
                           icon="paperclip" component="AMIS" resourceType="SUBM"

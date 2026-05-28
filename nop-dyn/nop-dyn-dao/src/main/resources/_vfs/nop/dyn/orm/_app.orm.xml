@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:registerShortName="true" ext:appName="nop-dyn" ext:entityPackageName="io.nop.dyn.dao.entity"
-     ext:basePackageName="io.nop.dyn" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-dyn"
-     ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
-     ext:useCoreModule="false" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
-     xmlns:ui="ui">
+<orm ext:registerShortName="true" ext:appName="nop-dyn" ext:icon="app-window"
+     ext:entityPackageName="io.nop.dyn.dao.entity" ext:basePackageName="io.nop.dyn"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-dyn" ext:mavenVersion="2.0.0-SNAPSHOT"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:useCoreModule="false"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>

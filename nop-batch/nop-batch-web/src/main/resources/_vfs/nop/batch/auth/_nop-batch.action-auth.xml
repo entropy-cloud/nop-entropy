@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-batch" displayName="测试nop-batch" icon="ion:grid-outline" resourceType="TOPM"
-                  orderNo="10000" routePath="/test-orm-nop-batch" component="layouts/default/index">
+        <resource id="test-orm-nop-batch" displayName="测试nop-batch" icon="workflow" resourceType="TOPM" orderNo="10000"
+                  routePath="/test-orm-nop-batch" component="layouts/default/index">
             <children>
                 <resource id="NopBatchFile-main" displayName="批处理文件" orderNo="10001" i18n-en:displayName="Batch File"
                           icon="file" component="AMIS" resourceType="SUBM"

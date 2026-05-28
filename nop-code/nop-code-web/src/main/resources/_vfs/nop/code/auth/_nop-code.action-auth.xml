@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-code" displayName="测试nop-code" icon="ion:grid-outline" resourceType="TOPM"
-                  orderNo="10000" routePath="/test-orm-nop-code" component="layouts/default/index">
+        <resource id="test-orm-nop-code" displayName="测试nop-code" icon="code-2" resourceType="TOPM" orderNo="10000"
+                  routePath="/test-orm-nop-code" component="layouts/default/index">
             <children>
                 <resource id="NopCodeAnnotationUsage-main" displayName="注解使用" orderNo="10001" icon="bookmark"
                           component="AMIS" resourceType="SUBM"
