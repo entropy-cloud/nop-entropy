@@ -767,10 +767,16 @@ public class GraphModelCheckpointExecutor {
         if (mappings != null) {
             for (OperatorStateMapping mapping : mappings) {
                 if (mapping.getOperatorIndex() == operatorIndex) {
-                    Object opState = taskState.getOperatorState(mapping.getOperatorStateKey());
-                    if (opState != null) {
-                        builder.putOperatorState(mapping.getOperatorStateKey(), opState);
-                        found = true;
+                    String opStateKey = mapping.getOperatorStateKey();
+                    String prefix = opStateKey + "-";
+                    for (Map.Entry<String, Object> entry : taskState.getOperatorStates().entrySet()) {
+                        if (entry.getKey().equals(opStateKey) || entry.getKey().startsWith(prefix)) {
+                            String stateKey = entry.getKey().equals(opStateKey)
+                                    ? entry.getKey()
+                                    : entry.getKey().substring(prefix.length());
+                            builder.putOperatorState(stateKey, entry.getValue());
+                            found = true;
+                        }
                     }
 
                     if (mapping.hasKeyedState()) {

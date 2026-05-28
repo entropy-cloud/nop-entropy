@@ -310,6 +310,13 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 statesMap.put(stateName, snapshotAppendingState((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj));
             } else if (stateObj instanceof MemoryInternalListState) {
                 statesMap.put(stateName, snapshotListState((MemoryInternalListState<?, ?, ?>) stateObj));
+            } else if (stateObj instanceof MemoryReducingState) {
+                statesMap.put(stateName, snapshotReducingState((MemoryReducingState<?>) stateObj));
+            } else if (stateObj instanceof MemoryAggregatingState) {
+                statesMap.put(stateName, snapshotAggregatingState((MemoryAggregatingState<?, ?, ?>) stateObj));
+            } else {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Unknown state type during snapshot: " + stateObj.getClass().getName());
             }
         }
         stateData.put("states", statesMap);
@@ -353,8 +360,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 case "InternalListState":
                     restoreInternalListState(stateName, stateInfo);
                     break;
+                case "ReducingState":
+                    restoreReducingState(stateName, stateInfo);
+                    break;
+                case "AggregatingState":
+                    restoreAggregatingState(stateName, stateInfo);
+                    break;
                 default:
-                    throw new IOException("Unknown state type: " + stateType);
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "Unknown state type during restore: " + stateType);
             }
         }
 
@@ -520,6 +534,75 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         states.put(stateName, state);
     }
 
+    @SuppressWarnings("unchecked")
+    private void restoreReducingState(String stateName, Map<String, Object> stateInfo) throws Exception {
+        String valueTypeName = (String) stateInfo.get("valueType");
+        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
+        String accumulatorTypeName = (String) stateInfo.get("accumulatorType");
+        Class<? extends SimpleAccumulator<Object>> accumulatorClass =
+                (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
+
+        ReducingStateDescriptor<Object> descriptor =
+                new ReducingStateDescriptor<>(stateName, valueClass, accumulatorClass);
+        MemoryReducingState<Object> state = new MemoryReducingState<>(this, descriptor);
+
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
+        if (entries != null) {
+            for (Map<String, Object> e : entries) {
+                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
+                        deserializeNamespace(e.get("namespace")),
+                        routeKey(deserializeKey(e.get("key"))));
+                Object value = deserializeValue(e.get("value"), valueClass);
+                state.storage.put(nk, wrapInAccumulator(value, accumulatorClass));
+            }
+        }
+
+        states.put(stateName, state);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> SimpleAccumulator<T> wrapInAccumulator(Object value, Class<? extends SimpleAccumulator<T>> accumulatorClass) {
+        try {
+            SimpleAccumulator<T> acc = accumulatorClass.getDeclaredConstructor().newInstance();
+            if (value != null) {
+                acc.add((T) value);
+            }
+            return acc;
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "Failed to create accumulator: " + accumulatorClass.getName());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void restoreAggregatingState(String stateName, Map<String, Object> stateInfo) throws Exception {
+        String valueTypeName = (String) stateInfo.get("valueType");
+        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
+        String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
+        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
+                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
+        AggregateFunction<Object, Object, Object> aggregateFunction =
+                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+
+        AggregatingStateDescriptor<Object, Object, Object> descriptor =
+                new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
+        MemoryAggregatingState<Object, Object, Object> state =
+                new MemoryAggregatingState<>(this, descriptor);
+
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
+        if (entries != null) {
+            for (Map<String, Object> e : entries) {
+                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
+                        deserializeNamespace(e.get("namespace")),
+                        routeKey(deserializeKey(e.get("key"))));
+                Object value = deserializeValue(e.get("value"), valueClass);
+                state.storage.put(nk, value);
+            }
+        }
+
+        states.put(stateName, state);
+    }
+
     private Map<String, Object> snapshotValueState(MemoryValueState<?> state) {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("stateType", "ValueState");
@@ -629,6 +712,48 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         return info;
     }
 
+    private Map<String, Object> snapshotReducingState(MemoryReducingState<?> state) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("stateType", "ReducingState");
+        info.put("valueType", state.descriptor.getValueType().getName());
+        info.put("accumulatorType", state.descriptor.getAccumulatorType().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
+
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (Map.Entry<TypedNamespaceAndKey, ? extends SimpleAccumulator<?>> e : state.storage.entrySet()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("namespace", serializeNamespace(e.getKey().namespace));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
+            entry.put("value", e.getValue().getLocalValue());
+            entries.add(entry);
+        }
+        info.put("entries", entries);
+        return info;
+    }
+
+    private Map<String, Object> snapshotAggregatingState(MemoryAggregatingState<?, ?, ?> state) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("stateType", "AggregatingState");
+        info.put("valueType", state.descriptor.getValueType().getName());
+        info.put("aggregateFunctionType", state.descriptor.getAggregateFunction().getClass().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
+
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("namespace", serializeNamespace(e.getKey().namespace));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
+            entry.put("value", e.getValue());
+            entries.add(entry);
+        }
+        info.put("entries", entries);
+        return info;
+    }
+
     private Object serializeNamespace(Object namespace) {
         if (namespace == null) {
             return DEFAULT_NAMESPACE;
@@ -706,6 +831,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 ((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj).rebind(this);
             } else if (stateObj instanceof MemoryInternalListState) {
                 ((MemoryInternalListState<?, ?, ?>) stateObj).rebind(this);
+            } else if (stateObj instanceof MemoryReducingState) {
+                ((MemoryReducingState<?>) stateObj).rebind(this);
+            } else if (stateObj instanceof MemoryAggregatingState) {
+                ((MemoryAggregatingState<?, ?, ?>) stateObj).rebind(this);
             }
         }
     }
