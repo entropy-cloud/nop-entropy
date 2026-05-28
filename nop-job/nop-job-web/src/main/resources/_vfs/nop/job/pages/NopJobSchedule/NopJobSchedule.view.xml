@@ -59,7 +59,7 @@
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmTriggerNow</confirmText>
-                        <visibleOn>${scheduleStatus != 30 && scheduleStatus != 40}</visibleOn>
+                        <visibleOn>${scheduleStatus != 30 &amp;&amp; scheduleStatus != 40}</visibleOn>
                     </action>
                     <action id="enable-schedule-button" label="@i18n:common.enableSchedule" xui:permissions="NopJobSchedule:enableSchedule">
                         <api url="@mutation:NopJobSchedule__enableSchedule">

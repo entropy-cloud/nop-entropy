@@ -25,7 +25,8 @@
  errorCode[错误码] errorMessage[错误消息]
 </layout>
         </form>
-        <form id="parentFireForm" editMode="view" title="所属触发批次" i18n-en:title="Parent Fire">
+        <form id="parentFireForm" editMode="view" objMeta="/nop/job/model/NopJobFire/NopJobFire.xmeta"
+              title="所属触发批次" i18n-en:title="Parent Fire">
             <layout>
  jobName[作业名] triggerSource[触发来源]
  fireStatus[批次状态] triggeredBy[触发人]

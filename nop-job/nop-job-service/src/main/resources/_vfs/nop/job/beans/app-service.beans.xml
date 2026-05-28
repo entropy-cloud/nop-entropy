@@ -6,8 +6,6 @@
 
     <import resource="_service.beans.xml"/>
 
-    <import resource="app-engine.beans.xml"/>
-
     <bean id="nopJobInvoker_test" class="io.nop.job.service.executor.NopE2eTestJobInvoker"/>
     <bean id="nopJobInvoker_rpc" class="io.nop.job.service.executor.RpcJobInvoker"/>
     <bean id="nopJobInvoker_rpcBroadcast" class="io.nop.job.service.executor.RpcJobInvoker"/>
