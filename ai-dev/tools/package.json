@@ -19,7 +19,8 @@
     "lint:java": "./run-java-lint.sh"
   },
   "devDependencies": {
-    "@ast-grep/cli": "^0.43.0"
+    "@ast-grep/cli": "^0.43.0",
+    "js-yaml": "^4.1.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

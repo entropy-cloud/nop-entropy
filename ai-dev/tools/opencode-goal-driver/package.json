@@ -1,0 +1,14 @@
+{
+  "name": "opencode-goal-driver",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenCode-based module goal driver workflow engine",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "dry-run": "node src/main.js --dry-run",
+    "test": "node src/main.js --test --max-cycles 1 --model zhipuai-coding-plan/glm-4.7-flash",
+    "go": "node src/main.js --max-cycles 1 --model zhipuai-coding-plan/glm-4.7-flash"
+  }
+}

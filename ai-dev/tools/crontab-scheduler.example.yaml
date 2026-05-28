@@ -1,0 +1,12 @@
+tasks:
+  - id: backup-logs
+    time: "2026-05-30 02:00"
+    command: /usr/local/bin/backup.sh /var/log
+
+  - id: cleanup-temp
+    time: "tomorrow 03:30"
+    command: rm -rf /tmp/old-*
+
+  - id: daily-report
+    time: "2026-06-01 08:00"
+    command: /usr/local/bin/generate-report.sh
