@@ -47,6 +47,8 @@ import io.nop.stream.cep.time.TimerService;
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.configuration.Configuration;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.cep.NopCepErrors;
+import static io.nop.stream.cep.NopCepErrors.*;
 import io.nop.stream.core.util.FunctionUtils;
 
 /**
@@ -144,11 +146,8 @@ public class NFA<T> {
     private boolean isStartState(ComputationState state) {
         State<T> stateObject = getState(state);
         if (stateObject == null) {
-            throw new StreamException(
-                    "State "
-                            + state.getCurrentStateName()
-                            + " does not exist in the NFA. NFA has states "
-                            + states.values());
+            throw new StreamException(ERR_CEP_NFA_START_STATE_CHECK_FAILED)
+                    .param(ARG_STATE_NAME, state.getCurrentStateName());
         }
 
         return stateObject.isStart();
@@ -157,11 +156,8 @@ public class NFA<T> {
     private boolean isStopState(ComputationState state) {
         State<T> stateObject = getState(state);
         if (stateObject == null) {
-            throw new StreamException(
-                    "State "
-                            + state.getCurrentStateName()
-                            + " does not exist in the NFA. NFA has states "
-                            + states.values());
+            throw new StreamException(ERR_CEP_NFA_STOP_STATE_CHECK_FAILED)
+                    .param(ARG_STATE_NAME, state.getCurrentStateName());
         }
 
         return stateObject.isStop();
@@ -170,11 +166,8 @@ public class NFA<T> {
     private boolean isFinalState(ComputationState state) {
         State<T> stateObject = getState(state);
         if (stateObject == null) {
-            throw new StreamException(
-                    "State "
-                            + state.getCurrentStateName()
-                            + " does not exist in the NFA. NFA has states "
-                            + states.values());
+            throw new StreamException(ERR_CEP_NFA_FINAL_STATE_CHECK_FAILED)
+                    .param(ARG_STATE_NAME, state.getCurrentStateName());
         }
 
         return stateObject.isFinal();
@@ -377,7 +370,7 @@ public class NFA<T> {
             for (final ComputationState newComputationState : newComputationStates) {
 
                 if (isStartState(computationState) && newComputationState.getStartTimestamp() >= 0) {
-                    nfaState.setNewStartPartiailMatch();
+                    nfaState.setNewStartPartialMatch();
                 }
 
                 if (isFinalState(newComputationState)) {
@@ -785,7 +778,7 @@ public class NFA<T> {
                 }
             }
         } catch (Exception e) {
-            throw new StreamException("Failure happened in filter function.", e);
+            throw new StreamException(ERR_CEP_NFA_FILTER_EXECUTION_FAILED, e);
         }
 
         return null;
@@ -829,7 +822,7 @@ public class NFA<T> {
                         }
                     }
                 } catch (Exception e) {
-                    throw new StreamException("Failure happened in filter function.", e);
+                    throw new StreamException(ERR_CEP_NFA_FILTER_EXECUTION_FAILED, e);
                 }
             }
         }

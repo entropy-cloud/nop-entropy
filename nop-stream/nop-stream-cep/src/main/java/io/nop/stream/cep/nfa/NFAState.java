@@ -108,7 +108,7 @@ public class NFAState {
         this.isNewStartPartialMatch = false;
     }
 
-    public void setNewStartPartiailMatch() {
+    public void setNewStartPartialMatch() {
         this.isNewStartPartialMatch = true;
     }
 
