@@ -1,0 +1,8 @@
+tasks:
+  - id: opencode-nop-stream
+    time: "tomorrow 02:00"
+    command: /Users/abc/app/nop-entropy-wt/nop-entropy-master/ai-dev/tools/opencode-goal-driver.sh nop-stream
+
+  - id: opencode-nop-code
+    time: "tomorrow 05:00"
+    command: /Users/abc/app/nop-entropy-wt/nop-entropy-master/ai-dev/tools/opencode-goal-driver.sh nop-code
