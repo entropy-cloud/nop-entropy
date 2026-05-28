@@ -19,6 +19,16 @@ public interface NopStreamErrors {
     String ARG_CLASS_NAME = "className";
     String ARG_CONFIG_KEY = "configKey";
     String ARG_OPERATION = "operation";
+    String ARG_VERTEX_ID = "vertexId";
+    String ARG_TASK_INDEX = "taskIndex";
+    String ARG_TASK_LOCATION = "taskLocation";
+    String ARG_JOB_ID = "jobId";
+    String ARG_CHECKPOINT_ID = "checkpointId";
+    String ARG_EPOCH_ID = "epochId";
+    String ARG_VALUE_TYPE = "valueType";
+    String ARG_STATE_VERSION = "stateVersion";
+    String ARG_STATE_TYPE = "stateType";
+    String ARG_DESCRIPTOR_NAME = "descriptorName";
 
     ErrorCode ERR_STREAM_NULL_ARG =
             define("nop.err.stream.null-arg", "Argument {argName} must not be null", ARG_ARG_NAME);
@@ -51,4 +61,61 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_INIT_ERROR =
             define("nop.err.stream.init-error", "Initialization failed: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_NOT_INITIALIZED =
+            define("nop.err.stream.checkpoint-executor-not-initialized", "Checkpoint executor not initialized");
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_ALREADY_STARTED =
+            define("nop.err.stream.checkpoint-executor-already-started", "Checkpoint executor already started");
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED =
+            define("nop.err.stream.checkpoint-executor-failed", "Checkpoint executor failed: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_SAVEPOINT_FAILED =
+            define("nop.err.stream.checkpoint-executor-savepoint-failed", "Failed to trigger terminal savepoint", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED =
+            define("nop.err.stream.checkpoint-executor-restore-failed", "Checkpoint restore failed: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_SNAPSHOT_FAILED =
+            define("nop.err.stream.checkpoint-executor-snapshot-failed", "Checkpoint snapshot failed: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_EXECUTE_FAILED =
+            define("nop.err.stream.checkpoint-executor-execute-failed", "Task execution failed: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_JOB_GRAPH_INVALID =
+            define("nop.err.stream.checkpoint-executor-job-graph-invalid", "Invalid job graph: no TaskLocation for vertex={vertexId} subtask={taskIndex}", ARG_VERTEX_ID, ARG_TASK_INDEX);
+
+    ErrorCode ERR_STREAM_CHAINING_OUTPUT_EXCEPTION =
+            define("nop.err.stream.chaining-output-exception", "Error in chaining output: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED =
+            define("nop.err.stream.chaining-output-close-failed", "Failed to close chaining output");
+
+    ErrorCode ERR_STREAM_CHAINING_OUTPUT_FLUSH_FAILED =
+            define("nop.err.stream.chaining-output-flush-failed", "Failed to flush chaining output");
+
+    ErrorCode ERR_STREAM_CHAINING_OUTPUT_SNAPSHOT_FAILED =
+            define("nop.err.stream.chaining-output-snapshot-failed", "Failed to snapshot chaining output: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CHAINING_OUTPUT_RESTORE_FAILED =
+            define("nop.err.stream.chaining-output-restore-failed", "Failed to restore chaining output: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CODEC_VALUE_TYPE_LOAD_FAILED =
+            define("nop.err.stream.codec-value-type-load-failed", "Failed to load valueType class: {className}", ARG_CLASS_NAME);
+
+    ErrorCode ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED =
+            define("nop.err.stream.window-trigger-state-accumulator-failed", "Failed to create trigger state accumulator: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_WINDOW_AGGREGATOR_NOT_INITIALIZED =
+            define("nop.err.stream.window-aggregator-not-initialized", "Window aggregator not initialized: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_WINDOW_AGGREGATOR_INVALID_STATE =
+            define("nop.err.stream.window-aggregator-invalid-state", "Invalid window aggregator state: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_WINDOW_AGGREGATOR_STATE_RESTORE_FAILED =
+            define("nop.err.stream.window-aggregator-state-restore-failed", "Window aggregator state restore failed: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CLASS_NOT_ALLOWED =
+            define("nop.err.stream.class-not-allowed", "Class not allowed: {className}", ARG_CLASS_NAME);
 }

@@ -9,6 +9,8 @@ package io.nop.stream.core.operators;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -37,7 +39,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processElement(record);
         } catch (Exception e) {
-            throw new StreamRuntimeException("Error forwarding element to next operator", e);
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding element to next operator");
         }
     }
 
@@ -51,7 +53,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processWatermark(mark);
         } catch (Exception e) {
-            throw new StreamRuntimeException("Error forwarding watermark", e);
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding watermark");
         }
     }
 
@@ -60,7 +62,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processWatermarkStatus(watermarkStatus);
         } catch (Exception e) {
-            throw new StreamRuntimeException("Error forwarding watermark status", e);
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding watermark status");
         }
     }
 
@@ -74,7 +76,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processLatencyMarker(latencyMarker);
         } catch (Exception e) {
-            throw new StreamRuntimeException("Error forwarding latency marker", e);
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding latency marker");
         }
     }
 
@@ -83,7 +85,7 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processBarrier(barrier);
         } catch (Exception e) {
-            throw new StreamRuntimeException("Error forwarding barrier to next operator", e);
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding barrier to next operator");
         }
     }
 }

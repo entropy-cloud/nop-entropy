@@ -27,6 +27,8 @@ import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.StreamTaskInvokable;
@@ -321,7 +323,7 @@ public class GraphModelCheckpointExecutor {
             }
         } catch (Exception e) {
             LOG.error("Failed to trigger terminal savepoint", e);
-            throw new StreamException("Failed to trigger terminal savepoint", e);
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_SAVEPOINT_FAILED, e);
         }
     }
 
@@ -443,7 +445,9 @@ public class GraphModelCheckpointExecutor {
                 return loc;
             }
         }
-        throw new StreamException("No TaskLocation found for vertex " + vertexId + " subtask " + taskIndex);
+        throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_JOB_GRAPH_INVALID)
+                .param(ARG_VERTEX_ID, vertexId)
+                .param(ARG_TASK_INDEX, taskIndex);
     }
 
     private static ScheduledExecutorService startBarrierScheduler(
@@ -531,7 +535,7 @@ public class GraphModelCheckpointExecutor {
     private static void checkTaskFailures(Map<String, SubtaskTask> tasks) {
         for (SubtaskTask task : tasks.values()) {
             if (task.getState() == SubtaskTask.State.FAILED) {
-                throw new StreamException("Task failed", task.getError());
+                throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_EXECUTE_FAILED, task.getError());
             }
         }
     }
@@ -564,9 +568,10 @@ public class GraphModelCheckpointExecutor {
     static ICheckpointStorage createStorage(CheckpointConfig config) {
         String storageType = config.getStorageType();
         if ("jdbc".equalsIgnoreCase(storageType)) {
-            throw new StreamException(
-                    "JdbcCheckpointStorage requires IJdbcTemplate configuration. " +
-                    "Use storageType='local' or provide JDBC configuration.");
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED)
+                    .param(ARG_DETAIL,
+                            "JdbcCheckpointStorage requires IJdbcTemplate configuration. " +
+                            "Use storageType='local' or provide JDBC configuration.");
         }
         String basePath = config.getStorageProperty("path");
         if (basePath == null || basePath.isEmpty()) {
@@ -599,12 +604,12 @@ public class GraphModelCheckpointExecutor {
                     TaskStateSnapshot taskState = epochManifest.getTaskSnapshots().get(taskLocation);
 
                     if (taskState == null) {
-                        throw new StreamException(
-                                "No exact task state found for vertex " + vertexId +
-                                        " subtask " + subtask.getTaskIndex() +
-                                        " (taskLocation=" + taskLocation + ") in EpochManifest epoch " +
-                                        epochManifest.getEpochId() + ". Available keys: " +
-                                        epochManifest.getTaskSnapshots().keySet());
+                        throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                                .param(ARG_VERTEX_ID, vertexId)
+                                .param(ARG_TASK_INDEX, subtask.getTaskIndex())
+                                .param(ARG_TASK_LOCATION, taskLocation)
+                                .param(ARG_EPOCH_ID, epochManifest.getEpochId())
+                                .param(ARG_DETAIL, "Available keys: " + epochManifest.getTaskSnapshots().keySet());
                     }
 
                     List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
@@ -633,12 +638,12 @@ public class GraphModelCheckpointExecutor {
                 TaskStateSnapshot taskState = latestCheckpoint.getTaskState(taskLocation);
 
                 if (taskState == null) {
-                    throw new StreamException(
-                            "No exact task state found for vertex " + vertexId +
-                                    " subtask " + subtask.getTaskIndex() +
-                                    " (taskLocation=" + taskLocation + ") in checkpoint " +
-                                    latestCheckpoint.getCheckpointId() + ". Available keys: " +
-                                    latestCheckpoint.getTaskStates().keySet());
+                    throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                            .param(ARG_VERTEX_ID, vertexId)
+                            .param(ARG_TASK_INDEX, subtask.getTaskIndex())
+                            .param(ARG_TASK_LOCATION, taskLocation)
+                            .param(ARG_CHECKPOINT_ID, latestCheckpoint.getCheckpointId())
+                            .param(ARG_DETAIL, "Available keys: " + latestCheckpoint.getTaskStates().keySet());
                 }
 
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
@@ -647,10 +652,6 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
-    /**
-     * Validates that the current StreamModel fingerprint is compatible with the
-     * fingerprint stored in the EpochManifest. Throws StreamException if incompatible.
-     */
     private static void validateFingerprintCompatibility(
             EpochManifest epochManifest,
             StreamModel streamModel,
@@ -674,10 +675,8 @@ public class GraphModelCheckpointExecutor {
         }
 
         if (!currentFingerprint.isCompatibleWith(storedFingerprint)) {
-            throw new StreamException(
-                    "StreamModel fingerprint incompatible on restore. " +
-                            "stored=" + storedFingerprint + ", current=" + currentFingerprint +
-                            ". DAG topology or requirements have changed since the checkpoint was taken.");
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                    .param(ARG_DETAIL, "StreamModel fingerprint incompatible on restore. stored=" + storedFingerprint + ", current=" + currentFingerprint);
         }
 
         LOG.info("Fingerprint compatibility check passed for epoch {}",
@@ -722,12 +721,12 @@ public class GraphModelCheckpointExecutor {
                 TaskStateSnapshot taskState = savepointCheckpoint.getTaskState(taskLocation);
 
                 if (taskState == null) {
-                    throw new StreamException(
-                            "No exact task state found for vertex " + vertexId +
-                                    " subtask " + subtask.getTaskIndex() +
-                                    " (taskLocation=" + taskLocation + ") in savepoint " +
-                                    savepointCheckpoint.getCheckpointId() + ". Available keys: " +
-                                    savepointCheckpoint.getTaskStates().keySet());
+                    throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                            .param(ARG_VERTEX_ID, vertexId)
+                            .param(ARG_TASK_INDEX, subtask.getTaskIndex())
+                            .param(ARG_TASK_LOCATION, taskLocation)
+                            .param(ARG_CHECKPOINT_ID, savepointCheckpoint.getCheckpointId())
+                            .param(ARG_DETAIL, "Available keys: " + savepointCheckpoint.getTaskStates().keySet());
                 }
 
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);

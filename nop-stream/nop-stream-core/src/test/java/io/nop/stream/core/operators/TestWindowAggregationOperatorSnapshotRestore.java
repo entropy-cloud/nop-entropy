@@ -212,7 +212,7 @@ public class TestWindowAggregationOperatorSnapshotRestore {
         OperatorSnapshotResult empty = new OperatorSnapshotResult();
         WindowAggregationOperator<Integer, Long, Long, String, TimeWindow> op = createSumOperator();
 
-        assertThrows(IllegalStateException.class, () -> op.restoreState(empty));
+        assertThrows(io.nop.stream.core.exceptions.StreamException.class, () -> op.restoreState(empty));
     }
 
     @Test
@@ -232,7 +232,7 @@ public class TestWindowAggregationOperatorSnapshotRestore {
         }
 
         WindowAggregationOperator<Integer, Long, Long, String, TimeWindow> op2 = createSumOperator();
-        assertThrows(IllegalStateException.class, () -> op2.restoreState(snapshot));
+        assertThrows(io.nop.stream.core.exceptions.StreamException.class, () -> op2.restoreState(snapshot));
     }
 
     @Test

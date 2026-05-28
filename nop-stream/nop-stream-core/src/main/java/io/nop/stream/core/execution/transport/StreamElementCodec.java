@@ -10,6 +10,7 @@ package io.nop.stream.core.execution.transport;
 import io.nop.core.lang.json.JsonTool;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -99,10 +100,11 @@ public class StreamElementCodec {
                 Object value = payload;
                 if (payload instanceof String && envelope.getValueType() != null) {
                     try {
+                        ClassNameValidator.validateClassName(envelope.getValueType());
                         Class<?> clazz = Class.forName(envelope.getValueType());
                         value = JsonTool.parseBeanFromText((String) payload, clazz);
                     } catch (ClassNotFoundException e) {
-                        throw new StreamException("Failed to load valueType class: " + envelope.getValueType(), e);
+                        throw new StreamException(ERR_STREAM_CODEC_VALUE_TYPE_LOAD_FAILED, e).param(ARG_CLASS_NAME, envelope.getValueType());
                     }
                 }
                 if (envelope.isHasTimestamp()) {

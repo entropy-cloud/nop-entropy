@@ -13,8 +13,11 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -132,7 +135,8 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         Object stateObj = snapshotResult.getOperatorState("window-aggregation-state");
         if (stateObj == null) {
-            throw new IllegalStateException("No window-aggregation-state found in snapshot");
+            throw new StreamException(ERR_STREAM_WINDOW_AGGREGATOR_STATE_RESTORE_FAILED)
+                    .param(ARG_DETAIL, "No window-aggregation-state found in snapshot");
         }
 
         WindowAggregationState state;
@@ -141,18 +145,28 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         } else if (stateObj instanceof Map) {
             state = JsonTool.parseBeanFromText(JsonTool.stringify(stateObj), WindowAggregationState.class);
         } else {
-            throw new IllegalStateException("Unexpected state type: " + stateObj.getClass().getName());
+            throw new StreamException(ERR_STREAM_WINDOW_AGGREGATOR_INVALID_STATE)
+                    .param(ARG_DETAIL, "Unexpected state type: " + stateObj.getClass().getName());
         }
 
         if (state.getVersion() != WindowAggregationState.CURRENT_VERSION) {
-            throw new IllegalStateException("Unsupported state version: " + state.getVersion());
+            throw new StreamException(ERR_STREAM_WINDOW_AGGREGATOR_INVALID_STATE)
+                    .param(ARG_DETAIL, "Unsupported state version: " + state.getVersion());
         }
 
         String keyClassName = state.getKeyClassName();
         String windowClassName = state.getWindowClassName();
 
-        Class<?> keyClass = keyClassName != null ? Class.forName(keyClassName) : null;
-        Class<?> windowClass = windowClassName != null ? Class.forName(windowClassName) : null;
+        Class<?> keyClass = null;
+        if (keyClassName != null) {
+            ClassNameValidator.validateClassName(keyClassName);
+            keyClass = Class.forName(keyClassName);
+        }
+        Class<?> windowClass = null;
+        if (windowClassName != null) {
+            ClassNameValidator.validateClassName(windowClassName);
+            windowClass = Class.forName(windowClassName);
+        }
 
         this.windowState = new LinkedHashMap<>();
         deserializeWindowState(state.getWindowState(), keyClass, windowClass, this.windowState);
@@ -375,7 +389,8 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         if (keySelector != null) {
             return keySelector.getKey(value);
         }
-        throw new IllegalStateException("No key available: setCurrentKey() not called and no keySelector provided");
+        throw new StreamException(ERR_STREAM_WINDOW_AGGREGATOR_NOT_INITIALIZED)
+                .param(ARG_DETAIL, "No key available: setCurrentKey() not called and no keySelector provided");
     }
 
     private Map<String, Object> serializeWindowState(Map<WindowKey<K, W>, ACC> state) {
@@ -441,6 +456,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                 Map<String, Object> map = (Map<String, Object>) value;
                 if (map.containsKey("@type")) {
                     String accType = (String) map.get("@type");
+                    ClassNameValidator.validateClassName(accType);
                     Object accValue = map.get("value");
                     SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();
                     acc.add(accValue);
@@ -490,6 +506,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             if (value instanceof Map) {
                 Map<String, Object> map = (Map<String, Object>) value;
                 String accType = (String) map.get("@type");
+                ClassNameValidator.validateClassName(accType);
                 Object accValue = map.get("value");
                 SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();
                 acc.add(accValue);
@@ -648,7 +665,8 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                     triggerState.put(stateKey, acc);
                     return acc;
                 } catch (Exception e) {
-                    throw new StreamException("Failed to create trigger state accumulator", e);
+                    throw new StreamException(ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED, e)
+                            .param(ARG_DESCRIPTOR_NAME, rsd.getName());
                 }
             }
             throw new UnsupportedOperationException(

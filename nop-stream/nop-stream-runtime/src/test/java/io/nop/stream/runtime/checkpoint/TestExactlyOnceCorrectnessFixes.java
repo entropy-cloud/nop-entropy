@@ -57,7 +57,7 @@ class TestExactlyOnceCorrectnessFixes {
                 if (success) {
                     int attempt = commitAttempts.incrementAndGet();
                     if (attempt <= 2) {
-                        throw new RuntimeException("Transient commit failure attempt " + attempt);
+                        throw new StreamException("Transient commit failure attempt " + attempt);
                     }
                     commitSuccesses.incrementAndGet();
                 }
@@ -118,7 +118,7 @@ class TestExactlyOnceCorrectnessFixes {
                 if (success) {
                     int call = callCount.incrementAndGet();
                     if (call <= 3) {
-                        throw new RuntimeException("First finishCommit call always fails (3 retries)");
+                        throw new StreamException("First finishCommit call always fails (3 retries)");
                     }
                     committedEpochs.add(epochId);
                 }
@@ -339,7 +339,7 @@ class TestExactlyOnceCorrectnessFixes {
                 StreamException.class,
                 () -> GraphModelCheckpointExecutor.executeWithSavepoint(
                         jobGraph, "Mismatch Test", config, tempDir.toString()));
-        assertTrue(ex.getMessage().contains("No exact task state found"),
+        assertTrue(ex.getMessage().contains("v-wrong") || ex.getParam("detail").toString().contains("v-wrong"),
                 "Exception should indicate task location mismatch, got: " + ex.getMessage());
     }
 }

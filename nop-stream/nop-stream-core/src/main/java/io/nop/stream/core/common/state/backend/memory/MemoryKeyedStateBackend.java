@@ -40,6 +40,7 @@ import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
 import io.nop.stream.core.common.state.shard.StateShard;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
+import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
@@ -381,6 +382,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         if (valueTypeName == null) {
             valueTypeName = (String) stateInfo.get("valueType");
         }
+        ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
 
         ValueStateDescriptor<Object> descriptor = new ValueStateDescriptor<>(stateName, valueClass);
@@ -406,12 +408,17 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         if (valueTypeName == null) {
             valueTypeName = (String) stateInfo.get("valueType");
         }
+        ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String keyTypeName = (String) stateInfo.get("mapKeyTypeName");
         if (keyTypeName == null) {
             keyTypeName = (String) stateInfo.get("mapKeyType");
         }
-        Class<Object> mapKeyClass = keyTypeName != null ? (Class<Object>) Class.forName(keyTypeName) : null;
+        Class<Object> mapKeyClass = null;
+        if (keyTypeName != null) {
+            ClassNameValidator.validateClassName(keyTypeName);
+            mapKeyClass = (Class<Object>) Class.forName(keyTypeName);
+        }
 
         MapStateDescriptor<Object, Object> descriptor = new MapStateDescriptor<>(stateName, mapKeyClass, valueClass);
         MemoryMapState<Object, Object> state = new MemoryMapState<>(this, descriptor);
@@ -444,11 +451,13 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         if (valueTypeName == null) {
             valueTypeName = (String) stateInfo.get("valueType");
         }
+        ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String accumulatorTypeName = (String) stateInfo.get("accumulatorTypeName");
         if (accumulatorTypeName == null) {
             accumulatorTypeName = (String) stateInfo.get("accumulatorType");
         }
+        ClassNameValidator.validateClassName(accumulatorTypeName);
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
 
@@ -477,6 +486,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         if (valueTypeName == null) {
             valueTypeName = (String) stateInfo.get("valueType");
         }
+        ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
 
         ListStateDescriptor<Object> descriptor = new ListStateDescriptor<>(stateName, valueClass);
@@ -508,6 +518,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         if (valueTypeName == null) {
             valueTypeName = (String) stateInfo.get("valueType");
         }
+        ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
 
         ListStateDescriptor<Object> descriptor = new ListStateDescriptor<>(stateName, valueClass);
@@ -537,8 +548,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     @SuppressWarnings("unchecked")
     private void restoreReducingState(String stateName, Map<String, Object> stateInfo) throws Exception {
         String valueTypeName = (String) stateInfo.get("valueType");
+        ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String accumulatorTypeName = (String) stateInfo.get("accumulatorType");
+        ClassNameValidator.validateClassName(accumulatorTypeName);
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
 
@@ -577,8 +590,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     @SuppressWarnings("unchecked")
     private void restoreAggregatingState(String stateName, Map<String, Object> stateInfo) throws Exception {
         String valueTypeName = (String) stateInfo.get("valueType");
+        ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
+        ClassNameValidator.validateClassName(aggregateFunctionTypeName);
         Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
                 (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =
