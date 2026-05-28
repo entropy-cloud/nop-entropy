@@ -1,6 +1,6 @@
 # 54 ORM Menu Icon Rollout For sys/oauth
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-05-28
 > Source: Follow-up to Plan 53 after live repo scan found generated `_nop-sys.action-auth.xml` and `_nop-oauth.action-auth.xml` still using fallback `blocks` icons.
 > Related: `ai-dev/plans/53-orm-menu-icon-propagation.md`
@@ -63,7 +63,7 @@ Exit Criteria:
 - [x] **接线验证**：the chosen entities correspond to entries currently showing fallback `blocks` icons in generated auth files.
 - [x] **无静默跳过**：unconfigured entities, if any remain outside scope, are explicit scope exclusions rather than accidental omissions.
 - [x] No owner-doc update required beyond existing Plan 53 convention docs.
-- [ ] `ai-dev/logs/` 对应日期条目已更新.
+- [x] `ai-dev/logs/` 对应日期条目已更新.
 
 ### Phase 2 - Regenerate And Verify Outputs
 
@@ -84,7 +84,7 @@ Exit Criteria:
 - [x] **接线验证**：generated xmeta contains `ext:icon`, and generated auth files consume those values.
 - [x] **无静默跳过**：no touched generated menu entry still uses fallback `blocks` because of missing in-scope model metadata.
 - [x] No owner-doc update required.
-- [ ] `ai-dev/logs/` 对应日期条目已更新.
+- [x] `ai-dev/logs/` 对应日期条目已更新.
 
 ## Deferred But Adjudicated
 
@@ -92,20 +92,20 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] Phase 1 checklist fully complete.
-- [ ] Phase 2 checklist fully complete.
+- [x] Phase 1 checklist fully complete.
+- [x] Phase 2 checklist fully complete.
 - [x] Focused verification command(s) for the touched modules pass.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` passes after log updates.
-- [ ] Independent closure audit completed by a separate subagent and recorded in the final report.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` passes after log updates.
+- [x] Independent closure audit completed by a separate subagent and recorded in the final report.
 
 ## Closure
 
-Status Note: Pending final log sync, doc link check, and independent closure audit.
+Status Note: `nop-sys` and `nop-oauth` now both generate submenu icons from ORM `ext:icon`, and the only live gap was `nop-oauth-codegen` still reading `nop-oauth.orm.xlsx`; after switching that generator input to `nop-oauth.orm.xml`, the regenerated xmeta and action-auth outputs match the intended convention.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: pending
-- Evidence: pending
+- Reviewer / Agent: `general` subagent `ses_192cdf0ffffeATi1ocUeRaEh4Z`
+- Evidence: Independent audit verified model metadata, generated xmeta propagation, generated auth outputs without fallback `blocks`, the `nop-oauth` generator source-path fix, and identified only plan/log closure bookkeeping gaps before completion.
 
 Follow-up:
 
