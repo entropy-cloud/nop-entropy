@@ -31,7 +31,8 @@
         <entity className="io.nop.auth.dao.entity.NopAuthUser" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="用户" name="io.nop.auth.dao.entity.NopAuthUser"
                 registerShortName="true" tableName="nop_auth_user" tagSet="mapper,no-tenant" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="User">
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="user-round"
+                i18n-en:displayName="User">
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -175,7 +176,8 @@
         <entity className="io.nop.auth.dao.entity.NopAuthExtLogin" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="扩展登录方式" name="io.nop.auth.dao.entity.NopAuthExtLogin"
                 registerShortName="true" tableName="nop_auth_ext_login" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Ext Login">
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="plug-zap"
+                i18n-en:displayName="Ext Login">
             <columns>
                 <column code="SID" displayName="ID" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="ID"/>
@@ -228,7 +230,8 @@
         <entity className="io.nop.auth.dao.entity.NopAuthRole" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="角色" name="io.nop.auth.dao.entity.NopAuthRole"
                 registerShortName="true" tableName="nop_auth_role" tagSet="mapper" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Role">
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="shield"
+                i18n-en:displayName="Role">
             <columns>
                 <column code="ROLE_ID" displayName="角色ID" mandatory="true" name="roleId" precision="50" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Role ID"/>
@@ -327,7 +330,7 @@
         <entity className="io.nop.auth.dao.entity.NopAuthUserSubstitution" createTimeProp="createTime"
                 createrProp="createdBy" displayName="用户代理" name="io.nop.auth.dao.entity.NopAuthUserSubstitution"
                 registerShortName="true" tableName="nop_auth_user_substitution" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="User Substitution">
+                updaterProp="updatedBy" versionProp="version" ext:icon="workflow" i18n-en:displayName="User Substitution">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -378,7 +381,7 @@
         <entity className="io.nop.auth.dao.entity.NopAuthSite" createTimeProp="createTime" createrProp="createdBy"
                 displayName="子站点" name="io.nop.auth.dao.entity.NopAuthSite" registerShortName="true"
                 tableName="nop_auth_site" tagSet="dict" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Sub Site">
+                versionProp="version" ext:icon="globe-2" i18n-en:displayName="Sub Site">
             <columns>
                 <column code="SITE_ID" displayName="站点ID" mandatory="true" name="siteId" precision="100" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Site ID"/>
@@ -426,7 +429,7 @@
                 deleteFlagProp="delFlag" displayName="菜单资源" name="io.nop.auth.dao.entity.NopAuthResource"
                 registerShortName="true" tableName="nop_auth_resource" updateTimeProp="updateTime"
                 updaterProp="updatedBy" useLogicalDelete="true" versionProp="version"
-                i18n-en:displayName="Menu Resource">
+                ext:icon="panels-top-left" i18n-en:displayName="Menu Resource">
             <columns>
                 <column code="RESOURCE_ID" displayName="资源ID" mandatory="true" name="resourceId" precision="100"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -593,7 +596,7 @@
                 createrProp="createdBy" deleteFlagProp="delFlag" displayName="角色数据权限"
                 name="io.nop.auth.dao.entity.NopAuthRoleDataAuth" registerShortName="true"
                 tableName="nop_auth_role_data_auth" updateTimeProp="updateTime" updaterProp="updatedBy"
-                useLogicalDelete="true" versionProp="version" i18n-en:displayName="Role Data Auth">
+                useLogicalDelete="true" versionProp="version" ext:icon="database" i18n-en:displayName="Role Data Auth">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -632,7 +635,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthSession" createTimeProp="createTime" createrProp="createdBy"
                 displayName="会话日志" name="io.nop.auth.dao.entity.NopAuthSession" registerShortName="true"
-                tableName="nop_auth_session" tagSet="log,no-tenant" i18n-en:displayName="Session">
+                tableName="nop_auth_session" tagSet="log,no-tenant" ext:icon="book-open-text" i18n-en:displayName="Session">
             <columns>
                 <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="100"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
@@ -694,7 +697,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthOpLog" displayName="操作日志"
                 name="io.nop.auth.dao.entity.NopAuthOpLog" registerShortName="true" tableName="nop_auth_op_log"
-                tagSet="log,no-tenant" i18n-en:displayName="Operation Log">
+                tagSet="log,no-tenant" ext:icon="list" i18n-en:displayName="Operation Log">
             <columns>
                 <column code="LOG_ID" displayName="主键" mandatory="true" name="logId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="LOG_ID"/>
@@ -744,7 +747,7 @@
         <entity className="io.nop.auth.dao.entity.NopAuthDept" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="部门" name="io.nop.auth.dao.entity.NopAuthDept"
                 registerShortName="true" tableName="nop_auth_dept" updateTimeProp="updateTime" updaterProp="updatedBy"
-                useLogicalDelete="true" versionProp="version" i18n-en:displayName="Department">
+                useLogicalDelete="true" versionProp="version" ext:icon="git-branch" i18n-en:displayName="Department">
             <columns>
                 <column code="DEPT_ID" displayName="主键" mandatory="true" name="deptId" precision="50" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -821,7 +824,7 @@
         <entity className="io.nop.auth.dao.entity.NopAuthGroup" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="用户组" name="io.nop.auth.dao.entity.NopAuthGroup"
                 registerShortName="true" tableName="nop_auth_group" updateTimeProp="updateTime" updaterProp="updatedBy"
-                useLogicalDelete="true" versionProp="version" i18n-en:displayName="User Group">
+                useLogicalDelete="true" versionProp="version" ext:icon="users" i18n-en:displayName="User Group">
             <columns>
                 <column code="GROUP_ID" displayName="主键" mandatory="true" name="groupId" precision="50" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -981,7 +984,8 @@
         <entity className="io.nop.auth.dao.entity.NopAuthPosition" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="岗位" name="io.nop.auth.dao.entity.NopAuthPosition"
                 registerShortName="true" tableName="nop_auth_position" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Position">
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="briefcase"
+                i18n-en:displayName="Position">
             <columns>
                 <column code="POSITION_ID" displayName="主键" mandatory="true" name="positionId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -1011,7 +1015,8 @@
         <entity className="io.nop.auth.dao.entity.NopAuthTenant" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="租户" name="io.nop.auth.dao.entity.NopAuthTenant"
                 registerShortName="true" tableName="nop_auth_tenant" tagSet="dict,no-tenant" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Tenant">
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="building-2"
+                i18n-en:displayName="Tenant">
             <columns>
                 <column code="TENANT_ID" displayName="主键" mandatory="true" name="tenantId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="R"

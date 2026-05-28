@@ -27,6 +27,23 @@ nop-cli gen model/{appName}.orm.xml -t=/nop/templates/orm -o=.
 ./mvnw clean install -T 1C
 ```
 
+## 实体菜单图标约定
+
+当 ORM 实体会参与标准后台页面与 `action-auth.xml` 生成时，可以在 `entity` 上声明 `ext:icon`：
+
+```xml
+<entity ... ext:icon="user-round">
+```
+
+规则如下：
+
+1. `ext:icon` 配置在 `model/*.orm.xml` 的 `entity` 节点。
+2. 值优先使用 kebab-case 的 Lucide 图标名，例如 `user-round`、`building-2`、`git-branch`。
+3. 该值会传播到生成的 `xmeta` 根节点 `ext:icon`。
+4. ORM web 模板生成 `_*.action-auth.xml` 时，会优先使用 `objMeta['ext:icon']` 作为菜单图标；未配置时回退到默认图标。
+
+这个约定只影响基于 ORM 标准模板生成的菜单资源；手工维护的 `*.action-auth.xml` 覆盖文件需要单独调整。
+
 如果只想理解生成职责，可以按模块顺序看：
 
 1. `{appName}-codegen` 刷新项目级生成产物。

@@ -6,8 +6,8 @@
                   orderNo="10000" routePath="/test-orm-nop-sys" component="layouts/default/index">
             <children>
                 <resource id="NopSysChangeLog-main" displayName="变更跟踪日志" orderNo="10001"
-                          i18n-en:displayName="Change Log" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/sys/pages/NopSysChangeLog/main.page.yaml">
+                          i18n-en:displayName="Change Log" icon="history" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysChangeLog/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysChangeLog:query" displayName="查询变更跟踪日志" orderNo="10002"
                                   resourceType="FNPT">
@@ -20,7 +20,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysCheckerRecord-main" displayName="MakerChecker审批记录" orderNo="10004"
-                          i18n-en:displayName="Maker Checker Record" icon="ant-design:appstore-twotone" component="AMIS"
+                          i18n-en:displayName="Maker Checker Record" icon="file-check" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysCheckerRecord/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysCheckerRecord:query" displayName="查询MakerChecker审批记录" orderNo="10005"
@@ -34,8 +34,8 @@
                     </children>
                 </resource>
                 <resource id="NopSysClusterLeader-main" displayName="集群选举" orderNo="10007"
-                          i18n-en:displayName="Cluster Leader" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/sys/pages/NopSysClusterLeader/main.page.yaml">
+                          i18n-en:displayName="Cluster Leader" icon="network" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysClusterLeader/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysClusterLeader:query" displayName="查询集群选举" orderNo="10008"
                                   resourceType="FNPT">
@@ -48,7 +48,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysCodeRule-main" displayName="编码规则" orderNo="10010" i18n-en:displayName="Code Rule"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="binary" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysCodeRule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysCodeRule:query" displayName="查询编码规则" orderNo="10011"
@@ -62,7 +62,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysDict-main" displayName="字典表" orderNo="10013" i18n-en:displayName="Dictionary"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="book-open-text" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysDict/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysDict:query" displayName="查询字典表" orderNo="10014" resourceType="FNPT">
@@ -74,8 +74,8 @@
                     </children>
                 </resource>
                 <resource id="NopSysDictOption-main" displayName="字典明细" orderNo="10016"
-                          i18n-en:displayName="Dictionay Item" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/sys/pages/NopSysDictOption/main.page.yaml">
+                          i18n-en:displayName="Dictionay Item" icon="list" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysDictOption/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysDictOption:query" displayName="查询字典明细" orderNo="10017"
                                   resourceType="FNPT">
@@ -88,7 +88,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysEvent-main" displayName="事件队列" orderNo="10019" i18n-en:displayName="System Event"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="workflow" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysEvent/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysEvent:query" displayName="查询事件队列" orderNo="10020" resourceType="FNPT">
@@ -101,8 +101,8 @@
                     </children>
                 </resource>
                 <resource id="NopSysExtField-main" displayName="扩展字段" orderNo="10022"
-                          i18n-en:displayName="Extension Field" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/sys/pages/NopSysExtField/main.page.yaml">
+                          i18n-en:displayName="Extension Field" icon="puzzle" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysExtField/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysExtField:query" displayName="查询扩展字段" orderNo="10023"
                                   resourceType="FNPT">
@@ -115,7 +115,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysI18n-main" displayName="多语言消息" orderNo="10025" i18n-en:displayName="I18n Message"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="languages" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysI18n/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysI18n:query" displayName="查询多语言消息" orderNo="10026" resourceType="FNPT">
@@ -127,9 +127,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysLock-main" displayName="资源锁" orderNo="10028" i18n-en:displayName="Lock"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/sys/pages/NopSysLock/main.page.yaml">
+                <resource id="NopSysLock-main" displayName="资源锁" orderNo="10028" i18n-en:displayName="Lock" icon="lock"
+                          component="AMIS" resourceType="SUBM" url="/nop/sys/pages/NopSysLock/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysLock:query" displayName="查询资源锁" orderNo="10029" resourceType="FNPT">
                             <permissions>NopSysLock:query</permissions>
@@ -140,8 +139,8 @@
                     </children>
                 </resource>
                 <resource id="NopSysNoticeTemplate-main" displayName="通知模板" orderNo="10031"
-                          i18n-en:displayName="Notice Template" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/sys/pages/NopSysNoticeTemplate/main.page.yaml">
+                          i18n-en:displayName="Notice Template" icon="mail" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysNoticeTemplate/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysNoticeTemplate:query" displayName="查询通知模板" orderNo="10032"
                                   resourceType="FNPT">
@@ -154,7 +153,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysObjTag-main" displayName="对象标签" orderNo="10034" i18n-en:displayName="Obj Tag"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="tags" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysObjTag/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysObjTag:query" displayName="查询对象标签" orderNo="10035" resourceType="FNPT">
@@ -167,7 +166,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysSequence-main" displayName="序列号" orderNo="10037" i18n-en:displayName="Sequence"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="hash" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysSequence/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysSequence:query" displayName="查询序列号" orderNo="10038" resourceType="FNPT">
@@ -180,8 +179,8 @@
                     </children>
                 </resource>
                 <resource id="NopSysServiceInstance-main" displayName="服务实例" orderNo="10040"
-                          i18n-en:displayName="Instance ID" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/sys/pages/NopSysServiceInstance/main.page.yaml">
+                          i18n-en:displayName="Instance ID" icon="server" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysServiceInstance/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysServiceInstance:query" displayName="查询服务实例" orderNo="10041"
                                   resourceType="FNPT">
@@ -193,9 +192,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysTag-main" displayName="标签" orderNo="10043" i18n-en:displayName="Tag"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/sys/pages/NopSysTag/main.page.yaml">
+                <resource id="NopSysTag-main" displayName="标签" orderNo="10043" i18n-en:displayName="Tag" icon="tag"
+                          component="AMIS" resourceType="SUBM" url="/nop/sys/pages/NopSysTag/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysTag:query" displayName="查询标签" orderNo="10044" resourceType="FNPT">
                             <permissions>NopSysTag:query</permissions>
@@ -206,8 +204,8 @@
                     </children>
                 </resource>
                 <resource id="NopSysUserVariable-main" displayName="用户变量" orderNo="10046"
-                          i18n-en:displayName="User Variable" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/sys/pages/NopSysUserVariable/main.page.yaml">
+                          i18n-en:displayName="User Variable" icon="user-round" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysUserVariable/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysUserVariable:query" displayName="查询用户变量" orderNo="10047"
                                   resourceType="FNPT">
@@ -220,7 +218,7 @@
                     </children>
                 </resource>
                 <resource id="NopSysVariable-main" displayName="系统变量" orderNo="10049"
-                          i18n-en:displayName="System Variable" icon="ant-design:appstore-twotone" component="AMIS"
+                          i18n-en:displayName="System Variable" icon="sliders-horizontal" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysVariable/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysVariable:query" displayName="查询系统变量" orderNo="10050"

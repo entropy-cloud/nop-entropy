@@ -36,7 +36,8 @@
         <entity className="io.nop.sys.dao.entity.NopSysSequence" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="序列号" name="io.nop.sys.dao.entity.NopSysSequence"
                 registerShortName="true" tableName="nop_sys_sequence" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Sequence">
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="hash"
+                i18n-en:displayName="Sequence">
             <columns>
                 <column code="SEQ_NAME" displayName="名称" mandatory="true" name="seqName" precision="150" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Name"/>
@@ -76,7 +77,8 @@
         <entity className="io.nop.sys.dao.entity.NopSysDict" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="字典表" name="io.nop.sys.dao.entity.NopSysDict"
                 registerShortName="true" tableName="nop_sys_dict" updateTimeProp="updateTime" updaterProp="updatedBy"
-                useLogicalDelete="true" versionProp="version" i18n-en:displayName="Dictionary">
+                useLogicalDelete="true" versionProp="version" ext:icon="book-open-text"
+                i18n-en:displayName="Dictionary">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -116,7 +118,7 @@
                 deleteFlagProp="delFlag" displayName="字典明细" name="io.nop.sys.dao.entity.NopSysDictOption"
                 registerShortName="true" tableName="nop_sys_dict_option" updateTimeProp="updateTime"
                 updaterProp="updatedBy" useLogicalDelete="true" versionProp="version"
-                i18n-en:displayName="Dictionay Item">
+                ext:icon="list" i18n-en:displayName="Dictionay Item">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -167,7 +169,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysI18n" createTimeProp="createTime" createrProp="createdBy"
                 displayName="多语言消息" name="io.nop.sys.dao.entity.NopSysI18n" registerShortName="true"
                 tableName="nop_sys_i18n" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="I18n Message">
+                ext:icon="languages" i18n-en:displayName="I18n Message">
             <columns>
                 <column code="I18N_KEY" displayName="字符串Key" mandatory="true" name="i18nKey" precision="200"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -196,7 +198,8 @@
         <entity className="io.nop.sys.dao.entity.NopSysCheckerRecord" createTimeProp="createTime"
                 createrProp="createdBy" displayName="MakerChecker审批记录" name="io.nop.sys.dao.entity.NopSysCheckerRecord"
                 registerShortName="true" tableName="nop_sys_checker_record" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Maker Checker Record">
+                updaterProp="updatedBy" versionProp="version" ext:icon="file-check"
+                i18n-en:displayName="Maker Checker Record">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -256,7 +259,8 @@
         <entity className="io.nop.sys.dao.entity.NopSysCodeRule" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="编码规则" name="io.nop.sys.dao.entity.NopSysCodeRule"
                 registerShortName="true" tableName="nop_sys_code_rule" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Code Rule">
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="binary"
+                i18n-en:displayName="Code Rule">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -293,7 +297,7 @@
                 name="io.nop.sys.dao.entity.NopSysNoticeTemplate" registerShortName="true"
                 tableName="nop_sys_notice_template" tagSet="use-ext-field" updateTimeProp="updateTime"
                 updaterProp="updatedBy" useLogicalDelete="true" versionProp="version"
-                i18n-en:displayName="Notice Template">
+                ext:icon="mail" i18n-en:displayName="Notice Template">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -325,7 +329,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysUserVariable" createTimeProp="createTime" createrProp="createdBy"
                 displayName="用户变量" name="io.nop.sys.dao.entity.NopSysUserVariable" registerShortName="true"
                 tableName="nop_sys_user_variable" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="User Variable">
+                versionProp="version" ext:icon="user-round" i18n-en:displayName="User Variable">
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -358,7 +362,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysVariable" createTimeProp="createTime" createrProp="createdBy"
                 displayName="系统变量" name="io.nop.sys.dao.entity.NopSysVariable" registerShortName="true"
                 tableName="nop_sys_variable" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="System Variable">
+                ext:icon="sliders-horizontal" i18n-en:displayName="System Variable">
             <columns>
                 <column code="VAR_NAME" displayName="变量名" mandatory="true" name="varName" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Var Name"/>
@@ -387,7 +391,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysExtField" createTimeProp="createTime" createrProp="createdBy"
                 displayName="扩展字段" kvTable="true" name="io.nop.sys.dao.entity.NopSysExtField" registerShortName="true"
                 tableName="nop_sys_ext_field" tagSet="kv-table" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Extension Field">
+                versionProp="version" ext:icon="puzzle" i18n-en:displayName="Extension Field">
             <columns>
                 <column code="ENTITY_NAME" displayName="实体名" mandatory="true" name="entityName" precision="200"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -429,7 +433,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysLock" createTimeProp="createTime" createrProp="createdBy"
                 displayName="资源锁" name="io.nop.sys.dao.entity.NopSysLock" registerShortName="true"
                 tableName="nop_sys_lock" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Lock">
+                ext:icon="lock" i18n-en:displayName="Lock">
             <columns>
                 <column code="LOCK_NAME" displayName="锁名称" mandatory="true" name="lockName" precision="200"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -465,7 +469,8 @@
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysClusterLeader" displayName="集群选举"
                 name="io.nop.sys.dao.entity.NopSysClusterLeader" registerShortName="true"
-                tableName="nop_sys_cluster_leader" versionProp="version" i18n-en:displayName="Cluster Leader">
+                tableName="nop_sys_cluster_leader" versionProp="version" ext:icon="network"
+                i18n-en:displayName="Cluster Leader">
             <columns>
                 <column code="CLUSTER_ID" displayName="集群ID" mandatory="true" name="clusterId" precision="200"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -491,7 +496,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysEvent" createTimeProp="createTime" createrProp="createdBy"
                 displayName="事件队列" name="io.nop.sys.dao.entity.NopSysEvent" registerShortName="true"
                 tableName="nop_sys_event" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="System Event">
+                ext:icon="workflow" i18n-en:displayName="System Event">
             <columns>
                 <column code="EVENT_ID" displayName="事件ID" mandatory="true" name="eventId" primary="true" propId="1"
                         stdDataType="long" stdSqlType="BIGINT" tagSet="seq-default" i18n-en:displayName="Event ID"/>
@@ -544,7 +549,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysServiceInstance" createTimeProp="createTime" displayName="服务实例"
                 name="io.nop.sys.dao.entity.NopSysServiceInstance" registerShortName="true"
                 tableName="nop_sys_service_instance" updateTimeProp="updateTime" versionProp="version"
-                i18n-en:displayName="Instance ID">
+                ext:icon="server" i18n-en:displayName="Instance ID">
             <columns>
                 <column code="INSTANCE_ID" displayName="服务实例ID" mandatory="true" name="instanceId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
@@ -581,7 +586,7 @@
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysChangeLog" displayName="变更跟踪日志"
                 name="io.nop.sys.dao.entity.NopSysChangeLog" registerShortName="true" tableName="nop_sys_change_log"
-                tagSet="log" i18n-en:displayName="Change Log">
+                tagSet="log" ext:icon="history" i18n-en:displayName="Change Log">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -612,7 +617,8 @@
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysTag" createTimeProp="createTime" createrProp="createdBy"
                 displayName="标签" name="io.nop.sys.dao.entity.NopSysTag" registerShortName="true" tableName="nop_sys_tag"
-                updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Tag">
+                updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version" ext:icon="tag"
+                i18n-en:displayName="Tag">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="long" stdSqlType="BIGINT" tagSet="seq" i18n-en:displayName="SID"/>
@@ -637,7 +643,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysObjTag" createTimeProp="createTime" createrProp="createdBy"
                 displayName="对象标签" name="io.nop.sys.dao.entity.NopSysObjTag" registerShortName="true"
                 tableName="nop_sys_obj_tag" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Obj Tag">
+                ext:icon="tags" i18n-en:displayName="Obj Tag">
             <columns>
                 <column code="BIZ_OBJ_ID" displayName="对象ID" mandatory="true" name="bizObjId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"

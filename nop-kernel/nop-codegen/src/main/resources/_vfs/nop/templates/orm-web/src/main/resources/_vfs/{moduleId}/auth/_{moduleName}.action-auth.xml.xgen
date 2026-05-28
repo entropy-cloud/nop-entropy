@@ -16,7 +16,7 @@
                     <c:if test="${objMeta['ext:model'] == 'orm'}">
                         <resource id="${objName}-main" displayName="${objMeta.displayName}" orderNo="${10000+(index++)}"
                                   i18n-en:displayName="${objMeta['i18n-en:displayName']}"
-                                  icon="ant-design:appstore-twotone"
+                                  icon="${objMeta['ext:icon'] || 'blocks'}"
                                   component="AMIS" resourceType="SUBM"
                                   url="/${moduleId}/pages/${objName}/main.page.yaml">
                             <children>

@@ -1,5 +1,5 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="${entityModel['ext:icon']}" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
       displayName="${entityModel.displayName}" i18n-en:displayName="${entityModel['i18n-en:displayName']}"
       tagSet="${_.join(entityModel.tagSet,',')}" xmlns:ui="ui" xmlns:orm="orm">
     <entityName>${entityModel.name}</entityName>
