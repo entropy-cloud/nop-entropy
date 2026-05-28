@@ -106,7 +106,7 @@
 
 1. `override-platform-page-with-delta.md`
 2. `prefer-delta-over-direct-modification.md`
-3. `delta-customization.md`
+3. `../02-core-guides/delta-customization.md`
 
 ## 如果你还不知道该改哪层
 

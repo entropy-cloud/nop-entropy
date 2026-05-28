@@ -1325,7 +1325,7 @@ findCallChain 和 findHierarchy 需要 `maxDepth` 防止无限递归。默认 ma
 - **不实现 file watching / git hooks**：nop-code 通过 GraphQL mutation 触发增量更新，由调用方（CI/CD 或 IDE 插件）决定何时触发
 - **不实现 semantic 缓存**：不涉及 LLM 提取，无需此层
 
-Manifest 存储位置：`{projectRoot}/.nop-code/manifest.json`（与 graphify 的 `graphify-out/manifest.json` 对称）
+Manifest 存储位置：`{projectRoot}/.nop-code/manifest.json`
 
 ### D6: 过期数据清理策略
 

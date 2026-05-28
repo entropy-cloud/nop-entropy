@@ -144,12 +144,9 @@ nop-code 模块 11 个子模块，98 个 Java 源文件。审查综合评分 7.1
 #### 2.2 补全空标记接口 + 实现类 implement
 
 **Files**:
-- `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/IImpactAnalyzer.java`
-- `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/ICommunityDetector.java`
-- `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/IEntryPointScorer.java`
-- `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/ImpactAnalyzer.java`
-- `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/CommunityDetector.java`
-- `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/EntryPointScorer.java`
+- `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/impact/ImpactAnalyzer.java`
+- `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/community/CommunityDetector.java`
+- `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/entrypoint/EntryPointScorer.java`
 
 **What**: 从实现类的 public 方法中提取核心方法签名到接口，实现类 `implements` 对应接口
 
