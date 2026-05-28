@@ -66,7 +66,7 @@ public class SiteCacheData {
 
             if (index == 0) {
                 ret.addAll(roles);
-                index ++;
+                index++;
             } else {
                 ret.retainAll(roles);
                 if (ret.isEmpty())

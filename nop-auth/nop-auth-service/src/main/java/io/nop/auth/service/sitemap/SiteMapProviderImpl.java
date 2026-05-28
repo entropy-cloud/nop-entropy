@@ -9,6 +9,7 @@ package io.nop.auth.service.sitemap;
 
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.config.AppConfig;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.SiteMapBean;
 import io.nop.auth.api.messages.SiteResourceBean;
@@ -23,7 +24,9 @@ import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.i18n.I18nMessageManager;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.tenant.ResourceTenantManager;
@@ -108,6 +111,11 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
                 .addDynamicConfig(getSites(), getResources(), getRoleResources()).build();
 
         normalizeI18n(data, locale);
+        if (AppConfig.isDebugMode()) {
+            IResource resource = VirtualFileSystem.instance().getResource("/nop/main/site/" + locale + "-menu.yaml");
+            ResourceHelper.dumpResource(resource, JsonTool.serializeToYaml(data.getSiteMaps()));
+        }
+
         return data;
     }
 
