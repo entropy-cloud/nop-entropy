@@ -97,7 +97,7 @@
         <entity className="io.nop.retry.dao.entity.NopRetryPolicy" createTimeProp="createTime" createrProp="createdBy"
                 displayName="重试策略" name="io.nop.retry.dao.entity.NopRetryPolicy" registerShortName="true"
                 tableName="nop_retry_policy" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Retry Policy">
+                i18n-en:displayName="Retry Policy" ext:icon="refresh-ccw">
             <columns>
                 <column code="SID" displayName="主键" domain="policyId" mandatory="true" name="sid" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -177,7 +177,7 @@
         <entity className="io.nop.retry.dao.entity.NopRetryRecord" createTimeProp="createTime" createrProp="createdBy"
                 displayName="重试记录" name="io.nop.retry.dao.entity.NopRetryRecord" registerShortName="true"
                 tableName="nop_retry_record" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Retry Record">
+                i18n-en:displayName="Retry Record" ext:icon="clock-3">
             <columns>
                 <column code="SID" displayName="主键" domain="policyId" mandatory="true" name="sid" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -262,7 +262,7 @@
         <entity className="io.nop.retry.dao.entity.NopRetryAttempt" createTimeProp="createTime" createrProp="createdBy"
                 displayName="重试尝试" name="io.nop.retry.dao.entity.NopRetryAttempt" registerShortName="true"
                 tableName="nop_retry_attempt" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Retry Attempt">
+                i18n-en:displayName="Retry Attempt" ext:icon="rotate-cw">
             <columns>
                 <column code="SID" displayName="主键" domain="policyId" mandatory="true" name="sid" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -329,7 +329,8 @@
         <entity className="io.nop.retry.dao.entity.NopRetryDeadLetter" createTimeProp="createTime"
                 createrProp="createdBy" displayName="重试死信" name="io.nop.retry.dao.entity.NopRetryDeadLetter"
                 registerShortName="true" tableName="nop_retry_dead_letter" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Retry Dead Letter">
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Retry Dead Letter"
+                ext:icon="octagon-alert">
             <columns>
                 <column code="SID" displayName="主键" domain="policyId" mandatory="true" name="sid" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"

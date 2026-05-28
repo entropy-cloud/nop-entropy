@@ -89,7 +89,7 @@
         <entity className="io.nop.job.dao.entity.NopJobSchedule" createTimeProp="createTime" createrProp="createdBy"
                 displayName="调度定义" name="io.nop.job.dao.entity.NopJobSchedule" registerShortName="true"
                 tableName="nop_job_schedule" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Job Schedule">
+                ext:icon="calendar-clock" i18n-en:displayName="Job Schedule">
             <columns>
                 <column code="JOB_SCHEDULE_ID" displayName="调度ID" mandatory="true" name="jobScheduleId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -195,7 +195,7 @@
         <entity className="io.nop.job.dao.entity.NopJobFire" createTimeProp="createTime" createrProp="createdBy"
                 displayName="触发批次" name="io.nop.job.dao.entity.NopJobFire" registerShortName="true"
                 tableName="nop_job_fire" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Job Fire">
+                ext:icon="flame" i18n-en:displayName="Job Fire">
             <columns>
                 <column code="JOB_FIRE_ID" displayName="触发批次ID" mandatory="true" name="jobFireId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -291,7 +291,7 @@
         <entity className="io.nop.job.dao.entity.NopJobTask" createTimeProp="createTime" createrProp="createdBy"
                 displayName="执行任务" name="io.nop.job.dao.entity.NopJobTask" registerShortName="true"
                 tableName="nop_job_task" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Job Task">
+                ext:icon="circle-play" i18n-en:displayName="Job Task">
             <columns>
                 <column code="JOB_TASK_ID" displayName="任务ID" mandatory="true" name="jobTaskId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"

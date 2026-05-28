@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <c:script><![CDATA[
 // 根据ORM模型生成dao/entity/xbiz
-codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.orm.xlsx','/nop/templates/orm', '/',$scope);
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.orm.xml','/nop/templates/orm', '/',$scope);
 codeGenerator.withTargetDir("../nop-wf-dao/src/main/java").renderModel('../../nop-wf-dao/src/main/resources/_vfs/nop/wf/orm/app.orm.xml',
     '/nop/templates/orm-entity','/',$scope);
 

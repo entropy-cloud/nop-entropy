@@ -6,8 +6,8 @@
                   orderNo="10000" routePath="/test-orm-nop-task" component="layouts/default/index">
             <children>
                 <resource id="NopTaskDefinition-main" displayName="逻辑流模型定义" orderNo="10001"
-                          i18n-en:displayName="TaskFlow Definition" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/task/pages/NopTaskDefinition/main.page.yaml">
+                          i18n-en:displayName="TaskFlow Definition" icon="workflow" component="AMIS" resourceType="SUBM"
+                          url="/nop/task/pages/NopTaskDefinition/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopTaskDefinition:query" displayName="查询逻辑流模型定义" orderNo="10002"
                                   resourceType="FNPT">
@@ -20,9 +20,8 @@
                     </children>
                 </resource>
                 <resource id="NopTaskDefinitionAuth-main" displayName="逻辑流定义权限" orderNo="10004"
-                          i18n-en:displayName="TaskFlow Definition Auth" icon="ant-design:appstore-twotone"
-                          component="AMIS" resourceType="SUBM"
-                          url="/nop/task/pages/NopTaskDefinitionAuth/main.page.yaml">
+                          i18n-en:displayName="TaskFlow Definition Auth" icon="shield-check" component="AMIS"
+                          resourceType="SUBM" url="/nop/task/pages/NopTaskDefinitionAuth/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopTaskDefinitionAuth:query" displayName="查询逻辑流定义权限" orderNo="10005"
                                   resourceType="FNPT">
@@ -35,7 +34,7 @@
                     </children>
                 </resource>
                 <resource id="NopTaskInstance-main" displayName="逻辑流实例" orderNo="10007"
-                          i18n-en:displayName="TaskFlow Instance" icon="ant-design:appstore-twotone" component="AMIS"
+                          i18n-en:displayName="TaskFlow Instance" icon="circle-play" component="AMIS"
                           resourceType="SUBM" url="/nop/task/pages/NopTaskInstance/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopTaskInstance:query" displayName="查询逻辑流实例" orderNo="10008"
@@ -49,8 +48,8 @@
                     </children>
                 </resource>
                 <resource id="NopTaskStepInstance-main" displayName="逻辑流步骤实例" orderNo="10010"
-                          i18n-en:displayName="TaskFlow Step Instance" icon="ant-design:appstore-twotone"
-                          component="AMIS" resourceType="SUBM" url="/nop/task/pages/NopTaskStepInstance/main.page.yaml">
+                          i18n-en:displayName="TaskFlow Step Instance" icon="route" component="AMIS" resourceType="SUBM"
+                          url="/nop/task/pages/NopTaskStepInstance/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopTaskStepInstance:query" displayName="查询逻辑流步骤实例" orderNo="10011"
                                   resourceType="FNPT">

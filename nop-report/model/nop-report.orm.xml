@@ -29,7 +29,7 @@
         <entity className="io.nop.report.dao.entity.NopReportDefinition" createTimeProp="createTime"
                 createrProp="createdBy" displayName="报表定义" name="io.nop.report.dao.entity.NopReportDefinition"
                 registerShortName="true" tableName="nop_report_definition" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Definition">
+                updaterProp="updatedBy" versionProp="version" ext:icon="chart-column" i18n-en:displayName="Report Definition">
             <columns>
                 <column code="RPT_ID" displayName="主键" mandatory="true" name="rptId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -80,7 +80,7 @@
         <entity className="io.nop.report.dao.entity.NopReportDefinitionAuth" createTimeProp="createTime"
                 createrProp="createdBy" displayName="Report访问权限" name="io.nop.report.dao.entity.NopReportDefinitionAuth"
                 registerShortName="true" tableName="nop_report_definition_auth" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Auth">
+                updaterProp="updatedBy" versionProp="version" ext:icon="shield-check" i18n-en:displayName="Report Auth">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -118,7 +118,7 @@
         <entity className="io.nop.report.dao.entity.NopReportDatasetRef" createTimeProp="createTime"
                 createrProp="createdBy" displayName="报表引用数据源" name="io.nop.report.dao.entity.NopReportDatasetRef"
                 registerShortName="true" tableName="nop_report_dataset_ref" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Dataset Ref">
+                updaterProp="updatedBy" versionProp="version" ext:icon="link-2" i18n-en:displayName="Dataset Ref">
             <columns>
                 <column code="RPT_ID" displayName="报表主键" mandatory="true" name="rptId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report ID"/>
@@ -153,7 +153,7 @@
         <entity className="io.nop.report.dao.entity.NopReportDataset" createTimeProp="createTime"
                 createrProp="createdBy" displayName="数据集定义" name="io.nop.report.dao.entity.NopReportDataset"
                 registerShortName="true" tableName="nop_report_dataset" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Dataset">
+                updaterProp="updatedBy" versionProp="version" ext:icon="database" i18n-en:displayName="Dataset">
             <columns>
                 <column code="SID" comment="采用类似java包名的命名规则" displayName="主键" mandatory="true" name="sid"
                         precision="200" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -201,7 +201,7 @@
         <entity className="io.nop.report.dao.entity.NopReportSubDataset" createTimeProp="createTime"
                 createrProp="createdBy" displayName="子数据源" name="io.nop.report.dao.entity.NopReportSubDataset"
                 registerShortName="true" tableName="nop_report_sub_dataset" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Sub Dataset">
+                updaterProp="updatedBy" versionProp="version" ext:icon="database" i18n-en:displayName="Sub Dataset">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -250,7 +250,7 @@
         <entity className="io.nop.report.dao.entity.NopReportDatasource" createTimeProp="createTime"
                 createrProp="createdBy" displayName="数据源定义" name="io.nop.report.dao.entity.NopReportDatasource"
                 registerShortName="true" tableName="nop_report_datasource" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report DataSource">
+                updaterProp="updatedBy" versionProp="version" ext:icon="plug" i18n-en:displayName="Report DataSource">
             <columns>
                 <column code="SID" displayName="主键ID" mandatory="true" name="sid" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -292,7 +292,7 @@
         <entity className="io.nop.report.dao.entity.NopReportDatasourceAuth" createTimeProp="createTime"
                 createrProp="createdBy" displayName="数据源访问权限" name="io.nop.report.dao.entity.NopReportDatasourceAuth"
                 registerShortName="true" tableName="nop_report_datasource_auth" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Datasource Auth">
+                updaterProp="updatedBy" versionProp="version" ext:icon="shield-check" i18n-en:displayName="Datasource Auth">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -330,7 +330,7 @@
         <entity className="io.nop.report.dao.entity.NopReportResultFile" createTimeProp="createTime"
                 createrProp="createdBy" displayName="报表结果文件" name="io.nop.report.dao.entity.NopReportResultFile"
                 registerShortName="true" tableName="nop_report_result_file" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Result File">
+                updaterProp="updatedBy" versionProp="version" ext:icon="file" i18n-en:displayName="Report Result File">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="50" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>

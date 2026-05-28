@@ -62,7 +62,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynApp" createTimeProp="createTime" createrProp="createdBy"
                 displayName="应用定义" name="io.nop.dyn.dao.entity.NopDynApp" registerShortName="true"
                 tableName="nop_dyn_app" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="App Definition">
+                ext:icon="app-window" i18n-en:displayName="App Definition">
             <columns>
                 <column code="APP_ID" displayName="应用ID" mandatory="true" name="appId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -113,7 +113,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynPatchFile" createTimeProp="createTime" createrProp="createdBy"
                 displayName="补丁文件" name="io.nop.dyn.dao.entity.NopDynPatchFile" registerShortName="true"
                 tableName="nop_dyn_patch_file" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Patch File">
+                ext:icon="file-diff" i18n-en:displayName="Patch File">
             <columns>
                 <column code="FILE_ID" displayName="文件ID" mandatory="true" name="fileId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="gid,seq" ui:show="X"
@@ -169,7 +169,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynModuleDep" createTimeProp="createTime" createrProp="createdBy"
                 displayName="模块依赖" name="io.nop.dyn.dao.entity.NopDynModuleDep" registerShortName="true"
                 tableName="nop_dyn_module_dep" tagSet="many-to-many,no-web" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Module Dependency">
+                updaterProp="updatedBy" versionProp="version" ext:icon="link-2" i18n-en:displayName="Module Dependency">
             <columns>
                 <column code="MODULE_ID" displayName="模块ID" mandatory="true" name="moduleId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -210,7 +210,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynModule" createTimeProp="createTime" createrProp="createdBy"
                 displayName="模块定义" name="io.nop.dyn.dao.entity.NopDynModule" registerShortName="true"
                 tableName="nop_dyn_module" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Module Definition">
+                ext:icon="boxes" i18n-en:displayName="Module Definition">
             <columns>
                 <column code="MODULE_ID" displayName="模块ID" mandatory="true" name="moduleId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -312,7 +312,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynAppModule" createTimeProp="createTime" createrProp="createdBy"
                 displayName="应用模块映射" name="io.nop.dyn.dao.entity.NopDynAppModule" registerShortName="true"
                 tableName="nop_dyn_app_module" tagSet="many-to-many,no-web" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="App Module Mapping">
+                updaterProp="updatedBy" versionProp="version" ext:icon="network" i18n-en:displayName="App Module Mapping">
             <columns>
                 <column code="APP_ID" displayName="应用ID" mandatory="true" name="appId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="App ID"/>
@@ -352,7 +352,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynSql" createTimeProp="createTime" createrProp="createdBy"
                 displayName="SQL定义" name="io.nop.dyn.dao.entity.NopDynSql" registerShortName="true"
                 tableName="nop_dyn_sql" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Module SQL">
+                ext:icon="database" i18n-en:displayName="Module SQL">
             <columns>
                 <column code="SQL_ID" displayName="SQL ID" mandatory="true" name="sqlId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="gid,seq" ui:show="X"
@@ -431,7 +431,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynFile" createTimeProp="createTime" createrProp="createdBy"
                 displayName="模块文件" name="io.nop.dyn.dao.entity.NopDynFile" registerShortName="true"
                 tableName="nop_dyn_file" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Module File">
+                ext:icon="file-code" i18n-en:displayName="Module File">
             <columns>
                 <column code="FILE_ID" displayName="文件ID" mandatory="true" name="fileId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="gid,seq" ui:show="X"
@@ -478,7 +478,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynPage" createTimeProp="createTime" createrProp="createdBy"
                 displayName="页面定义" name="io.nop.dyn.dao.entity.NopDynPage" registerShortName="true"
                 tableName="nop_dyn_page" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Page Definition">
+                ext:icon="layout-template" i18n-en:displayName="Page Definition">
             <columns>
                 <column code="PAGE_ID" displayName="页面ID" mandatory="true" name="pageId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -528,7 +528,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynEntityMeta" createTimeProp="createTime" createrProp="createdBy"
                 displayName="实体元数据" name="io.nop.dyn.dao.entity.NopDynEntityMeta" registerShortName="true"
                 tableName="nop_dyn_entity_meta" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Entity Meta">
+                versionProp="version" ext:icon="database" i18n-en:displayName="Entity Meta">
             <columns>
                 <column code="ENTITY_META_ID" displayName="实体定义ID" mandatory="true" name="entityMetaId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -620,7 +620,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynPropMeta" createTimeProp="createTime" createrProp="createdBy"
                 displayName="属性元数据" name="io.nop.dyn.dao.entity.NopDynPropMeta" registerShortName="true"
                 tableName="nop_dyn_prop_meta" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Property Meta">
+                ext:icon="list-tree" i18n-en:displayName="Property Meta">
             <columns>
                 <column code="PROP_META_ID" displayName="属性定义ID" mandatory="true" name="propMetaId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -707,7 +707,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynEntityRelationMeta" createTimeProp="createTime"
                 createrProp="createdBy" displayName="实体关联属性定义" name="io.nop.dyn.dao.entity.NopDynEntityRelationMeta"
                 registerShortName="true" tableName="nop_dyn_entity_relation_meta" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Entity Relation Meta">
+                updaterProp="updatedBy" versionProp="version" ext:icon="link-2" i18n-en:displayName="Entity Relation Meta">
             <columns>
                 <column code="REL_META_ID" displayName="关联定义ID" mandatory="true" name="relMetaId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -782,7 +782,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynFunctionMeta" createTimeProp="createTime" createrProp="createdBy"
                 displayName="实体函数定义" name="io.nop.dyn.dao.entity.NopDynFunctionMeta" registerShortName="true"
                 tableName="nop_dyn_function_meta" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Function Meta">
+                versionProp="version" ext:icon="square-function" i18n-en:displayName="Function Meta">
             <columns>
                 <column code="FUNC_META_ID" displayName="函数定义ID" mandatory="true" name="funcMetaId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -848,7 +848,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynDomain" createTimeProp="createTime" createrProp="createdBy"
                 displayName="数据域" name="io.nop.dyn.dao.entity.NopDynDomain" registerShortName="true"
                 tableName="nop_dyn_domain" tagSet="dict" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Domain">
+                versionProp="version" ext:icon="type" i18n-en:displayName="Domain">
             <columns>
                 <column code="DOMAIN_ID" displayName="数据域ID" mandatory="true" name="domainId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -904,7 +904,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynEntity" createTimeProp="createTime" createrProp="createdBy"
                 displayName="动态实体" name="io.nop.dyn.dao.entity.NopDynEntity" registerShortName="true"
                 tableName="nop_dyn_entity" tagSet="use-ext-field,local-ext" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Dynamic Entity">
+                updaterProp="updatedBy" versionProp="version" ext:icon="blocks" i18n-en:displayName="Dynamic Entity">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -1001,7 +1001,7 @@
         <entity className="io.nop.dyn.dao.entity.NopDynEntityRelation" createTimeProp="createTime"
                 createrProp="createdBy" displayName="实体关联" name="io.nop.dyn.dao.entity.NopDynEntityRelation"
                 registerShortName="true" tableName="nop_dyn_entity_relation" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Entity Relation">
+                updaterProp="updatedBy" versionProp="version" ext:icon="link-2" i18n-en:displayName="Entity Relation">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="SID"/>

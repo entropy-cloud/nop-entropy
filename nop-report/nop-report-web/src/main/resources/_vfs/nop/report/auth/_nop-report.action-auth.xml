@@ -6,7 +6,7 @@
                   orderNo="10000" routePath="/test-orm-nop-report" component="layouts/default/index">
             <children>
                 <resource id="NopReportDataset-main" displayName="数据集定义" orderNo="10001" i18n-en:displayName="Dataset"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="database" component="AMIS" resourceType="SUBM"
                           url="/nop/report/pages/NopReportDataset/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportDataset:query" displayName="查询数据集定义" orderNo="10002"
@@ -20,8 +20,8 @@
                     </children>
                 </resource>
                 <resource id="NopReportDatasetAuth-main" displayName="数据集权限" orderNo="10004"
-                          i18n-en:displayName="Dataset Auth" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasetAuth/main.page.yaml">
+                          i18n-en:displayName="Dataset Auth" icon="blocks" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportDatasetAuth/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportDatasetAuth:query" displayName="查询数据集权限" orderNo="10005"
                                   resourceType="FNPT">
@@ -34,8 +34,8 @@
                     </children>
                 </resource>
                 <resource id="NopReportDatasetRef-main" displayName="报表引用数据源" orderNo="10007"
-                          i18n-en:displayName="Dataset Ref" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasetRef/main.page.yaml">
+                          i18n-en:displayName="Dataset Ref" icon="link-2" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportDatasetRef/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportDatasetRef:query" displayName="查询报表引用数据源" orderNo="10008"
                                   resourceType="FNPT">
@@ -48,8 +48,8 @@
                     </children>
                 </resource>
                 <resource id="NopReportDatasource-main" displayName="数据源定义" orderNo="10010"
-                          i18n-en:displayName="Report DataSource" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasource/main.page.yaml">
+                          i18n-en:displayName="Report DataSource" icon="plug" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportDatasource/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportDatasource:query" displayName="查询数据源定义" orderNo="10011"
                                   resourceType="FNPT">
@@ -62,8 +62,8 @@
                     </children>
                 </resource>
                 <resource id="NopReportDatasourceAuth-main" displayName="数据源访问权限" orderNo="10013"
-                          i18n-en:displayName="Datasource Auth" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasourceAuth/main.page.yaml">
+                          i18n-en:displayName="Datasource Auth" icon="shield-check" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportDatasourceAuth/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportDatasourceAuth:query" displayName="查询数据源访问权限" orderNo="10014"
                                   resourceType="FNPT">
@@ -76,7 +76,7 @@
                     </children>
                 </resource>
                 <resource id="NopReportDefinition-main" displayName="报表定义" orderNo="10016"
-                          i18n-en:displayName="Report Definition" icon="ant-design:appstore-twotone" component="AMIS"
+                          i18n-en:displayName="Report Definition" icon="chart-column" component="AMIS"
                           resourceType="SUBM" url="/nop/report/pages/NopReportDefinition/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportDefinition:query" displayName="查询报表定义" orderNo="10017"
@@ -90,8 +90,8 @@
                     </children>
                 </resource>
                 <resource id="NopReportDefinitionAuth-main" displayName="Report访问权限" orderNo="10019"
-                          i18n-en:displayName="Report Auth" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/report/pages/NopReportDefinitionAuth/main.page.yaml">
+                          i18n-en:displayName="Report Auth" icon="shield-check" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportDefinitionAuth/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportDefinitionAuth:query" displayName="查询Report访问权限" orderNo="10020"
                                   resourceType="FNPT">
@@ -104,8 +104,8 @@
                     </children>
                 </resource>
                 <resource id="NopReportResultFile-main" displayName="报表结果文件" orderNo="10022"
-                          i18n-en:displayName="Report Result File" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/report/pages/NopReportResultFile/main.page.yaml">
+                          i18n-en:displayName="Report Result File" icon="file" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportResultFile/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportResultFile:query" displayName="查询报表结果文件" orderNo="10023"
                                   resourceType="FNPT">
@@ -118,8 +118,8 @@
                     </children>
                 </resource>
                 <resource id="NopReportSubDataset-main" displayName="子数据源" orderNo="10025"
-                          i18n-en:displayName="Sub Dataset" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/report/pages/NopReportSubDataset/main.page.yaml">
+                          i18n-en:displayName="Sub Dataset" icon="database" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportSubDataset/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopReportSubDataset:query" displayName="查询子数据源" orderNo="10026"
                                   resourceType="FNPT">

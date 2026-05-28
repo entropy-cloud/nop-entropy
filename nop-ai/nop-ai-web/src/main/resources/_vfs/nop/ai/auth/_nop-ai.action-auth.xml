@@ -5,9 +5,8 @@
         <resource id="test-orm-nop-ai" displayName="测试nop-ai" icon="ion:grid-outline" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-nop-ai" component="layouts/default/index">
             <children>
-                <resource id="NopAiChatRequest-main" displayName="对话请求" orderNo="10001"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiChatRequest/main.page.yaml">
+                <resource id="NopAiChatRequest-main" displayName="对话请求" orderNo="10001" icon="messages-square"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiChatRequest/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiChatRequest:query" displayName="查询对话请求" orderNo="10002"
                                   resourceType="FNPT">
@@ -19,9 +18,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiChatResponse-main" displayName="响应结果" orderNo="10004"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiChatResponse/main.page.yaml">
+                <resource id="NopAiChatResponse-main" displayName="响应结果" orderNo="10004" icon="message-square"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiChatResponse/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiChatResponse:query" displayName="查询响应结果" orderNo="10005"
                                   resourceType="FNPT">
@@ -33,8 +31,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiGenFile-main" displayName="生成文件" orderNo="10007" icon="ant-design:appstore-twotone"
-                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiGenFile/main.page.yaml">
+                <resource id="NopAiGenFile-main" displayName="生成文件" orderNo="10007" icon="file-code" component="AMIS"
+                          resourceType="SUBM" url="/nop/ai/pages/NopAiGenFile/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiGenFile:query" displayName="查询生成文件" orderNo="10008" resourceType="FNPT">
                             <permissions>NopAiGenFile:query</permissions>
@@ -45,9 +43,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiGenFileHistory-main" displayName="文件历史" orderNo="10010"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiGenFileHistory/main.page.yaml">
+                <resource id="NopAiGenFileHistory-main" displayName="文件历史" orderNo="10010" icon="history"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiGenFileHistory/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiGenFileHistory:query" displayName="查询文件历史" orderNo="10011"
                                   resourceType="FNPT">
@@ -59,8 +56,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiKnowledge-main" displayName="知识库" orderNo="10013" icon="ant-design:appstore-twotone"
-                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiKnowledge/main.page.yaml">
+                <resource id="NopAiKnowledge-main" displayName="知识库" orderNo="10013" icon="book-open" component="AMIS"
+                          resourceType="SUBM" url="/nop/ai/pages/NopAiKnowledge/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiKnowledge:query" displayName="查询知识库" orderNo="10014" resourceType="FNPT">
                             <permissions>NopAiKnowledge:query</permissions>
@@ -71,8 +68,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiModel-main" displayName="AI模型" orderNo="10016" icon="ant-design:appstore-twotone"
-                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiModel/main.page.yaml">
+                <resource id="NopAiModel-main" displayName="AI模型" orderNo="10016" icon="bot" component="AMIS"
+                          resourceType="SUBM" url="/nop/ai/pages/NopAiModel/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiModel:query" displayName="查询AI模型" orderNo="10017" resourceType="FNPT">
                             <permissions>NopAiModel:query</permissions>
@@ -82,7 +79,7 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiProject-main" displayName="AI项目" orderNo="10019" icon="ant-design:appstore-twotone"
+                <resource id="NopAiProject-main" displayName="AI项目" orderNo="10019" icon="folder-kanban"
                           component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiProject/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiProject:query" displayName="查询AI项目" orderNo="10020" resourceType="FNPT">
@@ -94,9 +91,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiProjectConfig-main" displayName="项目配置" orderNo="10022"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiProjectConfig/main.page.yaml">
+                <resource id="NopAiProjectConfig-main" displayName="项目配置" orderNo="10022" icon="settings-2"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiProjectConfig/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiProjectConfig:query" displayName="查询项目配置" orderNo="10023"
                                   resourceType="FNPT">
@@ -108,9 +104,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiProjectRule-main" displayName="项目规则" orderNo="10025"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiProjectRule/main.page.yaml">
+                <resource id="NopAiProjectRule-main" displayName="项目规则" orderNo="10025" icon="shield-check"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiProjectRule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiProjectRule:query" displayName="查询项目规则" orderNo="10026"
                                   resourceType="FNPT">
@@ -122,9 +117,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiPromptTemplate-main" displayName="提示词模板" orderNo="10028"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiPromptTemplate/main.page.yaml">
+                <resource id="NopAiPromptTemplate-main" displayName="提示词模板" orderNo="10028" icon="file-text"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiPromptTemplate/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiPromptTemplate:query" displayName="查询提示词模板" orderNo="10029"
                                   resourceType="FNPT">
@@ -136,8 +130,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiPromptTemplateHistory-main" displayName="模板历史" orderNo="10031"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                <resource id="NopAiPromptTemplateHistory-main" displayName="模板历史" orderNo="10031" icon="history"
+                          component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiPromptTemplateHistory/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiPromptTemplateHistory:query" displayName="查询模板历史" orderNo="10032"
@@ -150,9 +144,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiRequirement-main" displayName="需求条目" orderNo="10034"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiRequirement/main.page.yaml">
+                <resource id="NopAiRequirement-main" displayName="需求条目" orderNo="10034" icon="clipboard-list"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiRequirement/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiRequirement:query" displayName="查询需求条目" orderNo="10035"
                                   resourceType="FNPT">
@@ -164,8 +157,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiRequirementHistory-main" displayName="需求历史" orderNo="10037"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                <resource id="NopAiRequirementHistory-main" displayName="需求历史" orderNo="10037" icon="history"
+                          component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiRequirementHistory/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiRequirementHistory:query" displayName="查询需求历史" orderNo="10038"
@@ -178,7 +171,7 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiTestCase-main" displayName="测试用例" orderNo="10040" icon="ant-design:appstore-twotone"
+                <resource id="NopAiTestCase-main" displayName="测试用例" orderNo="10040" icon="flask-conical"
                           component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiTestCase/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiTestCase:query" displayName="查询测试用例" orderNo="10041" resourceType="FNPT">
@@ -190,9 +183,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiTestResult-main" displayName="测试结果" orderNo="10043"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/ai/pages/NopAiTestResult/main.page.yaml">
+                <resource id="NopAiTestResult-main" displayName="测试结果" orderNo="10043" icon="badge-check"
+                          component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiTestResult/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiTestResult:query" displayName="查询测试结果" orderNo="10044"
                                   resourceType="FNPT">

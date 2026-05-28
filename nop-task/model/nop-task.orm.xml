@@ -61,7 +61,7 @@
         <entity className="io.nop.task.dao.entity.NopTaskDefinition" createTimeProp="createTime" createrProp="createdBy"
                 displayName="逻辑流模型定义" name="io.nop.task.dao.entity.NopTaskDefinition" registerShortName="true"
                 tableName="nop_task_definition" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="TaskFlow Definition">
+                versionProp="version" ext:icon="workflow" i18n-en:displayName="TaskFlow Definition">
             <columns>
                 <column code="TASK_DEF_ID" displayName="主键" mandatory="true" name="taskDefId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -108,7 +108,7 @@
         <entity className="io.nop.task.dao.entity.NopTaskDefinitionAuth" createTimeProp="createTime"
                 createrProp="createdBy" displayName="逻辑流定义权限" name="io.nop.task.dao.entity.NopTaskDefinitionAuth"
                 registerShortName="true" tableName="nop_task_definition_auth" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="TaskFlow Definition Auth">
+                updaterProp="updatedBy" versionProp="version" ext:icon="shield-check" i18n-en:displayName="TaskFlow Definition Auth">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -157,7 +157,7 @@
         <entity className="io.nop.task.dao.entity.NopTaskInstance" createTimeProp="createTime" createrProp="createdBy"
                 displayName="逻辑流实例" name="io.nop.task.dao.entity.NopTaskInstance" registerShortName="true"
                 tableName="nop_task_instance" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="TaskFlow Instance">
+                ext:icon="circle-play" i18n-en:displayName="TaskFlow Instance">
             <columns>
                 <column code="TASK_INSTANCE_ID" displayName="主键" mandatory="true" name="taskInstanceId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -255,7 +255,7 @@
         <entity className="io.nop.task.dao.entity.NopTaskStepInstance" createTimeProp="createTime"
                 createrProp="createdBy" displayName="逻辑流步骤实例" name="io.nop.task.dao.entity.NopTaskStepInstance"
                 registerShortName="true" tableName="nop_task_step_instance" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="TaskFlow Step Instance">
+                updaterProp="updatedBy" versionProp="version" ext:icon="route" i18n-en:displayName="TaskFlow Step Instance">
             <columns>
                 <column code="STEP_INSTANCE_ID" displayName="步骤ID" mandatory="true" name="stepInstanceId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"

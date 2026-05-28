@@ -6,8 +6,8 @@
                   orderNo="10000" routePath="/test-orm-nop-rule" component="layouts/default/index">
             <children>
                 <resource id="NopRuleDefinition-main" displayName="规则模型定义" orderNo="10001"
-                          i18n-en:displayName="Rule Definition" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/rule/pages/NopRuleDefinition/main.page.yaml">
+                          i18n-en:displayName="Rule Definition" icon="scale" component="AMIS" resourceType="SUBM"
+                          url="/nop/rule/pages/NopRuleDefinition/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRuleDefinition:query" displayName="查询规则模型定义" orderNo="10002"
                                   resourceType="FNPT">
@@ -20,7 +20,7 @@
                     </children>
                 </resource>
                 <resource id="NopRuleLog-main" displayName="规则执行日志" orderNo="10004" i18n-en:displayName="Rule Log"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="logs" component="AMIS" resourceType="SUBM"
                           url="/nop/rule/pages/NopRuleLog/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRuleLog:query" displayName="查询规则执行日志" orderNo="10005" resourceType="FNPT">
@@ -33,7 +33,7 @@
                     </children>
                 </resource>
                 <resource id="NopRuleNode-main" displayName="规则节点" orderNo="10007" i18n-en:displayName="Rule Node"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="git-branch" component="AMIS" resourceType="SUBM"
                           url="/nop/rule/pages/NopRuleNode/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRuleNode:query" displayName="查询规则节点" orderNo="10008" resourceType="FNPT">
@@ -46,7 +46,7 @@
                     </children>
                 </resource>
                 <resource id="NopRuleRole-main" displayName="规则角色" orderNo="10010" i18n-en:displayName="Rule Role"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="users" component="AMIS" resourceType="SUBM"
                           url="/nop/rule/pages/NopRuleRole/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRuleRole:query" displayName="查询规则角色" orderNo="10011" resourceType="FNPT">

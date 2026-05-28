@@ -37,7 +37,7 @@
     </dicts>
     <entities>
         <entity name="app.demo.Material" displayName="物资表" db:estimatedRowCount="500" biz:type="entity"
-                tableName="material" registerShortName="true" className="app.demo.Material">
+                tableName="material" registerShortName="true" className="app.demo.Material" ext:icon="package-2">
             <comment>存储食堂所用的各类食材信息</comment>
             <columns>
                 <column name="id" displayName="物资编码" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -54,7 +54,7 @@
             </columns>
         </entity>
         <entity name="app.demo.Supplier" displayName="供应商表" db:estimatedRowCount="100" biz:type="entity"
-                tableName="supplier" registerShortName="true" className="app.demo.Supplier">
+                tableName="supplier" registerShortName="true" className="app.demo.Supplier" ext:icon="truck">
             <comment>存储各类食材的供货单位信息</comment>
             <columns>
                 <column name="id" displayName="供应商编码" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -75,7 +75,8 @@
             </columns>
         </entity>
         <entity name="app.demo.ServiceCompany" displayName="服务公司表" db:estimatedRowCount="100" biz:type="entity"
-                tableName="service_company" registerShortName="true" className="app.demo.ServiceCompany">
+                tableName="service_company" registerShortName="true" className="app.demo.ServiceCompany"
+                ext:icon="building-2">
             <comment>存储学校食堂的经营单位信息</comment>
             <columns>
                 <column name="id" displayName="公司编码" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -96,7 +97,7 @@
             </columns>
         </entity>
         <entity name="app.demo.Menu" displayName="基础菜单表" db:estimatedRowCount="500" biz:type="entity" tableName="menu"
-                registerShortName="true" className="app.demo.Menu">
+                registerShortName="true" className="app.demo.Menu" ext:icon="utensils-crossed">
             <comment>存储学校食堂的基础菜单信息</comment>
             <columns>
                 <column name="id" displayName="菜单编号" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -112,7 +113,8 @@
             </columns>
         </entity>
         <entity name="app.demo.DailyMenu" displayName="每日菜单表" db:estimatedRowCount="3650" biz:type="txn"
-                tableName="daily_menu" registerShortName="true" className="app.demo.DailyMenu">
+                tableName="daily_menu" registerShortName="true" className="app.demo.DailyMenu"
+                ext:icon="calendar-days">
             <comment>存储服务公司每日菜单信息</comment>
             <columns>
                 <column name="id" displayName="菜单日期" mandatory="true" primary="true" stdSqlType="DATE" code="id"
@@ -134,7 +136,7 @@
             </relations>
         </entity>
         <entity name="app.demo.Warehouse" displayName="库房表" db:estimatedRowCount="100" biz:type="entity"
-                tableName="warehouse" registerShortName="true" className="app.demo.Warehouse">
+                tableName="warehouse" registerShortName="true" className="app.demo.Warehouse" ext:icon="warehouse">
             <comment>存储服务公司的库房信息</comment>
             <columns>
                 <column name="id" displayName="库房编码" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -156,7 +158,8 @@
             </relations>
         </entity>
         <entity name="app.demo.InOutStock" displayName="出入库表" db:estimatedRowCount="10000" biz:type="txn"
-                tableName="in_out_stock" registerShortName="true" className="app.demo.InOutStock">
+                tableName="in_out_stock" registerShortName="true" className="app.demo.InOutStock"
+                ext:icon="arrow-left-right">
             <comment>存储出入库记录信息</comment>
             <columns>
                 <column name="id" displayName="出入库编码" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -194,7 +197,8 @@
             </relations>
         </entity>
         <entity name="app.demo.InOutDetail" displayName="出入库明细表" db:estimatedRowCount="50000" biz:type="txn-detail"
-                tableName="in_out_detail" registerShortName="true" className="app.demo.InOutDetail">
+                tableName="in_out_detail" registerShortName="true" className="app.demo.InOutDetail"
+                ext:icon="receipt-text">
             <comment>存储出入库明细信息</comment>
             <columns>
                 <column name="id" displayName="明细编码" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -234,7 +238,8 @@
             </relations>
         </entity>
         <entity name="app.demo.InventoryCheck" displayName="盘库表" db:estimatedRowCount="1000" biz:type="txn"
-                tableName="inventory_check" registerShortName="true" className="app.demo.InventoryCheck">
+                tableName="inventory_check" registerShortName="true" className="app.demo.InventoryCheck"
+                ext:icon="clipboard-check">
             <comment>存储盘库操作记录信息</comment>
             <columns>
                 <column name="id" displayName="盘库编码" mandatory="true" primary="true" stdSqlType="VARCHAR" code="id"
@@ -260,7 +265,8 @@
             </relations>
         </entity>
         <entity name="app.demo.OperatingData" displayName="经营数据表" db:estimatedRowCount="3650" biz:type="txn"
-                tableName="operating_data" registerShortName="true" className="app.demo.OperatingData">
+                tableName="operating_data" registerShortName="true" className="app.demo.OperatingData"
+                ext:icon="chart-column">
             <comment>存储服务公司的经营数据信息</comment>
             <columns>
                 <column name="id" displayName="经营日期" mandatory="true" primary="true" stdSqlType="DATE" code="id"

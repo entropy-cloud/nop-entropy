@@ -15,7 +15,7 @@
 
                 <step name="saveOrmExcel" customType="ai-coder:SaveDslModelAsExcel">
                     <input name="outputDir"/>
-                    <input name="fileName" value="model/${appName}.orm.xlsx"/>
+                    <input name="fileName" value="model/${appName}.orm.xml"/>
                     <input name="dslModel" value="${ormModel.ormModelBean}"/>
                     <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml"/>
                 </step>

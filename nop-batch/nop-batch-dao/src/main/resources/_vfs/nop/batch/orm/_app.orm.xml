@@ -49,7 +49,7 @@
         <entity className="io.nop.batch.dao.entity.NopBatchTask" createTimeProp="createTime" createrProp="createdBy"
                 displayName="批处理任务" name="io.nop.batch.dao.entity.NopBatchTask" registerShortName="true"
                 tableName="nop_batch_task" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Batch Task">
+                ext:icon="workflow" i18n-en:displayName="Batch Task">
             <columns>
                 <column code="SID" displayName="SID" mandatory="true" name="sid" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -138,7 +138,8 @@
         <entity className="io.nop.batch.dao.entity.NopBatchTaskVar" createTimeProp="createTime" createrProp="createdBy"
                 displayName="批处理任务状态变量" name="io.nop.batch.dao.entity.NopBatchTaskVar" registerShortName="true"
                 tableName="nop_batch_task_var" tagSet="no-web,kvTable" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Batch Task Variable">
+                updaterProp="updatedBy" versionProp="version" ext:icon="variable"
+                i18n-en:displayName="Batch Task Variable">
             <columns>
                 <column code="BATCH_TASK_ID" displayName="主键" mandatory="true" name="batchTaskId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -185,7 +186,8 @@
         <entity className="io.nop.batch.dao.entity.NopBatchRecordResult" createTimeProp="createTime"
                 createrProp="createdBy" displayName="批处理记录结果" name="io.nop.batch.dao.entity.NopBatchRecordResult"
                 registerShortName="true" tableName="nop_batch_record_result" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Batch Record Result">
+                updaterProp="updatedBy" versionProp="version" ext:icon="badge-check"
+                i18n-en:displayName="Batch Record Result">
             <columns>
                 <column code="BATCH_TASK_ID" displayName="主键" mandatory="true" name="batchTaskId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -236,7 +238,7 @@
         <entity className="io.nop.batch.dao.entity.NopBatchFile" createTimeProp="createTime" createrProp="createdBy"
                 displayName="批处理文件" name="io.nop.batch.dao.entity.NopBatchFile" registerShortName="true"
                 tableName="nop_batch_file" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Batch File">
+                ext:icon="file" i18n-en:displayName="Batch File">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>

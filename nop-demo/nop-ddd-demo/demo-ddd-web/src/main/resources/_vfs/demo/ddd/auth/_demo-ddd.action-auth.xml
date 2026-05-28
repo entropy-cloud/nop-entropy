@@ -5,9 +5,8 @@
         <resource id="test-orm-demo-ddd" displayName="测试demo-ddd" icon="ion:grid-outline" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-demo-ddd" component="layouts/default/index">
             <children>
-                <resource id="Cargo-main" displayName="货物" orderNo="10001" i18n-en:displayName="Cargo"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/demo/ddd/pages/Cargo/main.page.yaml">
+                <resource id="Cargo-main" displayName="货物" orderNo="10001" i18n-en:displayName="Cargo" icon="package"
+                          component="AMIS" resourceType="SUBM" url="/demo/ddd/pages/Cargo/main.page.yaml">
                     <children>
                         <resource id="FNPT:Cargo:query" displayName="查询货物" orderNo="10002" resourceType="FNPT">
                             <permissions>Cargo:query</permissions>
@@ -18,8 +17,8 @@
                     </children>
                 </resource>
                 <resource id="CarrierMovement-main" displayName="运输动作" orderNo="10004"
-                          i18n-en:displayName="Carrier Movement" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/demo/ddd/pages/CarrierMovement/main.page.yaml">
+                          i18n-en:displayName="Carrier Movement" icon="ship-wheel" component="AMIS" resourceType="SUBM"
+                          url="/demo/ddd/pages/CarrierMovement/main.page.yaml">
                     <children>
                         <resource id="FNPT:CarrierMovement:query" displayName="查询运输动作" orderNo="10005"
                                   resourceType="FNPT">
@@ -32,7 +31,7 @@
                     </children>
                 </resource>
                 <resource id="HandlingEvent-main" displayName="业务时间" orderNo="10007"
-                          i18n-en:displayName="Handling Event" icon="ant-design:appstore-twotone" component="AMIS"
+                          i18n-en:displayName="Handling Event" icon="calendar-clock" component="AMIS"
                           resourceType="SUBM" url="/demo/ddd/pages/HandlingEvent/main.page.yaml">
                     <children>
                         <resource id="FNPT:HandlingEvent:query" displayName="查询业务时间" orderNo="10008" resourceType="FNPT">
@@ -44,9 +43,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="Leg-main" displayName="航段" orderNo="10010" i18n-en:displayName="Leg"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/demo/ddd/pages/Leg/main.page.yaml">
+                <resource id="Leg-main" displayName="航段" orderNo="10010" i18n-en:displayName="Leg" icon="route"
+                          component="AMIS" resourceType="SUBM" url="/demo/ddd/pages/Leg/main.page.yaml">
                     <children>
                         <resource id="FNPT:Leg:query" displayName="查询航段" orderNo="10011" resourceType="FNPT">
                             <permissions>Leg:query</permissions>
@@ -57,7 +55,7 @@
                     </children>
                 </resource>
                 <resource id="Location-main" displayName="位置" orderNo="10013" i18n-en:displayName="Location"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="map-pinned" component="AMIS" resourceType="SUBM"
                           url="/demo/ddd/pages/Location/main.page.yaml">
                     <children>
                         <resource id="FNPT:Location:query" displayName="查询位置" orderNo="10014" resourceType="FNPT">
@@ -68,9 +66,8 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="Voyage-main" displayName="航程" orderNo="10016" i18n-en:displayName="Voyage"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/demo/ddd/pages/Voyage/main.page.yaml">
+                <resource id="Voyage-main" displayName="航程" orderNo="10016" i18n-en:displayName="Voyage" icon="ship"
+                          component="AMIS" resourceType="SUBM" url="/demo/ddd/pages/Voyage/main.page.yaml">
                     <children>
                         <resource id="FNPT:Voyage:query" displayName="查询航程" orderNo="10017" resourceType="FNPT">
                             <permissions>Voyage:query</permissions>

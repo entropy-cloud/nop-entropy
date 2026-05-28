@@ -103,7 +103,7 @@
         <entity name="io.nop.retry.dao.entity.NopRetryPolicy"
                 tableName="nop_retry_policy" displayName="重试策略" i18n-en:displayName="Retry Policy"
                 registerShortName="true" versionProp="version" createTimeProp="createTime"
-                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy">
+                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="refresh-ccw">
             <columns>
                 <!-- Primary Key -->
                 <column code="SID" name="sid" displayName="主键" i18n-en:displayName="Primary Key"
@@ -203,7 +203,7 @@
         <entity name="io.nop.retry.dao.entity.NopRetryRecord"
                 tableName="nop_retry_record" displayName="重试记录" i18n-en:displayName="Retry Record"
                 registerShortName="true" versionProp="version" createTimeProp="createTime"
-                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy">
+                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="clock-3">
             <columns>
                 <!-- Primary Key -->
                 <column code="SID" name="sid" displayName="主键" i18n-en:displayName="Primary Key"
@@ -317,7 +317,7 @@
         <entity name="io.nop.retry.dao.entity.NopRetryAttempt"
                 tableName="nop_retry_attempt" displayName="重试尝试" i18n-en:displayName="Retry Attempt"
                 registerShortName="true" versionProp="version" createTimeProp="createTime"
-                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy">
+                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="rotate-cw">
             <columns>
                 <!-- Primary Key -->
                 <column code="SID" name="sid" displayName="主键" i18n-en:displayName="Primary Key"
@@ -411,7 +411,7 @@
         <entity name="io.nop.retry.dao.entity.NopRetryDeadLetter"
                 tableName="nop_retry_dead_letter" displayName="重试死信" i18n-en:displayName="Retry Dead Letter"
                 registerShortName="true" versionProp="version" createTimeProp="createTime"
-                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy">
+                createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="octagon-alert">
             <columns>
                 <!-- Primary Key -->
                 <column code="SID" name="sid" displayName="主键" i18n-en:displayName="Primary Key"

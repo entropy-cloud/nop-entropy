@@ -63,7 +63,8 @@
         </dict>
     </dicts>
     <entities>
-        <entity name="NopAiProject" displayName="AI项目" db:estimatedRowCount="1000" biz:type="entity">
+        <entity name="NopAiProject" displayName="AI项目" db:estimatedRowCount="1000" biz:type="entity"
+                ext:icon="folder-kanban">
             <comment>存储AI项目基本信息</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -79,7 +80,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiProjectRule" displayName="项目规则" db:estimatedRowCount="1000" biz:type="config">
+        <entity name="NopAiProjectRule" displayName="项目规则" db:estimatedRowCount="1000" biz:type="config"
+                ext:icon="shield-check">
             <comment>存储项目规则配置</comment>
             <columns>
                 <!-- 主键 -->
@@ -117,7 +119,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiProjectConfig" displayName="项目配置" db:estimatedRowCount="20000" biz:type="entity-detail">
+        <entity name="NopAiProjectConfig" displayName="项目配置" db:estimatedRowCount="20000" biz:type="entity-detail"
+                ext:icon="settings-2">
             <comment>项目级配置项管理</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -131,7 +134,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiModel" displayName="AI模型" db:estimatedRowCount="100" biz:type="config">
+        <entity name="NopAiModel" displayName="AI模型" db:estimatedRowCount="100" biz:type="config"
+                ext:icon="bot">
             <comment>第三方AI模型注册信息</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -144,7 +148,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiRequirement" displayName="需求条目" db:estimatedRowCount="100000" biz:type="entity">
+        <entity name="NopAiRequirement" displayName="需求条目" db:estimatedRowCount="100000" biz:type="entity"
+                ext:icon="clipboard-list">
             <comment>结构化需求管理</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -166,7 +171,7 @@
         </entity>
 
         <entity name="NopAiRequirementHistory" displayName="需求历史" db:estimatedRowCount="1000000"
-                biz:type="entity-detail">
+                biz:type="entity-detail" ext:icon="history">
             <comment>需求变更版本记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -179,7 +184,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiKnowledge" displayName="知识库" db:estimatedRowCount="100000" biz:type="entity">
+        <entity name="NopAiKnowledge" displayName="知识库" db:estimatedRowCount="100000" biz:type="entity"
+                ext:icon="book-open">
             <comment>领域知识文档存储</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -191,7 +197,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiPromptTemplate" displayName="提示词模板" db:estimatedRowCount="1000" biz:type="config">
+        <entity name="NopAiPromptTemplate" displayName="提示词模板" db:estimatedRowCount="1000" biz:type="config"
+                ext:icon="file-text">
             <comment>AI提示词模板定义</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -205,7 +212,7 @@
         </entity>
 
         <entity name="NopAiPromptTemplateHistory" displayName="模板历史" db:estimatedRowCount="10000"
-                biz:type="entity-detail">
+                biz:type="entity-detail" ext:icon="history">
             <comment>提示词模板版本记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -218,7 +225,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiChatRequest" displayName="对话请求" db:estimatedRowCount="365000" biz:type="txn">
+        <entity name="NopAiChatRequest" displayName="对话请求" db:estimatedRowCount="365000" biz:type="txn"
+                ext:icon="messages-square">
             <comment>多模型测试请求记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -242,7 +250,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiChatResponse" displayName="响应结果" db:estimatedRowCount="1095000" biz:type="txn-detail">
+        <entity name="NopAiChatResponse" displayName="响应结果" db:estimatedRowCount="1095000" biz:type="txn-detail"
+                ext:icon="message-square">
             <comment>AI模型响应记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -276,7 +285,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiGenFile" displayName="生成文件" db:estimatedRowCount="100000" biz:type="entity">
+        <entity name="NopAiGenFile" displayName="生成文件" db:estimatedRowCount="100000" biz:type="entity"
+                ext:icon="file-code">
             <comment>AI生成的DSL模型文件</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -301,7 +311,7 @@
         </entity>
 
         <entity name="NopAiGenFileHistory" displayName="文件历史" db:estimatedRowCount="1000000"
-                biz:type="entity-detail">
+                biz:type="entity-detail" ext:icon="history">
             <comment>生成文件版本记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -315,7 +325,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiTestCase" displayName="测试用例" db:estimatedRowCount="1000000" biz:type="entity">
+        <entity name="NopAiTestCase" displayName="测试用例" db:estimatedRowCount="1000000" biz:type="entity"
+                ext:icon="flask-conical">
             <comment>生成的测试用例</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
@@ -335,7 +346,8 @@
             </columns>
         </entity>
 
-        <entity name="NopAiTestResult" displayName="测试结果" db:estimatedRowCount="5000000" biz:type="txn-detail">
+        <entity name="NopAiTestResult" displayName="测试结果" db:estimatedRowCount="5000000" biz:type="txn-detail"
+                ext:icon="badge-check">
             <comment>测试用例执行结果</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"

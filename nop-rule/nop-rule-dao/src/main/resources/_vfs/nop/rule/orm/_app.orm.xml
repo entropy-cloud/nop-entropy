@@ -47,7 +47,7 @@
         <entity className="io.nop.rule.dao.entity.NopRuleDefinition" createTimeProp="createTime" createrProp="createdBy"
                 displayName="规则模型定义" name="io.nop.rule.dao.entity.NopRuleDefinition" registerShortName="true"
                 tableName="nop_rule_definition" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Rule Definition">
+                versionProp="version" ext:icon="scale" i18n-en:displayName="Rule Definition">
             <columns>
                 <column code="RULE_ID" displayName="主键" mandatory="true" name="ruleId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -106,7 +106,7 @@
         <entity className="io.nop.rule.dao.entity.NopRuleNode" createTimeProp="createTime" createrProp="createdBy"
                 displayName="规则节点" name="io.nop.rule.dao.entity.NopRuleNode" registerShortName="true"
                 tableName="nop_rule_node" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Rule Node">
+                ext:icon="git-branch" i18n-en:displayName="Rule Node">
             <columns>
                 <column code="SID" displayName="SID" mandatory="true" name="sid" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -179,7 +179,7 @@
         <entity className="io.nop.rule.dao.entity.NopRuleRole" createTimeProp="createTime" createrProp="createdBy"
                 displayName="规则角色" name="io.nop.rule.dao.entity.NopRuleRole" registerShortName="true"
                 tableName="nop_rule_role" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Rule Role">
+                ext:icon="users" i18n-en:displayName="Rule Role">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -219,7 +219,7 @@
         </entity>
         <entity className="io.nop.rule.dao.entity.NopRuleLog" createTimeProp="createTime" createrProp="createdBy"
                 displayName="规则执行日志" name="io.nop.rule.dao.entity.NopRuleLog" registerShortName="true"
-                tableName="nop_rule_log" tagSet="log" i18n-en:displayName="Rule Log">
+                tableName="nop_rule_log" tagSet="log" ext:icon="logs" i18n-en:displayName="Rule Log">
             <columns>
                 <column code="SID" displayName="日志ID" mandatory="true" name="sid" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>

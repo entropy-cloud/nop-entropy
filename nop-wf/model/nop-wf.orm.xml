@@ -71,7 +71,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfDefinition" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流模型定义" name="io.nop.wf.dao.entity.NopWfDefinition" registerShortName="true"
                 tableName="nop_wf_definition" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Worflow Definition">
+                ext:icon="waypoints" i18n-en:displayName="Worflow Definition">
             <columns>
                 <column code="WF_DEF_ID" displayName="主键" mandatory="true" name="wfDefId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -130,7 +130,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfDefinitionAuth" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流定义权限" name="io.nop.wf.dao.entity.NopWfDefinitionAuth" registerShortName="true"
                 tableName="nop_wf_definition_auth" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Workflow Definition Auth">
+                versionProp="version" ext:icon="shield-check" i18n-en:displayName="Workflow Definition Auth">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -179,7 +179,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfInstance" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流实例" name="io.nop.wf.dao.entity.NopWfInstance" registerShortName="true"
                 tableName="nop_wf_instance" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Worflow Instance">
+                ext:icon="circle-play" i18n-en:displayName="Worflow Instance">
             <columns>
                 <column code="WF_ID" displayName="主键" mandatory="true" name="wfId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -309,7 +309,7 @@
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfStatusHistory" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流状态变迁历史" name="io.nop.wf.dao.entity.NopWfStatusHistory" registerShortName="true"
-                tableName="nop_wf_status_history" versionProp="version" i18n-en:displayName="Workflow Status History">
+                tableName="nop_wf_status_history" versionProp="version" ext:icon="history" i18n-en:displayName="Workflow Status History">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -350,7 +350,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfStepInstance" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流步骤实例" name="io.nop.wf.dao.entity.NopWfStepInstance" registerShortName="true"
                 tableName="nop_wf_step_instance" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Workflow Step Instance">
+                versionProp="version" ext:icon="route" i18n-en:displayName="Workflow Step Instance">
             <columns>
                 <column code="STEP_ID" displayName="步骤ID" mandatory="true" name="stepId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -510,7 +510,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfStepInstanceLink" createTimeProp="createTime"
                 createrProp="createdBy" displayName="工作流步骤关联" name="io.nop.wf.dao.entity.NopWfStepInstanceLink"
                 registerShortName="true" tableName="nop_wf_step_instance_link" tagSet="no-web"
-                i18n-en:displayName="Workflow Step Instance Link">
+                ext:icon="link-2" i18n-en:displayName="Workflow Step Instance Link">
             <columns>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
@@ -554,7 +554,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfAction" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流动作" name="io.nop.wf.dao.entity.NopWfAction" registerShortName="true"
                 tableName="nop_wf_action" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Workflow Action">
+                ext:icon="mouse-pointer-click" i18n-en:displayName="Workflow Action">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
@@ -611,7 +611,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfOutput" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流输出变量" kvTable="true" name="io.nop.wf.dao.entity.NopWfOutput" registerShortName="true"
                 tableName="nop_wf_output" tagSet="kv-table" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Workflow Outputs">
+                versionProp="version" ext:icon="arrow-up-from-line" i18n-en:displayName="Workflow Outputs">
             <columns>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
@@ -656,7 +656,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfVar" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流状态变量" kvTable="true" name="io.nop.wf.dao.entity.NopWfVar" registerShortName="true"
                 tableName="nop_wf_var" tagSet="kv-table" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Workflow Variables">
+                versionProp="version" ext:icon="variable" i18n-en:displayName="Workflow Variables">
             <columns>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
@@ -701,7 +701,7 @@
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfLog" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流日志" name="io.nop.wf.dao.entity.NopWfLog" registerShortName="true" tableName="nop_wf_log"
-                tagSet="log" i18n-en:displayName="Workflow Log">
+                tagSet="log" ext:icon="logs" i18n-en:displayName="Workflow Log">
             <columns>
                 <column code="SID" displayName="日志ID" mandatory="true" name="sid" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -749,7 +749,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfWork" createTimeProp="createTime" createrProp="createdBy"
                 displayName="代办工作" name="io.nop.wf.dao.entity.NopWfWork" registerShortName="true"
                 tableName="nop_wf_work" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Work List">
+                ext:icon="briefcase" i18n-en:displayName="Work List">
             <columns>
                 <column code="WORK_ID" displayName="工作ID" mandatory="true" name="workId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"

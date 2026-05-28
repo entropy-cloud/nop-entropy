@@ -26,7 +26,7 @@
     <entities>
         <entity className="io.nop.tcc.dao.entity.NopTccRecord" createTimeProp="createTime" displayName="TCC事务记录"
                 name="io.nop.tcc.dao.entity.NopTccRecord" registerShortName="true" tableName="nop_tcc_record"
-                updateTimeProp="updateTime" versionProp="version" i18n-en:displayName="TCC Transaction">
+                updateTimeProp="updateTime" versionProp="version" ext:icon="scale" i18n-en:displayName="TCC Transaction">
             <columns>
                 <column code="TXN_ID" displayName="事务ID" mandatory="true" name="txnId" precision="50" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -73,7 +73,7 @@
         <entity className="io.nop.tcc.dao.entity.NopTccBranchRecord" createTimeProp="createTime" displayName="TCC事务分支记录"
                 name="io.nop.tcc.dao.entity.NopTccBranchRecord" registerShortName="true"
                 tableName="nop_tcc_branch_record" updateTimeProp="updateTime" versionProp="version"
-                i18n-en:displayName="TCC Branch Record">
+                ext:icon="git-branch" i18n-en:displayName="TCC Branch Record">
             <columns>
                 <column code="BRANCH_ID" displayName="事务分支ID" mandatory="true" name="branchId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"

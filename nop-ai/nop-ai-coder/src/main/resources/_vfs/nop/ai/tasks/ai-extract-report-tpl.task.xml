@@ -52,7 +52,7 @@
 
         <step name="saveReportTplAsExcel" customType="ai-coder:SaveDslModelAsExcel">
             <input name="outputDir"/>
-            <input name="fileName" value="model/${appName}.orm.xlsx"/>
+            <input name="fileName" value="model/${appName}.orm.xml"/>
             <input name="dslModel" value="${reportTplBean}"/>
             <input name="impModelPath" value="/nop/record/imp/record-file.imp.xml"/>
         </step>

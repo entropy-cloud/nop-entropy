@@ -6,8 +6,8 @@
                   orderNo="10000" routePath="/test-orm-nop-job" component="layouts/default/index">
             <children>
                 <resource id="NopJobAssignment-main" displayName="任务分配" orderNo="10001"
-                          i18n-en:displayName="Job Assignment" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/job/pages/NopJobAssignment/main.page.yaml">
+                          i18n-en:displayName="Job Assignment" icon="blocks" component="AMIS" resourceType="SUBM"
+                          url="/nop/job/pages/NopJobAssignment/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopJobAssignment:query" displayName="查询任务分配" orderNo="10002"
                                   resourceType="FNPT">
@@ -20,8 +20,8 @@
                     </children>
                 </resource>
                 <resource id="NopJobDefinition-main" displayName="作业定义" orderNo="10004"
-                          i18n-en:displayName="Job Definition" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/job/pages/NopJobDefinition/main.page.yaml">
+                          i18n-en:displayName="Job Definition" icon="blocks" component="AMIS" resourceType="SUBM"
+                          url="/nop/job/pages/NopJobDefinition/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopJobDefinition:query" displayName="查询作业定义" orderNo="10005"
                                   resourceType="FNPT">
@@ -34,7 +34,7 @@
                     </children>
                 </resource>
                 <resource id="NopJobFire-main" displayName="触发批次" orderNo="10007" i18n-en:displayName="Job Fire"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="flame" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobFire/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopJobFire:query" displayName="查询触发批次" orderNo="10008" resourceType="FNPT">
@@ -46,7 +46,7 @@
                     </children>
                 </resource>
                 <resource id="NopJobInstance-main" displayName="任务实例" orderNo="10010" i18n-en:displayName="Job Instance"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="blocks" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobInstance/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopJobInstance:query" displayName="查询任务实例" orderNo="10011"
@@ -60,8 +60,8 @@
                     </children>
                 </resource>
                 <resource id="NopJobInstanceHis-main" displayName="任务实例历史" orderNo="10013"
-                          i18n-en:displayName="Job Instance History" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/job/pages/NopJobInstanceHis/main.page.yaml">
+                          i18n-en:displayName="Job Instance History" icon="blocks" component="AMIS" resourceType="SUBM"
+                          url="/nop/job/pages/NopJobInstanceHis/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopJobInstanceHis:query" displayName="查询任务实例历史" orderNo="10014"
                                   resourceType="FNPT">
@@ -74,7 +74,7 @@
                     </children>
                 </resource>
                 <resource id="NopJobSchedule-main" displayName="调度定义" orderNo="10016" i18n-en:displayName="Job Schedule"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="calendar-clock" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobSchedule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopJobSchedule:query" displayName="查询调度定义" orderNo="10017"
@@ -88,7 +88,7 @@
                     </children>
                 </resource>
                 <resource id="NopJobTask-main" displayName="执行任务" orderNo="10019" i18n-en:displayName="Job Task"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="circle-play" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobTask/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopJobTask:query" displayName="查询执行任务" orderNo="10020" resourceType="FNPT">

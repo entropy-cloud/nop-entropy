@@ -6,7 +6,7 @@
                   orderNo="10000" routePath="/test-orm-nop-file" component="layouts/default/index">
             <children>
                 <resource id="NopFileRecord-main" displayName="文件记录" orderNo="10001" i18n-en:displayName="File Record"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="paperclip" component="AMIS" resourceType="SUBM"
                           url="/nop/file/pages/NopFileRecord/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopFileRecord:query" displayName="查询文件记录" orderNo="10002" resourceType="FNPT">

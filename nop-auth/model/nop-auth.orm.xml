@@ -286,7 +286,7 @@
         <entity className="io.nop.auth.dao.entity.NopAuthUserRole" createTimeProp="createTime" createrProp="createdBy"
                 displayName="用户角色" name="io.nop.auth.dao.entity.NopAuthUserRole" registerShortName="true"
                 tableName="nop_auth_user_role" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="User Role">
+                updaterProp="updatedBy" versionProp="version" ext:icon="link-2" i18n-en:displayName="User Role">
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -546,7 +546,7 @@
                 createrProp="createdBy" deleteFlagProp="delFlag" displayName="角色可访问资源"
                 name="io.nop.auth.dao.entity.NopAuthRoleResource" registerShortName="true"
                 tableName="nop_auth_role_resource" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version"
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" ext:icon="shield-plus"
                 i18n-en:displayName="Role Resource">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
@@ -893,7 +893,7 @@
         <entity className="io.nop.auth.dao.entity.NopAuthGroupDept" createTimeProp="createTime" createrProp="createdBy"
                 displayName="分组部门" name="io.nop.auth.dao.entity.NopAuthGroupDept" registerShortName="true"
                 tableName="nop_auth_group_dept" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Group Department">
+                updaterProp="updatedBy" versionProp="version" ext:icon="network" i18n-en:displayName="Group Department">
             <columns>
                 <column code="DEPT_ID" displayName="部门ID" domain="deptId" mandatory="true" name="deptId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -940,7 +940,7 @@
         <entity className="io.nop.auth.dao.entity.NopAuthGroupUser" createTimeProp="createTime" createrProp="createdBy"
                 displayName="分组用户" name="io.nop.auth.dao.entity.NopAuthGroupUser" registerShortName="true"
                 tableName="nop_auth_group_user" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Group User">
+                updaterProp="updatedBy" versionProp="version" ext:icon="users" i18n-en:displayName="Group User">
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"

@@ -6,8 +6,8 @@
                   orderNo="10000" routePath="/test-orm-nop-retry" component="layouts/default/index">
             <children>
                 <resource id="NopRetryAttempt-main" displayName="重试尝试" orderNo="10001"
-                          i18n-en:displayName="Retry Attempt" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/retry/pages/NopRetryAttempt/main.page.yaml">
+                          i18n-en:displayName="Retry Attempt" icon="rotate-cw" component="AMIS" resourceType="SUBM"
+                          url="/nop/retry/pages/NopRetryAttempt/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRetryAttempt:query" displayName="查询重试尝试" orderNo="10002"
                                   resourceType="FNPT">
@@ -20,7 +20,7 @@
                     </children>
                 </resource>
                 <resource id="NopRetryDeadLetter-main" displayName="重试死信" orderNo="10004"
-                          i18n-en:displayName="Retry Dead Letter" icon="ant-design:appstore-twotone" component="AMIS"
+                          i18n-en:displayName="Retry Dead Letter" icon="octagon-alert" component="AMIS"
                           resourceType="SUBM" url="/nop/retry/pages/NopRetryDeadLetter/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRetryDeadLetter:query" displayName="查询重试死信" orderNo="10005"
@@ -34,7 +34,7 @@
                     </children>
                 </resource>
                 <resource id="NopRetryPolicy-main" displayName="重试策略" orderNo="10007" i18n-en:displayName="Retry Policy"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="refresh-ccw" component="AMIS" resourceType="SUBM"
                           url="/nop/retry/pages/NopRetryPolicy/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRetryPolicy:query" displayName="查询重试策略" orderNo="10008"
@@ -48,7 +48,7 @@
                     </children>
                 </resource>
                 <resource id="NopRetryRecord-main" displayName="重试记录" orderNo="10010" i18n-en:displayName="Retry Record"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="clock-3" component="AMIS" resourceType="SUBM"
                           url="/nop/retry/pages/NopRetryRecord/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRetryRecord:query" displayName="查询重试记录" orderNo="10011"
@@ -62,8 +62,8 @@
                     </children>
                 </resource>
                 <resource id="NopRetryTemplate-main" displayName="重试模板" orderNo="10013"
-                          i18n-en:displayName="Retry Template" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/retry/pages/NopRetryTemplate/main.page.yaml">
+                          i18n-en:displayName="Retry Template" icon="blocks" component="AMIS" resourceType="SUBM"
+                          url="/nop/retry/pages/NopRetryTemplate/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopRetryTemplate:query" displayName="查询重试模板" orderNo="10014"
                                   resourceType="FNPT">

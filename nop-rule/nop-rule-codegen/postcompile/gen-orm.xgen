@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <c:script><![CDATA[
 // 根据ORM模型生成dao/entity/xbiz
-codeGenerator.withTargetDir("../").renderModel('../../model/nop-rule.orm.xlsx','/nop/templates/orm', '/',$scope);
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-rule.orm.xml','/nop/templates/orm', '/',$scope);
 
 codeGenerator.withTargetDir("../nop-rule-dao/src/main/java").renderModel(
     '../../nop-rule-dao/src/main/resources/_vfs/nop/rule/orm/app.orm.xml','/nop/templates/orm-entity', '/',$scope);

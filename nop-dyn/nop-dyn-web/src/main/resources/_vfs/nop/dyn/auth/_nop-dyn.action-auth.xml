@@ -6,7 +6,7 @@
                   orderNo="10000" routePath="/test-orm-nop-dyn" component="layouts/default/index">
             <children>
                 <resource id="NopDynApp-main" displayName="应用定义" orderNo="10001" i18n-en:displayName="App Definition"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="app-window" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynApp/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynApp:query" displayName="查询应用定义" orderNo="10002" resourceType="FNPT">
@@ -18,7 +18,7 @@
                     </children>
                 </resource>
                 <resource id="NopDynDomain-main" displayName="数据域" orderNo="10004" i18n-en:displayName="Domain"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="type" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynDomain/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynDomain:query" displayName="查询数据域" orderNo="10005" resourceType="FNPT">
@@ -31,7 +31,7 @@
                     </children>
                 </resource>
                 <resource id="NopDynEntity-main" displayName="动态实体" orderNo="10007" i18n-en:displayName="Dynamic Entity"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="blocks" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynEntity/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynEntity:query" displayName="查询动态实体" orderNo="10008" resourceType="FNPT">
@@ -44,8 +44,8 @@
                     </children>
                 </resource>
                 <resource id="NopDynEntityMeta-main" displayName="实体元数据" orderNo="10010"
-                          i18n-en:displayName="Entity Meta" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/dyn/pages/NopDynEntityMeta/main.page.yaml">
+                          i18n-en:displayName="Entity Meta" icon="database" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynEntityMeta/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynEntityMeta:query" displayName="查询实体元数据" orderNo="10011"
                                   resourceType="FNPT">
@@ -58,8 +58,8 @@
                     </children>
                 </resource>
                 <resource id="NopDynEntityRelation-main" displayName="实体关联" orderNo="10013"
-                          i18n-en:displayName="Entity Relation" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/dyn/pages/NopDynEntityRelation/main.page.yaml">
+                          i18n-en:displayName="Entity Relation" icon="link-2" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynEntityRelation/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynEntityRelation:query" displayName="查询实体关联" orderNo="10014"
                                   resourceType="FNPT">
@@ -72,8 +72,8 @@
                     </children>
                 </resource>
                 <resource id="NopDynEntityRelationMeta-main" displayName="实体关联属性定义" orderNo="10016"
-                          i18n-en:displayName="Entity Relation Meta" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/dyn/pages/NopDynEntityRelationMeta/main.page.yaml">
+                          i18n-en:displayName="Entity Relation Meta" icon="link-2" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynEntityRelationMeta/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynEntityRelationMeta:query" displayName="查询实体关联属性定义" orderNo="10017"
                                   resourceType="FNPT">
@@ -86,7 +86,7 @@
                     </children>
                 </resource>
                 <resource id="NopDynFile-main" displayName="模块文件" orderNo="10019" i18n-en:displayName="Module File"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="file-code" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynFile/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynFile:query" displayName="查询模块文件" orderNo="10020" resourceType="FNPT">
@@ -98,7 +98,7 @@
                     </children>
                 </resource>
                 <resource id="NopDynFunctionMeta-main" displayName="实体函数定义" orderNo="10022"
-                          i18n-en:displayName="Function Meta" icon="ant-design:appstore-twotone" component="AMIS"
+                          i18n-en:displayName="Function Meta" icon="square-function" component="AMIS"
                           resourceType="SUBM" url="/nop/dyn/pages/NopDynFunctionMeta/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynFunctionMeta:query" displayName="查询实体函数定义" orderNo="10023"
@@ -112,8 +112,8 @@
                     </children>
                 </resource>
                 <resource id="NopDynModule-main" displayName="模块定义" orderNo="10025"
-                          i18n-en:displayName="Module Definition" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/dyn/pages/NopDynModule/main.page.yaml">
+                          i18n-en:displayName="Module Definition" icon="boxes" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynModule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynModule:query" displayName="查询模块定义" orderNo="10026" resourceType="FNPT">
                             <permissions>NopDynModule:query</permissions>
@@ -125,7 +125,7 @@
                     </children>
                 </resource>
                 <resource id="NopDynPage-main" displayName="页面定义" orderNo="10028" i18n-en:displayName="Page Definition"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="layout-template" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynPage/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynPage:query" displayName="查询页面定义" orderNo="10029" resourceType="FNPT">
@@ -137,7 +137,7 @@
                     </children>
                 </resource>
                 <resource id="NopDynPatchFile-main" displayName="补丁文件" orderNo="10031" i18n-en:displayName="Patch File"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="file-diff" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynPatchFile/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynPatchFile:query" displayName="查询补丁文件" orderNo="10032"
@@ -151,8 +151,8 @@
                     </children>
                 </resource>
                 <resource id="NopDynPropMeta-main" displayName="属性元数据" orderNo="10034"
-                          i18n-en:displayName="Property Meta" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/dyn/pages/NopDynPropMeta/main.page.yaml">
+                          i18n-en:displayName="Property Meta" icon="list-tree" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynPropMeta/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynPropMeta:query" displayName="查询属性元数据" orderNo="10035"
                                   resourceType="FNPT">
@@ -165,7 +165,7 @@
                     </children>
                 </resource>
                 <resource id="NopDynSql-main" displayName="SQL定义" orderNo="10037" i18n-en:displayName="Module SQL"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          icon="database" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynSql/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopDynSql:query" displayName="查询SQL定义" orderNo="10038" resourceType="FNPT">
