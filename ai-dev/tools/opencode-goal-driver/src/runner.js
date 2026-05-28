@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { execute } from "./executor.js";
 
 let _mockEvalCount = 0;
+let _mockClosureCount = 0;
+let _mockAuditCount = 0;
 
 export async function createRunner(config) {
   const realRun = async (stepName, command, system, files = []) => {
@@ -53,15 +55,25 @@ export async function createRunner(config) {
 
     const mockResponses = {
       "fix-build": "<HEALTH_STATUS>fixed</HEALTH_STATUS>",
-      "deep-audit": "<AUDIT_RESULT>issues</AUDIT_RESULT>",
       "adversarial-review": "<ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT>",
       plan: "<PLAN_RESULT>created</PLAN_RESULT>",
       execute: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
+      "closure-audit": null,
       eval: null,
     };
 
     let text;
-    if (stepName === "eval") {
+    if (stepName === "deep-audit") {
+      _mockAuditCount = (_mockAuditCount || 0) + 1;
+      text = _mockAuditCount <= 1
+        ? "<AUDIT_RESULT>issues</AUDIT_RESULT>"
+        : "<AUDIT_RESULT>clean</AUDIT_RESULT>";
+    } else if (stepName === "closure-audit") {
+      _mockClosureCount = (_mockClosureCount || 0) + 1;
+      text = _mockClosureCount === 1
+        ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: 测试覆盖不足</item></REMAINING>"
+        : "<CLOSURE_RESULT>complete</CLOSURE_RESULT>";
+    } else if (stepName === "eval") {
       _mockEvalCount++;
       text = _mockEvalCount <= 1
         ? "<EVAL_RESULT>continue</EVAL_RESULT>"

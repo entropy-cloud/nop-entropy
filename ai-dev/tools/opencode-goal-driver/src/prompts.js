@@ -4,6 +4,7 @@ export const STEP_NAMES = {
   ADVERSARIAL: "adversarial-review",
   PLAN: "plan",
   EXECUTE: "execute",
+  CLOSURE_AUDIT: "closure-audit",
   EVAL: "eval",
 };
 
@@ -57,6 +58,30 @@ function defaultStepConfigs(moduleName) {
       markerValues: { SUCCESS: "success", FAILED: "failed" },
     },
 
+    [STEP_NAMES.CLOSURE_AUDIT]: {
+      label: "独立验证（Closure Audit）",
+      command: `你是一个独立验证者，没有参与过之前的计划执行和代码编写。请验证模块 ${moduleName} 的修复计划是否真正完成。
+
+步骤：
+1. 读取 ai-dev/plans/ 下最新的活跃计划（Status 不是 completed/superseded/cancelled）
+2. 逐条检查每个 Phase 的 Exit Criteria 是否在 live repo 代码中真正满足（不只是接口存在，而是行为语义已落地）
+3. 阅读 ai-dev/skills/plan-closure-audit-prompt.md
+4. 运行 node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict（如存在）
+5. 检查 Anti-Hollow：新增组件在运行时被调用（不只是 import 存在），无空方法体/静默跳过
+
+如果所有项目都已完成，输出：
+<CLOSURE_RESULT>complete</CLOSURE_RESULT>
+
+如果有未完成项目，输出：
+<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>
+<REMAINING>
+  <item>具体未完成项描述（包含文件路径、期望行为、当前状态）</item>
+</REMAINING>`,
+      system: "",
+      resultTag: "CLOSURE_RESULT",
+      markerValues: { COMPLETE: "complete", INCOMPLETE: "incomplete" },
+    },
+
     [STEP_NAMES.EVAL]: {
       label: "目标评估",
       command: `请评估模块 ${moduleName} 是否完善完成。
@@ -86,12 +111,13 @@ function testStepConfigs() {
   });
 
   return {
-    [STEP_NAMES.FIX_BUILD]:   { ...make("HEALTH_STATUS", "fixed"),     markerValues: { FIXED: "fixed", FAILED: "failed" } },
-    [STEP_NAMES.DEEP_AUDIT]:  { ...make("AUDIT_RESULT", "clean"),      markerValues: { CLEAN: "clean", ISSUES: "issues" } },
-    [STEP_NAMES.ADVERSARIAL]: { ...make("ADVERSARIAL_RESULT", "clean"),markerValues: { CLEAN: "clean", ISSUES: "issues" } },
-    [STEP_NAMES.PLAN]:        { ...make("PLAN_RESULT", "none"),        markerValues: { CREATED: "created", NONE: "none" } },
-    [STEP_NAMES.EXECUTE]:     { ...make("EXECUTE_RESULT", "success"),  markerValues: { SUCCESS: "success", FAILED: "failed" } },
-    [STEP_NAMES.EVAL]:        { ...make("EVAL_RESULT", "complete"),    markerValues: { COMPLETE: "complete", CONTINUE: "continue" } },
+    [STEP_NAMES.FIX_BUILD]:      { ...make("HEALTH_STATUS", "fixed"),     markerValues: { FIXED: "fixed", FAILED: "failed" } },
+    [STEP_NAMES.DEEP_AUDIT]:     { ...make("AUDIT_RESULT", "clean"),      markerValues: { CLEAN: "clean", ISSUES: "issues" } },
+    [STEP_NAMES.ADVERSARIAL]:    { ...make("ADVERSARIAL_RESULT", "clean"),markerValues: { CLEAN: "clean", ISSUES: "issues" } },
+    [STEP_NAMES.PLAN]:           { ...make("PLAN_RESULT", "none"),        markerValues: { CREATED: "created", NONE: "none" } },
+    [STEP_NAMES.EXECUTE]:        { ...make("EXECUTE_RESULT", "success"),  markerValues: { SUCCESS: "success", FAILED: "failed" } },
+    [STEP_NAMES.CLOSURE_AUDIT]:  { ...make("CLOSURE_RESULT", "complete"), markerValues: { COMPLETE: "complete", INCOMPLETE: "incomplete" } },
+    [STEP_NAMES.EVAL]:           { ...make("EVAL_RESULT", "complete"),    markerValues: { COMPLETE: "complete", CONTINUE: "continue" } },
   };
 }
 

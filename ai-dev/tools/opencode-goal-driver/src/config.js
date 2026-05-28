@@ -10,6 +10,7 @@ export function resolveConfig(args = {}) {
   const agent = args.agent || process.env.OPENCODE_AGENT || "build";
   const model = args.model || process.env.OPENCODE_MODEL || "zhipuai-coding-plan/glm-5.1";
   const maxCycles = args.maxCycles || Number(process.env.MAX_CYCLES) || 10;
+  const maxInnerCycles = args.maxInnerCycles || Number(process.env.MAX_INNER_CYCLES) || 5;
 
   if (!moduleName) throw new Error("module name is required");
 
@@ -23,6 +24,6 @@ export function resolveConfig(args = {}) {
   mkdirSync(runDir, { recursive: true });
 
   return { projectRoot, moduleName, moduleDir, runDir,
-           agent, model, maxCycles, dryRun, testMode,
+           agent, model, maxCycles, maxInnerCycles, dryRun, testMode,
            logFile: resolve(runDir, `${moduleName}.log`) };
 }

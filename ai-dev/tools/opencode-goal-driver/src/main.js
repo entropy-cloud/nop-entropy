@@ -13,6 +13,7 @@ function parseArgs(argv) {
     else if (a === "--agent") args.agent = argv[++i];
     else if (a === "--model") args.model = argv[++i];
     else if (a === "--max-cycles") args.maxCycles = Number(argv[++i]);
+    else if (a === "--max-inner-cycles") args.maxInnerCycles = Number(argv[++i]);
     else if (a === "--test") args.testMode = true;
     else if (!a.startsWith("--")) args.module = a;
     i++;
