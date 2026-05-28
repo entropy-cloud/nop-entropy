@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:mavenArtifactId="nop-ai" ext:entityPackageName="io.nop.ai.dao.entity" ext:allowIdAsColName="true"
+<orm ext:mavenArtifactId="nop-ai" ext:entityPackageName="io.nop.ai.dao.entity" ext:icon="bot" ext:allowIdAsColName="true"
      ext:basePackageName="io.nop.ai" ext:appName="nop-ai" ext:registerShortName="true"
      ext:mavenGroupId="io.github.entropy-cloud" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      xmlns:ext="ext" displayName="AI模型管理"

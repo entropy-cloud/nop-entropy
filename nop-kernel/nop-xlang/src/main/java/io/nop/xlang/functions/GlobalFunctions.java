@@ -30,9 +30,12 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.functions.EvalFunctionalAdapter;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.jpath.JPath;
 import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.CallExpression;
@@ -418,5 +421,11 @@ public class GlobalFunctions {
     @Description("加载DSL模型")
     public static Object loadDslModel(@Name("modelPath") String modelPath) {
         return ResourceComponentManager.instance().requireComponentModel(modelPath);
+    }
+
+    @Description("加载DeltaJson对象")
+    public static Map<String, Object> loadDeltaJson(@Name("path") String path) {
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        return JsonTool.loadDeltaBeanFromResource(resource, Map.class);
     }
 }

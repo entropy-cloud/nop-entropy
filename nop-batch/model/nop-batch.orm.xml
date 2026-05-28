@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:registerShortName="true" ext:appName="nop-batch" ext:entityPackageName="io.nop.batch.dao.entity"
+<orm ext:registerShortName="true" ext:appName="nop-batch" ext:icon="workflow" ext:entityPackageName="io.nop.batch.dao.entity"
      ext:basePackageName="io.nop.batch" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-batch"
      ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">

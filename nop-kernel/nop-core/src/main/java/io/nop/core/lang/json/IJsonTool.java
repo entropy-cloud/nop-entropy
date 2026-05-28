@@ -30,6 +30,8 @@ public interface IJsonTool extends IJsonProvider {
 
     void serializeTo(Object obj, IJsonHandler handler);
 
+    Map<String, Object> loadDeltaMap(IResource resource);
+
     <T> T loadDeltaBean(IResource resource, Type targetType, DeltaJsonOptions options);
 
     <T> T buildDeltaBean(Map<String, Object> obj, Type targetType, DeltaJsonOptions options);

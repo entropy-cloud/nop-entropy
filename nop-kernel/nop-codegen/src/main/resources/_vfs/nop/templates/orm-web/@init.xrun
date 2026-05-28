@@ -3,6 +3,8 @@
         import io.nop.core.resource.VirtualFileSystem;
         import io.nop.xlang.xmeta.SchemaLoader;
 
+        let moduleMetaPath = "/"+moduleId+"/model/module-meta.json";
+        let moduleMeta = loadDeltaJson(moduleMetaPath);
         let metaResources = VirtualFileSystem.instance().getAllResources("/"+moduleId+"/model",".xmeta");
         metaResources = metaResources.filter(r=>!r.name.startsWith('_') and !SchemaLoader.loadXMeta(r.path).containsAnyTag(['no-web','not-pub']));
 
@@ -20,9 +22,9 @@
         })
         assign("metaInfos", metaInfos);
         builder.defineGlobalVar("metaInfos", metaInfos);
-
+        builder.defineGlobalVar("moduleMeta", moduleMeta);
         builder.defineGlobalVar("metaResource",metaResources);
-        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
+        builder.defineGlobalVar("moduleName", moduleMeta.moduleName || moduleId.replace('/','-'));
         builder.defineLoopVar("metaInfo", "metaInfos");
         builder.defineGlobalVar("moduleId",moduleId);
     ]]></c:script>

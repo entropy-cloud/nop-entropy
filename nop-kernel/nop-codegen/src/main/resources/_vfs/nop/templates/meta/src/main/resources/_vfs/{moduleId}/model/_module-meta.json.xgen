@@ -1,0 +1,15 @@
+<c:unit xpl:outputMode="text">
+<c:script>
+    import io.nop.core.lang.json.JsonTool;
+
+    const moduleMeta = {
+        moduleId: moduleId,
+        moduleName: moduleName,
+        appName: appName,
+        icon: ormModel['ext:icon']
+    };
+</c:script>
+
+<c:unit>${JsonTool.serialize(moduleMeta, true)}</c:unit>
+
+</c:unit>

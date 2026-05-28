@@ -29,7 +29,7 @@
 | 目标文件 | 先看哪里 |
 |----------|---------|
 | Entity / `I*Biz` / 业务骨架 | `*-codegen/postcompile/gen-orm.xgen`、`/nop/templates/orm` |
-| XMeta | `*-meta/precompile/gen-meta.xgen` |
+| XMeta / `module-meta.json` | `*-meta/precompile/gen-meta.xgen`、`/nop/templates/meta` |
 | i18n | `*-meta/postcompile/gen-i18n.xgen` |
 | view / page | `*-web/precompile/gen-page.xgen`、`/nop/templates/orm-web` |
 
@@ -47,14 +47,19 @@
 
 1. `*-dao` 下的 ORM / Entity / 接口。
 2. `*-meta` 下的 XMeta / i18n。
-3. `*-web` 下的页面资源。
+3. `*-meta` 下的 `/{moduleId}/model/module-meta.json`（如果页面或菜单逻辑依赖模块级元数据）。
+4. `*-web` 下的页面资源。
+5. 如果还有手写 source `*.action-auth.xml` 覆盖文件，确认显式 `TOPM` / `SUBM` 资源也带有 `icon`。
 
 ## 常见坑
 
 1. 直接改生成文件。
 2. 误把 `*-meta` 当成 service / web 的唯一上游。
-3. 页面不对时去改输出文件，而不是回到 xmeta / page 生成链路。
-4. 只重跑下游模块，没有刷新上游生成物。
+3. 忘记页面模板读取的可能是 `module-meta.json`，而不是直接读取 `/{moduleId}/orm/app.orm.xml`。
+4. 页面不对时去改输出文件，而不是回到 xmeta / `module-meta.json` / page 生成链路。
+5. 只重跑下游模块，没有刷新上游生成物。
+6. 以为只有 ORM entity 需要 icon，忘了根 `<orm ext:icon>` 也会直接影响 generated TOPM 菜单。
+7. 手写 `*.action-auth.xml` 中声明了 `TOPM` / `SUBM`，却没显式写 `icon`。
 
 ## 相关文档
 

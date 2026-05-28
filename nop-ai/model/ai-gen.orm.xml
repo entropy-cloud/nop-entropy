@@ -1,4 +1,4 @@
-<orm>
+<orm ext:icon="bot">
     <dicts>
         <dict name="message_type" label="消息类型">
             <description>对话消息的角色类型</description>

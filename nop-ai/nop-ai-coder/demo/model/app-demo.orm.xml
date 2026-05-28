@@ -1,4 +1,4 @@
-<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" ext:basePackageName="app.demo">
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" ext:basePackageName="app.demo" ext:icon="utensils-crossed">
     <dicts>
         <dict name="materialUnit" label="计量单位">
             <description>计量单位</description>

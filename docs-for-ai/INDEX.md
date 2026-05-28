@@ -44,6 +44,7 @@
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
+| 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |
 | 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
 | 理解 GraphQL / API 暴露方式 | `02-core-guides/api-and-graphql.md` |
 | 判断领域逻辑和 DDD 落位 | `02-core-guides/domain-logic-and-ddd.md` |
@@ -68,6 +69,7 @@
 | 新增字典或常量 | `03-runbooks/add-dict-and-constants.md` |
 | 模型变更后重新生成 | `03-runbooks/change-model-and-regenerate.md` |
 | 调试生成链路或生成文件 | `03-runbooks/debug-codegen-and-generated-files.md` |
+| 排查 `module-meta.json`、页面菜单或 TOPM 图标生成结果 | `03-runbooks/debug-codegen-and-generated-files.md` |
 | 查后台页面开发路线图 | `03-runbooks/admin-page-development-roadmap.md` |
 | 写 BizModel 方法 | `03-runbooks/write-bizmodel-method.md` |
 | 创建 Request / Response DTO | `03-runbooks/create-request-response-dto.md` |

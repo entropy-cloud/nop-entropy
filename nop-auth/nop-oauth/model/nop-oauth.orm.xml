@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:appName="nop-oauth" ext:entityPackageName="io.nop.oauth.dao.entity" ext:basePackageName="io.nop.oauth"
+<orm ext:appName="nop-oauth" ext:icon="shield-check" ext:entityPackageName="io.nop.oauth.dao.entity" ext:basePackageName="io.nop.oauth"
      ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-oauth" ext:mavenVersion="2.0.0-SNAPSHOT"
      ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,postgresql,oracle" x:schema="/nop/schema/orm/orm.xdef"
      xmlns:x="/nop/schema/xdsl.xdef">

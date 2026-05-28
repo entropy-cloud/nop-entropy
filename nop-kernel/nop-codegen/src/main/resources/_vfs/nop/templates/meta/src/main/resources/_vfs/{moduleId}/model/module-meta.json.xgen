@@ -1,0 +1,5 @@
+<c:unit xpl:outputMode="text">
+{
+  "x:extends": "_module-meta.json"
+}
+</c:unit>

@@ -31,6 +31,7 @@ nop:
 | 新增 `_vfs` 文件不生效 | 刷新 VFS / 清理缓存 |
 | 生成链路结果不对 | `../03-runbooks/debug-codegen-and-generated-files.md` |
 | 页面生成结果不对 | `PageProvider__getPage`（见下方） |
+| TOPM 图标或模块菜单不对 | 先看 `/{moduleId}/model/module-meta.json`，再看对应 `_*.action-auth.xml` |
 
 ## `_dump` 是什么
 
@@ -103,6 +104,15 @@ curl -s "http://localhost:8080/p/PageProvider__getPage?path=/nop/code/pages/dash
 1. 你改的是源模型还是生成物。
 2. 页面文字是否又被 i18n key 覆盖。
 3. 视图是否来自 `_gen` 输出而不是保留层文件。
+
+### TOPM 图标没按预期生成
+
+先区分：
+
+1. 你要的是模块级 TOPM icon，还是实体级 SUBM icon。
+2. 模块级 icon 看 source `model/*.orm.xml` 根 `<orm ext:icon>`，不要只看 `entity ext:icon`。
+3. 先检查 `*-meta` 下的 `/{moduleId}/model/module-meta.json` 是否已经带上 `icon`。
+4. 再检查 `*-web` 下生成的 `_*.action-auth.xml` 是否读取到 `moduleMeta.icon`，未配置时会回退到 `ion:grid-outline`。
 
 ## 日志与异常
 

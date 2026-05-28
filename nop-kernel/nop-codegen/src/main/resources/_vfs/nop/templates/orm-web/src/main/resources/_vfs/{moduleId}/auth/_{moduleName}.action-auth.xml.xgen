@@ -2,7 +2,7 @@
 
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
     <site id="main">
-        <resource id="test-orm-${moduleName}" displayName="测试${moduleName}" icon="ion:grid-outline" resourceType="TOPM"
+        <resource id="test-orm-${moduleName}" displayName="测试${moduleName}" icon="${moduleMeta.icon || 'ion:grid-outline'}" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-${moduleName}" component="layouts/default/index">
             <children>
                 <c:script>

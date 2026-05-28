@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:registerShortName="true" ext:appName="nop-report" ext:entityPackageName="io.nop.report.dao.entity"
+<orm ext:registerShortName="true" ext:appName="nop-report" ext:icon="chart-column" ext:entityPackageName="io.nop.report.dao.entity"
      ext:basePackageName="io.nop.report" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-report"
      ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">

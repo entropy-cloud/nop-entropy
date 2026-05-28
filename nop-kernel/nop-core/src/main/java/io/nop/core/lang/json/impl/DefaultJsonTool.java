@@ -138,6 +138,10 @@ public class DefaultJsonTool implements IJsonTool {
         JsonSerializeHelper.serialize(null, obj, handler);
     }
 
+    public Map<String, Object> loadDeltaMap(IResource resource) {
+        return loadDeltaBean(resource, Map.class, null);
+    }
+
     @Override
     public <T> T loadDeltaBean(IResource resource, Type targetType, DeltaJsonOptions options) {
         Map<String, Object> map = DeltaJsonLoader.instance().loadFromResource(resource, options);

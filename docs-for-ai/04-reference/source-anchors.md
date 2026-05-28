@@ -17,6 +17,9 @@
 | `GEN-003` | `*-meta/precompile/gen-meta.xgen` | `*-meta` 负责生成 XMeta |
 | `GEN-004` | `*-meta/postcompile/gen-i18n.xgen` | `*-meta` 负责生成 i18n |
 | `GEN-005` | `*-web/precompile/gen-page.xgen` | `*-web` 基于 XMeta 生成页面文件 |
+| `GEN-006` | `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/_module-meta.json.xgen` + `.../module-meta.json.xgen` | `*-meta` 负责生成模块级 `module-meta.json`，为 web 层暴露稳定的模块元数据边界 |
+| `GEN-007` | `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/orm-web/@init.xrun` + `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/_{moduleName}.action-auth.xml.xgen` + `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java` (`loadDeltaJson`) | ORM web 模板通过 `loadDeltaJson("/{moduleId}/model/module-meta.json")` 读取模块级 meta，TOPM icon 取 `moduleMeta.icon` |
+| `GEN-008` | `ai-dev/tools/check-orm-icons.mjs` | 仓库内固定检查 source `model/*.orm.xml` 的 root/entity icon，以及 source `*.action-auth.xml` 中显式 `TOPM` / `SUBM` 资源的 icon |
 | `BIZ-001` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/biz/ICrudBiz.java` | 标准 CRUD 业务接口契约 |
 | `BIZ-002` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java` | 实体型服务默认基类 |
 | `BIZ-003` | `CrudBizModel#requireEntity` | 普通 BizModel 获取实体的安全路径 |
@@ -75,6 +78,7 @@
 4. 不要在 IoC 示例里出现 `@Inject private Foo foo;`。
 5. 不要把 infra/store 层的 DAO 直接操作误写成通用业务层模式。
 6. 不要把固定调试 URL 当作平台不变量；优先按 DevDoc / DevTool 的 GraphQL 能力理解。
+7. 不要把 ORM 模块级 TOPM icon 的来源误写成 `/{moduleId}/orm/app.orm.xml`；当前默认链路是 `model/*.orm.xml` 根 `<orm ext:icon>` -> `*-meta/module-meta.json` -> `*-web`。
 
 ## 当 `docs-for-ai` 仍有歧义时
 

@@ -336,6 +336,8 @@
 /nop/auth/model/NopAuthUserSubstitution/NopAuthUserSubstitution.xmeta
 /nop/auth/model/NopAuthUserSubstitution/_NopAuthUserSubstitution.xbiz
 /nop/auth/model/NopAuthUserSubstitution/_NopAuthUserSubstitution.xmeta
+/nop/auth/model/_module-meta.json
+/nop/auth/model/module-meta.json
 /nop/auth/orm/_app.orm.xml
 /nop/auth/orm/app.orm.xml
 /nop/auth/pages/DemoPage/DemoPage.view.xml
@@ -815,6 +817,8 @@
 /nop/report/model/NopReportSubDataset/NopReportSubDataset.xmeta
 /nop/report/model/NopReportSubDataset/_NopReportSubDataset.xbiz
 /nop/report/model/NopReportSubDataset/_NopReportSubDataset.xmeta
+/nop/report/model/_module-meta.json
+/nop/report/model/module-meta.json
 /nop/report/orm/_app.orm.xml
 /nop/report/orm/app.orm.xml
 /nop/report/pages/NopReportDataset/NopReportDataset.lib.xjs
@@ -910,6 +914,8 @@
 /nop/rule/model/RuleService/_RuleMetaBean.xmeta
 /nop/rule/model/RuleService/_RuleRequestBean.xmeta
 /nop/rule/model/RuleService/_RuleResultBean.xmeta
+/nop/rule/model/_module-meta.json
+/nop/rule/model/module-meta.json
 /nop/rule/model/nop-rule.api.xml
 /nop/rule/orm/_app.orm.xml
 /nop/rule/orm/app.orm.xml
@@ -1136,6 +1142,8 @@
 /nop/sys/model/NopSysVariable/NopSysVariable.xmeta
 /nop/sys/model/NopSysVariable/_NopSysVariable.xbiz
 /nop/sys/model/NopSysVariable/_NopSysVariable.xmeta
+/nop/sys/model/_module-meta.json
+/nop/sys/model/module-meta.json
 /nop/sys/orm/_app.orm.xml
 /nop/sys/orm/app.orm.xml
 /nop/sys/pages/NopSysChangeLog/NopSysChangeLog.lib.xjs
@@ -1303,6 +1311,8 @@
 /nop/templates/meta-delta/src/main/resources/_vfs/_delta/{deltaDir}/gen-meta.xrun
 /nop/templates/meta/@init.xrun
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/_module
+/nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/_module-meta.json.xgen
+/nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/module-meta.json.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{deltaDir}/_{entityModel.shortName}.xmeta.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/orm-dao/@init.xrun

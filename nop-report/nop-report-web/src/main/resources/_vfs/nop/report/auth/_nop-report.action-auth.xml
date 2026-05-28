@@ -2,7 +2,7 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-report" displayName="测试nop-report" icon="ion:grid-outline" resourceType="TOPM"
+        <resource id="test-orm-nop-report" displayName="测试nop-report" icon="chart-column" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-nop-report" component="layouts/default/index">
             <children>
                 <resource id="NopReportDataset-main" displayName="数据集定义" orderNo="10001" i18n-en:displayName="Dataset"
