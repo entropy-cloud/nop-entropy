@@ -10,6 +10,8 @@
 
     <bean id="io.nop.web.page.PageProvider" ioc:type="@bean:id"/>
 
+    <bean id="io.nop.web.page.IndexHtmlProvider" ioc:type="@bean:id"/>
+
     <bean id="io.nop.web.biz.SystemJsProviderBizModel" ioc:type="@bean:id"/>
 
     <bean id="io.nop.web.page.DynamicWebFileProvider" ioc:type="@bean:id">

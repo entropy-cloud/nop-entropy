@@ -27,6 +27,14 @@ public interface WebConfigs {
     IConfigReference<Boolean> CFG_WEB_USE_DYNAMIC_JS = varRef(s_loc,
             "nop.web.use-dynamic-js", Boolean.class, true);
 
+    @Description("index.html扩展注入片段文件的VFS路径，配置后启用扩展注入，支持xpl和html后缀")
+    IConfigReference<String> CFG_WEB_INDEX_EXTENSIONS_PATH = varRef(s_loc,
+            "nop.web.index-extensions-path", String.class, null);
+
+    @Description("index.html的title文本，支持${var}模板变量")
+    IConfigReference<String> CFG_WEB_INDEX_TITLE = varRef(s_loc,
+            "nop.web.index-title", String.class, null);
+
     @Description("并行验证页面模型的线程数")
     IConfigReference<Integer> CFG_WEB_PAGE_VALIDATION_THREAD_COUNT = varRef(s_loc,
             "nop.web.page-validation-thread-count", Integer.class, 1);

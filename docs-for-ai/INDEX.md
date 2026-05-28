@@ -61,6 +61,7 @@
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
 | 理解 XLang / XPL / xrun / xgen 基本写法 | `02-core-guides/xlang-and-xpl-basics.md` |
+| 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
 | 新建实体 | `03-runbooks/create-new-entity.md` |
 | 新增字段或校验 | `03-runbooks/add-field-and-validation.md` |

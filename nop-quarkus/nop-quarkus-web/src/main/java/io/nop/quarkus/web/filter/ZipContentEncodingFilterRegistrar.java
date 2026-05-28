@@ -7,10 +7,12 @@
  */
 package io.nop.quarkus.web.filter;
 
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.quarkus.web.QuarkusWebConstants;
+import io.nop.web.page.IndexHtmlProvider;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.vertx.http.runtime.filters.Filters;
 import io.vertx.core.http.HttpHeaders;
@@ -30,7 +32,15 @@ public class ZipContentEncodingFilterRegistrar {
     public void setupFilter(@Observes Filters filters) {
         filters.register((rc) -> {
             String path = rc.normalizedPath();
-            if (path.equals("/")) {
+            if (path.equals("/") || path.equals("/index.html")) {
+                IndexHtmlProvider provider = BeanContainer.instance().tryGetBeanByType(IndexHtmlProvider.class);
+                if (provider != null) {
+                    String html = provider.getIndexHtml();
+                    rc.response().putHeader(HttpHeaders.CONTENT_TYPE, "text/html;charset=UTF-8");
+                    rc.response().end(html);
+                    return;
+                }
+
                 IResource resource = new ClassPathResource("classpath:META-INF/resources/index.html.gz");
                 if (resource.exists()) {
                     // reroute会清空headers

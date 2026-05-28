@@ -7,7 +7,9 @@
  */
 package io.nop.spring.web.filter;
 
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.util.StringHelper;
+import io.nop.web.page.IndexHtmlProvider;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,7 +41,15 @@ public class ZipContentEncodingFilter implements Filter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (path.equals("/")) {
+        if (path.equals("/") || path.equals("/index.html")) {
+            IndexHtmlProvider provider = BeanContainer.instance().tryGetBeanByType(IndexHtmlProvider.class);
+            if (provider != null) {
+                String html = provider.getIndexHtml();
+                response.setContentType("text/html;charset=UTF-8");
+                response.getWriter().write(html);
+                return;
+            }
+
             Resource resource = getResource("META-INF/resources/index.html.gz");
             if (resource.exists()) {
                 setZipHeader("/index.html", response);
