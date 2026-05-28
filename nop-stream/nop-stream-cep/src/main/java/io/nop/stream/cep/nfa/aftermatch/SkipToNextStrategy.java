@@ -38,6 +38,9 @@ public final class SkipToNextStrategy extends SkipRelativeToWholeMatchStrategy {
         EventId pruningId = null;
         for (Map<String, List<EventId>> resultMap : match) {
             for (List<EventId> eventList : resultMap.values()) {
+                if (eventList.isEmpty()) {
+                    continue;
+                }
                 pruningId = min(pruningId, eventList.get(0));
             }
         }

@@ -484,6 +484,17 @@ public class NFACompiler {
          * @return the copy of the state itself if no modifications were needed
          */
         private State<T> copyWithoutTransitiveNots(final State<T> sinkState) {
+            return copyWithoutTransitiveNots(sinkState, new HashSet<>());
+        }
+
+        private State<T> copyWithoutTransitiveNots(final State<T> sinkState, final Set<String> visited) {
+            if (!visited.add(sinkState.getName())) {
+                throw new io.nop.stream.core.exceptions.StreamException(
+                        io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR)
+                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                "Circular PROCEED dependency detected at state: " + sinkState.getName());
+            }
+
             final List<Tuple2<IterativeCondition<T>, String>> currentNotCondition =
                     getCurrentNotCondition();
 
@@ -491,9 +502,6 @@ public class NFACompiler {
                     || !currentPattern
                             .getQuantifier()
                             .hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
-                // we do not create an alternative path if we are NOT in an OPTIONAL state or there
-                // is no NOTs prior to
-                // the optional state
                 return sinkState;
             }
 
@@ -512,7 +520,7 @@ public class NFACompiler {
                             }
                         }
                     } else {
-                        targetState = copyWithoutTransitiveNots(tStateTransition.getTargetState());
+                        targetState = copyWithoutTransitiveNots(tStateTransition.getTargetState(), new HashSet<>(visited));
                     }
 
                     if (!remove) {

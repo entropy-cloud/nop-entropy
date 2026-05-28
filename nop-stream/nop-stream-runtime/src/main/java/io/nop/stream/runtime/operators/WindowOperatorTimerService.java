@@ -8,6 +8,7 @@
 package io.nop.stream.runtime.operators;
 
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.PriorityQueue;
@@ -88,13 +89,19 @@ public class WindowOperatorTimerService<K, N> implements InternalTimerService<N>
     }
     @Override
     public void deleteEventTimeTimer(N namespace, long time) {
+        Object expectedKey = currentKeySupplier != null ? currentKeySupplier.get() : null;
         eventTimeTimers.removeIf(timer ->
-                timer.getNamespace().equals(namespace) && timer.getTimestamp() == time);
+                timer.getNamespace().equals(namespace)
+                        && timer.getTimestamp() == time
+                        && Objects.equals(timer.getKey(), expectedKey));
     }
     @Override
     public void deleteProcessingTimeTimer(N namespace, long time) {
+        Object expectedKey = currentKeySupplier != null ? currentKeySupplier.get() : null;
         processingTimeTimers.removeIf(timer ->
-                timer.getNamespace().equals(namespace) && timer.getTimestamp() == time);
+                timer.getNamespace().equals(namespace)
+                        && timer.getTimestamp() == time
+                        && Objects.equals(timer.getKey(), expectedKey));
     }
     @Override
     public void forEachEventTimeTimer(BiConsumer<N, Long> consumer) throws Exception {

@@ -376,7 +376,7 @@ public class NFA<T> {
             boolean shouldDiscardPath = false;
             for (final ComputationState newComputationState : newComputationStates) {
 
-                if (isStartState(computationState) && newComputationState.getStartTimestamp() > 0) {
+                if (isStartState(computationState) && newComputationState.getStartTimestamp() >= 0) {
                     nfaState.setNewStartPartiailMatch();
                 }
 

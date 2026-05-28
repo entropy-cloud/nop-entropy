@@ -460,6 +460,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
                 if (triggerResult.isPurge()) {
                     clearWindowContents(key, window);
+                    triggerContext.clear();
                 }
                 registerCleanupTimer(window);
             }
@@ -526,6 +527,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     : triggerContext.window;
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
+                triggerContext.clear();
             }
         }
 
@@ -582,6 +584,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     : triggerContext.window;
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, stateWindow);
+                triggerContext.clear();
             }
         }
 

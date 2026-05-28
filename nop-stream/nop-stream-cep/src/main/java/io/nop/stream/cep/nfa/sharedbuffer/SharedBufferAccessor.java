@@ -186,9 +186,9 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
                                             target != null
                                                     ? Tuple2.of(
                                                     target,
-                                                    sharedBuffer
-                                                            .getEntry(target)
-                                                            .getElement())
+                                                    sharedBuffer.getEntry(target) != null
+                                                            ? sharedBuffer.getEntry(target).getElement()
+                                                            : null)
                                                     : null,
                                             edge.getDeweyNumber(),
                                             newPath));
