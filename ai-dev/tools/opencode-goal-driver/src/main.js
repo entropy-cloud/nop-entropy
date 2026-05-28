@@ -36,7 +36,12 @@ async function main() {
 
   try {
     const result = await executeWorkflow(config, runner);
-    console.log(`\nResult: ${result.status} (cycle ${result.cycle})`);
+    console.log(`\n════════════════════════════════════════`);
+    console.log(`  Module:  ${config.moduleName}`);
+    console.log(`  Status:  ${result.status}`);
+    console.log(`  Cycles:  ${result.cycle}`);
+    console.log(`  Elapsed: ${result.elapsed || "N/A"}`);
+    console.log(`════════════════════════════════════════`);
 
     switch (result.status) {
       case "completed":

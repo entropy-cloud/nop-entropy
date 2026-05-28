@@ -2,8 +2,23 @@ import { appendFileSync } from "node:fs";
 import { execute } from "./executor.js";
 import { createStepConfigs, STEP_NAMES } from "./prompts.js";
 
+function localTimeStr(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function durationStr(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h${m}m${sec}s`;
+  if (m > 0) return `${m}m${sec}s`;
+  return `${sec}s`;
+}
+
 function log(config, msg) {
-  const line = `[${new Date().toISOString().slice(11, 19)}] ${msg}`;
+  const line = `[${localTimeStr()}] ${msg}`;
   console.log(line);
   if (config.logFile) appendFileSync(config.logFile, line + "\n");
 }
@@ -63,6 +78,7 @@ async function runMavenBuild(config, args) {
  */
 export async function executeWorkflow(config, runner) {
   const stepCfgs = createStepConfigs(config);
+  const startTime = Date.now();
   log(config, `=== OpenCode Goal Driver: ${config.moduleName} ===`);
   log(config, `maxCycles=${config.maxCycles}  maxInnerCycles=${config.maxInnerCycles}`);
 
@@ -81,7 +97,7 @@ export async function executeWorkflow(config, runner) {
       const val = await extractTagOrAsk(runner, out.text, p.resultTag, p.markerValues, STEP_NAMES.FIX_BUILD, p.system);
       if (val !== p.markerValues.FIXED) {
         log(config, "[健康检查] 修复失败，退出");
-        return { status: "failed", cycle: outer };
+        return { status: "failed", cycle: outer, elapsed: durationStr(Date.now() - startTime) };
       }
     }
 
@@ -101,8 +117,10 @@ export async function executeWorkflow(config, runner) {
 
     // ── 2. No issues → DONE ──
     if (!hasIssues) {
+      const elapsed = durationStr(Date.now() - startTime);
       log(config, `╚══ ${config.moduleName} 审计无问题，完善完成 (outer cycle ${outer}) ══`);
-      return { status: "completed", cycle: outer };
+      log(config, `══ 总耗时: ${elapsed} ══`);
+      return { status: "completed", cycle: outer, elapsed };
     }
 
     // ── 3. Plan ──
@@ -175,6 +193,8 @@ export async function executeWorkflow(config, runner) {
     log(config, `╚══ Outer cycle ${outer} 完成，下一轮将重新审计 ══`);
   }
 
+  const elapsed = durationStr(Date.now() - startTime);
   log(config, `=== FAIL: 超过最大外循环次数 ${config.maxCycles} ===`);
-  return { status: "max_cycles", cycle: config.maxCycles };
+  log(config, `══ 总耗时: ${elapsed} ══`);
+  return { status: "max_cycles", cycle: config.maxCycles, elapsed };
 }
