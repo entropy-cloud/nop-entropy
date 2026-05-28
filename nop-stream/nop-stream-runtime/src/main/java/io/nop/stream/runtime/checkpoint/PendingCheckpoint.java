@@ -10,6 +10,7 @@ package io.nop.stream.runtime.checkpoint;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.exceptions.StreamException;
@@ -18,6 +19,10 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 
 public class PendingCheckpoint {
+
+    public enum Status {
+        RUNNING, COMPLETED, ABORTED
+    }
 
     private final String jobId;
     private final String pipelineId;
@@ -29,6 +34,7 @@ public class PendingCheckpoint {
     private final Map<TaskLocation, TaskStateSnapshot> taskStates;
     private final CompletableFuture<CompletedCheckpoint> completableFuture;
 
+    private final AtomicReference<Status> status;
     private volatile boolean isDisposed = false;
 
     public PendingCheckpoint(
@@ -47,6 +53,7 @@ public class PendingCheckpoint {
         this.notYetAcknowledgedTasks.addAll(tasksToAcknowledge);
         this.taskStates = new ConcurrentHashMap<>();
         this.completableFuture = new CompletableFuture<>();
+        this.status = new AtomicReference<>(Status.RUNNING);
     }
 
     public String getJobId() {
@@ -101,8 +108,8 @@ public class PendingCheckpoint {
         return taskStates.get(taskLocation);
     }
 
-    public void acknowledgeTask(TaskLocation taskLocation, TaskStateSnapshot state) {
-        if (isDisposed) {
+    public synchronized void acknowledgeTask(TaskLocation taskLocation, TaskStateSnapshot state) {
+        if (isDisposed || status.get() != Status.RUNNING) {
             return;
         }
 
@@ -134,7 +141,7 @@ public class PendingCheckpoint {
     }
 
     public void abort(String reason, Throwable cause) {
-        if (!isDisposed) {
+        if (status.compareAndSet(Status.RUNNING, Status.ABORTED)) {
             isDisposed = true;
             if (!completableFuture.isDone()) {
                 Exception error = cause != null
@@ -151,6 +158,10 @@ public class PendingCheckpoint {
 
     public boolean isDisposed() {
         return isDisposed;
+    }
+
+    public AtomicReference<Status> getStatus() {
+        return status;
     }
 
     public void dispose() {

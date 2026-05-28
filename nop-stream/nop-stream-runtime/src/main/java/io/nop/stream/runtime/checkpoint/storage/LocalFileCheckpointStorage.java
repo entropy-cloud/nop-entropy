@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -23,6 +24,8 @@ import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.model.StreamModelFingerprint;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 @Internal
 public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
@@ -33,12 +36,15 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     private static final String TEMP_SUFFIX = ".tmp";
     private static final String SAVEPOINT_DIR_PREFIX = "savepoint-";
     private static final String METADATA_SUFFIX = ".metadata";
+    private static final Pattern SAFE_ID_PATTERN = Pattern.compile("[a-zA-Z0-9_-]+");
 
     private final String baseDir;
+    private final Path baseDirCanonical;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     public LocalFileCheckpointStorage(String baseDir) {
         this.baseDir = baseDir;
+        this.baseDirCanonical = Paths.get(baseDir).toAbsolutePath().normalize();
         ensureDirectoryExists(baseDir);
     }
 
@@ -102,11 +108,12 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     @Override
     public List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws Exception {
+        validateId(jobId, "jobId");
         List<CompletedCheckpoint> result = new ArrayList<>();
 
         lock.readLock().lock();
         try {
-            Path jobRootDir = Paths.get(baseDir, jobId);
+            Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
             if (!Files.exists(jobRootDir)) {
                 return result;
             }
@@ -141,11 +148,12 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     @Override
     public List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws Exception {
+        validateId(jobId, "jobId");
         List<CompletedCheckpoint> all = new ArrayList<>();
 
         lock.readLock().lock();
         try {
-            Path jobDir = getJobDir(jobId, "-1").getParent();
+            Path jobDir = validatePath(Paths.get(baseDir, jobId));
             if (!Files.exists(jobDir)) {
                 return all;
             }
@@ -188,7 +196,8 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     @Override
     public void deleteAllCheckpoints(String jobId) throws Exception {
-        Path jobRootDir = Paths.get(baseDir, jobId);
+        validateId(jobId, "jobId");
+        Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
 
         lock.writeLock().lock();
         try {
@@ -211,8 +220,9 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     @Override
     public int getCheckpointCount(String jobId) throws Exception {
+        validateId(jobId, "jobId");
         int[] count = {0};
-        Path jobRootDir = Paths.get(baseDir, jobId);
+        Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
 
         lock.readLock().lock();
         try {
@@ -231,12 +241,33 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     private Path getJobDir(String jobId, String pipelineId) {
-        return Paths.get(baseDir, jobId, pipelineId);
+        validateId(jobId, "jobId");
+        validateId(pipelineId, "pipelineId");
+        return validatePath(Paths.get(baseDir, jobId, pipelineId));
     }
 
     private Path getCheckpointPath(String jobId, String pipelineId, long checkpointId) {
-        return Paths.get(baseDir, jobId, pipelineId,
-                checkpointId + CHECKPOINT_SUFFIX);
+        validateId(jobId, "jobId");
+        validateId(pipelineId, "pipelineId");
+        return validatePath(Paths.get(baseDir, jobId, pipelineId,
+                checkpointId + CHECKPOINT_SUFFIX));
+    }
+
+    private void validateId(String id, String name) {
+        if (id == null || !SAFE_ID_PATTERN.matcher(id).matches()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, name)
+                    .param(ARG_DETAIL, "must match [a-zA-Z0-9_-]+, got: " + id);
+        }
+    }
+
+    private Path validatePath(Path path) {
+        Path canonical = path.toAbsolutePath().normalize();
+        if (!canonical.startsWith(baseDirCanonical)) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "Path traversal detected: " + path + " is outside baseDir " + baseDirCanonical);
+        }
+        return canonical;
     }
 
     private long extractCheckpointId(String fileName) {
@@ -388,7 +419,7 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     @Override
     public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception {
         String savepointDirName = SAVEPOINT_DIR_PREFIX + checkpoint.getCheckpointId();
-        Path savepointDir = Paths.get(targetPath, savepointDirName);
+        Path savepointDir = validatePath(Paths.get(targetPath, savepointDirName));
 
         lock.writeLock().lock();
         try {
@@ -418,7 +449,7 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     @Override
     public CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception {
-        Path dir = Paths.get(savepointPath);
+        Path dir = validatePath(Paths.get(savepointPath));
         if (!Files.isDirectory(dir)) {
             LOG.warn("Savepoint path does not exist or is not a directory: {}", savepointPath);
             return null;
@@ -443,7 +474,7 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
 
     @Override
     public SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception {
-        Path dir = Paths.get(savepointPath);
+        Path dir = validatePath(Paths.get(savepointPath));
         if (!Files.isDirectory(dir)) {
             return null;
         }
@@ -515,7 +546,9 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     private Path getEpochManifestPath(String jobId, String pipelineId, long epochId) {
-        return Paths.get(baseDir, jobId, pipelineId, epochId + EPOCH_MANIFEST_SUFFIX);
+        validateId(jobId, "jobId");
+        validateId(pipelineId, "pipelineId");
+        return validatePath(Paths.get(baseDir, jobId, pipelineId, epochId + EPOCH_MANIFEST_SUFFIX));
     }
 
     private byte[] serializeEpochManifest(EpochManifest manifest) {

@@ -91,7 +91,7 @@ public class CheckpointCoordinator {
         return Collections.unmodifiableList(participants);
     }
 
-    public void startCheckpointScheduler() {
+    public synchronized void startCheckpointScheduler() {
         if (isSchedulerStarted) {
             return;
         }
@@ -201,10 +201,16 @@ public class CheckpointCoordinator {
             return;
         }
 
+        if (!pending.getStatus().compareAndSet(PendingCheckpoint.Status.RUNNING, PendingCheckpoint.Status.COMPLETED)) {
+            LOG.debug("Skip completing checkpoint {} because status is {}", checkpointId, pending.getStatus().get());
+            return;
+        }
+
         try {
             checkpointStorage.storeCheckPoint(completed);
         } catch (Exception e) {
             LOG.error("Failed to store checkpoint {}", checkpointId, e);
+            pending.getStatus().compareAndSet(PendingCheckpoint.Status.COMPLETED, PendingCheckpoint.Status.ABORTED);
             abortPendingCheckpoint(pending, "Failed to store checkpoint");
             return;
         }
@@ -216,6 +222,7 @@ public class CheckpointCoordinator {
             LOG.debug("Stored EpochManifest for epoch {}", checkpointId);
         } catch (Exception e) {
             LOG.error("Failed to store EpochManifest for checkpoint {}, aborting checkpoint", checkpointId, e);
+            pending.getStatus().compareAndSet(PendingCheckpoint.Status.COMPLETED, PendingCheckpoint.Status.ABORTED);
             abortPendingCheckpoint(pending, "Failed to store EpochManifest for checkpoint " + checkpointId);
             return;
         }
@@ -247,6 +254,12 @@ public class CheckpointCoordinator {
 
     public void abortPendingCheckpoint(PendingCheckpoint pending, String reason) {
         long checkpointId = pending.getCheckpointId();
+
+        if (!pending.getStatus().compareAndSet(PendingCheckpoint.Status.RUNNING, PendingCheckpoint.Status.ABORTED)) {
+            LOG.debug("Skip aborting checkpoint {} because status is {}", checkpointId, pending.getStatus().get());
+            return;
+        }
+
         PendingCheckpoint removed = pendingCheckpoints.remove(checkpointId);
         if (removed == null) {
             LOG.debug("Skip aborting checkpoint {} because it is no longer pending", checkpointId);

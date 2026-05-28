@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,10 +67,8 @@ public class TaskExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(TaskExecutor.class);
 
-    /**
-     * Default thread pool size based on available processors.
-     */
     private static final int DEFAULT_POOL_SIZE = Runtime.getRuntime().availableProcessors();
+    private static final AtomicLong THREAD_COUNTER = new AtomicLong(0);
 
     /**
      * The underlying thread pool for executing tasks.
@@ -109,7 +108,11 @@ public class TaskExecutor {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "poolSize").param(ARG_DETAIL, "must be positive, got: " + poolSize);
         }
 
-        this.executorService = Executors.newFixedThreadPool(poolSize);
+        this.executorService = Executors.newFixedThreadPool(poolSize, r -> {
+            Thread t = new Thread(r, "stream-task-executor-" + THREAD_COUNTER.getAndIncrement());
+            t.setDaemon(true);
+            return t;
+        });
         this.submittedTasks = new ConcurrentHashMap<>();
         this.taskFutures = new ConcurrentHashMap<>();
         this.isShutdown = new AtomicBoolean(false);

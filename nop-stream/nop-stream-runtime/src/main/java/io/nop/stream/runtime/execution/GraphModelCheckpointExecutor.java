@@ -90,7 +90,7 @@ public class GraphModelCheckpointExecutor {
             long executionTime = System.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
-            shutdown(barrierScheduler, coordinator);
+            shutdown(barrierScheduler, coordinator, executor);
         }
     }
 
@@ -149,7 +149,7 @@ public class GraphModelCheckpointExecutor {
             long executionTime = System.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
-            shutdown(barrierScheduler, coordinator);
+            shutdown(barrierScheduler, coordinator, executor);
         }
     }
 
@@ -213,7 +213,7 @@ public class GraphModelCheckpointExecutor {
             checkTaskFailures(tasks);
             return savepointPath;
         } finally {
-            shutdown(barrierScheduler, coordinator);
+            shutdown(barrierScheduler, coordinator, executor);
         }
     }
 
@@ -254,7 +254,7 @@ public class GraphModelCheckpointExecutor {
             long executionTime = System.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
-            shutdown(barrierScheduler, coordinator);
+            shutdown(barrierScheduler, coordinator, executor);
         }
     }
 
@@ -536,7 +536,10 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
-    private static void shutdown(ScheduledExecutorService barrierScheduler, CheckpointCoordinator coordinator) {
+    private static void shutdown(ScheduledExecutorService barrierScheduler, CheckpointCoordinator coordinator, TaskExecutor executor) {
+        if (executor != null) {
+            executor.shutdownNow();
+        }
         if (barrierScheduler != null) {
             barrierScheduler.shutdownNow();
         }

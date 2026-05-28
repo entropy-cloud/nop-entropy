@@ -21,8 +21,6 @@ package io.nop.stream.cep.nfa.sharedbuffer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -83,8 +81,6 @@ public class SharedBuffer<V> {
      */
     private final ConcurrentHashMap<NodeId, Lockable<SharedBufferNode>> entryCache;
 
-    private final Timer cacheStatisticsTimer;
-
     @SuppressWarnings("unchecked")
     public SharedBuffer(
             KeyedStateStore stateStore,
@@ -116,7 +112,6 @@ public class SharedBuffer<V> {
         this.eventsBufferCache = new ConcurrentHashMap<>(cacheConfig.getEventsBufferCacheSlots());
         // set the entry cache and strategy of exchanging out
         this.entryCache = new ConcurrentHashMap<>(cacheConfig.getEntryCacheSlots());
-        cacheStatisticsTimer = new Timer(true);
     }
 
 //    public void migrateOldState(
@@ -237,9 +232,6 @@ public class SharedBuffer<V> {
     }
 
     public void releaseCacheStatisticsTimer() {
-        if (cacheStatisticsTimer != null) {
-            cacheStatisticsTimer.cancel();
-        }
     }
 
     /**
