@@ -30,10 +30,9 @@ class HashPartitionRouter implements PartitionRouter {
     public int selectChannel(StreamRecord<?> record) {
         if (partitioner != null) {
             int channel = ((IPartitioner<Object>) partitioner).partition(record.getValue(), numPartitions);
-            return Math.abs(channel % numPartitions);
+            return Math.floorMod(channel, numPartitions);
         }
-        // Default: hash the record value
-        return Math.abs(record.getValue().hashCode() % numPartitions);
+        return Math.floorMod(record.getValue().hashCode(), numPartitions);
     }
 
     @Override

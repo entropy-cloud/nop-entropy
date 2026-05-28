@@ -20,16 +20,6 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.DrainableSource;
 import io.nop.stream.core.exceptions.StreamException;
 
-/**
- * Adapts nop-message-debezium's {@link DebeziumMessageSource} to nop-stream's {@link SourceFunction}.
- * <p>
- * Captures database change events (CDC) and emits them as {@link ChangeEvent} records into the stream.
- * Blocks until cancelled.
- * <p>
- * Implements {@link DrainableSource} to support DRAIN termination mode: when {@link #truncateForDrain()}
- * is called, the source stops consuming new change events but allows already-in-flight records
- * to be processed before the final checkpoint.
- */
 public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     private static final long serialVersionUID = 1L;
@@ -38,7 +28,7 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     private volatile boolean running = true;
     private volatile boolean draining = false;
-    private final CountDownLatch completionLatch = new CountDownLatch(1);
+    private transient volatile CountDownLatch completionLatch;
     private DebeziumMessageSource source;
     private ICancellable subscription;
 
@@ -47,10 +37,23 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
             throw new StreamException("config must not be null");
         }
         this.config = config;
+        this.completionLatch = new CountDownLatch(1);
+    }
+
+    private void initCompletionLatch() {
+        if (completionLatch == null) {
+            synchronized (this) {
+                if (completionLatch == null) {
+                    completionLatch = new CountDownLatch(1);
+                }
+            }
+        }
     }
 
     @Override
     public void run(SourceContext<ChangeEvent> ctx) throws Exception {
+        initCompletionLatch();
+
         if (!draining) {
             source = new DebeziumMessageSource(config);
             subscription = source.subscribe(ctx::collect);
@@ -66,7 +69,9 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
     @Override
     public void cancel() {
         running = false;
-        completionLatch.countDown();
+        if (completionLatch != null) {
+            completionLatch.countDown();
+        }
         if (subscription != null) {
             subscription.cancel();
         }
@@ -99,8 +104,9 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
             source.stop();
             source = null;
         }
-        // Unblock the run() loop so it can exit
-        completionLatch.countDown();
+        if (completionLatch != null) {
+            completionLatch.countDown();
+        }
     }
 
     /**

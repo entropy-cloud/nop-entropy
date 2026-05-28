@@ -65,6 +65,9 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * CEP pattern operator for a keyed input stream. For each key, the operator creates a {@link NFA}
  * and a priority queue to buffer out of order elements. Both data structures are stored using the
@@ -80,6 +83,7 @@ public class CepOperator<IN, KEY, OUT>
 {
 
     private static final long serialVersionUID = -4166778210774160757L;
+    private static final Logger LOG = LoggerFactory.getLogger(CepOperator.class);
 
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
@@ -189,6 +193,9 @@ public class CepOperator<IN, KEY, OUT>
         if (backend != null) {
             keyedStateStore = backend;
         } else {
+            LOG.warn("CepOperator opened without a configured state backend; falling back to " +
+                    "MemoryKeyedStateBackend. Checkpoint consistency is not guaranteed. " +
+                    "Ensure a state backend is configured when checkpointing is enabled.");
             keyedStateStore = new MemoryKeyedStateBackend<>(Object.class);
         }
         computationStates = keyedStateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));

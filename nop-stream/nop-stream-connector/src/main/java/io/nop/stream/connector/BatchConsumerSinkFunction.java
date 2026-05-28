@@ -14,6 +14,7 @@ import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
+import io.nop.batch.core.impl.BatchChunkContextImpl;
 
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.SinkFunction;
@@ -32,6 +33,7 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
     private final IBatchConsumerProvider.IBatchConsumer<R> consumer;
     private final int batchSize;
     private final List<R> buffer;
+    private final IBatchTaskContext taskContext;
 
     public BatchConsumerSinkFunction(IBatchConsumerProvider<R> consumerProvider) {
         this(consumerProvider, 100);
@@ -44,7 +46,7 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
         if (batchSize < 1) {
             throw new StreamException("batchSize must be at least 1");
         }
-        IBatchTaskContext taskContext = new BatchTaskContextImpl();
+        this.taskContext = new BatchTaskContextImpl();
         this.consumer = consumerProvider.setup(taskContext);
         this.batchSize = batchSize;
         this.buffer = new ArrayList<>(batchSize);
@@ -63,7 +65,10 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
             return;
         }
         try {
-            consumer.consume(buffer, null);
+            IBatchChunkContext chunkContext = taskContext != null
+                    ? new BatchChunkContextImpl(taskContext)
+                    : null;
+            consumer.consume(buffer, chunkContext);
         } finally {
             buffer.clear();
         }

@@ -83,6 +83,7 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (userFunction instanceof AutoCloseable) {
             ((AutoCloseable) userFunction).close();
         }
