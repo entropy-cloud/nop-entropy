@@ -49,7 +49,7 @@ class TestCheckpointParticipant {
         assertTrue(sink.recovered);
     }
 
-    static class TestTwoPhaseSink implements TwoPhaseCommitSinkFunction<String> {
+    static class TestTwoPhaseSink extends TwoPhaseCommitSinkFunction<String> {
         boolean committed = false;
         boolean rolledBack = false;
         boolean recovered = false;

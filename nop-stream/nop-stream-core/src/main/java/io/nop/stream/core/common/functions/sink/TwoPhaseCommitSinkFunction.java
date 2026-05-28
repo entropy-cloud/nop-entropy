@@ -21,49 +21,59 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.SinkFunction;
 
 @Internal
-public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN>, CheckpointParticipant {
+public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>, CheckpointParticipant {
 
-    String PENDING_COMMITS_KEY = "pending-commits";
+    public static final String PENDING_COMMITS_KEY = "pending-commits";
 
-    Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
 
-    void beginTransaction() throws Exception;
+    private Map<Long, Object> pendingCommits;
+
+    protected TwoPhaseCommitSinkFunction() {
+        this.pendingCommits = Collections.synchronizedMap(new TreeMap<>());
+    }
+
+    public abstract void beginTransaction() throws Exception;
 
     @Override
-    default void consume(IN value) throws Exception {
+    public void consume(IN value) throws Exception {
         invoke(value);
     }
 
-    void invoke(IN value) throws Exception;
+    public abstract void invoke(IN value) throws Exception;
 
-    void preCommit(long checkpointId) throws Exception;
+    public abstract void preCommit(long checkpointId) throws Exception;
 
-    void commit(long checkpointId) throws Exception;
+    public abstract void commit(long checkpointId) throws Exception;
 
-    void rollback() throws Exception;
+    public abstract void rollback() throws Exception;
 
-    default void recover(long checkpointId) throws Exception {
+    public void recover(long checkpointId) throws Exception {
         rollback();
         beginTransaction();
     }
 
-    Map<Long, Object> getPendingCommits();
+    public Map<Long, Object> getPendingCommits() {
+        return pendingCommits;
+    }
 
-    void setPendingCommits(Map<Long, Object> pending);
+    public void setPendingCommits(Map<Long, Object> pending) {
+        this.pendingCommits = pending;
+    }
 
     @Override
-    default TaskStateSnapshot saveState(long epochId) throws Exception {
+    public TaskStateSnapshot saveState(long epochId) throws Exception {
         return null;
     }
 
     @Override
-    default void prepareCommit(long epochId) throws Exception {
+    public void prepareCommit(long epochId) throws Exception {
         preCommit(epochId);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    default void finishCommit(long epochId, boolean success) throws Exception {
+    public void finishCommit(long epochId, boolean success) throws Exception {
         Map<Long, Object> pending = getPendingCommits();
 
         if (success) {
@@ -85,7 +95,7 @@ public interface TwoPhaseCommitSinkFunction<IN> extends SinkFunction<IN>, Checkp
     }
 
     @Override
-    default void restoreFromEpoch(long epochId, TaskStateSnapshot state) throws Exception {
+    public void restoreFromEpoch(long epochId, TaskStateSnapshot state) throws Exception {
         Map<Long, Object> pending = getPendingCommits();
         if (pending != null && !pending.isEmpty()) {
             for (Object tx : pending.values()) {

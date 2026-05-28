@@ -14,9 +14,9 @@ class TestTwoPhaseCommitSinkFunction {
      * A test sink that tracks rollback calls and can simulate rollback failures
      * only during the pending-rollback loop (not during recover).
      */
-    static class TestSink implements TwoPhaseCommitSinkFunction<String> {
+    static class TestSink extends TwoPhaseCommitSinkFunction<String> {
         int rollbackCallCount = 0;
-        int failOnRollbackCall = -1; // which rollback call should fail (-1 = none)
+        int failOnRollbackCall = -1;
         private Map<Long, Object> pendingCommits = new HashMap<>();
 
         TestSink withPendingCommits() {
@@ -48,7 +48,6 @@ class TestTwoPhaseCommitSinkFunction {
 
         @Override
         public void recover(long checkpointId) throws Exception {
-            // Override to avoid calling rollback() again
             beginTransaction();
         }
     }
