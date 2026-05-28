@@ -56,7 +56,8 @@ class TestJdbcCheckpointStorage {
         try {
             SQL dropSql = SQL.begin().sql("DROP TABLE IF EXISTS stream_checkpoint").end();
             jdbcTemplate.executeUpdate(dropSql);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            // table may not exist on first run
         }
 
         storage = new JdbcCheckpointStorage(jdbcTemplate);
@@ -236,6 +237,45 @@ class TestJdbcCheckpointStorage {
     void testLoadSavepointWithNonexistentPath() throws Exception {
         CompletedCheckpoint result = storage.loadSavepoint("/nonexistent/path");
         assertNull(result, "loadSavepoint with nonexistent path should return null");
+    }
+
+    @Test
+    void testDuplicateCheckpointUpsert() throws Exception {
+        CompletedCheckpoint cp1 = createTestCheckpoint("dup-job", "dup-pipe", 100L);
+        storage.storeCheckPoint(cp1);
+        assertEquals(1, storage.getCheckpointCount("dup-job"));
+
+        CompletedCheckpoint cp2 = createTestCheckpoint("dup-job", "dup-pipe", 100L);
+        cp2.setRestored(true);
+        storage.storeCheckPoint(cp2);
+
+        assertEquals(1, storage.getCheckpointCount("dup-job"),
+                "Duplicate (job_id, pipeline_id, checkpoint_id) should not create a second row");
+
+        CompletedCheckpoint loaded = storage.getLatestCheckpoint("dup-job", "dup-pipe");
+        assertNotNull(loaded);
+    }
+
+    @Test
+    void testDuplicateEpochManifestUpsert() throws Exception {
+        try {
+            SQL dropSql = SQL.begin().sql("DROP TABLE IF EXISTS stream_epoch_manifest").end();
+            jdbcTemplate.executeUpdate(dropSql);
+        } catch (Exception e) {
+            // table may not exist on first run
+        }
+
+        EpochManifest manifest1 = new EpochManifest(1L, "ej", "ep", System.currentTimeMillis(),
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED, java.util.Collections.emptyMap(), null, null);
+        storage.storeEpochManifest("ej", "ep", manifest1);
+
+        EpochManifest manifest2 = new EpochManifest(1L, "ej", "ep", System.currentTimeMillis() + 1000,
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED, java.util.Collections.emptyMap(), null, null);
+        storage.storeEpochManifest("ej", "ep", manifest2);
+
+        EpochManifest loaded = storage.loadLatestEpochManifest("ej", "ep");
+        assertNotNull(loaded);
+        assertEquals(1L, loaded.getEpochId());
     }
 
     private CompletedCheckpoint createTestCheckpoint(String jobId, String pipelineId, long checkpointId) {

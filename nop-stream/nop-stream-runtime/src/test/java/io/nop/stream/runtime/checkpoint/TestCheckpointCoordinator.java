@@ -8,6 +8,7 @@
 package io.nop.stream.runtime.checkpoint;
 
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import org.junit.jupiter.api.AfterEach;
@@ -164,6 +165,49 @@ class TestCheckpointCoordinator {
 
         coordinator.shutdown();
         assertEquals(0, coordinator.getNumberOfPendingCheckpoints());
+    }
+
+    @Test
+    void testStorageFailureNoCounterLeak() throws Exception {
+        ICheckpointStorage failingStorage = new ICheckpointStorage() {
+            private final java.util.concurrent.ConcurrentHashMap<String, CompletedCheckpoint> store = new java.util.concurrent.ConcurrentHashMap<>();
+
+            @Override public String getName() { return "FailingStorage"; }
+            @Override public String storeCheckPoint(CompletedCheckpoint checkpoint) throws Exception {
+                throw new StreamException("Simulated storage failure");
+            }
+            @Override public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) { return null; }
+            @Override public java.util.List<CompletedCheckpoint> getAllCheckpoints(String jobId) { return java.util.Collections.emptyList(); }
+            @Override public java.util.List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) { return java.util.Collections.emptyList(); }
+            @Override public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) {}
+            @Override public void deleteAllCheckpoints(String jobId) {}
+            @Override public int getCheckpointCount(String jobId) { return 0; }
+            @Override public boolean exists(String jobId, String pipelineId, long checkpointId) { return false; }
+            @Override public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception { return targetPath; }
+            @Override public CompletedCheckpoint loadSavepoint(String savepointPath) { return null; }
+            @Override public SavepointMetadata loadSavepointMetadata(String savepointPath) { return null; }
+            @Override public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) {}
+            @Override public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) { return null; }
+        };
+
+        CheckpointCoordinator coord = new CheckpointCoordinator("1", "1", new CheckpointIDCounter(), failingStorage, config);
+        coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+
+        try {
+            PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+            assertNotNull(pending);
+            assertEquals(1, coord.getNumberOfPendingCheckpoints());
+
+            coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+            coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
+
+            Thread.sleep(200);
+
+            assertEquals(0, coord.getNumberOfPendingCheckpoints(),
+                    "Counter should be zero after storage failure");
+        } finally {
+            coord.shutdown();
+        }
     }
 
     @Test

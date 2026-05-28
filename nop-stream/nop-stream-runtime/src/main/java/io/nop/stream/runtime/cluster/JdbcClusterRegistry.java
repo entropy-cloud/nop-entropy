@@ -92,30 +92,31 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
         long now = System.currentTimeMillis();
 
-        // Check if node already exists
         SQL existsSql = SQL.begin().name("nodeExists").querySpace(querySpace)
                 .sql("SELECT 1 FROM " + NODE_TABLE + " WHERE node_id = ?", nodeId)
                 .end();
 
-        boolean exists = jdbcTemplate.exists(existsSql);
+        SQL updateSql = SQL.begin().name("updateNode").querySpace(querySpace)
+                .sql("UPDATE " + NODE_TABLE +
+                                " SET endpoint = ?, capacity = ?, last_heartbeat_at = ? WHERE node_id = ?",
+                        endpoint, capacity, now, nodeId)
+                .end();
 
-        if (exists) {
-            // Update existing node
-            SQL updateSql = SQL.begin().name("updateNode").querySpace(querySpace)
-                    .sql("UPDATE " + NODE_TABLE +
-                                    " SET endpoint = ?, capacity = ?, last_heartbeat_at = ? WHERE node_id = ?",
-                            endpoint, capacity, now, nodeId)
-                    .end();
-            jdbcTemplate.executeUpdate(updateSql);
-        } else {
-            // Insert new node
-            SQL insertSql = SQL.begin().name("insertNode").querySpace(querySpace)
-                    .sql("INSERT INTO " + NODE_TABLE +
-                                    " (node_id, endpoint, capacity, registered_at, last_heartbeat_at, lease_expire_at) VALUES (?,?,?,?,?,?)",
-                            nodeId, endpoint, capacity, now, now, 0L)
-                    .end();
-            jdbcTemplate.executeUpdate(insertSql);
-        }
+        SQL insertSql = SQL.begin().name("insertNode").querySpace(querySpace)
+                .sql("INSERT INTO " + NODE_TABLE +
+                                " (node_id, endpoint, capacity, registered_at, last_heartbeat_at, lease_expire_at) VALUES (?,?,?,?,?,?)",
+                        nodeId, endpoint, capacity, now, now, 0L)
+                .end();
+
+        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+            boolean exists = jdbcTemplate.exists(existsSql);
+            if (exists) {
+                jdbcTemplate.executeUpdate(updateSql);
+            } else {
+                jdbcTemplate.executeUpdate(insertSql);
+            }
+            return null;
+        });
 
         LOG.debug("Registered node {} at endpoint {} with capacity {}", nodeId, endpoint, capacity);
     }
