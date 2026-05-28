@@ -190,35 +190,52 @@ public class GraphExecutionPlan {
 
                 RecordWriter<Object> recordWriter = null;
                 InputGate inputGate = null;
+                List<RecordWriter<Object>> fanOutWriters = null;
 
                 // Build RecordWriter: for each outgoing edge, collect the partitions
                 // that this source subtask writes to (one per target subtask per edge)
                 if (!outEdges.isEmpty()) {
-                    List<ResultPartition> writerPartitions = new ArrayList<>();
-                    List<IPartitioner<?>> edgePartitioners = new ArrayList<>();
-
-                    for (JobEdge edge : outEdges) {
+                    if (outEdges.size() == 1) {
+                        List<ResultPartition> writerPartitions = new ArrayList<>();
+                        JobEdge edge = outEdges.get(0);
                         ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
                         if (matrix != null) {
                             for (int t = 0; t < matrix[taskIndex].length; t++) {
                                 writerPartitions.add(matrix[taskIndex][t]);
                             }
                         }
-                    }
 
-                    if (!writerPartitions.isEmpty()) {
-                        // Resolve the partition policy for the primary outgoing edge
-                        PartitionPolicy policy = resolvePartitionPolicy(
-                                outEdges.get(0), deploymentPlan);
-                        IPartitioner<?> partitioner = outEdges.get(0).getPartitioner();
-                        EdgeConfig writerConfig = resolveEdgeConfig(outEdges.get(0), deploymentPlan);
-
-                        PartitionRouter router = PartitionRouter.create(
-                                policy, writerPartitions.size(), partitioner, taskIndex);
-
-                        recordWriter = new RecordWriter<Object>(
-                                writerPartitions.toArray(new ResultPartition[0]),
-                                (IPartitioner<Object>) partitioner, writerConfig, router);
+                        if (!writerPartitions.isEmpty()) {
+                            PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
+                            IPartitioner<?> partitioner = edge.getPartitioner();
+                            EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
+                            PartitionRouter router = PartitionRouter.create(
+                                    policy, writerPartitions.size(), partitioner, taskIndex);
+                            recordWriter = new RecordWriter<Object>(
+                                    writerPartitions.toArray(new ResultPartition[0]),
+                                    (IPartitioner<Object>) partitioner, writerConfig, router);
+                        }
+                    } else {
+                        fanOutWriters = new ArrayList<>();
+                        for (JobEdge edge : outEdges) {
+                            List<ResultPartition> edgePartitions = new ArrayList<>();
+                            ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
+                            if (matrix != null) {
+                                for (int t = 0; t < matrix[taskIndex].length; t++) {
+                                    edgePartitions.add(matrix[taskIndex][t]);
+                                }
+                            }
+                            if (!edgePartitions.isEmpty()) {
+                                PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
+                                IPartitioner<?> partitioner = edge.getPartitioner();
+                                EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
+                                PartitionRouter router = PartitionRouter.create(
+                                        policy, edgePartitions.size(), partitioner, taskIndex);
+                                fanOutWriters.add(new RecordWriter<Object>(
+                                        edgePartitions.toArray(new ResultPartition[0]),
+                                        (IPartitioner<Object>) partitioner, writerConfig, router));
+                            }
+                        }
                     }
                 }
 
@@ -242,7 +259,9 @@ public class GraphExecutionPlan {
                 }
 
                 StreamTaskInvokable invokable;
-                if (recordWriter != null || inputGate != null) {
+                if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
+                    invokable = new StreamTaskInvokable(chain, fanOutWriters);
+                } else if (recordWriter != null || inputGate != null) {
                     invokable = new StreamTaskInvokable(chain, recordWriter, inputGate);
                 } else {
                     invokable = new StreamTaskInvokable(chain);

@@ -202,61 +202,68 @@ public class InputGate {
     }
 
     private Optional<StreamElement> readMultiChannel() {
-        int channelsChecked = 0;
-        int totalChannels = channels.size();
+        int emptyRounds = 0;
+        while (true) {
+            int channelsChecked = 0;
+            int totalChannels = channels.size();
 
-        while (channelsChecked < totalChannels) {
-            int channelIndex = currentChannelIndex % totalChannels;
-            currentChannelIndex = (currentChannelIndex + 1) % totalChannels;
-            channelsChecked++;
+            while (channelsChecked < totalChannels) {
+                int channelIndex = currentChannelIndex % totalChannels;
+                currentChannelIndex = (currentChannelIndex + 1) % totalChannels;
+                channelsChecked++;
 
-            // Skip channels that are blocked by barrier alignment (only when alignment enabled)
-            if (barrierAlignment && barrierReceived[channelIndex]) {
-                continue;
-            }
-
-            InputChannel channel = channels.get(channelIndex);
-            try {
-                StreamElement element = channel.read(50, TimeUnit.MILLISECONDS);
-                if (element == null) {
-                    // Timeout or end-of-stream on this channel
-                    if (channel.isFinished()) {
-                        // Mark this channel's barrier as received only if a checkpoint
-                        // alignment is in progress. Otherwise just skip the channel.
-                        // This prevents barriersRemaining from going negative when a
-                        // finite source finishes before any checkpoint is triggered.
-                        if (pendingBarrier != null) {
-                            if (!barrierReceived[channelIndex]) {
-                                barrierReceived[channelIndex] = true;
-                                barriersRemaining--;
-                                checkBarrierAlignmentComplete();
-                            }
-                        }
-                    }
+                if (barrierAlignment && barrierReceived[channelIndex]) {
                     continue;
                 }
 
-                if (element.isCheckpointBarrier()) {
-                    return handleBarrier(channelIndex, element.asCheckpointBarrier());
-                }
+                InputChannel channel = channels.get(channelIndex);
+                try {
+                    StreamElement element = channel.read(50, TimeUnit.MILLISECONDS);
+                    if (element == null) {
+                        if (channel.isFinished()) {
+                            if (pendingBarrier != null) {
+                                if (!barrierReceived[channelIndex]) {
+                                    barrierReceived[channelIndex] = true;
+                                    barriersRemaining--;
+                                    checkBarrierAlignmentComplete();
+                                }
+                            }
+                        }
+                        continue;
+                    }
 
-                if (element.isWatermark()) {
-                    return handleWatermark(channelIndex, element.asWatermark());
-                }
+                    emptyRounds = 0;
 
-                return Optional.of(element);
+                    if (element.isCheckpointBarrier()) {
+                        return handleBarrier(channelIndex, element.asCheckpointBarrier());
+                    }
+
+                    if (element.isWatermark()) {
+                        return handleWatermark(channelIndex, element.asWatermark());
+                    }
+
+                    return Optional.of(element);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return Optional.empty();
+                }
+            }
+
+            if (isAllFinished()) {
+                return Optional.empty();
+            }
+
+            emptyRounds++;
+            if (emptyRounds >= 200) {
+                return Optional.empty();
+            }
+            try {
+                Thread.sleep(10);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return Optional.empty();
             }
         }
-
-        // All channels checked but nothing available; check if all finished
-        if (isAllFinished()) {
-            return Optional.empty();
-        }
-
-        return Optional.empty();
     }
 
     private Optional<StreamElement> handleBarrier(int channelIndex, CheckpointBarrier barrier) {

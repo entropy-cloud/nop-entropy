@@ -34,10 +34,15 @@ public class SubtaskTask implements Runnable {
 
     private final Subtask subtask;
     private final JobVertex jobVertex;
+    private final List<OperatorChain> operatorChains;
     private final AtomicReference<State> state;
     private volatile Throwable error;
 
     public SubtaskTask(Subtask subtask, JobVertex jobVertex) {
+        this(subtask, jobVertex, jobVertex.getOperatorChains());
+    }
+
+    public SubtaskTask(Subtask subtask, JobVertex jobVertex, List<OperatorChain> operatorChains) {
         if (subtask == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "subtask");
         }
@@ -46,6 +51,7 @@ public class SubtaskTask implements Runnable {
         }
         this.subtask = subtask;
         this.jobVertex = jobVertex;
+        this.operatorChains = operatorChains != null ? operatorChains : jobVertex.getOperatorChains();
         this.state = new AtomicReference<>(State.CREATED);
     }
 
@@ -100,14 +106,13 @@ public class SubtaskTask implements Runnable {
     }
 
     private void openOperatorChains() {
-        List<OperatorChain> chains = jobVertex.getOperatorChains();
-        for (int i = 0; i < chains.size(); i++) {
+        for (int i = 0; i < operatorChains.size(); i++) {
             try {
-                chains.get(i).open();
+                operatorChains.get(i).open();
             } catch (Exception e) {
                 for (int j = 0; j < i; j++) {
                     try {
-                        chains.get(j).close();
+                        operatorChains.get(j).close();
                     } catch (Exception closeEx) {
                         e.addSuppressed(closeEx);
                     }
@@ -119,11 +124,10 @@ public class SubtaskTask implements Runnable {
     }
 
     private void closeOperatorChains() {
-        List<OperatorChain> chains = jobVertex.getOperatorChains();
         Exception firstException = null;
-        for (int i = chains.size() - 1; i >= 0; i--) {
+        for (int i = operatorChains.size() - 1; i >= 0; i--) {
             try {
-                chains.get(i).close();
+                operatorChains.get(i).close();
             } catch (Exception e) {
                 if (firstException == null) {
                     firstException = e;

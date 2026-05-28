@@ -513,7 +513,9 @@ public class GraphModelCheckpointExecutor {
             JobVertex vertex = execPlan.getExecutionVertices().get(vertexId);
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 String taskKey = vertexId + "-" + subtask.getTaskIndex();
-                tasks.put(taskKey, new SubtaskTask(subtask, vertex));
+                OperatorChain chain = subtask.getInvokable().getOperatorChain();
+                List<OperatorChain> chainList = java.util.Collections.singletonList(chain);
+                tasks.put(taskKey, new SubtaskTask(subtask, vertex, chainList));
             }
         }
         return tasks;

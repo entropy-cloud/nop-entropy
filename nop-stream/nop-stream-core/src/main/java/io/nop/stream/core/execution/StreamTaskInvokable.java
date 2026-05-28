@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,6 +70,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
         wireOperators();
     }
 
+    public StreamTaskInvokable(OperatorChain operatorChain, List<RecordWriter<Object>> fanOutWriters) {
+        if (operatorChain == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
+        }
+        this.operatorChain = operatorChain;
+        this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
+        this.inputGate = null;
+        wireOperators(fanOutWriters);
+    }
+
     @SuppressWarnings("unchecked")
     public StreamTaskInvokable(OperatorChain operatorChain,
                                RecordWriter<?> outputWriter,
@@ -129,6 +140,57 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         if (outputWriter != null) {
             wireTailToRecordWriter(operators, lastIndex);
+        }
+    }
+
+    private void wireOperators(List<RecordWriter<Object>> fanOutWriters) {
+        List<StreamOperator<?>> operators = operatorChain.getOperators();
+        List<KeySelector<?, ?>> keySelectors = operatorChain.getKeySelectors();
+        int lastIndex = operators.size() - 1;
+
+        for (int i = 0; i < lastIndex; i++) {
+            StreamOperator<?> current = operators.get(i);
+            StreamOperator<?> next = operators.get(i + 1);
+
+            if (current instanceof AbstractStreamOperator && next instanceof Input) {
+                AbstractStreamOperator currentOp = (AbstractStreamOperator) current;
+                Input nextInput = (Input) next;
+
+                Input wiredInput;
+                if (i + 1 < keySelectors.size() && keySelectors.get(i + 1) != null && next instanceof KeyContext) {
+                    wiredInput = new KeyExtractingOutput<>(nextInput, keySelectors.get(i + 1), (KeyContext) next);
+                } else {
+                    wiredInput = nextInput;
+                }
+
+                currentOp.setOutput(new ChainingOutput<>(wiredInput));
+            }
+        }
+
+        if (!operators.isEmpty() && operators.get(0) instanceof Input) {
+            Input rawHeadInput = (Input) operators.get(0);
+            if (!keySelectors.isEmpty() && keySelectors.get(0) != null && operators.get(0) instanceof KeyContext) {
+                headInput = new KeyExtractingOutput<>(rawHeadInput, keySelectors.get(0), (KeyContext) operators.get(0));
+            } else {
+                headInput = rawHeadInput;
+            }
+        }
+
+        if (!operators.isEmpty() && lastIndex >= 0) {
+            StreamOperator<?> tail = operators.get(lastIndex);
+            if (tail instanceof AbstractStreamOperator) {
+                @SuppressWarnings("unchecked")
+                AbstractStreamOperator<Object> op = (AbstractStreamOperator<Object>) tail;
+                if (fanOutWriters.size() == 1) {
+                    op.setOutput(new RecordWriterOutput(fanOutWriters.get(0)));
+                } else {
+                    List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
+                    for (RecordWriter<Object> writer : fanOutWriters) {
+                        outputs.add(new RecordWriterOutput(writer));
+                    }
+                    op.setOutput(new BroadcastingRecordWriterOutput(outputs));
+                }
+            }
         }
     }
 
@@ -313,6 +375,54 @@ public class StreamTaskInvokable implements Invokable<Void> {
         @Override
         public void emitBarrier(CheckpointBarrier barrier) {
             writer.emitBarrier(barrier);
+        }
+    }
+
+    private static class BroadcastingRecordWriterOutput implements Output<StreamRecord<Object>> {
+        private final List<Output<StreamRecord<Object>>> outputs;
+
+        BroadcastingRecordWriterOutput(List<Output<StreamRecord<Object>>> outputs) {
+            this.outputs = outputs;
+        }
+
+        @Override
+        public void collect(StreamRecord<Object> record) {
+            for (Output<StreamRecord<Object>> output : outputs) {
+                output.collect(record);
+            }
+        }
+
+        @Override
+        public void close() {
+            for (Output<StreamRecord<Object>> output : outputs) {
+                output.close();
+            }
+        }
+
+        @Override
+        public void emitWatermark(Watermark mark) {
+            for (Output<StreamRecord<Object>> output : outputs) {
+                output.emitWatermark(mark);
+            }
+        }
+
+        @Override
+        public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
+        }
+
+        @Override
+        public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
+        }
+
+        @Override
+        public void emitLatencyMarker(io.nop.stream.core.streamrecord.LatencyMarker latencyMarker) {
+        }
+
+        @Override
+        public void emitBarrier(CheckpointBarrier barrier) {
+            for (Output<StreamRecord<Object>> output : outputs) {
+                output.emitBarrier(barrier);
+            }
         }
     }
 }
