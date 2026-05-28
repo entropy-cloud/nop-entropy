@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { execute } from "./executor.js";
 
-let _mockEvalCount = 0;
 let _mockClosureCount = 0;
 let _mockAuditCount = 0;
 
@@ -59,7 +58,6 @@ export async function createRunner(config) {
       plan: "<PLAN_RESULT>created</PLAN_RESULT>",
       execute: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
       "closure-audit": null,
-      eval: null,
     };
 
     let text;
@@ -73,11 +71,6 @@ export async function createRunner(config) {
       text = _mockClosureCount === 1
         ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: 测试覆盖不足</item></REMAINING>"
         : "<CLOSURE_RESULT>complete</CLOSURE_RESULT>";
-    } else if (stepName === "eval") {
-      _mockEvalCount++;
-      text = _mockEvalCount <= 1
-        ? "<EVAL_RESULT>continue</EVAL_RESULT>"
-        : "<EVAL_RESULT>complete</EVAL_RESULT>";
     } else {
       text = mockResponses[stepName] || "##MOCK_OK";
     }

@@ -5,7 +5,6 @@ export const STEP_NAMES = {
   PLAN: "plan",
   EXECUTE: "execute",
   CLOSURE_AUDIT: "closure-audit",
-  EVAL: "eval",
 };
 
 function defaultStepConfigs(moduleName) {
@@ -81,24 +80,6 @@ function defaultStepConfigs(moduleName) {
       resultTag: "CLOSURE_RESULT",
       markerValues: { COMPLETE: "complete", INCOMPLETE: "incomplete" },
     },
-
-    [STEP_NAMES.EVAL]: {
-      label: "目标评估",
-      command: `请评估模块 ${moduleName} 是否完善完成。
-
-## 检查清单（全部满足才算 COMPLETE）
-1. 构建通过：./mvnw clean install -pl ${moduleName} -am -T 1C（已验证）
-2. 全量测试通过：./mvnw test -pl ${moduleName} -am -T 1C（已运行）
-3. 多维度深度审计收敛：读取 ai-dev/audits/ 最新报告，连续一轮无新 P0/P1
-4. 对抗性审查收敛：最新一轮无新发现
-5. 所有 plan completed：检查 ai-dev/plans/ 相关 plan，确认所有 checklist 已勾选
-6. 设计目标均已实现：读取 ai-dev/design/${moduleName}/README.md（如有），对照检查
-
-输出 <EVAL_RESULT>complete</EVAL_RESULT>（目标达成）或 <EVAL_RESULT>continue</EVAL_RESULT>（需要继续）。`,
-      system: "",
-      resultTag: "EVAL_RESULT",
-      markerValues: { COMPLETE: "complete", CONTINUE: "continue" },
-    },
   };
 }
 
@@ -117,7 +98,6 @@ function testStepConfigs() {
     [STEP_NAMES.PLAN]:           { ...make("PLAN_RESULT", "none"),        markerValues: { CREATED: "created", NONE: "none" } },
     [STEP_NAMES.EXECUTE]:        { ...make("EXECUTE_RESULT", "success"),  markerValues: { SUCCESS: "success", FAILED: "failed" } },
     [STEP_NAMES.CLOSURE_AUDIT]:  { ...make("CLOSURE_RESULT", "complete"), markerValues: { COMPLETE: "complete", INCOMPLETE: "incomplete" } },
-    [STEP_NAMES.EVAL]:           { ...make("EVAL_RESULT", "complete"),    markerValues: { COMPLETE: "complete", CONTINUE: "continue" } },
   };
 }
 
