@@ -22,12 +22,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Stack;
 
 import io.nop.api.core.util.Guard;
@@ -446,6 +448,12 @@ public class NFA<T> {
                     sharedBufferAccessor.extractPatterns(
                             earliestMatch.getPreviousBufferEntry(), earliestMatch.getVersion());
 
+            if (matchedResult.isEmpty()) {
+                sharedBufferAccessor.releaseNode(
+                        earliestMatch.getPreviousBufferEntry(), earliestMatch.getVersion());
+                continue;
+            }
+
             afterMatchSkipStrategy.prune(partialMatches, matchedResult, sharedBufferAccessor);
 
             afterMatchSkipStrategy.prune(
@@ -455,9 +463,6 @@ public class NFA<T> {
             sharedBufferAccessor.releaseNode(
                     earliestMatch.getPreviousBufferEntry(), earliestMatch.getVersion());
         }
-
-        nfaState.getPartialMatches()
-                .removeIf(pm -> pm.getStartEventID() != null && !partialMatches.contains(pm));
     }
 
     private boolean isEarlier(
@@ -763,9 +768,13 @@ public class NFA<T> {
     private State<T> findFinalStateAfterProceed(ConditionContext context, State<T> state, T event) {
         final Stack<State<T>> statesToCheck = new Stack<>();
         statesToCheck.push(state);
+        final Set<State<T>> visited = new HashSet<>();
         try {
             while (!statesToCheck.isEmpty()) {
                 final State<T> currentState = statesToCheck.pop();
+                if (!visited.add(currentState)) {
+                    continue;
+                }
                 for (StateTransition<T> transition : currentState.getStateTransitions()) {
                     if (transition.getAction() == StateTransitionAction.PROCEED
                             && checkFilterCondition(context, transition.getCondition(), event)) {
@@ -797,6 +806,8 @@ public class NFA<T> {
 
         final Stack<State<T>> states = new Stack<>();
         states.push(state);
+        final Set<State<T>> visited = new HashSet<>();
+        visited.add(state);
 
         // First create all outgoing edges, so to be able to reason about the Dewey version
         while (!states.isEmpty()) {
@@ -810,10 +821,9 @@ public class NFA<T> {
                         // filter condition is true
                         switch (stateTransition.getAction()) {
                             case PROCEED:
-                                // simply advance the computation state, but apply the current event
-                                // to it
-                                // PROCEED is equivalent to an epsilon transition
-                                states.push(stateTransition.getTargetState());
+                                if (visited.add(stateTransition.getTargetState())) {
+                                    states.push(stateTransition.getTargetState());
+                                }
                                 break;
                             case IGNORE:
                             case TAKE:

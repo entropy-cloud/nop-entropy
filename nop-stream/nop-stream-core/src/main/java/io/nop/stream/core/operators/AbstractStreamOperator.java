@@ -261,16 +261,26 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     public void processBarrier(CheckpointBarrier barrier) throws Exception {
         OperatorSnapshotResult snapshotResult = null;
+        Exception snapshotError = null;
         if (barrier.snapshot()) {
-            StateSnapshotContext context = new StateSnapshotContext(barrier.getId(), barrier.getTimestamp());
-            snapshotResult = snapshotState(context);
-            this.lastSnapshotResult = snapshotResult;
-        }
-        if (snapshotCallback != null && snapshotResult != null) {
-            snapshotCallback.accept(snapshotResult);
+            try {
+                StateSnapshotContext context = new StateSnapshotContext(barrier.getId(), barrier.getTimestamp());
+                snapshotResult = snapshotState(context);
+                this.lastSnapshotResult = snapshotResult;
+            } catch (Exception e) {
+                snapshotError = e;
+            }
         }
         if (output != null) {
             output.emitBarrier(barrier);
+        }
+        if (snapshotCallback != null) {
+            if (snapshotResult != null) {
+                snapshotCallback.accept(snapshotResult);
+            } else if (snapshotError != null) {
+                OperatorSnapshotResult failureResult = new OperatorSnapshotResult();
+                snapshotCallback.accept(failureResult);
+            }
         }
     }
 

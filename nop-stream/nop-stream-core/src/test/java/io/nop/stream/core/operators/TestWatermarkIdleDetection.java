@@ -44,19 +44,20 @@ public class TestWatermarkIdleDetection {
         operator.processElement(new StreamRecord<>("e2:200"));
         int countAfterIdle = output.getWatermarks().size();
         assertEquals(countBeforeIdle, countAfterIdle,
-                "Watermark emission should be suppressed when idle (event 2 calls markIdle)");
+                "Watermark emission should be suppressed when idle within same event (event 2 calls markIdle)");
 
         operator.processElement(new StreamRecord<>("e3:300"));
-        int countWhileIdle = output.getWatermarks().size();
-        assertEquals(countBeforeIdle, countWhileIdle,
-                "Watermark should still be suppressed while idle (event 3 tries emitWatermark)");
+        int countAfterE3 = output.getWatermarks().size();
+        assertTrue(countAfterE3 > countAfterIdle,
+                "New event resets idle, so event 3 watermark emission should succeed");
 
+        int countBeforeE5 = output.getWatermarks().size();
         operator.processElement(new StreamRecord<>("e4:400"));
 
         operator.processElement(new StreamRecord<>("e5:500"));
         int countAfterActive = output.getWatermarks().size();
-        assertTrue(countAfterActive > countWhileIdle,
-                "Watermark should resume after markActive (event 4 calls markActive, event 5 emits)");
+        assertTrue(countAfterActive > countBeforeE5,
+                "Watermark should be emitted for event 5");
     }
 
     @Test

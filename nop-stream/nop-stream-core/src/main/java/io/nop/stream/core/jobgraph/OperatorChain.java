@@ -175,9 +175,9 @@ public class OperatorChain implements Serializable {
     public void close() {
         Exception firstException = null;
 
-        for (io.nop.stream.core.operators.StreamOperator<?> operator : operators) {
+        for (int i = operators.size() - 1; i >= 0; i--) {
             try {
-                operator.close();
+                operators.get(i).close();
             } catch (Exception e) {
                 if (firstException == null) {
                     firstException = e;

@@ -65,7 +65,7 @@ public class CepPatternBuilder {
             CepPatternPartModel nextModel = groupModel.requirePart(next);
             FollowKind followKind = partModel.getFollowKind();
 
-            if (nextModel instanceof CepPatternPartModel) {
+            if (nextModel instanceof CepPatternSingleModel) {
                 pattern = buildFollow(pattern, followKind, nextModel.getName());
             } else {
                 pattern = buildFollowGroup(pattern, followKind, (CepPatternGroupModel) nextModel);

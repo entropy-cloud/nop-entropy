@@ -121,13 +121,27 @@ public class NFAState {
             return false;
         }
         NFAState nfaState = (NFAState) o;
-        return Arrays.equals(partialMatches.toArray(), nfaState.partialMatches.toArray())
-                && Arrays.equals(completedMatches.toArray(), nfaState.completedMatches.toArray());
+        Object[] thisPartial = partialMatches.toArray();
+        Object[] thatPartial = nfaState.partialMatches.toArray();
+        Arrays.sort(thisPartial);
+        Arrays.sort(thatPartial);
+
+        Object[] thisCompleted = completedMatches.toArray();
+        Object[] thatCompleted = nfaState.completedMatches.toArray();
+        Arrays.sort(thisCompleted);
+        Arrays.sort(thatCompleted);
+
+        return Arrays.equals(thisPartial, thatPartial)
+                && Arrays.equals(thisCompleted, thatCompleted);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(partialMatches, completedMatches);
+        Object[] partial = partialMatches.toArray();
+        Arrays.sort(partial);
+        Object[] completed = completedMatches.toArray();
+        Arrays.sort(completed);
+        return Objects.hash(Arrays.hashCode(partial), Arrays.hashCode(completed));
     }
 
     @Override

@@ -257,31 +257,35 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     private void invokeSource() throws Exception {
-        List<StreamOperator<?>> operators = operatorChain.getOperators();
-        StreamOperator<?> head = operators.get(0);
+        try {
+            List<StreamOperator<?>> operators = operatorChain.getOperators();
+            StreamOperator<?> head = operators.get(0);
 
-        if (head instanceof StreamSourceOperator) {
-            StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
-            if (sourceOp.getOutput() != null) {
-                sourceOp.run();
-                sourceOp.processWatermark(Watermark.MAX_WATERMARK);
+            if (head instanceof StreamSourceOperator) {
+                StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
+                if (sourceOp.getOutput() != null) {
+                    sourceOp.run();
+                    sourceOp.processWatermark(Watermark.MAX_WATERMARK);
+                }
             }
-        }
-
-        if (outputWriter != null) {
-            outputWriter.close();
+        } finally {
+            if (outputWriter != null) {
+                outputWriter.close();
+            }
         }
     }
 
     @SuppressWarnings("unchecked")
     private void invokeMiddle() throws Exception {
-        if (headInput != null) {
-            processInputGate(headInput);
-            headInput.processWatermark(Watermark.MAX_WATERMARK);
-        }
-
-        if (outputWriter != null) {
-            outputWriter.close();
+        try {
+            if (headInput != null) {
+                processInputGate(headInput);
+                headInput.processWatermark(Watermark.MAX_WATERMARK);
+            }
+        } finally {
+            if (outputWriter != null) {
+                outputWriter.close();
+            }
         }
     }
 

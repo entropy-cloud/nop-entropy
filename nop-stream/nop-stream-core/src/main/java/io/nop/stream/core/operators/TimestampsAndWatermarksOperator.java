@@ -56,6 +56,7 @@ public class TimestampsAndWatermarksOperator<T>
 
     @Override
     public void processElement(StreamRecord<T> element) throws Exception {
+        this.idle = false;
         long recordTimestamp = element.hasTimestamp() ? element.getTimestamp() : TimestampAssigner.NO_TIMESTAMP;
         long extractedTs = timestampAssigner.extractTimestamp(element.getValue(), recordTimestamp);
         element.setTimestamp(extractedTs);
@@ -95,6 +96,7 @@ public class TimestampsAndWatermarksOperator<T>
 
     @Override
     public void processWatermark(Watermark mark) throws Exception {
+        this.idle = false;
         if (mark.getTimestamp() > lastWatermarkTimestamp) {
             lastWatermarkTimestamp = mark.getTimestamp();
             output.emitWatermark(mark);

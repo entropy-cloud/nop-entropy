@@ -427,10 +427,10 @@ public class TaskManager implements IStreamTaskRpcService {
                 if (!canceled) {
                     LOG.info("Task {}/{}/{} completed successfully", jobId, vertexId, subtaskIndex);
                 }
-            } catch (Exception e) {
+            } catch (Throwable t) {
                 if (!canceled) {
-                    this.error = e;
-                    LOG.error("Task {}/{}/{} failed", jobId, vertexId, subtaskIndex, e);
+                    this.error = t;
+                    LOG.error("Task {}/{}/{} failed", jobId, vertexId, subtaskIndex, t);
                 }
             } finally {
                 String key = taskKey(jobId, vertexId, subtaskIndex);
