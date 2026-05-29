@@ -24,9 +24,10 @@ function log(config, msg) {
 }
 
 function extractTag(text, tagName) {
-  const re = new RegExp(`<${tagName}>([^<]+)</${tagName}>`);
-  const m = text.match(re);
-  return m ? m[1].toLowerCase().trim() : null;
+  const re = new RegExp(`<${tagName}>([^<]+)</${tagName}>`, "g");
+  const matches = [...text.matchAll(re)];
+  if (matches.length === 0) return null;
+  return matches[matches.length - 1][1].toLowerCase().trim();
 }
 
 function extractXmlBlock(text, tagName) {

@@ -21,7 +21,7 @@ function defaultStepConfigs(moduleName) {
       label: "多维度深度审计",
       command: `请对模块 ${moduleName} 执行多维度深度审计。阅读并遵循 ai-dev/skills/deep-audit-prompts.md。结果写入 ai-dev/audits/{DATE}-deep-audit-${moduleName}/。
 
-输出 <AUDIT_RESULT>clean</AUDIT_RESULT>（无 P0/P1 问题）或 <AUDIT_RESULT>issues</AUDIT_RESULT>（存在 P0/P1 问题）。`,
+输出 <AUDIT_RESULT>clean</AUDIT_RESULT>（无 P0-P2 问题且无收益明显的 P3）或 <AUDIT_RESULT>issues</AUDIT_RESULT>（存在 P0-P2 问题，或存在收益明显的 P3）。`,
       system: "",
       resultTag: "AUDIT_RESULT",
       markerValues: { CLEAN: "clean", ISSUES: "issues" },

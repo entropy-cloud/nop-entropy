@@ -2,79 +2,46 @@
 
 ## 第 1 轮（初审）
 
-### [维度15-01] NFACompiler 内部方法使用 raw Pattern 类型
+nop-stream 模块的类型安全状况与流处理框架惯例一致。约131个 @SuppressWarnings("unchecked") 注解集中在状态后端序列化边界、运行时算子链接和连接器抽象层，是 Java 类型擦除下的合理选择。
 
-- **文件**: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/nfa/compiler/NFACompiler.java:246,260,262`
+### [维度15-01] Raw cast (Class) List.class and (Class) Lockable.class for MapStateDescriptor
+
+- **文件**: `nop-stream/nop-stream-cep/.../CepOperator.java:206`, `SharedBuffer.java:95,102`
 - **证据片段**:
   ```java
-  // Line 246
-  Pattern patternToCheck = currentPattern;
-  // Line 260
-  private void checkPatternNameUniqueness(final Pattern pattern) {
+  elementQueueState = keyedStateStore.getMapState(
+      new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
   ```
 - **严重程度**: P3
-- **现状**: NFAFactoryCompiler 内部私有方法使用不带泛型参数的 raw Pattern 类型。从 Apache Flink 移植的代码。
-- **风险**: 编译器 raw type 警告。运行时无实际风险（仅调用 getName()/getPrevious() 等不依赖泛型的方法）。
-- **建议**: 将签名改为 `Pattern<T, ?>` 以消除警告。
-- **误报排除**: 无。
+- **现状**: MapStateDescriptor 的 value 类型参数使用原始类型转换，因为 Java 无法直接表达 Class<List<X>>。
+- **风险**: 低。注释已说明这是有意为之。类型安全通过使用侧保证。
+- **建议**: 添加 @SuppressWarnings("rawtypes") 注解或修改 MapStateDescriptor 构造器接受 Class<?>。
+- **误报排除**: 这是 Java 泛型限制下的标准模式，而非设计缺陷。仅建议添加注解以提高一致性。
 - **复核状态**: 未复核
 
-### [维度15-02] NFA.open()/close() 使用 raw IterativeCondition 类型
+### [维度15-02] PaneState uses untyped Object for window and state fields
 
-- **文件**: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/nfa/NFA.java:193,206`
-- **证据片段**:
-  ```java
-  // Line 193
-  IterativeCondition condition = transition.getCondition();
-  ```
+- **文件**: `nop-stream/nop-stream-core/.../windowing/PaneState.java:20,22`
 - **严重程度**: P3
-- **现状**: NFA<T> 的 open() 和 close() 方法取出 IterativeCondition 时未指定泛型参数 <T>。
-- **风险**: 编译器 raw type 警告。运行时无风险（后续调用不依赖泛型参数）。
-- **建议**: 改为 `IterativeCondition<T> condition = transition.getCondition();`。
-- **误报排除**: 无。
+- **现状**: window 和 state 字段使用 Object 类型而非泛型参数。
+- **建议**: 可考虑泛型化 PaneState<W, S>，但不阻塞。
+- **误报排除**: PaneState 是 checkpoint 边界的序列化 DTO，Object 类型是务实选择。
 - **复核状态**: 未复核
 
-### [维度15-03] NFA.ConditionContext 使用已废弃的 Collections.EMPTY_LIST
+### [维度15-03] LastValue.type() raw cast without @SuppressWarnings
 
-- **文件**: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/nfa/NFA.java:927`
-- **证据片段**:
-  ```java
-  return elements == null
-          ? Collections.EMPTY_LIST.<T>iterator()
-          : elements.iterator();
-  ```
+- **文件**: `nop-stream/nop-stream-core/.../accumulators/LastValue.java:23`
 - **严重程度**: P3
-- **现状**: 使用 Java 1.2 的 raw type 字段 Collections.EMPTY_LIST，应使用 Collections.emptyList()。
-- **风险**: 编译器 raw type 警告。功能无影响。
-- **建议**: 替换为 `Collections.<T>emptyList().iterator()`。
-- **误报排除**: 无。
+- **现状**: `(Class) LastValue.class` 缺少 @SuppressWarnings("unchecked") 注解，与其他同类代码不一致。
+- **建议**: 添加注解以保持一致性。
+- **误报排除**: 仅是注解缺失，非功能性缺陷。
 - **复核状态**: 未复核
 
-### [维度15-04] KeyedStreamImpl sum/min/max 方法使用大量 unchecked cast
+### [维度15-04] MessageSourceFunction.run() casts untyped message to generic T
 
-- **文件**: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/datastream/KeyedStreamImpl.java:174-231`
-- **证据片段**:
-  ```java
-  @SuppressWarnings("unchecked")
-  public SingleOutputStreamOperator<T> sum(int field) {
-      ReduceFunction<T> reducer = (v1, v2) -> {
-          if (v1 instanceof Integer) return (T) (Integer) (((Integer) v1) + ((Number) v2).intValue());
-          if (v1 instanceof Long) return (T) (Long) (((Long) v1) + ((Number) v2).longValue());
-          // ...
-  ```
-- **严重程度**: P2
-- **现状**: sum(int), min(int), max(int) 使用 instanceof + 显式强转处理不同数值类型。T 无法在编译期约束为 Number 或 Comparable。不支持 Short/Byte/BigDecimal。
-- **风险**: 如果 T 不在预设类型中会抛异常而非编译期报错。min/max 中 (Comparable<T>) 强转可能 ClassCastException。
-- **建议**: 短期：在方法 Javadoc 中标注 T 的约束。中期：增加 Short/Byte/BigDecimal 分支或运行时类型校验。
-- **误报排除**: 部分可排除——流处理框架中聚合函数对原始类型的动态分派是常见性能优化模式（Flink 原版也类似）。
+- **文件**: `nop-stream/nop-stream-connector/.../MessageSourceFunction.java:98`
+- **严重程度**: P3
+- **现状**: IMessageConsumer 回调的 Object msg 被直接转为 T。已有 @SuppressWarnings 注解。
+- **建议**: 可考虑添加 Class<T> 构造器参数做运行时 instanceof 检查。
+- **误报排除**: 这是桥接无类型消息 API 到有类型流的标准模式。
 - **复核状态**: 未复核
-
-## 已验证合规项
-
-- 集合类全部正确参数化，无 raw Map/List/Set 字段
-- StateDescriptor 层次结构完整参数化
-- 核心接口（DataStream, KeyedStream, WindowedStream, StreamOperator）泛型精度良好
-- 约 90 处 @SuppressWarnings("unchecked") 使用均有合理上下文
-- instanceof + cast 模式均为标准 equals/tagged union/功能检测，无不合理使用
-- SharedBuffer 的 raw Class 强转是泛型擦除下的经典取舍，已有注释说明
-- OperatorSnapshotResult 和 MemoryKeyedStateBackend 的 Object 存储是异构容器的合理模式

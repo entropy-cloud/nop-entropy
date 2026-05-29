@@ -1,9 +1,7 @@
 # 维度 12：GraphQL 与 API 层
 
-## 零发现说明
+## 第 1 轮（初审）
 
-**检查范围**: 搜索 GraphQL 相关文件和 API 路径。
+### 零发现
 
-**结论**: nop-stream 模块不暴露 GraphQL API。该模块通过 Java API（DataStream、Pattern、StreamExecutionEnvironment）和 Java SPI（IDeploymentPlanProvider）提供服务，不经过 Nop 平台的 GraphQL 引擎。
-
-此维度不适用于 nop-stream 模块。
+nop-stream 是纯流处理引擎，无 GraphQL 层、无 Web/REST 端点、无 BizModel、无 xmeta。nop-stream-api 为空占位模块。此维度不适用。

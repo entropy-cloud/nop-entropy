@@ -2,9 +2,9 @@
 
 ## 第 1 轮（初审）
 
-### [维度01-01] nop-stream-cep 声明了 nop-xlang 编译依赖，但所有源码均无任何 nop-xlang 包导入
+### [维度01-01] nop-stream-cep: nop-xlang declared as compile dependency with zero compile-time Java usage
 
-- **文件**: `nop-stream/nop-stream-cep/pom.xml:20-23`
+- **文件**: `nop-stream/nop-stream-cep/pom.xml`
 - **证据片段**:
   ```xml
   <dependency>
@@ -13,35 +13,66 @@
   </dependency>
   ```
 - **严重程度**: P3
-- **现状**: nop-xlang 作为编译依赖引入，但在 nop-stream-cep 的所有编译产物（main + test）中未使用任何来自该模块的类。`IEvalFunction` 来自 `io.nop.core.lang.eval`（nop-core），不属于 nop-xlang。
-- **风险**: 增加不必要的编译类路径和传递依赖，误导开发者认为本模块使用了 XLang。
-- **建议**: 若确认运行时无需 XLang，移除该依赖。若未来计划使用，添加注释说明。
-- **误报排除**: 已排除 nop-xlang 通过 IEvalFunction 间接使用的可能——IEvalFunction 在 nop-core 包中。
+- **现状**: nop-xlang is declared as compile-scope dependency, but no Java source file in the module imports any io.nop.xlang.* class. There are also no XLang resource files (.xpl, .xjs, .xdef) in the module's resource directory (no src/main/resources/ at all).
+- **风险**: Adds unnecessary transitive classpath weight for consumers that only need the CEP engine's programmatic API. The XDef schema file lives in nop-xdefs, and CepPatternModel's _gen base classes extend AbstractComponentModel from nop-core -- neither requires nop-xlang at compile time. nop-xlang is only needed at runtime when the XLang model loader parses XML pattern definitions.
+- **建议**: Change the dependency to optional, or add a comment in the POM explaining the runtime dependency rationale.
+- **误报排除**: Verified zero import io.nop.xlang.* across all 70+ Java files in nop-stream-cep's src/main/java/. The dependency is legitimate for runtime XDef model loading but is over-scoped at compile time.
 - **复核状态**: 未复核
 
-### [维度01-02] nop-stream-connector 将 nop-message-core 声明为 optional 但仅测试使用
+### [维度01-02] nop-stream-fraud-example: accesses nop-stream-core internal implementation class SimpleKeyedStateStore
 
-- **文件**: `nop-stream/nop-stream-connector/pom.xml:25-29`
+- **文件**: `nop-stream/nop-stream-fraud-example/src/main/java/io/nop/stream/fraud/FraudDetectionDemo.java:29`
 - **证据片段**:
-  ```xml
-  <dependency>
-      <groupId>io.github.entropy-cloud</groupId>
-      <artifactId>nop-message-core</artifactId>
-      <optional>true</optional>
-  </dependency>
+  ```java
+  import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
   ```
 - **严重程度**: P3
-- **现状**: 主源码 `MessageSourceFunction` 和 `MessageSinkFunction` 使用的 `IMessageService` 来自 `io.nop.api.core.message`（nop-api-core），不是 `nop-message-core`。仅测试文件 `TestMessageAdapters.java` 使用了 `LocalMessageService`。对比 runtime 模块将同类依赖声明为 `<scope>test</scope>`。
-- **风险**: optional 暗示"主源码需要，消费者可能需要自行引入"，但实际上主源码不依赖此模块。
-- **建议**: 改为 `<scope>test</scope>`，与 runtime 模块保持一致。
-- **误报排除**: 已确认 DebeziumCdcSourceFunction 使用的是 nop-message-debezium，与 nop-message-core 无关。
+- **现状**: FraudDetectionDemo imports SimpleKeyedStateStore from the simple sub-package of nop-stream-core. The simple sub-package conventionally signals internal implementation, not public API. The example reaches two layers down (fraud-example -> cep -> core) without a direct pom dependency on nop-stream-core.
+- **风险**: As an example module, it sets a pattern that downstream users may copy. If SimpleKeyedStateStore is refactored or renamed, this example will break.
+- **建议**: Either add a test-scope factory helper in nop-stream-cep that provides a simple KeyedStateStore implementation, or inline a minimal equivalent directly in the example module.
+- **误报排除**: The io.nop.stream.core.common.state.simple package is clearly an implementation package. The fraud-example has no direct pom dependency on nop-stream-core.
 - **复核状态**: 未复核
 
-## 已验证合规项
+## 完整依赖图
 
-- nop-stream-core: 仅依赖 nop-commons + nop-core，边界干净
-- nop-stream-runtime: nop-dao 为 provided scope，语义正确
-- nop-stream-connector: nop-message-debezium 为 optional，语义合理
-- nop-stream-fraud-example: 仅依赖 nop-stream-cep，传递依赖使用合理
-- 无循环依赖，无缺失依赖声明
-- 4 个 placeholder 模块状态符合预期
+```
+nop-stream (parent aggregator pom)
+│
+├── nop-stream-api ──── (empty placeholder, no deps)
+├── nop-stream-checkpoint ──── (empty placeholder, no deps)
+├── nop-stream-flink ──── (empty placeholder, no deps)
+├── nop-stream-flow ──── (empty placeholder, no deps)
+│
+├── nop-stream-core ──► nop-commons
+│                   └─► nop-core
+│
+├── nop-stream-cep ──► nop-stream-core
+│                  └─► nop-xlang
+│
+├── nop-stream-connector ──► nop-stream-core
+│                        └─► nop-batch-core
+│                        └─► nop-message-core      [optional]
+│                        └─► nop-message-debezium   [optional]
+│
+├── nop-stream-runtime ──► nop-stream-core
+│                      └─► nop-dao                [provided]
+│                      └─► nop-message-core        [test]
+│
+└── nop-stream-fraud-example ──► nop-stream-cep
+```
+
+## 合规模块清单
+
+| Module | Verdict |
+|---|---|
+| nop-stream-api | COMPLIANT |
+| nop-stream-core | COMPLIANT |
+| nop-stream-checkpoint | COMPLIANT |
+| nop-stream-flink | COMPLIANT |
+| nop-stream-flow | COMPLIANT |
+| nop-stream-cep | COMPLIANT (minor P3) |
+| nop-stream-connector | COMPLIANT |
+| nop-stream-runtime | COMPLIANT |
+| nop-stream-fraud-example | COMPLIANT (minor P3) |
+
+无循环依赖。无反向依赖。第三方依赖管理规范。

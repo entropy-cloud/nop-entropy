@@ -2,26 +2,21 @@
 
 ## 第 1 轮（初审）
 
-### [维度19-01] 编译管线术语不一致："四层编译" vs "五层执行管线"
+### [维度19-01] Method name typo: setNewStartPartiailMatch
 
-- **文件**: `component-roadmap.md:28` vs `architecture.md:16`
+- **文件**: `nop-stream-cep/.../nfa/NFAState.java:111`
 - **严重程度**: P2
-- **现状**: 两个文档使用不同的层数和术语描述同一管线。
+- **现状**: 方法名 setNewStartParti**ai**lMatch 应为 setNewStartParti**a**lMatch。对应的 getter isNewStartPartialMatch 和 resetter resetNewStartPartialMatch 拼写正确。
+- **风险**: 拼写错误降低可读性，破坏与同级方法的命名一致性。
+- **建议**: 重命名为 setNewStartPartialMatch()，更新 NFA.java 中的调用点。
+- **误报排除**: 不是风格偏好，是确定的拼写错误。
+- **复核状态**: 未复核
 
-### [维度19-02] connector 异常构造不一致：部分用 ErrorCode，部分用裸字符串
+### [维度19-02] FollowKind enum uses camelCase instead of UPPER_SNAKE_CASE
 
-- **文件**: `connector/BatchLoaderSourceFunction.java:43` 等
-- **严重程度**: P2
-- **现状**: core 用 NopStreamErrors ErrorCode，connector 用裸字符串。共约 10 处不一致。
-
-### [维度19-03] CEP 错误码前缀独立：nop.err.cep.* vs nop.err.stream.*
-
-- **文件**: `NopCepErrors.java` vs `NopStreamErrors.java`
+- **文件**: `nop-stream-cep/.../model/FollowKind.java:24-48`
 - **严重程度**: P3
-- **现状**: CEP 使用独立前缀，可能是有意设计但缺少文档说明。
-
-### [维度19-04] StreamComponents.getBean() 实际只搜索 windowingStrategies
-
-- **文件**: `StreamComponents.java:136-142`
-- **严重程度**: P3
-- **现状**: 方法名暗示全局搜索，实际只查一个 map。
+- **现状**: 枚举值使用 camelCase（next, followedBy, followedByAny），与其他18个枚举的 UPPER_SNAKE_CASE 不一致。
+- **建议**: 这是为 XDSL 可读性的有意偏离（pattern.xdef 中 followKind="followedBy" 比 "FOLLOWED_BY" 更可读）。建议在 Javadoc 中记录此有意偏离。
+- **误报排除**: XDSL 模型枚举的 camelCase 是有意的设计选择。
+- **复核状态**: 未复核

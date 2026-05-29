@@ -2,111 +2,81 @@
 
 ## 第 1 轮（初审）
 
-### [维度09-01] 生产代码中约 20 处 IllegalStateException 裸抛
+### 模块异常层次结构
 
-- **文件**: 多个文件，典型示例：
-  - `nop-stream-runtime/.../transport/RemoteResultPartition.java:87`
-  - `nop-stream-runtime/.../coordinator/JobCoordinator.java:213,276`
-  - `nop-stream-core/.../execution/ResultPartition.java:79`
-  - `nop-stream-core/.../operators/WindowAggregationOperator.java:135,144,148`
-  - `nop-stream-runtime/.../operators/windowing/WindowOperator.java:414,813`
+| 类 | 类型 | 位置 |
+|---|---|---|
+| `StreamException` | checked | nop-stream-core |
+| `StreamRuntimeException` | unchecked | nop-stream-core (extends NopException) |
+| `MalformedPatternException` | unchecked | nop-stream-cep (extends StreamRuntimeException) |
+
+ErrorCode 定义: NopStreamErrors (10个错误码), NopCepErrors (3个错误码)。所有消息均为英文，有专门的测试 TestErrorCodeMessagesEnglish 校验。
+
+### [维度09-01] Exception cause dropped in MemoryKeyedStateBackend.wrapInAccumulator
+
+- **文件**: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/backend/memory/MemoryKeyedStateBackend.java:571-573`
 - **证据片段**:
   ```java
-  // RemoteResultPartition.java:87
-  throw new IllegalStateException("Cannot write to a finished RemoteResultPartition");
-  // JobCoordinator.java:213
-  throw new IllegalStateException("No RPC service for node...");
-  ```
-- **严重程度**: P2
-- **现状**: 在生产代码中有约 20 处直接抛出 IllegalStateException，未使用 StreamException 或 ErrorCode。部分位于公共 API 路径（ResultPartition.write(), JobCoordinator, TaskManager）。
-- **风险**: 这些异常不会被 StreamException 的 catch 块捕获，可能在框架统一异常处理层丢失上下文。
-- **建议**: 跨模块公共 API 路径上的改用 StreamException + ERR_STREAM_INVALID_STATE。纯内部防御性断言可保留但建议统一。AbstractRichFunction 中的 IllegalStateException 是 Java 惯用法，可保留。
-- **误报排除**: AbstractRichFunction 和 RichIterativeCondition 中的 IllegalStateException 是从 Flink 移植的骨架代码，属于"未初始化即调用"的编程错误，用 IllegalStateException 是 Java 社区惯例。
-- **复核状态**: 未复核
-
-### [维度09-02] MemoryKeyedStateBackend 中 IOException 裸抛
-
-- **文件**: `nop-stream-core/.../common/state/backend/memory/MemoryKeyedStateBackend.java:357,1056`
-- **证据片段**:
-  ```java
-  // Line 357
-  throw new IOException("Unknown state type: " + stateType);
-  // Line 1056
-  throw new IOException("Failed to get accumulator", e);
-  ```
-- **严重程度**: P2
-- **现状**: 在状态恢复和访问路径中直接抛出 IOException，未被 StreamException 包装。
-- **风险**: IOException 不被 StreamException 的 catch 捕获。如果调用方按 StreamException 捕获则会漏掉。
-- **建议**: 改为 `throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL, "Unknown state type: " + stateType)` 或至少包装为 StreamException。
-- **误报排除**: 无。
-- **复核状态**: 未复核
-
-### [维度09-03] GraphModelCheckpointExecutor.checkTaskFailures() 只报告首个失败
-
-- **文件**: `nop-stream-runtime/.../execution/GraphModelCheckpointExecutor.java:529-534`
-- **证据片段**:
-  ```java
-  private static void checkTaskFailures(Map<String, SubtaskTask> tasks) {
-      for (SubtaskTask task : tasks.values()) {
-          if (task.getState() == SubtaskTask.State.FAILED) {
-              throw new StreamException("Task failed", task.getError());
-          }
-      }
+  } catch (Exception e) {
+      throw new StreamException(ERR_STREAM_STATE_ERROR)
+              .param(ARG_DETAIL, "Failed to create accumulator: " + accumulatorClass.getName());
+      // BUG: cause 'e' is caught but never passed to the StreamException constructor
   }
   ```
+- **严重程度**: P1
+- **现状**: 捕获的异常 e 被静默丢弃，丢失了根因（InstantiationException、IllegalAccessException 等），使调试显著困难。
+- **风险**: 生产环境排查状态创建失败时无法获取根因异常信息。
+- **建议**: 改为 `throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(...)`
+- **误报排除**: 不是代码风格问题。异常链断裂直接导致生产环境排查困难，是功能性缺陷。同类中几乎所有其他 catch 块都正确传递了 cause。
+- **复核状态**: 已保留（独立复核确认：同文件3处正确用法证明是遗漏，StreamException 支持 cause 构造器，修复简单）
+
+## 维度复核结论
+
+- [维度09-01]: **保留 P1** — 独立复核确认异常 e 被静默丢弃，同文件1067/1152/1184行有正确用法
+- [维度09-02]: **保留 P2** — 约30处字符串异常确认
+- [维度09-03]: **保留 P3** — 3处直接 NopException 确认
+- [维度09-04]: **保留 P3** — IllegalArgumentException 确认
+
+### [维度09-02] String-only StreamException without ErrorCode (~30 production sites)
+
+- **文件**: 多个文件（GraphModelCheckpointExecutor 8处, NFA 5处, ChainingOutput 5处, MemoryKeyedStateBackend 3处, 等）
 - **严重程度**: P2
-- **现状**: 当多个 task 同时失败时，只抛出第一个遇到的失败任务异常，其余被静默忽略。
-- **风险**: 并行执行中多个 task 同时失败时丢失其他失败原因，影响运维排查。
-- **建议**: 参考 EmbeddedDistributedExecutor.checkTaskResults() 的做法（使用 addSuppressed），收集所有失败。同样问题存在于 StreamExecutionEnvironment.java:278-281。
-- **误报排除**: 无。这是真实的异常信息丢失风险。
+- **现状**: 约30处生产代码使用 `new StreamException("message")` 而非 `new StreamException(ERR_XXX).param(...)`，绕过了结构化 ErrorCode 系统。所有消息均为英文，且大多数正确保留了 cause。问题在于与 ErrorCode 模式的不一致性。
+- **风险**: 无法通过错误码进行结构化处理和国际化。但功能上不影响运行。
+- **建议**: 优先迁移 GraphModelCheckpointExecutor（8处，checkpoint/restore 是跨模块公共 API）、ChainingOutput（5处）和 NFA（5处）。
+- **误报排除**: 模块内部实现可使用字符串构造器（两档策略允许），但其中跨模块公共 API 的部分应使用 ErrorCode。
 - **复核状态**: 未复核
 
-### [维度09-04] CheckpointType.fromName() 使用 IllegalArgumentException
+### [维度09-03] Direct NopException bypasses module exception hierarchy (3 sites in CEP)
+
+- **文件**: `nop-stream-cep/.../ICepPatternGroupModel.java:26`, `CepPatternBuilder.java:60,94`
+- **严重程度**: P3
+- **现状**: 3处直接 throw new NopException(ERR_CEP_XXX) 而非 StreamRuntimeException。功能上可行（NopException 是父类），但调用者通过 instanceof StreamException/StreamRuntimeException 无法捕获。
+- **建议**: 改为使用 StreamRuntimeException 包装。
+- **误报排除**: 功能上不会导致运行时错误，但违反了模块异常层次结构约定。
+- **复核状态**: 未复核
+
+### [维度09-04] IllegalArgumentException in CheckpointType enum parsing
 
 - **文件**: `nop-stream-core/.../checkpoint/CheckpointType.java:98`
 - **证据片段**:
   ```java
   throw new IllegalArgumentException("Unknown CheckpointType name: " + name);
   ```
-- **严重程度**: P2
-- **现状**: `CheckpointType.fromName()` 是跨模块可调用的公共枚举解析方法，使用了 IllegalArgumentException 而非 ErrorCode。
-- **风险**: 不符合公共 API 应使用 ErrorCode 的两档策略要求。
-- **建议**: 改用 `throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "name").param(ARG_DETAIL, "...")`
-- **误报排除**: 无。
-- **复核状态**: 未复核
-
-### [维度09-05] NopCepErrors 缺少英文消息测试覆盖
-
-- **文件**: `nop-stream-core/src/test/java/io/nop/stream/core/exceptions/TestErrorCodeMessagesEnglish.java:16`
 - **严重程度**: P3
-- **现状**: TestErrorCodeMessagesEnglish 只测试了 NopStreamErrors.class，未测试 NopCepErrors.class。
-- **风险**: NopCepErrors 中的错误码消息可能混入非英文内容而不被发现。
-- **建议**: 在 nop-stream-cep 测试目录中添加对应的英文消息测试。
-- **误报排除**: 经目视检查 NopCepErrors 的 3 条消息均为英文，当前无实际问题。
+- **现状**: 使用 IllegalArgumentException 而非模块约定的 StreamException(ERR_STREAM_INVALID_ARG)。
+- **建议**: 改为 StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, name)
+- **误报排除**: 虽然 IllegalArgumentException 是 Java 枚举解析的惯例，但模块已建立 StreamException 约定，应保持一致。
 - **复核状态**: 未复核
 
-### [维度09-06] fraud-example 使用 System.out.println 而非 SLF4J
+### 正面观察
 
-- **文件**: `nop-stream-fraud-example/.../FraudDetectionDemo.java:55,58,59,72,73,78,79,87,88,95,202-209`
-- **证据片段**:
-  ```java
-  // FraudDetectionDemo.java:202-209
-  System.out.println("   *** FRAUD ALERT ***");
-  System.out.println("   Alert ID: " + alert.getAlertId());
-  ```
-- **严重程度**: P3
-- **现状**: FraudDetectionDemo 全部使用 System.out.println 输出（约 15 处）。PrintSinkFunction 和 PrintSink 的 System.out.println 是功能需求（向控制台输出的 Sink）。
-- **风险**: 示例代码质量问题，无生产影响。
-- **建议**: 示例代码可保持现状。PrintSinkFunction/PrintSink 保持现状（功能需求）。
-- **误报排除**: PrintSinkFunction 和 PrintSink 的 System.out.println 是正确的功能实现，不是日志替代品。
-- **复核状态**: 未复核
-
-## 已验证合规项
-
-- 异常类体系设计优秀：StreamRuntimeException -> NopException，同时支持 ErrorCode 和 String 构造器
-- ErrorCode 定义规范：NopStreamErrors（10 个错误码）和 NopCepErrors（3 个错误码）均使用 ErrorCode.define()
-- 异常链保留优秀：几乎所有 catch-rethrow 都正确传入 cause
-- 无吞异常的空 catch 块
-- 所有生产代码使用 SLF4J，无 printStackTrace
-- StreamException 字符串构造器用于内部实现，符合两档策略
-- OperatorChain 正确使用 addSuppressed 处理 cleanup 异常
+| 方面 | 状态 |
+|------|------|
+| 无吞掉异常（空 catch 块） | PASS |
+| 异常链保留（除1处外） | PASS |
+| 无中文错误消息 | PASS |
+| ErrorCode 消息英文测试 | PASS |
+| SLF4J 日志使用 | PASS |
+| addSuppressed 异常累积 | PASS |
+| NopException.adapt(e) 在 lambda 中使用 | PASS |

@@ -2,81 +2,56 @@
 
 ## 第 1 轮（初审）
 
-### [维度03-01] StreamComponents 公共 API 使用 Map<String, Object> 而非类型安全结构
+nop-stream 的公共 API 面通过 Java 接口暴露（无 GraphQL/BizModel），共 89 个公共接口。
 
-- **文件**: `nop-stream-core/.../model/StreamComponents.java:24-26,46-53`
+### [维度03-01] TwoPhaseCommitSinkFunction is an interface with substantial default logic and Logger field
+
+- **文件**: `nop-stream/nop-stream-core/.../functions/sink/TwoPhaseCommitSinkFunction.java`
 - **证据片段**:
   ```java
-  private final Map<String, Object> transforms;
-  private final Map<String, Object> streams;
-  // ...
-  public Object getTransform(String id) { return transforms.get(id); }
-  ```
-- **严重程度**: P2
-- **现状**: StreamComponents 暴露 7 个 Map<String, Object> 公共字段。getTransform(id) 等返回原始 Object。实际外部未调用，是预留给未来扩展的占位 API。
-- **风险**: 外部调用者无法在编译期获知值类型。
-- **建议**: 将 getter 降级为 package-private 或改为更具体类型。
-- **误报排除**: 排除序列化层的 Map<String,Object>——那些是内部实现细节。
-- **复核状态**: 未复核
-
-### [维度03-02] StreamOperator.snapshotState() 存在重复的 Javadoc 注释块（英文+中文）
-
-- **文件**: `nop-stream-core/.../operators/StreamOperator.java:119-136`
-- **证据片段**:
-  ```java
-  /**
-   * Called to draw a state snapshot from the operator. (英文，描述旧签名)
-   */
-  /**
-   * 执行状态快照 (中文，与实际签名匹配)
-   */
-  default OperatorSnapshotResult snapshotState(long checkpointId) throws Exception {
-  ```
-- **严重程度**: P2
-- **现状**: 两个连续 Javadoc 块。英文描述的是"runnable future"返回值语义，与实际 OperatorSnapshotResult 不符。
-- **风险**: 误导开发者理解方法契约。
-- **建议**: 删除过时的英文注释块，仅保留与实际签名匹配的注释。
-- **误报排除**: 无。
-- **复核状态**: 未复核
-
-### [维度03-03] CepPatternBuilder.buildCondition() 返回原始类型 IterativeCondition
-
-- **文件**: `nop-stream-cep/.../model/builder/CepPatternBuilder.java:134-141`
-- **证据片段**:
-  ```java
-  private IterativeCondition buildCondition(IEvalFunction action) {
-      return new IterativeCondition() {
-          @Override
-          public boolean filter(Object value, Context ctx) { ... }
-      };
+  public interface TwoPhaseCommitSinkFunction<IN, TXN> extends SinkFunction<IN> {
+      Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
+      // ~50 lines of default methods managing pending commits, transaction lifecycle
   }
   ```
 - **严重程度**: P2
-- **现状**: 返回原始类型 IterativeCondition，内部匿名类 filter 参数也是 Object。
-- **风险**: 编译器无法捕获类型不匹配。
-- **建议**: 添加 @SuppressWarnings("rawtypes") 并说明原因（XPL 函数的动态特性）。
-- **误报排除**: CEP 模型来自 XML 声明式定义，运行时类型在编译期不可知。
+- **现状**: 声明为 interface 但包含 Logger 静态字段和约50行默认方法实现（事务生命周期管理、错误处理）。
+- **风险**: 接口持有状态不寻常；测试困难；实现者被迫实现 getPendingCommits/setPendingCommits 等状态管理方法。
+- **建议**: 改为 abstract class，或将默认逻辑提取到辅助类。
+- **误报排除**: 不是纯粹的风格偏好。interface 持有可变状态（通过 accessor 方法）违反了 Java 接口设计原则。
 - **复核状态**: 未复核
 
-### [维度03-04] KeyedStream.sum/min/max(int field) 在 field != 0 时抛 UnsupportedOperationException
+### [维度03-02] 37 stale org.apache.flink.* references in Javadoc
 
-- **文件**: `nop-stream-core/.../datastream/KeyedStreamImpl.java:176-209`
-- **证据片段**:
-  ```java
-  public SingleOutputStreamOperator<T> sum(int field) {
-      if (field != 0) {
-          throw new UnsupportedOperationException("sum(int field) with field != 0 requires Tuple types");
-      }
-  ```
-- **严重程度**: P2
-- **现状**: 接口定义了 sum(int) 但实现仅支持 field==0。接口契约未说明此限制。
-- **风险**: 调用者期望任意 field index 可用，运行时才发现限制。
-- **建议**: 在接口 Javadoc 中说明限制，或移除 int field 重载。
-- **误报排除**: 无。
+- **文件**: 20+ files in nop-stream-core/src/main/java/
+- **严重程度**: P3
+- **现状**: 多处 Javadoc 引用 org.apache.flink.* 类（Flink fork 遗留），导致 IDE 中 @link 渲染为断链。
+- **建议**: 替换所有 org.apache.flink.* 引用为 io.nop.stream.core.* 等价物。
+- **误报排除**: Flink fork 的文档遗留，需清理。
 - **复核状态**: 未复核
 
-## 已验证合规项
+### [维度03-03] 5 unused connector interfaces (dead code / API placeholders)
 
-- 未发现死 API：所有公共方法均有调用者
-- 宥泛异常声明（throws Exception）是流处理框架的领域惯例
-- API 表面积合理
+- **文件**: `io.nop.stream.core.connector` 包中的 DynamicSplitRequest, DynamicSplitResponse, RestrictionTracker, WatermarkEstimator, SourceWorkUnit
+- **严重程度**: P3
+- **现状**: 5个接口/类零外部引用，是 FLIP-27 风格连接器框架的前瞻性 API 预留。
+- **建议**: 如有意保留，添加文档说明；否则删除。
+- **误报排除**: 前瞻性 API 预留可接受，但应有文档说明。
+- **复核状态**: 未复核
+
+### [维度03-04] Mixed Chinese/English Javadoc on StreamOperator default methods
+
+- **文件**: `nop-stream-core/.../operators/StreamOperator.java:127-146`
+- **严重程度**: P3
+- **现状**: snapshotState 和 initializeState 默认方法使用中文 Javadoc，与文件其余部分的英文不一致。
+- **建议**: 统一为英文。
+- **误报排除**: 项目规范要求错误消息用英文，Javadoc 也应一致。
+- **复核状态**: 未复核
+
+### 正面观察
+
+- DataStream API 层次结构清晰且类型安全
+- 函数接口模式一致（SourceFunction, SinkFunction, MapFunction 等）
+- 状态类型层次完整（ValueState, ListState, MapState 等）
+- SPI 解耦正确（IDeploymentPlanProvider 使用 ServiceLoader）
+- WatermarkStrategy 提供丰富的构建器模式

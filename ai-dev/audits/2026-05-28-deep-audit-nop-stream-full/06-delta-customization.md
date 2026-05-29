@@ -1,9 +1,15 @@
 # 维度 06：Delta 定制合规性
 
-## 零发现说明
+## 第 1 轮（初审）
 
-**检查范围**: 搜索 nop-stream/ 下 _vfs/_delta/ 目录和所有 Delta 文件。
+### 零发现
 
-**结论**: nop-stream 模块无 Delta 定制文件。该模块不使用 Nop 平台的 Delta 定制机制（x:extends + x:override）。
+#### 检查范围
 
-此维度不适用于 nop-stream 模块。
+| 搜索维度 | 模式 | 范围 | 命中 |
+|---|---|---|---|
+| _vfs/_delta/ 目录 | `**/nop-stream/**/_delta/**` | 所有子模块 | 0 |
+| x:extends="super" | regex in *.xml | 所有XML文件 | 0 |
+| x:override 属性 | regex in *.xml | 所有XML文件 | 0 |
+
+nop-stream 不含任何 Delta 定制产物，也无 _vfs 资源树。这是引擎模块的正常状态——Delta 定制是应用层关注点。

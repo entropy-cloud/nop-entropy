@@ -1,9 +1,22 @@
 # 维度 05：生成管线完整性
 
-## 零发现说明
+## 第 1 轮（初审）
 
-**检查范围**: 搜索 nop-stream/ 下 codegen 脚本和生成管线。
+### 零发现
 
-**结论**: nop-stream 不使用 Nop 平台的标准代码生成管线（model → codegen → dao → meta → service → web）。该模块唯一的代码生成是 nop-stream-cep 中由 pattern.xdef 生成的 4 个 _gen 文件（_CepPatternModel 等），这些通过 nop-kernel/nop-xdefs 的 XDSL 机制在构建时生成，已验证生成文件正确且无手写修改。
+#### 检查范围
 
-此维度的大部分检查项不适用于 nop-stream。
+| 检查项 | 结果 |
+|--------|------|
+| XDef 模型源: `nop/schema/stream/pattern.xdef` | 已验证 |
+| 生成脚本: `nop-stream-cep/precompile/gen-cep-xdsl.xgen` | 已验证 |
+| Maven 插件配置: `nop-stream-cep/pom.xml` (exec-maven-plugin) | 已验证 |
+| 生成产物 (4个): `_CepPatternModel.java`, `_CepPatternPartModel.java`, `_CepPatternSingleModel.java`, `_CepPatternGroupModel.java` | 已验证 |
+| 手写模型类 (4个): `CepPatternModel`, `CepPatternPartModel`, `CepPatternSingleModel`, `CepPatternGroupModel` | 已验证 |
+| 枚举: `FollowKind`, `AfterMatchSkipStrategyKind` | 已验证 |
+| 继承层次一致性 | 已验证 |
+| 其他子模块 precompile/postcompile 目录 | 已验证（无，符合预期） |
+
+#### 结论
+
+nop-stream-cep 的代码生成管线完整且正确。pattern.xdef 定义了4种模型类型，gen-cep-xdsl.xgen 正确调用 codeGenerator.renderModel，生成产物与 XDef schema 一致，手写子类正确继承 _gen 基类。其余8个子模块无代码生成需求，符合预期。

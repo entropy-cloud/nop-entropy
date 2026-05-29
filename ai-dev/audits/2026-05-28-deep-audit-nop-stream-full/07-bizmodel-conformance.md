@@ -1,9 +1,19 @@
 # 维度 07：BizModel 规范遵循
 
-## 零发现说明
+## 第 1 轮（初审）
 
-**检查范围**: 搜索 @BizModel, @BizQuery, @BizMutation, @BizLoader 注解和 CrudBizModel 继承。
+### 零发现
 
-**结论**: nop-stream 模块无 BizModel 类。该模块不使用 Nop 平台的 BizModel 服务层模式，而是提供自有的流处理 API（DataStream, Pattern, CEP 等）。服务层功能通过 StreamExecutionEnvironment 和算子接口暴露。
+#### 检查范围
 
-此维度不适用于 nop-stream 模块。
+| 搜索目标 | 模式 | 范围 | 结果 |
+|---|---|---|---|
+| @BizModel 注解 | `@BizModel` in `*.java` | `nop-stream/` (all submodules) | 0 matches |
+| CrudBizModel 基类 | `CrudBizModel` in `*.java` | `nop-stream/` (all submodules) | 0 matches |
+| Biz 操作注解 | `@BizQuery`, `@BizMutation`, `@BizLoader` in `*.java` | `nop-stream/` (all submodules) | 0 matches |
+| XBiz 模型文件 | `**/*.xbiz` | `nop-stream/` (all submodules) | 0 files |
+| 辅助搜索 | `BizObject|BizAction|IOrmBizModel|xbiz` | `nop-stream/` (all submodules) | 0 matches |
+
+#### 结论
+
+nop-stream 不含任何 BizModel 相关产物。这是预期且正确的设计——nop-stream 是流处理引擎，不通过 BizModel/GraphQL CRUD 暴露功能。无可报告的合规性问题。

@@ -2,58 +2,28 @@
 
 ## 第 1 轮（初审）
 
-### [维度21-01] Transformation 测试系列是 getter/setter 往返测试，保护力极弱
+### [维度21-01] TestSharedBuffer tests only cover basic registration -- no retrieval, lookup, or edge-case testing
 
-- **文件**: 
-  - `nop-stream-core/.../transformation/TestOneInputTransformation.java` (438 行)
-  - `nop-stream-core/.../transformation/TestSinkTransformation.java` (397 行)
-  - `nop-stream-core/.../transformation/TestSourceTransformation.java` (361 行)
-  - `nop-stream-core/.../transformation/TestPartitionTransformation.java` (309 行)
-- **证据片段**:
-  ```java
-  // TestOneInputTransformation.java - 典型的 getter/setter 往返
-  void testBasicConstructionWithoutKeySelector() {
-      assertEquals("test-name", transformation.getName());
-      assertEquals(4, transformation.getParallelism());
-  }
-  // 编译期保证的测试
-  void testExtendsPhysicalTransformation() {
-      assertTrue(transformation instanceof PhysicalTransformation);
-  }
-  ```
-- **严重程度**: P1 (命中反模式 P-1)
-- **现状**: 约 1,505 行测试代码，绝大多数是构造器参数 → getter 返回值的往返验证。testExtendsPhysicalTransformation 和 testSerialization 是编译期已保证的类型检查。
-- **风险**: 核心逻辑改为错误实现后这些测试仍可能通过（因为只验证 getter/setter 对称性）。
-- **建议**: 将测试资源转移到 PartitionRouter、基础算子、累加器等缺少测试的组件。
-- **误报排除**: 不是误报。验证了"改成错误实现"假设——大部分测试无法捕获业务逻辑错误。
+- **文件**: `nop-stream-cep/src/test/java/io/nop/stream/cep/nfa/sharedbuffer/TestSharedBuffer.java`
+- **严重程度**: P2
+- **现状**: SharedBuffer 是 CEP 引擎中最复杂的数据结构之一，但测试仅覆盖基本注册和缓存大小计数。无检索、查找、锁定语义或其在实际模式匹配中的角色测试。
+- **建议**: 添加 SharedBuffer 检索、锁定/解锁语义和边界条件的测试。
+- **误报排除**: SharedBuffer 是 CEP 引擎的核心共享缓冲区，其引用计数和缓存淘汰逻辑是关键正确性保障。
 - **复核状态**: 未复核
 
-### [维度21-02] TestCheckpointType 等测试元数据属性而非行为
+### [维度21-02] ~20-25% of test methods are low-value (P-1 getter/constant assertions)
 
-- **文件**: 
-  - `nop-stream-core/.../checkpoint/TestCheckpointType.java` (57 行)
-  - `nop-stream-core/.../checkpoint/TestProcessingGuarantee.java` (33 行)
-  - `nop-stream-core/.../checkpoint/TestJobTerminationContext.java` (39 行)
-- **严重程度**: P2 (命中反模式 P-2)
-- **现状**: 测试枚举的硬编码属性值（如 isAuto() 返回 true），属于元数据验证。
-- **建议**: 保留作为 contract documentation，但不应作为主要测试投入方向。
-- **误报排除**: 有边际价值——防止新枚举值被意外添加时忘记设置属性。
+- **文件**: TestDeweyNumber, TestWindowingModel, fraud-example testConstants() 方法
+- **严重程度**: P3
+- **现状**: 约35-40个测试方法是 getter/常量往返测试或元数据属性测试，保护力弱。
+- **建议**: 低优先级清理，不阻塞。
+- **误报排除**: 这是测试有效性分布问题，不是功能性缺陷。
 - **复核状态**: 未复核
 
-## 正面发现（高质量测试范例）
+### 测试有效性总体评估
 
-- **TestStreamGraphGenerator** (544行): 多种拓扑、幂等性、错误输入、分区转换
-- **TestWindowOperatorCorrectness** (587行): 回归测试，直接标注 bug 修复
-- **TestNFA** (178行): CEP 核心匹配语义，begin/next/followedBy 模式
-- **TestCheckpointEndToEnd** (403行): 完整 lifecycle 测试
-- **TestBatchConsumerSinkFunction** (103行): 简洁有效，覆盖所有关键路径
-
-## 有效测试 vs 低价值测试比例
-
-| 类别 | 估算行数 | 占比 |
-|------|---------|------|
-| 高保护力测试 | ~8,000 | 21% |
-| 中等保护力测试 | ~10,000 | 35% |
-| 低价值测试 | ~6,000 | 21% |
-| 边际价值测试 | ~3,000 | 10% |
-| 辅助文件 | ~11,845 | 13% |
+- 总测试：318个
+- 有效行为测试：约75-80%（~150-155个方法）
+- 低价值测试：约20-25%（~35-40个方法）
+- 关键路径测试质量高：NFA, NFACompiler, Pattern, CheckpointCoordinator
+- 测试盲区：ComputationState, CepOperator late-data, NFA window timeout（见维度16）
