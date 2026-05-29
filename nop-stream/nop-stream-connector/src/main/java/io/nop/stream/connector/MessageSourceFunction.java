@@ -7,6 +7,9 @@
  */
 package io.nop.stream.connector;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -41,6 +44,7 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
 
     private volatile boolean running = true;
     private IMessageSubscription subscription;
+    private transient volatile CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     /**
      * Creates a MessageSourceFunction that subscribes to a single topic.
@@ -101,13 +105,16 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
         });
 
         while (running) {
-            Thread.sleep(1000);
+            shutdownLatch.await(1, TimeUnit.SECONDS);
         }
     }
 
     @Override
     public void cancel() {
         running = false;
+        if (shutdownLatch != null) {
+            shutdownLatch.countDown();
+        }
         if (subscription != null) {
             subscription.cancel();
         }

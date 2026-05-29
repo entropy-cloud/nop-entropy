@@ -68,7 +68,7 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
             IBatchChunkContext chunkContext = taskContext != null
                     ? new BatchChunkContextImpl(taskContext)
                     : null;
-            consumer.consume(buffer, chunkContext);
+            consumer.consume(new ArrayList<>(buffer), chunkContext);
         } finally {
             buffer.clear();
         }
@@ -77,6 +77,13 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
     @Override
     public void close() {
         flush();
+        if (consumer instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) consumer).close();
+            } catch (Exception e) {
+                throw new StreamException("Failed to close consumer", e);
+            }
+        }
     }
 
     @Override

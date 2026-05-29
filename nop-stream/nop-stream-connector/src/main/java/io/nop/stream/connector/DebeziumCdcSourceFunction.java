@@ -29,8 +29,8 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
     private volatile boolean running = true;
     private volatile boolean draining = false;
     private transient volatile CountDownLatch completionLatch;
-    private DebeziumMessageSource source;
-    private ICancellable subscription;
+    private volatile DebeziumMessageSource source;
+    private volatile ICancellable subscription;
 
     public DebeziumCdcSourceFunction(DebeziumConfig config) {
         if (config == null) {
