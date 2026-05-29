@@ -150,6 +150,14 @@ class TestPythonCodeFileAnalyzer {
                 "Inner class qualified name should contain 'Outer.Inner', was: " + inner.getQualifiedName());
     }
 
+    @Test
+    void testMultipleFilesReuseStaticLanguage() {
+        for (int i = 0; i < 10; i++) {
+            CodeFileAnalysisResult result = analyzer.analyze("f" + i + ".py", CLASS_WITH_METHODS);
+            assertNotNull(result, "Repeated analysis should succeed on iteration " + i);
+        }
+    }
+
     private CodeSymbol findSymbol(List<CodeSymbol> symbols, String name) {
         return symbols.stream()
                 .filter(s -> name.equals(s.getName()))

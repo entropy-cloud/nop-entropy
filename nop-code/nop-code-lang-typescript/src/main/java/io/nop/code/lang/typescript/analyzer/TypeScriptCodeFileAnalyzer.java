@@ -33,6 +33,8 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(TypeScriptCodeFileAnalyzer.class);
 
+    private static final TSLanguage TS_LANGUAGE = new TreeSitterTypescript();
+
     private static final List<String> EXTENSIONS = Arrays.asList(".ts", ".tsx");
 
     @Override
@@ -51,9 +53,8 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             return null;
         }
 
-        TSLanguage language = new TreeSitterTypescript();
         TSParser parser = new TSParser();
-        parser.setLanguage(language);
+        parser.setLanguage(TS_LANGUAGE);
 
         TSTree tree = parser.parseString(null, sourceCode);
         if (tree == null) {

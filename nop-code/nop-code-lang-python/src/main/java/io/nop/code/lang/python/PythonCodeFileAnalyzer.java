@@ -26,6 +26,8 @@ import java.util.UUID;
  */
 public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
 
+    private static final TreeSitterPython TS_LANGUAGE = new TreeSitterPython();
+
     @Override
     public CodeLanguage getLanguage() {
         return CodeLanguage.PYTHON;
@@ -40,7 +42,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
         String moduleName = pathToModuleName(filePath);
 
         TSParser parser = new TSParser();
-        parser.setLanguage(new TreeSitterPython());
+        parser.setLanguage(TS_LANGUAGE);
 
         TSTree tree = parser.parseString(null, sourceCode);
         if (tree == null) {

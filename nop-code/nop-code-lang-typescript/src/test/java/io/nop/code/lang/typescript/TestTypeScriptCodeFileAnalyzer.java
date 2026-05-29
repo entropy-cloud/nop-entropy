@@ -146,15 +146,33 @@ class TestTypeScriptCodeFileAnalyzer {
     }
 
     @Test
-    void testTsxUsesTsxGrammar() {
+    void testMultipleFilesReuseStaticLanguage() {
+        for (int i = 0; i < 10; i++) {
+            CodeFileAnalysisResult result = analyzer.analyze("src/F" + i + ".ts", CLASS_SOURCE);
+            assertNotNull(result, "Repeated analysis should succeed on iteration " + i);
+        }
+    }
+
+    @Test
+    void testTsxParsesClassWithJsx() {
         String tsxSource =
-                "export const App = () => {\n" +
-                "  return <div>Hello</div>;\n" +
-                "};\n";
+                "export class App {\n" +
+                "  render() {\n" +
+                "    return <div>Hello</div>;\n" +
+                "  }\n" +
+                "}\n";
 
         CodeFileAnalysisResult result = analyzer.analyze("src/App.tsx", tsxSource);
         assertNotNull(result, "TSX should parse successfully");
         assertEquals(CodeLanguage.TYPESCRIPT, result.getLanguage());
+        assertFalse(result.getSymbols().isEmpty(), "TSX file should yield symbols");
+
+        CodeSymbol appClass = findSymbol(result.getSymbols(), "App");
+        assertNotNull(appClass, "Should find App class");
+        assertEquals(CodeSymbolKind.CLASS, appClass.getKind());
+
+        CodeSymbol render = findSymbol(result.getSymbols(), "render");
+        assertNotNull(render, "Should find render method in TSX class");
     }
 
     @Test
