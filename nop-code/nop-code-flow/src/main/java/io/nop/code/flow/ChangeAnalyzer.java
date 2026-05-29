@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,65 +87,71 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String currentFile = null;
-                String oldFilePath = null;
-                boolean skipBinary = false;
-                String line;
+            try {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    String currentFile = null;
+                    String oldFilePath = null;
+                    boolean skipBinary = false;
+                    String line;
 
-                while ((line = reader.readLine()) != null) {
-                if (line.startsWith("Binary files")) {
-                    skipBinary = true;
-                    continue;
-                }
+                    while ((line = reader.readLine()) != null) {
+                        if (line.startsWith("Binary files")) {
+                            skipBinary = true;
+                            continue;
+                        }
 
-                Matcher fileMatcher = DIFF_HEADER_FILE.matcher(line);
-                if (fileMatcher.matches()) {
-                    currentFile = fileMatcher.group(1);
-                    skipBinary = false;
-                    continue;
-                }
+                        Matcher fileMatcher = DIFF_HEADER_FILE.matcher(line);
+                        if (fileMatcher.matches()) {
+                            currentFile = fileMatcher.group(1);
+                            skipBinary = false;
+                            continue;
+                        }
 
-                Matcher oldFileMatcher = DIFF_HEADER_OLD_FILE.matcher(line);
-                if (oldFileMatcher.matches()) {
-                    oldFilePath = oldFileMatcher.group(1);
-                    continue;
-                }
+                        Matcher oldFileMatcher = DIFF_HEADER_OLD_FILE.matcher(line);
+                        if (oldFileMatcher.matches()) {
+                            oldFilePath = oldFileMatcher.group(1);
+                            continue;
+                        }
 
-                Matcher renameFromMatcher = RENAME_HEADER.matcher(line);
-                if (renameFromMatcher.matches()) {
-                    oldFilePath = renameFromMatcher.group(1);
-                    continue;
-                }
+                        Matcher renameFromMatcher = RENAME_HEADER.matcher(line);
+                        if (renameFromMatcher.matches()) {
+                            oldFilePath = renameFromMatcher.group(1);
+                            continue;
+                        }
 
-                Matcher renameToMatcher = RENAME_TO.matcher(line);
-                if (renameToMatcher.matches()) {
-                    String newName = renameToMatcher.group(1);
-                    if (oldFilePath != null && result.containsKey(oldFilePath)) {
-                        List<LineRange> ranges = result.remove(oldFilePath);
-                        result.put(newName, ranges);
+                        Matcher renameToMatcher = RENAME_TO.matcher(line);
+                        if (renameToMatcher.matches()) {
+                            String newName = renameToMatcher.group(1);
+                            if (oldFilePath != null && result.containsKey(oldFilePath)) {
+                                List<LineRange> ranges = result.remove(oldFilePath);
+                                result.put(newName, ranges);
+                            }
+                            currentFile = newName;
+                            continue;
+                        }
+
+                        if (skipBinary || currentFile == null) {
+                            continue;
+                        }
+
+                        Matcher hunkMatcher = HUNK_HEADER.matcher(line);
+                        if (hunkMatcher.matches()) {
+                            int startLine = Integer.parseInt(hunkMatcher.group(3));
+                            String countStr = hunkMatcher.group(4);
+                            int count = (countStr != null && !countStr.isEmpty()) ? Integer.parseInt(countStr) : 1;
+
+                            result.computeIfAbsent(currentFile, k -> new ArrayList<>())
+                                    .add(new LineRange(startLine, startLine + count - 1));
+                        }
                     }
-                    currentFile = newName;
-                    continue;
                 }
 
-                if (skipBinary || currentFile == null) {
-                    continue;
+                if (!process.waitFor(30, TimeUnit.SECONDS)) {
+                    LOG.warn("Git diff process timed out after 30 seconds for {}..{}", baseline, target);
                 }
-
-                Matcher hunkMatcher = HUNK_HEADER.matcher(line);
-                if (hunkMatcher.matches()) {
-                    int startLine = Integer.parseInt(hunkMatcher.group(3));
-                    String countStr = hunkMatcher.group(4);
-                    int count = (countStr != null && !countStr.isEmpty()) ? Integer.parseInt(countStr) : 1;
-
-                    result.computeIfAbsent(currentFile, k -> new ArrayList<>())
-                            .add(new LineRange(startLine, startLine + count - 1));
-                }
-            }
-
-                process.waitFor();
+            } finally {
+                process.destroyForcibly();
             }
         } catch (IOException e) {
             LOG.warn("Failed to parse git diff output", e);

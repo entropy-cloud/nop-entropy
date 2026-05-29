@@ -66,6 +66,22 @@ class TestDocKeywordExtractor {
         assertTrue(extractor.extract(new SymbolTable(), new CallGraph()).isEmpty());
     }
 
+    @Test
+    void testSymbolLimitPreventsExplosion() {
+        int count = 100;
+        SymbolTable table = new SymbolTable();
+        for (int i = 0; i < count; i++) {
+            CodeSymbol sym = createSymbol("com.example.Sym" + i, "Sym" + i, CodeSymbolKind.CLASS);
+            sym.setDocumentation("alpha beta gamma delta epsilon zeta eta theta iota kappa lambda");
+            table.add(sym);
+        }
+
+        List<CodeSemanticEdge> edges = extractor.extract(table, new CallGraph());
+
+        assertNotNull(edges);
+        assertEquals(count * (count - 1) / 2, edges.size(), "All symbols share same docs, should produce all-pairs edges");
+    }
+
     private CodeSymbol createSymbol(String qualifiedName, String name, CodeSymbolKind kind) {
         CodeSymbol sym = new CodeSymbol();
         sym.setId(qualifiedName);

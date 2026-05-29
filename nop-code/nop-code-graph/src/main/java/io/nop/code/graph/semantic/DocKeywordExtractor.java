@@ -10,6 +10,9 @@ import io.nop.code.core.semantic.SemanticRelationType;
 
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Extracts semantic edges based on documentation keyword overlap.
  * Symbols with significant keyword overlap in their documentation get
@@ -17,8 +20,11 @@ import java.util.*;
  */
 public class DocKeywordExtractor implements ISemanticEdgeExtractor {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DocKeywordExtractor.class);
+
     private static final double OVERLAP_THRESHOLD = 0.5;
     private static final int MIN_KEYWORDS = 2;
+    private static final int MAX_SYMBOLS = 5000;
 
     @Override
     public String getExtractorId() {
@@ -37,6 +43,12 @@ public class DocKeywordExtractor implements ISemanticEdgeExtractor {
             if (sym.getDocumentation() != null && !sym.getDocumentation().isEmpty()) {
                 withDocs.add(sym);
             }
+        }
+
+        if (withDocs.size() > MAX_SYMBOLS) {
+            LOG.warn("DocKeywordExtractor: truncating from {} to {} symbols with docs to prevent O(N^2) explosion",
+                    withDocs.size(), MAX_SYMBOLS);
+            withDocs = withDocs.subList(0, MAX_SYMBOLS);
         }
 
         for (int i = 0; i < withDocs.size(); i++) {

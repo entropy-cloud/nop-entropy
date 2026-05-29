@@ -330,7 +330,7 @@ public class CodeIndexService implements ICodeIndexService {
     // ==================== Indexing ====================
 
     @Override
-    public int indexDirectory(String indexId, String vfsPath, String filePattern) {
+    public synchronized int indexDirectory(String indexId, String vfsPath, String filePattern) {
         validatePath(vfsPath);
         invalidateAnalysisCache(indexId);
         return ormTemplate.runInSession(session -> {

@@ -113,4 +113,10 @@ class TestChangeAnalyzer {
         assertNotNull(result.getAffectedSymbols());
         assertNotNull(result.getChangedFiles());
     }
+
+    @Test
+    void testParseGitDiffReturnsEmptyOnInvalidRefs() {
+        var diff = analyzer.parseGitDiff("invalid~1", "invalid~2");
+        assertNotNull(diff);
+    }
 }
