@@ -107,6 +107,9 @@ class TestPendingCheckpoint {
         pending.acknowledgeTask(LOC_2, TaskStateSnapshot.empty(LOC_2));
         pending.acknowledgeTask(LOC_3, TaskStateSnapshot.empty(LOC_3));
 
+        assertTrue(pending.isFullyAcknowledged());
+        assertTrue(pending.forceComplete());
+
         CompletedCheckpoint completed = future.get(1, TimeUnit.SECONDS);
         assertNotNull(completed);
         assertEquals(100L, completed.getCheckpointId());

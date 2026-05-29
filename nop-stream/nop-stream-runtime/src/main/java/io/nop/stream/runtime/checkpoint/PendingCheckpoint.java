@@ -119,8 +119,10 @@ public class PendingCheckpoint {
         }
 
         if (isFullyAcknowledged() && !completableFuture.isDone()) {
-            // AR-19: Do NOT complete the future here. The coordinator will complete it
-            // after successful storage in completePendingCheckpoint().
+            // AR-19: The future is not auto-completed here. The coordinator completes it
+            // after successful storage. For standalone use without a coordinator, callers
+            // should poll isFullyAcknowledged() and call forceComplete() or handle completion
+            // themselves.
         }
     }
 
@@ -158,6 +160,13 @@ public class PendingCheckpoint {
 
     public boolean isDisposed() {
         return isDisposed;
+    }
+
+    public boolean forceComplete() {
+        if (isFullyAcknowledged() && !completableFuture.isDone()) {
+            return completableFuture.complete(toCompletedCheckpoint());
+        }
+        return false;
     }
 
     public AtomicReference<Status> getStatus() {

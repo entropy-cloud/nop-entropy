@@ -166,14 +166,6 @@ public class CheckpointCoordinator {
         pendingCheckpoints.put(checkpointId, pending);
         numPendingCheckpoints.incrementAndGet();
 
-        pending.getCompletableFuture().whenComplete((completed, error) -> {
-            if (error == null && completed != null) {
-                completePendingCheckpoint(completed);
-            } else {
-                abortPendingCheckpoint(pending, error != null ? error.getMessage() : "Unknown error");
-            }
-        });
-
         scheduleTimeout(pending);
 
         LOG.info("Triggered checkpoint {} for job {}", checkpointId, jobId);
@@ -190,6 +182,11 @@ public class CheckpointCoordinator {
         pending.acknowledgeTask(taskLocation, state);
         LOG.debug("Task {} acknowledged checkpoint {}, pending tasks: {}",
                 taskLocation, checkpointId, pending.getNumberOfNotAcknowledgedTasks());
+
+        if (pending.isFullyAcknowledged() && !pending.getCompletableFuture().isDone()) {
+            completePendingCheckpoint(pending.toCompletedCheckpoint());
+        }
+
         return true;
     }
 
@@ -244,9 +241,7 @@ public class CheckpointCoordinator {
 
         // AR-19: Complete the future only after successful storage, so storage failure
         // does not leave a ghost checkpoint that callers already acted on.
-        if (!pending.getCompletableFuture().isDone()) {
-            pending.getCompletableFuture().complete(completed);
-        }
+        pending.forceComplete();
 
         latestCompletedCheckpoint = completed;
         decrementPendingCheckpointCount();
@@ -457,6 +452,7 @@ public class CheckpointCoordinator {
             pending.dispose();
         }
         pendingCheckpoints.clear();
+        numPendingCheckpoints.set(0);
         listeners.clear();
         participants.clear();
         failedCommitParticipants.clear();

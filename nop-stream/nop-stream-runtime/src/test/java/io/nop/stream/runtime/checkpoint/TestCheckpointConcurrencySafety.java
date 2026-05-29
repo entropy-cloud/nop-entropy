@@ -103,6 +103,10 @@ class TestCheckpointConcurrencySafety {
             exec.shutdown();
             exec.awaitTermination(2, TimeUnit.SECONDS);
 
+            // Standalone PendingCheckpoint (no coordinator) requires explicit forceComplete
+            // after all tasks acknowledged
+            pc.forceComplete();
+
             pc.getCompletableFuture().get(2, TimeUnit.SECONDS);
         }
 

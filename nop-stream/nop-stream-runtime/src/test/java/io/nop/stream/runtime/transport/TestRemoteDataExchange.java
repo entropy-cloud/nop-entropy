@@ -4,6 +4,7 @@ import io.nop.api.core.message.IMessageService;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
@@ -103,7 +104,7 @@ class TestRemoteDataExchange {
                 messageService, topic, null, "edge-1", "token-1", 1L);
         partition.close();
 
-        assertThrows(IllegalStateException.class, () ->
+        assertThrows(StreamException.class, () ->
                 partition.write(new StreamRecord<>("fail")));
     }
 
