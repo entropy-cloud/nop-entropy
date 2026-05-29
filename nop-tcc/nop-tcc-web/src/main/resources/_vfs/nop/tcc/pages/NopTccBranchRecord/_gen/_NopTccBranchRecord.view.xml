@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopTccBranchRecord" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/tcc/model/NopTccBranchRecord/NopTccBranchRecord.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--事务分支ID-->
+                <col id="branchId" mandatory="true" sortable="true"/>
+
+                <!--事务ID-->
+                <col id="txnId" mandatory="true" sortable="true"/>
+
+                <!--事务分支序号-->
+                <col id="branchNo" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--父分支ID-->
+                <col id="parentBranchId" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--过期时间-->
+                <col id="expireTime" mandatory="true" sortable="true"/>
+
+                <!--服务名-->
+                <col id="serviceName" mandatory="true" sortable="true"/>
+
+                <!--服务方法-->
+                <col id="serviceMethod" sortable="true"/>
+
+                <!--确认方法-->
+                <col id="confirmMethod" sortable="true"/>
+
+                <!--取消方法-->
+                <col id="cancelMethod" sortable="true"/>
+
+                <!--请求数据-->
+                <col id="requestData" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errorCode" sortable="true"/>
+
+                <!--错误消息-->
+                <col id="errorMessage" sortable="true"/>
+
+                <!--错误堆栈-->
+                <col id="errorStack" sortable="true"/>
+
+                <!--开始时间-->
+                <col id="beginTime" mandatory="true" sortable="true"/>
+
+                <!--结束时间-->
+                <col id="endTime" sortable="true"/>
+
+                <!--提交阶段错误码-->
+                <col id="commitErrorCode" sortable="true"/>
+
+                <!--提交阶段错误消息-->
+                <col id="commitErrorMessage" sortable="true"/>
+
+                <!--提交阶段错误堆栈-->
+                <col id="commitErrorStack" sortable="true"/>
+
+                <!--取消阶段错误码-->
+                <col id="cancelErrorCode" sortable="true"/>
+
+                <!--取消阶段错误消息-->
+                <col id="cancelErrorMessage" sortable="true"/>
+
+                <!--取消阶段错误堆栈-->
+                <col id="cancelErrorStack" sortable="true"/>
+
+                <!--重试次数-->
+                <col id="retryTimes" ui:number="true" sortable="true"/>
+
+                <!--最大重试次数-->
+                <col id="maxRetryTimes" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--下次重试时间-->
+                <col id="nextRetryTime" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-TCC事务分支记录" i18n-en:title="View TCC Branch Record">
+            <layout>
+ branchId[事务分支ID] txnId[事务ID]
+ branchNo[事务分支序号] parentBranchId[父分支ID]
+ status[状态] expireTime[过期时间]
+ serviceName[服务名] serviceMethod[服务方法]
+ confirmMethod[确认方法] cancelMethod[取消方法]
+ requestData[请求数据] errorCode[错误码]
+ errorMessage[错误消息] errorStack[错误堆栈]
+ beginTime[开始时间] endTime[结束时间]
+ commitErrorCode[提交阶段错误码] commitErrorMessage[提交阶段错误消息]
+ commitErrorStack[提交阶段错误堆栈] cancelErrorCode[取消阶段错误码]
+ cancelErrorMessage[取消阶段错误消息] cancelErrorStack[取消阶段错误堆栈]
+ retryTimes[重试次数] maxRetryTimes[最大重试次数]
+ nextRetryTime[下次重试时间] createTime[创建时间]
+ updateTime[修改时间] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-TCC事务分支记录" i18n-en:title="Add TCC Branch Record" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-TCC事务分支记录" i18n-en:title="Edit TCC Branch Record">
+            <layout>
+ branchId[事务分支ID] txnId[事务ID]
+ branchNo[事务分支序号] parentBranchId[父分支ID]
+ status[状态] expireTime[过期时间]
+ serviceName[服务名] serviceMethod[服务方法]
+ confirmMethod[确认方法] cancelMethod[取消方法]
+ requestData[请求数据] errorCode[错误码]
+ errorMessage[错误消息] errorStack[错误堆栈]
+ beginTime[开始时间] endTime[结束时间]
+ commitErrorCode[提交阶段错误码] commitErrorMessage[提交阶段错误消息]
+ commitErrorStack[提交阶段错误堆栈] cancelErrorCode[取消阶段错误码]
+ cancelErrorMessage[取消阶段错误消息] cancelErrorStack[取消阶段错误堆栈]
+ retryTimes[重试次数] maxRetryTimes[最大重试次数]
+ nextRetryTime[下次重试时间] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-TCC事务分支记录"
+              i18n-en:title="Update TCC Branch Record"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopTccBranchRecord__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopTccBranchRecord__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopTccBranchRecord__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopTccBranchRecord__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopTccBranchRecord__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopTccBranchRecord__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopTccBranchRecord__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopTccBranchRecord__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopTccBranchRecord__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopTccBranchRecord__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>
