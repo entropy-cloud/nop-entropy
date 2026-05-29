@@ -193,6 +193,7 @@ public class TestSessionWindowIntegration {
 
     @Test
     void testSessionWindowEachTimestampGetsOwnWindow() throws Exception {
+        // gap=5 means windows [10,15), [20,25), [30,35) are disjoint -> 3 separate sessions
         List<Event> events = Arrays.asList(
                 new Event("key1", 1, 10),
                 new Event("key1", 2, 20),
@@ -203,7 +204,7 @@ public class TestSessionWindowIntegration {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
-                .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))
+                .<Event>forBoundedOutOfOrderness(Duration.ofMillis(0))
                 .withTimestampAssigner((e, ts) -> e.timestamp);
 
         env.fromCollection(events)
@@ -211,7 +212,7 @@ public class TestSessionWindowIntegration {
                         (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
                         new TimestampsAndWatermarksOperator<>(strategy))
                 .keyBy((KeySelector<Event, String>) e -> e.key)
-                .window(EventTimeSessionWindows.withGap(50))
+                .window(EventTimeSessionWindows.withGap(5))
                 .aggregate(new SumAggregateFunction())
                 .sink((SinkFunction<Integer>) results::add);
 
@@ -351,6 +352,7 @@ public class TestSessionWindowIntegration {
 
     @Test
     void testSessionWindowWithLargeGapSingleSession() throws Exception {
+        // gap=10000 means windows [10,10010) and [20,10020) overlap -> merge into one session
         List<Event> events = Arrays.asList(
                 new Event("key1", 1, 10),
                 new Event("key1", 2, 20));
@@ -360,7 +362,7 @@ public class TestSessionWindowIntegration {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
 
         WatermarkStrategy<Event> strategy = WatermarkStrategy
-                .<Event>forBoundedOutOfOrderness(Duration.ofMillis(5))
+                .<Event>forBoundedOutOfOrderness(Duration.ofMillis(0))
                 .withTimestampAssigner((e, ts) -> e.timestamp);
 
         env.fromCollection(events)
@@ -374,9 +376,7 @@ public class TestSessionWindowIntegration {
 
         env.execute("session-window-large-gap");
 
-        assertEquals(2, results.size());
-        results.sort(Integer::compare);
-        List<Integer> expected = Arrays.asList(1, 2);
-        assertEquals(expected, results);
+        assertEquals(1, results.size());
+        assertEquals(3, results.get(0));
     }
 }

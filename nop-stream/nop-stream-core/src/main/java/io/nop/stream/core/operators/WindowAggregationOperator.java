@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.core.lang.json.JsonTool;
+import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
@@ -19,6 +20,7 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.util.Collector;
+import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
@@ -46,6 +48,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private transient boolean watermarkInitialized;
     private transient Object currentKeyField;
     private transient WindowAssigner.WindowAssignerContext assignerContext;
+    private transient Map<K, Set<W>> activeWindowsPerKey;
 
     public WindowAggregationOperator(
             WindowAssigner<? super IN, W> windowAssigner,
@@ -79,6 +82,9 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         if (this.triggerState == null) {
             this.triggerState = new HashMap<>();
         }
+        if (this.activeWindowsPerKey == null) {
+            this.activeWindowsPerKey = new HashMap<>();
+        }
         if (!this.watermarkInitialized) {
             this.currentWatermark = Long.MIN_VALUE;
         }
@@ -102,6 +108,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         windowTimerLookup = null;
         processingTimeTimerLookup = null;
         triggerState = null;
+        activeWindowsPerKey = null;
     }
 
     @Override
@@ -210,7 +217,6 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         IN value = element.getValue();
         long timestamp = element.getTimestamp();
 
-        // Late data handling: discard elements with valid timestamps below current watermark
         if (element.hasTimestamp() && timestamp < currentWatermark) {
             LOG.debug("Dropping late element with timestamp {} below current watermark {}", timestamp, currentWatermark);
             return;
@@ -220,25 +226,122 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
         Collection<W> windows = windowAssigner.assignWindows(value, timestamp, assignerContext);
 
-        for (W window : windows) {
-            WindowKey<K, W> wk = new WindowKey<>(key, window);
+        if (windowAssigner instanceof MergingWindowAssigner) {
+            processElementWithMerging(value, timestamp, key, windows);
+        } else {
+            for (W window : windows) {
+                WindowKey<K, W> wk = new WindowKey<>(key, window);
 
-            ACC acc = windowState.get(wk);
-            if (acc == null) {
-                acc = aggregationFunction.createAccumulator();
+                ACC acc = windowState.get(wk);
+                if (acc == null) {
+                    acc = aggregationFunction.createAccumulator();
+                }
+                acc = aggregationFunction.add(value, acc);
+                windowState.put(wk, acc);
+
+                TriggerContextImpl triggerCtx = new TriggerContextImpl(key, window);
+                TriggerResult result = trigger.onElement(value, timestamp, window, triggerCtx);
+
+                if (result.isFire()) {
+                    emitWindowResult(key, window, acc);
+                }
+
+                if (result.isPurge()) {
+                    purgeWindow(key, window, wk, triggerCtx);
+                }
             }
-            acc = aggregationFunction.add(value, acc);
-            windowState.put(wk, acc);
+        }
+    }
 
-            TriggerContextImpl triggerCtx = new TriggerContextImpl(key, window);
-            TriggerResult result = trigger.onElement(value, timestamp, window, triggerCtx);
+    @SuppressWarnings("unchecked")
+    private void processElementWithMerging(IN value, long timestamp, K key, Collection<W> newWindows) throws Exception {
+        MergingWindowAssigner<Object, W> mergingAssigner = (MergingWindowAssigner<Object, W>) windowAssigner;
+        Set<W> activeWindows = activeWindowsPerKey.computeIfAbsent(key, k -> new LinkedHashSet<>());
 
-            if (result.isFire()) {
-                emitWindowResult(key, window, acc);
+        for (W newWindow : newWindows) {
+            Set<W> candidateWindows = new LinkedHashSet<>(activeWindows);
+            candidateWindows.add(newWindow);
+
+            final List<Tuple2<Collection<W>, W>> mergeTargets = new ArrayList<>();
+            mergingAssigner.mergeWindows(candidateWindows, new MergingWindowAssigner.MergeCallback<W>() {
+                @Override
+                public void merge(Collection<W> toBeMerged, W mergeResult) {
+                    mergeTargets.add(Tuple2.of(toBeMerged, mergeResult));
+                }
+            });
+
+            if (mergeTargets.isEmpty()) {
+                WindowKey<K, W> wk = new WindowKey<>(key, newWindow);
+                ACC acc = windowState.get(wk);
+                if (acc == null) {
+                    acc = aggregationFunction.createAccumulator();
+                }
+                acc = aggregationFunction.add(value, acc);
+                windowState.put(wk, acc);
+                activeWindows.add(newWindow);
+
+                TriggerContextImpl triggerCtx = new TriggerContextImpl(key, newWindow);
+                TriggerResult result = trigger.onElement(value, timestamp, newWindow, triggerCtx);
+
+                if (result.isFire()) {
+                    emitWindowResult(key, newWindow, acc);
+                }
+                if (result.isPurge()) {
+                    purgeWindow(key, newWindow, wk, triggerCtx);
+                    activeWindows.remove(newWindow);
+                }
+            } else {
+                for (Tuple2<Collection<W>, W> mergeOp : mergeTargets) {
+                    Collection<W> toBeMerged = mergeOp.f0;
+                    W mergedWindow = mergeOp.f1;
+
+                    ACC mergedAcc = aggregationFunction.createAccumulator();
+                    mergedAcc = aggregationFunction.add(value, mergedAcc);
+
+                    for (W sourceWindow : toBeMerged) {
+                        WindowKey<K, W> sourceWk = new WindowKey<>(key, sourceWindow);
+                        ACC sourceAcc = windowState.remove(sourceWk);
+                        if (sourceAcc != null) {
+                            mergedAcc = aggregationFunction.merge(mergedAcc, sourceAcc);
+                        }
+                        if (!sourceWindow.equals(mergedWindow)) {
+                            TriggerContextImpl sourceCtx = new TriggerContextImpl(key, sourceWindow);
+                            unregisterEventTimeTimersForWindow(key, sourceWindow);
+                            activeWindows.remove(sourceWindow);
+                        }
+                    }
+
+                    WindowKey<K, W> mergedWk = new WindowKey<>(key, mergedWindow);
+                    windowState.put(mergedWk, mergedAcc);
+                    activeWindows.add(mergedWindow);
+
+                    TriggerContextImpl triggerCtx = new TriggerContextImpl(key, mergedWindow);
+                    TriggerResult result = trigger.onElement(value, timestamp, mergedWindow, triggerCtx);
+
+                    if (result.isFire()) {
+                        emitWindowResult(key, mergedWindow, mergedAcc);
+                    }
+                    if (result.isPurge()) {
+                        purgeWindow(key, mergedWindow, mergedWk, triggerCtx);
+                        activeWindows.remove(mergedWindow);
+                    }
+                }
             }
+        }
+    }
 
-            if (result.isPurge()) {
-                purgeWindow(key, window, wk, triggerCtx);
+    private void unregisterEventTimeTimersForWindow(K key, W window) {
+        WindowKey<K, W> wk = new WindowKey<>(key, window);
+        Set<Long> timers = windowTimerLookup.remove(wk);
+        if (timers != null) {
+            for (Long time : timers) {
+                Set<WindowKey<K, W>> keysAtTime = eventTimeTimers.get(time);
+                if (keysAtTime != null) {
+                    keysAtTime.remove(wk);
+                    if (keysAtTime.isEmpty()) {
+                        eventTimeTimers.remove(time);
+                    }
+                }
             }
         }
     }
@@ -343,17 +446,30 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     }
 
     private void purgeWindow(K key, W window, WindowKey<K, W> wk,
-                             TriggerContextImpl triggerCtx) throws Exception {
+                              TriggerContextImpl triggerCtx) throws Exception {
         windowState.remove(wk);
 
-        Set<Long> timers = windowTimerLookup.remove(wk);
-        if (timers != null) {
-            for (Long time : timers) {
+        Set<Long> etTimers = windowTimerLookup.remove(wk);
+        if (etTimers != null) {
+            for (Long time : etTimers) {
                 Set<WindowKey<K, W>> keysAtTime = eventTimeTimers.get(time);
                 if (keysAtTime != null) {
                     keysAtTime.remove(wk);
                     if (keysAtTime.isEmpty()) {
                         eventTimeTimers.remove(time);
+                    }
+                }
+            }
+        }
+
+        Set<Long> ptTimers = processingTimeTimerLookup.remove(wk);
+        if (ptTimers != null) {
+            for (Long time : ptTimers) {
+                Set<WindowKey<K, W>> keysAtTime = processingTimeTimers.get(time);
+                if (keysAtTime != null) {
+                    keysAtTime.remove(wk);
+                    if (keysAtTime.isEmpty()) {
+                        processingTimeTimers.remove(time);
                     }
                 }
             }
@@ -366,6 +482,14 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             TriggerStateKey<K, W> k = it.next();
             if (k.windowKey.equals(wk)) {
                 it.remove();
+            }
+        }
+
+        Set<W> active = activeWindowsPerKey.get(key);
+        if (active != null) {
+            active.remove(window);
+            if (active.isEmpty()) {
+                activeWindowsPerKey.remove(key);
             }
         }
     }

@@ -29,4 +29,9 @@ public class AggregateAggregationFunction<IN, ACC, OUT, K, W extends Window>
     public void emitResult(K key, W window, ACC accumulator, Collector<OUT> out) {
         out.collect(aggregateFunction.getResult(accumulator));
     }
+
+    @Override
+    public ACC merge(ACC acc1, ACC acc2) throws Exception {
+        return aggregateFunction.merge(acc1, acc2);
+    }
 }

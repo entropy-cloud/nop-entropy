@@ -118,4 +118,8 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_CLASS_NOT_ALLOWED =
             define("nop.err.stream.class-not-allowed", "Class not allowed: {className}", ARG_CLASS_NAME);
+
+    ErrorCode ERR_STREAM_INVALID_TIMESTAMP =
+            define("nop.err.stream.invalid-timestamp", "Invalid timestamp for argument {argName}: {detail}",
+                    ARG_ARG_NAME, ARG_DETAIL);
 }

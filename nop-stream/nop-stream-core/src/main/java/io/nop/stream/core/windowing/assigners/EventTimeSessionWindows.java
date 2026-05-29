@@ -28,7 +28,18 @@ public class EventTimeSessionWindows extends MergingWindowAssigner<Object, TimeW
 
     @Override
     public Collection<TimeWindow> assignWindows(Object element, long timestamp, WindowAssignerContext assignerContext) {
-        return Collections.singletonList(new TimeWindow(timestamp, timestamp + sessionTimeout));
+        if (timestamp <= Long.MIN_VALUE) {
+            throw new StreamException(ERR_STREAM_INVALID_TIMESTAMP)
+                    .param(ARG_ARG_NAME, "timestamp")
+                    .param(ARG_DETAIL, "Session window requires a valid timestamp, got: " + timestamp);
+        }
+        long end = timestamp + sessionTimeout;
+        if (end < timestamp) {
+            throw new StreamException(ERR_STREAM_INVALID_TIMESTAMP)
+                    .param(ARG_ARG_NAME, "timestamp")
+                    .param(ARG_DETAIL, "Session window end overflows: timestamp=" + timestamp + ", sessionTimeout=" + sessionTimeout);
+        }
+        return Collections.singletonList(new TimeWindow(timestamp, end));
     }
 
     @Override

@@ -114,6 +114,17 @@ public class TestEventTimeSessionWindows {
     }
 
     @Test
+    public void testAssignWindowsRejectsLongMinValue() {
+        assertThrows(StreamException.class, () -> assigner.assignWindows(null, Long.MIN_VALUE, context));
+    }
+
+    @Test
+    public void testAssignWindowsAcceptsValidTimestamp() {
+        Collection<TimeWindow> windows = assigner.assignWindows(null, 1, context);
+        assertEquals(1, windows.size());
+    }
+
+    @Test
     public void testWithGapDuration() {
         EventTimeSessionWindows durationAssigner = EventTimeSessionWindows.withGap(java.time.Duration.ofMillis(3000));
         assertEquals(3000, durationAssigner.getSessionTimeout());
