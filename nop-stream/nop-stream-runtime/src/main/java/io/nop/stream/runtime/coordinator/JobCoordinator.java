@@ -9,6 +9,7 @@ package io.nop.stream.runtime.coordinator;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -84,6 +85,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     /** Whether the coordinator is running */
     private volatile boolean running;
 
+    /** AR-6: Guard against double initialization */
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+
     public JobCoordinator(String jobId,
                           String coordinatorId,
                           DeploymentPlan deploymentPlan,
@@ -114,7 +118,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * and starts the failure detection loop.
      */
     public void start() {
-        if (running) {
+        if (!initialized.compareAndSet(false, true)) {
             LOG.warn("JobCoordinator {} already started", coordinatorId);
             return;
         }
@@ -296,9 +300,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return false;
         }
 
-        // Fencing token verification
+        // AR-7: Reject all ACKs when fencingToken == null (coordinator not initialized)
         String token = fencingToken.get();
-        if (token != null && !token.equals(ack.getFencingToken())) {
+        if (token == null) {
+            LOG.warn("Rejecting checkpoint ACK: coordinator fencing token not initialized");
+            return false;
+        }
+
+        // Fencing token verification
+        if (!token.equals(ack.getFencingToken())) {
             LOG.warn("Rejecting checkpoint ACK with stale fencing token from {}",
                     ack.getTaskLocation());
             return false;
@@ -406,14 +416,20 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
 
         // 4. Restore from latest checkpoint/manifest if available
+        CompletedCheckpoint latest = null;
         try {
-            CompletedCheckpoint latest = checkpointCoordinator.getLatestCheckpoint();
+            latest = checkpointCoordinator.getLatestCheckpoint();
             if (latest != null) {
                 LOG.info("Recovering from checkpoint {} for job {}", latest.getCheckpointId(), jobId);
             }
         } catch (Exception e) {
             LOG.warn("Failed to restore from checkpoint during recovery", e);
         }
+
+        // AR-27: Checkpoint data (latest) is available in checkpointCoordinator for
+        // invokables to restore from. Tasks must be assigned AFTER checkpoint state is
+        // confirmed available so that invokables can call checkpointCoordinator.restoreFromCheckpoint()
+        // during initialization.
 
         // 5. Reassign tasks with new fencing token
         assignTasks();

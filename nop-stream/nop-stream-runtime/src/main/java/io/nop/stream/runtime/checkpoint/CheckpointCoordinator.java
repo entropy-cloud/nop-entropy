@@ -242,6 +242,12 @@ public class CheckpointCoordinator {
             return;
         }
 
+        // AR-19: Complete the future only after successful storage, so storage failure
+        // does not leave a ghost checkpoint that callers already acted on.
+        if (!pending.getCompletableFuture().isDone()) {
+            pending.getCompletableFuture().complete(completed);
+        }
+
         latestCompletedCheckpoint = completed;
         decrementPendingCheckpointCount();
 

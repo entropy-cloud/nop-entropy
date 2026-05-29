@@ -18,7 +18,7 @@ public class CollectionReplayableSource<T> implements ReplayableSourceFunction<T
     private static final long serialVersionUID = 1L;
 
     private final List<T> data;
-    private long currentOffset = 0;
+    private volatile long currentOffset = 0;
     private volatile boolean running = true;
 
     public CollectionReplayableSource(List<T> data) {

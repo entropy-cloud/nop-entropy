@@ -119,8 +119,8 @@ public class PendingCheckpoint {
         }
 
         if (isFullyAcknowledged() && !completableFuture.isDone()) {
-            CompletedCheckpoint completed = toCompletedCheckpoint();
-            completableFuture.complete(completed);
+            // AR-19: Do NOT complete the future here. The coordinator will complete it
+            // after successful storage in completePendingCheckpoint().
         }
     }
 

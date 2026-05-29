@@ -8,6 +8,7 @@
 package io.nop.stream.runtime.taskmanager;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,13 +62,16 @@ public class TaskManager implements IStreamTaskRpcService {
     private final IMessageService messageService;
     private final ClusterRegistry clusterRegistry;
 
+    private final Semaphore capacitySemaphore;
+
     private final ExecutorService taskExecutor;
     private final ScheduledExecutorService heartbeatExecutor;
 
     /** fencingToken → RunningTask */
     private final ConcurrentHashMap<String, RunningTask> runningTasks;
 
-    /** taskKey → TaskResult for completed tasks */
+    /** taskKey → TaskResult for completed tasks (bounded to MAX_COMPLETED_TASKS) */
+    private static final int MAX_COMPLETED_TASKS = 1000;
     private final ConcurrentHashMap<String, TaskResult> completedTasks;
 
     /** The currently active fencing token for this node (updated on global recovery) */
@@ -93,6 +97,7 @@ public class TaskManager implements IStreamTaskRpcService {
         this.messageService = messageService;
         this.clusterRegistry = clusterRegistry;
         this.controlTopic = controlTopic;
+        this.capacitySemaphore = new Semaphore(Math.max(1, capacity));
         this.taskExecutor = Executors.newFixedThreadPool(Math.max(1, capacity));
         this.heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "tm-heartbeat-" + nodeId);
@@ -201,9 +206,10 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
 
-        if (runningTasks.size() >= capacity) {
+        // AR-9: Use semaphore for capacity control instead of race-prone size check
+        if (!capacitySemaphore.tryAcquire()) {
             LOG.warn("Node {} at capacity ({}/{}), rejecting assignment for {}/{}",
-                    nodeId, runningTasks.size(), capacity,
+                    nodeId, capacity - capacitySemaphore.availablePermits(), capacity,
                     assignment.getVertexId(), assignment.getSubtaskIndex());
             return;
         }
@@ -287,6 +293,7 @@ public class TaskManager implements IStreamTaskRpcService {
         RunningTask task = runningTasks.remove(taskKey);
         if (task != null) {
             task.cancel();
+            capacitySemaphore.release();
             LOG.info("Canceled task {}/{}/{}", jobId, vertexId, subtaskIndex);
         } else {
             LOG.warn("No running task to cancel for {}/{}/{}", jobId, vertexId, subtaskIndex);
@@ -436,7 +443,15 @@ public class TaskManager implements IStreamTaskRpcService {
                 String key = taskKey(jobId, vertexId, subtaskIndex);
                 completedTasks.put(key, new TaskResult(jobId, vertexId, subtaskIndex,
                         error == null && !canceled, canceled, error));
+                if (completedTasks.size() > MAX_COMPLETED_TASKS) {
+                    Iterator<String> it = completedTasks.keySet().iterator();
+                    if (it.hasNext()) {
+                        it.next();
+                        it.remove();
+                    }
+                }
                 runningTasks.remove(key);
+                capacitySemaphore.release();
             }
         }
 

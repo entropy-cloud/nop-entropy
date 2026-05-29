@@ -88,7 +88,19 @@ public class CheckpointBarrierTracker {
 
     public synchronized void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
         TaskStateSnapshot snap = this.currentSnapshot;
-        if (snapshot != null && snap != null) {
+
+        // AR-23: Ignore ACK if no checkpoint is active (duplicate or stale)
+        if (currentCheckpointId < 0 || snap == null) {
+            LOG.debug("Ignoring duplicate/stale ACK from operator {} (no active checkpoint)", operatorIndex);
+            return;
+        }
+
+        if (operatorsToAck.get() <= 0) {
+            LOG.debug("Ignoring duplicate ACK from operator {} (already fully acknowledged)", operatorIndex);
+            return;
+        }
+
+        if (snapshot != null) {
             String opStateKey = getOperatorStateKey(operatorIndex);
             if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
                 for (Map.Entry<String, Object> entry : snapshot.getOperatorStates().entrySet()) {
@@ -107,8 +119,8 @@ public class CheckpointBarrierTracker {
             }
         }
 
-        if (operatorsToAck.decrementAndGet() <= 0) {
-            if (completionCallback != null && snap != null) {
+        if (operatorsToAck.decrementAndGet() == 0) {
+            if (completionCallback != null) {
                 completionCallback.accept(snap);
             }
         }

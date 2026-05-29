@@ -63,7 +63,7 @@ public class SourceEnumerator {
             throw new StreamException("totalParallelism must be positive, got: " + totalParallelism);
         }
         this.totalParallelism = totalParallelism;
-        this.discoveredSplits = new LinkedHashSet<>();
+        this.discoveredSplits = ConcurrentHashMap.newKeySet();
         this.unassignedSplits = new ConcurrentLinkedQueue<>();
         this.assignedSplits = new ConcurrentHashMap<>();
         this.finishedSplits = ConcurrentHashMap.newKeySet();
