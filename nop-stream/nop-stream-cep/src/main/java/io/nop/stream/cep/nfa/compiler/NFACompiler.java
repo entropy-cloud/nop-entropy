@@ -240,6 +240,7 @@ public class NFACompiler {
          * Check if there are duplicate pattern names. If yes, it throws a {@link
          * MalformedPatternException}.
          */
+        @SuppressWarnings("rawtypes")
         private void checkPatternNameUniqueness() {
             // make sure there is no pattern with name "$endState$"
             stateNameHandler.checkNameUniqueness(ENDING_STATE_NAME);
@@ -257,6 +258,7 @@ public class NFACompiler {
          *
          * @param pattern The pattern to be checked
          */
+        @SuppressWarnings("rawtypes")
         private void checkPatternNameUniqueness(final Pattern pattern) {
             if (pattern instanceof GroupPattern) {
                 Pattern patternToCheck = ((GroupPattern) pattern).getRawPattern();
@@ -394,6 +396,7 @@ public class NFACompiler {
             return beginningState;
         }
 
+        @SuppressWarnings("rawtypes")
         private State<T> convertPattern(final State<T> sinkState) {
             final State<T> lastSink;
 

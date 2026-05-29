@@ -5,6 +5,7 @@ import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.nfa.State;
 import io.nop.stream.cep.nfa.StateTransition;
 import io.nop.stream.cep.nfa.StateTransitionAction;
+import io.nop.stream.cep.pattern.MalformedPatternException;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestNFACompilerExtended {
@@ -249,5 +251,52 @@ public class TestNFACompilerExtended {
 
         assertTrue(stateNames.contains("a"));
         assertTrue(stateNames.contains("b"));
+    }
+
+    @Test
+    public void testCanProduceEmptyMatchesWithOptional() {
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("a")
+                .where(ALWAYS_TRUE)
+                .oneOrMore()
+                .optional()
+                .next("b")
+                .where(ALWAYS_TRUE)
+                .optional();
+        assertTrue(NFACompiler.canProduceEmptyMatches(pattern));
+    }
+
+    @Test
+    public void testCanProduceEmptyMatchesWithoutOptional() {
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("a")
+                .where(ALWAYS_TRUE)
+                .next("b")
+                .where(ALWAYS_TRUE);
+        assertFalse(NFACompiler.canProduceEmptyMatches(pattern));
+    }
+
+    @Test
+    public void testNotFollowWithoutWindowTimeThrows() {
+        assertThrows(MalformedPatternException.class, () -> {
+            Pattern<Event, ?> pattern = Pattern.<Event>begin("a")
+                    .where(ALWAYS_TRUE)
+                    .notFollowedBy("b")
+                    .where(ALWAYS_TRUE);
+            NFACompiler.compileFactory(pattern, false).createNFA();
+        });
+    }
+
+    @Test
+    public void testCopyWithoutTransitiveNotsLoopDetection() {
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("a")
+                .where(ALWAYS_TRUE)
+                .followedBy("b")
+                .where(ALWAYS_TRUE)
+                .optional()
+                .followedBy("c")
+                .where(ALWAYS_TRUE)
+                .optional();
+        NFA<Event> nfa = NFACompiler.compileFactory(pattern, false).createNFA();
+        assertNotNull(nfa);
+        assertFalse(nfa.getStates().isEmpty());
     }
 }

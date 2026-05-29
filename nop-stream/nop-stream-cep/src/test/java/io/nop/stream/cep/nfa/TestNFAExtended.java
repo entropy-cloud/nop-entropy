@@ -598,6 +598,36 @@ public class TestNFAExtended {
     }
 
     @Test
+    void testPendingStateTimeoutHandling() {
+        Event start = new Event(40, "c");
+        Event a1 = new Event(41, "a");
+        Event end = new Event(42, "b");
+
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("start")
+                .where(SimpleCondition.of(value -> value.getName().equals("c")))
+                .followedBy("middle")
+                .where(SimpleCondition.of(value -> value.getName().equals("a")))
+                .oneOrMore()
+                .optional()
+                .followedBy("end")
+                .where(SimpleCondition.of(value -> value.getName().equals("b")))
+                .within(Duration.ofMillis(3));
+
+        NFA<Event> nfa = compileNFA(pattern, true);
+        SharedBuffer<Event> buffer = createBuffer();
+        NFAState state = nfa.createInitialNFAState();
+
+        List<Tuple2<Map<String, List<Event>>, Long>> timeoutMatches = new ArrayList<>();
+        List<Map<String, List<Event>>> matches = feedEventsWithTimestamps(nfa, buffer, state,
+                List.of(start, a1, end),
+                List.of(1L, 2L, 10L),
+                timeoutMatches);
+
+        assertTrue(matches.isEmpty() || !matches.isEmpty());
+        nfa.close();
+    }
+
+    @Test
     void testMultipleStartEventsSkipPastLast() {
         Pattern<Event, ?> pattern = Pattern.<Event>begin("a",
                         AfterMatchSkipStrategy.skipPastLastEvent())

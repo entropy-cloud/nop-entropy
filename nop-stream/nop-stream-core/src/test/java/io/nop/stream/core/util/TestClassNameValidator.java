@@ -1,5 +1,6 @@
 package io.nop.stream.core.util;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,20 +24,20 @@ class TestClassNameValidator {
 
     @Test
     void testDisallowedClass() {
-        SecurityException ex = assertThrows(SecurityException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> ClassNameValidator.validateClassName("com.malicious.Attack"));
         assertTrue(ex.getMessage().contains("com.malicious.Attack"));
     }
 
     @Test
     void testNullClassName() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> ClassNameValidator.validateClassName(null));
     }
 
     @Test
     void testEmptyClassName() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> ClassNameValidator.validateClassName(""));
     }
 }

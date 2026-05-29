@@ -25,6 +25,7 @@ import static io.nop.stream.cep.NopCepErrors.*;
 
 public class CepPatternBuilder {
 
+    @SuppressWarnings("rawtypes")
     public Pattern buildFromModel(CepPatternModel patternModel) {
         Pattern pattern = buildGroupPattern(patternModel);
         if (patternModel.getWithin() != null)
@@ -34,6 +35,7 @@ public class CepPatternBuilder {
         return pattern;
     }
 
+    @SuppressWarnings("rawtypes")
     private Pattern buildGroupPattern(ICepPatternGroupModel groupModel) {
         String start = groupModel.getStart();
         CepPatternPartModel partModel = groupModel.requirePart(start);
@@ -76,6 +78,7 @@ public class CepPatternBuilder {
         return pattern;
     }
 
+    @SuppressWarnings("rawtypes")
     private Pattern buildFollowGroup(Pattern pattern, FollowKind followKind, CepPatternGroupModel groupModel) {
         if (followKind == null)
             followKind = FollowKind.next;
@@ -98,6 +101,7 @@ public class CepPatternBuilder {
         return pattern;
     }
 
+    @SuppressWarnings("rawtypes")
     private Pattern buildFollow(Pattern pattern, FollowKind followKind, String nextName) {
         if (followKind == null)
             followKind = FollowKind.next;
@@ -121,6 +125,7 @@ public class CepPatternBuilder {
         return pattern;
     }
 
+    @SuppressWarnings("rawtypes")
     private Pattern buildSinglePattern(Pattern pattern, CepPatternSingleModel singleModel) {
         if (singleModel.getWhere() != null) {
             pattern = pattern.where(buildCondition(singleModel.getWhere()));
@@ -131,10 +136,12 @@ public class CepPatternBuilder {
         return pattern;
     }
 
+    @SuppressWarnings("rawtypes")
     private IterativeCondition buildCondition(IEvalFunction action) {
         return new EvalFunctionCondition(action);
     }
 
+    @SuppressWarnings("rawtypes")
     private Pattern addQualifier(Pattern pattern, CepPatternPartModel partModel) {
         if (partModel.getSubType() != null) {
             try {

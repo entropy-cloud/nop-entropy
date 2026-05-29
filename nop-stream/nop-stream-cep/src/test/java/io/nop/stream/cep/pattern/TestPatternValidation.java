@@ -221,8 +221,8 @@ public class TestPatternValidation {
     }
 
     @Test
-    void testUntilCannotBeAppliedToTimes() {
-        assertThrows(MalformedPatternException.class, () ->
+    void testUntilCanBeAppliedToTimes() {
+        assertDoesNotThrow(() ->
                 Pattern.begin("start").where(dummyCondition()).times(1).until(dummyCondition()));
     }
 

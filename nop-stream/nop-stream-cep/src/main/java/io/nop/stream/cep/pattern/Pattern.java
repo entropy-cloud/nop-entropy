@@ -243,9 +243,10 @@ public class Pattern<T, F extends T> {
             throw new MalformedPatternException("Only one until condition can be applied.");
         }
 
-        if (!quantifier.hasProperty(Quantifier.QuantifierProperty.LOOPING)) {
+        if (!quantifier.hasProperty(Quantifier.QuantifierProperty.LOOPING)
+                && !quantifier.hasProperty(Quantifier.QuantifierProperty.TIMES)) {
             throw new MalformedPatternException(
-                    "The until condition is only applicable to looping states.");
+                    "The until condition is only applicable to looping or times states.");
         }
 
         //ClosureCleaner.clean(untilCondition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);

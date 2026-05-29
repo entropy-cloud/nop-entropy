@@ -375,4 +375,26 @@ public class TestWindowAggregationOperatorSnapshotRestore {
         assertFalse(collected.isEmpty(), "Window should have fired after restore");
         assertEquals(30L, collected.get(0), "Window sum should be 30 (10+20)");
     }
+
+    @Test
+    void testAllowedLatenessEndToEnd() throws Exception {
+        WindowAggregationOperator<Integer, Long, Long, String, TimeWindow> op1 = createSumOperator();
+        op1.setAllowedLateness(50);
+        op1.open();
+        op1.output = output;
+
+        op1.setCurrentKey("key1");
+        op1.processElement(new StreamRecord<>(10, 10L));
+
+        // Advance watermark past [0,100) to trigger it
+        op1.processWatermark(new Watermark(100L));
+        collected.clear();
+
+        // Late element (ts=80, watermark=100, lateness=50, cutoff=50)
+        // 80 >= 50, so within allowed lateness -> not dropped
+        op1.processElement(new StreamRecord<>(5, 80L));
+
+        // Late element fires immediately for window [0,100)
+        assertFalse(collected.isEmpty(), "Late element within allowedLateness should produce output");
+    }
 }

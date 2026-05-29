@@ -66,7 +66,7 @@ public class TestDataExchange {
         ResultPartition partition = new ResultPartition();
         partition.close();
 
-        assertThrows(IllegalStateException.class, () ->
+        assertThrows(io.nop.stream.core.exceptions.StreamException.class, () ->
             partition.write(new StreamRecord<>("data")));
     }
 

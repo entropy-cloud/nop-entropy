@@ -50,6 +50,12 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private transient WindowAssigner.WindowAssignerContext assignerContext;
     private transient Map<K, Set<W>> activeWindowsPerKey;
 
+    private long allowedLateness = 0;
+
+    public void setAllowedLateness(long allowedLateness) {
+        this.allowedLateness = allowedLateness;
+    }
+
     public WindowAggregationOperator(
             WindowAssigner<? super IN, W> windowAssigner,
             Trigger<? super IN, ? super W> trigger,
@@ -217,7 +223,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         IN value = element.getValue();
         long timestamp = element.getTimestamp();
 
-        if (element.hasTimestamp() && timestamp < currentWatermark) {
+        if (element.hasTimestamp() && timestamp < currentWatermark - allowedLateness) {
             LOG.debug("Dropping late element with timestamp {} below current watermark {}", timestamp, currentWatermark);
             return;
         }
