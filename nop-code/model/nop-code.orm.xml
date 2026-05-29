@@ -834,11 +834,11 @@
                 <column code="EXT_DATA" displayName="扩展数据" domain="jsonContent" name="extData"
                         propId="11" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy"
-                        propId="12" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                        propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CREATE_TIME" displayName="创建时间" name="createTime"
-                        propId="13" stdDataType="long" stdSqlType="BIGINT"/>
+                        propId="13" stdDataType="timestamp" stdSqlType="DATETIME"/>
                 <column code="DEL_FLAG" displayName="逻辑删除" name="delFlag" precision="1"
-                        propId="14" stdDataType="int" stdSqlType="SMALLINT" tagSet="seq"/>
+                        propId="14" stdDataType="boolean" stdSqlType="TINYINT" stdDomain="boolFlag"/>
             </columns>
             <indexes>
                 <index name="idx_semantic_index_id">

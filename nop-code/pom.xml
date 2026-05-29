@@ -26,11 +26,11 @@
         <module>nop-code-lang-python</module>
         <module>nop-code-lang-typescript</module>
         <module>nop-code-codegen</module>
-        <module>nop-code-api</module>
         <module>nop-code-dao</module>
         <module>nop-code-meta</module>
         <module>nop-code-service</module>
         <module>nop-code-web</module>
         <module>nop-code-app</module>
+        <module>nop-code-api</module>
     </modules>
 </project>
