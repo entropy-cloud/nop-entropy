@@ -122,16 +122,19 @@ public class TestNopCodeAnalysisBizModel extends JunitAutoTestCase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testDetectCommunitiesOnEmptyIndex() {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", "nonexistent-index-999");
         ApiResponse<?> response = rpcQuery("NopCodeIndex__detectCommunities", data);
 
-        // Either the engine returns an error, or we get a valid but empty result
         if (response.isOk()) {
-            // Graceful: returned empty/default result
-            assertNotNull(response.getData());
+            Map<String, Object> result = (Map<String, Object>) response.getData();
+            assertNotNull(result);
+            assertEquals(0, ((Number) result.getOrDefault("totalSymbols", 0)).intValue(),
+                    "Empty index should report 0 totalSymbols");
+        } else {
+            assertNotNull(response.getMsg(), "Error response should have an error message");
         }
-        // If not OK, that's also acceptable — index doesn't exist
     }
 }

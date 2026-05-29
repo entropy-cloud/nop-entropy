@@ -22,6 +22,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
         enableActionAuth = OptionalBoolean.FALSE)
 public class TestIndexNopEntropyProject extends JunitAutoTestCase {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TestIndexNopEntropyProject.class);
     private static final String INDEX_ID = "nop-entropy";
 
     @Inject
@@ -77,13 +80,13 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         long start = System.currentTimeMillis();
         int count = codeIndexService.indexDirectory(INDEX_ID, rootPath.toString(), "**/*.java");
         long elapsed = System.currentTimeMillis() - start;
-        System.out.println("\n=== INDEX: " + count + " Java files from " + projectRoot + " in " + elapsed + "ms ===\n");
+        LOG.debug("\n=== INDEX: " + count + " Java files from " + projectRoot + " in " + elapsed + "ms ===\n");
         assertTrue(count > 100, "应该索引到至少 100 个 Java 文件，实际: " + count);
         indexed = true;
 
         IndexStatsDTO stats = codeIndexService.getIndexStats(INDEX_ID);
-        System.out.println("  Symbol count: " + stats.getSymbolCount());
-        System.out.println("  Symbol counts by kind: " + stats.getSymbolCounts());
+        LOG.debug("  Symbol count: " + stats.getSymbolCount());
+        LOG.debug("  Symbol counts by kind: " + stats.getSymbolCounts());
     }
 
     private ApiResponse<?> rpcQuery(String operation, Map<String, Object> data) {
@@ -94,7 +97,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
                 GraphQLOperationType.query, operation, request);
         ApiResponse<?> response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(ctx));
         long elapsed = System.currentTimeMillis() - start;
-        System.out.println("  [" + operation + "] " + elapsed + "ms");
+        LOG.debug("  [" + operation + "] " + elapsed + "ms");
         return response;
     }
 
@@ -112,7 +115,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("indexId", INDEX_ID);
         ApiResponse<?> response = rpcQuery("NopCodeIndex__getStats", data);
         assertTrue(response.isOk());
-        System.out.println("Project stats: " + response.getData());
+        LOG.debug("Project stats: " + response.getData());
     }
 
     @Test
@@ -121,7 +124,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("indexId", INDEX_ID);
         ApiResponse<?> response = rpcQuery("NopCodeFile__fileTree", data);
         assertTrue(response.isOk());
-        System.out.println("File tree returned successfully");
+        LOG.debug("File tree returned successfully");
     }
 
     // ==================== 场景 2：按名称查找符号 ====================
@@ -134,9 +137,9 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
                     List.of(CodeSymbolKind.CLASS), null, 10);
             assertFalse(symbols.isEmpty(), "应该能找到 NopApplication 类");
             assertTrue(symbols.stream().anyMatch(s -> s.getName().equals("NopApplication")));
-            System.out.println("  Found NopApplication: " + symbols.get(0).getQualifiedName());
+            LOG.debug("  Found NopApplication: " + symbols.get(0).getQualifiedName());
         });
-        System.out.println("  [findSymbols by name] " + ms + "ms");
+        LOG.debug("  [findSymbols by name] " + ms + "ms");
     }
 
     @Test
@@ -146,9 +149,9 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
                     INDEX_ID, null,
                     List.of(CodeSymbolKind.INTERFACE), null, 50);
             assertFalse(symbols.isEmpty(), "应该能找到接口");
-            System.out.println("  Found " + symbols.size() + " interfaces (first 50)");
+            LOG.debug("  Found " + symbols.size() + " interfaces (first 50)");
         });
-        System.out.println("  [findSymbols by kind=INTERFACE] " + ms + "ms");
+        LOG.debug("  [findSymbols by kind=INTERFACE] " + ms + "ms");
     }
 
     @Test
@@ -158,9 +161,9 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
                     INDEX_ID, null, null,
                     "io.nop.auth.service", 20);
             assertFalse(symbols.isEmpty(), "应该能找到 io.nop.auth.service 包下的类");
-            System.out.println("  Found " + symbols.size() + " symbols in io.nop.auth.service");
+            LOG.debug("  Found " + symbols.size() + " symbols in io.nop.auth.service");
         });
-        System.out.println("  [findSymbols by package] " + ms + "ms");
+        LOG.debug("  [findSymbols by package] " + ms + "ms");
     }
 
     // ==================== 场景 3：精确查找 ====================
@@ -172,9 +175,9 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
                     INDEX_ID, "io.nop.biz.crud.CrudBizModel");
             assertNotNull(symbol, "应该能找到 CrudBizModel");
             assertEquals("CrudBizModel", symbol.getName());
-            System.out.println("  Found: " + symbol.getQualifiedName() + " kind=" + symbol.getKind());
+            LOG.debug("  Found: " + symbol.getQualifiedName() + " kind=" + symbol.getKind());
         });
-        System.out.println("  [findByQualifiedName] " + ms + "ms");
+        LOG.debug("  [findByQualifiedName] " + ms + "ms");
     }
 
     // ==================== 场景 4：查看类的继承关系 ====================
@@ -189,7 +192,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("maxDepth", 5);
         ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
         assertTrue(response.isOk());
-        System.out.println("NopAuthUserBizModel super hierarchy: " + response.getData());
+        LOG.debug("NopAuthUserBizModel super hierarchy: " + response.getData());
     }
 
     @Test
@@ -202,7 +205,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("maxDepth", 2);
         ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
         assertTrue(response.isOk());
-        System.out.println("CrudBizModel sub types returned");
+        LOG.debug("CrudBizModel sub types returned");
     }
 
     // ==================== 场景 5：查看方法调用关系 ====================
@@ -217,7 +220,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("maxDepth", 2);
         ApiResponse<?> response = rpcQuery("NopCodeCallHierarchy__get", data);
         assertTrue(response.isOk());
-        System.out.println("Call hierarchy outgoing: " + response.getData());
+        LOG.debug("Call hierarchy outgoing: " + response.getData());
     }
 
     // ==================== 场景 6：查看文件内容 ====================
@@ -230,7 +233,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("indexId", INDEX_ID);
         ApiResponse<?> response = rpcQuery("NopCodeFile__getByPath", data);
         assertTrue(response.isOk());
-        System.out.println("File content returned successfully");
+        LOG.debug("File content returned successfully");
     }
 
     @Test
@@ -241,10 +244,10 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
             long ms = timed(() -> {
                 String source = codeIndexService.getSymbolSourceCode(INDEX_ID, symbol.getId(), 2, 5);
                 assertNotNull(source);
-                System.out.println("  Source snippet: "
+                LOG.debug("  Source snippet: "
                         + source.substring(0, Math.min(200, source.length())));
             });
-            System.out.println("  [getSymbolSourceCode] " + ms + "ms");
+            LOG.debug("  [getSymbolSourceCode] " + ms + "ms");
         }
     }
 
@@ -261,7 +264,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("indexId", INDEX_ID);
         ApiResponse<?> response = rpcQuery("NopCodeType__batchGetOutlines", data);
         assertTrue(response.isOk());
-        System.out.println("Batch outlines returned: " + response.getData());
+        LOG.debug("Batch outlines returned: " + response.getData());
     }
 
     // ==================== 场景 8：注解使用查询 ====================
@@ -274,9 +277,9 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
             long ms = timed(() -> {
                 var usages = codeIndexService.getSymbolUsages(INDEX_ID, bizModel.getId(), 20);
                 assertFalse(usages.isEmpty(), "应该能找到 @BizModel 的使用");
-                System.out.println("  Found " + usages.size() + " usages of @BizModel");
+                LOG.debug("  Found " + usages.size() + " usages of @BizModel");
             });
-            System.out.println("  [getSymbolUsages] " + ms + "ms");
+            LOG.debug("  [getSymbolUsages] " + ms + "ms");
         }
     }
 }

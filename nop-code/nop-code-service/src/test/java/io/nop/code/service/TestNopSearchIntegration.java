@@ -100,10 +100,8 @@ public class TestNopSearchIntegration extends JunitAutoTestCase {
         data.put("searchType", "COMBINED");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
 
-        if (!response.isOk()) {
-            System.out.println("searchCode with empty query returned status=" + response.getStatus());
-            return;
-        }
+        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
+                "searchCode with empty query returned status=" + response.getStatus());
 
         List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
         assertNotNull(results);

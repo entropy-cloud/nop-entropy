@@ -52,10 +52,10 @@
                 <col id="createdBy" sortable="true"/>
 
                 <!--创建时间-->
-                <col id="createTime" ui:number="true" sortable="true"/>
+                <col id="createTime" sortable="true"/>
 
                 <!--逻辑删除-->
-                <col id="delFlag" ui:number="true" sortable="true"/>
+                <col id="delFlag" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>

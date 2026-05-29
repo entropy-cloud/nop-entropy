@@ -1,7 +1,10 @@
 package io.nop.code.flow;
 
+import io.nop.api.core.annotations.data.DataBean;
+
 import java.util.List;
 
+@DataBean
 public class ExecutionFlow {
 
     private String id;

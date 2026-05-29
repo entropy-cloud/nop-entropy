@@ -350,6 +350,9 @@ public class CodeIndexService implements ICodeIndexService {
                                 saveFileResultInSession(indexId, fileResult, session);
                                 count[0]++;
                             }
+                            session.flush();
+                            session.evictAll(NopCodeFile.class.getName());
+                            session.evictAll(NopCodeSymbol.class.getName());
                         });
                 updateIndexStats(indexId, result);
                 return result.getFileResults().size();
@@ -1314,51 +1317,71 @@ public class CodeIndexService implements ICodeIndexService {
             QueryBean usageQuery = new QueryBean();
             usageQuery.addFilter(FilterBeans.eq("indexId", indexId));
             usageDao.batchDeleteEntities(usageDao.findAllByQuery(usageQuery));
+            session.flush();
+            session.evictAll(NopCodeUsage.class.getName());
 
             IEntityDao<NopCodeFlowMembership> fmDao = daoProvider.daoFor(NopCodeFlowMembership.class);
             QueryBean fmQuery = new QueryBean();
             fmQuery.addFilter(FilterBeans.eq("flow.indexId", indexId));
             fmDao.batchDeleteEntities(fmDao.findAllByQuery(fmQuery));
+            session.flush();
+            session.evictAll(NopCodeFlowMembership.class.getName());
 
             IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
             QueryBean flowQuery = new QueryBean();
             flowQuery.addFilter(FilterBeans.eq("indexId", indexId));
             flowDao.batchDeleteEntities(flowDao.findAllByQuery(flowQuery));
+            session.flush();
+            session.evictAll(NopCodeFlow.class.getName());
 
             IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
             QueryBean annotQuery = new QueryBean();
             annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
             annotDao.batchDeleteEntities(annotDao.findAllByQuery(annotQuery));
+            session.flush();
+            session.evictAll(NopCodeAnnotationUsage.class.getName());
 
             IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
             QueryBean inhQuery = new QueryBean();
             inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
             inhDao.batchDeleteEntities(inhDao.findAllByQuery(inhQuery));
+            session.flush();
+            session.evictAll(NopCodeInheritance.class.getName());
 
             IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
             QueryBean callQuery = new QueryBean();
             callQuery.addFilter(FilterBeans.eq("indexId", indexId));
             callDao.batchDeleteEntities(callDao.findAllByQuery(callQuery));
+            session.flush();
+            session.evictAll(NopCodeCall.class.getName());
 
             IEntityDao<NopCodeSymbol> symDao = daoProvider.daoFor(NopCodeSymbol.class);
             QueryBean symQuery = new QueryBean();
             symQuery.addFilter(FilterBeans.eq("indexId", indexId));
             symDao.batchDeleteEntities(symDao.findAllByQuery(symQuery));
+            session.flush();
+            session.evictAll(NopCodeSymbol.class.getName());
 
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
             QueryBean fileQuery = new QueryBean();
             fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
             fileDao.batchDeleteEntities(fileDao.findAllByQuery(fileQuery));
+            session.flush();
+            session.evictAll(NopCodeFile.class.getName());
 
             IEntityDao<NopCodeDependency> depDao = daoProvider.daoFor(NopCodeDependency.class);
             QueryBean depQuery = new QueryBean();
             depQuery.addFilter(FilterBeans.eq("indexId", indexId));
             depDao.batchDeleteEntities(depDao.findAllByQuery(depQuery));
+            session.flush();
+            session.evictAll(NopCodeDependency.class.getName());
 
             IEntityDao<NopCodeSemanticEdge> edgeDao = daoProvider.daoFor(NopCodeSemanticEdge.class);
             QueryBean edgeQuery = new QueryBean();
             edgeQuery.addFilter(FilterBeans.eq("indexId", indexId));
             edgeDao.batchDeleteEntities(edgeDao.findAllByQuery(edgeQuery));
+            session.flush();
+            session.evictAll(NopCodeSemanticEdge.class.getName());
 
             daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
             return null;

@@ -70,13 +70,8 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
         data.put("indexId", currentIndexId);
         ApiResponse<?> response = rpcQuery("NopCodeIndex__detectFlows", data);
         assertNotNull(response);
-
-        if (!response.isOk()) {
-            System.out.println("detectFlows returned status=" + response.getStatus() +
-                    ", likely BizModel not registered. Skipping content assertions.");
-            return;
-        }
-
+        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
+                "detectFlows BizModel action not registered in test context, skipping");
         List<Map<String, Object>> flows = (List<Map<String, Object>>) response.getData();
         assertNotNull(flows);
     }
@@ -92,12 +87,8 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
         listData.put("indexId", currentIndexId);
         ApiResponse<?> response = rpcQuery("NopCodeIndex__listFlows", listData);
         assertNotNull(response);
-
-        if (!response.isOk()) {
-            System.out.println("listFlows returned status=" + response.getStatus());
-            return;
-        }
-
+        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
+                "listFlows BizModel action not registered in test context, skipping");
         List<Map<String, Object>> flows = (List<Map<String, Object>>) response.getData();
         assertNotNull(flows);
     }
@@ -108,12 +99,8 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
         data.put("indexId", currentIndexId);
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__detectDeadCode", data);
         assertNotNull(response);
-
-        if (!response.isOk()) {
-            System.out.println("detectDeadCode returned status=" + response.getStatus());
-            return;
-        }
-
+        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
+                "detectDeadCode BizModel action not registered in test context, skipping");
         Map<String, Object> result = (Map<String, Object>) response.getData();
         assertNotNull(result);
     }

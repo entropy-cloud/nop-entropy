@@ -1,5 +1,7 @@
 package io.nop.code.graph.export;
 
+import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
@@ -15,6 +17,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class GraphExporter {
+
+    private static final ErrorCode ERR_GRAPH_EXPORT_FAILED =
+            ErrorCode.define("nop.err.code.graph-export-failed", "Graph export failed");
 
     public String export(CallGraph callGraph, SymbolTable symbolTable, String format,
                          boolean communityView,
@@ -47,7 +52,7 @@ public class GraphExporter {
         try {
             exporter.exportGraph(graph, writer);
         } catch (ExportException e) {
-            throw new RuntimeException("GraphML export failed", e);
+            throw new NopException(ERR_GRAPH_EXPORT_FAILED).cause(e);
         }
         return writer.toString();
     }
@@ -187,7 +192,8 @@ public class GraphExporter {
             for (String callee : callGraph.getCallees(caller)) {
                 try {
                     graph.addEdge(caller, callee);
-                } catch (IllegalArgumentException ignored) {
+                } catch (IllegalArgumentException e) {
+                    // Duplicate edge, ignore safely
                 }
             }
         }
@@ -213,7 +219,8 @@ public class GraphExporter {
                     if (seen.add(key)) {
                         try {
                             graph.addEdge(srcComm, tgtComm);
-                        } catch (IllegalArgumentException ignored) {
+                        } catch (IllegalArgumentException e) {
+                            // Duplicate edge, ignore safely
                         }
                     }
                 }
