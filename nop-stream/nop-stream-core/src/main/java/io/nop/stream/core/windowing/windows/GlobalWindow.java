@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * The default window into which all data is placed (via {@link
- * org.apache.flink.streaming.api.windowing.assigners.GlobalWindows}).
+ * io.nop.stream.core.windowing.assigners.GlobalWindows}).
  */
 public class GlobalWindow extends Window {
 

@@ -841,8 +841,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     /**
      * Base class for per-window {@link KeyedStateStore KeyedStateStores}. Used to allow per-window
-     * state access for {@link
-     * org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction}.
+     * state access for {@link io.nop.stream.core.common.functions.ProcessWindowFunction}.
      */
     public abstract class AbstractPerWindowStateStore { //extends DefaultKeyedStateStore {
 
@@ -859,7 +858,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     /**
      * Regular per-window state store for use with {@link
-     * org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction}.
+     * io.nop.stream.core.common.functions.ProcessWindowFunction}.
      */
     public class PerWindowStateStore extends AbstractPerWindowStateStore {
     }

@@ -35,7 +35,7 @@ class PatternProcessFunctionBuilder {
 
     /**
      * Starts constructing a {@link PatternProcessFunction} from a {@link PatternFlatSelectFunction}
-     * that emitted elements through {@link org.apache.flink.util.Collector}.
+     * that emitted elements through {@link io.nop.stream.core.util.Collector}.
      */
     static <IN, OUT> FlatSelectBuilder<IN, OUT> fromFlatSelect(
             final PatternFlatSelectFunction<IN, OUT> function) {

@@ -19,6 +19,7 @@ public class LastValue<T> implements SimpleAccumulator<T> {
 
     private long timestamp;
 
+    @SuppressWarnings("unchecked")
     public static <V> Class<? extends SimpleAccumulator<V>> type() {
         return (Class) LastValue.class;
     }

@@ -84,7 +84,7 @@ final class PatternStreamBuilder<IN> {
     }
 
     /**
-     * Invokes the {@link org.apache.flink.api.java.ClosureCleaner} on the given function if closure
+     * Invokes the {@link io.nop.stream.core.util.ClosureCleaner} on the given function if closure
      * cleaning is enabled in the {@link ExecutionConfig}.
      *
      * @return The cleaned Function

@@ -31,7 +31,7 @@ import io.nop.stream.core.util.OutputTag;
  * Wrapper around an {@link Output} for user functions that expect a {@link Output}. Before giving
  * the {@link TimestampedCollector} to a user function you must set the timestamp that should be
  * attached to emitted elements. Most operators would set the timestamp of the incoming {@link
- * org.apache.flink.streaming.runtime.streamrecord.StreamRecord} here.
+ * io.nop.stream.core.streamrecord.StreamRecord} here.
  *
  * @param <T> The type of the elements that can be emitted.
  */

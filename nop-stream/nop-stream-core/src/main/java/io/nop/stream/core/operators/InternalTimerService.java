@@ -23,7 +23,7 @@ import java.util.function.BiConsumer;
 /**
  * Interface for working with time and timers.
  *
- * <p>This is the internal version of {@link org.apache.flink.streaming.api.TimerService} that
+ * <p>This is the internal version of {@link io.nop.stream.core.time.TimerService} that
  * allows to specify a key and a namespace to which timers should be scoped.
  *
  * @param <N> Type of the namespace to which timers are scoped.

@@ -24,7 +24,7 @@ import io.nop.stream.core.windowing.windows.TimeWindow;
  * A {@link Trigger} that fires once the watermark passes the end of the window to which a pane
  * belongs.
  *
- * @see org.apache.flink.streaming.api.watermark.Watermark
+ * @see io.nop.stream.core.streamrecord.watermark.Watermark
  */
 public class EventTimeTrigger extends Trigger<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;

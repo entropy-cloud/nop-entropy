@@ -28,7 +28,7 @@ import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
 
 /**
- * A {@link org.apache.flink.streaming.api.operators.StreamOperator} is supplied with an object of
+ * A {@link io.nop.stream.core.operators.StreamOperator} is supplied with an object of
  * this interface that can be used to emit elements and other messages, such as barriers and
  * watermarks, from an operator.
  *

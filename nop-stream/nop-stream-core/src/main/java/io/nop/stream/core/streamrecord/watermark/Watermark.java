@@ -24,7 +24,7 @@ import io.nop.stream.core.streamrecord.StreamElement;
  * A Watermark tells operators that no elements with a timestamp older or equal to the watermark
  * timestamp should arrive at the operator. Watermarks are emitted at the sources and propagate
  * through the operators of the topology. Operators must themselves emit watermarks to downstream
- * operators using {@link org.apache.flink.streaming.api.operators.Output#emitWatermark(Watermark)}.
+ * operators using {@link io.nop.stream.core.operators.Output#emitWatermark(Watermark)}.
  * Operators that do not internally buffer elements can always forward the watermark that they
  * receive. Operators that buffer elements, such as window operators, must forward a watermark after
  * emission of elements that is triggered by the arriving watermark.

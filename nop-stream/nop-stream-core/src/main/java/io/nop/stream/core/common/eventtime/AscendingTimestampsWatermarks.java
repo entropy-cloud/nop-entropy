@@ -30,7 +30,7 @@ import java.time.Duration;
  * <p>The watermarks are generated periodically and tightly follow the latest timestamp in the data.
  * The delay introduced by this strategy is mainly the periodic interval in which the watermarks are
  * generated, which can be configured via {@link
- * org.apache.flink.api.common.ExecutionConfig#setAutoWatermarkInterval(long)}.
+ * io.nop.stream.core.common.ExecutionConfig#setAutoWatermarkInterval(long)}.
  */
 public class AscendingTimestampsWatermarks<T> extends BoundedOutOfOrdernessWatermarks<T> {
 

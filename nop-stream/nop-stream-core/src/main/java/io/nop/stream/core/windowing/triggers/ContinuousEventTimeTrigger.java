@@ -29,10 +29,10 @@ import io.nop.stream.core.windowing.windows.Window;
 
 /**
  * A {@link Trigger} that continuously fires based on a given time interval. This fires based on
- * {@link org.apache.flink.streaming.api.watermark.Watermark Watermarks}.
+ * {@link io.nop.stream.core.streamrecord.watermark.Watermark Watermarks}.
  *
  * @param <W> The type of {@link Window Windows} on which this trigger can operate.
- * @see org.apache.flink.streaming.api.watermark.Watermark
+ * @see io.nop.stream.core.streamrecord.watermark.Watermark
  *
  * <p>API 预留，当前未被使用
  */

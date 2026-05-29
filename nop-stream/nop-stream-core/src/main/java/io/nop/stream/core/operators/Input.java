@@ -41,7 +41,7 @@ public interface Input<IN> {
      * Processes a {@link Watermark} that arrived on the first input of this two-input operator.
      * This method is guaranteed to not be called concurrently with other methods of the operator.
      *
-     * @see org.apache.flink.streaming.api.watermark.Watermark
+     * @see io.nop.stream.core.streamrecord.watermark.Watermark
      */
     void processWatermark(Watermark mark) throws Exception;
 
@@ -58,7 +58,7 @@ public interface Input<IN> {
      * Processes a {@link LatencyMarker} that arrived on the first input of this two-input operator.
      * This method is guaranteed to not be called concurrently with other methods of the operator.
      *
-     * @see org.apache.flink.streaming.runtime.streamrecord.LatencyMarker
+     * @see io.nop.stream.core.streamrecord.LatencyMarker
      */
     void processLatencyMarker(LatencyMarker latencyMarker) throws Exception;
 

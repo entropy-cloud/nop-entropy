@@ -23,7 +23,7 @@ import io.nop.stream.core.common.typeinfo.TypeInformation;
 /**
  * {@link StateDescriptor} for {@link ValueState}. This can be used to create partitioned value
  * state using {@link
- * org.apache.flink.api.common.functions.RuntimeContext#getState(ValueStateDescriptor)}.
+ * io.nop.stream.core.common.functions.RuntimeContext#getState(ValueStateDescriptor)}.
  *
  * <p>If you don't use one of the constructors that set a default value the value that you get when
  * reading a {@link ValueState} using {@link ValueState#value()} will be {@code null}.

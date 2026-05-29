@@ -128,7 +128,7 @@ public class TimeWindow extends Window {
 
     /**
      * Merge overlapping {@link TimeWindow}s. For use by merging {@link
-     * org.apache.flink.streaming.api.windowing.assigners.WindowAssigner WindowAssigners}.
+     * io.nop.stream.core.windowing.assigners.WindowAssigner WindowAssigners}.
      */
     public static void mergeWindows(
             Collection<TimeWindow> windows, MergingWindowAssigner.MergeCallback<TimeWindow> c) {

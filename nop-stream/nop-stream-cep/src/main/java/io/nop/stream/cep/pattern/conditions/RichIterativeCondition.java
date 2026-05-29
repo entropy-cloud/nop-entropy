@@ -27,8 +27,8 @@ import io.nop.stream.core.configuration.Configuration;
 
 /**
  * Rich variant of the {@link IterativeCondition}. As a {@link RichFunction}, it gives access to the
- * {@link org.apache.flink.api.common.functions.RuntimeContext} and provides setup and teardown
- * methods: {@link RichFunction#open(org.apache.flink.configuration.Configuration)} and {@link
+     * {@link io.nop.stream.core.common.functions.RuntimeContext} and provides setup and teardown
+     * methods: {@link RichFunction#open(io.nop.stream.core.configuration.Configuration)} and {@link
  * RichFunction#close()}.
  */
 public abstract class RichIterativeCondition<T> extends IterativeCondition<T>

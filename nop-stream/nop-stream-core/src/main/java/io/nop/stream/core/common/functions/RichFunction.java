@@ -58,7 +58,7 @@ public interface RichFunction extends StreamFunction {
      * @throws Exception Implementations may forward exceptions, which are caught by the runtime.
      *                   When the runtime catches an exception, it aborts the task and lets the fail-over logic
      *                   decide whether to retry the task execution.
-     * @see org.apache.flink.configuration.Configuration
+     * @see io.nop.stream.core.configuration.Configuration
      */
     void open(Configuration parameters);
 
@@ -85,8 +85,7 @@ public interface RichFunction extends StreamFunction {
      * function.
      *
      * <p>The RuntimeContext also gives access to the {@link
-     * org.apache.flink.api.common.accumulators.Accumulator}s and the {@link
-     * org.apache.flink.api.common.cache.DistributedCache}.
+     * io.nop.stream.core.common.accumulators.Accumulator}s and the distributed cache.
      *
      * @return The UDF's runtime context.
      */

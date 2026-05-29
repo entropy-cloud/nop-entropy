@@ -31,9 +31,9 @@ import io.nop.stream.core.windowing.windows.Window;
  * that part of the window.
  *
  * <p>A pane is the bucket of elements that have the same key (assigned by the {@link
- * org.apache.flink.api.java.functions.KeySelector}) and same {@link Window}. An element can be in
+ * io.nop.stream.core.common.functions.KeySelector}) and same {@link Window}. An element can be in
  * multiple panes if it was assigned to multiple windows by the {@link
- * org.apache.flink.streaming.api.windowing.assigners.WindowAssigner}. These panes all have their
+ * io.nop.stream.core.windowing.assigners.WindowAssigner}. These panes all have their
  * own instance of the {@code Trigger}.
  *
  * <p>Triggers must not maintain state internally since they can be re-created or reused for
@@ -41,7 +41,7 @@ import io.nop.stream.core.windowing.windows.Window;
  * the {@link TriggerContext}.
  *
  * <p>When used with a {@link
- * org.apache.flink.streaming.api.windowing.assigners.MergingWindowAssigner} the {@code Trigger}
+ * io.nop.stream.core.windowing.assigners.MergingWindowAssigner} the {@code Trigger}
  * must return {@code true} from {@link #canMerge()} and {@link #onMerge(Window, OnMergeContext)}
  * most be properly implemented.
  *
@@ -147,7 +147,7 @@ public abstract class Trigger<T, W extends Window> implements Serializable {
          *
          * @param time The watermark at which to invoke {@link Trigger#onEventTime(long, Window,
          *             TriggerContext)}
-         * @see org.apache.flink.streaming.api.watermark.Watermark
+         * @see io.nop.stream.core.streamrecord.watermark.Watermark
          */
         void registerEventTimeTimer(long time);
 

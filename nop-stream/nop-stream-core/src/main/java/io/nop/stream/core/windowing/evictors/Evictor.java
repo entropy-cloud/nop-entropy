@@ -26,12 +26,12 @@ import io.nop.stream.core.windowing.windows.Window;
 /**
  * An {@code Evictor} can remove elements from a pane before/after the evaluation of WindowFunction
  * and after the window evaluation gets triggered by a {@link
- * org.apache.flink.streaming.api.windowing.triggers.Trigger}
+ * io.nop.stream.core.windowing.triggers.Trigger}
  *
  * <p>A pane is the bucket of elements that have the same key (assigned by the {@link
- * org.apache.flink.api.java.functions.KeySelector}) and same {@link Window}. An element can be in
+ * io.nop.stream.core.common.functions.KeySelector}) and same {@link Window}. An element can be in
  * multiple panes of it was assigned to multiple windows by the {@link
- * org.apache.flink.streaming.api.windowing.assigners.WindowAssigner}. These panes all have their
+ * io.nop.stream.core.windowing.assigners.WindowAssigner}. These panes all have their
  * own instance of the {@code Evictor}.
  *
  * @param <T> The type of elements that this {@code Evictor} can evict.

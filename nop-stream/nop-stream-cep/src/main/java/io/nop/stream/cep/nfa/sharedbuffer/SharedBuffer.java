@@ -81,7 +81,7 @@ public class SharedBuffer<V> {
      */
     private final ConcurrentHashMap<NodeId, Lockable<SharedBufferNode>> entryCache;
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public SharedBuffer(
             KeyedStateStore stateStore,
             TypeSerializer<V> valueSerializer,

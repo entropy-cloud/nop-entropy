@@ -33,9 +33,7 @@ import io.nop.stream.core.windowing.windows.Window;
  *
  * <p>In a window operation, elements are grouped by their key (if available) and by the windows to
  * which it was assigned. The set of elements with the same key and window is called a pane. When a
- * {@link Trigger} decides that a certain pane should fire the {@link
- * org.apache.flink.streaming.api.functions.windowing.WindowFunction} is applied to produce output
- * elements for that pane.
+ * {@link Trigger} decides that a certain pane should fire, the window function
  *
  * @param <T> The type of elements that this WindowAssigner can assign windows to.
  * @param <W> The type of {@code Window} that this assigner assigns.
@@ -72,8 +70,8 @@ public abstract class WindowAssigner<T, W extends Window> implements Serializabl
      * processing time.
      *
      * <p>This is provided to the assigner by its containing {@link
-     * org.apache.flink.streaming.runtime.operators.windowing.WindowOperator}, which, in turn, gets
-     * it from the containing {@link org.apache.flink.streaming.runtime.tasks.StreamTask}.
+     * io.nop.stream.runtime.operators.windowing.WindowOperator}, which, in turn, gets
+     * it from the containing {@link io.nop.stream.runtime.task.StreamTask}.
      */
     public interface WindowAssignerContext {
 

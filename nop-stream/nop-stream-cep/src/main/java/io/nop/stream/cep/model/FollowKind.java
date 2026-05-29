@@ -20,6 +20,10 @@ package io.nop.stream.cep.model;
  *
  *  对于循环模式（例如oneOrMore()和times())），默认是松散连续。如果想使用严格连续，你需要使用consecutive()方法明确指定， 如果想使用不确定松散连续，你可以使用allowCombinations()方法
  *
+ * <p><b>Design Note:</b> Enum constants use camelCase (e.g., {@code followedBy}) rather than
+ * the conventional UPPER_SNAKE_CASE (e.g., {@code FOLLOWED_BY}) because these values are
+ * serialized in XDSL model files ({@code pattern.xdef}) where camelCase is more readable
+ * and consistent with XDSL naming conventions.
  */
 public enum FollowKind {
     /**

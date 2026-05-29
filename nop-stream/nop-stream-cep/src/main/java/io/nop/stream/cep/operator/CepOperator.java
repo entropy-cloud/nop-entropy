@@ -178,8 +178,8 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public void open() throws Exception {
+   @SuppressWarnings({"unchecked", "rawtypes"})
+   public void open() throws Exception {
         super.open();
 
         IKeyedStateBackend<?> backend = getKeyedStateBackend();

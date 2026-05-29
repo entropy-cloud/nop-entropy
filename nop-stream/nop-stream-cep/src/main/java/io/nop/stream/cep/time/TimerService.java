@@ -31,7 +31,7 @@ import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 public interface TimerService {
 
     /**
-     * Current processing time as returned from {@link org.apache.flink.streaming.api.TimerService}.
+     * Current processing time as returned from {@link io.nop.stream.core.time.TimerService}.
      */
     long currentProcessingTime();
 }

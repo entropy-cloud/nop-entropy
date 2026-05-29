@@ -37,7 +37,7 @@ public interface WatermarkGeneratorSupplier<T> extends Serializable {
 
     /**
      * Additional information available to {@link #createWatermarkGenerator(Context)}. This can be
-     * access to {@link org.apache.flink.metrics.MetricGroup MetricGroups}, for example.
+     * access to {@link io.nop.stream.core.metrics.MetricGroup MetricGroups}, for example.
      */
     interface Context {
 

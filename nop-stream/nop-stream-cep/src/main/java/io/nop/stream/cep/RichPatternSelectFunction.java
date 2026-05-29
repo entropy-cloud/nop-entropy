@@ -28,7 +28,7 @@ import io.nop.stream.core.common.functions.RuntimeContext;
 /**
  * Rich variant of the {@link PatternSelectFunction}. As a {@link RichFunction}, it gives access to
  * the {@link RuntimeContext} and provides setup and teardown
- * methods: {@link RichFunction#open(org.apache.flink.configuration.Configuration)} and {@link
+     * methods: {@link RichFunction#open(io.nop.stream.core.configuration.Configuration)} and {@link
  * RichFunction#close()}.
  *
  * @param <IN>  Type of the input elements

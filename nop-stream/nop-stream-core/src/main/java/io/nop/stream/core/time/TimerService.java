@@ -54,10 +54,10 @@ public interface TimerService {
      * Registers a timer to be fired when processing time passes the given time.
      *
      * <p>Timers can internally be scoped to keys and/or windows. When you set a timer in a keyed
-     * context, such as in an operation on {@link
-     * org.apache.flink.streaming.api.datastream.KeyedStream} then that context will also be active
-     * when you receive the timer notification.
-     */
+ * context, such as in an operation on {@link
+ * io.nop.stream.core.datastream.KeyedStream} then that context will also be active
+ * when you receive the timer notification.
+ */
     void registerProcessingTimeTimer(long time);
 
     /**
@@ -65,7 +65,7 @@ public interface TimerService {
      *
      * <p>Timers can internally be scoped to keys and/or windows. When you set a timer in a keyed
      * context, such as in an operation on {@link
-     * org.apache.flink.streaming.api.datastream.KeyedStream} then that context will also be active
+ * io.nop.stream.core.datastream.KeyedStream} then that context will also be active
      * when you receive the timer notification.
      */
     void registerEventTimeTimer(long time);
