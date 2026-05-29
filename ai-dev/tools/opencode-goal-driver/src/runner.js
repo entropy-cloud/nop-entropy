@@ -23,7 +23,7 @@ export async function createRunner(config) {
     process.stderr.write(preview + "\n");
     process.stderr.write(`╚═══════════════════════════════════════════════\n`);
 
-    const args = ["run", "-m", model, "--agent", config.agent, prompt];
+    const args = ["run", "-m", model, "--agent", config.agent, "--dangerously-skip-permissions", prompt];
     const result = await execute(config, `oc-${stepName}`, "opencode", args, {
       cwd: config.projectRoot,
       timeout: 36_000_000, // 10 hours

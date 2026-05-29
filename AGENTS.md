@@ -220,6 +220,7 @@ setx JAVA_HOME "$jdk"
 - **Imports**: grouped (java.* → jakarta.* → third-party → io.nop.*)
 - **Error handling**: Two-tier strategy (see `docs-for-ai/02-core-guides/error-handling.md`): (1) Framework core & public APIs: `NopException` + `ErrorCode` + `.param(...)`. (2) Module internals & AI-driven code: module-level exception class (e.g. `NopAiException`) with English string messages. Never use bare `RuntimeException`. Error messages must be in English.
 - Avoid noisy refactors; keep diffs minimal and focused
+- **Temporary files**: Use `_tmp/` under the project root (`<project-root>/_tmp/`) for ALL temporary files, scratch data, and intermediate outputs. NEVER use system-level `/tmp/` — it is outside the project sandbox and will trigger `external_directory` permission prompts that block non-interactive `opencode run` sessions.
 
 ---
 
