@@ -582,6 +582,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                     String accType = (String) map.get("@type");
                     ClassNameValidator.validateClassName(accType);
                     Object accValue = map.get("value");
+                    @SuppressWarnings("unchecked")
                     SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();
                     acc.add(accValue);
                     target.put(wk, (ACC) acc);
@@ -632,6 +633,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                 String accType = (String) map.get("@type");
                 ClassNameValidator.validateClassName(accType);
                 Object accValue = map.get("value");
+                @SuppressWarnings("unchecked")
                 SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();
                 acc.add(accValue);
                 target.put(new TriggerStateKey<>(wk, descriptorName), acc);
@@ -793,8 +795,8 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                             .param(ARG_DESCRIPTOR_NAME, rsd.getName());
                 }
             }
-            throw new UnsupportedOperationException(
-                    "getSimpleAccumulator not supported for descriptor: " + descriptor.getName());
+            throw new StreamException(ERR_STREAM_UNSUPPORTED)
+                    .param(ARG_OPERATION, "getSimpleAccumulator for descriptor: " + descriptor.getName());
         }
     }
 }

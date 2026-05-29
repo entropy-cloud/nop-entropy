@@ -19,6 +19,8 @@ import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Adapts nop-message's {@link IMessageService} to nop-stream's {@link SourceFunction}.
  * <p>
@@ -64,16 +66,18 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
     public MessageSourceFunction(IMessageService messageService, String topic,
                                   int subtaskIndex, int totalParallelism) {
         if (messageService == null) {
-            throw new StreamException("messageService must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "messageService");
         }
         if (topic == null || topic.isEmpty()) {
-            throw new StreamException("topic must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "topic");
         }
         if (subtaskIndex >= 0 && totalParallelism <= 0) {
-            throw new StreamException("totalParallelism must be positive when subtaskIndex is set");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "totalParallelism")
+                    .param(ARG_DETAIL, "must be positive when subtaskIndex is set");
         }
         if (subtaskIndex >= 0 && subtaskIndex >= totalParallelism) {
-            throw new StreamException("subtaskIndex must be < totalParallelism");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "subtaskIndex")
+                    .param(ARG_DETAIL, "must be < totalParallelism");
         }
         this.messageService = messageService;
         this.topic = topic;

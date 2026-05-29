@@ -17,11 +17,14 @@ import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.streamrecord.StreamElement;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**
  * Consumer-side channel that receives data from a {@link RemoteResultPartition}
@@ -57,6 +60,7 @@ public class RemoteInputChannel extends InputChannel {
     private final long expectedEpochId;
     private final IMessageSubscription subscription;
     private volatile boolean finished;
+    private volatile Throwable decodeError;
 
     /**
      * Creates a RemoteInputChannel that subscribes to the given topic.
@@ -109,6 +113,10 @@ public class RemoteInputChannel extends InputChannel {
      */
     @Override
     public StreamElement read() throws InterruptedException {
+        if (decodeError != null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, decodeError)
+                    .param(ARG_DETAIL, "Decode error in RemoteInputChannel");
+        }
         StreamElement element = queue.take();
         if (element == END_OF_STREAM) {
             return null;
@@ -126,6 +134,10 @@ public class RemoteInputChannel extends InputChannel {
      */
     @Override
     public StreamElement read(long timeout, TimeUnit unit) throws InterruptedException {
+        if (decodeError != null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, decodeError)
+                    .param(ARG_DETAIL, "Decode error in RemoteInputChannel");
+        }
         StreamElement element = queue.poll(timeout, unit);
         if (element == null) {
             return null;
@@ -217,8 +229,10 @@ public class RemoteInputChannel extends InputChannel {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                decodeError = e;
                 LOG.warn("Interrupted while enqueueing decoded element", e);
             } catch (Exception e) {
+                decodeError = e;
                 LOG.error("Failed to decode envelope on topic={}", topic, e);
             }
 

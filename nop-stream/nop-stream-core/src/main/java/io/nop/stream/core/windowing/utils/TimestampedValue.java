@@ -20,6 +20,10 @@ package io.nop.stream.core.windowing.utils;
 
 import io.nop.stream.core.streamrecord.StreamRecord;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Stores the value and the timestamp of the record.
  *
@@ -76,8 +80,9 @@ public class TimestampedValue<T> {
         if (hasTimestamp) {
             return timestamp;
         } else {
-            throw new IllegalStateException(
-                    "Record has no timestamp. Is the time characteristic set to 'ProcessingTime', or "
+            throw new StreamException(ERR_STREAM_INVALID_TIMESTAMP)
+                    .param(ARG_ARG_NAME, "timestamp")
+                    .param(ARG_DETAIL, "Record has no timestamp. Is the time characteristic set to 'ProcessingTime', or "
                             + "did you forget to call 'DataStream.assignTimestampsAndWatermarks(...)'?");
         }
     }

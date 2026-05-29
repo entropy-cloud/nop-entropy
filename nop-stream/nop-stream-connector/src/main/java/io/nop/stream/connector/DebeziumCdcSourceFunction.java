@@ -20,6 +20,8 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.DrainableSource;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     private static final long serialVersionUID = 1L;
@@ -34,7 +36,7 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     public DebeziumCdcSourceFunction(DebeziumConfig config) {
         if (config == null) {
-            throw new StreamException("config must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "config");
         }
         this.config = config;
         this.completionLatch = new CountDownLatch(1);

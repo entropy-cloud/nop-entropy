@@ -19,6 +19,8 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.message.*;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
@@ -469,7 +471,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 terminateExportSavepoint();
                 break;
             default:
-                throw new StreamException("Unknown termination mode: " + mode);
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "Unknown termination mode: " + mode);
         }
     }
 

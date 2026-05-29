@@ -327,6 +327,10 @@ class MemoryStateSerDe {
 
     @SuppressWarnings("unchecked")
     private <T> SimpleAccumulator<T> wrapInAccumulator(Object value, Class<? extends SimpleAccumulator<T>> accumulatorClass) {
+        if (!SimpleAccumulator.class.isAssignableFrom(accumulatorClass)) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "Type does not implement SimpleAccumulator: " + accumulatorClass.getName());
+        }
         try {
             SimpleAccumulator<T> acc = accumulatorClass.getDeclaredConstructor().newInstance();
             if (value != null) {
@@ -334,7 +338,7 @@ class MemoryStateSerDe {
             }
             return acc;
         } catch (Exception e) {
-            throw new StreamException(ERR_STREAM_STATE_ERROR)
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
                     .param(ARG_DETAIL, "Failed to create accumulator: " + accumulatorClass.getName());
         }
     }

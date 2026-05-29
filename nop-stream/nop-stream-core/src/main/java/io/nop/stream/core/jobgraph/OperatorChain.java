@@ -109,12 +109,14 @@ public class OperatorChain implements Serializable {
                         (io.nop.stream.core.operators.Input) operator;
                     input.processElement(record);
                 } catch (Exception e) {
-                    throw new StreamException(
-                        "Failed to process element in operator: " + operator.getClass().getName(), e);
+                    throw new StreamException(ERR_STREAM_OPERATOR_ERROR, e)
+                            .param(ARG_OPERATOR_NAME, operator.getClass().getName())
+                            .param(ARG_DETAIL, "Failed to process element in operator");
                 }
             } else {
-                throw new IllegalStateException(
-                    "Operator does not implement Input interface: " + operator.getClass().getName());
+                throw new StreamException(ERR_STREAM_OPERATOR_ERROR)
+                        .param(ARG_OPERATOR_NAME, operator.getClass().getName())
+                        .param(ARG_DETAIL, "Operator does not implement Input interface");
             }
         }
     }
@@ -154,7 +156,8 @@ public class OperatorChain implements Serializable {
                     firstException.addSuppressed(closeException);
                 }
             }
-            throw new StreamException("Failed to open operator chain", firstException);
+            throw new StreamException(ERR_STREAM_OPERATOR_ERROR, firstException)
+                    .param(ARG_DETAIL, "Failed to open operator chain");
         }
     }
 
@@ -188,7 +191,8 @@ public class OperatorChain implements Serializable {
         }
 
         if (firstException != null) {
-            throw new StreamException("Failed to close operator chain", firstException);
+            throw new StreamException(ERR_STREAM_OPERATOR_ERROR, firstException)
+                    .param(ARG_DETAIL, "Failed to close operator chain");
         }
     }
 
@@ -235,8 +239,8 @@ public class OperatorChain implements Serializable {
                 return (OperatorChain) ois.readObject();
             }
         } catch (IOException | ClassNotFoundException e) {
-            throw new StreamException("Failed to deep-copy OperatorChain. " +
-                    "Ensure all operators and their state are Serializable.", e);
+            throw new StreamException(ERR_STREAM_SERIALIZATION, e)
+                    .param(ARG_DETAIL, "Failed to deep-copy OperatorChain. Ensure all operators and their state are Serializable.");
         }
     }
 }

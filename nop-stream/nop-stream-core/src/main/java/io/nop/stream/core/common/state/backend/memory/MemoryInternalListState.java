@@ -18,6 +18,10 @@ import java.util.Map;
 import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 class MemoryInternalListState<K, N, T>
         implements InternalListState<K, N, T>, Serializable {
     private static final long serialVersionUID = 1L;
@@ -82,8 +86,8 @@ class MemoryInternalListState<K, N, T>
 
     private TypedNamespaceAndKey getStorageKey() {
         if (currentNamespace == null) {
-            throw new IllegalStateException(
-                    "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
         }
         return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
     }

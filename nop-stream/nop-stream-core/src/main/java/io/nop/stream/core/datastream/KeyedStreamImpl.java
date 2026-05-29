@@ -26,6 +26,10 @@ import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedStream<T, KEY> {
     private static final long serialVersionUID = 1L;
 
@@ -288,7 +292,8 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
                 case SUM: return add(a, b);
                 case MIN: return compare(a, b) <= 0 ? a : b;
                 case MAX: return compare(a, b) >= 0 ? a : b;
-                default: throw new IllegalStateException("Unknown type: " + type);
+                default: throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "Unknown aggregate type: " + type);
             }
         }
 

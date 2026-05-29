@@ -31,6 +31,8 @@ import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.functions.KeySelector;
@@ -915,7 +917,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         @Override
         public <X> void output(OutputTag<X> outputTag, X value) {
             if (outputTag == null) {
-                throw new StreamException("OutputTag must not be null.");
+                throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputTag");
             }
             output.collect(outputTag, new StreamRecord<>(value, window.maxTimestamp()));
         }
@@ -1007,11 +1009,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     triggerAccumulators.put(stateKey, acc);
                     return acc;
                 } catch (Exception e) {
-                    throw new StreamException("Failed to create trigger state accumulator", e);
+                    throw new StreamException(ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED, e)
+                            .param(ARG_DESCRIPTOR_NAME, "trigger-state");
                 }
             }
-            throw new UnsupportedOperationException(
-                    "getSimpleAccumulator not supported for descriptor: " + descriptor.getName());
+            throw new StreamException(ERR_STREAM_UNSUPPORTED)
+                    .param(ARG_OPERATION, "getSimpleAccumulator for descriptor: " + descriptor.getName());
         }
 
         @Override

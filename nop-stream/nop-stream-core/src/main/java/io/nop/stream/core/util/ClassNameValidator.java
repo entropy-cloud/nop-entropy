@@ -5,6 +5,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 @Internal
 public class ClassNameValidator {
 
@@ -29,14 +33,13 @@ public class ClassNameValidator {
 
     public static void validateClassName(String className) {
         if (className == null || className.isEmpty()) {
-            throw new IllegalArgumentException("Class name must not be null or empty");
+            throw new StreamException(ERR_STREAM_CLASS_NOT_ALLOWED).param(ARG_CLASS_NAME, "null or empty");
         }
         for (String prefix : ALLOWED_PREFIXES) {
             if (className.startsWith(prefix)) {
                 return;
             }
         }
-        throw new SecurityException("Class not allowed for dynamic loading: " + className +
-                ". Allowed prefixes: " + ALLOWED_PREFIXES);
+        throw new StreamException(ERR_STREAM_CLASS_NOT_ALLOWED).param(ARG_CLASS_NAME, className);
     }
 }

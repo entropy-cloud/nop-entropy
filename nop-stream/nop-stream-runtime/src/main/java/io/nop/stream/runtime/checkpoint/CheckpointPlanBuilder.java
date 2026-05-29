@@ -22,6 +22,8 @@ import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 public class CheckpointPlanBuilder {
 
     /**
@@ -58,13 +60,13 @@ public class CheckpointPlanBuilder {
     public static CheckpointPlan build(GraphExecutionPlan executionPlan, String jobId, String pipelineId,
                                        StreamComponents streamComponents, CheckpointConfig checkpointConfig) {
         if (executionPlan == null) {
-            throw new StreamException("executionPlan must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "executionPlan");
         }
         if (jobId == null || jobId.isEmpty()) {
-            throw new StreamException("jobId must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jobId");
         }
         if (pipelineId == null || pipelineId.isEmpty()) {
-            throw new StreamException("pipelineId must not be null or empty");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "pipelineId");
         }
 
         List<TaskLocation> allTasks = new ArrayList<>();
@@ -74,7 +76,8 @@ public class CheckpointPlanBuilder {
         for (String vertexId : executionPlan.getSortedVertexIds()) {
             JobVertex vertex = executionPlan.getExecutionVertices().get(vertexId);
             if (vertex == null) {
-                throw new IllegalStateException("Vertex not found in execution plan: " + vertexId);
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "Vertex not found in execution plan: " + vertexId);
             }
 
             List<Subtask> subtaskList = executionPlan.getSubtasks(vertexId);
@@ -85,7 +88,8 @@ public class CheckpointPlanBuilder {
 
             List<OperatorChain> chains = vertex.getOperatorChains();
             if (chains == null || chains.isEmpty()) {
-                throw new IllegalStateException("Vertex has no operator chains: " + vertexId);
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "Vertex has no operator chains: " + vertexId);
             }
 
             if (subtaskList != null) {

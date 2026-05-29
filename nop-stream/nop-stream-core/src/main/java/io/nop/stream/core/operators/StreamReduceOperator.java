@@ -19,7 +19,10 @@ import org.slf4j.LoggerFactory;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.functions.ReduceFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamRecord;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 public class StreamReduceOperator<T>
         extends AbstractUdfStreamOperator<T, ReduceFunction<T>>
@@ -60,9 +63,9 @@ public class StreamReduceOperator<T>
     public void processElement(StreamRecord<T> element) throws Exception {
         Object key = getCurrentKey();
         if (key == null) {
-            throw new IllegalStateException(
-                    "StreamReduceOperator requires key context. "
-                  + "Ensure the stream is keyed via keyBy() before applying reduce.");
+            throw new StreamException(ERR_STREAM_OPERATOR_ERROR)
+                    .param(ARG_OPERATOR_NAME, "StreamReduceOperator")
+                    .param(ARG_DETAIL, "requires key context. Ensure the stream is keyed via keyBy() before applying reduce.");
         }
         T value = element.getValue();
         T currentValue = values.get(key);

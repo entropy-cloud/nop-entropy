@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.ResultPartition;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.execution.transport.TypeRegistry;
@@ -81,10 +83,11 @@ public class RemoteResultPartition extends ResultPartition {
     @Override
     public void write(StreamElement element) throws InterruptedException {
         if (element == null) {
-            throw new StreamException("Element must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
         if (isFinished()) {
-            throw new IllegalStateException("Cannot write to a finished RemoteResultPartition");
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "Cannot write to a finished RemoteResultPartition");
         }
 
         String valueType = typeRegistry != null ? typeRegistry.getOutputTypeClassName(edgeId) : null;

@@ -17,6 +17,8 @@ import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 class MemoryInternalAppendingState<K, N, IN, ACC>
         implements InternalAppendingState<K, N, IN, ACC, ACC>, Serializable {
     private static final long serialVersionUID = 1L;
@@ -96,8 +98,8 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
 
     private TypedNamespaceAndKey getStorageKey() {
         if (currentNamespace == null) {
-            throw new IllegalStateException(
-                    "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
         }
         return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
     }

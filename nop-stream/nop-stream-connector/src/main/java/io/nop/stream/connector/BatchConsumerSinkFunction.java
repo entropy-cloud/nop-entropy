@@ -20,6 +20,8 @@ import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Adapts nop-batch's {@link IBatchConsumerProvider} to nop-stream's {@link SinkFunction}.
  * <p>
@@ -41,10 +43,11 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
 
     public BatchConsumerSinkFunction(IBatchConsumerProvider<R> consumerProvider, int batchSize) {
         if (consumerProvider == null) {
-            throw new StreamException("consumerProvider must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "consumerProvider");
         }
         if (batchSize < 1) {
-            throw new StreamException("batchSize must be at least 1");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "batchSize")
+                    .param(ARG_DETAIL, "must be at least 1");
         }
         this.taskContext = new BatchTaskContextImpl();
         this.consumer = consumerProvider.setup(taskContext);
@@ -81,7 +84,8 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
             try {
                 ((AutoCloseable) consumer).close();
             } catch (Exception e) {
-                throw new StreamException("Failed to close consumer", e);
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to close consumer");
             }
         }
     }

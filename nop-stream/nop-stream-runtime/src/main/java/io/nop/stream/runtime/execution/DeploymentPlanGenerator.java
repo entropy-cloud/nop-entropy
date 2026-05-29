@@ -17,11 +17,13 @@ import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 public class DeploymentPlanGenerator {
 
     public DeploymentPlan generateLocal(PartitionedPlan partitionedPlan) {
         if (partitionedPlan == null) {
-            throw new StreamException("PartitionedPlan must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "partitionedPlan");
         }
 
         Map<String, EdgeConfig> edgeConfigs = new LinkedHashMap<>();

@@ -76,7 +76,8 @@ public class ResultPartition implements IWriteStatus {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
         if (finished) {
-            throw new IllegalStateException("Cannot write to a finished ResultPartition");
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "Cannot write to a finished ResultPartition");
         }
         queue.put(element);
     }

@@ -14,6 +14,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import io.nop.stream.core.checkpoint.SourceEnumeratorState;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Manages source split discovery and assignment to subtasks.
  *
@@ -60,7 +62,8 @@ public class SourceEnumerator {
 
     public SourceEnumerator(int totalParallelism) {
         if (totalParallelism <= 0) {
-            throw new StreamException("totalParallelism must be positive, got: " + totalParallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "totalParallelism")
+                    .param(ARG_DETAIL, "must be positive, got: " + totalParallelism);
         }
         this.totalParallelism = totalParallelism;
         this.discoveredSplits = ConcurrentHashMap.newKeySet();

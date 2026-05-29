@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.util.*;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
@@ -132,6 +133,7 @@ public class StreamComponents implements Serializable {
         return windowingStrategies.get(id);
     }
 
+    @Internal
     @SuppressWarnings("unchecked")
     public <T> T getBean(String id, Class<T> clazz) {
         Object bean = windowingStrategies.get(id);

@@ -24,6 +24,10 @@ import io.nop.api.core.config.IConfigProvider;
 
 import io.nop.stream.core.configuration.Configuration;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * An abstract stub implementation for rich user-defined functions. Rich functions have additional
  * methods for initialization ({@link #open(IConfigProvider)}) and teardown ({@link #close()}), as
@@ -49,18 +53,21 @@ public abstract class AbstractRichFunction implements RichFunction, Serializable
         if (this.runtimeContext != null) {
             return this.runtimeContext;
         } else {
-            throw new IllegalStateException("The runtime context has not been initialized.");
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "The runtime context has not been initialized.");
         }
     }
 
     @Override
     public IterationRuntimeContext getIterationRuntimeContext() {
         if (this.runtimeContext == null) {
-            throw new IllegalStateException("The runtime context has not been initialized.");
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "The runtime context has not been initialized.");
         } else if (this.runtimeContext instanceof IterationRuntimeContext) {
             return (IterationRuntimeContext) this.runtimeContext;
         } else {
-            throw new IllegalStateException("This stub is not part of an iteration step function.");
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "This stub is not part of an iteration step function.");
         }
     }
 

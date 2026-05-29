@@ -18,6 +18,8 @@ import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Adapts nop-batch's {@link IBatchLoaderProvider} to nop-stream's {@link SourceFunction}.
  * <p>
@@ -39,10 +41,11 @@ public class BatchLoaderSourceFunction<S> implements SourceFunction<S> {
 
     public BatchLoaderSourceFunction(IBatchLoaderProvider<S> loaderProvider, int batchSize) {
         if (loaderProvider == null) {
-            throw new StreamException("loaderProvider must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "loaderProvider");
         }
         if (batchSize < 1) {
-            throw new StreamException("batchSize must be at least 1");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "batchSize")
+                    .param(ARG_DETAIL, "must be at least 1");
         }
         this.loaderProvider = loaderProvider;
         this.batchSize = batchSize;

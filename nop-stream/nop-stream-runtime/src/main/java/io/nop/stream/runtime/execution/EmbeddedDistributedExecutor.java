@@ -17,6 +17,8 @@ import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.execution.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -173,8 +175,9 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
             }
             Thread.sleep(100);
         }
-        throw new StreamException("Timed out waiting for tasks to complete. Still running: "
-                + taskManagers.stream().mapToInt(TaskManager::getRunningTaskCount).sum());
+        throw new StreamException(ERR_STREAM_INVALID_STATE)
+                .param(ARG_DETAIL, "Timed out waiting for tasks to complete. Still running: "
+                        + taskManagers.stream().mapToInt(TaskManager::getRunningTaskCount).sum());
     }
 
     private void checkTaskResults(List<TaskManager> taskManagers) {
