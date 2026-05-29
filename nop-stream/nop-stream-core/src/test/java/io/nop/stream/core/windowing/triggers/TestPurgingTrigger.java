@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.stream.core.common.accumulators.LongCounter;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
@@ -14,6 +15,7 @@ import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -45,6 +47,7 @@ public class TestPurgingTrigger {
         assertSame(nestedTrigger, trigger.getNestedTrigger());
     }
 
+    @Tag("low-value")
     @Test
     public void testGetNestedTrigger() {
         CountTrigger<GlobalWindow> nestedTrigger = CountTrigger.of(3);
@@ -234,7 +237,7 @@ public class TestPurgingTrigger {
                     try {
                         return accumulatorType.getDeclaredConstructor().newInstance();
                     } catch (Exception e) {
-                        throw new RuntimeException("Failed to create accumulator instance", e);
+                        throw NopException.adapt(e);
                     }
                 }
                 return new LongCounter();

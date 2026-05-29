@@ -2,6 +2,7 @@ package io.nop.stream.cep.nfa.compiler;
 
 import io.nop.stream.cep.pattern.MalformedPatternException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,17 +57,20 @@ public class TestNFAStateNameHandler {
         assertEquals("c", c);
     }
 
+    @Tag("low-value")
     @Test
     public void testGetOriginalNameFromInternalNoSuffix() {
         assertEquals("stateA", NFAStateNameHandler.getOriginalNameFromInternal("stateA"));
     }
 
+    @Tag("low-value")
     @Test
     public void testGetOriginalNameFromInternalWithSuffix() {
         assertEquals("stateA", NFAStateNameHandler.getOriginalNameFromInternal("stateA:0"));
         assertEquals("stateA", NFAStateNameHandler.getOriginalNameFromInternal("stateA:123"));
     }
 
+    @Tag("low-value")
     @Test
     public void testGetOriginalNameFromInternalMultipleColons() {
         assertEquals("state", NFAStateNameHandler.getOriginalNameFromInternal("state:A:0"));
@@ -109,6 +113,7 @@ public class TestNFAStateNameHandler {
         handler.checkNameUniqueness("state");
     }
 
+    @Tag("low-value")
     @Test
     public void testStateNameDelim() {
         assertEquals(":", NFAStateNameHandler.STATE_NAME_DELIM);

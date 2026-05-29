@@ -8,6 +8,7 @@
 package io.nop.stream.core.checkpoint;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -69,6 +70,7 @@ class TestOperatorSnapshotResult {
         assertFalse(result.isEmpty());
     }
 
+    @Tag("low-value")
     @Test
     void testGetStateCount() {
         assertEquals(0, result.getStateCount());

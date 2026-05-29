@@ -8,6 +8,7 @@
 package io.nop.stream.core.checkpoint;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -73,6 +74,7 @@ class TestCompletedCheckpoint {
         assertTrue(checkpoint.isRestored());
     }
 
+    @Tag("low-value")
     @Test
     void testGetDuration() {
         assertEquals(1000L, checkpoint.getDuration());

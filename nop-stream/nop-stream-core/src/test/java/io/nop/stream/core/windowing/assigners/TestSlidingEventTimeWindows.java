@@ -10,6 +10,7 @@ package io.nop.stream.core.windowing.assigners;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -83,6 +84,7 @@ public class TestSlidingEventTimeWindows {
         assertThrows(StreamException.class, () -> SlidingEventTimeWindows.of(10, 5, 10));
     }
 
+    @Tag("low-value")
     @Test
     public void testIsEventTime() {
         assertTrue(assigner.isEventTime());
@@ -111,6 +113,7 @@ public class TestSlidingEventTimeWindows {
         assertThrows(RuntimeException.class, () -> assigner.assignWindows(null, Long.MIN_VALUE, context));
     }
 
+    @Tag("low-value")
     @Test
     public void testGetters() {
         assertEquals(SIZE, assigner.getSize());

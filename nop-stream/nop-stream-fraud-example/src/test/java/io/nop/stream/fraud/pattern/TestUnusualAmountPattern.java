@@ -13,6 +13,7 @@ import io.nop.stream.fraud.state.DemoKeyedStateStore;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
 import io.nop.commons.tuple.Tuple2;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -94,6 +95,7 @@ public class TestUnusualAmountPattern {
         assertTrue(alert.getDescription().contains("$2000"));
     }
 
+    @Tag("low-value")
     @Test
     void testGetters() {
         assertEquals(new BigDecimal("10"), UnusualAmountPattern.getUnusualMultiplier());

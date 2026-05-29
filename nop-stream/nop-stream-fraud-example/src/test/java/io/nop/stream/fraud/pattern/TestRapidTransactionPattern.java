@@ -10,6 +10,7 @@ package io.nop.stream.fraud.pattern;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -94,6 +95,7 @@ public class TestRapidTransactionPattern {
         }, "Should throw exception when 'first' event list is empty");
     }
 
+    @Tag("low-value")
     @Test
     public void testConstants() {
         assertEquals(new BigDecimal("1000"), RapidTransactionPattern.getAmountThreshold(),

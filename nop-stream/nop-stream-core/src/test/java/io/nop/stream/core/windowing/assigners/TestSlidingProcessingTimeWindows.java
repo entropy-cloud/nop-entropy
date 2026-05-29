@@ -10,6 +10,7 @@ package io.nop.stream.core.windowing.assigners;
 import io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -64,6 +65,7 @@ public class TestSlidingProcessingTimeWindows {
         assertThrows(StreamException.class, () -> SlidingProcessingTimeWindows.of(10, 5, 5));
     }
 
+    @Tag("low-value")
     @Test
     public void testIsEventTimeFalse() {
         assertFalse(assigner.isEventTime());
@@ -108,6 +110,7 @@ public class TestSlidingProcessingTimeWindows {
         assertTrue(assigner.getDefaultTrigger(null) instanceof ProcessingTimeTrigger);
     }
 
+    @Tag("low-value")
     @Test
     public void testGetters() {
         assertEquals(SIZE, assigner.getSize());

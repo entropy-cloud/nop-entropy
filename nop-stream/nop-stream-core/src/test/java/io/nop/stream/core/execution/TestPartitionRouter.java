@@ -1,12 +1,14 @@
 package io.nop.stream.core.execution;
 
 import io.nop.stream.core.streamrecord.StreamRecord;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestPartitionRouter {
 
+    @Tag("low-value")
     @Test
     void testForwardPartitionRouter_alwaysReturns0() {
         ForwardPartitionRouter router = new ForwardPartitionRouter(4);

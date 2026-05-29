@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.nop.stream.core.exceptions.StreamException;
@@ -15,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestCheckpointType {
 
+    @Tag("low-value")
     @Test
     void testCheckpointTypeEnumValues() {
         CheckpointType[] types = CheckpointType.values();
@@ -34,6 +36,7 @@ class TestCheckpointType {
         assertTrue(CheckpointType.COMPLETED_POINT_TYPE.isAuto());
     }
 
+    @Tag("low-value")
     @Test
     void testGetName() {
         assertEquals("checkpoint", CheckpointType.CHECKPOINT.getName());
@@ -41,6 +44,7 @@ class TestCheckpointType {
         assertEquals("completed", CheckpointType.COMPLETED_POINT_TYPE.getName());
     }
 
+    @Tag("low-value")
     @Test
     void testIsFinalCheckpoint() {
         assertFalse(CheckpointType.CHECKPOINT.isFinalCheckpoint());

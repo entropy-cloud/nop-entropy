@@ -1,5 +1,6 @@
 package io.nop.stream.cep.nfa;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,6 +72,7 @@ public class TestDeweyNumber {
         assertFalse(d1.isCompatibleWith(d2));
     }
 
+    @Tag("low-value")
     @Test
     public void testGetRun() {
         DeweyNumber d = DeweyNumber.fromString("3.1.2");
@@ -80,6 +82,7 @@ public class TestDeweyNumber {
         assertEquals(7, d2.getRun());
     }
 
+    @Tag("low-value")
     @Test
     public void testLength() {
         assertEquals(1, new DeweyNumber(5).length());
@@ -87,6 +90,7 @@ public class TestDeweyNumber {
         assertEquals(4, DeweyNumber.fromString("1.2.3.4").length());
     }
 
+    @Tag("low-value")
     @Test
     public void testEqualsAndHashCode() {
         DeweyNumber d1 = DeweyNumber.fromString("1.2.3");

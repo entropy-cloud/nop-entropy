@@ -1,11 +1,13 @@
 package io.nop.stream.core.windowing;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestAccumulationMode {
 
+    @Tag("low-value")
     @Test
     void testEnumValueOf_roundTrips() {
         assertSame(AccumulationMode.DISCARDING, AccumulationMode.valueOf("DISCARDING"));
@@ -15,6 +17,7 @@ class TestAccumulationMode {
 
 class TestWindowingStrategy {
 
+    @Tag("low-value")
     @Test
     void testCreation() {
         WindowingStrategy ws = new WindowingStrategy("ws-1", "tumbling-1h", "eventTimeTrigger",
@@ -27,6 +30,7 @@ class TestWindowingStrategy {
 
 class TestPaneInfo {
 
+    @Tag("low-value")
     @Test
     void testPaneInfoCreation() {
         PaneInfo info = new PaneInfo(0, true, false, PaneInfo.PaneTiming.EARLY);

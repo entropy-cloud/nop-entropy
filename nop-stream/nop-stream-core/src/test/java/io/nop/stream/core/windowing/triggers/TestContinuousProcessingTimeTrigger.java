@@ -13,6 +13,7 @@ import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -44,6 +45,7 @@ public class TestContinuousProcessingTimeTrigger {
         assertEquals(500L, t.getInterval(), "Interval should be 500");
     }
 
+    @Tag("low-value")
     @Test
     public void testGetInterval() {
         assertEquals(100L, trigger.getInterval(), "Interval should be 100");

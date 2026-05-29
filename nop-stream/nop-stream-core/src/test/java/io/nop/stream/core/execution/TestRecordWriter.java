@@ -6,6 +6,7 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -117,6 +118,7 @@ public class TestRecordWriter {
         assertTrue(partition.isFinished());
     }
 
+    @Tag("low-value")
     @Test
     public void testGetNumberOfPartitions() {
         ResultPartition p0 = new ResultPartition();
