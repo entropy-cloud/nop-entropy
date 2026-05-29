@@ -183,7 +183,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                         fileResults.add(result);
                     }
                 } catch (Exception e) {
-                    LOG.warn("Failed to analyze file: {} - {}", file, e.getMessage());
+                    LOG.warn("Failed to analyze file: {}", file, e);
                 }
             }
         }
@@ -280,7 +280,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                     fileCount[0]++;
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to analyze resource: {} - {}", relativePath, e.getMessage());
+                LOG.warn("Failed to analyze resource: {}", relativePath, e);
             }
         }
         batchQueue.flush();
@@ -356,7 +356,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                     fileCount[0]++;
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to analyze resource: {} - {}", relativePath, e.getMessage());
+                LOG.warn("Failed to analyze resource: {}", relativePath, e);
             }
         }
         batchQueue.flush();
@@ -386,7 +386,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                         semanticEdges.addAll(extracted);
                     }
                 } catch (Exception e) {
-                    LOG.warn("Semantic extractor {} failed: {}", extractor.getExtractorId(), e.getMessage());
+                    LOG.warn("Semantic extractor {} failed", extractor.getExtractorId(), e);
                 }
             }
         }
@@ -403,7 +403,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                         semanticEdges.addAll(extracted);
                     }
                 } catch (Exception e) {
-                    LOG.warn("File-result extractor {} failed: {}", extractor.getExtractorId(), e.getMessage());
+                    LOG.warn("File-result extractor {} failed", extractor.getExtractorId(), e);
                 }
             }
         }
@@ -541,6 +541,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                 }
             } catch (Exception e) {
                 LOG.warn("Failed to re-analyze file: {} - {}", filePath, e.getMessage());
+                LOG.warn("Failed to re-analyze file: {}", file, e);
             }
         }
 
@@ -693,7 +694,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                     }
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to analyze file: {} - {}", file, e.getMessage());
+                LOG.warn("Failed to analyze file: {}", file, e);
             }
         }
 
@@ -749,7 +750,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                     results.add(result);
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to analyze file: {} - {}", file, e.getMessage());
+                LOG.warn("Failed to analyze file: {}", file, e);
             }
         }
         return results;
@@ -794,10 +795,13 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     private boolean shouldExclude(Path path, Set<String> excludePatterns) {
         String pathStr = path.toString();
         for (String pattern : excludePatterns) {
-            // 简单 glob 匹配，支持 **/dir/** 模式
-            String dir = pattern.replace("**/", "/").replace("/**", "/");
-            if (pathStr.contains(dir)) {
-                return true;
+            String dir = pattern.replace("**/", "").replace("/**", "");
+            if (dir.startsWith("/")) dir = dir.substring(1);
+            if (dir.endsWith("/")) dir = dir.substring(0, dir.length() - 1);
+            for (int i = 0; i < path.getNameCount(); i++) {
+                if (path.getName(i).toString().equals(dir)) {
+                    return true;
+                }
             }
         }
         return false;

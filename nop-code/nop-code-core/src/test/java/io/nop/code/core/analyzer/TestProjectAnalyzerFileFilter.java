@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -93,5 +94,73 @@ class TestProjectAnalyzerFileFilter {
 
         assertEquals(1, result.getFileResults().size());
         assertTrue(result.getFileResults().get(0).getFilePath().endsWith("Foo.java"));
+    }
+
+    @Test
+    void testExcludePatternDoesNotSubstringMatch() throws IOException {
+        registry = new LanguageAdapterRegistry();
+        registry.registerAdapter(new ILanguageAdapter() {
+            private final ICodeFileAnalyzer fileAnalyzer = new ICodeFileAnalyzer() {
+                @Override
+                public CodeLanguage getLanguage() {
+                    return CodeLanguage.JAVA;
+                }
+
+                @Override
+                public CodeFileAnalysisResult analyze(String filePath, String sourceCode) {
+                    CodeFileAnalysisResult result = new CodeFileAnalysisResult();
+                    result.setFilePath(filePath);
+                    result.setLanguage(CodeLanguage.JAVA);
+                    return result;
+                }
+
+                @Override
+                public List<String> getFileExtensions() {
+                    return Collections.singletonList(".java");
+                }
+            };
+
+            @Override
+            public CodeLanguage getLanguage() {
+                return CodeLanguage.JAVA;
+            }
+
+            @Override
+            public ICodeFileAnalyzer getFileAnalyzer() {
+                return fileAnalyzer;
+            }
+
+            @Override
+            public List<String> getFileExtensions() {
+                return Collections.singletonList(".java");
+            }
+
+            @Override
+            public List<String> getExcludePatterns() {
+                return Collections.singletonList("**/build/**");
+            }
+        });
+        analyzer = new ProjectAnalyzer(registry);
+
+        Path buildDir = tempDir.resolve("foo").resolve("build");
+        Files.createDirectories(buildDir);
+        Files.writeString(buildDir.resolve("Bar.java"), "public class Bar {}");
+
+        Path rebuildDir = tempDir.resolve("rebuild").resolve("scripts");
+        Files.createDirectories(rebuildDir);
+        Files.writeString(rebuildDir.resolve("Baz.java"), "public class Baz {}");
+
+        Files.writeString(tempDir.resolve("Top.java"), "public class Top {}");
+
+        var result = analyzer.analyzeProject(tempDir);
+
+        List<String> paths = result.getFileResults().stream()
+                .map(CodeFileAnalysisResult::getFilePath).collect(Collectors.toList());
+        assertTrue(paths.stream().anyMatch(p -> p.contains("Baz.java")),
+                "rebuild/scripts/Baz.java should NOT be excluded (substring mismatch)");
+        assertFalse(paths.stream().anyMatch(p -> p.contains("Bar.java")),
+                "foo/build/Bar.java should be excluded");
+        assertTrue(paths.stream().anyMatch(p -> p.endsWith("Top.java")),
+                "Top.java should not be excluded");
     }
 }
