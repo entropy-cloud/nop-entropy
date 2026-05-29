@@ -15,7 +15,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="uk_call_unique" props="indexId,callerId,calleeId,line"/>
+    </keys>
 
     <props>
         <prop name="id" displayName="ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
@@ -48,7 +50,7 @@
         </prop>
         <prop name="callType" displayName="调用类型" propId="8" queryable="true" sortable="true" insertable="true"
               updatable="true">
-            <schema type="java.lang.String" precision="500"/>
+            <schema type="java.lang.String" precision="20"/>
         </prop>
         <prop name="context" displayName="上下文" propId="9" queryable="true" sortable="true" insertable="true"
               updatable="true">

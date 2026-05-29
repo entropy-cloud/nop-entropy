@@ -48,7 +48,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     public static final String PROP_NAME_imports = "imports";
     public static final int PROP_ID_imports = 7;
     
-    /* 源代码: SOURCE_CODE VARCHAR */
+    /* 源代码: SOURCE_CODE CLOB */
     public static final String PROP_NAME_sourceCode = "sourceCode";
     public static final int PROP_ID_sourceCode = 8;
     
