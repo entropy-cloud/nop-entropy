@@ -802,12 +802,9 @@ public class GraphModelCheckpointExecutor {
             Object opState = taskState.getOperatorState(opStateKey);
             if (opState != null) {
                 builder.putOperatorState(opStateKey, opState);
-                LOG.warn("Operator index {} not found in state mappings, using default key '{}'", operatorIndex, opStateKey);
             }
 
-            for (Map.Entry<String, Object> entry : taskState.getKeyedStates().entrySet()) {
-                builder.putKeyedState(entry.getKey(), entry.getValue());
-            }
+            LOG.warn("No mapping found for operator index {}, skipping keyed state", operatorIndex);
         }
 
         return builder.build();

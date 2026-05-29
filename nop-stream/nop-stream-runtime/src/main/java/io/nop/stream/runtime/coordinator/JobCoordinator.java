@@ -27,6 +27,7 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
+import io.nop.stream.runtime.taskmanager.TaskManager;
 
 /**
  * JobCoordinator is the single point of control for a distributed streaming job.
@@ -396,6 +397,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         taskAssignmentMap.clear();
         allTaskLocations.clear();
+
+        // Update fencing token on all registered TaskManagers
+        for (IStreamTaskRpcService rpc : taskRpcServices.values()) {
+            if (rpc instanceof TaskManager) {
+                ((TaskManager) rpc).updateFencingToken(newToken);
+            }
+        }
 
         // 4. Restore from latest checkpoint/manifest if available
         try {

@@ -137,8 +137,7 @@ public class SourceEnumerator {
                 assigned.add(splitId);
                 nextSubtaskIndex++;
             } else {
-                // Not this subtask's turn; stop (round-robin is sequential)
-                break;
+                continue;
             }
         }
 

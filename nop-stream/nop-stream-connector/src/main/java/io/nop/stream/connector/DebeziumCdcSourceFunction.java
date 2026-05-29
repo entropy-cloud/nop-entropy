@@ -56,7 +56,12 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
         if (!draining) {
             source = new DebeziumMessageSource(config);
-            subscription = source.subscribe(ctx::collect);
+            try {
+                subscription = source.subscribe(ctx::collect);
+            } catch (Exception e) {
+                source.stop();
+                throw e;
+            }
         }
 
         while (running && !draining) {
