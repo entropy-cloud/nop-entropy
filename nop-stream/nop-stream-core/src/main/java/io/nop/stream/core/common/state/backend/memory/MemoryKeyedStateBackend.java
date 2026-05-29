@@ -98,9 +98,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         this.currentNamespace = namespace != null ? namespace : DEFAULT_NAMESPACE;
     }
 
-    @SuppressWarnings("unchecked")
-    public <N> N getTypedNamespace() {
-        return (N) currentNamespace;
+    public Object getTypedNamespace() {
+        return currentNamespace;
     }
 
     @Override

@@ -17,12 +17,6 @@ import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for {@link CepPatternBuilder#buildFromModel} verifying that
- * a {@link CepPatternModel} with multiple pattern steps (begin + next)
- * and conditions produces a correctly structured {@link Pattern}.
- */
 public class TestCepPatternBuilderModel {
 
     private CepPatternSingleModel newSingle(String name, String next, FollowKind followKind,
@@ -183,9 +177,206 @@ public class TestCepPatternBuilderModel {
         CepPatternBuilder builder = new CepPatternBuilder();
         Pattern<?, ?> pattern = builder.buildFromModel(model);
 
-        // Pattern should still be built successfully
         assertNotNull(pattern);
         assertEquals("b", pattern.getName());
         assertEquals("a", pattern.getPrevious().getName());
+    }
+
+    @Test
+    void testOneOrMoreQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step = new CepPatternSingleModel();
+        step.setName("start");
+        step.setOneOrMore(true);
+        model.addPart(step);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+        assertTrue(pattern.getPrevious() != null || pattern.getName().equals("start"));
+    }
+
+    @Test
+    void testTimesQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step = new CepPatternSingleModel();
+        step.setName("start");
+        step.setTimes(io.nop.api.core.beans.IntRangeBean.build(2, 4));
+        model.addPart(step);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testTimesOrMoreQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step = new CepPatternSingleModel();
+        step.setName("start");
+        step.setTimesOrMore(3);
+        model.addPart(step);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testConsecutiveQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = newSingle("start", "end", FollowKind.next, constantCondition(true));
+        step1.setOneOrMore(true);
+        step1.setConsecutive(true);
+        CepPatternSingleModel step2 = newSingle("end", null, null, null);
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testAllowCombinationsQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = newSingle("start", "end", FollowKind.next, constantCondition(true));
+        step1.setOneOrMore(true);
+        step1.setAllowCombinations(true);
+        CepPatternSingleModel step2 = newSingle("end", null, null, null);
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testGreedyQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = newSingle("start", "end", FollowKind.next, constantCondition(true));
+        step1.setOneOrMore(true);
+        step1.setGreedy(true);
+        CepPatternSingleModel step2 = newSingle("end", null, null, null);
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testOptionalQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = newSingle("start", "end", FollowKind.next, constantCondition(true));
+        step1.setOptional(true);
+        CepPatternSingleModel step2 = newSingle("end", null, null, null);
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testSubtypeQualifier() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = new CepPatternSingleModel();
+        step1.setName("start");
+        step1.setNext("end");
+        step1.setFollowKind(FollowKind.next);
+        step1.setSubType("java.lang.String");
+        CepPatternSingleModel step2 = new CepPatternSingleModel();
+        step2.setName("end");
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testFollowKindNotNext() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = newSingle("start", "end", FollowKind.notNext, constantCondition(true));
+        CepPatternSingleModel step2 = newSingle("end", null, null, null);
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+        assertEquals("end", pattern.getName());
+        assertEquals("start", pattern.getPrevious().getName());
+    }
+
+    @Test
+    void testFollowKindNotFollowedBy() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = newSingle("start", "end", FollowKind.notFollowedBy, constantCondition(true));
+        CepPatternSingleModel step2 = newSingle("end", null, null, null);
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testFollowKindFollowedByAny() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step1 = newSingle("start", "end", FollowKind.followedByAny, constantCondition(true));
+        CepPatternSingleModel step2 = newSingle("end", null, null, null);
+        model.addPart(step1);
+        model.addPart(step2);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+        assertNotNull(pattern);
+        assertEquals("end", pattern.getName());
+        assertEquals("start", pattern.getPrevious().getName());
+    }
+
+    @Test
+    void testBuildConditionIsSerializable() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("start");
+
+        CepPatternSingleModel step = newSingle("start", null, null, constantCondition(true));
+        model.addPart(step);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+
+        IterativeCondition<?> condition = pattern.getCondition();
+        assertTrue(condition instanceof java.io.Serializable,
+                "EvalFunctionCondition should be Serializable");
     }
 }

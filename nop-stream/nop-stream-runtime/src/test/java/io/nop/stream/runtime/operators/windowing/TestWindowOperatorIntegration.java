@@ -315,6 +315,7 @@ public class TestWindowOperatorIntegration {
 
     static class TestOutput<T> implements Output<StreamRecord<T>> {
         private final List<StreamRecord<T>> records = new ArrayList<>();
+        private final List<StreamRecord<?>> sideOutputs = new ArrayList<>();
 
         @Override
         public void collect(StreamRecord<T> record) {
@@ -322,8 +323,9 @@ public class TestWindowOperatorIntegration {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-            throw new UnsupportedOperationException("Side output not supported in TestOutput");
+            sideOutputs.add(record);
         }
 
         @Override
@@ -364,6 +366,47 @@ public class TestWindowOperatorIntegration {
 
         public void clear() {
             records.clear();
+            sideOutputs.clear();
         }
+
+        public List<StreamRecord<?>> getSideOutputs() {
+            return sideOutputs;
+        }
+    }
+
+    @Test
+    void testLateDataOutputTag() throws Exception {
+        operator.close();
+
+        OutputTag<Integer> lateTag = new OutputTag<>("late-data",
+                io.nop.stream.core.common.typeinfo.BasicTypeInfo.INT);
+
+        operator = new TestableWindowOperator(
+                TumblingEventTimeWindows.of(WINDOW_SIZE),
+                new SimpleTimeWindowSerializer(),
+                (KeySelector<Integer, String>) v -> "key1",
+                new SimpleStringSerializer(),
+                String.class,
+                new ToStringWindowFunction(),
+                EventTimeTrigger.create(),
+                0L,
+                lateTag
+        );
+        operator.setOutput((Output) output);
+        operator.open();
+
+        processElement(5, 10);
+        advanceWatermark(100);
+        assertEquals(1, output.size());
+        assertEquals("5", output.getElements().get(0));
+        output.clear();
+
+        processElement(99, 50);
+        advanceWatermark(150);
+
+        assertTrue(output.isEmpty(), "Late data should not appear in main output");
+        assertFalse(output.getSideOutputs().isEmpty(),
+                "Late data should be collected in side output");
+        assertEquals(99, output.getSideOutputs().get(0).getValue());
     }
 }

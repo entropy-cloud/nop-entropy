@@ -10,7 +10,6 @@ package io.nop.stream.cep.model.builder;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
@@ -133,12 +132,7 @@ public class CepPatternBuilder {
     }
 
     private IterativeCondition buildCondition(IEvalFunction action) {
-        return new IterativeCondition() {
-            @Override
-            public boolean filter(Object value, Context ctx) {
-                return ConvertHelper.toTruthy(action.call2(null, value, ctx, null));
-            }
-        };
+        return new EvalFunctionCondition(action);
     }
 
     private Pattern addQualifier(Pattern pattern, CepPatternPartModel partModel) {
