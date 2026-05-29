@@ -118,7 +118,7 @@ prop:
       lastIndexed: 最后索引时间
       name: 索引名称
       rootPath: 根路径
-      semanticEdges: null
+      semanticEdges: 语义边
       status: 状态
       status_label: 状态
       symbolCount: 符号数量

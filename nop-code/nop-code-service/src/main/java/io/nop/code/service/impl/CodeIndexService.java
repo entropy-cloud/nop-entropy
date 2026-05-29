@@ -787,7 +787,8 @@ public class CodeIndexService implements ICodeIndexService {
                     for (String tag : hit.getTags()) {
                         try {
                             CodeSymbolKind kind = CodeSymbolKind.valueOf(tag);
-                        } catch (IllegalArgumentException ignored) {
+                        } catch (IllegalArgumentException e) {
+                            LOG.debug("Ignoring unknown symbol kind tag: {}", tag);
                         }
                     }
                 }
@@ -1816,7 +1817,7 @@ public class CodeIndexService implements ICodeIndexService {
                             count[0]++;
                         }
                     } catch (Exception e) {
-                        LOG.warn("Failed to re-analyze file: {} - {}", changedFile, e.getMessage());
+                        LOG.warn("Failed to re-analyze file: {}", changedFile, e);
                     }
                 }
                 batchQueue.flush();
@@ -1928,6 +1929,36 @@ public class CodeIndexService implements ICodeIndexService {
                 session.save(edgeEntity);
             }
             LOG.info("Persisted {} semantic edges for index {}", result.getSemanticEdges().size(), indexId);
+        }
+
+        resolveQualifiedNamesToIds(indexId, result.getGlobalSymbolTable(), session);
+    }
+
+    private void resolveQualifiedNamesToIds(String indexId, SymbolTable symbolTable, IOrmSession session) {
+        IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
+        QueryBean inhQuery = new QueryBean();
+        inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        for (NopCodeInheritance inh : inhDao.findAllByQuery(inhQuery)) {
+            String superTypeId = inh.getSuperTypeId();
+            if (superTypeId != null) {
+                CodeSymbol resolved = symbolTable.getByQualifiedName(superTypeId);
+                if (resolved != null) {
+                    inh.setSuperTypeId(resolved.getId());
+                }
+            }
+        }
+
+        IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
+        QueryBean annotQuery = new QueryBean();
+        annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        for (NopCodeAnnotationUsage annot : annotDao.findAllByQuery(annotQuery)) {
+            String annotationTypeId = annot.getAnnotationTypeId();
+            if (annotationTypeId != null) {
+                CodeSymbol resolved = symbolTable.getByQualifiedName(annotationTypeId);
+                if (resolved != null) {
+                    annot.setAnnotationTypeId(resolved.getId());
+                }
+            }
         }
     }
 

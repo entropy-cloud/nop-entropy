@@ -137,6 +137,36 @@
                         <on leftProp="id" rightProp="indexId"/>
                     </join>
                 </to-many>
+                <to-many displayName="引用" name="usages" refEntityName="io.nop.code.dao.entity.NopCodeUsage"
+                          refPropName="index" cascadeDelete="true">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="调用" name="calls" refEntityName="io.nop.code.dao.entity.NopCodeCall"
+                          refPropName="index" cascadeDelete="true">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="继承" name="inheritances" refEntityName="io.nop.code.dao.entity.NopCodeInheritance"
+                          refPropName="index" cascadeDelete="true">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="注解使用" name="annotationUsages" refEntityName="io.nop.code.dao.entity.NopCodeAnnotationUsage"
+                          refPropName="index" cascadeDelete="true">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="语义边" name="semanticEdges" refEntityName="io.nop.code.dao.entity.NopCodeSemanticEdge"
+                          refPropName="index" cascadeDelete="true">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
             </relations>
         </entity>
 
