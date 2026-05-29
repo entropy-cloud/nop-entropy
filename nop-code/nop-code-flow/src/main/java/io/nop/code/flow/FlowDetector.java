@@ -18,6 +18,7 @@ public class FlowDetector implements IFlowDetector {
     private static final Logger LOG = LoggerFactory.getLogger(FlowDetector.class);
 
     private static final int DEFAULT_MAX_DEPTH = 15;
+    private static final int MAX_CACHE_ENTRIES = 20;
 
     private static final double WEIGHT_FILE_SPREAD = 0.30;
     private static final double WEIGHT_EXTERNAL = 0.20;
@@ -129,6 +130,8 @@ public class FlowDetector implements IFlowDetector {
         }
 
         flowCache.put(indexId, flows);
+        evictOverflow(flowCache);
+        evictOverflow(symbolFilePathCache);
         LOG.info("Detected {} execution flows for index {}", flows.size(), indexId);
         return flows;
     }
@@ -524,5 +527,20 @@ public class FlowDetector implements IFlowDetector {
             }
         }
         return null;
+    }
+
+    public void invalidateCache(String indexId) {
+        flowCache.remove(indexId);
+        symbolFilePathCache.remove(indexId);
+    }
+
+    private void evictOverflow(Map<String, ?> cache) {
+        while (cache.size() > MAX_CACHE_ENTRIES) {
+            Iterator<String> it = cache.keySet().iterator();
+            if (it.hasNext()) {
+                it.next();
+                it.remove();
+            }
+        }
     }
 }

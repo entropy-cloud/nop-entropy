@@ -11,8 +11,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.nop.core.lang.json.JsonTool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeadCodeDetector implements IDeadCodeDetector {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DeadCodeDetector.class);
 
     private static final Set<String> DEFAULT_FRAMEWORK_ANNOTATIONS = Set.of(
             "RequestMapping",
@@ -376,6 +380,7 @@ public class DeadCodeDetector implements IDeadCodeDetector {
                     }
                 }
             } catch (Exception e) {
+                LOG.warn("Failed to resolve file path from extData for symbol", e);
                 return null;
             }
         }

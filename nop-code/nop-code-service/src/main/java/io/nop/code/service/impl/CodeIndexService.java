@@ -55,6 +55,7 @@ import io.nop.code.flow.ChangeAnalysisResult;
 import io.nop.code.flow.ChangeAnalyzer;
 import io.nop.code.flow.DeadCodeReport;
 import io.nop.code.flow.ExecutionFlow;
+import io.nop.code.flow.FlowDetector;
 import io.nop.code.flow.IChangeAnalyzer;
 import io.nop.code.flow.IDeadCodeDetector;
 import io.nop.code.flow.IFlowDetector;
@@ -107,6 +108,7 @@ public class CodeIndexService implements ICodeIndexService {
         CallGraph callGraph;
     }
 
+    private static final int MAX_CACHE_ENTRIES = 20;
     private final Map<String, AnalysisCache> analysisCacheMap = new java.util.concurrent.ConcurrentHashMap<>();
 
     protected final LanguageAdapterRegistry registry;
@@ -332,6 +334,16 @@ public class CodeIndexService implements ICodeIndexService {
 
     private synchronized void invalidateAnalysisCache(String indexId) {
         analysisCacheMap.remove(indexId);
+        if (flowDetector instanceof FlowDetector) {
+            ((FlowDetector) flowDetector).invalidateCache(indexId);
+        }
+        while (analysisCacheMap.size() > MAX_CACHE_ENTRIES) {
+            Iterator<String> it = analysisCacheMap.keySet().iterator();
+            if (it.hasNext()) {
+                it.next();
+                it.remove();
+            }
+        }
     }
 
     // ==================== Indexing ====================

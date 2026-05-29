@@ -55,7 +55,7 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
     public ChangeAnalysisResult analyzeChanges(String indexId, String baselineCommitish,
                                                String targetCommitish,
                                                SymbolTable symbolTable, CallGraph callGraph) {
-        Map<String, List<LineRange>> fileChanges = parseGitDiff(baselineCommitish, targetCommitish);
+        Map<String, List<LineRange>> fileChanges = parseGitDiff(baselineCommitish, targetCommitish, null);
 
         List<String> changedFiles = new ArrayList<>(fileChanges.keySet());
         List<ChangeAnalysisResult.AffectedSymbol> affectedSymbols = new ArrayList<>();
@@ -113,12 +113,15 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         return matching;
     }
 
-    protected Map<String, List<LineRange>> parseGitDiff(String baseline, String target) {
+    protected Map<String, List<LineRange>> parseGitDiff(String baseline, String target, String workingDirectory) {
         Map<String, List<LineRange>> result = new LinkedHashMap<>();
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
                     "git", "diff", baseline + ".." + target, "--unified=0");
+            if (workingDirectory != null) {
+                pb.directory(new java.io.File(workingDirectory));
+            }
             pb.redirectErrorStream(true);
             Process process = pb.start();
 

@@ -8,8 +8,12 @@ import io.nop.code.core.model.CodeSymbolKind;
 import java.util.*;
 
 import io.nop.core.lang.json.JsonTool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ImpactAnalyzer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ImpactAnalyzer.class);
     
     public static class ImpactResult {
         private String targetSymbolId;
@@ -341,6 +345,7 @@ public class ImpactAnalyzer {
                 return filePath != null ? filePath.toString() : null;
             }
         } catch (Exception e) {
+            LOG.warn("Failed to extract file path from extData: {}", extData, e);
             return null;
         }
         return null;

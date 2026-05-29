@@ -190,7 +190,7 @@
                 <column code="IMPORTS" displayName="导入列表" domain="jsonImport" name="imports"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="SOURCE_CODE" displayName="源代码" name="sourceCode"
-                        propId="8" stdDataType="string" stdSqlType="VARCHAR" precision="524288" ui:control="textarea"/>
+                        propId="8" stdDataType="string" stdSqlType="CLOB" ui:control="textarea"/>
                 <column code="FILE_HASH" displayName="文件内容哈希" name="fileHash"
                         precision="64" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="LAST_MODIFIED" displayName="最后修改时间" name="lastModified"
@@ -486,7 +486,7 @@
                 <column code="COLUMN" displayName="列号" domain="columnNumber" name="column"
                         propId="7" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="CALL_TYPE" displayName="调用类型" name="callType"
-                        precision="500" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
+                        precision="20" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CONTEXT" displayName="上下文" name="context"
                         precision="2000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
@@ -531,6 +531,9 @@
                     <column name="indexId"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key columns="indexId,callerId,calleeId,line" name="uk_call_unique"/>
+            </unique-keys>
         </entity>
 
         <!-- 继承关系 -->
@@ -872,6 +875,9 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="indexId,sourceSymbolId,targetSymbolId,relationType" name="uk_semantic_edge_unique"/>
+            </unique-keys>
         </entity>
     </entities>
 </orm>

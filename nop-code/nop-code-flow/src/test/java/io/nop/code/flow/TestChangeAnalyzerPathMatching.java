@@ -53,7 +53,7 @@ class TestChangeAnalyzerPathMatching {
             method.setAccessible(true);
             return (Boolean) method.invoke(analyzer, filePath, qn);
         } catch (Exception e) {
-            throw new io.nop.api.core.exceptions.NopException(e);
+            throw new AssertionError("Reflection failed", e);
         }
     }
 }
