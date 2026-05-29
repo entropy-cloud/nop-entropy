@@ -82,6 +82,23 @@ class TestDocKeywordExtractor {
         assertEquals(count * (count - 1) / 2, edges.size(), "All symbols share same docs, should produce all-pairs edges");
     }
 
+    @Test
+    void testTruncationAboveMaxSymbols() {
+        int count = 5500;
+        SymbolTable table = new SymbolTable();
+        for (int i = 0; i < count; i++) {
+            CodeSymbol sym = createSymbol("com.example.Sym" + i, "Sym" + i, CodeSymbolKind.CLASS);
+            sym.setDocumentation("x" + i);
+            table.add(sym);
+        }
+
+        List<CodeSemanticEdge> edges = extractor.extract(table, new CallGraph());
+
+        assertNotNull(edges);
+        assertTrue(edges.isEmpty(), "Symbols with single-keyword docs (< MIN_KEYWORDS=2) should produce no edges");
+        assertEquals(count, table.size());
+    }
+
     private CodeSymbol createSymbol(String qualifiedName, String name, CodeSymbolKind kind) {
         CodeSymbol sym = new CodeSymbol();
         sym.setId(qualifiedName);

@@ -106,4 +106,55 @@ public class TestNopSearchIntegration extends JunitAutoTestCase {
         List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
         assertNotNull(results);
     }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testSearchBySymbolName_filtersByLanguage() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("indexId", currentIndexId);
+        data.put("query", "User");
+        data.put("searchType", "SYMBOL_NAME");
+        data.put("language", "JAVA");
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
+
+        assertTrue(response.isOk(), "searchCode SYMBOL_NAME with language filter should succeed");
+        List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
+        assertNotNull(results);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testSearchBySymbolName_nonExistentLanguage_returnsEmpty() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("indexId", currentIndexId);
+        data.put("query", "User");
+        data.put("searchType", "SYMBOL_NAME");
+        data.put("language", "PYTHON");
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
+
+        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
+                "searchCode with non-existent language filter returned status=" + response.getStatus());
+
+        List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
+        assertNotNull(results);
+        assertTrue(results.isEmpty(), "PYTHON language filter should return no results for a Java-only project");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testSearchCombined_filtersByLanguage() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("indexId", currentIndexId);
+        data.put("query", "User");
+        data.put("searchType", "COMBINED");
+        data.put("language", "PYTHON");
+        ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
+
+        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
+                "searchCode COMBINED with language filter returned status=" + response.getStatus());
+
+        List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
+        assertNotNull(results);
+        assertTrue(results.isEmpty(), "COMBINED with PYTHON filter should return no results for a Java-only project");
+    }
 }

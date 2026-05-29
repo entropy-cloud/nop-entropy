@@ -355,7 +355,25 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
         for (int i = 0; i < exprStmt.getChildCount(); i++) {
             TSNode child = exprStmt.getChild(i);
             if (child == null) continue;
-            // Look for assignment or other relevant constructs
+            if ("assignment".equals(child.getType())) {
+                TSNode lhs = child.getChild(0);
+                if (lhs != null && lhs.isNamed()) {
+                    CodeSymbol fieldSymbol = new CodeSymbol();
+                    fieldSymbol.setId(UUID.randomUUID().toString());
+                    fieldSymbol.setKind(CodeSymbolKind.FIELD);
+                    fieldSymbol.setName(nodeText(lhs, source));
+                    String qn = buildQualifiedName(modulePrefix, parentSymbol, fieldSymbol.getName());
+                    fieldSymbol.setQualifiedName(qn);
+                    fieldSymbol.setAccessModifier(inferAccessModifier(fieldSymbol.getName()));
+                    fieldSymbol.setLine(lhs.getStartPoint().getRow() + 1);
+                    fieldSymbol.setEndLine(lhs.getEndPoint().getRow() + 1);
+                    if (parentSymbol != null) {
+                        fieldSymbol.setParentId(parentSymbol.getId());
+                        fieldSymbol.setDeclaringSymbolId(parentSymbol.getId());
+                    }
+                    result.getSymbols().add(fieldSymbol);
+                }
+            }
         }
     }
 
@@ -431,6 +449,9 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
 
     private CodeAccessModifier inferAccessModifier(String name) {
         if (name == null) return CodeAccessModifier.NO_MODIFIER;
+        if (name.startsWith("__") && name.endsWith("__") && name.length() > 4) {
+            return CodeAccessModifier.PUBLIC;
+        }
         if (name.startsWith("_")) {
             return CodeAccessModifier.PRIVATE;
         }

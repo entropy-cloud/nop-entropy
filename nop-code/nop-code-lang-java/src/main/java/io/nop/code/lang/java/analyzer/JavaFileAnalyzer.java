@@ -30,6 +30,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSol
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
+import com.github.javaparser.ast.Modifier;
 import io.nop.code.core.model.CodeAccessModifier;
 import io.nop.code.core.model.CodeAnnotationUsage;
 import io.nop.code.core.model.CodeFileAnalysisResult;
@@ -74,7 +75,7 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
         ParserConfiguration config = new ParserConfiguration()
-                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21)
                 .setSymbolResolver(symbolSolver);
 
         this.javaParser = new JavaParser(config);
@@ -193,6 +194,22 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
             // 处理注解
             processAnnotations(decl, symbol);
+
+            boolean isSealed = decl.getModifiers().stream()
+                    .anyMatch(m -> m.getKeyword() == Modifier.Keyword.SEALED);
+            if (isSealed) {
+                String permitsList = decl.getPermittedTypes().stream()
+                        .map(n -> n.getNameAsString())
+                        .reduce((a, b) -> a + "," + b)
+                        .orElse("");
+                String existingExtData = symbol.getExtData();
+                String permitsExtData = permitsList.isEmpty()
+                        ? "{\"sealed\":true}"
+                        : "{\"sealed\":true,\"permits\":\"" + permitsList + "\"}";
+                symbol.setExtData(existingExtData != null
+                        ? existingExtData.substring(0, existingExtData.length() - 1) + ",\"sealed\":true,\"permits\":\"" + permitsList + "\"}"
+                        : permitsExtData);
+            }
 
             CodeSymbol parentType = currentTypeSymbol;
             currentTypeSymbol = symbol;
@@ -524,10 +541,10 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
                 } catch (Exception e) {
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug("Failed to resolve method call: {} at {} - {}",
+                        LOG.debug("Failed to resolve method call: {} at {}",
                                 expr.getNameAsString(),
                                 expr.getRange().map(r -> r.begin.line + ":" + r.begin.column).orElse("unknown"),
-                                e.getMessage());
+                                e);
                     }
 
                     // 降级处理：提取参数表达式作为参数类型
@@ -744,19 +761,7 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
          * 简单的JSON转换
          */
         private String toJson(Map<String, Object> map) {
-            if (map == null || map.isEmpty()) {
-                return "{}";
-            }
-            StringBuilder sb = new StringBuilder("{");
-            boolean first = true;
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                if (!first) sb.append(",");
-                sb.append("\"").append(entry.getKey()).append("\":");
-                sb.append("\"").append(entry.getValue().toString().replace("\"", "\\\"")).append("\"");
-                first = false;
-            }
-            sb.append("}");
-            return sb.toString();
+            return JsonTool.stringify(map);
         }
     }
 

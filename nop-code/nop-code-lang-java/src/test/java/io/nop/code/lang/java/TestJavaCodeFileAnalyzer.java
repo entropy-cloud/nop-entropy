@@ -120,6 +120,26 @@ class TestJavaCodeFileAnalyzer {
         assertNull(analyzer.analyze("Invalid.java", invalid));
     }
 
+    @Test
+    void testSealedClassPermitsExtracted() {
+        String source = "package io.nop.test;\n" +
+                "public sealed class Shape permits Circle, Square, Triangle {\n" +
+                "}\n" +
+                "final class Circle extends Shape {}\n" +
+                "final class Square extends Shape {}\n" +
+                "final class Triangle extends Shape {}\n";
+
+        CodeFileAnalysisResult result = analyzer.analyze("Shape.java", source);
+        assertNotNull(result);
+
+        CodeSymbol shape = findSymbol(result.getSymbols(), "Shape");
+        assertNotNull(shape, "Should find Shape sealed class");
+        assertNotNull(shape.getExtData(), "Sealed class should have extData");
+        assertTrue(shape.getExtData().contains("sealed"), "extData should contain 'sealed'");
+        assertTrue(shape.getExtData().contains("Circle"), "extData should contain 'Circle' in permits");
+        assertTrue(shape.getExtData().contains("Square"), "extData should contain 'Square' in permits");
+    }
+
     private CodeSymbol findSymbol(List<CodeSymbol> symbols, String name) {
         return symbols.stream()
                 .filter(s -> name.equals(s.getName()))

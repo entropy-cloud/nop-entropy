@@ -44,7 +44,8 @@ class TestPythonCodeFileAnalyzer {
         CodeSymbol init = findSymbol(symbols, "__init__");
         assertNotNull(init, "Should find __init__ method");
         assertEquals(CodeSymbolKind.METHOD, init.getKind());
-        assertEquals(CodeAccessModifier.PRIVATE, init.getAccessModifier());
+        assertEquals(CodeAccessModifier.PUBLIC, init.getAccessModifier(),
+                "__init__ is a dunder method and should be PUBLIC");
 
         CodeSymbol pubMethod = findSymbol(symbols, "public_method");
         assertNotNull(pubMethod, "Should find public_method");

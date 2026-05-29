@@ -278,10 +278,17 @@ public class ImpactAnalyzer {
                 downstream.stream().mapToInt(ImpactedSymbol::getDepth).max().orElse(0)
         );
         
-        if (totalImpacted > 50 || maxDepth > 5) return "critical";
-        if (totalImpacted > 20 || maxDepth > 3) return "high";
-        if (totalImpacted > 5) return "medium";
-        return "low";
+        RiskLevel level;
+        if (totalImpacted > 50 || maxDepth > 5) {
+            level = RiskLevel.CRITICAL;
+        } else if (totalImpacted > 20 || maxDepth > 3) {
+            level = RiskLevel.HIGH;
+        } else if (totalImpacted > 5) {
+            level = RiskLevel.MEDIUM;
+        } else {
+            level = RiskLevel.LOW;
+        }
+        return level.name().toLowerCase();
     }
     
     private static CodeSymbol findSymbolByQualifiedName(

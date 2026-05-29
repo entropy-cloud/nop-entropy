@@ -143,12 +143,13 @@ public class MethodCallFilter implements Predicate<CodeMethodCall> {
     }
 
     private boolean isJavaLangType(String context) {
-        Set<String> javaLangTypes = new HashSet<>(Arrays.asList(
-                "String", "Integer", "Long", "Double", "Float", "Boolean",
-                "Byte", "Short", "Character", "Object", "Class",
-                "System", "Math", "StrictMath", "StringBuilder", "StringBuffer",
-                "Throwable", "Exception", "Error", "RuntimeException"
-        ));
-        return javaLangTypes.contains(context);
+        return JAVA_LANG_TYPES.contains(context);
     }
+
+    private static final Set<String> JAVA_LANG_TYPES = Set.of(
+            "String", "Integer", "Long", "Double", "Float", "Boolean",
+            "Byte", "Short", "Character", "Object", "Class",
+            "System", "Math", "StrictMath", "StringBuilder", "StringBuffer",
+            "Throwable", "Exception", "Error", "RuntimeException"
+    );
 }

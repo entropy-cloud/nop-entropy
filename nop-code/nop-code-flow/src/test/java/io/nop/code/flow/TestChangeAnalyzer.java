@@ -119,4 +119,13 @@ class TestChangeAnalyzer {
         var diff = analyzer.parseGitDiff("invalid~1", "invalid~2");
         assertNotNull(diff);
     }
+
+    @Test
+    void testParseGitDiffProcessCleanupOnInvalidRefs() {
+        for (int i = 0; i < 3; i++) {
+            var diff = analyzer.parseGitDiff("nonexistent~" + i, "nonexistent~" + (i + 1));
+            assertNotNull(diff, "parseGitDiff should return non-null even for invalid refs");
+            assertTrue(diff.isEmpty(), "Invalid refs should produce empty diff");
+        }
+    }
 }

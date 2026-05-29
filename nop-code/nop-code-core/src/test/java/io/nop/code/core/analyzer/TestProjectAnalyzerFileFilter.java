@@ -163,4 +163,25 @@ class TestProjectAnalyzerFileFilter {
         assertTrue(paths.stream().anyMatch(p -> p.endsWith("Top.java")),
                 "Top.java should not be excluded");
     }
+
+    @Test
+    void testLargeFilesSkipped() throws IOException {
+        StringBuilder largeContent = new StringBuilder("public class Big { ");
+        for (int i = 0; i < 200000; i++) {
+            largeContent.append("int field").append(i).append(" = ").append(i).append("; ");
+        }
+        largeContent.append("}");
+
+        Files.writeString(tempDir.resolve("Small.java"), "public class Small {}");
+        Files.writeString(tempDir.resolve("Big.java"), largeContent.toString());
+
+        var result = analyzer.analyzeProject(tempDir);
+
+        List<String> paths = result.getFileResults().stream()
+                .map(CodeFileAnalysisResult::getFilePath).collect(Collectors.toList());
+        assertTrue(paths.stream().anyMatch(p -> p.endsWith("Small.java")),
+                "Small.java should be analyzed");
+        assertFalse(paths.stream().anyMatch(p -> p.endsWith("Big.java")),
+                "Big.java (>1MB) should be skipped");
+    }
 }

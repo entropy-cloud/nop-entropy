@@ -56,6 +56,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     }
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
+    private static final long MAX_FILE_SIZE_BYTES = 1024 * 1024;
+    private static final int MAX_FILE_COUNT = 50000;
 
     private final LanguageAdapterRegistry registry;
     private final ExecutorService executor;
@@ -161,6 +163,10 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             // 单线程 fallback（原有逻辑）
             int processed = 0;
             for (Path file : sourceFiles) {
+                if (fileResults.size() >= MAX_FILE_COUNT) {
+                    LOG.warn("Exceeded maximum file count {}, skipping remaining files", MAX_FILE_COUNT);
+                    break;
+                }
                 processed++;
 
                 if (progressCallback != null) {
@@ -169,6 +175,12 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                 }
 
                 try {
+                    long fileSize = Files.size(file);
+                    if (fileSize > MAX_FILE_SIZE_BYTES) {
+                        LOG.warn("Skipping large file ({} bytes): {}", fileSize, file);
+                        continue;
+                    }
+
                     String sourceCode = Files.readString(file);
                     String relativePath = projectRoot.relativize(file).toString();
 
