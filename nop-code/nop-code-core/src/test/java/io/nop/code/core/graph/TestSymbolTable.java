@@ -43,7 +43,24 @@ class TestSymbolTable {
         SymbolTable table = new SymbolTable();
         table.add(createSymbol("id1", "com.example.Foo"));
         table.add(createSymbol("id2", "com.example.Foo"));
-        assertEquals(1, table.getAll().size());
+        assertEquals(2, table.getAll().size());
         assertEquals("id2", table.getByQualifiedName("com.example.Foo").getId());
+        assertNotNull(table.getById("id1"));
+        assertNotNull(table.getById("id2"));
+    }
+
+    @Test
+    void testGetAllIncludesSymbolsWithoutQualifiedName() {
+        SymbolTable table = new SymbolTable();
+        table.add(createSymbol("id1", "com.example.Foo"));
+
+        CodeSymbol anon = new CodeSymbol();
+        anon.setId("id2");
+        anon.setKind(CodeSymbolKind.CLASS);
+        table.add(anon);
+
+        assertEquals(2, table.getAll().size());
+        assertEquals(2, table.size());
+        assertNotNull(table.getById("id2"));
     }
 }

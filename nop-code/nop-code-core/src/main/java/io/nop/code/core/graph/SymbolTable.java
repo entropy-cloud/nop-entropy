@@ -29,10 +29,10 @@ public class SymbolTable {
     }
 
     public Collection<CodeSymbol> getAll() {
-        return byQualifiedName.values();
+        return byId.values();
     }
 
     public int size() {
-        return byQualifiedName.size();
+        return byId.size();
     }
 }

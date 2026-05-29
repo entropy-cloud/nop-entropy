@@ -399,8 +399,7 @@ public class FlowDetector implements IFlowDetector {
     }
 
     private String generateFlowId(String entrySymbolId) {
-        return "flow-" + Integer.toHexString(System.identityHashCode(entrySymbolId))
-                + "-" + Integer.toHexString(entrySymbolId.hashCode());
+        return "flow-" + entrySymbolId;
     }
 
     private static class TraversalResult {

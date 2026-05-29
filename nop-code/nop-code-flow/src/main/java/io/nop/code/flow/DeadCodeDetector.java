@@ -10,6 +10,8 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.nop.core.lang.json.JsonTool;
+
 public class DeadCodeDetector implements IDeadCodeDetector {
 
     private static final Set<String> DEFAULT_FRAMEWORK_ANNOTATIONS = Set.of(
@@ -363,7 +365,19 @@ public class DeadCodeDetector implements IDeadCodeDetector {
     private String resolveFilePath(CodeSymbol symbol) {
         String extData = symbol.getExtData();
         if (extData != null && extData.contains("filePath")) {
-            return extData;
+            try {
+                Object parsed = JsonTool.parseNonStrict(extData);
+                if (parsed instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) parsed;
+                    Object filePath = map.get("filePath");
+                    if (filePath != null) {
+                        return filePath.toString();
+                    }
+                }
+            } catch (Exception e) {
+                return null;
+            }
         }
         return null;
     }

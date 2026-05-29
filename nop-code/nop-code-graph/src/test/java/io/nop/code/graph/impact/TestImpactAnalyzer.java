@@ -161,4 +161,34 @@ class TestImpactAnalyzer {
 
         assertEquals("low", result.getRiskLevel());
     }
+
+    @Test
+    void testExtractFilePathFromExtData() {
+        SymbolTable st = new SymbolTable();
+        CallGraph cg = new CallGraph();
+        cg.addEdge("pkg.A", "pkg.B");
+
+        CodeSymbol symA = new CodeSymbol();
+        symA.setId("pkg.A");
+        symA.setQualifiedName("pkg.A");
+        symA.setName("A");
+        symA.setKind(CodeSymbolKind.METHOD);
+        st.add(symA);
+
+        CodeSymbol symB = new CodeSymbol();
+        symB.setId("pkg.B");
+        symB.setQualifiedName("pkg.B");
+        symB.setName("B");
+        symB.setKind(CodeSymbolKind.METHOD);
+        symB.setExtData("{\"filePath\":\"src/main/B.java\"}");
+        st.add(symB);
+
+        ImpactAnalyzer.ImpactResult result =
+                new ImpactAnalyzer().analyzeImpact("pkg.A", cg, st, 2);
+
+        List<ImpactAnalyzer.ImpactedSymbol> downstream = result.getDownstream();
+        assertFalse(downstream.isEmpty());
+        ImpactAnalyzer.ImpactedSymbol impacted = downstream.get(0);
+        assertEquals("src/main/B.java", impacted.getFilePath());
+    }
 }

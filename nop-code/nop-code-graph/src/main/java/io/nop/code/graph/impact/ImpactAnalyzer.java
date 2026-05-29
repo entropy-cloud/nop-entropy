@@ -7,6 +7,8 @@ import io.nop.code.core.model.CodeSymbolKind;
 
 import java.util.*;
 
+import io.nop.core.lang.json.JsonTool;
+
 public class ImpactAnalyzer {
     
     public static class ImpactResult {
@@ -294,18 +296,46 @@ public class ImpactAnalyzer {
         int parenIndex = qualifiedName.indexOf('(');
         if (parenIndex > 0) {
             String withoutParams = qualifiedName.substring(0, parenIndex);
+            
+            CodeSymbol exactWithoutParams = symbolTable.getByQualifiedName(withoutParams);
+            if (exactWithoutParams != null) {
+                return exactWithoutParams;
+            }
+            
+            CodeSymbol bestMatch = null;
             for (CodeSymbol symbol : symbolTable.getAll()) {
                 if (symbol.getQualifiedName() != null && 
                     symbol.getQualifiedName().startsWith(withoutParams)) {
-                    return symbol;
+                    if (symbol.getQualifiedName().equals(withoutParams)) {
+                        return symbol;
+                    }
+                    if (bestMatch == null) {
+                        bestMatch = symbol;
+                    }
                 }
             }
+            return bestMatch;
         }
         
         return null;
     }
     
     private static String extractFilePath(CodeSymbol symbol) {
+        String extData = symbol.getExtData();
+        if (extData == null || extData.isEmpty()) {
+            return null;
+        }
+        try {
+            Object parsed = JsonTool.parseNonStrict(extData);
+            if (parsed instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) parsed;
+                Object filePath = map.get("filePath");
+                return filePath != null ? filePath.toString() : null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
         return null;
     }
     

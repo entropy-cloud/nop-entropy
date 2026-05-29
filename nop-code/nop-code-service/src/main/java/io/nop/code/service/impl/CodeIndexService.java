@@ -830,6 +830,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         results.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
         if (results.size() > limit) results = results.subList(0, limit);
+        results = filterByLanguage(results, indexId, language, filePathCache);
 
         return filterByFilePattern(results, filePattern);
     }
@@ -892,6 +893,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         results.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
         if (results.size() > limit) results = results.subList(0, limit);
+        results = filterByLanguage(results, indexId, language, filePathCache);
 
         return filterByFilePattern(results, filePattern);
     }
