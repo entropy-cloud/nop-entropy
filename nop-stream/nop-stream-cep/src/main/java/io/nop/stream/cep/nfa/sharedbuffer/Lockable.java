@@ -19,24 +19,30 @@
 package io.nop.stream.cep.nfa.sharedbuffer;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implements locking logic for incoming event and {@link SharedBufferNode} using a lock reference
  * counter.
+ *
+ * <p><b>Thread Safety:</b> The {@code refCounter} is backed by an {@link AtomicInteger}.
+ * {@link #lock()} and {@link #release()} are thread-safe for concurrent access.
+ * Note: compound check-then-act sequences (e.g., lock-then-check) may still require
+ * external synchronization if atomicity across multiple operations is needed.
  */
 public final class Lockable<T> {
 
-    private int refCounter;
+    private final AtomicInteger refCounter;
 
     private final T element;
 
     public Lockable(T element, int refCounter) {
-        this.refCounter = refCounter;
+        this.refCounter = new AtomicInteger(refCounter);
         this.element = element;
     }
 
     public void lock() {
-        refCounter += 1;
+        refCounter.incrementAndGet();
     }
 
     /**
@@ -46,12 +52,11 @@ public final class Lockable<T> {
      * @return true if no more locks are acquired
      */
     boolean release() {
-        if (refCounter <= 0) {
+        if (refCounter.get() <= 0) {
             return true;
         }
 
-        refCounter -= 1;
-        return refCounter == 0;
+        return refCounter.decrementAndGet() == 0;
     }
 
     public T getElement() {
@@ -59,12 +64,12 @@ public final class Lockable<T> {
     }
 
     int getRefCounter() {
-        return refCounter;
+        return refCounter.get();
     }
 
     @Override
     public String toString() {
-        return "Lock{" + "refCounter=" + refCounter + '}';
+        return "Lock{" + "refCounter=" + refCounter.get() + '}';
     }
 
     @Override
@@ -76,12 +81,12 @@ public final class Lockable<T> {
             return false;
         }
         Lockable<?> lockable = (Lockable<?>) o;
-        return refCounter == lockable.refCounter && Objects.equals(element, lockable.element);
+        return refCounter.get() == lockable.refCounter.get() && Objects.equals(element, lockable.element);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(refCounter, element);
+        return Objects.hash(refCounter.get(), element);
     }
 
 }

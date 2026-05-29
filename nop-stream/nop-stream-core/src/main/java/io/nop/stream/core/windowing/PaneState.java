@@ -11,6 +11,14 @@ import java.io.Serializable;
 
 import io.nop.api.core.annotations.data.DataBean;
 
+/**
+ * Represents the state of a window pane (a combination of window and key).
+ *
+ * <p><b>Design Note:</b> The {@code window} and {@code state} fields are typed as {@code Object}
+ * rather than using generic type parameters because this class is annotated with {@code @DataBean}
+ * for code generation. Generic type parameters would conflict with the {@code @DataBean} annotation
+ * processor. The actual type safety is enforced at the call site by the window operator.
+ */
 @DataBean
 public class PaneState implements Serializable {
 

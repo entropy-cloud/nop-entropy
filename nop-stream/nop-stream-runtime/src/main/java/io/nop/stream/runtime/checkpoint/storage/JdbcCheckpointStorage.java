@@ -8,6 +8,7 @@
 package io.nop.stream.runtime.checkpoint.storage;
 
 import java.util.*;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
 
     private static final String DEFAULT_QUERY_SPACE = "default";
 
-    private static long sidSequence = System.currentTimeMillis();
+    private static long sidSequence = UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
 
     private final IJdbcTemplate jdbcTemplate;
     private final String querySpace;
@@ -195,6 +196,22 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 .end();
 
         jdbcTemplate.executeUpdate(sql);
+    }
+
+    @Override
+    public boolean exists(String jobId, String pipelineId, long checkpointId) throws Exception {
+        if (!tableExists()) {
+            return false;
+        }
+
+        SQL sql = SQL.begin().name("checkpointExists").querySpace(querySpace)
+                .sql("SELECT COUNT(*) FROM " + TABLE_NAME +
+                        " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
+                        jobId, pipelineId, checkpointId)
+                .end();
+
+        Integer count = jdbcTemplate.findInt(sql, 0);
+        return count != null && count > 0;
     }
 
     @Override
