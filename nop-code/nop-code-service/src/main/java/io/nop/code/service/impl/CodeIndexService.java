@@ -1147,11 +1147,17 @@ public class CodeIndexService implements ICodeIndexService {
                 .map(this::entityToInheritance)
                 .collect(Collectors.toList());
 
-        return buildTypeHierarchy(qualifiedName, direction, maxDepth, table, allInheritances);
+        return buildTypeHierarchy(qualifiedName, direction, Math.min(maxDepth, 50), table, allInheritances, new HashSet<>());
     }
 
     private TypeHierarchyDTO buildTypeHierarchy(String qualifiedName, String direction, int maxDepth,
-                                                SymbolTable table, List<CodeInheritance> allInheritances) {
+                                                SymbolTable table, List<CodeInheritance> allInheritances,
+                                                Set<String> visited) {
+        if (visited.contains(qualifiedName)) {
+            return null;
+        }
+        visited.add(qualifiedName);
+
         CodeSymbol symbol = table.getByQualifiedName(qualifiedName);
         TypeHierarchyDTO node = new TypeHierarchyDTO();
 
@@ -1172,7 +1178,8 @@ public class CodeIndexService implements ICodeIndexService {
         if ("super".equals(direction) || "both".equals(direction)) {
             List<TypeHierarchyDTO> superTypes = allInheritances.stream()
                     .filter(i -> symbol != null && symbol.getId().equals(i.getSubTypeId()))
-                    .map(i -> buildTypeHierarchy(i.getSuperTypeQualifiedName(), direction, maxDepth - 1, table, allInheritances))
+                    .map(i -> buildTypeHierarchy(i.getSuperTypeQualifiedName(), direction, maxDepth - 1, table, allInheritances, visited))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             node.setSuperTypes(superTypes);
         }
@@ -1183,7 +1190,7 @@ public class CodeIndexService implements ICodeIndexService {
                     .map(i -> {
                         CodeSymbol subSymbol = table.getById(i.getSubTypeId());
                         if (subSymbol != null) {
-                            return buildTypeHierarchy(subSymbol.getQualifiedName(), direction, maxDepth - 1, table, allInheritances);
+                            return buildTypeHierarchy(subSymbol.getQualifiedName(), direction, maxDepth - 1, table, allInheritances, visited);
                         }
                         return null;
                     })
@@ -1203,11 +1210,17 @@ public class CodeIndexService implements ICodeIndexService {
         CallGraph callGraph = getOrRebuildCallGraph(indexId);
         SymbolTable table = getOrRebuildSymbolTable(indexId);
 
-        return buildCallHierarchy(qualifiedName, direction, maxDepth, callGraph, table);
+        return buildCallHierarchy(qualifiedName, direction, Math.min(maxDepth, 50), callGraph, table, new HashSet<>());
     }
 
     private CallHierarchyDTO buildCallHierarchy(String qualifiedName, String direction, int maxDepth,
-                                                CallGraph callGraph, SymbolTable table) {
+                                                CallGraph callGraph, SymbolTable table,
+                                                Set<String> visited) {
+        if (visited.contains(qualifiedName)) {
+            return null;
+        }
+        visited.add(qualifiedName);
+
         CodeSymbol symbol = table.getByQualifiedName(qualifiedName);
         CallHierarchyDTO node = new CallHierarchyDTO();
 
@@ -1232,8 +1245,9 @@ public class CodeIndexService implements ICodeIndexService {
                         .map(calleeId -> {
                             CodeSymbol calleeSymbol = table.getById(calleeId);
                             String calleeQn = calleeSymbol != null ? calleeSymbol.getQualifiedName() : calleeId;
-                            return buildCallHierarchy(calleeQn, direction, maxDepth - 1, callGraph, table);
+                            return buildCallHierarchy(calleeQn, direction, maxDepth - 1, callGraph, table, visited);
                         })
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
                 node.setCallees(callees);
             }
@@ -1246,8 +1260,9 @@ public class CodeIndexService implements ICodeIndexService {
                         .map(callerId -> {
                             CodeSymbol callerSymbol = table.getById(callerId);
                             String callerQn = callerSymbol != null ? callerSymbol.getQualifiedName() : callerId;
-                            return buildCallHierarchy(callerQn, direction, maxDepth - 1, callGraph, table);
+                            return buildCallHierarchy(callerQn, direction, maxDepth - 1, callGraph, table, visited);
                         })
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
                 node.setCallers(callers);
             }
@@ -2018,6 +2033,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     private void saveFileResultInSession(String indexId, CodeFileAnalysisResult file,
                                          IOrmSession session) {
+        Set<String> cachedProjectFilePaths = null;
         String fileEntityId = generateFileId(indexId, file.getFilePath());
 
         NopCodeFile fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
@@ -2243,16 +2259,23 @@ public class CodeIndexService implements ICodeIndexService {
         if (file.getImports() != null && !file.getImports().isEmpty() && file.getLanguage() != null) {
             IImportResolver resolver = importResolvers.get(file.getLanguage().name());
             if (resolver != null) {
-                Set<String> projectFiles = getProjectFilePaths(indexId);
+                Set<String> projectFiles = cachedProjectFilePaths != null ? cachedProjectFilePaths : getProjectFilePaths(indexId);
+                if (cachedProjectFilePaths == null) {
+                    cachedProjectFilePaths = projectFiles;
+                }
                 List<CodeFileDependency> deps = resolver.resolveImports(
                         file.getFilePath(), file.getImports(), projectFiles);
                 Set<String> usedDepIds = new HashSet<>();
                 for (CodeFileDependency dep : deps) {
-                    String key = dep.getSourceFilePath() + "|" + dep.getTargetFilePath() + "|" + dep.getImportStatement();
-                    String depId = indexId + "_" + Integer.toHexString(key.hashCode());
+                    String depId = DigestHelper.sha256Hex(
+                            (indexId + ":" + dep.getSourceFilePath() + ":" + dep.getTargetFilePath() + ":" + dep.getImportStatement())
+                                    .getBytes(StandardCharsets.UTF_8)).substring(0, 36);
                     int suffix = 1;
                     while (!usedDepIds.add(depId)) {
-                        depId = indexId + "_" + Integer.toHexString(key.hashCode()) + "_" + suffix++;
+                        depId = DigestHelper.sha256Hex(
+                                (indexId + ":" + dep.getSourceFilePath() + ":" + dep.getTargetFilePath() + ":" + dep.getImportStatement() + ":" + suffix)
+                                        .getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+                        suffix++;
                     }
                     NopCodeDependency depEntity = (NopCodeDependency) ormTemplate.newEntity(
                             NopCodeDependency.class.getName());
@@ -2338,8 +2361,26 @@ public class CodeIndexService implements ICodeIndexService {
             session.save(entity);
         } catch (OrmException e) {
             if ("nop.err.orm.save-entity-replace-existing-entity".equals(e.getErrorCode())) {
-                session.evictAll(entity.orm_entityName());
                 session.flush();
+                IOrmEntity existing = (IOrmEntity) session.get(entity.orm_entityName(), entity.orm_id());
+                if (existing != null) {
+                    existing.orm_clearDirty();
+                    Map<String, Object> initedValues = entity.orm_initedValues();
+                    for (Map.Entry<String, Object> entry : initedValues.entrySet()) {
+                        String propName = entry.getKey();
+                        int propId = existing.orm_propId(propName);
+                        if (propId >= 0 && !existing.orm_isPrimary(propId)) {
+                            try {
+                                existing.orm_propValue(propId, entry.getValue());
+                            } catch (Exception ex) {
+                                LOG.trace("Skipping prop {} during entity update", propName, ex);
+                            }
+                        }
+                    }
+                    session.flush();
+                    return;
+                }
+                session.evictAll(entity.orm_entityName());
                 session.save(entity);
             } else {
                 throw e;

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -60,7 +61,7 @@ public class FlowDetector implements IFlowDetector {
 
     private final List<IEntryPointPatternProvider> patternProviders;
 
-    private final Map<String, List<ExecutionFlow>> flowCache = new HashMap<>();
+    private final Map<String, List<ExecutionFlow>> flowCache = new ConcurrentHashMap<>();
 
     private int maxDepth = DEFAULT_MAX_DEPTH;
 

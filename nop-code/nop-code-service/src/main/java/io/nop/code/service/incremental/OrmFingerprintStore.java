@@ -9,7 +9,10 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
 
+import io.nop.code.core.util.DigestHelper;
+
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -39,7 +42,8 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
         for (FileFingerprint fp : fingerprints) {
             String canonicalPath = pathMapper.apply(fp.getFilePath());
-            String entityId = indexId + "_" + Math.abs(canonicalPath.hashCode());
+            String entityId = indexId + "_" + DigestHelper.sha256Hex(
+                    canonicalPath.getBytes(StandardCharsets.UTF_8)).substring(0, 16);
             NopCodeFile existing = findByIndexAndPath(fileDao, indexId, canonicalPath);
 
             NopCodeFile fileEntity;
