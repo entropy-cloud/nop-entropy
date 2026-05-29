@@ -61,9 +61,9 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(JavaFileAnalyzer.class);
 
-    private final JavaParser javaParser;
-
     private final CombinedTypeSolver typeSolver;
+
+    private final ParserConfiguration parserConfiguration;
 
     private MethodCallFilter methodCallFilter = MethodCallFilter.createDefault();
 
@@ -74,11 +74,9 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
         this.typeSolver.add(new ReflectionTypeSolver(true));
 
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
-        ParserConfiguration config = new ParserConfiguration()
+        this.parserConfiguration = new ParserConfiguration()
                 .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21)
                 .setSymbolResolver(symbolSolver);
-
-        this.javaParser = new JavaParser(config);
     }
 
     public void setMethodCallFilter(MethodCallFilter filter) {
@@ -124,7 +122,7 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             return null;
         }
 
-        ParseResult<CompilationUnit> parseResult = javaParser.parse(sourceCode);
+        ParseResult<CompilationUnit> parseResult = new JavaParser(parserConfiguration).parse(sourceCode);
         if (!parseResult.isSuccessful() || !parseResult.getResult().isPresent()) {
             return null;
         }

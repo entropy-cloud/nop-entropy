@@ -21,6 +21,12 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChangeAnalyzer.class);
 
+    private IFlowDetector flowDetector;
+
+    public void setFlowDetector(IFlowDetector flowDetector) {
+        this.flowDetector = flowDetector;
+    }
+
     private static final Pattern DIFF_HEADER_FILE = Pattern.compile("^\\+\\+\\+ b/(.+)$");
     private static final Pattern DIFF_HEADER_OLD_FILE = Pattern.compile("^--- a/(.+)$");
     private static final Pattern HUNK_HEADER = Pattern.compile("^@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@");
@@ -54,6 +60,15 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         List<String> changedFiles = new ArrayList<>(fileChanges.keySet());
         List<ChangeAnalysisResult.AffectedSymbol> affectedSymbols = new ArrayList<>();
 
+        List<ExecutionFlow> allFlows = Collections.emptyList();
+        if (flowDetector != null) {
+            try {
+                allFlows = flowDetector.detectFlows(indexId, symbolTable, callGraph);
+            } catch (Exception e) {
+                LOG.warn("Failed to detect flows for index {}", indexId, e);
+            }
+        }
+
         for (Map.Entry<String, List<LineRange>> entry : fileChanges.entrySet()) {
             String filePath = entry.getKey();
             List<LineRange> lineRanges = entry.getValue();
@@ -61,8 +76,10 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
 
             for (CodeSymbol symbol : symbolsInFile) {
                 if (overlapsAnyRange(symbol, lineRanges)) {
+                    List<ExecutionFlow> matchingFlows = findFlowsContainingSymbol(
+                            allFlows, symbol, symbolTable);
                     ChangeAnalysisResult.AffectedSymbol affected = buildAffectedSymbol(
-                            symbol, symbolTable, callGraph);
+                            symbol, symbolTable, callGraph, matchingFlows);
                     affectedSymbols.add(affected);
                 }
             }
@@ -76,6 +93,24 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         result.setRiskSummary(computeRiskSummary(affectedSymbols));
         result.setSuggestedActions(buildSuggestedActions(affectedSymbols));
         return result;
+    }
+
+    private List<ExecutionFlow> findFlowsContainingSymbol(List<ExecutionFlow> allFlows,
+                                                           CodeSymbol symbol,
+                                                           SymbolTable symbolTable) {
+        List<ExecutionFlow> matching = new ArrayList<>();
+        String symbolId = symbol.getId();
+        for (ExecutionFlow flow : allFlows) {
+            if (flow.getPathNodeIds() != null && flow.getPathNodeIds().contains(symbolId)) {
+                matching.add(flow);
+            }
+            if (flow.getEntryPointSymbolId() != null && flow.getEntryPointSymbolId().equals(symbolId)) {
+                if (matching.stream().noneMatch(f -> f.getId().equals(flow.getId()))) {
+                    matching.add(flow);
+                }
+            }
+        }
+        return matching;
     }
 
     protected Map<String, List<LineRange>> parseGitDiff(String baseline, String target) {
@@ -169,27 +204,83 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         List<CodeSymbol> result = new ArrayList<>();
         for (CodeSymbol symbol : symbolTable.getAll()) {
             String qn = symbol.getQualifiedName();
-            if (qn != null && pathMatchesQualifiedName(filePath, qn)) {
+            String symFilePath = extractFilePathFromSymbol(symbol);
+            if (symFilePath != null && filePathMatches(symFilePath, filePath)) {
+                result.add(symbol);
+            } else if (qn != null && pathMatchesQualifiedName(filePath, qn)) {
                 result.add(symbol);
             }
         }
         return result;
     }
 
+    private static boolean filePathMatches(String symbolFilePath, String changedFilePath) {
+        String normalized1 = symbolFilePath.replace('\\', '/');
+        String normalized2 = changedFilePath.replace('\\', '/');
+        return normalized1.equals(normalized2) || normalized1.endsWith("/" + normalized2) || normalized2.endsWith("/" + normalized1);
+    }
+
+    private static String extractFilePathFromSymbol(CodeSymbol symbol) {
+        String extData = symbol.getExtData();
+        if (extData != null && extData.contains("filePath")) {
+            try {
+                Object parsed = io.nop.core.lang.json.JsonTool.parseNonStrict(extData);
+                if (parsed instanceof java.util.Map) {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Object> map = (java.util.Map<String, Object>) parsed;
+                    Object filePath = map.get("filePath");
+                    if (filePath != null) {
+                        return filePath.toString();
+                    }
+                }
+            } catch (Exception e) {
+                // fall through
+            }
+        }
+        return null;
+    }
+
     private boolean pathMatchesQualifiedName(String filePath, String qualifiedName) {
         String normalized = filePath.replace('\\', '/');
-        String dotted = qualifiedName.replace('.', '/');
-        int idx = normalized.lastIndexOf(dotted);
-        if (idx >= 0) {
+        int parenIndex = qualifiedName.indexOf('(');
+        String qn = parenIndex > 0 ? qualifiedName.substring(0, parenIndex) : qualifiedName;
+
+        String dotted = qn.replace('.', '/');
+
+        if (pathSegmentMatch(normalized, dotted)) {
             return true;
         }
-        String simpleName = qualifiedName;
-        int lastDot = qualifiedName.lastIndexOf('.');
-        if (lastDot >= 0) {
-            simpleName = qualifiedName.substring(lastDot + 1);
+
+        int slashCount = 0;
+        for (int i = 0; i < dotted.length(); i++) {
+            if (dotted.charAt(i) == '/') slashCount++;
         }
-        String dollarName = simpleName.replace('.', '$');
-        return normalized.contains(dollarName) || normalized.contains(simpleName);
+
+        if (slashCount >= 3) {
+            int lastSlash = dotted.lastIndexOf('/');
+            String parentPath = dotted.substring(0, lastSlash);
+            if (pathSegmentMatch(normalized, parentPath)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean pathSegmentMatch(String normalized, String pathSegment) {
+        int idx = normalized.indexOf(pathSegment);
+        while (idx >= 0) {
+            int endIdx = idx + pathSegment.length();
+            if (endIdx == normalized.length()) {
+                return true;
+            }
+            char next = normalized.charAt(endIdx);
+            if (next == '.' || next == '/') {
+                return true;
+            }
+            idx = normalized.indexOf(pathSegment, endIdx);
+        }
+        return false;
     }
 
     private boolean overlapsAnyRange(CodeSymbol symbol, List<LineRange> ranges) {
@@ -205,7 +296,8 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
 
     private ChangeAnalysisResult.AffectedSymbol buildAffectedSymbol(CodeSymbol symbol,
                                                                      SymbolTable symbolTable,
-                                                                     CallGraph callGraph) {
+                                                                     CallGraph callGraph,
+                                                                     List<ExecutionFlow> affectedFlows) {
         ChangeAnalysisResult.RiskBreakdown breakdown = new ChangeAnalysisResult.RiskBreakdown();
 
         double flowParticipation = computeFlowParticipation(symbol, callGraph);
@@ -229,7 +321,7 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         affected.setKind(symbol.getKind() != null ? symbol.getKind().name() : null);
         affected.setRiskScore(totalRisk);
         affected.setRiskBreakdown(breakdown);
-        affected.setAffectedFlows(Collections.emptyList());
+        affected.setAffectedFlows(affectedFlows != null ? affectedFlows : Collections.emptyList());
         return affected;
     }
 

@@ -228,6 +228,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         result.getSymbols().add(symbol);
 
         processDecorators(node, source, result, symbol);
+        walkNodeForCalls(node, source, symbol, result);
     }
 
     private void handleMethodDefinition(TSNode node, String source, CodeFileAnalysisResult result,
@@ -255,6 +256,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         result.getSymbols().add(symbol);
 
         processDecorators(node, source, result, symbol);
+        walkNodeForCalls(node, source, symbol, result);
     }
 
     private void handleMethodSignature(TSNode node, String source, CodeFileAnalysisResult result,

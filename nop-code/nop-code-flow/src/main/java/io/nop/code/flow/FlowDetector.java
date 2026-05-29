@@ -62,6 +62,7 @@ public class FlowDetector implements IFlowDetector {
     private final List<IEntryPointPatternProvider> patternProviders;
 
     private final Map<String, List<ExecutionFlow>> flowCache = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> symbolFilePathCache = new ConcurrentHashMap<>();
 
     private int maxDepth = DEFAULT_MAX_DEPTH;
 
@@ -83,6 +84,15 @@ public class FlowDetector implements IFlowDetector {
 
     @Override
     public List<ExecutionFlow> detectFlows(String indexId, SymbolTable symbolTable, CallGraph callGraph) {
+        Map<String, String> filePathMap = new HashMap<>();
+        for (CodeSymbol symbol : symbolTable.getAll()) {
+            String filePath = extractFilePathFromSymbol(symbol);
+            if (filePath != null && symbol.getId() != null) {
+                filePathMap.put(symbol.getId(), filePath);
+            }
+        }
+        symbolFilePathCache.put(indexId, filePathMap);
+
         List<EntryPointScorer.EntryPointScore> scores =
                 new EntryPointScorer().scoreEntryPoints(callGraph, symbolTable);
 
@@ -159,6 +169,9 @@ public class FlowDetector implements IFlowDetector {
     }
 
     private boolean isFlowAffected(ExecutionFlow flow, Set<String> changedFilePaths) {
+        String indexId = flow.getIndexId();
+        Map<String, String> filePathMap = symbolFilePathCache.get(indexId);
+
         String entryQn = flow.getEntryPointQualifiedName();
         if (entryQn != null) {
             String entryFile = qualifiedNameToFilePath(entryQn);
@@ -168,9 +181,16 @@ public class FlowDetector implements IFlowDetector {
         }
         if (flow.getPathNodeIds() != null) {
             for (String nodeId : flow.getPathNodeIds()) {
-                String file = symbolIdToFilePath(nodeId);
-                if (file != null && changedFilePaths.contains(file)) {
-                    return true;
+                if (filePathMap != null) {
+                    String file = filePathMap.get(nodeId);
+                    if (file != null && changedFilePaths.contains(file)) {
+                        return true;
+                    }
+                } else {
+                    String file = symbolIdToFilePath(nodeId);
+                    if (file != null && changedFilePaths.contains(file)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -484,5 +504,25 @@ public class FlowDetector implements IFlowDetector {
         public List<String> getNamePatterns() {
             return List.of("main", "handle*", "process*", "onEvent*");
         }
+    }
+
+    private static String extractFilePathFromSymbol(CodeSymbol symbol) {
+        String extData = symbol.getExtData();
+        if (extData != null && extData.contains("filePath")) {
+            try {
+                Object parsed = io.nop.core.lang.json.JsonTool.parseNonStrict(extData);
+                if (parsed instanceof java.util.Map) {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Object> map = (java.util.Map<String, Object>) parsed;
+                    Object filePath = map.get("filePath");
+                    if (filePath != null) {
+                        return filePath.toString();
+                    }
+                }
+            } catch (Exception e) {
+                // fall through
+            }
+        }
+        return null;
     }
 }

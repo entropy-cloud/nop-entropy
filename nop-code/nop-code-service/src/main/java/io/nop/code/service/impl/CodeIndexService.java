@@ -52,6 +52,7 @@ import io.nop.code.graph.semantic.NameSimilarityExtractor;
 import io.nop.code.graph.semantic.DocKeywordExtractor;
 import io.nop.code.graph.semantic.AnnotationPatternExtractor;
 import io.nop.code.flow.ChangeAnalysisResult;
+import io.nop.code.flow.ChangeAnalyzer;
 import io.nop.code.flow.DeadCodeReport;
 import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.flow.IChangeAnalyzer;
@@ -130,6 +131,9 @@ public class CodeIndexService implements ICodeIndexService {
     @Inject
     public void setFlowDetector(@Nullable IFlowDetector flowDetector) {
         this.flowDetector = flowDetector;
+        if (flowDetector != null && this.changeAnalyzer instanceof ChangeAnalyzer) {
+            ((ChangeAnalyzer) this.changeAnalyzer).setFlowDetector(flowDetector);
+        }
     }
 
     protected IChangeAnalyzer changeAnalyzer;
@@ -137,6 +141,9 @@ public class CodeIndexService implements ICodeIndexService {
     @Inject
     public void setChangeAnalyzer(@Nullable IChangeAnalyzer changeAnalyzer) {
         this.changeAnalyzer = changeAnalyzer;
+        if (changeAnalyzer instanceof ChangeAnalyzer && this.flowDetector != null) {
+            ((ChangeAnalyzer) changeAnalyzer).setFlowDetector(this.flowDetector);
+        }
     }
 
     protected IDeadCodeDetector deadCodeDetector;
@@ -372,6 +379,7 @@ public class CodeIndexService implements ICodeIndexService {
             persistSingleFileInSession(indexId, result, session);
             return null;
         });
+        invalidateAnalysisCache(indexId);
         return result;
     }
 
