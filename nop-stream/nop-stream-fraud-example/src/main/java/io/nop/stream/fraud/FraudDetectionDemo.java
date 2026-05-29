@@ -26,7 +26,7 @@ import io.nop.stream.cep.nfa.NFAState;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
+import io.nop.stream.fraud.state.DemoKeyedStateStore;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
 import io.nop.stream.fraud.pattern.AccountTakeoverPattern;
@@ -109,7 +109,7 @@ public class FraudDetectionDemo {
 
         NFAState nfaState = nfa.createInitialNFAState();
         SharedBuffer<TransactionEvent> partialMatches = new SharedBuffer<>(
-                new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+                new DemoKeyedStateStore(), null, new SharedBufferCacheConfig());
 
         for (TransactionEvent event : events) {
             Collection<Map<String, List<TransactionEvent>>> matches = consumeEvent(
@@ -138,7 +138,7 @@ public class FraudDetectionDemo {
 
         NFAState nfaState = nfa.createInitialNFAState();
         SharedBuffer<TransactionEvent> partialMatches = new SharedBuffer<>(
-                new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+                new DemoKeyedStateStore(), null, new SharedBufferCacheConfig());
 
         for (TransactionEvent event : events) {
             Collection<Map<String, List<TransactionEvent>>> matches = consumeEvent(

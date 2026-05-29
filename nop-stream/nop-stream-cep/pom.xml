@@ -20,6 +20,7 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-xlang</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>

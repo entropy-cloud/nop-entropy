@@ -14,6 +14,11 @@ import io.nop.api.core.annotations.data.DataBean;
 
 import io.nop.stream.core.checkpoint.TaskLocation;
 
+/**
+ * Reserved for future FLIP-27 style connector framework.
+ *
+ * @apiNote Reserved for future FLIP-27 style connector framework. Not yet used.
+ */
 @Internal
 @DataBean
 public class SourceWorkUnit implements Serializable {

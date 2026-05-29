@@ -9,7 +9,7 @@ import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
+import io.nop.stream.fraud.state.DemoKeyedStateStore;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
 import io.nop.commons.tuple.Tuple2;
@@ -41,7 +41,7 @@ public class TestUnusualAmountPattern {
 
         NFAState nfaState = nfa.createInitialNFAState();
         SharedBuffer<TransactionEvent> buffer = new SharedBuffer<>(
-                new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+                new DemoKeyedStateStore(), null, new SharedBufferCacheConfig());
 
         // Create a transaction above 10x the hardcoded $100 average = $1001
         TransactionEvent event = new TransactionEvent(
@@ -63,7 +63,7 @@ public class TestUnusualAmountPattern {
 
         NFAState nfaState = nfa.createInitialNFAState();
         SharedBuffer<TransactionEvent> buffer = new SharedBuffer<>(
-                new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+                new DemoKeyedStateStore(), null, new SharedBufferCacheConfig());
 
         // Create a transaction below 10x the hardcoded $100 average = $999
         TransactionEvent event = new TransactionEvent(

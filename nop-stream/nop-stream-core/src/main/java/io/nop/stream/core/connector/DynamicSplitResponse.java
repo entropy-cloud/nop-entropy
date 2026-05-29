@@ -9,6 +9,11 @@ package io.nop.stream.core.connector;
 
 import java.io.Serializable;
 
+/**
+ * Reserved for future FLIP-27 style connector framework.
+ *
+ * @apiNote Reserved for future FLIP-27 style connector framework. Not yet used.
+ */
 public interface DynamicSplitResponse<R> extends Serializable {
     R getPrimary();
     R getResidual();

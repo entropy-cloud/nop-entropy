@@ -11,6 +11,11 @@ import java.io.Serializable;
 
 import io.nop.api.core.annotations.core.Internal;
 
+/**
+ * Reserved for future FLIP-27 style connector framework.
+ *
+ * @apiNote Reserved for future FLIP-27 style connector framework. Not yet used.
+ */
 @Internal
 public interface WatermarkEstimator extends Serializable {
 
