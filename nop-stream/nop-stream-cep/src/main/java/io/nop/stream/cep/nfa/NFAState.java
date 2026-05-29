@@ -112,6 +112,18 @@ public class NFAState {
         this.isNewStartPartialMatch = true;
     }
 
+    private static final Comparator<ComputationState> STATE_COMPARATOR =
+            Comparator.<ComputationState, String>comparing(ComputationState::getCurrentStateName)
+                    .thenComparing(c -> c.getVersion() == null ? 0 : c.getVersion().hashCode())
+                    .thenComparingLong(ComputationState::getStartTimestamp)
+                    .thenComparingLong(ComputationState::getPreviousTimestamp);
+
+    private ComputationState[] sortedCopy(Queue<ComputationState> queue) {
+        ComputationState[] arr = queue.toArray(new ComputationState[0]);
+        Arrays.sort(arr, STATE_COMPARATOR);
+        return arr;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -121,27 +133,13 @@ public class NFAState {
             return false;
         }
         NFAState nfaState = (NFAState) o;
-        Object[] thisPartial = partialMatches.toArray();
-        Object[] thatPartial = nfaState.partialMatches.toArray();
-        Arrays.sort(thisPartial);
-        Arrays.sort(thatPartial);
-
-        Object[] thisCompleted = completedMatches.toArray();
-        Object[] thatCompleted = nfaState.completedMatches.toArray();
-        Arrays.sort(thisCompleted);
-        Arrays.sort(thatCompleted);
-
-        return Arrays.equals(thisPartial, thatPartial)
-                && Arrays.equals(thisCompleted, thatCompleted);
+        return Arrays.equals(sortedCopy(partialMatches), sortedCopy(nfaState.partialMatches))
+                && Arrays.equals(sortedCopy(completedMatches), sortedCopy(nfaState.completedMatches));
     }
 
     @Override
     public int hashCode() {
-        Object[] partial = partialMatches.toArray();
-        Arrays.sort(partial);
-        Object[] completed = completedMatches.toArray();
-        Arrays.sort(completed);
-        return Objects.hash(Arrays.hashCode(partial), Arrays.hashCode(completed));
+        return Objects.hash(Arrays.hashCode(sortedCopy(partialMatches)), Arrays.hashCode(sortedCopy(completedMatches)));
     }
 
     @Override

@@ -217,6 +217,11 @@ public class SharedBuffer<V> {
         Lockable<V> lockableValue = new Lockable<>(value, 1);
         eventsCount.put(timestamp, id + 1);
         eventsBufferCache.put(eventId, lockableValue);
+        try {
+            eventsBuffer.put(eventId, lockableValue);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
         return eventId;
     }
 

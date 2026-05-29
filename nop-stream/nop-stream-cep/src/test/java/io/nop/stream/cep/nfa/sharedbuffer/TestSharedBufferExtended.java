@@ -15,6 +15,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSharedBufferExtended {
@@ -247,5 +248,41 @@ public class TestSharedBufferExtended {
                 accessor.releaseEvent(eventId);
             }
         }
+    }
+
+    @Test
+    void testReleaseNodeContinuesAfterNullIntermediateNode() throws Exception {
+        SharedBuffer<Event> buffer = createBuffer();
+        final long timestamp = 1L;
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId ev1 = accessor.registerEvent(new Event(1, "a"), timestamp);
+            EventId ev2 = accessor.registerEvent(new Event(2, "b"), timestamp);
+            EventId ev3 = accessor.registerEvent(new Event(3, "c"), timestamp);
+
+            NodeId node1 = accessor.put("s1", ev1, null, DeweyNumber.fromString("1"));
+            NodeId node2 = accessor.put("s2", ev2, node1, DeweyNumber.fromString("1.0"));
+            NodeId node3 = accessor.put("s3", ev3, node2, DeweyNumber.fromString("1.0.0"));
+
+            accessor.lockNode(node3, DeweyNumber.fromString("1.0.0"));
+
+            accessor.releaseNode(node2, DeweyNumber.fromString("1.0"));
+
+            assertNull(buffer.getEntry(node2));
+        }
+    }
+
+    @Test
+    void testRegisterEventPersistsToState() throws Exception {
+        SharedBuffer<Event> buffer = createBuffer();
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId eventId = accessor.registerEvent(new Event(1, "a"), 1L);
+            assertNotNull(eventId);
+        }
+
+        assertTrue(buffer.getEventsBufferSize() > 0);
+        assertTrue(buffer.getEventsBufferCacheSize() == 0);
+        assertFalse(buffer.isEmpty());
     }
 }

@@ -265,7 +265,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
             Lockable<SharedBufferNode> curBufferNode = sharedBuffer.getEntry(curNode);
 
             if (curBufferNode == null) {
-                break;
+                continue;
             }
 
             DeweyNumber currentVersion = versionsToExamine.pop();
