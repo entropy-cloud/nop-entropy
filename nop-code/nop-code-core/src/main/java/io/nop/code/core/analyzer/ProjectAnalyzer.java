@@ -252,7 +252,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         IterableIterator<IResource> it = resourceLoader.depthIterator(vfsPath, false, resource -> {
             if (resource.isDirectory()) return false;
             if (filePattern != null && !filePattern.isEmpty() && !"*".equals(filePattern)) {
-                return true;
+                String ext = filePattern.startsWith("*.") ? filePattern.substring(1) : filePattern;
+                return resource.getName().endsWith(ext);
             }
             for (String ext : allExtensions) {
                 if (resource.getName().endsWith(ext)) return true;
@@ -327,7 +328,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         IterableIterator<IResource> it = resourceLoader.depthIterator(vfsPath, false, resource -> {
             if (resource.isDirectory()) return false;
             if (filePattern != null && !filePattern.isEmpty() && !"*".equals(filePattern)) {
-                return true;
+                String ext = filePattern.startsWith("*.") ? filePattern.substring(1) : filePattern;
+                return resource.getName().endsWith(ext);
             }
             for (String ext : allExtensions) {
                 if (resource.getName().endsWith(ext)) return true;
@@ -566,6 +568,18 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
     }
 
+    /**
+     * Store-based incremental analysis.
+     * <p>
+     * This method only re-analyses changed files (added + modified) and returns the
+     * result as a complete result set. It does NOT merge with historical results.
+     * Callers should treat the returned result as the complete result set.
+     *
+     * @param projectRoot      project root directory
+     * @param indexId          index identifier for fingerprint storage
+     * @param fingerprintStore fingerprint store
+     * @return analysis result for changed files only
+     */
     public ProjectAnalysisResult analyzeIncremental(Path projectRoot,
                                                     String indexId,
                                                     IFingerprintStore fingerprintStore) throws IOException {
@@ -591,8 +605,10 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             return analyzeProject(projectRoot);
         }
 
-        ProjectAnalysisResult result = analyzeIncremental(projectRoot,
-                (ProjectAnalysisResult) null);
+        List<Path> changedFiles = changes.getAddedAndModified();
+        LOG.info("Incremental analysis: analysing {} changed files (no merge with history)", changedFiles.size());
+
+        ProjectAnalysisResult result = analyzeFiles(projectRoot, changedFiles);
 
         List<FileFingerprint> newFingerprints = detector.computeFingerprints(sourceFiles);
         fingerprintStore.saveFingerprints(indexId, newFingerprints);
@@ -600,6 +616,17 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         return result;
     }
 
+    /**
+     * Manifest-based incremental analysis.
+     * <p>
+     * This method only re-analyses changed files (added + modified) and returns the
+     * result as a complete result set. It does NOT merge with historical results.
+     * Callers should treat the returned result as the complete result set.
+     *
+     * @param projectRoot  project root directory
+     * @param manifestPath path to the manifest file
+     * @return analysis result for changed files only
+     */
     public ProjectAnalysisResult analyzeIncremental(Path projectRoot,
                                                     Path manifestPath) throws IOException {
         LOG.info("Starting manifest-based incremental analysis: {}", projectRoot);
@@ -625,13 +652,58 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             return analyzeProject(projectRoot);
         }
 
-        ProjectAnalysisResult result = analyzeIncremental(projectRoot,
-                (ProjectAnalysisResult) null);
+        List<Path> changedFiles = changes.getAddedAndModified();
+        LOG.info("Incremental analysis: analysing {} changed files (no merge with history)", changedFiles.size());
+
+        ProjectAnalysisResult result = analyzeFiles(projectRoot, changedFiles);
 
         List<FileFingerprint> newFingerprints = detector.computeFingerprints(sourceFiles);
         manifestStore.save(manifestPath, newFingerprints);
 
         return result;
+    }
+
+    /**
+     * Analyse only the given list of files under projectRoot.
+     * Returns a {@link ProjectAnalysisResult} containing results for those files only,
+     * with a rebuilt global symbol table and call resolution.
+     * <p>
+     * This method does NOT merge with any historical results.
+     */
+    private ProjectAnalysisResult analyzeFiles(Path projectRoot, List<Path> files) throws IOException {
+        List<CodeFileAnalysisResult> fileResults = new ArrayList<>();
+        SymbolTable globalSymbolTable = new SymbolTable();
+
+        for (Path file : files) {
+            try {
+                String relativePath = projectRoot.relativize(file).toString();
+                ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
+                if (analyzer == null) {
+                    continue;
+                }
+                String sourceCode = Files.readString(file);
+                CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
+                if (result != null) {
+                    fileResults.add(result);
+                    for (CodeSymbol symbol : result.getSymbols()) {
+                        String qn = symbol.getQualifiedName();
+                        if (qn != null && !qn.isEmpty()) {
+                            globalSymbolTable.add(symbol);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to analyze file: {} - {}", file, e.getMessage());
+            }
+        }
+
+        int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
+        ProjectStats stats = buildStats(fileResults, globalSymbolTable, callCounts[0], callCounts[1]);
+
+        LOG.info("analyzeFiles: {} files, {} symbols, {} resolved calls",
+                fileResults.size(), globalSymbolTable.size(), callCounts[0]);
+
+        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
     }
 
     /**

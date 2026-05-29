@@ -18,6 +18,7 @@ import org.treesitter.TSParser;
 import org.treesitter.TSTree;
 import org.treesitter.TreeSitterTypescript;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -498,10 +499,14 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
     private String getNodeText(TSNode node, String source) {
         int startByte = node.getStartByte();
         int endByte = node.getEndByte();
-        if (startByte >= endByte || endByte > source.length()) {
+        if (startByte >= endByte) {
             return "";
         }
-        return source.substring(startByte, endByte);
+        byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
+        if (endByte > bytes.length) {
+            endByte = bytes.length;
+        }
+        return new String(bytes, startByte, endByte - startByte, StandardCharsets.UTF_8);
     }
 
     private String getName(TSNode node, String source) {

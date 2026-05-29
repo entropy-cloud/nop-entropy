@@ -765,23 +765,26 @@ public class CommunityDetector {
     }
     
     private static double calculateCohesion(Set<String> cluster, CallGraph callGraph) {
+        if (cluster.size() < 2) return 1.0;
+
         int internalEdges = 0;
-        int totalPossibleEdges = cluster.size() * (cluster.size() - 1);
-        
-        if (totalPossibleEdges == 0) return 1;
-        
+        int externalEdges = 0;
+
         for (String node : cluster) {
             List<String> callees = callGraph.getCallees(node);
             if (callees != null) {
                 for (String callee : callees) {
                     if (cluster.contains(callee)) {
                         internalEdges++;
+                    } else {
+                        externalEdges++;
                     }
                 }
             }
         }
-        
-        return (double) internalEdges / totalPossibleEdges;
+
+        int total = internalEdges + externalEdges;
+        return total == 0 ? 1.0 : (double) internalEdges / total;
     }
     
     private static String findDominantPackage(Set<String> cluster, SymbolTable symbolTable) {

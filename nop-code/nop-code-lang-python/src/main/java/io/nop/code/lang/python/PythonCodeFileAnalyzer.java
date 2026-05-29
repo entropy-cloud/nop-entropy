@@ -15,6 +15,7 @@ import org.treesitter.TSParser;
 import org.treesitter.TSTree;
 import org.treesitter.TreeSitterPython;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -66,7 +67,16 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
     // ---- node text helper ----
 
     private static String nodeText(TSNode node, String source) {
-        return source.substring(node.getStartByte(), node.getEndByte());
+        int startByte = node.getStartByte();
+        int endByte = node.getEndByte();
+        if (startByte >= endByte) {
+            return "";
+        }
+        byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
+        if (endByte > bytes.length) {
+            endByte = bytes.length;
+        }
+        return new String(bytes, startByte, endByte - startByte, StandardCharsets.UTF_8);
     }
 
     // ---- tree walking ----
