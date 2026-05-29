@@ -15,6 +15,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 
 import io.nop.stream.cep.model.*;
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
@@ -57,7 +58,7 @@ public class CepPatternBuilder {
                 break;
 
             if (!previous.add(next))
-                throw new NopException(ERR_CEP_PATTERN_PART_NOT_ALLOW_LOOP)
+                throw new StreamRuntimeException(ERR_CEP_PATTERN_PART_NOT_ALLOW_LOOP)
                         .source(partModel).param(ARG_PART_NAME, next)
                         .param(ARG_NEXT, next);
 
@@ -91,7 +92,7 @@ public class CepPatternBuilder {
                 pattern = pattern.followedByAny(groupPattern);
                 break;
             default:
-                throw new NopException(ERR_CEP_NOT_CONDITION_DOES_NOT_SUPPORT_GROUP)
+                throw new StreamRuntimeException(ERR_CEP_NOT_CONDITION_DOES_NOT_SUPPORT_GROUP)
                         .source(groupModel).param(ARG_PART_NAME, groupModel.getName())
                         .param(ARG_FOLLOW_KIND, followKind);
         }

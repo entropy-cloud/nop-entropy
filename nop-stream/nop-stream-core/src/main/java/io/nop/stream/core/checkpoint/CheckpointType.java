@@ -7,6 +7,12 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+
 /**
  * Checkpoint 类型枚举。
  * 
@@ -95,6 +101,7 @@ public enum CheckpointType {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown CheckpointType name: " + name);
+        throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "name").param(ARG_DETAIL,
+                "Unknown CheckpointType name: " + name);
     }
 }

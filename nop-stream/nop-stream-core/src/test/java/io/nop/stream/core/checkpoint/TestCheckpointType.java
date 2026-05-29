@@ -9,6 +9,8 @@ package io.nop.stream.core.checkpoint;
 
 import org.junit.jupiter.api.Test;
 
+import io.nop.stream.core.exceptions.StreamException;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestCheckpointType {
@@ -51,7 +53,7 @@ class TestCheckpointType {
         assertEquals(CheckpointType.CHECKPOINT, CheckpointType.fromName("checkpoint"));
         assertEquals(CheckpointType.SAVEPOINT, CheckpointType.fromName("savepoint"));
         assertEquals(CheckpointType.COMPLETED_POINT_TYPE, CheckpointType.fromName("completed"));
-        assertThrows(IllegalArgumentException.class, () -> CheckpointType.fromName("unknown"));
-        assertThrows(IllegalArgumentException.class, () -> CheckpointType.fromName(null));
+        assertThrows(StreamException.class, () -> CheckpointType.fromName("unknown"));
+        assertThrows(StreamException.class, () -> CheckpointType.fromName(null));
     }
 }
