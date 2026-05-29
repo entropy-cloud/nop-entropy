@@ -76,6 +76,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         walkNode(root, sourceCode, result, qualifiedPrefix, null);
 
+        tree = null;
         return result;
     }
 

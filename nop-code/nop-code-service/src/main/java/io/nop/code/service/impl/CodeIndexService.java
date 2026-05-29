@@ -1180,15 +1180,22 @@ public class CodeIndexService implements ICodeIndexService {
         if ("super".equals(direction) || "both".equals(direction)) {
             List<TypeHierarchyDTO> superTypes = allInheritances.stream()
                     .filter(i -> symbol != null && symbol.getId().equals(i.getSubTypeId()))
-                    .map(i -> buildTypeHierarchy(i.getSuperTypeQualifiedName(), direction, maxDepth - 1, table, allInheritances, visited))
+                    .map(i -> {
+                        String superRef = i.getSuperTypeQualifiedName();
+                        CodeSymbol superSymbol = table.getById(superRef);
+                        String superQn = superSymbol != null ? superSymbol.getQualifiedName() : superRef;
+                        return buildTypeHierarchy(superQn, direction, maxDepth - 1, table, allInheritances, visited);
+                    })
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             node.setSuperTypes(superTypes);
         }
 
         if ("sub".equals(direction) || "both".equals(direction)) {
+            String currentId = symbol != null ? symbol.getId() : null;
             List<TypeHierarchyDTO> subTypes = allInheritances.stream()
-                    .filter(i -> qualifiedName.equals(i.getSuperTypeQualifiedName()))
+                    .filter(i -> qualifiedName.equals(i.getSuperTypeQualifiedName())
+                            || (currentId != null && currentId.equals(i.getSuperTypeQualifiedName())))
                     .map(i -> {
                         CodeSymbol subSymbol = table.getById(i.getSubTypeId());
                         if (subSymbol != null) {

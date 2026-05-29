@@ -58,6 +58,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         walkNode(root, sourceCode, moduleName, null, result);
 
+        tree = null;
         return result;
     }
 
