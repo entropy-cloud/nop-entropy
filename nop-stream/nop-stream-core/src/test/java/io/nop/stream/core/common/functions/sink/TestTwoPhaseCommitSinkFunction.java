@@ -3,8 +3,9 @@ package io.nop.stream.core.common.functions.sink;
 import org.junit.jupiter.api.Test;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -78,5 +79,40 @@ class TestTwoPhaseCommitSinkFunction {
 
         assertDoesNotThrow(() -> sink.restoreFromEpoch(1, null));
         assertEquals(0, sink.rollbackCallCount, "No rollback should be called when no pending");
+    }
+
+    @Test
+    void testConcurrentFinishCommitNoConcurrentModificationException() throws Exception {
+        TestSink sink = new TestSink();
+        Map<Long, Object> pending = Collections.synchronizedMap(new TreeMap<>());
+        for (long i = 1; i <= 50; i++) {
+            pending.put(i, "tx" + i);
+        }
+        sink.setPendingCommits(pending);
+
+        int threadCount = 10;
+        CyclicBarrier barrier = new CyclicBarrier(threadCount);
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        AtomicBoolean failed = new AtomicBoolean(false);
+
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < threadCount; i++) {
+            final long epochId = 5L * (i + 1);
+            futures.add(executor.submit(() -> {
+                try {
+                    barrier.await();
+                    sink.finishCommit(epochId, true);
+                } catch (Throwable t) {
+                    failed.set(true);
+                }
+            }));
+        }
+
+        for (Future<?> f : futures) {
+            f.get(10, TimeUnit.SECONDS);
+        }
+        executor.shutdown();
+
+        assertFalse(failed.get(), "Concurrent finishCommit should not throw ConcurrentModificationException");
     }
 }

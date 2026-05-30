@@ -79,14 +79,16 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
         if (success) {
             if (pending != null && !pending.isEmpty()) {
                 TreeMap<Long, Object> toCommit = new TreeMap<>();
-                for (Map.Entry<Long, Object> entry : pending.entrySet()) {
-                    if (entry.getKey() <= epochId) {
-                        toCommit.put(entry.getKey(), entry.getValue());
+                synchronized (pending) {
+                    for (Map.Entry<Long, Object> entry : pending.entrySet()) {
+                        if (entry.getKey() <= epochId) {
+                            toCommit.put(entry.getKey(), entry.getValue());
+                        }
                     }
-                }
-                for (Long eid : toCommit.keySet()) {
-                    commit(eid);
-                    pending.remove(eid);
+                    for (Long eid : toCommit.keySet()) {
+                        commit(eid);
+                        pending.remove(eid);
+                    }
                 }
             } else {
                 commit(epochId);
@@ -98,14 +100,16 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
     public void restoreFromEpoch(long epochId, TaskStateSnapshot state) throws Exception {
         Map<Long, Object> pending = getPendingCommits();
         if (pending != null && !pending.isEmpty()) {
-            for (Object tx : pending.values()) {
-                try {
-                    rollback();
-                } catch (Exception e) {
-                    LOG.warn("Rollback failed for pending transaction during recovery: {}", tx, e);
+            synchronized (pending) {
+                for (Object tx : pending.values()) {
+                    try {
+                        rollback();
+                    } catch (Exception e) {
+                        LOG.warn("Rollback failed for pending transaction during recovery: {}", tx, e);
+                    }
                 }
+                pending.clear();
             }
-            pending.clear();
         }
         recover(epochId);
     }
