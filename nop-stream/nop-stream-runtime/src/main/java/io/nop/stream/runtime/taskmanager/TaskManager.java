@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -293,7 +294,9 @@ public class TaskManager implements IStreamTaskRpcService {
         RunningTask task = runningTasks.remove(taskKey);
         if (task != null) {
             task.cancel();
-            capacitySemaphore.release();
+            if (task.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
             LOG.info("Canceled task {}/{}/{}", jobId, vertexId, subtaskIndex);
         } else {
             LOG.warn("No running task to cancel for {}/{}/{}", jobId, vertexId, subtaskIndex);
@@ -339,10 +342,12 @@ public class TaskManager implements IStreamTaskRpcService {
         String oldToken = currentFencingToken.getAndSet(newToken);
         if (oldToken != null && !oldToken.equals(newToken)) {
             LOG.info("Fencing token updated from {} to {}. Canceling old tasks.", oldToken, newToken);
-            // Cancel tasks belonging to the old epoch
             runningTasks.entrySet().removeIf(entry -> {
                 if (entry.getValue().getFencingToken().equals(oldToken)) {
                     entry.getValue().cancel();
+                    if (entry.getValue().semaphoreReleased.compareAndSet(false, true)) {
+                        capacitySemaphore.release();
+                    }
                     return true;
                 }
                 return false;
@@ -362,6 +367,10 @@ public class TaskManager implements IStreamTaskRpcService {
 
     public int getRunningTaskCount() {
         return runningTasks.size();
+    }
+
+    int availablePermits() {
+        return capacitySemaphore.availablePermits();
     }
 
     public Map<String, TaskResult> getCompletedTaskResults() {
@@ -400,6 +409,7 @@ public class TaskManager implements IStreamTaskRpcService {
         private volatile Future<?> future;
         private volatile boolean canceled;
         private volatile Throwable error;
+        private final AtomicBoolean semaphoreReleased = new AtomicBoolean(false);
 
         public RunningTask(String jobId, String vertexId, int subtaskIndex,
                            String fencingToken, String attemptId) {
@@ -451,7 +461,9 @@ public class TaskManager implements IStreamTaskRpcService {
                     }
                 }
                 runningTasks.remove(key);
-                capacitySemaphore.release();
+                if (semaphoreReleased.compareAndSet(false, true)) {
+                    capacitySemaphore.release();
+                }
             }
         }
 

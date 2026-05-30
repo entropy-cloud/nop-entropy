@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -173,6 +174,98 @@ class TestTaskManager {
         taskManager.receiveAssignment(assignment); // duplicate
 
         assertEquals(1, taskManager.getRunningTaskCount());
+    }
+
+    @Test
+    void testCancelTaskDoesNotDoubleReleaseSemaphore() throws Exception {
+        TaskManager smallTm = new TaskManager("node", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        smallTm.start();
+        String token = UUID.randomUUID().toString();
+        smallTm.updateFencingToken(token);
+
+        TaskAssignment assignment = new TaskAssignment(
+                "job-1", "vertex-1", 0,
+                "node", "attempt-1", token,
+                System.currentTimeMillis());
+
+        smallTm.receiveAssignment(assignment);
+
+        Thread.sleep(100);
+
+        smallTm.cancelTask("job-1", "vertex-1", 0);
+
+        Thread.sleep(200);
+
+        Semaphore sem = null;
+        int available = smallTm.availablePermits();
+        assertTrue(available <= 2,
+                "availablePermits (" + available + ") should not exceed capacity (2) after cancel");
+
+        smallTm.stop();
+    }
+
+    @Test
+    void testUpdateFencingTokenReleasesSemaphore() throws Exception {
+        TaskManager smallTm = new TaskManager("node", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        smallTm.start();
+        String oldToken = UUID.randomUUID().toString();
+        smallTm.updateFencingToken(oldToken);
+
+        TaskAssignment assignment = new TaskAssignment(
+                "job-1", "vertex-1", 0,
+                "node", "attempt-1", oldToken,
+                System.currentTimeMillis());
+
+        smallTm.receiveAssignment(assignment);
+        assertEquals(1, smallTm.getRunningTaskCount());
+
+        int permitsBefore = smallTm.availablePermits();
+
+        String newToken = UUID.randomUUID().toString();
+        smallTm.updateFencingToken(newToken);
+
+        Thread.sleep(200);
+
+        int permitsAfter = smallTm.availablePermits();
+        assertTrue(permitsAfter > permitsBefore,
+                "Permits should increase after updateFencingToken cancels old tasks");
+
+        assertTrue(permitsAfter <= 2,
+                "availablePermits (" + permitsAfter + ") should not exceed capacity (2)");
+
+        smallTm.stop();
+    }
+
+    @Test
+    void testMultipleCancelsDoNotExceedCapacity() throws Exception {
+        TaskManager smallTm = new TaskManager("node", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        smallTm.start();
+        String token = UUID.randomUUID().toString();
+        smallTm.updateFencingToken(token);
+
+        for (int i = 0; i < 2; i++) {
+            TaskAssignment assignment = new TaskAssignment(
+                    "job-1", "vertex-1", i,
+                    "node", "attempt-" + i, token,
+                    System.currentTimeMillis());
+            smallTm.receiveAssignment(assignment);
+        }
+
+        Thread.sleep(100);
+
+        smallTm.cancelTask("job-1", "vertex-1", 0);
+        smallTm.cancelTask("job-1", "vertex-1", 1);
+
+        Thread.sleep(200);
+
+        int available = smallTm.availablePermits();
+        assertTrue(available <= 2,
+                "availablePermits (" + available + ") should not exceed capacity (2) after N cancels");
+
+        smallTm.stop();
     }
 
     // ==================== Mocks ====================
