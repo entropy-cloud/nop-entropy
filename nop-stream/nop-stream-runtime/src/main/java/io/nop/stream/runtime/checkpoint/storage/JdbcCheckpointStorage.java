@@ -25,6 +25,14 @@ import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
+/**
+ * JDBC-backed checkpoint storage for durable checkpoint persistence.
+ *
+ * <p><b>Runtime dependency:</b> This class requires {@code nop-dao}
+ * (specifically {@link io.nop.dao.jdbc.IJdbcTemplate}) on the classpath.
+ * The dependency is declared as {@code provided} scope, so consumers
+ * must include it explicitly when using JDBC-based checkpoint storage.</p>
+ */
 @Internal
 public class JdbcCheckpointStorage implements ICheckpointStorage {
 

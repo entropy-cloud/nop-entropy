@@ -11,13 +11,13 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
-import io.nop.api.core.annotations.core.Internal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
-import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.SinkFunction;
 
 @Internal

@@ -7,11 +7,11 @@
  */
 package io.nop.stream.cep.model.builder;
 
+import java.io.Serializable;
+
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
-
-import java.io.Serializable;
 
 public class EvalFunctionCondition extends IterativeCondition<Object> implements Serializable {
 

@@ -1,5 +1,12 @@
 package io.nop.stream.fraud.state;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.KeyedStateStore;
@@ -11,13 +18,6 @@ import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class DemoKeyedStateStore implements KeyedStateStore {
     @Override

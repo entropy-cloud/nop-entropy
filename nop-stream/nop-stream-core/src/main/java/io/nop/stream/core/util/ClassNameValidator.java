@@ -1,10 +1,10 @@
 package io.nop.stream.core.util;
 
-import io.nop.api.core.annotations.core.Internal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;

@@ -7,32 +7,31 @@
  */
 package io.nop.stream.fraud;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import io.nop.commons.tuple.Tuple2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
-import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
-import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.nfa.NFAState;
+import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
+import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.fraud.state.DemoKeyedStateStore;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
 import io.nop.stream.fraud.pattern.AccountTakeoverPattern;
 import io.nop.stream.fraud.pattern.GeographicAnomalyPattern;
 import io.nop.stream.fraud.pattern.RapidTransactionPattern;
 import io.nop.stream.fraud.pattern.UnusualAmountPattern;
+import io.nop.stream.fraud.state.DemoKeyedStateStore;
 import io.nop.stream.fraud.util.MockTransactionGenerator;
 
 /**
