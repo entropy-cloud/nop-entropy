@@ -185,7 +185,7 @@ public class NFA<T> {
     public void open(RuntimeContext cepRuntimeContext, Configuration conf) {
         for (State<T> state : getStates()) {
             for (StateTransition<T> transition : state.getStateTransitions()) {
-                IterativeCondition condition = transition.getCondition();
+                IterativeCondition<T> condition = transition.getCondition();
                 FunctionUtils.setFunctionRuntimeContext(condition, cepRuntimeContext);
                 FunctionUtils.openFunction(condition, conf);
             }
@@ -198,7 +198,7 @@ public class NFA<T> {
     public void close() {
         for (State<T> state : getStates()) {
             for (StateTransition<T> transition : state.getStateTransitions()) {
-                IterativeCondition condition = transition.getCondition();
+                IterativeCondition<T> condition = transition.getCondition();
                 FunctionUtils.closeFunction(condition);
             }
         }

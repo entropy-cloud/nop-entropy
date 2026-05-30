@@ -321,6 +321,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (snapshotResult != null) {
             Object restored = snapshotResult.getOperatorState("trigger-accumulators");
             if (restored instanceof Map) {
+                Map<?, ?> restoredMap = (Map<?, ?>) restored;
+                for (Map.Entry<?, ?> entry : restoredMap.entrySet()) {
+                    if (!(entry.getValue() instanceof SimpleAccumulator)) {
+                        throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                                .param(ARG_EXPECTED_TYPE, "SimpleAccumulator")
+                                .param(ARG_ACTUAL_TYPE, entry.getValue().getClass().getName());
+                    }
+                }
                 this.triggerAccumulators = (Map<String, SimpleAccumulator<?>>) restored;
             }
         }
