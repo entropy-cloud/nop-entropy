@@ -623,7 +623,15 @@ public class TestNFAExtended {
                 List.of(1L, 2L, 10L),
                 timeoutMatches);
 
-        assertTrue(matches.isEmpty() || !matches.isEmpty());
+        assertTrue(matches.isEmpty(),
+                "No matches expected because end event arrives at t=10, beyond the 3ms window");
+        assertEquals(2, timeoutMatches.size(),
+                "Two timeout matches expected: partial matches timed out at t=10");
+        for (Tuple2<Map<String, List<Event>>, Long> tm : timeoutMatches) {
+            assertTrue(tm.f0.containsKey("start"),
+                    "Each timeout match should contain 'start' pattern");
+            assertEquals("c", tm.f0.get("start").get(0).getName());
+        }
         nfa.close();
     }
 

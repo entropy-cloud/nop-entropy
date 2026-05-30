@@ -77,6 +77,9 @@ public class TestGreedy {
 
         assertTrue(matches.size() >= 1,
                 "Greedy zeroOrMore should produce matches");
+        Map<String, List<Event>> match = matches.get(0);
+        assertEquals(3, match.get("start").size(),
+                "Greedy zeroOrMore should consume all 3 'a' events before 'b'");
         nfa.close();
     }
 
@@ -101,7 +104,8 @@ public class TestGreedy {
 
         assertTrue(matches.size() >= 1);
         Map<String, List<Event>> match = matches.get(0);
-        assertTrue(match.get("start").size() >= 1);
+        assertEquals(2, match.get("start").size(),
+                "Greedy oneOrMore should consume both 'a' events before 'b'");
         nfa.close();
     }
 
@@ -129,6 +133,9 @@ public class TestGreedy {
                         new Event(4, "b")));
 
         assertTrue(matches.size() >= 1, "Greedy with middle events should produce matches");
+        Map<String, List<Event>> match = matches.get(0);
+        assertEquals(2, match.get("middle").size(),
+                "Greedy middle should consume both 'x' events before 'b'");
         nfa.close();
     }
 
@@ -152,6 +159,15 @@ public class TestGreedy {
 
         assertTrue(matches.size() >= 2,
                 "Non-greedy oneOrMore should produce multiple matches (a->b, a,a->b)");
+        boolean foundOneA = false;
+        boolean foundTwoA = false;
+        for (Map<String, List<Event>> m : matches) {
+            int size = m.get("start").size();
+            if (size == 1) foundOneA = true;
+            if (size == 2) foundTwoA = true;
+        }
+        assertTrue(foundOneA, "Non-greedy should produce a match with 1 'a' event");
+        assertTrue(foundTwoA, "Non-greedy should produce a match with 2 'a' events");
         nfa.close();
     }
 
@@ -177,6 +193,9 @@ public class TestGreedy {
                         new Event(5, "b")));
 
         assertTrue(matches.size() >= 1);
+        Map<String, List<Event>> match = matches.get(0);
+        assertEquals(4, match.get("start").size(),
+                "Greedy times(2,4) should consume all 4 'a' events before 'b'");
         nfa.close();
     }
 
@@ -205,6 +224,9 @@ public class TestGreedy {
 
         assertTrue(matches.size() >= 1,
                 "Greedy with dummy before quantifier should match");
+        Map<String, List<Event>> match = matches.get(0);
+        assertEquals(1, match.get("middle").size(),
+                "Greedy middle should consume the single 'x' event");
         nfa.close();
     }
 }
