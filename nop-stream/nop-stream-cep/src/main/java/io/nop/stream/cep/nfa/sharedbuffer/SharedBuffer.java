@@ -114,38 +114,6 @@ public class SharedBuffer<V> {
         this.entryCache = new ConcurrentHashMap<>(cacheConfig.getEntryCacheSlots());
     }
 
-//    public void migrateOldState(
-//            KeyedStateBackend<?> stateBackend, ValueState<NFAState> computationStates)
-//            throws Exception {
-//        stateBackend.applyToAllKeys(
-//                VoidNamespace.INSTANCE,
-//                VoidNamespaceSerializer.INSTANCE,
-//                new MapStateDescriptor<>(
-//                        LEGACY_ENTRIES_STATE_NAME,
-//                        new NodeId.NodeIdSerializer(),
-//                        new Lockable.LockableTypeSerializer<>(
-//                                new SharedBufferNode.SharedBufferNodeSerializer())),
-//                (key, state) -> {
-//                    copyEntries(state);
-//                    state.entries().forEach(this::lockPredecessorEdges);
-//                    state.clear();
-//
-//                    NFAState nfaState = computationStates.value();
-//                    nfaState.getPartialMatches()
-//                            .forEach(
-//                                    computationState ->
-//                                            lockEdges(
-//                                                    computationState.getPreviousBufferEntry(),
-//                                                    computationState.getVersion()));
-//                    nfaState.getCompletedMatches()
-//                            .forEach(
-//                                    computationState ->
-//                                            lockEdges(
-//                                                    computationState.getPreviousBufferEntry(),
-//                                                    computationState.getVersion()));
-//                });
-//    }
-
     private void copyEntries(MapState<NodeId, Lockable<SharedBufferNode>> state) throws Exception {
         state.entries()
                 .forEach(

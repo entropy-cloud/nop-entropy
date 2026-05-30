@@ -586,40 +586,29 @@ public class GraphModelCheckpointExecutor {
             CheckpointPlan checkpointPlan,
             StreamModel streamModel) throws Exception {
 
-        // Try EpochManifest first (preferred recovery path)
         EpochManifest epochManifest = coordinator.restoreLatestEpochManifest();
         if (epochManifest != null) {
             LOG.info("Recovering from EpochManifest epoch {} (jobId={})",
                     epochManifest.getEpochId(), epochManifest.getJobId());
 
-            // Validate fingerprint compatibility
             validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
 
-            for (String vertexId : execPlan.getSortedVertexIds()) {
-                for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
-                    StreamTaskInvokable invokable = subtask.getInvokable();
-                    if (invokable == null) continue;
-
-                    TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
-                    TaskStateSnapshot taskState = epochManifest.getTaskSnapshots().get(taskLocation);
-
-                    if (taskState == null) {
-                        throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
-                                .param(ARG_VERTEX_ID, vertexId)
-                                .param(ARG_TASK_INDEX, subtask.getTaskIndex())
-                                .param(ARG_TASK_LOCATION, taskLocation)
-                                .param(ARG_EPOCH_ID, epochManifest.getEpochId())
-                                .param(ARG_DETAIL, "Available keys: " + epochManifest.getTaskSnapshots().keySet());
-                    }
-
-                    List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
-                    restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
-                }
-            }
+            restoreTaskStatesFromSource(execPlan, checkpointPlan,
+                    (taskLocation) -> {
+                        TaskStateSnapshot state = epochManifest.getTaskSnapshots().get(taskLocation);
+                        if (state == null) {
+                            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                                    .param(ARG_VERTEX_ID, taskLocation.getVertexId())
+                                    .param(ARG_TASK_INDEX, taskLocation.getTaskIndex())
+                                    .param(ARG_TASK_LOCATION, taskLocation)
+                                    .param(ARG_EPOCH_ID, epochManifest.getEpochId())
+                                    .param(ARG_DETAIL, "Available keys: " + epochManifest.getTaskSnapshots().keySet());
+                        }
+                        return state;
+                    });
             return;
         }
 
-        // Fall back to CompletedCheckpoint
         CompletedCheckpoint latestCheckpoint = coordinator.restoreFromCheckpoint();
         if (latestCheckpoint == null) {
             LOG.info("No recoverable checkpoint found, starting fresh");
@@ -629,27 +618,7 @@ public class GraphModelCheckpointExecutor {
         LOG.info("Recovering from checkpoint {} (jobId={})",
                 latestCheckpoint.getCheckpointId(), latestCheckpoint.getJobId());
 
-        for (String vertexId : execPlan.getSortedVertexIds()) {
-            for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
-                StreamTaskInvokable invokable = subtask.getInvokable();
-                if (invokable == null) continue;
-
-                TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
-                TaskStateSnapshot taskState = latestCheckpoint.getTaskState(taskLocation);
-
-                if (taskState == null) {
-                    throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
-                            .param(ARG_VERTEX_ID, vertexId)
-                            .param(ARG_TASK_INDEX, subtask.getTaskIndex())
-                            .param(ARG_TASK_LOCATION, taskLocation)
-                            .param(ARG_CHECKPOINT_ID, latestCheckpoint.getCheckpointId())
-                            .param(ARG_DETAIL, "Available keys: " + latestCheckpoint.getTaskStates().keySet());
-                }
-
-                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
-                restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
-            }
-        }
+        restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, latestCheckpoint);
     }
 
     private static void validateFingerprintCompatibility(
@@ -712,27 +681,49 @@ public class GraphModelCheckpointExecutor {
         LOG.info("Recovering from savepoint {} (jobId={})",
                 savepointCheckpoint.getCheckpointId(), savepointCheckpoint.getJobId());
 
+        restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, savepointCheckpoint);
+    }
+
+    @FunctionalInterface
+    private interface TaskStateLookup {
+        TaskStateSnapshot lookup(TaskLocation taskLocation) throws Exception;
+    }
+
+    private static void restoreTaskStatesFromSource(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            TaskStateLookup stateLookup) throws Exception {
         for (String vertexId : execPlan.getSortedVertexIds()) {
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
                 if (invokable == null) continue;
 
                 TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
-                TaskStateSnapshot taskState = savepointCheckpoint.getTaskState(taskLocation);
-
-                if (taskState == null) {
-                    throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
-                            .param(ARG_VERTEX_ID, vertexId)
-                            .param(ARG_TASK_INDEX, subtask.getTaskIndex())
-                            .param(ARG_TASK_LOCATION, taskLocation)
-                            .param(ARG_CHECKPOINT_ID, savepointCheckpoint.getCheckpointId())
-                            .param(ARG_DETAIL, "Available keys: " + savepointCheckpoint.getTaskStates().keySet());
-                }
+                TaskStateSnapshot taskState = stateLookup.lookup(taskLocation);
 
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
                 restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
             }
         }
+    }
+
+    private static void restoreTaskStatesFromCheckpoint(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            CompletedCheckpoint checkpoint) throws Exception {
+        restoreTaskStatesFromSource(execPlan, checkpointPlan,
+                (taskLocation) -> {
+                    TaskStateSnapshot state = checkpoint.getTaskState(taskLocation);
+                    if (state == null) {
+                        throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                                .param(ARG_VERTEX_ID, taskLocation.getVertexId())
+                                .param(ARG_TASK_INDEX, taskLocation.getTaskIndex())
+                                .param(ARG_TASK_LOCATION, taskLocation)
+                                .param(ARG_CHECKPOINT_ID, checkpoint.getCheckpointId())
+                                .param(ARG_DETAIL, "Available keys: " + checkpoint.getTaskStates().keySet());
+                    }
+                    return state;
+                });
     }
 
     private static void restoreOperatorsFromState(

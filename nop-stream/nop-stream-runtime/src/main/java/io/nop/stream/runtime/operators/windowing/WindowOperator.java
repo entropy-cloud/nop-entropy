@@ -330,7 +330,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 windowAssigner.assignWindows(
                         element.getValue(), element.getTimestamp(), windowAssignerContext);
 
-        // if element is handled by none of assigned elementWindows
         boolean isSkippedElement = true;
 
         final K key = keySelector.getKey(element.getValue());
@@ -339,147 +338,144 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
 
         if (windowAssigner instanceof MergingWindowAssigner) {
-            MergingWindowSet<W> mergingWindows = getMergingWindowSet();
-
-            for (W window : elementWindows) {
-
-                // adding the new window might result in a merge, in that case the actualWindow
-                // is the merged window and we work with that. If we don't merge then
-                // actualWindow == window
-                W actualWindow =
-                        mergingWindows.addWindow(
-                                window,
-                                new MergingWindowSet.MergeFunction<W>() {
-                                    @Override
-                                    public void merge(
-                                            W mergeResult,
-                                            Collection<W> mergedWindows,
-                                            W stateWindowResult,
-                                            Collection<W> mergedStateWindows)
-                                            throws Exception {
-
-                                        if ((windowAssigner.isEventTime()
-                                                && mergeResult.maxTimestamp() + allowedLateness
-                                                <= internalTimerService
-                                                .currentWatermark())) {
-                                            throw new UnsupportedOperationException(
-                                                    "The end timestamp of an "
-                                                            + "event-time window cannot become earlier than the current watermark "
-                                                            + "by merging. Current watermark: "
-                                                            + internalTimerService
-                                                            .currentWatermark()
-                                                            + " window: "
-                                                            + mergeResult);
-                                        } else if (!windowAssigner.isEventTime()) {
-                                            long currentProcessingTime =
-                                                    internalTimerService.currentProcessingTime();
-                                            if (mergeResult.maxTimestamp()
-                                                    <= currentProcessingTime) {
-                                                throw new UnsupportedOperationException(
-                                                        "The end timestamp of a "
-                                                                + "processing-time window cannot become earlier than the current processing time "
-                                                                + "by merging. Current processing time: "
-                                                                + currentProcessingTime
-                                                                + " window: "
-                                                                + mergeResult);
-                                            }
-                                        }
-
-                                        triggerContext.key = key;
-                                        triggerContext.window = mergeResult;
-
-                                        triggerContext.onMerge(mergedWindows);
-
-                                        for (W m : mergedWindows) {
-                                            triggerContext.window = m;
-                                            triggerContext.clear();
-                                            deleteCleanupTimer(m);
-                                        }
-
-                                        // merge the merged state windows into the newly resulting
-                                        // state window
-//                                        windowMergingState.mergeNamespaces(
-//                                                stateWindowResult, mergedStateWindows);
-                                        mergeWindowContents(key, stateWindowResult, mergedStateWindows);
-                                    }
-                                });
-
-                // drop if the window is already late
-                if (isWindowLate(actualWindow)) {
-                    mergingWindows.retireWindow(actualWindow);
-                    continue;
-                }
-                isSkippedElement = false;
-
-                W stateWindow = mergingWindows.getStateWindow(actualWindow);
-                if (stateWindow == null) {
-                    throw new IllegalStateException(
-                            "Window " + window + " is not in in-flight window set.");
-                }
-                addWindowElement(key, stateWindow, element.getValue());
-
-                triggerContext.key = key;
-                triggerContext.window = actualWindow;
-
-                TriggerResult triggerResult = triggerContext.onElement(element);
-
-                if (triggerResult.isFire()) {
-                    ACC contents = getWindowContents(key, stateWindow);
-                    if (contents != null) {
-                        emitWindowContents(key, actualWindow, contents);
-                    }
-                }
-
-                if (triggerResult.isPurge()) {
-                    clearWindowContents(key, stateWindow);
-                }
-                registerCleanupTimer(actualWindow);
-            }
-
-            // need to make sure to update the merging state in state
-            mergingWindows.persist();
+            isSkippedElement = processElementForMergingWindow(element, elementWindows, key);
         } else {
-            for (W window : elementWindows) {
-
-                // drop if the window is already late
-                if (isWindowLate(window)) {
-                    continue;
-                }
-                isSkippedElement = false;
-                addWindowElement(key, window, element.getValue());
-
-                triggerContext.key = key;
-                triggerContext.window = window;
-
-                TriggerResult triggerResult = triggerContext.onElement(element);
-
-                if (triggerResult.isFire()) {
-                    ACC contents = getWindowContents(key, window);
-                    if (contents != null) {
-                        emitWindowContents(key, window, contents);
-                    }
-                }
-
-                if (triggerResult.isPurge()) {
-                    clearWindowContents(key, window);
-                    triggerContext.clear();
-                }
-                registerCleanupTimer(window);
-            }
+            isSkippedElement = processElementForRegularWindow(element, elementWindows, key);
         }
 
-        // side output input event if
-        // element not handled by any window
-        // late arriving tag has been set
-        // windowAssigner is event time and current timestamp + allowed lateness no less than
-        // element timestamp
         if (isSkippedElement && isElementLate(element)) {
             if (lateDataOutputTag != null) {
                 sideOutput(element);
-            } else {
-                //this.numLateRecordsDropped.inc();
             }
         }
+    }
+
+    private boolean processElementForMergingWindow(
+            StreamRecord<IN> element, Collection<W> elementWindows, K key) throws Exception {
+        MergingWindowSet<W> mergingWindows = getMergingWindowSet();
+        boolean isSkippedElement = true;
+
+        for (W window : elementWindows) {
+            W actualWindow =
+                    mergingWindows.addWindow(
+                            window,
+                            new MergingWindowSet.MergeFunction<W>() {
+                                @Override
+                                public void merge(
+                                        W mergeResult,
+                                        Collection<W> mergedWindows,
+                                        W stateWindowResult,
+                                        Collection<W> mergedStateWindows)
+                                        throws Exception {
+
+                                    if ((windowAssigner.isEventTime()
+                                            && mergeResult.maxTimestamp() + allowedLateness
+                                            <= internalTimerService
+                                            .currentWatermark())) {
+                                        throw new UnsupportedOperationException(
+                                                "The end timestamp of an "
+                                                        + "event-time window cannot become earlier than the current watermark "
+                                                        + "by merging. Current watermark: "
+                                                        + internalTimerService
+                                                        .currentWatermark()
+                                                        + " window: "
+                                                        + mergeResult);
+                                    } else if (!windowAssigner.isEventTime()) {
+                                        long currentProcessingTime =
+                                                internalTimerService.currentProcessingTime();
+                                        if (mergeResult.maxTimestamp()
+                                                <= currentProcessingTime) {
+                                            throw new UnsupportedOperationException(
+                                                    "The end timestamp of a "
+                                                            + "processing-time window cannot become earlier than the current processing time "
+                                                            + "by merging. Current processing time: "
+                                                            + currentProcessingTime
+                                                            + " window: "
+                                                            + mergeResult);
+                                        }
+                                    }
+
+                                    triggerContext.key = key;
+                                    triggerContext.window = mergeResult;
+
+                                    triggerContext.onMerge(mergedWindows);
+
+                                    for (W m : mergedWindows) {
+                                        triggerContext.window = m;
+                                        triggerContext.clear();
+                                        deleteCleanupTimer(m);
+                                    }
+
+                                    mergeWindowContents(key, stateWindowResult, mergedStateWindows);
+                                }
+                            });
+
+            if (isWindowLate(actualWindow)) {
+                mergingWindows.retireWindow(actualWindow);
+                continue;
+            }
+            isSkippedElement = false;
+
+            W stateWindow = mergingWindows.getStateWindow(actualWindow);
+            if (stateWindow == null) {
+                throw new IllegalStateException(
+                        "Window " + window + " is not in in-flight window set.");
+            }
+            addWindowElement(key, stateWindow, element.getValue());
+
+            triggerContext.key = key;
+            triggerContext.window = actualWindow;
+
+            TriggerResult triggerResult = triggerContext.onElement(element);
+
+            if (triggerResult.isFire()) {
+                ACC contents = getWindowContents(key, stateWindow);
+                if (contents != null) {
+                    emitWindowContents(key, actualWindow, contents);
+                }
+            }
+
+            if (triggerResult.isPurge()) {
+                clearWindowContents(key, stateWindow);
+            }
+            registerCleanupTimer(actualWindow);
+        }
+
+        mergingWindows.persist();
+        return isSkippedElement;
+    }
+
+    private boolean processElementForRegularWindow(
+            StreamRecord<IN> element, Collection<W> elementWindows, K key) throws Exception {
+        boolean isSkippedElement = true;
+
+        for (W window : elementWindows) {
+            if (isWindowLate(window)) {
+                continue;
+            }
+            isSkippedElement = false;
+            addWindowElement(key, window, element.getValue());
+
+            triggerContext.key = key;
+            triggerContext.window = window;
+
+            TriggerResult triggerResult = triggerContext.onElement(element);
+
+            if (triggerResult.isFire()) {
+                ACC contents = getWindowContents(key, window);
+                if (contents != null) {
+                    emitWindowContents(key, window, contents);
+                }
+            }
+
+            if (triggerResult.isPurge()) {
+                clearWindowContents(key, window);
+                triggerContext.clear();
+            }
+            registerCleanupTimer(window);
+        }
+
+        return isSkippedElement;
     }
 
     @Override

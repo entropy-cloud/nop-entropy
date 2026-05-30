@@ -79,10 +79,6 @@ public final class StreamRecord<T> extends StreamElement {
             return timestamp;
         } else {
             return Long.MIN_VALUE;
-            //			throw new IllegalStateException(
-            //					"Record has no timestamp. Is the time characteristic set to 'ProcessingTime', or
-            // " +
-            //							"did you forget to call 'DataStream.assignTimestampsAndWatermarks(...)'?");
         }
     }
 
