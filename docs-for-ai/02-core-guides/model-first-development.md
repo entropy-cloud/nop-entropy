@@ -27,6 +27,23 @@ nop-cli gen model/{appName}.orm.xml -t=/nop/templates/orm -o=.
 ./mvnw clean install -T 1C
 ```
 
+## 模型加载后的 Java 初始化
+
+不是所有派生逻辑都适合继续放在 XML / imp / codegen 里。
+
+当 source 模型在加载完成后，还需要：
+
+1. 回填父上下文
+2. 构建运行期索引
+3. 规范化类名/类型名
+4. 递归初始化子模型
+
+优先考虑在模型类中实现 `INeedInit`，把这些逻辑收口到 Java `init()`。
+
+标准 XDSL 解析链会自动调用 `INeedInit.init()`；但如果你是手工 new、手工 merge、手工转换模型，通常需要自己补 `init()`。
+
+详见：`./model-init-and-ineedinit.md`
+
 ## 实体菜单图标约定
 
 当 ORM 实体会参与标准后台页面与 `action-auth.xml` 生成时，可以在 `entity` 上声明 `ext:icon`：

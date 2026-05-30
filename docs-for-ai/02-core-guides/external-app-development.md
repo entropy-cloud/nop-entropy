@@ -36,9 +36,9 @@
 `nop-app-mall` 的源模型位于：
 
 1. `C:/can/nop/nop-app-mall/model/app-mall.orm.xlsx`
-2. `C:/can/nop/nop-app-mall/model/app-mall.api.xlsx`
+2. `C:/can/nop/nop-app-mall/model/app-mall.api.xml`
 
-说明：外部应用完全可以用 Excel 模型作为主入口，不必限定只有 `*.orm.xml`。
+说明：外部应用的 API 模型默认优先维护为 `*.api.xml`，便于文本化审阅和 AI 编辑；如需保留 Excel 展示或导出，可同时保留 `*.api.xlsx`，但 live codegen 输入应以 `api.xml` 为准。ORM 模型仍可按场景使用 XML 或 Excel。
 
 ### 2. 再走 codegen / meta / web 生成链
 

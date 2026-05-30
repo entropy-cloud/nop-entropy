@@ -51,6 +51,7 @@
 | 理解跨切面架构原则（聚合根与表、模块依赖方向、DSL优先等） | `02-core-guides/architecture-principles.md` |
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
 | 判断 IoC 注入和配置写法 | `02-core-guides/ioc-and-config.md` |
+| 理解模型加载后的 `INeedInit` 初始化约定 | `02-core-guides/model-init-and-ineedinit.md` |
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
 | 判断并发控制与事务边界 | `02-core-guides/concurrency-and-transactions.md` |
 | 查询当前仓库代码风格 | `02-core-guides/code-style.md` |

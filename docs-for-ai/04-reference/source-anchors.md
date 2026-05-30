@@ -34,6 +34,10 @@
 | `DDD-004` | `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/StringHelper.java` | 字符串 helper 默认应优先校准到 `StringHelper` |
 | `DDD-005` | `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/DateHelper.java` | 日期 helper 默认应优先校准到 `DateHelper` |
 | `DDD-006` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/time/CoreMetrics.java` | 获取当前时间戳/日期/时间一律使用 `CoreMetrics`，禁止 `System.currentTimeMillis()` |
+| `MODEL-INIT-001` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/INeedInit.java` + `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdsl/DslModelParser.java` | `INeedInit` 是模型加载后的延迟初始化约定；标准 XDSL 解析链会在反序列化后自动调用 `init()`，除非显式 `disableInit(true)` |
+| `MODEL-INIT-002` | `nop-network/nop-rpc/nop-rpc-model/src/main/java/io/nop/rpc/model/ApiModel.java` + `ApiServiceModel.java` + `ApiMethodModel.java` | 典型上下文回填模式：根模型级联 `init()` 子模型，为子节点补父引用和派生信息 |
+| `MODEL-INIT-003` | `nop-utils/nop-fsm/src/main/java/io/nop/fsm/model/StateMachineModel.java` + `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/model/RuleModel.java` | 典型运行期索引/映射构建模式：在 `init()` 中把 DSL 列表整理成高频访问所需的 map / 派生结构 |
+| `MODEL-INIT-004` | `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/loader/OrmModelLoader.java` | 手工 merge / 组装模型后，通常需要显式 `model.init()`，然后再进入 `freeze(true)` 等后续阶段 |
 | `TXN-001` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/service/BizActionInvoker.java` | 非 query 的 Biz 操作默认会进入事务 |
 | `IOC-001` | `nop-kernel/nop-core/src/main/java/io/nop/core/reflect/impl/ClassModelBuilder.java` | private 字段不会成为可靠注入点 |
 | `CFG-001` | `nop-core-framework/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java` | 配置系统会加载 `bootstrap.yaml`、`application.yaml` 与 profile 配置 |
