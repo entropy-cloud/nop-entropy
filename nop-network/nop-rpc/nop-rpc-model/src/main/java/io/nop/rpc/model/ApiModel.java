@@ -7,11 +7,21 @@
  */
 package io.nop.rpc.model;
 
+import io.nop.api.core.util.INeedInit;
 import io.nop.rpc.model._gen._ApiModel;
 
-public class ApiModel extends _ApiModel implements IWithOptions {
+public class ApiModel extends _ApiModel implements IWithOptions, INeedInit {
     public ApiModel() {
 
+    }
+
+    @Override
+    public void init() {
+        if (getServices() != null) {
+            for (ApiServiceModel service : getServices()) {
+                service.init(this);
+            }
+        }
     }
 
     public void addImportPath(String path) {
