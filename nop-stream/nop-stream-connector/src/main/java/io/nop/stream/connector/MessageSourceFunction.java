@@ -38,6 +38,7 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
 
     private final IMessageService messageService;
     private final String topic;
+    private final Class<T> typeClass;
 
     /** Subtask index for partition-based subscription (-1 means no partitioning) */
     private final int subtaskIndex;
@@ -52,19 +53,20 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
      * Creates a MessageSourceFunction that subscribes to a single topic.
      */
     public MessageSourceFunction(IMessageService messageService, String topic) {
-        this(messageService, topic, -1, 0);
+        this(messageService, topic, null, -1, 0);
     }
 
-    /**
-     * Creates a MessageSourceFunction with partition awareness.
-     *
-     * @param messageService   the message service to subscribe to
-     * @param topic            the base topic name
-     * @param subtaskIndex     this subtask's index (0-based)
-     * @param totalParallelism total number of parallel subtasks
-     */
+    public MessageSourceFunction(IMessageService messageService, String topic, Class<T> typeClass) {
+        this(messageService, topic, typeClass, -1, 0);
+    }
+
     public MessageSourceFunction(IMessageService messageService, String topic,
                                   int subtaskIndex, int totalParallelism) {
+        this(messageService, topic, null, subtaskIndex, totalParallelism);
+    }
+
+    public MessageSourceFunction(IMessageService messageService, String topic,
+                                  Class<T> typeClass, int subtaskIndex, int totalParallelism) {
         if (messageService == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "messageService");
         }
@@ -81,6 +83,7 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
         }
         this.messageService = messageService;
         this.topic = topic;
+        this.typeClass = typeClass;
         this.subtaskIndex = subtaskIndex;
         this.totalParallelism = totalParallelism;
     }
@@ -107,6 +110,11 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
         subscription = messageService.subscribe(effectiveTopic, new IMessageConsumer() {
             @Override
             public Object onMessage(String t, Object msg, IMessageConsumeContext context) {
+                if (typeClass != null && msg != null && !typeClass.isInstance(msg)) {
+                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                            .param(ARG_EXPECTED_TYPE, typeClass.getName())
+                            .param(ARG_ACTUAL_TYPE, msg.getClass().getName());
+                }
                 ctx.collect((T) msg);
                 return null;
             }

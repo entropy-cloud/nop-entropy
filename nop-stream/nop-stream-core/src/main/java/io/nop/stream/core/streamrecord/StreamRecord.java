@@ -17,6 +17,9 @@
 
 package io.nop.stream.core.streamrecord;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**
  * One value in a data stream. This stores the value and an optional associated timestamp.
@@ -109,6 +112,11 @@ public final class StreamRecord<T> extends StreamElement {
      */
     @SuppressWarnings("unchecked")
     public <X> StreamRecord<X> replace(X element) {
+        if (this.value != null && element != null && !this.value.getClass().isInstance(element)) {
+            throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                    .param(ARG_EXPECTED_TYPE, this.value.getClass().getName())
+                    .param(ARG_ACTUAL_TYPE, element.getClass().getName());
+        }
         this.value = (T) element;
         return (StreamRecord<X>) this;
     }
@@ -124,6 +132,11 @@ public final class StreamRecord<T> extends StreamElement {
      */
     @SuppressWarnings("unchecked")
     public <X> StreamRecord<X> replace(X value, long timestamp) {
+        if (this.value != null && value != null && !this.value.getClass().isInstance(value)) {
+            throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                    .param(ARG_EXPECTED_TYPE, this.value.getClass().getName())
+                    .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+        }
         this.timestamp = timestamp;
         this.value = (T) value;
         this.hasTimestamp = true;

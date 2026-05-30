@@ -62,6 +62,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     private final Map<String, Object> states = new HashMap<>();
 
+    private final Map<String, Class<?>> stateTypes = new HashMap<>();
+
     public MemoryKeyedStateBackend(Class<K> keyType) {
         this(keyType, 1);
     }
@@ -102,12 +104,24 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         return currentNamespace;
     }
 
+    private void registerStateType(String name, Class<?> type) {
+        Class<?> existing = stateTypes.get(name);
+        if (existing != null && !existing.equals(type)) {
+            throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                    .param(ARG_STATE_NAME, name)
+                    .param(ARG_EXPECTED_TYPE, existing.getName())
+                    .param(ARG_ACTUAL_TYPE, type.getName());
+        }
+        stateTypes.put(name, type);
+    }
+
     @Override
     public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
         @SuppressWarnings("unchecked")
         ValueState<T> state = (ValueState<T>) states.get(stateProperties.getName());
         if (state == null) {
             state = new MemoryValueState<>(this, stateProperties);
+            registerStateType(stateProperties.getName(), ValueState.class);
             states.put(stateProperties.getName(), state);
         }
         return state;
@@ -119,6 +133,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         MapState<UK, UV> state = (MapState<UK, UV>) states.get(stateProperties.getName());
         if (state == null) {
             state = new MemoryMapState<>(this, stateProperties);
+            registerStateType(stateProperties.getName(), MapState.class);
             states.put(stateProperties.getName(), state);
         }
         return state;
@@ -130,6 +145,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         ListState<T> state = (ListState<T>) states.get(stateProperties.getName());
         if (state == null) {
             state = new MemoryListState<>(this, stateProperties);
+            registerStateType(stateProperties.getName(), ListState.class);
             states.put(stateProperties.getName(), state);
         }
         return state;
@@ -141,6 +157,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         ReducingState<T> state = (ReducingState<T>) states.get(stateProperties.getName());
         if (state == null) {
             state = new MemoryReducingState<>(this, stateProperties);
+            registerStateType(stateProperties.getName(), ReducingState.class);
             states.put(stateProperties.getName(), state);
         }
         return state;
@@ -153,6 +170,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         AggregatingState<IN, OUT> state = (AggregatingState<IN, OUT>) states.get(stateProperties.getName());
         if (state == null) {
             state = new MemoryAggregatingState<>(this, stateProperties);
+            registerStateType(stateProperties.getName(), AggregatingState.class);
             states.put(stateProperties.getName(), state);
         }
         return state;
@@ -166,6 +184,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 (InternalAppendingState<K, N, IN, ACC, ACC>) states.get(descriptor.getName());
         if (state == null) {
             state = new MemoryInternalAppendingState<>(this, descriptor);
+            registerStateType(descriptor.getName(), InternalAppendingState.class);
             states.put(descriptor.getName(), state);
         }
         return state;
@@ -178,6 +197,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 (InternalListState<K, N, T>) states.get(descriptor.getName());
         if (state == null) {
             state = new MemoryInternalListState<>(this, descriptor);
+            registerStateType(descriptor.getName(), InternalListState.class);
             states.put(descriptor.getName(), state);
         }
         return state;

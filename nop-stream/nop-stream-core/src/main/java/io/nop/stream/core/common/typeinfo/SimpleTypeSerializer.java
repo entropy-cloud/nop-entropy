@@ -9,6 +9,8 @@ package io.nop.stream.core.common.typeinfo;
 
 import java.io.*;
 
+import io.nop.stream.core.util.ClassNameValidator;
+
 public class SimpleTypeSerializer<T> implements SimpleSerializer<T> {
 
     private static final long serialVersionUID = 1L;
@@ -34,7 +36,14 @@ public class SimpleTypeSerializer<T> implements SimpleSerializer<T> {
     public T deserialize(byte[] data) throws Exception {
         if (data == null) return null;
         ByteArrayInputStream bis = new ByteArrayInputStream(data);
-        ObjectInputStream ois = new ObjectInputStream(bis);
-        return (T) ois.readObject();
+        ObjectInputStream ois = new ObjectInputStream(bis) {
+            @Override
+            protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+                ClassNameValidator.validateClassName(desc.getName());
+                return super.resolveClass(desc);
+            }
+        };
+        Object obj = ois.readObject();
+        return typeClass.cast(obj);
     }
 }
