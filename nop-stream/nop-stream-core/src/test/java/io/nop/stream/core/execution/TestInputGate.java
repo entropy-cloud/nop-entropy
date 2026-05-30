@@ -3,6 +3,8 @@ package io.nop.stream.core.execution;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.CheckpointType;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -102,6 +104,60 @@ public class TestInputGate {
         assertTrue(results.contains("a"));
         assertTrue(results.contains("b"));
         assertTrue(results.contains("c"));
+    }
+
+    @Test
+    public void testHighWatermarkEventCountNoStackOverflow() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        List<InputChannel> channels = Arrays.asList(new InputChannel(p0), new InputChannel(p1));
+        InputGate gate = new InputGate(channels);
+
+        int eventCount = 500;
+        for (int i = 0; i < eventCount; i++) {
+            p0.write(new Watermark(i));
+            p1.write(new Watermark(i));
+        }
+
+        p0.close();
+        p1.close();
+
+        List<StreamElement> results = new ArrayList<>();
+        while (true) {
+            Optional<StreamElement> element = gate.read();
+            if (!element.isPresent()) break;
+            results.add(element.get());
+        }
+
+        assertFalse(results.isEmpty(), "Should have received watermark events");
+    }
+
+    @Test
+    public void testHighBarrierEventCountNoStackOverflow() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        List<InputChannel> channels = Arrays.asList(new InputChannel(p0), new InputChannel(p1));
+        InputGate gate = new InputGate(channels, null, false);
+
+        int eventCount = 500;
+        for (int i = 0; i < eventCount; i++) {
+            p0.write(new StreamRecord<>("d-" + i));
+            p1.write(new StreamRecord<>("d-" + i));
+            p0.write(new CheckpointBarrier(i, i, CheckpointType.CHECKPOINT));
+            p1.write(new CheckpointBarrier(i, i, CheckpointType.CHECKPOINT));
+        }
+
+        p0.close();
+        p1.close();
+
+        List<StreamElement> results = new ArrayList<>();
+        while (true) {
+            Optional<StreamElement> element = gate.read();
+            if (!element.isPresent()) break;
+            results.add(element.get());
+        }
+
+        assertFalse(results.isEmpty(), "Should have received events");
     }
 
     @Test

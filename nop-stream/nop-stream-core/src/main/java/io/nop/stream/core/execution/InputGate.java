@@ -9,6 +9,7 @@ package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.List;
 import java.util.Optional;
 
@@ -205,6 +206,7 @@ public class InputGate {
 
     private Optional<StreamElement> readMultiChannel() {
         int emptyRounds = 0;
+        retry:
         while (true) {
             int channelsChecked = 0;
             int totalChannels = channels.size();
@@ -237,11 +239,15 @@ public class InputGate {
                     emptyRounds = 0;
 
                     if (element.isCheckpointBarrier()) {
-                        return handleBarrier(channelIndex, element.asCheckpointBarrier());
+                        Optional<StreamElement> result = handleBarrierNonRecursive(channelIndex, element.asCheckpointBarrier());
+                        if (result != null) return result;
+                        continue retry;
                     }
 
                     if (element.isWatermark()) {
-                        return handleWatermark(channelIndex, element.asWatermark());
+                        Optional<StreamElement> result = handleWatermarkNonRecursive(channelIndex, element.asWatermark());
+                        if (result != null) return result;
+                        continue retry;
                     }
 
                     return Optional.of(element);
@@ -259,16 +265,11 @@ public class InputGate {
             if (emptyRounds >= 200) {
                 return Optional.empty();
             }
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return Optional.empty();
-            }
+            LockSupport.parkNanos(10_000_000L);
         }
     }
 
-    private Optional<StreamElement> handleBarrier(int channelIndex, CheckpointBarrier barrier) {
+    private Optional<StreamElement> handleBarrierNonRecursive(int channelIndex, CheckpointBarrier barrier) {
         if (!barrierReceived[channelIndex]) {
             barrierReceived[channelIndex] = true;
             if (pendingBarrier == null) {
@@ -278,7 +279,6 @@ public class InputGate {
             barriersRemaining--;
 
             if (!barrierAlignment) {
-                // AT_LEAST_ONCE: emit barrier only on first receipt, don't block
                 if (!barrierEmitted) {
                     barrierEmitted = true;
                     if (barriersRemaining <= 0) {
@@ -289,22 +289,20 @@ public class InputGate {
                 if (barriersRemaining <= 0) {
                     resetBarrierState();
                 }
-                return readMultiChannel();
+                return null;
             }
 
             if (barriersRemaining <= 0) {
-                // All barriers received - reset and emit aligned barrier
                 CheckpointBarrier aligned = pendingBarrier;
                 resetBarrierState();
                 return Optional.of(aligned);
             }
         }
 
-        // Need to wait for more barriers, try reading again
-        return readMultiChannel();
+        return null;
     }
 
-    private Optional<StreamElement> handleWatermark(int channelIndex, Watermark watermark) {
+    private Optional<StreamElement> handleWatermarkNonRecursive(int channelIndex, Watermark watermark) {
         long oldWatermark = currentWatermarks[channelIndex];
         currentWatermarks[channelIndex] = watermark.getTimestamp();
 
@@ -315,8 +313,7 @@ public class InputGate {
             return Optional.of(new Watermark(newMin));
         }
 
-        // Watermark did not advance the minimum, skip and read next
-        return readMultiChannel();
+        return null;
     }
 
     private long minWatermarkExcluding(int excludeIndex, long oldValue) {
