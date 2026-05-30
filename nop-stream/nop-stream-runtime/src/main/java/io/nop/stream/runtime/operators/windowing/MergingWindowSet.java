@@ -29,8 +29,11 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.core.common.state.ListState;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.windows.Window;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**
  * Utility for keeping track of merging {@link Window Windows} when using a {@link
@@ -130,7 +133,7 @@ public class MergingWindowSet<W extends Window> {
     public void retireWindow(W window) {
         W removed = this.mapping.remove(window);
         if (removed == null) {
-            throw new IllegalStateException(
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "Window " + window + " is not in in-flight window set.");
         }
     }

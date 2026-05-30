@@ -22,9 +22,12 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.*;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
@@ -322,7 +325,7 @@ public class TaskManager implements IStreamTaskRpcService {
             if (coordinatorRpcService != null) {
                 coordinatorRpcService.receiveCheckpointAck(ack);
             } else {
-                throw new IllegalStateException(
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                         "No coordinator RPC service available. "
                         + "All checkpoint ACKs require IStreamCoordinatorRpcService.");
             }

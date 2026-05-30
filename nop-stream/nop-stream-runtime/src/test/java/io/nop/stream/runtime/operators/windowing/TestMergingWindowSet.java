@@ -4,6 +4,7 @@ import io.nop.commons.tuple.Tuple2;
 import io.nop.core.context.IServiceContext;
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.State;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -274,6 +275,6 @@ public class TestMergingWindowSet {
         windowSet.retireWindow(w1);
         assertNull(windowSet.getStateWindow(w1));
 
-        assertThrows(IllegalStateException.class, () -> windowSet.retireWindow(w1));
+        assertThrows(StreamException.class, () -> windowSet.retireWindow(w1));
     }
 }

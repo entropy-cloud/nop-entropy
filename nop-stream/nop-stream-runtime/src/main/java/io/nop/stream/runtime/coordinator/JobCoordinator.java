@@ -217,7 +217,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     if (rpc != null) {
                         rpc.receiveAssignment(assignment);
                     } else {
-                        throw new IllegalStateException(
+                        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                                 "No RPC service for node " + targetNode.getNodeId()
                                 + ". All control plane operations require IStreamTaskRpcService.");
                     }
@@ -280,7 +280,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 }
             }
         } else {
-            throw new IllegalStateException(
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "No RPC services available for checkpoint trigger. "
                     + "All control plane operations require IStreamTaskRpcService.");
         }

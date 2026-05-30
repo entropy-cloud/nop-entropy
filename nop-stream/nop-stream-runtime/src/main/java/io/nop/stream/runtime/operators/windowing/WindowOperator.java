@@ -418,7 +418,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
             W stateWindow = mergingWindows.getStateWindow(actualWindow);
             if (stateWindow == null) {
-                throw new IllegalStateException(
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                         "Window " + window + " is not in in-flight window set.");
             }
             addWindowElement(key, stateWindow, element.getValue());
@@ -814,7 +814,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 } else {
                     // Source is a raw value, target is an accumulator.
                     // Type incompatibility should cause a fast failure, not silent data loss.
-                    throw new IllegalStateException(
+                    throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                             "Cannot merge non-accumulator value into accumulator target. " +
                             "targetType=" + targetValue.getClass().getName() +
                             ", sourceType=" + sourceValue.getClass().getName());
