@@ -218,6 +218,7 @@ public class TaskManager implements IStreamTaskRpcService {
         String taskKey = taskKey(assignment);
         if (runningTasks.containsKey(taskKey)) {
             LOG.warn("Task {} already running, ignoring duplicate assignment", taskKey);
+            capacitySemaphore.release();
             return;
         }
 
@@ -234,6 +235,7 @@ public class TaskManager implements IStreamTaskRpcService {
 
         RunningTask existing = runningTasks.putIfAbsent(taskKey, runningTask);
         if (existing != null) {
+            capacitySemaphore.release();
             return;
         }
 

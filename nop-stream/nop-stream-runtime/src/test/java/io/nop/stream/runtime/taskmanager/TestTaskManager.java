@@ -268,6 +268,34 @@ class TestTaskManager {
         smallTm.stop();
     }
 
+    @Test
+    void testDuplicateAssignmentDoesNotLeakSemaphore() {
+        TaskManager smallTm = new TaskManager("node", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        smallTm.start();
+        String token = UUID.randomUUID().toString();
+        smallTm.updateFencingToken(token);
+
+        TaskAssignment assignment = new TaskAssignment(
+                "job-1", "vertex-1", 0,
+                "node", "attempt-1", token,
+                System.currentTimeMillis());
+
+        smallTm.receiveAssignment(assignment);
+        int permitsAfterFirst = smallTm.availablePermits();
+
+        smallTm.receiveAssignment(assignment);
+        int permitsAfterDuplicate = smallTm.availablePermits();
+
+        assertEquals(permitsAfterFirst, permitsAfterDuplicate,
+                "Duplicate assignment should release the semaphore it acquired");
+
+        assertTrue(permitsAfterDuplicate <= 2,
+                "availablePermits (" + permitsAfterDuplicate + ") should not exceed capacity (2)");
+
+        smallTm.stop();
+    }
+
     // ==================== Mocks ====================
 
     static class MockClusterRegistry implements ClusterRegistry {
