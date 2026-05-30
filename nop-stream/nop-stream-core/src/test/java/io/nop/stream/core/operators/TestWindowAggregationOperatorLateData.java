@@ -422,4 +422,69 @@ public class TestWindowAggregationOperatorLateData {
         assertEquals(1, collected.size(), "Second timer should fire and produce output");
         assertTrue(collected.get(0).contains("a"));
     }
+
+    @Test
+    void testElementNotDroppedBeforeWatermarkInitialized() throws Exception {
+        WindowAggregationOperator<String, List<String>, String, String, TimeWindow> op =
+                createOperator(new TumblingTimeWindowAssigner(1000), new EventTimeFireTrigger(), new ListAggFunction());
+        op.setAllowedLateness(500);
+
+        op.setCurrentKey("k1");
+        op.processElement(new StreamRecord<>("early", 500));
+
+        op.processWatermark(new Watermark(1500));
+        assertEquals(1, collected.size(), "Element before watermark initialization should not be dropped");
+        assertTrue(collected.get(0).contains("early"));
+    }
+
+    @Test
+    void testNonAdvancingWatermarkNotEmittedDownstream() throws Exception {
+        List<Watermark> emittedWatermarks = new ArrayList<>();
+        WindowAggregationOperator<String, List<String>, String, String, TimeWindow> op =
+                createOperator(new TumblingTimeWindowAssigner(1000), new EventTimeFireTrigger(), new ListAggFunction());
+        op.output = new Output<StreamRecord<String>>() {
+            @Override public void collect(StreamRecord<String> record) { collected.add(record.getValue()); }
+            @Override public void close() {}
+            @Override public void emitWatermark(Watermark mark) { emittedWatermarks.add(mark); }
+            @Override public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {}
+            @Override public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {}
+            @Override public void emitLatencyMarker(io.nop.stream.core.streamrecord.LatencyMarker latencyMarker) {}
+            @Override public void emitBarrier(io.nop.stream.core.checkpoint.CheckpointBarrier barrier) {}
+        };
+
+        op.setCurrentKey("k1");
+        op.processWatermark(new Watermark(1000));
+        assertEquals(1, emittedWatermarks.size());
+
+        op.processWatermark(new Watermark(500));
+        assertEquals(1, emittedWatermarks.size(), "Non-advancing watermark should not be emitted");
+
+        op.processWatermark(new Watermark(2000));
+        assertEquals(2, emittedWatermarks.size(), "Advancing watermark should be emitted");
+    }
+
+    @Test
+    void testRestoreStateRebuildsActiveWindowsPerKey() throws Exception {
+        WindowAggregationOperator<String, List<String>, String, String, TimeWindow> op =
+                createOperator(new TumblingTimeWindowAssigner(1000), new EventTimeFireTrigger(), new ListAggFunction());
+
+        op.setCurrentKey("k1");
+        op.processElement(new StreamRecord<>("a", 100));
+        op.setCurrentKey("k2");
+        op.processElement(new StreamRecord<>("b", 200));
+
+        io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshot = op.snapshotState(
+                new io.nop.stream.core.checkpoint.StateSnapshotContext(0, 0));
+
+        WindowAggregationOperator<String, List<String>, String, String, TimeWindow> restored =
+                createOperator(new TumblingTimeWindowAssigner(1000), new EventTimeFireTrigger(), new ListAggFunction());
+        restored.restoreState(snapshot);
+
+        java.lang.reflect.Field awpField = WindowAggregationOperator.class.getDeclaredField("activeWindowsPerKey");
+        awpField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<String, Set<TimeWindow>> awp = (Map<String, Set<TimeWindow>>) awpField.get(restored);
+        assertNotNull(awp, "activeWindowsPerKey should be rebuilt after restoreState");
+        assertFalse(awp.isEmpty(), "activeWindowsPerKey should not be empty after restore");
+    }
 }

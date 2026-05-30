@@ -198,6 +198,12 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
         rebuildTimerLookups();
 
+        this.activeWindowsPerKey = new HashMap<>();
+        for (Map.Entry<WindowKey<K, W>, ACC> entry : windowState.entrySet()) {
+            activeWindowsPerKey.computeIfAbsent(entry.getKey().key, k -> new LinkedHashSet<>())
+                    .add(entry.getKey().window);
+        }
+
         this.currentKeyField = null;
         this.assignerContext = new WindowAssigner.WindowAssignerContext() {
             @Override
@@ -223,7 +229,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         IN value = element.getValue();
         long timestamp = element.getTimestamp();
 
-        if (element.hasTimestamp() && timestamp < currentWatermark - allowedLateness) {
+        if (element.hasTimestamp() && currentWatermark != Long.MIN_VALUE && timestamp < currentWatermark - allowedLateness) {
             LOG.debug("Dropping late element with timestamp {} below current watermark {}", timestamp, currentWatermark);
             return;
         }
@@ -356,7 +362,6 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     public void processWatermark(Watermark mark) throws Exception {
         long newWatermark = mark.getTimestamp();
         if (newWatermark <= currentWatermark) {
-            output.emitWatermark(mark);
             return;
         }
         currentWatermark = newWatermark;
