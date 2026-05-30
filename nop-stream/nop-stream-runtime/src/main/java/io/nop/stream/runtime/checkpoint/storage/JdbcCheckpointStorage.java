@@ -15,11 +15,15 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IDataRow;
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 @Internal
 public class JdbcCheckpointStorage implements ICheckpointStorage {
@@ -53,261 +57,325 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public String storeCheckPoint(CompletedCheckpoint checkpoint) throws Exception {
-        ensureTable();
-        byte[] stateData = serializeCheckpoint(checkpoint);
-        long sid = nextSid();
+    public String storeCheckPoint(CompletedCheckpoint checkpoint) throws CheckpointStorageException {
+        try {
+            ensureTable();
+            byte[] stateData = serializeCheckpoint(checkpoint);
+            long sid = nextSid();
 
-        SQL sql = SQL.begin().name("storeCheckpoint").querySpace(querySpace)
-                .sql("INSERT INTO " + TABLE_NAME +
-                        " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
-                        "completed_timestamp, state_data) VALUES (?,?,?,?,?,?,?,?)",
-                        sid,
-                        checkpoint.getJobId(),
-                        checkpoint.getPipelineId(),
-                        checkpoint.getCheckpointId(),
-                        checkpoint.getCheckpointType().name(),
-                        checkpoint.getTriggerTimestamp(),
-                        checkpoint.getCompletedTimestamp(),
-                        stateData)
-                .end();
+            SQL sql = SQL.begin().name("storeCheckpoint").querySpace(querySpace)
+                    .sql("INSERT INTO " + TABLE_NAME +
+                            " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
+                            "completed_timestamp, state_data) VALUES (?,?,?,?,?,?,?,?)",
+                            sid,
+                            checkpoint.getJobId(),
+                            checkpoint.getPipelineId(),
+                            checkpoint.getCheckpointId(),
+                            checkpoint.getCheckpointType().name(),
+                            checkpoint.getTriggerTimestamp(),
+                            checkpoint.getCompletedTimestamp(),
+                            stateData)
+                    .end();
 
-        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-            try {
-                jdbcTemplate.executeUpdate(sql);
-            } catch (Exception e) {
-                LOG.debug("INSERT failed, attempting UPDATE for checkpoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
-                SQL updateSql = SQL.begin().name("updateCheckpoint").querySpace(querySpace)
-                        .sql("UPDATE " + TABLE_NAME +
-                                " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?" +
-                                " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                                checkpoint.getCheckpointType().name(),
-                                checkpoint.getTriggerTimestamp(),
-                                checkpoint.getCompletedTimestamp(),
-                                stateData,
-                                checkpoint.getJobId(),
-                                checkpoint.getPipelineId(),
-                                checkpoint.getCheckpointId())
-                        .end();
-                jdbcTemplate.executeUpdate(updateSql);
-            }
-            return null;
-        });
-
-        return checkpoint.getJobId() + "_" + checkpoint.getCheckpointId();
-    }
-
-    @Override
-    public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) throws Exception {
-        if (!tableExists()) {
-            return null;
-        }
-
-        SQL sql = SQL.begin().name("getLatestCheckpoint").querySpace(querySpace)
-                .sql("SELECT state_data FROM " + TABLE_NAME +
-                        " WHERE job_id = ? AND pipeline_id = ?" +
-                        " ORDER BY checkpoint_id DESC LIMIT 1", jobId, pipelineId)
-                .end();
-
-        byte[][] result = {null};
-        jdbcTemplate.executeQuery(sql, dataSet -> {
-            for (IDataRow row : dataSet) {
-                result[0] = row.getBytes(0);
-                break;
-            }
-            return null;
-        });
-        return deserializeCheckpoint(result[0]);
-    }
-
-    @Override
-    public List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws Exception {
-        if (!tableExists()) {
-            return Collections.emptyList();
-        }
-
-        SQL sql = SQL.begin().name("getAllCheckpoints").querySpace(querySpace)
-                .sql("SELECT state_data FROM " + TABLE_NAME +
-                        " WHERE job_id = ? ORDER BY checkpoint_id DESC", jobId)
-                .end();
-
-        List<CompletedCheckpoint> result = new ArrayList<>();
-        jdbcTemplate.executeQuery(sql, dataSet -> {
-            for (IDataRow row : dataSet) {
-                byte[] data = row.getBytes(0);
-                CompletedCheckpoint cp = deserializeCheckpoint(data);
-                if (cp != null) {
-                    result.add(cp);
+            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+                try {
+                    jdbcTemplate.executeUpdate(sql);
+                } catch (Exception e) {
+                    LOG.debug("INSERT failed, attempting UPDATE for checkpoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
+                    SQL updateSql = SQL.begin().name("updateCheckpoint").querySpace(querySpace)
+                            .sql("UPDATE " + TABLE_NAME +
+                                    " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?" +
+                                    " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
+                                    checkpoint.getCheckpointType().name(),
+                                    checkpoint.getTriggerTimestamp(),
+                                    checkpoint.getCompletedTimestamp(),
+                                    stateData,
+                                    checkpoint.getJobId(),
+                                    checkpoint.getPipelineId(),
+                                    checkpoint.getCheckpointId())
+                            .end();
+                    jdbcTemplate.executeUpdate(updateSql);
                 }
-            }
-            return null;
-        });
-        return result;
+                return null;
+            });
+
+            return checkpoint.getJobId() + "_" + checkpoint.getCheckpointId();
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "storeCheckPoint failed");
+        }
     }
 
     @Override
-    public List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws Exception {
-        if (!tableExists()) {
-            return Collections.emptyList();
-        }
+    public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return null;
+            }
 
-        SQL sql = SQL.begin().name("getLatestCheckpoints").querySpace(querySpace)
-                .sql("SELECT state_data FROM " + TABLE_NAME +
-                        " WHERE job_id = ? ORDER BY checkpoint_id DESC LIMIT ?", jobId, count)
-                .end();
+            SQL sql = SQL.begin().name("getLatestCheckpoint").querySpace(querySpace)
+                    .sql("SELECT state_data FROM " + TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ?" +
+                            " ORDER BY checkpoint_id DESC LIMIT 1", jobId, pipelineId)
+                    .end();
 
-        List<CompletedCheckpoint> result = new ArrayList<>();
-        jdbcTemplate.executeQuery(sql, dataSet -> {
-            for (IDataRow row : dataSet) {
-                byte[] data = row.getBytes(0);
-                CompletedCheckpoint cp = deserializeCheckpoint(data);
-                if (cp != null) {
-                    result.add(cp);
+            byte[][] result = {null};
+            jdbcTemplate.executeQuery(sql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    result[0] = row.getBytes(0);
+                    break;
                 }
+                return null;
+            });
+            return deserializeCheckpoint(result[0]);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getLatestCheckpoint failed");
+        }
+    }
+
+    @Override
+    public List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return Collections.emptyList();
             }
-            return null;
-        });
-        return result;
-    }
 
-    @Override
-    public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) throws Exception {
-        if (!tableExists()) {
-            return;
+            SQL sql = SQL.begin().name("getAllCheckpoints").querySpace(querySpace)
+                    .sql("SELECT state_data FROM " + TABLE_NAME +
+                            " WHERE job_id = ? ORDER BY checkpoint_id DESC", jobId)
+                    .end();
+
+            List<CompletedCheckpoint> result = new ArrayList<>();
+            jdbcTemplate.executeQuery(sql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    byte[] data = row.getBytes(0);
+                    CompletedCheckpoint cp = deserializeCheckpoint(data);
+                    if (cp != null) {
+                        result.add(cp);
+                    }
+                }
+                return null;
+            });
+            return result;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getAllCheckpoints failed");
         }
-
-        SQL sql = SQL.begin().name("deleteCheckpoint").querySpace(querySpace)
-                .sql("DELETE FROM " + TABLE_NAME +
-                        " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                        jobId, pipelineId, checkpointId)
-                .end();
-
-        jdbcTemplate.executeUpdate(sql);
     }
 
     @Override
-    public void deleteAllCheckpoints(String jobId) throws Exception {
-        if (!tableExists()) {
-            return;
-        }
-
-        SQL sql = SQL.begin().name("deleteAllCheckpoints").querySpace(querySpace)
-                .sql("DELETE FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
-                .end();
-
-        jdbcTemplate.executeUpdate(sql);
-    }
-
-    @Override
-    public boolean exists(String jobId, String pipelineId, long checkpointId) throws Exception {
-        if (!tableExists()) {
-            return false;
-        }
-
-        SQL sql = SQL.begin().name("checkpointExists").querySpace(querySpace)
-                .sql("SELECT COUNT(*) FROM " + TABLE_NAME +
-                        " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                        jobId, pipelineId, checkpointId)
-                .end();
-
-        Integer count = jdbcTemplate.findInt(sql, 0);
-        return count != null && count > 0;
-    }
-
-    @Override
-    public int getCheckpointCount(String jobId) throws Exception {
-        if (!tableExists()) {
-            return 0;
-        }
-
-        SQL sql = SQL.begin().name("getCheckpointCount").querySpace(querySpace)
-                .sql("SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
-                .end();
-
-        Integer count = jdbcTemplate.findInt(sql, 0);
-        return count != null ? count : 0;
-    }
-
-    @Override
-    public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception {
-        ensureTable();
-        byte[] stateData = serializeCheckpoint(checkpoint);
-        long sid = nextSid();
-
-        SQL sql = SQL.begin().name("storeSavepoint").querySpace(querySpace)
-                .sql("INSERT INTO " + TABLE_NAME +
-                        " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
-                        "completed_timestamp, state_data, savepoint_path) VALUES (?,?,?,?,?,?,?,?,?)",
-                        sid,
-                        checkpoint.getJobId(),
-                        checkpoint.getPipelineId(),
-                        checkpoint.getCheckpointId(),
-                        checkpoint.getCheckpointType().name(),
-                        checkpoint.getTriggerTimestamp(),
-                        checkpoint.getCompletedTimestamp(),
-                        stateData,
-                        targetPath)
-                .end();
-
-        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-            try {
-                jdbcTemplate.executeUpdate(sql);
-            } catch (Exception e) {
-                LOG.debug("INSERT failed, attempting UPDATE for savepoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
-                SQL updateSql = SQL.begin().name("updateSavepoint").querySpace(querySpace)
-                        .sql("UPDATE " + TABLE_NAME +
-                                " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?, savepoint_path = ?" +
-                                " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                                checkpoint.getCheckpointType().name(),
-                                checkpoint.getTriggerTimestamp(),
-                                checkpoint.getCompletedTimestamp(),
-                                stateData,
-                                targetPath,
-                                checkpoint.getJobId(),
-                                checkpoint.getPipelineId(),
-                                checkpoint.getCheckpointId())
-                        .end();
-                jdbcTemplate.executeUpdate(updateSql);
+    public List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return Collections.emptyList();
             }
-            return null;
-        });
 
-        return targetPath;
+            SQL sql = SQL.begin().name("getLatestCheckpoints").querySpace(querySpace)
+                    .sql("SELECT state_data FROM " + TABLE_NAME +
+                            " WHERE job_id = ? ORDER BY checkpoint_id DESC LIMIT ?", jobId, count)
+                    .end();
+
+            List<CompletedCheckpoint> result = new ArrayList<>();
+            jdbcTemplate.executeQuery(sql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    byte[] data = row.getBytes(0);
+                    CompletedCheckpoint cp = deserializeCheckpoint(data);
+                    if (cp != null) {
+                        result.add(cp);
+                    }
+                }
+                return null;
+            });
+            return result;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getLatestCheckpoints failed");
+        }
     }
 
     @Override
-    public CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception {
-        if (!tableExists()) {
-            return null;
-        }
-        if (savepointPath == null || savepointPath.isEmpty()) {
-            return null;
-        }
-
-        SQL sql = SQL.begin().name("loadSavepoint").querySpace(querySpace)
-                .sql("SELECT state_data FROM " + TABLE_NAME +
-                        " WHERE savepoint_path = ?" +
-                        " ORDER BY checkpoint_id DESC LIMIT 1", savepointPath)
-                .end();
-
-        byte[][] result = {null};
-        jdbcTemplate.executeQuery(sql, dataSet -> {
-            for (IDataRow row : dataSet) {
-                result[0] = row.getBytes(0);
-                break;
+    public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return;
             }
-            return null;
-        });
-        return deserializeCheckpoint(result[0]);
+
+            SQL sql = SQL.begin().name("deleteCheckpoint").querySpace(querySpace)
+                    .sql("DELETE FROM " + TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
+                            jobId, pipelineId, checkpointId)
+                    .end();
+
+            jdbcTemplate.executeUpdate(sql);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "deleteCheckpoint failed");
+        }
     }
 
     @Override
-    public SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception {
-        CompletedCheckpoint checkpoint = loadSavepoint(savepointPath);
-        if (checkpoint == null) {
-            return null;
+    public void deleteAllCheckpoints(String jobId) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return;
+            }
+
+            SQL sql = SQL.begin().name("deleteAllCheckpoints").querySpace(querySpace)
+                    .sql("DELETE FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
+                    .end();
+
+            jdbcTemplate.executeUpdate(sql);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "deleteAllCheckpoints failed");
         }
-        return SavepointMetadata.fromCompletedCheckpoint(checkpoint);
+    }
+
+    @Override
+    public boolean exists(String jobId, String pipelineId, long checkpointId) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return false;
+            }
+
+            SQL sql = SQL.begin().name("checkpointExists").querySpace(querySpace)
+                    .sql("SELECT COUNT(*) FROM " + TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
+                            jobId, pipelineId, checkpointId)
+                    .end();
+
+            Integer count = jdbcTemplate.findInt(sql, 0);
+            return count != null && count > 0;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "exists failed");
+        }
+    }
+
+    @Override
+    public int getCheckpointCount(String jobId) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return 0;
+            }
+
+            SQL sql = SQL.begin().name("getCheckpointCount").querySpace(querySpace)
+                    .sql("SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
+                    .end();
+
+            Integer count = jdbcTemplate.findInt(sql, 0);
+            return count != null ? count : 0;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getCheckpointCount failed");
+        }
+    }
+
+    @Override
+    public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws CheckpointStorageException {
+        try {
+            ensureTable();
+            byte[] stateData = serializeCheckpoint(checkpoint);
+            long sid = nextSid();
+
+            SQL sql = SQL.begin().name("storeSavepoint").querySpace(querySpace)
+                    .sql("INSERT INTO " + TABLE_NAME +
+                            " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
+                            "completed_timestamp, state_data, savepoint_path) VALUES (?,?,?,?,?,?,?,?,?)",
+                            sid,
+                            checkpoint.getJobId(),
+                            checkpoint.getPipelineId(),
+                            checkpoint.getCheckpointId(),
+                            checkpoint.getCheckpointType().name(),
+                            checkpoint.getTriggerTimestamp(),
+                            checkpoint.getCompletedTimestamp(),
+                            stateData,
+                            targetPath)
+                    .end();
+
+            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+                try {
+                    jdbcTemplate.executeUpdate(sql);
+                } catch (Exception e) {
+                    LOG.debug("INSERT failed, attempting UPDATE for savepoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
+                    SQL updateSql = SQL.begin().name("updateSavepoint").querySpace(querySpace)
+                            .sql("UPDATE " + TABLE_NAME +
+                                    " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?, savepoint_path = ?" +
+                                    " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
+                                    checkpoint.getCheckpointType().name(),
+                                    checkpoint.getTriggerTimestamp(),
+                                    checkpoint.getCompletedTimestamp(),
+                                    stateData,
+                                    targetPath,
+                                    checkpoint.getJobId(),
+                                    checkpoint.getPipelineId(),
+                                    checkpoint.getCheckpointId())
+                            .end();
+                    jdbcTemplate.executeUpdate(updateSql);
+                }
+                return null;
+            });
+
+            return targetPath;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "storeSavepoint failed");
+        }
+    }
+
+    @Override
+    public CompletedCheckpoint loadSavepoint(String savepointPath) throws CheckpointStorageException {
+        try {
+            if (!tableExists()) {
+                return null;
+            }
+            if (savepointPath == null || savepointPath.isEmpty()) {
+                return null;
+            }
+
+            SQL sql = SQL.begin().name("loadSavepoint").querySpace(querySpace)
+                    .sql("SELECT state_data FROM " + TABLE_NAME +
+                            " WHERE savepoint_path = ?" +
+                            " ORDER BY checkpoint_id DESC LIMIT 1", savepointPath)
+                    .end();
+
+            byte[][] result = {null};
+            jdbcTemplate.executeQuery(sql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    result[0] = row.getBytes(0);
+                    break;
+                }
+                return null;
+            });
+            return deserializeCheckpoint(result[0]);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "loadSavepoint failed");
+        }
+    }
+
+    @Override
+    public SavepointMetadata loadSavepointMetadata(String savepointPath) throws CheckpointStorageException {
+        try {
+            CompletedCheckpoint checkpoint = loadSavepoint(savepointPath);
+            if (checkpoint == null) {
+                return null;
+            }
+            return SavepointMetadata.fromCompletedCheckpoint(checkpoint);
+        } catch (NopException e) {
+            throw e;
+        }
     }
 
     private boolean tableExists() {
@@ -401,71 +469,83 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws Exception {
-        ensureEpochTable();
-        byte[] stateData = serializeEpochManifest(manifest);
-        long sid = nextSid();
+    public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws CheckpointStorageException {
+        try {
+            ensureEpochTable();
+            byte[] stateData = serializeEpochManifest(manifest);
+            long sid = nextSid();
 
-        SQL sql = SQL.begin().name("storeEpochManifest").querySpace(querySpace)
-                .sql("INSERT INTO " + EPOCH_TABLE_NAME +
-                        " (sid, job_id, pipeline_id, epoch_id, checkpoint_type, state, timestamp, state_data) " +
-                        "VALUES (?,?,?,?,?,?,?,?)",
-                        sid,
-                        manifest.getJobId(),
-                        manifest.getPipelineId(),
-                        manifest.getEpochId(),
-                        manifest.getCheckpointType() != null ? manifest.getCheckpointType().name() : "CHECKPOINT",
-                        manifest.getState() != null ? manifest.getState().name() : "COMMITTED",
-                        manifest.getTimestamp(),
-                        stateData)
-                .end();
+            SQL sql = SQL.begin().name("storeEpochManifest").querySpace(querySpace)
+                    .sql("INSERT INTO " + EPOCH_TABLE_NAME +
+                            " (sid, job_id, pipeline_id, epoch_id, checkpoint_type, state, timestamp, state_data) " +
+                            "VALUES (?,?,?,?,?,?,?,?)",
+                            sid,
+                            manifest.getJobId(),
+                            manifest.getPipelineId(),
+                            manifest.getEpochId(),
+                            manifest.getCheckpointType() != null ? manifest.getCheckpointType().name() : "CHECKPOINT",
+                            manifest.getState() != null ? manifest.getState().name() : "COMMITTED",
+                            manifest.getTimestamp(),
+                            stateData)
+                    .end();
 
-        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-            try {
-                jdbcTemplate.executeUpdate(sql);
-            } catch (Exception e) {
-                LOG.debug("INSERT failed, attempting UPDATE for epoch manifest {}/{}/{}", jobId, pipelineId, manifest.getEpochId(), e);
-                SQL updateSql = SQL.begin().name("updateEpochManifest").querySpace(querySpace)
-                        .sql("UPDATE " + EPOCH_TABLE_NAME +
-                                " SET checkpoint_type = ?, state = ?, timestamp = ?, state_data = ?" +
-                                " WHERE job_id = ? AND pipeline_id = ? AND epoch_id = ?",
-                                manifest.getCheckpointType() != null ? manifest.getCheckpointType().name() : "CHECKPOINT",
-                                manifest.getState() != null ? manifest.getState().name() : "COMMITTED",
-                                manifest.getTimestamp(),
-                                stateData,
-                                manifest.getJobId(),
-                                manifest.getPipelineId(),
-                                manifest.getEpochId())
-                        .end();
-                jdbcTemplate.executeUpdate(updateSql);
-            }
-            return null;
-        });
+            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+                try {
+                    jdbcTemplate.executeUpdate(sql);
+                } catch (Exception e) {
+                    LOG.debug("INSERT failed, attempting UPDATE for epoch manifest {}/{}/{}", jobId, pipelineId, manifest.getEpochId(), e);
+                    SQL updateSql = SQL.begin().name("updateEpochManifest").querySpace(querySpace)
+                            .sql("UPDATE " + EPOCH_TABLE_NAME +
+                                    " SET checkpoint_type = ?, state = ?, timestamp = ?, state_data = ?" +
+                                    " WHERE job_id = ? AND pipeline_id = ? AND epoch_id = ?",
+                                    manifest.getCheckpointType() != null ? manifest.getCheckpointType().name() : "CHECKPOINT",
+                                    manifest.getState() != null ? manifest.getState().name() : "COMMITTED",
+                                    manifest.getTimestamp(),
+                                    stateData,
+                                    manifest.getJobId(),
+                                    manifest.getPipelineId(),
+                                    manifest.getEpochId())
+                            .end();
+                    jdbcTemplate.executeUpdate(updateSql);
+                }
+                return null;
+            });
 
-        LOG.debug("Stored epoch manifest {} for job {}/{}", manifest.getEpochId(), jobId, pipelineId);
+            LOG.debug("Stored epoch manifest {} for job {}/{}", manifest.getEpochId(), jobId, pipelineId);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "storeEpochManifest failed");
+        }
     }
 
     @Override
-    public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws Exception {
-        if (!epochTableExists()) {
-            return null;
-        }
-
-        SQL sql = SQL.begin().name("loadLatestEpochManifest").querySpace(querySpace)
-                .sql("SELECT state_data FROM " + EPOCH_TABLE_NAME +
-                        " WHERE job_id = ? AND pipeline_id = ?" +
-                        " ORDER BY epoch_id DESC LIMIT 1", jobId, pipelineId)
-                .end();
-
-        byte[][] result = {null};
-        jdbcTemplate.executeQuery(sql, dataSet -> {
-            for (IDataRow row : dataSet) {
-                result[0] = row.getBytes(0);
-                break;
+    public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws CheckpointStorageException {
+        try {
+            if (!epochTableExists()) {
+                return null;
             }
-            return null;
-        });
-        return deserializeEpochManifest(result[0]);
+
+            SQL sql = SQL.begin().name("loadLatestEpochManifest").querySpace(querySpace)
+                    .sql("SELECT state_data FROM " + EPOCH_TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ?" +
+                            " ORDER BY epoch_id DESC LIMIT 1", jobId, pipelineId)
+                    .end();
+
+            byte[][] result = {null};
+            jdbcTemplate.executeQuery(sql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    result[0] = row.getBytes(0);
+                    break;
+                }
+                return null;
+            });
+            return deserializeEpochManifest(result[0]);
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "loadLatestEpochManifest failed");
+        }
     }
 
     private boolean epochTableExists() {

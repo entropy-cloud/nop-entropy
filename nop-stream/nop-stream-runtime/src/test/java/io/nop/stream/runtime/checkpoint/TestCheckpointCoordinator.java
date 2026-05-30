@@ -9,6 +9,7 @@ package io.nop.stream.runtime.checkpoint;
 
 import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
+import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.exceptions.StreamException;
@@ -177,7 +178,7 @@ class TestCheckpointCoordinator {
             private final java.util.concurrent.ConcurrentHashMap<String, CompletedCheckpoint> store = new java.util.concurrent.ConcurrentHashMap<>();
 
             @Override public String getName() { return "FailingStorage"; }
-            @Override public String storeCheckPoint(CompletedCheckpoint checkpoint) throws Exception {
+            @Override public String storeCheckPoint(CompletedCheckpoint checkpoint) throws CheckpointStorageException {
                 throw new StreamException("Simulated storage failure");
             }
             @Override public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) { return null; }
@@ -187,7 +188,7 @@ class TestCheckpointCoordinator {
             @Override public void deleteAllCheckpoints(String jobId) {}
             @Override public int getCheckpointCount(String jobId) { return 0; }
             @Override public boolean exists(String jobId, String pipelineId, long checkpointId) { return false; }
-            @Override public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception { return targetPath; }
+            @Override public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws CheckpointStorageException { return targetPath; }
             @Override public CompletedCheckpoint loadSavepoint(String savepointPath) { return null; }
             @Override public SavepointMetadata loadSavepointMetadata(String savepointPath) { return null; }
             @Override public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) {}

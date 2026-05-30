@@ -15,21 +15,21 @@ import io.nop.stream.core.checkpoint.SavepointMetadata;
 
 public interface ICheckpointStorage {
 
-    String storeCheckPoint(CompletedCheckpoint checkpoint) throws Exception;
+    String storeCheckPoint(CompletedCheckpoint checkpoint) throws CheckpointStorageException;
 
-    CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) throws Exception;
+    CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) throws CheckpointStorageException;
 
-    List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws Exception;
+    List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws CheckpointStorageException;
 
-    List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws Exception;
+    List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws CheckpointStorageException;
 
-    void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) throws Exception;
+    void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) throws CheckpointStorageException;
 
-    void deleteAllCheckpoints(String jobId) throws Exception;
+    void deleteAllCheckpoints(String jobId) throws CheckpointStorageException;
 
     String getName();
 
-    default boolean exists(String jobId, String pipelineId, long checkpointId) throws Exception {
+    default boolean exists(String jobId, String pipelineId, long checkpointId) throws CheckpointStorageException {
         List<CompletedCheckpoint> checkpoints = getAllCheckpoints(jobId);
         for (CompletedCheckpoint checkpoint : checkpoints) {
             if (pipelineId.equals(checkpoint.getPipelineId())
@@ -40,15 +40,15 @@ public interface ICheckpointStorage {
         return false;
     }
 
-    int getCheckpointCount(String jobId) throws Exception;
+    int getCheckpointCount(String jobId) throws CheckpointStorageException;
 
-    String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception;
+    String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws CheckpointStorageException;
 
-    CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception;
+    CompletedCheckpoint loadSavepoint(String savepointPath) throws CheckpointStorageException;
 
-    SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception;
+    SavepointMetadata loadSavepointMetadata(String savepointPath) throws CheckpointStorageException;
 
-    void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws Exception;
+    void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws CheckpointStorageException;
 
-    EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws Exception;
+    EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws CheckpointStorageException;
 }

@@ -17,9 +17,11 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -53,189 +55,231 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public String storeCheckPoint(CompletedCheckpoint checkpoint) throws Exception {
-        Path checkpointPath = getCheckpointPath(
-                checkpoint.getJobId(),
-                checkpoint.getPipelineId(),
-                checkpoint.getCheckpointId());
-
-        Path tempPath = Paths.get(checkpointPath.toString() + TEMP_SUFFIX);
-
-        lock.writeLock().lock();
+    public String storeCheckPoint(CompletedCheckpoint checkpoint) throws CheckpointStorageException {
         try {
-            ensureDirectoryExists(checkpointPath.getParent().toString());
+            Path checkpointPath = getCheckpointPath(
+                    checkpoint.getJobId(),
+                    checkpoint.getPipelineId(),
+                    checkpoint.getCheckpointId());
 
-            byte[] data = serializeCheckpoint(checkpoint);
-            Files.write(tempPath, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Path tempPath = Paths.get(checkpointPath.toString() + TEMP_SUFFIX);
 
-            Files.move(tempPath, checkpointPath, StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
+            lock.writeLock().lock();
+            try {
+                ensureDirectoryExists(checkpointPath.getParent().toString());
 
-            return checkpointPath.toString();
-        } finally {
-            lock.writeLock().unlock();
-            deleteIfExists(tempPath);
+                byte[] data = serializeCheckpoint(checkpoint);
+                Files.write(tempPath, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+                Files.move(tempPath, checkpointPath, StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+
+                return checkpointPath.toString();
+            } finally {
+                lock.writeLock().unlock();
+                deleteIfExists(tempPath);
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "storeCheckPoint failed");
         }
     }
 
     @Override
-    public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) throws Exception {
-        Path jobDir = getJobDir(jobId, pipelineId);
-
-        lock.readLock().lock();
+    public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) throws CheckpointStorageException {
         try {
-            if (!Files.exists(jobDir)) {
-                return null;
-            }
+            Path jobDir = getJobDir(jobId, pipelineId);
 
-            try (Stream<Path> files = Files.list(jobDir)) {
-                Optional<Path> latest = files
-                        .filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
-                        .max((a, b) -> Long.compare(
-                                extractCheckpointId(a.getFileName().toString()),
-                                extractCheckpointId(b.getFileName().toString())));
-
-                if (latest.isPresent()) {
-                    return deserializeCheckpoint(latest.get());
+            lock.readLock().lock();
+            try {
+                if (!Files.exists(jobDir)) {
+                    return null;
                 }
-                return null;
+
+                try (Stream<Path> files = Files.list(jobDir)) {
+                    Optional<Path> latest = files
+                            .filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
+                            .max((a, b) -> Long.compare(
+                                    extractCheckpointId(a.getFileName().toString()),
+                                    extractCheckpointId(b.getFileName().toString())));
+
+                    if (latest.isPresent()) {
+                        return deserializeCheckpoint(latest.get());
+                    }
+                    return null;
+                }
+            } finally {
+                lock.readLock().unlock();
             }
-        } finally {
-            lock.readLock().unlock();
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getLatestCheckpoint failed");
         }
     }
 
     @Override
-    public List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws Exception {
-        validateId(jobId, "jobId");
-        List<CompletedCheckpoint> result = new ArrayList<>();
-
-        lock.readLock().lock();
+    public List<CompletedCheckpoint> getAllCheckpoints(String jobId) throws CheckpointStorageException {
         try {
-            Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
-            if (!Files.exists(jobRootDir)) {
-                return result;
-            }
+            validateId(jobId, "jobId");
+            List<CompletedCheckpoint> result = new ArrayList<>();
 
-            try (Stream<Path> pipelineDirs = Files.list(jobRootDir)) {
-                pipelineDirs.filter(Files::isDirectory)
-                        .forEach(pipelineDir -> {
-                            try (Stream<Path> files = Files.list(pipelineDir)) {
-                                files.filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
-                                        .forEach(p -> {
-                                            try {
-                                                CompletedCheckpoint cp = deserializeCheckpoint(p);
-                                                if (cp != null) {
-                                                    result.add(cp);
+            lock.readLock().lock();
+            try {
+                Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
+                if (!Files.exists(jobRootDir)) {
+                    return result;
+                }
+
+                try (Stream<Path> pipelineDirs = Files.list(jobRootDir)) {
+                    pipelineDirs.filter(Files::isDirectory)
+                            .forEach(pipelineDir -> {
+                                try (Stream<Path> files = Files.list(pipelineDir)) {
+                                    files.filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
+                                            .forEach(p -> {
+                                                try {
+                                                    CompletedCheckpoint cp = deserializeCheckpoint(p);
+                                                    if (cp != null) {
+                                                        result.add(cp);
+                                                    }
+                                                } catch (Exception e) {
+                                                    LOG.warn("Failed to deserialize checkpoint file: {}", p, e);
                                                 }
-                                            } catch (Exception e) {
-                                                LOG.warn("Failed to deserialize checkpoint file: {}", p, e);
-                                            }
-                                        });
-                            } catch (Exception e) {
-                                LOG.warn("Failed to list checkpoint files in directory: {}", pipelineDir, e);
-                            }
-                        });
-            }
-
-            result.sort((a, b) -> Long.compare(b.getCheckpointId(), a.getCheckpointId()));
-            return result;
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    @Override
-    public List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws Exception {
-        validateId(jobId, "jobId");
-        List<CompletedCheckpoint> all = new ArrayList<>();
-
-        lock.readLock().lock();
-        try {
-            Path jobDir = validatePath(Paths.get(baseDir, jobId));
-            if (!Files.exists(jobDir)) {
-                return all;
-            }
-
-            try (Stream<Path> files = Files.walk(jobDir)) {
-                files.filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
-                        .forEach(p -> {
-                             try {
-                                CompletedCheckpoint cp = deserializeCheckpoint(p);
-                                if (cp != null) {
-                                    all.add(cp);
-                                }
-                            } catch (Exception e) {
-                                LOG.warn("Failed to deserialize checkpoint file: {}", p, e);
-                            }
-                        });
-            }
-
-            all.sort((a, b) -> Long.compare(b.getCheckpointId(), a.getCheckpointId()));
-            if (all.size() <= count) {
-                return all;
-            }
-            return all.subList(0, count);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    @Override
-    public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) throws Exception {
-        Path checkpointPath = getCheckpointPath(jobId, pipelineId, checkpointId);
-
-        lock.writeLock().lock();
-        try {
-            deleteIfExists(checkpointPath);
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    @Override
-    public void deleteAllCheckpoints(String jobId) throws Exception {
-        validateId(jobId, "jobId");
-        Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
-
-        lock.writeLock().lock();
-        try {
-            if (Files.exists(jobRootDir)) {
-                try (Stream<Path> files = Files.walk(jobRootDir)) {
-                    files.sorted(Comparator.reverseOrder())
-                            .forEach(p -> {
-                                try {
-                                    Files.deleteIfExists(p);
+                                            });
                                 } catch (Exception e) {
-                                    LOG.warn("Failed to delete checkpoint file: {}", p, e);
+                                    LOG.warn("Failed to list checkpoint files in directory: {}", pipelineDir, e);
                                 }
                             });
                 }
+
+                result.sort((a, b) -> Long.compare(b.getCheckpointId(), a.getCheckpointId()));
+                return result;
+            } finally {
+                lock.readLock().unlock();
             }
-        } finally {
-            lock.writeLock().unlock();
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getAllCheckpoints failed");
         }
     }
 
     @Override
-    public int getCheckpointCount(String jobId) throws Exception {
-        validateId(jobId, "jobId");
-        int[] count = {0};
-        Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
-
-        lock.readLock().lock();
+    public List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) throws CheckpointStorageException {
         try {
-            if (!Files.exists(jobRootDir)) {
-                return 0;
-            }
+            validateId(jobId, "jobId");
+            List<CompletedCheckpoint> all = new ArrayList<>();
 
-            try (Stream<Path> files = Files.walk(jobRootDir)) {
-                files.filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
-                        .forEach(p -> count[0]++);
+            lock.readLock().lock();
+            try {
+                Path jobDir = validatePath(Paths.get(baseDir, jobId));
+                if (!Files.exists(jobDir)) {
+                    return all;
+                }
+
+                try (Stream<Path> files = Files.walk(jobDir)) {
+                    files.filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
+                            .forEach(p -> {
+                                 try {
+                                    CompletedCheckpoint cp = deserializeCheckpoint(p);
+                                    if (cp != null) {
+                                        all.add(cp);
+                                    }
+                                } catch (Exception e) {
+                                    LOG.warn("Failed to deserialize checkpoint file: {}", p, e);
+                                }
+                            });
+                }
+
+                all.sort((a, b) -> Long.compare(b.getCheckpointId(), a.getCheckpointId()));
+                if (all.size() <= count) {
+                    return all;
+                }
+                return all.subList(0, count);
+            } finally {
+                lock.readLock().unlock();
             }
-            return count[0];
-        } finally {
-            lock.readLock().unlock();
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getLatestCheckpoints failed");
+        }
+    }
+
+    @Override
+    public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) throws CheckpointStorageException {
+        try {
+            Path checkpointPath = getCheckpointPath(jobId, pipelineId, checkpointId);
+
+            lock.writeLock().lock();
+            try {
+                deleteIfExists(checkpointPath);
+            } finally {
+                lock.writeLock().unlock();
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "deleteCheckpoint failed");
+        }
+    }
+
+    @Override
+    public void deleteAllCheckpoints(String jobId) throws CheckpointStorageException {
+        try {
+            validateId(jobId, "jobId");
+            Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
+
+            lock.writeLock().lock();
+            try {
+                if (Files.exists(jobRootDir)) {
+                    try (Stream<Path> files = Files.walk(jobRootDir)) {
+                        files.sorted(Comparator.reverseOrder())
+                                .forEach(p -> {
+                                    try {
+                                        Files.deleteIfExists(p);
+                                    } catch (Exception e) {
+                                        LOG.warn("Failed to delete checkpoint file: {}", p, e);
+                                    }
+                                });
+                    }
+                }
+            } finally {
+                lock.writeLock().unlock();
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "deleteAllCheckpoints failed");
+        }
+    }
+
+    @Override
+    public int getCheckpointCount(String jobId) throws CheckpointStorageException {
+        try {
+            validateId(jobId, "jobId");
+            int[] count = {0};
+            Path jobRootDir = validatePath(Paths.get(baseDir, jobId));
+
+            lock.readLock().lock();
+            try {
+                if (!Files.exists(jobRootDir)) {
+                    return 0;
+                }
+
+                try (Stream<Path> files = Files.walk(jobRootDir)) {
+                    files.filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
+                            .forEach(p -> count[0]++);
+                }
+                return count[0];
+            } finally {
+                lock.readLock().unlock();
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "getCheckpointCount failed");
         }
     }
 
@@ -316,131 +360,161 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
     }
 
     @Override
-    public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws Exception {
-        String savepointDirName = SAVEPOINT_DIR_PREFIX + checkpoint.getCheckpointId();
-        Path savepointDir = validatePath(Paths.get(targetPath, savepointDirName));
-
-        lock.writeLock().lock();
+    public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) throws CheckpointStorageException {
         try {
-            ensureDirectoryExists(savepointDir.toString());
+            String savepointDirName = SAVEPOINT_DIR_PREFIX + checkpoint.getCheckpointId();
+            Path savepointDir = validatePath(Paths.get(targetPath, savepointDirName));
 
-            Path checkpointFile = savepointDir.resolve(checkpoint.getCheckpointId() + CHECKPOINT_SUFFIX);
-            Path tempFile = Paths.get(checkpointFile.toString() + TEMP_SUFFIX);
+            lock.writeLock().lock();
+            try {
+                ensureDirectoryExists(savepointDir.toString());
 
-            byte[] data = serializeCheckpoint(checkpoint);
-            Files.write(tempFile, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            Files.move(tempFile, checkpointFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                Path checkpointFile = savepointDir.resolve(checkpoint.getCheckpointId() + CHECKPOINT_SUFFIX);
+                Path tempFile = Paths.get(checkpointFile.toString() + TEMP_SUFFIX);
 
-            SavepointMetadata metadata = SavepointMetadata.fromCompletedCheckpoint(checkpoint);
-            Path metadataFile = savepointDir.resolve("savepoint-" + checkpoint.getCheckpointId() + METADATA_SUFFIX);
-            Path tempMetadata = Paths.get(metadataFile.toString() + TEMP_SUFFIX);
+                byte[] data = serializeCheckpoint(checkpoint);
+                Files.write(tempFile, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                Files.move(tempFile, checkpointFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 
-            byte[] metadataBytes = JsonTool.serialize(metadata, false).getBytes(StandardCharsets.UTF_8);
-            Files.write(tempMetadata, metadataBytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            Files.move(tempMetadata, metadataFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                SavepointMetadata metadata = SavepointMetadata.fromCompletedCheckpoint(checkpoint);
+                Path metadataFile = savepointDir.resolve("savepoint-" + checkpoint.getCheckpointId() + METADATA_SUFFIX);
+                Path tempMetadata = Paths.get(metadataFile.toString() + TEMP_SUFFIX);
 
-            LOG.info("Stored savepoint {} to {}", checkpoint.getCheckpointId(), savepointDir);
-            return savepointDir.toString();
-        } finally {
-            lock.writeLock().unlock();
+                byte[] metadataBytes = JsonTool.serialize(metadata, false).getBytes(StandardCharsets.UTF_8);
+                Files.write(tempMetadata, metadataBytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                Files.move(tempMetadata, metadataFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+
+                LOG.info("Stored savepoint {} to {}", checkpoint.getCheckpointId(), savepointDir);
+                return savepointDir.toString();
+            } finally {
+                lock.writeLock().unlock();
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "storeSavepoint failed");
         }
     }
 
     @Override
-    public CompletedCheckpoint loadSavepoint(String savepointPath) throws Exception {
-        Path dir = validatePath(Paths.get(savepointPath));
-        if (!Files.isDirectory(dir)) {
-            LOG.warn("Savepoint path does not exist or is not a directory: {}", savepointPath);
-            return null;
-        }
-
-        lock.readLock().lock();
+    public CompletedCheckpoint loadSavepoint(String savepointPath) throws CheckpointStorageException {
         try {
-            try (Stream<Path> files = Files.list(dir)) {
-                Optional<Path> checkpointFile = files
-                        .filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
-                        .findFirst();
+            Path dir = validatePath(Paths.get(savepointPath));
+            if (!Files.isDirectory(dir)) {
+                LOG.warn("Savepoint path does not exist or is not a directory: {}", savepointPath);
+                return null;
+            }
 
-                if (checkpointFile.isPresent()) {
-                    return deserializeCheckpoint(checkpointFile.get());
+            lock.readLock().lock();
+            try {
+                try (Stream<Path> files = Files.list(dir)) {
+                    Optional<Path> checkpointFile = files
+                            .filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
+                            .findFirst();
+
+                    if (checkpointFile.isPresent()) {
+                        return deserializeCheckpoint(checkpointFile.get());
+                    }
+                    return null;
                 }
-                return null;
+            } finally {
+                lock.readLock().unlock();
             }
-        } finally {
-            lock.readLock().unlock();
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "loadSavepoint failed");
         }
     }
 
     @Override
-    public SavepointMetadata loadSavepointMetadata(String savepointPath) throws Exception {
-        Path dir = validatePath(Paths.get(savepointPath));
-        if (!Files.isDirectory(dir)) {
-            return null;
-        }
-
-        lock.readLock().lock();
+    public SavepointMetadata loadSavepointMetadata(String savepointPath) throws CheckpointStorageException {
         try {
-            try (Stream<Path> files = Files.list(dir)) {
-                Optional<Path> metadataFile = files
-                        .filter(p -> p.toString().endsWith(METADATA_SUFFIX))
-                        .findFirst();
+            Path dir = validatePath(Paths.get(savepointPath));
+            if (!Files.isDirectory(dir)) {
+                return null;
+            }
 
-                if (metadataFile.isPresent()) {
-                    byte[] data = Files.readAllBytes(metadataFile.get());
-                    String json = new String(data, StandardCharsets.UTF_8);
-                    return JsonTool.parseBeanFromText(json, SavepointMetadata.class);
+            lock.readLock().lock();
+            try {
+                try (Stream<Path> files = Files.list(dir)) {
+                    Optional<Path> metadataFile = files
+                            .filter(p -> p.toString().endsWith(METADATA_SUFFIX))
+                            .findFirst();
+
+                    if (metadataFile.isPresent()) {
+                        byte[] data = Files.readAllBytes(metadataFile.get());
+                        String json = new String(data, StandardCharsets.UTF_8);
+                        return JsonTool.parseBeanFromText(json, SavepointMetadata.class);
+                    }
+                    return null;
                 }
-                return null;
+            } finally {
+                lock.readLock().unlock();
             }
-        } finally {
-            lock.readLock().unlock();
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "loadSavepointMetadata failed");
         }
     }
 
     @Override
-    public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws Exception {
-        Path manifestPath = getEpochManifestPath(jobId, pipelineId, manifest.getEpochId());
-        Path tempPath = Paths.get(manifestPath.toString() + TEMP_SUFFIX);
-
-        lock.writeLock().lock();
+    public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws CheckpointStorageException {
         try {
-            ensureDirectoryExists(manifestPath.getParent().toString());
+            Path manifestPath = getEpochManifestPath(jobId, pipelineId, manifest.getEpochId());
+            Path tempPath = Paths.get(manifestPath.toString() + TEMP_SUFFIX);
 
-            byte[] data = serializeEpochManifest(manifest);
-            Files.write(tempPath, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            Files.move(tempPath, manifestPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            lock.writeLock().lock();
+            try {
+                ensureDirectoryExists(manifestPath.getParent().toString());
 
-            LOG.debug("Stored epoch manifest {} for job {}/{}", manifest.getEpochId(), jobId, pipelineId);
-        } finally {
-            lock.writeLock().unlock();
-            deleteIfExists(tempPath);
+                byte[] data = serializeEpochManifest(manifest);
+                Files.write(tempPath, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                Files.move(tempPath, manifestPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+
+                LOG.debug("Stored epoch manifest {} for job {}/{}", manifest.getEpochId(), jobId, pipelineId);
+            } finally {
+                lock.writeLock().unlock();
+                deleteIfExists(tempPath);
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "storeEpochManifest failed");
         }
     }
 
     @Override
-    public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws Exception {
-        Path jobDir = getJobDir(jobId, pipelineId);
-
-        lock.readLock().lock();
+    public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws CheckpointStorageException {
         try {
-            if (!Files.exists(jobDir)) {
-                return null;
-            }
+            Path jobDir = getJobDir(jobId, pipelineId);
 
-            try (Stream<Path> files = Files.list(jobDir)) {
-                Optional<Path> latest = files
-                        .filter(p -> p.toString().endsWith(EPOCH_MANIFEST_SUFFIX))
-                        .max((a, b) -> Long.compare(
-                                extractIdFromFileName(a.getFileName().toString(), EPOCH_MANIFEST_SUFFIX),
-                                extractIdFromFileName(b.getFileName().toString(), EPOCH_MANIFEST_SUFFIX)));
-
-                if (latest.isPresent()) {
-                    return deserializeEpochManifest(latest.get());
+            lock.readLock().lock();
+            try {
+                if (!Files.exists(jobDir)) {
+                    return null;
                 }
-                return null;
+
+                try (Stream<Path> files = Files.list(jobDir)) {
+                    Optional<Path> latest = files
+                            .filter(p -> p.toString().endsWith(EPOCH_MANIFEST_SUFFIX))
+                            .max((a, b) -> Long.compare(
+                                    extractIdFromFileName(a.getFileName().toString(), EPOCH_MANIFEST_SUFFIX),
+                                    extractIdFromFileName(b.getFileName().toString(), EPOCH_MANIFEST_SUFFIX)));
+
+                    if (latest.isPresent()) {
+                        return deserializeEpochManifest(latest.get());
+                    }
+                    return null;
+                }
+            } finally {
+                lock.readLock().unlock();
             }
-        } finally {
-            lock.readLock().unlock();
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e).param(ARG_DETAIL, "loadLatestEpochManifest failed");
         }
     }
 
