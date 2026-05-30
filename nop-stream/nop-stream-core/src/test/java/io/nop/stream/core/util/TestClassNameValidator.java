@@ -40,4 +40,17 @@ class TestClassNameValidator {
         assertThrows(StreamException.class,
                 () -> ClassNameValidator.validateClassName(""));
     }
+
+    @Test
+    void testArrayClassValidationRejectsMaliciousPrefix() {
+        StreamException ex = assertThrows(StreamException.class,
+                () -> ClassNameValidator.validateClassName("[Lcom.evil.Malicious;"));
+        assertTrue(ex.getMessage().contains("[Lcom.evil.Malicious;"));
+    }
+
+    @Test
+    void testArrayClassValidationAcceptsAllowedPrefixes() {
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("[Lio.nop.stream.core.SomeClass;"));
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("[Ljava.lang.String;"));
+    }
 }
