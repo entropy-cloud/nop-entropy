@@ -35,6 +35,7 @@ class TestExactlyOnceCorrectnessFixes {
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(60000L);
+        config.setMaxConcurrentCheckpoints(10);
 
         CheckpointCoordinator coordinator = new CheckpointCoordinator(
                 "job-1", "pipe-1", new CheckpointIDCounter(), storage, config);
@@ -56,7 +57,7 @@ class TestExactlyOnceCorrectnessFixes {
             public void finishCommit(long epochId, boolean success) throws Exception {
                 if (success) {
                     int attempt = commitAttempts.incrementAndGet();
-                    if (attempt <= 2) {
+                    if (attempt <= 1) {
                         throw new StreamException("Transient commit failure attempt " + attempt);
                     }
                     commitSuccesses.incrementAndGet();
@@ -73,19 +74,16 @@ class TestExactlyOnceCorrectnessFixes {
         TaskLocation loc = new TaskLocation("job-1", "pipe-1", "v1", 0);
         coordinator.registerTask(loc);
 
-        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-        assertNotNull(pending);
+        PendingCheckpoint pending1 = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        coordinator.acknowledgeTask(loc, pending1.getCheckpointId(), new TaskStateSnapshot(loc));
+        pending1.getCompletableFuture().get();
 
-        TaskStateSnapshot state = new TaskStateSnapshot(loc);
-        state.putOperatorState("op-1", "data");
-
-        coordinator.acknowledgeTask(loc, pending.getCheckpointId(), state);
-
-        CompletedCheckpoint completed = (CompletedCheckpoint) pending.getCompletableFuture().get();
-        assertNotNull(completed);
+        PendingCheckpoint pending2 = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        coordinator.acknowledgeTask(loc, pending2.getCheckpointId(), new TaskStateSnapshot(loc));
+        pending2.getCompletableFuture().get();
 
         assertTrue(commitSuccesses.get() >= 1,
-                "commit should succeed after retries, attempts=" + commitAttempts.get());
+                "commit should succeed after deferred retry, attempts=" + commitAttempts.get());
 
         coordinator.shutdown();
     }
@@ -117,8 +115,8 @@ class TestExactlyOnceCorrectnessFixes {
             public void finishCommit(long epochId, boolean success) throws Exception {
                 if (success) {
                     int call = callCount.incrementAndGet();
-                    if (call <= 3) {
-                        throw new StreamException("First finishCommit call always fails (3 retries)");
+                    if (call <= 1) {
+                        throw new StreamException("First finishCommit call always fails");
                     }
                     committedEpochs.add(epochId);
                 }
@@ -140,7 +138,7 @@ class TestExactlyOnceCorrectnessFixes {
         assertNotNull(completed1);
 
         assertTrue(committedEpochs.isEmpty(),
-                "First epoch should fail after exhausting all 3 retries");
+                "First epoch should fail and be deferred to retry cycle");
 
         PendingCheckpoint pending2 = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         coordinator.acknowledgeTask(loc, pending2.getCheckpointId(), new TaskStateSnapshot(loc));

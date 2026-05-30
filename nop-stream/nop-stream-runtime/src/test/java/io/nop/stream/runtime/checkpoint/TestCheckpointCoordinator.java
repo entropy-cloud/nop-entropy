@@ -367,4 +367,60 @@ class TestCheckpointCoordinator {
         assertTrue(listenerAbortReceived.get(), "Listener should receive notifyCheckpointAborted during shutdown");
         assertEquals(0, coordinator.getNumberOfPendingCheckpoints());
     }
+
+    @Test
+    void testSetTasksToAcknowledgeAtomicSnapshot() {
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+        java.util.Set<TaskLocation> snapshot1 = coordinator.getTasksToAcknowledge();
+
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_11, LOC_22, LOC_33));
+        java.util.Set<TaskLocation> snapshot2 = coordinator.getTasksToAcknowledge();
+
+        assertEquals(2, snapshot1.size());
+        assertEquals(3, snapshot2.size());
+        assertTrue(snapshot1.contains(LOC_1));
+        assertTrue(snapshot2.contains(LOC_11));
+    }
+
+    @Test
+    void testRegisterUnregisterTask() {
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1));
+        assertEquals(1, coordinator.getTasksToAcknowledge().size());
+
+        coordinator.registerTask(LOC_2);
+        java.util.Set<TaskLocation> tasks = coordinator.getTasksToAcknowledge();
+        assertEquals(2, tasks.size());
+        assertTrue(tasks.contains(LOC_2));
+
+        coordinator.unregisterTask(LOC_1);
+        tasks = coordinator.getTasksToAcknowledge();
+        assertEquals(1, tasks.size());
+        assertTrue(tasks.contains(LOC_2));
+    }
+
+    @Test
+    void testFailedCommitDefersToRetry() throws Exception {
+        java.util.concurrent.atomic.AtomicInteger callCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        CheckpointParticipant participant = new CheckpointParticipant() {
+            @Override public TaskStateSnapshot saveState(long epochId) { return TaskStateSnapshot.empty(LOC_1); }
+            @Override public void prepareCommit(long epochId) {}
+            @Override
+            public void finishCommit(long epochId, boolean success) throws Exception {
+                callCount.incrementAndGet();
+                throw new StreamException("Always fails");
+            }
+            @Override public void restoreFromEpoch(long epochId, TaskStateSnapshot state) {}
+        };
+
+        coordinator.addParticipant(participant);
+        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+        coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+        coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
+
+        pending.getCompletableFuture().get();
+
+        assertEquals(1, callCount.get(), "finishCommit should be called exactly once with no tight retry loop");
+    }
 }

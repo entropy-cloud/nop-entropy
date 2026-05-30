@@ -191,4 +191,14 @@ class TestTwoPhaseCommitSinkFunction {
         assertTrue(restoredSink.getPendingCommits().isEmpty(),
                 "Restored pending commits should be rolled back and cleared");
     }
+
+    @Test
+    void testFinishCommitFailurePathKeepsPendingForSubsuming() throws Exception {
+        TestSink sink = new TestSink().withPendingCommits();
+
+        sink.finishCommit(1L, false);
+
+        assertFalse(sink.getPendingCommits().isEmpty(),
+                "Pending commits should be kept after failure path for subsuming commit");
+    }
 }

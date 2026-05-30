@@ -37,7 +37,7 @@ public class CheckpointCoordinator {
     private final ConcurrentHashMap<Long, PendingCheckpoint> pendingCheckpoints;
     private final AtomicInteger numPendingCheckpoints;
     private volatile CompletedCheckpoint latestCompletedCheckpoint;
-    private final Set<TaskLocation> tasksToAcknowledge;
+    private volatile Set<TaskLocation> tasksToAcknowledge;
 
     private ScheduledExecutorService scheduler;
     private final ScheduledExecutorService timeoutScheduler;
@@ -340,22 +340,35 @@ public class CheckpointCoordinator {
     }
 
     public void setTasksToAcknowledge(Collection<TaskLocation> taskLocations) {
-        tasksToAcknowledge.clear();
+        Set<TaskLocation> newSet = ConcurrentHashMap.newKeySet();
         if (taskLocations != null) {
             for (TaskLocation loc : taskLocations) {
                 if (loc != null) {
-                    tasksToAcknowledge.add(loc);
+                    newSet.add(loc);
                 }
             }
         }
+        this.tasksToAcknowledge = newSet;
     }
 
     public void registerTask(TaskLocation taskLocation) {
-        tasksToAcknowledge.add(taskLocation);
+        Set<TaskLocation> current = this.tasksToAcknowledge;
+        if (!current.contains(taskLocation)) {
+            Set<TaskLocation> newSet = ConcurrentHashMap.newKeySet();
+            newSet.addAll(current);
+            newSet.add(taskLocation);
+            this.tasksToAcknowledge = newSet;
+        }
     }
 
     public void unregisterTask(TaskLocation taskLocation) {
-        tasksToAcknowledge.remove(taskLocation);
+        Set<TaskLocation> current = this.tasksToAcknowledge;
+        if (current.contains(taskLocation)) {
+            Set<TaskLocation> newSet = ConcurrentHashMap.newKeySet();
+            newSet.addAll(current);
+            newSet.remove(taskLocation);
+            this.tasksToAcknowledge = newSet;
+        }
     }
 
     private void scheduleTimeout(PendingCheckpoint pending) {
@@ -414,22 +427,12 @@ public class CheckpointCoordinator {
         checkpointSuccessMap.put(checkpointId, success);
         for (int i = participants.size() - 1; i >= 0; i--) {
             CheckpointParticipant participant = participants.get(i);
-            int retries = DEFAULT_COMMIT_RETRIES;
-            while (retries > 0) {
-                try {
-                    participant.finishCommit(checkpointId, success);
-                    break;
-                } catch (Exception e) {
-                    retries--;
-                    if (retries > 0) {
-                        LOG.warn("finishCommit({}) failed for participant {} on checkpoint {}, retrying ({} left)",
-                                success, i, checkpointId, retries, e);
-                    } else {
-                        LOG.error("finishCommit({}) failed for participant {} on checkpoint {} after {} retries",
-                                success, i, checkpointId, DEFAULT_COMMIT_RETRIES, e);
-                        failedCommitParticipants.computeIfAbsent(checkpointId, k -> ConcurrentHashMap.newKeySet()).add(participant);
-                    }
-                }
+            try {
+                participant.finishCommit(checkpointId, success);
+            } catch (Exception e) {
+                LOG.error("finishCommit({}) failed for participant {} on checkpoint {}, deferring to retry cycle",
+                        success, i, checkpointId, e);
+                failedCommitParticipants.computeIfAbsent(checkpointId, k -> ConcurrentHashMap.newKeySet()).add(participant);
             }
         }
     }
@@ -461,7 +464,8 @@ public class CheckpointCoordinator {
                 it.remove();
                 checkpointSuccessMap.remove(failedEpoch);
             } else {
-                entry.setValue(stillFailing);
+                it.remove();
+                failedCommitParticipants.put(failedEpoch, stillFailing);
             }
         }
     }

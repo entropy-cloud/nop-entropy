@@ -82,15 +82,23 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
 
         if (success) {
             if (pending != null && !pending.isEmpty()) {
-                TreeMap<Long, Object> toCommit = new TreeMap<>();
+                TreeMap<Long, Object> toCommit;
                 synchronized (pending) {
+                    toCommit = new TreeMap<>();
                     for (Map.Entry<Long, Object> entry : pending.entrySet()) {
                         if (entry.getKey() <= epochId) {
                             toCommit.put(entry.getKey(), entry.getValue());
                         }
                     }
-                    for (Long eid : toCommit.keySet()) {
-                        commit(eid);
+                }
+                for (Map.Entry<Long, Object> entry : toCommit.entrySet()) {
+                    Long eid = entry.getKey();
+                    synchronized (pending) {
+                        if (!pending.containsKey(eid))
+                            continue;
+                    }
+                    commit(eid);
+                    synchronized (pending) {
                         pending.remove(eid);
                     }
                 }
