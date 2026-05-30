@@ -1,7 +1,11 @@
 package io.nop.stream.core.common.functions.sink;
 
-import org.junit.jupiter.api.Test;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.operators.StreamSinkOperator;
+import org.junit.jupiter.api.Test;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -18,10 +22,9 @@ class TestTwoPhaseCommitSinkFunction {
     static class TestSink extends TwoPhaseCommitSinkFunction<String> {
         int rollbackCallCount = 0;
         int failOnRollbackCall = -1;
-        private Map<Long, Object> pendingCommits = new HashMap<>();
 
         TestSink withPendingCommits() {
-            pendingCommits.put(1L, "tx1");
+            getPendingCommits().put(1L, "tx1");
             return this;
         }
 
@@ -39,12 +42,6 @@ class TestTwoPhaseCommitSinkFunction {
             if (rollbackCallCount == failOnRollbackCall) {
                 throw new StreamRuntimeException("rollback failed on call " + rollbackCallCount);
             }
-        }
-        @Override public Map<Long, Object> getPendingCommits() {
-            return pendingCommits;
-        }
-        @Override public void setPendingCommits(Map<Long, Object> pending) {
-            this.pendingCommits = pending;
         }
 
         @Override
@@ -114,5 +111,84 @@ class TestTwoPhaseCommitSinkFunction {
         executor.shutdown();
 
         assertFalse(failed.get(), "Concurrent finishCommit should not throw ConcurrentModificationException");
+    }
+
+    @Test
+    void testSaveStatePersistsPendingCommits() throws Exception {
+        TestSink sink = new TestSink();
+        sink.getPendingCommits().put(1L, "tx1");
+        sink.getPendingCommits().put(2L, "tx2");
+
+        TaskStateSnapshot snapshot = sink.saveState(1L);
+        assertNotNull(snapshot, "saveState should return non-null");
+
+        Object raw = snapshot.getOperatorState(TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY);
+        assertNotNull(raw, "snapshot should contain pending-commits");
+        assertTrue(raw instanceof Map, "pending-commits should be a Map");
+
+        @SuppressWarnings("unchecked")
+        Map<Long, Object> restored = (Map<Long, Object>) raw;
+        assertEquals(2, restored.size());
+        assertEquals("tx1", restored.get(1L));
+        assertEquals("tx2", restored.get(2L));
+    }
+
+    @Test
+    void testSaveStateReturnsNonEmptySnapshotWhenNoPendingCommits() throws Exception {
+        TestSink sink = new TestSink();
+
+        TaskStateSnapshot snapshot = sink.saveState(1L);
+        assertNotNull(snapshot, "saveState should return non-null even when no pending commits");
+
+        Object raw = snapshot.getOperatorState(TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY);
+        assertNotNull(raw, "snapshot should contain pending-commits key even when empty");
+        assertTrue(raw instanceof Map);
+        assertTrue(((Map<?, ?>) raw).isEmpty());
+    }
+
+    @Test
+    void testRestoreStateRecoversPendingCommitsAndRollbacks() throws Exception {
+        TestSink sink = new TestSink();
+        sink.getPendingCommits().put(1L, "tx1");
+
+        TaskStateSnapshot saved = sink.saveState(1L);
+        OperatorSnapshotResult snapshotResult = new OperatorSnapshotResult();
+        for (Map.Entry<String, Object> entry : saved.getOperatorStates().entrySet()) {
+            snapshotResult.putOperatorState("participant-" + entry.getKey(), entry.getValue());
+        }
+
+        TestSink restoredSink = new TestSink();
+        assertTrue(restoredSink.getPendingCommits().isEmpty());
+
+        StreamSinkOperator<String> operator = new StreamSinkOperator<>(restoredSink);
+        operator.restoreState(snapshotResult);
+
+        assertTrue(restoredSink.rollbackCallCount >= 1,
+                "rollback should have been called for pending tx");
+        assertTrue(restoredSink.getPendingCommits().isEmpty(),
+                "pending commits should be cleared after restoreFromEpoch");
+    }
+
+    @Test
+    void testTwoPhaseCommitSaveRestoreRoundTrip() throws Exception {
+        TestSink sink = new TestSink();
+        sink.beginTransaction();
+        sink.preCommit(1L);
+        sink.getPendingCommits().put(1L, "tx_epoch_1");
+
+        TaskStateSnapshot saved = sink.saveState(1L);
+        assertNotNull(saved);
+
+        OperatorSnapshotResult snapshotResult = new OperatorSnapshotResult();
+        for (Map.Entry<String, Object> entry : saved.getOperatorStates().entrySet()) {
+            snapshotResult.putOperatorState("participant-" + entry.getKey(), entry.getValue());
+        }
+
+        TestSink restoredSink = new TestSink();
+        StreamSinkOperator<String> operator = new StreamSinkOperator<>(restoredSink);
+        operator.restoreState(snapshotResult);
+
+        assertTrue(restoredSink.getPendingCommits().isEmpty(),
+                "Restored pending commits should be rolled back and cleared");
     }
 }

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.SinkFunction;
@@ -63,7 +64,10 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
 
     @Override
     public TaskStateSnapshot saveState(long epochId) throws Exception {
-        return null;
+        TaskStateSnapshot snapshot = new TaskStateSnapshot(new TaskLocation(), epochId);
+        Map<Long, Object> copy = new TreeMap<>(pendingCommits);
+        snapshot.putOperatorState(PENDING_COMMITS_KEY, copy);
+        return snapshot;
     }
 
     @Override

@@ -7,7 +7,9 @@
  */
 package io.nop.stream.core.operators;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.TreeMap;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
@@ -114,17 +116,32 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
-        if (userFunction instanceof TwoPhaseCommitSinkFunction) {
-            @SuppressWarnings("unchecked")
-            TwoPhaseCommitSinkFunction<Object> tpcSink = (TwoPhaseCommitSinkFunction<Object>) userFunction;
-            if (snapshotResult == null || snapshotResult.isEmpty()) {
-                // Failure recovery: rollback any pending transaction
-                tpcSink.rollback();
+        if (userFunction instanceof CheckpointParticipant) {
+            CheckpointParticipant participant = (CheckpointParticipant) userFunction;
+            if (snapshotResult != null && !snapshotResult.isEmpty()) {
+                String pendingKey = "participant-" + TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY;
+                Object raw = snapshotResult.getOperatorState(pendingKey);
+                if (raw instanceof Map && userFunction instanceof TwoPhaseCommitSinkFunction) {
+                    Map<Long, Object> pending = (Map<Long, Object>) raw;
+                    ((TwoPhaseCommitSinkFunction<Object>) userFunction).setPendingCommits(
+                            Collections.synchronizedMap(new TreeMap<>(pending)));
+                }
             }
-            // Always start a new transaction for the recovered session
-            tpcSink.beginTransaction();
+            participant.restoreFromEpoch(-1, null);
+        } else if (userFunction instanceof TwoPhaseCommitSinkFunction) {
+            TwoPhaseCommitSinkFunction<Object> tpcSink = (TwoPhaseCommitSinkFunction<Object>) userFunction;
+            if (snapshotResult != null && !snapshotResult.isEmpty()) {
+                String pendingKey = "participant-" + TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY;
+                Object raw = snapshotResult.getOperatorState(pendingKey);
+                if (raw instanceof Map) {
+                    Map<Long, Object> pending = (Map<Long, Object>) raw;
+                    tpcSink.setPendingCommits(Collections.synchronizedMap(new TreeMap<>(pending)));
+                }
+            }
+            tpcSink.restoreFromEpoch(-1, null);
         }
     }
 }
