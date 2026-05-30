@@ -1,5 +1,6 @@
 package io.nop.stream.cep;
 
+import io.nop.stream.cep.CepTestUtils;
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.operator.CepOperator;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
@@ -22,7 +23,6 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -174,10 +174,7 @@ public class TestCepPublicApiE2E {
                 return null;
             }
         };
-        Field f = io.nop.stream.core.operators.AbstractStreamOperator.class
-                .getDeclaredField("processingTimeService");
-        f.setAccessible(true);
-        f.set(op, pts);
+        CepTestUtils.injectProcessingTimeService(op, pts);
     }
 
     private static class TestOutput implements Output<StreamRecord<String>> {

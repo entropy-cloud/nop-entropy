@@ -1,5 +1,6 @@
 package io.nop.stream.cep.operator;
 
+import io.nop.stream.cep.CepTestUtils;
 import io.nop.stream.cep.Event;
 import io.nop.stream.cep.MockRuntimeContext;
 import io.nop.stream.cep.functions.PatternProcessFunction;
@@ -25,7 +26,6 @@ import io.nop.stream.core.streamrecord.LatencyMarker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -96,14 +96,7 @@ public class TestCepOperatorStateRecovery {
     }
 
     private static void setProcessingTimeService(CepOperator<?, ?, ?> op, ProcessingTimeService svc) {
-        try {
-            Field f = io.nop.stream.core.operators.AbstractStreamOperator.class
-                    .getDeclaredField("processingTimeService");
-            f.setAccessible(true);
-            f.set(op, svc);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        CepTestUtils.injectProcessingTimeService(op, svc);
     }
 
     @Test

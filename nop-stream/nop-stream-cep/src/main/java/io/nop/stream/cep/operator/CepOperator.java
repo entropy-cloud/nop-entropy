@@ -73,6 +73,11 @@ import org.slf4j.LoggerFactory;
  * and a priority queue to buffer out of order elements. Both data structures are stored using the
  * managed keyed state.
  *
+ * <p><b>Design note:</b> This operator currently uses a hardcoded {@link io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend}
+ * for its internal keyed state store. This is a simplified approach that does not support pluggable
+ * state backends. Future improvements should accept an external {@link io.nop.stream.core.common.state.backend.IStateBackend}
+ * via constructor or configuration, enabling persistent state backends for production use.
+ *
  * @param <IN>  Type of the input elements
  * @param <KEY> Type of the key on which the input stream is keyed
  * @param <OUT> Type of the output elements

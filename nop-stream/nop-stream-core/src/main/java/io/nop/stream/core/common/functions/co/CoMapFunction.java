@@ -37,6 +37,7 @@ import io.nop.stream.core.common.functions.StreamFunction;
  * <p>API 预留，当前未被使用
  */
 @Internal
+@Deprecated
 public interface CoMapFunction<IN1, IN2, OUT> extends StreamFunction, Serializable {
 
     /**

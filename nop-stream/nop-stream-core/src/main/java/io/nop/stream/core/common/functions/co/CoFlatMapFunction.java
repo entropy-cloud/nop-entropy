@@ -40,6 +40,7 @@ import io.nop.stream.core.util.Collector;
  * @param <IN2> Type of the second input.
  * @param <OUT> Output type.
  */
+@Deprecated
 public interface CoFlatMapFunction<IN1, IN2, OUT> extends StreamFunction, Serializable {
 
     /**
