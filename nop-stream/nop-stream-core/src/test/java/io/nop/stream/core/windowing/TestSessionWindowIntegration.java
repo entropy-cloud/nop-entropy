@@ -351,6 +351,43 @@ public class TestSessionWindowIntegration {
     }
 
     @Test
+    void testSessionWindowMergeClearsTriggerState() throws Exception {
+        WindowAggregationOperator<Event, int[], Integer, String, TimeWindow> operator =
+                new WindowAggregationOperator<>(
+                        EventTimeSessionWindows.withGap(50),
+                        EventTimeTrigger.create(),
+                        new AggregateAggregationFunction<>(new SumAggregateFunction()),
+                        (KeySelector<Event, String>) e -> e.key);
+
+        List<Integer> results = new ArrayList<>();
+        operator.setOutput(new io.nop.stream.core.operators.Output<io.nop.stream.core.streamrecord.StreamRecord<Integer>>() {
+            @Override public void emitWatermark(Watermark mark) {}
+            @Override public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus watermarkStatus) {}
+            @Override public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {}
+            @Override public void emitLatencyMarker(io.nop.stream.core.streamrecord.LatencyMarker latencyMarker) {}
+            @Override public void emitBarrier(io.nop.stream.core.checkpoint.CheckpointBarrier barrier) {}
+            @Override public void collect(StreamRecord<Integer> record) { results.add(record.getValue()); }
+            @Override public void close() {}
+        });
+
+        operator.open();
+
+        operator.setCurrentKey("key1");
+        operator.processElement(new StreamRecord<>(new Event("key1", 1, 10), 10));
+        operator.setCurrentKey("key1");
+        operator.processElement(new StreamRecord<>(new Event("key1", 2, 20), 20));
+
+        operator.processWatermark(new Watermark(Long.MAX_VALUE));
+
+        assertEquals(1, results.size());
+        assertEquals(3, results.get(0));
+
+        int triggerStateSize = operator.getTriggerState().size();
+        assertEquals(0, triggerStateSize,
+                "Trigger state should be empty after session window merge and fire+purge");
+    }
+
+    @Test
     void testSessionWindowWithLargeGapSingleSession() throws Exception {
         // gap=10000 means windows [10,10010) and [20,10020) overlap -> merge into one session
         List<Event> events = Arrays.asList(

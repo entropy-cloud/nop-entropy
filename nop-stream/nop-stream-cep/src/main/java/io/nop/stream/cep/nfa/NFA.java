@@ -287,8 +287,12 @@ public class NFA<T> {
                 nfaState.setStateChanged();
 
                 if (getState(computationState).isPending()) {
-                    // save pending states for after-match pruning, where those states will be
-                    // released
+                    // Pending states' SharedBuffer entries are released via the
+                    // processMatchesAccordingToSkipStrategy → prune() → releaseNode() path.
+                    // prune() is called in processMatchesAccordingToSkipStrategy (lines 457, 459)
+                    // for each pruned computation state, which calls sharedBufferAccessor.releaseNode().
+                    // Therefore the continue here is safe — no memory leak occurs because the
+                    // SharedBuffer entries will be released when potentialMatches are processed below.
                     potentialMatches.add(computationState);
                     continue;
                 }

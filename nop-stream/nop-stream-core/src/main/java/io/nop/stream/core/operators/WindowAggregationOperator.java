@@ -52,6 +52,10 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
     private long allowedLateness = 0;
 
+    public Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> getTriggerState() {
+        return triggerState;
+    }
+
     public void setAllowedLateness(long allowedLateness) {
         this.allowedLateness = allowedLateness;
     }
@@ -318,6 +322,14 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                         }
                         if (!sourceWindow.equals(mergedWindow)) {
                             TriggerContextImpl sourceCtx = new TriggerContextImpl(key, sourceWindow);
+                            trigger.clear(sourceWindow, sourceCtx);
+                            Iterator<TriggerStateKey<K, W>> tsIt = triggerState.keySet().iterator();
+                            while (tsIt.hasNext()) {
+                                TriggerStateKey<K, W> tsk = tsIt.next();
+                                if (tsk.windowKey.equals(sourceWk)) {
+                                    tsIt.remove();
+                                }
+                            }
                             unregisterEventTimeTimersForWindow(key, sourceWindow);
                             activeWindows.remove(sourceWindow);
                         }
