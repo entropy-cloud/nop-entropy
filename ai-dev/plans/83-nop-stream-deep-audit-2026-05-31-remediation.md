@@ -1,6 +1,6 @@
 # 83 nop-stream 2026-05-31 深度审计修复
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-05-31
 > Source: ai-dev/audits/2026-05-31-deep-audit-nop-stream/summary.md + 8 个维度报告
 > Related: 82-nop-stream-round13-audit-remediation (completed)
@@ -141,17 +141,17 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 9/10 个 P2 发现已修复（02-02 延期见 Deferred，01-01 审计发现不准确已移除）
-- [ ] 安全白名单收窄完成
-- [ ] 类型安全加固完成
-- [ ] 测试覆盖盲区填补完成
-- [ ] 不存在被静默降级到 deferred 的 in-scope P2 live defect
-- [ ] No owner-doc update required（均为代码/测试修复）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：新增类型检查确有运行时验证逻辑，新增测试确有断言
-- [ ] `./mvnw compile -pl nop-stream -am` 通过
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] 9/10 个 P2 发现已修复（02-02 延期见 Deferred，01-01 审计发现不准确已移除）
+- [x] 安全白名单收窄完成
+- [x] 类型安全加固完成
+- [x] 测试覆盖盲区填补完成
+- [x] 不存在被静默降级到 deferred 的 in-scope P2 live defect
+- [x] No owner-doc update required（均为代码/测试修复）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：新增类型检查确有运行时验证逻辑，新增测试确有断言
+- [x] `./mvnw compile -pl nop-stream -am` 通过
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] checkstyle / 代码规范检查通过（ast-grep lint passed in each commit）
 
 ## Deferred But Adjudicated
 
@@ -173,15 +173,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
+Status Note: Plan 83 完成所有 9/10 个 P2 发现修复（02-02 作为架构优化项延期）。三阶段执行：Phase 1 安全白名单+错误码、Phase 2 类型安全加固、Phase 3 测试覆盖填补。全部 exit criteria 和 closure gates 通过。`./mvnw test -pl nop-stream -am` BUILD SUCCESS。
 
 Closure Audit Evidence:
 
-<<独立子 agent closure audit 完成后填写>>
+- Reviewer / Agent: 独立子 agent (task ses_1861aa937ffe4lNp5lIUBShjsc)
+- Evidence:
+  - Phase 1: ClassNameValidator 无裸 "java." 前缀，6 个子包 + validateAccumulatorClass；SubtaskTask 用 ERR_STREAM_INIT_ERROR — PASS
+  - Phase 2: MemoryStateSerDe/AppendingState/ReduceOperator 均有运行时类型检查，使用 ERR_STREAM_TYPE_MISMATCH — PASS
+  - Phase 3: TestGraphModelCheckpointExecutor (7 tests)、TestTaskManager (+6)、TestJobCoordinator (+4)、TestMemoryStateSerDe (+3) — PASS
+  - Anti-Hollow: 类型检查使用 isInstance() 运行时验证，所有测试有具体断言 — PASS
+  - Build: compile + test 全过 — PASS
+  - Deferred: 02-02 为 optimization candidate，非 live defect — PASS
+- Advisory Notes: restoreAggregatingState 未加同类型检查（不在 scope 内）；javax/jakarta 前缀仍宽泛（不在 scope 内）
 
 Follow-up:
 
 - P3 发现修复（25 项）
-- GraphModelCheckpointExecutor 重构
+- GraphModelCheckpointExecutor 重构（02-02 完整修复）
 - WindowAggregationOperator 与 WindowOperator 统一
 - CEP ClosureCleaner 等效机制
+- restoreAggregatingState 增加与 restoreAppendingState 一致的类型检查
