@@ -2,6 +2,9 @@
     package io.nop.wf.api.beans._gen;
 
     import io.nop.api.core.annotations.meta.PropMeta;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
 
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _WfChangeActorRequestBean{
@@ -143,20 +146,20 @@
             this._ownerId = value;
         }
     
-        private java.util.Map<java.lang.String,java.lang.Object> _attrs;
+        private Map<String,Object> _attrs;
 
         /**
          * 扩展属性 
          */
         @PropMeta(propId=9,displayName="扩展属性")
-        public java.util.Map<java.lang.String,java.lang.Object> getAttrs(){
+        public Map<String,Object> getAttrs(){
             return _attrs;
         }
 
         /**
          * 扩展属性 
          */
-        public void setAttrs(java.util.Map<java.lang.String,java.lang.Object> value){
+        public void setAttrs(Map<String,Object> value){
             this._attrs = value;
         }
     

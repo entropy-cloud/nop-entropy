@@ -2,6 +2,9 @@
     package io.nop.wf.api.beans._gen;
 
     import io.nop.api.core.annotations.meta.PropMeta;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
 
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _WfStartRequestBean{
@@ -41,20 +44,20 @@
             this._wfVersion = value;
         }
     
-        private java.util.Map<java.lang.String,java.lang.Object> _wfParams;
+        private Map<String,Object> _wfParams;
 
         /**
          * 启动参数 
          */
         @PropMeta(propId=3,displayName="启动参数")
-        public java.util.Map<java.lang.String,java.lang.Object> getWfParams(){
+        public Map<String,Object> getWfParams(){
             return _wfParams;
         }
 
         /**
          * 启动参数 
          */
-        public void setWfParams(java.util.Map<java.lang.String,java.lang.Object> value){
+        public void setWfParams(Map<String,Object> value){
             this._wfParams = value;
         }
     

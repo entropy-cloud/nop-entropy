@@ -2,6 +2,9 @@
     package io.nop.rule.api.beans._gen;
 
     import io.nop.api.core.annotations.meta.PropMeta;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
 
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _RuleResultBean{
@@ -58,37 +61,37 @@
             this._ruleMatch = value;
         }
     
-        private java.util.Map<java.lang.String,java.lang.Object> _outputs;
+        private Map<String,Object> _outputs;
 
         /**
          * 输出结果 
          */
         @PropMeta(propId=4,displayName="输出结果")
-        public java.util.Map<java.lang.String,java.lang.Object> getOutputs(){
+        public Map<String,Object> getOutputs(){
             return _outputs;
         }
 
         /**
          * 输出结果 
          */
-        public void setOutputs(java.util.Map<java.lang.String,java.lang.Object> value){
+        public void setOutputs(Map<String,Object> value){
             this._outputs = value;
         }
     
-        private java.util.List<io.nop.rule.api.beans.RuleLogMessageBean> _logMessages;
+        private List _logMessages;
 
         /**
          * 日志消息 
          */
         @PropMeta(propId=5,displayName="日志消息")
-        public java.util.List<io.nop.rule.api.beans.RuleLogMessageBean> getLogMessages(){
+        public List getLogMessages(){
             return _logMessages;
         }
 
         /**
          * 日志消息 
          */
-        public void setLogMessages(java.util.List<io.nop.rule.api.beans.RuleLogMessageBean> value){
+        public void setLogMessages(List value){
             this._logMessages = value;
         }
     

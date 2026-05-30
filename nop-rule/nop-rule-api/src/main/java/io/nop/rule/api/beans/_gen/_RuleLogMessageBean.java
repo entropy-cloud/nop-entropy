@@ -2,6 +2,9 @@
     package io.nop.rule.api.beans._gen;
 
     import io.nop.api.core.annotations.meta.PropMeta;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
 
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _RuleLogMessageBean{

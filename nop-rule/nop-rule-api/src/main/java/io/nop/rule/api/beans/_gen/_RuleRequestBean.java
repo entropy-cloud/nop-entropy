@@ -2,6 +2,9 @@
     package io.nop.rule.api.beans._gen;
 
     import io.nop.api.core.annotations.meta.PropMeta;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
 
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _RuleRequestBean{
@@ -41,20 +44,20 @@
             this._ruleVersion = value;
         }
     
-        private java.util.Map<java.lang.String,java.lang.Object> _inputs;
+        private Map<String,Object> _inputs;
 
         /**
          * 输入参数 
          */
         @PropMeta(propId=3,displayName="输入参数")
-        public java.util.Map<java.lang.String,java.lang.Object> getInputs(){
+        public Map<String,Object> getInputs(){
             return _inputs;
         }
 
         /**
          * 输入参数 
          */
-        public void setInputs(java.util.Map<java.lang.String,java.lang.Object> value){
+        public void setInputs(Map<String,Object> value){
             this._inputs = value;
         }
     

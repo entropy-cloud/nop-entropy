@@ -2,6 +2,9 @@
     package io.nop.rule.api.beans._gen;
 
     import io.nop.api.core.annotations.meta.PropMeta;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
 
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _RuleMetaBean{
@@ -75,37 +78,37 @@
             this._description = value;
         }
     
-        private java.util.List<io.nop.api.core.beans.VarMetaBean> _inputs;
+        private List<io.nop.api.core.beans.VarMetaBean> _inputs;
 
         /**
          * 输入数据类型 
          */
         @PropMeta(propId=5,displayName="输入数据类型")
-        public java.util.List<io.nop.api.core.beans.VarMetaBean> getInputs(){
+        public List<io.nop.api.core.beans.VarMetaBean> getInputs(){
             return _inputs;
         }
 
         /**
          * 输入数据类型 
          */
-        public void setInputs(java.util.List<io.nop.api.core.beans.VarMetaBean> value){
+        public void setInputs(List<io.nop.api.core.beans.VarMetaBean> value){
             this._inputs = value;
         }
     
-        private java.util.List<io.nop.api.core.beans.VarMetaBean> _outputs;
+        private List<io.nop.api.core.beans.VarMetaBean> _outputs;
 
         /**
          * 输出数据类型 
          */
         @PropMeta(propId=6,displayName="输出数据类型")
-        public java.util.List<io.nop.api.core.beans.VarMetaBean> getOutputs(){
+        public List<io.nop.api.core.beans.VarMetaBean> getOutputs(){
             return _outputs;
         }
 
         /**
          * 输出数据类型 
          */
-        public void setOutputs(java.util.List<io.nop.api.core.beans.VarMetaBean> value){
+        public void setOutputs(List<io.nop.api.core.beans.VarMetaBean> value){
             this._outputs = value;
         }
     

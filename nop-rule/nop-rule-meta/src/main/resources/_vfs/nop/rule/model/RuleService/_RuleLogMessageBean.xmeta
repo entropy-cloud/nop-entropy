@@ -7,13 +7,13 @@
             <schema type="java.sql.Timestamp"/>
         </prop>
         <prop name="message" displayName="消息" i18n-en:displayName="Message">
-            <schema type="java.lang.String" precision="2000"/>
+            <schema type="String" precision="2000"/>
         </prop>
         <prop name="ruleNodeId" displayName="规则节点Id" i18n-en:displayName="Rule Node Id">
-            <schema type="java.lang.String" precision="200"/>
+            <schema type="String" precision="200"/>
         </prop>
         <prop name="ruleNodeLabel" displayName="规则节点标题" i18n-en:displayName="Rule Node Label">
-            <schema type="java.lang.String" precision="200"/>
+            <schema type="String" precision="200"/>
         </prop>
     </props>
 </meta>

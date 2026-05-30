@@ -4,25 +4,25 @@
 
     <props>
         <prop name="wfName" displayName="工作流名称" i18n-en:displayName="Workflow Name" mandatory="true">
-            <schema type="java.lang.String" precision="500"/>
+            <schema type="String" precision="500"/>
         </prop>
         <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true">
             <schema type="long"/>
         </prop>
         <prop name="wfId" displayName="工作流ID" i18n-en:displayName="Workflow ID" mandatory="true">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="String" precision="50"/>
         </prop>
         <prop name="managerType" displayName="管理者类型" i18n-en:displayName="Manager Type">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="String" precision="50"/>
         </prop>
         <prop name="managerName" displayName="管理者名称" i18n-en:displayName="Manager Name">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="String" precision="50"/>
         </prop>
         <prop name="managerId" displayName="管理者ID" i18n-en:displayName="Manager ID">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="String" precision="50"/>
         </prop>
         <prop name="managerDeptId" displayName="管理者部门ID" i18n-en:displayName="Manager Dept ID">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="String" precision="50"/>
         </prop>
     </props>
 </meta>

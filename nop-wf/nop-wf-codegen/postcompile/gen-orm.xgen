@@ -6,5 +6,5 @@ codeGenerator.withTargetDir("../nop-wf-dao/src/main/java").renderModel('../../no
     '/nop/templates/orm-entity','/',$scope);
 
 // 根据API模型生成服务消息和接口类
-codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.api.xlsx','/nop/templates/api', '/',$scope);
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.api.xml','/nop/templates/api', '/',$scope);
 ]]></c:script>
