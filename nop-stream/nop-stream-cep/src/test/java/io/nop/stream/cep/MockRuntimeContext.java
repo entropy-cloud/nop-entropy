@@ -10,4 +10,10 @@ package io.nop.stream.cep;
 import io.nop.stream.core.common.functions.RuntimeContext;
 
 public class MockRuntimeContext implements RuntimeContext {
+    @Override
+    public int getIndexOfThisSubtask() { return 0; }
+    @Override
+    public int getNumberOfParallelSubtasks() { return 1; }
+    @Override
+    public String getTaskName() { return "mock-task"; }
 }

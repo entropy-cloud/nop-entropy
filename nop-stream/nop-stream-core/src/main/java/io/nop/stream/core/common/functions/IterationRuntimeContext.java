@@ -14,4 +14,6 @@ import io.nop.api.core.annotations.core.Internal;
  */
 @Internal
 public interface IterationRuntimeContext extends RuntimeContext {
+
+    int getIterationCount();
 }

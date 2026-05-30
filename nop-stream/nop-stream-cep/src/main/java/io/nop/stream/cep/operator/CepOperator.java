@@ -263,7 +263,11 @@ public class CepOperator<IN, KEY, OUT>
 
         nfa = nfaFactory.createNFA();
 
-        cepRuntimeContext = new CepRuntimeContext(new io.nop.stream.core.common.functions.RuntimeContext() {}, keyedStateStore);
+        cepRuntimeContext = new CepRuntimeContext(new io.nop.stream.core.common.functions.RuntimeContext() {
+            @Override public int getIndexOfThisSubtask() { return 0; }
+            @Override public int getNumberOfParallelSubtasks() { return 1; }
+            @Override public String getTaskName() { return "cep-operator"; }
+        }, keyedStateStore);
         nfa.open(cepRuntimeContext, null);
 
         context = new ContextFunctionImpl();

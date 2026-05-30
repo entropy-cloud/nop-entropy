@@ -14,4 +14,10 @@ import io.nop.api.core.annotations.core.Internal;
  */
 @Internal
 public interface RuntimeContext {
+
+    int getIndexOfThisSubtask();
+
+    int getNumberOfParallelSubtasks();
+
+    String getTaskName();
 }

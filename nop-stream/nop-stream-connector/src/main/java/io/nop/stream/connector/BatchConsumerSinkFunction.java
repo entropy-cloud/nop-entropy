@@ -36,6 +36,7 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
     private final int batchSize;
     private final List<R> buffer;
     private final IBatchTaskContext taskContext;
+    private transient boolean flushed = false;
 
     public BatchConsumerSinkFunction(IBatchConsumerProvider<R> consumerProvider) {
         this(consumerProvider, 100);
@@ -80,9 +81,20 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
     }
 
     @Override
+    public void finish() throws Exception {
+        if (!flushed) {
+            flush();
+            flushed = true;
+        }
+    }
+
+    @Override
     public void close() {
         try {
-            flush();
+            if (!flushed) {
+                flush();
+                flushed = true;
+            }
         } finally {
             if (consumer instanceof AutoCloseable) {
                 try {

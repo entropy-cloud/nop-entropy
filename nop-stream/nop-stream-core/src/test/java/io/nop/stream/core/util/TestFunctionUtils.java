@@ -33,14 +33,22 @@ class TestFunctionUtils {
     @Test
     void testSetAndGetRuntimeContext() {
         MockRichFunction fn = new MockRichFunction();
-        RuntimeContext ctx = new RuntimeContext() {};
+        RuntimeContext ctx = new RuntimeContext() {
+            @Override public int getIndexOfThisSubtask() { return 0; }
+            @Override public int getNumberOfParallelSubtasks() { return 1; }
+            @Override public String getTaskName() { return "test"; }
+        };
         FunctionUtils.setFunctionRuntimeContext(fn, ctx);
         assertSame(ctx, FunctionUtils.getFunctionRuntimeContext(fn, null));
     }
 
     @Test
     void testGetRuntimeContextForPlainFunction() {
-        RuntimeContext defaultCtx = new RuntimeContext() {};
+        RuntimeContext defaultCtx = new RuntimeContext() {
+            @Override public int getIndexOfThisSubtask() { return 0; }
+            @Override public int getNumberOfParallelSubtasks() { return 1; }
+            @Override public String getTaskName() { return "default"; }
+        };
         RuntimeContext result = FunctionUtils.getFunctionRuntimeContext(new MockPlainFunction(), defaultCtx);
         assertSame(defaultCtx, result);
     }

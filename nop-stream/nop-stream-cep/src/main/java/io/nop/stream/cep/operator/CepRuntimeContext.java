@@ -53,4 +53,19 @@ class CepRuntimeContext implements RuntimeContext {
     public KeyedStateStore getKeyedStateStore() {
         return keyedStateStore;
     }
+
+    @Override
+    public int getIndexOfThisSubtask() {
+        return runtimeContext.getIndexOfThisSubtask();
+    }
+
+    @Override
+    public int getNumberOfParallelSubtasks() {
+        return runtimeContext.getNumberOfParallelSubtasks();
+    }
+
+    @Override
+    public String getTaskName() {
+        return runtimeContext.getTaskName();
+    }
 }
