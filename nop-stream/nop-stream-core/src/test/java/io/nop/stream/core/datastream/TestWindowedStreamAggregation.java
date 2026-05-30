@@ -43,66 +43,78 @@ public class TestWindowedStreamAggregation {
     }
 
     @Test
-    void testReduceDoesNotThrow() {
+    void testReduceBuildsCorrectDag() {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Arrays.asList(
                 new Event("a", 1, 10),
                 new Event("a", 2, 20));
 
-        assertDoesNotThrow(() -> {
-            env.fromCollection(events)
-                    .transform("TimestampsAndWatermarks",
-                            (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
-                            new TimestampsAndWatermarksOperator<>(WatermarkStrategy
-                                    .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
-                                    .withTimestampAssigner((e, ts) -> e.timestamp)))
-                    .keyBy((KeySelector<Event, String>) e -> e.key)
-                    .window(TumblingEventTimeWindows.of(100))
-                    .reduce((ReduceFunction<Event>) (a, b) -> new Event(a.key, a.value + b.value, a.timestamp))
-                    .sink(e -> {});
-        });
+        SingleOutputStreamOperator<Event> result = env.fromCollection(events)
+                .transform("TimestampsAndWatermarks",
+                        (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
+                        new TimestampsAndWatermarksOperator<>(WatermarkStrategy
+                                .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
+                                .withTimestampAssigner((e, ts) -> e.timestamp)))
+                .keyBy((KeySelector<Event, String>) e -> e.key)
+                .window(TumblingEventTimeWindows.of(100))
+                .reduce((ReduceFunction<Event>) (a, b) -> new Event(a.key, a.value + b.value, a.timestamp));
+
+        assertNotNull(result);
+        assertTrue(result instanceof DataStreamImpl);
+        io.nop.stream.core.transformation.Transformation<?> tx =
+                ((DataStreamImpl<Event>) result).getTransformation();
+        assertNotNull(tx);
+        assertEquals("WindowReduce", tx.getName());
     }
 
     @Test
-    void testAggregateDoesNotThrow() {
+    void testAggregateBuildsCorrectDag() {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Arrays.asList(
                 new Event("a", 1, 10),
                 new Event("a", 2, 20));
 
-        assertDoesNotThrow(() -> {
-            env.fromCollection(events)
-                    .transform("TimestampsAndWatermarks",
-                            (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
-                            new TimestampsAndWatermarksOperator<>(WatermarkStrategy
-                                    .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
-                                    .withTimestampAssigner((e, ts) -> e.timestamp)))
-                    .keyBy((KeySelector<Event, String>) e -> e.key)
-                    .window(TumblingEventTimeWindows.of(100))
-                    .aggregate(new SumAggregateFunction())
-                    .sink(e -> {});
-        });
+        SingleOutputStreamOperator<Integer> result = env.fromCollection(events)
+                .transform("TimestampsAndWatermarks",
+                        (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
+                        new TimestampsAndWatermarksOperator<>(WatermarkStrategy
+                                .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
+                                .withTimestampAssigner((e, ts) -> e.timestamp)))
+                .keyBy((KeySelector<Event, String>) e -> e.key)
+                .window(TumblingEventTimeWindows.of(100))
+                .aggregate(new SumAggregateFunction());
+
+        assertNotNull(result);
+        assertTrue(result instanceof DataStreamImpl);
+        io.nop.stream.core.transformation.Transformation<?> tx =
+                ((DataStreamImpl<Integer>) result).getTransformation();
+        assertNotNull(tx);
+        assertEquals("WindowAggregate", tx.getName());
     }
 
     @Test
-    void testApplyDoesNotThrow() {
+    void testApplyBuildsCorrectDag() {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         List<Event> events = Arrays.asList(
                 new Event("a", 1, 10),
                 new Event("a", 2, 20));
 
-        assertDoesNotThrow(() -> {
-            env.fromCollection(events)
-                    .transform("TimestampsAndWatermarks",
-                            (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
-                            new TimestampsAndWatermarksOperator<>(WatermarkStrategy
-                                    .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
-                                    .withTimestampAssigner((e, ts) -> e.timestamp)))
-                    .keyBy((KeySelector<Event, String>) e -> e.key)
-                    .window(TumblingEventTimeWindows.of(100))
-                    .apply(new SumWindowFunction())
-                    .sink(e -> {});
-        });
+        SingleOutputStreamOperator<Integer> result = env.fromCollection(events)
+                .transform("TimestampsAndWatermarks",
+                        (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
+                        new TimestampsAndWatermarksOperator<>(WatermarkStrategy
+                                .<Event>forBoundedOutOfOrderness(Duration.ofMillis(10))
+                                .withTimestampAssigner((e, ts) -> e.timestamp)))
+                .keyBy((KeySelector<Event, String>) e -> e.key)
+                .window(TumblingEventTimeWindows.of(100))
+                .apply(new SumWindowFunction());
+
+        assertNotNull(result);
+        assertTrue(result instanceof DataStreamImpl);
+        io.nop.stream.core.transformation.Transformation<?> tx =
+                ((DataStreamImpl<Integer>) result).getTransformation();
+        assertNotNull(tx);
+        assertEquals("WindowApply", tx.getName());
     }
 
     @Test

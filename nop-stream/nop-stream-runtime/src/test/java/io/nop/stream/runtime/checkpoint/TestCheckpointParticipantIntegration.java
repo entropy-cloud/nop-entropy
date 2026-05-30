@@ -740,4 +740,38 @@ class TestCheckpointParticipantIntegration {
         @Override
         public void restoreFromEpoch(long epochId, TaskStateSnapshot state) {}
     }
+
+    @Test
+    void testKeyedStateBackendRestorePreservesValues() throws Exception {
+        io.nop.stream.core.common.state.backend.memory.MemoryStateBackend stateBackend =
+                new io.nop.stream.core.common.state.backend.memory.MemoryStateBackend();
+        io.nop.stream.core.common.state.backend.IKeyedStateBackend<String> keyedBackend =
+                stateBackend.createKeyedStateBackend(String.class);
+
+        io.nop.stream.core.common.state.ValueState<Long> countState = keyedBackend.getState(
+                new io.nop.stream.core.common.state.ValueStateDescriptor<>("count", Long.class));
+
+        keyedBackend.setCurrentKey("key1");
+        countState.update(42L);
+        keyedBackend.setCurrentKey("key2");
+        countState.update(99L);
+
+        io.nop.stream.core.common.state.backend.StateSnapshot snapshot = keyedBackend.snapshotState();
+        assertNotNull(snapshot);
+
+        io.nop.stream.core.common.state.backend.IKeyedStateBackend<String> restoredBackend =
+                stateBackend.createKeyedStateBackend(String.class);
+        restoredBackend.restoreState(snapshot);
+
+        io.nop.stream.core.common.state.ValueState<Long> restoredCount = restoredBackend.getState(
+                new io.nop.stream.core.common.state.ValueStateDescriptor<>("count", Long.class));
+
+        restoredBackend.setCurrentKey("key1");
+        assertEquals(42L, restoredCount.value());
+        restoredBackend.setCurrentKey("key2");
+        assertEquals(99L, restoredCount.value());
+
+        keyedBackend.close();
+        restoredBackend.close();
+    }
 }
