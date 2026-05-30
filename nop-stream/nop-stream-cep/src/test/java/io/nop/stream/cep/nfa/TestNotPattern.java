@@ -171,7 +171,7 @@ public class TestNotPattern {
         List<Map<String, List<Event>>> matches = feedEvents(nfa, buffer, state,
                 List.of(new Event(1, "a"), new Event(2, "b"), new Event(3, "d")));
 
-        assertTrue(matches.size() >= 1);
+        assertEquals(2, matches.size());
         nfa.close();
     }
 

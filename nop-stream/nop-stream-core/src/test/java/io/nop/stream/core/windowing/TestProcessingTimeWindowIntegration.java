@@ -137,7 +137,7 @@ public class TestProcessingTimeWindowIntegration {
                 };
 
         Collection<TimeWindow> windows = assigner.assignWindows(new Object(), 0, ctx);
-        assertTrue(windows.size() >= 1, "Should have at least one window");
+        assertEquals(2, windows.size(), "Sliding window (size=200, slide=100) should produce 2 overlapping windows");
 
         for (TimeWindow w : windows) {
             assertEquals(200, w.getEnd() - w.getStart());

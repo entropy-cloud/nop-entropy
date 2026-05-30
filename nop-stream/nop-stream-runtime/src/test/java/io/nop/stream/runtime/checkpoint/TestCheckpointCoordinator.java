@@ -216,9 +216,74 @@ class TestCheckpointCoordinator {
     }
 
     @Test
-    void testSchedulerStartStop() {
-        coordinator.startCheckpointScheduler();
-        coordinator.stopCheckpointScheduler();
+    void testSchedulerStartStop() throws Exception {
+        CheckpointConfig shortIntervalConfig = CheckpointConfig.builder()
+                .checkpointEnabled(true)
+                .checkpointInterval(50L)
+                .checkpointTimeout(5000L)
+                .maxConcurrentCheckpoints(1)
+                .maxRetainedCheckpoints(3)
+                .build();
+        CheckpointCoordinator coord = new CheckpointCoordinator("1", "1", idCounter, storage, shortIntervalConfig);
+        coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+        try {
+            coord.startCheckpointScheduler();
+            Thread.sleep(200);
+            assertTrue(coord.getNumberOfPendingCheckpoints() >= 1,
+                    "Scheduler should have triggered at least one checkpoint");
+            coord.stopCheckpointScheduler();
+        } finally {
+            coord.shutdown();
+        }
+    }
+
+    @Test
+    void testCheckpointTimeoutAbortsPending() throws Exception {
+        CheckpointConfig shortTimeoutConfig = CheckpointConfig.builder()
+                .checkpointEnabled(true)
+                .checkpointInterval(1000L)
+                .checkpointTimeout(100L)
+                .maxConcurrentCheckpoints(1)
+                .maxRetainedCheckpoints(3)
+                .build();
+        CheckpointCoordinator coord = new CheckpointCoordinator("1", "1", new CheckpointIDCounter(), storage, shortTimeoutConfig);
+        coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+        try {
+            PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+            assertNotNull(pending);
+            assertEquals(1, coord.getNumberOfPendingCheckpoints());
+
+            coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+
+            Thread.sleep(300);
+
+            assertEquals(0, coord.getNumberOfPendingCheckpoints(),
+                    "Pending checkpoint should be aborted after timeout");
+        } finally {
+            coord.shutdown();
+        }
+    }
+
+    @Test
+    void testCleanupOldCheckpointsAfterMaxRetained() throws Exception {
+        config.setMaxRetainedCheckpoints(2);
+        CheckpointCoordinator coord = new CheckpointCoordinator("1", "1", new CheckpointIDCounter(), storage, config);
+        coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+        try {
+            for (int i = 0; i < 3; i++) {
+                PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+                assertNotNull(pending);
+                coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+                coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
+                pending.getCompletableFuture().get();
+            }
+
+            java.util.List<CompletedCheckpoint> allCheckpoints = storage.getAllCheckpoints("1");
+            assertTrue(allCheckpoints.size() <= 2,
+                    "Should retain at most maxRetainedCheckpoints, got: " + allCheckpoints.size());
+        } finally {
+            coord.shutdown();
+        }
     }
 
     @Test

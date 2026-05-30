@@ -148,7 +148,7 @@ public class TestNFA {
 
         List<Map<String, List<Event>>> matches = feedEvents(nfa, buffer, state, events);
 
-        assertTrue(matches.size() >= 1);
+        assertEquals(1, matches.size());
         Map<String, List<Event>> firstMatch = matches.get(0);
         assertEquals(1, firstMatch.get("a").get(0).getId());
         assertEquals("b", firstMatch.get("b").get(0).getName());

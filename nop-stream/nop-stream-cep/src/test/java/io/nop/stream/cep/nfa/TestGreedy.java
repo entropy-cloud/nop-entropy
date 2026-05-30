@@ -75,7 +75,7 @@ public class TestGreedy {
                         new Event(3, "a"),
                         new Event(4, "b")));
 
-        assertTrue(matches.size() >= 1,
+        assertEquals(4, matches.size(),
                 "Greedy zeroOrMore should produce matches");
         Map<String, List<Event>> match = matches.get(0);
         assertEquals(3, match.get("start").size(),
@@ -102,7 +102,7 @@ public class TestGreedy {
                         new Event(2, "a"),
                         new Event(3, "b")));
 
-        assertTrue(matches.size() >= 1);
+        assertEquals(2, matches.size());
         Map<String, List<Event>> match = matches.get(0);
         assertEquals(2, match.get("start").size(),
                 "Greedy oneOrMore should consume both 'a' events before 'b'");
@@ -132,7 +132,7 @@ public class TestGreedy {
                         new Event(3, "x"),
                         new Event(4, "b")));
 
-        assertTrue(matches.size() >= 1, "Greedy with middle events should produce matches");
+        assertEquals(1, matches.size(), "Greedy with middle events should produce exactly 1 match");
         Map<String, List<Event>> match = matches.get(0);
         assertEquals(2, match.get("middle").size(),
                 "Greedy middle should consume both 'x' events before 'b'");
@@ -192,7 +192,7 @@ public class TestGreedy {
                         new Event(4, "a"),
                         new Event(5, "b")));
 
-        assertTrue(matches.size() >= 1);
+        assertEquals(3, matches.size());
         Map<String, List<Event>> match = matches.get(0);
         assertEquals(4, match.get("start").size(),
                 "Greedy times(2,4) should consume all 4 'a' events before 'b'");
@@ -222,8 +222,8 @@ public class TestGreedy {
                         new Event(3, "x"),
                         new Event(4, "b")));
 
-        assertTrue(matches.size() >= 1,
-                "Greedy with dummy before quantifier should match");
+        assertEquals(1, matches.size(),
+                "Greedy with dummy before quantifier should produce exactly 1 match");
         Map<String, List<Event>> match = matches.get(0);
         assertEquals(1, match.get("middle").size(),
                 "Greedy middle should consume the single 'x' event");

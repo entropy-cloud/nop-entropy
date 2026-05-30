@@ -85,6 +85,7 @@ class TestGraphModelCheckpointExecutor {
                 .build();
 
         assertEquals(JobTerminationMode.DRAIN, config.getJobTerminationMode());
+        assertTrue(config.isCheckpointEnabled());
     }
 
     /**
@@ -99,6 +100,7 @@ class TestGraphModelCheckpointExecutor {
                 .build();
 
         assertEquals(JobTerminationMode.SUSPEND, config.getJobTerminationMode());
+        assertTrue(config.isCheckpointEnabled());
     }
 
     /**
@@ -108,6 +110,16 @@ class TestGraphModelCheckpointExecutor {
     void testDefaultTerminationModeIsCancel() {
         CheckpointConfig config = new CheckpointConfig();
         assertEquals(JobTerminationMode.CANCEL, config.getJobTerminationMode());
+        assertTrue(config.isCheckpointEnabled());
+    }
+
+    @Test
+    void testCreateStorageUnknownTypeThrows() {
+        CheckpointConfig config = new CheckpointConfig();
+        config.setStorageType("unknown");
+
+        assertThrows(StreamException.class,
+                () -> GraphModelCheckpointExecutor.createStorage(config));
     }
 
     /**

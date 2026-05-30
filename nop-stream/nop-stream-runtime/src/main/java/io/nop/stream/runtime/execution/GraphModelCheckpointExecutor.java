@@ -573,6 +573,10 @@ public class GraphModelCheckpointExecutor {
                             "JdbcCheckpointStorage requires IJdbcTemplate configuration. " +
                             "Use storageType='local' or provide JDBC configuration.");
         }
+        if (storageType == null || !"local".equalsIgnoreCase(storageType)) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED)
+                    .param(ARG_DETAIL, "Unknown storage type: " + storageType);
+        }
         String basePath = config.getStorageProperty("path");
         if (basePath == null || basePath.isEmpty()) {
             basePath = System.getProperty("java.io.tmpdir") + "/nop-stream-checkpoints";

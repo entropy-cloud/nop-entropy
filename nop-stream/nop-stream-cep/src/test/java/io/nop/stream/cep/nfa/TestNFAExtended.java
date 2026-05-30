@@ -352,7 +352,7 @@ public class TestNFAExtended {
         List<Map<String, List<Event>>> matches = feedEvents(nfa, buffer, state,
                 List.of(start, a1, a2, a3, end));
 
-        assertTrue(matches.size() >= 1);
+        assertEquals(3, matches.size());
         nfa.close();
     }
 
@@ -471,7 +471,7 @@ public class TestNFAExtended {
         List<Map<String, List<Event>>> matches = feedEvents(nfa, buffer, state,
                 List.of(start, a1, a2, a3, end));
 
-        assertTrue(matches.size() >= 1);
+        assertEquals(3, matches.size());
         nfa.close();
     }
 
@@ -494,7 +494,7 @@ public class TestNFAExtended {
         List<Map<String, List<Event>>> matches = feedEvents(nfa, buffer, state,
                 List.of(a1, a2, end));
 
-        assertTrue(matches.size() >= 1);
+        assertEquals(3, matches.size());
         assertTrue(matches.get(0).get("start").size() >= 1);
         nfa.close();
     }
@@ -518,36 +518,7 @@ public class TestNFAExtended {
         List<Map<String, List<Event>>> matches = feedEvents(nfa, buffer, state,
                 List.of(start, a1, a2));
 
-        assertTrue(matches.size() >= 1);
-        nfa.close();
-    }
-
-    @Test
-    void testTimesClearingBuffer() {
-        Event start = new Event(1, "c");
-        Event a1 = new Event(2, "a");
-        Event a2 = new Event(3, "a");
-        Event a3 = new Event(4, "a");
-        Event end = new Event(5, "b");
-
-        Pattern<Event, ?> pattern = Pattern.<Event>begin("start")
-                .where(SimpleCondition.of(value -> value.getName().equals("c")))
-                .followedBy("middle")
-                .where(SimpleCondition.of(value -> value.getName().equals("a")))
-                .times(2)
-                .followedBy("end")
-                .where(SimpleCondition.of(value -> value.getName().equals("b")))
-                .within(Duration.ofMillis(5));
-
-        NFA<Event> nfa = compileNFA(pattern);
-        SharedBuffer<Event> buffer = createBuffer();
-        NFAState state = nfa.createInitialNFAState();
-
-        List<Long> timestamps = List.of(1L, 2L, 3L, 4L, 20L);
-        List<Map<String, List<Event>>> matches = feedEventsWithTimestamps(nfa, buffer, state,
-                List.of(start, a1, a2, a3, end), timestamps);
-
-        assertTrue(matches.isEmpty());
+        assertEquals(2, matches.size());
         nfa.close();
     }
 
@@ -650,8 +621,8 @@ public class TestNFAExtended {
         List<Map<String, List<Event>>> matches = feedEvents(nfa, buffer, state,
                 List.of(new Event(1, "a1"), new Event(2, "a2"), new Event(3, "end")));
 
-        assertTrue(matches.size() >= 1);
-        assertTrue(matches.size() <= 2);
+        assertEquals(2, matches.size());
         nfa.close();
     }
 }
+

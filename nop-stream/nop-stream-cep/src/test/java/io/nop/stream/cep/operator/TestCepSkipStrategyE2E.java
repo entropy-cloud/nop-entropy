@@ -130,13 +130,10 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 1,
-                "skipPastLastEvent should produce at least one match, got: " + results);
+        assertEquals(1, results.size(),
+                "skipPastLastEvent should produce exactly 1 match, got: " + results);
         assertTrue(results.contains("a1->end"),
                 "First match should be a1->end, got: " + results);
-
-        assertTrue(results.size() <= 2,
-                "skipPastLastEvent should skip overlapping matches, got: " + results);
 
         op.close();
     }
@@ -156,8 +153,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 1,
-                "skipToNext should produce at least one match, got: " + results);
+        assertEquals(2, results.size(),
+                "skipToNext should produce 2 matches, got: " + results);
         assertTrue(results.contains("a1->end"));
 
         op.close();
@@ -181,8 +178,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 4));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 1,
-                "skipToFirst should produce at least one match, got: " + results);
+        assertEquals(2, results.size(),
+                "skipToFirst should produce 2 matches, got: " + results);
         assertTrue(results.contains("a1->b1->end") || results.stream().anyMatch(r -> r.endsWith("->end")),
                 "Should produce a match ending with 'end', got: " + results);
 
@@ -204,8 +201,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 1,
-                "skipToLast should produce at least one match, got: " + results);
+        assertEquals(2, results.size(),
+                "skipToLast should produce 2 matches, got: " + results);
 
         op.close();
     }
@@ -226,8 +223,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 1,
-                "noSkip+oneOrMore should produce matches, got: " + results);
+        assertEquals(3, results.size(),
+                "noSkip+oneOrMore should produce 3 matches, got: " + results);
 
         op.close();
     }
@@ -248,8 +245,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 1,
-                "skipToNext+oneOrMore should produce at least one match, got: " + results);
+        assertEquals(2, results.size(),
+                "skipToNext+oneOrMore should produce 2 matches, got: " + results);
 
         op.close();
     }
@@ -270,8 +267,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 1,
-                "skipPastLastEvent+oneOrMore should produce at least one match, got: " + results);
+        assertEquals(1, results.size(),
+                "skipPastLastEvent+oneOrMore should produce exactly 1 match, got: " + results);
 
         op.close();
     }
