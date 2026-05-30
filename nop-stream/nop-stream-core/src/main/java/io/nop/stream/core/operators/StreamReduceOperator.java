@@ -89,6 +89,9 @@ public class StreamReduceOperator<T>
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("key", e.getKey());
             entry.put("value", e.getValue());
+            if (e.getValue() != null) {
+                entry.put("valueTypeName", e.getValue().getClass().getName());
+            }
             entries.add(entry);
         }
         result.putOperatorState(REDUCE_STATE_KEY, entries);
@@ -114,6 +117,12 @@ public class StreamReduceOperator<T>
                     if (key == null || value == null) {
                         LOG.warn("Skipping restore entry with null key or value: key={}, value={}", key, value);
                         continue;
+                    }
+                    String expectedType = (String) entry.get("valueTypeName");
+                    if (expectedType != null && !expectedType.equals(value.getClass().getName())) {
+                        throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                                .param(ARG_EXPECTED_TYPE, expectedType)
+                                .param(ARG_ACTUAL_TYPE, value.getClass().getName());
                     }
                     values.put(key, (T) value);
                 }

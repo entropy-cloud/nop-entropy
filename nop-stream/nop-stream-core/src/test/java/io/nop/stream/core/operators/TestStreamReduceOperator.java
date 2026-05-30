@@ -7,8 +7,15 @@ import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
 import org.junit.jupiter.api.BeforeEach;
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestStreamReduceOperator {
@@ -175,5 +182,57 @@ public class TestStreamReduceOperator {
         assertNotNull(restored);
         assertEquals(1, restored.get("a"));
         assertEquals(2, restored.get("b"));
+    }
+
+    @Test
+    void testReduceOperatorRestoreTypeMismatch() throws Exception {
+        // Build a snapshot manually with a String value where Integer is expected
+        OperatorSnapshotResult snapshot = new OperatorSnapshotResult();
+        List<Map<String, Object>> entries = new ArrayList<>();
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("key", 1);
+        // Put a String value but claim it's an Integer via valueTypeName
+        entry.put("value", "not-an-integer");
+        entry.put("valueTypeName", "java.lang.Integer");
+        entries.add(entry);
+        snapshot.putOperatorState("reduce-state", entries);
+
+        ReduceFunction<Integer> sum = (value1, value2) -> value1 + value2;
+        StreamReduceOperator<Integer> restored = new StreamReduceOperator<>(sum);
+        TestOutput<Integer> restoredOutput = new TestOutput<>();
+        restored.setOutput((Output) restoredOutput);
+        restored.open();
+
+        // restoreState should detect type mismatch and throw StreamException
+        StreamException ex = assertThrows(StreamException.class, () -> restored.restoreState(snapshot));
+        assertEquals(ERR_STREAM_TYPE_MISMATCH.getErrorCode(), ex.getErrorCode());
+        assertEquals("java.lang.Integer", ex.getParam(ARG_EXPECTED_TYPE));
+        assertEquals("java.lang.String", ex.getParam(ARG_ACTUAL_TYPE));
+    }
+
+    @Test
+    void testReduceOperatorRestoreWithCorrectTypeStillWorks() throws Exception {
+        // Build a snapshot with correct type information
+        OperatorSnapshotResult snapshot = new OperatorSnapshotResult();
+        List<Map<String, Object>> entries = new ArrayList<>();
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("key", 1);
+        entry.put("value", 42);
+        entry.put("valueTypeName", "java.lang.Integer");
+        entries.add(entry);
+        snapshot.putOperatorState("reduce-state", entries);
+
+        ReduceFunction<Integer> sum = (value1, value2) -> value1 + value2;
+        StreamReduceOperator<Integer> restored = new StreamReduceOperator<>(sum);
+        TestOutput<Integer> restoredOutput = new TestOutput<>();
+        restored.setOutput((Output) restoredOutput);
+        restored.open();
+        restored.restoreState(snapshot);
+
+        // Verify state was restored correctly
+        restored.setCurrentKey(1);
+        restored.processElement(new StreamRecord<>(8, System.currentTimeMillis()));
+        assertEquals(1, restoredOutput.getRecords().size());
+        assertEquals(50, restoredOutput.getRecords().get(0).getValue());
     }
 }

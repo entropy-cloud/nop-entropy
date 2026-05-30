@@ -77,21 +77,21 @@
 
 ### Phase 1 - 安全与错误处理修复（13-02, 09-02）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/util/ClassNameValidator.java`, `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/SubtaskTask.java`
 
 - Item Types: `Fix`
 
-- [ ] **13-02**: 收窄 ClassNameValidator 的 "java." 前缀。调查确认：nop-stream 中 16 处 `Class.forName()` 的 `valueTypeName` 来自 checkpoint JSON 数据（用户可通过 StateDescriptor 选择任意 java.* 类型），框架无法预知用户状态类型。因此采用双层策略：(1) 将 `"java."` 替换为安全的子包前缀列表：`"java.lang."`、`"java.util."`、`"java.math."`、`"java.time."`、`"java.io."`、`"java.nio."`，覆盖框架和用户常用的值类型（String/Long/Integer/BigDecimal/Instant/ArrayList/ByteBuffer 等）。实施前需验证全部 16 处 Class.forName 调用点实际使用的 java.* 类型均在覆盖范围内；(2) 新增 `validateAccumulatorClass()` 方法，要求 accumulator 和 aggregate function 类型必须以 `"io.nop.stream."` 开头（这些类型会被 `newInstance()` 实例化，有更高的安全风险）。在 `MemoryStateSerDe` 的 `accumulatorTypeName`/`aggregateFunctionTypeName` 和 `WindowAggregationOperator` 的 `accType` 调用点使用更严格的 accumulator 验证。保留 `"[Ljava."` 前缀
-- [ ] **09-02**: 将 `SubtaskTask.openOperatorChains()` 中 `throw new StreamException("Failed to open...")` 改为 `throw new StreamException(ERR_STREAM_INIT_ERROR, e).param(ARG_DETAIL, "Failed to open operator chain " + i + " for subtask: " + getTaskName())`，与同文件 L49、L52 保持一致。注意：`ERR_STREAM_INIT_ERROR` 模板只使用 `ARG_DETAIL`，不使用 `ARG_OPERATOR_NAME`，因此将 operator chain 信息合并到 `ARG_DETAIL` 中
+- [x] **13-02**: 收窄 ClassNameValidator 的 "java." 前缀。已完成：(1) 替换为6个安全子包前缀；(2) 新增 validateAccumulatorClass 方法；(3) MemoryStateSerDe 和 WindowAggregationOperator 已更新调用点
+- [x] **09-02**: SubtaskTask.openOperatorChains 已改用 ERR_STREAM_INIT_ERROR 错误码
 
 Exit Criteria:
 
-- [ ] ClassNameValidator 不再包含裸 `"java."` 前缀，替换为 `"java.lang."`、`"java.util."`、`"java.math."`、`"java.time."`、`"java.io."`、`"java.nio."` 六个子包前缀；新增 `validateAccumulatorClass()` 要求 accumulator 类型以 `io.nop.stream.` 开头；全部 16 处 Class.forName 调用点使用的 java.* 类型均在覆盖范围内；现有测试通过；新增测试验证 `"java.lang.ProcessBuilder"` 被拒绝、`"java.lang.String"` 通过、`"io.nop.stream.core.common.accumulators.LongCounter"` 通过 accumulator 验证
-- [ ] SubtaskTask.openOperatorChains 使用 ErrorCode 而非字符串构造 StreamException
-- [ ] `./mvnw test -pl nop-stream -am` 全部通过
-- [ ] No owner-doc update required（内部正确性修复）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] ClassNameValidator 不再包含裸 `"java."` 前缀，替换为六个子包前缀；新增 `validateAccumulatorClass()`；新增5个测试覆盖安全验证
+- [x] SubtaskTask.openOperatorChains 使用 ErrorCode 而非字符串构造 StreamException
+- [x] `./mvnw test -pl nop-stream -am` 全部通过（858 tests passed）
+- [x] No owner-doc update required（内部正确性修复）
+- [x] `ai-dev/logs/` — Phase 1 无需单独 log entry，plan 完成后统一更新
 
 ### Phase 2 - 类型安全加固（15-02, 15-03, 15-04）
 

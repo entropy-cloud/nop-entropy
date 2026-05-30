@@ -83,6 +83,11 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
         TypedNamespaceAndKey key = getStorageKey();
         @SuppressWarnings("unchecked")
         ACC current = storage.get(key);
+        if (current != null && !descriptor.getValueType().isInstance(current)) {
+            throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                    .param(ARG_EXPECTED_TYPE, descriptor.getValueType().getName())
+                    .param(ARG_ACTUAL_TYPE, current.getClass().getName());
+        }
         accumulator.resetLocal();
         if (current != null) {
             accumulator.add((IN) current);

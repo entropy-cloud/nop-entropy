@@ -225,6 +225,11 @@ class MemoryStateSerDe {
                         deserializeNamespace(e.get("namespace")),
                         backend.routeKey(deserializeKey(e.get("key"))));
                 Object value = deserializeValue(e.get("value"), valueClass);
+                if (value != null && !valueClass.isInstance(value)) {
+                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                            .param(ARG_EXPECTED_TYPE, valueClass.getName())
+                            .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+                }
                 state.storage.put(nk, value);
             }
         }
@@ -318,6 +323,11 @@ class MemoryStateSerDe {
                         deserializeNamespace(e.get("namespace")),
                         backend.routeKey(deserializeKey(e.get("key"))));
                 Object value = deserializeValue(e.get("value"), valueClass);
+                if (value != null && !valueClass.isInstance(value)) {
+                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                            .param(ARG_EXPECTED_TYPE, valueClass.getName())
+                            .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+                }
                 state.storage.put(nk, wrapInAccumulator(value, accumulatorClass));
             }
         }
