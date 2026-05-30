@@ -9,15 +9,11 @@ import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
-import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.ProcessingTimeService;
-import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.util.OutputTag;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,13 +34,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestCepOperatorTimeout {
 
-    private List<String> matchResults;
+    private TestOutput<String> matchOutput;
     private List<String> timeoutResults;
     private NFACompiler.NFAFactory<Event> nfaFactory;
 
     @BeforeEach
     void setUp() {
-        matchResults = new ArrayList<>();
+        matchOutput = new TestOutput<>();
         timeoutResults = new ArrayList<>();
 
         // Pattern: start(id>=42) -> end(name="end") within 10ms
@@ -73,7 +69,7 @@ public class TestCepOperatorTimeout {
     };
 
     private CepOperator<Event, Integer, String> createOperator() throws Exception {
-        CombinedFunction combined = new CombinedFunction(matchResults, timeoutResults);
+        CombinedFunction combined = new CombinedFunction(timeoutResults);
 
         CepOperator<Event, Integer, String> operator = new CepOperator<>(
                 new EventTypeSerializer(),
@@ -85,7 +81,7 @@ public class TestCepOperatorTimeout {
                 null
         );
 
-        operator.setOutput(new TestOutput(matchResults));
+        operator.setOutput(matchOutput);
         setProcessingTimeService(operator, MOCK_PTS);
         operator.open();
         return operator;
@@ -112,9 +108,8 @@ public class TestCepOperatorTimeout {
         assertEquals("timeout:a", timeoutResults.get(0),
                 "Timeout result should be 'timeout:a'");
 
-        // No complete match should have been produced
-        assertTrue(matchResults.isEmpty(),
-                "Should not produce any complete match, got: " + matchResults);
+        assertTrue(matchOutput.isEmpty(),
+                "Should not produce any complete match, got: " + matchOutput.getElements());
 
         operator.close();
     }
@@ -132,9 +127,9 @@ public class TestCepOperatorTimeout {
         operator.processWatermark(new Watermark(5));
 
         // Pattern should complete — no timeout
-        assertFalse(matchResults.isEmpty(),
-                "Should produce a match when pattern completes, got: " + matchResults);
-        assertEquals("match:start", matchResults.get(0),
+        assertFalse(matchOutput.isEmpty(),
+                "Should produce a match when pattern completes, got: " + matchOutput.getElements());
+        assertEquals("match:start", matchOutput.get(0),
                 "Match result should be 'match:start'");
 
         // Advance watermark beyond the window to verify no timeout fires
@@ -154,11 +149,9 @@ public class TestCepOperatorTimeout {
             extends PatternProcessFunction<Event, String>
             implements TimedOutPartialMatchHandler<Event> {
 
-        private final List<String> matchResults;
         private final List<String> timeoutResults;
 
-        CombinedFunction(List<String> matchResults, List<String> timeoutResults) {
-            this.matchResults = matchResults;
+        CombinedFunction(List<String> timeoutResults) {
             this.timeoutResults = timeoutResults;
         }
 
@@ -172,43 +165,6 @@ public class TestCepOperatorTimeout {
         public void processTimedOutMatch(Map<String, List<Event>> match, Context ctx) {
             Event start = match.get("start").get(0);
             timeoutResults.add("timeout:" + start.getName());
-        }
-    }
-
-    private static class TestOutput implements Output<StreamRecord<String>> {
-        private final List<String> results;
-
-        TestOutput(List<String> results) {
-            this.results = results;
-        }
-
-        @Override
-        public void collect(StreamRecord<String> record) {
-            results.add(record.getValue());
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public void emitWatermark(Watermark mark) {
-        }
-
-        @Override
-        public void emitBarrier(CheckpointBarrier barrier) {
-        }
-
-        @Override
-        public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        }
-
-        @Override
-        public void emitLatencyMarker(LatencyMarker latencyMarker) {
-        }
-
-        @Override
-        public void emitWatermarkStatus(WatermarkStatus watermarkStatus) {
         }
     }
 

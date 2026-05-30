@@ -16,6 +16,7 @@ import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.EventTimeSessionWindows;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
@@ -42,60 +43,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class TestWindowOperatorCorrectness {
 
     // ---- Shared test infrastructure ----
-
-    static class TestOutput<T> implements Output<StreamRecord<T>> {
-        private final List<StreamRecord<T>> records = new ArrayList<>();
-
-        @Override
-        public void collect(StreamRecord<T> record) {
-            records.add(record);
-        }
-
-        @Override
-        public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-            throw new UnsupportedOperationException("Side output not supported in TestOutput");
-        }
-
-        @Override
-        public void emitWatermark(io.nop.stream.core.streamrecord.watermark.Watermark mark) {
-        }
-
-        @Override
-        public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus watermarkStatus) {
-        }
-
-        @Override
-        public void emitLatencyMarker(io.nop.stream.core.streamrecord.LatencyMarker latencyMarker) {
-        }
-
-        @Override
-        public void emitBarrier(io.nop.stream.core.checkpoint.CheckpointBarrier barrier) {
-        }
-
-        @Override
-        public void close() {
-        }
-
-        public List<T> getElements() {
-            List<T> elements = new ArrayList<>();
-            for (StreamRecord<T> record : records) {
-                elements.add(record.getValue());
-            }
-            return java.util.Collections.unmodifiableList(elements);
-        }
-
-        public int size() {
-            return records.size();
-        }
-
-        public boolean isEmpty() {
-            return records.isEmpty();
-        }
-
-        public void clear() {
-            records.clear();
-        }
-    }
 
     static class SimpleTimeWindowSerializer implements TypeSerializer<TimeWindow> {
         private static final long serialVersionUID = 1L;

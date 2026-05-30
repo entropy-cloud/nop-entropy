@@ -14,15 +14,11 @@ import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
-import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.ProcessingTimeService;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.util.OutputTag;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
-import io.nop.stream.core.streamrecord.LatencyMarker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,13 +36,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCepOperatorStateRecovery {
 
-    private List<String> results;
+    private TestOutput<String> output;
     private PatternProcessFunction<Event, String> function;
     private NFACompiler.NFAFactory<Event> nfaFactory;
 
     @BeforeEach
     void setUp() {
-        results = new ArrayList<>();
+        output = new TestOutput<>();
         function = new PatternProcessFunction<>() {
             @Override
             public void processMatch(Map<String, List<Event>> match, Context ctx, Collector<String> out) {
@@ -89,7 +85,7 @@ public class TestCepOperatorStateRecovery {
                 null
         );
 
-        operator.setOutput(new TestOutput(results));
+        operator.setOutput(output);
         setProcessingTimeService(operator, MOCK_PTS);
         operator.open();
         return operator;
@@ -109,7 +105,7 @@ public class TestCepOperatorStateRecovery {
 
         operator.processWatermark(new Watermark(5));
 
-        assertTrue(results.isEmpty(), "No complete match yet, end event not seen");
+        assertTrue(output.isEmpty(), "No complete match yet, end event not seen");
 
         NFAState state = operator.getNFAStateForTesting();
         assertNotNull(state, "NFA state should exist after processing events");
@@ -128,7 +124,7 @@ public class TestCepOperatorStateRecovery {
         op.processElement(new StreamRecord<>(new Event(43, "mid"), 3));
         op.processWatermark(new Watermark(3));
 
-        assertTrue(results.isEmpty(), "No match before end event");
+        assertTrue(output.isEmpty(), "No match before end event");
 
         NFAState capturedState = op.getNFAStateForTesting();
         assertNotNull(capturedState);
@@ -139,9 +135,9 @@ public class TestCepOperatorStateRecovery {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 4));
         op.processWatermark(new Watermark(10));
 
-        assertFalse(results.isEmpty(), "Should produce at least one match after end event");
-        assertTrue(results.contains("start42->end"),
-                "Should contain the expected match, got: " + results);
+        assertFalse(output.isEmpty(), "Should produce at least one match after end event");
+        assertTrue(output.getElements().contains("start42->end"),
+                "Should contain the expected match, got: " + output.getElements());
 
         op.close();
     }
@@ -155,7 +151,7 @@ public class TestCepOperatorStateRecovery {
         original.processElement(new StreamRecord<>(new Event(43, "mid"), 3));
         original.processWatermark(new Watermark(3));
 
-        assertTrue(results.isEmpty(), "No match before end event");
+        assertTrue(output.isEmpty(), "No match before end event");
 
         NFAState capturedState = original.getNFAStateForTesting();
         assertNotNull(capturedState, "NFA state should exist after processing events");
@@ -168,7 +164,7 @@ public class TestCepOperatorStateRecovery {
 
         original.close();
 
-        List<String> restoredResults = new ArrayList<>();
+        TestOutput<String> restoredOutput = new TestOutput<>();
         CepOperator<Event, Integer, String> restored = new CepOperator<>(
                 new EventTypeSerializer(),
                 false,
@@ -178,7 +174,7 @@ public class TestCepOperatorStateRecovery {
                 function,
                 null
         );
-        restored.setOutput(new TestOutput(restoredResults));
+        restored.setOutput(restoredOutput);
         setProcessingTimeService(restored, MOCK_PTS);
         restored.open();
 
@@ -204,7 +200,7 @@ public class TestCepOperatorStateRecovery {
 
     @Test
     void testWatermarkInitializedAfterDeserialization() throws Exception {
-        List<String> watermarkResults = new ArrayList<>();
+        TestOutput<String> watermarkOutput = new TestOutput<>();
         CepOperator<Event, Integer, String> operator = new CepOperator<>(
                 new EventTypeSerializer(),
                 false,
@@ -215,7 +211,7 @@ public class TestCepOperatorStateRecovery {
                 null
         );
 
-        operator.setOutput(new TestOutput(watermarkResults));
+        operator.setOutput(watermarkOutput);
         setProcessingTimeService(operator, MOCK_PTS);
         operator.open();
 
@@ -224,7 +220,7 @@ public class TestCepOperatorStateRecovery {
         operator.processElement(new StreamRecord<>(new Event(99, "end"), nearMinTimestamp + 1));
         operator.processWatermark(new Watermark(nearMinTimestamp + 2));
 
-        assertFalse(watermarkResults.isEmpty(),
+        assertFalse(watermarkOutput.isEmpty(),
                 "Elements with timestamps near Long.MIN_VALUE should not be dropped as late after open()");
 
         operator.close();
@@ -250,7 +246,7 @@ public class TestCepOperatorStateRecovery {
         original.processElement(new StreamRecord<>(new Event(43, "mid"), 3));
         original.processWatermark(new Watermark(3));
 
-        assertTrue(results.isEmpty(), "No match before end event");
+        assertTrue(output.isEmpty(), "No match before end event");
 
         NFAState capturedState = original.getNFAStateForTesting();
         assertNotNull(capturedState, "NFA state should exist after processing events");
@@ -259,7 +255,7 @@ public class TestCepOperatorStateRecovery {
 
         original.close();
 
-        List<String> recoveredResults = new ArrayList<>();
+        TestOutput<String> recoveredOutput = new TestOutput<>();
         CepOperator<Event, Integer, String> restored = new CepOperator<>(
                 new EventTypeSerializer(),
                 false,
@@ -269,7 +265,7 @@ public class TestCepOperatorStateRecovery {
                 function,
                 null
         );
-        restored.setOutput(new TestOutput(recoveredResults));
+        restored.setOutput(recoveredOutput);
         setProcessingTimeService(restored, MOCK_PTS);
         restored.open();
 
@@ -331,43 +327,6 @@ public class TestCepOperatorStateRecovery {
         assertEquals(2, items.size());
         assertTrue(items.contains("item1"));
         assertTrue(items.contains("item2"));
-    }
-
-    private static class TestOutput implements Output<StreamRecord<String>> {
-        private final List<String> results;
-
-        TestOutput(List<String> results) {
-            this.results = results;
-        }
-
-        @Override
-        public void collect(StreamRecord<String> record) {
-            results.add(record.getValue());
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public void emitWatermark(Watermark mark) {
-        }
-
-        @Override
-        public void emitBarrier(CheckpointBarrier barrier) {
-        }
-
-        @Override
-        public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        }
-
-        @Override
-        public void emitLatencyMarker(LatencyMarker latencyMarker) {
-        }
-
-        @Override
-        public void emitWatermarkStatus(WatermarkStatus watermarkStatus) {
-        }
     }
 
     private static class EventTypeSerializer implements TypeSerializer<Event> {

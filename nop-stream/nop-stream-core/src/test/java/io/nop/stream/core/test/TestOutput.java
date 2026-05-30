@@ -30,20 +30,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class TestOutput<T> implements Output<StreamRecord<T>> {
 
     private final List<StreamRecord<T>> records = new CopyOnWriteArrayList<>();
+    private final List<StreamRecord<?>> sideOutputs = new CopyOnWriteArrayList<>();
     private final List<Watermark> watermarks = new CopyOnWriteArrayList<>();
     private final List<LatencyMarker> latencyMarkers = new CopyOnWriteArrayList<>();
     private final List<CheckpointBarrier> barriers = new CopyOnWriteArrayList<>();
 
     @Override
     public void collect(StreamRecord<T> record) {
-        records.add(record);
+        records.add(new StreamRecord<>(record.getValue(), record.getTimestamp()));
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        // Side output - for now, just add to main records with tag info
-        // Can be extended to track side outputs separately
-        throw new UnsupportedOperationException("Side output not yet supported in test harness");
+        sideOutputs.add(new StreamRecord<>(record.getValue(), record.getTimestamp()));
     }
 
     @Override
@@ -125,6 +125,7 @@ public class TestOutput<T> implements Output<StreamRecord<T>> {
      */
     public void clear() {
         records.clear();
+        sideOutputs.clear();
         watermarks.clear();
         latencyMarkers.clear();
         barriers.clear();
@@ -146,5 +147,9 @@ public class TestOutput<T> implements Output<StreamRecord<T>> {
 
     public List<CheckpointBarrier> getBarriers() {
         return Collections.unmodifiableList(new ArrayList<>(barriers));
+    }
+
+    public List<StreamRecord<?>> getSideOutputs() {
+        return Collections.unmodifiableList(new ArrayList<>(sideOutputs));
     }
 }

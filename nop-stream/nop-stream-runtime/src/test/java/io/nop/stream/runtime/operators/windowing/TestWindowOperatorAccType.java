@@ -11,7 +11,7 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
@@ -267,60 +267,6 @@ public class TestWindowOperatorAccType {
         @Override
         public int getLength() {
             return -1;
-        }
-    }
-
-    static class TestOutput<T> implements Output<StreamRecord<T>> {
-        private final List<StreamRecord<T>> records = new ArrayList<>();
-
-        @Override
-        public void collect(StreamRecord<T> record) {
-            records.add(record);
-        }
-
-        @Override
-        public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void emitWatermark(io.nop.stream.core.streamrecord.watermark.Watermark mark) {
-        }
-
-        @Override
-        public void emitWatermarkStatus(WatermarkStatus watermarkStatus) {
-        }
-
-        @Override
-        public void emitLatencyMarker(io.nop.stream.core.streamrecord.LatencyMarker latencyMarker) {
-        }
-
-        @Override
-        public void emitBarrier(io.nop.stream.core.checkpoint.CheckpointBarrier barrier) {
-        }
-
-        @Override
-        public void close() {
-        }
-
-        public List<T> getElements() {
-            List<T> elements = new ArrayList<>();
-            for (StreamRecord<T> record : records) {
-                elements.add(record.getValue());
-            }
-            return java.util.Collections.unmodifiableList(elements);
-        }
-
-        public int size() {
-            return records.size();
-        }
-
-        public boolean isEmpty() {
-            return records.isEmpty();
-        }
-
-        public void clear() {
-            records.clear();
         }
     }
 }

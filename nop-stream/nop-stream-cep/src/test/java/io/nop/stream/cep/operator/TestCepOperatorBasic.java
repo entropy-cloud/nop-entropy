@@ -8,15 +8,11 @@ import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
-import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.ProcessingTimeService;
-import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.util.OutputTag;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -36,13 +32,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestCepOperatorBasic {
 
-    private List<String> results;
+    private TestOutput<String> output;
     private PatternProcessFunction<Event, String> function;
     private NFACompiler.NFAFactory<Event> nfaFactory;
 
     @BeforeEach
     void setUp() {
-        results = new ArrayList<>();
+        output = new TestOutput<>();
         function = new PatternProcessFunction<>() {
             @Override
             public void processMatch(Map<String, List<Event>> match, Context ctx, Collector<String> out) {
@@ -85,7 +81,7 @@ public class TestCepOperatorBasic {
                 null
         );
 
-        operator.setOutput(new TestOutput(results));
+        operator.setOutput(output);
         setProcessingTimeService(operator, MOCK_PTS);
         operator.open();
         return operator;
@@ -105,11 +101,11 @@ public class TestCepOperatorBasic {
         operator.processElement(new StreamRecord<>(new Event(99, "end"), 2));
         operator.processWatermark(new Watermark(10));
 
-        assertFalse(results.isEmpty(), "Should produce at least one match");
-        assertEquals("a->end", results.get(0),
+        assertFalse(output.isEmpty(), "Should produce at least one match");
+        assertEquals("a->end", output.get(0),
                 "Match should be 'a->end'");
-        assertTrue(results.size() == 1,
-                "Should produce exactly one match, got: " + results);
+        assertTrue(output.size() == 1,
+                "Should produce exactly one match, got: " + output.getElements());
 
         operator.close();
     }
@@ -124,8 +120,8 @@ public class TestCepOperatorBasic {
         operator.processElement(new StreamRecord<>(new Event(99, "end"), 2));
         operator.processWatermark(new Watermark(10));
 
-        assertTrue(results.isEmpty(),
-                "Should produce no match when start condition fails, got: " + results);
+        assertTrue(output.isEmpty(),
+                "Should produce no match when start condition fails, got: " + output.getElements());
 
         operator.close();
     }
@@ -133,34 +129,31 @@ public class TestCepOperatorBasic {
     @Test
     void testKeyedStateIsolation() throws Exception {
         // Create two operators simulating different keys
-        List<String> results1 = new ArrayList<>();
-        List<String> results2 = new ArrayList<>();
+        TestOutput<String> output1 = new TestOutput<>();
+        TestOutput<String> output2 = new TestOutput<>();
 
         CepOperator<Event, Integer, String> op1 = new CepOperator<>(
                 new EventTypeSerializer(), false, nfaFactory, null, null, function, null
         );
-        op1.setOutput(new TestOutput(results1));
+        op1.setOutput(output1);
         setProcessingTimeService(op1, MOCK_PTS);
         op1.open();
 
         CepOperator<Event, Integer, String> op2 = new CepOperator<>(
                 new EventTypeSerializer(), false, nfaFactory, null, null, function, null
         );
-        op2.setOutput(new TestOutput(results2));
+        op2.setOutput(output2);
         setProcessingTimeService(op2, MOCK_PTS);
         op2.open();
 
-        // Send matching events only to op1
         op1.processElement(new StreamRecord<>(new Event(42, "a"), 1));
         op1.processElement(new StreamRecord<>(new Event(99, "end"), 2));
         op1.processWatermark(new Watermark(10));
 
-        // Verify op1 got the match
-        assertFalse(results1.isEmpty(), "op1 should produce a match");
-        assertEquals("a->end", results1.get(0));
+        assertFalse(output1.isEmpty(), "op1 should produce a match");
+        assertEquals("a->end", output1.get(0));
 
-        // Verify op2 got nothing (state isolation)
-        assertTrue(results2.isEmpty(),
+        assertTrue(output2.isEmpty(),
                 "op2 should produce no match (keyed state isolation)");
 
         // op2's NFA state should have only initial states, no partial matches from op1
@@ -188,51 +181,14 @@ public class TestCepOperatorBasic {
         operator.processElement(new StreamRecord<>(new Event(100, "end"), 7));
         operator.processWatermark(new Watermark(20));
 
-        assertTrue(results.size() >= 2,
-                "Should produce at least two matches, got: " + results);
-        assertTrue(results.contains("a->end"),
-                "Should contain first match 'a->end', got: " + results);
-        assertTrue(results.contains("b->end"),
-                "Should contain second match 'b->end', got: " + results);
+        assertTrue(output.size() >= 2,
+                "Should produce at least two matches, got: " + output.getElements());
+        assertTrue(output.getElements().contains("a->end"),
+                "Should contain first match 'a->end', got: " + output.getElements());
+        assertTrue(output.getElements().contains("b->end"),
+                "Should contain second match 'b->end', got: " + output.getElements());
 
         operator.close();
-    }
-
-    private static class TestOutput implements Output<StreamRecord<String>> {
-        private final List<String> results;
-
-        TestOutput(List<String> results) {
-            this.results = results;
-        }
-
-        @Override
-        public void collect(StreamRecord<String> record) {
-            results.add(record.getValue());
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public void emitWatermark(Watermark mark) {
-        }
-
-        @Override
-        public void emitBarrier(CheckpointBarrier barrier) {
-        }
-
-        @Override
-        public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        }
-
-        @Override
-        public void emitLatencyMarker(LatencyMarker latencyMarker) {
-        }
-
-        @Override
-        public void emitWatermarkStatus(WatermarkStatus watermarkStatus) {
-        }
     }
 
     private static class EventTypeSerializer implements TypeSerializer<Event> {

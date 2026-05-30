@@ -9,15 +9,12 @@ import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
-import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.ProcessingTimeService;
-import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,12 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestCepSkipStrategyE2E {
 
-    private List<String> results;
+    private TestOutput<String> output;
     private PatternProcessFunction<Event, String> function;
 
     @BeforeEach
     void setUp() {
-        results = new ArrayList<>();
+        output = new TestOutput<>();
         function = new PatternProcessFunction<>() {
             @Override
             public void processMatch(Map<String, List<Event>> match, Context ctx, Collector<String> out) {
@@ -82,7 +79,7 @@ public class TestCepSkipStrategyE2E {
                 null
         );
 
-        operator.setOutput(new TestOutput(results));
+        operator.setOutput(output);
         setProcessingTimeService(operator, MOCK_PTS);
         operator.open();
         return operator;
@@ -107,10 +104,10 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertTrue(results.size() >= 2,
-                "noSkip should produce all matches, got: " + results);
-        assertTrue(results.contains("a1->end"));
-        assertTrue(results.contains("a2->end"));
+        assertTrue(output.size() >= 2,
+                "noSkip should produce all matches, got: " + output.getElements());
+        assertTrue(output.getElements().contains("a1->end"));
+        assertTrue(output.getElements().contains("a2->end"));
 
         op.close();
     }
@@ -130,10 +127,10 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertEquals(1, results.size(),
-                "skipPastLastEvent should produce exactly 1 match, got: " + results);
-        assertTrue(results.contains("a1->end"),
-                "First match should be a1->end, got: " + results);
+        assertEquals(1, output.size(),
+                "skipPastLastEvent should produce exactly 1 match, got: " + output.getElements());
+        assertTrue(output.getElements().contains("a1->end"),
+                "First match should be a1->end, got: " + output.getElements());
 
         op.close();
     }
@@ -153,9 +150,9 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertEquals(2, results.size(),
-                "skipToNext should produce 2 matches, got: " + results);
-        assertTrue(results.contains("a1->end"));
+        assertEquals(2, output.size(),
+                "skipToNext should produce 2 matches, got: " + output.getElements());
+        assertTrue(output.getElements().contains("a1->end"));
 
         op.close();
     }
@@ -178,10 +175,10 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 4));
         op.processWatermark(new Watermark(10));
 
-        assertEquals(2, results.size(),
-                "skipToFirst should produce 2 matches, got: " + results);
-        assertTrue(results.contains("a1->b1->end") || results.stream().anyMatch(r -> r.endsWith("->end")),
-                "Should produce a match ending with 'end', got: " + results);
+        assertEquals(2, output.size(),
+                "skipToFirst should produce 2 matches, got: " + output.getElements());
+        assertTrue(output.getElements().contains("a1->b1->end") || output.getElements().stream().anyMatch(r -> r.endsWith("->end")),
+                "Should produce a match ending with 'end', got: " + output.getElements());
 
         op.close();
     }
@@ -201,8 +198,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertEquals(2, results.size(),
-                "skipToLast should produce 2 matches, got: " + results);
+        assertEquals(2, output.size(),
+                "skipToLast should produce 2 matches, got: " + output.getElements());
 
         op.close();
     }
@@ -223,8 +220,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertEquals(3, results.size(),
-                "noSkip+oneOrMore should produce 3 matches, got: " + results);
+        assertEquals(3, output.size(),
+                "noSkip+oneOrMore should produce 3 matches, got: " + output.getElements());
 
         op.close();
     }
@@ -245,8 +242,8 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertEquals(2, results.size(),
-                "skipToNext+oneOrMore should produce 2 matches, got: " + results);
+        assertEquals(2, output.size(),
+                "skipToNext+oneOrMore should produce 2 matches, got: " + output.getElements());
 
         op.close();
     }
@@ -267,47 +264,10 @@ public class TestCepSkipStrategyE2E {
         op.processElement(new StreamRecord<>(new Event(99, "end"), 3));
         op.processWatermark(new Watermark(10));
 
-        assertEquals(1, results.size(),
-                "skipPastLastEvent+oneOrMore should produce exactly 1 match, got: " + results);
+        assertEquals(1, output.size(),
+                "skipPastLastEvent+oneOrMore should produce exactly 1 match, got: " + output.getElements());
 
         op.close();
-    }
-
-    private static class TestOutput implements Output<StreamRecord<String>> {
-        private final List<String> results;
-
-        TestOutput(List<String> results) {
-            this.results = results;
-        }
-
-        @Override
-        public void collect(StreamRecord<String> record) {
-            results.add(record.getValue());
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public void emitWatermark(Watermark mark) {
-        }
-
-        @Override
-        public void emitBarrier(CheckpointBarrier barrier) {
-        }
-
-        @Override
-        public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {
-        }
-
-        @Override
-        public void emitLatencyMarker(LatencyMarker latencyMarker) {
-        }
-
-        @Override
-        public void emitWatermarkStatus(WatermarkStatus watermarkStatus) {
-        }
     }
 
     private static class EventTypeSerializer implements TypeSerializer<Event> {

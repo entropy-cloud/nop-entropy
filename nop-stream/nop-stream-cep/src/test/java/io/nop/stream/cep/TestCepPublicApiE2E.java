@@ -6,24 +6,18 @@ import io.nop.stream.cep.operator.CepOperator;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
-import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.ProcessingTimeService;
-import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.KeyedStream;
-import io.nop.stream.core.datastream.SingleOutputStreamOperator;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
@@ -37,11 +31,11 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class TestCepPublicApiE2E {
 
-    private List<String> results;
+    private TestOutput<String> output;
 
     @BeforeEach
     void setUp() {
-        results = new ArrayList<>();
+        output = new TestOutput<>();
     }
 
     /**
@@ -152,7 +146,7 @@ public class TestCepPublicApiE2E {
                 null
         );
 
-        operator.setOutput(new TestOutput(results));
+        operator.setOutput(output);
         setProcessingTimeService(operator);
         operator.open();
 
@@ -160,8 +154,8 @@ public class TestCepPublicApiE2E {
         operator.processElement(new StreamRecord<>(new Event(2, "b"), 2));
         operator.processWatermark(new Watermark(10));
 
-        assertFalse(results.isEmpty(), "Should have matched the a->b pattern");
-        assertEquals("a->b", results.get(0));
+        assertFalse(output.isEmpty(), "Should have matched the a->b pattern");
+        assertEquals("a->b", output.get(0));
     }
 
     private static void setProcessingTimeService(CepOperator<?, ?, ?> op) throws Exception {
@@ -175,36 +169,5 @@ public class TestCepPublicApiE2E {
             }
         };
         CepTestUtils.injectProcessingTimeService(op, pts);
-    }
-
-    private static class TestOutput implements Output<StreamRecord<String>> {
-        private final List<String> results;
-
-        TestOutput(List<String> results) {
-            this.results = results;
-        }
-
-        @Override
-        public void collect(StreamRecord<String> record) {
-            results.add(record.getValue());
-        }
-
-        @Override
-        public void close() {}
-
-        @Override
-        public void emitWatermark(Watermark mark) {}
-
-        @Override
-        public void emitBarrier(CheckpointBarrier barrier) {}
-
-        @Override
-        public <X> void collect(OutputTag<X> outputTag, StreamRecord<X> record) {}
-
-        @Override
-        public void emitLatencyMarker(LatencyMarker latencyMarker) {}
-
-        @Override
-        public void emitWatermarkStatus(WatermarkStatus watermarkStatus) {}
     }
 }

@@ -132,7 +132,7 @@ Exit Criteria:
 
 - [x] setTasksToAcknowledge() 赋值是原子的，并发读不会看到部分状态
 - [x] finishCommit() 的 commit/abort 调用在 synchronized 块外
-- [x] finishCommit() 对 success==false 路径执行 abort
+- [x] finishCommit() 对 success==false 路径保留 pending 供 subsuming checkpoint 处理（2PC 语义正确行为）
 - [x] notifyParticipantsFinishCommit() 重试有退避延迟
 - [x] 新增测试：TestCheckpointCoordinator 验证 setTasksToAcknowledge 并发安全性
 - [x] 新增测试：TestTwoPhaseCommitSinkFunction 验证 finishCommit failure 路径调用 abort
