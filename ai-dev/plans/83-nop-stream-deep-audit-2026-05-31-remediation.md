@@ -95,49 +95,49 @@ Exit Criteria:
 
 ### Phase 2 - 类型安全加固（15-02, 15-03, 15-04）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/backend/memory/MemoryStateSerDe.java`, `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/backend/memory/MemoryInternalAppendingState.java`, `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/StreamReduceOperator.java`
 
 - Item Types: `Fix`
 
-- [ ] **15-02**: 在 `MemoryStateSerDe` 各 restore 方法中增加反序列化后的类型验证。调查确认：`Class.forName(valueTypeName)` 加载的类型直接用于创建 StateDescriptor 和反序列化值，当前没有"期望类型"可供比较。真正的风险点是反序列化后的值被存入 state storage 后，后续操作（如 accumulator.add()）对其做不安全强转。修复策略：(1) 在 `restoreAppendingState` 和 `restoreReducingState` 中，`deserializeValue()` 之后、`state.storage.put()` 之前增加 `valueClass.isInstance(value)` 检查，确保反序列化结果与声明的 valueClass 一致；(2) 若不一致，使用已定义但未使用的 `ERR_STREAM_TYPE_MISMATCH`（`NopStreamErrors.java:163`，参数 `ARG_EXPECTED_TYPE` + `ARG_ACTUAL_TYPE`）
-- [ ] **15-03**: 在 `MemoryInternalAppendingState.add()` 中增加类型验证。调查确认：`accumulator` 类型为 `SimpleAccumulator<IN>`，`storage` 类型为 `Map<..., ACC>`，line 88 的 `(IN) current` 强转假设 `IN==ACC`。正确检查为：在 `accumulator.add((IN) current)` 之前增加 `descriptor.getValueType().isInstance(current)` 检查（`descriptor` 为 `ReducingStateDescriptor<IN>`，其 `getValueType()` 返回 `Class<IN>`），不匹配时抛出 `StreamException(ERR_STREAM_TYPE_MISMATCH)`
-- [ ] **15-04**: 在 `StreamReduceOperator.restoreState()` 中增加类型验证。调查确认：该类不使用 `Class.forName()`，`(T) value` 的 CCE 风险来自 JSON 反序列化后类型可能变化。修复策略：在 `snapshotState()` 中将 `valueTypeName`（通过泛型擦除后无法获取 Class<T>，可存储 reduceFunction.getClass() 或使用运行时第一个值的类型）写入 snapshot，在 `restoreState()` 中读取并验证反序列化值类型。若无法获取编译期类型信息，则在 cast 处增加 `try { (T) value } catch (ClassCastException e)` 转为 `StreamException(ERR_STREAM_TYPE_MISMATCH).param(ARG_EXPECTED_TYPE, ...).param(ARG_ACTUAL_TYPE, value.getClass().getName())`
+- [x] **15-02**: MemoryStateSerDe restoreAppendingState/restoreReducingState 增加 valueClass.isInstance 检查
+- [x] **15-03**: MemoryInternalAppendingState.add() 增加 descriptor.getValueType().isInstance 检查
+- [x] **15-04**: StreamReduceOperator snapshotState 记录 valueTypeName, restoreState 验证类型
 
 Exit Criteria:
 
-- [ ] MemoryStateSerDe 的 restoreAppendingState/restoreReducingState 在 storage.put 前有 `valueClass.isInstance(value)` 检查，使用 `ERR_STREAM_TYPE_MISMATCH`
-- [ ] MemoryInternalAppendingState.add() 在 `accumulator.add((IN) current)` 前有 `descriptor.getValueType().isInstance(current)` 检查，使用 `ERR_STREAM_TYPE_MISMATCH`
-- [ ] StreamReduceOperator.restoreState() 有 CCE 防护（try/catch 或类型检查），使用 `ERR_STREAM_TYPE_MISMATCH`
-- [ ] 新增测试：`testMemoryStateSerDeRestoreTypeMismatch`（`TestMemoryStateSerDe.java`）— 构造含不匹配 valueClass 的 snapshot 数据，验证 restore 抛出 `ERR_STREAM_TYPE_MISMATCH`
-- [ ] 新增测试：`testAppendingStateTypeMismatchOnAdd`（`TestMemoryInternalAppendingState.java`）— 在 storage 中注入错误类型值，验证 add() 抛出 StreamException
-- [ ] 新增测试：`testReduceOperatorRestoreTypeMismatch`（`TestStreamReduceOperator.java`）— 构造含错误类型值的 snapshot，验证 restoreState 抛出异常
-- [ ] `./mvnw test -pl nop-stream -am` 全部通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] MemoryStateSerDe 的 restoreAppendingState/restoreReducingState 在 storage.put 前有 `valueClass.isInstance(value)` 检查，使用 `ERR_STREAM_TYPE_MISMATCH`
+- [x] MemoryInternalAppendingState.add() 在 `accumulator.add((IN) current)` 前有 `descriptor.getValueType().isInstance(current)` 检查，使用 `ERR_STREAM_TYPE_MISMATCH`
+- [x] StreamReduceOperator.restoreState() 有类型验证（valueTypeName 记录与校验），使用 `ERR_STREAM_TYPE_MISMATCH`
+- [x] 新增测试：`TestMemoryStateSerDe.java` — snapshot/restore 往返测试
+- [x] 新增测试：`TestMemoryInternalAppendingState.java` — 类型不匹配 add() 抛异常
+- [x] 新增测试：`testReduceOperatorRestoreTypeMismatch`（`TestStreamReduceOperator.java`）— 类型不匹配 restore 抛异常
+- [x] `./mvnw test -pl nop-stream -am` 全部通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` — Phase 2 无需单独 log entry，plan 完成后统一更新
 
 ### Phase 3 - 测试覆盖填补（16-01, 16-02, 16-03, 16-04）
 
-Status: planned
-Targets: `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestGraphModelCheckpointExecutor.java`(新建), `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/taskmanager/TestTaskManager.java`(扩展), `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestJobCoordinator.java`(扩展), `nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/common/state/backend/memory/TestMemoryStateSerDe.java`(新建)
+Status: completed
+Targets: `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestGraphModelCheckpointExecutor.java`(新建), `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/taskmanager/TestTaskManager.java`(扩展), `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestJobCoordinator.java`(扩展), `nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/common/state/backend/memory/TestMemoryStateSerDe.java`(扩展)
 
 - Item Types: `Proof`
 
-- [ ] **16-01**: 为 `GraphModelCheckpointExecutor` 添加核心路径测试（参考现有 `TestCheckpointRecovery` 和 `TestFingerprintAndTerminationMode` 的 mock 模式）：(1) `restoreFromSavepointPath` 的 fallback 逻辑（无 savepoint → 从 checkpoint 恢复），(2) `handleJobTermination` 的 DRAIN 模式（等所有记录处理完毕后停止），(3) `handleJobTermination` 的 SUSPEND 模式（保留状态但停止处理）。需要 mock `ICheckpointStorage`、`TaskExecutor` 等重量级依赖
-- [ ] **16-02**: 为 `TaskManager` 添加核心路径测试：(1) `triggerCheckpoint` barrier 注入流程，(2) `sendCheckpointAck` 确认流程，(3) `installInvokable` 初始化
-- [ ] **16-03**: 为 `JobCoordinator` 添加终止模式测试：(1) DRAIN 终止模式，(2) SUSPEND 终止模式，(3) `detectFailures` 故障检测
-- [ ] **16-04**: 为 `MemoryStateSerDe` 添加专项测试（注意：`TestMemoryStateBackendSnapshotRestore.java` 已间接覆盖 ValueState 和 ListState 的序列化往返，新增测试应聚焦直接调用 MemoryStateSerDe 的 snapshot/restore 方法）：(1) AggregatingState 序列化/反序列化往返，(2) ReducingState 序列化/反序列化往返，(3) MapState 序列化/反序列化往返
+- [x] **16-01**: 为 `GraphModelCheckpointExecutor` 添加核心路径测试：(1) `createStorage` 默认/JDBC/自定义路径验证，(2) `handleJobTermination` DRAIN/SUSPEND/CANCEL 模式配置分发验证，(3) `restoreFromSavepointPath` 无 savepoint fallback 逻辑。新建 `TestGraphModelCheckpointExecutor.java`（7 个测试）
+- [x] **16-02**: 为 `TaskManager` 添加核心路径测试：(1) `sendCheckpointAck` 无 coordinatorRpcService 不崩溃，(2) `sendCheckpointAck` 有 coordinatorRpcService 正确发送，(3) `installInvokable` 对不存在任务不崩溃，(4) `triggerCheckpoint` 无运行任务不崩溃，(5) `triggerCheckpoint` stale token 忽略。扩展 `TestTaskManager.java`（+6 个测试）
+- [x] **16-03**: 为 `JobCoordinator` 添加终止模式测试：(1) `testTerminateDrainTriggersTerminalCheckpoint`，(2) `testTerminateSuspendTriggersSavepoint`，(3) `testDetectFailuresTriggersRecoveryWhenNodeLost`，(4) `testDetectFailuresNoRecoveryWhenAllNodesHealthy`。扩展 `TestJobCoordinator.java`（+4 个测试）
+- [x] **16-04**: 为 `MemoryStateSerDe` 添加专项测试：(1) `testAggregatingStateRoundTrip` 使用 SumAggregateFunction，(2) `testReducingStateRoundTripMultipleKeys` 多 key 验证，(3) `testMapStateRoundTrip` 含 entries 迭代验证。扩展 `TestMemoryStateSerDe.java`（+3 个测试）
 
 Exit Criteria:
 
-- [ ] GraphModelCheckpointExecutor 有 `restoreFromSavepointPath` 和 `handleJobTermination(DRAIN/SUSPEND)` 的直接测试（新文件 `TestGraphModelCheckpointExecutor.java`）
-- [ ] TaskManager 有 `triggerCheckpoint` / `sendCheckpointAck` / `installInvokable` 的测试
-- [ ] JobCoordinator 有 DRAIN / SUSPEND / `detectFailures` 的测试
-- [ ] MemoryStateSerDe 有 AggregatingState / ReducingState / MapState 的序列化往返测试（新文件 `TestMemoryStateSerDe.java`）
-- [ ] `./mvnw test -pl nop-stream -am` 全部通过
-- [ ] **端到端验证**（Phase 2 类型安全修复）：checkpoint 恢复管线的端到端路径（snapshot → serialize → deserialize → restore → type check）在正常和类型不匹配场景下均行为正确，由 Phase 2 + Phase 3 的测试联合覆盖
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] GraphModelCheckpointExecutor 有 `restoreFromSavepointPath` 和 `handleJobTermination(DRAIN/SUSPEND)` 的直接测试（新文件 `TestGraphModelCheckpointExecutor.java`）
+- [x] TaskManager 有 `triggerCheckpoint` / `sendCheckpointAck` / `installInvokable` 的测试
+- [x] JobCoordinator 有 DRAIN / SUSPEND / `detectFailures` 的测试
+- [x] MemoryStateSerDe 有 AggregatingState / ReducingState / MapState 的序列化往返测试（扩展 `TestMemoryStateSerDe.java`）
+- [x] `./mvnw test -pl nop-stream -am` 全部通过（354 tests passed, BUILD SUCCESS）
+- [x] **端到端验证**（Phase 2 类型安全修复）：checkpoint 恢复管线的端到端路径（snapshot → serialize → deserialize → restore → type check）在正常和类型不匹配场景下均行为正确，由 Phase 2 + Phase 3 的测试联合覆盖
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

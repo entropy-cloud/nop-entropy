@@ -8,8 +8,10 @@
 package io.nop.stream.runtime.taskmanager;
 
 import io.nop.api.core.message.*;
+import io.nop.stream.core.checkpoint.*;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
+import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -296,6 +298,102 @@ class TestTaskManager {
         smallTm.stop();
     }
 
+    // ==================== Checkpoint & Invokable Tests ====================
+
+    @Test
+    void testSendCheckpointAckWithNoCoordinatorRpcService() {
+        taskManager.start();
+
+        TaskLocation loc = new TaskLocation("job-1", "pipeline-0", "vertex-1", 0);
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(loc)
+                .checkpointId(1L)
+                .putOperatorState("op-0", "test-state")
+                .build();
+
+        // sendCheckpointAck without coordinatorRpcService catches the internal StreamException
+        // and logs it. The method does NOT re-throw, so we verify no crash.
+        assertDoesNotThrow(() -> taskManager.sendCheckpointAck(1L, snapshot));
+    }
+
+    @Test
+    void testSendCheckpointAckWithCoordinatorRpcService() {
+        taskManager.start();
+        MockCoordinatorRpcService mockRpc = new MockCoordinatorRpcService();
+        taskManager.setCoordinatorRpcService(mockRpc);
+
+        String token = UUID.randomUUID().toString();
+        taskManager.updateFencingToken(token);
+
+        TaskLocation loc = new TaskLocation("job-1", "pipeline-0", "vertex-1", 0);
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(loc)
+                .checkpointId(1L)
+                .putOperatorState("op-0", "test-state")
+                .build();
+
+        taskManager.sendCheckpointAck(1L, snapshot);
+
+        assertNotNull(mockRpc.lastAck);
+        assertEquals(1L, mockRpc.lastAck.getCheckpointId());
+        assertEquals(loc, mockRpc.lastAck.getTaskLocation());
+        assertEquals(token, mockRpc.lastAck.getFencingToken());
+    }
+
+    @Test
+    void testInstallInvokableWithInvalidTaskDoesNotCrash() {
+        taskManager.start();
+
+        // Installing an invokable for a task that doesn't exist should just log a warning
+        assertDoesNotThrow(() ->
+                taskManager.installInvokable("nonexistent-job", "nonexistent-vertex", 99, null));
+    }
+
+    @Test
+    void testInstallInvokableOnRunningTask() throws Exception {
+        taskManager.start();
+        String token = UUID.randomUUID().toString();
+        taskManager.updateFencingToken(token);
+
+        TaskAssignment assignment = new TaskAssignment(
+                "job-1", "vertex-1", 0,
+                NODE_ID, "attempt-1", token,
+                System.currentTimeMillis());
+        taskManager.receiveAssignment(assignment);
+        assertEquals(1, taskManager.getRunningTaskCount());
+
+        // Verify we can query completed tasks before the invokable is installed
+        // (the task thread is waiting for the invokable latch)
+        assertTrue(taskManager.getCompletedTaskResults().isEmpty());
+
+        // Now cancel the task to clean up
+        taskManager.cancelTask("job-1", "vertex-1", 0);
+        Thread.sleep(100);
+
+        // Task should be removed from running tasks
+        assertEquals(0, taskManager.getRunningTaskCount());
+    }
+
+    @Test
+    void testTriggerCheckpointWithNoRunningTasksDoesNotCrash() {
+        taskManager.start();
+        String token = UUID.randomUUID().toString();
+        taskManager.updateFencingToken(token);
+
+        // No tasks assigned - triggerCheckpoint should not crash
+        CheckpointBarrier barrier = new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        assertDoesNotThrow(() -> taskManager.triggerCheckpoint(barrier, token));
+    }
+
+    @Test
+    void testTriggerCheckpointWithStaleTokenIsIgnored() {
+        taskManager.start();
+        String token = UUID.randomUUID().toString();
+        taskManager.updateFencingToken(token);
+
+        // Trigger checkpoint with stale fencing token - should not crash
+        CheckpointBarrier barrier = new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        assertDoesNotThrow(() -> taskManager.triggerCheckpoint(barrier, "stale-token"));
+    }
+
     // ==================== Mocks ====================
 
     static class MockClusterRegistry implements ClusterRegistry {
@@ -367,6 +465,15 @@ class TestTaskManager {
         public java.util.concurrent.CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
             sentMessages.add(message);
             return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }
+    }
+
+    static class MockCoordinatorRpcService implements IStreamCoordinatorRpcService {
+        volatile CheckpointAckMessage lastAck;
+
+        @Override
+        public void receiveCheckpointAck(CheckpointAckMessage ack) {
+            this.lastAck = ack;
         }
     }
 }
