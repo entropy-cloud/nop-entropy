@@ -156,7 +156,7 @@ public class TestRecordWriter {
     }
 
     @Test
-    public void testEmitElementSinglePartitionWithoutPartitioner() throws Exception {
+    public void testEmitElementSinglePartitionBroadcastsToAll() throws Exception {
         ResultPartition p0 = new ResultPartition();
         ResultPartition p1 = new ResultPartition();
 
@@ -167,7 +167,29 @@ public class TestRecordWriter {
         writer.emitElement(wm);
 
         assertEquals(1, p0.size(), "p0 should receive the element");
-        assertEquals(0, p1.size(), "p1 should not receive the element without partitioner");
+        assertEquals(1, p1.size(), "p1 should receive the element (emitElement broadcasts)");
+
+        writer.close();
+    }
+
+    @Test
+    public void testSelectChannelHandlesIntegerMinValue() throws Exception {
+        ResultPartition[] partitions = new ResultPartition[3];
+        for (int i = 0; i < 3; i++) {
+            partitions[i] = new ResultPartition();
+        }
+
+        IPartitioner<Integer> partitioner = (key, numPartitions) -> Integer.MIN_VALUE;
+
+        RecordWriter<Integer> writer = new RecordWriter<>(partitions, partitioner);
+
+        assertDoesNotThrow(() -> writer.emit(new StreamRecord<>(42)));
+
+        int totalRecords = 0;
+        for (ResultPartition p : partitions) {
+            totalRecords += p.size();
+        }
+        assertEquals(1, totalRecords, "Record should be written to exactly one partition");
 
         writer.close();
     }

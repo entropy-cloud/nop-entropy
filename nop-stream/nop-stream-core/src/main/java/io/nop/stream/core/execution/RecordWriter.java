@@ -187,12 +187,8 @@ public class RecordWriter<T> {
      */
     public void emitElement(StreamElement element) {
         try {
-            if (partitioner != null) {
-                for (ResultPartition partition : partitions) {
-                    partition.write(element);
-                }
-            } else {
-                partitions[0].write(element);
+            for (ResultPartition partition : partitions) {
+                partition.write(element);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -231,7 +227,7 @@ public class RecordWriter<T> {
         // Priority 2: Legacy IPartitioner
         if (partitioner != null) {
             int channel = partitioner.partition(record.getValue(), partitions.length);
-            return Math.abs(channel % partitions.length);
+            return Math.floorMod(channel, partitions.length);
         }
         return 0;
     }
