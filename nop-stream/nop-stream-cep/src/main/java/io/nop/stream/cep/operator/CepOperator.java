@@ -184,7 +184,8 @@ public class CepOperator<IN, KEY, OUT>
     @Override
    @SuppressWarnings({"unchecked", "rawtypes"})
    public void open() throws Exception {
-        super.open();
+         super.open();
+         currentWatermark = Long.MIN_VALUE;
 
         IKeyedStateBackend<?> backend = getKeyedStateBackend();
         if (backend == null && this.stateBackend != null) {

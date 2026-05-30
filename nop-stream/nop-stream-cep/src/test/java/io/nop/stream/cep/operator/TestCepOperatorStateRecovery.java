@@ -202,6 +202,34 @@ public class TestCepOperatorStateRecovery {
         restored.close();
     }
 
+    @Test
+    void testWatermarkInitializedAfterDeserialization() throws Exception {
+        List<String> watermarkResults = new ArrayList<>();
+        CepOperator<Event, Integer, String> operator = new CepOperator<>(
+                new EventTypeSerializer(),
+                false,
+                nfaFactory,
+                null,
+                null,
+                function,
+                null
+        );
+
+        operator.setOutput(new TestOutput(watermarkResults));
+        setProcessingTimeService(operator, MOCK_PTS);
+        operator.open();
+
+        long nearMinTimestamp = Long.MIN_VALUE + 100;
+        operator.processElement(new StreamRecord<>(new Event(42, "start42"), nearMinTimestamp));
+        operator.processElement(new StreamRecord<>(new Event(99, "end"), nearMinTimestamp + 1));
+        operator.processWatermark(new Watermark(nearMinTimestamp + 2));
+
+        assertFalse(watermarkResults.isEmpty(),
+                "Elements with timestamps near Long.MIN_VALUE should not be dropped as late after open()");
+
+        operator.close();
+    }
+
     /**
      * Verifies that a new CepOperator instance, after having its NFA state restored
      * from a previous operator's snapshot, has a properly initialized runtime
