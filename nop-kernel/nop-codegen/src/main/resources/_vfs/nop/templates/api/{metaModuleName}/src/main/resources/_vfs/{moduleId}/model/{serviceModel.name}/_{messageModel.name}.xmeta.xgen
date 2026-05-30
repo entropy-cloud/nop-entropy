@@ -7,7 +7,7 @@
             <prop name="${field.name}" displayName="${field.displayName}"
                   i18n-en:displayName="${field['i18n-en:displayName']}"
                   mandatory="${field.mandatory?true:null}" ui:show="${field['ui:show']}">
-                <schema type="${field.schema.type}" domain="${field.schema.domain}"
+                <schema type="${field.codegenJavaType}" domain="${field.schema.domain}"
                         precision="${field.schema.precision}"
                         scale="${field.schema.scale}" dict="${field.schema.dict}"/>
             </prop>

@@ -2,25 +2,28 @@
     package ${apiPackageName}.beans._gen;
 
     import io.nop.api.core.annotations.meta.PropMeta;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
 
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _${messageModel.name}{
 
     <c:for var="field" items="${messageModel.fields}"><![CDATA[
-        private ${field.schema.type.toString().$simplifyJavaType()} _${field.name};
+        private ${field.codegenJavaType} _${field.name};
 
         /**
          * ${field.displayName} ${field.description}
          */
         @PropMeta(propId=${field.propId},displayName="${field.displayName.$escapeJava()}")
-        public ${field.schema.type.toString().$simplifyJavaType()} ${field.name.$methodGet()}(){
+        public ${field.codegenJavaType} ${field.name.$methodGet()}(){
             return _${field.name};
         }
 
         /**
          * ${field.displayName} ${field.description}
          */
-        public void ${field.name.$methodSet()}(${field.schema.type.toString().$simplifyJavaType()} value){
+        public void ${field.name.$methodSet()}(${field.codegenJavaType} value){
             this._${field.name} = value;
         }
     ]]></c:for>
