@@ -285,6 +285,13 @@ public class TaskExecutor {
      * <p>This method blocks until all tasks have finished (either completed, failed, or canceled).
      * It does not shut down the executor, allowing new tasks to be submitted afterwards.
      *
+     * <p><strong>Exception handling:</strong> If a task completes with an exception, the exception
+     * is logged at DEBUG level but not re-thrown. Callers should inspect each task's error state
+     * after this method returns by iterating the submitted tasks and checking
+     * {@code task.getError()} on each {@link SubtaskTask}. This design allows the caller to
+     * collect all task results (both successful and failed) in a single pass rather than aborting
+     * on the first failure.
+     *
      * @throws InterruptedException if the current thread is interrupted while waiting
      */
     public void awaitCompletion() throws InterruptedException {
@@ -303,6 +310,13 @@ public class TaskExecutor {
 
     /**
      * Waits for all submitted tasks to complete with a timeout.
+     *
+     * <p><strong>Exception handling:</strong> If a task completes with an exception, the exception
+     * is logged at DEBUG level but not re-thrown. Callers should inspect each task's error state
+     * after this method returns by iterating the submitted tasks and checking
+     * {@code task.getError()} on each {@link SubtaskTask}. This design allows the caller to
+     * collect all task results (both successful and failed) in a single pass rather than aborting
+     * on the first failure.
      *
      * @param timeout the maximum time to wait
      * @param unit the time unit of the timeout argument
