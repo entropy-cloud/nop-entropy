@@ -156,4 +156,11 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_CHECKPOINT_ABORTED =
             define("nop.err.stream.checkpoint-aborted", "Checkpoint aborted: {reason}", ARG_REASON);
+
+    String ARG_EXPECTED_TYPE = "expectedType";
+    String ARG_ACTUAL_TYPE = "actualType";
+
+    ErrorCode ERR_STREAM_TYPE_MISMATCH =
+            define("nop.err.stream.type-mismatch", "Type mismatch: expected {expectedType} but got {actualType}",
+                    ARG_EXPECTED_TYPE, ARG_ACTUAL_TYPE);
 }

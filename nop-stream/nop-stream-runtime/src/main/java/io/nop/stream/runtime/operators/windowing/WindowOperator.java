@@ -722,17 +722,18 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         ACC current = windowContentsState.get(WINDOW_VALUE_KEY);
         if (current == null) {
-            // First element: create a new accumulator and add the value to it.
-            // This handles cases where IN != ACC (e.g. AggregateFunction with distinct types)
-            // by ensuring the first element goes through createAccumulator() -> add(),
-            // NOT a direct cast (ACC) value.
             SimpleAccumulator<IN> accumulator = createAccumulatorForWindow();
             if (accumulator != null) {
                 accumulator.add(value);
                 setWindowContents(key, window, (ACC) accumulator);
             } else {
-                // No accumulator factory available; direct store (IN == ACC case)
-                setWindowContents(key, window, (ACC) value);
+                try {
+                    setWindowContents(key, window, (ACC) value);
+                } catch (ClassCastException e) {
+                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH, e)
+                            .param(ARG_EXPECTED_TYPE, accClass.getName())
+                            .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+                }
             }
             return;
         }
@@ -740,15 +741,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (current instanceof SimpleAccumulator) {
             SimpleAccumulator<IN> accumulator = (SimpleAccumulator<IN>) current;
             accumulator.add(value);
-            // Store the accumulator reference itself (not getLocalValue()) so that
-            // subsequent addWindowElement calls can detect it as a SimpleAccumulator
-            // and keep accumulating, instead of falling through to last-write-wins.
             setWindowContents(key, window, (ACC) accumulator);
             return;
         }
 
-        // Last-write-wins keeps behavior deterministic for non-accumulator ACC types.
-        setWindowContents(key, window, (ACC) value);
+        try {
+            setWindowContents(key, window, (ACC) value);
+        } catch (ClassCastException e) {
+            throw new StreamException(ERR_STREAM_TYPE_MISMATCH, e)
+                    .param(ARG_EXPECTED_TYPE, accClass.getName())
+                    .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+        }
     }
 
     /**
