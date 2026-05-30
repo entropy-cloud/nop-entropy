@@ -49,7 +49,7 @@ public class CheckpointCoordinator {
 
     private static final int DEFAULT_COMMIT_RETRIES = 3;
     private static final int CONSECUTIVE_FAILURE_THRESHOLD = 3;
-    private final ConcurrentSkipListMap<Long, Set<Integer>> failedCommitParticipants = new ConcurrentSkipListMap<>();
+    private final ConcurrentSkipListMap<Long, Set<CheckpointParticipant>> failedCommitParticipants = new ConcurrentSkipListMap<>();
     private final ConcurrentHashMap<Long, Boolean> checkpointSuccessMap = new ConcurrentHashMap<>();
 
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
@@ -413,10 +413,11 @@ public class CheckpointCoordinator {
     private void notifyParticipantsFinishCommit(long checkpointId, boolean success) {
         checkpointSuccessMap.put(checkpointId, success);
         for (int i = participants.size() - 1; i >= 0; i--) {
+            CheckpointParticipant participant = participants.get(i);
             int retries = DEFAULT_COMMIT_RETRIES;
             while (retries > 0) {
                 try {
-                    participants.get(i).finishCommit(checkpointId, success);
+                    participant.finishCommit(checkpointId, success);
                     break;
                 } catch (Exception e) {
                     retries--;
@@ -426,7 +427,7 @@ public class CheckpointCoordinator {
                     } else {
                         LOG.error("finishCommit({}) failed for participant {} on checkpoint {} after {} retries",
                                 success, i, checkpointId, DEFAULT_COMMIT_RETRIES, e);
-                        failedCommitParticipants.computeIfAbsent(checkpointId, k -> ConcurrentHashMap.newKeySet()).add(i);
+                        failedCommitParticipants.computeIfAbsent(checkpointId, k -> ConcurrentHashMap.newKeySet()).add(participant);
                     }
                 }
             }
@@ -436,22 +437,22 @@ public class CheckpointCoordinator {
     private void retryFailedCommits() {
         if (failedCommitParticipants.isEmpty()) return;
 
-        Iterator<Map.Entry<Long, Set<Integer>>> it = failedCommitParticipants.entrySet().iterator();
+        Iterator<Map.Entry<Long, Set<CheckpointParticipant>>> it = failedCommitParticipants.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Long, Set<Integer>> entry = it.next();
+            Map.Entry<Long, Set<CheckpointParticipant>> entry = it.next();
             long failedEpoch = entry.getKey();
-            Set<Integer> failedIdx = entry.getValue();
-            Set<Integer> stillFailing = ConcurrentHashMap.newKeySet();
+            Set<CheckpointParticipant> failedParts = entry.getValue();
+            Set<CheckpointParticipant> stillFailing = ConcurrentHashMap.newKeySet();
             boolean originalSuccess = checkpointSuccessMap.getOrDefault(failedEpoch, true);
 
-            for (Integer idx : failedIdx) {
-                if (idx < participants.size()) {
+            for (CheckpointParticipant participant : failedParts) {
+                if (participants.contains(participant)) {
                     try {
-                        participants.get(idx).finishCommit(failedEpoch, originalSuccess);
-                        LOG.info("Retried finishCommit for participant {} on epoch {} with success={} succeeded", idx, failedEpoch, originalSuccess);
+                        participant.finishCommit(failedEpoch, originalSuccess);
+                        LOG.info("Retried finishCommit for participant on epoch {} with success={} succeeded", failedEpoch, originalSuccess);
                     } catch (Exception e) {
-                        LOG.warn("Retry finishCommit for participant {} on epoch {} still failing", idx, failedEpoch, e);
-                        stillFailing.add(idx);
+                        LOG.warn("Retry finishCommit for participant on epoch {} still failing", failedEpoch, e);
+                        stillFailing.add(participant);
                     }
                 }
             }

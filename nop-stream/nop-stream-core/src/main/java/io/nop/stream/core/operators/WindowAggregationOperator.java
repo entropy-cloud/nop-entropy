@@ -32,6 +32,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
     private static final long serialVersionUID = 2L;
     private static final Logger LOG = LoggerFactory.getLogger(WindowAggregationOperator.class);
+    private static final String STATE_KEY_SEPARATOR = "\u0000";
 
     private final WindowAssigner<? super IN, W> windowAssigner;
     Trigger<? super IN, ? super W> trigger;
@@ -559,7 +560,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     }
 
     private String serializeWindowKey(WindowKey<K, W> wk) {
-        return JsonTool.stringify(wk.key) + "#" + JsonTool.stringify(wk.window);
+        return JsonTool.stringify(wk.key) + STATE_KEY_SEPARATOR + JsonTool.stringify(wk.window);
     }
 
     private Map<String, Object> serializeTimers(TreeMap<Long, Set<WindowKey<K, W>>> timers) {
@@ -593,7 +594,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                                         Map<WindowKey<K, W>, ACC> target) throws Exception {
         if (data == null) return;
         for (Map.Entry<String, Object> entry : data.entrySet()) {
-            String[] parts = entry.getKey().split("#", 2);
+            String[] parts = entry.getKey().split(STATE_KEY_SEPARATOR, 2);
             K key = (K) JsonTool.parseBeanFromText(parts[0], keyClass);
             W window = (W) JsonTool.parseBeanFromText(parts[1], windowClass);
             WindowKey<K, W> wk = new WindowKey<>(key, window);
@@ -628,7 +629,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             Object value = entry.getValue();
             if (value instanceof Collection) {
                 for (Object item : (Collection<?>) value) {
-                    String[] parts = item.toString().split("#", 2);
+                    String[] parts = item.toString().split(STATE_KEY_SEPARATOR, 2);
                     K key = (K) JsonTool.parseBeanFromText(parts[0], keyClass);
                     W window = (W) JsonTool.parseBeanFromText(parts[1], windowClass);
                     keys.add(new WindowKey<>(key, window));
@@ -644,7 +645,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         if (data == null) return;
         for (Map.Entry<String, Object> entry : data.entrySet()) {
             String[] mainParts = entry.getKey().split(":", 2);
-            String[] keyParts = mainParts[0].split("#", 2);
+            String[] keyParts = mainParts[0].split(STATE_KEY_SEPARATOR, 2);
             K key = (K) JsonTool.parseBeanFromText(keyParts[0], keyClass);
             W window = (W) JsonTool.parseBeanFromText(keyParts[1], windowClass);
             WindowKey<K, W> wk = new WindowKey<>(key, window);

@@ -821,8 +821,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 }
                 targetValue = (ACC) accumulator;
             } else {
-                // Deterministic fallback for non-accumulator values.
-                targetValue = sourceValue;
+                throw new StreamException(ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT)
+                        .param(ARG_DETAIL,
+                                "Cannot merge multiple non-accumulator values. targetType="
+                                + targetValue.getClass().getName());
             }
 
             clearWindowContents(key, sourceWindow);

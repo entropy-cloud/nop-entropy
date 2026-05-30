@@ -27,6 +27,7 @@ public class SubtaskTask implements Runnable {
     public enum State {
         CREATED,
         RUNNING,
+        CANCELING,
         COMPLETED,
         FAILED,
         CANCELED
@@ -37,6 +38,7 @@ public class SubtaskTask implements Runnable {
     private final List<OperatorChain> operatorChains;
     private final AtomicReference<State> state;
     private volatile Throwable error;
+    private volatile Thread executingThread;
 
     public SubtaskTask(Subtask subtask, JobVertex jobVertex) {
         this(subtask, jobVertex, jobVertex.getOperatorChains());
@@ -63,25 +65,50 @@ public class SubtaskTask implements Runnable {
         }
 
         LOG.info("Starting subtask: {}", getTaskName());
+        executingThread = Thread.currentThread();
 
         try {
             openOperatorChains();
 
-            subtask.getInvokable().invoke();
+            while (state.get() == State.RUNNING) {
+                subtask.getInvokable().invoke();
+                break;
+            }
 
-            state.set(State.COMPLETED);
-            LOG.info("Subtask completed successfully: {}", getTaskName());
+            if (state.get() == State.RUNNING) {
+                state.set(State.COMPLETED);
+                LOG.info("Subtask completed successfully: {}", getTaskName());
+            } else if (state.get() == State.CANCELING) {
+                state.set(State.CANCELED);
+                LOG.info("Subtask canceled: {}", getTaskName());
+            }
         } catch (Throwable t) {
             this.error = t;
-            state.set(State.FAILED);
-            LOG.error("Subtask failed: " + getTaskName(), t);
+            if (state.get() == State.CANCELING) {
+                state.set(State.CANCELED);
+                LOG.info("Subtask canceled with error: {}", getTaskName());
+            } else {
+                state.set(State.FAILED);
+                LOG.error("Subtask failed: " + getTaskName(), t);
+            }
         } finally {
+            executingThread = null;
             closeOperatorChains();
         }
     }
 
     public boolean cancel() {
-        return state.compareAndSet(State.CREATED, State.CANCELED);
+        if (state.compareAndSet(State.CREATED, State.CANCELED)) {
+            return true;
+        }
+        if (state.compareAndSet(State.RUNNING, State.CANCELING)) {
+            Thread t = executingThread;
+            if (t != null) {
+                t.interrupt();
+            }
+            return true;
+        }
+        return false;
     }
 
     public State getState() {
@@ -98,7 +125,7 @@ public class SubtaskTask implements Runnable {
 
     public boolean isFinished() {
         State s = state.get();
-        return s == State.COMPLETED || s == State.FAILED || s == State.CANCELED;
+        return s == State.COMPLETED || s == State.FAILED || s == State.CANCELED || s == State.CANCELING;
     }
 
     public String getTaskName() {

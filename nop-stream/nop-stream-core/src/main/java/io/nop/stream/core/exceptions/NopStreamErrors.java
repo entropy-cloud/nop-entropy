@@ -166,4 +166,8 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_CYCLIC_JOB_GRAPH =
             define("nop.err.stream.cyclic-job-graph", "Cyclic job graph detected: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT =
+            define("nop.err.stream.window-non-accumulator-merge-conflict",
+                    "Cannot merge multiple non-accumulator window values; conflicting values detected", ARG_DETAIL);
 }
