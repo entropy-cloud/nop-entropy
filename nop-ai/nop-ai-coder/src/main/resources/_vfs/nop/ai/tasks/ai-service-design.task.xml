@@ -36,7 +36,7 @@
         </step>
 
         <step name="loadApiModel" customType="ai-coder:LoadApiModel">
-            <input name="fileName" value="model/ai-gen.api.xml"/>
+            <input name="fileName" value="model/${appName}.api.xml"/>
             <input name="inputDir" value="${outputDir}"/>
             <output name="RESULT" exportAs="apiModel"/>
         </step>

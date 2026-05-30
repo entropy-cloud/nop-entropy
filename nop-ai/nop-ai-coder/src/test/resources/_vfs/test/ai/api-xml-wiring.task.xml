@@ -1,0 +1,59 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:extends="/nop/task/lib/common.task.xml">
+
+    <task:namespace ai-coder:enabled="true"/>
+
+    <input name="appName" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+
+    <steps>
+        <step name="buildApiNode">
+            <source><![CDATA[
+                import io.nop.core.lang.xml.XNode;
+
+                return XNode.parse('<api x:schema="/nop/schema/api.xdef" xmlns:x="/nop/schema/xdsl.xdef">'
+                    + '<services>'
+                    + '<service name="DemoService" className="app.demo.api.DemoService">'
+                    + '<method name="sayHello" requestMessage="app.demo.api.beans.DemoRequest" responseMessage="app.demo.api.beans.DemoResponse"/>'
+                    + '</service>'
+                    + '</services>'
+                    + '<messages>'
+                    + '<message name="DemoRequest" displayName="Demo Request">'
+                    + '<field propId="1" name="name" displayName="Name"><schema type="String"/></field>'
+                    + '</message>'
+                    + '<message name="DemoResponse" displayName="Demo Response">'
+                    + '<field propId="1" name="message" displayName="Message"><schema type="String"/></field>'
+                    + '</message>'
+                    + '</messages>'
+                    + '</api>');
+            ]]></source>
+            <output name="RESULT" exportAs="apiNode"/>
+        </step>
+
+        <step name="saveApiXml" customType="ai-coder:SaveDslNode">
+            <input name="outputDir"/>
+            <input name="fileName" value="model/${appName}.api.xml"/>
+            <input name="dslNode" value="${apiNode}"/>
+            <input name="xdefPath" value="/nop/schema/api.xdef"/>
+        </step>
+
+        <step name="loadApiModel" customType="ai-coder:LoadApiModel">
+            <input name="fileName" value="model/${appName}.api.xml"/>
+            <input name="inputDir" value="${outputDir}"/>
+            <output name="RESULT" exportAs="apiModel"/>
+        </step>
+
+        <step name="collectProof">
+            <input name="apiModel"/>
+            <output name="RESULT" exportAs="proof"/>
+            <source><![CDATA[
+                const methods = apiModel.methodInfos;
+                return {
+                    methodCount: methods.size(),
+                    serviceName: methods.get(0).serviceName,
+                    methodName: methods.get(0).methodName
+                };
+            ]]></source>
+        </step>
+    </steps>
+</task>

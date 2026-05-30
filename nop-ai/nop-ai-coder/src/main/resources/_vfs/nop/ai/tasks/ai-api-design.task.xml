@@ -129,7 +129,7 @@
 
         <step name="saveApiXml" customType="ai-coder:SaveDslNode">
             <input name="outputDir"/>
-            <input name="fileName" value="model/ai-gen.api.xml"/>
+            <input name="fileName" value="model/${appName}.api.xml"/>
             <input name="dslNode" value="${apiNode}"/>
             <input name="xdefPath" value="/nop/schema/api.xdef"/>
         </step>
