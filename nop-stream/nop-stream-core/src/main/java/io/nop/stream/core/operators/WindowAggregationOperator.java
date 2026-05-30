@@ -46,7 +46,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private transient Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> triggerState;
     private transient long currentWatermark;
     private transient boolean watermarkInitialized;
-    private transient Object currentKeyField;
+    private transient K currentKeyField;
     private transient WindowAssigner.WindowAssignerContext assignerContext;
     private transient Map<K, Set<W>> activeWindowsPerKey;
 
@@ -217,9 +217,10 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         };
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void setCurrentKey(Object key) {
-        this.currentKeyField = key;
+        this.currentKeyField = (K) key;
     }
 
     @Override
@@ -517,7 +518,6 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         }
     }
 
-    @SuppressWarnings("unchecked")
     private K resolveKey(IN value) throws Exception {
         if (currentKeyField != null) {
             // Defensive: verify that the current key field is of the expected type;
@@ -531,7 +531,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                     return selectorKey;
                 }
             }
-            return (K) currentKeyField;
+            return currentKeyField;
         }
         if (keySelector != null) {
             return keySelector.getKey(value);
