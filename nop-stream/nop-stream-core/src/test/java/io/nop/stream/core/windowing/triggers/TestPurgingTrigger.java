@@ -144,12 +144,12 @@ public class TestPurgingTrigger {
 
     @Test
     public void testCanMergeDelegatesToNestedTrigger() {
-        assertTrue(purgingTrigger.canMerge());
+        assertFalse(purgingTrigger.canMerge(), "CountTrigger does not support merge, so PurgingTrigger wrapping it should not either");
 
         EventTimeTrigger eventTimeTrigger = EventTimeTrigger.create();
         PurgingTrigger<Object, TimeWindow> trigger = PurgingTrigger.of(eventTimeTrigger);
 
-        assertTrue(trigger.canMerge());
+        assertTrue(trigger.canMerge(), "EventTimeTrigger supports merge, so PurgingTrigger wrapping it should too");
     }
 
     @Test

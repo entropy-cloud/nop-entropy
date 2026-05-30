@@ -157,7 +157,7 @@ public class TestWindowEndToEnd {
      */
     @Test
     public void testTriggerCanMerge() {
-        assertTrue(trigger.canMerge(), "CountTrigger should support merging");
+        assertFalse(trigger.canMerge(), "CountTrigger does not support merge");
     }
 
     /**

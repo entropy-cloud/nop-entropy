@@ -21,7 +21,9 @@ class TestCheckpointParticipant {
         TwoPhaseCommitSinkFunction<String> sink = new TestTwoPhaseSink();
         TaskLocation loc = new TaskLocation("j1", "p1", "v1", 0);
 
-        assertNull(sink.saveState(1));
+        TaskStateSnapshot state = sink.saveState(1);
+        assertNotNull(state, "saveState should return non-null TaskStateSnapshot");
+        assertTrue(state.getOperatorStates().containsKey(TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY));
         assertDoesNotThrow(() -> sink.prepareCommit(1));
     }
 
@@ -53,7 +55,6 @@ class TestCheckpointParticipant {
         boolean committed = false;
         boolean rolledBack = false;
         boolean recovered = false;
-        private Map<Long, Object> pendingCommits;
 
         @Override public void beginTransaction() {}
         @Override public void invoke(String value) {}
@@ -61,7 +62,5 @@ class TestCheckpointParticipant {
         @Override public void commit(long checkpointId) { committed = true; }
         @Override public void rollback() { rolledBack = true; }
         @Override public void recover(long checkpointId) { recovered = true; }
-        @Override public Map<Long, Object> getPendingCommits() { return pendingCommits; }
-        @Override public void setPendingCommits(Map<Long, Object> pending) { this.pendingCommits = pending; }
     }
 }
