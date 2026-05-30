@@ -62,6 +62,7 @@ import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
+import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 import io.nop.stream.runtime.operators.WindowOperatorTimerService;
@@ -93,6 +94,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     private static final long serialVersionUID = 1L;
     private static final String WINDOW_VALUE_KEY = "__window_value__";
+    private static final String STATE_KEY_SEPARATOR = "\u0000";
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(WindowOperator.class);
 
     // ------------------------------------------------------------------------
@@ -839,7 +841,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (window == null) {
             return "_null_window_";
         }
-        return window.getClass().getName() + "#" + window.toString();
+        if (window instanceof TimeWindow) {
+            TimeWindow tw = (TimeWindow) window;
+            return "TW:" + tw.getStart() + "," + tw.getEnd();
+        }
+        return window.getClass().getName() + "@" + System.identityHashCode(window);
     }
 
     /**
@@ -994,7 +1000,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         @SuppressWarnings("unchecked")
         public <T> SimpleAccumulator<T> getSimpleAccumulator(StateDescriptor<T> descriptor) {
             // Build a composite key from key + window + descriptor name
-            String stateKey = "trigger_" + key + "_" + window + "_" + descriptor.getName();
+            String stateKey = "trigger_" + key + STATE_KEY_SEPARATOR + window + STATE_KEY_SEPARATOR + descriptor.getName();
 
             // Check for existing accumulator in trigger state map
             SimpleAccumulator<T> existing = (SimpleAccumulator<T>) triggerAccumulators.get(stateKey);

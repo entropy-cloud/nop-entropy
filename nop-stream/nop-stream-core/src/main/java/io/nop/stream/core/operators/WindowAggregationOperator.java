@@ -45,6 +45,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private transient Map<WindowKey<K, W>, Set<Long>> windowTimerLookup;
     private transient Map<WindowKey<K, W>, Set<Long>> processingTimeTimerLookup;
     private transient Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> triggerState;
+    private transient Map<WindowKey<K, W>, List<TriggerStateKey<K, W>>> triggerStateIndex;
     private transient long currentWatermark;
     private transient boolean watermarkInitialized;
     private transient K currentKeyField;
@@ -93,6 +94,9 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         if (this.triggerState == null) {
             this.triggerState = new HashMap<>();
         }
+        if (this.triggerStateIndex == null) {
+            this.triggerStateIndex = new HashMap<>();
+        }
         if (this.activeWindowsPerKey == null) {
             this.activeWindowsPerKey = new HashMap<>();
         }
@@ -119,6 +123,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         windowTimerLookup = null;
         processingTimeTimerLookup = null;
         triggerState = null;
+        triggerStateIndex = null;
         activeWindowsPerKey = null;
     }
 
@@ -196,7 +201,11 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         deserializeTimers(state.getProcessingTimeTimers(), keyClass, windowClass, this.processingTimeTimers);
 
         this.triggerState = new HashMap<>();
+        this.triggerStateIndex = new HashMap<>();
         deserializeTriggerState(state.getTriggerState(), keyClass, windowClass, this.triggerState);
+        for (TriggerStateKey<K, W> tsk : triggerState.keySet()) {
+            triggerStateIndex.computeIfAbsent(tsk.windowKey, k -> new ArrayList<>()).add(tsk);
+        }
 
         this.currentWatermark = state.getCurrentWatermark();
         this.watermarkInitialized = true;
@@ -325,11 +334,10 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                         if (!sourceWindow.equals(mergedWindow)) {
                             TriggerContextImpl sourceCtx = new TriggerContextImpl(key, sourceWindow);
                             trigger.clear(sourceWindow, sourceCtx);
-                            Iterator<TriggerStateKey<K, W>> tsIt = triggerState.keySet().iterator();
-                            while (tsIt.hasNext()) {
-                                TriggerStateKey<K, W> tsk = tsIt.next();
-                                if (tsk.windowKey.equals(sourceWk)) {
-                                    tsIt.remove();
+                            List<TriggerStateKey<K, W>> stateKeys = triggerStateIndex.remove(sourceWk);
+                            if (stateKeys != null) {
+                                for (TriggerStateKey<K, W> tsk : stateKeys) {
+                                    triggerState.remove(tsk);
                                 }
                             }
                             unregisterEventTimeTimersForWindow(key, sourceWindow);
@@ -502,11 +510,10 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
 
         trigger.clear(window, triggerCtx);
 
-        Iterator<TriggerStateKey<K, W>> it = triggerState.keySet().iterator();
-        while (it.hasNext()) {
-            TriggerStateKey<K, W> k = it.next();
-            if (k.windowKey.equals(wk)) {
-                it.remove();
+        List<TriggerStateKey<K, W>> stateKeys = triggerStateIndex.remove(wk);
+        if (stateKeys != null) {
+            for (TriggerStateKey<K, W> k : stateKeys) {
+                triggerState.remove(k);
             }
         }
 
@@ -813,6 +820,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                 try {
                     SimpleAccumulator<T> acc = rsd.getAccumulatorType().getDeclaredConstructor().newInstance();
                     triggerState.put(stateKey, acc);
+                    triggerStateIndex.computeIfAbsent(stateKey.windowKey, k -> new ArrayList<>()).add(stateKey);
                     return acc;
                 } catch (Exception e) {
                     throw new StreamException(ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED, e)

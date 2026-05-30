@@ -39,6 +39,9 @@ public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWin
         if (offset < 0 || offset >= slide) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "offset").param(ARG_DETAIL, "must be in [0, slide)");
         }
+        if (size / slide > 10000) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size/slide").param(ARG_DETAIL, "size/slide ratio exceeds 10000, which would generate too many windows");
+        }
         this.size = size;
         this.slide = slide;
         this.offset = offset;
