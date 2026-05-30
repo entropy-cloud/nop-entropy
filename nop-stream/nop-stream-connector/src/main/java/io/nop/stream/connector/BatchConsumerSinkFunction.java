@@ -72,8 +72,10 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
                     ? new BatchChunkContextImpl(taskContext)
                     : null;
             consumer.consume(new ArrayList<>(buffer), chunkContext);
-        } finally {
             buffer.clear();
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to flush batch, data retained for retry");
         }
     }
 

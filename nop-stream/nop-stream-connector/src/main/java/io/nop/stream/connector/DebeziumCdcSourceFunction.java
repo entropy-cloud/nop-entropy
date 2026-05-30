@@ -54,6 +54,7 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     @Override
     public void run(SourceContext<ChangeEvent> ctx) throws Exception {
+        this.draining = false;
         initCompletionLatch();
 
         if (!draining) {

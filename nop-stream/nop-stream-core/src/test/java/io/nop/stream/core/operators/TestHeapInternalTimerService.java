@@ -202,4 +202,33 @@ public class TestHeapInternalTimerService {
         assertEquals(1, firedTimers.size());
         assertNull(firedTimers.get(0).getKey());
     }
+
+    @Test
+    void testRescheduledTimerPreservedDuringAdvance() throws Exception {
+        final int[] fireCount = {0};
+        Triggerable<Object, String> reschedulingTriggerable = new Triggerable<Object, String>() {
+            @Override
+            public void onEventTime(InternalTimer<Object, String> timer) throws Exception {
+                fireCount[0]++;
+                if (fireCount[0] == 1) {
+                    timerService.registerEventTimeTimer(timer.getNamespace(), timer.getTimestamp());
+                }
+            }
+
+            @Override
+            public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+            }
+        };
+        timerService = new HeapInternalTimerService<>(reschedulingTriggerable);
+
+        timerService.registerEventTimeTimer("ns1", 1000L);
+        timerService.advanceWatermark(1000L);
+
+        assertEquals(1, fireCount[0], "Timer should fire once during this advance");
+        assertEquals(1, timerService.numEventTimeTimers(), "Rescheduled timer at same timestamp should be preserved");
+
+        timerService.advanceWatermark(1001L);
+        assertEquals(2, fireCount[0], "Rescheduled timer should fire on next advance");
+        assertEquals(0, timerService.numEventTimeTimers());
+    }
 }

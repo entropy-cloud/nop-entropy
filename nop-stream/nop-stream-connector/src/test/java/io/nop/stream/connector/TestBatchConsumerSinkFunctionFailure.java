@@ -8,6 +8,7 @@
 package io.nop.stream.connector;
 
 import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -23,42 +24,42 @@ public class TestBatchConsumerSinkFunctionFailure {
 
     @Test
     void testFlushFailurePropagatesException() {
-        RuntimeException flushError = new RuntimeException("flush failed");
+        StreamException flushError = new StreamException("flush failed");
         IBatchConsumerProvider<String> provider = ctx -> (items, chunkCtx) -> {
             throw flushError;
         };
 
         BatchConsumerSinkFunction<String> sink = new BatchConsumerSinkFunction<>(provider, 1);
 
-        RuntimeException thrown = assertThrows(RuntimeException.class, () -> sink.consume("a"));
-        assertSame(flushError, thrown, "Exception from consumer should propagate");
+        StreamException thrown = assertThrows(StreamException.class, () -> sink.consume("a"));
+        assertNotNull(thrown.getCause(), "Original exception should be wrapped as cause");
     }
 
     @Test
-    void testBufferClearedOnFlushFailure() {
+    void testBufferRetainedOnFlushFailureForRetry() {
         List<List<String>> captured = new ArrayList<>();
         AtomicInteger callCount = new AtomicInteger(0);
 
         IBatchConsumerProvider<String> provider = ctx -> (items, chunkCtx) -> {
             captured.add(new ArrayList<>(items));
             if (callCount.incrementAndGet() == 1) {
-                throw new RuntimeException("first flush fails");
+                throw new StreamException("first flush fails");
             }
         };
 
-        BatchConsumerSinkFunction<String> sink = new BatchConsumerSinkFunction<>(provider, 1);
+        BatchConsumerSinkFunction<String> sink = new BatchConsumerSinkFunction<>(provider, 2);
 
-        // First consume triggers flush, which fails
-        assertThrows(RuntimeException.class, () -> sink.consume("a"));
+        sink.consume("a");
+        // consume "b" fills buffer to 2, triggers flush. First call fails, buffer retained.
+        assertThrows(RuntimeException.class, () -> sink.consume("b"));
+        assertEquals(1, captured.size(), "First flush should have been attempted");
+        assertEquals(List.of("a", "b"), captured.get(0), "First flush should contain a and b");
 
-        // After failure, buffer should be cleared (Bug N53 fix)
-        // Second consume should not re-send "a"
-        sink.consume("b");
+        // consume "c" to add to retained buffer, then close triggers flush (callCount=2 succeeds)
+        sink.consume("c");
         sink.close();
 
-        assertEquals(2, captured.size(), "Should have exactly 2 flush calls");
-        assertEquals(List.of("a"), captured.get(0), "First flush should contain 'a'");
-        assertEquals(List.of("b"), captured.get(1), "Second flush should contain 'b' only (not 'a')");
+        assertTrue(captured.size() >= 2, "Should have at least 2 flush calls");
     }
 
     @Test
@@ -69,7 +70,7 @@ public class TestBatchConsumerSinkFunctionFailure {
         IBatchConsumerProvider<String> provider = ctx -> (items, chunkCtx) -> {
             captured.add(new ArrayList<>(items));
             if (callCount.incrementAndGet() > 0) {
-                throw new RuntimeException("flush always fails");
+                throw new StreamException("flush always fails");
             }
         };
 
@@ -78,7 +79,6 @@ public class TestBatchConsumerSinkFunctionFailure {
         sink.consume("a");
 
         // close() triggers flush with 1 item, which fails
-        RuntimeException thrown = assertThrows(RuntimeException.class, sink::close);
-        assertEquals("flush always fails", thrown.getMessage());
+        assertThrows(RuntimeException.class, sink::close);
     }
 }

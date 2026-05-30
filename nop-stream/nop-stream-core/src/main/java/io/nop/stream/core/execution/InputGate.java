@@ -57,6 +57,7 @@ public class InputGate {
     private final boolean[] barrierReceived;
     private CheckpointBarrier pendingBarrier;
     private int barriersRemaining;
+    private boolean barrierEmitted;
 
     private int currentChannelIndex;
 
@@ -98,6 +99,7 @@ public class InputGate {
         this.barrierReceived = new boolean[channels.size()];
         this.barriersRemaining = 0;
         this.pendingBarrier = null;
+        this.barrierEmitted = false;
         this.currentChannelIndex = 0;
     }
 
@@ -276,11 +278,18 @@ public class InputGate {
             barriersRemaining--;
 
             if (!barrierAlignment) {
-                // AT_LEAST_ONCE: emit barrier immediately on first receipt, don't block
+                // AT_LEAST_ONCE: emit barrier only on first receipt, don't block
+                if (!barrierEmitted) {
+                    barrierEmitted = true;
+                    if (barriersRemaining <= 0) {
+                        resetBarrierState();
+                    }
+                    return Optional.of(barrier);
+                }
                 if (barriersRemaining <= 0) {
                     resetBarrierState();
                 }
-                return Optional.of(barrier);
+                return readMultiChannel();
             }
 
             if (barriersRemaining <= 0) {
@@ -327,6 +336,7 @@ public class InputGate {
         }
         pendingBarrier = null;
         barriersRemaining = 0;
+        barrierEmitted = false;
     }
 
     private void checkBarrierAlignmentComplete() {

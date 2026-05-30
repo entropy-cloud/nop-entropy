@@ -212,4 +212,49 @@ public class TestDebeziumCdcSourceFunction {
                 source.getSourceConsistency()
         );
     }
+
+    @Test
+    void testDrainingFlagResetOnReRun() throws Exception {
+        DebeziumConfig config = new DebeziumConfig();
+        config.setName("test-drain-reset");
+        config.setConnectorType("mysql");
+        config.setDatabaseHost("localhost");
+
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config);
+
+        SourceFunction.SourceContext<ChangeEvent> ctx = new SourceFunction.SourceContext<>() {
+            @Override public void collect(ChangeEvent element) {}
+            @Override public void collectWithTimestamp(ChangeEvent element, long timestamp) {}
+            @Override public void emitWatermark(long mark) {}
+            @Override public void markAsTemporarilyIdle() {}
+            @Override public long getProcessingTime() { return System.currentTimeMillis(); }
+        };
+
+        Thread runner = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Exception e) {
+                // expected
+            }
+        });
+        runner.start();
+        Thread.sleep(300);
+        source.truncateForDrain();
+        assertTrue(source.isDraining(), "Should be draining after truncateForDrain");
+        runner.join(5000);
+
+        // Now run again - draining should be reset
+        Thread runner2 = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Exception e) {
+                // expected
+            }
+        });
+        runner2.start();
+        Thread.sleep(300);
+        assertFalse(source.isDraining(), "draining flag should be reset when run() is called again");
+        source.cancel();
+        runner2.join(5000);
+    }
 }

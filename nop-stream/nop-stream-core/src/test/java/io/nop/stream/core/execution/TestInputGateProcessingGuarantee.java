@@ -282,4 +282,29 @@ public class TestInputGateProcessingGuarantee {
         // BEST_EFFORT → barrierAlignment=false
         assertFalse(ProcessingGuarantee.BEST_EFFORT.isBarrierAlignment());
     }
+
+    @Test
+    public void testNonAlignedMode_emitsExactlyOneBarrierPerCheckpoint() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        List<InputChannel> channels = Arrays.asList(new InputChannel(p0), new InputChannel(p1));
+        InputGate gate = new InputGate(channels, null, false);
+
+        p0.write(new CheckpointBarrier(100, 0, CheckpointType.CHECKPOINT));
+        p1.write(new CheckpointBarrier(100, 0, CheckpointType.CHECKPOINT));
+        p0.close();
+        p1.close();
+
+        int barrierCount = 0;
+        while (true) {
+            Optional<StreamElement> e = gate.read();
+            if (!e.isPresent()) break;
+            if (e.get().isCheckpointBarrier()) {
+                barrierCount++;
+            }
+        }
+
+        assertEquals(1, barrierCount,
+                "AT_LEAST_ONCE mode should emit exactly one barrier per checkpoint alignment cycle");
+    }
 }

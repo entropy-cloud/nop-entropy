@@ -105,19 +105,25 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
         }
         currentWatermark = newWatermark;
 
-        // Collect timers to fire (those with timestamp <= newWatermark)
         List<Map.Entry<Long, Set<TimerEntry<N>>>> toFire = new ArrayList<>();
         for (Map.Entry<Long, Set<TimerEntry<N>>> entry : eventTimeTimers.headMap(newWatermark, true).entrySet()) {
             toFire.add(entry);
         }
 
-        // Fire timers and remove them
         for (Map.Entry<Long, Set<TimerEntry<N>>> entry : toFire) {
-            List<TimerEntry<N>> timersToFire = new ArrayList<>(entry.getValue());
+            Set<TimerEntry<N>> originalSet = eventTimeTimers.get(entry.getKey());
+            if (originalSet == null) continue;
+
+            List<TimerEntry<N>> timersToFire = new ArrayList<>(originalSet);
+            originalSet.removeAll(timersToFire);
+
             for (TimerEntry<N> timer : timersToFire) {
                 triggerable.onEventTime(new HeapInternalTimer<>(timer.key, timer.timestamp, timer.namespace));
             }
-            eventTimeTimers.remove(entry.getKey());
+
+            if (originalSet.isEmpty()) {
+                eventTimeTimers.remove(entry.getKey());
+            }
         }
     }
 
