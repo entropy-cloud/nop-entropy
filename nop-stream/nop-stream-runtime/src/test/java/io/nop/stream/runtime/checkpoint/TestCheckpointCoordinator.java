@@ -216,4 +216,19 @@ class TestCheckpointCoordinator {
         coordinator.startCheckpointScheduler();
         coordinator.stopCheckpointScheduler();
     }
+
+    @Test
+    void testConsecutiveTriggerFailureResetsOnSuccess() {
+        coordinator.setTasksToAcknowledge(java.util.Collections.emptyList());
+        assertNull(coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT));
+
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+        coordinator.abortPendingCheckpoint(pending, "test");
+
+        PendingCheckpoint next = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(next);
+        assertEquals(1, coordinator.getNumberOfPendingCheckpoints());
+    }
 }

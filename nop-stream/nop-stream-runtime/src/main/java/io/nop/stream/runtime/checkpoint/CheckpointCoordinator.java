@@ -48,7 +48,10 @@ public class CheckpointCoordinator {
     private final CheckpointMetrics metrics = new CheckpointMetrics();
 
     private static final int DEFAULT_COMMIT_RETRIES = 3;
+    private static final int CONSECUTIVE_FAILURE_THRESHOLD = 3;
     private final ConcurrentSkipListMap<Long, Set<Integer>> failedCommitParticipants = new ConcurrentSkipListMap<>();
+
+    private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
     public CheckpointCoordinator(
             String jobId,
@@ -111,9 +114,24 @@ public class CheckpointCoordinator {
         scheduler.scheduleAtFixedRate(
                 () -> {
                     try {
-                        tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+                        PendingCheckpoint result = tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+                        if (result != null) {
+                            consecutiveTriggerFailures.set(0);
+                        } else {
+                            int failures = consecutiveTriggerFailures.incrementAndGet();
+                            if (failures == CONSECUTIVE_FAILURE_THRESHOLD) {
+                                LOG.error("Checkpoint trigger failed {} consecutive times for job {}",
+                                        failures, jobId);
+                            }
+                        }
                     } catch (Exception e) {
-                        LOG.error("Failed to trigger checkpoint", e);
+                        int failures = consecutiveTriggerFailures.incrementAndGet();
+                        if (failures >= CONSECUTIVE_FAILURE_THRESHOLD) {
+                            LOG.error("Checkpoint trigger failed {} consecutive times for job {}",
+                                    failures, jobId, e);
+                        } else {
+                            LOG.warn("Failed to trigger checkpoint for job {} (attempt {})", jobId, failures, e);
+                        }
                     }
                 },
                 interval,
