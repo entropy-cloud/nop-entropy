@@ -103,6 +103,11 @@ public final class StreamRecord<T> extends StreamElement {
      * Replace the currently stored value by the given new value. This returns a StreamElement with
      * the generic type parameter that matches the new value while keeping the old timestamp.
      *
+     * <p><b>Warning:</b> This method mutates this StreamRecord in place and changes its effective
+     * generic type. Callers must not retain references to the old {@code StreamRecord<T>} after
+     * calling {@code replace()} — the returned {@code StreamRecord<X>} is the same object with a
+     * different type parameter. This is a rogue pattern that can cause subtle type confusion.
+     *
      * @param element Element to set in this stream value
      * @return Returns the StreamElement with replaced value
      */

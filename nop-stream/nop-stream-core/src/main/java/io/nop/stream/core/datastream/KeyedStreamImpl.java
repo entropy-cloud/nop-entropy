@@ -205,6 +205,8 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
                     "min(int field) with field != 0 requires Tuple types");
         }
         ReduceFunction<T> reducer = (v1, v2) -> {
+            // Comparable assumption: T is not constrained to Comparable at class level,
+            // so we rely on runtime instanceof check (which throws if not Comparable).
             if (v1 instanceof Comparable) {
                 return ((Comparable<T>) v1).compareTo(v2) <= 0 ? v1 : v2;
             }
@@ -227,6 +229,8 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
                     "max(int field) with field != 0 requires Tuple types");
         }
         ReduceFunction<T> reducer = (v1, v2) -> {
+            // Comparable assumption: T is not constrained to Comparable at class level,
+            // so we rely on runtime instanceof check (which throws if not Comparable).
             if (v1 instanceof Comparable) {
                 return ((Comparable<T>) v1).compareTo(v2) >= 0 ? v1 : v2;
             }

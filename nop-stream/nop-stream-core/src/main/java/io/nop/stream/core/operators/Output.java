@@ -66,6 +66,13 @@ public interface Output<T> extends Collector<T> {
             emitWatermark((Watermark) element);
         } else if (element.isCheckpointBarrier()) {
             emitBarrier((CheckpointBarrier) element);
+        } else if (element.isWatermarkStatus()) {
+            emitWatermarkStatus((WatermarkStatus) element);
+        } else if (element.isLatencyMarker()) {
+            emitLatencyMarker((LatencyMarker) element);
+        } else {
+            throw new UnsupportedOperationException(
+                    "Unsupported StreamElement type: " + element.getClass().getName());
         }
     }
 }

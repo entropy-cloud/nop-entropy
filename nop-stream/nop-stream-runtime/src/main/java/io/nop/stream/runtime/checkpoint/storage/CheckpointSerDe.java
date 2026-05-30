@@ -70,7 +70,8 @@ public class CheckpointSerDe {
         CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : CheckpointType.CHECKPOINT;
         Boolean restored = (Boolean) map.get("restored");
 
-        Map<String, Object> taskStatesMap = (Map<String, Object>) map.get("taskStates");
+        Map<String, Object> taskStatesMap = map.get("taskStates") instanceof Map
+                ? (Map<String, Object>) map.get("taskStates") : null;
         Map<TaskLocation, TaskStateSnapshot> taskStates = new HashMap<>();
         if (taskStatesMap != null) {
             for (Map.Entry<String, Object> entry : taskStatesMap.entrySet()) {
@@ -80,6 +81,10 @@ public class CheckpointSerDe {
                 } catch (Exception e) {
                     LOG.warn("Failed to parse TaskLocation from key '{}', using fallback", entry.getKey(), e);
                     taskLocation = new TaskLocation(jobId, pipelineId, entry.getKey(), 0);
+                }
+                if (!(entry.getValue() instanceof Map)) {
+                    LOG.warn("Skipping non-map task state for key '{}'", entry.getKey());
+                    continue;
                 }
                 Map<String, Object> stateMap = (Map<String, Object>) entry.getValue();
                 TaskStateSnapshot snapshot = deserializeTaskStateSnapshot(stateMap, taskLocation);
@@ -181,7 +186,8 @@ public class CheckpointSerDe {
         EpochState epochState = stateName != null ? EpochState.valueOf(stateName) : null;
 
         Map<TaskLocation, TaskStateSnapshot> taskSnapshots = new LinkedHashMap<>();
-        Map<String, Object> taskSnapshotsMap = (Map<String, Object>) map.get("taskSnapshots");
+        Map<String, Object> taskSnapshotsMap = map.get("taskSnapshots") instanceof Map
+                ? (Map<String, Object>) map.get("taskSnapshots") : null;
         if (taskSnapshotsMap != null) {
             for (Map.Entry<String, Object> entry : taskSnapshotsMap.entrySet()) {
                 TaskLocation taskLocation;
@@ -190,6 +196,10 @@ public class CheckpointSerDe {
                 } catch (Exception e) {
                     LOG.warn("Failed to parse TaskLocation from key '{}' in epoch manifest, using fallback", entry.getKey(), e);
                     taskLocation = new TaskLocation(jobId, pipelineId, entry.getKey(), 0);
+                }
+                if (!(entry.getValue() instanceof Map)) {
+                    LOG.warn("Skipping non-map task snapshot for key '{}' in epoch manifest", entry.getKey());
+                    continue;
                 }
                 Map<String, Object> stateMap = (Map<String, Object>) entry.getValue();
                 TaskStateSnapshot snapshot = deserializeTaskStateSnapshot(stateMap, taskLocation);
@@ -263,14 +273,16 @@ public class CheckpointSerDe {
         }
         TaskStateSnapshot snapshot = new TaskStateSnapshot(taskLocation);
 
-        Map<String, Object> operatorStates = (Map<String, Object>) map.get("operatorStates");
+        Map<String, Object> operatorStates = map.get("operatorStates") instanceof Map
+                ? (Map<String, Object>) map.get("operatorStates") : null;
         if (operatorStates != null) {
             for (Map.Entry<String, Object> entry : operatorStates.entrySet()) {
                 snapshot.putOperatorState(entry.getKey(), entry.getValue());
             }
         }
 
-        Map<String, Object> keyedStates = (Map<String, Object>) map.get("keyedStates");
+        Map<String, Object> keyedStates = map.get("keyedStates") instanceof Map
+                ? (Map<String, Object>) map.get("keyedStates") : null;
         if (keyedStates != null) {
             for (Map.Entry<String, Object> entry : keyedStates.entrySet()) {
                 snapshot.putKeyedState(entry.getKey(), entry.getValue());

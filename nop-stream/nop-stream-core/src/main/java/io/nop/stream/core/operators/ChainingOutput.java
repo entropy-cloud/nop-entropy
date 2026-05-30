@@ -29,9 +29,15 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ChainingOutput.class);
 
     private final Input<T> input;
+    private final String operatorName;
 
     public ChainingOutput(Input<T> input) {
+        this(input, null);
+    }
+
+    public ChainingOutput(Input<T> input, String operatorName) {
         this.input = input;
+        this.operatorName = operatorName;
     }
 
     @Override
@@ -39,7 +45,9 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processElement(record);
         } catch (Exception e) {
-            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding element to next operator");
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e)
+                    .param(ARG_DETAIL, "Error forwarding element to next operator")
+                    .param(ARG_OPERATOR_NAME, operatorName != null ? operatorName : "unknown");
         }
     }
 
@@ -53,7 +61,9 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processWatermark(mark);
         } catch (Exception e) {
-            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding watermark");
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e)
+                    .param(ARG_DETAIL, "Error forwarding watermark")
+                    .param(ARG_OPERATOR_NAME, operatorName != null ? operatorName : "unknown");
         }
     }
 
@@ -62,7 +72,9 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processWatermarkStatus(watermarkStatus);
         } catch (Exception e) {
-            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding watermark status");
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e)
+                    .param(ARG_DETAIL, "Error forwarding watermark status")
+                    .param(ARG_OPERATOR_NAME, operatorName != null ? operatorName : "unknown");
         }
     }
 
@@ -76,7 +88,9 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processLatencyMarker(latencyMarker);
         } catch (Exception e) {
-            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding latency marker");
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e)
+                    .param(ARG_DETAIL, "Error forwarding latency marker")
+                    .param(ARG_OPERATOR_NAME, operatorName != null ? operatorName : "unknown");
         }
     }
 
@@ -85,7 +99,9 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         try {
             input.processBarrier(barrier);
         } catch (Exception e) {
-            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e).param(ARG_DETAIL, "Error forwarding barrier to next operator");
+            throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e)
+                    .param(ARG_DETAIL, "Error forwarding barrier to next operator")
+                    .param(ARG_OPERATOR_NAME, operatorName != null ? operatorName : "unknown");
         }
     }
 }
