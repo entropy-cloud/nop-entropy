@@ -29,6 +29,8 @@ import static io.nop.api.core.util.Guard.notNull;
 import io.nop.stream.cep.nfa.sharedbuffer.EventId;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
     private static final long serialVersionUID = 7127107527654629026L;
     private final String patternName;
@@ -76,7 +78,7 @@ abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
                                                         "Cannot prune based on empty match"));
 
                 if (pruningId != null && pruningId.equals(startEvent)) {
-                    throw new StreamException("Could not skip to first element of a match.");
+                    throw new StreamException(ERR_STREAM_SKIP_NO_MATCH);
                 }
             }
         }

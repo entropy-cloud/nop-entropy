@@ -33,6 +33,8 @@ import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * The implementation of the {@link DataStream} interface. This class represents a data stream
  * in the streaming program and provides methods to apply transformations to the stream.
@@ -341,7 +343,7 @@ public class DataStreamImpl<T> implements DataStream<T> {
                 }
                 return (key.hashCode() & Integer.MAX_VALUE) % numPartitions;
             } catch (Exception e) {
-                throw new StreamException("Failed to extract key for partitioning", e);
+                throw new StreamException(ERR_STREAM_PARTITION_KEY_FAILED, e);
             }
         }
     }

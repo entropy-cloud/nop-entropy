@@ -277,7 +277,7 @@ public class StreamExecutionEnvironment {
 
             for (SubtaskTask task : subtaskTasks) {
                 if (task.getState() == SubtaskTask.State.FAILED) {
-                    throw new StreamException("Task failed", task.getError());
+                    throw new StreamException(ERR_STREAM_TASK_FAILED, task.getError());
                 }
             }
 
@@ -285,7 +285,7 @@ public class StreamExecutionEnvironment {
             long executionTime = System.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } catch (Exception e) {
-            throw new StreamException("Failed to execute job: " + jobName, e);
+            throw new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED, e).param(ARG_JOB_NAME, jobName);
         }
     }
 

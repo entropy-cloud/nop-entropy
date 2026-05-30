@@ -16,6 +16,8 @@ import java.util.*;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 @DataBean
 public class StreamModelFingerprint implements Serializable {
 
@@ -150,7 +152,7 @@ public class StreamModelFingerprint implements Serializable {
             }
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
-            throw new StreamException("SHA-256 not available", e);
+            throw new StreamException(ERR_STREAM_HASH_NOT_AVAILABLE, e);
         }
     }
 }

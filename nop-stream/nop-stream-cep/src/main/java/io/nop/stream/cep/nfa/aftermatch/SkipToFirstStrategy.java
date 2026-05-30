@@ -21,6 +21,8 @@ package io.nop.stream.cep.nfa.aftermatch;
 import java.util.Optional;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 /**
  * Discards every partial match that started before the first event of emitted match mapped to
  * *PatternName*.
@@ -36,7 +38,7 @@ public final class SkipToFirstStrategy extends SkipToElementStrategy {
     public SkipToElementStrategy throwExceptionOnMiss() {
         Optional<String> name = getPatternName();
         if(name.isEmpty())
-            throw new StreamException("null name");
+            throw new StreamException(ERR_STREAM_NULL_NAME);
         return new SkipToFirstStrategy(name.get(), true);
     }
 

@@ -42,7 +42,7 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
         try {
             return descriptor.getAccumulatorType().getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new StreamException("Failed to create accumulator", e);
+            throw new StreamException(ERR_STREAM_ACCUMULATOR_CREATE_FAILED, e);
         }
     }
 

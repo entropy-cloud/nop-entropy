@@ -143,7 +143,7 @@ public class RecordWriter<T> {
             partitions[targetChannel].write(record);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new StreamException("Interrupted while writing record", e);
+            throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "record");
         }
     }
 
@@ -158,7 +158,7 @@ public class RecordWriter<T> {
                 partition.write(watermark);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new StreamException("Interrupted while writing watermark", e);
+                throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "watermark");
             }
         }
     }
@@ -174,7 +174,7 @@ public class RecordWriter<T> {
                 partition.write(barrier);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new StreamException("Interrupted while writing barrier", e);
+                throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "barrier");
             }
         }
     }
@@ -196,7 +196,7 @@ public class RecordWriter<T> {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new StreamException("Interrupted while writing element", e);
+            throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "element");
         }
     }
 

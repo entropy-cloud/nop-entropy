@@ -16,6 +16,8 @@ import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+
 class MemoryReducingState<T> implements ReducingState<T>, Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -48,7 +50,7 @@ class MemoryReducingState<T> implements ReducingState<T>, Serializable {
             try {
                 acc = descriptor.getAccumulatorType().getDeclaredConstructor().newInstance();
             } catch (Exception e) {
-                throw new StreamException("Failed to create accumulator for ReducingState", e);
+                throw new StreamException(ERR_STREAM_ACCUMULATOR_CREATE_FAILED, e).param(ARG_DETAIL, "ReducingState");
             }
         }
         acc.add(value);

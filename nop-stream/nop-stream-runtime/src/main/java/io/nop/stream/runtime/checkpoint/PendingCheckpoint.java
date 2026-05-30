@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -143,8 +145,8 @@ public class PendingCheckpoint {
             isDisposed = true;
             if (!completableFuture.isDone()) {
                 Exception error = cause != null
-                        ? new StreamException("Checkpoint aborted: " + reason, cause)
-                        : new StreamException("Checkpoint aborted: " + reason);
+                        ? new StreamException(ERR_STREAM_CHECKPOINT_ABORTED, cause).param(ARG_REASON, reason)
+                        : new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON, reason);
                 completableFuture.completeExceptionally(error);
             }
         }

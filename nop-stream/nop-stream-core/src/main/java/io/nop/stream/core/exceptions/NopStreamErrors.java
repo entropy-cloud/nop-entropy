@@ -122,4 +122,38 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_INVALID_TIMESTAMP =
             define("nop.err.stream.invalid-timestamp", "Invalid timestamp for argument {argName}: {detail}",
                     ARG_ARG_NAME, ARG_DETAIL);
+
+    String ARG_EXPECTED = "expected";
+    String ARG_JOB_NAME = "jobName";
+    String ARG_REASON = "reason";
+
+    ErrorCode ERR_STREAM_NULL_NAME =
+            define("nop.err.stream.null-name", "Name must not be null");
+
+    ErrorCode ERR_STREAM_SKIP_NO_MATCH =
+            define("nop.err.stream.skip-no-match", "Could not skip to first element of a match");
+
+    ErrorCode ERR_STREAM_PARTITION_KEY_FAILED =
+            define("nop.err.stream.partition-key-failed", "Failed to extract key for partitioning");
+
+    ErrorCode ERR_STREAM_BARRIER_INJECTION_FAILED =
+            define("nop.err.stream.barrier-injection-failed", "Failed to inject barrier: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_ACCUMULATOR_CREATE_FAILED =
+            define("nop.err.stream.accumulator-create-failed", "Failed to create accumulator: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_INTERRUPTED_WRITE =
+            define("nop.err.stream.interrupted-write", "Interrupted while writing {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_HASH_NOT_AVAILABLE =
+            define("nop.err.stream.hash-not-available", "SHA-256 algorithm not available");
+
+    ErrorCode ERR_STREAM_TASK_FAILED =
+            define("nop.err.stream.task-failed", "Task failed");
+
+    ErrorCode ERR_STREAM_JOB_EXECUTE_FAILED =
+            define("nop.err.stream.job-execute-failed", "Failed to execute job: {jobName}", ARG_JOB_NAME);
+
+    ErrorCode ERR_STREAM_CHECKPOINT_ABORTED =
+            define("nop.err.stream.checkpoint-aborted", "Checkpoint aborted: {reason}", ARG_REASON);
 }
