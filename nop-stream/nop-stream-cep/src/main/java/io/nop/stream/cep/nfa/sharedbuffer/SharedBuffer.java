@@ -172,10 +172,10 @@ public class SharedBuffer<V> {
             Long next = iterator.next();
             if (next < timestamp) {
                 iterator.remove();
-                eventsBufferCache.entrySet().removeIf(e ->
-                        e.getKey() != null && e.getKey().getTimestamp() < timestamp);
             }
         }
+        eventsBufferCache.entrySet().removeIf(e ->
+                e.getKey() != null && e.getKey().getTimestamp() < timestamp);
     }
 
     EventId registerEvent(V value, long timestamp) {
@@ -302,12 +302,22 @@ public class SharedBuffer<V> {
      */
     void flushCache() {
         if (!entryCache.isEmpty()) {
-            entries.putAll(entryCache);
+            Map<NodeId, Lockable<SharedBufferNode>> snapshot1 = new java.util.HashMap<>(entryCache);
             entryCache.clear();
+            try {
+                entries.putAll(snapshot1);
+            } catch (Exception e) {
+                throw NopException.adapt(e);
+            }
         }
         if (!eventsBufferCache.isEmpty()) {
-            eventsBuffer.putAll(eventsBufferCache);
+            Map<EventId, Lockable<V>> snapshot2 = new java.util.HashMap<>(eventsBufferCache);
             eventsBufferCache.clear();
+            try {
+                eventsBuffer.putAll(snapshot2);
+            } catch (Exception e) {
+                throw NopException.adapt(e);
+            }
         }
     }
 

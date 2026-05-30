@@ -43,7 +43,7 @@ public class CepPatternBuilder {
         Pattern pattern;
         if (partModel instanceof CepPatternSingleModel) {
             pattern = Pattern.begin(start, getAfterMatchSkipStrategy(groupModel));
-            pattern = buildSinglePattern(pattern, (CepPatternSingleModel) partModel);
+            pattern = buildWhere(pattern, (CepPatternSingleModel) partModel);
         } else {
             pattern = buildGroupPattern((ICepPatternGroupModel) partModel);
             pattern = Pattern.begin(pattern, getAfterMatchSkipStrategy(groupModel));
@@ -53,6 +53,10 @@ public class CepPatternBuilder {
 
         do {
             pattern = addQualifier(pattern, partModel);
+
+            if (partModel instanceof CepPatternSingleModel) {
+                pattern = buildUntil(pattern, (CepPatternSingleModel) partModel);
+            }
 
             String next = partModel.getNext();
             if (StringHelper.isEmpty(next))
@@ -68,6 +72,7 @@ public class CepPatternBuilder {
 
             if (nextModel instanceof CepPatternSingleModel) {
                 pattern = buildFollow(pattern, followKind, nextModel.getName());
+                pattern = buildWhere(pattern, (CepPatternSingleModel) nextModel);
             } else {
                 pattern = buildFollowGroup(pattern, followKind, (CepPatternGroupModel) nextModel);
             }
@@ -126,10 +131,15 @@ public class CepPatternBuilder {
     }
 
     @SuppressWarnings("rawtypes")
-    private Pattern buildSinglePattern(Pattern pattern, CepPatternSingleModel singleModel) {
+    private Pattern buildWhere(Pattern pattern, CepPatternSingleModel singleModel) {
         if (singleModel.getWhere() != null) {
             pattern = pattern.where(buildCondition(singleModel.getWhere()));
         }
+        return pattern;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private Pattern buildUntil(Pattern pattern, CepPatternSingleModel singleModel) {
         if (singleModel.getUntil() != null) {
             pattern = pattern.until(buildCondition(singleModel.getUntil()));
         }

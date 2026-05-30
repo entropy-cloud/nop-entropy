@@ -52,11 +52,14 @@ public final class Lockable<T> {
      * @return true if no more locks are acquired
      */
     boolean release() {
-        if (refCounter.get() <= 0) {
-            return true;
-        }
-
-        return refCounter.decrementAndGet() == 0;
+        int old;
+        do {
+            old = refCounter.get();
+            if (old <= 0) {
+                return true;
+            }
+        } while (!refCounter.compareAndSet(old, old - 1));
+        return old == 1;
     }
 
     public T getElement() {

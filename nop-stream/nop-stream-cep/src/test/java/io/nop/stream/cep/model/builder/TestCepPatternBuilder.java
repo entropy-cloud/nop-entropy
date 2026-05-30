@@ -50,6 +50,44 @@ class TestCepPatternBuilder {
     }
 
     @Test
+    void testMultiStepPatternWhereConditionsAppliedToAllSteps() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("a");
+
+        CepPatternSingleModel stepA = new CepPatternSingleModel();
+        stepA.setName("a");
+        stepA.setNext("b");
+        stepA.setWhere((thisObj, args, scope) -> true);
+
+        CepPatternSingleModel stepB = new CepPatternSingleModel();
+        stepB.setName("b");
+        stepB.setNext("c");
+        stepB.setWhere((thisObj, args, scope) -> false);
+        stepB.setOneOrMore(true);
+        stepB.setUntil((thisObj, args, scope) -> true);
+
+        CepPatternSingleModel stepC = new CepPatternSingleModel();
+        stepC.setName("c");
+        stepC.setWhere((thisObj, args, scope) -> true);
+
+        model.addPart(stepA);
+        model.addPart(stepB);
+        model.addPart(stepC);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        Pattern<?, ?> pattern = builder.buildFromModel(model);
+
+        Pattern<?, ?> stepCPattern = pattern;
+        Pattern<?, ?> stepBPattern = pattern.getPrevious();
+        Pattern<?, ?> stepAPattern = pattern.getPrevious().getPrevious();
+
+        assertNotNull(stepAPattern.getCondition(), "Step a should have where condition");
+        assertNotNull(stepBPattern.getCondition(), "Step b should have where condition");
+        assertNotNull(stepCPattern.getCondition(), "Step c should have where condition");
+        assertNotNull(stepBPattern.getUntilCondition(), "Step b should have until condition");
+    }
+
+    @Test
     void testBuildTwoPartPattern_nfaHasMoreStatesThanSinglePart() {
         CepPatternModel model = new CepPatternModel();
         model.setStart("a");
