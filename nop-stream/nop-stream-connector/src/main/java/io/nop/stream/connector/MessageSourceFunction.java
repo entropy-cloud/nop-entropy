@@ -99,6 +99,10 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
     @Override
     @SuppressWarnings("unchecked")
     public void run(SourceContext<T> ctx) throws Exception {
+        if (shutdownLatch == null) {
+            shutdownLatch = new CountDownLatch(1);
+        }
+
         String effectiveTopic = getEffectiveTopic();
         subscription = messageService.subscribe(effectiveTopic, new IMessageConsumer() {
             @Override

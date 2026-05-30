@@ -75,7 +75,7 @@ public class TestMessageAdapters {
             try {
                 source.run(collectingContext(collected));
             } catch (Exception e) {
-                throw new RuntimeException("Source.run() failed", e);
+                throw new StreamException("Source.run() failed", e);
             }
         });
         runner.start();
@@ -103,7 +103,7 @@ public class TestMessageAdapters {
             try {
                 source.run(collectingContext(collected));
             } catch (Exception e) {
-                throw new RuntimeException("Source.run() failed", e);
+                throw new StreamException("Source.run() failed", e);
             }
         });
         runner.start();
@@ -124,5 +124,32 @@ public class TestMessageAdapters {
                 () -> new MessageSourceFunction<>(null, "topic"));
         assertThrows(StreamException.class,
                 () -> new MessageSinkFunction<>(new LocalMessageService(), null));
+    }
+
+    @Test
+    void testDeserializedSourceRunDoesNotThrowNPE() throws Exception {
+        LocalMessageService messageService = new LocalMessageService();
+        MessageSourceFunction<Object> source = new MessageSourceFunction<>(messageService, "ser-topic");
+
+        java.lang.reflect.Field latchField = MessageSourceFunction.class.getDeclaredField("shutdownLatch");
+        latchField.setAccessible(true);
+        latchField.set(source, null);
+
+        List<Object> collected = new CopyOnWriteArrayList<>();
+        SourceFunction.SourceContext<Object> ctx = collectingContext(collected);
+
+        Thread runner = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Exception e) {
+                throw new StreamException("run() with null shutdownLatch failed", e);
+            }
+        });
+        runner.start();
+        Thread.sleep(100);
+
+        source.cancel();
+        runner.join(2000);
+        assertFalse(runner.isAlive(), "Source with null shutdownLatch should complete after cancel without NPE");
     }
 }
