@@ -611,7 +611,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                 Map<String, Object> map = (Map<String, Object>) value;
                 if (map.containsKey("@type")) {
                     String accType = (String) map.get("@type");
-                    ClassNameValidator.validateClassName(accType);
+                    ClassNameValidator.validateAccumulatorClass(accType);
                     Object accValue = map.get("value");
                     @SuppressWarnings("unchecked")
                     SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();
@@ -662,7 +662,7 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             if (value instanceof Map) {
                 Map<String, Object> map = (Map<String, Object>) value;
                 String accType = (String) map.get("@type");
-                ClassNameValidator.validateClassName(accType);
+                ClassNameValidator.validateAccumulatorClass(accType);
                 Object accValue = map.get("value");
                 @SuppressWarnings("unchecked")
                 SimpleAccumulator<Object> acc = (SimpleAccumulator<Object>) Class.forName(accType).getDeclaredConstructor().newInstance();

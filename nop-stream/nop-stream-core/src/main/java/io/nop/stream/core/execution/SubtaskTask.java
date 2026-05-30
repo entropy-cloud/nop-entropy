@@ -144,8 +144,8 @@ public class SubtaskTask implements Runnable {
                         e.addSuppressed(closeEx);
                     }
                 }
-                throw new StreamException(
-                    "Failed to open operator chain " + i + " for subtask: " + getTaskName(), e);
+                throw new StreamException(ERR_STREAM_INIT_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to open operator chain " + i + " for subtask: " + getTaskName());
             }
         }
     }

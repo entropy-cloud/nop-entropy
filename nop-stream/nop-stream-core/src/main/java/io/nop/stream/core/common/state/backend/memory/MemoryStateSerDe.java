@@ -209,7 +209,7 @@ class MemoryStateSerDe {
         if (accumulatorTypeName == null) {
             accumulatorTypeName = (String) stateInfo.get("accumulatorType");
         }
-        ClassNameValidator.validateClassName(accumulatorTypeName);
+        ClassNameValidator.validateAccumulatorClass(accumulatorTypeName);
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
 
@@ -303,7 +303,7 @@ class MemoryStateSerDe {
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String accumulatorTypeName = (String) stateInfo.get("accumulatorType");
-        ClassNameValidator.validateClassName(accumulatorTypeName);
+        ClassNameValidator.validateAccumulatorClass(accumulatorTypeName);
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
 
@@ -349,7 +349,7 @@ class MemoryStateSerDe {
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
-        ClassNameValidator.validateClassName(aggregateFunctionTypeName);
+        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
         Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
                 (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
         AggregateFunction<Object, Object, Object> aggregateFunction =

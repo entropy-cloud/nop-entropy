@@ -53,4 +53,38 @@ class TestClassNameValidator {
         assertDoesNotThrow(() -> ClassNameValidator.validateClassName("[Lio.nop.stream.core.SomeClass;"));
         assertDoesNotThrow(() -> ClassNameValidator.validateClassName("[Ljava.lang.String;"));
     }
+
+    @Test
+    void testDangerousJavaClassRejected() {
+        assertThrows(StreamException.class,
+                () -> ClassNameValidator.validateClassName("java.rmi.server.RemoteObject"));
+    }
+
+    @Test
+    void testSafeJavaClassAccepted() {
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("java.lang.String"));
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("java.util.ArrayList"));
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("java.math.BigDecimal"));
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("java.time.Instant"));
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("java.io.Serializable"));
+        assertDoesNotThrow(() -> ClassNameValidator.validateClassName("java.nio.ByteBuffer"));
+    }
+
+    @Test
+    void testJavaSqlClassRejected() {
+        assertThrows(StreamException.class,
+                () -> ClassNameValidator.validateClassName("java.sql.Connection"));
+    }
+
+    @Test
+    void testAccumulatorClassValidationAcceptsNopStream() {
+        assertDoesNotThrow(() ->
+                ClassNameValidator.validateAccumulatorClass("io.nop.stream.core.common.accumulators.LongCounter"));
+    }
+
+    @Test
+    void testAccumulatorClassValidationRejectsNonNopStream() {
+        assertThrows(StreamException.class,
+                () -> ClassNameValidator.validateAccumulatorClass("java.lang.String"));
+    }
 }

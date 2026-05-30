@@ -17,7 +17,12 @@ public class ClassNameValidator {
             "io.nop.commons.",
             "io.nop.core.",
             "io.nop.dao.",
-            "java.",
+            "java.lang.",
+            "java.util.",
+            "java.math.",
+            "java.time.",
+            "java.io.",
+            "java.nio.",
             "javax.",
             "jakarta.",
             "[Lio.nop.",
@@ -42,5 +47,14 @@ public class ClassNameValidator {
             }
         }
         throw new StreamException(ERR_STREAM_CLASS_NOT_ALLOWED).param(ARG_CLASS_NAME, className);
+    }
+
+    public static void validateAccumulatorClass(String className) {
+        if (className == null || className.isEmpty()) {
+            throw new StreamException(ERR_STREAM_CLASS_NOT_ALLOWED).param(ARG_CLASS_NAME, "null or empty");
+        }
+        if (!className.startsWith("io.nop.stream.")) {
+            throw new StreamException(ERR_STREAM_CLASS_NOT_ALLOWED).param(ARG_CLASS_NAME, className);
+        }
     }
 }
