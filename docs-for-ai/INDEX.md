@@ -70,6 +70,9 @@
 | 理解 XLang / XPL / xrun / xgen 基本写法 | `02-core-guides/xlang-and-xpl-basics.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
+| 修改流处理引擎（nop-stream） | `01-repo-map/module-groups.md`（nop-stream 子模块） |
+| CEP 模式匹配开发 | `01-repo-map/module-groups.md`（nop-stream-cep） |
+| 检查点/状态管理机制 | `01-repo-map/module-groups.md`（nop-stream-runtime） |
 | 新建实体 | `03-runbooks/create-new-entity.md` |
 | 新增字段或校验 | `03-runbooks/add-field-and-validation.md` |
 | 新增字典或常量 | `03-runbooks/add-dict-and-constants.md` |
@@ -128,6 +131,7 @@
 - `nop-kernel`、`nop-core-framework`、`nop-persistence`、`nop-service-framework` 是框架主干。
 - `nop-runner/` 和 `scripts/nop-cli.cmd` 是 CLI / runner 入口；`nop-demo/` 和 `demo/` 是示例入口。
 - `docs/theory/` 下的论文与技术报告属于研究/论证材料，不是开发 AI 的默认规范入口；出现解释歧义时，不要把其中术语直接当作 `docs-for-ai/` 级别的开发规则。
+- `nop-stream/` 是流处理引擎子模块组，包含 `nop-stream-core`（核心 API、状态、算子）、`nop-stream-cep`（CEP 复杂事件处理）、`nop-stream-runtime`（运行时、检查点、协调器）、`nop-stream-connector`（消息源/汇连接器）、`nop-stream-checkpoint`（检查点存储）、`nop-stream-flow`（流控）、`nop-stream-flink`（Flink 兼容层）、`nop-stream-fraud-example`（欺诈检测示例）。
 
 ## 当 `docs-for-ai` 仍有歧义时
 
