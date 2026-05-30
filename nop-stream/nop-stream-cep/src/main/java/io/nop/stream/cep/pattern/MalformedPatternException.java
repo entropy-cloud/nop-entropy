@@ -18,6 +18,7 @@
 
 package io.nop.stream.cep.pattern;
 
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 
 /**
@@ -30,5 +31,13 @@ public class MalformedPatternException extends StreamRuntimeException {
 
     public MalformedPatternException(String message) {
         super(message);
+    }
+
+    public MalformedPatternException(ErrorCode errorCode) {
+        super(errorCode);
+    }
+
+    public MalformedPatternException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode, cause);
     }
 }

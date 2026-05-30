@@ -42,4 +42,9 @@ public interface NopCepErrors {
 
     ErrorCode ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED =
             define("nop.err.cep.nfa-shared-buffer-access-failed", "Shared buffer access failed");
+
+    String ARG_PATTERN_DETAIL = "patternDetail";
+
+    ErrorCode ERR_CEP_MALFORMED_PATTERN =
+            define("nop.err.cep.malformed-pattern", "Malformed CEP pattern: {patternDetail}", ARG_PATTERN_DETAIL);
 }
