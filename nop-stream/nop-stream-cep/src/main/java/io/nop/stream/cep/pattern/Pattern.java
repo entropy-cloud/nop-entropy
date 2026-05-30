@@ -36,6 +36,8 @@ import io.nop.stream.cep.pattern.conditions.RichAndCondition;
 import io.nop.stream.cep.pattern.conditions.RichOrCondition;
 import io.nop.stream.cep.pattern.conditions.SubtypeCondition;
 
+import static io.nop.stream.cep.NopCepErrors.*;
+
 /**
  * Base class for a pattern definition.
  *
@@ -240,13 +242,12 @@ public class Pattern<T, F extends T> {
         Guard.notNull(untilCondition, "The condition cannot be null");
 
         if (this.untilCondition != null) {
-            throw new MalformedPatternException("Only one until condition can be applied.");
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
 
         if (!quantifier.hasProperty(Quantifier.QuantifierProperty.LOOPING)
                 && !quantifier.hasProperty(Quantifier.QuantifierProperty.TIMES)) {
-            throw new MalformedPatternException(
-                    "The until condition is only applicable to looping or times states.");
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
 
         //ClosureCleaner.clean(untilCondition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
@@ -305,10 +306,7 @@ public class Pattern<T, F extends T> {
      */
     public Pattern<T, T> notNext(final String name) {
         if (quantifier.hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
-            throw new UnsupportedOperationException(
-                    "Specifying a pattern with an optional path to NOT condition is not supported yet. "
-                            + "You can simulate such pattern with two independent patterns, one with and the other without "
-                            + "the optional part.");
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
         return new Pattern<>(name, this, Quantifier.ConsumingStrategy.NOT_NEXT, afterMatchSkipStrategy);
     }
@@ -336,10 +334,7 @@ public class Pattern<T, F extends T> {
      */
     public Pattern<T, T> notFollowedBy(final String name) {
         if (quantifier.hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
-            throw new UnsupportedOperationException(
-                    "Specifying a pattern with an optional path to NOT condition is not supported yet. "
-                            + "You can simulate such pattern with two independent patterns, one with and the other without "
-                            + "the optional part.");
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
         return new Pattern<>(name, this, Quantifier.ConsumingStrategy.NOT_FOLLOW, afterMatchSkipStrategy);
     }
@@ -641,16 +636,13 @@ public class Pattern<T, F extends T> {
     private void checkIfNoNotPattern() {
         if (quantifier.getConsumingStrategy() == Quantifier.ConsumingStrategy.NOT_FOLLOW
                 || quantifier.getConsumingStrategy() == Quantifier.ConsumingStrategy.NOT_NEXT) {
-            throw new MalformedPatternException("Option not applicable to NOT pattern");
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
     }
 
     private void checkIfQuantifierApplied() {
         if (!quantifier.hasProperty(Quantifier.QuantifierProperty.SINGLE)) {
-            throw new MalformedPatternException(
-                    "Already applied quantifier to this Pattern. "
-                            + "Current quantifier is: "
-                            + quantifier);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
     }
 
@@ -663,15 +655,14 @@ public class Pattern<T, F extends T> {
 
     private void checkIfNoGroupPattern() {
         if (this instanceof GroupPattern) {
-            throw new MalformedPatternException("Option not applicable to group pattern");
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
     }
 
     private void checkIfPreviousPatternGreedy() {
         if (previous != null
                 && previous.getQuantifier().hasProperty(Quantifier.QuantifierProperty.GREEDY)) {
-            throw new MalformedPatternException(
-                    "Optional pattern cannot be preceded by greedy pattern");
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
     }
 

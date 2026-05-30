@@ -178,15 +178,14 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     @SuppressWarnings("unchecked")
     public SingleOutputStreamOperator<T> sum(int field) {
         if (field != 0) {
-            throw new UnsupportedOperationException(
-                    "sum(int field) with field != 0 requires Tuple types");
+            throw new StreamException(ERR_STREAM_TUPLE_FIELD_REQUIRED).param(ARG_FIELD, field);
         }
         ReduceFunction<T> reducer = (v1, v2) -> {
             if (v1 instanceof Integer) return (T) (Integer) (((Integer) v1) + ((Number) v2).intValue());
             if (v1 instanceof Long) return (T) (Long) (((Long) v1) + ((Number) v2).longValue());
             if (v1 instanceof Double) return (T) (Double) (((Double) v1) + ((Number) v2).doubleValue());
             if (v1 instanceof Float) return (T) (Float) (((Float) v1) + ((Number) v2).floatValue());
-            throw new UnsupportedOperationException("sum(int field) requires Number elements");
+            throw new StreamException(ERR_STREAM_NUMBER_REQUIRED);
         };
         return transform("Sum", getType(), new StreamReduceOperator<>(reducer));
     }
@@ -201,16 +200,13 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     @SuppressWarnings("unchecked")
     public SingleOutputStreamOperator<T> min(int field) {
         if (field != 0) {
-            throw new UnsupportedOperationException(
-                    "min(int field) with field != 0 requires Tuple types");
+            throw new StreamException(ERR_STREAM_TUPLE_FIELD_REQUIRED).param(ARG_FIELD, field);
         }
         ReduceFunction<T> reducer = (v1, v2) -> {
-            // Comparable assumption: T is not constrained to Comparable at class level,
-            // so we rely on runtime instanceof check (which throws if not Comparable).
             if (v1 instanceof Comparable) {
                 return ((Comparable<T>) v1).compareTo(v2) <= 0 ? v1 : v2;
             }
-            throw new UnsupportedOperationException("min(int field) requires Comparable elements");
+            throw new StreamException(ERR_STREAM_COMPARABLE_REQUIRED);
         };
         return transform("Min", getType(), new StreamReduceOperator<>(reducer));
     }
@@ -225,16 +221,13 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     @SuppressWarnings("unchecked")
     public SingleOutputStreamOperator<T> max(int field) {
         if (field != 0) {
-            throw new UnsupportedOperationException(
-                    "max(int field) with field != 0 requires Tuple types");
+            throw new StreamException(ERR_STREAM_TUPLE_FIELD_REQUIRED).param(ARG_FIELD, field);
         }
         ReduceFunction<T> reducer = (v1, v2) -> {
-            // Comparable assumption: T is not constrained to Comparable at class level,
-            // so we rely on runtime instanceof check (which throws if not Comparable).
             if (v1 instanceof Comparable) {
                 return ((Comparable<T>) v1).compareTo(v2) >= 0 ? v1 : v2;
             }
-            throw new UnsupportedOperationException("max(int field) requires Comparable elements");
+            throw new StreamException(ERR_STREAM_COMPARABLE_REQUIRED);
         };
         return transform("Max", getType(), new StreamReduceOperator<>(reducer));
     }

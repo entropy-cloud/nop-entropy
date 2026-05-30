@@ -49,6 +49,8 @@ import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.Quantifier;
 import io.nop.stream.cep.pattern.WithinType;
 
+import static io.nop.stream.cep.NopCepErrors.*;
+
 /**
  * Compiler class containing methods to compile a {@link Pattern} into a {@link NFA} or a {@link
  * NFAFactory}.
@@ -186,8 +188,7 @@ public class NFACompiler {
                     && (!windowTimes.containsKey(lastPattern.getName())
                             || windowTimes.get(lastPattern.getName()) <= 0)
                     && getWindowTime() == 0) {
-                throw new MalformedPatternException(
-                        "NotFollowedBy is not supported without windowTime as a last part of a Pattern!");
+                throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
             }
         }
 
@@ -212,8 +213,7 @@ public class NFACompiler {
             windowTime.ifPresent(
                     windowTime -> {
                         if (windowTimes.values().stream().anyMatch(time -> time > windowTime)) {
-                            throw new MalformedPatternException(
-                                    "The window length between the previous and current event cannot be larger than the window length between the first and last event for a Pattern.");
+                            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
                         }
                     });
         }
@@ -229,9 +229,7 @@ public class NFACompiler {
 
                 // pattern name match check.
                 if (!pattern.getName().equals(patternName)) {
-                    throw new MalformedPatternException(
-                            "The pattern name specified in AfterMatchSkipStrategy "
-                                    + "can not be found in the given Pattern");
+                    throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
                 }
             }
         }

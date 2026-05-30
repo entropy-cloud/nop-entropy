@@ -27,6 +27,8 @@ import jakarta.annotation.Nullable;
 
 import io.nop.api.core.util.Guard;
 
+import static io.nop.stream.cep.NopCepErrors.*;
+
 /**
  * A quantifier describing the Pattern. There are three main groups of {@link Quantifier}.
  *
@@ -82,7 +84,7 @@ public class Quantifier {
 
     private static void checkPattern(boolean condition, Object errorMessage) {
         if (!condition) {
-            throw new MalformedPatternException(String.valueOf(errorMessage));
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
         }
     }
 

@@ -19,6 +19,7 @@
 package io.nop.stream.core.operators;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -26,6 +27,8 @@ import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**
  * A {@link io.nop.stream.core.operators.StreamOperator} is supplied with an object of
@@ -71,8 +74,8 @@ public interface Output<T> extends Collector<T> {
         } else if (element.isLatencyMarker()) {
             emitLatencyMarker((LatencyMarker) element);
         } else {
-            throw new UnsupportedOperationException(
-                    "Unsupported StreamElement type: " + element.getClass().getName());
+            throw new StreamException(ERR_STREAM_UNSUPPORTED_ELEMENT_TYPE)
+                    .param(ARG_ELEMENT_TYPE, element.getClass().getName());
         }
     }
 }

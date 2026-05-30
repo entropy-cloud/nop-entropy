@@ -170,4 +170,35 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_WINDOW_NON_ACCUMULATOR_MERGE_CONFLICT =
             define("nop.err.stream.window-non-accumulator-merge-conflict",
                     "Cannot merge multiple non-accumulator window values; conflicting values detected", ARG_DETAIL);
+
+    String ARG_ELEMENT_TYPE = "elementType";
+
+    ErrorCode ERR_STREAM_UNSUPPORTED_ELEMENT_TYPE =
+            define("nop.err.stream.unsupported-element-type", "Unsupported StreamElement type: {elementType}", ARG_ELEMENT_TYPE);
+
+    String ARG_WATERMARK = "watermark";
+    String ARG_WINDOW = "window";
+
+    ErrorCode ERR_STREAM_WINDOW_MERGE_INVALID_WATERMARK =
+            define("nop.err.stream.window-merge-invalid-watermark",
+                    "Event-time window end timestamp cannot become earlier than current watermark by merging. Current watermark: {watermark}, window: {window}",
+                    ARG_WATERMARK, ARG_WINDOW);
+
+    String ARG_PROCESSING_TIME = "processingTime";
+
+    ErrorCode ERR_STREAM_WINDOW_MERGE_INVALID_PROCESSING_TIME =
+            define("nop.err.stream.window-merge-invalid-processing-time",
+                    "Processing-time window end timestamp cannot become earlier than current processing time by merging. Current processing time: {processingTime}, window: {window}",
+                    ARG_PROCESSING_TIME, ARG_WINDOW);
+
+    String ARG_FIELD = "field";
+
+    ErrorCode ERR_STREAM_TUPLE_FIELD_REQUIRED =
+            define("nop.err.stream.tuple-field-required", "Aggregation with field index {field} != 0 requires Tuple types", ARG_FIELD);
+
+    ErrorCode ERR_STREAM_NUMBER_REQUIRED =
+            define("nop.err.stream.number-required", "Aggregation requires Number elements");
+
+    ErrorCode ERR_STREAM_COMPARABLE_REQUIRED =
+            define("nop.err.stream.comparable-required", "Aggregation requires Comparable elements");
 }

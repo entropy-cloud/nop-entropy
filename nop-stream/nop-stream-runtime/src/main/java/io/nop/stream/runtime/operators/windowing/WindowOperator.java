@@ -374,26 +374,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                             && mergeResult.maxTimestamp() + allowedLateness
                                             <= internalTimerService
                                             .currentWatermark())) {
-                                        throw new UnsupportedOperationException(
-                                                "The end timestamp of an "
-                                                        + "event-time window cannot become earlier than the current watermark "
-                                                        + "by merging. Current watermark: "
-                                                        + internalTimerService
-                                                        .currentWatermark()
-                                                        + " window: "
-                                                        + mergeResult);
+                                        throw new StreamException(ERR_STREAM_WINDOW_MERGE_INVALID_WATERMARK)
+                                                .param(ARG_WATERMARK, internalTimerService.currentWatermark())
+                                                .param(ARG_WINDOW, mergeResult);
                                     } else if (!windowAssigner.isEventTime()) {
                                         long currentProcessingTime =
                                                 internalTimerService.currentProcessingTime();
                                         if (mergeResult.maxTimestamp()
                                                 <= currentProcessingTime) {
-                                            throw new UnsupportedOperationException(
-                                                    "The end timestamp of a "
-                                                            + "processing-time window cannot become earlier than the current processing time "
-                                                            + "by merging. Current processing time: "
-                                                            + currentProcessingTime
-                                                            + " window: "
-                                                            + mergeResult);
+                                            throw new StreamException(ERR_STREAM_WINDOW_MERGE_INVALID_PROCESSING_TIME)
+                                                    .param(ARG_PROCESSING_TIME, currentProcessingTime)
+                                                    .param(ARG_WINDOW, mergeResult);
                                         }
                                     }
 
