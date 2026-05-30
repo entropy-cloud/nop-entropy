@@ -26,7 +26,7 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-message-core</artifactId>
-            <optional>true</optional>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

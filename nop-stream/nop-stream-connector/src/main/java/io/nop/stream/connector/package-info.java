@@ -7,7 +7,9 @@
  *
  * <ul>
  *   <li>{@code MessageSourceFunction} / {@code MessageSinkFunction}:
- *       requires {@code nop-message-core} on the classpath at runtime.</li>
+ *       depends on {@code nop-api-core} ({@code IMessageService}) at compile time.
+ *       At runtime, a {@code IMessageService} implementation (e.g., {@code nop-message-core})
+ *       must be provided.</li>
  *   <li>Debezium CDC adapter:
  *       requires {@code nop-message-debezium} on the classpath at runtime.</li>
  * </ul>

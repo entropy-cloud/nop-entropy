@@ -467,6 +467,7 @@ public class Pattern<T, F extends T> {
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
     public Pattern<T, F> times(int from, int to, @Nullable Duration windowTime) {
+        Guard.checkArgument(from <= to, "from must be <= to");
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
         this.quantifier = Quantifier.times(quantifier.getConsumingStrategy());
@@ -503,6 +504,7 @@ public class Pattern<T, F extends T> {
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
     public Pattern<T, F> timesOrMore(int times, @Nullable Duration windowTime) {
+        Guard.checkArgument(times > 0, "times must be > 0");
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
         this.quantifier = Quantifier.looping(quantifier.getConsumingStrategy());

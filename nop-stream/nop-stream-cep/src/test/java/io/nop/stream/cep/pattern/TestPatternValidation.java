@@ -321,6 +321,26 @@ public class TestPatternValidation {
         assertEquals(3, pattern.getTimes().getFrom());
     }
 
+    @Test
+    void testTimesFromGreaterThanToThrows() {
+        assertThrows(IllegalArgumentException.class, () ->
+                Pattern.<Event>begin("start")
+                        .where(SimpleCondition.of(e -> true))
+                        .times(5, 3));
+    }
+
+    @Test
+    void testTimesOrMoreZeroOrNegativeThrows() {
+        assertThrows(IllegalArgumentException.class, () ->
+                Pattern.<Event>begin("start")
+                        .where(SimpleCondition.of(e -> true))
+                        .timesOrMore(0));
+        assertThrows(IllegalArgumentException.class, () ->
+                Pattern.<Event>begin("start")
+                        .where(SimpleCondition.of(e -> true))
+                        .timesOrMore(-1));
+    }
+
     private SimpleCondition<Object> dummyCondition() {
         return SimpleCondition.of(value -> true);
     }
