@@ -69,12 +69,11 @@ public class CountTrigger<W extends Window> extends Trigger<Object, W> {
 
     @Override
     public boolean canMerge() {
-        return true;
+        return false;
     }
 
     @Override
     public void onMerge(W window, OnMergeContext ctx)  {
-        // ctx.mergePartitionedState(stateDesc);
     }
 
     @Override
