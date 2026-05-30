@@ -11,12 +11,8 @@
 
     <artifactId>nop-stream-runtime</artifactId>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
+    <!-- CEP and connector integration is planned for future releases.
+         Currently runtime depends only on nop-stream-core. -->
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
