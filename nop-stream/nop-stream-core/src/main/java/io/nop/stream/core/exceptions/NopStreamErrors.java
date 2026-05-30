@@ -163,4 +163,7 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_TYPE_MISMATCH =
             define("nop.err.stream.type-mismatch", "Type mismatch: expected {expectedType} but got {actualType}",
                     ARG_EXPECTED_TYPE, ARG_ACTUAL_TYPE);
+
+    ErrorCode ERR_STREAM_CYCLIC_JOB_GRAPH =
+            define("nop.err.stream.cyclic-job-graph", "Cyclic job graph detected: {detail}", ARG_DETAIL);
 }

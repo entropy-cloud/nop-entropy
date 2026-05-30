@@ -1,6 +1,7 @@
 package io.nop.stream.core.execution;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
@@ -86,19 +87,18 @@ public class TestGraphExecutionPlan {
     }
 
     @Test
-    public void testCyclicGraphBehavior() {
+    public void testCyclicGraphThrowsException() {
         JobGraph graph = new JobGraph("cycle");
         graph.addVertex(vertex("A"));
         graph.addVertex(vertex("B"));
         graph.addEdge(edge("A", "B"));
         graph.addEdge(edge("B", "A"));
 
-        GraphExecutionPlan plan = GraphExecutionPlan.build(graph);
-        List<String> sorted = plan.getSortedVertexIds();
-
-        assertTrue(sorted.size() < 2,
-                "Kahn's algorithm should not fully sort a cyclic graph. "
-                        + "Expected fewer sorted IDs than total vertices, got: " + sorted);
+        StreamException ex = assertThrows(StreamException.class,
+                () -> GraphExecutionPlan.build(graph),
+                "Cyclic graph should throw StreamException");
+        assertTrue(ex.getMessage().contains("A") || ex.getMessage().contains("B"),
+                "Exception message should contain cyclic vertex IDs");
     }
 
     @Test
@@ -166,6 +166,44 @@ public class TestGraphExecutionPlan {
             received++;
         }
         assertEquals(2, received, "sink should receive both records");
+    }
+
+    @Test
+    public void testTopologicalSortDetectsCycle() {
+        JobGraph graph = new JobGraph("cycle-abc");
+        graph.addVertex(vertex("A"));
+        graph.addVertex(vertex("B"));
+        graph.addVertex(vertex("C"));
+        graph.addEdge(edge("A", "B"));
+        graph.addEdge(edge("B", "C"));
+        graph.addEdge(edge("C", "A"));
+
+        StreamException ex = assertThrows(StreamException.class,
+                () -> GraphExecutionPlan.build(graph),
+                "Cyclic graph A->B->C->A should throw StreamException");
+        String msg = ex.getMessage();
+        assertTrue(msg.contains("A") || msg.contains("B") || msg.contains("C"),
+                "Exception should mention cyclic vertex IDs");
+    }
+
+    @Test
+    public void testTopologicalSortAcceptsDAG() {
+        JobGraph graph = new JobGraph("dag-ok");
+        graph.addVertex(vertex("S"));
+        graph.addVertex(vertex("M1"));
+        graph.addVertex(vertex("M2"));
+        graph.addVertex(vertex("E"));
+        graph.addEdge(edge("S", "M1"));
+        graph.addEdge(edge("S", "M2"));
+        graph.addEdge(edge("M1", "E"));
+        graph.addEdge(edge("M2", "E"));
+
+        GraphExecutionPlan plan = GraphExecutionPlan.build(graph);
+        List<String> sorted = plan.getSortedVertexIds();
+
+        assertEquals(4, sorted.size());
+        assertEquals("S", sorted.get(0));
+        assertEquals("E", sorted.get(3));
     }
 
     private static class StubOperator implements StreamOperator<Object> {

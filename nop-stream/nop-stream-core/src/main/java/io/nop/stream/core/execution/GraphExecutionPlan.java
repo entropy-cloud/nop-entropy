@@ -10,11 +10,13 @@ package io.nop.stream.core.execution;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.partition.IPartitioner;
@@ -28,6 +30,10 @@ import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
+
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**
  * Builds an execution plan from a JobGraph, creating data exchange channels
@@ -403,6 +409,15 @@ public class GraphExecutionPlan {
                     queue.add(neighbor);
                 }
             }
+        }
+
+        if (sorted.size() != jobGraph.getVertices().size()) {
+            Set<String> allVertexIds = jobGraph.getVertices().keySet();
+            Set<String> sortedSet = new HashSet<>(sorted);
+            Set<String> missing = new HashSet<>(allVertexIds);
+            missing.removeAll(sortedSet);
+            throw new StreamException(ERR_STREAM_CYCLIC_JOB_GRAPH)
+                    .param(ARG_DETAIL, "Cycle detected involving: " + missing);
         }
 
         return sorted;
