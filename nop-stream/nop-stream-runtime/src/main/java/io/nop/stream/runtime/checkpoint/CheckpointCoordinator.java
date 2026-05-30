@@ -50,6 +50,7 @@ public class CheckpointCoordinator {
     private static final int DEFAULT_COMMIT_RETRIES = 3;
     private static final int CONSECUTIVE_FAILURE_THRESHOLD = 3;
     private final ConcurrentSkipListMap<Long, Set<Integer>> failedCommitParticipants = new ConcurrentSkipListMap<>();
+    private final ConcurrentHashMap<Long, Boolean> checkpointSuccessMap = new ConcurrentHashMap<>();
 
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
@@ -410,6 +411,7 @@ public class CheckpointCoordinator {
     }
 
     private void notifyParticipantsFinishCommit(long checkpointId, boolean success) {
+        checkpointSuccessMap.put(checkpointId, success);
         for (int i = participants.size() - 1; i >= 0; i--) {
             int retries = DEFAULT_COMMIT_RETRIES;
             while (retries > 0) {
@@ -440,12 +442,13 @@ public class CheckpointCoordinator {
             long failedEpoch = entry.getKey();
             Set<Integer> failedIdx = entry.getValue();
             Set<Integer> stillFailing = ConcurrentHashMap.newKeySet();
+            boolean originalSuccess = checkpointSuccessMap.getOrDefault(failedEpoch, true);
 
             for (Integer idx : failedIdx) {
                 if (idx < participants.size()) {
                     try {
-                        participants.get(idx).finishCommit(failedEpoch, true);
-                        LOG.info("Retried finishCommit for participant {} on epoch {} succeeded", idx, failedEpoch);
+                        participants.get(idx).finishCommit(failedEpoch, originalSuccess);
+                        LOG.info("Retried finishCommit for participant {} on epoch {} with success={} succeeded", idx, failedEpoch, originalSuccess);
                     } catch (Exception e) {
                         LOG.warn("Retry finishCommit for participant {} on epoch {} still failing", idx, failedEpoch, e);
                         stillFailing.add(idx);
@@ -455,6 +458,7 @@ public class CheckpointCoordinator {
 
             if (stillFailing.isEmpty()) {
                 it.remove();
+                checkpointSuccessMap.remove(failedEpoch);
             } else {
                 entry.setValue(stillFailing);
             }
@@ -467,6 +471,9 @@ public class CheckpointCoordinator {
         timeoutScheduler.shutdownNow();
 
         for (PendingCheckpoint pending : pendingCheckpoints.values()) {
+            long checkpointId = pending.getCheckpointId();
+            notifyParticipantsFinishCommit(checkpointId, false);
+            notifyCheckpointAborted(checkpointId);
             pending.dispose();
         }
         pendingCheckpoints.clear();
@@ -474,6 +481,7 @@ public class CheckpointCoordinator {
         listeners.clear();
         participants.clear();
         failedCommitParticipants.clear();
+        checkpointSuccessMap.clear();
 
         LOG.info("Checkpoint coordinator shutdown for job {}", jobId);
     }

@@ -8,6 +8,7 @@
 package io.nop.stream.runtime.checkpoint;
 
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.exceptions.StreamException;
@@ -18,7 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -230,5 +233,72 @@ class TestCheckpointCoordinator {
         PendingCheckpoint next = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         assertNotNull(next);
         assertEquals(1, coordinator.getNumberOfPendingCheckpoints());
+    }
+
+    @Test
+    void testRetryFailedCommitsUsesOriginalSuccessValue() throws Exception {
+        AtomicReference<Boolean> lastSuccessValue = new AtomicReference<>(null);
+        AtomicBoolean shouldFailOnFirstCall = new AtomicBoolean(true);
+
+        CheckpointParticipant participant = new CheckpointParticipant() {
+            @Override
+            public TaskStateSnapshot saveState(long epochId) { return TaskStateSnapshot.empty(LOC_1); }
+            @Override
+            public void prepareCommit(long epochId) {}
+            @Override
+            public void finishCommit(long epochId, boolean success) throws Exception {
+                lastSuccessValue.set(success);
+                if (shouldFailOnFirstCall.getAndSet(false)) {
+                    throw new StreamException("Simulated failure on first call");
+                }
+            }
+            @Override
+            public void restoreFromEpoch(long epochId, TaskStateSnapshot state) {}
+        };
+
+        coordinator.addParticipant(participant);
+        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+        coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+        coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
+
+        pending.getCompletableFuture().get();
+
+        assertNotNull(lastSuccessValue.get(), "finishCommit should have been called");
+        assertTrue(lastSuccessValue.get(), "First commit should use success=true");
+    }
+
+    @Test
+    void testShutdownNotifiesParticipantsAbort() {
+        AtomicBoolean abortReceived = new AtomicBoolean(false);
+        AtomicBoolean listenerAbortReceived = new AtomicBoolean(false);
+
+        CheckpointParticipant participant = new CheckpointParticipant() {
+            @Override public TaskStateSnapshot saveState(long epochId) { return TaskStateSnapshot.empty(LOC_1); }
+            @Override public void prepareCommit(long epochId) {}
+            @Override
+            public void finishCommit(long epochId, boolean success) {
+                if (!success) abortReceived.set(true);
+            }
+            @Override public void restoreFromEpoch(long epochId, TaskStateSnapshot state) {}
+        };
+
+        coordinator.addParticipant(participant);
+        coordinator.addListener(new CheckpointListener() {
+            @Override
+            public void notifyCheckpointComplete(long checkpointId) {}
+            @Override
+            public void notifyCheckpointAborted(long checkpointId) {
+                listenerAbortReceived.set(true);
+            }
+        });
+
+        coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertEquals(1, coordinator.getNumberOfPendingCheckpoints());
+
+        coordinator.shutdown();
+        assertTrue(abortReceived.get(), "Participant should receive finishCommit(false) during shutdown");
+        assertTrue(listenerAbortReceived.get(), "Listener should receive notifyCheckpointAborted during shutdown");
+        assertEquals(0, coordinator.getNumberOfPendingCheckpoints());
     }
 }
