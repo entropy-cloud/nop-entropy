@@ -29,6 +29,9 @@ import io.nop.stream.core.common.functions.FilterFunction;
  * <p>Contrary to the {@link IterativeCondition}, conditions that extend this class do not have
  * access to the previously accepted elements in the pattern. Conditions that extend this class are
  * simple {@code filter(...)} functions that decide based on the properties of the element at hand.
+ *
+ * <p>Note: instances created via {@link #of(FilterFunction)} capture the filter reference and
+ * may not be serializable. For serialization safety, extend {@link SimpleCondition} directly.
  */
 public abstract class SimpleCondition<T> extends IterativeCondition<T>
         implements FilterFunction<T> {
@@ -41,7 +44,12 @@ public abstract class SimpleCondition<T> extends IterativeCondition<T>
     }
 
     public static <T> SimpleCondition<T> of(FilterFunction<T> filters) {
+        if (filters instanceof SimpleCondition) {
+            return (SimpleCondition<T>) filters;
+        }
         return new SimpleCondition<T>() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public boolean filter(T value) throws Exception {
                 return filters.filter(value);

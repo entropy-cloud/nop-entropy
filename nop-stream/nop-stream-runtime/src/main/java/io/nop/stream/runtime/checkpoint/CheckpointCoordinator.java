@@ -381,7 +381,7 @@ public class CheckpointCoordinator {
             if (allCheckpoints.size() > maxRetained) {
                 for (int i = maxRetained; i < allCheckpoints.size(); i++) {
                     CompletedCheckpoint old = allCheckpoints.get(i);
-                    checkpointStorage.deleteCheckpoint(jobId, pipelineId, old.getCheckpointId());
+                    checkpointStorage.deleteCheckpoint(jobId, old.getPipelineId(), old.getCheckpointId());
                     LOG.debug("Deleted old checkpoint {}", old.getCheckpointId());
                 }
             }

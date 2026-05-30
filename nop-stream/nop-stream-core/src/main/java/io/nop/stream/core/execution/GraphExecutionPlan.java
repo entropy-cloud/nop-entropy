@@ -18,6 +18,9 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.partition.IPartitioner;
 
@@ -61,6 +64,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.*;
  */
 @Internal
 public class GraphExecutionPlan {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GraphExecutionPlan.class);
 
     private final List<String> sortedVertexIds;
     private final Map<String, JobVertex> executionVertices;

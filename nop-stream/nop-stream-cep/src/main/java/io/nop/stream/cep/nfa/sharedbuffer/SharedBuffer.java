@@ -172,6 +172,8 @@ public class SharedBuffer<V> {
             Long next = iterator.next();
             if (next < timestamp) {
                 iterator.remove();
+                eventsBufferCache.entrySet().removeIf(e ->
+                        e.getKey() != null && e.getKey().getTimestamp() < timestamp);
             }
         }
     }

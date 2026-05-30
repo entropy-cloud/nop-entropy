@@ -230,9 +230,13 @@ public class RemoteInputChannel extends InputChannel {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 decodeError = e;
+                finished = true;
+                queue.offer(END_OF_STREAM);
                 LOG.warn("Interrupted while enqueueing decoded element", e);
             } catch (Exception e) {
                 decodeError = e;
+                finished = true;
+                queue.offer(END_OF_STREAM);
                 LOG.error("Failed to decode envelope on topic={}", topic, e);
             }
 

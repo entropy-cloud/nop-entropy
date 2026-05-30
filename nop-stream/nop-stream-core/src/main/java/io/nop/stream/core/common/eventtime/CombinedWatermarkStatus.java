@@ -120,8 +120,8 @@ final class CombinedWatermarkStatus {
             this.idle = false;
             final boolean updated = watermark > this.watermark;
             if (updated) {
-                this.onWatermarkUpdate.onWatermarkUpdate(watermark);
                 this.watermark = Math.max(watermark, this.watermark);
+                this.onWatermarkUpdate.onWatermarkUpdate(watermark);
             }
             return updated;
         }
