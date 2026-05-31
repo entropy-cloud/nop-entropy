@@ -22,6 +22,7 @@ public class DemoDddWebCodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../demo-ddd-meta"), "/", false);
             XCodeGenerator.runPostcompile(new File(projectDir, "../demo-ddd-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPrecompile2(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

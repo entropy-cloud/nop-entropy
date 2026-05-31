@@ -1,0 +1,40 @@
+site:
+  resource:
+    Cargo-main:
+      displayName: Cargo
+    CarrierMovement-main:
+      displayName: Carrier Movement
+    FNPT:Cargo:mutation:
+      displayName: Modify Cargo
+    FNPT:Cargo:query:
+      displayName: Query Cargo
+    FNPT:CarrierMovement:mutation:
+      displayName: Modify Carrier Movement
+    FNPT:CarrierMovement:query:
+      displayName: Query Carrier Movement
+    FNPT:HandlingEvent:mutation:
+      displayName: Modify Handling Event
+    FNPT:HandlingEvent:query:
+      displayName: Query Handling Event
+    FNPT:Leg:mutation:
+      displayName: Modify Leg
+    FNPT:Leg:query:
+      displayName: Query Leg
+    FNPT:Location:mutation:
+      displayName: Modify Location
+    FNPT:Location:query:
+      displayName: Query Location
+    FNPT:Voyage:mutation:
+      displayName: Modify Voyage
+    FNPT:Voyage:query:
+      displayName: Query Voyage
+    HandlingEvent-main:
+      displayName: Handling Event
+    Leg-main:
+      displayName: Leg
+    Location-main:
+      displayName: Location
+    Voyage-main:
+      displayName: Voyage
+    test-orm-demo-ddd:
+      displayName: ''
