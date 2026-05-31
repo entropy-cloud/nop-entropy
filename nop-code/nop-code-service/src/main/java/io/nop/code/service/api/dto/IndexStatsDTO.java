@@ -1,10 +1,9 @@
 package io.nop.code.service.api.dto;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.io.Serializable;
 import java.util.Map;
 
+import io.nop.api.core.annotations.data.DataBean;
 @DataBean
 public class IndexStatsDTO implements Serializable {
     private static final long serialVersionUID = 1L;

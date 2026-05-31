@@ -1,5 +1,15 @@
 package io.nop.code.lang.python;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import org.treesitter.TSNode;
+import org.treesitter.TSParser;
+import org.treesitter.TSTree;
+import org.treesitter.TreeSitterPython;
+
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.model.CodeAccessModifier;
 import io.nop.code.core.model.CodeAnnotationUsage;
@@ -10,16 +20,6 @@ import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeRelationType;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
-import org.treesitter.TSNode;
-import org.treesitter.TSParser;
-import org.treesitter.TSTree;
-import org.treesitter.TreeSitterPython;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-
 /**
  * Python文件分析器
  * 使用bonede tree-sitter解析Python源代码，提取符号信息、继承关系等

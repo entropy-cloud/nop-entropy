@@ -1,9 +1,8 @@
 package io.nop.code.flow;
 
-import io.nop.code.core.model.CodeSymbol;
-
 import java.util.List;
 
+import io.nop.code.core.model.CodeSymbol;
 public interface IEntryPointPatternProvider {
 
     int priority();

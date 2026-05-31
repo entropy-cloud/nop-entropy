@@ -1,5 +1,7 @@
 package io.nop.code.service.api;
 
+import java.util.List;
+
 import io.nop.api.core.beans.PageBean;
 import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.model.*;
@@ -7,9 +9,6 @@ import io.nop.code.flow.ChangeAnalysisResult;
 import io.nop.code.flow.DeadCodeReport;
 import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.service.api.dto.*;
-
-import java.util.List;
-
 /**
  * 代码索引服务接口
  */

@@ -1,10 +1,9 @@
 package io.nop.code.flow;
 
-import io.nop.code.core.graph.CallGraph;
-import io.nop.code.core.graph.SymbolTable;
-
 import java.util.List;
 
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
 public interface IFlowDetector {
 
     List<ExecutionFlow> detectFlows(String indexId, SymbolTable symbolTable, CallGraph callGraph);

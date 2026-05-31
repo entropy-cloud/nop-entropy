@@ -2,7 +2,6 @@ package io.nop.code.core.incremental;
 
 import java.io.IOException;
 import java.util.List;
-
 /**
  * 指纹存储抽象接口，将指纹持久化与具体实现解耦。
  */

@@ -1,5 +1,11 @@
 package io.nop.code.service.impl;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
@@ -15,12 +21,6 @@ import io.nop.search.api.SearchHit;
 import io.nop.search.api.SearchRequest;
 import io.nop.search.api.SearchResponse;
 import io.nop.search.api.SearchType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 class CodeSearchService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeSearchService.class);

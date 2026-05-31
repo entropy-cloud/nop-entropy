@@ -1,7 +1,6 @@
 package com.example.service;
 
 import com.example.domain.User;
-
 public class UserService {
     private final User user;
 

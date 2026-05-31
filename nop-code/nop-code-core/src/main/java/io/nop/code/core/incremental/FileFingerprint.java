@@ -1,7 +1,6 @@
 package io.nop.code.core.incremental;
 
 import io.nop.api.core.annotations.data.DataBean;
-
 /**
  * 文件指纹，记录文件的唯一标识信息用于增量检测
  */

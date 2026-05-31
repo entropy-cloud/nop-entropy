@@ -1,16 +1,15 @@
 package io.nop.code.graph.impact;
 
+import java.util.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
-
-import java.util.*;
-
 import io.nop.core.lang.json.JsonTool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class ImpactAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ImpactAnalyzer.class);

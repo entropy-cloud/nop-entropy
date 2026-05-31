@@ -1,14 +1,13 @@
 package io.nop.code.core.analyzer;
 
+import java.util.List;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.semantic.CodeSemanticEdge;
-
-import java.util.List;
-
 /**
  * 项目分析结果
  */

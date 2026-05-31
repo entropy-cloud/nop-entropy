@@ -1,16 +1,16 @@
 package io.nop.code.core.incremental;
 
-import io.nop.api.core.beans.LongRangeBean;
-import io.nop.api.core.util.progress.IStepProgressListener;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.IResourceRegion;
-import jakarta.annotation.Nonnull;
-
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 
+import jakarta.annotation.Nonnull;
+
+import io.nop.api.core.beans.LongRangeBean;
+import io.nop.api.core.util.progress.IStepProgressListener;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceRegion;
 /**
  * 已删除资源的桩实现，仅记录路径信息用于 ChangeSet 构建
  */

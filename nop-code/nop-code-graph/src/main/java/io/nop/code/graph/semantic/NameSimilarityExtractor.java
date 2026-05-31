@@ -1,5 +1,7 @@
 package io.nop.code.graph.semantic;
 
+import java.util.*;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
@@ -8,9 +10,6 @@ import io.nop.code.core.semantic.CodeSemanticEdge;
 import io.nop.code.core.semantic.EdgeConfidence;
 import io.nop.code.core.semantic.ISemanticEdgeExtractor;
 import io.nop.code.core.semantic.SemanticRelationType;
-
-import java.util.*;
-
 /**
  * Extracts semantic edges based on symbol name similarity.
  * Symbols with similar names (normalized, Levenshtein/Jaccard) that are not

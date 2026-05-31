@@ -1,7 +1,6 @@
 package io.nop.code.graph.knowledge;
 
 import java.util.List;
-
 public class KnowledgeGapResult {
     private List<IsolatedSymbol> isolatedSymbols;
     private List<WeakCommunity> weakCommunities;

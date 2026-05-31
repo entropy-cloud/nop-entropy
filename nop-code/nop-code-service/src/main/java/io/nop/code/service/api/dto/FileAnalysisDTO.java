@@ -1,12 +1,11 @@
 package io.nop.code.service.api.dto;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.code.core.model.CodeFileAnalysisResult;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.nop.api.core.annotations.data.DataBean;
+import io.nop.code.core.model.CodeFileAnalysisResult;
 @DataBean
 public class FileAnalysisDTO implements Serializable {
     private static final long serialVersionUID = 1L;

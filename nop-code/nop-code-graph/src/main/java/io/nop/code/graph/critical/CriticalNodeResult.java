@@ -1,7 +1,6 @@
 package io.nop.code.graph.critical;
 
 import java.util.List;
-
 public class CriticalNodeResult {
     private List<NodeScore> hubNodes;
     private List<NodeScore> bridgeNodes;

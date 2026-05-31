@@ -1,7 +1,6 @@
 package io.nop.code.core.semantic;
 
 import io.nop.api.core.annotations.data.DataBean;
-
 /**
  * A semantic edge between two code symbols.
  * Represents relationships discovered through semantic analysis (not just AST extraction).

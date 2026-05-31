@@ -9,42 +9,47 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestDeterministicEntityIds {
 
-    @Test
-    void testSameInputProducesSameId() {
-        String source = "src/Main.java";
-        String target = "lib/Util.java";
-        String stmt = "import lib.Util;";
+    private static final int ID_LENGTH = 36;
 
-        String id1 = DigestHelper.sha256Hex(
-                ("idx1:" + source + ":" + target + ":" + stmt).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
-        String id2 = DigestHelper.sha256Hex(
-                ("idx1:" + source + ":" + target + ":" + stmt).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
-
-        assertEquals(id1, id2, "Same input should produce same ID");
+    private String generateFileId(String indexId, String filePath) {
+        return DigestHelper.sha256Hex((indexId + ":" + filePath).getBytes(StandardCharsets.UTF_8)).substring(0, ID_LENGTH);
     }
 
     @Test
-    void testDifferentInputProducesDifferentId() {
-        String source = "src/Main.java";
-        String target = "lib/Util.java";
-
-        String id1 = DigestHelper.sha256Hex(
-                ("idx1:" + source + ":" + target + ":import A").getBytes(StandardCharsets.UTF_8)).substring(0, 36);
-        String id2 = DigestHelper.sha256Hex(
-                ("idx1:" + source + ":" + target + ":import B").getBytes(StandardCharsets.UTF_8)).substring(0, 36);
-
-        assertNotEquals(id1, id2, "Different inputs should produce different IDs");
+    void testSameInputsProduceSameId() {
+        String id1 = generateFileId("idx1", "/src/main/java/App.java");
+        String id2 = generateFileId("idx1", "/src/main/java/App.java");
+        assertEquals(id1, id2, "Same indexId + filePath should produce same ID");
     }
 
     @Test
-    void testDeterministicPathBasedId() {
-        String path1 = "/src/main/java/com/example/App.java";
-        String path2 = "/src/main/java/com/example/Util.java";
+    void testDifferentIndexIdProducesDifferentId() {
+        String id1 = generateFileId("idx1", "/src/main/java/App.java");
+        String id2 = generateFileId("idx2", "/src/main/java/App.java");
+        assertNotEquals(id1, id2, "Different indexId should produce different ID");
+    }
 
-        String id1 = "idx_" + DigestHelper.sha256Hex(path1.getBytes(StandardCharsets.UTF_8)).substring(0, 16);
-        String id2 = "idx_" + DigestHelper.sha256Hex(path2.getBytes(StandardCharsets.UTF_8)).substring(0, 16);
+    @Test
+    void testDifferentFilePathProducesDifferentId() {
+        String id1 = generateFileId("idx1", "/src/main/java/App.java");
+        String id2 = generateFileId("idx1", "/src/main/java/Util.java");
+        assertNotEquals(id1, id2, "Different filePath should produce different ID");
+    }
 
-        assertNotEquals(id1, id2);
-        assertEquals(id1, "idx_" + DigestHelper.sha256Hex(path1.getBytes(StandardCharsets.UTF_8)).substring(0, 16));
+    @Test
+    void testIdFormat() {
+        String id = generateFileId("idx1", "/src/main/java/App.java");
+        assertEquals(ID_LENGTH, id.length(), "ID should be 36 characters (SHA-256 hex prefix)");
+        assertTrue(id.matches("[0-9a-f]+"), "ID should be lowercase hex");
+    }
+
+    @Test
+    void testIdStabilityAcrossMultipleCalls() {
+        String input = "idx1:/src/App.java";
+        String firstId = DigestHelper.sha256Hex(input.getBytes(StandardCharsets.UTF_8)).substring(0, ID_LENGTH);
+        for (int i = 0; i < 10; i++) {
+            String id = DigestHelper.sha256Hex(input.getBytes(StandardCharsets.UTF_8)).substring(0, ID_LENGTH);
+            assertEquals(firstId, id, "Same input should always produce same ID");
+        }
     }
 }

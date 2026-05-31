@@ -1,13 +1,12 @@
 package io.nop.code.graph.entrypoint;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 public class EntryPointScorer {
 
     public static class EntryPointScore {

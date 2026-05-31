@@ -1,10 +1,9 @@
 package io.nop.code.core.analyzer;
 
-import io.nop.code.core.model.CodeFileAnalysisResult;
-import io.nop.code.core.model.CodeLanguage;
-
 import java.util.List;
 
+import io.nop.code.core.model.CodeFileAnalysisResult;
+import io.nop.code.core.model.CodeLanguage;
 /**
  * 代码文件分析器接口
  */

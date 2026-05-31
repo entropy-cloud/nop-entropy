@@ -1,9 +1,8 @@
 package io.nop.code.flow;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.util.List;
 
+import io.nop.api.core.annotations.data.DataBean;
 @DataBean
 public class ExecutionFlow {
 

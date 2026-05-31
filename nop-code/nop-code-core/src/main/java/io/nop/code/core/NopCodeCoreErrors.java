@@ -1,9 +1,7 @@
 package io.nop.code.core;
 
 import io.nop.api.core.exceptions.ErrorCode;
-
 import static io.nop.api.core.exceptions.ErrorCode.define;
-
 public interface NopCodeCoreErrors {
 
     String ARG_PATH = "path";

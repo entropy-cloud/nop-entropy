@@ -1,18 +1,17 @@
-
 package io.nop.code.app;
 
-import io.nop.boot.NopApplication;
-import io.nop.core.initialize.CoreInitialization;
-import io.nop.quarkus.core.QuarkusIntegration;
+import jakarta.enterprise.event.Observes;
+
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.annotations.QuarkusMain;
-
-import jakarta.enterprise.event.Observes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.boot.NopApplication;
+import io.nop.core.initialize.CoreInitialization;
+import io.nop.quarkus.core.QuarkusIntegration;
 @QuarkusMain
 public class NopCodeApplication {
     private static final Logger LOG = LoggerFactory.getLogger(NopCodeApplication.class);

@@ -1,7 +1,6 @@
 package io.nop.code.graph.diff;
 
 import java.util.*;
-
 public class GraphDiffer {
 
     public GraphDiff diff(GraphSnapshot baseline, GraphSnapshot target) {

@@ -1,9 +1,8 @@
 package io.nop.code.core.analyzer;
 
-import io.nop.code.core.model.CodeLanguage;
-
 import java.util.List;
 
+import io.nop.code.core.model.CodeLanguage;
 /**
  * 语言适配器接口
  */

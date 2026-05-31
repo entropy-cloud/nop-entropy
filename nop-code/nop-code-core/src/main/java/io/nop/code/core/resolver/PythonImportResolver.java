@@ -1,11 +1,10 @@
 package io.nop.code.core.resolver;
 
-import io.nop.code.core.model.CodeFileDependency;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.nop.code.core.model.CodeFileDependency;
 public class PythonImportResolver implements IImportResolver {
 
     @Override

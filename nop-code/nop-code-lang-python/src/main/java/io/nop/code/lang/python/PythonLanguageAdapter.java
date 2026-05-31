@@ -1,12 +1,11 @@
 package io.nop.code.lang.python;
 
-import io.nop.code.core.analyzer.ICodeFileAnalyzer;
-import io.nop.code.core.analyzer.ILanguageAdapter;
-import io.nop.code.core.model.CodeLanguage;
-
 import java.util.Arrays;
 import java.util.List;
 
+import io.nop.code.core.analyzer.ICodeFileAnalyzer;
+import io.nop.code.core.analyzer.ILanguageAdapter;
+import io.nop.code.core.model.CodeLanguage;
 public class PythonLanguageAdapter implements ILanguageAdapter {
 
     @Override

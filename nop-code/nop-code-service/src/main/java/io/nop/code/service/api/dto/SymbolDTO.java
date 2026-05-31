@@ -1,12 +1,11 @@
 package io.nop.code.service.api.dto;
 
+import java.io.Serializable;
+
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.code.core.model.CodeAccessModifier;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
-
-import java.io.Serializable;
-
 @DataBean
 public class SymbolDTO implements Serializable {
     private static final long serialVersionUID = 1L;

@@ -1,10 +1,9 @@
 package io.nop.code.service.api.dto;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.code.core.model.CodeAnnotationUsage;
-
 import java.io.Serializable;
 
+import io.nop.api.core.annotations.data.DataBean;
+import io.nop.code.core.model.CodeAnnotationUsage;
 @DataBean
 public class AnnotationUsageDTO implements Serializable {
     private static final long serialVersionUID = 1L;

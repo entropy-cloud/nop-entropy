@@ -1,8 +1,7 @@
 package com.example.domain;
 
-import com.example.service.IUserService;
 import com.example.annotation.Audited;
-
+import com.example.service.IUserService;
 /**
  * User entity representing a system user.
  */

@@ -1,29 +1,5 @@
 package io.nop.code.core.analyzer;
 
-import io.nop.api.core.exceptions.NopException;
-import io.nop.code.core.NopCodeCoreErrors;
-import io.nop.code.core.adapter.LanguageAdapterRegistry;
-import io.nop.code.core.graph.CallGraph;
-import io.nop.code.core.semantic.ISemanticEdgeExtractor;
-import io.nop.code.core.semantic.CodeSemanticEdge;
-import io.nop.code.core.graph.SymbolTable;
-import io.nop.code.core.model.CodeFileAnalysisResult;
-import io.nop.code.core.incremental.ChangeSet;
-import io.nop.code.core.incremental.FileFingerprint;
-import io.nop.code.core.incremental.IFingerprintStore;
-import io.nop.code.core.incremental.IncrementalDetector;
-import io.nop.code.core.incremental.ManifestStore;
-import io.nop.code.core.incremental.PathFingerprintStore;
-import io.nop.code.core.model.*;
-import io.nop.code.core.util.DigestHelper;
-import io.nop.code.core.model.LanguageFamily;
-import io.nop.commons.batch.BatchQueue;
-import io.nop.commons.collections.IterableIterator;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.IResourceLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,6 +17,30 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.nop.api.core.exceptions.NopException;
+import io.nop.code.core.NopCodeCoreErrors;
+import io.nop.code.core.adapter.LanguageAdapterRegistry;
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.incremental.ChangeSet;
+import io.nop.code.core.incremental.FileFingerprint;
+import io.nop.code.core.incremental.IFingerprintStore;
+import io.nop.code.core.incremental.IncrementalDetector;
+import io.nop.code.core.incremental.ManifestStore;
+import io.nop.code.core.incremental.PathFingerprintStore;
+import io.nop.code.core.model.*;
+import io.nop.code.core.model.CodeFileAnalysisResult;
+import io.nop.code.core.model.LanguageFamily;
+import io.nop.code.core.semantic.CodeSemanticEdge;
+import io.nop.code.core.semantic.ISemanticEdgeExtractor;
+import io.nop.code.core.util.DigestHelper;
+import io.nop.commons.batch.BatchQueue;
+import io.nop.commons.collections.IterableIterator;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceLoader;
 /**
  * 项目级代码分析器（语言无关）
  * 扫描整个项目的源文件，构建全局符号表，并解析跨文件的调用关系。

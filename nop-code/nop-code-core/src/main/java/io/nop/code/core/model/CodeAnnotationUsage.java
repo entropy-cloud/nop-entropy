@@ -1,7 +1,6 @@
 package io.nop.code.core.model;
 
 import io.nop.api.core.annotations.data.DataBean;
-
 /**
  * 注解使用数据模型
  */

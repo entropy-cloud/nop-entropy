@@ -1,19 +1,18 @@
 package io.nop.code.flow;
 
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeAccessModifier;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
-
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import io.nop.core.lang.json.JsonTool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class DeadCodeDetector implements IDeadCodeDetector {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeadCodeDetector.class);

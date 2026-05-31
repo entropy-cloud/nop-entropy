@@ -1,8 +1,5 @@
 package io.nop.code.core.incremental;
 
-import io.nop.code.core.util.DigestHelper;
-import io.nop.core.resource.IResource;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -12,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.nop.code.core.util.DigestHelper;
+import io.nop.core.resource.IResource;
 /**
  * 增量变更检测器。通过两级检测策略（mtime快速比较 + SHA-256内容哈希）识别文件变更。
  * 支持基于 Path 和 IResource 的两种操作方式。

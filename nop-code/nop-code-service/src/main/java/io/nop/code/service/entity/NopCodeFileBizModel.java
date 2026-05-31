@@ -1,5 +1,9 @@
-
 package io.nop.code.service.entity;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import jakarta.inject.Inject;
 
 import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
@@ -17,11 +21,6 @@ import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.FileOutlineDTO;
 import io.nop.code.service.api.dto.FileTreeNode;
 import io.nop.code.service.api.dto.SymbolInfoDTO;
-import jakarta.inject.Inject;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
 @BizModel("NopCodeFile")
 public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements INopCodeFileBiz {
 

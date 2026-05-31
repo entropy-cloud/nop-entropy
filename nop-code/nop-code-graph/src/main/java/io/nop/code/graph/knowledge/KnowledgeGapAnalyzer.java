@@ -1,13 +1,12 @@
 package io.nop.code.graph.knowledge;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.graph.community.CommunityDetector;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 public class KnowledgeGapAnalyzer {
 
     private double weakCommunityCohesionThreshold = 0.1;

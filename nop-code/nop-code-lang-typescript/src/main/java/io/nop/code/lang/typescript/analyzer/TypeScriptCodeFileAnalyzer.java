@@ -1,15 +1,10 @@
 package io.nop.code.lang.typescript.analyzer;
 
-import io.nop.code.core.analyzer.ICodeFileAnalyzer;
-import io.nop.code.core.model.CodeAccessModifier;
-import io.nop.code.core.model.CodeAnnotationUsage;
-import io.nop.code.core.model.CodeFileAnalysisResult;
-import io.nop.code.core.model.CodeInheritance;
-import io.nop.code.core.model.CodeLanguage;
-import io.nop.code.core.model.CodeRelationType;
-import io.nop.code.core.model.CodeSymbol;
-import io.nop.code.core.model.CodeSymbolKind;
-import io.nop.code.core.model.CodeMethodCall;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.treesitter.TSLanguage;
@@ -18,11 +13,16 @@ import org.treesitter.TSParser;
 import org.treesitter.TSTree;
 import org.treesitter.TreeSitterTypescript;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
+import io.nop.code.core.analyzer.ICodeFileAnalyzer;
+import io.nop.code.core.model.CodeAccessModifier;
+import io.nop.code.core.model.CodeAnnotationUsage;
+import io.nop.code.core.model.CodeFileAnalysisResult;
+import io.nop.code.core.model.CodeInheritance;
+import io.nop.code.core.model.CodeLanguage;
+import io.nop.code.core.model.CodeMethodCall;
+import io.nop.code.core.model.CodeRelationType;
+import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
 /**
  * TypeScript/TSX 文件分析器
  * 使用 bonede tree-sitter-typescript 解析源代码，提取符号信息、继承关系和装饰器。

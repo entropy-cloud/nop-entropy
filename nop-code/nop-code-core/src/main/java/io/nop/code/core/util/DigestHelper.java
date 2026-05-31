@@ -8,9 +8,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import io.nop.api.core.exceptions.NopException;
-
 import static io.nop.code.core.NopCodeCoreErrors.ERR_CODE_DIGEST_NOT_AVAILABLE;
-
 public class DigestHelper {
     private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
     private static final int BUFFER_SIZE = 64 * 1024;

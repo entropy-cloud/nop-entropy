@@ -1,11 +1,10 @@
 package io.nop.code.core.analyzer;
 
-import io.nop.code.core.model.CodeLanguage;
-
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
+import io.nop.code.core.model.CodeLanguage;
 public interface IProjectAnalyzer {
     ProjectAnalysisResult analyzeProject(Path projectRoot);
 

@@ -1,18 +1,18 @@
 package io.nop.code.flow;
 
-import io.nop.code.core.graph.CallGraph;
-import io.nop.code.core.graph.SymbolTable;
-import io.nop.code.core.model.CodeSymbol;
-import io.nop.code.core.model.CodeSymbolKind;
-import io.nop.code.graph.entrypoint.EntryPointScorer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.graph.entrypoint.EntryPointScorer;
 public class FlowDetector implements IFlowDetector {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlowDetector.class);

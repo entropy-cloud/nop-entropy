@@ -1,10 +1,9 @@
 package io.nop.code.core.analyzer;
 
-import io.nop.code.core.model.CodeSymbolKind;
-import io.nop.code.core.model.LanguageFamily;
-
 import java.util.Map;
 
+import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.model.LanguageFamily;
 /**
  * 项目统计信息
  */

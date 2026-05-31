@@ -1,12 +1,11 @@
 package io.nop.code.lang.java.analyzer;
 
-import io.nop.code.core.model.CodeMethodCall;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import io.nop.code.core.model.CodeMethodCall;
 /**
  * 方法调用过滤器
  * 用于过滤不需要记录的方法调用

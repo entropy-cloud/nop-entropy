@@ -1,5 +1,14 @@
-
 package io.nop.code.service.entity;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import jakarta.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
@@ -15,15 +24,6 @@ import io.nop.code.flow.ChangeAnalysisResult;
 import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.*;
-import jakarta.inject.Inject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 @BizModel("NopCodeIndex")
 public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements INopCodeIndexBiz {
 

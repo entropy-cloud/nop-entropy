@@ -1,36 +1,35 @@
 package io.nop.code.service.impl;
 
-import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.query.QueryBean;
-import io.nop.code.core.model.*;
-import io.nop.code.dao.entity.NopCodeSymbol;
-import io.nop.code.dao.entity.NopCodeInheritance;
-import io.nop.code.dao.entity.NopCodeDependency;
-import io.nop.code.dao.entity.NopCodeCall;
-import io.nop.code.core.graph.CallGraph;
-import io.nop.code.core.graph.SymbolTable;
-import io.nop.code.graph.community.CommunityDetector;
-import io.nop.code.graph.entrypoint.EntryPointScorer;
-import io.nop.code.graph.critical.CriticalNodeAnalyzer;
-import io.nop.code.graph.critical.CriticalNodeResult;
-import io.nop.code.graph.knowledge.KnowledgeGapAnalyzer;
-import io.nop.code.graph.knowledge.KnowledgeGapResult;
-import io.nop.code.graph.export.GraphExporter;
-import io.nop.code.graph.diff.GraphDiffer;
-import io.nop.code.graph.diff.GraphSnapshot;
-import io.nop.code.graph.impact.ImpactAnalyzer;
-import io.nop.code.service.api.dto.*;
-import io.nop.code.core.util.BfsNode;
-import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.api.IEntityDao;
-
 import java.util.*;
-import java.util.Deque;
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.model.*;
+import io.nop.code.core.util.BfsNode;
+import io.nop.code.dao.entity.NopCodeCall;
+import io.nop.code.dao.entity.NopCodeDependency;
+import io.nop.code.dao.entity.NopCodeInheritance;
+import io.nop.code.dao.entity.NopCodeSymbol;
+import io.nop.code.graph.community.CommunityDetector;
+import io.nop.code.graph.critical.CriticalNodeAnalyzer;
+import io.nop.code.graph.critical.CriticalNodeResult;
+import io.nop.code.graph.diff.GraphDiffer;
+import io.nop.code.graph.diff.GraphSnapshot;
+import io.nop.code.graph.entrypoint.EntryPointScorer;
+import io.nop.code.graph.export.GraphExporter;
+import io.nop.code.graph.impact.ImpactAnalyzer;
+import io.nop.code.graph.knowledge.KnowledgeGapAnalyzer;
+import io.nop.code.graph.knowledge.KnowledgeGapResult;
+import io.nop.code.service.api.dto.*;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 class CodeGraphService {
 
     private final IDaoProvider daoProvider;

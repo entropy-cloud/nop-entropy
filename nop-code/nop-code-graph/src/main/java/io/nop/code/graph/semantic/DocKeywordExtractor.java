@@ -1,5 +1,10 @@
 package io.nop.code.graph.semantic;
 
+import java.util.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
@@ -7,12 +12,6 @@ import io.nop.code.core.semantic.CodeSemanticEdge;
 import io.nop.code.core.semantic.EdgeConfidence;
 import io.nop.code.core.semantic.ISemanticEdgeExtractor;
 import io.nop.code.core.semantic.SemanticRelationType;
-
-import java.util.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Extracts semantic edges based on documentation keyword overlap.
  * Symbols with significant keyword overlap in their documentation get

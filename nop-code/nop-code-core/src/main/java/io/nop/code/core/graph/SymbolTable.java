@@ -1,9 +1,8 @@
 package io.nop.code.core.graph;
 
-import io.nop.code.core.model.CodeSymbol;
-
 import java.util.*;
 
+import io.nop.code.core.model.CodeSymbol;
 /**
  * 符号查找表，按全限定名和ID索引
  */

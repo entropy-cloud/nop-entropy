@@ -1,7 +1,6 @@
 package io.nop.code.core.graph;
 
 import java.util.*;
-
 /**
  * 方法调用有向图
  */

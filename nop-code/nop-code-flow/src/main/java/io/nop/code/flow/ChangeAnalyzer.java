@@ -1,12 +1,5 @@
 package io.nop.code.flow;
 
-import io.nop.api.core.exceptions.NopException;
-import io.nop.code.core.NopCodeCoreErrors;
-import io.nop.code.core.graph.CallGraph;
-import io.nop.code.core.graph.SymbolTable;
-import io.nop.code.core.model.CodeSymbol;
-import io.nop.code.core.model.CodeSymbolKind;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -19,6 +12,12 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.code.core.NopCodeCoreErrors;
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
 public class ChangeAnalyzer implements IChangeAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChangeAnalyzer.class);

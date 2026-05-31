@@ -1,10 +1,9 @@
 package io.nop.code.core.model;
 
-import io.nop.api.core.annotations.data.DataBean;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import io.nop.api.core.annotations.data.DataBean;
 /**
  * 单文件代码分析结果
  */

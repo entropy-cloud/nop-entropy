@@ -1,22 +1,20 @@
 package io.nop.code.service.incremental;
 
-import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.query.QueryBean;
-import io.nop.code.core.incremental.FileFingerprint;
-import io.nop.code.core.incremental.IFingerprintStore;
-import io.nop.code.dao.entity.NopCodeFile;
-import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.api.IEntityDao;
-import io.nop.orm.IOrmTemplate;
-
-import io.nop.code.core.util.DigestHelper;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.code.core.incremental.FileFingerprint;
+import io.nop.code.core.incremental.IFingerprintStore;
+import io.nop.code.core.util.DigestHelper;
+import io.nop.code.dao.entity.NopCodeFile;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmTemplate;
 public class OrmFingerprintStore implements IFingerprintStore {
 
     private final IDaoProvider daoProvider;

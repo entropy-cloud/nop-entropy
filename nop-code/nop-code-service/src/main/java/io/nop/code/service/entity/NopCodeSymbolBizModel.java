@@ -1,5 +1,11 @@
-
 package io.nop.code.service.entity;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import jakarta.inject.Inject;
 
 import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
@@ -17,6 +23,7 @@ import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.flow.DeadCodeReport;
+import io.nop.code.service.NopCodeErrors;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.AnnotationUsageDTO;
 import io.nop.code.service.api.dto.CallHierarchyDTO;
@@ -29,14 +36,6 @@ import io.nop.code.service.api.dto.SymbolDTO;
 import io.nop.code.service.api.dto.SymbolSourceDTO;
 import io.nop.code.service.api.dto.TypeHierarchyDTO;
 import io.nop.code.service.api.dto.TypeOutlineDTO;
-import io.nop.code.service.NopCodeErrors;
-import jakarta.inject.Inject;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 @BizModel("NopCodeSymbol")
 public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implements INopCodeSymbolBiz {
 

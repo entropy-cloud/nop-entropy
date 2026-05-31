@@ -1,7 +1,6 @@
 package io.nop.code.graph.diff;
 
 import java.util.List;
-
 public class GraphDiff {
     private java.util.Set<String> addedNodes;
     private java.util.Set<String> removedNodes;

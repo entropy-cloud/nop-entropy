@@ -3,7 +3,6 @@ package io.nop.code.graph.diff;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 public class GraphSnapshot {
     private final long timestamp;
     private final Set<String> nodes;
