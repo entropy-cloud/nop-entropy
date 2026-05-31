@@ -26,13 +26,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.nfa.DeweyNumber;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 
 /**
  * A shared buffer implementation which stores values under according state. Additionally, the
@@ -121,7 +124,7 @@ public class SharedBuffer<V> {
                             try {
                                 entries.put(e.getKey(), e.getValue());
                             } catch (Exception exception) {
-                                throw NopException.adapt(exception);
+                                throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, exception).param(ARG_DETAIL, "copyEntries");
                             }
                         });
     }
@@ -153,7 +156,7 @@ public class SharedBuffer<V> {
                                 }
                             });
         } catch (Exception exception) {
-            throw NopException.adapt(exception);
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, exception).param(ARG_DETAIL, "lockEdges");
         }
     }
 
@@ -190,7 +193,7 @@ public class SharedBuffer<V> {
         try {
             eventsBuffer.put(eventId, lockableValue);
         } catch (Exception e) {
-            throw NopException.adapt(e);
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "registerEvent");
         }
         return eventId;
     }
@@ -268,7 +271,7 @@ public class SharedBuffer<V> {
                 return lockableFromState;
             }
         } catch (Exception ex) {
-            throw NopException.adapt(ex);
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, ex).param(ARG_DETAIL, "getEntry");
         }
     }
 
@@ -291,7 +294,7 @@ public class SharedBuffer<V> {
                 return lockableFromState;
             }
         } catch (Exception ex) {
-            throw NopException.adapt(ex);
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, ex).param(ARG_DETAIL, "getEvent");
         }
     }
 
@@ -307,7 +310,7 @@ public class SharedBuffer<V> {
             try {
                 entries.putAll(snapshot1);
             } catch (Exception e) {
-                throw NopException.adapt(e);
+                throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-entries");
             }
         }
         if (!eventsBufferCache.isEmpty()) {
@@ -316,7 +319,7 @@ public class SharedBuffer<V> {
             try {
                 eventsBuffer.putAll(snapshot2);
             } catch (Exception e) {
-                throw NopException.adapt(e);
+                throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-events");
             }
         }
     }

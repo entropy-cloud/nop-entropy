@@ -23,6 +23,10 @@ import java.util.List;
 import java.util.Map;
 
 import io.nop.stream.cep.nfa.sharedbuffer.EventId;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 
 /** Every possible match will be emitted. */
 public class NoSkipStrategy extends AfterMatchSkipStrategy {
@@ -40,12 +44,12 @@ public class NoSkipStrategy extends AfterMatchSkipStrategy {
 
     @Override
     protected boolean shouldPrune(EventId startEventID, EventId pruningId) {
-        throw new IllegalStateException("This should never happen. Please file a bug.");
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "NoSkipStrategy.shouldPrune should never be called. Please file a bug.");
     }
 
     @Override
     protected EventId getPruningId(Collection<Map<String, List<EventId>>> match) {
-        throw new IllegalStateException("This should never happen. Please file a bug.");
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "NoSkipStrategy.getPruningId should never be called. Please file a bug.");
     }
 
     @Override

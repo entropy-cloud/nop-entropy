@@ -1,158 +1,159 @@
 # 维度 02：模块职责与文件边界
 
-### [维度02-01] 四个空占位模块无源码但参与 Maven Reactor 构建
+## 第 1 轮（初审）
+
+### [维度02-01] GraphModelCheckpointExecutor 803 行纯静态方法类承担 6 种职责
+
+- **文件**: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/execution/GraphModelCheckpointExecutor.java:55-803`
+- **证据片段**:
+  ```java
+  // 第一个入口：第 59-97 行
+  public static StreamExecutionResult executeWithCheckpoint(
+          JobGraph jobGraph, String jobName, CheckpointConfig checkpointConfig) throws Exception {
+      long startTime = System.currentTimeMillis();
+      boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+      GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
+      String jobId = resolveJobId(checkpointConfig);
+      String pipelineId = resolvePipelineId(checkpointConfig);
+      CheckpointIDCounter idCounter = new CheckpointIDCounter();
+      ICheckpointStorage storage = createStorage(checkpointConfig);
+      CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
+      CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+      List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+      ScheduledExecutorService barrierScheduler = startBarrierScheduler(...);
+      restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, null);
+      Map<String, SubtaskTask> tasks = buildTasks(execPlan);
+      TaskExecutor executor = new TaskExecutor();
+      try { submitAndRun(...); handleJobTermination(...); ... } finally { shutdown(...); }
+  }
+  ```
+- **严重程度**: P2
+- **现状**: 该文件是一个 803 行的全静态方法类，包含 4 个公共入口方法和约 20 个私有辅助方法。同时承担执行编排、存储创建、状态恢复、任务终止模式、Barrier 调度、指标日志等 6 种职责。
+- **风险**: 新增执行路径时需要在多个入口方法中复制相同的编排步骤，容易遗漏导致不一致。违反单一职责原则。
+- **建议**: 提取公共编排流程为模板方法，将 createStorage、restoreFromCheckpoint、handleJobTermination 等分别提取为独立类。
+- **信心水平**: 90%
+- **误报排除**: 若认为全静态工具类是有意设计模式，可降级为 P3。但同类重复（4 段几乎相同的编排流程）是结构性问题。
+- **复核状态**: 未复核
+
+### [维度02-02] core 模块 WindowAggregationOperator 与 runtime 模块 WindowOperator 功能重叠
+
+- **文件**:
+  - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/WindowAggregationOperator.java`
+  - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java`
+- **证据片段**:
+  ```java
+  // core 模块
+  public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
+          extends AbstractStreamOperator<OUT>
+          implements OneInputStreamOperator<IN, OUT>, KeyContext { ... }
+
+  // runtime 模块
+  public class WindowOperator<K, IN, ACC, OUT, W extends Window>
+          extends AbstractUdfStreamOperator<OUT, InternalWindowFunction<ACC, OUT, K, W>>
+          implements OneInputStreamOperator<IN, OUT>, Triggerable<K, W> { ... }
+  ```
+- **严重程度**: P2
+- **现状**: 两者都实现了完整的窗口处理逻辑（窗口分配、Trigger 回调、窗口合并、状态快照/恢复、定时器管理），但有不同的状态后端策略。
+- **风险**: 相同领域逻辑需在两处同步维护。对使用者造成困惑。
+- **建议**: 在两个文件头部添加注释说明各自的定位和使用场景。考虑将共享逻辑提取为共享工具类或抽象基类。
+- **信心水平**: 85%
+- **误报排除**: 两者确实有不同的状态后端策略（自管理 vs IKeyedStateBackend），有明确的差异化设计意图。问题在于缺少文档。
+- **复核状态**: 未复核
+
+### [维度02-03] core 模块包含大量运行时执行引擎代码，职责边界模糊
+
+- **文件**:
+  - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/TaskExecutor.java` (439 行)
+  - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/GraphExecutionPlan.java` (442 行)
+  - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java` (432 行)
+  - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/InputGate.java` (344 行)
+- **证据片段**:
+  ```java
+  // TaskExecutor 线程池管理 (core 模块)
+  public class TaskExecutor {
+      private final ExecutorService executorService;
+      private final Map<String, Task> submittedTasks;
+      private final Map<String, Future<?>> taskFutures;
+      private final AtomicBoolean isShutdown;
+      public TaskExecutor(int poolSize) {
+          this.executorService = Executors.newFixedThreadPool(poolSize, r -> {
+              Thread t = new Thread(r, "stream-task-executor-" + THREAD_COUNTER.getAndIncrement());
+              t.setDaemon(true);
+              return t;
+          });
+      }
+  }
+  ```
+- **严重程度**: P2
+- **现状**: core 模块的 execution 包包含 TaskExecutor、GraphExecutionPlan、StreamTaskInvokable、InputGate 等运行时执行引擎组件，同时 runtime 模块也有自己的执行组件。
+- **风险**: core 模块膨胀至 48,808 行。修改执行引擎逻辑需触及 core 模块，影响面大。
+- **建议**: 考虑将 execution 包拆分为 execution-api（接口和数据类）和 execution-impl（实现类），后者移入 runtime。或在 package-info.java 中明确记录设计决策。
+- **信心水平**: 75%
+- **误报排除**: core 的 execution 包可能被 runtime 和 fraud-example 两个下游模块共同依赖，可能是当前设计的合理折衷。
+- **复核状态**: 未复核
+
+### [维度02-04] GraphModelCheckpointExecutor 4 个入口方法中 25+ 行编排代码逐行重复 4 次
+
+- **文件**: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/execution/GraphModelCheckpointExecutor.java:59-261`
+- **证据片段**:
+  ```java
+  // 入口1 (第59-97行): executeWithCheckpoint(JobGraph, String, CheckpointConfig)
+  boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+  GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
+  // ... 25+ 行相同编排代码 ...
+
+  // 入口2 (第104-156行): 完全相同的步骤序列，仅参数来源不同
+  // 入口3 (第175-220行): 完全相同的步骤序列，仅 run 阶段不同
+  // 入口4 (第222-261行): 完全相同的步骤序列，仅 restore 阶段不同
+  ```
+- **严重程度**: P1
+- **现状**: 4 个公共入口方法共享完全相同的"初始化→构建→注册→调度→恢复→运行→终止"流程，差异仅在入口参数类型、恢复策略、运行阶段动作。
+- **风险**: 高概率回归——修改编排流程必须同时修改 4 处，遗漏导致某个入口行为不一致。
+- **建议**: 提取通用的 CheckpointExecutionContext 对象和模板方法。
+- **信心水平**: 95%
+- **误报排除**: 重复代码是可量化的结构性问题（4 段 25+ 行逐行相同代码），不属于"不优雅"范畴。
+- **复核状态**: 未复核
+
+### [维度02-05] WindowAggregationOperator 混合了算子逻辑与 140 行序列化/反序列化职责
+
+- **文件**: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/WindowAggregationOperator.java:543-683`
+- **证据片段**:
+  ```java
+  // 第 543-589 行：3 个序列化方法
+  private Map<String, Object> serializeWindowState(Map<WindowKey<K, W>, ACC> state) { ... }
+  private String serializeWindowKey(WindowKey<K, W> wk) {
+      return JsonTool.stringify(wk.key) + "#" + JsonTool.stringify(wk.window);
+  }
+  private Map<String, Object> serializeTimers(TreeMap<Long, Set<WindowKey<K, W>>> timers) { ... }
+  // 第 591-683 行：4 个反序列化方法 + rebuildTimerLookups
+  private void deserializeWindowState(...) throws Exception { ... }
+  private void deserializeTimers(...) throws Exception { ... }
+  ```
+- **严重程度**: P2
+- **现状**: 825 行算子中混合了约 140 行序列化/反序列化逻辑，使用了自定义 JSON 格式。
+- **风险**: 序列化格式变更需要在算子文件中修改，增加破坏算子逻辑的风险。
+- **建议**: 提取 WindowAggregationStateSerializer 类。
+- **信心水平**: 80%
+- **误报排除**: 如果项目统一在算子内部管理状态序列化则可降级。但 140 行已达到独立类的合理阈值。
+- **复核状态**: 未复核
+
+### [维度02-06] 4 个空占位模块增加构建时间和认知负担
 
 - **文件**: `nop-stream/nop-stream-api/pom.xml`, `nop-stream/nop-stream-checkpoint/pom.xml`, `nop-stream/nop-stream-flink/pom.xml`, `nop-stream/nop-stream-flow/pom.xml`
 - **证据片段**:
   ```xml
+  <!-- nop-stream-api pom.xml -->
   <artifactId>nop-stream-api</artifactId>
   <!-- placeholder, planned but not implemented -->
-  <!-- interfaces are in nop-stream-core; this module is reserved for future API extraction -->
   ```
 - **严重程度**: P3
-- **现状**: 4个空模块在父 pom 的 `<modules>` 中注册，每次 `mvn install` 都会被 Reactor 遍历。
-- **风险**: 在 IDE 中呈现空项目、在 Reactor 输出中产生误导。
-- **建议**: 维持现状可接受。若想清理，可在 pom 注释中明确标注预留原因和预计引入时间。
-- **信心水平**: 确定
-- **误报排除**: 四个模块有独立 pom.xml 和 placeholder 注释，是设计意图。
+- **现状**: 4 个子模块只有 pom.xml，没有 src 目录和任何代码。
+- **风险**: 增加不必要的 Maven 反应器构建时间。新开发者困惑。
+- **建议**: 如果近期不计划实现，考虑从 pom.xml 的 modules 中移除。
+- **信心水平**: 95%
+- **误报排除**: 常见的预占位做法，但 4 个空模块同时存在增加认知负担。
 - **复核状态**: 未复核
 
-### [维度02-02] WindowOperator 的 onEventTime/onProcessingTime 存在结构重复
+## 生成代码检查
 
-- **文件**: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java:483-595`
-- **证据片段**:
-  ```java
-  // onEventTime (lines 483-538):
-  @Override
-  public void onEventTime(InternalTimer<K, W> timer) throws Exception {
-      triggerContext.key = timer.getKey();
-      triggerContext.window = timer.getNamespace();
-      // ... 几乎与 onProcessingTime 逐行相同
-      TriggerResult triggerResult = triggerContext.onEventTime(timer.getTimestamp());
-      // ...
-  }
-
-  // onProcessingTime (lines 540-595):
-  @Override
-  public void onProcessingTime(InternalTimer<K, W> timer) throws Exception {
-      // ... 几乎与 onEventTime 逐行相同
-      TriggerResult triggerResult = triggerContext.onProcessingTime(timer.getTimestamp());
-      // ...
-  }
-  ```
-- **严重程度**: P2
-- **现状**: WindowOperator.java 共 1090 行，其中 onEventTime + onProcessingTime 约 110 行是几乎完全重复的代码。
-- **风险**: 如果修改其中一个方法的逻辑而遗漏另一个，会引入不一致行为。
-- **建议**: 提取一个 `onTimer(InternalTimer<K,W> timer, boolean isEventTime)` 私有方法统一处理。
-- **信心水平**: 确定
-- **误报排除**: 真正的逻辑重复，不是风格偏好。
-- **复核状态**: 未复核
-
-### [维度02-03] WindowAggregationOperator (core) 与 WindowOperator (runtime) 职责重叠
-
-- **文件**: `nop-stream-core/.../operators/WindowAggregationOperator.java` (676行) vs `nop-stream-runtime/.../operators/windowing/WindowOperator.java` (1090行)
-- **证据片段**:
-  ```java
-  // WindowAggregationOperator (core):
-  public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
-          extends AbstractStreamOperator<OUT>
-          implements OneInputStreamOperator<IN, OUT>, KeyContext {
-
-  // WindowOperator (runtime):
-  public class WindowOperator<K, IN, ACC, OUT, W extends Window>
-          extends AbstractUdfStreamOperator<OUT, InternalWindowFunction<ACC, OUT, K, W>>
-          implements OneInputStreamOperator<IN, OUT>, Triggerable<K, W> {
-  ```
-- **严重程度**: P2
-- **现状**: 两者都实现窗口运算符核心逻辑。core 版使用内置 LinkedHashMap 管理窗口状态，runtime 版使用 IKeyedStateBackend + MapState。两者目前无继承关系。
-- **风险**: 新开发者不清楚何时用哪个算子。修改窗口逻辑时需要在两处同步。
-- **建议**: 在类级别 Javadoc 中明确说明两者关系和各自适用场景。长期可考虑提取公共基类。
-- **信心水平**: 很可能
-- **误报排除**: 两者都在生产代码中被引用，不是死代码。
-- **复核状态**: 未复核
-
-### [维度02-04] nop-stream-core 承担了约 56% 的代码量，职责边界过宽
-
-- **文件**: `nop-stream/nop-stream-core/src/main/java/` (288 文件, 27566 行)
-- **证据片段**: core 模块包含 checkpoint/、execution/、operators/、graph/、jobgraph/、environment/、datastream/、windowing/、model/ 等包。
-- **严重程度**: P2
-- **现状**: core 模块既包含核心抽象接口，也包含完整的执行引擎实现。这导致 core 模块依赖 nop-core。
-- **风险**: 任何上层模块只要需要核心接口就必须引入整个执行引擎的实现依赖。修改执行逻辑时，core 的变更会波及所有下游模块。
-- **建议**: 未来可考虑将 execution/、operators/（具体实现类）、graph/、jobgraph/ 中的非抽象类提取到独立模块。但当前结构已稳定，不建议近期重构。
-- **信心水平**: 很可能
-- **误报排除**: 空模块 (api/checkpoint) 的存在本身就说明最初设计者曾计划更细的拆分。
-- **复核状态**: 未复核
-
-### [维度02-05] NFACompiler 内部类 NFAFactoryCompiler 约 900 行，职责集中但内聚
-
-- **文件**: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/nfa/compiler/NFACompiler.java:140-1053`
-- **证据片段**:
-  ```java
-  static class NFAFactoryCompiler<T> {
-      private final NFAStateNameHandler stateNameHandler = new NFAStateNameHandler();
-      private final Map<String, State<T>> stopStates = new HashMap<>();
-      // ... 约 30 个私有方法
-  }
-  ```
-- **严重程度**: P3
-- **现状**: 内部类负责将 Pattern 编译为 NFA 状态图，职责单一且内聚。所有方法操作同一组共享状态。
-- **风险**: 维护成本可接受。
-- **建议**: 维持现状。可将 NFAFactoryCompiler 提升为顶层类。
-- **信心水平**: 确定
-- **误报排除**: 内部类虽然大，但所有方法操作同一组共享状态，是高内聚的编译器实现。
-- **复核状态**: 未复核
-
-### [维度02-06] NFA.java 包含 4 个内部类
-
-- **文件**: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/nfa/NFA.java:480-972`
-- **证据片段**:
-  ```java
-  private static class OutgoingEdges<T> { ... }
-  private class EventWrapper implements AutoCloseable { ... }
-  private class ConditionContext implements IterativeCondition.Context<T> { ... }
-  public static class MigratedNFA<T> { ... }
-  ```
-- **严重程度**: P3
-- **现状**: 4 个内部类紧密依赖外部 NFA 实例状态。
-- **风险**: 低。强行拆分不会带来架构改善。
-- **建议**: 维持现状。
-- **信心水平**: 确定
-- **误报排除**: 内部类高度耦合外部类状态。
-- **复核状态**: 未复核
-
-### [维度02-07] GraphModelCheckpointExecutor 是一个 812 行的全静态方法编排类
-
-- **文件**: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/execution/GraphModelCheckpointExecutor.java:1-812`
-- **证据片段**:
-  ```java
-  public class GraphModelCheckpointExecutor {
-      public static StreamExecutionResult executeWithCheckpoint(
-              JobGraph jobGraph, String jobName, CheckpointConfig checkpointConfig) { ... }
-      // 后续约 20+ 个 private static 方法
-  }
-  ```
-- **严重程度**: P2
-- **现状**: 812 行全静态类承担 checkpoint 执行路径的完整编排。两个 executeWithCheckpoint 重载共享大量代码但无法利用多态。
-- **风险**: 如果需要支持新的 checkpoint 存储后端或新的执行模式，需要在长文件中定位正确的插入点。
-- **建议**: 可重构为实例类，将配置参数作为构造器注入。但这是一个风格建议，当前代码功能正确。
-- **信心水平**: 很可能
-- **误报排除**: 812 行全静态方法编排 + 两个重载共享逻辑 + 无法利用多态是可量化的结构特征。
-- **复核状态**: 未复核
-
-### [维度02-08] _gen 目录下的生成代码未发现手写修改痕迹
-
-- **文件**: `nop-stream-cep/src/main/java/io/nop/stream/cep/model/_gen/` (4 文件)
-- **证据片段**:
-  ```java
-  // _CepPatternPartModel.java:10-17
-  // tell cpd to start ignoring code - CPD-OFF
-  @SuppressWarnings({"PMD.UselessOverridingMethod",...})
-  public abstract class _CepPatternPartModel extends AbstractComponentModel {
-  ```
-- **严重程度**: N/A (未发现问题)
-- **现状**: _gen 代码完全符合 Nop 平台代码生成规范，未发现手写修改痕迹。
-- **风险**: 无
-- **建议**: 维持现状。
-- **信心水平**: 确定
-- **误报排除**: 明确的审核步骤结果——确认无问题。
-- **复核状态**: 未复核
+`_gen/` 目录下的 4 个生成文件均为标准 Nop 平台代码生成器输出，未发现手写修改痕迹。

@@ -10,10 +10,10 @@ package io.nop.stream.cep.model.builder;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.stream.cep.pattern.MalformedPatternException;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 
 import io.nop.stream.cep.model.*;
@@ -157,7 +157,7 @@ public class CepPatternBuilder {
             try {
                 pattern.subtype(ClassHelper.safeLoadClass(partModel.getSubType()));
             } catch (Exception e) {
-                throw NopException.adapt(e);
+                throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN, e).param(ARG_PATTERN_DETAIL, "class loading failed for subtype: " + partModel.getSubType());
             }
         }
 

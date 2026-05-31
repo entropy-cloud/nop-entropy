@@ -105,8 +105,8 @@ public class NFACompiler {
                         .findFirst()
                         .orElseThrow(
                                 () ->
-                                        new IllegalStateException(
-                                                "Compiler produced no start state. This is a bug in NFAFactoryCompiler."));
+                                        new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                                                .param(ARG_PATTERN_DETAIL, "Compiler produced no start state. This is a bug in NFAFactoryCompiler."));
 
         Set<State<?>> visitedStates = new HashSet<>();
         final Stack<State<?>> statesToCheck = new Stack<>();

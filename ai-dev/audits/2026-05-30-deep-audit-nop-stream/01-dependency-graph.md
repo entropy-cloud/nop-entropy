@@ -1,107 +1,81 @@
 # 维度 01：依赖图与模块边界
 
-## 依赖图
+## 第 1 轮（初审）
 
-```
-nop-stream (parent pom)
-├── nop-stream-api           [EMPTY] (placeholder)
-├── nop-stream-core           → nop-commons, nop-core
-├── nop-stream-checkpoint     [EMPTY] (placeholder)
-├── nop-stream-flink          [EMPTY] (placeholder)
-├── nop-stream-flow           [EMPTY] (placeholder)
-├── nop-stream-cep            → nop-stream-core, nop-xlang (optional, unused)
-├── nop-stream-connector      → nop-stream-core, nop-batch-core (compile),
-│                              nop-message-core (optional), nop-message-debezium (optional)
-├── nop-stream-runtime        → nop-stream-core, nop-dao (provided),
-│                              nop-message-core (test)
-└── nop-stream-fraud-example  → nop-stream-cep
+### [维度01-01] nop-stream-runtime 主代码依赖 nop-dataset 但未显式声明
 
-No circular dependencies detected.
-```
+- **文件**: `nop-stream/nop-stream-runtime/pom.xml:29-33`
+- **证据片段**:
+  ```xml
+  <dependency>
+      <groupId>io.github.entropy-cloud</groupId>
+      <artifactId>nop-dao</artifactId>
+      <scope>provided</scope>
+  </dependency>
+  ```
+- **严重程度**: P3
+- **现状**: `JdbcCheckpointStorage.java` 和 `JdbcClusterRegistry.java` 在主编译代码中 import 了 `io.nop.dao.jdbc.IJdbcTemplate`（来自 nop-dao）和 `io.nop.dataset.IDataRow`/`IDataSet`（来自 nop-dataset）。`nop-dao` 声明为 `provided` scope（合理），但 `nop-dataset` 没有显式声明。`nop-dataset` 通过 `nop-core → nop-stream-core` 传递到了 compile scope。
+- **风险**: `nop-dataset` 的可用性完全依赖于 `nop-core` 的传递依赖链。如果未来 `nop-core` 重构移除了对 `nop-dataset` 的直接依赖，`nop-stream-runtime` 的编译将意外失败。短期内变动的可能性极低。
+- **建议**: 不需要立即修改。如果追求显式依赖声明的完整性，可在 pom.xml 中添加 `nop-dataset` 为 `provided` scope 的显式声明。
+- **信心水平**: 高（95%）
+- **误报排除**: 不是设计问题，是显式声明完整性的建议。已通过 `mvn dependency:tree` 验证。
+- **复核状态**: 未复核
 
-### [维度01-01] nop-stream-fraud-example 使用 `${project.version}` 而其他内部模块依赖父 POM dependencyManagement
+### [维度01-02] 四个 placeholder 模块产出空 JAR，其中三个被列入 BOM
 
-- **文件**: `nop-stream/nop-stream-fraud-example/pom.xml:19-24`
+- **文件**: `nop-stream/nop-stream-api/pom.xml:12-14`, `nop-stream/nop-stream-checkpoint/pom.xml:12-13`, `nop-stream/nop-stream-flow/pom.xml:12-13`, `nop-stream/nop-stream-flink/pom.xml:12-13`
+- **证据片段**:
+  ```xml
+  <!-- nop-stream-checkpoint/pom.xml lines 12-13 -->
+  <artifactId>nop-stream-checkpoint</artifactId>
+  <!-- placeholder, planned but not implemented -->
+  ```
+- **严重程度**: P3
+- **现状**: 四个 placeholder 模块均无 src/ 目录。其中 `nop-stream-api`、`nop-stream-flow`、`nop-stream-checkpoint` 被列入 `nop-bom`，而 `nop-stream-flink` 未列入。`tests/pom.xml` 也引用了它们。
+- **风险**: 空 JAR 不会冲突，但无意义地增加依赖树体积。`nop-stream-flink` 的缺失与其他 placeholder 的处理方式不一致。
+- **建议**: 如果长期搁置，可考虑从 BOM 和 tests/pom.xml 中移除空模块声明。
+- **信心水平**: 高（98%）
+- **误报排除**: 这是常见的预占位做法，非功能性错误。
+- **复核状态**: 未复核
+
+### [维度01-03] nop-stream-fraud-example 仅依赖 nop-stream-cep 但直接使用 nop-stream-core 类
+
+- **文件**: `nop-stream/nop-stream-fraud-example/pom.xml:18-23`
 - **证据片段**:
   ```xml
   <dependency>
       <groupId>io.github.entropy-cloud</groupId>
       <artifactId>nop-stream-cep</artifactId>
-      <version>${project.version}</version>  <!-- ← 其他模块不写 version -->
   </dependency>
   ```
 - **严重程度**: P3
-- **现状**: `nop-stream-fraud-example` 的内部依赖声明了显式 `${project.version}`，而其他所有子模块均依赖父 POM 的 `dependencyManagement` 统一管控版本。
-- **风险**: 不影响构建正确性，但风格不一致。
-- **建议**: 移除 `<version>${project.version}</version>`，与其他子模块保持一致。
-- **信心水平**: 确定
-- **误报排除**: 同一 reactor 内其他 4 个有内部依赖的模块全部不写 version，唯独这一个写了。
+- **现状**: `fraud-example` 直接使用了 12 个 `nop-stream-core` 类（state API），但这些依赖完全通过 `nop-stream-cep` 传递。
+- **风险**: 如果未来 CEP 模块重构使其不再依赖 core，fraud-example 将编译失败。风险极低。
+- **建议**: 无需立即修改。示例模块，依赖传递链稳定。
+- **信心水平**: 高（95%）
+- **误报排除**: 不是错误，是显式声明完整性的建议。
 - **复核状态**: 未复核
 
-### [维度01-02] nop-xlang 作为 optional 依赖在 nop-stream-cep 中声明但从未被 import
+## 完整依赖图
 
-- **文件**: `nop-stream/nop-stream-cep/pom.xml:20-24`
-- **证据片段**:
-  ```xml
-  <dependency>
-      <groupId>io.github.entropy-cloud</groupId>
-      <artifactId>nop-xlang</artifactId>
-      <optional>true</optional>
-  </dependency>
-  ```
-  全量搜索 `nop-stream-cep` 中 `import io.nop.xlang` 或 `import io.nop.xdef`：**0 matches**。
-- **严重程度**: P2
-- **现状**: `nop-xlang` 被声明为 optional 依赖，但在 CEP 模块的所有源码中没有任何 import 或运行时使用痕迹。
-- **风险**: 误导开发者认为 CEP 模块有 xlang 集成能力；无谓扩大编译 classpath。
-- **建议**: 若确无使用，移除该依赖；若为将来预留，加注释说明意图。
-- **信心水平**: 很可能
-- **误报排除**: "optional 依赖完全未使用"和"optional 依赖有实际使用但可选"性质不同。前者构成维护噪声。
-- **复核状态**: 未复核
+```
+nop-stream (parent pom, reactor aggregator)
+├── nop-stream-api           [placeholder, no src, no deps]
+├── nop-stream-core          → nop-commons, nop-core
+├── nop-stream-checkpoint    [placeholder, no src, no deps]
+├── nop-stream-flink         [placeholder, no src, no deps]
+├── nop-stream-flow          [placeholder, no src, no deps]
+├── nop-stream-cep           → nop-stream-core
+├── nop-stream-connector     → nop-stream-core
+│                              optional: nop-batch-core, nop-message-core, nop-message-debezium
+├── nop-stream-runtime       → nop-stream-core
+│                              provided: nop-dao
+│                              test: nop-message-core, HikariCP, h2
+└── nop-stream-fraud-example → nop-stream-cep
+```
 
-### [维度01-03] nop-batch-core 在 nop-stream-connector 中为 compile 作用域但未标记 optional
+## 总结
 
-- **文件**: `nop-stream/nop-stream-connector/pom.xml:20-23`
-- **证据片段**:
-  ```xml
-  <dependency>
-      <groupId>io.github.entropy-cloud</groupId>
-      <artifactId>nop-batch-core</artifactId>
-      <!-- 无 <optional>true</optional> -->
-  </dependency>
-  ```
-  对比同文件中 `nop-message-core` 和 `nop-message-debezium` 均标记了 `<optional>true</optional>`。
-- **严重程度**: P2
-- **现状**: `nop-batch-core` 是 compile-scope 强依赖。如果下游用户只使用 DebeziumCdcSourceFunction 而不需要 batch 功能，仍然必须引入 `nop-batch-core`。
-- **风险**: 会作为传递依赖传播给所有依赖 `nop-stream-connector` 的模块，即使它们不使用 batch 相关功能。违反了 connector 模块对 `nop-message-*` 做的可选隔离模式。
-- **建议**: 将 `nop-batch-core` 也标记为 `<optional>true</optional>`，与 `nop-message-core`/`nop-message-debezium` 保持一致。
-- **信心水平**: 很可能
-- **误报排除**: 同一个 connector 模块内，同性质的集成依赖采用了不同的 optional 策略，构成了真实的依赖传递不对称。
-- **复核状态**: 未复核
-
-### [维度01-04] 三个空 placeholder 模块持续占据 reactor 构建槽位
-
-- **文件**: `nop-stream/nop-stream-checkpoint/pom.xml:12-13`, `nop-stream/nop-stream-flink/pom.xml:12-13`, `nop-stream/nop-stream-flow/pom.xml:12-13`
-- **证据片段**:
-  ```xml
-  <artifactId>nop-stream-checkpoint</artifactId>
-  <!-- placeholder, planned but not implemented -->
-  ```
-- **严重程度**: P3
-- **现状**: 三个空模块在 reactor 中注册但无任何源码。
-- **风险**: 轻微增加构建时间。如果长期不实现，会积累技术债务印象。
-- **建议**: 补充与 api 模块同等详细的注释说明规划意图，或考虑移出 reactor 直到实现。
-- **信心水平**: 确定
-- **误报排除**: 模块名暗示了明确的架构规划，问题是注释不够明确。
-- **复核状态**: 未复核
-
-### [维度01-05] nop-stream-fraud-example 实际依赖图与审计基线不一致
-
-- **文件**: `nop-stream/nop-stream-fraud-example/pom.xml:18-31`
-- **证据片段**: POM 仅依赖 `nop-stream-cep`，代码中无 `import io.nop.stream.runtime.*`。
-- **严重程度**: P3
-- **现状**: 提供的基线声明 fraud-example 依赖 runtime，但实际不依赖。
-- **风险**: 如果基线用于文档或依赖审计，会导致下游分析不准确。
-- **建议**: 更新基线文档。
-- **信心水平**: 确定
-- **误报排除**: 基线与实际代码不一致属于审计范围内应报告的事项。
-- **复核状态**: 未复核
+- **循环依赖**: 无
+- **跨层违规**: 无
+- **整体评估**: 依赖结构健康，所有 P3 问题均为显式声明完整性的建议。

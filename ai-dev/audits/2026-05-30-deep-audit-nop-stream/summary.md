@@ -2,106 +2,115 @@
 
 ## 基本信息
 
-- **审核模块**: nop-stream
+- **审核模块**: nop-stream（流处理框架模块）
 - **审核日期**: 2026-05-30
-- **执行维度**: 01 (依赖图), 02 (模块职责), 09 (错误处理), 15 (类型安全), 16 (测试覆盖), 17 (代码风格)
-- **目标范围**: nop-stream 全部 9 个子模块，619 Java 文件，88,594 行代码
-- **跳过维度**: 03-08, 10-14, 18-21（nop-stream 是流式计算引擎，非标准 Nop 业务模块，不涉及 ORM、BizModel、xmeta、codegen、Delta、IoC、GraphQL、安全权限、事务等）
+- **执行维度**: 01（依赖图与模块边界）、02（模块职责与文件边界）、03（API 表面积与契约一致性）、09（错误处理与错误码）、14（异步与事务模式）、15（类型安全与泛型使用）、16（测试覆盖与质量）
+- **目标范围**: nop-stream 下 9 个子模块（5 个活跃 + 4 个 placeholder），622 个 Java 文件，约 48K 行主源码 + 约 42K 行测试代码
 
 ## 执行统计
 
-| 维度 | 深挖轮次 | 初审发现数 | 保留 | 降级 | 驳回 |
-|------|---------|-----------|------|------|------|
-| 01   | 1       | 5         | 5    | 0    | 0    |
-| 02   | 1       | 7         | 7    | 0    | 0    |
-| 09   | 1       | 9         | 9    | 0    | 0    |
-| 15   | 1       | 6         | 5    | 1    | 0    |
-| 16   | 1       | 8         | 8    | 0    | 0    |
-| 17   | 1       | 6         | 6    | 0    | 0    |
-| **合计** | —   | **41**    | **40** | **1** | **0** |
+| 维度 | 深挖轮次 | 初审发现数 | 追加发现数 | 保留 | 降级 | 驳回 |
+|------|---------|-----------|-----------|------|------|------|
+| 01   | 1       | 3         | 0         | 3    | 0    | 0    |
+| 02   | 1       | 6         | 0         | 6    | 0    | 0    |
+| 03   | 1       | 13        | 0         | 13   | 0    | 0    |
+| 09   | 1       | 5         | 0         | 5    | 0    | 0    |
+| 14   | 2       | 9         | 5         | 12   | 3    | 0    |
+| 15   | 1       | 8         | 0         | 8    | 0    | 0    |
+| 16   | 2       | 8         | 5         | 13   | 0    | 0    |
+| **合计** | —   | **52**    | **10**    | **60** | **3** | **0** |
 
-## 按严重程度分布
+## 按严重程度分布（复核后）
 
 | 严重程度 | 数量 | 主要类别 |
 |---------|------|---------|
 | P0      | 0    | —       |
-| P1      | 2    | 错误处理：ClassNameValidator 异常绕过体系 + RemoteInputChannel 静默数据丢失 |
-| P2      | 20   | 依赖不对称(2) + 职责重叠(3) + 错误码未使用(5) + 类型安全(4) + 测试缺口(5) + 风格(1) |
-| P3      | 18   | 空模块(5) + 风格问题(8) + 测试维护(3) + 其他(2) |
-| N/A     | 1    | 降级为 P3（维度15-02） |
+| P1      | 4    | 代码重复导致高回归风险（02）、核心路径零测试（16）、API 类型层次断裂（03）、静态可变字段无同步（03） |
+| P2      | 31   | 并发竞态（14）、错误处理不一致（09）、测试覆盖盲区（16）、职责边界模糊（02）、API 设计缺陷（03）、泛型擦除风险（15） |
+| P3      | 25   | 显式依赖声明（01）、低优先级代码质量（02,03,14）、测试命名（16）、类型签名误导（15） |
 
 ## 关键发现摘要
 
 ### P1 发现
 
-| 编号 | 维度 | 文件 | 一句话摘要 |
-|------|------|------|-----------|
-| 09-04 | 错误处理 | `nop-stream-core/.../util/ClassNameValidator.java` | 安全敏感校验器使用 JDK SecurityException/IllegalArgumentException，绕过 StreamException 体系，且 NopStreamErrors 已定义对应 ErrorCode 却未使用 |
-| 09-05 | 错误处理 | `nop-stream-runtime/.../transport/RemoteInputChannel.java` | onMessage() 吞掉反序列化异常仅记日志，无错误状态传播，消息被静默丢弃且标记为已确认 |
+| 编号 | 维度 | 文件 | 摘要 |
+|------|------|------|------|
+| 02-04 | 02 | `GraphModelCheckpointExecutor.java:59-261` | 4 个入口方法中 25+ 行编排代码逐行重复 4 次，修改流程需同步 4 处 |
+| 03-01 | 03 | `AggregatingState.java:3`, `ReducingState.java:3` | 两个接口具有与 AppendingState 相同的方法签名却直接 extends State，打破类型层次 |
+| 03-02 | 03 | `StreamExecutionEnvironment.java:63,130` | 静态可变 defaultCheckpointExecutorFactory 无 volatile/同步，跨作业状态泄漏 |
+| 16-05 | 16 | `GraphModelCheckpointExecutor.java:104-156` | StreamModel 重载无单元测试，是 StreamExecutionEnvironment.execute() 启用 checkpoint 时的主路径 |
 
-### P2 发现（按模块分组）
+### P2 发现（按影响排序）
 
-**错误处理 (09)**:
-- 09-01: Connector 公共 API 使用字符串构造器而非 ErrorCode（5个类12处）
-- 09-02: Runtime 公共 API 使用字符串构造器（5个类9处）
-- 09-03: WindowOperator 与 WindowAggregationOperator 相同错误场景使用不同异常风格
-- 09-06: OperatorChain 混用 ErrorCode、字符串、IllegalStateException 三种风格
-- 09-07: ~20处使用 JDK 原生 IllegalStateException/IllegalArgumentException
+| 编号 | 维度 | 文件 | 摘要 |
+|------|------|------|------|
+| 14-01 | 14 | `Lockable.java:54-60` | release() check-then-act 竞态可致引用计数变负（复核：P1→P2，单线程模型降低风险） |
+| 14-02 | 14 | `CheckpointCoordinator.java:165-186` | tryTriggerPendingCheckpoint TOCTOU 竞态可超最大并发数（复核：P1→P2，调用者实际单线程） |
+| 14-11 | 14 | `JdbcCheckpointStorage.java:80-100` | INSERT-then-UPDATE 宽泛 catch 可能静默丢失 checkpoint 数据 |
+| 14-08 | 14 | `DebeziumCdcSourceFunction.java:56-74` | run() 异常时资源泄漏，缺 try-finally |
+| 14-12 | 14 | `JobCoordinator.java:484-551` | 终止方法超时后不中止 pending checkpoint |
+| 14-10 | 14 | `GraphModelCheckpointExecutor.java:543-551` | shutdown() 不等待线程池终止 |
+| 09-01 | 09 | `TaskManager.java:324-327` | 分布式控制面使用原生 IllegalStateException |
+| 09-02 | 09 | `WindowOperator.java:375-423` | 核心窗口算子 4 处使用原生 JDK 异常 |
+| 02-01 | 02 | `GraphModelCheckpointExecutor.java` | 803 行静态类承担 6 种职责 |
+| 02-03 | 02 | `core/execution/` | core 包含执行引擎代码（TaskExecutor 439 行等），与 runtime 边界模糊 |
+| 02-06 | 02 | `WindowAggregationOperator.java:543-683` | 825 行算子混合 140 行序列化代码 |
+| 02-02 | 02 | `WindowAggregationOperator` + `WindowOperator` | 两模块各一个 800+ 行窗口算子，功能重叠缺文档 |
+| 16-03 | 16 | `WindowOperator.java:539-593` | onProcessingTime 无测试覆盖 |
+| 16-04 | 16 | `CheckpointCoordinator.java:361-371` | 超时中止路径未测试 |
+| 16-08 | 16 | `CheckpointCoordinator.java:436-466` | retryFailedCommits 多 epoch 交叉重试未测试 |
+| 16-01 | 16 | `NFACompiler.java:822-842` | GroupPattern+Looping 编译路径无 E2E 测试 |
+| 16-13 | 16 | `SubtaskTask.java:83-124` | cancel() 和算子链部分失败路径未测试 |
+| 15-01 | 15 | `CepPatternBuilder.java:28-145` | 全类 raw Pattern，7 处 rawtypes 抑制 |
+| 15-02 | 15 | `SharedBuffer.java:84-102` | raw Class 绕过 MapStateDescriptor 泛型约束 |
+| 15-04 | 15 | `AbstractStreamOperator.java:92-94` | getKeyedStateBackend() 调用方选择泛型参数 |
 
-**依赖图 (01)**:
-- 01-02: nop-xlang optional 依赖在 cep 中从未被 import
-- 01-03: nop-batch-core 在 connector 中为 compile scope，应标记 optional
+## 维度复核结论（维度 14）
 
-**模块职责 (02)**:
-- 02-02: WindowOperator onEventTime/onProcessingTime 约 110 行结构重复
-- 02-03: WindowAggregationOperator (core) 与 WindowOperator (runtime) 职责重叠
-- 02-04: nop-stream-core 承担 56% 代码量，职责边界过宽
-
-**类型安全 (15)**:
-- 15-01: StreamComponents.getBean() 接收 Class<T> 参数但未使用
-- 15-03: MemoryStateSerDe.wrapInAccumulator() Object 直接强转（同文件有正确做法）
-- 15-04: WindowAggregationOperator 反序列化中多处 Object→泛型参数 unchecked cast
-
-**测试覆盖 (16)**:
-- 16-01: NFACompiler.canProduceEmptyMatches() 公共 API 零测试覆盖
-- 16-02: NFACompiler NotFollow 无 windowTime 错误路径未测试
-- 16-03: copyWithoutTransitiveNots 循环检测零直接测试
-- 16-04: NFA Pending State 超时处理路径未测试
-- 16-05: WindowOperator snapshot/restore 端到端路径仅间接测试
-
-**代码风格 (17)**:
-- 17-01: NFACompiler/CepPatternBuilder 中 14+ 处 raw Pattern 类型
+| 原编号 | 原等级 | 复核结果 | 原因 |
+|--------|--------|---------|------|
+| 14-01 | P1 | **降级为 P2** | 竞态真实存在但 CEP 算子按 key 单线程处理，实际触发概率极低。Javadoc 声称线程安全是不准确的。 |
+| 14-02 | P1 | **降级为 P2** | 竞态真实存在但所有调用者实际单线程。后果仅多一个并发 checkpoint，不影响数据正确性。 |
+| 14-03 | P1 | **降级为 P3** | 观察间隙存在但 completePendingCheckpoint 有完善 CAS 保护，完全消解了实际危害。 |
 
 ## 总评
 
-nop-stream 模块作为流式计算引擎（灵感来自 Apache Flink CEP），整体架构设计合理。模块间依赖方向清晰（core → cep/connector/runtime → fraud-example），无循环依赖。代码生成产物（_gen 目录）管理规范，无手写修改。测试数量充足（198 个测试文件），且包含多个高质量的并发安全测试和端到端集成测试。
+nop-stream 模块整体架构清晰，依赖结构健康（无循环依赖、无跨层违规），错误处理体系已建立（StreamException + NopStreamErrors/NopCepErrors 共 45 个 ErrorCode），测试覆盖面广（204 个测试文件，核心路径有 E2E 测试）。
 
-**核心问题集中在错误处理一致性**：模块已建立了完善的 ErrorCode 体系（NopStreamErrors 21 个 + NopCepErrors 8 个），但在 Connector 公共 API、Runtime 公共 API、以及 OperatorChain 等核心组件中仍有约 30+ 处使用字符串构造器或 JDK 原生异常。最关键的两个 P1 问题——ClassNameValidator 使用 SecurityException 绕过异常体系、RemoteInputChannel 静默吞掉解码异常——都与错误处理路径的完整性直接相关。
+主要风险集中在以下三个领域：
 
-**测试覆盖方面**：NFACompiler 的编译器级别测试深度不足（核心校验路径和图变换方法缺少直接测试），但运行时行为通过端到端测试间接覆盖。整体测试质量较高，特别是并发安全测试（PendingCheckpoint、CheckpointCoordinator）是亮点。
+1. **并发安全**（维度 14）：CheckpointCoordinator、GraphModelCheckpointExecutor、JdbcCheckpointStorage 等核心组件存在多处竞态条件和资源管理问题。当前单线程处理模型降低了实际触发概率，但 Javadoc 声称线程安全、ConcurrentHashMap 的使用暗示了并发设计意图，这些问题在未来多线程场景下会成为真实缺陷。
 
-**类型安全方面**：checkpoint 反序列化路径中存在多处 Object→泛型参数的 unchecked cast，这是 JSON 序列化 + 泛型擦除场景下的已知挑战。同模块中已有正确的类型校验模式（MemoryStateSerDe.deserializeValue），建议统一。
+2. **GraphModelCheckpointExecutor 质量集中风险**（维度 02+16）：该 803 行静态类承担了 6 种职责，4 个入口方法包含 25+ 行逐行重复的编排代码（P1），且其中一个公共入口方法（StreamModel 重载）完全无测试（P1）。这是 nop-stream 模块中质量风险最集中的文件。
+
+3. **测试覆盖盲区**（维度 16）：NFACompiler 的 GroupPattern+Looping 路径、WindowOperator 的 onProcessingTime 路径、CheckpointCoordinator 的超时中止和 commit 重试路径、SubtaskTask 的 cancel 路径等关键逻辑未测试。测试整体偏重 happy path，错误路径覆盖不足。
 
 ## 优先修复建议
 
-1. **[P1] 修复 ClassNameValidator**：将 SecurityException/IllegalArgumentException 替换为 StreamException + NopStreamErrors.ERR_STREAM_CLASS_NOT_ALLOWED。涉及 2 行代码修改。
-2. **[P1] 修复 RemoteInputChannel**：增加 volatile Throwable decodeError 字段，在 catch 块中设置，read() 方法中检查并抛出。涉及约 10 行代码修改。
-3. **[P2] 统一 Connector/Runtime 公共 API 错误码**：将字符串构造器替换为已有的 NopStreamErrors ErrorCode。约 21 处修改。
-4. **[P2] 将 nop-batch-core 标记为 optional**：1 行 pom.xml 修改。
-5. **[P2] 补充 NFACompiler 测试**：添加 canProduceEmptyMatches、NotFollow 无 windowTime、循环检测的测试。
+**高优先级（P1）：**
+1. 重构 `GraphModelCheckpointExecutor`：提取公共编排流程为模板方法，消除 4 处代码重复
+2. 为 `executeWithCheckpoint(StreamModel, ...)` 重载添加单元测试
+3. 修复 `AggregatingState`/`ReducingState` 的类型层次：改为 `extends AppendingState`
+4. 修复 `StreamExecutionEnvironment.defaultCheckpointExecutorFactory` 的静态可变字段：改为实例字段 + volatile 或 AtomicReference
+
+**中优先级（P2，建议排期）：**
+3. 修复 `Lockable.release()` 的 check-then-act 竞态（改为先 decrement 再检查）
+4. 修复 `JdbcCheckpointStorage` 的宽泛 catch，使用 MERGE/UPSERT 或检查 UPDATE 影响行数
+5. 修复 `DebeziumCdcSourceFunction.run()` 的资源泄漏（添加 try-finally）
+6. 统一 `TaskManager`、`WindowOperator`、`MergingWindowSet` 等处的原生异常为 StreamException + ErrorCode
+7. 添加 `WindowOperator.onProcessingTime` 的测试覆盖
+8. 添加 `CheckpointCoordinator` 超时中止路径的测试覆盖
+9. 添加 `SubtaskTask.cancel()` 和算子链部分失败路径的测试覆盖
+
+**低优先级（P3，可排期或接受）：**
+10. 将 `MessageSourceFunction.subscription` 标记为 volatile
+11. 替换 `JdbcCheckpointStorage.nextSid()` 的 static synchronized 为 AtomicLong
+12. 统一 `MemoryInternalAppendingState.get()` 的错误处理模式
 
 ## 本次审核盲区自评
 
-1. **跳过了维度 03 (API 表面积)、10 (XDSL)、18 (文档一致性)**：nop-stream 不涉及标准 Nop 业务 API，但 API 表面积维度可能有少量发现（如公共接口的参数类型安全性）。
-2. **未进行第二轮深挖**：鉴于首轮发现已较为充分且证据扎实，直接进入了复核阶段。可能遗漏了跨维度的关联发现。
-3. **未测试模块编译和运行**：未运行 `./mvnw test -pl nop-stream`，无法验证测试是否全部通过。
-4. **性能和并发正确性**：未深入审查锁顺序、内存可见性等并发问题。StreamOperator 生命周期管理、SharedBuffer 锁语义等可能存在细粒度问题。
-
-## 维度复核结论
-
-维度 09 的两条 P1 发现经过独立复核确认成立：
-- **09-04**: ClassNameValidator 使用 SecurityException/IllegalArgumentException，NopStreamErrors.ERR_STREAM_CLASS_NOT_ALLOWED 已定义但未使用。StreamElementCodec.decode() 仅捕获 ClassNotFoundException，SecurityException 会直接穿透。**P1 维持**。
-- **09-05**: RemoteInputChannel.onMessage() catch(Exception) 后仅 LOG.error，无错误状态字段，消息被静默丢弃且标记为已确认。IMessageConsumer.onException() 回调未使用。**P1 维持**。
-
-维度 15 的一条 P2 发现经过独立复核后降级：
-- **15-02**: `(T) value` unchecked cast 存在，但当前 restore 路径是纯内存操作（从 OperatorSnapshotResult 的 Map 中直接取出 Java 对象引用），不经过 JSON 序列化/反序列化。**降级为 P3**。
+1. **未覆盖维度**：维度 03（API 表面积）、05（生成管线）、06（Delta 定制）、07（BizModel）、08（IoC/Beans）、10-13（XDSL/XMeta/GraphQL/安全）因 nop-stream 模块性质（纯流处理框架，无 ORM/BizModel/GraphQL/Delta）而跳过。
+2. **未深挖维度**：维度 01、02、09、15 仅执行了初审，未进行第 2 轮深挖。这些维度的发现已较全面，遗漏低价值细节的可能性高。
+3. **测试执行未覆盖**：未运行 `./mvnw test -pl nop-stream` 验证测试是否全部通过。
+4. **性能分析缺失**：未进行性能热点分析或内存泄漏检测。
+5. **维度 03 未独立复核**：维度 03 的发现来自并行初审轮次，其中的 P1 发现（类型层次、静态可变字段）已通过源码验证但未经过独立复核子 agent 的逐条审查。

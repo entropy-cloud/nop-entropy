@@ -27,11 +27,13 @@ import java.util.Stack;
 
 import jakarta.annotation.Nullable;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.api.core.util.Guard.checkState;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 
 import io.nop.stream.cep.nfa.compiler.NFAStateNameHandler;
 import io.nop.stream.cep.nfa.ComputationState;
@@ -217,7 +219,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
                     V event = sharedBuffer.getEvent(eventId).getElement();
                     events.add(event);
                 } catch (Exception ex) {
-                    throw NopException.adapt(ex);
+                    throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, ex).param(ARG_DETAIL, "match materialization failed");
                 }
             }
             materializedMatch.put(pattern.getKey(), events);

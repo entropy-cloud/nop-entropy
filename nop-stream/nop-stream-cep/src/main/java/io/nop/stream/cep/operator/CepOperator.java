@@ -36,7 +36,6 @@ import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.cep.EventComparator;
@@ -59,6 +58,7 @@ import io.nop.stream.core.common.state.VoidNamespace;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
@@ -66,6 +66,9 @@ import io.nop.stream.core.operators.TimestampedCollector;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
  * CEP pattern operator for a keyed input stream. For each key, the operator creates a {@link NFA}
@@ -230,7 +233,7 @@ public class CepOperator<IN, KEY, OUT>
                     try {
                         onProcessingTime(t);
                     } catch (Exception e) {
-                        throw NopException.adapt(e);
+                        throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onProcessingTime timer callback");
                     }
                 });
             }
@@ -365,7 +368,7 @@ public class CepOperator<IN, KEY, OUT>
                             try {
                                 processEvent(nfaState, event, timestamp);
                             } catch (Exception e) {
-                                throw NopException.adapt(e);
+                                throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onEventTime processEvent");
                             }
                         });
             }
@@ -399,7 +402,7 @@ public class CepOperator<IN, KEY, OUT>
                             try {
                                 processEvent(nfa, event, timestamp);
                             } catch (Exception e) {
-                                throw NopException.adapt(e);
+                                throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onProcessingTime processEvent");
                             }
                         });
             }
