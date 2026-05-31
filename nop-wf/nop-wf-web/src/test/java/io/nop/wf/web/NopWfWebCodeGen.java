@@ -29,6 +29,7 @@ public class NopWfWebCodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-wf-meta"), "/", false);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-wf-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPrecompile2(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

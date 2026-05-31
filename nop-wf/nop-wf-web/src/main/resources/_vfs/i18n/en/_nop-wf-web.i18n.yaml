@@ -1,0 +1,64 @@
+site:
+  resource:
+    FNPT:NopWfAction:mutation:
+      displayName: Modify Workflow Action
+    FNPT:NopWfAction:query:
+      displayName: Query Workflow Action
+    FNPT:NopWfDefinition:mutation:
+      displayName: Modify Worflow Definition
+    FNPT:NopWfDefinition:query:
+      displayName: Query Worflow Definition
+    FNPT:NopWfDefinitionAuth:mutation:
+      displayName: Modify Workflow Definition Auth
+    FNPT:NopWfDefinitionAuth:query:
+      displayName: Query Workflow Definition Auth
+    FNPT:NopWfInstance:mutation:
+      displayName: Modify Worflow Instance
+    FNPT:NopWfInstance:query:
+      displayName: Query Worflow Instance
+    FNPT:NopWfLog:mutation:
+      displayName: Modify Workflow Log
+    FNPT:NopWfLog:query:
+      displayName: Query Workflow Log
+    FNPT:NopWfOutput:mutation:
+      displayName: Modify Workflow Outputs
+    FNPT:NopWfOutput:query:
+      displayName: Query Workflow Outputs
+    FNPT:NopWfStatusHistory:mutation:
+      displayName: Modify Workflow Status History
+    FNPT:NopWfStatusHistory:query:
+      displayName: Query Workflow Status History
+    FNPT:NopWfStepInstance:mutation:
+      displayName: Modify Workflow Step Instance
+    FNPT:NopWfStepInstance:query:
+      displayName: Query Workflow Step Instance
+    FNPT:NopWfVar:mutation:
+      displayName: Modify Workflow Variables
+    FNPT:NopWfVar:query:
+      displayName: Query Workflow Variables
+    FNPT:NopWfWork:mutation:
+      displayName: Modify Work List
+    FNPT:NopWfWork:query:
+      displayName: Query Work List
+    NopWfAction-main:
+      displayName: Workflow Action
+    NopWfDefinition-main:
+      displayName: Worflow Definition
+    NopWfDefinitionAuth-main:
+      displayName: Workflow Definition Auth
+    NopWfInstance-main:
+      displayName: Worflow Instance
+    NopWfLog-main:
+      displayName: Workflow Log
+    NopWfOutput-main:
+      displayName: Workflow Outputs
+    NopWfStatusHistory-main:
+      displayName: Workflow Status History
+    NopWfStepInstance-main:
+      displayName: Workflow Step Instance
+    NopWfVar-main:
+      displayName: Workflow Variables
+    NopWfWork-main:
+      displayName: Work List
+    test-orm-nop-wf:
+      displayName: ''

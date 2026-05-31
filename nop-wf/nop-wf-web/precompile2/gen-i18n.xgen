@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+// 基于最终 action-auth.xml 二次生成菜单 i18n，避免与第一阶段页面生成的时序冲突
+codeGenerator.withTplDir('/nop/templates/orm-web').execute("src/main/resources/_vfs/i18n/en",{ moduleId: "nop/wf" },$scope);
+</c:script>
