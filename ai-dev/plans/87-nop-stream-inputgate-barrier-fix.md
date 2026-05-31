@@ -1,6 +1,6 @@
 # 87 nop-stream InputGate 重叠 Checkpoint Barrier 丢弃修复
 
-> Plan Status: planned
+> Plan Status: completed
 > Last Reviewed: 2026-05-31
 > Source: ai-dev/audits/2026-05-30-adversarial-review-nop-stream-r13/01-open-findings.md [AR-4] + live repo 验证
 > Related: 82-nop-stream-round13-audit-remediation (completed, 本发现误标为已修复)
@@ -54,37 +54,37 @@
 
 ### Phase 1 - InputGate 重叠 Barrier 修复
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/InputGate.java`
 
 - Item Types: `Fix`
 
-- [ ] **修复 handleBarrierNonRecursive**：在 `if (!barrierReceived[channelIndex])` 的 else 分支中（即 `barrierReceived[channelIndex] == true` 时），添加 checkpoint ID 比较逻辑：当 `pendingBarrier != null && barrier.getId() != pendingBarrier.getId()` 时，抛出 `StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON, "Overlapping checkpoint barrier: expected " + pendingBarrier.getId() + " but got " + barrier.getId() + " on channel " + channelIndex)`。使用已有错误码 `ERR_STREAM_CHECKPOINT_ABORTED`（NopStreamErrors.java:157-158）。当 checkpoint ID 相同时（重复 barrier），保持当前静默忽略行为（返回 null）。当 `pendingBarrier == null` 且 `barrierReceived[channelIndex]=true` 时（理论不一致状态），自然落入静默 `return null`，与当前行为一致（防御性安全）
-- [ ] **验证现有测试兼容性**：实现修复后立即运行 `./mvnw test -pl nop-stream -am -Dtest=TestInputGate,TestInputGateProcessingGuarantee` 确认现有测试不受影响。`testNonAlignedMode_multipleCheckpoints` 中两个 channel 的 barrier 按 round-robin 交替到达，checkpoint 30 的两个 barrier 应先到齐触发 `resetBarrierState()` 再收到 checkpoint 31 的 barrier，不应触发重叠检测。`testHighBarrierEventCountNoStackOverflow` 中 500 个连续 ID 的 barrier 交替到达，同样不应触发。如果现有测试失败，分析是否为预期行为变更并相应调整
-- [ ] **添加回归测试**：在 TestInputGate.java 中新增 `testBarrierOverlapRejectedInNonAlignedMode`：(1) 构造 2 channel + `barrierAlignment=false` 的 InputGate，(2) 写入 checkpoint 1 的 barrier 到 channel 0（`barrierReceived[0]=true`，checkpoint 1 尚未完成因为 channel 1 还没收到），(3) 写入 checkpoint 2 的 barrier 到 channel 0，(4) 验证抛出 `StreamException` 且消息包含 "Overlapping" 或包含两个 checkpoint ID
+- [x] **修复 handleBarrierNonRecursive**：在 `if (!barrierReceived[channelIndex])` 的 else 分支中（即 `barrierReceived[channelIndex] == true` 时），添加 checkpoint ID 比较逻辑：当 `pendingBarrier != null && barrier.getId() != pendingBarrier.getId()` 时，抛出 `StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON, "Overlapping checkpoint barrier: expected " + pendingBarrier.getId() + " but got " + barrier.getId() + " on channel " + channelIndex)`。使用已有错误码 `ERR_STREAM_CHECKPOINT_ABORTED`（NopStreamErrors.java:157-158）。当 checkpoint ID 相同时（重复 barrier），保持当前静默忽略行为（返回 null）。当 `pendingBarrier == null` 且 `barrierReceived[channelIndex]=true` 时（理论不一致状态），自然落入静默 `return null`，与当前行为一致（防御性安全）
+- [x] **验证现有测试兼容性**：实现修复后立即运行 `./mvnw test -pl nop-stream -am -Dtest=TestInputGate,TestInputGateProcessingGuarantee` 确认现有测试不受影响。`testNonAlignedMode_multipleCheckpoints` 中两个 channel 的 barrier 按 round-robin 交替到达，checkpoint 30 的两个 barrier 应先到齐触发 `resetBarrierState()` 再收到 checkpoint 31 的 barrier，不应触发重叠检测。`testHighBarrierEventCountNoStackOverflow` 中 500 个连续 ID 的 barrier 交替到达，同样不应触发。如果现有测试失败，分析是否为预期行为变更并相应调整
+- [x] **添加回归测试**：在 TestInputGate.java 中新增 `testBarrierOverlapRejectedInNonAlignedMode`：(1) 构造 2 channel + `barrierAlignment=false` 的 InputGate，(2) 写入 checkpoint 1 的 barrier 到 channel 0（`barrierReceived[0]=true`，checkpoint 1 尚未完成因为 channel 1 还没收到），(3) 写入 checkpoint 2 的 barrier 到 channel 0，(4) 验证抛出 `StreamException` 且消息包含 "Overlapping" 或包含两个 checkpoint ID
 
 Exit Criteria:
 
-- [ ] `handleBarrierNonRecursive` 在 `barrierReceived[channelIndex]=true` 时，对属于不同 checkpoint ID 的 barrier 抛出 `StreamException`，对相同 checkpoint ID 的重复 barrier 保持静默忽略
-- [ ] 修改仅影响 `barrierAlignment=false` 路径（`barrierAlignment=true` 模式下已通过 `continue` 跳过已知 channel，新 barrier 不会被读到）
-- [ ] 新增测试 `testBarrierOverlapRejectedInNonAlignedMode` 验证重叠 checkpoint 被明确拒绝
-- [ ] 现有测试 `testHighBarrierEventCountNoStackOverflow` 和 `testNonAlignedMode_multipleCheckpoints` 不受影响（运行结果确认）
-- [ ] **无静默跳过**：不同 checkpoint ID 的 barrier 在重叠场景下抛异常而非静默返回 null
-- [ ] `./mvnw test -pl nop-stream -am` 全部通过
-- [ ] No owner-doc update required（InputGate 是 internal 实现类，无公共 API 文档）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `handleBarrierNonRecursive` 在 `barrierReceived[channelIndex]=true` 时，对属于不同 checkpoint ID 的 barrier 抛出 `StreamException`，对相同 checkpoint ID 的重复 barrier 保持静默忽略
+- [x] 修改仅影响 `barrierAlignment=false` 路径（`barrierAlignment=true` 模式下已通过 `continue` 跳过已知 channel，新 barrier 不会被读到）
+- [x] 新增测试 `testBarrierOverlapRejectedInNonAlignedMode` 验证重叠 checkpoint 被明确拒绝
+- [x] 现有测试 `testHighBarrierEventCountNoStackOverflow` 和 `testNonAlignedMode_multipleCheckpoints` 不受影响（运行结果确认）
+- [x] **无静默跳过**：不同 checkpoint ID 的 barrier 在重叠场景下抛异常而非静默返回 null
+- [x] `./mvnw test -pl nop-stream -am` 全部通过
+- [x] No owner-doc update required（InputGate 是 internal 实现类，无公共 API 文档）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] R13-AR-4 (P1) 已修复：InputGate 不再静默丢弃重叠 checkpoint barrier
-- [ ] 新增回归测试通过
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
-- [ ] No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：修复有实际行为代码，无空方法体/静默跳过
-- [ ] `./mvnw compile -pl nop-stream -am`
-- [ ] `./mvnw test -pl nop-stream -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] R13-AR-4 (P1) 已修复：InputGate 不再静默丢弃重叠 checkpoint barrier
+- [x] 新增回归测试通过
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
+- [x] No owner-doc update required
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：修复有实际行为代码，无空方法体/静默跳过
+- [x] `./mvnw compile -pl nop-stream -am`
+- [x] `./mvnw test -pl nop-stream -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -97,11 +97,17 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
+Status Note: R13-AR-4 (P1) 已修复。InputGate.handleBarrierNonRecursive 在 barrierReceived[channel]=true 时，对来自不同 checkpoint ID 的 barrier 抛出 StreamException(ERR_STREAM_CHECKPOINT_ABORTED) 而非静默丢弃。重复 barrier（相同 checkpoint ID）保持原有静默忽略。barrierAlignment=true 模式不受影响（已通过 continue 跳过已知 channel）。新增回归测试 testBarrierOverlapRejectedInNonAlignedMode 验证。全量 nop-stream 测试通过。
 
 Closure Audit Evidence:
 
-<<完成时填写>>
+- Commit: 4a5275f80 fix(stream): InputGate重叠checkpoint barrier不再静默丢弃
+- 代码变更: InputGate.java handleBarrierNonRecursive 添加 else 分支，检测 pendingBarrier.getId() != barrier.getId() 时抛 StreamException
+- 新增测试: TestInputGate.testBarrierOverlapRejectedInNonAlignedMode — 验证 2 channel + barrierAlignment=false 场景下重叠 barrier 抛异常
+- 现有测试兼容性: TestInputGate (8/8 pass), TestInputGateProcessingGuarantee (9/9 pass)
+- 全量测试: ./mvnw test -pl nop-stream -am BUILD SUCCESS (所有 nop-stream 模块通过)
+- lint: ast-grep Java lint check passed
+- Anti-Hollow: 修复包含实际条件检查和异常抛出代码，非空壳
 
 Follow-up:
 
