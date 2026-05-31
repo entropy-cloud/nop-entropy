@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeIndexBiz;
 import io.nop.code.core.model.CodeFileAnalysisResult;
@@ -40,6 +41,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizMutation
+    @Auth(roles = "admin")
     public String triggerFullIndex(
             @Name("indexId") String indexId,
             @Name("projectPath") String projectPath) {
@@ -58,6 +60,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizMutation
+    @Auth(roles = "admin")
     public int triggerIncrementalIndex(
             @Name("indexId") String indexId,
             @Name("projectPath") String projectPath,
@@ -83,6 +86,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizMutation
+    @Auth(roles = "admin")
     public int indexDirectory(
             @Name("indexId") String indexId,
             @Name("directoryPath") String directoryPath,
@@ -92,6 +96,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizMutation
+    @Auth(roles = "admin")
     public FileAnalysisDTO indexFile(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath,
@@ -106,6 +111,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizMutation
+    @Auth(roles = "admin")
     public boolean deleteIndex(@Name("indexId") String indexId) {
         codeIndexService.deleteIndex(indexId);
         incrementalStatusMap.remove(indexId);
@@ -227,6 +233,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
+    @Auth(permissions = "code-source-read")
     public String exportGraph(
             @Name("indexId") String indexId,
             @Name("format") String format,

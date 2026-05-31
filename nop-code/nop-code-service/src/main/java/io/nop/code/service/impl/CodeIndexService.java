@@ -77,8 +77,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentHashMap;import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -290,6 +289,7 @@ public class CodeIndexService implements ICodeIndexService {
 
                 java.io.File localFile = new java.io.File(vfsPath);
                 if (localFile.isDirectory()) {
+                    validateLocalPath(vfsPath);
                     ProjectAnalysisResult result = analyzer.analyzeProject(localFile.toPath());
                     persistInSession(indexId, vfsPath, result, session);
                     return result.getFileResults().size();
@@ -670,6 +670,10 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
         validatePath(vfsPath);
+        java.io.File localFile = new java.io.File(vfsPath);
+        if (localFile.isDirectory()) {
+            validateLocalPath(vfsPath);
+        }
         invalidateAnalysisCache(indexId);
         return ormTemplate.runInSession(session -> {
             try {
@@ -1565,6 +1569,12 @@ public class CodeIndexService implements ICodeIndexService {
         return DigestHelper.sha256Hex((indexId + ":" + filePath).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
     }
 
+    private String allowedLocalRoot;
+
+    public void setAllowedLocalRoot(String allowedLocalRoot) {
+        this.allowedLocalRoot = allowedLocalRoot;
+    }
+
     private void validatePath(String path) {
         if (path == null || path.isEmpty())
             return;
@@ -1605,4 +1615,23 @@ public class CodeIndexService implements ICodeIndexService {
         return sb.toString();
     }
 }
+}
+    private void validateLocalPath(String path) {
+        if (path == null || path.isEmpty())
+            return;
+        if (path.contains(".."))
+            throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+        java.io.File localFile = new java.io.File(path);
+        if (localFile.isDirectory() && allowedLocalRoot != null && !allowedLocalRoot.isEmpty()) {
+            try {
+                String canonical = localFile.toPath().toRealPath().toString();
+                String allowedCanonical = new java.io.File(allowedLocalRoot).toPath().toRealPath().toString();
+                if (!canonical.startsWith(allowedCanonical)) {
+                    throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+                }
+            } catch (IOException e) {
+                throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path).cause(e);
+            }
+        }
+    }
 }

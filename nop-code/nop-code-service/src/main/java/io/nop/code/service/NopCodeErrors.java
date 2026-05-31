@@ -35,6 +35,12 @@ public interface NopCodeErrors {
     ErrorCode ERR_CODE_INVALID_PATH =
             define("nop.err.code.invalid-path", "Invalid path: {path}", ARG_PATH);
 
+    ErrorCode ERR_CODE_LOCAL_PATH_NOT_ALLOWED =
+            define("nop.err.code.local-path-not-allowed", "Local file system indexing is not configured or path is outside allowed root: {path}", ARG_PATH);
+
+    ErrorCode ERR_CODE_INVALID_GIT_REF =
+            define("nop.err.code.invalid-git-ref", "Invalid git ref: {gitRef}");
+
     ErrorCode ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE =
             define("nop.err.code.flow-detector-not-available", "FlowDetector not available");
 

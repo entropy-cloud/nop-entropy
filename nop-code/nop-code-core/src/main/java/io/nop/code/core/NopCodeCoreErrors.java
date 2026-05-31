@@ -13,4 +13,9 @@ public interface NopCodeCoreErrors {
 
     ErrorCode ERR_CODE_DIGEST_NOT_AVAILABLE =
             define("nop.err.code.digest-not-available", "SHA-256摘要算法不可用");
+
+    String ARG_GIT_REF = "gitRef";
+
+    ErrorCode ERR_CODE_INVALID_GIT_REF =
+            define("nop.err.code.invalid-git-ref", "Invalid git ref: {gitRef}", ARG_GIT_REF);
 }

@@ -1,5 +1,7 @@
 package io.nop.code.flow;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
@@ -32,6 +34,7 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
     private static final Pattern HUNK_HEADER = Pattern.compile("^@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@");
     private static final Pattern RENAME_HEADER = Pattern.compile("^rename from (.+)$");
     private static final Pattern RENAME_TO = Pattern.compile("^rename to (.+)$");
+    private static final Pattern GIT_REF_PATTERN = Pattern.compile("^[a-zA-Z0-9._/\\-~]{1,256}$");
 
     private static final double CAP_FLOW_PARTICIPATION = 0.25;
     private static final double CAP_COMMUNITY_CROSSING = 0.15;
@@ -53,8 +56,10 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
 
     @Override
     public ChangeAnalysisResult analyzeChanges(String indexId, String baselineCommitish,
-                                               String targetCommitish,
-                                               SymbolTable symbolTable, CallGraph callGraph) {
+                                                String targetCommitish,
+                                                SymbolTable symbolTable, CallGraph callGraph) {
+        validateGitRef(baselineCommitish);
+        validateGitRef(targetCommitish);
         Map<String, List<LineRange>> fileChanges = parseGitDiff(baselineCommitish, targetCommitish, null);
 
         List<String> changedFiles = new ArrayList<>(fileChanges.keySet());
@@ -436,6 +441,13 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         }
 
         return actions;
+    }
+
+    private void validateGitRef(String ref) {
+        if (ref == null || !GIT_REF_PATTERN.matcher(ref).matches()) {
+            throw new NopException(NopCodeCoreErrors.ERR_CODE_INVALID_GIT_REF)
+                    .param(NopCodeCoreErrors.ARG_GIT_REF, ref);
+        }
     }
 
     protected static class LineRange {
