@@ -137,7 +137,7 @@ Targets: `FlowDetector.java`, `CodeIndexService.java`, `PythonCodeFileAnalyzer.j
 
 - [x] **AR-91 + AR-92：修复 evictOverflow 无限循环 + 统一并发模式**
 - [x] **AR-75：resolveQualifiedNamesToIds 分页处理**
-- [ ] ~~**AR-02：TSTree native 对象关闭**~~ 裁定为 residual：bonede tree-sitter 绑定无 `close()` API，native 内存由 `TSTreeCleanAction` Cleaner 管理
+- [x] ~~**AR-02：TSTree native 对象关闭**~~ 裁定为 residual：bonede tree-sitter 绑定无 `close()` API，native 内存由 `TSTreeCleanAction` Cleaner 管理
 
 Exit Criteria:
 
@@ -226,7 +226,7 @@ Closure Audit Evidence:
   - Phase 1-4 所有 Exit Criteria 已勾选
   - `./mvnw clean install -pl nop-code -am -DskipTests` BUILD SUCCESS
   - `./mvnw test -pl nop-code -am` BUILD SUCCESS (0 failures, 0 errors)
-  - 4 commits: 7a845228f (AR-68), 42a266572 (AR-63/AR-64), 0d5fe0a58 (AR-88/89/90), 7b3d0cac6 (AR-91/92/75), 1146a8427 (AR-33/65/66/67/76/93)
+  - 5 fix commits: 7a845228f (AR-68), 42a266572 (AR-63/AR-64), 0d5fe0a58 (AR-88/89/90), 7b3d0cac6 (AR-91/92/75), 1146a8427 (AR-33/65/66/67/76/93)
   - Anti-Hollow Check: 所有新增方法有对应测试或使用标准库 API
   - Deferred 项分类检查: AR-02 为 residual（bonede tree-sitter 绑定限制），AR-69 为 watch-only residual
 
