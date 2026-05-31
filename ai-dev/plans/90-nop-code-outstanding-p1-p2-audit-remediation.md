@@ -1,6 +1,6 @@
 # 90 nop-code Outstanding P1/P2 Audit Findings Remediation
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-05-31
 > Source: `ai-dev/audits/2026-05-31-deep-audit-nop-code-full/summary.md`（P1 + P2 findings）、`ai-dev/plans/89-nop-code-2026-05-31-deep-audit-remediation.md`（completed，Non-Goals 中排除的项）
 > Related: `89-nop-code-2026-05-31-deep-audit-remediation.md`（completed），`88-nop-code-remaining-audit-findings-remediation.md`（completed）
@@ -228,11 +228,11 @@ Exit Criteria:
 - [x] 全部 1 项代码风格修复已完成（17-01 import 排序）
 - [x] 不存在被静默降级到 deferred 的 in-scope live defect
 - [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）权限注解确实被 GraphQL 框架执行，（b）triggerIncrementalIndex 分析确实在 session 外执行，（c）N+1 查询确实改为批量，（d）BFS 确实使用类型安全结构
-- [ ] `./mvnw compile -pl nop-code -am` 通过
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）权限注解确实被 GraphQL 框架执行，（b）triggerIncrementalIndex 分析确实在 session 外执行，（c）N+1 查询确实改为批量，（d）BFS 确实使用类型安全结构
+- [x] `./mvnw compile -pl nop-code -am` 通过
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -310,13 +310,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
+Status Note: All 4 phases completed. 12 in-scope items fixed. Independent closure audit passed.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: Independent houyi subagent (task ses_1819bd444ffer3FbUnr30uPy0W)
+- Audit Date: 2026-05-31
+- Verdict: Can Close
+- Commits: 4620183f8, 45765774d, 9a3e90f09, 6c21f66c6, bc12995fc
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- Test import order not in scope (Phase 4 targets src/main/java only)
+- TestDeterministicEntityIds/TestBuildHierarchyCycleProtection test local algorithm copies (advisory)
