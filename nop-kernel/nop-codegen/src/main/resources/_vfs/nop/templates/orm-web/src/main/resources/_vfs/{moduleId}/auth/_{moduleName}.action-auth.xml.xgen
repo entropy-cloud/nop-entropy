@@ -20,10 +20,14 @@
                                   component="AMIS" resourceType="SUBM"
                                   url="/${moduleId}/pages/${objName}/main.page.yaml">
                             <children>
-                                <resource id="FNPT:${objName}:query" displayName="查询${objMeta.displayName}" orderNo="${10000+(index++)}" resourceType="FNPT" >
+                                <resource id="FNPT:${objName}:query" displayName="查询${objMeta.displayName}"
+                                          i18n-en:displayName="Query ${objMeta['i18n-en:displayName'] || objMeta.displayName}"
+                                          orderNo="${10000+(index++)}" resourceType="FNPT" >
                                     <permissions>${objName}:query</permissions>
                                 </resource>
-                                <resource id="FNPT:${objName}:mutation" displayName="修改${objMeta.displayName}" orderNo="${10000+(index++)}" resourceType="FNPT" >
+                                <resource id="FNPT:${objName}:mutation" displayName="修改${objMeta.displayName}"
+                                          i18n-en:displayName="Modify ${objMeta['i18n-en:displayName'] || objMeta.displayName}"
+                                          orderNo="${10000+(index++)}" resourceType="FNPT" >
                                     <permissions>${objName}:mutation</permissions>
                                 </resource>
                             </children>

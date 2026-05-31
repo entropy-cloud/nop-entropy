@@ -1,0 +1,48 @@
+<c:unit xpl:outputMode="text">
+<c:script>
+    import io.nop.core.lang.json.JsonTool;
+    import io.nop.core.resource.VirtualFileSystem;
+    import io.nop.xlang.xdsl.DslModelHelper;
+    import java.util.TreeMap;
+
+    const root = { site: { resource: new TreeMap() } };
+    const resourceMap = root.site.resource;
+    const resource = VirtualFileSystem.instance().getResource('/' + moduleId + '/auth/' + moduleName + '.action-auth.xml');
+    const actionAuth = resource.exists() ? DslModelHelper.loadDslModelAsJson(resource, false) : null;
+
+    function addResourceI18n(menu) {
+        if (!menu || !menu.id)
+            return;
+
+        const enDisplayName = menu['i18n-en:displayName'] || '';
+        resourceMap[menu.id] = {
+            displayName: enDisplayName
+        };
+
+        const children = menu.children;
+        if (children) {
+            for (let child of children) {
+                addResourceI18n(child);
+            }
+        }
+    }
+
+    if (actionAuth) {
+        const sites = actionAuth.sites;
+        if (sites) {
+            for (let site of sites) {
+                const menus = site.resources;
+                if (!menus)
+                    continue;
+
+                for (let menu of menus) {
+                    addResourceI18n(menu);
+                }
+            }
+        }
+    }
+</c:script>
+
+<c:unit>${JsonTool.serializeToYaml(root)}</c:unit>
+
+</c:unit>
