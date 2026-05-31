@@ -1623,7 +1623,7 @@ public class CodeIndexService implements ICodeIndexService {
                         membership.setSymbolId(nodeId);
                         membership.setDepth(depth++);
                         membership.setIsEntry(nodeId.equals(flow.getEntryPointSymbolId()));
-                        membership.setCreatedTime(CoreMetrics.currentTimestamp());
+                        membership.setCreateTime(CoreMetrics.currentTimestamp());
                         session.save(membership);
                     }
                 }

@@ -41,8 +41,8 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     public static final int PROP_ID_isEntry = 5;
     
     /* 创建时间: CREATED_TIME DATETIME */
-    public static final String PROP_NAME_createdTime = "createdTime";
-    public static final int PROP_ID_createdTime = 6;
+    public static final String PROP_NAME_createTime = "createTime";
+    public static final int PROP_ID_createTime = 6;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
@@ -89,8 +89,8 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_isEntry] = PROP_NAME_isEntry;
           PROP_NAME_TO_ID.put(PROP_NAME_isEntry, PROP_ID_isEntry);
       
-          PROP_ID_TO_NAME[PROP_ID_createdTime] = PROP_NAME_createdTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_createdTime, PROP_ID_createdTime);
+          PROP_ID_TO_NAME[PROP_ID_createTime] = PROP_NAME_createTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_createTime, PROP_ID_createTime);
       
           PROP_ID_TO_NAME[PROP_ID_createdBy] = PROP_NAME_createdBy;
           PROP_NAME_TO_ID.put(PROP_NAME_createdBy, PROP_ID_createdBy);
@@ -120,7 +120,7 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     private java.lang.Boolean _isEntry;
     
     /* 创建时间: CREATED_TIME */
-    private java.sql.Timestamp _createdTime;
+    private java.sql.Timestamp _createTime;
     
     /* 创建人: CREATED_BY */
     private java.lang.String _createdBy;
@@ -220,8 +220,8 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
             case PROP_ID_isEntry:
                return getIsEntry();
         
-            case PROP_ID_createdTime:
-               return getCreatedTime();
+            case PROP_ID_createTime:
+               return getCreateTime();
         
             case PROP_ID_createdBy:
                return getCreatedBy();
@@ -293,13 +293,13 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_createdTime:{
+            case PROP_ID_createTime:{
                java.sql.Timestamp typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_createdTime));
+                       err-> newTypeConversionError(PROP_NAME_createTime));
                }
-               setCreatedTime(typedValue);
+               setCreateTime(typedValue);
                break;
             }
         
@@ -377,9 +377,9 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_createdTime:{
+            case PROP_ID_createTime:{
                onInitProp(propId);
-               this._createdTime = (java.sql.Timestamp)value;
+               this._createTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -509,18 +509,18 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     /**
      * 创建时间: CREATED_TIME
      */
-    public final java.sql.Timestamp getCreatedTime(){
-         onPropGet(PROP_ID_createdTime);
-         return _createdTime;
+    public final java.sql.Timestamp getCreateTime(){
+         onPropGet(PROP_ID_createTime);
+         return _createTime;
     }
 
     /**
      * 创建时间: CREATED_TIME
      */
-    public final void setCreatedTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_createdTime,value)){
-            this._createdTime = value;
-            internalClearRefs(PROP_ID_createdTime);
+    public final void setCreateTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_createTime,value)){
+            this._createTime = value;
+            internalClearRefs(PROP_ID_createTime);
             
         }
     }

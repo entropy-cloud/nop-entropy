@@ -170,6 +170,20 @@
                     </join>
                 </to-many>
             </relations>
+            <indexes>
+                <index name="idx_nop_code_index_status">
+                    <column name="status"/>
+                </index>
+                <index name="idx_nop_code_index_root_path">
+                    <column name="rootPath"/>
+                </index>
+                <index name="idx_nop_code_index_language">
+                    <column name="language"/>
+                </index>
+                <index name="idx_nop_code_index_last_indexed">
+                    <column name="lastIndexed"/>
+                </index>
+            </indexes>
         </entity>
 
         <!-- 文件 -->
@@ -826,7 +840,7 @@
                         propId="4" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="IS_ENTRY" displayName="是否入口" name="isEntry"
                         propId="5" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="CREATED_TIME" displayName="创建时间" name="createdTime"
+                <column code="CREATED_TIME" displayName="创建时间" name="createTime"
                         propId="6" stdDataType="timestamp" stdSqlType="DATETIME"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy"
                         precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"/>
@@ -865,7 +879,7 @@
 
         <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" displayName="语义边"
                 name="io.nop.code.dao.entity.NopCodeSemanticEdge" registerShortName="true"
-                tableName="nop_code_semantic_edge">
+                tableName="nop_code_semantic_edge" useLogicalDelete="true" deleteFlagProp="delFlag">
             <columns>
                 <column code="ID" displayName="边ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR"/>

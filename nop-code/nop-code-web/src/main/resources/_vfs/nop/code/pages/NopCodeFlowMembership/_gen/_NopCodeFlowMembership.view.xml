@@ -31,7 +31,7 @@
                 <col id="isEntry" sortable="true"/>
 
                 <!--创建时间-->
-                <col id="createdTime" sortable="true"/>
+                <col id="createTime" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" sortable="true"/>
@@ -53,7 +53,7 @@
  symbolId[符号ID]
  depth[深度]
  isEntry[是否入口]
- createdTime[创建时间]
+ createTime[创建时间]
  createdBy[创建人]
  updateTime[更新时间]
  updatedBy[更新人]
@@ -66,7 +66,7 @@
  symbolId[符号ID]
  depth[深度]
  isEntry[是否入口]
- createdTime[创建时间]
+ createTime[创建时间]
  createdBy[创建人]
  updateTime[更新时间]
  updatedBy[更新人]

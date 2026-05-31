@@ -100,7 +100,7 @@ prop:
       symbolId: null
       depth: null
       isEntry: null
-      createdTime: null
+      createTime: null
       createdBy: null
       updateTime: null
       updatedBy: null

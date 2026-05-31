@@ -119,6 +119,20 @@
                         stdSqlType="INTEGER"/>
             </columns>
             <comment>代码索引主表</comment>
+            <indexes>
+                <index name="idx_nop_code_index_status">
+                    <column name="status"/>
+                </index>
+                <index name="idx_nop_code_index_root_path">
+                    <column name="rootPath"/>
+                </index>
+                <index name="idx_nop_code_index_language">
+                    <column name="language"/>
+                </index>
+                <index name="idx_nop_code_index_last_indexed">
+                    <column name="lastIndexed"/>
+                </index>
+            </indexes>
             <relations>
                 <to-many cascadeDelete="true" displayName="文件列表" name="files"
                          refEntityName="io.nop.code.dao.entity.NopCodeFile" refPropName="index">
@@ -806,7 +820,7 @@
                 <column code="DEPTH" displayName="深度" name="depth" propId="4" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="IS_ENTRY" displayName="是否入口" name="isEntry" propId="5" stdDataType="boolean"
                         stdSqlType="BOOLEAN"/>
-                <column code="CREATED_TIME" displayName="创建时间" name="createdTime" propId="6" stdDataType="timestamp"
+                <column code="CREATED_TIME" displayName="创建时间" name="createTime" propId="6" stdDataType="timestamp"
                         stdSqlType="DATETIME"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy" precision="50" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR"/>
@@ -842,9 +856,9 @@
                 <unique-key columns="flowId,symbolId" constraint="UK_NOP_CODE_FLOW_MEMBERSHIP" name="flowSymbolKey"/>
             </unique-keys>
         </entity>
-        <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" displayName="语义边"
+        <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" deleteFlagProp="delFlag" displayName="语义边"
                 name="io.nop.code.dao.entity.NopCodeSemanticEdge" registerShortName="true"
-                tableName="nop_code_semantic_edge">
+                tableName="nop_code_semantic_edge" useLogicalDelete="true">
             <columns>
                 <column code="ID" displayName="边ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>

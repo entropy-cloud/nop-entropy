@@ -72,7 +72,7 @@
               updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="delFlag" displayName="逻辑删除" propId="14" queryable="true" sortable="true" insertable="true"
+        <prop name="delFlag" displayName="逻辑删除" propId="14" queryable="true" sortable="true" insertable="false"
               updatable="true">
             <schema stdDomain="boolFlag" type="java.lang.Boolean" precision="1"/>
         </prop>

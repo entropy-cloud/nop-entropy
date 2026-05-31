@@ -95,8 +95,8 @@ prop:
       updateTime: 更新时间
       updatedBy: 更新人
     NopCodeFlowMembership:
+      createTime: 创建时间
       createdBy: 创建人
-      createdTime: 创建时间
       depth: 深度
       flow: null
       flow.name: null

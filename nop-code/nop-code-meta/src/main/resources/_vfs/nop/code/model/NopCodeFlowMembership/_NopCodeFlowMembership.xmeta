@@ -40,7 +40,7 @@
               updatable="true">
             <schema type="java.lang.Boolean"/>
         </prop>
-        <prop name="createdTime" displayName="创建时间" propId="6" queryable="true" sortable="true" insertable="true"
+        <prop name="createTime" displayName="创建时间" propId="6" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
