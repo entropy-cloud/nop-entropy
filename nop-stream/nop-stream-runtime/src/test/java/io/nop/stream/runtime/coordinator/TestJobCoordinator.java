@@ -390,6 +390,26 @@ class TestJobCoordinator {
                 "Fencing token should NOT change when all nodes are healthy");
     }
 
+    @Test
+    void testTerminateExportSavepointContinuesRunning() {
+        clusterRegistry.registerNode("node-1", "localhost:9090", 4);
+        coordinator.start();
+        coordinator.assignTasks();
+
+        assertTrue(coordinator.isRunning());
+
+        coordinator.terminate(JobTerminationMode.EXPORT_SAVEPOINT);
+
+        assertTrue(coordinator.isRunning(),
+                "Job should continue running after EXPORT_SAVEPOINT");
+
+        assertNotNull(mockRpcService.lastBarrier.get(),
+                "A savepoint barrier should have been sent to task managers");
+        assertEquals(CheckpointType.EXPORTED_SAVEPOINT,
+                mockRpcService.lastBarrier.get().getCheckpointType(),
+                "Barrier type should be EXPORTED_SAVEPOINT");
+    }
+
     // ==================== Mocks ====================
 
     static class MockClusterRegistry implements ClusterRegistry {

@@ -423,4 +423,58 @@ class TestCheckpointCoordinator {
 
         assertEquals(1, callCount.get(), "finishCommit should be called exactly once with no tight retry loop");
     }
+
+    @Test
+    void testEpochManifestStorageFailureAbortsCheckpoint() throws Exception {
+        java.util.concurrent.atomic.AtomicBoolean storeCheckpointCalled = new java.util.concurrent.atomic.AtomicBoolean(false);
+        java.util.concurrent.atomic.AtomicBoolean storeManifestFailed = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+        ICheckpointStorage manifestFailingStorage = new ICheckpointStorage() {
+            private final java.util.concurrent.ConcurrentHashMap<String, CompletedCheckpoint> store = new java.util.concurrent.ConcurrentHashMap<>();
+
+            @Override public String getName() { return "ManifestFailingStorage"; }
+            @Override
+            public String storeCheckPoint(CompletedCheckpoint checkpoint) {
+                storeCheckpointCalled.set(true);
+                store.put(checkpoint.getJobId() + ":" + checkpoint.getCheckpointId(), checkpoint);
+                return "stored";
+            }
+            @Override public CompletedCheckpoint getLatestCheckpoint(String jobId, String pipelineId) { return null; }
+            @Override public java.util.List<CompletedCheckpoint> getAllCheckpoints(String jobId) { return java.util.Collections.emptyList(); }
+            @Override public java.util.List<CompletedCheckpoint> getLatestCheckpoints(String jobId, int count) { return java.util.Collections.emptyList(); }
+            @Override public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) {}
+            @Override public void deleteAllCheckpoints(String jobId) {}
+            @Override public int getCheckpointCount(String jobId) { return 0; }
+            @Override public boolean exists(String jobId, String pipelineId, long checkpointId) { return false; }
+            @Override public String storeSavepoint(CompletedCheckpoint checkpoint, String targetPath) { return targetPath; }
+            @Override public CompletedCheckpoint loadSavepoint(String savepointPath) { return null; }
+            @Override public SavepointMetadata loadSavepointMetadata(String savepointPath) { return null; }
+            @Override
+            public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) {
+                storeManifestFailed.set(true);
+                throw new StreamException("Simulated EpochManifest storage failure");
+            }
+            @Override public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) { return null; }
+        };
+
+        CheckpointCoordinator coord = new CheckpointCoordinator("1", "1", new CheckpointIDCounter(), manifestFailingStorage, config);
+        coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+
+        try {
+            PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+            assertNotNull(pending);
+
+            coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
+            coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
+
+            Thread.sleep(200);
+
+            assertTrue(storeCheckpointCalled.get(), "storeCheckPoint should have been called before manifest storage");
+            assertTrue(storeManifestFailed.get(), "storeEpochManifest should have been attempted");
+            assertEquals(0, coord.getNumberOfPendingCheckpoints(),
+                    "Checkpoint should be aborted after EpochManifest storage failure");
+        } finally {
+            coord.shutdown();
+        }
+    }
 }
