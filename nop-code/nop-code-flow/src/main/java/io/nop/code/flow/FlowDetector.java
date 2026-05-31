@@ -212,7 +212,7 @@ public class FlowDetector implements IFlowDetector {
         int lastDot = qualifiedName.lastIndexOf('.');
         if (lastDot > 0) {
             String classPath = qualifiedName.substring(0, lastDot).replace('.', '/');
-            return classPath + ".java";
+            return classPath + guessExtension(qualifiedName);
         }
         return null;
     }
@@ -224,9 +224,19 @@ public class FlowDetector implements IFlowDetector {
         if (base.contains(".")) {
             int lastDot = base.lastIndexOf('.');
             String path = base.substring(0, lastDot).replace('.', '/');
-            return path + ".java";
+            return path + guessExtension(base);
         }
         return null;
+    }
+
+    private String guessExtension(String qualifiedName) {
+        String lower = qualifiedName.toLowerCase();
+        for (String ext : SOURCE_EXTENSIONS) {
+            if (lower.contains(ext.substring(1))) {
+                return ext;
+            }
+        }
+        return SOURCE_EXTENSIONS.get(0);
     }
 
     private TraversalResult traceForward(String entryId, CallGraph callGraph, SymbolTable symbolTable) {

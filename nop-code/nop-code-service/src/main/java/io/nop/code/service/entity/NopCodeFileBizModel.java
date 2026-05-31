@@ -56,11 +56,13 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
+    @Auth(permissions = "code-query")
     public List<CodeSymbol> symbols(@ContextSource CodeFileAnalysisResult file) {
         return file.getSymbols();
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
+    @Auth(permissions = "code-query")
     public List<CodeSymbol> types(@ContextSource CodeFileAnalysisResult file) {
         return file.getSymbols().stream()
                 .filter(s -> s.getKind() == CodeSymbolKind.CLASS
@@ -77,6 +79,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
+    @Auth(permissions = "code-query")
     public FileOutlineDTO outline(@ContextSource CodeFileAnalysisResult file) {
         FileOutlineDTO outline = new FileOutlineDTO();
         outline.setFilePath(file.getFilePath());
