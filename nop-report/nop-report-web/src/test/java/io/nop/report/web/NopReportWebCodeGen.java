@@ -28,6 +28,7 @@ public class NopReportWebCodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-report-meta"), "/", false);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-report-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPrecompile2(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

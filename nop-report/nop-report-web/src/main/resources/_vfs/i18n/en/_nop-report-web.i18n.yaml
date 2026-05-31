@@ -1,4 +1,58 @@
-
-
-# key: value
-
+site:
+  resource:
+    FNPT:NopReportDataset:mutation:
+      displayName: Modify Dataset
+    FNPT:NopReportDataset:query:
+      displayName: Query Dataset
+    FNPT:NopReportDatasetAuth:mutation:
+      displayName: Modify Dataset Auth
+    FNPT:NopReportDatasetAuth:query:
+      displayName: Query Dataset Auth
+    FNPT:NopReportDatasetRef:mutation:
+      displayName: Modify Dataset Ref
+    FNPT:NopReportDatasetRef:query:
+      displayName: Query Dataset Ref
+    FNPT:NopReportDatasource:mutation:
+      displayName: Modify Report DataSource
+    FNPT:NopReportDatasource:query:
+      displayName: Query Report DataSource
+    FNPT:NopReportDatasourceAuth:mutation:
+      displayName: Modify Datasource Auth
+    FNPT:NopReportDatasourceAuth:query:
+      displayName: Query Datasource Auth
+    FNPT:NopReportDefinition:mutation:
+      displayName: Modify Report Definition
+    FNPT:NopReportDefinition:query:
+      displayName: Query Report Definition
+    FNPT:NopReportDefinitionAuth:mutation:
+      displayName: Modify Report Auth
+    FNPT:NopReportDefinitionAuth:query:
+      displayName: Query Report Auth
+    FNPT:NopReportResultFile:mutation:
+      displayName: Modify Report Result File
+    FNPT:NopReportResultFile:query:
+      displayName: Query Report Result File
+    FNPT:NopReportSubDataset:mutation:
+      displayName: Modify Sub Dataset
+    FNPT:NopReportSubDataset:query:
+      displayName: Query Sub Dataset
+    NopReportDataset-main:
+      displayName: Dataset
+    NopReportDatasetAuth-main:
+      displayName: Dataset Auth
+    NopReportDatasetRef-main:
+      displayName: Dataset Ref
+    NopReportDatasource-main:
+      displayName: Report DataSource
+    NopReportDatasourceAuth-main:
+      displayName: Datasource Auth
+    NopReportDefinition-main:
+      displayName: Report Definition
+    NopReportDefinitionAuth-main:
+      displayName: Report Auth
+    NopReportResultFile-main:
+      displayName: Report Result File
+    NopReportSubDataset-main:
+      displayName: Sub Dataset
+    test-orm-nop-report:
+      displayName: ''
