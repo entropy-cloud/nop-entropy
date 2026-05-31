@@ -1,9 +1,8 @@
 package io.nop.code.service.impl;
 
-import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -35,7 +34,7 @@ class CodeCacheManager {
         CallGraph callGraph;
     }
 
-    private final Map<String, AnalysisCache> analysisCacheMap = new ConcurrentHashMap<>();
+    private final Map<String, AnalysisCache> analysisCacheMap = new LinkedHashMap<>();
 
     synchronized SymbolTable getOrRebuildSymbolTable(String indexId, IDaoProvider daoProvider,
                                                       Function<NopCodeSymbol, CodeSymbol> converter) {
@@ -71,11 +70,9 @@ class CodeCacheManager {
             ((FlowDetector) flowDetector).invalidateCache(indexId);
         }
         while (analysisCacheMap.size() > MAX_CACHE_ENTRIES) {
-            Iterator<String> it = analysisCacheMap.keySet().iterator();
-            if (it.hasNext()) {
-                it.next();
-                it.remove();
-            }
+            String key = analysisCacheMap.keySet().stream().findFirst().orElse(null);
+            if (key == null) break;
+            analysisCacheMap.remove(key);
         }
     }
 

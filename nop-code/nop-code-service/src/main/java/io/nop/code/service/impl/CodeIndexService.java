@@ -919,29 +919,47 @@ public class CodeIndexService implements ICodeIndexService {
 
     private void resolveQualifiedNamesToIds(String indexId, SymbolTable symbolTable, IOrmSession session) {
         IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
-        QueryBean inhQuery = new QueryBean();
-        inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        for (NopCodeInheritance inh : inhDao.findAllByQuery(inhQuery)) {
-            String superTypeId = inh.getSuperTypeId();
-            if (superTypeId != null) {
-                CodeSymbol resolved = symbolTable.getByQualifiedName(superTypeId);
-                if (resolved != null) {
-                    inh.setSuperTypeId(resolved.getId());
+        long inhOffset = 0;
+        while (true) {
+            QueryBean inhQuery = new QueryBean();
+            inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            inhQuery.setOffset(inhOffset);
+            inhQuery.setLimit(BATCH_SIZE);
+            List<NopCodeInheritance> inhBatch = inhDao.findAllByQuery(inhQuery);
+            if (inhBatch.isEmpty()) break;
+            for (NopCodeInheritance inh : inhBatch) {
+                String superTypeId = inh.getSuperTypeId();
+                if (superTypeId != null) {
+                    CodeSymbol resolved = symbolTable.getByQualifiedName(superTypeId);
+                    if (resolved != null) {
+                        inh.setSuperTypeId(resolved.getId());
+                    }
                 }
             }
+            if (inhBatch.size() < BATCH_SIZE) break;
+            inhOffset += BATCH_SIZE;
         }
 
         IEntityDao<NopCodeAnnotationUsage> annotDao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
-        QueryBean annotQuery = new QueryBean();
-        annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        for (NopCodeAnnotationUsage annot : annotDao.findAllByQuery(annotQuery)) {
-            String annotationTypeId = annot.getAnnotationTypeId();
-            if (annotationTypeId != null) {
-                CodeSymbol resolved = symbolTable.getByQualifiedName(annotationTypeId);
-                if (resolved != null) {
-                    annot.setAnnotationTypeId(resolved.getId());
+        long annotOffset = 0;
+        while (true) {
+            QueryBean annotQuery = new QueryBean();
+            annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            annotQuery.setOffset(annotOffset);
+            annotQuery.setLimit(BATCH_SIZE);
+            List<NopCodeAnnotationUsage> annotBatch = annotDao.findAllByQuery(annotQuery);
+            if (annotBatch.isEmpty()) break;
+            for (NopCodeAnnotationUsage annot : annotBatch) {
+                String annotationTypeId = annot.getAnnotationTypeId();
+                if (annotationTypeId != null) {
+                    CodeSymbol resolved = symbolTable.getByQualifiedName(annotationTypeId);
+                    if (resolved != null) {
+                        annot.setAnnotationTypeId(resolved.getId());
+                    }
                 }
             }
+            if (annotBatch.size() < BATCH_SIZE) break;
+            annotOffset += BATCH_SIZE;
         }
     }
 

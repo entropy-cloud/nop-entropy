@@ -521,11 +521,9 @@ public class FlowDetector implements IFlowDetector {
 
     private void evictOverflow(Map<String, ?> cache) {
         while (cache.size() > MAX_CACHE_ENTRIES) {
-            Iterator<String> it = cache.keySet().iterator();
-            if (it.hasNext()) {
-                it.next();
-                it.remove();
-            }
+            String key = cache.keySet().stream().findFirst().orElse(null);
+            if (key == null) break;
+            cache.remove(key);
         }
     }
 }
