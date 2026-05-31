@@ -1,152 +1,183 @@
-# 审核维度 07：BizModel 规范遵循
+# 维度07：BizModel 规范遵循
+
+**模块**: nop-code
+**审计日期**: 2026-05-31
+
+---
 
 ## 第 1 轮（初审）
 
-### [维度07-01] detectFlows 标注为 @BizQuery 但实际执行数据库持久化
+### [维度07-01] NopCodeIndexBizModel.detectFlows 是 @BizMutation 但缺少 @Auth
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:190`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:190-193`
 - **证据片段**:
   ```java
-  // NopCodeIndexBizModel.java:190
-  @BizQuery                          // 标注为查询，但下游会写入DB
+  @BizMutation
   public List<ExecutionFlow> detectFlows(@Name("indexId") String indexId) {
       return codeIndexService.detectFlows(indexId);
   }
-  
-  // CodeIndexService.java:1278-1294
-  public List<ExecutionFlow> detectFlows(String indexId) {
-      ...
-      persistFlows(indexId, flows);   // 写入 NopCodeFlow + NopCodeFlowMembership 表
-      return flows;
-  }
   ```
 - **严重程度**: P2
-- **现状**: detectFlows 使用 @BizQuery 注解，但调用链中 CodeIndexService.detectFlows() 会删除旧 Flow 记录再写入新的 Flow 和 Membership 记录。
-- **风险**: (1) GraphQL 协议层面 Query 操作不应有副作用。(2) Nop 平台事务管理对 @BizQuery/@BizMutation 可能有不同策略。(3) 客户端可能认为 Query 安全可重试。
-- **建议**: 将 detectFlows 改为 @BizMutation。
-- **信心水平**: 95%
-- **误报排除**: 已确认 persistFlows 方法执行 batchDelete + save 操作。
+- **现状**: `detectFlows` 是 `@BizMutation`（会触发写入操作），但没有 `@Auth` 注解。同文件中其他 `@BizMutation` 均标注了 `@Auth(roles = "admin")`。
+- **风险**: 非 admin 用户可触发开销很大的 flow 检测与数据库写入。
+- **建议**: 添加 `@Auth(roles = "admin")`，与同文件其他 `@BizMutation` 保持一致。
+- **信心水平**: 确定
+- **误报排除**: 其他 5 个 `@BizMutation` 方法均有 `@Auth`，此方法是唯一遗漏的。
 - **复核状态**: 未复核
 
-### [维度07-02] IncrementalStatus 内部类作为 BizModel 返回类型但缺少 @DataBean 注解
+---
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:259-314`
+### [维度07-02] NopCodeIndexBizModel 中 18 个 @BizQuery 方法中 17 个缺少 @Auth
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:83-257`
 - **证据片段**:
   ```java
-  // NopCodeIndexBizModel.java:83-86 — 返回类型使用 IncrementalStatus
   @BizQuery
   public IncrementalStatus getIncrementalStatus(@Name("indexId") String indexId) {
       return incrementalStatusMap.get(indexId);
   }
-  
-  // NopCodeIndexBizModel.java:259-265 — 内部类定义，无 @DataBean
+  // 其余 16 个 @BizQuery 同样没有 @Auth
+
+  @BizQuery
+  @Auth(permissions = "code-source-read")  // 仅此 1 个有 Auth
+  public String exportGraph(...) { ... }
+  ```
+- **严重程度**: P3
+- **现状**: 18 个 `@BizQuery` 中仅 `exportGraph` 标注了权限保护。其余 17 个无权限控制。
+- **风险**: 所有已认证用户可查询完整代码图谱、符号、依赖关系等数据。
+- **建议**: 评估是否应统一添加 `@Auth(permissions = "code-source-read")`。
+- **信心水平**: 很可能
+- **误报排除**: `NopCodeSymbolBizModel` 中已有方法使用了 `@Auth(permissions = "code-source-read")`，说明确有权限控制需求。
+- **复核状态**: 未复核
+
+---
+
+### [维度07-03] IncrementalStatus 内部类缺少 @DataBean 且未注册为 xmeta 类型
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:259-314`
+- **证据片段**:
+  ```java
   public static class IncrementalStatus {
       private String indexId;
       private String mode;
-      ...
+      // ... 手写 getter/setter ...
+  }
   ```
 - **严重程度**: P3
-- **现状**: IncrementalStatus 是公共静态内部类，作为 BizModel 方法返回类型。同模块所有其他 33 个 DTO 均标注 @DataBean。
-- **风险**: @DataBean 是 Nop 平台 GraphQL 序列化标记注解。缺少可能导致 GraphQL Schema 生成时无法识别该类型。
-- **建议**: 提取为独立顶级类到 io.nop.code.service.api.dto 包并添加 @DataBean。
-- **信心水平**: 90%
-- **误报排除**: 已确认 33 个其他 DTO 均含 @DataBean，此为唯一缺失。
+- **现状**: `IncrementalStatus` 是方法返回类型但无 `@DataBean` 注解，手写了 getter/setter。同模块 45 个其他 DTO 均使用了 `@DataBean`。
+- **风险**: 与模块内 DTO 命名惯例不一致。
+- **建议**: 提取为独立 DTO 类并添加 `@DataBean`。
+- **信心水平**: 很可能
+- **误报排除**: 模块内所有其他 DTO 类均使用了 `@DataBean`，此内部类是唯一例外。
 - **复核状态**: 未复核
 
-### [维度07-03] entityToCodeSymbol 方法在三个服务类中完全重复（DRY 违反）
+---
 
-- **文件**:
-  1. `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:209-238`
-  2. `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:35-64`
-  3. `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeGraphService.java:304-333`
+### [维度07-04] incrementalStatusMap 是 JVM 内存状态，多实例部署不共享
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:37`
 - **证据片段**:
   ```java
-  private CodeSymbol entityToCodeSymbol(NopCodeSymbol entity) {
-      CodeSymbol symbol = new CodeSymbol();
-      symbol.setId(entity.getId());
-      symbol.setName(entity.getName());
-      // ... 30行完全相同的映射逻辑，出现在三个文件中
-  }
+  private final Map<String, IncrementalStatus> incrementalStatusMap = new java.util.concurrent.ConcurrentHashMap<>();
   ```
 - **严重程度**: P2
-- **现状**: entityToCodeSymbol 在三个类中各有一份完全相同的拷贝（每份约 30 行）。entityToInheritance 也在两个类中重复。
-- **风险**: 维护成本高，新增字段需同步修改三处。行为不一致风险。
-- **建议**: 提取到 CodeCacheManager 或新建 CodeEntityConverter 工具类。
-- **信心水平**: 98%
-- **误报排除**: 已确认三处代码逐行比对完全一致。
+- **现状**: `incrementalStatusMap` 是 `ConcurrentHashMap`，存储索引操作的进度状态。完全在 JVM 内存中，没有持久化。
+- **风险**: 多实例部署时状态不可见；JVM 重启后丢失；evict 逻辑非确定性。
+- **建议**: 添加注释说明限制。中期考虑使用 `NopCodeIndex` 扩展字段或 `ICache` 替代。
+- **信心水平**: 很可能
+- **误报排除**: `CodeIndexService` 中的 `CodeCacheManager` 使用了独立的缓存管理类，而非直接挂 `ConcurrentHashMap`。
 - **复核状态**: 未复核
 
-### [维度07-04] findReferencedBy 存在 N+1 查询模式
+---
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:579-626`
+### [维度07-05] findPage_symbols 使用多个 @Name 参数而非 @RequestBean，且静默吞异常
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeSymbolBizModel.java:64-95`
 - **证据片段**:
   ```java
-  // CodeQueryService.java:601-625
-  return usages.stream().map(usage -> {
-      ...
-      if (usage.getFileId() != null) {
-          NopCodeFile file = fileDao.getEntityById(usage.getFileId()); // N+1
-      }
-      if (usage.getEnclosingSymbolId() != null) {
-          NopCodeSymbol enclosing = symbolDao.getEntityById(usage.getEnclosingSymbolId()); // N+1
-      }
-      ...
-  }).collect(Collectors.toList());
-  ```
-- **严重程度**: P2
-- **现状**: 对每条 usage 分别查询关联的 File 和 Symbol 实体。默认 limit=50 时最坏 1+50*2=101 次查询。
-- **风险**: 大型索引上查询高频引用符号时性能显著下降。
-- **建议**: 预先批量加载所有需要的实体到 Map 缓存中。
-- **信心水平**: 90%
-- **误报排除**: ORM Session 的 first-level cache 可能缓解。但此代码不在 ormTemplate.runInSession 内。
-- **复核状态**: 未复核
-
-### [维度07-05] findImplementations 加载索引内全部符号到内存
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java:666-739`
-- **行号**: 特别是第 684-692 行
-- **证据片段**:
-  ```java
-  Map<String, String> idToQn = new HashMap<>();
-  QueryBean allSymForInhQuery = new QueryBean();
-  allSymForInhQuery.addFilter(FilterBeans.eq("indexId", indexId));
-  allSymForInhQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);  // MAX=10000
-  for (NopCodeSymbol sym : symDaoForInh.findAllByQuery(allSymForInhQuery)) {
-      if (sym.getQualifiedName() != null) {
-          idToQn.put(sym.getId(), sym.getQualifiedName());
-      }
-  }
-  ```
-- **严重程度**: P2
-- **现状**: 为解析 superTypeId→qualifiedName 加载整个索引全部符号（最多 10000 条）到内存。
-- **风险**: 大型索引下显著内存和查询开销。频繁调用无缓存机制。
-- **建议**: 利用已有的 CodeCacheManager.getOrRebuildSymbolTable() 缓存。
-- **信心水平**: 85%
-- **误报排除**: CodeGraphService 已使用 cacheManager，但 CodeQueryService 未利用。
-- **复核状态**: 未复核
-
-### [维度07-06] ensureSubServices() 线程安全缺陷
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:110-116`
-- **证据片段**:
-  ```java
-  // 字段声明，非 volatile
-  private CodeSearchService searchService;
-  private CodeGraphService graphService;
-  private CodeQueryService queryService;
-  
-  private void ensureSubServices() {
-      if (searchService == null && daoProvider != null) {   // check
-          searchService = new CodeSearchService(...);         // create
-          graphService = new CodeGraphService(...);
-          queryService = new CodeQueryService(...);
+  @BizQuery
+  public PageBean<SymbolDTO> findPage_symbols(
+          @Name("query") @Optional String query,
+          @Name("kinds") @Optional List<String> kinds, ...) {
+      if (kinds != null) {
+          kindList = kinds.stream()
+                  .map(k -> {
+                      try { return Enum.valueOf(CodeSymbolKind.class, k); }
+                      catch (IllegalArgumentException e) { return null; }
+                  })
+                  .filter(Objects::nonNull)
+                  .collect(Collectors.toList());
       }
   }
   ```
 - **严重程度**: P3
-- **现状**: 三个字段非 volatile 也无同步保护。多线程并发调用时可能重复创建实例。
-- **风险**: 实际生产环境发生概率低（通常启动时单线程初始化）。但在集群或异步场景下可能暴露。
-- **建议**: 标记 volatile 或加 synchronized。
-- **信心水平**: 80%
-- **误报排除**: 如果 NopIoC 在初始化阶段完成首次调用则竞态不成立。
+- **现状**: 6 个 `@Name` 参数，手动 String→Enum 转换，静默忽略无效 kind 值。
+- **风险**: 调用者传入无效值时静默忽略而非报错，导致查询结果不符合预期且难以调试。
+- **建议**: 将 `IllegalArgumentException` 改为抛出 `NopException`，考虑使用 `@RequestBean`。
+- **信心水平**: 很可能
+- **误报排除**: 静默吞异常是真实的代码质量缺陷。
+- **复核状态**: 未复核
+
+---
+
+### [维度07-06] CodeIndexService 1570 行——职责过多的上帝类
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1-1570`
+- **证据片段**:
+  ```java
+  public class CodeIndexService implements ICodeIndexService {
+      private CodeSearchService searchService;
+      private CodeGraphService graphService;
+      private CodeQueryService queryService;
+      // 直接包含 6+ 种职责：索引管理、增量索引、entity→model 转换、
+      // 批量持久化、Flow 管理、路径校验等
+  }
+  ```
+- **严重程度**: P2
+- **现状**: 1570 行的类已拆分出 3 个子服务，但自身仍保留 6+ 种职责。
+- **风险**: 维护成本高，任何修改需理解 1570 行上下文。
+- **建议**: 提取 entity-to-model 转换为 `CodeModelConverter`；Flow 管理为 `CodeFlowService`；批量持久化为 `CodePersistenceService`。
+- **信心水平**: 确定
+- **误报排除**: 已拆分 3 个子服务但未完全迁移，是半完成重构。
+- **复核状态**: 未复核
+
+---
+
+### [维度07-07] NopCodeIndexBizModel 承担了不属于聚合根的 Flow/Graph 方法
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:190-257`
+- **证据片段**:
+  ```java
+  @BizMutation
+  public List<ExecutionFlow> detectFlows(@Name("indexId") String indexId) { ... }
+  @BizQuery
+  public List<ExecutionFlow> listFlows(@Name("indexId") String indexId) { ... }
+  @BizQuery
+  public CommunityDetectionResultDTO detectCommunities(...) { ... }
+  // ... 约 20 个 Flow/Graph 方法
+  ```
+- **严重程度**: P2
+- **现状**: `NopCodeIndexBizModel` 聚合根是 `NopCodeIndex`，但承载约 20 个不属于 Index 实体的 Flow/Graph 分析方法。`NopCodeFlowBizModel` 仅 12 行空壳。
+- **风险**: 违反聚合根边界，GraphQL API 层面所有操作都以 `NopCodeIndex__xxx` 形式暴露。
+- **建议**: Flow 方法迁移到 `NopCodeFlowBizModel`；Graph 方法考虑独立的 `NopCodeGraphBizModel`。
+- **信心水平**: 很可能
+- **误报排除**: 平台标准模式是每个聚合根管理自己的业务方法。NopCodeFlowBizModel 是空壳（12 行）而 NopCodeIndexBizModel 有 20+ 不属于 Index 的方法。
+- **复核状态**: 未复核
+
+---
+
+### [维度07-08] NopCodeSymbolBizModel 和 NopCodeFileBizModel 的 @BizLoader 绑定在非 ORM 实体类型上
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeSymbolBizModel.java:97-122`
+- **证据片段**:
+  ```java
+  @BizLoader(forType = SymbolDTO.class)
+  public List<AnnotationUsageDTO> usages(@ContextSource SymbolDTO symbol, ...) { ... }
+  ```
+- **严重程度**: P3
+- **现状**: `@BizLoader` 的 `forType` 指向 DTO 而非聚合根 ORM 实体。功能上可工作，但概念上混淆了聚合根归属。
+- **风险**: 当 DTO 被其他 BizModel 返回时，@BizLoader 字段可解析性取决于上下文。
+- **建议**: 当前可工作，建议添加注释说明归属原因。
+- **信心水平**: 有趣的猜测
+- **误报排除**: 平台允许 `forType` 指向任何 `@DataBean` 类型。更多是架构清晰度问题而非功能错误。
 - **复核状态**: 未复核
