@@ -598,6 +598,36 @@ class CodeQueryService {
         if (limit > 0) qb.setLimit(limit);
         List<NopCodeUsage> usages = usageDao.findAllByQuery(qb);
 
+        Set<String> fileIds = new LinkedHashSet<>();
+        Set<String> enclosingSymbolIds = new LinkedHashSet<>();
+        for (NopCodeUsage usage : usages) {
+            if (usage.getFileId() != null) fileIds.add(usage.getFileId());
+            if (usage.getEnclosingSymbolId() != null) enclosingSymbolIds.add(usage.getEnclosingSymbolId());
+        }
+
+        Map<String, NopCodeFile> fileMap = Collections.emptyMap();
+        if (!fileIds.isEmpty()) {
+            IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+            QueryBean fileQuery = new QueryBean();
+            fileQuery.addFilter(FilterBeans.in("id", new ArrayList<>(fileIds)));
+            fileMap = new HashMap<>();
+            for (NopCodeFile file : fileDao.findAllByQuery(fileQuery)) {
+                fileMap.put(file.getId(), file);
+            }
+        }
+
+        Map<String, NopCodeSymbol> enclosingMap = Collections.emptyMap();
+        if (!enclosingSymbolIds.isEmpty()) {
+            QueryBean encQuery = new QueryBean();
+            encQuery.addFilter(FilterBeans.in("id", new ArrayList<>(enclosingSymbolIds)));
+            enclosingMap = new HashMap<>();
+            for (NopCodeSymbol enc : symbolDao.findAllByQuery(encQuery)) {
+                enclosingMap.put(enc.getId(), enc);
+            }
+        }
+
+        Map<String, NopCodeFile> finalFileMap = fileMap;
+        Map<String, NopCodeSymbol> finalEnclosingMap = enclosingMap;
         return usages.stream().map(usage -> {
             ReferenceDTO dto = new ReferenceDTO();
             dto.setKind(usage.getKind());
@@ -606,15 +636,14 @@ class CodeQueryService {
             dto.setContext(usage.getContext());
 
             if (usage.getFileId() != null) {
-                IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
-                NopCodeFile file = fileDao.getEntityById(usage.getFileId());
+                NopCodeFile file = finalFileMap.get(usage.getFileId());
                 if (file != null) {
                     dto.setFilePath(file.getFilePath());
                 }
             }
 
             if (usage.getEnclosingSymbolId() != null) {
-                NopCodeSymbol enclosing = symbolDao.getEntityById(usage.getEnclosingSymbolId());
+                NopCodeSymbol enclosing = finalEnclosingMap.get(usage.getEnclosingSymbolId());
                 if (enclosing != null) {
                     dto.setEnclosingSymbolName(enclosing.getName());
                     dto.setEnclosingQualifiedName(enclosing.getQualifiedName());

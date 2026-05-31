@@ -676,9 +676,91 @@ public class CodeIndexService implements ICodeIndexService {
             validateLocalPath(vfsPath);
         }
         invalidateAnalysisCache(indexId);
+
+        Function<String, String> pathMapper = buildPathMapper(vfsPath);
+
+        List<FileFingerprint> previousFingerprints;
+        try {
+            previousFingerprints = ormTemplate.runInSession(session -> {
+                try {
+                    IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
+                    return store.loadFingerprints(indexId);
+                } catch (IOException e) {
+                    throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+                }
+            });
+        } catch (NopException e) {
+            if (e.getErrorCode() != null && e.getErrorCode().equals(ERR_INCREMENTAL_FAILED))
+                throw e;
+            throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+        }
+
+        IResourceLoader vfs = VirtualFileSystem.instance();
+        List<IResource> currentResources = collectResourcesFromVfs(vfs, vfsPath);
+
+        List<Path> currentPaths = currentResources.stream()
+                .map(res -> Path.of(pathMapper.apply(res.getPath())))
+                .collect(Collectors.toList());
+
+        IncrementalDetector detector = new IncrementalDetector();
+        ChangeSet changes;
+        try {
+            changes = detector.detectChanges(previousFingerprints, currentPaths);
+        } catch (IOException e) {
+            throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+        }
+
+        List<Path> changedFiles = changes.getAddedAndModified();
+        List<Path> deletedFiles = changes.getDeletedFiles();
+
+        LOG.info("Incremental index for {}: {} changed, {} deleted, {} unchanged",
+                indexId, changedFiles.size(), deletedFiles.size(),
+                changes.getUnchangedFiles().size());
+
+        if (changedFiles.isEmpty() && deletedFiles.isEmpty()) {
+            return 0;
+        }
+
+        Map<String, IResource> resourceByPath = new HashMap<>();
+        for (IResource res : currentResources) {
+            resourceByPath.put(pathMapper.apply(res.getPath()), res);
+        }
+
+        List<CodeFileAnalysisResult> analysisResults = new ArrayList<>();
+        for (Path changedFile : changedFiles) {
+            try {
+                String relativePath = changedFile.toString();
+                ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
+                if (fileAnalyzer == null) continue;
+
+                IResource resource = resourceByPath.get(relativePath);
+                if (resource == null) {
+                    LOG.warn("Resource not found for path: {}", relativePath);
+                    continue;
+                }
+                String sourceCode = resource.readText();
+                CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
+                if (fileResult != null) {
+                    analysisResults.add(fileResult);
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to re-analyze file: {}", changedFile, e);
+            }
+        }
+
+        List<FileFingerprint> newFingerprints = new ArrayList<>(currentResources.size());
+        try {
+            for (IResource res : currentResources) {
+                newFingerprints.add(detector.computeFingerprint(res));
+            }
+        } catch (IOException e) {
+            throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+        }
+
         return ormTemplate.runInSession(session -> {
             try {
-                IncrementalDetector detector = new IncrementalDetector();
+                deleteFileRecords(indexId, deletedFiles.stream().map(Path::toString).collect(Collectors.toList()));
+                deleteFileRecords(indexId, changedFiles.stream().map(Path::toString).collect(Collectors.toList()));
 
                 Function<String, String> pathMapper = buildPathMapper(vfsPath);
                 IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
@@ -739,15 +821,16 @@ public class CodeIndexService implements ICodeIndexService {
                 }
                 batchQueue.flush();
 
+                for (CodeFileAnalysisResult result : analysisResults) {
+                    persistSingleFileInSession(indexId, result, session);
+                }
+
                 updateIndexStats(indexId);
 
-                List<FileFingerprint> newFingerprints = new ArrayList<>(currentResources.size());
-                for (IResource res : currentResources) {
-                    newFingerprints.add(detector.computeFingerprint(res));
-                }
+                IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
                 store.saveFingerprints(indexId, newFingerprints);
 
-                return count[0];
+                return analysisResults.size();
             } catch (IOException e) {
                 throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
             }
@@ -1198,11 +1281,10 @@ public class CodeIndexService implements ICodeIndexService {
         return result;
     }
 
-    private void deleteFileRecords(String indexId, List<?> filePaths) {
+    private void deleteFileRecords(String indexId, List<String> filePaths) {
         if (daoProvider == null || filePaths.isEmpty()) return;
 
-        for (Object pathObj : filePaths) {
-            String filePath = pathObj instanceof Path ? ((Path) pathObj).toString() : pathObj.toString();
+        for (String filePath : filePaths) {
             String fileId = generateFileId(indexId, filePath);
 
             List<String> symbolIds = findSymbolIdsByFileId(fileId);
