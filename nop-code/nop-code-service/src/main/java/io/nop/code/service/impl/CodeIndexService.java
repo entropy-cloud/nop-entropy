@@ -92,6 +92,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -109,7 +111,8 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     private static final int MAX_CACHE_ENTRIES = 20;
-    private final Map<String, AnalysisCache> analysisCacheMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, AnalysisCache> analysisCacheMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ReentrantLock> indexLocks = new ConcurrentHashMap<>();
 
     protected final LanguageAdapterRegistry registry;
     protected final ProjectAnalyzer analyzer;
@@ -349,34 +352,40 @@ public class CodeIndexService implements ICodeIndexService {
     // ==================== Indexing ====================
 
     @Override
-    public synchronized int indexDirectory(String indexId, String vfsPath, String filePattern) {
+    public int indexDirectory(String indexId, String vfsPath, String filePattern) {
         validatePath(vfsPath);
         invalidateAnalysisCache(indexId);
-        return ormTemplate.runInSession(session -> {
-            ensureIndexEntity(indexId, vfsPath, session);
+        ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
+        lock.lock();
+        try {
+            return ormTemplate.runInSession(session -> {
+                ensureIndexEntity(indexId, vfsPath, session);
 
-            java.io.File localFile = new java.io.File(vfsPath);
-            if (localFile.isDirectory()) {
-                ProjectAnalysisResult result = analyzer.analyzeProject(localFile.toPath());
-                persistInSession(indexId, vfsPath, result, session);
-                return result.getFileResults().size();
-            } else {
-                int[] count = {0};
-                ProjectAnalysisResult result = analyzer.analyzeProject(
-                        VirtualFileSystem.instance(), vfsPath, filePattern,
-                        batch -> {
-                            for (CodeFileAnalysisResult fileResult : batch) {
-                                saveFileResultInSession(indexId, fileResult, session);
-                                count[0]++;
-                            }
-                            session.flush();
-                            session.evictAll(NopCodeFile.class.getName());
-                            session.evictAll(NopCodeSymbol.class.getName());
-                        });
-                updateIndexStats(indexId, result);
-                return result.getFileResults().size();
-            }
-        });
+                java.io.File localFile = new java.io.File(vfsPath);
+                if (localFile.isDirectory()) {
+                    ProjectAnalysisResult result = analyzer.analyzeProject(localFile.toPath());
+                    persistInSession(indexId, vfsPath, result, session);
+                    return result.getFileResults().size();
+                } else {
+                    int[] count = {0};
+                    ProjectAnalysisResult result = analyzer.analyzeProject(
+                            VirtualFileSystem.instance(), vfsPath, filePattern,
+                            batch -> {
+                                for (CodeFileAnalysisResult fileResult : batch) {
+                                    saveFileResultInSession(indexId, fileResult, session);
+                                    count[0]++;
+                                }
+                                session.flush();
+                                session.evictAll(NopCodeFile.class.getName());
+                                session.evictAll(NopCodeSymbol.class.getName());
+                            });
+                    updateIndexStats(indexId, result);
+                    return result.getFileResults().size();
+                }
+            });
+        } finally {
+            indexLocks.remove(indexId, lock);
+        }
     }
 
     @Override
