@@ -140,7 +140,7 @@ public class PendingCheckpoint {
                 .build();
     }
 
-    public void abort(String reason, Throwable cause) {
+    public synchronized void abort(String reason, Throwable cause) {
         if (status.compareAndSet(Status.RUNNING, Status.ABORTED)) {
             isDisposed = true;
             if (!completableFuture.isDone()) {
@@ -171,7 +171,7 @@ public class PendingCheckpoint {
         return status;
     }
 
-    public void dispose() {
+    public synchronized void dispose() {
         if (!isDisposed) {
             isDisposed = true;
             notYetAcknowledgedTasks.clear();

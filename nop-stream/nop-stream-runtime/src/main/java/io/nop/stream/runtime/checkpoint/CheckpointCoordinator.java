@@ -517,7 +517,7 @@ public class CheckpointCoordinator {
 
     // --- Fingerprint management ---
 
-    private StreamModelFingerprint currentFingerprint;
+    private volatile StreamModelFingerprint currentFingerprint;
 
     public void setCurrentFingerprint(StreamModelFingerprint fingerprint) {
         this.currentFingerprint = fingerprint;
