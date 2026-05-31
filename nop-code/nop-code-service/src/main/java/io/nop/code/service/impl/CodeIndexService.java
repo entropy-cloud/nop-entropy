@@ -87,6 +87,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeIndexService.class);
 
+    static final int MAX_QUERY_RESULTS = 10000;
     private static final int BATCH_SIZE = 1000;
 
     private final CodeCacheManager cacheManager = new CodeCacheManager();

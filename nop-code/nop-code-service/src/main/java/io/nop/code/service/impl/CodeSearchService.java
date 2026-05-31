@@ -189,6 +189,7 @@ class CodeSearchService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean fq = new QueryBean();
         fq.addFilter(FilterBeans.eq("indexId", indexId));
+        fq.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeFile> files = fileDao.findAllByQuery(fq);
         Map<String, String> cache = new HashMap<>();
         for (NopCodeFile f : files) {

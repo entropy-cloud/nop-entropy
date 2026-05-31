@@ -117,6 +117,7 @@ class CodeQueryService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         return fileDao.findAllByQuery(query).stream()
                 .map(this::entityToFileResult)
                 .collect(Collectors.toList());
@@ -254,7 +255,9 @@ class CodeQueryService {
         if (dirPath != null && !dirPath.isEmpty()) {
             fileQuery.addFilter(FilterBeans.startsWith("filePath", dirPath));
         }
+        fileQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeFile> files = fileDao.findAllByQuery(fileQuery);
+        // Full file list needed for per-file symbol aggregation
 
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
                 "CLASS", "INTERFACE", "ENUM", "ANNOTATION_TYPE", "METHOD", "FUNCTION"));
@@ -274,6 +277,7 @@ class CodeQueryService {
 
             List<SymbolInfoDTO> symbols = new ArrayList<>();
             for (NopCodeSymbol sym : symbolDao.findAllByQuery(symQuery)) {
+                // Per-file symbol query: bounded by one file's symbols
                 if (!allowedKinds.contains(sym.getKind())) continue;
                 SymbolInfoDTO info = new SymbolInfoDTO();
                 info.setName(sym.getName());
@@ -303,6 +307,7 @@ class CodeQueryService {
         if (dirPath != null && !dirPath.isEmpty()) {
             fileQuery.addFilter(FilterBeans.startsWith("filePath", dirPath));
         }
+        fileQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeFile> files = fileDao.findAllByQuery(fileQuery);
 
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
@@ -628,12 +633,14 @@ class CodeQueryService {
         QueryBean annotQuery = new QueryBean();
         annotQuery.addFilter(FilterBeans.eq("indexId", indexId));
         annotQuery.addFilter(FilterBeans.eq("annotationTypeId", annotationName));
+        annotQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeAnnotationUsage> exactMatches = annotDao.findAllByQuery(annotQuery);
 
         if (exactMatches.isEmpty()) {
             QueryBean fuzzyQuery = new QueryBean();
             fuzzyQuery.addFilter(FilterBeans.eq("indexId", indexId));
             fuzzyQuery.addFilter(FilterBeans.contains("annotationTypeId", annotationName));
+            fuzzyQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
             exactMatches = annotDao.findAllByQuery(fuzzyQuery);
         }
 
@@ -670,13 +677,15 @@ class CodeQueryService {
         QueryBean inhQuery = new QueryBean();
         inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
         inhQuery.addFilter(FilterBeans.eq("relationType", "IMPLEMENTS"));
+        inhQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeInheritance> allInh = inhDao.findAllByQuery(inhQuery);
 
         IEntityDao<NopCodeSymbol> symDaoForInh = daoProvider.daoFor(NopCodeSymbol.class);
         Map<String, String> idToQn = new HashMap<>();
-        for (NopCodeSymbol sym : symDaoForInh.findAllByQuery(new QueryBean() {{
-            addFilter(FilterBeans.eq("indexId", indexId));
-        }})) {
+        QueryBean allSymForInhQuery = new QueryBean();
+        allSymForInhQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        allSymForInhQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
+        for (NopCodeSymbol sym : symDaoForInh.findAllByQuery(allSymForInhQuery)) {
             if (sym.getQualifiedName() != null) {
                 idToQn.put(sym.getId(), sym.getQualifiedName());
             }

@@ -186,6 +186,7 @@ class CodeGraphService {
         QueryBean inhQuery = new QueryBean();
         inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
         List<CodeInheritance> allInheritances = inhDao.findAllByQuery(inhQuery).stream()
+                // Full inheritance list needed for type hierarchy traversal
                 .map(this::entityToInheritance)
                 .collect(Collectors.toList());
         return buildTypeHierarchy(qualifiedName, direction, Math.min(maxDepth, 50), table, allInheritances, new HashSet<>());
@@ -489,6 +490,7 @@ class CodeGraphService {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq("indexId", indexId));
         List<NopCodeDependency> deps = dao.findAllByQuery(q);
+        // Full dependency list needed for graph building
 
         List<DepEdgeDTO> edges = new ArrayList<>();
         Map<String, int[]> degreeMap = new LinkedHashMap<>();

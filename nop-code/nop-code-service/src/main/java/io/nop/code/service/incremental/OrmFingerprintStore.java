@@ -80,6 +80,7 @@ public class OrmFingerprintStore implements IFingerprintStore {
         query.addFilter(FilterBeans.eq("indexId", indexId));
 
         List<NopCodeFile> entities = fileDao.findAllByQuery(query);
+        // Full file list needed for fingerprint comparison
         List<FileFingerprint> fingerprints = new ArrayList<>(entities.size());
 
         for (NopCodeFile entity : entities) {
@@ -114,6 +115,7 @@ public class OrmFingerprintStore implements IFingerprintStore {
         query.addFilter(FilterBeans.eq("indexId", indexId));
 
         List<NopCodeFile> entities = fileDao.findAllByQuery(query);
+        // Full file list needed for complete deletion
         for (NopCodeFile entity : entities) {
             fileDao.deleteEntity(entity);
         }
