@@ -221,14 +221,16 @@ Status Note: 4 个 Phase 全部完成。21 项 findings 中：3 个 P0 全部修
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: Implementation agent (glm-5.1, this session)
+- Reviewer / Agent: Implementation agent (glm-5.1, this session) + Independent closure audit (houyi subagent)
 - Evidence:
   - Phase 1-4 所有 Exit Criteria 已勾选
   - `./mvnw clean install -pl nop-code -am -DskipTests` BUILD SUCCESS
   - `./mvnw test -pl nop-code -am` BUILD SUCCESS (0 failures, 0 errors)
   - 5 fix commits: 7a845228f (AR-68), 42a266572 (AR-63/AR-64), 0d5fe0a58 (AR-88/89/90), 7b3d0cac6 (AR-91/92/75), 1146a8427 (AR-33/65/66/67/76/93)
+  - Advisory remediation commit: 7b77b1ad9 (AR-89 BizLoader @Auth, AR-67 SOURCE_EXTENSIONS wiring, AR-63 BFS regression test)
   - Anti-Hollow Check: 所有新增方法有对应测试或使用标准库 API
   - Deferred 项分类检查: AR-02 为 residual（bonede tree-sitter 绑定限制），AR-69 为 watch-only residual
+  - Independent closure audit (houyi): All P0/P1/P2 code fixes verified present and correct. 3 advisory issues found and fixed in follow-up commit.
 
 Follow-up:
 
