@@ -63,17 +63,15 @@ class TestLanguageAdapterRegistry {
     }
 
     @Test
-    void testSetAdaptersRegistersByLanguage() {
-        registry.setAdapters(Arrays.asList(createMockAdapter(CodeLanguage.JAVA, ".java")));
+    void testRegisterAdapterRegistersByLanguage() {
+        registry.registerAdapter(createMockAdapter(CodeLanguage.JAVA, ".java"));
         assertNotNull(registry.getAdapter(CodeLanguage.JAVA));
     }
 
     @Test
     void testGetAdapterReturnsCorrectAdapter() {
-        registry.setAdapters(Arrays.asList(
-                createMockAdapter(CodeLanguage.JAVA, ".java"),
-                createMockAdapter(CodeLanguage.PYTHON, ".py")
-        ));
+        registry.registerAdapter(createMockAdapter(CodeLanguage.JAVA, ".java"));
+        registry.registerAdapter(createMockAdapter(CodeLanguage.PYTHON, ".py"));
         assertEquals(CodeLanguage.JAVA, registry.getAdapter(CodeLanguage.JAVA).getLanguage());
         assertEquals(CodeLanguage.PYTHON, registry.getAdapter(CodeLanguage.PYTHON).getLanguage());
     }
@@ -85,17 +83,15 @@ class TestLanguageAdapterRegistry {
 
     @Test
     void testGetAnalyzerByFilePath() {
-        registry.setAdapters(Arrays.asList(createMockAdapter(CodeLanguage.JAVA, ".java")));
+        registry.registerAdapter(createMockAdapter(CodeLanguage.JAVA, ".java"));
         assertNotNull(registry.getAnalyzer("Foo.java"));
         assertNull(registry.getAnalyzer("Foo.py"));
     }
 
     @Test
     void testGetSupportedLanguages() {
-        registry.setAdapters(Arrays.asList(
-                createMockAdapter(CodeLanguage.JAVA, ".java"),
-                createMockAdapter(CodeLanguage.PYTHON, ".py")
-        ));
+        registry.registerAdapter(createMockAdapter(CodeLanguage.JAVA, ".java"));
+        registry.registerAdapter(createMockAdapter(CodeLanguage.PYTHON, ".py"));
         Set<CodeLanguage> langs = registry.getSupportedLanguages();
         assertEquals(2, langs.size());
         assertTrue(langs.contains(CodeLanguage.JAVA));

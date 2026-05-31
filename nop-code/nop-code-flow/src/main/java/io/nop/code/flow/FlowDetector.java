@@ -523,7 +523,7 @@ public class FlowDetector implements IFlowDetector {
                     }
                 }
             } catch (Exception e) {
-                // fall through
+                LOG.debug("Failed to parse extData for filePath extraction", e);
             }
         }
         return null;

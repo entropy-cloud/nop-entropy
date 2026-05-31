@@ -686,13 +686,13 @@ public class CodeIndexService implements ICodeIndexService {
                     IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
                     return store.loadFingerprints(indexId);
                 } catch (IOException e) {
-                    throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+                    throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
                 }
             });
         } catch (NopException e) {
             if (e.getErrorCode() != null && e.getErrorCode().equals(ERR_INCREMENTAL_FAILED))
                 throw e;
-            throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+            throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
         }
 
         IResourceLoader vfs = VirtualFileSystem.instance();
@@ -707,7 +707,7 @@ public class CodeIndexService implements ICodeIndexService {
         try {
             changes = detector.detectChanges(previousFingerprints, currentPaths);
         } catch (IOException e) {
-            throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+            throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
         }
 
         List<Path> changedFiles = changes.getAddedAndModified();
@@ -754,7 +754,7 @@ public class CodeIndexService implements ICodeIndexService {
                 newFingerprints.add(detector.computeFingerprint(res));
             }
         } catch (IOException e) {
-            throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+            throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
         }
 
         return ormTemplate.runInSession(session -> {
@@ -832,7 +832,7 @@ public class CodeIndexService implements ICodeIndexService {
 
                 return analysisResults.size();
             } catch (IOException e) {
-                throw new NopException(ERR_INCREMENTAL_FAILED).cause(e);
+                throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
             }
         });
     }
