@@ -1,0 +1,16 @@
+site:
+  resource:
+    FNPT:NopTccBranchRecord:mutation:
+      displayName: Modify TCC Branch Record
+    FNPT:NopTccBranchRecord:query:
+      displayName: Query TCC Branch Record
+    FNPT:NopTccRecord:mutation:
+      displayName: Modify TCC Transaction
+    FNPT:NopTccRecord:query:
+      displayName: Query TCC Transaction
+    NopTccBranchRecord-main:
+      displayName: TCC Branch Record
+    NopTccRecord-main:
+      displayName: TCC Transaction
+    test-orm-nop-tcc:
+      displayName: ''

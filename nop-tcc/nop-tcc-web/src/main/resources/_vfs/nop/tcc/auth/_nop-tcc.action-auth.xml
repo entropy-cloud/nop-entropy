@@ -9,12 +9,12 @@
                           i18n-en:displayName="TCC Branch Record" icon="git-branch" component="AMIS" resourceType="SUBM"
                           url="/nop/tcc/pages/NopTccBranchRecord/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopTccBranchRecord:query" displayName="查询TCC事务分支记录" orderNo="10002"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTccBranchRecord:query" displayName="查询TCC事务分支记录"
+                                  i18n-en:displayName="Query TCC Branch Record" orderNo="10002" resourceType="FNPT">
                             <permissions>NopTccBranchRecord:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopTccBranchRecord:mutation" displayName="修改TCC事务分支记录" orderNo="10003"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTccBranchRecord:mutation" displayName="修改TCC事务分支记录"
+                                  i18n-en:displayName="Modify TCC Branch Record" orderNo="10003" resourceType="FNPT">
                             <permissions>NopTccBranchRecord:mutation</permissions>
                         </resource>
                     </children>
@@ -23,12 +23,12 @@
                           i18n-en:displayName="TCC Transaction" icon="scale" component="AMIS" resourceType="SUBM"
                           url="/nop/tcc/pages/NopTccRecord/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopTccRecord:query" displayName="查询TCC事务记录" orderNo="10005"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTccRecord:query" displayName="查询TCC事务记录"
+                                  i18n-en:displayName="Query TCC Transaction" orderNo="10005" resourceType="FNPT">
                             <permissions>NopTccRecord:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopTccRecord:mutation" displayName="修改TCC事务记录" orderNo="10006"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTccRecord:mutation" displayName="修改TCC事务记录"
+                                  i18n-en:displayName="Modify TCC Transaction" orderNo="10006" resourceType="FNPT">
                             <permissions>NopTccRecord:mutation</permissions>
                         </resource>
                     </children>

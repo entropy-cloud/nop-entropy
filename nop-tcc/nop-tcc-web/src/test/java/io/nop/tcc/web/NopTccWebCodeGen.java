@@ -28,6 +28,7 @@ public class NopTccWebCodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-tcc-service"), "/", false);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-tcc-service"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPrecompile2(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }
