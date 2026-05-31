@@ -37,4 +37,8 @@ public enum CodeSymbolKind {
     public String getLabel() {
         return label;
     }
+
+    public static boolean isTypeKind(CodeSymbolKind kind) {
+        return kind == CLASS || kind == INTERFACE || kind == ENUM || kind == ANNOTATION_TYPE;
+    }
 }

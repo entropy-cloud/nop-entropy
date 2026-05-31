@@ -12,7 +12,7 @@ import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeAccessModifier;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
-import io.nop.core.lang.json.JsonTool;
+import io.nop.code.core.util.ExtDataHelper;
 public class DeadCodeDetector implements IDeadCodeDetector {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeadCodeDetector.class);
@@ -366,24 +366,7 @@ public class DeadCodeDetector implements IDeadCodeDetector {
     }
 
     private String resolveFilePath(CodeSymbol symbol) {
-        String extData = symbol.getExtData();
-        if (extData != null && extData.contains("filePath")) {
-            try {
-                Object parsed = JsonTool.parseNonStrict(extData);
-                if (parsed instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) parsed;
-                    Object filePath = map.get("filePath");
-                    if (filePath != null) {
-                        return filePath.toString();
-                    }
-                }
-            } catch (Exception e) {
-                LOG.warn("Failed to resolve file path from extData for symbol", e);
-                return null;
-            }
-        }
-        return null;
+        return ExtDataHelper.extractFilePath(symbol.getExtData());
     }
 
     private DeadCodeReport.DeadCodeEntry buildEntry(CodeSymbol symbol) {

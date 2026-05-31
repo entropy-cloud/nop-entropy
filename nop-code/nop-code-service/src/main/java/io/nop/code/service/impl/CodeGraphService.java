@@ -28,6 +28,7 @@ import io.nop.code.graph.impact.ImpactAnalyzer;
 import io.nop.code.graph.knowledge.KnowledgeGapAnalyzer;
 import io.nop.code.graph.knowledge.KnowledgeGapResult;
 import io.nop.code.service.api.dto.*;
+import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 class CodeGraphService {
@@ -45,7 +46,7 @@ class CodeGraphService {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         if (symbolTable.size() == 0) return null;
         CommunityDetector.CommunityDetectionResult result =
                 new CommunityDetector().detectCommunities(callGraph, symbolTable);
@@ -57,7 +58,7 @@ class CodeGraphService {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         int limit = topN > 0 ? topN : 20;
         List<EntryPointScorer.EntryPointScore> scores =
                 new EntryPointScorer().scoreEntryPoints(callGraph, symbolTable);
@@ -98,7 +99,7 @@ class CodeGraphService {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         int maxDepth = depth > 0 ? depth : 3;
         CodeSymbol symbol = symbolTable.getById(symbolId);
         String qualifiedName = symbol != null ? symbol.getQualifiedName() : symbolId;
@@ -112,7 +113,7 @@ class CodeGraphService {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         CriticalNodeResult result = new CriticalNodeAnalyzer().analyze(callGraph, symbolTable, topN);
         CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
         dto.setTotalNodes(result.getTotalNodes());
@@ -127,7 +128,7 @@ class CodeGraphService {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         CommunityDetector.CommunityDetectionResult communities =
                 new CommunityDetector().detectCommunities(callGraph, symbolTable);
         KnowledgeGapResult result = new KnowledgeGapAnalyzer().analyze(callGraph, symbolTable, communities);
@@ -144,7 +145,7 @@ class CodeGraphService {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         CommunityDetector.CommunityDetectionResult communities = null;
         if (communityView) {
             communities = new CommunityDetector().detectCommunities(callGraph, symbolTable);
@@ -157,7 +158,7 @@ class CodeGraphService {
         CallGraph baselineCallGraph = cacheManager.getOrRebuildCallGraph(baselineIndexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable baselineSymbolTable = cacheManager.getOrRebuildSymbolTable(baselineIndexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         CommunityDetector.CommunityDetectionResult baselineCommunities =
                 new CommunityDetector().detectCommunities(baselineCallGraph, baselineSymbolTable);
         GraphSnapshot baseline = GraphDiffer.buildSnapshot(baselineCallGraph, baselineCommunities);
@@ -165,7 +166,7 @@ class CodeGraphService {
         CallGraph targetCallGraph = cacheManager.getOrRebuildCallGraph(targetIndexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable targetSymbolTable = cacheManager.getOrRebuildSymbolTable(targetIndexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         CommunityDetector.CommunityDetectionResult targetCommunities =
                 new CommunityDetector().detectCommunities(targetCallGraph, targetSymbolTable);
         GraphSnapshot target = GraphDiffer.buildSnapshot(targetCallGraph, targetCommunities);
@@ -178,7 +179,7 @@ class CodeGraphService {
                                        String direction, int maxDepth) {
         if (daoProvider == null) return null;
         SymbolTable table = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         if (table == null) return null;
         CodeSymbol symbol = table.getByQualifiedName(qualifiedName);
         if (symbol == null) return null;
@@ -198,7 +199,7 @@ class CodeGraphService {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable table = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                this::entityToCodeSymbol);
+                CodeSymbolConverter::toCodeSymbol);
         return buildCallHierarchy(qualifiedName, direction, Math.min(maxDepth, 50), callGraph, table, new HashSet<>());
     }
 
@@ -299,37 +300,6 @@ class CodeGraphService {
             }
         }
         return node;
-    }
-
-    private CodeSymbol entityToCodeSymbol(NopCodeSymbol entity) {
-        CodeSymbol symbol = new CodeSymbol();
-        symbol.setId(entity.getId());
-        symbol.setName(entity.getName());
-        symbol.setKind(entity.getKind() != null ? CodeSymbolKind.valueOf(entity.getKind()) : null);
-        symbol.setQualifiedName(entity.getQualifiedName());
-        symbol.setAccessModifier(entity.getAccessModifier() != null
-                ? CodeAccessModifier.valueOf(entity.getAccessModifier()) : null);
-        symbol.setDeprecated(Boolean.TRUE.equals(entity.getDeprecated()));
-        symbol.setDocumentation(entity.getDocumentation());
-        symbol.setLine(entity.getLine() != null ? entity.getLine() : 0);
-        symbol.setColumn(entity.getColumn() != null ? entity.getColumn() : 0);
-        symbol.setEndLine(entity.getEndLine() != null ? entity.getEndLine() : 0);
-        symbol.setEndColumn(entity.getEndColumn() != null ? entity.getEndColumn() : 0);
-        symbol.setParentId(entity.getParentId());
-        symbol.setDeclaringSymbolId(entity.getDeclaringSymbolId());
-        symbol.setSuperClassName(entity.getSuperClassName());
-        symbol.setAbstractFlag(Boolean.TRUE.equals(entity.getIsAbstract()));
-        symbol.setFinalFlag(Boolean.TRUE.equals(entity.getIsFinal()));
-        symbol.setSignature(entity.getSignature());
-        symbol.setReturnType(entity.getReturnType());
-        symbol.setStaticFlag(Boolean.TRUE.equals(entity.getIsStatic()));
-        symbol.setFieldType(entity.getFieldType());
-        symbol.setRawReturnType(entity.getRawReturnType());
-        symbol.setRawFieldType(entity.getRawFieldType());
-        symbol.setAsyncFlag(Boolean.TRUE.equals(entity.getAsyncFlag()));
-        symbol.setReadonlyFlag(Boolean.TRUE.equals(entity.getReadonlyFlag()));
-        symbol.setExtData(entity.getExtData());
-        return symbol;
     }
 
     private CodeInheritance entityToInheritance(NopCodeInheritance entity) {
@@ -673,7 +643,7 @@ class CodeGraphService {
         int[] index = {0};
         Map<String, Integer> nodeIndex = new HashMap<>();
         Map<String, Integer> lowLink = new HashMap<>();
-        Map<String, Boolean> onStack = new HashMap<>();
+        Set<String> onStack = new HashSet<>();
         Deque<String> stack = new ArrayDeque<>();
 
         Set<String> allNodes = new LinkedHashSet<>(adj.keySet());
@@ -691,19 +661,19 @@ class CodeGraphService {
 
     private void tarjanDFS(String v, Map<String, List<String>> adj, int[] index,
                            Map<String, Integer> nodeIndex, Map<String, Integer> lowLink,
-                           Map<String, Boolean> onStack, Deque<String> stack,
+                           Set<String> onStack, Deque<String> stack,
                            List<List<String>> result) {
         nodeIndex.put(v, index[0]);
         lowLink.put(v, index[0]);
         index[0]++;
         stack.push(v);
-        onStack.put(v, true);
+        onStack.add(v);
 
         for (String w : adj.getOrDefault(v, Collections.emptyList())) {
             if (!nodeIndex.containsKey(w)) {
                 tarjanDFS(w, adj, index, nodeIndex, lowLink, onStack, stack, result);
                 lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
-            } else if (Boolean.TRUE.equals(onStack.get(w))) {
+            } else if (onStack.contains(w)) {
                 lowLink.put(v, Math.min(lowLink.get(v), nodeIndex.get(w)));
             }
         }
@@ -713,7 +683,7 @@ class CodeGraphService {
             String w;
             do {
                 w = stack.pop();
-                onStack.put(w, false);
+                onStack.remove(w);
                 scc.add(w);
             } while (!w.equals(v));
             result.add(scc);

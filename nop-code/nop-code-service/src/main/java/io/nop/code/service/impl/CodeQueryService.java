@@ -17,6 +17,7 @@ import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.dao.entity.NopCodeUsage;
 import io.nop.code.service.api.dto.*;
+import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
@@ -30,37 +31,6 @@ class CodeQueryService {
         this.daoProvider = daoProvider;
         this.cacheManager = cacheManager;
         this.ormTemplate = ormTemplate;
-    }
-
-    private CodeSymbol entityToCodeSymbol(NopCodeSymbol entity) {
-        CodeSymbol symbol = new CodeSymbol();
-        symbol.setId(entity.getId());
-        symbol.setName(entity.getName());
-        symbol.setKind(entity.getKind() != null ? CodeSymbolKind.valueOf(entity.getKind()) : null);
-        symbol.setQualifiedName(entity.getQualifiedName());
-        symbol.setAccessModifier(entity.getAccessModifier() != null
-                ? CodeAccessModifier.valueOf(entity.getAccessModifier()) : null);
-        symbol.setDeprecated(Boolean.TRUE.equals(entity.getDeprecated()));
-        symbol.setDocumentation(entity.getDocumentation());
-        symbol.setLine(entity.getLine() != null ? entity.getLine() : 0);
-        symbol.setColumn(entity.getColumn() != null ? entity.getColumn() : 0);
-        symbol.setEndLine(entity.getEndLine() != null ? entity.getEndLine() : 0);
-        symbol.setEndColumn(entity.getEndColumn() != null ? entity.getEndColumn() : 0);
-        symbol.setParentId(entity.getParentId());
-        symbol.setDeclaringSymbolId(entity.getDeclaringSymbolId());
-        symbol.setSuperClassName(entity.getSuperClassName());
-        symbol.setAbstractFlag(Boolean.TRUE.equals(entity.getIsAbstract()));
-        symbol.setFinalFlag(Boolean.TRUE.equals(entity.getIsFinal()));
-        symbol.setSignature(entity.getSignature());
-        symbol.setReturnType(entity.getReturnType());
-        symbol.setStaticFlag(Boolean.TRUE.equals(entity.getIsStatic()));
-        symbol.setFieldType(entity.getFieldType());
-        symbol.setRawReturnType(entity.getRawReturnType());
-        symbol.setRawFieldType(entity.getRawFieldType());
-        symbol.setAsyncFlag(Boolean.TRUE.equals(entity.getAsyncFlag()));
-        symbol.setReadonlyFlag(Boolean.TRUE.equals(entity.getReadonlyFlag()));
-        symbol.setExtData(entity.getExtData());
-        return symbol;
     }
 
     private CodeFileAnalysisResult entityToFileResult(NopCodeFile entity) {
@@ -151,7 +121,7 @@ class CodeQueryService {
         String fileId = generateFileId(indexId, filePath);
         query.addFilter(FilterBeans.eq("fileId", fileId));
         return symbolDao.findAllByQuery(query).stream()
-                .map(this::entityToCodeSymbol)
+                .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
     }
 
@@ -198,7 +168,7 @@ class CodeQueryService {
         FileTreeNode root = new FileTreeNode();
         root.setName("root");
         root.setPath("");
-        root.setType("package");
+        root.setType(FileTreeNodeType.PACKAGE);
 
         Map<String, FileTreeNode> nodeMap = new LinkedHashMap<>();
         nodeMap.put("", root);
@@ -220,7 +190,7 @@ class CodeQueryService {
                     FileTreeNode packageNode = new FileTreeNode();
                     packageNode.setName(part);
                     packageNode.setPath(packagePath);
-                    packageNode.setType("package");
+                    packageNode.setType(FileTreeNodeType.PACKAGE);
                     nodeMap.put(packagePath, packageNode);
 
                     FileTreeNode parentNode = nodeMap.get(parentPath);
@@ -235,7 +205,7 @@ class CodeQueryService {
                     ? file.getFilePath().substring(file.getFilePath().lastIndexOf('/') + 1)
                     : "unknown");
             fileNode.setPath(file.getFilePath());
-            fileNode.setType("file");
+            fileNode.setType(FileTreeNodeType.FILE);
 
             FileTreeNode packageParent = nodeMap.get(packageName);
             if (packageParent != null) {
@@ -386,7 +356,7 @@ class CodeQueryService {
         if (daoProvider == null) return null;
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
         NopCodeSymbol entity = symbolDao.getEntityById(symbolId);
-        return entity != null ? entityToCodeSymbol(entity) : null;
+        return entity != null ? CodeSymbolConverter.toCodeSymbol(entity) : null;
     }
 
     CodeSymbol findSymbolByQualifiedName(String indexId, String qualifiedName) {
@@ -396,7 +366,7 @@ class CodeQueryService {
         query.addFilter(FilterBeans.eq("indexId", indexId));
         query.addFilter(FilterBeans.eq("qualifiedName", qualifiedName));
         List<NopCodeSymbol> results = symbolDao.findAllByQuery(query);
-        return results.isEmpty() ? null : entityToCodeSymbol(results.get(0));
+        return results.isEmpty() ? null : CodeSymbolConverter.toCodeSymbol(results.get(0));
     }
 
     List<CodeSymbol> findSymbols(String indexId, String query, List<CodeSymbolKind> kinds,
@@ -419,7 +389,7 @@ class CodeQueryService {
         }
         if (limit > 0) qb.setLimit(limit);
         return symbolDao.findAllByQuery(qb).stream()
-                .map(this::entityToCodeSymbol)
+                .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
     }
 
@@ -462,7 +432,7 @@ class CodeQueryService {
 
         List<NopCodeSymbol> entities = symbolDao.findPageByQuery(pageQb);
         pageBean.setItems(entities.stream()
-                .map(this::entityToCodeSymbol)
+                .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList()));
         return pageBean;
     }
@@ -688,7 +658,7 @@ class CodeQueryService {
         symQuery.addFilter(FilterBeans.eq("indexId", indexId));
         symQuery.addFilter(FilterBeans.in("id", new ArrayList<>(symbolIds)));
         return symbolDao.findAllByQuery(symQuery).stream()
-                .map(this::entityToCodeSymbol)
+                .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
     }
 
@@ -761,7 +731,7 @@ class CodeQueryService {
         allSymQuery.addFilter(FilterBeans.eq("indexId", indexId));
         allSymQuery.addFilter(FilterBeans.in("id", new ArrayList<>(resultIds)));
         return symbolDao.findAllByQuery(allSymQuery).stream()
-                .map(this::entityToCodeSymbol)
+                .map(CodeSymbolConverter::toCodeSymbol)
                 .collect(Collectors.toList());
     }
 }

@@ -35,6 +35,7 @@ import io.nop.code.core.model.*;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.LanguageFamily;
 import io.nop.code.core.semantic.CodeSemanticEdge;
+import io.nop.code.core.semantic.EdgeConfidence;
 import io.nop.code.core.semantic.ISemanticEdgeExtractor;
 import io.nop.code.core.util.DigestHelper;
 import io.nop.commons.batch.BatchQueue;
@@ -441,16 +442,16 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                     CodeSymbol callee = globalSymbolTable.getByQualifiedName(calleeQn);
                     if (callee != null) {
                         call.setCalleeId(callee.getId());
-                        call.setConfidence("EXTRACTED");
+                        call.setConfidence(EdgeConfidence.EXTRACTED);
                         resolvedCalls++;
                     } else {
                         callee = fuzzyMatchSymbol(calleeQn, globalSymbolTable);
                         if (callee != null) {
                             call.setCalleeId(callee.getId());
-                            call.setConfidence("EXTRACTED");
+                            call.setConfidence(EdgeConfidence.EXTRACTED);
                             resolvedCalls++;
                         } else {
-                            call.setConfidence("INFERRED");
+                            call.setConfidence(EdgeConfidence.INFERRED);
                             unresolvedCalls++;
                         }
                     }

@@ -33,9 +33,9 @@ import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
 import io.nop.code.core.model.*;
 import io.nop.code.core.resolver.IImportResolver;
-import io.nop.code.core.resolver.JavaImportResolver;
-import io.nop.code.core.resolver.PythonImportResolver;
-import io.nop.code.core.resolver.TypeScriptImportResolver;
+import io.nop.code.lang.java.JavaImportResolver;
+import io.nop.code.lang.python.PythonImportResolver;
+import io.nop.code.lang.typescript.TypeScriptImportResolver;
 import io.nop.code.core.semantic.CodeSemanticEdge;
 import io.nop.code.core.semantic.ISemanticEdgeExtractor;
 import io.nop.code.core.util.DigestHelper;
@@ -67,6 +67,7 @@ import io.nop.code.lang.typescript.TypeScriptLanguageAdapter;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.*;
 import io.nop.code.service.incremental.OrmFingerprintStore;
+import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.commons.batch.BatchQueue;
 import io.nop.commons.collections.IterableIterator;
 import io.nop.core.lang.json.JsonTool;
@@ -127,8 +128,8 @@ public class CodeIndexService implements ICodeIndexService {
     @Inject
     public void setFlowDetector(@Nullable IFlowDetector flowDetector) {
         this.flowDetector = flowDetector;
-        if (flowDetector != null && this.changeAnalyzer instanceof ChangeAnalyzer) {
-            ((ChangeAnalyzer) this.changeAnalyzer).setFlowDetector(flowDetector);
+        if (flowDetector != null && this.changeAnalyzer != null) {
+            this.changeAnalyzer.setFlowDetector(flowDetector);
         }
     }
 
@@ -137,8 +138,8 @@ public class CodeIndexService implements ICodeIndexService {
     @Inject
     public void setChangeAnalyzer(@Nullable IChangeAnalyzer changeAnalyzer) {
         this.changeAnalyzer = changeAnalyzer;
-        if (changeAnalyzer instanceof ChangeAnalyzer && this.flowDetector != null) {
-            ((ChangeAnalyzer) changeAnalyzer).setFlowDetector(this.flowDetector);
+        if (changeAnalyzer != null && this.flowDetector != null) {
+            changeAnalyzer.setFlowDetector(this.flowDetector);
         }
     }
 
@@ -256,10 +257,15 @@ public class CodeIndexService implements ICodeIndexService {
 ====== Rebuild-from-DB Helpers 
 
 ======
+    // 
+
+====== Rebuild-from-DB Helpers 
+
+======
 
     private SymbolTable getOrRebuildSymbolTable(String indexId) {
         ensureSubServices();
-        return cacheManager.getOrRebuildSymbolTable(indexId, daoProvider, this::entityToCodeSymbol);
+        return cacheManager.getOrRebuildSymbolTable(indexId, daoProvider, CodeSymbolConverter::toCodeSymbol);
     }
 
     private CallGraph getOrRebuildCallGraph(String indexId) {
@@ -285,34 +291,24 @@ public class CodeIndexService implements ICodeIndexService {
         ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
         lock.lock();
         try {
+            java.io.File localFile = new java.io.File(vfsPath);
+            ProjectAnalysisResult result;
+            if (localFile.isDirectory()) {
+                validateLocalPath(vfsPath);
+                result = analyzer.analyzeProject(localFile.toPath());
+            } else {
+                result = analyzer.analyzeProject(
+                        VirtualFileSystem.instance(), vfsPath, filePattern,
+                        batch -> {});
+            }
+            final ProjectAnalysisResult finalResult = result;
             return ormTemplate.runInSession(session -> {
                 ensureIndexEntity(indexId, vfsPath, session);
-
-                java.io.File localFile = new java.io.File(vfsPath);
-                if (localFile.isDirectory()) {
-                    validateLocalPath(vfsPath);
-                    ProjectAnalysisResult result = analyzer.analyzeProject(localFile.toPath());
-                    persistInSession(indexId, vfsPath, result, session);
-                    return result.getFileResults().size();
-                } else {
-                    int[] count = {0};
-                    ProjectAnalysisResult result = analyzer.analyzeProject(
-                            VirtualFileSystem.instance(), vfsPath, filePattern,
-                            batch -> {
-                                for (CodeFileAnalysisResult fileResult : batch) {
-                                    saveFileResultInSession(indexId, fileResult, session);
-                                    count[0]++;
-                                }
-                                session.flush();
-                                session.evictAll(NopCodeFile.class.getName());
-                                session.evictAll(NopCodeSymbol.class.getName());
-                            });
-                    updateIndexStats(indexId, result);
-                    return result.getFileResults().size();
-                }
+                persistInSession(indexId, vfsPath, finalResult, session);
+                return finalResult.getFileResults().size();
             });
         } finally {
-            indexLocks.remove(indexId, lock);
+            lock.unlock();
         }
     }
 
@@ -320,7 +316,7 @@ public class CodeIndexService implements ICodeIndexService {
     public CodeFileAnalysisResult indexFile(String indexId, String filePath, String sourceCode) {
         ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(filePath);
         if (fileAnalyzer == null) {
-            throw new NopException(ERR_NO_ANALYZER_FOR_FILE).param(ARG_FILE_PATH, filePath);
+            throw new NopException(ERR_NO_ANALYZER_FOR_FILE).param(ARG_INDEX_ID, indexId).param(ARG_FILE_PATH, filePath);
         }
         CodeFileAnalysisResult result = fileAnalyzer.analyze(filePath, sourceCode);
 
@@ -1424,7 +1420,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IFlowDetector detector = flowDetector;
         if (detector == null) {
-            throw new NopException(ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE);
+            throw new NopException(ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE).param(ARG_INDEX_ID, indexId);
         }
 
         List<ExecutionFlow> flows = detector.detectFlows(indexId, symbolTable, callGraph);
@@ -1477,7 +1473,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IFlowDetector detector = flowDetector;
         if (detector == null) {
-            throw new NopException(ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE);
+            throw new NopException(ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE).param(ARG_INDEX_ID, indexId);
         }
 
         return detector.getAffectedFlows(indexId, changedFilePaths);
@@ -1492,7 +1488,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IChangeAnalyzer analyzer = changeAnalyzer;
         if (analyzer == null) {
-            throw new NopException(ERR_CODE_CHANGE_ANALYZER_NOT_AVAILABLE);
+            throw new NopException(ERR_CODE_CHANGE_ANALYZER_NOT_AVAILABLE).param(ARG_INDEX_ID, indexId);
         }
 
         return analyzer.analyzeChanges(indexId, baselineCommitish, targetCommitish, symbolTable, callGraph);
@@ -1507,7 +1503,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         IDeadCodeDetector detector = deadCodeDetector;
         if (detector == null) {
-            throw new NopException(ERR_CODE_DEAD_CODE_DETECTOR_NOT_AVAILABLE);
+            throw new NopException(ERR_CODE_DEAD_CODE_DETECTOR_NOT_AVAILABLE).param(ARG_INDEX_ID, indexId);
         }
 
         return detector.detectDeadCode(indexId, symbolTable, callGraph);

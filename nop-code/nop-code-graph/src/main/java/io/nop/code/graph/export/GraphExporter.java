@@ -9,17 +9,18 @@ import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.nio.ExportException;
 import org.jgrapht.nio.graphml.GraphMLExporter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.graph.community.CommunityDetector;
 public class GraphExporter {
 
-    private static final ErrorCode ERR_GRAPH_EXPORT_FAILED =
-            ErrorCode.define("nop.err.code.graph-export-failed", "Graph export failed");
+    private static final Logger LOG = LoggerFactory.getLogger(GraphExporter.class);
 
     public String export(CallGraph callGraph, SymbolTable symbolTable, String format,
                          boolean communityView,
@@ -32,7 +33,7 @@ public class GraphExporter {
             case "JSON":
                 return exportJson(callGraph, symbolTable, communityView, communities);
             default:
-                throw new NopException(ERR_GRAPH_EXPORT_FAILED).param("format", format);
+                throw new NopException(NopCodeCoreErrors.ERR_GRAPH_EXPORT_FAILED).param("format", format);
         }
     }
 
@@ -52,7 +53,7 @@ public class GraphExporter {
         try {
             exporter.exportGraph(graph, writer);
         } catch (ExportException e) {
-            throw new NopException(ERR_GRAPH_EXPORT_FAILED).cause(e);
+            throw new NopException(NopCodeCoreErrors.ERR_GRAPH_EXPORT_FAILED).cause(e);
         }
         return writer.toString();
     }
@@ -193,7 +194,7 @@ public class GraphExporter {
                 try {
                     graph.addEdge(caller, callee);
                 } catch (IllegalArgumentException e) {
-                    // Duplicate edge, ignore safely
+                    LOG.debug("Skipping duplicate edge {} -> {}", caller, callee, e);
                 }
             }
         }
@@ -220,7 +221,7 @@ public class GraphExporter {
                         try {
                             graph.addEdge(srcComm, tgtComm);
                         } catch (IllegalArgumentException e) {
-                            // Duplicate edge, ignore safely
+                            LOG.debug("Skipping duplicate community edge {} -> {}", srcComm, tgtComm, e);
                         }
                     }
                 }

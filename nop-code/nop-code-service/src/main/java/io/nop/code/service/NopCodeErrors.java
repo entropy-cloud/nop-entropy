@@ -10,10 +10,10 @@ public interface NopCodeErrors {
     String ARG_SYMBOL_ID = "symbolId";
 
     ErrorCode ERR_NO_ANALYZER_FOR_FILE =
-            define("nop.err.code.no-analyzer-for-file", "没有为文件注册分析器: {filePath}", ARG_FILE_PATH);
+            define("nop.err.code.no-analyzer-for-file", "No analyzer registered for file: {filePath}", ARG_FILE_PATH);
 
     ErrorCode ERR_INCREMENTAL_FAILED =
-            define("nop.err.code.incremental-failed", "增量索引失败");
+            define("nop.err.code.incremental-failed", "Incremental indexing failed");
 
     ErrorCode ERR_CODE_INVALID_PATH =
             define("nop.err.code.invalid-path", "Invalid path: {path}", ARG_PATH);

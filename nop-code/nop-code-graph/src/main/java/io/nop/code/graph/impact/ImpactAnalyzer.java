@@ -9,7 +9,7 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
-import io.nop.core.lang.json.JsonTool;
+import io.nop.code.core.util.ExtDataHelper;
 public class ImpactAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ImpactAnalyzer.class);
@@ -331,23 +331,7 @@ public class ImpactAnalyzer {
     }
     
     private static String extractFilePath(CodeSymbol symbol) {
-        String extData = symbol.getExtData();
-        if (extData == null || extData.isEmpty()) {
-            return null;
-        }
-        try {
-            Object parsed = JsonTool.parseNonStrict(extData);
-            if (parsed instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> map = (Map<String, Object>) parsed;
-                Object filePath = map.get("filePath");
-                return filePath != null ? filePath.toString() : null;
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to extract file path from extData: {}", extData, e);
-            return null;
-        }
-        return null;
+        return ExtDataHelper.extractFilePath(symbol.getExtData());
     }
     
     public static Map<Integer, List<ImpactedSymbol>> groupByDepth(List<ImpactedSymbol> symbols) {

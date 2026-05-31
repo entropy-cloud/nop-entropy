@@ -1,10 +1,11 @@
-package io.nop.code.core.resolver;
+package io.nop.code.lang.typescript;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import io.nop.code.core.model.CodeFileDependency;
+import io.nop.code.core.resolver.IImportResolver;
 public class TypeScriptImportResolver implements IImportResolver {
 
     @Override

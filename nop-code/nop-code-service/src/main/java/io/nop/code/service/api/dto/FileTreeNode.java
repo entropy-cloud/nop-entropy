@@ -11,7 +11,7 @@ public class FileTreeNode implements Serializable {
 
     private String name;
     private String path;
-    private String type; // "package" or "file"
+    private FileTreeNodeType type;
     private List<FileTreeNode> children = new ArrayList<>();
     private int symbolCount;
 
@@ -31,11 +31,11 @@ public class FileTreeNode implements Serializable {
         this.path = path;
     }
 
-    public String getType() {
+    public FileTreeNodeType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(FileTreeNodeType type) {
         this.type = type;
     }
 

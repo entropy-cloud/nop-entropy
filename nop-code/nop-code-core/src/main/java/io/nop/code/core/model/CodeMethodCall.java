@@ -1,9 +1,7 @@
 package io.nop.code.core.model;
 
 import io.nop.api.core.annotations.data.DataBean;
-/**
- * 方法调用关系数据模型
- */
+import io.nop.code.core.semantic.EdgeConfidence;
 @DataBean
 public class CodeMethodCall {
     private String id;
@@ -16,7 +14,7 @@ public class CodeMethodCall {
     private String context;
     private int line;
     private int column;
-    private String confidence;  // EXTRACTED or INFERRED
+    private EdgeConfidence confidence;
 
     public String getId() {
         return id;
@@ -98,11 +96,11 @@ public class CodeMethodCall {
         this.column = column;
     }
 
-    public String getConfidence() {
+    public EdgeConfidence getConfidence() {
         return confidence;
     }
 
-    public void setConfidence(String confidence) {
+    public void setConfidence(EdgeConfidence confidence) {
         this.confidence = confidence;
     }
 }

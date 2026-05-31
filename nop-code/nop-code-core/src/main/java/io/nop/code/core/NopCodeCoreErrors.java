@@ -7,10 +7,13 @@ public interface NopCodeCoreErrors {
     String ARG_PATH = "path";
 
     ErrorCode ERR_CODE_ANALYZE_PROJECT_FAILED =
-            define("nop.err.code.analyze-project-failed", "项目分析失败:{path}", ARG_PATH);
+            define("nop.err.code.analyze-project-failed", "Project analysis failed: {path}", ARG_PATH);
 
     ErrorCode ERR_CODE_DIGEST_NOT_AVAILABLE =
-            define("nop.err.code.digest-not-available", "SHA-256摘要算法不可用");
+            define("nop.err.code.digest-not-available", "SHA-256 digest algorithm not available");
+
+    ErrorCode ERR_GRAPH_EXPORT_FAILED =
+            define("nop.err.code.graph-export-failed", "Graph export failed");
 
     String ARG_GIT_REF = "gitRef";
 

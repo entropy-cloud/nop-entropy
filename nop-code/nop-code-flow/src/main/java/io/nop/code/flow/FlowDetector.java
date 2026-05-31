@@ -12,6 +12,7 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.util.ExtDataHelper;
 import io.nop.code.graph.entrypoint.EntryPointScorer;
 public class FlowDetector implements IFlowDetector {
 
@@ -510,23 +511,7 @@ public class FlowDetector implements IFlowDetector {
     }
 
     private static String extractFilePathFromSymbol(CodeSymbol symbol) {
-        String extData = symbol.getExtData();
-        if (extData != null && extData.contains("filePath")) {
-            try {
-                Object parsed = io.nop.core.lang.json.JsonTool.parseNonStrict(extData);
-                if (parsed instanceof java.util.Map) {
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> map = (java.util.Map<String, Object>) parsed;
-                    Object filePath = map.get("filePath");
-                    if (filePath != null) {
-                        return filePath.toString();
-                    }
-                }
-            } catch (Exception e) {
-                LOG.debug("Failed to parse extData for filePath extraction", e);
-            }
-        }
-        return null;
+        return ExtDataHelper.extractFilePath(symbol.getExtData());
     }
 
     public void invalidateCache(String indexId) {
