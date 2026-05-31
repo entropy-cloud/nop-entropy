@@ -537,7 +537,7 @@ class CodeQueryService {
         TypeOutlineDTO outline = new TypeOutlineDTO();
         outline.setName(symbol.getName());
         outline.setQualifiedName(symbol.getQualifiedName());
-        outline.setKind(symbol.getKind().name());
+        outline.setKind(symbol.getKind() != null ? symbol.getKind().name() : null);
         outline.setAccessModifier(symbol.getAccessModifier() != null ? symbol.getAccessModifier().name() : null);
 
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);

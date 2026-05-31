@@ -213,7 +213,7 @@ class CodeGraphService {
         if (symbol != null) {
             symbolInfo.setName(symbol.getName());
             symbolInfo.setQualifiedName(symbol.getQualifiedName());
-            symbolInfo.setKind(symbol.getKind().name());
+            symbolInfo.setKind(symbol.getKind() != null ? symbol.getKind().name() : null);
         } else {
             symbolInfo.setQualifiedName(qualifiedName);
             symbolInfo.setName(qualifiedName.substring(qualifiedName.lastIndexOf('.') + 1));
@@ -263,7 +263,7 @@ class CodeGraphService {
         if (symbol != null) {
             symbolInfo.setName(symbol.getName());
             symbolInfo.setQualifiedName(symbol.getQualifiedName());
-            symbolInfo.setKind(symbol.getKind().name());
+            symbolInfo.setKind(symbol.getKind() != null ? symbol.getKind().name() : null);
         } else {
             symbolInfo.setQualifiedName(qualifiedName);
             symbolInfo.setName(qualifiedName.substring(qualifiedName.lastIndexOf('.') + 1));

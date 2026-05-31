@@ -94,7 +94,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
         SymbolInfoDTO info = new SymbolInfoDTO();
         info.setName(s.getName());
         info.setQualifiedName(s.getQualifiedName());
-        info.setKind(s.getKind().name());
+        info.setKind(s.getKind() != null ? s.getKind().name() : null);
         info.setAccessModifier(s.getAccessModifier() != null ? s.getAccessModifier().name() : null);
         return info;
     }
