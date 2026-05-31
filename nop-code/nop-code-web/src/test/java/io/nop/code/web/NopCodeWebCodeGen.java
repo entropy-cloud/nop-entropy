@@ -22,6 +22,7 @@ public class NopCodeWebCodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-code-meta"), "/", false);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-code-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPrecompile2(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

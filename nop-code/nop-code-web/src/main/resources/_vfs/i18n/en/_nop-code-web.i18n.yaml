@@ -1,0 +1,80 @@
+site:
+  resource:
+    FNPT:NopCodeAnnotationUsage:mutation:
+      displayName: Modify 注解使用
+    FNPT:NopCodeAnnotationUsage:query:
+      displayName: Query 注解使用
+    FNPT:NopCodeCall:mutation:
+      displayName: Modify 方法调用
+    FNPT:NopCodeCall:query:
+      displayName: Query 方法调用
+    FNPT:NopCodeDependency:mutation:
+      displayName: Modify 文件依赖
+    FNPT:NopCodeDependency:query:
+      displayName: Query 文件依赖
+    FNPT:NopCodeFile:mutation:
+      displayName: Modify 代码文件
+    FNPT:NopCodeFile:query:
+      displayName: Query 代码文件
+    FNPT:NopCodeFlow:mutation:
+      displayName: Modify 执行流
+    FNPT:NopCodeFlow:query:
+      displayName: Query 执行流
+    FNPT:NopCodeFlowMembership:mutation:
+      displayName: Modify 执行流成员
+    FNPT:NopCodeFlowMembership:query:
+      displayName: Query 执行流成员
+    FNPT:NopCodeIndex:mutation:
+      displayName: Modify 代码索引
+    FNPT:NopCodeIndex:query:
+      displayName: Query 代码索引
+    FNPT:NopCodeInheritance:mutation:
+      displayName: Modify 继承关系
+    FNPT:NopCodeInheritance:query:
+      displayName: Query 继承关系
+    FNPT:NopCodeSymbol:mutation:
+      displayName: Modify 符号
+    FNPT:NopCodeSymbol:query:
+      displayName: Query 符号
+    FNPT:NopCodeUsage:mutation:
+      displayName: Modify 符号引用
+    FNPT:NopCodeUsage:query:
+      displayName: Query 符号引用
+    FNPT:call-hierarchy:query:
+      displayName: ''
+    FNPT:code-browser:query:
+      displayName: ''
+    FNPT:dashboard:query:
+      displayName: ''
+    FNPT:type-hierarchy:query:
+      displayName: ''
+    NopCodeAnnotationUsage-main:
+      displayName: ''
+    NopCodeCall-main:
+      displayName: ''
+    NopCodeDependency-main:
+      displayName: ''
+    NopCodeFile-main:
+      displayName: ''
+    NopCodeFlow-main:
+      displayName: ''
+    NopCodeFlowMembership-main:
+      displayName: ''
+    NopCodeIndex-main:
+      displayName: ''
+    NopCodeInheritance-main:
+      displayName: ''
+    NopCodeSymbol-main:
+      displayName: ''
+    NopCodeUsage-main:
+      displayName: ''
+    call-hierarchy-main:
+      displayName: ''
+    code-browser-main:
+      displayName: ''
+    dashboard-main:
+      displayName: ''
+    test-orm-nop-code:
+      displayName: ''
+    type-hierarchy-main:
+      displayName: ''
