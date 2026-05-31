@@ -292,14 +292,20 @@ public class InputGate {
                 return null;
             }
 
-            if (barriersRemaining <= 0) {
-                CheckpointBarrier aligned = pendingBarrier;
-                resetBarrierState();
-                return Optional.of(aligned);
-            }
+        if (barriersRemaining <= 0) {
+            CheckpointBarrier aligned = pendingBarrier;
+            resetBarrierState();
+            return Optional.of(aligned);
         }
+    } else {
+        if (pendingBarrier != null && barrier.getId() != pendingBarrier.getId()) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON,
+                    "Overlapping checkpoint barrier: expected " + pendingBarrier.getId()
+                            + " but got " + barrier.getId() + " on channel " + channelIndex);
+        }
+    }
 
-        return null;
+    return null;
     }
 
     private Optional<StreamElement> handleWatermarkNonRecursive(int channelIndex, Watermark watermark) {

@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -192,5 +193,30 @@ public class TestInputGate {
         p0.close();
         assertFalse(gate.isAllFinished(),
                 "isAllFinished should be false when only one of two channels is closed");
+    }
+
+    @Test
+    public void testBarrierOverlapRejectedInNonAlignedMode() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        List<InputChannel> channels = Arrays.asList(new InputChannel(p0), new InputChannel(p1));
+        InputGate gate = new InputGate(channels, null, false);
+
+        p0.write(new CheckpointBarrier(1, 0, CheckpointType.CHECKPOINT));
+        p0.write(new CheckpointBarrier(2, 0, CheckpointType.CHECKPOINT));
+
+        p1.write(new StreamRecord<>("keep-p1-busy"));
+        p1.close();
+        p0.close();
+
+        StreamException ex = assertThrows(StreamException.class, () -> {
+            while (true) {
+                Optional<StreamElement> e = gate.read();
+                if (!e.isPresent()) break;
+            }
+        });
+        String msg = ex.getMessage();
+        assertTrue(msg.contains("1") && msg.contains("2"),
+                "Exception message should mention both checkpoint IDs. Got: " + msg);
     }
 }
