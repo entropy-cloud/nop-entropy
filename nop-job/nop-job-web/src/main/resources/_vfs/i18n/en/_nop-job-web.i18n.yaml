@@ -1,0 +1,62 @@
+site:
+  resource:
+    FNPT:NopJobAssignment:mutation:
+      displayName: Modify Job Assignment
+    FNPT:NopJobAssignment:query:
+      displayName: Query Job Assignment
+    FNPT:NopJobDefinition:mutation:
+      displayName: Modify Job Definition
+    FNPT:NopJobDefinition:query:
+      displayName: Query Job Definition
+    FNPT:NopJobFire:cancelFire:
+      displayName: ''
+    FNPT:NopJobFire:mutation:
+      displayName: Modify Job Fire
+    FNPT:NopJobFire:query:
+      displayName: Query Job Fire
+    FNPT:NopJobFire:rerunFire:
+      displayName: ''
+    FNPT:NopJobInstance:mutation:
+      displayName: Modify Job Instance
+    FNPT:NopJobInstance:query:
+      displayName: Query Job Instance
+    FNPT:NopJobInstanceHis:mutation:
+      displayName: Modify Job Instance History
+    FNPT:NopJobInstanceHis:query:
+      displayName: Query Job Instance History
+    FNPT:NopJobSchedule:archiveSchedule:
+      displayName: ''
+    FNPT:NopJobSchedule:disableSchedule:
+      displayName: ''
+    FNPT:NopJobSchedule:enableSchedule:
+      displayName: ''
+    FNPT:NopJobSchedule:mutation:
+      displayName: Modify Job Schedule
+    FNPT:NopJobSchedule:pauseSchedule:
+      displayName: ''
+    FNPT:NopJobSchedule:query:
+      displayName: Query Job Schedule
+    FNPT:NopJobSchedule:resumeSchedule:
+      displayName: ''
+    FNPT:NopJobSchedule:triggerNow:
+      displayName: ''
+    FNPT:NopJobTask:mutation:
+      displayName: Modify Job Task
+    FNPT:NopJobTask:query:
+      displayName: Query Job Task
+    NopJobAssignment-main:
+      displayName: Job Assignment
+    NopJobDefinition-main:
+      displayName: Job Definition
+    NopJobFire-main:
+      displayName: Job Fire
+    NopJobInstance-main:
+      displayName: Job Instance
+    NopJobInstanceHis-main:
+      displayName: Job Instance History
+    NopJobSchedule-main:
+      displayName: Job Schedule
+    NopJobTask-main:
+      displayName: Job Task
+    test-orm-nop-job:
+      displayName: ''
