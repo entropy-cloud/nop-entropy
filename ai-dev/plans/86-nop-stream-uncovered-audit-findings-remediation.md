@@ -1,6 +1,6 @@
 # 86 nop-stream 未覆盖审计发现修复
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-05-31
 > Source: ai-dev/audits/2026-05-31-deep-audit-nop-stream/summary.md（维度 09/14/16/02）+ live repo 交叉验证
 > Related: 85-nop-stream-21-dim-deep-audit-remediation (completed), 84-nop-stream-remaining-audit-findings-remediation (completed)
@@ -166,8 +166,8 @@ Exit Criteria:
 - [x] 测试覆盖盲区已填补
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）组件间调用链在运行时确实连通，（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）组件间调用链在运行时确实连通，（b）无空方法体/静默跳过/no-op 作为正常实现
 - [x] `./mvnw compile -pl nop-stream -am`
 - [x] `./mvnw test -pl nop-stream -am`
 - [x] checkstyle / 代码规范检查通过
@@ -210,9 +210,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: All 12 in-scope P1 findings remediated. 4 phases executed and verified with green test suite. Closure audit pending.
+Status Note: All 12 in-scope P1 findings remediated across 4 phases. Independent closure audit passed with no blocking issues.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待独立 closure audit
-- Evidence: 待 closure audit 填写
+- Reviewer / Agent: Independent sub-agent (houyi, session ses_18489d5a0ffeYCRJk0r1aVpVwk)
+- Audit Session: ses_18489d5a0ffeYCRJk0r1aVpVwk
+- Evidence:
+  - Phase 1 Exit Criteria: PASS — 15 exception replacements verified in live code, grep confirms 0 NopException.adapt in target files, 0 bare IllegalStateException in NoSkipStrategy/NFACompiler
+  - Phase 2 Exit Criteria: PASS — volatile currentFingerprint confirmed, synchronized on abort()/dispose()/acknowledgeTask() confirmed, single-lock model (no deadlock risk)
+  - Phase 3 Exit Criteria: PASS — IStreamTaskRpcService.updateFencingToken added, TaskManager implements it, MockTaskRpcService implements it, 0 instanceof TaskManager in JobCoordinator
+  - Phase 4 Exit Criteria: PASS — TestWindowAggregationFunction exists with 2 tests, testEpochManifestStorageFailureAbortsCheckpoint exists, testTerminateExportSavepointContinuesRunning exists
+  - Anti-Hollow Check: PASS — fencing token update chain verified (interface → TaskManager/Mock), all exception replacements are throw statements, no empty method bodies or silent no-ops
+  - `./mvnw test -pl nop-stream -am` BUILD SUCCESS
+  - Advisory: CepTestUtils.java still has NopException.adapt in test scope (not targeted); SkipToElementStrategy/RichIterativeCondition have IllegalStateException (not in scope 09-05/09-06)
+
+Follow-up:
+- no remaining plan-owned work
