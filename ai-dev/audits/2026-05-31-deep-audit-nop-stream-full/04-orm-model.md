@@ -1,21 +1,28 @@
 # 维度 04：ORM 模型与实体设计
 
-## 第 1 轮（初审）
+## 检查范围
 
-### 零发现
+以下是对 nop-stream 模块 ORM 模型文件的完整搜索路径和模式:
 
-**检查范围声明**：
+| 搜索模式 | 搜索路径 |
+|----------|----------|
+| `**/*.orm.xml` | `nop-stream/` |
+| `**/*.orm.*` | `nop-stream/` |
+| `**/_*.orm.xml` | `nop-stream/` |
+| `**/model/*.orm.xml` | `nop-stream/` |
+| `**/resources/**/*.xml` | `nop-stream/` |
+| `find -name "*orm*"` | `nop-stream/` |
 
-| 搜索项 | 搜索路径 | 结果 |
-|--------|----------|------|
-| `model/*.orm.xml` | `nop-stream/**` | 无文件 |
-| `**/*.orm.xml` | `nop-stream/**` | 无文件 |
-| `**/beans.xml` | `nop-stream/**` | 无文件 |
-| `**/*.xmeta` | `nop-stream/**` | 无文件 |
-| `**/*.xbiz` | `nop-stream/**` | 无文件 |
-| `@Table` / `@Entity` / `IOrmEntity` | `nop-stream/**/*.java` | 无匹配 |
-| `<orm` / `<entity` / `<table` | `nop-stream/**/*.xml` | 无匹配 |
+逐子模块检查:
+- `nop-stream-core/model/` — Java 模型类 (StreamModel, StreamComponents)
+- `nop-stream-cep/model/` — CEP 模式 Java 类 (CepPatternModel 等)
+- `nop-stream-fraud-example/model/` — POJO 类 (TransactionEvent, FraudAlert)
+- `nop-stream-runtime/resources/` — 仅 META-INF
+- `nop-stream-connector/resources/` — 空
+- `nop-stream-api, checkpoint, flink, flow` — 空占位模块
 
-**结论：nop-stream 是流处理引擎框架模块，不包含任何 ORM 模型定义。维度 04 全部检查项不适用。**
+## 结论
 
-**补充说明**：模块中存在使用 IJdbcTemplate 的 JDBC 基础设施表（JdbcCheckpointStorage、JdbcClusterRegistry），但这些是原始 JDBC 访问而非 ORM，不在本维度审计范围内。
+nop-stream 是一个纯计算引擎框架，处理流式数据管道和 CEP。其 model 目录下的文件均为 Java 代码定义的引擎内部模型，而非持久化到数据库的 ORM 实体模型。
+
+**零发现。**

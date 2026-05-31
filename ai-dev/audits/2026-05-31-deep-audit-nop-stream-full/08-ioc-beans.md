@@ -2,19 +2,15 @@
 
 ## 第 1 轮（初审）
 
-### 零发现
+### 结论：零发现
 
-**检查范围声明**：
+nop-stream 是纯 Java 流处理引擎库，完全未集成 NopIoC 容器：
+- 零个 beans.xml 文件（手写或生成的均无）
+- 零处 @Inject / @InjectValue 使用
+- 零处 Spring 注解（@Value / @Autowired / @Component 等）
+- 零个 _module 注册文件
+- 零处 IBeanContainer / BeanContainer 引用
 
-| 检查项 | 结果 |
-|--------|------|
-| beans.xml 文件 | 未发现 |
-| @Inject / @InjectValue 注入 | 未发现 |
-| Spring 注解误用 (@Value/@Autowired/@Bean/@Component) | 未发现 |
-| _module 文件注册 | 未发现 |
-| BeanContainer / IBeanContainer | 未发现 |
-
-nop-stream 使用标准 Java SPI（ServiceLoader）实现模块间解耦，而非 NopIoC 容器。这是合理的设计决策：
-- `IDeploymentPlanProvider` SPI: runtime 提供 DeploymentPlanProviderImpl
-- `ICheckpointExecutorFactory` SPI: runtime 提供 CheckpointExecutorFactoryImpl
-- 当 classpath 上无 runtime 时，core 内置 DefaultDeploymentPlanProvider 作为回退
+模块的可扩展性通过标准 Java SPI（ServiceLoader）实现，nop-stream-runtime 有 2 个 SPI 文件：
+1. `META-INF/services/io.nop.stream.core.execution.ICheckpointExecutorFactory`
+2. `META-INF/services/io.nop.stream.core.execution.IDeploymentPlanProvider`

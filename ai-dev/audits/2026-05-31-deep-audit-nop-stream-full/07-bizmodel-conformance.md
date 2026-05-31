@@ -1,21 +1,20 @@
 # 维度 07：BizModel 规范遵循
 
-## 第 1 轮（初审）
+## 检查范围
 
-### 零发现
+| 搜索方式 | 模式/路径 | 结果 |
+|---------|----------|------|
+| Grep: `@BizModel` | `nop-stream/` 全部文件 | 零匹配 |
+| Grep: `BizModel` | `nop-stream/` 全部文件 | 零匹配 |
+| Grep: `@BizQuery|@BizMutation|@BizLoader|CrudBizModel|@BizAction` | `nop-stream/` 全部 `.java` | 零匹配 |
+| Grep: `import.*BizModel|import.*CrudBizModel` | `nop-stream/` 全部 `.java` | 零匹配 |
+| Glob: `**/*BizModel*` | `nop-stream/` | 零文件 |
+| Glob: `**/*.biz.xml` | `nop-stream/` | 零文件 |
 
-**检查范围声明**：
+覆盖全部 10 个子模块。
 
-| 搜索项 | 搜索结果 |
-|--------|----------|
-| `@BizModel` 注解 | 无匹配 |
-| `BizModel` 关键字 | 无匹配 |
-| `@BizQuery` / `@BizMutation` / `@BizLoader` / `@BizAction` | 无匹配 |
-| `CrudBizModel` | 无匹配 |
-| `*.xmeta` 文件 | 无文件 |
-| `*.xbiz` 文件 | 无文件 |
-| `*.orm.xml` 文件 | 无文件 |
+## 结论
 
-**结论：nop-stream 是流处理引擎框架模块，不包含任何 BizModel 相关代码。维度 07 全部检查项不适用。**
+nop-stream 是一个框架/引擎模块，不包含面向 GraphQL API 层的 BizModel 业务服务类。所有 Java 文件均为引擎内部实现类（NFA 编译器、共享缓冲区、算子链、模式匹配等）。
 
-模块内所有 `@DataBean` 使用均为流处理框架内部数据结构的代码生成标记（如 checkpoint、state、model、window 等数据结构），与 BizModel 服务层无关。
+**零发现。**

@@ -1,41 +1,17 @@
 # 维度 19：命名与术语一致性
 
-## 第 1 轮（初审）
+## 发现（10个，均为 P2-P3）
 
-### [维度19-01] NopCepErrors 错误码字符串与常量名语义不匹配
+### P2 发现
+1. **TimerService 重复接口**: core（@Deprecated）和 cep 各有一个同名接口
+2. **ShardPrefixedKey 重复类**: backend.memory 和 shard 包各有一个
+3. **Task/Subtask/SubtaskTask 概念重叠**: 三个类承担近乎相同职责
+4. **"State" 概念过载**: 在 CEP 和执行层中有 5 种不同含义
+5. **错误码 key 与常量名不匹配**: ERR_CEP_NOT_CONDITION_DOES_NOT_SUPPORT_GROUP 的 key 为 "follow-not-does-support-group"
+6. **"Plan" 概念增殖**: GraphExecutionPlan/DeploymentPlan/PartitionedPlan/CheckpointPlan 四个 Plan 类
 
-- **文件**: `nop-stream-cep/src/main/java/io/nop/stream/cep/NopCepErrors.java:27-29`
-- **证据片段**:
-  ```java
-  ErrorCode ERR_CEP_NOT_CONDITION_DOES_NOT_SUPPORT_GROUP =
-          define("nop.err.cep.follow-not-does-support-group", "Not condition does not support complex patterns",
-                  ARG_PART_NAME, ARG_FOLLOW_KIND);
-  ```
-- **严重程度**: P2
-- **现状**: 常量名说 "NOT_CONDITION 不支持"，错误码字符串说 "follow-not 支持"，语义方向完全不同。
-- **风险**: 运维时根据错误码搜索会得到错误的理解。
-- **建议**: 统一错误码字符串为 `nop.err.cep.not-condition-does-not-support-group`。
-- **信心水平**: 确定
-- **误报排除**: 不是误报——常量名和错误码字符串语义矛盾。
-- **复核状态**: 未复核
-
-### [维度19-02] EmbeddedDistributedExecutor 使用裸字符串构造 StreamException
-
-- **文件**: `nop-stream-runtime/src/main/java/io/nop/stream/runtime/execution/EmbeddedDistributedExecutor.java:193-194`
-- **证据片段**:
-  ```java
-  StreamException ex = new StreamException(
-          failures.size() + " task(s) failed during distributed execution");
-  ```
-- **严重程度**: P3
-- **现状**: 绕过 NopStreamErrors 错误码体系，同文件第 178 行正确使用了 ERR_STREAM_INVALID_STATE。
-- **建议**: 定义专用错误码。
-- **信心水平**: 确定
-- **误报排除**: 不是误报但影响有限。
-- **复核状态**: 未复核
-
-## 合规确认
-
-- 错误码前缀一致：NopStreamErrors 用 nop.err.stream.*，NopCepErrors 用 nop.err.cep.*
-- 核心接口命名一致：SourceFunction/SinkFunction/StreamOperator 体系完整
-- Window 实体层次清晰
+### P3 发现
+7. **错误码前缀扁平**: nop.err.cep.* 而非嵌套 nop.err.stream.cep.*
+8. **StreamException 继承 StreamRuntimeException**: 与 Java 命名惯例相反
+9. **SourceSplit vs SourceWorkUnit**: 同一概念不同名称
+10. **DeploymentPlanGenerator 与 DefaultDeploymentPlanProvider 逻辑重复**

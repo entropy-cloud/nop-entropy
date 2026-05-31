@@ -1,15 +1,16 @@
 # 维度 11：XMeta 与 BizModel 对齐
 
-## 第 1 轮（初审）
+## 检查范围
 
-### 零发现
+| 搜索 | 模式 | 结果 |
+|------|------|------|
+| XMeta 文件 | `**/*.xmeta.xml` | 0 文件 |
+| xmeta 引用 | `xmeta` 关键词 | 0 匹配 |
+| @BizModel | `*.java` | 0 匹配 |
+| Biz 注解 | `@BizQuery/@BizMutation/@BizLoader` | 0 匹配 |
 
-nop-stream 是流处理引擎框架模块，不包含 XMeta 元数据定义文件和 BizModel 业务模型类。
+## 结论
 
-| 搜索项 | 结果 |
-|--------|------|
-| *.xmeta 文件 | 无匹配 |
-| @BizModel 注解 | 无匹配 |
-| *biz.xml 文件 | 无匹配 |
+nop-stream 是纯框架/引擎模块，无 XMeta 定义和 BizModel 类。
 
-本维度不适用。
+**零发现。**
