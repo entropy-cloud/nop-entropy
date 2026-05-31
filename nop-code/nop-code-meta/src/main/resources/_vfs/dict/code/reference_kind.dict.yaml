@@ -1,7 +1,7 @@
 # __XGEN_FORCE_OVERRIDE__
 label: 引用类型
 locale: zh-CN
-valueType: int
+valueType: string
 description: 符号引用的类型
 options:
 

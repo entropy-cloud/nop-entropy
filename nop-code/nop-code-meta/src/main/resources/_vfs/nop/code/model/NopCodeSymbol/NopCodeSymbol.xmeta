@@ -6,7 +6,7 @@
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="kinds" displayName="符号类型" queryable="true" insertable="false" updatable="false">
-            <schema type="java.lang.String" precision="200"/>
+            <schema type="java.util.List&lt;java.lang.String&gt;" precision="200"/>
         </prop>
         <prop name="packageName" displayName="包名" queryable="true" insertable="false" updatable="false">
             <schema type="java.lang.String" precision="500"/>

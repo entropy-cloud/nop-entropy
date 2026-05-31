@@ -1,7 +1,7 @@
 # __XGEN_FORCE_OVERRIDE__
 label: 访问修饰符
 locale: zh-CN
-valueType: int
+valueType: string
 description: 符号的访问级别
 options:
 

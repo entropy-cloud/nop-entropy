@@ -1,7 +1,7 @@
 # __XGEN_FORCE_OVERRIDE__
 label: 索引状态
 locale: zh-CN
-valueType: int
+valueType: string
 description: 索引状态
 options:
 

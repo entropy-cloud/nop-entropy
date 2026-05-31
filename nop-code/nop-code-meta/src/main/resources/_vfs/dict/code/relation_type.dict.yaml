@@ -1,7 +1,7 @@
 # __XGEN_FORCE_OVERRIDE__
 label: 继承关系类型
 locale: zh-CN
-valueType: int
+valueType: string
 description: 类型继承关系
 options:
 

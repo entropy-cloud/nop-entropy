@@ -59,4 +59,115 @@ class TestGraphDiffer {
         assertTrue(diff.getRemovedNodes().contains("A"));
         assertTrue(diff.getAddedNodes().isEmpty());
     }
+
+    @Test
+    void testGetAddedEdges_returnsCorrectAddedEdges() {
+        GraphDiffer differ = new GraphDiffer();
+
+        // Baseline: A -> B
+        Set<GraphSnapshot.EdgeKey> baselineEdges = new HashSet<>();
+        baselineEdges.add(new GraphSnapshot.EdgeKey("A", "B"));
+        GraphSnapshot baseline = new GraphSnapshot(
+                new HashSet<>(), baselineEdges, Collections.emptyMap());
+
+        // Target: A -> B, A -> C (added), B -> C (added)
+        Set<GraphSnapshot.EdgeKey> targetEdges = new HashSet<>();
+        targetEdges.add(new GraphSnapshot.EdgeKey("A", "B"));
+        targetEdges.add(new GraphSnapshot.EdgeKey("A", "C"));
+        targetEdges.add(new GraphSnapshot.EdgeKey("B", "C"));
+        GraphSnapshot target = new GraphSnapshot(
+                new HashSet<>(), targetEdges, Collections.emptyMap());
+
+        GraphDiff diff = differ.diff(baseline, target);
+        assertEquals(2, diff.getAddedEdges().size());
+        assertTrue(diff.getAddedEdges().contains(new GraphSnapshot.EdgeKey("A", "C")));
+        assertTrue(diff.getAddedEdges().contains(new GraphSnapshot.EdgeKey("B", "C")));
+        assertTrue(diff.getRemovedEdges().isEmpty());
+    }
+
+    @Test
+    void testGetRemovedEdges_returnsCorrectRemovedEdges() {
+        GraphDiffer differ = new GraphDiffer();
+
+        // Baseline: A -> B, A -> C, B -> C
+        Set<GraphSnapshot.EdgeKey> baselineEdges = new HashSet<>();
+        baselineEdges.add(new GraphSnapshot.EdgeKey("A", "B"));
+        baselineEdges.add(new GraphSnapshot.EdgeKey("A", "C"));
+        baselineEdges.add(new GraphSnapshot.EdgeKey("B", "C"));
+        GraphSnapshot baseline = new GraphSnapshot(
+                new HashSet<>(), baselineEdges, Collections.emptyMap());
+
+        // Target: A -> B (only common edge)
+        Set<GraphSnapshot.EdgeKey> targetEdges = new HashSet<>();
+        targetEdges.add(new GraphSnapshot.EdgeKey("A", "B"));
+        GraphSnapshot target = new GraphSnapshot(
+                new HashSet<>(), targetEdges, Collections.emptyMap());
+
+        GraphDiff diff = differ.diff(baseline, target);
+        assertEquals(2, diff.getRemovedEdges().size());
+        assertTrue(diff.getRemovedEdges().contains(new GraphSnapshot.EdgeKey("A", "C")));
+        assertTrue(diff.getRemovedEdges().contains(new GraphSnapshot.EdgeKey("B", "C")));
+        assertTrue(diff.getAddedEdges().isEmpty());
+    }
+
+    @Test
+    void testDiffIdenticalSnapshots_noChanges() {
+        GraphDiffer differ = new GraphDiffer();
+
+        Set<GraphSnapshot.EdgeKey> edges = new HashSet<>();
+        edges.add(new GraphSnapshot.EdgeKey("A", "B"));
+        edges.add(new GraphSnapshot.EdgeKey("B", "C"));
+
+        GraphSnapshot baseline = new GraphSnapshot(
+                new HashSet<>(), edges, Collections.emptyMap());
+        GraphSnapshot target = new GraphSnapshot(
+                new HashSet<>(), new HashSet<>(edges), Collections.emptyMap());
+
+        GraphDiff diff = differ.diff(baseline, target);
+        assertTrue(diff.getAddedEdges().isEmpty());
+        assertTrue(diff.getRemovedEdges().isEmpty());
+    }
+
+    @Test
+    void testDiffMixedAddedAndRemovedEdges() {
+        GraphDiffer differ = new GraphDiffer();
+
+        Set<GraphSnapshot.EdgeKey> baselineEdges = new HashSet<>();
+        baselineEdges.add(new GraphSnapshot.EdgeKey("A", "B"));
+        baselineEdges.add(new GraphSnapshot.EdgeKey("X", "Y"));
+
+        Set<GraphSnapshot.EdgeKey> targetEdges = new HashSet<>();
+        targetEdges.add(new GraphSnapshot.EdgeKey("A", "B"));
+        targetEdges.add(new GraphSnapshot.EdgeKey("C", "D"));
+
+        GraphSnapshot baseline = new GraphSnapshot(
+                new HashSet<>(), baselineEdges, Collections.emptyMap());
+        GraphSnapshot target = new GraphSnapshot(
+                new HashSet<>(), targetEdges, Collections.emptyMap());
+
+        GraphDiff diff = differ.diff(baseline, target);
+        assertEquals(1, diff.getAddedEdges().size());
+        assertTrue(diff.getAddedEdges().contains(new GraphSnapshot.EdgeKey("C", "D")));
+        assertEquals(1, diff.getRemovedEdges().size());
+        assertTrue(diff.getRemovedEdges().contains(new GraphSnapshot.EdgeKey("X", "Y")));
+    }
+
+    @Test
+    void testBuildSnapshot_capturesEdgesFromCallGraph() {
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("B", "C");
+
+        CommunityDetector.CommunityDetectionResult communities =
+                new CommunityDetector.CommunityDetectionResult();
+        GraphSnapshot snapshot = GraphDiffer.buildSnapshot(callGraph, communities);
+
+        assertEquals(3, snapshot.getNodes().size());
+        assertTrue(snapshot.getNodes().contains("A"));
+        assertTrue(snapshot.getNodes().contains("B"));
+        assertTrue(snapshot.getNodes().contains("C"));
+        assertEquals(2, snapshot.getEdges().size());
+        assertTrue(snapshot.getEdges().contains(new GraphSnapshot.EdgeKey("A", "B")));
+        assertTrue(snapshot.getEdges().contains(new GraphSnapshot.EdgeKey("B", "C")));
+    }
 }

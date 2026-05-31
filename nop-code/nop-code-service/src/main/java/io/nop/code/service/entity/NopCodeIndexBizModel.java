@@ -131,7 +131,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             result.setTotalSymbols(0);
             result.setTotalCommunities(0);
             result.setAverageCohesion(0.0);
-            result.setAlgorithmUsed("none");
+            result.setAlgorithmUsed(null);
             result.setModularity(0.0);
             result.setProcessingTimeMs(0);
         }

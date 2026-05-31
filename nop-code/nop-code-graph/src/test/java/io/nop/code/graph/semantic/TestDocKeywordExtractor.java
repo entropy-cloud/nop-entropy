@@ -67,7 +67,7 @@ class TestDocKeywordExtractor {
     }
 
     @Test
-    void testSymbolLimitPreventsExplosion() {
+    void testHighKeywordOverlap_producesAllPairsEdges() {
         int count = 100;
         SymbolTable table = new SymbolTable();
         for (int i = 0; i < count; i++) {
@@ -83,7 +83,7 @@ class TestDocKeywordExtractor {
     }
 
     @Test
-    void testTruncationAboveMaxSymbols() {
+    void testSingleKeywordDocs_noEdges() {
         int count = 5500;
         SymbolTable table = new SymbolTable();
         for (int i = 0; i < count; i++) {

@@ -20,7 +20,7 @@
     </domains>
 
     <dicts>
-        <dict label="符号类型" name="code/symbol_kind" valueType="int">
+        <dict label="符号类型" name="code/symbol_kind" valueType="string">
             <description>代码符号类型枚举</description>
             <option code="CLASS" label="类" value="10"/>
             <option code="INTERFACE" label="接口" value="20"/>
@@ -40,7 +40,7 @@
             <option code="TYPE_PARAMETER" label="类型参数" value="97"/>
             <option code="IMPORT" label="导入" value="98"/>
         </dict>
-        <dict label="访问修饰符" name="code/access_modifier" valueType="int">
+        <dict label="访问修饰符" name="code/access_modifier" valueType="string">
             <description>符号的访问级别</description>
             <option code="PUBLIC" label="公开" value="10"/>
             <option code="PROTECTED" label="受保护" value="20"/>
@@ -49,7 +49,7 @@
             <option code="INTERNAL" label="内部" value="41"/>
             <option code="NO_MODIFIER" label="无修饰符" value="50"/>
         </dict>
-        <dict label="引用类型" name="code/reference_kind" valueType="int">
+        <dict label="引用类型" name="code/reference_kind" valueType="string">
             <description>符号引用的类型</description>
             <option code="READ" label="读取" value="10"/>
             <option code="WRITE" label="写入" value="20"/>
@@ -61,7 +61,7 @@
             <option code="IMPORTS" label="导入" value="80"/>
             <option code="OVERRIDES" label="重写" value="90"/>
         </dict>
-        <dict label="索引状态" name="code/index_status" valueType="int">
+        <dict label="索引状态" name="code/index_status" valueType="string">
             <description>索引状态</description>
             <option code="CREATED" label="已创建" value="10"/>
             <option code="INDEXING" label="索引中" value="20"/>
@@ -70,14 +70,14 @@
             <option code="COMPLETED" label="已完成" value="50"/>
             <option code="DETECTED" label="已检测" value="60"/>
         </dict>
-        <dict label="编程语言" name="code/language" valueType="int">
+        <dict label="编程语言" name="code/language" valueType="string">
             <description>编程语言类型</description>
             <option code="JAVA" label="Java" value="10"/>
             <option code="PYTHON" label="Python" value="20"/>
             <option code="TYPESCRIPT" label="TypeScript" value="30"/>
             <option code="JAVASCRIPT" label="JavaScript" value="40"/>
         </dict>
-        <dict label="继承关系类型" name="code/relation_type" valueType="int">
+        <dict label="继承关系类型" name="code/relation_type" valueType="string">
             <description>类型继承关系</description>
             <option code="EXTENDS" label="继承" value="10"/>
             <option code="IMPLEMENTS" label="实现" value="20"/>
@@ -407,26 +407,26 @@
                 </to-many>
             </relations>
             <indexes>
-                <index name="idx_symbol_qualified_name">
+                <index name="ix_nop_code_symbol_index_id_qualified_name">
                     <column name="indexId"/>
                     <column name="qualifiedName"/>
                 </index>
-                <index name="idx_symbol_name">
+                <index name="ix_nop_code_symbol_index_id_name">
                     <column name="indexId"/>
                     <column name="name"/>
                 </index>
-                <index name="idx_symbol_kind">
+                <index name="ix_nop_code_symbol_index_id_kind">
                     <column name="indexId"/>
                     <column name="kind"/>
                 </index>
-                <index name="idx_symbol_declaring">
+                <index name="ix_nop_code_symbol_index_id_declaring_symbol_id">
                     <column name="indexId"/>
                     <column name="declaringSymbolId"/>
                 </index>
-                <index name="idx_symbol_file">
+                <index name="ix_nop_code_symbol_file_id">
                     <column name="fileId"/>
                 </index>
-                <index name="idx_symbol_parent">
+                <index name="ix_nop_code_symbol_parent_id">
                     <column name="parentId"/>
                 </index>
             </indexes>
@@ -488,17 +488,17 @@
                 </to-one>
             </relations>
             <indexes>
-                <index name="idx_usage_symbol">
+                <index name="ix_nop_code_usage_symbol_id">
                     <column name="symbolId"/>
                 </index>
-                <index name="idx_usage_kind">
+                <index name="ix_nop_code_usage_index_id_kind">
                     <column name="indexId"/>
                     <column name="kind"/>
                 </index>
-                <index name="idx_usage_file">
+                <index name="ix_nop_code_usage_file_id">
                     <column name="fileId"/>
                 </index>
-                <index name="idx_usage_enclosing">
+                <index name="ix_nop_code_usage_enclosing_symbol_id">
                     <column name="enclosingSymbolId"/>
                 </index>
             </indexes>
@@ -559,16 +559,16 @@
                 </to-one>
             </relations>
             <indexes>
-                <index name="idx_call_caller">
+                <index name="ix_nop_code_call_caller_id">
                     <column name="callerId"/>
                 </index>
-                <index name="idx_call_callee">
+                <index name="ix_nop_code_call_callee_id">
                     <column name="calleeId"/>
                 </index>
-                <index name="idx_call_file">
+                <index name="ix_nop_code_call_file_id">
                     <column name="fileId"/>
                 </index>
-                <index name="idx_call_index">
+                <index name="ix_nop_code_call_index_id">
                     <column name="indexId"/>
                 </index>
             </indexes>
@@ -617,13 +617,13 @@
                 </to-one>
             </relations>
             <indexes>
-                <index name="idx_inheritance_sub">
+                <index name="ix_nop_code_inheritance_sub_type_id">
                     <column name="subTypeId"/>
                 </index>
-                <index name="idx_inheritance_super">
+                <index name="ix_nop_code_inheritance_super_type_id">
                     <column name="superTypeId"/>
                 </index>
-                <index name="idx_inheritance_index">
+                <index name="ix_nop_code_inheritance_index_id">
                     <column name="indexId"/>
                 </index>
             </indexes>
@@ -676,13 +676,13 @@
                 </to-one>
             </relations>
             <indexes>
-                <index name="idx_annotation_type">
+                <index name="ix_nop_code_annotation_usage_annotation_type_id">
                     <column name="annotationTypeId"/>
                 </index>
-                <index name="idx_annotation_symbol">
+                <index name="ix_nop_code_annotation_usage_annotated_symbol_id">
                     <column name="annotatedSymbolId"/>
                 </index>
-                <index name="idx_annotation_usage_index">
+                <index name="ix_nop_code_annotation_usage_index_id">
                     <column name="indexId"/>
                 </index>
             </indexes>
@@ -723,11 +723,11 @@
                 </to-one>
             </relations>
             <indexes>
-                <index name="idx_dep_source">
+                <index name="ix_nop_code_dependency_index_id_source_file_path">
                     <column name="indexId"/>
                     <column name="sourceFilePath"/>
                 </index>
-                <index name="idx_dep_target">
+                <index name="ix_nop_code_dependency_index_id_target_file_path">
                     <column name="indexId"/>
                     <column name="targetFilePath"/>
                 </index>
@@ -801,10 +801,10 @@
                 </to-many>
             </relations>
             <indexes>
-                <index name="idx_flow_entry_point">
+                <index name="ix_nop_code_flow_entry_point_id">
                     <column name="entryPointId"/>
                 </index>
-                <index name="idx_flow_status">
+                <index name="ix_nop_code_flow_index_id_status">
                     <column name="indexId"/>
                     <column name="status"/>
                 </index>
@@ -851,10 +851,10 @@
                 </to-one>
             </relations>
             <indexes>
-                <index name="idx_flow_membership_flow">
+                <index name="ix_nop_code_flow_membership_flow_id">
                     <column name="flowId"/>
                 </index>
-                <index name="idx_flow_membership_symbol">
+                <index name="ix_nop_code_flow_membership_symbol_id">
                     <column name="symbolId"/>
                 </index>
             </indexes>
@@ -897,16 +897,16 @@
                         propId="14" stdDataType="boolean" stdSqlType="TINYINT" stdDomain="boolFlag"/>
             </columns>
             <indexes>
-                <index name="idx_semantic_index_id">
+                <index name="ix_nop_code_semantic_edge_index_id">
                     <column name="indexId"/>
                 </index>
-                <index name="idx_semantic_source">
+                <index name="ix_nop_code_semantic_edge_source_symbol_id">
                     <column name="sourceSymbolId"/>
                 </index>
-                <index name="idx_semantic_target">
+                <index name="ix_nop_code_semantic_edge_target_symbol_id">
                     <column name="targetSymbolId"/>
                 </index>
-                <index name="idx_semantic_relation">
+                <index name="ix_nop_code_semantic_edge_relation_type">
                     <column name="relationType"/>
                 </index>
             </indexes>
