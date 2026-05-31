@@ -184,6 +184,16 @@ public interface _NopCodeDaoConstants {
     int INDEX_STATUS_ERROR = 40;
                     
     /**
+     * 索引状态: 已完成 
+     */
+    int INDEX_STATUS_COMPLETED = 50;
+                    
+    /**
+     * 索引状态: 已检测 
+     */
+    int INDEX_STATUS_DETECTED = 60;
+                    
+    /**
      * 编程语言: Java 
      */
     int LANGUAGE_JAVA = 10;

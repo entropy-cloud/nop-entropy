@@ -4,7 +4,6 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.code.service.api.ICodeIndexService;
@@ -23,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.code.service.NopCodeErrors.ERR_CODE_INDEX_ID_REQUIRED;
 import static org.junit.jupiter.api.Assertions.*;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE,
@@ -162,9 +160,8 @@ public class TestPhase1BugFixes extends JunitAutoTestCase {
         symbol.setId("test-symbol-id");
         symbol.setName("test");
 
-        NopException ex = assertThrows(NopException.class,
-                () -> bizModel.usages(symbol, null, 10));
-        assertEquals(ERR_CODE_INDEX_ID_REQUIRED.getErrorCode(), ex.getErrorCode());
+        List<?> result = bizModel.usages(symbol, null, 10);
+        assertTrue(result.isEmpty(), "usages should return empty list when indexId is null");
     }
 
     @Test
@@ -174,9 +171,8 @@ public class TestPhase1BugFixes extends JunitAutoTestCase {
         symbol.setId("test-symbol-id");
         symbol.setName("test");
 
-        NopException ex = assertThrows(NopException.class,
-                () -> bizModel.sourceCode(symbol, null, 0, 5));
-        assertEquals(ERR_CODE_INDEX_ID_REQUIRED.getErrorCode(), ex.getErrorCode());
+        String result = bizModel.sourceCode(symbol, null, 0, 5);
+        assertNull(result, "sourceCode should return null when indexId is null");
     }
 
     @SuppressWarnings("unchecked")

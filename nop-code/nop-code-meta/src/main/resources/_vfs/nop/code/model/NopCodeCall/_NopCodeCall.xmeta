@@ -16,7 +16,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="uk_call_unique" props="indexId,callerId,calleeId,line"/>
+        <key name="uk_call_unique" props="indexId,callerId,calleeId,line,column"/>
     </keys>
 
     <props>

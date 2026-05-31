@@ -21,3 +21,11 @@ options:
     value: 40
     description: 
   
+  - label: 已完成
+    value: 50
+    description: 
+  
+  - label: 已检测
+    value: 60
+    description: 
+  

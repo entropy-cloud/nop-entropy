@@ -31,6 +31,7 @@ import io.nop.code.service.api.dto.TypeOutlineDTO;
 import io.nop.code.service.NopCodeErrors;
 import jakarta.inject.Inject;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -93,13 +94,13 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
         return result;
     }
 
-    @BizLoader
+    @BizLoader(forType = SymbolDTO.class)
     public List<AnnotationUsageDTO> usages(
             @ContextSource SymbolDTO symbol,
-            @Name("indexId") String indexId,
-            @Name("limit") int limit) {
+            @Name("indexId") @Optional String indexId,
+            @Name("limit") @Optional int limit) {
         if (indexId == null)
-            throw new NopException(NopCodeErrors.ERR_CODE_INDEX_ID_REQUIRED);
+            return Collections.emptyList();
         return codeIndexService.getSymbolUsages(indexId,
                 symbol.getId(), limit > 0 ? limit : 20)
                 .stream()
@@ -107,14 +108,14 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
                 .collect(Collectors.toList());
     }
 
-    @BizLoader
+    @BizLoader(forType = SymbolDTO.class)
     public String sourceCode(
             @ContextSource SymbolDTO symbol,
-            @Name("indexId") String indexId,
-            @Name("linesBefore") int linesBefore,
-            @Name("linesAfter") int linesAfter) {
+            @Name("indexId") @Optional String indexId,
+            @Name("linesBefore") @Optional int linesBefore,
+            @Name("linesAfter") @Optional int linesAfter) {
         if (indexId == null)
-            throw new NopException(NopCodeErrors.ERR_CODE_INDEX_ID_REQUIRED);
+            return null;
         return codeIndexService.getSymbolSourceCode(indexId,
                 symbol.getId(), linesBefore, linesAfter > 0 ? linesAfter : 5);
     }

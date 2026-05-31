@@ -67,6 +67,8 @@
             <option code="INDEXING" label="索引中" value="20"/>
             <option code="READY" label="就绪" value="30"/>
             <option code="ERROR" label="错误" value="40"/>
+            <option code="COMPLETED" label="已完成" value="50"/>
+            <option code="DETECTED" label="已检测" value="60"/>
         </dict>
         <dict label="编程语言" name="code/language" valueType="int">
             <description>编程语言类型</description>
@@ -532,7 +534,7 @@
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key columns="indexId,callerId,calleeId,line" name="uk_call_unique"/>
+                <unique-key columns="indexId,callerId,calleeId,line,column" name="uk_call_unique"/>
             </unique-keys>
         </entity>
 
@@ -746,7 +748,7 @@
                         <on leftProp="entryPointId" rightProp="id"/>
                     </join>
                 </to-one>
-                <to-many displayName="成员" name="memberships" refEntityName="io.nop.code.dao.entity.NopCodeFlowMembership"
+                <to-many cascadeDelete="true" displayName="成员" name="memberships" refEntityName="io.nop.code.dao.entity.NopCodeFlowMembership"
                          refPropName="flow">
                     <join>
                         <on leftProp="id" rightProp="flowId"/>
