@@ -1291,9 +1291,13 @@ public class CodeIndexService implements ICodeIndexService {
 
             deleteEntitiesByFilter(NopCodeCall.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeSymbol.class, "fileId", fileId);
+            deleteEntitiesByFilter(NopCodeUsage.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeDependency.class, "sourceFilePath", filePath);
             deleteRelationalBySymbolIds(NopCodeAnnotationUsage.class, "annotatedSymbolId", symbolIds);
             deleteRelationalBySymbolIds(NopCodeInheritance.class, "subTypeId", symbolIds);
+            deleteRelationalBySymbolIds(NopCodeSemanticEdge.class, "sourceSymbolId", symbolIds);
+            deleteRelationalBySymbolIds(NopCodeSemanticEdge.class, "targetSymbolId", symbolIds);
+            deleteRelationalBySymbolIds(NopCodeFlowMembership.class, "symbolId", symbolIds);
 
             IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
             QueryBean q = new QueryBean();

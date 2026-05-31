@@ -2,6 +2,7 @@ package io.nop.code.lang.java.analyzer;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -200,13 +201,23 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                         .map(n -> n.getNameAsString())
                         .reduce((a, b) -> a + "," + b)
                         .orElse("");
+                Map<String, Object> extMap = new LinkedHashMap<>();
                 String existingExtData = symbol.getExtData();
-                String permitsExtData = permitsList.isEmpty()
-                        ? "{\"sealed\":true}"
-                        : "{\"sealed\":true,\"permits\":\"" + permitsList + "\"}";
-                symbol.setExtData(existingExtData != null
-                        ? existingExtData.substring(0, existingExtData.length() - 1) + ",\"sealed\":true,\"permits\":\"" + permitsList + "\"}"
-                        : permitsExtData);
+                if (existingExtData != null) {
+                    try {
+                        Map<String, Object> parsed = JsonTool.parseMap(existingExtData);
+                        if (parsed != null) {
+                            extMap.putAll(parsed);
+                        }
+                    } catch (Exception e) {
+                        // ignore parse failure
+                    }
+                }
+                extMap.put("sealed", true);
+                if (!permitsList.isEmpty()) {
+                    extMap.put("permits", permitsList);
+                }
+                symbol.setExtData(JsonTool.stringify(extMap));
             }
 
             CodeSymbol parentType = currentTypeSymbol;
