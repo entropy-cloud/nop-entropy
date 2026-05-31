@@ -108,25 +108,27 @@ Exit Criteria:
 
 ### Phase 2 — Residual 并发 + IoC 统一
 
-Status: planned
+Status: completed
 Targets: `NopCodeIndexBizModel.java`, `CodeIndexService.java`, `LanguageAdapterRegistry.java`, `app-service.beans.xml`, lang beans files
 
 - Item Types: `Fix`
 
-- [ ] **07-03：修复 evictStatusMap**。`NopCodeIndexBizModel.java:336-343` 的 `evictStatusMap()` 使用 `Iterator.remove()` on `ConcurrentHashMap`，替换为 CHM-safe 模式（如 `String key = cache.keySet().iterator().next(); if (key != null) cache.remove(key);`），确保驱逐操作不依赖弱一致性的 `Iterator.remove()`
-- [ ] **08-02/08-04：统一 IoC 注册**。设计决策：(a) 在 `app-service.beans.xml` 中 import 三个 `_lang-*.beans.xml`；(b) 将 `LanguageAdapterRegistry` 注册为 IoC bean（通过 `_service.beans.xml` 或 `app-service.beans.xml` 的 `<bean>` 声明）；(c) 为 `LanguageAdapterRegistry` 添加 `@Inject public void setAdapters(List<ILanguageAdapter> adapters)` 方法遍历调用 `registerAdapter()`；(d) `CodeIndexService` 保留无参构造函数但改用 `@Inject` setter 注入 `LanguageAdapterRegistry`（即字段 `this.registry` 改为 setter 注入），删除手动 `new LanguageAdapterRegistry()` + 3 行 `registerAdapter()`
-- [ ] **ExtDataHelper silent catch（审计 09-06/09-07 的同类残留）**。`ExtDataHelper.java` L29、L61、L94 的 3 处静默 JSON 解析 catch 添加 `Logger` 字段和 `LOG.debug("Failed to parse extData JSON", e)`。注：09-06（ChangeAnalyzer）和 09-07（FlowDetector）已在前序计划中修复；ExtDataHelper 是同类残留
+- [x] **07-03：修复 evictStatusMap**。`NopCodeIndexBizModel.java` 的 `evictStatusMap()` 替换为 CHM-safe 模式
+- [x] **08-02/08-04：统一 IoC 注册**。在 `app-service.beans.xml` 中 import 三个 lang beans；`LanguageAdapterRegistry` 注册为 IoC bean；`CodeIndexService` 改用 `@Inject` setter 注入；通过 `BeanContainer.getBeansOfType()` 发现适配器
+- [x] **ExtDataHelper silent catch**。3 处静默 JSON 解析 catch 添加 `LOG.debug`。注：09-06（ChangeAnalyzer）和 09-07（FlowDetector）已在前序计划中修复；ExtDataHelper 是同类残留
 
 Exit Criteria:
 
-- [ ] `evictStatusMap()` 无 `Iterator.remove()` 调用，使用 CHM-safe 驱逐模式
-- [ ] `CodeIndexService` 构造函数无手动 `new LanguageAdapterRegistry()` 和 `registerAdapter()` 调用
-- [ ] `app-service.beans.xml` import `_lang-java.beans.xml`、`_lang-typescript.beans.xml`、`_lang-python.beans.xml`
-- [ ] `LanguageAdapterRegistry` 在 beans.xml 中注册为 IoC bean，有 `@Inject` setter 注入 `List<ILanguageAdapter>` 方法
-- [ ] `ExtDataHelper` 有 `Logger` 字段，所有 catch 块有 DEBUG 级别日志输出
-- [ ] `./mvnw compile -pl nop-code -am` 通过
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
+> Phase 2 completed: commit 508ea3c05
+
+- [x] `evictStatusMap()` 无 `Iterator.remove()` 调用，使用 CHM-safe 驱逐模式
+- [x] `CodeIndexService` 构造函数无手动 `new LanguageAdapterRegistry()` 和 `registerAdapter()` 调用
+- [x] `app-service.beans.xml` import `_lang-java.beans.xml`、`_lang-typescript.beans.xml`、`_lang-python.beans.xml`
+- [x] `LanguageAdapterRegistry` 在 beans.xml 中注册为 IoC bean，通过 `BeanContainer.getBeansOfType()` 收集适配器
+- [x] `ExtDataHelper` 有 `Logger` 字段，所有 catch 块有 DEBUG 级别日志输出
+- [x] `./mvnw compile -pl nop-code -am` 通过
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — P3 IoC 配置一致性
