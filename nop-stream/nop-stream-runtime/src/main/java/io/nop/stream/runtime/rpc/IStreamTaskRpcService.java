@@ -20,4 +20,6 @@ public interface IStreamTaskRpcService {
     void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken);
 
     void cancelTask(String jobId, String vertexId, int subtaskIndex);
+
+    void updateFencingToken(String newToken);
 }

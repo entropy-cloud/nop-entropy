@@ -464,5 +464,10 @@ class TestJobCoordinator {
         @Override
         public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
         }
+
+        @Override
+        public void updateFencingToken(String newToken) {
+            lastFencingToken.set(newToken);
+        }
     }
 }

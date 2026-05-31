@@ -412,9 +412,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         // Update fencing token on all registered TaskManagers
         for (IStreamTaskRpcService rpc : taskRpcServices.values()) {
-            if (rpc instanceof TaskManager) {
-                ((TaskManager) rpc).updateFencingToken(newToken);
-            }
+            rpc.updateFencingToken(newToken);
         }
 
         // 4. Restore from latest checkpoint/manifest if available
