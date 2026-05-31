@@ -1,4 +1,100 @@
-
-
-# key: value
-
+site:
+  resource:
+    FNPT:NopAuthDept:mutation:
+      displayName: Modify Department
+    FNPT:NopAuthDept:query:
+      displayName: Query Department
+    FNPT:NopAuthExtLogin:mutation:
+      displayName: Modify Ext Login
+    FNPT:NopAuthExtLogin:query:
+      displayName: Query Ext Login
+    FNPT:NopAuthGroup:mutation:
+      displayName: Modify User Group
+    FNPT:NopAuthGroup:query:
+      displayName: Query User Group
+    FNPT:NopAuthOpLog:mutation:
+      displayName: Modify Operation Log
+    FNPT:NopAuthOpLog:query:
+      displayName: Query Operation Log
+    FNPT:NopAuthPosition:mutation:
+      displayName: Modify Position
+    FNPT:NopAuthPosition:query:
+      displayName: Query Position
+    FNPT:NopAuthResource:mutation:
+      displayName: Modify Menu Resource
+    FNPT:NopAuthResource:query:
+      displayName: Query Menu Resource
+    FNPT:NopAuthResource_main:mutation:
+      displayName: Modify Menu Resource
+    FNPT:NopAuthResource_main:query:
+      displayName: Query Menu Resource
+    FNPT:NopAuthRole:mutation:
+      displayName: Modify Role
+    FNPT:NopAuthRole:query:
+      displayName: Query Role
+    FNPT:NopAuthRoleDataAuth:mutation:
+      displayName: Modify Role Data Auth
+    FNPT:NopAuthRoleDataAuth:query:
+      displayName: Query Role Data Auth
+    FNPT:NopAuthSession:mutation:
+      displayName: Modify Session
+    FNPT:NopAuthSession:query:
+      displayName: Query Session
+    FNPT:NopAuthSite:mutation:
+      displayName: Modify Sub Site
+    FNPT:NopAuthSite:query:
+      displayName: Query Sub Site
+    FNPT:NopAuthTenant:mutation:
+      displayName: Modify Tenant
+    FNPT:NopAuthTenant:query:
+      displayName: Query Tenant
+    FNPT:NopAuthUser:mutation:
+      displayName: Modify User
+    FNPT:NopAuthUser:query:
+      displayName: Query User
+    FNPT:NopAuthUserSubstitution:mutation:
+      displayName: Modify User Substitution
+    FNPT:NopAuthUserSubstitution:query:
+      displayName: Query User Substitution
+    FNPT:NopAuthUser_tenant:mutation:
+      displayName: Modify User
+    FNPT:NopAuthUser_tenant:query:
+      displayName: Query User
+    NopAuthDept-deleted:
+      displayName: Deleted User
+    NopAuthDept-main:
+      displayName: Department
+    NopAuthDept-tabsView:
+      displayName: Department
+    NopAuthExtLogin-main:
+      displayName: Ext Login
+    NopAuthGroup-main:
+      displayName: User Group
+    NopAuthOpLog-main:
+      displayName: Operation Log
+    NopAuthPosition-main:
+      displayName: Position
+    NopAuthResource-main:
+      displayName: Menu Resource
+    NopAuthResource_main-main:
+      displayName: Menu Resource
+    NopAuthRole-main:
+      displayName: Role
+    NopAuthRoleDataAuth-main:
+      displayName: Role Data Auth
+    NopAuthSession-main:
+      displayName: Session
+    NopAuthSite-main:
+      displayName: Sub Site
+    NopAuthTenant-main:
+      displayName: Tenant
+    NopAuthUser-changeSelfPass:
+      displayName: Change Password
+    NopAuthUser-main:
+      displayName: User
+    NopAuthUserSubstitution-main:
+      displayName: User Substitution
+    NopAuthUser_tenant-main:
+      displayName: User
+    test-orm-nop-auth:
+      displayName: ''
