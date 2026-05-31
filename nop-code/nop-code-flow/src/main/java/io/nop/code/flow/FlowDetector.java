@@ -201,6 +201,8 @@ public class FlowDetector implements IFlowDetector {
         return false;
     }
 
+    private static final List<String> SOURCE_EXTENSIONS = List.of(".java", ".py", ".ts", ".tsx");
+
     private String qualifiedNameToFilePath(String qualifiedName) {
         if (qualifiedName == null) return null;
         int parenIndex = qualifiedName.indexOf('(');
@@ -209,8 +211,8 @@ public class FlowDetector implements IFlowDetector {
         }
         int lastDot = qualifiedName.lastIndexOf('.');
         if (lastDot > 0) {
-            String className = qualifiedName.substring(0, lastDot).replace('.', '/');
-            return className + ".java";
+            String classPath = qualifiedName.substring(0, lastDot).replace('.', '/');
+            return classPath + ".java";
         }
         return null;
     }
@@ -406,10 +408,7 @@ public class FlowDetector implements IFlowDetector {
         }
         int lastDot = qn.lastIndexOf('.');
         if (lastDot > 0) {
-            int prevDot = qn.lastIndexOf('.', lastDot - 1);
-            if (prevDot > 0) {
-                return qn.substring(0, prevDot);
-            }
+            return qn.substring(0, lastDot);
         }
         return qn;
     }

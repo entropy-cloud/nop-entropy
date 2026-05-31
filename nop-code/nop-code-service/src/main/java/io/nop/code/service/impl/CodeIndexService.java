@@ -558,7 +558,12 @@ public class CodeIndexService implements ICodeIndexService {
 
         ormTemplate.runInSession(session -> {
             deleteEntitiesPaged(session, NopCodeUsage.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flow.indexId", indexId);
+            IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
+            QueryBean flowQuery = new QueryBean();
+            flowQuery.addFilter(FilterBeans.eq("indexId", indexId));
+            for (NopCodeFlow flow : flowDao.findAllByQuery(flowQuery)) {
+                deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flowId", flow.getId());
+            }
             deleteEntitiesPaged(session, NopCodeFlow.class, "indexId", indexId);
             deleteEntitiesPaged(session, NopCodeAnnotationUsage.class, "indexId", indexId);
             deleteEntitiesPaged(session, NopCodeInheritance.class, "indexId", indexId);
@@ -872,7 +877,7 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity.setId(indexId);
             indexEntity.setName(indexId);
             indexEntity.setRootPath(rootPath != null ? rootPath : "/");
-            indexEntity.setLanguage("Java");
+            indexEntity.setLanguage(detectIndexLanguage(result));
             indexEntity.setFileCount(result.getFileResults().size());
             indexEntity.setSymbolCount(result.getGlobalSymbolTable().size());
             indexEntity.setStatus("COMPLETED");
@@ -971,7 +976,7 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity.setId(indexId);
             indexEntity.setName(indexId);
             indexEntity.setRootPath(rootPath != null ? rootPath : "/");
-            indexEntity.setLanguage("Java");
+            indexEntity.setLanguage("MIXED");
             indexEntity.setStatus("INDEXING");
             indexEntity.setLastIndexed(CoreMetrics.currentTimeMillis());
             session.save(indexEntity);
@@ -987,6 +992,25 @@ public class CodeIndexService implements ICodeIndexService {
             indexEntity.setStatus("COMPLETED");
             indexEntity.setLastIndexed(CoreMetrics.currentTimeMillis());
         }
+    }
+
+    private String detectIndexLanguage(ProjectAnalysisResult result) {
+        if (result.getFileResults() == null || result.getFileResults().isEmpty()) {
+            return "Java";
+        }
+        Set<String> languages = new HashSet<>();
+        for (CodeFileAnalysisResult file : result.getFileResults()) {
+            if (file.getLanguage() != null) {
+                languages.add(file.getLanguage().name());
+            }
+        }
+        if (languages.size() == 1) {
+            return languages.iterator().next();
+        }
+        if (languages.isEmpty()) {
+            return "Java";
+        }
+        return "MIXED";
     }
 
     private void persistSingleFileInSession(String indexId, CodeFileAnalysisResult result,

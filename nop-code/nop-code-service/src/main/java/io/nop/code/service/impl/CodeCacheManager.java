@@ -95,9 +95,9 @@ class CodeCacheManager {
                 totalLoaded++;
             }
             if (totalLoaded >= MAX_CACHE_SYMBOLS) {
-                LOG.warn("Symbol cache for index {} exceeded MAX_CACHE_SYMBOLS({}), degrading to empty cache",
-                        indexId, MAX_CACHE_SYMBOLS);
-                return new SymbolTable();
+                LOG.warn("Symbol cache for index {} exceeded MAX_CACHE_SYMBOLS({}), returning partial data ({} symbols loaded)",
+                        indexId, MAX_CACHE_SYMBOLS, totalLoaded);
+                return table;
             }
             if (batch.size() < BATCH_SIZE)
                 break;
@@ -125,9 +125,9 @@ class CodeCacheManager {
                 totalLoaded++;
             }
             if (totalLoaded >= MAX_CACHE_EDGES) {
-                LOG.warn("Call graph cache for index {} exceeded MAX_CACHE_EDGES({}), degrading to empty cache",
-                        indexId, MAX_CACHE_EDGES);
-                return new CallGraph();
+                LOG.warn("Call graph cache for index {} exceeded MAX_CACHE_EDGES({}), returning partial data ({} edges loaded)",
+                        indexId, MAX_CACHE_EDGES, totalLoaded);
+                return callGraph;
             }
             if (batch.size() < BATCH_SIZE)
                 break;

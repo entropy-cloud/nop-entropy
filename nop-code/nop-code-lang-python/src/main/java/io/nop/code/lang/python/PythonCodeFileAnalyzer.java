@@ -222,6 +222,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         TSNode block = getFirstChildByType(node, "block").orElse(null);
         if (block != null) {
+            walkBlockChildren(block, source, modulePrefix, symbol, result);
             walkBlockForCalls(block, source, symbol, result);
         }
     }
@@ -421,6 +422,10 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
         for (int i = 0; i < node.getChildCount(); i++) {
             TSNode child = node.getChild(i);
             if (child != null) {
+                String childType = child.getType();
+                if ("function_definition".equals(childType) || "class_definition".equals(childType)) {
+                    continue;
+                }
                 walkNodeForCalls(child, source, callerSymbol, result);
             }
         }
