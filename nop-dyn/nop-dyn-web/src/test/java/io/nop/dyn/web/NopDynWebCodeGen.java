@@ -28,6 +28,7 @@ public class NopDynWebCodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-dyn-meta"), "/", false);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-dyn-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPrecompile2(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

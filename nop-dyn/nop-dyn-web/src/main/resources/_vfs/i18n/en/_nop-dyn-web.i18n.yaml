@@ -1,0 +1,82 @@
+site:
+  resource:
+    FNPT:NopDynApp:mutation:
+      displayName: Modify App Definition
+    FNPT:NopDynApp:query:
+      displayName: Query App Definition
+    FNPT:NopDynDomain:mutation:
+      displayName: Modify Domain
+    FNPT:NopDynDomain:query:
+      displayName: Query Domain
+    FNPT:NopDynEntity:mutation:
+      displayName: Modify Dynamic Entity
+    FNPT:NopDynEntity:query:
+      displayName: Query Dynamic Entity
+    FNPT:NopDynEntityMeta:mutation:
+      displayName: Modify Entity Meta
+    FNPT:NopDynEntityMeta:query:
+      displayName: Query Entity Meta
+    FNPT:NopDynEntityRelation:mutation:
+      displayName: Modify Entity Relation
+    FNPT:NopDynEntityRelation:query:
+      displayName: Query Entity Relation
+    FNPT:NopDynEntityRelationMeta:mutation:
+      displayName: Modify Entity Relation Meta
+    FNPT:NopDynEntityRelationMeta:query:
+      displayName: Query Entity Relation Meta
+    FNPT:NopDynFile:mutation:
+      displayName: Modify Module File
+    FNPT:NopDynFile:query:
+      displayName: Query Module File
+    FNPT:NopDynFunctionMeta:mutation:
+      displayName: Modify Function Meta
+    FNPT:NopDynFunctionMeta:query:
+      displayName: Query Function Meta
+    FNPT:NopDynModule:mutation:
+      displayName: Modify Module Definition
+    FNPT:NopDynModule:query:
+      displayName: Query Module Definition
+    FNPT:NopDynPage:mutation:
+      displayName: Modify Page Definition
+    FNPT:NopDynPage:query:
+      displayName: Query Page Definition
+    FNPT:NopDynPatchFile:mutation:
+      displayName: Modify Patch File
+    FNPT:NopDynPatchFile:query:
+      displayName: Query Patch File
+    FNPT:NopDynPropMeta:mutation:
+      displayName: Modify Property Meta
+    FNPT:NopDynPropMeta:query:
+      displayName: Query Property Meta
+    FNPT:NopDynSql:mutation:
+      displayName: Modify Module SQL
+    FNPT:NopDynSql:query:
+      displayName: Query Module SQL
+    NopDynApp-main:
+      displayName: App Definition
+    NopDynDomain-main:
+      displayName: Domain
+    NopDynEntity-main:
+      displayName: Dynamic Entity
+    NopDynEntityMeta-main:
+      displayName: Entity Meta
+    NopDynEntityRelation-main:
+      displayName: Entity Relation
+    NopDynEntityRelationMeta-main:
+      displayName: Entity Relation Meta
+    NopDynFile-main:
+      displayName: Module File
+    NopDynFunctionMeta-main:
+      displayName: Function Meta
+    NopDynModule-main:
+      displayName: Module Definition
+    NopDynPage-main:
+      displayName: Page Definition
+    NopDynPatchFile-main:
+      displayName: Patch File
+    NopDynPropMeta-main:
+      displayName: Property Meta
+    NopDynSql-main:
+      displayName: Module SQL
+    test-orm-nop-dyn:
+      displayName: ''

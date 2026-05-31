@@ -9,10 +9,12 @@
                           icon="app-window" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynApp/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynApp:query" displayName="查询应用定义" orderNo="10002" resourceType="FNPT">
+                        <resource id="FNPT:NopDynApp:query" displayName="查询应用定义"
+                                  i18n-en:displayName="Query App Definition" orderNo="10002" resourceType="FNPT">
                             <permissions>NopDynApp:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynApp:mutation" displayName="修改应用定义" orderNo="10003" resourceType="FNPT">
+                        <resource id="FNPT:NopDynApp:mutation" displayName="修改应用定义"
+                                  i18n-en:displayName="Modify App Definition" orderNo="10003" resourceType="FNPT">
                             <permissions>NopDynApp:mutation</permissions>
                         </resource>
                     </children>
@@ -21,11 +23,12 @@
                           icon="type" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynDomain/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynDomain:query" displayName="查询数据域" orderNo="10005" resourceType="FNPT">
+                        <resource id="FNPT:NopDynDomain:query" displayName="查询数据域" i18n-en:displayName="Query Domain"
+                                  orderNo="10005" resourceType="FNPT">
                             <permissions>NopDynDomain:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynDomain:mutation" displayName="修改数据域" orderNo="10006"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynDomain:mutation" displayName="修改数据域"
+                                  i18n-en:displayName="Modify Domain" orderNo="10006" resourceType="FNPT">
                             <permissions>NopDynDomain:mutation</permissions>
                         </resource>
                     </children>
@@ -34,11 +37,12 @@
                           icon="blocks" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynEntity/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynEntity:query" displayName="查询动态实体" orderNo="10008" resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntity:query" displayName="查询动态实体"
+                                  i18n-en:displayName="Query Dynamic Entity" orderNo="10008" resourceType="FNPT">
                             <permissions>NopDynEntity:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynEntity:mutation" displayName="修改动态实体" orderNo="10009"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntity:mutation" displayName="修改动态实体"
+                                  i18n-en:displayName="Modify Dynamic Entity" orderNo="10009" resourceType="FNPT">
                             <permissions>NopDynEntity:mutation</permissions>
                         </resource>
                     </children>
@@ -47,12 +51,12 @@
                           i18n-en:displayName="Entity Meta" icon="database" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynEntityMeta/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynEntityMeta:query" displayName="查询实体元数据" orderNo="10011"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntityMeta:query" displayName="查询实体元数据"
+                                  i18n-en:displayName="Query Entity Meta" orderNo="10011" resourceType="FNPT">
                             <permissions>NopDynEntityMeta:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynEntityMeta:mutation" displayName="修改实体元数据" orderNo="10012"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntityMeta:mutation" displayName="修改实体元数据"
+                                  i18n-en:displayName="Modify Entity Meta" orderNo="10012" resourceType="FNPT">
                             <permissions>NopDynEntityMeta:mutation</permissions>
                         </resource>
                     </children>
@@ -61,12 +65,12 @@
                           i18n-en:displayName="Entity Relation" icon="link-2" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynEntityRelation/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynEntityRelation:query" displayName="查询实体关联" orderNo="10014"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntityRelation:query" displayName="查询实体关联"
+                                  i18n-en:displayName="Query Entity Relation" orderNo="10014" resourceType="FNPT">
                             <permissions>NopDynEntityRelation:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynEntityRelation:mutation" displayName="修改实体关联" orderNo="10015"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntityRelation:mutation" displayName="修改实体关联"
+                                  i18n-en:displayName="Modify Entity Relation" orderNo="10015" resourceType="FNPT">
                             <permissions>NopDynEntityRelation:mutation</permissions>
                         </resource>
                     </children>
@@ -75,12 +79,12 @@
                           i18n-en:displayName="Entity Relation Meta" icon="link-2" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynEntityRelationMeta/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynEntityRelationMeta:query" displayName="查询实体关联属性定义" orderNo="10017"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntityRelationMeta:query" displayName="查询实体关联属性定义"
+                                  i18n-en:displayName="Query Entity Relation Meta" orderNo="10017" resourceType="FNPT">
                             <permissions>NopDynEntityRelationMeta:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynEntityRelationMeta:mutation" displayName="修改实体关联属性定义" orderNo="10018"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynEntityRelationMeta:mutation" displayName="修改实体关联属性定义"
+                                  i18n-en:displayName="Modify Entity Relation Meta" orderNo="10018" resourceType="FNPT">
                             <permissions>NopDynEntityRelationMeta:mutation</permissions>
                         </resource>
                     </children>
@@ -89,10 +93,12 @@
                           icon="file-code" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynFile/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynFile:query" displayName="查询模块文件" orderNo="10020" resourceType="FNPT">
+                        <resource id="FNPT:NopDynFile:query" displayName="查询模块文件"
+                                  i18n-en:displayName="Query Module File" orderNo="10020" resourceType="FNPT">
                             <permissions>NopDynFile:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynFile:mutation" displayName="修改模块文件" orderNo="10021" resourceType="FNPT">
+                        <resource id="FNPT:NopDynFile:mutation" displayName="修改模块文件"
+                                  i18n-en:displayName="Modify Module File" orderNo="10021" resourceType="FNPT">
                             <permissions>NopDynFile:mutation</permissions>
                         </resource>
                     </children>
@@ -101,12 +107,12 @@
                           i18n-en:displayName="Function Meta" icon="square-function" component="AMIS"
                           resourceType="SUBM" url="/nop/dyn/pages/NopDynFunctionMeta/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynFunctionMeta:query" displayName="查询实体函数定义" orderNo="10023"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynFunctionMeta:query" displayName="查询实体函数定义"
+                                  i18n-en:displayName="Query Function Meta" orderNo="10023" resourceType="FNPT">
                             <permissions>NopDynFunctionMeta:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynFunctionMeta:mutation" displayName="修改实体函数定义" orderNo="10024"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynFunctionMeta:mutation" displayName="修改实体函数定义"
+                                  i18n-en:displayName="Modify Function Meta" orderNo="10024" resourceType="FNPT">
                             <permissions>NopDynFunctionMeta:mutation</permissions>
                         </resource>
                     </children>
@@ -115,11 +121,12 @@
                           i18n-en:displayName="Module Definition" icon="boxes" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynModule/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynModule:query" displayName="查询模块定义" orderNo="10026" resourceType="FNPT">
+                        <resource id="FNPT:NopDynModule:query" displayName="查询模块定义"
+                                  i18n-en:displayName="Query Module Definition" orderNo="10026" resourceType="FNPT">
                             <permissions>NopDynModule:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynModule:mutation" displayName="修改模块定义" orderNo="10027"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynModule:mutation" displayName="修改模块定义"
+                                  i18n-en:displayName="Modify Module Definition" orderNo="10027" resourceType="FNPT">
                             <permissions>NopDynModule:mutation</permissions>
                         </resource>
                     </children>
@@ -128,10 +135,12 @@
                           icon="layout-template" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynPage/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynPage:query" displayName="查询页面定义" orderNo="10029" resourceType="FNPT">
+                        <resource id="FNPT:NopDynPage:query" displayName="查询页面定义"
+                                  i18n-en:displayName="Query Page Definition" orderNo="10029" resourceType="FNPT">
                             <permissions>NopDynPage:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynPage:mutation" displayName="修改页面定义" orderNo="10030" resourceType="FNPT">
+                        <resource id="FNPT:NopDynPage:mutation" displayName="修改页面定义"
+                                  i18n-en:displayName="Modify Page Definition" orderNo="10030" resourceType="FNPT">
                             <permissions>NopDynPage:mutation</permissions>
                         </resource>
                     </children>
@@ -140,12 +149,12 @@
                           icon="file-diff" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynPatchFile/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynPatchFile:query" displayName="查询补丁文件" orderNo="10032"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynPatchFile:query" displayName="查询补丁文件"
+                                  i18n-en:displayName="Query Patch File" orderNo="10032" resourceType="FNPT">
                             <permissions>NopDynPatchFile:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynPatchFile:mutation" displayName="修改补丁文件" orderNo="10033"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynPatchFile:mutation" displayName="修改补丁文件"
+                                  i18n-en:displayName="Modify Patch File" orderNo="10033" resourceType="FNPT">
                             <permissions>NopDynPatchFile:mutation</permissions>
                         </resource>
                     </children>
@@ -154,12 +163,12 @@
                           i18n-en:displayName="Property Meta" icon="list-tree" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynPropMeta/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynPropMeta:query" displayName="查询属性元数据" orderNo="10035"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynPropMeta:query" displayName="查询属性元数据"
+                                  i18n-en:displayName="Query Property Meta" orderNo="10035" resourceType="FNPT">
                             <permissions>NopDynPropMeta:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynPropMeta:mutation" displayName="修改属性元数据" orderNo="10036"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopDynPropMeta:mutation" displayName="修改属性元数据"
+                                  i18n-en:displayName="Modify Property Meta" orderNo="10036" resourceType="FNPT">
                             <permissions>NopDynPropMeta:mutation</permissions>
                         </resource>
                     </children>
@@ -168,10 +177,12 @@
                           icon="database" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynSql/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynSql:query" displayName="查询SQL定义" orderNo="10038" resourceType="FNPT">
+                        <resource id="FNPT:NopDynSql:query" displayName="查询SQL定义" i18n-en:displayName="Query Module SQL"
+                                  orderNo="10038" resourceType="FNPT">
                             <permissions>NopDynSql:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynSql:mutation" displayName="修改SQL定义" orderNo="10039" resourceType="FNPT">
+                        <resource id="FNPT:NopDynSql:mutation" displayName="修改SQL定义"
+                                  i18n-en:displayName="Modify Module SQL" orderNo="10039" resourceType="FNPT">
                             <permissions>NopDynSql:mutation</permissions>
                         </resource>
                     </children>
