@@ -8,18 +8,25 @@ import java.util.*;
 public class CallGraph {
     private final Map<String, List<String>> forwardEdges = new HashMap<>();
     private final Map<String, List<String>> reverseEdges = new HashMap<>();
+    private final Set<String> edgeKeys = new HashSet<>();
 
     public void addEdge(String caller, String callee) {
+        String edgeKey = caller + "->" + callee;
+        if (!edgeKeys.add(edgeKey)) {
+            return;
+        }
         forwardEdges.computeIfAbsent(caller, k -> new ArrayList<>()).add(callee);
         reverseEdges.computeIfAbsent(callee, k -> new ArrayList<>()).add(caller);
     }
 
     public List<String> getCallees(String nodeId) {
-        return forwardEdges.getOrDefault(nodeId, Collections.emptyList());
+        List<String> callees = forwardEdges.get(nodeId);
+        return callees != null ? Collections.unmodifiableList(callees) : Collections.emptyList();
     }
 
     public List<String> getCallers(String nodeId) {
-        return reverseEdges.getOrDefault(nodeId, Collections.emptyList());
+        List<String> callers = reverseEdges.get(nodeId);
+        return callers != null ? Collections.unmodifiableList(callers) : Collections.emptyList();
     }
 
     public Set<String> getAllNodeIds() {
@@ -29,6 +36,6 @@ public class CallGraph {
     }
 
     public Map<String, List<String>> getForwardMap() {
-        return forwardEdges;
+        return Collections.unmodifiableMap(forwardEdges);
     }
 }
