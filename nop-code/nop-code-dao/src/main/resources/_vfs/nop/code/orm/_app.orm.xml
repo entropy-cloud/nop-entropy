@@ -501,6 +501,9 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="indexId,symbolId,fileId,kind,line,column" name="uk_usage_unique"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeCall" displayName="方法调用"
                 name="io.nop.code.dao.entity.NopCodeCall" registerShortName="true" tableName="nop_code_call"
@@ -619,6 +622,9 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="indexId,subTypeId,superTypeId,relationType" name="uk_inheritance_unique"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeAnnotationUsage" displayName="注解使用"
                 name="io.nop.code.dao.entity.NopCodeAnnotationUsage" registerShortName="true"
@@ -673,6 +679,9 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="indexId,annotationTypeId,annotatedSymbolId" name="uk_annotation_usage_unique"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeDependency" displayName="文件依赖"
                 name="io.nop.code.dao.entity.NopCodeDependency" registerShortName="true" tableName="nop_code_dependency"
@@ -689,8 +698,8 @@
                         precision="500" propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="IMPORT_STATEMENT" displayName="导入语句" name="importStatement" precision="500" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="RESOLVED" displayName="是否已解析" name="resolved" propId="6" stdDataType="int"
-                        stdSqlType="SMALLINT"/>
+                <column code="RESOLVED" displayName="是否已解析" name="resolved" propId="6" stdDataType="boolean"
+                        stdSqlType="BOOLEAN"/>
             </columns>
             <comment>文件级别的依赖关系，记录源文件导入了哪些目标文件</comment>
             <indexes>

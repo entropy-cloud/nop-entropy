@@ -15,7 +15,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="uk_annotation_usage_unique" props="indexId,annotationTypeId,annotatedSymbolId"/>
+    </keys>
 
     <props>
         <prop name="id" displayName="ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"

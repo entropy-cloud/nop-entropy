@@ -40,7 +40,7 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     public static final String PROP_NAME_importStatement = "importStatement";
     public static final int PROP_ID_importStatement = 5;
     
-    /* 是否已解析: RESOLVED SMALLINT */
+    /* 是否已解析: RESOLVED BOOLEAN */
     public static final String PROP_NAME_resolved = "resolved";
     public static final int PROP_ID_resolved = 6;
     
@@ -96,7 +96,7 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     private java.lang.String _importStatement;
     
     /* 是否已解析: RESOLVED */
-    private java.lang.Integer _resolved;
+    private java.lang.Boolean _resolved;
     
 
     public _NopCodeDependency(){
@@ -252,9 +252,9 @@ public class _NopCodeDependency extends DynamicOrmEntity{
             }
         
             case PROP_ID_resolved:{
-               java.lang.Integer typedValue = null;
+               java.lang.Boolean typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
+                   typedValue = ConvertHelper.toBoolean(value,
                        err-> newTypeConversionError(PROP_NAME_resolved));
                }
                setResolved(typedValue);
@@ -307,7 +307,7 @@ public class _NopCodeDependency extends DynamicOrmEntity{
         
             case PROP_ID_resolved:{
                onInitProp(propId);
-               this._resolved = (java.lang.Integer)value;
+               this._resolved = (java.lang.Boolean)value;
                
                break;
             }
@@ -416,7 +416,7 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     /**
      * 是否已解析: RESOLVED
      */
-    public final java.lang.Integer getResolved(){
+    public final java.lang.Boolean getResolved(){
          onPropGet(PROP_ID_resolved);
          return _resolved;
     }
@@ -424,7 +424,7 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     /**
      * 是否已解析: RESOLVED
      */
-    public final void setResolved(java.lang.Integer value){
+    public final void setResolved(java.lang.Boolean value){
         if(onPropSet(PROP_ID_resolved,value)){
             this._resolved = value;
             internalClearRefs(PROP_ID_resolved);

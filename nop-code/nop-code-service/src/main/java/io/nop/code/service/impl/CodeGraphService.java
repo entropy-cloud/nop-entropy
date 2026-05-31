@@ -495,7 +495,7 @@ class CodeGraphService {
         List<DepEdgeDTO> edges = new ArrayList<>();
         Map<String, int[]> degreeMap = new LinkedHashMap<>();
         for (NopCodeDependency dep : deps) {
-            if (!includeExternal && !Boolean.TRUE.equals(dep.getResolved() != null && dep.getResolved() == 1)) {
+            if (!includeExternal && !Boolean.TRUE.equals(dep.getResolved())) {
                 continue;
             }
             String src = dep.getSourceFilePath();
@@ -506,7 +506,7 @@ class CodeGraphService {
             edge.setSource(src);
             edge.setTarget(tgt);
             edge.setImportStatement(dep.getImportStatement());
-            edge.setResolved(dep.getResolved() != null && dep.getResolved() == 1);
+            edge.setResolved(Boolean.TRUE.equals(dep.getResolved()));
             edges.add(edge);
 
             int[] srcDeg = degreeMap.computeIfAbsent(src, k -> new int[2]);
@@ -585,7 +585,7 @@ class CodeGraphService {
             edge.setSource(dep.getSourceFilePath());
             edge.setTarget(dep.getTargetFilePath());
             edge.setImportStatement(dep.getImportStatement());
-            edge.setResolved(dep.getResolved() != null && dep.getResolved() == 1);
+            edge.setResolved(Boolean.TRUE.equals(dep.getResolved()));
             adj.computeIfAbsent(dep.getSourceFilePath(), k -> new ArrayList<>()).add(edge);
         }
         return adj;
@@ -604,7 +604,7 @@ class CodeGraphService {
             edge.setSource(dep.getSourceFilePath());
             edge.setTarget(dep.getTargetFilePath());
             edge.setImportStatement(dep.getImportStatement());
-            edge.setResolved(dep.getResolved() != null && dep.getResolved() == 1);
+            edge.setResolved(Boolean.TRUE.equals(dep.getResolved()));
             adj.computeIfAbsent(dep.getTargetFilePath(), k -> new ArrayList<>()).add(edge);
         }
         return adj;

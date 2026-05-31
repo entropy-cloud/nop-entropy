@@ -31,7 +31,7 @@
                 <col id="importStatement" sortable="true"/>
 
                 <!--是否已解析-->
-                <col id="resolved" ui:number="true" sortable="true"/>
+                <col id="resolved" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>

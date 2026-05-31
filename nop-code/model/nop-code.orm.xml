@@ -466,6 +466,9 @@
                     <column name="enclosingSymbolId"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key columns="indexId,symbolId,fileId,kind,line,column" name="uk_usage_unique"/>
+            </unique-keys>
         </entity>
 
         <!-- 方法调用 -->
@@ -588,6 +591,9 @@
                     <column name="indexId"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key columns="indexId,subTypeId,superTypeId,relationType" name="uk_inheritance_unique"/>
+            </unique-keys>
         </entity>
 
         <!-- 注解使用 -->
@@ -644,6 +650,9 @@
                     <column name="indexId"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key columns="indexId,annotationTypeId,annotatedSymbolId" name="uk_annotation_usage_unique"/>
+            </unique-keys>
         </entity>
 
         <!-- ========================================
@@ -666,7 +675,7 @@
                 <column code="IMPORT_STATEMENT" displayName="导入语句" name="importStatement"
                         precision="500" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="RESOLVED" displayName="是否已解析" name="resolved"
-                        propId="6" stdDataType="int" stdSqlType="SMALLINT"/>
+                        propId="6" stdDataType="boolean" stdSqlType="BOOLEAN"/>
             </columns>
             <comment>文件级别的依赖关系，记录源文件导入了哪些目标文件</comment>
             <relations>

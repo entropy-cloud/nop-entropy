@@ -1228,7 +1228,7 @@ public class CodeIndexService implements ICodeIndexService {
                     depEntity.setSourceFilePath(dep.getSourceFilePath());
                     depEntity.setTargetFilePath(dep.getTargetFilePath());
                     depEntity.setImportStatement(dep.getImportStatement());
-                    depEntity.setResolved(dep.isResolved() ? 1 : 0);
+                    depEntity.setResolved(dep.isResolved());
                     session.save(depEntity);
                 }
             }
