@@ -133,97 +133,101 @@ ORM（3 项）：
 
 ### Phase 1 - 安全修复（3 项）
 
-Status: planned
+Status: completed
+Commit: `4620183f8`
 Targets: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java`, `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeSymbolBizModel.java`, `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeFileBizModel.java`
 
 - Item Types: `Fix`
 
-- [ ] **修复 07-01**：`NopCodeIndexBizModel.java:190` 将 `detectFlows` 的 `@BizQuery` 改为 `@BizMutation`。方法内部调用 `persistFlows()` 执行 DB 写入（删除旧 flow → 插入新 flow），语义上是 mutation 而非 query
-- [ ] **修复 13-01**：`NopCodeSymbolBizModel.java` 中为返回源代码的方法添加 `@Auth(permissions = "code-source-read")` 注解（导入 `io.nop.api.core.annotations.directive.Auth`）：(1) `showSymbol`（line 123）返回包含 sourceCode 的符号详情；(2) `sourceCode` BizLoader（line 111）直接返回文件源代码；(3) `searchCode`（line 182）搜索并返回匹配的源代码片段。与 Plan 89 中 `NopCodeIndexBizModel.java:236` 的 `@Auth(permissions = "code-source-read")` 模式一致
-- [ ] **修复 13-02**：`NopCodeFileBizModel.java:70` 为 `sourceCode` BizLoader 添加 `@Auth(permissions = "code-source-read")` 注解（导入 `io.nop.api.core.annotations.directive.Auth`）。该方法直接返回 `file.getSourceCode()`——与 Plan 89 中 IndexBizModel 的 sourceCode 方法同等敏感
+- [x] **修复 07-01**：`NopCodeIndexBizModel.java:190` 将 `detectFlows` 的 `@BizQuery` 改为 `@BizMutation`
+- [x] **修复 13-01**：`NopCodeSymbolBizModel.java` 中为返回源代码的方法添加 `@Auth(permissions = "code-source-read")` 注解
+- [x] **修复 13-02**：`NopCodeFileBizModel.java:70` 为 `sourceCode` BizLoader 添加 `@Auth(permissions = "code-source-read")` 注解
 
 Exit Criteria:
 
-- [ ] `NopCodeIndexBizModel.detectFlows` 标注 `@BizMutation`（非 `@BizQuery`）
-- [ ] `NopCodeSymbolBizModel` 的 showSymbol/sourceCode/searchCode 有 `@Auth(permissions = "code-source-read")`（导入 `io.nop.api.core.annotations.directive.Auth`）
-- [ ] `NopCodeFileBizModel` 的 sourceCode BizLoader 有 `@Auth(permissions = "code-source-read")`
-- [ ] **接线验证**：权限注解使用正确的注解类型 `@Auth`（非不存在的 `@BizPermission`），与 Plan 89 中 `NopCodeIndexBizModel:236` 的模式一致
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `NopCodeIndexBizModel.detectFlows` 标注 `@BizMutation`（非 `@BizQuery`）
+- [x] `NopCodeSymbolBizModel` 的 showSymbol/sourceCode/searchCode 有 `@Auth(permissions = "code-source-read")`（导入 `io.nop.api.core.annotations.directive.Auth`）
+- [x] `NopCodeFileBizModel` 的 sourceCode BizLoader 有 `@Auth(permissions = "code-source-read")`
+- [x] **接线验证**：权限注解使用正确的注解类型 `@Auth`（非不存在的 `@BizPermission`），与 Plan 89 中 `NopCodeIndexBizModel:236` 的模式一致
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 性能修复（2 项）
 
-Status: planned
+Status: completed
+Commit: `45765774d`
 Targets: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java`, `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java`
 
 - Item Types: `Fix`
 
-- [ ] **修复 14-02（triggerIncrementalIndex 长事务）**：重构 `CodeIndexService.triggerIncrementalIndex()`（line 639-719）。当前整个流程在 `ormTemplate.runInSession()` 内执行，包括 CPU 密集型的文件分析。修复策略为两-session 方案：(1) Session 1：`store.loadFingerprints(indexId)` 加载指纹 → 关闭 session；(2) Session 外：`detector.detectChanges()` 变更检测 + 逐文件 `fileAnalyzer.analyze()` 分析（CPU 密集部分）；(3) Session 2：`deleteFileRecords` + `persistSingleFileInSession` + `updateIndexStats` + `store.saveFingerprints` 持久化。注意：`OrmFingerprintStore` 的 `loadFingerprints`/`saveFingerprints` 需要 ORM session。如果两-session 方案过于复杂，备选方案为：在 session 内只做最少的 CPU 工作（文件读取 + 分析），将 `deleteFileRecords` 和 `persistSingleFileInSession` 的 DB 操作分批执行（每 100 个文件 flush + evictAll），减少单次 session 持有时间
-- [ ] **修复 07-04（findReferencedBy N+1）**：重构 `CodeQueryService.findReferencedBy()`（line 579-626）。当前在 stream.map() 内逐条查询 `fileDao.getEntityById(usage.getFileId())` 和 `symbolDao.getEntityById(usage.getEnclosingSymbolId())`。修复策略：(1) 收集所有需要的 fileId 和 symbolId 到 Set；(2) 批量查询 `findAllByQuery` + `IN` 条件一次性加载；(3) 构建 Map<ID, Entity>；(4) 在 stream 中直接从 Map 查找
+- [x] **修复 14-02（triggerIncrementalIndex 长事务）**：重构为两-session 方案
+- [x] **修复 07-04（findReferencedBy N+1）**：批量查询替代逐条查询
 
 Exit Criteria:
 
-- [ ] `triggerIncrementalIndex` 的文件分析在 ORM session 外执行，仅持久化阶段在 session 内（两-session 方案或分批 flush/evict 备选方案）
-- [ ] `findReferencedBy` 使用批量查询（1 次 usage 查询 + 1 次 file 批量查询 + 1 次 symbol 批量查询 = 3 次查询，非 N+1）。注意：批量查询返回的 `List<NopCodeFile>` 需按 `id` 去 `Map<String, NopCodeFile>`，因多个 usage 可能引用同一 file
-- [ ] 现有测试通过（增量索引行为不变）
-- [ ] **端到端验证**（14-02）：triggerIncrementalIndex 重构后完整增量索引流程仍可正确执行（变更检测 → 文件分析 → DB 持久化 → 指纹更新）
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `triggerIncrementalIndex` 的文件分析在 ORM session 外执行，仅持久化阶段在 session 内
+- [x] `findReferencedBy` 使用批量查询（3 次查询，非 N+1）
+- [x] 现有测试通过（增量索引行为不变）
+- [x] **端到端验证**（14-02）：triggerIncrementalIndex 重构后完整增量索引流程仍可正确执行
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 代码质量修复（3 项）
 
-Status: planned
+Status: completed
+Commit: `9a3e90f09`
 Targets: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/export/GraphExporter.java`, `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java`, `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/analysis/CodeGraphService.java`, `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeQueryService.java`
 
 - Item Types: `Fix`
 
-- [ ] **修复 09-01（GraphExporter 裸异常）**：`GraphExporter.java:35` 将 `throw new IllegalArgumentException("Unsupported format: " + format)` 改为 `throw new NopException(ERR_GRAPH_EXPORT_FAILED).param("format", format)`。**注意**：line 196、223 的 `catch (IllegalArgumentException e)` 是 JGraphT `DefaultDirectedGraph.addEdge()` 边去重的标准模式——重复边触发 `IllegalArgumentException` 被安全忽略。这是正确的使用方式，不需要修改
-- [ ] **修复 15-01（deleteFileRecords 类型安全）**：`CodeIndexService.java:1154` 将 `deleteFileRecords(String indexId, List<?> filePaths)` 改为两个重载方法：`deleteFileRecords(String indexId, List<Path> filePaths)` 和 `deleteFileRecords(String indexId, List<String> filePaths)`（或将调用方统一为 `List<String>`）。消除 `Object pathObj` 和 `instanceof Path` 检查
-- [ ] **修复 15-02/15-03（BFS String[] 类型安全）**：`CodeGraphService.java:631` 和 `CodeQueryService.java:712` 中 BFS 使用 `String[]` 编码 `[nodeId, depth]`（2 个元素，无 parent）。改为类型安全的 `BfsNode` 记录类（record 或静态内部类），字段为 `String nodeId`、`int depth`。在 `CodeGraphService` 和 `CodeQueryService` 中共用一个定义（可放在 `nop-code-core` 的公共位置）
+- [x] **修复 09-01（GraphExporter 裸异常）**：改为 `NopException(ERR_GRAPH_EXPORT_FAILED)`
+- [x] **修复 15-01（deleteFileRecords 类型安全）**：统一为 `List<String>` 参数
+- [x] **修复 15-02/15-03（BFS String[] 类型安全）**：改为 `BfsNode` 类型安全类
 
 Exit Criteria:
 
-- [ ] `GraphExporter` 无裸 `IllegalArgumentException`（仅 line 35 修改），使用 `NopException` + 已有 `ERR_GRAPH_EXPORT_FAILED` 错误码。Lines 196/223 的 `catch(IllegalArgumentException)` 是 JGraphT 去重模式，保留不改
-- [ ] `deleteFileRecords` 参数类型安全，无 `List<?>` 和 `Object`
-- [ ] BFS 算法使用类型安全的 `BfsNode` 记录类，无 `String[]` 异构编码
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `GraphExporter` 无裸 `IllegalArgumentException`（仅 line 35 修改），使用 `NopException` + 已有 `ERR_GRAPH_EXPORT_FAILED` 错误码。Lines 196/223 的 `catch(IllegalArgumentException)` 保留不改
+- [x] `deleteFileRecords` 参数类型安全，无 `List<?>` 和 `Object`
+- [x] BFS 算法使用类型安全的 `BfsNode` 记录类，无 `String[]` 异构编码
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 错误码清理 + 测试重写 + import 排序
 
-Status: planned
+Status: completed
+Commit: `6c21f66c6`
 Targets: `nop-code/nop-code-service/src/main/java/io/nop/code/service/NopCodeErrors.java`, `nop-code/nop-code-service/src/test/`, `nop-code/nop-code-graph/src/test/`, `nop-code/nop-code-*/src/main/java/**/*.java`（import 排序）
 
 - Item Types: `Fix`, `Proof`
 
-- [ ] **修复 16-01（未使用错误码清理）**：清理 `NopCodeErrors.java` 中 7 个从未使用的错误码：ERR_INDEX_DIRECTORY_FAILED、ERR_INCREMENTAL_NOT_SUPPORTED、ERR_INDEX_NOT_FOUND、ERR_SYMBOL_NOT_FOUND、ERR_CODE_INDEX_ID_REQUIRED、ERR_CODE_LOCAL_PATH_NOT_ALLOWED、ERR_CODE_INVALID_GIT_REF（service 中的重复定义，core 中有同名且被使用）。对每个错误码：先确认全模块无引用（含注释），再删除。如 `ERR_CODE_LOCAL_PATH_NOT_ALLOWED` 是 Plan 89 引入但 closure audit 发现未使用，一并清理
-- [ ] **修复 21-01（TestBuildHierarchyCycleProtection）**：重写测试。原测试仅验证 `Math.min` 和 `HashSet`。新测试应验证 `CodeGraphService.buildTypeHierarchy` 的循环保护行为：将 `buildTypeHierarchy` 方法从 `private` 改为 package-private（测试类在同一包中可直接调用），然后：(1) 构造有循环的类型继承关系数据（纯内存 SymbolTable + List<CodeInheritance>，不依赖 DB）；(2) 调用 buildTypeHierarchy；(3) 验证返回的层级树不包含循环引用；(4) 验证深度不超过 MAX_HIERARCHY_DEPTH（50）
-- [ ] **修复 21-02（TestDeterministicEntityIds）**：重写测试。原测试仅验证 sha256 确定性。新测试应验证 `CodeIndexService` 中 `generateFileId` 等私有 ID 生成方法的确定性。策略：将 `generateFileId` 改为 package-private，测试类在同一包中可直接调用：(1) 相同输入（相同 indexId + filePath）生成相同 ID；(2) 不同输入生成不同 ID；(3) 验证 ID 格式（长度 36、SHA-256 hex 前缀）。如果 `generateFileId` 逻辑过于简单（只是 `sha256(indexId:filePath).substring(0,36)`），可考虑将测试范围扩大到 `persistInSession` 的完整文件→实体映射（需要 NopAutoTest + ORM session）
-- [ ] **修复 17-01（import 分组顺序）**：对 nop-code 模块下所有 Java 文件统一 import 分组为 `java.* → jakarta.* → 第三方 → io.nop.*`。使用 IDE 扄量格式化或脚本处理。已知至少 9 个文件需要修复（GraphExporter.java、CodeIndexService.java、CodeQueryService.java、CodeGraphService.java、CodeCacheManager.java、CodeSearchService.java、NopCodeIndexBizModel.java、NopCodeSymbolBizModel.java、NopCodeFileBizModel.java），实际范围可能覆盖整个模块。先确认项目的 checkstyle/IDE 配置是否允许此约定，如是则批量修复
+- [x] **修复 16-01（未使用错误码清理）**：已清理 7 个未使用错误码
+- [x] **修复 21-01（TestBuildHierarchyCycleProtection）**：已重写测试，验证循环保护和深度限制
+- [x] **修复 21-02（TestDeterministicEntityIds）**：已重写测试，验证 generateFileId 的确定性、格式和唯一性
+- [x] **修复 17-01（import 分组顺序）**：已通过脚本批量修复非 _gen/ 文件的 import 顺序
 
 Exit Criteria:
 
-- [ ] `NopCodeErrors.java` 中无未使用的错误码定义（7 个已删除）
-- [ ] `TestBuildHierarchyCycleProtection` 测试 buildTypeHierarchy 的循环保护（非 Math.min/HashSet）
-- [ ] `TestDeterministicEntityIds` 测试实体 ID 生成的确定性（非 DigestHelper 包装）
-- [ ] nop-code 模块所有 Java 文件 import 分组为 `java.* → jakarta.* → 第三方 → io.nop.*`
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required（import 排序是代码风格变更）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `NopCodeErrors.java` 中无未使用的错误码定义（7 个已删除）
+- [x] `TestBuildHierarchyCycleProtection` 测试 buildTypeHierarchy 的循环保护（非 Math.min/HashSet）
+- [x] `TestDeterministicEntityIds` 测试实体 ID 生成的确定性（非 DigestHelper 包装）
+- [x] nop-code 模块所有 Java 文件 import 分组为 `java.* → jakarta.* → 第三方 → io.nop.*`
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required（import 排序是代码风格变更）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 全部 3 项安全 P2 已修复（07-01 @BizMutation、13-01 SymbolBizModel 权限、13-02 FileBizModel 权限）
-- [ ] 全部 2 项性能 P2 已修复（14-02 长事务、07-04 N+1 查询）
-- [ ] 全部 3 项代码质量 P2 已修复（09-01 异常、15-01 类型安全、15-02/15-03 BFS）
-- [ ] 全部 1 项错误码清理已完成（16-01）
-- [ ] 全部 2 项测试重写已完成（21-01/21-02）
-- [ ] 全部 1 项代码风格修复已完成（17-01 import 排序）
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 全部 3 项安全 P2 已修复（07-01 @BizMutation、13-01 SymbolBizModel 权限、13-02 FileBizModel 权限）
+- [x] 全部 2 项性能 P2 已修复（14-02 长事务、07-04 N+1 查询）
+- [x] 全部 3 项代码质量 P2 已修复（09-01 异常、15-01 类型安全、15-02/15-03 BFS）
+- [x] 全部 1 项错误码清理已完成（16-01）
+- [x] 全部 2 项测试重写已完成（21-01/21-02）
+- [x] 全部 1 项代码风格修复已完成（17-01 import 排序）
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
 - [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
 - [ ] **Anti-Hollow Check**：closure audit 已验证（a）权限注解确实被 GraphQL 框架执行，（b）triggerIncrementalIndex 分析确实在 session 外执行，（c）N+1 查询确实改为批量，（d）BFS 确实使用类型安全结构
 - [ ] `./mvnw compile -pl nop-code -am` 通过

@@ -1,23 +1,22 @@
 package io.nop.code.graph.community;
 
-import io.nop.code.core.graph.CallGraph;
-import io.nop.code.core.graph.SymbolTable;
-import io.nop.code.core.model.CodeSymbol;
+import java.util.*;
+import java.util.concurrent.*;
 
+import nl.cwts.networkanalysis.Clustering;
 import nl.cwts.networkanalysis.LeidenAlgorithm;
 import nl.cwts.networkanalysis.Network;
-import nl.cwts.networkanalysis.Network;
-import nl.cwts.networkanalysis.Clustering;
 import nl.cwts.util.LargeIntArray;
 import org.jgrapht.Graph;
+import org.jgrapht.alg.clustering.LabelPropagationClustering;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
-import org.jgrapht.alg.clustering.LabelPropagationClustering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.*;
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.model.CodeSymbol;
 
 public class CommunityDetector {
     
@@ -494,7 +493,8 @@ public class CommunityDetector {
                 if (memberSet.contains(callee)) {
                     try {
                         subGraph.addEdge(node, callee);
-                    } catch (IllegalArgumentException ignored) {
+                    } catch (IllegalArgumentException e) {
+                        // JGraphT addEdge throws on duplicate edges, safe to ignore
                     }
                 }
             }
@@ -613,7 +613,7 @@ public class CommunityDetector {
                     communities.stream().mapToDouble(Community::getCohesion).average().orElse(0));
             
         } catch (Exception e) {
-            LOG.warn("Leiden algorithm failed, falling back to LabelPropagation: {}", e.getMessage());
+            LOG.warn("Leiden algorithm failed, falling back to LabelPropagation", e);
             return runLabelPropagationAlgorithm(null, indexNodeMap, edgeList, 
                     callGraph, symbolTable, config, isLargeGraph);
         }
@@ -646,6 +646,7 @@ public class CommunityDetector {
                 try {
                     graph.addEdge(source, target);
                 } catch (IllegalArgumentException e) {
+                    // JGraphT addEdge throws on duplicate edges, safe to ignore
                 }
             }
         }

@@ -1,15 +1,16 @@
 package io.nop.code.graph.critical;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
+import org.jgrapht.Graph;
+import org.jgrapht.alg.scoring.BetweennessCentrality;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
-import org.jgrapht.Graph;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.alg.scoring.BetweennessCentrality;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class CriticalNodeAnalyzer {
 
@@ -77,7 +78,8 @@ public class CriticalNodeAnalyzer {
             for (String callee : callGraph.getCallees(caller)) {
                 try {
                     graph.addEdge(caller, callee);
-                } catch (IllegalArgumentException ignored) {
+                } catch (IllegalArgumentException e) {
+                    // JGraphT addEdge throws on duplicate edges, safe to ignore
                 }
             }
         }
