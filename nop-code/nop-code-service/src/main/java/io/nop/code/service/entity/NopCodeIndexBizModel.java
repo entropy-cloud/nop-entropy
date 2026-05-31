@@ -1,7 +1,6 @@
 package io.nop.code.service.entity;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -335,10 +334,9 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
     private void evictStatusMap() {
         while (incrementalStatusMap.size() > MAX_STATUS_ENTRIES) {
-            Iterator<String> it = incrementalStatusMap.keySet().iterator();
-            if (it.hasNext()) {
-                it.next();
-                it.remove();
+            String key = incrementalStatusMap.keySet().iterator().next();
+            if (key != null) {
+                incrementalStatusMap.remove(key);
             }
         }
     }

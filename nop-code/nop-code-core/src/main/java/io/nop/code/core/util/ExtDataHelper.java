@@ -6,8 +6,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.core.lang.json.JsonTool;
+
 public class ExtDataHelper {
+    private static final Logger LOG = LoggerFactory.getLogger(ExtDataHelper.class);
 
     public static String extractFilePath(String extData) {
         if (extData == null || extData.isEmpty()) {
@@ -27,17 +32,11 @@ public class ExtDataHelper {
                 }
             }
         } catch (Exception e) {
-            return null;
+            LOG.debug("Failed to parse extData JSON", e);
         }
         return null;
     }
 
-    /**
-     * Retrieve annotation short names stored in extData under the "annotations" key.
-     *
-     * @param extData JSON string, may be null
-     * @return list of annotation short names, never null
-     */
     @SuppressWarnings("unchecked")
     public static List<String> getAnnotations(String extData) {
         if (extData == null || extData.isEmpty() || !extData.contains("annotations")) {
@@ -59,19 +58,11 @@ public class ExtDataHelper {
                 }
             }
         } catch (Exception e) {
-            // fall through
+            LOG.debug("Failed to parse extData JSON for annotations", e);
         }
         return Collections.emptyList();
     }
 
-    /**
-     * Store annotation short names in extData under the "annotations" key.
-     * Preserves existing keys in extData.
-     *
-     * @param extData     existing JSON string, may be null
-     * @param annotations list of annotation short names to store
-     * @return updated JSON string
-     */
     public static String setAnnotations(String extData, List<String> annotations) {
         if (annotations == null || annotations.isEmpty()) {
             return extData;
@@ -92,7 +83,7 @@ public class ExtDataHelper {
                 return new LinkedHashMap<>((Map<String, Object>) parsed);
             }
         } catch (Exception e) {
-            // fall through
+            LOG.debug("Failed to parse extData JSON in parseToMap", e);
         }
         return new LinkedHashMap<>();
     }

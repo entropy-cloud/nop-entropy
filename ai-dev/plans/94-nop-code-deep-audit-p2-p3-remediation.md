@@ -83,25 +83,27 @@
 
 ### Phase 1 — ORM 模型修复
 
-Status: planned
+Status: completed
 Targets: `nop-code/model/nop-code.orm.xml`
 
 - Item Types: `Fix`
 
-- [ ] **04-05：统一审计字段命名**。将 NopCodeFlowMembership 的 `name="createdTime"` 改为 `name="createTime"`，与 NopCodeFlow/NopCodeSemanticEdge 一致。**注意**：ORM 模型修改后需 `./mvnw install` 以触发代码生成管线，更新实体 Java 类的 getter/setter 名和 `_app.orm.xml`
-- [ ] **04-06：添加 useLogicalDelete**。为 NopCodeSemanticEdge 实体添加 `useLogicalDelete="true" deleteFlagProp="delFlag"`
-- [ ] **04-07：添加 NopCodeIndex 数据库索引**。为常用查询字段添加索引：`idx_nop_code_index_status`（status）、`idx_nop_code_index_root_path`（rootPath）、`idx_nop_code_index_language`（language）、`idx_nop_code_index_last_indexed`（lastIndexed）
+- [x] **04-05：统一审计字段命名**。将 NopCodeFlowMembership 的 `name="createdTime"` 改为 `name="createTime"`，与 NopCodeFlow/NopCodeSemanticEdge 一致。**注意**：ORM 模型修改后需 `./mvnw install` 以触发代码生成管线，更新实体 Java 类的 getter/setter 名和 `_app.orm.xml`
+- [x] **04-06：添加 useLogicalDelete**。为 NopCodeSemanticEdge 实体添加 `useLogicalDelete="true" deleteFlagProp="delFlag"`
+- [x] **04-07：添加 NopCodeIndex 数据库索引**。为常用查询字段添加索引：`idx_nop_code_index_status`（status）、`idx_nop_code_index_root_path`（rootPath）、`idx_nop_code_index_language`（language）、`idx_nop_code_index_last_indexed`（lastIndexed）
 
 Exit Criteria:
 
-- [ ] NopCodeFlowMembership 审计字段 `createdTime` 改为 `createTime`（与 NopCodeFlow、NopCodeSemanticEdge 一致。`updateTime` 已经正确无需修改）
-- [ ] NopCodeSemanticEdge 实体声明 `useLogicalDelete="true" deleteFlagProp="delFlag"`
-- [ ] NopCodeIndex 实体有 `<indexes>` 段，覆盖 `status`、`rootPath`、`language`、`lastIndexed`
-- [ ] `./mvnw install -pl nop-code -am -DskipTests` 通过（触发代码生成）
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] 无 Java 代码引用旧属性名 `createdTime`（grep 确认，NopCodeFlowMembership 实体已由代码生成更新）
-- [ ] No new test required: ORM model changes verified by codegen + compile + existing tests
-- [ ] No owner-doc update required
+> Phase 1 completed: commit a68a49eb7
+
+- [x] NopCodeFlowMembership 审计字段 `createdTime` 改为 `createTime`（与 NopCodeFlow、NopCodeSemanticEdge 一致。`updateTime` 已经正确无需修改）
+- [x] NopCodeSemanticEdge 实体声明 `useLogicalDelete="true" deleteFlagProp="delFlag"`
+- [x] NopCodeIndex 实体有 `<indexes>` 段，覆盖 `status`、`rootPath`、`language`、`lastIndexed`
+- [x] `./mvnw install -pl nop-code -am -DskipTests` 通过（触发代码生成）
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] 无 Java 代码引用旧属性名 `createdTime`（grep 确认，NopCodeFlowMembership 实体已由代码生成更新）
+- [x] No new test required: ORM model changes verified by codegen + compile + existing tests
+- [x] No owner-doc update required
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — Residual 并发 + IoC 统一

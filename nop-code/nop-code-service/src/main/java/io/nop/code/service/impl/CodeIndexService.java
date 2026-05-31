@@ -18,6 +18,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
@@ -62,9 +63,6 @@ import io.nop.code.flow.IFlowDetector;
 import io.nop.code.graph.semantic.AnnotationPatternExtractor;
 import io.nop.code.graph.semantic.DocKeywordExtractor;
 import io.nop.code.graph.semantic.NameSimilarityExtractor;
-import io.nop.code.lang.java.JavaLanguageAdapter;
-import io.nop.code.lang.python.PythonLanguageAdapter;
-import io.nop.code.lang.typescript.TypeScriptLanguageAdapter;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.*;
 import io.nop.code.service.incremental.OrmFingerprintStore;
@@ -99,8 +97,8 @@ public class CodeIndexService implements ICodeIndexService {
 
     private final ConcurrentHashMap<String, ReentrantLock> indexLocks = new ConcurrentHashMap<>();
 
-    protected final LanguageAdapterRegistry registry;
-    protected final ProjectAnalyzer analyzer;
+    protected LanguageAdapterRegistry registry;
+    protected ProjectAnalyzer analyzer;
     protected final Map<String, IImportResolver> importResolvers = new HashMap<>();
 
     @Inject
@@ -165,10 +163,15 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     public CodeIndexService() {
-        this.registry = new LanguageAdapterRegistry();
-        this.registry.registerAdapter(new JavaLanguageAdapter());
-        this.registry.registerAdapter(new PythonLanguageAdapter());
-        this.registry.registerAdapter(new TypeScriptLanguageAdapter());
+    }
+
+    @Inject
+    public void setRegistry(LanguageAdapterRegistry registry) {
+        this.registry = registry;
+        Map<String, ILanguageAdapter> adapterMap = BeanContainer.instance().getBeansOfType(ILanguageAdapter.class);
+        for (ILanguageAdapter adapter : adapterMap.values()) {
+            registry.registerAdapter(adapter);
+        }
         this.analyzer = new ProjectAnalyzer(registry);
         registerSemanticExtractors();
         registerImportResolvers();

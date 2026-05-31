@@ -1,15 +1,14 @@
 package io.nop.code.core.adapter;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.analyzer.ILanguageAdapter;
 import io.nop.code.core.model.CodeLanguage;
-/**
- * 语言适配器注册中心
- */
+
 public class LanguageAdapterRegistry {
     private final Map<CodeLanguage, ILanguageAdapter> adapters = new HashMap<>();
 
@@ -34,5 +33,11 @@ public class LanguageAdapterRegistry {
 
     public void registerAdapter(ILanguageAdapter adapter) {
         adapters.put(adapter.getLanguage(), adapter);
+    }
+
+    public void setAdapters(List<ILanguageAdapter> adapterList) {
+        for (ILanguageAdapter adapter : adapterList) {
+            registerAdapter(adapter);
+        }
     }
 }

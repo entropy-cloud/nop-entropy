@@ -6,5 +6,5 @@
 
     <bean id="io.nop.code.lang.java.JavaLanguageAdapter"
           class="io.nop.code.lang.java.JavaLanguageAdapter"
-          ioc:bean-type="io.nop.code.core.analyzer.ILanguageAdapter"/>
+          ioc:type="io.nop.code.core.analyzer.ILanguageAdapter"/>
 </beans>

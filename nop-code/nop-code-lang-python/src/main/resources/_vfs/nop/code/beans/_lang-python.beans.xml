@@ -6,5 +6,5 @@
 
     <bean id="io.nop.code.lang.python.PythonLanguageAdapter"
           class="io.nop.code.lang.python.PythonLanguageAdapter"
-          ioc:bean-type="io.nop.code.core.analyzer.ILanguageAdapter"/>
+          ioc:type="io.nop.code.core.analyzer.ILanguageAdapter"/>
 </beans>

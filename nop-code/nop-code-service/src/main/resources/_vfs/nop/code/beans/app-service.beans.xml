@@ -8,6 +8,13 @@
 
     <import resource="_service.beans.xml"/>
 
+    <import resource="_lang-java.beans.xml"/>
+    <import resource="_lang-typescript.beans.xml"/>
+    <import resource="_lang-python.beans.xml"/>
+
+    <bean id="io.nop.code.core.adapter.LanguageAdapterRegistry"
+          class="io.nop.code.core.adapter.LanguageAdapterRegistry" ioc:default="true"/>
+
     <bean id="io.nop.code.service.impl.CodeIndexService" ioc:default="true"
           class="io.nop.code.service.impl.CodeIndexService"/>
 
