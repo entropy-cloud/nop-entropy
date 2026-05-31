@@ -1,0 +1,28 @@
+site:
+  resource:
+    FNPT:NopRuleDefinition:mutation:
+      displayName: Modify Rule Definition
+    FNPT:NopRuleDefinition:query:
+      displayName: Query Rule Definition
+    FNPT:NopRuleLog:mutation:
+      displayName: Modify Rule Log
+    FNPT:NopRuleLog:query:
+      displayName: Query Rule Log
+    FNPT:NopRuleNode:mutation:
+      displayName: Modify Rule Node
+    FNPT:NopRuleNode:query:
+      displayName: Query Rule Node
+    FNPT:NopRuleRole:mutation:
+      displayName: Modify Rule Role
+    FNPT:NopRuleRole:query:
+      displayName: Query Rule Role
+    NopRuleDefinition-main:
+      displayName: Rule Definition
+    NopRuleLog-main:
+      displayName: Rule Log
+    NopRuleNode-main:
+      displayName: Rule Node
+    NopRuleRole-main:
+      displayName: Rule Role
+    test-orm-nop-rule:
+      displayName: ''

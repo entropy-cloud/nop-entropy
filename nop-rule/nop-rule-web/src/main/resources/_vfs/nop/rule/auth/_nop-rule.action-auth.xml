@@ -9,12 +9,12 @@
                           i18n-en:displayName="Rule Definition" icon="scale" component="AMIS" resourceType="SUBM"
                           url="/nop/rule/pages/NopRuleDefinition/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRuleDefinition:query" displayName="查询规则模型定义" orderNo="10002"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRuleDefinition:query" displayName="查询规则模型定义"
+                                  i18n-en:displayName="Query Rule Definition" orderNo="10002" resourceType="FNPT">
                             <permissions>NopRuleDefinition:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRuleDefinition:mutation" displayName="修改规则模型定义" orderNo="10003"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRuleDefinition:mutation" displayName="修改规则模型定义"
+                                  i18n-en:displayName="Modify Rule Definition" orderNo="10003" resourceType="FNPT">
                             <permissions>NopRuleDefinition:mutation</permissions>
                         </resource>
                     </children>
@@ -23,11 +23,12 @@
                           icon="logs" component="AMIS" resourceType="SUBM"
                           url="/nop/rule/pages/NopRuleLog/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRuleLog:query" displayName="查询规则执行日志" orderNo="10005" resourceType="FNPT">
+                        <resource id="FNPT:NopRuleLog:query" displayName="查询规则执行日志" i18n-en:displayName="Query Rule Log"
+                                  orderNo="10005" resourceType="FNPT">
                             <permissions>NopRuleLog:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRuleLog:mutation" displayName="修改规则执行日志" orderNo="10006"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRuleLog:mutation" displayName="修改规则执行日志"
+                                  i18n-en:displayName="Modify Rule Log" orderNo="10006" resourceType="FNPT">
                             <permissions>NopRuleLog:mutation</permissions>
                         </resource>
                     </children>
@@ -36,11 +37,12 @@
                           icon="git-branch" component="AMIS" resourceType="SUBM"
                           url="/nop/rule/pages/NopRuleNode/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRuleNode:query" displayName="查询规则节点" orderNo="10008" resourceType="FNPT">
+                        <resource id="FNPT:NopRuleNode:query" displayName="查询规则节点" i18n-en:displayName="Query Rule Node"
+                                  orderNo="10008" resourceType="FNPT">
                             <permissions>NopRuleNode:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRuleNode:mutation" displayName="修改规则节点" orderNo="10009"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRuleNode:mutation" displayName="修改规则节点"
+                                  i18n-en:displayName="Modify Rule Node" orderNo="10009" resourceType="FNPT">
                             <permissions>NopRuleNode:mutation</permissions>
                         </resource>
                     </children>
@@ -49,11 +51,12 @@
                           icon="users" component="AMIS" resourceType="SUBM"
                           url="/nop/rule/pages/NopRuleRole/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRuleRole:query" displayName="查询规则角色" orderNo="10011" resourceType="FNPT">
+                        <resource id="FNPT:NopRuleRole:query" displayName="查询规则角色" i18n-en:displayName="Query Rule Role"
+                                  orderNo="10011" resourceType="FNPT">
                             <permissions>NopRuleRole:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRuleRole:mutation" displayName="修改规则角色" orderNo="10012"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRuleRole:mutation" displayName="修改规则角色"
+                                  i18n-en:displayName="Modify Rule Role" orderNo="10012" resourceType="FNPT">
                             <permissions>NopRuleRole:mutation</permissions>
                         </resource>
                     </children>
