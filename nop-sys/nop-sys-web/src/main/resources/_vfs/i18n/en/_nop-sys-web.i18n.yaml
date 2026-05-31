@@ -1,4 +1,106 @@
-
-
-# key: value
-
+site:
+  resource:
+    FNPT:NopSysChangeLog:mutation:
+      displayName: Modify Change Log
+    FNPT:NopSysChangeLog:query:
+      displayName: Query Change Log
+    FNPT:NopSysCheckerRecord:mutation:
+      displayName: Modify Maker Checker Record
+    FNPT:NopSysCheckerRecord:query:
+      displayName: Query Maker Checker Record
+    FNPT:NopSysClusterLeader:mutation:
+      displayName: Modify Cluster Leader
+    FNPT:NopSysClusterLeader:query:
+      displayName: Query Cluster Leader
+    FNPT:NopSysCodeRule:mutation:
+      displayName: Modify Code Rule
+    FNPT:NopSysCodeRule:query:
+      displayName: Query Code Rule
+    FNPT:NopSysDict:mutation:
+      displayName: Modify Dictionary
+    FNPT:NopSysDict:query:
+      displayName: Query Dictionary
+    FNPT:NopSysDictOption:mutation:
+      displayName: Modify Dictionay Item
+    FNPT:NopSysDictOption:query:
+      displayName: Query Dictionay Item
+    FNPT:NopSysEvent:mutation:
+      displayName: Modify System Event
+    FNPT:NopSysEvent:query:
+      displayName: Query System Event
+    FNPT:NopSysExtField:mutation:
+      displayName: Modify Extension Field
+    FNPT:NopSysExtField:query:
+      displayName: Query Extension Field
+    FNPT:NopSysI18n:mutation:
+      displayName: Modify I18n Message
+    FNPT:NopSysI18n:query:
+      displayName: Query I18n Message
+    FNPT:NopSysLock:mutation:
+      displayName: Modify Lock
+    FNPT:NopSysLock:query:
+      displayName: Query Lock
+    FNPT:NopSysNoticeTemplate:mutation:
+      displayName: Modify Notice Template
+    FNPT:NopSysNoticeTemplate:query:
+      displayName: Query Notice Template
+    FNPT:NopSysObjTag:mutation:
+      displayName: Modify Obj Tag
+    FNPT:NopSysObjTag:query:
+      displayName: Query Obj Tag
+    FNPT:NopSysSequence:mutation:
+      displayName: Modify Sequence
+    FNPT:NopSysSequence:query:
+      displayName: Query Sequence
+    FNPT:NopSysServiceInstance:mutation:
+      displayName: Modify Instance ID
+    FNPT:NopSysServiceInstance:query:
+      displayName: Query Instance ID
+    FNPT:NopSysTag:mutation:
+      displayName: Modify Tag
+    FNPT:NopSysTag:query:
+      displayName: Query Tag
+    FNPT:NopSysUserVariable:mutation:
+      displayName: Modify User Variable
+    FNPT:NopSysUserVariable:query:
+      displayName: Query User Variable
+    FNPT:NopSysVariable:mutation:
+      displayName: Modify System Variable
+    FNPT:NopSysVariable:query:
+      displayName: Query System Variable
+    NopSysChangeLog-main:
+      displayName: Change Log
+    NopSysCheckerRecord-main:
+      displayName: Maker Checker Record
+    NopSysClusterLeader-main:
+      displayName: Cluster Leader
+    NopSysCodeRule-main:
+      displayName: Code Rule
+    NopSysDict-main:
+      displayName: Dictionary
+    NopSysDictOption-main:
+      displayName: Dictionay Item
+    NopSysEvent-main:
+      displayName: System Event
+    NopSysExtField-main:
+      displayName: Extension Field
+    NopSysI18n-main:
+      displayName: I18n Message
+    NopSysLock-main:
+      displayName: Lock
+    NopSysNoticeTemplate-main:
+      displayName: Notice Template
+    NopSysObjTag-main:
+      displayName: Obj Tag
+    NopSysSequence-main:
+      displayName: Sequence
+    NopSysServiceInstance-main:
+      displayName: Instance ID
+    NopSysTag-main:
+      displayName: Tag
+    NopSysUserVariable-main:
+      displayName: User Variable
+    NopSysVariable-main:
+      displayName: System Variable
+    test-orm-nop-sys:
+      displayName: ''

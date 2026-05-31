@@ -9,12 +9,12 @@
                           i18n-en:displayName="Change Log" icon="history" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysChangeLog/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysChangeLog:query" displayName="查询变更跟踪日志" orderNo="10002"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysChangeLog:query" displayName="查询变更跟踪日志"
+                                  i18n-en:displayName="Query Change Log" orderNo="10002" resourceType="FNPT">
                             <permissions>NopSysChangeLog:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysChangeLog:mutation" displayName="修改变更跟踪日志" orderNo="10003"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysChangeLog:mutation" displayName="修改变更跟踪日志"
+                                  i18n-en:displayName="Modify Change Log" orderNo="10003" resourceType="FNPT">
                             <permissions>NopSysChangeLog:mutation</permissions>
                         </resource>
                     </children>
@@ -23,12 +23,12 @@
                           i18n-en:displayName="Maker Checker Record" icon="file-check" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysCheckerRecord/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysCheckerRecord:query" displayName="查询MakerChecker审批记录" orderNo="10005"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysCheckerRecord:query" displayName="查询MakerChecker审批记录"
+                                  i18n-en:displayName="Query Maker Checker Record" orderNo="10005" resourceType="FNPT">
                             <permissions>NopSysCheckerRecord:query</permissions>
                         </resource>
                         <resource id="FNPT:NopSysCheckerRecord:mutation" displayName="修改MakerChecker审批记录"
-                                  orderNo="10006" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Maker Checker Record" orderNo="10006" resourceType="FNPT">
                             <permissions>NopSysCheckerRecord:mutation</permissions>
                         </resource>
                     </children>
@@ -37,12 +37,12 @@
                           i18n-en:displayName="Cluster Leader" icon="network" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysClusterLeader/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysClusterLeader:query" displayName="查询集群选举" orderNo="10008"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysClusterLeader:query" displayName="查询集群选举"
+                                  i18n-en:displayName="Query Cluster Leader" orderNo="10008" resourceType="FNPT">
                             <permissions>NopSysClusterLeader:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysClusterLeader:mutation" displayName="修改集群选举" orderNo="10009"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysClusterLeader:mutation" displayName="修改集群选举"
+                                  i18n-en:displayName="Modify Cluster Leader" orderNo="10009" resourceType="FNPT">
                             <permissions>NopSysClusterLeader:mutation</permissions>
                         </resource>
                     </children>
@@ -51,12 +51,12 @@
                           icon="binary" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysCodeRule/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysCodeRule:query" displayName="查询编码规则" orderNo="10011"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysCodeRule:query" displayName="查询编码规则"
+                                  i18n-en:displayName="Query Code Rule" orderNo="10011" resourceType="FNPT">
                             <permissions>NopSysCodeRule:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysCodeRule:mutation" displayName="修改编码规则" orderNo="10012"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysCodeRule:mutation" displayName="修改编码规则"
+                                  i18n-en:displayName="Modify Code Rule" orderNo="10012" resourceType="FNPT">
                             <permissions>NopSysCodeRule:mutation</permissions>
                         </resource>
                     </children>
@@ -65,10 +65,12 @@
                           icon="book-open-text" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysDict/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysDict:query" displayName="查询字典表" orderNo="10014" resourceType="FNPT">
+                        <resource id="FNPT:NopSysDict:query" displayName="查询字典表" i18n-en:displayName="Query Dictionary"
+                                  orderNo="10014" resourceType="FNPT">
                             <permissions>NopSysDict:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysDict:mutation" displayName="修改字典表" orderNo="10015" resourceType="FNPT">
+                        <resource id="FNPT:NopSysDict:mutation" displayName="修改字典表"
+                                  i18n-en:displayName="Modify Dictionary" orderNo="10015" resourceType="FNPT">
                             <permissions>NopSysDict:mutation</permissions>
                         </resource>
                     </children>
@@ -77,12 +79,12 @@
                           i18n-en:displayName="Dictionay Item" icon="list" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysDictOption/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysDictOption:query" displayName="查询字典明细" orderNo="10017"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysDictOption:query" displayName="查询字典明细"
+                                  i18n-en:displayName="Query Dictionay Item" orderNo="10017" resourceType="FNPT">
                             <permissions>NopSysDictOption:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysDictOption:mutation" displayName="修改字典明细" orderNo="10018"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysDictOption:mutation" displayName="修改字典明细"
+                                  i18n-en:displayName="Modify Dictionay Item" orderNo="10018" resourceType="FNPT">
                             <permissions>NopSysDictOption:mutation</permissions>
                         </resource>
                     </children>
@@ -91,11 +93,12 @@
                           icon="workflow" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysEvent/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysEvent:query" displayName="查询事件队列" orderNo="10020" resourceType="FNPT">
+                        <resource id="FNPT:NopSysEvent:query" displayName="查询事件队列"
+                                  i18n-en:displayName="Query System Event" orderNo="10020" resourceType="FNPT">
                             <permissions>NopSysEvent:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysEvent:mutation" displayName="修改事件队列" orderNo="10021"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysEvent:mutation" displayName="修改事件队列"
+                                  i18n-en:displayName="Modify System Event" orderNo="10021" resourceType="FNPT">
                             <permissions>NopSysEvent:mutation</permissions>
                         </resource>
                     </children>
@@ -104,12 +107,12 @@
                           i18n-en:displayName="Extension Field" icon="puzzle" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysExtField/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysExtField:query" displayName="查询扩展字段" orderNo="10023"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysExtField:query" displayName="查询扩展字段"
+                                  i18n-en:displayName="Query Extension Field" orderNo="10023" resourceType="FNPT">
                             <permissions>NopSysExtField:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysExtField:mutation" displayName="修改扩展字段" orderNo="10024"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysExtField:mutation" displayName="修改扩展字段"
+                                  i18n-en:displayName="Modify Extension Field" orderNo="10024" resourceType="FNPT">
                             <permissions>NopSysExtField:mutation</permissions>
                         </resource>
                     </children>
@@ -118,11 +121,12 @@
                           icon="languages" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysI18n/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysI18n:query" displayName="查询多语言消息" orderNo="10026" resourceType="FNPT">
+                        <resource id="FNPT:NopSysI18n:query" displayName="查询多语言消息"
+                                  i18n-en:displayName="Query I18n Message" orderNo="10026" resourceType="FNPT">
                             <permissions>NopSysI18n:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysI18n:mutation" displayName="修改多语言消息" orderNo="10027"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysI18n:mutation" displayName="修改多语言消息"
+                                  i18n-en:displayName="Modify I18n Message" orderNo="10027" resourceType="FNPT">
                             <permissions>NopSysI18n:mutation</permissions>
                         </resource>
                     </children>
@@ -130,10 +134,12 @@
                 <resource id="NopSysLock-main" displayName="资源锁" orderNo="10028" i18n-en:displayName="Lock" icon="lock"
                           component="AMIS" resourceType="SUBM" url="/nop/sys/pages/NopSysLock/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysLock:query" displayName="查询资源锁" orderNo="10029" resourceType="FNPT">
+                        <resource id="FNPT:NopSysLock:query" displayName="查询资源锁" i18n-en:displayName="Query Lock"
+                                  orderNo="10029" resourceType="FNPT">
                             <permissions>NopSysLock:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysLock:mutation" displayName="修改资源锁" orderNo="10030" resourceType="FNPT">
+                        <resource id="FNPT:NopSysLock:mutation" displayName="修改资源锁" i18n-en:displayName="Modify Lock"
+                                  orderNo="10030" resourceType="FNPT">
                             <permissions>NopSysLock:mutation</permissions>
                         </resource>
                     </children>
@@ -142,12 +148,12 @@
                           i18n-en:displayName="Notice Template" icon="mail" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysNoticeTemplate/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysNoticeTemplate:query" displayName="查询通知模板" orderNo="10032"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysNoticeTemplate:query" displayName="查询通知模板"
+                                  i18n-en:displayName="Query Notice Template" orderNo="10032" resourceType="FNPT">
                             <permissions>NopSysNoticeTemplate:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysNoticeTemplate:mutation" displayName="修改通知模板" orderNo="10033"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysNoticeTemplate:mutation" displayName="修改通知模板"
+                                  i18n-en:displayName="Modify Notice Template" orderNo="10033" resourceType="FNPT">
                             <permissions>NopSysNoticeTemplate:mutation</permissions>
                         </resource>
                     </children>
@@ -156,11 +162,12 @@
                           icon="tags" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysObjTag/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysObjTag:query" displayName="查询对象标签" orderNo="10035" resourceType="FNPT">
+                        <resource id="FNPT:NopSysObjTag:query" displayName="查询对象标签" i18n-en:displayName="Query Obj Tag"
+                                  orderNo="10035" resourceType="FNPT">
                             <permissions>NopSysObjTag:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysObjTag:mutation" displayName="修改对象标签" orderNo="10036"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysObjTag:mutation" displayName="修改对象标签"
+                                  i18n-en:displayName="Modify Obj Tag" orderNo="10036" resourceType="FNPT">
                             <permissions>NopSysObjTag:mutation</permissions>
                         </resource>
                     </children>
@@ -169,11 +176,12 @@
                           icon="hash" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysSequence/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysSequence:query" displayName="查询序列号" orderNo="10038" resourceType="FNPT">
+                        <resource id="FNPT:NopSysSequence:query" displayName="查询序列号"
+                                  i18n-en:displayName="Query Sequence" orderNo="10038" resourceType="FNPT">
                             <permissions>NopSysSequence:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysSequence:mutation" displayName="修改序列号" orderNo="10039"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysSequence:mutation" displayName="修改序列号"
+                                  i18n-en:displayName="Modify Sequence" orderNo="10039" resourceType="FNPT">
                             <permissions>NopSysSequence:mutation</permissions>
                         </resource>
                     </children>
@@ -182,12 +190,12 @@
                           i18n-en:displayName="Instance ID" icon="server" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysServiceInstance/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysServiceInstance:query" displayName="查询服务实例" orderNo="10041"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysServiceInstance:query" displayName="查询服务实例"
+                                  i18n-en:displayName="Query Instance ID" orderNo="10041" resourceType="FNPT">
                             <permissions>NopSysServiceInstance:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysServiceInstance:mutation" displayName="修改服务实例" orderNo="10042"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysServiceInstance:mutation" displayName="修改服务实例"
+                                  i18n-en:displayName="Modify Instance ID" orderNo="10042" resourceType="FNPT">
                             <permissions>NopSysServiceInstance:mutation</permissions>
                         </resource>
                     </children>
@@ -195,10 +203,12 @@
                 <resource id="NopSysTag-main" displayName="标签" orderNo="10043" i18n-en:displayName="Tag" icon="tag"
                           component="AMIS" resourceType="SUBM" url="/nop/sys/pages/NopSysTag/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysTag:query" displayName="查询标签" orderNo="10044" resourceType="FNPT">
+                        <resource id="FNPT:NopSysTag:query" displayName="查询标签" i18n-en:displayName="Query Tag"
+                                  orderNo="10044" resourceType="FNPT">
                             <permissions>NopSysTag:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysTag:mutation" displayName="修改标签" orderNo="10045" resourceType="FNPT">
+                        <resource id="FNPT:NopSysTag:mutation" displayName="修改标签" i18n-en:displayName="Modify Tag"
+                                  orderNo="10045" resourceType="FNPT">
                             <permissions>NopSysTag:mutation</permissions>
                         </resource>
                     </children>
@@ -207,12 +217,12 @@
                           i18n-en:displayName="User Variable" icon="user-round" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysUserVariable/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysUserVariable:query" displayName="查询用户变量" orderNo="10047"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysUserVariable:query" displayName="查询用户变量"
+                                  i18n-en:displayName="Query User Variable" orderNo="10047" resourceType="FNPT">
                             <permissions>NopSysUserVariable:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysUserVariable:mutation" displayName="修改用户变量" orderNo="10048"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysUserVariable:mutation" displayName="修改用户变量"
+                                  i18n-en:displayName="Modify User Variable" orderNo="10048" resourceType="FNPT">
                             <permissions>NopSysUserVariable:mutation</permissions>
                         </resource>
                     </children>
@@ -221,12 +231,12 @@
                           i18n-en:displayName="System Variable" icon="sliders-horizontal" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysVariable/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysVariable:query" displayName="查询系统变量" orderNo="10050"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysVariable:query" displayName="查询系统变量"
+                                  i18n-en:displayName="Query System Variable" orderNo="10050" resourceType="FNPT">
                             <permissions>NopSysVariable:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysVariable:mutation" displayName="修改系统变量" orderNo="10051"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopSysVariable:mutation" displayName="修改系统变量"
+                                  i18n-en:displayName="Modify System Variable" orderNo="10051" resourceType="FNPT">
                             <permissions>NopSysVariable:mutation</permissions>
                         </resource>
                     </children>
