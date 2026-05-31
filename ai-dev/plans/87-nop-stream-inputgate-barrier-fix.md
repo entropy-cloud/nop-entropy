@@ -108,6 +108,7 @@ Closure Audit Evidence:
 - 全量测试: ./mvnw test -pl nop-stream -am BUILD SUCCESS (所有 nop-stream 模块通过)
 - lint: ast-grep Java lint check passed
 - Anti-Hollow: 修复包含实际条件检查和异常抛出代码，非空壳
+- Independent Closure Audit: Verdict = Can Close, 0 blocking issues, 1 advisory (cosmetic indentation). All checkboxes verified, fix confirmed in live code, test confirmed, status consistency confirmed.
 
 Follow-up:
 
