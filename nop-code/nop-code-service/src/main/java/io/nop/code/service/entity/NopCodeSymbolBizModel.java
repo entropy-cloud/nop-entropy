@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
@@ -109,6 +110,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizLoader(forType = SymbolDTO.class)
+    @Auth(permissions = "code-source-read")
     public String sourceCode(
             @ContextSource SymbolDTO symbol,
             @Name("indexId") @Optional String indexId,
@@ -121,6 +123,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-source-read")
     public SymbolSourceDTO showSymbol(
             @Name("indexId") String indexId,
             @Name("qualifiedName") String qualifiedName,
@@ -180,6 +183,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-source-read")
     public List<CodeSearchResultDTO> searchCode(
             @Name("indexId") String indexId,
             @Name("query") String query,

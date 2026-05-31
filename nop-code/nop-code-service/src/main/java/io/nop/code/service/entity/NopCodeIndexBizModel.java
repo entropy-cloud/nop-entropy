@@ -187,7 +187,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
                 includeExternal != null && includeExternal);
     }
 
-    @BizQuery
+    @BizMutation
     public List<ExecutionFlow> detectFlows(@Name("indexId") String indexId) {
         return codeIndexService.detectFlows(indexId);
     }

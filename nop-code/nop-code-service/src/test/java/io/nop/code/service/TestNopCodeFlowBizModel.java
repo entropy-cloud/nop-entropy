@@ -68,7 +68,7 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
     void testDetectFlows_returnsFlowList() {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", currentIndexId);
-        ApiResponse<?> response = rpcQuery("NopCodeIndex__detectFlows", data);
+        ApiResponse<?> response = rpcMutation("NopCodeIndex__detectFlows", data);
         assertNotNull(response);
         org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
                 "detectFlows BizModel action not registered in test context, skipping");
@@ -81,7 +81,7 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
     void testListFlows_returnsCachedFlowsAfterDetection() {
         Map<String, Object> detectData = new HashMap<>();
         detectData.put("indexId", currentIndexId);
-        rpcQuery("NopCodeIndex__detectFlows", detectData);
+        rpcMutation("NopCodeIndex__detectFlows", detectData);
 
         Map<String, Object> listData = new HashMap<>();
         listData.put("indexId", currentIndexId);

@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.beans.PageBean;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeFileBiz;
@@ -68,6 +69,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
+    @Auth(permissions = "code-source-read")
     public String sourceCode(@ContextSource CodeFileAnalysisResult file) {
         return file.getSourceCode();
     }
