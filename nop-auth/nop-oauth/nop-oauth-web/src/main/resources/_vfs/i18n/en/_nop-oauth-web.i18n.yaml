@@ -1,0 +1,22 @@
+site:
+  resource:
+    FNPT:NopOauthAuthorization:mutation:
+      displayName: Modify Oauth认证记录
+    FNPT:NopOauthAuthorization:query:
+      displayName: Query Oauth认证记录
+    FNPT:NopOauthAuthorizationConsent:mutation:
+      displayName: Modify Oauth许可
+    FNPT:NopOauthAuthorizationConsent:query:
+      displayName: Query Oauth许可
+    FNPT:NopOauthRegisteredClient:mutation:
+      displayName: Modify Oauth注册客户端
+    FNPT:NopOauthRegisteredClient:query:
+      displayName: Query Oauth注册客户端
+    NopOauthAuthorization-main:
+      displayName: ''
+    NopOauthAuthorizationConsent-main:
+      displayName: ''
+    NopOauthRegisteredClient-main:
+      displayName: ''
+    test-orm-nop-oauth:
+      displayName: ''
