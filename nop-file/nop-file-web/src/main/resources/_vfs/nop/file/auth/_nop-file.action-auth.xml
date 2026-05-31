@@ -9,11 +9,12 @@
                           icon="paperclip" component="AMIS" resourceType="SUBM"
                           url="/nop/file/pages/NopFileRecord/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopFileRecord:query" displayName="查询文件记录" orderNo="10002" resourceType="FNPT">
+                        <resource id="FNPT:NopFileRecord:query" displayName="查询文件记录"
+                                  i18n-en:displayName="Query File Record" orderNo="10002" resourceType="FNPT">
                             <permissions>NopFileRecord:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopFileRecord:mutation" displayName="修改文件记录" orderNo="10003"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopFileRecord:mutation" displayName="修改文件记录"
+                                  i18n-en:displayName="Modify File Record" orderNo="10003" resourceType="FNPT">
                             <permissions>NopFileRecord:mutation</permissions>
                         </resource>
                     </children>

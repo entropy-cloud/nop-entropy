@@ -1,0 +1,10 @@
+site:
+  resource:
+    FNPT:NopFileRecord:mutation:
+      displayName: Modify File Record
+    FNPT:NopFileRecord:query:
+      displayName: Query File Record
+    NopFileRecord-main:
+      displayName: File Record
+    test-orm-nop-file:
+      displayName: ''
