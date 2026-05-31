@@ -32,7 +32,7 @@ public class GraphExporter {
             case "JSON":
                 return exportJson(callGraph, symbolTable, communityView, communities);
             default:
-                throw new IllegalArgumentException("Unsupported format: " + format);
+                throw new NopException(ERR_GRAPH_EXPORT_FAILED).param("format", format);
         }
     }
 

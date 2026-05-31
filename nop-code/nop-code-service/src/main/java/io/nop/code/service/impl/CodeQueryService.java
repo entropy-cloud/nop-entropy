@@ -12,6 +12,7 @@ import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.dao.entity.NopCodeUsage;
 import io.nop.code.service.api.dto.*;
+import io.nop.code.core.util.BfsNode;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
@@ -737,21 +738,19 @@ class CodeQueryService {
                 resultIds.addAll(directSubs);
             }
         } else {
-            Queue<String[]> queue = new LinkedList<>();
-            queue.add(new String[]{qualifiedName, "0"});
+            Queue<BfsNode> queue = new LinkedList<>();
+            queue.add(new BfsNode(qualifiedName, 0));
             Set<String> visited = new HashSet<>();
             visited.add(qualifiedName);
             while (!queue.isEmpty()) {
-                String[] current = queue.poll();
-                String superQn = current[0];
-                int d = Integer.parseInt(current[1]);
-                if (d >= depth) continue;
-                List<String> subs = superToSubs.get(superQn);
+                BfsNode current = queue.poll();
+                if (current.depth() >= depth) continue;
+                List<String> subs = superToSubs.get(current.nodeId());
                 if (subs == null) continue;
                 for (String subId : subs) {
                     if (visited.add(subId)) {
                         resultIds.add(subId);
-                        queue.add(new String[]{subId, String.valueOf(d + 1)});
+                        queue.add(new BfsNode(subId, current.depth() + 1));
                     }
                 }
             }

@@ -20,6 +20,7 @@ import io.nop.code.graph.diff.GraphDiffer;
 import io.nop.code.graph.diff.GraphSnapshot;
 import io.nop.code.graph.impact.ImpactAnalyzer;
 import io.nop.code.service.api.dto.*;
+import io.nop.code.core.util.BfsNode;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 
@@ -627,20 +628,18 @@ class CodeGraphService {
 
     private void bfsCollect(String start, Map<String, List<DepEdgeDTO>> adj, int maxDepth,
                             Set<String> visited, List<DepEdgeDTO> result) {
-        Queue<String[]> queue = new LinkedList<>();
-        queue.add(new String[]{start, "0"});
+        Queue<BfsNode> queue = new LinkedList<>();
+        queue.add(new BfsNode(start, 0));
         visited.add(start);
         while (!queue.isEmpty()) {
-            String[] current = queue.poll();
-            String node = current[0];
-            int d = Integer.parseInt(current[1]);
-            if (d >= maxDepth) continue;
-            List<DepEdgeDTO> edges = adj.getOrDefault(node, Collections.emptyList());
+            BfsNode current = queue.poll();
+            if (current.depth() >= maxDepth) continue;
+            List<DepEdgeDTO> edges = adj.getOrDefault(current.nodeId(), Collections.emptyList());
             for (DepEdgeDTO edge : edges) {
                 result.add(edge);
                 if (!visited.contains(edge.getTarget())) {
                     visited.add(edge.getTarget());
-                    queue.add(new String[]{edge.getTarget(), String.valueOf(d + 1)});
+                    queue.add(new BfsNode(edge.getTarget(), current.depth() + 1));
                 }
             }
         }

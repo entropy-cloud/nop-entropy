@@ -1,5 +1,6 @@
 package io.nop.code.graph.export;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
@@ -11,13 +12,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class TestGraphExporterExceptionHandling {
 
     @Test
-    void testUnsupportedFormatThrowsIllegalArgumentException() {
+    void testUnsupportedFormatThrowsNopException() {
         CallGraph graph = new CallGraph();
         SymbolTable table = new SymbolTable();
         GraphExporter exporter = new GraphExporter();
 
-        assertThrows(IllegalArgumentException.class,
+        NopException ex = assertThrows(NopException.class,
                 () -> exporter.export(graph, table, "XML", false, null));
+        assertTrue(ex.getMessage().contains("graph-export-failed"));
     }
 
     @Test
