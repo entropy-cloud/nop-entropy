@@ -211,19 +211,13 @@
                 <item bizObjName="NopCodeFlowMembership"/>
             </schema>
         </prop>
-        <prop name="enclosingUsages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
-              ext:joinRightProp="enclosingSymbolId" lazy="true" published="false">
-            <schema>
-                <item bizObjName="NopCodeUsage"/>
-            </schema>
-        </prop>
-        <prop name="callees" displayName="被调用者" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+        <prop name="callees" displayName="被调用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="callerId" lazy="true" published="false">
             <schema>
                 <item bizObjName="NopCodeCall"/>
             </schema>
         </prop>
-        <prop name="callers" displayName="调用者" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+        <prop name="callers" displayName="调用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="calleeId" lazy="true" published="false">
             <schema>
                 <item bizObjName="NopCodeCall"/>
@@ -239,6 +233,12 @@
               ext:joinRightProp="superTypeId" lazy="true" published="false">
             <schema>
                 <item bizObjName="NopCodeInheritance"/>
+            </schema>
+        </prop>
+        <prop name="enclosingUsages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="enclosingSymbolId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeUsage"/>
             </schema>
         </prop>
         <prop name="annotationUsages" displayName="注解使用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"

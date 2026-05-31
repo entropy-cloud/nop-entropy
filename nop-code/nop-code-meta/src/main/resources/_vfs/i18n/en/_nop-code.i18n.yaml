@@ -205,11 +205,11 @@ prop:
       annotations: null
       entryFlows: null
       flowMemberships: null
-      enclosingUsages: null
       callees: null
       callers: null
       superTypes: null
       subTypes: null
+      enclosingUsages: null
       annotationUsages: null
       extDataComponent: null
       query: null

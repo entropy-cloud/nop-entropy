@@ -182,13 +182,10 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     /* relation: 流成员 */
     public static final String PROP_NAME_flowMemberships = "flowMemberships";
     
-    /* relation: 引用 */
-    public static final String PROP_NAME_enclosingUsages = "enclosingUsages";
-    
-    /* relation: 被调用者 */
+    /* relation: 被调用 */
     public static final String PROP_NAME_callees = "callees";
     
-    /* relation: 调用者 */
+    /* relation: 调用 */
     public static final String PROP_NAME_callers = "callers";
     
     /* relation: 父类型 */
@@ -196,6 +193,9 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     
     /* relation: 子类型 */
     public static final String PROP_NAME_subTypes = "subTypes";
+    
+    /* relation: 引用 */
+    public static final String PROP_NAME_enclosingUsages = "enclosingUsages";
     
     /* relation: 注解使用 */
     public static final String PROP_NAME_annotationUsages = "annotationUsages";
@@ -1906,21 +1906,11 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
        return _flowMemberships;
     }
        
-    private final OrmEntitySet<io.nop.code.dao.entity.NopCodeUsage> _enclosingUsages = new OrmEntitySet<>(this, PROP_NAME_enclosingUsages,
-        io.nop.code.dao.entity.NopCodeUsage.PROP_NAME_enclosingSymbol, null,io.nop.code.dao.entity.NopCodeUsage.class);
-
-    /**
-     * 引用。 refPropName: enclosingSymbol, keyProp: {rel.keyProp}
-     */
-    public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeUsage> getEnclosingUsages(){
-       return _enclosingUsages;
-    }
-       
     private final OrmEntitySet<io.nop.code.dao.entity.NopCodeCall> _callees = new OrmEntitySet<>(this, PROP_NAME_callees,
         io.nop.code.dao.entity.NopCodeCall.PROP_NAME_caller, null,io.nop.code.dao.entity.NopCodeCall.class);
 
     /**
-     * 被调用者。 refPropName: caller, keyProp: {rel.keyProp}
+     * 被调用。 refPropName: caller, keyProp: {rel.keyProp}
      */
     public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeCall> getCallees(){
        return _callees;
@@ -1930,7 +1920,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
         io.nop.code.dao.entity.NopCodeCall.PROP_NAME_callee, null,io.nop.code.dao.entity.NopCodeCall.class);
 
     /**
-     * 调用者。 refPropName: callee, keyProp: {rel.keyProp}
+     * 调用。 refPropName: callee, keyProp: {rel.keyProp}
      */
     public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeCall> getCallers(){
        return _callers;
@@ -1954,6 +1944,16 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeInheritance> getSubTypes(){
        return _subTypes;
+    }
+       
+    private final OrmEntitySet<io.nop.code.dao.entity.NopCodeUsage> _enclosingUsages = new OrmEntitySet<>(this, PROP_NAME_enclosingUsages,
+        io.nop.code.dao.entity.NopCodeUsage.PROP_NAME_enclosingSymbol, null,io.nop.code.dao.entity.NopCodeUsage.class);
+
+    /**
+     * 引用。 refPropName: enclosingSymbol, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.code.dao.entity.NopCodeUsage> getEnclosingUsages(){
+       return _enclosingUsages;
     }
        
     private final OrmEntitySet<io.nop.code.dao.entity.NopCodeAnnotationUsage> _annotationUsages = new OrmEntitySet<>(this, PROP_NAME_annotationUsages,

@@ -10,4 +10,13 @@
 
     <bean id="io.nop.code.service.impl.CodeIndexService" ioc:default="true"
           class="io.nop.code.service.impl.CodeIndexService"/>
+
+    <bean id="io.nop.code.flow.FlowDetector" ioc:default="true"
+          class="io.nop.code.flow.FlowDetector"/>
+
+    <bean id="io.nop.code.flow.DeadCodeDetector" ioc:default="true"
+          class="io.nop.code.flow.DeadCodeDetector"/>
+
+    <bean id="io.nop.code.flow.ChangeAnalyzer" ioc:default="true"
+          class="io.nop.code.flow.ChangeAnalyzer"/>
 </beans>

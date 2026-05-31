@@ -397,34 +397,34 @@
                         <on leftProp="id" rightProp="symbolId"/>
                     </join>
                 </to-many>
-                <to-many displayName="引用" name="enclosingUsages" refEntityName="io.nop.code.dao.entity.NopCodeUsage"
-                         refPropName="enclosingSymbol" tagSet="">
-                    <join>
-                        <on leftProp="id" rightProp="enclosingSymbolId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="被调用者" name="callees" refEntityName="io.nop.code.dao.entity.NopCodeCall"
-                         refPropName="caller" tagSet="">
+                <to-many displayName="被调用" name="callees" refEntityName="io.nop.code.dao.entity.NopCodeCall"
+                         refPropName="caller">
                     <join>
                         <on leftProp="id" rightProp="callerId"/>
                     </join>
                 </to-many>
-                <to-many displayName="调用者" name="callers" refEntityName="io.nop.code.dao.entity.NopCodeCall"
-                         refPropName="callee" tagSet="">
+                <to-many displayName="调用" name="callers" refEntityName="io.nop.code.dao.entity.NopCodeCall"
+                         refPropName="callee">
                     <join>
                         <on leftProp="id" rightProp="calleeId"/>
                     </join>
                 </to-many>
                 <to-many displayName="父类型" name="superTypes" refEntityName="io.nop.code.dao.entity.NopCodeInheritance"
-                         refPropName="subType" tagSet="">
+                         refPropName="subType">
                     <join>
                         <on leftProp="id" rightProp="subTypeId"/>
                     </join>
                 </to-many>
                 <to-many displayName="子类型" name="subTypes" refEntityName="io.nop.code.dao.entity.NopCodeInheritance"
-                         refPropName="superType" tagSet="">
+                         refPropName="superType">
                     <join>
                         <on leftProp="id" rightProp="superTypeId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="引用" name="enclosingUsages" refEntityName="io.nop.code.dao.entity.NopCodeUsage"
+                         refPropName="enclosingSymbol" tagSet="">
+                    <join>
+                        <on leftProp="id" rightProp="enclosingSymbolId"/>
                     </join>
                 </to-many>
                 <to-many displayName="注解使用" name="annotationUsages"
