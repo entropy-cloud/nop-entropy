@@ -1,0 +1,94 @@
+site:
+  resource:
+    FNPT:NopAiChatRequest:mutation:
+      displayName: Modify 对话请求
+    FNPT:NopAiChatRequest:query:
+      displayName: Query 对话请求
+    FNPT:NopAiChatResponse:mutation:
+      displayName: Modify 响应结果
+    FNPT:NopAiChatResponse:query:
+      displayName: Query 响应结果
+    FNPT:NopAiGenFile:mutation:
+      displayName: Modify 生成文件
+    FNPT:NopAiGenFile:query:
+      displayName: Query 生成文件
+    FNPT:NopAiGenFileHistory:mutation:
+      displayName: Modify 文件历史
+    FNPT:NopAiGenFileHistory:query:
+      displayName: Query 文件历史
+    FNPT:NopAiKnowledge:mutation:
+      displayName: Modify 知识库
+    FNPT:NopAiKnowledge:query:
+      displayName: Query 知识库
+    FNPT:NopAiModel:mutation:
+      displayName: Modify AI模型
+    FNPT:NopAiModel:query:
+      displayName: Query AI模型
+    FNPT:NopAiProject:mutation:
+      displayName: Modify AI项目
+    FNPT:NopAiProject:query:
+      displayName: Query AI项目
+    FNPT:NopAiProjectConfig:mutation:
+      displayName: Modify 项目配置
+    FNPT:NopAiProjectConfig:query:
+      displayName: Query 项目配置
+    FNPT:NopAiProjectRule:mutation:
+      displayName: Modify 项目规则
+    FNPT:NopAiProjectRule:query:
+      displayName: Query 项目规则
+    FNPT:NopAiPromptTemplate:mutation:
+      displayName: Modify 提示词模板
+    FNPT:NopAiPromptTemplate:query:
+      displayName: Query 提示词模板
+    FNPT:NopAiPromptTemplateHistory:mutation:
+      displayName: Modify 模板历史
+    FNPT:NopAiPromptTemplateHistory:query:
+      displayName: Query 模板历史
+    FNPT:NopAiRequirement:mutation:
+      displayName: Modify 需求条目
+    FNPT:NopAiRequirement:query:
+      displayName: Query 需求条目
+    FNPT:NopAiRequirementHistory:mutation:
+      displayName: Modify 需求历史
+    FNPT:NopAiRequirementHistory:query:
+      displayName: Query 需求历史
+    FNPT:NopAiTestCase:mutation:
+      displayName: Modify 测试用例
+    FNPT:NopAiTestCase:query:
+      displayName: Query 测试用例
+    FNPT:NopAiTestResult:mutation:
+      displayName: Modify 测试结果
+    FNPT:NopAiTestResult:query:
+      displayName: Query 测试结果
+    NopAiChatRequest-main:
+      displayName: ''
+    NopAiChatResponse-main:
+      displayName: ''
+    NopAiGenFile-main:
+      displayName: ''
+    NopAiGenFileHistory-main:
+      displayName: ''
+    NopAiKnowledge-main:
+      displayName: ''
+    NopAiModel-main:
+      displayName: ''
+    NopAiProject-main:
+      displayName: ''
+    NopAiProjectConfig-main:
+      displayName: ''
+    NopAiProjectRule-main:
+      displayName: ''
+    NopAiPromptTemplate-main:
+      displayName: ''
+    NopAiPromptTemplateHistory-main:
+      displayName: ''
+    NopAiRequirement-main:
+      displayName: ''
+    NopAiRequirementHistory-main:
+      displayName: ''
+    NopAiTestCase-main:
+      displayName: ''
+    NopAiTestResult-main:
+      displayName: ''
+    test-orm-nop-ai:
+      displayName: ''
