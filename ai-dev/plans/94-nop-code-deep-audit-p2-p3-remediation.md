@@ -1,6 +1,6 @@
 # 94 nop-code Deep Audit P2/P3 遗留修复
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-06-02
 > Source: `ai-dev/audits/2026-05-31-deep-audit-nop-code/`（维度 04/07/08/09）+ `ai-dev/audits/2026-06-02-adversarial-review-nop-code/summary.md`（AR-88~AR-93 已由 Plan 93 修复）
 > Related: Plans 88–93（all completed）
@@ -104,7 +104,7 @@ Exit Criteria:
 - [x] 无 Java 代码引用旧属性名 `createdTime`（grep 确认，NopCodeFlowMembership 实体已由代码生成更新）
 - [x] No new test required: ORM model changes verified by codegen + compile + existing tests
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — Residual 并发 + IoC 统一
 
@@ -129,39 +129,41 @@ Exit Criteria:
 - [x] `./mvnw compile -pl nop-code -am` 通过
 - [x] `./mvnw test -pl nop-code -am` 通过
 - [x] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — P3 IoC 配置一致性
 
-Status: planned
+Status: completed
 Targets: `_lang-typescript.beans.xml`, lang 模块 `_module` 文件
 
 - Item Types: `Fix`
 
-- [ ] **08-05：补充 xsi:schemaLocation**。为 `_lang-typescript.beans.xml`（路径：`nop-code-lang-typescript/src/main/resources/_vfs/nop/code/beans/_lang-typescript.beans.xml`）添加 `xmlns:xsi` 和 `xsi:schemaLocation`，与 `_lang-java.beans.xml` 和 `_lang-python.beans.xml` 一致
-- [ ] **08-06：添加 _module 文件**。为 3 个 lang 模块在各自 `_vfs/nop/code/` 下添加空 `_module` 文件：`nop-code-lang-java/src/main/resources/_vfs/nop/code/_module`、`nop-code-lang-typescript/src/main/resources/_vfs/nop/code/_module`、`nop-code-lang-python/src/main/resources/_vfs/nop/code/_module`
+- [x] **08-05：补充 xsi:schemaLocation**。为 `_lang-typescript.beans.xml` 添加 `xmlns:xsi` 和 `xsi:schemaLocation`
+- [x] **08-06：添加 _module 文件**。为 3 个 lang 模块在各自 `_vfs/nop/code/` 下添加空 `_module` 文件
 
 Exit Criteria:
 
-- [ ] `_lang-typescript.beans.xml` 有 `xsi:schemaLocation` 属性（与 `_lang-java.beans.xml` 结构一致）
-- [ ] 3 个 lang 模块各自 VFS 目录下有 `_module` 文件
-- [ ] `./mvnw compile -pl nop-code -am` 通过
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No new test required: configuration file consistency changes
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+> Phase 3 completed: commit 3459061cf
+
+- [x] `_lang-typescript.beans.xml` 有 `xsi:schemaLocation` 属性（与 `_lang-java.beans.xml` 结构一致）
+- [x] 3 个 lang 模块各自 VFS 目录下有 `_module` 文件
+- [x] `./mvnw compile -pl nop-code -am` 通过
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No new test required: configuration file consistency changes
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 5 个 P2 全部修复（ORM 3 + 并发 1 + IoC 1）
-- [ ] 3 个 P3 全部修复（IoC 配置 2 + 异常日志 1，已合入 Phase 2/3）
-- [ ] 无 in-scope live defect 被降级到 deferred/follow-up
-- [ ] 无空壳实现或静默跳过的新增代码
-- [ ] `./mvnw install -pl nop-code -am -DskipTests` 通过（含代码生成）
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] checkstyle / 代码规范检查通过
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `ai-dev/logs/` 收口记录已更新
+- [x] 5 个 P2 全部修复（ORM 3 + 并发 1 + IoC 1）
+- [x] 3 个 P3 全部修复（IoC 配置 2 + 异常日志 1，已合入 Phase 2/3）
+- [x] 无 in-scope live defect 被降级到 deferred/follow-up
+- [x] 无空壳实现或静默跳过的新增代码
+- [x] `./mvnw install -pl nop-code -am -DskipTests` 通过（含代码生成）
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] checkstyle / 代码规范检查通过
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `ai-dev/logs/` 收口记录已更新
 
 ## Deferred But Adjudicated
 
@@ -199,13 +201,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
+Status Note: All 5 P2 and 3 P3 findings from deep audit dimensions 04/07/08/09 have been verified fixed against live code. No in-scope live defects remain. Deferred items are genuinely non-blocking (optimization candidates and watch-only residuals).
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: Independent sub-agent (ses_17fa25cfdffeYwQ6eKhIJAzB99)
+- Audit Session: 2026-06-01
+- Evidence:
+  - Phase 1 Exit Criteria: PASS (all 8 items) — ORM naming fixed, useLogicalDelete added, 4 database indexes added
+  - Phase 2 Exit Criteria: PASS (all 8 items) — evictStatusMap CHM-safe, IoC unified, ExtDataHelper LOG.debug
+  - Phase 3 Exit Criteria: PASS (all 7 items) — xsi:schemaLocation added, 3 _module files created
+  - Anti-Hollow Check: PASS — CodeIndexService.setRegistry() discovers adapters via BeanContainer.getBeansOfType() and creates analyzer; no empty method bodies or silent no-ops
+  - Deferred Classification Check: PASS — all deferred items are genuine optimization candidates / watch-only residuals
+  - `node ai-dev/tools/check-plan-checklist.mjs` exit code 0 (all checklist items checked)
+  - `./mvnw test -pl nop-code -am` BUILD SUCCESS
+  - `./mvnw install -pl nop-code -am -DskipTests` BUILD SUCCESS
 
 Follow-up:
 
-- <<待填写>>
+- CodeIndexService God Object further split → successor plan
+- entityToCodeSymbol DRY 治理（Plan 91 Deferred 07-03）
+- Tarjan 递归→迭代（AR-69 P3 watch-only residual）
+- i18n ORM displayName 英文翻译（P3，不影响运行时）
