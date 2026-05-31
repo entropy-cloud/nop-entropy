@@ -31,7 +31,7 @@
 |----------|---------|
 | Entity / `I*Biz` / 业务骨架 | `*-codegen/postcompile/gen-orm.xgen`、`/nop/templates/orm` |
 | XMeta / `module-meta.json` | `*-meta/precompile/gen-meta.xgen`、`/nop/templates/meta` |
-| i18n | `*-meta/postcompile/gen-i18n.xgen` |
+| i18n | `*-meta/postcompile/gen-i18n.xgen`；如果是 web 菜单 i18n，还要看 `*-web/precompile2/gen-i18n.xgen` |
 | view / page | `*-web/precompile/gen-page.xgen`、`/nop/templates/orm-web` |
 
 ### 3. 重新生成
@@ -70,9 +70,10 @@
 
 1. `*-dao` 下的 ORM / Entity / 接口。
 2. `*-meta` 下的 XMeta / i18n。
-3. `*-meta` 下的 `/{moduleId}/model/module-meta.json`（如果页面或菜单逻辑依赖模块级元数据）。
-4. `*-web` 下的页面资源。
-5. 如果还有手写 source `*.action-auth.xml` 覆盖文件，确认显式 `TOPM` / `SUBM` 资源也带有 `icon`。
+3. `*-web/precompile2/gen-i18n.xgen` 是否存在，以及它读取的是否是第一轮已生成完成的 `action-auth.xml`。
+4. `*-meta` 下的 `/{moduleId}/model/module-meta.json`（如果页面或菜单逻辑依赖模块级元数据）。
+5. `*-web` 下的页面资源。
+6. 如果还有手写 source `*.action-auth.xml` 覆盖文件，确认显式 `TOPM` / `SUBM` 资源也带有 `icon`。
 
 ## 常见坑
 

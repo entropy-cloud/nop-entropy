@@ -97,7 +97,7 @@ nop-cli gen model/{appName}.orm.xml -t=/nop/templates/orm -o=.
 2. `{appName}-dao` 接收 ORM、Entity、接口等结果。
 3. `{appName}-meta` 生成 XMeta 与 i18n。
 4. `{appName}-meta` 也会生成模块级 `module-meta.json`，供 web 层读取模块图标等元数据。
-5. `{appName}-web` 基于 XMeta 与 `module-meta.json` 生成页面相关文件。
+5. `{appName}-web` 基于 XMeta 与 `module-meta.json` 生成页面相关文件；如果 web 侧 i18n 依赖第一轮生成出的 `action-auth.xml`，则需要在 `precompile2` 中二次生成。
 6. `{appName}-service` / `{appName}-app` 接收对应派生产物并参与构建。
 
 ## 真实链路
@@ -109,6 +109,7 @@ model/{app}.orm.xml
   -> {app}-meta/precompile/gen-meta.xgen
   -> {app}-meta/postcompile/gen-i18n.xgen
   -> {app}-web/precompile/gen-page.xgen
+  -> {app}-web/precompile2/gen-i18n.xgen  (当 web i18n 依赖最终 action-auth.xml 时)
 ```
 
 ## AI 的默认修改顺序
