@@ -5,6 +5,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.Queue;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.nop.api.core.beans.FilterBeans;
@@ -429,7 +430,7 @@ class CodeGraphService {
         Map<String, List<DepEdgeDTO>> adj = buildForwardAdjacency(indexId);
         Set<String> visited = new HashSet<>();
         List<DepEdgeDTO> resultEdges = new ArrayList<>();
-        bfsCollect(filePath, adj, depth, visited, resultEdges);
+        bfsCollect(filePath, adj, depth, visited, resultEdges, DepEdgeDTO::getTarget);
         return buildGraphFromEdges(resultEdges);
     }
 
@@ -438,7 +439,7 @@ class CodeGraphService {
         Map<String, List<DepEdgeDTO>> adj = buildReverseAdjacency(indexId);
         Set<String> visited = new HashSet<>();
         List<DepEdgeDTO> resultEdges = new ArrayList<>();
-        bfsCollect(filePath, adj, depth, visited, resultEdges);
+        bfsCollect(filePath, adj, depth, visited, resultEdges, DepEdgeDTO::getSource);
         if (limit > 0 && resultEdges.size() > limit) {
             resultEdges = resultEdges.subList(0, limit);
         }
@@ -596,7 +597,8 @@ class CodeGraphService {
     }
 
     private void bfsCollect(String start, Map<String, List<DepEdgeDTO>> adj, int maxDepth,
-                            Set<String> visited, List<DepEdgeDTO> result) {
+                            Set<String> visited, List<DepEdgeDTO> result,
+                            Function<DepEdgeDTO, String> nextNodeFn) {
         Queue<BfsNode> queue = new LinkedList<>();
         queue.add(new BfsNode(start, 0));
         visited.add(start);
@@ -606,9 +608,10 @@ class CodeGraphService {
             List<DepEdgeDTO> edges = adj.getOrDefault(current.nodeId(), Collections.emptyList());
             for (DepEdgeDTO edge : edges) {
                 result.add(edge);
-                if (!visited.contains(edge.getTarget())) {
-                    visited.add(edge.getTarget());
-                    queue.add(new BfsNode(edge.getTarget(), current.depth() + 1));
+                String nextNode = nextNodeFn.apply(edge);
+                if (!visited.contains(nextNode)) {
+                    visited.add(nextNode);
+                    queue.add(new BfsNode(nextNode, current.depth() + 1));
                 }
             }
         }

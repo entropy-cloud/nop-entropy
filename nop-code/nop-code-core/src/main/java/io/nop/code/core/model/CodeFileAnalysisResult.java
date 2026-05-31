@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.code.core.semantic.CodeSemanticEdge;
 /**
  * 单文件代码分析结果
  */
@@ -19,6 +20,7 @@ public class CodeFileAnalysisResult {
     private List<CodeMethodCall> calls = new ArrayList<>();
     private List<CodeInheritance> inheritances = new ArrayList<>();
     private List<CodeAnnotationUsage> annotationUsages = new ArrayList<>();
+    private List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
 
     public String getFilePath() {
         return filePath;
@@ -98,5 +100,13 @@ public class CodeFileAnalysisResult {
 
     public void setAnnotationUsages(List<CodeAnnotationUsage> annotationUsages) {
         this.annotationUsages = annotationUsages;
+    }
+
+    public List<CodeSemanticEdge> getSemanticEdges() {
+        return semanticEdges;
+    }
+
+    public void setSemanticEdges(List<CodeSemanticEdge> semanticEdges) {
+        this.semanticEdges = semanticEdges != null ? semanticEdges : new ArrayList<>();
     }
 }
