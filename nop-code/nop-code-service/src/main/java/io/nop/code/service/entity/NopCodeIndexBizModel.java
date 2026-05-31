@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +27,8 @@ import java.util.Map;
 public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements INopCodeIndexBiz {
 
     private static final Logger LOG = LoggerFactory.getLogger(NopCodeIndexBizModel.class);
+
+    private static final int MAX_STATUS_ENTRIES = 20;
 
     @Inject
     protected ICodeIndexService codeIndexService;
@@ -48,6 +51,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         status.setFileCount(fileCount);
         status.setCompleted(true);
         incrementalStatusMap.put(indexId, status);
+        evictStatusMap();
 
         LOG.info("Full index completed: indexId={}, files={}", indexId, fileCount);
         return indexId;
@@ -67,6 +71,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         status.setFileCount(fileCount);
         status.setCompleted(true);
         incrementalStatusMap.put(indexId, status);
+        evictStatusMap();
 
         LOG.info("Incremental index completed: indexId={}, files={}", indexId, fileCount);
         return fileCount;
@@ -298,6 +303,16 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
         public void setErrorMessage(String errorMessage) {
             this.errorMessage = errorMessage;
+        }
+    }
+
+    private void evictStatusMap() {
+        while (incrementalStatusMap.size() > MAX_STATUS_ENTRIES) {
+            Iterator<String> it = incrementalStatusMap.keySet().iterator();
+            if (it.hasNext()) {
+                it.next();
+                it.remove();
+            }
         }
     }
 }
