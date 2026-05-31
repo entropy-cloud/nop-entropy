@@ -22,6 +22,9 @@ class TestCacheEviction {
             detector.invalidateCache("idx_" + i);
         }
 
-        assertTrue(true, "Multiple invalidate calls should not throw");
+        assertTrue(detector.listFlows("idx_0").isEmpty(),
+                "Evicted index should not have cached flows");
+        assertTrue(detector.listFlows("idx_24").isEmpty(),
+                "Last evicted index should not have cached flows");
     }
 }
