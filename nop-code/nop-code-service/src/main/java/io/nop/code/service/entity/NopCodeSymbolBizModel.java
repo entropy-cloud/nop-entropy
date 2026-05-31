@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 
 import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
@@ -47,12 +48,14 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public SymbolDTO getBySymbolId(@Name("id") String id, @Name("indexId") String indexId) {
         CodeSymbol symbol = codeIndexService.getSymbolById(indexId, id);
         return symbol != null ? SymbolDTO.fromCodeSymbol(symbol) : null;
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public SymbolDTO findByQualifiedName(
             @Name("qualifiedName") String qualifiedName,
             @Name("indexId") String indexId) {
@@ -61,6 +64,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public PageBean<SymbolDTO> findPage_symbols(
             @Name("query") @Optional String query,
             @Name("kinds") @Optional List<String> kinds,
@@ -95,6 +99,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizLoader(forType = SymbolDTO.class)
+    @Auth(permissions = "code-query")
     public List<AnnotationUsageDTO> usages(
             @ContextSource SymbolDTO symbol,
             @Name("indexId") @Optional String indexId,
@@ -131,6 +136,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public List<ModuleDigestDTO> moduleDigest(
             @Name("indexId") String indexId,
             @Name("dirPath") String dirPath,
@@ -139,6 +145,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public List<PublicAPIDTO> publicSurface(
             @Name("indexId") String indexId,
             @Name("dirPath") String dirPath) {
@@ -146,6 +153,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public List<TypeOutlineDTO> batchGetOutlines(
             @Name("qualifiedNames") List<String> qualifiedNames,
             @Name("indexId") String indexId) {
@@ -153,6 +161,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public TypeHierarchyDTO getTypeHierarchy(
             @Name("qualifiedName") String qualifiedName,
             @Name("indexId") String indexId,
@@ -164,6 +173,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public CallHierarchyDTO getCallHierarchy(
             @Name("qualifiedName") String qualifiedName,
             @Name("indexId") String indexId,
@@ -175,6 +185,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public FileOutlineDTO fileOutline(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath) {
@@ -196,6 +207,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public List<ReferenceDTO> findReferencedBy(
             @Name("indexId") String indexId,
             @Name("qualifiedName") String qualifiedName,
@@ -205,12 +217,14 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
         return codeIndexService.findReferencedBy(indexId, qualifiedName, kind, lim);
     }
 
-    @BizQuery
+    @BizMutation
+    @Auth(roles = "admin")
     public DeadCodeReport detectDeadCode(@Name("indexId") String indexId) {
         return codeIndexService.detectDeadCode(indexId);
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public List<SymbolDTO> findByAnnotation(
             @Name("indexId") String indexId,
             @Name("annotationName") String annotationName) {
@@ -220,6 +234,7 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public List<SymbolDTO> findImplementations(
             @Name("indexId") String indexId,
             @Name("qualifiedName") String qualifiedName,

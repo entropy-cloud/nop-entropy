@@ -97,7 +97,7 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
     void testDetectDeadCode_returnsResultMap() {
         Map<String, Object> data = new HashMap<>();
         data.put("indexId", currentIndexId);
-        ApiResponse<?> response = rpcQuery("NopCodeSymbol__detectDeadCode", data);
+        ApiResponse<?> response = rpcMutation("NopCodeSymbol__detectDeadCode", data);
         assertNotNull(response);
         assertTrue(response.isOk(),
                 "detectDeadCode BizModel action should be registered and succeed");

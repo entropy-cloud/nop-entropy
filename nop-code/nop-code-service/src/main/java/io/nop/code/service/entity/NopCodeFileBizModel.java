@@ -32,6 +32,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public CodeFileAnalysisResult getByPath(
             @Name("filePath") String filePath,
             @Name("indexId") String indexId) {
@@ -39,6 +40,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public PageBean<CodeFileAnalysisResult> findPage_files(
             @Name("indexId") String indexId,
             @Name("packageName") @Optional String packageName,
@@ -48,6 +50,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizQuery
+    @Auth(permissions = "code-query")
     public List<FileTreeNode> fileTree(@Name("indexId") String indexId) {
         return codeIndexService.getFileTree(indexId);
     }
