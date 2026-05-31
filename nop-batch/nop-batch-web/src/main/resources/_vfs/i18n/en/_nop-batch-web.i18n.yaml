@@ -1,0 +1,24 @@
+site:
+  resource:
+    FNPT:NopBatchFile:mutation:
+      displayName: Modify Batch File
+    FNPT:NopBatchFile:query:
+      displayName: Query Batch File
+    FNPT:NopBatchRecordResult:mutation:
+      displayName: Modify Batch Record Result
+    FNPT:NopBatchRecordResult:query:
+      displayName: Query Batch Record Result
+    FNPT:NopBatchTask:mutation:
+      displayName: Modify Batch Task
+    FNPT:NopBatchTask:query:
+      displayName: Query Batch Task
+    NopBatchFile-main:
+      displayName: Batch File
+    NopBatchRecordResult-main:
+      displayName: Batch Record Result
+    NopBatchTask-main:
+      displayName: Batch Task
+    test-nop-batch:
+      displayName: ''
+    test-orm-nop-batch:
+      displayName: ''
