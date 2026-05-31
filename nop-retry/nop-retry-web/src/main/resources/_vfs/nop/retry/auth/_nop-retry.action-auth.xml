@@ -9,12 +9,12 @@
                           i18n-en:displayName="Retry Attempt" icon="rotate-cw" component="AMIS" resourceType="SUBM"
                           url="/nop/retry/pages/NopRetryAttempt/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRetryAttempt:query" displayName="查询重试尝试" orderNo="10002"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryAttempt:query" displayName="查询重试尝试"
+                                  i18n-en:displayName="Query Retry Attempt" orderNo="10002" resourceType="FNPT">
                             <permissions>NopRetryAttempt:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRetryAttempt:mutation" displayName="修改重试尝试" orderNo="10003"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryAttempt:mutation" displayName="修改重试尝试"
+                                  i18n-en:displayName="Modify Retry Attempt" orderNo="10003" resourceType="FNPT">
                             <permissions>NopRetryAttempt:mutation</permissions>
                         </resource>
                     </children>
@@ -23,12 +23,12 @@
                           i18n-en:displayName="Retry Dead Letter" icon="octagon-alert" component="AMIS"
                           resourceType="SUBM" url="/nop/retry/pages/NopRetryDeadLetter/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRetryDeadLetter:query" displayName="查询重试死信" orderNo="10005"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryDeadLetter:query" displayName="查询重试死信"
+                                  i18n-en:displayName="Query Retry Dead Letter" orderNo="10005" resourceType="FNPT">
                             <permissions>NopRetryDeadLetter:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRetryDeadLetter:mutation" displayName="修改重试死信" orderNo="10006"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryDeadLetter:mutation" displayName="修改重试死信"
+                                  i18n-en:displayName="Modify Retry Dead Letter" orderNo="10006" resourceType="FNPT">
                             <permissions>NopRetryDeadLetter:mutation</permissions>
                         </resource>
                     </children>
@@ -37,12 +37,12 @@
                           icon="refresh-ccw" component="AMIS" resourceType="SUBM"
                           url="/nop/retry/pages/NopRetryPolicy/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRetryPolicy:query" displayName="查询重试策略" orderNo="10008"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryPolicy:query" displayName="查询重试策略"
+                                  i18n-en:displayName="Query Retry Policy" orderNo="10008" resourceType="FNPT">
                             <permissions>NopRetryPolicy:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRetryPolicy:mutation" displayName="修改重试策略" orderNo="10009"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryPolicy:mutation" displayName="修改重试策略"
+                                  i18n-en:displayName="Modify Retry Policy" orderNo="10009" resourceType="FNPT">
                             <permissions>NopRetryPolicy:mutation</permissions>
                         </resource>
                     </children>
@@ -51,12 +51,12 @@
                           icon="clock-3" component="AMIS" resourceType="SUBM"
                           url="/nop/retry/pages/NopRetryRecord/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRetryRecord:query" displayName="查询重试记录" orderNo="10011"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryRecord:query" displayName="查询重试记录"
+                                  i18n-en:displayName="Query Retry Record" orderNo="10011" resourceType="FNPT">
                             <permissions>NopRetryRecord:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRetryRecord:mutation" displayName="修改重试记录" orderNo="10012"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryRecord:mutation" displayName="修改重试记录"
+                                  i18n-en:displayName="Modify Retry Record" orderNo="10012" resourceType="FNPT">
                             <permissions>NopRetryRecord:mutation</permissions>
                         </resource>
                     </children>
@@ -65,12 +65,12 @@
                           i18n-en:displayName="Retry Template" icon="blocks" component="AMIS" resourceType="SUBM"
                           url="/nop/retry/pages/NopRetryTemplate/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopRetryTemplate:query" displayName="查询重试模板" orderNo="10014"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryTemplate:query" displayName="查询重试模板"
+                                  i18n-en:displayName="Query Retry Template" orderNo="10014" resourceType="FNPT">
                             <permissions>NopRetryTemplate:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopRetryTemplate:mutation" displayName="修改重试模板" orderNo="10015"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopRetryTemplate:mutation" displayName="修改重试模板"
+                                  i18n-en:displayName="Modify Retry Template" orderNo="10015" resourceType="FNPT">
                             <permissions>NopRetryTemplate:mutation</permissions>
                         </resource>
                     </children>

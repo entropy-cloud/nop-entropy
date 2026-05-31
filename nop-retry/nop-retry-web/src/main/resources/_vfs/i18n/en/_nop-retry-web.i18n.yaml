@@ -1,0 +1,34 @@
+site:
+  resource:
+    FNPT:NopRetryAttempt:mutation:
+      displayName: Modify Retry Attempt
+    FNPT:NopRetryAttempt:query:
+      displayName: Query Retry Attempt
+    FNPT:NopRetryDeadLetter:mutation:
+      displayName: Modify Retry Dead Letter
+    FNPT:NopRetryDeadLetter:query:
+      displayName: Query Retry Dead Letter
+    FNPT:NopRetryPolicy:mutation:
+      displayName: Modify Retry Policy
+    FNPT:NopRetryPolicy:query:
+      displayName: Query Retry Policy
+    FNPT:NopRetryRecord:mutation:
+      displayName: Modify Retry Record
+    FNPT:NopRetryRecord:query:
+      displayName: Query Retry Record
+    FNPT:NopRetryTemplate:mutation:
+      displayName: Modify Retry Template
+    FNPT:NopRetryTemplate:query:
+      displayName: Query Retry Template
+    NopRetryAttempt-main:
+      displayName: Retry Attempt
+    NopRetryDeadLetter-main:
+      displayName: Retry Dead Letter
+    NopRetryPolicy-main:
+      displayName: Retry Policy
+    NopRetryRecord-main:
+      displayName: Retry Record
+    NopRetryTemplate-main:
+      displayName: Retry Template
+    test-orm-nop-retry:
+      displayName: ''
