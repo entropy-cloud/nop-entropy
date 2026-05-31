@@ -11,6 +11,8 @@ import io.nop.code.flow.FlowDetector;
 import io.nop.code.flow.IFlowDetector;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
@@ -21,7 +23,12 @@ import java.util.function.Function;
 
 class CodeCacheManager {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CodeCacheManager.class);
+
     static final int MAX_CACHE_ENTRIES = 20;
+    private static final int BATCH_SIZE = 5000;
+    private static final int MAX_CACHE_SYMBOLS = 100000;
+    private static final int MAX_CACHE_EDGES = 500000;
 
     static class AnalysisCache {
         SymbolTable symbolTable;
@@ -75,12 +82,29 @@ class CodeCacheManager {
     private SymbolTable rebuildSymbolTable(String indexId, IDaoProvider daoProvider,
                                             Function<NopCodeSymbol, CodeSymbol> converter) {
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeSymbol> entities = symbolDao.findAllByQuery(query);
         SymbolTable table = new SymbolTable();
-        for (NopCodeSymbol entity : entities) {
-            table.add(converter.apply(entity));
+        long offset = 0;
+        int totalLoaded = 0;
+        while (true) {
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("indexId", indexId));
+            query.setOffset(offset);
+            query.setLimit(BATCH_SIZE);
+            List<NopCodeSymbol> batch = symbolDao.findAllByQuery(query);
+            if (batch.isEmpty())
+                break;
+            for (NopCodeSymbol entity : batch) {
+                table.add(converter.apply(entity));
+                totalLoaded++;
+            }
+            if (totalLoaded >= MAX_CACHE_SYMBOLS) {
+                LOG.warn("Symbol cache for index {} exceeded MAX_CACHE_SYMBOLS({}), degrading to empty cache",
+                        indexId, MAX_CACHE_SYMBOLS);
+                return new SymbolTable();
+            }
+            if (batch.size() < BATCH_SIZE)
+                break;
+            offset += BATCH_SIZE;
         }
         return table;
     }
@@ -88,12 +112,29 @@ class CodeCacheManager {
     private CallGraph rebuildCallGraph(String indexId, IDaoProvider daoProvider,
                                         BiConsumer<CallGraph, NopCodeCall> edgeConsumer) {
         IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeCall> callEntities = callDao.findAllByQuery(query);
         CallGraph callGraph = new CallGraph();
-        for (NopCodeCall entity : callEntities) {
-            edgeConsumer.accept(callGraph, entity);
+        long offset = 0;
+        int totalLoaded = 0;
+        while (true) {
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("indexId", indexId));
+            query.setOffset(offset);
+            query.setLimit(BATCH_SIZE);
+            List<NopCodeCall> batch = callDao.findAllByQuery(query);
+            if (batch.isEmpty())
+                break;
+            for (NopCodeCall entity : batch) {
+                edgeConsumer.accept(callGraph, entity);
+                totalLoaded++;
+            }
+            if (totalLoaded >= MAX_CACHE_EDGES) {
+                LOG.warn("Call graph cache for index {} exceeded MAX_CACHE_EDGES({}), degrading to empty cache",
+                        indexId, MAX_CACHE_EDGES);
+                return new CallGraph();
+            }
+            if (batch.size() < BATCH_SIZE)
+                break;
+            offset += BATCH_SIZE;
         }
         return callGraph;
     }

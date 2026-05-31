@@ -795,7 +795,10 @@ public class CodeIndexService implements ICodeIndexService {
             session.save(indexEntity);
         }
 
-        BatchQueue<CodeFileAnalysisResult> queue = new BatchQueue<>(BATCH_SIZE, batch -> {
+        BatchQueue<CodeFileAnalysisResult> queue = new BatchQueue<>(500, batch -> {
+            session.flush();
+            session.evictAll(NopCodeFile.class.getName());
+            session.evictAll(NopCodeSymbol.class.getName());
             LOG.debug("Flushed batch of {} file results for index {}", batch.size(), indexId);
         });
 
