@@ -9,12 +9,12 @@
                           i18n-en:displayName="TaskFlow Definition" icon="workflow" component="AMIS" resourceType="SUBM"
                           url="/nop/task/pages/NopTaskDefinition/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopTaskDefinition:query" displayName="查询逻辑流模型定义" orderNo="10002"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTaskDefinition:query" displayName="查询逻辑流模型定义"
+                                  i18n-en:displayName="Query TaskFlow Definition" orderNo="10002" resourceType="FNPT">
                             <permissions>NopTaskDefinition:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopTaskDefinition:mutation" displayName="修改逻辑流模型定义" orderNo="10003"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTaskDefinition:mutation" displayName="修改逻辑流模型定义"
+                                  i18n-en:displayName="Modify TaskFlow Definition" orderNo="10003" resourceType="FNPT">
                             <permissions>NopTaskDefinition:mutation</permissions>
                         </resource>
                     </children>
@@ -23,11 +23,13 @@
                           i18n-en:displayName="TaskFlow Definition Auth" icon="shield-check" component="AMIS"
                           resourceType="SUBM" url="/nop/task/pages/NopTaskDefinitionAuth/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopTaskDefinitionAuth:query" displayName="查询逻辑流定义权限" orderNo="10005"
+                        <resource id="FNPT:NopTaskDefinitionAuth:query" displayName="查询逻辑流定义权限"
+                                  i18n-en:displayName="Query TaskFlow Definition Auth" orderNo="10005"
                                   resourceType="FNPT">
                             <permissions>NopTaskDefinitionAuth:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopTaskDefinitionAuth:mutation" displayName="修改逻辑流定义权限" orderNo="10006"
+                        <resource id="FNPT:NopTaskDefinitionAuth:mutation" displayName="修改逻辑流定义权限"
+                                  i18n-en:displayName="Modify TaskFlow Definition Auth" orderNo="10006"
                                   resourceType="FNPT">
                             <permissions>NopTaskDefinitionAuth:mutation</permissions>
                         </resource>
@@ -37,12 +39,12 @@
                           i18n-en:displayName="TaskFlow Instance" icon="circle-play" component="AMIS"
                           resourceType="SUBM" url="/nop/task/pages/NopTaskInstance/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopTaskInstance:query" displayName="查询逻辑流实例" orderNo="10008"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTaskInstance:query" displayName="查询逻辑流实例"
+                                  i18n-en:displayName="Query TaskFlow Instance" orderNo="10008" resourceType="FNPT">
                             <permissions>NopTaskInstance:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopTaskInstance:mutation" displayName="修改逻辑流实例" orderNo="10009"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTaskInstance:mutation" displayName="修改逻辑流实例"
+                                  i18n-en:displayName="Modify TaskFlow Instance" orderNo="10009" resourceType="FNPT">
                             <permissions>NopTaskInstance:mutation</permissions>
                         </resource>
                     </children>
@@ -51,11 +53,12 @@
                           i18n-en:displayName="TaskFlow Step Instance" icon="route" component="AMIS" resourceType="SUBM"
                           url="/nop/task/pages/NopTaskStepInstance/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopTaskStepInstance:query" displayName="查询逻辑流步骤实例" orderNo="10011"
-                                  resourceType="FNPT">
+                        <resource id="FNPT:NopTaskStepInstance:query" displayName="查询逻辑流步骤实例"
+                                  i18n-en:displayName="Query TaskFlow Step Instance" orderNo="10011" resourceType="FNPT">
                             <permissions>NopTaskStepInstance:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopTaskStepInstance:mutation" displayName="修改逻辑流步骤实例" orderNo="10012"
+                        <resource id="FNPT:NopTaskStepInstance:mutation" displayName="修改逻辑流步骤实例"
+                                  i18n-en:displayName="Modify TaskFlow Step Instance" orderNo="10012"
                                   resourceType="FNPT">
                             <permissions>NopTaskStepInstance:mutation</permissions>
                         </resource>

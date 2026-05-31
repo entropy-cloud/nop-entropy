@@ -1,0 +1,28 @@
+site:
+  resource:
+    FNPT:NopTaskDefinition:mutation:
+      displayName: Modify TaskFlow Definition
+    FNPT:NopTaskDefinition:query:
+      displayName: Query TaskFlow Definition
+    FNPT:NopTaskDefinitionAuth:mutation:
+      displayName: Modify TaskFlow Definition Auth
+    FNPT:NopTaskDefinitionAuth:query:
+      displayName: Query TaskFlow Definition Auth
+    FNPT:NopTaskInstance:mutation:
+      displayName: Modify TaskFlow Instance
+    FNPT:NopTaskInstance:query:
+      displayName: Query TaskFlow Instance
+    FNPT:NopTaskStepInstance:mutation:
+      displayName: Modify TaskFlow Step Instance
+    FNPT:NopTaskStepInstance:query:
+      displayName: Query TaskFlow Step Instance
+    NopTaskDefinition-main:
+      displayName: TaskFlow Definition
+    NopTaskDefinitionAuth-main:
+      displayName: TaskFlow Definition Auth
+    NopTaskInstance-main:
+      displayName: TaskFlow Instance
+    NopTaskStepInstance-main:
+      displayName: TaskFlow Step Instance
+    test-orm-nop-task:
+      displayName: ''
