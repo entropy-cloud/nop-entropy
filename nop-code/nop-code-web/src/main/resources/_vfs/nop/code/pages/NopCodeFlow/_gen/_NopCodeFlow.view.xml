@@ -58,16 +58,16 @@
                 <col id="status" sortable="true"/>
 
                 <!--创建时间-->
-                <col id="createdTime" sortable="true"/>
+                <col id="createTime" sortable="true"/>
 
-                <!--修改时间-->
-                <col id="modifiedTime" sortable="true"/>
+                <!--更新时间-->
+                <col id="updateTime" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" sortable="true"/>
 
-                <!--修改人-->
-                <col id="modifiedBy" sortable="true"/>
+                <!--更新人-->
+                <col id="updatedBy" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -82,9 +82,9 @@
  fileSpread[文件扩散评分] externalScore[外部调用评分]
  securityScore[安全敏感评分] testGap[测试覆盖缺口评分]
  depthScore[深度复杂度评分] overallScore[综合关键度评分]
- status[状态] createdTime[创建时间]
- modifiedTime[修改时间] createdBy[创建人]
- modifiedBy[修改人] 
+ status[状态] createTime[创建时间]
+ updateTime[更新时间] createdBy[创建人]
+ updatedBy[更新人] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行流" i18n-en:title="Add Execution Flow" x:prototype="edit"/>
@@ -96,9 +96,9 @@
  fileSpread[文件扩散评分] externalScore[外部调用评分]
  securityScore[安全敏感评分] testGap[测试覆盖缺口评分]
  depthScore[深度复杂度评分] overallScore[综合关键度评分]
- status[状态] createdTime[创建时间]
- modifiedTime[修改时间] createdBy[创建人]
- modifiedBy[修改人] 
+ status[状态] createTime[创建时间]
+ updateTime[更新时间] createdBy[创建人]
+ updatedBy[更新人] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

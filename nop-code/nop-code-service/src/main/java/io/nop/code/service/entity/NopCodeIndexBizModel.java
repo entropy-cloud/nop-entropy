@@ -15,6 +15,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.directive.Auth;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeIndexBiz;
@@ -274,6 +275,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         return codeIndexService.findDependentFiles(indexId, filePath);
     }
 
+    @DataBean
     public static class IncrementalStatus {
         private String indexId;
         private String mode;

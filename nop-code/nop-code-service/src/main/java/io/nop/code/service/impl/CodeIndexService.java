@@ -507,25 +507,28 @@ public class CodeIndexService implements ICodeIndexService {
             return stats;
         }
 
-        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-        QueryBean symbolQuery = new QueryBean();
-        symbolQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeSymbol> allSymbols = symbolDao.findAllByQuery(symbolQuery);
-
         IndexStatsDTO stats = new IndexStatsDTO();
         stats.setIndexId(indexId);
-        stats.setSymbolCount(allSymbols.size());
 
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean fileQuery = new QueryBean();
         fileQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        stats.setFileCount(fileDao.findAllByQuery(fileQuery).size());
+        stats.setFileCount((int) fileDao.countByQuery(fileQuery));
 
-        if (!allSymbols.isEmpty()) {
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean symbolQuery = new QueryBean();
+        symbolQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        stats.setSymbolCount((int) symbolDao.countByQuery(symbolQuery));
+
+        QueryBean kindQuery = new QueryBean();
+        kindQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        kindQuery.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("kind"));
+        List<Map<String, Object>> kindResults = symbolDao.selectFieldsByQuery(kindQuery);
+        if (!kindResults.isEmpty()) {
             Map<String, Integer> kindCounts = new LinkedHashMap<>();
-            for (NopCodeSymbol s : allSymbols) {
-                String kind = s.getKind();
-                kindCounts.merge(kind != null ? kind : "UNKNOWN", 1, Integer::sum);
+            for (Map<String, Object> row : kindResults) {
+                String kind = row.get("kind") != null ? row.get("kind").toString() : "UNKNOWN";
+                kindCounts.merge(kind, 1, Integer::sum);
             }
             stats.setSymbolCounts(kindCounts);
         }
@@ -1534,7 +1537,7 @@ public class CodeIndexService implements ICodeIndexService {
                 flowEntity.setDepth(flow.getDepth());
                 flowEntity.setOverallScore(flow.getCriticality());
                 flowEntity.setStatus("DETECTED");
-                flowEntity.setCreatedTime(CoreMetrics.currentTimestamp());
+                flowEntity.setCreateTime(CoreMetrics.currentTimestamp());
                 session.save(flowEntity);
 
                 if (flow.getPathNodeIds() != null) {

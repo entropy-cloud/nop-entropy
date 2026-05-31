@@ -1,0 +1,22 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 调用类型
+locale: zh-CN
+valueType: string
+description: 方法调用类型
+options:
+
+  - label: 直接调用
+    value: DIRECT
+    description: 
+
+  - label: 虚拟调用
+    value: VIRTUAL
+    description: 
+
+  - label: 静态调用
+    value: STATIC
+    description: 
+
+  - label: 构造调用
+    value: CONSTRUCTOR
+    description: 

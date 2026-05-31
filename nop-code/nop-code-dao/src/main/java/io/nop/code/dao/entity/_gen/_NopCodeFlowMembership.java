@@ -36,7 +36,7 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     public static final String PROP_NAME_depth = "depth";
     public static final int PROP_ID_depth = 4;
     
-    /* 是否入口: IS_ENTRY TINYINT */
+    /* 是否入口: IS_ENTRY BOOLEAN */
     public static final String PROP_NAME_isEntry = "isEntry";
     public static final int PROP_ID_isEntry = 5;
     
@@ -44,8 +44,20 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     public static final String PROP_NAME_createdTime = "createdTime";
     public static final int PROP_ID_createdTime = 6;
     
+    /* 创建人: CREATED_BY VARCHAR */
+    public static final String PROP_NAME_createdBy = "createdBy";
+    public static final int PROP_ID_createdBy = 7;
+    
+    /* 更新时间: UPDATE_TIME DATETIME */
+    public static final String PROP_NAME_updateTime = "updateTime";
+    public static final int PROP_ID_updateTime = 8;
+    
+    /* 更新人: UPDATED_BY VARCHAR */
+    public static final String PROP_NAME_updatedBy = "updatedBy";
+    public static final int PROP_ID_updatedBy = 9;
+    
 
-    private static int _PROP_ID_BOUND = 7;
+    private static int _PROP_ID_BOUND = 10;
 
     
     /* relation:  */
@@ -58,7 +70,7 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[7];
+    private static final String[] PROP_ID_TO_NAME = new String[10];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -80,6 +92,15 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_createdTime] = PROP_NAME_createdTime;
           PROP_NAME_TO_ID.put(PROP_NAME_createdTime, PROP_ID_createdTime);
       
+          PROP_ID_TO_NAME[PROP_ID_createdBy] = PROP_NAME_createdBy;
+          PROP_NAME_TO_ID.put(PROP_NAME_createdBy, PROP_ID_createdBy);
+      
+          PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_updatedBy] = PROP_NAME_updatedBy;
+          PROP_NAME_TO_ID.put(PROP_NAME_updatedBy, PROP_ID_updatedBy);
+      
     }
 
     
@@ -100,6 +121,15 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     
     /* 创建时间: CREATED_TIME */
     private java.sql.Timestamp _createdTime;
+    
+    /* 创建人: CREATED_BY */
+    private java.lang.String _createdBy;
+    
+    /* 更新时间: UPDATE_TIME */
+    private java.sql.Timestamp _updateTime;
+    
+    /* 更新人: UPDATED_BY */
+    private java.lang.String _updatedBy;
     
 
     public _NopCodeFlowMembership(){
@@ -193,6 +223,15 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
             case PROP_ID_createdTime:
                return getCreatedTime();
         
+            case PROP_ID_createdBy:
+               return getCreatedBy();
+        
+            case PROP_ID_updateTime:
+               return getUpdateTime();
+        
+            case PROP_ID_updatedBy:
+               return getUpdatedBy();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -264,6 +303,36 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_createdBy:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_createdBy));
+               }
+               setCreatedBy(typedValue);
+               break;
+            }
+        
+            case PROP_ID_updateTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_updateTime));
+               }
+               setUpdateTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_updatedBy:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_updatedBy));
+               }
+               setUpdatedBy(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -311,6 +380,27 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
             case PROP_ID_createdTime:{
                onInitProp(propId);
                this._createdTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_createdBy:{
+               onInitProp(propId);
+               this._createdBy = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_updateTime:{
+               onInitProp(propId);
+               this._updateTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_updatedBy:{
+               onInitProp(propId);
+               this._updatedBy = (java.lang.String)value;
                
                break;
             }
@@ -431,6 +521,63 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_createdTime,value)){
             this._createdTime = value;
             internalClearRefs(PROP_ID_createdTime);
+            
+        }
+    }
+    
+    /**
+     * 创建人: CREATED_BY
+     */
+    public final java.lang.String getCreatedBy(){
+         onPropGet(PROP_ID_createdBy);
+         return _createdBy;
+    }
+
+    /**
+     * 创建人: CREATED_BY
+     */
+    public final void setCreatedBy(java.lang.String value){
+        if(onPropSet(PROP_ID_createdBy,value)){
+            this._createdBy = value;
+            internalClearRefs(PROP_ID_createdBy);
+            
+        }
+    }
+    
+    /**
+     * 更新时间: UPDATE_TIME
+     */
+    public final java.sql.Timestamp getUpdateTime(){
+         onPropGet(PROP_ID_updateTime);
+         return _updateTime;
+    }
+
+    /**
+     * 更新时间: UPDATE_TIME
+     */
+    public final void setUpdateTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_updateTime,value)){
+            this._updateTime = value;
+            internalClearRefs(PROP_ID_updateTime);
+            
+        }
+    }
+    
+    /**
+     * 更新人: UPDATED_BY
+     */
+    public final java.lang.String getUpdatedBy(){
+         onPropGet(PROP_ID_updatedBy);
+         return _updatedBy;
+    }
+
+    /**
+     * 更新人: UPDATED_BY
+     */
+    public final void setUpdatedBy(java.lang.String value){
+        if(onPropSet(PROP_ID_updatedBy,value)){
+            this._updatedBy = value;
+            internalClearRefs(PROP_ID_updatedBy);
             
         }
     }

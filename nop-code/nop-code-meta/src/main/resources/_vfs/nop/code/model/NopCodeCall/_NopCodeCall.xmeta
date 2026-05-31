@@ -50,7 +50,7 @@
         </prop>
         <prop name="callType" displayName="调用类型" propId="8" queryable="true" sortable="true" insertable="true"
               updatable="true">
-            <schema type="java.lang.String" precision="20"/>
+            <schema type="java.lang.String" precision="20" dict="code/call_type"/>
         </prop>
         <prop name="context" displayName="上下文" propId="9" queryable="true" sortable="true" insertable="true"
               updatable="true">

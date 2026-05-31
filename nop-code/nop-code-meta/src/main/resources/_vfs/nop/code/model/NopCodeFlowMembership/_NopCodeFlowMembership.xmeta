@@ -44,6 +44,18 @@
               updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
+        <prop name="createdBy" displayName="创建人" propId="7" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="更新时间" propId="8" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="更新人" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
         <prop name="flow" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="flowId"
               ext:joinRightProp="id" ext:joinRightDisplayProp="name" insertable="false" updatable="false"
               mandatory="true" lazy="true">

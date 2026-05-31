@@ -36,6 +36,7 @@ prop:
       line: null
       column: null
       callType: null
+      callType_label: null
       context: null
       index: null
       caller: null
@@ -85,10 +86,10 @@ prop:
       overallScore: null
       status: null
       status_label: null
-      createdTime: null
-      modifiedTime: null
+      createTime: null
+      updateTime: null
       createdBy: null
-      modifiedBy: null
+      updatedBy: null
       index: null
       entryPoint: null
       entryPoint.name: null
@@ -100,6 +101,9 @@ prop:
       depth: null
       isEntry: null
       createdTime: null
+      createdBy: null
+      updateTime: null
+      updatedBy: null
       flow: null
       flow.name: null
       symbol: null
@@ -143,6 +147,7 @@ prop:
       targetSymbolId: null
       directed: null
       relationType: null
+      relationType_label: null
       confidence: null
       confidenceScore: null
       rationale: null

@@ -218,13 +218,13 @@
                     </join>
                 </to-many>
                 <to-many displayName="引用" name="usages" refEntityName="io.nop.code.dao.entity.NopCodeUsage"
-                         refPropName="file" tagSet="">
+                         refPropName="file">
                     <join>
                         <on leftProp="id" rightProp="fileId"/>
                     </join>
                 </to-many>
                 <to-many displayName="调用" name="calls" refEntityName="io.nop.code.dao.entity.NopCodeCall"
-                         refPropName="file" tagSet="">
+                         refPropName="file">
                     <join>
                         <on leftProp="id" rightProp="fileId"/>
                     </join>
@@ -524,7 +524,7 @@
                 <column code="COLUMN" displayName="列号" domain="columnNumber" name="column" propId="7" stdDataType="int"
                         stdSqlType="INTEGER"/>
                 <column code="CALL_TYPE" displayName="调用类型" name="callType" precision="20" propId="8"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/call_type"/>
                 <column code="CONTEXT" displayName="上下文" name="context" precision="2000" propId="9" stdDataType="string"
                         stdSqlType="VARCHAR"/>
             </columns>
@@ -550,13 +550,13 @@
                         <on leftProp="indexId" rightProp="id"/>
                     </join>
                 </to-one>
-                <to-one name="caller" refDisplayName="被调用者" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                <to-one name="caller" refDisplayName="调用者" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
                         refPropName="callees" tagSet="pub">
                     <join>
                         <on leftProp="callerId" rightProp="id"/>
                     </join>
                 </to-one>
-                <to-one name="callee" refDisplayName="调用者" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                <to-one name="callee" refDisplayName="被调用者" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
                         refPropName="callers" tagSet="pub">
                     <join>
                         <on leftProp="calleeId" rightProp="id"/>
@@ -753,13 +753,13 @@
                         stdSqlType="DOUBLE"/>
                 <column code="STATUS" displayName="状态" name="status" precision="20" propId="14" stdDataType="string"
                         stdSqlType="VARCHAR" ext:dict="code/index_status"/>
-                <column code="CREATED_TIME" displayName="创建时间" name="createdTime" propId="15" stdDataType="timestamp"
+                <column code="CREATED_TIME" displayName="创建时间" name="createTime" propId="15" stdDataType="timestamp"
                         stdSqlType="DATETIME"/>
-                <column code="MODIFIED_TIME" displayName="修改时间" name="modifiedTime" propId="16" stdDataType="timestamp"
+                <column code="UPDATE_TIME" displayName="更新时间" name="updateTime" propId="16" stdDataType="timestamp"
                         stdSqlType="DATETIME"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy" precision="50" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="MODIFIED_BY" displayName="修改人" name="modifiedBy" precision="50" propId="18"
+                <column code="UPDATED_BY" displayName="更新人" name="updatedBy" precision="50" propId="18"
                         stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>执行流追踪，记录从入口点出发的调用链路及关键度评分</comment>
@@ -805,9 +805,15 @@
                         precision="36" propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="DEPTH" displayName="深度" name="depth" propId="4" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="IS_ENTRY" displayName="是否入口" name="isEntry" propId="5" stdDataType="boolean"
-                        stdSqlType="TINYINT"/>
+                        stdSqlType="BOOLEAN"/>
                 <column code="CREATED_TIME" displayName="创建时间" name="createdTime" propId="6" stdDataType="timestamp"
                         stdSqlType="DATETIME"/>
+                <column code="CREATED_BY" displayName="创建人" name="createdBy" precision="50" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="UPDATE_TIME" displayName="更新时间" name="updateTime" propId="8" stdDataType="timestamp"
+                        stdSqlType="DATETIME"/>
+                <column code="UPDATED_BY" displayName="更新人" name="updatedBy" precision="50" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>执行流与符号的多对多关系，记录符号在流中的深度和入口标记</comment>
             <indexes>
@@ -851,7 +857,7 @@
                 <column code="DIRECTED" displayName="有向" name="directed" propId="5" stdDataType="boolean"
                         stdSqlType="BOOLEAN"/>
                 <column code="RELATION_TYPE" displayName="关系类型" mandatory="true" name="relationType" precision="40"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR"/>
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/relation_type"/>
                 <column code="CONFIDENCE" displayName="置信度级别" mandatory="true" name="confidence" propId="7"
                         stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="CONFIDENCE_SCORE" displayName="置信度分数" name="confidenceScore" propId="8"
@@ -884,18 +890,20 @@
                 </index>
             </indexes>
             <relations>
-                <to-one name="index" refEntityName="io.nop.code.dao.entity.NopCodeIndex" refPropName="semanticEdges"
-                        tagSet="pub">
+                <to-one name="index" refDisplayName="语义边" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="semanticEdges" tagSet="pub">
                     <join>
                         <on leftProp="indexId" rightProp="id"/>
                     </join>
                 </to-one>
-                <to-one name="sourceSymbol" refEntityName="io.nop.code.dao.entity.NopCodeSymbol" tagSet="pub">
+                <to-one name="sourceSymbol" refDisplayName="源符号边" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        tagSet="pub">
                     <join>
                         <on leftProp="sourceSymbolId" rightProp="id"/>
                     </join>
                 </to-one>
-                <to-one name="targetSymbol" refEntityName="io.nop.code.dao.entity.NopCodeSymbol" tagSet="pub">
+                <to-one name="targetSymbol" refDisplayName="目标符号边" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        tagSet="pub">
                     <join>
                         <on leftProp="targetSymbolId" rightProp="id"/>
                     </join>

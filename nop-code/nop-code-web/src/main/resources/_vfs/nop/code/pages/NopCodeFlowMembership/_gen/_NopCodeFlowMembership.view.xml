@@ -32,6 +32,15 @@
 
                 <!--创建时间-->
                 <col id="createdTime" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" sortable="true"/>
+
+                <!--更新时间-->
+                <col id="updateTime" sortable="true"/>
+
+                <!--更新人-->
+                <col id="updatedBy" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -45,6 +54,9 @@
  depth[深度]
  isEntry[是否入口]
  createdTime[创建时间]
+ createdBy[创建人]
+ updateTime[更新时间]
+ updatedBy[更新人]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行流成员" i18n-en:title="Add Execution Flow Membership" x:prototype="edit"/>
@@ -55,6 +67,9 @@
  depth[深度]
  isEntry[是否入口]
  createdTime[创建时间]
+ createdBy[创建人]
+ updateTime[更新时间]
+ updatedBy[更新人]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

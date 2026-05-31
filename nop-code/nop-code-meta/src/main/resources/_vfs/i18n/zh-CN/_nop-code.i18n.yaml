@@ -29,6 +29,7 @@ prop:
       line: 行号
     NopCodeCall:
       callType: 调用类型
+      callType_label: 调用类型
       callee: null
       callee.name: null
       calleeId: 被调用方ID
@@ -70,8 +71,8 @@ prop:
       symbols: 符号列表
       usages: 引用
     NopCodeFlow:
+      createTime: 创建时间
       createdBy: 创建人
-      createdTime: 创建时间
       depth: 最大追踪深度
       depthScore: 深度复杂度评分
       entryPoint: null
@@ -84,8 +85,6 @@ prop:
       index: null
       indexId: 索引ID
       memberships: 成员
-      modifiedBy: 修改人
-      modifiedTime: 修改时间
       name: 流名称
       overallScore: 综合关键度评分
       securityScore: 安全敏感评分
@@ -93,7 +92,10 @@ prop:
       status_label: 状态
       symbolCount: 符号总数
       testGap: 测试覆盖缺口评分
+      updateTime: 更新时间
+      updatedBy: 更新人
     NopCodeFlowMembership:
+      createdBy: 创建人
       createdTime: 创建时间
       depth: 深度
       flow: null
@@ -104,6 +106,8 @@ prop:
       symbol: null
       symbol.name: null
       symbolId: 符号ID
+      updateTime: 更新时间
+      updatedBy: 更新人
     NopCodeIndex:
       annotationUsages: 注解使用
       calls: 调用
@@ -151,6 +155,7 @@ prop:
       indexId: 索引ID
       rationale: 原因
       relationType: 关系类型
+      relationType_label: 关系类型
       sourceSymbol: null
       sourceSymbol.name: null
       sourceSymbolId: 源符号ID

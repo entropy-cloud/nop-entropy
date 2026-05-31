@@ -76,11 +76,11 @@
               updatable="true">
             <schema type="java.lang.String" precision="20" dict="code/index_status"/>
         </prop>
-        <prop name="createdTime" displayName="创建时间" propId="15" queryable="true" sortable="true" insertable="true"
+        <prop name="createTime" displayName="创建时间" propId="15" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="modifiedTime" displayName="修改时间" propId="16" queryable="true" sortable="true" insertable="true"
+        <prop name="updateTime" displayName="更新时间" propId="16" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
@@ -88,7 +88,7 @@
               updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="modifiedBy" displayName="修改人" propId="18" queryable="true" sortable="true" insertable="true"
+        <prop name="updatedBy" displayName="更新人" propId="18" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>

@@ -42,7 +42,7 @@
         </prop>
         <prop name="relationType" displayName="关系类型" propId="6" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="40"/>
+            <schema type="java.lang.String" precision="40" dict="code/relation_type"/>
         </prop>
         <prop name="confidence" displayName="置信度级别" propId="7" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
