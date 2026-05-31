@@ -39,6 +39,7 @@ import io.nop.code.lang.typescript.TypeScriptImportResolver;
 import io.nop.code.core.semantic.CodeSemanticEdge;
 import io.nop.code.core.semantic.ISemanticEdgeExtractor;
 import io.nop.code.core.util.DigestHelper;
+import io.nop.code.core.util.ExtDataHelper;
 import io.nop.code.dao.entity.NopCodeAnnotationUsage;
 import io.nop.code.dao.entity.NopCodeCall;
 import io.nop.code.dao.entity.NopCodeDependency;
@@ -321,6 +322,7 @@ public class CodeIndexService implements ICodeIndexService {
         CodeFileAnalysisResult result = fileAnalyzer.analyze(filePath, sourceCode);
 
         ormTemplate.runInSession(session -> {
+            ensureIndexEntity(indexId, null, session);
             persistSingleFileInSession(indexId, result, session);
             return null;
         });
@@ -972,6 +974,36 @@ public class CodeIndexService implements ICodeIndexService {
     private void persistSingleFileInSession(String indexId, CodeFileAnalysisResult result,
                                             IOrmSession session) {
         saveFileResultInSession(indexId, result, session);
+        if (result.getSemanticEdges() != null && !result.getSemanticEdges().isEmpty()) {
+            for (CodeSemanticEdge edge : result.getSemanticEdges()) {
+                NopCodeSemanticEdge edgeEntity = (NopCodeSemanticEdge) ormTemplate.newEntity(
+                        NopCodeSemanticEdge.class.getName());
+                edgeEntity.setId(edge.getId());
+                edgeEntity.setIndexId(indexId);
+                edgeEntity.setSourceSymbolId(edge.getSourceSymbolId());
+                edgeEntity.setTargetSymbolId(edge.getTargetSymbolId());
+                edgeEntity.setDirected(edge.isDirected());
+                edgeEntity.setRelationType(edge.getRelationType() != null ? edge.getRelationType().name() : null);
+                edgeEntity.setConfidence(edge.getConfidence() != null ? edge.getConfidence().getValue() : 0);
+                edgeEntity.setConfidenceScore(edge.getConfidenceScore());
+                edgeEntity.setRationale(edge.getRationale());
+                edgeEntity.setExtractorId(edge.getExtractorId());
+                edgeEntity.setExtData(edge.getExtData());
+                session.save(edgeEntity);
+            }
+        }
+        SymbolTable symbolTable = buildSymbolTableFromResult(result);
+        resolveQualifiedNamesToIds(indexId, symbolTable, session);
+    }
+
+    private SymbolTable buildSymbolTableFromResult(CodeFileAnalysisResult result) {
+        SymbolTable table = new SymbolTable();
+        if (result.getSymbols() != null) {
+            for (CodeSymbol sym : result.getSymbols()) {
+                table.add(sym);
+            }
+        }
+        return table;
     }
 
     private void saveFileResultInSession(String indexId, CodeFileAnalysisResult file,
@@ -999,6 +1031,9 @@ public class CodeIndexService implements ICodeIndexService {
         }
         fileEntity.setLastModified(CoreMetrics.currentTimeMillis());
         saveReplacingExisting(session, fileEntity);
+
+        // Enrich symbols with annotation short names in extData before persisting
+        enrichSymbolsWithAnnotations(file);
 
         if (file.getSymbols() != null) {
             for (CodeSymbol sym : file.getSymbols()) {
@@ -1656,6 +1691,35 @@ public class CodeIndexService implements ICodeIndexService {
 
     private String generateFileId(String indexId, String filePath) {
         return DigestHelper.sha256Hex((indexId + ":" + filePath).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+    }
+
+    /**
+     * Enrich each symbol's extData with annotation short names derived from the file's annotationUsages.
+     * This makes annotations available for in-memory checks (e.g. dead code detection) without
+     * requiring a separate DB query.
+     */
+    private void enrichSymbolsWithAnnotations(CodeFileAnalysisResult file) {
+        if (file.getAnnotationUsages() == null || file.getSymbols() == null) return;
+
+        Map<String, List<String>> symbolAnnotations = new HashMap<>();
+        for (CodeAnnotationUsage usage : file.getAnnotationUsages()) {
+            if (usage.getAnnotatedSymbolId() != null && usage.getAnnotationTypeQualifiedName() != null) {
+                String shortName = usage.getAnnotationTypeQualifiedName();
+                int dotIdx = shortName.lastIndexOf('.');
+                if (dotIdx >= 0) {
+                    shortName = shortName.substring(dotIdx + 1);
+                }
+                symbolAnnotations.computeIfAbsent(usage.getAnnotatedSymbolId(), k -> new ArrayList<>())
+                        .add(shortName);
+            }
+        }
+
+        for (CodeSymbol sym : file.getSymbols()) {
+            List<String> annots = symbolAnnotations.get(sym.getId());
+            if (annots != null && !annots.isEmpty()) {
+                sym.setExtData(ExtDataHelper.setAnnotations(sym.getExtData(), annots));
+            }
+        }
     }
 
     private String allowedLocalRoot;

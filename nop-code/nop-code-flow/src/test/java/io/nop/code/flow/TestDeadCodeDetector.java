@@ -5,6 +5,7 @@ import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeAccessModifier;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.util.ExtDataHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -155,5 +156,169 @@ class TestDeadCodeDetector {
                 .anyMatch(e -> "pkg.alive".equals(e.getSymbolId()));
         assertFalse(aliveInDead, "Symbol with callers should not be dead");
         assertFalse(aliveInSuspicious, "Symbol with callers should not be suspicious");
+    }
+
+    // ==================== AR-68 Regression Tests ====================
+
+    @Test
+    void testFrameworkAnnotationInExtDataExcludesSymbol() {
+        // AR-68: Annotations must be read from extData, not from signature
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol controller = new CodeSymbol();
+        controller.setId("pkg.controllerMethod");
+        controller.setQualifiedName("pkg.MyController.handleRequest");
+        controller.setName("handleRequest");
+        controller.setKind(CodeSymbolKind.METHOD);
+        controller.setAccessModifier(CodeAccessModifier.PUBLIC);
+        // Simulate annotation stored in extData (as populated by CodeIndexService)
+        controller.setExtData(ExtDataHelper.setAnnotations(null, List.of("GetMapping")));
+        // Signature should NOT contain @GetMapping — that's the old buggy check
+        controller.setSignature("handleRequest()");
+        st.add(controller);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean found = report.getDeadSymbols().stream()
+                .anyMatch(e -> "pkg.controllerMethod".equals(e.getSymbolId()));
+        boolean foundSuspicious = report.getSuspiciousSymbols().stream()
+                .anyMatch(e -> "pkg.controllerMethod".equals(e.getSymbolId()));
+        assertFalse(found, "@GetMapping annotated method should be excluded from dead code");
+        assertFalse(foundSuspicious, "@GetMapping annotated method should be excluded from suspicious code");
+    }
+
+    @Test
+    void testOrmEntityAnnotationInExtDataExcludesSymbol() {
+        // AR-68: @Entity annotation checked via extData
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol entity = new CodeSymbol();
+        entity.setId("pkg.myEntity");
+        entity.setQualifiedName("pkg.MyEntity");
+        entity.setName("MyEntity");
+        entity.setKind(CodeSymbolKind.CLASS);
+        entity.setAccessModifier(CodeAccessModifier.PUBLIC);
+        entity.setSuperClassName("SomeBase");
+        // @Entity in extData, not in signature
+        entity.setExtData(ExtDataHelper.setAnnotations(null, List.of("Entity")));
+        entity.setSignature("MyEntity()");
+        st.add(entity);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean found = report.getDeadSymbols().stream()
+                .anyMatch(e -> "pkg.myEntity".equals(e.getSymbolId()));
+        boolean foundSuspicious = report.getSuspiciousSymbols().stream()
+                .anyMatch(e -> "pkg.myEntity".equals(e.getSymbolId()));
+        assertFalse(found, "@Entity annotated class should be excluded from dead code");
+        assertFalse(foundSuspicious, "@Entity annotated class should be excluded from suspicious code");
+    }
+
+    @Test
+    void testPythonDecoratorInExtDataExcludesSymbol() {
+        // AR-68: Python decorators checked via extData
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol propMethod = new CodeSymbol();
+        propMethod.setId("pkg.propMethod");
+        propMethod.setQualifiedName("pkg.MyClass.my_property");
+        propMethod.setName("my_property");
+        propMethod.setKind(CodeSymbolKind.METHOD);
+        propMethod.setAccessModifier(CodeAccessModifier.PUBLIC);
+        propMethod.setExtData(ExtDataHelper.setAnnotations(null, List.of("property")));
+        propMethod.setSignature("my_property(self)");
+        st.add(propMethod);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean found = report.getDeadSymbols().stream()
+                .anyMatch(e -> "pkg.propMethod".equals(e.getSymbolId()));
+        boolean foundSuspicious = report.getSuspiciousSymbols().stream()
+                .anyMatch(e -> "pkg.propMethod".equals(e.getSymbolId()));
+        assertFalse(found, "@property decorated method should be excluded from dead code");
+        assertFalse(foundSuspicious, "@property decorated method should be excluded from suspicious code");
+    }
+
+    @Test
+    void testSignatureWithoutAnnotationsNotFalsePositive() {
+        // AR-68: Ensure methods with annotation-like text in signature but no
+        // annotations in extData are NOT excluded (the old bug would exclude them)
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol method = new CodeSymbol();
+        method.setId("pkg.methodWithGetMappingInName");
+        method.setQualifiedName("pkg.Utils.getMapping");
+        method.setName("getMapping");
+        method.setKind(CodeSymbolKind.METHOD);
+        method.setAccessModifier(CodeAccessModifier.PRIVATE);
+        // No annotations in extData
+        method.setSignature("getMapping()");
+        st.add(method);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean found = report.getDeadSymbols().stream()
+                .anyMatch(e -> "pkg.methodWithGetMappingInName".equals(e.getSymbolId()));
+        assertTrue(found, "Method without actual @GetMapping annotation should be detected as dead");
+    }
+
+    @Test
+    void testMultipleAnnotationsInExtData() {
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol bizMethod = new CodeSymbol();
+        bizMethod.setId("pkg.bizMethod");
+        bizMethod.setQualifiedName("pkg.MyBizModel.doAction");
+        bizMethod.setName("doAction");
+        bizMethod.setKind(CodeSymbolKind.METHOD);
+        bizMethod.setAccessModifier(CodeAccessModifier.PUBLIC);
+        bizMethod.setExtData(ExtDataHelper.setAnnotations(null,
+                List.of("BizModel", "BizAction", "Inject")));
+        bizMethod.setSignature("doAction()");
+        st.add(bizMethod);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean found = report.getDeadSymbols().stream()
+                .anyMatch(e -> "pkg.bizMethod".equals(e.getSymbolId()));
+        boolean foundSuspicious = report.getSuspiciousSymbols().stream()
+                .anyMatch(e -> "pkg.bizMethod".equals(e.getSymbolId()));
+        assertFalse(found, "@BizAction annotated method should be excluded from dead code");
+        assertFalse(foundSuspicious, "@BizAction annotated method should be excluded from suspicious code");
+    }
+
+    @Test
+    void testExtDataHelperRoundTrip() {
+        // Verify ExtDataHelper can set and get annotations correctly
+        String extData = ExtDataHelper.setAnnotations(null, List.of("GetMapping", "Scheduled"));
+        List<String> annotations = ExtDataHelper.getAnnotations(extData);
+        assertEquals(2, annotations.size());
+        assertTrue(annotations.contains("GetMapping"));
+        assertTrue(annotations.contains("Scheduled"));
+    }
+
+    @Test
+    void testExtDataHelperPreservesExistingData() {
+        // Setting annotations should preserve existing extData keys
+        String existing = "{\"filePath\":\"/src/Main.java\"}";
+        String extData = ExtDataHelper.setAnnotations(existing, List.of("Entity"));
+        List<String> annotations = ExtDataHelper.getAnnotations(extData);
+        assertEquals(1, annotations.size());
+        assertTrue(annotations.contains("Entity"));
+        // filePath should still be extractable
+        assertEquals("/src/Main.java", ExtDataHelper.extractFilePath(extData));
+    }
+
+    @Test
+    void testExtDataHelperGetAnnotationsReturnsEmptyOnNull() {
+        assertTrue(ExtDataHelper.getAnnotations(null).isEmpty());
+        assertTrue(ExtDataHelper.getAnnotations("").isEmpty());
+        assertTrue(ExtDataHelper.getAnnotations("{}").isEmpty());
+        assertTrue(ExtDataHelper.getAnnotations("{\"filePath\":\"/a.java\"}").isEmpty());
     }
 }

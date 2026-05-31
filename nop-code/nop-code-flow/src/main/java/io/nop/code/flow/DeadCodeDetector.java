@@ -226,12 +226,9 @@ public class DeadCodeDetector implements IDeadCodeDetector {
     }
 
     private boolean isFrameworkEntryPoint(CodeSymbol symbol) {
-        String signature = symbol.getSignature();
-        if (signature == null) {
-            return false;
-        }
+        Set<String> annotations = getAnnotationNames(symbol);
         for (String annotation : frameworkAnnotations) {
-            if (signature.contains("@" + annotation)) {
+            if (annotations.contains(annotation)) {
                 return true;
             }
         }
@@ -275,8 +272,8 @@ public class DeadCodeDetector implements IDeadCodeDetector {
             }
         }
 
-        String signature = symbol.getSignature();
-        if (signature != null && signature.contains("@Entity")) {
+        Set<String> annotations = getAnnotationNames(symbol);
+        if (annotations.contains("Entity")) {
             return true;
         }
 
@@ -289,12 +286,9 @@ public class DeadCodeDetector implements IDeadCodeDetector {
     }
 
     private boolean isDecoratedMethod(CodeSymbol symbol) {
-        String signature = symbol.getSignature();
-        if (signature == null) {
-            return false;
-        }
+        Set<String> annotations = getAnnotationNames(symbol);
         for (String decorator : pythonDecorators) {
-            if (signature.contains("@" + decorator)) {
+            if (annotations.contains(decorator)) {
                 return true;
             }
         }
@@ -335,18 +329,17 @@ public class DeadCodeDetector implements IDeadCodeDetector {
     }
 
     private boolean isPotentiallyDynamic(CodeSymbol symbol) {
-        String signature = symbol.getSignature();
-        if (signature != null) {
-            if (signature.contains("Bean")
-                    || signature.contains("Component")
-                    || signature.contains("Service")
-                    || signature.contains("Repository")
-                    || signature.contains("Controller")
-                    || signature.contains("Inject")
-                    || signature.contains("Autowired")
-                    || signature.contains("Resource")) {
-                return true;
-            }
+        Set<String> annotations = getAnnotationNames(symbol);
+        if (annotations.stream().anyMatch(a ->
+                a.contains("Bean")
+                        || a.contains("Component")
+                        || a.contains("Service")
+                        || a.contains("Repository")
+                        || a.contains("Controller")
+                        || a.contains("Inject")
+                        || a.contains("Autowired")
+                        || a.contains("Resource"))) {
+            return true;
         }
 
         String qName = symbol.getQualifiedName();
@@ -367,6 +360,15 @@ public class DeadCodeDetector implements IDeadCodeDetector {
 
     private String resolveFilePath(CodeSymbol symbol) {
         return ExtDataHelper.extractFilePath(symbol.getExtData());
+    }
+
+    /**
+     * Extract annotation short names from the symbol's extData JSON field.
+     * Annotations are stored in extData during indexing (see CodeIndexService.enrichSymbolsWithAnnotations).
+     */
+    private Set<String> getAnnotationNames(CodeSymbol symbol) {
+        List<String> annotations = ExtDataHelper.getAnnotations(symbol.getExtData());
+        return new HashSet<>(annotations);
     }
 
     private DeadCodeReport.DeadCodeEntry buildEntry(CodeSymbol symbol) {
