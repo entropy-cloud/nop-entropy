@@ -331,14 +331,14 @@ public class DeadCodeDetector implements IDeadCodeDetector {
     private boolean isPotentiallyDynamic(CodeSymbol symbol) {
         Set<String> annotations = getAnnotationNames(symbol);
         if (annotations.stream().anyMatch(a ->
-                a.contains("Bean")
-                        || a.contains("Component")
-                        || a.contains("Service")
-                        || a.contains("Repository")
-                        || a.contains("Controller")
-                        || a.contains("Inject")
-                        || a.contains("Autowired")
-                        || a.contains("Resource"))) {
+                a.equals("Bean")
+                        || a.equals("Component")
+                        || a.equals("Service")
+                        || a.equals("Repository")
+                        || a.equals("Controller")
+                        || a.equals("Inject")
+                        || a.equals("Autowired")
+                        || a.equals("Resource"))) {
             return true;
         }
 

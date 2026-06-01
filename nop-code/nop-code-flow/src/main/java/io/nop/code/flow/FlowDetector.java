@@ -308,13 +308,13 @@ public class FlowDetector implements IFlowDetector {
         stats.setMaxDepth(result.maxDepthReached);
         flow.setStats(stats);
 
-        double criticality = computeCriticality(result, symbolTable, uniqueFiles.size());
+        double criticality = computeCriticality(result, symbolTable, uniqueFiles.size(), computeTestGap(result, symbolTable));
         flow.setCriticality(criticality);
 
         return flow;
     }
 
-    private double computeCriticality(TraversalResult result, SymbolTable symbolTable, int fileCount) {
+    private double computeCriticality(TraversalResult result, SymbolTable symbolTable, int fileCount, double testGap) {
         int symbolCount = result.pathNodeIds.size();
         if (symbolCount == 0) {
             return 0.0;
@@ -348,8 +348,6 @@ public class FlowDetector implements IFlowDetector {
 
         double securityScore = (double) securitySymbols / symbolCount;
 
-        double testGap = 1.0;
-
         double depthScore = (double) result.maxDepthReached / maxDepth;
 
         return fileSpread * WEIGHT_FILE_SPREAD
@@ -357,6 +355,37 @@ public class FlowDetector implements IFlowDetector {
                 + securityScore * WEIGHT_SECURITY
                 + testGap * WEIGHT_TEST_GAP
                 + depthScore * WEIGHT_DEPTH;
+    }
+
+    private static final List<String> TEST_FILE_INDICATORS = List.of(
+            "/test/", "/tests/", "/__tests__/",
+            "Test.java", "Test.kt",
+            "_test.py", "test_",
+            ".spec.ts", ".test.ts"
+    );
+
+    private double computeTestGap(TraversalResult result, SymbolTable symbolTable) {
+        if (result.pathNodeIds.isEmpty()) {
+            return 1.0;
+        }
+        int testedCount = 0;
+        for (String nodeId : result.pathNodeIds) {
+            CodeSymbol symbol = symbolTable.getById(nodeId);
+            if (symbol == null) continue;
+            String filePath = ExtDataHelper.extractFilePath(symbol.getExtData());
+            if (filePath != null && isTestFilePath(filePath)) {
+                testedCount++;
+            }
+        }
+        if (testedCount == 0) return 1.0;
+        return 1.0 - ((double) testedCount / result.pathNodeIds.size());
+    }
+
+    private static boolean isTestFilePath(String filePath) {
+        for (String indicator : TEST_FILE_INDICATORS) {
+            if (filePath.contains(indicator)) return true;
+        }
+        return false;
     }
 
     private Set<String> findAnnotationEntryPoints(SymbolTable symbolTable) {

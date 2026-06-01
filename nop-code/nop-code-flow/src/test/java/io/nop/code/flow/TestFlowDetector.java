@@ -4,6 +4,7 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.util.ExtDataHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -108,5 +109,85 @@ class TestFlowDetector {
         List<ExecutionFlow> flows = detector.detectFlows("empty-idx", emptySt, empty);
         assertNotNull(flows);
         assertTrue(flows.isEmpty());
+    }
+
+    // ==================== AR-49 Regression Tests (testGap dynamic computation) ====================
+
+    @Test
+    void testCriticalityLowerWhenTestFilesInPath() {
+        FlowDetector d = new FlowDetector();
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol entry = new CodeSymbol();
+        entry.setId("app.Handler");
+        entry.setQualifiedName("app.Handler.handle");
+        entry.setName("handle");
+        entry.setKind(CodeSymbolKind.METHOD);
+        st.add(entry);
+
+        CodeSymbol tested = new CodeSymbol();
+        tested.setId("app.Util");
+        tested.setQualifiedName("app.Util.process");
+        tested.setName("process");
+        tested.setKind(CodeSymbolKind.METHOD);
+        tested.setExtData(ExtDataHelper.setFilePath(null, "/test/app/UtilTest.java"));
+        st.add(tested);
+
+        cg.addEdge("app.Handler", "app.Util");
+
+        List<ExecutionFlow> flows = d.detectFlows("test-idx", st, cg);
+        ExecutionFlow flow = flows.stream()
+                .filter(f -> "app.Handler".equals(f.getEntryPointSymbolId()))
+                .findFirst().orElse(null);
+        assertNotNull(flow);
+        assertTrue(flow.getCriticality() >= 0.0);
+        assertTrue(flow.getCriticality() <= 1.0);
+    }
+
+    @Test
+    void testCriticalityHighWhenNoTestFiles() {
+        FlowDetector d = new FlowDetector();
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol entry = new CodeSymbol();
+        entry.setId("app.Main");
+        entry.setQualifiedName("app.Main.run");
+        entry.setName("run");
+        entry.setKind(CodeSymbolKind.METHOD);
+        st.add(entry);
+
+        CodeSymbol impl = new CodeSymbol();
+        impl.setId("app.Impl");
+        impl.setQualifiedName("app.Impl.doWork");
+        impl.setName("doWork");
+        impl.setKind(CodeSymbolKind.METHOD);
+        impl.setExtData(ExtDataHelper.setFilePath(null, "src/main/app/Impl.java"));
+        st.add(impl);
+
+        cg.addEdge("app.Main", "app.Impl");
+
+        List<ExecutionFlow> flowsNoTest = d.detectFlows("no-test-idx", st, cg);
+
+        st.add(entry);
+        CodeSymbol testedImpl = new CodeSymbol();
+        testedImpl.setId("app.TestedImpl");
+        testedImpl.setQualifiedName("app.TestedImpl.doWork");
+        testedImpl.setName("doWork");
+        testedImpl.setKind(CodeSymbolKind.METHOD);
+        testedImpl.setExtData(ExtDataHelper.setFilePath(null, "src/test/app/TestedImpl.java"));
+        st.add(testedImpl);
+
+        CallGraph cg2 = new CallGraph();
+        CodeSymbol entry2 = new CodeSymbol();
+        entry2.setId("app.Main2");
+        entry2.setQualifiedName("app.Main2.run");
+        entry2.setName("run");
+        entry2.setKind(CodeSymbolKind.METHOD);
+        st.add(entry2);
+        cg2.addEdge("app.Main2", "app.TestedImpl");
+
+        List<ExecutionFlow> flowsWithTest = d.detectFlows("with-test-idx", st, cg2);
     }
 }

@@ -321,4 +321,66 @@ class TestDeadCodeDetector {
         assertTrue(ExtDataHelper.getAnnotations("{}").isEmpty());
         assertTrue(ExtDataHelper.getAnnotations("{\"filePath\":\"/a.java\"}").isEmpty());
     }
+
+    // ==================== AR-84 Regression Tests (exact annotation matching) ====================
+
+    @Test
+    void testExactBeanAnnotationExcludesFromDeadCode() {
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol beanMethod = new CodeSymbol();
+        beanMethod.setId("pkg.beanMethod");
+        beanMethod.setQualifiedName("pkg.Config.myBean");
+        beanMethod.setName("myBean");
+        beanMethod.setKind(CodeSymbolKind.METHOD);
+        beanMethod.setAccessModifier(CodeAccessModifier.PUBLIC);
+        beanMethod.setExtData(ExtDataHelper.setAnnotations(null, List.of("Bean")));
+        st.add(beanMethod);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean inDead = report.getDeadSymbols().stream().anyMatch(e -> "pkg.beanMethod".equals(e.getSymbolId()));
+        assertFalse(inDead, "@Bean (exact match) should be excluded as potentially dynamic");
+    }
+
+    @Test
+    void testSubstringBeanAnnotationNotExcluded() {
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol someBeanMethod = new CodeSymbol();
+        someBeanMethod.setId("pkg.someBeanMethod");
+        someBeanMethod.setQualifiedName("pkg.Utils.someBeanMethod");
+        someBeanMethod.setName("someBeanMethod");
+        someBeanMethod.setKind(CodeSymbolKind.METHOD);
+        someBeanMethod.setAccessModifier(CodeAccessModifier.PRIVATE);
+        someBeanMethod.setExtData(ExtDataHelper.setAnnotations(null, List.of("SomeBeanAnnotation")));
+        st.add(someBeanMethod);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean inDead = report.getDeadSymbols().stream().anyMatch(e -> "pkg.someBeanMethod".equals(e.getSymbolId()));
+        assertTrue(inDead, "Annotation 'SomeBeanAnnotation' should NOT match 'Bean' with exact equals");
+    }
+
+    @Test
+    void testSubstringServiceAnnotationNotExcluded() {
+        CallGraph cg = new CallGraph();
+        SymbolTable st = new SymbolTable();
+
+        CodeSymbol method = new CodeSymbol();
+        method.setId("pkg.customServiceMethod");
+        method.setQualifiedName("pkg.Utils.customServiceMethod");
+        method.setName("customServiceMethod");
+        method.setKind(CodeSymbolKind.METHOD);
+        method.setAccessModifier(CodeAccessModifier.PRIVATE);
+        method.setExtData(ExtDataHelper.setAnnotations(null, List.of("MyServiceCustom")));
+        st.add(method);
+
+        DeadCodeReport report = detector.detectDeadCode("test-idx", st, cg);
+
+        boolean inDead = report.getDeadSymbols().stream().anyMatch(e -> "pkg.customServiceMethod".equals(e.getSymbolId()));
+        assertTrue(inDead, "Annotation 'MyServiceCustom' should NOT match 'Service' with exact equals");
+    }
 }

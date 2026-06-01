@@ -1262,8 +1262,14 @@ public class CodeIndexService implements ICodeIndexService {
         }
 
         if (file.getSymbols() != null && file.getFilePath() != null) {
-            boolean isTestFile = file.getFilePath().contains("Test.java")
-                    || file.getFilePath().contains("/test/");
+            String fp = file.getFilePath();
+            boolean isTestFile = fp.contains("Test.java")
+                    || fp.contains("/test/")
+                    || fp.contains("Test.kt")
+                    || fp.endsWith("_test.py")
+                    || fp.contains("test_") && fp.endsWith(".py")
+                    || fp.endsWith(".spec.ts")
+                    || fp.endsWith(".test.ts");
             if (isTestFile) {
                 for (CodeSymbol sym : file.getSymbols()) {
                     if (sym.getName() == null) continue;
