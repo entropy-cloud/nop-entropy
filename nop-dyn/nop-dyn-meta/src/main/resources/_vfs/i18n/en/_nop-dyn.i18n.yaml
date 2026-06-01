@@ -54,7 +54,7 @@ prop:
       displayName: Display Name
       stdDomainName: Std Domain Name
       stdDomainName_label: null
-      stdSqlType: Std Sql Type
+      stdSqlType: Standard SQL Type
       stdSqlType_label: null
       precision: Precision
       scale: Scale
@@ -110,7 +110,7 @@ prop:
       moduleId: Module ID
       entityName: Entity Name
       displayName: Display Name
-      tableName: TableName
+      tableName: Table Name
       querySpace: Query Space
       storeType: Store Type
       storeType_label: null
@@ -139,7 +139,7 @@ prop:
       entityName1: Entity Name1
       entityId1: Entity Id1
       entityName2: Entity Name2
-      entityId2: Entity ID2
+      entityId2: Entity ID 2
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -248,7 +248,7 @@ prop:
       relatedAppList_label: null
     NopDynModuleDep:
       moduleId: Module ID
-      depModuleId: Dep Module ID
+      depModuleId: Dependent Module ID
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -303,7 +303,7 @@ prop:
       isMandatory: Is Mandatory
       propName: Property Name
       displayName: Display Name
-      stdSqlType: Std Sql Type
+      stdSqlType: Standard SQL Type
       stdSqlType_label: null
       precision: PRECISION
       scale: Scale
@@ -337,7 +337,7 @@ prop:
       moduleId: Module ID
       name: Name
       displayName: Display Name
-      sqlMethod: Sql Method
+      sqlMethod: SQL Method
       sqlMethod_label: null
       rowType: Row Type
       description: Description
@@ -354,7 +354,7 @@ prop:
       enableFilter: Enable Filter
       refreshBehavior: Refresh Behavior
       refreshBehavior_label: null
-      colNameCamelCase: ColName CamlCase
+      colNameCamelCase: Column Name CamelCase
       args: Args
       status: Status
       status_label: null

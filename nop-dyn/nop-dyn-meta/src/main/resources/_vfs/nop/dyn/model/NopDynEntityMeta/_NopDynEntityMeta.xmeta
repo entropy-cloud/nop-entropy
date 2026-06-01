@@ -37,7 +37,7 @@
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tableName" displayName="表名" propId="5" i18n-en:displayName="TableName" queryable="true"
+        <prop name="tableName" displayName="表名" propId="5" i18n-en:displayName="Table Name" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>

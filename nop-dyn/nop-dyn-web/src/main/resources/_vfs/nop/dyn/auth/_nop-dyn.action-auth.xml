@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-dyn" displayName="测试nop-dyn" icon="app-window" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-nop-dyn" component="layouts/default/index">
+        <resource id="test-orm-nop-dyn" displayName="测试nop-dyn" i18n-en:displayName="Test nop-dyn" icon="app-window"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-dyn" component="layouts/default/index">
             <children>
                 <resource id="NopDynApp-main" displayName="应用定义" orderNo="10001" i18n-en:displayName="App Definition"
                           icon="app-window" component="AMIS" resourceType="SUBM"

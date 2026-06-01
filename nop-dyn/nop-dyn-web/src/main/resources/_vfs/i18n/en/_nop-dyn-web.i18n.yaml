@@ -79,4 +79,4 @@ site:
     NopDynSql-main:
       displayName: Module SQL
     test-orm-nop-dyn:
-      displayName: ''
+      displayName: Test nop-dyn

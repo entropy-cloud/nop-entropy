@@ -37,7 +37,7 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="sqlMethod" displayName="SQL方法" propId="5" i18n-en:displayName="Sql Method" queryable="true"
+        <prop name="sqlMethod" displayName="SQL方法" propId="5" i18n-en:displayName="SQL Method" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="io.nop.orm.sql_lib.SqlMethod"/>
         </prop>
@@ -93,7 +93,7 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="io.nop.orm.sql_lib.OrmEntityRefreshBehavior"/>
         </prop>
-        <prop name="colNameCamelCase" displayName="列名需要转换为驼峰" propId="19" i18n-en:displayName="ColName CamlCase"
+        <prop name="colNameCamelCase" displayName="列名需要转换为驼峰" propId="19" i18n-en:displayName="Column Name CamelCase"
               queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
             <schema domain="boolFlag" type="java.lang.Byte"/>
         </prop>

@@ -24,7 +24,7 @@
               ext:relation="module">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="depModuleId" displayName="被依赖模块ID" propId="2" i18n-en:displayName="Dep Module ID" tagSet="seq"
+        <prop name="depModuleId" displayName="被依赖模块ID" propId="2" i18n-en:displayName="Dependent Module ID" tagSet="seq"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false"
               ext:relation="depModule">
             <schema type="java.lang.String" precision="32"/>

@@ -186,7 +186,7 @@
                         i18n-en:displayName="Module ID"/>
                 <column code="DEP_MODULE_ID" displayName="被依赖模块ID" mandatory="true" name="depModuleId" precision="32"
                         primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Dep Module ID"/>
+                        i18n-en:displayName="Dependent Module ID"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="3"
                         stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
@@ -376,7 +376,7 @@
                 <column code="DISPLAY_NAME" displayName="显示名称" name="displayName" precision="200" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="SQL_METHOD" displayName="SQL方法" name="sqlMethod" precision="10" propId="5"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sql Method"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="SQL Method"
                         ext:dict="io.nop.orm.sql_lib.SqlMethod"/>
                 <column code="ROW_TYPE" displayName="行类型" domain="class-name" name="rowType" precision="100" propId="6"
                         stdDataType="string" stdDomain="class-name" stdSqlType="VARCHAR" i18n-en:displayName="Row Type"/>
@@ -408,7 +408,7 @@
                         ext:dict="io.nop.orm.sql_lib.OrmEntityRefreshBehavior"/>
                 <column code="COL_NAME_CAMEL_CASE" defaultValue="0" displayName="列名需要转换为驼峰" domain="boolFlag"
                         name="colNameCamelCase" propId="19" stdDataType="byte" stdSqlType="TINYINT"
-                        i18n-en:displayName="ColName CamlCase"/>
+                        i18n-en:displayName="Column Name CamelCase"/>
                 <column code="ARGS" displayName="参数列表" domain="json-4k" name="args" precision="4000" propId="20"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Args"/>
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="21" stdDataType="int"
@@ -552,7 +552,7 @@
                         propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
                         i18n-en:displayName="Display Name"/>
                 <column code="TABLE_NAME" displayName="表名" name="tableName" precision="100" propId="5"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="TableName"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Table Name"/>
                 <column code="QUERY_SPACE" displayName="查询空间" name="querySpace" precision="100" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Query Space"/>
                 <column code="STORE_TYPE" displayName="存储类型" mandatory="true" name="storeType" propId="7"
@@ -646,7 +646,7 @@
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
                         i18n-en:displayName="Display Name"/>
                 <column code="STD_SQL_TYPE" displayName="标准SQL数据类型" mandatory="true" name="stdSqlType" precision="10"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Std Sql Type"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Standard SQL Type"
                         ext:dict="core/std-sql-type"/>
                 <column code="PRECISION" displayName="长度" name="precision" propId="7" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="PRECISION"/>
@@ -876,7 +876,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Std Domain Name"
                         ext:dict="core/std-domain"/>
                 <column code="STD_SQL_TYPE" displayName="标准SQL数据类型" mandatory="true" name="stdSqlType" precision="10"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Std Sql Type"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Standard SQL Type"
                         ext:dict="core/std-sql-type"/>
                 <column code="PRECISION" displayName="长度" name="precision" propId="7" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Precision"/>
@@ -1026,7 +1026,7 @@
                 <column code="ENTITY_NAME2" displayName="实体名称2" mandatory="true" name="entityName2" precision="100"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Name2"/>
                 <column code="ENTITY_ID2" displayName="实体ID2" mandatory="true" name="entityId2" precision="50"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity ID2"/>
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity ID 2"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
                         stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

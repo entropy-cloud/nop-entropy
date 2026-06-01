@@ -38,7 +38,7 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="entityId2" displayName="实体ID2" propId="6" i18n-en:displayName="Entity ID2" mandatory="true"
+        <prop name="entityId2" displayName="实体ID2" propId="6" i18n-en:displayName="Entity ID 2" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
