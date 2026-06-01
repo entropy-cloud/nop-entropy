@@ -34,6 +34,8 @@ public interface OfficeConstants {
 
     String VAR_FILE_PASSWORD = "filePassword";
 
+    String VAR_ZIP_ENTRY_TIME = "zipEntryTime";
+
     String VAR_XPL_GEN_CONFIG = "xplGenConfig";
 
     String VAR_HEADERS = "headers";

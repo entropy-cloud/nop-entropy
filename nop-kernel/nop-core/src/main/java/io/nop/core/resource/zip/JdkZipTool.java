@@ -26,7 +26,7 @@ public class JdkZipTool implements IZipTool {
 
         try {
             ZipOutputStream zos = options.isJarFile() ? new JarOutputStream(os) : new ZipOutputStream(os);
-            return new JdkZipOutput(zos, options.isJarFile(), options.getProgressListener());
+            return new JdkZipOutput(zos, options.isJarFile(), options.getProgressListener(), options.getEntryTime());
         } catch (IOException e) {
             throw NopException.adapt(e);
         }

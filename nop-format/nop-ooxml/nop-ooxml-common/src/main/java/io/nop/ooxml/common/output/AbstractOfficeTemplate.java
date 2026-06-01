@@ -21,6 +21,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.Comparator;
+import java.util.stream.Stream;
 
 public abstract class AbstractOfficeTemplate implements IBinaryTemplateOutput {
     static final Logger LOG = LoggerFactory.getLogger(AbstractOfficeTemplate.class);
@@ -45,17 +50,49 @@ public abstract class AbstractOfficeTemplate implements IBinaryTemplateOutput {
             File tempDir = resource.toFile();
             tempDir.mkdirs();
             generateToDir(tempDir, context);
+
+            Long entryTime = resolveZipEntryTime(context);
+            if (entryTime != null) {
+                normalizeTempDirLastModified(tempDir.toPath(), entryTime.longValue());
+            }
             LOG.info("nop.ooxml.generate-to-dir:usedTime={}", CoreMetrics.currentTimeMillis() - beginTime);
 
             ZipOptions options = new ZipOptions();
             String password = (String) context.getEvalScope().getValue(OfficeConstants.VAR_FILE_PASSWORD);
             options.setPassword(password);
+            options.setEntryTime(entryTime);
             ResourceHelper.zipDirToStream(new FileResource(tempDir), os, options);
             os.flush();
         } finally {
             ResourceHelper.deleteAll(resource);
             long endTime = CoreMetrics.currentTimeMillis();
             LOG.info("nop.ooxml.generate-to-zip:usedTime={}", endTime - beginTime);
+        }
+    }
+
+    protected Long resolveZipEntryTime(IEvalContext context) {
+        Object value = context.getEvalScope().getValue(OfficeConstants.VAR_ZIP_ENTRY_TIME);
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return null;
+    }
+
+    protected void normalizeTempDirLastModified(Path root, long entryTime) throws IOException {
+        FileTime fileTime = FileTime.fromMillis(entryTime);
+        try (Stream<Path> stream = Files.walk(root)) {
+            stream.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.setLastModifiedTime(path, fileTime);
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+        } catch (IllegalStateException e) {
+            if (e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
+            }
+            throw e;
         }
     }
 

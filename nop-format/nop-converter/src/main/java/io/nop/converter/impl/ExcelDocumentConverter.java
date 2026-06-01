@@ -5,11 +5,14 @@ import io.nop.converter.DocConvertConstants;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentConverter;
 import io.nop.converter.IDocumentObject;
+import io.nop.converter.utils.DocConvertHelper;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.common.OfficeConstants;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.xlang.api.XLang;
 
@@ -56,7 +59,7 @@ public class ExcelDocumentConverter implements IDocumentConverter {
         }
 
         ITextTemplateOutput renderer = (ITextTemplateOutput) ExcelDocHelper.getExcelRenderer(doc, renderType);
-        return renderer.generateText(XLang.newEvalScope());
+        return renderer.generateText(newEvalScope(options));
     }
 
     protected String convertXptModelToXml(IDocumentObject doc, DocumentConvertOptions options) {
@@ -75,6 +78,15 @@ public class ExcelDocumentConverter implements IDocumentConverter {
         }
 
         ITemplateOutput renderer = ExcelDocHelper.getExcelRenderer(doc, renderType);
-        renderer.generateToStream(out, XLang.newEvalScope());
+        renderer.generateToStream(out, newEvalScope(options));
+    }
+
+    private IEvalScope newEvalScope(DocumentConvertOptions options) {
+        IEvalScope scope = XLang.newEvalScope();
+        Object entryTime = options == null ? null : options.getProperty(DocConvertHelper.OPTION_ZIP_ENTRY_TIME);
+        if (entryTime instanceof Number) {
+            scope.setLocalValue(null, OfficeConstants.VAR_ZIP_ENTRY_TIME, ((Number) entryTime).longValue());
+        }
+        return scope;
     }
 }

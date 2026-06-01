@@ -27,6 +27,8 @@ import static io.nop.converter.DocConvertConstants.FILE_TYPE_XLSX;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_ZIP;
 
 public class DocConvertHelper {
+    public static final String OPTION_ZIP_ENTRY_TIME = "zipEntryTime";
+
     public static boolean defaultBinaryOnly(String fileType) {
         return FILE_TYPE_PDF.equals(fileType) ||
                 FILE_TYPE_DOCX.equals(fileType) ||
@@ -37,12 +39,25 @@ public class DocConvertHelper {
     }
 
     public static void mergeAndConvertResources(List<IResource> fromResources, IResource toResource) {
+        DocumentConvertOptions options = DocumentConvertOptions.create().allowChained();
+        options.setDslNodeResolvePhase(IResourceDslNodeLoader.ResolvePhase.merged);
+        inheritZipEntryTime(fromResources, options);
+        mergeAndConvertResources(fromResources, toResource, options);
+    }
+
+    public static void mergeAndConvertResources(List<IResource> fromResources, IResource toResource,
+                                                DocumentConvertOptions options) {
         IDocumentConverterManager manager = DocumentConverterManager.instance();
         if (fromResources == null || fromResources.isEmpty())
             return;
 
-        DocumentConvertOptions options = DocumentConvertOptions.create().allowChained();
-        options.setDslNodeResolvePhase(IResourceDslNodeLoader.ResolvePhase.merged);
+        if (options == null) {
+            options = DocumentConvertOptions.create().allowChained();
+        }
+        if (options.getDslNodeResolvePhase() == null) {
+            options.setDslNodeResolvePhase(IResourceDslNodeLoader.ResolvePhase.merged);
+        }
+        inheritZipEntryTime(fromResources, options);
 
         if (fromResources.size() == 1) {
             manager.convertResource(fromResources.get(0), toResource, options);
@@ -76,5 +91,22 @@ public class DocConvertHelper {
 
         IResource resultRes = new InMemoryTextResource("/text/unnamed." + xdslFileType, node.xml());
         manager.convertResource(resultRes, toResource, options);
+    }
+
+    public static void inheritZipEntryTime(List<IResource> fromResources, DocumentConvertOptions options) {
+        if (fromResources == null || fromResources.isEmpty() || options == null) {
+            return;
+        }
+        if (options.getProperty(OPTION_ZIP_ENTRY_TIME) != null) {
+            return;
+        }
+        IResource resource = fromResources.get(0);
+        if (resource == null) {
+            return;
+        }
+        long lastModified = resource.lastModified();
+        if (lastModified > 0) {
+            options.setProperty(OPTION_ZIP_ENTRY_TIME, lastModified);
+        }
     }
 }

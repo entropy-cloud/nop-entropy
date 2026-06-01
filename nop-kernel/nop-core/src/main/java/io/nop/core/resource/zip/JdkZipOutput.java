@@ -32,12 +32,14 @@ public class JdkZipOutput implements IZipOutput {
     private final ZipOutputStream os;
     private final IProgressListener listener;
     private final boolean jarFile;
+    private final Long entryTime;
     private boolean firstEntry = true;
 
-    public JdkZipOutput(ZipOutputStream os, boolean jarFile, IProgressListener listener) {
+    public JdkZipOutput(ZipOutputStream os, boolean jarFile, IProgressListener listener, Long entryTime) {
         this.os = os;
         this.listener = listener;
         this.jarFile = jarFile;
+        this.entryTime = entryTime;
     }
 
     @Override
@@ -101,6 +103,9 @@ public class JdkZipOutput implements IZipOutput {
             throw new NopException(ERR_RESOURCE_INVALID_ZIP_ENTRY_NAME).param(ARG_NAME, entryName);
 
         ZipEntry entry = new ZipEntry(entryName);
+        if (entryTime != null) {
+            entry.setTime(entryTime.longValue());
+        }
         return entry;
     }
 

@@ -1,5 +1,6 @@
 package io.nop.cli.commands;
 
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.utils.DocConvertHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -44,7 +45,9 @@ public class CliConvertCommand implements Callable<Integer> {
 
         IResource outputResource = new FileResource(outputFile);
 
-        DocConvertHelper.mergeAndConvertResources(resources, outputResource);
+        DocumentConvertOptions options = DocumentConvertOptions.create().allowChained();
+        DocConvertHelper.inheritZipEntryTime(resources, options);
+        DocConvertHelper.mergeAndConvertResources(resources, outputResource, options);
 
         return 0;
     }

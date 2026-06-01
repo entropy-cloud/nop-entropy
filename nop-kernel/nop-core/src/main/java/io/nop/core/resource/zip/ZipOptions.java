@@ -20,6 +20,7 @@ public class ZipOptions implements Serializable {
     private String password;
     private boolean jarFile;
     private IProgressListener progressListener;
+    private Long entryTime;
 
     public boolean isJarFile() {
         return jarFile;
@@ -59,5 +60,13 @@ public class ZipOptions implements Serializable {
 
     public void setProgressListener(IProgressListener progressListener) {
         this.progressListener = progressListener;
+    }
+
+    public Long getEntryTime() {
+        return entryTime;
+    }
+
+    public void setEntryTime(Long entryTime) {
+        this.entryTime = entryTime;
     }
 }

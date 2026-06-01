@@ -42,10 +42,14 @@ public class ExcelHelper {
     }
 
     public static void saveExcel(IResource resource, ExcelWorkbook workbook) {
+        saveExcel(resource, workbook, XLang.newEvalScope());
+    }
+
+    public static void saveExcel(IResource resource, ExcelWorkbook workbook, IEvalScope scope) {
         if (resource.getName().endsWith(".xml")) {
             DslModelHelper.saveDslModel(ExcelConstants.XDSL_SCHEMA_WORKBOOK, workbook, resource);
         } else {
-            new ExcelTemplate(workbook, null).generateToResource(resource, XLang.newEvalScope());
+            new ExcelTemplate(workbook, null).generateToResource(resource, scope);
         }
     }
 
