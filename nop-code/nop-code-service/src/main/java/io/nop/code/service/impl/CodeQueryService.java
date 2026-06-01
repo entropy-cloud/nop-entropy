@@ -227,27 +227,36 @@ class CodeQueryService {
         }
         fileQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeFile> files = fileDao.findAllByQuery(fileQuery);
-        // Full file list needed for per-file symbol aggregation
 
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
                 "CLASS", "INTERFACE", "ENUM", "ANNOTATION_TYPE", "METHOD", "FUNCTION"));
 
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean symQuery = new QueryBean();
+        symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        if (!includePrivate) {
+            symQuery.addFilter(FilterBeans.ne("accessModifier", "PRIVATE"));
+        }
+        symQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
+        List<NopCodeSymbol> allSymbols = symbolDao.findAllByQuery(symQuery);
+
+        Map<String, List<NopCodeSymbol>> symbolsByFileId = new LinkedHashMap<>();
+        for (NopCodeSymbol sym : allSymbols) {
+            symbolsByFileId.computeIfAbsent(sym.getFileId(), k -> new ArrayList<>()).add(sym);
+        }
+
+        Map<String, NopCodeFile> fileById = new LinkedHashMap<>();
+        for (NopCodeFile f : files) {
+            fileById.put(f.getId(), f);
+        }
 
         List<ModuleDigestDTO> result = new ArrayList<>();
         for (NopCodeFile file : files) {
             String fileId = file.getId();
 
-            QueryBean symQuery = new QueryBean();
-            symQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            symQuery.addFilter(FilterBeans.eq("fileId", fileId));
-            if (!includePrivate) {
-                symQuery.addFilter(FilterBeans.ne("accessModifier", "PRIVATE"));
-            }
-
             List<SymbolInfoDTO> symbols = new ArrayList<>();
-            for (NopCodeSymbol sym : symbolDao.findAllByQuery(symQuery)) {
-                // Per-file symbol query: bounded by one file's symbols
+            List<NopCodeSymbol> fileSymbols = symbolsByFileId.getOrDefault(fileId, Collections.emptyList());
+            for (NopCodeSymbol sym : fileSymbols) {
                 if (!allowedKinds.contains(sym.getKind())) continue;
                 SymbolInfoDTO info = new SymbolInfoDTO();
                 info.setName(sym.getName());
