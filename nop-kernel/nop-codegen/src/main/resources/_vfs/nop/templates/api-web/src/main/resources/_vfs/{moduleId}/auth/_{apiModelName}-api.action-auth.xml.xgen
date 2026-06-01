@@ -2,7 +2,7 @@
 
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
     <site id="main">
-        <resource id="test-api-${apiModelName}" displayName="测试${apiModelName}" icon="ion:grid-outline" resourceType="TOPM"
+        <resource id="test-api-${apiModelName}" displayName="测试${apiModelName}" i18n-en:displayName="Test ${apiModelName}" icon="ion:grid-outline" resourceType="TOPM"
                   routePath="/test-api-${apiModelName}" component="layouts/default/index">
             <children>
                 <c:for var="serviceModel" items="${apiModel.services}">

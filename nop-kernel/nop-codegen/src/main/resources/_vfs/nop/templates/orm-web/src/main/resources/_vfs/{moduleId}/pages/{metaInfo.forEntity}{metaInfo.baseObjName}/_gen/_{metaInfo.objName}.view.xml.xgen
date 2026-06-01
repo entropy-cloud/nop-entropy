@@ -3,6 +3,7 @@
       xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
     <c:script>
         let objMeta = metaInfo.objMeta;
+        let enDisplayName = objMeta.getExtProp('i18n-en:displayName') || objMeta['i18n-en:displayName'] || '';
     </c:script>
 
     <objMeta>${objMeta.resourcePath()}</objMeta>
@@ -84,23 +85,23 @@
 
     <forms>
         <form id="view" editMode="view" title="查看-${objMeta.displayName}"
-              i18n-en:title="View ${objMeta['i18n-en:displayName']}">
+              i18n-en:title="${enDisplayName ? 'View ' + enDisplayName : ''}">
             <web-gen:GenLayout props="${visibleProps}"/>
         </form>
 
         <form id="add" editMode="add"
-              title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
+              title="新增-${objMeta.displayName}" i18n-en:title="${enDisplayName ? 'Add ' + enDisplayName : ''}"
               xpl:if="supportAdd and !useAddForm" x:prototype="edit">
         </form>
 
         <form id="add" editMode="add"
-              title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
+              title="新增-${objMeta.displayName}" i18n-en:title="${enDisplayName ? 'Add ' + enDisplayName : ''}"
               xpl:if="supportAdd and useAddForm">
             <web-gen:GenLayout props="${insertableProps}"/>
         </form>
 
         <form id="edit" editMode="edit"
-              title="编辑-${objMeta.displayName}" i18n-en:title="Edit ${objMeta['i18n-en:displayName']}"
+              title="编辑-${objMeta.displayName}" i18n-en:title="${enDisplayName ? 'Edit ' + enDisplayName : ''}"
               xpl:if="supportUpdate">
             <web-gen:GenLayout props="${editableProps}"/>
         </form>

@@ -11,11 +11,11 @@
         let meta = SchemaLoader.loadXMeta(resource.path);
         let entityName = meta.bizObjName || resource.path.$fileNameNoExt();
 
-        entityLabel[entityName] = meta['i18n-en:displayName'];
+        entityLabel[entityName] = meta.getExtProp('i18n-en:displayName') || meta['i18n-en:displayName'];
         let propsMap = {};
         propLabel[entityName] = propsMap;
         for(let prop of meta.props){
-            propsMap[prop.name] = prop['i18n-en:displayName'];
+            propsMap[prop.name] = prop.getExtProp('i18n-en:displayName') || prop['i18n-en:displayName'];
         }
     }
 </c:script>

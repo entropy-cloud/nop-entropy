@@ -83,7 +83,7 @@
 
             <source>
                 <form id="batchUpdate" editMode="edit" xgen-x:abstract="true" xpl:if="supportUpdate"
-                      title="修改-${objMeta.displayName}" i18n-en:title="Update ${objMeta['i18n-en:displayName']}">
+                      title="修改-${objMeta.displayName}" i18n-en:title="${(objMeta.getExtProp('i18n-en:displayName') || objMeta['i18n-en:displayName']) ? 'Update ' + (objMeta.getExtProp('i18n-en:displayName') || objMeta['i18n-en:displayName']) : ''}">
                 </form>
             </source>
         </GenBatchUpdateForm>
