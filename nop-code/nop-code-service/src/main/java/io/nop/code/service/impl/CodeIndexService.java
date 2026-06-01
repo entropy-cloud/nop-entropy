@@ -1769,14 +1769,10 @@ public class CodeIndexService implements ICodeIndexService {
                 IResourceLoader vfs = VirtualFileSystem.instance();
                 List<IResource> currentResources = collectResourcesFromVfs(vfs, vfsPath);
 
-                List<Path> currentPaths = currentResources.stream()
-                        .map(res -> Path.of(pathMapper.apply(res.getPath())))
-                        .collect(Collectors.toList());
+                ChangeSet changes = detector.detectResourceChanges(previousFingerprints, currentResources);
 
-                ChangeSet changes = detector.detectChanges(previousFingerprints, currentPaths);
-
-                List<Path> changedFiles = changes.getAddedAndModified();
-                List<Path> deletedFiles = changes.getDeletedFiles();
+                List<String> changedFiles = changes.getAddedAndModified();
+                List<String> deletedFiles = changes.getDeletedFiles();
 
                 LOG.info("Incremental index for {}: {} changed, {} deleted, {} unchanged",
                         indexId, changedFiles.size(), deletedFiles.size(),
@@ -1787,8 +1783,7 @@ public class CodeIndexService implements ICodeIndexService {
                 }
 
                 deleteFileRecords(indexId, deletedFiles);
-                deleteFileRecords(indexId, changedFiles.stream()
-                        .map(Path::toString).collect(Collectors.toList()));
+                deleteFileRecords(indexId, changedFiles);
 
                 Map<String, IResource> resourceByPath = new HashMap<>();
                 for (IResource res : currentResources) {
@@ -1803,13 +1798,13 @@ public class CodeIndexService implements ICodeIndexService {
                     LOG.debug("Flushed batch of {} analysis results for index {}", batch.size(), indexId);
                 });
 
-                for (Path changedFile : changedFiles) {
+                for (String changedFile : changedFiles) {
                     try {
-                        String relativePath = changedFile.toString();
+                        String relativePath = pathMapper.apply(changedFile);
                         ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
                         if (fileAnalyzer == null) continue;
 
-                        IResource resource = resourceByPath.get(relativePath);
+                        IResource resource = resourceByPath.get(changedFile);
                         if (resource == null) {
                             LOG.warn("Resource not found for path: {}", relativePath);
                             continue;

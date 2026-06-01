@@ -509,10 +509,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         List<FileFingerprint> previousFingerprints = buildFingerprintsFromResults(previousResult);
         ChangeSet changes = detector.detectChanges(previousFingerprints, sourceFiles);
 
-        List<Path> filesToReanalyze = changes.getAddedAndModified();
-        Set<String> deletedPaths = changes.getDeletedFiles().stream()
-                .map(Path::toString)
-                .collect(Collectors.toSet());
+        List<String> filesToReanalyze = changes.getAddedAndModified();
+        Set<String> deletedPaths = changes.getDeletedFiles().stream().collect(Collectors.toSet());
 
         LOG.info("Incremental changes: {} added/modified, {} deleted, {} unchanged",
                 filesToReanalyze.size(), deletedPaths.size(), changes.getUnchangedFiles().size());
@@ -526,8 +524,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         }
 
         // 重新分析变更文件
-        for (Path file : filesToReanalyze) {
+        for (String filePath : filesToReanalyze) {
             try {
+                Path file = Path.of(filePath);
                 String relativePath = projectRoot.relativize(file).toString();
                 ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
                 if (analyzer == null) {
@@ -539,7 +538,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                     updatedFileMap.put(relativePath, result);
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to re-analyze file: {} - {}", file, e.getMessage());
+                LOG.warn("Failed to re-analyze file: {} - {}", filePath, e.getMessage());
             }
         }
 

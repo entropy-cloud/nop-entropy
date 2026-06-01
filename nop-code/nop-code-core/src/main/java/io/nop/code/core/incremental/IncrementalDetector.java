@@ -38,14 +38,14 @@ public class IncrementalDetector {
             currentMap.put(p.toString(), p);
         }
 
-        List<Path> addedFiles = new ArrayList<>();
-        List<Path> modifiedFiles = new ArrayList<>();
-        List<Path> deletedFiles = new ArrayList<>();
-        List<Path> unchangedFiles = new ArrayList<>();
+        List<String> addedFiles = new ArrayList<>();
+        List<String> modifiedFiles = new ArrayList<>();
+        List<String> deletedFiles = new ArrayList<>();
+        List<String> unchangedFiles = new ArrayList<>();
 
         for (FileFingerprint prev : previous) {
             if (!currentMap.containsKey(prev.getFilePath())) {
-                deletedFiles.add(Path.of(prev.getFilePath()));
+                deletedFiles.add(prev.getFilePath());
             }
         }
 
@@ -54,20 +54,20 @@ public class IncrementalDetector {
             FileFingerprint prev = prevMap.get(pathStr);
 
             if (prev == null) {
-                addedFiles.add(currentFile);
+                addedFiles.add(pathStr);
             } else {
                 long currentMtime = Files.getLastModifiedTime(currentFile).toMillis();
                 long currentSize = Files.size(currentFile);
 
                 if (currentMtime == prev.getLastModified() && currentSize == prev.getFileSize()) {
-                    unchangedFiles.add(currentFile);
+                    unchangedFiles.add(pathStr);
                 } else {
                     String currentHashHex = DigestHelper.sha256Hex(currentFile);
 
                     if (currentHashHex.equals(prev.getContentHash())) {
-                        unchangedFiles.add(currentFile);
+                        unchangedFiles.add(pathStr);
                     } else {
-                        modifiedFiles.add(currentFile);
+                        modifiedFiles.add(pathStr);
                     }
                 }
             }
@@ -101,7 +101,7 @@ public class IncrementalDetector {
         }
         long lastModified = resource.lastModified();
         long fileSize = resource.length();
-        return new FileFingerprint(resource.getStdPath(), contentHash, lastModified, fileSize);
+        return new FileFingerprint(resource.getPath(), contentHash, lastModified, fileSize);
     }
 
     /**
@@ -115,34 +115,34 @@ public class IncrementalDetector {
 
         Map<String, IResource> currentMap = new HashMap<>();
         for (IResource r : currentResources) {
-            currentMap.put(r.getStdPath(), r);
+            currentMap.put(r.getPath(), r);
         }
 
-        List<IResource> addedFiles = new ArrayList<>();
-        List<IResource> modifiedFiles = new ArrayList<>();
-        List<IResource> deletedFiles = new ArrayList<>();
-        List<IResource> unchangedFiles = new ArrayList<>();
+        List<String> addedFiles = new ArrayList<>();
+        List<String> modifiedFiles = new ArrayList<>();
+        List<String> deletedFiles = new ArrayList<>();
+        List<String> unchangedFiles = new ArrayList<>();
 
         // 检测已删除的文件
         for (FileFingerprint prev : previous) {
             if (!currentMap.containsKey(prev.getFilePath())) {
-                deletedFiles.add(new DeletedResourceStub(prev.getFilePath()));
+                deletedFiles.add(prev.getFilePath());
             }
         }
 
         // 检测新增和修改的文件
         for (IResource currentResource : currentResources) {
-            String pathStr = currentResource.getStdPath();
+            String pathStr = currentResource.getPath();
             FileFingerprint prev = prevMap.get(pathStr);
 
             if (prev == null) {
-                addedFiles.add(currentResource);
+                addedFiles.add(pathStr);
             } else {
                 long currentMtime = currentResource.lastModified();
                 long currentSize = currentResource.length();
 
                 if (currentMtime == prev.getLastModified() && currentSize == prev.getFileSize()) {
-                    unchangedFiles.add(currentResource);
+                    unchangedFiles.add(pathStr);
                 } else {
                     String currentHashHex;
                     try (InputStream is = currentResource.getInputStream()) {
@@ -150,19 +150,19 @@ public class IncrementalDetector {
                     }
 
                     if (currentHashHex.equals(prev.getContentHash())) {
-                        unchangedFiles.add(currentResource);
+                        unchangedFiles.add(pathStr);
                     } else {
-                        modifiedFiles.add(currentResource);
+                        modifiedFiles.add(pathStr);
                     }
                 }
             }
         }
 
         ChangeSet changeSet = new ChangeSet();
-        changeSet.setAddedFiles(toPaths(addedFiles));
-        changeSet.setModifiedFiles(toPaths(modifiedFiles));
-        changeSet.setDeletedFiles(toPaths(deletedFiles));
-        changeSet.setUnchangedFiles(toPaths(unchangedFiles));
+        changeSet.setAddedFiles(addedFiles);
+        changeSet.setModifiedFiles(modifiedFiles);
+        changeSet.setDeletedFiles(deletedFiles);
+        changeSet.setUnchangedFiles(unchangedFiles);
         return changeSet;
     }
 
@@ -194,15 +194,5 @@ public class IncrementalDetector {
         List<FileFingerprint> fingerprints = computeResourceFingerprints(resources);
         store.saveFingerprints(indexId, fingerprints);
         return fingerprints;
-    }
-
-    // ========== Private helpers ==========
-
-    private static List<Path> toPaths(List<IResource> resources) {
-        List<Path> paths = new ArrayList<>(resources.size());
-        for (IResource r : resources) {
-            paths.add(Path.of(r.getStdPath()));
-        }
-        return paths;
     }
 }

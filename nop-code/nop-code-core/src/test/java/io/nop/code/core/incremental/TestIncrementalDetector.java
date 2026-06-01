@@ -117,8 +117,8 @@ class TestIncrementalDetector {
         ChangeSet cs = detector.detectChanges(previous, currentFiles);
 
         assertEquals(2, cs.getAddedFiles().size());
-        assertTrue(cs.getAddedFiles().contains(file1));
-        assertTrue(cs.getAddedFiles().contains(file2));
+        assertTrue(cs.getAddedFiles().contains(file1.toString()));
+        assertTrue(cs.getAddedFiles().contains(file2.toString()));
         assertTrue(cs.getModifiedFiles().isEmpty());
         assertTrue(cs.getDeletedFiles().isEmpty());
         assertTrue(cs.getUnchangedFiles().isEmpty());
@@ -155,7 +155,7 @@ class TestIncrementalDetector {
         ChangeSet cs = detector.detectChanges(previous, currentFiles);
 
         assertEquals(1, cs.getUnchangedFiles().size());
-        assertTrue(cs.getUnchangedFiles().contains(file));
+        assertTrue(cs.getUnchangedFiles().contains(file.toString()));
         assertTrue(cs.getAddedFiles().isEmpty());
         assertTrue(cs.getModifiedFiles().isEmpty());
         assertTrue(cs.getDeletedFiles().isEmpty());
@@ -178,7 +178,7 @@ class TestIncrementalDetector {
         ChangeSet cs = detector.detectChanges(previous, currentFiles);
 
         assertEquals(1, cs.getModifiedFiles().size());
-        assertTrue(cs.getModifiedFiles().contains(file));
+        assertTrue(cs.getModifiedFiles().contains(file.toString()));
         assertTrue(cs.getUnchangedFiles().isEmpty());
         assertTrue(cs.getAddedFiles().isEmpty());
         assertTrue(cs.getDeletedFiles().isEmpty());
@@ -200,7 +200,7 @@ class TestIncrementalDetector {
 
         // mtime differs but content hash matches → unchanged (slow path)
         assertEquals(1, cs.getUnchangedFiles().size());
-        assertTrue(cs.getUnchangedFiles().contains(file));
+        assertTrue(cs.getUnchangedFiles().contains(file.toString()));
         assertTrue(cs.getModifiedFiles().isEmpty());
     }
 
@@ -251,10 +251,10 @@ class TestIncrementalDetector {
 
         ChangeSet cs = detector.detectChanges(previous, currentFiles);
 
-        List<Path> combined = cs.getAddedAndModified();
+        List<String> combined = cs.getAddedAndModified();
         assertEquals(2, combined.size());
-        assertTrue(combined.contains(addedFile));
-        assertTrue(combined.contains(existingFile));
+        assertTrue(combined.contains(addedFile.toString()));
+        assertTrue(combined.contains(existingFile.toString()));
     }
 
     // ---- ChangeSet list immutability ----
@@ -262,10 +262,10 @@ class TestIncrementalDetector {
     @Test
     void testChangeSetListsAreUnmodifiable() {
         ChangeSet cs = new ChangeSet();
-        assertThrows(UnsupportedOperationException.class, () -> cs.getAddedFiles().add(Path.of("x")));
-        assertThrows(UnsupportedOperationException.class, () -> cs.getModifiedFiles().add(Path.of("x")));
-        assertThrows(UnsupportedOperationException.class, () -> cs.getDeletedFiles().add(Path.of("x")));
-        assertThrows(UnsupportedOperationException.class, () -> cs.getUnchangedFiles().add(Path.of("x")));
+        assertThrows(UnsupportedOperationException.class, () -> cs.getAddedFiles().add("x"));
+        assertThrows(UnsupportedOperationException.class, () -> cs.getModifiedFiles().add("x"));
+        assertThrows(UnsupportedOperationException.class, () -> cs.getDeletedFiles().add("x"));
+        assertThrows(UnsupportedOperationException.class, () -> cs.getUnchangedFiles().add("x"));
     }
 
     // ---- mixed scenario ----
@@ -297,16 +297,16 @@ class TestIncrementalDetector {
         ChangeSet cs = detector.detectChanges(previous, currentFiles);
 
         assertEquals(1, cs.getUnchangedFiles().size());
-        assertTrue(cs.getUnchangedFiles().contains(keepFile));
+        assertTrue(cs.getUnchangedFiles().contains(keepFile.toString()));
 
         assertEquals(1, cs.getModifiedFiles().size());
-        assertTrue(cs.getModifiedFiles().contains(modifyFile));
+        assertTrue(cs.getModifiedFiles().contains(modifyFile.toString()));
 
         assertEquals(1, cs.getDeletedFiles().size());
-        assertTrue(cs.getDeletedFiles().contains(deleteFile));
+        assertTrue(cs.getDeletedFiles().contains(deleteFile.toString()));
 
         assertEquals(1, cs.getAddedFiles().size());
-        assertTrue(cs.getAddedFiles().contains(addedFile));
+        assertTrue(cs.getAddedFiles().contains(addedFile.toString()));
     }
 
     // ---- IResource-based tests ----
@@ -323,7 +323,7 @@ class TestIncrementalDetector {
         IResource resource = toResource(file);
         FileFingerprint fp = detector.computeFingerprint(resource);
 
-        assertEquals(resource.getStdPath(), fp.getFilePath());
+        assertEquals(resource.getPath(), fp.getFilePath());
         assertNotNull(fp.getContentHash());
         assertEquals(64, fp.getContentHash().length(), "SHA-256 hex string must be 64 chars");
         assertTrue(fp.getContentHash().matches("[0-9a-f]{64}"), "Hash must be lowercase hex");
@@ -373,8 +373,8 @@ class TestIncrementalDetector {
         List<FileFingerprint> fps = detector.computeResourceFingerprints(resources);
 
         assertEquals(2, fps.size());
-        assertEquals(toResource(f1).getStdPath(), fps.get(0).getFilePath());
-        assertEquals(toResource(f2).getStdPath(), fps.get(1).getFilePath());
+        assertEquals(toResource(f1).getPath(), fps.get(0).getFilePath());
+        assertEquals(toResource(f2).getPath(), fps.get(1).getFilePath());
 
         for (FileFingerprint fp : fps) {
             assertNotNull(fp.getContentHash());
