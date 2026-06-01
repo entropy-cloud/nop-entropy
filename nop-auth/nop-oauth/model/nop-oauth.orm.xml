@@ -2,20 +2,20 @@
 <orm ext:appName="nop-oauth" ext:icon="shield-check" ext:entityPackageName="io.nop.oauth.dao.entity" ext:basePackageName="io.nop.oauth"
      ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-oauth" ext:mavenVersion="2.0.0-SNAPSHOT"
      ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,postgresql,oracle" x:schema="/nop/schema/orm/orm.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <entities>
-        <entity className="io.nop.oauth.dao.entity.NopOauthAuthorization" displayName="Oauth认证记录"
+        <entity className="io.nop.oauth.dao.entity.NopOauthAuthorization" displayName="Oauth认证记录" i18n-en:displayName="OAuth Authorization"
                 name="io.nop.oauth.dao.entity.NopOauthAuthorization" tableName="nop_oauth_authorization"
                 ext:icon="shield">
             <columns>
                 <column code="SID" displayName="Id" mandatory="true" name="sid" precision="100" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="sid"/>
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
                 <column code="REGISTERED_CLIENT_ID" displayName="客户端ID" mandatory="true" name="registeredClientId"
                         precision="100" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Registered Client Id"/>
                 <column code="PRINCIPAL_NAME" displayName="客户端名称" mandatory="true" name="principalName" precision="200"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Principle Name"/>
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Principal Name"/>
                 <column code="AUTHORIZATION_GRANT_TYPE" displayName="授权类型" mandatory="true"
                         name="authorizationGrantType" precision="100" propId="4" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Authorization Grant Type"/>
@@ -96,7 +96,7 @@
                         i18n-en:displayName="Device Code Meta Data"/>
             </columns>
         </entity>
-        <entity className="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" displayName="Oauth许可"
+        <entity className="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" displayName="Oauth许可" i18n-en:displayName="OAuth Authorization Consent"
                 name="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" tableName="nop_oauth_authorization_consent"
                 ext:icon="badge-check">
             <columns>
@@ -110,12 +110,12 @@
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Authorities"/>
             </columns>
         </entity>
-        <entity className="io.nop.oauth.dao.entity.NopOauthRegisteredClient" displayName="Oauth注册客户端"
+        <entity className="io.nop.oauth.dao.entity.NopOauthRegisteredClient" displayName="Oauth注册客户端" i18n-en:displayName="OAuth Registered Client"
                 name="io.nop.oauth.dao.entity.NopOauthRegisteredClient" tableName="nop_oauth_registered_client"
                 ext:icon="monitor">
             <columns>
                 <column code="SID" displayName="Id" mandatory="true" name="sid" precision="100" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="sid"/>
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
                 <column code="CLIENT_ID" displayName="客户端ID" mandatory="true" name="clientId" precision="100" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Client Id"/>
                 <column code="CLIENT_ID_ISSUED_AT" displayName="客户端ID发放时间" mandatory="true" name="clientIdIssuedAt"

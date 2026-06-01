@@ -32,15 +32,16 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-Oauth许可" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-Oauth许可" i18n-en:title="View OAuth Authorization Consent">
             <layout>
  registeredClientId[注册客户端ID]
  principalName[客户端名称]
  authorities[扩展属性]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-Oauth许可" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-Oauth许可" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-Oauth许可" i18n-en:title="Add OAuth Authorization Consent"
+              x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-Oauth许可" i18n-en:title="Edit OAuth Authorization Consent">
             <layout>
  registeredClientId[注册客户端ID]
  principalName[客户端名称]
@@ -49,7 +50,8 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-Oauth许可" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-Oauth许可"
+              i18n-en:title="Update OAuth Authorization Consent"/>
     </forms>
 
     <pages>

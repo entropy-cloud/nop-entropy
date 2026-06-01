@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" ext:icon="shield" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen"
-      xmlns:biz="biz" displayName="Oauth认证记录" xmlns:ui="ui" xmlns:orm="orm">
+      xmlns:biz="biz" displayName="Oauth认证记录" i18n-en:displayName="OAuth Authorization" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.oauth.dao.entity.NopOauthAuthorization</entityName>
 
@@ -18,7 +18,7 @@
     <keys/>
 
     <props>
-        <prop name="sid" displayName="Id" propId="1" i18n-en:displayName="sid" tagSet="seq" mandatory="true"
+        <prop name="sid" displayName="Id" propId="1" i18n-en:displayName="SID" tagSet="seq" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
@@ -26,7 +26,7 @@
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="principalName" displayName="客户端名称" propId="3" i18n-en:displayName="Principle Name" mandatory="true"
+        <prop name="principalName" displayName="客户端名称" propId="3" i18n-en:displayName="Principal Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>

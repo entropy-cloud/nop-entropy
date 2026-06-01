@@ -1,14 +1,14 @@
 entity:
   label:
-    NopOauthAuthorization: null
-    NopOauthAuthorizationConsent: null
-    NopOauthRegisteredClient: null
+    NopOauthAuthorization: OAuth Authorization
+    NopOauthAuthorizationConsent: OAuth Authorization Consent
+    NopOauthRegisteredClient: OAuth Registered Client
 prop:
   label:
     NopOauthAuthorization:
-      sid: sid
+      sid: SID
       registeredClientId: Registered Client Id
-      principalName: Principle Name
+      principalName: Principal Name
       authorizationGrantType: Authorization Grant Type
       authorizedScopes: Authorization Scope
       attributes: Attributes
@@ -44,7 +44,7 @@ prop:
       principalName: Principal Name
       authorities: Authorities
     NopOauthRegisteredClient:
-      sid: sid
+      sid: SID
       clientId: Client Id
       clientIdIssuedAt: Client Id Issued At
       clientSecret: Client Secret

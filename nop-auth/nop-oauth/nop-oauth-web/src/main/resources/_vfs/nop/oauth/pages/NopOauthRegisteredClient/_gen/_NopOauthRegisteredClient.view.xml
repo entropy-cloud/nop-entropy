@@ -62,7 +62,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-Oauth注册客户端" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-Oauth注册客户端" i18n-en:title="View OAuth Registered Client">
             <layout>
  sid[Id] clientId[客户端ID]
  clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
@@ -73,8 +73,9 @@
  tokenSettings[Token设置] 
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-Oauth注册客户端" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-Oauth注册客户端" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-Oauth注册客户端" i18n-en:title="Add OAuth Registered Client"
+              x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-Oauth注册客户端" i18n-en:title="Edit OAuth Registered Client">
             <layout>
  sid[Id] clientId[客户端ID]
  clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
@@ -87,7 +88,8 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-Oauth注册客户端" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-Oauth注册客户端"
+              i18n-en:title="Update OAuth Registered Client"/>
     </forms>
 
     <pages>

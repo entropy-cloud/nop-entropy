@@ -97,4 +97,4 @@ site:
     NopAuthUser_tenant-main:
       displayName: User
     test-orm-nop-auth:
-      displayName: ''
+      displayName: Test nop-auth

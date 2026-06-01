@@ -2,47 +2,52 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-oauth" displayName="测试nop-oauth" icon="shield-check" resourceType="TOPM"
-                  orderNo="10000" routePath="/test-orm-nop-oauth" component="layouts/default/index">
+        <resource id="test-orm-nop-oauth" displayName="测试nop-oauth" i18n-en:displayName="Test nop-oauth"
+                  icon="shield-check" resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-oauth"
+                  component="layouts/default/index">
             <children>
-                <resource id="NopOauthAuthorization-main" displayName="Oauth认证记录" orderNo="10001" icon="shield"
-                          component="AMIS" resourceType="SUBM"
+                <resource id="NopOauthAuthorization-main" displayName="Oauth认证记录" orderNo="10001"
+                          i18n-en:displayName="OAuth Authorization" icon="shield" component="AMIS" resourceType="SUBM"
                           url="/nop/oauth/pages/NopOauthAuthorization/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopOauthAuthorization:query" displayName="查询Oauth认证记录"
-                                  i18n-en:displayName="Query Oauth认证记录" orderNo="10002" resourceType="FNPT">
+                                  i18n-en:displayName="Query OAuth Authorization" orderNo="10002" resourceType="FNPT">
                             <permissions>NopOauthAuthorization:query</permissions>
                         </resource>
                         <resource id="FNPT:NopOauthAuthorization:mutation" displayName="修改Oauth认证记录"
-                                  i18n-en:displayName="Modify Oauth认证记录" orderNo="10003" resourceType="FNPT">
+                                  i18n-en:displayName="Modify OAuth Authorization" orderNo="10003" resourceType="FNPT">
                             <permissions>NopOauthAuthorization:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
                 <resource id="NopOauthAuthorizationConsent-main" displayName="Oauth许可" orderNo="10004"
-                          icon="badge-check" component="AMIS" resourceType="SUBM"
-                          url="/nop/oauth/pages/NopOauthAuthorizationConsent/main.page.yaml">
+                          i18n-en:displayName="OAuth Authorization Consent" icon="badge-check" component="AMIS"
+                          resourceType="SUBM" url="/nop/oauth/pages/NopOauthAuthorizationConsent/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopOauthAuthorizationConsent:query" displayName="查询Oauth许可"
-                                  i18n-en:displayName="Query Oauth许可" orderNo="10005" resourceType="FNPT">
+                                  i18n-en:displayName="Query OAuth Authorization Consent" orderNo="10005"
+                                  resourceType="FNPT">
                             <permissions>NopOauthAuthorizationConsent:query</permissions>
                         </resource>
                         <resource id="FNPT:NopOauthAuthorizationConsent:mutation" displayName="修改Oauth许可"
-                                  i18n-en:displayName="Modify Oauth许可" orderNo="10006" resourceType="FNPT">
+                                  i18n-en:displayName="Modify OAuth Authorization Consent" orderNo="10006"
+                                  resourceType="FNPT">
                             <permissions>NopOauthAuthorizationConsent:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopOauthRegisteredClient-main" displayName="Oauth注册客户端" orderNo="10007" icon="monitor"
-                          component="AMIS" resourceType="SUBM"
-                          url="/nop/oauth/pages/NopOauthRegisteredClient/main.page.yaml">
+                <resource id="NopOauthRegisteredClient-main" displayName="Oauth注册客户端" orderNo="10007"
+                          i18n-en:displayName="OAuth Registered Client" icon="monitor" component="AMIS"
+                          resourceType="SUBM" url="/nop/oauth/pages/NopOauthRegisteredClient/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopOauthRegisteredClient:query" displayName="查询Oauth注册客户端"
-                                  i18n-en:displayName="Query Oauth注册客户端" orderNo="10008" resourceType="FNPT">
+                                  i18n-en:displayName="Query OAuth Registered Client" orderNo="10008"
+                                  resourceType="FNPT">
                             <permissions>NopOauthRegisteredClient:query</permissions>
                         </resource>
                         <resource id="FNPT:NopOauthRegisteredClient:mutation" displayName="修改Oauth注册客户端"
-                                  i18n-en:displayName="Modify Oauth注册客户端" orderNo="10009" resourceType="FNPT">
+                                  i18n-en:displayName="Modify OAuth Registered Client" orderNo="10009"
+                                  resourceType="FNPT">
                             <permissions>NopOauthRegisteredClient:mutation</permissions>
                         </resource>
                     </children>

@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-auth" displayName="测试nop-auth" icon="shield" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-nop-auth" component="layouts/default/index">
+        <resource id="test-orm-nop-auth" displayName="测试nop-auth" i18n-en:displayName="Test nop-auth" icon="shield"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-auth" component="layouts/default/index">
             <children>
                 <resource id="NopAuthDept-main" displayName="部门" orderNo="10001" i18n-en:displayName="Department"
                           icon="git-branch" component="AMIS" resourceType="SUBM"
