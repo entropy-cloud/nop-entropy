@@ -1,5 +1,6 @@
 # 开发计划：Symbol 类型字段扩展 + P0-4/P0-5/P1-3 修复
 
+> Plan Status: completed
 **关联审计报告**：`ai-dev/audits/nop-code-audit-2026-05-10.md`
 **日期**：2026-05-10
 

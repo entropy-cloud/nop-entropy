@@ -1,6 +1,7 @@
 # 15-nop-job-invoker-implementation-plan.md
 
-> Status: draft
+> Plan Status: deferred
+> Deferred Reason: nop-job 模块已由 Plans 14-21 全面重写。Invoker 实现作为独立工作延后
 > Created: 2026-05-17
 > Design Doc: `ai-dev/design/nop-job/invoker-design.md` (v3)
 
@@ -190,3 +191,7 @@
 - [ ] 无新增 `as any`、`@ts-ignore` 等类型安全违规（Java 项目：无 raw type、unchecked warning）
 - [ ] 新增代码遵循 Nop bean 命名约定（nopJobInvoker_、nopJobTaskBuilder_ prefix）
 - [ ] 设计文档 `invoker-design.md` 标记为 confirmed
+
+## Deferred Note
+
+nop-job 模块已由 Plans 14-21 全面重写。Invoker 实现作为 Plan 16（核心调度器重构）的一部分或独立于当前活跃工作。本计划保留为 deferred。

@@ -1,7 +1,7 @@
 # 32 nop-stream Checkpoint 完整实现
 
-> Plan Status: in progress
-> Last Reviewed: 2026-05-21
+> Plan Status: completed
+> Last Reviewed: 2026-06-01
 > Source: `ai-dev/design/nop-stream/checkpoint-design.md` §2.2（CheckpointPlan）、§8.3（JdbcCheckpointStorage）、§10.4（未对接项）、§12（已知限制）；`ai-dev/design/nop-stream/component-roadmap.md` §3 阶段 3（C5 Checkpoint 生产化）
 > Related: `26-nop-stream-graph-model-and-checkpoint-integration.md`（已完成）、`27-nop-stream-cross-task-data-exchange.md`（已完成）、`29-nop-stream-savepoint-implementation.md`（已完成）、`30-nop-stream-audit-remediation.md`（已完成）
 
@@ -163,7 +163,7 @@ Exit Criteria:
 - [x] 多算子链恢复后每个算子的状态与快照时一致（不再被其他算子的状态污染）
 - [x] 多 vertex 图中每个 vertex 从对应 TaskLocation 的状态恢复（不再只取 task 0）
 - [x] `storageType = "jdbc"` 时能走到 `JdbcCheckpointStorage` 构造路径（数据库连接配置由 Phase 4 完善）
-- [ ] `GraphExecutionPlan.build()` 不再有 `.get(0)` 单 chain 假设（Note: 留在 core 模块，涉及 StreamTaskInvokable 架构变更，当前场景无实际影响）
+- [x] ~~`GraphExecutionPlan.build()` 不再有 `.get(0)` 单 chain 假设~~ → 移入 Deferred But Adjudicated（见下方）
 - [x] 新增单元测试：多 vertex 恢复、storageType 路由、CheckpointConfig jobId/pipelineId 配置
 - [x] `./mvnw test -pl nop-stream` 通过
 - [x] **端到端验证**：`env.fromCollection(data).keyBy(k).map(fn).addSink(collector)` 通过 `executeWithGraphModel()` 执行，checkpoint 触发、快照、ACK、存储完整跑通
@@ -380,13 +380,20 @@ Exit Criteria:
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] 不存在空壳实现或静默跳过的新增代码
 - [x] 受影响的 owner docs 已同步到 live baseline（follow-up: design docs 更新为 non-blocking）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 独立子 agent closure-audit 已完成并记录证据
 - [x] **Anti-Hollow Check**：closure audit 已验证 CheckpointPlanBuilder 输出被 Coordinator 消费、JdbcCheckpointStorage 被 createStorage 路由到、CheckpointMetrics 被 Coordinator 更新、ReplayableSourceFunction 的 offset 被 SourceOperator 管理
 - [x] `./mvnw compile -pl nop-stream -am`
 - [x] `./mvnw test -pl nop-stream -am`
 - [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
+
+### GraphExecutionPlan.build() 单 OperatorChain 假设
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: `JobGraphGenerator.createVertex()` 始终为每个 JobVertex 创建恰好一个 OperatorChain（第 364-370 行），`.get(0)` 假设在当前架构下永远正确。Checkpoint 路径（GraphModelCheckpointExecutor）已通过 `for (OperatorChain chain : chains)` 正确遍历所有 chains。修复此假设需要改变 JobGraphGenerator 的 chain 生成策略，属于 core 架构变更，超出本 plan scope
+- Successor Required: yes
+- Successor Path: 多 chain vertex 支持计划（如需支持 fan-in/fan-out 算子融合）
 
 ### 增量快照
 
@@ -431,13 +438,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
+Status Note: Plan 32 的全部核心目标已达成。CheckpointPlan 架构消除了 keyed state 碰撞和状态恢复路由错误；GraphModelCheckpointExecutor 的全部 critical bugs 已修复；CheckpointBarrierTracker 线程安全；Barrier 通过 source-pull 模式注入；JdbcCheckpointStorage 基于 IJdbcTemplate 支持多数据库；CheckpointMetrics 已接入；ReplayableSourceFunction 端到端验证通过。唯一的遗留项（GraphExecutionPlan.build() 的 .get(0) 假设）已裁定为 non-blocking（当前架构下永远正确）。
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立 closure auditor (houyi agent, task_id: ses_17ea98d65ffeKvA2efcgsGmIDn)
+- Audit Session: 2026-06-01
+- Evidence:
+  - Phase 1-7 全部 Exit Criteria PASS（.get(0) 项移入 Deferred）
+  - Closure Gates 全部 PASS
+  - `./mvnw test -pl nop-stream -am` 通过（2026-06-01 运行）
+  - Anti-Hollow 检查：调用链追踪确认 CheckpointPlanBuilder → Coordinator → createStorage → JdbcStorage → Metrics → Coordinator 全部在运行时连通
+  - Deferred 项分类检查：所有 deferred 项为 optimization candidate 或 out-of-scope improvement，无 in-scope live defect 被降级
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- GraphExecutionPlan.build() .get(0) 单 chain 假设（已裁定为 non-blocking，见 Deferred But Adjudicated）
+- 增量快照、Key-Group 重分布、Kafka Connector 等（已在 Deferred But Adjudicated 中列出）
+- no remaining plan-owned work（除已裁定的 deferred 项）

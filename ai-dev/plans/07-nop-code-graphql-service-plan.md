@@ -1,6 +1,7 @@
 # nop-code GraphQL Service Implementation Plan
 
-> Plan Status: reviewed
+> Plan Status: superseded
+> Superseded By: Plan 52
 > Last Reviewed: 2026-05-03 (self-review + 4 explore agent verifications)
 > Current Phase: phase-1
 > Current Task: T1
@@ -1503,3 +1504,7 @@ Follow-Ups:
 - [F4] Create separate GraphQL DTO types per design doc
 - [F5] Implement NopCodeUsageBizModel with reference search queries
 - [F6] File watching for automatic re-indexing
+
+## Supersession Note
+
+Plan 07 描述的 GraphQL service 层实现工作已由 Plan 52 完成。本计划不再代表活跃工作。

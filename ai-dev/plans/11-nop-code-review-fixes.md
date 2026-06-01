@@ -1,6 +1,7 @@
 # nop-code 审查问题修正计划
 
-> Status: draft
+> Plan Status: cancelled
+> Cancellation Reason: Superseded by Plans 55, 58, 59, 69-95
 > Created: 2026-05-09
 > Owner: sisyphus
 > Source: 5-role team review (architect / code-quality / design-pattern / test-coverage / performance)
@@ -279,3 +280,7 @@ public interface IEntryPointScorer {
 - [ ] Phase 4: `./mvnw clean install -pl nop-code -am` BUILD SUCCESS + 全部测试通过
 - [ ] `grep -r "new RuntimeException" nop-code/nop-code-core/ --include="*.java"` 返回 0 结果
 - [ ] `grep -r "findMatchingBrace\|parseJsonArray\|extractStringValue" nop-code/ --include="*.java"` 返回 0 结果
+
+## Cancellation Note
+
+Plan 11 描述的审查问题修正工作已由 Plans 55（深度审计 78 findings）、58（P0 bug 修复）、59（语义边模型）、69-95（8 轮审计修复）全面覆盖。本计划被取消。

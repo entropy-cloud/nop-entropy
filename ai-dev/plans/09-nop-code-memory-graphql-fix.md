@@ -1,9 +1,7 @@
 # nop-code Stateless Design and GraphQL Convention Fix
 
-> Plan Status: pending
-> Last Reviewed: 2026-05-05
-> Current Phase: phase-1
-> Current Task: T1
+> Plan Status: completed
+> Last Reviewed: 2026-06-01
 > Source: ai-dev/skills/nop-code-audit-prompt.md (audit execution follow-up), ai-dev/logs/2026/05-05.md
 > Related: 07-nop-code-graphql-service-plan.md, ai-dev/skills/nop-code-audit-prompt.md (维度三, 维度四)
 
@@ -816,3 +814,25 @@ Follow-Ups:
 - [F2] Implement sourceCode on-demand loading from disk
 - [F3] Add SQL indexes for common query patterns
 - [F4] Optimize deleteIndex() batch delete with direct SQL
+
+## Deferred Note
+
+## Closure Note
+
+Plan 09 的核心工作已评估并关闭：
+
+1. **GraphQL API 命名修正**：已由后续开发完成。`NopCodeSymbolBizModel` 中方法已重命名为 `getBySymbolId` 和 `findPage_symbols`。
+
+2. **CodeIndexService 并发安全**：Plans 88-95 的 per-indexId `ReentrantLock` + 清理机制已充分缓解并发问题。剩余 `ConcurrentHashMap` 仅用于 lock map 管理（标准模式），不缓存领域数据。完整无状态重构（所有查询走 DB）在当前架构下不必要——会引入额外延迟且无 correctness 收益。
+
+**剩余低优先级项**：`CodeIndexService` 仍为 1,647 行（可进一步拆分但非必须）；lock map 无 TTL 驱逐（实际影响极小）。
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 基于 Plan 96 closure audit 中的评估 + 2026-06-01 独立代码验证
+- Evidence: `CodeIndexService.java` ConcurrentHashMap 仅用于 `indexLocks`（line 98）；`NopCodeSymbolBizModel.java` 方法已重命名（line 52, 68）
+
+Follow-up:
+
+- CodeIndexService 进一步拆分（优化性质，非 correctness）
+- Lock map TTL 驱逐（优化性质）

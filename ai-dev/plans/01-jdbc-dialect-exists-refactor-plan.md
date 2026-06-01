@@ -1,5 +1,7 @@
 # IJdbcTemplate Exists 能力下沉 Dialect 的重构执行计划
 
+> Plan Status: completed
+
 ## 1. 背景与目标
 
 当前 `IJdbcTemplate` 仅提供 `existsTable`，其他对象（列、索引、外键、序列、视图）存在性判断在业务模块中分散实现，容易出现：

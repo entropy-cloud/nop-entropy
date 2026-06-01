@@ -1,6 +1,7 @@
 # nop-code 功能补齐实现计划
 
-> Plan Status: **near completion** — Phase 0-4 全部实现，仅剩 P2/P3 扩展功能未实现
+> Plan Status: **superseded** — Phase 0-4 全部实现，仅剩 P2/P3 扩展功能未实现
+> Superseded By: Plans 52, 55, 58, 59, 69-95
 > Last Reviewed: 2026-05-11
 > Source: graphify 对比分析、design/ai-code-index-graphql-design.md
 > Prerequisite: 05-nop-code-multi-language-index-plan.md (已完成)
@@ -1420,3 +1421,7 @@ Audit Evidence:
 Follow-Ups:
 
 None — all work is captured in this plan's phases.
+
+## Supersession Note
+
+Plan 06 的 P0/P1 工作在计划执行期间已完成。P2/P3 剩余工作已被 Plans 52（CRG 功能对齐）、55（深度审计）、58（P0 bug 修复）、59（语义边模型）、69-95（8 轮审计修复）全面覆盖。本计划不再代表活跃工作。

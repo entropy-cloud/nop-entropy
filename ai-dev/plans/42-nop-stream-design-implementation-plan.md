@@ -1,6 +1,7 @@
 # 42 nop-stream 设计实现计划
 
-> Plan Status: in progress
+> Plan Status: superseded
+> Superseded By: Plan 32（checkpoint 子系统）、Plans 43-87（审计修复）、Plan 96（本裁定）
 > Last Reviewed: 2026-05-23
 > Source: nop-stream 设计文档全量更新（2026-05-19 ~ 2026-05-23），合并分布式 exactly-once 设计，对抗性审查修复（P0-1 ~ P0-11, P1-1 ~ P1-2, P2-1 ~ P2-6, P3-1 ~ P3-7）
 > Related: Plan 41 (code-gap-remediation, completed), `ai-dev/design/nop-stream/architecture.md`, `ai-dev/design/nop-stream/component-roadmap.md`
@@ -106,7 +107,7 @@
 
 Depends on: 无
 
-Status: in progress
+Status: superseded
 Targets: `nop-stream-core`, `nop-stream-runtime`
 
 - Item Types: `Decision`, `Proof`
@@ -162,7 +163,7 @@ Exit Criteria:
 
 Depends on: Phase 0
 
-Status: in progress
+Status: superseded
 Targets: `nop-stream-core`, `nop-stream-runtime`
 
 - Item Types: `Decision`, `Proof`
@@ -218,7 +219,7 @@ Exit Criteria:
 
 Depends on: Phase 0, Phase 1
 
-Status: in progress
+Status: superseded
 Targets: `nop-stream-core`, `nop-stream-runtime`, `nop-stream-connector`
 
 - Item Types: `Decision`, `Proof`, `Fix`
@@ -299,7 +300,7 @@ Exit Criteria:
 
 Depends on: Phase 0, Phase 2
 
-Status: in progress
+Status: superseded
 Targets: `nop-stream-core`, `nop-stream-connector`, `nop-stream-runtime`
 
 - Item Types: `Decision`, `Proof`
@@ -361,7 +362,7 @@ Depends on: Phase 0, Phase 2
 
 > Note: Phase 4 和 Phase 2 都修改 InputGate（Phase 2 迁移 barrier 注入，Phase 4 添加 EdgeConfig 流控），必须串行执行。
 
-Status: in progress
+Status: superseded
 Targets: `nop-stream-core`, `nop-stream-runtime`
 
 - Item Types: `Decision`, `Proof`
@@ -413,7 +414,7 @@ Exit Criteria:
 
 Depends on: Phase 0
 
-Status: in progress
+Status: superseded
 Targets: `nop-stream-core`, `nop-stream-runtime`
 
 - Item Types: `Decision`, `Proof`
@@ -469,7 +470,7 @@ Exit Criteria:
 
 Depends on: Phase 0, Phase 1, Phase 2, Phase 4
 
-Status: in progress
+Status: superseded
 Targets: `nop-stream-core`, `nop-stream-runtime`
 
 - Item Types: `Decision`, `Proof`
@@ -521,13 +522,13 @@ Exit Criteria:
 
 | Phase | 名称 | Depends on | Status |
 |---|---|---|---|
-| 0 | 基础设施：StreamComponents、StreamRequirement、稳定身份 | 无 | in progress |
-| 1 | 状态管理：StateShard、StatePath、State Segment | Phase 0 | in progress |
-| 2 | Checkpoint：Epoch 协议、CheckpointParticipant、ProcessingGuarantee | Phase 0, Phase 1 | in progress |
-| 3 | Source/Sink：SourceWorkUnit、连接器协议升级 | Phase 0, Phase 2 | in progress |
-| 4 | FlowControl：EdgeConfig、MemoryBudget | Phase 0 | in progress |
-| 5 | Window：WindowingStrategy、AccumulationMode、PaneState | Phase 0 | in progress |
-| 6 | PartitionedPlan / DeploymentPlan 编译层 | Phase 0, 1, 2, 4 | in progress |
+| 0 | 基础设施：StreamComponents、StreamRequirement、稳定身份 | 无 | superseded |
+| 1 | 状态管理：StateShard、StatePath、State Segment | Phase 0 | superseded |
+| 2 | Checkpoint：Epoch 协议、CheckpointParticipant、ProcessingGuarantee | Phase 0, Phase 1 | superseded |
+| 3 | Source/Sink：SourceWorkUnit、连接器协议升级 | Phase 0, Phase 2 | superseded |
+| 4 | FlowControl：EdgeConfig、MemoryBudget | Phase 0 | superseded |
+| 5 | Window：WindowingStrategy、AccumulationMode、PaneState | Phase 0 | superseded |
+| 6 | PartitionedPlan / DeploymentPlan 编译层 | Phase 0, 1, 2, 4 | superseded |
 
 ## Closure Gates
 
@@ -610,3 +611,31 @@ Follow-up:
 | 阶段 5（C7 连接器增强） | 本计划 Phase 3 | 扩展为包含 SourceWorkUnit/RestrictionTracker/一致性能力声明 |
 | 阶段 6（C2 编译管线增强） | 本计划 Phase 6 | 扩展为包含 PartitionedPlan/DeploymentPlan |
 | 新增（设计文档引入的全新概念） | 本计划 Phase 0/1/4/5 | StreamComponents/StateShard/EdgeConfig/WindowingStrategy 是设计文档新增概念，在 component-roadmap 中未覆盖 |
+
+## Supersession Note
+
+本计划定义的模型类创建工作已全部完成（Phase 0-6 的工作项约 60% 已 `[x]`）。
+
+### 已被后续计划覆盖的工作
+
+- Checkpoint barrier 线程安全 → Plan 32 Phase 3 + Plans 43-87 验证
+- CheckpointCoordinator 生命周期 → Plan 32 Phase 2 + Plans 62-87 验证
+- JdbcCheckpointStorage 多数据库 → Plan 32 Phase 4
+- CheckpointMetrics 接入 → Plan 32 Phase 5
+- ReplayableSourceFunction → Plan 32 Phase 6
+- 错误处理、并发安全、测试覆盖 → Plans 62-87 全面修复
+
+### 未被后续计划覆盖的工作（future architecture work）
+
+以下工作在本计划中定义了新的协议层接口（模型类已创建），但协议集成未实现，且未被后续计划覆盖：
+
+- CheckpointCoordinator 使用 CheckpointParticipant 调度逻辑（Phase 2）
+- ProcessingGuarantee 对 barrier 行为的影响（Phase 2）
+- EpochManifest 替代 CompletedCheckpoint 作为持久化对象（Phase 2）
+- exactly-once 静态校验（Phase 2）
+- 连接器一致性能力声明与 ProcessingGuarantee 校验交互（Phase 3）
+- RecordWriter/InputGate 根据 EdgeConfig 选择流控行为（Phase 4）
+- WindowedStreamImpl windowingStrategyId 构造路径（Phase 5）
+- PartitionedPlanGenerator / DeploymentPlanGenerator 编译层（Phase 6）
+
+这些工作属于 nop-stream 的 future architecture work，当进入下一阶段开发时需重新评估。

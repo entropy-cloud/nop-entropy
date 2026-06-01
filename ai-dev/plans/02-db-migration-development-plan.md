@@ -1,5 +1,6 @@
 # Nop Platform DB-Migration 模块开发计划
 
+> Plan Status: completed
 > **文档版本**: 1.0
 > **创建日期**: 2026-03-26
 > **目标**: 为 Nop 平台实现一个类似 Flyway/Liquibase 的数据库迁移工具，但采用 Nop 平台的模型驱动开发方式

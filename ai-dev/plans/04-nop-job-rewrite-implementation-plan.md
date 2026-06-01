@@ -1,5 +1,6 @@
 # nop-job 重写执行计划
 
+> Plan Status: completed
 **版本**：v1.0  
 **日期**：2026-04-04  
 **依据**：`ai-dev/design/nop-job/rewrite-design.md`  
