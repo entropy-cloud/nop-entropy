@@ -1,55 +1,63 @@
-# 维度 14：异步与事务模式
+# 维度14：异步与事务模式 -- nop-code 模块审计报告
 
 ## 第 1 轮（初审）
 
-### [维度14-01] indexDirectory 锁存在竞态条件，可导致同一 indexId 并发索引
+### [维度14-01] 长事务风险：`indexDirectory()` 在单个 ORM session 中执行全量索引
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:98,273-304`
-- **证据片段**:
-  ```java
-  private final ConcurrentHashMap<String, ReentrantLock> indexLocks = new ConcurrentHashMap<>();
-  
-  public int indexDirectory(String indexId, String vfsPath, String filePattern) {
-      ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
-      lock.lock();
-      try {
-          return ormTemplate.runInSession(session -> { /* ... */ });
-      } finally {
-          indexLocks.remove(indexId, lock);   // <-- 竞态：移除后等待线程与新到达线程使用不同锁
-      }
-  }
-  ```
-- **严重程度**: P2
-- **现状**: finally 块中 `indexLocks.remove(indexId, lock)` 在释放锁之前从 map 移除。等待同一锁的线程 B（持有旧 lock）和新到达的线程 C（获得新 lock）可同时进入临界区。
-- **风险**: 两个线程并发写入同一索引数据，可能导致重复实体、主键冲突或数据不一致。
-- **建议**: 不在 finally 中移除锁，改用定期清理或保持锁不移除（ConcurrentHashMap 的内存开销极小）。
-- **信心水平**: 确定
-- **误报排除**: 竞态条件可通过多线程测试复现。
-- **复核状态**: 未复核
-
-### [维度14-02] indexDirectory 将重计算包裹在 DB Session 内，长事务/长连接风险
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:276-284`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:229-254,709-768`
 - **证据片段**:
   ```java
   return ormTemplate.runInSession(session -> {
-      ensureIndexEntity(indexId, vfsPath, session);     // DB 操作
-      ProjectAnalysisResult result = analyzer.analyzeProject(localFile.toPath());  // 纯计算，可能耗时数分钟
-      persistInSession(indexId, vfsPath, result, session);
-      return result.getFileResults().size();
+      // 扫描全部文件 + 解析 + 持久化 + 关系解析
+      int fileCount = indexDirectoryInSession(session, ...);
+      return fileCount;
   });
   ```
 - **严重程度**: P2
-- **现状**: `analyzer.analyzeProject()` 是纯计算（遍历文件+解析源码），可能耗时数分钟，但整个计算在 runInSession 内执行，DB 连接被持续占用。
-- **风险**: 高并发索引请求可耗尽连接池，阻塞其他 DB 访问。对比 triggerIncrementalIndex 正确地将分析放在 Session 外。
-- **建议**: 将 `analyzer.analyzeProject()` 移到 Session 外，仅在持久化阶段打开 Session。
-- **信心水平**: 确定
-- **误报排除**: 可量化——大型项目分析耗时数分钟，期间占用 DB 连接。
+- **现状**: `indexDirectory()` 在 `runInSession` 中执行完整目录扫描 + 文件解析 + 实体持久化 + `resolveQualifiedNamesToIds()`。对于大型项目（数千文件），session 可能长时间持有数据库连接。
+- **风险**: 长时间持有连接可能导致连接池耗尽、锁超时等问题。
+- **建议**: 将全量索引拆分为多 session（每 N 个文件一个 session），或将 `resolveQualifiedNamesToIds` 移到独立 session。
+- **信心水平**: 80%
+- **误报排除**: 内部使用了 `BatchQueue`（batch size=500）定期 `flush/evictAll` 控制内存，但事务持续时间仍可能很长。
 - **复核状态**: 未复核
 
-## 最终保留项
+### [维度14-02] `updateIndexStats()` 使用 `findAllByQuery().size()` 做全表加载计数
 
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|-----------|
-| 14-01 | P2 | CodeIndexService.java:98,273-304 | indexDirectory 锁竞态条件（remove 后新线程获新锁） |
-| 14-02 | P2 | CodeIndexService.java:276-284 | 重计算在 DB Session 内执行，长连接风险 |
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1304-1324`
+- **证据片段**:
+  ```java
+  List<NopCodeFile> files = fileDao.findAllByQuery(allFilesQuery);
+  indexEntity.setFileCount(files.size());
+  List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(allSymbolsQuery);
+  indexEntity.setSymbolCount(symbols.size());
+  ```
+- **严重程度**: P2
+- **现状**: `updateIndexStats()` 通过加载全部实体再 `.size()` 来计数，而非使用 `COUNT` 聚合。
+- **风险**: 大型索引（10 万+ 符号）会加载全部实体到内存仅为了计数，严重浪费资源。
+- **建议**: 替换为 `dao.countByQuery()` 或等效的 COUNT 查询。
+- **信心水平**: 95%
+- **误报排除**: 这是真实的性能问题，不是代码风格问题。
+- **复核状态**: 未复核
+
+### [维度14-03] ReentrantLock 无超时设置，锁对象无限增长
+
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:100,232-253`
+- **证据片段**:
+  ```java
+  private final ConcurrentHashMap<String, ReentrantLock> indexLocks = new ConcurrentHashMap<>();
+  ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
+  lock.lock(); // 无超时
+  ```
+- **严重程度**: P3
+- **现状**: 锁对象按 indexId 无限增长，无清理机制。`lock()` 无超时设置。
+- **风险**: (1) 理论上的死锁风险（虽然当前 finally 正确释放）。(2) 内存中锁对象累积。
+- **建议**: 使用 `lock.tryLock(timeout, TimeUnit)` 并定期清理不活跃的锁对象。
+- **信心水平**: 70%
+- **误报排除**: 当前实现中 finally 块正确释放锁，实际死锁风险低。
+- **复核状态**: 未复核
+
+## 无问题确认
+
+- **无 txn() 调用**: 所有数据库操作通过 `ormTemplate.runInSession()` 管理。
+- **无资源泄漏**: session 由 ormTemplate 自动管理，ReentrantLock 在 finally 中释放。
+- **无明显竞态条件**: `ConcurrentHashMap` 使用 `computeIfAbsent`。

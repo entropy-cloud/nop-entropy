@@ -1,88 +1,44 @@
-# 维度 21：单元测试有效性
+# 维度21：单元测试有效性 -- nop-code 模块审计报告
 
 ## 第 1 轮（初审）
 
-### [维度21-01] TestDocKeywordExtractor.testSymbolLimitPreventsExplosion 断言与预期矛盾
+### [维度21-01] TestCodeIndexService 过度使用 assertNotNull
 
-- **文件**: `nop-code/nop-code-graph/src/test/java/io/nop/code/graph/semantic/TestDocKeywordExtractor.java:69-83`
+- **文件**: `nop-code/nop-code-service/src/test/java/io/nop/code/service/TestCodeIndexService.java`
 - **证据片段**:
   ```java
-  @Test
-  void testSymbolLimitPreventsExplosion() {
-      int count = 100;
-      // ...
-      assertEquals(count * (count - 1) / 2, edges.size(), "All symbols share same docs, should produce all-pairs edges");
-  }
+  // testCallGraph()
+  Object callGraph = response.getData();
+  assertNotNull(callGraph);  // 仅检查非 null
+  // testSymbolCount()
+  assertTrue(stats.getSymbolCount() > 0);  // 仅检查 > 0
   ```
 - **严重程度**: P2
-- **现状**: 测试名称是"limitPreventsExplosion"但断言全量计算（4950 条边）。下一个测试 testTruncationAboveMaxSymbols 断言 isEmpty 是因为关键词阈值而非数量截断。两个测试合起来未验证 MAX_SYMBOLS 截断。
-- **风险**: 截断逻辑如果有 bug 也不会被发现。
-- **建议**: 澄清测试意图，补充验证 MAX_SYMBOLS 截断的测试。
-- **信心水平**: 确定
-- **误报排除**: 测试名称与断言语义矛盾。
+- **命中反模式**: P-5（过度使用 assertNotNull）
+- **现状**: 大部分测试方法使用 `assertNotNull` 或 `assertTrue(count > 0)` 模式。如果分析器只返回 1 个符号或空数据，大部分测试仍会通过。
+- **风险**: 测试保护力弱，无法捕获语义错误。
+- **建议**: 添加对预期符号数量、调用关系结构等的具体断言。
+- **信心水平**: 85%
+- **误报排除**: "改错验证"确认核心逻辑改错后测试仍通过。
 - **复核状态**: 未复核
 
-### [维度21-02] TestNopCodeSymbolBizModel.testFindReferencedBy 只做 assertNotNull（反模式 P-5）
+### [维度21-02] TestChangeAnalyzer 测试覆盖不足
 
-- **文件**: `nop-code/nop-code-service/src/test/java/io/nop/code/service/TestNopCodeSymbolBizModel.java:256-261`
-- **证据片段**:
-  ```java
-  @Test
-  void testFindReferencedBy() {
-      List<ReferenceDTO> refs = codeIndexService.findReferencedBy("test",
-              "com.example.domain.User", null, 50);
-      assertNotNull(refs);
-  }
-  ```
-- **严重程度**: P3
-- **现状**: User 类被 UserService 使用、被 AdminUser 继承，应有引用结果。但测试仅 assertNotNull，空列表也通过。
-- **建议**: 断言至少 1 条引用并验证来源。
-- **信心水平**: 确定
-- **误报排除**: 命中反模式 P-5（过度使用 assertNotNull）。
+- **文件**: `nop-code/nop-code-flow/src/test/java/io/nop/code/flow/TestChangeAnalyzer.java`
+- **严重程度**: P2
+- **命中反模式**: P-3（只测 happy path）+ P-5（过度使用 assertNotNull）
+- **现状**: 测试使用 `nonexistent~1`/`nonexistent~2` 作为 git refs，git diff 总是失败/返回空，无法测试真正的变更分析逻辑。`testRiskScoringDimensionsPopulated` 只验证非 null。
+- **风险**: 变更分析核心逻辑未被有效测试。
+- **建议**: 使用真实的 git 变更数据或 mock GitService 来测试。
+- **信心水平**: 85%
+- **误报排除**: "改错验证"确认返回空结果时测试仍通过。
 - **复核状态**: 未复核
 
-### [维度21-03] TestNopSearchIntegration 使用 assumeTrue 跳过验证
+## 正面发现
 
-- **文件**: `nop-code/nop-code-service/src/test/java/io/nop/code/service/TestNopSearchIntegration.java:96-108`
-- **证据片段**:
-  ```java
-  @Test
-  void testSearchEmptyQuery_doesNotThrow() {
-      // ...
-      org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(), ...);
-  }
-  ```
-- **严重程度**: P3
-- **现状**: assumeTrue 导致服务端拒绝空查询时测试静默跳过（绿色通过），不报告行为。
-- **建议**: 改为 assert 或使用 assertDoesNotThrow。
-- **信心水平**: 确定
-- **误报排除**: 测试本意是验证"不抛异常"但实际跳过了验证。
-- **复核状态**: 未复核
-
-### [维度21-04] TestIncrementalDetector.testFileFingerprintDefaults 纯 getter/setter 往返（反模式 P-1）
-
-- **文件**: `nop-code/nop-code-core/src/test/java/io/nop/code/core/incremental/TestIncrementalDetector.java:46-62`
-- **严重程度**: P3
-- **现状**: setXxx 然后 getXxx 验证赋值语义，@DataBean 的 getter/setter 由编译器保证。
-- **信心水平**: 确定
-- **误报排除**: 命中反模式 P-1。
-- **复核状态**: 未复核
-
-### [维度21-05] TestImpactAnalyzer.testImpactConfig 纯 getter/setter 往返（反模式 P-1）
-
-- **文件**: `nop-code/nop-code-graph/src/test/java/io/nop/code/graph/impact/TestImpactAnalyzer.java:143-152`
-- **严重程度**: P3
-- **现状**: 断言默认值（与实现常量耦合）再 set/get 验证。
-- **信心水平**: 确定
-- **误报排除**: 命中反模式 P-1 + P-4。
-- **复核状态**: 未复核
-
-## 最终保留项
-
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|-----------|
-| 21-01 | P2 | TestDocKeywordExtractor.java:69-83 | 测试名称与断言矛盾，未验证 MAX_SYMBOLS 截断 |
-| 21-02 | P3 | TestNopCodeSymbolBizModel.java:256-261 | 只做 assertNotNull（反模式 P-5） |
-| 21-03 | P3 | TestNopSearchIntegration.java:96-108 | assumeTrue 跳过验证 |
-| 21-04 | P3 | TestIncrementalDetector.java:46-62 | 纯 getter/setter 往返（反模式 P-1） |
-| 21-05 | P3 | TestImpactAnalyzer.java:143-152 | 纯 getter/setter 往返（反模式 P-1） |
+- **TestCriticalNodeAnalyzer**: 质量优秀，精确验证了 inDegree、outDegree、betweenness 等指标。
+- **TestImpactAnalyzer**: 精确验证了特定深度的符号可达性。
+- **TestDeadCodeDetector**: 包含 AR-68 回归测试系列，验证了注解读取修复。
+- **TestGraphDiffer**: 精确验证了节点增删、边增删等变化检测。
+- **TestCohesionConsistency**: 跨模块一致性检查，验证两个模块使用相同内聚度公式。
+- **TestEntryPointScorer**: 精确验证了入口点得分计算。

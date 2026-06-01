@@ -2,111 +2,91 @@
 
 ## 第 1 轮（初审）
 
-### [维度04-01] NopCodeFlow 审计字段命名偏离平台全仓约定
+### [维度04-11] NopCodeCall.callType 字段值与字典定义完全不匹配
 
-- **文件**: `nop-code/model/nop-code.orm.xml:737-744`
+- **文件**: `nop-code/model/nop-code.orm.xml:543-544`
 - **证据片段**:
   ```xml
-  <column code="CREATED_TIME" displayName="创建时间" name="createdTime"
-          propId="15" stdDataType="timestamp" stdSqlType="DATETIME"/>
-  <column code="MODIFIED_TIME" displayName="修改时间" name="modifiedTime"
-          propId="16" stdDataType="timestamp" stdSqlType="DATETIME"/>
+  <column code="CALL_TYPE" displayName="调用类型" name="callType"
+          precision="20" propId="8" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/call_type"/>
+  ```
+  而实际写入代码（`JavaFileAnalyzer.java:549`）：
+  ```java
+  call.setCallType(resolved.getReturnType().describe());
+  ```
+  `call_type.dict.yaml` 定义 DIRECT/VIRTUAL/STATIC/CONSTRUCTOR，但实际存储返回类型字符串如 `"void"`、`"java.lang.String"`。
+- **严重程度**: P1
+- **现状**: ORM 模型声明 `CALL_TYPE` 使用 `code/call_type` 字典，但唯一写入方将方法返回类型描述写入该字段。存储值与字典完全不匹配。
+- **风险**: (1) 字典验证约束形同虚设。(2) 前端按字典渲染与实际数据不对应。(3) 按字典值过滤查询返回零结果。(4) precision=20 对返回类型描述可能不够。
+- **建议**: 修正写入方使用正确的调用类型枚举值，或重命名字段并移除字典约束。
+- **信心水平**: 确定
+- **误报排除**: 已验证 JavaFileAnalyzer:549 是唯一写入点。call_type.dict.yaml 存在但其值从未被写入。
+- **复核状态**: 未复核
+
+### [维度04-12] 3 个实体有审计字段列但缺少实体级 createTimeProp/createrProp 声明
+
+- **文件**: `nop-code/model/nop-code.orm.xml:755-794`（NopCodeFlow）、`829-850`（NopCodeFlowMembership）、`880-911`（NopCodeSemanticEdge）
+- **证据片段**:
+  ```xml
+  <entity className="io.nop.code.dao.entity.NopCodeFlow" displayName="执行流"
+          name="io.nop.code.dao.entity.NopCodeFlow" registerShortName="true"
+          tableName="nop_code_flow">
+  ```
+  无 createTimeProp/createrProp/updateTimeProp/updaterProp 属性。
+- **严重程度**: P2
+- **现状**: NopCodeFlow、NopCodeFlowMembership、NopCodeSemanticEdge 有 createTime/createdBy/updateTime/updatedBy 列，但实体级标签缺少审计属性声明。框架的 OrmEntityListener 不会自动填充。
+- **风险**: 审计字段依赖手动赋值，框架自动填充机制被绕过。
+- **建议**: 添加实体级 `createTimeProp="createTime" createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy"`。
+- **信心水平**: 确定
+- **误报排除**: 已对比 nop-auth 全部实体均使用实体级声明。
+- **复核状态**: 未复核
+
+### [维度04-13] NopCodeSemanticEdge 仅有 create 侧审计字段，缺少 updateTime/updatedBy
+
+- **文件**: `nop-code/model/nop-code.orm.xml:906-911`
+- **证据片段**:
+  ```xml
   <column code="CREATED_BY" displayName="创建人" name="createdBy"
-          precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"/>
-  <column code="MODIFIED_BY" displayName="修改人" name="modifiedBy"
-          precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"/>
+          propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
+  <column code="CREATE_TIME" displayName="创建时间" name="createTime"
+          propId="13" stdDataType="timestamp" stdSqlType="DATETIME"/>
   ```
+  无 UPDATE_TIME/UPDATED_BY 列。
 - **严重程度**: P2
-- **现状**: NopCodeFlow 实体使用 `createdTime`/`modifiedTime`/`modifiedBy` 作为审计字段名。全仓其他所有模块统一使用 `createTime`/`updateTime`/`updatedBy`（213 处 createTime vs 4 处 createdTime 仅在 nop-code）。同一模块内部也不一致：NopCodeSemanticEdge 使用 `createTime`/`createdBy`（符合平台约定）。
-- **风险**: 平台自动审计字段填充机制（OrmEntityListener 等）依赖标准字段名，使用非标准命名可能导致自动填充失效。模块内部命名不一致增加认知负担。DB 列名与平台标准不匹配。
-- **建议**: 将 NopCodeFlow 和 NopCodeFlowMembership 的审计字段名统一为 `createTime`/`updateTime`/`createdBy`/`updatedBy`。
-- **信心水平**: 确定
-- **误报排除**: 平台有自动审计字段填充机制依赖标准字段名，使用非标准命名可能导致自动填充失效，属于功能性行为偏差。
+- **现状**: SemanticEdge 是唯一使用逻辑删除的实体，但缺少 update 审计字段。逻辑删除后无法追踪最后修改时间。
+- **风险**: 逻辑删除实体的审计追踪不完整。extData/confidenceScore/rationale 可能在后续被更新。
+- **建议**: 添加 UPDATE_TIME/UPDATED_BY 列及实体级声明。
+- **信心水平**: 很可能
+- **误报排除**: SemanticEdge 的 extData、confidenceScore 等字段可能在后续分析中被更新。
 - **复核状态**: 未复核
 
-### [维度04-02] NopCodeFlowMembership 审计字段不完整
+### [维度04-14] NopCodeAnnotationUsage 唯一键包含可空列，NULL 场景下唯一性约束失效
 
-- **文件**: `nop-code/model/nop-code.orm.xml:793-795`
+- **文件**: `nop-code/model/nop-code.orm.xml:703-705`
 - **证据片段**:
   ```xml
-  <column code="CREATED_TIME" displayName="创建时间" name="createdTime"
-          propId="6" stdDataType="timestamp" stdSqlType="DATETIME"/>
+  <unique-key columns="indexId,annotationTypeId,annotatedSymbolId" name="uk_annotation_usage_unique"/>
   ```
+  `annotatedSymbolId` 无 `mandatory="true"`。
 - **严重程度**: P2
-- **现状**: NopCodeFlowMembership 实体仅有 `createdTime` 一个审计字段，缺少 `createdBy`、`updateTime`/`modifiedTime`、`updatedBy`/`modifiedBy`。父实体 NopCodeFlow 有完整的 4 个审计字段。
-- **风险**: 无法追踪"谁创建了这个关联关系"，只记录了时间但不知道操作人。如果关系被修改，没有任何更新时间/操作人记录。
-- **建议**: 至少补充 `createdBy` 字段。审计字段命名也使用了非标准的 `createdTime`（同发现 04-01）。
-- **信心水平**: 确定
-- **误报排除**: 关系表只有 `createdTime` 而缺少 `createdBy` 是不对称的——记录了"何时"但没记录"谁"。
+- **现状**: 唯一键由 (indexId, annotationTypeId, annotatedSymbolId) 组成，annotatedSymbolId 可为 NULL。SQL 标准中 NULL 不等于 NULL，唯一约束对 NULL 值失效。此外，唯一键未包含 line/column，对可重复注解会产生冲突。
+- **风险**: (1) NULL 值场景下可重复插入。(2) 可重复注解场景下唯一键阻止合法记录。
+- **建议**: (A) 将 annotatedSymbolId 设为 mandatory 并保留唯一键。(B) 如需支持可重复注解，加入 line/column。
+- **信心水平**: 很可能
+- **误报排除**: 当前 CodeIndexService:1064 过滤了 null 情况，但 ORM 模型本身允许 NULL，属隐性耦合。
 - **复核状态**: 未复核
 
-### [维度04-03] code/language 字典已定义但从未被任何列引用，且 valueType 与列类型不匹配
+## 未修复的历史发现（04-01 ~ 04-10 摘要）
 
-- **文件**: `nop-code/model/nop-code.orm.xml:73-79`（字典定义），`行 103-104`（LANGUAGE 列）
-- **证据片段**:
-  ```xml
-  <dict label="编程语言" name="code/language" valueType="int">
-      <description>编程语言类型</description>
-      <option code="JAVA" label="Java" value="10"/>
-      <option code="PYTHON" label="Python" value="20"/>
-      <option code="TYPESCRIPT" label="TypeScript" value="30"/>
-      <option code="JAVASCRIPT" label="JavaScript" value="40"/>
-  </dict>
-  
-  <column code="LANGUAGE" displayName="编程语言" domain="language" name="language"
-          precision="20" propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
-  ```
-- **严重程度**: P3
-- **现状**: 字典 `code/language` 定义了 4 种编程语言（valueType=int），但 NopCodeIndex.LANGUAGE 和 NopCodeFile.LANGUAGE 均未引用此字典。即便引用，字典的 `valueType="int"` 与列的 `stdDataType="string"` 存在类型不匹配。
-- **风险**: LANGUAGE 字段无输入验证，可插入任意字符串值。字典定义成为死代码。
-- **建议**: 添加 `ext:dict="code/language"` 引用，或删除字典定义。考虑将 valueType 改为 "string"。
-- **信心水平**: 确定
-- **误报排除**: 定义了字典但不绑定，意味着数据完整性约束缺失。
-- **复核状态**: 未复核
-
-### [维度04-04] 英文 i18n 翻译全部缺失
-
-- **文件**: `nop-code/nop-code-meta/src/main/resources/_vfs/i18n/en/_nop-code.i18n.yaml:1-235`
-- **证据片段**:
-  ```yaml
-  entity:
-    label:
-      NopCodeAnnotationUsage: null
-      NopCodeCall: null
-  prop:
-    label:
-      NopCodeIndex:
-        id: null
-        name: null
-  ```
-- **严重程度**: P3
-- **现状**: 英文 i18n 文件中所有实体标签和属性标签均为 `null`。中文翻译已自动生成且完整。
-- **风险**: 英文界面下所有 nop-code 模块的实体名、字段名将显示为 null/空白。
-- **建议**: 在 `en/nop-code.i18n.yaml` 中补充英文翻译，或在 ORM 模型中添加 `i18n-en:displayName` 属性。
-- **信心水平**: 确定
-- **误报排除**: i18n key 存在但值为 null，属于明确的 i18n 缺陷。降为 P3 因为当前模块可能暂无英文用户。
-- **复核状态**: 未复核
-
-## 检查通过项
-
-1. **主键设计**: 全部 11 个实体统一使用 `domain="codeId"`（VARCHAR(36)）+ `tagSet="seq"`。
-2. **域定义复用**: 12 个域在多实体间复用良好。
-3. **索引覆盖**: 所有 FK 列均有索引覆盖。
-4. **双向关系完整性**: refPropName 正确指向生成 XMeta 中自动补全的反向关系属性。
-5. **级联删除**: NopCodeIndex 对子实体设置 cascadeDelete="true"。
-6. **字典绑定**: STATUS、KIND、ACCESS_MODIFIER 等字段均绑定了字典。
-7. **字段命名 snake_case**: 合规。
-8. **无孤立实体**: 11 个实体均通过 NopCodeIndex 聚合根可达。
-
-## 深挖第 2 轮追加
-
-第 1 轮已完整覆盖所有实体定义。无新发现。深挖结束。
-
-## 最终保留项
-
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|-----------|
-| 04-01 | P2 | nop-code.orm.xml:737-744 | NopCodeFlow 审计字段命名偏离平台约定（createdTime vs createTime） |
-| 04-02 | P2 | nop-code.orm.xml:793-795 | NopCodeFlowMembership 审计字段不完整（仅有 createdTime，缺 createdBy） |
-| 04-03 | P3 | nop-code.orm.xml:73-79 | code/language 字典已定义但从未被引用，valueType 与列类型不匹配 |
-| 04-04 | P3 | en/_nop-code.i18n.yaml | 英文 i18n 翻译全部为 null |
+| 编号 | 摘要 | 等级 |
+|------|------|------|
+| 04-01 | call_type 字典值与实际存储不匹配 | P1 |
+| 04-02 | SemanticEdge.relationType 复用 EXTENDS/IMPLEMENTS 字典，实际存储 9 种枚举值 | P1 |
+| 04-03 | 审计时间列名 CREATED_TIME vs CREATE_TIME 不一致 | P1 |
+| 04-04 | Java 属性名 createTime vs createdTime 不一致 | P2 |
+| 04-05 | 审计字段仅存在于 3/11 个实体 | P2 |
+| 04-07 | 审计字段未使用标准 domain + tagSet="clock" + mandatory | P2 |
+| 04-08 | 仅 SemanticEdge 有 delFlag，删除策略不一致 | P2 |
+| 04-09 | 无 i18n-en:displayName | P3 |
+| 04-10 | 9 个 cascadeDelete 大数据量性能风险 | P3 |
+| 04-06 | enclosingUsages 反向关系 | 驳回（codegen 自动生成） |

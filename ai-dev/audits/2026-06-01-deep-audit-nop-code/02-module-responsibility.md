@@ -2,122 +2,107 @@
 
 ## 第 1 轮（初审）
 
-### [维度02-01] CodeIndexService.java 承担 God Class 职责（1573 行）
+### [维度02-01] CodeIndexService 职责过重（God Class）
 
 - **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java`
+- **行号**: 全文件（1633行）
 - **证据片段**:
   ```java
-  public class CodeIndexService implements ICodeIndexService {
-      private CodeSearchService searchService;
-      private CodeGraphService graphService;
-      private CodeQueryService queryService;
-      // ... 74 处直接 ORM 操作
-      // 索引持久化、查询委派、图分析委派、流分析委派四大职责混合
-      // 构造器中硬编码 new JavaLanguageAdapter() 等
-      // 两个功能重叠的 updateIndexStats 重载方法（行 855 和行 1276）
+  // Facade/路由 + ORM 持久化(450行) + 索引编排 + 增量索引(110行) + Flow分析(156行) + 路径校验
   ```
 - **严重程度**: P2
-- **现状**: 同时承担索引持久化、查询委派、图分析委派、流分析委派四大职责。包含 74 处直接 ORM 操作，硬编码语言适配器实例化，两个重叠的 updateIndexStats 方法。
-- **风险**: 修改任何一侧功能都需要理解整个 1573 行文件，回归风险高。新增功能倾向继续堆叠在此类中。
-- **建议**: 持久化逻辑提取到专门的 Repository/Store 类；语言适配器注册移到 beans.xml IoC 配置。
+- **现状**: 同时承担 Facade 路由、ORM 持久化、增量索引、Flow 分析、路径校验等 6 种职责。
+- **风险**: 修改一处可能误触另一处；代码审查困难；测试隔离困难。
+- **建议**: 持久化提取为 CodePersistenceService，增量索引提取为 CodeIncrementalIndexer。
 - **信心水平**: 确定
-- **误报排除**: 1573 行、74 处 ORM 操作、4 大职责混合是可量化证据。
+- **误报排除**: Facade 模式合理但持久化和编排不属于 facade 层。
 - **复核状态**: 未复核
 
-### [维度02-02] ICodeIndexService 接口承担 God Interface（29 个方法，10 个功能域）
+### [维度02-02] CodeIndexService 硬编码依赖 lang-* 模块具体类
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/api/ICodeIndexService.java`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:37-39,201-210`
 - **证据片段**:
   ```java
-  public interface ICodeIndexService {
-      // Indexing (3), File Queries (5), Symbol Queries (8), 
-      // Graph Analysis (7), Dependency Graph (4), Flow Analysis (5),
-      // Batch + Incremental + Management
-      // 共 29 个方法
-  }
+  import io.nop.code.lang.java.JavaImportResolver;
+  import io.nop.code.lang.python.PythonImportResolver;
+  import io.nop.code.lang.typescript.TypeScriptImportResolver;
   ```
 - **严重程度**: P2
-- **现状**: 单一接口横跨索引管理、文件查询、符号查询、类型查询、图分析、依赖图、流分析共 10 个功能分区。
-- **风险**: 违反接口隔离原则。图分析、流分析等功能应各自拆分为独立接口。
-- **建议**: 拆分为 ICodeIndexService（核心索引）+ ICodeGraphService（图分析）+ ICodeFlowService（流分析）等。
-- **信心水平**: 确定
-- **误报排除**: 29 个方法、10 个功能域是可量化证据。
+- **现状**: 直接 import 并 new 了 lang-* 模块具体类，而非通过 IoC 或 ServiceLoader 发现。
+- **风险**: 新增语言适配器需修改 CodeIndexService，违反 OCP。
+- **建议**: 通过 BeanContainer 自动发现 IImportResolver 实现。
+- **信心水平**: 很可能
+- **误报排除**: 项目已通过 LanguageAdapterRegistry 做了语言适配器解耦，但 ImportResolver 未遵循。
 - **复核状态**: 未复核
 
-### [维度02-03] nop-code-core 中放置了语言特定的 ImportResolver 实现
+### [维度02-03] CodeIndexService 硬编码依赖 graph.semantic 具体类
 
-- **文件**: `nop-code/nop-code-core/src/main/java/io/nop/code/core/resolver/JavaImportResolver.java`, `PythonImportResolver.java`, `TypeScriptImportResolver.java`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:63-65,193-199`
 - **证据片段**:
   ```java
-  public class JavaImportResolver implements IImportResolver {
-      @Override
-      public String getLanguage() { return "JAVA"; }
-      // Java-specific: "src/main/java/" path mapping
-  }
+  import io.nop.code.graph.semantic.AnnotationPatternExtractor;
+  import io.nop.code.graph.semantic.DocKeywordExtractor;
+  import io.nop.code.graph.semantic.NameSimilarityExtractor;
   ```
 - **严重程度**: P2
-- **现状**: core 模块定位为"语言无关的核心分析逻辑"，但包含了 Java/Python/TypeScript 三种语言的 ImportResolver 实现。这些实现应移入各自的 lang-* 子模块。
-- **风险**: core 模块每新增一种语言都要修改，违反开闭原则。
-- **建议**: 将语言特定 ImportResolver 移入各自 lang-* 子模块，core 仅保留 IImportResolver 接口。
-- **信心水平**: 确定
-- **误报排除**: 不是"看起来不优雅"，是可量化的职责越权（core 不应包含语言特定代码）。
+- **现状**: 语义边提取器硬编码发现，而非通过 IoC 自动注册。
+- **建议**: 通过 BeanContainer 自动发现 ISemanticEdgeExtractor 实现。
+- **信心水平**: 很可能
+- **误报排除**: 无。
 - **复核状态**: 未复核
 
-### [维度02-04] CodeIndexService 硬编码跨模块具体类实例化
+### [维度02-04] FlowDetector 依赖 graph 模块 EntryPointScorer
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:165-205`
+- **文件**: `nop-code/nop-code-flow/src/main/java/io/nop/code/flow/FlowDetector.java:16`
 - **证据片段**:
   ```java
-  public CodeIndexService() {
-      this.registry = new LanguageAdapterRegistry();
-      this.registry.registerAdapter(new JavaLanguageAdapter());      // lang-java
-      this.registry.registerAdapter(new PythonLanguageAdapter());    // lang-python
-      this.registry.registerAdapter(new TypeScriptLanguageAdapter()); // lang-typescript
-      registerSemanticExtractors(); // new NameSimilarityExtractor() 等 graph 模块类
-      registerImportResolvers();    // new JavaImportResolver() 等
-  }
-  ```
-- **严重程度**: P2
-- **现状**: 构造器中 `new` 了三个 LanguageAdapter 和三个 SemanticExtractor，绕过了 NopIoC 依赖注入。
-- **风险**: 新增语言适配器时必须修改此构造器。service 模块直接耦合 lang-* 和 graph 的具体实现类。
-- **建议**: 通过 NopIoC beans.xml 注入 LanguageAdapter 列表和 SemanticExtractor 列表。
-- **信心水平**: 确定
-- **误报排除**: 绕过 IoC 容器的硬编码实例化是结构性问题。
-- **复核状态**: 未复核
-
-### [维度02-05] NopCodeIndexBizModel 承担过多 API 端点
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java`
-- **证据片段**:
-  ```java
-  @BizModel("NopCodeIndex")
-  public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> {
-      // 暴露约 30 个方法：CRUD + 社区检测 + 图分析 + 流检测 + 依赖图...
-  }
+  import io.nop.code.graph.entrypoint.EntryPointScorer;
   ```
 - **严重程度**: P3
-- **现状**: 作为 NopCodeIndex 实体的 CRUD BizModel，暴露了几乎所有 ICodeIndexService 方法（约 30 个），包括与 Index 实体 CRUD 无关的图分析、流检测等功能。
-- **风险**: 按平台约定每个 BizModel 应聚焦对应实体的业务逻辑。
-- **建议**: 将图分析、流分析等功能拆分到独立的 BizModel（如 CodeAnalysisBizModel）。
-- **信心水平**: 确定
-- **误报排除**: 30 个方法中大部分与 Index 实体 CRUD 无关。
+- **现状**: flow 模块直接依赖 graph 模块的具体类。
+- **建议**: 抽象为接口放在 core 模块。
+- **信心水平**: 很可能
+- **误报排除**: 设计权衡。
 - **复核状态**: 未复核
 
-## 零发现区域
+### [维度02-05] CodeGraphService 内嵌 Tarjan SCC 算法（功能错放）
 
-- dao 模块职责纯净：11 个实体 stub + 11 个 IBiz 契约 + 1 个 Constants
-- meta 模块职责纯净：0 个 Java 文件
-- web/app/codegen 模块职责纯净
-- _ 前缀生成文件无手写痕迹
-- lang-* 模块职责边界清晰
-- graph 模块包划分合理
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeGraphService.java:644-694`
+- **证据片段**:
+  ```java
+  private List<List<String>> tarjanSCC(Map<String, List<String>> adj) { ... }
+  private void tarjanDFS(...) { ... }
+  ```
+- **严重程度**: P2
+- **现状**: 图算法放在 service 层而非 graph 模块。
+- **建议**: 移至 nop-code-graph 的 CycleDetector 类。
+- **信心水平**: 确定
+- **误报排除**: 图算法明确属于 graph 模块。
+- **复核状态**: 未复核
 
-## 最终保留项
+### [维度02-06] CommunityDetector 含 3 个大型内部类（283 行样板代码）
 
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|-----------|
-| 02-01 | P2 | CodeIndexService.java (1573行) | God Class：混合四大职责、74处ORM操作 |
-| 02-02 | P2 | ICodeIndexService.java (29方法) | God Interface：横跨10个功能域 |
-| 02-03 | P2 | core/resolver/ | 语言特定 ImportResolver 误放 core 模块 |
-| 02-04 | P2 | CodeIndexService.java:165-205 | 硬编码跨模块具体类实例化，绕过 IoC |
-| 02-05 | P3 | NopCodeIndexBizModel.java | 承担过多 API 端点（约30个方法） |
+- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/community/CommunityDetector.java:30-317`
+- **严重程度**: P3
+- **现状**: CommunityDetectionResult、Community、CommunityConfig 三个数据类作为内部类，占文件 32%。
+- **建议**: 提取为顶层类。
+- **信心水平**: 很可能
+- **误报排除**: 内部类是合理 Java 模式，但文件过大。
+- **复核状态**: 未复核
+
+### [维度02-07] ProjectAnalyzer 三个重载方法后处理逻辑重复 3 次
+
+- **文件**: `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/ProjectAnalyzer.java:217-233,303-313,379-390`
+- **证据片段**:
+  ```java
+  // 三个入口方法中完全相同的后处理代码
+  int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
+  ProjectStats stats = buildStats(...);
+  runSemanticExtractors(...);
+  ```
+- **严重程度**: P3
+- **现状**: 后处理代码复制粘贴了 3 次。
+- **建议**: 提取 postProcess() 方法。
+- **信心水平**: 确定
+- **误报排除**: 无。
+- **复核状态**: 未复核

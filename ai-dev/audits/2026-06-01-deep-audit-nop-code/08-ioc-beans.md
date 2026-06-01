@@ -1,49 +1,26 @@
-# 维度 08：IoC 与 Bean 配置
+# 维度08：IoC 与 Bean 配置 -- nop-code 模块审计报告
 
 ## 第 1 轮（初审）
 
-**检查范围**：6 个 beans.xml 文件、12 个 @Inject 用法（4 个 Java 文件）、4 个 _module 文件。
+### [维度08-01] lang 子模块缺少 `_module` 文件，beans 可能无法被 VFS 发现
 
-### [维度08-01] _lang-typescript.beans.xml 缺少 xsi 命名空间声明
-
-- **文件**: `nop-code/nop-code-lang-typescript/src/main/resources/_vfs/nop/code/beans/_lang-typescript.beans.xml:1-8`
+- **文件**: `nop-code-lang-java/`, `nop-code-lang-python/`, `nop-code-lang-typescript/`
 - **证据片段**:
-  ```xml
-  <?xml version="1.0" encoding="UTF-8" ?>
-  <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
-         xmlns="http://www.springframework.org/schema/beans">
-
-      <bean id="io.nop.code.lang.typescript.TypeScriptLanguageAdapter"
-            class="io.nop.code.lang.typescript.TypeScriptLanguageAdapter"
-            ioc:bean-type="io.nop.code.core.analyzer.ILanguageAdapter"/>
-  </beans>
   ```
-- **严重程度**: P3
-- **现状**: `_lang-typescript.beans.xml` 的 `<beans>` 根标签缺少 `xmlns:xsi` 命名空间声明和 `xsi:schemaLocation` 属性。对比 `_lang-java.beans.xml` 和 `_lang-python.beans.xml`，它们都包含这两项声明。
-- **风险**: NopIoC 使用 `x:schema` 作为权威校验依据，Spring 的 `xsi:schemaLocation` 仅用于 IDE 辅助提示。不会导致功能故障。但使用标准 XML 工具校验此文件会报错。
-- **建议**: 补齐 `xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"` 和 `xsi:schemaLocation` 属性。
-- **信心水平**: 确定
-- **误报排除**: 已排除功能影响。NopIoC 不依赖 Spring schema location 进行 bean 解析。
+  nop-code-lang-java/src/main/resources/_vfs/nop/code/beans/_lang-java.beans.xml  -- 存在
+  nop-code-lang-java/src/main/resources/_vfs/_module                               -- 缺失
+  ```
+  对比：`nop-code-dao`、`nop-code-meta`、`nop-code-service`、`nop-code-web` 均有 `_module` 文件。
+- **严重程度**: P2
+- **现状**: lang-java、lang-python、lang-typescript 三个子模块有 beans.xml（定义 ILanguageAdapter bean）但没有 `_module` 文件。没有 `_module` 文件，VFS 可能不会扫描到这些模块的资源目录。
+- **风险**: 语言适配器 bean 可能无法被 IoC 容器自动发现和注册。不过 `CodeIndexService` 直接 `new` 了这些 Adapter，绕过了 IoC，因此实际运行不受影响。但如果未来改为 IoC 注入，此问题会显现。
+- **建议**: 为三个 lang 子模块添加 `_module` 文件（空文件即可，作为 VFS marker）。
+- **信心水平**: 85%
+- **误报排除**: `CodeIndexService` 通过 `new JavaLanguageAdapter()` 绕过了 IoC，因此当前不会失败。但这意味着 beans.xml 中的 bean 定义实际上是死代码。
 - **复核状态**: 未复核
 
-## 合规检查结果
+## 无问题确认
 
-| 检查项 | 结果 |
-|--------|------|
-| 生成 beans.xml 未被手写修改 | 合规 |
-| app-service.beans.xml 语法正确 | 合规 |
-| @Inject 字段无 private | 合规（全部 protected 或 package-private） |
-| 无 Spring 注解误用 | 合规（零 @Autowired/@Value） |
-| bean 命名约定 | 合规 |
-| _module 文件注册 | 合规 |
-| import 路径正确 | 合规 |
-
-## 深挖第 2 轮追加
-
-无新发现。深挖结束。
-
-## 最终保留项
-
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|-----------|
-| 08-01 | P3 | _lang-typescript.beans.xml | 缺少 xsi 命名空间声明 |
+- **所有 @Inject 字段可见性正确**: 全部使用 `protected`（非 `private`）。
+- **无 Spring 专有注解误用**: `@Value` 和 `@Autowired` 零匹配。
+- **beans.xml 语法正确**: `_service.beans.xml`、`_dao.beans.xml`、`app-service.beans.xml` 均格式规范。

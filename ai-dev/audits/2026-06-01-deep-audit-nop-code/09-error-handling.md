@@ -2,113 +2,103 @@
 
 ## 第 1 轮（初审）
 
-**检查范围**：49 个手写源文件（排除 _gen/、_*.java、测试代码），覆盖 nop-code-core、nop-code-service、nop-code-graph、nop-code-flow、nop-code-lang-java、nop-code-lang-typescript。
+### [维度09-01] NopCodeException 已定义但从未被使用（死代码）
 
-### [维度09-01] NopCodeErrors 中 2 个 ErrorCode 使用中文默认描述
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/NopCodeErrors.java:12-16`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/NopCodeException.java:1-14`
 - **证据片段**:
   ```java
-  ErrorCode ERR_NO_ANALYZER_FOR_FILE =
-          define("nop.err.code.no-analyzer-for-file", "没有为文件注册分析器: {filePath}", ARG_FILE_PATH);
-
-  ErrorCode ERR_INCREMENTAL_FAILED =
-          define("nop.err.code.incremental-failed", "增量索引失败");
+  public class NopCodeException extends NopException {
+      public NopCodeException(ErrorCode errorCode) {
+          super(errorCode);
+      }
+      public NopCodeException(ErrorCode errorCode, Throwable cause) {
+          super(errorCode, cause);
+      }
+  }
   ```
-- **严重程度**: P3
-- **现状**: `NopCodeErrors` 中有 2 个 ErrorCode 的默认描述字符串为中文。同文件中其余 4 个 ErrorCode 均使用英文描述。
-- **风险**: ErrorCode 默认描述会通过 GraphQL API 响应返回。中文消息在国际化场景下不利于前端展示和日志检索。
-- **建议**: 统一改为英文默认描述，中文翻译放到 i18n 资源文件。
+  但所有 throw 语句均使用 `new NopException(ERR_XXX)`，从未使用 NopCodeException。
+- **严重程度**: P2
+- **现状**: 模块级异常类已定义但全模块零引用。所有代码直接使用基类 NopException。
+- **风险**: 死代码增加维护成本。模块级异常类机制失效。
+- **建议**: 将 throw new NopException(...) 替换为 NopCodeException，或删除该类。
 - **信心水平**: 确定
-- **误报排除**: ErrorCode 默认描述会作为异常消息传播到 API 调用方，不是注释中的中文。
+- **误报排除**: grep 确认全模块零引用。
 - **复核状态**: 未复核
 
-### [维度09-02] NopCodeCoreErrors 中 2 个 ErrorCode 使用中文默认描述
+### [维度09-02] JavaFileAnalyzer 静默吞掉 JSON 解析异常，无任何日志
 
-- **文件**: `nop-code/nop-code-core/src/main/java/io/nop/code/core/NopCodeCoreErrors.java:9-13`
+- **文件**: `nop-code/nop-code-lang-java/src/main/java/io/nop/code/lang/java/analyzer/JavaFileAnalyzer.java:207-214`
 - **证据片段**:
   ```java
-  ErrorCode ERR_CODE_ANALYZE_PROJECT_FAILED =
-          define("nop.err.code.analyze-project-failed", "项目分析失败:{path}", ARG_PATH);
-
-  ErrorCode ERR_CODE_DIGEST_NOT_AVAILABLE =
-          define("nop.err.code.digest-not-available", "SHA-256摘要算法不可用");
+  try {
+      Map<String, Object> parsed = JsonTool.parseMap(existingExtData);
+      if (parsed != null) {
+          extMap.putAll(parsed);
+      }
+  } catch (Exception e) {
+      // ignore parse failure
+  }
   ```
-- **严重程度**: P3
-- **现状**: `NopCodeCoreErrors` 中有 2 个 ErrorCode 的默认描述字符串为中文。
-- **风险**: 同发现 09-01。
-- **建议**: 统一改为英文默认描述。
+- **严重程度**: P2
+- **现状**: 解析 extData JSON 时异常被静默吞掉，仅有一行注释，无日志输出。
+- **风险**: extData 被损坏时无法通过日志排查。
+- **建议**: 添加 LOG.debug 记录。
 - **信心水平**: 确定
-- **误报排除**: 同 09-01。
+- **误报排除**: 不是空 catch 块，有注释说明意图，但同模块其他 catch 块均有 LOG 语句。
 - **复核状态**: 未复核
 
-### [维度09-03] GraphExporter 中 ErrorCode 内联定义而非集中到 Errors 类
+### [维度09-03] ProjectAnalyzer 使用原始 UnsupportedOperationException
 
-- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/export/GraphExporter.java:21-22`
+- **文件**: `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/ProjectAnalyzer.java:490-494`
 - **证据片段**:
   ```java
-  private static final ErrorCode ERR_GRAPH_EXPORT_FAILED =
-          ErrorCode.define("nop.err.code.graph-export-failed", "Graph export failed");
+  throw new UnsupportedOperationException(
+          "Use analyzeIncremental(Path, ProjectAnalysisResult) or analyzeIncremental(Path, Path) instead");
   ```
 - **严重程度**: P3
-- **现状**: `GraphExporter` 直接在类内部定义了 ErrorCode，而不是像 `NopCodeErrors`/`NopCodeCoreErrors` 那样集中到 Errors 接口类中。`nop-code-graph` 子模块没有独立的 Errors 类。
-- **风险**: 错误码分散定义不利于统一维护和排查。
-- **建议**: 创建 `NopCodeGraphErrors` 接口类，将 `ERR_GRAPH_EXPORT_FAILED` 移入其中。
-- **信心水平**: 很可能
-- **误报排除**: 已确认 `nop-code-graph` 模块无 Errors 集中定义类，仅有此一处 ErrorCode 内联定义。
-- **复核状态**: 未复核
-
-### [维度09-04] ChangeAnalyzer 静默吞噬异常（无日志）
-
-- **文件**: `nop-code/nop-code-flow/src/main/java/io/nop/code/flow/ChangeAnalyzer.java:243-245`
-- **证据片段**:
-  ```java
-              } catch (Exception e) {
-                  // fall through
-              }
-  ```
-- **严重程度**: P3
-- **现状**: `extractFilePathFromSymbol` 方法中，解析 `extData` JSON 失败时完全吞噬异常，无日志记录。同模块 `DeadCodeDetector`（第 382 行有 `LOG.warn`）和 `FlowDetector`（第 526 行有 `LOG.debug`）都记录了日志。
-- **风险**: extData 格式异常时无法通过日志发现潜在的数据问题。
-- **建议**: 添加 `LOG.debug` 级别的日志记录。
+- **现状**: 接口方法占位实现使用 UnsupportedOperationException。
+- **风险**: 极低。标准 JDK 模式用于"此重载已废弃"。
+- **建议**: 保持现状即可。
 - **信心水平**: 确定
-- **误报排除**: 同模块中其他类似代码都记录了日志，此处应保持一致。
+- **误报排除**: 非业务错误场景。
 - **复核状态**: 未复核
 
-### [维度09-05] JavaFileAnalyzer 静默吞噬异常（无日志）
+### [维度09-04] DeletedResourceStub 5 处 UnsupportedOperationException
 
-- **文件**: `nop-code/nop-code-lang-java/src/main/java/io/nop/code/lang/java/analyzer/JavaFileAnalyzer.java:212-214`
-- **证据片段**:
-  ```java
-                      } catch (Exception e) {
-                          // ignore parse failure
-                      }
-  ```
+- **文件**: `nop-code/nop-code-core/src/main/java/io/nop/code/core/incremental/DeletedResourceStub.java:94,99,114,119,124`
 - **严重程度**: P3
-- **现状**: 处理 sealed 类型的 `extData` 解析时，`JsonTool.parseMap` 失败后完全吞噬异常，无日志记录。
-- **风险**: extData 是由分析器自身写入的，解析失败说明数据格式可能存在问题，完全不记录日志使 bug 无法被发现。
-- **建议**: 添加 `LOG.debug` 级别的日志记录。
-- **信心水平**: 很可能
-- **误报排除**: 同文件第 551 行的 catch 块有 `LOG.debug` 记录，处理方式不一致。
+- **现状**: 包私有 stub 类对不支持操作抛 UnsupportedOperationException。
+- **风险**: 极低。内部 stub 模式。
+- **建议**: 保持现状。
+- **信心水平**: 确定
+- **误报排除**: 内部 stub 类。
 - **复核状态**: 未复核
 
-## 合规检查通过项
+### [维度09-05] CodeIndexService.saveReplacingExisting 属性更新失败以 TRACE 级别记录
 
-1. 无 RuntimeException/IllegalArgumentException 反模式（31 处 throw 均使用 NopException + ErrorCode）
-2. 公共 API 层异常处理层次清晰
-3. 日志使用规范（全部 SLF4J，无 System.out/System.err）
-4. ErrorCode 命名规范（`nop.err.code.*` 前缀）
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1244-1248`
+- **严重程度**: P3
+- **现状**: 单个属性赋值失败以 LOG.trace 记录，生产环境默认不输出。
+- **建议**: 提升至 LOG.debug。
+- **信心水平**: 中
+- **误报排除**: ORM save-or-update 竞争场景，跳过只读/计算属性是合理的。
+- **复核状态**: 未复核
 
-## 深挖第 2 轮追加
+### [维度09-06] CommunityDetector/CriticalNodeAnalyzer 静默捕获 IllegalArgumentException
 
-无新发现。深挖结束。
+- **文件**: `CommunityDetector.java:496-498`, `CriticalNodeAnalyzer.java:81-83`, `GraphExporter.java:196-198`
+- **严重程度**: P3
+- **现状**: JGraphT addEdge 重复边异常被静默捕获，部分无日志、部分有 debug 日志，不一致。
+- **建议**: 统一为 LOG.debug 级别。
+- **信心水平**: 确定
+- **误报排除**: JGraphT API 行为，catch 是正确处理。
+- **复核状态**: 未复核
 
-## 最终保留项
+## 正面发现
 
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|-----------|
-| 09-01 | P3 | NopCodeErrors.java:12-16 | 2 个 ErrorCode 使用中文默认描述 |
-| 09-02 | P3 | NopCodeCoreErrors.java:9-13 | 2 个 ErrorCode 使用中文默认描述 |
-| 09-03 | P3 | GraphExporter.java:21-22 | ErrorCode 内联定义而非集中到 Errors 类 |
-| 09-04 | P3 | ChangeAnalyzer.java:243-245 | 静默吞噬异常（无日志） |
-| 09-05 | P3 | JavaFileAnalyzer.java:212-214 | 静默吞噬异常（无日志） |
+1. ErrorCode 常量集中定义（NopCodeErrors 6个 + NopCodeCoreErrors 4个）
+2. 公共 API 层全部使用 NopException + ErrorCode + .param() + .cause()
+3. 异常链保留完整
+4. 无硬编码中文错误消息
+5. 无 bare RuntimeException/IllegalArgumentException 的 throw
+6. 无空 catch 块

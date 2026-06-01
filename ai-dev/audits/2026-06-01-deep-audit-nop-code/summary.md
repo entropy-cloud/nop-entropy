@@ -4,127 +4,82 @@
 
 - **审核模块**: nop-code
 - **审核日期**: 2026-06-01
-- **执行维度**: 全部 21 个维度（01-21）
-- **目标范围**: nop-code 模块 13 个子模块（api, core, dao, meta, service, web, app, codegen, graph, flow, lang-java, lang-python, lang-typescript），241 个 Java 文件，33,467 行代码
+- **执行维度**: 01, 02, 04, 05, 07, 09, 15, 16（共 8 个维度）
+- **目标范围**: nop-code 全部 13 个子模块，240 个 Java 文件，34,413 行代码
 
 ## 执行统计
 
-| 维度 | 深挖轮次 | 初审发现数 | 追加发现数 | 保留 | 降级 | 驳回 |
-|------|---------|-----------|-----------|------|------|------|
-| 01 依赖图与模块边界 | 1 | 3 | 0 | 3 | 0 | 0 |
-| 02 模块职责与文件边界 | 1 | 5 | 0 | 5 | 0 | 0 |
-| 03 API 表面积与契约一致性 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 04 ORM 模型与实体设计 | 1 | 4 | 0 | 4 | 0 | 0 |
-| 05 生成管线完整性 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 06 Delta 定制合规性 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 07 BizModel 规范遵循 | 1 | 5 | 0 | 5 | 0 | 0 |
-| 08 IoC 与 Bean 配置 | 1 | 1 | 0 | 1 | 0 | 0 |
-| 09 错误处理与错误码 | 1 | 5 | 0 | 5 | 0 | 0 |
-| 10 XDSL 与 XLang 正确性 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 11 XMeta 与 BizModel 对齐 | 1 | 1 | 0 | 1 | 0 | 0 |
-| 12 GraphQL 与 API 层 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 13 安全与权限模型 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 14 异步与事务模式 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 15 类型安全与泛型使用 | 1 | 5 | 0 | 5 | 0 | 0 |
-| 16 测试覆盖与质量 | 1 | 3 | 0 | 3 | 0 | 0 |
-| 17 代码风格与规范 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 18 文档-代码一致性 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 19 命名与术语一致性 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 20 跨模块契约一致性 | 1 | 1 | 0 | 1 | 0 | 0 |
-| 21 单元测试有效性 | 1 | 5 | 0 | 5 | 0 | 0 |
-| **合计** | **21** | **42** | **0** | **42** | **0** | **0** |
+| 维度 | 深挖轮次 | 初审发现数 | 保留 | 降级 | 驳回 |
+|------|---------|-----------|------|------|------|
+| 01 依赖图与模块边界 | 1 | 7 | 2 | 0 | 5（平台模式） |
+| 02 模块职责与文件边界 | 1 | 7 | 5 | 0 | 2 |
+| 04 ORM 模型与实体设计 | 1 | 4+10历史 | 14 | 0 | 1 |
+| 05 生成管线完整性 | 1 | 1 | 1 | 0 | 0 |
+| 07 BizModel 规范遵循 | 1 | 7 | 5 | 0 | 2 |
+| 09 错误处理与错误码 | 1 | 6 | 2 | 0 | 4 |
+| 15 类型安全与泛型使用 | 1 | 3+6可接受 | 3 | 0 | 0 |
+| 16 测试覆盖与质量 | 1 | 9 | 7 | 0 | 2 |
+| **合计** | | **44** | **39** | **0** | **16** |
 
 ## 按严重程度分布
 
 | 严重程度 | 数量 | 主要类别 |
 |---------|------|---------|
 | P0 | 0 | — |
-| P1 | 1 | 测试逻辑无效（TestCacheEviction） |
-| P2 | 20 | 模块职责/God Class、鉴权遗漏、性能、竞态、测试薄弱、跨模块耦合 |
-| P3 | 21 | 代码风格、i18n、dict 不一致、测试反模式、命名 |
+| P1 | 5 | ORM 字典不匹配(04), 测试覆盖缺失(16x3), 集成测试禁用(16) |
+| P2 | 20 | CodeIndexService God Class, BizModel 状态管理, 审计字段缺失, 类型安全 |
+| P3 | 19 | 鉴权不一致, DTO 枚举退化, 内部类膨胀, 死代码异常类 |
 
 ## 关键发现摘要
 
-### P1 发现（1 条）
+### P1 发现（5 个）
 
-| 编号 | 文件 | 一句话摘要 |
-|------|------|-----------|
-| 16-03 | TestCacheEviction.java | 测试逻辑无效——从未填充缓存，无法验证驱逐行为 |
+| 编号 | 维度 | 文件 | 摘要 |
+|------|------|------|------|
+| 04-11 | 04 | nop-code.orm.xml:543 | callType 字段值与字典定义完全不匹配（存返回类型而非调用类型） |
+| 16-01 | 16 | TestIndexNopEntropyProject:37 | 285 行集成测试套件被 @Disabled，CI 永不执行 |
+| 16-02 | 16 | NopCodeIndexBizModel | 14/24 BizModel 方法无测试覆盖 |
+| 16-04 | 16 | NopCodeErrors.java | 6 个 ErrorCode 零测试触发，错误路径覆盖空白 |
+| 04-01~03 | 04 | nop-code.orm.xml | call_type dict 未在 ORM 定义、relationType 复用字典、列名不一致（历史未修复） |
 
-### P2 发现（20 条）
+### P2 发现（精选 Top 10）
 
-| 编号 | 文件 | 一句话摘要 |
-|------|------|-----------|
-| 01-01 | nop-code-api/pom.xml | api 模块缺少父 POM 继承，版本漂移风险 |
-| 02-01 | CodeIndexService.java (1573行) | God Class：混合四大职责、74处ORM操作 |
-| 02-02 | ICodeIndexService.java (29方法) | God Interface：横跨10个功能域 |
-| 02-03 | core/resolver/*.java | 语言特定 ImportResolver 误放 core 模块 |
-| 02-04 | CodeIndexService.java:165-205 | 硬编码跨模块具体类实例化，绕过 IoC |
-| 04-01 | nop-code.orm.xml:737-744 | NopCodeFlow 审计字段命名偏离平台约定 |
-| 04-02 | nop-code.orm.xml:793-795 | NopCodeFlowMembership 审计字段不完整 |
-| 07-01 | NopCodeIndexBizModel.java:190-193 | detectFlows() @BizMutation 缺少 @Auth 鉴权 |
-| 07-02 | NopCodeFileBizModel.java:55-91 | @BizLoader symbols/types/outline 始终返回空数据 |
-| 07-03 | CodeIndexService/QueryService/GraphService | entityToCodeSymbol() 在三个类中重复（90行） |
-| 07-04 | CodeIndexService.java:470-501 | getIndexStats() 全量加载实体仅取 size() |
-| 14-01 | CodeIndexService.java:98,273-304 | indexDirectory 锁竞态条件 |
-| 14-02 | CodeIndexService.java:276-284 | 重计算在 DB Session 内，长连接风险 |
-| 15-01 | CodeIndexService.java:130-132 | instanceof 下溯绕过接口 |
-| 16-01 | TestCriticalNodeAnalyzer.java | 仅测空图，核心算法未覆盖 |
-| 16-02 | TestGraphDiffer.java | 缺少边变更测试 |
-| 20-01 | ICodeIndexService.java:8-10 | 接口依赖 flow 模块具体类型 |
-| 21-01 | TestDocKeywordExtractor.java:69-83 | 测试名称与断言矛盾 |
-| 02-05 | NopCodeIndexBizModel.java | 承担过多 API 端点（P3，参见详细报告） |
-
-注：02-05 降级为 P3；上表中列出 P2 共 19 条 + 维度 19-01 实际为 P3 级别的 GraphExporter 内联 ErrorCode（已计入 09-03）。
+| 编号 | 维度 | 文件 | 摘要 |
+|------|------|------|------|
+| 02-01 | 02 | CodeIndexService | 1633 行 God Class，混合 6 种职责 |
+| 02-05 | 02 | CodeGraphService:644 | Tarjan SCC 图算法错放在 service 层 |
+| 07-01 | 07 | NopCodeIndexBizModel:37 | ConcurrentHashMap 内存状态，重启/集群丢失 |
+| 07-03 | 07 | NopCodeSymbolBizModel:75 | 静默吞掉无效枚举值，用户无错误提示 |
+| 07-04 | 07 | NopCodeIndexBizModel | 24 方法混合 5-6 个子域关注点 |
+| 09-01 | 09 | NopCodeException.java | 模块异常类已定义但从未使用（死代码） |
+| 09-02 | 09 | JavaFileAnalyzer:207 | JSON 解析异常被静默吞掉，无日志 |
+| 15-01 | 15 | ImpactAnalyzer:238 | String[] 承载 BFS 数据，类型不安全 |
+| 16-03 | 16 | NopCodeSymbolBizModel | 6 个核心查询方法/Loader 无测试 |
+| 16-06 | 16 | TestNopCodeFlowBizModel:96 | 死代码检测集成测试仅 assertNotNull |
 
 ## 总评
 
-nop-code 模块是一个代码分析引擎，包含 13 个子模块、241 个 Java 文件、约 33K 行代码。模块整体架构清晰，生成管线完整闭合，安全控制到位，分层依赖合规。
+nop-code 模块整体架构健康：13 个子模块形成清晰的 DAG 依赖图，无循环依赖；生成管线（model→codegen→dao→meta→service→web）完整闭合；底层单元测试（core/flow/graph/lang）质量较好。
 
-**核心优势**：
-1. 依赖图无循环、分层合规，框架隔离正确
-2. ORM 模型设计规范，域复用良好，索引覆盖完整
-3. 生成管线完整闭合（model→codegen→dao→meta→service→web）
-4. 安全控制到位（sourceCode 双重权限保护、路径遍历防护）
-5. 错误处理整体规范（NopException + ErrorCode，无 RuntimeException 反模式）
+**三个结构性弱点**：
 
-**主要风险点**：
-1. **CodeIndexService 膨胀**（1573 行）：God Class + God Interface + 硬编码实例化 + 锁竞态 + 长事务，是最大集中风险
-2. **测试薄弱**：图分析算法、GraphDiffer 边差异、缓存驱逐等核心功能缺少有效测试
-3. **代码重复**：entityToCodeSymbol 在三个文件中重复，extractFilePathFromSymbol 在四个文件中重复
+1. **ORM 模型-代码值脱节**（P1）：callType 字段声明使用 `code/call_type` 字典（DIRECT/VIRTUAL/STATIC/CONSTRUCTOR），但唯一写入方将方法返回类型字符串（如 "void"、"java.lang.String"）写入该字段。字典验证形同虚设。SemanticEdge.relationType 有类似问题。两个字典-代码值不匹配是系统性问题。
 
-**无 P0 发现**。问题集中在 P2（20 条）和 P3（21 条），以结构性改进为主。
+2. **CodeIndexService 职责膨胀**（P2）：1633 行 God Class 混合 Facade 路由、ORM 持久化、增量索引、Flow 分析、路径校验等 6 种职责。同时硬编码依赖 lang-* 和 graph.semantic 具体类，违反 OCP。配套的 Tarjan SCC 算法也错放在 service 层。
+
+3. **服务层测试结构性缺陷**（P1）：最大 BizModel 58% 方法无测试，错误路径覆盖几乎空白（0 处 assertThrows），唯一真实项目端到端测试被 @Disabled。底层算法测试质量好，但 BizModel 集成层是测试洼地。
 
 ## 优先修复建议
 
-### 高优先级（P1 + 高影响 P2）
-
-1. **修复 detectFlows() 鉴权遗漏**（07-01）：添加 @Auth(roles="admin")，一行改动
-2. **修复 indexDirectory 锁竞态**（14-01）：不在 finally 中移除锁
-3. **修复 @BizLoader 返回空数据**（07-02）：补充 symbols 数据加载
-4. **修复 getIndexStats 性能问题**（07-04）：改用 countByQuery
-5. **将重计算移出 DB Session**（14-02）：参照 triggerIncrementalIndex 模式
-
-### 中优先级（结构性改进 P2）
-
-6. **拆分 CodeIndexService**（02-01）：提取持久化逻辑到 Repository
-7. **提取共享转换方法**（07-03）：消除 90 行重复代码
-8. **拆分 ICodeIndexService**（02-02）：按功能域分接口
-9. **通过 IoC 注入语言适配器**（02-04）：移除硬编码实例化
-10. **补充核心算法测试**（16-01, 16-02, 16-03）
-
-### 低优先级（P3 排期）
-
-11. 审计字段命名统一（04-01）
-12. i18n 英文翻译补充（04-04）
-13. dict.yaml valueType 修正（10-01）
-14. ErrorCode 中文描述改英文（09-01, 09-02）
-15. 静默异常添加日志（09-04, 09-05）
+1. **[P1] 修复 callType 字典-代码值不匹配**：在 JavaFileAnalyzer 中使用正确的调用类型枚举值，或重新设计该字段。
+2. **[P1] 启用核心集成测试**：将 TestIndexNopEntropyProject 拆分为 smoke test（CI）+ 性能基准测试。
+3. **[P1] 补充错误路径测试**：为 ErrorCode 和基本错误输入添加 assertThrows 测试。
+4. **[P2] 拆分 CodeIndexService**：持久化提取为 CodePersistenceService，增量索引提取为 CodeIncrementalIndexer。
+5. **[P2] 修复 ORM 审计字段**：为 NopCodeFlow 等实体添加 createTimeProp/createrProp 实体级声明。
 
 ## 本次审核盲区自评
 
-1. **未运行 `./mvnw test`**：测试基线基于代码审查而非实际执行结果
-2. **未运行 `./mvnw checkstyle:check`**：代码风格基线基于人工审查
-3. **未验证 NopCodeFileBizModel @BizLoader 的 GraphQL 集成**：仅通过代码审查确认返回空数据，未通过实际 GraphQL 查询验证
-4. **跨模块引用分析不完整**：未检查外部模块（如 nop-auth）对 nop-code API 的调用
-5. **深挖追加轮次未执行**：由于首轮已覆盖所有关键代码路径，且审计方法论允许在无新发现时终止深挖，所有维度均只执行了 1 轮初审
+- 未执行维度 03（API 表面积）、06（Delta 定制）、08（IoC 配置）、10-14（XLang/GraphQL/安全/异步）、17-21（风格/文档/命名/跨模块/测试有效性），这些维度可能存在额外发现。
+- 未执行深挖追加轮次（第 2+ 轮），各维度仅完成了初审。
+- 未执行独立维度复核子 agent，初审结果未经过交叉验证。
+- 历史发现 04-01~04-10 的验证依赖子 agent 输出，未经独立复核确认。
