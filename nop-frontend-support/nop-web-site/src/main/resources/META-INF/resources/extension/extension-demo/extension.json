@@ -1,0 +1,9 @@
+{
+  "id": "example-extension-demo",
+  "name": "Harbor Operations Suite",
+  "version": "0.0.1",
+  "entry": "./assets/index-COw24fxy.js",
+  "styleAssets": [
+    "./assets/index-3Z9nCm1K.css"
+  ]
+}

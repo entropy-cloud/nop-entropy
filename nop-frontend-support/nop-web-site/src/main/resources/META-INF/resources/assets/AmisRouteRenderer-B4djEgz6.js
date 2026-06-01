@@ -1,0 +1,1 @@
+import{n as e,t}from"./host-amis-route-runtime-BGyBOiQA.js";e();export{t as AmisRouteRenderer};

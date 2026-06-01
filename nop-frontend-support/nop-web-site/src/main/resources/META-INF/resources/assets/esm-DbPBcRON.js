@@ -1,0 +1,1 @@
+import{a as e,i as t,n,r,t as i}from"./vendor-office-viewer-DoEfTRre.js";n();export{t as Excel,e as Word,r as createOfficeViewer,i as default};

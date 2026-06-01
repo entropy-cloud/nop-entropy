@@ -1,0 +1,1 @@
+import{n as e,r as t,t as n}from"./vendor-amis-office-viewer-CUX3zcCf.js";t();export{e as OfficeViewerRenderer,n as default};

@@ -1,0 +1,1 @@
+import{a as e,i as t,n,r,t as i}from"./vendor-monaco-editor-Dh7YBvL8.js";r();export{i as getJavaScriptWorker,n as getTypeScriptWorker,t as setupJavaScript,e as setupTypeScript};

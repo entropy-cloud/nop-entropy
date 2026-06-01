@@ -1,0 +1,1 @@
+import{cr as e,lr as t,or as n,sr as r,ur as i}from"./vendor-amis-C3Fz2yFP.js";i();export{n as BaseTransferRenderer,e as TransferRender,r as default,t as getCustomFilterOption};

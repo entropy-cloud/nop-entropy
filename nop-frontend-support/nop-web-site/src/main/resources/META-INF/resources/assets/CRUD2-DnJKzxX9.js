@@ -1,0 +1,1 @@
+import{$o as e,Qo as t,Zo as n,es as r}from"./vendor-amis-C3Fz2yFP.js";r();export{t as CRUD2Renderer,e as CRUD2RendererBase,n as default};

@@ -1,0 +1,1 @@
+import{L as e,R as t,z as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as TabsRenderer,e as default};

@@ -1,0 +1,1 @@
+import{Bt as e,Rt as t,zt as n}from"./vendor-amis-C3Fz2yFP.js";e();export{t as PaginationWrapper,n as PaginationWrapperRenderer};

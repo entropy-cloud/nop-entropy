@@ -1,0 +1,1 @@
+import{_c as e,bc as t,gc as n,vc as r,yc as i}from"./vendor-amis-C3Fz2yFP.js";t();export{n as Action,r as ActionRenderer,i as createSyntheticEvent,e as default};

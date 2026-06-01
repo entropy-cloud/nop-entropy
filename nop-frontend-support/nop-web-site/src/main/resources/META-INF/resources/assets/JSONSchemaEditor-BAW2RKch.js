@@ -1,0 +1,1 @@
+import{Fr as e,Nr as t,Pr as n}from"./vendor-amis-C3Fz2yFP.js";e();export{n as JSONSchemaEditorRenderer,t as default};

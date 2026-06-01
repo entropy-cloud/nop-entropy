@@ -1,0 +1,130 @@
+{
+  "extensionDemo": {
+    "builtin": {
+      "title": "Page builtin Harbor"
+    },
+    "login": {
+      "heroEyebrow": "Connexion extension",
+      "heroProduct": "Harbor Operations Suite",
+      "heroBadge": "Surcharge de page systeme",
+      "cardTitle": "Entrer dans Harbor",
+      "heroTitle": "Unifier branding, themes et points d'extension du shell pour chaque application metier.",
+      "heroDescription": "Cette extension de demonstration montre comment reutiliser le meme host shell avec une identite produit differente.",
+      "cardDescription": "Demarrez une session Harbor de demonstration pour n'importe quel utilisateur sans identifiants preconfigures.",
+      "signInEyebrow": "Connexion Harbor",
+      "signInTitle": "Entrer dans l'espace Harbor",
+      "signInDescription": "Cette page complete est enregistree via `builtinPages + systemPages.login`.",
+      "username": "Nom d'utilisateur",
+      "demoCredentials": "Le mode demo cree une session Harbor fictive pour n'importe quel utilisateur via le bridge du host.",
+      "submitting": "Connexion en cours...",
+      "submit": "Entrer dans Harbor",
+      "messages": {
+        "bridgeNotReady": "Le bridge du host n'est pas pret pour la connexion extension.",
+        "loginSuccess": "Bienvenue a bord de Harbor.",
+        "loginFailed": "Impossible de se connecter a Harbor."
+      },
+      "overrideFeatures": {
+        "identity": {
+          "title": "Identite Harbor",
+          "description": "Cette page de connexion est fournie par l'extension elle-meme, pas par des champs `loginUi` modifies cote host."
+        },
+        "systemPage": {
+          "title": "Surcharge de page systeme",
+          "description": "Le host conserve la route `/auth/login`, tandis que l'extension associe cette route a une page builtin personnalisee."
+        },
+        "sharedRuntime": {
+          "title": "Runtime partage",
+          "description": "L'etat d'authentification, la navigation, les notifications et la langue proviennent toujours du meme bridge runtime du host."
+        }
+      },
+      "feature": {
+        "coordination": {
+          "title": "Coordination du shell",
+          "description": "Branding, menus et route par defaut restent alignes via une seule extension."
+        },
+        "themes": {
+          "title": "Themes adaptes",
+          "description": "Chaque application peut publier son propre style visuel au-dessus du meme shell hote."
+        },
+        "bridge": {
+          "title": "Pont runtime partage",
+          "description": "Les pages internes et plugins continuent de reutiliser les modules du host runtime."
+        }
+      }
+    },
+    "builtinPage": {
+      "eyebrow": "Page builtin extension",
+      "title": "Tailwind partage avec le shell hote",
+      "description": "Cette page est compilee dans le projet d'extension tout en reutilisant les tokens de theme et les styles UI partages du host.",
+      "highlights": {
+        "tokens": {
+          "title": "Tokens partages",
+          "description": "Utilise les tokens du host pour suivre automatiquement le theme actif."
+        },
+        "preset": {
+          "title": "Preset Tailwind",
+          "description": "Compile ses classes utilitaires avec le preset partage au lieu de dependre de la sortie build du host."
+        },
+        "registration": {
+          "title": "Enregistrement builtin",
+          "description": "Enregistre un composant React directement dans le registre de pages builtin du host via le chargeur d'extension."
+        }
+      },
+      "howItWorks": {
+        "title": "Fonctionnement",
+        "items": {
+          "registration": "L'extension enregistre cette page comme composant builtin avec `componentId: extension-harbor-page`.",
+          "routing": "L'extension fournit aussi un menu avec `pageType: builtin`, donc le routage reste dans le shell host.",
+          "tailwind": "Des classes Tailwind comme `bg-background`, `text-foreground` et `shadow-primary` viennent du preset partage."
+        }
+      },
+      "sharedStack": {
+        "title": "Pile partagee",
+        "items": {
+          "themeTokens": "Le host charge @nop-chaos/theme-tokens/styles.css",
+          "preset": "L'extension compile component-page.css avec @nop-chaos/tailwind-preset",
+          "baseStyles": "L'extension importe @nop-chaos/ui/base.css pour les styles semantiques partages",
+          "hostRegistration": "Le host injecte les styles de l'extension et enregistre le composant"
+        }
+      }
+    },
+    "notFound": {
+      "badge": "404 extension Harbor",
+      "eyebrow": "Surcharge de page systeme",
+      "title": "Cette route n'est pas mappee dans l'espace Harbor.",
+      "description": "Le shell host vous a envoye vers `/404`, mais l'ecran rendu vient du package d'extension. Cela demontre une deuxieme surcharge de page systeme au-dela de la connexion.",
+      "activeApplicationLabel": "Application active",
+      "activeApplicationValue": "Harbor",
+      "suggestedRoutes": "Routes suggerees",
+      "whyThisMatters": "Pourquoi c'est important",
+      "reasons": {
+        "loginOverride": "La surcharge de connexion prouve qu'une extension peut remplacer les flux d'entree.",
+        "notFoundOverride": "La surcharge 404 prouve que le host peut garder la propriete des routes tout en deleguant les vues systeme.",
+        "sharedShell": "Le meme shell continue de gerer l'authentification, le chargement des menus, les permissions et la coordination runtime des plugins."
+      },
+      "quickLinks": {
+        "home": {
+          "title": "Retour a l'accueil Harbor",
+          "description": "Revenir a la page d'accueil de l'extension et continuer depuis l'espace Harbor par defaut."
+        },
+        "page": {
+          "title": "Ouvrir la page Harbor",
+          "description": "Aller directement a la page builtin enregistree par le package de demo Harbor."
+        }
+      },
+      "returnToWorkspace": "Revenir a l'espace Harbor"
+    }
+  },
+  "settings": {
+    "languageOptions": {
+      "en": "Anglais",
+      "frFR": "Francais"
+    },
+    "themeOptions": {
+      "harbor": {
+        "label": "Harbor",
+        "description": "Couleurs cotieres pour tableaux de bord et ecrans d'operations."
+      }
+    }
+  }
+}

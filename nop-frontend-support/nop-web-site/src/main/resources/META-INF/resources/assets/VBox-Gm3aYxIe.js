@@ -1,0 +1,1 @@
+import{b as e,x as t,y as n}from"./vendor-amis-C3Fz2yFP.js";t();export{e as VBoxRenderer,n as default};

@@ -1,0 +1,1 @@
+import{i as e,n as t,r as n,t as r}from"./vendor-amis-pdf-viewer-C3sQc3eg.js";e();export{r as PdfView,n as PdfViewerRenderer,t as default};

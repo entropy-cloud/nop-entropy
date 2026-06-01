@@ -1,0 +1,1 @@
+import{J as e,X as t,Y as n}from"./vendor-amis-C3Fz2yFP.js";t();export{n as SwitchContainerRenderer,e as default};

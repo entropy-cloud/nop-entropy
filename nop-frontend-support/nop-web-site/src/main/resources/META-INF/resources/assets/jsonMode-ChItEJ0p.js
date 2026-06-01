@@ -1,0 +1,1 @@
+import{o as e,s as t}from"./vendor-monaco-editor-Dh7YBvL8.js";e();export{t as setupMode};

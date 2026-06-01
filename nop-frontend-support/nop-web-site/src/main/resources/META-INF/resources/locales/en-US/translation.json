@@ -1,0 +1,604 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "backHome": "Back to dashboard",
+    "moreActions": "More actions",
+    "preferences": "Preferences",
+    "frontendShell": "Frontend shell",
+    "adaptiveFrontendShell": "Adaptive frontend shell",
+    "operationsConsole": "Operations console",
+    "pendingAlerts": "You have 3 pending alerts.",
+    "vsLastWeek": "vs. last week",
+    "versionValue": "Version {{value}}",
+    "versionLabel": "Version: ",
+    "authorLabel": "Author: ",
+    "sourceLabel": "Source: ",
+    "urlLabel": "URL: ",
+    "descriptionLabel": "Description: ",
+    "done": "Done",
+    "viewDetails": "View details",
+    "enable": "Enable",
+    "disable": "Disable",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enabledLowercase": "enabled",
+    "disabledLowercase": "disabled",
+    "guest": "Guest",
+    "guestLowercase": "guest",
+    "user": "User",
+    "refresh": "Refresh",
+    "reset": "Reset",
+    "noData": "No data available.",
+    "offline": "You are offline. Some data may be stale until the connection recovers.",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "copy": "Copy",
+    "skipToContent": "Skip to main content",
+    "selectRange": "Select range",
+    "quickDates": "Quick dates",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "displayModes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "rangeOptions": {
+      "today": "Today",
+      "last7Days": "Last 7 days",
+      "last30Days": "Last 30 days",
+      "custom": "Custom range"
+    },
+    "flowStatuses": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "draft": "Draft"
+    },
+    "orderStatuses": {
+      "active": "Active",
+      "review": "Review",
+      "draft": "Draft",
+      "closed": "Closed"
+    }
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Log out",
+    "username": "Username",
+    "password": "Password",
+    "language": "Language",
+    "loginSuccess": "Welcome back.",
+    "loginFailed": "Unable to sign in.",
+    "logoutConfirm": "Are you sure you want to log out?",
+    "logoutFailed": "Remote logout failed. Local sign-out has been completed.",
+    "loggedOut": "You have been logged out.",
+    "bootstrapFailed": "Unable to restore your session."
+  },
+  "login": {
+    "heroTitle": "A polished admin shell for dashboards, CRUD, and extensible workflows.",
+    "heroDescription": "Built around React best practices, theme tokens, a dynamic menu model, and a reusable workspace layout.",
+    "cardDescription": "Use the demo account to enter the operations workspace.",
+    "demoHint": "Demo credentials: admin / 123456",
+    "feature": {
+      "layout": {
+        "title": "Adaptive layout",
+        "description": "Responsive sidebar, topbar, and tabs designed for real admin workloads."
+      },
+      "routing": {
+        "title": "Dynamic routing",
+        "description": "Menu-driven routes and tabs with role-aware access control."
+      },
+      "themes": {
+        "title": "Theme tokens",
+        "description": "Modern and glass visual styles with light, dark, and system modes."
+      }
+    }
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "aiWorkbench": "AI Workbench",
+    "flowEditor": "Flow Editor",
+    "flowEditorList": "Flow Library",
+    "flowEditorEdit": "Edit Flow",
+    "dataManagement": "Data Management",
+    "masterDetail": "Master Detail",
+    "masterDetailDetail": "Record Detail",
+    "plugins": "Plugins",
+    "pluginsManagement": "Plugin Management",
+    "pluginsDemo": "Plugin Demo",
+    "fluxDemo": "Flux Demo",
+    "settings": "Settings",
+    "theme": "Theme",
+    "language": "Language",
+    "layout": "Layout",
+    "help": "Help",
+    "guide": "Guide"
+  },
+  "flux": {
+    "common": {
+      "loading": "Loading",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "clear": "Clear",
+      "undo": "Undo",
+      "redo": "Redo"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "goToPrevious": "Go to previous page",
+      "goToNext": "Go to next page",
+      "morePages": "More pages"
+    },
+    "page": {
+      "title": "Flux Page",
+      "loadFailed": "Unable to load Flux schema."
+    },
+    "schemaPath": "Current Flux schemaPath: {{path}}"
+  },
+  "layout": {
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "sidebarHint": "Persisted layout preferences keep your workspace familiar across sessions.",
+    "mobileHint": "Tap a menu item to close the drawer."
+  },
+  "tabsBar": {
+    "refresh": "Refresh",
+    "scrollLeft": "Scroll tabs left",
+    "scrollRight": "Scroll tabs right",
+    "closeCurrent": "Close current",
+    "closeOthers": "Close others",
+    "closeAll": "Close all",
+    "closeMenu": "Close tab actions menu",
+    "moreActions": "More tab actions",
+    "enterFullscreenWorkspace": "Enter fullscreen workspace",
+    "exitFullscreenWorkspace": "Exit fullscreen workspace",
+    "enterFullscreen": "Enter fullscreen",
+    "exitFullscreen": "Exit fullscreen"
+  },
+  "core": {
+    "layout": {
+      "skipToMainContent": "Skip to main content"
+    }
+  },
+  "dashboard": {
+    "eyebrow": "Overview",
+    "title": "Operations dashboard",
+    "placeholder": "Monitor throughput, environment health, and adoption signals from a single command surface.",
+    "overviewDescription": "A live operations overview centered on time ranges, trend tracking, deep analysis, and plugin extensions.",
+    "liveBadge": "Live",
+    "chartTitle": "Weekly throughput",
+    "timelineTitle": "Release pulse",
+    "timelineDescription": "Updates from shell, plugins, and automation tracks land here in a compact feed.",
+    "trendEyebrow": "Trend view",
+    "trendSectionTitle": "Requests / success / errors trend",
+    "eventsEyebrow": "Recent events",
+    "eventsTitle": "Important event list",
+    "advancedChartsEyebrow": "Advanced charts",
+    "composedChartTitle": "Requests and success-rate combo chart",
+    "composedChartHint": "Tooltip / legend / data highlighting enabled",
+    "categoryEyebrow": "Category breakdown",
+    "categoryTitle": "Error type share",
+    "channelChartTitle": "Channel extension stacked chart",
+    "radarTitle": "Business capability radar",
+    "successRate": "Success rate",
+    "currentPerformance": "Current performance",
+    "benchmark": "Benchmark",
+    "series": {
+      "requests": "Requests",
+      "success": "Successes",
+      "errors": "Errors"
+    },
+    "channels": {
+      "apiGateway": "API Gateway",
+      "scheduler": "Scheduler",
+      "portal": "Portal",
+      "plugin": "Plugin"
+    },
+    "metrics": {
+      "sessions": "Sessions",
+      "models": "Active models",
+      "queues": "Queue health",
+      "automation": "Automations"
+    }
+  },
+  "aiWorkbench": {
+    "eyebrow": "AI workbench",
+    "title": "AI Workbench",
+    "placeholder": "Stage prompts, test assistant configurations, and review context packages before deployment.",
+    "overviewDescription": "A multi-session workspace for session management, assistant switching, context attachment, and streaming output.",
+    "chatTitle": "Conversation draft",
+    "promptPlaceholder": "Describe the assistant behavior you want to prototype...",
+    "generate": "Generate answer",
+    "newSession": "New session",
+    "newSessionTitle": "New session {{index}}",
+    "assistantSessionTitle": "{{assistant}} session",
+    "untitledSession": "Untitled session",
+    "searchPlaceholder": "Search sessions",
+    "rename": "Rename",
+    "regenerate": "Regenerate",
+    "clearConversation": "Clear conversation",
+    "historyStart": "Reached the earliest history messages",
+    "loadOlder": "Load older messages",
+    "sendHint": "Press Enter to send, Shift+Enter for a new line",
+    "stop": "Stop generation",
+    "stopSuccess": "Stopped the current reply.",
+    "copySuccess": "Message copied.",
+    "contextAttachment": "Context attachment",
+    "contextStatus": "Context status",
+    "contextEnabled": "Enabled",
+    "contextDisabled": "Not attached",
+    "contextStatusDescription": "When enabled, the current page, assistant type, and session summary are attached automatically.",
+    "contextPreview": "Context preview",
+    "assistantGuide": "Assistant guide",
+    "contextSummary": "Current page: AI Workbench; assistant: {{assistant}}; session title: {{title}}.",
+    "timestamps": {
+      "earlier": "Earlier",
+      "justNow": "Just now"
+    },
+    "switchMode": {
+      "current": "Switch current session",
+      "new": "Start new session"
+    },
+    "history": {
+      "userPrompt": "Please review the design requirements that still needed the most work in the earliest stage of {{title}}.",
+      "assistantReply": "Here are the recommendations for the earliest phase:\n\n- First narrow the core interaction goals\n- Clarify empty and error states\n- Reserve shortcuts for high-frequency actions\n\n**Assigned assistant**\n{{assistant}}",
+      "checklist": "```txt\nRequirement review\nInteraction walkthrough\nTest coverage\n```"
+    },
+    "assistants": {
+      "general": {
+        "name": "General assistant",
+        "description": "Handles common Q&A, writing, and solution organization."
+      },
+      "analysis": {
+        "name": "Data analysis assistant",
+        "description": "Focused on metrics, charts, and reporting insights."
+      },
+      "flow": {
+        "name": "Flow design assistant",
+        "description": "Helps design node logic, branching conditions, and orchestration steps."
+      }
+    },
+    "refine": "Refine context",
+    "contextTitle": "Context controls",
+    "contextDescription": "Connect language tools, retrieval adapters, and session controls without leaving the shell.",
+    "resizeSessionsPanel": "Resize sessions panel"
+  },
+  "flowEditor": {
+    "loadFailed": "Unable to load flow details.",
+    "title": "Flow editor",
+    "placeholder": "Compose orchestration pipelines for data movement, approvals, and AI-assisted tasks.",
+    "listEyebrow": "Automation",
+    "listDescription": "A flow list with search, filtering, pagination, and multi-action operations.",
+    "newFlow": "New flow",
+    "flowListTitle": "Flow list",
+    "searchPlaceholder": "Search by name or description",
+    "allStatuses": "All statuses",
+    "duplicateSuccess": "Flow duplicated.",
+    "statusUpdated": "Flow status updated.",
+    "deleteConfirm": "Delete this flow?",
+    "deleteSuccess": "Flow deleted.",
+    "paginationSummary": "{{total}} flows total, page {{page}} / {{pageCount}}",
+    "editor": {
+      "saveSuccess": "Flow saved.",
+      "restoreSuccess": "Restored the most recently saved version.",
+      "leaveConfirm": "This flow has unsaved changes. Leave anyway?",
+      "unsaved": "Unsaved",
+      "saved": "Saved",
+      "nodeCount": "{{count}} nodes",
+      "edgeCount": "{{count}} edges",
+      "configCount": "{{count}} configs",
+      "grid": "Grid",
+      "undo": "Undo",
+      "redo": "Redo",
+      "restore": "Restore",
+      "exportJson": "Export JSON",
+      "properties": "Properties",
+      "save": "Save",
+      "defaultNodeDescription": "Please edit the node description",
+      "defaultEdgePath": "Default path",
+      "startNodeUnique": "Only one start node is allowed.",
+      "startNodeDuplicateBlocked": "Only one start node can be kept, so duplication is blocked.",
+      "startNodeSinglePreserved": "Only one start node can be kept.",
+      "startNodeSwitchBlocked": "Only one start node is allowed, so this node cannot be changed into a start node.",
+      "nodeCopied": "Node copied.",
+      "edge": "Edge",
+      "pathConfig": "Path configuration",
+      "nodeLibrary": "Node library",
+      "nodeLibraryHint": "Drag onto the canvas or click the plus button",
+      "canvasHint": "Double-click to edit · Delete to remove · Ctrl/Cmd+Z to undo",
+      "propertiesHint": "Edit directly after selecting",
+      "flow": "Flow",
+      "currentSelection": "Current selection",
+      "selectionEmpty": "Select a node or edge to edit its properties here.",
+      "shortcuts": {
+        "undo": "Ctrl/Cmd+Z to undo",
+        "redo": "Ctrl/Cmd+Y or Shift+Ctrl/Cmd+Z to redo",
+        "copyPaste": "Ctrl/Cmd+C / Ctrl/Cmd+V to copy and paste nodes",
+        "delete": "Delete removes the current node or edge"
+      },
+      "nodeSheetTitle": "Edit node properties",
+      "nodeSheetDescription": "Double-click a node or use the floating toolbar to edit it here.",
+      "edgeSheetTitle": "Edit edge",
+      "edgeSheetDescription": "Double-click an edge label or path to open this editor.",
+      "deleteTitle": "Confirm deletion",
+      "deleteDescription": "The current node or edge will be removed from the canvas after deletion.",
+      "nodeTypes": {
+        "start": "Start node",
+        "end": "End node",
+        "task": "Task node",
+        "condition": "Condition node",
+        "parallel": "Parallel node",
+        "loop": "Loop node"
+      },
+      "paletteGroups": {
+        "basic": {
+          "title": "Basic nodes",
+          "description": "Entry and end nodes for the flow."
+        },
+        "logic": {
+          "title": "Logic nodes",
+          "description": "Control branching, parallelism, and loops."
+        },
+        "execution": {
+          "title": "Execution nodes",
+          "description": "Run business tasks and actions."
+        }
+      },
+      "nodeFields": {
+        "name": "Node name",
+        "description": "Node description",
+        "type": "Node type"
+      },
+      "edgeFields": {
+        "label": "Edge label",
+        "condition": "Condition expression",
+        "style": "Line style"
+      },
+      "edgeStyles": {
+        "solid": "Solid",
+        "dashed": "Dashed",
+        "dotted": "Dotted"
+      }
+    },
+    "table": {
+      "name": "Flow name",
+      "description": "Flow description",
+      "status": "Status",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at",
+      "actions": "Actions"
+    },
+    "openEditor": "Open editor",
+    "editTitle": "Editing flow",
+    "editDescription": "This layout reserves clear space for nodes, canvas tools, and property editing.",
+    "nodes": "Node palette",
+    "canvas": "Canvas",
+    "properties": "Properties"
+  },
+  "dataManagement": {
+    "title": "Data management",
+    "placeholder": "Mix dashboards, forms, lists, and details inside one consistent CRUD experience.",
+    "nestedRouteHint": "Use the nested route example to inspect list and detail pages that still share the main workspace shell."
+  },
+  "masterDetail": {
+    "eyebrow": "CRUD",
+    "title": "Master-detail CRUD",
+    "placeholder": "A practical table-plus-detail scaffold for enterprise records and nested resources.",
+    "listDescription": "A master list that supports querying, sorting, multi-select, pagination, and batch actions.",
+    "batchExport": "Batch export",
+    "batchDelete": "Batch delete",
+    "searchPlaceholder": "Order no. / customer / owner",
+    "allStatuses": "All statuses",
+    "to": "to",
+    "query": "Query",
+    "collapse": "Collapse",
+    "advanced": "Advanced",
+    "channelPlaceholder": "Channel keyword",
+    "ownerPlaceholder": "Owner",
+    "advancedHint": "You can extend this with amount ranges, channel types, source regions, and more filters.",
+    "selectedCount": "Selected {{count}}",
+    "batchDeleteConfirm": "Delete the selected {{count}} records?",
+    "batchDeleteSuccess": "Batch deletion completed.",
+    "exportSelectHint": "Select at least one record before exporting.",
+    "exportConfirm": "Export the selected {{count}} records?",
+    "rowDeleteConfirm": "Delete order {{orderNo}}?",
+    "rowDeleteSuccess": "Order deleted.",
+    "totalRecords": "{{count}} records total",
+    "perPage": "{{count}} / page",
+    "detail": {
+      "eyebrow": "Record detail",
+      "description": "The main record appears in a top summary card, while sub-tables use inline, modal, and drawer editing modes.",
+      "leaveConfirm": "This page has unsaved changes. Leave anyway?",
+      "saveSuccess": "Saved successfully.",
+      "saveFailed": "Save failed. Please check the data.",
+      "checkSectionError": "Save failed. Please check {{section}} first.",
+      "discardConfirm": "Discard all current changes?",
+      "discardAll": "Discard all edits",
+      "saveAll": "Save all",
+      "summaryTitle": "Core record information",
+      "unsavedChanges": "Unsaved changes present",
+      "synced": "Synced",
+      "orderStatus": "Order status",
+      "ownerChannel": "Owner / channel",
+      "itemFilter": "Filter product name",
+      "addressFilter": "Filter receiver / phone",
+      "logisticsFilter": "Filter logistics company / tracking no.",
+      "clearFilters": "Clear filters",
+      "itemsTitle": "Order items",
+      "restoreSection": "Restore section",
+      "newProduct": "New product",
+      "add": "Add",
+      "itemColumns": {
+        "product": "Product",
+        "quantity": "Quantity",
+        "price": "Unit price",
+        "subtotal": "Subtotal"
+      },
+      "errors": {
+        "productRequired": "Product name is required",
+        "quantityPositiveInteger": "Quantity must be a positive integer",
+        "pricePositive": "Unit price must be positive",
+        "singleDefaultAddress": "Exactly one default address is required",
+        "trackingRequired": "Tracking number is required after shipping",
+        "addressRequired": "Please complete the shipping address information.",
+        "companyRequired": "Logistics company is required."
+      },
+      "addressesTitle": "Shipping addresses",
+      "addAddress": "Add address",
+      "deleteAddressConfirm": "Delete this address?",
+      "logisticsTitle": "Logistics information",
+      "newLogisticsTimeline": "New logistics record",
+      "addLogistics": "Add logistics",
+      "noTrackingNo": "No tracking number",
+      "shippingStatuses": {
+        "pending": "Pending",
+        "shipping": "Shipping",
+        "delivered": "Delivered"
+      },
+      "deleteLogisticsConfirm": "Delete this logistics record?",
+      "editAddress": "Edit address",
+      "addressDialogDescription": "Edit the shipping address in a modal dialog.",
+      "addressFields": {
+        "receiver": "Receiver",
+        "phone": "Phone",
+        "province": "Province",
+        "city": "City",
+        "address": "Address",
+        "default": "Set as default address"
+      },
+      "saveAddress": "Save address",
+      "logisticsDrawerTitle": "Edit logistics information",
+      "logisticsDrawerDescription": "Use the right-side drawer to keep the page context visible.",
+      "logisticsFields": {
+        "company": "Logistics company",
+        "trackingNo": "Tracking no.",
+        "shippingStatus": "Shipping status",
+        "eta": "Estimated delivery",
+        "note": "Note"
+      },
+      "eta": "ETA {{eta}}",
+      "logisticsTimeline": "Logistics timeline",
+      "saveLogistics": "Save logistics information",
+      "backToList": "Back to list"
+    },
+    "columns": {
+      "orderNo": "Order no.",
+      "customerName": "Customer name",
+      "status": "Status",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at",
+      "amount": "Amount",
+      "owner": "Owner",
+      "actions": "Actions"
+    },
+    "tableTitle": "Accounts",
+    "view": "View",
+    "sidePanel": "Interaction notes",
+    "detailTitle": "Record detail",
+    "detailDescription": "A hidden route still participates in tabs, breadcrumbs, and route restoration.",
+    "detailOverview": "Overview",
+    "detailMeta": "Metadata"
+  },
+  "plugins": {
+    "title": "Plugin system",
+    "placeholder": "Mount SystemJS-powered extensions while sharing runtime dependencies with the shell.",
+    "mountTitle": "Plugin mount area",
+    "mountEmpty": "No enabled plugins are available yet. Enable one from plugin management to render it here.",
+    "runtimeEyebrow": "Runtime extension",
+    "manageAction": "Manage plugins",
+    "openAction": "Open plugin",
+    "homeDescription": "Connect remote extensions to the shell while keeping navigation, theme, language, and runtime APIs in sync.",
+    "homeCapabilities": "This area shows how plugins can share host state, reuse shell dependencies, and render inside the same visual system.",
+    "homeSupport": "Supports manifest-driven loading, shared dependency injection, route navigation, theme sync, and host notifications.",
+    "extensionHostEyebrow": "Extension host",
+    "managementPageDescription": "Track runtime modules, enablement, and local configuration from a single inventory view.",
+    "confirmToggle": "{{action}} plugin \"{{name}}\"?",
+    "toggleSuccess": "Plugin {{action}}d successfully.",
+    "configureAction": "Configure",
+    "detailOverview": "Plugin details and metadata",
+    "configureTitle": "Configure {{name}}",
+    "configureDescription": "Update runtime settings stored in the local plugin manifest.",
+    "configureSaved": "Plugin settings saved.",
+    "defaultReportTitle": "Plugin operations lens",
+    "remotePluginEyebrow": "Remote plugin",
+    "hostNotification": "Host notification sent by {{user}}.",
+    "reportCount": "{{count}} reports",
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "managementTitle": "Plugin management",
+    "managementDescription": "Track remote modules, versions, and publishing status from one inventory view.",
+    "notifyHost": "Notify host",
+    "currentUser": "Current user",
+    "currentLanguage": "Current language",
+    "highlightThreshold": "Highlight threshold",
+    "analyticsTitle": "Custom analytics",
+    "bridgeTitle": "Host bridge capabilities",
+    "bridgeDescription": "The plugin reads host user data, theme configuration, toast APIs, current route, and navigation capabilities through @nop-chaos/plugin-bridge.",
+    "bridgeState": "Shared context: theme {{theme}} / user {{user}} / language {{language}} / route {{path}} / plugin status {{status}}."
+  },
+  "settings": {
+    "title": "System settings",
+    "placeholder": "Adjust the working environment, team defaults, and presentation rules.",
+    "themeTitle": "Theme settings",
+    "themeDescription": "Control the design system skin and display mode without a page refresh.",
+    "visualTheme": "Visual theme",
+    "themeOptions": {
+      "classic": {
+        "label": "Classic",
+        "description": "Solid panels and clear borders for dense enterprise workflows."
+      },
+      "glass": {
+        "label": "Glass",
+        "description": "Soft translucent surfaces with a lighter atmospheric layer."
+      }
+    },
+    "displayMode": "Display mode",
+    "languageTitle": "Language settings",
+    "languageDescription": "Persist the active locale for login and in-app navigation.",
+    "languageOptions": {
+      "zhCN": "Chinese (Simplified)",
+      "en": "English"
+    },
+    "activeLanguage": "Active language",
+    "layoutTitle": "Layout settings",
+    "layoutDescription": "Choose how dense the workspace should feel on repeated visits.",
+    "sidebarMode": "Sidebar state",
+    "sidebarWidth": "Expanded width (rem)",
+    "sidebarCollapsedWidth": "Collapsed width (rem)",
+    "sidebarCollapsed": "The sidebar starts in compact mode.",
+    "sidebarExpanded": "The sidebar starts expanded.",
+    "toggleSidebar": "Toggle sidebar",
+    "resetSidebarWidth": "Reset widths"
+  },
+  "help": {
+    "title": "Help center",
+    "placeholder": "Surface docs, onboarding steps, and release notes for end users and integrators.",
+    "guideTitle": "Usage guide",
+    "guideDescription": "Document the path from first login to plugin deployment and data review.",
+    "guideBody": "Start with the dashboard, then move through CRUD examples, settings, and plugin management to understand how the shell behaves across routes and runtime modules."
+  },
+  "errors": {
+    "bootstrapFailed": "Bootstrap failed",
+    "bootstrapDescription": "The application could not finish startup.",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The route is missing or no longer exists in the active menu configuration.",
+    "forbiddenTitle": "Access denied",
+    "forbiddenDescription": "Your current role set does not permit access to this route.",
+    "serverTitle": "Something went wrong",
+    "serverDescription": "The shell could not render this module. Please refresh or inspect the module registry."
+  }
+}

@@ -1,0 +1,1 @@
+import{ai as e,ii as t,ri as n}from"./vendor-amis-C3Fz2yFP.js";e();export{t as TableControlRenderer,n as default};

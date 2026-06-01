@@ -1,0 +1,1 @@
+import{Ht as e,Ut as t,Vt as n}from"./vendor-amis-C3Fz2yFP.js";t();export{e as PaginationRenderer,n as default};

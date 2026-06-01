@@ -1,0 +1,1 @@
+import{Ct as e,Tt as t,wt as n}from"./vendor-monaco-editor-Dh7YBvL8.js";n();export{e as conf,t as language};

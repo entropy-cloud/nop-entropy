@@ -1,0 +1,1 @@
+import{hs as e,ms as t,ps as n}from"./vendor-amis-C3Fz2yFP.js";e();export{n as AvatarField,t as AvatarFieldRenderer};

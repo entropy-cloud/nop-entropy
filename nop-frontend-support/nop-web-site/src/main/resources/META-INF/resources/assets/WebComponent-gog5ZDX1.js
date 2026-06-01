@@ -1,0 +1,1 @@
+import{d as e,f as t,p as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as WebComponentRenderer,e as default};

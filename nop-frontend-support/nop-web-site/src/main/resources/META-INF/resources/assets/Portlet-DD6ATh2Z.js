@@ -1,0 +1,1 @@
+import{Dt as e,Et as t,Ot as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as Portlet,e as PortletRenderer};

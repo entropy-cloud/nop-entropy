@@ -1,0 +1,1 @@
+import{Ho as e,Vo as t}from"./vendor-amis-C3Fz2yFP.js";e();export{t as CalendarRenderer};

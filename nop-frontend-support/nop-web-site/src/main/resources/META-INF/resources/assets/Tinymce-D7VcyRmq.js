@@ -1,0 +1,1 @@
+import{n as e,t}from"./vendor-amis-ui-C4m50gE8.js";e();export{t as default};

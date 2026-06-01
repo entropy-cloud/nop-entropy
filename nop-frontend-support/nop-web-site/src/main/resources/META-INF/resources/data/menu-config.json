@@ -1,0 +1,178 @@
+{
+  "home": "/dashboard",
+  "items": [
+    {
+      "id": "dashboard",
+      "titleKey": "menu.dashboard",
+      "path": "/dashboard",
+      "icon": "layout-dashboard",
+      "pageType": "builtin",
+      "componentId": "dashboard",
+      "sort": 1
+    },
+    {
+      "id": "ai-workbench",
+      "titleKey": "menu.aiWorkbench",
+      "path": "/ai-workbench",
+      "icon": "bot",
+      "pageType": "builtin",
+      "componentId": "ai-workbench",
+      "sort": 2
+    },
+    {
+      "id": "flow-editor",
+      "titleKey": "menu.flowEditor",
+      "path": "/flow-editor",
+      "icon": "git-branch",
+      "pageType": "builtin",
+      "componentId": "flow-editor",
+      "sort": 3,
+      "children": [
+        {
+          "id": "flow-editor-list",
+          "titleKey": "menu.flowEditorList",
+          "path": "/flow-editor",
+          "icon": "list",
+          "pageType": "builtin",
+          "componentId": "flow-editor"
+        },
+        {
+          "id": "flow-editor-edit",
+          "titleKey": "menu.flowEditorEdit",
+          "path": "/flow-editor/:id",
+          "icon": "edit",
+          "pageType": "builtin",
+          "componentId": "flow-editor-edit",
+          "hideInMenu": true
+        }
+      ]
+    },
+    {
+      "id": "data-management",
+      "titleKey": "menu.dataManagement",
+      "path": "/data-management",
+      "icon": "database",
+      "pageType": "builtin",
+      "componentId": "data-management",
+      "sort": 4,
+      "children": [
+        {
+          "id": "master-detail",
+          "titleKey": "menu.masterDetail",
+          "path": "/data-management/master-detail",
+          "icon": "table",
+          "pageType": "builtin",
+          "componentId": "master-detail"
+        },
+        {
+          "id": "master-detail-id",
+          "titleKey": "menu.masterDetailDetail",
+          "path": "/data-management/master-detail/:id",
+          "pageType": "builtin",
+          "componentId": "master-detail-detail",
+          "hideInMenu": true
+        }
+      ]
+    },
+    {
+      "id": "plugins",
+      "titleKey": "menu.plugins",
+      "path": "/plugins",
+      "icon": "puzzle",
+      "pageType": "builtin",
+      "componentId": "plugins-overview",
+      "sort": 5,
+      "children": [
+        {
+          "id": "plugins-management",
+          "titleKey": "menu.pluginsManagement",
+          "path": "/plugins/management",
+          "icon": "plug-zap",
+          "pageType": "builtin",
+          "componentId": "plugins-management"
+        },
+        {
+          "id": "plugins-demo",
+          "titleKey": "menu.pluginsDemo",
+          "path": "/plugins/demo",
+          "icon": "blocks",
+          "pageType": "plugin",
+          "componentId": "plugins-demo",
+          "pluginUrl": "/plugins/plugin-demo.system.js"
+        }
+      ]
+    },
+    {
+      "id": "amis-preview",
+      "title": "Amis Preview",
+      "path": "/amis/preview",
+      "icon": "workflow",
+      "pageType": "amis",
+      "schemaPath": "mock://preview",
+      "sort": 6
+    },
+    {
+      "id": "flux-demo",
+      "title": "Flux Demo",
+      "path": "/flux-demo",
+      "icon": "sparkles",
+      "pageType": "flux",
+      "schemaPath": "mock://flux-demo",
+      "sort": 7
+    },
+    {
+      "id": "settings",
+      "titleKey": "menu.settings",
+      "path": "/settings",
+      "icon": "settings-2",
+      "pageType": "builtin",
+      "componentId": "settings-home",
+      "sort": 8,
+      "children": [
+        {
+          "id": "settings-theme",
+          "titleKey": "menu.theme",
+          "path": "/settings/theme",
+          "icon": "palette",
+          "pageType": "builtin",
+          "componentId": "settings-theme"
+        },
+        {
+          "id": "settings-language",
+          "titleKey": "menu.language",
+          "path": "/settings/language",
+          "icon": "languages",
+          "pageType": "builtin",
+          "componentId": "settings-language"
+        },
+        {
+          "id": "settings-layout",
+          "titleKey": "menu.layout",
+          "path": "/settings/layout",
+          "icon": "panels-top-left",
+          "pageType": "builtin",
+          "componentId": "settings-layout"
+        }
+      ]
+    },
+    {
+      "id": "help",
+      "titleKey": "menu.help",
+      "path": "/help",
+      "icon": "badge-help",
+      "pageType": "builtin",
+      "componentId": "help-home",
+      "sort": 9,
+      "children": [
+        {
+          "id": "help-guide",
+          "titleKey": "menu.guide",
+          "path": "/help/guide",
+          "icon": "book-open-text",
+          "pageType": "builtin",
+          "componentId": "help-guide"
+        }
+      ]
+    }
+  ]
+}

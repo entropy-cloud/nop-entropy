@@ -1,0 +1,604 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "saving": "保存中...",
+    "backHome": "返回仪表盘",
+    "moreActions": "更多操作",
+    "preferences": "偏好设置",
+    "frontendShell": "前端壳层",
+    "adaptiveFrontendShell": "自适应前端壳层",
+    "operationsConsole": "运营控制台",
+    "pendingAlerts": "你有 3 条待处理提醒。",
+    "vsLastWeek": "较上周",
+    "versionValue": "版本 {{value}}",
+    "versionLabel": "版本：",
+    "authorLabel": "作者：",
+    "sourceLabel": "来源：",
+    "urlLabel": "地址：",
+    "descriptionLabel": "描述：",
+    "done": "完成",
+    "viewDetails": "查看详情",
+    "enable": "启用",
+    "disable": "停用",
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "enabledLowercase": "启用",
+    "disabledLowercase": "停用",
+    "guest": "访客",
+    "guestLowercase": "访客",
+    "user": "用户",
+    "refresh": "刷新",
+    "reset": "重置",
+    "noData": "暂无数据。",
+    "offline": "当前处于离线状态，部分数据可能会在网络恢复前保持旧值。",
+    "edit": "编辑",
+    "delete": "删除",
+    "cancel": "取消",
+    "copy": "副本",
+    "skipToContent": "跳到主内容",
+    "selectRange": "选择范围",
+    "quickDates": "快捷日期",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "previousPage": "上一页",
+    "nextPage": "下一页",
+    "displayModes": {
+      "light": "浅色",
+      "dark": "深色",
+      "system": "系统"
+    },
+    "rangeOptions": {
+      "today": "今天",
+      "last7Days": "最近 7 天",
+      "last30Days": "最近 30 天",
+      "custom": "自定义范围"
+    },
+    "flowStatuses": {
+      "enabled": "启用",
+      "disabled": "禁用",
+      "draft": "草稿"
+    },
+    "orderStatuses": {
+      "active": "进行中",
+      "review": "审核中",
+      "draft": "草稿",
+      "closed": "已关闭"
+    }
+  },
+  "auth": {
+    "login": "登录",
+    "logout": "退出登录",
+    "username": "用户名",
+    "password": "密码",
+    "language": "语言",
+    "loginSuccess": "欢迎回来。",
+    "loginFailed": "登录失败。",
+    "logoutConfirm": "确定要退出登录吗？",
+    "logoutFailed": "登出请求失败，已执行本地退出。",
+    "loggedOut": "已退出登录。",
+    "bootstrapFailed": "无法恢复当前登录会话。"
+  },
+  "login": {
+    "heroTitle": "一个面向 dashboard、CRUD 与插件扩展的通用管理前端模板。",
+    "heroDescription": "基于 React 最佳实践、主题 Token、动态菜单和可复用工作区布局构建。",
+    "cardDescription": "使用演示账号进入控制台。",
+    "demoHint": "演示账号：admin / 123456",
+    "feature": {
+      "layout": {
+        "title": "自适应布局",
+        "description": "包含响应式侧栏、顶栏与多标签的管理工作区。"
+      },
+      "routing": {
+        "title": "动态路由",
+        "description": "菜单驱动的路由和标签，同时支持角色权限。"
+      },
+      "themes": {
+        "title": "主题 Token",
+        "description": "支持 classic 与 glass 两套视觉风格，以及浅色、深色、系统模式。"
+      }
+    }
+  },
+  "menu": {
+    "dashboard": "仪表盘",
+    "aiWorkbench": "AI 工作台",
+    "flowEditor": "流程编排",
+    "flowEditorList": "流程列表",
+    "flowEditorEdit": "流程编辑",
+    "dataManagement": "数据管理",
+    "masterDetail": "主子表示例",
+    "masterDetailDetail": "详情页",
+    "plugins": "插件系统",
+    "pluginsManagement": "插件管理",
+    "pluginsDemo": "插件示例",
+    "fluxDemo": "Flux 示例",
+    "settings": "系统设置",
+    "theme": "主题设置",
+    "language": "语言设置",
+    "layout": "布局设置",
+    "help": "帮助与文档",
+    "guide": "使用指南"
+  },
+  "flux": {
+    "common": {
+      "loading": "加载中",
+      "copy": "复制",
+      "cut": "剪切",
+      "paste": "粘贴",
+      "clear": "清空",
+      "undo": "撤销",
+      "redo": "重做"
+    },
+    "pagination": {
+      "label": "分页",
+      "previous": "上一页",
+      "next": "下一页",
+      "goToPrevious": "转到上一页",
+      "goToNext": "转到下一页",
+      "morePages": "更多页"
+    },
+    "page": {
+      "title": "Flux 页面",
+      "loadFailed": "无法加载 Flux schema。"
+    },
+    "schemaPath": "当前 Flux schemaPath: {{path}}"
+  },
+  "layout": {
+    "expandSidebar": "展开侧栏",
+    "collapseSidebar": "收起侧栏",
+    "sidebarHint": "布局偏好会被持久化，帮助你在多次访问中保持熟悉的工作区。",
+    "mobileHint": "点击菜单项后抽屉会自动关闭。"
+  },
+  "tabsBar": {
+    "refresh": "刷新",
+    "scrollLeft": "向左滚动标签页",
+    "scrollRight": "向右滚动标签页",
+    "closeCurrent": "关闭当前",
+    "closeOthers": "关闭其他",
+    "closeAll": "关闭全部",
+    "closeMenu": "关闭标签操作菜单",
+    "moreActions": "更多标签操作",
+    "enterFullscreenWorkspace": "进入全屏工作区",
+    "exitFullscreenWorkspace": "退出全屏工作区",
+    "enterFullscreen": "进入全屏",
+    "exitFullscreen": "退出全屏"
+  },
+  "core": {
+    "layout": {
+      "skipToMainContent": "跳到主内容"
+    }
+  },
+  "dashboard": {
+    "eyebrow": "总览",
+    "title": "运营总览",
+    "placeholder": "在统一操作面板中监控吞吐、环境健康度和系统采纳情况。",
+    "overviewDescription": "围绕时间范围、趋势观察、复杂分析和插件扩展的实时运营总览。",
+    "liveBadge": "实时",
+    "chartTitle": "周度吞吐趋势",
+    "timelineTitle": "发布脉搏",
+    "timelineDescription": "框架、插件和自动化模块的更新会以紧凑流形式汇聚到这里。",
+    "trendEyebrow": "趋势图",
+    "trendSectionTitle": "请求 / 成功 / 错误趋势",
+    "eventsEyebrow": "最近事件",
+    "eventsTitle": "重要事件列表",
+    "advancedChartsEyebrow": "复杂图表",
+    "composedChartTitle": "请求量与成功率组合图",
+    "composedChartHint": "已启用 Tooltip / legend / 数据高亮",
+    "categoryEyebrow": "分类统计",
+    "categoryTitle": "错误类型占比",
+    "channelChartTitle": "渠道贡献堆叠图",
+    "radarTitle": "业务能力雷达图",
+    "successRate": "成功率",
+    "currentPerformance": "当前表现",
+    "benchmark": "基准线",
+    "series": {
+      "requests": "请求量",
+      "success": "成功量",
+      "errors": "错误量"
+    },
+    "channels": {
+      "apiGateway": "API",
+      "scheduler": "调度",
+      "portal": "门户",
+      "plugin": "插件"
+    },
+    "metrics": {
+      "sessions": "访问会话",
+      "models": "活跃模型",
+      "queues": "队列健康度",
+      "automation": "自动化任务"
+    }
+  },
+  "aiWorkbench": {
+    "eyebrow": "AI 工作台",
+    "title": "AI 工作台",
+    "placeholder": "在发布前编排提示词、测试助手配置并审阅上下文包。",
+    "overviewDescription": "支持会话管理、助手切换、上下文附带和流式输出的多会话工作台。",
+    "chatTitle": "对话草稿",
+    "promptPlaceholder": "描述你想要原型化的助手行为...",
+    "generate": "生成回答",
+    "newSession": "新建会话",
+    "newSessionTitle": "新会话 {{index}}",
+    "assistantSessionTitle": "{{assistant}}会话",
+    "untitledSession": "未命名会话",
+    "searchPlaceholder": "搜索会话",
+    "rename": "重命名",
+    "regenerate": "重新生成",
+    "clearConversation": "清空对话",
+    "historyStart": "已到最早历史消息",
+    "loadOlder": "加载更早消息",
+    "sendHint": "Enter 发送，Shift+Enter 换行",
+    "stop": "停止生成",
+    "stopSuccess": "已停止当前回复。",
+    "copySuccess": "消息已复制。",
+    "contextAttachment": "上下文附加",
+    "contextStatus": "上下文状态",
+    "contextEnabled": "已开启",
+    "contextDisabled": "未附带",
+    "contextStatusDescription": "开启后会自动附加当前页面、当前助手类型和当前会话摘要。",
+    "contextPreview": "上下文预览",
+    "assistantGuide": "助手说明",
+    "contextSummary": "当前页面：AI 工作台；助手：{{assistant}}；会话标题：{{title}}。",
+    "timestamps": {
+      "earlier": "更早",
+      "justNow": "刚刚"
+    },
+    "switchMode": {
+      "current": "当前会话切换",
+      "new": "开启新会话"
+    },
+    "history": {
+      "userPrompt": "请回顾一下 {{title}} 最早阶段需要重点补齐的设计要求。",
+      "assistantReply": "以下是最早阶段的补齐建议：\n\n- 先收敛核心交互目标\n- 明确异常状态和空状态\n- 为高频操作预留快捷路径\n\n**适用助手**\n{{assistant}}",
+      "checklist": "```txt\n需求核对\n交互走查\n测试补齐\n```"
+    },
+    "assistants": {
+      "general": {
+        "name": "通用助手",
+        "description": "处理常见问答、写作与方案整理。"
+      },
+      "analysis": {
+        "name": "数据分析助手",
+        "description": "擅长分析指标、图表和报表结论。"
+      },
+      "flow": {
+        "name": "流程设计助手",
+        "description": "帮助设计节点逻辑、分支条件与编排步骤。"
+      }
+    },
+    "refine": "优化上下文",
+    "contextTitle": "上下文控制",
+    "contextDescription": "在不离开工作台的情况下接入语言工具、检索适配器和会话控制。",
+    "resizeSessionsPanel": "调整会话面板宽度"
+  },
+  "flowEditor": {
+    "loadFailed": "无法加载流程详情。",
+    "title": "流程编辑器",
+    "placeholder": "组合数据流、审批链路和 AI 协作任务的编排流程。",
+    "listEyebrow": "自动化",
+    "listDescription": "支持搜索、筛选、分页和多种流程操作的流程列表。",
+    "newFlow": "新建流程",
+    "flowListTitle": "流程列表",
+    "searchPlaceholder": "按名称或描述搜索",
+    "allStatuses": "全部状态",
+    "duplicateSuccess": "流程已复制。",
+    "statusUpdated": "流程状态已更新。",
+    "deleteConfirm": "确认删除该流程吗？",
+    "deleteSuccess": "流程已删除。",
+    "paginationSummary": "共 {{total}} 条流程，当前第 {{page}} / {{pageCount}} 页",
+    "editor": {
+      "saveSuccess": "流程已保存。",
+      "restoreSuccess": "已恢复到最近保存版本。",
+      "leaveConfirm": "当前流程存在未保存修改，确认要离开吗？",
+      "unsaved": "未保存",
+      "saved": "已保存",
+      "nodeCount": "{{count}} 节点",
+      "edgeCount": "{{count}} 连线",
+      "configCount": "{{count}} 项配置",
+      "grid": "网格",
+      "undo": "撤销",
+      "redo": "重做",
+      "restore": "恢复",
+      "exportJson": "导出 JSON",
+      "properties": "属性",
+      "save": "保存",
+      "defaultNodeDescription": "请编辑节点描述",
+      "defaultEdgePath": "默认路径",
+      "startNodeUnique": "开始节点只能有一个。",
+      "startNodeDuplicateBlocked": "开始节点只能保留一个，无法复制。",
+      "startNodeSinglePreserved": "开始节点只能保留一个。",
+      "startNodeSwitchBlocked": "开始节点只能有一个，无法将当前节点切换为开始节点。",
+      "nodeCopied": "节点已复制。",
+      "edge": "连线",
+      "pathConfig": "路径配置",
+      "nodeLibrary": "节点库",
+      "nodeLibraryHint": "拖入画布或点击加号",
+      "canvasHint": "双击编辑 · Delete 删除 · Ctrl/Cmd+Z 撤销",
+      "propertiesHint": "选中后可直接修改",
+      "flow": "流程",
+      "currentSelection": "当前选择",
+      "selectionEmpty": "点击节点或连线后，这里直接编辑属性。",
+      "shortcuts": {
+        "undo": "Ctrl/Cmd+Z 撤销",
+        "redo": "Ctrl/Cmd+Y 或 Shift+Ctrl/Cmd+Z 重做",
+        "copyPaste": "Ctrl/Cmd+C / Ctrl/Cmd+V 复制粘贴节点",
+        "delete": "Delete 删除当前节点或连线"
+      },
+      "nodeSheetTitle": "节点属性编辑",
+      "nodeSheetDescription": "双击节点或通过悬浮工具栏进入此处编辑。",
+      "edgeSheetTitle": "连线编辑",
+      "edgeSheetDescription": "双击连线标签或路径即可打开此编辑框。",
+      "deleteTitle": "确认删除",
+      "deleteDescription": "删除后当前节点或连线将从画布中移除。",
+      "nodeTypes": {
+        "start": "开始节点",
+        "end": "结束节点",
+        "task": "任务节点",
+        "condition": "条件节点",
+        "parallel": "并行节点",
+        "loop": "循环节点"
+      },
+      "paletteGroups": {
+        "basic": {
+          "title": "基础节点",
+          "description": "流程入口与结束节点。"
+        },
+        "logic": {
+          "title": "逻辑节点",
+          "description": "控制分支、并行与循环。"
+        },
+        "execution": {
+          "title": "执行节点",
+          "description": "执行业务任务与动作。"
+        }
+      },
+      "nodeFields": {
+        "name": "节点名称",
+        "description": "节点描述",
+        "type": "节点类型"
+      },
+      "edgeFields": {
+        "label": "连线标签",
+        "condition": "条件表达式",
+        "style": "线型"
+      },
+      "edgeStyles": {
+        "solid": "实线",
+        "dashed": "虚线",
+        "dotted": "点线"
+      }
+    },
+    "table": {
+      "name": "流程名称",
+      "description": "流程描述",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "updatedAt": "最近更新",
+      "actions": "操作"
+    },
+    "openEditor": "打开编辑器",
+    "editTitle": "编辑流程",
+    "editDescription": "该布局为节点面板、画布工具和属性配置区预留了清晰空间。",
+    "nodes": "节点面板",
+    "canvas": "画布",
+    "properties": "属性面板"
+  },
+  "dataManagement": {
+    "title": "数据管理",
+    "placeholder": "在一致的 CRUD 体验中组合仪表盘、表单、列表和详情页。",
+    "nestedRouteHint": "可通过嵌套路由示例查看列表与详情页如何继续共享主工作区壳层。"
+  },
+  "masterDetail": {
+    "eyebrow": "CRUD",
+    "title": "主子表 CRUD",
+    "placeholder": "适用于企业记录与嵌套资源的表格加详情骨架页面。",
+    "listDescription": "支持查询、排序、多选、分页和批量操作的主表列表。",
+    "batchExport": "批量导出",
+    "batchDelete": "批量删除",
+    "searchPlaceholder": "订单号 / 客户 / 负责人",
+    "allStatuses": "全部状态",
+    "to": "至",
+    "query": "查询",
+    "collapse": "收起",
+    "advanced": "高级",
+    "channelPlaceholder": "渠道关键词",
+    "ownerPlaceholder": "负责人",
+    "advancedHint": "可继续扩展金额区间、渠道类型、来源区域等筛选。",
+    "selectedCount": "已选 {{count}} 条",
+    "batchDeleteConfirm": "确认删除选中的 {{count}} 条记录吗？",
+    "batchDeleteSuccess": "批量删除完成。",
+    "exportSelectHint": "请至少选择一条记录后再导出。",
+    "exportConfirm": "确认导出选中的 {{count}} 条记录吗？",
+    "rowDeleteConfirm": "确认删除订单 {{orderNo}} 吗？",
+    "rowDeleteSuccess": "订单已删除。",
+    "totalRecords": "共 {{count}} 条记录",
+    "perPage": "{{count}} / 页",
+    "detail": {
+      "eyebrow": "记录详情",
+      "description": "主表信息在顶部卡片展示，子表采用就地编辑、弹框编辑与抽屉编辑三种模式。",
+      "leaveConfirm": "当前页面存在未保存修改，确认要离开吗？",
+      "saveSuccess": "保存成功。",
+      "saveFailed": "保存失败，请检查数据。",
+      "checkSectionError": "保存失败，请先检查 {{section}}。",
+      "discardConfirm": "确认放弃当前所有修改吗？",
+      "discardAll": "放弃所有编辑",
+      "saveAll": "保存全部",
+      "summaryTitle": "主表核心信息",
+      "unsavedChanges": "存在未保存修改",
+      "synced": "已同步",
+      "orderStatus": "订单状态",
+      "ownerChannel": "负责人 / 渠道",
+      "itemFilter": "筛选商品名称",
+      "addressFilter": "筛选收货人 / 电话",
+      "logisticsFilter": "筛选物流公司 / 运单号",
+      "clearFilters": "清空筛选",
+      "itemsTitle": "订单明细",
+      "restoreSection": "撤销本子表",
+      "newProduct": "新商品",
+      "add": "添加",
+      "itemColumns": {
+        "product": "商品",
+        "quantity": "数量",
+        "price": "单价",
+        "subtotal": "小计"
+      },
+      "errors": {
+        "productRequired": "商品名称不能为空",
+        "quantityPositiveInteger": "数量必须为正整数",
+        "pricePositive": "单价必须为正数",
+        "singleDefaultAddress": "必须且仅能设置一个默认地址",
+        "trackingRequired": "发货后必须填写运单号",
+        "addressRequired": "请完整填写收货地址信息。",
+        "companyRequired": "物流公司不能为空。"
+      },
+      "addressesTitle": "收货地址",
+      "addAddress": "新增地址",
+      "deleteAddressConfirm": "确认删除该地址吗？",
+      "logisticsTitle": "物流信息",
+      "newLogisticsTimeline": "新建物流记录",
+      "addLogistics": "新增物流",
+      "noTrackingNo": "未填写运单号",
+      "shippingStatuses": {
+        "pending": "待发货",
+        "shipping": "运输中",
+        "delivered": "已送达"
+      },
+      "deleteLogisticsConfirm": "确认删除该物流记录吗？",
+      "editAddress": "编辑地址",
+      "addressDialogDescription": "在模态框中完成收货地址编辑。",
+      "addressFields": {
+        "receiver": "收货人",
+        "phone": "电话",
+        "province": "省份",
+        "city": "城市",
+        "address": "详细地址",
+        "default": "设为默认地址"
+      },
+      "saveAddress": "保存地址",
+      "logisticsDrawerTitle": "物流信息编辑",
+      "logisticsDrawerDescription": "使用右侧抽屉保持主页面上下文可见。",
+      "logisticsFields": {
+        "company": "物流公司",
+        "trackingNo": "运单号",
+        "shippingStatus": "发货状态",
+        "eta": "预计送达时间",
+        "note": "备注"
+      },
+      "eta": "预计 {{eta}}",
+      "logisticsTimeline": "物流轨迹",
+      "saveLogistics": "保存物流信息",
+      "backToList": "返回列表"
+    },
+    "columns": {
+      "orderNo": "订单号",
+      "customerName": "客户名称",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "updatedAt": "最近更新时间",
+      "amount": "金额",
+      "owner": "负责人",
+      "actions": "操作"
+    },
+    "tableTitle": "账户列表",
+    "view": "查看",
+    "sidePanel": "交互说明",
+    "detailTitle": "记录详情",
+    "detailDescription": "隐藏路由同样支持标签页、面包屑和刷新恢复。",
+    "detailOverview": "概览",
+    "detailMeta": "元数据"
+  },
+  "plugins": {
+    "title": "插件系统",
+    "placeholder": "通过共享运行时依赖挂载基于 SystemJS 的远程扩展模块。",
+    "mountTitle": "插件挂载区",
+    "mountEmpty": "当前还没有启用的插件。请先在插件管理中启用插件，然后它会渲染在这里。",
+    "runtimeEyebrow": "运行时扩展",
+    "manageAction": "管理插件",
+    "openAction": "打开插件",
+    "homeDescription": "让远程扩展接入壳层，同时保持导航、主题、语言与运行时 API 同步。",
+    "homeCapabilities": "这里展示插件如何共享宿主状态、复用壳层依赖，并在同一视觉系统中渲染。",
+    "homeSupport": "支持基于 manifest 的加载、共享依赖注入、路由导航、主题同步和宿主通知。",
+    "extensionHostEyebrow": "扩展宿主",
+    "managementPageDescription": "在一个清单视图中统一管理运行时模块、启用状态和本地配置。",
+    "confirmToggle": "确认{{action}}插件“{{name}}”吗？",
+    "toggleSuccess": "插件已成功{{action}}。",
+    "configureAction": "配置",
+    "detailOverview": "插件详情与元数据",
+    "configureTitle": "配置 {{name}}",
+    "configureDescription": "更新保存在本地插件 manifest 中的运行时设置。",
+    "configureSaved": "插件设置已保存。",
+    "defaultReportTitle": "插件运营视图",
+    "remotePluginEyebrow": "远程插件",
+    "hostNotification": "{{user}} 已向宿主发送通知。",
+    "reportCount": "{{count}} 份报告",
+    "weekdays": {
+      "mon": "周一",
+      "tue": "周二",
+      "wed": "周三",
+      "thu": "周四",
+      "fri": "周五",
+      "sat": "周六",
+      "sun": "周日"
+    },
+    "managementTitle": "插件管理",
+    "managementDescription": "在统一清单视图中追踪远程模块、版本和发布状态。",
+    "notifyHost": "触发宿主通知",
+    "currentUser": "当前用户",
+    "currentLanguage": "当前语言",
+    "highlightThreshold": "高亮阈值",
+    "analyticsTitle": "自定义统计报表",
+    "bridgeTitle": "宿主桥接能力",
+    "bridgeDescription": "插件通过 @nop-chaos/plugin-bridge 读取主应用的用户信息、主题配置、toast、当前路由与导航能力。",
+    "bridgeState": "当前共享能力：主题 {{theme}} / 用户 {{user}} / 语言 {{language}} / 路由 {{path}} / 插件状态 {{status}}。"
+  },
+  "settings": {
+    "title": "系统设置",
+    "placeholder": "调整工作环境、团队默认项和呈现规则。",
+    "themeTitle": "主题设置",
+    "themeDescription": "无需刷新页面即可切换设计系统皮肤和显示模式。",
+    "visualTheme": "视觉主题",
+    "themeOptions": {
+      "classic": {
+        "label": "Classic",
+        "description": "适合高密度企业工作流的实体面板与清晰边界。"
+      },
+      "glass": {
+        "label": "Glass",
+        "description": "通过轻量半透明表面和氛围层表达更柔和的控制台体验。"
+      }
+    },
+    "displayMode": "显示模式",
+    "languageTitle": "语言设置",
+    "languageDescription": "为登录页和应用内导航持久化当前语言。",
+    "languageOptions": {
+      "zhCN": "简体中文",
+      "en": "English"
+    },
+    "activeLanguage": "当前语言",
+    "layoutTitle": "布局设置",
+    "layoutDescription": "控制工作区在重复访问时的密度和布局习惯。",
+    "sidebarMode": "侧栏状态",
+    "sidebarWidth": "展开宽度（rem）",
+    "sidebarCollapsedWidth": "收起宽度（rem）",
+    "sidebarCollapsed": "侧栏初始为紧凑模式。",
+    "sidebarExpanded": "侧栏初始为展开模式。",
+    "toggleSidebar": "切换侧栏",
+    "resetSidebarWidth": "重置宽度"
+  },
+  "help": {
+    "title": "帮助中心",
+    "placeholder": "集中呈现文档、上手步骤和发布说明。",
+    "guideTitle": "使用指南",
+    "guideDescription": "记录从首次登录到插件部署与数据审阅的完整路径。",
+    "guideBody": "建议先浏览仪表盘，再体验 CRUD 示例、系统设置与插件管理，以理解壳层在不同路由与运行时模块中的一致行为。"
+  },
+  "errors": {
+    "bootstrapFailed": "启动失败",
+    "bootstrapDescription": "应用未能完成初始化。",
+    "notFoundTitle": "页面不存在",
+    "notFoundDescription": "当前路由缺失，或已不在活动菜单配置中。",
+    "forbiddenTitle": "无权限访问",
+    "forbiddenDescription": "当前角色集合不允许访问此路由。",
+    "serverTitle": "模块渲染失败",
+    "serverDescription": "当前模块未能正确渲染，请刷新页面或检查模块注册状态。"
+  }
+}

@@ -1,0 +1,1 @@
+import{ca as e,oa as t,sa as n}from"./vendor-amis-C3Fz2yFP.js";e();export{n as IconPickerControlRenderer,t as default};

@@ -1,0 +1,1 @@
+import{lt as e,ut as t}from"./vendor-amis-C3Fz2yFP.js";t();export{e as ShapeRenderer};

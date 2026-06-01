@@ -1,0 +1,1 @@
+import{n as e,t}from"./host-amis-bootstrap-CvouAEl7.js";e();export{t as ensureAmisRuntime};

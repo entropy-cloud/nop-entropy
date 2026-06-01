@@ -1,0 +1,1 @@
+import{is as e,ns as t,rs as n,ts as r}from"./vendor-amis-C3Fz2yFP.js";e();export{t as CRUDRenderer,n as CRUDRendererBase,r as default};

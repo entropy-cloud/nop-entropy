@@ -1,0 +1,1 @@
+import{cs as e,ls as t,ss as n}from"./vendor-amis-C3Fz2yFP.js";t();export{n as BreadcrumbField,e as BreadcrumbFieldRenderer};

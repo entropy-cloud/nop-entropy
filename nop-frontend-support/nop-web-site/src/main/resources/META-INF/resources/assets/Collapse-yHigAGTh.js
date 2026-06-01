@@ -1,0 +1,1 @@
+import{cc as e,oc as t,sc as n}from"./vendor-amis-C3Fz2yFP.js";e();export{n as CollapseRenderer,t as default};

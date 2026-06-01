@@ -1,0 +1,130 @@
+{
+  "extensionDemo": {
+    "builtin": {
+      "title": "Extension Harbor Page"
+    },
+    "login": {
+      "heroEyebrow": "Extension Login",
+      "heroProduct": "Harbor Operations Suite",
+      "heroBadge": "System Page Override",
+      "cardTitle": "Enter Harbor",
+      "heroTitle": "Bring shell branding, themes, and extension points together for each business application.",
+      "heroDescription": "This demo extension shows how a reused host shell can present a different product identity without replacing the entire framework.",
+      "cardDescription": "Start a demo Harbor session for any username without relying on seeded credentials.",
+      "signInEyebrow": "Harbor Sign-in",
+      "signInTitle": "Board the Harbor workspace",
+      "signInDescription": "This is a full page override registered through `builtinPages + systemPages.login`.",
+      "username": "Username",
+      "demoCredentials": "Demo mode creates a mock Harbor session for any username through the host bridge.",
+      "submitting": "Signing in...",
+      "submit": "Enter Harbor",
+      "messages": {
+        "bridgeNotReady": "Host bridge is not ready for extension login.",
+        "loginSuccess": "Welcome aboard Harbor.",
+        "loginFailed": "Unable to sign in to Harbor."
+      },
+      "overrideFeatures": {
+        "identity": {
+          "title": "Harbor identity",
+          "description": "This login page is provided by the extension itself, not by host-side loginUi field overrides."
+        },
+        "systemPage": {
+          "title": "System page override",
+          "description": "The host still owns the `/auth/login` route, while the extension maps that route to a custom builtin page."
+        },
+        "sharedRuntime": {
+          "title": "Shared runtime",
+          "description": "Authentication state, navigation, notifications, and language still come from the same host runtime bridge."
+        }
+      },
+      "feature": {
+        "coordination": {
+          "title": "Shell coordination",
+          "description": "Branding, menus, and default routes stay aligned through one extension."
+        },
+        "themes": {
+          "title": "App-tailored themes",
+          "description": "Each application can publish its own visual language on top of the same host shell."
+        },
+        "bridge": {
+          "title": "Shared runtime bridge",
+          "description": "Built-in pages and plugins still reuse the same host runtime modules."
+        }
+      }
+    },
+    "builtinPage": {
+      "eyebrow": "Extension Builtin Page",
+      "title": "Tailwind shared with the host shell",
+      "description": "This page is compiled inside the extension project, but it still reuses host theme tokens and shared UI styles.",
+      "highlights": {
+        "tokens": {
+          "title": "Shared tokens",
+          "description": "Uses host theme tokens so colors and surfaces follow the active shell theme."
+        },
+        "preset": {
+          "title": "Tailwind preset",
+          "description": "Compiles utility classes with the shared preset instead of depending on host build output."
+        },
+        "registration": {
+          "title": "Builtin registration",
+          "description": "Registers a React component directly into the host builtin page registry through the extension loader."
+        }
+      },
+      "howItWorks": {
+        "title": "How it works",
+        "items": {
+          "registration": "The extension registers this page as a builtin component using `componentId: extension-harbor-page`.",
+          "routing": "The extension also provides a menu item with `pageType: builtin`, so routing stays inside the host shell.",
+          "tailwind": "Tailwind classes like `bg-background`, `text-foreground`, and `shadow-primary` come from the shared preset."
+        }
+      },
+      "sharedStack": {
+        "title": "Shared stack",
+        "items": {
+          "themeTokens": "Host loads @nop-chaos/theme-tokens/styles.css",
+          "preset": "Extension compiles component-page.css with @nop-chaos/tailwind-preset",
+          "baseStyles": "Extension imports @nop-chaos/ui/base.css for shared semantic styles",
+          "hostRegistration": "Host injects extension styles and registers the component"
+        }
+      }
+    },
+    "notFound": {
+      "badge": "Harbor extension 404",
+      "eyebrow": "System Page Override",
+      "title": "This route is not mapped inside the Harbor workspace.",
+      "description": "The host shell routed you to `/404`, but the rendered screen comes from the extension package. This demonstrates a second system page override beyond login.",
+      "activeApplicationLabel": "Active application",
+      "activeApplicationValue": "Harbor",
+      "suggestedRoutes": "Suggested routes",
+      "whyThisMatters": "Why this matters",
+      "reasons": {
+        "loginOverride": "Login override proves that an extension can replace entry flows.",
+        "notFoundOverride": "404 override proves that the host can keep route ownership while delegating system views.",
+        "sharedShell": "The same shell still handles auth state, menu loading, permissions, and plugin runtime coordination."
+      },
+      "quickLinks": {
+        "home": {
+          "title": "Back to Harbor home",
+          "description": "Return to the extension dashboard page and continue browsing from the default Harbor workspace."
+        },
+        "page": {
+          "title": "Open Harbor page",
+          "description": "Jump directly to the extension builtin page registered by the Harbor demo package."
+        }
+      },
+      "returnToWorkspace": "Return to Harbor workspace"
+    }
+  },
+  "settings": {
+    "languageOptions": {
+      "en": "English",
+      "frFR": "French"
+    },
+    "themeOptions": {
+      "harbor": {
+        "label": "Harbor",
+        "description": "Cool coastal colors for shared dashboards and operations screens."
+      }
+    }
+  }
+}

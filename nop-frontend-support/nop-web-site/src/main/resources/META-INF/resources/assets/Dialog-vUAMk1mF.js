@@ -1,0 +1,1 @@
+import{ao as e,oo as t,so as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as DialogRenderer,e as default};

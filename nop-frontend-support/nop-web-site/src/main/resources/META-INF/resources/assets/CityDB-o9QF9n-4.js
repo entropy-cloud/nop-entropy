@@ -1,0 +1,1 @@
+import{_ as e,g as t,h as n,m as r,p as i}from"./vendor-amis-ui-C4m50gE8.js";t();export{i as city,r as default,n as district,e as province};
