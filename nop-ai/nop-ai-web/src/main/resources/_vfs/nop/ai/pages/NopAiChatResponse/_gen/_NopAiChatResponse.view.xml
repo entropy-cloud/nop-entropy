@@ -65,7 +65,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-响应结果" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-响应结果" i18n-en:title="View Response Result">
             <layout>
  requestId[请求ID] sessionId[会话ID]
  modelId[模型ID] aiProvider[供应商]
@@ -76,8 +76,8 @@
  readabilityScore[可读性分] complianceScore[合规性分]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-响应结果" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-响应结果" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-响应结果" i18n-en:title="Add Response Result" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-响应结果" i18n-en:title="Edit Response Result">
             <layout>
  requestId[请求ID] sessionId[会话ID]
  modelId[模型ID] aiProvider[供应商]
@@ -90,7 +90,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-响应结果" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-响应结果" i18n-en:title="Update Response Result"/>
     </forms>
 
     <pages>

@@ -1,94 +1,94 @@
 site:
   resource:
     FNPT:NopAiChatRequest:mutation:
-      displayName: Modify 对话请求
+      displayName: Modify Chat Request
     FNPT:NopAiChatRequest:query:
-      displayName: Query 对话请求
+      displayName: Query Chat Request
     FNPT:NopAiChatResponse:mutation:
-      displayName: Modify 响应结果
+      displayName: Modify Response Result
     FNPT:NopAiChatResponse:query:
-      displayName: Query 响应结果
+      displayName: Query Response Result
     FNPT:NopAiGenFile:mutation:
-      displayName: Modify 生成文件
+      displayName: Modify Generated File
     FNPT:NopAiGenFile:query:
-      displayName: Query 生成文件
+      displayName: Query Generated File
     FNPT:NopAiGenFileHistory:mutation:
-      displayName: Modify 文件历史
+      displayName: Modify File History
     FNPT:NopAiGenFileHistory:query:
-      displayName: Query 文件历史
+      displayName: Query File History
     FNPT:NopAiKnowledge:mutation:
-      displayName: Modify 知识库
+      displayName: Modify Knowledge Base
     FNPT:NopAiKnowledge:query:
-      displayName: Query 知识库
+      displayName: Query Knowledge Base
     FNPT:NopAiModel:mutation:
-      displayName: Modify AI模型
+      displayName: Modify AI Model
     FNPT:NopAiModel:query:
-      displayName: Query AI模型
+      displayName: Query AI Model
     FNPT:NopAiProject:mutation:
-      displayName: Modify AI项目
+      displayName: Modify AI Project
     FNPT:NopAiProject:query:
-      displayName: Query AI项目
+      displayName: Query AI Project
     FNPT:NopAiProjectConfig:mutation:
-      displayName: Modify 项目配置
+      displayName: Modify Project Config
     FNPT:NopAiProjectConfig:query:
-      displayName: Query 项目配置
+      displayName: Query Project Config
     FNPT:NopAiProjectRule:mutation:
-      displayName: Modify 项目规则
+      displayName: Modify Project Rule
     FNPT:NopAiProjectRule:query:
-      displayName: Query 项目规则
+      displayName: Query Project Rule
     FNPT:NopAiPromptTemplate:mutation:
-      displayName: Modify 提示词模板
+      displayName: Modify Prompt Template
     FNPT:NopAiPromptTemplate:query:
-      displayName: Query 提示词模板
+      displayName: Query Prompt Template
     FNPT:NopAiPromptTemplateHistory:mutation:
-      displayName: Modify 模板历史
+      displayName: Modify Template History
     FNPT:NopAiPromptTemplateHistory:query:
-      displayName: Query 模板历史
+      displayName: Query Template History
     FNPT:NopAiRequirement:mutation:
-      displayName: Modify 需求条目
+      displayName: Modify Requirement Item
     FNPT:NopAiRequirement:query:
-      displayName: Query 需求条目
+      displayName: Query Requirement Item
     FNPT:NopAiRequirementHistory:mutation:
-      displayName: Modify 需求历史
+      displayName: Modify Requirement History
     FNPT:NopAiRequirementHistory:query:
-      displayName: Query 需求历史
+      displayName: Query Requirement History
     FNPT:NopAiTestCase:mutation:
-      displayName: Modify 测试用例
+      displayName: Modify Test Case
     FNPT:NopAiTestCase:query:
-      displayName: Query 测试用例
+      displayName: Query Test Case
     FNPT:NopAiTestResult:mutation:
-      displayName: Modify 测试结果
+      displayName: Modify Test Result
     FNPT:NopAiTestResult:query:
-      displayName: Query 测试结果
+      displayName: Query Test Result
     NopAiChatRequest-main:
-      displayName: ''
+      displayName: Chat Request
     NopAiChatResponse-main:
-      displayName: ''
+      displayName: Response Result
     NopAiGenFile-main:
-      displayName: ''
+      displayName: Generated File
     NopAiGenFileHistory-main:
-      displayName: ''
+      displayName: File History
     NopAiKnowledge-main:
-      displayName: ''
+      displayName: Knowledge Base
     NopAiModel-main:
-      displayName: ''
+      displayName: AI Model
     NopAiProject-main:
-      displayName: ''
+      displayName: AI Project
     NopAiProjectConfig-main:
-      displayName: ''
+      displayName: Project Config
     NopAiProjectRule-main:
-      displayName: ''
+      displayName: Project Rule
     NopAiPromptTemplate-main:
-      displayName: ''
+      displayName: Prompt Template
     NopAiPromptTemplateHistory-main:
-      displayName: ''
+      displayName: Template History
     NopAiRequirement-main:
-      displayName: ''
+      displayName: Requirement Item
     NopAiRequirementHistory-main:
-      displayName: ''
+      displayName: Requirement History
     NopAiTestCase-main:
-      displayName: ''
+      displayName: Test Case
     NopAiTestResult-main:
-      displayName: ''
+      displayName: Test Result
     test-orm-nop-ai:
-      displayName: ''
+      displayName: Test nop-ai

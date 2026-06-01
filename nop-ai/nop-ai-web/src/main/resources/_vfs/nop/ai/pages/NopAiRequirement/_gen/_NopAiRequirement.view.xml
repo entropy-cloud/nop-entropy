@@ -50,7 +50,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-需求条目" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-需求条目" i18n-en:title="View Requirement Item">
             <layout>
  projectId[项目ID]
  reqNumber[需求编号]
@@ -63,8 +63,8 @@
  status[状态]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-需求条目" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-需求条目" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-需求条目" i18n-en:title="Add Requirement Item" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-需求条目" i18n-en:title="Edit Requirement Item">
             <layout>
  projectId[项目ID]
  reqNumber[需求编号]
@@ -79,7 +79,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-需求条目" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-需求条目" i18n-en:title="Update Requirement Item"/>
     </forms>
 
     <pages>

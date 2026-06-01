@@ -1,20 +1,20 @@
 entity:
   label:
-    NopAiChatRequest: null
-    NopAiChatResponse: null
-    NopAiGenFile: null
-    NopAiGenFileHistory: null
-    NopAiKnowledge: null
-    NopAiModel: null
-    NopAiProject: null
-    NopAiProjectConfig: null
-    NopAiProjectRule: null
-    NopAiPromptTemplate: null
-    NopAiPromptTemplateHistory: null
-    NopAiRequirement: null
-    NopAiRequirementHistory: null
-    NopAiTestCase: null
-    NopAiTestResult: null
+    NopAiChatRequest: Chat Request
+    NopAiChatResponse: Response Result
+    NopAiGenFile: Generated File
+    NopAiGenFileHistory: File History
+    NopAiKnowledge: Knowledge Base
+    NopAiModel: AI Model
+    NopAiProject: AI Project
+    NopAiProjectConfig: Project Config
+    NopAiProjectRule: Project Rule
+    NopAiPromptTemplate: Prompt Template
+    NopAiPromptTemplateHistory: Template History
+    NopAiRequirement: Requirement Item
+    NopAiRequirementHistory: Requirement History
+    NopAiTestCase: Test Case
+    NopAiTestResult: Test Result
 prop:
   label:
     NopAiChatRequest:

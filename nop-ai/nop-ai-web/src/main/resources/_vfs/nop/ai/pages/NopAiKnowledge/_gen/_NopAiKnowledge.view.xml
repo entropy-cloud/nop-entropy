@@ -32,15 +32,15 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-知识库" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-知识库" i18n-en:title="View Knowledge Base">
             <layout>
  title[标题]
  content[内容]
  format[格式类型]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-知识库" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-知识库" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-知识库" i18n-en:title="Add Knowledge Base" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-知识库" i18n-en:title="Edit Knowledge Base">
             <layout>
  title[标题]
  content[内容]
@@ -49,7 +49,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-知识库" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-知识库" i18n-en:title="Update Knowledge Base"/>
     </forms>
 
     <pages>

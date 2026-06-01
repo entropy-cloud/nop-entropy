@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <orm ext:registerShortName="true" ext:appName="nop-ai" ext:icon="bot" ext:entityPackageName="nop.ai.dao.entity"
      ext:basePackageName="nop.ai" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-ai"
-     ext:allowIdAsColName="true" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
-     xmlns:ui="ui">
+     ext:allowIdAsColName="true" xmlns:i18n-en="i18n-en" x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen"
+     xmlns:xpl="xpl" xmlns:ui="ui">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
@@ -76,7 +76,8 @@
 
     <entities>
         <entity className="nop.ai.dao.entity.NopAiProject" displayName="AI项目" name="nop.ai.dao.entity.NopAiProject"
-                registerShortName="true" tableName="nop_ai_project" ext:icon="folder-kanban">
+                registerShortName="true" tableName="nop_ai_project" i18n-en:displayName="AI Project"
+                ext:icon="folder-kanban">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -127,7 +128,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiProjectRule" displayName="项目规则"
                 name="nop.ai.dao.entity.NopAiProjectRule" registerShortName="true" tableName="nop_ai_project_rule"
-                ext:icon="shield-check">
+                i18n-en:displayName="Project Rule" ext:icon="shield-check">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -166,7 +167,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiProjectConfig" displayName="项目配置"
                 name="nop.ai.dao.entity.NopAiProjectConfig" registerShortName="true" tableName="nop_ai_project_config"
-                ext:icon="settings-2">
+                i18n-en:displayName="Project Config" ext:icon="settings-2">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -191,7 +192,7 @@
             </relations>
         </entity>
         <entity className="nop.ai.dao.entity.NopAiModel" displayName="AI模型" name="nop.ai.dao.entity.NopAiModel"
-                registerShortName="true" tableName="nop_ai_model" ext:icon="bot">
+                registerShortName="true" tableName="nop_ai_model" i18n-en:displayName="AI Model" ext:icon="bot">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -216,7 +217,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiRequirement" displayName="需求条目"
                 name="nop.ai.dao.entity.NopAiRequirement" registerShortName="true" tableName="nop_ai_requirement"
-                ext:icon="clipboard-list">
+                i18n-en:displayName="Requirement Item" ext:icon="clipboard-list">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -283,7 +284,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiRequirementHistory" displayName="需求历史"
                 name="nop.ai.dao.entity.NopAiRequirementHistory" registerShortName="true"
-                tableName="nop_ai_requirement_history" ext:icon="history">
+                tableName="nop_ai_requirement_history" i18n-en:displayName="Requirement History" ext:icon="history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -306,7 +307,8 @@
             </relations>
         </entity>
         <entity className="nop.ai.dao.entity.NopAiKnowledge" displayName="知识库" name="nop.ai.dao.entity.NopAiKnowledge"
-                registerShortName="true" tableName="nop_ai_knowledge" ext:icon="book-open">
+                registerShortName="true" tableName="nop_ai_knowledge" i18n-en:displayName="Knowledge Base"
+                ext:icon="book-open">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -329,7 +331,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiPromptTemplate" displayName="提示词模板"
                 name="nop.ai.dao.entity.NopAiPromptTemplate" registerShortName="true" tableName="nop_ai_prompt_template"
-                ext:icon="file-text">
+                i18n-en:displayName="Prompt Template" ext:icon="file-text">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -362,7 +364,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiPromptTemplateHistory" displayName="模板历史"
                 name="nop.ai.dao.entity.NopAiPromptTemplateHistory" registerShortName="true"
-                tableName="nop_ai_prompt_template_history" ext:icon="history">
+                tableName="nop_ai_prompt_template_history" i18n-en:displayName="Template History" ext:icon="history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -386,7 +388,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiChatRequest" displayName="对话请求"
                 name="nop.ai.dao.entity.NopAiChatRequest" registerShortName="true" tableName="nop_ai_chat_request"
-                ext:icon="messages-square">
+                i18n-en:displayName="Chat Request" ext:icon="messages-square">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -426,7 +428,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiChatResponse" displayName="响应结果"
                 name="nop.ai.dao.entity.NopAiChatResponse" registerShortName="true" tableName="nop_ai_chat_response"
-                ext:icon="message-square">
+                i18n-en:displayName="Response Result" ext:icon="message-square">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -490,7 +492,8 @@
             </relations>
         </entity>
         <entity className="nop.ai.dao.entity.NopAiGenFile" displayName="生成文件" name="nop.ai.dao.entity.NopAiGenFile"
-                registerShortName="true" tableName="nop_ai_gen_file" ext:icon="file-code">
+                registerShortName="true" tableName="nop_ai_gen_file" i18n-en:displayName="Generated File"
+                ext:icon="file-code">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -548,7 +551,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiGenFileHistory" displayName="文件历史"
                 name="nop.ai.dao.entity.NopAiGenFileHistory" registerShortName="true"
-                tableName="nop_ai_gen_file_history" ext:icon="history">
+                tableName="nop_ai_gen_file_history" i18n-en:displayName="File History" ext:icon="history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -571,7 +574,8 @@
             </relations>
         </entity>
         <entity className="nop.ai.dao.entity.NopAiTestCase" displayName="测试用例" name="nop.ai.dao.entity.NopAiTestCase"
-                registerShortName="true" tableName="nop_ai_test_case" ext:icon="flask-conical">
+                registerShortName="true" tableName="nop_ai_test_case" i18n-en:displayName="Test Case"
+                ext:icon="flask-conical">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -621,7 +625,7 @@
         </entity>
         <entity className="nop.ai.dao.entity.NopAiTestResult" displayName="测试结果"
                 name="nop.ai.dao.entity.NopAiTestResult" registerShortName="true" tableName="nop_ai_test_result"
-                ext:icon="badge-check">
+                i18n-en:displayName="Test Result" ext:icon="badge-check">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>

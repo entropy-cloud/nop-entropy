@@ -35,7 +35,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-测试结果" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-测试结果" i18n-en:title="View Test Result">
             <layout>
  testCaseId[测试用例ID]
  executionTime[执行时间]
@@ -43,8 +43,8 @@
  errorLog[错误日志]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-测试结果" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-测试结果" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-测试结果" i18n-en:title="Add Test Result" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-测试结果" i18n-en:title="Edit Test Result">
             <layout>
  testCaseId[测试用例ID]
  executionTime[执行时间]
@@ -54,7 +54,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-测试结果" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-测试结果" i18n-en:title="Update Test Result"/>
     </forms>
 
     <pages>

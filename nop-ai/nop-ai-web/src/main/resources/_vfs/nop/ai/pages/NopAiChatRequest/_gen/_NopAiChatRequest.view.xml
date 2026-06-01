@@ -47,7 +47,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-对话请求" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-对话请求" i18n-en:title="View Chat Request">
             <layout>
  templateId[模板ID]
  sessionId[会话ID]
@@ -59,8 +59,8 @@
  metadata[元数据]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-对话请求" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-对话请求" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-对话请求" i18n-en:title="Add Chat Request" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-对话请求" i18n-en:title="Edit Chat Request">
             <layout>
  templateId[模板ID]
  sessionId[会话ID]
@@ -74,7 +74,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-对话请求" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-对话请求" i18n-en:title="Update Chat Request"/>
     </forms>
 
     <pages>

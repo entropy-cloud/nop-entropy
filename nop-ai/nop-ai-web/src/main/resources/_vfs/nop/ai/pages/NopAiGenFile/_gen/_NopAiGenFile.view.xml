@@ -44,7 +44,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-生成文件" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-生成文件" i18n-en:title="View Generated File">
             <layout>
  projectId[项目ID]
  requirementId[需求ID]
@@ -55,8 +55,8 @@
  status[状态]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-生成文件" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-生成文件" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-生成文件" i18n-en:title="Add Generated File" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-生成文件" i18n-en:title="Edit Generated File">
             <layout>
  projectId[项目ID]
  requirementId[需求ID]
@@ -69,7 +69,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-生成文件" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-生成文件" i18n-en:title="Update Generated File"/>
     </forms>
 
     <pages>

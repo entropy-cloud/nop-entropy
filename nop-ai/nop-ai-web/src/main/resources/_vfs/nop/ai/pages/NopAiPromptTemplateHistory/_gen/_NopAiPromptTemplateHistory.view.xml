@@ -32,15 +32,15 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-模板历史" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-模板历史" i18n-en:title="View Template History">
             <layout>
  templateId[模板ID]
  version[版本号]
  content[模板内容]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-模板历史" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-模板历史" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-模板历史" i18n-en:title="Add Template History" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-模板历史" i18n-en:title="Edit Template History">
             <layout>
  templateId[模板ID]
  version[版本号]
@@ -49,7 +49,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-模板历史" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-模板历史" i18n-en:title="Update Template History"/>
     </forms>
 
     <pages>

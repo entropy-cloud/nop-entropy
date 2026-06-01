@@ -35,7 +35,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-AI项目" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-AI项目" i18n-en:title="View AI Project">
             <layout>
  language[项目语言]
  name[项目名称]
@@ -43,8 +43,8 @@
  projectDir[项目目录]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-AI项目" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-AI项目" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-AI项目" i18n-en:title="Add AI Project" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-AI项目" i18n-en:title="Edit AI Project">
             <layout>
  language[项目语言]
  name[项目名称]
@@ -54,7 +54,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-AI项目" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-AI项目" i18n-en:title="Update AI Project"/>
     </forms>
 
     <pages>
