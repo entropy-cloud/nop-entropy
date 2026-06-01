@@ -1,0 +1,17 @@
+nop-ai
+nop-ai/nop-ai-coder/demo
+nop-auth
+nop-auth/nop-oauth
+nop-batch
+nop-code
+nop-demo/nop-ddd-demo
+nop-dyn
+nop-file
+nop-job
+nop-kernel/nop-kernel-cli/demo
+nop-report
+nop-retry
+nop-rule
+nop-task
+nop-tcc
+nop-wf

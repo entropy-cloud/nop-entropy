@@ -16,6 +16,8 @@ pnpm check         # run all checks
 |--------|---------|-------|
 | `check-doc-links.mjs` | Check `docs-for-ai/` and `ai-dev/` markdown path references | `pnpm check:doc-links` |
 | `check-doc-index.mjs` | Audit doc index health: broken links, orphans, missing sub-indexes, duplicated rules, sync drift | `node ai-dev/tools/check-doc-index.mjs [--fix] [--strict]` |
+| `check-i18n-en-xml.mjs` | Check `i18n-en:*` attributes in `*.xml` and `*.xmeta` for non-English or suspicious values | `node ai-dev/tools/check-i18n-en-xml.mjs [--strict]` |
+| `convert-model-xml-to-xlsx.sh` | Batch convert source `model/*.orm.xml` and `model/*.api.xml` to sibling `*.xlsx` files for configured projects | `bash ai-dev/tools/convert-model-xml-to-xlsx.sh` |
 | `check-import-order.mjs` | Check Java import grouping: `java.* → jakarta.* → third-party → io.nop.*` | `pnpm check:import-order` |
 | `check-oversized-files.mjs` | Detect oversized source files (>500 lines warn, >700 error) | `pnpm check:oversized` |
 | `check-docs-garbled.mjs` | Detect garbled/corrupted Unicode in documentation | `pnpm check:garbled` |
@@ -56,6 +58,36 @@ Checks performed:
 - Sync drift in `ai-dev/logs/index.md`
 
 Writes a report to `_tmp/doc-index-audit-{timestamp}.md` and prints the summary to stdout.
+
+### check-i18n-en-xml.mjs
+
+Checks `i18n-en:*` attributes in repository `*.xml` and `*.xmeta` files.
+
+Temporary or derived directories such as `target/`, `_tmp/`, and `_dump/` are skipped by default.
+
+```bash
+node ai-dev/tools/check-i18n-en-xml.mjs           # report issues
+node ai-dev/tools/check-i18n-en-xml.mjs --strict  # exit non-zero on errors
+```
+
+Checks performed:
+- `error`: empty values, Chinese text, values with no English letters, or incomplete labels such as `View`, `Add`, `Edit`, `Update`, `Query`, `Modify`
+- `warn`: common spelling or style issues such as `Worflow`, `CamlCase`, `TableName`, `Sql`, `Oauth`
+
+Writes reports to `_tmp/i18n-en-xml-report.json` and `_tmp/i18n-en-xml-report.md`.
+
+### convert-model-xml-to-xlsx.sh
+
+Uses `ai-dev/tools/model-convert-projects.txt` as the configured project list, finds source `model/*.orm.xml` and `model/*.api.xml`, and converts each to a sibling `*.xlsx` file via `nop-cli convert`.
+
+```bash
+bash ai-dev/tools/convert-model-xml-to-xlsx.sh
+```
+
+Validation rules:
+1. Each `nop-cli convert` invocation must return exit code 0.
+2. The expected output file must exist.
+3. Any failed conversion makes the whole script exit non-zero and prints the failed entries.
 
 ### check-import-order.mjs
 
