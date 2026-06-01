@@ -41,7 +41,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-注解使用" i18n-en:title="View ">
+        <form id="view" editMode="view" title="查看-注解使用" i18n-en:title="View Annotation Usage">
             <layout>
  indexId[索引ID]
  annotationTypeId[注解类型ID]
@@ -51,8 +51,8 @@
  attributes[属性值]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-注解使用" i18n-en:title="Add " x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-注解使用" i18n-en:title="Edit ">
+        <form id="add" editMode="add" title="新增-注解使用" i18n-en:title="Add Annotation Usage" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-注解使用" i18n-en:title="Edit Annotation Usage">
             <layout>
  indexId[索引ID]
  annotationTypeId[注解类型ID]
@@ -64,7 +64,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-注解使用" i18n-en:title="Update "/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-注解使用" i18n-en:title="Update Annotation Usage"/>
     </forms>
 
     <pages>

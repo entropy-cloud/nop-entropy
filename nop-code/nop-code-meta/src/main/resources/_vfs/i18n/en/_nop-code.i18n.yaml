@@ -1,16 +1,16 @@
 entity:
   label:
-    NopCodeAnnotationUsage: null
-    NopCodeCall: null
-    NopCodeDependency: null
-    NopCodeFile: null
-    NopCodeFlow: null
-    NopCodeFlowMembership: null
-    NopCodeIndex: null
-    NopCodeInheritance: null
-    NopCodeSemanticEdge: null
-    NopCodeSymbol: null
-    NopCodeUsage: null
+    NopCodeAnnotationUsage: Annotation Usage
+    NopCodeCall: Method Call
+    NopCodeDependency: File Dependency
+    NopCodeFile: Code File
+    NopCodeFlow: Execution Flow
+    NopCodeFlowMembership: Execution Flow Membership
+    NopCodeIndex: Code Index
+    NopCodeInheritance: Inheritance
+    NopCodeSemanticEdge: Semantic Edge
+    NopCodeSymbol: Symbol
+    NopCodeUsage: Symbol Usage
 prop:
   label:
     NopCodeAnnotationUsage:

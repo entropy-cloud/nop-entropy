@@ -2,7 +2,7 @@
 <orm ext:registerShortName="true" ext:appName="nop-code" ext:icon="code-2" ext:entityPackageName="io.nop.code.dao.entity"
      ext:basePackageName="io.nop.code" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-code"
      ext:allowIdAsColName="true" ext:useStdFields="true"
-     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext">
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext" xmlns:i18n-en="i18n-en">
 
     <domains>
         <domain name="codeId" precision="36" stdSqlType="VARCHAR"/>
@@ -88,7 +88,7 @@
              ======================================== -->
 
         <!-- 代码索引 -->
-        <entity className="io.nop.code.dao.entity.NopCodeIndex" displayName="代码索引"
+        <entity className="io.nop.code.dao.entity.NopCodeIndex" displayName="代码索引" i18n-en:displayName="Code Index"
                 name="io.nop.code.dao.entity.NopCodeIndex" registerShortName="true"
                 tableName="nop_code_index" ext:icon="search">
             <columns>
@@ -141,7 +141,7 @@
         </entity>
 
         <!-- 文件 -->
-        <entity className="io.nop.code.dao.entity.NopCodeFile" displayName="代码文件"
+        <entity className="io.nop.code.dao.entity.NopCodeFile" displayName="代码文件" i18n-en:displayName="Code File"
                 name="io.nop.code.dao.entity.NopCodeFile" registerShortName="true"
                 tableName="nop_code_file" ext:icon="file-code">
             <columns>
@@ -193,7 +193,7 @@
              ======================================== -->
 
         <!-- 符号表 - 统一存储类、接口、枚举、注解、方法、字段等 -->
-        <entity className="io.nop.code.dao.entity.NopCodeSymbol" displayName="符号"
+        <entity className="io.nop.code.dao.entity.NopCodeSymbol" displayName="符号" i18n-en:displayName="Symbol"
                 name="io.nop.code.dao.entity.NopCodeSymbol" registerShortName="true"
                 tableName="nop_code_symbol" ext:icon="code">
             <columns>
@@ -369,7 +369,7 @@
              ======================================== -->
 
         <!-- 符号引用 -->
-        <entity className="io.nop.code.dao.entity.NopCodeUsage" displayName="符号引用"
+        <entity className="io.nop.code.dao.entity.NopCodeUsage" displayName="符号引用" i18n-en:displayName="Symbol Usage"
                 name="io.nop.code.dao.entity.NopCodeUsage" registerShortName="true"
                 tableName="nop_code_usage" ext:icon="link-2">
             <columns>
@@ -437,7 +437,7 @@
         </entity>
 
         <!-- 方法调用 -->
-        <entity className="io.nop.code.dao.entity.NopCodeCall" displayName="方法调用"
+        <entity className="io.nop.code.dao.entity.NopCodeCall" displayName="方法调用" i18n-en:displayName="Method Call"
                 name="io.nop.code.dao.entity.NopCodeCall" registerShortName="true"
                 tableName="nop_code_call" ext:icon="waypoints">
             <columns>
@@ -504,7 +504,7 @@
         </entity>
 
         <!-- 继承关系 -->
-        <entity className="io.nop.code.dao.entity.NopCodeInheritance" displayName="继承关系"
+        <entity className="io.nop.code.dao.entity.NopCodeInheritance" displayName="继承关系" i18n-en:displayName="Inheritance"
                 name="io.nop.code.dao.entity.NopCodeInheritance" registerShortName="true"
                 tableName="nop_code_inheritance" ext:icon="git-branch">
             <columns>
@@ -556,7 +556,7 @@
         </entity>
 
         <!-- 注解使用 -->
-        <entity className="io.nop.code.dao.entity.NopCodeAnnotationUsage" displayName="注解使用"
+        <entity className="io.nop.code.dao.entity.NopCodeAnnotationUsage" displayName="注解使用" i18n-en:displayName="Annotation Usage"
                 name="io.nop.code.dao.entity.NopCodeAnnotationUsage" registerShortName="true"
                 tableName="nop_code_annotation_usage" ext:icon="bookmark">
             <columns>
@@ -616,7 +616,7 @@
              ======================================== -->
 
         <!-- 文件依赖 -->
-        <entity className="io.nop.code.dao.entity.NopCodeDependency" displayName="文件依赖"
+        <entity className="io.nop.code.dao.entity.NopCodeDependency" displayName="文件依赖" i18n-en:displayName="File Dependency"
                 name="io.nop.code.dao.entity.NopCodeDependency" registerShortName="true"
                 tableName="nop_code_dependency" ext:icon="network">
             <columns>
@@ -658,7 +658,7 @@
              ======================================== -->
 
         <!-- 执行流 -->
-        <entity className="io.nop.code.dao.entity.NopCodeFlow" displayName="执行流"
+        <entity className="io.nop.code.dao.entity.NopCodeFlow" displayName="执行流" i18n-en:displayName="Execution Flow"
                 name="io.nop.code.dao.entity.NopCodeFlow" registerShortName="true"
                 tableName="nop_code_flow" ext:icon="route">
             <columns>
@@ -732,7 +732,7 @@
         </entity>
 
         <!-- 执行流-符号成员 -->
-        <entity className="io.nop.code.dao.entity.NopCodeFlowMembership" displayName="执行流成员"
+        <entity className="io.nop.code.dao.entity.NopCodeFlowMembership" displayName="执行流成员" i18n-en:displayName="Execution Flow Membership"
                 name="io.nop.code.dao.entity.NopCodeFlowMembership" registerShortName="true"
                 tableName="nop_code_flow_membership" ext:icon="share-2">
             <columns>

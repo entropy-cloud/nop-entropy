@@ -2,8 +2,9 @@
 <orm ext:registerShortName="true" ext:appName="nop-code" ext:icon="code-2"
      ext:entityPackageName="io.nop.code.dao.entity" ext:basePackageName="io.nop.code"
      ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-code" ext:allowIdAsColName="true"
-     ext:useStdFields="true" xmlns:ext="ext" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
+     ext:useStdFields="true" xmlns:ext="ext" xmlns:i18n-en="i18n-en" x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:ref-i18n-en="ref-i18n-en" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
+     xmlns:ui="ui">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
@@ -94,7 +95,7 @@
     <entities>
         <entity className="io.nop.code.dao.entity.NopCodeIndex" displayName="代码索引"
                 name="io.nop.code.dao.entity.NopCodeIndex" registerShortName="true" tableName="nop_code_index"
-                ext:icon="search">
+                i18n-en:displayName="Code Index" ext:icon="search">
             <columns>
                 <column code="ID" displayName="索引ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -175,7 +176,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeFile" displayName="代码文件"
                 name="io.nop.code.dao.entity.NopCodeFile" registerShortName="true" tableName="nop_code_file"
-                ext:icon="file-code">
+                i18n-en:displayName="Code File" ext:icon="file-code">
             <columns>
                 <column code="ID" displayName="文件ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -233,7 +234,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeSymbol" displayName="符号"
                 name="io.nop.code.dao.entity.NopCodeSymbol" registerShortName="true" tableName="nop_code_symbol"
-                ext:icon="code">
+                i18n-en:displayName="Symbol" ext:icon="code">
             <columns>
                 <column code="ID" displayName="符号ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -435,7 +436,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeUsage" displayName="符号引用"
                 name="io.nop.code.dao.entity.NopCodeUsage" registerShortName="true" tableName="nop_code_usage"
-                ext:icon="link-2">
+                i18n-en:displayName="Symbol Usage" ext:icon="link-2">
             <columns>
                 <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -501,7 +502,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeCall" displayName="方法调用"
                 name="io.nop.code.dao.entity.NopCodeCall" registerShortName="true" tableName="nop_code_call"
-                ext:icon="waypoints">
+                i18n-en:displayName="Method Call" ext:icon="waypoints">
             <columns>
                 <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -566,7 +567,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeInheritance" displayName="继承关系"
                 name="io.nop.code.dao.entity.NopCodeInheritance" registerShortName="true"
-                tableName="nop_code_inheritance" ext:icon="git-branch">
+                tableName="nop_code_inheritance" i18n-en:displayName="Inheritance" ext:icon="git-branch">
             <columns>
                 <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -616,7 +617,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeAnnotationUsage" displayName="注解使用"
                 name="io.nop.code.dao.entity.NopCodeAnnotationUsage" registerShortName="true"
-                tableName="nop_code_annotation_usage" ext:icon="bookmark">
+                tableName="nop_code_annotation_usage" i18n-en:displayName="Annotation Usage" ext:icon="bookmark">
             <columns>
                 <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -670,7 +671,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeDependency" displayName="文件依赖"
                 name="io.nop.code.dao.entity.NopCodeDependency" registerShortName="true" tableName="nop_code_dependency"
-                ext:icon="network">
+                i18n-en:displayName="File Dependency" ext:icon="network">
             <columns>
                 <column code="ID" displayName="依赖ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -708,7 +709,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeFlow" displayName="执行流"
                 name="io.nop.code.dao.entity.NopCodeFlow" registerShortName="true" tableName="nop_code_flow"
-                ext:icon="route">
+                i18n-en:displayName="Execution Flow" ext:icon="route">
             <columns>
                 <column code="ID" displayName="流ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -780,7 +781,7 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeFlowMembership" displayName="执行流成员"
                 name="io.nop.code.dao.entity.NopCodeFlowMembership" registerShortName="true"
-                tableName="nop_code_flow_membership" ext:icon="share-2">
+                tableName="nop_code_flow_membership" i18n-en:displayName="Execution Flow Membership" ext:icon="share-2">
             <columns>
                 <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>

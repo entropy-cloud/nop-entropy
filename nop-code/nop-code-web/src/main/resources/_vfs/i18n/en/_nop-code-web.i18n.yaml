@@ -1,80 +1,80 @@
 site:
   resource:
     FNPT:NopCodeAnnotationUsage:mutation:
-      displayName: Modify 注解使用
+      displayName: Modify Annotation Usage
     FNPT:NopCodeAnnotationUsage:query:
-      displayName: Query 注解使用
+      displayName: Query Annotation Usage
     FNPT:NopCodeCall:mutation:
-      displayName: Modify 方法调用
+      displayName: Modify Method Call
     FNPT:NopCodeCall:query:
-      displayName: Query 方法调用
+      displayName: Query Method Call
     FNPT:NopCodeDependency:mutation:
-      displayName: Modify 文件依赖
+      displayName: Modify File Dependency
     FNPT:NopCodeDependency:query:
-      displayName: Query 文件依赖
+      displayName: Query File Dependency
     FNPT:NopCodeFile:mutation:
-      displayName: Modify 代码文件
+      displayName: Modify Code File
     FNPT:NopCodeFile:query:
-      displayName: Query 代码文件
+      displayName: Query Code File
     FNPT:NopCodeFlow:mutation:
-      displayName: Modify 执行流
+      displayName: Modify Execution Flow
     FNPT:NopCodeFlow:query:
-      displayName: Query 执行流
+      displayName: Query Execution Flow
     FNPT:NopCodeFlowMembership:mutation:
-      displayName: Modify 执行流成员
+      displayName: Modify Execution Flow Membership
     FNPT:NopCodeFlowMembership:query:
-      displayName: Query 执行流成员
+      displayName: Query Execution Flow Membership
     FNPT:NopCodeIndex:mutation:
-      displayName: Modify 代码索引
+      displayName: Modify Code Index
     FNPT:NopCodeIndex:query:
-      displayName: Query 代码索引
+      displayName: Query Code Index
     FNPT:NopCodeInheritance:mutation:
-      displayName: Modify 继承关系
+      displayName: Modify Inheritance
     FNPT:NopCodeInheritance:query:
-      displayName: Query 继承关系
+      displayName: Query Inheritance
     FNPT:NopCodeSymbol:mutation:
-      displayName: Modify 符号
+      displayName: Modify Symbols
     FNPT:NopCodeSymbol:query:
-      displayName: Query 符号
+      displayName: Query Symbols
     FNPT:NopCodeUsage:mutation:
-      displayName: Modify 符号引用
+      displayName: Modify Symbol Usage
     FNPT:NopCodeUsage:query:
-      displayName: Query 符号引用
+      displayName: Query Symbol Usage
     FNPT:call-hierarchy:query:
-      displayName: ''
+      displayName: Query Call Hierarchy
     FNPT:code-browser:query:
-      displayName: ''
+      displayName: Browse Code
     FNPT:dashboard:query:
-      displayName: ''
+      displayName: Query Dashboard
     FNPT:type-hierarchy:query:
-      displayName: ''
+      displayName: Query Type Hierarchy
     NopCodeAnnotationUsage-main:
-      displayName: ''
+      displayName: Annotation Usage
     NopCodeCall-main:
-      displayName: ''
+      displayName: Method Call
     NopCodeDependency-main:
-      displayName: ''
+      displayName: File Dependency
     NopCodeFile-main:
-      displayName: ''
+      displayName: Code File
     NopCodeFlow-main:
-      displayName: ''
+      displayName: Execution Flow
     NopCodeFlowMembership-main:
-      displayName: ''
+      displayName: Execution Flow Membership
     NopCodeIndex-main:
-      displayName: ''
+      displayName: Index Management
     NopCodeInheritance-main:
-      displayName: ''
+      displayName: Inheritance
     NopCodeSymbol-main:
-      displayName: ''
+      displayName: Symbol Search
     NopCodeUsage-main:
-      displayName: ''
+      displayName: Symbol Usage
     call-hierarchy-main:
-      displayName: ''
+      displayName: Call Hierarchy
     code-browser-main:
-      displayName: ''
+      displayName: Code Browser
     dashboard-main:
-      displayName: ''
+      displayName: Overview Dashboard
     test-orm-nop-code:
-      displayName: ''
+      displayName: Code Index
     type-hierarchy-main:
-      displayName: ''
+      displayName: Type Hierarchy

@@ -1,43 +1,44 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<auth x:extends="_nop-code.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<auth x:extends="_nop-code.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-code" displayName="代码索引" x:override="merge">
+        <resource id="test-orm-nop-code" displayName="代码索引" i18n-en:displayName="Code Index" x:override="merge">
             <children>
                 <!-- 新增自定义页面菜单 -->
-                <resource id="dashboard-main" displayName="概览仪表盘" orderNo="10001"
+                <resource id="dashboard-main" displayName="概览仪表盘" i18n-en:displayName="Overview Dashboard" orderNo="10001"
                           icon="ant-design:dashboard-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/dashboard/main.page.yaml">
                     <children>
-                        <resource id="FNPT:dashboard:query" displayName="查询仪表盘" orderNo="10002" resourceType="FNPT">
+                        <resource id="FNPT:dashboard:query" displayName="查询仪表盘" i18n-en:displayName="Query Dashboard" orderNo="10002" resourceType="FNPT">
                             <permissions>NopCodeIndex:query</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="code-browser-main" displayName="代码浏览" orderNo="10020"
+                <resource id="code-browser-main" displayName="代码浏览" i18n-en:displayName="Code Browser" orderNo="10020"
                           icon="ant-design:folder-open-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/code-browser/main.page.yaml">
                     <children>
-                        <resource id="FNPT:code-browser:query" displayName="浏览代码" orderNo="10021" resourceType="FNPT">
+                        <resource id="FNPT:code-browser:query" displayName="浏览代码" i18n-en:displayName="Browse Code" orderNo="10021" resourceType="FNPT">
                             <permissions>NopCodeFile:query</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="type-hierarchy-main" displayName="类型层级" orderNo="10040"
+                <resource id="type-hierarchy-main" displayName="类型层级" i18n-en:displayName="Type Hierarchy" orderNo="10040"
                           icon="ant-design:apartment-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/type-hierarchy/main.page.yaml">
                     <children>
-                        <resource id="FNPT:type-hierarchy:query" displayName="查询类型层级" orderNo="10041"
+                        <resource id="FNPT:type-hierarchy:query" displayName="查询类型层级" i18n-en:displayName="Query Type Hierarchy" orderNo="10041"
                                   resourceType="FNPT">
                             <permissions>NopCodeSymbol:query</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="call-hierarchy-main" displayName="调用链" orderNo="10050"
+                <resource id="call-hierarchy-main" displayName="调用链" i18n-en:displayName="Call Hierarchy" orderNo="10050"
                           icon="ant-design:swap-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/call-hierarchy/main.page.yaml">
                     <children>
-                        <resource id="FNPT:call-hierarchy:query" displayName="查询调用链" orderNo="10051"
+                        <resource id="FNPT:call-hierarchy:query" displayName="查询调用链" i18n-en:displayName="Query Call Hierarchy" orderNo="10051"
                                   resourceType="FNPT">
                             <permissions>NopCodeSymbol:query</permissions>
                         </resource>
@@ -45,26 +46,26 @@
                 </resource>
 
                 <!-- 覆盖已有菜单的显示名称 -->
-                <resource id="NopCodeIndex-main" displayName="索引管理" orderNo="10010"
+                <resource id="NopCodeIndex-main" displayName="索引管理" i18n-en:displayName="Index Management" orderNo="10010"
                           icon="ant-design:database-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/NopCodeIndex/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeIndex:query" displayName="查询代码索引" orderNo="10011" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeIndex:query" displayName="查询代码索引" i18n-en:displayName="Query Code Index" orderNo="10011" resourceType="FNPT">
                             <permissions>NopCodeIndex:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeIndex:mutation" displayName="修改代码索引" orderNo="10012"
+                        <resource id="FNPT:NopCodeIndex:mutation" displayName="修改代码索引" i18n-en:displayName="Modify Code Index" orderNo="10012"
                                   resourceType="FNPT">
                             <permissions>NopCodeIndex:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeSymbol-main" displayName="符号搜索" orderNo="10030" icon="ant-design:search-twotone"
+                <resource id="NopCodeSymbol-main" displayName="符号搜索" i18n-en:displayName="Symbol Search" orderNo="10030" icon="ant-design:search-twotone"
                           component="AMIS" resourceType="SUBM" url="/nop/code/pages/NopCodeSymbol/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeSymbol:query" displayName="查询符号" orderNo="10031" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeSymbol:query" displayName="查询符号" i18n-en:displayName="Query Symbols" orderNo="10031" resourceType="FNPT">
                             <permissions>NopCodeSymbol:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeSymbol:mutation" displayName="修改符号" orderNo="10032"
+                        <resource id="FNPT:NopCodeSymbol:mutation" displayName="修改符号" i18n-en:displayName="Modify Symbols" orderNo="10032"
                                   resourceType="FNPT">
                             <permissions>NopCodeSymbol:mutation</permissions>
                         </resource>
