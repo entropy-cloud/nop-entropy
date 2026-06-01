@@ -1484,12 +1484,12 @@ public class CodeIndexService implements ICodeIndexService {
                 IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
                 QueryBean fq = new QueryBean();
                 fq.addFilter(FilterBeans.eq("indexId", indexId));
-                index.setFileCount(fileDao.findAllByQuery(fq).size());
+                index.setFileCount((int) fileDao.countByQuery(fq));
 
                 IEntityDao<NopCodeSymbol> symDao = daoProvider.daoFor(NopCodeSymbol.class);
                 QueryBean sq = new QueryBean();
                 sq.addFilter(FilterBeans.eq("indexId", indexId));
-                index.setSymbolCount(symDao.findAllByQuery(sq).size());
+                index.setSymbolCount((int) symDao.countByQuery(sq));
                 index.setLastIndexed(CoreMetrics.currentTimeMillis());
             }
         } catch (Exception e) {

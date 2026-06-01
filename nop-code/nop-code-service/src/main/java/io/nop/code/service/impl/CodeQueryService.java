@@ -8,6 +8,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.*;
 import io.nop.code.core.util.BfsNode;
 import io.nop.code.core.util.DigestHelper;
@@ -688,14 +689,14 @@ class CodeQueryService {
         inhQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeInheritance> allInh = inhDao.findAllByQuery(inhQuery);
 
-        IEntityDao<NopCodeSymbol> symDaoForInh = daoProvider.daoFor(NopCodeSymbol.class);
+        SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
+                CodeSymbolConverter::toCodeSymbol);
         Map<String, String> idToQn = new HashMap<>();
-        QueryBean allSymForInhQuery = new QueryBean();
-        allSymForInhQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        allSymForInhQuery.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        for (NopCodeSymbol sym : symDaoForInh.findAllByQuery(allSymForInhQuery)) {
-            if (sym.getQualifiedName() != null) {
-                idToQn.put(sym.getId(), sym.getQualifiedName());
+        if (symbolTable != null) {
+            for (CodeSymbol sym : symbolTable.getAll()) {
+                if (sym.getQualifiedName() != null) {
+                    idToQn.put(sym.getId(), sym.getQualifiedName());
+                }
             }
         }
 

@@ -184,14 +184,61 @@ class CodeGraphService {
         if (table == null) return null;
         CodeSymbol symbol = table.getByQualifiedName(qualifiedName);
         if (symbol == null) return null;
+
+        List<CodeInheritance> relevantInheritances = collectRelevantInheritances(
+                indexId, symbol.getId(), qualifiedName, direction, Math.min(maxDepth, 50), table);
+        return buildTypeHierarchy(qualifiedName, direction, Math.min(maxDepth, 50), table, relevantInheritances, new HashSet<>());
+    }
+
+    private List<CodeInheritance> collectRelevantInheritances(String indexId, String startId,
+                                                               String startQn, String direction,
+                                                               int maxDepth, SymbolTable table) {
         IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
-        QueryBean inhQuery = new QueryBean();
-        inhQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        List<CodeInheritance> allInheritances = inhDao.findAllByQuery(inhQuery).stream()
-                // Full inheritance list needed for type hierarchy traversal
-                .map(this::entityToInheritance)
-                .collect(Collectors.toList());
-        return buildTypeHierarchy(qualifiedName, direction, Math.min(maxDepth, 50), table, allInheritances, new HashSet<>());
+        Set<String> visitedIds = new HashSet<>();
+        Set<String> visitedQns = new HashSet<>();
+        Queue<String> idQueue = new ArrayDeque<>();
+        Queue<String> qnQueue = new ArrayDeque<>();
+        idQueue.add(startId);
+        qnQueue.add(startQn);
+        visitedIds.add(startId);
+        visitedQns.add(startQn);
+
+        List<CodeInheritance> result = new ArrayList<>();
+        int depth = 0;
+
+        while (!idQueue.isEmpty() && depth <= maxDepth) {
+            Set<String> batchIds = new HashSet<>();
+            Set<String> batchQns = new HashSet<>();
+            int size = idQueue.size();
+            for (int i = 0; i < size; i++) {
+                batchIds.add(idQueue.poll());
+                batchQns.add(qnQueue.poll());
+            }
+
+            if (!batchIds.isEmpty()) {
+                QueryBean q = new QueryBean();
+                q.addFilter(FilterBeans.eq("indexId", indexId));
+                q.addFilter(FilterBeans.or(
+                        FilterBeans.in("subTypeId", new ArrayList<>(batchIds)),
+                        FilterBeans.in("superTypeId", new ArrayList<>(batchQns))
+                ));
+                q.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
+                for (NopCodeInheritance inh : inhDao.findAllByQuery(q)) {
+                    result.add(entityToInheritance(inh));
+                    String subId = inh.getSubTypeId();
+                    String superQn = inh.getSuperTypeId();
+                    CodeSymbol subSym = table.getById(subId);
+                    String subQn = subSym != null ? subSym.getQualifiedName() : subId;
+                    if (visitedIds.add(subId)) idQueue.add(subId);
+                    if (subQn != null && visitedQns.add(subQn)) qnQueue.add(subQn);
+                    if (superQn != null && visitedQns.add(superQn)) qnQueue.add(superQn);
+                    CodeSymbol superSym = table.getByQualifiedName(superQn);
+                    if (superSym != null && visitedIds.add(superSym.getId())) idQueue.add(superSym.getId());
+                }
+            }
+            depth++;
+        }
+        return result;
     }
 
     CallHierarchyDTO getCallHierarchy(String indexId, String qualifiedName,
