@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-rule" displayName="测试nop-rule" icon="scale" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-nop-rule" component="layouts/default/index">
+        <resource id="test-orm-nop-rule" displayName="测试nop-rule" i18n-en:displayName="Test nop-rule" icon="scale"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-rule" component="layouts/default/index">
             <children>
                 <resource id="NopRuleDefinition-main" displayName="规则模型定义" orderNo="10001"
                           i18n-en:displayName="Rule Definition" icon="scale" component="AMIS" resourceType="SUBM"

@@ -25,4 +25,4 @@ site:
     NopRuleRole-main:
       displayName: Rule Role
     test-orm-nop-rule:
-      displayName: ''
+      displayName: Test nop-rule
