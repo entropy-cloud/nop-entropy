@@ -1,0 +1,10 @@
+site:
+  resource:
+    test-demo:
+      displayName: Feature Demo
+    report-demo:
+      displayName: Report Demo
+    report-demo2:
+      displayName: Report Demo With Params
+    validator-demo:
+      displayName: Validator Demo

@@ -37,4 +37,4 @@ site:
     Voyage-main:
       displayName: Voyage
     test-orm-demo-ddd:
-      displayName: ''
+      displayName: Test demo-ddd

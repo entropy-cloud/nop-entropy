@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-demo-ddd" displayName="测试demo-ddd" icon="ship" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-demo-ddd" component="layouts/default/index">
+        <resource id="test-orm-demo-ddd" displayName="测试demo-ddd" i18n-en:displayName="Test demo-ddd" icon="ship"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-demo-ddd" component="layouts/default/index">
             <children>
                 <resource id="Cargo-main" displayName="货物" orderNo="10001" i18n-en:displayName="Cargo" icon="package"
                           component="AMIS" resourceType="SUBM" url="/demo/ddd/pages/Cargo/main.page.yaml">
