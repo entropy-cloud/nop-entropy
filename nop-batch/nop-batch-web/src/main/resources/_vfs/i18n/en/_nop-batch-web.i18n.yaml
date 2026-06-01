@@ -21,4 +21,4 @@ site:
     test-nop-batch:
       displayName: ''
     test-orm-nop-batch:
-      displayName: ''
+      displayName: Test nop-batch
