@@ -10,6 +10,7 @@
 
 - 先判断它是不是生成物。
 - 先回到源模型、`.xgen` 或模板，不要直接改输出文件。
+- `_gen/` 和所有 `_` 前缀文件（包括 `_*.xmeta`）都按生成物处理，默认禁止手工修改。
 - 如果链路不清楚，先看 `*_codegen`、`*_meta`、`*_web` 的生成职责。
 - 先确认当前模块的 `pom.xml` 是否显式声明了 `exec-maven-plugin`；父 POM 只提供 execution 配置，子模块未声明插件时，`precompile` / `precompile2` / `postcompile` 不会运行。
 

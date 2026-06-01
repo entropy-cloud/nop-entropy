@@ -14,6 +14,11 @@
 3. 不读其他非 `docs-for-ai/` 文档目录。
 4. 一般也不直接读源码；如果 `docs-for-ai/` 仍不足以回答问题，优先基于 `04-reference/` 提供的锚点做 LSP / definition lookup。
 
+> **硬停止规则**
+> 不允许手工修改任何生成物。
+> 包括所有以下划线开头的文件（如 `_*.xml`、`_*.java`、`_*.xmeta`、`_app.orm.xml`、`_service.beans.xml`）以及 `_gen/` 目录下的所有文件。
+> 如需改变这些文件的结果，只能修改源模型、Delta、非下划线保留层文件或 codegen 模板，然后重新生成。
+
 ## 推荐查找顺序
 
 1. 先看本页
@@ -26,7 +31,7 @@
 ## 默认规则
 
 - 先模型，再 Delta，最后 Java。
-- 默认不要修改 `_gen/`、`_*.java`、`_*.xml`、`_app.orm.xml`、`_service.beans.xml`。
+- 默认不要修改 `_gen/`、`_*.java`、`_*.xml`、`_*.xmeta`、`_app.orm.xml`、`_service.beans.xml`。
 - BizModel 方法实体能表达的优先返回 Entity，汇总/简化/组合数据用 `@DataBean` DTO。字段可见性在 xmeta 中控制。详见 `02-core-guides/service-layer.md`。
 - 标准实体服务默认使用 `CrudBizModel<T>`。
 - 普通取数优先 `requireEntity()`、`doFindList()`、`doFindPage()`，不要先写原始 `dao()` 模板。

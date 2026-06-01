@@ -2,6 +2,11 @@
 
 > **受众**：在 nop-entropy 仓库内进行平台开发的 AI agent。如果你在使用 Nop 构建业务应用，可跳过本文件。
 
+> **硬停止规则**
+> 不允许手工修改任何生成物。
+> 包括所有以下划线开头的文件（如 `_*.xml`、`_*.java`、`_*.xmeta`、`_app.orm.xml`、`_service.beans.xml`）以及 `_gen/` 目录下的所有文件。
+> 如需改变这些文件的结果，只能修改源模型、Delta、非下划线保留层文件或 codegen 模板，然后重新生成。
+
 本文档只回答一个问题：
 
 **在当前 `nop-entropy` 仓库里，AI 默认应该怎样做判断、落代码和验证结果。**
@@ -33,7 +38,8 @@
 | 规则 | 默认结论 |
 |------|---------|
 | 模型是源头 | 优先改 `model/*.orm.xml`，项目骨架和大量派生产物都从模型生成 |
-| 生成物不可直改 | `_gen/`、`_*.xml`、`_*.java`、`_app.orm.xml`、`_service.beans.xml` 默认都不手改 |
+| 生成物不可直改 | `_gen/`、`_*.xml`、`_*.java`、`_*.xmeta`、`_app.orm.xml`、`_service.beans.xml` 默认都不手改 |
+| `_dump/` 是调试输出 | `_dump/{appName}/...` 仅用于查看最终合并结果，不手改、不作为质量修复目标 |
 | 服务入口是 BizModel | 普通服务代码默认写在 BizModel，复杂流程再拆 Processor |
 | BizModel 返回值 | 默认返回 Entity，由 xmeta 控制字段可见性。不要为了限制字段而改返回 DTO。仅计算结果（无对应实体）才用 DTO |
 | 普通实体服务默认基类 | `CrudBizModel<T>` |
@@ -58,7 +64,8 @@
 | 手写 JSON 拼接 / 引入第三方 JSON 库 | `JsonTool.stringify()` / `JsonTool.parseMap()` |
 | 手写字符串工具逻辑 / Apache Commons `StringUtils` | `StringHelper`（`isBlank`、`join`、`splitToArray` 等） |
 | 手写日期解析格式化 | `DateHelper`（`parseDate`、`formatDate` 等） |
-| 直接编辑 `_gen/` 或 `_` 前缀生成文件 | 改模型、改 Delta、改非下划线保留文件 |
+| 直接编辑 `_gen/` 或 `_` 前缀生成文件（包括 `_*.xmeta`） | 改模型、改 Delta、改非下划线保留文件 |
+| 直接修 `_dump/` 下文件 | 把它当调试快照，去修源模型/Delta/模板/运行条件，然后让 debug 输出自动刷新 |
 | 直接编辑 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml` 等以 `_` 开头的配置文件 | 这些文件由 codegen 管线从 ORM 模型自动生成，改了会在 `mvn install` 时被覆盖。应改对应的非下划线文件（如 `app-service.beans.xml`）或改源模型文件（如 `model/*.orm.xml`） |
 | `dao().getEntityById(id)` 作为 BizModel 模板 | `requireEntity(id, action, context)` |
 | `dao().findAllByQuery(query)` 作为 BizModel 模板 | `doFindList(query, selection, context)` |
