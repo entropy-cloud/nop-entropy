@@ -7,4 +7,4 @@ site:
     NopFileRecord-main:
       displayName: File Record
     test-orm-nop-file:
-      displayName: ''
+      displayName: Test nop-file
