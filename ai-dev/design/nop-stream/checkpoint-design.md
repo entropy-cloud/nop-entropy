@@ -628,6 +628,90 @@ Nop 平台可以通过已有集群锁、数据库锁或外部协调服务提供 
 
 Savepoint 可以支持显式迁移，但迁移必须通过模型级 action 描述，不能由运行时猜测。
 
+### 8.4.1 Serializer Fingerprint 策略
+
+恢复兼容性检查需要判断持久化的状态是否能被当前版本的代码正确读取。nop-stream 采用**指纹比对 + 快速失败**策略，不实现 Flink 的四态兼容性模型（COMPATIBLE_AS_IS / COMPATIBLE_AFTER_MIGRATION / COMPATIBLE_WITH_RECONFIGURED_SERIALIZER / INCOMPATIBLE），以降低复杂度。
+
+**Fingerprint 结构**：
+
+每个 `StateDescriptor` 在注册时生成一个 `SerializerFingerprint`，随 TaskEpochSnapshot 一起持久化到 Epoch Manifest：
+
+```java
+class SerializerFingerprint {
+    String serializerClass;     // 状态序列化器类名（如 "io.nop.stream.core.common.typeinfo.SimpleTypeSerializer"）
+    int version;                // 序列化器自声明的格式版本（默认 1）
+    String configChecksum;      // 配置参数校验和（如 TypeInformation 的 JSON 序列化后 MD5）
+}
+```
+
+**生成规则**：
+
+| 状态类型 | serializerClass | version | configChecksum |
+|---------|----------------|---------|---------------|
+| ValueState\<T> | JsonTool 序列化的类名 | 1 | TypeInformation 的 fingerprint |
+| ListState\<T> | JsonTool 序列化的类名 | 1 | 元素 TypeInformation 的 fingerprint |
+| MapState\<K,V> | JsonTool 序列化的类名 | 1 | key + value TypeInformation 的联合 fingerprint |
+| Timer State | 内部 TimerSerializer | 1 | 空 |
+| Source Split State | Connector 定义的 SplitSerializer | Connector 自定义 | Connector 自定义 |
+
+**Manifest 中的存储**：
+
+```
+EpochManifest {
+    ...
+    taskSnapshots: Map<TaskLocation, TaskEpochSnapshot>
+}
+
+TaskEpochSnapshot {
+    ...
+    operatorSnapshots: Map<String, OperatorSnapshot>  // operatorId → snapshot
+}
+
+OperatorSnapshot {
+    ...
+    stateFingerprints: Map<String, SerializerFingerprint>  // stateName → fingerprint
+}
+```
+
+**恢复时检查**：
+
+```
+对每个 operator 的每个 state：
+    manifestFingerprint = manifest 中的 SerializerFingerprint
+    currentFingerprint = 当前 StateDescriptor 生成的 SerializerFingerprint
+    
+    if manifestFingerprint == currentFingerprint:
+        → 兼容，直接恢复
+    if manifestFingerprint.version == currentFingerprint.version 
+       && manifestFingerprint.configChecksum != currentFingerprint.configChecksum:
+        → 不兼容，拒绝恢复（配置变化，如字段类型从 Integer 变为 Long）
+    if manifestFingerprint.version < currentFingerprint.version:
+        → 要求显式 migration action（提供 StateMigrationFunction）
+    if manifestFingerprint.version > currentFingerprint.version:
+        → 不兼容，拒绝恢复（代码降级不支持）
+```
+
+**与 Flink 的对比**：
+
+| 维度 | Flink | nop-stream |
+|------|-------|------------|
+| 兼容性检查 | `TypeSerializerSnapshot.resolveSchemaCompatibility()` 返回四态 | `SerializerFingerprint` 比对，仅两态（兼容 / 不兼容） |
+| 状态迁移 | 内置全量读-写迁移（读旧写新） | 不内置自动迁移，要求显式 `StateMigrationFunction` |
+| 复杂度 | `CompositeTypeSerializerSnapshot` 递归检查嵌套序列化器 | 单层指纹比对，不递归 |
+| 适用场景 | 长期运行的生产作业需要零停机升级 | 中小规模，允许停机迁移 |
+
+**StateMigrationFunction**（当需要迁移时）：
+
+```java
+interface StateMigrationFunction<Old, New> {
+    New migrate(Old oldValue);
+    SerializerFingerprint sourceFingerprint();  // 源指纹
+    SerializerFingerprint targetFingerprint();  // 目标指纹
+}
+```
+
+Migration function 通过 `StreamComponents` 注册，恢复时 Coordinator 查找匹配的 migration function 并执行。迁移是全量扫描（读所有旧值、转换、写回），仅在显式声明时触发。
+
 ### 8.5 Rescale 与状态重分配
 
 Parallelism 变化必须通过显式 rescale manifest 或 migration action 描述。

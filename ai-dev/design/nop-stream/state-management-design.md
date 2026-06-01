@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-20
-> Revised: 2026-05-23
+> Revised: 2026-06-01
 > Parent: `architecture.md` §3（执行模型）、`checkpoint-design.md` §3.3（状态快照）
 
 ## 1. 定位
@@ -27,6 +27,13 @@ State (clear)
 `ListState` 不通过 `KeyedStateStore` 暴露给用户，只作为 `InternalListState<K,N,T>` 存在于 `IInternalStateBackend` 中，由 WindowOperator 用于合并窗口元数据存储。
 
 `InternalAppendingState` 和 `InternalListState` 支持泛型 namespace（如 Window 对象），用于按 namespace 分区状态的场景。
+
+`InternalAppendingState` 通过 `IInternalStateBackend` 的两个 `getInternalAppendingState` 重载创建，分别对应不同的累积模式（详见 §5.1）：
+
+| 重载 | 描述符 | 返回类型 | 累积模式 |
+|---|---|---|---|
+| `getInternalAppendingState(ReducingStateDescriptor<IN>)` | `ReducingStateDescriptor` | `InternalAppendingState<K,N,IN,ACC,ACC>` | OUT==ACC，ReduceFunction 归约 |
+| `getInternalAppendingState(AggregatingStateDescriptor<IN,ACC,OUT>)` | `AggregatingStateDescriptor` | `InternalAppendingState<K,N,IN,ACC,OUT>` | AggregateFunction 累积，支持 ACC≠OUT |
 
 ### 2.2 StateDescriptor
 
@@ -99,8 +106,14 @@ IStateBackend (getName, createKeyedStateBackend)
 └── MemoryStateBackend           → new MemoryKeyedStateBackend<K>
 
 IKeyedStateBackend<K> (setCurrentKey, getState, getMapState)
-└── IInternalStateBackend<K>     (+ getInternalAppendingState, getInternalListState)
+└── IInternalStateBackend<K>     (+ getInternalAppendingState×2, getInternalListState)
     └── MemoryKeyedStateBackend<K>
+
+IInternalStateBackend.getInternalAppendingState 有两个重载：
+  • getInternalAppendingState(ReducingStateDescriptor<IN>)
+      → InternalAppendingState<K, N, IN, ACC, ACC>    // OUT==ACC 的 reducing 模式
+  • getInternalAppendingState(AggregatingStateDescriptor<IN, ACC, OUT>)
+      → InternalAppendingState<K, N, IN, ACC, OUT>    // AggregateFunction 累积模式，支持 ACC≠OUT
 ```
 
 `KeyedStateStore`（`IKeyedStateBackend` 的父接口）只暴露 `getState()` 和 `getMapState()`。`ListState` 只能通过 `IInternalStateBackend.getInternalListState()` 访问。
@@ -119,7 +132,8 @@ MemoryKeyedStateBackend<K>
 └── states: Map<String, Object>
     ├── MemoryValueState<T>           → HashMap<TypedNamespaceAndKey, T>
     ├── MemoryMapState<UK, UV>        → HashMap<TypedNamespaceAndKey, Map<UK, UV>>
-    ├── MemoryInternalAppendingState  → HashMap<TypedNamespaceAndKey, ACC>
+    ├── MemoryInternalAppendingState  → HashMap<TypedNamespaceAndKey, ACC>     // ReducingStateDescriptor
+    ├── MemoryInternalAggregatingState → HashMap<TypedNamespaceAndKey, ACC>     // AggregatingStateDescriptor
     └── MemoryInternalListState       → HashMap<TypedNamespaceAndKey, List<T>>
 ```
 

@@ -219,6 +219,62 @@ interface WatermarkEstimator {
 
 **集成到 Checkpoint**：`TaskEpochSnapshot` 增加 `Map<String, Object> watermarkEstimatorStates`（sourceId → state）。
 
+### 4.6 Split Assignment Recovery 协议
+
+分布式 source checkpoint 涉及三方状态，恢复时必须正确协调：
+
+| 状态 | 持有者 | 内容 | Checkpoint 时机 |
+|------|--------|------|----------------|
+| **Enumerator State** | SourceEnumerator（JobCoordinator 侧） | 已发现 split、未分配 split、发现游标、内部簿记 | `snapshotState(epochId)` → 写入 Epoch Manifest |
+| **Reader Split Cursor** | SourceReader（TaskManager 侧） | 当前持有 split 的读取位置 | reader 的 `snapshotState(epochId)` → 写入 TaskEpochSnapshot |
+| **Assignment Tracker** | SourceEnumerator（JobCoordinator 侧） | `[epochId → [subtaskId → Set<Split>]]` 已下发但 reader 尚未 checkpoint 确认的 split | 与 Enumerator State 同步快照 |
+
+**核心问题**：split 在 epoch N 之后、epoch N+1 之前下发给 reader，reader 在 epoch N+1 之前失败。此时：
+- Enumerator 已将该 split 从"未分配"移到"已分配"
+- Reader 恢复到 epoch N 的状态，**不持有**这个 split
+- 如果不做特殊处理，该 split 会丢失
+
+**恢复流程**：
+
+```
+1. Coordinator 从 Epoch Manifest 恢复 Enumerator State
+2. Coordinator 从 TaskEpochSnapshot 恢复各 reader 的 split cursor
+3. Coordinator 从 Assignment Tracker 中取出 epoch > N 的下发记录
+   └── 这些 split 已下发但 reader 未在恢复点确认
+4. 对每个"孤儿 split"：
+   a. 如果 reader 恢复后报告了该 split（cursor 已包含）→ 正常，无需操作
+   b. 如果 reader 未报告该 split → 将 split 归还给 Enumerator 的"未分配"集合
+5. Reader 恢复后向 Coordinator 注册（报告自己持有的 split）
+6. Coordinator 根据注册信息和归还的 split 重新分配
+```
+
+**Assignment Tracker 数据结构**：
+
+```java
+class SplitAssignmentTracker {
+    // epochId → (subtaskId → 已下发但未确认的 split 集合)
+    Map<Long, Map<Integer, Set<SourceSplit>>> pendingAssignments;
+
+    void recordAssignment(long epochId, int subtaskId, SourceSplit split);
+    void confirmAssignment(long epochId, int subtaskId, SourceSplit split);
+    Set<SourceSplit> getUnconfirmedSplits(long upToEpochId, int subtaskId);
+}
+```
+
+**与 checkpoint-design.md §5.3 的对应关系**：
+
+checkpoint-design.md §5.3 定义的 enumerator state（discovered / unassigned / assigned / finished / pending acknowledgements / discovery cursor）中，`pending acknowledgements` 就是本节的 `SplitAssignmentTracker.pendingAssignments`。恢复时 `getUnconfirmedSplits()` 的返回值回填到 `unassigned` 集合。
+
+**SplitOwnershipModel**：
+
+| 模式 | 行为 | 适用场景 |
+|------|------|---------|
+| `STICKY`（默认） | 恢复后 split 优先归还给原 owner subtask | Kafka partition 消费，本地缓存预热 |
+| `REASSIGN` | 恢复后 split 全部归还 Enumerator 重新分配 | 文件 source，需要负载均衡 |
+| `FIXED` | 恢复后 split 必须归还原 owner，owner 不在则等待 | 有序消费场景 |
+
+Connector 通过 `SourceWorkUnit.ownershipModel` 声明。`STICKY` 和 `REASSIGN` 的区别仅在于 Coordinator 是否优先将归还 split 分配给原 owner。
+
 ## 5. 消息队列与 CDC 适配
 
 ### 5.1 MessageSourceFunction
