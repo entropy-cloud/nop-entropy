@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-sys" displayName="测试nop-sys" icon="settings-2" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-nop-sys" component="layouts/default/index">
+        <resource id="test-orm-nop-sys" displayName="测试nop-sys" i18n-en:displayName="Test nop-sys" icon="settings-2"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-sys" component="layouts/default/index">
             <children>
                 <resource id="NopSysChangeLog-main" displayName="变更跟踪日志" orderNo="10001"
                           i18n-en:displayName="Change Log" icon="history" component="AMIS" resourceType="SUBM"

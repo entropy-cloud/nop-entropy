@@ -103,4 +103,4 @@ site:
     NopSysVariable-main:
       displayName: System Variable
     test-orm-nop-sys:
-      displayName: ''
+      displayName: Test nop-sys
