@@ -107,7 +107,7 @@ public class CodeIndexService implements ICodeIndexService {
     @Inject
     protected IOrmTemplate ormTemplate;
 
-    private void ensureSubServices() {
+    private synchronized void ensureSubServices() {
         if (searchService == null && daoProvider != null) {
             searchService = new CodeSearchService(daoProvider, searchEngine, cacheManager);
             graphService = new CodeGraphService(daoProvider, cacheManager);
@@ -579,6 +579,8 @@ public class CodeIndexService implements ICodeIndexService {
             daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
             return null;
         });
+
+        indexLocks.remove(indexId);
     }
 
     private <T extends IDaoEntity> void deleteEntitiesPaged(IOrmSession session,
