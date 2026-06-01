@@ -31,4 +31,4 @@ site:
     NopRetryTemplate-main:
       displayName: Retry Template
     test-orm-nop-retry:
-      displayName: ''
+      displayName: Test nop-retry
