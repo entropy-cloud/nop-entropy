@@ -1,0 +1,1 @@
+import{n as e,t}from"./shell-core-D4sGWJTr.js";e();export{t as AppShell};

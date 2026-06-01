@@ -1,1 +1,0 @@
-import{n as e,t}from"./shell-core-BcwjnU-K.js";e();export{t as AppShell};
