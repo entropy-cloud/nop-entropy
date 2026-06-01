@@ -9,13 +9,13 @@ site:
     FNPT:NopJobDefinition:query:
       displayName: Query Job Definition
     FNPT:NopJobFire:cancelFire:
-      displayName: ''
+      displayName: Cancel Trigger
     FNPT:NopJobFire:mutation:
       displayName: Modify Job Fire
     FNPT:NopJobFire:query:
-      displayName: Query Job Fire
+      displayName: Query Trigger Batch
     FNPT:NopJobFire:rerunFire:
-      displayName: ''
+      displayName: Rerun Trigger
     FNPT:NopJobInstance:mutation:
       displayName: Modify Job Instance
     FNPT:NopJobInstance:query:
@@ -25,38 +25,38 @@ site:
     FNPT:NopJobInstanceHis:query:
       displayName: Query Job Instance History
     FNPT:NopJobSchedule:archiveSchedule:
-      displayName: ''
+      displayName: Archive Schedule
     FNPT:NopJobSchedule:disableSchedule:
-      displayName: ''
+      displayName: Disable Schedule
     FNPT:NopJobSchedule:enableSchedule:
-      displayName: ''
+      displayName: Enable Schedule
     FNPT:NopJobSchedule:mutation:
-      displayName: Modify Job Schedule
+      displayName: Modify Schedule Definition
     FNPT:NopJobSchedule:pauseSchedule:
-      displayName: ''
+      displayName: Pause Schedule
     FNPT:NopJobSchedule:query:
-      displayName: Query Job Schedule
+      displayName: Query Schedule Definition
     FNPT:NopJobSchedule:resumeSchedule:
-      displayName: ''
+      displayName: Resume Schedule
     FNPT:NopJobSchedule:triggerNow:
-      displayName: ''
+      displayName: Trigger Now
     FNPT:NopJobTask:mutation:
       displayName: Modify Job Task
     FNPT:NopJobTask:query:
-      displayName: Query Job Task
+      displayName: Query Execution Task
     NopJobAssignment-main:
       displayName: Job Assignment
     NopJobDefinition-main:
       displayName: Job Definition
     NopJobFire-main:
-      displayName: Job Fire
+      displayName: Trigger Batch
     NopJobInstance-main:
       displayName: Job Instance
     NopJobInstanceHis-main:
       displayName: Job Instance History
     NopJobSchedule-main:
-      displayName: Job Schedule
+      displayName: Schedule Definition
     NopJobTask-main:
-      displayName: Job Task
+      displayName: Execution Task
     test-orm-nop-job:
-      displayName: ''
+      displayName: Test nop-job

@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-job" displayName="测试nop-job" icon="calendar-clock" resourceType="TOPM"
-                  orderNo="10000" routePath="/test-orm-nop-job" component="layouts/default/index">
+        <resource id="test-orm-nop-job" displayName="测试nop-job" i18n-en:displayName="Test nop-job" icon="calendar-clock"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-job" component="layouts/default/index">
             <children>
                 <resource id="NopJobAssignment-main" displayName="任务分配" orderNo="10001"
                           i18n-en:displayName="Job Assignment" icon="blocks" component="AMIS" resourceType="SUBM"

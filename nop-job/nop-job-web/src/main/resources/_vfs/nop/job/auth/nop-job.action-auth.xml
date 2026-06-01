@@ -1,70 +1,71 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<auth x:extends="_nop-job.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<auth x:extends="_nop-job.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:i18n-en="i18n-en">
 
     <site id="main">
         <resource id="test-orm-nop-job">
             <children>
-                <resource id="NopJobSchedule-main" displayName="调度定义" orderNo="10001"
+                <resource id="NopJobSchedule-main" displayName="调度定义" i18n-en:displayName="Schedule Definition" orderNo="10001"
                           icon="ant-design:calendar-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobSchedule/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopJobSchedule:query" displayName="查询调度定义" orderNo="10002"
+                        <resource id="FNPT:NopJobSchedule:query" displayName="查询调度定义" i18n-en:displayName="Query Schedule Definition" orderNo="10002"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobSchedule:mutation" displayName="修改调度定义" orderNo="10003"
+                        <resource id="FNPT:NopJobSchedule:mutation" displayName="修改调度定义" i18n-en:displayName="Modify Schedule Definition" orderNo="10003"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:mutation</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobSchedule:triggerNow" displayName="立即触发" orderNo="10004"
+                        <resource id="FNPT:NopJobSchedule:triggerNow" displayName="立即触发" i18n-en:displayName="Trigger Now" orderNo="10004"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:triggerNow</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobSchedule:enableSchedule" displayName="启用调度" orderNo="10005"
+                        <resource id="FNPT:NopJobSchedule:enableSchedule" displayName="启用调度" i18n-en:displayName="Enable Schedule" orderNo="10005"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:enableSchedule</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobSchedule:disableSchedule" displayName="禁用调度" orderNo="10006"
+                        <resource id="FNPT:NopJobSchedule:disableSchedule" displayName="禁用调度" i18n-en:displayName="Disable Schedule" orderNo="10006"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:disableSchedule</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobSchedule:pauseSchedule" displayName="暂停调度" orderNo="10007"
+                        <resource id="FNPT:NopJobSchedule:pauseSchedule" displayName="暂停调度" i18n-en:displayName="Pause Schedule" orderNo="10007"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:pauseSchedule</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobSchedule:resumeSchedule" displayName="恢复调度" orderNo="10008"
+                        <resource id="FNPT:NopJobSchedule:resumeSchedule" displayName="恢复调度" i18n-en:displayName="Resume Schedule" orderNo="10008"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:resumeSchedule</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobSchedule:archiveSchedule" displayName="归档调度" orderNo="10009"
+                        <resource id="FNPT:NopJobSchedule:archiveSchedule" displayName="归档调度" i18n-en:displayName="Archive Schedule" orderNo="10009"
                                   resourceType="FNPT">
                             <permissions>NopJobSchedule:archiveSchedule</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopJobFire-main" displayName="触发批次" orderNo="10004"
+                <resource id="NopJobFire-main" displayName="Trigger Batch" i18n-en:displayName="Trigger Batch" orderNo="10004"
                           icon="ant-design:thunderbolt-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobFire/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopJobFire:query" displayName="查询触发批次" orderNo="10005"
+                        <resource id="FNPT:NopJobFire:query" displayName="查询触发批次" i18n-en:displayName="Query Trigger Batch" orderNo="10005"
                                   resourceType="FNPT">
                             <permissions>NopJobFire:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobFire:cancelFire" displayName="取消触发" orderNo="10006"
+                        <resource id="FNPT:NopJobFire:cancelFire" displayName="取消触发" i18n-en:displayName="Cancel Trigger" orderNo="10006"
                                   resourceType="FNPT">
                             <permissions>NopJobFire:cancelFire</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobFire:rerunFire" displayName="重跑触发" orderNo="10007"
+                        <resource id="FNPT:NopJobFire:rerunFire" displayName="重跑触发" i18n-en:displayName="Rerun Trigger" orderNo="10007"
                                   resourceType="FNPT">
                             <permissions>NopJobFire:rerunFire</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopJobTask-main" displayName="执行任务" orderNo="10007"
+                <resource id="NopJobTask-main" displayName="执行任务" i18n-en:displayName="Execution Task" orderNo="10007"
                           icon="ant-design:deployment-unit-outlined" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobTask/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopJobTask:query" displayName="查询执行任务" orderNo="10008"
+                        <resource id="FNPT:NopJobTask:query" displayName="查询执行任务" i18n-en:displayName="Query Execution Task" orderNo="10008"
                                   resourceType="FNPT">
                             <permissions>NopJobTask:query</permissions>
                         </resource>
