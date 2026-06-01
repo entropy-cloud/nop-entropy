@@ -5,7 +5,7 @@
      x:schema="/nop/schema/api.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <services>
-        <service name="WorkflowService" displayName="工作流服务" i18n-en:displayName="Worflow Service"
+        <service name="WorkflowService" displayName="工作流服务" i18n-en:displayName="Workflow Service"
                  className="io.nop.wf.api.WorkflowService">
             <method mutation="true" name="startWorkflow" i18n-en:displayName="Start" displayName="启动工作流"
                     requestMessage="io.nop.wf.api.beans.WfStartRequestBean"

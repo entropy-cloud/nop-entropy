@@ -152,7 +152,7 @@
 
     <services>
         <service className="io.nop.wf.api.WorkflowService" displayName="工作流服务" name="WorkflowService"
-                 i18n-en:displayName="Worflow Service">
+                 i18n-en:displayName="Workflow Service">
             <method displayName="启动工作流" mutation="true" name="startWorkflow"
                     requestMessage="io.nop.wf.api.beans.WfStartRequestBean"
                     responseMessage="io.nop.wf.api.beans.WfStartResponseBean" i18n-en:displayName="Start"/>

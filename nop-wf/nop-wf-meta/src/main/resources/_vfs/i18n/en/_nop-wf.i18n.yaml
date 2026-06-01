@@ -1,9 +1,9 @@
 entity:
   label:
     NopWfAction: Workflow Action
-    NopWfDefinition: Worflow Definition
+    NopWfDefinition: Workflow Definition
     NopWfDefinitionAuth: Workflow Definition Auth
-    NopWfInstance: Worflow Instance
+    NopWfInstance: Workflow Instance
     NopWfLog: Workflow Log
     NopWfOutput: Workflow Outputs
     NopWfStatusHistory: Workflow Status History

@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-wf" displayName="测试nop-wf" icon="waypoints" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-nop-wf" component="layouts/default/index">
+        <resource id="test-orm-nop-wf" displayName="测试nop-wf" i18n-en:displayName="Test nop-wf" icon="waypoints"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-wf" component="layouts/default/index">
             <children>
                 <resource id="NopWfAction-main" displayName="工作流动作" orderNo="10001"
                           i18n-en:displayName="Workflow Action" icon="mouse-pointer-click" component="AMIS"
@@ -20,15 +20,15 @@
                     </children>
                 </resource>
                 <resource id="NopWfDefinition-main" displayName="工作流模型定义" orderNo="10004"
-                          i18n-en:displayName="Worflow Definition" icon="waypoints" component="AMIS" resourceType="SUBM"
-                          url="/nop/wf/pages/NopWfDefinition/main.page.yaml">
+                          i18n-en:displayName="Workflow Definition" icon="waypoints" component="AMIS"
+                          resourceType="SUBM" url="/nop/wf/pages/NopWfDefinition/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopWfDefinition:query" displayName="查询工作流模型定义"
-                                  i18n-en:displayName="Query Worflow Definition" orderNo="10005" resourceType="FNPT">
+                                  i18n-en:displayName="Query Workflow Definition" orderNo="10005" resourceType="FNPT">
                             <permissions>NopWfDefinition:query</permissions>
                         </resource>
                         <resource id="FNPT:NopWfDefinition:mutation" displayName="修改工作流模型定义"
-                                  i18n-en:displayName="Modify Worflow Definition" orderNo="10006" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Workflow Definition" orderNo="10006" resourceType="FNPT">
                             <permissions>NopWfDefinition:mutation</permissions>
                         </resource>
                     </children>
@@ -50,15 +50,15 @@
                     </children>
                 </resource>
                 <resource id="NopWfInstance-main" displayName="工作流实例" orderNo="10010"
-                          i18n-en:displayName="Worflow Instance" icon="circle-play" component="AMIS" resourceType="SUBM"
-                          url="/nop/wf/pages/NopWfInstance/main.page.yaml">
+                          i18n-en:displayName="Workflow Instance" icon="circle-play" component="AMIS"
+                          resourceType="SUBM" url="/nop/wf/pages/NopWfInstance/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopWfInstance:query" displayName="查询工作流实例"
-                                  i18n-en:displayName="Query Worflow Instance" orderNo="10011" resourceType="FNPT">
+                                  i18n-en:displayName="Query Workflow Instance" orderNo="10011" resourceType="FNPT">
                             <permissions>NopWfInstance:query</permissions>
                         </resource>
                         <resource id="FNPT:NopWfInstance:mutation" displayName="修改工作流实例"
-                                  i18n-en:displayName="Modify Worflow Instance" orderNo="10012" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Workflow Instance" orderNo="10012" resourceType="FNPT">
                             <permissions>NopWfInstance:mutation</permissions>
                         </resource>
                     </children>

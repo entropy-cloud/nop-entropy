@@ -71,7 +71,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfDefinition" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流模型定义" name="io.nop.wf.dao.entity.NopWfDefinition" registerShortName="true"
                 tableName="nop_wf_definition" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                ext:icon="waypoints" i18n-en:displayName="Worflow Definition">
+                ext:icon="waypoints" i18n-en:displayName="Workflow Definition">
             <columns>
                 <column code="WF_DEF_ID" displayName="主键" mandatory="true" name="wfDefId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
@@ -179,7 +179,7 @@
         <entity className="io.nop.wf.dao.entity.NopWfInstance" createTimeProp="createTime" createrProp="createdBy"
                 displayName="工作流实例" name="io.nop.wf.dao.entity.NopWfInstance" registerShortName="true"
                 tableName="nop_wf_instance" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                ext:icon="circle-play" i18n-en:displayName="Worflow Instance">
+                ext:icon="circle-play" i18n-en:displayName="Workflow Instance">
             <columns>
                 <column code="WF_ID" displayName="主键" mandatory="true" name="wfId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"

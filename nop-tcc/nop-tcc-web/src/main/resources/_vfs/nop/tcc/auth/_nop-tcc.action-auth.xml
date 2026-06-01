@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-tcc" displayName="测试nop-tcc" icon="scale" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-nop-tcc" component="layouts/default/index">
+        <resource id="test-orm-nop-tcc" displayName="测试nop-tcc" i18n-en:displayName="Test nop-tcc" icon="scale"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-tcc" component="layouts/default/index">
             <children>
                 <resource id="NopTccBranchRecord-main" displayName="TCC事务分支记录" orderNo="10001"
                           i18n-en:displayName="TCC Branch Record" icon="git-branch" component="AMIS" resourceType="SUBM"

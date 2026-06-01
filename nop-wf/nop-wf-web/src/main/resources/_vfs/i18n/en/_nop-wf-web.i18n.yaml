@@ -5,17 +5,17 @@ site:
     FNPT:NopWfAction:query:
       displayName: Query Workflow Action
     FNPT:NopWfDefinition:mutation:
-      displayName: Modify Worflow Definition
+      displayName: Modify Workflow Definition
     FNPT:NopWfDefinition:query:
-      displayName: Query Worflow Definition
+      displayName: Query Workflow Definition
     FNPT:NopWfDefinitionAuth:mutation:
       displayName: Modify Workflow Definition Auth
     FNPT:NopWfDefinitionAuth:query:
       displayName: Query Workflow Definition Auth
     FNPT:NopWfInstance:mutation:
-      displayName: Modify Worflow Instance
+      displayName: Modify Workflow Instance
     FNPT:NopWfInstance:query:
-      displayName: Query Worflow Instance
+      displayName: Query Workflow Instance
     FNPT:NopWfLog:mutation:
       displayName: Modify Workflow Log
     FNPT:NopWfLog:query:
@@ -43,11 +43,11 @@ site:
     NopWfAction-main:
       displayName: Workflow Action
     NopWfDefinition-main:
-      displayName: Worflow Definition
+      displayName: Workflow Definition
     NopWfDefinitionAuth-main:
       displayName: Workflow Definition Auth
     NopWfInstance-main:
-      displayName: Worflow Instance
+      displayName: Workflow Instance
     NopWfLog-main:
       displayName: Workflow Log
     NopWfOutput-main:
@@ -61,4 +61,4 @@ site:
     NopWfWork-main:
       displayName: Work List
     test-orm-nop-wf:
-      displayName: ''
+      displayName: Test nop-wf

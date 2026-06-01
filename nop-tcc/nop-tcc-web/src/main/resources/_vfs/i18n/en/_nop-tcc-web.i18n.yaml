@@ -13,4 +13,4 @@ site:
     NopTccRecord-main:
       displayName: TCC Transaction
     test-orm-nop-tcc:
-      displayName: ''
+      displayName: Test nop-tcc
