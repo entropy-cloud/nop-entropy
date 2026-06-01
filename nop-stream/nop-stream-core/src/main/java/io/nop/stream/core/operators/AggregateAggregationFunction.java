@@ -4,6 +4,11 @@ import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.windows.Window;
 
+/**
+ * @deprecated Use {@link io.nop.stream.core.operators.IWindowOperatorFactory} with
+ * {@code WindowOperator} from the runtime module instead.
+ */
+@Deprecated
 public class AggregateAggregationFunction<IN, ACC, OUT, K, W extends Window>
         implements WindowAggregationFunction<IN, ACC, OUT, K, W> {
 

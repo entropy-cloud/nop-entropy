@@ -18,9 +18,12 @@
 
 package io.nop.stream.runtime.operators.windowing;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import io.nop.api.core.annotations.core.Internal;
 import static io.nop.api.core.util.Guard.checkArgument;
@@ -35,7 +38,14 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
+import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.state.AggregatingState;
+import io.nop.stream.core.common.state.AggregatingStateDescriptor;
+import io.nop.stream.core.common.state.ListState;
+import io.nop.stream.core.common.state.ReducingState;
+import io.nop.stream.core.common.state.ValueState;
+import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
@@ -62,6 +72,8 @@ import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
+import io.nop.stream.core.windowing.evictors.Evictor;
+import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
@@ -105,9 +117,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     protected final KeySelector<IN, K> keySelector;
 
-    private final Trigger<? super IN, ? super W> trigger;
+    protected final Trigger<? super IN, ? super W> trigger;
 
     protected transient InternalAppendingState<K, W, IN, ACC, ACC> windowState;
+
+    protected transient InternalAppendingState<K, W, IN, ACC, ACC> newAppendingWindowState;
+
+    protected transient InternalListState<K, W, IN> newListWindowState;
 
     /**
      * For serializing the key in checkpoints.
@@ -143,6 +159,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     protected final OutputTag<IN> lateDataOutputTag;
 
     protected final Class<?> accClass;
+
+    protected final StateDescriptor<?> windowStateDescriptor;
+
+    protected final BiFunction<ACC, ACC, ACC> mergeFunction;
+
+    protected final Evictor<IN, W> evictor;
 
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
@@ -198,7 +220,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             OutputTag<IN> lateDataOutputTag) {
         this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
                 windowFunction, trigger, allowedLateness, lateDataOutputTag,
-                (Class<ACC>) (Class<?>) Object.class);
+                (Class<ACC>) (Class<?>) Object.class, null, null, null);
     }
 
     public WindowOperator(
@@ -212,6 +234,42 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             long allowedLateness,
             OutputTag<IN> lateDataOutputTag,
             Class<ACC> accClass) {
+        this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
+                windowFunction, trigger, allowedLateness, lateDataOutputTag,
+                accClass, null, null, null);
+    }
+
+    public WindowOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            TypeSerializer<W> windowSerializer,
+            KeySelector<IN, K> keySelector,
+            TypeSerializer<K> keySerializer,
+            Class<K> keyClass,
+            InternalWindowFunction<ACC, OUT, K, W> windowFunction,
+            Trigger<? super IN, ? super W> trigger,
+            long allowedLateness,
+            OutputTag<IN> lateDataOutputTag,
+            StateDescriptor<?> windowStateDescriptor,
+            BiFunction<ACC, ACC, ACC> mergeFunction) {
+        this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
+                windowFunction, trigger, allowedLateness, lateDataOutputTag,
+                (Class<ACC>) (Class<?>) Object.class, windowStateDescriptor, mergeFunction, null);
+    }
+
+    WindowOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            TypeSerializer<W> windowSerializer,
+            KeySelector<IN, K> keySelector,
+            TypeSerializer<K> keySerializer,
+            Class<K> keyClass,
+            InternalWindowFunction<ACC, OUT, K, W> windowFunction,
+            Trigger<? super IN, ? super W> trigger,
+            long allowedLateness,
+            OutputTag<IN> lateDataOutputTag,
+            Class<ACC> accClass,
+            StateDescriptor<?> windowStateDescriptor,
+            BiFunction<ACC, ACC, ACC> mergeFunction,
+            Evictor<IN, W> evictor) {
 
         super(windowFunction);
 
@@ -226,6 +284,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.allowedLateness = allowedLateness;
         this.lateDataOutputTag = lateDataOutputTag;
         this.accClass = notNull(accClass, "accClass");
+        this.windowStateDescriptor = windowStateDescriptor;
+        this.mergeFunction = mergeFunction;
+        this.evictor = evictor;
     }
 
     @Override
@@ -242,14 +303,32 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
         this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
 
-        // Apply deferred state restore (from checkpoint recovery before open())
         applyPendingRestoreState();
 
-        @SuppressWarnings("unchecked")
-        Class<ACC> accType = (Class<ACC>) accClass;
-        MapStateDescriptor<String, ACC> windowContentsDescriptor =
-                new MapStateDescriptor<>("window-contents", String.class, accType);
-        windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
+        if (windowStateDescriptor != null && keyedStateBackend instanceof IInternalStateBackend) {
+            @SuppressWarnings("unchecked")
+            IInternalStateBackend<K> internalBackend = (IInternalStateBackend<K>) keyedStateBackend;
+
+            if (windowStateDescriptor instanceof AggregatingStateDescriptor) {
+                @SuppressWarnings("unchecked")
+                AggregatingStateDescriptor<IN, ACC, ?> aggDesc =
+                        (AggregatingStateDescriptor<IN, ACC, ?>) windowStateDescriptor;
+                newAppendingWindowState =
+                        (InternalAppendingState<K, W, IN, ACC, ACC>)
+                                (InternalAppendingState<?, ?, ?, ?, ?>)
+                                        internalBackend.getInternalAppendingState(aggDesc);
+            } else if (windowStateDescriptor instanceof ListStateDescriptor) {
+                @SuppressWarnings("unchecked")
+                ListStateDescriptor<IN> listDesc = (ListStateDescriptor<IN>) windowStateDescriptor;
+                newListWindowState = internalBackend.getInternalListState(listDesc);
+            }
+        } else {
+            @SuppressWarnings("unchecked")
+            Class<ACC> accType = (Class<ACC>) accClass;
+            MapStateDescriptor<String, ACC> windowContentsDescriptor =
+                    new MapStateDescriptor<>("window-contents", String.class, accType);
+            windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
+        }
 
         internalTimerService = new WindowOperatorTimerService<>(this,
                 () -> getKeyedStateBackend() != null ? (K) getKeyedStateBackend().getCurrentKey() : null);
@@ -265,10 +344,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     }
                 };
 
-        // create (or restore) the state that hold the actual window contents
-        // NOTE - the state may be null in the case of the overriding evicting window operator
-
-        // create the typed and helper states for merging windows
         if (windowAssigner instanceof MergingWindowAssigner) {
 
             @SuppressWarnings("unchecked") final Class<Tuple2<W, W>> typedTuple = (Class<Tuple2<W, W>>) (Class<?>) Tuple2.class;
@@ -276,7 +351,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             final ListStateDescriptor<Tuple2<W, W>> mergingSetsStateDescriptor =
                     new ListStateDescriptor<>("merging-window-set", typedTuple);
 
-            // get the state that stores the merging sets
             if (keyedStateBackend instanceof IInternalStateBackend) {
                 @SuppressWarnings("unchecked")
                 IInternalStateBackend<K> internalBackend = (IInternalStateBackend<K>) keyedStateBackend;
@@ -607,8 +681,35 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     private void emitWindowContents(K key, W window, ACC contents) throws Exception {
         timestampedCollector.setAbsoluteTimestamp(window.maxTimestamp());
         processContext.window = window;
-        userFunction.process(
-                key, window, processContext, contents, timestampedCollector);
+
+        if (evictor != null) {
+            Iterable<IN> elements = (Iterable<IN>) contents;
+            List<TimestampedValue<IN>> wrapped = new ArrayList<>();
+            for (IN element : elements) {
+                wrapped.add(new TimestampedValue<>(element, Long.MIN_VALUE));
+            }
+            Evictor.EvictorContext evictorContext = new Evictor.EvictorContext() {
+                @Override
+                public long getCurrentProcessingTime() {
+                    return internalTimerService.currentProcessingTime();
+                }
+
+                @Override
+                public long getCurrentWatermark() {
+                    return internalTimerService.currentWatermark();
+                }
+            };
+            evictor.evictBefore(wrapped, wrapped.size(), window, evictorContext);
+            List<IN> evictedElements = new ArrayList<>();
+            for (TimestampedValue<IN> tv : wrapped) {
+                evictedElements.add(tv.getValue());
+            }
+            userFunction.process(
+                    key, window, processContext, (ACC) (Iterable<IN>) evictedElements, timestampedCollector);
+        } else {
+            userFunction.process(
+                    key, window, processContext, contents, timestampedCollector);
+        }
     }
 
     /**
@@ -717,6 +818,32 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @SuppressWarnings("unchecked")
     private void addWindowElement(K key, W window, IN value) {
+        if (newAppendingWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            newAppendingWindowState.setCurrentNamespace(window);
+            try {
+                newAppendingWindowState.add(value);
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to add element to appending window state");
+            }
+            return;
+        }
+
+        if (newListWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            newListWindowState.setCurrentNamespace(window);
+            try {
+                newListWindowState.add(value);
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to add element to list window state");
+            }
+            return;
+        }
+
         IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
         typedBackend.setCurrentKey(key);
         typedBackend.setCurrentNamespace(windowNamespace(window));
@@ -765,7 +892,34 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     private ACC getWindowContents(K key, W window) {
+        if (newAppendingWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            newAppendingWindowState.setCurrentNamespace(window);
+            try {
+                ACC acc = newAppendingWindowState.getAccumulator();
+                return acc;
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to get window contents from appending state");
+            }
+        }
+
+        if (newListWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            newListWindowState.setCurrentNamespace(window);
+            try {
+                Iterable<IN> elements = newListWindowState.get();
+                return (ACC) elements;
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to get window contents from list state");
+            }
+        }
+
         IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
         typedBackend.setCurrentKey(key);
         typedBackend.setCurrentNamespace(windowNamespace(window));
@@ -773,6 +927,22 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     private void clearWindowContents(K key, W window) {
+        if (newAppendingWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            newAppendingWindowState.setCurrentNamespace(window);
+            newAppendingWindowState.clear();
+            return;
+        }
+
+        if (newListWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            newListWindowState.setCurrentNamespace(window);
+            newListWindowState.clear();
+            return;
+        }
+
         IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
         typedBackend.setCurrentKey(key);
         typedBackend.setCurrentNamespace(windowNamespace(window));
@@ -782,6 +952,29 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     private void setWindowContents(K key, W window, ACC value) {
         IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
         typedBackend.setCurrentKey(key);
+
+        if (newAppendingWindowState != null) {
+            newAppendingWindowState.setCurrentNamespace(window);
+            try {
+                newAppendingWindowState.add((IN) value);
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to set window contents in appending state");
+            }
+            return;
+        }
+
+        if (newListWindowState != null) {
+            newListWindowState.setCurrentNamespace(window);
+            try {
+                newListWindowState.add((IN) value);
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to set window contents in list state");
+            }
+            return;
+        }
+
         typedBackend.setCurrentNamespace(windowNamespace(window));
         windowContentsState.put(WINDOW_VALUE_KEY, value);
     }
@@ -789,6 +982,109 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     @SuppressWarnings("unchecked")
     private void mergeWindowContents(K key, W targetWindow, Collection<W> sourceWindows) {
         if (sourceWindows == null || sourceWindows.isEmpty()) {
+            return;
+        }
+
+        if (newAppendingWindowState != null && mergeFunction != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+
+            newAppendingWindowState.setCurrentNamespace(targetWindow);
+            ACC targetValue;
+            try {
+                targetValue = newAppendingWindowState.getAccumulator();
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to get target accumulator during merge");
+            }
+
+            for (W sourceWindow : sourceWindows) {
+                if (sourceWindow == null || sourceWindow.equals(targetWindow)) {
+                    continue;
+                }
+
+                newAppendingWindowState.setCurrentNamespace(sourceWindow);
+                ACC sourceValue;
+                try {
+                    sourceValue = newAppendingWindowState.getAccumulator();
+                } catch (Exception e) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                            .param(ARG_DETAIL, "Failed to get source accumulator during merge");
+                }
+
+                if (sourceValue == null) {
+                    continue;
+                }
+
+                if (targetValue == null) {
+                    targetValue = sourceValue;
+                } else {
+                    targetValue = mergeFunction.apply(targetValue, sourceValue);
+                }
+
+                newAppendingWindowState.setCurrentNamespace(sourceWindow);
+                newAppendingWindowState.clear();
+            }
+
+            if (targetValue != null) {
+                newAppendingWindowState.setCurrentNamespace(targetWindow);
+                try {
+                    newAppendingWindowState.clear();
+                    newAppendingWindowState.add((IN) targetValue);
+                } catch (java.io.IOException e) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                            .param(ARG_DETAIL, "Failed to set merged accumulator");
+                }
+            }
+            return;
+        }
+
+        if (newListWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+
+            newListWindowState.setCurrentNamespace(targetWindow);
+            List<IN> targetElements = new ArrayList<>();
+            try {
+                Iterable<IN> existing = newListWindowState.get();
+                if (existing != null) {
+                    for (IN e : existing) {
+                        targetElements.add(e);
+                    }
+                }
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to get target list during merge");
+            }
+
+            for (W sourceWindow : sourceWindows) {
+                if (sourceWindow == null || sourceWindow.equals(targetWindow)) {
+                    continue;
+                }
+
+                newListWindowState.setCurrentNamespace(sourceWindow);
+                try {
+                    Iterable<IN> sourceElements = newListWindowState.get();
+                    if (sourceElements != null) {
+                        for (IN e : sourceElements) {
+                            targetElements.add(e);
+                        }
+                    }
+                } catch (java.io.IOException e) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                            .param(ARG_DETAIL, "Failed to get source list during merge");
+                }
+
+                newListWindowState.clear();
+            }
+
+            newListWindowState.setCurrentNamespace(targetWindow);
+            try {
+                newListWindowState.update(targetElements);
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to update target list during merge");
+            }
             return;
         }
 
@@ -808,13 +1104,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             } else if (targetValue instanceof SimpleAccumulator) {
                 SimpleAccumulator<ACC> accumulator = (SimpleAccumulator<ACC>) targetValue;
                 if (sourceValue instanceof SimpleAccumulator) {
-                    // Both are SimpleAccumulators: merge source accumulator into target.
-                    // This is the correct path for session window merging where both
-                    // windows have been accumulating values independently.
                     accumulator.merge((SimpleAccumulator<ACC>) sourceValue);
                 } else {
-                    // Source is a raw value, target is an accumulator.
-                    // Type incompatibility should cause a fast failure, not silent data loss.
                     throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                             "Cannot merge non-accumulator value into accumulator target. " +
                             "targetType=" + targetValue.getClass().getName() +
@@ -847,28 +1138,302 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return window.getClass().getName() + "@" + System.identityHashCode(window);
     }
 
-    /**
-     * Base class for per-window {@link KeyedStateStore KeyedStateStores}. Used to allow per-window
-     * state access for {@link io.nop.stream.core.common.functions.ProcessWindowFunction}.
-     */
-    public abstract class AbstractPerWindowStateStore { //extends DefaultKeyedStateStore {
+    public class PerWindowKeyedStateStore implements KeyedStateStore {
+        private final IKeyedStateBackend<K> backend;
+        private final String namespace;
 
-        // we have this in the base class even though it's not used in MergingKeyStore so that
-        // we can always set it and ignore what actual implementation we have
-        protected W window;
+        PerWindowKeyedStateStore(IKeyedStateBackend<K> backend, String namespace) {
+            this.backend = backend;
+            this.namespace = namespace;
+        }
+
+        private void setNamespace() {
+            backend.setCurrentNamespace(namespace);
+        }
+
+        @Override
+        public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareValueState<>(namespace, backend.getState(stateProperties), backend);
+        }
+
+        @Override
+        public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareListState<>(namespace, backend.getListState(stateProperties), backend);
+        }
+
+        @Override
+        public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareReducingState<>(namespace, backend.getReducingState(stateProperties), backend);
+        }
+
+        @Override
+        public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
+                AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareAggregatingState<>(namespace, backend.getAggregatingState(stateProperties), backend);
+        }
+
+        @Override
+        public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareMapState<>(namespace, backend.getMapState(stateProperties), backend);
+        }
     }
 
-    /**
-     * Special {@link AbstractPerWindowStateStore} that doesn't allow access to per-window state.
-     */
-    public class MergingWindowStateStore extends AbstractPerWindowStateStore {
+    public class GlobalKeyedStateStore implements KeyedStateStore {
+        private final IKeyedStateBackend<K> backend;
+
+        GlobalKeyedStateStore(IKeyedStateBackend<K> backend) {
+            this.backend = backend;
+        }
+
+        private void setNamespace() {
+            backend.setCurrentNamespace(IKeyedStateBackend.DEFAULT_NAMESPACE);
+        }
+
+        @Override
+        public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareValueState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getState(stateProperties), backend);
+        }
+
+        @Override
+        public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareListState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getListState(stateProperties), backend);
+        }
+
+        @Override
+        public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareReducingState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getReducingState(stateProperties), backend);
+        }
+
+        @Override
+        public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
+                AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareAggregatingState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getAggregatingState(stateProperties), backend);
+        }
+
+        @Override
+        public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
+            setNamespace();
+            return new NamespaceAwareMapState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getMapState(stateProperties), backend);
+        }
     }
 
-    /**
-     * Regular per-window state store for use with {@link
-     * io.nop.stream.core.common.functions.ProcessWindowFunction}.
-     */
-    public class PerWindowStateStore extends AbstractPerWindowStateStore {
+    private static class NamespaceAwareValueState<T> implements ValueState<T> {
+        private final String namespace;
+        private final ValueState<T> delegate;
+        private final IKeyedStateBackend<?> backend;
+
+        NamespaceAwareValueState(String namespace, ValueState<T> delegate, IKeyedStateBackend<?> backend) {
+            this.namespace = namespace;
+            this.delegate = delegate;
+            this.backend = backend;
+        }
+
+        @Override
+        public T value() throws java.io.IOException {
+            backend.setCurrentNamespace(namespace);
+            return delegate.value();
+        }
+
+        @Override
+        public void update(T value) throws java.io.IOException {
+            backend.setCurrentNamespace(namespace);
+            delegate.update(value);
+        }
+
+        @Override
+        public void clear() {
+            backend.setCurrentNamespace(namespace);
+            delegate.clear();
+        }
+    }
+
+    private static class NamespaceAwareListState<T> implements ListState<T> {
+        private final String namespace;
+        private final ListState<T> delegate;
+        private final IKeyedStateBackend<?> backend;
+
+        NamespaceAwareListState(String namespace, ListState<T> delegate, IKeyedStateBackend<?> backend) {
+            this.namespace = namespace;
+            this.delegate = delegate;
+            this.backend = backend;
+        }
+
+        @Override
+        public Iterable<T> get() throws java.io.IOException {
+            backend.setCurrentNamespace(namespace);
+            return delegate.get();
+        }
+
+        @Override
+        public void add(T value) throws java.io.IOException {
+            backend.setCurrentNamespace(namespace);
+            delegate.add(value);
+        }
+
+        @Override
+        public void update(Iterable<T> values) throws java.io.IOException {
+            backend.setCurrentNamespace(namespace);
+            delegate.update(values);
+        }
+
+        @Override
+        public void addAll(Iterable<T> values) throws java.io.IOException {
+            backend.setCurrentNamespace(namespace);
+            delegate.addAll(values);
+        }
+
+        @Override
+        public void clear() {
+            backend.setCurrentNamespace(namespace);
+            delegate.clear();
+        }
+    }
+
+    private static class NamespaceAwareReducingState<T> implements ReducingState<T> {
+        private final String namespace;
+        private final ReducingState<T> delegate;
+        private final IKeyedStateBackend<?> backend;
+
+        NamespaceAwareReducingState(String namespace, ReducingState<T> delegate, IKeyedStateBackend<?> backend) {
+            this.namespace = namespace;
+            this.delegate = delegate;
+            this.backend = backend;
+        }
+
+        @Override
+        public T get() throws Exception {
+            backend.setCurrentNamespace(namespace);
+            return delegate.get();
+        }
+
+        @Override
+        public void add(T value) throws Exception {
+            backend.setCurrentNamespace(namespace);
+            delegate.add(value);
+        }
+
+        @Override
+        public void clear() {
+            backend.setCurrentNamespace(namespace);
+            delegate.clear();
+        }
+    }
+
+    private static class NamespaceAwareAggregatingState<IN, OUT> implements AggregatingState<IN, OUT> {
+        private final String namespace;
+        private final AggregatingState<IN, OUT> delegate;
+        private final IKeyedStateBackend<?> backend;
+
+        NamespaceAwareAggregatingState(String namespace, AggregatingState<IN, OUT> delegate, IKeyedStateBackend<?> backend) {
+            this.namespace = namespace;
+            this.delegate = delegate;
+            this.backend = backend;
+        }
+
+        @Override
+        public OUT get() throws Exception {
+            backend.setCurrentNamespace(namespace);
+            return delegate.get();
+        }
+
+        @Override
+        public void add(IN value) throws Exception {
+            backend.setCurrentNamespace(namespace);
+            delegate.add(value);
+        }
+
+        @Override
+        public void clear() {
+            backend.setCurrentNamespace(namespace);
+            delegate.clear();
+        }
+    }
+
+    private static class NamespaceAwareMapState<UK, UV> implements MapState<UK, UV> {
+        private final String namespace;
+        private final MapState<UK, UV> delegate;
+        private final IKeyedStateBackend<?> backend;
+
+        NamespaceAwareMapState(String namespace, MapState<UK, UV> delegate, IKeyedStateBackend<?> backend) {
+            this.namespace = namespace;
+            this.delegate = delegate;
+            this.backend = backend;
+        }
+
+        @Override
+        public UV get(UK key) {
+            backend.setCurrentNamespace(namespace);
+            return delegate.get(key);
+        }
+
+        @Override
+        public void put(UK key, UV value) {
+            backend.setCurrentNamespace(namespace);
+            delegate.put(key, value);
+        }
+
+        @Override
+        public void putAll(Map<UK, UV> map) {
+            backend.setCurrentNamespace(namespace);
+            delegate.putAll(map);
+        }
+
+        @Override
+        public void remove(UK key) {
+            backend.setCurrentNamespace(namespace);
+            delegate.remove(key);
+        }
+
+        @Override
+        public boolean contains(UK key) {
+            backend.setCurrentNamespace(namespace);
+            return delegate.contains(key);
+        }
+
+        @Override
+        public Iterable<Map.Entry<UK, UV>> entries() {
+            backend.setCurrentNamespace(namespace);
+            return delegate.entries();
+        }
+
+        @Override
+        public Iterable<UK> keys() {
+            backend.setCurrentNamespace(namespace);
+            return delegate.keys();
+        }
+
+        @Override
+        public Iterable<UV> values() {
+            backend.setCurrentNamespace(namespace);
+            return delegate.values();
+        }
+
+        @Override
+        public java.util.Iterator<Map.Entry<UK, UV>> iterator() {
+            backend.setCurrentNamespace(namespace);
+            return delegate.iterator();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            backend.setCurrentNamespace(namespace);
+            return delegate.isEmpty();
+        }
+
+        @Override
+        public void clear() {
+            backend.setCurrentNamespace(namespace);
+            delegate.clear();
+        }
     }
 
     /**
@@ -879,11 +1444,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     public class WindowContext implements InternalWindowFunction.InternalWindowContext {
         protected W window;
 
-        protected AbstractPerWindowStateStore windowState;
-
         public WindowContext(W window) {
             this.window = window;
-            this.windowState = null;
         }
 
         @Override
@@ -911,13 +1473,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (backend == null) {
                 return null;
             }
-            backend.setCurrentNamespace(windowNamespace(this.window));
-            return backend;
+            return new PerWindowKeyedStateStore(backend, windowNamespace(window));
         }
 
         @Override
         public KeyedStateStore globalState() {
-            return WindowOperator.this.getKeyedStateBackend();
+            IKeyedStateBackend<K> backend = WindowOperator.this.getKeyedStateBackend();
+            if (backend == null) {
+                return null;
+            }
+            return new GlobalKeyedStateStore(backend);
         }
 
         @Override

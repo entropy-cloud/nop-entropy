@@ -41,6 +41,7 @@ public class RecordWriter<T> {
     private final IPartitioner<T> partitioner;
     private final EdgeConfig edgeConfig;
     private final PartitionRouter partitionRouter;
+    private final boolean isBroadcast;
 
     /**
      * Creates a RecordWriter that forwards to a single partition.
@@ -65,6 +66,7 @@ public class RecordWriter<T> {
         this.partitioner = null;
         this.edgeConfig = edgeConfig;
         this.partitionRouter = null;
+        this.isBroadcast = false;
         validateFlowControlPolicy();
     }
 
@@ -111,6 +113,7 @@ public class RecordWriter<T> {
         this.partitioner = partitioner;
         this.edgeConfig = edgeConfig;
         this.partitionRouter = partitionRouter;
+        this.isBroadcast = partitionRouter instanceof BroadcastPartitionRouter;
         validateFlowControlPolicy();
     }
 
@@ -138,12 +141,23 @@ public class RecordWriter<T> {
      */
     @SuppressWarnings("unchecked")
     public void emit(StreamRecord<T> record) {
-        int targetChannel = selectChannel(record);
-        try {
-            partitions[targetChannel].write(record);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "record");
+        if (isBroadcast) {
+            for (ResultPartition partition : partitions) {
+                try {
+                    partition.write(record);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "record");
+                }
+            }
+        } else {
+            int targetChannel = selectChannel(record);
+            try {
+                partitions[targetChannel].write(record);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "record");
+            }
         }
     }
 

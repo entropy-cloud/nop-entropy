@@ -10,6 +10,8 @@ package io.nop.stream.core.datastream;
 import java.io.Serializable;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
@@ -17,7 +19,9 @@ import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.AggregateAggregationFunction;
 import io.nop.stream.core.operators.ApplyAggregationFunction;
+import io.nop.stream.core.operators.IWindowOperatorFactory;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.ProcessWindowAggregationFunction;
 import io.nop.stream.core.operators.ReduceAggregationFunction;
 import io.nop.stream.core.operators.WindowAggregationFunction;
 import io.nop.stream.core.operators.WindowAggregationOperator;
@@ -137,9 +141,30 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return keyedStream;
     }
 
+    private IWindowOperatorFactory getFactory() {
+        if (components != null) {
+            return components.getWindowOperatorFactory();
+        }
+        return null;
+    }
+
+    public WindowedStreamImpl<T, K, W> withComponents(StreamComponents components) {
+        this.components = components;
+        return this;
+    }
+
     @Override
+    @SuppressWarnings("unchecked")
     public <R> SingleOutputStreamOperator<R> apply(WindowFunction<T, R, K, W> function) {
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
+        IWindowOperatorFactory factory = getFactory();
+        if (factory != null) {
+            OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
+                    assigner, trigger, evictor, allowedLateness, function,
+                    (Class<T>) (Class<?>) Object.class,
+                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+            return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
+        }
         WindowAggregationFunction<T, java.util.List<T>, R, K, W> aggFn =
                 new ApplyAggregationFunction<>(function);
         WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
@@ -148,8 +173,17 @@ public class WindowedStreamImpl<T, K, W extends Window>
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <ACC, R> SingleOutputStreamOperator<R> aggregate(AggregateFunction<T, ACC, R> function) {
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
+        IWindowOperatorFactory factory = getFactory();
+        if (factory != null) {
+            OneInputStreamOperator<T, R> operator = factory.createAggregateOperator(
+                    assigner, trigger, evictor, allowedLateness, function,
+                    (Class<ACC>) (Class<?>) Object.class,
+                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+            return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
+        }
         WindowAggregationFunction<T, ACC, R, K, W> aggFn =
                 new AggregateAggregationFunction<>(function);
         WindowAggregationOperator<T, ACC, R, K, W> operator =
@@ -158,13 +192,41 @@ public class WindowedStreamImpl<T, K, W extends Window>
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function) {
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
+        IWindowOperatorFactory factory = getFactory();
+        if (factory != null) {
+            OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
+                    assigner, trigger, evictor, allowedLateness, function,
+                    (Class<T>) (Class<?>) Object.class,
+                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+            return transform("WindowReduce", getType(), operator);
+        }
         WindowAggregationFunction<T, T, T, K, W> aggFn =
                 new ReduceAggregationFunction<>(function);
         WindowAggregationOperator<T, T, T, K, W> operator =
                 new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
         return transform("WindowReduce", getType(), operator);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <R> SingleOutputStreamOperator<R> process(ProcessWindowFunction<T, R, K, W> function) {
+        WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
+        IWindowOperatorFactory factory = getFactory();
+        if (factory != null) {
+            OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
+                    assigner, trigger, evictor, allowedLateness, function,
+                    (Class<T>) (Class<?>) Object.class,
+                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+            return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
+        }
+        WindowAggregationFunction<T, java.util.List<T>, R, K, W> aggFn =
+                new ProcessWindowAggregationFunction<>(function);
+        WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
+                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
+        return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
     @Override

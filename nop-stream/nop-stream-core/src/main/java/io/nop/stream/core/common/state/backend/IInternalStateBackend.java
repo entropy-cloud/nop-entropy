@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.backend;
 
+import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
@@ -34,6 +35,9 @@ public interface IInternalStateBackend<K> extends IKeyedStateBackend<K> {
      */
     <N, IN, ACC> InternalAppendingState<K, N, IN, ACC, ACC> getInternalAppendingState(
             ReducingStateDescriptor<IN> descriptor);
+
+    <N, IN, ACC, OUT> InternalAppendingState<K, N, IN, ACC, OUT> getInternalAppendingState(
+            AggregatingStateDescriptor<IN, ACC, OUT> descriptor);
 
     /**
      * 获取或创建 InternalListState。

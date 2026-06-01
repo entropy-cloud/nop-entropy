@@ -333,6 +333,8 @@ public class TestEventTimeWindowE2E {
             assertTrue(watermarks.get(i).getTimestamp() >= watermarks.get(i - 1).getTimestamp(),
                     "Watermarks must be monotonically increasing");
         }
+
+        tsOperator.finish();
     }
 
     @Test
@@ -363,7 +365,7 @@ public class TestEventTimeWindowE2E {
                             windowOperator.setCurrentKey(record.getValue().key);
                             windowOperator.processElement(record);
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e);
                         }
                     }
 
@@ -376,7 +378,7 @@ public class TestEventTimeWindowE2E {
                         try {
                             windowOperator.processWatermark(mark);
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e);
                         }
                     }
 
@@ -421,6 +423,8 @@ public class TestEventTimeWindowE2E {
 
         // Emit MAX_WATERMARK to fire all windows (simulating end-of-source)
         tsOperator.processWatermark(Watermark.MAX_WATERMARK);
+
+        tsOperator.finish();
 
         // Collect and verify results
         List<WindowResult> results = new ArrayList<>(finalOutput.getElements());
@@ -560,7 +564,7 @@ public class TestEventTimeWindowE2E {
                             windowOperator.setCurrentKey(record.getValue().key);
                             windowOperator.processElement(record);
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e);
                         }
                     }
 
@@ -573,7 +577,7 @@ public class TestEventTimeWindowE2E {
                         try {
                             windowOperator.processWatermark(mark);
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e);
                         }
                     }
 
@@ -613,6 +617,8 @@ public class TestEventTimeWindowE2E {
         // Advance watermark past window [0,100) boundary
         // window.maxTimestamp() = 99, so watermark >= 99 should fire it
         windowOperator.processWatermark(new Watermark(200));
+
+        tsOperator.finish();
 
         List<WindowResult> resultsAfter = finalOutput.getElements();
         assertTrue(resultsAfter.size() >= 2, "At least 2 results (key1 and key2 for window [0,100))");

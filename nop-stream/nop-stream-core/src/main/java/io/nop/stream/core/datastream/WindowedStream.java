@@ -8,6 +8,7 @@
 package io.nop.stream.core.datastream;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
+import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.windowing.evictors.Evictor;
@@ -66,6 +67,8 @@ public interface WindowedStream<T, K, W extends Window> extends DataStream<T> {
      * @return The resulting data stream.
      */
     SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function);
+
+    <R> SingleOutputStreamOperator<R> process(ProcessWindowFunction<T, R, K, W> function);
 
     /**
      * Sets the trigger for this windowed stream.

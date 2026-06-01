@@ -26,6 +26,11 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.Window;
 
+/**
+ * @deprecated Use {@link io.nop.stream.core.operators.IWindowOperatorFactory} with
+ * {@code WindowOperator} from the runtime module instead.
+ */
+@Deprecated
 public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
         extends AbstractStreamOperator<OUT>
         implements OneInputStreamOperator<IN, OUT>, KeyContext {

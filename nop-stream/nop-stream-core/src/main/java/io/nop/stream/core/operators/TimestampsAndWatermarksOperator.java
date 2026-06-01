@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.operators;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import io.nop.stream.core.common.eventtime.TimestampAssigner;
 import io.nop.stream.core.common.eventtime.WatermarkGenerator;
 import io.nop.stream.core.common.eventtime.WatermarkOutput;
@@ -27,11 +30,12 @@ public class TimestampsAndWatermarksOperator<T>
     private final long watermarkInterval;
     private transient TimestampAssigner<T> timestampAssigner;
     private transient WatermarkGenerator<T> watermarkGenerator;
-    private transient long lastWatermarkTimestamp;
+    private transient volatile long lastWatermarkTimestamp;
     private transient long nextWatermarkTime;
     private transient long lastEmitTime;
     private transient long elementsSinceLastEmit;
-    private transient boolean idle;
+    private transient volatile boolean idle;
+    private transient Timer watermarkTimer;
 
     public TimestampsAndWatermarksOperator(WatermarkStrategy<T> watermarkStrategy) {
         this(watermarkStrategy, DEFAULT_WATERMARK_INTERVAL_MS);
@@ -52,6 +56,16 @@ public class TimestampsAndWatermarksOperator<T>
         this.lastEmitTime = 0;
         this.elementsSinceLastEmit = 0;
         this.idle = false;
+
+        if (watermarkInterval > 0) {
+            watermarkTimer = new Timer("watermark-timer", true);
+            watermarkTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
+                }
+            }, watermarkInterval, watermarkInterval);
+        }
     }
 
     @Override
@@ -105,6 +119,10 @@ public class TimestampsAndWatermarksOperator<T>
 
     @Override
     public void finish() throws Exception {
+        if (watermarkTimer != null) {
+            watermarkTimer.cancel();
+            watermarkTimer = null;
+        }
         watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
         output.emitWatermark(Watermark.MAX_WATERMARK);
     }

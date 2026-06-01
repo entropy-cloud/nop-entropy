@@ -5,6 +5,11 @@ import java.io.Serializable;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.windows.Window;
 
+/**
+ * @deprecated Use {@link io.nop.stream.core.operators.IWindowOperatorFactory} with
+ * {@code WindowOperator} from the runtime module instead.
+ */
+@Deprecated
 public interface WindowAggregationFunction<IN, ACC, OUT, KEY, W extends Window> extends Serializable {
     ACC createAccumulator();
 

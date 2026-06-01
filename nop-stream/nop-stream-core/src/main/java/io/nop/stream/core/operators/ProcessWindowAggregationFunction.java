@@ -3,7 +3,7 @@ package io.nop.stream.core.operators;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.nop.stream.core.common.functions.WindowFunction;
+import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.windows.Window;
 
@@ -12,15 +12,15 @@ import io.nop.stream.core.windowing.windows.Window;
  * {@code WindowOperator} from the runtime module instead.
  */
 @Deprecated
-public class ApplyAggregationFunction<IN, OUT, K, W extends Window>
+public class ProcessWindowAggregationFunction<IN, OUT, K, W extends Window>
         implements WindowAggregationFunction<IN, List<IN>, OUT, K, W> {
 
     private static final long serialVersionUID = 1L;
 
-    private final WindowFunction<IN, OUT, K, W> windowFunction;
+    private final ProcessWindowFunction<IN, OUT, K, W> processWindowFunction;
 
-    public ApplyAggregationFunction(WindowFunction<IN, OUT, K, W> windowFunction) {
-        this.windowFunction = windowFunction;
+    public ProcessWindowAggregationFunction(ProcessWindowFunction<IN, OUT, K, W> processWindowFunction) {
+        this.processWindowFunction = processWindowFunction;
     }
 
     @Override
@@ -36,6 +36,6 @@ public class ApplyAggregationFunction<IN, OUT, K, W extends Window>
 
     @Override
     public void emitResult(K key, W window, List<IN> accumulator, Collector<OUT> out) throws Exception {
-        windowFunction.apply(key, window, accumulator, out);
+        processWindowFunction.process(key, window, accumulator, null, out);
     }
 }

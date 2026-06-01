@@ -13,6 +13,7 @@ import java.util.*;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.operators.IWindowOperatorFactory;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;
@@ -31,6 +32,7 @@ public class StreamComponents implements Serializable {
     private final Map<String, Object> sideInputs;
     private final List<StreamRequirement> requirements;
     private final Set<String> checkpointParticipants;
+    private IWindowOperatorFactory windowOperatorFactory;
 
     public StreamComponents() {
         this.transforms = new LinkedHashMap<>();
@@ -52,7 +54,8 @@ public class StreamComponents implements Serializable {
                             Map<String, Object> environments,
                             Map<String, Object> sideInputs,
                             List<StreamRequirement> requirements,
-                            Set<String> checkpointParticipants) {
+                            Set<String> checkpointParticipants,
+                            IWindowOperatorFactory windowOperatorFactory) {
         this.transforms = transforms != null ? new LinkedHashMap<>(transforms) : new LinkedHashMap<>();
         this.streams = streams != null ? new LinkedHashMap<>(streams) : new LinkedHashMap<>();
         this.windowingStrategies = windowingStrategies != null ? new LinkedHashMap<>(windowingStrategies) : new LinkedHashMap<>();
@@ -62,6 +65,7 @@ public class StreamComponents implements Serializable {
         this.sideInputs = sideInputs != null ? new LinkedHashMap<>(sideInputs) : new LinkedHashMap<>();
         this.requirements = requirements != null ? new ArrayList<>(requirements) : new ArrayList<>();
         this.checkpointParticipants = checkpointParticipants != null ? new LinkedHashSet<>(checkpointParticipants) : new LinkedHashSet<>();
+        this.windowOperatorFactory = windowOperatorFactory;
     }
 
     public Map<String, Object> getTransforms() {
@@ -161,6 +165,14 @@ public class StreamComponents implements Serializable {
 
     public boolean hasCheckpointParticipant(String operatorId) {
         return checkpointParticipants.contains(operatorId);
+    }
+
+    public IWindowOperatorFactory getWindowOperatorFactory() {
+        return windowOperatorFactory;
+    }
+
+    public void setWindowOperatorFactory(IWindowOperatorFactory windowOperatorFactory) {
+        this.windowOperatorFactory = windowOperatorFactory;
     }
 
     @Override

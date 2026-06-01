@@ -64,6 +64,8 @@ class MemoryStateSerDe {
                 statesMap.put(stateName, snapshotListStateFromPublic((MemoryListState<?>) stateObj));
             } else if (stateObj instanceof MemoryInternalAppendingState) {
                 statesMap.put(stateName, snapshotAppendingState((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj));
+            } else if (stateObj instanceof MemoryInternalAggregatingState) {
+                statesMap.put(stateName, snapshotInternalAggregatingState((MemoryInternalAggregatingState<?, ?, ?, ?, ?>) stateObj));
             } else if (stateObj instanceof MemoryInternalListState) {
                 statesMap.put(stateName, snapshotListState((MemoryInternalListState<?, ?, ?>) stateObj));
             } else if (stateObj instanceof MemoryReducingState) {
@@ -120,6 +122,9 @@ class MemoryStateSerDe {
                     break;
                 case "AggregatingState":
                     restoreAggregatingState(states, stateName, stateInfo);
+                    break;
+                case "InternalAggregatingState":
+                    restoreInternalAggregatingState(states, stateName, stateInfo);
                     break;
                 default:
                     throw new StreamException(ERR_STREAM_STATE_ERROR)
@@ -384,6 +389,37 @@ class MemoryStateSerDe {
         states.put(stateName, state);
     }
 
+    @SuppressWarnings("unchecked")
+    private void restoreInternalAggregatingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
+        String valueTypeName = (String) stateInfo.get("valueType");
+        ClassNameValidator.validateClassName(valueTypeName);
+        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
+        String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
+        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
+        Class<? extends AggregateFunction<?, ?, ?>> aggregateFunctionClass =
+                (Class<? extends AggregateFunction<?, ?, ?>>) Class.forName(aggregateFunctionTypeName);
+        AggregateFunction<Object, Object, Object> aggregateFunction =
+                (AggregateFunction<Object, Object, Object>) aggregateFunctionClass.getDeclaredConstructor().newInstance();
+
+        AggregatingStateDescriptor<Object, Object, Object> descriptor =
+                new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
+        MemoryInternalAggregatingState<Object, Object, Object, Object, Object> state =
+                new MemoryInternalAggregatingState<>(backend, descriptor);
+
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
+        if (entries != null) {
+            for (Map<String, Object> e : entries) {
+                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
+                        deserializeNamespace(e.get("namespace")),
+                        backend.routeKey(deserializeKey(e.get("key"))));
+                Object value = deserializeValue(e.get("value"), valueClass);
+                state.storage.put(nk, value);
+            }
+        }
+
+        states.put(stateName, state);
+    }
+
     private Map<String, Object> snapshotValueState(MemoryValueState<?> state) {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("stateType", "ValueState");
@@ -517,6 +553,27 @@ class MemoryStateSerDe {
     private Map<String, Object> snapshotAggregatingState(MemoryAggregatingState<?, ?, ?> state) {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("stateType", "AggregatingState");
+        info.put("valueType", state.descriptor.getValueType().getName());
+        info.put("aggregateFunctionType", state.descriptor.getAggregateFunction().getClass().getName());
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
+
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("namespace", serializeNamespace(e.getKey().namespace));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
+            entry.put("value", e.getValue());
+            entries.add(entry);
+        }
+        info.put("entries", entries);
+        return info;
+    }
+
+    private Map<String, Object> snapshotInternalAggregatingState(MemoryInternalAggregatingState<?, ?, ?, ?, ?> state) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("stateType", "InternalAggregatingState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("aggregateFunctionType", state.descriptor.getAggregateFunction().getClass().getName());
         if (shardCount > 1) {

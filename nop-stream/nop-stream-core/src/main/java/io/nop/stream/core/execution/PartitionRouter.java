@@ -46,13 +46,11 @@ public interface PartitionRouter {
             policy = PartitionPolicy.FORWARD;
         }
         switch (policy) {
-            case HASH:
-                return new HashPartitionRouter(numPartitions, partitioner);
-            case REBALANCE:
-                return new RebalancePartitionRouter(numPartitions, sourceSubtaskIndex);
+            case HASH:      return new HashPartitionRouter(numPartitions, partitioner);
+            case REBALANCE: return new RebalancePartitionRouter(numPartitions, sourceSubtaskIndex);
+            case BROADCAST: return new BroadcastPartitionRouter(numPartitions);
             case FORWARD:
-            default:
-                return new ForwardPartitionRouter(numPartitions);
+            default:        return new ForwardPartitionRouter(numPartitions);
         }
     }
 }

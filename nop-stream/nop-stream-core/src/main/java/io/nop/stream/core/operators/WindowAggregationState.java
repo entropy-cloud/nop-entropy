@@ -6,6 +6,11 @@ import java.util.Map;
 import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
+/**
+ * @deprecated Use {@link io.nop.stream.core.operators.IWindowOperatorFactory} with
+ * {@code WindowOperator} from the runtime module instead.
+ */
+@Deprecated
 public class WindowAggregationState implements Serializable {
 
     private static final long serialVersionUID = 1L;

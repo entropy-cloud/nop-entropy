@@ -259,7 +259,8 @@ public class StreamExecutionEnvironment {
                   + "Ensure the runtime module is on the classpath and the dispatcher has been configured.");
             }
 
-            GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan);
+            boolean barrierAlignment = checkpointConfig.getProcessingGuarantee().isBarrierAlignment();
+            GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
 
             TaskExecutor executor = new TaskExecutor();
             List<SubtaskTask> subtaskTasks = new ArrayList<>();

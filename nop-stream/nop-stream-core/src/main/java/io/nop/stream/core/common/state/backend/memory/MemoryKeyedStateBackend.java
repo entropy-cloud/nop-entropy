@@ -191,6 +191,20 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     @Override
+    public <N, IN, ACC, OUT> InternalAppendingState<K, N, IN, ACC, OUT> getInternalAppendingState(
+            AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
+        @SuppressWarnings("unchecked")
+        InternalAppendingState<K, N, IN, ACC, OUT> state =
+                (InternalAppendingState<K, N, IN, ACC, OUT>) states.get(descriptor.getName());
+        if (state == null) {
+            state = new MemoryInternalAggregatingState<>(this, descriptor);
+            registerStateType(descriptor.getName(), InternalAppendingState.class);
+            states.put(descriptor.getName(), state);
+        }
+        return state;
+    }
+
+    @Override
     public <N, T> InternalListState<K, N, T> getInternalListState(ListStateDescriptor<T> descriptor) {
         @SuppressWarnings("unchecked")
         InternalListState<K, N, T> state =
@@ -250,6 +264,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                 ((MemoryListState<?>) stateObj).rebind(this);
             } else if (stateObj instanceof MemoryInternalAppendingState) {
                 ((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj).rebind(this);
+            } else if (stateObj instanceof MemoryInternalAggregatingState) {
+                ((MemoryInternalAggregatingState<?, ?, ?, ?, ?>) stateObj).rebind(this);
             } else if (stateObj instanceof MemoryInternalListState) {
                 ((MemoryInternalListState<?, ?, ?>) stateObj).rebind(this);
             } else if (stateObj instanceof MemoryReducingState) {
