@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -108,9 +109,11 @@ public class TestLocalJobScheduler {
             JobSpec spec = newSpec("test-periodic", 10, true);
             sched.addJob(spec, false);
 
-            Thread.sleep(200);
-            assertTrue(invoker.invokeCount.get() > 5,
-                    "expected > 5 invocations but got " + invoker.invokeCount.get());
+            assertTimeoutPreemptively(Duration.ofSeconds(2), () -> {
+                while (invoker.invokeCount.get() <= 5) {
+                    Thread.sleep(20);
+                }
+            }, "expected > 5 invocations but got " + invoker.invokeCount.get());
         } finally {
             sched.deactivate();
         }
