@@ -1082,6 +1082,12 @@ public class CodeIndexService implements ICodeIndexService {
 
         if (file.getSymbols() != null) {
             for (CodeSymbol sym : file.getSymbols()) {
+                sym.setExtData(ExtDataHelper.setFilePath(sym.getExtData(), file.getFilePath()));
+            }
+        }
+
+        if (file.getSymbols() != null) {
+            for (CodeSymbol sym : file.getSymbols()) {
                 NopCodeSymbol symEntity = (NopCodeSymbol) ormTemplate.newEntity(NopCodeSymbol.class.getName());
                 symEntity.setId(sym.getId());
                 symEntity.setIndexId(indexId);

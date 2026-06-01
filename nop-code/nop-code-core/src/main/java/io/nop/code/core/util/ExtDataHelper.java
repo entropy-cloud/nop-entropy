@@ -63,6 +63,15 @@ public class ExtDataHelper {
         return Collections.emptyList();
     }
 
+    public static String setFilePath(String extData, String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return extData;
+        }
+        Map<String, Object> map = parseToMap(extData);
+        map.put("filePath", filePath);
+        return JsonTool.stringify(map);
+    }
+
     public static String setAnnotations(String extData, List<String> annotations) {
         if (annotations == null || annotations.isEmpty()) {
             return extData;
