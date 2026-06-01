@@ -16,7 +16,10 @@
     "check:plan": "node check-plan-checklist.mjs",
     "check:plan:strict": "node check-plan-checklist.mjs --strict",
     "check": "pnpm run check:doc-links:strict && pnpm run check:import-order && pnpm run check:oversized && pnpm run check:garbled",
-    "lint:java": "./run-java-lint.sh"
+    "lint:java": "./run-java-lint.sh",
+    "scan:hollow": "node scan-hollow-implementations.mjs",
+    "scan:hollow:all": "node scan-hollow-implementations.mjs --include-tests",
+    "scan:hollow:json": "node scan-hollow-implementations.mjs --format json"
   },
   "devDependencies": {
     "@ast-grep/cli": "^0.43.0",
