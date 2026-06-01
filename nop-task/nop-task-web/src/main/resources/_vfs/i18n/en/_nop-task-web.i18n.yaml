@@ -25,4 +25,4 @@ site:
     NopTaskStepInstance-main:
       displayName: TaskFlow Step Instance
     test-orm-nop-task:
-      displayName: ''
+      displayName: Test nop-task

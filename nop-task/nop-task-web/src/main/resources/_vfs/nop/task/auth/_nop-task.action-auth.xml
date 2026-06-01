@@ -2,8 +2,8 @@
 <auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
 
     <site id="main">
-        <resource id="test-orm-nop-task" displayName="测试nop-task" icon="workflow" resourceType="TOPM" orderNo="10000"
-                  routePath="/test-orm-nop-task" component="layouts/default/index">
+        <resource id="test-orm-nop-task" displayName="测试nop-task" i18n-en:displayName="Test nop-task" icon="workflow"
+                  resourceType="TOPM" orderNo="10000" routePath="/test-orm-nop-task" component="layouts/default/index">
             <children>
                 <resource id="NopTaskDefinition-main" displayName="逻辑流模型定义" orderNo="10001"
                           i18n-en:displayName="TaskFlow Definition" icon="workflow" component="AMIS" resourceType="SUBM"
