@@ -137,6 +137,12 @@ public class I18nMessageManager implements II18nMessageManager {
             locale = getDefaultLocale();
 
         Map<String, String> messages = registeredMessages.get(locale);
+        if (messages == null) {
+            String parentLocale = getParentLocale(locale);
+            if (parentLocale != null) {
+                messages = registeredMessages.get(parentLocale);
+            }
+        }
         if (messages != null) {
             String value = messages.get(key);
             if (value != null)
@@ -161,6 +167,12 @@ public class I18nMessageManager implements II18nMessageManager {
             return Collections.emptyMap();
 
         Map<String, String> messages = localeToMessages.get(locale).getMessages();
+        if (messages == null || messages.isEmpty()) {
+            String parentLocale = getParentLocale(locale);
+            if (parentLocale != null) {
+                messages = localeToMessages.get(parentLocale).getMessages();
+            }
+        }
         if (messages == null && !Objects.equals(locale, defaultLocale)) {
             messages = localeToMessages.get(defaultLocale).getMessages();
         }
@@ -175,8 +187,27 @@ public class I18nMessageManager implements II18nMessageManager {
         if (StringHelper.isEmpty(locale))
             return getDefaultLocale();
 
-        if (!isLocaleEnabled(locale))
+        if (!isLocaleEnabled(locale)) {
+            String parentLocale = getParentLocale(locale);
+            if (parentLocale != null && isLocaleEnabled(parentLocale)) {
+                return parentLocale;
+            }
             return getDefaultLocale();
+        }
         return locale;
+    }
+
+    private String getParentLocale(String locale) {
+        if (StringHelper.isEmpty(locale))
+            return null;
+
+        int pos = locale.indexOf('-');
+        if (pos < 0) {
+            pos = locale.indexOf('_');
+        }
+        if (pos <= 0)
+            return null;
+
+        return locale.substring(0, pos);
     }
 }
