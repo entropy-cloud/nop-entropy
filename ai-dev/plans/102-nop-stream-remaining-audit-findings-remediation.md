@@ -114,20 +114,20 @@ Exit Criteria:
 
 ### Phase 4 — WindowOperatorBuilder ErrorCode 合规
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperatorBuilder.java`
 
 - Item Types: `Fix`
 
-- [ ] 将 3 处 `throw new StreamException(e.getMessage(), e)` 替换为 `StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, e.getMessage())`，使用 `NopStreamErrors.ERR_STREAM_STATE_ERROR`（`WindowOperatorBuilder` 位于 `nop-stream-runtime`，`NopStreamErrors` 在 `nop-stream-core` 中已可访问）
-- [ ] 验证错误消息语义不变
+- [x] 将 3 处 `throw new StreamException(e.getMessage(), e)` 替换为 `StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, e.getMessage())`，使用 `NopStreamErrors.ERR_STREAM_STATE_ERROR`（`WindowOperatorBuilder` 位于 `nop-stream-runtime`，`NopStreamErrors` 在 `nop-stream-core` 中已可访问）
+- [x] 验证错误消息语义不变
 
 Exit Criteria:
 
-- [ ] `WindowOperatorBuilder` 中无字符串构造器 `StreamException` 调用
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `WindowOperatorBuilder` 中无字符串构造器 `StreamException` 调用
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

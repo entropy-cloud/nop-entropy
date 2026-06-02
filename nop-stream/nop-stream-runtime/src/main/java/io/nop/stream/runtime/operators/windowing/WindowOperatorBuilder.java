@@ -29,6 +29,7 @@ import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
@@ -39,6 +40,8 @@ import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProce
 import io.nop.stream.runtime.operators.windowing.functions.InternalIterableWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalSingleValueWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 public class WindowOperatorBuilder<IN, K, W extends Window> {
 
@@ -142,7 +145,7 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
             try {
                 return reduceFunction.reduce(a, b);
             } catch (Exception e) {
-                throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, e.getMessage());
             }
         };
         return buildWindowOperator(aggDesc, windowFn, valueType, mergeFn);
@@ -207,7 +210,7 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
                 try {
                     return reduceFunction.reduce(value, accumulator);
                 } catch (Exception e) {
-                    throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, e.getMessage());
                 }
             }
 
@@ -227,7 +230,7 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
                 try {
                     return reduceFunction.reduce(a, b);
                 } catch (Exception e) {
-                    throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, e.getMessage());
                 }
             }
         };
