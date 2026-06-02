@@ -240,6 +240,7 @@ public class LocalJobScheduler implements IJobScheduler {
 
     private void executeJob(ScheduledJob job) {
         job.state.internal = InternalState.RUNNING;
+        job.state.lastScheduledTime = currentTime();
         SimpleExecutionContext ctx = new SimpleExecutionContext(job.spec, job.state);
 
         CompletionStage<JobFireResult> future;
