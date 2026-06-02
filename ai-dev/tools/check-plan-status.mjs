@@ -26,7 +26,7 @@ function getPlanStatus(filePath) {
 }
 
 function isActive(status) {
-  return !["completed", "superseded", "cancelled"].includes(status);
+  return !["completed", "superseded", "cancelled", "deferred"].includes(status);
 }
 
 const files = readdirSync(plansDir)

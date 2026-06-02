@@ -82,11 +82,13 @@ plan文件名2
 
 执行步骤：
 1. 运行 \`node ai-dev/tools/check-plan-status.mjs\` 获取所有未完成计划列表
-2. 按计划编号从小到大顺序执行
-3. 对每个计划：阅读并遵循 ai-dev/skills/plan-closure-audit-prompt.md，逐 Phase 执行
-4. 每次改动后运行测试并提交 git
-5. 执行完一个计划后，继续执行下一个未完成计划
-6. 所有计划执行完毕后输出最终结果
+2. **跳过 Status 为 deferred 的计划**
+3. 按计划编号从小到大顺序执行
+4. 对每个计划：读取计划文件，**跳过已标记 [x] 的 Phase，只执行 [ ] 的 Phase**
+5. 阅读并遵循 ai-dev/skills/plan-closure-audit-prompt.md
+6. 每次改动后运行测试并提交 git
+7. 执行完一个计划后，继续执行下一个未完成计划
+8. 所有计划执行完毕后输出最终结果
 
 输出 <EXECUTE_RESULT>success</EXECUTE_RESULT>（所有计划执行成功）或 <EXECUTE_RESULT>failed</EXECUTE_RESULT>（执行失败）。`,
       system: "",

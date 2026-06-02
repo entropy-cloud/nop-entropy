@@ -1,4 +1,5 @@
 import { appendFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { execute } from "./executor.js";
 import { createStepConfigs, STEP_NAMES } from "./prompts.js";
 
@@ -105,20 +106,38 @@ export async function executeWorkflow(config, runner) {
 }
 
 async function detectStartPhase(config, runner, stepCfgs) {
-  if (config.dryRun) return "audit";
+  // 纯脚本逻辑，不依赖 LLM 子 agent
+  try {
+    const output = execSync("node ai-dev/tools/check-plan-status.mjs", {
+      cwd: config.projectRoot,
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+    const activeMatch = output.match(/Active:\s*(\d+)/);
+    const activeCount = activeMatch ? parseInt(activeMatch[1], 10) : 0;
 
-  const rp = stepCfgs[STEP_NAMES.RESUME_CHECK];
-  const out = await runner.runStep(STEP_NAMES.RESUME_CHECK, rp.command, rp.system);
-  if (out.ok === false) {
-    log(config, "[起点判断] 子进程被 kill，默认从 audit 开始");
+    if (activeCount > 0) {
+      log(config, `[起点判断] 发现 ${activeCount} 个未完成计划 → execute`);
+      return "execute";
+    }
+
+    const auditsDir = `${config.projectRoot}/ai-dev/audits`;
+    const recentAudit = execSync(
+      `ls -td ${auditsDir}/*${config.moduleName}* 2>/dev/null | head -1`,
+      { encoding: "utf8", timeout: 5_000 }
+    ).trim();
+
+    if (recentAudit) {
+      log(config, `[起点判断] 无未完成计划但有审计目录 ${recentAudit} → plan`);
+      return "plan";
+    }
+
+    log(config, `[起点判断] 无未完成计划、无审计目录 → audit`);
+    return "audit";
+  } catch (e) {
+    log(config, `[起点判断] 脚本执行异常: ${e.message}，默认从 audit 开始`);
     return "audit";
   }
-
-  const val = await extractTagOrAsk(runner, out.text, rp.resultTag, rp.markerValues, STEP_NAMES.RESUME_CHECK, rp.system);
-  if (val && rp.markerValues[val.toUpperCase()]) return val;
-
-  log(config, "[起点判断] 无法解析结果，默认从 audit 开始");
-  return "audit";
 }
 
 async function runFromExecute(config, runner, stepCfgs, startTime) {
@@ -150,8 +169,7 @@ async function runFromExecute(config, runner, stepCfgs, startTime) {
     return { status: "failed", cycle: 0, elapsed: durationStr(Date.now() - startTime) };
   }
 
-  log(config, `╚══ 计划执行完毕，进入审计确认 ══`);
-  return await runFromAudit(config, runner, stepCfgs, startTime);
+  return await runConfirmAudit(config, runner, stepCfgs, startTime);
 }
 
 async function runFromPlan(config, runner, stepCfgs, startTime) {
@@ -178,8 +196,39 @@ async function runFromPlan(config, runner, stepCfgs, startTime) {
     return { status: "failed", cycle: 0, elapsed: durationStr(Date.now() - startTime) };
   }
 
-  log(config, `╚══ 计划执行完毕，进入审计确认 ══`);
-  return await runFromAudit(config, runner, stepCfgs, startTime);
+  return await runConfirmAudit(config, runner, stepCfgs, startTime);
+}
+
+async function runConfirmAudit(config, runner, stepCfgs, startTime) {
+  log(config, `╔══ 确认审计（单轮，不创建新计划）══`);
+
+  const dp = stepCfgs[STEP_NAMES.DEEP_AUDIT];
+  const deepOut = await runner.runStep(STEP_NAMES.DEEP_AUDIT, dp.command, dp.system);
+  let hasIssues = false;
+  if (deepOut.ok === false) {
+    log(config, "[确认审计] 深度审计子进程被 kill");
+  } else {
+    const deepVal = await extractTagOrAsk(runner, deepOut.text, dp.resultTag, dp.markerValues, STEP_NAMES.DEEP_AUDIT, dp.system);
+    hasIssues = deepVal === dp.markerValues.ISSUES;
+  }
+
+  const arp = stepCfgs[STEP_NAMES.ADVERSARIAL];
+  const advOut = await runner.runStep(STEP_NAMES.ADVERSARIAL, arp.command, arp.system);
+  if (advOut.ok !== false) {
+    const advVal = await extractTagOrAsk(runner, advOut.text, arp.resultTag, arp.markerValues, STEP_NAMES.ADVERSARIAL, arp.system);
+    if (advVal === arp.markerValues.ISSUES) hasIssues = true;
+  }
+
+  const elapsed = durationStr(Date.now() - startTime);
+  if (hasIssues) {
+    log(config, `╚══ 确认审计发现新问题，建议重新运行 driver 从 audit 阶段开始 ══`);
+    log(config, `══ 总耗时: ${elapsed} ══`);
+    return { status: "max_cycles", cycle: 1, elapsed };
+  }
+
+  log(config, `╚══ ${config.moduleName} 确认审计通过，完善完成 ══`);
+  log(config, `══ 总耗时: ${elapsed} ══`);
+  return { status: "completed", cycle: 1, elapsed };
 }
 
 async function runFromAudit(config, runner, stepCfgs, startTime) {
