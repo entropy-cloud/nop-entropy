@@ -32,6 +32,10 @@ site:
       displayName: Modify Inheritance
     FNPT:NopCodeInheritance:query:
       displayName: Query Inheritance
+    FNPT:NopCodeSemanticEdge:mutation:
+      displayName: ''
+    FNPT:NopCodeSemanticEdge:query:
+      displayName: ''
     FNPT:NopCodeSymbol:mutation:
       displayName: Modify Symbols
     FNPT:NopCodeSymbol:query:
@@ -64,6 +68,8 @@ site:
       displayName: Index Management
     NopCodeInheritance-main:
       displayName: Inheritance
+    NopCodeSemanticEdge-main:
+      displayName: ''
     NopCodeSymbol-main:
       displayName: Symbol Search
     NopCodeUsage-main:

@@ -8,7 +8,7 @@ entity:
     NopCodeFlowMembership: Execution Flow Membership
     NopCodeIndex: Code Index
     NopCodeInheritance: Inheritance
-    NopCodeSemanticEdge: Semantic Edge
+    NopCodeSemanticEdge: null
     NopCodeSymbol: Symbol
     NopCodeUsage: Symbol Usage
 prop:

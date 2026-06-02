@@ -119,16 +119,16 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeSemanticEdge-main" displayName="语义边" orderNo="10025"
-                          i18n-en:displayName="Semantic Edge" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/code/pages/NopCodeSemanticEdge/main.page.yaml">
+                <resource id="NopCodeSemanticEdge-main" displayName="语义边" orderNo="10025" i18n-en:displayName=""
+                          icon="blocks" component="AMIS" resourceType="SUBM"
+                          url="/nop/code/pages/NopCodeSemanticEdge/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopCodeSemanticEdge:query" displayName="查询语义边"
-                                  i18n-en:displayName="Query Semantic Edge" orderNo="10026" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeSemanticEdge:query" displayName="查询语义边" i18n-en:displayName=""
+                                  orderNo="10026" resourceType="FNPT">
                             <permissions>NopCodeSemanticEdge:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopCodeSemanticEdge:mutation" displayName="修改语义边"
-                                  i18n-en:displayName="Modify Semantic Edge" orderNo="10027" resourceType="FNPT">
+                        <resource id="FNPT:NopCodeSemanticEdge:mutation" displayName="修改语义边" i18n-en:displayName=""
+                                  orderNo="10027" resourceType="FNPT">
                             <permissions>NopCodeSemanticEdge:mutation</permissions>
                         </resource>
                     </children>
