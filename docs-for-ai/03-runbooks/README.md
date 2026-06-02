@@ -15,6 +15,8 @@
 | 文档 | 任务场景 |
 |------|---------|
 | `admin-page-development-roadmap.md` | 后台页面开发路线图与文档导航 |
+| `../00-start-here/application-project-defaults.md` | 在外部 Nop 应用项目中判断默认开发闭环 |
+| `../02-core-guides/application-project-docs-and-domain-design.md` | 维护应用项目本地 requirement/design/architecture/model/plans/logs 边界 |
 
 ### 数据与模型
 
@@ -78,6 +80,8 @@
 ## 相关文档
 
 - `../INDEX.md`
+- `../00-start-here/application-project-defaults.md`
+- `../02-core-guides/application-project-docs-and-domain-design.md`
 - `../02-core-guides/page-dsl-pattern-catalog.md`
 - `../02-core-guides/debugging-and-diagnostics.md`
 - `../02-core-guides/domain-logic-and-ddd.md`

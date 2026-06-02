@@ -22,7 +22,7 @@
 ## 推荐查找顺序
 
 1. 先看本页
-2. 再看 `00-start-here/project-context.md`（当前项目状态快照）
+2. 在 `nop-entropy` 仓库内开发平台时看 `00-start-here/project-context.md`；在外部应用项目中工作时看 `00-start-here/application-project-defaults.md`
 3. 再看 `03-runbooks/` 中最贴近当前任务的手册
 4. 需要理解默认规则时，看 `02-core-guides/`
 5. 需要理解当前仓库结构时，看 `01-repo-map/`
@@ -44,11 +44,13 @@
 | 任务 | 首选文档 |
 |------|----------|
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
+| 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
 | 理解文档冲突优先级和 stale 处理 | `00-start-here/truth-and-precedence.md` |
 | 理解整体仓库结构 | `01-repo-map/module-groups.md` |
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
+| 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |
 | 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
 | 理解 GraphQL / API 暴露方式 | `02-core-guides/api-and-graphql.md` |
@@ -61,6 +63,7 @@
 | 判断并发控制与事务边界 | `02-core-guides/concurrency-and-transactions.md` |
 | 查询当前仓库代码风格 | `02-core-guides/code-style.md` |
 | 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
+| 编写或维护应用项目业务 owner docs | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 定制 view / page 页面 | `02-core-guides/view-and-page-customization.md` |
 | 查复杂页面 DSL 配置模式 | `02-core-guides/page-dsl-pattern-catalog.md` |
 | 理解认证与权限控制 | `02-core-guides/auth-and-permissions.md` |
@@ -132,6 +135,13 @@
 - `nop-runner/` 和 `scripts/nop-cli.cmd` 是 CLI / runner 入口；`nop-demo/` 和 `demo/` 是示例入口。
 - `docs/theory/` 下的论文与技术报告属于研究/论证材料，不是开发 AI 的默认规范入口；出现解释歧义时，不要把其中术语直接当作 `docs-for-ai/` 级别的开发规则。
 - `nop-stream/` 是流处理引擎子模块组，包含 `nop-stream-core`（核心 API、状态、算子）、`nop-stream-cep`（CEP 复杂事件处理）、`nop-stream-runtime`（运行时、检查点、协调器）、`nop-stream-connector`（消息源/汇连接器）、`nop-stream-checkpoint`（检查点存储）、`nop-stream-flow`（流控）、`nop-stream-flink`（Flink 兼容层）、`nop-stream-fraud-example`（欺诈检测示例）。
+
+## 外部应用项目规则
+
+- 在 `nop-app-*` 这类外部应用项目中，业务事实、产品语义、计划、日志、验证命令和项目级约束留在应用项目本地 `docs/`。
+- Nop 应用开发通用规则、owner-doc 边界、领域设计方法和实现落位规则集中维护在本目录。
+- 默认先读应用项目本地 requirement/design/architecture 确认业务事实，再回到本目录选择 Nop 实现路径。
+- 入口：`00-start-here/application-project-defaults.md` 与 `02-core-guides/application-project-docs-and-domain-design.md`。
 
 ## 当 `docs-for-ai` 仍有歧义时
 
