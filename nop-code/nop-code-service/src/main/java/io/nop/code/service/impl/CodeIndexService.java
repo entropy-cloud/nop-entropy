@@ -1757,7 +1757,7 @@ public class CodeIndexService implements ICodeIndexService {
         if (path == null || path.isEmpty())
             return path;
         if (path.startsWith("file:") || path.startsWith("/"))
-            return path;
+            return "file:" + (path.startsWith("file:") ? path.substring(5) : path);
         java.io.File f = new java.io.File(path);
         return "file:" + f.getAbsolutePath();
     }

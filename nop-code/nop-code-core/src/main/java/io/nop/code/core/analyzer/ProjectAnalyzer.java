@@ -134,11 +134,15 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             }
         });
 
-        // 用 depthIterator 惰性遍历 VFS，边遍历边分析
         IterableIterator<IResource> it = resourceLoader.depthIterator(vfsPath, false, resource -> {
-            if (resource.isDirectory()) return false;
+            if (resource.isDirectory()) return true;
             if (filePattern != null && !filePattern.isEmpty() && !"*".equals(filePattern)) {
-                String ext = filePattern.startsWith("*.") ? filePattern.substring(1) : filePattern;
+                String ext = filePattern;
+                int starSlash = ext.lastIndexOf('/');
+                if (starSlash >= 0)
+                    ext = ext.substring(starSlash + 1);
+                if (ext.startsWith("*."))
+                    ext = ext.substring(1);
                 return resource.getName().endsWith(ext);
             }
             for (String ext : allExtensions) {
@@ -149,6 +153,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
 
         while (it.hasNext()) {
             IResource resource = it.next();
+            if (resource.isDirectory()) continue;
+
             String relativePath = resource.getStdPath();
             if (relativePath.startsWith(vfsPath)) {
                 relativePath = relativePath.substring(vfsPath.length());
@@ -187,7 +193,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     }
 
     public ProjectAnalysisResult analyzeProject(IResourceLoader resourceLoader, String vfsPath,
-                                                 String filePattern, BatchCallback batchCallback) {
+                                                  String filePattern, BatchCallback batchCallback) {
         LOG.info("Starting streaming project analysis from VFS: {}", vfsPath);
 
         Set<String> allExtensions = collectExtensions();
@@ -212,9 +218,14 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         });
 
         IterableIterator<IResource> it = resourceLoader.depthIterator(vfsPath, false, resource -> {
-            if (resource.isDirectory()) return false;
+            if (resource.isDirectory()) return true;
             if (filePattern != null && !filePattern.isEmpty() && !"*".equals(filePattern)) {
-                String ext = filePattern.startsWith("*.") ? filePattern.substring(1) : filePattern;
+                String ext = filePattern;
+                int starSlash = ext.lastIndexOf('/');
+                if (starSlash >= 0)
+                    ext = ext.substring(starSlash + 1);
+                if (ext.startsWith("*."))
+                    ext = ext.substring(1);
                 return resource.getName().endsWith(ext);
             }
             for (String ext : allExtensions) {
@@ -225,6 +236,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
 
         while (it.hasNext()) {
             IResource resource = it.next();
+            if (resource.isDirectory()) continue;
+
             String relativePath = resource.getStdPath();
             if (relativePath.startsWith(vfsPath)) {
                 relativePath = relativePath.substring(vfsPath.length());

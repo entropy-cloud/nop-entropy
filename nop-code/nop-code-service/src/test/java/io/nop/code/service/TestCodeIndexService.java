@@ -1,15 +1,15 @@
 package io.nop.code.service;
 
-import io.nop.code.core.adapter.LanguageAdapterRegistry;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.code.core.analyzer.ProjectAnalysisResult;
 import io.nop.code.core.analyzer.ProjectAnalyzer;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.lang.java.JavaLanguageAdapter;
-import io.nop.core.initialize.CoreInitialization;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,19 +20,10 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class TestCodeIndexService {
+@NopTestConfig(enableIoc = OptionalBoolean.FALSE)
+class TestCodeIndexService extends JunitBaseTestCase {
 
     private ProjectAnalysisResult analysisResult;
-
-    @BeforeAll
-    static void init() {
-        CoreInitialization.initialize();
-    }
-
-    @AfterAll
-    static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @BeforeEach
     void setUp() {
