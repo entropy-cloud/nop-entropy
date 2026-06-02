@@ -142,7 +142,7 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
             try {
                 return reduceFunction.reduce(a, b);
             } catch (Exception e) {
-                throw new io.nop.stream.core.exceptions.StreamException(e);
+                throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
             }
         };
         return buildWindowOperator(aggDesc, windowFn, valueType, mergeFn);
@@ -207,7 +207,7 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
                 try {
                     return reduceFunction.reduce(value, accumulator);
                 } catch (Exception e) {
-                    throw new io.nop.stream.core.exceptions.StreamException(e);
+                    throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
                 }
             }
 
@@ -227,7 +227,7 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
                 try {
                     return reduceFunction.reduce(a, b);
                 } catch (Exception e) {
-                    throw new io.nop.stream.core.exceptions.StreamException(e);
+                    throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
                 }
             }
         };

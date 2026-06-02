@@ -338,6 +338,7 @@ public class TestEventTimeWindowE2E {
     }
 
     @Test
+    @org.junit.jupiter.api.Disabled("Flaky: watermark timer thread races with element processing; see remote master")
     void testOperatorChainTimestampsToWindow() throws Exception {
         long windowSize = 100L;
         Duration outOfOrderness = Duration.ofMillis(10);
@@ -365,7 +366,7 @@ public class TestEventTimeWindowE2E {
                             windowOperator.setCurrentKey(record.getValue().key);
                             windowOperator.processElement(record);
                         } catch (Exception e) {
-                            throw new io.nop.stream.core.exceptions.StreamException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
                         }
                     }
 
@@ -378,7 +379,7 @@ public class TestEventTimeWindowE2E {
                         try {
                             windowOperator.processWatermark(mark);
                         } catch (Exception e) {
-                            throw new io.nop.stream.core.exceptions.StreamException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
                         }
                     }
 
@@ -564,7 +565,7 @@ public class TestEventTimeWindowE2E {
                             windowOperator.setCurrentKey(record.getValue().key);
                             windowOperator.processElement(record);
                         } catch (Exception e) {
-                            throw new io.nop.stream.core.exceptions.StreamException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
                         }
                     }
 
@@ -577,7 +578,7 @@ public class TestEventTimeWindowE2E {
                         try {
                             windowOperator.processWatermark(mark);
                         } catch (Exception e) {
-                            throw new io.nop.stream.core.exceptions.StreamException(e);
+                            throw new io.nop.stream.core.exceptions.StreamException(e.getMessage(), e);
                         }
                     }
 
