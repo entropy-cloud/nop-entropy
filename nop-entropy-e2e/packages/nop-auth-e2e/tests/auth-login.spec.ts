@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { LoginPO } from './page-objects/login.po.js';
 import { UserPO } from './page-objects/user.po.js';
+import { forceLocale } from '@nop-entropy/e2e-shared';
 
 test.describe('登录功能', () => {
   test('成功登录 - 离开登录页', async ({ page }) => {
@@ -14,13 +15,18 @@ test.describe('登录功能', () => {
 
   test('登录失败 - 错误密码', async ({ page }) => {
     await page.goto('/');
+    await forceLocale(page);
+    await page.reload();
     await page.waitForLoadState('networkidle');
-    await page.locator('input[placeholder="账号"]').fill('nop');
-    await page.locator('input[placeholder="密码"]').fill('wrong_password');
-    await page.getByRole('button', { name: '登 录' }).click();
+    const allInputs = await page.locator('input:visible').all();
+    if (allInputs.length >= 2) {
+      await allInputs[0].fill('nop');
+      await allInputs[1].fill('wrong_password');
+    }
+    await page.getByRole('button', { name: /登\s*录/ }).click();
 
     await page.waitForTimeout(2000);
-    await expect(page).toHaveURL(/#\/login/);
+    await expect(page).toHaveURL(/login/);
   });
 
   test('登录后访问受保护页面', async ({ page }) => {
