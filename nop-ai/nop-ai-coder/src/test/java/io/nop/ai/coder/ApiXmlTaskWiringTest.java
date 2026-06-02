@@ -1,6 +1,7 @@
 package io.nop.ai.coder;
 
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
@@ -36,7 +37,7 @@ public class ApiXmlTaskWiringTest extends JunitBaseTestCase {
         ITask task = taskFlowManager.loadTaskFromPath("/test/ai/api-xml-wiring.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
         taskRt.setInput("appName", appName);
-        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("outputDir", FileHelper.getFileUrl(targetDir));
 
         Map<String, Object> outputs = task.execute(taskRt).syncGetOutputs();
         File apiXml = new File(targetDir, "model/" + appName + ".api.xml");
