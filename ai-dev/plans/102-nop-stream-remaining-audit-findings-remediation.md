@@ -94,23 +94,23 @@ Exit Criteria:
 
 ### Phase 3 — SimpleCondition.of() 序列化安全性
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/pattern/conditions/SimpleCondition.java`
 
 - Item Types: `Fix`
 
-- [ ] 将 `SimpleCondition.of(FilterFunction)` 的匿名类实现改为具名静态内部类 `FilterFunctionCondition<T>`，持有 `FilterFunction` 引用并实现 `Serializable`。**构造时不检查可序列化性**（避免破坏 168+ 现有测试中传递 lambda 的调用点），仅在序列化时（`writeReplace` 或让 Java 序列化自然失败并包装为描述性异常）暴露不可序列化问题
-- [ ] 添加测试：验证 `SimpleCondition.of(serializableFilter)` 可被 Java 序列化/反序列化
-- [ ] 添加测试：验证 `SimpleCondition.of(nonSerializableFilter)` 在序列化时抛出异常而非静默失败
+- [x] 将 `SimpleCondition.of(FilterFunction)` 的匿名类实现改为具名静态内部类 `FilterFunctionCondition<T>`，持有 `FilterFunction` 引用并实现 `Serializable`。**构造时不检查可序列化性**（避免破坏 168+ 现有测试中传递 lambda 的调用点），仅在序列化时（`writeReplace` 或让 Java 序列化自然失败并包装为描述性异常）暴露不可序列化问题
+- [x] 添加测试：验证 `SimpleCondition.of(serializableFilter)` 可被 Java 序列化/反序列化
+- [x] 添加测试：验证 `SimpleCondition.of(nonSerializableFilter)` 在序列化时抛出异常而非静默失败
 
 Exit Criteria:
 
-- [ ] `SimpleCondition.of()` 不再创建匿名内部类
-- [ ] 可序列化的 filter 通过 `SimpleCondition.of()` 产生的对象可被 Java 序列化
-- [ ] 不可序列化的 filter 产生的对象在序列化时显式失败
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `SimpleCondition.of()` 不再创建匿名内部类
+- [x] 可序列化的 filter 通过 `SimpleCondition.of()` 产生的对象可被 Java 序列化
+- [x] 不可序列化的 filter 产生的对象在序列化时显式失败
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — WindowOperatorBuilder ErrorCode 合规
 

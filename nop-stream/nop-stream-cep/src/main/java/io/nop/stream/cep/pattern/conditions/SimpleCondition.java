@@ -21,6 +21,11 @@ package io.nop.stream.cep.pattern.conditions;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.core.common.functions.FilterFunction;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
 /**
  * A user-defined condition that decides if an element should be accepted in the pattern or not.
  * Accepting an element also signals a state transition for the corresponding {@link
@@ -30,8 +35,11 @@ import io.nop.stream.core.common.functions.FilterFunction;
  * access to the previously accepted elements in the pattern. Conditions that extend this class are
  * simple {@code filter(...)} functions that decide based on the properties of the element at hand.
  *
- * <p>Note: instances created via {@link #of(FilterFunction)} capture the filter reference and
- * may not be serializable. For serialization safety, extend {@link SimpleCondition} directly.
+ * <p>Note: instances created via {@link #of(FilterFunction)} capture the filter reference.
+ * The returned object is serializable only if the provided {@code FilterFunction} is itself
+ * serializable. If the filter is not serializable, serialization will fail with an
+ * {@link java.io.NotSerializableException}. For guaranteed serialization safety, extend
+ * {@link SimpleCondition} directly.
  */
 public abstract class SimpleCondition<T> extends IterativeCondition<T>
         implements FilterFunction<T> {
@@ -47,13 +55,35 @@ public abstract class SimpleCondition<T> extends IterativeCondition<T>
         if (filters instanceof SimpleCondition) {
             return (SimpleCondition<T>) filters;
         }
-        return new SimpleCondition<T>() {
-            private static final long serialVersionUID = 1L;
+        return new FilterFunctionCondition<>(filters);
+    }
 
-            @Override
-            public boolean filter(T value) throws Exception {
-                return filters.filter(value);
+    static class FilterFunctionCondition<T> extends SimpleCondition<T> {
+        private static final long serialVersionUID = 1L;
+
+        private final FilterFunction<T> filterFunction;
+
+        FilterFunctionCondition(FilterFunction<T> filterFunction) {
+            this.filterFunction = filterFunction;
+        }
+
+        @Override
+        public boolean filter(T value) throws Exception {
+            return filterFunction.filter(value);
+        }
+
+        private void writeObject(ObjectOutputStream out) throws IOException {
+            if (!(filterFunction instanceof Serializable)) {
+                throw new java.io.NotSerializableException(
+                        "FilterFunction passed to SimpleCondition.of() is not serializable: "
+                                + filterFunction.getClass().getName()
+                                + ". Extend SimpleCondition directly for serialization safety.");
             }
-        };
+            out.defaultWriteObject();
+        }
+
+        private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+            in.defaultReadObject();
+        }
     }
 }
