@@ -33,7 +33,7 @@ export async function createRunner(config) {
     if (result.logFile) {
       try { text = readFileSync(result.logFile, "utf8").trim(); } catch { text = ""; }
     }
-    return { text, logFile: result.logFile };
+    return { text, logFile: result.logFile, ok: result.ok };
   };
 
   const mockRun = async (stepName, command, system, files = []) => {
@@ -74,7 +74,7 @@ export async function createRunner(config) {
     } else {
       text = mockResponses[stepName] || "##MOCK_OK";
     }
-    return { text, logFile: null };
+    return { text, logFile: null, ok: true };
   };
 
   const runStep = config.dryRun ? mockRun : realRun;

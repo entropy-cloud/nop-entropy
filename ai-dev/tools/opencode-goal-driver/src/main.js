@@ -31,6 +31,7 @@ async function main() {
   console.log(`Model:    ${config.model}`);
   console.log(`DryRun:   ${config.dryRun}`);
   console.log(`TestMode: ${config.testMode}`);
+  console.log(`Watchdog: interval=${config.watchdogIntervalMs / 1000}s stall=${config.watchdogStallMs / 1000}s`);
   console.log(`Log:      ${config.logFile}`);
   console.log("");
 

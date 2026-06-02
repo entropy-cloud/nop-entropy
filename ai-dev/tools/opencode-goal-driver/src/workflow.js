@@ -95,6 +95,10 @@ export async function executeWorkflow(config, runner) {
       log(config, `[健康检查] 构建失败 (日志: ${hc.logFile})，尝试修复`);
       const p = stepCfgs[STEP_NAMES.FIX_BUILD];
       const out = await runner.runStep(STEP_NAMES.FIX_BUILD, p.command, p.system);
+      if (out.ok === false) {
+        log(config, "[健康检查] 修复子进程被 kill，退出");
+        return { status: "failed", cycle: outer, elapsed: durationStr(Date.now() - startTime) };
+      }
       const val = await extractTagOrAsk(runner, out.text, p.resultTag, p.markerValues, STEP_NAMES.FIX_BUILD, p.system);
       if (val !== p.markerValues.FIXED) {
         log(config, "[健康检查] 修复失败，退出");
@@ -106,15 +110,26 @@ export async function executeWorkflow(config, runner) {
     log(config, "[深度审计] 执行多维度深度审计 ...");
     const dp = stepCfgs[STEP_NAMES.DEEP_AUDIT];
     const deepOut = await runner.runStep(STEP_NAMES.DEEP_AUDIT, dp.command, dp.system);
-    const deepVal = await extractTagOrAsk(runner, deepOut.text, dp.resultTag, dp.markerValues, STEP_NAMES.DEEP_AUDIT, dp.system);
-    let hasIssues = deepVal === dp.markerValues.ISSUES;
+    let hasIssues = false;
+    if (deepOut.ok === false) {
+      log(config, "[深度审计] 子进程被 kill，视为有问题");
+      hasIssues = true;
+    } else {
+      const deepVal = await extractTagOrAsk(runner, deepOut.text, dp.resultTag, dp.markerValues, STEP_NAMES.DEEP_AUDIT, dp.system);
+      hasIssues = deepVal === dp.markerValues.ISSUES;
+    }
 
     // ── 1b. Adversarial review ──
     log(config, "[对抗审查] 执行对抗性审查 ...");
     const arp = stepCfgs[STEP_NAMES.ADVERSARIAL];
     const advOut = await runner.runStep(STEP_NAMES.ADVERSARIAL, arp.command, arp.system);
-    const advVal = await extractTagOrAsk(runner, advOut.text, arp.resultTag, arp.markerValues, STEP_NAMES.ADVERSARIAL, arp.system);
-    if (advVal === arp.markerValues.ISSUES) hasIssues = true;
+    if (advOut.ok === false) {
+      log(config, "[对抗审查] 子进程被 kill，视为有问题");
+      hasIssues = true;
+    } else {
+      const advVal = await extractTagOrAsk(runner, advOut.text, arp.resultTag, arp.markerValues, STEP_NAMES.ADVERSARIAL, arp.system);
+      if (advVal === arp.markerValues.ISSUES) hasIssues = true;
+    }
 
     // ── 2. No issues → DONE ──
     if (!hasIssues) {
@@ -128,6 +143,10 @@ export async function executeWorkflow(config, runner) {
     log(config, "[规划] 基于审计发现拟定修复计划 ...");
     const pp = stepCfgs[STEP_NAMES.PLAN];
     const planOut = await runner.runStep(STEP_NAMES.PLAN, pp.command, pp.system);
+    if (planOut.ok === false) {
+      log(config, "[规划] 子进程被 kill，跳过执行，进入下一轮审计");
+      continue;
+    }
     const planVal = await extractTagOrAsk(runner, planOut.text, pp.resultTag, pp.markerValues, STEP_NAMES.PLAN, pp.system);
 
     if (planVal !== pp.markerValues.CREATED) {
@@ -152,12 +171,21 @@ export async function executeWorkflow(config, runner) {
         log(config, `[执行] 执行修复计划 (${inner}/${config.maxInnerCycles}) ...`);
       }
       const execOut = await runner.runStep(STEP_NAMES.EXECUTE, execCommand, ep.system);
+      if (execOut.ok === false) {
+        log(config, `[执行] 子进程被 kill (inner ${inner})，跳过 closure audit，直接重试`);
+        continue;
+      }
       await extractTagOrAsk(runner, execOut.text, ep.resultTag, ep.markerValues, STEP_NAMES.EXECUTE, ep.system);
 
       // ── 4b. Closure audit (independent sub-agent) ──
       log(config, "[验证] 独立子agent验证计划完成度 ...");
       const cap = stepCfgs[STEP_NAMES.CLOSURE_AUDIT];
       const caOut = await runner.runStep(STEP_NAMES.CLOSURE_AUDIT, cap.command, cap.system);
+      if (caOut.ok === false) {
+        log(config, "[验证] closure audit 子进程被 kill，视为 incomplete");
+        remainingXml = "<REMAINING><item>closure audit 子进程被 watchdog kill，请重新检查计划 Exit Criteria</item></REMAINING>";
+        continue;
+      }
       const caVal = await extractTagOrAsk(runner, caOut.text, cap.resultTag, cap.markerValues, STEP_NAMES.CLOSURE_AUDIT, cap.system);
 
       if (caVal === cap.markerValues.COMPLETE) {

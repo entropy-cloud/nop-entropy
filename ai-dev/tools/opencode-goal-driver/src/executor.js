@@ -1,4 +1,4 @@
-import { appendFileSync, closeSync, mkdirSync, openSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, mkdirSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 
@@ -7,6 +7,8 @@ function genLogFile(config, label) {
   const rand = Math.random().toString(36).slice(2, 8);
   return resolve(config.runDir, `${label}-${ts}-${rand}.log`);
 }
+
+const SIGKILL_DELAY = 10_000;
 
 /**
  * Run any external command via fd redirect (equivalent to shell >>file 2>&1).
@@ -39,12 +41,10 @@ export function execute(config, label, cmd, args, opts = {}) {
   ].join("\n") + "\n";
   writeFileSync(logFile, header);
 
-  // 以追加模式打开日志文件，用作子进程的 stdout/stderr
-  // 等价于 shell 的 >>logFile 2>&1，但避免 shell 转义问题
   const fd = openSync(logFile, "a");
   const child = spawn(cmd, args, { cwd, stdio: ["ignore", fd, fd], shell: false });
 
-  // 每 30s 进度
+  // 每 60s 进度
   let progressTimer = null;
   if (!opts.quiet) {
     progressTimer = setInterval(() => {
@@ -55,30 +55,235 @@ export function execute(config, label, cmd, args, opts = {}) {
     }, 60000);
   }
 
-  // 超时终止
+  // 超时终止: SIGTERM → SIGKILL fallback
   let timeoutTimer = null;
+  let sigkillTimer = null;
   if (timeout > 0) {
     timeoutTimer = setTimeout(() => {
       process.stderr.write(`  [TIMEOUT] ${label} 超时 ${timeout}ms，终止进程\n`);
-      child.kill("SIGTERM");
+      try { child.kill("SIGTERM"); } catch { }
+      sigkillTimer = setTimeout(() => {
+        process.stderr.write(`  [TIMEOUT] ${label} SIGTERM 后 10s 未退出，发送 SIGKILL\n`);
+        try { child.kill("SIGKILL"); } catch { }
+      }, SIGKILL_DELAY);
     }, timeout);
   }
 
+  // Watchdog: 定期检查日志 stall，spawn 独立子 agent 自行判断并 kill
+  const watchdogIntervalMs = config.watchdogIntervalMs;
+  const watchdogStallMs = config.watchdogStallMs;
+  let watchdogTimer = null;
+  let watchdogRunning = false;
+  let lastKnownMtime = Date.now();
+
+  if (!opts.quiet && watchdogIntervalMs > 0 && watchdogStallMs > 0) {
+    // 定期刷新 lastKnownMtime（由子进程自身的写入驱动）
+    const mtimeTracker = setInterval(() => {
+      try {
+        const stat = statSync(logFile);
+        if (stat.mtimeMs > lastKnownMtime) lastKnownMtime = stat.mtimeMs;
+      } catch { }
+    }, 60_000);
+
+    watchdogTimer = setInterval(async () => {
+      if (child.exitCode !== null) return;
+      if (watchdogRunning) return;
+      try {
+        // 用独立追踪的时间戳而非文件 mtime，避免被 watchdog 自身的写入污染
+        const stalledMs = Date.now() - lastKnownMtime;
+        if (stalledMs < watchdogStallMs) return;
+
+        watchdogRunning = true;
+        if (child.exitCode !== null) { watchdogRunning = false; return; }
+
+        process.stderr.write(`  [WATCHDOG] ${label} 日志 ${Math.round(stalledMs / 60_000)} 分钟无更新，spawn 独立子 agent 自行检查并处理 ...\n`);
+        appendFileSync(logFile, `\n# watchdog: 日志 ${Math.round(stalledMs / 60_000)}min 无更新，spawn 检查 agent @ ${new Date().toISOString()}\n`);
+
+        const wdResult = await spawnWatchdogAgent(config, label, logFile, child.pid);
+
+        const summary = `action=${wdResult.action} diagnosis=${wdResult.diagnosis} log=${wdResult.logFile || "N/A"}`;
+        appendFileSync(logFile, `# watchdog result: ${summary} @ ${new Date().toISOString()}\n`);
+        process.stderr.write(`  [WATCHDOG] ${label} → ${summary}\n`);
+
+        watchdogRunning = false;
+      } catch (e) {
+        watchdogRunning = false;
+        process.stderr.write(`  [WATCHDOG] 异常: ${e.message}\n`);
+      }
+    }, watchdogIntervalMs);
+
+    // 让 watchdog timer 也参与 mtimeTracker 的清理
+    const origWatchdogTimer = watchdogTimer;
+    watchdogTimer = {
+      _raw: origWatchdogTimer,
+      ref() { origWatchdogTimer.ref(); },
+      unref() { origWatchdogTimer.unref(); },
+    };
+    // 将 mtimeTracker 引用保存以便在 cleanup 中一并清除
+    watchdogTimer._mtimeTracker = mtimeTracker;
+  }
+
+  function cleanup() {
+    if (progressTimer) clearInterval(progressTimer);
+    if (timeoutTimer) clearTimeout(timeoutTimer);
+    if (sigkillTimer) clearTimeout(sigkillTimer);
+    if (watchdogTimer) {
+      clearInterval(watchdogTimer._raw || watchdogTimer);
+      if (watchdogTimer._mtimeTracker) clearInterval(watchdogTimer._mtimeTracker);
+    }
+    try { closeSync(fd); } catch { }
+  }
+
+  let settled = false;
   return new Promise((resolveFn) => {
     child.on("close", (code) => {
-      if (progressTimer) clearInterval(progressTimer);
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-      try { closeSync(fd); } catch { }
+      if (settled) return;
+      settled = true;
+      cleanup();
       appendFileSync(logFile, `# exit: ${code}\n# finished: ${new Date().toISOString()}\n`);
       resolveFn({ ok: code === 0, logFile });
     });
 
     child.on("error", (err) => {
-      if (progressTimer) clearInterval(progressTimer);
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-      try { closeSync(fd); } catch { }
+      if (settled) return;
+      settled = true;
+      cleanup();
       appendFileSync(logFile, `# error: ${err.message}\n# finished: ${new Date().toISOString()}\n`);
       resolveFn({ ok: false, logFile });
     });
+  });
+}
+
+/**
+ * Spawn 一个独立 opencode run 子 agent，让它自己判断是否需要 kill 卡住的进程。
+ *
+ * 关键设计：主 driver 不做 kill 决定，也不执行 kill。
+ * 子 agent 通过 bash 工具自行检查日志、判断状态、决定是否 kill。
+ * 如果子 agent 自身也失败/超时，对主 driver 无影响（只是 watchdog 没生效）。
+ *
+ * @returns {{ action: string, diagnosis: string, logFile: string|null }}
+ */
+function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
+  const driverPid = process.pid;
+
+  const prompt = [
+    `你是 opencode goal driver 的独立 watchdog 子 agent。`,
+    ``,
+    `## 背景`,
+    `一个名为 "${label}" 的子 agent (PID=${stalledPid}) 的日志文件已超过 30 分钟没有新输出。`,
+    `主 driver 进程 PID=${driverPid}。`,
+    `日志文件路径: ${stalledLogFile}`,
+    ``,
+    `## 你的任务`,
+    `请自行检查并处理，不要请求确认。`,
+    ``,
+    `### 步骤 1: 诊断`,
+    `1. 用 bash 执行 \`ps -o pid,ppid,stat,etime -p ${stalledPid}\` 检查进程是否仍在运行`,
+    `2. 读取日志文件 ${stalledLogFile} 的最后 100 行`,
+    `3. 判断卡住的原因：`,
+    `   - 日志末尾有 # exit: 或 # finished: 或 <*_RESULT> 标签 → 子 agent 已完成但信号丢失（僵尸态）`,
+    `   - 日志停在中间操作且进程仍在 → LLM 调用挂起`,
+    `   - 进程已不存在 → 进程已退出但父进程未收到信号`,
+    ``,
+    `### 步骤 2: 决策与执行`,
+    `如果诊断确认子 agent 卡住/僵死/已完成但信号丢失：`,
+    `  用 bash 执行 \`kill ${stalledPid}\` 来终止卡住的子 agent`,
+    `  然后执行 \`kill -0 ${stalledPid} 2>/dev/null && echo 'still alive' || echo 'dead'\` 确认已终止`,
+    ``,
+    `如果诊断发现是误报（日志实际有近期更新）：`,
+    `  不做任何操作`,
+    ``,
+    `### 绝对禁止`,
+    `- 只能 kill PID=${stalledPid}（卡住的子 agent），绝对不能 kill PID=${driverPid}（主 driver）`,
+    `- 不能 kill 任何其他进程`,
+    `- 如果 ${stalledPid} 进程已不存在，不需要做任何操作`,
+    ``,
+    `### 输出`,
+    `完成后输出你的诊断和操作结果：`,
+    `<WATCHDOG_RESULT>`,
+    `  diagnosis: 一句话诊断`,
+    `  action: kill / no-action`,
+    `  pid: ${stalledPid}`,
+    `</WATCHDOG_RESULT>`,
+  ].join("\n");
+
+  const wdLogFile = genLogFile(config, `watchdog-${label}`);
+  mkdirSync(dirname(wdLogFile), { recursive: true });
+  writeFileSync(wdLogFile, `# watchdog agent for ${label} (target pid=${stalledPid})\n# started: ${new Date().toISOString()}\n`);
+
+  const args = ["run", "-m", config.model, "--agent", config.agent, "--dangerously-skip-permissions", prompt];
+
+  return new Promise((res) => {
+    let settled = false;
+    const fallback = { action: "unknown", diagnosis: "watchdog agent 未正常完成", logFile: wdLogFile };
+    const done = (result) => {
+      if (settled) return;
+      settled = true;
+      res(result);
+    };
+
+    let wdFd;
+    try {
+      wdFd = openSync(wdLogFile, "a");
+    } catch (e) {
+      process.stderr.write(`  [WATCHDOG] 打开日志文件失败: ${e.message}\n`);
+      done({ ...fallback, diagnosis: `watchdog agent 日志文件打开失败: ${e.message}` });
+      return;
+    }
+
+    try {
+      const wdChild = spawn("opencode", args, {
+        cwd: config.projectRoot,
+        stdio: ["ignore", wdFd, wdFd],
+        shell: false,
+      });
+
+      let wdSigkillTimer;
+      const wdTimeout = setTimeout(() => {
+        process.stderr.write(`  [WATCHDOG] 检查 agent 自身超时 (10min)，强制终止\n`);
+        try { wdChild.kill("SIGTERM"); } catch { }
+        wdSigkillTimer = setTimeout(() => {
+          try { wdChild.kill("SIGKILL"); } catch { }
+        }, SIGKILL_DELAY);
+        try { closeSync(wdFd); } catch { }
+        done({ ...fallback, diagnosis: "watchdog agent 自身超时" });
+      }, 10 * 60_000);
+
+      wdChild.on("close", () => {
+        clearTimeout(wdTimeout);
+        if (wdSigkillTimer) clearTimeout(wdSigkillTimer);
+        try { closeSync(wdFd); } catch { }
+        appendFileSync(wdLogFile, `# watchdog agent finished: ${new Date().toISOString()}\n`);
+        process.stderr.write(`  [WATCHDOG] 检查 agent 执行完毕，日志: ${wdLogFile}\n`);
+
+        try {
+          const text = readFileSync(wdLogFile, "utf8");
+          const m = text.match(/<WATCHDOG_RESULT>([\s\S]*?)<\/WATCHDOG_RESULT>/);
+          if (m) {
+            const block = m[1].trim();
+            const actionMatch = block.match(/action:\s*(kill|no-action)/i);
+            const diagMatch = block.match(/diagnosis:\s*(.+)/i);
+            done({
+              action: actionMatch ? actionMatch[1].toLowerCase() : "unknown",
+              diagnosis: diagMatch ? diagMatch[1].trim() : block,
+              logFile: wdLogFile,
+            });
+            return;
+          }
+        } catch { }
+        done({ ...fallback, diagnosis: "watchdog agent 未输出 WATCHDOG_RESULT 标签" });
+      });
+
+      wdChild.on("error", (err) => {
+        clearTimeout(wdTimeout);
+        try { closeSync(wdFd); } catch { }
+        process.stderr.write(`  [WATCHDOG] 检查 agent 启动失败: ${err.message}\n`);
+        done({ ...fallback, diagnosis: `watchdog agent 启动失败: ${err.message}` });
+      });
+    } catch (e) {
+      try { closeSync(wdFd); } catch { }
+      process.stderr.write(`  [WATCHDOG] spawn 异常: ${e.message}\n`);
+      done({ ...fallback, diagnosis: `watchdog agent spawn 异常: ${e.message}` });
+    }
   });
 }

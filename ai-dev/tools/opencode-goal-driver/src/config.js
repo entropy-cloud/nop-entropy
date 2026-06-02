@@ -11,6 +11,10 @@ export function resolveConfig(args = {}) {
   const model = args.model || process.env.OPENCODE_MODEL || "zhipuai-coding-plan/glm-5.1";
   const maxCycles = args.maxCycles || Number(process.env.MAX_CYCLES) || 10;
   const maxInnerCycles = args.maxInnerCycles || Number(process.env.MAX_INNER_CYCLES) || 5;
+  const _wdInterval = Number(process.env.WATCHDOG_INTERVAL_MS);
+  const _wdStall = Number(process.env.WATCHDOG_STALL_MS);
+  const watchdogIntervalMs = Number.isNaN(_wdInterval) ? 5 * 60_000 : _wdInterval;
+  const watchdogStallMs = Number.isNaN(_wdStall) ? 30 * 60_000 : _wdStall;
 
   if (!moduleName) throw new Error("module name is required");
 
@@ -25,5 +29,6 @@ export function resolveConfig(args = {}) {
 
   return { projectRoot, moduleName, moduleDir, runDir,
            agent, model, maxCycles, maxInnerCycles, dryRun, testMode,
+           watchdogIntervalMs, watchdogStallMs,
            logFile: resolve(runDir, `${moduleName}.log`) };
 }
