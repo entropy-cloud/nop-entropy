@@ -59,7 +59,7 @@
 
 ### Phase 1 — WindowOperator.windowNamespace() 确定性 namespace 生成
 
-Status: in progress
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java`
 
 - Item Types: `Fix`
@@ -73,24 +73,24 @@ Exit Criteria:
 - [x] 新增单元测试验证确定性
 - [x] `./mvnw test -pl nop-stream -am` 通过
 - [x] No owner-doc update required（内部实现细节变更，不影响公共 API 契约）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — GraphExecutionPlan OperatorChain 隔离
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/GraphExecutionPlan.java`
 
 - Item Types: `Fix`
 
-- [ ] 将 `taskIndex == 0` 分支从 `original.getOperatorChains().get(0)` 改为 `original.getOperatorChains().get(0).deepCopy()`，与 `taskIndex > 0` 行为一致
-- [ ] 验证已有 `GraphExecutionPlan` 相关测试不受影响
+- [x] 将 `taskIndex == 0` 分支从 `original.getOperatorChains().get(0)` 改为 `original.getOperatorChains().get(0).deepCopy()`，与 `taskIndex > 0` 行为一致
+- [x] 验证已有 `GraphExecutionPlan` 相关测试不受影响
 
 Exit Criteria:
 
-- [ ] `GraphExecutionPlan.build()` 的所有 taskIndex 路径均使用 `deepCopy()`
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required（内部实现隔离，不影响公共 API）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `GraphExecutionPlan.build()` 的所有 taskIndex 路径均使用 `deepCopy()`
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required（内部实现隔离，不影响公共 API）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — SimpleCondition.of() 序列化安全性
 

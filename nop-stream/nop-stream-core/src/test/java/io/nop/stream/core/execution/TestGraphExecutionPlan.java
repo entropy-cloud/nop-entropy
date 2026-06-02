@@ -206,6 +206,33 @@ public class TestGraphExecutionPlan {
         assertEquals("E", sorted.get(3));
     }
 
+    @Test
+    public void testAllSubtasksGetDeepCopiedOperatorChains() {
+        JobGraph graph = new JobGraph("deepcopy-test");
+        JobVertex v = new JobVertex("V", "V", 3,
+                Collections.singletonList(testChain()),
+                (Invokable<Void>) () -> {});
+        graph.addVertex(v);
+
+        GraphExecutionPlan plan = GraphExecutionPlan.build(graph);
+
+        assertNotNull(plan.getSubtasks().get("V"));
+        assertEquals(3, plan.getSubtasks().get("V").size());
+
+        Subtask s0 = plan.getSubtasks().get("V").get(0);
+        Subtask s1 = plan.getSubtasks().get("V").get(1);
+
+        OperatorChain chain0 = s0.getInvokable().getOperatorChain();
+        OperatorChain chain1 = s1.getInvokable().getOperatorChain();
+
+        assertNotNull(chain0);
+        assertNotNull(chain1);
+        assertNotSame(chain0, chain1,
+                "Each subtask must have its own deep-copied OperatorChain");
+        assertNotSame(chain0, v.getOperatorChains().get(0),
+                "Subtask 0 must not share the original OperatorChain reference");
+    }
+
     private static class StubOperator implements StreamOperator<Object> {
 
         @Override

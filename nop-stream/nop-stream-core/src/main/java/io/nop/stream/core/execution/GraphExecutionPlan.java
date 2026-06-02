@@ -195,9 +195,7 @@ public class GraphExecutionPlan {
             List<Subtask> vertexSubtasks = new ArrayList<>(parallelism);
 
             for (int taskIndex = 0; taskIndex < parallelism; taskIndex++) {
-                OperatorChain chain = taskIndex == 0
-                        ? original.getOperatorChains().get(0)
-                        : original.getOperatorChains().get(0).deepCopy();
+                OperatorChain chain = original.getOperatorChains().get(0).deepCopy();
 
                 RecordWriter<Object> recordWriter = null;
                 InputGate inputGate = null;
