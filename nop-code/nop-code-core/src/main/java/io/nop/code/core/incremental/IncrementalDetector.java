@@ -2,8 +2,6 @@ package io.nop.code.core.incremental;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,80 +11,9 @@ import io.nop.code.core.util.DigestHelper;
 import io.nop.core.resource.IResource;
 /**
  * 增量变更检测器。通过两级检测策略（mtime快速比较 + SHA-256内容哈希）识别文件变更。
- * 支持基于 Path 和 IResource 的两种操作方式。
+ * 基于 IResource 的操作方式。
  */
 public class IncrementalDetector {
-
-    // ========== Path-based methods ==========
-
-    public FileFingerprint computeFingerprint(Path file) throws IOException {
-        String contentHash = DigestHelper.sha256Hex(file);
-        long lastModified = Files.getLastModifiedTime(file).toMillis();
-        long fileSize = Files.size(file);
-        return new FileFingerprint(file.toString(), contentHash, lastModified, fileSize);
-    }
-
-    public ChangeSet detectChanges(List<FileFingerprint> previous, List<Path> currentFiles) throws IOException {
-        Map<String, FileFingerprint> prevMap = new HashMap<>();
-        for (FileFingerprint fp : previous) {
-            prevMap.put(fp.getFilePath(), fp);
-        }
-
-        Map<String, Path> currentMap = new HashMap<>();
-        for (Path p : currentFiles) {
-            currentMap.put(p.toString(), p);
-        }
-
-        List<String> addedFiles = new ArrayList<>();
-        List<String> modifiedFiles = new ArrayList<>();
-        List<String> deletedFiles = new ArrayList<>();
-        List<String> unchangedFiles = new ArrayList<>();
-
-        for (FileFingerprint prev : previous) {
-            if (!currentMap.containsKey(prev.getFilePath())) {
-                deletedFiles.add(prev.getFilePath());
-            }
-        }
-
-        for (Path currentFile : currentFiles) {
-            String pathStr = currentFile.toString();
-            FileFingerprint prev = prevMap.get(pathStr);
-
-            if (prev == null) {
-                addedFiles.add(pathStr);
-            } else {
-                long currentMtime = Files.getLastModifiedTime(currentFile).toMillis();
-                long currentSize = Files.size(currentFile);
-
-                if (currentMtime == prev.getLastModified() && currentSize == prev.getFileSize()) {
-                    unchangedFiles.add(pathStr);
-                } else {
-                    String currentHashHex = DigestHelper.sha256Hex(currentFile);
-
-                    if (currentHashHex.equals(prev.getContentHash())) {
-                        unchangedFiles.add(pathStr);
-                    } else {
-                        modifiedFiles.add(pathStr);
-                    }
-                }
-            }
-        }
-
-        ChangeSet changeSet = new ChangeSet();
-        changeSet.setAddedFiles(addedFiles);
-        changeSet.setModifiedFiles(modifiedFiles);
-        changeSet.setDeletedFiles(deletedFiles);
-        changeSet.setUnchangedFiles(unchangedFiles);
-        return changeSet;
-    }
-
-    public List<FileFingerprint> computeFingerprints(List<Path> files) throws IOException {
-        List<FileFingerprint> fingerprints = new ArrayList<>(files.size());
-        for (Path file : files) {
-            fingerprints.add(computeFingerprint(file));
-        }
-        return fingerprints;
-    }
 
     // ========== IResource-based methods ==========
 
@@ -122,14 +49,12 @@ public class IncrementalDetector {
         List<String> deletedFiles = new ArrayList<>();
         List<String> unchangedFiles = new ArrayList<>();
 
-        // 检测已删除的文件
         for (FileFingerprint prev : previous) {
             if (!currentMap.containsKey(prev.getFilePath())) {
                 deletedFiles.add(prev.getFilePath());
             }
         }
 
-        // 检测新增和修改的文件
         for (IResource currentResource : currentResources) {
             String pathStr = currentResource.getPath();
             FileFingerprint prev = prevMap.get(pathStr);

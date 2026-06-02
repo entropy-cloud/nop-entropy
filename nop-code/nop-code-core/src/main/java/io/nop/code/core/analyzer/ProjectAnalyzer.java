@@ -1,21 +1,14 @@
 package io.nop.code.core.analyzer;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +23,6 @@ import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
 import io.nop.code.core.incremental.ManifestStore;
-import io.nop.code.core.incremental.PathFingerprintStore;
 import io.nop.code.core.model.*;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.LanguageFamily;
@@ -42,7 +34,7 @@ import io.nop.commons.batch.BatchQueue;
 import io.nop.commons.collections.IterableIterator;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
-/**
+import io.nop.core.resource.VirtualFileSystem;/**
  * 项目级代码分析器（语言无关）
  * 扫描整个项目的源文件，构建全局符号表，并解析跨文件的调用关系。
  * 通过 LanguageAdapterRegistry 支持多种编程语言。
@@ -51,6 +43,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
 
     private final List<ISemanticEdgeExtractor> semanticExtractors = new ArrayList<>();
     private static final Logger LOG = LoggerFactory.getLogger(ProjectAnalyzer.class);
+
+    private IResourceLoader resourceLoader;
 
     public void registerSemanticExtractor(ISemanticEdgeExtractor extractor) {
         semanticExtractors.add(extractor);
@@ -94,23 +88,13 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      * @return 项目分析结果
      */
     @Override
-    public ProjectAnalysisResult analyzeProject(Path projectRoot) {
-        try {
-            return analyzeProject(projectRoot, (ProgressCallback) null);
-        } catch (IOException e) {
-            throw new NopException(NopCodeCoreErrors.ERR_CODE_ANALYZE_PROJECT_FAILED)
-                    .param(NopCodeCoreErrors.ARG_PATH, projectRoot).cause(e);
-        }
+    public ProjectAnalysisResult analyzeProject(String projectRoot) {
+        return analyzeProject(VirtualFileSystem.instance(), projectRoot, (String) null);
     }
 
     @Override
-    public ProjectAnalysisResult analyzeProject(Path projectRoot, Set<CodeLanguage> languages) {
-        try {
-            return analyzeProject(projectRoot, (ProgressCallback) null);
-        } catch (IOException e) {
-            throw new NopException(NopCodeCoreErrors.ERR_CODE_ANALYZE_PROJECT_FAILED)
-                    .param(NopCodeCoreErrors.ARG_PATH, projectRoot).cause(e);
-        }
+    public ProjectAnalysisResult analyzeProject(String projectRoot, Set<CodeLanguage> languages) {
+        return analyzeProject(projectRoot);
     }
 
     /**
@@ -120,119 +104,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      * @param progressCallback 进度回调 (current, total, message)
      * @return 项目分析结果
      */
-    public ProjectAnalysisResult analyzeProject(Path projectRoot, ProgressCallback progressCallback) throws IOException {
-        LOG.info("Starting project analysis: {}", projectRoot);
-
-        // Phase 1: 收集所有源文件
-        List<Path> sourceFiles = findSourceFiles(projectRoot);
-        LOG.info("Found {} source files", sourceFiles.size());
-
-        if (progressCallback != null) {
-            progressCallback.onProgress(0, sourceFiles.size(), "Scanning files...");
-        }
-
-        // Phase 2: 分析所有文件，收集符号
-        List<CodeFileAnalysisResult> fileResults = new ArrayList<>();
-
-        if (executor != null && sourceFiles.size() > batchSize) {
-            // 并行批量分析
-            List<List<Path>> batches = partition(sourceFiles, batchSize);
-            List<Future<List<CodeFileAnalysisResult>>> futures = new ArrayList<>();
-
-            for (List<Path> batch : batches) {
-                futures.add(executor.submit(() -> analyzeBatch(batch, projectRoot)));
-            }
-
-            int completedBatches = 0;
-            for (Future<List<CodeFileAnalysisResult>> future : futures) {
-                try {
-                    fileResults.addAll(future.get());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("Interrupted during parallel analysis", e);
-                } catch (ExecutionException e) {
-                    throw new IOException("Failed during parallel analysis", e.getCause());
-                }
-                completedBatches++;
-                if (progressCallback != null) {
-                    int processed = Math.min(completedBatches * batchSize, sourceFiles.size());
-                    progressCallback.onProgress(processed, sourceFiles.size(),
-                            "Analyzed batch " + completedBatches + "/" + batches.size());
-                }
-            }
-        } else {
-            // 单线程 fallback（原有逻辑）
-            int processed = 0;
-            for (Path file : sourceFiles) {
-                if (fileResults.size() >= MAX_FILE_COUNT) {
-                    LOG.warn("Exceeded maximum file count {}, skipping remaining files", MAX_FILE_COUNT);
-                    break;
-                }
-                processed++;
-
-                if (progressCallback != null) {
-                    progressCallback.onProgress(processed, sourceFiles.size(),
-                            "Analyzing: " + projectRoot.relativize(file));
-                }
-
-                try {
-                    long fileSize = Files.size(file);
-                    if (fileSize > MAX_FILE_SIZE_BYTES) {
-                        LOG.warn("Skipping large file ({} bytes): {}", fileSize, file);
-                        continue;
-                    }
-
-                    String sourceCode = Files.readString(file);
-                    String relativePath = projectRoot.relativize(file).toString();
-
-                    ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
-                    if (analyzer == null) {
-                        continue;
-                    }
-
-                    CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
-
-                    if (result != null) {
-                        fileResults.add(result);
-                    }
-                } catch (Exception e) {
-                    LOG.warn("Failed to analyze file: {}", file, e);
-                }
-            }
-        }
-
-        // Phase 3: 构建全局符号表
-        SymbolTable globalSymbolTable = new SymbolTable();
-        for (CodeFileAnalysisResult file : fileResults) {
-            for (CodeSymbol symbol : file.getSymbols()) {
-                String qualifiedName = symbol.getQualifiedName();
-                if (qualifiedName != null && !qualifiedName.isEmpty()) {
-                    globalSymbolTable.add(symbol);
-                }
-            }
-        }
-
-        LOG.info("Collected {} symbols from {} files", globalSymbolTable.size(), fileResults.size());
-
-        // Phase 4: 跨文件调用解析
-        int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
-        int resolvedCalls = callCounts[0];
-        int unresolvedCalls = callCounts[1];
-
-        // 构建统计信息
-        ProjectStats stats = buildStats(fileResults, globalSymbolTable, resolvedCalls, unresolvedCalls);
-
-        ProjectAnalysisResult result = new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
-
-        // Phase 5: Run semantic edge extractors
-        CallGraph callGraph = result.buildCallGraph();
-        List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
-        runSemanticExtractors(globalSymbolTable, callGraph, semanticEdges);
-        runFileResultExtractors(fileResults, globalSymbolTable, semanticEdges);
-        result.setSemanticEdges(semanticEdges);
-        LOG.info("Extracted {} semantic edges", semanticEdges.size());
-
-        return result;
+    public ProjectAnalysisResult analyzeProject(String projectRoot, ProgressCallback progressCallback) {
+        return analyzeProject(VirtualFileSystem.instance(), projectRoot, (String) null);
     }
 
     /**
@@ -488,9 +361,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     }
 
     @Override
-    public ProjectAnalysisResult analyzeIncremental(Path projectRoot, List<String> changedFilePaths) {
-        throw new UnsupportedOperationException(
-                "Use analyzeIncremental(Path, ProjectAnalysisResult) or analyzeIncremental(Path, Path) instead");
+    public ProjectAnalysisResult analyzeIncremental(String projectRoot, List<String> changedFilePaths) {
+        throw new UnsupportedOperationException("Use analyzeIncremental(String, ProjectAnalysisResult) instead");
     }
 
     /**
@@ -501,7 +373,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      * @param previousResult 上一次的完整分析结果
      * @return 增量分析结果
      */
-    public ProjectAnalysisResult analyzeIncremental(Path projectRoot,
+    public ProjectAnalysisResult analyzeIncremental(String projectRoot,
                                                     ProjectAnalysisResult previousResult) throws IOException {
         LOG.info("Starting incremental analysis: {}", projectRoot);
 
@@ -516,16 +388,24 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         }
 
         // 收集当前所有源文件
-        List<Path> sourceFiles = findSourceFiles(projectRoot);
-        LOG.info("Found {} source files for incremental analysis", sourceFiles.size());
+        List<IResource> sourceResources = findSourceFiles(projectRoot);
+        LOG.info("Found {} source files for incremental analysis", sourceResources.size());
 
         // 确定哪些文件需要重新分析（通过指纹对比）
         IncrementalDetector detector = new IncrementalDetector();
-        List<FileFingerprint> previousFingerprints = buildFingerprintsFromResults(previousResult);
-        ChangeSet changes = detector.detectChanges(previousFingerprints, sourceFiles);
+        List<FileFingerprint> previousFingerprints = buildFingerprintsFromResults(projectRoot, previousResult);
+        ChangeSet changes = detector.detectResourceChanges(previousFingerprints, sourceResources);
 
         List<String> filesToReanalyze = changes.getAddedAndModified();
-        Set<String> deletedPaths = changes.getDeletedFiles().stream().collect(Collectors.toSet());
+        Set<String> deletedPaths = new HashSet<>();
+        for (String dp : changes.getDeletedFiles()) {
+            String rel = dp;
+            if (dp.startsWith(projectRoot)) {
+                rel = dp.substring(projectRoot.length());
+                if (rel.startsWith("/")) rel = rel.substring(1);
+            }
+            deletedPaths.add(rel);
+        }
 
         LOG.info("Incremental changes: {} added/modified, {} deleted, {} unchanged",
                 filesToReanalyze.size(), deletedPaths.size(), changes.getUnchangedFiles().size());
@@ -541,20 +421,23 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         // 重新分析变更文件
         for (String filePath : filesToReanalyze) {
             try {
-                Path file = Path.of(filePath);
-                String relativePath = projectRoot.relativize(file).toString();
+                IResource res = VirtualFileSystem.instance().getResource(filePath);
+                String relativePath = filePath;
+                if (relativePath.startsWith(projectRoot)) {
+                    relativePath = relativePath.substring(projectRoot.length());
+                    if (relativePath.startsWith("/")) relativePath = relativePath.substring(1);
+                }
                 ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
                 if (analyzer == null) {
                     continue;
                 }
-                String sourceCode = Files.readString(file);
+                String sourceCode = res.readText();
                 CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     updatedFileMap.put(relativePath, result);
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to re-analyze file: {} - {}", filePath, e.getMessage());
-                LOG.warn("Failed to re-analyze file: {}", file, e);
+                LOG.warn("Failed to re-analyze file: {}", filePath, e);
             }
         }
 
@@ -594,17 +477,16 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      * @param fingerprintStore fingerprint store
      * @return analysis result for changed files only
      */
-    public ProjectAnalysisResult analyzeIncremental(Path projectRoot,
+    public ProjectAnalysisResult analyzeIncremental(String projectRoot,
                                                     String indexId,
                                                     IFingerprintStore fingerprintStore) throws IOException {
         LOG.info("Starting store-based incremental analysis: {}", projectRoot);
-
         List<FileFingerprint> previousFingerprints = fingerprintStore.loadFingerprints(indexId);
 
-        List<Path> sourceFiles = findSourceFiles(projectRoot);
+        List<IResource> sourceResources = findSourceFiles(projectRoot);
 
         IncrementalDetector detector = new IncrementalDetector();
-        ChangeSet changes = detector.detectChanges(previousFingerprints, sourceFiles);
+        ChangeSet changes = detector.detectResourceChanges(previousFingerprints, sourceResources);
 
         LOG.info("Store changes: added={}, modified={}, deleted={}, unchanged={}",
                 changes.getAddedFiles().size(),
@@ -619,12 +501,12 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             return analyzeProject(projectRoot);
         }
 
-        List<Path> changedFiles = changes.getAddedAndModified();
+        List<String> changedFiles = changes.getAddedAndModified();
         LOG.info("Incremental analysis: analysing {} changed files (no merge with history)", changedFiles.size());
 
         ProjectAnalysisResult result = analyzeFiles(projectRoot, changedFiles);
 
-        List<FileFingerprint> newFingerprints = detector.computeFingerprints(sourceFiles);
+        List<FileFingerprint> newFingerprints = detector.computeResourceFingerprints(sourceResources);
         fingerprintStore.saveFingerprints(indexId, newFingerprints);
 
         return result;
@@ -641,17 +523,17 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      * @param manifestPath path to the manifest file
      * @return analysis result for changed files only
      */
-    public ProjectAnalysisResult analyzeIncremental(Path projectRoot,
-                                                    Path manifestPath) throws IOException {
+    public ProjectAnalysisResult analyzeIncremental(String projectRoot,
+                                                    String manifestPath) throws IOException {
         LOG.info("Starting manifest-based incremental analysis: {}", projectRoot);
 
         ManifestStore manifestStore = new ManifestStore();
         List<FileFingerprint> previousFingerprints = manifestStore.load(manifestPath);
 
-        List<Path> sourceFiles = findSourceFiles(projectRoot);
+        List<IResource> sourceResources = findSourceFiles(projectRoot);
 
         IncrementalDetector detector = new IncrementalDetector();
-        ChangeSet changes = detector.detectChanges(previousFingerprints, sourceFiles);
+        ChangeSet changes = detector.detectResourceChanges(previousFingerprints, sourceResources);
 
         LOG.info("Manifest changes: added={}, modified={}, deleted={}, unchanged={}",
                 changes.getAddedFiles().size(),
@@ -666,12 +548,12 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             return analyzeProject(projectRoot);
         }
 
-        List<Path> changedFiles = changes.getAddedAndModified();
+        List<String> changedFiles = changes.getAddedAndModified();
         LOG.info("Incremental analysis: analysing {} changed files (no merge with history)", changedFiles.size());
 
         ProjectAnalysisResult result = analyzeFiles(projectRoot, changedFiles);
 
-        List<FileFingerprint> newFingerprints = detector.computeFingerprints(sourceFiles);
+        List<FileFingerprint> newFingerprints = detector.computeResourceFingerprints(sourceResources);
         manifestStore.save(manifestPath, newFingerprints);
 
         return result;
@@ -684,18 +566,23 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      * <p>
      * This method does NOT merge with any historical results.
      */
-    private ProjectAnalysisResult analyzeFiles(Path projectRoot, List<Path> files) throws IOException {
+    private ProjectAnalysisResult analyzeFiles(String projectRoot, List<String> files) throws IOException {
         List<CodeFileAnalysisResult> fileResults = new ArrayList<>();
         SymbolTable globalSymbolTable = new SymbolTable();
 
-        for (Path file : files) {
+        for (String filePath : files) {
             try {
-                String relativePath = projectRoot.relativize(file).toString();
+                IResource res = VirtualFileSystem.instance().getResource(filePath);
+                String relativePath = filePath;
+                if (relativePath.startsWith(projectRoot)) {
+                    relativePath = relativePath.substring(projectRoot.length());
+                    if (relativePath.startsWith("/")) relativePath = relativePath.substring(1);
+                }
                 ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
                 if (analyzer == null) {
                     continue;
                 }
-                String sourceCode = Files.readString(file);
+                String sourceCode = res.readText();
                 CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     fileResults.add(result);
@@ -707,7 +594,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                     }
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to analyze file: {}", file, e);
+                LOG.warn("Failed to analyze file: {}", filePath, e);
             }
         }
 
@@ -723,7 +610,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     /**
      * 从分析结果构建指纹列表（用于增量对比）
      */
-    private List<FileFingerprint> buildFingerprintsFromResults(ProjectAnalysisResult result) throws IOException {
+    private List<FileFingerprint> buildFingerprintsFromResults(String projectRoot, ProjectAnalysisResult result) {
         List<FileFingerprint> fingerprints = new ArrayList<>();
         if (result == null || result.getFileResults() == null) {
             return fingerprints;
@@ -740,7 +627,15 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                 contentHash = DigestHelper.sha256Hex(sourceCode.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             }
 
-            fingerprints.add(new FileFingerprint(filePath, contentHash, 0, 0));
+            // 构建完整 VFS 路径以匹配 IResource.getPath()
+            String fullPath = filePath;
+            if (!filePath.startsWith(projectRoot)) {
+                fullPath = projectRoot;
+                if (!fullPath.endsWith("/")) fullPath += "/";
+                fullPath += filePath;
+            }
+
+            fingerprints.add(new FileFingerprint(fullPath, contentHash, 0, 0));
         }
         return fingerprints;
     }
@@ -748,22 +643,27 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     /**
      * 分析一批源文件，返回分析结果列表。
      */
-    private List<CodeFileAnalysisResult> analyzeBatch(List<Path> files, Path projectRoot) {
+    private List<CodeFileAnalysisResult> analyzeBatch(List<String> files, String projectRoot) {
         List<CodeFileAnalysisResult> results = new ArrayList<>();
-        for (Path file : files) {
+        for (String filePath : files) {
             try {
-                String sourceCode = Files.readString(file);
-                String relativePath = projectRoot.relativize(file).toString();
+                IResource res = VirtualFileSystem.instance().getResource(filePath);
+                String relativePath = filePath;
+                if (relativePath.startsWith(projectRoot)) {
+                    relativePath = relativePath.substring(projectRoot.length());
+                    if (relativePath.startsWith("/")) relativePath = relativePath.substring(1);
+                }
                 ICodeFileAnalyzer analyzer = registry.getAnalyzer(relativePath);
                 if (analyzer == null) {
                     continue;
                 }
+                String sourceCode = res.readText();
                 CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     results.add(result);
                 }
             } catch (Exception e) {
-                LOG.warn("Failed to analyze file: {}", file, e);
+                LOG.warn("Failed to analyze file: {}", filePath, e);
             }
         }
         return results;
@@ -783,7 +683,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     /**
      * 查找项目中的所有源文件（根据注册的语言适配器确定文件扩展名和排除模式）
      */
-    private List<Path> findSourceFiles(Path projectRoot) throws IOException {
+    private List<IResource> findSourceFiles(String projectRoot) {
         List<String> allExtensions = new ArrayList<>();
         Set<String> excludePatterns = new HashSet<>();
 
@@ -793,26 +693,35 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             excludePatterns.addAll(adapter.getExcludePatterns());
         }
 
-        try (Stream<Path> stream = Files.walk(projectRoot)) {
-            return stream
-                    .filter(Files::isRegularFile)
-                    .filter(p -> allExtensions.stream().anyMatch(ext -> p.toString().endsWith(ext)))
-                    .filter(p -> !shouldExclude(p, excludePatterns))
-                    .collect(Collectors.toList());
+        List<IResource> result = new ArrayList<>();
+        IterableIterator<IResource> it = VirtualFileSystem.instance().depthIterator(projectRoot, false, resource -> {
+            if (resource.isDirectory()) return false;
+            String name = resource.getName();
+            for (String ext : allExtensions) {
+                if (name.endsWith(ext)) {
+                    return !shouldExclude(resource.getPath(), excludePatterns);
+                }
+            }
+            return false;
+        });
+
+        while (it.hasNext()) {
+            result.add(it.next());
         }
+        return result;
     }
 
     /**
      * 判断文件是否应该被排除
      */
-    private boolean shouldExclude(Path path, Set<String> excludePatterns) {
-        String pathStr = path.toString();
+    private boolean shouldExclude(String path, Set<String> excludePatterns) {
         for (String pattern : excludePatterns) {
             String dir = pattern.replace("**/", "").replace("/**", "");
             if (dir.startsWith("/")) dir = dir.substring(1);
             if (dir.endsWith("/")) dir = dir.substring(0, dir.length() - 1);
-            for (int i = 0; i < path.getNameCount(); i++) {
-                if (path.getName(i).toString().equals(dir)) {
+            String[] segments = path.split("/");
+            for (String segment : segments) {
+                if (segment.equals(dir)) {
                     return true;
                 }
             }
@@ -849,6 +758,16 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     /**
      * 进度回调接口
      */
+    private boolean matchesFilePattern(String name, String filePattern) {
+        if (filePattern == null || filePattern.isEmpty() || "*".equals(filePattern))
+            return false;
+        String suffix = filePattern;
+        if (suffix.startsWith("**/")) suffix = suffix.substring(2);
+        if (suffix.startsWith("*")) suffix = suffix.substring(1);
+        if (suffix.startsWith(".")) suffix = suffix.substring(1);
+        return name.endsWith(suffix);
+    }
+
     @FunctionalInterface
     public interface ProgressCallback {
         void onProgress(int current, int total, String message);

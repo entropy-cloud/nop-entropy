@@ -2,8 +2,6 @@ package io.nop.code.core.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -20,12 +18,6 @@ public class DigestHelper {
             return bytesToHex(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new NopException(ERR_CODE_DIGEST_NOT_AVAILABLE, e);
-        }
-    }
-
-    public static String sha256Hex(Path file) throws IOException {
-        try (InputStream is = Files.newInputStream(file)) {
-            return sha256HexFromStream(is);
         }
     }
 

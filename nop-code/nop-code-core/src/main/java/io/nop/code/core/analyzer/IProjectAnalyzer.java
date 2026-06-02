@@ -1,14 +1,13 @@
 package io.nop.code.core.analyzer;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
 import io.nop.code.core.model.CodeLanguage;
 public interface IProjectAnalyzer {
-    ProjectAnalysisResult analyzeProject(Path projectRoot);
+    ProjectAnalysisResult analyzeProject(String projectRoot);
 
-    ProjectAnalysisResult analyzeProject(Path projectRoot, Set<CodeLanguage> languages);
+    ProjectAnalysisResult analyzeProject(String projectRoot, Set<CodeLanguage> languages);
 
-    ProjectAnalysisResult analyzeIncremental(Path projectRoot, List<String> changedFilePaths);
+    ProjectAnalysisResult analyzeIncremental(String projectRoot, List<String> changedFilePaths);
 }

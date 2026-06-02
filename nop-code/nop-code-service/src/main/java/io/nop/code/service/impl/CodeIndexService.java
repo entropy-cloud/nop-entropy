@@ -2,7 +2,6 @@ package io.nop.code.service.impl;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -209,11 +208,11 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
-    // 
+    //
 
-====== Entity-to-Model Conversion 
+    // ====== Entity-to-Model Conversion
 
-======
+    // ======
 
     private CodeSymbol entityToCodeSymbol(NopCodeSymbol entity) {
         CodeSymbol symbol = new CodeSymbol();
@@ -258,14 +257,14 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Rebuild-from-DB Helpers 
+    // ====== Rebuild-from-DB Helpers 
 
-======
+    // ======
     // 
 
-====== Rebuild-from-DB Helpers 
+    // ====== Rebuild-from-DB Helpers 
 
-======
+    // ======
 
     private SymbolTable getOrRebuildSymbolTable(String indexId) {
         ensureSubServices();
@@ -284,9 +283,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Indexing 
+    // ====== Indexing 
 
-======
+    // ======
 
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
@@ -295,20 +294,15 @@ public class CodeIndexService implements ICodeIndexService {
         ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
         lock.lock();
         try {
-            java.io.File localFile = new java.io.File(vfsPath);
-            ProjectAnalysisResult result;
-            if (localFile.isDirectory()) {
-                validateLocalPath(vfsPath);
-                result = analyzer.analyzeProject(localFile.toPath());
-            } else {
-                result = analyzer.analyzeProject(
-                        VirtualFileSystem.instance(), vfsPath, filePattern,
-                        batch -> {});
-            }
+            String resolvedPath = resolveVfsPath(vfsPath);
+            validateLocalPath(resolvedPath);
+            ProjectAnalysisResult result = analyzer.analyzeProject(
+                    VirtualFileSystem.instance(), resolvedPath, filePattern,
+                    batch -> {});
             final ProjectAnalysisResult finalResult = result;
             return ormTemplate.runInSession(session -> {
-                ensureIndexEntity(indexId, vfsPath, session);
-                persistInSession(indexId, vfsPath, finalResult, session);
+                ensureIndexEntity(indexId, resolvedPath, session);
+                persistInSession(indexId, resolvedPath, finalResult, session);
                 return finalResult.getFileResults().size();
             });
         } finally {
@@ -335,9 +329,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== File Queries 
+    // ====== File Queries 
 
-======
+    // ======
 
     @Override
     public List<CodeFileAnalysisResult> getFiles(String indexId) {
@@ -395,9 +389,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Symbol Queries 
+    // ====== Symbol Queries 
 
-======
+    // ======
 
     @Override
     public CodeSymbol getSymbolById(String indexId, String symbolId) {
@@ -451,9 +445,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Type Queries 
+    // ====== Type Queries 
 
-======
+    // ======
 
     @Override
     public TypeOutlineDTO getTypeOutline(String indexId, String qualifiedName) {
@@ -476,9 +470,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Hierarchy Queries 
+    // ====== Hierarchy Queries 
 
-======
+    // ======
 
     @Override
     public TypeHierarchyDTO getTypeHierarchy(String indexId, String qualifiedName,
@@ -496,9 +490,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Index Management 
+    // ====== Index Management 
 
-======
+    // ======
 
     @Override
     public IndexStatsDTO getIndexStats(String indexId) {
@@ -603,9 +597,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Graph Analysis 
+    // ====== Graph Analysis 
 
-======
+    // ======
 
     @Override
     public CommunityDetectionResultDTO detectCommunities(String indexId) {
@@ -675,111 +669,30 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Incremental Indexing 
+    // ====== Incremental Indexing 
 
-======
+    // ======
 
     @Override
     public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
         validatePath(vfsPath);
-        java.io.File localFile = new java.io.File(vfsPath);
-        if (localFile.isDirectory()) {
+        IResource rootResource = VirtualFileSystem.instance().getResource(vfsPath);
+        if (rootResource.isDirectory()) {
             validateLocalPath(vfsPath);
         }
         invalidateAnalysisCache(indexId);
 
         Function<String, String> pathMapper = buildPathMapper(vfsPath);
 
-        List<FileFingerprint> previousFingerprints;
-        try {
-            previousFingerprints = ormTemplate.runInSession(session -> {
-                try {
-                    IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
-                    return store.loadFingerprints(indexId);
-                } catch (IOException e) {
-                    throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
-                }
-            });
-        } catch (NopException e) {
-            if (e.getErrorCode() != null && e.getErrorCode().equals(ERR_INCREMENTAL_FAILED))
-                throw e;
-            throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
-        }
-
-        IResourceLoader vfs = VirtualFileSystem.instance();
-        List<IResource> currentResources = collectResourcesFromVfs(vfs, vfsPath);
-
-        List<Path> currentPaths = currentResources.stream()
-                .map(res -> Path.of(pathMapper.apply(res.getPath())))
-                .collect(Collectors.toList());
-
-        IncrementalDetector detector = new IncrementalDetector();
-        ChangeSet changes;
-        try {
-            changes = detector.detectChanges(previousFingerprints, currentPaths);
-        } catch (IOException e) {
-            throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
-        }
-
-        List<Path> changedFiles = changes.getAddedAndModified();
-        List<Path> deletedFiles = changes.getDeletedFiles();
-
-        LOG.info("Incremental index for {}: {} changed, {} deleted, {} unchanged",
-                indexId, changedFiles.size(), deletedFiles.size(),
-                changes.getUnchangedFiles().size());
-
-        if (changedFiles.isEmpty() && deletedFiles.isEmpty()) {
-            return 0;
-        }
-
-        Map<String, IResource> resourceByPath = new HashMap<>();
-        for (IResource res : currentResources) {
-            resourceByPath.put(pathMapper.apply(res.getPath()), res);
-        }
-
-        List<CodeFileAnalysisResult> analysisResults = new ArrayList<>();
-        for (Path changedFile : changedFiles) {
-            try {
-                String relativePath = changedFile.toString();
-                ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
-                if (fileAnalyzer == null) continue;
-
-                IResource resource = resourceByPath.get(relativePath);
-                if (resource == null) {
-                    LOG.warn("Resource not found for path: {}", relativePath);
-                    continue;
-                }
-                String sourceCode = resource.readText();
-                CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
-                if (fileResult != null) {
-                    analysisResults.add(fileResult);
-                }
-            } catch (Exception e) {
-                LOG.warn("Failed to re-analyze file: {}", changedFile, e);
-            }
-        }
-
-        List<FileFingerprint> newFingerprints = new ArrayList<>(currentResources.size());
-        try {
-            for (IResource res : currentResources) {
-                newFingerprints.add(detector.computeFingerprint(res));
-            }
-        } catch (IOException e) {
-            throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
-        }
-
         return ormTemplate.runInSession(session -> {
             try {
-                deleteFileRecords(indexId, deletedFiles.stream().map(Path::toString).collect(Collectors.toList()));
-                deleteFileRecords(indexId, changedFiles.stream().map(Path::toString).collect(Collectors.toList()));
-
-                Function<String, String> pathMapper = buildPathMapper(vfsPath);
                 IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
                 List<FileFingerprint> previousFingerprints = store.loadFingerprints(indexId);
 
                 IResourceLoader vfs = VirtualFileSystem.instance();
                 List<IResource> currentResources = collectResourcesFromVfs(vfs, vfsPath);
 
+                IncrementalDetector detector = new IncrementalDetector();
                 ChangeSet changes = detector.detectResourceChanges(previousFingerprints, currentResources);
 
                 List<String> changedFiles = changes.getAddedAndModified();
@@ -801,7 +714,6 @@ public class CodeIndexService implements ICodeIndexService {
                     resourceByPath.put(pathMapper.apply(res.getPath()), res);
                 }
 
-                int[] count = {0};
                 BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(BATCH_SIZE, batch -> {
                     for (CodeFileAnalysisResult result : batch) {
                         persistSingleFileInSession(indexId, result, session);
@@ -824,7 +736,6 @@ public class CodeIndexService implements ICodeIndexService {
                         CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
                         if (fileResult != null) {
                             batchQueue.add(fileResult);
-                            count[0]++;
                         }
                     } catch (Exception e) {
                         LOG.warn("Failed to re-analyze file: {}", changedFile, e);
@@ -832,16 +743,12 @@ public class CodeIndexService implements ICodeIndexService {
                 }
                 batchQueue.flush();
 
-                for (CodeFileAnalysisResult result : analysisResults) {
-                    persistSingleFileInSession(indexId, result, session);
-                }
-
+                List<FileFingerprint> newFingerprints = detector.computeResourceFingerprints(currentResources);
                 updateIndexStats(indexId);
 
-                IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
                 store.saveFingerprints(indexId, newFingerprints);
 
-                return analysisResults.size();
+                return changedFiles.size();
             } catch (IOException e) {
                 throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
             }
@@ -850,9 +757,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== File Page Query 
+    // ====== File Page Query 
 
-======
+    // ======
 
     @Override
     public PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit) {
@@ -862,9 +769,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== ORM Persistence 
+    // ====== ORM Persistence 
 
-======
+    // ======
 
     private void persistInSession(String indexId, String rootPath, ProjectAnalysisResult result,
                                   IOrmSession session) {
@@ -1330,9 +1237,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Incremental Indexing Helpers 
+    // ====== Incremental Indexing Helpers 
 
-======
+    // ======
 
     private Set<String> getProjectFilePaths(String indexId) {
         if (daoProvider == null) return Collections.emptySet();
@@ -1501,9 +1408,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Flow Analysis 
+    // ====== Flow Analysis 
 
-======
+    // ======
 
     @Override
     public List<ExecutionFlow> detectFlows(String indexId) {
@@ -1681,9 +1588,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     // 
 
-====== Batch File Records 
+    // ====== Batch File Records 
 
-======
+    // ======
 
     @Override
     public void batchSaveFileRecords(String indexId, List<FileFingerprint> fingerprints) {
@@ -1781,19 +1688,6 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
-    private String allowedLocalRoot;
-
-    public void setAllowedLocalRoot(String allowedLocalRoot) {
-        this.allowedLocalRoot = allowedLocalRoot;
-    }
-
-    private void validatePath(String path) {
-        if (path == null || path.isEmpty())
-            return;
-        if (path.contains(".."))
-            throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
-    }
-
 
     private List<CodeSearchResultDTO> filterByLanguage(List<CodeSearchResultDTO> results,
                                                          String indexId, String language,
@@ -1826,8 +1720,20 @@ public class CodeIndexService implements ICodeIndexService {
         }
         return sb.toString();
     }
-}
-}
+
+    private String allowedLocalRoot;
+
+    public void setAllowedLocalRoot(String allowedLocalRoot) {
+        this.allowedLocalRoot = allowedLocalRoot;
+    }
+
+    private void validatePath(String path) {
+        if (path == null || path.isEmpty())
+            return;
+        if (path.contains(".."))
+            throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+    }
+
     private void validateLocalPath(String path) {
         if (path == null || path.isEmpty())
             return;
@@ -1845,5 +1751,14 @@ public class CodeIndexService implements ICodeIndexService {
                 throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path).cause(e);
             }
         }
+    }
+
+    private String resolveVfsPath(String path) {
+        if (path == null || path.isEmpty())
+            return path;
+        if (path.startsWith("file:") || path.startsWith("/"))
+            return path;
+        java.io.File f = new java.io.File(path);
+        return "file:" + f.getAbsolutePath();
     }
 }

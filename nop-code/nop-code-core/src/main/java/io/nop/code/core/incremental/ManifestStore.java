@@ -1,8 +1,5 @@
 package io.nop.code.core.incremental;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,27 +8,32 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.type.utils.GenericTypeHelper;
 public class ManifestStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(ManifestStore.class);
 
-    public void save(Path manifestFile, List<FileFingerprint> fingerprints) throws IOException {
-        Path parent = manifestFile.getParent();
-        if (parent != null) {
-            Files.createDirectories(parent);
-        }
-
+    /**
+     * 保存指纹到 VFS 资源
+     */
+    public void save(String manifestPath, List<FileFingerprint> fingerprints) {
         String json = JsonTool.stringify(fingerprints);
-        Files.writeString(manifestFile, json);
+        IResource resource = VirtualFileSystem.instance().getResource(manifestPath);
+        resource.writeText(json, null);
     }
 
-    public List<FileFingerprint> load(Path manifestFile) throws IOException {
-        if (!Files.exists(manifestFile)) {
+    /**
+     * 从 VFS 资源加载指纹
+     */
+    public List<FileFingerprint> load(String manifestPath) {
+        IResource resource = VirtualFileSystem.instance().getResource(manifestPath);
+        if (!resource.exists()) {
             return new ArrayList<>();
         }
 
-        String content = Files.readString(manifestFile);
+        String content = resource.readText();
 
         try {
             List<FileFingerprint> result = JsonTool.parseBeanFromText(content,
@@ -39,7 +41,7 @@ public class ManifestStore {
                             ReflectionManager.instance().buildRawType(FileFingerprint.class)));
             return result != null ? result : new ArrayList<>();
         } catch (Exception e) {
-            LOG.warn("Failed to parse manifest file: {}", manifestFile, e);
+            LOG.warn("Failed to parse manifest file: {}", manifestPath, e);
             return new ArrayList<>();
         }
     }
