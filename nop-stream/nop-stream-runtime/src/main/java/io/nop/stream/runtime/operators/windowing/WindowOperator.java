@@ -1135,7 +1135,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             TimeWindow tw = (TimeWindow) window;
             return "TW:" + tw.getStart() + "," + tw.getEnd();
         }
-        return window.getClass().getName() + "@" + System.identityHashCode(window);
+        return window.getClass().getName() + "#" + window.toString();
     }
 
     public class PerWindowKeyedStateStore implements KeyedStateStore {
