@@ -2,6 +2,9 @@ package io.nop.code.core.analyzer;
 
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.model.*;
+import io.nop.core.initialize.CoreInitialization;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,6 +29,20 @@ class TestProjectAnalyzerConcurrency {
     Path tempDir;
 
     private ProjectAnalyzer analyzer;
+
+    @BeforeAll
+    static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    static void destroy() {
+        CoreInitialization.destroy();
+    }
+
+    private String vfsPath() {
+        return "file:" + tempDir.toAbsolutePath();
+    }
 
     @BeforeEach
     void setUp() throws IOException {
@@ -121,7 +138,7 @@ class TestProjectAnalyzerConcurrency {
             executor.submit(() -> {
                 try {
                     startLatch.await();
-                    ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+                    ProjectAnalysisResult result = analyzer.analyzeProject(vfsPath());
                     if (result == null || result.getFileResults().isEmpty()) {
                         errorCount.incrementAndGet();
                     } else {
@@ -154,7 +171,7 @@ class TestProjectAnalyzerConcurrency {
         for (int i = 0; i < count; i++) {
             executor.submit(() -> {
                 try {
-                    results.add(analyzer.analyzeProject(tempDir));
+                    results.add(analyzer.analyzeProject(vfsPath()));
                 } finally {
                     latch.countDown();
                 }

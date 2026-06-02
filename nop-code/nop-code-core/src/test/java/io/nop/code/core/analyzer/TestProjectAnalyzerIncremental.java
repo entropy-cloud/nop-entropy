@@ -2,6 +2,9 @@ package io.nop.code.core.analyzer;
 
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.model.*;
+import io.nop.core.initialize.CoreInitialization;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,6 +28,20 @@ class TestProjectAnalyzerIncremental {
 
     private LanguageAdapterRegistry registry;
     private ProjectAnalyzer analyzer;
+
+    @BeforeAll
+    static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    static void destroy() {
+        CoreInitialization.destroy();
+    }
+
+    private String vfsPath() {
+        return "file:" + tempDir.toAbsolutePath();
+    }
 
     @BeforeEach
     void setUp() {
@@ -125,7 +142,7 @@ class TestProjectAnalyzerIncremental {
         createTestProject(tempDir);
 
         ProjectAnalysisResult result =
-                analyzer.analyzeIncremental(tempDir, (ProjectAnalysisResult) null);
+                analyzer.analyzeIncremental(vfsPath(), (ProjectAnalysisResult) null);
 
         assertNotNull(result);
         assertEquals(2, result.getFileResults().size());
@@ -139,11 +156,11 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalNoChanges() throws IOException {
         createTestProject(tempDir);
 
-        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(vfsPath());
         assertEquals(2, first.getFileResults().size());
 
         ProjectAnalysisResult second =
-                analyzer.analyzeIncremental(tempDir, first);
+                analyzer.analyzeIncremental(vfsPath(), first);
 
         assertNotNull(second);
         assertEquals(2, second.getFileResults().size());
@@ -157,14 +174,14 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalWithModification() throws IOException, InterruptedException {
         createTestProject(tempDir);
 
-        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(vfsPath());
         assertEquals(2, first.getFileResults().size());
 
         Thread.sleep(50);
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { int x; }");
 
         ProjectAnalysisResult second =
-                analyzer.analyzeIncremental(tempDir, first);
+                analyzer.analyzeIncremental(vfsPath(), first);
 
         assertNotNull(second);
         assertEquals(2, second.getFileResults().size());
@@ -177,14 +194,14 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalWithAddition() throws IOException {
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { }");
 
-        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(vfsPath());
         assertEquals(1, first.getFileResults().size());
         assertNotNull(first.findSymbol("Foo"));
 
         Files.writeString(tempDir.resolve("Baz.java"), "public class Baz { }");
 
         ProjectAnalysisResult second =
-                analyzer.analyzeIncremental(tempDir, first);
+                analyzer.analyzeIncremental(vfsPath(), first);
 
         assertNotNull(second);
         assertEquals(2, second.getFileResults().size());
@@ -197,13 +214,13 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalWithDeletion() throws IOException {
         createTestProject(tempDir);
 
-        ProjectAnalysisResult first = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult first = analyzer.analyzeProject(vfsPath());
         assertEquals(2, first.getFileResults().size());
 
         Files.delete(tempDir.resolve("Bar.java"));
 
         ProjectAnalysisResult second =
-                analyzer.analyzeIncremental(tempDir, first);
+                analyzer.analyzeIncremental(vfsPath(), first);
 
         assertNotNull(second);
         assertEquals(1, second.getFileResults().size());
@@ -216,11 +233,12 @@ class TestProjectAnalyzerIncremental {
     void testAnalyzeIncrementalWithManifestFile() throws IOException {
         createTestProject(tempDir);
         Path manifestFile = tempDir.resolve(".analysis-manifest.json");
+        String manifestVfsPath = "file:" + manifestFile.toAbsolutePath();
 
         assertFalse(Files.exists(manifestFile));
 
         ProjectAnalysisResult result =
-                analyzer.analyzeIncremental(tempDir, manifestFile);
+                analyzer.analyzeIncremental(vfsPath(), manifestVfsPath);
 
         assertNotNull(result);
         assertTrue(Files.exists(manifestFile), "Manifest file should be saved");
@@ -230,7 +248,7 @@ class TestProjectAnalyzerIncremental {
         assertTrue(content.startsWith("["));
 
         ProjectAnalysisResult result2 =
-                analyzer.analyzeIncremental(tempDir, manifestFile);
+                analyzer.analyzeIncremental(vfsPath(), manifestVfsPath);
 
         assertNotNull(result2);
         assertEquals(2, result2.getFileResults().size());
@@ -241,7 +259,7 @@ class TestProjectAnalyzerIncremental {
         createTestProject(tempDir);
 
         ProjectAnalysisResult result =
-                analyzer.analyzeIncremental(tempDir, (ProjectAnalysisResult) null);
+                analyzer.analyzeIncremental(vfsPath(), (ProjectAnalysisResult) null);
 
         assertNotNull(result);
         Map<LanguageFamily, Integer> familyCounts = result.getStats().getLanguageFamilyCounts();

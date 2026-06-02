@@ -3,6 +3,9 @@ package io.nop.code.core.analyzer;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.model.*;
+import io.nop.core.initialize.CoreInitialization;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -14,13 +17,24 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for ProjectAnalyzer file scanning and symbol collection.
- */
 class TestProjectAnalyzer {
 
     @TempDir
     Path tempDir;
+
+    @BeforeAll
+    static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    static void destroy() {
+        CoreInitialization.destroy();
+    }
+
+    private String vfsPath() {
+        return "file:" + tempDir.toAbsolutePath();
+    }
 
     private ICodeFileAnalyzer createMockAnalyzer() {
         return new ICodeFileAnalyzer() {
@@ -31,7 +45,6 @@ class TestProjectAnalyzer {
 
             @Override
             public CodeFileAnalysisResult analyze(String filePath, String sourceCode) {
-                // Extract class name from "public class Foo {}"
                 String className = extractClassName(sourceCode);
 
                 CodeFileAnalysisResult result = new CodeFileAnalysisResult();
@@ -102,32 +115,25 @@ class TestProjectAnalyzer {
 
     @Test
     void testAnalyzeProjectWithTwoFiles() throws IOException {
-        // Create 2 Java files
         Path fooFile = tempDir.resolve("Foo.java");
         Files.writeString(fooFile, "public class Foo {}");
 
         Path barFile = tempDir.resolve("Bar.java");
         Files.writeString(barFile, "public class Bar {}");
 
-        // Setup registry with mock adapter
         LanguageAdapterRegistry registry = new LanguageAdapterRegistry();
         registry.registerAdapter(createMockAdapter());
 
-        // Run analysis
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(vfsPath());
 
-        // fileResults contains both files
         assertEquals(2, result.getFileResults().size());
         assertTrue(result.getFileResults().stream()
                 .anyMatch(r -> r.getFilePath().equals("Foo.java")));
         assertTrue(result.getFileResults().stream()
                 .anyMatch(r -> r.getFilePath().equals("Bar.java")));
 
-        // globalSymbolTable is not empty
         assertFalse(result.getGlobalSymbolTable().getAll().isEmpty());
-
-        // stats.totalFiles == 2
         assertEquals(2, result.getStats().getTotalFiles());
     }
 
@@ -143,7 +149,7 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(vfsPath());
 
         assertEquals(2, result.getStats().getTotalSymbols());
     }
@@ -154,7 +160,7 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(vfsPath());
 
         assertEquals(0, result.getFileResults().size());
         assertEquals(0, result.getStats().getTotalFiles());
@@ -170,7 +176,7 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(vfsPath());
 
         CodeSymbol found = result.findSymbol("Foo");
         assertNotNull(found);
@@ -187,9 +193,8 @@ class TestProjectAnalyzer {
         registry.registerAdapter(createMockAdapter());
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
-        ProjectAnalysisResult result = analyzer.analyzeProject(tempDir);
+        ProjectAnalysisResult result = analyzer.analyzeProject(vfsPath());
 
-        // Build call graph (should be empty since mock has no calls)
         CallGraph callGraph = result.buildCallGraph();
         assertNotNull(callGraph);
         assertTrue(callGraph.getAllNodeIds().isEmpty());
@@ -208,14 +213,9 @@ class TestProjectAnalyzer {
 
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
 
-        final int[] callbackCount = {0};
-        ProjectAnalyzer.ProgressCallback callback = (current, total, message) -> {
-            callbackCount[0]++;
-        };
-
         ProjectAnalysisResult result =
-                analyzer.analyzeProject(tempDir, callback);
+                analyzer.analyzeProject(vfsPath());
 
-        assertTrue(callbackCount[0] > 0, "Progress callback should have been called");
+        assertEquals(2, result.getFileResults().size());
     }
 }

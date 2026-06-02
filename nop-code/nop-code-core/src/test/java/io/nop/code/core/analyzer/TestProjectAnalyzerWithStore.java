@@ -3,6 +3,9 @@ package io.nop.code.core.analyzer;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.incremental.InMemoryFingerprintStore;
 import io.nop.code.core.model.*;
+import io.nop.core.initialize.CoreInitialization;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -12,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,12 +27,26 @@ class TestProjectAnalyzerWithStore {
     private ProjectAnalyzer analyzer;
     private InMemoryFingerprintStore fingerprintStore;
 
+    @BeforeAll
+    static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    static void destroy() {
+        CoreInitialization.destroy();
+    }
+
     @BeforeEach
     void setUp() {
         registry = new LanguageAdapterRegistry();
         registry.registerAdapter(createMockAdapter());
         analyzer = new ProjectAnalyzer(registry);
         fingerprintStore = new InMemoryFingerprintStore();
+    }
+
+    private String vfsPath() {
+        return "file:" + tempDir.toAbsolutePath();
     }
 
     private ILanguageAdapter createMockAdapter() {
@@ -113,14 +129,14 @@ class TestProjectAnalyzerWithStore {
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { }");
 
         ProjectAnalysisResult first =
-                analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
+                analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(first);
 
         Thread.sleep(50);
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { int x; }");
 
         ProjectAnalysisResult second =
-                analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
+                analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(second);
         assertEquals(1, second.getFileResults().size());
     }
@@ -131,11 +147,11 @@ class TestProjectAnalyzerWithStore {
         Files.writeString(tempDir.resolve("Bar.java"), "public class Bar { }");
 
         ProjectAnalysisResult first =
-                analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
+                analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(first);
 
         ProjectAnalysisResult second =
-                analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
+                analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(second);
         assertEquals(2, second.getFileResults().size());
     }
@@ -146,7 +162,7 @@ class TestProjectAnalyzerWithStore {
         Files.writeString(tempDir.resolve("Bar.java"), "public class Bar { }");
 
         ProjectAnalysisResult first =
-                analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
+                analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(first);
 
         Thread.sleep(50);
@@ -155,7 +171,7 @@ class TestProjectAnalyzerWithStore {
         Files.writeString(tempDir.resolve("Baz.java"), "public class Baz { }");
 
         ProjectAnalysisResult second =
-                analyzer.analyzeIncremental(tempDir, "test-idx", fingerprintStore);
+                analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(second);
         assertEquals(2, second.getFileResults().size());
         assertNotNull(second.findSymbol("Baz"));

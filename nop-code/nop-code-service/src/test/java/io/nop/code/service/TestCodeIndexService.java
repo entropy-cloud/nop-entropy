@@ -7,6 +7,9 @@ import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.lang.java.JavaLanguageAdapter;
+import io.nop.core.initialize.CoreInitialization;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +24,16 @@ class TestCodeIndexService {
 
     private ProjectAnalysisResult analysisResult;
 
+    @BeforeAll
+    static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    static void destroy() {
+        CoreInitialization.destroy();
+    }
+
     @BeforeEach
     void setUp() {
         LanguageAdapterRegistry registry = new LanguageAdapterRegistry();
@@ -28,7 +41,7 @@ class TestCodeIndexService {
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
 
         Path projectRoot = new File("src/test/resources/test-project/src/main/java").toPath();
-        analysisResult = analyzer.analyzeProject(projectRoot);
+        analysisResult = analyzer.analyzeProject("file:" + projectRoot.toAbsolutePath());
     }
 
     @Test

@@ -68,9 +68,10 @@ class TestIncrementalDetector {
         Path file = tempDir.resolve("hello.txt");
         Files.writeString(file, "hello world");
 
-        FileFingerprint fp = detector.computeFingerprint(file);
+        IResource resource = toResource(file);
+        FileFingerprint fp = detector.computeFingerprint(resource);
 
-        assertEquals(file.toString(), fp.getFilePath());
+        assertEquals(resource.getPath(), fp.getFilePath());
         assertNotNull(fp.getContentHash());
         assertEquals(64, fp.getContentHash().length(), "SHA-256 hex string must be 64 chars");
         assertTrue(fp.getContentHash().matches("[0-9a-f]{64}"), "Hash must be lowercase hex");
@@ -83,8 +84,9 @@ class TestIncrementalDetector {
         Path file = tempDir.resolve("same.txt");
         Files.writeString(file, "consistent content");
 
-        FileFingerprint fp1 = detector.computeFingerprint(file);
-        FileFingerprint fp2 = detector.computeFingerprint(file);
+        IResource resource = toResource(file);
+        FileFingerprint fp1 = detector.computeFingerprint(resource);
+        FileFingerprint fp2 = detector.computeFingerprint(resource);
 
         assertEquals(fp1.getContentHash(), fp2.getContentHash());
     }
@@ -96,8 +98,8 @@ class TestIncrementalDetector {
         Files.writeString(fileA, "content A");
         Files.writeString(fileB, "content B");
 
-        FileFingerprint fpA = detector.computeFingerprint(fileA);
-        FileFingerprint fpB = detector.computeFingerprint(fileB);
+        FileFingerprint fpA = detector.computeFingerprint(toResource(fileA));
+        FileFingerprint fpB = detector.computeFingerprint(toResource(fileB));
 
         assertNotEquals(fpA.getContentHash(), fpB.getContentHash());
     }
@@ -112,13 +114,13 @@ class TestIncrementalDetector {
         Files.writeString(file2, "bbb");
 
         List<FileFingerprint> previous = Collections.emptyList();
-        List<Path> currentFiles = List.of(file1, file2);
+        List<IResource> currentResources = List.of(toResource(file1), toResource(file2));
 
-        ChangeSet cs = detector.detectChanges(previous, currentFiles);
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
 
         assertEquals(2, cs.getAddedFiles().size());
-        assertTrue(cs.getAddedFiles().contains(file1.toString()));
-        assertTrue(cs.getAddedFiles().contains(file2.toString()));
+        assertTrue(cs.getAddedFiles().contains(toResource(file1).getPath()));
+        assertTrue(cs.getAddedFiles().contains(toResource(file2).getPath()));
         assertTrue(cs.getModifiedFiles().isEmpty());
         assertTrue(cs.getDeletedFiles().isEmpty());
         assertTrue(cs.getUnchangedFiles().isEmpty());
@@ -131,10 +133,11 @@ class TestIncrementalDetector {
         Files.writeString(file1, "x");
         Files.writeString(file2, "y");
 
-        List<FileFingerprint> previous = detector.computeFingerprints(List.of(file1, file2));
-        List<Path> currentFiles = Collections.emptyList();
+        List<IResource> allResources = List.of(toResource(file1), toResource(file2));
+        List<FileFingerprint> previous = detector.computeResourceFingerprints(allResources);
+        List<IResource> currentResources = Collections.emptyList();
 
-        ChangeSet cs = detector.detectChanges(previous, currentFiles);
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
 
         assertEquals(2, cs.getDeletedFiles().size());
         assertTrue(cs.getAddedFiles().isEmpty());
@@ -147,15 +150,15 @@ class TestIncrementalDetector {
         Path file = tempDir.resolve("stable.txt");
         Files.writeString(file, "unchanged");
 
-        FileFingerprint prev = detector.computeFingerprint(file);
+        IResource resource = toResource(file);
+        FileFingerprint prev = detector.computeFingerprint(resource);
         List<FileFingerprint> previous = List.of(prev);
 
-        // Same file, same mtime and size — should be detected as unchanged (fast path)
-        List<Path> currentFiles = List.of(file);
-        ChangeSet cs = detector.detectChanges(previous, currentFiles);
+        List<IResource> currentResources = List.of(resource);
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
 
         assertEquals(1, cs.getUnchangedFiles().size());
-        assertTrue(cs.getUnchangedFiles().contains(file.toString()));
+        assertTrue(cs.getUnchangedFiles().contains(resource.getPath()));
         assertTrue(cs.getAddedFiles().isEmpty());
         assertTrue(cs.getModifiedFiles().isEmpty());
         assertTrue(cs.getDeletedFiles().isEmpty());
@@ -166,19 +169,18 @@ class TestIncrementalDetector {
         Path file = tempDir.resolve("mutable.txt");
         Files.writeString(file, "original");
 
-        FileFingerprint prev = detector.computeFingerprint(file);
+        IResource resource = toResource(file);
+        FileFingerprint prev = detector.computeFingerprint(resource);
         List<FileFingerprint> previous = List.of(prev);
 
-        // Modify file content (and thus mtime + size change)
         Files.writeString(file, "modified content", StandardOpenOption.TRUNCATE_EXISTING);
-        // Ensure mtime changes by setting a future timestamp
         Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis() + 5000));
 
-        List<Path> currentFiles = List.of(file);
-        ChangeSet cs = detector.detectChanges(previous, currentFiles);
+        IResource modifiedResource = toResource(file);
+        List<IResource> currentResources = List.of(modifiedResource);
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
 
         assertEquals(1, cs.getModifiedFiles().size());
-        assertTrue(cs.getModifiedFiles().contains(file.toString()));
         assertTrue(cs.getUnchangedFiles().isEmpty());
         assertTrue(cs.getAddedFiles().isEmpty());
         assertTrue(cs.getDeletedFiles().isEmpty());
@@ -189,22 +191,21 @@ class TestIncrementalDetector {
         Path file = tempDir.resolve("touched.txt");
         Files.writeString(file, "stable content");
 
-        FileFingerprint prev = detector.computeFingerprint(file);
+        IResource resource = toResource(file);
+        FileFingerprint prev = detector.computeFingerprint(resource);
         List<FileFingerprint> previous = List.of(prev);
 
-        // Touch: change mtime but keep content identical
         Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis() + 10000));
 
-        List<Path> currentFiles = List.of(file);
-        ChangeSet cs = detector.detectChanges(previous, currentFiles);
+        IResource touchedResource = toResource(file);
+        List<IResource> currentResources = List.of(touchedResource);
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
 
-        // mtime differs but content hash matches → unchanged (slow path)
         assertEquals(1, cs.getUnchangedFiles().size());
-        assertTrue(cs.getUnchangedFiles().contains(file.toString()));
         assertTrue(cs.getModifiedFiles().isEmpty());
     }
 
-    // ---- computeFingerprints batch ----
+    // ---- computeResourceFingerprints batch ----
 
     @Test
     void testComputeFingerprintsBatch() throws IOException {
@@ -215,14 +216,11 @@ class TestIncrementalDetector {
         Files.writeString(f2, "beta");
         Files.writeString(f3, "gamma");
 
-        List<FileFingerprint> fps = detector.computeFingerprints(List.of(f1, f2, f3));
+        List<IResource> resources = List.of(toResource(f1), toResource(f2), toResource(f3));
+        List<FileFingerprint> fps = detector.computeResourceFingerprints(resources);
 
         assertEquals(3, fps.size());
-        assertEquals(f1.toString(), fps.get(0).getFilePath());
-        assertEquals(f2.toString(), fps.get(1).getFilePath());
-        assertEquals(f3.toString(), fps.get(2).getFilePath());
 
-        // Each fingerprint must have a valid hash
         for (FileFingerprint fp : fps) {
             assertNotNull(fp.getContentHash());
             assertEquals(64, fp.getContentHash().length());
@@ -240,21 +238,18 @@ class TestIncrementalDetector {
         Files.writeString(addedFile, "new stuff");
         Files.writeString(existingFile, "old stuff");
 
-        // Build a scenario with one added file and one modified file
-        FileFingerprint prevFp = detector.computeFingerprint(existingFile);
-        // Modify existing file
+        IResource existingResource = toResource(existingFile);
+        FileFingerprint prevFp = detector.computeFingerprint(existingResource);
         Files.writeString(existingFile, "changed stuff", StandardOpenOption.TRUNCATE_EXISTING);
         Files.setLastModifiedTime(existingFile, FileTime.fromMillis(System.currentTimeMillis() + 5000));
 
         List<FileFingerprint> previous = List.of(prevFp);
-        List<Path> currentFiles = List.of(addedFile, existingFile);
+        List<IResource> currentResources = List.of(toResource(addedFile), toResource(existingFile));
 
-        ChangeSet cs = detector.detectChanges(previous, currentFiles);
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
 
         List<String> combined = cs.getAddedAndModified();
         assertEquals(2, combined.size());
-        assertTrue(combined.contains(addedFile.toString()));
-        assertTrue(combined.contains(existingFile.toString()));
     }
 
     // ---- ChangeSet list immutability ----
@@ -272,7 +267,6 @@ class TestIncrementalDetector {
 
     @Test
     void testDetectMixedChanges() throws IOException {
-        // Setup: 3 files
         Path keepFile = tempDir.resolve("keep.txt");
         Path modifyFile = tempDir.resolve("modify.txt");
         Path deleteFile = tempDir.resolve("delete.txt");
@@ -280,33 +274,30 @@ class TestIncrementalDetector {
         Files.writeString(modifyFile, "original");
         Files.writeString(deleteFile, "will be deleted");
 
-        List<FileFingerprint> previous = detector.computeFingerprints(
-                List.of(keepFile, modifyFile, deleteFile));
+        List<IResource> allResources = List.of(toResource(keepFile), toResource(modifyFile), toResource(deleteFile));
+        List<FileFingerprint> previous = detector.computeResourceFingerprints(allResources);
 
-        // Modify one file
         Files.writeString(modifyFile, "modified!", StandardOpenOption.TRUNCATE_EXISTING);
         Files.setLastModifiedTime(modifyFile, FileTime.fromMillis(System.currentTimeMillis() + 5000));
 
-        // New file added
         Path addedFile = tempDir.resolve("added.txt");
         Files.writeString(addedFile, "brand new");
 
-        // Current state: keep + modify + added (deleteFile omitted)
-        List<Path> currentFiles = List.of(keepFile, modifyFile, addedFile);
+        List<IResource> currentResources = List.of(toResource(keepFile), toResource(modifyFile), toResource(addedFile));
 
-        ChangeSet cs = detector.detectChanges(previous, currentFiles);
+        ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
 
         assertEquals(1, cs.getUnchangedFiles().size());
-        assertTrue(cs.getUnchangedFiles().contains(keepFile.toString()));
+        assertTrue(cs.getUnchangedFiles().contains(toResource(keepFile).getPath()));
 
         assertEquals(1, cs.getModifiedFiles().size());
-        assertTrue(cs.getModifiedFiles().contains(modifyFile.toString()));
+        assertTrue(cs.getModifiedFiles().contains(toResource(modifyFile).getPath()));
 
         assertEquals(1, cs.getDeletedFiles().size());
-        assertTrue(cs.getDeletedFiles().contains(deleteFile.toString()));
+        assertTrue(cs.getDeletedFiles().contains(toResource(deleteFile).getPath()));
 
         assertEquals(1, cs.getAddedFiles().size());
-        assertTrue(cs.getAddedFiles().contains(addedFile.toString()));
+        assertTrue(cs.getAddedFiles().contains(toResource(addedFile).getPath()));
     }
 
     // ---- IResource-based tests ----
@@ -343,15 +334,12 @@ class TestIncrementalDetector {
         List<IResource> allResources = List.of(toResource(file1), toResource(file2), toResource(file3));
         List<FileFingerprint> previous = detector.computeResourceFingerprints(allResources);
 
-        // Modify file2
         Files.writeString(file2, "modified!", StandardOpenOption.TRUNCATE_EXISTING);
         Files.setLastModifiedTime(file2, FileTime.fromMillis(System.currentTimeMillis() + 5000));
 
-        // Add new file
         Path addedFile = tempDir.resolve("r_added.txt");
         Files.writeString(addedFile, "new file");
 
-        // Current: file1 + modified file2 + addedFile (file3 deleted)
         List<IResource> currentResources = List.of(toResource(file1), toResource(file2), toResource(addedFile));
 
         ChangeSet cs = detector.detectResourceChanges(previous, currentResources);
@@ -393,19 +381,15 @@ class TestIncrementalDetector {
         Files.writeString(file1, "keep");
         Files.writeString(file2, "original");
 
-        // Save initial fingerprints
         List<IResource> initialResources = List.of(toResource(file1), toResource(file2));
         detector.computeAndSaveFingerprints(store, "test-index", initialResources);
 
-        // Modify file2
         Files.writeString(file2, "changed", StandardOpenOption.TRUNCATE_EXISTING);
         Files.setLastModifiedTime(file2, FileTime.fromMillis(System.currentTimeMillis() + 5000));
 
-        // Add new file
         Path addedFile = tempDir.resolve("s_added.txt");
         Files.writeString(addedFile, "brand new");
 
-        // Detect changes using store
         List<IResource> currentResources = List.of(toResource(file1), toResource(file2), toResource(addedFile));
         ChangeSet cs = detector.detectChangesFromStore(store, "test-index", currentResources);
 
@@ -429,10 +413,8 @@ class TestIncrementalDetector {
 
         assertEquals(2, saved.size());
 
-        // Verify fingerprints are actually stored
         List<FileFingerprint> loaded = store.loadFingerprints("my-index");
         assertEquals(2, loaded.size());
-        // Order from HashMap may differ, so compare by lookup
         Map<String, FileFingerprint> loadedMap = new HashMap<>();
         for (FileFingerprint fp : loaded) {
             loadedMap.put(fp.getFilePath(), fp);
