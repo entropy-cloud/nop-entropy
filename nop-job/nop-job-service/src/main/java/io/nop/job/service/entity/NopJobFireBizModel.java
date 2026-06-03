@@ -15,6 +15,7 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.job.service.JobContextHelper;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -122,7 +123,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         fire.setScheduledFireTime(fireTime);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
         fire.setPlannerInstanceId(AppConfig.hostId());
-        fire.setTriggeredBy(resolveTriggeredBy(context));
+        fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
         fire.setPartitionIndex(sourceFire.getPartitionIndex());
         fire.setRetryPolicyId(sourceFire.getRetryPolicyId());
         fire.setCreatedBy("system");
@@ -150,18 +151,5 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
                 .param("jobName", fire.getJobName())
                 .param("fireStatus", fire.getFireStatus())
                 .param("action", action);
-    }
-
-    private String resolveTriggeredBy(IServiceContext context) {
-        String userName = null;
-        if (context != null) {
-            if (context.getUserContext() != null) {
-                userName = context.getUserContext().getUserName();
-            }
-            if ((userName == null || userName.isEmpty()) && context.getContext() != null) {
-                userName = context.getContext().getUserName();
-            }
-        }
-        return userName == null || userName.isEmpty() ? "system" : userName;
     }
 }

@@ -24,7 +24,7 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_TIMEOUT = define("JOB_TIMEOUT",
             "Job task timed out");
 
-    ErrorCode ERR_JOB_INVOKER_NOT_FOUND = define("JOB_INVOKER_NOT_FOUND",
+    ErrorCode ERR_JOB_INVOKER_NOT_FOUND = define("nop.err.job.invoker-not-found",
             "Job invoker not found for schedule");
 
     ErrorCode ERR_JOB_CANCELED = define("JOB_CANCELED",
@@ -33,7 +33,7 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_OVERLAID = define("JOB_OVERLAID",
             "Job fire/task canceled by overlay");
 
-    ErrorCode ERR_JOB_EXECUTION_FAILED = define("JOB_EXECUTION_FAILED",
+    ErrorCode ERR_JOB_EXECUTION_FAILED = define("nop.err.job.execution-failed",
             "Job execution failed");
 
     ErrorCode ERR_JOB_EXECUTOR_REF_EMPTY = define("nop.err.job.executor-ref-empty",

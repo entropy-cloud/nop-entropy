@@ -18,6 +18,7 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.job.service.JobContextHelper;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -228,7 +229,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         fire.setScheduledFireTime(fireTime);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
         fire.setPlannerInstanceId(AppConfig.hostId());
-        fire.setTriggeredBy(resolveTriggeredBy(context));
+        fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
         fire.setPartitionIndex(schedule.getPartitionIndex());
         fire.setRetryPolicyId(schedule.getRetryPolicyId());
         fire.setCreatedBy("system");
@@ -257,19 +258,6 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
             }
         }
         return Collections.emptyMap();
-    }
-
-    private String resolveTriggeredBy(IServiceContext context) {
-        String userName = null;
-        if (context != null) {
-            if (context.getUserContext() != null) {
-                userName = context.getUserContext().getUserName();
-            }
-            if ((userName == null || userName.isEmpty()) && context.getContext() != null) {
-                userName = context.getContext().getUserName();
-            }
-        }
-        return userName == null || userName.isEmpty() ? "system" : userName;
     }
 
     private Timestamp recalculateNextFireTime(NopJobSchedule schedule) {

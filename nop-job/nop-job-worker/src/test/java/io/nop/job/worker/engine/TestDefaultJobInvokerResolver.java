@@ -105,7 +105,7 @@ public class TestDefaultJobInvokerResolver {
         NopJobFire fire = buildFire(null);
 
         NopException ex = assertThrows(NopException.class, () -> resolver.resolveInvoker(schedule, fire));
-        assertEquals("JOB_INVOKER_NOT_FOUND", ex.getErrorCode());
+        assertEquals("nop.err.job.invoker-not-found", ex.getErrorCode());
     }
 
     @Test
@@ -116,7 +116,7 @@ public class TestDefaultJobInvokerResolver {
         NopJobFire fire = buildFire(null);
 
         NopException ex = assertThrows(NopException.class, () -> resolver.resolveInvoker(schedule, fire));
-        assertEquals("JOB_INVOKER_NOT_FOUND", ex.getErrorCode());
+        assertEquals("nop.err.job.invoker-not-found", ex.getErrorCode());
     }
 
     private static class StubJobInvoker implements IJobInvoker {
