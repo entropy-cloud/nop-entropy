@@ -2,6 +2,9 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopJobTask.xmeta">
 
     <props>
+        <prop name="jobFireId" updatable="false"/>
+        <prop name="shardingIndex" updatable="false"/>
+        <prop name="shardingTotal" updatable="false"/>
         <prop name="taskStatus" insertable="false" updatable="false"/>
         <prop name="workerInstanceId" insertable="false" updatable="false"/>
         <prop name="workerAddress" insertable="false" updatable="false"/>
