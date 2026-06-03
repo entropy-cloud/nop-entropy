@@ -20,6 +20,8 @@ public class HolidayCalendar extends BaseCalendar implements ICalendar, Serializ
 
     private TreeSet<LocalDate> excludedDays = new TreeSet<>();
 
+    private static final int MAX_DAY_SCAN = 366 * 5;
+
     public HolidayCalendar(ICalendar baseCalendar) {
         super(baseCalendar);
     }
@@ -48,7 +50,11 @@ public class HolidayCalendar extends BaseCalendar implements ICalendar, Serializ
 
         LocalDate day = DateHelper.millisToDate(timeStamp);
 
+        int iterations = 0;
         while (excludedDays.contains(day)) {
+            if (++iterations >= MAX_DAY_SCAN) {
+                return baseTime > 0 ? baseTime : timeStamp;
+            }
             day = day.plusDays(1);
         }
 

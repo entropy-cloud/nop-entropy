@@ -20,6 +20,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Builds one NopJobTask per registered service instance for broadcast RPC.
@@ -61,12 +62,19 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             return fallback.buildTasks(fire);
         }
 
+        List<ServiceInstance> healthyInstances = instances.stream()
+                .filter(instance -> instance.isHealthy() && instance.isEnabled())
+                .collect(Collectors.toList());
+        if (healthyInstances.isEmpty()) {
+            return fallback.buildTasks(fire);
+        }
+
         long now = System.currentTimeMillis();
 
         List<NopJobTask> tasks = new ArrayList<>();
-        int total = instances.size();
+        int total = healthyInstances.size();
         for (int i = 0; i < total; i++) {
-            ServiceInstance instance = instances.get(i);
+            ServiceInstance instance = healthyInstances.get(i);
 
             NopJobTask task = new NopJobTask();
             task.setJobFireId(fire.getJobFireId());

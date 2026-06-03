@@ -20,6 +20,8 @@ public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializa
 
     private static final long serialVersionUID = 7346867105876610961L;
 
+    private static final int MAX_DAY_SCAN = 366 * 5;
+
     /**
      * excludeDays需要按时间顺序排好序
      */
@@ -66,7 +68,11 @@ public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializa
 
         LocalDate day = DateHelper.millisToDate(timeStamp);
 
+        int iterations = 0;
         while (isExcludedDay(day)) {
+            if (++iterations >= MAX_DAY_SCAN) {
+                return baseTime > 0 ? baseTime : timeStamp;
+            }
             day = day.plusDays(1);
         }
 

@@ -121,7 +121,11 @@ public class CronCalendar extends BaseCalendar {
             } else if ((getBaseCalendar() != null) && (!getBaseCalendar().isTimeIncluded(nextIncludedTime))) {
                 nextIncludedTime = getBaseCalendar().getNextIncludedTime(nextIncludedTime);
             } else {
-                nextIncludedTime++;
+                if (getBaseCalendar() != null) {
+                    nextIncludedTime = getBaseCalendar().getNextIncludedTime(nextIncludedTime);
+                } else {
+                    nextIncludedTime++;
+                }
             }
         }
 

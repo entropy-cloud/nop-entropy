@@ -146,27 +146,27 @@ Exit Criteria:
 
 ### Phase 3 - P2 Calendar 防御性编码 + 广播健康过滤（AR-26, AR-27, AR-28）
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-core/src/main/java/io/nop/job/core/calendar/`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/RpcBroadcastTaskBuilder.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-26: `HolidayCalendar.getNextIncludedTime` 和 `AnnualCalendar.getNextIncludedTime` 中 while 循环添加最大迭代次数（`MAX_DAY_SCAN = 366 * 5`），超出时 break 并返回 `baseCalendar.getNextIncludedTime(timeStamp)` 或 `timeStamp`
-- [ ] AR-27: `CronCalendar.getNextIncludedTime` 中 else 分支改为跳转到 `baseCalendar.getNextIncludedTime(nextIncludedTime)` 而非逐毫秒递增
-- [ ] AR-28: `RpcBroadcastTaskBuilder` 中在 `instances` 列表上过滤 `instance.isHealthy() && instance.isEnabled()`，过滤后为空则 fallback
-- [ ] 为 AR-26 添加测试：验证大量排除日期时 `getNextIncludedTime` 不无限循环
-- [ ] 为 AR-27 添加测试：验证 CronCalendar 在 baseCalendar 长排除范围下不退化为毫秒扫描
-- [ ] 为 AR-28 添加测试：验证不健康实例被过滤，空列表时触发 fallback
+- [x] AR-26: `HolidayCalendar.getNextIncludedTime` 和 `AnnualCalendar.getNextIncludedTime` 中 while 循环添加最大迭代次数（`MAX_DAY_SCAN = 366 * 5`），超出时 break 并返回 `baseCalendar.getNextIncludedTime(timeStamp)` 或 `timeStamp`
+- [x] AR-27: `CronCalendar.getNextIncludedTime` 中 else 分支改为跳转到 `baseCalendar.getNextIncludedTime(nextIncludedTime)` 而非逐毫秒递增
+- [x] AR-28: `RpcBroadcastTaskBuilder` 中在 `instances` 列表上过滤 `instance.isHealthy() && instance.isEnabled()`，过滤后为空则 fallback
+- [x] 为 AR-26 添加测试：验证大量排除日期时 `getNextIncludedTime` 不无限循环
+- [x] 为 AR-27 添加测试：验证 CronCalendar 在 baseCalendar 长排除范围下不退化为毫秒扫描
+- [x] 为 AR-28 添加测试：验证不健康实例被过滤，空列表时触发 fallback
 
 Exit Criteria:
 
-- [ ] `HolidayCalendar`/`AnnualCalendar` 的 while 循环有最大迭代次数保护
-- [ ] `CronCalendar` 不再逐毫秒递增，改用跳转到 baseCalendar 结果
-- [ ] `RpcBroadcastTaskBuilder` 过滤不健康实例
-- [ ] 新增测试覆盖，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `HolidayCalendar`/`AnnualCalendar` 的 while 循环有最大迭代次数保护
+- [x] `CronCalendar` 不再逐毫秒递增，改用跳转到 baseCalendar 结果
+- [x] `RpcBroadcastTaskBuilder` 过滤不健康实例
+- [x] 新增测试覆盖，测试通过
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - P2 乐观锁一致性（AR-33, AR-34）
 
