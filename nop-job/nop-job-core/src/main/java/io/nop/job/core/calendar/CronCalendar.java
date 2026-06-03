@@ -30,6 +30,8 @@ import java.util.TimeZone;
 public class CronCalendar extends BaseCalendar {
     static final long serialVersionUID = -8172103999750856831L;
 
+    private static final int MAX_ITERATION = 10000;
+
     CronExpression cronExpression;
 
     /**
@@ -106,16 +108,14 @@ public class CronCalendar extends BaseCalendar {
      */
     @Override
     public long getNextIncludedTime(long timeInMillis) {
-        long nextIncludedTime = timeInMillis + 1; // plus on millisecond
+        long nextIncludedTime = timeInMillis + 1;
 
+        int iterations = 0;
         while (!isTimeIncluded(nextIncludedTime)) {
+            if (++iterations > MAX_ITERATION) {
+                break;
+            }
 
-            // If the time is in a range excluded by this calendar, we can
-            // move to the end of the excluded time range and continue testing
-            // from there. Otherwise, if nextIncludedTime is excluded by the
-            // baseCalendar, ask it the next time it includes and begin testing
-            // from there. Failing this, add one millisecond and continue
-            // testing.
             if (cronExpression.isSatisfiedBy(nextIncludedTime)) {
                 nextIncludedTime = cronExpression.getNextInvalidTimeAfter(nextIncludedTime);
             } else if ((getBaseCalendar() != null) && (!getBaseCalendar().isTimeIncluded(nextIncludedTime))) {
