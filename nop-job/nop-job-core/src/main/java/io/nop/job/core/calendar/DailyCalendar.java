@@ -7,6 +7,7 @@
  */
 package io.nop.job.core.calendar;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.job.core.ICalendar;
 
 import java.text.NumberFormat;
@@ -42,6 +43,7 @@ public class DailyCalendar extends BaseCalendar {
     private static final String separator = " - ";
     private static final long oneMillis = 1;
     private static final String colon = ":";
+    private static final int MAX_ITERATION = 10000;
 
     private int rangeStartingHourOfDay;
     private int rangeStartingMinute;
@@ -224,7 +226,13 @@ public class DailyCalendar extends BaseCalendar {
     public long getNextIncludedTime(long timeInMillis) {
         long nextIncludedTime = timeInMillis + oneMillis;
 
+        int iterations = 0;
         while (!isTimeIncluded(nextIncludedTime)) {
+            if (++iterations > MAX_ITERATION) {
+                throw new NopException(io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED)
+                        .param("calendarType", "DailyCalendar")
+                        .param("startTime", timeInMillis);
+            }
             if (!invertTimeRange) {
                 // If the time is in a range excluded by this calendar, we can
                 // move to the end of the excluded time range and continue

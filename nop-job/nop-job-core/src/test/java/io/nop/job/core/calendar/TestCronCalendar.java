@@ -5,6 +5,7 @@ import io.nop.job.core.ICalendar;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCronCalendar {
@@ -71,13 +72,14 @@ public class TestCronCalendar {
 
         long start = 1000L;
         long beforeMs = System.currentTimeMillis();
-        long result = cal.getNextIncludedTime(start);
+
+        NopException thrown = assertThrows(NopException.class,
+                () -> cal.getNextIncludedTime(start));
         long elapsed = System.currentTimeMillis() - beforeMs;
 
         assertTrue(elapsed < 5000,
                 "Should terminate quickly even when base calendar never includes, elapsed=" + elapsed + "ms");
-
-        assertTrue(result > start,
-                "Should return some time after hitting max iteration limit");
+        assertTrue(thrown.getErrorCode().contains("max-iteration"),
+                "Should throw max iteration exceeded error");
     }
 }

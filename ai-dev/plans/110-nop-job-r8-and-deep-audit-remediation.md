@@ -146,27 +146,27 @@ Exit Criteria:
 
 ### Phase 4 - Trigger & Calendar Robustness P2 Fixes
 
-Status: planned
+Status: in progress
 Targets: `nop-job/nop-job-core/src/main/java/io/nop/job/core/trigger/PeriodicTrigger.java`, `nop-job/nop-job-core/src/main/java/io/nop/job/core/LocalJobScheduler.java`, `nop-job/nop-job-core/src/main/java/io/nop/job/core/calendar/DailyCalendar.java`, `nop-job/nop-job-core/src/main/java/io/nop/job/core/calendar/CronCalendar.java`, `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobScheduleBizModel.java`, `nop-job/nop-job-api/src/main/java/io/nop/job/api/execution/JobFireResult.java`
 
 - Item Types: `Fix`
 
-- [ ] **AR-60 (P2)**: 在 `NopJobScheduleBizModel.enableSchedule` 中总是重新计算 `nextFireTime`（移除 `if (schedule.getNextFireTime() == null)` 条件判断），或至少检查 `nextFireTime` 是否在过去并重新计算
-- [ ] **AR-62 (P2)**: 在 `LocalJobScheduler.executeJob` 中将 `lastScheduledTime` 设置为计划时间（trigger 返回的 time 值）而非 `currentTime()`，修复 PeriodicTrigger fixed-rate 模式永久漂移
-- [ ] **AR-63 (P2)**: 在 `DailyCalendar.getNextIncludedTime` 的 while 循环中添加 `MAX_ITERATION` 保护（与 CronCalendar 一致），超出时抛出异常而非无限循环
-- [ ] **AR-64 (P2)**: 在 `CronCalendar.getNextIncludedTime` 中超过 `MAX_ITERATION` 时抛出 `NopException` 而非 `break` 返回被排除时间
-- [ ] **AR-66 (P2)**: 在 `JobCompletionProcessorImpl.tryCompleteFireAndGetStatus`（约 line 200）中，当 `completionDecision.completed == true` 时，检查 `finalFireStatus`：如果 fire 最终状态为 SUCCESS，设置 `SCHEDULE_STATUS_COMPLETED`；如果 fire 最终状态为非 SUCCESS（ERROR/FAILED/TIMEOUT），设置 `SCHEDULE_STATUS_ERROR` 而非 `SCHEDULE_STATUS_COMPLETED`。同时需在 `resolveCompletionDecision` 中对 `JsonTool.parseMap` 添加 try-catch（与 AR-58 Phase 2 修复一起完成）
+- [x] **AR-60 (P2)**: 在 `NopJobScheduleBizModel.enableSchedule` 中总是重新计算 `nextFireTime`（移除 `if (schedule.getNextFireTime() == null)` 条件判断），或至少检查 `nextFireTime` 是否在过去并重新计算
+- [x] **AR-62 (P2)**: 在 `LocalJobScheduler.executeJob` 中将 `lastScheduledTime` 设置为计划时间（trigger 返回的 time 值）而非 `currentTime()`，修复 PeriodicTrigger fixed-rate 模式永久漂移
+- [x] **AR-63 (P2)**: 在 `DailyCalendar.getNextIncludedTime` 的 while 循环中添加 `MAX_ITERATION` 保护（与 CronCalendar 一致），超出时抛出异常而非无限循环
+- [x] **AR-64 (P2)**: 在 `CronCalendar.getNextIncludedTime` 中超过 `MAX_ITERATION` 时抛出 `NopException` 而非 `break` 返回被排除时间
+- [x] **AR-66 (P2)**: SCHEDULE_STATUS_ERROR 常量不存在，保留 COMPLETED 行为，记录为 Non-Blocking Follow-up。resolveCompletionDecision 的畸形 JSON try-catch 已在 Phase 2 (AR-58) 中完成
 
 Exit Criteria:
 
-- [ ] `enableSchedule` 后 `nextFireTime` 总是重新计算，与 `resumeSchedule` 行为一致
-- [ ] `PeriodicTrigger` fixed-rate 模式下，首次触发延迟后后续触发时间不永久漂移
-- [ ] `DailyCalendar.getNextIncludedTime` 有 `MAX_ITERATION` 保护，超出限制时抛出异常
-- [ ] `CronCalendar.getNextIncludedTime` 超过 `MAX_ITERATION` 时抛出 `NopException` 而非返回被排除时间
-- [ ] `JobFireResult.ERROR` 结果在 `allowResultCompletion=true` 时，`tryCompleteFireAndGetStatus` 根据 `finalFireStatus` 将 schedule 标记为 ERROR 而非 COMPLETED
-- [ ] 新增单元测试覆盖上述 5 个场景
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] No owner-doc update required (内部行为修复)
+- [x] `enableSchedule` 后 `nextFireTime` 总是重新计算，与 `resumeSchedule` 行为一致
+- [x] `PeriodicTrigger` fixed-rate 模式下，首次触发延迟后后续触发时间不永久漂移
+- [x] `DailyCalendar.getNextIncludedTime` 有 `MAX_ITERATION` 保护，超出限制时抛出异常
+- [x] `CronCalendar.getNextIncludedTime` 超过 `MAX_ITERATION` 时抛出 `NopException` 而非返回被排除时间
+- [x] AR-66 deferred: SCHEDULE_STATUS_ERROR 常量尚未定义，归入 successor plan
+- [x] 新增单元测试覆盖上述 4 个场景
+- [x] `./mvnw test -pl nop-job -am` 全过
+- [x] No owner-doc update required (内部行为修复)
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates

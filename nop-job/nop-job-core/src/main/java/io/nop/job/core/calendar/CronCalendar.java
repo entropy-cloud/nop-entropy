@@ -7,6 +7,8 @@
  */
 package io.nop.job.core.calendar;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.core.ICalendar;
 import io.nop.job.core.trigger.CronTrigger;
 import io.nop.job.core.utils.CronExpression;
@@ -113,7 +115,9 @@ public class CronCalendar extends BaseCalendar {
         int iterations = 0;
         while (!isTimeIncluded(nextIncludedTime)) {
             if (++iterations > MAX_ITERATION) {
-                break;
+                throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED)
+                        .param("calendarType", "CronCalendar")
+                        .param("startTime", timeInMillis);
             }
 
             if (cronExpression.isSatisfiedBy(nextIncludedTime)) {

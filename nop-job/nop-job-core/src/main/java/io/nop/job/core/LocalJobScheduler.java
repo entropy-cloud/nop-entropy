@@ -226,6 +226,7 @@ public class LocalJobScheduler implements IJobScheduler {
         }
         long delay = Math.max(nextTime - now, 0);
         job.state.internal = InternalState.WAITING;
+        job.state.scheduledFireTime = nextTime;
         CompletableFuture<?> future = executor.schedule(() -> {
             synchronized (job) {
                 job.scheduledFire = null;
@@ -240,7 +241,8 @@ public class LocalJobScheduler implements IJobScheduler {
 
     private void executeJob(ScheduledJob job) {
         job.state.internal = InternalState.RUNNING;
-        job.state.lastScheduledTime = currentTime();
+        job.state.lastScheduledTime = job.state.scheduledFireTime > 0
+                ? job.state.scheduledFireTime : currentTime();
         SimpleExecutionContext ctx = new SimpleExecutionContext(job.spec, job.state);
 
         CompletionStage<JobFireResult> future;
@@ -361,6 +363,7 @@ public class LocalJobScheduler implements IJobScheduler {
         long minScheduleTime;
         long maxScheduleTime;
         long maxExecutionCount;
+        long scheduledFireTime;
         boolean completed;
         InternalState internal = InternalState.WAITING;
 

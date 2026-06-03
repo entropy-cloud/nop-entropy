@@ -50,4 +50,7 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_INVOKER_RETURNED_NULL = define("JOB_INVOKER_RETURNED_NULL",
             "Job invoker returned null promise");
+
+    ErrorCode ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED = define("nop.err.job.calendar.max-iteration-exceeded",
+            "Calendar getNextIncludedTime exceeded max iteration limit");
 }

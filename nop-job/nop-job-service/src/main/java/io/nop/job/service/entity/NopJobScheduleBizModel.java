@@ -60,9 +60,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         NopJobSchedule schedule = requireEntity(id, "enableSchedule", context);
         validateScheduleStatus(schedule, "enableSchedule", _NopJobCoreConstants.SCHEDULE_STATUS_DISABLED);
         schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_ENABLED);
-        if (schedule.getNextFireTime() == null) {
-            schedule.setNextFireTime(recalculateNextFireTime(schedule));
-        }
+        schedule.setNextFireTime(recalculateNextFireTime(schedule));
         persistSchedule(schedule, "enableSchedule", context);
     }
 

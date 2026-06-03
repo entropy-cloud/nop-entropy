@@ -1,5 +1,6 @@
 package io.nop.job.core.calendar;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.job.api.spec.CalendarSpec;
 import io.nop.job.api.spec.DailyCalendarSpec;
 import io.nop.job.api.spec.WeeklyCalendarSpec;
@@ -13,6 +14,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCalendarBuilder {
@@ -107,5 +109,30 @@ public class TestCalendarBuilder {
                 "nextIncludedTime should actually be included");
         assertTrue(nextIncluded <= midnightMs + 86400000L * 2,
                 "Should find an included time within 2 days");
+    }
+
+    @Test
+    void testDailyCalendar_maxIterationProtection() {
+        DailyCalendar dailyCal = new DailyCalendar((ICalendar) null,
+                LocalTime.of(0, 0), LocalTime.of(23, 59, 59));
+
+        ICalendar neverIncluded = new BaseCalendar((ICalendar) null) {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public boolean isTimeIncluded(long timeStamp) {
+                return false;
+            }
+
+            @Override
+            public long getNextIncludedTime(long timeStamp) {
+                return timeStamp + 1;
+            }
+        };
+        dailyCal.setBaseCalendar(neverIncluded);
+
+        assertThrows(NopException.class,
+                () -> dailyCal.getNextIncludedTime(System.currentTimeMillis()),
+                "Should throw when max iteration exceeded");
     }
 }
