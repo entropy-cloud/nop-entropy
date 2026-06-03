@@ -70,7 +70,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         NopJobSchedule schedule = scheduleStore.loadSchedule(sourceFire.getJobScheduleId());
         validateRerunSchedule(schedule, "rerunFire");
 
-        NopJobFire rerunFire = buildRecoveryFire(sourceFire, context);
+        NopJobFire rerunFire = buildRecoveryFire(sourceFire, schedule, context);
         if (!scheduleStore.insertManualFire(schedule, rerunFire)) {
             throw new NopException(ERR_JOB_FIRE_RERUN_DISCARDED)
                     .param("jobFireId", sourceFire.getJobFireId())
@@ -110,28 +110,28 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         }
     }
 
-    private NopJobFire buildRecoveryFire(NopJobFire sourceFire, IServiceContext context) {
+    private NopJobFire buildRecoveryFire(NopJobFire sourceFire, NopJobSchedule schedule, IServiceContext context) {
         long now = scheduleStore.getCurrentTime();
         Timestamp fireTime = new Timestamp(now);
 
         NopJobFire fire = new NopJobFire();
-        fire.setJobScheduleId(sourceFire.getJobScheduleId());
-        fire.setNamespaceId(sourceFire.getNamespaceId());
-        fire.setGroupId(sourceFire.getGroupId());
-        fire.setJobName(sourceFire.getJobName());
+        fire.setJobScheduleId(schedule.getJobScheduleId());
+        fire.setNamespaceId(schedule.getNamespaceId());
+        fire.setGroupId(schedule.getGroupId());
+        fire.setJobName(schedule.getJobName());
         fire.setTriggerSource(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY);
         fire.setScheduledFireTime(fireTime);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
         fire.setPlannerInstanceId(AppConfig.hostId());
         fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
-        fire.setPartitionIndex(sourceFire.getPartitionIndex());
-        fire.setRetryPolicyId(sourceFire.getRetryPolicyId());
+        fire.setPartitionIndex(schedule.getPartitionIndex());
+        fire.setRetryPolicyId(schedule.getRetryPolicyId());
         fire.setCreatedBy("system");
         fire.setCreateTime(fireTime);
         fire.setUpdatedBy("system");
         fire.setUpdateTime(fireTime);
-        fire.setJobParamsSnapshot(sourceFire.getJobParamsSnapshot());
-        fire.setExecutorKind(sourceFire.getExecutorKind());
+        fire.setJobParamsSnapshot(schedule.getJobParams());
+        fire.setExecutorKind(schedule.getExecutorKind());
         return fire;
     }
 

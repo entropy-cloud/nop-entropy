@@ -224,9 +224,9 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         assertEquals(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY, rerunFire.getTriggerSource());
         assertEquals(FIRE_STATUS_WAITING, rerunFire.getFireStatus());
         assertEquals("bob", rerunFire.getTriggeredBy());
-        assertEquals(JsonTool.parseMap(sourceFire.getJobParamsSnapshot()), JsonTool.parseMap(rerunFire.getJobParamsSnapshot()));
-        assertEquals(sourceFire.getExecutorKind(), rerunFire.getExecutorKind());
-        assertEquals(sourceFire.getRetryPolicyId(), rerunFire.getRetryPolicyId());
+        assertEquals(JsonTool.parseMap(schedule.getJobParams()), JsonTool.parseMap(rerunFire.getJobParamsSnapshot()));
+        assertEquals(schedule.getExecutorKind(), rerunFire.getExecutorKind());
+        assertEquals(schedule.getRetryPolicyId(), rerunFire.getRetryPolicyId());
         assertNotNull(rerunFire.getScheduledFireTime());
 
         NopJobSchedule savedSchedule = loadSchedule(schedule.getJobScheduleId());
@@ -234,6 +234,45 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         assertEquals(1, savedSchedule.getActiveFireCount());
         assertEquals(nextFireTime, savedSchedule.getNextFireTime());
         assertEquals(schedule.getLastFireTime(), savedSchedule.getLastFireTime());
+    }
+
+    @Test
+    public void test_rerunFireUsesCurrentScheduleParams() {
+        long now = System.currentTimeMillis();
+        Timestamp nextFireTime = new Timestamp(now + 60_000L);
+
+        NopJobSchedule schedule = newSchedule("schedule-fire-rerun-cp", "job-fire-rerun-cp");
+        schedule.setFireCount(1L);
+        schedule.setActiveFireCount(0);
+        schedule.setNextFireTime(nextFireTime);
+        schedule.setExecutorKind("scheduleExecutor");
+        schedule.setRetryPolicyId("scheduleRetryPolicy");
+        schedule.setJobParams(JsonTool.stringify(Map.of("k", "scheduleValue", "newKey", "newVal")));
+        saveSchedule(schedule);
+
+        NopJobFire sourceFire = newFire("fire-rerun-cp", schedule, _NopJobCoreConstants.FIRE_STATUS_FAILED,
+                TRIGGER_SOURCE_MANUAL, new Timestamp(now - 5_000L));
+        sourceFire.setJobParamsSnapshot(JsonTool.stringify(Map.of("k", "staleSource")));
+        sourceFire.setExecutorKind("staleExecutor");
+        sourceFire.setRetryPolicyId("staleRetryPolicy");
+        saveFire(sourceFire);
+
+        fireBiz.rerunFire(sourceFire.getJobFireId(), newContext());
+
+        List<NopJobFire> fires = findFiresBySchedule(schedule.getJobScheduleId());
+        NopJobFire rerunFire = fires.stream()
+                .filter(f -> !sourceFire.getJobFireId().equals(f.getJobFireId()))
+                .findFirst()
+                .orElseThrow();
+
+        Map<String, Object> rerunParams = JsonTool.parseMap(rerunFire.getJobParamsSnapshot());
+        assertEquals("scheduleValue", rerunParams.get("k"),
+                "rerun fire should use current schedule params, not stale source fire params");
+        assertEquals("newVal", rerunParams.get("newKey"));
+        assertEquals("scheduleExecutor", rerunFire.getExecutorKind(),
+                "rerun fire should use current schedule executorKind");
+        assertEquals("scheduleRetryPolicy", rerunFire.getRetryPolicyId(),
+                "rerun fire should use current schedule retryPolicyId");
     }
 
     @Test

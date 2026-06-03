@@ -261,10 +261,11 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     }
 
     private Timestamp recalculateNextFireTime(NopJobSchedule schedule) {
+        long now = scheduleStore.getCurrentTime();
         long next = JobTriggerCalculator.calculateNextFireTime(
                 toTriggerSpec(schedule),
                 toEvalContext(schedule),
-                System.currentTimeMillis()
+                now
         );
         return next <= 0 ? null : new Timestamp(next);
     }

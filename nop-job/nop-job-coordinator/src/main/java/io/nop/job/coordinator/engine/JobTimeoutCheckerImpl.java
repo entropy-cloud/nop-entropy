@@ -12,6 +12,7 @@ import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.core._NopJobCoreConstants;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULE_DELETED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
@@ -262,8 +263,30 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     }
 
     private void tryMarkDispatchTimeout(NopJobFire fire, long now) {
-        NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+        NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
         if (schedule == null) {
+            LOG.warn("nop.job.timeout.dispatch-schedule-deleted:fireId={}", fire.getJobFireId());
+            fireStore.failFireWithoutSchedule(fire.getJobFireId(),
+                    ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
+                    ERR_JOB_SCHEDULE_DELETED.getDescription());
+
+            List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
+            Timestamp endTime = new Timestamp(now);
+            for (NopJobTask task : tasks) {
+                if (task.getTaskStatus() != null
+                        && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_WAITING
+                        && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_CLAIMED
+                        && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_RUNNING) {
+                    continue;
+                }
+                task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CANCELED);
+                task.setEndTime(endTime);
+                task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
+                task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
+                task.setUpdatedBy("system");
+                task.setUpdateTime(endTime);
+                taskStore.updateTask(task);
+            }
             return;
         }
 

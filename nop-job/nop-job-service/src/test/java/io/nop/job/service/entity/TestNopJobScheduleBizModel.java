@@ -15,6 +15,7 @@ import io.nop.job.biz.INopJobScheduleBiz;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,9 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
 
     @Inject
     INopJobScheduleBiz scheduleBiz;
+
+    @Inject
+    IJobScheduleStore scheduleStore;
 
     @Test
     public void testDisablePauseAndArchiveSchedule() {
@@ -413,5 +417,23 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
                 "Engine field fireCount should be preserved from concurrent update");
         assertEquals(12L, saved.getTotalFireCount(),
                 "Engine field totalFireCount should be preserved from concurrent update");
+    }
+
+    @Test
+    public void test_recalculateNextFireTimeUsesDbClock() {
+        NopJobSchedule schedule = newSchedule("schedule-db-clock", "job-db-clock");
+        schedule.setScheduleStatus(SCHEDULE_STATUS_DISABLED);
+        schedule.setNextFireTime(null);
+        saveSchedule(schedule);
+
+        long dbTime = scheduleStore.getCurrentTime();
+        long systemBefore = System.currentTimeMillis();
+
+        scheduleBiz.enableSchedule(schedule.getJobScheduleId(), newContext());
+
+        NopJobSchedule saved = loadSchedule(schedule.getJobScheduleId());
+        assertNotNull(saved.getNextFireTime());
+        assertTrue(saved.getNextFireTime().getTime() >= dbTime,
+                "nextFireTime should be based on DB clock, not System.currentTimeMillis()");
     }
 }

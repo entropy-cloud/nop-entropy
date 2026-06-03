@@ -352,11 +352,11 @@ public class TestJobTimeoutChecker {
 
         MockScheduleStore explodingScheduleStore = new MockScheduleStore() {
             @Override
-            public NopJobSchedule loadSchedule(String scheduleId) {
+            public NopJobSchedule tryLoadSchedule(String scheduleId) {
                 if ("s2".equals(scheduleId)) {
                     throw new RuntimeException("simulated load failure for s2");
                 }
-                return super.loadSchedule(scheduleId);
+                return super.tryLoadSchedule(scheduleId);
             }
         };
         explodingScheduleStore.addSchedule("s1", schedule1);
@@ -369,6 +369,21 @@ public class TestJobTimeoutChecker {
 
         assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire1.getFireStatus());
         assertEquals(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING, fire2.getFireStatus());
+    }
+
+    @Test
+    void test_dispatchTimeoutScheduleDeleted() {
+        NopJobFire fire = createFire("f-deleted", "s-deleted", _NopJobCoreConstants.FIRE_STATUS_DISPATCHING,
+                new Timestamp(currentTime - 10000));
+        fireStore.addDispatchingFire(fire);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals("f-deleted", fireStore.getFailedFireId(),
+                "deleted schedule should trigger failFireWithoutSchedule");
+        assertNotNull(fireStore.getFailedErrorCode());
     }
 
     private NopJobTask createTask(String taskId, String fireId, int status) {
@@ -428,6 +443,8 @@ public class TestJobTimeoutChecker {
     static class MockFireStore implements IJobFireStore {
         private Map<String, NopJobFire> fireMap = new java.util.HashMap<>();
         private List<NopJobFire> dispatchingFires = new ArrayList<>();
+        private String failedFireId;
+        private String failedErrorCode;
 
         void addFire(String fireId, NopJobFire fire) {
             fireMap.put(fireId, fire);
@@ -436,6 +453,9 @@ public class TestJobTimeoutChecker {
         void addDispatchingFire(NopJobFire fire) {
             dispatchingFires.add(fire);
         }
+
+        String getFailedFireId() { return failedFireId; }
+        String getFailedErrorCode() { return failedErrorCode; }
 
         @Override
         public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) {
@@ -458,7 +478,10 @@ public class TestJobTimeoutChecker {
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
         @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {}
         @Override public boolean cancelFire(String jobFireId) { return false; }
-        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {}
+        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+            this.failedFireId = jobFireId;
+            this.failedErrorCode = errorCode;
+        }
         @Override public NopJobFire loadFire(String jobFireId) { return fireMap.get(jobFireId); }
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
     }
