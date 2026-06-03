@@ -62,7 +62,7 @@
 | 模块 | 推荐观察路径 |
 |------|-------------|
 | `nop-auth` | `nop-auth/model/`、`nop-auth/nop-auth-codegen/`、`nop-auth/nop-auth-dao/`、`nop-auth/nop-auth-service/`、`nop-auth/nop-auth-web/` |
-| `nop-job` | `nop-job/model/`、`nop-job/nop-job-codegen/`、`nop-job/nop-job-dao/`、`nop-job/nop-job-service/` |
+| `nop-job` | `nop-job/model/`、`nop-job/nop-job-codegen/`、`nop-job/nop-job-dao/`、`nop-job/nop-job-core/`、`nop-job/nop-job-coordinator/`、`nop-job/nop-job-worker/`、`nop-job/nop-job-service/`、`nop-job/nop-job-web/`、`nop-job/nop-job-meta/`、`nop-job/nop-job-app/` |
 | `nop-task` | `nop-task/model/`、`nop-task/nop-task-service/` |
 | `nop-wf` | `nop-wf/model/`、`nop-wf/nop-wf-meta/` |
 | `nop-ai` | `nop-ai/model/`、`nop-ai/nop-ai-codegen/`、`nop-ai/nop-ai-service/`、`nop-ai/nop-ai-agent/` |

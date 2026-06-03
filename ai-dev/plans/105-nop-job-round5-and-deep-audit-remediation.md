@@ -245,22 +245,22 @@ Exit Criteria:
 
 ### Phase 7 - P1 文档修复（18-01-full）
 
-Status: planned
-Targets: `docs-for-ai/` 下 nop-job 相关文档（执行时 glob 确认具体路径）
+Status: completed
+Targets: `docs-for-ai/` 下 nop-job 相关文档
 
 - Item Types: `Fix`
 
-- [ ] 18-01(full): 找到 `concurrency-and-transactions.md`（或含并发/事务代码示例的文档），将代码示例中的 `updateEntityDirectly` 替换为实际的 `tryUpdateManyWithVersionCheck` + 乐观锁重检实现
-- [ ] 找到 `architecture-principles.md`（如存在）：修正 `@BizAction` 错误引用为 `IJobInvoker` 注册机制；修正 `NopJobScheduleBizModel` 聚合根分类
-- [ ] 找到 `where-things-live.md`（如存在）：补充遗漏的 8 个 nop-job 关键子模块
+- [x] 18-01(full): `concurrency-and-transactions.md` 代码示例中 `updateEntityDirectly` 替换为 `tryUpdateManyWithVersionCheck` + 乐观锁版本检查
+- [x] `architecture-principles.md`: 修正 `@BizAction` 错误引用为 `IJobInvoker` 注册机制
+- [x] `where-things-live.md`: 补充遗漏的 7 个 nop-job 关键子模块（core, coordinator, worker, meta, web, app, 已有 service/dao/codegen）
 
 Exit Criteria:
 
-- [ ] 文档代码示例与 live repo 代码一致
-- [ ] 无错误的 API 引用（`@BizAction` → `IJobInvoker`）
-- [ ] 模块列表完整覆盖所有 nop-job 子模块
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 通过（如涉及 `docs-for-ai/`）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 文档代码示例与 live repo 代码一致
+- [x] 无错误的 API 引用（`@BizAction` → `IJobInvoker`）
+- [x] 模块列表完整覆盖所有 nop-job 子模块
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 通过（无新增 broken links）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
