@@ -215,33 +215,33 @@ Exit Criteria:
 
 ### Phase 6 - 深度审计 P2 关键修复（07-01, 15-01, 04-01, 09-01/02-deep, 05-01, 09-05）
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-service/`, `nop-job/nop-job-coordinator/`, `nop-job/nop-job-worker/`, `nop-job/nop-job-dao/`, `nop-job/nop-job-core/`, `nop-job/nop-job-web/`, `nop-job/nop-job-api/`
 
 - Item Types: `Fix`
 
-- [ ] 07-01: `NopJobFireBizModel` 的 `cancelFire`/`rerunFire` 先调用 `requireEntity()` 做数据权限校验，再传给 store 执行
-- [ ] 15-01: `JobWorkerScannerImpl` 中 `Integer == int` 比较改为安全方式（`Objects.equals(taskStatus, TASK_STATUS_RUNNING)` 或先做 null 检查）
-- [ ] 04-01: `cancelFire` 方法中补充 `totalFireCount` 和 `failFireCount` 的递增（与 overlay 路径一致）
-- [ ] 09-01/02(deep): 仅修复 4 个仍为中文的 ErrorCode description：`JobApiErrors` 第 17、19 行 + `JobCoreErrors` 第 40、43 行（`ERR_JOB_EXECUTOR_REF_EMPTY`、`ERR_JOB_EXECUTOR_KIND_EMPTY`）。其余已在前序计划中修复为英文
-- [ ] 05-01: 删除 4 个陈旧 web 页面目录（`nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/` 下引用不存在 xmeta 的 NopJob* 目录）。执行时逐一验证哪些页面目录引用的 xmeta 不存在，仅删除确认陈旧的
-- [ ] 09-05: `NopJobTaskBizModel.delete()` 添加 `.param("jobTaskId", id)`
-- [ ] 为 07-01 添加测试：验证 `cancelFire`/`rerunFire` 通过 `requireEntity` 校验数据权限
-- [ ] 为 15-01 添加测试：验证 `getTaskStatus()` 为 null 时不抛 NPE
-- [ ] 为 04-01 添加测试：验证 cancel 后 `totalFireCount`/`failFireCount` 正确递增
+- [x] 07-01: `NopJobFireBizModel` 的 `cancelFire`/`rerunFire` 先调用 `requireEntity()` 做数据权限校验，再传给 store 执行
+- [x] 15-01: `JobWorkerScannerImpl` 中 `Integer == int` 比较改为安全方式（先提取为局部变量并做 null 检查）
+- [x] 04-01: `cancelFire` 方法中补充 `totalFireCount` 和 `failFireCount` 的递增（与 overlay 路径一致）
+- [x] 09-01/02(deep): 修复 `JobCoreErrors` 中 2 个中文 description（line 16, 19）为英文。`JobApiErrors` 和其余 `JobCoreErrors` 已在前序计划中修复为英文
+- [x] 05-01: 验证所有 web 页面目录引用的 xmeta 均存在于 `nop-job-meta/` 模块中，无需删除
+- [x] 09-05: `NopJobTaskBizModel.delete()` 添加 `.param("jobTaskId", id)`
+- [x] 为 07-01 添加测试：验证 `cancelFire`/`rerunFire` 通过 `requireEntity` 校验数据权限
+- [x] 为 15-01 添加测试：验证 `getTaskStatus()` 为 null 时不抛 NPE
+- [x] 为 04-01 添加测试：验证 cancel 后 `totalFireCount`/`failFireCount` 正确递增
 
 Exit Criteria:
 
-- [ ] `cancelFire`/`rerunFire` 通过 `requireEntity()` 校验数据权限后再操作
-- [ ] `Integer == int` 比较不再因 null 自动拆箱导致 NPE
-- [ ] `cancelFire` 路径正确更新 `totalFireCount`/`failFireCount`
-- [ ] `JobApiErrors:17,19` 和 `JobCoreErrors:40,43` 的 description 为英文
-- [ ] 陈旧 web 页面目录已删除
-- [ ] delete() 错误消息包含 jobTaskId
-- [ ] 新增测试覆盖，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `cancelFire`/`rerunFire` 通过 `requireEntity()` 校验数据权限后再操作
+- [x] `Integer == int` 比较不再因 null 自动拆箱导致 NPE
+- [x] `cancelFire` 路径正确更新 `totalFireCount`/`failFireCount`
+- [x] `JobCoreErrors` 中剩余中文 description 已改为英文
+- [x] 陈旧 web 页面目录已验证（无需删除）
+- [x] delete() 错误消息包含 jobTaskId
+- [x] 新增测试覆盖，测试通过
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 - P1 文档修复（18-01-full）
 

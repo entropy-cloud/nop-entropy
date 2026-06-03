@@ -202,9 +202,14 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     private void handleExecutionResult(String jobTaskId, io.nop.job.api.execution.JobFireResult result, Throwable err) {
         try {
             NopJobTask task = taskStore.loadTask(jobTaskId);
-            if (task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                    || task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
-                    || task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+            Integer taskStatus = task.getTaskStatus();
+            if (taskStatus != null
+                    && (taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                    || taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
+                    || taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS)) {
+                return;
+            }
+            if (taskStatus == null) {
                 return;
             }
 
@@ -238,9 +243,11 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             boolean updated = taskStore.updateTask(task);
             if (!updated) {
                 NopJobTask freshTask = taskStore.loadTask(jobTaskId);
-                if (freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                        || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
-                        || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                Integer freshStatus = freshTask.getTaskStatus();
+                if (freshStatus == null
+                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
+                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
                     return;
                 }
                 LOG.warn("nop.job.worker.update-task-conflict:taskId={},status={},resultStatus={}",

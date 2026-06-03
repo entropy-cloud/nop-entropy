@@ -23,6 +23,7 @@ public class NopJobTaskBizModel extends CrudBizModel<NopJobTask> implements INop
 
     @Override
     public boolean delete(String id, io.nop.core.context.IServiceContext context) {
-        throw new NopException(ERR_JOB_TASK_DELETE_NOT_ALLOWED);
+        throw new NopException(ERR_JOB_TASK_DELETE_NOT_ALLOWED)
+                .param("jobTaskId", id);
     }
 }

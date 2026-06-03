@@ -228,6 +228,8 @@ public class JobFireStoreImpl implements IJobFireStore {
 
         for (int attempt = 0; attempt < 5; attempt++) {
             schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
+            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
+            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
             schedule.setLastEndTime(cancelTime);
             schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
             if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
@@ -245,8 +247,12 @@ public class JobFireStoreImpl implements IJobFireStore {
             NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
             schedule.setVersion(fresh.getVersion());
             schedule.setActiveFireCount(fresh.getActiveFireCount());
+            schedule.setTotalFireCount(fresh.getTotalFireCount());
+            schedule.setFailFireCount(fresh.getFailFireCount());
         }
         schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
+        schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
+        schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
         scheduleDao().updateEntityDirectly(schedule);
         return true;
     }

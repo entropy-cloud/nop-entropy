@@ -13,10 +13,10 @@ public interface JobCoreErrors {
     String ARG_EXECUTOR_KIND = "executorKind";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
-            "计算下一次触发时间时似乎陷入死循环，循环次数超过最大限制", ARG_LOOP_COUNT);
+            "Trigger calculation loop count exceeded limit", ARG_LOOP_COUNT);
 
     ErrorCode ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL = define("nop.err.job.trigger.parse-cron-expr-fail",
-            "解析定时器表达式失败:{cronExpr}", ARG_CRON_EXPR);
+            "Failed to parse cron expression:{cronExpr}", ARG_CRON_EXPR);
 
     // Error codes stored in task/fire errorCode field - status markers, not thrown exceptions.
     // Using the same string values for backward compatibility with stored data and test assertions.

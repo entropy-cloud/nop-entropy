@@ -46,7 +46,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @Override
     @BizMutation
     public void cancelFire(@Name("id") String id, IServiceContext context) {
-        NopJobFire fire = fireStore.loadFire(id);
+        NopJobFire fire = requireEntity(id, "cancelFire", context);
         if (!isCancelableStatus(fire.getFireStatus())) {
             throwCancelNotAllowed(fire, "cancelFire");
         }
@@ -61,7 +61,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @Override
     @BizMutation
     public void rerunFire(@Name("id") String id, IServiceContext context) {
-        NopJobFire sourceFire = fireStore.loadFire(id);
+        NopJobFire sourceFire = requireEntity(id, "rerunFire", context);
         if (!isRerunnableStatus(sourceFire.getFireStatus())) {
             throwRerunNotAllowed(sourceFire, "rerunFire");
         }
