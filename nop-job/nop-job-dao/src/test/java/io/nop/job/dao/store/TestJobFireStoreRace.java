@@ -12,18 +12,23 @@ import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_CANCELED;
+import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_FAILED;
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_RUNNING;
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_SUCCESS;
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestJobFireStoreRace extends JunitBaseTestCase {
@@ -167,6 +172,102 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         NopJobFire reloadedAfter = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_TIMEOUT, reloadedAfter.getFireStatus(),
                 "Fire status should remain TIMEOUT, not overwritten to CANCELED");
+    }
+
+    @Test
+    public void testCancelFireUsesOptimisticLockOnSchedule() {
+        NopJobSchedule schedule = newSchedule("race-sched-ar19", "race-job-ar19");
+        schedule.setActiveFireCount(2);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("race-fire-ar19", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        List<NopJobFire> waitingFires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-ar19", 1000);
+        assertEquals(1, lockedFires.size());
+
+        NopJobTask task = newTask("race-task-ar19", fire);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+
+        IOrmEntityDao<NopJobSchedule> schedDao =
+                (IOrmEntityDao<NopJobSchedule>) daoProvider.daoFor(NopJobSchedule.class);
+        NopJobSchedule concurrentSchedule = schedDao.requireEntityById(schedule.getJobScheduleId());
+        concurrentSchedule.setActiveFireCount(10);
+        schedDao.updateEntityDirectly(concurrentSchedule);
+
+        boolean cancelResult = fireStore.cancelFire(fire.getJobFireId());
+        assertTrue(cancelResult, "cancelFire should succeed after optimistic lock retry");
+
+        NopJobFire reloadedFire = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_CANCELED, reloadedFire.getFireStatus());
+
+        NopJobSchedule reloadedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        assertEquals(9, reloadedSchedule.getActiveFireCount(),
+                "activeFireCount should be decremented from fresh value (10-1=9), not stale value");
+    }
+
+    @Test
+    public void testDispatchTimeoutFireReturnsEarlyWithoutTasks() {
+        NopJobSchedule schedule = newSchedule("race-sched-ar20", "race-job-ar20");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("race-fire-ar20", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        List<NopJobFire> waitingFires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-ar20", 1000);
+        assertEquals(1, lockedFires.size());
+
+        IOrmEntityDao<NopJobFire> fireDao =
+                (IOrmEntityDao<NopJobFire>) daoProvider.daoFor(NopJobFire.class);
+        NopJobFire concurrentFire = fireDao.requireEntityById(fire.getJobFireId());
+        concurrentFire.setFireStatus(FIRE_STATUS_TIMEOUT);
+        concurrentFire.setEndTime(new Timestamp(System.currentTimeMillis()));
+        fireDao.updateEntityDirectly(concurrentFire);
+
+        NopJobTask task = newTask("race-task-ar20", fire);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+
+        NopJobFire reloadedFire = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_TIMEOUT, reloadedFire.getFireStatus(),
+                "Fire status should remain TIMEOUT, not overwritten to RUNNING");
+
+        io.nop.api.core.beans.query.QueryBean taskQuery = new io.nop.api.core.beans.query.QueryBean();
+        taskQuery.addFilter(io.nop.api.core.beans.FilterBeans.eq("jobFireId", fire.getJobFireId()));
+        List<NopJobTask> tasks = taskStore().findAllByQuery(taskQuery);
+        assertTrue(tasks.isEmpty(),
+                "No tasks should be inserted when fire was already timed out");
+    }
+
+    @Test
+    public void testDispatchCanceledFireReturnsEarlyWithoutTasks() {
+        NopJobSchedule schedule = newSchedule("race-sched-ar20c", "race-job-ar20c");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("race-fire-ar20c", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        List<NopJobFire> waitingFires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-ar20c", 1000);
+        assertEquals(1, lockedFires.size());
+
+        fireStore.cancelFire(fire.getJobFireId());
+
+        NopJobTask task = newTask("race-task-ar20c", fire);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+
+        NopJobFire reloadedFire = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_CANCELED, reloadedFire.getFireStatus(),
+                "Fire status should remain CANCELED, not overwritten to RUNNING");
+    }
+
+    @SuppressWarnings("unchecked")
+    private IOrmEntityDao<NopJobTask> taskStore() {
+        return (IOrmEntityDao<NopJobTask>) daoProvider.daoFor(NopJobTask.class);
     }
 
     private NopJobSchedule newSchedule(String id, String jobName) {

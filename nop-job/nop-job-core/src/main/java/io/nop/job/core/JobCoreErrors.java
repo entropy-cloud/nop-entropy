@@ -41,4 +41,10 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_EXECUTOR_KIND_EMPTY = define("nop.err.job.executor-kind-empty",
             "Job的执行器类型为空");
+
+    ErrorCode ERR_JOB_FIRE_STATUS_CONFLICT = define("nop.err.job.fire-status-conflict",
+            "Fire status version conflict during dispatch");
+
+    ErrorCode ERR_JOB_SCHEDULE_DELETED = define("nop.err.job.schedule-deleted",
+            "Schedule has been deleted");
 }

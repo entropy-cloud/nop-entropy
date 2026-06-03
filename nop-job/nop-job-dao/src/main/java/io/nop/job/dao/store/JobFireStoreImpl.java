@@ -20,6 +20,8 @@ import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +33,7 @@ import java.util.Set;
 import static io.nop.job.dao.entity._gen._NopJobFire.*;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_FIRE_STATUS_CONFLICT;
 
 public class JobFireStoreImpl implements IJobFireStore {
     private static final int FIRE_STATUS_WAITING = 0;
@@ -97,11 +100,17 @@ public class JobFireStoreImpl implements IJobFireStore {
             return;
         }
 
+        currentFire.setFireStatus(FIRE_STATUS_RUNNING);
+        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(currentFire));
+        if (updated.isEmpty()) {
+            throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                    .param("jobFireId", fire.getJobFireId())
+                    .param("expectedStatus", FIRE_STATUS_DISPATCHING);
+        }
+
         for (NopJobTask task : tasks) {
             taskDao().saveEntityDirectly(task);
         }
-        currentFire.setFireStatus(FIRE_STATUS_RUNNING);
-        fireDao().updateEntityDirectly(currentFire);
     }
 
     private static final Set<Integer> TERMINAL_FIRE_STATUSES = Set.of(
@@ -199,14 +208,27 @@ public class JobFireStoreImpl implements IJobFireStore {
             taskDao().updateEntityDirectly(task);
         }
 
-        schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
-        schedule.setLastEndTime(cancelTime);
-        schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
-        if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
-            schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, cancelTime));
+        for (int attempt = 0; attempt < 5; attempt++) {
+            schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
+            schedule.setLastEndTime(cancelTime);
+            schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
+            if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
+                schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, cancelTime));
+            }
+            schedule.setUpdatedBy("system");
+            schedule.setUpdateTime(cancelTime);
+
+            List<NopJobSchedule> updatedSchedules = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updatedSchedules.isEmpty()) {
+                return true;
+            }
+
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(cancelTime);
+        schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
         scheduleDao().updateEntityDirectly(schedule);
         return true;
     }
