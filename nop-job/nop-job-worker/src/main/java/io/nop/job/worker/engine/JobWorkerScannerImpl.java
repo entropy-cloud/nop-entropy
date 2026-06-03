@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVOKER_RETURNED_NULL;
+
 public class JobWorkerScannerImpl implements IJobWorkerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobWorkerScannerImpl.class);
 
@@ -190,7 +192,8 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         try {
             var promise = invoker.invokeAsync(ctx);
             if (promise == null) {
-                handleExecutionResult(runningTask.getJobTaskId(), null, null);
+                handleExecutionResult(runningTask.getJobTaskId(), null,
+                        new NopException(ERR_JOB_INVOKER_RETURNED_NULL));
             } else {
                 promise.whenComplete((result, err) -> handleExecutionResult(runningTask.getJobTaskId(), result, err));
             }

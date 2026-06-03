@@ -129,4 +129,34 @@ public class TestTrigger {
 
         assertEquals("2022-02-12T19:00", DateHelper.millisToDateTime(time).toString());
     }
+
+    @Test
+    public void testOnceTriggerMisfireReturnsNegativeOne() {
+        long scheduleTime = CoreMetrics.currentTimeMillis() - 60_000;
+        OnceTrigger once = new OnceTrigger(scheduleTime);
+        HandleMisfireTrigger trigger = new HandleMisfireTrigger(10_000, once);
+
+        SimpleContext ctx = new SimpleContext();
+        ctx.lastScheduledTime = 0;
+        ctx.minScheduleTime = 0;
+
+        long afterTime = CoreMetrics.currentTimeMillis();
+        long result = trigger.nextScheduleTime(afterTime, ctx);
+        assertEquals(-1, result);
+    }
+
+    @Test
+    public void testOnceTriggerNotMisfire() {
+        long scheduleTime = CoreMetrics.currentTimeMillis() + 60_000;
+        OnceTrigger once = new OnceTrigger(scheduleTime);
+        HandleMisfireTrigger trigger = new HandleMisfireTrigger(10_000, once);
+
+        SimpleContext ctx = new SimpleContext();
+        ctx.lastScheduledTime = 0;
+        ctx.minScheduleTime = 0;
+
+        long afterTime = CoreMetrics.currentTimeMillis();
+        long result = trigger.nextScheduleTime(afterTime, ctx);
+        assertEquals(scheduleTime, result);
+    }
 }

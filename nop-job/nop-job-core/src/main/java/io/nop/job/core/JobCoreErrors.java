@@ -47,4 +47,7 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_SCHEDULE_DELETED = define("nop.err.job.schedule-deleted",
             "Schedule has been deleted");
+
+    ErrorCode ERR_JOB_INVOKER_RETURNED_NULL = define("JOB_INVOKER_RETURNED_NULL",
+            "Job invoker returned null promise");
 }

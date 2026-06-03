@@ -113,7 +113,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     @Override
     public void insertFireAndAdvanceSchedule(NopJobSchedule schedule, NopJobFire fire, Timestamp nextFireTime,
                                              Integer lastFireStatus) {
-        if (hasWaitingFire(schedule.getJobScheduleId(), fire.getScheduledFireTime())) {
+        if (hasWaitingFire(schedule.getJobScheduleId(), fire.getScheduledFireTime(), fire.getTriggerSource())) {
             LOG.info("nop.job.schedule.skip-duplicate-fire:scheduleId={},scheduledFireTime={}",
                     schedule.getJobScheduleId(), fire.getScheduledFireTime());
             for (int attempt = 0; attempt < 5; attempt++) {
@@ -400,11 +400,14 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         return (IOrmEntityDao<NopJobTask>) daoProvider.daoFor(NopJobTask.class);
     }
 
-    private boolean hasWaitingFire(String scheduleId, Timestamp scheduledFireTime) {
+    private boolean hasWaitingFire(String scheduleId, Timestamp scheduledFireTime, Integer triggerSource) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_jobScheduleId, scheduleId));
         query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_fireStatus, FIRE_STATUS_WAITING));
         query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_scheduledFireTime, scheduledFireTime));
+        if (triggerSource != null) {
+            query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_triggerSource, triggerSource));
+        }
         query.setLimit(1);
         return !fireDao().findAllByQuery(query).isEmpty();
     }

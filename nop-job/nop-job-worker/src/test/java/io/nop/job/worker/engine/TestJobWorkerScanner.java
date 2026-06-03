@@ -358,6 +358,44 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
             assertNull(savedTask.getErrorCode());
         }
 
+        @Test
+        public void testNullPromiseTreatedAsError() {
+            if (originalBeanContainer == null && BeanContainer.isInitialized()) {
+                originalBeanContainer = BeanContainer.instance();
+            }
+            StaticBeanContainer container = new StaticBeanContainer();
+            container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+                @Override
+                public java.util.concurrent.CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                    return null;
+                }
+
+                @Override
+                public java.util.concurrent.CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                    return CompletableFuture.completedFuture(Boolean.TRUE);
+                }
+            });
+            BeanContainer.registerInstance(container);
+
+            PreparedTask prepared = prepareWaitingTask("schedule-ar41-1", "job-ar41-1");
+
+            JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+            worker.setTaskStore(taskStore);
+            worker.setFireStore(fireStore);
+            worker.setScheduleStore(scheduleStore);
+            worker.setInvokerResolver(new DefaultJobInvokerResolver());
+            worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+            worker.setBatchSize(10);
+            worker.setAssignedPartitions("1");
+            worker.setLockTimeoutMs(1000);
+            worker.scanOnce();
+
+            NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
+            assertEquals(TASK_STATUS_FAILED, savedTask.getTaskStatus(),
+                    "Null promise should be treated as error, not SUCCESS");
+            assertEquals("JOB_INVOKER_RETURNED_NULL", savedTask.getErrorCode());
+        }
+
         private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {
             long now = System.currentTimeMillis();
 

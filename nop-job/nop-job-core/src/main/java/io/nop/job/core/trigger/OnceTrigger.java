@@ -21,6 +21,10 @@ public class OnceTrigger implements ITrigger {
         this.scheduleTime = scheduleTime;
     }
 
+    public long getScheduleTime() {
+        return scheduleTime;
+    }
+
     @Override
     public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
         if (!first) {
