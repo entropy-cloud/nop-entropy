@@ -1,5 +1,13 @@
 site:
   resource:
+    FNPT:NopJobAssignment:mutation:
+      displayName: Modify Job Assignment
+    FNPT:NopJobAssignment:query:
+      displayName: Query Job Assignment
+    FNPT:NopJobDefinition:mutation:
+      displayName: Modify Job Definition
+    FNPT:NopJobDefinition:query:
+      displayName: Query Job Definition
     FNPT:NopJobFire:cancelFire:
       displayName: Cancel Trigger
     FNPT:NopJobFire:mutation:
@@ -8,6 +16,14 @@ site:
       displayName: Query Trigger Batch
     FNPT:NopJobFire:rerunFire:
       displayName: Rerun Trigger
+    FNPT:NopJobInstance:mutation:
+      displayName: Modify Job Instance
+    FNPT:NopJobInstance:query:
+      displayName: Query Job Instance
+    FNPT:NopJobInstanceHis:mutation:
+      displayName: Modify Job Instance History
+    FNPT:NopJobInstanceHis:query:
+      displayName: Query Job Instance History
     FNPT:NopJobSchedule:archiveSchedule:
       displayName: Archive Schedule
     FNPT:NopJobSchedule:disableSchedule:
@@ -28,8 +44,16 @@ site:
       displayName: Modify Job Task
     FNPT:NopJobTask:query:
       displayName: Query Execution Task
+    NopJobAssignment-main:
+      displayName: Job Assignment
+    NopJobDefinition-main:
+      displayName: Job Definition
     NopJobFire-main:
       displayName: Trigger Batch
+    NopJobInstance-main:
+      displayName: Job Instance
+    NopJobInstanceHis-main:
+      displayName: Job Instance History
     NopJobSchedule-main:
       displayName: Schedule Definition
     NopJobTask-main:
