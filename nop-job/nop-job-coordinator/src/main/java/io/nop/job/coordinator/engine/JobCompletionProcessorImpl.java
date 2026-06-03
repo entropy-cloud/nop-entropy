@@ -226,6 +226,7 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
                 String retryRecordId = retryBridge.onFireFailed(event);
                 if (retryRecordId != null) {
                     fire.setRetryRecordId(retryRecordId);
+                    fireStore.updateRetryRecordId(fire.getJobFireId(), retryRecordId);
                 }
             } catch (Exception e) {
                 LOG.error("nop.job.retry.bridge-failed:fireId={}", fire.getJobFireId(), e);

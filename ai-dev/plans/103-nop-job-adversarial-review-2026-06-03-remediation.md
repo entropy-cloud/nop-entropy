@@ -1,6 +1,6 @@
 # 103 nop-job Adversarial Review Remediation (2026-06-03)
 
-> Plan Status: planned
+> Plan Status: completed
 > Last Reviewed: 2026-06-03
 > Source: `ai-dev/audits/2026-06-03-adversarial-review-nop-job/` (Round 1: 7, Round 2: 9, Round 3: 2, total 18 new findings)
 > Related: `ai-dev/plans/20-nop-job-audit-remediation.md` (completed), `ai-dev/plans/21-nop-job-adversarial-review-remediation.md` (completed)
@@ -161,21 +161,21 @@ Exit Criteria:
 
 ### Phase 5 - P2 retryRecordId 死写修复（AR-4）
 
-Status: planned
-Targets: `nop-job/nop-job-coordinator/`
+Status: completed
+Targets: `nop-job/nop-job-coordinator/`, `nop-job/nop-job-dao/`
 
 - Item Types: `Fix`
 
-- [ ] AR-4: 在 `handleRetryAndAlarm` 设置 `retryRecordId` 之后，增加 `fireStore.updateFireRecordId(fire)` 或在当前事务中刷新 fire 实体，确保 `retryRecordId` 写入 DB。注意：不将 `handleRetryAndAlarm` 移到 `completeFireAndUpdateSchedule` 之前（因为这会改变 retry bridge 在持久化前被调用的语义）
-- [ ] 为 AR-4 添加测试：验证 retryRecordId 被正确持久化到 DB
+- [x] AR-4: 在 `handleRetryAndAlarm` 设置 `retryRecordId` 之后，调用 `fireStore.updateRetryRecordId(fire.getJobFireId(), fire.getRetryRecordId())` 确保 `retryRecordId` 写入 DB。在 `IJobFireStore` 接口新增 `updateRetryRecordId` 方法，`JobFireStoreImpl` 实现中直接更新 DB 字段。
+- [x] 为 AR-4 添加测试：`TestJobCompletionProcessor.testRetryRecordIdPersisted_afterHandleRetryAndAlarm` 验证 retryRecordId 被正确传递到 fireStore
 
 Exit Criteria:
 
-- [ ] `retryRecordId` 在 fire 持久化后不再为 null（如果 retry bridge 返回了有效 ID）
-- [ ] 新增测试覆盖，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `retryRecordId` 在 fire 持久化后不再为 null（如果 retry bridge 返回了有效 ID）
+- [x] 新增测试覆盖，测试通过
+- [x] `./mvnw clean test -pl nop-job -am` 通过 (BUILD SUCCESS)
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

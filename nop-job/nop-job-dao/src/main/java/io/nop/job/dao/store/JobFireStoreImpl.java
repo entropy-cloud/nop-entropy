@@ -242,6 +242,14 @@ public class JobFireStoreImpl implements IJobFireStore {
         return fireDao().findAllByQuery(query);
     }
 
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public void updateRetryRecordId(String jobFireId, String retryRecordId) {
+        NopJobFire fire = fireDao().requireEntityById(jobFireId);
+        fire.setRetryRecordId(retryRecordId);
+        fireDao().updateEntityDirectly(fire);
+    }
+
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
         if (partitions == null || partitions.isEmpty()) {
             return;
