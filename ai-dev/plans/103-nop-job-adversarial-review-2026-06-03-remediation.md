@@ -179,16 +179,16 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 全部 5 项 P1 已修复（AR-1, AR-2, AR-8, AR-9, AR-17）
-- [ ] 全部 8 项 P2 已修复（AR-3, AR-4, AR-5, AR-10, AR-11, AR-12, AR-13, AR-18）
-- [ ] 每项修复有对应测试覆盖
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：closure audit 已验证组件间调用链在运行时确实连通，无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] `./mvnw test -pl nop-job -am` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] 全部 5 项 P1 已修复（AR-1, AR-2, AR-8, AR-9, AR-17）
+- [x] 全部 8 项 P2 已修复（AR-3, AR-4, AR-5, AR-10, AR-11, AR-12, AR-13, AR-18）
+- [x] 每项修复有对应测试覆盖
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：closure audit 已验证组件间调用链在运行时确实连通，无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] `./mvnw test -pl nop-job -am` 通过
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -252,13 +252,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
+Status Note: Plan 103 completed. All 13 in-scope findings (5 P1 + 8 P2) fixed and verified across 5 phases:
+- Phase 1 (commit `9addd78ad`): AR-8 rerunFire discard check, AR-17 targetHost routing
+- Phase 2 (commit `aea1bf773`): AR-1 startTime semantics, AR-2 recovery fields
+- Phase 3 (commit `371aa7806`): AR-9 optimistic lock, AR-10 updateTask boolean
+- Phase 4 (commit `e227b8f35`): AR-3 overlay try-catch, AR-5 CLAIMED/SUSPICIOUS, AR-11 dispatch timeout, AR-12 jobParamsSnapshot, AR-13 SUSPICIOUS grace period, AR-18 overlay stats
+- Phase 5 (commit `f932aae90`): AR-4 retryRecordId dead-write fix
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: Independent sub-agent (houyi), task_id: ses_172ff43f3ffeJ2ixk4u7nNtSsi
+- Result: **AUDIT PASS** — all 13 findings verified in live code, anti-hollow checks pass (no no-op/stub implementations), test coverage confirmed for all fixes, `./mvnw clean test -pl nop-job -am` BUILD SUCCESS
+- Non-blocking observations: (1) AR-12 has-failed-fires path test coverage could be strengthened; (2) AR-4 test uses mock that doesn't verify `updateRetryRecordId` call explicitly
 
 Follow-up:
 
-- <<no remaining plan-owned work 或 non-blocking follow-up 列表>>
+- AR-7 maxFailedCount 硬编码 — needs product requirements first
+- F9 retryRecordId value — needs nop-retry interface evolution
+- AR-14 copyMap naming, AR-15 error priority, AR-16 broadcast taskPayload, AR-6 dead code — low priority cleanup
