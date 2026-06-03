@@ -14,7 +14,9 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface JobApiErrors {
     String ARG_JOB_NAME = "jobName";
 
-    ErrorCode ERR_JOB_UNKNOWN_JOB = define("nop.err.job.unknown-job", "未知的任务:{jobName}", ARG_JOB_NAME);
+    ErrorCode ERR_JOB_UNKNOWN_JOB = define("nop.err.job.unknown-job", "Unknown job:{jobName}", ARG_JOB_NAME);
 
-    ErrorCode ERR_JOB_SCHEDULER_NOT_ACTIVE = define("nop.err.job.scheduler-not-active", "调度器未激活");
+    ErrorCode ERR_JOB_ALREADY_EXISTS = define("nop.err.job.already-exists", "Job already exists:{jobName}", ARG_JOB_NAME);
+
+    ErrorCode ERR_JOB_SCHEDULER_NOT_ACTIVE = define("nop.err.job.scheduler-not-active", "Scheduler is not active");
 }

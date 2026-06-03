@@ -37,10 +37,10 @@ public interface JobCoreErrors {
             "Job execution failed");
 
     ErrorCode ERR_JOB_EXECUTOR_REF_EMPTY = define("nop.err.job.executor-ref-empty",
-            "Job的执行器引用为空");
+            "Job executor ref is empty");
 
     ErrorCode ERR_JOB_EXECUTOR_KIND_EMPTY = define("nop.err.job.executor-kind-empty",
-            "Job的执行器类型为空");
+            "Job executor kind is empty");
 
     ErrorCode ERR_JOB_FIRE_STATUS_CONFLICT = define("nop.err.job.fire-status-conflict",
             "Fire status version conflict during dispatch");

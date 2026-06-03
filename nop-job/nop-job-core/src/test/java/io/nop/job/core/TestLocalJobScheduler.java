@@ -378,6 +378,14 @@ public class TestLocalJobScheduler {
         assertEquals("nop.err.job.scheduler-not-active", ex.getErrorCode());
     }
 
+    @Test
+    void testAddDuplicateJobThrowsAlreadyExists() {
+        scheduler.addJob(newSpec("dup-job", 10, true), false);
+        NopException ex = assertThrows(NopException.class,
+                () -> scheduler.addJob(newSpec("dup-job", 10, true), false));
+        assertEquals("nop.err.job.already-exists", ex.getErrorCode());
+    }
+
     private JobSpec newSpec(String name, long interval, boolean fixedDelay) {
         JobSpec spec = new JobSpec();
         spec.setJobName(name);

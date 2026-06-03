@@ -23,7 +23,7 @@ public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializa
     /**
      * excludeDays需要按时间顺序排好序
      */
-    private List<MonthDay> excludeDays;
+    private List<MonthDay> excludeDays = java.util.Collections.emptyList();
 
     public AnnualCalendar(ICalendar baseCalendar) {
         super(baseCalendar);

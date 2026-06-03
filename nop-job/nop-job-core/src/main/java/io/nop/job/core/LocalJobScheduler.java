@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_SCHEDULER_NOT_ACTIVE;
-import static io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB;
+import static io.nop.job.api.JobApiErrors.ERR_JOB_ALREADY_EXISTS;
 
 /**
  * 轻量级内存调度器，适用于单机嵌入式场景。
@@ -78,7 +78,7 @@ public class LocalJobScheduler implements IJobScheduler {
         ScheduledJob existing = jobs.get(spec.getJobName());
         if (existing != null) {
             if (!allowUpdate) {
-                throw new NopException(io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB)
+                throw new NopException(ERR_JOB_ALREADY_EXISTS)
                         .param(ARG_JOB_NAME, spec.getJobName());
             }
             synchronized (existing) {
