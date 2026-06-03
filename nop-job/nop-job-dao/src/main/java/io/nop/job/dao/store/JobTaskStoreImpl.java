@@ -38,8 +38,8 @@ public class JobTaskStoreImpl implements IJobTaskStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public void updateTask(NopJobTask task) {
-        taskDao().updateEntityDirectly(task);
+    public boolean updateTask(NopJobTask task) {
+        return !taskDao().tryUpdateManyWithVersionCheck(java.util.Collections.singletonList(task)).isEmpty();
     }
 
     @Override

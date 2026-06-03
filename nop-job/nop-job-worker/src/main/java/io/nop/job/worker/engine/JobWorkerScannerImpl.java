@@ -235,7 +235,15 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             }
             task.setUpdatedBy("system");
             task.setUpdateTime(endTime);
-            taskStore.updateTask(task);
+            boolean updated = taskStore.updateTask(task);
+            if (!updated) {
+                NopJobTask freshTask = taskStore.loadTask(jobTaskId);
+                if (freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                        || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
+                        || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                    return;
+                }
+            }
 
             long duration = task.getStartTime() != null ? Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L) : 0L;
             if (update.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUCCESS) {

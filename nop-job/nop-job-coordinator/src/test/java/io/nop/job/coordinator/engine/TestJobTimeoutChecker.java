@@ -301,11 +301,11 @@ public class TestJobTimeoutChecker {
 
         MockTaskStore explodingStore = new MockTaskStore() {
             @Override
-            public void updateTask(NopJobTask task) {
+            public boolean updateTask(NopJobTask task) {
                 if ("t2".equals(task.getJobTaskId())) {
                     throw new RuntimeException("simulated update failure for t2");
                 }
-                super.updateTask(task);
+                return super.updateTask(task);
             }
         };
         explodingStore.addRunningTask(task1);
@@ -413,7 +413,7 @@ public class TestJobTimeoutChecker {
             return new ArrayList<>(runningTasks);
         }
 
-        @Override public void updateTask(NopJobTask task) {}
+        @Override public boolean updateTask(NopJobTask task) { return true; }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
         @Override public List<NopJobTask> findTasksByFireId(String jobFireId) { return Collections.emptyList(); }

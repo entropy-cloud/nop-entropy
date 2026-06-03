@@ -6,7 +6,7 @@ import io.nop.job.dao.entity.NopJobTask;
 import java.util.List;
 
 public interface IJobTaskStore {
-    void updateTask(NopJobTask task);
+    boolean updateTask(NopJobTask task);
 
     List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions);
 

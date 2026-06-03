@@ -123,6 +123,40 @@ public class JobFireStoreImpl implements IJobFireStore {
         if (updated.isEmpty()) {
             return;
         }
+
+        NopJobSchedule baseline = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+        int origActiveFireCount = baseline.getActiveFireCount();
+        long origFireCount = defaultLong(baseline.getFireCount());
+        long origTotalFireCount = defaultLong(baseline.getTotalFireCount());
+        long origSuccessFireCount = defaultLong(baseline.getSuccessFireCount());
+        long origFailFireCount = defaultLong(baseline.getFailFireCount());
+
+        int activeDelta = schedule.getActiveFireCount() - origActiveFireCount;
+        long fireCountDelta = schedule.getFireCount() - origFireCount;
+        Long totalTarget = schedule.getTotalFireCount();
+        Long successTarget = schedule.getSuccessFireCount();
+        Long failTarget = schedule.getFailFireCount();
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            List<NopJobSchedule> updatedSchedules = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updatedSchedules.isEmpty()) {
+                return;
+            }
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            schedule.setActiveFireCount(fresh.getActiveFireCount() + activeDelta);
+            schedule.setFireCount(defaultLong(fresh.getFireCount()) + fireCountDelta);
+            if (totalTarget != null) {
+                schedule.setTotalFireCount(defaultLong(fresh.getTotalFireCount()) + (totalTarget - origTotalFireCount));
+            }
+            if (successTarget != null) {
+                schedule.setSuccessFireCount(defaultLong(fresh.getSuccessFireCount()) + (successTarget - origSuccessFireCount));
+            }
+            if (failTarget != null) {
+                schedule.setFailFireCount(defaultLong(fresh.getFailFireCount()) + (failTarget - origFailFireCount));
+            }
+        }
         scheduleDao().updateEntityDirectly(schedule);
     }
 

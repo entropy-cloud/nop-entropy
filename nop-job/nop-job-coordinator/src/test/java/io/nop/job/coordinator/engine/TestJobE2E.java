@@ -275,7 +275,7 @@ public class TestJobE2E {
 
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet p) { return new ArrayList<>(runningTasks); }
         @Override public List<NopJobTask> findTasksByFireId(String fireId) { return tasksByFire.getOrDefault(fireId, Collections.emptyList()); }
-        @Override public void updateTask(NopJobTask t) {}
+        @Override public boolean updateTask(NopJobTask t) { return true; }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> t, String w, long l) { return t; }
         @Override public NopJobTask loadTask(String id) { return null; }

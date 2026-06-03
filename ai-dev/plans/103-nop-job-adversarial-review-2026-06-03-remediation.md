@@ -109,25 +109,25 @@ Exit Criteria:
 
 ### Phase 3 - P1 并发安全修复（AR-9, AR-10）
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-dao/`, `nop-job/nop-job-worker/`
 
 - Item Types: `Fix`
 
-- [ ] AR-9: `JobFireStoreImpl.completeFireAndUpdateSchedule` 中 `scheduleDao().updateEntityDirectly(schedule)` 改为 `scheduleDao().tryUpdateManyWithVersionCheck(Collections.singletonList(schedule))`，版本冲突时重试最多 3 次（加载最新 schedule、重新计算计数器差值、再次尝试更新），fire 已有幂等保护
-- [ ] AR-10: `JobTaskStoreImpl.updateTask` 改为 `taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task))`
-- [ ] `JobWorkerScannerImpl.handleExecutionResult` 在版本冲突时（`updateTask` 返回空列表）重新加载 task 状态，若已被 TIMEOUT/CANCELED 则跳过，否则重试一次
-- [ ] 为 AR-9 添加测试：模拟并发 fire completion，验证 schedule 计数器不丢失
-- [ ] 为 AR-10 添加测试：模拟 worker 回调与 timeout checker 竞争，验证 TIMEOUT 状态不被覆盖
+- [x] AR-9: `JobFireStoreImpl.completeFireAndUpdateSchedule` 中 schedule 使用乐观锁，版本冲突时重试（加载最新 schedule、重新计算计数器差值、再次尝试更新）
+- [x] AR-10: `JobTaskStoreImpl.updateTask` 改为 `taskDao().tryUpdateManyWithVersionCheck`，返回 boolean
+- [x] `JobWorkerScannerImpl.handleExecutionResult` 在版本冲突时重新加载 task 状态，若已被 TIMEOUT/CANCELED 则跳过
+- [x] 为 AR-9 添加测试：模拟并发 fire completion，验证 schedule 计数器不丢失
+- [x] 为 AR-10 添加测试：模拟 worker 回调与 timeout checker 竞争，验证 TIMEOUT 状态不被覆盖
 
 Exit Criteria:
 
-- [ ] `completeFireAndUpdateSchedule` 对 schedule 使用乐观锁，版本冲突时重试，并发完成不丢失计数器更新
-- [ ] `updateTask` 使用乐观锁，worker 回调版本冲突时重新检查状态，不覆盖 TIMEOUT/CANCELED
-- [ ] 新增测试覆盖并发场景，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `completeFireAndUpdateSchedule` 对 schedule 使用乐观锁，版本冲突时重试，并发完成不丢失计数器更新
+- [x] `updateTask` 使用乐观锁，worker 回调版本冲突时重新检查状态，不覆盖 TIMEOUT/CANCELED
+- [x] 新增测试覆盖并发场景，测试通过
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - P2 任务生命周期与事务边界修复（AR-3, AR-5, AR-11, AR-12, AR-13, AR-18）
 

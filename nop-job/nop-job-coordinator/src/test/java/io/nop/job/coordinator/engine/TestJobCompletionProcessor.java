@@ -371,7 +371,7 @@ public class TestJobCompletionProcessor {
         @Override public List<NopJobTask> findTasksByFireId(String fireId) {
             return tasksByFireId.getOrDefault(fireId, Collections.emptyList());
         }
-        @Override public void updateTask(NopJobTask task) {}
+        @Override public boolean updateTask(NopJobTask task) { return true; }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
