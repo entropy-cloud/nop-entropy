@@ -47,7 +47,28 @@ export async function navigateToEntity(
   page: Page,
   entityName: string,
 ): Promise<void> {
-  await page.goto(`/#/${entityName}-main`);
+  const targetPath = `/${entityName}-main`;
+
+  // If already on the target page, just wait for table
+  if (page.url().includes(targetPath)) {
+    await waitForTableLoad(page);
+    return;
+  }
+
+  // Try navigating directly. If SPA routes aren't ready yet (menu still loading),
+  // the app may redirect to home. Retry once after waiting.
+  await page.goto(`/#${targetPath}`);
+  await page.waitForLoadState('networkidle');
+
+  if (!page.url().includes(targetPath)) {
+    // SPA may not have registered the route yet — wait for sidebar to appear
+    // (indicating menu data has loaded and routes are registered), then retry
+    await page.locator('nav').waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    await page.goto(`/#${targetPath}`);
+    await page.waitForLoadState('networkidle');
+  }
+
   await waitForTableLoad(page);
 }
 
