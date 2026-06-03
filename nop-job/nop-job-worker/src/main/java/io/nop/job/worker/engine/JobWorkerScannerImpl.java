@@ -136,7 +136,7 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             int effectiveBatchSize = batchSize;
 
             if (maxConcurrency > 0) {
-                long runningCount = taskStore.countRunningTasks(AppConfig.hostId());
+                long runningCount = taskStore.countInFlightTasks(AppConfig.hostId());
                 int remaining = maxConcurrency - (int) runningCount;
                 if (remaining <= 0) {
                     workerMetrics.onRejected((int) runningCount);

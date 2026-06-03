@@ -18,5 +18,5 @@ public interface IJobTaskStore {
 
     NopJobTask loadTask(String jobTaskId);
 
-    long countRunningTasks(String workerInstanceId);
+    long countInFlightTasks(String workerInstanceId);
 }

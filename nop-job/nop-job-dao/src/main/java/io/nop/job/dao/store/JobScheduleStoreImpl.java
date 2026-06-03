@@ -29,7 +29,10 @@ import java.util.Set;
 
 import static io.nop.job.dao.entity._gen._NopJobSchedule.*;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_FIRE_STATUS_CONFLICT;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_OVERLAID;
+
+import io.nop.api.core.exceptions.NopException;
 
 public class JobScheduleStoreImpl implements IJobScheduleStore {
     static final Logger LOG = LoggerFactory.getLogger(JobScheduleStoreImpl.class);
@@ -107,13 +110,15 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
             schedule.setVersion(fresh.getVersion());
         }
-        scheduleDao().updateEntityDirectly(schedule);
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("scheduleId", schedule.getJobScheduleId())
+                .param("reason", "Failed to update schedule after skip, 5 retries exhausted");
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void insertFireAndAdvanceSchedule(NopJobSchedule schedule, NopJobFire fire, Timestamp nextFireTime,
-                                             Integer lastFireStatus) {
+                                              Integer lastFireStatus) {
         if (hasWaitingFire(schedule.getJobScheduleId(), fire.getScheduledFireTime(), fire.getTriggerSource())) {
             LOG.info("nop.job.schedule.skip-duplicate-fire:scheduleId={},scheduledFireTime={}",
                     schedule.getJobScheduleId(), fire.getScheduledFireTime());
@@ -129,8 +134,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                 NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
                 schedule.setVersion(fresh.getVersion());
             }
-            scheduleDao().updateEntityDirectly(schedule);
-            return;
+            throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                    .param("scheduleId", schedule.getJobScheduleId())
+                    .param("reason", "Failed to update schedule after skip-duplicate-fire, 5 retries exhausted");
         }
 
         fireDao().saveEntityDirectly(fire);
@@ -153,7 +159,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             schedule.setFireCount(fresh.getFireCount());
             schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
-        scheduleDao().updateEntityDirectly(schedule);
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("scheduleId", schedule.getJobScheduleId())
+                .param("reason", "Failed to update schedule after insertFire, 5 retries exhausted");
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -164,9 +172,13 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         Timestamp cancelTime = new Timestamp(now);
         List<NopJobFire> activeFires = findActiveFires(schedule.getJobScheduleId());
 
+        int actualCancelledCount = 0;
         for (NopJobFire activeFire : activeFires) {
             try {
-                cancelFire(activeFire, cancelTime);
+                boolean cancelled = cancelFire(activeFire, cancelTime);
+                if (cancelled) {
+                    actualCancelledCount++;
+                }
                 cancelTasks(activeFire.getJobFireId(), cancelTime);
             } catch (Exception e) {
                 LOG.warn("nop.job.schedule.cancel-fire-failed:fireId={}", activeFire.getJobFireId(), e);
@@ -175,11 +187,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         fireDao().saveEntityDirectly(fire);
 
-        int cancelledCount = activeFires.size();
-
         for (int attempt = 0; attempt < 5; attempt++) {
-            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
-            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
+            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + actualCancelledCount);
+            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + actualCancelledCount);
             schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
             schedule.setActiveFireCount(1);
             schedule.setLastFireTime(fire.getScheduledFireTime());
@@ -204,7 +214,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             schedule.setFireCount(fresh.getFireCount());
             schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
-        scheduleDao().updateEntityDirectly(schedule);
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("scheduleId", schedule.getJobScheduleId())
+                .param("reason", "Failed to update schedule after overlayFire, 5 retries exhausted");
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -252,8 +264,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                 schedule.setFireCount(fresh.getFireCount());
                 schedule.setActiveFireCount(fresh.getActiveFireCount());
             }
-            scheduleDao().updateEntityDirectly(schedule);
-            return;
+            throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                    .param("scheduleId", schedule.getJobScheduleId())
+                    .param("reason", "Failed to update schedule after recovery new fire, 5 retries exhausted");
         }
 
         long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
@@ -269,7 +282,30 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         failedFire.setRetryPolicyId(schedule.getRetryPolicyId());
         failedFire.setUpdatedBy("system");
         failedFire.setUpdateTime(recoveryTime);
-        fireDao().updateEntityDirectly(failedFire);
+
+        NopJobFire freshFire = fireDao().requireEntityById(failedFire.getJobFireId());
+        Integer currentFireStatus = freshFire.getFireStatus();
+        if (currentFireStatus == null || (currentFireStatus != FIRE_STATUS_FAILED && currentFireStatus != FIRE_STATUS_TIMEOUT)) {
+            LOG.info("nop.job.schedule.recovery-skip-fire-no-longer-failed:fireId={},status={}",
+                    failedFire.getJobFireId(), currentFireStatus);
+            return;
+        }
+
+        freshFire.setFireStatus(FIRE_STATUS_WAITING);
+        freshFire.setErrorCode(null);
+        freshFire.setErrorMessage(null);
+        freshFire.setEndTime(null);
+        freshFire.setDurationMs(null);
+        freshFire.setJobParamsSnapshot(schedule.getJobParams());
+        freshFire.setRetryPolicyId(schedule.getRetryPolicyId());
+        freshFire.setUpdatedBy("system");
+        freshFire.setUpdateTime(recoveryTime);
+
+        List<NopJobFire> updatedFires = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(freshFire));
+        if (updatedFires.isEmpty()) {
+            LOG.warn("nop.job.schedule.recovery-fire-version-conflict:fireId={}", failedFire.getJobFireId());
+            return;
+        }
 
         resetFailedTasks(failedFire.getJobFireId(), recoveryTime);
 
@@ -287,7 +323,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             schedule.setVersion(fresh.getVersion());
             schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
-        scheduleDao().updateEntityDirectly(schedule);
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("scheduleId", schedule.getJobScheduleId())
+                .param("reason", "Failed to update schedule after recovery reuse-failed, 5 retries exhausted");
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -304,7 +342,10 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         if (isOverlay(schedule)) {
             for (NopJobFire activeFire : activeFires) {
                 try {
-                    cancelFire(activeFire, updateTime);
+                    boolean cancelled = cancelFire(activeFire, updateTime);
+                    if (cancelled) {
+                        // actualCancelledCount will be derived below
+                    }
                     cancelTasks(activeFire.getJobFireId(), updateTime);
                 } catch (Exception e) {
                     LOG.warn("nop.job.schedule.cancel-fire-failed:fireId={}", activeFire.getJobFireId(), e);
@@ -314,7 +355,15 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         fireDao().saveEntityDirectly(fire);
 
-        int cancelledCount = (isOverlay(schedule) && !activeFires.isEmpty()) ? activeFires.size() : 0;
+        int cancelledCount = 0;
+        if (isOverlay(schedule)) {
+            for (NopJobFire af : activeFires) {
+                NopJobFire fresh = fireDao().requireEntityById(af.getJobFireId());
+                if (fresh.getFireStatus() != null && fresh.getFireStatus() == _NopJobCoreConstants.FIRE_STATUS_CANCELED) {
+                    cancelledCount++;
+                }
+            }
+        }
 
         for (int attempt = 0; attempt < 5; attempt++) {
             if (cancelledCount > 0) {
@@ -342,8 +391,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             schedule.setFireCount(fresh.getFireCount());
             schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
-        scheduleDao().updateEntityDirectly(schedule);
-        return true;
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("scheduleId", schedule.getJobScheduleId())
+                .param("reason", "Failed to update schedule after insertManualFire, 5 retries exhausted");
     }
 
     @Override
@@ -474,14 +524,14 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                 || taskStatus == TASK_STATUS_TIMEOUT);
     }
 
-    private void cancelFire(NopJobFire fire, Timestamp cancelTime) {
+    private boolean cancelFire(NopJobFire fire, Timestamp cancelTime) {
         NopJobFire fresh = fireDao().requireEntityById(fire.getJobFireId());
         Integer currentStatus = fresh.getFireStatus();
         if (currentStatus != null && (currentStatus == FIRE_STATUS_CANCELED
                 || currentStatus == FIRE_STATUS_TIMEOUT
                 || currentStatus == FIRE_STATUS_SUCCESS
                 || currentStatus == FIRE_STATUS_FAILED)) {
-            return;
+            return false;
         }
 
         fresh.setFireStatus(FIRE_STATUS_CANCELED);
@@ -494,7 +544,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fresh));
         if (updated.isEmpty()) {
             LOG.warn("nop.job.schedule.cancel-fire-version-conflict:fireId={}", fire.getJobFireId());
+            return false;
         }
+        return true;
     }
 
     private void cancelTasks(String jobFireId, Timestamp cancelTime) {

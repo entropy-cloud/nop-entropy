@@ -8,6 +8,7 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
@@ -25,10 +26,6 @@ import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_taskStatus;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_workerInstanceId;
 
 public class JobTaskStoreImpl implements IJobTaskStore {
-    private static final int TASK_STATUS_WAITING = 0;
-    private static final int TASK_STATUS_CLAIMED = 10;
-    private static final int TASK_STATUS_RUNNING = 20;
-    private static final int TASK_STATUS_SUSPICIOUS = 15;
 
     private IDaoProvider daoProvider;
 
@@ -47,7 +44,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, TASK_STATUS_WAITING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, _NopJobCoreConstants.TASK_STATUS_WAITING));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_createTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
@@ -64,7 +61,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         java.sql.Timestamp lockTime = new java.sql.Timestamp(
                 taskDao().getDbEstimatedClock().getMaxCurrentTimeMillis() + Math.max(lockTimeoutMs, 1L));
         for (NopJobTask task : tasks) {
-            task.setTaskStatus(TASK_STATUS_CLAIMED);
+            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CLAIMED);
             task.setWorkerInstanceId(workerInstanceId);
             task.setUpdatedBy("system");
             task.setUpdateTime(lockTime);
@@ -77,7 +74,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.in(PROP_NAME_taskStatus,
-                List.of(TASK_STATUS_RUNNING, TASK_STATUS_CLAIMED, TASK_STATUS_SUSPICIOUS)));
+                List.of(_NopJobCoreConstants.TASK_STATUS_RUNNING, _NopJobCoreConstants.TASK_STATUS_CLAIMED, _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS)));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_startTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
@@ -99,9 +96,10 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     }
 
     @Override
-    public long countRunningTasks(String workerInstanceId) {
+    public long countInFlightTasks(String workerInstanceId) {
         QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, TASK_STATUS_RUNNING));
+        query.addFilter(FilterBeans.in(PROP_NAME_taskStatus,
+                List.of(_NopJobCoreConstants.TASK_STATUS_RUNNING, _NopJobCoreConstants.TASK_STATUS_CLAIMED)));
         query.addFilter(FilterBeans.eq(PROP_NAME_workerInstanceId, workerInstanceId));
         return taskDao().countByQuery(query);
     }

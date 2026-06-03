@@ -286,7 +286,7 @@ public class TestJobE2E {
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> t, String w, long l) { return t; }
         @Override public NopJobTask loadTask(String id) { return null; }
-        @Override public long countRunningTasks(String w) { return 0; }
+        @Override public long countInFlightTasks(String w) { return 0; }
     }
 
     static class MockNamingService implements INamingService {

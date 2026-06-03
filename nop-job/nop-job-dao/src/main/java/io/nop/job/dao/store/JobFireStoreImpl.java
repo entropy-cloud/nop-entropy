@@ -250,11 +250,9 @@ public class JobFireStoreImpl implements IJobFireStore {
             schedule.setTotalFireCount(fresh.getTotalFireCount());
             schedule.setFailFireCount(fresh.getFailFireCount());
         }
-        schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
-        schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
-        schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
-        scheduleDao().updateEntityDirectly(schedule);
-        return true;
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("jobFireId", fire.getJobFireId())
+                .param("reason", "Failed to update schedule after cancel fire, 5 retries exhausted");
     }
 
     @Override
