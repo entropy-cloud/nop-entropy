@@ -170,24 +170,24 @@ Exit Criteria:
 
 ### Phase 4 - P2 乐观锁一致性（AR-33, AR-34）
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobFireStoreImpl.java`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobScheduleStoreImpl.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-33: `cancelFire` 中 tasks 更新从 `taskDao().updateEntityDirectly(task)` 改为 `taskDao().tryUpdateManyWithVersionCheck`，版本冲突时重新加载 task 状态，若已为终态（TIMEOUT/CANCELED/SUSPICIOUS）则跳过
-- [ ] AR-34: `JobScheduleStoreImpl` 中全部 5 个 schedule 更新路径从 `scheduleDao().updateEntityDirectly(schedule)` 改为 `tryUpdateManyWithVersionCheck` + 重试（最多 5 次）。5 个路径为：(1) `advanceScheduleAfterSkip:98`、(2) `insertFireAndAdvanceSchedule:114`、(3) `overlayFireAndAdvanceSchedule:153`、(4) `recoveryFireAndAdvanceSchedule:190,215`（两个分支）、(5) `insertManualFire:256`。重试时从 fresh schedule 重新计算差值字段（fireCount、activeFireCount 等），lastFireStatus/lastEndTime/nextFireTime 等覆盖字段直接设置
-- [ ] 为 AR-33 添加测试：模拟 cancel 与 timeout 并发，验证 task 终态不被覆盖
-- [ ] 为 AR-34 添加测试：模拟 planner 与 BizModel 并发更新 schedule，验证计数器不丢失
+- [x] AR-33: `cancelFire` 中 tasks 更新从 `taskDao().updateEntityDirectly(task)` 改为 `taskDao().tryUpdateManyWithVersionCheck`，版本冲突时重新加载 task 状态，若已为终态（TIMEOUT/CANCELED/SUSPICIOUS）则跳过
+- [x] AR-34: `JobScheduleStoreImpl` 中全部 5 个 schedule 更新路径从 `scheduleDao().updateEntityDirectly(schedule)` 改为 `tryUpdateManyWithVersionCheck` + 重试（最多 5 次）。5 个路径为：(1) `advanceScheduleAfterSkip`、(2) `insertFireAndAdvanceSchedule`、(3) `overlayFireAndAdvanceSchedule`、(4) `recoveryFireAndAdvanceSchedule`（两个分支）、(5) `insertManualFire`。重试时从 fresh schedule 重新计算差值字段
+- [x] 为 AR-33 添加测试：模拟 cancel 与 timeout 并发，验证 task 终态不被覆盖
+- [x] 为 AR-34 添加测试：模拟 planner 与 BizModel 并发更新 schedule，验证计数器不丢失
 
 Exit Criteria:
 
-- [ ] `cancelFire` 中 tasks 使用乐观锁，并发 timeout 状态不被覆盖
-- [ ] `JobScheduleStoreImpl` 中所有 schedule 更新路径使用 `tryUpdateManyWithVersionCheck` + 重试
-- [ ] 新增测试覆盖并发场景，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `cancelFire` 中 tasks 使用乐观锁，并发 timeout 状态不被覆盖
+- [x] `JobScheduleStoreImpl` 中所有 schedule 更新路径使用 `tryUpdateManyWithVersionCheck` + 重试
+- [x] 新增测试覆盖并发场景，测试通过
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - P2 触发器语义 + 结果丢失 + 幂等性（AR-30, AR-31, AR-35）
 

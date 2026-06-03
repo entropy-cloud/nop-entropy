@@ -21,6 +21,8 @@ import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
 import io.nop.api.core.exceptions.NopException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -36,6 +38,8 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_FIRE_STATUS_CONFLICT;
 
 public class JobFireStoreImpl implements IJobFireStore {
+    static final Logger LOG = LoggerFactory.getLogger(JobFireStoreImpl.class);
+
     private static final int FIRE_STATUS_WAITING = 0;
     private static final int FIRE_STATUS_DISPATCHING = 10;
     private static final int FIRE_STATUS_RUNNING = 20;
@@ -207,7 +211,19 @@ public class JobFireStoreImpl implements IJobFireStore {
             task.setErrorMessage(ERR_JOB_CANCELED.getDescription());
             task.setUpdatedBy("system");
             task.setUpdateTime(cancelTime);
-            taskDao().updateEntityDirectly(task);
+
+            List<NopJobTask> updatedTasks = taskDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(task));
+            if (updatedTasks.isEmpty()) {
+                NopJobTask freshTask = taskDao().requireEntityById(task.getJobTaskId());
+                if (isTaskFinished(freshTask.getTaskStatus())) {
+                    LOG.debug("nop.job.cancel.task-already-terminal:taskId={},status={}",
+                            task.getJobTaskId(), freshTask.getTaskStatus());
+                    continue;
+                }
+                task.setVersion(freshTask.getVersion());
+                taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task));
+            }
         }
 
         for (int attempt = 0; attempt < 5; attempt++) {

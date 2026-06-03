@@ -92,9 +92,20 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     @Override
     public void advanceScheduleAfterSkip(NopJobSchedule schedule, Timestamp nextFireTime) {
         long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
-        schedule.setNextFireTime(nextFireTime);
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(new Timestamp(now));
+        Timestamp updateTime = new Timestamp(now);
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            schedule.setNextFireTime(nextFireTime);
+            schedule.setUpdatedBy("system");
+            schedule.setUpdateTime(updateTime);
+
+            List<NopJobSchedule> updated = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updated.isEmpty()) return;
+
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+        }
         scheduleDao().updateEntityDirectly(schedule);
     }
 
@@ -104,12 +115,23 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                                              Integer lastFireStatus) {
         fireDao().saveEntityDirectly(fire);
 
-        schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-        schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
-        schedule.setLastFireTime(fire.getScheduledFireTime());
-        schedule.setNextFireTime(nextFireTime);
-        if (lastFireStatus != null) {
-            schedule.setLastFireStatus(lastFireStatus);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
+            schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
+            schedule.setLastFireTime(fire.getScheduledFireTime());
+            schedule.setNextFireTime(nextFireTime);
+            if (lastFireStatus != null) {
+                schedule.setLastFireStatus(lastFireStatus);
+            }
+
+            List<NopJobSchedule> updated = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updated.isEmpty()) return;
+
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            schedule.setFireCount(fresh.getFireCount());
+            schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
         scheduleDao().updateEntityDirectly(schedule);
     }
@@ -133,23 +155,35 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         fireDao().saveEntityDirectly(fire);
 
-        // Count overlay-cancelled fires as completed failures
         int cancelledCount = activeFires.size();
-        schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
-        schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
 
-        schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-        schedule.setActiveFireCount(1);
-        schedule.setLastFireTime(fire.getScheduledFireTime());
-        if (!activeFires.isEmpty()) {
-            schedule.setLastEndTime(cancelTime);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
+            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
+            schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
+            schedule.setActiveFireCount(1);
+            schedule.setLastFireTime(fire.getScheduledFireTime());
+            if (!activeFires.isEmpty()) {
+                schedule.setLastEndTime(cancelTime);
+            }
+            schedule.setNextFireTime(nextFireTime);
+            if (lastFireStatus != null) {
+                schedule.setLastFireStatus(lastFireStatus);
+            }
+            schedule.setUpdatedBy("system");
+            schedule.setUpdateTime(cancelTime);
+
+            List<NopJobSchedule> updated = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updated.isEmpty()) return;
+
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            schedule.setTotalFireCount(fresh.getTotalFireCount());
+            schedule.setFailFireCount(fresh.getFailFireCount());
+            schedule.setFireCount(fresh.getFireCount());
+            schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
-        schedule.setNextFireTime(nextFireTime);
-        if (lastFireStatus != null) {
-            schedule.setLastFireStatus(lastFireStatus);
-        }
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(cancelTime);
         scheduleDao().updateEntityDirectly(schedule);
     }
 
@@ -181,12 +215,23 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
             fireDao().saveEntityDirectly(newFire);
 
-            schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-            schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
-            schedule.setLastFireTime(fireTime);
-            schedule.setNextFireTime(nextFireTime);
-            schedule.setUpdatedBy("system");
-            schedule.setUpdateTime(fireTime);
+            for (int attempt = 0; attempt < 5; attempt++) {
+                schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
+                schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
+                schedule.setLastFireTime(fireTime);
+                schedule.setNextFireTime(nextFireTime);
+                schedule.setUpdatedBy("system");
+                schedule.setUpdateTime(fireTime);
+
+                List<NopJobSchedule> updated = scheduleDao().tryUpdateManyWithVersionCheck(
+                        Collections.singletonList(schedule));
+                if (!updated.isEmpty()) return;
+
+                NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+                schedule.setVersion(fresh.getVersion());
+                schedule.setFireCount(fresh.getFireCount());
+                schedule.setActiveFireCount(fresh.getActiveFireCount());
+            }
             scheduleDao().updateEntityDirectly(schedule);
             return;
         }
@@ -208,10 +253,20 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         resetFailedTasks(failedFire.getJobFireId(), recoveryTime);
 
-        schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
-        schedule.setNextFireTime(nextFireTime);
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(recoveryTime);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
+            schedule.setNextFireTime(nextFireTime);
+            schedule.setUpdatedBy("system");
+            schedule.setUpdateTime(recoveryTime);
+
+            List<NopJobSchedule> updated = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updated.isEmpty()) return;
+
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            schedule.setActiveFireCount(fresh.getActiveFireCount());
+        }
         scheduleDao().updateEntityDirectly(schedule);
     }
 
@@ -239,20 +294,34 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         fireDao().saveEntityDirectly(fire);
 
-        if (isOverlay(schedule) && !activeFires.isEmpty()) {
-            int cancelledCount = activeFires.size();
-            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
-            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
-        }
+        int cancelledCount = (isOverlay(schedule) && !activeFires.isEmpty()) ? activeFires.size() : 0;
 
-        schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-        schedule.setActiveFireCount(isOverlay(schedule) ? 1 : defaultInt(schedule.getActiveFireCount()) + 1);
-        if (isOverlay(schedule) && !activeFires.isEmpty()) {
-            schedule.setLastEndTime(updateTime);
-            schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            if (cancelledCount > 0) {
+                schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
+                schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
+            }
+
+            schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
+            schedule.setActiveFireCount(isOverlay(schedule) ? 1 : defaultInt(schedule.getActiveFireCount()) + 1);
+            if (isOverlay(schedule) && !activeFires.isEmpty()) {
+                schedule.setLastEndTime(updateTime);
+                schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
+            }
+            schedule.setUpdatedBy("system");
+            schedule.setUpdateTime(updateTime);
+
+            List<NopJobSchedule> updated = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updated.isEmpty()) return true;
+
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            schedule.setTotalFireCount(fresh.getTotalFireCount());
+            schedule.setFailFireCount(fresh.getFailFireCount());
+            schedule.setFireCount(fresh.getFireCount());
+            schedule.setActiveFireCount(fresh.getActiveFireCount());
         }
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(updateTime);
         scheduleDao().updateEntityDirectly(schedule);
         return true;
     }
