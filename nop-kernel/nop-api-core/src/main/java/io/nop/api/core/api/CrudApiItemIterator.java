@@ -15,34 +15,34 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class CrudApiItemIterator<T> implements Iterator<T> {
+public class CrudApiItemIterator<I, O> implements Iterator<O> {
 
-    private final CrudApiPageIterator<T> batchIterator;
-    private Iterator<T> currentBatchIterator;
+    private final CrudApiPageIterator<I, O> batchIterator;
+    private Iterator<O> currentBatchIterator;
 
-    public CrudApiItemIterator(CrudApiPageIterator<T> batchIterator) {
+    public CrudApiItemIterator(CrudApiPageIterator<I, O> batchIterator) {
         this.batchIterator = batchIterator;
     }
 
-    public CrudApiItemIterator(ICrudApi<T> api, QueryBean query,
+    public CrudApiItemIterator(ICrudApi<I, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken,
                                int pageSize) {
         this(new CrudApiPageIterator<>(api, query, selection, cancelToken, pageSize));
     }
 
-    public CrudApiItemIterator(ICrudApi<T> api, QueryBean query,
+    public CrudApiItemIterator(ICrudApi<I, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken) {
         this(new CrudApiPageIterator<>(api, query, selection, cancelToken));
     }
 
-    public static <T> CrudApiItemIterator<T> of(ICrudApi<T> api, QueryBean query,
-                                                FieldSelectionBean selection, ICancelToken cancelToken) {
+    public static <I, O> CrudApiItemIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
+                                                      FieldSelectionBean selection, ICancelToken cancelToken) {
         return new CrudApiItemIterator<>(api, query, selection, cancelToken);
     }
 
-    public static <T> CrudApiItemIterator<T> of(ICrudApi<T> api, QueryBean query,
-                                                FieldSelectionBean selection, ICancelToken cancelToken,
-                                                int pageSize) {
+    public static <I, O> CrudApiItemIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
+                                                      FieldSelectionBean selection, ICancelToken cancelToken,
+                                                      int pageSize) {
         return new CrudApiItemIterator<>(api, query, selection, cancelToken, pageSize);
     }
 
@@ -52,7 +52,7 @@ public class CrudApiItemIterator<T> implements Iterator<T> {
             return true;
 
         if (batchIterator.hasNext()) {
-            List<T> batch = batchIterator.next();
+            List<O> batch = batchIterator.next();
             currentBatchIterator = batch.iterator();
             return currentBatchIterator.hasNext();
         }
@@ -61,7 +61,7 @@ public class CrudApiItemIterator<T> implements Iterator<T> {
     }
 
     @Override
-    public T next() {
+    public O next() {
         if (!hasNext())
             throw new NoSuchElementException();
         return currentBatchIterator.next();

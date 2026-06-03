@@ -18,7 +18,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
-public class CrudApiPageIterator<T> implements Iterator<List<T>> {
+public class CrudApiPageIterator<I, O> implements Iterator<List<O>> {
 
     private static final String FRAGMENT_DEFAULTS = "...F_defaults";
     private static final String FIELD_NEXT_CURSOR = "nextCursor";
@@ -26,17 +26,17 @@ public class CrudApiPageIterator<T> implements Iterator<List<T>> {
 
     public static final int DEFAULT_PAGE_SIZE = 100;
 
-    private final ICrudApi<T> api;
+    private final ICrudApi<I, O> api;
     private final QueryBean query;
     private final FieldSelectionBean selection;
     private final ICancelToken cancelToken;
     private final int pageSize;
 
     private String cursor;
-    private List<T> currentBatch;
+    private List<O> currentBatch;
     private boolean eof;
 
-    public CrudApiPageIterator(ICrudApi<T> api, QueryBean query,
+    public CrudApiPageIterator(ICrudApi<I, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken,
                                int pageSize) {
         this.api = Objects.requireNonNull(api);
@@ -47,19 +47,19 @@ public class CrudApiPageIterator<T> implements Iterator<List<T>> {
         this.cursor = query != null ? query.getCursor() : null;
     }
 
-    public CrudApiPageIterator(ICrudApi<T> api, QueryBean query,
+    public CrudApiPageIterator(ICrudApi<I, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken) {
         this(api, query, selection, cancelToken, DEFAULT_PAGE_SIZE);
     }
 
-    public static <T> CrudApiPageIterator<T> of(ICrudApi<T> api, QueryBean query,
-                                                FieldSelectionBean selection, ICancelToken cancelToken) {
+    public static <I, O> CrudApiPageIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
+                                                      FieldSelectionBean selection, ICancelToken cancelToken) {
         return new CrudApiPageIterator<>(api, query, selection, cancelToken);
     }
 
-    public static <T> CrudApiPageIterator<T> of(ICrudApi<T> api, QueryBean query,
-                                                FieldSelectionBean selection, ICancelToken cancelToken,
-                                                int pageSize) {
+    public static <I, O> CrudApiPageIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
+                                                      FieldSelectionBean selection, ICancelToken cancelToken,
+                                                      int pageSize) {
         return new CrudApiPageIterator<>(api, query, selection, cancelToken, pageSize);
     }
 
@@ -90,7 +90,7 @@ public class CrudApiPageIterator<T> implements Iterator<List<T>> {
             throw new CancellationException("nop.cancelled:" + cancelToken.getCancelReason());
 
         QueryBean pageQuery = buildPageQuery();
-        PageBean<T> page = api.findPage(pageQuery, selection, cancelToken);
+        PageBean<O> page = api.findPage(pageQuery, selection, cancelToken);
 
         if (page == null || page.getItems() == null || page.getItems().isEmpty() || Boolean.FALSE.equals(page.getHasNext())) {
             eof = true;
@@ -108,11 +108,11 @@ public class CrudApiPageIterator<T> implements Iterator<List<T>> {
     }
 
     @Override
-    public List<T> next() {
+    public List<O> next() {
         if (!hasNext())
             throw new NoSuchElementException();
 
-        List<T> result = currentBatch;
+        List<O> result = currentBatch;
         currentBatch = null;
         return result;
     }

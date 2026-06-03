@@ -16,7 +16,6 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.beans.std.StdTreeEntity;
 import io.nop.api.core.util.ICancelToken;
 
 import java.util.Collection;
@@ -27,9 +26,10 @@ import java.util.Set;
 /**
  * CRUD API接口，用于表示CrudBizModel远程调用时客户端可用的接口。
  *
- * @param <T> 实体类型
+ * @param <I> 输入类型（如 XxxInputBean）
+ * @param <O> 输出类型（如 XxxOutputBean）
  */
-public interface ICrudApi<T> {
+public interface ICrudApi<I, O> {
 
     // ==================== 查询操作 ====================
 
@@ -41,81 +41,81 @@ public interface ICrudApi<T> {
     }
 
     @BizQuery
-    PageBean<T> findPage(@Optional @Name("query") QueryBean query,
+    PageBean<O> findPage(@Optional @Name("query") QueryBean query,
                          @Optional @Name("selection") FieldSelectionBean selection,
                          ICancelToken cancelToken);
 
-    default PageBean<T> findPage(@Optional @Name("query") QueryBean query) {
+    default PageBean<O> findPage(@Optional @Name("query") QueryBean query) {
         return findPage(query, null, null);
     }
 
-    default PageBean<T> findPage(@Optional @Name("query") QueryBean query,
+    default PageBean<O> findPage(@Optional @Name("query") QueryBean query,
                                  @Optional @Name("selection") FieldSelectionBean selection) {
         return findPage(query, selection, null);
     }
 
     @BizQuery
-    T findFirst(@Optional @Name("query") QueryBean query,
+    O findFirst(@Optional @Name("query") QueryBean query,
                 @Optional @Name("selection") FieldSelectionBean selection,
                 ICancelToken cancelToken);
 
-    default T findFirst(@Optional @Name("query") QueryBean query) {
+    default O findFirst(@Optional @Name("query") QueryBean query) {
         return findFirst(query, null, null);
     }
 
-    default T findFirst(@Optional @Name("query") QueryBean query,
+    default O findFirst(@Optional @Name("query") QueryBean query,
                         @Optional @Name("selection") FieldSelectionBean selection) {
         return findFirst(query, selection, null);
     }
 
     @BizQuery
-    List<T> findList(@Optional @Name("query") QueryBean query,
+    List<O> findList(@Optional @Name("query") QueryBean query,
                      @Optional @Name("selection") FieldSelectionBean selection,
                      ICancelToken cancelToken);
 
-    default List<T> findList(@Optional @Name("query") QueryBean query) {
+    default List<O> findList(@Optional @Name("query") QueryBean query) {
         return findList(query, null, null);
     }
 
-    default List<T> findList(@Optional @Name("query") QueryBean query,
+    default List<O> findList(@Optional @Name("query") QueryBean query,
                              @Optional @Name("selection") FieldSelectionBean selection) {
         return findList(query, selection, null);
     }
 
     @BizQuery
-    T get(@Name("id") String id,
+    O get(@Name("id") String id,
           @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
           FieldSelectionBean selection,
           ICancelToken cancelToken);
 
-    default T get(@Name("id") String id) {
+    default O get(@Name("id") String id) {
         return get(id, false, null, null);
     }
 
-    default T get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown) {
+    default O get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown) {
         return get(id, ignoreUnknown, null, null);
     }
 
-    default T get(@Name("id") String id, FieldSelectionBean selection) {
+    default O get(@Name("id") String id, FieldSelectionBean selection) {
         return get(id, false, selection, null);
     }
 
     @BizQuery
-    List<T> batchGet(@Name("ids") Collection<String> ids,
+    List<O> batchGet(@Name("ids") Collection<String> ids,
                      @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
                      FieldSelectionBean selection,
                      ICancelToken cancelToken);
 
-    default List<T> batchGet(@Name("ids") Collection<String> ids) {
+    default List<O> batchGet(@Name("ids") Collection<String> ids) {
         return batchGet(ids, false, null, null);
     }
 
-    default List<T> batchGet(@Name("ids") Collection<String> ids,
+    default List<O> batchGet(@Name("ids") Collection<String> ids,
                              @Optional @Name("ignoreUnknown") boolean ignoreUnknown) {
         return batchGet(ids, ignoreUnknown, null, null);
     }
 
-    default List<T> batchGet(@Name("ids") Collection<String> ids, FieldSelectionBean selection) {
+    default List<O> batchGet(@Name("ids") Collection<String> ids, FieldSelectionBean selection) {
         return batchGet(ids, false, selection, null);
     }
 
@@ -129,48 +129,48 @@ public interface ICrudApi<T> {
     // ==================== 新增操作 ====================
 
     @BizMutation
-    T save(@Name("data") Map<String, Object> data, FieldSelectionBean selection, ICancelToken cancelToken);
+    O save(@Name("data") I data, FieldSelectionBean selection, ICancelToken cancelToken);
 
-    default T save(@Name("data") Map<String, Object> data) {
+    default O save(@Name("data") I data) {
         return save(data, null, null);
     }
 
-    default T save(@Name("data") Map<String, Object> data, FieldSelectionBean selection) {
+    default O save(@Name("data") I data, FieldSelectionBean selection) {
         return save(data, selection, null);
     }
 
     @BizMutation
-    T saveOrUpdate(@Name("data") Map<String, Object> data, FieldSelectionBean selection, ICancelToken cancelToken);
+    O saveOrUpdate(@Name("data") I data, FieldSelectionBean selection, ICancelToken cancelToken);
 
-    default T saveOrUpdate(@Name("data") Map<String, Object> data) {
+    default O saveOrUpdate(@Name("data") I data) {
         return saveOrUpdate(data, null, null);
     }
 
-    default T saveOrUpdate(@Name("data") Map<String, Object> data, FieldSelectionBean selection) {
+    default O saveOrUpdate(@Name("data") I data, FieldSelectionBean selection) {
         return saveOrUpdate(data, selection, null);
     }
 
     @BizMutation
-    T copyForNew(@Name("data") Map<String, Object> data, FieldSelectionBean selection, ICancelToken cancelToken);
+    O copyForNew(@Name("data") Map<String, Object> data, FieldSelectionBean selection, ICancelToken cancelToken);
 
-    default T copyForNew(@Name("data") Map<String, Object> data) {
+    default O copyForNew(@Name("data") Map<String, Object> data) {
         return copyForNew(data, null, null);
     }
 
-    default T copyForNew(@Name("data") Map<String, Object> data, FieldSelectionBean selection) {
+    default O copyForNew(@Name("data") Map<String, Object> data, FieldSelectionBean selection) {
         return copyForNew(data, selection, null);
     }
 
     // ==================== 修改操作 ====================
 
     @BizMutation
-    T update(@Name("data") Map<String, Object> data, FieldSelectionBean selection, ICancelToken cancelToken);
+    O update(@Name("data") I data, FieldSelectionBean selection, ICancelToken cancelToken);
 
-    default T update(@Name("data") Map<String, Object> data) {
+    default O update(@Name("data") I data) {
         return update(data, null, null);
     }
 
-    default T update(@Name("data") Map<String, Object> data, FieldSelectionBean selection) {
+    default O update(@Name("data") I data, FieldSelectionBean selection) {
         return update(data, selection, null);
     }
 
@@ -300,120 +300,48 @@ public interface ICrudApi<T> {
         updateManyToManyRelations(id, propName, relValues, filter, null);
     }
 
-    // ==================== 树形结构操作 ====================
-
-    @BizQuery
-    List<T> findRoots(@Optional @Name("query") QueryBean query,
-                      @Optional @Name("selection") FieldSelectionBean selection,
-                      ICancelToken cancelToken);
-
-    default List<T> findRoots(@Optional @Name("query") QueryBean query) {
-        return findRoots(query, null, null);
-    }
-
-    default List<T> findRoots(@Optional @Name("query") QueryBean query,
-                              @Optional @Name("selection") FieldSelectionBean selection) {
-        return findRoots(query, selection, null);
-    }
-
-    @BizQuery
-    PageBean<StdTreeEntity> findTreeEntityPage(@Optional @Name("query") QueryBean query,
-                                               @Optional @Name("selection") FieldSelectionBean selection,
-                                               ICancelToken cancelToken);
-
-    default PageBean<StdTreeEntity> findTreeEntityPage(@Optional @Name("query") QueryBean query) {
-        return findTreeEntityPage(query, null, null);
-    }
-
-    default PageBean<StdTreeEntity> findTreeEntityPage(@Optional @Name("query") QueryBean query,
-                                                       @Optional @Name("selection") FieldSelectionBean selection) {
-        return findTreeEntityPage(query, selection, null);
-    }
-
-    @BizQuery
-    List<StdTreeEntity> findTreeEntityList(@Optional @Name("query") QueryBean query,
-                                           @Optional @Name("selection") FieldSelectionBean selection,
-                                           ICancelToken cancelToken);
-
-    default List<StdTreeEntity> findTreeEntityList(@Optional @Name("query") QueryBean query) {
-        return findTreeEntityList(query, null, null);
-    }
-
-    default List<StdTreeEntity> findTreeEntityList(@Optional @Name("query") QueryBean query,
-                                                   @Optional @Name("selection") FieldSelectionBean selection) {
-        return findTreeEntityList(query, selection, null);
-    }
-
-    @BizQuery
-    List<T> findListForTree(@Optional @Name("query") QueryBean query,
-                            @Optional @Name("selection") FieldSelectionBean selection,
-                            ICancelToken cancelToken);
-
-    default List<T> findListForTree(@Optional @Name("query") QueryBean query) {
-        return findListForTree(query, null, null);
-    }
-
-    default List<T> findListForTree(@Optional @Name("query") QueryBean query,
-                                    @Optional @Name("selection") FieldSelectionBean selection) {
-        return findListForTree(query, selection, null);
-    }
-
-    @BizQuery
-    PageBean<T> findPageForTree(@Optional @Name("query") QueryBean query,
-                                @Optional @Name("selection") FieldSelectionBean selection,
-                                ICancelToken cancelToken);
-
-    default PageBean<T> findPageForTree(@Optional @Name("query") QueryBean query) {
-        return findPageForTree(query, null, null);
-    }
-
-    default PageBean<T> findPageForTree(@Optional @Name("query") QueryBean query,
-                                        @Optional @Name("selection") FieldSelectionBean selection) {
-        return findPageForTree(query, selection, null);
-    }
-
     // ==================== 逻辑删除操作 ====================
 
     @BizQuery
-    PageBean<T> deleted_findPage(@Optional @Name("query") QueryBean query,
+    PageBean<O> deleted_findPage(@Optional @Name("query") QueryBean query,
                                  @Optional @Name("selection") FieldSelectionBean selection,
                                  ICancelToken cancelToken);
 
-    default PageBean<T> deleted_findPage(@Optional @Name("query") QueryBean query) {
+    default PageBean<O> deleted_findPage(@Optional @Name("query") QueryBean query) {
         return deleted_findPage(query, null, null);
     }
 
-    default PageBean<T> deleted_findPage(@Optional @Name("query") QueryBean query,
+    default PageBean<O> deleted_findPage(@Optional @Name("query") QueryBean query,
                                          @Optional @Name("selection") FieldSelectionBean selection) {
         return deleted_findPage(query, selection, null);
     }
 
     @BizQuery
-    T deleted_get(@Name("id") String id,
+    O deleted_get(@Name("id") String id,
                   @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
                   FieldSelectionBean selection,
                   ICancelToken cancelToken);
 
-    default T deleted_get(@Name("id") String id) {
+    default O deleted_get(@Name("id") String id) {
         return deleted_get(id, false, null, null);
     }
 
-    default T deleted_get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown) {
+    default O deleted_get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown) {
         return deleted_get(id, ignoreUnknown, null, null);
     }
 
-    default T deleted_get(@Name("id") String id, FieldSelectionBean selection) {
+    default O deleted_get(@Name("id") String id, FieldSelectionBean selection) {
         return deleted_get(id, false, selection, null);
     }
 
     @BizQuery
-    T recoverDeleted(@Name("id") String id, FieldSelectionBean selection, ICancelToken cancelToken);
+    O recoverDeleted(@Name("id") String id, FieldSelectionBean selection, ICancelToken cancelToken);
 
-    default T recoverDeleted(@Name("id") String id) {
+    default O recoverDeleted(@Name("id") String id) {
         return recoverDeleted(id, null, null);
     }
 
-    default T recoverDeleted(@Name("id") String id, FieldSelectionBean selection) {
+    default O recoverDeleted(@Name("id") String id, FieldSelectionBean selection) {
         return recoverDeleted(id, selection, null);
     }
 }
