@@ -226,6 +226,10 @@ public class TestJobE2E {
 
         checker.scanOnce();
 
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, task.getTaskStatus());
+
+        checker.scanOnce();
+
         assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus());
         assertNotNull(task.getEndTime());
     }

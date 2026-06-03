@@ -131,33 +131,33 @@ Exit Criteria:
 
 ### Phase 4 - P2 任务生命周期与事务边界修复（AR-3, AR-5, AR-11, AR-12, AR-13, AR-18）
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-dao/`, `nop-job/nop-job-coordinator/`
 
 - Item Types: `Fix`
 
-- [ ] AR-3: `JobScheduleStoreImpl.insertManualFire` overlay 取消循环添加 try-catch（与 `overlayFireAndAdvanceSchedule` 一致）
-- [ ] AR-5: `JobTimeoutCheckerImpl` 扩展 `fetchRunningTasks` 查询范围包含 CLAIMED 状态，或新增 `fetchClaimedTasks` 查询 + 超时回收逻辑
-- [ ] AR-11: `JobTimeoutCheckerImpl.tryMarkDispatchTimeout` 在完成 fire 后查询并取消关联的未完成 tasks（与 `cancelFire` 一致）
-- [ ] AR-12: `JobScheduleStoreImpl.recoveryFireAndAdvanceSchedule` 的有-failedFires 路径从 schedule 刷新 `jobParamsSnapshot` 和 `retryPolicyId`
-- [ ] AR-13: `JobTimeoutCheckerImpl.scanTaskTimeouts` 中 `tryMarkSuspiciousIfWorkerGone` 成功后 `continue`，跳过当前周期的 timeout 检查
-- [ ] AR-18: `JobScheduleStoreImpl.insertManualFire` overlay 分支添加 `totalFireCount` 和 `failFireCount` 统计更新
-- [ ] 为 AR-5 添加测试：验证 CLAIMED 超时任务被正确回收
-- [ ] 为 AR-11 添加测试：验证 dispatch timeout 时关联 tasks 被取消
-- [ ] 为 AR-13 添加测试：验证 SUSPICIOUS 任务保留至少一个 scan 周期
+- [x] AR-3: `JobScheduleStoreImpl.insertManualFire` overlay 取消循环添加 try-catch（与 `overlayFireAndAdvanceSchedule` 一致）
+- [x] AR-5: `JobTimeoutCheckerImpl` 扩展 `fetchRunningTasks` 查询范围包含 CLAIMED 和 SUSPICIOUS 状态
+- [x] AR-11: `JobTimeoutCheckerImpl.tryMarkDispatchTimeout` 在完成 fire 后查询并取消关联的未完成 tasks（与 `cancelFire` 一致）
+- [x] AR-12: `JobScheduleStoreImpl.recoveryFireAndAdvanceSchedule` 的有-failedFires 路径从 schedule 刷新 `jobParamsSnapshot` 和 `retryPolicyId`
+- [x] AR-13: `JobTimeoutCheckerImpl.scanTaskTimeouts` 中 `tryMarkSuspiciousIfWorkerGone` 成功后 `continue`，跳过当前周期的 timeout 检查
+- [x] AR-18: `JobScheduleStoreImpl.insertManualFire` overlay 分支添加 `totalFireCount` 和 `failFireCount` 统计更新
+- [x] 为 AR-5 添加测试：验证 CLAIMED 超时任务被正确回收
+- [x] 为 AR-11 添加测试：验证 dispatch timeout 时关联 tasks 被取消
+- [x] 为 AR-13 添加测试：验证 SUSPICIOUS 任务保留至少一个 scan 周期
 
 Exit Criteria:
 
-- [ ] `insertManualFire` overlay 路径在取消 fire 失败时不回滚整个事务
-- [ ] CLAIMED 任务在超时后可被回收，不再产生永久孤儿
-- [ ] dispatch timeout 时关联 tasks 被取消
-- [ ] recovery 路径（有/无 failedFires）均使用 schedule 最新参数
-- [ ] SUSPICIOUS 任务保留至少一个 scan 周期后才被转为 TIMEOUT
-- [ ] `insertManualFire` overlay 路径正确更新 `totalFireCount`/`failFireCount`
-- [ ] 新增测试覆盖，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `insertManualFire` overlay 路径在取消 fire 失败时不回滚整个事务
+- [x] CLAIMED 任务在超时后可被回收，不再产生永久孤儿
+- [x] dispatch timeout 时关联 tasks 被取消
+- [x] recovery 路径（有/无 failedFires）均使用 schedule 最新参数
+- [x] SUSPICIOUS 任务保留至少一个 scan 周期后才被转为 TIMEOUT
+- [x] `insertManualFire` overlay 路径正确更新 `totalFireCount`/`failFireCount`
+- [x] 新增测试覆盖，测试通过
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - P2 retryRecordId 死写修复（AR-4）
 

@@ -28,6 +28,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     private static final int TASK_STATUS_WAITING = 0;
     private static final int TASK_STATUS_CLAIMED = 10;
     private static final int TASK_STATUS_RUNNING = 20;
+    private static final int TASK_STATUS_SUSPICIOUS = 15;
 
     private IDaoProvider daoProvider;
 
@@ -75,7 +76,8 @@ public class JobTaskStoreImpl implements IJobTaskStore {
     public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, TASK_STATUS_RUNNING));
+        query.addFilter(FilterBeans.in(PROP_NAME_taskStatus,
+                List.of(TASK_STATUS_RUNNING, TASK_STATUS_CLAIMED, TASK_STATUS_SUSPICIOUS)));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_startTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);

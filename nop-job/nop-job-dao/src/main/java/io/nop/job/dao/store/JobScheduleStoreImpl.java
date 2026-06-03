@@ -200,6 +200,8 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         failedFire.setErrorMessage(null);
         failedFire.setEndTime(null);
         failedFire.setDurationMs(null);
+        failedFire.setJobParamsSnapshot(schedule.getJobParams());
+        failedFire.setRetryPolicyId(schedule.getRetryPolicyId());
         failedFire.setUpdatedBy("system");
         failedFire.setUpdateTime(recoveryTime);
         fireDao().updateEntityDirectly(failedFire);
@@ -226,12 +228,22 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
 
         if (isOverlay(schedule)) {
             for (NopJobFire activeFire : activeFires) {
-                cancelFire(activeFire, updateTime);
-                cancelTasks(activeFire.getJobFireId(), updateTime);
+                try {
+                    cancelFire(activeFire, updateTime);
+                    cancelTasks(activeFire.getJobFireId(), updateTime);
+                } catch (Exception e) {
+                    LOG.warn("nop.job.schedule.cancel-fire-failed:fireId={}", activeFire.getJobFireId(), e);
+                }
             }
         }
 
         fireDao().saveEntityDirectly(fire);
+
+        if (isOverlay(schedule) && !activeFires.isEmpty()) {
+            int cancelledCount = activeFires.size();
+            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
+            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
+        }
 
         schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
         schedule.setActiveFireCount(isOverlay(schedule) ? 1 : defaultInt(schedule.getActiveFireCount()) + 1);

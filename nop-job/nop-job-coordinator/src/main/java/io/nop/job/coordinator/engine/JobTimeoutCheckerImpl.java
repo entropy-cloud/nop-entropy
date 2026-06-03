@@ -175,8 +175,13 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
 
         for (NopJobTask task : tasks) {
             try {
+                int statusBefore = task.getTaskStatus() != null ? task.getTaskStatus() : 0;
                 if (aliveWorkerIds != null) {
                     tryMarkSuspiciousIfWorkerGone(task, aliveWorkerIds);
+                }
+                if (task.getTaskStatus() != null && task.getTaskStatus() == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS
+                        && statusBefore != _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                    continue;
                 }
                 tryMarkTimeout(task, fireMap, scheduleMap);
             } catch (Exception e) {
@@ -225,7 +230,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
 
         LOG.info("nop.job.timeout.worker-suspicious:taskId={},workerId={}", task.getJobTaskId(), workerId);
     }
-
     private void scanDispatchTimeouts(IntRangeSet partitions) {
         if (dispatchTimeoutMs <= 0) {
             return;
@@ -282,6 +286,35 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         schedule.setUpdateTime(endTime);
 
         fireStore.completeFireAndUpdateSchedule(fire, schedule);
+
+        List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
+        for (NopJobTask task : tasks) {
+            if (task.getTaskStatus() != null
+                    && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_WAITING
+                    && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_CLAIMED
+                    && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_RUNNING) {
+                continue;
+            }
+
+            if (cancelHandler != null) {
+                try {
+                    cancelHandler.cancelRunningTask(schedule, fire, task);
+                } catch (Exception e) {
+                    LOG.warn("nop.job.timeout.dispatch-cancel-task-failed:taskId={}", task.getJobTaskId(), e);
+                }
+            }
+
+            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CANCELED);
+            task.setEndTime(endTime);
+            task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
+            task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
+            task.setUpdatedBy("system");
+            task.setUpdateTime(endTime);
+            if (task.getStartTime() != null) {
+                task.setDurationMs(Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L));
+            }
+            taskStore.updateTask(task);
+        }
 
         if (alarmHandler != null) {
             try {
