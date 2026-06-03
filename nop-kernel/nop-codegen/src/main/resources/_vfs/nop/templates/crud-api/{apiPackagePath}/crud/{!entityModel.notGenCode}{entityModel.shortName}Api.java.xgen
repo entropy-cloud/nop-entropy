@@ -1,0 +1,9 @@
+<c:unit xpl:outputMode="text"><![CDATA[package ${apiPackageName}.crud;
+
+import io.nop.api.core.annotations.biz.BizModel;
+import ${apiPackageName}.crud._${entityModel.shortName}Api;
+
+@BizModel("${entityModel.shortName}")
+public interface ${entityModel.shortName}Api extends _${entityModel.shortName}Api{
+}
+]]></c:unit>

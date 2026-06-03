@@ -1,0 +1,51 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+    package ${apiPackageName}.beans._gen;
+
+    import io.nop.api.core.annotations.meta.PropMeta;
+    import io.nop.api.core.api.CrudInputBase;
+    <c:import from="/nop/codegen/xlib/meta-gen.xlib"/>
+    <c:script><![CDATA[
+        import io.nop.commons.util.StringHelper;
+        let inputCols = entityModel.columns.filter(col =>
+            xpl('meta-gen:IsColInsertable',col) || xpl('meta-gen:IsColUpdatable',col));
+        let inputRels = entityModel.relations.filter(rel =>
+            rel.tagSet?.contains('insertable') || rel.tagSet?.contains('updatable'));
+        let hasToMany = inputRels.filter(rel => rel.toManyRelation).size() > 0;
+    ]]></c:script>
+    <c:if test="${hasToMany}">import java.util.List;
+    </c:if>
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
+    public class _${entityModel.shortName}InputBean extends CrudInputBase {
+
+    <c:for var="col" items="${inputCols}"><![CDATA[
+        private ${StringHelper.simplifyJavaType(col.javaTypeName)} _${col.name};
+
+        @PropMeta(propId=${col.propId})
+        public ${StringHelper.simplifyJavaType(col.javaTypeName)} ${col.name.$methodGet()}(){
+            return _${col.name};
+        }
+
+        public void ${col.name.$methodSet()}(${StringHelper.simplifyJavaType(col.javaTypeName)} value){
+            this._${col.name} = value;
+        }
+
+]]></c:for>
+    <c:for var="rel" items="${inputRels}">
+        <c:script><![CDATA[
+            let relType = rel.toOneRelation
+                ? '_' + rel.refEntityModel.shortName + 'InputBean'
+                : 'List<_'+rel.refEntityModel.shortName+'InputBean>';
+        ]]></c:script><![CDATA[
+        private ${relType} _${rel.name};
+
+        public ${relType} ${rel.name.$methodGet()}(){
+            return _${rel.name};
+        }
+
+        public void ${rel.name.$methodSet()}(${relType} value){
+            this._${rel.name} = value;
+        }
+
+]]></c:for>
+    }
+</c:unit>

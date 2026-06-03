@@ -1,0 +1,16 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+    package ${apiPackageName}.crud;
+
+    import ${apiPackageName}.beans._gen._${entityModel.shortName}InputBean;
+    import ${apiPackageName}.beans._gen._${entityModel.shortName}OutputBean;
+    import io.nop.api.core.api.ICrudApi;
+    <c:script><![CDATA[
+        let isTree = entityModel.getColumnByTag('parent') != null;
+    ]]></c:script>
+    <c:if test="${isTree}">import io.nop.api.core.api.ITreeApi;
+    </c:if>
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
+    public interface _${entityModel.shortName}Api<![CDATA[ extends ICrudApi<_${entityModel.shortName}InputBean, _${entityModel.shortName}OutputBean>]]><c:if test="${isTree}"><![CDATA[,
+        ITreeApi<_${entityModel.shortName}OutputBean>]]></c:if><![CDATA[ {
+    }
+]]></c:unit>

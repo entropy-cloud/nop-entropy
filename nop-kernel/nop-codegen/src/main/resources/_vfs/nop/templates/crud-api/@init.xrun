@@ -1,0 +1,8 @@
+<gen:DefineLoopForOrm xpl:lib="/nop/codegen/xlib/gen.xlib">
+    <c:script><![CDATA[
+        let apiPkgName = ormModel['ext:apiPackageName'] || pkgName + '.api';
+        let apiPkgPath = apiPkgName.replace('.','/');
+        builder.defineGlobalVar("apiPackageName", apiPkgName);
+        builder.defineGlobalVar("apiPackagePath", apiPkgPath);
+    ]]></c:script>
+</gen:DefineLoopForOrm>

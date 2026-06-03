@@ -1,0 +1,11 @@
+<c:unit xpl:outputMode="text"><![CDATA[package ${apiPackageName}.beans;
+
+import io.nop.api.core.annotations.data.DataBean;
+import ${apiPackageName}.beans._gen._${entityModel.shortName}OutputBean;
+
+@DataBean
+public class ${entityModel.shortName}OutputBean extends _${entityModel.shortName}OutputBean{
+    public ${entityModel.shortName}OutputBean(){
+    }
+}
+]]></c:unit>
