@@ -301,22 +301,27 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
      * For broadcast fires, a single CANCELED/FAILED/TIMEOUT shard determines
      * the fire's aggregate status. Operators should inspect individual task
      * statuses for partial success details.
-     * SUSPICIOUS tasks are treated as pending (fire stays RUNNING) and will
-     * be escalated to TIMEOUT by the timeout checker.
+     * SUSPICIOUS tasks are treated as pending only while active tasks remain.
+     * Once no WAITING/CLAIMED/RUNNING tasks exist, SUSPICIOUS is treated as
+     * TIMEOUT (worker unreachable).
      */
     private Integer resolveFinalFireStatus(List<NopJobTask> tasks) {
         boolean hasPendingTask = false;
         boolean hasTimeoutTask = false;
         boolean hasFailedTask = false;
         boolean hasCanceledTask = false;
+        boolean hasSuspiciousTask = false;
 
         for (NopJobTask task : tasks) {
             Integer taskStatus = task.getTaskStatus();
             if (taskStatus == null || taskStatus == _NopJobCoreConstants.TASK_STATUS_WAITING
                     || taskStatus == _NopJobCoreConstants.TASK_STATUS_CLAIMED
-                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING
-                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING) {
                 hasPendingTask = true;
+                continue;
+            }
+            if (taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                hasSuspiciousTask = true;
                 continue;
             }
             if (taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT) {
@@ -331,6 +336,11 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         if (hasPendingTask) {
             return null;
         }
+
+        if (hasSuspiciousTask) {
+            hasTimeoutTask = true;
+        }
+
         if (hasTimeoutTask) {
             return _NopJobCoreConstants.FIRE_STATUS_TIMEOUT;
         }

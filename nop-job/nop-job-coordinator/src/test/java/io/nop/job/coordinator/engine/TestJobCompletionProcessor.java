@@ -253,6 +253,99 @@ public class TestJobCompletionProcessor {
         assertEquals(0, alarmHandler.getFailedCount());
     }
 
+    @Test
+    void testSuspiciousWithRunningTask_staysPending() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        NopJobTask runningTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        taskStore.addTask("f1", suspiciousTask);
+        taskStore.addTask("f1", runningTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_RUNNING, fire.getFireStatus());
+    }
+
+    @Test
+    void testSuspiciousOnly_treatedAsTimeout() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        taskStore.addTask("f1", suspiciousTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus());
+        assertEquals(1, alarmHandler.getTimeoutCount());
+    }
+
+    @Test
+    void testSuspiciousWithSuccess_treatedAsTimeout() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        NopJobTask successTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        taskStore.addTask("f1", suspiciousTask);
+        taskStore.addTask("f1", successTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus());
+    }
+
+    @Test
+    void testMixedTimeoutCanceledSuccess_timeoutWins() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask timeoutTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_TIMEOUT);
+        NopJobTask canceledTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_CANCELED);
+        NopJobTask successTask = createTask("t3", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        taskStore.addTask("f1", timeoutTask);
+        taskStore.addTask("f1", canceledTask);
+        taskStore.addTask("f1", successTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus());
+    }
+
+    @Test
+    void testSuspiciousWithFailed_treatedAsTimeout() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        NopJobTask failedTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_FAILED);
+        failedTask.setErrorCode("ERR_X");
+        taskStore.addTask("f1", suspiciousTask);
+        taskStore.addTask("f1", failedTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus(),
+                "SUSPICIOUS is treated as TIMEOUT which has higher priority than FAILED");
+    }
+
     private NopJobFire createFire(String fireId, String scheduleId, int status) {
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId(fireId);
