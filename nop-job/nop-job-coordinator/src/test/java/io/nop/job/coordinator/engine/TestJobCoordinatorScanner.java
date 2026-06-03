@@ -172,7 +172,9 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
     @Test
     public void testCompletionMarksScheduleCompletedWhenTaskRequestsCompletion() {
-        PreparedChain chain = prepareChain(newSchedule("schedule-8", "job-8"));
+        NopJobSchedule schedule = newSchedule("schedule-8", "job-8");
+        schedule.setJobParams(JsonTool.stringify(Map.of("allowResultCompletion", true)));
+        PreparedChain chain = prepareChain(schedule);
         Timestamp endTime = new Timestamp(System.currentTimeMillis() + 2000);
 
         NopJobTask task = taskStore.loadTask(chain.task.getJobTaskId());
