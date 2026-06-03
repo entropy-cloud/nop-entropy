@@ -32,6 +32,7 @@
 |----------|---------|
 | Entity / `I*Biz` / 业务骨架 | `*-codegen/postcompile/gen-orm.xgen`、`/nop/templates/orm` |
 | XMeta / `module-meta.json` | `*-meta/precompile/gen-meta.xgen`、`/nop/templates/meta` |
+| CRUD API / InputBean / OutputBean | `*-meta/precompile/gen-crud-api.xgen`、`/nop/templates/crud-api` |
 | i18n | `*-meta/postcompile/gen-i18n.xgen`；如果是 web 菜单 i18n，还要看 `*-web/precompile2/gen-i18n.xgen` |
 | view / page | `*-web/precompile/gen-page.xgen`、`/nop/templates/orm-web` |
 

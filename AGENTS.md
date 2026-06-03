@@ -28,6 +28,7 @@
 | 新增或修改 ORM 模型 / 数据库表 | `docs-for-ai/02-core-guides/model-first-development.md` | `docs-for-ai/02-core-guides/delta-customization.md` |
 | 修改 IoC 配置、注入、bean 定义 | `docs-for-ai/02-core-guides/ioc-and-config.md` | — |
 | 修改 GraphQL API、crud 操作 | `docs-for-ai/02-core-guides/api-and-graphql.md` | `docs-for-ai/02-core-guides/service-layer.md` |
+| 新增或修改 API 模型（`*.api.xml`）、理解 API codegen 生成物 | `docs-for-ai/02-core-guides/api-model-and-codegen.md` | `docs-for-ai/02-core-guides/api-and-graphql.md` |
 | 修改 Delta 定制、覆盖已有模块 | `docs-for-ai/02-core-guides/delta-customization.md` | `docs-for-ai/02-core-guides/model-first-development.md` |
 | 处理错误码、异常处理 | `docs-for-ai/02-core-guides/error-handling.md` | — |
 | 修改平台框架核心（nop-core/nop-xlang/nop-xdef 等） | `docs-for-ai/02-core-guides/xlang-and-xpl-basics.md` | `docs-for-ai/02-core-guides/xdef-and-xdsl.md` |

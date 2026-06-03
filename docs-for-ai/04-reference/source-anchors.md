@@ -74,6 +74,9 @@
 | `AUTH-001` | `nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml` (bean `nopAuthFilterConfig`) | HTTP 路径认证配置：`defaultPublic`/`publicPaths`/`authPaths`/`servicePaths` |
 | `AUTH-002` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthFilterConfig.java` | 认证配置类，`isPublicPath()` 判定逻辑 |
 | `AUTH-003` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthHttpServerFilter.java` | 认证过滤器实现，token 解析、OAuth、cookie 处理 |
+| `INT-001` | `nop-integration/nop-integration-api/src/main/java/io/nop/integration/api/sms/ISmsSender.java` + `SmsMessage.java` | 外发短信默认接口与消息对象 |
+| `INT-002` | `nop-integration/nop-integration-api/src/main/java/io/nop/integration/api/email/IEmailSender.java` | 外发邮件默认接口 |
+| `RPT-001` | `nop-report/model/nop-report.orm.xml` + `nop-report/nop-report-web/src/main/resources/_vfs/nop/report/auth/_nop-report.action-auth.xml` | `nop-report` 的数据集、报表定义、结果文件和后台页面入口 |
 
 ## 当前最重要的校准点
 

@@ -45,18 +45,22 @@
 |------|----------|
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
+| 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
 | 理解文档冲突优先级和 stale 处理 | `00-start-here/truth-and-precedence.md` |
 | 理解整体仓库结构 | `01-repo-map/module-groups.md` |
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
+| 理解外部应用从 design 到模型、生成、BizModel、测试、联调的默认顺序 | `02-core-guides/application-development-workflow.md` |
 | 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |
 | 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
 | 理解 GraphQL / API 暴露方式 | `02-core-guides/api-and-graphql.md` |
+| 理解 API 模型（*.api.xml）与代码生成（API 接口 vs SPI、生成物清单） | `02-core-guides/api-model-and-codegen.md` |
 | 判断领域逻辑和 DDD 落位 | `02-core-guides/domain-logic-and-ddd.md` |
 | 理解跨切面架构原则（聚合根与表、模块依赖方向、DSL优先等） | `02-core-guides/architecture-principles.md` |
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
+| 判断报表和通知集成默认路线 | `02-core-guides/reporting-and-notification-integration.md` |
 | 判断 IoC 注入和配置写法 | `02-core-guides/ioc-and-config.md` |
 | 理解模型加载后的 `INeedInit` 初始化约定 | `02-core-guides/model-init-and-ineedinit.md` |
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
