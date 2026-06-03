@@ -280,7 +280,14 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
                 continue;
             }
 
-            Map<String, Object> payload = JsonTool.parseMap(resultPayload);
+            Map<String, Object> payload;
+            try {
+                payload = JsonTool.parseMap(resultPayload);
+            } catch (Exception e) {
+                LOG.warn("nop.job.completion.malformed-result-payload:taskId={}", task.getJobTaskId(), e);
+                continue;
+            }
+
             if (allowResultCompletion && Boolean.TRUE.equals(payload.get("completed"))) {
                 return new FireCompletionDecision(true, null);
             }

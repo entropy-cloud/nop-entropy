@@ -526,7 +526,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         NopJobSchedule schedule = newSchedule("schedule-11", "job-11");
         schedule.setBlockStrategy(BLOCK_STRATEGY_RECOVERY);
         schedule.setFireCount(1L);
-        schedule.setActiveFireCount(0);
+        schedule.setActiveFireCount(1);
         Timestamp failedFireTime = new Timestamp(schedule.getNextFireTime().getTime() - 1000);
         schedule.setLastFireTime(failedFireTime);
         daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
@@ -568,7 +568,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         assertEquals(TASK_STATUS_WAITING, recoveredTask.getTaskStatus());
 
         NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
-        assertEquals(1, savedSchedule.getActiveFireCount());
+        assertEquals(2, savedSchedule.getActiveFireCount());
         assertNotNull(savedSchedule.getNextFireTime());
     }
 

@@ -157,8 +157,10 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         }
 
         LOG.warn("nop.job.schedule.persist-optimistic-lock-exhausted:scheduleId={}", schedule.getJobScheduleId());
-        ormDao.updateEntityDirectly(schedule);
-        afterEntityChange(schedule, action, context);
+        throw new NopException(ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION)
+                .param("jobScheduleId", schedule.getJobScheduleId())
+                .param("action", action)
+                .param("reason", "Optimistic lock exhausted after 5 retries");
     }
 
     private void restoreEngineFields(NopJobSchedule target, NopJobSchedule source) {

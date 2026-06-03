@@ -242,7 +242,8 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     }
 
     private boolean shouldRecovery(NopJobSchedule schedule) {
-        return schedule.getBlockStrategy() != null
+        return defaultInt(schedule.getActiveFireCount()) > 0
+                && schedule.getBlockStrategy() != null
                 && schedule.getBlockStrategy() == _NopJobCoreConstants.BLOCK_STRATEGY_RECOVERY;
     }
 
