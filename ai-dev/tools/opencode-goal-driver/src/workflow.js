@@ -169,7 +169,16 @@ async function runFromExecute(config, runner, stepCfgs, startTime) {
     return { status: "failed", cycle: 0, elapsed: durationStr(Date.now() - startTime) };
   }
 
-  return await runConfirmAudit(config, runner, stepCfgs, startTime);
+  const hasIssues = await runConfirmAudit(config, runner, stepCfgs);
+  if (!hasIssues) {
+    const elapsed = durationStr(Date.now() - startTime);
+    log(config, `╚══ ${config.moduleName} 确认审计通过，完善完成 ══`);
+    log(config, `══ 总耗时: ${elapsed} ══`);
+    return { status: "completed", cycle: 1, elapsed };
+  }
+
+  log(config, `╠══ 确认审计发现新问题，进入完整审计循环 ══`);
+  return await runFromAudit(config, runner, stepCfgs, startTime);
 }
 
 async function runFromPlan(config, runner, stepCfgs, startTime) {
@@ -196,10 +205,19 @@ async function runFromPlan(config, runner, stepCfgs, startTime) {
     return { status: "failed", cycle: 0, elapsed: durationStr(Date.now() - startTime) };
   }
 
-  return await runConfirmAudit(config, runner, stepCfgs, startTime);
+  const hasIssues = await runConfirmAudit(config, runner, stepCfgs);
+  if (!hasIssues) {
+    const elapsed = durationStr(Date.now() - startTime);
+    log(config, `╚══ ${config.moduleName} 确认审计通过，完善完成 ══`);
+    log(config, `══ 总耗时: ${elapsed} ══`);
+    return { status: "completed", cycle: 1, elapsed };
+  }
+
+  log(config, `╠══ 确认审计发现新问题，进入完整审计循环 ══`);
+  return await runFromAudit(config, runner, stepCfgs, startTime);
 }
 
-async function runConfirmAudit(config, runner, stepCfgs, startTime) {
+async function runConfirmAudit(config, runner, stepCfgs) {
   log(config, `╔══ 确认审计（单轮，不创建新计划）══`);
 
   const dp = stepCfgs[STEP_NAMES.DEEP_AUDIT];
@@ -219,16 +237,8 @@ async function runConfirmAudit(config, runner, stepCfgs, startTime) {
     if (advVal === arp.markerValues.ISSUES) hasIssues = true;
   }
 
-  const elapsed = durationStr(Date.now() - startTime);
-  if (hasIssues) {
-    log(config, `╚══ 确认审计发现新问题，建议重新运行 driver 从 audit 阶段开始 ══`);
-    log(config, `══ 总耗时: ${elapsed} ══`);
-    return { status: "max_cycles", cycle: 1, elapsed };
-  }
-
-  log(config, `╚══ ${config.moduleName} 确认审计通过，完善完成 ══`);
-  log(config, `══ 总耗时: ${elapsed} ══`);
-  return { status: "completed", cycle: 1, elapsed };
+  log(config, `╚══ 确认审计${hasIssues ? "发现新问题" : "通过"} ══`);
+  return hasIssues;
 }
 
 async function runFromAudit(config, runner, stepCfgs, startTime) {
