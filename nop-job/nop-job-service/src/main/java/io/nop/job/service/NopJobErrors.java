@@ -50,6 +50,11 @@ public interface NopJobErrors{
             "Job tasks must be managed via the Store layer, not through direct CRUD operations"
     );
 
+    ErrorCode ERR_JOB_FIRE_DELETE_NOT_ALLOWED = ErrorCode.define(
+            "nop.err.job.fire.delete-not-allowed",
+            "Job fires must be managed via the Store layer, not through direct CRUD operations"
+    );
+
     String ARG_PARAM_NAME = "paramName";
 
     ErrorCode ERR_RPC_INVOKER_MISSING_PARAM = ErrorCode.define(

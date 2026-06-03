@@ -492,7 +492,8 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         return taskStatus != null
                 && (taskStatus == _NopJobCoreConstants.TASK_STATUS_CANCELED
                 || taskStatus == _NopJobCoreConstants.TASK_STATUS_FAILED
-                || taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT);
+                || taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                || taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
     }
 
     private boolean cancelFire(NopJobFire fire, Timestamp cancelTime) {

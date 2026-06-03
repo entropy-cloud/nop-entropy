@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
@@ -442,5 +443,22 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         task.setUpdatedBy("test");
         task.setUpdateTime(new Timestamp(now));
         return task;
+    }
+
+    @Test
+    public void testDelete_isBlocked() {
+        NopJobSchedule schedule = newSchedule("test-delete-sched", "job-del");
+        schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_ENABLED);
+        saveSchedule(schedule);
+
+        NopJobFire fire = newFire("fire-delete-1", schedule, _NopJobCoreConstants.FIRE_STATUS_WAITING,
+                TRIGGER_SOURCE_SCHEDULE, new Timestamp(System.currentTimeMillis()));
+        saveFire(fire);
+
+        IServiceContext context = newContext();
+
+        NopException ex = assertThrows(NopException.class,
+                () -> fireBiz.delete(fire.getJobFireId(), context));
+        assertEquals(ERR_JOB_FIRE_DELETE_NOT_ALLOWED.getErrorCode(), ex.getErrorCode());
     }
 }

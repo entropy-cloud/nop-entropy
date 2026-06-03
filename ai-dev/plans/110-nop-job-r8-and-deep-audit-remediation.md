@@ -124,24 +124,24 @@ Exit Criteria:
 
 ### Phase 3 - API Protection & Recovery Completeness P2 Fixes
 
-Status: planned
+Status: in progress
 Targets: `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobFireBizModel.java`, `nop-job/nop-job-meta/src/main/resources/_vfs/nop/job/model/NopJobFire/NopJobFire.xmeta`, `nop-job/nop-job-meta/src/main/resources/_vfs/nop/job/model/NopJobTask/NopJobTask.xmeta`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobScheduleStoreImpl.java`
 
 - Item Types: `Fix`
 
-- [ ] **AR-65 (P2)**: 在 `NopJobFireBizModel` 中 override `delete__` 抛出 `NopException(ERR_JOB_FIRE_DELETE_NOT_ALLOWED)`（参照 NopJobTaskBizModel 限制 delete 的模式）；需先在 `NopJobErrors` 中定义 `ERR_JOB_FIRE_DELETE_NOT_ALLOWED` 错误码；考虑同时限制 `save__` 和 `update__` 或至少限制 `delete__`
-- [ ] **AR-67 / Dim11-02 (P2)**: 在 `NopJobFire.xmeta` 中为以下字段添加只读覆盖：`triggerSource`→`insertable="false" updatable="false"`，`scheduledFireTime`→`updatable="false"`，`triggeredBy`→`insertable="false" updatable="false"`，`retryPolicyId`→`updatable="false"`，`retryRecordId`→`updatable="false"`，`partitionIndex`→`updatable="false"`，`jobScheduleId`→`updatable="false"`，`jobParamsSnapshot`→`updatable="false"`，`executorKind`→`updatable="false"`
-- [ ] **Dim11-01 (P2)**: 在 `NopJobTask.xmeta` 中为以下 **4 个尚未限制的字段** 添加限制（注：`jobFireId`、`shardingIndex`、`shardingTotal` 已在 prior plan 中添加了 `updatable="false"`）：`taskPayload`→`updatable="false"`，`taskNo`→`updatable="false"`，`partitionIndex`→`updatable="false"`，`targetHost`→`insertable="false" updatable="false"`
-- [ ] **AR-61 (P2)**: 在 `JobScheduleStoreImpl.isTaskFailed` 中添加 `taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS`，使 RECOVERY 策略能恢复 worker 崩溃导致的 SUSPICIOUS 任务
+- [x] **AR-65 (P2)**: 在 `NopJobFireBizModel` 中 override `delete__` 抛出 `NopException(ERR_JOB_FIRE_DELETE_NOT_ALLOWED)`（参照 NopJobTaskBizModel 限制 delete 的模式）；需先在 `NopJobErrors` 中定义 `ERR_JOB_FIRE_DELETE_NOT_ALLOWED` 错误码；考虑同时限制 `save__` 和 `update__` 或至少限制 `delete__`
+- [x] **AR-67 / Dim11-02 (P2)**: 在 `NopJobFire.xmeta` 中为以下字段添加只读覆盖：`triggerSource`→`insertable="false" updatable="false"`，`scheduledFireTime`→`updatable="false"`，`triggeredBy`→`insertable="false" updatable="false"`，`retryPolicyId`→`updatable="false"`，`retryRecordId`→`updatable="false"`，`partitionIndex`→`updatable="false"`，`jobScheduleId`→`updatable="false"`，`jobParamsSnapshot`→`updatable="false"`，`executorKind`→`updatable="false"`
+- [x] **Dim11-01 (P2)**: 在 `NopJobTask.xmeta` 中为以下 **4 个尚未限制的字段** 添加限制（注：`jobFireId`、`shardingIndex`、`shardingTotal` 已在 prior plan 中添加了 `updatable="false"`）：`taskPayload`→`updatable="false"`，`taskNo`→`updatable="false"`，`partitionIndex`→`updatable="false"`，`targetHost`→`insertable="false" updatable="false"`
+- [x] **AR-61 (P2)**: 在 `JobScheduleStoreImpl.isTaskFailed` 中添加 `taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS`，使 RECOVERY 策略能恢复 worker 崩溃导致的 SUSPICIOUS 任务
 
 Exit Criteria:
 
-- [ ] `NopJobFireBizModel.delete__` 抛出异常，GraphQL `delete__NopJobFire` 操作被拒绝
-- [ ] `NopJobFire.xmeta` 新增 9 个字段的只读覆盖，GraphQL `save__NopJobFire`/`update__NopJobFire` 无法修改引擎管理字段
-- [ ] `NopJobTask.xmeta` 新增 4 个字段的限制（`taskPayload`、`taskNo`、`partitionIndex`、`targetHost`），GraphQL `save__NopJobTask`/`update__NopJobTask` 无法修改引擎管理字段
-- [ ] `isTaskFailed` 包含 SUSPICIOUS 状态，RECOVERY 路径能重置 SUSPICIOUS 任务为 WAITING
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] No owner-doc update required (安全加固)
+- [x] `NopJobFireBizModel.delete__` 抛出异常，GraphQL `delete__NopJobFire` 操作被拒绝
+- [x] `NopJobFire.xmeta` 新增 9 个字段的只读覆盖，GraphQL `save__NopJobFire`/`update__NopJobFire` 无法修改引擎管理字段
+- [x] `NopJobTask.xmeta` 新增 4 个字段的限制（`taskPayload`、`taskNo`、`partitionIndex`、`targetHost`），GraphQL `save__NopJobTask`/`update__NopJobTask` 无法修改引擎管理字段
+- [x] `isTaskFailed` 包含 SUSPICIOUS 状态，RECOVERY 路径能重置 SUSPICIOUS 任务为 WAITING
+- [x] `./mvnw test -pl nop-job -am` 全过
+- [x] No owner-doc update required (安全加固)
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - Trigger & Calendar Robustness P2 Fixes

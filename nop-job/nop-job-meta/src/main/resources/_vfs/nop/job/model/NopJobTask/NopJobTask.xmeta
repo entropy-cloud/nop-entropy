@@ -14,5 +14,9 @@
         <prop name="resultPayload" insertable="false" updatable="false"/>
         <prop name="errorCode" insertable="false" updatable="false"/>
         <prop name="errorMessage" insertable="false" updatable="false"/>
+        <prop name="taskPayload" updatable="false"/>
+        <prop name="taskNo" updatable="false"/>
+        <prop name="partitionIndex" updatable="false"/>
+        <prop name="targetHost" insertable="false" updatable="false"/>
     </props>
 </meta>

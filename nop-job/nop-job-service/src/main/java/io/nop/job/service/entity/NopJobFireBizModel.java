@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import java.sql.Timestamp;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
@@ -32,6 +33,12 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
 
     public NopJobFireBizModel(){
         setEntityName(NopJobFire.class.getName());
+    }
+
+    @Override
+    public boolean delete(String id, IServiceContext context) {
+        throw new NopException(ERR_JOB_FIRE_DELETE_NOT_ALLOWED)
+                .param("jobFireId", id);
     }
 
     @Inject
