@@ -1,0 +1,59 @@
+//__XGEN_FORCE_OVERRIDE__
+    package io.nop.auth.api.beans._gen;
+
+    import io.nop.api.core.annotations.meta.PropMeta;
+    import io.nop.api.core.api.CrudInputBase;
+    
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
+    public class _NopAuthPositionInputBean extends CrudInputBase {
+
+    
+        private String _positionId;
+
+        @PropMeta(propId=1)
+        public String getPositionId(){
+            return _positionId;
+        }
+
+        public void setPositionId(String value){
+            this._positionId = value;
+        }
+
+
+        private String _name;
+
+        @PropMeta(propId=2)
+        public String getName(){
+            return _name;
+        }
+
+        public void setName(String value){
+            this._name = value;
+        }
+
+
+        private Byte _delFlag;
+
+        @PropMeta(propId=3)
+        public Byte getDelFlag(){
+            return _delFlag;
+        }
+
+        public void setDelFlag(Byte value){
+            this._delFlag = value;
+        }
+
+
+        private String _remark;
+
+        @PropMeta(propId=9)
+        public String getRemark(){
+            return _remark;
+        }
+
+        public void setRemark(String value){
+            this._remark = value;
+        }
+
+
+    }

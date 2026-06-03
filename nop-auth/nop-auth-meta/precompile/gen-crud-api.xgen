@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+codeGenerator.withTargetDir("../nop-auth-api/src/main/java/")
+    .renderModel('/nop/auth/orm/app.orm.xml','/nop/templates/crud-api', '/',$scope);
+</c:script>
