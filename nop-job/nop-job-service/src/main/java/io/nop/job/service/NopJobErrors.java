@@ -40,6 +40,11 @@ public interface NopJobErrors{
             "Manual trigger discarded because active fires exist and block strategy is DISCARD"
     );
 
+    ErrorCode ERR_JOB_FIRE_RERUN_DISCARDED = ErrorCode.define(
+            "nop.err.job.fire.rerun-discarded",
+            "Fire rerun discarded because active fires exist and block strategy is DISCARD"
+    );
+
     ErrorCode ERR_JOB_TASK_DELETE_NOT_ALLOWED = ErrorCode.define(
             "nop.err.job.task.delete-not-allowed",
             "Job tasks must be managed via the Store layer, not through direct CRUD operations"

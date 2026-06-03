@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
 
 @BizModel("NopJobFire")
@@ -69,7 +70,12 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         validateRerunSchedule(schedule, "rerunFire");
 
         NopJobFire rerunFire = buildRecoveryFire(sourceFire, context);
-        scheduleStore.insertManualFire(schedule, rerunFire);
+        if (!scheduleStore.insertManualFire(schedule, rerunFire)) {
+            throw new NopException(ERR_JOB_FIRE_RERUN_DISCARDED)
+                    .param("jobFireId", sourceFire.getJobFireId())
+                    .param("jobScheduleId", schedule.getJobScheduleId())
+                    .param("jobName", schedule.getJobName());
+        }
         afterEntityChange(rerunFire, "rerunFire", context);
     }
 

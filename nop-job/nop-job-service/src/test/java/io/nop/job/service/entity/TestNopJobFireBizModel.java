@@ -25,6 +25,7 @@ import java.util.Map;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -45,6 +46,7 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
     private static final int TRIGGER_TYPE_FIXED_DELAY = 3;
     private static final int TRIGGER_SOURCE_SCHEDULE = 1;
     private static final int TRIGGER_SOURCE_MANUAL = 2;
+    private static final int BLOCK_STRATEGY_DISCARD = 1;
 
     @Inject
     IDaoProvider daoProvider;
@@ -273,6 +275,29 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         NopException completedError = assertThrows(NopException.class,
                 () -> fireBiz.rerunFire(completedFire.getJobFireId(), newContext()));
         assertEquals(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED.getErrorCode(), completedError.getErrorCode());
+    }
+
+    @Test
+    public void testRerunFireDiscardedWithBlockStrategyDiscard() {
+        long now = System.currentTimeMillis();
+
+        NopJobSchedule schedule = newSchedule("schedule-fire-rerun-discard", "job-fire-rerun-discard");
+        schedule.setBlockStrategy(BLOCK_STRATEGY_DISCARD);
+        schedule.setFireCount(1L);
+        schedule.setActiveFireCount(1);
+        saveSchedule(schedule);
+
+        NopJobFire activeFire = newFire("fire-active-discard", schedule, FIRE_STATUS_WAITING, TRIGGER_SOURCE_SCHEDULE,
+                new Timestamp(now));
+        saveFire(activeFire);
+
+        NopJobFire sourceFire = newFire("fire-rerun-discard", schedule, _NopJobCoreConstants.FIRE_STATUS_FAILED,
+                TRIGGER_SOURCE_MANUAL, new Timestamp(now - 5_000L));
+        saveFire(sourceFire);
+
+        NopException error = assertThrows(NopException.class,
+                () -> fireBiz.rerunFire(sourceFire.getJobFireId(), newContext()));
+        assertEquals(ERR_JOB_FIRE_RERUN_DISCARDED.getErrorCode(), error.getErrorCode());
     }
 
     private IServiceContext newContext() {

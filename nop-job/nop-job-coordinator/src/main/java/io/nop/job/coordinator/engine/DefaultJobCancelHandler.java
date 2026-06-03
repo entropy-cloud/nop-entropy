@@ -1,5 +1,6 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.job.api.JobInstanceState;
 import io.nop.job.api.execution.IJobExecutionContext;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -58,13 +60,23 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
         return kind != null ? kind : schedule.getExecutorKind();
     }
 
-    private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire) {
+    private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
         Map<String, Object> jobParams = fire.getJobParamsSnapshotComponent().get_jsonMap();
         if (jobParams != null) {
-            return jobParams;
+            jobParams = new HashMap<>(jobParams);
         }
-        Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
-        return scheduleParams == null ? Collections.emptyMap() : scheduleParams;
+        if (jobParams == null) {
+            Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
+            jobParams = scheduleParams == null ? new HashMap<>() : new HashMap<>(scheduleParams);
+        }
+
+        if (task.getTargetHost() != null && !task.getTargetHost().isBlank()) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> headers = (Map<String, Object>) jobParams.computeIfAbsent("headers", k -> new HashMap<String, Object>());
+            headers.put(ApiConstants.HEADER_SVC_TARGET_HOST, task.getTargetHost());
+        }
+
+        return jobParams;
     }
 
     private static final class CancelJobExecutionContext extends JobInstanceState implements IJobExecutionContext {
@@ -80,7 +92,7 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
             setJobGroup(schedule.getGroupId());
             setJobName(schedule.getJobName());
             setJobVersion(0L);
-            setJobParams(resolveJobParams(schedule, fire));
+            setJobParams(resolveJobParams(schedule, fire, task));
             setInstanceId(task.getJobTaskId());
             setExecCount(defaultLong(schedule.getFireCount()));
             setScheduledExecTime(toTime(fire.getScheduledFireTime()));
@@ -102,8 +114,8 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
                 setAttribute("shardingIndex", task.getShardingIndex());
             if (task.getShardingTotal() != null)
                 setAttribute("shardingTotal", task.getShardingTotal());
-            if (task.getWorkerAddress() != null)
-                setAttribute("targetHost", task.getWorkerAddress());
+            if (task.getTargetHost() != null)
+                setAttribute("targetHost", task.getTargetHost());
 
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());
