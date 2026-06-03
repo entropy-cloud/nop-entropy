@@ -227,7 +227,9 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
         task.setUpdatedBy("system");
         task.setUpdateTime(new Timestamp(scheduleStore.getCurrentTime()));
-        taskStore.updateTask(task);
+        if (!taskStore.updateTask(task)) {
+            LOG.warn("nop.job.timeout.worker-suspicious-update-conflict:taskId={}", task.getJobTaskId());
+        }
 
         LOG.info("nop.job.timeout.worker-suspicious:taskId={},workerId={}", task.getJobTaskId(), workerId);
     }
@@ -285,7 +287,9 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
                 task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
                 task.setUpdatedBy("system");
                 task.setUpdateTime(endTime);
-                taskStore.updateTask(task);
+                if (!taskStore.updateTask(task)) {
+                    LOG.warn("nop.job.timeout.dispatch-deleted-task-update-conflict:taskId={}", task.getJobTaskId());
+                }
             }
             return;
         }
@@ -336,7 +340,9 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
             if (task.getStartTime() != null) {
                 task.setDurationMs(Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L));
             }
-            taskStore.updateTask(task);
+            if (!taskStore.updateTask(task)) {
+                LOG.warn("nop.job.timeout.dispatch-task-update-conflict:taskId={}", task.getJobTaskId());
+            }
         }
 
         if (alarmHandler != null) {
@@ -389,7 +395,9 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
         task.setUpdatedBy("system");
         task.setUpdateTime(endTime);
-        taskStore.updateTask(task);
+        if (!taskStore.updateTask(task)) {
+            LOG.warn("nop.job.timeout.suspicious-update-conflict:taskId={}", task.getJobTaskId());
+        }
 
         LOG.info("nop.job.timeout.suspicious-to-timeout:taskId={},workerId={}", task.getJobTaskId(), task.getWorkerInstanceId());
     }
@@ -459,7 +467,9 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
         task.setUpdatedBy("system");
         task.setUpdateTime(endTime);
-        taskStore.updateTask(task);
+        if (!taskStore.updateTask(task)) {
+            LOG.warn("nop.job.timeout.task-update-conflict:taskId={}", task.getJobTaskId());
+        }
     }
 
     private int defaultInt(Integer value) {

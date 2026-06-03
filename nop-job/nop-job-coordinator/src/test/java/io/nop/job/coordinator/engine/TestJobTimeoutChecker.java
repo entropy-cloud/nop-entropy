@@ -386,6 +386,36 @@ public class TestJobTimeoutChecker {
         assertNotNull(fireStore.getFailedErrorCode());
     }
 
+    @Test
+    void test_timeoutUpdateTaskVersionConflictLogsWarn() {
+        MockTaskStore versionStore = new MockTaskStore() {
+            @Override
+            public boolean updateTask(NopJobTask task) {
+                return false;
+            }
+        };
+        checker.setTaskStore(versionStore);
+
+        NopJobTask task = createTask("t-ver", "f-ver", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("worker-a");
+        task.setStartTime(new Timestamp(currentTime - 120000));
+        versionStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-ver", "s-ver", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-ver", fire);
+
+        NopJobSchedule schedule = createSchedule("s-ver", "job1");
+        schedule.setTimeoutSeconds(60);
+        scheduleStore.addSchedule("s-ver", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus(),
+                "Task should still be set to TIMEOUT locally even when updateTask returns false");
+    }
+
     private NopJobTask createTask(String taskId, String fireId, int status) {
         NopJobTask task = new NopJobTask();
         task.setJobTaskId(taskId);
