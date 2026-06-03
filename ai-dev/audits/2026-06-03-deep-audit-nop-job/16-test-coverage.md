@@ -1,33 +1,23 @@
-# 维度 16：测试覆盖审查
+# 维度 16：测试覆盖与质量
 
-## 发现
+## 第 1 轮（初审）
 
-### [16-01] P2 — NopJobTaskBizModel.delete() 完全无测试覆盖
+### [维度16-01] NopJobTaskBizModel 缺少测试覆盖
 
-- **文件**: 无对应的 TestNopJobTaskBizModel 测试类
-- **现状**: `NopJobTaskBizModel.delete()` 方法包含删除权限封堵逻辑，但完全没有测试覆盖。不存在 `TestNopJobTaskBizModel` 测试类。
-- **风险**: 删除封堵逻辑的回归无法被自动检测。任何重构都可能导致封堵逻辑被意外移除。
-- **建议**: 创建 `TestNopJobTaskBizModel` 测试类，覆盖 delete 方法的正常路径和拒绝路径。
+- **文件**: 缺少 `nop-job-service/src/test/java/io/nop/job/service/entity/TestNopJobTaskBizModel.java`
+- **严重程度**: P2
+- **现状**: NopJobTaskBizModel 覆写了 delete() 抛出 ERR_JOB_TASK_DELETE_NOT_ALLOWED，但没有对应测试。
+- **风险**: 核心安全约束（禁止直接删除 task）可能被静默破坏。
+- **建议**: 新增 TestNopJobTaskBizModel，测试 delete() 确实抛出异常。
+- **信心水平**: 高
+- **复核状态**: 未复核
 
-### [16-02] P2 — RpcBroadcastTaskBuilder 零测试覆盖
+### [维度16-02] 测试分层合理
 
-- **文件**: RpcBroadcastTaskBuilder（96 行代码，4+ 分支路径）
-- **现状**: `RpcBroadcastTaskBuilder` 有 96 行代码和 4 个以上的分支路径，但完全没有测试覆盖。
-- **风险**: 广播任务构建逻辑的任何回归都无法被自动检测。
-- **建议**: 为 `RpcBroadcastTaskBuilder` 编写单元测试，覆盖所有分支路径。
+- **严重程度**: 信息性
+- **现状**: coordinator 的纯单元测试不依赖容器；集成/DB 层面用 JunitBaseTestCase + @NopTestConfig(localDb=true)。分层正确。
 
-### [16-03] P3 — CronExpression 测试仅使用单一 cron 模式
+### [维度16-03] 核心引擎路径测试覆盖充分
 
-- **文件**: CronExpression（470 行代码）
-- **现状**: `CronExpression` 的测试仅通过单一 cron 模式 `"0 0 6,19 * * *"` 进行验证。缺少以下场景的测试：
-  - `L`（最后一天）修饰符
-  - `W`（最近工作日）修饰符
-  - `#`（第 N 个星期几）修饰符
-  - 闰年边界条件
-- **建议**: 补充覆盖特殊修饰符和边界条件的测试用例。
-
-### [16-04] P3 — Calendar 子系统零独立测试覆盖
-
-- **文件**: DailyCalendar, BaseCalendar, MonthlyCalendar, CronCalendar 等 8 个类（共 1575 行代码）
-- **现状**: calendar 子系统的 8 个类（1575 行代码）完全没有任何独立的测试覆盖。
-- **建议**: 为 calendar 包添加独立的单元测试。
+- **严重程度**: 信息性
+- **现状**: Planner/Dispatcher/Worker/Completion/Timeout/BizModel/Store层竞态 全部有测试覆盖，包括大量边界条件和错误路径。

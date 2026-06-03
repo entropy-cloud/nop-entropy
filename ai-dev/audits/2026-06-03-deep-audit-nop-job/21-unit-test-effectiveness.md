@@ -1,21 +1,31 @@
-# 维度 21：单元测试有效性审查
+# 维度 21：单元测试有效性
 
-## 通过检查
+## 第 1 轮（初审）
 
-- 无 P-1 至 P-4 反模式 ✓
-- 测试命名整体良好 ✓
-- 无隐式测试依赖 ✓
+### [维度21-01] 测试整体保护力高
 
-## 发现
+- **严重程度**: 信息性
+- **现状**: 核心业务逻辑（Planner/Dispatcher/Completion/Timeout/BizModel/Store竞态）的测试有充分保护力。通过思维实验验证：关键逻辑改为错误实现后，测试会失败。
 
-### [21-01] P3 — TestDefaultJobTaskBuilder.testBuildWithNullSnapshots 断言过于宽松
+### [维度21-02] TestTrigger.testCron 的 System.out.println — P-2 反模式
 
-- **文件**: TestDefaultJobTaskBuilder.testBuildWithNullSnapshots
-- **现状**: 测试对默认为空 map 的返回值仅使用 `assertNotNull` 断言，而实际上该方法在 snapshots 为 null 时总是返回非空 map（空 HashMap）。这属于 P-5 反模式——断言可以无条件通过。
-- **建议**: 增加更有意义的断言，如验证 map 为空或包含预期的默认值。
+- **文件**: `TestTrigger.java:97`
+- **严重程度**: P3
+- **现状**: 测试有充分的断言，System.out.println 纯粹是调试残留。命中 P-2（测试元数据属性）。
+- **建议**: 删除行 97。
+- **信心水平**: 高
+- **复核状态**: 未复核
 
-### [21-02] P3 — TestTrigger.testPeriod 包含无价值断言
+### [维度21-03] Mock Store 实现在多个测试中重复
 
-- **文件**: TestTrigger.testPeriod
-- **现状**: 测试中包含 `assertTrue(beginTime > 0)` 断言，该断言永远为真（因为 beginTime 是 System.currentTimeMillis() 的返回值），无法独立检测任何缺陷。属于 P-5 反模式。
-- **建议**: 替换为有意义的断言，如验证 beginTime 在合理的时间范围内。
+- **文件**: TestJobE2E, TestJobCompletionProcessor, TestJobTimeoutChecker 各自定义独立的 Mock Store 实现
+- **严重程度**: P3
+- **现状**: Mock 类功能高度重复。如果 IJobScheduleStore 接口新增方法，需更新 4+ 个 Mock 类。
+- **建议**: 考虑提取公共 StubJobStores 工具类。
+- **信心水平**: 高
+- **复核状态**: 未复核
+
+### 正向确认
+
+- 无 P-1（纯 getter/setter 往返）、P-4（与实现高度耦合）、P-7（隐式依赖）反模式
+- 测试方法名清晰表达预期行为（P-6 通过）

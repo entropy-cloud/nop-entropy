@@ -1,32 +1,80 @@
-# 维度 07：BizModel 一致性审查
+# 维度 07：BizModel 规范遵循
 
-## 通过检查
+## 第 1 轮（初审）
 
-- 所有 3 个 BizModel 正确继承 `CrudBizModel<T>` ✓
-- 均调用 `setEntityName()` 设置实体名 ✓
-- ORM/xmeta/xbiz 三者匹配 ✓
-- 无 `@BizLoader` 使用 ✓
-- 无 `Map<String,Object>` 反模式 ✓
+### [维度07-01] NopJobScheduleBizModel.persistSchedule 绕过 CrudBizModel 标准 API，直接操作 DAO
 
-## 发现
+- **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobScheduleBizModel.java:141-161`
+- **证据片段**:
+```java
+IOrmEntityDao<NopJobSchedule> ormDao = (IOrmEntityDao<NopJobSchedule>) daoProvider().daoFor(NopJobSchedule.class);
+...
+ormDao.tryUpdateManyWithVersionCheck(...)
+...
+ormDao.updateEntityDirectly(schedule);
+```
+- **严重程度**: P3
+- **现状**: `persistSchedule()` 方法绕过了 `CrudBizModel.updateEntity()` 的标准流程（数据权限检查、唯一性检查、metaFilter 检查等），直接使用底层 DAO 实现乐观锁重试。
+- **风险**: 丢失数据权限检查和唯一性约束检查。但这是调度引擎内部的状态流转（仅修改 scheduleStatus、nextFireTime 等引擎字段），风险有限。
+- **建议**: 在 `persistSchedule()` 方法上添加注释说明这是边界场景及原因。
+- **信心水平**: 90%
+- **误报排除**: 调度引擎场景，CrudBizModel 的标准 updateEntity 不支持乐观锁重试+引擎字段恢复的复合需求。
+- **复核状态**: 未复核
 
-### [07-01] P2 — resolveTriggeredBy 方法在两个 BizModel 中完全重复
+### [维度07-02] triggerNow 使用 Map<String, Object> 代替类型安全结构
 
-- **文件**: NopJobScheduleBizModel:224-235, NopJobFireBizModel:149-160
-- **现状**: `resolveTriggeredBy` 方法在两个 BizModel 中各有一份完全相同的实现（各 12 行代码）。该方法根据触发来源解析触发者信息。
-- **风险**: 任何逻辑修改需要在两处同步。
-- **建议**: 提取到 nop-job-core 的共享工具类或基类中。
+- **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobScheduleBizModel.java:108`
+- **证据片段**:
+```java
+public void triggerNow(@Name("id") String id, @Name("overrideParams") Map<String, Object> overrideParams, IServiceContext context)
+```
+- **严重程度**: P3
+- **现状**: `triggerNow` 方法的 `overrideParams` 参数使用 `Map<String, Object>`，缺乏类型安全。
+- **风险**: API 消费者无法从签名获知结构约定。但 overrideParams 本质上是透传给 job executor 的自由格式参数。
+- **建议**: 考虑定义 `@RequestBean` DTO，或保持现状作为合理折衷。
+- **信心水平**: 70%
+- **误报排除**: overrideParams 是透传的任意 JSON 参数，定义 DTO 反而过度约束灵活性。
+- **复核状态**: 未复核
 
-### [07-02] P2 — cancelFire 可取消性判定逻辑分裂在 BizModel 和 Store 之间
+### [维度07-03] resolveTriggeredBy 方法在两个 BizModel 中重复实现
 
-- **文件**: BizModel 层 `isCancelableStatus` 检查 3 个 Fire 状态；Store 层 `isCancelableFire` 额外增加 Task 完成检查
-- **现状**: cancelFire 的可取消性检查被分裂为两层：BizModel 层先检查 Fire 状态是否在可取消范围内（3 种状态），Store 层再增加 Task 完成度检查。
-- **风险**: 边界情况下 BizModel 预检查通过但 Store 层拒绝，导致用户收到误导性的错误消息（BizModel 层的错误信息不会反映 Store 层的拒绝原因）。
-- **建议**: 统一可取消性判定逻辑，要么全部放在 BizModel 层（推荐，因为这是业务决策），要么在 Store 层拒绝时返回明确的错误信息。
+- **文件**: `NopJobScheduleBizModel.java:262-273` 和 `NopJobFireBizModel.java:155-166`
+- **证据片段**: 两个文件中存在完全相同的 `private String resolveTriggeredBy(IServiceContext context)` 实现。
+- **严重程度**: P3
+- **现状**: 代码重复。
+- **风险**: 维护成本增加。
+- **建议**: 提取到共享工具类。
+- **信心水平**: 95%
+- **误报排除**: 明确的代码重复。
+- **复核状态**: 未复核
 
-### [07-03] P3 — NopJobFireBizModel 使用 fireStore.loadFire() 而非 requireEntity()
+### [维度07-04] NopJobFireBizModel.cancelFire 中 fireStore.loadFire 被重复调用
 
-- **文件**: NopJobFireBizModel:48,63
-- **现状**: `NopJobFireBizModel` 在加载 Fire 实体时使用 `fireStore.loadFire()` 方法，而非 `CrudBizModel` 提供的 `requireEntity(id, action, context)` 方法。
-- **风险**: 当实体不存在时，错误消息中将缺少 action 名称上下文，降低问题排查效率。
-- **建议**: 改用 `requireEntity()` 以获得更丰富的错误上下文信息。
+- **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobFireBizModel.java:54-58`
+- **证据片段**:
+```java
+if (!fireStore.cancelFire(id)) {
+    throwCancelNotAllowed(fireStore.loadFire(id), "cancelFire");
+}
+...
+afterEntityChange(fireStore.loadFire(id), "cancelFire", context);
+```
+- **严重程度**: P3
+- **现状**: `fireStore.loadFire(id)` 在方法中被调用了多次。
+- **风险**: 多余的数据库查询，性能浪费。
+- **建议**: 复用已加载的对象。
+- **信心水平**: 85%
+- **误报排除**: cancelFire 是 CAS 操作，之后重新加载获取最新状态是合理的，但异常分支可复用已有对象。
+- **复核状态**: 未复核
+
+### 正向确认（无问题）
+
+- 三个 BizModel 均正确继承 CrudBizModel<T> 并实现 I*Biz 接口
+- 构造函数均正确调用 setEntityName()
+- @BizModel 注解与 ORM 实体 + xmeta 一一对应
+- 所有变更方法均使用 @BizMutation
+- 所有需要实体的方法均通过 requireEntity() 获取
+- 所有参数均使用 @Name 注解
+- 错误处理使用 NopException + ErrorCode + .param()
+- NopJobTaskBizModel 覆写 delete 阻止直接删除（合理业务约束）
+- 未直接注入其他 BizModel 实现类

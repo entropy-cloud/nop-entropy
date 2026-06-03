@@ -213,6 +213,19 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                 return;
             }
 
+            NopJobFire fire = fireStore.loadFire(task.getJobFireId());
+            if (fire != null && fire.getFireStatus() != null) {
+                int fs = fire.getFireStatus();
+                if (fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_CANCELED
+                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_TIMEOUT
+                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_FAILED
+                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
+                    LOG.warn("nop.job.worker.fire-already-terminal:taskId={},fireId={},fireStatus={}",
+                            jobTaskId, task.getJobFireId(), fs);
+                    return;
+                }
+            }
+
             JobTaskExecutionUpdate update = executionContextBuilder.buildResultUpdate(task, result, err);
             Timestamp endTime = new Timestamp(scheduleStore.getCurrentTime());
 

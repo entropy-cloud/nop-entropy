@@ -193,6 +193,46 @@ public class TestRpcJobInvoker {
         assertEquals("testGroup", headers.get(NopJobApiConstants.HEADER_JOB_GROUP));
     }
 
+    @Test
+    void testTimeoutHeaderFromAttributes() {
+        mockRpc.setResponse(ApiResponse.success("ok"));
+        Map<String, Object> attrs = new HashMap<>();
+        attrs.put("timeoutSeconds", 30);
+        TestJobContext ctx = new TestJobContext(Map.of("serviceName", "myService"), attrs);
+
+        invoker.invokeAsync(ctx).toCompletableFuture().join();
+
+        Map<String, Object> headers = mockRpc.getLastRequest().getHeaders();
+        assertNotNull(headers);
+        assertEquals(30_000L, headers.get("nop-timeout"));
+    }
+
+    @Test
+    void testTimeoutHeaderDefaultWhenZero() {
+        mockRpc.setResponse(ApiResponse.success("ok"));
+        Map<String, Object> attrs = new HashMap<>();
+        attrs.put("timeoutSeconds", 0);
+        TestJobContext ctx = new TestJobContext(Map.of("serviceName", "myService"), attrs);
+
+        invoker.invokeAsync(ctx).toCompletableFuture().join();
+
+        Map<String, Object> headers = mockRpc.getLastRequest().getHeaders();
+        assertNotNull(headers);
+        assertEquals(60_000L, headers.get("nop-timeout"));
+    }
+
+    @Test
+    void testTimeoutHeaderDefaultWhenNoAttributes() {
+        mockRpc.setResponse(ApiResponse.success("ok"));
+        TestJobContext ctx = new TestJobContext(Map.of("serviceName", "myService"));
+
+        invoker.invokeAsync(ctx).toCompletableFuture().join();
+
+        Map<String, Object> headers = mockRpc.getLastRequest().getHeaders();
+        assertNotNull(headers);
+        assertEquals(60_000L, headers.get("nop-timeout"));
+    }
+
     // --- Mock and Stub classes ---
 
     private static class MockRpcServiceInvoker implements IRpcServiceInvoker {

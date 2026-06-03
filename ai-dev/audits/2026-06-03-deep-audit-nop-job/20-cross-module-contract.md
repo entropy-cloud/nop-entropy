@@ -1,16 +1,32 @@
-# 维度 20：跨模块契约审查
+# 维度 20：跨模块契约一致性
 
-## 通过检查
+## 第 1 轮（初审）
 
-- `IJobRetryBridge` 契约健全（NoOp 默认实现 + adapter 覆盖）✓
-- `IJobScheduleStore` / `IJobFireStore` / `IJobTaskStore` 接口定义清晰 ✓
-- nop-retry 方法链完全类型安全 ✓
+### [维度20-01] NopRetryJobRetryBridge.onFireFailed 始终返回 null
 
-## 发现
+- **文件**: `nop-job-retry-adapter/src/main/java/io/nop/job/retry/adapter/NopRetryJobRetryBridge.java:65`
+- **证据片段**:
+```java
+return null; // 总是返回 null
+```
+调用方（JobCompletionProcessorImpl.java:235-238）：
+```java
+String retryRecordId = retryBridge.onFireFailed(event);
+if (retryRecordId != null) {
+    fire.setRetryRecordId(retryRecordId);
+    fireStore.updateRetryRecordId(fire.getJobFireId(), retryRecordId);
+}
+```
+- **严重程度**: P2
+- **现状**: IJobRetryBridge.onFireFailed() 返回 String，调用方期望 retryRecordId。但 NopRetryJobRetryBridge 因 IRetryTask.callAsync() 异步限制始终返回 null。fire.retryRecordId 永远不会被填充。
+- **风险**: 无法从 fire 表追溯到 retry 记录。
+- **建议**: 如果 retry 系统提供了同步获取 recordId 的能力，应更新 bridge 实现。或修改接口设计，在异步回调中更新 retryRecordId。
+- **信心水平**: 高
+- **误报排除**: 测试 TestNopRetryJobRetryBridge:44 显式断言 assertNull，说明开发者有意为之但接受了功能缺陷。
+- **复核状态**: 未复核
 
-### [20-01] P3 — JobFireFailedEvent 缺少 scheduledFireTime 和 jobParamsSnapshot 字段
+### 正向确认
 
-- **文件**: JobFireFailedEvent
-- **现状**: `JobFireFailedEvent` 缺少 `scheduledFireTime` 和 `jobParamsSnapshot` 字段。如果 retry 回调需要这些信息来决定重试策略，当前的事件模型不足以支撑。
-- **影响**: 低风险——如果回调通过 ID 加载完整 Fire 实体，则可以获取这些信息。但如果事件消费者需要在不访问数据库的情况下做决策，则当前设计不足。
-- **建议**: 评估 retry 回调的实际需求，如果需要这些字段则补充到事件中。
+- IJobRetryBridge 接口签名与实现一致
+- IJobScheduler 和 IJobInvoker 接口稳定，LocalJobScheduler/RpcJobInvoker 正确实现
+- NopRetryJobRetryBridge 正确调用 IRetryEngine（来自 nop-retry-api）

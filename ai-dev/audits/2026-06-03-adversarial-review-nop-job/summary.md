@@ -4,14 +4,14 @@
 
 - **审核模块**: nop-job
 - **审核日期**: 2026-06-03
-- **审核类型**: 对抗性审查（开放式发现导向，5 轮深挖）
-- **审查方法**: 从代码异常信号出发，重点验证 2026-05-18 审计修复质量及 R1~R4 修复状态，并在第 5 轮从先前审查盲区（Calendar 边界条件、RPC 广播健康过滤、Trigger 语义映射、trust boundary）出发发现新问题
+- **审核类型**: 对抗性审查（开放式发现导向，6 轮深挖）
+- **审查方法**: 从代码异常信号出发，重点验证 2026-05-18 审计修复质量及 R1~R5 修复状态，并在第 6 轮从先前审查盲区（CronExpression 内部、Trigger 语义、PartitionResolver、RPC Invoker、Worker 错误路径、ORM 索引）出发发现新问题
 
 ## 修复验证结果（累计）
 
-### R1~R4 修复验证（第 5 轮重新验证）
+### R1~R5 修复验证（第 6 轮重新验证）
 
-先前 AR-1~AR-24 的 24 项发现中，**19/24 已修复**（第 4 轮验证时为 13/18）：
+先前 AR-1~AR-35 的 35 项发现中，**30/35 已修复**：
 
 | Round | 修复状态 | 已修复 IDs | 未修复 IDs |
 |-------|---------|-----------|-----------|
@@ -19,8 +19,9 @@
 | R2 | 6/9 | AR-8, AR-9, AR-10, AR-11, AR-12, AR-13 | AR-14(P3), AR-15(P3), AR-16(P3) |
 | R3 | 2/2 | AR-17, AR-18 | — |
 | R4 | 4/6 | AR-19, AR-20, AR-21, AR-22 | AR-23(P2→已修复), AR-24(P2) |
+| R5 | 9/11 | AR-25,26,28,29,30,33,34,35 | AR-27(P2→部分修复), AR-32(P3) |
 
-**总修复率**: 19/24 (79%)
+**总修复率**: 30/35 (86%)
 
 ### 仍未修复（5 项，均为 P3 或已知设计限制）
 
@@ -30,75 +31,89 @@
 - **AR-15 (P3)**: findFirstErrorTask 优先级不一致
 - **AR-16 (P3)**: RpcBroadcastTaskBuilder 不设置 taskPayload
 
+### 部分修复（2 项）
+
+- **AR-27 (P2)**: CronCalendar skip-ahead 逻辑存在但仍无最大迭代保护
+- **AR-31 (P2)**: updateTask 失败有 WARN 日志但 silent early-return 路径仍无日志
+
 ### 已知设计限制（2 项）
 
-- **AR-24/Prior F9 (P2)**: NopRetryJobRetryBridge 返回 null — 异步重试无法同步获取真实 ID，retryRecordId 跨系统追踪链路不完整
+- **AR-24/Prior F9 (P2)**: NopRetryJobRetryBridge 返回 null — 异步重试无法同步获取真实 ID
 - **Prior F14 (P3)**: JobFireResult.CONTINUE 字段/方法名冲突
 
-## 新发现汇总（33 项，R1: 7 + R2: 9 + R3: 2 + R4: 6 + R5: 9）
+## 新发现汇总（6 轮共 47 项）
 
-### Round 5 发现（Calendar 边界条件、Trust Boundary、ScheduleStore 乐观锁遗漏）
+### Round 6 发现（盲区深挖：CronExpression、Trigger 语义、PartitionResolver、RPC Invoker、Worker 错误路径、ORM 索引）
 
 | ID | 严重程度 | 一句话摘要 |
 |----|---------|-----------|
-| AR-25 | **P1** | AnnualCalendar.excludeDays 未初始化 → isExcludedDay NPE |
-| AR-26 | P2 | HolidayCalendar/AnnualCalendar.getNextIncludedTime 排除所有未来日期时无限循环 |
-| AR-27 | P2 | CronCalendar.getNextIncludedTime 毫秒级扫描 — 长排除范围下性能极差 |
-| AR-28 | P2 | RpcBroadcastTaskBuilder 不按健康状态过滤服务实例 — 向不健康节点派发任务 |
-| AR-29 | **P1** | resolveCompletionDecision 信任未验证的 task result 将 schedule 标记为 COMPLETED |
-| AR-30 | P2 | LimitCountTrigger 使用 totalFireCount 而非 fireCount — PARALLEL 策略可超出 maxExecutionCount |
-| AR-31 | P2 | handleExecutionResult updateTask 失败后静默丢弃执行结果 — 无重试无日志 |
-| AR-32 | P3 | Task builders 使用 System.currentTimeMillis() 而非 DB 时钟 |
-| AR-33 | P2 | cancelFire 中 tasks 使用 updateEntityDirectly — 可覆盖并发 timeout 状态 |
-| AR-34 | P2 | JobScheduleStoreImpl 5 个 schedule 更新路径全部使用 updateEntityDirectly — planner 路径缺乏乐观锁 |
-| AR-35 | P2 | Schedule lock 使用 nextFireTime 作为隐式锁 — planner 崩溃后可能产生重复 fire |
+| AR-36 | **P1** | handleExecutionResult 不检查 fire 状态 — 已取消的 fire 可被标记为 SUCCESS |
+| AR-37 | **P1** | RpcJobInvoker RPC 调用传入 null 超时 — 无客户端超时保护 |
+| AR-38 | **P1** | nop_job_fire 缺少 (jobScheduleId, fireStatus) 复合索引 — 活跃 fire 查询全表扫描 |
+| AR-39 | P2 | Unique key 阻止同一时间不同 triggerSource 的 fire |
+| AR-40 | P2 | HandleMisfireTrigger 对 OnceTrigger 无效 — misfire 阈值被忽略 |
+| AR-41 | P2 | invoker.invokeAsync 返回 null 被静默当作 SUCCESS |
+| AR-42 | P2 | JobPartitionResolver 每次扫描都查询 naming service — 无缓存 |
+| AR-43 | P2 | CronExpression.getTimeAfter 每次创建新 GregorianCalendar — GC 压力 |
+| AR-44 | P2 | JobScheduleStoreImpl 内部 helper 仍使用 updateEntityDirectly — cancel/reset 无版本保护 |
+| AR-45 | P3 | CronExpression.equals() 忽略 timeZone — 不同时区比较为相等 |
+| AR-46 | P2 | JobPartitionResolver 首次调用信任 naming service — 启动时集群不稳 |
+| AR-47 | P3 | RpcBroadcastTaskBuilder.emptyIfNull() 死代码 |
 
-## 合并严重程度分布（Round 1~5）
+## 合并严重程度分布（Round 1~6）
 
 | 严重程度 | 数量 | 主要类别 |
 |---------|------|---------|
 | P0      | 0    | —       |
-| P1      | 9    | AR-1,2,8,9,17,19,20(R1-R4 均已修复), AR-25(Calendar NPE), AR-29(result-driven completion) |
-| P2      | 19   | AR-3~5,10~13,18,21~24(R1-R4 均已修复), AR-26~28,30~31,33~35(R5 新增) |
-| P3      | 7    | AR-6,7,14~16(未修复低优先级), AR-32(R5 新增) |
+| P1      | 3 (新) | fire 状态竞态, RPC 无超时, 缺失索引 |
+| P2      | 7 (新) | unique key 误拦截, OnceTrigger misfire, null promise, naming 缓存, GC 压力, helper 版本保护, 首次信任 |
+| P3      | 3 (新) | equals 忽略时区, 死代码, CronCalendar 遗留 |
 
 ## 总评
 
-nop-job 模块经过五轮对抗性审查，共发现 35 项问题（含 prior findings 验证）。R1~R4 的 24 项中 19 项已修复（修复率 79%），R5 新增 11 项。模块整体质量显著提升，R4 报告的所有 P1/P2 问题均已修复。最值得关注的 3 个方向：
+nop-job 模块经过六轮对抗性审查，R1~R5 的 35 项中 30 项已修复（修复率 86%），R6 新增 12 项。模块在事务安全性（乐观锁覆盖）、状态机正确性（cancel/dispatch 版本检查）、Calendar 防御编码等方面显著提升。R6 的发现主要集中在先前审查未触及的盲区。
 
-**1. Calendar 边界条件组合 (AR-25, AR-26, AR-27)**
+### 最值得关注的 3 个方向
 
-三个独立的 Calendar 实现问题：AnnualCalendar 未初始化导致 NPE、排除日期过多导致无限循环、CronCalendar 退化为毫秒扫描。这些是先前审查未触及的盲区。Calendar 是 trigger 计算的基础设施，其稳定性直接影响 scheduler 可用性。建议统一增加防御性编码。
+**1. Worker 结果处理与 fire 状态的竞态 (AR-36, P1)**
 
-**2. result-driven completion 缺乏安全门 (AR-29)**
+Worker 的 `handleExecutionResult` 只检查 task 状态不看 fire 状态。在 cancel + worker result 的时序窗口下，已取消的 fire 可能被重新标记为 SUCCESS。这是 AR-20 修复（dispatch 状态机覆盖）之后的状态机正确性残留——dispatch 路径已有版本保护，但 worker 的异步回调路径没有。
 
-`resolveCompletionDecision` 信任 task 的 `resultPayload` 中的 `completed: true` 来永久终止 schedule。任何 job 实现都可以终止调度。建议添加 schedule 级别的配置开关。
+**2. RPC 调用无超时 (AR-37, P1) + 缺失索引 (AR-38, P1)**
 
-**3. ScheduleStore 的 updateEntityDirectly 系统性遗漏 (AR-34)**
+两个独立的 P1 问题：RPC 调用传入 null 超时导致资源泄漏（hang 的 RPC 占用连接池），活跃 fire 查询缺少 `(jobScheduleId, fireStatus)` 复合索引导致全表扫描。两者都在 10x 规模下显著影响可用性，且修复成本很低。
 
-AR-9/AR-19/AR-22 修复了 fireStore 和 BizModel 中的乐观锁问题，但 `JobScheduleStoreImpl` 中的 5 个更新路径全部仍使用 `updateEntityDirectly`。这是 updateEntityDirectly 遗留问题的最后一层——engine 层已修复，store 层仍未覆盖。
+**3. CronExpression 性能 (AR-43, P2) + PartitionResolver 无缓存 (AR-42, P2)**
+
+CronExpression 每次调用创建 GregorianCalendar（重量级对象），PartitionResolver 每次扫描查询远程 naming service。两者叠加在 10k+ schedule 部署下会产生显著的 GC 压力和网络开销。
 
 ## 优先修复建议
 
-### 待修复（按优先级排序）
+### 高优先级（P1）
 
-1. **P1 [AR-25]**: `AnnualCalendar.excludeDays` 初始化为 `Collections.emptyList()`
-2. **P1 [AR-29]**: 为 result-driven completion 添加 schedule 配置开关（如 `allowResultCompletion`）
-3. **P2 [AR-26]**: HolidayCalendar/AnnualCalendar 添加最大迭代次数（366×5）
-4. **P2 [AR-27]**: CronCalendar 非满足路径跳转到 `baseCalendar.getNextIncludedTime()` 而非逐毫秒递增
-5. **P2 [AR-28]**: RpcBroadcastTaskBuilder 过滤 `isHealthy() && isEnabled()`
-6. **P2 [AR-34]**: JobScheduleStoreImpl 的 schedule 更新逐步改用 `tryUpdateManyWithVersionCheck`
-7. **P2 [AR-33]**: cancelFire 的 task 更新改用 `tryUpdateManyWithVersionCheck`
-8. **P2 [AR-30]**: `getFireCount()` 改用 `fireCount`（已调度计数）替代 `totalFireCount`
-9. **P2 [AR-31]**: handleExecutionResult updateTask 失败时添加重试或 WARN 日志
-10. **P2 [AR-24]**: `NopRetryJobRetryBridge` 改进 retry record ID 回填机制
+1. **[AR-36]**: `handleExecutionResult` 在写入 task 结果前检查 fire 状态
+2. **[AR-37]**: `RpcJobInvoker` 传入 `schedule.getTimeoutSeconds()` 作为 RPC 超时
+3. **[AR-38]**: 添加索引 `IX_NOP_JOB_FIRE_SCHEDULE_STATUS (jobScheduleId, fireStatus)`
 
-### 已修复（本轮验证通过）
+### 中优先级（P2）
 
-AR-1~AR-5 (R1), AR-8~AR-13 (R2), AR-17~AR-18 (R3), AR-19~AR-23 (R4) — 共 19 项已确认修复。
+4. **[AR-40]**: HandleMisfireTrigger 对 ONCE 触发器检查返回值是否在可接受窗口
+5. **[AR-41]**: 将 null promise 当作错误而非成功
+6. **[AR-42]**: PartitionResolver 添加短期缓存（5-10 秒 TTL）
+7. **[AR-43]**: CronExpression 复用 Calendar 实例
+8. **[AR-44]**: 内部 helper 改用 `tryUpdateManyWithVersionCheck`
+9. **[AR-39]**: hasWaitingFire 检查 triggerSource 或调整 unique key
+10. **[AR-46]**: 首次调用返回不稳定
+
+### 低优先级（P3）
+
+11. **[AR-45]**: CronExpression.equals() 加入 timeZone 比较
+12. **[AR-47]**: 删除死代码 emptyIfNull
+13. **[AR-27 residual]**: CronCalendar 添加最大迭代保护
 
 ## 去重信息
 
 - 2026-05-18-adversarial-review-nop-job (R1+R2): 31 项发现，已验证状态
 - 2026-05-18-deep-audit-nop-job-full: 154 项发现（系统审计）
-- 2026-06-03-deep-audit-nop-job: 36 项发现（21 维度系统审计），本报告仅覆盖对抗性审查范围
+- 2026-06-03-deep-audit-nop-job: 36 项发现（21 维度系统审计）
+- 本报告第 6 轮覆盖先前 5 轮明确标注的盲区：CronExpression 内部、HandleMisfireTrigger、JobPartitionResolver、RPC Invoker、Worker 错误路径、ORM 索引

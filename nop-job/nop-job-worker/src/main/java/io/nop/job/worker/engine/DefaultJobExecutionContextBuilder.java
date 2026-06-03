@@ -80,6 +80,7 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
             setAttribute("jobFireId", fire.getJobFireId());
             setAttribute("jobTaskId", task.getJobTaskId());
             setAttribute("executorKind", schedule.getExecutorKind());
+            setAttribute("timeoutSeconds", schedule.getTimeoutSeconds() != null ? schedule.getTimeoutSeconds() : 0);
 
             // Sharding info and target host are now stored as entity columns (set by
             // RpcBroadcastTaskBuilder). RpcJobInvoker reads them from attributes and

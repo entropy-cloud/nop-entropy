@@ -1,19 +1,10 @@
-# 维度 08：IoC Beans 审查
+# 维度 08：IoC 与 Bean 配置
 
-## 通过检查
+## 第 1 轮（初审）
 
-- 无手改 `_*.beans.xml` 文件 ✓
-- 所有 `@Inject` 使用 public setter 方法（非 private 字段）✓
-- 无 Spring 专属注解误用（无 `@Autowired`、`@Value`）✓
-- 所有 `@InjectValue` 语法正确 ✓
-- `_module` 文件格式可接受 ✓
+### 结论：IoC 配置合规，无发现
 
-## 发现
-
-### [08-01] P1 — job-retry-adapter.beans.xml 不匹配 NopIoC 自动发现模式
-
-- **文件**: nop-job-retry-adapter/src/main/resources/_vfs/nop/job/beans/job-retry-adapter.beans.xml
-- **现状**: beans 文件命名为 `job-retry-adapter.beans.xml`，不匹配 NopIoC 的自动发现模式。`AppBeanContainerLoader.isAppBeans()` 仅匹配 `app.beans.xml` 和 `app-*.beans.xml` 模式。
-- **影响**: `NopRetryJobRetryBridge` bean 定义永远不会被 IoC 容器加载，导致 nop-retry 引擎集成形同虚设。该模块的 retry 桥接功能完全不工作。
-- **根因**: 文件命名不符合 NopIoC 约定。
-- **建议**: 将文件重命名为 `app-retry-adapter.beans.xml`。
+1. **@Inject 方式**: 所有 `@Inject` 均使用 setter 方法注入（public setter），未发现 private 字段注入。
+2. **无 Spring 注解误用**: 整个模块零 import `org.springframework`。
+3. **beans.xml 约定**: 手写 app-*.beans.xml 正确 import 对应的 _*.beans.xml，bean id 命名遵循接口全限定名约定。
+4. **_module 文件**: 四个模块的 _module 均正确标记 VFS 路径。

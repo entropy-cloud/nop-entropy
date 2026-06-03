@@ -315,6 +315,10 @@
                 <index name="IX_NOP_JOB_FIRE_RETRY" unique="false">
                     <column name="retryRecordId"/>
                 </index>
+                <index name="IX_NOP_JOB_FIRE_SCHEDULE_STATUS" unique="false">
+                    <column name="jobScheduleId"/>
+                    <column name="fireStatus"/>
+                </index>
             </indexes>
         </entity>
 
