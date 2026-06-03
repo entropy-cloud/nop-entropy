@@ -62,7 +62,7 @@ public class NopRetryJobRetryBridge implements IJobRetryBridge {
                         }
                     });
 
-            return event.getJobFireId();
+            return null;
         } catch (Exception e) {
             LOG.error("nop.job.retry.bridge-error:fireId={}", event.getJobFireId(), e);
             return null;

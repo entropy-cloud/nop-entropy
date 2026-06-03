@@ -41,7 +41,7 @@ public class TestNopRetryJobRetryBridge {
 
         String result = bridge.onFireFailed(event);
 
-        assertEquals("fire-1", result);
+        assertNull(result, "onFireFailed should return null, not the jobFireId");
 
         retryEngine.awaitTask(2, TimeUnit.SECONDS);
 
