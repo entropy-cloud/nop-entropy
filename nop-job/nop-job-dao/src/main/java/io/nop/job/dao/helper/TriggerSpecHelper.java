@@ -39,7 +39,7 @@ public class TriggerSpecHelper {
         return new ITriggerEvalContext() {
             @Override
             public long getFireCount() {
-                return defaultLong(schedule.getTotalFireCount());
+                return defaultLong(schedule.getFireCount());
             }
 
             @Override

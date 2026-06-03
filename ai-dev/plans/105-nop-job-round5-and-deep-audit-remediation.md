@@ -191,27 +191,27 @@ Exit Criteria:
 
 ### Phase 5 - P2 触发器语义 + 结果丢失 + 幂等性（AR-30, AR-31, AR-35）
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/helper/TriggerSpecHelper.java`, `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobScheduleStoreImpl.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-30: `TriggerSpecHelper.toEvalContext` 中 `getFireCount()` 改为 `schedule.getFireCount()`（已调度计数，包含 active）而非 `schedule.getTotalFireCount()`（仅已完成计数）
-- [ ] AR-31: `JobWorkerScannerImpl.handleExecutionResult` 中 updateTask 版本冲突且 task 仍为 RUNNING/CLAIMED 时，记录 WARN 日志（包含 jobTaskId、taskStatus、执行结果摘要），而非静默丢弃
-- [ ] AR-35: `insertFireAndAdvanceSchedule` 在创建新 fire 前查询是否已存在相同 `scheduledFireTime` 的 WAITING fire（按 `jobScheduleId + scheduledFireTime + fireStatus=WAITING` 查询），若存在则跳过创建
-- [ ] 为 AR-30 添加测试：验证 PARALLEL 策略下 `LimitCountTrigger` 使用 `fireCount` 正确限制执行次数
-- [ ] 为 AR-31 添加测试：验证 updateTask 失败时产生 WARN 日志
-- [ ] 为 AR-35 添加测试：验证 planner 崩溃恢复后不产生重复 fire
+- [x] AR-30: `TriggerSpecHelper.toEvalContext` 中 `getFireCount()` 改为 `schedule.getFireCount()`（已调度计数，包含 active）而非 `schedule.getTotalFireCount()`（仅已完成计数）
+- [x] AR-31: `JobWorkerScannerImpl.handleExecutionResult` 中 updateTask 版本冲突且 task 仍为 RUNNING/CLAIMED 时，记录 WARN 日志（包含 jobTaskId、taskStatus、执行结果摘要），而非静默丢弃
+- [x] AR-35: `insertFireAndAdvanceSchedule` 在创建新 fire 前查询是否已存在相同 `scheduledFireTime` 的 WAITING fire（按 `jobScheduleId + scheduledFireTime + fireStatus=WAITING` 查询），若存在则跳过创建
+- [x] 为 AR-30 添加测试：验证 PARALLEL 策略下 `LimitCountTrigger` 使用 `fireCount` 正确限制执行次数
+- [x] 为 AR-31 添加测试：验证 updateTask 失败时产生 WARN 日志
+- [x] 为 AR-35 添加测试：验证 planner 崩溃恢复后不产生重复 fire
 
 Exit Criteria:
 
-- [ ] `getFireCount()` 返回 `schedule.getFireCount()`（已调度计数），PARALLEL + maxExecutionCount 组合不再超限
-- [ ] updateTask 失败且 task 非 TIMEOUT/CANCELED 时记录 WARN 日志
-- [ ] `insertFireAndAdvanceSchedule` 有幂等性检查，防止 planner 崩溃恢复后产生重复 fire
-- [ ] 新增测试覆盖，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `getFireCount()` 返回 `schedule.getFireCount()`（已调度计数），PARALLEL + maxExecutionCount 组合不再超限
+- [x] updateTask 失败且 task 非 TIMEOUT/CANCELED 时记录 WARN 日志
+- [x] `insertFireAndAdvanceSchedule` 有幂等性检查，防止 planner 崩溃恢复后产生重复 fire
+- [x] 新增测试覆盖，测试通过
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - 深度审计 P2 关键修复（07-01, 15-01, 04-01, 09-01/02-deep, 05-01, 09-05）
 

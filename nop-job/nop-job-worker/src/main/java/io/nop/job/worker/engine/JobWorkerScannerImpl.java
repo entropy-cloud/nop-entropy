@@ -243,6 +243,8 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                         || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
                     return;
                 }
+                LOG.warn("nop.job.worker.update-task-conflict:taskId={},status={},resultStatus={}",
+                        jobTaskId, freshTask.getTaskStatus(), update.getTaskStatus());
             }
 
             long duration = task.getStartTime() != null ? Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L) : 0L;
