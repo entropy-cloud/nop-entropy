@@ -146,7 +146,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         Long successTarget = schedule.getSuccessFireCount();
         Long failTarget = schedule.getFailFireCount();
 
-        for (int attempt = 0; attempt < 3; attempt++) {
+        for (int attempt = 0; attempt < 5; attempt++) {
             List<NopJobSchedule> updatedSchedules = scheduleDao().tryUpdateManyWithVersionCheck(
                     Collections.singletonList(schedule));
             if (!updatedSchedules.isEmpty()) {
@@ -166,7 +166,9 @@ public class JobFireStoreImpl implements IJobFireStore {
                 schedule.setFailFireCount(defaultLong(fresh.getFailFireCount()) + (failTarget - origFailFireCount));
             }
         }
-        scheduleDao().updateEntityDirectly(schedule);
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("jobFireId", fire.getJobFireId())
+                .param("reason", "Failed to update schedule after 5 optimistic lock retries");
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -269,6 +271,20 @@ public class JobFireStoreImpl implements IJobFireStore {
     public void updateRetryRecordId(String jobFireId, String retryRecordId) {
         NopJobFire fire = fireDao().requireEntityById(jobFireId);
         fire.setRetryRecordId(retryRecordId);
+        fireDao().updateEntityDirectly(fire);
+    }
+
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+        NopJobFire fire = fireDao().requireEntityById(jobFireId);
+        fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);
+        fire.setEndTime(new Timestamp(fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis()));
+        fire.setDurationMs(calculateDuration(fire.getStartTime(), fire.getEndTime()));
+        fire.setErrorCode(errorCode);
+        fire.setErrorMessage(errorMessage);
+        fire.setUpdatedBy("system");
+        fire.setUpdateTime(fire.getEndTime());
         fireDao().updateEntityDirectly(fire);
     }
 

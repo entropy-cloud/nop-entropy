@@ -458,6 +458,7 @@ public class TestJobTimeoutChecker {
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
         @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {}
         @Override public boolean cancelFire(String jobFireId) { return false; }
+        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {}
         @Override public NopJobFire loadFire(String jobFireId) { return fireMap.get(jobFireId); }
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
     }
@@ -482,6 +483,11 @@ public class TestJobTimeoutChecker {
         @Override
         public NopJobSchedule loadSchedule(String scheduleId) {
             return scheduleMap.get(scheduleId);
+        }
+
+        @Override
+        public NopJobSchedule tryLoadSchedule(String id) {
+            return scheduleMap.get(id);
         }
 
         @Override

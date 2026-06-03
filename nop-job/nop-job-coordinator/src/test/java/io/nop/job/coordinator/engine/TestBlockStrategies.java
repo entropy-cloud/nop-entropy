@@ -125,6 +125,7 @@ public class TestBlockStrategies {
         @Override public void recoveryFireAndAdvanceSchedule(NopJobSchedule schedule, Timestamp nextFireTime) { recoveryCount++; }
         @Override public boolean insertManualFire(NopJobSchedule schedule, NopJobFire fire) { return true; }
         @Override public NopJobSchedule loadSchedule(String scheduleId) { return null; }
+        @Override public NopJobSchedule tryLoadSchedule(String id) { return null; }
         @Override public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> scheduleIds) { return Collections.emptyMap(); }
     }
 }

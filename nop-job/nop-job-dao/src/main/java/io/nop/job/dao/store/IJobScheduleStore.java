@@ -29,6 +29,8 @@ public interface IJobScheduleStore {
 
     NopJobSchedule loadSchedule(String jobScheduleId);
 
+    NopJobSchedule tryLoadSchedule(String jobScheduleId);
+
     Map<String, NopJobSchedule> batchLoadSchedules(Set<String> scheduleIds);
 
     long getCurrentTime();

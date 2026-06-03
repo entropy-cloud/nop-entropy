@@ -240,6 +240,7 @@ public class TestJobE2E {
 
         @Override public long getCurrentTime() { return currentTime; }
         @Override public NopJobSchedule loadSchedule(String id) { return schedules.get(id); }
+        @Override public NopJobSchedule tryLoadSchedule(String id) { return schedules.get(id); }
         @Override public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> ids) {
             Map<String, NopJobSchedule> result = new HashMap<>();
             for (String id : ids) { NopJobSchedule s = schedules.get(id); if (s != null) result.put(id, s); }
@@ -271,6 +272,7 @@ public class TestJobE2E {
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire f, List<NopJobTask> t) {}
         @Override public void completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) {}
         @Override public boolean cancelFire(String id) { return false; }
+        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {}
         @Override public NopJobFire loadFire(String id) { return fires.get(id); }
     }
 

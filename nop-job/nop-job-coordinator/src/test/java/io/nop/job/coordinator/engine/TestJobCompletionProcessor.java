@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJobCompletionProcessor {
 
@@ -324,8 +325,13 @@ public class TestJobCompletionProcessor {
 
     static class MockFireStore implements IJobFireStore {
         private final List<NopJobFire> runningFires = new ArrayList<>();
+        private String failedFireId;
+        private String failedErrorCode;
 
         void addRunningFire(NopJobFire fire) { runningFires.add(fire); }
+
+        String getFailedFireId() { return failedFireId; }
+        String getFailedErrorCode() { return failedErrorCode; }
 
         @Override
         public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) {
@@ -341,6 +347,11 @@ public class TestJobCompletionProcessor {
         @Override public boolean cancelFire(String jobFireId) { return false; }
         @Override public NopJobFire loadFire(String jobFireId) { return null; }
         @Override public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) { return Collections.emptyMap(); }
+        @Override
+        public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+            this.failedFireId = jobFireId;
+            this.failedErrorCode = errorCode;
+        }
     }
 
     static class MockScheduleStore implements IJobScheduleStore {
@@ -352,6 +363,7 @@ public class TestJobCompletionProcessor {
 
         @Override public long getCurrentTime() { return currentTime; }
         @Override public NopJobSchedule loadSchedule(String id) { return schedules.get(id); }
+        @Override public NopJobSchedule tryLoadSchedule(String id) { return schedules.get(id); }
         @Override public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> ids) { return schedules; }
         @Override public List<NopJobSchedule> fetchDueSchedules(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobSchedule> tryLockSchedulesForPlan(List<NopJobSchedule> schedules, String plannerInstanceId, long lockTimeoutMs) { return schedules; }
@@ -378,5 +390,21 @@ public class TestJobCompletionProcessor {
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countRunningTasks(String workerInstanceId) { return 0; }
+    }
+
+    @Test
+    void testScheduleDeleted_fireMarkedFailed() {
+        NopJobFire fire = createFire("f1", "deleted-schedule", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_FAILED);
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertEquals("f1", fireStore.getFailedFireId());
+        assertNotNull(fireStore.getFailedErrorCode());
+        assertTrue(fireStore.getFailedErrorCode().contains("schedule-deleted"),
+                "Error code should indicate schedule was deleted");
     }
 }

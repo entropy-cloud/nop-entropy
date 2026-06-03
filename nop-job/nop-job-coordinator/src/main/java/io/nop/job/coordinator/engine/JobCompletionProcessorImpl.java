@@ -13,6 +13,7 @@ import io.nop.job.api.retry.JobFireFailedEvent;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.entity.NopJobFire;
@@ -157,7 +158,15 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             return null;
         }
 
-        NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+        NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
+        if (schedule == null) {
+            LOG.warn("nop.job.completion.schedule-deleted:fireId={}", fire.getJobFireId());
+            fireStore.failFireWithoutSchedule(fire.getJobFireId(),
+                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
+                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
+            return _NopJobCoreConstants.FIRE_STATUS_FAILED;
+        }
+
         Timestamp fireStartTime = earliestStartTime(tasks, fire.getStartTime());
         Timestamp fireEndTime = latestEndTime(tasks, new Timestamp(scheduleStore.getCurrentTime()));
         FireCompletionDecision completionDecision = resolveCompletionDecision(tasks);

@@ -263,6 +263,11 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     }
 
     @Override
+    public NopJobSchedule tryLoadSchedule(String jobScheduleId) {
+        return scheduleDao().getEntityById(jobScheduleId);
+    }
+
+    @Override
     public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> scheduleIds) {
         if (scheduleIds == null || scheduleIds.isEmpty()) {
             return Collections.emptyMap();
