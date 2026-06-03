@@ -15,6 +15,7 @@ import io.nop.job.biz.INopJobScheduleBiz;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -380,5 +381,39 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
         schedule.setUpdatedBy("test");
         schedule.setUpdateTime(new Timestamp(now));
         return schedule;
+    }
+
+    @Test
+    public void testDisableSchedulePreservesEngineCountersOnVersionConflict() {
+        NopJobSchedule schedule = newSchedule("schedule-ar22", "job-ar22");
+        schedule.setActiveFireCount(3);
+        schedule.setFireCount(10L);
+        schedule.setTotalFireCount(8L);
+        schedule.setSuccessFireCount(5L);
+        schedule.setFailFireCount(3L);
+        saveSchedule(schedule);
+
+        @SuppressWarnings("unchecked")
+        IOrmEntityDao<NopJobSchedule> schedDao =
+                (IOrmEntityDao<NopJobSchedule>) daoProvider.daoFor(NopJobSchedule.class);
+
+        NopJobSchedule concurrent = schedDao.requireEntityById(schedule.getJobScheduleId());
+        concurrent.setActiveFireCount(5);
+        concurrent.setFireCount(15L);
+        concurrent.setTotalFireCount(12L);
+        concurrent.setSuccessFireCount(8L);
+        concurrent.setFailFireCount(4L);
+        schedDao.updateEntityDirectly(concurrent);
+
+        scheduleBiz.disableSchedule(schedule.getJobScheduleId(), newContext());
+
+        NopJobSchedule saved = loadSchedule(schedule.getJobScheduleId());
+        assertEquals(SCHEDULE_STATUS_DISABLED, saved.getScheduleStatus());
+        assertEquals(5, saved.getActiveFireCount(),
+                "Engine field activeFireCount should be preserved from concurrent update");
+        assertEquals(15L, saved.getFireCount(),
+                "Engine field fireCount should be preserved from concurrent update");
+        assertEquals(12L, saved.getTotalFireCount(),
+                "Engine field totalFireCount should be preserved from concurrent update");
     }
 }

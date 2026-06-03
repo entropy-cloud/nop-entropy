@@ -265,6 +265,48 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
                 "Fire status should remain CANCELED, not overwritten to RUNNING");
     }
 
+    @Test
+    public void testCompleteFireThrowsOnScheduleVersionConflict() {
+        NopJobSchedule schedule = newSchedule("race-sched-ar21", "race-job-ar21");
+        schedule.setActiveFireCount(1);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("race-fire-ar21", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        List<NopJobFire> waitingFires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-ar21", 1000);
+        assertEquals(1, lockedFires.size());
+
+        NopJobTask task = newTask("race-task-ar21", fire);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+
+        NopJobFire runningFire = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_RUNNING, runningFire.getFireStatus());
+
+        NopJobFire fireForComplete = fireStore.loadFire(fire.getJobFireId());
+        fireForComplete.setFireStatus(FIRE_STATUS_SUCCESS);
+        fireForComplete.setEndTime(new Timestamp(System.currentTimeMillis()));
+
+        NopJobSchedule scheduleForComplete = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        scheduleForComplete.setActiveFireCount(0);
+        scheduleForComplete.setLastEndTime(fireForComplete.getEndTime());
+        scheduleForComplete.setLastFireStatus(FIRE_STATUS_SUCCESS);
+
+        IOrmEntityDao<NopJobSchedule> schedDao =
+                (IOrmEntityDao<NopJobSchedule>) daoProvider.daoFor(NopJobSchedule.class);
+        for (int i = 0; i < 6; i++) {
+            NopJobSchedule concurrent = schedDao.requireEntityById(schedule.getJobScheduleId());
+            concurrent.setFireCount((long) i + 100);
+            schedDao.updateEntityDirectly(concurrent);
+        }
+
+        assertThrows(NopException.class,
+                () -> fireStore.completeFireAndUpdateSchedule(fireForComplete, scheduleForComplete),
+                "completeFireAndUpdateSchedule should throw after 5 optimistic lock retries exhausted");
+    }
+
     @SuppressWarnings("unchecked")
     private IOrmEntityDao<NopJobTask> taskStore() {
         return (IOrmEntityDao<NopJobTask>) daoProvider.daoFor(NopJobTask.class);
