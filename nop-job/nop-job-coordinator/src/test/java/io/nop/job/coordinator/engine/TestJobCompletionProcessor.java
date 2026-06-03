@@ -422,6 +422,7 @@ public class TestJobCompletionProcessor {
         private final List<NopJobFire> runningFires = new ArrayList<>();
         private String failedFireId;
         private String failedErrorCode;
+        private final java.util.concurrent.atomic.AtomicBoolean completeFireCalled = new java.util.concurrent.atomic.AtomicBoolean();
 
         void addRunningFire(NopJobFire fire) { runningFires.add(fire); }
 
@@ -438,7 +439,7 @@ public class TestJobCompletionProcessor {
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
-        @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {}
+        @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) { completeFireCalled.set(true); }
         @Override public boolean cancelFire(String jobFireId) { return false; }
         @Override public NopJobFire loadFire(String jobFireId) { return null; }
         @Override public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) { return Collections.emptyMap(); }

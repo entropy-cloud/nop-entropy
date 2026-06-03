@@ -30,7 +30,6 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
     private static final int FIRE_STATUS_RUNNING = 20;
     private static final int TASK_STATUS_WAITING = 0;
     private static final int TASK_STATUS_CANCELED = 60;
-    private static final String EXECUTOR_KIND_TEST = "test";
     private static final int TRIGGER_TYPE_FIXED_RATE = 2;
     private static final int TRIGGER_SOURCE_SCHEDULE = 1;
 
@@ -168,7 +167,6 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         schedule.setJobName(jobName);
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
-        schedule.setExecutorKind(EXECUTOR_KIND_TEST);
         schedule.setExecutorKind("testInvoker");
         schedule.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);

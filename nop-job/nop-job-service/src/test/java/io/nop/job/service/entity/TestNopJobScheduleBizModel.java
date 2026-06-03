@@ -37,7 +37,6 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
     private static final int SCHEDULE_STATUS_ENABLED = 10;
     private static final int SCHEDULE_STATUS_PAUSED = 20;
     private static final int SCHEDULE_STATUS_ARCHIVED = 40;
-    private static final String EXECUTOR_KIND_TEST = "test";
     private static final int TRIGGER_TYPE_FIXED_RATE = 2;
 
     @Inject
@@ -365,7 +364,6 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
         schedule.setJobName(jobName);
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
-        schedule.setExecutorKind(EXECUTOR_KIND_TEST);
         schedule.setExecutorKind("testInvoker");
         schedule.setJobParams(JsonTool.stringify(Map.of("k", "v")));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);

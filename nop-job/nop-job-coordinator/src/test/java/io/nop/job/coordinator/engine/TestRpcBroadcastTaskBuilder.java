@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRpcBroadcastTaskBuilder {
@@ -90,5 +91,67 @@ public class TestRpcBroadcastTaskBuilder {
 
         assertEquals(1, tasks.size(), "Should fallback to DefaultJobTaskBuilder when all unhealthy");
         assertEquals(1, tasks.get(0).getTaskNo());
+    }
+
+    @Test
+    void testMultipleHealthyInstancesGetSeparateTasks() {
+        List<ServiceInstance> instances = new ArrayList<>();
+        instances.add(createInstance("h1", 8080, true, true));
+        instances.add(createInstance("h2", 8081, true, true));
+        instances.add(createInstance("h3", 8082, true, true));
+
+        builder.setDiscoveryClient(new IDiscoveryClient() {
+            @Override
+            public List<ServiceInstance> getInstances(String serviceName) {
+                return instances;
+            }
+
+            @Override
+            public List<String> getServices() {
+                return Collections.emptyList();
+            }
+        });
+
+        NopJobFire fire = createFire("multi-svc");
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+
+        assertEquals(3, tasks.size(), "Each healthy instance should get a task");
+        for (int i = 0; i < tasks.size(); i++) {
+            assertNotNull(tasks.get(i).getTargetHost());
+            assertEquals(i + 1, tasks.get(i).getTaskNo());
+            assertEquals(3, tasks.get(i).getShardingTotal());
+            assertEquals(i, tasks.get(i).getShardingIndex());
+        }
+    }
+
+    @Test
+    void testNullDiscoveryClientFallsBack() {
+        builder.setDiscoveryClient(null);
+
+        NopJobFire fire = createFire("fallback-svc");
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+
+        assertEquals(1, tasks.size(), "Should fallback to DefaultJobTaskBuilder when discoveryClient is null");
+        assertEquals(1, tasks.get(0).getTaskNo());
+    }
+
+    @Test
+    void testMissingServiceNameFallsBack() {
+        builder.setDiscoveryClient(new IDiscoveryClient() {
+            @Override
+            public List<ServiceInstance> getInstances(String serviceName) {
+                throw new AssertionError("Should not be called");
+            }
+
+            @Override
+            public List<String> getServices() {
+                return Collections.emptyList();
+            }
+        });
+
+        NopJobFire fire = createFire(null);
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+
+        assertEquals(1, tasks.size(), "Should fallback when serviceName is missing from jobParams");
     }
 }
