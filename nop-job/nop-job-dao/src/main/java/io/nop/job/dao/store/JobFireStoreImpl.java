@@ -40,15 +40,6 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_FIRE_STATUS_CONFLICT;
 public class JobFireStoreImpl implements IJobFireStore {
     static final Logger LOG = LoggerFactory.getLogger(JobFireStoreImpl.class);
 
-    private static final int FIRE_STATUS_WAITING = 0;
-    private static final int FIRE_STATUS_DISPATCHING = 10;
-    private static final int FIRE_STATUS_RUNNING = 20;
-    private static final int FIRE_STATUS_CANCELED = 60;
-    private static final int TASK_STATUS_WAITING = 0;
-    private static final int TASK_STATUS_CLAIMED = 10;
-    private static final int TASK_STATUS_RUNNING = 20;
-    private static final int TASK_STATUS_CANCELED = 60;
-
     private IDaoProvider daoProvider;
 
     @Inject
@@ -60,7 +51,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, FIRE_STATUS_WAITING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_WAITING));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
@@ -71,7 +62,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, FIRE_STATUS_RUNNING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_RUNNING));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
@@ -89,7 +80,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         long now = fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
         Timestamp startTime = new Timestamp(now);
         for (NopJobFire fire : fires) {
-            fire.setFireStatus(FIRE_STATUS_DISPATCHING);
+            fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING);
             fire.setDispatchInstanceId(dispatchInstanceId);
             fire.setStartTime(startTime);
         }
@@ -100,16 +91,16 @@ public class JobFireStoreImpl implements IJobFireStore {
     @Override
     public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
         NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-        if (currentFire.getFireStatus() == null || currentFire.getFireStatus() != FIRE_STATUS_DISPATCHING) {
+        if (currentFire.getFireStatus() == null || currentFire.getFireStatus() != _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
             return;
         }
 
-        currentFire.setFireStatus(FIRE_STATUS_RUNNING);
+        currentFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_RUNNING);
         List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(currentFire));
         if (updated.isEmpty()) {
             throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
                     .param("jobFireId", fire.getJobFireId())
-                    .param("expectedStatus", FIRE_STATUS_DISPATCHING);
+                    .param("expectedStatus", _NopJobCoreConstants.FIRE_STATUS_DISPATCHING);
         }
 
         for (NopJobTask task : tasks) {
@@ -187,7 +178,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         NopJobSchedule schedule = scheduleDao().requireEntityById(fire.getJobScheduleId());
         Timestamp cancelTime = new Timestamp(fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis());
 
-        fire.setFireStatus(FIRE_STATUS_CANCELED);
+        fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
         fire.setEndTime(cancelTime);
         fire.setDurationMs(calculateDuration(fire.getStartTime(), cancelTime));
         fire.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
@@ -204,7 +195,7 @@ public class JobFireStoreImpl implements IJobFireStore {
                 continue;
             }
 
-            task.setTaskStatus(TASK_STATUS_CANCELED);
+            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CANCELED);
             task.setEndTime(cancelTime);
             task.setDurationMs(calculateDuration(task.getStartTime(), cancelTime));
             task.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
@@ -280,7 +271,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, FIRE_STATUS_DISPATCHING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_DISPATCHING));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_startTime, false);
         return fireDao().findAllByQuery(query);
@@ -345,10 +336,10 @@ public class JobFireStoreImpl implements IJobFireStore {
         if (fireStatus == null) {
             return false;
         }
-        if (fireStatus == FIRE_STATUS_WAITING || fireStatus == FIRE_STATUS_DISPATCHING) {
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_WAITING || fireStatus == _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
             return true;
         }
-        if (fireStatus != FIRE_STATUS_RUNNING) {
+        if (fireStatus != _NopJobCoreConstants.FIRE_STATUS_RUNNING) {
             return false;
         }
         if (tasks.isEmpty()) {
@@ -364,9 +355,9 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     private boolean isTaskFinished(Integer taskStatus) {
         return taskStatus != null
-                && taskStatus != TASK_STATUS_WAITING
-                && taskStatus != TASK_STATUS_CLAIMED
-                && taskStatus != TASK_STATUS_RUNNING;
+                && taskStatus != _NopJobCoreConstants.TASK_STATUS_WAITING
+                && taskStatus != _NopJobCoreConstants.TASK_STATUS_CLAIMED
+                && taskStatus != _NopJobCoreConstants.TASK_STATUS_RUNNING;
     }
 
     private boolean shouldAdvanceFixedDelaySchedule(NopJobSchedule schedule, NopJobFire fire) {
