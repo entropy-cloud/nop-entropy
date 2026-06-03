@@ -242,12 +242,15 @@ public class Pattern<T, F extends T> {
         Guard.notNull(untilCondition, "The condition cannot be null");
 
         if (this.untilCondition != null) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "untilCondition already set for pattern " + name);
+
         }
 
         if (!quantifier.hasProperty(Quantifier.QuantifierProperty.LOOPING)
                 && !quantifier.hasProperty(Quantifier.QuantifierProperty.TIMES)) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "until requires LOOPING or TIMES quantifier for pattern " + name);
         }
 
         //ClosureCleaner.clean(untilCondition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
@@ -306,7 +309,8 @@ public class Pattern<T, F extends T> {
      */
     public Pattern<T, T> notNext(final String name) {
         if (quantifier.hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "notNext not allowed after optional pattern");
         }
         return new Pattern<>(name, this, Quantifier.ConsumingStrategy.NOT_NEXT, afterMatchSkipStrategy);
     }
@@ -334,7 +338,8 @@ public class Pattern<T, F extends T> {
      */
     public Pattern<T, T> notFollowedBy(final String name) {
         if (quantifier.hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "notFollowedBy not allowed after optional pattern");
         }
         return new Pattern<>(name, this, Quantifier.ConsumingStrategy.NOT_FOLLOW, afterMatchSkipStrategy);
     }
@@ -638,13 +643,15 @@ public class Pattern<T, F extends T> {
     private void checkIfNoNotPattern() {
         if (quantifier.getConsumingStrategy() == Quantifier.ConsumingStrategy.NOT_FOLLOW
                 || quantifier.getConsumingStrategy() == Quantifier.ConsumingStrategy.NOT_NEXT) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "Not pattern does not support this operation for pattern " + name);
         }
     }
 
     private void checkIfQuantifierApplied() {
         if (!quantifier.hasProperty(Quantifier.QuantifierProperty.SINGLE)) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "Quantifier already applied to pattern " + name);
         }
     }
 
@@ -657,14 +664,16 @@ public class Pattern<T, F extends T> {
 
     private void checkIfNoGroupPattern() {
         if (this instanceof GroupPattern) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "GroupPattern does not support this operation");
         }
     }
 
     private void checkIfPreviousPatternGreedy() {
         if (previous != null
                 && previous.getQuantifier().hasProperty(Quantifier.QuantifierProperty.GREEDY)) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "Previous pattern is greedy, cannot append to pattern " + name);
         }
     }
 

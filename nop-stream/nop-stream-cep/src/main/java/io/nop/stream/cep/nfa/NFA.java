@@ -127,6 +127,10 @@ public class NFA<T> {
         return windowTime;
     }
 
+    public Map<String, Long> getWindowTimes() {
+        return Collections.unmodifiableMap(windowTimes);
+    }
+
     public Collection<State<T>> getStates() {
         return states.values();
     }

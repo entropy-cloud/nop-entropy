@@ -186,6 +186,10 @@ public class SharedBuffer<V> {
         if (id == null) {
             id = 0;
         }
+        if (id == Integer.MAX_VALUE) {
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
+                    .param(ARG_DETAIL, "EventId counter overflow for timestamp " + timestamp);
+        }
         EventId eventId = new EventId(id, timestamp);
         Lockable<V> lockableValue = new Lockable<>(value, 1);
         eventsCount.put(timestamp, id + 1);
@@ -193,6 +197,7 @@ public class SharedBuffer<V> {
         try {
             eventsBuffer.put(eventId, lockableValue);
         } catch (Exception e) {
+            eventsBufferCache.remove(eventId);
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "registerEvent");
         }
         return eventId;

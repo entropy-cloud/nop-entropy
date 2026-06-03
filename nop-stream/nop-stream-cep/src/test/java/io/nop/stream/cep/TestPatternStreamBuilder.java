@@ -17,12 +17,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
-/**
- * Tests for PatternStreamBuilder via the CEP / PatternStream public API:
- * creating PatternStream, processing with a function, and using KeyedStream.
- */
 public class TestPatternStreamBuilder {
 
     private StreamExecutionEnvironment env;
@@ -49,25 +44,25 @@ public class TestPatternStreamBuilder {
     }
 
     @Test
-    void testPatternStreamCreation() {
-        DataStream<Event> stream = env.fromElements(
+    void testPatternStreamCreationWithKeyedStream() {
+        KeyedStream<Event, Integer> keyedStream = env.fromElements(
                 new Event(1, "a"),
                 new Event(2, "b")
-        );
+        ).keyBy(Event::getId);
 
-        PatternStream<Event> patternStream = CEP.pattern(stream, pattern);
+        PatternStream<Event> patternStream = CEP.pattern(keyedStream, pattern);
 
         assertNotNull(patternStream, "CEP.pattern() should return a non-null PatternStream");
     }
 
     @Test
-    void testPatternStreamProcess() {
-        DataStream<Event> stream = env.fromElements(
+    void testPatternStreamProcessWithKeyedStream() {
+        KeyedStream<Event, Integer> keyedStream = env.fromElements(
                 new Event(1, "a"),
                 new Event(2, "b")
-        );
+        ).keyBy(Event::getId);
 
-        PatternStream<Event> patternStream = CEP.pattern(stream, pattern);
+        PatternStream<Event> patternStream = CEP.pattern(keyedStream, pattern);
 
         TypeInformation<String> outType = new TypeInformation<>() {
             @Override
@@ -79,17 +74,12 @@ public class TestPatternStreamBuilder {
         SingleOutputStreamOperator<String> result = patternStream.process(function, outType);
 
         assertNotNull(result, "PatternStream.process() should return a non-null DataStream");
-
-        // Verify the result is still a DataStream that can be further transformed
-        // (proves the returned stream is properly wired)
-        DataStream<String> dataSnapshot = result;
-        assertNotNull(dataSnapshot.getType(), "Result stream should have type information");
-        assertEquals(String.class, dataSnapshot.getType().getTypeClass(),
+        assertEquals(String.class, result.getType().getTypeClass(),
                 "Result stream type should be String");
     }
 
     @Test
-    void testPatternStreamWithKeyedStream() {
+    void testPatternStreamWithKeyedStreamChaining() {
         KeyedStream<Event, Integer> keyedStream = env.fromElements(
                 new Event(1, "a"),
                 new Event(2, "b")

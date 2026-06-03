@@ -383,7 +383,23 @@ public class CepOperator<IN, KEY, OUT>
 
         // In order to remove dangling partial matches.
         if (nfaState.getPartialMatches().size() == 1 && nfaState.getCompletedMatches().isEmpty()) {
-            computationStates.clear();
+            boolean allTimedOut = true;
+            for (Object pm : nfaState.getPartialMatches()) {
+                if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
+                    io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
+                    String stateName = cs.getCurrentStateName();
+                    Map<String, Long> windowTimes = nfa.getWindowTimes();
+                    long wt = windowTimes != null && windowTimes.containsKey(stateName)
+                            ? windowTimes.get(stateName) : nfa.getWindowTime();
+                    if (wt <= 0 || timerService.currentWatermark() < cs.getStartTimestamp() + wt) {
+                        allTimedOut = false;
+                        break;
+                    }
+                }
+            }
+            if (allTimedOut) {
+                computationStates.clear();
+            }
         }
     }
 
@@ -454,6 +470,17 @@ public class CepOperator<IN, KEY, OUT>
                             cepTimerService);
             if (nfa.getWindowTime() > 0 && nfaState.isNewStartPartialMatch()) {
                 registerTimer(timestamp + nfa.getWindowTime());
+            }
+            if (nfaState.isNewStartPartialMatch()) {
+                Map<String, Long> perStateWindowTimes = nfa.getWindowTimes();
+                if (perStateWindowTimes != null) {
+                    for (Map.Entry<String, Long> entry : perStateWindowTimes.entrySet()) {
+                        long stateWindowTime = entry.getValue();
+                        if (stateWindowTime > 0 && stateWindowTime != nfa.getWindowTime()) {
+                            registerTimer(timestamp + stateWindowTime);
+                        }
+                    }
+                }
             }
             processMatchedSequences(patterns, timestamp);
         }

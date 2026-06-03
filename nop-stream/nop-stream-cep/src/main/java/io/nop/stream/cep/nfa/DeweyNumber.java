@@ -109,7 +109,12 @@ public class DeweyNumber implements Serializable {
      */
     public DeweyNumber increase(int times) {
         int[] newDeweyNumber = Arrays.copyOf(deweyNumber, deweyNumber.length);
-        newDeweyNumber[deweyNumber.length - 1] += times;
+        int lastIdx = deweyNumber.length - 1;
+        long newValue = (long) newDeweyNumber[lastIdx] + times;
+        if (newValue > Integer.MAX_VALUE || newValue < Integer.MIN_VALUE) {
+            throw new StreamException("DeweyNumber overflow: " + newDeweyNumber[lastIdx] + " + " + times);
+        }
+        newDeweyNumber[lastIdx] += times;
 
         return new DeweyNumber(newDeweyNumber);
     }
