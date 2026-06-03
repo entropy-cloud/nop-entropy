@@ -1,57 +1,33 @@
-# 维度16：测试覆盖与质量
+# 维度 16：测试覆盖审查
 
-## 第 1 轮（初审）
+## 发现
 
-### [维度16-01] 测试中使用 System.out.println 输出调试信息
+### [16-01] P2 — NopJobTaskBizModel.delete() 完全无测试覆盖
 
-- **文件**: `nop-job/nop-job-core/src/test/java/io/nop/job/core/trigger/TestTrigger.java:97`
-- **证据片段**:
-  ```java
-  System.out.println(StringHelper.join(times, "\n"));
-  ```
-- **严重程度**: P3
-- **现状**: testCron() 方法在断言前将中间结果打印到标准输出，调试遗留产物。
-- **风险**: 极低，仅 CI 日志噪音。
-- **建议**: 删除或改为 LOG.debug。
-- **信心水平**: 确定
-- **误报排除**: 确认是调试遗留。
-- **复核状态**: 未复核
+- **文件**: 无对应的 TestNopJobTaskBizModel 测试类
+- **现状**: `NopJobTaskBizModel.delete()` 方法包含删除权限封堵逻辑，但完全没有测试覆盖。不存在 `TestNopJobTaskBizModel` 测试类。
+- **风险**: 删除封堵逻辑的回归无法被自动检测。任何重构都可能导致封堵逻辑被意外移除。
+- **建议**: 创建 `TestNopJobTaskBizModel` 测试类，覆盖 delete 方法的正常路径和拒绝路径。
 
-### [维度16-02] Mock Store 实现在多个测试文件中重复定义
+### [16-02] P2 — RpcBroadcastTaskBuilder 零测试覆盖
 
-- **文件**: TestJobTimeoutChecker.java:404-525、TestJobCompletionProcessor.java:325-380、TestJobE2E.java:233-323、TestBlockStrategies.java:114-129
-- **证据片段**:
-  ```java
-  // TestJobTimeoutChecker.java:404-422
-  static class MockTaskStore implements IJobTaskStore {
-      private List<NopJobTask> runningTasks = new ArrayList<>();
-      void addRunningTask(NopJobTask task) { runningTasks.add(task); }
-      @Override
-      public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) {
-          return new ArrayList<>(runningTasks);
-      }
-      @Override public void updateTask(NopJobTask task) {}
-      // ... 6 more empty methods
-  }
-  ```
-- **严重程度**: P2
-- **现状**: IJobScheduleStore 在 4 个测试文件中独立实现，IJobFireStore 3 次，IJobTaskStore 3 次，MockNamingService 4 次。
-- **风险**: Store 接口新增方法时需逐一修改所有 mock，遗漏则编译失败。
-- **建议**: 将共享 mock store 抽取到 `src/test/java/io/nop/job/coordinator/engine/mocks/` 包下。
-- **信心水平**: 确定
-- **误报排除**: 无。接口 Store 的 mock 实现确实在多处重复。
-- **复核状态**: 未复核
+- **文件**: RpcBroadcastTaskBuilder（96 行代码，4+ 分支路径）
+- **现状**: `RpcBroadcastTaskBuilder` 有 96 行代码和 4 个以上的分支路径，但完全没有测试覆盖。
+- **风险**: 广播任务构建逻辑的任何回归都无法被自动检测。
+- **建议**: 为 `RpcBroadcastTaskBuilder` 编写单元测试，覆盖所有分支路径。
 
-## 合规确认项
+### [16-03] P3 — CronExpression 测试仅使用单一 cron 模式
 
-- 22 个测试文件覆盖核心业务逻辑的所有关键路径（130+ 测试方法）。
-- 错误路径覆盖充分。
-- 无纯 getter/setter 测试、assertNotNull 遍历等低价值模式。
-- 有效测试 vs 低价值测试比例约 100%。
+- **文件**: CronExpression（470 行代码）
+- **现状**: `CronExpression` 的测试仅通过单一 cron 模式 `"0 0 6,19 * * *"` 进行验证。缺少以下场景的测试：
+  - `L`（最后一天）修饰符
+  - `W`（最近工作日）修饰符
+  - `#`（第 N 个星期几）修饰符
+  - 闰年边界条件
+- **建议**: 补充覆盖特殊修饰符和边界条件的测试用例。
 
-## 最终保留项
+### [16-04] P3 — Calendar 子系统零独立测试覆盖
 
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|----------|
-| 16-01 | P3 | TestTrigger.java:97 | 测试中System.out.println调试遗留 |
-| 16-02 | P2 | 多个coordinator测试 | Mock Store在4+个测试文件中重复定义 |
+- **文件**: DailyCalendar, BaseCalendar, MonthlyCalendar, CronCalendar 等 8 个类（共 1575 行代码）
+- **现状**: calendar 子系统的 8 个类（1575 行代码）完全没有任何独立的测试覆盖。
+- **建议**: 为 calendar 包添加独立的单元测试。

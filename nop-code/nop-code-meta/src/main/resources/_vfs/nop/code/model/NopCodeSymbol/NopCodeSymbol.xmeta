@@ -5,8 +5,7 @@
         <prop name="query" displayName="名称关键词" queryable="true" insertable="false" updatable="false">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="kinds" displayName="符号类型" queryable="true" insertable="false" updatable="false">
-            <schema type="java.util.List&lt;java.lang.String&gt;" precision="200"/>
+        <prop name="kind" x:override="merge" queryable="true" ui:filterOp="in">
         </prop>
         <prop name="packageName" displayName="包名" queryable="true" insertable="false" updatable="false">
             <schema type="java.lang.String" precision="500"/>

@@ -1,41 +1,27 @@
-# 维度17：代码风格与规范
+# 维度 17：代码风格审查
 
-## 第 1 轮（初审）
+## 发现
 
-### [维度17-01] NopJobErrors 类声明缺少空格
+### [17-01] P2 — 测试代码中使用 System.out.println
 
-- **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/NopJobErrors.java:12`
-- **证据片段**:
-  ```java
-  public interface NopJobErrors{
-  ```
-- **严重程度**: P3
-- **现状**: `{` 前缺少空格，应为 `NopJobErrors {`。同模块其他接口均使用空格。
-- **风险**: 极低，编译无影响。
-- **建议**: 添加空格保持一致性。
-- **信心水平**: 确定
-- **误报排除**: 无。
-- **复核状态**: 未复核
+- **文件**: TestTrigger.java:97
+- **现状**: 测试代码中使用 `System.out.println` 进行输出，而非使用 SLF4J 日志或断言。
+- **建议**: 替换为 SLF4J logger 或移除（如果是调试残留）。
 
-### [维度17-02] 测试中 setExecutorKind 连续调用两次，第一次无效
+### [17-02] P2 — import 分组顺序系统性偏差
 
-- **文件**: TestJobConcurrency.java:332-333、TestJobCoordinatorScanner.java:467-468、TestJobStoreImpl.java:123-124、TestJobWorkerScanner.java:231-232
-- **证据片段**:
-  ```java
-  schedule.setExecutorKind(EXECUTOR_KIND_TEST);  // "test" — 立即被覆盖
-  schedule.setExecutorKind("testInvoker");         // "testInvoker" — 实际生效的值
-  ```
-- **严重程度**: P2
-- **现状**: 4 个测试文件中 EXECUTOR_KIND_TEST 常量被设置后立即被另一个字符串覆盖。第一次调用完全无效。
-- **风险**: 代码可读性降低。若参考这些方法编写涉及实际 invoker 解析的新测试会失败。
-- **建议**: 删除无效的第一次调用。
-- **信心水平**: 确定
-- **误报排除**: 确认是死代码。
-- **复核状态**: 未复核
+- **文件**: 70+ 个文件
+- **现状**: 70+ 个文件的 import 分组系统性将 `io.nop.*` 放在 `java.*`/`jakarta.*` 之前。AGENTS.md 规范要求的顺序为 `java.*` → `jakarta.*` → 第三方 → `io.nop.*`。
+- **建议**: 使用 IDE 的 import 优化功能批量修正。这是一个大规模变更，建议作为独立的技术债务清理任务执行。
 
-## 最终保留项
+### [17-03] P2 — static import 与普通 import 交错
 
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|----------|
-| 17-01 | P3 | NopJobErrors.java:12 | 类声明缺少空格 |
-| 17-02 | P2 | 4个测试文件 | setExecutorKind连续调用两次，第一次无效 |
+- **文件**: JobTimeoutCheckerImpl.java:15-16
+- **现状**: static import 语句与普通 import 语句交错排列，未按规范分组。
+- **建议**: 将 static import 集中放在 import 块末尾或单独分组。
+
+### [17-04] P2 — 13 个类/接口声明缺少左大括号前空格
+
+- **文件**: INopJobFireBiz, INopJobScheduleBiz 等 13 个文件
+- **现状**: 13 个类和接口声明在 `{` 前缺少空格（如 `interface Foo{` 而非 `interface Foo {`）。
+- **建议**: 统一添加空格以符合代码风格规范。

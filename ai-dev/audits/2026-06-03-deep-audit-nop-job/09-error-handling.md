@@ -1,101 +1,65 @@
-# 维度09：错误处理与错误码
+# 维度 09：错误处理审查
 
-## 第 1 轮（初审）
+## 通过检查
 
-### [维度09-01] JobCoreErrors.java 中 4 个 ErrorCode 描述使用中文
+- 无吞没异常 ✓
+- 所有 catch 块使用 SLF4J 日志记录 ✓
+- 生产代码中无 System.out/err ✓
 
-- **文件**: `nop-job/nop-job-core/src/main/java/io/nop/job/core/JobCoreErrors.java:16-43`
-- **证据片段**:
-  ```java
-  ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
-          "计算下一次触发时间时似乎陷入死循环，循环次数超过最大限制", ARG_LOOP_COUNT);
-  
-  ErrorCode ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL = define("nop.err.job.trigger.parse-cron-expr-fail",
-          "解析定时器表达式失败:{cronExpr}", ARG_CRON_EXPR);
-  
-  ErrorCode ERR_JOB_EXECUTOR_REF_EMPTY = define("nop.err.job.executor-ref-empty",
-          "Job的执行器引用为空");
-  
-  ErrorCode ERR_JOB_EXECUTOR_KIND_EMPTY = define("nop.err.job.executor-kind-empty",
-          "Job的执行器类型为空");
-  ```
-- **严重程度**: P2
-- **现状**: 4 个 ErrorCode 的 description 使用中文。文件包含 `@Locale("zh-CN")` 注解，但项目规范要求错误消息应为英文。
-- **风险**: 违反 AGENTS.md 中"Error messages must be in English"规范。国际化场景下错误消息不可翻译。
-- **建议**: 将描述改为英文，中文通过 i18n 资源文件提供。
-- **信心水平**: 确定
-- **误报排除**: 规范明确要求英文错误消息。
-- **复核状态**: 未复核
+## 发现
 
-### [维度09-02] JobApiErrors.java 公共 API 层 2 个 ErrorCode 描述使用中文
+### [09-01] P2 — JobApiErrors 包含中文 ErrorCode 描述
 
-- **文件**: `nop-job/nop-job-api/src/main/java/io/nop/job/api/JobApiErrors.java:17-19`
-- **证据片段**:
-  ```java
-  ErrorCode ERR_JOB_UNKNOWN_JOB = define("nop.err.job.unknown-job", "未知的任务:{jobName}", ARG_JOB_NAME);
-  ErrorCode ERR_JOB_SCHEDULER_NOT_ACTIVE = define("nop.err.job.scheduler-not-active", "调度器未激活");
-  ```
-- **严重程度**: P2
-- **现状**: nop-job-api 是跨模块公共 API 层，2 个 ErrorCode 使用中文描述。
-- **风险**: 公共 API 层错误消息直接影响外部调用方。违反英文消息规范。
-- **建议**: 改为英文：`"Unknown job: {jobName}"` 和 `"Job scheduler is not active"`。
-- **信心水平**: 确定
-- **误报排除**: 无。公共 API 层应优先遵循国际化规范。
-- **复核状态**: 未复核
+- **文件**: JobApiErrors.java:17,19（nop-job-api 模块）
+- **现状**: `JobApiErrors` 中有 2 个 ErrorCode 的 description 字段使用中文：
+  - `"未知的任务:{jobName}"`
+  - `"调度器未激活"`
+- **违反规则**: AGENTS.md 要求错误消息使用英文。
+- **建议**: 改为英文描述，中文信息通过 i18n 资源文件提供。
 
-### [维度09-03] JobCoreErrors 中 5 个状态标记 ErrorCode 不遵循 nop.err.* 命名
+### [09-02] P2 — JobCoreErrors 包含中文 ErrorCode 描述
 
-- **文件**: `nop-job/nop-job-core/src/main/java/io/nop/job/core/JobCoreErrors.java:24-36`
-- **证据片段**:
-  ```java
-  ErrorCode ERR_JOB_TIMEOUT = define("JOB_TIMEOUT", "Job task timed out");
-  ErrorCode ERR_JOB_INVOKER_NOT_FOUND = define("JOB_INVOKER_NOT_FOUND", "Job invoker not found");
-  ErrorCode ERR_JOB_CANCELED = define("JOB_CANCELED", "Job fire/task canceled");
-  ErrorCode ERR_JOB_OVERLAID = define("JOB_OVERLAID", "Job fire/task canceled by overlay");
-  ErrorCode ERR_JOB_EXECUTION_FAILED = define("JOB_EXECUTION_FAILED", "Job execution failed");
-  ```
-- **严重程度**: P3
-- **现状**: 5 个 ErrorCode 使用裸字符串（如 `JOB_TIMEOUT`），注释说明是"status markers, not thrown exceptions"，值直接存储到数据库。有向后兼容性考量。
-- **风险**: 命名不一致增加新人理解成本，但有注释解释且有数据兼容性约束。
-- **建议**: 保持现状，在注释中更明确标注"新增状态标记请使用 nop.err.job.* 前缀"。
-- **信心水平**: 确定
-- **误报排除**: 注释已解释原因且有数据依赖。
-- **复核状态**: 未复核
+- **文件**: JobCoreErrors.java:15-16,18-19,39-40,42-43（nop-job-core 模块）
+- **现状**: `JobCoreErrors` 中有 4 个 ErrorCode 的 description 字段使用中文，包括：
+  - `"计算下一次触发时间时似乎陷入死循环..."`
+  - 等
+- **违反规则**: AGENTS.md 要求错误消息使用英文。
+- **建议**: 改为英文描述。
 
-### [维度09-04] Calendar 类 14 处使用 IllegalArgumentException
+### [09-03] P3 — 5 个状态标记 ErrorCode 使用非标准格式
 
-- **文件**: `nop-job/nop-job-core/src/main/java/io/nop/job/core/calendar/` 下 BaseCalendar(2处)、MonthlyCalendar(4处)、DailyCalendar(7处)、CronCalendar(1处)
-- **证据片段**:
-  ```java
-  // BaseCalendar.java:146-147
-  if (timeStamp <= 0) {
-      throw new IllegalArgumentException("timeStamp must be greater 0");
-  }
-  ```
-- **严重程度**: P3
-- **现状**: Calendar 类层次直接抛出 IllegalArgumentException。这些类可能从 Quartz 移植而来，是内部参数校验。
-- **风险**: 异常不含 ErrorCode，但不太可能被外部代码直接触发。
-- **建议**: 保持现状（移植代码改动成本高），或在 Calendar 公共接口文档中声明参数校验责任。
-- **信心水平**: 很可能
-- **误报排除**: 移植代码，改动成本高于收益。
-- **复核状态**: 未复核
+- **文件**: JobCoreErrors.java:24-37
+- **现状**: 5 个状态标记型 ErrorCode 使用 `JOB_TIMEOUT` 等裸标识符格式，而非标准的 `nop.err.job.*` 前缀格式。代码注释说明是为了向后兼容，但其中 `ERR_JOB_INVOKER_NOT_FOUND` 实际有被抛出的场景。
+- **风险**: 格式不一致可能影响错误码的统一处理和文档生成。
+- **建议**: 在可行的情况下逐步迁移到标准格式，或至少在文档中标注这些为保留的历史格式。
 
-## 合规确认项
+### [09-04] P3 — calendar 包中 14 处 IllegalArgumentException 抛出
 
-- NopJobErrors.java 的 7 个 ErrorCode 全部使用 nop.err.job.* 命名，描述全英文，有 ARG 常量。
-- BizModel 中所有 throw 均使用 NopException + ErrorCode + .param() 模式。
-- Store/Coordinator 层的 catch 块均正确记录日志，无吞掉异常的情况。
-- 无 System.out/System.err 在生产代码中。
+- **文件**: DailyCalendar, BaseCalendar, MonthlyCalendar, CronCalendar
+- **现状**: calendar 包中有 14 处直接抛出 `IllegalArgumentException`，这是从 Quartz 移植的代码。违反 AGENTS.md 中禁止使用裸 `RuntimeException` 的规则。
+- **风险**: 这些异常绕过平台的错误处理框架，无法统一捕获和国际化。
+- **建议**: 逐步替换为使用 `NopException` + 对应 ErrorCode。
 
-## 维度复核结论
+### [09-05] P2 — NopJobTaskBizModel.delete() 缺少 .param() 上下文
 
-待复核。
+- **文件**: NopJobTaskBizModel.java:26
+- **现状**: `delete()` 方法在构建异常时缺少 `.param("jobTaskId", id)` 调用，导致错误消息中缺少关键的实体标识上下文。
+- **建议**: 添加 `.param("jobTaskId", id)` 以便错误消息包含任务 ID。
 
-## 最终保留项
+### [09-06] P3 — ERR_JOB_TASK_DELETE_NOT_ALLOWED 描述不用户友好
 
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|----------|
-| 09-01 | P2 | JobCoreErrors.java:16-43 | 4个ErrorCode描述使用中文 |
-| 09-02 | P2 | JobApiErrors.java:17-19 | 公共API层2个ErrorCode描述使用中文 |
-| 09-03 | P3 | JobCoreErrors.java:24-36 | 5个状态标记ErrorCode不遵循nop.err.*命名 |
-| 09-04 | P3 | Calendar类(14处) | 使用IllegalArgumentException而非NopException |
+- **文件**: NopJobErrors.java:43-46
+- **现状**: `ERR_JOB_TASK_DELETE_NOT_ALLOWED` 的描述是内部实现细节而非用户友好的错误提示。
+- **建议**: 修改为面向用户的描述。
+
+### [09-07] P3 — LocalJobScheduler.addJob() 使用语义错误的错误码
+
+- **文件**: LocalJobScheduler.java:81
+- **现状**: `addJob()` 在"job already exists"场景下使用了 `ERR_JOB_UNKNOWN_JOB` 错误码，语义与实际情况不匹配。
+- **建议**: 定义专门的 `ERR_JOB_ALREADY_EXISTS` 错误码。
+
+### [09-08] P3 — DefaultJobExecutionContextBuilder 可能对 NPE 类型异常产生 null 描述
+
+- **文件**: DefaultJobExecutionContextBuilder.java:28
+- **现状**: `DefaultJobExecutionContextBuilder` 在处理 NPE 类型异常时可能产生 null 错误描述。
+- **建议**: 对 null 异常消息添加 fallback 处理（如使用异常类名作为描述）。

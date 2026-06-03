@@ -24,8 +24,14 @@
                 <!--文件ID-->
                 <col id="fileId" mandatory="true" sortable="true"/>
 
+                <!--名称关键词-->
+                <col id="query"/>
+
                 <!--符号类型-->
                 <col id="kind" mandatory="true" sortable="true"/>
+
+                <!--包名-->
+                <col id="packageName"/>
 
                 <!--名称-->
                 <col id="name" mandatory="true" sortable="true"/>
@@ -110,15 +116,6 @@
 
                 <!--原始字段类型-->
                 <col id="rawFieldType" sortable="true"/>
-
-                <!--名称关键词-->
-                <col id="query"/>
-
-                <!--符号类型-->
-                <col id="kinds"/>
-
-                <!--包名-->
-                <col id="packageName"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -128,7 +125,8 @@
         <form id="view" editMode="view" title="查看-符号" i18n-en:title="View Symbol">
             <layout>
  indexId[索引ID] fileId[文件ID]
- kind[符号类型] name[名称]
+ query[名称关键词] kind[符号类型]
+ packageName[包名] name[名称]
  qualifiedName[全限定名] accessModifier[访问修饰符]
  deprecated[已废弃] documentation[文档注释]
  line[起始行] column[起始列]
@@ -142,8 +140,7 @@
  isVolatile[volatile] isTransient[transient]
  extData[扩展数据] asyncFlag[异步]
  readonlyFlag[只读] rawReturnType[原始返回类型]
- rawFieldType[原始字段类型] query[名称关键词]
- kinds[符号类型] packageName[包名]
+ rawFieldType[原始字段类型] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-符号" i18n-en:title="Add Symbol" x:prototype="edit"/>

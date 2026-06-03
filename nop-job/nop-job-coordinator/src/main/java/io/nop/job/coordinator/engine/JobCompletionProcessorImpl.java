@@ -169,7 +169,7 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
 
         Timestamp fireStartTime = earliestStartTime(tasks, fire.getStartTime());
         Timestamp fireEndTime = latestEndTime(tasks, new Timestamp(scheduleStore.getCurrentTime()));
-        FireCompletionDecision completionDecision = resolveCompletionDecision(tasks);
+        FireCompletionDecision completionDecision = resolveCompletionDecision(tasks, schedule);
 
         fire.setFireStatus(finalFireStatus);
         fire.setStartTime(fireStartTime);
@@ -264,7 +264,15 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         }
     }
 
-    private FireCompletionDecision resolveCompletionDecision(List<NopJobTask> tasks) {
+    private boolean isAllowResultCompletion(NopJobSchedule schedule) {
+        if (schedule == null) return false;
+        Map<String, Object> params = schedule.getJobParamsComponent().get_jsonMap();
+        if (params == null) return false;
+        return Boolean.TRUE.equals(params.get("allowResultCompletion"));
+    }
+
+    private FireCompletionDecision resolveCompletionDecision(List<NopJobTask> tasks, NopJobSchedule schedule) {
+        boolean allowResultCompletion = isAllowResultCompletion(schedule);
         Timestamp nextScheduleTime = null;
         for (NopJobTask task : tasks) {
             String resultPayload = task.getResultPayload();
@@ -273,7 +281,7 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             }
 
             Map<String, Object> payload = JsonTool.parseMap(resultPayload);
-            if (Boolean.TRUE.equals(payload.get("completed"))) {
+            if (allowResultCompletion && Boolean.TRUE.equals(payload.get("completed"))) {
                 return new FireCompletionDecision(true, null);
             }
 

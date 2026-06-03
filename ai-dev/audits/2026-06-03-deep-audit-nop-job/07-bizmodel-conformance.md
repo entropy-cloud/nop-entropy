@@ -1,60 +1,32 @@
-# 维度07：BizModel 规范遵循
+# 维度 07：BizModel 一致性审查
 
-## 第 1 轮（初审）
+## 通过检查
 
-### [维度07-01] persistSchedule 使用 updateEntityDirectly 绕过 CrudBizModel 标准更新流程
+- 所有 3 个 BizModel 正确继承 `CrudBizModel<T>` ✓
+- 均调用 `setEntityName()` 设置实体名 ✓
+- ORM/xmeta/xbiz 三者匹配 ✓
+- 无 `@BizLoader` 使用 ✓
+- 无 `Map<String,Object>` 反模式 ✓
 
-- **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobScheduleBizModel.java:132-135`
-- **证据片段**:
-  ```java
-  private void persistSchedule(NopJobSchedule schedule, String action, IServiceContext context) {
-      dao().updateEntityDirectly(schedule);
-      afterEntityChange(schedule, action, context);
-  }
-  ```
-- **严重程度**: P3
-- **现状**: 所有状态变更方法（enableSchedule/disableSchedule/pauseSchedule/resumeSchedule/archiveSchedule）统一通过 persistSchedule 持久化，跳过了 CrudBizModel 的 updateEntity 方法（封装了 xmeta autoExpr 计算、字段校验、前后置钩子）。
-- **风险**: 当前仅做简单字段修改，尚无实际功能受损。但后续通过 xmeta 增加校验规则会被静默跳过。
-- **建议**: 改为调用 updateEntity(schedule, action, context)。需验证 xmeta 中 nextFireTime 的 updatable 配置是否兼容。
-- **信心水平**: 确定
-- **误报排除**: 已排除 Store 层的 updateEntityDirectly（属于文档所说的"边界场景"）。
-- **复核状态**: 未复核
+## 发现
 
-### [维度07-02] cancelFire/rerunFire 未使用 requireEntity 加载实体
+### [07-01] P2 — resolveTriggeredBy 方法在两个 BizModel 中完全重复
 
-- **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobFireBizModel.java:47-48, 63`
-- **证据片段**:
-  ```java
-  public void cancelFire(@Name("id") String id, IServiceContext context) {
-      NopJobFire fire = fireStore.loadFire(id);  // 非 requireEntity
-  ...
-  public void rerunFire(@Name("id") String id, IServiceContext context) {
-      NopJobFire sourceFire = fireStore.loadFire(id);  // 非 requireEntity
-  ```
-- **严重程度**: P3
-- **现状**: 两个 mutation 方法使用 fireStore.loadFire(id) 而非 CrudBizModel 的 requireEntity。loadFire 内部调用 requireEntityById 会抛出实体不存在异常，但绕过了 CrudBizModel 的 beforeRequireEntity/afterRequireEntity 钩子和 action 级权限校验。
-- **风险**: 当前无 action 级权限钩子，实际功能无损。但未来若添加字段级审计或 action 权限控制，此路径会静默绕过。
-- **建议**: 考虑改用 requireEntity(id, action, context) 加载实体，或确认当前 Store 层校验已满足需求。
-- **信心水平**: 确定
-- **误报排除**: fireStore.loadFire 内部确实有 requireEntityById，实体不存在时会正确报错。
-- **复核状态**: 未复核
+- **文件**: NopJobScheduleBizModel:224-235, NopJobFireBizModel:149-160
+- **现状**: `resolveTriggeredBy` 方法在两个 BizModel 中各有一份完全相同的实现（各 12 行代码）。该方法根据触发来源解析触发者信息。
+- **风险**: 任何逻辑修改需要在两处同步。
+- **建议**: 提取到 nop-job-core 的共享工具类或基类中。
 
-## 合规确认项
+### [07-02] P2 — cancelFire 可取消性判定逻辑分裂在 BizModel 和 Store 之间
 
-- 三个 BizModel 全部继承 CrudBizModel<T>，构造函数均调用 setEntityName()。
-- 每个 BizModel 有对应的 ORM 实体和 xmeta。
-- 无 Map<String, Object> 代替类型安全结构的反模式。
-- 无 @BizLoader 使用。
-- 无 Processor 类（当前复杂度可接受）。
-- @Inject 字段全部为 setter 注入，无 private 字段注入。
+- **文件**: BizModel 层 `isCancelableStatus` 检查 3 个 Fire 状态；Store 层 `isCancelableFire` 额外增加 Task 完成检查
+- **现状**: cancelFire 的可取消性检查被分裂为两层：BizModel 层先检查 Fire 状态是否在可取消范围内（3 种状态），Store 层再增加 Task 完成度检查。
+- **风险**: 边界情况下 BizModel 预检查通过但 Store 层拒绝，导致用户收到误导性的错误消息（BizModel 层的错误信息不会反映 Store 层的拒绝原因）。
+- **建议**: 统一可取消性判定逻辑，要么全部放在 BizModel 层（推荐，因为这是业务决策），要么在 Store 层拒绝时返回明确的错误信息。
 
-## 维度复核结论
+### [07-03] P3 — NopJobFireBizModel 使用 fireStore.loadFire() 而非 requireEntity()
 
-待复核。
-
-## 最终保留项
-
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|----------|
-| 07-01 | P3 | NopJobScheduleBizModel.java:132 | persistSchedule使用updateEntityDirectly绕过标准流程 |
-| 07-02 | P3 | NopJobFireBizModel.java:47 | cancelFire/rerunFire未使用requireEntity加载实体 |
+- **文件**: NopJobFireBizModel:48,63
+- **现状**: `NopJobFireBizModel` 在加载 Fire 实体时使用 `fireStore.loadFire()` 方法，而非 `CrudBizModel` 提供的 `requireEntity(id, action, context)` 方法。
+- **风险**: 当实体不存在时，错误消息中将缺少 action 名称上下文，降低问题排查效率。
+- **建议**: 改用 `requireEntity()` 以获得更丰富的错误上下文信息。

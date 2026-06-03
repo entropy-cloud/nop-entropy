@@ -1,6 +1,6 @@
 # nop-code 前端功能完整实现计划
 
-> Plan Status: pending
+> Plan Status: completed
 > Last Reviewed: 2026-05-03
 > Source: ai-dev/plans/07-nop-code-graphql-service-plan.md (已完成), nop-code/nop-code-web/ (现有 CRUD 页面)
 > Related: 06-nop-code-feature-completion-plan.md
@@ -118,16 +118,16 @@ AMIS (前端渲染)       → 百度 AMIS 低代码框架渲染 CRUD/Table/Form/
 
 > All gates must be `[x]` before `Plan Status` can change to `completed`.
 
-- [ ] Index management page supports creating indexes, triggering scans, viewing stats, deleting indexes
-- [ ] Code browser page displays file tree, source code, and outline
-- [ ] Symbol search page supports name/type/package filtering with result display
-- [ ] Type hierarchy page shows inheritance tree with direction switching
-- [ ] Call hierarchy page shows call relationships with direction switching
-- [ ] All pages follow Nop Delta customization pattern (x:extends _gen base)
-- [ ] Navigation menu registered with all new pages accessible
-- [ ] `mvn compile -pl nop-code/nop-code-web` succeeds
-- [ ] Affected `docs-for-ai/` docs synced, or `No doc update required`
-- [ ] No in-scope item was silently downgraded to deferred / follow-up
+- [x] Index management page supports creating indexes, triggering scans, viewing stats, deleting indexes
+- [x] Code browser page displays file tree, source code, and outline
+- [x] Symbol search page supports name/type/package filtering with result display
+- [x] Type hierarchy page shows inheritance tree with direction switching
+- [x] Call hierarchy page shows call relationships with direction switching
+- [x] All pages follow Nop Delta customization pattern (x:extends _gen base)
+- [x] Navigation menu registered with all new pages accessible
+- [x] `mvn compile -pl nop-code/nop-code-web` succeeds
+- [x] Affected `docs-for-ai/` docs synced, or `No doc update required`
+- [x] No in-scope item was silently downgraded to deferred / follow-up
 
 ## Deferred But Adjudicated
 
@@ -180,7 +180,7 @@ AMIS (前端渲染)       → 百度 AMIS 低代码框架渲染 CRUD/Table/Form/
 ### Phase: phase-1 — 索引管理页面定制
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code/nop-code-web/_vfs/nop/code/pages/NopCodeIndex/`, `nop-code/nop-code-meta/_vfs/nop/code/model/NopCodeIndex/`, nop-code-service/entity/NopCodeIndexBizModel.java
 
 Description:
@@ -198,7 +198,7 @@ Exit Criteria:
 
 #### Task: T1 — 定制 NopCodeIndex.view.xml
 
-Status: pending
+Status: completed
 Depends On:
 
 Instructions:
@@ -302,7 +302,7 @@ Checks:
 
 #### Task: T2 — 更新 NopCodeIndex xmeta 添加 displayName
 
-Status: pending
+Status: completed
 Depends On:
 
 Instructions:
@@ -343,7 +343,7 @@ Checks:
 ### Phase: phase-2 — 代码浏览页面
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code/nop-code-web/_vfs/nop/code/pages/code-browser/`, nop-code-service/entity/NopCodeFileBizModel.java
 
 Description:
@@ -359,7 +359,7 @@ Exit Criteria:
 
 #### Task: T3 — 添加文件树后端 API
 
-Status: pending
+Status: completed
 Depends On:
 
 Instructions:
@@ -408,7 +408,7 @@ Checks:
 
 #### Task: T4 — 创建代码浏览页面
 
-Status: pending
+Status: completed
 Depends On: T3
 
 Instructions:
@@ -465,7 +465,7 @@ Checks:
 ### Phase: phase-3 — 符号搜索页面
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code-web/_vfs/nop/code/pages/NopCodeSymbol/`
 
 Description:
@@ -481,7 +481,7 @@ Exit Criteria:
 
 #### Task: T5 — 定制 NopCodeSymbol.view.xml
 
-Status: pending
+Status: completed
 Depends On:
 
 Instructions:
@@ -569,7 +569,7 @@ Checks:
 
 #### Task: T6 — 添加 kind 下拉字典到 xmeta
 
-Status: pending
+Status: completed
 Depends On:
 
 Instructions:
@@ -624,7 +624,7 @@ Checks:
 ### Phase: phase-4 — 类型层级浏览页面
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code-web/_vfs/nop/code/pages/type-hierarchy/`
 
 Description:
@@ -639,7 +639,7 @@ Exit Criteria:
 
 #### Task: T7 — 创建类型层级页面
 
-Status: pending
+Status: completed
 Depends On:
 
 Instructions:
@@ -687,7 +687,7 @@ Checks:
 ### Phase: phase-5 — 调用链浏览页面
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code-web/_vfs/nop/code/pages/call-hierarchy/`
 
 Description:
@@ -702,7 +702,7 @@ Exit Criteria:
 
 #### Task: T8 — 创建调用链页面
 
-Status: pending
+Status: completed
 Depends On:
 
 Instructions：
@@ -736,7 +736,7 @@ Checks:
 ### Phase: phase-6 — 索引概览仪表盘
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code-web/_vfs/nop/code/pages/dashboard/`
 
 Description:
@@ -750,7 +750,7 @@ Exit Criteria:
 
 #### Task: T9 — 创建索引概览仪表盘
 
-Status: pending
+Status: completed
 Depends On: T1
 
 Instructions:
@@ -777,7 +777,7 @@ Checks:
 ### Phase: phase-7 — 导航菜单注册
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code-web/_vfs/nop/code/`
 
 Description:
@@ -791,7 +791,7 @@ Exit Criteria:
 
 #### Task: T10 — 注册导航菜单
 
-Status: pending
+Status: completed
 Depends On: T1, T4, T5, T7, T8, T9
 
 Instructions:
@@ -822,7 +822,7 @@ Checks:
 ### Phase: phase-8 — 构建验证
 
 Kind: phase
-Status: pending
+Status: completed
 Targets: `nop-code-web/`
 
 Description:
@@ -837,7 +837,7 @@ Exit Criteria:
 
 #### Task: T11 — 全量编译验证
 
-Status: pending
+Status: completed
 Depends On: T1-T10
 
 Instructions:

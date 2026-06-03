@@ -1,6 +1,6 @@
 # nop-job 深度审核改进计划
 
-> **Plan Status**: completed
+> Plan Status: completed
 > **Module**: nop-job
 > **Source Audit**: `ai-dev/audits/2026-05-18-deep-audit-nop-job-full/`
 > **Created**: 2026-05-18

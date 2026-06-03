@@ -12,7 +12,7 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
-import org.junit.jupiter.api.BeforeEach;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -289,7 +290,7 @@ public class TestJobCompletionProcessor {
             callCount.incrementAndGet();
             this.lastEvent = event;
             if (shouldThrow) {
-                throw new RuntimeException("bridge error");
+                throw NopException.adapt(new RuntimeException("bridge error"));
             }
             return "retry-" + event.getJobFireId();
         }
@@ -313,7 +314,7 @@ public class TestJobCompletionProcessor {
         public void onFireFailed(JobAlarmEvent event) {
             failedCount.incrementAndGet();
             this.lastFailedEvent = event;
-            if (throwOnFailed) throw new RuntimeException("alarm error");
+            if (throwOnFailed) throw NopException.adapt(new RuntimeException("alarm error"));
         }
 
         @Override
@@ -390,6 +391,63 @@ public class TestJobCompletionProcessor {
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countRunningTasks(String workerInstanceId) { return 0; }
+    }
+
+    @Test
+    void testResultDrivenCompletion_disabledByDefault() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        task.setResultPayload("{\"completed\":true}");
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertNull(schedule.getScheduleStatus(),
+                "Schedule should NOT be marked COMPLETED when allowResultCompletion is not set");
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_SUCCESS, fire.getFireStatus());
+    }
+
+    @Test
+    void testResultDrivenCompletion_enabledWhenFlagSet() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        schedule.getJobParamsComponent().set_jsonValue(Map.of("allowResultCompletion", true));
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        task.setResultPayload("{\"completed\":true}");
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED, schedule.getScheduleStatus(),
+                "Schedule should be marked COMPLETED when allowResultCompletion=true and task returns completed:true");
+    }
+
+    @Test
+    void testResultDrivenCompletion_nextScheduleTime_stillWorksWithoutFlag() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        long nextTime = currentTime + 60000;
+        task.setResultPayload("{\"nextScheduleTime\":" + nextTime + "}");
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertNull(schedule.getScheduleStatus(),
+                "Schedule should NOT be COMPLETED without allowResultCompletion flag");
     }
 
     @Test

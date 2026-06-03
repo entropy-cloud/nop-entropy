@@ -1,103 +1,96 @@
-# 深度审核汇总报告
+# 深度审核汇总报告 — nop-job
 
 ## 基本信息
-
-- **审核模块**: nop-job
-- **审核日期**: 2026-06-03
-- **执行维度**: 全部 21 个维度
-- **目标范围**: nop-job 模块全部 11 个子模块（api/core/dao/service/web/app/coordinator/worker/codegen/meta/retry-adapter）的手写源代码、模型定义、配置文件和测试代码
+- 审核模块: nop-job
+- 审核日期: 2026-06-03
+- 执行维度: 全部 21 维度
+- 目标范围: nop-job 11 个子模块（约 20,957 行 Java 代码）
 
 ## 执行统计
 
-| 维度 | 深挖轮次 | 初审发现数 | 追加发现数 | 保留 | 降级 | 驳回 |
-|------|---------|-----------|-----------|------|------|------|
-| 01-依赖图 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 02-模块职责 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 03-API表面 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 04-ORM模型 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 05-生成管线 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 06-Delta | 1 | 0 | 0 | 0 | 0 | 0 |
-| 07-BizModel | 1 | 2 | 0 | 2 | 0 | 0 |
-| 08-IoC配置 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 09-错误处理 | 1 | 4 | 0 | 4 | 0 | 0 |
-| 10-XDSL | 1 | 0 | 0 | 0 | 0 | 0 |
-| 11-XMeta对齐 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 12-GraphQL | 1 | 0 | 0 | 0 | 0 | 0 |
-| 13-安全权限 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 14-异步事务 | 1 | 3 | 0 | 3 | 0 | 0 |
-| 15-类型安全 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 16-测试覆盖 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 17-代码风格 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 18-文档一致 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 19-命名一致 | 1 | 2 | 0 | 2 | 0 | 0 |
-| 20-跨模块契约 | 1 | 0 | 0 | 0 | 0 | 0 |
-| 21-测试有效性 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 维度 | 深挖轮次 | 初审发现数 | 保留 | 降级 | 驳回 |
+|------|---------|-----------|------|------|------|
+| 01 | 1 | 3 | 3 | 0 | 0 |
+| 02 | 1 | 5 | 5 | 0 | 0 |
+| 03 | 1 | 0 | 0 | 0 | 0 |
+| 04 | 1 | 2 | 2 | 0 | 0 |
+| 05 | 1 | 2 | 2 | 0 | 0 |
+| 06 | 1 | 0 | 0 | 0 | 0 |
+| 07 | 1 | 3 | 3 | 0 | 0 |
+| 08 | 1 | 1 | 1 | 0 | 0 |
+| 09 | 1 | 8 | 8 | 0 | 0 |
+| 10 | 1 | 1 | 1 | 0 | 0 |
+| 11 | 1 | 3 | 3 | 0 | 0 |
+| 12 | 1 | 0 | 0 | 0 | 0 |
+| 13 | 1 | 0 | 0 | 0 | 0 |
+| 14 | 1 | 0 | 0 | 0 | 0 |
+| 15 | 1 | 0 | 0 | 0 | 0 |
+| 16 | 1 | 4 | 4 | 0 | 0 |
+| 17 | 1 | 4 | 4 | 0 | 0 |
+| 18 | 1 | 1 | 1 | 0 | 0 |
+| 19 | 1 | 2 | 2 | 0 | 0 |
+| 20 | 1 | 1 | 1 | 0 | 0 |
+| 21 | 1 | 2 | 2 | 0 | 0 |
 
 ## 按严重程度分布
 
 | 严重程度 | 数量 | 主要类别 |
 |---------|------|---------|
 | P0 | 0 | — |
-| P1 | 0 | — |
-| P2 | 9 | 事务并发(3)、错误码中文(2)、命名不一致(1)、输入验证(1)、测试维护(1)、死代码(1) |
-| P3 | 14 | 代码重复(2)、API风格(2)、BizModel模式(2)、测试风格(2)、命名(2)、权限(1)、生成产物(1)、其他(2) |
+| P1 | 1 | IoC bean 无法自动发现 (08-01) |
+| P2 | 15 | 计数器漂移(04), 代码重复(02×2, 07), 业务逻辑层级泄漏(02), 生成管线陈旧产物(05), 中文错误描述(09×2), 缺少参数上下文(09), 缺少测试(16×2), xmeta字段权限(10,11), 代码风格(17) |
+| P3 | 20 | 未使用依赖(01×3), 域类型偏差(04), 样板代码(07), 陈旧模板(05), 命名不一致(19×2), 测试覆盖不足(16×2,21×2), import风格(17×3), 错误码格式(09×3), 文档偏差(18), 跨模块事件(20), IBiz放置(02) |
 
 ## 关键发现摘要
 
-### P2 发现
+### P1 发现
+| 编号 | 文件 | 一句话摘要 |
+|------|------|-----------|
+| 08-01 | job-retry-adapter.beans.xml | 文件名不匹配 IoC 自动发现模式，NopRetryJobRetryBridge 永远不会被加载 |
 
-| 编号 | 维度 | 文件 | 一句话摘要 |
-|------|------|------|-----------|
-| 04-01 | ORM模型 | nop-job.orm.xml:300 | NopJobFire UK在快速连续手动触发时可能冲突 |
-| 04-02 | ORM模型 | nop-job.orm.xml:403 | NopJobTask缺少到NopJobSchedule的直接关系，需两跳 |
-| 09-01 | 错误处理 | JobCoreErrors.java:16-43 | 4个ErrorCode描述使用中文（含@Locale("zh-CN")） |
-| 09-02 | 错误处理 | JobApiErrors.java:17-19 | 2个公共API ErrorCode描述使用中文 |
-| 13-01 | 安全权限 | NopJobScheduleBizModel.java:97 | triggerNow的overrideParams无输入验证 |
-| 14-01 | 异步事务 | JobFireStoreImpl.java:117 | completeFireAndUpdateSchedule对schedule使用updateEntityDirectly绕过乐观锁 |
-| 14-02 | 异步事务 | NopJobFireBizModel.java:47 | cancelFire TOCTOU多次加载fire实体 |
-| 14-03 | 异步事务 | JobScheduleStoreImpl.java:125 | overlay操作吞掉异常后仍按全量计数 |
-| 16-02 | 测试覆盖 | 多个coordinator测试 | Mock Store实现在4+个测试文件中重复定义 |
-| 17-02 | 代码风格 | 多个测试文件 | setExecutorKind连续调用两次，第一次无效 |
-| 19-01 | 命名一致 | NopJobErrors.java:50 | ERR_RPC_INVOKER_MISSING_PARAM缺少JOB_前缀 |
-
-### P3 发现
-
-| 编号 | 维度 | 文件 | 一句话摘要 |
-|------|------|------|-----------|
-| 02-01 | 模块职责 | 两个BizModel | resolveTriggeredBy方法完全重复(12行) |
-| 02-02 | 模块职责 | 两个BizModel | Fire对象构建逻辑70%重复 |
-| 03-01 | API表面 | NopJobFireBizModel.java:45 | @BizMutation注解接口有value实现类无value |
-| 03-02 | API表面 | INopJobTaskBiz.java | delete方法在接口暴露但BizModel抛异常禁止 |
-| 07-01 | BizModel | NopJobScheduleBizModel.java:132 | persistSchedule使用updateEntityDirectly绕过标准流程 |
-| 07-02 | BizModel | NopJobFireBizModel.java:47 | cancelFire/rerunFire未使用requireEntity加载实体 |
-| 09-03 | 错误处理 | JobCoreErrors.java:24-36 | 5个状态标记ErrorCode不遵循nop.err.*命名 |
-| 09-04 | 错误处理 | Calendar类(14处) | 使用IllegalArgumentException而非NopException |
-| 13-02 | 安全权限 | data-auth.xml | 数据权限配置为空 |
-| 16-01 | 测试覆盖 | TestTrigger.java:97 | 测试中System.out.println调试遗留 |
-| 17-01 | 代码风格 | NopJobErrors.java:12 | 类声明缺少空格 |
-| 19-02 | 命名一致 | JobCoreErrors.java:24-36 | 状态标记ErrorCode使用裸字符串 |
+### P2 发现（按优先级）
+| 编号 | 文件 | 一句话摘要 |
+|------|------|-----------|
+| 04-01 | JobFireStoreImpl:169-177 | cancelFire 遗漏 totalFireCount/failFireCount 计数器更新 |
+| 08-01 | job-retry-adapter.beans.xml | IoC bean 自动发现失败 |
+| 05-01 | web/pages/NopJob* | 4 个陈旧页面目录引用不存在的 xmeta |
+| 02-01 | JobScheduleStoreImpl等 | Store 层重复定义状态常量而非使用 _NopJobCoreConstants |
+| 02-02 | 8个文件 | 工具方法 defaultLong/defaultInt 等跨文件复制 |
+| 02-03 | JobScheduleStoreImpl | DAO Store 层包含阻塞策略等业务逻辑 |
+| 07-01 | 两个 BizModel | resolveTriggeredBy 完全重复 |
+| 07-02 | BizModel+Store | cancelFire 可取消性判定逻辑分裂 |
+| 09-01 | JobApiErrors:17,19 | ErrorCode description 硬编码中文 |
+| 09-02 | JobCoreErrors:15-43 | 4 个 ErrorCode description 硬编码中文 |
+| 09-05 | NopJobTaskBizModel:26 | delete() 缺少 .param() 上下文 |
+| 10-01 | NopJobTask.xmeta | 5 个系统管理字段未标记只读 |
+| 11-01 | NopJobSchedule.xmeta:5 | scheduleStatus insertable=false 但无 defaultValue 可能导致 NOT NULL 违反 |
+| 16-01 | NopJobTaskBizModel | delete 封堵逻辑无测试 |
+| 16-02 | RpcBroadcastTaskBuilder | 广播任务构建器零测试 |
 
 ## 总评
 
-nop-job 模块整体质量**较高**。模块架构清晰，职责划分合理，生成管线闭合无断点，IoC 配置完全合规，跨模块契约实现正确，测试覆盖在分布式调度器领域属于高质量水平（130+ 测试方法，覆盖并发竞争、状态机转换、错误路径等关键场景）。
+nop-job 是一个设计良好的分布式任务调度模块，采用了 coordinator/worker 分离架构，Store 层封装了事务边界，乐观锁处理多实例并发竞争。代码整体质量高，分层清晰，ORM 模型设计规范，Delta 定制用法正确。
 
-主要问题集中在：
-1. **事务并发模式**（3个P2）：Store 层 `completeFireAndUpdateSchedule` 对 schedule 绕过乐观锁是最值得关注的问题，可能在并发场景下丢失更新。
-2. **错误码国际化**（2个P2）：公共 API 层（JobApiErrors）和 core 层的 ErrorCode 描述使用中文，违反项目英文消息规范。
-3. **代码维护性**：Mock Store 重复、Fire 构建逻辑重复等属于渐进式改善项。
+**最严重的问题是 [08-01] IoC bean 自动发现失败**：`job-retry-adapter.beans.xml` 文件名不匹配 `app*.beans.xml` 模式，导致 `NopRetryJobRetryBridge` 永远不会被 IoC 容器加载，nop-retry 引擎集成形同虚设。修复方法简单：重命名为 `app-retry-adapter.beans.xml`。
+
+**其次是 [04-01] 计数器漂移**：`cancelFire` 路径遗漏了 `totalFireCount` 和 `failFireCount` 的更新，随着取消操作累积，仪表盘统计数据将系统性偏低。
+
+**代码重复是最大的维护成本**：Store 层重新定义状态常量、工具方法在 8 个文件中复制、`resolveTriggeredBy` 在两个 BizModel 中重复、`calculateFixedDelayNextFireTime` 跨层重复。建议提取共享工具类。
 
 ## 优先修复建议
 
-1. **[P2-高] 修复 schedule 乐观锁绕过**：`JobFireStoreImpl.completeFireAndUpdateSchedule` 中将 `scheduleDao().updateEntityDirectly(schedule)` 改为 `tryUpdateManyWithVersionCheck`。这是唯一可能导致数据不一致的发现。
-2. **[P2-中] 公共 API 错误码国际化**：将 `JobApiErrors.java` 中的 2 个中文描述改为英文。这是跨模块公共 API 层，影响面最广。
-3. **[P2-中] Core 层错误码国际化**：将 `JobCoreErrors.java` 中的 4 个中文描述改为英文。
-4. **[P2-低] overlay 计数修复**：`JobScheduleStoreImpl.overlayFireAndAdvanceSchedule` 中跟踪实际成功取消数替代全量计数。
-5. **[P2-低] 测试基础设施抽取**：将重复的 Mock Store 实现抽取到共享测试工具类。
+1. **P1 [08-01]**: 将 `job-retry-adapter.beans.xml` 重命名为 `app-retry-adapter.beans.xml`
+2. **P2 [04-01]**: 在 `JobFireStoreImpl.cancelFire` 中补充 totalFireCount/failFireCount 更新
+3. **P2 [05-01]**: 删除 4 个陈旧 web 页面目录
+4. **P2 [09-01/02]**: 将 ErrorCode description 改为英文
+5. **P2 [02-01/02]**: 提取共享常量和工具方法到 nop-job-core
+6. **P2 [10-01/11-01]**: 补充 xmeta 字段只读声明和 scheduleStatus 默认值
+7. **P2 [16-01/02]**: 补充缺失的测试
 
 ## 本次审核盲区自评
 
-1. 维度01（依赖图）的初审子agent输出被截断，完整依赖图分析基于主agent收集的基线数据，可能遗漏深层依赖问题。
-2. 未实际运行 `./mvnw test -pl nop-job` 验证测试是否全部通过（基于已有 CI 信任）。
-3. 维度15（类型安全）未独立执行，相关检查被维度03/07覆盖。
-4. 未对 Calendar 类层次（从 Quartz 移植代码）做深入审计。
-5. 未检查 nop-job 与 nop-retry-engine 之间的版本兼容性。
+1. 未执行 Maven 构建和测试（`./mvnw test -pl nop-job -am`），依赖代码静态分析
+2. 未验证 checkstyle 基线
+3. 未深入审查 calendar 包的算法正确性（仅标记缺少测试）
+4. 对 nop-job-app 的运行时配置审查较浅
+5. 依赖图谱基于 pom.xml 声明分析，未通过 dependency:tree 验证实际解析结果

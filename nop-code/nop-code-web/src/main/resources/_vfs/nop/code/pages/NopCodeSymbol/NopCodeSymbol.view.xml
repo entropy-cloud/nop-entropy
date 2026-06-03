@@ -31,7 +31,7 @@
         <form id="query" x:override="replace" editMode="query" title="符号搜索">
             <layout>
  query[名称关键词]
- kinds[符号类型]
+ kind[符号类型]
  packageName[包名]
             </layout>
         </form>
