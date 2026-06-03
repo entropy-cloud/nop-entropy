@@ -80,12 +80,11 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
 
         long now = fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
-        Timestamp lockTime = new Timestamp(now + Math.max(lockTimeoutMs, 1));
+        Timestamp startTime = new Timestamp(now);
         for (NopJobFire fire : fires) {
             fire.setFireStatus(FIRE_STATUS_DISPATCHING);
             fire.setDispatchInstanceId(dispatchInstanceId);
-            fire.setStartTime(lockTime);
-            fire.setUpdateTime(lockTime);
+            fire.setStartTime(startTime);
         }
         return fireDao().tryUpdateManyWithVersionCheck(fires);
     }

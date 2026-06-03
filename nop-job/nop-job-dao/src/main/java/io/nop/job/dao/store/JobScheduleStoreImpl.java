@@ -169,6 +169,9 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             newFire.setJobName(schedule.getJobName());
             newFire.setScheduledFireTime(fireTime);
             newFire.setFireStatus(FIRE_STATUS_WAITING);
+            newFire.setTriggerSource(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY);
+            newFire.setRetryPolicyId(schedule.getRetryPolicyId());
+            newFire.setJobParamsSnapshot(schedule.getJobParams());
             newFire.setCreatedBy("system");
             newFire.setCreateTime(fireTime);
             newFire.setUpdatedBy("system");

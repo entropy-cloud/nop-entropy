@@ -87,25 +87,25 @@ Exit Criteria:
 
 ### Phase 2 - P1 修复残留语义错误（AR-1, AR-2）
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-dao/`, `nop-job/nop-job-coordinator/`
 
 - Item Types: `Fix`
 
-- [ ] AR-1: `JobFireStoreImpl.tryLockFiresForDispatch` 中 `fire.setStartTime(new Timestamp(now))`（使用实际当前时间），lock expiry 信号由 `updateTime` 保留
-- [ ] AR-2: `JobScheduleStoreImpl.recoveryFireAndAdvanceSchedule` 的 no-failed-fires 分支补充 `triggerSource=TRIGGER_SOURCE_RECOVERY`、`retryPolicyId`、`plannerInstanceId`、`jobParamsSnapshot`（从 schedule 刷新）
-- [ ] 为 AR-1 添加测试：验证 dispatch 后 `startTime` 在过去（`now` 附近），`updateTime` 在未来（`now + lockTimeoutMs`）
-- [ ] 为 AR-2 添加测试：验证 recovery 创建的 fire 包含完整字段
+- [x] AR-1: `JobFireStoreImpl.tryLockFiresForDispatch` 中 `fire.setStartTime(new Timestamp(now))`（使用实际当前时间），lock expiry 信号由 `updateTime` 保留
+- [x] AR-2: `JobScheduleStoreImpl.recoveryFireAndAdvanceSchedule` 的 no-failed-fires 分支补充 `triggerSource=TRIGGER_SOURCE_RECOVERY`、`retryPolicyId`、`plannerInstanceId`、`jobParamsSnapshot`（从 schedule 刷新）
+- [x] 为 AR-1 添加测试：验证 dispatch 后 `startTime` 在过去（`now` 附近），`updateTime` 在未来（`now + lockTimeoutMs`）
+- [x] 为 AR-2 添加测试：验证 recovery 创建的 fire 包含完整字段
 
 Exit Criteria:
 
-- [ ] `fire.startTime` 等于 dispatch 时刻的 `now`（不是 `now + lockTimeoutMs`），`cancelFire` 的 duration 计算不再始终为 0
-- [ ] dispatch timeout deadline 不再额外增加 `lockTimeoutMs`
-- [ ] recovery fire 的 no-failed-fires 路径创建的 fire 包含 `triggerSource`、`retryPolicyId`、`plannerInstanceId`、`jobParamsSnapshot`，与 `buildFire` 等价
-- [ ] 新增测试覆盖上述行为，测试通过
-- [ ] `./mvnw compile -pl nop-job -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `fire.startTime` 等于 dispatch 时刻的 `now`（不是 `now + lockTimeoutMs`），`cancelFire` 的 duration 计算不再始终为 0
+- [x] dispatch timeout deadline 不再额外增加 `lockTimeoutMs`
+- [x] recovery fire 的 no-failed-fires 路径创建的 fire 包含 `triggerSource`、`retryPolicyId`、`plannerInstanceId`、`jobParamsSnapshot`，与 `buildFire` 等价
+- [x] 新增测试覆盖上述行为，测试通过
+- [x] `./mvnw compile -pl nop-job -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - P1 并发安全修复（AR-9, AR-10）
 

@@ -107,10 +107,11 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     @Test
     public void testCompletionUpdatesFireAndSchedule() {
         PreparedChain chain = prepareChain(newSchedule("schedule-2", "job-2"));
-        Timestamp startTime = new Timestamp(System.currentTimeMillis());
+        NopJobTask task = taskStore.loadTask(chain.task.getJobTaskId());
+        NopJobFire currentFire = fireStore.loadFire(chain.fire.getJobFireId());
+        Timestamp startTime = currentFire.getStartTime();
         Timestamp endTime = new Timestamp(startTime.getTime() + 2000);
 
-        NopJobTask task = taskStore.loadTask(chain.task.getJobTaskId());
         task.setTaskStatus(TASK_STATUS_SUCCESS);
         task.setStartTime(startTime);
         task.setEndTime(endTime);
