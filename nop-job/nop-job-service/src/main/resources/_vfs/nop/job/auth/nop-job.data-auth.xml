@@ -1,5 +1,38 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
-
-    <objs/>
+    <objs>
+        <obj name="NopJobSchedule">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <filter>
+                        <eq name="namespaceId" value="${$context.namespaceId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopJobFire">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <filter>
+                        <eq name="namespaceId" value="${$context.namespaceId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+        <obj name="NopJobTask">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <filter>
+                        <eq name="namespaceId" value="${$context.namespaceId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
 </data-auth>

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopJobFire.xbiz">
-
-    <actions/>
+    <actions>
+        <mutation name="rerunFire">
+            <auth roles="admin" permissions="NopJobFire:rerunFire"/>
+        </mutation>
+        <mutation name="cancelFire">
+            <auth roles="admin" permissions="NopJobFire:cancelFire"/>
+        </mutation>
+    </actions>
 </biz>
