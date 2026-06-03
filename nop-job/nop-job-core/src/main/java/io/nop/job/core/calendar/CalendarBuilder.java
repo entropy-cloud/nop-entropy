@@ -61,8 +61,9 @@ public class CalendarBuilder {
                     continue;
 
                 WeeklyCalendar weekly = new WeeklyCalendar(cal);
-                for (int day : spec.getExcludes()) {
-                    weekly.setDayExcluded(day, true);
+                for (int isoDay : spec.getExcludes()) {
+                    int calendarDay = (isoDay % 7) + 1;
+                    weekly.setDayExcluded(calendarDay, true);
                 }
                 cal = weekly;
             } else if (calInfo instanceof DailyCalendarSpec) {
@@ -77,7 +78,7 @@ public class CalendarBuilder {
                     start = LocalTime.of(0, 0);
 
                 if (end == null) {
-                    end = LocalTime.of(24, 0, 0);
+                    end = LocalTime.MAX;
                 }
 
                 DailyCalendar daily = new DailyCalendar(cal, start, end);
