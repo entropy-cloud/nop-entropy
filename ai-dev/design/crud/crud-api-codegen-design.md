@@ -8,13 +8,13 @@
 
 ## 一、设计结论
 
-1. 在 `nop-api-core` 中将现有 `ICrudApi<T>` 演进为 `ICrudApi<I, O>`，并新增 `ITreeApi<O>`，分别承载标准 CRUD 和树形操作的远程调用签名。
+1. 在 `nop-api-core` 中将现有 `ICrudApi<T>` 演进为 `ICrudApi<I, O>`，并新增 `ICrudTreeApi<O>`，分别承载标准 CRUD 和树形操作的远程调用签名。
 2. **Bean 命名遵循项目 `*Bean` 约定**：输入为 `{EntityName}InputBean`，输出为 `{EntityName}OutputBean`。项目中 `*Input`/`*Output` 已被基础设施层占用（`IRecordInput`、`IEvalOutput` 等），使用 `*Bean` 后缀与现有 codegen 模式一致（`WfStartRequestBean`、`RuleResultBean`），避免命名冲突。
 3. **返回类型不使用实体类**。泛型参数 `O` 代表基于实体名衍生的输出对象（如 `NopAuthUserOutputBean`），由 `*-meta` 根据 xmeta 的 `published` props 生成。
 4. **输入使用强类型**。泛型参数 `I` 代表基于实体名衍生的输入对象（如 `NopAuthUserInputBean`），由 `*-meta` 根据 xmeta 的 `insertable` / `updatable` props 生成。
 5. **`CrudBizModel` 不实现 `ICrudApi`**。API 接口是纯客户端 CRUD 契约，框架的通用桥接机制负责将 API 调用路由到 `CrudBizModel` 的对应方法。因此 API 接口的输入类型可以独立演进为强类型 `I`，而不要求 `CrudBizModel` 本身改为直接接收 Bean。
 6. **生成触发点在 `*-meta`**。因为 meta 修改会直接影响 InputBean/OutputBean 的字段列表（`insertable`、`updatable`、`published` 等属性变化时 Bean 需要重新生成）。
-7. **树形操作独立为 `ITreeApi<O>`**，不复用 `ICrudApi`。不是所有实体都有树形结构，按需继承。
+7. **树形操作独立为 `ICrudTreeApi<O>`**，不复用 `ICrudApi`。不是所有实体都有树形结构，按需继承。
 
 ## 二、背景与动机
 
@@ -52,14 +52,14 @@ Nop 平台的 CRUD 服务（基于 `CrudBizModel<T>`）通过通用 REST adapter
 
 ### 3.1 类型参数设计
 
-`ICrudApi` 和 `ITreeApi` 使用独立的类型参数，不引用实体类：
+`ICrudApi` 和 `ICrudTreeApi` 使用独立的类型参数，不引用实体类：
 
 ```text
 ICrudApi<I, O>
   I = 输入类型（如 NopAuthUserInputBean）
   O = 输出类型（如 NopAuthUserOutputBean）
 
-ITreeApi<O>
+ICrudTreeApi<O>
   O = 输出类型（与 ICrudApi 共享同一个 O）
 ```
 
@@ -98,7 +98,7 @@ public interface NopAuthUserApi extends _NopAuthUserApi {
 - 保留现有高级 CRUD 方法（如 `copyForNew`、`batchUpdate`、`deleted_*`）在 `ICrudApi` 中，核心变化是把输出类型改为 `O`，并将 `save/update/saveOrUpdate` 的输入改为强类型 `I`
 - 框架自动将方法调用桥接到 `CrudBizModel` 的同名方法
 
-### 3.3 `ITreeApi<O>` — 独立的树形操作接口
+### 3.3 `ICrudTreeApi<O>` — 独立的树形操作接口
 
 树形操作返回 `StdTreeEntity`（轻量级树结构，只有 id/displayName/parentId/level）或完整输出对象，与平铺 CRUD 的方法集有明显差异，应独立为单独接口。
 
@@ -110,7 +110,7 @@ public interface NopAuthUserApi extends _NopAuthUserApi {
 | `findTreeEntityPage` | query | `PageBean<StdTreeEntity>` | 返回轻量级树节点（分页） |
 | `findTreeEntityList` | query | `List<StdTreeEntity>` | 返回轻量级树节点（列表） |
 
-需要树形操作的实体接口同时继承 `ITreeApi<O>`。不具备树形结构的实体不继承。
+需要树形操作的实体接口同时继承 `ICrudTreeApi<O>`。不具备树形结构的实体不继承。
 
 ### 3.4 InputBean 生成
 
@@ -275,12 +275,12 @@ public interface {EntityName}Api extends _{EntityName}Api {
 }
 ```
 
-如果实体具有树形结构（xmeta 中定义了 `parentProp`），同时继承 `ITreeApi`：
+如果实体具有树形结构（xmeta 中定义了 `parentProp`），同时继承 `ICrudTreeApi`：
 
 ```java
 public interface _{EntityName}Api
     extends ICrudApi<_{EntityName}InputBean, _{EntityName}OutputBean>,
-    ITreeApi<_{EntityName}OutputBean> {
+    ICrudTreeApi<_{EntityName}OutputBean> {
 }
 ```
 
@@ -363,7 +363,7 @@ public interface _{EntityName}Api
 **拒绝理由**：
 - 不是所有实体都有树形结构，强制实现树形方法违反接口隔离原则
 - `StdTreeEntity` 的返回类型与 `O` 无关，参数和返回结构与 CRUD 操作差异明显
-- 独立的 `ITreeApi` 允许按需继承
+- 独立的 `ICrudTreeApi` 允许按需继承
 
 ### 方案 E：生成触发点放在 `*-codegen`
 
@@ -402,7 +402,7 @@ public interface _{EntityName}Api
 
 ### Phase 1：接口定义 + InputBean/OutputBean 生成
 
-1. 在 `nop-api-core` 中定义 `ICrudApi<I, O>` 和 `ITreeApi<O>` 接口
+1. 在 `nop-api-core` 中定义 `ICrudApi<I, O>` 和 `ICrudTreeApi<O>` 接口
 2. 在 `nop-codegen` 中增加 InputBean/OutputBean 和 API 接口的生成模板
 3. 在 `*-meta/precompile/gen-meta.xgen`（或新增 `gen-crud-api.xgen`）中集成模板
 4. 对 `nop-auth` 模块验证生成结果

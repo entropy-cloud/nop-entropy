@@ -23,7 +23,7 @@ import java.util.List;
  *
  * @param <O> 输出类型（如 XxxOutputBean）
  */
-public interface ITreeApi<O> {
+public interface ICrudTreeApi<O> {
 
     @BizQuery
     List<O> findRoots(@Optional @Name("query") QueryBean query,

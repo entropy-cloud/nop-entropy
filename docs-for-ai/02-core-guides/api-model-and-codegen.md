@@ -254,7 +254,7 @@ API 模型生成是独立于 ORM 模型生成的。在标准业务模块中：
 | 接口 | 位置 | 说明 |
 |------|------|------|
 | `ICrudApi<I, O>` | `nop-api-core` → `io.nop.api.core.api` | 通用 CRUD 泛型接口，I=输入类型，O=输出类型 |
-| `ITreeApi<O>` | `nop-api-core` → `io.nop.api.core.api` | 树形操作接口（findRoots/findTreeEntityPage/findTreeEntityList） |
+| `ICrudTreeApi<O>` | `nop-api-core` → `io.nop.api.core.api` | 树形操作接口（findRoots/findTreeEntityPage/findTreeEntityList） |
 | `CrudInputBase` | `nop-api-core` → `io.nop.api.core.api` | InputBean 基类，含 `_chgType` + `@JsonAnySetter`/`@JsonAnyGetter` |
 
 `ICrudApi<I, O>` 的方法集：get/findPage/findList/findFirst/findCount/save/update/delete/saveOrUpdate/batchDelete/batchGet 等，其中 save/update/saveOrUpdate 使用强类型 `I` 输入。
@@ -279,7 +279,7 @@ codeGenerator.withTargetDir("../{appName}-api/src/main/java/")
 
 - **InputBean 字段**：`meta-gen:IsColInsertable(col) || meta-gen:IsColUpdatable(col)` 的列 + `insertable || updatable` tag 的关系
 - **OutputBean 字段**：`!col.tagSet.contains('not-pub')` 的列 + `pub` tag 的关系
-- **树形检测**：`entityModel.getColumnByTag('parent') != null` 时 `Api` 接口额外继承 `ITreeApi<O>`
+- **树形检测**：`entityModel.getColumnByTag('parent') != null` 时 `Api` 接口额外继承 `ICrudTreeApi<O>`
 
 ### 生成物清单（每个 ORM 实体）
 
@@ -289,7 +289,7 @@ codeGenerator.withTargetDir("../{appName}-api/src/main/java/")
 | `{apiPackage}/beans/{EntityName}InputBean.java` | 保留 | 用户扩展 InputBean |
 | `{apiPackage}/beans/_gen/_{EntityName}OutputBean.java` | 强制覆盖 | OutputBean 基类 |
 | `{apiPackage}/beans/{EntityName}OutputBean.java` | 保留 | 用户扩展 OutputBean |
-| `{apiPackage}/crud/_{EntityName}Api.java` | 强制覆盖 | API 基接口，extends ICrudApi<I, O> [+, ITreeApi<O>] |
+| `{apiPackage}/crud/_{EntityName}Api.java` | 强制覆盖 | API 基接口，extends ICrudApi<I, O> [+, ICrudTreeApi<O>] |
 | `{apiPackage}/crud/{EntityName}Api.java` | 保留 | `@BizModel` 标注的用户扩展接口 |
 
 ### InputBean 关系字段

@@ -21,11 +21,11 @@
 - 项目中 DTO 命名主导模式为 `*Bean`（如 `WfStartRequestBean`、`QueryBean`），`*Vo` 零使用，`*Dto` 仅 `nop-code` 模块
 - `ExtensibleBean` 提供 `attrs` Map 但不使用 `@JsonAnyGetter`/`@JsonAnySetter`；子类需自行覆盖添加注解。`CrudInputBase` 不继承 `ExtensibleBean`，独立实现 `@JsonAnySetter`/`@JsonAnyGetter`，因为需要将控制字段直接展开到 JSON 根级（而非嵌套在 `attrs` 中）
 - 现有 API 模板中保留文件不带 `//__XGEN_FORCE_OVERRIDE__` 头，生成文件带此头
-- `nop-api-core` 中已存在 `io.nop.api.core.api.ICrudApi<T>`；本 plan 实际落地为将其演进为 `ICrudApi<I, O>`，并新增 `ITreeApi<O>`，而不是并列新增一个同名接口
+- `nop-api-core` 中已存在 `io.nop.api.core.api.ICrudApi<T>`；本 plan 实际落地为将其演进为 `ICrudApi<I, O>`，并新增 `ICrudTreeApi<O>`，而不是并列新增一个同名接口
 
 ## Goals
 
-- 在 `nop-api-core` 中定义 `ICrudApi<I, O>` 和 `ITreeApi<O>` 泛型接口
+- 在 `nop-api-core` 中定义 `ICrudApi<I, O>` 和 `ICrudTreeApi<O>` 泛型接口
 - 定义 `CrudInputBase` 基类（含 `_chgType` + `@JsonAnySetter`/`@JsonAnyGetter`）
 - 在 `*-meta` 生成阶段为每个 ORM 实体生成 InputBean、OutputBean 和具体 API 接口
 - 以 `nop-auth` 模块验证生成结果的正确性
@@ -42,7 +42,7 @@
 
 ### In Scope
 
-- `nop-api-core` 中新增 `ICrudApi<I, O>`、`ITreeApi<O>`、`CrudInputBase` 类
+- `nop-api-core` 中新增 `ICrudApi<I, O>`、`ICrudTreeApi<O>`、`CrudInputBase` 类
 - `nop-codegen` 中新增 CRUD API 代码生成模板
 - `*-meta` 生成链集成新模板
 - `docs-for-ai/02-core-guides/api-model-and-codegen.md` 文档更新
@@ -65,12 +65,12 @@ Targets: `nop-kernel/nop-api-core/`
 - Item Types: `Decision`, `Proof`
 
 - [x] 将现有 `ICrudApi<T>` 演进为 `ICrudApi<I, O>`：保留现有 `ICancelToken`/`FieldSelectionBean` 风格与高级 CRUD 方法，核心方法集（get/findPage/findList/findFirst/findCount/save/update/delete/saveOrUpdate/batchDelete/batchGet）的方法名与 `CrudBizModel` 对应，且 `save/update/saveOrUpdate` 改为强类型 `I` 输入，输出统一改为 `O`
-- [x] 新增 `ITreeApi<O>` 接口：定义 findRoots/findTreeEntityPage/findTreeEntityList 方法
+- [x] 新增 `ICrudTreeApi<O>` 接口：定义 findRoots/findTreeEntityPage/findTreeEntityList 方法
 - [x] 新增 `CrudInputBase` 抽象类：包含 `_chgType` 字段（String）、`_extAttrs` Map（`Map<String, Object>`）、`@JsonAnyGetter`/`@JsonAnySetter` 注解。不继承 `ExtensibleBean`（理由：`ExtensibleBean` 的 attrs 不用 Jackson Any 机制，无法将控制字段展开到 JSON 根级）
 
 Exit Criteria:
 
-- [x] `ICrudApi`、`ITreeApi`、`CrudInputBase` 编译通过，仅依赖 `nop-api-core` 内部类
+- [x] `ICrudApi`、`ICrudTreeApi`、`CrudInputBase` 编译通过，仅依赖 `nop-api-core` 内部类
 - [x] `ICrudApi` 的方法集是 `CrudBizModel` 公开方法的一个子集（get/findPage/findList/findFirst/findCount/save/update/delete/saveOrUpdate/batchDelete/batchGet），方法名完全匹配
 - [x] `CrudInputBase` 的 `@JsonAnySetter` 能吸收未声明的 JSON 属性（如 `_chgType_items`、`_writeMode_dept`）到 `_extAttrs`，`@JsonAnyGetter` 能将其展开回 JSON 根级
 - [x] 单元测试验证 `CrudInputBase` 的 JSON 序列化/反序列化行为：含 `_chgType` 时正确保留为字段，含 `_chgType_items` 等动态字段时正确吸收到 `_extAttrs`
@@ -95,7 +95,7 @@ Targets: `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/crud-api/
 - [x] 编写 `@init.xrun`：使用 `DefineLoopForOrm` 的 slot body 注册额外全局变量。在 slot 内通过隐式参数 `ormModel`/`pkgName`/`builder` 计算 `apiPackageName`（从 `ormModel['ext:apiPackageName']` 获取，默认 `pkgName + '.api'`）和 `apiPackagePath`，调用 `builder.defineGlobalVar` 注册。`entityModel` 循环变量由 `DefineLoopForOrm` 自动注册，无需额外处理
 - [x] 编写 InputBean 生成模板 `_{EntityName}InputBean.java.xgen`：以 `//__XGEN_FORCE_OVERRIDE__` 开头，继承 `CrudInputBase`，遍历 `entityModel.columns` 用 `meta-gen:IsColInsertable`/`IsColUpdatable` 过滤字段，遍历 `entityModel.relations` 处理关系字段（实际落地为生成层引用 `_gen` 包中的 `_{rel.refEntityModel.shortName}InputBean`，避免生成层反向依赖保留层）
 - [x] 编写 OutputBean 生成模板 `_{EntityName}OutputBean.java.xgen`：以 `//__XGEN_FORCE_OVERRIDE__` 开头，遍历 `entityModel.columns` 过滤 `not-pub` tag 的列，遍历 `entityModel.relations` 过滤无 `pub` tag 的关系（关系字段类型为 `Map<String, Object>` / `List<Map<String, Object>>`）
-- [x] 编写 API 接口生成模板 `_{EntityName}Api.java.xgen`（FORCE_OVERRIDE）和 `{EntityName}Api.java.xgen`（保留文件）：`_{EntityName}Api extends ICrudApi<I, O>`，`{EntityName}Api extends _{EntityName}Api`。树形检测：`entityModel.getColumnByTag('parent') != null` 时额外 `extends ITreeApi<O>`
+- [x] 编写 API 接口生成模板 `_{EntityName}Api.java.xgen`（FORCE_OVERRIDE）和 `{EntityName}Api.java.xgen`（保留文件）：`_{EntityName}Api extends ICrudApi<I, O>`，`{EntityName}Api extends _{EntityName}Api`。树形检测：`entityModel.getColumnByTag('parent') != null` 时额外 `extends ICrudTreeApi<O>`
 - [x] 编写保留层 InputBean/OutputBean 模板（不带 FORCE_OVERRIDE 头，仅首次生成）：`{EntityName}InputBean extends _{EntityName}InputBean`，`{EntityName}OutputBean extends _{EntityName}OutputBean`
 - [x] `@BizModel` 注解决策：参考现有 API 模板（`{serviceModel.name}.java.xgen` L37），`@BizModel` 放在保留层 `{EntityName}Api.java` 上。`_{EntityName}Api.java` 上**不放** `@BizModel`（避免 BizModel 注册冲突）。设计文档中 `_{EntityName}Api` 上的 `@BizModel` 是示意图，实际以本条为准
 
@@ -105,7 +105,7 @@ Exit Criteria:
 - [x] 模板中引用的变量名（`entityModel`、`appName`、`apiPackageName`、`meta-gen:IsColInsertable` 等）在实际 `DefineLoopForOrm` 和 `meta-gen.xlib` 中存在
 - [x] `rel.refEntityModel.shortName` 在模板中用于拼接关联 InputBean 类型名
 - [x] FORCE_OVERRIDE 头仅用于 `_` 前缀生成文件，保留层模板不带此头
-- [x] **想象性验证**：手动推演 `NopAuthUser` 实体的 `entityModel.columns` 和 `entityModel.relations`，确认 `meta-gen:IsColInsertable`/`IsColUpdatable` 对 `password` 列返回 true（普通列无排除条件），对 `createdBy`/`createTime`/`version` 等返回 false；确认 `NopAuthUser` 无 `parent` tag 因此不继承 `ITreeApi`
+- [x] **想象性验证**：手动推演 `NopAuthUser` 实体的 `entityModel.columns` 和 `entityModel.relations`，确认 `meta-gen:IsColInsertable`/`IsColUpdatable` 对 `password` 列返回 true（普通列无排除条件），对 `createdBy`/`createTime`/`version` 等返回 false；确认 `NopAuthUser` 无 `parent` tag 因此不继承 `ICrudTreeApi`
 - [x] No owner-doc update required（此 Phase 仅新增模板）
 
 ### Phase 3 - *-meta 生成链集成
@@ -138,14 +138,14 @@ Targets: `docs-for-ai/02-core-guides/api-model-and-codegen.md`、`docs-for-ai/IN
 
 - Item Types: `Fix`, `Follow-up`
 
-- [x] 更新 `docs-for-ai/02-core-guides/api-model-and-codegen.md`，增加 CRUD API 代码生成章节（生成物清单、`ICrudApi`/`ITreeApi`/`CrudInputBase` 说明、命名约定、覆盖策略、与 ORM 生成的区别）
+- [x] 更新 `docs-for-ai/02-core-guides/api-model-and-codegen.md`，增加 CRUD API 代码生成章节（生成物清单、`ICrudApi`/`ICrudTreeApi`/`CrudInputBase` 说明、命名约定、覆盖策略、与 ORM 生成的区别）
 - [x] 更新 `docs-for-ai/03-runbooks/debug-codegen-and-generated-files.md` 生成链路表，增加 `*-meta → *-api` 的 CRUD API 生成环节
 - [x] 运行 `node ai-dev/tools/check-doc-links.mjs --strict` 确认无 errors（当前仅剩历史 warnings）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [x] `api-model-and-codegen.md` 包含 CRUD API 生成物清单（InputBean/OutputBean/Api 接口）、`ICrudApi`/`ITreeApi` 方法列表、`CrudInputBase` 设计
+- [x] `api-model-and-codegen.md` 包含 CRUD API 生成物清单（InputBean/OutputBean/Api 接口）、`ICrudApi`/`ICrudTreeApi` 方法列表、`CrudInputBase` 设计
 - [x] `debug-codegen-and-generated-files.md` 的生成链路表包含 `*-meta → *-api` 环节
 - [x] doc link checker 通过（0 errors，历史 warnings 未扩大）
 - [x] `ai-dev/logs/` 对应日期条目已更新
@@ -153,7 +153,7 @@ Exit Criteria:
 ## Closure Gates
 
 - [x] `nop-auth` 模块的 CRUD API 生成结果正确且编译通过
-- [x] `ICrudApi`、`ITreeApi`、`CrudInputBase` 仅依赖 `nop-api-core`
+- [x] `ICrudApi`、`ICrudTreeApi`、`CrudInputBase` 仅依赖 `nop-api-core`
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] 受影响的 owner docs 已同步
 - [x] `./mvnw compile -pl nop-auth -am` 通过
@@ -197,16 +197,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Plan 104 已完成。`nop-api-core` 中的现有 `ICrudApi` 已演进为双泛型接口并拆分出 `ITreeApi`，`CrudInputBase` 与 CRUD API 模板已接入 `nop-auth-meta` 生成链，`nop-auth-api` 成功生成并通过模块构建、测试、文档与独立 closure audit。实际落地偏差已同步到 design/plan：未引入 `ApiResponse`/JAX-RS 风格，而是复用现有 `ICancelToken`/`FieldSelectionBean` 风格并只对强类型输入输出做最小正确改动。
+Status Note: Plan 104 已完成。`nop-api-core` 中的现有 `ICrudApi` 已演进为双泛型接口并拆分出 `ICrudTreeApi`，`CrudInputBase` 与 CRUD API 模板已接入 `nop-auth-meta` 生成链，`nop-auth-api` 成功生成并通过模块构建、测试、文档与独立 closure audit。实际落地偏差已同步到 design/plan：未引入 `ApiResponse`/JAX-RS 风格，而是复用现有 `ICancelToken`/`FieldSelectionBean` 风格并只对强类型输入输出做最小正确改动。
 
 Closure Audit Evidence:
 
 - Reviewer / Agent: independent general subagent
 - Audit Session: `ses_1722c103fffe1aL7W7SAPRJskL`
 - Evidence:
-  - Phase 1 PASS: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/api/ICrudApi.java` 已演进为 `ICrudApi<I,O>`；`ITreeApi.java`、`CrudInputBase.java` 存在；`nop-kernel/nop-api-core/src/test/java/io/nop/api/core/api/TestCrudInputBase.java` 覆盖 `_chgType`、动态字段吸收与 JSON/map round-trip。
+  - Phase 1 PASS: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/api/ICrudApi.java` 已演进为 `ICrudApi<I,O>`；`ICrudTreeApi.java`、`CrudInputBase.java` 存在；`nop-kernel/nop-api-core/src/test/java/io/nop/api/core/api/TestCrudInputBase.java` 覆盖 `_chgType`、动态字段吸收与 JSON/map round-trip。
   - Phase 2 PASS: `/nop/templates/crud-api/` 模板集存在，`@init.xrun` 正确注册 `apiPackageName/apiPackagePath`，模板使用 `entityModel`、`meta-gen.xlib`、`rel.refEntityModel.shortName` 与 parent-tag tree detection。
-  - Phase 3 PASS: `nop-auth/nop-auth-meta/precompile/gen-crud-api.xgen` 正确调用 `/nop/templates/crud-api`；生成的 `_NopAuthUserApi.java`、`_NopAuthDeptApi.java`、`_NopAuthUserInputBean.java`、`_NopAuthUserOutputBean.java` 满足预期，且 `NopAuthDept` 额外继承 `ITreeApi`。
+  - Phase 3 PASS: `nop-auth/nop-auth-meta/precompile/gen-crud-api.xgen` 正确调用 `/nop/templates/crud-api`；生成的 `_NopAuthUserApi.java`、`_NopAuthDeptApi.java`、`_NopAuthUserInputBean.java`、`_NopAuthUserOutputBean.java` 满足预期，且 `NopAuthDept` 额外继承 `ICrudTreeApi`。
   - Phase 4 PASS: `docs-for-ai/02-core-guides/api-model-and-codegen.md` 与 `docs-for-ai/03-runbooks/debug-codegen-and-generated-files.md` 已补 CRUD API 生成链说明。
   - Anti-Hollow PASS: live chain 已验证为 `crud-api templates -> nop-auth-meta/precompile/gen-crud-api.xgen -> generated nop-auth-api outputs`，不是空壳实现。
   - Drift Check PASS: plan/design/docs/log 已诚实记录实现偏差：复用并演进既有 `ICrudApi<T>` 为 `ICrudApi<I,O>`，并保留 raw return + `FieldSelectionBean`/`ICancelToken` 风格。
