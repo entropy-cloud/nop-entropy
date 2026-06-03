@@ -5829,6 +5829,12 @@
         ]
       },
       {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.auth.core.model.ActionAuthModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -5880,6 +5886,10 @@
       },
       {
         "name": "keySet_sites",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -41386,6 +41396,16 @@
       }
     ],
     "name": "io.nop.web.page.DynamicWebFileProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.IndexHtmlProvider"
   },
   {
     "allDeclaredConstructors": true,

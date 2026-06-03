@@ -35,6 +35,7 @@
 /i18n/en/nop-auth-web.i18n.yaml
 /i18n/en/nop-auth.i18n.yaml
 /i18n/en/nop-core.i18n.yaml
+/i18n/en/nop-demo.i18n.yaml
 /i18n/en/nop-sys-web.i18n.yaml
 /i18n/en/nop-sys.i18n.yaml
 /i18n/en/nop-web.i18n.yaml
@@ -125,6 +126,8 @@
 /nop/auth/model/NopAuthUserSubstitution/NopAuthUserSubstitution.xmeta
 /nop/auth/model/NopAuthUserSubstitution/_NopAuthUserSubstitution.xbiz
 /nop/auth/model/NopAuthUserSubstitution/_NopAuthUserSubstitution.xmeta
+/nop/auth/model/_module-meta.json
+/nop/auth/model/module-meta.json
 /nop/auth/orm/_app.orm.xml
 /nop/auth/orm/app.orm.xml
 /nop/auth/pages/DemoPage/DemoPage.view.xml
@@ -589,6 +592,8 @@
 /nop/sys/model/NopSysVariable/NopSysVariable.xmeta
 /nop/sys/model/NopSysVariable/_NopSysVariable.xbiz
 /nop/sys/model/NopSysVariable/_NopSysVariable.xmeta
+/nop/sys/model/_module-meta.json
+/nop/sys/model/module-meta.json
 /nop/sys/orm/_app.orm.xml
 /nop/sys/orm/app.orm.xml
 /nop/sys/pages/NopSysChangeLog/NopSysChangeLog.lib.xjs
@@ -750,6 +755,8 @@
 /nop/templates/meta-delta/src/main/resources/_vfs/_delta/{deltaDir}/gen-meta.xrun
 /nop/templates/meta/@init.xrun
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/_module
+/nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/_module-meta.json.xgen
+/nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/module-meta.json.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{deltaDir}/_{entityModel.shortName}.xmeta.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/orm-dao/@init.xrun
@@ -766,6 +773,8 @@
 /nop/templates/orm-model/@init.xrun
 /nop/templates/orm-model/model/{appName}.orm.java.xgen
 /nop/templates/orm-web/@init.xrun
+/nop/templates/orm-web/src/main/resources/_vfs/i18n/en/_{moduleName}-web.i18n.yaml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/i18n/en/{moduleName}-web.i18n.yaml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/_{moduleName}.action-auth.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/{moduleName}.action-auth.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/_gen/_{metaInfo.objName}.view.xml.xgen
@@ -775,6 +784,7 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm/.dockerignore
 /nop/templates/orm/.gitattributes
+/nop/templates/orm/.gitignore
 /nop/templates/orm/@init.xrun
 /nop/templates/orm/deploy/sql/{dialect}/_add_tenant_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen
@@ -784,6 +794,7 @@
 /nop/templates/orm/{!!useCoreModule}{appName}-core/src/main/java/{basePackagePath}/core/{moduleClassPrefix}CoreConstants.java.xgen
 /nop/templates/orm/{!disableWebModule}{appName}-web/pom.xml.xgen
 /nop/templates/orm/{!disableWebModule}{appName}-web/precompile/gen-page.xgen.xgen
+/nop/templates/orm/{!disableWebModule}{appName}-web/precompile2/gen-i18n.xgen.xgen
 /nop/templates/orm/{!disableWebModule}{appName}-web/src/main/resources/_vfs/{moduleId}/_module
 /nop/templates/orm/{!disableWebModule}{appName}-web/src/test/java/{basePackagePath}/web/{moduleClassPrefix}WebCodeGen.java.xgen
 /nop/templates/orm/{appName}-api/pom.xml.xgen
