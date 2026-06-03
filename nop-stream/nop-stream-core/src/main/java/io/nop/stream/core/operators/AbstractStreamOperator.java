@@ -25,6 +25,8 @@ import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 
 public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT> {
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AbstractStreamOperator.class);
+
     protected transient Output<StreamRecord<OUT>> output;
 
     protected transient ProcessingTimeService processingTimeService;
@@ -269,6 +271,7 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
                 this.lastSnapshotResult = snapshotResult;
             } catch (Exception e) {
                 snapshotError = e;
+                LOG.error("Snapshot failed for checkpoint {}", barrier.getId(), e);
             }
         }
         if (output != null) {
@@ -279,6 +282,7 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
                 snapshotCallback.accept(snapshotResult);
             } else if (snapshotError != null) {
                 OperatorSnapshotResult failureResult = new OperatorSnapshotResult();
+                failureResult.setError(snapshotError);
                 snapshotCallback.accept(failureResult);
             }
         }

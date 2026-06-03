@@ -169,6 +169,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 new ApplyAggregationFunction<>(function);
         WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
                 new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
+        operator.setAllowedLateness(allowedLateness);
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -188,6 +189,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 new AggregateAggregationFunction<>(function);
         WindowAggregationOperator<T, ACC, R, K, W> operator =
                 new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
+        operator.setAllowedLateness(allowedLateness);
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -207,6 +209,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 new ReduceAggregationFunction<>(function);
         WindowAggregationOperator<T, T, T, K, W> operator =
                 new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
+        operator.setAllowedLateness(allowedLateness);
         return transform("WindowReduce", getType(), operator);
     }
 
@@ -226,6 +229,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 new ProcessWindowAggregationFunction<>(function);
         WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
                 new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
+        operator.setAllowedLateness(allowedLateness);
         return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 

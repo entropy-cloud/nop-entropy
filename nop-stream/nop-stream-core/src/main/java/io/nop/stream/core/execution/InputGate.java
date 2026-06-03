@@ -229,7 +229,8 @@ public class InputGate {
                                 if (!barrierReceived[channelIndex]) {
                                     barrierReceived[channelIndex] = true;
                                     barriersRemaining--;
-                                    checkBarrierAlignmentComplete();
+                                    Optional<StreamElement> result = checkBarrierAlignmentComplete();
+                                    if (result != null) return result;
                                 }
                             }
                         }
@@ -342,9 +343,15 @@ public class InputGate {
         barrierEmitted = false;
     }
 
-    private void checkBarrierAlignmentComplete() {
-        if (barriersRemaining <= 0 && pendingBarrier != null) {
+    private Optional<StreamElement> checkBarrierAlignmentComplete() {
+        if (barrierAlignment && barriersRemaining <= 0 && pendingBarrier != null) {
+            CheckpointBarrier aligned = pendingBarrier;
+            resetBarrierState();
+            return Optional.of(aligned);
+        }
+        if (!barrierAlignment && barriersRemaining <= 0 && pendingBarrier != null) {
             resetBarrierState();
         }
+        return null;
     }
 }

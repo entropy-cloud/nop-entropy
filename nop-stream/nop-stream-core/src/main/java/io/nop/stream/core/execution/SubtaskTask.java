@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.List;
 
@@ -41,7 +42,7 @@ public class SubtaskTask implements Runnable {
     private volatile Thread executingThread;
 
     public SubtaskTask(Subtask subtask, JobVertex jobVertex) {
-        this(subtask, jobVertex, jobVertex.getOperatorChains());
+        this(subtask, jobVertex, Collections.singletonList(subtask.getInvokable().getOperatorChain()));
     }
 
     public SubtaskTask(Subtask subtask, JobVertex jobVertex, List<OperatorChain> operatorChains) {

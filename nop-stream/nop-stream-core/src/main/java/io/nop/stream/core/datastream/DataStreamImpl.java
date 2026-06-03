@@ -18,6 +18,8 @@ import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.execution.plan.PartitionPolicy;
+import io.nop.stream.core.execution.plan.PartitionPolicyAware;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
 import io.nop.stream.core.operators.StreamFilter;
@@ -325,7 +327,7 @@ public class DataStreamImpl<T> implements DataStream<T> {
      * 
      * @param <T> the type of elements being partitioned
      */
-    private static class KeySelectorPartitioner<T> implements IPartitioner<T>, Serializable {
+    private static class KeySelectorPartitioner<T> implements IPartitioner<T>, PartitionPolicyAware, Serializable {
         private static final long serialVersionUID = 1L;
         
         private final KeySelector<T, ?> keySelector;
@@ -345,6 +347,11 @@ public class DataStreamImpl<T> implements DataStream<T> {
             } catch (Exception e) {
                 throw new StreamException(ERR_STREAM_PARTITION_KEY_FAILED, e);
             }
+        }
+
+        @Override
+        public PartitionPolicy getPartitionPolicy() {
+            return PartitionPolicy.HASH;
         }
     }
 }

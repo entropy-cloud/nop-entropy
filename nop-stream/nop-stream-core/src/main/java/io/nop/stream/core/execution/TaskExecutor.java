@@ -80,9 +80,8 @@ public class TaskExecutor {
      */
     private final Map<String, Task> submittedTasks;
 
-    /**
-     * Map of task futures for tracking execution status.
-     */
+    private final Map<String, SubtaskTask> submittedSubtaskTasks;
+
     private final Map<String, Future<?>> taskFutures;
 
     /**
@@ -114,6 +113,7 @@ public class TaskExecutor {
             return t;
         });
         this.submittedTasks = new ConcurrentHashMap<>();
+        this.submittedSubtaskTasks = new ConcurrentHashMap<>();
         this.taskFutures = new ConcurrentHashMap<>();
         this.isShutdown = new AtomicBoolean(false);
 
@@ -210,6 +210,7 @@ public class TaskExecutor {
         }
 
         String taskId = subtaskTask.getTaskName();
+        submittedSubtaskTasks.put(taskId, subtaskTask);
         Future<?> future = executorService.submit(subtaskTask);
         taskFutures.put(taskId, future);
 
@@ -235,6 +236,10 @@ public class TaskExecutor {
      */
     public Map<String, Task> getAllTasks() {
         return Collections.unmodifiableMap(submittedTasks);
+    }
+
+    public int getSubtaskTaskCount() {
+        return submittedSubtaskTasks.size();
     }
 
     /**

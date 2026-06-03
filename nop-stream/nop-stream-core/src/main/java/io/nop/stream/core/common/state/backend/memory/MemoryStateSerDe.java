@@ -433,7 +433,12 @@ class MemoryStateSerDe {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", e.getValue());
+            Object value = e.getValue();
+            if (value instanceof List) {
+                entry.put("value", new ArrayList<>((List<?>) value));
+            } else {
+                entry.put("value", value);
+            }
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -482,7 +487,12 @@ class MemoryStateSerDe {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", e.getValue());
+            Object value = e.getValue();
+            if (value instanceof List) {
+                entry.put("value", new ArrayList<>((List<?>) value));
+            } else {
+                entry.put("value", value);
+            }
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -564,7 +574,12 @@ class MemoryStateSerDe {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", e.getValue());
+            Object value = e.getValue();
+            if (value instanceof List) {
+                entry.put("value", new ArrayList<>((List<?>) value));
+            } else {
+                entry.put("value", value);
+            }
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -585,7 +600,12 @@ class MemoryStateSerDe {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", e.getValue());
+            Object value = e.getValue();
+            if (value instanceof List) {
+                entry.put("value", new ArrayList<>((List<?>) value));
+            } else {
+                entry.put("value", value);
+            }
             entries.add(entry);
         }
         info.put("entries", entries);

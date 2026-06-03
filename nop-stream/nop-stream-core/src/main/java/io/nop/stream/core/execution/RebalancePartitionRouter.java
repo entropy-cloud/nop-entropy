@@ -28,7 +28,7 @@ class RebalancePartitionRouter implements PartitionRouter {
 
     @Override
     public int selectChannel(StreamRecord<?> record) {
-        return Math.abs(roundRobinCounter.getAndIncrement() % numPartitions);
+        return (roundRobinCounter.getAndIncrement() & 0x7FFFFFFF) % numPartitions;
     }
 
     @Override

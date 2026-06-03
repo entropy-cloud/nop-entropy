@@ -263,28 +263,32 @@ public class StreamExecutionEnvironment {
             GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
 
             TaskExecutor executor = new TaskExecutor();
-            List<SubtaskTask> subtaskTasks = new ArrayList<>();
+            try {
+                List<SubtaskTask> subtaskTasks = new ArrayList<>();
 
-            for (String vertexId : plan.getSortedVertexIds()) {
-                List<Subtask> vertexSubtasks = plan.getSubtasks(vertexId);
-                for (Subtask subtask : vertexSubtasks) {
-                    SubtaskTask subtaskTask = new SubtaskTask(subtask, plan.getExecutionVertices().get(vertexId));
-                    subtaskTasks.add(subtaskTask);
-                    executor.submitTask(subtaskTask);
+                for (String vertexId : plan.getSortedVertexIds()) {
+                    List<Subtask> vertexSubtasks = plan.getSubtasks(vertexId);
+                    for (Subtask subtask : vertexSubtasks) {
+                        SubtaskTask subtaskTask = new SubtaskTask(subtask, plan.getExecutionVertices().get(vertexId));
+                        subtaskTasks.add(subtaskTask);
+                        executor.submitTask(subtaskTask);
+                    }
                 }
-            }
 
-            executor.awaitCompletion();
+                executor.awaitCompletion();
 
-            for (SubtaskTask task : subtaskTasks) {
-                if (task.getState() == SubtaskTask.State.FAILED) {
-                    throw new StreamException(ERR_STREAM_TASK_FAILED, task.getError());
+                for (SubtaskTask task : subtaskTasks) {
+                    if (task.getState() == SubtaskTask.State.FAILED) {
+                        throw new StreamException(ERR_STREAM_TASK_FAILED, task.getError());
+                    }
                 }
-            }
 
-            executed = true;
-            long executionTime = System.currentTimeMillis() - startTime;
-            return new StreamExecutionResult(jobName, executionTime);
+                executed = true;
+                long executionTime = System.currentTimeMillis() - startTime;
+                return new StreamExecutionResult(jobName, executionTime);
+            } finally {
+                executor.shutdown();
+            }
         } catch (Exception e) {
             throw new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED, e).param(ARG_JOB_NAME, jobName);
         }

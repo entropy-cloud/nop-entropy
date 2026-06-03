@@ -45,9 +45,7 @@ public class SingleOutputStreamOperatorImpl<T> extends DataStreamImpl<T> impleme
      */
     @Override
     public SingleOutputStreamOperator<T> forceNonParallel() {
-        // In a full implementation, this would set the parallelism to 1
-        // and mark the operator as non-parallelizable
-        // For now, we just return this instance
-        return this;
+        throw new UnsupportedOperationException(
+                "forceNonParallel is not supported in this implementation");
     }
 }

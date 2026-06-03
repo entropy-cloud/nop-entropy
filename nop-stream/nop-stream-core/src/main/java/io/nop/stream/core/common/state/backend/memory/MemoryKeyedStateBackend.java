@@ -238,7 +238,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         if (shardCount <= 1) {
             return key;
         }
-        int shardId = Math.abs(StateShard.stableHash(key)) % shardCount;
+        int shardId = (StateShard.stableHash(key) & 0x7FFFFFFF) % shardCount;
         return new ShardPrefixedKey(shardId, key);
     }
 

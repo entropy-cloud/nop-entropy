@@ -24,6 +24,7 @@ import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
+import io.nop.stream.core.windowing.triggers.Trigger.OnMergeContext;
 import io.nop.stream.core.windowing.windows.Window;
 
 /**
@@ -58,6 +59,26 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
     private transient Map<K, Set<W>> activeWindowsPerKey;
 
     private long allowedLateness = 0;
+
+    public WindowAssigner<? super IN, W> getWindowAssigner() {
+        return windowAssigner;
+    }
+
+    public Trigger<? super IN, ? super W> getTrigger() {
+        return trigger;
+    }
+
+    public WindowAggregationFunction<IN, ACC, OUT, K, W> getAggregationFunction() {
+        return aggregationFunction;
+    }
+
+    public KeySelector<IN, K> getKeySelector() {
+        return keySelector;
+    }
+
+    public long getAllowedLateness() {
+        return allowedLateness;
+    }
 
     public Map<TriggerStateKey<K, W>, SimpleAccumulator<?>> getTriggerState() {
         return triggerState;
@@ -353,6 +374,11 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
                     WindowKey<K, W> mergedWk = new WindowKey<>(key, mergedWindow);
                     windowState.put(mergedWk, mergedAcc);
                     activeWindows.add(mergedWindow);
+
+                    if (trigger.canMerge()) {
+                        OnMergeContextImpl mergeCtx = new OnMergeContextImpl(key, mergedWindow);
+                        trigger.onMerge(mergedWindow, mergeCtx);
+                    }
 
                     TriggerContextImpl triggerCtx = new TriggerContextImpl(key, mergedWindow);
                     TriggerResult result = trigger.onElement(value, timestamp, mergedWindow, triggerCtx);
@@ -834,6 +860,12 @@ public class WindowAggregationOperator<IN, ACC, OUT, K, W extends Window>
             }
             throw new StreamException(ERR_STREAM_UNSUPPORTED)
                     .param(ARG_OPERATION, "getSimpleAccumulator for descriptor: " + descriptor.getName());
+        }
+    }
+
+    private class OnMergeContextImpl extends TriggerContextImpl implements OnMergeContext {
+        OnMergeContextImpl(K key, W window) {
+            super(key, window);
         }
     }
 }

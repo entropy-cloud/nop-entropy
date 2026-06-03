@@ -11,6 +11,7 @@ import java.util.*;
 
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
+import io.nop.stream.core.execution.plan.PartitionPolicyAware;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
@@ -59,6 +60,9 @@ public class PartitionedPlanGenerator {
     PartitionPolicy inferPartitionPolicy(JobEdge edge) {
         if (edge.getPartitioner() == null) {
             return PartitionPolicy.FORWARD;
+        }
+        if (edge.getPartitioner() instanceof PartitionPolicyAware) {
+            return ((PartitionPolicyAware) edge.getPartitioner()).getPartitionPolicy();
         }
         String partitionerName = edge.getPartitioner().getClass().getSimpleName().toLowerCase();
         if (partitionerName.contains("hash")) {

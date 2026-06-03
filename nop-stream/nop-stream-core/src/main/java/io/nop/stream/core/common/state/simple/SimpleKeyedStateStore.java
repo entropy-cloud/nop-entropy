@@ -33,29 +33,33 @@ public class SimpleKeyedStateStore implements KeyedStateStore {
     private long stateWrites = 0;
     private long stateReads = 0;
 
+    private final Map<String, Object> stateCache = new HashMap<>();
+
     @Override
+    @SuppressWarnings("unchecked")
     public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
-        return new ValueState<T>() {
+        return (ValueState<T>) stateCache.computeIfAbsent(stateProperties.getName(),
+                k -> new ValueState<T>() {
 
-            private T value;
+                    private T value;
 
-            @Override
-            public T value() throws IOException {
-                stateReads++;
-                return value;
-            }
+                    @Override
+                    public T value() throws IOException {
+                        stateReads++;
+                        return value;
+                    }
 
-            @Override
-            public void update(T value) throws IOException {
-                stateWrites++;
-                this.value = value;
-            }
+                    @Override
+                    public void update(T value) throws IOException {
+                        stateWrites++;
+                        this.value = value;
+                    }
 
-            @Override
-            public void clear() {
-                this.value = null;
-            }
-        };
+                    @Override
+                    public void clear() {
+                        this.value = null;
+                    }
+                });
     }
     @Override
     public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {

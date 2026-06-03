@@ -9,7 +9,9 @@ package io.nop.stream.core.common.state.backend.memory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
@@ -93,7 +95,11 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
             accumulator.add((IN) current);
         }
         accumulator.add(value);
-        storage.put(key, (ACC) accumulator.getLocalValue());
+        Object localValue = accumulator.getLocalValue();
+        if (localValue instanceof List) {
+            localValue = new ArrayList<>((List<?>) localValue);
+        }
+        storage.put(key, (ACC) localValue);
     }
 
     @Override

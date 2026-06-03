@@ -353,35 +353,19 @@ public class JobGraphGenerator implements Serializable {
         List<KeySelector<?, ?>> keySelectors = new ArrayList<>();
         for (StreamNode node : chain) {
             StreamOperator<?> operator = createOperatorFromFactory(node);
-            keySelectors.add(node.getKeySelector());
             if (operator != null) {
                 operators.add(operator);
+                keySelectors.add(node.getKeySelector());
             }
         }
 
-        List<KeySelector<?, ?>> filteredKeySelectors = filterKeySelectorsForOperators(chain, operators);
-
-        OperatorChain operatorChain = new OperatorChain(operators, filteredKeySelectors);
+        OperatorChain operatorChain = new OperatorChain(operators, keySelectors);
         List<OperatorChain> operatorChains = new ArrayList<>();
         operatorChains.add(operatorChain);
 
         Invokable<?> invokable = createInvokable(operatorChain);
 
         return new JobVertex(vertexId, vertexName, parallelism, operatorChains, invokable);
-    }
-
-    private List<KeySelector<?, ?>> filterKeySelectorsForOperators(
-            List<StreamNode> chain, List<StreamOperator<?>> operators) {
-        List<KeySelector<?, ?>> result = new ArrayList<>();
-        int opIndex = 0;
-        for (StreamNode node : chain) {
-            StreamOperator<?> operator = createOperatorFromFactory(node);
-            if (operator != null) {
-                result.add(node.getKeySelector());
-                opIndex++;
-            }
-        }
-        return result;
     }
 
     /**
@@ -405,11 +389,14 @@ public class JobGraphGenerator implements Serializable {
             return ((io.nop.stream.core.operators.SimpleStreamOperatorFactory<?>) factory).getRawOperator();
         }
 
-        StreamOperatorFactory rawFactory = (StreamOperatorFactory) factory;
-        io.nop.stream.core.common.typeinfo.TypeInformation outputType =
-            (io.nop.stream.core.common.typeinfo.TypeInformation) node.getOutputType();
+        return createOperatorTyped((StreamOperatorFactory) factory,
+                (io.nop.stream.core.common.typeinfo.TypeInformation) node.getOutputType());
+    }
 
-        return rawFactory.createStreamOperator(outputType);
+    private <T> StreamOperator<T> createOperatorTyped(
+            StreamOperatorFactory<T> factory,
+            io.nop.stream.core.common.typeinfo.TypeInformation<T> outputType) {
+        return factory.createStreamOperator(outputType);
     }
 
     /**

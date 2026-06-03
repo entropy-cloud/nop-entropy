@@ -23,6 +23,8 @@ public class OperatorSnapshotResult implements Serializable {
     private final Map<String, Object> keyedStates;
     private final Map<String, Object> rawKeyedStates;
 
+    private Exception error;
+
     public OperatorSnapshotResult() {
         this(new HashMap<>(), new HashMap<>(), new HashMap<>());
     }
@@ -54,6 +56,18 @@ public class OperatorSnapshotResult implements Serializable {
 
     public boolean isEmpty() {
         return operatorStates.isEmpty() && keyedStates.isEmpty() && rawKeyedStates.isEmpty();
+    }
+
+    public boolean hasError() {
+        return error != null;
+    }
+
+    public Exception getError() {
+        return error;
+    }
+
+    public void setError(Exception error) {
+        this.error = error;
     }
 
     public int getStateCount() {
