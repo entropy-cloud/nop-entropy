@@ -278,6 +278,8 @@ public class CheckpointCoordinator {
 
         notifyCheckpointCompleted(checkpointId);
 
+        checkpointSuccessMap.remove(checkpointId);
+
         LOG.info("Completed checkpoint {} for job {}, duration: {}ms",
                 checkpointId, jobId, completed.getDuration());
     }
@@ -351,24 +353,12 @@ public class CheckpointCoordinator {
         this.tasksToAcknowledge = newSet;
     }
 
-    public void registerTask(TaskLocation taskLocation) {
-        Set<TaskLocation> current = this.tasksToAcknowledge;
-        if (!current.contains(taskLocation)) {
-            Set<TaskLocation> newSet = ConcurrentHashMap.newKeySet();
-            newSet.addAll(current);
-            newSet.add(taskLocation);
-            this.tasksToAcknowledge = newSet;
-        }
+    public synchronized void registerTask(TaskLocation taskLocation) {
+        this.tasksToAcknowledge.add(taskLocation);
     }
 
-    public void unregisterTask(TaskLocation taskLocation) {
-        Set<TaskLocation> current = this.tasksToAcknowledge;
-        if (current.contains(taskLocation)) {
-            Set<TaskLocation> newSet = ConcurrentHashMap.newKeySet();
-            newSet.addAll(current);
-            newSet.remove(taskLocation);
-            this.tasksToAcknowledge = newSet;
-        }
+    public synchronized void unregisterTask(TaskLocation taskLocation) {
+        this.tasksToAcknowledge.remove(taskLocation);
     }
 
     private void scheduleTimeout(PendingCheckpoint pending) {

@@ -160,7 +160,7 @@ public class PendingCheckpoint {
         return isDisposed;
     }
 
-    public boolean forceComplete() {
+    public synchronized boolean forceComplete() {
         if (isFullyAcknowledged() && !completableFuture.isDone()) {
             return completableFuture.complete(toCompletedCheckpoint());
         }

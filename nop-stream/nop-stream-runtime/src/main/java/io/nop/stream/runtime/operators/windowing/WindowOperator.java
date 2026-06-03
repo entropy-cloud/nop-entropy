@@ -686,7 +686,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             Iterable<IN> elements = (Iterable<IN>) contents;
             List<TimestampedValue<IN>> wrapped = new ArrayList<>();
             for (IN element : elements) {
-                wrapped.add(new TimestampedValue<>(element, Long.MIN_VALUE));
+                long elementTimestamp = internalTimerService.currentWatermark();
+                if (element instanceof StreamRecord) {
+                    elementTimestamp = ((StreamRecord<IN>) element).getTimestamp();
+                }
+                wrapped.add(new TimestampedValue<>(element, elementTimestamp));
             }
             Evictor.EvictorContext evictorContext = new Evictor.EvictorContext() {
                 @Override
