@@ -169,7 +169,6 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
                 if (shouldParallel(schedule)) {
                     scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
                             _NopJobCoreConstants.FIRE_STATUS_WAITING);
-                    schedule.setActiveFireCount(0);
                     continue;
                 }
 

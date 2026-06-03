@@ -115,7 +115,7 @@ class NopJobFire{
 
   String retryPolicyId; //重试策略ID
 
-  String retryRecordId; //重试记录ID
+  String retryRecordId; //异步重试提交后的重试记录ID（当前NopRetryJobRetryBridge使用异步提交，此字段暂不可用）
 
   String errorCode; //错误码
 

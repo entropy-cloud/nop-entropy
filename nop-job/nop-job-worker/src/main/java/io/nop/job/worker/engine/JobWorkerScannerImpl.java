@@ -302,7 +302,9 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         freshTask.setWorkerInstanceId(AppConfig.hostId());
         freshTask.setUpdatedBy("system");
         freshTask.setUpdateTime(endTime);
-        taskStore.updateTask(freshTask);
+        if (!taskStore.updateTask(freshTask)) {
+            LOG.warn("nop.job.worker.complete-task-failure-update-conflict:taskId={}", freshTask.getJobTaskId());
+        }
     }
 
     protected IScheduledExecutor getExecutor() {

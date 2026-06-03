@@ -460,13 +460,15 @@ public class CronExpression implements ICronExpression {
         CronExpression otherCron = (CronExpression) other;
         return (this.months.equals(otherCron.months) && this.daysOfMonth.equals(otherCron.daysOfMonth)
                 && this.daysOfWeek.equals(otherCron.daysOfWeek) && this.hours.equals(otherCron.hours)
-                && this.minutes.equals(otherCron.minutes) && this.seconds.equals(otherCron.seconds));
+                && this.minutes.equals(otherCron.minutes) && this.seconds.equals(otherCron.seconds)
+                && this.timeZone.equals(otherCron.timeZone));
     }
 
     @Override
     public int hashCode() {
         return (17 * this.months.hashCode() + 29 * this.daysOfMonth.hashCode() + 37 * this.daysOfWeek.hashCode()
-                + 41 * this.hours.hashCode() + 53 * this.minutes.hashCode() + 61 * this.seconds.hashCode());
+                + 41 * this.hours.hashCode() + 53 * this.minutes.hashCode() + 61 * this.seconds.hashCode()
+                + 67 * this.timeZone.hashCode());
     }
 
     @Override

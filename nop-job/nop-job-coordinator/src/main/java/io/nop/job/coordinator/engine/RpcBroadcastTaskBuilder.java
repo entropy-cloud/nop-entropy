@@ -97,8 +97,4 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
         }
         return tasks;
     }
-
-    private Map<String, Object> emptyIfNull(Map<String, Object> map) {
-        return map == null ? Map.of() : map;
-    }
 }
