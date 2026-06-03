@@ -38,9 +38,10 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     private static final int FIRE_STATUS_WAITING = 0;
     private static final int FIRE_STATUS_DISPATCHING = 10;
     private static final int FIRE_STATUS_RUNNING = 20;
-    private static final int FIRE_STATUS_CANCELED = 60;
     private static final int FIRE_STATUS_FAILED = 40;
     private static final int FIRE_STATUS_TIMEOUT = 50;
+    private static final int FIRE_STATUS_SUCCESS = 30;
+    private static final int FIRE_STATUS_CANCELED = 60;
     private static final int TASK_STATUS_WAITING = 0;
     private static final int TASK_STATUS_CLAIMED = 10;
     private static final int TASK_STATUS_RUNNING = 20;
@@ -459,7 +460,10 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             task.setErrorMessage(null);
             task.setUpdatedBy("system");
             task.setUpdateTime(recoveryTime);
-            taskDao().updateEntityDirectly(task);
+            List<NopJobTask> updated = taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task));
+            if (updated.isEmpty()) {
+                LOG.warn("nop.job.schedule.reset-task-version-conflict:taskId={}", task.getJobTaskId());
+            }
         }
     }
 
@@ -471,14 +475,26 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     }
 
     private void cancelFire(NopJobFire fire, Timestamp cancelTime) {
-        fire.setFireStatus(FIRE_STATUS_CANCELED);
-        fire.setEndTime(cancelTime);
-        fire.setDurationMs(calculateDuration(fire.getStartTime(), cancelTime));
-        fire.setErrorCode(ERR_JOB_OVERLAID.getErrorCode());
-        fire.setErrorMessage(ERR_JOB_OVERLAID.getDescription());
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(cancelTime);
-        fireDao().updateEntityDirectly(fire);
+        NopJobFire fresh = fireDao().requireEntityById(fire.getJobFireId());
+        Integer currentStatus = fresh.getFireStatus();
+        if (currentStatus != null && (currentStatus == FIRE_STATUS_CANCELED
+                || currentStatus == FIRE_STATUS_TIMEOUT
+                || currentStatus == FIRE_STATUS_SUCCESS
+                || currentStatus == FIRE_STATUS_FAILED)) {
+            return;
+        }
+
+        fresh.setFireStatus(FIRE_STATUS_CANCELED);
+        fresh.setEndTime(cancelTime);
+        fresh.setDurationMs(calculateDuration(fresh.getStartTime(), cancelTime));
+        fresh.setErrorCode(ERR_JOB_OVERLAID.getErrorCode());
+        fresh.setErrorMessage(ERR_JOB_OVERLAID.getDescription());
+        fresh.setUpdatedBy("system");
+        fresh.setUpdateTime(cancelTime);
+        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fresh));
+        if (updated.isEmpty()) {
+            LOG.warn("nop.job.schedule.cancel-fire-version-conflict:fireId={}", fire.getJobFireId());
+        }
     }
 
     private void cancelTasks(String jobFireId, Timestamp cancelTime) {
@@ -497,7 +513,10 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             task.setErrorMessage(ERR_JOB_OVERLAID.getDescription());
             task.setUpdatedBy("system");
             task.setUpdateTime(cancelTime);
-            taskDao().updateEntityDirectly(task);
+            List<NopJobTask> updated = taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task));
+            if (updated.isEmpty()) {
+                LOG.warn("nop.job.schedule.cancel-task-version-conflict:taskId={}", task.getJobTaskId());
+            }
         }
     }
 
