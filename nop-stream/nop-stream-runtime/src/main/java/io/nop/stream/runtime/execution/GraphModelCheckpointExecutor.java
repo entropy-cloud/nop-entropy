@@ -752,6 +752,27 @@ public class GraphModelCheckpointExecutor {
                     }
                 }
             }
+
+            if (op instanceof CheckpointParticipant) {
+                try {
+                    ((CheckpointParticipant) op).restoreFromEpoch(0, taskState);
+                    LOG.debug("Restored from epoch for CheckpointParticipant operator index {}", i);
+                } catch (Exception e) {
+                    LOG.error("Failed to restoreFromEpoch for operator index {}", i, e);
+                    throw e;
+                }
+            } else if (op instanceof AbstractUdfStreamOperator) {
+                Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                if (udf instanceof CheckpointParticipant && udf != op) {
+                    try {
+                        ((CheckpointParticipant) udf).restoreFromEpoch(0, taskState);
+                        LOG.debug("Restored from epoch for CheckpointParticipant UDF operator index {}", i);
+                    } catch (Exception e) {
+                        LOG.error("Failed to restoreFromEpoch for UDF operator index {}", i, e);
+                        throw e;
+                    }
+                }
+            }
         }
     }
 

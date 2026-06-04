@@ -20,6 +20,9 @@ import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.exceptions.StreamException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 
 /**
@@ -30,6 +33,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.*;
  */
 public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoCloseable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(BatchConsumerSinkFunction.class);
     private static final long serialVersionUID = 1L;
 
     private final IBatchConsumerProvider.IBatchConsumer<R> consumer;
@@ -95,6 +99,10 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
                 flush();
                 flushed = true;
             }
+        } catch (Exception flushErr) {
+            LOG.error("Flush failed in close() with buffer size={}, first record summary={}",
+                    buffer.size(),
+                    buffer.isEmpty() ? "<empty>" : String.valueOf(buffer.get(0)));
         } finally {
             if (consumer instanceof AutoCloseable) {
                 try {

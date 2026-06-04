@@ -111,18 +111,13 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
         }
 
         for (Map.Entry<Long, Set<TimerEntry<N>>> entry : toFire) {
-            Set<TimerEntry<N>> originalSet = eventTimeTimers.get(entry.getKey());
+            Set<TimerEntry<N>> originalSet = eventTimeTimers.remove(entry.getKey());
             if (originalSet == null) continue;
 
             List<TimerEntry<N>> timersToFire = new ArrayList<>(originalSet);
-            originalSet.removeAll(timersToFire);
 
             for (TimerEntry<N> timer : timersToFire) {
                 triggerable.onEventTime(new HeapInternalTimer<>(timer.key, timer.timestamp, timer.namespace));
-            }
-
-            if (originalSet.isEmpty()) {
-                eventTimeTimers.remove(entry.getKey());
             }
         }
     }

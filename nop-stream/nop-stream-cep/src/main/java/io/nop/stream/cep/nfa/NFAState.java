@@ -114,9 +114,27 @@ public class NFAState {
 
     private static final Comparator<ComputationState> STATE_COMPARATOR =
             Comparator.<ComputationState, String>comparing(ComputationState::getCurrentStateName)
-                    .thenComparing(c -> c.getVersion() == null ? 0 : c.getVersion().hashCode())
+                    .thenComparing((c1, c2) -> {
+                        DeweyNumber v1 = c1.getVersion();
+                        DeweyNumber v2 = c2.getVersion();
+                        if (v1 == null && v2 == null) return 0;
+                        if (v1 == null) return -1;
+                        if (v2 == null) return 1;
+                        return compareDeweyNumber(v1, v2);
+                    })
                     .thenComparingLong(ComputationState::getStartTimestamp)
                     .thenComparingLong(ComputationState::getPreviousTimestamp);
+
+    private static int compareDeweyNumber(DeweyNumber a, DeweyNumber b) {
+        int minLen = Math.min(a.length(), b.length());
+        String[] da = a.toString().split("\\.");
+        String[] db = b.toString().split("\\.");
+        for (int i = 0; i < minLen; i++) {
+            int cmp = Integer.compare(Integer.parseInt(da[i]), Integer.parseInt(db[i]));
+            if (cmp != 0) return cmp;
+        }
+        return Integer.compare(a.length(), b.length());
+    }
 
     private ComputationState[] sortedCopy(Queue<ComputationState> queue) {
         ComputationState[] arr = queue.toArray(new ComputationState[0]);

@@ -64,12 +64,12 @@ public class PartitionedPlanGenerator {
         if (edge.getPartitioner() instanceof PartitionPolicyAware) {
             return ((PartitionPolicyAware) edge.getPartitioner()).getPartitionPolicy();
         }
-        String partitionerName = edge.getPartitioner().getClass().getSimpleName().toLowerCase();
-        if (partitionerName.contains("hash")) {
+        String partitionerClassName = edge.getPartitioner().getClass().getName();
+        if (partitionerClassName.contains("Hash") || partitionerClassName.contains("hash")) {
             return PartitionPolicy.HASH;
-        } else if (partitionerName.contains("rebalance")) {
+        } else if (partitionerClassName.contains("Rebalance") || partitionerClassName.contains("rebalance")) {
             return PartitionPolicy.REBALANCE;
-        } else if (partitionerName.contains("broadcast")) {
+        } else if (partitionerClassName.contains("Broadcast") || partitionerClassName.contains("broadcast")) {
             return PartitionPolicy.BROADCAST;
         }
         return PartitionPolicy.FORWARD;

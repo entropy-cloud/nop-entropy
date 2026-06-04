@@ -426,6 +426,16 @@ public class CepOperator<IN, KEY, OUT>
                 }
             }
             if (allTimedOut) {
+                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
+                    for (Object pm : nfaState.getPartialMatches()) {
+                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
+                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
+                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
+                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
+                            }
+                        }
+                    }
+                }
                 computationStates.clear();
             }
         }

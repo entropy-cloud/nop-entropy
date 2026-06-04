@@ -121,10 +121,7 @@ public class PendingCheckpoint {
         }
 
         if (isFullyAcknowledged() && !completableFuture.isDone()) {
-            // AR-19: The future is not auto-completed here. The coordinator completes it
-            // after successful storage. For standalone use without a coordinator, callers
-            // should poll isFullyAcknowledged() and call forceComplete() or handle completion
-            // themselves.
+            completableFuture.complete(toCompletedCheckpoint());
         }
     }
 

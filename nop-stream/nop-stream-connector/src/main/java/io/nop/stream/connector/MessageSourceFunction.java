@@ -15,6 +15,9 @@ import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
@@ -35,6 +38,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.*;
 public class MessageSourceFunction<T> implements SourceFunction<T> {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger LOG = LoggerFactory.getLogger(MessageSourceFunction.class);
 
     private final IMessageService messageService;
     private final String topic;
@@ -46,7 +50,8 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
     private final int totalParallelism;
 
     private volatile boolean running = true;
-    private IMessageSubscription subscription;
+    private volatile boolean failed = false;
+    private volatile IMessageSubscription subscription;
     private transient volatile CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     /**
@@ -115,12 +120,18 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
                             .param(ARG_EXPECTED_TYPE, typeClass.getName())
                             .param(ARG_ACTUAL_TYPE, msg.getClass().getName());
                 }
-                ctx.collect((T) msg);
+                try {
+                    ctx.collect((T) msg);
+                } catch (Exception e) {
+                    LOG.error("Failed to collect message from topic {}", effectiveTopic, e);
+                    failed = true;
+                    return null;
+                }
                 return null;
             }
         });
 
-        while (running) {
+        while (running && !failed) {
             shutdownLatch.await(1, TimeUnit.SECONDS);
         }
     }

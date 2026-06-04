@@ -41,14 +41,21 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
 
     private final IMessageService messageService;
     private final int defaultNodeCount;
+    private final long completionTimeoutSeconds;
 
     public EmbeddedDistributedExecutor(IMessageService messageService) {
         this(messageService, 2);
     }
 
     public EmbeddedDistributedExecutor(IMessageService messageService, int defaultNodeCount) {
+        this(messageService, defaultNodeCount, 60);
+    }
+
+    public EmbeddedDistributedExecutor(IMessageService messageService, int defaultNodeCount,
+                                       long completionTimeoutSeconds) {
         this.messageService = messageService;
         this.defaultNodeCount = defaultNodeCount;
+        this.completionTimeoutSeconds = completionTimeoutSeconds;
     }
 
     @Override
@@ -136,7 +143,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
 
             coordinator.start();
 
-            waitForCompletion(taskManagers, 60);
+            waitForCompletion(taskManagers, completionTimeoutSeconds);
 
             long executionTime = System.currentTimeMillis() - startTime;
             LOG.info("Embedded distributed execution completed for job {} in {}ms", jobId, executionTime);
@@ -147,9 +154,17 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
             LOG.error("Embedded distributed execution failed for job {}", jobId, e);
             throw e;
         } finally {
-            coordinator.stop();
+            try {
+                coordinator.stop();
+            } catch (Exception e) {
+                LOG.error("Failed to stop coordinator for job {}", jobId, e);
+            }
             for (TaskManager tm : taskManagers) {
-                tm.stop();
+                try {
+                    tm.stop();
+                } catch (Exception e) {
+                    LOG.error("Failed to stop task manager {}", tm.getNodeId(), e);
+                }
             }
         }
     }

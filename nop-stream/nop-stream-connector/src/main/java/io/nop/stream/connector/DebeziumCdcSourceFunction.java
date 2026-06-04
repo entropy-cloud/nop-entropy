@@ -30,6 +30,7 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     private volatile boolean running = true;
     private volatile boolean draining = false;
+    private volatile boolean runEntered = false;
     private transient volatile CountDownLatch completionLatch;
     private volatile DebeziumMessageSource source;
     private volatile ICancellable subscription;
@@ -54,23 +55,31 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     @Override
     public void run(SourceContext<ChangeEvent> ctx) throws Exception {
+        if (runEntered) {
+            return;
+        }
+        runEntered = true;
         this.draining = false;
         initCompletionLatch();
 
-        if (!draining) {
-            source = new DebeziumMessageSource(config);
-            try {
-                subscription = source.subscribe(ctx::collect);
-            } catch (Exception e) {
-                source.stop();
-                throw e;
+        try {
+            if (!draining) {
+                source = new DebeziumMessageSource(config);
+                try {
+                    subscription = source.subscribe(ctx::collect);
+                } catch (Exception e) {
+                    source.stop();
+                    throw e;
+                }
             }
-        }
 
-        while (running && !draining) {
-            if (completionLatch.await(1, TimeUnit.SECONDS)) {
-                break;
+            while (running && !draining) {
+                if (completionLatch.await(1, TimeUnit.SECONDS)) {
+                    break;
+                }
             }
+        } finally {
+            runEntered = false;
         }
     }
 

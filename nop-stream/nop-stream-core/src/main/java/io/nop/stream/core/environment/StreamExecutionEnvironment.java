@@ -60,7 +60,7 @@ public class StreamExecutionEnvironment {
 
     private final CheckpointConfig checkpointConfig = new CheckpointConfig();
 
-    private static ICheckpointExecutorFactory defaultCheckpointExecutorFactory;
+    private static volatile ICheckpointExecutorFactory defaultCheckpointExecutorFactory;
 
     private ICheckpointExecutorFactory checkpointExecutorFactory;
 

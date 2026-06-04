@@ -211,6 +211,7 @@ public class SharedBuffer<V> {
         try {
             return eventsBuffer.get(eventId) != null;
         } catch (Exception e) {
+            LOG.error("Failed to check event in buffer for eventId={}", eventId, e);
             return false;
         }
     }
@@ -323,19 +324,21 @@ public class SharedBuffer<V> {
     void flushCache() {
         if (!entryCache.isEmpty()) {
             Map<NodeId, Lockable<SharedBufferNode>> snapshot1 = new java.util.HashMap<>(entryCache);
-            entryCache.clear();
             try {
                 entries.putAll(snapshot1);
+                entryCache.keySet().removeAll(snapshot1.keySet());
             } catch (Exception e) {
+                entryCache.putAll(snapshot1);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-entries");
             }
         }
         if (!eventsBufferCache.isEmpty()) {
             Map<EventId, Lockable<V>> snapshot2 = new java.util.HashMap<>(eventsBufferCache);
-            eventsBufferCache.clear();
             try {
                 eventsBuffer.putAll(snapshot2);
+                eventsBufferCache.keySet().removeAll(snapshot2.keySet());
             } catch (Exception e) {
+                eventsBufferCache.putAll(snapshot2);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-events");
             }
         }

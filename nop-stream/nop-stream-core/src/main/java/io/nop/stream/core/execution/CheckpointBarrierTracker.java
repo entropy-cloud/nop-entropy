@@ -86,43 +86,50 @@ public class CheckpointBarrierTracker {
         return true;
     }
 
-    public synchronized void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
-        TaskStateSnapshot snap = this.currentSnapshot;
+    public void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
+        Consumer<TaskStateSnapshot> callbackToFire = null;
+        TaskStateSnapshot snapshotToDeliver = null;
 
-        // AR-23: Ignore ACK if no checkpoint is active (duplicate or stale)
-        if (currentCheckpointId < 0 || snap == null) {
-            LOG.debug("Ignoring duplicate/stale ACK from operator {} (no active checkpoint)", operatorIndex);
-            return;
-        }
+        synchronized (this) {
+            TaskStateSnapshot snap = this.currentSnapshot;
 
-        if (operatorsToAck.get() <= 0) {
-            LOG.debug("Ignoring duplicate ACK from operator {} (already fully acknowledged)", operatorIndex);
-            return;
-        }
+            if (currentCheckpointId < 0 || snap == null) {
+                LOG.debug("Ignoring duplicate/stale ACK from operator {} (no active checkpoint)", operatorIndex);
+                return;
+            }
 
-        if (snapshot != null) {
-            String opStateKey = getOperatorStateKey(operatorIndex);
-            if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
-                for (Map.Entry<String, Object> entry : snapshot.getOperatorStates().entrySet()) {
-                    snap.putOperatorState(opStateKey + "-" + entry.getKey(), entry.getValue());
+            if (operatorsToAck.get() <= 0) {
+                LOG.debug("Ignoring duplicate ACK from operator {} (already fully acknowledged)", operatorIndex);
+                return;
+            }
+
+            if (snapshot != null) {
+                String opStateKey = getOperatorStateKey(operatorIndex);
+                if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
+                    for (Map.Entry<String, Object> entry : snapshot.getOperatorStates().entrySet()) {
+                        snap.putOperatorState(opStateKey + "-" + entry.getKey(), entry.getValue());
+                    }
+                }
+                String keyedKey = getKeyedStateStorageKey(operatorIndex);
+                if (keyedKey != null && snapshot.getKeyedStates() != null) {
+                    for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
+                        snap.putKeyedState(keyedKey + "-" + entry.getKey(), entry.getValue());
+                    }
+                } else if (snapshot.getKeyedStates() != null) {
+                    for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
+                        snap.putKeyedState(entry.getKey(), entry.getValue());
+                    }
                 }
             }
-            String keyedKey = getKeyedStateStorageKey(operatorIndex);
-            if (keyedKey != null && snapshot.getKeyedStates() != null) {
-                for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
-                    snap.putKeyedState(keyedKey + "-" + entry.getKey(), entry.getValue());
-                }
-            } else if (snapshot.getKeyedStates() != null) {
-                for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
-                    snap.putKeyedState(entry.getKey(), entry.getValue());
-                }
+
+            if (operatorsToAck.decrementAndGet() == 0) {
+                snapshotToDeliver = snap;
+                callbackToFire = completionCallback;
             }
         }
 
-        if (operatorsToAck.decrementAndGet() == 0) {
-            if (completionCallback != null) {
-                completionCallback.accept(snap);
-            }
+        if (callbackToFire != null && snapshotToDeliver != null) {
+            callbackToFire.accept(snapshotToDeliver);
         }
     }
 

@@ -118,6 +118,10 @@ public class RemoteInputChannel extends InputChannel {
                     .param(ARG_DETAIL, "Decode error in RemoteInputChannel");
         }
         StreamElement element = queue.take();
+        if (decodeError != null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, decodeError)
+                    .param(ARG_DETAIL, "Decode error in RemoteInputChannel");
+        }
         if (element == END_OF_STREAM) {
             return null;
         }

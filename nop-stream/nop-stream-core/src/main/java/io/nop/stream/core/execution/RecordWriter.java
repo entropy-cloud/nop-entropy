@@ -142,11 +142,15 @@ public class RecordWriter<T> {
     @SuppressWarnings("unchecked")
     public void emit(StreamRecord<T> record) {
         if (isBroadcast) {
+            int delivered = 0;
             for (ResultPartition partition : partitions) {
                 try {
                     partition.write(record);
+                    delivered++;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    LOG.error("Interrupted during broadcast emit: {}/{} partitions delivered",
+                            delivered, partitions.length);
                     throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e).param(ARG_DETAIL, "record");
                 }
             }
