@@ -1,5 +1,6 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestJobCoordinatorScanner extends JunitBaseTestCase {
@@ -618,6 +620,97 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             this.scheduleId = schedule.getJobScheduleId();
             this.fireId = fire.getJobFireId();
             this.taskId = task.getJobTaskId();
+        }
+    }
+
+    @Test
+    public void testCoordinatorStopExceptionDoesNotCascade() {
+        JobCoordinator coordinator = new JobCoordinator();
+
+        RecordingStopScanner planner = new RecordingStopScanner();
+        ThrowingStopScanner dispatcher = new ThrowingStopScanner("dispatcher-failed");
+        RecordingStopScanner completion = new RecordingStopScanner();
+        RecordingStopScanner timeout = new RecordingStopScanner();
+
+        coordinator.setPlannerScanner(planner);
+        coordinator.setDispatcherScanner(dispatcher);
+        coordinator.setCompletionProcessor(completion);
+        coordinator.setTimeoutChecker(timeout);
+
+        coordinator.start();
+        coordinator.stop();
+
+        assertTrue(planner.stopped, "planner should be stopped");
+        assertTrue(dispatcher.stopCalled, "dispatcher stop should be called even though it throws");
+        assertTrue(completion.stopped, "completion should be stopped despite dispatcher failure");
+        assertTrue(timeout.stopped, "timeout should be stopped despite dispatcher failure");
+    }
+
+    @Test
+    public void testCoordinatorStopOrder() {
+        JobCoordinator coordinator = new JobCoordinator();
+        List<String> stopOrder = new java.util.ArrayList<>();
+
+        coordinator.setPlannerScanner(new OrderRecordingScanner(stopOrder, "planner"));
+        coordinator.setDispatcherScanner(new OrderRecordingScanner(stopOrder, "dispatcher"));
+        coordinator.setCompletionProcessor(new OrderRecordingScanner(stopOrder, "completion"));
+        coordinator.setTimeoutChecker(new OrderRecordingScanner(stopOrder, "timeout"));
+
+        coordinator.start();
+        coordinator.stop();
+
+        assertEquals(List.of("planner", "dispatcher", "completion", "timeout"), stopOrder);
+    }
+
+    private static final class RecordingStopScanner implements IJobPlannerScanner, IJobDispatcherScanner,
+            IJobCompletionProcessor, IJobTimeoutChecker {
+        boolean stopped;
+
+        @Override
+        public void startScanning() {}
+
+        @Override
+        public void stopScanning() {
+            stopped = true;
+        }
+    }
+
+    private static final class ThrowingStopScanner implements IJobPlannerScanner, IJobDispatcherScanner,
+            IJobCompletionProcessor, IJobTimeoutChecker {
+        boolean stopCalled;
+
+        private final String message;
+
+        ThrowingStopScanner(String message) {
+            this.message = message;
+        }
+
+        @Override
+        public void startScanning() {}
+
+        @Override
+        public void stopScanning() {
+            stopCalled = true;
+            throw new NopException(message);
+        }
+    }
+
+    private static final class OrderRecordingScanner implements IJobPlannerScanner, IJobDispatcherScanner,
+            IJobCompletionProcessor, IJobTimeoutChecker {
+        private final List<String> order;
+        private final String name;
+
+        OrderRecordingScanner(List<String> order, String name) {
+            this.order = order;
+            this.name = name;
+        }
+
+        @Override
+        public void startScanning() {}
+
+        @Override
+        public void stopScanning() {
+            order.add(name);
         }
     }
 }

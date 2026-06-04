@@ -46,6 +46,7 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long dispatchTimeoutMs = 300000;
+    private long executionTimeoutMs = -1;
     private volatile boolean running;
     private Future<?> scanFuture;
 
@@ -95,6 +96,11 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     @InjectValue("@cfg:nop.job.coordinator.dispatch-timeout-ms|300000")
     public void setDispatchTimeoutMs(long dispatchTimeoutMs) {
         this.dispatchTimeoutMs = dispatchTimeoutMs;
+    }
+
+    @InjectValue("@cfg:nop.job.coordinator.execution-timeout-ms|-1")
+    public void setExecutionTimeoutMs(long executionTimeoutMs) {
+        this.executionTimeoutMs = executionTimeoutMs;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
@@ -437,6 +443,8 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         long effectiveTimeoutMs;
         if (timeoutSeconds > 0) {
             effectiveTimeoutMs = timeoutSeconds * 1000L;
+        } else if (executionTimeoutMs > 0) {
+            effectiveTimeoutMs = executionTimeoutMs;
         } else {
             effectiveTimeoutMs = dispatchTimeoutMs;
         }

@@ -2,8 +2,12 @@ package io.nop.job.coordinator.engine;
 
 import io.nop.commons.service.LifeCycleSupport;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JobCoordinator extends LifeCycleSupport {
+    static final Logger LOG = LoggerFactory.getLogger(JobCoordinator.class);
+
     private IJobPlannerScanner plannerScanner;
     private IJobDispatcherScanner dispatcherScanner;
     private IJobCompletionProcessor completionProcessor;
@@ -47,17 +51,29 @@ public class JobCoordinator extends LifeCycleSupport {
 
     @Override
     protected void doStop() {
-        if (timeoutChecker != null) {
-            timeoutChecker.stopScanning();
+        try {
+            if (plannerScanner != null)
+                plannerScanner.stopScanning();
+        } catch (Exception e) {
+            LOG.warn("nop.job.coordinator.stop-component-failed:component=plannerScanner", e);
         }
-        if (completionProcessor != null) {
-            completionProcessor.stopScanning();
+        try {
+            if (dispatcherScanner != null)
+                dispatcherScanner.stopScanning();
+        } catch (Exception e) {
+            LOG.warn("nop.job.coordinator.stop-component-failed:component=dispatcherScanner", e);
         }
-        if (dispatcherScanner != null) {
-            dispatcherScanner.stopScanning();
+        try {
+            if (completionProcessor != null)
+                completionProcessor.stopScanning();
+        } catch (Exception e) {
+            LOG.warn("nop.job.coordinator.stop-component-failed:component=completionProcessor", e);
         }
-        if (plannerScanner != null) {
-            plannerScanner.stopScanning();
+        try {
+            if (timeoutChecker != null)
+                timeoutChecker.stopScanning();
+        } catch (Exception e) {
+            LOG.warn("nop.job.coordinator.stop-component-failed:component=timeoutChecker", e);
         }
     }
 }
