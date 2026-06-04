@@ -79,16 +79,28 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
 
     @InjectValue("@cfg:nop.job.worker.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
+        if (scanIntervalMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.worker.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
+        }
         this.scanIntervalMs = scanIntervalMs;
     }
 
     @InjectValue("@cfg:nop.job.worker.batch-size|100")
     public void setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.worker.batch-size must be >= 1, got " + batchSize);
+        }
         this.batchSize = batchSize;
     }
 
     @InjectValue("@cfg:nop.job.worker.lock-timeout-ms|60000")
     public void setLockTimeoutMs(long lockTimeoutMs) {
+        if (lockTimeoutMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.worker.lock-timeout-ms must be >= 1000, got " + lockTimeoutMs);
+        }
         this.lockTimeoutMs = lockTimeoutMs;
     }
 
