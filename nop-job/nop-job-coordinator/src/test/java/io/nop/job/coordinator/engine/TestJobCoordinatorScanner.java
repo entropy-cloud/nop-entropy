@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -691,7 +692,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         @Override
         public void stopScanning() {
             stopCalled = true;
-            throw new NopException(message);
+            throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED);
         }
     }
 

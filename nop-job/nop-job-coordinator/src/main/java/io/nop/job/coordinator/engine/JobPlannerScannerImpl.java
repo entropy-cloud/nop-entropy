@@ -57,16 +57,28 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
 
     @InjectValue("@cfg:nop.job.coordinator.planner.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
+        if (scanIntervalMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.planner.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
+        }
         this.scanIntervalMs = scanIntervalMs;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.batch-size|100")
     public void setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.planner.batch-size must be >= 1, got " + batchSize);
+        }
         this.batchSize = batchSize;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.lock-timeout-ms|60000")
     public void setPlanningTimeoutMs(long planningTimeoutMs) {
+        if (planningTimeoutMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.planner.lock-timeout-ms must be >= 1000, got " + planningTimeoutMs);
+        }
         this.planningTimeoutMs = planningTimeoutMs;
     }
 
@@ -172,6 +184,15 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
                     continue;
                 }
 
+                if (defaultInt(schedule.getActiveFireCount()) > 0
+                        && schedule.getBlockStrategy() != null
+                        && !isKnownBlockStrategy(schedule.getBlockStrategy())) {
+                    LOG.warn("nop.job.planner.unknown-block-strategy:scheduleId={},blockStrategy={},defaulting to DISCARD",
+                            schedule.getJobScheduleId(), schedule.getBlockStrategy());
+                    scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
+                    continue;
+                }
+
                 scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
                         _NopJobCoreConstants.FIRE_STATUS_WAITING);
             }
@@ -250,6 +271,13 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     private boolean shouldParallel(NopJobSchedule schedule) {
         return schedule.getBlockStrategy() != null
                 && schedule.getBlockStrategy() == _NopJobCoreConstants.BLOCK_STRATEGY_PARALLEL;
+    }
+
+    private boolean isKnownBlockStrategy(Integer blockStrategy) {
+        return blockStrategy == _NopJobCoreConstants.BLOCK_STRATEGY_DISCARD
+                || blockStrategy == _NopJobCoreConstants.BLOCK_STRATEGY_OVERLAY
+                || blockStrategy == _NopJobCoreConstants.BLOCK_STRATEGY_RECOVERY
+                || blockStrategy == _NopJobCoreConstants.BLOCK_STRATEGY_PARALLEL;
     }
 
     private long toTime(Timestamp value) {

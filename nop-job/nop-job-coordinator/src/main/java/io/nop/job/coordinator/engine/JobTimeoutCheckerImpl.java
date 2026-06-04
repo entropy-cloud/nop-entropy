@@ -85,11 +85,19 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
 
     @InjectValue("@cfg:nop.job.coordinator.timeout.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
+        if (scanIntervalMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.timeout.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
+        }
         this.scanIntervalMs = scanIntervalMs;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.timeout.batch-size|100")
     public void setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.timeout.batch-size must be >= 1, got " + batchSize);
+        }
         this.batchSize = batchSize;
     }
 

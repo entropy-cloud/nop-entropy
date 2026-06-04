@@ -7,6 +7,7 @@ import io.nop.cluster.naming.INamingService;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -308,7 +309,7 @@ public class TestJobTimeoutChecker {
             @Override
             public boolean updateTask(NopJobTask task) {
                 if ("t2".equals(task.getJobTaskId())) {
-                    throw new NopException("simulated update failure for t2");
+                    throw new NopException(JobCoreErrors.ERR_JOB_TIMEOUT);
                 }
                 return super.updateTask(task);
             }
@@ -355,7 +356,7 @@ public class TestJobTimeoutChecker {
             @Override
             public NopJobSchedule tryLoadSchedule(String scheduleId) {
                 if ("s2".equals(scheduleId)) {
-                    throw new NopException("simulated load failure for s2");
+                    throw new NopException(JobCoreErrors.ERR_JOB_TIMEOUT);
                 }
                 return super.tryLoadSchedule(scheduleId);
             }

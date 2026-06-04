@@ -55,16 +55,28 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
+        if (scanIntervalMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.dispatcher.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
+        }
         this.scanIntervalMs = scanIntervalMs;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.batch-size|100")
     public void setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.dispatcher.batch-size must be >= 1, got " + batchSize);
+        }
         this.batchSize = batchSize;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.lock-timeout-ms|60000")
     public void setLockTimeoutMs(long lockTimeoutMs) {
+        if (lockTimeoutMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.dispatcher.lock-timeout-ms must be >= 1000, got " + lockTimeoutMs);
+        }
         this.lockTimeoutMs = lockTimeoutMs;
     }
 

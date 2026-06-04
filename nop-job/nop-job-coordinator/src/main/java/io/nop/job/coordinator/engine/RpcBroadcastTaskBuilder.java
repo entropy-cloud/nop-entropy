@@ -7,7 +7,6 @@
  */
 package io.nop.job.coordinator.engine;
 
-import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.job.core._NopJobCoreConstants;
@@ -80,7 +79,7 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             task.setJobFireId(fire.getJobFireId());
             task.setTaskNo(i + 1);
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
-            task.setWorkerInstanceId(AppConfig.hostId());
+            task.setWorkerInstanceId(instance.getInstanceId());
             task.setPartitionIndex(fire.getPartitionIndex());
 
             // Dispatch routing: columns instead of JSON payload

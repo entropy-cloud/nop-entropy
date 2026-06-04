@@ -86,11 +86,19 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
 
     @InjectValue("@cfg:nop.job.coordinator.completion.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
+        if (scanIntervalMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.completion.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
+        }
         this.scanIntervalMs = scanIntervalMs;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.completion.batch-size|100")
     public void setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.completion.batch-size must be >= 1, got " + batchSize);
+        }
         this.batchSize = batchSize;
     }
 
@@ -135,8 +143,12 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, partitions);
             int completedCount = 0;
             for (NopJobFire fire : fires) {
-                if (tryCompleteFireAndGetStatus(fire) != null) {
-                    completedCount++;
+                try {
+                    if (tryCompleteFireAndGetStatus(fire) != null) {
+                        completedCount++;
+                    }
+                } catch (Exception e) {
+                    LOG.warn("nop.job.completion.fire-complete-failed:fireId={}", fire.getJobFireId(), e);
                 }
             }
             if (completedCount > 0) {
