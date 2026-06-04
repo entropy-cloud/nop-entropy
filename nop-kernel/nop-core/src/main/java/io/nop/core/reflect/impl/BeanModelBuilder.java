@@ -295,6 +295,8 @@ public class BeanModelBuilder {
         }
         initExtProperties(classModel, props);
 
+        applyClassLevelAnnotations(classModel, props);
+
         ReflectionManager.instance().enhanceBeanModel(beanModel, classModel, props, propAliases);
 
         beanModel.setPropertyModels((Map) CollectionHelper.immutableSortedMap(props));
@@ -398,6 +400,19 @@ public class BeanModelBuilder {
                 BeanPropertyModel prop = newProp(CoreConstants.FIELD_LENGTH, PredefinedGenericTypes.INT_TYPE,
                         CollectionSizeGetter.INSTANCE, null);
                 propModels.put(CoreConstants.FIELD_LENGTH, prop);
+            }
+        }
+    }
+
+    private void applyClassLevelAnnotations(IClassModel classModel, Map<String, BeanPropertyModel> props) {
+        JsonInclude classInclude = classModel.getAnnotation(JsonInclude.class);
+        if (classInclude == null)
+            return;
+
+        JsonInclude.Include defaultInclude = classInclude.value();
+        for (BeanPropertyModel prop : props.values()) {
+            if (prop.getJsonInclude() == null && prop.isSerializable()) {
+                prop.setJsonInclude(defaultInclude);
             }
         }
     }
