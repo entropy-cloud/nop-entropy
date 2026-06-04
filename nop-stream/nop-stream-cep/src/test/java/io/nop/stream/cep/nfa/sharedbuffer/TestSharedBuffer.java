@@ -12,6 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -227,8 +228,8 @@ public class TestSharedBuffer {
         try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
             EventId newEvent = accessor.registerEvent(new Event(3, "c"), 1L);
             assertNotNull(newEvent);
-            assert !newEvent.equals(oldEvent) :
-                    "New EventId must not collide with old EventId still in eventsBuffer";
+            assertNotEquals(oldEvent, newEvent,
+                    "New EventId must not collide with old EventId still in eventsBuffer");
         }
 
         Lockable<Event> oldEntry = buffer.getEvent(oldEvent);
@@ -258,8 +259,8 @@ public class TestSharedBuffer {
 
             EventId reused = accessor.registerEvent(new Event(4, "d"), 10L);
             assertNotNull(reused);
-            assert !reused.equals(event10) :
-                    "New EventId at reused timestamp must not collide";
+            assertNotEquals(event10, reused,
+                    "New EventId at reused timestamp must not collide");
         }
 
         Lockable<Event> old10 = buffer.getEvent(event10);
@@ -286,7 +287,7 @@ public class TestSharedBuffer {
 
             assertNotNull(e0);
             assertNotNull(e1);
-            assert !e0.equals(e1) : "Sequential EventIds must be unique";
+            assertNotEquals(e0, e1, "Sequential EventIds must be unique");
 
             assertEquals(2, e0.getId(), "Should skip past existing id=0 in eventsBuffer");
             assertEquals(3, e1.getId(), "Should continue from last assigned id");
@@ -311,8 +312,8 @@ public class TestSharedBuffer {
         try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
             EventId reused = accessor.registerEvent(new Event(3, "c"), 10L);
             assertNotNull(reused);
-            assert reused.getId() != 0 :
-                    "Should not produce EventId(0,10) since it exists in eventsBuffer";
+            assertTrue(reused.getId() != 0,
+                    "Should not produce EventId(0,10) since it exists in eventsBuffer");
         }
     }
 }
