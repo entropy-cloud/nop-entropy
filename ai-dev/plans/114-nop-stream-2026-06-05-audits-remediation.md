@@ -127,21 +127,21 @@ Exit Criteria:
 
 ### Phase 2 - Watermark Timer 线程模型（AR-3）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/.../operators/TimestampsAndWatermarksOperator.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-3: 移除 `java.util.Timer` 方式，改为使用算子的处理时间定时器。具体方案：在 `open()` 中通过 `getTimerService().registerProcessingTimeTimer(currentProcessingTime + watermarkInterval)` 注册定时器；在 `onProcessingTime()` 回调中调用 `watermarkGenerator.onPeriodicEmit()` 并重新注册下一个定时器。确保 watermark 生成只在算子线程上执行。注意：即使没有元素到达，定时器也必须持续触发
+- [x] AR-3: 移除 `java.util.Timer` 方式，改为使用算子的处理时间定时器。具体方案：在 `open()` 中通过 `getTimerService().registerProcessingTimeTimer(currentProcessingTime + watermarkInterval)` 注册定时器；在 `onProcessingTime()` 回调中调用 `watermarkGenerator.onPeriodicEmit()` 并重新注册下一个定时器。确保 watermark 生成只在算子线程上执行。注意：即使没有元素到达，定时器也必须持续触发
 
 Exit Criteria:
 
-- [ ] `TimestampsAndWatermarksOperator` 不再使用 `java.util.Timer`，watermark 生成通过算子线程的 timer service 回调完成
-- [ ] 无元素到达时 watermark 定时器仍正常触发
-- [ ] 新增测试验证 watermark 生成不会从独立线程触发
-- [ ] 现有 watermark 相关测试全部通过
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `TimestampsAndWatermarksOperator` 不再使用 `java.util.Timer`，watermark 生成通过算子线程的 timer service 回调完成
+- [x] 无元素到达时 watermark 定时器仍正常触发
+- [x] 新增测试验证 watermark 生成不会从独立线程触发
+- [x] 现有 watermark 相关测试全部通过
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Checkpoint 语义正确性（AR-5 + AR-6 + DA-P1-1）
 

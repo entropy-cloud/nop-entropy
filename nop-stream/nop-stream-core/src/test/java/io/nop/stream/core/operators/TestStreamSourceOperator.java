@@ -63,7 +63,7 @@ class TestStreamSourceOperator {
             @Override
             public void cancel() {
                 closeCallCount.incrementAndGet();
-                throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INTERNAL_ERROR);
+                throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED);
             }
         };
 
