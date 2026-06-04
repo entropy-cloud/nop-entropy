@@ -15,7 +15,7 @@ class TestBarrierAlignerLoopComplete {
         CheckpointBarrier b1 = new CheckpointBarrier(1, 0, CheckpointType.CHECKPOINT);
         CheckpointBarrier b2 = new CheckpointBarrier(2, 0, CheckpointType.CHECKPOINT);
 
-        assertTrue(aligner.processBarrier(b1, 0));
+        assertFalse(aligner.processBarrier(b1, 0));
         assertNull(aligner.pollAlignedBarrier());
 
         assertTrue(aligner.processBarrier(b1, 1));
@@ -23,7 +23,7 @@ class TestBarrierAlignerLoopComplete {
         assertNotNull(first);
         assertEquals(1, first.getCheckpointId());
 
-        assertTrue(aligner.processBarrier(b2, 0));
+        assertFalse(aligner.processBarrier(b2, 0));
         assertNull(aligner.pollAlignedBarrier());
 
         assertTrue(aligner.processBarrier(b2, 1));

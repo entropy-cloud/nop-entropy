@@ -45,7 +45,9 @@ class TestPendingCheckpointFuture {
 
         TaskStateSnapshot state1 = TaskStateSnapshot.empty(loc("v1", 1));
         checkpoint.acknowledgeTask(loc("v1", 1), state1);
-        assertTrue(future.isDone());
+        assertFalse(future.isDone());
+
+        assertTrue(checkpoint.forceComplete());
 
         CompletedCheckpoint result = future.get(1, TimeUnit.SECONDS);
         assertNotNull(result);
@@ -70,7 +72,9 @@ class TestPendingCheckpointFuture {
         TaskStateSnapshot state = TaskStateSnapshot.empty(loc("v1", 0));
         pc.acknowledgeTask(loc("v1", 0), state);
 
-        assertTrue(future.isDone());
+        assertFalse(future.isDone());
+        assertTrue(pc.forceComplete());
+
         CompletedCheckpoint result = future.get(1, TimeUnit.SECONDS);
         assertNotNull(result);
     }

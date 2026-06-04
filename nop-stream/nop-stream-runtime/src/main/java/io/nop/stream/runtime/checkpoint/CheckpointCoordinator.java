@@ -202,7 +202,7 @@ public class CheckpointCoordinator {
         LOG.debug("Task {} acknowledged checkpoint {}, pending tasks: {}",
                 taskLocation, checkpointId, pending.getNumberOfNotAcknowledgedTasks());
 
-        if (pending.isFullyAcknowledged() && !pending.getCompletableFuture().isDone()) {
+        if (pending.isFullyAcknowledged()) {
             completePendingCheckpoint(pending.toCompletedCheckpoint());
         }
 

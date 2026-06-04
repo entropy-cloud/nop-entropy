@@ -338,6 +338,7 @@ Nop 平台常见误报校准（以下**不是**问题，不应作为审计发现
 - CrudBizModel 的标准继承模式（setEntityName + extends CrudBizModel<T>）
 - xbiz 文件中的方法签名与 BizModel Java 方法不完全一致（GraphQL 引擎通过反射调用，xbiz 是声明性元数据）
 - 多模块的 pom.xml 中存在必要的传递依赖声明（Maven 最佳实践要求显式声明直接使用的依赖）
+- 未显式声明平台核心包（`nop-api-core`、`nop-commons`、`nop-core`、`nop-xlang`、`nop-markdown`）的依赖——这些包通过传递链稳定获得，不需要单独声明
 
 自动化工具有效性规则：
 1. 已被 Maven 构建、checkstyle、编译器类型检查覆盖且当前通过的问题不得重复报告。
@@ -459,7 +460,7 @@ Nop 平台常见误报校准（以下**不是**问题，不应作为审计发现
    - 违反了哪条规则
    - 是否存在合理的例外理由
 5. 检查是否存在循环依赖的迹象。
-6. 检查是否有子模块缺少必要的依赖声明（编译通过但依赖传递导致隐性耦合）。
+6. 检查是否有子模块缺少必要的依赖声明（编译通过但依赖传递导致隐性耦合）。排除：`nop-api-core`、`nop-commons`、`nop-core`、`nop-xlang`、`nop-markdown` 等平台核心包通过传递链稳定获得，不算隐性耦合。
 7. 检查生成产物（_*.xml、_gen/*.java）是否被手写代码正确引用。
 
 输出格式：

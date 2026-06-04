@@ -204,6 +204,11 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     @Override
     public void close() throws Exception {
         isRunning = false;
+        try {
+            sourceFunction.cancel();
+        } catch (Exception e) {
+            LOG.warn("Error cancelling source function during close", e);
+        }
     }
 
     @Override

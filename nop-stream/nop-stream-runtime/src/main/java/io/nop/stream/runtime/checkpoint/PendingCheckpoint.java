@@ -119,10 +119,6 @@ public class PendingCheckpoint {
         if (state != null) {
             taskStates.put(taskLocation, state);
         }
-
-        if (isFullyAcknowledged() && !completableFuture.isDone()) {
-            completableFuture.complete(toCompletedCheckpoint());
-        }
     }
 
     public CompletedCheckpoint toCompletedCheckpoint() {

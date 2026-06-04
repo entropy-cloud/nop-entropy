@@ -106,7 +106,7 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void run(SourceContext<T> ctx) throws Exception {
+    public void run(final SourceContext<T> ctx) throws Exception {
         if (shutdownLatch == null) {
             shutdownLatch = new CountDownLatch(1);
         }
@@ -120,12 +120,14 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
                             .param(ARG_EXPECTED_TYPE, typeClass.getName())
                             .param(ARG_ACTUAL_TYPE, msg.getClass().getName());
                 }
-                try {
-                    ctx.collect((T) msg);
-                } catch (Exception e) {
-                    LOG.error("Failed to collect message from topic {}", effectiveTopic, e);
-                    failed = true;
-                    return null;
+                synchronized (ctx) {
+                    try {
+                        ctx.collect((T) msg);
+                    } catch (Exception e) {
+                        LOG.error("Failed to collect message from topic {}", effectiveTopic, e);
+                        failed = true;
+                        return null;
+                    }
                 }
                 return null;
             }
