@@ -1,8 +1,13 @@
-package io.nop.auth.api.crud;
+//__XGEN_FORCE_OVERRIDE__
+    package io.nop.auth.api.crud;
 
-import io.nop.api.core.annotations.biz.BizModel;
-import io.nop.auth.api.crud._NopAuthPositionApi;
+    import io.nop.api.core.annotations.biz.BizModel;
+    import io.nop.auth.api.beans.NopAuthPositionInputBean;
+    import io.nop.auth.api.beans.NopAuthPositionOutputBean;
+    import io.nop.api.core.api.ICrudApi;
+    
 
-@BizModel("NopAuthPosition")
-public interface NopAuthPositionApi extends _NopAuthPositionApi{
-}
+    @BizModel("NopAuthPosition")
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
+    public interface NopAuthPositionApi extends ICrudApi<NopAuthPositionInputBean, NopAuthPositionOutputBean> {
+    }

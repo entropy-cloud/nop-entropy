@@ -1,18 +1,21 @@
 //__XGEN_FORCE_OVERRIDE__
-    package io.nop.auth.api.beans._gen;
+    package io.nop.auth.api.beans;
 
+    import io.nop.api.core.annotations.data.DataBean;
     import io.nop.api.core.annotations.meta.PropMeta;
+    import io.nop.api.core.api.CrudInputBase;
     import java.util.List;
     
-    import java.util.Map;
-
+    @DataBean
     @SuppressWarnings({"PMD","java:S116","java:S115"})
-    public class _NopAuthUserOutputBean {
+    public class NopAuthUser_tenantInputBean extends CrudInputBase {
 
     
         private String _userId;
 
+    
         @PropMeta(propId=1)
+    
         public String getUserId(){
             return _userId;
         }
@@ -24,7 +27,9 @@
 
         private String _userName;
 
+    
         @PropMeta(propId=2)
+    
         public String getUserName(){
             return _userName;
         }
@@ -34,9 +39,39 @@
         }
 
 
+        private String _password;
+
+    
+        @PropMeta(propId=3)
+    
+        public String getPassword(){
+            return _password;
+        }
+
+        public void setPassword(String value){
+            this._password = value;
+        }
+
+
+        private String _salt;
+
+    
+        @PropMeta(propId=4)
+    
+        public String getSalt(){
+            return _salt;
+        }
+
+        public void setSalt(String value){
+            this._salt = value;
+        }
+
+
         private String _nickName;
 
+    
         @PropMeta(propId=5)
+    
         public String getNickName(){
             return _nickName;
         }
@@ -48,7 +83,9 @@
 
         private String _deptId;
 
+    
         @PropMeta(propId=6)
+    
         public String getDeptId(){
             return _deptId;
         }
@@ -60,7 +97,9 @@
 
         private String _openId;
 
+    
         @PropMeta(propId=7)
+    
         public String getOpenId(){
             return _openId;
         }
@@ -72,7 +111,9 @@
 
         private String _relDeptId;
 
+    
         @PropMeta(propId=8)
+    
         public String getRelDeptId(){
             return _relDeptId;
         }
@@ -84,7 +125,9 @@
 
         private Integer _gender;
 
+    
         @PropMeta(propId=9)
+    
         public Integer getGender(){
             return _gender;
         }
@@ -96,7 +139,9 @@
 
         private String _avatar;
 
+    
         @PropMeta(propId=10)
+    
         public String getAvatar(){
             return _avatar;
         }
@@ -108,7 +153,9 @@
 
         private String _email;
 
+    
         @PropMeta(propId=11)
+    
         public String getEmail(){
             return _email;
         }
@@ -120,7 +167,9 @@
 
         private Byte _emailVerified;
 
+    
         @PropMeta(propId=12)
+    
         public Byte getEmailVerified(){
             return _emailVerified;
         }
@@ -132,7 +181,9 @@
 
         private String _phone;
 
+    
         @PropMeta(propId=13)
+    
         public String getPhone(){
             return _phone;
         }
@@ -144,7 +195,9 @@
 
         private Byte _phoneVerified;
 
+    
         @PropMeta(propId=14)
+    
         public Byte getPhoneVerified(){
             return _phoneVerified;
         }
@@ -156,7 +209,9 @@
 
         private java.time.LocalDate _birthday;
 
+    
         @PropMeta(propId=15)
+    
         public java.time.LocalDate getBirthday(){
             return _birthday;
         }
@@ -168,7 +223,9 @@
 
         private Integer _userType;
 
+    
         @PropMeta(propId=16)
+    
         public Integer getUserType(){
             return _userType;
         }
@@ -180,7 +237,9 @@
 
         private Integer _status;
 
+    
         @PropMeta(propId=17)
+    
         public Integer getStatus(){
             return _status;
         }
@@ -192,7 +251,9 @@
 
         private String _idType;
 
+    
         @PropMeta(propId=18)
+    
         public String getIdType(){
             return _idType;
         }
@@ -204,7 +265,9 @@
 
         private String _idNbr;
 
+    
         @PropMeta(propId=19)
+    
         public String getIdNbr(){
             return _idNbr;
         }
@@ -216,7 +279,9 @@
 
         private java.time.LocalDateTime _expireAt;
 
+    
         @PropMeta(propId=20)
+    
         public java.time.LocalDateTime getExpireAt(){
             return _expireAt;
         }
@@ -226,21 +291,11 @@
         }
 
 
-        private java.time.LocalDateTime _pwdUpdateTime;
-
-        @PropMeta(propId=21)
-        public java.time.LocalDateTime getPwdUpdateTime(){
-            return _pwdUpdateTime;
-        }
-
-        public void setPwdUpdateTime(java.time.LocalDateTime value){
-            this._pwdUpdateTime = value;
-        }
-
-
         private Byte _changePwdAtLogin;
 
+    
         @PropMeta(propId=22)
+    
         public Byte getChangePwdAtLogin(){
             return _changePwdAtLogin;
         }
@@ -252,7 +307,9 @@
 
         private String _realName;
 
+    
         @PropMeta(propId=23)
+    
         public String getRealName(){
             return _realName;
         }
@@ -264,7 +321,9 @@
 
         private String _managerId;
 
+    
         @PropMeta(propId=24)
+    
         public String getManagerId(){
             return _managerId;
         }
@@ -276,7 +335,9 @@
 
         private String _workNo;
 
+    
         @PropMeta(propId=25)
+    
         public String getWorkNo(){
             return _workNo;
         }
@@ -288,7 +349,9 @@
 
         private String _positionId;
 
+    
         @PropMeta(propId=26)
+    
         public String getPositionId(){
             return _positionId;
         }
@@ -300,7 +363,9 @@
 
         private String _telephone;
 
+    
         @PropMeta(propId=27)
+    
         public String getTelephone(){
             return _telephone;
         }
@@ -312,7 +377,9 @@
 
         private String _clientId;
 
+    
         @PropMeta(propId=28)
+    
         public String getClientId(){
             return _clientId;
         }
@@ -324,7 +391,9 @@
 
         private Byte _delFlag;
 
+    
         @PropMeta(propId=29)
+    
         public Byte getDelFlag(){
             return _delFlag;
         }
@@ -334,21 +403,11 @@
         }
 
 
-        private Integer _version;
-
-        @PropMeta(propId=30)
-        public Integer getVersion(){
-            return _version;
-        }
-
-        public void setVersion(Integer value){
-            this._version = value;
-        }
-
-
         private String _tenantId;
 
+    
         @PropMeta(propId=31)
+    
         public String getTenantId(){
             return _tenantId;
         }
@@ -358,57 +417,11 @@
         }
 
 
-        private String _createdBy;
-
-        @PropMeta(propId=32)
-        public String getCreatedBy(){
-            return _createdBy;
-        }
-
-        public void setCreatedBy(String value){
-            this._createdBy = value;
-        }
-
-
-        private java.sql.Timestamp _createTime;
-
-        @PropMeta(propId=33)
-        public java.sql.Timestamp getCreateTime(){
-            return _createTime;
-        }
-
-        public void setCreateTime(java.sql.Timestamp value){
-            this._createTime = value;
-        }
-
-
-        private String _updatedBy;
-
-        @PropMeta(propId=34)
-        public String getUpdatedBy(){
-            return _updatedBy;
-        }
-
-        public void setUpdatedBy(String value){
-            this._updatedBy = value;
-        }
-
-
-        private java.sql.Timestamp _updateTime;
-
-        @PropMeta(propId=35)
-        public java.sql.Timestamp getUpdateTime(){
-            return _updateTime;
-        }
-
-        public void setUpdateTime(java.sql.Timestamp value){
-            this._updateTime = value;
-        }
-
-
         private String _remark;
 
+    
         @PropMeta(propId=36)
+    
         public String getRemark(){
             return _remark;
         }
@@ -418,80 +431,71 @@
         }
 
 
-        private Map<String,Object> _dept;
+        private java.util.List<java.lang.String> _relatedRoleList_ids;
 
-        public Map<String,Object> getDept(){
-            return _dept;
+    
+        public java.util.List<java.lang.String> getRelatedRoleList_ids(){
+            return _relatedRoleList_ids;
         }
 
-        public void setDept(Map<String,Object> value){
-            this._dept = value;
-        }
-
-
-        private Map<String,Object> _relatedDept;
-
-        public Map<String,Object> getRelatedDept(){
-            return _relatedDept;
-        }
-
-        public void setRelatedDept(Map<String,Object> value){
-            this._relatedDept = value;
+        public void setRelatedRoleList_ids(java.util.List<java.lang.String> value){
+            this._relatedRoleList_ids = value;
         }
 
 
-        private Map<String,Object> _position;
+        private java.util.List<java.lang.String> _relatedGroupList_ids;
 
-        public Map<String,Object> getPosition(){
-            return _position;
+    
+        public java.util.List<java.lang.String> getRelatedGroupList_ids(){
+            return _relatedGroupList_ids;
         }
 
-        public void setPosition(Map<String,Object> value){
-            this._position = value;
-        }
-
-
-        private Map<String,Object> _manager;
-
-        public Map<String,Object> getManager(){
-            return _manager;
-        }
-
-        public void setManager(Map<String,Object> value){
-            this._manager = value;
+        public void setRelatedGroupList_ids(java.util.List<java.lang.String> value){
+            this._relatedGroupList_ids = value;
         }
 
 
-        private List<Map<String,Object>> _roleMappings;
+        private List<NopAuthUserRoleInputBean> _roleMappings;
 
-        public List<Map<String,Object>> getRoleMappings(){
+        public List<NopAuthUserRoleInputBean> getRoleMappings(){
             return _roleMappings;
         }
 
-        public void setRoleMappings(List<Map<String,Object>> value){
+        public void setRoleMappings(List<NopAuthUserRoleInputBean> value){
             this._roleMappings = value;
         }
 
 
-        private List<Map<String,Object>> _substitutionMappings;
+        private List<NopAuthGroupUserInputBean> _groupMappings;
 
-        public List<Map<String,Object>> getSubstitutionMappings(){
-            return _substitutionMappings;
-        }
-
-        public void setSubstitutionMappings(List<Map<String,Object>> value){
-            this._substitutionMappings = value;
-        }
-
-
-        private List<Map<String,Object>> _groupMappings;
-
-        public List<Map<String,Object>> getGroupMappings(){
+        public List<NopAuthGroupUserInputBean> getGroupMappings(){
             return _groupMappings;
         }
 
-        public void setGroupMappings(List<Map<String,Object>> value){
+        public void setGroupMappings(List<NopAuthGroupUserInputBean> value){
             this._groupMappings = value;
+        }
+
+
+        private List<NopAuthRoleInputBean> _relatedRoleList;
+
+        public List<NopAuthRoleInputBean> getRelatedRoleList(){
+            return _relatedRoleList;
+        }
+
+        public void setRelatedRoleList(List<NopAuthRoleInputBean> value){
+            this._relatedRoleList = value;
+        }
+
+
+        private List<NopAuthGroupInputBean> _relatedGroupList;
+
+        public List<NopAuthGroupInputBean> getRelatedGroupList(){
+            return _relatedGroupList;
+        }
+
+        public void setRelatedGroupList(List<NopAuthGroupInputBean> value){
+            this._relatedGroupList = value;
         }
 
 

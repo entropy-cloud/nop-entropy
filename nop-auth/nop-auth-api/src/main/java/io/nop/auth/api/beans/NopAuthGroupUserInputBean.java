@@ -1,10 +1,55 @@
-package io.nop.auth.api.beans;
+//__XGEN_FORCE_OVERRIDE__
+    package io.nop.auth.api.beans;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.auth.api.beans._gen._NopAuthGroupUserInputBean;
+    import io.nop.api.core.annotations.data.DataBean;
+    import io.nop.api.core.annotations.meta.PropMeta;
+    import io.nop.api.core.api.CrudInputBase;
+    
+    @DataBean
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
+    public class NopAuthGroupUserInputBean extends CrudInputBase {
 
-@DataBean
-public class NopAuthGroupUserInputBean extends _NopAuthGroupUserInputBean{
-    public NopAuthGroupUserInputBean(){
+    
+        private String _userId;
+
+    
+        @PropMeta(propId=1)
+    
+        public String getUserId(){
+            return _userId;
+        }
+
+        public void setUserId(String value){
+            this._userId = value;
+        }
+
+
+        private String _groupId;
+
+    
+        @PropMeta(propId=2)
+    
+        public String getGroupId(){
+            return _groupId;
+        }
+
+        public void setGroupId(String value){
+            this._groupId = value;
+        }
+
+
+        private String _remark;
+
+    
+        @PropMeta(propId=8)
+    
+        public String getRemark(){
+            return _remark;
+        }
+
+        public void setRemark(String value){
+            this._remark = value;
+        }
+
+
     }
-}
