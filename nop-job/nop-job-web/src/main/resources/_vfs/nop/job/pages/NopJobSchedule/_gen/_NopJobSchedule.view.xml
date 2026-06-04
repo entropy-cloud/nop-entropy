@@ -163,14 +163,15 @@
  jobScheduleId[调度ID] namespaceId[命名空间]
  groupId[分组] jobName[作业名]
  displayName[显示名] description[描述]
- executorKind[执行器类型] jobParams[任务参数]
- triggerType[触发器类型] cronExpr[CRON表达式]
- repeatIntervalMs[重复间隔(毫秒)] maxExecutionCount[最大执行次数]
- minScheduleTime[最早调度时间] maxScheduleTime[最晚调度时间]
- misfireThresholdMs[Misfire阈值(毫秒)] useDefaultCalendar[使用默认日历]
- pauseCalendarSpec[暂停日历配置] blockStrategy[阻塞策略]
- timeoutSeconds[超时时间(秒)] retryPolicyId[重试策略ID]
- partitionIndex[分区索引] remark[备注]
+ scheduleStatus[调度状态] executorKind[执行器类型]
+ jobParams[任务参数] triggerType[触发器类型]
+ cronExpr[CRON表达式] repeatIntervalMs[重复间隔(毫秒)]
+ maxExecutionCount[最大执行次数] minScheduleTime[最早调度时间]
+ maxScheduleTime[最晚调度时间] misfireThresholdMs[Misfire阈值(毫秒)]
+ useDefaultCalendar[使用默认日历] pauseCalendarSpec[暂停日历配置]
+ blockStrategy[阻塞策略] timeoutSeconds[超时时间(秒)]
+ retryPolicyId[重试策略ID] partitionIndex[分区索引]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -7,14 +7,6 @@ prop:
   label:
     NopJobFire:
       jobFireId: Job Fire Id
-      jobScheduleId: Job Schedule Id
-      namespaceId: Namespace Id
-      groupId: Group Id
-      jobName: Job Name
-      triggerSource: Trigger Source
-      triggerSource_label: null
-      scheduledFireTime: Scheduled Fire Time
-      triggeredBy: Triggered By
       fireStatus: Fire Status
       fireStatus_label: null
       plannerInstanceId: Planner Instance Id
@@ -22,13 +14,14 @@ prop:
       startTime: Start Time
       endTime: End Time
       durationMs: Duration Ms
-      jobParamsSnapshot: Job Params Snapshot
-      executorKind: Executor Kind
-      executorKind_label: null
-      retryPolicyId: Retry Policy Id
-      retryRecordId: Retry Record Id
       errorCode: Error Code
       errorMessage: Error Message
+      triggerSource: Trigger Source
+      triggerSource_label: null
+      scheduledFireTime: Scheduled Fire Time
+      triggeredBy: Triggered By
+      retryPolicyId: Retry Policy Id
+      retryRecordId: Retry Record Id
       partitionIndex: Partition Index
       version: Version
       createdBy: Created By
@@ -39,6 +32,13 @@ prop:
       jobSchedule: Job Schedule
       jobSchedule.displayName: Job Schedule
       jobParamsSnapshotComponent: null
+      jobScheduleId: Job Schedule Id
+      namespaceId: Namespace Id
+      groupId: Group Id
+      jobName: Job Name
+      jobParamsSnapshot: Job Params Snapshot
+      executorKind: Executor Kind
+      executorKind_label: null
     NopJobSchedule:
       jobScheduleId: Job Schedule Id
       namespaceId: Namespace Id
@@ -88,18 +88,23 @@ prop:
     NopJobTask:
       jobTaskId: Job Task Id
       jobFireId: Job Fire Id
-      taskNo: Task No
+      shardingIndex: Sharding Index
+      shardingTotal: Sharding Total
+      jobFire: Job Fire
+      taskPayloadComponent: null
+      resultPayloadComponent: null
       taskStatus: Task Status
       taskStatus_label: null
       workerInstanceId: Worker Instance Id
       workerAddress: Worker Address
-      taskPayload: Task Payload
       startTime: Start Time
       endTime: End Time
       durationMs: Duration Ms
       resultPayload: Result Payload
       errorCode: Error Code
       errorMessage: Error Message
+      taskPayload: Task Payload
+      taskNo: Task No
       partitionIndex: Partition Index
       version: Version
       createdBy: Created By
@@ -110,8 +115,3 @@ prop:
       progress: Progress
       progressMessage: Progress Message
       targetHost: Target Host
-      shardingIndex: Sharding Index
-      shardingTotal: Sharding Total
-      jobFire: Job Fire
-      taskPayloadComponent: null
-      resultPayloadComponent: null

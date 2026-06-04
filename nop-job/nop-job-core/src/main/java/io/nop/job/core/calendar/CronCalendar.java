@@ -185,7 +185,7 @@ public class CronCalendar extends BaseCalendar {
      */
     public void setCronExpression(CronExpression expression) {
         if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null");
+            throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_NULL_EXPRESSION);
         }
 
         this.cronExpression = expression;

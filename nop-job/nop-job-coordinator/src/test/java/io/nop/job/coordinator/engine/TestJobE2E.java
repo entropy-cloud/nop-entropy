@@ -314,10 +314,9 @@ public class TestJobE2E {
         final AtomicInteger callCount = new AtomicInteger();
         String lastPolicyId;
 
-        @Override public String onFireFailed(JobFireFailedEvent event) {
+        @Override public void onFireFailed(JobFireFailedEvent event) {
             callCount.incrementAndGet();
             lastPolicyId = event.getRetryPolicyId();
-            return "retry-record";
         }
     }
 

@@ -10,6 +10,13 @@ package io.nop.job.core.calendar;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.job.core.ICalendar;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_TIME_STRING;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_TIME_RANGE;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_HOUR;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_MINUTE;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_SECOND;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_MILLIS;
+
 import java.text.NumberFormat;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -397,7 +404,7 @@ public class DailyCalendar extends BaseCalendar {
         rangeStartingTime = split(rangeStartingTimeString, colon);
 
         if ((rangeStartingTime.length < 2) || (rangeStartingTime.length > 4)) {
-            throw new IllegalArgumentException("Invalid time string '" + rangeStartingTimeString + "'");
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_TIME_STRING).param("timeString", rangeStartingTimeString);
         }
 
         rStartingHourOfDay = Integer.parseInt(rangeStartingTime[0]);
@@ -416,7 +423,7 @@ public class DailyCalendar extends BaseCalendar {
         rEndingTime = split(rangeEndingTimeString, colon);
 
         if ((rEndingTime.length < 2) || (rEndingTime.length > 4)) {
-            throw new IllegalArgumentException("Invalid time string '" + rangeEndingTimeString + "'");
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_TIME_STRING).param("timeString", rangeEndingTimeString);
         }
 
         rEndingHourOfDay = Integer.parseInt(rEndingTime[0]);
@@ -468,9 +475,11 @@ public class DailyCalendar extends BaseCalendar {
         endCal.set(Calendar.MILLISECOND, rangeEndingMillis);
 
         if (!startCal.before(endCal)) {
-            throw new IllegalArgumentException(invalidTimeRange + rangeStartingHourOfDay + ":" + rangeStartingMinute
-                    + ":" + rangeStartingSecond + ":" + rangeStartingMillis + separator + rangeEndingHourOfDay + ":"
-                    + rangeEndingMinute + ":" + rangeEndingSecond + ":" + rangeEndingMillis);
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_TIME_RANGE)
+                    .param("startTime", rangeStartingHourOfDay + ":" + rangeStartingMinute
+                            + ":" + rangeStartingSecond + ":" + rangeStartingMillis)
+                    .param("endTime", rangeEndingHourOfDay + ":"
+                            + rangeEndingMinute + ":" + rangeEndingSecond + ":" + rangeEndingMillis);
         }
 
         this.rangeStartingHourOfDay = rangeStartingHourOfDay;
@@ -506,16 +515,16 @@ public class DailyCalendar extends BaseCalendar {
      */
     private void validate(int hourOfDay, int minute, int second, int millis) {
         if (hourOfDay < 0 || hourOfDay > 23) {
-            throw new IllegalArgumentException(invalidHourOfDay + hourOfDay);
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_HOUR).param("hourOfDay", hourOfDay);
         }
         if (minute < 0 || minute > 59) {
-            throw new IllegalArgumentException(invalidMinute + minute);
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_MINUTE).param("minute", minute);
         }
         if (second < 0 || second > 59) {
-            throw new IllegalArgumentException(invalidSecond + second);
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_SECOND).param("second", second);
         }
         if (millis < 0 || millis > 999) {
-            throw new IllegalArgumentException(invalidMillis + millis);
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_MILLIS).param("millis", millis);
         }
     }
 }

@@ -28,10 +28,10 @@ public class NopRetryJobRetryBridge implements IJobRetryBridge {
     }
 
     @Override
-    public String onFireFailed(JobFireFailedEvent event) {
+    public void onFireFailed(JobFireFailedEvent event) {
         if (retryEngine == null) {
             LOG.warn("nop.job.retry.engine-not-available:fireId={}", event.getJobFireId());
-            return null;
+            return;
         }
 
         try {
@@ -61,11 +61,8 @@ public class NopRetryJobRetryBridge implements IJobRetryBridge {
                                     resp.getCode());
                         }
                     });
-
-            return null;
         } catch (Exception e) {
             LOG.error("nop.job.retry.bridge-error:fireId={}", event.getJobFireId(), e);
-            return null;
         }
     }
 }

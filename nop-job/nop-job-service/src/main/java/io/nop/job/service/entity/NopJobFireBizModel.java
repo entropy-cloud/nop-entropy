@@ -16,6 +16,7 @@ import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.service.JobContextHelper;
+import io.nop.job.service.fire.FireFactory;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -133,12 +134,9 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
         fire.setPartitionIndex(schedule.getPartitionIndex());
         fire.setRetryPolicyId(schedule.getRetryPolicyId());
-        fire.setCreatedBy("system");
-        fire.setCreateTime(fireTime);
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(fireTime);
         fire.setJobParamsSnapshot(schedule.getJobParams());
         fire.setExecutorKind(schedule.getExecutorKind());
+        FireFactory.fillBaseFireFields(fire, fireTime);
         return fire;
     }
 

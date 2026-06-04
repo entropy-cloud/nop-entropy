@@ -380,13 +380,12 @@ public class TestJobCompletionProcessor {
         JobFireFailedEvent getLastEvent() { return lastEvent; }
 
         @Override
-        public String onFireFailed(JobFireFailedEvent event) {
+        public void onFireFailed(JobFireFailedEvent event) {
             callCount.incrementAndGet();
             this.lastEvent = event;
             if (shouldThrow) {
                 throw NopException.adapt(new RuntimeException("bridge error"));
             }
-            return "retry-" + event.getJobFireId();
         }
     }
 

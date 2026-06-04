@@ -39,9 +39,7 @@ public class TestNopRetryJobRetryBridge {
                 "ns-1", "group-1", "testJob", "test",
                 "ERR_TIMEOUT", "Task timed out");
 
-        String result = bridge.onFireFailed(event);
-
-        assertNull(result, "onFireFailed should return null, not the jobFireId");
+        bridge.onFireFailed(event);
 
         retryEngine.awaitTask(2, TimeUnit.SECONDS);
 
@@ -64,8 +62,7 @@ public class TestNopRetryJobRetryBridge {
                 null, null, "testJob", "test",
                 "ERR", "msg");
 
-        String result = bridge.onFireFailed(event);
-        assertNull(result);
+        bridge.onFireFailed(event);
     }
 
     @Test

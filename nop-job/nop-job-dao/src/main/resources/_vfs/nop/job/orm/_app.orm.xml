@@ -363,6 +363,10 @@
                 <index name="IX_NOP_JOB_TASK_FIRE" unique="false">
                     <column name="jobFireId"/>
                 </index>
+                <index name="IX_NOP_JOB_TASK_STATUS_WORKER" unique="false">
+                    <column name="taskStatus"/>
+                    <column name="workerInstanceId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="触发批次" name="jobFire" refEntityName="io.nop.job.dao.entity.NopJobFire"

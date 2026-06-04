@@ -53,4 +53,34 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED = define("nop.err.job.calendar.max-iteration-exceeded",
             "Calendar getNextIncludedTime exceeded max iteration limit");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_TIMESTAMP = define("nop.err.job.calendar.invalid-timestamp",
+            "Timestamp must be greater than 0");
+
+    ErrorCode ERR_JOB_CALENDAR_NULL_EXPRESSION = define("nop.err.job.calendar.null-expression",
+            "Cron expression cannot be null");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_TIME_STRING = define("nop.err.job.calendar.invalid-time-string",
+            "Invalid time string");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_TIME_RANGE = define("nop.err.job.calendar.invalid-time-range",
+            "Invalid time range");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_HOUR = define("nop.err.job.calendar.invalid-hour",
+            "Invalid hour of day");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_MINUTE = define("nop.err.job.calendar.invalid-minute",
+            "Invalid minute");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_SECOND = define("nop.err.job.calendar.invalid-second",
+            "Invalid second");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_MILLIS = define("nop.err.job.calendar.invalid-millis",
+            "Invalid milliseconds");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_DAY = define("nop.err.job.calendar.invalid-day",
+            "Invalid day parameter");
+
+    ErrorCode ERR_JOB_CALENDAR_NULL_DAYS = define("nop.err.job.calendar.null-days",
+            "Days parameter cannot be null");
 }
