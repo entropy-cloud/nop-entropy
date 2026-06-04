@@ -39,7 +39,14 @@ public class CheckpointSerDe {
         Map<String, Object> taskStatesMap = new LinkedHashMap<>();
         for (Map.Entry<TaskLocation, TaskStateSnapshot> entry : checkpoint.getTaskStates().entrySet()) {
             String key = taskLocationToString(entry.getKey());
-            taskStatesMap.put(key, entry.getValue());
+            Map<String, Object> snapshotMap = new LinkedHashMap<>();
+            if (entry.getValue().getOperatorStates() != null && !entry.getValue().getOperatorStates().isEmpty()) {
+                snapshotMap.put("operatorStates", entry.getValue().getOperatorStates());
+            }
+            if (entry.getValue().getKeyedStates() != null && !entry.getValue().getKeyedStates().isEmpty()) {
+                snapshotMap.put("keyedStates", entry.getValue().getKeyedStates());
+            }
+            taskStatesMap.put(key, snapshotMap);
         }
         serializable.put("taskStates", taskStatesMap);
 

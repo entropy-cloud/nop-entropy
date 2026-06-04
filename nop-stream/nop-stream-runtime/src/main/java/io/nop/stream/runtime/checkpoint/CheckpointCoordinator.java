@@ -191,7 +191,7 @@ public class CheckpointCoordinator {
         return pending;
     }
 
-    public boolean acknowledgeTask(TaskLocation taskLocation, long checkpointId, TaskStateSnapshot state) {
+    public synchronized boolean acknowledgeTask(TaskLocation taskLocation, long checkpointId, TaskStateSnapshot state) {
         PendingCheckpoint pending = pendingCheckpoints.get(checkpointId);
         if (pending == null) {
             LOG.warn("Received ACK for unknown checkpoint {} from task {}", checkpointId, taskLocation);

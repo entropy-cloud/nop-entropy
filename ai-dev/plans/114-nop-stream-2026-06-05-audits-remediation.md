@@ -145,23 +145,23 @@ Exit Criteria:
 
 ### Phase 3 - Checkpoint 语义正确性（AR-5 + AR-6 + DA-P1-1）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/.../operators/AbstractStreamOperator.java`, `nop-stream/nop-stream-runtime/.../checkpoint/storage/CheckpointSerDe.java`, `nop-stream/nop-stream-runtime/.../checkpoint/CheckpointCoordinator.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-5: `AbstractStreamOperator.processBarrier()` 快照失败时不再传播 barrier。方案：快照失败时跳过 `output.emitBarrier()` 并记录错误，让 CheckpointCoordinator 通过回调检测到失败。注意：对单输入算子直接跳过；多输入算子（如 join）的 BarrierAligner 需确认不会因缺少 barrier 而死锁——检查 `BarrierAligner` 是否有超时或 abort 机制
-- [ ] AR-6: `CheckpointSerDe.serializeCheckpoint()` 统一使用与 `serializeEpochManifest()` 相同的显式 Map 构造方式（提取 operatorStates/keyedStates）。注意向后兼容：`deserializeCheckpoint()` 需同时支持旧格式（raw TaskStateSnapshot 字段名）和新格式（operatorStates/keyedStates 键名）
-- [ ] DA-P1-1: `CheckpointCoordinator.acknowledgeTask()` 添加 `synchronized` 保护（注意：此方法在 Phase 中应先于 AR-5 修改应用，因为 AR-5 依赖回调路径正确工作）。消除 acknowledgeTask 和 completePendingCheckpoint 之间的竞态窗口
+- [x] AR-5: `AbstractStreamOperator.processBarrier()` 快照失败时不再传播 barrier。方案：快照失败时跳过 `output.emitBarrier()` 并记录错误，让 CheckpointCoordinator 通过回调检测到失败。注意：对单输入算子直接跳过；多输入算子（如 join）的 BarrierAligner 需确认不会因缺少 barrier 而死锁——检查 `BarrierAligner` 是否有超时或 abort 机制
+- [x] AR-6: `CheckpointSerDe.serializeCheckpoint()` 统一使用与 `serializeEpochManifest()` 相同的显式 Map 构造方式（提取 operatorStates/keyedStates）。注意向后兼容：`deserializeCheckpoint()` 需同时支持旧格式（raw TaskStateSnapshot 字段名）和新格式（operatorStates/keyedStates 键名）
+- [x] DA-P1-1: `CheckpointCoordinator.acknowledgeTask()` 添加 `synchronized` 保护（注意：此方法在 Phase 中应先于 AR-5 修改应用，因为 AR-5 依赖回调路径正确工作）。消除 acknowledgeTask 和 completePendingCheckpoint 之间的竞态窗口
 
 Exit Criteria:
 
-- [ ] 快照失败时 barrier 不传播到下游，通过新增测试 `TestAbstractStreamOperator.testProcessBarrierSnapshotFailureDoesNotPropagate()` 验证
-- [ ] `serializeCheckpoint()` 和 `serializeEpochManifest()` 使用相同的序列化格式，`deserializeCheckpoint()` 兼容新旧格式。通过新增测试验证两条序列化路径输出一致，且旧格式数据可正确反序列化
-- [ ] `CheckpointCoordinator.acknowledgeTask()` 无竞态窗口，通过并发测试验证
-- [ ] BarrierAligner 在 barrier 缺失时不会死锁（确认有超时或 abort 机制）
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 快照失败时 barrier 不传播到下游，通过新增测试 `TestAbstractStreamOperatorProcessBarrier.testProcessBarrierSnapshotFailureDoesNotPropagate()` 验证
+- [x] `serializeCheckpoint()` 和 `serializeEpochManifest()` 使用相同的序列化格式，`deserializeCheckpoint()` 兼容新旧格式。通过新增测试验证两条序列化路径输出一致，且旧格式数据可正确反序列化
+- [x] `CheckpointCoordinator.acknowledgeTask()` 无竞态窗口，通过并发测试验证
+- [x] BarrierAligner 在 barrier 缺失时不会死锁（确认有超时或 abort 机制）
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - CEP 序列化与 API 契约（AR-1 + DA-P1-3）
 
