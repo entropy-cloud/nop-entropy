@@ -1,6 +1,6 @@
 # 112 nop-stream R12/R13 Residual Audit Remediation
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-06-04
 > Source: `ai-dev/audits/2026-05-30-adversarial-review-nop-stream-r13/01-open-findings.md` + `ai-dev/audits/2026-05-30-adversarial-review-nop-stream-r12/01-open-findings.md`, 经 live repo baseline 验证 (ses_16d5ca866ffe1218IES5DTYzsS)
 > Related: 103-nop-stream-2026-06-02-audits-remediation (completed), 102-nop-stream-remaining-audit-findings-remediation (completed)
@@ -96,8 +96,8 @@ Exit Criteria:
 - [x] R12-AR-7 和 R13-AR-15 已修复
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] `./mvnw test -pl nop-stream -am` 通过
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Deferred But Adjudicated
 
@@ -110,9 +110,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Pending execution.
+Status Note: Both P2 findings (R12-AR-7, R13-AR-15) have been fixed with unit tests. All 407 nop-stream tests pass. Independent closure audit confirmed no blocking issues.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: Pending independent closure audit
-- Evidence: Pending
+- Reviewer / Agent: Independent sub-agent (ses_16d3a310fffeI42ru6514tSiMS)
+- Evidence:
+  - Phase 1 Exit Criteria: all PASS — snapshotState()/restoreState() correctly persist/restore currentWatermark; watermarkRestored flag prevents open() override; 4 new tests cover snapshot, restore, advancement, and initial state
+  - Phase 2 Exit Criteria: all PASS — registerEvent() checks eventsBuffer+cache for collision and increments id; advanceTime() left unmodified (eventsBuffer entries preserved for NFA references); 4 new tests cover collision avoidance, advanceTime→registerEvent chain, counter reset, flushCache consistency
+  - Anti-Hollow Check: PASS — no empty method bodies, no silent no-ops, no TODO/FIXME in new code; wiring verified (snapshotState→operator state, registerEvent→collision check loop)
+  - Build: `./mvnw test -pl nop-stream -am` — Tests run: 407, Failures: 0, BUILD SUCCESS
+  - Deferred check: no in-scope live defect silently deferred
+  - Advisory: hasEventInBuffer() catches Exception silently (low risk, consistent with existing patterns in class)
+
+Follow-up:
+
+- CepOperator 其他 transient 字段系统性审计（watch-only residual）
+- SharedBuffer 存储架构优化（optimization candidate）
