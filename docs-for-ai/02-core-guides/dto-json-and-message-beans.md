@@ -46,7 +46,7 @@
 1. `@DataBean`
 2. `extends ExtensibleBean`
 3. getter 上使用 `@PropMeta(propId = N)`
-4. 在 getter 上按需加 `@JsonInclude`、`@JsonIgnore`
+4. 按需加 `@JsonInclude`、`@JsonIgnore`（类或 getter 均可）
 
 这种风格适合：
 
@@ -68,7 +68,7 @@
 | `@JsonIgnore` | 排除内部或计算属性 |
 | `@JsonProperty` | 构造函数参数名或特殊 JSON 字段名 |
 
-默认跟随仓库已有风格：优先把这些注解放在 getter 上，而不是自己发明另一套写法。
+默认跟随仓库已有风格。Jackson 注解可放在类或 getter 上，平台反射模型会自动将类级别注解作为属性默认值。
 
 ## JSON / YAML 默认入口
 
