@@ -18,7 +18,7 @@
         let inputProps = validProps.filter(prop => prop.insertable || prop.updatable);
         let inputSimpleProps = inputProps.filter(prop => !prop.bizObjName && !prop.itemBizObjName);
         let inputObjectProps = inputProps.filter(prop => prop.bizObjName || prop.itemBizObjName);
-        let hasSimpleList = inputSimpleProps.filter(prop => prop.listSchema).size() > 0;
+        let hasSimpleList = inputSimpleProps.filter(prop => prop.schema?.schemaKind == 'list').size() > 0;
         let hasToMany = hasSimpleList || inputObjectProps.filter(prop => prop.itemBizObjName).size() > 0;
     ]]></c:script>
     <c:if test="${hasToMany}">import java.util.List;

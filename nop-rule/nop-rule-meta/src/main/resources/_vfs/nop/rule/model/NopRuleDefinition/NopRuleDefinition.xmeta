@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopRuleDefinition.xmeta"
-      xmlns:ui="ui">
+      xmlns:ui="ui" tagSet="no-api">
 
     <props>
         <prop name="ruleInputs" displayName="输入变量" ui:show="L" insertable="true" updatable="true">

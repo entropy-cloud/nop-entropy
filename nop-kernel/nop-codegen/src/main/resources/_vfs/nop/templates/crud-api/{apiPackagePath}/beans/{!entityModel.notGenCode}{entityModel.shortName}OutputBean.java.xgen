@@ -17,7 +17,7 @@
         let outputProps = validProps.filter(prop => prop.published != false);
         let outputSimpleProps = outputProps.filter(prop => !prop.bizObjName && !prop.itemBizObjName);
         let outputObjectProps = outputProps.filter(prop => prop.bizObjName || prop.itemBizObjName);
-        let hasSimpleList = outputSimpleProps.filter(prop => prop.listSchema).size() > 0;
+        let hasSimpleList = outputSimpleProps.filter(prop => prop.schema?.schemaKind == 'list').size() > 0;
         let hasToMany = hasSimpleList || outputObjectProps.filter(prop => prop.itemBizObjName).size() > 0;
     ]]></c:script>
     <c:if test="${hasToMany}">import java.util.List;
