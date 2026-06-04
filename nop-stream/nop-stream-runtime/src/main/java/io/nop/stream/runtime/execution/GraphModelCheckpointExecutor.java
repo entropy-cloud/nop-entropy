@@ -691,7 +691,7 @@ public class GraphModelCheckpointExecutor {
         restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, latestCheckpoint);
     }
 
-    private static void validateFingerprintCompatibility(
+    public static void validateFingerprintCompatibility(
             EpochManifest epochManifest,
             StreamModel streamModel,
             CheckpointCoordinator coordinator) {

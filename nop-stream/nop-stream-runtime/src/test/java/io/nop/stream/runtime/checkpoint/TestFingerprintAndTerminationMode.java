@@ -16,6 +16,9 @@ import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import org.junit.jupiter.api.*;
 
+import io.nop.stream.runtime.execution.GraphModelCheckpointExecutor;
+
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -90,8 +93,9 @@ class TestFingerprintAndTerminationMode {
         Map<String, io.nop.stream.core.transformation.Transformation<?>> transforms2 = new LinkedHashMap<>();
         transforms2.put("transform-b", null);
         StreamModel differentModel = new StreamModel(components, transforms2);
+        StreamModelFingerprint currentFingerprint = differentModel.computeFingerprint();
 
-        // 4. Restore with the different model should fail fingerprint check
+        // 4. Restore with the different model - this should fail fingerprint validation
         CheckpointIDCounter restoreIdCounter = new CheckpointIDCounter();
         CheckpointCoordinator restoreCoordinator = new CheckpointCoordinator("1", "0", restoreIdCounter, storage, config);
 
@@ -99,16 +103,10 @@ class TestFingerprintAndTerminationMode {
         assertNotNull(manifest, "EpochManifest should exist");
         assertNotNull(manifest.getStreamModelFingerprint(), "Stored fingerprint should not be null");
 
-        StreamModelFingerprint currentFingerprint = differentModel.computeFingerprint();
-        assertFalse(currentFingerprint.isCompatibleWith(manifest.getStreamModelFingerprint()),
-                "Fingerprints should be incompatible");
-
-        // The validation logic would throw StreamException in the real executor path
-        assertThrows(StreamException.class, () -> {
-            throw new StreamException("StreamModel fingerprint incompatible on restore. " +
-                    "stored=" + manifest.getStreamModelFingerprint() +
-                    ", current=" + currentFingerprint);
-        });
+        // Call the production validation method directly - it should throw StreamException
+        assertThrows(StreamException.class, () ->
+                GraphModelCheckpointExecutor.validateFingerprintCompatibility(
+                        manifest, differentModel, restoreCoordinator));
 
         restoreCoordinator.shutdown();
     }

@@ -219,22 +219,22 @@ Exit Criteria:
 
 ### Phase 7 - 测试有效性修复（DA-P1-5 + DA-P1-4 + DA-P2-16）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestFingerprintAndTerminationMode.java`, `nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/operators/TestStreamSourceOperator.java`（新增）, `nop-stream/nop-stream-cep/src/test/java/io/nop/stream/cep/nfa/sharedbuffer/TestSharedBuffer.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] DA-P1-5: 重写 `TestFingerprintAndTerminationMode.testFingerprintMismatchOnRestoreThrowsException()`，实际构建不匹配的 fingerprint 并触发 restore 路径验证抛出 `StreamException`，而非在 lambda 中手动 throw
-- [ ] DA-P1-4: 新增 `TestStreamSourceOperator` 测试类（包 `io.nop.stream.core.operators`），覆盖 barrier 注入、source offset 快照/恢复、source function cancel 调用
-- [ ] DA-P2-16: `TestSharedBuffer.java` 中 4 处 Java `assert`（行 230, 261, 289, 314）替换为 JUnit `assertTrue()` / `assertNotEquals()`
+- [x] DA-P1-5: 重写 `TestFingerprintAndTerminationMode.testFingerprintMismatchOnRestoreThrowsException()`，实际调用 `GraphModelCheckpointExecutor.validateFingerprintCompatibility()` 生产代码方法（已改为 public），而非在 lambda 中手动 throw
+- [x] DA-P1-4: `TestStreamSourceOperator` 新增 3 个测试：`testBarrierInjectedDuringSourceRun`（运行中 barrier 注入）、`testBarrierOfferedAfterSourceFinishes`（结束后直接注入）、`testOffsetSnapshotAndRestore`（offset 快照/恢复），加上 Phase 1 已有的 3 个 cancel 测试，共 6 个测试
+- [x] DA-P2-16: `TestSharedBuffer.java` 已无 Java `assert` 语句（在 Plan 113 中已修复）
 
 Exit Criteria:
 
-- [ ] 重写后的假测试确实触发了生产代码路径，通过检查测试不再包含手动 `throw` 语句验证
-- [ ] `TestStreamSourceOperator` 包含至少 3 个测试方法覆盖 barrier 注入和 source 生命周期
-- [ ] `TestSharedBuffer` 不包含任何 Java `assert` 语句（grep 验证）
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 重写后的假测试确实触发了生产代码路径，通过检查测试不再包含手动 `throw` 语句验证
+- [x] `TestStreamSourceOperator` 包含至少 3 个测试方法覆盖 barrier 注入和 source 生命周期
+- [x] `TestSharedBuffer` 不包含任何 Java `assert` 语句（grep 验证）
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
