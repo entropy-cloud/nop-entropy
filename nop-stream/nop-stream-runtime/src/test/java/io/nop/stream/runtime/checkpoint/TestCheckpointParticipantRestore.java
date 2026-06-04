@@ -2,6 +2,7 @@ package io.nop.stream.runtime.checkpoint;
 
 import org.junit.jupiter.api.Test;
 
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.exceptions.StreamException;
@@ -11,10 +12,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestCheckpointParticipantRestore {
 
+    private static final TaskLocation LOC = new TaskLocation("job1", "pipe1", "v1", 0);
+
     @Test
     void testRestoreFromEpochIsCallable() throws Exception {
         long expectedEpoch = 5L;
-        TaskStateSnapshot state = TaskStateSnapshot.empty(new TaskLocation("v1", 0));
+        TaskStateSnapshot state = TaskStateSnapshot.empty(LOC);
 
         long[] capturedEpoch = {0};
         TaskStateSnapshot[] capturedState = {null};
@@ -22,7 +25,7 @@ class TestCheckpointParticipantRestore {
         CheckpointParticipant participant = new CheckpointParticipant() {
             @Override
             public TaskStateSnapshot saveState(long epochId) {
-                return TaskStateSnapshot.builder().build();
+                return TaskStateSnapshot.builder(LOC).build();
             }
 
             @Override
@@ -50,7 +53,7 @@ class TestCheckpointParticipantRestore {
         CheckpointParticipant participant = new CheckpointParticipant() {
             @Override
             public TaskStateSnapshot saveState(long epochId) {
-                return TaskStateSnapshot.builder().build();
+                return TaskStateSnapshot.builder(LOC).build();
             }
 
             @Override
@@ -93,6 +96,6 @@ class TestCheckpointParticipantRestore {
         };
 
         assertThrows(StreamException.class, () ->
-                participant.restoreFromEpoch(1, TaskStateSnapshot.empty(new TaskLocation("v1", 0))));
+                participant.restoreFromEpoch(1, TaskStateSnapshot.empty(LOC)));
     }
 }

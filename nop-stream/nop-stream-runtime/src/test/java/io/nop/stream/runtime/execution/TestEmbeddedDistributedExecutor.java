@@ -40,13 +40,21 @@ class TestEmbeddedDistributedExecutor {
         assertTrue(executor.supportsDeploymentMode(
                 io.nop.stream.core.execution.DeploymentMode.DISTRIBUTED));
         assertFalse(executor.supportsDeploymentMode(
-                io.nop.stream.core.execution.DeploymentMode.EMBEDDED));
+                io.nop.stream.core.execution.DeploymentMode.LOCAL));
     }
+
+    private static final IMessageSubscription STUB_SUBSCRIPTION = new IMessageSubscription() {
+        @Override public void cancel() {}
+        @Override public boolean isSuspended() { return false; }
+        @Override public boolean isCancelled() { return false; }
+        @Override public void suspend() {}
+        @Override public void resume() {}
+    };
 
     private static class TestMessageService implements IMessageService {
         @Override
         public IMessageSubscription subscribe(String topic, IMessageConsumer consumer, MessageSubscribeOptions options) {
-            return () -> {};
+            return STUB_SUBSCRIPTION;
         }
 
         @Override

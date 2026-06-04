@@ -122,10 +122,18 @@ class TestConnectorResourceManagement {
         assertFalse(runner.isAlive(), "Runner should exit after collect failure sets failed flag");
     }
 
+    private static final IMessageSubscription STUB_SUBSCRIPTION = new IMessageSubscription() {
+        @Override public void cancel() {}
+        @Override public boolean isSuspended() { return false; }
+        @Override public boolean isCancelled() { return false; }
+        @Override public void suspend() {}
+        @Override public void resume() {}
+    };
+
     private static class SimpleTestMessageService implements IMessageService {
         @Override
         public IMessageSubscription subscribe(String topic, IMessageConsumer consumer, MessageSubscribeOptions options) {
-            return () -> {};
+            return STUB_SUBSCRIPTION;
         }
 
         @Override
@@ -145,7 +153,7 @@ class TestConnectorResourceManagement {
                     // ignore
                 }
             }).start();
-            return () -> {};
+            return STUB_SUBSCRIPTION;
         }
 
         @Override

@@ -4,11 +4,16 @@ import io.nop.stream.fraud.model.TransactionEvent;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestGeographicAnomalyPatternFix {
+
+    private static TransactionEvent tx(String id, String userId, double amount, String city, long ts) {
+        return new TransactionEvent(id, userId, BigDecimal.valueOf(amount), city, ts, "TRANSFER");
+    }
 
     @Test
     void testCity2FilterIteratesAllCity1Events() throws Exception {
@@ -27,17 +32,27 @@ class TestGeographicAnomalyPatternFix {
             }
         };
 
-        TransactionEvent city2Event = new TransactionEvent("t2", "user1", 100.0, "CityB", System.currentTimeMillis());
+        TransactionEvent city2Event = tx("t2", "user1", 100.0, "CityB", System.currentTimeMillis());
 
         List<TransactionEvent> city1Events = Arrays.asList(
-                new TransactionEvent("t0", "user2", 50.0, "CityA", System.currentTimeMillis()),
-                new TransactionEvent("t1", "user1", 50.0, "CityA", System.currentTimeMillis())
+                tx("t0", "user2", 50.0, "CityA", System.currentTimeMillis()),
+                tx("t1", "user1", 50.0, "CityA", System.currentTimeMillis())
         );
 
         IterativeCondition.Context<TransactionEvent> mockCtx = new IterativeCondition.Context<TransactionEvent>() {
             @Override
             public Iterable<TransactionEvent> getEventsForPattern(String patternName) {
                 return city1Events;
+            }
+
+            @Override
+            public long timestamp() {
+                return System.currentTimeMillis();
+            }
+
+            @Override
+            public long currentProcessingTime() {
+                return System.currentTimeMillis();
             }
         };
 
@@ -61,16 +76,26 @@ class TestGeographicAnomalyPatternFix {
             }
         };
 
-        TransactionEvent city2Event = new TransactionEvent("t2", "user1", 100.0, "CityA", System.currentTimeMillis());
+        TransactionEvent city2Event = tx("t2", "user1", 100.0, "CityA", System.currentTimeMillis());
 
         List<TransactionEvent> city1Events = Collections.singletonList(
-                new TransactionEvent("t1", "user1", 50.0, "CityA", System.currentTimeMillis())
+                tx("t1", "user1", 50.0, "CityA", System.currentTimeMillis())
         );
 
         IterativeCondition.Context<TransactionEvent> mockCtx = new IterativeCondition.Context<TransactionEvent>() {
             @Override
             public Iterable<TransactionEvent> getEventsForPattern(String patternName) {
                 return city1Events;
+            }
+
+            @Override
+            public long timestamp() {
+                return System.currentTimeMillis();
+            }
+
+            @Override
+            public long currentProcessingTime() {
+                return System.currentTimeMillis();
             }
         };
 

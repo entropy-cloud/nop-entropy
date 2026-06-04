@@ -18,14 +18,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestPendingCheckpointFuture {
 
+    private static TaskLocation loc(String vertex, int index) {
+        return new TaskLocation("job-1", "pipe-1", vertex, index);
+    }
+
     private PendingCheckpoint checkpoint;
     private Set<TaskLocation> tasks;
 
     @BeforeEach
     void setUp() {
         tasks = new HashSet<>();
-        tasks.add(new TaskLocation("v1", 0));
-        tasks.add(new TaskLocation("v1", 1));
+        tasks.add(loc("v1", 0));
+        tasks.add(loc("v1", 1));
         checkpoint = new PendingCheckpoint("job-1", "pipe-1", 1L,
                 System.currentTimeMillis(), CheckpointType.CHECKPOINT, tasks);
     }
@@ -35,12 +39,12 @@ class TestPendingCheckpointFuture {
         CompletableFuture<CompletedCheckpoint> future = checkpoint.getCompletableFuture();
         assertFalse(future.isDone());
 
-        TaskStateSnapshot state0 = TaskStateSnapshot.empty(new TaskLocation("v1", 0));
-        checkpoint.acknowledgeTask(new TaskLocation("v1", 0), state0);
+        TaskStateSnapshot state0 = TaskStateSnapshot.empty(loc("v1", 0));
+        checkpoint.acknowledgeTask(loc("v1", 0), state0);
         assertFalse(future.isDone());
 
-        TaskStateSnapshot state1 = TaskStateSnapshot.empty(new TaskLocation("v1", 1));
-        checkpoint.acknowledgeTask(new TaskLocation("v1", 1), state1);
+        TaskStateSnapshot state1 = TaskStateSnapshot.empty(loc("v1", 1));
+        checkpoint.acknowledgeTask(loc("v1", 1), state1);
         assertTrue(future.isDone());
 
         CompletedCheckpoint result = future.get(1, TimeUnit.SECONDS);
@@ -52,19 +56,19 @@ class TestPendingCheckpointFuture {
     @Test
     void testFutureNotAutoCompletedWithPendingTasks() {
         CompletableFuture<CompletedCheckpoint> future = checkpoint.getCompletableFuture();
-        checkpoint.acknowledgeTask(new TaskLocation("v1", 0), null);
+        checkpoint.acknowledgeTask(loc("v1", 0), null);
         assertFalse(future.isDone());
     }
 
     @Test
     void testFutureAutoCompletesWithSingleTask() throws Exception {
-        Set<TaskLocation> single = Collections.singleton(new TaskLocation("v1", 0));
+        Set<TaskLocation> single = Collections.singleton(loc("v1", 0));
         PendingCheckpoint pc = new PendingCheckpoint("job-2", "pipe-2", 2L,
                 System.currentTimeMillis(), CheckpointType.CHECKPOINT, single);
 
         CompletableFuture<CompletedCheckpoint> future = pc.getCompletableFuture();
-        TaskStateSnapshot state = TaskStateSnapshot.empty(new TaskLocation("v1", 0));
-        pc.acknowledgeTask(new TaskLocation("v1", 0), state);
+        TaskStateSnapshot state = TaskStateSnapshot.empty(loc("v1", 0));
+        pc.acknowledgeTask(loc("v1", 0), state);
 
         assertTrue(future.isDone());
         CompletedCheckpoint result = future.get(1, TimeUnit.SECONDS);
@@ -81,8 +85,8 @@ class TestPendingCheckpointFuture {
     @Test
     void testAcknowledgeAfterAbortIsIgnored() {
         checkpoint.abort("test abort");
-        checkpoint.acknowledgeTask(new TaskLocation("v1", 0), null);
-        checkpoint.acknowledgeTask(new TaskLocation("v1", 1), null);
+        checkpoint.acknowledgeTask(loc("v1", 0), null);
+        checkpoint.acknowledgeTask(loc("v1", 1), null);
 
         CompletableFuture<CompletedCheckpoint> future = checkpoint.getCompletableFuture();
         assertTrue(future.isCompletedExceptionally());

@@ -9,6 +9,7 @@ import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -24,7 +25,7 @@ class TestCheckpointPlanBuilderParticipants {
         jobGraph.addVertex(vertex);
 
         GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph);
-        CheckpointPlan cp = CheckpointPlan.build(plan, "job1", "pipe1");
+        CheckpointPlan cp = CheckpointPlanBuilder.build(plan, "job1", "pipe1");
 
         List<String> participants = cp.getCheckpointParticipants();
         assertEquals(2, participants.size());
@@ -39,7 +40,7 @@ class TestCheckpointPlanBuilderParticipants {
         jobGraph.addVertex(vertex);
 
         GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph);
-        CheckpointPlan cp = CheckpointPlan.build(plan, "job1", "pipe1");
+        CheckpointPlan cp = CheckpointPlanBuilder.build(plan, "job1", "pipe1");
 
         List<String> participants = cp.getCheckpointParticipants();
         assertEquals(1, participants.size());
@@ -57,7 +58,7 @@ class TestCheckpointPlanBuilderParticipants {
         jobGraph.addVertex(vertex);
 
         GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph);
-        CheckpointPlan cp = CheckpointPlan.build(plan, "job1", "pipe1");
+        CheckpointPlan cp = CheckpointPlanBuilder.build(plan, "job1", "pipe1");
 
         List<String> participants = cp.getCheckpointParticipants();
         assertEquals(1, participants.size());
@@ -70,8 +71,11 @@ class TestCheckpointPlanBuilderParticipants {
     }
 
     private static class Mock2PC extends TwoPhaseCommitSinkFunction<String> {
-        @Override
-        public void invoke(String value, Context context) throws Exception {}
+        @Override public void beginTransaction() throws Exception {}
+        @Override public void invoke(String value) throws Exception {}
+        @Override public void preCommit(long checkpointId) throws Exception {}
+        @Override public void commit(long checkpointId) throws Exception {}
+        @Override public void rollback() throws Exception {}
     }
 
     private static class Mock2PCOperator extends AbstractUdfStreamOperator<String, Mock2PC> {
