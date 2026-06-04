@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_DISCARDED;
@@ -47,6 +48,12 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
 
     public NopJobScheduleBizModel(){
         setEntityName(NopJobSchedule.class.getName());
+    }
+
+    @Override
+    public boolean delete(String id, IServiceContext context) {
+        throw new NopException(ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED)
+                .param("jobScheduleId", id);
     }
 
     @Inject

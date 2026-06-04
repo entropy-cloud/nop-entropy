@@ -50,6 +50,11 @@ public interface NopJobErrors{
             "Job tasks must be managed via the Store layer, not through direct CRUD operations"
     );
 
+    ErrorCode ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED = ErrorCode.define(
+            "nop.err.job.schedule.delete-not-allowed",
+            "Job schedules must be archived, not directly deleted"
+    );
+
     ErrorCode ERR_JOB_FIRE_DELETE_NOT_ALLOWED = ErrorCode.define(
             "nop.err.job.fire.delete-not-allowed",
             "Job fires must be managed via the Store layer, not through direct CRUD operations"

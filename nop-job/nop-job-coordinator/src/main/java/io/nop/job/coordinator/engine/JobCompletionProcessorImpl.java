@@ -179,6 +179,12 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             return _NopJobCoreConstants.FIRE_STATUS_FAILED;
         }
 
+        if (schedule.getScheduleStatus() != null
+                && schedule.getScheduleStatus() != _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED) {
+            LOG.debug("nop.job.completion.schedule-not-enabled:fireId={},status={}",
+                    fire.getJobFireId(), schedule.getScheduleStatus());
+        }
+
         Timestamp fireStartTime = earliestStartTime(tasks, fire.getStartTime());
         Timestamp fireEndTime = latestEndTime(tasks, new Timestamp(scheduleStore.getCurrentTime()));
         FireCompletionDecision completionDecision = resolveCompletionDecision(tasks, schedule);

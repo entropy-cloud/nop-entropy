@@ -161,6 +161,13 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
                 Timestamp dueFireTime = dueFireTimes.get(schedule.getJobScheduleId());
                 Timestamp nextFireTime = calculateNextFireTime(schedule);
 
+                if (schedule.getScheduleStatus() != null
+                        && schedule.getScheduleStatus() != _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED) {
+                    LOG.debug("nop.job.planner.schedule-no-longer-enabled:scheduleId={},status={}",
+                            schedule.getJobScheduleId(), schedule.getScheduleStatus());
+                    continue;
+                }
+
                 if (shouldDiscard(schedule)) {
                     scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
                     continue;
