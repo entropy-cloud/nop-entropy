@@ -1,11 +1,62 @@
-<c:unit xpl:outputMode="text"><![CDATA[package ${apiPackageName}.beans;
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+    package ${apiPackageName}.beans;
 
-import io.nop.api.core.annotations.data.DataBean;
-import ${apiPackageName}.beans._gen._${entityModel.shortName}InputBean;
+    import io.nop.api.core.annotations.data.DataBean;
+    import io.nop.api.core.annotations.meta.PropMeta;
+    import io.nop.api.core.api.CrudInputBase;
+    <c:script><![CDATA[
+        import io.nop.commons.util.StringHelper;
+        let objMeta = entityModel.objMeta;
+        let validProps = objMeta.props.filter(prop => {
+            let propType = prop.type?.toString() || '';
+            return prop.name.indexOf('.') < 0
+                && prop.name.indexOf(':') < 0
+                && prop['ext:kind'] != 'component'
+                && !propType.startsWith('io.nop.orm.component.');
+        });
+        let inputProps = validProps.filter(prop => prop.insertable || prop.updatable);
+        let inputSimpleProps = inputProps.filter(prop => !prop.bizObjName && !prop.itemBizObjName);
+        let inputObjectProps = inputProps.filter(prop => prop.bizObjName || prop.itemBizObjName);
+        let hasSimpleList = inputSimpleProps.filter(prop => prop.listSchema).size() > 0;
+        let hasToMany = hasSimpleList || inputObjectProps.filter(prop => prop.itemBizObjName).size() > 0;
+    ]]></c:script>
+    <c:if test="${hasToMany}">import java.util.List;
+    </c:if>
+    @DataBean
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
+    public class ${entityModel.shortName}InputBean extends CrudInputBase {
 
-@DataBean
-public class ${entityModel.shortName}InputBean extends _${entityModel.shortName}InputBean{
-    public ${entityModel.shortName}InputBean(){
+    <c:for var="prop" items="${inputSimpleProps}"><![CDATA[
+        private ${StringHelper.simplifyJavaType(prop.type?.toString() || 'Object')} _${prop.name};
+
+    ]]><c:if test="${prop.propId}"><![CDATA[
+        @PropMeta(propId=${prop.propId})
+    ]]></c:if><![CDATA[
+        public ${StringHelper.simplifyJavaType(prop.type?.toString() || 'Object')} ${prop.name.$methodGet()}(){
+            return _${prop.name};
+        }
+
+        public void ${prop.name.$methodSet()}(${StringHelper.simplifyJavaType(prop.type?.toString() || 'Object')} value){
+            this._${prop.name} = value;
+        }
+
+]]></c:for>
+    <c:for var="prop" items="${inputObjectProps}">
+        <c:script><![CDATA[
+            let relType = prop.bizObjName
+                ? prop.bizObjName + 'InputBean'
+                : 'List<' + prop.itemBizObjName + 'InputBean>';
+        ]]></c:script><![CDATA[
+        private ${relType} _${prop.name};
+
+        public ${relType} ${prop.name.$methodGet()}(){
+            return _${prop.name};
+        }
+
+        public void ${prop.name.$methodSet()}(${relType} value){
+            this._${prop.name} = value;
+        }
+
+]]></c:for>
     }
-}
-]]></c:unit>
+</c:unit>

@@ -1,0 +1,5 @@
+<c:script xpl:ignoreTag="true">
+codeGenerator.withTplDir('/nop/templates/crud-api')
+    .withTargetDir("../${appName}-api/src/main/java")
+    .execute("/", { moduleId: "${moduleId}", apiPackageName: "${basePackageName}.api" }, $scope);
+</c:script>

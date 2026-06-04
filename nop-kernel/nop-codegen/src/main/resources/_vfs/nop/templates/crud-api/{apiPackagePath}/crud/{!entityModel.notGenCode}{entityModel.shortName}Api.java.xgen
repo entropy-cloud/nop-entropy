@@ -1,9 +1,19 @@
-<c:unit xpl:outputMode="text"><![CDATA[package ${apiPackageName}.crud;
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+    package ${apiPackageName}.crud;
 
-import io.nop.api.core.annotations.biz.BizModel;
-import ${apiPackageName}.crud._${entityModel.shortName}Api;
+    import io.nop.api.core.annotations.biz.BizModel;
+    import ${apiPackageName}.beans.${entityModel.shortName}InputBean;
+    import ${apiPackageName}.beans.${entityModel.shortName}OutputBean;
+    import io.nop.api.core.api.ICrudApi;
+    <c:script><![CDATA[
+        let isTree = entityModel.objMeta.tree?.parentProp;
+    ]]></c:script>
+    <c:if test="${isTree}">import io.nop.api.core.api.ICrudTreeApi;
+    </c:if>
 
-@BizModel("${entityModel.shortName}")
-public interface ${entityModel.shortName}Api extends _${entityModel.shortName}Api{
-}
+    @BizModel("${entityModel.shortName}")
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
+    public interface ${entityModel.shortName}Api<![CDATA[ extends ICrudApi<${entityModel.shortName}InputBean, ${entityModel.shortName}OutputBean>]]><c:if test="${isTree}"><![CDATA[,
+        ICrudTreeApi<${entityModel.shortName}OutputBean>]]></c:if><![CDATA[ {
+    }
 ]]></c:unit>

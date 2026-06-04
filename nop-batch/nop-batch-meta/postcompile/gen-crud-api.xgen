@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+codeGenerator.withTplDir('/nop/templates/crud-api')
+    .withTargetDir("../nop-batch-api/src/main/java/")
+    .execute("/", { moduleId: "nop/batch", apiPackageName: "io.nop.batch.api" }, $scope);
+</c:script>

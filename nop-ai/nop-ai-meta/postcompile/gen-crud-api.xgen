@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+codeGenerator.withTplDir('/nop/templates/crud-api')
+    .withTargetDir("../nop-ai-api/src/main/java/")
+    .execute("/", { moduleId: "nop/ai", apiPackageName: "io.nop.ai.api" }, $scope);
+</c:script>

@@ -1,8 +1,29 @@
-<gen:DefineLoopForOrm xpl:lib="/nop/codegen/xlib/gen.xlib">
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
     <c:script><![CDATA[
-        let apiPkgName = ormModel['ext:apiPackageName'] || pkgName + '.api';
-        let apiPkgPath = apiPkgName.replace('.','/');
+        import io.nop.core.resource.VirtualFileSystem;
+        import io.nop.xlang.xmeta.SchemaLoader;
+
+        let metaResources = VirtualFileSystem.instance().getAllResources("/" + moduleId + "/model", ".xmeta");
+        $.notEmpty(metaResources, "metaResources");
+        metaResources = metaResources.filter(r => !r.name.startsWith('_'));
+
+        let apiPkgName = apiPackageName || ('io.' + moduleId.replace('/', '.') + '.api');
+        let apiPkgPath = apiPkgName.replace('.', '/');
+
+        assign("metaResources", metaResources);
+
+        metaResources = metaResources.filter(resource => {
+            let objMeta = SchemaLoader.loadXMeta(resource.path);
+            return !!objMeta.entityName && !objMeta.containsAnyTag(['no-api']);
+        });
+
+        builder.defineGlobalVar("moduleId", moduleId);
         builder.defineGlobalVar("apiPackageName", apiPkgName);
         builder.defineGlobalVar("apiPackagePath", apiPkgPath);
+        builder.defineGlobalVar("metaResource", metaResources);
+        builder.defineLoopVar("entityModel", "metaResource", resource => ({
+            shortName: resource.path.$fileNameNoExt(),
+            objMeta: SchemaLoader.loadXMeta(resource.path)
+        }));
     ]]></c:script>
-</gen:DefineLoopForOrm>
+</gen:DefineLoop>
