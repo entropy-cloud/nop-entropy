@@ -59,6 +59,8 @@ import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
@@ -160,6 +162,8 @@ public class CepOperator<IN, KEY, OUT>
 
     private transient long currentWatermark = Long.MIN_VALUE;
 
+    private transient boolean watermarkRestored = false;
+
     public CepOperator(
             @Nullable final TypeSerializer<IN> inputSerializer,
             final boolean isProcessingTime,
@@ -187,8 +191,11 @@ public class CepOperator<IN, KEY, OUT>
     @Override
    @SuppressWarnings({"unchecked", "rawtypes"})
    public void open() throws Exception {
-         super.open();
-         currentWatermark = Long.MIN_VALUE;
+          super.open();
+          if (!watermarkRestored) {
+              currentWatermark = Long.MIN_VALUE;
+          }
+          watermarkRestored = false;
 
         IKeyedStateBackend<?> backend = getKeyedStateBackend();
         if (backend == null && this.stateBackend != null) {
@@ -288,6 +295,27 @@ public class CepOperator<IN, KEY, OUT>
         }
         if (partialMatches != null) {
             partialMatches.releaseCacheStatisticsTimer();
+        }
+    }
+
+    private static final String WATERMARK_STATE_NAME = "cep-current-watermark";
+
+    @Override
+    public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
+        OperatorSnapshotResult result = super.snapshotState(context);
+        result.putOperatorState(WATERMARK_STATE_NAME, currentWatermark);
+        return result;
+    }
+
+    @Override
+    public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
+        super.restoreState(snapshotResult);
+        if (snapshotResult != null) {
+            Object wmObj = snapshotResult.getOperatorState(WATERMARK_STATE_NAME);
+            if (wmObj instanceof Number) {
+                currentWatermark = ((Number) wmObj).longValue();
+                watermarkRestored = true;
+            }
         }
     }
 
@@ -635,5 +663,9 @@ public class CepOperator<IN, KEY, OUT>
 
     public SharedBuffer<IN> getPartialMatches() {
         return partialMatches;
+    }
+
+    public long getCurrentWatermark() {
+        return currentWatermark;
     }
 }
