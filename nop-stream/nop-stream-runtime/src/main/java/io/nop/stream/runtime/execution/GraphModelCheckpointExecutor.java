@@ -734,6 +734,10 @@ public class GraphModelCheckpointExecutor {
         CompletedCheckpoint savepointCheckpoint = savepointStorage.getLatestCheckpoint(jobId, pipelineId);
 
         if (savepointCheckpoint == null) {
+            savepointCheckpoint = savepointStorage.loadSavepoint(savepointPath);
+        }
+
+        if (savepointCheckpoint == null) {
             java.nio.file.Path path = java.nio.file.Paths.get(savepointPath);
             if (java.nio.file.Files.exists(path) && savepointPath.endsWith(".checkpoint")) {
                 java.nio.file.Path parentDir = path.getParent();

@@ -182,22 +182,22 @@ Exit Criteria:
 
 ### Phase 5 - TaskExecutor 语义与 JDBC 存储（AR-2 + AR-13 + AR-15）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/.../execution/TaskExecutor.java`, `nop-stream/nop-stream-runtime/.../checkpoint/storage/JdbcCheckpointStorage.java`, `nop-stream/nop-stream-runtime/.../execution/GraphModelCheckpointExecutor.java`, `nop-stream/nop-stream-runtime/.../checkpoint/storage/LocalFileCheckpointStorage.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-2: `TaskExecutor.awaitCompletion()` 单独捕获 `TimeoutException`，设置 `timedOut` 标志，确保超时后返回 `false` 而非 `true`
-- [ ] AR-13: `JdbcCheckpointStorage` 的 INSERT-then-UPDATE 只捕获 duplicate-key 异常（`SQLIntegrityConstraintViolationException` 或检查 SQL state '23505'），其他异常重新抛出。适用于 `storeCheckPoint()`, `storeSavepoint()`, `storeEpochManifest()` 三处
-- [ ] AR-15: `GraphModelCheckpointExecutor.restoreFromSavepointPath()` 在 savepoint 路径下不使用 jobId/pipelineId 过滤。方案：为 `LocalFileCheckpointStorage` 添加 `getLatestCheckpoint()` 无参重载，返回目录下最新的 checkpoint
+- [x] AR-2: `TaskExecutor.awaitCompletion()` 单独捕获 `TimeoutException`，设置 `timedOut` 标志，确保超时后返回 `false` 而非 `true`
+- [x] AR-13: `JdbcCheckpointStorage` 的 INSERT-then-UPDATE 只捕获 duplicate-key 异常（`SQLIntegrityConstraintViolationException` 或检查 SQL state '23505'），其他异常重新抛出。适用于 `storeCheckPoint()`, `storeSavepoint()`, `storeEpochManifest()` 三处
+- [x] AR-15: `GraphModelCheckpointExecutor.restoreFromSavepointPath()` 在 savepoint 路径下不使用 jobId/pipelineId 过滤。方案：为 `LocalFileCheckpointStorage` 添加 `getLatestCheckpoint()` 无参重载，返回目录下最新的 checkpoint
 
 Exit Criteria:
 
-- [ ] `awaitCompletion()` 在 TimeoutException 后返回 `false`，新增测试验证
-- [ ] `JdbcCheckpointStorage` 只在 duplicate-key 时走 UPDATE，其他异常正确传播，新增测试验证
-- [ ] savepoint 恢复不依赖 jobId 匹配，新增测试验证
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `awaitCompletion()` 在 TimeoutException 后返回 `false`，新增测试验证
+- [x] `JdbcCheckpointStorage` 只在 duplicate-key 时走 UPDATE，其他异常正确传播，新增测试验证
+- [x] savepoint 恢复不依赖 jobId 匹配，新增测试验证
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - SourceEnumerator 与 SharedBuffer（AR-7 + AR-12）
 

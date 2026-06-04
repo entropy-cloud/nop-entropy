@@ -89,7 +89,10 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 try {
                     jdbcTemplate.executeUpdate(sql);
                 } catch (Exception e) {
-                    LOG.debug("INSERT failed, attempting UPDATE for checkpoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
+                    if (!isDuplicateKeyException(e)) {
+                        throw e;
+                    }
+                    LOG.debug("INSERT failed (duplicate key), attempting UPDATE for checkpoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
                     SQL updateSql = SQL.begin().name("updateCheckpoint").querySpace(querySpace)
                             .sql("UPDATE " + TABLE_NAME +
                                     " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?" +
@@ -314,7 +317,10 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 try {
                     jdbcTemplate.executeUpdate(sql);
                 } catch (Exception e) {
-                    LOG.debug("INSERT failed, attempting UPDATE for savepoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
+                    if (!isDuplicateKeyException(e)) {
+                        throw e;
+                    }
+                    LOG.debug("INSERT failed (duplicate key), attempting UPDATE for savepoint {}/{}", checkpoint.getJobId(), checkpoint.getCheckpointId(), e);
                     SQL updateSql = SQL.begin().name("updateSavepoint").querySpace(querySpace)
                             .sql("UPDATE " + TABLE_NAME +
                                     " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?, savepoint_path = ?" +
@@ -501,7 +507,10 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 try {
                     jdbcTemplate.executeUpdate(sql);
                 } catch (Exception e) {
-                    LOG.debug("INSERT failed, attempting UPDATE for epoch manifest {}/{}/{}", jobId, pipelineId, manifest.getEpochId(), e);
+                    if (!isDuplicateKeyException(e)) {
+                        throw e;
+                    }
+                    LOG.debug("INSERT failed (duplicate key), attempting UPDATE for epoch manifest {}/{}/{}", jobId, pipelineId, manifest.getEpochId(), e);
                     SQL updateSql = SQL.begin().name("updateEpochManifest").querySpace(querySpace)
                             .sql("UPDATE " + EPOCH_TABLE_NAME +
                                     " SET checkpoint_type = ?, state = ?, timestamp = ?, state_data = ?" +
@@ -643,5 +652,22 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
 
     private static synchronized long nextSid() {
         return ++sidSequence;
+    }
+
+    private static boolean isDuplicateKeyException(Exception e) {
+        Throwable cause = e;
+        while (cause != null) {
+            String className = cause.getClass().getName().toLowerCase();
+            String message = cause.getMessage() != null ? cause.getMessage().toLowerCase() : "";
+            if (className.contains("integrity") || className.contains("constraint")
+                    || className.contains("duplicate") || className.contains("unique")
+                    || className.contains("primarykey") || className.contains("primary_key")
+                    || message.contains("duplicate") || message.contains("unique constraint")
+                    || message.contains("primary key") || message.contains("23505")) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 }
