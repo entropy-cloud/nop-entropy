@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
@@ -150,8 +151,8 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         IOrmEntityDao<NopJobSchedule> ormDao = (IOrmEntityDao<NopJobSchedule>) daoProvider().daoFor(NopJobSchedule.class);
 
         for (int attempt = 0; attempt < 5; attempt++) {
-            java.util.List<NopJobSchedule> updated = ormDao.tryUpdateManyWithVersionCheck(
-                    java.util.Collections.singletonList(schedule));
+            List<NopJobSchedule> updated = ormDao.tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
             if (!updated.isEmpty()) {
                 afterEntityChange(schedule, action, context);
                 return;

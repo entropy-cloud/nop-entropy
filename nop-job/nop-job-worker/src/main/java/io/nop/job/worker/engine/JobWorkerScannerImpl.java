@@ -266,8 +266,35 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                         || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
                     return;
                 }
-                LOG.warn("nop.job.worker.update-task-conflict:taskId={},status={},resultStatus={}",
-                        jobTaskId, freshTask.getTaskStatus(), update.getTaskStatus());
+
+                freshTask.setTaskStatus(update.getTaskStatus());
+                freshTask.setEndTime(endTime);
+                if (freshTask.getStartTime() != null) {
+                    freshTask.setDurationMs(Math.max(endTime.getTime() - freshTask.getStartTime().getTime(), 0L));
+                }
+                if (update.getError() != null) {
+                    freshTask.setErrorCode(update.getError().getErrorCode());
+                    freshTask.setErrorMessage(update.getError().getDescription());
+                } else {
+                    freshTask.setErrorCode(null);
+                    freshTask.setErrorMessage(null);
+                }
+                if (update.getNextScheduleTime() != null || update.isCompleted()) {
+                    Map<String, Object> resultPayload = new LinkedHashMap<>();
+                    if (update.getNextScheduleTime() != null) {
+                        resultPayload.put("nextScheduleTime", update.getNextScheduleTime());
+                    }
+                    if (update.isCompleted()) {
+                        resultPayload.put("completed", true);
+                    }
+                    freshTask.setResultPayload(JsonTool.stringify(resultPayload));
+                }
+                freshTask.setUpdatedBy("system");
+                freshTask.setUpdateTime(endTime);
+                if (!taskStore.updateTask(freshTask)) {
+                    LOG.warn("nop.job.worker.update-task-conflict-after-retry:taskId={},status={},resultStatus={}",
+                            jobTaskId, freshTask.getTaskStatus(), update.getTaskStatus());
+                }
             }
 
             long duration = task.getStartTime() != null ? Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L) : 0L;

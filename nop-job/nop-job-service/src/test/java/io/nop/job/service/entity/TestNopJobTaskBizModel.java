@@ -3,6 +3,7 @@ package io.nop.job.service.entity;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.dao.entity.NopJobTask;
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 
-import static io.nop.job.service.NopJobErrors.ERR_JOB_TASK_DELETE_NOT_ALLOWED;
+import static io.nop.job.api.JobApiErrors.ERR_JOB_TASK_DELETE_NOT_ALLOWED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -35,8 +36,7 @@ public class TestNopJobTaskBizModel extends JunitBaseTestCase {
         task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
         daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task);
 
-        NopJobTaskBizModel bizModel = new NopJobTaskBizModel();
-        bizModel.setDaoProvider(daoProvider);
+        NopJobTaskBizModel bizModel = BeanContainer.getBeanByType(NopJobTaskBizModel.class);
 
         NopException ex = assertThrows(NopException.class,
                 () -> bizModel.delete("task-delete-test", null));

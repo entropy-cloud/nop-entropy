@@ -293,6 +293,13 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     public boolean insertManualFire(NopJobSchedule schedule, NopJobFire fire) {
         long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
         Timestamp updateTime = new Timestamp(now);
+
+        if (hasWaitingFire(schedule.getJobScheduleId(), fire.getScheduledFireTime(), fire.getTriggerSource())) {
+            LOG.info("nop.job.schedule.insert-manual-fire-duplicate:scheduleId={},fireTime={}",
+                    schedule.getJobScheduleId(), fire.getScheduledFireTime());
+            return false;
+        }
+
         List<NopJobFire> activeFires = findActiveFires(schedule.getJobScheduleId());
 
         if (isDiscard(schedule) && !activeFires.isEmpty()) {
