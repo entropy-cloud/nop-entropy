@@ -155,6 +155,72 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
+    public static StreamExecutionResult executeWithCheckpoint(
+            StreamModel streamModel,
+            PartitionedPlan partitionedPlan,
+            DeploymentPlan deploymentPlan,
+            CheckpointConfig userConfig) throws Exception {
+
+        long startTime = System.currentTimeMillis();
+
+        JobGraph jobGraph = buildJobGraphFromStreamModel(streamModel);
+        String jobName = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "Streaming Job";
+
+        String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
+        String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
+
+        CheckpointConfig checkpointConfig;
+        if (userConfig != null) {
+            checkpointConfig = userConfig;
+            checkpointConfig.setCheckpointEnabled(true);
+            if (checkpointConfig.getJobId() == null) {
+                checkpointConfig.setJobId(jobId);
+            }
+            if (checkpointConfig.getPipelineId() == null) {
+                checkpointConfig.setPipelineId(pipelineId);
+            }
+        } else {
+            checkpointConfig = new CheckpointConfig();
+            checkpointConfig.setCheckpointEnabled(true);
+            checkpointConfig.setJobId(jobId);
+            checkpointConfig.setPipelineId(pipelineId);
+        }
+
+        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment);
+
+        CheckpointIDCounter idCounter = new CheckpointIDCounter();
+        ICheckpointStorage storage = createStorage(checkpointConfig);
+        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
+
+        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+
+        StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
+        coordinator.setCurrentFingerprint(fingerprint);
+
+        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+
+        ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
+
+        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
+
+        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
+        TaskExecutor executor = new TaskExecutor();
+
+        try {
+            submitAndRun(execPlan, tasks, executor);
+            handleJobTermination(allInvokables, coordinator, checkpointConfig);
+            checkTaskFailures(tasks);
+
+            logCheckpointMetrics(coordinator);
+
+            long executionTime = System.currentTimeMillis() - startTime;
+            return new StreamExecutionResult(jobName, executionTime);
+        } finally {
+            shutdown(barrierScheduler, coordinator, executor);
+        }
+    }
+
     private static JobGraph buildJobGraphFromStreamModel(StreamModel streamModel) {
         io.nop.stream.core.graph.StreamGraphGenerator graphGenerator = new io.nop.stream.core.graph.StreamGraphGenerator();
 

@@ -81,4 +81,12 @@ public interface ICheckpointExecutorFactory {
         throw new UnsupportedOperationException(
                 "executeWithCheckpoint(StreamModel, PartitionedPlan, DeploymentPlan) not implemented");
     }
+
+    default StreamExecutionResult executeWithCheckpoint(
+            StreamModel streamModel,
+            PartitionedPlan partitionedPlan,
+            DeploymentPlan deploymentPlan,
+            CheckpointConfig checkpointConfig) throws Exception {
+        return executeWithCheckpoint(streamModel, partitionedPlan, deploymentPlan);
+    }
 }

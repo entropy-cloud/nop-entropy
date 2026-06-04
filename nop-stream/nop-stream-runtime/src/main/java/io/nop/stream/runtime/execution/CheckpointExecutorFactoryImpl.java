@@ -55,4 +55,14 @@ public class CheckpointExecutorFactoryImpl implements ICheckpointExecutorFactory
         return GraphModelCheckpointExecutor.executeWithCheckpoint(
                 streamModel, partitionedPlan, deploymentPlan);
     }
+
+    @Override
+    public StreamExecutionResult executeWithCheckpoint(
+            StreamModel streamModel,
+            PartitionedPlan partitionedPlan,
+            DeploymentPlan deploymentPlan,
+            CheckpointConfig checkpointConfig) throws Exception {
+        return GraphModelCheckpointExecutor.executeWithCheckpoint(
+                streamModel, partitionedPlan, deploymentPlan, checkpointConfig);
+    }
 }

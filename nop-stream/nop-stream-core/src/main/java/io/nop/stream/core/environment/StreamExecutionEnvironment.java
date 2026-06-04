@@ -241,7 +241,7 @@ public class StreamExecutionEnvironment {
 
             if (checkpointConfig.isCheckpointEnabled() && checkpointExecutorFactory != null) {
                 StreamExecutionResult result = checkpointExecutorFactory.executeWithCheckpoint(
-                    streamModel, partitionedPlan, deploymentPlan);
+                    streamModel, partitionedPlan, deploymentPlan, checkpointConfig);
                 executed = true;
                 return result;
             }

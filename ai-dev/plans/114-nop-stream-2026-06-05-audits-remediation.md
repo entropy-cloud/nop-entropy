@@ -165,20 +165,20 @@ Exit Criteria:
 
 ### Phase 4 - CEP 序列化与 API 契约（AR-1 + DA-P1-3）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-cep/.../PatternStreamBuilder.java`, `nop-stream/nop-stream-core/.../execution/ICheckpointExecutorFactory.java`, `nop-stream/nop-stream-core/.../environment/StreamExecutionEnvironment.java`, `nop-stream/nop-stream-runtime/.../execution/GraphModelCheckpointExecutor.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-1: `PatternStreamBuilder.build()` 恢复注释掉的 `inputStream.getType().createSerializer(inputStream.getExecutionConfig())`。备选：在 `CepOperator.open()` 中通过 `getRuntimeContext()` 获取 serializer 并延迟初始化（需同时修改 CepOperator）
-- [ ] DA-P1-3: 修复 `StreamExecutionEnvironment.execute()` 到 `executeWithCheckpoint` 的调用路径，使用户的 `CheckpointConfig` 被传递而非丢弃。方案：在 `StreamExecutionEnvironment` 中将用户的 `CheckpointConfig` 传递到 `GraphModelCheckpointExecutor`，替换 `new CheckpointConfig()` 默认值
+- [x] AR-1: `PatternStreamBuilder.build()` 恢复注释掉的 `inputStream.getType().createSerializer(inputStream.getExecutionConfig())`。备选：在 `CepOperator.open()` 中通过 `getRuntimeContext()` 获取 serializer 并延迟初始化（需同时修改 CepOperator）
+- [x] DA-P1-3: 修复 `StreamExecutionEnvironment.execute()` 到 `executeWithCheckpoint` 的调用路径，使用户的 `CheckpointConfig` 被传递而非丢弃。方案：在 `StreamExecutionEnvironment` 中将用户的 `CheckpointConfig` 传递到 `GraphModelCheckpointExecutor`，替换 `new CheckpointConfig()` 默认值
 
 Exit Criteria:
 
-- [ ] `PatternStreamBuilder.build()` 不再传入 `null` serializer，CEP 算子在序列化路径不崩溃。新增测试验证 CepOperator 可正确序列化/反序列化
-- [ ] 用户通过 `StreamExecutionEnvironment` 设置的 `CheckpointConfig`（interval, storageType, guarantee 等）在 execute 路径中被正确传递到 executor。新增测试验证
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `PatternStreamBuilder.build()` 不再传入 `null` serializer，CEP 算子在序列化路径不崩溃。新增测试验证 CepOperator 可正确序列化/反序列化
+- [x] 用户通过 `StreamExecutionEnvironment` 设置的 `CheckpointConfig`（interval, storageType, guarantee 等）在 execute 路径中被正确传递到 executor。新增测试验证
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - TaskExecutor 语义与 JDBC 存储（AR-2 + AR-13 + AR-15）
 
