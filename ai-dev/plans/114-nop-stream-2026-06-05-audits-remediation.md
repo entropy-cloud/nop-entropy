@@ -201,21 +201,21 @@ Exit Criteria:
 
 ### Phase 6 - SourceEnumerator 与 SharedBuffer（AR-7 + AR-12）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/.../source/SourceEnumerator.java`, `nop-stream/nop-stream-core/.../checkpoint/SourceEnumeratorState.java`, `nop-stream/nop-stream-cep/.../nfa/sharedbuffer/SharedBuffer.java`
 
 - Item Types: `Fix`
 
-- [ ] AR-7: `SourceEnumerator.snapshotState()` 包含 `splitMetadata`，`restoreState()` 恢复它。**跨模块依赖解决方案**：`SourceSplit` 在 `nop-stream-runtime` 而 `SourceEnumeratorState` 在 `nop-stream-core`。方案：将 splitMetadata 序列化为 `Map<String, Map<String, Object>>`（JSON 兼容格式），避免 core 依赖 runtime 的 `SourceSplit` 类。`SourceEnumeratorState` 新增 `Map<String, Map<String, Object>> splitMetadataMap` 字段
-- [ ] AR-12: `SharedBuffer.hasEventInBuffer()` 不再吞异常，改为传播异常。**注意**：此为 Plan 113 Phase 19 的加强修复——Plan 113 仅添加了 `LOG.error`，本次改为 rethrow 以彻底消除重复 EventId 风险
+- [x] AR-7: `SourceEnumerator.snapshotState()` 包含 `splitMetadata`，`restoreState()` 恢复它。**跨模块依赖解决方案**：`SourceSplit` 在 `nop-stream-runtime` 而 `SourceEnumeratorState` 在 `nop-stream-core`。方案：将 splitMetadata 序列化为 `Map<String, Map<String, Object>>`（JSON 兼容格式），避免 core 依赖 runtime 的 `SourceSplit` 类。`SourceEnumeratorState` 新增 `Map<String, Map<String, Object>> splitMetadataMap` 字段
+- [x] AR-12: `SharedBuffer.hasEventInBuffer()` 不再吞异常，改为传播异常。**注意**：此为 Plan 113 Phase 19 的加强修复——Plan 113 仅添加了 `LOG.error`，本次改为 rethrow 以彻底消除重复 EventId 风险
 
 Exit Criteria:
 
-- [ ] `splitMetadata` 在 checkpoint 恢复后完整保留（通过 `Map<String, Map<String, Object>>` 序列化），新增测试 `TestSourceEnumerator.testSplitMetadataPersistedOnSnapshot()` 验证
-- [ ] `SourceEnumeratorState` 不引入对 `nop-stream-runtime` 的依赖（编译验证）
-- [ ] `hasEventInBuffer` 异常不再静默返回 false 而是向上传播，新增测试验证异常传播
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `splitMetadata` 在 checkpoint 恢复后完整保留（通过 `Map<String, Map<String, Object>>` 序列化），新增测试 `TestSourceEnumerator.testSplitMetadataPersistedOnSnapshot()` 验证
+- [x] `SourceEnumeratorState` 不引入对 `nop-stream-runtime` 的依赖（编译验证）
+- [x] `hasEventInBuffer` 异常不再静默返回 false 而是向上传播，新增测试验证异常传播
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 - 测试有效性修复（DA-P1-5 + DA-P1-4 + DA-P2-16）
 

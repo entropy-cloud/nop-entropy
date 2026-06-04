@@ -212,7 +212,8 @@ public class SharedBuffer<V> {
             return eventsBuffer.get(eventId) != null;
         } catch (Exception e) {
             LOG.error("Failed to check event in buffer for eventId={}", eventId, e);
-            return false;
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e)
+                    .param(ARG_DETAIL, "hasEventInBuffer for eventId=" + eventId);
         }
     }
 
