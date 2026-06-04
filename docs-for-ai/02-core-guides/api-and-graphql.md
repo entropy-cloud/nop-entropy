@@ -125,6 +125,8 @@ view.xml 中 `<api url="@query:BizObjName__actionName?param=$param"/>` 的处理
 | `batchDelete` | `ids: [String]` | 同 batchGet | `batchDelete(ids)` — 批量删除 |
 | `batchModify` | `data: [Map]`, `delIds: [String]` | 批量数据 + 删除 ID 列表 | `batchModify(data, delIds)` — 批量修改 |
 
+说明：这里描述的是前端 `operationRegistry` 对 BizModel 标准动作的运行时参数形状，因此仍以 `Map`/`[Map]` 表示通用 adapter 载荷；它不等同于 `*-api` 中 `ICrudApi<I, O>` 的客户端强类型契约。生成的 CRUD typed API 可将 `save/update/saveOrUpdate/copyForNew/batchModify` 等实体输入统一表达为 `I` 或 `List<I>`。
+
 ### 非标准动作的参数推断
 
 当 `stdAction` 不在 `operationRegistry` 中时，前端 `guessDefinition(data)` 逐字段推断：

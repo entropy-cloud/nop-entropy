@@ -32,7 +32,7 @@
 |----------|---------|
 | Entity / `I*Biz` / 业务骨架 | `*-codegen/postcompile/gen-orm.xgen`、`/nop/templates/orm` |
 | XMeta / `module-meta.json` | `*-meta/precompile/gen-meta.xgen`、`/nop/templates/meta` |
-| CRUD API / InputBean / OutputBean | `*-meta/precompile/gen-crud-api.xgen`、`/nop/templates/crud-api` |
+| CRUD API / InputBean / OutputBean | `*-meta/postcompile/gen-crud-api.xgen`、`/nop/templates/crud-api` |
 | i18n | `*-meta/postcompile/gen-i18n.xgen`；如果是 web 菜单 i18n，还要看 `*-web/precompile2/gen-i18n.xgen` |
 | view / page | `*-web/precompile/gen-page.xgen`、`/nop/templates/orm-web` |
 
@@ -59,6 +59,14 @@
 1. 当前模块是否声明了 `exec-maven-plugin`。
 2. 目标任务实际挂在 `precompile`、`precompile2` 还是 `postcompile`。
 3. 当前阶段的 classpath 是否包含你期望读取的 resources / output。
+
+CRUD API 是一个典型的 `postcompile` 任务：模板读取 `/{moduleId}/model/*.xmeta`。如果现象是“`compile` 成功但 CRUD API 没刷新”，先确认你执行的是 `generate-test-resources`、`test`、`install` 或更晚阶段，而不是只跑 `compile`。
+
+如果现象是“某个实体没有生成 CRUD API”，先检查对应 xmeta 是否满足以下条件：
+
+1. 具备 `entityName`
+2. 文件名不是 `_*.xmeta`
+3. 实体未带 `no-api` 标签
 
 默认优先从项目根目录执行：
 

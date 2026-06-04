@@ -245,7 +245,7 @@ API 模型生成是独立于 ORM 模型生成的。在标准业务模块中：
 
 ## CRUD API 代码生成
 
-除从 `*.api.xml` 手工定义的 API 接口外，Nop 平台还支持从 ORM 模型自动生成 CRUD API 接口和强类型 InputBean/OutputBean。
+除从 `*.api.xml` 手工定义的 API 接口外，Nop 平台还支持基于实体 `xmeta` 自动生成 CRUD API 接口和强类型 InputBean/OutputBean。
 
 模板位置：`nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/crud-api/`
 
@@ -257,44 +257,50 @@ API 模型生成是独立于 ORM 模型生成的。在标准业务模块中：
 | `ICrudTreeApi<O>` | `nop-api-core` → `io.nop.api.core.api` | 树形操作接口（findRoots/findTreeEntityPage/findTreeEntityList） |
 | `CrudInputBase` | `nop-api-core` → `io.nop.api.core.api` | InputBean 基类，含 `_chgType` + `@JsonAnySetter`/`@JsonAnyGetter` |
 
-`ICrudApi<I, O>` 的方法集：get/findPage/findList/findFirst/findCount/save/update/delete/saveOrUpdate/batchDelete/batchGet 等，其中 save/update/saveOrUpdate 使用强类型 `I` 输入。
+`ICrudApi<I, O>` 的方法集：get/findPage/findList/findFirst/findCount/save/update/delete/saveOrUpdate/batchDelete/batchGet 等；所有实体输入相关的方法（包括 `batchModify` 的 `data/common`）都在客户端契约层使用强类型 `I` 表达。
 
 `CrudInputBase` 的 `@JsonAnySetter` 吸收未声明的 JSON 属性（如 `_chgType_items`、`_writeMode_dept`）到 `_extAttrs`，`@JsonAnyGetter` 将其展开回 JSON 根级。
 
 ### 生成触发点
 
-在 `*-meta/precompile/` 中新增 `gen-crud-api.xgen`：
+在 `*-meta/postcompile/` 中新增 `gen-crud-api.xgen`：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
 <c:script>
-codeGenerator.withTargetDir("../{appName}-api/src/main/java/")
-    .renderModel('/{moduleId}/orm/app.orm.xml','/nop/templates/crud-api', '/',$scope);
+codeGenerator.withTplDir('/nop/templates/crud-api')
+    .withTargetDir("../{appName}-api/src/main/java/")
+    .execute("/", { moduleId: "{moduleId}", apiPackageName: "{apiPackageName}" }, $scope);
 </c:script>
 ```
 
-数据源是 ORM 模型（不是 xmeta），可用变量来自 `DefineLoopForOrm` + 额外的 `apiPackageName`/`apiPackagePath`。
+生成链读取 `/{moduleId}/model/*.xmeta`，只对具备 `objMeta.entityName` 且未带 `no-api` 标签的实体 xmeta 生成 CRUD API，自动跳过 request/response bean 等非实体 xmeta。模板初始化由 `DefineLoop` 提供循环上下文，并额外注册 `apiPackageName`/`apiPackagePath`。
+
+注意：`postcompile` 绑定在 Maven `generate-test-resources` 阶段；仅执行 `compile` 不会触发这类生成。
 
 ### 字段过滤规则
 
-- **InputBean 字段**：`meta-gen:IsColInsertable(col) || meta-gen:IsColUpdatable(col)` 的列 + `insertable || updatable` tag 的关系
-- **OutputBean 字段**：`!col.tagSet.contains('not-pub')` 的列 + `pub` tag 的关系
-- **树形检测**：`entityModel.getColumnByTag('parent') != null` 时 `Api` 接口额外继承 `ICrudTreeApi<O>`
+- **实体级发布控制**：带 `no-api` 标签的实体不生成 CRUD API Bean / 接口；`no-web` 只影响页面生成，`not-pub` / `published=false` 表示字段在 API / GraphQL 视角下不存在
+- **服务端发布边界**：`no-api` 只影响 CRUD typed API 客户端契约生成，不影响 BizModel 注册，也不直接改变 GraphQL / `/r/{bizObj}__{method}` 的服务端发布链
+- **InputBean 字段**：xmeta props 中 `insertable == true || updatable == true` 的字段
+- **OutputBean 字段**：xmeta props 中 `published != false` 的字段；`published=false` 的字段不进入对外 API 类型
+- **批量输入语义**：`batchModify` 的逐项输入和 `common` 公共 patch 继续复用同一个 InputBean 类型；服务端底层可继续使用 `Map`，但该实现细节不暴露到客户端契约层
+- **关系字段**：根据 xmeta prop 的 `bizObjName` / `itemBizObjName` / `listSchema` 判断 to-one 与 to-many
+- **排除项**：跳过 `ext:kind="component"` 或底层类型位于 `io.nop.orm.component.*` 的 backing prop，避免将 ORM component 类型泄漏到 `*-api`
+- **树形检测**：`entityModel.objMeta.tree?.parentProp` 存在时，`Api` 接口额外继承 `ICrudTreeApi<O>`
+- **契约分层**：CRUD typed API 的 Bean / Api 直接生成单层公共类型，不再保留 `_gen._*Bean` 或 `_{Entity}Api` 作为对外契约层
 
-### 生成物清单（每个 ORM 实体）
+### 生成物清单（每个实体 xmeta）
 
 | 生成文件 | 覆盖策略 | 说明 |
 |---------|---------|------|
-| `{apiPackage}/beans/_gen/_{EntityName}InputBean.java` | 强制覆盖 | InputBean 基类，extends CrudInputBase |
-| `{apiPackage}/beans/{EntityName}InputBean.java` | 保留 | 用户扩展 InputBean |
-| `{apiPackage}/beans/_gen/_{EntityName}OutputBean.java` | 强制覆盖 | OutputBean 基类 |
-| `{apiPackage}/beans/{EntityName}OutputBean.java` | 保留 | 用户扩展 OutputBean |
-| `{apiPackage}/crud/_{EntityName}Api.java` | 强制覆盖 | API 基接口，extends ICrudApi<I, O> [+, ICrudTreeApi<O>] |
-| `{apiPackage}/crud/{EntityName}Api.java` | 保留 | `@BizModel` 标注的用户扩展接口 |
+| `{apiPackage}/beans/{EntityName}InputBean.java` | 强制覆盖 | 单层 InputBean，extends `CrudInputBase` |
+| `{apiPackage}/beans/{EntityName}OutputBean.java` | 强制覆盖 | 单层 OutputBean |
+| `{apiPackage}/crud/{EntityName}Api.java` | 强制覆盖 | 单层 CRUD 接口，`@BizModel` + `extends ICrudApi<I, O> [+, ICrudTreeApi<O>]` |
 
 ### InputBean 关系字段
 
-- to-one → `{RefEntityName}InputBean`（同一 `_gen` 包内的生成基类）
+- to-one → `{RefEntityName}InputBean`
 - to-many → `List<{RefEntityName}InputBean>`
 
 ### OutputBean 关系字段
@@ -309,7 +315,7 @@ OutputBean 使用 `Map` 避免同模块循环依赖。
 ```
 ORM 生成（/nop/templates/orm）  → Entity, DAO, BizModel, XMeta
 API 生成（/nop/templates/api）  → 自定义 RPC 接口（从 .api.xml）
-CRUD API 生成（/nop/templates/crud-api） → 强类型 CRUD 接口（从 ORM 模型）
+CRUD API 生成（/nop/templates/crud-api） → 强类型 CRUD 接口（从实体 xmeta）
 ```
 
 三者并存于同一模块，互不冲突。

@@ -14,8 +14,8 @@
 - CRUD 服务通过 `CrudBizModel<T>` 暴露，使用通用 REST adapter（`/r/{bizObj}__{method}`），无强类型 API 接口
 - 自定义 API 接口（如 `WorkflowService`）由 `*.api.xml` 经 `/nop/templates/api` 模板生成，有 `ApiRequest/ApiResponse` 包装
 - ORM 代码生成链：`model/*.orm.xml` → `{app}-codegen/postcompile/gen-orm.xgen` → `{app}-dao/service/meta/web`
-- xmeta 在 `{app}-meta/precompile/gen-meta.xgen` 中生成，数据源是 ORM 模型（`entityModel`），通过 `meta-gen.xlib` 的 `IsColInsertable`/`IsColUpdatable` 函数计算字段可见性
-- `DefineLoopForOrm`（`gen.xlib:98-158`）提供生成阶段可用变量：`ormModel`、`appName`、`moduleId`、`basePackageName`、`entityModel`（loop var）等
+- CRUD API 当前实现基于 `/{moduleId}/model/*.xmeta` 扫描，只对具备 `objMeta.entityName` 的实体 xmeta 生成接口与 Bean
+- `postcompile/gen-crud-api.xgen` 通过 `codeGenerator.withTplDir('/nop/templates/crud-api').execute(...)` 触发模板，`@init.xrun` 使用 `DefineLoop` 建立循环上下文并注册 `apiPackageName` / `apiPackagePath`
 - `ICrudBiz<T>` 在 `nop-orm` 中，依赖 ORM 层，不适合外部系统引用
 - `_chgType`（A/U/D）控制集合项增删改，`_writeMode_{propName}` 控制关系写入模式，`OrmEntityCopier` 只从 Map 读取这些控制字段
 - 项目中 DTO 命名主导模式为 `*Bean`（如 `WfStartRequestBean`、`QueryBean`），`*Vo` 零使用，`*Dto` 仅 `nop-code` 模块
@@ -27,7 +27,7 @@
 
 - 在 `nop-api-core` 中定义 `ICrudApi<I, O>` 和 `ICrudTreeApi<O>` 泛型接口
 - 定义 `CrudInputBase` 基类（含 `_chgType` + `@JsonAnySetter`/`@JsonAnyGetter`）
-- 在 `*-meta` 生成阶段为每个 ORM 实体生成 InputBean、OutputBean 和具体 API 接口
+- 在 `*-meta/postcompile` 生成阶段为每个实体 xmeta 生成 InputBean、OutputBean 和具体 API 接口
 - 以 `nop-auth` 模块验证生成结果的正确性
 
 ## Non-Goals
@@ -85,38 +85,38 @@ Targets: `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/crud-api/
 
 **模板位置决策**：新建 `/nop/templates/crud-api/` 目录（不扩展 `/nop/templates/meta/`）。理由：不干扰现有 meta 生成逻辑；通过独立的 `@init.xrun` 初始化变量；在 `gen-meta.xgen` 中新增 `renderModel` 调用。
 
-**数据源**：ORM 模型（不是 xmeta）。可用变量来自 `DefineLoopForOrm`（`gen.xlib:98-158`）：`ormModel`、`appName`、`moduleId`、`basePackageName`、`basePackagePath`、`entityModel`（loop var）。`apiPackageName` 在 `@init.xrun` 中从 `ormModel['ext:apiPackageName']` 获取（若无则默认为 `basePackageName + '.api'`）。
+**数据源**：实体 `xmeta`（不是 ORM 直扫）。`@init.xrun` 通过 `DefineLoop` 扫描 `/{moduleId}/model/*.xmeta`，过滤 `_*.xmeta` 与无 `objMeta.entityName` 的非实体 xmeta，并注册 `apiPackageName` / `apiPackagePath` 供模板使用。
 
 **字段过滤逻辑**：复用 `meta-gen.xlib` 的函数（通过 `c:import from="/nop/codegen/xlib/meta-gen.xlib"`）：
 - InputBean 字段：`meta-gen:IsColInsertable(col)` 返回 true **或** `meta-gen:IsColUpdatable(col)` 返回 true 的列
 - OutputBean 字段：列的 `tagSet` 不包含 `'not-pub'` 的列（等价于 meta 模板中的 `published` 计算）
 - 关系字段：`insertable`/`updatable` 来自 `rel.tagSet?.contains('insertable')` / `rel.tagSet?.contains('updatable')`，`published` 来自 `rel.tagSet?.contains('pub')`
 
-- [x] 编写 `@init.xrun`：使用 `DefineLoopForOrm` 的 slot body 注册额外全局变量。在 slot 内通过隐式参数 `ormModel`/`pkgName`/`builder` 计算 `apiPackageName`（从 `ormModel['ext:apiPackageName']` 获取，默认 `pkgName + '.api'`）和 `apiPackagePath`，调用 `builder.defineGlobalVar` 注册。`entityModel` 循环变量由 `DefineLoopForOrm` 自动注册，无需额外处理
-- [x] 编写 InputBean 生成模板 `_{EntityName}InputBean.java.xgen`：以 `//__XGEN_FORCE_OVERRIDE__` 开头，继承 `CrudInputBase`，遍历 `entityModel.columns` 用 `meta-gen:IsColInsertable`/`IsColUpdatable` 过滤字段，遍历 `entityModel.relations` 处理关系字段（实际落地为生成层引用 `_gen` 包中的 `_{rel.refEntityModel.shortName}InputBean`，避免生成层反向依赖保留层）
-- [x] 编写 OutputBean 生成模板 `_{EntityName}OutputBean.java.xgen`：以 `//__XGEN_FORCE_OVERRIDE__` 开头，遍历 `entityModel.columns` 过滤 `not-pub` tag 的列，遍历 `entityModel.relations` 过滤无 `pub` tag 的关系（关系字段类型为 `Map<String, Object>` / `List<Map<String, Object>>`）
-- [x] 编写 API 接口生成模板 `_{EntityName}Api.java.xgen`（FORCE_OVERRIDE）和 `{EntityName}Api.java.xgen`（保留文件）：`_{EntityName}Api extends ICrudApi<I, O>`，`{EntityName}Api extends _{EntityName}Api`。树形检测：`entityModel.getColumnByTag('parent') != null` 时额外 `extends ICrudTreeApi<O>`
+- [x] 编写 `@init.xrun`：使用 `DefineLoop` 扫描 `/{moduleId}/model/*.xmeta`，过滤出具备 `objMeta.entityName` 的实体 xmeta，并注册 `apiPackageName` / `apiPackagePath` 全局变量；`entityModel` 循环变量由 `DefineLoop` 自动注册
+- [x] 编写 InputBean 生成模板 `_{EntityName}InputBean.java.xgen`：以 `//__XGEN_FORCE_OVERRIDE__` 开头，继承 `CrudInputBase`，遍历 xmeta props 中 `insertable || updatable` 的字段并处理关系字段（实际落地为生成层引用 `_gen` 包中的关联 InputBean 基类，避免生成层反向依赖保留层）
+- [x] 编写 OutputBean 生成模板 `_{EntityName}OutputBean.java.xgen`：以 `//__XGEN_FORCE_OVERRIDE__` 开头，遍历 xmeta props 中 `published != false` 的字段生成输出（关系字段类型为 `Map<String, Object>` / `List<Map<String, Object>>`）
+- [x] 编写 API 接口生成模板 `_{EntityName}Api.java.xgen`（FORCE_OVERRIDE）和 `{EntityName}Api.java.xgen`（保留文件）：`_{EntityName}Api extends ICrudApi<I, O>`，`{EntityName}Api extends _{EntityName}Api`。树形检测：`entityModel.objMeta.tree?.parentProp` 存在时额外 `extends ICrudTreeApi<O>`
 - [x] 编写保留层 InputBean/OutputBean 模板（不带 FORCE_OVERRIDE 头，仅首次生成）：`{EntityName}InputBean extends _{EntityName}InputBean`，`{EntityName}OutputBean extends _{EntityName}OutputBean`
 - [x] `@BizModel` 注解决策：参考现有 API 模板（`{serviceModel.name}.java.xgen` L37），`@BizModel` 放在保留层 `{EntityName}Api.java` 上。`_{EntityName}Api.java` 上**不放** `@BizModel`（避免 BizModel 注册冲突）。设计文档中 `_{EntityName}Api` 上的 `@BizModel` 是示意图，实际以本条为准
 
 Exit Criteria:
 
 - [x] 模板文件存在于 `/nop/templates/crud-api/` 下，包含 `@init.xrun` 和所有 `.xgen` 模板
-- [x] 模板中引用的变量名（`entityModel`、`appName`、`apiPackageName`、`meta-gen:IsColInsertable` 等）在实际 `DefineLoopForOrm` 和 `meta-gen.xlib` 中存在
+- [x] 模板中引用的变量名（`entityModel`、`moduleId`、`apiPackageName`、`apiPackagePath` 等）在实际 `DefineLoop` 初始化上下文中存在
 - [x] `rel.refEntityModel.shortName` 在模板中用于拼接关联 InputBean 类型名
 - [x] FORCE_OVERRIDE 头仅用于 `_` 前缀生成文件，保留层模板不带此头
-- [x] **想象性验证**：手动推演 `NopAuthUser` 实体的 `entityModel.columns` 和 `entityModel.relations`，确认 `meta-gen:IsColInsertable`/`IsColUpdatable` 对 `password` 列返回 true（普通列无排除条件），对 `createdBy`/`createTime`/`version` 等返回 false；确认 `NopAuthUser` 无 `parent` tag 因此不继承 `ICrudTreeApi`
+- [x] **想象性验证**：手动推演 `NopAuthUser.xmeta` 的 props，确认 `password` 在 InputBean 中可生成、在 OutputBean 中因 `published=false` 被排除；确认 `NopAuthUser` 无 tree 配置因此不继承 `ICrudTreeApi`
 - [x] No owner-doc update required（此 Phase 仅新增模板）
 
 ### Phase 3 - *-meta 生成链集成
 
 Status: completed
-Targets: `nop-auth/nop-auth-meta/precompile/`、`nop-kernel/nop-codegen/`
+Targets: `nop-auth/nop-auth-meta/postcompile/`、`nop-kernel/nop-codegen/`
 
 - Item Types: `Fix`, `Proof`
 
-- [x] 在 `nop-auth-meta/precompile/` 中新增 `gen-crud-api.xgen`，使用 `codeGenerator.withTargetDir("../nop-auth-api/src/main/java/").renderModel('/nop/auth/orm/app.orm.xml','/nop/templates/crud-api', '/',$scope)` 渲染 CRUD API 模板。`withTargetDir` 将输出基准切到 `nop-auth-api/src/main/java/`；`renderModel` 第三参数 `'/'` 表示从模板根目录开始（与现有 `gen-meta.xgen` 的 `'/'` 用法一致）
-- [x] 执行 `./mvnw clean install -pl nop-auth/nop-auth-meta -am` 触发生成
+- [x] 在 `nop-auth-meta/postcompile/` 中新增 `gen-crud-api.xgen`，使用 `codeGenerator.withTplDir('/nop/templates/crud-api').withTargetDir("../nop-auth-api/src/main/java/").execute("/", { moduleId: "nop/auth", apiPackageName: "io.nop.auth.api" }, $scope)` 触发 CRUD API 模板
+- [x] 执行 `./mvnw generate-test-resources -pl nop-auth/nop-auth-meta -am` 触发 `postcompile` 生成
 - [x] 执行 `./mvnw clean install -pl nop-auth/nop-auth-api -am` 验证生成的 Java 文件编译通过
 - [x] 确认生成的 `NopAuthUserInputBean extends CrudInputBase`，包含 `userName`/`nickName`/`password` 等 `insertable || updatable` 字段
 - [x] 确认生成的 `NopAuthUserOutputBean` 排除了 `password`、`salt` 等 `published=false` 字段
@@ -125,7 +125,7 @@ Targets: `nop-auth/nop-auth-meta/precompile/`、`nop-kernel/nop-codegen/`
 
 Exit Criteria:
 
-- [x] `./mvnw clean install -pl nop-auth/nop-auth-meta -am` 成功触发生成，`nop-auth-api/src/main/java/` 下出现生成的 Java 文件
+- [x] `./mvnw generate-test-resources -pl nop-auth/nop-auth-meta -am` 成功触发生成，`nop-auth-api/src/main/java/` 下出现生成的 Java 文件
 - [x] `./mvnw clean install -pl nop-auth -am` 全模块构建通过（含编译 + 测试）
 - [x] `NopAuthUserInputBean` 中 `password` 字段存在（`IsColInsertable` 对普通列返回 true）但 `NopAuthUserOutputBean` 中不存在（`password` 有 `not-pub` tag）
 - [x] 保留层文件在二次构建后内容不变
@@ -206,9 +206,9 @@ Closure Audit Evidence:
 - Evidence:
   - Phase 1 PASS: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/api/ICrudApi.java` 已演进为 `ICrudApi<I,O>`；`ICrudTreeApi.java`、`CrudInputBase.java` 存在；`nop-kernel/nop-api-core/src/test/java/io/nop/api/core/api/TestCrudInputBase.java` 覆盖 `_chgType`、动态字段吸收与 JSON/map round-trip。
   - Phase 2 PASS: `/nop/templates/crud-api/` 模板集存在，`@init.xrun` 正确注册 `apiPackageName/apiPackagePath`，模板使用 `entityModel`、`meta-gen.xlib`、`rel.refEntityModel.shortName` 与 parent-tag tree detection。
-  - Phase 3 PASS: `nop-auth/nop-auth-meta/precompile/gen-crud-api.xgen` 正确调用 `/nop/templates/crud-api`；生成的 `_NopAuthUserApi.java`、`_NopAuthDeptApi.java`、`_NopAuthUserInputBean.java`、`_NopAuthUserOutputBean.java` 满足预期，且 `NopAuthDept` 额外继承 `ICrudTreeApi`。
+  - Phase 3 PASS: `nop-auth/nop-auth-meta/postcompile/gen-crud-api.xgen` 正确调用 `/nop/templates/crud-api`；生成的 `_NopAuthUserApi.java`、`_NopAuthDeptApi.java`、`_NopAuthUserInputBean.java`、`_NopAuthUserOutputBean.java` 满足预期，且 `NopAuthDept` 额外继承 `ICrudTreeApi`。
   - Phase 4 PASS: `docs-for-ai/02-core-guides/api-model-and-codegen.md` 与 `docs-for-ai/03-runbooks/debug-codegen-and-generated-files.md` 已补 CRUD API 生成链说明。
-  - Anti-Hollow PASS: live chain 已验证为 `crud-api templates -> nop-auth-meta/precompile/gen-crud-api.xgen -> generated nop-auth-api outputs`，不是空壳实现。
+  - Anti-Hollow PASS: live chain 已验证为 `crud-api templates -> nop-auth-meta/postcompile/gen-crud-api.xgen -> generated nop-auth-api outputs`，不是空壳实现。
   - Drift Check PASS: plan/design/docs/log 已诚实记录实现偏差：复用并演进既有 `ICrudApi<T>` 为 `ICrudApi<I,O>`，并保留 raw return + `FieldSelectionBean`/`ICancelToken` 风格。
   - Verification PASS: `./mvnw clean install -pl nop-auth -am -DskipTests`、`./mvnw test -pl nop-auth -am` 已在执行会话中通过；`./mvnw compile -pl nop-auth -am` 已在收口复核中重新通过。
   - Verification PASS (final closure adjudication): strict doc-link check 已达成 0 errors；`./mvnw compile -pl nop-auth -am` 已重新通过；针对本次手改 Java 文件的定向 checkstyle 命令返回 `BUILD SUCCESS` 且 0 violations。仓库其余 repo-wide checkstyle 违规属于既有历史问题，不构成本 plan 的 plan-owned blocker。
