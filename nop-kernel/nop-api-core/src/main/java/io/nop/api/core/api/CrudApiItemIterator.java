@@ -15,34 +15,34 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class CrudApiItemIterator<I, O> implements Iterator<O> {
+public class CrudApiItemIterator<O> implements Iterator<O> {
 
-    private final CrudApiPageIterator<I, O> batchIterator;
+    private final CrudApiPageIterator<O> batchIterator;
     private Iterator<O> currentBatchIterator;
 
-    public CrudApiItemIterator(CrudApiPageIterator<I, O> batchIterator) {
+    public CrudApiItemIterator(CrudApiPageIterator<O> batchIterator) {
         this.batchIterator = batchIterator;
     }
 
-    public CrudApiItemIterator(ICrudApi<I, O> api, QueryBean query,
+    public CrudApiItemIterator(ICrudApi<?, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken,
                                int pageSize) {
         this(new CrudApiPageIterator<>(api, query, selection, cancelToken, pageSize));
     }
 
-    public CrudApiItemIterator(ICrudApi<I, O> api, QueryBean query,
+    public CrudApiItemIterator(ICrudApi<?, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken) {
         this(new CrudApiPageIterator<>(api, query, selection, cancelToken));
     }
 
-    public static <I, O> CrudApiItemIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
-                                                      FieldSelectionBean selection, ICancelToken cancelToken) {
+    public static <O> CrudApiItemIterator<O> of(ICrudApi<?, O> api, QueryBean query,
+                                                FieldSelectionBean selection, ICancelToken cancelToken) {
         return new CrudApiItemIterator<>(api, query, selection, cancelToken);
     }
 
-    public static <I, O> CrudApiItemIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
-                                                      FieldSelectionBean selection, ICancelToken cancelToken,
-                                                      int pageSize) {
+    public static <O> CrudApiItemIterator<O> of(ICrudApi<?, O> api, QueryBean query,
+                                                FieldSelectionBean selection, ICancelToken cancelToken,
+                                                int pageSize) {
         return new CrudApiItemIterator<>(api, query, selection, cancelToken, pageSize);
     }
 

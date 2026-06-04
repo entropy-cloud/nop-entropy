@@ -151,13 +151,13 @@ public interface ICrudApi<I, O> {
     }
 
     @BizMutation
-    O copyForNew(@Name("data") Map<String, Object> data, FieldSelectionBean selection, ICancelToken cancelToken);
+    O copyForNew(@Name("data") I data, FieldSelectionBean selection, ICancelToken cancelToken);
 
-    default O copyForNew(@Name("data") Map<String, Object> data) {
+    default O copyForNew(@Name("data") I data) {
         return copyForNew(data, null, null);
     }
 
-    default O copyForNew(@Name("data") Map<String, Object> data, FieldSelectionBean selection) {
+    default O copyForNew(@Name("data") I data, FieldSelectionBean selection) {
         return copyForNew(data, selection, null);
     }
 
@@ -176,26 +176,26 @@ public interface ICrudApi<I, O> {
 
     @BizMutation
     void batchUpdate(@Name("ids") Set<String> ids,
-                     @Name("data") Map<String, Object> data,
+                     @Name("data") I data,
                      @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
                      ICancelToken cancelToken);
 
-    default void batchUpdate(@Name("ids") Set<String> ids, @Name("data") Map<String, Object> data) {
+    default void batchUpdate(@Name("ids") Set<String> ids, @Name("data") I data) {
         batchUpdate(ids, data, false, null);
     }
 
     default void batchUpdate(@Name("ids") Set<String> ids,
-                             @Name("data") Map<String, Object> data,
+                             @Name("data") I data,
                              @Optional @Name("ignoreUnknown") boolean ignoreUnknown) {
         batchUpdate(ids, data, ignoreUnknown, null);
     }
 
     @BizMutation
     int updateByQuery(@Name("query") QueryBean query,
-                      @Name("data") Map<String, Object> data,
+                      @Name("data") I data,
                       ICancelToken cancelToken);
 
-    default int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data) {
+    default int updateByQuery(@Name("query") QueryBean query, @Name("data") I data) {
         return updateByQuery(query, data, null);
     }
 
@@ -216,17 +216,17 @@ public interface ICrudApi<I, O> {
     }
 
     @BizMutation
-    void batchModify(@Name("data") List<Map<String, Object>> data,
-                     @Optional @Name("common") Map<String, Object> common,
+    void batchModify(@Name("data") List<I> data,
+                     @Optional @Name("common") I common,
                      @Optional @Name("delIds") Set<String> delIds,
                      ICancelToken cancelToken);
 
-    default void batchModify(@Name("data") List<Map<String, Object>> data) {
+    default void batchModify(@Name("data") List<I> data) {
         batchModify(data, null, null, null);
     }
 
-    default void batchModify(@Name("data") List<Map<String, Object>> data,
-                             @Optional @Name("common") Map<String, Object> common,
+    default void batchModify(@Name("data") List<I> data,
+                             @Optional @Name("common") I common,
                              @Optional @Name("delIds") Set<String> delIds) {
         batchModify(data, common, delIds, null);
     }

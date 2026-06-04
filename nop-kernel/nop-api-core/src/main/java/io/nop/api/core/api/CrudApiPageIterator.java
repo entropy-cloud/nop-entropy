@@ -18,7 +18,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
-public class CrudApiPageIterator<I, O> implements Iterator<List<O>> {
+public class CrudApiPageIterator<O> implements Iterator<List<O>> {
 
     private static final String FRAGMENT_DEFAULTS = "...F_defaults";
     private static final String FIELD_NEXT_CURSOR = "nextCursor";
@@ -26,7 +26,7 @@ public class CrudApiPageIterator<I, O> implements Iterator<List<O>> {
 
     public static final int DEFAULT_PAGE_SIZE = 100;
 
-    private final ICrudApi<I, O> api;
+    private final ICrudApi<?, O> api;
     private final QueryBean query;
     private final FieldSelectionBean selection;
     private final ICancelToken cancelToken;
@@ -36,7 +36,7 @@ public class CrudApiPageIterator<I, O> implements Iterator<List<O>> {
     private List<O> currentBatch;
     private boolean eof;
 
-    public CrudApiPageIterator(ICrudApi<I, O> api, QueryBean query,
+    public CrudApiPageIterator(ICrudApi<?, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken,
                                int pageSize) {
         this.api = Objects.requireNonNull(api);
@@ -47,19 +47,19 @@ public class CrudApiPageIterator<I, O> implements Iterator<List<O>> {
         this.cursor = query != null ? query.getCursor() : null;
     }
 
-    public CrudApiPageIterator(ICrudApi<I, O> api, QueryBean query,
+    public CrudApiPageIterator(ICrudApi<?, O> api, QueryBean query,
                                FieldSelectionBean selection, ICancelToken cancelToken) {
         this(api, query, selection, cancelToken, DEFAULT_PAGE_SIZE);
     }
 
-    public static <I, O> CrudApiPageIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
-                                                      FieldSelectionBean selection, ICancelToken cancelToken) {
+    public static <O> CrudApiPageIterator<O> of(ICrudApi<?, O> api, QueryBean query,
+                                                FieldSelectionBean selection, ICancelToken cancelToken) {
         return new CrudApiPageIterator<>(api, query, selection, cancelToken);
     }
 
-    public static <I, O> CrudApiPageIterator<I, O> of(ICrudApi<I, O> api, QueryBean query,
-                                                      FieldSelectionBean selection, ICancelToken cancelToken,
-                                                      int pageSize) {
+    public static <O> CrudApiPageIterator<O> of(ICrudApi<?, O> api, QueryBean query,
+                                                FieldSelectionBean selection, ICancelToken cancelToken,
+                                                int pageSize) {
         return new CrudApiPageIterator<>(api, query, selection, cancelToken, pageSize);
     }
 
