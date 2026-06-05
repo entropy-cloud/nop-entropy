@@ -3,7 +3,9 @@ package io.nop.code.service.incremental;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.nop.api.core.beans.FilterBeans;
@@ -38,14 +40,16 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
 
+        Map<String, NopCodeFile> existingByPath = loadFileMapByIndex(fileDao, indexId);
+
         for (FileFingerprint fp : fingerprints) {
             String canonicalPath = pathMapper.apply(fp.getFilePath());
             String entityId = DigestHelper.sha256Hex(
                     (indexId + ":" + canonicalPath).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
-            NopCodeFile existing = findByIndexAndPath(fileDao, indexId, canonicalPath);
 
             NopCodeFile fileEntity;
             boolean isNew = false;
+            NopCodeFile existing = existingByPath.get(canonicalPath);
             if (existing != null) {
                 fileEntity = existing;
             } else {
@@ -67,8 +71,22 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
             if (isNew) {
                 fileDao.saveEntity(fileEntity);
+                existingByPath.put(canonicalPath, fileEntity);
             }
         }
+    }
+
+    private Map<String, NopCodeFile> loadFileMapByIndex(IEntityDao<NopCodeFile> fileDao, String indexId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        List<NopCodeFile> all = fileDao.findAllByQuery(query);
+        Map<String, NopCodeFile> map = new HashMap<>(all.size());
+        for (NopCodeFile f : all) {
+            if (f.getFilePath() != null) {
+                map.put(f.getFilePath(), f);
+            }
+        }
+        return map;
     }
 
     @Override

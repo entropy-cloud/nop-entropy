@@ -242,9 +242,15 @@ class CodeQueryService {
         Set<String> allowedKinds = new HashSet<>(Arrays.asList(
                 "CLASS", "INTERFACE", "ENUM", "ANNOTATION_TYPE", "METHOD", "FUNCTION"));
 
+        Set<String> fileIds = new HashSet<>();
+        for (NopCodeFile f : files) {
+            fileIds.add(f.getId());
+        }
+
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
         QueryBean symQuery = new QueryBean();
         symQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        symQuery.addFilter(FilterBeans.in("fileId", new ArrayList<>(fileIds)));
         if (!includePrivate) {
             symQuery.addFilter(FilterBeans.ne("accessModifier", "PRIVATE"));
         }
@@ -560,10 +566,88 @@ class CodeQueryService {
     }
 
     List<TypeOutlineDTO> batchGetTypeOutlines(String indexId, List<String> qualifiedNames) {
-        return qualifiedNames.stream()
-                .map(qn -> getTypeOutline(indexId, qn))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        if (daoProvider == null || qualifiedNames == null || qualifiedNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        QueryBean qnQuery = new QueryBean();
+        qnQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        qnQuery.addFilter(FilterBeans.in("qualifiedName", qualifiedNames));
+        List<NopCodeSymbol> typeSymbols = symbolDao.findAllByQuery(qnQuery);
+
+        Map<String, NopCodeSymbol> symbolByQN = new LinkedHashMap<>();
+        Set<String> typeIds = new LinkedHashSet<>();
+        for (NopCodeSymbol s : typeSymbols) {
+            if (s.getQualifiedName() != null) {
+                symbolByQN.put(s.getQualifiedName(), s);
+                typeIds.add(s.getId());
+            }
+        }
+
+        if (typeIds.isEmpty()) return Collections.emptyList();
+
+        QueryBean childQuery = new QueryBean();
+        childQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        childQuery.addFilter(FilterBeans.in("parentId", new ArrayList<>(typeIds)));
+        List<NopCodeSymbol> childrenByParent = symbolDao.findAllByQuery(childQuery);
+
+        QueryBean memberQuery = new QueryBean();
+        memberQuery.addFilter(FilterBeans.eq("indexId", indexId));
+        memberQuery.addFilter(FilterBeans.in("declaringSymbolId", new ArrayList<>(typeIds)));
+        List<NopCodeSymbol> childrenByDecl = symbolDao.findAllByQuery(memberQuery);
+
+        Map<String, List<NopCodeSymbol>> childrenMap = new LinkedHashMap<>();
+        for (NopCodeSymbol child : childrenByParent) {
+            String parentId = child.getParentId();
+            if (parentId != null) {
+                childrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(child);
+            }
+        }
+        for (NopCodeSymbol child : childrenByDecl) {
+            String declId = child.getDeclaringSymbolId();
+            if (declId != null) {
+                childrenMap.computeIfAbsent(declId, k -> new ArrayList<>()).add(child);
+            }
+        }
+
+        Set<String> allowedMethodKinds = new HashSet<>(Arrays.asList(
+                "METHOD", "FUNCTION", "CONSTRUCTOR"));
+        Set<String> allowedFieldKinds = new HashSet<>(Arrays.asList(
+                "FIELD", "CONSTANT"));
+
+        List<TypeOutlineDTO> result = new ArrayList<>();
+        for (String qn : qualifiedNames) {
+            NopCodeSymbol entity = symbolByQN.get(qn);
+            if (entity == null) continue;
+
+            TypeOutlineDTO outline = new TypeOutlineDTO();
+            outline.setName(entity.getName());
+            outline.setQualifiedName(entity.getQualifiedName());
+            outline.setKind(entity.getKind());
+            outline.setAccessModifier(entity.getAccessModifier());
+
+            List<SymbolInfoDTO> methods = new ArrayList<>();
+            List<SymbolInfoDTO> fields = new ArrayList<>();
+            List<NopCodeSymbol> children = childrenMap.getOrDefault(entity.getId(), Collections.emptyList());
+            for (NopCodeSymbol child : children) {
+                SymbolInfoDTO info = new SymbolInfoDTO();
+                info.setName(child.getName());
+                info.setQualifiedName(child.getQualifiedName());
+                info.setKind(child.getKind());
+                info.setAccessModifier(child.getAccessModifier());
+
+                if (allowedMethodKinds.contains(child.getKind())) {
+                    methods.add(info);
+                } else if (allowedFieldKinds.contains(child.getKind())) {
+                    fields.add(info);
+                }
+            }
+            outline.setMethods(methods);
+            outline.setFields(fields);
+            result.add(outline);
+        }
+        return result;
     }
 
     List<ReferenceDTO> findReferencedBy(String indexId, String qualifiedName, String kind, int limit) {
