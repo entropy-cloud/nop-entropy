@@ -57,6 +57,9 @@ public class CheckpointBarrierTracker {
             return false;
         }
 
+        long prevCheckpointId = this.currentCheckpointId;
+        TaskStateSnapshot prevSnapshot = this.currentSnapshot;
+
         this.currentCheckpointId = checkpointId;
         this.currentSnapshot = new TaskStateSnapshot(taskLocation, checkpointId);
 
@@ -73,11 +76,12 @@ public class CheckpointBarrierTracker {
         if (!operators.isEmpty()) {
             StreamOperator<?> head = operators.get(0);
             if (head instanceof StreamSourceOperator) {
-                // Source-pull: offer barrier to the operator's queue.
-                // The source reading thread will poll and inject it during collect().
                 boolean accepted = ((StreamSourceOperator<?>) head).offerBarrier(barrier);
                 if (!accepted) {
                     LOG.warn("Checkpoint {} rejected: source operator already has a pending barrier", checkpointId);
+                    this.currentCheckpointId = prevCheckpointId;
+                    this.currentSnapshot = prevSnapshot;
+                    this.operatorsToAck.set(0);
                     return false;
                 }
             }
