@@ -17,7 +17,7 @@ import io.nop.code.dao.entity.NopCodeFile;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.dao.entity.NopCodeUsage;
-import io.nop.code.service.api.dto.*;
+import io.nop.code.api.dto.*;
 import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;

@@ -18,9 +18,9 @@ import io.nop.code.biz.INopCodeFileBiz;
 import io.nop.code.core.model.*;
 import io.nop.code.dao.entity.NopCodeFile;
 import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.FileOutlineDTO;
-import io.nop.code.service.api.dto.FileTreeNode;
-import io.nop.code.service.api.dto.SymbolInfoDTO;
+import io.nop.code.api.dto.FileOutlineDTO;
+import io.nop.code.api.dto.FileTreeNode;
+import io.nop.code.api.dto.SymbolInfoDTO;
 @BizModel("NopCodeFile")
 public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements INopCodeFileBiz {
 

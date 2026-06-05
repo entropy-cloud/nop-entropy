@@ -5,7 +5,7 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.DepGraphDTO;
+import io.nop.code.api.dto.DepGraphDTO;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.api.core.beans.query.QueryBean;

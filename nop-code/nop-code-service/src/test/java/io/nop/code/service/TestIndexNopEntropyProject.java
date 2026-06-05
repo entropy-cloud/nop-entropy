@@ -11,7 +11,7 @@ import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.lang.java.JavaLanguageAdapter;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.analyzer.ProjectAnalyzer;
-import io.nop.code.service.api.dto.IndexStatsDTO;
+import io.nop.code.api.dto.IndexStatsDTO;
 import io.nop.code.service.impl.CodeIndexService;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;

@@ -76,6 +76,10 @@
               updatable="true">
             <schema stdDomain="boolFlag" type="java.lang.Boolean" precision="1"/>
         </prop>
+        <prop name="provenance" displayName="来源" propId="15" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
         <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
               ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopCodeIndex"/>

@@ -4,7 +4,7 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.IndexStatsDTO;
+import io.nop.code.api.dto.IndexStatsDTO;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 

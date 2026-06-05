@@ -20,6 +20,7 @@ import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeRelationType;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.model.EdgeProvenance;
 /**
  * Python文件分析器
  * 使用bonede tree-sitter解析Python源代码，提取符号信息、继承关系等
@@ -260,6 +261,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
                 CodeAnnotationUsage usage = new CodeAnnotationUsage();
                 usage.setId(UUID.randomUUID().toString());
                 usage.setAnnotatedSymbolId(symbol.getId());
+                usage.setProvenance(EdgeProvenance.AST_EXTRACTION);
                 usage.setLine(sibling.getStartPoint().getRow() + 1);
                 usage.setColumn(sibling.getStartPoint().getColumn());
 
@@ -293,6 +295,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
                 inheritance.setSubTypeId(classSymbol.getId());
                 inheritance.setSuperTypeQualifiedName(nodeText(child, source));
                 inheritance.setRelationType(CodeRelationType.EXTENDS);
+                inheritance.setProvenance(EdgeProvenance.AST_EXTRACTION);
                 result.getInheritances().add(inheritance);
             }
         }
@@ -392,6 +395,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
             CodeMethodCall call = new CodeMethodCall();
             call.setId(UUID.randomUUID().toString());
             call.setCallerId(callerSymbol.getId());
+            call.setProvenance(EdgeProvenance.AST_EXTRACTION);
             call.setLine(node.getStartPoint().getRow() + 1);
             call.setColumn(node.getStartPoint().getColumn());
 

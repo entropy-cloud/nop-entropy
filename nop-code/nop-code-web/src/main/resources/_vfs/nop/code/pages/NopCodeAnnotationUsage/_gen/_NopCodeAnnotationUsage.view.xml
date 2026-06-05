@@ -35,6 +35,9 @@
 
                 <!--属性值-->
                 <col id="attributes" sortable="true"/>
+
+                <!--来源-->
+                <col id="provenance" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -49,6 +52,7 @@
  line[行号]
  column[列号]
  attributes[属性值]
+ provenance[来源]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-注解使用" i18n-en:title="Add Annotation Usage" x:prototype="edit"/>
@@ -60,6 +64,7 @@
  line[行号]
  column[列号]
  attributes[属性值]
+ provenance[来源]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

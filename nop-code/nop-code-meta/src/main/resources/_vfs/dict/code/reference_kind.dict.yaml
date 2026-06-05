@@ -41,3 +41,11 @@ options:
     value: 90
     description: 
   
+  - label: 类型引用
+    value: 100
+    description: 
+  
+  - label: 实例化
+    value: 110
+    description: 
+  

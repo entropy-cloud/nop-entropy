@@ -13,7 +13,7 @@ import io.nop.code.core.model.CodeLanguage;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.dao.entity.NopCodeFile;
 import io.nop.code.dao.entity.NopCodeSymbol;
-import io.nop.code.service.api.dto.CodeSearchResultDTO;
+import io.nop.code.api.dto.CodeSearchResultDTO;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.search.api.ISearchEngine;

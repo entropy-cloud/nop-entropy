@@ -23,6 +23,7 @@ import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeRelationType;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.model.EdgeProvenance;
 /**
  * TypeScript/TSX 文件分析器
  * 使用 bonede tree-sitter-typescript 解析源代码，提取符号信息、继承关系和装饰器。
@@ -358,6 +359,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
                 inheritance.setSubTypeId(ownerSymbol.getId());
                 inheritance.setSuperTypeQualifiedName(superTypeName);
                 inheritance.setRelationType(relationType);
+                inheritance.setProvenance(EdgeProvenance.AST_EXTRACTION);
                 result.getInheritances().add(inheritance);
             }
         }
@@ -419,6 +421,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         usage.setId(UUID.randomUUID().toString());
         usage.setAnnotationTypeQualifiedName(extractDecoratorName(decoratorNode, source));
         usage.setAnnotatedSymbolId(ownerSymbol.getId());
+        usage.setProvenance(EdgeProvenance.AST_EXTRACTION);
         usage.setLine(decoratorNode.getStartPoint().getRow() + 1);
         usage.setColumn(decoratorNode.getStartPoint().getColumn());
         result.getAnnotationUsages().add(usage);
@@ -436,6 +439,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             CodeMethodCall call = new CodeMethodCall();
             call.setId(UUID.randomUUID().toString());
             call.setCallerId(callerSymbol.getId());
+            call.setProvenance(EdgeProvenance.AST_EXTRACTION);
             call.setLine(node.getStartPoint().getRow() + 1);
             call.setColumn(node.getStartPoint().getColumn());
 

@@ -32,6 +32,10 @@ import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
 import io.nop.code.core.model.*;
+import io.nop.code.core.model.HeuristicContext;
+import io.nop.code.core.model.IHeuristicEdgeSynthesizer;
+import io.nop.code.core.model.EdgeProvenance;
+import io.nop.code.core.model.CodeRouteInfo;
 import io.nop.code.core.resolver.IImportResolver;
 import io.nop.code.lang.java.JavaImportResolver;
 import io.nop.code.lang.python.PythonImportResolver;
@@ -62,8 +66,10 @@ import io.nop.code.flow.IFlowDetector;
 import io.nop.code.graph.semantic.AnnotationPatternExtractor;
 import io.nop.code.graph.semantic.DocKeywordExtractor;
 import io.nop.code.graph.semantic.NameSimilarityExtractor;
+import io.nop.code.graph.heuristic.InterfaceImplSynthesizer;
+import io.nop.code.graph.heuristic.SpringEventSynthesizer;
 import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.*;
+import io.nop.code.api.dto.*;
 import io.nop.code.service.incremental.OrmFingerprintStore;
 import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.commons.batch.BatchQueue;
@@ -99,6 +105,7 @@ public class CodeIndexService implements ICodeIndexService {
     protected LanguageAdapterRegistry registry;
     protected ProjectAnalyzer analyzer;
     protected final Map<String, IImportResolver> importResolvers = new HashMap<>();
+    protected final List<IHeuristicEdgeSynthesizer> heuristicSynthesizers = new ArrayList<>();
 
     @Inject
     protected IDaoProvider daoProvider;
@@ -174,6 +181,7 @@ public class CodeIndexService implements ICodeIndexService {
         this.analyzer = new ProjectAnalyzer(registry);
         registerSemanticExtractors();
         registerImportResolvers();
+        registerHeuristicSynthesizers();
     }
 
     public CodeIndexService(LanguageAdapterRegistry registry, ProjectAnalyzer analyzer) {
@@ -181,6 +189,7 @@ public class CodeIndexService implements ICodeIndexService {
         this.analyzer = analyzer;
         registerSemanticExtractors();
         registerImportResolvers();
+        registerHeuristicSynthesizers();
     }
 
     private void registerSemanticExtractors() {
@@ -208,6 +217,11 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
+    private void registerHeuristicSynthesizers() {
+        heuristicSynthesizers.add(new InterfaceImplSynthesizer());
+        heuristicSynthesizers.add(new SpringEventSynthesizer());
+    }
+
     //
 
     // ====== Entity-to-Model Conversion
@@ -231,17 +245,15 @@ public class CodeIndexService implements ICodeIndexService {
         symbol.setParentId(entity.getParentId());
         symbol.setDeclaringSymbolId(entity.getDeclaringSymbolId());
         symbol.setSuperClassName(entity.getSuperClassName());
-        symbol.setAbstractFlag(Boolean.TRUE.equals(entity.getIsAbstract()));
-        symbol.setFinalFlag(Boolean.TRUE.equals(entity.getIsFinal()));
+        symbol.setModifiers(entity.getModifiers() != null ? entity.getModifiers() : 0);
         symbol.setSignature(entity.getSignature());
         symbol.setReturnType(entity.getReturnType());
-        symbol.setStaticFlag(Boolean.TRUE.equals(entity.getIsStatic()));
         symbol.setFieldType(entity.getFieldType());
         symbol.setRawReturnType(entity.getRawReturnType());
         symbol.setRawFieldType(entity.getRawFieldType());
-        symbol.setAsyncFlag(Boolean.TRUE.equals(entity.getAsyncFlag()));
-        symbol.setReadonlyFlag(Boolean.TRUE.equals(entity.getReadonlyFlag()));
         symbol.setExtData(entity.getExtData());
+        symbol.setFilePath(entity.getFilePath());
+        symbol.setLanguage(entity.getLanguage());
         return symbol;
     }
 
@@ -826,12 +838,107 @@ public class CodeIndexService implements ICodeIndexService {
                 edgeEntity.setRationale(edge.getRationale());
                 edgeEntity.setExtractorId(edge.getExtractorId());
                 edgeEntity.setExtData(edge.getExtData());
+                edgeEntity.setProvenance(edge.getProvenance() != null ? edge.getProvenance().name() : null);
                 session.save(edgeEntity);
             }
             LOG.info("Persisted {} semantic edges for index {}", result.getSemanticEdges().size(), indexId);
         }
 
         resolveQualifiedNamesToIds(indexId, result.getGlobalSymbolTable(), session);
+        synthesizeAndPersistHeuristicEdges(indexId, result, session);
+    }
+
+    private void synthesizeAndPersistHeuristicEdges(String indexId, ProjectAnalysisResult result,
+                                                      IOrmSession session) {
+        if (heuristicSynthesizers.isEmpty()) return;
+
+        SymbolTable symbolTable = result.getGlobalSymbolTable();
+        CallGraph callGraph = result.buildCallGraph();
+        Map<String, Set<String>> inheritanceIndex = buildInheritanceIndex(indexId);
+
+        HeuristicContext context = new HeuristicContext(symbolTable, inheritanceIndex, callGraph, indexId);
+
+        IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
+        Set<String> existingEdgeKeys = loadExistingEdgeKeys(callDao, indexId);
+
+        int totalSynthesized = 0;
+        for (IHeuristicEdgeSynthesizer synthesizer : heuristicSynthesizers) {
+            try {
+                List<CodeMethodCall> synthesized = synthesizer.synthesize(context);
+                for (CodeMethodCall call : synthesized) {
+                    String edgeKey = indexId + ":" + call.getCallerId() + ":" + call.getCalleeId();
+                    if (existingEdgeKeys.contains(edgeKey)) continue;
+
+                    CodeSymbol caller = symbolTable.getById(call.getCallerId());
+                    String fileId = caller != null ? findFileIdForSymbol(indexId, caller.getId()) : null;
+
+                    NopCodeCall callEntity = (NopCodeCall) ormTemplate.newEntity(NopCodeCall.class.getName());
+                    callEntity.setId(call.getId());
+                    callEntity.setIndexId(indexId);
+                    callEntity.setCallerId(call.getCallerId());
+                    callEntity.setCalleeId(call.getCalleeId());
+                    callEntity.setFileId(fileId != null ? fileId : generateDummyFileId(indexId));
+                    callEntity.setLine(-1);
+                    callEntity.setColumn(0);
+                    callEntity.setCallType(call.getCallType());
+                    callEntity.setContext(call.getContext());
+                    callEntity.setProvenance(EdgeProvenance.HEURISTIC.name());
+                    callEntity.setMetadata(call.getMetadata());
+                    session.save(callEntity);
+
+                    existingEdgeKeys.add(edgeKey);
+                    totalSynthesized++;
+                }
+            } catch (Exception e) {
+                LOG.warn("Heuristic synthesizer {} failed, skipping", synthesizer.getSynthesizerId(), e);
+            }
+        }
+        if (totalSynthesized > 0) {
+            LOG.info("Synthesized {} heuristic edges for index {}", totalSynthesized, indexId);
+        }
+    }
+
+    private Map<String, Set<String>> buildInheritanceIndex(String indexId) {
+        Map<String, Set<String>> index = new HashMap<>();
+        IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.setLimit(MAX_QUERY_RESULTS);
+        List<NopCodeInheritance> inheritances = inhDao.findAllByQuery(query);
+
+        for (NopCodeInheritance inh : inheritances) {
+            if (inh.getRelationType() != null && inh.getRelationType().equals("IMPLEMENTS")) {
+                NopCodeSymbol superType = symbolDao.getEntityById(inh.getSuperTypeId());
+                if (superType != null && superType.getQualifiedName() != null) {
+                    index.computeIfAbsent(superType.getQualifiedName(), k -> new HashSet<>())
+                            .add(inh.getSubTypeId());
+                }
+            }
+        }
+        return index;
+    }
+
+    private Set<String> loadExistingEdgeKeys(IEntityDao<NopCodeCall> callDao, String indexId) {
+        Set<String> keys = new HashSet<>();
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.setLimit(MAX_QUERY_RESULTS);
+        for (NopCodeCall call : callDao.findAllByQuery(query)) {
+            keys.add(indexId + ":" + call.getCallerId() + ":" + call.getCalleeId());
+        }
+        return keys;
+    }
+
+    private String findFileIdForSymbol(String indexId, String symbolId) {
+        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
+        NopCodeSymbol sym = symbolDao.getEntityById(symbolId);
+        return sym != null ? sym.getFileId() : null;
+    }
+
+    private String generateDummyFileId(String indexId) {
+        return generateFileId(indexId, "__heuristic__");
     }
 
     private void resolveQualifiedNamesToIds(String indexId, SymbolTable symbolTable, IOrmSession session) {
@@ -943,6 +1050,7 @@ public class CodeIndexService implements ICodeIndexService {
                 edgeEntity.setRationale(edge.getRationale());
                 edgeEntity.setExtractorId(edge.getExtractorId());
                 edgeEntity.setExtData(edge.getExtData());
+                edgeEntity.setProvenance(edge.getProvenance() != null ? edge.getProvenance().name() : null);
                 session.save(edgeEntity);
             }
         }
@@ -989,9 +1097,13 @@ public class CodeIndexService implements ICodeIndexService {
         // Enrich symbols with annotation short names in extData before persisting
         enrichSymbolsWithAnnotations(file);
 
+        String fileLanguage = file.getLanguage() != null ? file.getLanguage().name() : null;
+
         if (file.getSymbols() != null) {
             for (CodeSymbol sym : file.getSymbols()) {
                 sym.setExtData(ExtDataHelper.setFilePath(sym.getExtData(), file.getFilePath()));
+                sym.setFilePath(file.getFilePath());
+                sym.setLanguage(fileLanguage);
             }
         }
 
@@ -1014,17 +1126,15 @@ public class CodeIndexService implements ICodeIndexService {
                 symEntity.setParentId(sym.getParentId());
                 symEntity.setDeclaringSymbolId(sym.getDeclaringSymbolId());
                 symEntity.setSuperClassName(sym.getSuperClassName());
-                symEntity.setIsAbstract(sym.isAbstractFlag());
-                symEntity.setIsFinal(sym.isFinalFlag());
+                symEntity.setModifiers(sym.getModifiers());
                 symEntity.setSignature(sym.getSignature());
                 symEntity.setReturnType(sym.getReturnType());
-                symEntity.setIsStatic(sym.isStaticFlag());
                 symEntity.setFieldType(sym.getFieldType());
                 symEntity.setRawReturnType(sym.getRawReturnType());
                 symEntity.setRawFieldType(sym.getRawFieldType());
                 symEntity.setExtData(sym.getExtData());
-                symEntity.setAsyncFlag(sym.isAsyncFlag());
-                symEntity.setReadonlyFlag(sym.isReadonlyFlag());
+                symEntity.setFilePath(file.getFilePath());
+                symEntity.setLanguage(fileLanguage);
                 saveReplacingExisting(session, symEntity);
             }
 
@@ -1078,6 +1188,8 @@ public class CodeIndexService implements ICodeIndexService {
                 callEntity.setColumn(call.getColumn());
                 callEntity.setCallType(call.getCallType());
                 callEntity.setContext(call.getContext());
+                callEntity.setProvenance(call.getProvenance() != null ? call.getProvenance().name() : null);
+                callEntity.setMetadata(call.getMetadata());
                 saveReplacingExisting(session, callEntity);
             }
         }
@@ -1090,6 +1202,7 @@ public class CodeIndexService implements ICodeIndexService {
                 inhEntity.setSubTypeId(inh.getSubTypeId());
                 inhEntity.setSuperTypeId(inh.getSuperTypeQualifiedName());
                 inhEntity.setRelationType(inh.getRelationType() != null ? inh.getRelationType().name() : null);
+                inhEntity.setProvenance(inh.getProvenance() != null ? inh.getProvenance().name() : null);
                 saveReplacingExisting(session, inhEntity);
             }
         }
@@ -1104,7 +1217,34 @@ public class CodeIndexService implements ICodeIndexService {
                 annotEntity.setLine(annot.getLine());
                 annotEntity.setColumn(annot.getColumn());
                 annotEntity.setAttributes(annot.getAttributes());
+                annotEntity.setProvenance(annot.getProvenance() != null ? annot.getProvenance().name() : null);
                 saveReplacingExisting(session, annotEntity);
+            }
+        }
+
+        if (file.getRoutes() != null && !file.getRoutes().isEmpty()) {
+            for (CodeRouteInfo route : file.getRoutes()) {
+                String routeName = route.getHttpMethod() + " " + route.getRoutePath();
+                String routeId = DigestHelper.sha256Hex(
+                        (indexId + ":ROUTE:" + routeName).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
+                NopCodeSymbol routeSymbol = (NopCodeSymbol) ormTemplate.newEntity(NopCodeSymbol.class.getName());
+                routeSymbol.setId(routeId);
+                routeSymbol.setIndexId(indexId);
+                routeSymbol.setFileId(fileEntityId);
+                routeSymbol.setKind(CodeSymbolKind.ROUTE.name());
+                routeSymbol.setName(routeName);
+                routeSymbol.setQualifiedName(route.getHandlerQualifiedName() != null
+                        ? route.getHandlerQualifiedName() + ":" + routeName : routeName);
+                routeSymbol.setFilePath(file.getFilePath());
+                routeSymbol.setLanguage(fileLanguage);
+                Map<String, Object> routeExt = new LinkedHashMap<>();
+                routeExt.put("httpMethod", route.getHttpMethod());
+                routeExt.put("routePath", route.getRoutePath());
+                if (route.getHandlerSymbolId() != null) {
+                    routeExt.put("handlerSymbolId", route.getHandlerSymbolId());
+                }
+                routeSymbol.setExtData(JsonTool.stringify(routeExt));
+                saveReplacingExisting(session, routeSymbol);
             }
         }
 

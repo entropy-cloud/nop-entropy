@@ -10,6 +10,7 @@ public class CodeInheritance {
     private String subTypeId;
     private String superTypeQualifiedName;
     private CodeRelationType relationType;
+    private EdgeProvenance provenance;
 
     public String getId() {
         return id;
@@ -41,5 +42,13 @@ public class CodeInheritance {
 
     public void setRelationType(CodeRelationType relationType) {
         this.relationType = relationType;
+    }
+
+    public EdgeProvenance getProvenance() {
+        return provenance;
+    }
+
+    public void setProvenance(EdgeProvenance provenance) {
+        this.provenance = provenance;
     }
 }

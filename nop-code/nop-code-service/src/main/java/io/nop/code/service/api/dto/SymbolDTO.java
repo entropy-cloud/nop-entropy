@@ -24,17 +24,15 @@ public class SymbolDTO implements Serializable {
     private String parentId;
     private String declaringSymbolId;
     private String superClassName;
-    private boolean abstractFlag;
-    private boolean finalFlag;
+    private int modifiers;
     private String signature;
     private String returnType;
-    private boolean staticFlag;
-    private boolean asyncFlag;
     private String fieldType;
     private String rawReturnType;
     private String rawFieldType;
-    private boolean readonlyFlag;
     private String extData;
+    private String filePath;
+    private String language;
 
     public static SymbolDTO fromCodeSymbol(CodeSymbol symbol) {
         SymbolDTO dto = new SymbolDTO();
@@ -52,17 +50,15 @@ public class SymbolDTO implements Serializable {
         dto.setParentId(symbol.getParentId());
         dto.setDeclaringSymbolId(symbol.getDeclaringSymbolId());
         dto.setSuperClassName(symbol.getSuperClassName());
-        dto.setAbstractFlag(symbol.isAbstractFlag());
-        dto.setFinalFlag(symbol.isFinalFlag());
+        dto.setModifiers(symbol.getModifiers());
         dto.setSignature(symbol.getSignature());
         dto.setReturnType(symbol.getReturnType());
-        dto.setStaticFlag(symbol.isStaticFlag());
-        dto.setAsyncFlag(symbol.isAsyncFlag());
         dto.setFieldType(symbol.getFieldType());
         dto.setRawReturnType(symbol.getRawReturnType());
         dto.setRawFieldType(symbol.getRawFieldType());
-        dto.setReadonlyFlag(symbol.isReadonlyFlag());
         dto.setExtData(symbol.getExtData());
+        dto.setFilePath(symbol.getFilePath());
+        dto.setLanguage(symbol.getLanguage());
         return dto;
     }
 
@@ -178,20 +174,36 @@ public class SymbolDTO implements Serializable {
         this.superClassName = superClassName;
     }
 
-    public boolean isAbstractFlag() {
-        return abstractFlag;
+    public int getModifiers() {
+        return modifiers;
     }
 
-    public void setAbstractFlag(boolean abstractFlag) {
-        this.abstractFlag = abstractFlag;
+    public void setModifiers(int modifiers) {
+        this.modifiers = modifiers;
+    }
+
+    public boolean isAbstractFlag() {
+        return (modifiers & CodeSymbol.MODIFIER_ABSTRACT) != 0;
     }
 
     public boolean isFinalFlag() {
-        return finalFlag;
+        return (modifiers & CodeSymbol.MODIFIER_FINAL) != 0;
     }
 
-    public void setFinalFlag(boolean finalFlag) {
-        this.finalFlag = finalFlag;
+    public boolean isStaticFlag() {
+        return (modifiers & CodeSymbol.MODIFIER_STATIC) != 0;
+    }
+
+    public boolean isAsyncFlag() {
+        return (modifiers & CodeSymbol.MODIFIER_ASYNC) != 0;
+    }
+
+    public boolean isReadonlyFlag() {
+        return (modifiers & CodeSymbol.MODIFIER_READONLY) != 0;
+    }
+
+    public boolean isExportedFlag() {
+        return (modifiers & CodeSymbol.MODIFIER_EXPORTED) != 0;
     }
 
     public String getSignature() {
@@ -208,22 +220,6 @@ public class SymbolDTO implements Serializable {
 
     public void setReturnType(String returnType) {
         this.returnType = returnType;
-    }
-
-    public boolean isStaticFlag() {
-        return staticFlag;
-    }
-
-    public void setStaticFlag(boolean staticFlag) {
-        this.staticFlag = staticFlag;
-    }
-
-    public boolean isAsyncFlag() {
-        return asyncFlag;
-    }
-
-    public void setAsyncFlag(boolean asyncFlag) {
-        this.asyncFlag = asyncFlag;
     }
 
     public String getFieldType() {
@@ -250,19 +246,27 @@ public class SymbolDTO implements Serializable {
         this.rawFieldType = rawFieldType;
     }
 
-    public boolean isReadonlyFlag() {
-        return readonlyFlag;
-    }
-
-    public void setReadonlyFlag(boolean readonlyFlag) {
-        this.readonlyFlag = readonlyFlag;
-    }
-
     public String getExtData() {
         return extData;
     }
 
     public void setExtData(String extData) {
         this.extData = extData;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 }

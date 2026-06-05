@@ -127,25 +127,25 @@ Exit Criteria:
 
 ### Phase 3 — nop-code-api 模块补充 DTO
 
-Status: planned
+Status: completed
 Targets: `nop-code/nop-code-api/`, `nop-code/nop-code-service/`
 
 - Item Types: `Fix`
 
 **设计决策**：`ICodeIndexService` 暂不迁移（它依赖 `nop-code-core` 6 个模型类 + `nop-code-flow` 3 个模型类，迁移会迫使 api 模块变成重型依赖）。仅迁移与 `ICodeIndexService` 方法签名无直接依赖的纯 DTO——这些 DTO 仅依赖 `nop-api-core`（已通过 pom 依赖链可用）。
 
-- [ ] **识别可迁移的 DTO**。从 `nop-code-service/api/dto/` 中筛选仅依赖 `nop-api-core` 的 DTO（如 `SymbolDTO`、`DepGraphDTO`、`IndexStatsDTO` 等）。跳过依赖 core/flow 模型的 DTO
-- [ ] **迁移筛选出的 DTO 到 nop-code-api**。移动到 `nop-code-api/src/main/java/io/nop/code/api/dto/`
-- [ ] **更新 nop-code-api 的 pom.xml**。添加对 `nop-api-core` 的依赖（如尚未有）
-- [ ] **更新 nop-code-service 的 import**。全局替换被迁移 DTO 的 import 路径
+- [x] **识别可迁移的 DTO**。从 `nop-code-service/api/dto/` 中筛选仅依赖 `nop-api-core` 的 DTO（如 `SymbolDTO`、`DepGraphDTO`、`IndexStatsDTO` 等）。跳过依赖 core/flow 模型的 DTO
+- [x] **迁移筛选出的 DTO 到 nop-code-api**。移动到 `nop-code-api/src/main/java/io/nop/code/api/dto/`
+- [x] **更新 nop-code-api 的 pom.xml**。添加对 `nop-api-core` 的依赖（如尚未有）
+- [x] **更新 nop-code-service 的 import**。全局替换被迁移 DTO 的 import 路径
 
 Exit Criteria:
 
-- [ ] `nop-code-api/src/main/java/` 目录存在，包含至少 3 个迁移的 DTO
-- [ ] `nop-code-api/pom.xml` 不依赖 nop-code-service、nop-code-dao、nop-code-core、nop-code-flow
-- [ ] `./mvnw compile -pl nop-code -am` 通过
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required（内部模块结构调整，不改公共 API 契约）
+- [x] `nop-code-api/src/main/java/` 目录存在，包含至少 3 个迁移的 DTO
+- [x] `nop-code-api/pom.xml` 不依赖 nop-code-service、nop-code-dao、nop-code-core、nop-code-flow
+- [x] `./mvnw compile -pl nop-code -am` 通过
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required（内部模块结构调整，不改公共 API 契约）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — 补充测试缺口

@@ -56,8 +56,16 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     public static final String PROP_NAME_context = "context";
     public static final int PROP_ID_context = 9;
     
+    /* 来源: PROVENANCE VARCHAR */
+    public static final String PROP_NAME_provenance = "provenance";
+    public static final int PROP_ID_provenance = 10;
+    
+    /* 元数据: METADATA VARCHAR */
+    public static final String PROP_NAME_metadata = "metadata";
+    public static final int PROP_ID_metadata = 11;
+    
 
-    private static int _PROP_ID_BOUND = 10;
+    private static int _PROP_ID_BOUND = 12;
 
     
     /* relation:  */
@@ -72,11 +80,14 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     /* relation:  */
     public static final String PROP_NAME_enclosingSymbol = "enclosingSymbol";
     
+    /* component:  */
+    public static final String PROP_NAME_metadataComponent = "metadataComponent";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[10];
+    private static final String[] PROP_ID_TO_NAME = new String[12];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -107,6 +118,12 @@ public class _NopCodeUsage extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_context] = PROP_NAME_context;
           PROP_NAME_TO_ID.put(PROP_NAME_context, PROP_ID_context);
       
+          PROP_ID_TO_NAME[PROP_ID_provenance] = PROP_NAME_provenance;
+          PROP_NAME_TO_ID.put(PROP_NAME_provenance, PROP_ID_provenance);
+      
+          PROP_ID_TO_NAME[PROP_ID_metadata] = PROP_NAME_metadata;
+          PROP_NAME_TO_ID.put(PROP_NAME_metadata, PROP_ID_metadata);
+      
     }
 
     
@@ -136,6 +153,12 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     
     /* 上下文: CONTEXT */
     private java.lang.String _context;
+    
+    /* 来源: PROVENANCE */
+    private java.lang.String _provenance;
+    
+    /* 元数据: METADATA */
+    private java.lang.String _metadata;
     
 
     public _NopCodeUsage(){
@@ -238,6 +261,12 @@ public class _NopCodeUsage extends DynamicOrmEntity{
             case PROP_ID_context:
                return getContext();
         
+            case PROP_ID_provenance:
+               return getProvenance();
+        
+            case PROP_ID_metadata:
+               return getMetadata();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -339,6 +368,26 @@ public class _NopCodeUsage extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_provenance:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_provenance));
+               }
+               setProvenance(typedValue);
+               break;
+            }
+        
+            case PROP_ID_metadata:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_metadata));
+               }
+               setMetadata(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -407,6 +456,20 @@ public class _NopCodeUsage extends DynamicOrmEntity{
             case PROP_ID_context:{
                onInitProp(propId);
                this._context = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_provenance:{
+               onInitProp(propId);
+               this._provenance = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_metadata:{
+               onInitProp(propId);
+               this._metadata = (java.lang.String)value;
                
                break;
             }
@@ -589,6 +652,44 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
+     * 来源: PROVENANCE
+     */
+    public final java.lang.String getProvenance(){
+         onPropGet(PROP_ID_provenance);
+         return _provenance;
+    }
+
+    /**
+     * 来源: PROVENANCE
+     */
+    public final void setProvenance(java.lang.String value){
+        if(onPropSet(PROP_ID_provenance,value)){
+            this._provenance = value;
+            internalClearRefs(PROP_ID_provenance);
+            
+        }
+    }
+    
+    /**
+     * 元数据: METADATA
+     */
+    public final java.lang.String getMetadata(){
+         onPropGet(PROP_ID_metadata);
+         return _metadata;
+    }
+
+    /**
+     * 元数据: METADATA
+     */
+    public final void setMetadata(java.lang.String value){
+        if(onPropSet(PROP_ID_metadata,value)){
+            this._metadata = value;
+            internalClearRefs(PROP_ID_metadata);
+            
+        }
+    }
+    
+    /**
      * 
      */
     public final io.nop.code.dao.entity.NopCodeIndex getIndex(){
@@ -680,5 +781,22 @@ public class _NopCodeUsage extends DynamicOrmEntity{
        
     }
        
+   private io.nop.orm.component.JsonOrmComponent _metadataComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_metadataComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_metadataComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_metadata);
+      
+   }
+
+   public final io.nop.orm.component.JsonOrmComponent getMetadataComponent(){
+      if(_metadataComponent == null){
+          _metadataComponent = new io.nop.orm.component.JsonOrmComponent();
+          _metadataComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_metadataComponent);
+      }
+      return _metadataComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

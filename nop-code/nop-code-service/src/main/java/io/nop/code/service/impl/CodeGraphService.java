@@ -28,7 +28,7 @@ import io.nop.code.graph.export.GraphExporter;
 import io.nop.code.graph.impact.ImpactAnalyzer;
 import io.nop.code.graph.knowledge.KnowledgeGapAnalyzer;
 import io.nop.code.graph.knowledge.KnowledgeGapResult;
-import io.nop.code.service.api.dto.*;
+import io.nop.code.api.dto.*;
 import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;

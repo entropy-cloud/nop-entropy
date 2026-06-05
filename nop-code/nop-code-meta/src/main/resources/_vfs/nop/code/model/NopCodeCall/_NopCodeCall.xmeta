@@ -56,6 +56,14 @@
               updatable="true">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
+        <prop name="provenance" displayName="来源" propId="10" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+        <prop name="metadata" displayName="元数据" propId="11" queryable="true" sortable="true" insertable="true"
+              updatable="true" graphql:jsonComponentProp="metadataComponent" ui:control="textarea">
+            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="4096"/>
+        </prop>
         <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
               ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopCodeIndex"/>
@@ -83,6 +91,10 @@
         </prop>
         <prop name="file.filePath" internal="true" queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="metadataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>
 </meta>

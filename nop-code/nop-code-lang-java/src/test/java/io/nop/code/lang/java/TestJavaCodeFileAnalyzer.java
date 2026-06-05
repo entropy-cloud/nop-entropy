@@ -102,9 +102,7 @@ class TestJavaCodeFileAnalyzer {
 
         CodeSymbol syncMethod = findSymbol(result.getSymbols(), "syncMethod");
         assertNotNull(syncMethod, "Should find syncMethod");
-        assertNotNull(syncMethod.getExtData(), "syncMethod should have extData");
-        assertTrue(syncMethod.getExtData().contains("synchronized"),
-                "extData should contain 'synchronized', was: " + syncMethod.getExtData());
+        assertTrue(syncMethod.isSynchronizedFlag(), "syncMethod should have synchronized modifier");
     }
 
     @Test

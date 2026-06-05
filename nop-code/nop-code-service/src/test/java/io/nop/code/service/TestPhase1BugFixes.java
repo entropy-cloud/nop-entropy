@@ -7,7 +7,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.IndexStatsDTO;
+import io.nop.code.api.dto.IndexStatsDTO;
 import io.nop.code.service.api.dto.SymbolDTO;
 import io.nop.code.service.entity.NopCodeSymbolBizModel;
 import io.nop.graphql.core.IGraphQLExecutionContext;

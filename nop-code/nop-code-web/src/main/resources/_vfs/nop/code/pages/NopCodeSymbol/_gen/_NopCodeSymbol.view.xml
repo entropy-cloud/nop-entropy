@@ -72,11 +72,8 @@
                 <!--父类名-->
                 <col id="superClassName" sortable="true"/>
 
-                <!--抽象-->
-                <col id="isAbstract" sortable="true"/>
-
-                <!--final-->
-                <col id="isFinal" sortable="true"/>
+                <!--修饰符-->
+                <col id="modifiers" ui:number="true" sortable="true"/>
 
                 <!--签名-->
                 <col id="signature" sortable="true"/>
@@ -84,38 +81,23 @@
                 <!--返回类型-->
                 <col id="returnType" sortable="true"/>
 
-                <!--static-->
-                <col id="isStatic" sortable="true"/>
-
-                <!--synchronized-->
-                <col id="isSynchronized" sortable="true"/>
-
-                <!--native-->
-                <col id="isNative" sortable="true"/>
-
                 <!--字段类型-->
                 <col id="fieldType" sortable="true"/>
 
-                <!--volatile-->
-                <col id="isVolatile" sortable="true"/>
-
-                <!--transient-->
-                <col id="isTransient" sortable="true"/>
-
                 <!--扩展数据-->
                 <col id="extData" sortable="true"/>
-
-                <!--异步-->
-                <col id="asyncFlag" sortable="true"/>
-
-                <!--只读-->
-                <col id="readonlyFlag" sortable="true"/>
 
                 <!--原始返回类型-->
                 <col id="rawReturnType" sortable="true"/>
 
                 <!--原始字段类型-->
                 <col id="rawFieldType" sortable="true"/>
+
+                <!--文件路径(反规范化)-->
+                <col id="filePath" sortable="true"/>
+
+                <!--语言(反规范化)-->
+                <col id="language" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -133,14 +115,11 @@
  endLine[结束行] endColumn[结束列]
  usageCount[使用次数] parentId[父符号ID]
  declaringSymbolId[所属类型ID] superClassName[父类名]
- isAbstract[抽象] isFinal[final]
- signature[签名] returnType[返回类型]
- isStatic[static] isSynchronized[synchronized]
- isNative[native] fieldType[字段类型]
- isVolatile[volatile] isTransient[transient]
- extData[扩展数据] asyncFlag[异步]
- readonlyFlag[只读] rawReturnType[原始返回类型]
- rawFieldType[原始字段类型] 
+ modifiers[修饰符] signature[签名]
+ returnType[返回类型] fieldType[字段类型]
+ extData[扩展数据] rawReturnType[原始返回类型]
+ rawFieldType[原始字段类型] filePath[文件路径(反规范化)]
+ language[语言(反规范化)] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-符号" i18n-en:title="Add Symbol" x:prototype="edit"/>
@@ -154,14 +133,11 @@
  endLine[结束行] endColumn[结束列]
  usageCount[使用次数] parentId[父符号ID]
  declaringSymbolId[所属类型ID] superClassName[父类名]
- isAbstract[抽象] isFinal[final]
- signature[签名] returnType[返回类型]
- isStatic[static] isSynchronized[synchronized]
- isNative[native] fieldType[字段类型]
- isVolatile[volatile] isTransient[transient]
- extData[扩展数据] asyncFlag[异步]
- readonlyFlag[只读] rawReturnType[原始返回类型]
- rawFieldType[原始字段类型] 
+ modifiers[修饰符] signature[签名]
+ returnType[返回类型] fieldType[字段类型]
+ extData[扩展数据] rawReturnType[原始返回类型]
+ rawFieldType[原始字段类型] filePath[文件路径(反规范化)]
+ language[语言(反规范化)] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

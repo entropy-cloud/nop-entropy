@@ -1,7 +1,7 @@
 package io.nop.code.service;
 
 import io.nop.code.core.util.BfsNode;
-import io.nop.code.service.api.dto.DepEdgeDTO;
+import io.nop.code.api.dto.DepEdgeDTO;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;

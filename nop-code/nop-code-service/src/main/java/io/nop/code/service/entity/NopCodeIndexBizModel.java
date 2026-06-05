@@ -23,7 +23,8 @@ import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.flow.ChangeAnalysisResult;
 import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.*;
+import io.nop.code.api.dto.*;
+import io.nop.code.service.api.dto.FileAnalysisDTO;
 @BizModel("NopCodeIndex")
 public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements INopCodeIndexBiz {
 

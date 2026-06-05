@@ -27,16 +27,16 @@ import io.nop.code.flow.DeadCodeReport;
 import io.nop.code.service.NopCodeErrors;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.AnnotationUsageDTO;
-import io.nop.code.service.api.dto.CallHierarchyDTO;
-import io.nop.code.service.api.dto.CodeSearchResultDTO;
-import io.nop.code.service.api.dto.FileOutlineDTO;
-import io.nop.code.service.api.dto.ModuleDigestDTO;
-import io.nop.code.service.api.dto.PublicAPIDTO;
-import io.nop.code.service.api.dto.ReferenceDTO;
+import io.nop.code.api.dto.CallHierarchyDTO;
+import io.nop.code.api.dto.CodeSearchResultDTO;
+import io.nop.code.api.dto.FileOutlineDTO;
+import io.nop.code.api.dto.ModuleDigestDTO;
+import io.nop.code.api.dto.PublicAPIDTO;
+import io.nop.code.api.dto.ReferenceDTO;
 import io.nop.code.service.api.dto.SymbolDTO;
-import io.nop.code.service.api.dto.SymbolSourceDTO;
-import io.nop.code.service.api.dto.TypeHierarchyDTO;
-import io.nop.code.service.api.dto.TypeOutlineDTO;
+import io.nop.code.api.dto.SymbolSourceDTO;
+import io.nop.code.api.dto.TypeHierarchyDTO;
+import io.nop.code.api.dto.TypeOutlineDTO;
 @BizModel("NopCodeSymbol")
 public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implements INopCodeSymbolBiz {
 
