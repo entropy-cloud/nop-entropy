@@ -8,6 +8,15 @@ public class CallGraph {
     private final Map<String, List<String>> forwardEdges = new HashMap<>();
     private final Map<String, List<String>> reverseEdges = new HashMap<>();
     private final Set<String> edgeKeys = new HashSet<>();
+    private boolean truncated;
+
+    public boolean isTruncated() {
+        return truncated;
+    }
+
+    public void setTruncated(boolean truncated) {
+        this.truncated = truncated;
+    }
 
     public void addEdge(String caller, String callee) {
         String edgeKey = caller + "->" + callee;

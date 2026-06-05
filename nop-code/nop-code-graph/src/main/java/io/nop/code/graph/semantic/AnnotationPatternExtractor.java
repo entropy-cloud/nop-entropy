@@ -18,6 +18,21 @@ import io.nop.code.core.semantic.SemanticRelationType;
 public class AnnotationPatternExtractor implements ISemanticEdgeExtractor {
 
     private static final int MIN_SHARED_ANNOTATIONS = 1;
+    private static final int MAX_SYMBOLS_PER_ANNOTATION = 100;
+    private static final int MAX_EDGES = 50000;
+
+    private static final Set<String> SKIP_ANNOTATIONS = Set.of(
+            "Override", "Deprecated", "SuppressWarnings", "FunctionalInterface",
+            "java.lang.Override", "java.lang.Deprecated", "java.lang.SuppressWarnings",
+            "Autowired", "org.springframework.beans.factory.annotation.Autowired",
+            "Service", "org.springframework.stereotype.Service",
+            "Component", "org.springframework.stereotype.Component",
+            "Repository", "org.springframework.stereotype.Repository",
+            "Configuration", "org.springframework.context.annotation.Configuration",
+            "Bean", "org.springframework.context.annotation.Bean",
+            "Test", "org.junit.jupiter.api.Test",
+            "org.testng.annotations.Test"
+    );
 
     @Override
     public String getExtractorId() {
@@ -49,11 +64,7 @@ public class AnnotationPatternExtractor implements ISemanticEdgeExtractor {
             }
         }
 
-        // Skip common annotations that don't indicate conceptual similarity
-        Set<String> skipAnnotations = Set.of(
-                "Override", "Deprecated", "SuppressWarnings", "FunctionalInterface",
-                "java.lang.Override", "java.lang.Deprecated", "java.lang.SuppressWarnings"
-        );
+        Set<String> skipAnnotations = SKIP_ANNOTATIONS;
 
         List<CodeSemanticEdge> edges = new ArrayList<>();
         Set<String> seen = new HashSet<>();
@@ -65,9 +76,13 @@ public class AnnotationPatternExtractor implements ISemanticEdgeExtractor {
             List<String> symbolIds = new ArrayList<>(entry.getValue());
             if (symbolIds.size() < 2) continue;
 
-            // Create edges between all pairs of symbols sharing this annotation
+            if (symbolIds.size() > MAX_SYMBOLS_PER_ANNOTATION) {
+                symbolIds = symbolIds.subList(0, MAX_SYMBOLS_PER_ANNOTATION);
+            }
+
             for (int i = 0; i < symbolIds.size(); i++) {
                 for (int j = i + 1; j < symbolIds.size(); j++) {
+                    if (edges.size() >= MAX_EDGES) return edges;
                     String id1 = symbolIds.get(i);
                     String id2 = symbolIds.get(j);
                     String edgeKey = id1 + "|" + id2;

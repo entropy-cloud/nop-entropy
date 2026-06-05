@@ -1,6 +1,7 @@
 package io.nop.code.graph.heuristic;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
@@ -113,10 +114,16 @@ public class SpringEventSynthesizer implements IHeuristicEdgeSynthesizer {
     }
 
     private Map<String, List<PublishPoint>> findPublishPoints(SymbolTable symbolTable,
-                                                               CallGraph callGraph,
-                                                               Set<String> knownEventTypes) {
+                                                                CallGraph callGraph,
+                                                                Set<String> knownEventTypes) {
         Map<String, List<PublishPoint>> result = new LinkedHashMap<>();
         if (knownEventTypes.isEmpty()) return result;
+
+        Set<String> knownShortNames = new HashSet<>();
+        for (String eventType : knownEventTypes) {
+            int dot = eventType.lastIndexOf('.');
+            knownShortNames.add(dot >= 0 ? eventType.substring(dot + 1) : eventType);
+        }
 
         for (CodeSymbol sym : symbolTable.getAll()) {
             if (sym.getKind() != CodeSymbolKind.METHOD) continue;
@@ -124,8 +131,9 @@ public class SpringEventSynthesizer implements IHeuristicEdgeSynthesizer {
             for (String calleeId : callees) {
                 CodeSymbol callee = symbolTable.getById(calleeId);
                 if (callee != null && PUBLISH_EVENT_METHOD.equals(callee.getName())) {
-                    for (String eventType : knownEventTypes) {
-                        result.computeIfAbsent(eventType, k -> new ArrayList<>())
+                    String matchedEventType = matchPublisherEventType(sym, callGraph, symbolTable, knownEventTypes, knownShortNames);
+                    if (matchedEventType != null) {
+                        result.computeIfAbsent(matchedEventType, k -> new ArrayList<>())
                                 .add(new PublishPoint(sym.getId()));
                     }
                 }
@@ -133,6 +141,71 @@ public class SpringEventSynthesizer implements IHeuristicEdgeSynthesizer {
         }
 
         return result;
+    }
+
+    private String matchPublisherEventType(CodeSymbol publisherMethod, CallGraph callGraph,
+                                             SymbolTable symbolTable, Set<String> knownEventTypes,
+                                             Set<String> knownShortNames) {
+        List<String> callees = callGraph.getCallees(publisherMethod.getId());
+        for (String calleeId : callees) {
+            CodeSymbol callee = symbolTable.getById(calleeId);
+            if (callee != null && PUBLISH_EVENT_METHOD.equals(callee.getName())) {
+                String callerLine = extractPublishEventArgType(publisherMethod, callee, symbolTable);
+                if (callerLine != null) {
+                    for (String eventType : knownEventTypes) {
+                        if (eventType.equals(callerLine) || eventType.endsWith("." + callerLine)) {
+                            return eventType;
+                        }
+                    }
+                    for (String shortName : knownShortNames) {
+                        if (shortName.equals(callerLine)) {
+                            for (String eventType : knownEventTypes) {
+                                if (eventType.endsWith("." + shortName) || eventType.equals(shortName)) {
+                                    return eventType;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        String methodName = publisherMethod.getName();
+        for (String eventType : knownEventTypes) {
+            String eventShort = eventType.contains(".") ? eventType.substring(eventType.lastIndexOf('.') + 1) : eventType;
+            String eventBase = eventShort.replace("Event", "");
+            if (!eventBase.isEmpty() && methodName.toLowerCase().contains(eventBase.toLowerCase())) {
+                return eventType;
+            }
+        }
+
+        return null;
+    }
+
+    private String extractPublishEventArgType(CodeSymbol publisher, CodeSymbol publishMethod,
+                                                SymbolTable symbolTable) {
+        if (publisher.getExtData() != null) {
+            try {
+                Object parsed = JsonTool.parseNonStrict(publisher.getExtData());
+                if (parsed instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) parsed;
+                    Object params = map.get("publishEventTypes");
+                    if (params instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<Object> paramList = (List<Object>) params;
+                        if (!paramList.isEmpty()) {
+                            Object first = paramList.get(0);
+                            if (first instanceof String) return (String) first;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOG.debug("Failed to extract publish event arg type from {}", publisher.getQualifiedName(), e);
+            }
+        }
+
+        return null;
     }
 
     private static class PublishPoint {

@@ -40,8 +40,8 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
         for (FileFingerprint fp : fingerprints) {
             String canonicalPath = pathMapper.apply(fp.getFilePath());
-            String entityId = indexId + "_" + DigestHelper.sha256Hex(
-                    canonicalPath.getBytes(StandardCharsets.UTF_8)).substring(0, 16);
+            String entityId = DigestHelper.sha256Hex(
+                    (indexId + ":" + canonicalPath).getBytes(StandardCharsets.UTF_8)).substring(0, 36);
             NopCodeFile existing = findByIndexAndPath(fileDao, indexId, canonicalPath);
 
             NopCodeFile fileEntity;

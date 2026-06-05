@@ -247,7 +247,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
         int defIndex = -1;
         for (int i = 0; i < parent.getChildCount(); i++) {
             TSNode child = parent.getChild(i);
-            if (child != null && child.equals(defNode)) {
+            if (child != null && TSNode.eq(child, defNode)) {
                 defIndex = i;
                 break;
             }

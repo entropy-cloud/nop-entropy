@@ -9,6 +9,15 @@ import io.nop.code.core.model.CodeSymbol;
 public class SymbolTable {
     private final Map<String, CodeSymbol> byQualifiedName = new HashMap<>();
     private final Map<String, CodeSymbol> byId = new HashMap<>();
+    private boolean truncated;
+
+    public boolean isTruncated() {
+        return truncated;
+    }
+
+    public void setTruncated(boolean truncated) {
+        this.truncated = truncated;
+    }
 
     public void add(CodeSymbol symbol) {
         if (symbol.getQualifiedName() != null) {

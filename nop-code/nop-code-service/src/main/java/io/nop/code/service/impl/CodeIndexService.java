@@ -82,6 +82,8 @@ import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntity;
+import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.exceptions.OrmException;
@@ -112,6 +114,9 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Inject
     protected IOrmTemplate ormTemplate;
+
+    @Inject
+    protected ITransactionTemplate transactionTemplate;
 
     private synchronized void ensureSubServices() {
         if (searchService == null && daoProvider != null) {
@@ -312,11 +317,12 @@ public class CodeIndexService implements ICodeIndexService {
                     VirtualFileSystem.instance(), resolvedPath, filePattern,
                     batch -> {});
             final ProjectAnalysisResult finalResult = result;
-            return ormTemplate.runInSession(session -> {
-                ensureIndexEntity(indexId, resolvedPath, session);
-                persistInSession(indexId, resolvedPath, finalResult, session);
-                return finalResult.getFileResults().size();
-            });
+            return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                    ormTemplate.runInSession(session -> {
+                        ensureIndexEntity(indexId, resolvedPath, session);
+                        persistInSession(indexId, resolvedPath, finalResult, session);
+                        return finalResult.getFileResults().size();
+                    }));
         } finally {
             lock.unlock();
         }
@@ -330,11 +336,12 @@ public class CodeIndexService implements ICodeIndexService {
         }
         CodeFileAnalysisResult result = fileAnalyzer.analyze(filePath, sourceCode);
 
-        ormTemplate.runInSession(session -> {
-            ensureIndexEntity(indexId, null, session);
-            persistSingleFileInSession(indexId, result, session);
-            return null;
-        });
+        transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                ormTemplate.runInSession(session -> {
+                    ensureIndexEntity(indexId, null, session);
+                    persistSingleFileInSession(indexId, result, session);
+                    return null;
+                }));
         invalidateAnalysisCache(indexId);
         return result;
     }
@@ -565,26 +572,27 @@ public class CodeIndexService implements ICodeIndexService {
             }
         }
 
-        ormTemplate.runInSession(session -> {
-            deleteEntitiesPaged(session, NopCodeUsage.class, "indexId", indexId);
-            IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
-            QueryBean flowQuery = new QueryBean();
-            flowQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            for (NopCodeFlow flow : flowDao.findAllByQuery(flowQuery)) {
-                deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flowId", flow.getId());
-            }
-            deleteEntitiesPaged(session, NopCodeFlow.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeAnnotationUsage.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeInheritance.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeCall.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeSymbol.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeFile.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeDependency.class, "indexId", indexId);
-            deleteEntitiesPaged(session, NopCodeSemanticEdge.class, "indexId", indexId);
+        transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                ormTemplate.runInSession(session -> {
+                    deleteEntitiesPaged(session, NopCodeUsage.class, "indexId", indexId);
+                    IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
+                    QueryBean flowQuery = new QueryBean();
+                    flowQuery.addFilter(FilterBeans.eq("indexId", indexId));
+                    for (NopCodeFlow flow : flowDao.findAllByQuery(flowQuery)) {
+                        deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flowId", flow.getId());
+                    }
+                    deleteEntitiesPaged(session, NopCodeFlow.class, "indexId", indexId);
+                    deleteEntitiesPaged(session, NopCodeAnnotationUsage.class, "indexId", indexId);
+                    deleteEntitiesPaged(session, NopCodeInheritance.class, "indexId", indexId);
+                    deleteEntitiesPaged(session, NopCodeCall.class, "indexId", indexId);
+                    deleteEntitiesPaged(session, NopCodeSymbol.class, "indexId", indexId);
+                    deleteEntitiesPaged(session, NopCodeFile.class, "indexId", indexId);
+                    deleteEntitiesPaged(session, NopCodeDependency.class, "indexId", indexId);
+                    deleteEntitiesPaged(session, NopCodeSemanticEdge.class, "indexId", indexId);
 
-            daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
-            return null;
-        });
+                    daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
+                    return null;
+                }));
 
         indexLocks.remove(indexId);
     }
@@ -696,7 +704,8 @@ public class CodeIndexService implements ICodeIndexService {
 
         Function<String, String> pathMapper = buildPathMapper(vfsPath);
 
-        return ormTemplate.runInSession(session -> {
+        return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                ormTemplate.runInSession(session -> {
             try {
                 IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
                 List<FileFingerprint> previousFingerprints = store.loadFingerprints(indexId);
@@ -764,10 +773,8 @@ public class CodeIndexService implements ICodeIndexService {
             } catch (IOException e) {
                 throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
             }
-        });
+        }));
     }
-
-    // 
 
     // ====== File Page Query 
 
@@ -960,6 +967,8 @@ public class CodeIndexService implements ICodeIndexService {
                     }
                 }
             }
+            session.flush();
+            session.evictAll(NopCodeInheritance.class.getName());
             if (inhBatch.size() < BATCH_SIZE) break;
             inhOffset += BATCH_SIZE;
         }
@@ -982,6 +991,8 @@ public class CodeIndexService implements ICodeIndexService {
                     }
                 }
             }
+            session.flush();
+            session.evictAll(NopCodeAnnotationUsage.class.getName());
             if (annotBatch.size() < BATCH_SIZE) break;
             annotOffset += BATCH_SIZE;
         }
@@ -1651,7 +1662,8 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     private void persistFlows(String indexId, List<ExecutionFlow> flows) {
-        ormTemplate.runInSession(session -> {
+        transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                ormTemplate.runInSession(session -> {
             IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
             QueryBean deleteQuery = new QueryBean();
             deleteQuery.addFilter(FilterBeans.eq("indexId", indexId));
@@ -1693,7 +1705,7 @@ public class CodeIndexService implements ICodeIndexService {
                 }
             }
             return null;
-        });
+        }));
     }
 
     private ExecutionFlow entityToExecutionFlow(NopCodeFlow entity) {

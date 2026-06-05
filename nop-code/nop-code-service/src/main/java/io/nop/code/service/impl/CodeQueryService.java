@@ -22,6 +22,7 @@ import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
+import io.nop.core.lang.json.JsonTool;
 class CodeQueryService {
 
     private final IDaoProvider daoProvider;
@@ -42,6 +43,15 @@ class CodeQueryService {
                 ? CodeLanguage.valueOf(entity.getLanguage()) : null);
         result.setLineCount(entity.getLineCount() != null ? entity.getLineCount() : 0);
         result.setSourceCode(entity.getSourceCode());
+        String importsJson = entity.getImports();
+        if (importsJson != null && !importsJson.isEmpty()) {
+            Object parsed = JsonTool.parse(importsJson);
+            if (parsed instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> importsList = (List<String>) parsed;
+                result.setImports(importsList);
+            }
+        }
         return result;
     }
 

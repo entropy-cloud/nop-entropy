@@ -242,8 +242,7 @@ class CodeSearchService {
 
     private List<CodeSearchResultDTO> filterByFilePattern(List<CodeSearchResultDTO> results, String filePattern) {
         if (filePattern == null || filePattern.isEmpty()) return results;
-        String pattern = java.util.regex.Pattern.quote(filePattern)
-                .replace("\\*", ".*").replace("\\?", ".");
+        String pattern = filePattern.replace(".", "\\.").replace("*", ".*").replace("?", ".");
         return results.stream()
                 .filter(r -> r.getFilePath() != null && r.getFilePath().matches(pattern))
                 .collect(Collectors.toList());

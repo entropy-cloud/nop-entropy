@@ -148,6 +148,7 @@ class CodeCacheManager {
             if (totalLoaded >= MAX_CACHE_SYMBOLS) {
                 LOG.warn("Symbol cache for index {} exceeded MAX_CACHE_SYMBOLS({}), returning partial data ({} symbols loaded)",
                         indexId, MAX_CACHE_SYMBOLS, totalLoaded);
+                table.setTruncated(true);
                 return table;
             }
             if (batch.size() < BATCH_SIZE)
@@ -178,6 +179,7 @@ class CodeCacheManager {
             if (totalLoaded >= MAX_CACHE_EDGES) {
                 LOG.warn("Call graph cache for index {} exceeded MAX_CACHE_EDGES({}), returning partial data ({} edges loaded)",
                         indexId, MAX_CACHE_EDGES, totalLoaded);
+                callGraph.setTruncated(true);
                 return callGraph;
             }
             if (batch.size() < BATCH_SIZE)
