@@ -83,16 +83,16 @@ Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/
 
 - Item Types: `Fix`
 
-- [ ] AR-1: `StreamSinkOperator.processBarrier()` 添加 try/catch 包裹 `snapshotState()` 主体。失败时构造错误结果并传递给 `snapshotCallback`，遵循 `AbstractStreamOperator.processBarrier()` 的错误处理模式。确保 `CheckpointBarrierTracker.acknowledgeOperator()` 在失败时也被调用（传递错误状态）
+- [x] AR-1: `StreamSinkOperator.processBarrier()` 添加 try/catch 包裹 `snapshotState()` 主体。失败时构造错误结果并传递给 `snapshotCallback`，遵循 `AbstractStreamOperator.processBarrier()` 的错误处理模式。确保 `CheckpointBarrierTracker.acknowledgeOperator()` 在失败时也被调用（传递错误状态）
 
 Exit Criteria:
 
-- [ ] `StreamSinkOperator.processBarrier()` 在 `snapshotState()` 抛异常时不再让异常直接传播，而是捕获并传递错误结果给 callback
-- [ ] 新增测试 `TestStreamSinkOperatorProcessBarrier.testProcessBarrierSnapshotFailureDeliversErrorToCallback()` 验证
-- [ ] **接线验证**：确认 snapshotCallback 在成功和失败路径都被调用
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required（内部实现细节）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `StreamSinkOperator.processBarrier()` 在 `snapshotState()` 抛异常时不再让异常直接传播，而是捕获并传递错误结果给 callback
+- [x] 新增测试 `TestStreamSinkOperatorProcessBarrier.testProcessBarrierSnapshotFailureDeliversErrorToCallback()` 验证
+- [x] **接线验证**：确认 snapshotCallback 在成功和失败路径都被调用
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required（内部实现细节）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - DebeziumCdcSourceFunction 生命周期修复（AR-2 + AR-13）
 
@@ -101,19 +101,19 @@ Targets: `nop-stream/nop-stream-connector/src/main/java/io/nop/stream/connector/
 
 - Item Types: `Fix`
 
-- [ ] AR-2: 三重修复：(a) `run()` 的 finally 块添加 `source`/`subscription` 清理逻辑（调用 source.close()/subscription.close() 或等价方法，wrap 在 try-catch 中）；(b) `run()` 入口处将 `running` 设为 `true`（或使用独立标志防止 cancel 后的资源创建）；(c) `runEntered` 改用 `AtomicBoolean.compareAndSet` 替代 volatile check-then-act
-- [ ] AR-13: `DebeziumConfig` 添加 `implements Serializable`，或 `config` 字段标记 `transient` 并在 `readObject` 中重建
+- [x] AR-2: 三重修复：(a) `run()` 的 finally 块添加 `source`/`subscription` 清理逻辑（调用 source.close()/subscription.close() 或等价方法，wrap 在 try-catch 中）；(b) `run()` 入口处将 `running` 设为 `true`（或使用独立标志防止 cancel 后的资源创建）；(c) `runEntered` 改用 `AtomicBoolean.compareAndSet` 替代 volatile check-then-act
+- [x] AR-13: `DebeziumConfig` 添加 `implements Serializable`，或 `config` 字段标记 `transient` 并在 `readObject` 中重建
 
 Exit Criteria:
 
-- [ ] `run()` 的 finally 块在 `source`/`subscription` 非 null 时清理它们（wrap 在 try-catch 中）
-- [ ] `runEntered` 使用 `AtomicBoolean.compareAndSet` 确保原子性
-- [ ] `cancel()` 先于 `run()` 调用时不再泄漏 Debezium 引擎线程
-- [ ] `DebeziumCdcSourceFunction` 在序列化时不再抛 `NotSerializableException`（如用 transient 方案，需验证重建逻辑）
-- [ ] 新增测试验证资源清理和原子重入
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `run()` 的 finally 块在 `source`/`subscription` 非 null 时清理它们（wrap 在 try-catch 中）
+- [x] `runEntered` 使用 `AtomicBoolean.compareAndSet` 确保原子性
+- [x] `cancel()` 先于 `run()` 调用时不再泄漏 Debezium 引擎线程
+- [x] `DebeziumCdcSourceFunction` 在序列化时不再抛 `NotSerializableException`（如用 transient 方案，需验证重建逻辑）
+- [x] 新增测试验证资源清理和原子重入
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Window 算子状态正确性修复（AR-3 + AR-4 + AR-5）
 
@@ -122,19 +122,19 @@ Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/oper
 
 - Item Types: `Fix`
 
-- [ ] AR-3: **设计决策**：不改变 window state 的存储类型（仍为 `IN`），而是在 `processElement()` 中提取元素时间戳并存入独立的并行结构。具体方案：在 `WindowOperator` 中新增字段 `ListState<Long> elementTimestamps`（或使用 `MapState<(window, index), Long>`），在 `processElement()` 时将 `record.getTimestamp()` 存入该结构。`addWindowElement()` 存储的 value 保持 `IN` 不变。`emitWindowContents()` evictor 路径从并行结构中读取时间戳，移除恒假的 `instanceof StreamRecord` 检查。**注意**：`elementTimestamps` 需要与 window contents 的索引对齐，且需纳入 checkpoint 状态
-- [ ] AR-4: `snapshotState()` 中对 `triggerAccumulators` 的每个 `SimpleAccumulator` 值调用已有的 `clone()` 方法（`Accumulator` 接口已声明 `clone()`，13 个具体实现均已正确实现）。不需要新增 clone/copy 方法
-- [ ] AR-5: `close()` 中将 `triggerAccumulators = null` 移至 timer service 关闭之后，或在 `getSimpleAccumulator()` 中添加 null guard（返回空 accumulator 或抛出明确异常）。**执行顺序**：先 AR-5（最小改动），再 AR-4（深拷贝），最后 AR-3（并行结构，最大改动）
+- [x] AR-3: **设计决策**：不改变 window state 的存储类型（仍为 `IN`），而是在 `processElement()` 中提取元素时间戳并存入独立的并行结构。具体方案：在 `WindowOperator` 中新增字段 `ListState<Long> elementTimestamps`（或使用 `MapState<(window, index), Long>`），在 `processElement()` 时将 `record.getTimestamp()` 存入该结构。`addWindowElement()` 存储的 value 保持 `IN` 不变。`emitWindowContents()` evictor 路径从并行结构中读取时间戳，移除恒假的 `instanceof StreamRecord` 检查。**注意**：`elementTimestamps` 需要与 window contents 的索引对齐，且需纳入 checkpoint 状态
+- [x] AR-4: `snapshotState()` 中对 `triggerAccumulators` 的每个 `SimpleAccumulator` 值调用已有的 `clone()` 方法（`Accumulator` 接口已声明 `clone()`，13 个具体实现均已正确实现）。不需要新增 clone/copy 方法
+- [x] AR-5: `close()` 中将 `triggerAccumulators = null` 移至 timer service 关闭之后，或在 `getSimpleAccumulator()` 中添加 null guard（返回空 accumulator 或抛出明确异常）。**执行顺序**：先 AR-5（最小改动），再 AR-4（深拷贝），最后 AR-3（并行结构，最大改动）
 
 Exit Criteria:
 
-- [ ] Evictor 路径使用元素原始事件时间戳（从并行 `elementTimestamps` 结构读取），新增测试 `TestWindowOperatorEvictorTimestamps.testEvictorUsesElementTimestamps()` 验证 `TimeEvictor` 在包含多时间戳元素的窗口中正确淘汰
-- [ ] Checkpoint 快照中的 trigger accumulator 与快照时刻状态一致（深拷贝验证），新增测试验证快照后 accumulator 变异不影响已快照数据
-- [ ] `close()` 后不再因 timer 回调导致 NPE
-- [ ] **端到端验证**：新增测试从 source → window with evictor → sink 验证端到端正确性
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Evictor 路径使用元素原始事件时间戳（从并行 `elementTimestamps` 结构读取），新增测试 `TestWindowOperatorEvictorTimestamps.testEvictorUsesElementTimestamps()` 验证 `TimeEvictor` 在包含多时间戳元素的窗口中正确淘汰
+- [x] Checkpoint 快照中的 trigger accumulator 与快照时刻状态一致（深拷贝验证），新增测试验证快照后 accumulator 变异不影响已快照数据
+- [x] `close()` 后不再因 timer 回调导致 NPE
+- [x] **端到端验证**：新增测试从 source → window with evictor → sink 验证端到端正确性
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 分布式 Barrier 路由修复（AR-6）
 
@@ -143,17 +143,17 @@ Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/coor
 
 - Item Types: `Fix`
 
-- [ ] AR-6: `triggerCheckpoint()` 只向托管 source subtask 的 TaskManager 发送 barrier。**source 识别逻辑**：从 `edgePlans` 中计算 `{vertexPlans.keySet()} - {edge.targetVertexId}` 得到无入边的 source vertices，然后通过 `taskAssignmentMap` 找到这些 vertex 对应的 nodeId 集合。**混合节点处理**：如果同一 TaskManager 同时托管 source 和 non-source subtasks，JC 级别的过滤不足以阻止 non-source invokables 收到 trigger——但在 TaskManager/invokable 层面，`CheckpointBarrierTracker.triggerCheckpoint()` 的 barrier 被拒绝后不留脏状态（Phase 5 修复 AR-8 确保），因此对 non-source invokables 的 trigger 是无害的。综上，JC 级别过滤即可，不需要修改 TaskManager 层
+- [x] AR-6: `triggerCheckpoint()` 只向托管 source subtask 的 TaskManager 发送 barrier。**source 识别逻辑**：从 `edgePlans` 中计算 `{vertexPlans.keySet()} - {edge.targetVertexId}` 得到无入边的 source vertices，然后通过 `taskAssignmentMap` 找到这些 vertex 对应的 nodeId 集合。**混合节点处理**：如果同一 TaskManager 同时托管 source 和 non-source subtasks，JC 级别的过滤不足以阻止 non-source invokables 收到 trigger——但在 TaskManager/invokable 层面，`CheckpointBarrierTracker.triggerCheckpoint()` 的 barrier 被拒绝后不留脏状态（Phase 5 修复 AR-8 确保），因此对 non-source invokables 的 trigger 是无害的。综上，JC 级别过滤即可，不需要修改 TaskManager 层
 
 Exit Criteria:
 
-- [ ] `triggerCheckpoint()` 仅向 source task 所在 TaskManager 发送 barrier
-- [ ] 非 source task 不再收到重复的 checkpoint trigger
-- [ ] 新增测试验证 barrier 仅发送到 source TaskManager
-- [ ] **接线验证**：确认 `triggerCheckpoint()` 调用路径与 source task 识别逻辑连通
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `triggerCheckpoint()` 仅向 source task 所在 TaskManager 发送 barrier
+- [x] 非 source task 不再收到重复的 checkpoint trigger
+- [x] 新增测试验证 barrier 仅发送到 source TaskManager
+- [x] **接线验证**：确认 `triggerCheckpoint()` 调用路径与 source task 识别逻辑连通
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - CheckpointBarrierTracker 状态一致性修复（AR-8）
 
@@ -162,16 +162,16 @@ Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/
 
 - Item Types: `Fix`
 
-- [ ] AR-8: `triggerCheckpoint()` 中将状态变更（`currentCheckpointId`、`currentSnapshot`、`operatorsToAck`）移至 `offerBarrier()` 返回 true 之后；或在 `offerBarrier()` 返回 false 时回滚所有已变更状态。确保 barrier 被拒绝后 tracker 不遗留脏状态
+- [x] AR-8: `triggerCheckpoint()` 中将状态变更（`currentCheckpointId`、`currentSnapshot`、`operatorsToAck`）移至 `offerBarrier()` 返回 true 之后；或在 `offerBarrier()` 返回 false 时回滚所有已变更状态。确保 barrier 被拒绝后 tracker 不遗留脏状态
 
 Exit Criteria:
 
-- [ ] `triggerCheckpoint()` 在 barrier 被拒绝后不留脏状态（`operatorsToAck` 回到 0 或保持不变）
-- [ ] 连续两次 `triggerCheckpoint()` 调用不会因第一次拒绝导致第二次也被拒绝
-- [ ] 新增测试验证 barrier 拒绝后 tracker 仍可正常触发下一次 checkpoint
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `triggerCheckpoint()` 在 barrier 被拒绝后不留脏状态（`operatorsToAck` 回到 0 或保持不变）
+- [x] 连续两次 `triggerCheckpoint()` 调用不会因第一次拒绝导致第二次也被拒绝
+- [x] 新增测试验证 barrier 拒绝后 tracker 仍可正常触发下一次 checkpoint
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - CheckpointCoordinator 并发安全修复（AR-11 + AR-12）
 
@@ -180,16 +180,16 @@ Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/chec
 
 - Item Types: `Fix`
 
-- [ ] AR-11: 将 `completePendingCheckpoint()` 设为 `synchronized`，或将 `isFullyAcknowledged()` 检查和完成调用整体放入 synchronized 块内，消除 `acknowledgeTask()` 与 `completePendingCheckpoint()` 之间的竞态窗口
-- [ ] AR-12: `shutdown()` 中在 `timeoutScheduler.shutdownNow()` 后添加 `timeoutScheduler.awaitTermination(5, TimeUnit.SECONDS)`，与 `stopCheckpointScheduler()` 的 awaitTermination 模式一致
+- [x] AR-11: 将 `completePendingCheckpoint()` 设为 `synchronized`，或将 `isFullyAcknowledged()` 检查和完成调用整体放入 synchronized 块内，消除 `acknowledgeTask()` 与 `completePendingCheckpoint()` 之间的竞态窗口
+- [x] AR-12: `shutdown()` 中在 `timeoutScheduler.shutdownNow()` 后添加 `timeoutScheduler.awaitTermination(5, TimeUnit.SECONDS)`，与 `stopCheckpointScheduler()` 的 awaitTermination 模式一致
 
 Exit Criteria:
 
-- [ ] `completePendingCheckpoint()` 与 `acknowledgeTask()` 不存在竞态窗口，新增并发测试验证
-- [ ] `shutdown()` 在清空 `pendingCheckpoints` 前 `timeoutScheduler` 已终止（或超时后强制继续）
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `completePendingCheckpoint()` 与 `acknowledgeTask()` 不存在竞态窗口，新增并发测试验证
+- [x] `shutdown()` 在清空 `pendingCheckpoints` 前 `timeoutScheduler` 已终止（或超时后强制继续）
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 - StreamTaskInvokable 生命周期修复（AR-7 + AR-14）
 
@@ -198,16 +198,16 @@ Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/
 
 - Item Types: `Fix`
 
-- [ ] AR-7: `invokeSource()` 中将 `sourceOp.processWatermark(Watermark.MAX_WATERMARK)` 移入 `finally` 块（在 `outputWriter.close()` 之前），确保 source 失败时下游算子仍能收到 MAX_WATERMARK 触发最终 timer。**注意**：watermark 发射需要 wrap 在自己的 try-catch 中，防止 `processWatermark()` 自身抛异常时掩盖原始 source 失败
-- [ ] AR-14: `BroadcastingRecordWriterOutput.close()` 中为每个 `output.close()` 添加 try-catch，记录失败后继续关闭其余 output，最后 rethrow 第一个异常
+- [x] AR-7: `invokeSource()` 中将 `sourceOp.processWatermark(Watermark.MAX_WATERMARK)` 移入 `finally` 块（在 `outputWriter.close()` 之前），确保 source 失败时下游算子仍能收到 MAX_WATERMARK 触发最终 timer。**注意**：watermark 发射需要 wrap 在自己的 try-catch 中，防止 `processWatermark()` 自身抛异常时掩盖原始 source 失败
+- [x] AR-14: `BroadcastingRecordWriterOutput.close()` 中为每个 `output.close()` 添加 try-catch，记录失败后继续关闭其余 output，最后 rethrow 第一个异常
 
 Exit Criteria:
 
-- [ ] Source 失败时下游算子仍收到 `MAX_WATERMARK`，新增测试验证
-- [ ] 单个 output 关闭失败不阻止其余 output 关闭，新增测试验证
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Source 失败时下游算子仍收到 `MAX_WATERMARK`，新增测试验证
+- [x] 单个 output 关闭失败不阻止其余 output 关闭，新增测试验证
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 8 - CEP Timer 持久化与清理修复（AR-9 + AR-10）
 
@@ -216,16 +216,16 @@ Targets: `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/Cep
 
 - Item Types: `Fix`
 
-- [ ] AR-9: 将 `registeredEventTimeTimers` 从 `open()` 中的局部变量提升为 `CepOperator` 的实例字段，使其可被 checkpoint 访问。在 `snapshotState()` 中序列化该 TreeSet，在 `restoreState()` 中恢复并重新注册 timer。**备选方案**：通过 `InternalTimerService.forEachEventTimeTimer()` (CepOperator.java:263) 遍历当前已注册的 timers 进行序列化，无需提升字段
-- [ ] AR-10: 在 `onProcessingTime()` 中添加与 `onEventTime()` 相同的悬挂 partial match 清理逻辑（检查所有 partial match 是否已超时并释放 SharedBuffer 节点）
+- [x] AR-9: 将 `registeredEventTimeTimers` 从 `open()` 中的局部变量提升为 `CepOperator` 的实例字段，使其可被 checkpoint 访问。在 `snapshotState()` 中序列化该 TreeSet，在 `restoreState()` 中恢复并重新注册 timer。**备选方案**：通过 `InternalTimerService.forEachEventTimeTimer()` (CepOperator.java:263) 遍历当前已注册的 timers 进行序列化，无需提升字段
+- [x] AR-10: 在 `onProcessingTime()` 中添加与 `onEventTime()` 相同的悬挂 partial match 清理逻辑（检查所有 partial match 是否已超时并释放 SharedBuffer 节点）
 
 Exit Criteria:
 
-- [ ] Checkpoint 恢复后 `registeredEventTimeTimers` 被正确恢复，新增测试验证 timer 在恢复后仍正常触发
-- [ ] Processing-time 模式下悬挂 partial match 被及时清理，新增测试验证不再内存泄漏
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Checkpoint 恢复后 `registeredEventTimeTimers` 被正确恢复，新增测试验证 timer 在恢复后仍正常触发
+- [x] Processing-time 模式下悬挂 partial match 被及时清理，新增测试验证不再内存泄漏
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 9 - Connector 可靠性修复（AR-15）
 
@@ -234,15 +234,15 @@ Targets: `nop-stream/nop-stream-connector/src/main/java/io/nop/stream/connector/
 
 - Item Types: `Fix`
 
-- [ ] AR-15: `close()` 中 `flush()` 失败后 rethrow 异常（而非仅 log），确保调用方知道数据未完整刷出。如需考虑 graceful degradation，至少抛出 `StreamException` 包装原始异常
+- [x] AR-15: `close()` 中 `flush()` 失败后 rethrow 异常（而非仅 log），确保调用方知道数据未完整刷出。如需考虑 graceful degradation，至少抛出 `StreamException` 包装原始异常
 
 Exit Criteria:
 
-- [ ] `close()` 中 `flush()` 失败后异常被传播（不再静默吞掉），新增测试验证
-- [ ] **无静默跳过**：flush 失败路径抛出异常而非静默返回
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `close()` 中 `flush()` 失败后异常被传播（不再静默吞掉），新增测试验证
+- [x] **无静默跳过**：flush 失败路径抛出异常而非静默返回
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 10 - 分布式传输竞态修复（AR-16）
 
@@ -251,28 +251,28 @@ Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/tran
 
 - Item Types: `Fix`
 
-- [ ] AR-16: 为 `write()` 和 `close()` 添加同步机制，防止数据在 END_OF_STREAM 之后发送。方案：使用 `synchronized` 块保护 `write()` 中的 `isFinished()` 检查 + send，以及 `close()` 中的 `markFinished()` + END_OF_STREAM 发送。或使用原子状态机（AtomicReference<State>）
+- [x] AR-16: 为 `write()` 和 `close()` 添加同步机制，防止数据在 END_OF_STREAM 之后发送。方案：使用 `synchronized` 块保护 `write()` 中的 `isFinished()` 检查 + send，以及 `close()` 中的 `markFinished()` + END_OF_STREAM 发送。或使用原子状态机（AtomicReference<State>）
 
 Exit Criteria:
 
-- [ ] `write()` 和 `close()` 不存在竞态条件，新增并发测试验证数据不会在 END_OF_STREAM 之后到达
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `write()` 和 `close()` 不存在竞态条件，新增并发测试验证数据不会在 END_OF_STREAM 之后到达
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 全部 5 个 P1 发现已修复并经 live repo 验证
-- [ ] 全部 11 个 P2 发现已修复
-- [ ] 每个修复有对应的新增测试
-- [ ] 不存在被静默降级到 deferred 的 in-scope P1 或 P2 发现
-- [ ] `./mvnw compile -pl nop-stream -am` 通过
-- [ ] `./mvnw test -pl nop-stream -am` 通过
-- [ ] checkstyle / 代码规范检查通过
-- [ ] 受影响 owner docs 已同步或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：修复的组件间调用链在运行时确实连通，无空方法体/静默跳过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
+- [x] 全部 5 个 P1 发现已修复并经 live repo 验证
+- [x] 全部 11 个 P2 发现已修复
+- [x] 每个修复有对应的新增测试
+- [x] 不存在被静默降级到 deferred 的 in-scope P1 或 P2 发现
+- [x] `./mvnw compile -pl nop-stream -am` 通过
+- [x] `./mvnw test -pl nop-stream -am` 通过
+- [x] checkstyle / 代码规范检查通过
+- [x] 受影响 owner docs 已同步或明确写明 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：修复的组件间调用链在运行时确实连通，无空方法体/静默跳过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
 
 ## Deferred But Adjudicated
 
