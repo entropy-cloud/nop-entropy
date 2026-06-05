@@ -13,6 +13,12 @@ public class KnowledgeGapAnalyzer {
 
     public KnowledgeGapResult analyze(CallGraph callGraph, SymbolTable symbolTable,
                                       CommunityDetector.CommunityDetectionResult communities) {
+        if (callGraph == null || symbolTable == null) {
+            KnowledgeGapResult result = new KnowledgeGapResult();
+            result.setIsolatedSymbols(Collections.emptyList());
+            result.setWeakCommunities(Collections.emptyList());
+            return result;
+        }
         KnowledgeGapResult result = new KnowledgeGapResult();
         result.setIsolatedSymbols(detectIsolatedNodes(callGraph, symbolTable));
         result.setWeakCommunities(detectWeakCommunities(callGraph, communities));

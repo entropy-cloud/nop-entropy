@@ -18,7 +18,7 @@ public class CallGraph {
         this.truncated = truncated;
     }
 
-    public void addEdge(String caller, String callee) {
+    public synchronized void addEdge(String caller, String callee) {
         String edgeKey = caller + "->" + callee;
         if (!edgeKeys.add(edgeKey)) {
             return;
@@ -27,14 +27,14 @@ public class CallGraph {
         reverseEdges.computeIfAbsent(callee, k -> new ArrayList<>()).add(caller);
     }
 
-    public List<String> getCallees(String nodeId) {
+    public synchronized List<String> getCallees(String nodeId) {
         List<String> callees = forwardEdges.get(nodeId);
-        return callees != null ? Collections.unmodifiableList(callees) : Collections.emptyList();
+        return callees != null ? new ArrayList<>(callees) : Collections.emptyList();
     }
 
-    public List<String> getCallers(String nodeId) {
+    public synchronized List<String> getCallers(String nodeId) {
         List<String> callers = reverseEdges.get(nodeId);
-        return callers != null ? Collections.unmodifiableList(callers) : Collections.emptyList();
+        return callers != null ? new ArrayList<>(callers) : Collections.emptyList();
     }
 
     public Set<String> getAllNodeIds() {

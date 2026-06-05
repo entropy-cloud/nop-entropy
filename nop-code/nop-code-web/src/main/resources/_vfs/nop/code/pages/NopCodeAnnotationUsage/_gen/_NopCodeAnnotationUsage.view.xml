@@ -25,7 +25,7 @@
                 <col id="annotationTypeId" mandatory="true" sortable="true"/>
 
                 <!--被注解符号ID-->
-                <col id="annotatedSymbolId" sortable="true"/>
+                <col id="annotatedSymbolId" mandatory="true" sortable="true"/>
 
                 <!--行号-->
                 <col id="line" ui:number="true" sortable="true"/>

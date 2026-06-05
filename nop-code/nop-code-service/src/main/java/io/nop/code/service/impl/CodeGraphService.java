@@ -513,11 +513,7 @@ class CodeGraphService {
 
     DepGraphDTO getDepGraph(String indexId, boolean includeExternal) {
         if (daoProvider == null) return new DepGraphDTO();
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
-        // Full dependency list needed for graph building
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         List<DepEdgeDTO> edges = new ArrayList<>();
         Map<String, int[]> degreeMap = new LinkedHashMap<>();
@@ -560,10 +556,7 @@ class CodeGraphService {
     List<String> findDependentFiles(String indexId, String filePath) {
         if (daoProvider == null || filePath == null) return Collections.emptyList();
 
-        IEntityDao<NopCodeDependency> depDao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean depQuery = new QueryBean();
-        depQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> allDeps = depDao.findAllByQuery(depQuery);
+        List<NopCodeDependency> allDeps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<String>> targetToSources = new HashMap<>();
         for (NopCodeDependency dep : allDeps) {
@@ -600,10 +593,7 @@ class CodeGraphService {
     }
 
     private Map<String, List<DepEdgeDTO>> buildForwardAdjacency(String indexId) {
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<DepEdgeDTO>> adj = new HashMap<>();
         for (NopCodeDependency dep : deps) {
@@ -619,10 +609,7 @@ class CodeGraphService {
     }
 
     private Map<String, List<DepEdgeDTO>> buildReverseAdjacency(String indexId) {
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<DepEdgeDTO>> adj = new HashMap<>();
         for (NopCodeDependency dep : deps) {
@@ -638,10 +625,7 @@ class CodeGraphService {
     }
 
     private Map<String, List<String>> buildForwardStringAdjacency(String indexId) {
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<String>> adj = new HashMap<>();
         for (NopCodeDependency dep : deps) {

@@ -16,6 +16,7 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.dao.entity.NopCodeCall;
+import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.flow.FlowDetector;
 import io.nop.code.flow.IFlowDetector;
@@ -35,6 +36,7 @@ class CodeCacheManager {
     static class AnalysisCache {
         SymbolTable symbolTable;
         CallGraph callGraph;
+        List<NopCodeDependency> dependencies;
     }
 
     static class CacheEntry {
@@ -123,6 +125,16 @@ class CodeCacheManager {
         }
     }
 
+    synchronized List<NopCodeDependency> getOrRebuildDependencies(String indexId, IDaoProvider daoProvider) {
+        CacheEntry entry = getOrCreateEntry(indexId);
+        if (entry.cache.dependencies != null) {
+            entry.touch();
+            return entry.cache.dependencies;
+        }
+        entry.cache.dependencies = rebuildDependencies(indexId, daoProvider);
+        return entry.cache.dependencies;
+    }
+
     int cacheSize() {
         return analysisCacheMap.size();
     }
@@ -187,5 +199,12 @@ class CodeCacheManager {
             offset += BATCH_SIZE;
         }
         return callGraph;
+    }
+
+    private List<NopCodeDependency> rebuildDependencies(String indexId, IDaoProvider daoProvider) {
+        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("indexId", indexId));
+        return dao.findAllByQuery(q);
     }
 }
