@@ -89,6 +89,11 @@ public interface _NopCodeDaoConstants {
     String SYMBOL_KIND_IMPORT = "98";
                     
     /**
+     * 符号类型: 路由 
+     */
+    String SYMBOL_KIND_ROUTE = "100";
+                    
+    /**
      * 访问修饰符: 公开 
      */
     String ACCESS_MODIFIER_PUBLIC = "10";
@@ -164,6 +169,16 @@ public interface _NopCodeDaoConstants {
     String REFERENCE_KIND_OVERRIDES = "90";
                     
     /**
+     * 引用类型: 类型引用 
+     */
+    String REFERENCE_KIND_TYPE_OF = "100";
+                    
+    /**
+     * 引用类型: 实例化 
+     */
+    String REFERENCE_KIND_INSTANTIATES = "110";
+                    
+    /**
      * 索引状态: 已创建 
      */
     String INDEX_STATUS_CREATED = "10";
@@ -212,6 +227,11 @@ public interface _NopCodeDaoConstants {
      * 编程语言: JavaScript 
      */
     String LANGUAGE_JAVASCRIPT = "40";
+                    
+    /**
+     * 调用类型: 构造函数调用 
+     */
+    String CALL_TYPE_CONSTRUCTOR = "10";
                     
     /**
      * 继承关系类型: 继承 

@@ -39,6 +39,7 @@
             <option code="LOCAL_VARIABLE" label="局部变量" value="96"/>
             <option code="TYPE_PARAMETER" label="类型参数" value="97"/>
             <option code="IMPORT" label="导入" value="98"/>
+            <option code="ROUTE" label="路由" value="100"/>
         </dict>
         <dict label="访问修饰符" name="code/access_modifier" valueType="string">
             <description>符号的访问级别</description>
@@ -60,6 +61,8 @@
             <option code="ANNOTATES" label="注解" value="70"/>
             <option code="IMPORTS" label="导入" value="80"/>
             <option code="OVERRIDES" label="重写" value="90"/>
+            <option code="TYPE_OF" label="类型引用" value="100"/>
+            <option code="INSTANTIATES" label="实例化" value="110"/>
         </dict>
         <dict label="索引状态" name="code/index_status" valueType="string">
             <description>索引状态</description>
@@ -76,6 +79,10 @@
             <option code="PYTHON" label="Python" value="20"/>
             <option code="TYPESCRIPT" label="TypeScript" value="30"/>
             <option code="JAVASCRIPT" label="JavaScript" value="40"/>
+        </dict>
+        <dict label="调用类型" name="code/call_type" valueType="string">
+            <description>方法调用类型。CONSTRUCTOR 为构造函数调用，其余值为被调用方法的返回类型描述（如 void、String 等），属自由文本</description>
+            <option code="CONSTRUCTOR" label="构造函数调用" value="10"/>
         </dict>
         <dict label="继承关系类型" name="code/relation_type" valueType="string">
             <description>类型继承关系</description>
@@ -112,6 +119,10 @@
                         propId="8" stdDataType="long" stdSqlType="BIGINT"/>
                 <column code="INDEX_VERSION" displayName="索引版本" name="indexVersion"
                         propId="9" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="CREATED_TIME" displayName="创建时间" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="DATETIME"/>
+                <column code="UPDATE_TIME" displayName="更新时间" name="updateTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="DATETIME"/>
             </columns>
             <comment>代码索引主表</comment>
             <relations>
@@ -291,42 +302,34 @@
                 <!-- 类/接口/枚举特有字段 -->
                 <column code="SUPER_CLASS_NAME" displayName="父类名" domain="qualifiedName" name="superClassName"
                         propId="17" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="IS_ABSTRACT" displayName="抽象" name="isAbstract"
-                        propId="18" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="IS_FINAL" displayName="final" name="isFinal"
-                        propId="19" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <!-- 修饰符 bitmask，兼容 java.lang.reflect.Modifier 风格 -->
+                <column code="MODIFIERS" displayName="修饰符" name="modifiers"
+                        propId="18" stdDataType="int" stdSqlType="INTEGER"/>
                 <!-- 方法特有字段 -->
                 <column code="SIGNATURE" displayName="签名" domain="signature" name="signature"
-                        propId="20" stdDataType="string" stdSqlType="VARCHAR"/>
+                        propId="19" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="RETURN_TYPE" displayName="返回类型" domain="qualifiedName" name="returnType"
-                        propId="21" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="IS_STATIC" displayName="static" name="isStatic"
-                        propId="22" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="IS_SYNCHRONIZED" displayName="synchronized" name="isSynchronized"
-                        propId="23" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="IS_NATIVE" displayName="native" name="isNative"
-                        propId="24" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                        propId="20" stdDataType="string" stdSqlType="VARCHAR"/>
                 <!-- 字段特有字段 -->
                 <column code="FIELD_TYPE" displayName="字段类型" domain="qualifiedName" name="fieldType"
-                        propId="25" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="IS_VOLATILE" displayName="volatile" name="isVolatile"
-                        propId="26" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="IS_TRANSIENT" displayName="transient" name="isTransient"
-                        propId="27" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                        propId="21" stdDataType="string" stdSqlType="VARCHAR"/>
                 <!-- JSON扩展字段 - 存储详细信息 -->
                 <column code="EXT_DATA" displayName="扩展数据" domain="jsonContent" name="extData"
-                        propId="28" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
-                <column code="ASYNC_FLAG" displayName="异步" name="asyncFlag"
-                        propId="29" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="READONLY_FLAG" displayName="只读" name="readonlyFlag"
-                        propId="30" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                        propId="22" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="RAW_RETURN_TYPE" displayName="原始返回类型" domain="qualifiedName" name="rawReturnType"
-                        propId="31" stdDataType="string" stdSqlType="VARCHAR"/>
+                        propId="23" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="RAW_FIELD_TYPE" displayName="原始字段类型" domain="qualifiedName" name="rawFieldType"
-                        propId="32" stdDataType="string" stdSqlType="VARCHAR"/>
+                        propId="24" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="FILE_PATH" displayName="文件路径(反规范化)" domain="filePath" name="filePath"
+                        propId="25" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="LANGUAGE" displayName="语言(反规范化)" domain="language" name="language"
+                        precision="20" propId="26" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>
-                符号统一表。extData存储JSON格式的扩展信息：
+                符号统一表。modifiers存储位掩码修饰符：
+                bit 0: abstract, bit 1: final, bit 2: static, bit 3: synchronized,
+                bit 4: native, bit 5: volatile, bit 6: transient, bit 7: async, bit 8: readonly。
+                extData存储JSON格式的扩展信息：
                 - 类/接口: {typeParameters:[], interfaces:[], innerClasses:[]}
                 - 枚举: {constants:[{name,line,documentation,annotations[]}], interfaces:[]}
                 - 注解类型: {attributes:[], isRepeatable, targets, retention}
@@ -443,6 +446,9 @@
                 <index name="ix_nop_code_symbol_parent_id">
                     <column name="parentId"/>
                 </index>
+                <index name="ix_nop_code_symbol_file_path">
+                    <column name="filePath"/>
+                </index>
             </indexes>
         </entity>
 
@@ -473,6 +479,10 @@
                         propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CONTEXT" displayName="上下文" name="context"
                         precision="1000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="PROVENANCE" displayName="来源" name="provenance"
+                        precision="20" propId="10" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="METADATA" displayName="元数据" domain="jsonContent" name="metadata"
+                        propId="11" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>符号引用关系</comment>
             <relations>
@@ -544,6 +554,10 @@
                         precision="20" propId="8" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/call_type"/>
                 <column code="CONTEXT" displayName="上下文" name="context"
                         precision="2000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="PROVENANCE" displayName="来源" name="provenance"
+                        precision="20" propId="10" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="METADATA" displayName="元数据" domain="jsonContent" name="metadata"
+                        propId="11" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>方法调用关系</comment>
             <relations>
@@ -606,6 +620,8 @@
                         propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="RELATION_TYPE" displayName="关系类型" mandatory="true" name="relationType"
                         precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/relation_type"/>
+                <column code="PROVENANCE" displayName="来源" name="provenance"
+                        precision="20" propId="6" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>
                 继承关系。relationType: EXTENDS(类继承类/接口继承接口), IMPLEMENTS(类实现接口)
@@ -665,6 +681,8 @@
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="ATTRIBUTES" displayName="属性值" domain="jsonContent" name="attributes"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="PROVENANCE" displayName="来源" name="provenance"
+                        precision="20" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>
                 注解使用记录。attributes存储JSON: {name:value, ...}
@@ -903,6 +921,8 @@
                         precision="40" propId="10" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="EXT_DATA" displayName="扩展数据" domain="jsonContent" name="extData"
                         propId="11" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="PROVENANCE" displayName="来源" name="provenance"
+                        precision="20" propId="15" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy"
                         propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CREATE_TIME" displayName="创建时间" name="createTime"

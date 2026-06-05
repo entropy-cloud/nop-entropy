@@ -27,6 +27,7 @@ prop:
       index: null
       indexId: 索引ID
       line: 行号
+      provenance: 来源
     NopCodeCall:
       callType: 调用类型
       callType_label: 调用类型
@@ -45,6 +46,9 @@ prop:
       index: null
       indexId: 索引ID
       line: 行号
+      metadata: 元数据
+      metadataComponent: null
+      provenance: 来源
     NopCodeDependency:
       id: 依赖ID
       importStatement: 导入语句
@@ -111,6 +115,7 @@ prop:
     NopCodeIndex:
       annotationUsages: 注解使用
       calls: 调用
+      createTime: 创建时间
       dependencies: 依赖列表
       fileCount: 文件数量
       files: 文件列表
@@ -127,11 +132,13 @@ prop:
       status_label: 状态
       symbolCount: 符号数量
       symbols: 符号列表
+      updateTime: 更新时间
       usages: 引用
     NopCodeInheritance:
       id: ID
       index: null
       indexId: 索引ID
+      provenance: 来源
       relationType: 关系类型
       relationType_label: 关系类型
       subType: null
@@ -153,6 +160,7 @@ prop:
       id: 边ID
       index: null
       indexId: 索引ID
+      provenance: 来源
       rationale: 原因
       relationType: 关系类型
       relationType_label: 关系类型
@@ -167,7 +175,6 @@ prop:
       accessModifier_label: 访问修饰符
       annotationUsages: 注解使用
       annotations: 注解使用
-      asyncFlag: 异步
       callees: 被调用
       callers: 调用
       children: 子符号
@@ -187,22 +194,17 @@ prop:
       file: null
       file.filePath: null
       fileId: 文件ID
+      filePath: 文件路径(反规范化)
       flowMemberships: 流成员
       id: 符号ID
       index: null
       indexId: 索引ID
-      isAbstract: 抽象
-      isFinal: final
-      isNative: native
-      isStatic: static
-      isSynchronized: synchronized
-      isTransient: transient
-      isVolatile: volatile
       kind: 符号类型
       kind_label: 符号类型
-      kinds: 符号类型
+      language: 语言(反规范化)
       line: 起始行
       members: 成员
+      modifiers: 修饰符
       name: 名称
       packageName: 包名
       parent: null
@@ -212,7 +214,6 @@ prop:
       query: 名称关键词
       rawFieldType: 原始字段类型
       rawReturnType: 原始返回类型
-      readonlyFlag: 只读
       returnType: 返回类型
       signature: 签名
       subTypes: 子类型
@@ -235,6 +236,9 @@ prop:
       kind: 引用类型
       kind_label: 引用类型
       line: 行号
+      metadata: 元数据
+      metadataComponent: null
+      provenance: 来源
       symbol: null
       symbol.name: null
       symbolId: 被引用符号ID

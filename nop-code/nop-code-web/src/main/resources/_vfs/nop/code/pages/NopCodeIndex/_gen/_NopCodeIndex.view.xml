@@ -41,6 +41,12 @@
 
                 <!--索引版本-->
                 <col id="indexVersion" ui:number="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" sortable="true"/>
+
+                <!--更新时间-->
+                <col id="updateTime" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -49,27 +55,21 @@
     <forms>
         <form id="view" editMode="view" title="查看-代码索引" i18n-en:title="View Code Index">
             <layout>
- name[索引名称]
- rootPath[根路径]
- language[编程语言]
- symbolCount[符号数量]
- fileCount[文件数量]
- status[状态]
- lastIndexed[最后索引时间]
- indexVersion[索引版本]
+ name[索引名称] rootPath[根路径]
+ language[编程语言] symbolCount[符号数量]
+ fileCount[文件数量] status[状态]
+ lastIndexed[最后索引时间] indexVersion[索引版本]
+ createTime[创建时间] updateTime[更新时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-代码索引" i18n-en:title="Add Code Index" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-代码索引" i18n-en:title="Edit Code Index">
             <layout>
- name[索引名称]
- rootPath[根路径]
- language[编程语言]
- symbolCount[符号数量]
- fileCount[文件数量]
- status[状态]
- lastIndexed[最后索引时间]
- indexVersion[索引版本]
+ name[索引名称] rootPath[根路径]
+ language[编程语言] symbolCount[符号数量]
+ fileCount[文件数量] status[状态]
+ lastIndexed[最后索引时间] indexVersion[索引版本]
+ createTime[创建时间] updateTime[更新时间]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

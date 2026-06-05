@@ -54,6 +54,14 @@
               updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
+        <prop name="createTime" displayName="创建时间" propId="10" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updateTime" displayName="更新时间" propId="11" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
         <prop name="files" displayName="文件列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="indexId" ext:joinRightDisplayProp="filePath" lazy="true" published="false">
             <schema>
