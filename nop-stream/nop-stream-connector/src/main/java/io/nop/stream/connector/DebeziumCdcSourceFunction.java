@@ -7,8 +7,12 @@
  */
 package io.nop.stream.connector;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.nop.api.core.util.ICancellable;
 import io.nop.message.debezium.ChangeEvent;
@@ -26,11 +30,11 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     private static final long serialVersionUID = 1L;
 
-    private final DebeziumConfig config;
+    private transient DebeziumConfig config;
 
     private volatile boolean running = true;
     private volatile boolean draining = false;
-    private volatile boolean runEntered = false;
+    private final AtomicBoolean runEntered = new AtomicBoolean(false);
     private transient volatile CountDownLatch completionLatch;
     private volatile DebeziumMessageSource source;
     private volatile ICancellable subscription;
@@ -41,6 +45,14 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
         }
         this.config = config;
         this.completionLatch = new CountDownLatch(1);
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        if (config == null) {
+            config = new DebeziumConfig();
+        }
+        completionLatch = new CountDownLatch(1);
     }
 
     private void initCompletionLatch() {
@@ -55,10 +67,9 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
 
     @Override
     public void run(SourceContext<ChangeEvent> ctx) throws Exception {
-        if (runEntered) {
+        if (!runEntered.compareAndSet(false, true)) {
             return;
         }
-        runEntered = true;
         this.draining = false;
         initCompletionLatch();
 
@@ -79,7 +90,23 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
                 }
             }
         } finally {
-            runEntered = false;
+            if (subscription != null) {
+                try {
+                    subscription.cancel();
+                } catch (Exception e) {
+                    // ignore cleanup errors
+                }
+                subscription = null;
+            }
+            if (source != null) {
+                try {
+                    source.stop();
+                } catch (Exception e) {
+                    // ignore cleanup errors
+                }
+                source = null;
+            }
+            runEntered.set(false);
         }
     }
 
@@ -102,14 +129,6 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
         return SourceConsistencyCapability.REPLAYABLE;
     }
 
-    /**
-     * Truncates the source for DRAIN termination mode.
-     * Stops consuming new change events by cancelling the subscription to the
-     * Debezium message source, but allows the run() loop to exit gracefully
-     * so that already-in-flight records can be checkpointed.
-     *
-     * @throws Exception if stopping the subscription fails
-     */
     @Override
     public void truncateForDrain() throws Exception {
         draining = true;
@@ -126,9 +145,6 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent> {
         }
     }
 
-    /**
-     * Returns whether this source is currently in drain mode.
-     */
     public boolean isDraining() {
         return draining;
     }

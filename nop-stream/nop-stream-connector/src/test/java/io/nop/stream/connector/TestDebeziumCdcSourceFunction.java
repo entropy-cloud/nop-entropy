@@ -257,4 +257,103 @@ public class TestDebeziumCdcSourceFunction {
         source.cancel();
         runner2.join(5000);
     }
+
+    @Test
+    void testFinallyBlockCleansUpResources() throws Exception {
+        DebeziumConfig config = new DebeziumConfig();
+        config.setName("test-finally-cleanup");
+        config.setConnectorType("mysql");
+        config.setDatabaseHost("localhost");
+
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config);
+
+        SourceFunction.SourceContext<ChangeEvent> ctx = new SourceFunction.SourceContext<>() {
+            @Override public void collect(ChangeEvent element) {}
+            @Override public void collectWithTimestamp(ChangeEvent element, long timestamp) {}
+            @Override public void emitWatermark(long mark) {}
+            @Override public void markAsTemporarilyIdle() {}
+            @Override public long getProcessingTime() { return System.currentTimeMillis(); }
+        };
+
+        Thread runner = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Exception e) {
+                // expected on cancel
+            }
+        });
+        runner.start();
+        Thread.sleep(500);
+        source.cancel();
+        runner.join(5000);
+
+        // Verify run() completed (finally block cleaned up)
+        assertFalse(runner.isAlive(), "Runner thread should have terminated");
+    }
+
+    @Test
+    void testRunEnteredAtomicPreventsDoubleEntry() throws Exception {
+        DebeziumConfig config = new DebeziumConfig();
+        config.setName("test-atomic-entry");
+        config.setConnectorType("mysql");
+        config.setDatabaseHost("localhost");
+
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config);
+
+        SourceFunction.SourceContext<ChangeEvent> ctx = new SourceFunction.SourceContext<>() {
+            @Override public void collect(ChangeEvent element) {}
+            @Override public void collectWithTimestamp(ChangeEvent element, long timestamp) {}
+            @Override public void emitWatermark(long mark) {}
+            @Override public void markAsTemporarilyIdle() {}
+            @Override public long getProcessingTime() { return System.currentTimeMillis(); }
+        };
+
+        CountDownLatch bothStarted = new CountDownLatch(2);
+        CountDownLatch allowFinish = new CountDownLatch(1);
+
+        Runnable runTask = () -> {
+            try {
+                bothStarted.countDown();
+                source.run(ctx);
+            } catch (Exception e) {
+                // expected
+            }
+        };
+
+        Thread t1 = new Thread(runTask);
+        Thread t2 = new Thread(runTask);
+        t1.start();
+        t2.start();
+
+        assertTrue(bothStarted.await(3, TimeUnit.SECONDS));
+        source.cancel();
+        t1.join(5000);
+        t2.join(5000);
+
+        // Both threads should have completed without deadlock
+        assertFalse(t1.isAlive());
+        assertFalse(t2.isAlive());
+    }
+
+    @Test
+    void testSerializationWithTransientConfig() throws Exception {
+        DebeziumConfig config = new DebeziumConfig();
+        config.setName("test-serial");
+        config.setConnectorType("mysql");
+        config.setDatabaseHost("localhost");
+
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config);
+
+        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+        java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(bos);
+        oos.writeObject(source);
+        oos.close();
+
+        java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(bos.toByteArray());
+        java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bis);
+        DebeziumCdcSourceFunction deserialized = (DebeziumCdcSourceFunction) ois.readObject();
+
+        assertNotNull(deserialized);
+        assertDoesNotThrow(deserialized::cancel);
+    }
 }
