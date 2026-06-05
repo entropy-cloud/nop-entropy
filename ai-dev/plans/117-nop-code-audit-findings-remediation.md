@@ -150,7 +150,7 @@ Exit Criteria:
 
 ### Phase 4 — 补充测试缺口
 
-Status: planned
+Status: completed
 Targets: `nop-code/nop-code-service/src/test/java/io/nop/code/service/`, `nop-code/nop-code-graph/src/test/java/io/nop/code/graph/`
 
 - Item Types: `Proof`
@@ -160,18 +160,18 @@ Targets: `nop-code/nop-code-service/src/test/java/io/nop/code/service/`, `nop-co
 - 图算法：`TestCommunityDetector`（社区检测算法）、`TestImpactAnalyzer`（影响分析算法）、`TestCriticalNodeAnalyzer`（关键节点算法）
 
 **缺失的端到端测试**：
-- [ ] **图分析端到端测试**（在 `nop-code-service` 中）：索引一个小型项目 → 调用 `detectCommunities()` → 验证返回社区列表非空。同理覆盖 `getCriticalNodes()` 和 `getKnowledgeGaps()`
-- [ ] **流分析端到端测试**（在 `nop-code-service` 中）：索引一个小型项目 → 调用 `detectFlows()` → 验证返回执行流列表非空。同理覆盖 `analyzeChanges()` 和 `detectDeadCode()`
+- [x] **图分析端到端测试**（在 `nop-code-service` 中）：索引一个小型项目 → 调用 `detectCommunities()` → 验证返回社区列表非空。同理覆盖 `getCriticalNodes()` 和 `getKnowledgeGaps()`
+- [x] **流分析端到端测试**（在 `nop-code-service` 中）：索引一个小型项目 → 调用 `detectFlows()` → 验证返回执行流列表非空。同理覆盖 `analyzeChanges()` 和 `detectDeadCode()`
 
 使用 AutoTest 内存数据库，复用现有 test-resources 中的 Java 文件。
 
 Exit Criteria:
 
-- [ ] 新增测试类覆盖图分析端到端（社区检测 + 关键节点 + 知识缺口）
-- [ ] 新增测试类覆盖流分析端到端（执行流检测 + 变更分析 + 死代码检测）
-- [ ] 测试可在 CI 中运行（无 @Disabled，无外部依赖）
-- [ ] `./mvnw test -pl nop-code/nop-code-service -am` 通过
-- [ ] No owner-doc update required
+- [x] 新增测试类覆盖图分析端到端（社区检测 + 关键节点 + 知识缺口）
+- [x] 新增测试类覆盖流分析端到端（执行流检测 + 变更分析 + 死代码检测）
+- [x] 测试可在 CI 中运行（无 @Disabled，无外部依赖）
+- [x] `./mvnw test -pl nop-code/nop-code-service -am` 通过
+- [x] No owner-doc update required
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
