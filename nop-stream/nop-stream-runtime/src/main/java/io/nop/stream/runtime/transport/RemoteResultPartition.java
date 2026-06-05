@@ -81,7 +81,7 @@ public class RemoteResultPartition extends ResultPartition {
      * @throws IllegalStateException if the partition is already finished
      */
     @Override
-    public void write(StreamElement element) throws InterruptedException {
+    public synchronized void write(StreamElement element) throws InterruptedException {
         if (element == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
@@ -96,11 +96,8 @@ public class RemoteResultPartition extends ResultPartition {
         messageService.send(topic, envelope);
     }
 
-    /**
-     * Sends end-of-stream control signal to the downstream consumer.
-     */
     @Override
-    public void close() {
+    public synchronized void close() {
         if (isFinished()) {
             return;
         }
