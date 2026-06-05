@@ -286,7 +286,11 @@ public class CodeIndexService implements ICodeIndexService {
         CodeInheritance inh = new CodeInheritance();
         inh.setId(entity.getId());
         inh.setSubTypeId(entity.getSubTypeId());
-        inh.setSuperTypeQualifiedName(entity.getSuperTypeId());
+        String superTypeQN = null;
+        if (entity.getSuperTypeId() != null && entity.getSuperType() != null) {
+            superTypeQN = entity.getSuperType().getQualifiedName();
+        }
+        inh.setSuperTypeQualifiedName(superTypeQN != null ? superTypeQN : entity.getSuperTypeId());
         inh.setRelationType(entity.getRelationType() != null
                 ? CodeRelationType.valueOf(entity.getRelationType()) : null);
         return inh;
@@ -1088,8 +1092,21 @@ public class CodeIndexService implements ICodeIndexService {
                 session.save(edgeEntity);
             }
         }
-        SymbolTable symbolTable = buildSymbolTableFromResult(result);
-        resolveQualifiedNamesToIds(indexId, symbolTable, session);
+        SymbolTable fileSymbolTable = buildSymbolTableFromResult(result);
+        SymbolTable globalTable = getOrRebuildSymbolTable(indexId);
+        if (globalTable != null) {
+            for (CodeSymbol sym : fileSymbolTable.getAll()) {
+                if (sym.getQualifiedName() != null) {
+                    CodeSymbol existing = globalTable.getByQualifiedName(sym.getQualifiedName());
+                    if (existing == null) {
+                        globalTable.add(sym);
+                    }
+                }
+            }
+            resolveQualifiedNamesToIds(indexId, globalTable, session);
+        } else {
+            resolveQualifiedNamesToIds(indexId, fileSymbolTable, session);
+        }
     }
 
     private SymbolTable buildSymbolTableFromResult(CodeFileAnalysisResult result) {

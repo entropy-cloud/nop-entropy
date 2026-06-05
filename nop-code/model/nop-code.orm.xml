@@ -381,7 +381,7 @@
                     </join>
                 </to-many>
                 <to-many displayName="注解使用" name="annotations" refEntityName="io.nop.code.dao.entity.NopCodeAnnotationUsage"
-                         refPropName="annotatedSymbol">
+                         refPropName="annotatedSymbol" cascadeDelete="true">
                     <join>
                         <on leftProp="id" rightProp="annotatedSymbolId"/>
                     </join>
@@ -393,31 +393,31 @@
                     </join>
                 </to-many>
                 <to-many displayName="流成员" name="flowMemberships" refEntityName="io.nop.code.dao.entity.NopCodeFlowMembership"
-                         refPropName="symbol">
+                         refPropName="symbol" cascadeDelete="true">
                     <join>
                         <on leftProp="id" rightProp="symbolId"/>
                     </join>
                 </to-many>
                 <to-many displayName="被调用" name="callees" refEntityName="io.nop.code.dao.entity.NopCodeCall"
-                         refPropName="caller">
+                         refPropName="caller" cascadeDelete="true">
                     <join>
                         <on leftProp="id" rightProp="callerId"/>
                     </join>
                 </to-many>
                 <to-many displayName="调用" name="callers" refEntityName="io.nop.code.dao.entity.NopCodeCall"
-                         refPropName="callee">
+                         refPropName="callee" cascadeDelete="true">
                     <join>
                         <on leftProp="id" rightProp="calleeId"/>
                     </join>
                 </to-many>
                 <to-many displayName="父类型" name="superTypes" refEntityName="io.nop.code.dao.entity.NopCodeInheritance"
-                         refPropName="subType">
+                         refPropName="subType" cascadeDelete="true">
                     <join>
                         <on leftProp="id" rightProp="subTypeId"/>
                     </join>
                 </to-many>
                 <to-many displayName="子类型" name="subTypes" refEntityName="io.nop.code.dao.entity.NopCodeInheritance"
-                         refPropName="superType">
+                         refPropName="superType" cascadeDelete="true">
                     <join>
                         <on leftProp="id" rightProp="superTypeId"/>
                     </join>
@@ -673,7 +673,7 @@
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="ANNOTATION_TYPE_ID" displayName="注解类型ID" domain="codeId" mandatory="true" name="annotationTypeId"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="ANNOTATED_SYMBOL_ID" displayName="被注解符号ID" domain="codeId" name="annotatedSymbolId"
+                <column code="ANNOTATED_SYMBOL_ID" displayName="被注解符号ID" domain="codeId" mandatory="true" name="annotatedSymbolId"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="LINE" displayName="行号" domain="lineNumber" name="line"
                         propId="5" stdDataType="int" stdSqlType="INTEGER"/>
@@ -764,6 +764,9 @@
                     <column name="targetFilePath"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key columns="indexId,sourceFilePath,targetFilePath,importStatement" name="uk_dependency_unique"/>
+            </unique-keys>
         </entity>
         <!-- ========================================
              执行流追踪
