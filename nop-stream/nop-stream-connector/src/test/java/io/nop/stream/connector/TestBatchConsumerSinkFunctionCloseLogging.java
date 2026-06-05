@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class TestBatchConsumerSinkFunctionCloseLogging {
 
     @Test
-    void testCloseWithFlushFailureDoesNotThrow() {
+    void testCloseWithFlushFailureThrowsStreamException() {
         IBatchConsumerProvider<String> failingProvider = new IBatchConsumerProvider<String>() {
             @Override
             public IBatchConsumer<String> setup(IBatchTaskContext context) {
@@ -30,7 +30,9 @@ class TestBatchConsumerSinkFunctionCloseLogging {
         } catch (StreamException e) {
             // expected: flush fails because provider always throws
         }
-        assertDoesNotThrow(sink::close);
+        StreamException ex = assertThrows(StreamException.class, sink::close);
+        assertTrue(ex.getMessage().contains("chaining-output-flush-failed")
+                || ex.getMessage().contains("Flush failed"));
     }
 
     @Test

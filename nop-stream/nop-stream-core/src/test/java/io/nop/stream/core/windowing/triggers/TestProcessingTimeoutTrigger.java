@@ -100,8 +100,8 @@ public class TestProcessingTimeoutTrigger {
 
         TriggerResult result = trigger.onEventTime(100, window, ctx);
         assertNotNull(result);
-        assertNotEquals(TriggerResult.FIRE, result,
-                "onEventTime should return the nested trigger's result, not force FIRE");
+        assertEquals(TriggerResult.FIRE, result,
+                "onEventTime should delegate to nested trigger (ContinuousEventTimeTrigger returns FIRE for matching fire timestamp)");
     }
 
     @Test

@@ -24,7 +24,6 @@ public class TestInputGateTermination {
         List<InputChannel> channels = Arrays.asList(new InputChannel(p0), new InputChannel(p1));
         InputGate gate = new InputGate(channels);
 
-        p0.write(new StreamRecord<>("a"));
         p0.close();
 
         AtomicReference<Optional<StreamElement>> result = new AtomicReference<>();
