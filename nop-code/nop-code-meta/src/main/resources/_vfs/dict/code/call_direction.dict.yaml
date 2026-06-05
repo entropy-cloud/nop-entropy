@@ -1,0 +1,13 @@
+label: 调用链方向
+name: code/call_direction
+valueType: string
+options:
+  - code: callers
+    label: 调用者
+    value: "10"
+  - code: callees
+    label: 被调用者
+    value: "20"
+  - code: both
+    label: 双向
+    value: "30"
