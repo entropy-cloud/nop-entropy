@@ -445,7 +445,7 @@ Exit Criteria:
 - [x] 关键 P2 发现已修复（14-01~04, AR-12~15, 09-02, 09-03）
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] `./mvnw test -pl nop-stream -am` 通过
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 独立子 agent closure-audit 已完成并记录证据
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Deferred But Adjudicated
