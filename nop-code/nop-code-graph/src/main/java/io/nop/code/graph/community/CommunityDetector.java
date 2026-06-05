@@ -500,7 +500,7 @@ public class CommunityDetector {
             }
         }
         
-        if (subGraph.edgeSet().size() == 0) return null;
+        if (subGraph.edgeSet().isEmpty()) return null;
         
         int nNodes = memberSet.size();
         double resolution = Math.max(0.05, 1.0 / Math.log10(Math.max(nNodes, 10)));

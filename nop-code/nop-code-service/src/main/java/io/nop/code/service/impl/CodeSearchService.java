@@ -212,43 +212,71 @@ class CodeSearchService {
 
     private double scoreSymbolNameMatch(String query, String name, String qualifiedName) {
         String lowerQuery = query.toLowerCase();
+        if (name == null && qualifiedName == null) return 0.0;
         if (name != null && name.equals(query)) return 1.0;
-        if (name != null && name.equalsIgnoreCase(query)) return 0.95;
-        if (name != null && name.startsWith(query)) return 0.8;
-        if (name != null && name.toLowerCase().startsWith(lowerQuery)) return 0.75;
-        if (name != null && name.contains(query)) return 0.6;
-        if (name != null && name.toLowerCase().contains(lowerQuery)) return 0.55;
-        if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
-        if (qualifiedName != null && qualifiedName.toLowerCase().contains(lowerQuery)) return 0.45;
-        return 0.1;
+        if (name != null) {
+            double score = scoreSubstring(lowerQuery, name.toLowerCase(), name);
+            if (score > 0) return score;
+        }
+        if (qualifiedName != null) {
+            return scoreSubstring(lowerQuery, qualifiedName.toLowerCase(), qualifiedName);
+        }
+        return 0.0;
+    }
+
+    private double scoreSubstring(String lowerQuery, String lowerTarget, String originalTarget) {
+        if (lowerTarget.equals(lowerQuery)) return 0.95;
+        if (lowerTarget.startsWith(lowerQuery)) {
+            return 0.8 - (lowerQuery.length() - lowerTarget.length()) * 0.001;
+        }
+        int idx = lowerTarget.indexOf(lowerQuery);
+        if (idx >= 0) {
+            double base = 0.6;
+            double posPenalty = idx * 0.02;
+            double lenBonus = (double) lowerQuery.length() / lowerTarget.length() * 0.1;
+            return Math.max(0.1, base - posPenalty + lenBonus);
+        }
+        return 0.0;
     }
 
     private double scoreFullTextMatch(String query, String signature, String documentation) {
         String lowerQuery = query.toLowerCase();
         boolean sigMatch = signature != null && signature.toLowerCase().contains(lowerQuery);
         boolean docMatch = documentation != null && documentation.toLowerCase().contains(lowerQuery);
-        if (sigMatch && docMatch) return 0.5;
-        if (sigMatch) return 0.4;
-        if (docMatch) return 0.3;
-        return 0.1;
+        if (sigMatch && docMatch) {
+            double sigLen = signature.length();
+            return 0.5 + Math.min(0.2, (double) query.length() / sigLen);
+        }
+        if (sigMatch) {
+            double sigLen = signature.length();
+            return 0.4 + Math.min(0.1, (double) query.length() / sigLen);
+        }
+        if (docMatch) {
+            double docLen = documentation.length();
+            return 0.3 + Math.min(0.1, (double) query.length() / docLen);
+        }
+        return 0.0;
     }
 
     private double scoreCombined(String query, String name, String qualifiedName,
                                   String signature, String documentation) {
         String lowerQuery = query.toLowerCase();
         if (name != null && name.equals(query)) return 1.0;
-        if (name != null && name.equalsIgnoreCase(query)) return 0.95;
-        if (name != null && name.startsWith(query)) return 0.8;
-        if (name != null && name.toLowerCase().startsWith(lowerQuery)) return 0.75;
-        if (name != null && name.contains(query)) return 0.6;
-        if (name != null && name.toLowerCase().contains(lowerQuery)) return 0.55;
-        if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
-        if (qualifiedName != null && qualifiedName.toLowerCase().contains(lowerQuery)) return 0.45;
+        if (name != null) {
+            double nameScore = scoreSubstring(lowerQuery, name.toLowerCase(), name);
+            if (nameScore > 0.5) return nameScore;
+            if (nameScore > 0) return nameScore;
+        }
+        if (qualifiedName != null) {
+            double qnScore = scoreSubstring(lowerQuery, qualifiedName.toLowerCase(), qualifiedName);
+            if (qnScore > 0) return qnScore;
+        }
         boolean sigMatch = signature != null && signature.toLowerCase().contains(lowerQuery);
         boolean docMatch = documentation != null && documentation.toLowerCase().contains(lowerQuery);
-        if (sigMatch) return 0.3;
-        if (docMatch) return 0.3;
-        return 0.1;
+        if (sigMatch && docMatch) return 0.35;
+        if (sigMatch) return 0.25;
+        if (docMatch) return 0.2;
+        return 0.0;
     }
 
     private List<CodeSearchResultDTO> filterByFilePattern(List<CodeSearchResultDTO> results, String filePattern) {

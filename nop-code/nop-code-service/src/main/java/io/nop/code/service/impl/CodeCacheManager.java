@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -58,6 +59,8 @@ class CodeCacheManager {
 
     private final Map<String, CacheEntry> analysisCacheMap = new LinkedHashMap<>(16, 0.75f, true);
 
+    private final ReentrantLock lock = new ReentrantLock();
+
     CacheEntry getValidEntry(String indexId) {
         CacheEntry entry = analysisCacheMap.get(indexId);
         if (entry == null)
@@ -96,43 +99,63 @@ class CodeCacheManager {
         }
     }
 
-    synchronized SymbolTable getOrRebuildSymbolTable(String indexId, IDaoProvider daoProvider,
-                                                      Function<NopCodeSymbol, CodeSymbol> converter) {
-        CacheEntry entry = getOrCreateEntry(indexId);
-        if (entry.cache.symbolTable != null) {
-            entry.touch();
+    SymbolTable getOrRebuildSymbolTable(String indexId, IDaoProvider daoProvider,
+                                         Function<NopCodeSymbol, CodeSymbol> converter) {
+        lock.lock();
+        try {
+            CacheEntry entry = getOrCreateEntry(indexId);
+            if (entry.cache.symbolTable != null) {
+                entry.touch();
+                return entry.cache.symbolTable;
+            }
+            entry.cache.symbolTable = rebuildSymbolTable(indexId, daoProvider, converter);
             return entry.cache.symbolTable;
+        } finally {
+            lock.unlock();
         }
-        entry.cache.symbolTable = rebuildSymbolTable(indexId, daoProvider, converter);
-        return entry.cache.symbolTable;
     }
 
-    synchronized CallGraph getOrRebuildCallGraph(String indexId, IDaoProvider daoProvider,
-                                                  BiConsumer<CallGraph, NopCodeCall> edgeConsumer) {
-        CacheEntry entry = getOrCreateEntry(indexId);
-        if (entry.cache.callGraph != null) {
-            entry.touch();
+    CallGraph getOrRebuildCallGraph(String indexId, IDaoProvider daoProvider,
+                                     BiConsumer<CallGraph, NopCodeCall> edgeConsumer) {
+        lock.lock();
+        try {
+            CacheEntry entry = getOrCreateEntry(indexId);
+            if (entry.cache.callGraph != null) {
+                entry.touch();
+                return entry.cache.callGraph;
+            }
+            entry.cache.callGraph = rebuildCallGraph(indexId, daoProvider, edgeConsumer);
             return entry.cache.callGraph;
+        } finally {
+            lock.unlock();
         }
-        entry.cache.callGraph = rebuildCallGraph(indexId, daoProvider, edgeConsumer);
-        return entry.cache.callGraph;
     }
 
-    synchronized void invalidateAnalysisCache(String indexId, IFlowDetector flowDetector) {
-        analysisCacheMap.remove(indexId);
+    void invalidateAnalysisCache(String indexId, IFlowDetector flowDetector) {
+        lock.lock();
+        try {
+            analysisCacheMap.remove(indexId);
+        } finally {
+            lock.unlock();
+        }
         if (flowDetector instanceof FlowDetector) {
             ((FlowDetector) flowDetector).invalidateCache(indexId);
         }
     }
 
-    synchronized List<NopCodeDependency> getOrRebuildDependencies(String indexId, IDaoProvider daoProvider) {
-        CacheEntry entry = getOrCreateEntry(indexId);
-        if (entry.cache.dependencies != null) {
-            entry.touch();
+    List<NopCodeDependency> getOrRebuildDependencies(String indexId, IDaoProvider daoProvider) {
+        lock.lock();
+        try {
+            CacheEntry entry = getOrCreateEntry(indexId);
+            if (entry.cache.dependencies != null) {
+                entry.touch();
+                return entry.cache.dependencies;
+            }
+            entry.cache.dependencies = rebuildDependencies(indexId, daoProvider);
             return entry.cache.dependencies;
+        } finally {
+            lock.unlock();
         }
-        entry.cache.dependencies = rebuildDependencies(indexId, daoProvider);
-        return entry.cache.dependencies;
     }
 
     int cacheSize() {

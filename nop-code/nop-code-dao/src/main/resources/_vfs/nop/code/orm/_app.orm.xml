@@ -289,8 +289,8 @@
                         stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="END_COLUMN" displayName="结束列" domain="columnNumber" name="endColumn" propId="13"
                         stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="USAGE_COUNT" displayName="使用次数" name="usageCount" propId="14" stdDataType="int"
-                        stdSqlType="INTEGER"/>
+                <column code="USAGE_COUNT" displayName="使用次数" name="usageCount" notGenCode="true" propId="14"
+                        stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="PARENT_ID" displayName="父符号ID" domain="codeId" name="parentId" precision="36" propId="15"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="DECLARING_SYMBOL_ID" displayName="所属类型ID" domain="codeId" name="declaringSymbolId"
@@ -904,7 +904,7 @@
                         propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy" propId="12" stdDataType="string"
                         stdSqlType="VARCHAR"/>
-                <column code="CREATE_TIME" displayName="创建时间" name="createTime" propId="13" stdDataType="timestamp"
+                <column code="CREATED_TIME" displayName="创建时间" name="createTime" propId="13" stdDataType="timestamp"
                         stdSqlType="DATETIME"/>
                 <column code="DEL_FLAG" displayName="逻辑删除" name="delFlag" precision="1" propId="14"
                         stdDataType="boolean" stdDomain="boolFlag" stdSqlType="TINYINT"/>

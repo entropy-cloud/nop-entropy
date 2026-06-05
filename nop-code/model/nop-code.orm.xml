@@ -293,7 +293,7 @@
                 <column code="END_COLUMN" displayName="结束列" domain="columnNumber" name="endColumn"
                         propId="13" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="USAGE_COUNT" displayName="使用次数" name="usageCount"
-                        propId="14" stdDataType="int" stdSqlType="INTEGER"/>
+                        propId="14" stdDataType="int" stdSqlType="INTEGER" notGenCode="true"/>
                 <!-- 层级关系 -->
                 <column code="PARENT_ID" displayName="父符号ID" domain="codeId" name="parentId"
                         propId="15" stdDataType="string" stdSqlType="VARCHAR"/>
@@ -928,7 +928,7 @@
                         precision="20" propId="15" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy"
                         propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="CREATE_TIME" displayName="创建时间" name="createTime"
+                <column code="CREATED_TIME" displayName="创建时间" name="createTime"
                         propId="13" stdDataType="timestamp" stdSqlType="DATETIME"/>
                 <column code="DEL_FLAG" displayName="逻辑删除" name="delFlag" precision="1"
                         propId="14" stdDataType="boolean" stdSqlType="TINYINT" stdDomain="boolFlag"/>

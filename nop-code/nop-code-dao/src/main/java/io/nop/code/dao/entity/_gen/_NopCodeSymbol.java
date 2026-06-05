@@ -72,10 +72,6 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     public static final String PROP_NAME_endColumn = "endColumn";
     public static final int PROP_ID_endColumn = 13;
     
-    /* 使用次数: USAGE_COUNT INTEGER */
-    public static final String PROP_NAME_usageCount = "usageCount";
-    public static final int PROP_ID_usageCount = 14;
-    
     /* 父符号ID: PARENT_ID VARCHAR */
     public static final String PROP_NAME_parentId = "parentId";
     public static final int PROP_ID_parentId = 15;
@@ -226,9 +222,6 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_endColumn] = PROP_NAME_endColumn;
           PROP_NAME_TO_ID.put(PROP_NAME_endColumn, PROP_ID_endColumn);
       
-          PROP_ID_TO_NAME[PROP_ID_usageCount] = PROP_NAME_usageCount;
-          PROP_NAME_TO_ID.put(PROP_NAME_usageCount, PROP_ID_usageCount);
-      
           PROP_ID_TO_NAME[PROP_ID_parentId] = PROP_NAME_parentId;
           PROP_NAME_TO_ID.put(PROP_NAME_parentId, PROP_ID_parentId);
       
@@ -306,9 +299,6 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     
     /* 结束列: END_COLUMN */
     private java.lang.Integer _endColumn;
-    
-    /* 使用次数: USAGE_COUNT */
-    private java.lang.Integer _usageCount;
     
     /* 父符号ID: PARENT_ID */
     private java.lang.String _parentId;
@@ -458,9 +448,6 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
         
             case PROP_ID_endColumn:
                return getEndColumn();
-        
-            case PROP_ID_usageCount:
-               return getUsageCount();
         
             case PROP_ID_parentId:
                return getParentId();
@@ -636,16 +623,6 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_endColumn));
                }
                setEndColumn(typedValue);
-               break;
-            }
-        
-            case PROP_ID_usageCount:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_usageCount));
-               }
-               setUsageCount(typedValue);
                break;
             }
         
@@ -865,13 +842,6 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
             case PROP_ID_endColumn:{
                onInitProp(propId);
                this._endColumn = (java.lang.Integer)value;
-               
-               break;
-            }
-        
-            case PROP_ID_usageCount:{
-               onInitProp(propId);
-               this._usageCount = (java.lang.Integer)value;
                
                break;
             }
@@ -1209,25 +1179,6 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_endColumn,value)){
             this._endColumn = value;
             internalClearRefs(PROP_ID_endColumn);
-            
-        }
-    }
-    
-    /**
-     * 使用次数: USAGE_COUNT
-     */
-    public final java.lang.Integer getUsageCount(){
-         onPropGet(PROP_ID_usageCount);
-         return _usageCount;
-    }
-
-    /**
-     * 使用次数: USAGE_COUNT
-     */
-    public final void setUsageCount(java.lang.Integer value){
-        if(onPropSet(PROP_ID_usageCount,value)){
-            this._usageCount = value;
-            internalClearRefs(PROP_ID_usageCount);
             
         }
     }

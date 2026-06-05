@@ -68,7 +68,7 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     public static final String PROP_NAME_createdBy = "createdBy";
     public static final int PROP_ID_createdBy = 12;
     
-    /* 创建时间: CREATE_TIME DATETIME */
+    /* 创建时间: CREATED_TIME DATETIME */
     public static final String PROP_NAME_createTime = "createTime";
     public static final int PROP_ID_createTime = 13;
     
@@ -188,7 +188,7 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     /* 创建人: CREATED_BY */
     private java.lang.String _createdBy;
     
-    /* 创建时间: CREATE_TIME */
+    /* 创建时间: CREATED_TIME */
     private java.sql.Timestamp _createTime;
     
     /* 逻辑删除: DEL_FLAG */
@@ -826,7 +826,7 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     }
     
     /**
-     * 创建时间: CREATE_TIME
+     * 创建时间: CREATED_TIME
      */
     public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
@@ -834,7 +834,7 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     }
 
     /**
-     * 创建时间: CREATE_TIME
+     * 创建时间: CREATED_TIME
      */
     public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
