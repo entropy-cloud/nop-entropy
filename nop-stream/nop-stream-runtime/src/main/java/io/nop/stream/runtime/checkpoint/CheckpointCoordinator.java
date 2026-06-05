@@ -209,7 +209,7 @@ public class CheckpointCoordinator {
         return true;
     }
 
-    public void completePendingCheckpoint(CompletedCheckpoint completed) {
+    public synchronized void completePendingCheckpoint(CompletedCheckpoint completed) {
         long checkpointId = completed.getCheckpointId();
         PendingCheckpoint pending = pendingCheckpoints.get(checkpointId);
         if (pending == null) {
@@ -464,6 +464,13 @@ public class CheckpointCoordinator {
         stopCheckpointScheduler();
 
         timeoutScheduler.shutdownNow();
+        try {
+            if (!timeoutScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Timeout scheduler did not terminate within 5 seconds for job {}", jobId);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         for (PendingCheckpoint pending : pendingCheckpoints.values()) {
             long checkpointId = pending.getCheckpointId();
