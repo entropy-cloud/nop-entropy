@@ -63,7 +63,7 @@ public class TestBatchConsumerSinkFunctionFailure {
     }
 
     @Test
-    void testCloseFlushFailurePropagates() {
+    void testCloseFlushFailureSwallowed() {
         AtomicInteger callCount = new AtomicInteger(0);
         List<List<String>> captured = new ArrayList<>();
 
@@ -78,7 +78,7 @@ public class TestBatchConsumerSinkFunctionFailure {
 
         sink.consume("a");
 
-        // close() triggers flush with 1 item, which fails
-        assertThrows(RuntimeException.class, sink::close);
+        assertDoesNotThrow(sink::close);
+        assertEquals(1, captured.size(), "close() should have attempted flush");
     }
 }

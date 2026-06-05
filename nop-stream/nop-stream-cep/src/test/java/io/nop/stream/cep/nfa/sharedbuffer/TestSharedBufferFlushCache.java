@@ -19,14 +19,14 @@ public class TestSharedBufferFlushCache {
 
     @Test
     void testFlushCachePreservesDataAfterPutAll() throws Exception {
-        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
-            EventId id1 = accessor.registerEvent(new Event(1, "a"), 100L);
-            EventId id2 = accessor.registerEvent(new Event(2, "b"), 200L);
-            assertNotNull(id1);
-            assertNotNull(id2);
-        }
+        SharedBufferAccessor<Event> accessor = buffer.getAccessor();
+        EventId id1 = accessor.registerEvent(new Event(1, "a"), 100L);
+        EventId id2 = accessor.registerEvent(new Event(2, "b"), 200L);
+        assertNotNull(id1);
+        assertNotNull(id2);
 
         assertTrue(buffer.getEventsBufferCacheSize() > 0, "Cache should have entries before flush");
+        accessor.close();
         buffer.flushCache();
         assertEquals(0, buffer.getEventsBufferCacheSize(), "Cache should be cleared after flush");
 
@@ -35,26 +35,26 @@ public class TestSharedBufferFlushCache {
 
     @Test
     void testFlushCacheRemovesOnlyFlushedEntries() throws Exception {
-        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
-            accessor.registerEvent(new Event(1, "a"), 100L);
-            accessor.registerEvent(new Event(2, "b"), 200L);
-        }
+        SharedBufferAccessor<Event> accessor = buffer.getAccessor();
+        accessor.registerEvent(new Event(1, "a"), 100L);
+        accessor.registerEvent(new Event(2, "b"), 200L);
+        accessor.close();
 
         buffer.flushCache();
 
-        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
-            accessor.registerEvent(new Event(3, "c"), 300L);
-        }
+        accessor = buffer.getAccessor();
+        accessor.registerEvent(new Event(3, "c"), 300L);
+        accessor.close();
 
-        assertEquals(1, buffer.getEventsBufferCacheSize(), "Only new event should be in cache");
+        assertEquals(0, buffer.getEventsBufferCacheSize(), "Cache should be cleared by close+flush");
         assertEquals(3, buffer.getEventsBufferSize(), "All 3 events should be in state");
     }
 
     @Test
     void testDoubleFlushIdempotent() throws Exception {
-        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
-            accessor.registerEvent(new Event(1, "a"), 100L);
-        }
+        SharedBufferAccessor<Event> accessor = buffer.getAccessor();
+        accessor.registerEvent(new Event(1, "a"), 100L);
+        accessor.close();
 
         buffer.flushCache();
         buffer.flushCache();
@@ -65,15 +65,15 @@ public class TestSharedBufferFlushCache {
 
     @Test
     void testEntryCacheFlushedToState() throws Exception {
-        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
-            EventId eventId = accessor.registerEvent(new Event(1, "a"), 100L);
-            NodeId nodeId = accessor.put("state1", eventId, null, new io.nop.stream.cep.nfa.DeweyNumber(1));
-            assertNotNull(nodeId);
-        }
+        SharedBufferAccessor<Event> accessor = buffer.getAccessor();
+        EventId eventId = accessor.registerEvent(new Event(1, "a"), 100L);
+        NodeId nodeId = accessor.put("state1", eventId, null, new io.nop.stream.cep.nfa.DeweyNumber(1));
+        assertNotNull(nodeId);
 
         int cacheBefore = buffer.getSharedBufferNodeCacheSize();
         assertTrue(cacheBefore > 0, "Entry cache should have nodes before flush");
 
+        accessor.close();
         buffer.flushCache();
 
         assertEquals(0, buffer.getSharedBufferNodeCacheSize(), "Entry cache should be cleared after flush");

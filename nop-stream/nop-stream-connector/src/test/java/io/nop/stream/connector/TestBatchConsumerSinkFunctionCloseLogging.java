@@ -15,7 +15,6 @@ class TestBatchConsumerSinkFunctionCloseLogging {
 
     @Test
     void testCloseWithFlushFailureDoesNotThrow() {
-        List<String> logCapture = new ArrayList<>();
         IBatchConsumerProvider<String> failingProvider = new IBatchConsumerProvider<String>() {
             @Override
             public IBatchConsumer<String> setup(IBatchTaskContext context) {
@@ -26,7 +25,11 @@ class TestBatchConsumerSinkFunctionCloseLogging {
         };
 
         BatchConsumerSinkFunction<String> sink = new BatchConsumerSinkFunction<>(failingProvider, 1);
-        sink.consume("item1");
+        try {
+            sink.consume("item1");
+        } catch (StreamException e) {
+            // expected: flush fails because provider always throws
+        }
         assertDoesNotThrow(sink::close);
     }
 

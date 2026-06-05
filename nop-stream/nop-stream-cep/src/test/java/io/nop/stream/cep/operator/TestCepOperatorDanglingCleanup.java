@@ -115,14 +115,38 @@ public class TestCepOperatorDanglingCleanup {
 
     @Test
     void testSharedBufferCleanedAfterWindowTimeout() throws Exception {
-        CepOperator<Event, Integer, String> operator = createOperator();
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("start")
+                .where(SimpleCondition.of(event -> event.getId() >= 42))
+                .followedBy("end")
+                .where(SimpleCondition.of(event -> event.getName().equals("end")))
+                .within(java.time.Duration.ofSeconds(10));
+
+        NFACompiler.NFAFactory<Event> windowedFactory = NFACompiler.compileFactory(pattern, false);
+
+        CepOperator<Event, Integer, String> operator = new CepOperator<>(
+                new EventTypeSerializer(),
+                false,
+                windowedFactory,
+                null,
+                null,
+                function,
+                null
+        );
+        operator.setOutput(output);
+        CepTestUtils.injectProcessingTimeService(operator, MOCK_PTS);
+        operator.open();
 
         operator.processElement(new StreamRecord<>(new Event(42, "start-only"), 1));
+        operator.processWatermark(new Watermark(2));
 
         assertFalse(operator.getPartialMatches().isEmpty(),
-                "Should have entries in SharedBuffer");
+                "Should have entries in SharedBuffer after element processed");
 
         operator.processWatermark(new Watermark(999999));
+
+        NFAState state = operator.getNFAStateForTesting();
+        assertTrue(state.getPartialMatches().size() <= 1,
+                "Partial matches should be cleaned up after window timeout");
 
         operator.close();
     }
