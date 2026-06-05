@@ -113,23 +113,23 @@ Targets: `nop-code/model/nop-code.orm.xml`, `nop-code/nop-code-service/.../impl/
 
 - Item Types: `Fix`
 
-- [ ] **AR-139: 添加 NopCodeDependency 唯一约束**。`<unique-key columns="indexId,sourceFilePath,targetFilePath,importStatement" name="uk_dependency_unique"/>`
-- [ ] **AR-100: 添加缺失的 cascadeDelete**。确认 NopCodeCall/SemanticEdge → NopCodeSymbol 的级联删除关系
-- [ ] **AR-105: 添加 annotatedSymbolId NOT NULL 约束**。ORM `column` 添加 `notNull="true"`
-- [ ] **AR-132: 修复 entityToInheritance ID/QN 混淆**。保持 `superTypeId` 存储 ID，`entityToInheritance` 中从 symbolTable 反查 QN，或增加独立 `superTypeQualifiedName` 字段
-- [ ] **AR-93: 修复 NopCodeFlowMembership 嵌套属性删除**。改为显式两步删除：先查 flowId 集合再按 flowId 删除，或利用 ORM 级联删除
-- [ ] **深度审计 04-03: 修复 Dict valueType 与运行时不一致**。6 个 dict 声明 `valueType="int"` 但 service 存储 String enum name，改为 `valueType="string"`
-- [ ] **新增测试**：验证唯一约束、级联删除、QN 解析
+- [x] **AR-139: 添加 NopCodeDependency 唯一约束**。`<unique-key columns="indexId,sourceFilePath,targetFilePath,importStatement" name="uk_dependency_unique"/>`
+- [x] **AR-100: 添加缺失的 cascadeDelete**。确认 NopCodeCall/SemanticEdge → NopCodeSymbol 的级联删除关系
+- [x] **AR-105: 添加 annotatedSymbolId NOT NULL 约束**。ORM `column` 添加 `notNull="true"`
+- [x] **AR-132: 修复 entityToInheritance ID/QN 混淆**。保持 `superTypeId` 存储 ID，`entityToInheritance` 中从 symbolTable 反查 QN，或增加独立 `superTypeQualifiedName` 字段
+- [x] **AR-93: 修复 NopCodeFlowMembership 嵌套属性删除**。改为显式两步删除：先查 flowId 集合再按 flowId 删除，或利用 ORM 级联删除
+- [x] **深度审计 04-03: 修复 Dict valueType 与运行时不一致**。6 个 dict 声明 `valueType="int"` 但 service 存储 String enum name，改为 `valueType="string"`
+- [x] **新增测试**：验证唯一约束、级联删除、QN 解析
 
 Exit Criteria:
 
-- [ ] `NopCodeDependency` 有 `(indexId, sourceFilePath, targetFilePath, importStatement)` 唯一约束
-- [ ] `NopCodeCall`/`SemanticEdge` 级联删除正确配置
-- [ ] `entityToInheritance` 返回正确的 `superTypeQualifiedName`
-- [ ] `NopCodeFlowMembership` 删除不依赖隐式 JOIN
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `NopCodeDependency` 有 `(indexId, sourceFilePath, targetFilePath, importStatement)` 唯一约束
+- [x] `NopCodeCall`/`SemanticEdge` 级联删除正确配置
+- [x] `entityToInheritance` 返回正确的 `superTypeQualifiedName`
+- [x] `NopCodeFlowMembership` 删除不依赖隐式 JOIN
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — 查询性能优化（N+1 + CLOB + 全量加载）
 
@@ -138,22 +138,22 @@ Targets: `nop-code/nop-code-service/.../impl/CodeQueryService.java`, `nop-code/n
 
 - Item Types: `Fix`
 
-- [ ] **AR-130: getModuleDigest 符号查询添加 dirPath 过滤**。在符号查询中添加 `FilterBeans.in("fileId", fileIds)`，与 `getPublicSurface` 一致
-- [ ] **AR-134: OrmFingerprintStore.saveFingerprints 批量加载**。批量加载该 indexId 的所有文件到 `Map<String, NopCodeFile>`（只查 id 和 filePath），替代逐条查询
-- [ ] **AR-135: buildFilePathCache 使用投影查询**。只查 `id` 和 `filePath`，不加载 sourceCode CLOB；或引入服务层缓存（TTL）
-- [ ] **AR-143: batchGetTypeOutlines 批量查询**。预加载所有匹配符号，用 `in("parentId", ids)` 批量查询子符号
-- [ ] **AR-87: getProjectFilePaths 优化**。评估 Plan 95 缓存缓解效果，如仍有性能问题则改为单次批量查询
-- [ ] **新增测试**：验证批量查询和投影查询的正确性
+- [x] **AR-130: getModuleDigest 符号查询添加 dirPath 过滤**。在符号查询中添加 `FilterBeans.in("fileId", fileIds)`，与 `getPublicSurface` 一致
+- [x] **AR-134: OrmFingerprintStore.saveFingerprints 批量加载**。批量加载该 indexId 的所有文件到 `Map<String, NopCodeFile>`（只查 id 和 filePath），替代逐条查询
+- [x] **AR-135: buildFilePathCache 使用投影查询**。只查 `id` 和 `filePath`，不加载 sourceCode CLOB；或引入服务层缓存（TTL）
+- [x] **AR-143: batchGetTypeOutlines 批量查询**。预加载所有匹配符号，用 `in("parentId", ids)` 批量查询子符号
+- [x] **AR-87: getProjectFilePaths 优化**。评估 Plan 95 缓存缓解效果，如仍有性能问题则改为单次批量查询
+- [x] **新增测试**：验证批量查询和投影查询的正确性
 
 Exit Criteria:
 
-- [ ] `getModuleDigest` 符号查询有 `fileId` 过滤，不再全量加载
-- [ ] `OrmFingerprintStore.saveFingerprints` 批量加载文件，无 N+1
-- [ ] `buildFilePathCache` 不加载 sourceCode CLOB
-- [ ] `batchGetTypeOutlines` 使用批量查询
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `getModuleDigest` 符号查询有 `fileId` 过滤，不再全量加载
+- [x] `OrmFingerprintStore.saveFingerprints` 批量加载文件，无 N+1
+- [x] `buildFilePathCache` 不加载 sourceCode CLOB
+- [x] `batchGetTypeOutlines` 使用批量查询
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — 算法鲁棒性与安全修复
 
@@ -162,25 +162,25 @@ Targets: `nop-code/nop-code-graph/.../impl/CodeGraphService.java`, `nop-code/nop
 
 - Item Types: `Fix`
 
-- [ ] **AR-137: tarjanSCC 改为迭代实现**。使用显式栈替代递归 DFS，避免 StackOverflow
-- [ ] **AR-136: collectRelevantInheritances 分页加载**。使用分页替代硬限制，截断时记录 WARN 日志
-- [ ] **AR-138: 搜索评分不区分大小写**。`toLowerCase()` 后比较，保留大小写一致时的额外加分
-- [ ] **AR-99: ImpactAnalyzer startsWith 错配**。修复为正确的路径比较
-- [ ] **AR-133: persistSingleFileInSession 加载全局符号表**。从 DB 加载已有的全局符号表（通过 `getOrRebuildSymbolTable`），使跨文件引用可解析
-- [ ] **AR-101: persistFlows 添加分页限制**。防止大型索引 OOME
-- [ ] **AR-117: 双缓存竞态统一**。CodeCacheManager 与 FlowDetector 使用统一的缓存策略
-- [ ] **新增测试**：大型图 Tarjan 迭代、搜索大小写、继承分页
+- [x] **AR-137: tarjanSCC 改为迭代实现**。使用显式栈替代递归 DFS，避免 StackOverflow
+- [x] **AR-136: collectRelevantInheritances 分页加载**。使用分页替代硬限制，截断时记录 WARN 日志
+- [x] **AR-138: 搜索评分不区分大小写**。`toLowerCase()` 后比较，保留大小写一致时的额外加分
+- [x] **AR-99: ImpactAnalyzer startsWith 错配**。修复为正确的路径比较
+- [x] **AR-133: persistSingleFileInSession 加载全局符号表**。从 DB 加载已有的全局符号表（通过 `getOrRebuildSymbolTable`），使跨文件引用可解析
+- [x] **AR-101: persistFlows 添加分页限制**。防止大型索引 OOME
+- [x] **AR-117: 双缓存竞态统一**。CodeCacheManager 与 FlowDetector 使用统一的缓存策略
+- [x] **新增测试**：大型图 Tarjan 迭代、搜索大小写、继承分页
 
 Exit Criteria:
 
-- [ ] `tarjanSCC` 使用迭代实现，无 StackOverflow 风险
-- [ ] `collectRelevantInheritances` 使用分页加载，截断时有 WARN 日志
-- [ ] 搜索评分不区分大小写
-- [ ] `persistSingleFileInSession` 能解析跨文件引用
-- [ ] `persistFlows` 有分页限制
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `tarjanSCC` 使用迭代实现，无 StackOverflow 风险
+- [x] `collectRelevantInheritances` 使用分页加载，截断时有 WARN 日志
+- [x] 搜索评分不区分大小写
+- [x] `persistSingleFileInSession` 能解析跨文件引用
+- [x] `persistFlows` 有分页限制
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — 前端契约与字典修复
 
@@ -189,17 +189,17 @@ Targets: `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/`, dict files
 
 - Item Types: `Fix`
 
-- [ ] **AR-131: 创建缺失的字典文件**。创建 `call_direction.dict.yaml`（值：`callers`/`callees`/`both`）和 `hierarchy_direction.dict.yaml`（值：`super`/`sub`/`both`）
-- [ ] **验证 view.xml 中其他字段引用**。确保所有 GraphQL selection 和字典引用指向存在的属性/文件
-- [ ] **新增测试**：验证字典文件加载正确
+- [x] **AR-131: 创建缺失的字典文件**。创建 `call_direction.dict.yaml`（值：`callers`/`callees`/`both`）和 `hierarchy_direction.dict.yaml`（值：`super`/`sub`/`both`）
+- [x] **验证 view.xml 中其他字段引用**。确保所有 GraphQL selection 和字典引用指向存在的属性/文件
+- [x] **新增测试**：验证字典文件加载正确
 
 Exit Criteria:
 
-- [ ] `_vfs/nop/code/dict/code/call_direction.dict.yaml` 存在且包含 `callers`/`callees`/`both` 三个选项
-- [ ] `_vfs/nop/code/dict/code/hierarchy_direction.dict.yaml` 存在且包含 `super`/`sub`/`both` 三个选项
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `_vfs/nop/code/dict/code/call_direction.dict.yaml` 存在且包含 `callers`/`callees`/`both` 三个选项
+- [x] `_vfs/nop/code/dict/code/hierarchy_direction.dict.yaml` 存在且包含 `super`/`sub`/`both` 三个选项
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 — TypeScript 适配器性能修复
 
@@ -208,17 +208,17 @@ Targets: `nop-code/nop-code-lang-typescript/.../TypeScriptCodeFileAnalyzer.java`
 
 - Item Types: `Fix`
 
-- [ ] **AR-140: getNodeText 一次性编码 byte[]**。在 `analyze` 方法开始时编码 `source.getBytes(UTF_8)` 为 `byte[]`，将 `bytes` 作为参数传递
-- [ ] **AR-141 临时缓解: buildQualifiedPrefix 改进**。从文件路径中移除 `src/` 前缀和扩展名，但不引入 tsconfig 解析（根本修复需架构演进）
-- [ ] **新增测试**：验证 TS 适配器性能改进
+- [x] **AR-140: getNodeText 一次性编码 byte[]**。在 `analyze` 方法开始时编码 `source.getBytes(UTF_8)` 为 `byte[]`，将 `bytes` 作为参数传递
+- [x] **AR-141 临时缓解: buildQualifiedPrefix 改进**。从文件路径中移除 `src/` 前缀和扩展名，但不引入 tsconfig 解析（根本修复需架构演进）
+- [x] **新增测试**：验证 TS 适配器性能改进
 
 Exit Criteria:
 
-- [ ] `getNodeText` 不再每次调用重新编码
-- [ ] `buildQualifiedPrefix` 生成更合理的全限定名
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `getNodeText` 不再每次调用重新编码
+- [x] `buildQualifiedPrefix` 生成更合理的全限定名
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 — 剩余 P2 修复（错误处理 + 并发 + 杂项）
 
@@ -227,29 +227,29 @@ Targets: `nop-code/nop-code-service/.../impl/CodeIndexService.java`, `nop-code/n
 
 - Item Types: `Fix`
 
-- [ ] **AR-118: EdgeKey NPE 防护**。添加 null 检查
-- [ ] **AR-119: KnowledgeGap NPE 防护**。添加 null 检查
-- [ ] **AR-120: git 错误不再静默**。捕获异常后记录 WARN 日志或抛出
-- [ ] **AR-121: 死代码参数名修复**。DeadCodeReport 参数名与实际一致
-- [ ] **AR-102: 线程泄漏修复**。引入共享 ExecutorService 并在 shutdown 时关闭
-- [ ] **AR-103: CallGraph 线程安全**。添加同步或改为不可变数据结构
-- [ ] **AR-109: 依赖图 3x 加载优化**。合并为单次加载
-- [ ] **AR-110: 缓存刷新竞态修复**。统一刷新策略
-- [ ] **AR-111: 依赖图 OOME 防护**。添加分页限制
-- [ ] **AR-123: BC 添加超时**。为 BufferedReader 添加超时保护
-- [ ] **深度审计 02-03: ImportResolver 硬编码修复**。改为配置化
-- [ ] **新增测试**：验证 NPE 防护、线程安全、错误传播
+- [x] **AR-118: EdgeKey NPE 防护**。添加 null 检查
+- [x] **AR-119: KnowledgeGap NPE 防护**。添加 null 检查
+- [x] **AR-120: git 错误不再静默**。捕获异常后记录 WARN 日志或抛出
+- [x] **AR-121: 死代码参数名修复**。DeadCodeReport 参数名与实际一致
+- [x] **AR-102: 线程泄漏修复**。引入共享 ExecutorService 并在 shutdown 时关闭
+- [x] **AR-103: CallGraph 线程安全**。添加同步或改为不可变数据结构
+- [x] **AR-109: 依赖图 3x 加载优化**。合并为单次加载
+- [x] **AR-110: 缓存刷新竞态修复**。统一刷新策略
+- [x] **AR-111: 依赖图 OOME 防护**。添加分页限制
+- [x] **AR-123: BC 添加超时**。为 BufferedReader 添加超时保护
+- [x] **深度审计 02-03: ImportResolver 硬编码修复**。改为配置化
+- [x] **新增测试**：验证 NPE 防护、线程安全、错误传播
 
 Exit Criteria:
 
-- [ ] EdgeKey/KnowledgeGap 操作无 NPE
-- [ ] git 命令失败有日志记录
-- [ ] ExecutorService 在 shutdown 时关闭
-- [ ] CallGraph 线程安全
-- [ ] 依赖图单次加载
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] EdgeKey/KnowledgeGap 操作无 NPE
+- [x] git 命令失败有日志记录
+- [x] ExecutorService 在 shutdown 时关闭
+- [x] CallGraph 线程安全
+- [x] 依赖图单次加载
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 — P3 治理项
 
