@@ -73,16 +73,17 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         result.setLineCount(countLines(sourceCode));
         result.setLanguage(CodeLanguage.TYPESCRIPT);
 
+        byte[] sourceBytes = sourceCode.getBytes(StandardCharsets.UTF_8);
         String qualifiedPrefix = buildQualifiedPrefix(filePath);
 
-        walkNode(root, sourceCode, result, qualifiedPrefix, null);
+        walkNode(root, sourceCode, sourceBytes, result, qualifiedPrefix, null);
 
         tree = null;
         return result;
     }
 
-    private void walkNode(TSNode node, String source, CodeFileAnalysisResult result,
-                         String qualifiedPrefix, CodeSymbol parentSymbol) {
+    private void walkNode(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
+                          String qualifiedPrefix, CodeSymbol parentSymbol) {
         if (node.isNull()) {
             return;
         }
@@ -92,27 +93,27 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         switch (type) {
             case "class_declaration":
-                handleClassDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                handleClassDeclaration(node, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
                 return;
             case "interface_declaration":
-                handleInterfaceDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                handleInterfaceDeclaration(node, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
                 return;
             case "enum_declaration":
-                handleEnumDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                handleEnumDeclaration(node, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
                 return;
             case "function_declaration":
-                handleFunctionDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                handleFunctionDeclaration(node, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
                 return;
             case "method_definition":
-                handleMethodDefinition(node, source, result, qualifiedPrefix, parentSymbol);
+                handleMethodDefinition(node, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
                 return;
             case "method_signature":
-                handleMethodSignature(node, source, result, qualifiedPrefix, parentSymbol);
+                handleMethodSignature(node, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
                 return;
             case "public_field_definition":
             case "property_signature":
             case "property_declaration":
-                handleProperty(node, source, result, qualifiedPrefix, parentSymbol);
+                handleProperty(node, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
                 return;
             default:
                 break;
@@ -120,18 +121,18 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         for (int i = 0; i < childCount; i++) {
             TSNode child = node.getChild(i);
-            walkNode(child, source, result, qualifiedPrefix, parentSymbol);
+            walkNode(child, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
         }
     }
 
-    private void handleClassDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+    private void handleClassDeclaration(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                         String qualifiedPrefix, CodeSymbol parentSymbol) {
         CodeSymbol symbol = new CodeSymbol();
         symbol.setId(UUID.randomUUID().toString());
         symbol.setKind(CodeSymbolKind.CLASS);
-        symbol.setName(getName(node, source));
-        symbol.setAccessModifier(getAccessModifier(node, source));
-        symbol.setAbstractFlag(hasModifier(node, source, "abstract"));
+        symbol.setName(getName(node, source, sourceBytes));
+        symbol.setAccessModifier(getAccessModifier(node, source, sourceBytes));
+        symbol.setAbstractFlag(hasModifier(node, "abstract"));
 
         setLineInfo(symbol, node);
 
@@ -145,22 +146,22 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         result.getSymbols().add(symbol);
 
-        processHeritageClauses(node, source, result, symbol);
-        processDecorators(node, source, result, symbol);
+        processHeritageClauses(node, source, sourceBytes, result, symbol);
+        processDecorators(node, source, sourceBytes, result, symbol);
 
         TSNode body = node.getChildByFieldName("body");
         if (!body.isNull()) {
-            walkChildren(body, source, result, qualifiedPrefix, symbol);
+            walkChildren(body, source, sourceBytes, result, qualifiedPrefix, symbol);
         }
     }
 
-    private void handleInterfaceDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+    private void handleInterfaceDeclaration(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                             String qualifiedPrefix, CodeSymbol parentSymbol) {
         CodeSymbol symbol = new CodeSymbol();
         symbol.setId(UUID.randomUUID().toString());
         symbol.setKind(CodeSymbolKind.INTERFACE);
-        symbol.setName(getName(node, source));
-        symbol.setAccessModifier(getAccessModifier(node, source));
+        symbol.setName(getName(node, source, sourceBytes));
+        symbol.setAccessModifier(getAccessModifier(node, source, sourceBytes));
 
         setLineInfo(symbol, node);
 
@@ -174,22 +175,22 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         result.getSymbols().add(symbol);
 
-        processHeritageClauses(node, source, result, symbol);
-        processDecorators(node, source, result, symbol);
+        processHeritageClauses(node, source, sourceBytes, result, symbol);
+        processDecorators(node, source, sourceBytes, result, symbol);
 
         TSNode body = node.getChildByFieldName("body");
         if (!body.isNull()) {
-            walkChildren(body, source, result, qualifiedPrefix, symbol);
+            walkChildren(body, source, sourceBytes, result, qualifiedPrefix, symbol);
         }
     }
 
-    private void handleEnumDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+    private void handleEnumDeclaration(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                        String qualifiedPrefix, CodeSymbol parentSymbol) {
         CodeSymbol symbol = new CodeSymbol();
         symbol.setId(UUID.randomUUID().toString());
         symbol.setKind(CodeSymbolKind.ENUM);
-        symbol.setName(getName(node, source));
-        symbol.setAccessModifier(getAccessModifier(node, source));
+        symbol.setName(getName(node, source, sourceBytes));
+        symbol.setAccessModifier(getAccessModifier(node, source, sourceBytes));
 
         setLineInfo(symbol, node);
 
@@ -203,17 +204,17 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         result.getSymbols().add(symbol);
 
-        processDecorators(node, source, result, symbol);
+        processDecorators(node, source, sourceBytes, result, symbol);
     }
 
-    private void handleFunctionDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+    private void handleFunctionDeclaration(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                            String qualifiedPrefix, CodeSymbol parentSymbol) {
         CodeSymbol symbol = new CodeSymbol();
         symbol.setId(UUID.randomUUID().toString());
         symbol.setKind(parentSymbol != null && isTypeSymbol(parentSymbol) ? CodeSymbolKind.METHOD : CodeSymbolKind.FUNCTION);
-        symbol.setName(getName(node, source));
-        symbol.setAccessModifier(getAccessModifier(node, source));
-        symbol.setAsyncFlag(hasModifier(node, source, "async"));
+        symbol.setName(getName(node, source, sourceBytes));
+        symbol.setAccessModifier(getAccessModifier(node, source, sourceBytes));
+        symbol.setAsyncFlag(hasModifier(node, "async"));
 
         setLineInfo(symbol, node);
 
@@ -228,20 +229,20 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         result.getSymbols().add(symbol);
 
-        processDecorators(node, source, result, symbol);
-        walkNodeForCalls(node, source, symbol, result);
+        processDecorators(node, source, sourceBytes, result, symbol);
+        walkNodeForCalls(node, source, sourceBytes, symbol, result);
     }
 
-    private void handleMethodDefinition(TSNode node, String source, CodeFileAnalysisResult result,
+    private void handleMethodDefinition(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                         String qualifiedPrefix, CodeSymbol parentSymbol) {
         CodeSymbol symbol = new CodeSymbol();
         symbol.setId(UUID.randomUUID().toString());
         symbol.setKind(CodeSymbolKind.METHOD);
-        symbol.setName(getName(node, source));
-        symbol.setAccessModifier(getAccessModifier(node, source));
-        symbol.setAsyncFlag(hasModifier(node, source, "async"));
-        symbol.setStaticFlag(hasModifier(node, source, "static"));
-        symbol.setAbstractFlag(hasModifier(node, source, "abstract"));
+        symbol.setName(getName(node, source, sourceBytes));
+        symbol.setAccessModifier(getAccessModifier(node, source, sourceBytes));
+        symbol.setAsyncFlag(hasModifier(node, "async"));
+        symbol.setStaticFlag(hasModifier(node, "static"));
+        symbol.setAbstractFlag(hasModifier(node, "abstract"));
 
         setLineInfo(symbol, node);
 
@@ -256,17 +257,17 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
         result.getSymbols().add(symbol);
 
-        processDecorators(node, source, result, symbol);
-        walkNodeForCalls(node, source, symbol, result);
+        processDecorators(node, source, sourceBytes, result, symbol);
+        walkNodeForCalls(node, source, sourceBytes, symbol, result);
     }
 
-    private void handleMethodSignature(TSNode node, String source, CodeFileAnalysisResult result,
+    private void handleMethodSignature(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                         String qualifiedPrefix, CodeSymbol parentSymbol) {
         CodeSymbol symbol = new CodeSymbol();
         symbol.setId(UUID.randomUUID().toString());
         symbol.setKind(CodeSymbolKind.METHOD);
-        symbol.setName(getName(node, source));
-        symbol.setAccessModifier(getAccessModifier(node, source));
+        symbol.setName(getName(node, source, sourceBytes));
+        symbol.setAccessModifier(getAccessModifier(node, source, sourceBytes));
 
         setLineInfo(symbol, node);
 
@@ -282,21 +283,21 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         result.getSymbols().add(symbol);
     }
 
-    private void handleProperty(TSNode node, String source, CodeFileAnalysisResult result,
+    private void handleProperty(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                 String qualifiedPrefix, CodeSymbol parentSymbol) {
         CodeSymbol symbol = new CodeSymbol();
         symbol.setId(UUID.randomUUID().toString());
         symbol.setKind(CodeSymbolKind.FIELD);
-        symbol.setName(getName(node, source));
-        symbol.setAccessModifier(getAccessModifier(node, source));
-        symbol.setStaticFlag(hasModifier(node, source, "static"));
-        symbol.setReadonlyFlag(hasModifier(node, source, "readonly"));
+        symbol.setName(getName(node, source, sourceBytes));
+        symbol.setAccessModifier(getAccessModifier(node, source, sourceBytes));
+        symbol.setStaticFlag(hasModifier(node, "static"));
+        symbol.setReadonlyFlag(hasModifier(node, "readonly"));
 
         setLineInfo(symbol, node);
 
         TSNode typeNode = node.getChildByFieldName("type");
         if (!typeNode.isNull()) {
-            String fieldTypeName = getNodeText(typeNode, source);
+            String fieldTypeName = getNodeText(typeNode, sourceBytes);
             symbol.setFieldType(fieldTypeName);
             symbol.setRawFieldType(extractRawType(fieldTypeName));
         }
@@ -313,7 +314,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         result.getSymbols().add(symbol);
     }
 
-    private void processHeritageClauses(TSNode node, String source, CodeFileAnalysisResult result,
+    private void processHeritageClauses(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                         CodeSymbol ownerSymbol) {
         int childCount = node.getChildCount();
         for (int i = 0; i < childCount; i++) {
@@ -321,16 +322,16 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             String childType = child.getType();
 
             if ("class_heritage".equals(childType)) {
-                processClassHeritage(child, source, result, ownerSymbol);
+                processClassHeritage(child, source, sourceBytes, result, ownerSymbol);
             } else if ("extends_clause".equals(childType)) {
-                addHeritage(child, source, result, ownerSymbol, CodeRelationType.EXTENDS);
+                addHeritage(child, source, sourceBytes, result, ownerSymbol, CodeRelationType.EXTENDS);
             } else if ("implements_clause".equals(childType)) {
-                addHeritage(child, source, result, ownerSymbol, CodeRelationType.IMPLEMENTS);
+                addHeritage(child, source, sourceBytes, result, ownerSymbol, CodeRelationType.IMPLEMENTS);
             }
         }
     }
 
-    private void processClassHeritage(TSNode heritageNode, String source, CodeFileAnalysisResult result,
+    private void processClassHeritage(TSNode heritageNode, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                       CodeSymbol ownerSymbol) {
         int count = heritageNode.getChildCount();
         for (int i = 0; i < count; i++) {
@@ -338,21 +339,21 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             String childType = child.getType();
 
             if ("extends_clause".equals(childType)) {
-                addHeritage(child, source, result, ownerSymbol, CodeRelationType.EXTENDS);
+                addHeritage(child, source, sourceBytes, result, ownerSymbol, CodeRelationType.EXTENDS);
             } else if ("implements_clause".equals(childType)) {
-                addHeritage(child, source, result, ownerSymbol, CodeRelationType.IMPLEMENTS);
+                addHeritage(child, source, sourceBytes, result, ownerSymbol, CodeRelationType.IMPLEMENTS);
             }
         }
     }
 
-    private void addHeritage(TSNode clauseNode, String source, CodeFileAnalysisResult result,
+    private void addHeritage(TSNode clauseNode, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                              CodeSymbol ownerSymbol, CodeRelationType relationType) {
         int count = clauseNode.getChildCount();
         for (int i = 0; i < count; i++) {
             TSNode child = clauseNode.getChild(i);
             if (!child.isNamed()) continue;
 
-            String superTypeName = extractTypeName(child, source);
+            String superTypeName = extractTypeName(child, sourceBytes);
             if (superTypeName != null && !superTypeName.isEmpty()) {
                 CodeInheritance inheritance = new CodeInheritance();
                 inheritance.setId(UUID.randomUUID().toString());
@@ -365,43 +366,41 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         }
     }
 
-    private String extractTypeName(TSNode typeNode, String source) {
+    private String extractTypeName(TSNode typeNode, byte[] sourceBytes) {
         String nodeType = typeNode.getType();
         switch (nodeType) {
             case "type_identifier":
-                return getNodeText(typeNode, source);
+                return getNodeText(typeNode, sourceBytes);
             case "generic_type":
             case "nested_type_identifier": {
                 TSNode nameNode = typeNode.getChildByFieldName("name");
                 if (!nameNode.isNull()) {
-                    return getNodeText(nameNode, source);
+                    return getNodeText(nameNode, sourceBytes);
                 }
                 int count = typeNode.getChildCount();
                 for (int i = 0; i < count; i++) {
                     TSNode child = typeNode.getChild(i);
                     if (child.isNamed()) {
-                        return getNodeText(child, source);
+                        return getNodeText(child, sourceBytes);
                     }
                 }
-                return getNodeText(typeNode, source);
+                return getNodeText(typeNode, sourceBytes);
             }
             default:
-                return getNodeText(typeNode, source);
+                return getNodeText(typeNode, sourceBytes);
         }
     }
 
-    private void processDecorators(TSNode node, String source, CodeFileAnalysisResult result,
+    private void processDecorators(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                                    CodeSymbol ownerSymbol) {
-        // Check direct children for decorators
         int childCount = node.getChildCount();
         for (int i = 0; i < childCount; i++) {
             TSNode child = node.getChild(i);
             if ("decorator".equals(child.getType())) {
-                addDecoratorUsage(child, source, result, ownerSymbol);
+                addDecoratorUsage(child, sourceBytes, result, ownerSymbol);
             }
         }
 
-        // Check parent for preceding decorator siblings (e.g., @Injectable() before export class)
         TSNode parent = node.getParent();
         if (!parent.isNull()) {
             int nodeStartByte = node.getStartByte();
@@ -409,17 +408,17 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             for (int i = 0; i < parentCount; i++) {
                 TSNode sibling = parent.getChild(i);
                 if ("decorator".equals(sibling.getType()) && sibling.getEndByte() <= nodeStartByte) {
-                    addDecoratorUsage(sibling, source, result, ownerSymbol);
+                    addDecoratorUsage(sibling, sourceBytes, result, ownerSymbol);
                 }
             }
         }
     }
 
-    private void addDecoratorUsage(TSNode decoratorNode, String source, CodeFileAnalysisResult result,
+    private void addDecoratorUsage(TSNode decoratorNode, byte[] sourceBytes, CodeFileAnalysisResult result,
                                     CodeSymbol ownerSymbol) {
         CodeAnnotationUsage usage = new CodeAnnotationUsage();
         usage.setId(UUID.randomUUID().toString());
-        usage.setAnnotationTypeQualifiedName(extractDecoratorName(decoratorNode, source));
+        usage.setAnnotationTypeQualifiedName(extractDecoratorName(decoratorNode, sourceBytes));
         usage.setAnnotatedSymbolId(ownerSymbol.getId());
         usage.setProvenance(EdgeProvenance.AST_EXTRACTION);
         usage.setLine(decoratorNode.getStartPoint().getRow() + 1);
@@ -427,11 +426,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         result.getAnnotationUsages().add(usage);
     }
 
-
-    /**
-     * Recursively walk the AST to find call_expression nodes and extract method calls.
-     */
-    private void walkNodeForCalls(TSNode node, String source,
+    private void walkNodeForCalls(TSNode node, String source, byte[] sourceBytes,
                                   CodeSymbol callerSymbol, CodeFileAnalysisResult result) {
         String type = node.getType();
 
@@ -449,16 +444,14 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
                 if ("member_expression".equals(funcType)) {
                     TSNode propNode = funcNode.getChildByFieldName("property");
                     if (!propNode.isNull()) {
-                        call.setMethodName(getNodeText(propNode, source));
+                        call.setMethodName(getNodeText(propNode, sourceBytes));
                     }
                     TSNode objNode = funcNode.getChildByFieldName("object");
                     if (!objNode.isNull()) {
-                        call.setContext(getNodeText(objNode, source));
+                        call.setContext(getNodeText(objNode, sourceBytes));
                     }
-                } else if ("identifier".equals(funcType)) {
-                    call.setMethodName(getNodeText(funcNode, source));
                 } else {
-                    call.setMethodName(getNodeText(funcNode, source));
+                    call.setMethodName(getNodeText(funcNode, sourceBytes));
                 }
             }
 
@@ -470,57 +463,56 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         for (int i = 0; i < node.getChildCount(); i++) {
             TSNode child = node.getChild(i);
             if (child != null && child.isNamed()) {
-                walkNodeForCalls(child, source, callerSymbol, result);
+                walkNodeForCalls(child, source, sourceBytes, callerSymbol, result);
             }
         }
     }
 
-    private String extractDecoratorName(TSNode decoratorNode, String source) {
+    private String extractDecoratorName(TSNode decoratorNode, byte[] sourceBytes) {
         int count = decoratorNode.getChildCount();
         for (int i = 0; i < count; i++) {
             TSNode child = decoratorNode.getChild(i);
             if (child.isNamed()) {
                 if ("identifier".equals(child.getType())) {
-                    return getNodeText(child, source);
+                    return getNodeText(child, sourceBytes);
                 } else if ("call_expression".equals(child.getType())) {
                     TSNode funcNode = child.getChildByFieldName("function");
                     if (!funcNode.isNull()) {
-                        return getNodeText(funcNode, source);
+                        return getNodeText(funcNode, sourceBytes);
                     }
                     int callCount = child.getChildCount();
                     for (int j = 0; j < callCount; j++) {
                         TSNode callChild = child.getChild(j);
                         if (callChild.isNamed()) {
-                            return getNodeText(callChild, source);
+                            return getNodeText(callChild, sourceBytes);
                         }
                     }
                 }
-                return getNodeText(child, source);
+                return getNodeText(child, sourceBytes);
             }
         }
-        return getNodeText(decoratorNode, source);
+        return getNodeText(decoratorNode, sourceBytes);
     }
 
     /**
      * Tree-sitter does NOT provide node.getText(). Use byte offsets instead.
      */
-    private String getNodeText(TSNode node, String source) {
+    private String getNodeText(TSNode node, byte[] sourceBytes) {
         int startByte = node.getStartByte();
         int endByte = node.getEndByte();
         if (startByte >= endByte) {
             return "";
         }
-        byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
-        if (endByte > bytes.length) {
-            endByte = bytes.length;
+        if (endByte > sourceBytes.length) {
+            endByte = sourceBytes.length;
         }
-        return new String(bytes, startByte, endByte - startByte, StandardCharsets.UTF_8);
+        return new String(sourceBytes, startByte, endByte - startByte, StandardCharsets.UTF_8);
     }
 
-    private String getName(TSNode node, String source) {
+    private String getName(TSNode node, String source, byte[] sourceBytes) {
         TSNode nameNode = node.getChildByFieldName("name");
         if (!nameNode.isNull()) {
-            String text = getNodeText(nameNode, source);
+            String text = getNodeText(nameNode, sourceBytes);
             if (text != null && !text.isEmpty()) {
                 return text;
             }
@@ -538,12 +530,12 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         symbol.setEndColumn(node.getEndPoint().getColumn());
     }
 
-    private CodeAccessModifier getAccessModifier(TSNode node, String source) {
+    private CodeAccessModifier getAccessModifier(TSNode node, String source, byte[] sourceBytes) {
         int childCount = node.getChildCount();
         for (int i = 0; i < childCount; i++) {
             TSNode child = node.getChild(i);
             if ("accessibility_modifier".equals(child.getType())) {
-                String text = getNodeText(child, source);
+                String text = getNodeText(child, sourceBytes);
                 if ("public".equals(text)) {
                     return CodeAccessModifier.PUBLIC;
                 } else if ("private".equals(text)) {
@@ -556,7 +548,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         return CodeAccessModifier.NO_MODIFIER;
     }
 
-    private boolean hasModifier(TSNode node, String source, String modifier) {
+    private boolean hasModifier(TSNode node, String modifier) {
         int childCount = node.getChildCount();
         for (int i = 0; i < childCount; i++) {
             TSNode child = node.getChild(i);
@@ -579,12 +571,12 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
                 || symbol.getKind() == CodeSymbolKind.ENUM;
     }
 
-    private void walkChildren(TSNode node, String source, CodeFileAnalysisResult result,
+    private void walkChildren(TSNode node, String source, byte[] sourceBytes, CodeFileAnalysisResult result,
                               String qualifiedPrefix, CodeSymbol parentSymbol) {
         int count = node.getChildCount();
         for (int i = 0; i < count; i++) {
             TSNode child = node.getChild(i);
-            walkNode(child, source, result, qualifiedPrefix, parentSymbol);
+            walkNode(child, source, sourceBytes, result, qualifiedPrefix, parentSymbol);
         }
     }
 
@@ -593,6 +585,10 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
             return "";
         }
         String normalized = filePath.replace('\\', '/');
+        int srcIdx = normalized.indexOf("src/");
+        if (srcIdx >= 0) {
+            normalized = normalized.substring(srcIdx + 4);
+        }
         int dotIdx = normalized.lastIndexOf('.');
         if (dotIdx > 0) {
             normalized = normalized.substring(0, dotIdx);
