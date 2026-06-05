@@ -107,22 +107,22 @@ Exit Criteria:
 
 ### Phase 2 — CodeCacheManager LRU + TTL
 
-Status: planned
+Status: completed
 Targets: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeCacheManager.java`
 
 - Item Types: `Fix`
 
-- [ ] **将 `analysisCacheMap`（`LinkedHashMap`，插入序）替换为 access-order LRU**。使用 `LinkedHashMap(initialCapacity, loadFactor, true)` 构造 access-order 模式，或引入 Caffeine（需先确认 nop-code 依赖树中已有 Caffeine；若无，使用 access-order LinkedHashMap + 手动 TTL 包装，避免引入新依赖）
-- [ ] **添加 TTL 支持**。为每个缓存条目包装 `CacheEntry<T>`（含 `value` + `lastAccessTime`），在 `getOrRebuildXxx` 方法入口检查 TTL。添加 `CACHE_TTL_MS` 常量（默认 3600000 = 60 分钟），超时条目在访问时惰性驱逐并重建
-- [ ] **添加单元测试**：验证 LRU 驱逐顺序（访问最久未用的条目被先驱逐）、TTL 过期行为（超时条目被重建）、MAX_CACHE_ENTRIES 上限
+- [x] **将 `analysisCacheMap`（`LinkedHashMap`，插入序）替换为 access-order LRU**。使用 `LinkedHashMap(initialCapacity, loadFactor, true)` 构造 access-order 模式，或引入 Caffeine（需先确认 nop-code 依赖树中已有 Caffeine；若无，使用 access-order LinkedHashMap + 手动 TTL 包装，避免引入新依赖）
+- [x] **添加 TTL 支持**。为每个缓存条目包装 `CacheEntry<T>`（含 `value` + `lastAccessTime`），在 `getOrRebuildXxx` 方法入口检查 TTL。添加 `CACHE_TTL_MS` 常量（默认 3600000 = 60 分钟），超时条目在访问时惰性驱逐并重建
+- [x] **添加单元测试**：验证 LRU 驱逐顺序（访问最久未用的条目被先驱逐）、TTL 过期行为（超时条目被重建）、MAX_CACHE_ENTRIES 上限
 
 Exit Criteria:
 
-- [ ] `CodeCacheManager` 的 `analysisCacheMap` 使用 access-order 迭代（最久未访问的条目排在前面，先被驱逐）
-- [ ] 缓存条目有 TTL 过期机制（基于 `lastAccessTime` + `CACHE_TTL_MS`）
-- [ ] 新增测试验证 LRU 和 TTL 行为
-- [ ] `./mvnw test -pl nop-code/nop-code-service -am` 通过
-- [ ] No owner-doc update required
+- [x] `CodeCacheManager` 的 `analysisCacheMap` 使用 access-order 迭代（最久未访问的条目排在前面，先被驱逐）
+- [x] 缓存条目有 TTL 过期机制（基于 `lastAccessTime` + `CACHE_TTL_MS`）
+- [x] 新增测试验证 LRU 和 TTL 行为
+- [x] `./mvnw test -pl nop-code/nop-code-service -am` 通过
+- [x] No owner-doc update required
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — nop-code-api 模块补充 DTO
