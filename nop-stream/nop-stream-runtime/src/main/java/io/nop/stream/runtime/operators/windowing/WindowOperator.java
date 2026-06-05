@@ -106,6 +106,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     private static final long serialVersionUID = 1L;
     private static final String WINDOW_VALUE_KEY = "__window_value__";
+    private static final String ELEMENT_TIMESTAMPS_KEY = "__element_timestamps__";
     private static final String STATE_KEY_SEPARATOR = "\u0000";
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(WindowOperator.class);
 
@@ -201,6 +202,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      * <p>Uses `currentKey + namespace(window)` to scope each pane.
      */
     private transient MapState<String, ACC> windowContentsState;
+
+    private transient MapState<String, List<Long>> elementTimestampsState;
 
     /**
      * Per-trigger SimpleAccumulator state, keyed by composite key (key + window + descriptor name).
@@ -328,6 +331,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             MapStateDescriptor<String, ACC> windowContentsDescriptor =
                     new MapStateDescriptor<>("window-contents", String.class, accType);
             windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
+
+            @SuppressWarnings("unchecked")
+            MapStateDescriptor<String, List<Long>> timestampsDescriptor =
+                    new MapStateDescriptor<>("element-timestamps", String.class, (Class<List<Long>>) (Class<?>) List.class);
+            elementTimestampsState = this.keyedStateBackend.getMapState(timestampsDescriptor);
         }
 
         internalTimerService = new WindowOperatorTimerService<>(this,
@@ -376,6 +384,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         processContext = null;
         windowAssignerContext = null;
         windowContentsState = null;
+        elementTimestampsState = null;
         triggerAccumulators = null;
     }
 
@@ -383,7 +392,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
         if (triggerAccumulators != null) {
-            result.putOperatorState("trigger-accumulators", new HashMap<>(triggerAccumulators));
+            Map<String, SimpleAccumulator<?>> snapshot = new HashMap<>();
+            for (Map.Entry<String, SimpleAccumulator<?>> entry : triggerAccumulators.entrySet()) {
+                @SuppressWarnings("unchecked")
+                SimpleAccumulator<?> cloned = (SimpleAccumulator<?>) entry.getValue().clone();
+                snapshot.put(entry.getKey(), cloned);
+            }
+            result.putOperatorState("trigger-accumulators", snapshot);
         }
         return result;
     }
@@ -421,10 +436,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             this.<K>getKeyedStateBackend().setCurrentKey(key);
         }
 
+        final long elementTimestamp = element.getTimestamp();
+
         if (windowAssigner instanceof MergingWindowAssigner) {
-            isSkippedElement = processElementForMergingWindow(element, elementWindows, key);
+            isSkippedElement = processElementForMergingWindow(element, elementWindows, key, elementTimestamp);
         } else {
-            isSkippedElement = processElementForRegularWindow(element, elementWindows, key);
+            isSkippedElement = processElementForRegularWindow(element, elementWindows, key, elementTimestamp);
         }
 
         if (isSkippedElement && isElementLate(element)) {
@@ -435,7 +452,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     private boolean processElementForMergingWindow(
-            StreamRecord<IN> element, Collection<W> elementWindows, K key) throws Exception {
+            StreamRecord<IN> element, Collection<W> elementWindows, K key, long elementTimestamp) throws Exception {
         MergingWindowSet<W> mergingWindows = getMergingWindowSet();
         boolean isSkippedElement = true;
 
@@ -496,7 +513,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                         "Window " + window + " is not in in-flight window set.");
             }
-            addWindowElement(key, stateWindow, element.getValue());
+            addWindowElement(key, stateWindow, element.getValue(), elementTimestamp);
 
             triggerContext.key = key;
             triggerContext.window = actualWindow;
@@ -521,7 +538,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     private boolean processElementForRegularWindow(
-            StreamRecord<IN> element, Collection<W> elementWindows, K key) throws Exception {
+            StreamRecord<IN> element, Collection<W> elementWindows, K key, long elementTimestamp) throws Exception {
         boolean isSkippedElement = true;
 
         for (W window : elementWindows) {
@@ -529,7 +546,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 continue;
             }
             isSkippedElement = false;
-            addWindowElement(key, window, element.getValue());
+            addWindowElement(key, window, element.getValue(), elementTimestamp);
 
             triggerContext.key = key;
             triggerContext.window = window;
@@ -685,12 +702,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (evictor != null) {
             Iterable<IN> elements = (Iterable<IN>) contents;
             List<TimestampedValue<IN>> wrapped = new ArrayList<>();
+            List<Long> storedTimestamps = getElementTimestamps(key, window);
+            int idx = 0;
             for (IN element : elements) {
-                long elementTimestamp = internalTimerService.currentWatermark();
-                if (element instanceof StreamRecord) {
-                    elementTimestamp = ((StreamRecord<IN>) element).getTimestamp();
+                long elementTimestamp;
+                if (storedTimestamps != null && idx < storedTimestamps.size()) {
+                    elementTimestamp = storedTimestamps.get(idx);
+                } else {
+                    elementTimestamp = internalTimerService.currentWatermark();
                 }
                 wrapped.add(new TimestampedValue<>(element, elementTimestamp));
+                idx++;
             }
             Evictor.EvictorContext evictorContext = new Evictor.EvictorContext() {
                 @Override
@@ -821,7 +843,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     @SuppressWarnings("unchecked")
-    private void addWindowElement(K key, W window, IN value) {
+    private void addWindowElement(K key, W window, IN value, long elementTimestamp) {
         if (newAppendingWindowState != null) {
             IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
             typedBackend.setCurrentKey(key);
@@ -854,19 +876,26 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         ACC current = windowContentsState.get(WINDOW_VALUE_KEY);
         if (current == null) {
-            SimpleAccumulator<IN> accumulator = createAccumulatorForWindow();
-            if (accumulator != null) {
-                accumulator.add(value);
-                setWindowContents(key, window, (ACC) accumulator);
+            if (evictor != null) {
+                List<IN> list = new ArrayList<>();
+                list.add(value);
+                setWindowContents(key, window, (ACC) list);
             } else {
-                try {
-                    setWindowContents(key, window, (ACC) value);
-                } catch (ClassCastException e) {
-                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH, e)
-                            .param(ARG_EXPECTED_TYPE, accClass.getName())
-                            .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+                SimpleAccumulator<IN> accumulator = createAccumulatorForWindow();
+                if (accumulator != null) {
+                    accumulator.add(value);
+                    setWindowContents(key, window, (ACC) accumulator);
+                } else {
+                    try {
+                        setWindowContents(key, window, (ACC) value);
+                    } catch (ClassCastException e) {
+                        throw new StreamException(ERR_STREAM_TYPE_MISMATCH, e)
+                                .param(ARG_EXPECTED_TYPE, accClass.getName())
+                                .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+                    }
                 }
             }
+            storeElementTimestamp(key, window, elementTimestamp);
             return;
         }
 
@@ -874,6 +903,24 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             SimpleAccumulator<IN> accumulator = (SimpleAccumulator<IN>) current;
             accumulator.add(value);
             setWindowContents(key, window, (ACC) accumulator);
+            storeElementTimestamp(key, window, elementTimestamp);
+            return;
+        }
+
+        if (current instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<IN> list = (List<IN>) current;
+            list.add(value);
+            storeElementTimestamp(key, window, elementTimestamp);
+            return;
+        }
+
+        if (evictor != null) {
+            List<IN> list = new ArrayList<>();
+            list.add((IN) current);
+            list.add(value);
+            setWindowContents(key, window, (ACC) list);
+            storeElementTimestamp(key, window, elementTimestamp);
             return;
         }
 
@@ -884,6 +931,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     .param(ARG_EXPECTED_TYPE, accClass.getName())
                     .param(ARG_ACTUAL_TYPE, value.getClass().getName());
         }
+        storeElementTimestamp(key, window, elementTimestamp);
     }
 
     /**
@@ -894,6 +942,31 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     @SuppressWarnings("unchecked")
     protected SimpleAccumulator<IN> createAccumulatorForWindow() {
         return null;
+    }
+
+    private void storeElementTimestamp(K key, W window, long timestamp) {
+        if (elementTimestampsState == null || evictor == null) {
+            return;
+        }
+        IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(window));
+        List<Long> timestamps = elementTimestampsState.get(ELEMENT_TIMESTAMPS_KEY);
+        if (timestamps == null) {
+            timestamps = new ArrayList<>();
+        }
+        timestamps.add(timestamp);
+        elementTimestampsState.put(ELEMENT_TIMESTAMPS_KEY, timestamps);
+    }
+
+    private List<Long> getElementTimestamps(K key, W window) {
+        if (elementTimestampsState == null) {
+            return null;
+        }
+        IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(window));
+        return elementTimestampsState.get(ELEMENT_TIMESTAMPS_KEY);
     }
 
     @SuppressWarnings("unchecked")
@@ -951,6 +1024,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         typedBackend.setCurrentKey(key);
         typedBackend.setCurrentNamespace(windowNamespace(window));
         windowContentsState.remove(WINDOW_VALUE_KEY);
+        if (elementTimestampsState != null) {
+            elementTimestampsState.remove(ELEMENT_TIMESTAMPS_KEY);
+        }
     }
 
     private void setWindowContents(K key, W window, ACC value) {
@@ -1567,11 +1643,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         @Override
         @SuppressWarnings("unchecked")
         public <T> SimpleAccumulator<T> getSimpleAccumulator(StateDescriptor<T> descriptor) {
-            // Build a composite key from key + window + descriptor name
+            Map<String, SimpleAccumulator<?>> accums = triggerAccumulators;
+            if (accums == null) {
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "triggerAccumulators already cleared (operator closed)");
+            }
+
             String stateKey = "trigger_" + key + STATE_KEY_SEPARATOR + window + STATE_KEY_SEPARATOR + descriptor.getName();
 
-            // Check for existing accumulator in trigger state map
-            SimpleAccumulator<T> existing = (SimpleAccumulator<T>) triggerAccumulators.get(stateKey);
+            SimpleAccumulator<T> existing = (SimpleAccumulator<T>) accums.get(stateKey);
             if (existing != null) {
                 return existing;
             }
@@ -1581,7 +1661,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 ReducingStateDescriptor<T> rsd = (ReducingStateDescriptor<T>) descriptor;
                 try {
                     SimpleAccumulator<T> acc = rsd.getAccumulatorType().getDeclaredConstructor().newInstance();
-                    triggerAccumulators.put(stateKey, acc);
+                    accums.put(stateKey, acc);
                     return acc;
                 } catch (Exception e) {
                     throw new StreamException(ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED, e)
