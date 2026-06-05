@@ -410,6 +410,35 @@ class TestJobCoordinator {
                 "Barrier type should be EXPORTED_SAVEPOINT");
     }
 
+    @Test
+    void testTriggerCheckpointOnlySendsToSourceNodes() {
+        clusterRegistry.registerNode("node-1", "localhost:9090", 4);
+        clusterRegistry.registerNode("node-2", "localhost:9091", 4);
+        MockTaskRpcService node1Rpc = mockRpcService;
+        MockTaskRpcService node2Rpc = new MockTaskRpcService();
+        taskRpcServices.put("node-2", node2Rpc);
+
+        coordinator.start();
+        coordinator.assignTasks();
+
+        Map<String, List<TaskAssignment>> assignments = coordinator.getTaskAssignments();
+        assertNotNull(assignments.get("source"));
+        assertNotNull(assignments.get("sink"));
+
+        String sourceNode = assignments.get("source").get(0).getNodeId();
+        String sinkNode = assignments.get("sink").get(0).getNodeId();
+
+        coordinator.triggerCheckpoint();
+
+        MockTaskRpcService sourceRpc = sourceNode.equals("node-1") ? node1Rpc : node2Rpc;
+        MockTaskRpcService sinkRpc = sinkNode.equals("node-1") ? node1Rpc : node2Rpc;
+
+        assertNotNull(sourceRpc.lastBarrier.get(),
+                "Source node should receive checkpoint barrier");
+        assertNull(sinkRpc.lastBarrier.get(),
+                "Non-source (sink) node should NOT receive checkpoint barrier");
+    }
+
     // ==================== Mocks ====================
 
     static class MockClusterRegistry implements ClusterRegistry {
