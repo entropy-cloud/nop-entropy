@@ -1,6 +1,7 @@
 package io.nop.code.service.entity;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.directive.Auth;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeIndexBiz;
 import io.nop.code.core.model.CodeFileAnalysisResult;
@@ -25,6 +27,8 @@ import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.api.dto.*;
 import io.nop.code.service.api.dto.FileAnalysisDTO;
+
+import static io.nop.code.service.NopCodeErrors.*;
 @BizModel("NopCodeIndex")
 public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements INopCodeIndexBiz {
 
@@ -32,10 +36,18 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
     private static final int MAX_STATUS_ENTRIES = 20;
 
+    private static final int MAX_SOURCE_CODE_BYTES = 1024 * 1024;
+
     @Inject
     protected ICodeIndexService codeIndexService;
 
-    private final Map<String, IncrementalStatus> incrementalStatusMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, IncrementalStatus> incrementalStatusMap = Collections.synchronizedMap(
+            new LinkedHashMap<String, IncrementalStatus>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, IncrementalStatus> eldest) {
+                    return size() > MAX_STATUS_ENTRIES;
+                }
+            });
 
     public NopCodeIndexBizModel() {
         setEntityName(NopCodeIndex.class.getName());
@@ -54,7 +66,6 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         status.setFileCount(fileCount);
         status.setCompleted(true);
         incrementalStatusMap.put(indexId, status);
-        evictStatusMap();
 
         LOG.info("Full index completed: indexId={}, files={}", indexId, fileCount);
         return indexId;
@@ -75,7 +86,6 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         status.setFileCount(fileCount);
         status.setCompleted(true);
         incrementalStatusMap.put(indexId, status);
-        evictStatusMap();
 
         LOG.info("Incremental index completed: indexId={}, files={}", indexId, fileCount);
         return fileCount;
@@ -103,6 +113,11 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("indexId") String indexId,
             @Name("filePath") String filePath,
             @Name("sourceCode") String sourceCode) {
+        if (sourceCode != null && sourceCode.length() > MAX_SOURCE_CODE_BYTES) {
+            throw new NopException(ERR_CODE_SOURCE_CODE_TOO_LARGE)
+                    .param(ARG_FILE_PATH, filePath)
+                    .param(ARG_INDEX_ID, indexId);
+        }
         CodeFileAnalysisResult result = codeIndexService.indexFile(indexId, filePath, sourceCode);
         return FileAnalysisDTO.fromCodeFileAnalysisResult(result);
     }
@@ -333,12 +348,4 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         }
     }
 
-    private void evictStatusMap() {
-        while (incrementalStatusMap.size() > MAX_STATUS_ENTRIES) {
-            String key = incrementalStatusMap.keySet().iterator().next();
-            if (key != null) {
-                incrementalStatusMap.remove(key);
-            }
-        }
-    }
 }

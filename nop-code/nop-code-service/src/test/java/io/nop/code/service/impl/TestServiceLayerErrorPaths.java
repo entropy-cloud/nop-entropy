@@ -41,4 +41,12 @@ class TestServiceLayerErrorPaths {
         NopException ex = new NopException(NopCodeErrors.ERR_CODE_FLOW_DETECTOR_NOT_AVAILABLE);
         assertEquals("nop.err.code.flow-detector-not-available", ex.getErrorCode());
     }
+
+    @Test
+    void testNopCodeErrors_sourceCodeTooLarge_hasCorrectCode() {
+        NopException ex = new NopException(NopCodeErrors.ERR_CODE_SOURCE_CODE_TOO_LARGE)
+                .param("filePath", "Test.java");
+        assertEquals("nop.err.code.source-code-too-large", ex.getErrorCode());
+        assertEquals("Test.java", ex.getParam("filePath"));
+    }
 }

@@ -1,6 +1,7 @@
 package io.nop.code.service.impl;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -281,10 +282,27 @@ class CodeSearchService {
 
     private List<CodeSearchResultDTO> filterByFilePattern(List<CodeSearchResultDTO> results, String filePattern) {
         if (filePattern == null || filePattern.isEmpty()) return results;
-        String pattern = filePattern.replace(".", "\\.").replace("*", ".*").replace("?", ".");
+        String pattern = globToRegex(filePattern);
         return results.stream()
                 .filter(r -> r.getFilePath() != null && r.getFilePath().matches(pattern))
                 .collect(Collectors.toList());
+    }
+
+    private String globToRegex(String glob) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < glob.length(); i++) {
+            char c = glob.charAt(i);
+            if (c == '*') {
+                sb.append(".*");
+            } else if (c == '?') {
+                sb.append(".");
+            } else if ("\\[]{}()+^$.|".indexOf(c) >= 0) {
+                sb.append('\\').append(c);
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     List<CodeSearchResultDTO> filterByLanguage(List<CodeSearchResultDTO> results,

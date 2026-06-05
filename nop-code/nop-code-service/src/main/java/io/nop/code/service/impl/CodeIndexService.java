@@ -1929,6 +1929,10 @@ public class CodeIndexService implements ICodeIndexService {
 
     public void setAllowedLocalRoot(String allowedLocalRoot) {
         this.allowedLocalRoot = allowedLocalRoot;
+        if (allowedLocalRoot == null || allowedLocalRoot.isEmpty()) {
+            LOG.warn("allowedLocalRoot is not configured; path validation will only check for '..' patterns. "
+                    + "Configure allowedLocalRoot to restrict indexing to specific directories.");
+        }
     }
 
     private void validatePath(String path) {
@@ -1943,16 +1947,21 @@ public class CodeIndexService implements ICodeIndexService {
             return;
         if (path.contains(".."))
             throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+        if (path.startsWith("/") || (path.length() >= 2 && path.charAt(1) == ':')) {
+            throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+        }
         java.io.File localFile = new java.io.File(path);
-        if (localFile.isDirectory() && allowedLocalRoot != null && !allowedLocalRoot.isEmpty()) {
-            try {
-                String canonical = localFile.toPath().toRealPath().toString();
-                String allowedCanonical = new java.io.File(allowedLocalRoot).toPath().toRealPath().toString();
-                if (!canonical.startsWith(allowedCanonical)) {
-                    throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+        if (localFile.isDirectory()) {
+            if (allowedLocalRoot != null && !allowedLocalRoot.isEmpty()) {
+                try {
+                    String canonical = localFile.toPath().toRealPath().toString();
+                    String allowedCanonical = new java.io.File(allowedLocalRoot).toPath().toRealPath().toString();
+                    if (!canonical.startsWith(allowedCanonical)) {
+                        throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+                    }
+                } catch (IOException e) {
+                    throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path).cause(e);
                 }
-            } catch (IOException e) {
-                throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path).cause(e);
             }
         }
     }
