@@ -33,6 +33,7 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
         implements OneInputStreamOperator<IN, Void> {
 
     private static final long serialVersionUID = 1L;
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(StreamSinkOperator.class);
 
     public StreamSinkOperator(SinkFunction<IN> sinkFunction) {
         super(sinkFunction);
@@ -54,32 +55,42 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
     @Override
     public void processBarrier(CheckpointBarrier barrier) throws Exception {
         OperatorSnapshotResult snapshotResult = null;
+        Exception snapshotError = null;
         if (barrier.snapshot()) {
-            StateSnapshotContext context = new StateSnapshotContext(barrier.getId(), barrier.getTimestamp());
-            snapshotResult = snapshotState(context);
+            try {
+                StateSnapshotContext context = new StateSnapshotContext(barrier.getId(), barrier.getTimestamp());
+                snapshotResult = snapshotState(context);
 
-            // If the user function is a CheckpointParticipant, save its state and merge
-            if (userFunction instanceof CheckpointParticipant) {
-                TaskStateSnapshot participantState = ((CheckpointParticipant) userFunction).saveState(barrier.getId());
-                if (participantState != null && snapshotResult != null) {
-                    for (Map.Entry<String, Object> entry : participantState.getOperatorStates().entrySet()) {
-                        snapshotResult.putOperatorState("participant-" + entry.getKey(), entry.getValue());
+                if (userFunction instanceof CheckpointParticipant) {
+                    TaskStateSnapshot participantState = ((CheckpointParticipant) userFunction).saveState(barrier.getId());
+                    if (participantState != null && snapshotResult != null) {
+                        for (Map.Entry<String, Object> entry : participantState.getOperatorStates().entrySet()) {
+                            snapshotResult.putOperatorState("participant-" + entry.getKey(), entry.getValue());
+                        }
+                        for (Map.Entry<String, Object> entry : participantState.getKeyedStates().entrySet()) {
+                            snapshotResult.putKeyedState("participant-" + entry.getKey(), entry.getValue());
+                        }
                     }
-                    for (Map.Entry<String, Object> entry : participantState.getKeyedStates().entrySet()) {
-                        snapshotResult.putKeyedState("participant-" + entry.getKey(), entry.getValue());
-                    }
+
+                    ((CheckpointParticipant) userFunction).prepareCommit(barrier.getId());
+                } else if (userFunction instanceof TwoPhaseCommitSinkFunction) {
+                    ((TwoPhaseCommitSinkFunction<?>) userFunction).preCommit(barrier.getId());
                 }
 
-                // Use CheckpointParticipant.prepareCommit instead of direct preCommit
-                ((CheckpointParticipant) userFunction).prepareCommit(barrier.getId());
-            } else if (userFunction instanceof TwoPhaseCommitSinkFunction) {
-                ((TwoPhaseCommitSinkFunction<?>) userFunction).preCommit(barrier.getId());
+                this.lastSnapshotResult = snapshotResult;
+            } catch (Exception e) {
+                snapshotError = e;
+                LOG.error("Snapshot failed for sink operator at checkpoint {}", barrier.getId(), e);
             }
-
-            this.lastSnapshotResult = snapshotResult;
         }
-        if (snapshotCallback != null && snapshotResult != null) {
-            snapshotCallback.accept(snapshotResult);
+        if (snapshotCallback != null) {
+            if (snapshotResult != null) {
+                snapshotCallback.accept(snapshotResult);
+            } else if (snapshotError != null) {
+                OperatorSnapshotResult failureResult = new OperatorSnapshotResult();
+                failureResult.setError(snapshotError);
+                snapshotCallback.accept(failureResult);
+            }
         }
     }
 
