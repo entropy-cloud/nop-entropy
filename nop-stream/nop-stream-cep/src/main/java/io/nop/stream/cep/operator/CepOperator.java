@@ -118,6 +118,8 @@ public class CepOperator<IN, KEY, OUT>
 
     private transient NFA<IN> nfa;
 
+    private transient Set<Long> registeredEventTimeTimers;
+
     /**
      * Comparator for secondary sorting. Primary sorting is always done on time.
      */
@@ -221,7 +223,7 @@ public class CepOperator<IN, KEY, OUT>
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(keyedStateStore, inputSerializer, new SharedBufferCacheConfig());
 
-        final Set<Long> registeredEventTimeTimers = new TreeSet<>();
+        registeredEventTimeTimers = new TreeSet<>();
 
         timerService = new InternalTimerService<VoidNamespace>() {
             @Override
@@ -299,11 +301,15 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     private static final String WATERMARK_STATE_NAME = "cep-current-watermark";
+    private static final String EVENT_TIME_TIMERS_STATE_NAME = "cep-event-time-timers";
 
     @Override
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
         result.putOperatorState(WATERMARK_STATE_NAME, currentWatermark);
+        if (registeredEventTimeTimers != null) {
+            result.putOperatorState(EVENT_TIME_TIMERS_STATE_NAME, new ArrayList<>(registeredEventTimeTimers));
+        }
         return result;
     }
 
@@ -315,6 +321,15 @@ public class CepOperator<IN, KEY, OUT>
             if (wmObj instanceof Number) {
                 currentWatermark = ((Number) wmObj).longValue();
                 watermarkRestored = true;
+            }
+            Object timersObj = snapshotResult.getOperatorState(EVENT_TIME_TIMERS_STATE_NAME);
+            if (timersObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Long> timers = (List<Long>) timersObj;
+                if (registeredEventTimeTimers == null) {
+                    registeredEventTimeTimers = new TreeSet<>();
+                }
+                registeredEventTimeTimers.addAll(timers);
             }
         }
     }
@@ -468,6 +483,37 @@ public class CepOperator<IN, KEY, OUT>
 
         // STEP 4
         updateNFA(nfa);
+
+        // STEP 5: Clean up dangling partial matches (same logic as onEventTime)
+        if (nfa.getPartialMatches().size() == 1 && nfa.getCompletedMatches().isEmpty()) {
+            boolean allTimedOut = true;
+            for (Object pm : nfa.getPartialMatches()) {
+                if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
+                    io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
+                    String stateName = cs.getCurrentStateName();
+                    Map<String, Long> windowTimes = this.nfa.getWindowTimes();
+                    long wt = windowTimes != null && windowTimes.containsKey(stateName)
+                            ? windowTimes.get(stateName) : this.nfa.getWindowTime();
+                    if (wt <= 0 || timerService.currentProcessingTime() < cs.getStartTimestamp() + wt) {
+                        allTimedOut = false;
+                        break;
+                    }
+                }
+            }
+            if (allTimedOut) {
+                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
+                    for (Object pm : nfa.getPartialMatches()) {
+                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
+                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
+                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
+                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
+                            }
+                        }
+                    }
+                }
+                computationStates.clear();
+            }
+        }
     }
 
     private Stream<IN> sort(Collection<IN> elements) {
