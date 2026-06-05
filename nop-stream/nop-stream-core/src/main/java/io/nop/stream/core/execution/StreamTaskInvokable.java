@@ -265,10 +265,18 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 if (sourceOp.getOutput() != null) {
                     sourceOp.run();
-                    sourceOp.processWatermark(Watermark.MAX_WATERMARK);
                 }
             }
         } finally {
+            try {
+                List<StreamOperator<?>> operators = operatorChain.getOperators();
+                StreamOperator<?> head = operators.get(0);
+                if (head instanceof StreamSourceOperator) {
+                    ((StreamSourceOperator<?>) head).processWatermark(Watermark.MAX_WATERMARK);
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to emit MAX_WATERMARK during source shutdown", e);
+            }
             if (outputWriter != null) {
                 outputWriter.close();
             }
@@ -398,8 +406,20 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public void close() {
+            Exception firstError = null;
             for (Output<StreamRecord<Object>> output : outputs) {
-                output.close();
+                try {
+                    output.close();
+                } catch (Exception e) {
+                    if (firstError == null) {
+                        firstError = e;
+                    } else {
+                        firstError.addSuppressed(e);
+                    }
+                }
+            }
+            if (firstError != null) {
+                throw new StreamException(ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED, firstError);
             }
         }
 
