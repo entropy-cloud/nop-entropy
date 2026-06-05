@@ -314,11 +314,8 @@ public class ImpactAnalyzer {
             
             CodeSymbol bestMatch = null;
             for (CodeSymbol symbol : symbolTable.getAll()) {
-                if (symbol.getQualifiedName() != null && 
-                    symbol.getQualifiedName().startsWith(withoutParams)) {
-                    if (symbol.getQualifiedName().equals(withoutParams)) {
-                        return symbol;
-                    }
+                if (symbol.getQualifiedName() != null &&
+                    symbol.getQualifiedName().startsWith(withoutParams + ".")) {
                     if (bestMatch == null) {
                         bestMatch = symbol;
                     }

@@ -32,7 +32,11 @@ import io.nop.code.api.dto.*;
 import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 class CodeGraphService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CodeGraphService.class);
 
     private final IDaoProvider daoProvider;
     private final CodeCacheManager cacheManager;
@@ -223,7 +227,12 @@ class CodeGraphService {
                         FilterBeans.in("superTypeId", new ArrayList<>(batchQns))
                 ));
                 q.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-                for (NopCodeInheritance inh : inhDao.findAllByQuery(q)) {
+                List<NopCodeInheritance> batch = inhDao.findAllByQuery(q);
+                if (batch.size() >= CodeIndexService.MAX_QUERY_RESULTS) {
+                    LOG.warn("collectRelevantInheritances hit MAX_QUERY_RESULTS={} limit at depth={}, some results truncated",
+                            CodeIndexService.MAX_QUERY_RESULTS, depth);
+                }
+                for (NopCodeInheritance inh : batch) {
                     result.add(entityToInheritance(inh));
                     String subId = inh.getSubTypeId();
                     String superQn = inh.getSuperTypeId();
@@ -701,42 +710,59 @@ class CodeGraphService {
             allNodes.addAll(targets);
         }
 
-        for (String node : allNodes) {
-            if (!nodeIndex.containsKey(node)) {
-                tarjanDFS(node, adj, index, nodeIndex, lowLink, onStack, stack, result);
+        for (String startNode : allNodes) {
+            if (nodeIndex.containsKey(startNode)) continue;
+
+            Deque<Object[]> callStack = new ArrayDeque<>();
+            callStack.push(new Object[]{startNode, 0, false});
+
+            while (!callStack.isEmpty()) {
+                Object[] frame = callStack.pop();
+                String v = (String) frame[0];
+                int edgeIdx = (Integer) frame[1];
+                boolean returning = (Boolean) frame[2];
+
+                if (!returning && !nodeIndex.containsKey(v)) {
+                    nodeIndex.put(v, index[0]);
+                    lowLink.put(v, index[0]);
+                    index[0]++;
+                    stack.push(v);
+                    onStack.add(v);
+                }
+
+                List<String> neighbors = adj.getOrDefault(v, Collections.emptyList());
+                boolean pushedChild = false;
+                for (int i = edgeIdx; i < neighbors.size(); i++) {
+                    String w = neighbors.get(i);
+                    if (!nodeIndex.containsKey(w)) {
+                        callStack.push(new Object[]{v, i + 1, true});
+                        callStack.push(new Object[]{w, 0, false});
+                        pushedChild = true;
+                        break;
+                    } else if (onStack.contains(w)) {
+                        lowLink.put(v, Math.min(lowLink.get(v), nodeIndex.get(w)));
+                    }
+                }
+
+                if (!pushedChild && returning) {
+                    if (edgeIdx > 0) {
+                        String w = neighbors.get(edgeIdx - 1);
+                        lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
+                    }
+
+                    if (lowLink.get(v).equals(nodeIndex.get(v))) {
+                        List<String> scc = new ArrayList<>();
+                        String w;
+                        do {
+                            w = stack.pop();
+                            onStack.remove(w);
+                            scc.add(w);
+                        } while (!w.equals(v));
+                        result.add(scc);
+                    }
+                }
             }
         }
         return result;
-    }
-
-    private void tarjanDFS(String v, Map<String, List<String>> adj, int[] index,
-                           Map<String, Integer> nodeIndex, Map<String, Integer> lowLink,
-                           Set<String> onStack, Deque<String> stack,
-                           List<List<String>> result) {
-        nodeIndex.put(v, index[0]);
-        lowLink.put(v, index[0]);
-        index[0]++;
-        stack.push(v);
-        onStack.add(v);
-
-        for (String w : adj.getOrDefault(v, Collections.emptyList())) {
-            if (!nodeIndex.containsKey(w)) {
-                tarjanDFS(w, adj, index, nodeIndex, lowLink, onStack, stack, result);
-                lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
-            } else if (onStack.contains(w)) {
-                lowLink.put(v, Math.min(lowLink.get(v), nodeIndex.get(w)));
-            }
-        }
-
-        if (lowLink.get(v).equals(nodeIndex.get(v))) {
-            List<String> scc = new ArrayList<>();
-            String w;
-            do {
-                w = stack.pop();
-                onStack.remove(w);
-                scc.add(w);
-            } while (!w.equals(v));
-            result.add(scc);
-        }
     }
 }

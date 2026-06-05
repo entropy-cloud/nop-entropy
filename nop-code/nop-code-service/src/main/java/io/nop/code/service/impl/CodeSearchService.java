@@ -211,16 +211,22 @@ class CodeSearchService {
     }
 
     private double scoreSymbolNameMatch(String query, String name, String qualifiedName) {
+        String lowerQuery = query.toLowerCase();
         if (name != null && name.equals(query)) return 1.0;
+        if (name != null && name.equalsIgnoreCase(query)) return 0.95;
         if (name != null && name.startsWith(query)) return 0.8;
+        if (name != null && name.toLowerCase().startsWith(lowerQuery)) return 0.75;
         if (name != null && name.contains(query)) return 0.6;
+        if (name != null && name.toLowerCase().contains(lowerQuery)) return 0.55;
         if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
+        if (qualifiedName != null && qualifiedName.toLowerCase().contains(lowerQuery)) return 0.45;
         return 0.1;
     }
 
     private double scoreFullTextMatch(String query, String signature, String documentation) {
-        boolean sigMatch = signature != null && signature.contains(query);
-        boolean docMatch = documentation != null && documentation.contains(query);
+        String lowerQuery = query.toLowerCase();
+        boolean sigMatch = signature != null && signature.toLowerCase().contains(lowerQuery);
+        boolean docMatch = documentation != null && documentation.toLowerCase().contains(lowerQuery);
         if (sigMatch && docMatch) return 0.5;
         if (sigMatch) return 0.4;
         if (docMatch) return 0.3;
@@ -229,12 +235,17 @@ class CodeSearchService {
 
     private double scoreCombined(String query, String name, String qualifiedName,
                                   String signature, String documentation) {
+        String lowerQuery = query.toLowerCase();
         if (name != null && name.equals(query)) return 1.0;
+        if (name != null && name.equalsIgnoreCase(query)) return 0.95;
         if (name != null && name.startsWith(query)) return 0.8;
+        if (name != null && name.toLowerCase().startsWith(lowerQuery)) return 0.75;
         if (name != null && name.contains(query)) return 0.6;
+        if (name != null && name.toLowerCase().contains(lowerQuery)) return 0.55;
         if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
-        boolean sigMatch = signature != null && signature.contains(query);
-        boolean docMatch = documentation != null && documentation.contains(query);
+        if (qualifiedName != null && qualifiedName.toLowerCase().contains(lowerQuery)) return 0.45;
+        boolean sigMatch = signature != null && signature.toLowerCase().contains(lowerQuery);
+        boolean docMatch = documentation != null && documentation.toLowerCase().contains(lowerQuery);
         if (sigMatch) return 0.3;
         if (docMatch) return 0.3;
         return 0.1;

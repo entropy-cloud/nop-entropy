@@ -1701,22 +1701,34 @@ public class CodeIndexService implements ICodeIndexService {
         return detector.detectDeadCode(indexId, symbolTable, callGraph);
     }
 
+    private static final int MAX_FLOWS_PER_INDEX = 5000;
+
     private void persistFlows(String indexId, List<ExecutionFlow> flows) {
+        List<ExecutionFlow> limitedFlows = flows;
+        if (flows.size() > MAX_FLOWS_PER_INDEX) {
+            LOG.warn("Truncating flows from {} to {} for index {}",
+                    flows.size(), MAX_FLOWS_PER_INDEX, indexId);
+            limitedFlows = flows.subList(0, MAX_FLOWS_PER_INDEX);
+        }
+        List<ExecutionFlow> finalFlows = limitedFlows;
         transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                 ormTemplate.runInSession(session -> {
             IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
             QueryBean deleteQuery = new QueryBean();
             deleteQuery.addFilter(FilterBeans.eq("indexId", indexId));
-            List<NopCodeFlow> existing = flowDao.findAllByQuery(deleteQuery);
-            for (NopCodeFlow existingFlow : existing) {
-                IEntityDao<NopCodeFlowMembership> membershipDao = daoProvider.daoFor(NopCodeFlowMembership.class);
-                QueryBean mQuery = new QueryBean();
-                mQuery.addFilter(FilterBeans.eq("flowId", existingFlow.getId()));
-                membershipDao.batchDeleteEntities(membershipDao.findAllByQuery(mQuery));
+            deleteQuery.setLimit(DELETE_BATCH_SIZE);
+            while (true) {
+                List<NopCodeFlow> existing = flowDao.findAllByQuery(deleteQuery);
+                if (existing.isEmpty()) break;
+                for (NopCodeFlow existingFlow : existing) {
+                    deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flowId", existingFlow.getId());
+                }
+                flowDao.batchDeleteEntities(existing);
+                session.flush();
+                session.evictAll(NopCodeFlow.class.getName());
             }
-            flowDao.batchDeleteEntities(existing);
 
-            for (ExecutionFlow flow : flows) {
+            for (ExecutionFlow flow : finalFlows) {
                 NopCodeFlow flowEntity = (NopCodeFlow) ormTemplate.newEntity(NopCodeFlow.class.getName());
                 flowEntity.setId(flow.getId());
                 flowEntity.setIndexId(indexId);
