@@ -104,6 +104,26 @@ public class CodeIndexService implements ICodeIndexService {
 
     private final ConcurrentHashMap<String, ReentrantLock> indexLocks = new ConcurrentHashMap<>();
 
+    private <T> T withIndexLock(String indexId, java.util.function.Supplier<T> action) {
+        ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
+        lock.lock();
+        try {
+            return action.get();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void withIndexLock(String indexId, Runnable action) {
+        ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
+        lock.lock();
+        try {
+            action.run();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     protected LanguageAdapterRegistry registry;
     protected ProjectAnalyzer analyzer;
     protected final Map<String, IImportResolver> importResolvers = new HashMap<>();
@@ -308,9 +328,7 @@ public class CodeIndexService implements ICodeIndexService {
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
         validatePath(vfsPath);
         invalidateAnalysisCache(indexId);
-        ReentrantLock lock = indexLocks.computeIfAbsent(indexId, k -> new ReentrantLock());
-        lock.lock();
-        try {
+        return withIndexLock(indexId, () -> {
             String resolvedPath = resolveVfsPath(vfsPath);
             validateLocalPath(resolvedPath);
             ProjectAnalysisResult result = analyzer.analyzeProject(
@@ -323,9 +341,7 @@ public class CodeIndexService implements ICodeIndexService {
                         persistInSession(indexId, resolvedPath, finalResult, session);
                         return finalResult.getFileResults().size();
                     }));
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     @Override
@@ -336,12 +352,15 @@ public class CodeIndexService implements ICodeIndexService {
         }
         CodeFileAnalysisResult result = fileAnalyzer.analyze(filePath, sourceCode);
 
-        transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
-                ormTemplate.runInSession(session -> {
-                    ensureIndexEntity(indexId, null, session);
-                    persistSingleFileInSession(indexId, result, session);
-                    return null;
-                }));
+        withIndexLock(indexId, () -> {
+            transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                    ormTemplate.runInSession(session -> {
+                        ensureIndexEntity(indexId, null, session);
+                        persistSingleFileInSession(indexId, result, session);
+                        return null;
+                    }));
+            updateIndexStats(indexId);
+        });
         invalidateAnalysisCache(indexId);
         return result;
     }
@@ -593,8 +612,6 @@ public class CodeIndexService implements ICodeIndexService {
                     daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
                     return null;
                 }));
-
-        indexLocks.remove(indexId);
     }
 
     private <T extends IDaoEntity> void deleteEntitiesPaged(IOrmSession session,
@@ -704,7 +721,7 @@ public class CodeIndexService implements ICodeIndexService {
 
         Function<String, String> pathMapper = buildPathMapper(vfsPath);
 
-        return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+        return withIndexLock(indexId, () -> transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                 ormTemplate.runInSession(session -> {
             try {
                 IFingerprintStore store = new OrmFingerprintStore(daoProvider, ormTemplate, pathMapper);
@@ -713,8 +730,14 @@ public class CodeIndexService implements ICodeIndexService {
                 IResourceLoader vfs = VirtualFileSystem.instance();
                 List<IResource> currentResources = collectResourcesFromVfs(vfs, vfsPath);
 
+                List<IResource> mappedResources = new ArrayList<>(currentResources.size());
+                for (IResource res : currentResources) {
+                    String mappedPath = pathMapper.apply(res.getPath());
+                    mappedResources.add(new MappedPathResource(res, mappedPath));
+                }
+
                 IncrementalDetector detector = new IncrementalDetector();
-                ChangeSet changes = detector.detectResourceChanges(previousFingerprints, currentResources);
+                ChangeSet changes = detector.detectResourceChanges(previousFingerprints, mappedResources);
 
                 List<String> changedFiles = changes.getAddedAndModified();
                 List<String> deletedFiles = changes.getDeletedFiles();
@@ -764,7 +787,7 @@ public class CodeIndexService implements ICodeIndexService {
                 }
                 batchQueue.flush();
 
-                List<FileFingerprint> newFingerprints = detector.computeResourceFingerprints(currentResources);
+                List<FileFingerprint> newFingerprints = detector.computeResourceFingerprints(mappedResources);
                 updateIndexStats(indexId);
 
                 store.saveFingerprints(indexId, newFingerprints);
@@ -773,7 +796,7 @@ public class CodeIndexService implements ICodeIndexService {
             } catch (IOException e) {
                 throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
             }
-        }));
+        })));
     }
 
     // ====== File Page Query 
@@ -1912,5 +1935,36 @@ public class CodeIndexService implements ICodeIndexService {
             return "file:" + (path.startsWith("file:") ? path.substring(5) : path);
         java.io.File f = new java.io.File(path);
         return "file:" + f.getAbsolutePath();
+    }
+
+    private static class MappedPathResource implements IResource {
+        private final IResource delegate;
+        private final String mappedPath;
+
+        MappedPathResource(IResource delegate, String mappedPath) {
+            this.delegate = delegate;
+            this.mappedPath = mappedPath;
+        }
+
+        @Override public String getPath() { return mappedPath; }
+        @Override public String getStdPath() { return delegate.getStdPath(); }
+        @Override public String getExternalPath() { return delegate.getExternalPath(); }
+        @Override public String getName() { return delegate.getName(); }
+        @Override public long length() { return delegate.length(); }
+        @Override public long lastModified() { return delegate.lastModified(); }
+        @Override public void setLastModified(long time) { delegate.setLastModified(time); }
+        @Override public boolean exists() { return delegate.exists(); }
+        @Override public boolean delete() { return delegate.delete(); }
+        @Override public boolean isReadOnly() { return delegate.isReadOnly(); }
+        @Override public boolean isDirectory() { return delegate.isDirectory(); }
+        @Override public java.io.InputStream getInputStream() { return delegate.getInputStream(); }
+        @Override public java.io.OutputStream getOutputStream(boolean append) { return delegate.getOutputStream(append); }
+        @Override public java.io.File toFile() { return delegate.toFile(); }
+        @Override public java.net.URL toURL() { return delegate.toURL(); }
+        @Override public void saveToFile(java.io.File file) { delegate.saveToFile(file); }
+        @Override public void saveToResource(IResource resource, io.nop.api.core.util.progress.IStepProgressListener listener) { delegate.saveToResource(resource, listener); }
+        @Override public void writeToStream(java.io.OutputStream os, io.nop.api.core.util.progress.IStepProgressListener listener) { delegate.writeToStream(os, listener); }
+        @Override public io.nop.core.resource.IResourceRegion getResourceRegion(io.nop.api.core.beans.LongRangeBean range) { return delegate.getResourceRegion(range); }
+        @Override public String toString() { return mappedPath; }
     }
 }

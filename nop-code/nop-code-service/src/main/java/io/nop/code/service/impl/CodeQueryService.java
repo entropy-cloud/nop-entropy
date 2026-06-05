@@ -576,12 +576,15 @@ class CodeQueryService {
         List<NopCodeSymbol> symbols = symbolDao.findAllByQuery(symbolQuery);
         if (symbols.isEmpty()) return Collections.emptyList();
 
-        String symbolId = symbols.get(0).getId();
+        Set<String> symbolIds = new LinkedHashSet<>();
+        for (NopCodeSymbol sym : symbols) {
+            symbolIds.add(sym.getId());
+        }
 
         IEntityDao<NopCodeUsage> usageDao = daoProvider.daoFor(NopCodeUsage.class);
         QueryBean qb = new QueryBean();
         qb.addFilter(FilterBeans.eq("indexId", indexId));
-        qb.addFilter(FilterBeans.eq("symbolId", symbolId));
+        qb.addFilter(FilterBeans.in("symbolId", new ArrayList<>(symbolIds)));
         if (kind != null && !kind.isEmpty()) {
             qb.addFilter(FilterBeans.eq("kind", kind));
         }
