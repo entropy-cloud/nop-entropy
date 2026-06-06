@@ -326,8 +326,8 @@ public class CodeIndexService implements ICodeIndexService {
                         return null;
                     }));
             updateIndexStats(indexId);
+            invalidateAnalysisCache(indexId);
         });
-        invalidateAnalysisCache(indexId);
         return result;
     }
 
@@ -527,39 +527,36 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public void deleteIndex(String indexId) {
-        invalidateAnalysisCache(indexId);
+        withIndexLock(indexId, () -> {
+            invalidateAnalysisCache(indexId);
 
-        if (searchEngine != null) {
-            try {
-                searchEngine.removeTopic("nop-code-" + indexId);
-            } catch (Exception e) {
-                LOG.warn("Failed to remove search topic for index {}", indexId, e);
+            if (searchEngine != null) {
+                try {
+                    searchEngine.removeTopic("nop-code-" + indexId);
+                } catch (Exception e) {
+                    LOG.warn("Failed to remove search topic for index {}", indexId, e);
+                }
             }
-        }
 
-        transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
-                ormTemplate.runInSession(session -> {
-                    deleteEntitiesPaged(session, NopCodeUsage.class, "indexId", indexId);
-                    IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
-                    QueryBean flowQuery = new QueryBean();
-                    flowQuery.addFilter(FilterBeans.eq("indexId", indexId));
-                    for (NopCodeFlow flow : flowDao.findAllByQuery(flowQuery)) {
-                        deleteEntitiesPaged(session, NopCodeFlowMembership.class, "flowId", flow.getId());
-                    }
-                    deleteEntitiesPaged(session, NopCodeFlow.class, "indexId", indexId);
-                    deleteEntitiesPaged(session, NopCodeAnnotationUsage.class, "indexId", indexId);
-                    deleteEntitiesPaged(session, NopCodeInheritance.class, "indexId", indexId);
-                    deleteEntitiesPaged(session, NopCodeCall.class, "indexId", indexId);
-                    deleteEntitiesPaged(session, NopCodeSymbol.class, "indexId", indexId);
-                    deleteEntitiesPaged(session, NopCodeFile.class, "indexId", indexId);
-                    deleteEntitiesPaged(session, NopCodeDependency.class, "indexId", indexId);
-                    deleteEntitiesPaged(session, NopCodeSemanticEdge.class, "indexId", indexId);
+            transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
+                    ormTemplate.runInSession(session -> {
+                        deleteEntitiesPaged(session, NopCodeUsage.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeFlowMembership.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeFlow.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeAnnotationUsage.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeInheritance.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeCall.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeSymbol.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeFile.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeDependency.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeSemanticEdge.class, "indexId", indexId);
 
-                    daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
-                    return null;
-                }));
+                        daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
+                        return null;
+                    }));
 
-        indexLocks.remove(indexId);
+            indexLocks.remove(indexId);
+        });
     }
 
     private <T extends IDaoEntity> void deleteEntitiesPaged(IOrmSession session,
@@ -867,30 +864,45 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
 
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq("indexId", indexId));
-        query.setLimit(MAX_QUERY_RESULTS);
-        List<NopCodeInheritance> inheritances = inhDao.findAllByQuery(query);
+        long offset = 0;
+        while (true) {
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("indexId", indexId));
+            query.setOffset(offset);
+            query.setLimit(BATCH_SIZE);
+            List<NopCodeInheritance> inheritances = inhDao.findAllByQuery(query);
+            if (inheritances.isEmpty()) break;
 
-        for (NopCodeInheritance inh : inheritances) {
-            if (inh.getRelationType() != null && inh.getRelationType().equals("IMPLEMENTS")) {
-                NopCodeSymbol superType = symbolDao.getEntityById(inh.getSuperTypeId());
-                if (superType != null && superType.getQualifiedName() != null) {
-                    index.computeIfAbsent(superType.getQualifiedName(), k -> new HashSet<>())
-                            .add(inh.getSubTypeId());
+            for (NopCodeInheritance inh : inheritances) {
+                if (inh.getRelationType() != null && inh.getRelationType().equals("IMPLEMENTS")) {
+                    NopCodeSymbol superType = symbolDao.getEntityById(inh.getSuperTypeId());
+                    if (superType != null && superType.getQualifiedName() != null) {
+                        index.computeIfAbsent(superType.getQualifiedName(), k -> new HashSet<>())
+                                .add(inh.getSubTypeId());
+                    }
                 }
             }
+            if (inheritances.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
         }
         return index;
     }
 
     private Set<String> loadExistingEdgeKeys(IEntityDao<NopCodeCall> callDao, String indexId) {
         Set<String> keys = new HashSet<>();
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq("indexId", indexId));
-        query.setLimit(MAX_QUERY_RESULTS);
-        for (NopCodeCall call : callDao.findAllByQuery(query)) {
-            keys.add(indexId + ":" + call.getCallerId() + ":" + call.getCalleeId());
+        long offset = 0;
+        while (true) {
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("indexId", indexId));
+            query.setOffset(offset);
+            query.setLimit(BATCH_SIZE);
+            List<NopCodeCall> batch = callDao.findAllByQuery(query);
+            if (batch.isEmpty()) break;
+            for (NopCodeCall call : batch) {
+                keys.add(indexId + ":" + call.getCallerId() + ":" + call.getCalleeId());
+            }
+            if (batch.size() < BATCH_SIZE) break;
+            offset += BATCH_SIZE;
         }
         return keys;
     }
@@ -917,7 +929,7 @@ public class CodeIndexService implements ICodeIndexService {
             if (inhBatch.isEmpty()) break;
             for (NopCodeInheritance inh : inhBatch) {
                 String superTypeId = inh.getSuperTypeId();
-                if (superTypeId != null) {
+                if (superTypeId != null && !isLikelyResolvedId(superTypeId)) {
                     CodeSymbol resolved = symbolTable.getByQualifiedName(superTypeId);
                     if (resolved != null) {
                         inh.setSuperTypeId(resolved.getId());
@@ -941,7 +953,7 @@ public class CodeIndexService implements ICodeIndexService {
             if (annotBatch.isEmpty()) break;
             for (NopCodeAnnotationUsage annot : annotBatch) {
                 String annotationTypeId = annot.getAnnotationTypeId();
-                if (annotationTypeId != null) {
+                if (annotationTypeId != null && !isLikelyResolvedId(annotationTypeId)) {
                     CodeSymbol resolved = symbolTable.getByQualifiedName(annotationTypeId);
                     if (resolved != null) {
                         annot.setAnnotationTypeId(resolved.getId());
@@ -953,6 +965,21 @@ public class CodeIndexService implements ICodeIndexService {
             if (annotBatch.size() < BATCH_SIZE) break;
             annotOffset += BATCH_SIZE;
         }
+    }
+
+    private static boolean isLikelyResolvedId(String value) {
+        if (value == null || value.isEmpty()) return false;
+        if (value.length() == 32 || value.length() == 36) {
+            for (int i = 0; i < value.length(); i++) {
+                char c = value.charAt(i);
+                if (c == '-') continue;
+                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     private void ensureIndexEntity(String indexId, String rootPath, IOrmSession session) {
@@ -1373,11 +1400,13 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeFile> files = fileDao.findAllByQuery(q);
-        Set<String> paths = new HashSet<>();
-        for (NopCodeFile f : files) {
-            if (f.getFilePath() != null) {
-                paths.add(f.getFilePath());
+        q.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("filePath"));
+        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(q);
+        Set<String> paths = new HashSet<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            Object path = row.get("filePath");
+            if (path != null) {
+                paths.add(path.toString());
             }
         }
         return paths;
@@ -1697,6 +1726,7 @@ public class CodeIndexService implements ICodeIndexService {
                         membership.setId(flow.getId() + "_" + nodeId);
                         membership.setFlowId(flow.getId());
                         membership.setSymbolId(nodeId);
+                        membership.setIndexId(indexId);
                         membership.setDepth(depth++);
                         membership.setIsEntry(nodeId.equals(flow.getEntryPointSymbolId()));
                         membership.setCreateTime(CoreMetrics.currentTimestamp());

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.code.core.model.CodeLanguage;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.dao.entity.NopCodeFile;
@@ -196,10 +197,16 @@ class CodeSearchService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean fq = new QueryBean();
         fq.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeFile> files = fileDao.findAllByQuery(fq);
-        Map<String, String> cache = new HashMap<>(files.size());
-        for (NopCodeFile f : files) {
-            cache.put(f.getId(), f.getFilePath());
+        fq.addField(QueryFieldBean.forField("id"));
+        fq.addField(QueryFieldBean.forField("filePath"));
+        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(fq);
+        Map<String, String> cache = new HashMap<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            Object id = row.get("id");
+            Object path = row.get("filePath");
+            if (id != null && path != null) {
+                cache.put(id.toString(), path.toString());
+            }
         }
         return cache;
     }

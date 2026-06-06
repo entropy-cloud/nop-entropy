@@ -40,7 +40,7 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
 
-        Map<String, NopCodeFile> existingByPath = loadFileMapByIndex(fileDao, indexId);
+        Map<String, String> existingPathToId = loadFileIdMapByIndex(fileDao, indexId);
 
         for (FileFingerprint fp : fingerprints) {
             String canonicalPath = pathMapper.apply(fp.getFilePath());
@@ -49,9 +49,9 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
             NopCodeFile fileEntity;
             boolean isNew = false;
-            NopCodeFile existing = existingByPath.get(canonicalPath);
-            if (existing != null) {
-                fileEntity = existing;
+            String existingId = existingPathToId.get(canonicalPath);
+            if (existingId != null) {
+                fileEntity = fileDao.getEntityById(existingId);
             } else {
                 io.nop.orm.IOrmEntity cached = ormTemplate.get(NopCodeFile.class.getName(), entityId);
                 if (cached != null) {
@@ -71,19 +71,23 @@ public class OrmFingerprintStore implements IFingerprintStore {
 
             if (isNew) {
                 fileDao.saveEntity(fileEntity);
-                existingByPath.put(canonicalPath, fileEntity);
+                existingPathToId.put(canonicalPath, fileEntity.getId());
             }
         }
     }
 
-    private Map<String, NopCodeFile> loadFileMapByIndex(IEntityDao<NopCodeFile> fileDao, String indexId) {
+    private Map<String, String> loadFileIdMapByIndex(IEntityDao<NopCodeFile> fileDao, String indexId) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeFile> all = fileDao.findAllByQuery(query);
-        Map<String, NopCodeFile> map = new HashMap<>(all.size());
-        for (NopCodeFile f : all) {
-            if (f.getFilePath() != null) {
-                map.put(f.getFilePath(), f);
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("id"));
+        query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("filePath"));
+        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(query);
+        Map<String, String> map = new HashMap<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            Object path = row.get("filePath");
+            Object id = row.get("id");
+            if (path != null && id != null) {
+                map.put(path.toString(), id.toString());
             }
         }
         return map;

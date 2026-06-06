@@ -47,6 +47,7 @@ class CodeGraphService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeGraphService.class);
     private static final int MAX_NODES_FOR_COMMUNITY_DETECTION = 10000;
+    private static final int BATCH_QUERY_LIMIT = 10000;
 
     private final IDaoProvider daoProvider;
     private final CodeCacheManager cacheManager;
@@ -245,20 +246,25 @@ class CodeGraphService {
             }
 
             if (!batchIds.isEmpty()) {
-                QueryBean q = new QueryBean();
-                q.addFilter(FilterBeans.eq("indexId", indexId));
-                q.addFilter(FilterBeans.or(
-                        FilterBeans.in("subTypeId", new ArrayList<>(batchIds)),
-                        FilterBeans.in("superTypeId", new ArrayList<>(batchQns))
-                ));
-                q.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-                List<NopCodeInheritance> batch = inhDao.findAllByQuery(q);
-                if (batch.size() >= CodeIndexService.MAX_QUERY_RESULTS) {
-                    LOG.warn("collectRelevantInheritances hit MAX_QUERY_RESULTS={} limit at depth={}, some results truncated",
-                            CodeIndexService.MAX_QUERY_RESULTS, depth);
+                int batchSize = 1000;
+                List<String> idList = new ArrayList<>(batchIds);
+                List<String> qnList = new ArrayList<>(batchQns);
+                List<NopCodeInheritance> batch = new ArrayList<>();
+                for (int from = 0; from < idList.size(); from += batchSize) {
+                    int to = Math.min(from + batchSize, idList.size());
+                    List<String> subList = idList.subList(from, to);
+                    List<String> qnSubList = qnList.subList(from, Math.min(to, qnList.size()));
+                    QueryBean q = new QueryBean();
+                    q.addFilter(FilterBeans.eq("indexId", indexId));
+                    q.addFilter(FilterBeans.or(
+                            FilterBeans.in("subTypeId", subList),
+                            FilterBeans.in("superTypeId", qnSubList)
+                    ));
+                    q.setLimit(BATCH_QUERY_LIMIT);
+                    batch.addAll(inhDao.findAllByQuery(q));
                 }
                 for (NopCodeInheritance inh : batch) {
-                    result.add(entityToInheritance(inh));
+                    result.add(entityToInheritance(inh, table));
                     String subId = inh.getSubTypeId();
                     String superQn = inh.getSuperTypeId();
                     CodeSymbol subSym = table.getById(subId);
@@ -384,11 +390,19 @@ class CodeGraphService {
         return node;
     }
 
-    private CodeInheritance entityToInheritance(NopCodeInheritance entity) {
+    private CodeInheritance entityToInheritance(NopCodeInheritance entity, SymbolTable table) {
         CodeInheritance inh = new CodeInheritance();
         inh.setId(entity.getId());
         inh.setSubTypeId(entity.getSubTypeId());
-        inh.setSuperTypeQualifiedName(entity.getSuperTypeId());
+        String superTypeId = entity.getSuperTypeId();
+        if (superTypeId != null) {
+            CodeSymbol superSym = table.getById(superTypeId);
+            if (superSym != null) {
+                inh.setSuperTypeQualifiedName(superSym.getQualifiedName());
+            } else {
+                inh.setSuperTypeQualifiedName(superTypeId);
+            }
+        }
         inh.setRelationType(entity.getRelationType() != null
                 ? CodeRelationType.valueOf(entity.getRelationType()) : null);
         return inh;

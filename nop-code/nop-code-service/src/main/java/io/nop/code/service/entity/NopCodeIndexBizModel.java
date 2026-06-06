@@ -34,7 +34,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
     private static final Logger LOG = LoggerFactory.getLogger(NopCodeIndexBizModel.class);
 
-    private static final int MAX_STATUS_ENTRIES = 20;
+    private static final int MAX_STATUS_ENTRIES = 100;
 
     private static final int MAX_SOURCE_CODE_BYTES = 1024 * 1024;
 
