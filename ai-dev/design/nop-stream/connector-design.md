@@ -3,7 +3,7 @@
 > Status: active
 > Created: 2026-05-20
 > Revised: 2026-05-23
-> Parent: `architecture.md` §5（与 Nop 平台的集成）
+> Parent: `01-architecture-baseline.md` §7（与 Nop 平台的集成）
 
 ## 1. 定位
 

@@ -3,7 +3,7 @@
 > Status: active（**已通过 Plan 26-27 对接，为唯一执行路径**）
 > Created: 2026-05-19
 > Updated: 2026-05-25（更新定位：明确图模型从 StreamModel 构造，双入口描述）
-> Parent: `architecture.md` §3（执行模型）
+> Parent: `01-architecture-baseline.md` §4（执行模型）
 
 ## 1. 定位
 

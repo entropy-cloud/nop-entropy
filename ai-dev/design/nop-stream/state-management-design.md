@@ -3,7 +3,7 @@
 > Status: active
 > Created: 2026-05-20
 > Revised: 2026-06-01
-> Parent: `architecture.md` §3（执行模型）、`checkpoint-design.md` §3.3（状态快照）
+> Parent: `01-architecture-baseline.md` §4（执行模型）、`checkpoint-design.md` §3.3（状态快照）
 
 ## 1. 定位
 

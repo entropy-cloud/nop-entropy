@@ -3,7 +3,7 @@
 > Status: active（**已对接执行路径**）
 > Created: 2026-05-19
 > Updated: 2026-05-22（统一执行路径，去除快速路径相关描述）
-> Parent: `architecture.md` §3（执行模型）、`window-design.md` §6（Timer Service）
+> Parent: `01-architecture-baseline.md` §4（执行模型）、`window-design.md` §6（Timer Service）
 
 ## 1. 定位
 

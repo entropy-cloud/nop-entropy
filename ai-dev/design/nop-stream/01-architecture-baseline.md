@@ -1,49 +1,19 @@
-# nop-stream 整体架构
+# nop-stream 架构基线
 
-> Status: active
-> Created: 2026-05-19
-> Updated: 2026-05-25（改写定位陈述，新增统一数据通道 §6.6，执行流程图显式双入口）
+**日期**：2026-05-19（更新于 2026-06-06）
+**范围**：`nop-stream` 模块
+**状态**：active
 
-## 1. 定位与设计目标
+---
 
-nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布式执行引擎**。
+## 一、设计结论
 
-核心模型是 **StreamModel**——可序列化的算子图及其组件注册表。它可由三种入口构造：
-- **XDSL 声明式定义**（未来主路径）：直接描述 StreamGraph 拓扑、算子配置、分区策略
-- **Java DataStream API**（当前 Builder）：编程方式构造 Transformation DAG，编译为 StreamModel
-- **Delta 定制**：Nop 平台的可逆计算机制，在模型层叠加差量修改
+1. 系统分为七层：API → StreamComponents → Transformation → 执行计划 → 算子 → 状态&时间 → 存储
+2. 核心模型是 StreamModel——可序列化算子图，三种入口（XDSL / Java API / Delta）最终生成同一类 canonical 模型
+3. 五层执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology
+4. 依赖方向严格单向：runtime/checkpoint/connector/cep/flow → core → api
 
-三种入口最终生成同一套 canonical StreamModel，经过统一的五层执行管线（StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology）编译执行。
-
-设计目标是以 Nop 平台的模型驱动和可逆计算思想表达分布式流处理的不变量，提供确定性分区、可恢复状态、epoch checkpoint、source/sink 协议化 exactly-once，以及可由 Java API、XDSL 和 Delta 共同驱动的执行计划。
-
-**必须达成的能力**：
-
-| 能力 | 设计要求 |
-|---|---|
-| 图模型执行 | 以 StreamModel（可序列化算子图）为管线入口，不依赖编程 API 的隐式拓扑推导 |
-| 分布式执行 | 一个作业可拆分为多个 task fragment，部署到多个 runtime node 上执行。分布式的目的是高可用和资源隔离，吞吐量由具体部署决定，不预设 PB 级规模 |
-| 端到端 exactly-once | source offset、operator state、sink transaction 必须绑定到同一个 checkpoint epoch |
-| 确定性分区 | key、state shard、subtask、edge channel 的映射必须由模型决定，不能由运行时对象顺序推导 |
-| 稳定状态路由 | 恢复时必须按 `operatorId + subtaskIndex + stateShard + stateName` 路由状态 |
-| 可声明和可定制 | XDSL 和 Java API 都必须落到同一套 canonical StreamModel，Delta 只作用于模型层 |
-| 可替换后端 | 本地线程、远程进程、未来外部引擎适配都必须遵守同一语义契约 |
-
-**核心取舍**：
-
-- **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义
-- **保留（非核心路径）**：DataStream API——作为 StreamModel 的编程构造器，但不是最终用户的主入口
-- **去除**：复杂 Join（双流 Join / interval join / broadcast join）、广播流、异步算子、完整 key-group 重分布
-- **聚焦**：单流窗口聚合 + CEP 模式匹配 + Checkpoint 容错
-
-**明确不做的**：
-
-- 双流 Join（复杂度极高，用例有限，可通过 CEP 或外部 lookup 替代）
-- SQL API（Nop 平台已有 GraphQL，流式 SQL 需求不迫切）
-- 大规模并行（分布式解决高可用，不预设 PB 级吞吐。几十 GB 状态级别由远程 Redis/状态后端承载）
-- 复制 Flink Runtime 结构（不引入 SlotSharingGroup、Netty 网络栈、二进制序列化体系）
-
-## 2. 模块划分
+## 二、模块划分
 
 ```
 nop-stream/
@@ -58,20 +28,20 @@ nop-stream/
 └── nop-stream-fraud-example[实现] 端到端欺诈检测示例
 ```
 
-### 2.1 模块职责边界
+### 模块职责边界
 
 | 模块 | 职责 | 依赖方向 |
 |------|------|----------|
 | **nop-stream-api** | 用户可见 API、SourceFunction/SinkFunction contract、一致性能力枚举、公共模型接口 | 无依赖 |
 | **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验 | → api |
-| **nop-stream-runtime** | RuntimeTopology、本地/分布式 task 执行、transport backend（local queue / remote RPC / message bus）、fencing、node lifecycle、EdgeConfig flow control | → core |
+| **nop-stream-runtime** | RuntimeTopology、本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control | → core |
 | **nop-stream-checkpoint** | Epoch coordinator、manifest 生成与发布、state segment descriptor、checkpoint/savepoint storage contract、CheckpointParticipant 调度 | → core |
 | **nop-stream-connector** | Replayable source（SourceWorkUnit + RestrictionTracker）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator（通过标准 state/timer 接口接入统一后端）、声明式模型（pattern.xdef） | → core |
 | **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core |
 | **nop-stream-flink** | 可选外部后端适配，将 core API 的 Transformation 映射到 Flink DataStream API | → core |
 
-### 2.2 依赖方向
+### 依赖方向
 
 依赖只能从右向左：运行时和集成模块依赖 core，core 依赖 api，api 不依赖任何实现模块。
 
@@ -88,7 +58,7 @@ runtime / checkpoint / connector / cep / flow  →  core  →  api
 | connector 不依赖具体 runtime | connector 声明 source/sink 能力和状态协议 |
 | cep 不依赖 runtime checkpoint 实现 | CEP operator 通过标准 state/timer 接口接入 |
 
-## 3. 分层设计
+## 三、分层设计
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -125,9 +95,9 @@ runtime / checkpoint / connector / cep / flow  →  core  →  api
 
 **StreamRequirement** 声明 pipeline 的能力需求（如 `STRICT_EXACTLY_ONCE`、`DISTRIBUTED_EXECUTION`），编译器和 backend 在运行前必须校验这些需求是否被满足。
 
-## 4. 执行模型
+## 四、执行模型
 
-### 4.1 五层执行管线
+### 五层执行管线
 
 ```
 StreamModel
@@ -149,7 +119,7 @@ StreamModel
 
 **关键决策**：`PartitionedPlan` 承载并行度、分区、状态路由和 checkpoint ACK 集合。运行时只能执行它，不能重新发明拓扑语义。本地线程执行只是 `DeploymentPlan` 的一种 backend，分布式语义不能依赖本地线程模型。
 
-### 4.2 PartitionedPlan 必须记录的信息
+### PartitionedPlan 必须记录的信息
 
 | 信息 | 原因 |
 |---|---|
@@ -161,13 +131,7 @@ StreamModel
 | 每个 subtask 的输入/输出 channel | barrier 对齐和数据传输需要通道级身份 |
 | checkpoint ACK 集合 | Coordinator 必须知道哪些 task 必须 ACK |
 
-### 4.3 StreamComponents 与 PartitionedPlan 的关系
-
-`PartitionedPlan` 不直接引用 `StreamComponents`，但 `Epoch Manifest` 必须包含 `StreamComponents` 的 fingerprint 和 requirement 列表。这保证恢复时的模型一致性和 backend 能力校验。
-
-### 4.4 执行流程
-
-StreamModel 是管线入口，可从两个路径构造：
+### 执行流程
 
 ```
                         ┌─────────────────────────────┐
@@ -187,8 +151,7 @@ StreamModel 是管线入口，可从两个路径构造：
                                       │
                           ┌───────────▼───────────┐
                           │   StreamGraph         │
-                          │   (逻辑 DAG, 从        │
-                          │    StreamModel 生成)   │
+                          │   (逻辑 DAG)           │
                           └───────────┬───────────┘
                                       │
                           ┌───────────▼───────────┐
@@ -218,30 +181,9 @@ StreamModel 是管线入口，可从两个路径构造：
 
 `DeploymentMode` 枚举（`LOCAL` / `DISTRIBUTED`）定义在 core 模块。`IStreamExecutionDispatcher` SPI 接口由 runtime 模块实现，`StreamExecutionEnvironment.execute()` 通过 `executionDispatcher` 字段路由到正确的执行器。
 
-### 4.5 CEP 独立执行路径
+## 五、分布式控制面契约
 
-CEP 模块可以直接使用，不依赖 `StreamExecutionEnvironment`：
-
-```java
-Pattern<T, ?> pattern = Pattern.<Transaction>begin("start")
-    .where(new SimpleCondition<>("amount > 1000", ...))
-    .timesOrMore(2)
-    .within(Time.seconds(30));
-
-NFA<Transaction> nfa = NFACompiler.compile(pattern, ...);
-SharedBuffer<Transaction> buffer = new SharedBuffer<>(stateStore, ...);
-Collection<Map<String, List<Transaction>>> matches = nfa.process(event, timestamp);
-```
-
-独立 API 保留用于单线程内存模式。分布式 CEP operator 必须接入统一 state/timer 后端。
-
-## 5. 分布式控制面契约
-
-nop-stream 需要最小分布式控制面契约，保证 `DeploymentPlan` 能被可靠下发、执行、监控和恢复。不复制 Flink 的控制面结构，但 task attempt、lease、assignment、fencing 这些分布式正确性概念不能省略。
-
-### 5.0 三面架构
-
-分布式执行采用三面分离架构：
+### 三面架构
 
 | 面 | 职责 | 传输方式 |
 |---|---|---|
@@ -249,33 +191,15 @@ nop-stream 需要最小分布式控制面契约，保证 `DeploymentPlan` 能被
 | **数据面** | 记录传输、barrier 传播、watermark 传播 | `IMessageService` + RemoteResultPartition / RemoteInputChannel |
 | **编排面** | Invokable 安装、算子链配置 | 同进程：直接 Java 调用；跨进程：各节点 Bean 容器本地构建，编排面只下发 DSL/plan 描述 |
 
-**控制面接口**：
-
-```java
-// TaskManager 暴露给 Coordinator 的服务接口（仅含可序列化参数）
-interface IStreamTaskRpcService {
-    void receiveAssignment(TaskAssignment assignment);
-    void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken);
-    void cancelTask(String jobId, String vertexId, int subtaskIndex);
-}
-
-// Coordinator 暴露给 TaskManager 的服务接口
-interface IStreamCoordinatorRpcService {
-    void receiveCheckpointAck(CheckpointAckMessage ack);
-}
-```
-
 **关键设计决策**：不使用适配器模式包装 `IRpcService`。`TaskManager IS-A IStreamTaskRpcService`，`JobCoordinator IS-A IStreamCoordinatorRpcService`。嵌入式模式下直接 Java 调用；分布式模式下由 Nop RPC 框架生成远程代理。
 
-**跨 JVM 编排面设计**：`StreamTaskInvokable` 包含 live operator 对象，不可跨进程序列化传输。跨 JVM 部署不依赖 invokable 序列化，而是基于以下机制：
+**跨 JVM 编排面设计**：`StreamTaskInvokable` 包含 live operator 对象，不可跨进程序列化传输。跨 JVM 部署基于以下机制：
 
-1. **DSL 驱动**：引擎执行 DSL（XLang StreamModel），各节点从 DSL 构建本地的 StreamGraph → JobGraph → OperatorChain，无需跨进程传输 invokable 对象。
-2. **Bean 容器**：NopIoC 容器中注册了所需的 operator、source、sink 等 bean，各节点通过容器获取依赖，本地构建完整的执行单元。
-3. **编排面只传 plan 描述**：跨 JVM 时编排面不下发 invokable 对象，只下发 `PartitionedPlan` / `DeploymentPlan` 描述（可序列化），各节点根据描述从 Bean 容器构建对应的执行实例。
+1. **DSL 驱动**：引擎执行 DSL（XLang StreamModel），各节点从 DSL 构建本地的 StreamGraph → JobGraph → OperatorChain
+2. **Bean 容器**：NopIoC 容器中注册了所需的 operator、source、sink 等 bean，各节点通过容器获取依赖
+3. **编排面只传 plan 描述**：跨 JVM 时编排面不下发 invokable 对象，只下发 `PartitionedPlan` / `DeploymentPlan` 描述（可序列化）
 
-因此 invokable 的生命周期始终是节点本地的，跨 JVM 通信仅发生在控制面（RPC）和数据面（IMessageService）。
-
-### 5.1 控制面角色
+### 控制面角色
 
 | 角色 | 职责 |
 |---|---|
@@ -285,19 +209,7 @@ interface IStreamCoordinatorRpcService {
 | `NodeLease` | RuntimeNode 的存活租约，超时后其 task attempt 被视为失效 |
 | `ClusterRegistry` | 记录 active coordinator、runtime nodes、node lease 和 task assignment 的一致视图 |
 
-### 5.2 职责边界
-
-| 主题 | 契约 |
-|---|---|
-| plan 所有权 | `JobCoordinator` 是 `PartitionedPlan` 和 `DeploymentPlan` 的唯一写入者 |
-| task 下发 | `JobCoordinator` 将 task assignment 下发到 `RuntimeNode`，RuntimeNode 只执行不改写语义 |
-| 心跳 | RuntimeNode 周期性报告 node 状态、task attempt 状态、checkpoint progress 和资源占用 |
-| 失败检测 | `NodeLease` 超时、task attempt 失败、transport channel 关闭都触发 coordinator 恢复流程 |
-| task 撤销 | 新 attempt 创建前必须 fence 旧 attempt；旧 attempt 的输出、ACK、commit 全部被拒绝 |
-| checkpoint 触发 | 只有 active `JobCoordinator` 可以创建 epoch；source task 只响应带有效 fencing token 的 epoch |
-| 调度策略 | 初始版本采用全局恢复和重新部署；局部恢复是后续优化 |
-
-### 5.3 作业终止模式
+### 作业终止模式
 
 | 模式 | 语义 | 适用场景 |
 |---|---|---|
@@ -306,7 +218,7 @@ interface IStreamCoordinatorRpcService {
 | `SUSPEND` | 停止新输入，导出可恢复 savepoint，不要求 sink final commit | 暂停作业、状态迁移 |
 | `EXPORT_SAVEPOINT` | 生成 protected checkpointNamespace 的 savepoint，不停止作业 | 定期备份、状态快照 |
 
-### 5.4 处理保证
+### 处理保证
 
 | 模式 | Barrier 行为 | 恢复后行为 |
 |---|---|---|
@@ -315,9 +227,9 @@ interface IStreamCoordinatorRpcService {
 | `EFFECTIVELY_ONCE` | 数据处理层按 exactly-once 或 at-least-once 执行，外部效果依赖幂等/upsert | sink 不需要严格 2PC |
 | `BEST_EFFORT` | 可禁用 checkpoint | 不保证状态一致性 |
 
-## 6. 数据流模型
+## 六、数据流模型
 
-### 6.1 Transformation DAG
+### Transformation DAG
 
 用户通过 DataStream API 构建的程序，内部维护一个 Transformation DAG：
 
@@ -333,7 +245,7 @@ OneInputTransformation<...>   (window operator)
 SinkTransformation<T>
 ```
 
-### 6.2 流类型层次
+### 流类型层次
 
 ```
 DataStream<T>
@@ -341,11 +253,7 @@ DataStream<T>
         └── WindowedStream<T, K, W>  (增加了 window 语义)
 ```
 
-- `DataStream`：基础流，支持 map/filter/flatMap/keyBy/sink
-- `KeyedStream`：按键分区的流，支持 window 操作
-- `WindowedStream`：窗口化流，支持 apply/aggregate/reduce
-
-### 6.3 算子链（Operator Chain）
+### 算子链（Operator Chain）
 
 算子通过 Output 接口串联：
 
@@ -353,9 +261,9 @@ DataStream<T>
 StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOperator → ChainingOutput → StreamSink
 ```
 
-链内通过 `ChainingOutput` 直接调用，跨链通过 `RecordWriter/InputGate` 传递。算子链融合在 JobGraphGenerator 阶段完成：多个满足链接条件的 StreamNode 被合并为一个 JobVertex，在同一个线程中顺序执行。
+链内通过 `ChainingOutput` 直接调用，跨链通过 `RecordWriter/InputGate` 传递。算子链融合在 JobGraphGenerator 阶段完成。
 
-### 6.4 分区策略
+### 分区策略
 
 每条边必须在 `PartitionedPlan` 中记录 partition policy：
 
@@ -368,7 +276,7 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | `UNION` | 多上游合并到下游输入集合 | 多 source 合并 |
 | `SINGLETON` | 所有数据汇聚到 subtask 0 | 全局 sink、全局聚合 |
 
-### 6.5 分布式背压
+### 分布式背压
 
 分布式 edge 通过 `EdgeConfig` 配置 flow control：
 
@@ -378,9 +286,7 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | `CREDIT_BASED` | receiver 授予 sender 发送额度 | 分布式、高吞吐 |
 | `ACK_WINDOW` | sender 只能领先 receiver 一个窗口 | 有序、可靠传输 |
 
-`EdgeConfig` 还定义 queue capacity、receive window、packet size 等参数，参与 `DeploymentPlan` 的内存预算计算。
-
-### 6.6 统一数据通道
+### 统一数据通道
 
 所有在算子间传输的数据单元都是 `StreamElement` 的子类：
 
@@ -391,16 +297,14 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | `Watermark` | 事件时间推进信号 | 同上 |
 | `WatermarkStatus` | 空闲/活跃状态标记 | 同上 |
 
-三者（Record、Barrier、Watermark）通过统一的 `RecordWriter → ResultPartition → InputChannel → RecordReader` 管线传输。`ResultPartition` 可以是：
+三者通过统一的 `RecordWriter → ResultPartition → InputChannel → RecordReader` 管线传输。`ResultPartition` 可以是：
 
 - **本地模式**：`BlockingQueue`（同进程内 Task 间传递）
 - **分布式模式**：`RemoteResultPartition`（基于 `IMessageService` 跨进程传输）
 
-算子层不感知 `ResultPartition` 的实现方式。Barrier 不需要独立 RPC 通道或外部线程注入——它作为 `StreamElement` 在数据流中自然排队，保证"barrier 前的记录在 barrier 之前被处理"的核心语义。
+算子层不感知 `ResultPartition` 的实现方式。Barrier 不需要独立 RPC 通道。
 
-## 7. 与 Nop 平台的集成
-
-### 7.1 集成点
+## 七、与 Nop 平台的集成
 
 | 集成点 | 方式 | 模块 |
 |--------|------|------|
@@ -413,60 +317,24 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | 错误处理 | `NopException` + `ErrorCode` | 所有模块 |
 | 声明式编排 | XDSL + Delta 定制 StreamModel | flow |
 
-### 7.2 序列化策略
+### 序列化策略
 
 - **metadata**：plan、manifest、state segment descriptor 必须 JSON round-trip
 - **payload**：默认使用 `JsonTool`，允许通过状态后端声明可替换 payload codec
 - **约束**：每个 state name 必须记录 value schema version 和 checksum
 
-## 8. 设计原则
+## 八、与已有设计的关系
 
-### 8.1 模型优先
-
-架构核心以模型不变量为中心，而不是以运行时类层次为中心。执行计划用可序列化、可对比、可 Delta 定制的 plan 表达分布式语义。状态恢复用稳定 ID 和 epoch manifest 路由，不依赖对象实例和链内下标。
-
-**StreamModel 是唯一入口**：Java DataStream API、XDSL 和测试构造器都必须生成同一类 canonical StreamModel。Delta 只能修改模型，不能 patch runtime object 来改变语义。
-
-### 8.2 语义不降级
-
-- source 不可重放或 sink 不具备严格提交能力时，不允许声明 `STRICT_EXACTLY_ONCE`
-- barrier 只能由 source 读取线程注入，并随数据 channel 传播
-- epoch manifest durable 之前，sink transaction 不得 commit
-- 旧 attempt 和旧 coordinator 必须被 fencing
-- 语义等级必须在 runtime metrics 中暴露
-
-### 8.3 稳定身份
-
-所有持久状态必须有稳定 `operatorId`（用户显式 uid > 模型路径 > 结构 hash）。所有 keyed state 必须有确定性 `StateShard` 路由。状态路径不能包含 `deploymentId`、`runId` 或 `attemptId`。
-
-### 8.4 可移植后端
-
-同一 StreamModel 可编译到本地 runtime、分布式 runtime 或外部 backend（如 Flink）。backend 通过 `StreamBackendCapability` 声明支持的能力，编译器校验 pipeline 的 requirement 是否被满足。
-
-### 8.5 最小控制面
-
-控制面使用 Nop 的模型和租约抽象表达，不引入 Flink 的 SlotSharingGroup、ExecutionAttempt 层级和网络栈。但 task attempt、lease、assignment、fencing 这些分布式正确性概念不能省略。
-
-### 8.6 Flink 兼容但不耦合
-
-学习 Flink 已验证的流处理语义边界，保持 API 概念兼容，避免实现结构耦合。Flink 后端作为可选适配，不主导内核模型。
-
-## 9. 设计不变量
-
-以下不变量不可违反：
-
-1. 所有持久状态必须有稳定 `operatorId`
-2. 所有 keyed state 必须有确定性 `StateShard` 路由
-3. `PartitionedPlan` 是 parallelism、edge partition、state route、checkpoint route 的唯一语义来源
-4. barrier 只能由 source 读取线程注入，并随数据 channel 传播
-5. epoch manifest durable 之前，sink transaction 不得 commit
-6. 恢复必须从最新 durable epoch manifest 开始
-7. source 不可重放或 sink 不具备严格提交能力时，不允许声明 `STRICT_EXACTLY_ONCE`
-8. 旧 attempt 和旧 coordinator 必须被 fencing
-9. timer state 是窗口和 CEP exactly-once 的必要状态
-10. Delta 只能修改模型，不能 patch runtime object 来改变语义
-11. 所有 `StreamModel` 必须包含 `StreamComponents` registry
-12. 所有 `StreamRequirement` 必须在编译时和运行时校验
-13. 所有 transactional operator 必须实现 `CheckpointParticipant`
-14. 所有分布式 edge 必须配置 `EdgeConfig`
-15. 所有作业终止必须明确 `JobTerminationMode`
+| 主题 | 文档 |
+|------|------|
+| 设计原则、non-goals、约束、不变量 | `00-vision.md` |
+| 核心模型（StreamModel、DataStream API、算子、稳定身份） | `core-design.md` |
+| 图模型（StreamGraph、JobGraph、算子链化） | `graph-model-design.md` |
+| Checkpoint 与 Exactly-Once | `checkpoint-design.md` |
+| 状态管理 | `state-management-design.md` |
+| 窗口机制 | `window-design.md` |
+| 时间与 Watermark | `time-model-design.md` |
+| 连接器 | `connector-design.md` |
+| CEP 引擎 | `cep-design.md` |
+| 架构对比 | `comparison.md` |
+| 组件路线 | `component-roadmap.md` |

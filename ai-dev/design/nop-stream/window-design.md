@@ -3,7 +3,7 @@
 > Status: active
 > Created: 2026-05-19
 > Updated: 2026-06-01（重写为最优设计，经对抗性审查修订）
-> Parent: `core-design.md` §4（算子模型）、`architecture.md` §3（执行模型）
+> Parent: `core-design.md` §4（算子模型）、`01-architecture-baseline.md` §4（执行模型）
 
 ## 1. 设计结论
 
@@ -466,7 +466,7 @@ savepoint 恢复时：
 | 设计文档 | 关系 |
 |---|---|
 | `core-design.md` §4（算子模型） | WindowOperator 是 `OneInputStreamOperator` 的实现，遵循算子生命周期 |
-| `architecture.md` §3（执行模型） | 窗口算子在 StreamGraph → JobGraph 管线中被当作普通 keyed 算子处理 |
+| `01-architecture-baseline.md` §4（执行模型） | 窗口算子在 StreamGraph → JobGraph 管线中被当作普通 keyed 算子处理 |
 | `state-management-design.md` §2–§5 | 窗口状态使用 `IInternalStateBackend` 的 `InternalAppendingState` 和 `InternalListState`，通过 `StateDescriptor` 和 namespace 管理。§8.3.1 的平台扩展需同步更新 `state-management-design.md` |
 | `checkpoint-design.md` | 窗口状态和定时器参与 epoch checkpoint，支持 exactly-once 恢复 |
 | `time-model-design.md` §2–§3 | 事件时间窗口依赖 watermark 推进（§2 WatermarkStrategy）；Trigger 的 `onEventTime` 由 watermark 驱动（§3 WatermarkGenerator 传播机制） |
