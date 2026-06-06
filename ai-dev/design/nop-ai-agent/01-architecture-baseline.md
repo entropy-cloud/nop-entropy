@@ -67,7 +67,7 @@
 
 ### Memory 模型（三层）
 
-基于 10 框架调研（详见 `ai-dev/analysis/agent-survey/2026-06-06-agent-memory-compaction-session-deep-dive.md`）：
+基于 10 框架调研（LangGraph、CrewAI、AutoGen、OpenCode、DeepAgents、PilotDeck、Reasonix、EdgeClaw、Claude Code、Codex CLI）的源码级对比：
 
 | 层级 | 内容 | 实现阶段 |
 |------|------|---------|

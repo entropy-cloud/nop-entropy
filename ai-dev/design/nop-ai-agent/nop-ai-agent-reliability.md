@@ -207,7 +207,7 @@ Agent 可能会反复调用同一个工具、同一组参数。
 
 ## 7. 上下文窗口保护
 
-基于 10 个框架的源码级调研（详见 `ai-dev/analysis/agent-survey/2026-06-06-agent-memory-compaction-session-deep-dive.md`），建议采用**5 层渐进压缩管道**，核心原则是**逐级升级、不可跳级**——先尝试零成本操作，再尝试无 LLM 调用操作，最后才调用 LLM 生成摘要。
+基于 10 框架调研（LangGraph、CrewAI、AutoGen、OpenCode、DeepAgents、PilotDeck、Reasonix、EdgeClaw、Claude Code、Codex CLI）的源码级对比，建议采用**5 层渐进压缩管道**，核心原则是**逐级升级、不可跳级**——先尝试零成本操作，再尝试无 LLM 调用操作，最后才调用 LLM 生成摘要。
 
 ### 7.1 五层保护模型
 
