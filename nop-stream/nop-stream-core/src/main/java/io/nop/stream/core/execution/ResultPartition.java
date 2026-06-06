@@ -127,10 +127,8 @@ public class ResultPartition implements IWriteStatus {
      */
     public void close() {
         finished = true;
-        try {
-            queue.put(END_OF_STREAM);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        if (!queue.offer(END_OF_STREAM)) {
+            queue.clear();
             queue.offer(END_OF_STREAM);
         }
     }
