@@ -67,7 +67,9 @@ public class TestNopCodeAnalysisBizModel extends JunitAutoTestCase {
         assertTrue(response.isOk());
         assertNotNull(response.getData());
         Map<String, Object> result = (Map<String, Object>) response.getData();
+        assertNotNull(result.get("totalSymbols"), "totalSymbols should not be null");
         assertTrue((Integer) result.get("totalSymbols") >= 0);
+        assertNotNull(result.get("totalCommunities"), "totalCommunities should not be null");
         assertTrue((Integer) result.get("totalCommunities") >= 0);
         assertNotNull(result.get("averageCohesion"));
     }
@@ -92,7 +94,9 @@ public class TestNopCodeAnalysisBizModel extends JunitAutoTestCase {
 
         Map<String, Object> breakdown = (Map<String, Object>) result.get("cohesionBreakdown");
         assertNotNull(breakdown);
+        assertNotNull(breakdown.get("extractedCount"), "extractedCount should not be null");
         assertTrue((Integer) breakdown.get("extractedCount") >= 0);
+        assertNotNull(breakdown.get("inferredCount"), "inferredCount should not be null");
         assertTrue((Integer) breakdown.get("inferredCount") >= 0);
 
         List<Object> isolated = (List<Object>) result.get("isolatedSymbols");

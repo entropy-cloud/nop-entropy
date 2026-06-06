@@ -64,6 +64,7 @@ public class TestNopCodeFileBizModel extends JunitAutoTestCase {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> result = (Map<String, Object>) response.getData();
+        assertNotNull(result.get("filePath"), "filePath should not be null");
         assertTrue(((String) result.get("filePath")).contains("User.java"),
                 "filePath should contain User.java");
         assertEquals("com.example.domain", result.get("packageName"));
@@ -94,6 +95,7 @@ public class TestNopCodeFileBizModel extends JunitAutoTestCase {
         @SuppressWarnings("unchecked")
         List<Object> items = (List<Object>) pageBean.get("items");
         assertFalse(items.isEmpty(), "page should contain at least one file");
+        assertNotNull(pageBean.get("total"), "total should not be null");
         assertTrue(((Number) pageBean.get("total")).longValue() > 0,
                 "total should be greater than zero");
     }

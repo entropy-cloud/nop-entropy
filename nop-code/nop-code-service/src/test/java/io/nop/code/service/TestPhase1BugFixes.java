@@ -84,6 +84,7 @@ public class TestPhase1BugFixes extends JunitAutoTestCase {
 
         Map<String, Object> root = (Map<String, Object>) response.getData();
         Map<String, Object> rootSymbol = (Map<String, Object>) root.get("symbol");
+        assertNotNull(rootSymbol, "Root node should contain 'symbol' map");
         assertEquals("changeName", rootSymbol.get("name"));
         assertEquals("com.example.service.UserService.changeName", rootSymbol.get("qualifiedName"));
 
@@ -114,6 +115,7 @@ public class TestPhase1BugFixes extends JunitAutoTestCase {
 
         Map<String, Object> root = (Map<String, Object>) response.getData();
         Map<String, Object> rootSymbol = (Map<String, Object>) root.get("symbol");
+        assertNotNull(rootSymbol, "Root node should contain 'symbol' map");
         assertEquals("setName", rootSymbol.get("name"));
 
         assertTrue(root.containsKey("callers"), "Response should contain callers field");
@@ -186,7 +188,9 @@ public class TestPhase1BugFixes extends JunitAutoTestCase {
         Map<String, Object> result1 = (Map<String, Object>) response1.getData();
         assertNotNull(result1);
 
+        assertNotNull(result1.get("totalSymbols"), "totalSymbols should not be null");
         int totalSymbols1 = (Integer) result1.get("totalSymbols");
+        assertNotNull(result1.get("totalCommunities"), "totalCommunities should not be null");
         int totalCommunities1 = (Integer) result1.get("totalCommunities");
 
         ApiResponse<?> response2 = rpcQuery("NopCodeIndex__detectCommunities", data);
@@ -194,7 +198,9 @@ public class TestPhase1BugFixes extends JunitAutoTestCase {
         Map<String, Object> result2 = (Map<String, Object>) response2.getData();
         assertNotNull(result2);
 
+        assertNotNull(result2.get("totalSymbols"), "totalSymbols should not be null");
         int totalSymbols2 = (Integer) result2.get("totalSymbols");
+        assertNotNull(result2.get("totalCommunities"), "totalCommunities should not be null");
         int totalCommunities2 = (Integer) result2.get("totalCommunities");
 
         assertEquals(totalSymbols1, totalSymbols2,

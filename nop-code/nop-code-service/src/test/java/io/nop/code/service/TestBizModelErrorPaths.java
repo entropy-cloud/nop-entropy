@@ -67,8 +67,8 @@ public class TestBizModelErrorPaths extends JunitAutoTestCase {
         data.put("filePath", "Test.java");
         data.put("sourceCode", "public class Test {}");
         ApiResponse<?> response = execMutation("NopCodeIndex__indexFile", data);
-        assertTrue(response.isOk() || !response.isOk(),
-                "indexFile should handle non-existent index gracefully");
+        assertTrue(response.isOk(),
+                "indexFile on non-existent index should be handled gracefully, status=" + response.getStatus());
     }
 
     @Test

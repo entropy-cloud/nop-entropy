@@ -100,11 +100,13 @@ public class TestNopSearchIntegration extends JunitAutoTestCase {
         data.put("searchType", "COMBINED");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
 
-        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
-                "searchCode with empty query returned status=" + response.getStatus());
-
-        List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
-        assertNotNull(results);
+        if (response.isOk()) {
+            List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
+            assertNotNull(results, "Results should be non-null when response is ok");
+        } else {
+            assertNotNull(response.getMsg(),
+                    "Error response for empty query should have an error message");
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -132,8 +134,8 @@ public class TestNopSearchIntegration extends JunitAutoTestCase {
         data.put("language", "PYTHON");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
 
-        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
-                "searchCode with non-existent language filter returned status=" + response.getStatus());
+        assertTrue(response.isOk(),
+                "searchCode SYMBOL_NAME with non-existent language should succeed, got status=" + response.getStatus());
 
         List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
         assertNotNull(results);
@@ -150,8 +152,8 @@ public class TestNopSearchIntegration extends JunitAutoTestCase {
         data.put("language", "PYTHON");
         ApiResponse<?> response = rpcQuery("NopCodeSymbol__searchCode", data);
 
-        org.junit.jupiter.api.Assumptions.assumeTrue(response.isOk(),
-                "searchCode COMBINED with language filter returned status=" + response.getStatus());
+        assertTrue(response.isOk(),
+                "searchCode COMBINED with PYTHON language filter should succeed, got status=" + response.getStatus());
 
         List<Map<String, Object>> results = (List<Map<String, Object>>) response.getData();
         assertNotNull(results);
