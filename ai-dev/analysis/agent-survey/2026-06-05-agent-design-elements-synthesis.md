@@ -27,8 +27,8 @@
 | **oh-my-claudecode** | Async (TS) | Claude Code streaming | 11 lifecycle hooks (UserPromptSubmit, PreToolUse, PostToolUse, Stop, PreCompact, SubagentStart/Stop, etc.) | Hook-driven loop; Stop-hook implements Sisyphean model | **Sisyphean**: Stop-hook intercepts exit, checks todo, forces continuation |
 | **oh-my-opencode** | Async (TS/Bun) | OpenCode streaming | 54+ hook types (chat.params, chat.message, tool.execute.before/after, event, command.execute.before) | Hook-driven loop; 10 Discipline Agents | **IntentGate**: analyzes user intent before classification/execution |
 | **VoltAgent** | Async (TS) | Vercel AI SDK v6 streaming | 13 agent hooks (onStart, onEnd, onHandoff, onToolStart/End, onError, onRetry, onFallback, etc.) | Agent.generateText/streamText + tool loop | **Bail signal**: sub-agent can `bail(result)` early exit |
-| **DeepAgents** | Sync + Async (dual) | LangGraph streaming | Middleware before/after each step | LangGraph StateGraph execution | **Middleware pipeline**: 7 standard middlewares compose the agent |
-| **AgentScope Java** | Reactive (Project Reactor) | Flux<Event> streaming | 11 hook events (PreCall, PreReasoning, ReasoningChunk, PostReasoning, PreActing, ActingChunk, PostActing, PreSummary, SummaryChunk, PostSummary, PostCall, Error) | ReAct loop: reasoning→acting→summarizing, streaming-first | **Graceful shutdown** with state save; pending tool recovery |
+| **DeepAgents** | Sync + Async (dual) | LangGraph streaming | Middleware before/after each step | LangGraph StateGraph execution | **Middleware pipeline**: 6 local middlewares + 2 from LangChain core compose the agent |
+| **AgentScope Java** | Reactive (Project Reactor) | Flux<Event> streaming | MiddlewareBase + MiddlewareChain (HookEventType deprecated since 2.0) | ReAct loop: reasoning→acting→summarizing, streaming-first | **Graceful shutdown** with state save; pending tool recovery |
 | **Solon AI** | Sync + Reactive (streaming only) | Flux<ChatResponse> streaming | Interceptor chain | Three-tier: SimpleAgent (single call) → ReActAgent (Think→Act→Observe) → TeamAgent (Flow graph) | **8 collaboration protocols** in TeamAgent |
 | **Spring AI Alibaba** | Reactive (Spring Reactor) | Flux streaming | 4-position hooks (BEFORE/AFTER AGENT/MODEL) + Interceptors | StateGraph (nodes+edges) + ReactAgent (LLM+Tool+Hook nodes) | **JumpTo**: hooks can redirect execution flow |
 | **PilotDeck** | Async (TS, AsyncGenerator) | AsyncGenerator<AgentEvent> | 35+ event types | AgentLoop.run() yields events; auto-compression → routing → model → tool exec → circuit breaker | **Content Gate**: once yielded to consumer, fallback locked; **Circuit breaker**: 3 consecutive empty tool turns → abort |
@@ -61,7 +61,7 @@
 | Project | Short-term | Long-term | Storage | Retrieval | Compression |
 |---------|-----------|-----------|---------|-----------|-------------|
 | **pi-agent** | Transcript (in-memory) | ✗ | JSONL session files | Session tree navigation | ✓ Context Compaction (auto-summarize near token limit) |
-| **oh-my-pi** | Transcript + readFileState | **Hindsight** retain/recall/reflect | Project memory bank (files) | recall tool (semantic?) + auto-load mental model on first turn | ✓ Inherits pi compaction + TTSR survives compaction |
+| **oh-my-pi** | Transcript + readFileState | **Pluggable backends** (local/mnemopi/hindsight) retain/recall/reflect | Project memory bank (files) | recall tool (semantic?) + auto-load mental model on first turn | ✓ Inherits pi compaction + TTSR survives compaction |
 | **oh-my-claudecode** | Notepad (priority/working/manual) | **Project Memory** (read/write/add_note) | better-sqlite3 | Project memory read/write MCP tools | ✓ PreCompact hook saves state before compaction |
 | **oh-my-opencode** | Session transcript | boulder-state work tracking | File-based + boulder-state package | Session recovery from errors/context limits | ✓ **Preemptive Compaction**: proactive window management |
 | **VoltAgent** | Conversation (StorageAdapter) | **Working Memory** (per-session KV, JSON or Markdown) | 5 backends (LibSQL, PostgreSQL, Supabase, Cloudflare D1, VoltOps) + InMemory | **Semantic search** via EmbeddingAdapter + VectorAdapter | ✗ (AI SDK manages context) |
@@ -161,7 +161,7 @@
 | **oh-my-opencode** | 54+ hooks | Plugin API, MCP, agents | ✓ Skills (configurable IDs) | ✗ | `/init-deep` layered AGENTS.md generation |
 | **VoltAgent** | 13 agent hooks | Tool, Memory adapter, Workflow step, Guardrail, MCP | ✗ | ✗ | MCP Client+Server; A2A server; AG-UI adapter |
 | **DeepAgents** | Middleware before/after | Middleware (add tools, modify prompt, intercept steps) | ✓ SKILL.md + YAML frontmatter (agentskills.io spec) | agentskills.io (emerging) | **Progressive disclosure**: metadata in prompt, full instructions on demand |
-| **AgentScope Java** | 11 hook events | Extension modules (25+) | ✗ | ✗ | Studio debug tool; Kotlin DSL extension |
+| **AgentScope Java** | MiddlewareBase + MiddlewareChain (HookEventType deprecated) | Extension modules (25+) | ✗ | ✗ | Studio debug tool; Kotlin DSL extension |
 | **Solon AI** | Interceptor chain | Talent, Tool, Flow component, MCP | ✓ 17 pre-built Talents | ✗ | **Talent dynamic admission**: `isSupported(Prompt)` activates only when relevant |
 | **Spring AI Alibaba** | 4-position hooks + Interceptors | Tool, Hook, Interceptor, Checkpoint backend | ✗ | ✗ | Studio (embedded debug UI) + Admin (full platform, Dify-style) |
 | **PilotDeck** | 28 hook events | **7 contribution types**: Tool, Command, Hook, MCP Server, Permission Rule, Prompt, Router | ✓ 6 built-in skill packs | ✗ | **5 hook executors**: Agent, Callback, Command (shell), HTTP, Prompt |

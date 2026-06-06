@@ -61,11 +61,13 @@ reasoning(iter) → model.stream() → 累积 chunks → acting(iter)
 - Pending tool recovery：无结果的工具调用可恢复
 - Graceful shutdown：通过 GracefulShutdownManager 保存状态
 
-#### Hook 系统
+#### 拦截系统（Middleware + 已废弃 Hook）
 
-统一事件拦截：`PreCall → PreReasoning → ReasoningChunk → PostReasoning → PreActing → ActingChunk → PostActing → PreSummary → SummaryChunk → PostSummary → PostCall → Error`（11 种具体事件）
+**当前机制**: `MiddlewareBase` + `MiddlewareChain` 组合模式，通过 `onAgent()` 拦截 agent 执行。中间件可修改请求/响应、注入工具、控制执行流。实现示例：`TaskReminderMiddleware`。
 
-Hook 可修改事件、请求停止、注入工具。优先级排序。
+**已废弃机制**: `HookEventType`（12 种事件：PreCall, PreReasoning, ReasoningChunk, PostReasoning, PreActing, ActingChunk, PostActing, PreSummary, SummaryChunk, PostSummary, PostCall, Error）标记为 `@Deprecated(forRemoval=true, since=2.0.0)`，正被 Middleware 体系替代。
+
+**当前事件流**: `AgentEventType` 提供约 22 种细粒度流式事件（AGENT_START, TEXT_BLOCK_DELTA, TOOL_CALL_START 等），与旧 Hook 的粗粒度位置完全不同。
 
 #### Tool 系统
 
@@ -102,7 +104,7 @@ DashScope (Qwen), OpenAI, Gemini, Anthropic, Ollama
 ### 优势
 
 1. **全响应式架构** — Project Reactor 贯穿，高吞吐 + 自然流式
-2. **全面的 Hook 系统** — 覆盖 agent 全生命周期，可修改事件、注入工具
+2. **Middleware 拦截架构** — MiddlewareBase + MiddlewareChain 组合模式，覆盖 agent 全生命周期，可修改事件、注入工具（旧 HookEventType 已废弃）
 3. **生产级特性** — Graceful shutdown, interrupt, pending tool recovery, GraalVM, OpenTelemetry
 4. **多 Provider** — DashScope, OpenAI, Gemini, Anthropic, Ollama + Formatter 模式抽象
 5. **多 Agent 模式** — Sequential/Fanout Pipeline + MsgHub pub/sub + SubAgentTool

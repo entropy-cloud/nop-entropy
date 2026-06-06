@@ -56,16 +56,22 @@ examples/          5 个示例 agent
 
 每个中间件可：添加工具、修改 system prompt、拦截 before/after agent 步骤、定义额外 state schema。
 
-标准中间件栈：
+**DeepAgents 本地中间件** (6 个模块，`deepagents/middleware/`)：
+
+| 中间件 | 功能 |
+|--------|------|
+| `FilesystemMiddleware` | 文件工具: ls, read, write, edit, glob, grep, execute |
+| `MemoryMiddleware` | 加载 AGENTS.md 到 system prompt |
+| `SkillsMiddleware` | 渐进式技能加载 (SKILL.md + YAML frontmatter) |
+| `SubAgentMiddleware` | task 工具生成临时子 agent |
+| `SummarizationMiddleware` | 上下文自动摘要 + 历史卸载 |
+| `PatchToolCallsMiddleware` | 工具调用修复/补丁 |
+
+**来自 LangChain 核心的中间件** (2 个，`langchain.agents.middleware`)：
 
 | 中间件 | 功能 |
 |--------|------|
 | `TodoListMiddleware` | 任务分解/进度 (write_todos/read_todos) |
-| `MemoryMiddleware` | 加载 AGENTS.md 到 system prompt |
-| `SkillsMiddleware` | 渐进式技能加载 (SKILL.md + YAML frontmatter) |
-| `FilesystemMiddleware` | 文件工具: ls, read, write, edit, glob, grep, execute |
-| `SubAgentMiddleware` | task 工具生成临时子 agent |
-| `SummarizationMiddleware` | 上下文自动摘要 + 历史卸载 |
 | `HumanInTheLoopMiddleware` | 指定工具的中断/审批 |
 
 #### Sub-Agent 系统

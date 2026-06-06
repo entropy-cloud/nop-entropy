@@ -49,7 +49,7 @@ stats/            可观测性 dashboard (React + Tailwind)
 utils/            共享工具
 hashline/         内容哈希锚定的 patch 格式
 swarm-extension/  Swarm 编排扩展
-mnemopi/          SQLite 内存引擎 (Hindsight 后端)
+mnemopi/          SQLite 内存引擎（独立后端，非 Hindsight 子系统）
 ```
 
 #### Rust crates (crates/)
@@ -97,9 +97,10 @@ mnemopi/          SQLite 内存引擎 (Hindsight 后端)
 - **DAP**: 28 个操作（debugger 断点、变量查看、调用栈...）
 - 不是文本操作层面，而是真正的 IDE 语言服务集成
 
-#### 4. Hindsight 内存系统
+#### 4. 内存系统（多后端可插拔）
 
 - `retain` / `recall` / `reflect` 三工具内存表面
+- **可插拔后端架构**：local（内置）、mnemopi（SQLite 本地）、hindsight（远程 Vectorize 服务）
 - 项目范围的 memory bank，会话间持久化
 - 心智模型: 压缩的会话摘要，首次 turn 自动加载
 
@@ -148,7 +149,7 @@ mnemopi/          SQLite 内存引擎 (Hindsight 后端)
 | LSP/DAP | 无 | 14+28 操作 |
 | 子 Agent | 无 | Schema 验证 + worktree 隔离 |
 | 编辑系统 | str_replace | Hashline 内容哈希锚定 |
-| 内存系统 | 无 | Hindsight retain/recall/reflect |
+| 内存系统 | 无 | 可插拔后端 (local/mnemopi/hindsight) retain/recall/reflect |
 | 流式纠错 | 无 | TTSR 正则触发 |
 | Provider 数 | 35 个已知 | 40+ |
 | Web 搜索 | 无 | 12 后端 |
@@ -162,7 +163,7 @@ mnemopi/          SQLite 内存引擎 (Hindsight 后端)
 2. **深度 IDE 集成**: 真正的 LSP 和 DAP 支持（不是仅文本操作）
 3. **Hashline 编辑**: 大幅提升编辑成功率，减少 token 浪费
 4. **子 Agent 架构**: Schema 验证 + 并行 + worktree 隔离
-5. **Hindsight 内存**: 真正的跨会话记忆
+5. **可插拔内存**: 真正的跨会话记忆（多后端：local/mnemopi/hindsight）
 6. **TTSR 流式规则**: 实时纠错无 context 消耗
 7. **跨工具兼容**: 读取 8 种配置格式，零迁移成本
 8. **robomp triage bot**: 自托管 GitHub 自动化

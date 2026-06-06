@@ -33,7 +33,7 @@
 | **编排模式** | Pipeline + MsgHub | 8 种协议 (Solon Flow) | 4 种 FlowAgent (StateGraph) |
 | **LLM 接口** | Model (2 方法) | ChatModel (dialect) | Spring AI ChatModel |
 | **工具系统** | @Tool + AgentTool + MCP | @ToolMapping + FunctionTool + MCP | Spring AI ToolCallback + MCP |
-| **Hook 系统** | 11 种事件 | Interceptor chain | 4 位置 + Interceptor chain |
+| **Hook 系统** | MiddlewareBase+Chain (HookEventType deprecated) | Interceptor chain | 4 位置 + Interceptor chain |
 | **RAG** | 5 种后端 (扩展) | 15 种向量存储 + 7 种加载器 | 委托 Spring AI |
 | **Memory** | InMemory + 长期 (Mem0等) | Session (InMemory/File/Redis) | CheckpointSaver (6 后端) + Store |
 | **MCP** | Client | Client + Server + 全传输 | Client |
