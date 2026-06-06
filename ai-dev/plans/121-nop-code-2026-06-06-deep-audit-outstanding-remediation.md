@@ -1,6 +1,6 @@
 # 121 nop-code 2026-06-06 深度审计剩余发现收口
 
-> Plan Status: proposed
+> Plan Status: completed
 > Last Reviewed: 2026-06-06
 > Source: `ai-dev/audits/2026-06-06-deep-audit-nop-code/` 21 维度深度审计（61 条发现），Plans 118–120（已完成）覆盖 AR 编号项及部分深度审计项后仍 outstanding 的发现
 > Related: Plan 120（completed, P2/P3 AR 编号项收口）、Plan 119（completed, r9 P0/P1）、Plan 118（completed, r8 P0/P1）
@@ -256,17 +256,17 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 全部 in-scope P1 发现已修复
-- [ ] 全部 in-scope P2 发现已修复或有明确的 deferred/adjudicated 说明
-- [ ] P3 发现已修复或标记为 deferred with reason
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
-- [ ] 受影响的 owner docs 已同步到 live baseline
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `./mvnw compile -pl nop-code -am` 通过
-- [ ] `./mvnw test -pl nop-code -am` 通过
-- [ ] checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/121-nop-code-2026-06-06-deep-audit-outstanding-remediation.md --strict` 退出码为 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 通过（如修改了 docs-for-ai/）
+- [x] 全部 in-scope P1 发现已修复
+- [x] 全部 in-scope P2 发现已修复或有明确的 deferred/adjudicated 说明
+- [x] P3 发现已修复或标记为 deferred with reason
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
+- [x] 受影响的 owner docs 已同步到 live baseline
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `./mvnw compile -pl nop-code -am` 通过
+- [x] `./mvnw test -pl nop-code -am` 通过
+- [x] checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/121-nop-code-2026-06-06-deep-audit-outstanding-remediation.md --strict` 退出码为 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 通过（如修改了 docs-for-ai/）
 
 ## Deferred But Adjudicated
 
@@ -325,13 +325,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待填写
+Status Note: All 5 phases completed. 27/28 audit items passed on first pass; 1 item (NopCodeConstants/NopCodeConfigs deletion) remediated after audit.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待填写
-- Evidence: 待填写
+- Reviewer / Agent: Independent closure auditor (houyi subagent, session ses_165bd9303ffeOOmMomvLcHDTQS)
+- Evidence: 28-item verification against live source files. Phase 1 (4/4 PASS), Phase 2 (5/5 PASS), Phase 3 (5/5 PASS), Phase 4 (5/5 PASS after remediation), Phase 5 (8/8 PASS), Build (PASS).
+- All P1/P2/P3 in-scope items verified against actual code. No silent downgrades. Owner docs updated.
 
 Follow-up:
 
-- 待填写
+- CodeIndexService拆分需先有design doc → successor plan
+- 长事务修复依赖拆分 → successor plan
+- ICodeIndexService/DTO api模块迁移 → successor plan
