@@ -1624,7 +1624,14 @@ public class CodeIndexService implements ICodeIndexService {
             throw new NopException(ERR_CODE_CHANGE_ANALYZER_NOT_AVAILABLE).param(ARG_INDEX_ID, indexId);
         }
 
-        return analyzer.analyzeChanges(indexId, baselineCommitish, targetCommitish, symbolTable, callGraph);
+        String workingDirectory = null;
+        IEntityDao<NopCodeIndex> indexDao = daoProvider.daoFor(NopCodeIndex.class);
+        NopCodeIndex indexEntity = indexDao.getEntityById(indexId);
+        if (indexEntity != null) {
+            workingDirectory = indexEntity.getRootPath();
+        }
+
+        return analyzer.analyzeChanges(indexId, baselineCommitish, targetCommitish, symbolTable, callGraph, workingDirectory);
     }
 
     @Override

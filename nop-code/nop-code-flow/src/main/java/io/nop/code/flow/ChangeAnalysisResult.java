@@ -10,6 +10,7 @@ public class ChangeAnalysisResult {
     private List<AffectedSymbol> affectedSymbols;
     private RiskSummary riskSummary;
     private List<String> suggestedActions;
+    private boolean truncated;
 
     public List<String> getChangedFiles() { return changedFiles; }
     public void setChangedFiles(List<String> changedFiles) { this.changedFiles = changedFiles; }
@@ -19,6 +20,8 @@ public class ChangeAnalysisResult {
     public void setRiskSummary(RiskSummary riskSummary) { this.riskSummary = riskSummary; }
     public List<String> getSuggestedActions() { return suggestedActions; }
     public void setSuggestedActions(List<String> suggestedActions) { this.suggestedActions = suggestedActions; }
+    public boolean isTruncated() { return truncated; }
+    public void setTruncated(boolean truncated) { this.truncated = truncated; }
 
     public static class AffectedSymbol {
         private String symbolId;

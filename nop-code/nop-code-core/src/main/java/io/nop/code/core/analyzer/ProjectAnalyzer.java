@@ -55,6 +55,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     private static final int MAX_FILE_COUNT = 50000;
 
     private final LanguageAdapterRegistry registry;
+    /**
+     * Reserved for future parallel analysis. Currently unused.
+     */
     private final ExecutorService executor;
     private final int batchSize;
 
@@ -92,6 +95,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         return analyzeProject(VirtualFileSystem.instance(), projectRoot, (String) null);
     }
 
+    /**
+     * @param languages Ignored; all registered languages are analyzed regardless.
+     */
     @Override
     public ProjectAnalysisResult analyzeProject(String projectRoot, Set<CodeLanguage> languages) {
         return analyzeProject(projectRoot);
@@ -103,6 +109,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      * @param projectRoot      项目根目录
      * @param progressCallback 进度回调 (current, total, message)
      * @return 项目分析结果
+     */
+    /**
+     * @param progressCallback Ignored; no progress reporting implemented yet.
      */
     public ProjectAnalysisResult analyzeProject(String projectRoot, ProgressCallback progressCallback) {
         return analyzeProject(VirtualFileSystem.instance(), projectRoot, (String) null);

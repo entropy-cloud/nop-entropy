@@ -7,5 +7,5 @@ public interface IChangeAnalyzer {
     void setFlowDetector(IFlowDetector flowDetector);
 
     ChangeAnalysisResult analyzeChanges(String indexId, String baselineCommitish, String targetCommitish,
-                                        SymbolTable symbolTable, CallGraph callGraph);
+                                        SymbolTable symbolTable, CallGraph callGraph, String workingDirectory);
 }
