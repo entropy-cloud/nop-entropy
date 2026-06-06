@@ -1411,10 +1411,19 @@ public class CodeIndexService implements ICodeIndexService {
     private void deleteFileRecords(String indexId, List<String> filePaths) {
         if (daoProvider == null || filePaths.isEmpty()) return;
 
+        String topic = "nop-code-" + indexId;
         for (String filePath : filePaths) {
             String fileId = generateFileId(indexId, filePath);
 
             List<String> symbolIds = findSymbolIdsByFileId(fileId);
+
+            if (searchEngine != null && !symbolIds.isEmpty()) {
+                try {
+                    searchEngine.removeDocs(topic, symbolIds);
+                } catch (Exception e) {
+                    LOG.warn("Failed to remove search docs for file {}", filePath, e);
+                }
+            }
 
             deleteEntitiesByFilter(NopCodeCall.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeSymbol.class, "fileId", fileId);

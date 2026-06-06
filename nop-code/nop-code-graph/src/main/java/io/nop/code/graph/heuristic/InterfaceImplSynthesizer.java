@@ -53,28 +53,28 @@ public class InterfaceImplSynthesizer implements IHeuristicEdgeSynthesizer {
                             CodeSymbol implType = symbolTable.getById(implTypeId);
                             if (implType == null) continue;
 
-                            String implMethodQName = implType.getQualifiedName()
+                            String implMethodPrefix = implType.getQualifiedName()
                                     + "." + calleeSymbol.getName();
-                            CodeSymbol implMethod = symbolTable.getByQualifiedName(implMethodQName);
-                            if (implMethod == null) continue;
+                            List<CodeSymbol> implMethods = symbolTable.findAllByQualifiedNamePrefix(implMethodPrefix);
+                            for (CodeSymbol implMethod : implMethods) {
+                                CodeMethodCall synthetic = new CodeMethodCall();
+                                synthetic.setId(UUID.randomUUID().toString());
+                                synthetic.setCallerId(callerId);
+                                synthetic.setCalleeId(implMethod.getId());
+                                synthetic.setCalleeQualifiedName(implMethod.getQualifiedName());
+                                synthetic.setMethodName(calleeSymbol.getName());
+                                synthetic.setLine(-1);
+                                synthetic.setColumn(0);
+                                synthetic.setConfidence(EdgeConfidence.INFERRED);
+                                synthetic.setProvenance(EdgeProvenance.HEURISTIC);
 
-                            CodeMethodCall synthetic = new CodeMethodCall();
-                            synthetic.setId(UUID.randomUUID().toString());
-                            synthetic.setCallerId(callerId);
-                            synthetic.setCalleeId(implMethod.getId());
-                            synthetic.setCalleeQualifiedName(implMethodQName);
-                            synthetic.setMethodName(calleeSymbol.getName());
-                            synthetic.setLine(-1);
-                            synthetic.setColumn(0);
-                            synthetic.setConfidence(EdgeConfidence.INFERRED);
-                            synthetic.setProvenance(EdgeProvenance.HEURISTIC);
+                                Map<String, Object> metadata = new LinkedHashMap<>();
+                                metadata.put("synthesizedBy", getSynthesizerId());
+                                metadata.put("via", interfaceQName + "." + calleeSymbol.getName());
+                                synthetic.setMetadata(JsonTool.stringify(metadata));
 
-                            Map<String, Object> metadata = new LinkedHashMap<>();
-                            metadata.put("synthesizedBy", getSynthesizerId());
-                            metadata.put("via", interfaceQName + "." + calleeSymbol.getName());
-                            synthetic.setMetadata(JsonTool.stringify(metadata));
-
-                            synthesized.add(synthetic);
+                                synthesized.add(synthetic);
+                            }
                         }
                     }
                 }

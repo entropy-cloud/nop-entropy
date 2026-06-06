@@ -206,6 +206,9 @@
                     <column name="lastIndexed"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key name="uk_nop_code_index_name" columns="name"/>
+            </unique-keys>
         </entity>
 
         <!-- 文件 -->

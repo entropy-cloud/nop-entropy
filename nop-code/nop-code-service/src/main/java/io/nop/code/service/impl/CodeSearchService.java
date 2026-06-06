@@ -69,7 +69,7 @@ class CodeSearchService {
         SearchRequest req = new SearchRequest();
         req.setTopic(topic);
         req.setQuery(query);
-        req.setSearchType(SearchType.HYBRID);
+        req.setSearchType(SearchType.TEXT);
         req.setLimit(lim);
         Set<String> tags = new HashSet<>();
         if (language != null && !language.isEmpty()) {
@@ -196,9 +196,8 @@ class CodeSearchService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean fq = new QueryBean();
         fq.addFilter(FilterBeans.eq("indexId", indexId));
-        fq.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
         List<NopCodeFile> files = fileDao.findAllByQuery(fq);
-        Map<String, String> cache = new HashMap<>();
+        Map<String, String> cache = new HashMap<>(files.size());
         for (NopCodeFile f : files) {
             cache.put(f.getId(), f.getFilePath());
         }

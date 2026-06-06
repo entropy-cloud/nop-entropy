@@ -58,7 +58,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     public String triggerFullIndex(
             @Name("indexId") String indexId,
             @Name("projectPath") String projectPath) {
-        int fileCount = codeIndexService.indexDirectory(indexId, projectPath, "**/*.java");
+        int fileCount = codeIndexService.indexDirectory(indexId, projectPath, null);
 
         IncrementalStatus status = new IncrementalStatus();
         status.setIndexId(indexId);
@@ -113,8 +113,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("indexId") String indexId,
             @Name("directoryPath") String directoryPath,
             @Name("filePattern") @Optional String filePattern) {
-        String pattern = filePattern != null ? filePattern : "**/*.java";
-        return codeIndexService.indexDirectory(indexId, directoryPath, pattern);
+        return codeIndexService.indexDirectory(indexId, directoryPath, filePattern);
     }
 
     @BizMutation

@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 class CodeGraphService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeGraphService.class);
+    private static final int MAX_NODES_FOR_COMMUNITY_DETECTION = 10000;
 
     private final IDaoProvider daoProvider;
     private final CodeCacheManager cacheManager;
@@ -128,6 +129,16 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
+        if (symbolTable.size() > MAX_NODES_FOR_COMMUNITY_DETECTION) {
+            LOG.warn("Graph too large for critical node analysis ({} > {}), skipping betweenness centrality",
+                    symbolTable.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
+            CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
+            dto.setTotalNodes(symbolTable.size());
+            dto.setTopN(topN);
+            dto.setHubNodes(Collections.emptyList());
+            dto.setBridgeNodes(Collections.emptyList());
+            return dto;
+        }
         CriticalNodeResult result = new CriticalNodeAnalyzer().analyze(callGraph, symbolTable, topN);
         CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
         dto.setTotalNodes(result.getTotalNodes());
@@ -173,6 +184,11 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable baselineSymbolTable = cacheManager.getOrRebuildSymbolTable(baselineIndexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
+        if (baselineSymbolTable.size() > MAX_NODES_FOR_COMMUNITY_DETECTION) {
+            LOG.warn("Baseline graph too large for community detection diff ({} > {}), returning empty diff",
+                    baselineSymbolTable.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
+            return new GraphDiffDTO();
+        }
         CommunityDetector.CommunityDetectionResult baselineCommunities =
                 new CommunityDetector().detectCommunities(baselineCallGraph, baselineSymbolTable);
         GraphSnapshot baseline = GraphDiffer.buildSnapshot(baselineCallGraph, baselineCommunities);

@@ -1,7 +1,9 @@
 package io.nop.code.core.graph;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.nop.code.core.model.CodeSymbol;
@@ -44,5 +46,15 @@ public class SymbolTable {
 
     public int size() {
         return byId.size();
+    }
+
+    public List<CodeSymbol> findAllByQualifiedNamePrefix(String prefix) {
+        List<CodeSymbol> result = new ArrayList<>();
+        for (Map.Entry<String, CodeSymbol> entry : byQualifiedName.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().startsWith(prefix)) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
     }
 }

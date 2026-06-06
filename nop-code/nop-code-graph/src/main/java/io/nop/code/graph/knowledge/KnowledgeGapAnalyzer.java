@@ -79,14 +79,29 @@ public class KnowledgeGapAnalyzer {
         Set<String> memberSet = new HashSet<>(symbolIds);
         int internalEdges = 0;
         int externalEdges = 0;
+        Set<String> countedEdges = new HashSet<>();
 
         for (String node : memberSet) {
             List<String> callees = callGraph.getCallees(node);
             for (String callee : callees) {
-                if (memberSet.contains(callee)) {
-                    internalEdges++;
-                } else {
-                    externalEdges++;
+                String edgeKey = node + "->" + callee;
+                if (countedEdges.add(edgeKey)) {
+                    if (memberSet.contains(callee)) {
+                        internalEdges++;
+                    } else {
+                        externalEdges++;
+                    }
+                }
+            }
+            List<String> callers = callGraph.getCallers(node);
+            for (String caller : callers) {
+                String edgeKey = caller + "->" + node;
+                if (countedEdges.add(edgeKey)) {
+                    if (memberSet.contains(caller)) {
+                        internalEdges++;
+                    } else {
+                        externalEdges++;
+                    }
                 }
             }
         }
