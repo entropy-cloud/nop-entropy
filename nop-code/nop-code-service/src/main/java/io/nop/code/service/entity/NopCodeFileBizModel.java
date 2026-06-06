@@ -32,7 +32,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeFile:query")
     public CodeFileAnalysisResult getByPath(
             @Name("filePath") String filePath,
             @Name("indexId") String indexId) {
@@ -40,7 +40,7 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeFile:query")
     public PageBean<CodeFileAnalysisResult> findPage_files(
             @Name("indexId") String indexId,
             @Name("packageName") @Optional String packageName,
@@ -50,19 +50,19 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeFile:query")
     public List<FileTreeNode> fileTree(@Name("indexId") String indexId) {
         return codeIndexService.getFileTree(indexId);
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeFile:query")
     public List<CodeSymbol> symbols(@ContextSource CodeFileAnalysisResult file) {
         return file.getSymbols();
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeFile:query")
     public List<CodeSymbol> types(@ContextSource CodeFileAnalysisResult file) {
         return file.getSymbols().stream()
                 .filter(s -> s.getKind() == CodeSymbolKind.CLASS
@@ -73,13 +73,13 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
-    @Auth(permissions = "code-source-read")
+    @Auth(permissions = "NopCodeFile:query")
     public String sourceCode(@ContextSource CodeFileAnalysisResult file) {
         return file.getSourceCode();
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeFile:query")
     public FileOutlineDTO outline(@ContextSource CodeFileAnalysisResult file) {
         FileOutlineDTO outline = new FileOutlineDTO();
         outline.setFilePath(file.getFilePath());

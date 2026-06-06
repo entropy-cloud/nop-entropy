@@ -102,7 +102,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public IncrementalStatus getIncrementalStatus(@Name("indexId") String indexId) {
         return incrementalStatusMap.get(indexId);
     }
@@ -133,7 +133,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public IndexStatsDTO getStats(@Name("indexId") String indexId) {
         return codeIndexService.getIndexStats(indexId);
     }
@@ -147,7 +147,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public CommunityDetectionResultDTO detectCommunities(@Name("indexId") String indexId) {
         CommunityDetectionResultDTO result = codeIndexService.detectCommunities(indexId);
         if (result == null) {
@@ -164,7 +164,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public GraphAnalysisResultDTO getGraphAnalysis(
             @Name("indexId") String indexId,
             @Name("topN") @Optional Integer topN) {
@@ -173,7 +173,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public ImpactResultDTO getImpactAnalysis(
             @Name("indexId") String indexId,
             @Name("symbolId") String symbolId,
@@ -183,7 +183,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public DepGraphDTO getDeps(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath,
@@ -193,7 +193,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public DepGraphDTO getReverseDeps(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath,
@@ -205,7 +205,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<List<String>> findCycles(
             @Name("indexId") String indexId,
             @Name("minSize") @Optional Integer minSize) {
@@ -214,7 +214,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public DepGraphDTO getDepGraph(
             @Name("indexId") String indexId,
             @Name("includeExternal") @Optional Boolean includeExternal) {
@@ -229,13 +229,13 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<ExecutionFlow> listFlows(@Name("indexId") String indexId) {
         return codeIndexService.listFlows(indexId);
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public ExecutionFlow getFlow(
             @Name("indexId") String indexId,
             @Name("flowId") String flowId) {
@@ -243,7 +243,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<ExecutionFlow> getAffectedFlows(
             @Name("indexId") String indexId,
             @Name("changedFilePaths") List<String> changedFilePaths) {
@@ -251,7 +251,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public ChangeAnalysisResult analyzeChanges(
             @Name("indexId") String indexId,
             @Name("baselineCommitish") String baselineCommitish,
@@ -260,7 +260,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public CriticalNodeResultDTO getCriticalNodes(
             @Name("indexId") String indexId,
             @Name("topN") @Optional Integer topN) {
@@ -269,13 +269,13 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public KnowledgeGapResultDTO getKnowledgeGaps(@Name("indexId") String indexId) {
         return codeIndexService.getKnowledgeGaps(indexId);
     }
 
     @BizQuery
-    @Auth(permissions = "code-source-read")
+    @Auth(permissions = "NopCodeIndex:query")
     public String exportGraph(
             @Name("indexId") String indexId,
             @Name("format") String format,
@@ -285,7 +285,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public GraphDiffDTO diffGraph(
             @Name("baselineIndexId") String baselineIndexId,
             @Name("targetIndexId") String targetIndexId) {
@@ -293,7 +293,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<String> findDependentFiles(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath) {
