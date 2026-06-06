@@ -195,9 +195,9 @@ Task 执行失败时由 Worker 提交重试。
 
 ---
 
-## 7. 与 rewrite-design.md §11 的关系
+## 7. 与架构基线的关系
 
-本文档是 `rewrite-design.md` §11（与 nop-retry 的集成设计）的详细展开。§11 定义了分层原则和桥接方向，本文档补充了：
+本文档是 `01-architecture-baseline.md` §七.4（执行完成流程）和 `00-vision.md` §三.3（job 和 retry 必须分层）的详细展开。基线文档定义了分层原则和桥接方向，本文档补充了：
 
 1. 具体的 `IJobRetryBridge` 接口签名和调用时机
 2. `retryPolicyId` 的优先级策略（fire > schedule）

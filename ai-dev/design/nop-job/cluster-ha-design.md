@@ -3,7 +3,7 @@
 > Status: active
 > Created: 2026-05-18
 > Last Verified: 2026-05-18
-> Related: `ai-dev/design/nop-job/rewrite-design.md` §12, `ai-dev/analysis/2026-05-18-fault-tolerance-deep-dive.md`, `ai-dev/analysis/2026-05-18b-powerjob-vs-nop-job-fault-tolerance.md`
+> Related: `ai-dev/design/nop-job/01-architecture-baseline.md` §六（集群分区设计）, `ai-dev/design/nop-job/00-vision.md` §三（不可违反的约束）, `ai-dev/analysis/2026-05-18-fault-tolerance-deep-dive.md`, `ai-dev/analysis/2026-05-18b-powerjob-vs-nop-job-fault-tolerance.md`
 
 ## 1. 决策：基于服务发现 + 纯函数分区计算，不需要选主
 
