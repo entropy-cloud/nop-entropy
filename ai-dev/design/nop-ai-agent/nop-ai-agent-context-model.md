@@ -23,12 +23,13 @@ Agent 上下文是引擎层概念，不是 DSL 层概念。它由以下维度构
 
 | 维度 | 说明 | 是否持久化 |
 |------|------|-----------|
-| 消息历史 | 当前会话的完整消息序列 | 是（session.json） |
-| 计划状态 | 当前 Plan 的结构和进度 | 是（plan.xml） |
+| 消息历史 | 当前会话的完整消息序列 | 是（VFS `.nop/` Event Log） |
+| 协调消息 | 其他 Agent 的 scope_claim/operation_intent（见 multi-agent.md §4） | 否（每轮 ReAct 前注入，不持久化） |
+| 计划状态 | 当前 Plan 的结构和进度 | 是（项目级 `docs/plans/`，AGE 规范，跨 session） |
 | 工具集 | 当前 Agent 可见的工具集合 | 否（运行时装配） |
 | 约束配置 | maxIterations、token 预算、超时等 | 否（从 DSL 读取） |
 | 环境信息 | 工作目录、环境变量、文件系统访问范围 | 否（运行时注入） |
-| 会话标识 | sessionId、snapshotId、parentSession | 是（session.json） |
+| 会话标识 | sessionId、snapshotId、parentSession | 是（VFS `.nop/` Event Log） |
 
 **决策**：Tool 执行时能访问 Agent 上下文的一个受控子集（只读或受限修改），而不是全部。
 
@@ -142,7 +143,7 @@ Tool 执行时，引擎提供以下上下文信息：
 
 | 能力 | 输入 | 输出 | 失败降级策略 |
 |------|------|------|------------|
-| 上下文压缩 | 当前消息历史 | 压缩后的消息历史 | 窗口裁剪（保留最近 N 条） |
+| 上下文压缩 | 当前消息历史 | 压缩后的消息历史 | 5 层渐进管道（Layer 0-4，见 reliability.md §7） |
 | 错误修复 | 错误信息 + 当前上下文 | 修复后的消息或指令 | 标准错误处理 |
 | 结果评审 | Agent 的执行结果 | 通过/不通过 + 理由 | 信任原始结果 |
 | Plan 调整 | 当前 Plan + 执行进度 | 调整后的 Plan | 保持原 Plan |

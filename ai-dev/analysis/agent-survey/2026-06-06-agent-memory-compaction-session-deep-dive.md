@@ -365,7 +365,7 @@ Working Memory: per-session KV store (VoltAgent 风格)
 ## References
 
 - `ai-dev/analysis/agent-survey/2026-06-05-agent-design-key-elements.md` — 12+ 框架综合分析
-- `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` — Nop Agent 可靠性设计 (3 层 context 保护)
+- `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` — Nop Agent 可靠性设计 (5 层渐进压缩管道)
 - `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md` — Nop Agent Session 设计
 - `ai-dev/design/nop-ai-agent/nop-ai-agent-actor-runtime-vision.md` — Nop Actor Runtime 构想
 

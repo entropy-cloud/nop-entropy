@@ -30,8 +30,8 @@ Session 引擎负责：
 
 ### 5.1 加载
 
-1. 根据 `sessionId` 加载 `session.json`
-2. 加载 `plan.xml`
+1. 根据 `sessionId` 通过 VFS 加载 session（如快照不存在或过期，从 Event Log 按 session-and-storage.md §5.3 重建）
+2. 从 `session_header` 获取 `planId`，加载对应 plan（独立存储，见 session-and-storage.md §6）
 3. 构造内存态对象
 
 ### 5.2 分叉

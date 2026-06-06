@@ -82,7 +82,8 @@ build request
  -> execute tools (支持并行)
  -> after_acting (per tool result)
  -> append tool response messages
- -> next iteration
+  -> check token budget: if exceeded, trigger compaction (见 reliability.md §7)
+  -> next iteration
 ```
 
 循环粒度是完整消息：引擎在收到 LLM 的完整响应后才做决策，不在流式输出过程中做判断。
