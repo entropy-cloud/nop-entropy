@@ -72,10 +72,6 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     public static final String PROP_NAME_createTime = "createTime";
     public static final int PROP_ID_createTime = 13;
     
-    /* 逻辑删除: DEL_FLAG TINYINT */
-    public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 14;
-    
     /* 来源: PROVENANCE VARCHAR */
     public static final String PROP_NAME_provenance = "provenance";
     public static final int PROP_ID_provenance = 15;
@@ -151,9 +147,6 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_createTime] = PROP_NAME_createTime;
           PROP_NAME_TO_ID.put(PROP_NAME_createTime, PROP_ID_createTime);
       
-          PROP_ID_TO_NAME[PROP_ID_delFlag] = PROP_NAME_delFlag;
-          PROP_NAME_TO_ID.put(PROP_NAME_delFlag, PROP_ID_delFlag);
-      
           PROP_ID_TO_NAME[PROP_ID_provenance] = PROP_NAME_provenance;
           PROP_NAME_TO_ID.put(PROP_NAME_provenance, PROP_ID_provenance);
       
@@ -204,9 +197,6 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     
     /* 创建时间: CREATED_TIME */
     private java.sql.Timestamp _createTime;
-    
-    /* 逻辑删除: DEL_FLAG */
-    private java.lang.Boolean _delFlag;
     
     /* 来源: PROVENANCE */
     private java.lang.String _provenance;
@@ -329,9 +319,6 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
         
             case PROP_ID_createTime:
                return getCreateTime();
-        
-            case PROP_ID_delFlag:
-               return getDelFlag();
         
             case PROP_ID_provenance:
                return getProvenance();
@@ -483,16 +470,6 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_delFlag:{
-               java.lang.Boolean typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toBoolean(value,
-                       err-> newTypeConversionError(PROP_NAME_delFlag));
-               }
-               setDelFlag(typedValue);
-               break;
-            }
-        
             case PROP_ID_provenance:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -619,13 +596,6 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
             case PROP_ID_createTime:{
                onInitProp(propId);
                this._createTime = (java.sql.Timestamp)value;
-               
-               break;
-            }
-        
-            case PROP_ID_delFlag:{
-               onInitProp(propId);
-               this._delFlag = (java.lang.Boolean)value;
                
                break;
             }
@@ -900,25 +870,6 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
-            
-        }
-    }
-    
-    /**
-     * 逻辑删除: DEL_FLAG
-     */
-    public final java.lang.Boolean getDelFlag(){
-         onPropGet(PROP_ID_delFlag);
-         return _delFlag;
-    }
-
-    /**
-     * 逻辑删除: DEL_FLAG
-     */
-    public final void setDelFlag(java.lang.Boolean value){
-        if(onPropSet(PROP_ID_delFlag,value)){
-            this._delFlag = value;
-            internalClearRefs(PROP_ID_delFlag);
             
         }
     }

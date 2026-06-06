@@ -54,9 +54,6 @@
                 <!--创建时间-->
                 <col id="createTime" sortable="true"/>
 
-                <!--逻辑删除-->
-                <col id="delFlag" sortable="true"/>
-
                 <!--来源-->
                 <col id="provenance" sortable="true"/>
 
@@ -79,11 +76,12 @@
  confidenceScore[置信度分数] rationale[原因]
  extractorId[提取器ID] extData[扩展数据]
  createdBy[创建人] createTime[创建时间]
- delFlag[逻辑删除] provenance[来源]
- updatedBy[更新人] updateTime[更新时间]
+ provenance[来源] updatedBy[更新人]
+ updateTime[更新时间] 
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-语义边" i18n-en:title="Add Semantic Edge">
+        <form id="add" editMode="add" title="新增-语义边" i18n-en:title="Add Semantic Edge" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-语义边" i18n-en:title="Edit Semantic Edge">
             <layout>
  indexId[索引ID] sourceSymbolId[源符号ID]
  targetSymbolId[目标符号ID] directed[有向]
@@ -93,18 +91,6 @@
  createdBy[创建人] createTime[创建时间]
  provenance[来源] updatedBy[更新人]
  updateTime[更新时间] 
-</layout>
-        </form>
-        <form id="edit" editMode="edit" title="编辑-语义边" i18n-en:title="Edit Semantic Edge">
-            <layout>
- indexId[索引ID] sourceSymbolId[源符号ID]
- targetSymbolId[目标符号ID] directed[有向]
- relationType[关系类型] confidence[置信度级别]
- confidenceScore[置信度分数] rationale[原因]
- extractorId[提取器ID] extData[扩展数据]
- createdBy[创建人] createTime[创建时间]
- delFlag[逻辑删除] provenance[来源]
- updatedBy[更新人] updateTime[更新时间]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

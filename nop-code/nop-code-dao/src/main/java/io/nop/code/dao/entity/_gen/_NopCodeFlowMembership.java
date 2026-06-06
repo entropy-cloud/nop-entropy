@@ -56,8 +56,12 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     public static final String PROP_NAME_updatedBy = "updatedBy";
     public static final int PROP_ID_updatedBy = 9;
     
+    /* 索引ID: INDEX_ID VARCHAR */
+    public static final String PROP_NAME_indexId = "indexId";
+    public static final int PROP_ID_indexId = 10;
+    
 
-    private static int _PROP_ID_BOUND = 10;
+    private static int _PROP_ID_BOUND = 11;
 
     
     /* relation:  */
@@ -70,7 +74,7 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[10];
+    private static final String[] PROP_ID_TO_NAME = new String[11];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -101,6 +105,9 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updatedBy] = PROP_NAME_updatedBy;
           PROP_NAME_TO_ID.put(PROP_NAME_updatedBy, PROP_ID_updatedBy);
       
+          PROP_ID_TO_NAME[PROP_ID_indexId] = PROP_NAME_indexId;
+          PROP_NAME_TO_ID.put(PROP_NAME_indexId, PROP_ID_indexId);
+      
     }
 
     
@@ -130,6 +137,9 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
     
     /* 更新人: UPDATED_BY */
     private java.lang.String _updatedBy;
+    
+    /* 索引ID: INDEX_ID */
+    private java.lang.String _indexId;
     
 
     public _NopCodeFlowMembership(){
@@ -232,6 +242,9 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
             case PROP_ID_updatedBy:
                return getUpdatedBy();
         
+            case PROP_ID_indexId:
+               return getIndexId();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -333,6 +346,16 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_indexId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_indexId));
+               }
+               setIndexId(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -401,6 +424,13 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
             case PROP_ID_updatedBy:{
                onInitProp(propId);
                this._updatedBy = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_indexId:{
+               onInitProp(propId);
+               this._indexId = (java.lang.String)value;
                
                break;
             }
@@ -578,6 +608,25 @@ public class _NopCodeFlowMembership extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
+            
+        }
+    }
+    
+    /**
+     * 索引ID: INDEX_ID
+     */
+    public final java.lang.String getIndexId(){
+         onPropGet(PROP_ID_indexId);
+         return _indexId;
+    }
+
+    /**
+     * 索引ID: INDEX_ID
+     */
+    public final void setIndexId(java.lang.String value){
+        if(onPropSet(PROP_ID_indexId,value)){
+            this._indexId = value;
+            internalClearRefs(PROP_ID_indexId);
             
         }
     }
