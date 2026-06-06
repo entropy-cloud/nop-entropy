@@ -3,6 +3,7 @@
 > Status: active
 > Created: 2026-05-19
 > Updated: 2026-05-25（新增 NiFi / Node-RED / StreamSets 对比 §6）
+> Parent: `README.md`（参考层）
 
 ## 1. 设计定位
 

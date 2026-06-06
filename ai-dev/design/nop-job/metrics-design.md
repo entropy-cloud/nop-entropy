@@ -3,7 +3,6 @@
 > Status: implemented
 > Created: 2026-05-17
 > Last Updated: 2026-05-18
-> Related: `ai-dev/plans/17-nop-job-block-strategy-metrics.md`
 > Convention: `ai-dev/lessons/02-metrics-design-convention.md`
 
 ## 1. 设计规范

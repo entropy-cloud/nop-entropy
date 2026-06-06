@@ -102,4 +102,4 @@
 
 ### 历史文档
 
-- `nop-code/design/ai-code-index-graphql-design.md`（1493 行）是最初的 GraphQL Schema 设计文档
+- 最初的 GraphQL Schema 设计已合并到 `query-api-design.md`（含完整 schema 定义）

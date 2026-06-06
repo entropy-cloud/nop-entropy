@@ -3,7 +3,6 @@
 > Status: implemented
 > Created: 2026-05-17
 > Last Updated: 2026-05-17
-> Related: `ai-dev/plans/17-nop-job-block-strategy-metrics.md`
 
 ## 1. 决策：四种阻塞策略
 

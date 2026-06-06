@@ -2,7 +2,7 @@
 
 > Status: active
 > Updated: 2026-05-26（基于 live repo 审计更新：已完成项标记 ✅，剩余工作重写为动态规划模式）
-> Parent: `ai-dev/design/nop-stream/README.md`
+> Parent: `README.md`
 
 ---
 

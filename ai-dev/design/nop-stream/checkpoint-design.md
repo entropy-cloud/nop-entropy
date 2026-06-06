@@ -3,7 +3,7 @@
 > Status: active
 > Created: 2026-05-19
 > Updated: 2026-05-23
-> Parent: `01-architecture-baseline.md` §4（执行模型）、`core-design.md` §3（状态管理）
+> Parent: `01-architecture-baseline.md` §4（执行模型）、`state-management-design.md`（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 
 ## 1. 定位与目标

@@ -3,7 +3,6 @@
 > Status: draft
 > Created: 2026-05-17
 > Last Updated: 2026-05-18
-> Related: `ai-dev/plans/17-nop-job-block-strategy-metrics.md`
 
 ## 1. Nop 平台已有限流体系
 
