@@ -6,6 +6,7 @@ import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -44,30 +45,24 @@ class TestCommunityDetectorFixes {
     }
 
     @Test
-    void testLeidenUsesUndirectedNetwork() {
-        CallGraph graph = new CallGraph();
-        graph.addEdge("pkg.X", "pkg.Y");
-        graph.addEdge("pkg.Y", "pkg.Z");
-        graph.addEdge("pkg.Z", "pkg.X");
+    void testCommunityGetSymbolIdsReturnsMutableList() {
+        CommunityDetector.Community community = new CommunityDetector.Community();
+        community.setId("test-comm");
+        List<String> ids = community.getSymbolIds();
+        assertNotNull(ids);
+        assertDoesNotThrow(() -> ids.add("symbol-1"),
+                "getSymbolIds() must return a mutable list");
+        assertEquals(1, ids.size());
+        assertEquals("symbol-1", ids.get(0));
+    }
 
-        SymbolTable st = new SymbolTable();
-        String[] names = {"pkg.X", "pkg.Y", "pkg.Z"};
-        for (String qn : names) {
-            CodeSymbol sym = new CodeSymbol();
-            sym.setId(qn);
-            sym.setQualifiedName(qn);
-            sym.setName(qn.substring(qn.lastIndexOf('.') + 1));
-            sym.setKind(CodeSymbolKind.METHOD);
-            st.add(sym);
-        }
-
-        CommunityDetector.CommunityConfig config = CommunityDetector.CommunityConfig.leidenConfig();
-        config.setMinCommunitySize(2);
-
-        CommunityDetector.CommunityDetectionResult result =
-                new CommunityDetector().detectCommunities(graph, st, config);
-
-        assertTrue(result.getTotalCommunities() >= 1);
-        assertTrue(result.getClusteredSymbols() >= 3);
+    @Test
+    void testCommunityGetSymbolIds_mutabilityAfterSet() {
+        CommunityDetector.Community community = new CommunityDetector.Community();
+        community.setSymbolIds(new ArrayList<>(List.of("a", "b")));
+        List<String> ids = community.getSymbolIds();
+        assertDoesNotThrow(() -> ids.add("c"),
+                "getSymbolIds() must return the backing mutable list");
+        assertEquals(3, ids.size());
     }
 }

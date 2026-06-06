@@ -1,7 +1,18 @@
 package io.nop.code.graph.community;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import nl.cwts.networkanalysis.Clustering;
 import nl.cwts.networkanalysis.LeidenAlgorithm;
@@ -164,7 +175,7 @@ public class CommunityDetector {
         }
         
         public List<String> getSymbolIds() {
-            return symbolIds != null ? symbolIds : Collections.emptyList();
+            return symbolIds != null ? symbolIds : new ArrayList<>();
         }
         
         public void setSymbolIds(List<String> symbolIds) {

@@ -1,6 +1,12 @@
 package io.nop.code.graph.heuristic;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.nop.code.core.graph.CallGraph;

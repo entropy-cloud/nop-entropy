@@ -1,6 +1,11 @@
 package io.nop.code.graph.semantic;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
