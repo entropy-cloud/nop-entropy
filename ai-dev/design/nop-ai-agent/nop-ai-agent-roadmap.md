@@ -142,12 +142,20 @@
 - 断路器和模型回退的设计定稿
 - 检查点和会话恢复的设计定稿
 - 多 Agent 编排与 Nop Flow / Task 的对齐方案
+- **Actor Runtime 平台层**（详见 `nop-ai-agent-actor-runtime-vision.md`）：
+  - ActorRuntime + ActorRegistry（Virtual Thread 调度）
+  - MessageRouter（IMessageService 内存消息队列）
+  - TeamManager + TeamSpec DSL
+  - RecoveryManager（崩溃恢复、超时清理）
+  - ResourceGuard（文件写意图、资源配额）
 
 ### 7.3 验收标准
 
 - provider 连续故障后系统可自动降级
 - 长任务中断后可以恢复
 - 多 Agent 任务可以通过 Flow / Task 组织
+- 多用户可并发运行独立 Actor，租户间资源隔离
+- Actor 崩溃后可自动恢复到最近 ReAct 步骤
 
 ## 8. 当前最值得固定的设计决策
 

@@ -137,7 +137,22 @@ nop-ai-shell 提供虚拟 shell 执行，每个命令行解析为单个指令。
 - 如果 Agent 需要访问共享目录（如项目根目录），通过环境信息显式声明
 - Shell 工具的上下文注入当前 Agent 的工作目录
 
-## 8. 与现有文档的关系
+## 8. 演进方向
+
+本篇定义的 Phase 1 策略（文件锁 + fail-fast + 父 Agent 中转）是**最小可行方案**。
+
+Phase 2+ 的具体架构设计见 **`nop-ai-agent-actor-runtime-vision.md`**，主要演进点：
+
+| 维度 | 本篇 (Phase 1) | Actor Runtime (Phase 2+) |
+|------|---------------|--------------------------|
+| 进程模型 | 单 Agent 调用 | Virtual Thread Actor 并行 |
+| 通信 | call-agent 同步 | IMessageService 异步消息队列 |
+| 状态 | 内存 | DB 持久化 + 事务保护 |
+| 团队 | 无 | TeamManager + TeamSpec DSL |
+| 恢复 | 无 | RecoveryManager 自动恢复 |
+| 隔离 | 无 | 多租户 + 用户级配额 |
+
+## 9. 与现有文档的关系
 
 | 本篇内容 | 相关文档 | 关系 |
 |---------|---------|------|
@@ -145,3 +160,4 @@ nop-ai-shell 提供虚拟 shell 执行，每个命令行解析为单个指令。
 | 文件锁 | tool-dsl.md | 工具执行前的注册行为 |
 | Flow 编排 | nop-ai-agent-roadmap.md | 本篇定义演进路径 |
 | 上下文隔离 | nop-ai-agent-context-model.md | 并行时的上下文独立性保证 |
+| Phase 2+ 架构 | nop-ai-agent-actor-runtime-vision.md | 本篇 Phase 2+ 的具体实现方案 |

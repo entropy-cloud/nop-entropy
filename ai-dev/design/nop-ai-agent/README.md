@@ -4,11 +4,21 @@
 
 本目录采用分层设计方式，明确区分：
 
-1. 架构总览层
-2. DSL 层
-3. Java 引擎层
-4. DSL 到引擎的语义映射层
-5. 策略层
+1. 高层构想层（演进方向）
+2. 架构总览层
+3. DSL 层
+4. Java 引擎层
+5. DSL 到引擎的语义映射层
+6. 策略层
+
+## 高层构想层
+
+- `nop-ai-agent-actor-runtime-vision.md`
+  - **新增** — Actor 模式多 Agent 运行时的高层构想
+  - 基于 19 个 Agent 框架调研成果，定义 Platform Layer 的六大组件
+  - 核心理念：Virtual Thread Actor + IMessageService 内存队列 + DB 持久化 + 多租户隔离
+  - 与 oh-my-opencode Team Mode 的设计对比和差异化决策
+  - 这是 `nop-ai-agent-multi-agent.md` Phase 2+ 的演进方向
 
 ## 架构总览层
 
@@ -68,7 +78,8 @@
 1. `nop-ai-agent-core-architecture.md` — 核心架构全景（含无人值守定位）
 2. `nop-ai-agent-context-model.md` — Agent 上下文与 subprocess 模型
 3. `nop-ai-agent-architecture-comparison.md` — 为什么这样设计
-4. `nop-ai-agent-dsl.md`
+4. `nop-ai-agent-actor-runtime-vision.md` — **新增** Actor 模式多 Agent 运行时构想
+5. `nop-ai-agent-dsl.md`
 5. `nop-ai-agent-plan-dsl.md`
 6. `nop-ai-tool-dsl.md`
 7. `nop-ai-call-agent-dsl.md`
@@ -95,8 +106,9 @@
 
 ## 当前结论
 
-当前目录已经形成五层结构，覆盖 17 篇设计文档：
+当前目录已经形成六层结构，覆盖 18 篇设计文档：
 
+- 高层构想层定义 Actor 模式多 Agent 运行时的演进方向（基于 19 个框架调研）
 - 架构总览层定义核心架构、上下文模型、多 Agent 协同和决策理由
 - DSL 层定义配置形态
 - Java 引擎层定义执行模型
