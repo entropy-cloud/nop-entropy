@@ -143,6 +143,22 @@ class CodeCacheManager {
         }
     }
 
+    void addToSymbolTableCache(String indexId, SymbolTable newSymbols) {
+        lock.lock();
+        try {
+            CacheEntry entry = getValidEntry(indexId);
+            if (entry != null && entry.cache.symbolTable != null) {
+                for (CodeSymbol sym : newSymbols.getAll()) {
+                    if (sym.getQualifiedName() != null && entry.cache.symbolTable.getByQualifiedName(sym.getQualifiedName()) == null) {
+                        entry.cache.symbolTable.add(sym);
+                    }
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
     List<NopCodeDependency> getOrRebuildDependencies(String indexId, IDaoProvider daoProvider) {
         lock.lock();
         try {

@@ -1025,17 +1025,23 @@ public class CodeIndexService implements ICodeIndexService {
         SymbolTable fileSymbolTable = buildSymbolTableFromResult(result);
         SymbolTable globalTable = getOrRebuildSymbolTable(indexId);
         if (globalTable != null) {
+            SymbolTable mergedTable = new SymbolTable();
+            for (CodeSymbol sym : globalTable.getAll()) {
+                mergedTable.add(sym);
+            }
             for (CodeSymbol sym : fileSymbolTable.getAll()) {
                 if (sym.getQualifiedName() != null) {
-                    CodeSymbol existing = globalTable.getByQualifiedName(sym.getQualifiedName());
+                    CodeSymbol existing = mergedTable.getByQualifiedName(sym.getQualifiedName());
                     if (existing == null) {
-                        globalTable.add(sym);
+                        mergedTable.add(sym);
                     }
                 }
             }
-            resolveQualifiedNamesToIds(indexId, globalTable, session);
+            resolveQualifiedNamesToIds(indexId, mergedTable, session);
+            cacheManager.addToSymbolTableCache(indexId, fileSymbolTable);
         } else {
             resolveQualifiedNamesToIds(indexId, fileSymbolTable, session);
+            cacheManager.addToSymbolTableCache(indexId, fileSymbolTable);
         }
     }
 
