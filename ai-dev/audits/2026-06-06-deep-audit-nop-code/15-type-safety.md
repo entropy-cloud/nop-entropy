@@ -2,72 +2,28 @@
 
 ## 第 1 轮（初审）
 
-### [维度15-01] ImpactAnalyzer 使用 String[] 替代已有 BfsNode 类型
+未发现问题。
 
-- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/impact/ImpactAnalyzer.java:238-269`
-- **证据片段**:
-```java
-Queue<String[]> queue = new LinkedList<>();
-queue.add(new String[]{startId, "0"});
-String[] current = queue.poll();
-String nodeId = current[0];
-int depth = Integer.parseInt(current[1]);
-```
-- **严重程度**: P2
-- **现状**: 使用 String[] 作为 (nodeId, depth) pair，通过 Integer.parseInt 还原深度值。项目已有 BfsNode record。
-- **建议**: 改为 Queue<BfsNode>。
-- **信心水平**: 高
-- **复核状态**: 未复核
+### 检查范围
 
-### [维度15-02] Community.getSymbolIds() 返回不可变列表，后续 add 将抛异常
+nop-code 全模块非生成、非测试 Java 源文件。
 
-- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/community/CommunityDetector.java:536-556`
-- **严重程度**: P2
-- **现状**: getSymbolIds() 在 symbolIds 为 null 时返回 Collections.emptyList()（不可变），但 recursiveSplit 中调用 .add(node)。
-- **建议**: 改为返回 new ArrayList<>() 或确保 symbolIds 永远不为 null。
-- **信心水平**: 高
-- **复核状态**: 未复核
+### @SuppressWarnings("unchecked") 审查
 
-### [维度15-03] SpringEventSynthesizer 未抑制 unchecked cast 警告
+所有 @SuppressWarnings("unchecked") 均出现在 JsonTool.parseNonStrict() 返回 Object 后向下转型的窄作用域内，紧邻 instanceof 检查。合理。
 
-- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/heuristic/SpringEventSynthesizer.java:99-103`
-- **严重程度**: P3
-- **复核状态**: 未复核
+### ICrudBiz<T> 泛型参数
 
-### [维度15-04] KnowledgeGapResult.IsolatedSymbol.kind 使用 String 而非枚举
+全部 11 个 IBiz 接口都正确指定了泛型参数 T，与对应 BizModel 的 extends CrudBizModel<T> 一致。
 
-- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/knowledge/KnowledgeGapResult.java:24-60`
-- **严重程度**: P3
-- **建议**: 改为 CodeSymbolKind 枚举类型。
-- **复核状态**: 未复核
+### Raw Type
 
-### [维度15-05] GraphDiff 全文件使用全限定类名而非 import
+在非生成、非测试 Java 源文件中未发现原始类型使用。
 
-- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/diff/GraphDiff.java:1-49`
-- **严重程度**: P3
-- **建议**: 统一使用 import 语句。
-- **复核状态**: 未复核
+### DTO 类型定义
 
-### [维度15-06] GraphSnapshot.EdgeKey.equals() 未使用 Objects.equals
+所有 DTO 均使用 @DataBean 注解，字段有明确类型。
 
-- **文件**: `nop-code/nop-code-graph/src/main/java/io/nop/code/graph/diff/GraphSnapshot.java:53-57`
-- **严重程度**: P3
-- **建议**: 使用 Objects.equals 避免 NPE。
-- **复核状态**: 未复核
+### 强制类型转换
 
-### [维度15-07] ExtDataHelper.getAnnotations @SuppressWarnings 作用域过大
-
-- **文件**: `nop-code/nop-code-core/src/main/java/io/nop/code/core/util/ExtDataHelper.java:40-63`
-- **严重程度**: P3
-- **复核状态**: 未复核
-
-### [维度15-08] CodeIndexService.getIndexStats 使用弱类型 Map
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:559-567`
-- **严重程度**: P3
-- **现状**: 框架 API 限制，null 处理已到位。
-- **复核状态**: 未复核
-
-## 维度复核结论
-
-（待复核）
+CodeIndexService 中的 (NopCodeXxx) ormTemplate.newEntity(...) 模式是 Nop ORM 框架标准用法，不是不安全的类型转换。

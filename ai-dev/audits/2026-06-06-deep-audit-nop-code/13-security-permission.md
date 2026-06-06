@@ -1,79 +1,78 @@
-# 维度 13+14：安全与权限模型 + 异步与事务模式
+# 维度 13：安全与权限模型
 
-## 维度 13：安全与权限模型
+## 第 1 轮（初审）
 
-### [维度13-01] filterByFilePattern glob转正则未转义元字符，ReDoS 风险
+### [维度13-01] indexDirectory 中 validateLocalPath 接收 file: 前缀路径，allowedLocalRoot 限制被绕过
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeSearchService.java`
-- **行号**: 282-287
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:294-310, 1869-1900`
 - **证据片段**:
   ```java
-  String pattern = filePattern.replace(".", "\\.").replace("*", ".*").replace("?", ".");
-  return results.stream()
-          .filter(r -> r.getFilePath() != null && r.getFilePath().matches(pattern))
-          .collect(Collectors.toList());
+  // indexDirectory 方法
+  public int indexDirectory(String indexId, String vfsPath, String filePattern) {
+      validatePath(vfsPath);                     // 只检查 ".."
+      String resolvedPath = resolveVfsPath(vfsPath);  // "/etc" → "file:/etc"
+      validateLocalPath(resolvedPath);           // "file:/etc" 绕过 startsWith("/") 检查
+      ...
+  }
+  
+  // validateLocalPath — 绝对路径检查不匹配 "file:" 前缀
+  private void validateLocalPath(String path) {
+      if (path.startsWith("/") || (path.length() >= 2 && path.charAt(1) == ':')) {
+          throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+      }
+      java.io.File localFile = new java.io.File(path);
+      if (localFile.isDirectory()) {
+          // new File("file:/etc").isDirectory() = false → 此检查被跳过!
+      }
+  }
+  
+  // resolveVfsPath — 添加 file: 前缀
+  private String resolveVfsPath(String path) {
+      if (path.startsWith("file:") || path.startsWith("/"))
+          return "file:" + (path.startsWith("file:") ? path.substring(5) : path);
+  }
   ```
-- **严重程度**: P2
-- **现状**: 只处理 .、*、? 三个字符，正则元字符（+、{、}、(、)、[、]、^、$、|）未转义。
-- **风险**: 输入 (.+)+ 导致 ReDoS；a|b 非预期匹配。
-- **建议**: 使用 Pattern.quote(filePattern).replace("\\*", ".*").replace("\\?", ".")
-- **信心水平**: 确定
-- **误报排除**: 真实输入处理缺陷。
+- **严重程度**: P1
+- **现状**: indexDirectory 先 validatePath 检查 ".."，再 resolveVfsPath 将路径转为 "file:/..." 格式，然后传给 validateLocalPath。但 validateLocalPath 的绝对路径检查不匹配 "file:" 前缀格式，导致路径验证失效。admin 用户可调用 triggerFullIndex(indexId, "/etc") 索引服务器任意目录。
+- **风险**: admin 用户可读取服务器上任意目录的源文件内容。虽需 admin 角色，但 admin 权限不应等同于可读任意文件。
+- **建议**: 对 vfsPath（而非 resolvedPath）调用 validateLocalPath，或在 validateLocalPath 中增加对 file: 前缀的处理。
+- **信心水平**: 高 (85%)
+- **误报排除**: 路径追踪清晰，可通过单元测试验证。triggerIncrementalIndex 不存在此问题（直接传 vfsPath）。
 - **复核状态**: 未复核
 
-### [维度13-02] indexFile sourceCode 无长度限制
+### [维度13-02] validatePath 仅检查 ".."，不防御 URL 编码等路径穿越变体
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java`
-- **行号**: 105-113
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:1862-1867`
 - **证据片段**:
   ```java
-  @BizMutation
-  @Auth(roles = "admin")
-  public FileAnalysisDTO indexFile(
-          @Name("indexId") String indexId,
-          @Name("filePath") String filePath,
-          @Name("sourceCode") String sourceCode) {
+  private void validatePath(String path) {
+      if (path == null || path.isEmpty()) return;
+      if (path.contains(".."))
+          throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
+  }
   ```
 - **严重程度**: P2
-- **现状**: sourceCode 无 maxLength 或 @Size 校验，可提交任意长度字符串。
-- **风险**: 恶意 admin 提交数百 MB sourceCode 导致 OOM 或 DB 膨胀。
-- **建议**: 添加长度限制（如 1MB）。
+- **现状**: 仅通过 path.contains("..") 检查路径穿越，不检测 URL 编码变体（如 %2e%2e）。
+- **风险**: 如果 VFS 层对输入路径进行 URL 解码，可能导致穿越。
+- **建议**: 先对路径进行规范化（URL 解码后再检查），或检查规范化后的 canonical path。
+- **信心水平**: 中 (65%)
+- **误报排除**: 取决于 VFS 是否自动解码 URL 编码的路径。
 - **复核状态**: 未复核
 
-## 维度 14：异步与事务模式
+### [维度13-03] NopCodeFileBizModel 的 CRUD 继承方法缺乏权限覆盖
 
-### [维度14-01] indexDirectory 在事务内执行 AST 分析，长事务风险
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java`
-- **行号**: 332-349
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeFileBizModel.java:25`
 - **证据片段**:
   ```java
-  return withIndexLock(indexId, () -> {
-      ProjectAnalysisResult result = analyzer.analyzeProject(...); // CPU密集型
-      return transactionTemplate.runInTransaction(null, ..., txn ->
-          ormTemplate.runInSession(session -> {
-              persistInSession(...); // 全部持久化
-          }));
-  });
+  @BizModel("NopCodeFile")
+  public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements INopCodeFileBiz {
+      // 自定义方法有 @Auth 注解，但继承的 CrudBizModel CRUD 方法未覆盖
+  }
   ```
-- **严重程度**: P2
-- **现状**: AST 解析（CPU密集型）在事务锁内执行，大型项目事务可能持续分钟级。
-- **风险**: 数据库连接长时间占用；ReentrantLock 阻塞所有同 indexId 操作。
-- **建议**: 将 analyzeProject 移到事务外，持久化分批提交。
-- **复核状态**: 未复核
-
-### [维度14-02] indexLocks 永不清除，内存泄漏
-
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java`
-- **行号**: 105, 587-619
 - **严重程度**: P3
-- **现状**: ConcurrentHashMap 只通过 computeIfAbsent 创建，无 remove/clear。deleteIndex 不清理。
-- **建议**: deleteIndex 中增加 indexLocks.remove(indexId)。
-- **复核状态**: 未复核
-
-### [维度14-03] CodeCacheManager 内部方法无锁保护
-
-- **严重程度**: P3
-- **现状**: getValidEntry/getOrCreateEntry 不加锁，依赖调用者持锁。package-private 设计存在隐患。
-- **建议**: 改为 private 或在方法内部加锁。
+- **现状**: NopCodeFile 包含 sourceCode 字段，继承的默认 CRUD 方法可能允许直接读取。但 xmeta 设置 sourceCode 为 published="false"。
+- **风险**: 需验证 CrudBizModel 默认方法是否尊重 xmeta 的 published 属性。
+- **建议**: 验证默认 CRUD 方法对 published="false" 字段的处理。
+- **信心水平**: 中 (80%)
+- **误报排除**: 已考虑 xmeta 的 published 属性可能提供保护。
 - **复核状态**: 未复核
