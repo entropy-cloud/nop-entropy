@@ -1,66 +1,20 @@
-# nop-code 多语言代码索引设计
+# nop-code 架构基线
 
-**日期**：2026-05-02（更新于 2026-05-25）
-**范围**：`nop-code/` 模块架构
-**状态**：**目标架构**（部分模块尚未拆分，见 §三.4）
-**目标**：建立与 Java 无关的通用代码结构模型，支持多语言代码索引，通过分层模块分离模型、算法和编排
+**日期**：2026-05-02（更新于 2026-06-07）
+**范围**：`nop-code` 模块
+**状态**：active
 
 ---
 
 ## 一、设计结论
 
-1. **`nop-code-core` 只放模型和接口**：通用代码模型、图数据结构、分析接口定义、增量检测、import 解析、语言适配器注册
-2. **`nop-code-graph` 放图算法**：社区检测、入口点评分、影响分析、Hub/Bridge 检测、图导出、图对比
-3. **`nop-code-flow` 放流级分析**：执行流追踪、风险评分变更分析、死代码检测
-4. **语言无关的通用代码模型**：SymbolKind / AccessModifier / RelationType 等枚举设计覆盖 Java/Python/TypeScript
+1. **nop-code-core 只放模型和接口**：通用代码模型、图数据结构、分析接口定义、增量检测、import 解析、语言适配器注册
+2. **nop-code-graph 放图算法**：社区检测、入口点评分、影响分析、Hub/Bridge 检测、图导出、图对比
+3. **nop-code-flow 放流级分析**：执行流追踪、风险评分变更分析、死代码检测
+4. **语言无关的通用代码模型**：SymbolKind / AccessModifier / RelationType 等枚举设计覆盖 Java / Python / TypeScript
 5. **算法与语言解耦**：所有分析算法基于 CallGraph / SymbolTable 抽象接口，不依赖任何语言特定的 AST 类型
 
----
-
-## 二、迁移背景
-
-本节记录从 `nop-java-parser` 迁移到 `nop-code-core` 的原因。迁移已完成。
-
-### 2.1 当前结构
-
-```
-nop-utils/nop-java-parser/              ← Java 专用分析引擎
-  analyzer/
-    JavaFileAnalyzer.java               ← JavaParser AST → SymbolInfo/MethodCall
-    ProjectAnalyzer.java                ← 全局符号表 + 跨文件调用解析
-    CommunityDetector.java              ← Leiden + LabelPropagation 社区检测
-    EntryPointScorer.java               ← 入口点/God Node 识别
-    ImpactAnalyzer.java                 ← 变更影响范围 BFS 分析
-    SymbolInfo.java                     ← 符号模型（Java 特有字段：synchronizedFlag 等）
-    SymbolKind.java                     ← CLASS/INTERFACE/ENUM/METHOD/FIELD...
-    AccessModifier.java
-    MethodCall.java
-    ...
-
-nop-code/                               ← 索引服务（含 ORM + GraphQL 设计）
-  nop-code-dao/                         ← 7 张表 ORM 实体
-  nop-code-service/                     ← BizModel 骨架（未实现）
-  nop-code-api/
-  nop-code-app/
-  model/nop-code.orm.xml                ← 表结构定义
-  design/ai-code-index-graphql-design.md ← GraphQL 接口设计（1493 行，已完整）
-```
-
-### 2.2 问题
-
-| 问题 | 位置 | 影响 |
-|------|------|------|
-| 分析引擎绑定 Java | `nop-java-parser/analyzer/SymbolInfo` 含 `synchronizedFlag`, `nativeFlag` 等 Java 特有字段 | 无法复用于 Python/TypeScript |
-| 分析算法在错误位置 | `CommunityDetector`, `EntryPointScorer`, `ImpactAnalyzer` 在 `nop-java-parser` | 与语言无关的算法不应依赖 Java 模块 |
-| 模型不是通用的 | `SymbolKind` 只有 `ENUM_CONSTANT` 等 Java 概念 | TypeScript 的 `TYPE_ALIAS`、Python 的 `DECORATOR` 无处放 |
-| 两层模型重复 | `SymbolInfo`（Java parser 层）和 `NopCodeSymbol`（DAO 层）字段重叠 | 数据转换无意义，维护成本高 |
-| GraphQL 设计文档仅限 Java | `ai-code-index-graphql-design.md` 的 `NopCodeIndex.language` 是单值 | 多语言项目（如前端 TS + 后端 Java）无法表达 |
-
----
-
-## 三、模块职责划分
-
-### 3.1 模块结构
+## 二、模块划分
 
 ```
 nop-code/
@@ -98,7 +52,7 @@ nop-code/
   nop-code-codegen/                 ← 代码生成
 ```
 
-### 3.2 模块拆分决策
+### 模块拆分决策
 
 | 决策 | 选择了什么 | 拒绝了什么 | 理由 |
 |------|-----------|-----------|------|
@@ -107,10 +61,10 @@ nop-code/
 | flow 独立模块 | 执行流+变更分析+死代码放 flow | 放 graph 或放 core | flow 分析依赖 graph 算法输出（社区、入口点评分），形成明确的 core←graph←flow 依赖层级 |
 | export 放 graph | GraphExporter/GraphDiffer 归 graph | 独立 nop-code-export 模块 | 导出功能体量小（~400 行），且直接操作 CallGraph/SymbolTable，与图算法同依赖 |
 
-### 3.3 依赖关系
+### 依赖关系
 
 ```
-nop-code-core          ← 模型+接口+图数据结构+增量检测（依赖 jgrapht-core 用于图数据结构；当前社区检测等算法暂未迁出）
+nop-code-core          ← 模型+接口+图数据结构+增量检测（依赖 jgrapht-core 用于图数据结构）
     ↑
 nop-code-graph         ← 依赖 core + 算法库（networkanalysis/Leiden, jgrapht 算法）
     ↑
@@ -127,11 +81,11 @@ nop-code-web           ← 依赖 service + meta
 nop-code-app           ← 依赖 web
 ```
 
----
+依赖方向严格单向：flow → graph → core，lang-* → core，service → all。
 
-## 四、通用代码模型设计
+## 三、通用代码模型
 
-### 4.1 CodeSymbolKind（符号类型枚举）
+### 3.1 CodeSymbolKind（符号类型枚举）
 
 设计原则：每种语言的分析器只使用自己需要的 Kind，忽略其他的。`METHOD` vs `FUNCTION`：Java 没有顶层函数用 METHOD；Python/TS 顶层函数用 FUNCTION，类方法用 METHOD。GraphQL 查询时通过 `kind` 过滤。
 
@@ -155,7 +109,7 @@ nop-code-app           ← 依赖 web
 | 通用辅助 | TYPE_PARAMETER | 97 | Java/TS |
 | 通用辅助 | IMPORT | 98 | 所有 |
 
-### 4.2 CodeAccessModifier（访问修饰符）
+### 3.2 CodeAccessModifier（访问修饰符）
 
 | 修饰符 | 值 | Java | Python | TypeScript |
 |--------|---|------|--------|------------|
@@ -166,7 +120,7 @@ nop-code-app           ← 依赖 web
 | INTERNAL | 41 | - | - | `internal` |
 | NO_MODIFIER | 50 | - | 默认 | 默认 |
 
-### 4.3 CodeSymbol（通用符号模型）
+### 3.3 CodeSymbol（通用符号模型）
 
 替代 `nop-java-parser` 中的 `SymbolInfo`，标记为 `@DataBean`。语言特有扩展通过 `extData`（JSON）字段承载。
 
@@ -183,7 +137,7 @@ nop-code-app           ← 依赖 web
 | 字段 | fieldType, readonlyFlag | FIELD 相关 |
 | 扩展 | extData | JSON：Java(synchronized/native/...)、Python(classmethod/...)、TS(arrow/...) |
 
-### 4.4 CodeLanguage（语言枚举）
+### 3.4 CodeLanguage（语言枚举）
 
 | 语言 | 代码 | 扩展名 |
 |------|------|--------|
@@ -192,15 +146,13 @@ nop-code-app           ← 依赖 web
 | TYPESCRIPT | "typescript" | .ts, .tsx |
 | JAVASCRIPT | "javascript" | .js, .jsx |
 
-### 4.5 CodeFileAnalysisResult（通用文件分析结果）
+### 3.5 CodeFileAnalysisResult（通用文件分析结果）
 
 标记为 `@DataBean`，包含：filePath / sourceCode / lineCount / language / packageName / imports / symbols / calls / inheritances / annotationUsages。
 
----
+## 四、核心接口
 
-## 五、核心接口设计
-
-### 5.1 ICodeFileAnalyzer（文件分析器接口）
+### 4.1 ICodeFileAnalyzer（文件分析器接口）
 
 每种语言提供一个实现。
 
@@ -210,7 +162,7 @@ nop-code-app           ← 依赖 web
 | analyze | `(filePath, sourceCode) → CodeFileAnalysisResult?` | 分析单个文件，null 表示无法解析 |
 | getFileExtensions | `() → List<String>` | 支持的扩展名（如 Java → [".java"], TS → [".ts", ".tsx"]） |
 
-### 5.2 ILanguageAdapter（语言适配器接口）
+### 4.2 ILanguageAdapter（语言适配器接口）
 
 注册到 `LanguageAdapterRegistry`，提供该语言的分析器和文件匹配规则。
 
@@ -221,7 +173,7 @@ nop-code-app           ← 依赖 web
 | getFileExtensions | `() → List<String>` | |
 | getExcludePatterns | `() → List<String>` | 排除目录（如 Python → ["__pycache__/", ".venv/"]） |
 
-### 5.3 IProjectAnalyzer（项目分析器接口）
+### 4.3 IProjectAnalyzer（项目分析器接口）
 
 扫描项目目录，自动识别语言，调度对应分析器。
 
@@ -231,7 +183,7 @@ nop-code-app           ← 依赖 web
 | analyzeProject | `(projectRoot, languages) → ProjectAnalysisResult` | 指定语言 |
 | analyzeIncremental | `(projectRoot, changedFilePaths) → ProjectAnalysisResult` | 增量分析 |
 
-### 5.4 分析算法接口
+### 4.4 分析算法接口
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -241,9 +193,9 @@ nop-code-app           ← 依赖 web
 
 > 注：接口签名为目标架构。`IEntryPointScorer` 和 `IImpactAnalyzer` 的目标签名包含 `reverseCallGraph` 参数，当前实现暂无。
 
-### 5.5 新增分析接口（code-review-graph 对比补充）
+### 4.5 流级分析接口
 
-以下接口定义在 `nop-code-core`，不引入新模块。设计详情见 `query-api-design.md`。
+定义在 `nop-code-core`，不引入新模块。
 
 ```
 // 执行流追踪
@@ -263,7 +215,7 @@ IGraphExporter.export(CallGraph, SymbolTable, format) → String
 GraphDiffer.diff(GraphSnapshot, GraphSnapshot) → GraphDiff
 ```
 
-### 5.6 边类型
+## 五、边类型
 
 当前 4 种边类型（calls / inheritances / annotationUsages / fileDependencies），补充 3 种：
 
@@ -279,34 +231,37 @@ GraphDiffer.diff(GraphSnapshot, GraphSnapshot) → GraphDiff
 
 > **IMPLEMENTS 为什么不独立为边类型**：接口实现关系已通过 `nop_code_inheritance` 表的 `kind=IMPLEMENTS` 字段区分（`CodeRelationType.IMPLEMENTS`），无需复用 `nop_code_usage` 存储。
 
----
-
 ## 六、实现状态
 
-### 6.1 模块拆分状态
+### 6.1 模块状态
 
-| 模块 | 目录 | 状态 |
+| 模块 | 状态 |
+|------|------|
+| `nop-code-core` | ✅ 已实现（通用模型、图数据结构、分析算法） |
+| `nop-code-graph` | ✅ 已实现（社区检测 Leiden/LabelPropagation、入口点评分、影响分析、Hub/Bridge、知识缺口、GraphML/Mermaid/JSON 导出、图快照对比） |
+| `nop-code-flow` | ✅ 已实现（执行流追踪、风险评分变更分析、死代码检测） |
+| `nop-code-lang-java` | ✅ 已实现（JavaParser + SymbolSolver，覆盖 Java 17） |
+| `nop-code-lang-python` | ✅ 已实现（tree-sitter-python，符号/继承/装饰器/调用提取） |
+| `nop-code-lang-typescript` | ✅ 已实现（tree-sitter-typescript，符号/继承/装饰器提取，暂无调用图） |
+| `nop-code-api` | ✅ 已实现（CodeIndexApi 接口 + 5 个通用 API） |
+| `nop-code-service` | ✅ 已实现（全部 GraphQL API，nop-search 双路径集成） |
+
+### 6.2 远期待做
+
+| 功能 | 状态 | 说明 |
 |------|------|------|
-| `nop-code-core` | 存在 | ✅ 已实现（含图数据结构和算法，算法尚未迁出） |
-| `nop-code-graph` | **不存在** | ⏳ 规划中，算法当前仍在 core |
-| `nop-code-flow` | **不存在** | ⏳ 规划中 |
-| `nop-code-lang-java` | 存在 | ✅ 已实现（JavaFileAnalyzer, JavaLanguageAdapter, MethodCallFilter） |
-| `nop-code-lang-python` | 存在 | ⚠️ 骨架，无实际分析器 |
-| `nop-code-lang-typescript` | 存在 | ⚠️ 骨架，无实际分析器 |
-| `nop-code-api` | 存在 | ⚠️ 为空（接口实际定义在 service 模块） |
+| 语义边 LLM 集成 | ⏳ 远期 | 依赖 nop-ai 模块 |
+| nop-search 全功能集成 | ⏳ 远期 | 双路径已实现，向量嵌入和混合搜索待部署时注入 |
+| 框架感知解析 | ⏳ 远期 | 入口点模式检测已覆盖主要框架场景 |
+| 增量更新依赖传播 | ⏳ 远期 | 2-hop 传播的额外收益需实际场景验证 |
 
-### 6.2 算法接口签名
+## 七、与已有设计的关系
 
-§5.4 定义的接口签名为目标架构，部分参数（`reverseCallGraph`、`Set` 参数类型）在实现迁移到 graph 模块时引入。
-
-### 6.3 ID 生成策略
-
-当前文件 ID 使用 `indexId + "_" + Math.abs(filePath.hashCode())`，存在碰撞风险。目标策略：改用 `indexId + ":" + filePath` 或 SHA-256 哈希。
-
-### 6.4 框架感知解析（远期）
-
-分析报告建议的 `IFrameworkResolver` 接口（利用 `CodeAnnotationUsage` 实现框架级依赖推导，如 Spring `@Autowired` → 接口到实现）**暂不设计**，理由：入口点模式检测已覆盖主要框架场景，完整的 DI 依赖推导需要语言特定适配且场景有限。
-
-### 6.5 增量更新依赖传播（远期）
-
-当前 `IncrementalDetector` 只检测直接变更文件。2-hop 受影响依赖文件传播（沿依赖图 BFS 查找关联文件）**暂不设计**，理由：增量更新已有 fingerprint 机制，2-hop 传播的额外收益需实际场景验证。
+| 主题 | 文档 |
+|------|------|
+| 设计原则、non-goals、约束、不变量 | `00-vision.md` |
+| GraphQL 查询 API | `query-api-design.md` |
+| nop-search 集成 | `search-integration-design.md` |
+| 图分析增强 | `graph-analysis-design.md` |
+| 流级分析 | `flow-analysis-design.md` |
+| 语义边 | `semantic-edge-design.md` |
