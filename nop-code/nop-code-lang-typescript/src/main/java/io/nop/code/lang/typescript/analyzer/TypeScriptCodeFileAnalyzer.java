@@ -580,6 +580,14 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         }
     }
 
+    /**
+     * Build a qualified-name prefix from the file path.
+     * <p>
+     * <b>Design limitation:</b> This implementation uses the raw file path, so the resulting
+     * qualified names include the {@code src/} prefix (e.g. {@code src.utils.helper} instead of
+     * {@code utils.helper}). A complete fix requires parsing {@code tsconfig.json} to determine
+     * the actual module root, which is not yet available.
+     */
     private String buildQualifiedPrefix(String filePath) {
         if (filePath == null || filePath.isEmpty()) {
             return "";

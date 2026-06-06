@@ -15,7 +15,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="uk_nop_code_index_name" props="name"/>
+    </keys>
 
     <props>
         <prop name="id" displayName="索引ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"

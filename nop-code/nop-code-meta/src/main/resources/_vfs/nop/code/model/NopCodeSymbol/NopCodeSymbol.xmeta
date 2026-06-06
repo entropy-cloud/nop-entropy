@@ -10,5 +10,6 @@
         <prop name="packageName" displayName="包名" queryable="true" insertable="false" updatable="false">
             <schema type="java.lang.String" precision="500"/>
         </prop>
+        <prop name="usageCount" x:override="merge" published="false" queryable="false" sortable="false"/>
     </props>
 </meta>
