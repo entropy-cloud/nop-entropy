@@ -32,7 +32,7 @@ public class SpringEventSynthesizer implements IHeuristicEdgeSynthesizer {
         List<CodeMethodCall> synthesized = new ArrayList<>();
         SymbolTable symbolTable = context.getSymbolTable();
 
-        Map<String, CodeSymbol> listenerByEventType = new LinkedHashMap<>();
+        Map<String, List<CodeSymbol>> listenerByEventType = new LinkedHashMap<>();
         for (CodeSymbol sym : symbolTable.getAll()) {
             if (sym.getKind() == CodeSymbolKind.METHOD) {
                 String extData = sym.getExtData();
@@ -42,7 +42,7 @@ public class SpringEventSynthesizer implements IHeuristicEdgeSynthesizer {
                             || annotations.contains("org.springframework.context.event.EventListener")) {
                         String eventType = extractListenerEventType(sym, symbolTable);
                         if (eventType != null) {
-                            listenerByEventType.put(eventType, sym);
+                            listenerByEventType.computeIfAbsent(eventType, k -> new ArrayList<>()).add(sym);
                         }
                     }
                 }
@@ -57,27 +57,29 @@ public class SpringEventSynthesizer implements IHeuristicEdgeSynthesizer {
 
         for (Map.Entry<String, List<PublishPoint>> entry : publishPoints.entrySet()) {
             String eventType = entry.getKey();
-            CodeSymbol listener = listenerByEventType.get(eventType);
-            if (listener == null) continue;
+            List<CodeSymbol> listeners = listenerByEventType.get(eventType);
+            if (listeners == null || listeners.isEmpty()) continue;
 
             for (PublishPoint pp : entry.getValue()) {
-                CodeMethodCall synthetic = new CodeMethodCall();
-                synthetic.setId(UUID.randomUUID().toString());
-                synthetic.setCallerId(pp.publisherMethodId);
-                synthetic.setCalleeId(listener.getId());
-                synthetic.setCalleeQualifiedName(listener.getQualifiedName());
-                synthetic.setMethodName(listener.getName());
-                synthetic.setLine(-1);
-                synthetic.setColumn(0);
-                synthetic.setConfidence(EdgeConfidence.INFERRED);
-                synthetic.setProvenance(EdgeProvenance.HEURISTIC);
+                for (CodeSymbol listener : listeners) {
+                    CodeMethodCall synthetic = new CodeMethodCall();
+                    synthetic.setId(UUID.randomUUID().toString());
+                    synthetic.setCallerId(pp.publisherMethodId);
+                    synthetic.setCalleeId(listener.getId());
+                    synthetic.setCalleeQualifiedName(listener.getQualifiedName());
+                    synthetic.setMethodName(listener.getName());
+                    synthetic.setLine(-1);
+                    synthetic.setColumn(0);
+                    synthetic.setConfidence(EdgeConfidence.INFERRED);
+                    synthetic.setProvenance(EdgeProvenance.HEURISTIC);
 
-                Map<String, Object> metadata = new LinkedHashMap<>();
-                metadata.put("synthesizedBy", getSynthesizerId());
-                metadata.put("event", eventType);
-                synthetic.setMetadata(JsonTool.stringify(metadata));
+                    Map<String, Object> metadata = new LinkedHashMap<>();
+                    metadata.put("synthesizedBy", getSynthesizerId());
+                    metadata.put("event", eventType);
+                    synthetic.setMetadata(JsonTool.stringify(metadata));
 
-                synthesized.add(synthetic);
+                    synthesized.add(synthetic);
+                }
             }
         }
 
