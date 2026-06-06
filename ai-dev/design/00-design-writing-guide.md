@@ -60,7 +60,7 @@
 2. 阅读顺序
 3. 各文档的职责边界
 
-参考范例：`nop-ai-agent/README.md`（4 层结构：DSL / Engine / Semantics / Strategy）。
+参考范例：`nop-ai-agent/README.md`（8 层结构：Vision / Architecture Baseline / Execution Model / DSL / Engine / Semantics / Strategy / Vision）。
 
 ### 命名规范
 
@@ -70,6 +70,17 @@
 | 子系统架构总览 | `README.md` | `nop-code/README.md` |
 | 跨子系统专题 | `{topic}-design.md` | `semantic-edge-design.md` |
 | 目录名 | 模块名（与 Maven 模块一致） | `nop-job/`、`nop-stream/` |
+
+### 被取代文档的处理
+
+当一篇设计文档的内容已被新文档完全覆盖时：
+
+1. **逐节核对**新文档是否覆盖了旧文档的全部内容
+2. 确认覆盖后**直接删除**旧文档，不保留作"历史参照"
+3. 更新所有引用旧文档的链接（包括其他设计文档、README、`docs-for-ai/`）
+4. 如果旧文档中有个别内容未被覆盖，先补充到新文档中，再删除旧文档
+
+**不保留 superseded 文档的理由**：设计文档是当前基线，不是版本历史。保留过时文档会造成读者无法判断哪篇是权威来源，且容易产生不一致。历史追溯使用 git。
 
 ### 推荐模板
 
