@@ -27,10 +27,12 @@ import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithAnnotations;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
@@ -270,22 +272,31 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             CodeSymbol symbol = new CodeSymbol();
             symbol.setId(UUID.randomUUID().toString());
             symbol.setName(decl.getNameAsString());
+            String qualifiedName = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
             if (currentTypeSymbol != null) {
                 symbol.setDeclaringSymbolId(currentTypeSymbol.getId());
-                symbol.setQualifiedName(currentTypeSymbol.getQualifiedName() + "." + decl.getNameAsString());
-            } else {
-                symbol.setQualifiedName(decl.getNameAsString());
+                if (!qualifiedName.contains(".")) {
+                    qualifiedName = currentTypeSymbol.getQualifiedName() + "." + decl.getNameAsString();
+                }
             }
+            symbol.setQualifiedName(qualifiedName);
             symbol.setKind(CodeSymbolKind.CLASS);
             symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
             symbol.setAbstractFlag(false);
             symbol.setFinalFlag(decl.isFinal());
+            CodeAccessModifier recordAccess = getAccessModifier(decl.getModifiers());
+            symbol.setExportedFlag(recordAccess == CodeAccessModifier.PUBLIC || recordAccess == CodeAccessModifier.PROTECTED);
+
+            if (currentTypeSymbol != null) {
+                symbol.setParentId(currentTypeSymbol.getId());
+            }
+
             result.getSymbols().add(symbol);
+            symbolMap.put(qualifiedName, symbol);
 
             CodeSymbol parentType = currentTypeSymbol;
             currentTypeSymbol = symbol;
 
-            // Record implements listed types
             for (ClassOrInterfaceType implType : decl.getImplementedTypes()) {
                 result.getInheritances().add(
                         createInheritance(symbol.getId(), implType.getNameAsString(), CodeRelationType.IMPLEMENTS));
@@ -710,20 +721,26 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                     usage.setColumn(range.begin.column);
                 });
 
-                // 提取注解属性
                 if (annotation instanceof NormalAnnotationExpr) {
                     NormalAnnotationExpr nae = (NormalAnnotationExpr) annotation;
                     Map<String, Object> attrs = new HashMap<>();
-                    nae.getPairs().forEach(pair -> attrs.put(pair.getNameAsString(), pair.getValue().toString()));
+                    nae.getPairs().forEach(pair -> attrs.put(pair.getNameAsString(), annotationValueToString(pair.getValue())));
                     usage.setAttributes(toJson(attrs));
                 } else if (annotation instanceof SingleMemberAnnotationExpr) {
                     SingleMemberAnnotationExpr smae = (SingleMemberAnnotationExpr) annotation;
-                    usage.setAttributes(toJson(Map.of("value", smae.getMemberValue().toString())));
+                    usage.setAttributes(toJson(Map.of("value", annotationValueToString(smae.getMemberValue()))));
                 }
 
                 usage.setProvenance(EdgeProvenance.AST_EXTRACTION);
                 result.getAnnotationUsages().add(usage);
             }
+        }
+
+        private Object annotationValueToString(Expression expr) {
+            if (expr instanceof StringLiteralExpr) {
+                return ((StringLiteralExpr) expr).getValue();
+            }
+            return expr.toString();
         }
 
         /**
