@@ -878,6 +878,8 @@
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="SYMBOL_ID" displayName="符号ID" domain="codeId" mandatory="true" name="symbolId"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" name="indexId"
+                        propId="10" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="DEPTH" displayName="深度" name="depth"
                         propId="4" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="IS_ENTRY" displayName="是否入口" name="isEntry"
@@ -913,6 +915,9 @@
                 <index name="ix_nop_code_flow_membership_symbol_id">
                     <column name="symbolId"/>
                 </index>
+                <index name="ix_nop_code_flow_membership_index_id">
+                    <column name="indexId"/>
+                </index>
             </indexes>
             <unique-keys>
                 <unique-key columns="flowId,symbolId" constraint="UK_NOP_CODE_FLOW_MEMBERSHIP" name="flowSymbolKey"/>
@@ -922,7 +927,7 @@
         <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" displayName="语义边"
                 i18n-en:displayName="Semantic Edge" ext:icon="link"
                 name="io.nop.code.dao.entity.NopCodeSemanticEdge" registerShortName="true"
-                tableName="nop_code_semantic_edge" useLogicalDelete="true" deleteFlagProp="delFlag">
+                tableName="nop_code_semantic_edge">
             <columns>
                 <column code="ID" displayName="边ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR"/>
@@ -956,8 +961,6 @@
                         precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="UPDATE_TIME" displayName="更新时间" name="updateTime"
                         propId="17" stdDataType="timestamp" stdSqlType="DATETIME"/>
-                <column code="DEL_FLAG" displayName="逻辑删除" name="delFlag" precision="1"
-                        propId="14" stdDataType="boolean" stdSqlType="TINYINT" stdDomain="boolFlag"/>
             </columns>
             <indexes>
                 <index name="ix_nop_code_semantic_edge_index_id">

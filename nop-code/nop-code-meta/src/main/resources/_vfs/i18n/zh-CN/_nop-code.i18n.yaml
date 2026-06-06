@@ -107,6 +107,7 @@ prop:
       flow.name: null
       flowId: 流ID
       id: ID
+      indexId: 索引ID
       isEntry: 是否入口
       symbol: null
       symbol.name: null
@@ -153,7 +154,6 @@ prop:
       confidenceScore: 置信度分数
       createTime: 创建时间
       createdBy: 创建人
-      delFlag: 逻辑删除
       directed: 有向
       extData: 扩展数据
       extDataComponent: null

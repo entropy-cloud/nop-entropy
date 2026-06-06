@@ -211,6 +211,9 @@
                     </join>
                 </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="name" name="uk_nop_code_index_name"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeFile" displayName="代码文件"
                 name="io.nop.code.dao.entity.NopCodeFile" registerShortName="true" tableName="nop_code_file"
@@ -866,6 +869,8 @@
                         stdSqlType="DATETIME"/>
                 <column code="UPDATED_BY" displayName="更新人" name="updatedBy" precision="50" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" name="indexId" precision="36" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>执行流与符号的多对多关系，记录符号在流中的深度和入口标记</comment>
             <indexes>
@@ -874,6 +879,9 @@
                 </index>
                 <index name="ix_nop_code_flow_membership_symbol_id">
                     <column name="symbolId"/>
+                </index>
+                <index name="ix_nop_code_flow_membership_index_id">
+                    <column name="indexId"/>
                 </index>
             </indexes>
             <relations>
@@ -894,10 +902,9 @@
                 <unique-key columns="flowId,symbolId" constraint="UK_NOP_CODE_FLOW_MEMBERSHIP" name="flowSymbolKey"/>
             </unique-keys>
         </entity>
-        <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" deleteFlagProp="delFlag" displayName="语义边"
+        <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" displayName="语义边"
                 name="io.nop.code.dao.entity.NopCodeSemanticEdge" registerShortName="true"
-                tableName="nop_code_semantic_edge" useLogicalDelete="true" i18n-en:displayName="Semantic Edge"
-                ext:icon="link">
+                tableName="nop_code_semantic_edge" i18n-en:displayName="Semantic Edge" ext:icon="link">
             <columns>
                 <column code="ID" displayName="边ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -925,8 +932,6 @@
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CREATED_TIME" displayName="创建时间" name="createTime" propId="13" stdDataType="timestamp"
                         stdSqlType="DATETIME"/>
-                <column code="DEL_FLAG" displayName="逻辑删除" name="delFlag" precision="1" propId="14"
-                        stdDataType="boolean" stdDomain="boolFlag" stdSqlType="TINYINT"/>
                 <column code="PROVENANCE" displayName="来源" name="provenance" precision="20" propId="15"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="UPDATED_BY" displayName="更新人" name="updatedBy" precision="50" propId="16"
