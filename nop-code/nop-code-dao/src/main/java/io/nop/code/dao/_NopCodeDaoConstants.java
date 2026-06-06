@@ -243,4 +243,44 @@ public interface _NopCodeDaoConstants {
      */
     String RELATION_TYPE_IMPLEMENTS = "20";
                     
+    /**
+     * 语义关系类型: 语义相似 
+     */
+    String SEMANTIC_RELATION_TYPE_SEMANTICALLY_SIMILAR_TO = "10";
+                    
+    /**
+     * 语义关系类型: 概念相关 
+     */
+    String SEMANTIC_RELATION_TYPE_CONCEPTUALLY_RELATED_TO = "20";
+                    
+    /**
+     * 语义关系类型: 解决同一问题 
+     */
+    String SEMANTIC_RELATION_TYPE_SOLVES_SAME_PROBLEM = "30";
+                    
+    /**
+     * 语义关系类型: 实现模式 
+     */
+    String SEMANTIC_RELATION_TYPE_IMPLEMENTS_PATTERN = "40";
+                    
+    /**
+     * 语义关系类型: 替代方案 
+     */
+    String SEMANTIC_RELATION_TYPE_ALTERNATIVE_OF = "50";
+                    
+    /**
+     * 语义关系类型: 被文档记录 
+     */
+    String SEMANTIC_RELATION_TYPE_DOCUMENTED_BY = "60";
+                    
+    /**
+     * 语义关系类型: 原因说明 
+     */
+    String SEMANTIC_RELATION_TYPE_RATIONALE_FOR = "70";
+                    
+    /**
+     * 语义关系类型: 跨语言对等 
+     */
+    String SEMANTIC_RELATION_TYPE_CROSS_LANGUAGE_PEER = "80";
+                    
 }

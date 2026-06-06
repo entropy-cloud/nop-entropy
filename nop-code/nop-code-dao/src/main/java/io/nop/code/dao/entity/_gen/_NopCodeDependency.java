@@ -44,8 +44,12 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     public static final String PROP_NAME_resolved = "resolved";
     public static final int PROP_ID_resolved = 6;
     
+    /* 依赖键哈希: DEPENDENCY_KEY_HASH VARCHAR */
+    public static final String PROP_NAME_dependencyKeyHash = "dependencyKeyHash";
+    public static final int PROP_ID_dependencyKeyHash = 7;
+    
 
-    private static int _PROP_ID_BOUND = 7;
+    private static int _PROP_ID_BOUND = 8;
 
     
     /* relation:  */
@@ -55,7 +59,7 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[7];
+    private static final String[] PROP_ID_TO_NAME = new String[8];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -77,6 +81,9 @@ public class _NopCodeDependency extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_resolved] = PROP_NAME_resolved;
           PROP_NAME_TO_ID.put(PROP_NAME_resolved, PROP_ID_resolved);
       
+          PROP_ID_TO_NAME[PROP_ID_dependencyKeyHash] = PROP_NAME_dependencyKeyHash;
+          PROP_NAME_TO_ID.put(PROP_NAME_dependencyKeyHash, PROP_ID_dependencyKeyHash);
+      
     }
 
     
@@ -97,6 +104,9 @@ public class _NopCodeDependency extends DynamicOrmEntity{
     
     /* 是否已解析: RESOLVED */
     private java.lang.Boolean _resolved;
+    
+    /* 依赖键哈希: DEPENDENCY_KEY_HASH */
+    private java.lang.String _dependencyKeyHash;
     
 
     public _NopCodeDependency(){
@@ -190,6 +200,9 @@ public class _NopCodeDependency extends DynamicOrmEntity{
             case PROP_ID_resolved:
                return getResolved();
         
+            case PROP_ID_dependencyKeyHash:
+               return getDependencyKeyHash();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -261,6 +274,16 @@ public class _NopCodeDependency extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_dependencyKeyHash:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_dependencyKeyHash));
+               }
+               setDependencyKeyHash(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -308,6 +331,13 @@ public class _NopCodeDependency extends DynamicOrmEntity{
             case PROP_ID_resolved:{
                onInitProp(propId);
                this._resolved = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_dependencyKeyHash:{
+               onInitProp(propId);
+               this._dependencyKeyHash = (java.lang.String)value;
                
                break;
             }
@@ -428,6 +458,25 @@ public class _NopCodeDependency extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_resolved,value)){
             this._resolved = value;
             internalClearRefs(PROP_ID_resolved);
+            
+        }
+    }
+    
+    /**
+     * 依赖键哈希: DEPENDENCY_KEY_HASH
+     */
+    public final java.lang.String getDependencyKeyHash(){
+         onPropGet(PROP_ID_dependencyKeyHash);
+         return _dependencyKeyHash;
+    }
+
+    /**
+     * 依赖键哈希: DEPENDENCY_KEY_HASH
+     */
+    public final void setDependencyKeyHash(java.lang.String value){
+        if(onPropSet(PROP_ID_dependencyKeyHash,value)){
+            this._dependencyKeyHash = value;
+            internalClearRefs(PROP_ID_dependencyKeyHash);
             
         }
     }

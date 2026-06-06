@@ -33,9 +33,9 @@ site:
     FNPT:NopCodeInheritance:query:
       displayName: Query Inheritance
     FNPT:NopCodeSemanticEdge:mutation:
-      displayName: ''
+      displayName: Modify Semantic Edge
     FNPT:NopCodeSemanticEdge:query:
-      displayName: ''
+      displayName: Query Semantic Edge
     FNPT:NopCodeSymbol:mutation:
       displayName: Modify Symbols
     FNPT:NopCodeSymbol:query:
@@ -69,7 +69,7 @@ site:
     NopCodeInheritance-main:
       displayName: Inheritance
     NopCodeSemanticEdge-main:
-      displayName: ''
+      displayName: Semantic Edge
     NopCodeSymbol-main:
       displayName: Symbol Search
     NopCodeUsage-main:

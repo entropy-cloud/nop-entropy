@@ -32,6 +32,9 @@
 
                 <!--是否已解析-->
                 <col id="resolved" sortable="true"/>
+
+                <!--依赖键哈希-->
+                <col id="dependencyKeyHash" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -45,6 +48,7 @@
  targetFilePath[目标文件路径]
  importStatement[导入语句]
  resolved[是否已解析]
+ dependencyKeyHash[依赖键哈希]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-文件依赖" i18n-en:title="Add File Dependency" x:prototype="edit"/>
@@ -55,6 +59,7 @@
  targetFilePath[目标文件路径]
  importStatement[导入语句]
  resolved[是否已解析]
+ dependencyKeyHash[依赖键哈希]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

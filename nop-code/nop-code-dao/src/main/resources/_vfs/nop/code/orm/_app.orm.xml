@@ -84,6 +84,17 @@
             <option code="EXTENDS" label="继承" value="10"/>
             <option code="IMPLEMENTS" label="实现" value="20"/>
         </dict>
+        <dict label="语义关系类型" name="code/semantic_relation_type" valueType="string">
+            <description>符号间语义关系类型</description>
+            <option code="SEMANTICALLY_SIMILAR_TO" label="语义相似" value="10"/>
+            <option code="CONCEPTUALLY_RELATED_TO" label="概念相关" value="20"/>
+            <option code="SOLVES_SAME_PROBLEM" label="解决同一问题" value="30"/>
+            <option code="IMPLEMENTS_PATTERN" label="实现模式" value="40"/>
+            <option code="ALTERNATIVE_OF" label="替代方案" value="50"/>
+            <option code="DOCUMENTED_BY" label="被文档记录" value="60"/>
+            <option code="RATIONALE_FOR" label="原因说明" value="70"/>
+            <option code="CROSS_LANGUAGE_PEER" label="跨语言对等" value="80"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -731,6 +742,8 @@
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="RESOLVED" displayName="是否已解析" name="resolved" propId="6" stdDataType="boolean"
                         stdSqlType="BOOLEAN"/>
+                <column code="DEPENDENCY_KEY_HASH" displayName="依赖键哈希" name="dependencyKeyHash" precision="64"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>文件级别的依赖关系，记录源文件导入了哪些目标文件</comment>
             <indexes>
@@ -740,6 +753,11 @@
                 </index>
                 <index name="ix_nop_code_dependency_index_id_target_file_path">
                     <column name="indexId"/>
+                    <column name="targetFilePath"/>
+                </index>
+                <index name="ix_nop_code_dependency_index_id_source_target">
+                    <column name="indexId"/>
+                    <column name="sourceFilePath"/>
                     <column name="targetFilePath"/>
                 </index>
             </indexes>
@@ -752,7 +770,7 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="indexId,sourceFilePath,targetFilePath,importStatement" name="uk_dependency_unique"/>
+                <unique-key columns="indexId,dependencyKeyHash" name="uk_dependency_unique"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeFlow" displayName="执行流"
@@ -878,7 +896,8 @@
         </entity>
         <entity className="io.nop.code.dao.entity.NopCodeSemanticEdge" deleteFlagProp="delFlag" displayName="语义边"
                 name="io.nop.code.dao.entity.NopCodeSemanticEdge" registerShortName="true"
-                tableName="nop_code_semantic_edge" useLogicalDelete="true">
+                tableName="nop_code_semantic_edge" useLogicalDelete="true" i18n-en:displayName="Semantic Edge"
+                ext:icon="link">
             <columns>
                 <column code="ID" displayName="边ID" domain="codeId" mandatory="true" name="id" precision="36"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -891,7 +910,7 @@
                 <column code="DIRECTED" displayName="有向" name="directed" propId="5" stdDataType="boolean"
                         stdSqlType="BOOLEAN"/>
                 <column code="RELATION_TYPE" displayName="关系类型" mandatory="true" name="relationType" precision="40"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/relation_type"/>
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/semantic_relation_type"/>
                 <column code="CONFIDENCE" displayName="置信度级别" mandatory="true" name="confidence" propId="7"
                         stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="CONFIDENCE_SCORE" displayName="置信度分数" name="confidenceScore" propId="8"

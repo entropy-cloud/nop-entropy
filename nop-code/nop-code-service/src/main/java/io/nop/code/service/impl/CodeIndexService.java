@@ -2,8 +2,17 @@ package io.nop.code.service.impl;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;import java.util.concurrent.locks.ReentrantLock;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -247,41 +256,6 @@ public class CodeIndexService implements ICodeIndexService {
         heuristicSynthesizers.add(new SpringEventSynthesizer());
     }
 
-    //
-
-    // ====== Entity-to-Model Conversion
-
-    // ======
-
-    private CodeSymbol entityToCodeSymbol(NopCodeSymbol entity) {
-        CodeSymbol symbol = new CodeSymbol();
-        symbol.setId(entity.getId());
-        symbol.setName(entity.getName());
-        symbol.setKind(entity.getKind() != null ? CodeSymbolKind.valueOf(entity.getKind()) : null);
-        symbol.setQualifiedName(entity.getQualifiedName());
-        symbol.setAccessModifier(entity.getAccessModifier() != null
-                ? CodeAccessModifier.valueOf(entity.getAccessModifier()) : null);
-        symbol.setDeprecated(Boolean.TRUE.equals(entity.getDeprecated()));
-        symbol.setDocumentation(entity.getDocumentation());
-        symbol.setLine(entity.getLine() != null ? entity.getLine() : 0);
-        symbol.setColumn(entity.getColumn() != null ? entity.getColumn() : 0);
-        symbol.setEndLine(entity.getEndLine() != null ? entity.getEndLine() : 0);
-        symbol.setEndColumn(entity.getEndColumn() != null ? entity.getEndColumn() : 0);
-        symbol.setParentId(entity.getParentId());
-        symbol.setDeclaringSymbolId(entity.getDeclaringSymbolId());
-        symbol.setSuperClassName(entity.getSuperClassName());
-        symbol.setModifiers(entity.getModifiers() != null ? entity.getModifiers() : 0);
-        symbol.setSignature(entity.getSignature());
-        symbol.setReturnType(entity.getReturnType());
-        symbol.setFieldType(entity.getFieldType());
-        symbol.setRawReturnType(entity.getRawReturnType());
-        symbol.setRawFieldType(entity.getRawFieldType());
-        symbol.setExtData(entity.getExtData());
-        symbol.setFilePath(entity.getFilePath());
-        symbol.setLanguage(entity.getLanguage());
-        return symbol;
-    }
-
     private CodeInheritance entityToInheritance(NopCodeInheritance entity) {
         CodeInheritance inh = new CodeInheritance();
         inh.setId(entity.getId());
@@ -296,16 +270,8 @@ public class CodeIndexService implements ICodeIndexService {
         return inh;
     }
 
-    // 
 
-    // ====== Rebuild-from-DB Helpers 
-
-    // ======
-    // 
-
-    // ====== Rebuild-from-DB Helpers 
-
-    // ======
+    // ====== Rebuild-from-DB Helpers ======
 
     private SymbolTable getOrRebuildSymbolTable(String indexId) {
         ensureSubServices();
@@ -322,11 +288,7 @@ public class CodeIndexService implements ICodeIndexService {
         cacheManager.invalidateAnalysisCache(indexId, flowDetector);
     }
 
-    // 
-
-    // ====== Indexing 
-
-    // ======
+    // ====== Indexing ======
 
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
@@ -369,11 +331,7 @@ public class CodeIndexService implements ICodeIndexService {
         return result;
     }
 
-    // 
-
-    // ====== File Queries 
-
-    // ======
+    // ====== File Queries ======
 
     @Override
     public List<CodeFileAnalysisResult> getFiles(String indexId) {
@@ -429,11 +387,7 @@ public class CodeIndexService implements ICodeIndexService {
         return queryService.getPublicSurface(indexId, dirPath);
     }
 
-    // 
-
-    // ====== Symbol Queries 
-
-    // ======
+    // ====== Symbol Queries ======
 
     @Override
     public CodeSymbol getSymbolById(String indexId, String symbolId) {
@@ -485,11 +439,7 @@ public class CodeIndexService implements ICodeIndexService {
         return queryService.showSymbolSource(indexId, qualifiedName, includeBody);
     }
 
-    // 
-
-    // ====== Type Queries 
-
-    // ======
+    // ====== Type Queries ======
 
     @Override
     public TypeOutlineDTO getTypeOutline(String indexId, String qualifiedName) {
@@ -510,11 +460,7 @@ public class CodeIndexService implements ICodeIndexService {
         return searchService.searchCode(indexId, query, searchType, language, filePattern, limit);
     }
 
-    // 
-
-    // ====== Hierarchy Queries 
-
-    // ======
+    // ====== Hierarchy Queries ======
 
     @Override
     public TypeHierarchyDTO getTypeHierarchy(String indexId, String qualifiedName,
@@ -530,11 +476,7 @@ public class CodeIndexService implements ICodeIndexService {
         return graphService.getCallHierarchy(indexId, qualifiedName, direction, maxDepth);
     }
 
-    // 
-
-    // ====== Index Management 
-
-    // ======
+    // ====== Index Management ======
 
     @Override
     public IndexStatsDTO getIndexStats(String indexId) {
@@ -636,11 +578,7 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
-    // 
-
-    // ====== Graph Analysis 
-
-    // ======
+    // ====== Graph Analysis ======
 
     @Override
     public CommunityDetectionResultDTO detectCommunities(String indexId) {
@@ -708,11 +646,7 @@ public class CodeIndexService implements ICodeIndexService {
         return graphService.getDepGraph(indexId, includeExternal);
     }
 
-    // 
-
-    // ====== Incremental Indexing 
-
-    // ======
+    // ====== Incremental Indexing ======
 
     @Override
     public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
@@ -803,9 +737,7 @@ public class CodeIndexService implements ICodeIndexService {
         })));
     }
 
-    // ====== File Page Query 
-
-    // ======
+    // ====== File Page Query ======
 
     @Override
     public PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit) {
@@ -813,11 +745,7 @@ public class CodeIndexService implements ICodeIndexService {
         return queryService.findFilesPage(indexId, packageName, offset, limit);
     }
 
-    // 
-
-    // ====== ORM Persistence 
-
-    // ======
+    // ====== ORM Persistence ======
 
     private void persistInSession(String indexId, String rootPath, ProjectAnalysisResult result,
                                   IOrmSession session) {
@@ -1419,6 +1347,10 @@ public class CodeIndexService implements ICodeIndexService {
                     depEntity.setSourceFilePath(dep.getSourceFilePath());
                     depEntity.setTargetFilePath(dep.getTargetFilePath());
                     depEntity.setImportStatement(dep.getImportStatement());
+                    depEntity.setDependencyKeyHash(
+                            DigestHelper.sha256Hex(
+                                    (dep.getSourceFilePath() + "\0" + dep.getTargetFilePath() + "\0" + dep.getImportStatement())
+                                            .getBytes(StandardCharsets.UTF_8)));
                     depEntity.setResolved(dep.isResolved());
                     session.save(depEntity);
                 }
@@ -1426,11 +1358,7 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
-    // 
-
-    // ====== Incremental Indexing Helpers 
-
-    // ======
+    // ====== Incremental Indexing Helpers ======
 
     private Set<String> getProjectFilePaths(String indexId) {
         if (daoProvider == null) return Collections.emptySet();
@@ -1597,11 +1525,7 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
-    // 
-
-    // ====== Flow Analysis 
-
-    // ======
+    // ====== Flow Analysis ======
 
     @Override
     public List<ExecutionFlow> detectFlows(String indexId) {
@@ -1790,11 +1714,7 @@ public class CodeIndexService implements ICodeIndexService {
         return graphService.findDependentFiles(indexId, filePath);
     }
 
-    // 
-
-    // ====== Batch File Records 
-
-    // ======
+    // ====== Batch File Records ======
 
     @Override
     public void batchSaveFileRecords(String indexId, List<FileFingerprint> fingerprints) {

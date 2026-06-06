@@ -50,6 +50,7 @@ prop:
       metadataComponent: null
       provenance: 来源
     NopCodeDependency:
+      dependencyKeyHash: 依赖键哈希
       id: 依赖ID
       importStatement: 导入语句
       index: null

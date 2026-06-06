@@ -65,7 +65,7 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-语义边" i18n-en:title="">
+        <form id="view" editMode="view" title="查看-语义边" i18n-en:title="View Semantic Edge">
             <layout>
  indexId[索引ID] sourceSymbolId[源符号ID]
  targetSymbolId[目标符号ID] directed[有向]
@@ -76,7 +76,7 @@
  delFlag[逻辑删除] provenance[来源]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-语义边" i18n-en:title="">
+        <form id="add" editMode="add" title="新增-语义边" i18n-en:title="Add Semantic Edge">
             <layout>
  indexId[索引ID] sourceSymbolId[源符号ID]
  targetSymbolId[目标符号ID] directed[有向]
@@ -87,7 +87,7 @@
  provenance[来源] 
 </layout>
         </form>
-        <form id="edit" editMode="edit" title="编辑-语义边" i18n-en:title="">
+        <form id="edit" editMode="edit" title="编辑-语义边" i18n-en:title="Edit Semantic Edge">
             <layout>
  indexId[索引ID] sourceSymbolId[源符号ID]
  targetSymbolId[目标符号ID] directed[有向]
@@ -100,7 +100,7 @@
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-语义边" i18n-en:title=""/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-语义边" i18n-en:title="Update Semantic Edge"/>
     </forms>
 
     <pages>

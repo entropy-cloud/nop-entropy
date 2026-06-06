@@ -8,7 +8,7 @@ entity:
     NopCodeFlowMembership: Execution Flow Membership
     NopCodeIndex: Code Index
     NopCodeInheritance: Inheritance
-    NopCodeSemanticEdge: null
+    NopCodeSemanticEdge: Semantic Edge
     NopCodeSymbol: Symbol
     NopCodeUsage: Symbol Usage
 prop:
@@ -56,6 +56,7 @@ prop:
       targetFilePath: null
       importStatement: null
       resolved: null
+      dependencyKeyHash: null
       index: null
     NopCodeFile:
       id: null

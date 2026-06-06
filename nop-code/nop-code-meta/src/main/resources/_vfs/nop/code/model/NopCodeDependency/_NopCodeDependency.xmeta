@@ -18,7 +18,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="uk_dependency_unique" props="indexId,sourceFilePath,targetFilePath,importStatement"/>
+        <key name="uk_dependency_unique" props="indexId,dependencyKeyHash"/>
     </keys>
 
     <props>
@@ -45,6 +45,10 @@
         <prop name="resolved" displayName="是否已解析" propId="6" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="dependencyKeyHash" displayName="依赖键哈希" propId="7" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="64"/>
         </prop>
         <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
               ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
