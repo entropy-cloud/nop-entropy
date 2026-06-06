@@ -26,11 +26,11 @@
 
 **期望行为**：
 
-1. 引擎维护一个"文件写意图注册表"
+1. 引擎维护一个"写意图注册表"（Phase 1 的简化机制）
 2. 工具执行写操作前，先注册写意图
 3. 如果检测到冲突（同一文件已有其他 Agent 的写意图），触发冲突处理策略
-4. Phase 1 策略：报错中止（fail-fast）
-5. Phase 2+ 策略：排队等待、协调合并等
+4. Phase 1 策略：报错中止（fail-fast，即 §4.4 的 L3 层）
+5. Phase 2+ 策略：通过协调信道广播 scope_claim/operation_intent，实现 LLM 智能协调 + 引擎级预警（见 §4）
 
 ### 3.2 共享资源竞争
 
@@ -53,29 +53,84 @@
 
 **期望行为**：这属于 Plan 引擎的调度范畴，不是 Agent 引擎的核心职责。Agent 引擎只负责单个 Agent 的执行循环。
 
-## 4. 协同原语
+## 4. 协调信道（Coordination Bus）
 
-### 4.1 文件写意图注册
+### 4.1 设计思路
 
-**决策**：引擎维护一个进程级别的文件写意图注册表（类似文件锁），Agent 工具执行前注册写意图。
+多 Agent 并发协调的核心机制是**公共协调信道**：Agent 在执行操作前，通过信道广播自己的意图，其他 Agent 通过消息流感知这些意图并自行调整。
 
-**接口契约**：
+这不是被动的冲突检测（操作时才发现冲突），而是**主动意图广播**——Agent 看到其他人的计划后，LLM 可以主动避让或调整工作顺序。
 
-- 注册：工具声明要写哪些文件路径
-- 检查：注册时引擎检查是否有冲突
-- 释放：工具执行完成后释放写意图
+### 4.2 消息类型
 
-**Phase 1 实现**：进程内冲突检测，检测到冲突即报错。
+| 消息类型 | 触发时机 | 内容 | 作用 |
+|---------|---------|------|------|
+| `scope_claim` | Agent 启动或接受新任务时 | sessionId, agentId, scopeDescription, resourcePatterns | 广播工作范围（"我打算改 src/core/ 下的文件"） |
+| `operation_intent` | 工具执行前 | sessionId, agentId, operation, resources, estimatedDuration | 广播具体操作意图（"我要编辑 Foo.java"） |
+| `operation_done` | 工具执行后 | sessionId, agentId, operation, resources, result | 通告操作完成 |
+| `scope_release` | Agent 完成任务或释放范围 | sessionId, agentId | 释放工作范围 |
+| `conflict_alert` | 引擎检测到潜在冲突时 | conflictType, conflictingAgents, resources | 引擎级冲突预警（兜底机制） |
 
-**Phase 2 扩展**：排队等待、超时释放、优先级抢占。
+### 4.3 注入机制
 
-### 4.2 资源声明
+协调消息通过以下方式进入 Agent 的上下文流：
 
-**决策**：工具可以通过上下文声明资源需求。
+```
+每轮 ReAct 迭代前:
+  engine.inject_coordination_messages(agent.context, since=lastIteration)
+  → 作为 coordination 类型消息注入
+  → Agent 的 LLM 在推理时能看到其他 Agent 的意图和操作
+```
 
-**Phase 1 实现**：声明但不强制，仅用于日志和调试。
+- 协调消息不参与 compaction（标记为 `pinned`）
+- 注入量有上限（最近 N 条或最近 T 时间窗口内），避免上下文膨胀
+- Agent 的 system prompt 包含协调指令："注意 coordination 消息，主动避让其他 Agent 的工作范围"
 
-**Phase 2 扩展**：资源调度器消费声明，做排队和限制。
+### 4.4 分层策略
+
+| 层次 | 机制 | 说明 |
+|------|------|------|
+| **L1: LLM 智能协调** | 协调信道 + 注入 | Agent 看到 scope_claim/operation_intent 后主动调整 |
+| **L2: 引擎级预警** | conflict_alert | 引擎检测到 scope 交叉时主动广播预警 |
+| **L3: 引擎级 fail-fast** | 操作前检查 | scope_claim 的资源模式冲突时直接拒绝（安全兜底） |
+
+Phase 1 实现 L3（简单 fail-fast）。Phase 2 实现 L1+L2（协调信道 + 注入）。
+
+### 4.5 与 IMessageService 的关系
+
+协调信道的底层传输使用 Nop 的 IMessageService：
+
+```
+topic: "agent.coordination.{projectId}"
+  ├── scope_claim events
+  ├── operation_intent events
+  ├── operation_done events
+  ├── scope_release events
+  └── conflict_alert events
+```
+
+- 所有 Agent 实例订阅同一个 project topic
+- 消息持久化到 Event Log（可审计、可回溯）
+- Phase 1 可用进程内消息队列，Phase 2+ 可扩展为分布式
+
+### 4.6 资源模式匹配
+
+`scope_claim` 和 `operation_intent` 的 `resources` 字段支持模式匹配：
+
+```json
+{
+  "type": "scope_claim",
+  "sessionId": "sess-001",
+  "agentId": "agent-refactor",
+  "scopeDescription": "重构 core 模块的错误处理",
+  "resourcePatterns": [
+    "src/main/java/io/nop/core/**/*.java",
+    "src/test/java/io/nop/core/**/*.java"
+  ]
+}
+```
+
+引擎通过模式匹配检测 scope 交叉，决定是否触发 `conflict_alert`。
 
 ## 5. Agent 间的通信
 
@@ -85,17 +140,11 @@
 
 ### 5.2 兄弟通信
 
-**决策**：Phase 1 不支持兄弟 Agent 之间的直接通信。
+**决策**：Phase 1 通过父 Agent 中转；Phase 2 通过协调信道（§4）实现间接感知。
 
-**理由**：
+**Phase 1**：兄弟 Agent 不直接通信，通过父 Agent 中转。
 
-- 兄弟 Agent 是并行执行的，通信需要同步机制
-- 引入消息总线（如 agentscope-java 的 SubagentEventBus）增加复杂度
-- Phase 1 可以通过父 Agent 中转
-
-**拒绝了**：Phase 1 引入兄弟间消息总线。理由是增加引擎复杂度，父 Agent 中转在无人值守场景下足够。
-
-**Phase 2 考虑**：引入消息总线或共享状态存储。
+**Phase 2**：兄弟 Agent 通过协调信道的 scope_claim / operation_intent 间接感知彼此的工作范围。这不是直接消息通信，而是通过公共协调消息流实现协作可见性。
 
 ### 5.3 全局协调器
 
@@ -113,10 +162,10 @@
 
 | 阶段 | 编排方式 |
 |------|---------|
-| Phase 1 | `call-agent` 工具 + 文件锁 |
-| Phase 2 | `call-agent` + 资源声明 + 排队 |
-| Phase 3 | Nop Flow 图编排 + Agent 节点 |
-| Phase 4 | 自适应编排（协调器 Agent） |
+| Phase 1 | `call-agent` 工具 + 引擎级 fail-fast |
+| Phase 2 | 协调信道（scope_claim/operation_intent）+ LLM 智能协调 |
+| Phase 3 | Nop Flow 图编排 + Agent 节点 + 协调信道集成 |
+| Phase 4 | 自适应编排（协调器 Agent + 协调信道） |
 
 参考 solon-ai 的做法：Agent 作为 Solon Flow 的 NamedTaskComponent。Nop 可以将 Agent 作为 Nop Flow 的节点类型，通过 Flow 图定义多 Agent 编排逻辑。
 
@@ -137,27 +186,57 @@ nop-ai-shell 提供虚拟 shell 执行，每个命令行解析为单个指令。
 - 如果 Agent 需要访问共享目录（如项目根目录），通过环境信息显式声明
 - Shell 工具的上下文注入当前 Agent 的工作目录
 
-## 8. 演进方向
+## 8. 子 Agent Compaction 隔离
 
-本篇定义的 Phase 1 策略（文件锁 + fail-fast + 父 Agent 中转）是**最小可行方案**。
+### 8.1 问题
+
+父 Agent 执行 compaction 时，可能影响正在运行的子 Agent：
+
+- 父 Agent 的 CompactionEntry 会标记 `firstKeptEntryId`，丢弃父 Agent 认为可压缩的消息
+- 但子 Agent 的 `call-agent` 调用结果可能被父 Agent 误判为"可压缩的中间工具输出"
+- 子 Agent 自身也可能触发 compaction，两者的压缩窗口可能交叉
+
+### 8.2 设计决策
+
+**规则**：父 Agent compaction 不得影响正在运行的子 Agent session。
+
+具体机制：
+
+1. **独立 Event Log**：每个子 Agent 拥有独立的 session 和 `events.jsonl`，父 Agent 的 compaction 只操作自己的 event log
+2. **状态键过滤**（`excluded_state_keys`）：父 Agent compaction 时，`call-agent` 返回的子 Agent 结果被标记为 `pinned`，不会被 Layer 1/2 裁剪
+3. **引用完整性**：父 Agent summary 引用子 Agent 结果时，使用 `subAgentSessionId` 引用而非内联复制，确保子 Agent 数据不依赖父 Agent 的压缩周期
+4. **生命周期保护**：子 Agent 运行期间，父 Agent 的 compaction 对 `call-agent` 相关 entry 只执行 Layer 0（截断过大输出），不执行 Layer 2+（裁剪/摘要）
+
+### 8.3 Phase 分配
+
+- Phase 1：规则 1（独立 session）天然满足
+- Phase 2：规则 2-3（pinned 标记 + 引用完整性）
+- Phase 3：规则 4（生命周期保护，需 Actor Runtime 的子 Agent 状态感知）
+
+## 9. 演进方向
+
+本篇定义的 Phase 1 策略（引擎级 fail-fast + 父 Agent 中转）是**最小可行方案**。
 
 Phase 2+ 的具体架构设计见 **`nop-ai-agent-actor-runtime-vision.md`**，主要演进点：
 
 | 维度 | 本篇 (Phase 1) | Actor Runtime (Phase 2+) |
 |------|---------------|--------------------------|
 | 进程模型 | 单 Agent 调用 | Virtual Thread Actor 并行 |
-| 通信 | call-agent 同步 | IMessageService 异步消息队列 |
+| 通信 | call-agent 同步 | IMessageService 协调信道 |
+| 协调 | 引擎级 fail-fast | LLM 智能协调 + 引擎级预警 + fail-fast |
 | 状态 | 内存 | DB 持久化 + 事务保护 |
 | 团队 | 无 | TeamManager + TeamSpec DSL |
 | 恢复 | 无 | RecoveryManager 自动恢复 |
 | 隔离 | 无 | 多租户 + 用户级配额 |
+| 子 Agent compaction | 独立 session（天然隔离） | pinned 标记 + 生命周期保护 |
 
-## 9. 与现有文档的关系
+## 10. 与现有文档的关系
 
 | 本篇内容 | 相关文档 | 关系 |
 |---------|---------|------|
 | call-agent 并行 | call-agent-dsl.md | 本篇定义并行语义，call-agent-dsl.md 定义 DSL |
-| 文件锁 | tool-dsl.md | 工具执行前的注册行为 |
+| 协调信道（§4） | actor-runtime-vision.md ResourceGuard | §4 定义协调协议，ResourceGuard 是 Phase 2+ 实现载体 |
+| Phase 1 fail-fast | tool-dsl.md | 工具执行前的注册行为（简化版协调） |
 | Flow 编排 | nop-ai-agent-roadmap.md | 本篇定义演进路径 |
-| 上下文隔离 | nop-ai-agent-context-model.md | 并行时的上下文独立性保证 |
+| 上下文隔离 | nop-ai-agent-context-model.md | 并行时的上下文独立性保证 + 协调消息注入 |
 | Phase 2+ 架构 | nop-ai-agent-actor-runtime-vision.md | 本篇 Phase 2+ 的具体实现方案 |

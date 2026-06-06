@@ -170,7 +170,7 @@ AgentActor A (Lead)                AgentActor B (Worker)
 │  │ (实例注册表) │  │ (崩溃恢复/超时清理)     │   │
 │  ├──────────────┤  ├────────────────────────┤   │
 │  │ MessageRouter│  │ ResourceGuard          │   │
-│  │ (消息路由)   │  │ (文件写意图/资源声明)   │   │
+│  │ (消息路由)   │  │ (协调信道/资源配额)     │   │
 │  └──────────────┘  └────────────────────────┘   │
 ├─────────────────────────────────────────────────┤
 │            Agent Engine Layer (已有)             │
@@ -197,7 +197,7 @@ AgentActor A (Lead)                AgentActor B (Worker)
 | **MessageRouter** | Actor 间消息路由，topic 匹配，背压控制 | `LocalMessageService` + topic 命名约定 |
 | **TeamManager** | Agent 团队的生命周期（创建/解散/成员管理/状态查询） | `@BizModel("AiTeam")` + ORM 实体持久化 |
 | **RecoveryManager** | 崩溃恢复、超时清理、orphan 检测、消息重放 | 定时任务（nop-job）+ DB 状态机 |
-| **ResourceGuard** | 文件写意图注册、资源声明、冲突检测 | `@BizAction` 拦截工具执行 |
+| **ResourceGuard** | 协调信道（scope_claim/conflict_alert，见 multi-agent.md §4）、资源配额、冲突检测 | `@BizAction` 拦截工具执行 |
 
 ## 5. 多用户与资源隔离
 
@@ -229,6 +229,7 @@ ActorRuntime
 | 单 Agent 最大 Token | (agentModel) | 200K | 每次 LLM 调用后累加检查 |
 | 单 Agent 最大时间 | (agentModel) | 30min | ICancelToken 超时 |
 | LLM 调用频率 | (tenant) | 100/min | `IRateLimiter` |
+| Compaction LLM 调用 | (tenant) | 20/min | 使用便宜模型，独立配额池 |
 | 团队最大成员数 | (teamModel) | 8 | TeamManager 创建时检查 |
 
 配额通过 Nop 配置系统管理（`@cfg:ai.agent.quota.*`），支持 Delta 定制。
@@ -251,9 +252,11 @@ ActorRuntime
 
 **Session 快照**（已有设计，见 `nop-ai-agent-session-and-storage.md`）：
 - Phase 1 使用文件系统保存 Session 状态（见 session-and-storage.md §2），本篇描述的 DB 持久化是 Phase 2+ 的演进
-- 每次 ReAct 循环迭代后保存快照到 DB
-- 快照内容：消息历史（可压缩）、工具调用结果、当前状态
-- 恢复时从最近快照重放
+- Actor 状态变更（status 转换、compaction 边界）立即写入 DB（事务保护）
+- `running` → `idle` / `failed` / `stopped` 都有对应的 DB 记录
+- 消息增量以 append-only event log 写入（非每次迭代完整快照）
+- 完整快照仅在 compaction 边界生成（CompactionEntry），非每次 ReAct 迭代
+- 邮箱中的未处理消息持久化到 DB（不怕进程崩溃丢消息）
 
 **Actor 状态持久化**：
 - Actor 状态变更（status 转换）立即写入 DB（事务保护）
@@ -271,7 +274,7 @@ RecoveryManager (定时任务，每 60 秒)
   │           └── 其他进程的 Actor → 标记 orphaned
   │
   ├── 2. 处理 orphaned Actor
-  │     ├── 恢复模式=resume → 从最近快照恢复
+  │     ├── 恢复模式=resume → 从最近 CompactionEntry 边界恢复（summary + 保留消息）
   │     ├── 恢复模式=retry → 从头重试整个请求
   │     └── 恢复模式=abort → 标记 failed，通知调用者
   │
@@ -379,7 +382,7 @@ Lead Actor
 | **Phase 2** | MessageRouter + call-agent 异步模式 + 多用户隔离 | Phase 1 |
 | **Phase 3** | TeamManager + TeamSpec DSL + 共享任务表 | Phase 2 |
 | **Phase 4** | RecoveryManager + 崩溃恢复 + 归档清理 | Phase 1 |
-| **Phase 5** | ResourceGuard + 文件写意图 + 资源配额 | Phase 2 |
+| **Phase 5** | ResourceGuard + 协调信道 + 资源配额 | Phase 2 |
 
 Phase 1 和 Phase 4 可并行开发。Phase 3 依赖 Phase 2 完成。
 

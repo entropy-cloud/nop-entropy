@@ -76,6 +76,9 @@
 - `tool.xdef` / `tool-call.xdef` / `call-tools.xdef` / `call-tools-response.xdef` 的语义定稿
 - `call-agent.tool.xml` 的语义定稿
 - runtime 对上述 DSL 的最小解释闭环
+- 基础上下文压缩：Layer 0（Tool Result 预截断）+ Layer 1（零成本微压缩）+ 基础 Layer 3（LLM 摘要）
+- Token 计数（Provider-reported usage + 简单字符比例估算，不引入 BPE tokenizer）
+- Event Sourcing session 模型（JSONL event log + CompactionEntry）
 
 ### 4.3 验收标准
 
@@ -120,7 +123,10 @@
 
 - 错误分类语义
 - 超时预算语义
-- 压缩保真规则
+- 完整 5 层渐进压缩管道（Layer 2 无 LLM 中间 turn 裁剪 + Layer 4 强制退出）
+- 8 节结构化摘要模板 + 增量摘要更新
+- PreCompact / PostCompact Hook 生命周期
+- 子 Agent compaction 隔离机制
 - 工具验证和安全限制语义
 - 循环检测与回退策略的设计约定
 
