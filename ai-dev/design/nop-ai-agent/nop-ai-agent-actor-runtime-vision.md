@@ -1,18 +1,20 @@
 # Nop AI Agent 高层构想：Actor 模式多 Agent 运行时
 
+**状态**：active — Actor 心智模型已纳入 `00-vision.md` 作为设计基线。本篇定义 Platform Layer 的具体组件设计和实现方案。
+
 ## 1. 目标
 
-本篇定义 Nop AI Agent 运行时的高层架构构想——基于 Java 平台特性、Actor 模型、内存消息队列的多 Agent 运行时。
+本篇定义 Nop AI Agent 运行时的 Platform Layer 具体架构——基于 Java 平台特性、Actor 模型、消息队列的多 Agent 运行时。
 
-**核心命题**：如何在一个 JVM 进程中，安全高效地运行多个 Agent 实例，支持多用户并发、自动恢复、资源隔离。
+**核心命题**：如何在分布式 actor 心智模型下，安全高效地运行多个 Agent 实例，支持多用户并发、自动恢复、资源隔离、无缝扩展到多实例部署。
 
-本篇是 `nop-ai-agent-core-architecture.md` 的**演进规划**，不替代现有设计。现有文档定义的 Agent Engine Layer（ReAct 循环、Session、Hook/Skill、Memory）不变。本篇在其上方新增 **Platform Layer**——多 Agent 运行时。
+本篇是 `01-architecture-baseline.md` 的**扩展**，在其上方新增 **Platform Layer**——多 Agent 运行时。Agent Engine Layer（ReAct 循环、Session、Hook/Skill、Memory）不变。
 
 ## 2. 设计原则
 
 ### 2.1 来自调研的关键洞察
 
-基于 `ai-dev/analysis/agent-survey/` 目录下 12+ 个 Agent 框架的调研分析（综合文档见 `agent-design-key-elements.md`），以下洞察驱动本设计：
+基于对 12+ 个 Agent 框架（OpenCode, oh-my-opencode, agentscope-java, solon-ai, pi-agent 等）的调研分析，以下洞察驱动本设计：
 
 | 洞察 | 来源 | 设计影响 |
 |------|------|---------|
@@ -361,7 +363,7 @@ Lead Actor
 
 | 现有文档 | 本篇关系 |
 |---------|---------|
-| `nop-ai-agent-core-architecture.md` | 本篇在其上方新增 Platform Layer，不改变 Agent Engine Layer |
+| `01-architecture-baseline.md` | 本篇在其上方新增 Platform Layer，不改变 Agent Engine Layer |
 | `nop-ai-agent-react-engine.md` | ReAct 引擎不变，Actor 是其运行时容器 |
 | `nop-ai-agent-multi-agent.md` | 本篇是其 Phase 2+ 的具体实现方案 |
 | `nop-ai-agent-session-and-storage.md` | Session 机制不变，增加 Actor 状态持久化 |

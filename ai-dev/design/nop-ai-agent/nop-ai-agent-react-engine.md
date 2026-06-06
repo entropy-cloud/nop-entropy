@@ -51,7 +51,7 @@ public interface IAgentExecutor {
 
 ### 5.1 双循环模型
 
-ReAct 引擎采用双循环结构（参见 `nop-ai-agent-core-architecture.md` §4.1）：
+ReAct 引擎采用双循环结构（参见 `02-execution-model.md`）：
 
 **外层循环（followUp 循环）**：
 
