@@ -165,6 +165,8 @@ prop:
       createTime: null
       delFlag: null
       provenance: null
+      updatedBy: null
+      updateTime: null
       index: null
       sourceSymbol: null
       sourceSymbol.name: null

@@ -946,9 +946,13 @@
                 <column code="PROVENANCE" displayName="来源" name="provenance"
                         precision="20" propId="15" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CREATED_BY" displayName="创建人" name="createdBy"
-                        propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="CREATED_TIME" displayName="创建时间" name="createTime"
                         propId="13" stdDataType="timestamp" stdSqlType="DATETIME"/>
+                <column code="UPDATED_BY" displayName="更新人" name="updatedBy"
+                        precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="UPDATE_TIME" displayName="更新时间" name="updateTime"
+                        propId="17" stdDataType="timestamp" stdSqlType="DATETIME"/>
                 <column code="DEL_FLAG" displayName="逻辑删除" name="delFlag" precision="1"
                         propId="14" stdDataType="boolean" stdSqlType="TINYINT" stdDomain="boolFlag"/>
             </columns>

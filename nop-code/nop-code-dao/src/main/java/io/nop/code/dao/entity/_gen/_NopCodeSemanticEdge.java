@@ -80,8 +80,16 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     public static final String PROP_NAME_provenance = "provenance";
     public static final int PROP_ID_provenance = 15;
     
+    /* 更新人: UPDATED_BY VARCHAR */
+    public static final String PROP_NAME_updatedBy = "updatedBy";
+    public static final int PROP_ID_updatedBy = 16;
+    
+    /* 更新时间: UPDATE_TIME DATETIME */
+    public static final String PROP_NAME_updateTime = "updateTime";
+    public static final int PROP_ID_updateTime = 17;
+    
 
-    private static int _PROP_ID_BOUND = 16;
+    private static int _PROP_ID_BOUND = 18;
 
     
     /* relation:  */
@@ -100,7 +108,7 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[16];
+    private static final String[] PROP_ID_TO_NAME = new String[18];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -149,6 +157,12 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_provenance] = PROP_NAME_provenance;
           PROP_NAME_TO_ID.put(PROP_NAME_provenance, PROP_ID_provenance);
       
+          PROP_ID_TO_NAME[PROP_ID_updatedBy] = PROP_NAME_updatedBy;
+          PROP_NAME_TO_ID.put(PROP_NAME_updatedBy, PROP_ID_updatedBy);
+      
+          PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
+      
     }
 
     
@@ -196,6 +210,12 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
     
     /* 来源: PROVENANCE */
     private java.lang.String _provenance;
+    
+    /* 更新人: UPDATED_BY */
+    private java.lang.String _updatedBy;
+    
+    /* 更新时间: UPDATE_TIME */
+    private java.sql.Timestamp _updateTime;
     
 
     public _NopCodeSemanticEdge(){
@@ -315,6 +335,12 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
         
             case PROP_ID_provenance:
                return getProvenance();
+        
+            case PROP_ID_updatedBy:
+               return getUpdatedBy();
+        
+            case PROP_ID_updateTime:
+               return getUpdateTime();
         
            default:
               return super.orm_propValue(propId);
@@ -477,6 +503,26 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_updatedBy:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_updatedBy));
+               }
+               setUpdatedBy(typedValue);
+               break;
+            }
+        
+            case PROP_ID_updateTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_updateTime));
+               }
+               setUpdateTime(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -587,6 +633,20 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
             case PROP_ID_provenance:{
                onInitProp(propId);
                this._provenance = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_updatedBy:{
+               onInitProp(propId);
+               this._updatedBy = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_updateTime:{
+               onInitProp(propId);
+               this._updateTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -878,6 +938,44 @@ public class _NopCodeSemanticEdge extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_provenance,value)){
             this._provenance = value;
             internalClearRefs(PROP_ID_provenance);
+            
+        }
+    }
+    
+    /**
+     * 更新人: UPDATED_BY
+     */
+    public final java.lang.String getUpdatedBy(){
+         onPropGet(PROP_ID_updatedBy);
+         return _updatedBy;
+    }
+
+    /**
+     * 更新人: UPDATED_BY
+     */
+    public final void setUpdatedBy(java.lang.String value){
+        if(onPropSet(PROP_ID_updatedBy,value)){
+            this._updatedBy = value;
+            internalClearRefs(PROP_ID_updatedBy);
+            
+        }
+    }
+    
+    /**
+     * 更新时间: UPDATE_TIME
+     */
+    public final java.sql.Timestamp getUpdateTime(){
+         onPropGet(PROP_ID_updateTime);
+         return _updateTime;
+    }
+
+    /**
+     * 更新时间: UPDATE_TIME
+     */
+    public final void setUpdateTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_updateTime,value)){
+            this._updateTime = value;
+            internalClearRefs(PROP_ID_updateTime);
             
         }
     }

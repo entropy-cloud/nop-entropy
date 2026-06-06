@@ -215,7 +215,7 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                             extMap.putAll(parsed);
                         }
                     } catch (Exception e) {
-                        // ignore parse failure
+                        LOG.debug("Failed to parse existing extData for sealed info", e);
                     }
                 }
                 extMap.put("sealed", true);

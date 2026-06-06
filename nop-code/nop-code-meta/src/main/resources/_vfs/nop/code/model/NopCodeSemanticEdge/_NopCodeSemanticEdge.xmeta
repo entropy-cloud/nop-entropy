@@ -66,7 +66,7 @@
         </prop>
         <prop name="createdBy" displayName="创建人" propId="12" queryable="true" sortable="true" insertable="true"
               updatable="true">
-            <schema type="java.lang.String"/>
+            <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="createTime" displayName="创建时间" propId="13" queryable="true" sortable="true" insertable="true"
               updatable="true">
@@ -79,6 +79,14 @@
         <prop name="provenance" displayName="来源" propId="15" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.lang.String" precision="20"/>
+        </prop>
+        <prop name="updatedBy" displayName="更新人" propId="16" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="更新时间" propId="17" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
         </prop>
         <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
               ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">

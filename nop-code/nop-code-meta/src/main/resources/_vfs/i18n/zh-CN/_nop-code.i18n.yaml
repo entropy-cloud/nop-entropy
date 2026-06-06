@@ -171,6 +171,8 @@ prop:
       targetSymbol: null
       targetSymbol.name: null
       targetSymbolId: 目标符号ID
+      updateTime: 更新时间
+      updatedBy: 更新人
     NopCodeSymbol:
       accessModifier: 访问修饰符
       accessModifier_label: 访问修饰符

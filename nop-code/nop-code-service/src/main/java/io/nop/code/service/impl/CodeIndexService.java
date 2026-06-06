@@ -558,6 +558,8 @@ public class CodeIndexService implements ICodeIndexService {
                     daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
                     return null;
                 }));
+
+        indexLocks.remove(indexId);
     }
 
     private <T extends IDaoEntity> void deleteEntitiesPaged(IOrmSession session,
@@ -1689,9 +1691,11 @@ public class CodeIndexService implements ICodeIndexService {
         flow.setId(entity.getId());
         flow.setName(entity.getName());
         flow.setIndexId(entity.getIndexId());
+        // Field mapping: NopCodeFlow.entryPointId <-> ExecutionFlow.entryPointSymbolId
         flow.setEntryPointSymbolId(entity.getEntryPointId());
         flow.setEntryPointQualifiedName(entity.getEntryPointQualifiedName());
         flow.setDepth(entity.getDepth() != null ? entity.getDepth() : 0);
+        // Field mapping: NopCodeFlow.overallScore <-> ExecutionFlow.criticality
         flow.setCriticality(entity.getOverallScore() != null ? entity.getOverallScore() : 0.0);
         return flow;
     }

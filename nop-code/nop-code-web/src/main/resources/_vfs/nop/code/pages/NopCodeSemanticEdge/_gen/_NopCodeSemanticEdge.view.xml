@@ -59,6 +59,12 @@
 
                 <!--来源-->
                 <col id="provenance" sortable="true"/>
+
+                <!--更新人-->
+                <col id="updatedBy" sortable="true"/>
+
+                <!--更新时间-->
+                <col id="updateTime" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -74,6 +80,7 @@
  extractorId[提取器ID] extData[扩展数据]
  createdBy[创建人] createTime[创建时间]
  delFlag[逻辑删除] provenance[来源]
+ updatedBy[更新人] updateTime[更新时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-语义边" i18n-en:title="Add Semantic Edge">
@@ -84,7 +91,8 @@
  confidenceScore[置信度分数] rationale[原因]
  extractorId[提取器ID] extData[扩展数据]
  createdBy[创建人] createTime[创建时间]
- provenance[来源] 
+ provenance[来源] updatedBy[更新人]
+ updateTime[更新时间] 
 </layout>
         </form>
         <form id="edit" editMode="edit" title="编辑-语义边" i18n-en:title="Edit Semantic Edge">
@@ -96,6 +104,7 @@
  extractorId[提取器ID] extData[扩展数据]
  createdBy[创建人] createTime[创建时间]
  delFlag[逻辑删除] provenance[来源]
+ updatedBy[更新人] updateTime[更新时间]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

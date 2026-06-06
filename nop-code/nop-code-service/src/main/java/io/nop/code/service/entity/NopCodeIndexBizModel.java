@@ -77,18 +77,28 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("indexId") String indexId,
             @Name("projectPath") String projectPath,
             @Name("manifestPath") String manifestPath) {
-        int fileCount = codeIndexService.triggerIncrementalIndex(
-                indexId, projectPath, manifestPath);
+        try {
+            int fileCount = codeIndexService.triggerIncrementalIndex(
+                    indexId, projectPath, manifestPath);
 
-        IncrementalStatus status = new IncrementalStatus();
-        status.setIndexId(indexId);
-        status.setMode("incremental");
-        status.setFileCount(fileCount);
-        status.setCompleted(true);
-        incrementalStatusMap.put(indexId, status);
+            IncrementalStatus status = new IncrementalStatus();
+            status.setIndexId(indexId);
+            status.setMode("incremental");
+            status.setFileCount(fileCount);
+            status.setCompleted(true);
+            incrementalStatusMap.put(indexId, status);
 
-        LOG.info("Incremental index completed: indexId={}, files={}", indexId, fileCount);
-        return fileCount;
+            LOG.info("Incremental index completed: indexId={}, files={}", indexId, fileCount);
+            return fileCount;
+        } catch (Exception e) {
+            IncrementalStatus status = new IncrementalStatus();
+            status.setIndexId(indexId);
+            status.setMode("incremental");
+            status.setCompleted(false);
+            status.setErrorMessage(e.getMessage());
+            incrementalStatusMap.put(indexId, status);
+            throw e;
+        }
     }
 
     @BizQuery
