@@ -1,90 +1,91 @@
-# 维度 07：BizModel 规范遵循 — nop-code 模块审计报告
-
-## 审计范围
-
-**目标模块**: nop-code（nop-code-service 子模块）
-**审计对象**: 11 个 `@BizModel` 注解类 + 4 个 impl/ 内部实现类
-
----
+# 维度 07：BizModel 规范遵循
 
 ## 第 1 轮（初审）
 
-### [维度07-01] impl/ 内部类使用 `*Service` 命名违反 Nop 命名规范
+### [维度07-01] 委托类使用 *Service 命名违反 Nop 平台命名约定
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:93`, `CodeQueryService.java:26`, `CodeSearchService.java:24`, `CodeGraphService.java:35`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java:102`
 - **证据片段**:
   ```java
-  // CodeIndexService.java:93
+  // CodeIndexService.java:102
   public class CodeIndexService implements ICodeIndexService {
-  
-  // CodeQueryService.java:26
-  class CodeQueryService {
-  
-  // CodeSearchService.java:24
-  class CodeSearchService {
-  
-  // CodeGraphService.java:35
+
+  // CodeGraphService.java:46
   class CodeGraphService {
+
+  // CodeSearchService.java:31
+  class CodeSearchService {
+
+  // CodeQueryService.java:39
+  class CodeQueryService {
   ```
 - **严重程度**: P2
-- **现状**: 4 个内部实现类均以 `*Service` 命名。`service-layer.md` 明确规定"不要在 Nop 模块中创建 `*Service` / `*Controller` 类——这些职责由 BizModel 和 `I*Biz` 接口承担"。其中 CodeIndexService 是 IoC 托管 Bean，其余 3 个是 package-private 辅助类。
-- **风险**: `*Service` 命名在 Spring 中有特定含义，在 Nop 上下文中容易造成架构理解混乱。这些类实际上是 BizModel 的 Processor/Helper。
-- **建议**: 重命名为 Processor 风格（如 `CodeIndexProcessor`、`CodeQueryProcessor`、`CodeSearchProcessor`、`CodeGraphProcessor`），或将辅助类重命名为 `*Helper`/`*Analyzer`。
-- **信心水平**: 高 (85%)
-- **误报排除**: `service-layer.md` 中有明确的禁止条目，且 4 个类形成了一个隐含的 Service Layer，与 Nop 平台 BizModel + Processor 设计意图结构性偏离。
+- **现状**: `CodeIndexService` 是注册的 NopIoC bean，被三个 BizModel 通过 `@Inject` 注入使用。`CodeGraphService`、`CodeSearchService`、`CodeQueryService` 是包级私有的内部委托类。四个类均以 `*Service` 结尾，与 `service-layer.md` 明确规定的"不要在 Nop 模块中创建 `*Service` / `*Controller` 类"冲突。
+- **风险**: 可能导致新开发者误解其角色为 Spring 风格 Service 层而非 Processor/委托类。与仓库中其他模块的命名风格不一致。
+- **建议**: `CodeIndexService` 重命名为 `CodeIndexProcessor`（或 `CodeIndexManager`），包级私有类重命名为 `CodeGraphHelper`/`CodeSearchHelper`/`CodeQueryHelper`，同步更新 beans.xml。
+- **信心水平**: 高
+- **误报排除**: `service-layer.md` 将 `*Service` 命名列在"默认不要这样写"清单中，属于明确的约定违反。`CodeIndexService` 是 NopIoC 注册的公共 bean，其命名对所有使用者可见。
 - **复核状态**: 未复核
 
-### [维度07-02] NopCodeIndexBizModel 方法过度集中——依赖/流分析方法应归属各自聚合根 BizModel
+### [维度07-02] incrementalStatusMap 使用非持久化内存状态，集群部署和重启时状态丢失
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:170-276`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:44-50, 106-108`
 - **证据片段**:
   ```java
-  // NopCodeIndexBizModel.java:170-198 — 6个依赖分析方法
+  // NopCodeIndexBizModel.java:44-50
+  private final Map<String, IncrementalStatus> incrementalStatusMap = Collections.synchronizedMap(
+          new LinkedHashMap<String, IncrementalStatus>(16, 0.75f, true) {
+              @Override
+              protected boolean removeEldestEntry(Map.Entry<String, IncrementalStatus> eldest) {
+                  return size() > MAX_STATUS_ENTRIES;  // MAX_STATUS_ENTRIES = 20
+              }
+          });
+
+  // NopCodeIndexBizModel.java:106-108
   @BizQuery
-  @Auth(permissions = "code-query")
-  public DepGraphDTO getDeps(
-          @Name("indexId") String indexId,
-          @Name("filePath") String filePath,
-          @Name("depth") @Optional Integer depth) {
-      int maxDepth = depth != null && depth > 0 ? depth : 3;
-      return codeIndexService.getDeps(indexId, filePath, maxDepth);
+  @Auth(permissions = "NopCodeIndex:query")
+  public IncrementalStatus getIncrementalStatus(@Name("indexId") String indexId) {
+      return incrementalStatusMap.get(indexId);
   }
-  
-  // NopCodeIndexBizModel.java:200-234 — 5个流分析方法
-  @BizMutation
-  @Auth(roles = "admin")
-  public List<ExecutionFlow> detectFlows(@Name("indexId") String indexId) { ... }
   ```
 - **严重程度**: P2
-- **现状**: `NopCodeIndexBizModel` 拥有 24 个方法，其中至少 11 个直接操作非 NopCodeIndex 聚合根的实体（6 个依赖分析方法、5 个流分析方法）。而对应的 `NopCodeDependencyBizModel` 和 `NopCodeFlowBizModel` 均为空壳，只有构造函数 + setEntityName()。
-- **风险**: 违反 `service-layer.md` 的归属规则。`NopCodeIndexBizModel` 成为 God Class（344 行、24 个方法），增加维护成本和理解难度。
-- **建议**: 将依赖分析方法迁移到 `NopCodeDependencyBizModel`，流分析方法迁移到 `NopCodeFlowBizModel`。注意迁移后 GraphQL API 路径会变化，需同步更新前端调用。
-- **信心水平**: 中高 (75%)
-- **误报排除**: `service-layer.md` 有明确的归属判断表，11 个方法集中在错误 BizModel 中有结构性维护成本。但所有方法都以 `indexId` 作为入参，作为编排入口也有一定合理性。
+- **现状**: `triggerFullIndex` 和 `triggerIncrementalIndex` 执行后将状态写入 `incrementalStatusMap`（内存 LRU Map，最多 20 条）。`getIncrementalStatus` 从同一 Map 读取。状态无持久化、无集群同步、无 TTL。
+- **风险**: 重启后所有状态丢失；多节点部署中状态仅在执行节点可见；超过 20 个 indexId 后早期状态被淘汰。API 行为不确定。
+- **建议**: 短期：`getIncrementalStatus` 返回 null 时回退查询 NopCodeIndex 实体 status 字段。中期：将 IncrementalStatus 持久化到 extData 或专用字段。
+- **信心水平**: 高
+- **误报排除**: `incrementalStatusMap` 是 BizModel 实例字段，承载用户可查询的 API 语义（`getIncrementalStatus`），丢失导致 API 行为不符合消费者预期。这不是一般缓存问题。
 - **复核状态**: 未复核
 
-### [维度07-03] NopCodeIndexBizModel 在单例中维护可变内存状态
+### [维度07-03] BizModel 方法参数命名与底层接口参数命名不一致
 
-- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:38,336-343`
+- **文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java:112-117`
+- **对照文件**: `nop-code/nop-code-service/src/main/java/io/nop/code/service/api/ICodeIndexService.java:22`
 - **证据片段**:
   ```java
-  // NopCodeIndexBizModel.java:38
-  private final Map<String, IncrementalStatus> incrementalStatusMap = new java.util.concurrent.ConcurrentHashMap<>();
-  
-  // NopCodeIndexBizModel.java:336-343
-  private void evictStatusMap() {
-      while (incrementalStatusMap.size() > MAX_STATUS_ENTRIES) {
-          String key = incrementalStatusMap.keySet().iterator().next();
-          if (key != null) {
-              incrementalStatusMap.remove(key);
-          }
-      }
+  // NopCodeIndexBizModel.java:112-117 — 使用 "directoryPath"
+  @BizMutation
+  public int indexDirectory(
+          @Name("indexId") String indexId,
+          @Name("directoryPath") String directoryPath,
+          @Name("filePattern") @Optional String filePattern) {
+      return codeIndexService.indexDirectory(indexId, directoryPath, filePattern);
   }
+
+  // ICodeIndexService.java:22 — 使用 "vfsPath"
+  int indexDirectory(String indexId, String vfsPath, String filePattern);
   ```
 - **严重程度**: P3
-- **现状**: BizModel 单例中维护 `ConcurrentHashMap<String, IncrementalStatus>`，用于跟踪增量索引操作的状态。不持久化、不共享（多实例部署时状态不一致）、有淘汰机制（MAX=20）。
-- **风险**: 多实例部署时 `getIncrementalStatus()` 在非执行索引的实例上返回 null。状态为临时进度数据，丢失不影响核心功能。
-- **建议**: 单实例部署可接受。未来需多实例时考虑持久化到 `NopCodeIndex` 扩展字段或使用分布式缓存。
-- **信心水平**: 高 (90%)
-- **误报排除**: BizModel 单例中的可变状态在多实例部署场景下会产生不一致行为。但因为上限已控制且数据为临时状态，严重程度降低为 P3。
+- **现状**: BizModel 层参数名 `directoryPath`，ICodeIndexService 接口参数名 `vfsPath`，另外 `triggerFullIndex` 使用 `projectPath`。三个不同命名指代同一概念（VFS 路径）。
+- **风险**: 跨层调试时产生实际困惑。开发者阅读 BizModel 时可能认为参数是本地文件系统路径，而实际经过 VFS 解析。
+- **建议**: 统一参数命名，或在 BizModel 方法注释中明确说明参数会被转换为 VFS 路径。
+- **信心水平**: 中
+- **误报排除**: 三个不同命名（`directoryPath`、`projectPath`、`vfsPath`）指代同一概念，在跨层调试时会产生实际困惑。
 - **复核状态**: 未复核
+
+## 最终保留项
+
+| 编号 | 严重程度 | 文件路径 | 一句话摘要 |
+|------|---------|---------|-----------|
+| [维度07-01] | P2 | nop-code-service/.../impl/CodeIndexService.java | 委托类使用 *Service 命名违反平台约定 |
+| [维度07-02] | P2 | nop-code-service/.../entity/NopCodeIndexBizModel.java | incrementalStatusMap 内存状态无持久化/集群同步 |
+| [维度07-03] | P3 | nop-code-service/.../entity/NopCodeIndexBizModel.java | 参数命名不一致 directoryPath/projectPath/vfsPath |
