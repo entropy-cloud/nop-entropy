@@ -22,6 +22,12 @@ XDef 的目标不是再造一层与最终 DSL 完全不同的 schema，而是让
 </your-tag>
 ```
 
+## 硬性前提：读 XDSL 必须先读 xdef
+
+理解或修改任何 XDSL 文件（`.view.xml`、`.xmeta`、`.orm.xml`、`.beans.xml` 等）时，**必须先读取其 `x:schema` 引用的 `.xdef` 文件**。xdef 是该 DSL 结构的唯一权威来源——元素名、属性类型、子节点结构、key-attr 等全部由 xdef 定义。不要跳过 xdef 直接在 Java 代码中 grep 类名来猜测结构，这会走弯路。
+
+典型路径：看到 `x:schema="/nop/schema/xui/xview.xdef"` → 读该 xdef → 理解 `<objMeta>v-path</objMeta>` 等定义 → 再按需查 Java 实现。
+
 ## 最适合 AI 记住的几条规则
 
 ### 1. 简单标量优先写成属性
