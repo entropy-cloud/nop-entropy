@@ -304,7 +304,7 @@ fname() { commands; }
 
 ### 6.3 信号处理
 
-模拟 shell 不支持真实信号。但以下行为有对应：
+nop-ai-shell 虚拟 shell 不支持真实信号。但以下行为有对应：
 
 | 信号 | 模拟行为 |
 |------|---------|
@@ -429,9 +429,37 @@ test -f file && echo "exists"
 
 ---
 
-## 十、与 bash.tool.xml 的关系
+## 十、拒绝了什么
 
-模拟 shell 作为 `bash` tool 的替代 executor，使用相同的 tool schema：
+### 拒绝：完整 bash 兼容
+
+**方案**：实现 bash 的完整语法集（包括控制流、函数、数组、进程替换等）。
+
+**拒绝理由**：LLM（特别是 coding agent）只生成 bash 的基础子集。完整兼容需要 15000+ 行代码（brush-shell 规模），收益不成比例。且完整 bash 兼容增加攻击面。
+
+### 拒绝：控制流语句（if/for/while/case）
+
+**方案**：解析和执行 `if/then/fi`、`for/do/done`、`while/do/done` 等控制流。
+
+**拒绝理由**：LLM 极少生成复杂 shell 控制流。条件执行可用 `&&`/`||` 替代，循环可用管道 + `xargs` 替代。控制流引入无限循环风险（`while true`），在虚拟 shell 中难以安全控制。
+
+### 拒绝：命令替换 `$()` 和反引号
+
+**方案**：支持 `$(cmd)` 和 `` `cmd` `` 将命令输出嵌入参数。
+
+**拒绝理由**：命令替换需要递归解析和执行，实现复杂度高。LLM 在 Agent 场景中通常分步执行而非嵌套命令替换。
+
+### 拒绝：静默忽略不支持的语法
+
+**方案**：遇到不支持的语法时不报错，尽量执行能识别的部分。
+
+**拒绝理由**：静默忽略会导致 LLM 误以为命令成功执行，产生幻觉。明确错误（exitCode + stderr 描述）让 LLM 自行纠正策略。
+
+---
+
+## 十一、与 bash.tool.xml 的关系
+
+nop-ai-shell 虚拟 shell 作为 `bash` tool 的替代 executor，使用相同的 tool schema：
 
 ```xml
 <bash id="1" explanation="list files" timeoutMs="30000" workingDir="/workspace">
@@ -456,7 +484,7 @@ dir1</output>
 
 ## 与其他文档的关系
 
-- `nop-ai-shell-simulated-shell.md` — 模拟 Shell 架构设计（本篇的姊妹篇）
+- `nop-ai-shell-design.md` — nop-ai-shell 模块设计（本篇的姊妹篇）
 - `nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/parser/BashSyntaxParser.java` — parser 源码
 - `nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/model/BashLexer.java` — lexer 源码
 - `nop-ai/nop-ai-shell/src/test/java/io/nop/ai/shell/parser/BashSyntaxParserTest.java` — parser 测试用例

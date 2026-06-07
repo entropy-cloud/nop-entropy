@@ -93,8 +93,8 @@ Layer 3: Reliability Extensions (可靠性扩展层)
    ─── 依赖 Layer 1-2 接口 ───
 
 Layer 2: Execution Extensions (执行扩展层)
-   IContextGovernor, IToolCallRepairer, ICompactor, IGuardrail,
-   IHook, IRouter, ITalent, IModelDialect
+   IContextGovernor, IToolCallRepairer, IContextCompactor, IContentGuardrail,
+   IAgentLifecycleHook, IModelRouter, ITalent, IModelDialect
    ─── 依赖 Layer 1 接口 ───
 
 Layer 1: Core Interfaces (核心接口层)
@@ -135,16 +135,16 @@ Layer 1: Core Interfaces (核心接口层)
 |------|------|------------------|-------------|
 | `IContextGovernor` | 每轮上下文治理管线 | `NoOpGovernor` | `PipelineGovernor`（5-stage: drop_orphan→backfill→microcompact→budget→snip） |
 | `IToolCallRepairer` | 工具调用修复链 | `NoOpRepairer` | `ChainRepairer`（flatten→scavenge→truncation→storm） |
-| `ICompactor` | 渐进上下文压缩 | `NoOpCompactor` | `ProgressiveCompactor`（MicroCompact→Snip→LLM Summary） |
-| `IGuardrail` | 输入/输出内容护栏 | `NoOpGuardrail` | 用户按需添加（内容过滤、PII 检测等） |
-| `IHook` | 生命周期事件处理 | `PriorityHookChain`（10 点） | 用户按需添加 |
-| `IRouter` | 请求路由策略 | `PassThroughRouter`（直连配置模型） | `SmartRouter`（Judge 分类 + Fallback Chain） |
+| `IContextCompactor` | 渐进上下文压缩 | `NoOpContextCompactor` | `ProgressiveContextCompactor`（MicroCompact→Snip→LLM Summary） |
+| `IContentGuardrail` | 输入/输出内容护栏 | `NoOpContentGuardrail` | 用户按需添加（内容过滤、PII 检测等） |
+| `IAgentLifecycleHook` | 生命周期事件处理 | `PriorityHookChain`（10 点） | 用户按需添加 |
+| `IModelRouter` | 请求路由策略 | `PassThroughModelRouter`（直连配置模型） | `SmartModelRouter`（Judge 分类 + Fallback Chain） |
 | `ITalent` | 动态行为准入 | — (空集合) | 用户按需添加（cli, web, file, data, lsp, text2sql...） |
 | `IModelDialect` | Provider 消息格式转换 | `IdentityDialect`（无转换） | DashScope, OpenAI, Gemini, Anthropic, Ollama |
 
 **扩展方式**：
 - 替换 pass-through 为功能实现（零业务代码改动）
-- 添加自定义 `IGuardrail`（allow/modify/block + streaming abort）
+- 添加自定义 `IContentGuardrail`（allow/modify/block + streaming abort）
 - 添加 `ITalent` 实现（基于关键词/上下文分析动态激活行为和工具集）
 - 添加 Provider 特定 `IModelDialect`（Formatter pattern，与 Nop `IDialect` 一致）
 
@@ -211,16 +211,16 @@ Layer 1: Core Interfaces (核心接口层)
 8. `ITalent` (动态准入扩展点，参考 Solon AI)
 9. `IContextGovernor` (5-stage pipeline)
 10. `IToolCallRepairer` (4-stage repair chain)
-11. `ICompactor` 渐进压缩初始版（Layer 0 Tool Result 预截断 + Layer 1 零成本微压缩 + 基础 Layer 3 LLM 摘要）
+11. `IContextCompactor` 渐进压缩初始版（Layer 0 Tool Result 预截断 + Layer 1 零成本微压缩 + 基础 Layer 3 LLM 摘要）
 12. Token 计数（Provider-reported usage + 简单字符比例估算）
 
 ### 5.2 其次加固（Layer 2 完善 + Layer 3 核心）
 
-13. `IGuardrail` 护栏管线（allow/modify/block + streaming abort）
-14. `IRouter` (Smart Router: Judge 分类 + Fallback Chain)
+13. `IContentGuardrail` 护栏管线（allow/modify/block + streaming abort）
+14. `IModelRouter` (Smart Router: Judge 分类 + Fallback Chain)
 15. `ICircuitBreaker` (ThresholdBreaker) + `IRetryPolicy` (StandardRetryPolicy)
 16. `IGoalTracker` (SessionGoalTracker: 超时豁免 + 透明续接)
-17. `ICompactor` 完整 5 层管道（补充 Layer 2 中间 turn 裁剪 + Layer 4 强制退出）
+17. `IContextCompactor` 完整 5 层管道（补充 Layer 2 中间 turn 裁剪 + Layer 4 强制退出）
 18. `ICheckpointManager` (ToolExecutionCheckpoint)
 
 ### 5.3 后续扩展（Layer 3 完善 + Layer 4）
@@ -293,7 +293,29 @@ Layer 1: Core Interfaces (核心接口层)
 
 ---
 
-## 9. 文档维护建议
+## 9. 拒绝了什么
+
+### 9.1 拒绝：Phase-driven 架构（"第一阶段做 A，第二阶段做 B"）
+
+**方案**：按实施阶段组织架构，每个阶段定义不同的接口集合和依赖关系。
+
+**拒绝理由**：Phase-driven 假设系统在阶段切换时发生结构性变化。实际上，Layer 2 的 pass-through 默认实现使得所有接口始终存在——高级能力只是用功能实现替换默认实现。扩展通过添加接口实现完成，不需要阶段切换。
+
+### 9.2 拒绝：每层独立部署模块
+
+**方案**：Layer 1/2/3/4 各自是独立的 Maven 模块。
+
+**拒绝理由**：层是逻辑组织，不是物理边界。Layer 2 的 pass-through 实现需要在 Layer 1 的 classpath 中可用。拆分模块会增加依赖管理复杂度但没有部署隔离收益。
+
+### 9.3 拒绝：Router/Talent/RetryPolicy 作为 DSL 字段
+
+**方案**：在 `agent.xdef` 中定义 `<router strategy="smart"/>`、`<talent name="cli"/>` 等字段。
+
+**拒绝理由**：路由、动态准入、重试是运行时策略，不是 Agent 配置的固有语义。保持 DSL 精简——只有 Agent 配置语义进 DSL，运行时策略通过 IoC/Delta 注入。
+
+---
+
+## 10. 文档维护建议
 
 后续设计文档建议遵守下面规则：
 
@@ -305,7 +327,7 @@ Layer 1: Core Interfaces (核心接口层)
 
 ---
 
-## 10. 结论
+## 11. 结论
 
 `nop-ai-agent` 的架构组织为四层接口，每层有默认实现和扩展点：
 
@@ -326,5 +348,5 @@ Layer 1: Core Interfaces (核心接口层)
 - `01-architecture-baseline.md` — 架构基线（Layer 1 核心对象的详细定义）
 - `02-execution-model.md` — 执行模型（双循环、Hook 生命周期）
 - `nop-ai-agent-reliability.md` — 可靠性增强（Layer 3 的详细设计）
-- `nop-ai-agent-llm-layer.md` — LLM 层设计（IMessageFormat, IModelDialect, ITalent, IRouter, IRetryPolicy）
+- `nop-ai-agent-llm-layer.md` — LLM 层设计（IMessageFormat, IModelDialect, ITalent, IModelRouter, IRetryPolicy）
 - `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 愿景（Layer 4 的演进方向）

@@ -3,7 +3,7 @@
 **日期**：2026-06-07
 **范围**：`nop-ai-shell` — 进程内虚拟 Shell 执行引擎
 **状态**：active
-**依赖模块**：`nop-ai-toolkit`（Tool 接口）、`nop-core`（IResourceStore）
+**依赖模块**：`nop-ai-toolkit`（IToolExecutor、IToolFileSystem）
 
 ---
 
@@ -75,14 +75,14 @@
 
 **理由**：
 - `IToolFileSystem` 是 toolkit 文件操作的唯一抽象，shell 命令必须复用它
-- `IToolExecutor` 是 Agent Engine 调用工具的唯一入口，模拟 shell 必须实现它
+- `IToolExecutor` 是 Agent Engine 调用工具的唯一入口，nop-ai-shell 虚拟 shell 必须实现它
 - 让 shell 依赖 toolkit 而非反过来，保持 toolkit 不感知 shell
 
 **需要对 toolkit 做的改动**：无。toolkit 不需要任何修改。
 
 **需要对 shell 做的改动**：
 1. `IShellCommandExecutionContext` 新增 `getFileSystem()` → `IToolFileSystem`
-2. 新增 `ShellBashExecutor` 实现 `IToolExecutor`，作为模拟 shell 的入口
+2. 新增 `ShellBashExecutor` 实现 `IToolExecutor`，作为 nop-ai-shell 虚拟 shell 的入口
 3. 新增适配层，将 `IToolExecuteContext` 转换为 `IShellCommandExecutionContext`
 
 ### 4.2 调用链
@@ -143,9 +143,9 @@ shell 命令中涉及文件操作（cat, ls, grep, find 等）必须通过 `IToo
 
 ### 5.1 拒绝：让 toolkit 依赖 shell
 
-**方案**：在 toolkit 的 `BashExecutor` 中判断是否使用模拟 shell。
+**方案**：在 toolkit 的 `BashExecutor` 中判断是否使用 nop-ai-shell 虚拟 shell。
 
-**拒绝理由**：toolkit 是工具层，不应感知具体的 shell 实现策略。模拟 shell 是一种可选的执行策略，应该通过 IoC/Delta 定制注入，而不是 toolkit 硬编码。
+**拒绝理由**：toolkit 是工具层，不应感知具体的 shell 实现策略。nop-ai-shell 虚拟 shell 是一种可选的执行策略，应该通过 IoC/Delta 定制注入，而不是 toolkit 硬编码。
 
 ### 5.2 拒绝：shell 命令通过调用 toolkit 的 IToolExecutor 实现文件操作
 
@@ -257,7 +257,7 @@ P1 命令不在 JVM 内模拟，而是通过 `ProcessBuilder` 委托给真实 OS
 | 环境变量数 | environment() 上限 | 100 |
 | 递归命令数 | xargs 嵌套深度 | 3 |
 
-### 7.4 模拟 shell 固有安全优势
+### 7.4 nop-ai-shell 虚拟 shell 固有安全优势
 
 以下风险在 nop-ai-shell 中不可能发生（因为不启动真实进程）：
 - 进程注入（无 fork/exec）
@@ -334,7 +334,7 @@ nop-ai-agent
 
 ## 十一、实施优先级
 
-### Layer 1：接口对齐
+### Step 1：接口对齐
 
 1. `IShellCommandExecutionContext` 新增 `getFileSystem()`
 2. 新增 `ShellBashExecutor`（实现 `IToolExecutor`）
@@ -342,14 +342,14 @@ nop-ai-agent
 4. pom.xml 新增 nop-ai-toolkit 依赖
 5. 修复 ShellCommandExecutorTest（取消 @Disabled）
 
-### Layer 2：核心命令实现
+### Step 2：核心命令实现
 
 6. 实现 P0 文件命令：cat, pwd, mkdir, rm, cp, mv, touch, head, tail, wc, find, grep, sort, tee, test
 7. 变量展开：$VAR, ${VAR}, $?
 8. 改进 LsCommand（从 mock 改为使用 IToolFileSystem）
 9. 管道缓冲区大小限制和背压
 
-### Layer 3：增强命令
+### Step 3：增强命令
 
 10. xargs, sed(基础), awk(基础), tr, cut, uniq, diff
 11. 变量展开增强：${VAR:-default}

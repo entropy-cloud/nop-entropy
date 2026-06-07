@@ -93,6 +93,29 @@
 | 跨子系统专题 | `{topic}-design.md`（放在 `ai-dev/design/` 根目录） | `semantic-edge-design.md` |
 | 目录名 | 模块名（与 Maven 模块一致） | `nop-job/`、`nop-stream/` |
 
+### 接口命名规则
+
+接口名应足够自描述，避免与 Java 生态中常见的同名接口碰撞。规则：
+
+1. **用接口操作的对象限定，不用子系统前缀**：`IAgentXxx` 是懒前缀——所有东西都是 Agent 的。应该用操作对象来限定
+2. **概念标准且不易混淆的名称可以保持简短**：`ICircuitBreaker`、`IRetryPolicy` 等概念在 Java 生态中已固定，上下文足够清晰
+3. **过于通用的名称必须限定**：如果接口名脱离包名后在 import 层可能与其他库碰撞，就必须加限定词
+
+| 反模式 | 正确 | 理由 |
+|--------|------|------|
+| `IHook` | `IAgentLifecycleHook` | "Hook" 太通用（Reactor、JUnit 都有 Hook） |
+| `IRouter` | `IModelRouter` | "Router" 是 Java 生态中最拥挤的名字之一（HTTP、消息、Faces） |
+| `ICompactor` | `IContextCompactor` | 概念模糊——压缩什么？上下文？内存？日志？ |
+| `IGuardrail` | `IContentGuardrail` | 操作对象是 LLM 输入/输出内容 |
+| `ICircuitBreaker` | 保持 | 概念标准，上下文清晰 |
+| `IRetryPolicy` | 保持 | 概念标准，上下文清晰 |
+| `ITalent` | 保持 | 足够独特 |
+| `ISustainer` | 保持 | 足够独特 |
+| `IGoalTracker` | 保持 | 足够具体 |
+| `ICheckpointManager` | 保持 | 足够具体 |
+
+实现类名跟随接口限定：`NoOpContextCompactor`（不是 `NoOpCompactor`）、`SmartModelRouter`（不是 `SmartRouter`）。
+
 ### 完整范例
 
 `nop-ai-agent/` 是当前最完整的范例，8 层结构：

@@ -61,9 +61,9 @@
 | `Agent` | 无状态执行体，根据 AgentModel 的配置驱动执行循环 | 不持有状态——AgentSession 作为上下文传入 |
 | `AgentSession` | 按 sessionId 获取的独立状态对象，持久化跨请求存在 | 状态恢复的载体；可以被任意服务实例接管 |
 | `AgentExecutionContext` | 单次执行的全部内存态数据的容器 | 生命周期与单次执行绑定，不跨执行复用 |
-| `IAgentExecutor` | 定义执行模式（ReAct、单轮、流式等）的策略接口 | 不持有配置——从上下文中读取；第一阶段只实现 ReAct |
+| `IAgentExecutor` | 定义执行模式（ReAct、单轮、流式等）的策略接口 | 不持有配置——从上下文中读取；Layer 1 只实现 ReAct |
 | `AgentEventPublisher` | 将执行状态变化投影为外部可观察的事件流 | 事件类型稳定；不修改执行状态 |
-| `IAgentMemory` | Agent 的三层记忆管理 | 短期记忆（context window 管理 + compaction）是核心职责；Working Memory 和长期记忆按阶段引入 |
+| `IAgentMemory` | Agent 的三层记忆管理 | 短期记忆（context window 管理 + compaction）是核心职责；Working Memory（Layer 2）和长期记忆（Layer 4）按层引入 |
 | `IMessageFormat` | Provider 无关的统一消息格式 | 仅 2 角色(user/assistant)，6 种 ContentBlock，ToolResultReference 懒加载。见 `nop-ai-agent-llm-layer.md` |
 
 ### Memory 模型（三层）
@@ -255,5 +255,5 @@ Agent 的任务管理由两个互补机制组成：
 - `02-execution-model.md` — 执行模型详细设计（双循环、Hook、Steering）
 - `nop-ai-agent-context-model.md` — 上下文模型（维度、继承、fork）
 - `nop-ai-agent-multi-agent.md` — 多 Agent 协同（冲突检测、资源竞争）
-- `nop-ai-agent-llm-layer.md` — LLM 层设计（IMessageFormat, IModelDialect, ITalent, IRouter, IRetryPolicy）
+- `nop-ai-agent-llm-layer.md` — LLM 层设计（IMessageFormat, IModelDialect, ITalent, IModelRouter, IRetryPolicy）
 - `nop-ai-agent-roadmap.md` — 分层架构与实施路线（四层接口组织）
