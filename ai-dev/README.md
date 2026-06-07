@@ -32,3 +32,39 @@
 - 所有 AI 开发计划必须写在 `plans/` 下，禁止写入 `docs/plans/`。
 - 每个子目录的 `00-*-guide.md` 或 `README.md` 是该目录的入口和规范。
 - 按时间组织的内容（logs、bugs）采用逆序排列（最新在前）。
+
+## 归档规范
+
+当 `plans/` 或 `audits/` 目录下文件数量过多时，将已完成的旧文件归档到 `archived/` 目录：
+
+```
+ai-dev/
+├── plans/                  # 活跃的 plans
+├── audits/                 # 活跃的 audits
+└── archived/
+    ├── plans/
+    │   └── YYYY-MM/        # 按月归档
+    └── audits/
+        └── YYYY-MM/        # 按月归档
+```
+
+### 归档策略
+
+- **按实体类型为第一级分类**，按月份（YYYY-MM）为第二级分类
+- 采用 `archived/{type}/YYYY-MM/` 而非 `archived/YYYY-MM/{type}/`
+- 使用 YYYY-MM 单层目录，字母序天然按时间排列
+
+### 设计理由
+
+1. 实际使用中以类型查找为主（"找某个 plan"比"找某个月的所有东西"更常见）
+2. 与源目录结构对称：`plans/` → `archived/plans/`，归档脚本简单
+3. plans 和 audits 生命周期可能不同，按类型分开便于独立管理清理策略
+
+### 归档时机
+
+将已标记为 completed/done 且超过活跃期的文件移动到对应月份的归档目录：
+
+```
+plans/已完成旧文件 → archived/plans/2026-04/
+audits/已完成旧文件 → archived/audits/2026-05/
+```
