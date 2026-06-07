@@ -2,18 +2,18 @@
 
 核心定位：**面向大规模无人值守自动化执行**。
 
-本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，从高层设计原则到分项设计逐层展开：
+本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，采用**四层接口架构**——扩展通过添加接口实现，不通过阶段切换。
 
-1. **设计原则层** — 为什么做、约束是什么、不做什么
-2. **架构基线层** — 系统分层、核心对象、模块边界、关键决策
-3. **执行模型层** — 双循环、Hook 生命周期、Steering
-4. **DSL 层** — 配置形态
-5. **Java 引擎层** — 执行引擎详细设计
-6. **语义映射层** — DSL 到运行时的映射
-7. **策略层** — 会话、安全、可靠性等边界约束
-8. **愿景层** — 未来演进方向（不驱动当前实现）
+分层架构（详见 `nop-ai-agent-roadmap.md`）：
 
----
+```
+Layer 4: Platform Extensions (平台扩展层)
+Layer 3: Reliability Extensions (可靠性扩展层)
+Layer 2: Execution Extensions (执行扩展层)
+Layer 1: Core Interfaces (核心接口层)
+```
+
+文档按设计维度组织：
 
 ## 设计原则层
 
@@ -36,6 +36,8 @@
 
 - `02-execution-model.md`
   - 双循环模型（followUp + ReAct）、Steering 机制、Hook 生命周期、执行控制（循环控制 + 资源控制）、错误处理分类
+- `nop-ai-agent-llm-layer.md`
+  - LLM 层接口设计（Layer 2 Execution Extensions）：IMessageFormat (CanonicalMessage)、IModelDialect (Formatter)、ITalent (动态准入)、IRouter (Smart Router)、IRetryPolicy (Provider 重试)、Cache-First 三区域架构
 - `04-tool-invocation.md`
   - 工具发现、执行流程、并行执行、JSON Schema 兼容
 
@@ -72,6 +74,10 @@
   - 权限、安全边界、目录保护
 - `nop-ai-agent-reliability.md`
   - 错误分类、压缩、超时、回退、恢复、崩溃恢复模型
+- `nop-ai-shell-design.md`
+  - nop-ai-shell 模块设计：与 nop-ai-toolkit 接口对齐、命令分层、混合执行模式
+- `nop-ai-shell-syntax-spec.md`
+  - nop-ai-shell 语法规范：支持的 bash 子集（Tier 1/2/3）、变量展开、命令行为约定
 - `skill-system-design.md`
   - Skill 系统三层表示（SSL 参照）、匹配机制
 
@@ -80,7 +86,7 @@
 - `nop-ai-agent-actor-runtime-vision.md`
   - Platform Layer 具体架构：ActorRuntime、MessageRouter、TeamManager、RecoveryManager、ResourceGuard
 - `nop-ai-agent-roadmap.md`
-  - DSL-first + engine-aware 的实施路线和阶段定义
+  - **分层架构与实施路线**：四层接口组织（Core → Execution → Reliability → Platform），扩展通过添加接口实现
 
 ---
 
@@ -94,15 +100,16 @@
 
 **按需深入**：
 
-4. `nop-ai-agent-context-model.md` — 上下文模型
-5. `04-tool-invocation.md` — 工具调用架构
-6. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
-7. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
-8. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
-9. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
-10. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`skill-system-design.md`
+4. `nop-ai-agent-llm-layer.md` — LLM 层接口设计
+5. `nop-ai-agent-context-model.md` — 上下文模型
+6. `04-tool-invocation.md` — 工具调用架构
+7. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
+8. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
+9. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
+10. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
+11. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`skill-system-design.md`
 
 **扩展方向**：
 
-11. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
-12. `nop-ai-agent-roadmap.md` — 实施路线
+12. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
+13. `nop-ai-agent-roadmap.md` — 分层架构与实施路线
