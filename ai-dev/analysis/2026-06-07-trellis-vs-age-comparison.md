@@ -1,5 +1,9 @@
 # 任务级工具 vs 轨迹级方法论：Trellis、OpenSpec 与 AGE 的根本分歧
 
+> Status: final
+> Date: 2026-06-07
+> Scope: 第三方 AI 工程框架 Trellis、OpenSpec 与 AGE (Attractor-Guided Engineering) 的对比
+
 ## 简介
 
 - **Trellis 不是 AGE**。它是一个第三方开源模板 (`@mindfoldhq/trellis`)，目标是"让 AI 编码代理在 14+ 平台上有一致的工程流程"。
