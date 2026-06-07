@@ -9,7 +9,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.biz.INopJobScheduleBiz;
 import io.nop.job.core.ITriggerEvalContext;
@@ -19,24 +18,44 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.job.service.JobContextHelper;
+import io.nop.job.service.fire.FireFactory;
+import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_DISCARDED;
 
 @BizModel("NopJobSchedule")
 public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> implements INopJobScheduleBiz{
+    static final Logger LOG = LoggerFactory.getLogger(NopJobScheduleBizModel.class);
+
+    private static final java.util.Set<String> ENGINE_FIELDS = java.util.Set.of(
+            "activeFireCount", "fireCount", "totalFireCount", "successFireCount", "failFireCount",
+            "lastFireTime", "lastEndTime", "lastFireStatus", "lastDurationMs"
+    );
+
     protected IJobScheduleStore scheduleStore;
 
     public NopJobScheduleBizModel(){
         setEntityName(NopJobSchedule.class.getName());
+    }
+
+    @Override
+    public boolean delete(String id, IServiceContext context) {
+        throw new NopException(ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED)
+                .param("jobScheduleId", id);
     }
 
     @Inject
@@ -50,9 +69,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         NopJobSchedule schedule = requireEntity(id, "enableSchedule", context);
         validateScheduleStatus(schedule, "enableSchedule", _NopJobCoreConstants.SCHEDULE_STATUS_DISABLED);
         schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_ENABLED);
-        if (schedule.getNextFireTime() == null) {
-            schedule.setNextFireTime(recalculateNextFireTime(schedule));
-        }
+        schedule.setNextFireTime(recalculateNextFireTime(schedule));
         persistSchedule(schedule, "enableSchedule", context);
     }
 
@@ -129,9 +146,40 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         persistSchedule(schedule, "archiveSchedule", context);
     }
 
+    @SuppressWarnings("unchecked")
     private void persistSchedule(NopJobSchedule schedule, String action, IServiceContext context) {
-        dao().updateEntityDirectly(schedule);
-        afterEntityChange(schedule, action, context);
+        IOrmEntityDao<NopJobSchedule> ormDao = (IOrmEntityDao<NopJobSchedule>) daoProvider().daoFor(NopJobSchedule.class);
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            List<NopJobSchedule> updated = ormDao.tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updated.isEmpty()) {
+                afterEntityChange(schedule, action, context);
+                return;
+            }
+
+            NopJobSchedule fresh = ormDao.requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            restoreEngineFields(schedule, fresh);
+        }
+
+        LOG.warn("nop.job.schedule.persist-optimistic-lock-exhausted:scheduleId={}", schedule.getJobScheduleId());
+        throw new NopException(ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION)
+                .param("jobScheduleId", schedule.getJobScheduleId())
+                .param("action", action)
+                .param("reason", "Optimistic lock exhausted after 5 retries");
+    }
+
+    private void restoreEngineFields(NopJobSchedule target, NopJobSchedule source) {
+        target.setActiveFireCount(source.getActiveFireCount());
+        target.setFireCount(source.getFireCount());
+        target.setTotalFireCount(source.getTotalFireCount());
+        target.setSuccessFireCount(source.getSuccessFireCount());
+        target.setFailFireCount(source.getFailFireCount());
+        target.setLastFireTime(source.getLastFireTime());
+        target.setLastEndTime(source.getLastEndTime());
+        target.setLastFireStatus(source.getLastFireStatus());
+        target.setLastDurationMs(source.getLastDurationMs());
     }
 
     private void validateManualTriggerSchedule(NopJobSchedule schedule, String action) {
@@ -190,15 +238,12 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         fire.setScheduledFireTime(fireTime);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
         fire.setPlannerInstanceId(AppConfig.hostId());
-        fire.setTriggeredBy(resolveTriggeredBy(context));
+        fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
         fire.setPartitionIndex(schedule.getPartitionIndex());
         fire.setRetryPolicyId(schedule.getRetryPolicyId());
-        fire.setCreatedBy("system");
-        fire.setCreateTime(fireTime);
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(fireTime);
         fire.setJobParamsSnapshot(JsonTool.stringify(resolveJobParams(schedule, overrideParams)));
         fire.setExecutorKind(schedule.getExecutorKind());
+        FireFactory.fillBaseFireFields(fire, fireTime);
         return fire;
     }
 
@@ -221,24 +266,12 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         return Collections.emptyMap();
     }
 
-    private String resolveTriggeredBy(IServiceContext context) {
-        String userName = null;
-        if (context != null) {
-            if (context.getUserContext() != null) {
-                userName = context.getUserContext().getUserName();
-            }
-            if ((userName == null || userName.isEmpty()) && context.getContext() != null) {
-                userName = context.getContext().getUserName();
-            }
-        }
-        return userName == null || userName.isEmpty() ? "system" : userName;
-    }
-
     private Timestamp recalculateNextFireTime(NopJobSchedule schedule) {
+        long now = scheduleStore.getCurrentTime();
         long next = JobTriggerCalculator.calculateNextFireTime(
                 toTriggerSpec(schedule),
                 toEvalContext(schedule),
-                System.currentTimeMillis()
+                now
         );
         return next <= 0 ? null : new Timestamp(next);
     }

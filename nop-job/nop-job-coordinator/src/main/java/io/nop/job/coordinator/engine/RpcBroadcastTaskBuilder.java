@@ -7,7 +7,6 @@
  */
 package io.nop.job.coordinator.engine;
 
-import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.job.core._NopJobCoreConstants;
@@ -20,6 +19,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Builds one NopJobTask per registered service instance for broadcast RPC.
@@ -61,18 +61,25 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             return fallback.buildTasks(fire);
         }
 
+        List<ServiceInstance> healthyInstances = instances.stream()
+                .filter(instance -> instance.isHealthy() && instance.isEnabled())
+                .collect(Collectors.toList());
+        if (healthyInstances.isEmpty()) {
+            return fallback.buildTasks(fire);
+        }
+
         long now = System.currentTimeMillis();
 
         List<NopJobTask> tasks = new ArrayList<>();
-        int total = instances.size();
+        int total = healthyInstances.size();
         for (int i = 0; i < total; i++) {
-            ServiceInstance instance = instances.get(i);
+            ServiceInstance instance = healthyInstances.get(i);
 
             NopJobTask task = new NopJobTask();
             task.setJobFireId(fire.getJobFireId());
             task.setTaskNo(i + 1);
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
-            task.setWorkerInstanceId(AppConfig.hostId());
+            task.setWorkerInstanceId(instance.getInstanceId());
             task.setPartitionIndex(fire.getPartitionIndex());
 
             // Dispatch routing: columns instead of JSON payload
@@ -88,9 +95,5 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             tasks.add(task);
         }
         return tasks;
-    }
-
-    private Map<String, Object> emptyIfNull(Map<String, Object> map) {
-        return map == null ? Map.of() : map;
     }
 }

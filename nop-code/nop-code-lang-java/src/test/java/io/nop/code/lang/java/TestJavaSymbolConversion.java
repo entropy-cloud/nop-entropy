@@ -183,8 +183,7 @@ class TestJavaSymbolConversion {
 
         CodeSymbol sync = findSymbol(result.getSymbols(), "syncMethod");
         assertNotNull(sync);
-        assertNotNull(sync.getExtData());
-        assertTrue(sync.getExtData().contains("synchronized"));
+        assertTrue(sync.isSynchronizedFlag(), "syncMethod should have synchronized modifier");
     }
 
     @Test
@@ -198,9 +197,7 @@ class TestJavaSymbolConversion {
 
         CodeSymbol vol = findSymbol(result.getSymbols(), "counter");
         assertNotNull(vol);
-        assertNotNull(vol.getExtData(), "volatile field should have extData");
-        assertTrue(vol.getExtData().contains("volatile"),
-                "extData should contain 'volatile', was: " + vol.getExtData());
+        assertTrue(vol.isVolatileFlag(), "counter should have volatile modifier");
     }
 
     @Test
@@ -214,9 +211,7 @@ class TestJavaSymbolConversion {
 
         CodeSymbol tr = findSymbol(result.getSymbols(), "temp");
         assertNotNull(tr);
-        assertNotNull(tr.getExtData(), "transient field should have extData");
-        assertTrue(tr.getExtData().contains("transient"),
-                "extData should contain 'transient', was: " + tr.getExtData());
+        assertTrue(tr.isTransientFlag(), "temp should have transient modifier");
     }
 
     private CodeSymbol findSymbol(List<CodeSymbol> symbols, String name) {

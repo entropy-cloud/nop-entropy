@@ -121,6 +121,9 @@ public class TestInputGateBarrierAlignment {
         List<CheckpointBarrier> barriers = new ArrayList<>();
         List<String> records = new ArrayList<>();
 
+        p0.close();
+        p1.close();
+
         while (true) {
             Optional<StreamElement> element = gate.read();
             if (!element.isPresent()) break;
@@ -132,15 +135,6 @@ public class TestInputGateBarrierAlignment {
                 records.add(rec.getValue());
             }
         }
-
-        assertDoesNotThrow(() -> {
-            p0.close();
-            p1.close();
-            while (true) {
-                Optional<StreamElement> element = gate.read();
-                if (!element.isPresent()) break;
-            }
-        }, "Should not throw when reading after barriers have been fully aligned");
 
         assertEquals(1, barriers.size(),
                 "Should emit exactly one aligned barrier for checkpoint 10");

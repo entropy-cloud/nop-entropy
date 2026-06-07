@@ -68,6 +68,31 @@ return doFindPage(query, selection, context);
 
 1. 在普通 BizModel 中直接回退到 `dao().findAllByQuery(query)`。
 2. 把查询 DTO 设计得过重，而不是先用 `QueryBean` 与基础参数表达。
+3. **为多选 IN 查询创建冗余的 `List<String>` 字段**（如 `kinds`），而应该利用 Nop 标准 `filter_` 前缀机制。
+
+## 多选 IN 查询（前端 → 后端）
+
+Nop 前端查询使用 `filter_{field}__{op}` 格式：
+
+- 单值匹配：`filter_status` → `FilterBeans.eq("status", value)`
+- 多值匹配：`filter_kind__in` → `FilterBeans.in("kind", [v1, v2])`
+
+### 配置方式
+
+在 xmeta 的 prop 上设置 `ui:filterOp="in"`：
+
+```xml
+<prop name="kind" queryable="true" ui:filterOp="in">
+    <schema type="java.lang.String" dict="code/symbol_kind"/>
+</prop>
+```
+
+前端渲染引擎会自动：
+1. 将该字段渲染为多选下拉（`select` + `multiple: true`）
+2. 字段名生成为 `filter_kind__in`
+3. 提交时由 `graphqlFilter.ts` 解析为 `{ $type: "in", name: "kind", value: [...] }`
+
+**不要**创建额外的 `kinds`（复数）prop——这绕过了 Nop 标准 filter 机制，导致代码冗余且不符合平台约定。
 
 ## 相关文档
 

@@ -2,6 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
+> Parent: `01-architecture-baseline.md` §6（集成扩展）
 
 ## 1. 定位
 

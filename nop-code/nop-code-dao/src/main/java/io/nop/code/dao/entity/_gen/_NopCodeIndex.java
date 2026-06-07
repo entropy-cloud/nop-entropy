@@ -56,8 +56,16 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     public static final String PROP_NAME_indexVersion = "indexVersion";
     public static final int PROP_ID_indexVersion = 9;
     
+    /* 创建时间: CREATED_TIME DATETIME */
+    public static final String PROP_NAME_createTime = "createTime";
+    public static final int PROP_ID_createTime = 10;
+    
+    /* 更新时间: UPDATE_TIME DATETIME */
+    public static final String PROP_NAME_updateTime = "updateTime";
+    public static final int PROP_ID_updateTime = 11;
+    
 
-    private static int _PROP_ID_BOUND = 10;
+    private static int _PROP_ID_BOUND = 12;
 
     
     /* relation: 文件列表 */
@@ -91,7 +99,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[10];
+    private static final String[] PROP_ID_TO_NAME = new String[12];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -122,6 +130,12 @@ public class _NopCodeIndex extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_indexVersion] = PROP_NAME_indexVersion;
           PROP_NAME_TO_ID.put(PROP_NAME_indexVersion, PROP_ID_indexVersion);
       
+          PROP_ID_TO_NAME[PROP_ID_createTime] = PROP_NAME_createTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_createTime, PROP_ID_createTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
+      
     }
 
     
@@ -151,6 +165,12 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     
     /* 索引版本: INDEX_VERSION */
     private java.lang.Integer _indexVersion;
+    
+    /* 创建时间: CREATED_TIME */
+    private java.sql.Timestamp _createTime;
+    
+    /* 更新时间: UPDATE_TIME */
+    private java.sql.Timestamp _updateTime;
     
 
     public _NopCodeIndex(){
@@ -253,6 +273,12 @@ public class _NopCodeIndex extends DynamicOrmEntity{
             case PROP_ID_indexVersion:
                return getIndexVersion();
         
+            case PROP_ID_createTime:
+               return getCreateTime();
+        
+            case PROP_ID_updateTime:
+               return getUpdateTime();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -354,6 +380,26 @@ public class _NopCodeIndex extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_createTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_createTime));
+               }
+               setCreateTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_updateTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_updateTime));
+               }
+               setUpdateTime(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -422,6 +468,20 @@ public class _NopCodeIndex extends DynamicOrmEntity{
             case PROP_ID_indexVersion:{
                onInitProp(propId);
                this._indexVersion = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_createTime:{
+               onInitProp(propId);
+               this._createTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_updateTime:{
+               onInitProp(propId);
+               this._updateTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -599,6 +659,44 @@ public class _NopCodeIndex extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_indexVersion,value)){
             this._indexVersion = value;
             internalClearRefs(PROP_ID_indexVersion);
+            
+        }
+    }
+    
+    /**
+     * 创建时间: CREATED_TIME
+     */
+    public final java.sql.Timestamp getCreateTime(){
+         onPropGet(PROP_ID_createTime);
+         return _createTime;
+    }
+
+    /**
+     * 创建时间: CREATED_TIME
+     */
+    public final void setCreateTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_createTime,value)){
+            this._createTime = value;
+            internalClearRefs(PROP_ID_createTime);
+            
+        }
+    }
+    
+    /**
+     * 更新时间: UPDATE_TIME
+     */
+    public final java.sql.Timestamp getUpdateTime(){
+         onPropGet(PROP_ID_updateTime);
+         return _updateTime;
+    }
+
+    /**
+     * 更新时间: UPDATE_TIME
+     */
+    public final void setUpdateTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_updateTime,value)){
+            this._updateTime = value;
+            internalClearRefs(PROP_ID_updateTime);
             
         }
     }

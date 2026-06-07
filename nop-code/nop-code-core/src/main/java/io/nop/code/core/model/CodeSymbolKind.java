@@ -20,7 +20,8 @@ public enum CodeSymbolKind {
     PARAMETER(95, "参数"),
     LOCAL_VARIABLE(96, "局部变量"),
     TYPE_PARAMETER(97, "类型参数"),
-    IMPORT(98, "导入");
+    IMPORT(98, "导入"),
+    ROUTE(100, "路由");
 
     private final int value;
     private final String label;

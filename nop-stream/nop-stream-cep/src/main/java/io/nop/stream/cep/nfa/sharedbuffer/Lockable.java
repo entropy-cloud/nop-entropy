@@ -56,6 +56,22 @@ public final class Lockable<T> {
         do {
             old = refCounter.get();
             if (old <= 0) {
+                refCounter.set(0);
+                throw new IllegalStateException("Lockable over-release: refCounter went negative");
+            }
+        } while (!refCounter.compareAndSet(old, old - 1));
+        return old == 1;
+    }
+
+    boolean releaseOrDetach() {
+        int old;
+        do {
+            old = refCounter.get();
+            if (old < 0) {
+                refCounter.set(0);
+                throw new IllegalStateException("Lockable over-release: refCounter went negative");
+            }
+            if (old == 0) {
                 return true;
             }
         } while (!refCounter.compareAndSet(old, old - 1));

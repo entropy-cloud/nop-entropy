@@ -9,11 +9,14 @@
   "callType": "",
   "callType_label": "",
   "context": "",
+  "provenance": "",
+  "metadata": "",
   "index": null,
   "caller": null,
   "caller.name": "",
   "callee": null,
   "callee.name": "",
   "file": null,
-  "file.filePath": ""
+  "file.filePath": "",
+  "metadataComponent": null
 }

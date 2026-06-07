@@ -10,8 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,6 +20,7 @@ public class TestPeriodicWatermarkAdvancement {
 
     private TimestampsAndWatermarksOperator<TestEvent> operator;
     private TestOutput<TestEvent> output;
+    private TestProcessingTimeService processingTimeService;
 
     static class TestEvent {
         final String id;
@@ -32,6 +32,35 @@ public class TestPeriodicWatermarkAdvancement {
         }
     }
 
+    static class TestProcessingTimeService implements ProcessingTimeService {
+        private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "test-processing-time");
+            t.setDaemon(true);
+            return t;
+        });
+
+        @Override
+        public long getCurrentProcessingTime() {
+            return System.currentTimeMillis();
+        }
+
+        @Override
+        public ScheduledFuture<?> registerTimer(long timestamp, ProcessingTimeCallback target) {
+            long delay = Math.max(0, timestamp - getCurrentProcessingTime());
+            return executor.schedule(() -> {
+                try {
+                    target.onProcessingTime(timestamp);
+                } catch (Exception e) {
+                    // ignore
+                }
+            }, delay, TimeUnit.MILLISECONDS);
+        }
+
+        void shutdown() {
+            executor.shutdownNow();
+        }
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         WatermarkStrategy<TestEvent> strategy = WatermarkStrategy
@@ -39,6 +68,8 @@ public class TestPeriodicWatermarkAdvancement {
                 .withTimestampAssigner((event, ts) -> event.timestamp);
 
         operator = new TimestampsAndWatermarksOperator<>(strategy, TEST_WATERMARK_INTERVAL);
+        processingTimeService = new TestProcessingTimeService();
+        operator.processingTimeService = processingTimeService;
         output = new TestOutput<>();
         operator.setOutput((Output) output);
         operator.open();
@@ -48,6 +79,9 @@ public class TestPeriodicWatermarkAdvancement {
     void tearDown() throws Exception {
         if (operator != null) {
             operator.finish();
+        }
+        if (processingTimeService != null) {
+            processingTimeService.shutdown();
         }
     }
 
@@ -98,6 +132,8 @@ public class TestPeriodicWatermarkAdvancement {
                 .withTimestampAssigner((event, ts) -> event.timestamp);
 
         TimestampsAndWatermarksOperator<TestEvent> op = new TimestampsAndWatermarksOperator<>(strategy, 50L);
+        TestProcessingTimeService pts = new TestProcessingTimeService();
+        op.processingTimeService = pts;
         TestOutput<TestEvent> out = new TestOutput<>();
         op.setOutput((Output) out);
         op.open();
@@ -113,6 +149,8 @@ public class TestPeriodicWatermarkAdvancement {
 
         assertEquals(watermarkCountBefore, watermarkCountAfter,
                 "No new watermarks should be emitted after finish()");
+
+        pts.shutdown();
     }
 
     @Test
@@ -144,6 +182,8 @@ public class TestPeriodicWatermarkAdvancement {
                 .withTimestampAssigner((event, ts) -> event.timestamp);
 
         TimestampsAndWatermarksOperator<TestEvent> op = new TimestampsAndWatermarksOperator<>(strategy, 50L);
+        TestProcessingTimeService pts = new TestProcessingTimeService();
+        op.processingTimeService = pts;
         TestOutput<TestEvent> out = new TestOutput<>();
         op.setOutput((Output) out);
         op.open();
@@ -211,5 +251,6 @@ public class TestPeriodicWatermarkAdvancement {
                 "Watermark should reach >= 489 from periodic timer during stream execution, got " + maxWatermark[0]);
 
         op.finish();
+        pts.shutdown();
     }
 }

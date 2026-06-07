@@ -26,6 +26,10 @@ public class JobPartitionResolver {
     private volatile List<ServiceInstance> lastSeenServers;
     private volatile long lastChangeTime;
 
+    private volatile long lastResolveTime;
+    private volatile IntRangeSet cachedPartitions;
+    private static final long CACHE_TTL_MS = 10_000;
+
     public void setNamingService(INamingService namingService) {
         this.namingService = namingService;
     }
@@ -71,9 +75,15 @@ public class JobPartitionResolver {
         sorted.sort(Comparator.comparing(ServiceInstance::getInstanceId));
 
         if (isUnstable(sorted)) {
+            cachedPartitions = null;
             LOG.info("nop.job.cluster.instances-unstable:count={},waiting-stable-window={}ms",
                     sorted.size(), stableWindowMs);
             return null;
+        }
+
+        long now = System.currentTimeMillis();
+        if (cachedPartitions != null && (now - lastResolveTime) < CACHE_TTL_MS) {
+            return cachedPartitions;
         }
 
         String myInstanceId = AppConfig.hostId();
@@ -84,7 +94,10 @@ public class JobPartitionResolver {
         }
 
         LOG.debug("nop.job.cluster.resolved-partitions:range={}", myRange);
-        return myRange.toRangeSet();
+        IntRangeSet result = myRange.toRangeSet();
+        cachedPartitions = result;
+        lastResolveTime = now;
+        return result;
     }
 
     private boolean isUnstable(List<ServiceInstance> current) {
@@ -92,7 +105,8 @@ public class JobPartitionResolver {
         this.lastSeenServers = current;
 
         if (prev == null) {
-            return false;
+            this.lastChangeTime = System.currentTimeMillis();
+            return true;
         }
 
         if (current.size() != prev.size()) {

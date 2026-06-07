@@ -2,7 +2,7 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopJobSchedule.xmeta">
 
     <props>
-        <prop name="scheduleStatus" insertable="false" updatable="false"/>
+        <prop name="scheduleStatus" defaultValue="0" updatable="false"/>
         <prop name="fireCount" insertable="false" updatable="false"/>
         <prop name="activeFireCount" insertable="false" updatable="false"/>
         <prop name="lastFireTime" insertable="false" updatable="false"/>

@@ -29,6 +29,9 @@
 
                 <!--关系类型-->
                 <col id="relationType" mandatory="true" sortable="true"/>
+
+                <!--来源-->
+                <col id="provenance" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -41,6 +44,7 @@
  subTypeId[子类型ID]
  superTypeId[父类型ID]
  relationType[关系类型]
+ provenance[来源]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-继承关系" i18n-en:title="Add Inheritance" x:prototype="edit"/>
@@ -50,6 +54,7 @@
  subTypeId[子类型ID]
  superTypeId[父类型ID]
  relationType[关系类型]
+ provenance[来源]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

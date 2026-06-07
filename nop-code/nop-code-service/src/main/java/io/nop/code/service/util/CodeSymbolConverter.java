@@ -21,17 +21,15 @@ public class CodeSymbolConverter {
         symbol.setParentId(entity.getParentId());
         symbol.setDeclaringSymbolId(entity.getDeclaringSymbolId());
         symbol.setSuperClassName(entity.getSuperClassName());
-        symbol.setAbstractFlag(Boolean.TRUE.equals(entity.getIsAbstract()));
-        symbol.setFinalFlag(Boolean.TRUE.equals(entity.getIsFinal()));
+        symbol.setModifiers(entity.getModifiers() != null ? entity.getModifiers() : 0);
         symbol.setSignature(entity.getSignature());
         symbol.setReturnType(entity.getReturnType());
-        symbol.setStaticFlag(Boolean.TRUE.equals(entity.getIsStatic()));
         symbol.setFieldType(entity.getFieldType());
         symbol.setRawReturnType(entity.getRawReturnType());
         symbol.setRawFieldType(entity.getRawFieldType());
-        symbol.setAsyncFlag(Boolean.TRUE.equals(entity.getAsyncFlag()));
-        symbol.setReadonlyFlag(Boolean.TRUE.equals(entity.getReadonlyFlag()));
         symbol.setExtData(entity.getExtData());
+        symbol.setFilePath(entity.getFilePath());
+        symbol.setLanguage(entity.getLanguage());
         return symbol;
     }
 }

@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopJobSchedule.xbiz">
-
-    <actions/>
+    <actions>
+        <mutation name="enableSchedule">
+            <auth roles="admin" permissions="NopJobSchedule:enableSchedule"/>
+        </mutation>
+        <mutation name="disableSchedule">
+            <auth roles="admin" permissions="NopJobSchedule:disableSchedule"/>
+        </mutation>
+        <mutation name="pauseSchedule">
+            <auth roles="admin" permissions="NopJobSchedule:pauseSchedule"/>
+        </mutation>
+        <mutation name="resumeSchedule">
+            <auth roles="admin" permissions="NopJobSchedule:resumeSchedule"/>
+        </mutation>
+        <mutation name="archiveSchedule">
+            <auth roles="admin" permissions="NopJobSchedule:archiveSchedule"/>
+        </mutation>
+        <mutation name="triggerNow">
+            <auth roles="admin" permissions="NopJobSchedule:triggerNow"/>
+        </mutation>
+    </actions>
 </biz>

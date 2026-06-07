@@ -61,6 +61,7 @@ public class InputGate {
     private boolean barrierEmitted;
 
     private int currentChannelIndex;
+    private int emptyRounds;
 
     public InputGate(List<InputChannel> channels) {
         this(channels, null, true);
@@ -200,12 +201,11 @@ public class InputGate {
             return Optional.of(element);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return Optional.empty();
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "InputGate interrupted");
         }
     }
 
     private Optional<StreamElement> readMultiChannel() {
-        int emptyRounds = 0;
         retry:
         while (true) {
             int channelsChecked = 0;
@@ -237,8 +237,6 @@ public class InputGate {
                         continue;
                     }
 
-                    emptyRounds = 0;
-
                     if (element.isCheckpointBarrier()) {
                         Optional<StreamElement> result = handleBarrierNonRecursive(channelIndex, element.asCheckpointBarrier());
                         if (result != null) return result;
@@ -262,10 +260,6 @@ public class InputGate {
                 return Optional.empty();
             }
 
-            emptyRounds++;
-            if (emptyRounds >= 200) {
-                return Optional.empty();
-            }
             LockSupport.parkNanos(10_000_000L);
         }
     }
@@ -293,24 +287,27 @@ public class InputGate {
                 return null;
             }
 
-        if (barriersRemaining <= 0) {
-            CheckpointBarrier aligned = pendingBarrier;
-            resetBarrierState();
-            return Optional.of(aligned);
+            if (barriersRemaining <= 0) {
+                CheckpointBarrier aligned = pendingBarrier;
+                resetBarrierState();
+                return Optional.of(aligned);
+            }
+        } else {
+            if (pendingBarrier != null && barrier.getId() != pendingBarrier.getId()) {
+                throw new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON,
+                        "Overlapping checkpoint barrier: expected " + pendingBarrier.getId()
+                                + " but got " + barrier.getId() + " on channel " + channelIndex);
+            }
         }
-    } else {
-        if (pendingBarrier != null && barrier.getId() != pendingBarrier.getId()) {
-            throw new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON,
-                    "Overlapping checkpoint barrier: expected " + pendingBarrier.getId()
-                            + " but got " + barrier.getId() + " on channel " + channelIndex);
-        }
-    }
 
-    return null;
+        return null;
     }
 
     private Optional<StreamElement> handleWatermarkNonRecursive(int channelIndex, Watermark watermark) {
         long oldWatermark = currentWatermarks[channelIndex];
+        if (watermark.getTimestamp() <= oldWatermark) {
+            return null;
+        }
         currentWatermarks[channelIndex] = watermark.getTimestamp();
 
         long oldMin = minWatermarkExcluding(channelIndex, oldWatermark);

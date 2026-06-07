@@ -1,11 +1,13 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -162,6 +164,10 @@ public class TestJobTimeoutChecker {
 
         checker.scanOnce();
 
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, task.getTaskStatus());
+
+        checker.scanOnce();
+
         assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus());
     }
 
@@ -301,11 +307,11 @@ public class TestJobTimeoutChecker {
 
         MockTaskStore explodingStore = new MockTaskStore() {
             @Override
-            public void updateTask(NopJobTask task) {
+            public boolean updateTask(NopJobTask task) {
                 if ("t2".equals(task.getJobTaskId())) {
-                    throw new RuntimeException("simulated update failure for t2");
+                    throw new NopException(JobCoreErrors.ERR_JOB_TIMEOUT);
                 }
-                super.updateTask(task);
+                return super.updateTask(task);
             }
         };
         explodingStore.addRunningTask(task1);
@@ -348,11 +354,11 @@ public class TestJobTimeoutChecker {
 
         MockScheduleStore explodingScheduleStore = new MockScheduleStore() {
             @Override
-            public NopJobSchedule loadSchedule(String scheduleId) {
+            public NopJobSchedule tryLoadSchedule(String scheduleId) {
                 if ("s2".equals(scheduleId)) {
-                    throw new RuntimeException("simulated load failure for s2");
+                    throw new NopException(JobCoreErrors.ERR_JOB_TIMEOUT);
                 }
-                return super.loadSchedule(scheduleId);
+                return super.tryLoadSchedule(scheduleId);
             }
         };
         explodingScheduleStore.addSchedule("s1", schedule1);
@@ -365,6 +371,124 @@ public class TestJobTimeoutChecker {
 
         assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire1.getFireStatus());
         assertEquals(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING, fire2.getFireStatus());
+    }
+
+    @Test
+    void test_dispatchTimeoutScheduleDeleted() {
+        NopJobFire fire = createFire("f-deleted", "s-deleted", _NopJobCoreConstants.FIRE_STATUS_DISPATCHING,
+                new Timestamp(currentTime - 10000));
+        fireStore.addDispatchingFire(fire);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals("f-deleted", fireStore.getFailedFireId(),
+                "deleted schedule should trigger failFireWithoutSchedule");
+        assertNotNull(fireStore.getFailedErrorCode());
+    }
+
+    @Test
+    void test_timeoutUpdateTaskVersionConflictLogsWarn() {
+        MockTaskStore versionStore = new MockTaskStore() {
+            @Override
+            public boolean updateTask(NopJobTask task) {
+                return false;
+            }
+        };
+        checker.setTaskStore(versionStore);
+
+        NopJobTask task = createTask("t-ver", "f-ver", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("worker-a");
+        task.setStartTime(new Timestamp(currentTime - 120000));
+        versionStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-ver", "s-ver", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-ver", fire);
+
+        NopJobSchedule schedule = createSchedule("s-ver", "job1");
+        schedule.setTimeoutSeconds(60);
+        scheduleStore.addSchedule("s-ver", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus(),
+                "Task should still be set to TIMEOUT locally even when updateTask returns false");
+    }
+
+    @Test
+    void testExecutionTimeoutUsedWhenScheduleHasNoTimeoutSeconds() {
+        checker.setExecutionTimeoutMs(3000);
+
+        NopJobTask task = createTask("t-exec", "f-exec", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("worker-a");
+        task.setStartTime(new Timestamp(currentTime - 5000));
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-exec", "s-exec", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-exec", fire);
+
+        NopJobSchedule schedule = createSchedule("s-exec", "job1");
+        schedule.setTimeoutSeconds(null);
+        scheduleStore.addSchedule("s-exec", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus(),
+                "Should use executionTimeoutMs when schedule has no timeoutSeconds");
+    }
+
+    @Test
+    void testExecutionTimeoutNotExpiredYet() {
+        checker.setExecutionTimeoutMs(10000);
+
+        NopJobTask task = createTask("t-exec2", "f-exec2", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("worker-a");
+        task.setStartTime(new Timestamp(currentTime - 5000));
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-exec2", "s-exec2", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-exec2", fire);
+
+        NopJobSchedule schedule = createSchedule("s-exec2", "job1");
+        schedule.setTimeoutSeconds(null);
+        scheduleStore.addSchedule("s-exec2", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_RUNNING, task.getTaskStatus(),
+                "Should not timeout if executionTimeoutMs not yet reached");
+    }
+
+    @Test
+    void testExecutionTimeoutPreferredOverDispatchTimeout() {
+        checker.setDispatchTimeoutMs(30000);
+        checker.setExecutionTimeoutMs(3000);
+
+        NopJobTask task = createTask("t-pref", "f-pref", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        task.setWorkerInstanceId("worker-a");
+        task.setStartTime(new Timestamp(currentTime - 5000));
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-pref", "s-pref", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-pref", fire);
+
+        NopJobSchedule schedule = createSchedule("s-pref", "job1");
+        schedule.setTimeoutSeconds(null);
+        scheduleStore.addSchedule("s-pref", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus(),
+                "executionTimeoutMs should be preferred over dispatchTimeoutMs for task execution timeout");
     }
 
     private NopJobTask createTask(String taskId, String fireId, int status) {
@@ -413,17 +537,19 @@ public class TestJobTimeoutChecker {
             return new ArrayList<>(runningTasks);
         }
 
-        @Override public void updateTask(NopJobTask task) {}
+        @Override public boolean updateTask(NopJobTask task) { return true; }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
         @Override public List<NopJobTask> findTasksByFireId(String jobFireId) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
-        @Override public long countRunningTasks(String workerInstanceId) { return 0; }
+        @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
     }
 
     static class MockFireStore implements IJobFireStore {
         private Map<String, NopJobFire> fireMap = new java.util.HashMap<>();
         private List<NopJobFire> dispatchingFires = new ArrayList<>();
+        private String failedFireId;
+        private String failedErrorCode;
 
         void addFire(String fireId, NopJobFire fire) {
             fireMap.put(fireId, fire);
@@ -432,6 +558,9 @@ public class TestJobTimeoutChecker {
         void addDispatchingFire(NopJobFire fire) {
             dispatchingFires.add(fire);
         }
+
+        String getFailedFireId() { return failedFireId; }
+        String getFailedErrorCode() { return failedErrorCode; }
 
         @Override
         public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) {
@@ -454,7 +583,12 @@ public class TestJobTimeoutChecker {
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
         @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {}
         @Override public boolean cancelFire(String jobFireId) { return false; }
+        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+            this.failedFireId = jobFireId;
+            this.failedErrorCode = errorCode;
+        }
         @Override public NopJobFire loadFire(String jobFireId) { return fireMap.get(jobFireId); }
+        @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
     }
 
     static class MockScheduleStore implements IJobScheduleStore {
@@ -477,6 +611,11 @@ public class TestJobTimeoutChecker {
         @Override
         public NopJobSchedule loadSchedule(String scheduleId) {
             return scheduleMap.get(scheduleId);
+        }
+
+        @Override
+        public NopJobSchedule tryLoadSchedule(String id) {
+            return scheduleMap.get(id);
         }
 
         @Override

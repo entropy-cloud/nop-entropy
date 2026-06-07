@@ -1,6 +1,14 @@
 package io.nop.code.graph.impact;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -314,11 +322,8 @@ public class ImpactAnalyzer {
             
             CodeSymbol bestMatch = null;
             for (CodeSymbol symbol : symbolTable.getAll()) {
-                if (symbol.getQualifiedName() != null && 
-                    symbol.getQualifiedName().startsWith(withoutParams)) {
-                    if (symbol.getQualifiedName().equals(withoutParams)) {
-                        return symbol;
-                    }
+                if (symbol.getQualifiedName() != null &&
+                    symbol.getQualifiedName().startsWith(withoutParams + ".")) {
                     if (bestMatch == null) {
                         bestMatch = symbol;
                     }

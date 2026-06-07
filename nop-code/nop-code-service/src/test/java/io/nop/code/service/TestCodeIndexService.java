@@ -20,6 +20,10 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for {@link ProjectAnalyzer} behavior used in the code indexing pipeline.
+ * Despite the class name, this does not test {@link io.nop.code.service.api.ICodeIndexService} directly.
+ */
 @NopTestConfig(enableIoc = OptionalBoolean.FALSE)
 class TestCodeIndexService extends JunitBaseTestCase {
 

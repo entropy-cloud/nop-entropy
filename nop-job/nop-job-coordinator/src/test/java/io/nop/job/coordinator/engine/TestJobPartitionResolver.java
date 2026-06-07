@@ -74,42 +74,50 @@ public class TestJobPartitionResolver {
     }
 
     @Test
-    void testSingleInstanceGetsFullShortRange() {
+    void testSingleInstanceGetsFullShortRange() throws InterruptedException {
         namingService.setInstances(List.of(
                 createInstance(MY_HOST_ID, "host-a", 8080)
         ));
 
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(150);
         IntRangeSet result = resolver.resolvePartitions();
         assertNotNull(result);
         assertEquals(IntRangeBean.shortRange().toRangeSet().toString(), result.toString());
     }
 
     @Test
-    void testMultipleInstancesGetPartitioned() {
+    void testMultipleInstancesGetPartitioned() throws InterruptedException {
         namingService.setInstances(List.of(
                 createInstance("a-node", "host-a", 8080),
                 createInstance(MY_HOST_ID, "host-b", 8080)
         ));
 
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(150);
         IntRangeSet result = resolver.resolvePartitions();
         assertNotNull(result);
         assertEquals(1, result.getRanges().size());
     }
 
     @Test
-    void testMyInstanceNotFoundReturnsNull() {
+    void testMyInstanceNotFoundReturnsNull() throws InterruptedException {
         namingService.setInstances(List.of(
                 createInstance("other-node", "host-a", 8080)
         ));
 
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(150);
         assertNull(resolver.resolvePartitions());
     }
 
     @Test
-    void testFirstResolveWithoutPriorStateSucceeds() {
+    void testFirstCallReturnsNullThenStabilizes() throws InterruptedException {
         namingService.setInstances(List.of(
                 createInstance(MY_HOST_ID, "host-a", 8080)
         ));
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(150);
         assertNotNull(resolver.resolvePartitions());
     }
 
@@ -118,6 +126,8 @@ public class TestJobPartitionResolver {
         namingService.setInstances(List.of(
                 createInstance(MY_HOST_ID, "host-a", 8080)
         ));
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(150);
         assertNotNull(resolver.resolvePartitions());
 
         namingService.setInstances(List.of(
@@ -141,6 +151,8 @@ public class TestJobPartitionResolver {
                 createInstance(MY_HOST_ID, "host-b", 8080),
                 createInstance("c-node", "host-c", 8080)
         ));
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(150);
         assertNotNull(resolver.resolvePartitions());
 
         namingService.setInstances(List.of(
@@ -157,11 +169,13 @@ public class TestJobPartitionResolver {
     }
 
     @Test
-    void testSameMembersNoChangeDoesNotTriggerStabilization() {
+    void testSameMembersNoChangeDoesNotTriggerStabilization() throws InterruptedException {
         namingService.setInstances(List.of(
                 createInstance(MY_HOST_ID, "host-a", 8080)
         ));
 
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(150);
         IntRangeSet first = resolver.resolvePartitions();
         assertNotNull(first);
 
@@ -177,6 +191,8 @@ public class TestJobPartitionResolver {
         namingService.setInstances(List.of(
                 createInstance(MY_HOST_ID, "host-a", 8080)
         ));
+        assertNull(resolver.resolvePartitions(), "First call should return null (unstable)");
+        Thread.sleep(80);
         resolver.resolvePartitions();
 
         namingService.setInstances(List.of(
@@ -189,6 +205,22 @@ public class TestJobPartitionResolver {
         Thread.sleep(80);
 
         assertNotNull(resolver.resolvePartitions());
+    }
+
+    @Test
+    void testCacheReturnsSameResultWithinTtl() throws InterruptedException {
+        namingService.setInstances(List.of(
+                createInstance(MY_HOST_ID, "host-a", 8080)
+        ));
+
+        assertNull(resolver.resolvePartitions(), "First call returns null (unstable)");
+        Thread.sleep(150);
+        IntRangeSet first = resolver.resolvePartitions();
+        assertNotNull(first);
+
+        IntRangeSet second = resolver.resolvePartitions();
+        assertNotNull(second);
+        assertEquals(first.toString(), second.toString(), "Cached result should be returned within TTL");
     }
 
     private ServiceInstance createInstance(String instanceId, String host, int port) {

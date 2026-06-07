@@ -3,7 +3,7 @@
 > Status: active
 > Created: 2026-05-19
 > Updated: 2026-05-23
-> Parent: `architecture.md` §3（执行模型）、`core-design.md` §3（状态管理）
+> Parent: `01-architecture-baseline.md` §4（执行模型）、`state-management-design.md`（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 
 ## 1. 定位与目标
@@ -854,4 +854,4 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 14. 所有分布式 edge 必须配置 `EdgeConfig`
 15. 所有作业终止必须明确 `JobTerminationMode`
 
-> 完整不变量列表以 `architecture.md` §9 为权威来源。
+> 完整不变量列表以 `00-vision.md` §八为权威来源。

@@ -191,7 +191,7 @@ public class CheckpointCoordinator {
         return pending;
     }
 
-    public boolean acknowledgeTask(TaskLocation taskLocation, long checkpointId, TaskStateSnapshot state) {
+    public synchronized boolean acknowledgeTask(TaskLocation taskLocation, long checkpointId, TaskStateSnapshot state) {
         PendingCheckpoint pending = pendingCheckpoints.get(checkpointId);
         if (pending == null) {
             LOG.warn("Received ACK for unknown checkpoint {} from task {}", checkpointId, taskLocation);
@@ -202,14 +202,14 @@ public class CheckpointCoordinator {
         LOG.debug("Task {} acknowledged checkpoint {}, pending tasks: {}",
                 taskLocation, checkpointId, pending.getNumberOfNotAcknowledgedTasks());
 
-        if (pending.isFullyAcknowledged() && !pending.getCompletableFuture().isDone()) {
+        if (pending.isFullyAcknowledged()) {
             completePendingCheckpoint(pending.toCompletedCheckpoint());
         }
 
         return true;
     }
 
-    public void completePendingCheckpoint(CompletedCheckpoint completed) {
+    public synchronized void completePendingCheckpoint(CompletedCheckpoint completed) {
         long checkpointId = completed.getCheckpointId();
         PendingCheckpoint pending = pendingCheckpoints.get(checkpointId);
         if (pending == null) {
@@ -464,6 +464,13 @@ public class CheckpointCoordinator {
         stopCheckpointScheduler();
 
         timeoutScheduler.shutdownNow();
+        try {
+            if (!timeoutScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Timeout scheduler did not terminate within 5 seconds for job {}", jobId);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         for (PendingCheckpoint pending : pendingCheckpoints.values()) {
             long checkpointId = pending.getCheckpointId();

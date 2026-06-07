@@ -1,6 +1,7 @@
 package io.nop.code.service.entity;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.directive.Auth;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeIndexBiz;
 import io.nop.code.core.model.CodeFileAnalysisResult;
@@ -23,18 +25,29 @@ import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.flow.ChangeAnalysisResult;
 import io.nop.code.flow.ExecutionFlow;
 import io.nop.code.service.api.ICodeIndexService;
-import io.nop.code.service.api.dto.*;
+import io.nop.code.api.dto.*;
+import io.nop.code.service.api.dto.FileAnalysisDTO;
+
+import static io.nop.code.service.NopCodeErrors.*;
 @BizModel("NopCodeIndex")
 public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements INopCodeIndexBiz {
 
     private static final Logger LOG = LoggerFactory.getLogger(NopCodeIndexBizModel.class);
 
-    private static final int MAX_STATUS_ENTRIES = 20;
+    private static final int MAX_STATUS_ENTRIES = 100;
+
+    private static final int MAX_SOURCE_CODE_BYTES = 1024 * 1024;
 
     @Inject
     protected ICodeIndexService codeIndexService;
 
-    private final Map<String, IncrementalStatus> incrementalStatusMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, IncrementalStatus> incrementalStatusMap = Collections.synchronizedMap(
+            new LinkedHashMap<String, IncrementalStatus>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, IncrementalStatus> eldest) {
+                    return size() > MAX_STATUS_ENTRIES;
+                }
+            });
 
     public NopCodeIndexBizModel() {
         setEntityName(NopCodeIndex.class.getName());
@@ -45,7 +58,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     public String triggerFullIndex(
             @Name("indexId") String indexId,
             @Name("projectPath") String projectPath) {
-        int fileCount = codeIndexService.indexDirectory(indexId, projectPath, "**/*.java");
+        int fileCount = codeIndexService.indexDirectory(indexId, projectPath, null);
 
         IncrementalStatus status = new IncrementalStatus();
         status.setIndexId(indexId);
@@ -53,7 +66,6 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         status.setFileCount(fileCount);
         status.setCompleted(true);
         incrementalStatusMap.put(indexId, status);
-        evictStatusMap();
 
         LOG.info("Full index completed: indexId={}, files={}", indexId, fileCount);
         return indexId;
@@ -65,23 +77,32 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("indexId") String indexId,
             @Name("projectPath") String projectPath,
             @Name("manifestPath") String manifestPath) {
-        int fileCount = codeIndexService.triggerIncrementalIndex(
-                indexId, projectPath, manifestPath);
+        try {
+            int fileCount = codeIndexService.triggerIncrementalIndex(
+                    indexId, projectPath, manifestPath);
 
-        IncrementalStatus status = new IncrementalStatus();
-        status.setIndexId(indexId);
-        status.setMode("incremental");
-        status.setFileCount(fileCount);
-        status.setCompleted(true);
-        incrementalStatusMap.put(indexId, status);
-        evictStatusMap();
+            IncrementalStatus status = new IncrementalStatus();
+            status.setIndexId(indexId);
+            status.setMode("incremental");
+            status.setFileCount(fileCount);
+            status.setCompleted(true);
+            incrementalStatusMap.put(indexId, status);
 
-        LOG.info("Incremental index completed: indexId={}, files={}", indexId, fileCount);
-        return fileCount;
+            LOG.info("Incremental index completed: indexId={}, files={}", indexId, fileCount);
+            return fileCount;
+        } catch (Exception e) {
+            IncrementalStatus status = new IncrementalStatus();
+            status.setIndexId(indexId);
+            status.setMode("incremental");
+            status.setCompleted(false);
+            status.setErrorMessage(e.getMessage());
+            incrementalStatusMap.put(indexId, status);
+            throw e;
+        }
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public IncrementalStatus getIncrementalStatus(@Name("indexId") String indexId) {
         return incrementalStatusMap.get(indexId);
     }
@@ -92,8 +113,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("indexId") String indexId,
             @Name("directoryPath") String directoryPath,
             @Name("filePattern") @Optional String filePattern) {
-        String pattern = filePattern != null ? filePattern : "**/*.java";
-        return codeIndexService.indexDirectory(indexId, directoryPath, pattern);
+        return codeIndexService.indexDirectory(indexId, directoryPath, filePattern);
     }
 
     @BizMutation
@@ -102,12 +122,17 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("indexId") String indexId,
             @Name("filePath") String filePath,
             @Name("sourceCode") String sourceCode) {
+        if (sourceCode != null && sourceCode.length() > MAX_SOURCE_CODE_BYTES) {
+            throw new NopException(ERR_CODE_SOURCE_CODE_TOO_LARGE)
+                    .param(ARG_FILE_PATH, filePath)
+                    .param(ARG_INDEX_ID, indexId);
+        }
         CodeFileAnalysisResult result = codeIndexService.indexFile(indexId, filePath, sourceCode);
         return FileAnalysisDTO.fromCodeFileAnalysisResult(result);
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public IndexStatsDTO getStats(@Name("indexId") String indexId) {
         return codeIndexService.getIndexStats(indexId);
     }
@@ -121,7 +146,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public CommunityDetectionResultDTO detectCommunities(@Name("indexId") String indexId) {
         CommunityDetectionResultDTO result = codeIndexService.detectCommunities(indexId);
         if (result == null) {
@@ -138,7 +163,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public GraphAnalysisResultDTO getGraphAnalysis(
             @Name("indexId") String indexId,
             @Name("topN") @Optional Integer topN) {
@@ -147,7 +172,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public ImpactResultDTO getImpactAnalysis(
             @Name("indexId") String indexId,
             @Name("symbolId") String symbolId,
@@ -157,7 +182,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public DepGraphDTO getDeps(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath,
@@ -167,7 +192,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public DepGraphDTO getReverseDeps(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath,
@@ -179,7 +204,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<List<String>> findCycles(
             @Name("indexId") String indexId,
             @Name("minSize") @Optional Integer minSize) {
@@ -188,7 +213,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public DepGraphDTO getDepGraph(
             @Name("indexId") String indexId,
             @Name("includeExternal") @Optional Boolean includeExternal) {
@@ -203,13 +228,13 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<ExecutionFlow> listFlows(@Name("indexId") String indexId) {
         return codeIndexService.listFlows(indexId);
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public ExecutionFlow getFlow(
             @Name("indexId") String indexId,
             @Name("flowId") String flowId) {
@@ -217,7 +242,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<ExecutionFlow> getAffectedFlows(
             @Name("indexId") String indexId,
             @Name("changedFilePaths") List<String> changedFilePaths) {
@@ -225,7 +250,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public ChangeAnalysisResult analyzeChanges(
             @Name("indexId") String indexId,
             @Name("baselineCommitish") String baselineCommitish,
@@ -234,7 +259,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public CriticalNodeResultDTO getCriticalNodes(
             @Name("indexId") String indexId,
             @Name("topN") @Optional Integer topN) {
@@ -243,13 +268,13 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public KnowledgeGapResultDTO getKnowledgeGaps(@Name("indexId") String indexId) {
         return codeIndexService.getKnowledgeGaps(indexId);
     }
 
     @BizQuery
-    @Auth(permissions = "code-source-read")
+    @Auth(permissions = "NopCodeIndex:query")
     public String exportGraph(
             @Name("indexId") String indexId,
             @Name("format") String format,
@@ -259,7 +284,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(roles = "admin")
+    @Auth(permissions = "NopCodeIndex:query")
     public GraphDiffDTO diffGraph(
             @Name("baselineIndexId") String baselineIndexId,
             @Name("targetIndexId") String targetIndexId) {
@@ -267,7 +292,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
     }
 
     @BizQuery
-    @Auth(permissions = "code-query")
+    @Auth(permissions = "NopCodeIndex:query")
     public List<String> findDependentFiles(
             @Name("indexId") String indexId,
             @Name("filePath") String filePath) {
@@ -332,12 +357,4 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         }
     }
 
-    private void evictStatusMap() {
-        while (incrementalStatusMap.size() > MAX_STATUS_ENTRIES) {
-            String key = incrementalStatusMap.keySet().iterator().next();
-            if (key != null) {
-                incrementalStatusMap.remove(key);
-            }
-        }
-    }
 }

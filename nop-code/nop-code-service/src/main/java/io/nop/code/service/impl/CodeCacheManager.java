@@ -1,8 +1,10 @@
 package io.nop.code.service.impl;
 
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -15,16 +17,19 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.dao.entity.NopCodeCall;
+import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.flow.FlowDetector;
 import io.nop.code.flow.IFlowDetector;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+
 class CodeCacheManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeCacheManager.class);
 
     static final int MAX_CACHE_ENTRIES = 20;
+    static final long CACHE_TTL_MS = 3600_000L;
     private static final int BATCH_SIZE = 5000;
     private static final int MAX_CACHE_SYMBOLS = 100000;
     private static final int MAX_CACHE_EDGES = 500000;
@@ -32,48 +37,145 @@ class CodeCacheManager {
     static class AnalysisCache {
         SymbolTable symbolTable;
         CallGraph callGraph;
+        List<NopCodeDependency> dependencies;
     }
 
-    private final Map<String, AnalysisCache> analysisCacheMap = new LinkedHashMap<>();
+    static class CacheEntry {
+        final AnalysisCache cache = new AnalysisCache();
+        long lastAccessTime;
 
-    synchronized SymbolTable getOrRebuildSymbolTable(String indexId, IDaoProvider daoProvider,
-                                                      Function<NopCodeSymbol, CodeSymbol> converter) {
-        AnalysisCache cache = analysisCacheMap.get(indexId);
-        if (cache != null && cache.symbolTable != null) {
-            return cache.symbolTable;
+        CacheEntry() {
+            this.lastAccessTime = System.currentTimeMillis();
         }
-        if (cache == null) {
-            cache = new AnalysisCache();
-            analysisCacheMap.put(indexId, cache);
+
+        void touch() {
+            this.lastAccessTime = System.currentTimeMillis();
         }
-        cache.symbolTable = rebuildSymbolTable(indexId, daoProvider, converter);
-        return cache.symbolTable;
+
+        boolean isExpired() {
+            return System.currentTimeMillis() - lastAccessTime > CACHE_TTL_MS;
+        }
     }
 
-    synchronized CallGraph getOrRebuildCallGraph(String indexId, IDaoProvider daoProvider,
-                                                  BiConsumer<CallGraph, NopCodeCall> edgeConsumer) {
-        AnalysisCache cache = analysisCacheMap.get(indexId);
-        if (cache != null && cache.callGraph != null) {
-            return cache.callGraph;
+    private final Map<String, CacheEntry> analysisCacheMap = new LinkedHashMap<>(16, 0.75f, true);
+
+    private final ReentrantLock lock = new ReentrantLock();
+
+    CacheEntry getValidEntry(String indexId) {
+        CacheEntry entry = analysisCacheMap.get(indexId);
+        if (entry == null)
+            return null;
+        if (entry.isExpired()) {
+            analysisCacheMap.remove(indexId);
+            return null;
         }
-        if (cache == null) {
-            cache = new AnalysisCache();
-            analysisCacheMap.put(indexId, cache);
-        }
-        cache.callGraph = rebuildCallGraph(indexId, daoProvider, edgeConsumer);
-        return cache.callGraph;
+        return entry;
     }
 
-    synchronized void invalidateAnalysisCache(String indexId, IFlowDetector flowDetector) {
-        analysisCacheMap.remove(indexId);
+    CacheEntry getOrCreateEntry(String indexId) {
+        CacheEntry entry = getValidEntry(indexId);
+        if (entry != null)
+            return entry;
+        entry = new CacheEntry();
+        analysisCacheMap.put(indexId, entry);
+        evictIfNeeded();
+        return entry;
+    }
+
+    private void evictIfNeeded() {
+        Iterator<CacheEntry> it = analysisCacheMap.values().iterator();
+        while (analysisCacheMap.size() > MAX_CACHE_ENTRIES && it.hasNext()) {
+            CacheEntry candidate = it.next();
+            if (candidate.isExpired()) {
+                it.remove();
+            }
+        }
+        while (analysisCacheMap.size() > MAX_CACHE_ENTRIES) {
+            Iterator<Map.Entry<String, CacheEntry>> mapIt = analysisCacheMap.entrySet().iterator();
+            if (mapIt.hasNext()) {
+                mapIt.next();
+                mapIt.remove();
+            }
+        }
+    }
+
+    SymbolTable getOrRebuildSymbolTable(String indexId, IDaoProvider daoProvider,
+                                         Function<NopCodeSymbol, CodeSymbol> converter) {
+        lock.lock();
+        try {
+            CacheEntry entry = getOrCreateEntry(indexId);
+            if (entry.cache.symbolTable != null) {
+                entry.touch();
+                return entry.cache.symbolTable;
+            }
+            entry.cache.symbolTable = rebuildSymbolTable(indexId, daoProvider, converter);
+            return entry.cache.symbolTable;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    CallGraph getOrRebuildCallGraph(String indexId, IDaoProvider daoProvider,
+                                     BiConsumer<CallGraph, NopCodeCall> edgeConsumer) {
+        lock.lock();
+        try {
+            CacheEntry entry = getOrCreateEntry(indexId);
+            if (entry.cache.callGraph != null) {
+                entry.touch();
+                return entry.cache.callGraph;
+            }
+            entry.cache.callGraph = rebuildCallGraph(indexId, daoProvider, edgeConsumer);
+            return entry.cache.callGraph;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    void invalidateAnalysisCache(String indexId, IFlowDetector flowDetector) {
+        lock.lock();
+        try {
+            analysisCacheMap.remove(indexId);
+        } finally {
+            lock.unlock();
+        }
         if (flowDetector instanceof FlowDetector) {
             ((FlowDetector) flowDetector).invalidateCache(indexId);
         }
-        while (analysisCacheMap.size() > MAX_CACHE_ENTRIES) {
-            String key = analysisCacheMap.keySet().stream().findFirst().orElse(null);
-            if (key == null) break;
-            analysisCacheMap.remove(key);
+    }
+
+    void addToSymbolTableCache(String indexId, SymbolTable newSymbols) {
+        lock.lock();
+        try {
+            CacheEntry entry = getValidEntry(indexId);
+            if (entry != null && entry.cache.symbolTable != null) {
+                for (CodeSymbol sym : newSymbols.getAll()) {
+                    if (sym.getQualifiedName() != null && entry.cache.symbolTable.getByQualifiedName(sym.getQualifiedName()) == null) {
+                        entry.cache.symbolTable.add(sym);
+                    }
+                }
+            }
+        } finally {
+            lock.unlock();
         }
+    }
+
+    List<NopCodeDependency> getOrRebuildDependencies(String indexId, IDaoProvider daoProvider) {
+        lock.lock();
+        try {
+            CacheEntry entry = getOrCreateEntry(indexId);
+            if (entry.cache.dependencies != null) {
+                entry.touch();
+                return entry.cache.dependencies;
+            }
+            entry.cache.dependencies = rebuildDependencies(indexId, daoProvider);
+            return entry.cache.dependencies;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    int cacheSize() {
+        return analysisCacheMap.size();
     }
 
     private SymbolTable rebuildSymbolTable(String indexId, IDaoProvider daoProvider,
@@ -97,6 +199,7 @@ class CodeCacheManager {
             if (totalLoaded >= MAX_CACHE_SYMBOLS) {
                 LOG.warn("Symbol cache for index {} exceeded MAX_CACHE_SYMBOLS({}), returning partial data ({} symbols loaded)",
                         indexId, MAX_CACHE_SYMBOLS, totalLoaded);
+                table.setTruncated(true);
                 return table;
             }
             if (batch.size() < BATCH_SIZE)
@@ -115,8 +218,8 @@ class CodeCacheManager {
         while (true) {
             QueryBean query = new QueryBean();
             query.addFilter(FilterBeans.eq("indexId", indexId));
-            query.setOffset(offset);
             query.setLimit(BATCH_SIZE);
+            query.setOffset(offset);
             List<NopCodeCall> batch = callDao.findAllByQuery(query);
             if (batch.isEmpty())
                 break;
@@ -127,6 +230,7 @@ class CodeCacheManager {
             if (totalLoaded >= MAX_CACHE_EDGES) {
                 LOG.warn("Call graph cache for index {} exceeded MAX_CACHE_EDGES({}), returning partial data ({} edges loaded)",
                         indexId, MAX_CACHE_EDGES, totalLoaded);
+                callGraph.setTruncated(true);
                 return callGraph;
             }
             if (batch.size() < BATCH_SIZE)
@@ -134,5 +238,12 @@ class CodeCacheManager {
             offset += BATCH_SIZE;
         }
         return callGraph;
+    }
+
+    private List<NopCodeDependency> rebuildDependencies(String indexId, IDaoProvider daoProvider) {
+        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq("indexId", indexId));
+        return dao.findAllByQuery(q);
     }
 }

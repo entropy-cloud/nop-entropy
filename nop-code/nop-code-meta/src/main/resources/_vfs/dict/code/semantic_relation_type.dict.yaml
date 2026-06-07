@@ -1,0 +1,39 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 语义关系类型
+locale: zh-CN
+valueType: string
+description: 符号间语义关系类型
+options:
+
+  - label: 语义相似
+    value: 10
+    description: 
+  
+  - label: 概念相关
+    value: 20
+    description: 
+  
+  - label: 解决同一问题
+    value: 30
+    description: 
+  
+  - label: 实现模式
+    value: 40
+    description: 
+  
+  - label: 替代方案
+    value: 50
+    description: 
+  
+  - label: 被文档记录
+    value: 60
+    description: 
+  
+  - label: 原因说明
+    value: 70
+    description: 
+  
+  - label: 跨语言对等
+    value: 80
+    description: 
+  

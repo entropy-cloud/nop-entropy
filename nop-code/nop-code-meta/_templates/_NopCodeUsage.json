@@ -9,11 +9,14 @@
   "column": 0,
   "enclosingSymbolId": "",
   "context": "",
+  "provenance": "",
+  "metadata": "",
   "index": null,
   "symbol": null,
   "symbol.name": "",
   "file": null,
   "file.filePath": "",
   "enclosingSymbol": null,
-  "enclosingSymbol.name": ""
+  "enclosingSymbol.name": "",
+  "metadataComponent": null
 }

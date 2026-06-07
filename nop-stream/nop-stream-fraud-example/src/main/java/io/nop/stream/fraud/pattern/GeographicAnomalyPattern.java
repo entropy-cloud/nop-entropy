@@ -87,14 +87,13 @@ public class GeographicAnomalyPattern {
 
                     @Override
                     public boolean filter(TransactionEvent value, Context<TransactionEvent> ctx) throws Exception {
-                        // Get the previously matched city1 event
                         for (TransactionEvent city1Event : ctx.getEventsForPattern("city1")) {
-                            // Must be from the same user
                             if (!value.getUserId().equals(city1Event.getUserId())) {
-                                return false;
+                                continue;
                             }
-                            // Must be from a different city
-                            return !value.getCity().equals(city1Event.getCity());
+                            if (!value.getCity().equals(city1Event.getCity())) {
+                                return true;
+                            }
                         }
                         return false;
                     }

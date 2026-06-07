@@ -8,7 +8,7 @@ entity:
     NopCodeFlowMembership: Execution Flow Membership
     NopCodeIndex: Code Index
     NopCodeInheritance: Inheritance
-    NopCodeSemanticEdge: null
+    NopCodeSemanticEdge: Semantic Edge
     NopCodeSymbol: Symbol
     NopCodeUsage: Symbol Usage
 prop:
@@ -21,6 +21,7 @@ prop:
       line: null
       column: null
       attributes: null
+      provenance: null
       index: null
       annotationType: null
       annotationType.name: null
@@ -38,6 +39,8 @@ prop:
       callType: null
       callType_label: null
       context: null
+      provenance: null
+      metadata: null
       index: null
       caller: null
       caller.name: null
@@ -45,6 +48,7 @@ prop:
       callee.name: null
       file: null
       file.filePath: null
+      metadataComponent: null
     NopCodeDependency:
       id: null
       indexId: null
@@ -52,6 +56,7 @@ prop:
       targetFilePath: null
       importStatement: null
       resolved: null
+      dependencyKeyHash: null
       index: null
     NopCodeFile:
       id: null
@@ -104,6 +109,7 @@ prop:
       createdBy: null
       updateTime: null
       updatedBy: null
+      indexId: null
       flow: null
       flow.name: null
       symbol: null
@@ -119,6 +125,8 @@ prop:
       status_label: null
       lastIndexed: null
       indexVersion: null
+      createTime: null
+      updateTime: null
       files: null
       symbols: null
       dependencies: null
@@ -135,6 +143,7 @@ prop:
       superTypeId: null
       relationType: null
       relationType_label: null
+      provenance: null
       index: null
       subType: null
       subType.name: null
@@ -155,7 +164,9 @@ prop:
       extData: null
       createdBy: null
       createTime: null
-      delFlag: null
+      provenance: null
+      updatedBy: null
+      updateTime: null
       index: null
       sourceSymbol: null
       sourceSymbol.name: null
@@ -166,8 +177,10 @@ prop:
       id: null
       indexId: null
       fileId: null
+      query: null
       kind: null
       kind_label: null
+      packageName: null
       name: null
       qualifiedName: null
       accessModifier: null
@@ -182,21 +195,15 @@ prop:
       parentId: null
       declaringSymbolId: null
       superClassName: null
-      isAbstract: null
-      isFinal: null
+      modifiers: null
       signature: null
       returnType: null
-      isStatic: null
-      isSynchronized: null
-      isNative: null
       fieldType: null
-      isVolatile: null
-      isTransient: null
       extData: null
-      asyncFlag: null
-      readonlyFlag: null
       rawReturnType: null
       rawFieldType: null
+      filePath: null
+      language: null
       index: null
       file: null
       file.filePath: null
@@ -217,9 +224,6 @@ prop:
       enclosingUsages: null
       annotationUsages: null
       extDataComponent: null
-      query: null
-      kinds: null
-      packageName: null
     NopCodeUsage:
       id: null
       indexId: null
@@ -231,6 +235,8 @@ prop:
       column: null
       enclosingSymbolId: null
       context: null
+      provenance: null
+      metadata: null
       index: null
       symbol: null
       symbol.name: null
@@ -238,3 +244,4 @@ prop:
       file.filePath: null
       enclosingSymbol: null
       enclosingSymbol.name: null
+      metadataComponent: null

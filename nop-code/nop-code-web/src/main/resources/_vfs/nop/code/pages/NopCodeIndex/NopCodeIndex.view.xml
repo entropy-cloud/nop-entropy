@@ -49,7 +49,28 @@
         </crud>
 
         <simple name="statsView" form="statsForm">
-            <initApi url="@query:NopCodeIndex__getStats?indexId=$id"/>
+            <initApi url="@query:NopCodeIndex__getStats?indexId=$id" gql:selection="indexId,fileCount,symbolCount,symbolCounts"/>
+            <afterForm>
+[
+    {
+        "type": "divider"
+    },
+    {
+        "type": "panel",
+        "title": "符号分布",
+        "visibleOn": "this.symbolCounts != null",
+        "body": {
+            "type": "table",
+            "source": "${symbolCounts | pickArray}",
+            "columnsTogglable": false,
+            "columns": [
+                { "name": "key", "label": "符号类型", "width": 200 },
+                { "name": "value", "label": "数量", "width": 100 }
+            ]
+        }
+    }
+]
+            </afterForm>
         </simple>
 
         <picker name="picker"/>

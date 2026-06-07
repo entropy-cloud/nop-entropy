@@ -1,6 +1,13 @@
 package io.nop.code.service.impl;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -9,11 +16,12 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.code.core.model.CodeLanguage;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.dao.entity.NopCodeFile;
 import io.nop.code.dao.entity.NopCodeSymbol;
-import io.nop.code.service.api.dto.CodeSearchResultDTO;
+import io.nop.code.api.dto.CodeSearchResultDTO;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.search.api.ISearchEngine;
@@ -62,7 +70,7 @@ class CodeSearchService {
         SearchRequest req = new SearchRequest();
         req.setTopic(topic);
         req.setQuery(query);
-        req.setSearchType(SearchType.HYBRID);
+        req.setSearchType(SearchType.TEXT);
         req.setLimit(lim);
         Set<String> tags = new HashSet<>();
         if (language != null && !language.isEmpty()) {
@@ -189,11 +197,16 @@ class CodeSearchService {
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
         QueryBean fq = new QueryBean();
         fq.addFilter(FilterBeans.eq("indexId", indexId));
-        fq.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-        List<NopCodeFile> files = fileDao.findAllByQuery(fq);
-        Map<String, String> cache = new HashMap<>();
-        for (NopCodeFile f : files) {
-            cache.put(f.getId(), f.getFilePath());
+        fq.addField(QueryFieldBean.forField("id"));
+        fq.addField(QueryFieldBean.forField("filePath"));
+        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(fq);
+        Map<String, String> cache = new HashMap<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            Object id = row.get("id");
+            Object path = row.get("filePath");
+            if (id != null && path != null) {
+                cache.put(id.toString(), path.toString());
+            }
         }
         return cache;
     }
@@ -211,42 +224,97 @@ class CodeSearchService {
     }
 
     private double scoreSymbolNameMatch(String query, String name, String qualifiedName) {
+        String lowerQuery = query.toLowerCase();
+        if (name == null && qualifiedName == null) return 0.0;
         if (name != null && name.equals(query)) return 1.0;
-        if (name != null && name.startsWith(query)) return 0.8;
-        if (name != null && name.contains(query)) return 0.6;
-        if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
-        return 0.1;
+        if (name != null) {
+            double score = scoreSubstring(lowerQuery, name.toLowerCase(), name);
+            if (score > 0) return score;
+        }
+        if (qualifiedName != null) {
+            return scoreSubstring(lowerQuery, qualifiedName.toLowerCase(), qualifiedName);
+        }
+        return 0.0;
+    }
+
+    private double scoreSubstring(String lowerQuery, String lowerTarget, String originalTarget) {
+        if (lowerTarget.equals(lowerQuery)) return 0.95;
+        if (lowerTarget.startsWith(lowerQuery)) {
+            return 0.8 - (lowerQuery.length() - lowerTarget.length()) * 0.001;
+        }
+        int idx = lowerTarget.indexOf(lowerQuery);
+        if (idx >= 0) {
+            double base = 0.6;
+            double posPenalty = idx * 0.02;
+            double lenBonus = (double) lowerQuery.length() / lowerTarget.length() * 0.1;
+            return Math.max(0.1, base - posPenalty + lenBonus);
+        }
+        return 0.0;
     }
 
     private double scoreFullTextMatch(String query, String signature, String documentation) {
-        boolean sigMatch = signature != null && signature.contains(query);
-        boolean docMatch = documentation != null && documentation.contains(query);
-        if (sigMatch && docMatch) return 0.5;
-        if (sigMatch) return 0.4;
-        if (docMatch) return 0.3;
-        return 0.1;
+        String lowerQuery = query.toLowerCase();
+        boolean sigMatch = signature != null && signature.toLowerCase().contains(lowerQuery);
+        boolean docMatch = documentation != null && documentation.toLowerCase().contains(lowerQuery);
+        if (sigMatch && docMatch) {
+            double sigLen = signature.length();
+            return 0.5 + Math.min(0.2, (double) query.length() / sigLen);
+        }
+        if (sigMatch) {
+            double sigLen = signature.length();
+            return 0.4 + Math.min(0.1, (double) query.length() / sigLen);
+        }
+        if (docMatch) {
+            double docLen = documentation.length();
+            return 0.3 + Math.min(0.1, (double) query.length() / docLen);
+        }
+        return 0.0;
     }
 
     private double scoreCombined(String query, String name, String qualifiedName,
                                   String signature, String documentation) {
+        String lowerQuery = query.toLowerCase();
         if (name != null && name.equals(query)) return 1.0;
-        if (name != null && name.startsWith(query)) return 0.8;
-        if (name != null && name.contains(query)) return 0.6;
-        if (qualifiedName != null && qualifiedName.contains(query)) return 0.5;
-        boolean sigMatch = signature != null && signature.contains(query);
-        boolean docMatch = documentation != null && documentation.contains(query);
-        if (sigMatch) return 0.3;
-        if (docMatch) return 0.3;
-        return 0.1;
+        if (name != null) {
+            double nameScore = scoreSubstring(lowerQuery, name.toLowerCase(), name);
+            if (nameScore > 0.5) return nameScore;
+            if (nameScore > 0) return nameScore;
+        }
+        if (qualifiedName != null) {
+            double qnScore = scoreSubstring(lowerQuery, qualifiedName.toLowerCase(), qualifiedName);
+            if (qnScore > 0) return qnScore;
+        }
+        boolean sigMatch = signature != null && signature.toLowerCase().contains(lowerQuery);
+        boolean docMatch = documentation != null && documentation.toLowerCase().contains(lowerQuery);
+        if (sigMatch && docMatch) return 0.35;
+        if (sigMatch) return 0.25;
+        if (docMatch) return 0.2;
+        return 0.0;
     }
 
     private List<CodeSearchResultDTO> filterByFilePattern(List<CodeSearchResultDTO> results, String filePattern) {
         if (filePattern == null || filePattern.isEmpty()) return results;
-        String pattern = java.util.regex.Pattern.quote(filePattern)
-                .replace("\\*", ".*").replace("\\?", ".");
+        String pattern = globToRegex(filePattern);
         return results.stream()
                 .filter(r -> r.getFilePath() != null && r.getFilePath().matches(pattern))
                 .collect(Collectors.toList());
+    }
+
+    private String globToRegex(String glob) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < glob.length(); i++) {
+            char c = glob.charAt(i);
+            if (c == '*') {
+                sb.append(".*");
+            } else if (c == '?') {
+                sb.append(".");
+            } else if ("\\[]{}()+^$.|".indexOf(c) >= 0) {
+                sb.append('\\').append(c);
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     List<CodeSearchResultDTO> filterByLanguage(List<CodeSearchResultDTO> results,

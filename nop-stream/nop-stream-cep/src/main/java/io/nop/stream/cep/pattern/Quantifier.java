@@ -246,7 +246,8 @@ public class Quantifier {
 
         @Override
         public int hashCode() {
-            return Objects.hash(from, to, windowTime);
+            return Objects.hash(from, to,
+                    windowTime != null ? windowTime.toMillis() : null);
         }
     }
 }

@@ -31,7 +31,7 @@
         <form id="query" x:override="replace" editMode="query" title="符号搜索">
             <layout>
  query[名称关键词]
- kinds[符号类型]
+ kind[符号类型]
  packageName[包名]
             </layout>
         </form>
@@ -47,8 +47,8 @@
  line[行号]
  endLine[结束行]
  deprecated[已废弃]
- isStatic[静态]
- isAbstract[抽象]
+  staticFlag[静态]
+  abstractFlag[抽象]
             </layout>
         </form>
 
@@ -68,7 +68,7 @@
         </crud>
 
         <simple name="view" form="view">
-            <initApi url="@query:NopCodeSymbol__getBySymbolId?id=$id&amp;indexId=$indexId" gql:selection="id,name,qualifiedName,kind,accessModifier,signature,returnType,line,endLine,deprecated,isStatic,isAbstract"/>
+            <initApi url="@query:NopCodeSymbol__getBySymbolId?id=$id&amp;indexId=$indexId" gql:selection="id,name,qualifiedName,kind,accessModifier,signature,returnType,line,endLine,deprecated,staticFlag,abstractFlag"/>
         </simple>
 
         <picker name="picker"/>

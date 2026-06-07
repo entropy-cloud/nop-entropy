@@ -33,6 +33,13 @@ import io.nop.stream.core.util.OutputTag;
  * attached to emitted elements. Most operators would set the timestamp of the incoming {@link
  * io.nop.stream.core.streamrecord.StreamRecord} here.
  *
+ * <p><b>Reuse semantics:</b> This collector maintains a mutable {@link StreamRecord} instance
+ * ({@code reuse}) that is shared across all {@link #collect(Object)} invocations. Each call to
+ * {@link StreamRecord#replace(Object)} mutates this shared record in-place and returns the same
+ * object. This is intentional for performance — it avoids allocating a new StreamRecord per
+ * element. Callers must not retain references to the emitted StreamRecord across multiple
+ * {@link #collect} calls, as the underlying value and timestamp will be overwritten.
+ *
  * @param <T> The type of the elements that can be emitted.
  */
 @Internal

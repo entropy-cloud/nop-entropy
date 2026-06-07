@@ -186,11 +186,15 @@ public class SharedBuffer<V> {
         if (id == null) {
             id = 0;
         }
-        if (id == Integer.MAX_VALUE) {
-            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
-                    .param(ARG_DETAIL, "EventId counter overflow for timestamp " + timestamp);
-        }
         EventId eventId = new EventId(id, timestamp);
+        while (eventsBufferCache.containsKey(eventId) || hasEventInBuffer(eventId)) {
+            id++;
+            if (id == Integer.MAX_VALUE) {
+                throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
+                        .param(ARG_DETAIL, "EventId counter overflow for timestamp " + timestamp);
+            }
+            eventId = new EventId(id, timestamp);
+        }
         Lockable<V> lockableValue = new Lockable<>(value, 1);
         eventsCount.put(timestamp, id + 1);
         eventsBufferCache.put(eventId, lockableValue);
@@ -201,6 +205,16 @@ public class SharedBuffer<V> {
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "registerEvent");
         }
         return eventId;
+    }
+
+    private boolean hasEventInBuffer(EventId eventId) {
+        try {
+            return eventsBuffer.get(eventId) != null;
+        } catch (Exception e) {
+            LOG.error("Failed to check event in buffer for eventId={}", eventId, e);
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e)
+                    .param(ARG_DETAIL, "hasEventInBuffer for eventId=" + eventId);
+        }
     }
 
     /**
@@ -311,19 +325,21 @@ public class SharedBuffer<V> {
     void flushCache() {
         if (!entryCache.isEmpty()) {
             Map<NodeId, Lockable<SharedBufferNode>> snapshot1 = new java.util.HashMap<>(entryCache);
-            entryCache.clear();
             try {
                 entries.putAll(snapshot1);
+                entryCache.keySet().removeAll(snapshot1.keySet());
             } catch (Exception e) {
+                entryCache.putAll(snapshot1);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-entries");
             }
         }
         if (!eventsBufferCache.isEmpty()) {
             Map<EventId, Lockable<V>> snapshot2 = new java.util.HashMap<>(eventsBufferCache);
-            eventsBufferCache.clear();
             try {
                 eventsBuffer.putAll(snapshot2);
+                eventsBufferCache.keySet().removeAll(snapshot2.keySet());
             } catch (Exception e) {
+                eventsBufferCache.putAll(snapshot2);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-events");
             }
         }

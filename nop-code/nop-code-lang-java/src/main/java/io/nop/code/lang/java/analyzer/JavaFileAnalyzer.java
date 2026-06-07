@@ -27,9 +27,12 @@ import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithAnnotations;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
@@ -44,11 +47,13 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.model.CodeAccessModifier;
 import io.nop.code.core.model.CodeAnnotationUsage;
+import io.nop.code.core.model.EdgeProvenance;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.CodeInheritance;
 import io.nop.code.core.model.CodeLanguage;
 import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeRelationType;
+import io.nop.code.core.model.CodeRouteInfo;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.core.lang.json.JsonTool;
@@ -165,6 +170,16 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             this.enableSymbolResolution = enableSymbolResolution;
         }
 
+        private CodeInheritance createInheritance(String subTypeId, String superTypeName, CodeRelationType relationType) {
+            CodeInheritance inh = new CodeInheritance();
+            inh.setId(UUID.randomUUID().toString());
+            inh.setSubTypeId(subTypeId);
+            inh.setSuperTypeQualifiedName(superTypeName);
+            inh.setRelationType(relationType);
+            inh.setProvenance(EdgeProvenance.AST_EXTRACTION);
+            return inh;
+        }
+
         @Override
         public void visit(ClassOrInterfaceDeclaration decl, Void arg) {
             CodeSymbol symbol = createSymbolFromTypeDecl(decl, decl.isInterface() ? CodeSymbolKind.INTERFACE : CodeSymbolKind.CLASS);
@@ -172,23 +187,15 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             // 处理继承
             if (decl.getExtendedTypes().isNonEmpty()) {
                 for (ClassOrInterfaceType superType : decl.getExtendedTypes()) {
-                    CodeInheritance inheritance = new CodeInheritance();
-                    inheritance.setId(UUID.randomUUID().toString());
-                    inheritance.setSubTypeId(symbol.getId());
-                    inheritance.setSuperTypeQualifiedName(superType.getNameAsString());
-                    inheritance.setRelationType(CodeRelationType.EXTENDS);
-                    result.getInheritances().add(inheritance);
+                    result.getInheritances().add(
+                            createInheritance(symbol.getId(), superType.getNameAsString(), CodeRelationType.EXTENDS));
                 }
             }
 
             // 处理实现
             for (ClassOrInterfaceType implType : decl.getImplementedTypes()) {
-                CodeInheritance inheritance = new CodeInheritance();
-                inheritance.setId(UUID.randomUUID().toString());
-                inheritance.setSubTypeId(symbol.getId());
-                inheritance.setSuperTypeQualifiedName(implType.getNameAsString());
-                inheritance.setRelationType(CodeRelationType.IMPLEMENTS);
-                result.getInheritances().add(inheritance);
+                result.getInheritances().add(
+                        createInheritance(symbol.getId(), implType.getNameAsString(), CodeRelationType.IMPLEMENTS));
             }
 
             // 处理注解
@@ -210,7 +217,7 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                             extMap.putAll(parsed);
                         }
                     } catch (Exception e) {
-                        // ignore parse failure
+                        LOG.debug("Failed to parse existing extData for sealed info", e);
                     }
                 }
                 extMap.put("sealed", true);
@@ -224,6 +231,8 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             currentTypeSymbol = symbol;
             super.visit(decl, arg);
             currentTypeSymbol = parentType;
+
+            extractSpringRoutes(decl);
         }
 
         @Override
@@ -232,12 +241,8 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
             // 处理实现的接口
             for (ClassOrInterfaceType implType : decl.getImplementedTypes()) {
-                CodeInheritance inheritance = new CodeInheritance();
-                inheritance.setId(UUID.randomUUID().toString());
-                inheritance.setSubTypeId(symbol.getId());
-                inheritance.setSuperTypeQualifiedName(implType.getNameAsString());
-                inheritance.setRelationType(CodeRelationType.IMPLEMENTS);
-                result.getInheritances().add(inheritance);
+                result.getInheritances().add(
+                        createInheritance(symbol.getId(), implType.getNameAsString(), CodeRelationType.IMPLEMENTS));
             }
 
             // 处理注解
@@ -267,29 +272,34 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             CodeSymbol symbol = new CodeSymbol();
             symbol.setId(UUID.randomUUID().toString());
             symbol.setName(decl.getNameAsString());
+            String qualifiedName = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
             if (currentTypeSymbol != null) {
                 symbol.setDeclaringSymbolId(currentTypeSymbol.getId());
-                symbol.setQualifiedName(currentTypeSymbol.getQualifiedName() + "." + decl.getNameAsString());
-            } else {
-                symbol.setQualifiedName(decl.getNameAsString());
+                if (!qualifiedName.contains(".")) {
+                    qualifiedName = currentTypeSymbol.getQualifiedName() + "." + decl.getNameAsString();
+                }
             }
+            symbol.setQualifiedName(qualifiedName);
             symbol.setKind(CodeSymbolKind.CLASS);
             symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
             symbol.setAbstractFlag(false);
             symbol.setFinalFlag(decl.isFinal());
+            CodeAccessModifier recordAccess = getAccessModifier(decl.getModifiers());
+            symbol.setExportedFlag(recordAccess == CodeAccessModifier.PUBLIC || recordAccess == CodeAccessModifier.PROTECTED);
+
+            if (currentTypeSymbol != null) {
+                symbol.setParentId(currentTypeSymbol.getId());
+            }
+
             result.getSymbols().add(symbol);
+            symbolMap.put(qualifiedName, symbol);
 
             CodeSymbol parentType = currentTypeSymbol;
             currentTypeSymbol = symbol;
 
-            // Record implements listed types
             for (ClassOrInterfaceType implType : decl.getImplementedTypes()) {
-                CodeInheritance inh = new CodeInheritance();
-                inh.setId(UUID.randomUUID().toString());
-                inh.setSubTypeId(symbol.getId());
-                inh.setSuperTypeQualifiedName(implType.getNameAsString());
-                inh.setRelationType(CodeRelationType.IMPLEMENTS);
-                result.getInheritances().add(inh);
+                result.getInheritances().add(
+                        createInheritance(symbol.getId(), implType.getNameAsString(), CodeRelationType.IMPLEMENTS));
             }
 
             processAnnotations(decl, symbol);
@@ -322,9 +332,12 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             symbol.setReturnType(methodReturnType);
             symbol.setRawReturnType(extractRawType(methodReturnType));
             symbol.setStaticFlag(decl.isStatic());
-            buildExtData(decl.isSynchronized(), decl.isNative(), false, false, symbol);
+            symbol.setSynchronizedFlag(decl.isSynchronized());
+            symbol.setNativeFlag(decl.isNative());
             symbol.setAbstractFlag(decl.isAbstract());
             symbol.setFinalFlag(decl.isFinal());
+            CodeAccessModifier methodAccess = getAccessModifier(decl.getModifiers());
+            symbol.setExportedFlag(methodAccess == CodeAccessModifier.PUBLIC || methodAccess == CodeAccessModifier.PROTECTED);
 
             // 设置所属类型
             if (currentTypeSymbol != null) {
@@ -339,6 +352,28 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
             result.getSymbols().add(symbol);
             symbolMap.put(symbol.getQualifiedName(), symbol);
+
+            if (symbol.isExportedFlag()) {
+                for (com.github.javaparser.ast.body.Parameter param : decl.getParameters()) {
+                    String paramType = param.getType().asString();
+                    CodeSymbol typeRef = findSymbolByShortName(paramType);
+                    if (typeRef != null) {
+                        CodeMethodCall typeOfRef = new CodeMethodCall();
+                        typeOfRef.setId(UUID.randomUUID().toString());
+                        typeOfRef.setCallerId(symbol.getId());
+                        typeOfRef.setCalleeId(typeRef.getId());
+                        typeOfRef.setCalleeQualifiedName(typeRef.getQualifiedName());
+                        typeOfRef.setMethodName(paramType);
+                        typeOfRef.setLine(decl.getRange().map(r -> r.begin.line).orElse(0));
+                        typeOfRef.setColumn(0);
+                        typeOfRef.setProvenance(EdgeProvenance.AST_EXTRACTION);
+                        Map<String, Object> meta = new LinkedHashMap<>();
+                        meta.put("referenceKind", "TYPE_OF");
+                        typeOfRef.setMetadata(JsonTool.stringify(meta));
+                        result.getCalls().add(typeOfRef);
+                    }
+                }
+            }
 
             CodeSymbol parentMethod = currentMethodSymbol;
             currentMethodSymbol = symbol;
@@ -397,9 +432,11 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                 symbol.setId(UUID.randomUUID().toString());
                 symbol.setKind(CodeSymbolKind.FIELD);
                 symbol.setName(var.getNameAsString());
-                symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
-                symbol.setDeprecated(hasDeprecatedAnnotation(decl));
-                symbol.setDocumentation(getJavadoc(decl.getComment()));
+            symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
+            symbol.setDeprecated(hasDeprecatedAnnotation(decl));
+            symbol.setDocumentation(getJavadoc(decl.getComment()));
+            CodeAccessModifier typeAccess = getAccessModifier(decl.getModifiers());
+            symbol.setExportedFlag(typeAccess == CodeAccessModifier.PUBLIC || typeAccess == CodeAccessModifier.PROTECTED);
 
                 // 位置信息
                 var.getRange().ifPresent(range -> {
@@ -415,7 +452,8 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                 symbol.setRawFieldType(extractRawType(fieldTypeName));
                 symbol.setStaticFlag(decl.isStatic());
                 symbol.setFinalFlag(decl.isFinal());
-                buildExtData(false, false, decl.isVolatile(), decl.isTransient(), symbol);
+                symbol.setVolatileFlag(decl.isVolatile());
+                symbol.setTransientFlag(decl.isTransient());
 
                 // 设置所属类型
                 if (currentTypeSymbol != null) {
@@ -511,6 +549,7 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             CodeMethodCall call = new CodeMethodCall();
             call.setId(UUID.randomUUID().toString());
             call.setMethodName(expr.getNameAsString());
+            call.setProvenance(enableSymbolResolution ? EdgeProvenance.SYMBOL_SOLVER : EdgeProvenance.AST_EXTRACTION);
 
             // 位置信息
             expr.getRange().ifPresent(range -> {
@@ -584,6 +623,40 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             super.visit(expr, arg);
         }
 
+        @Override
+        public void visit(ObjectCreationExpr expr, Void arg) {
+            String typeName = expr.getType().getNameAsString();
+            CodeSymbol typeSymbol = symbolMap.get(typeName);
+            if (typeSymbol == null) {
+                for (CodeSymbol s : symbolMap.values()) {
+                    if (s.getKind() == CodeSymbolKind.CLASS && s.getName() != null && s.getName().equals(typeName)) {
+                        typeSymbol = s;
+                        break;
+                    }
+                }
+            }
+            if (typeSymbol != null && currentMethodSymbol != null) {
+                CodeMethodCall instantiateCall = new CodeMethodCall();
+                instantiateCall.setId(UUID.randomUUID().toString());
+                instantiateCall.setCallerId(currentMethodSymbol.getId());
+                instantiateCall.setCalleeId(typeSymbol.getId());
+                instantiateCall.setCalleeQualifiedName(typeSymbol.getQualifiedName());
+                instantiateCall.setMethodName("<init>");
+                instantiateCall.setCallType("CONSTRUCTOR");
+                instantiateCall.setProvenance(enableSymbolResolution ? EdgeProvenance.SYMBOL_SOLVER : EdgeProvenance.AST_EXTRACTION);
+                expr.getRange().ifPresent(range -> {
+                    instantiateCall.setLine(range.begin.line);
+                    instantiateCall.setColumn(range.begin.column);
+                });
+                instantiateCall.setConfidence(null);
+                Map<String, Object> meta = new LinkedHashMap<>();
+                meta.put("referenceKind", "INSTANTIATES");
+                instantiateCall.setMetadata(JsonTool.stringify(meta));
+                result.getCalls().add(instantiateCall);
+            }
+            super.visit(expr, arg);
+        }
+
         /**
          * 从类型声明创建符号信息
          */
@@ -592,9 +665,11 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             symbol.setId(UUID.randomUUID().toString());
             symbol.setKind(kind);
             symbol.setName(decl.getNameAsString());
-            symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
+            CodeAccessModifier declAccess = getAccessModifier(decl.getModifiers());
+            symbol.setAccessModifier(declAccess);
             symbol.setDeprecated(hasDeprecatedAnnotation(decl));
             symbol.setDocumentation(getJavadoc(decl.getComment()));
+            symbol.setExportedFlag(declAccess == CodeAccessModifier.PUBLIC || declAccess == CodeAccessModifier.PROTECTED);
 
             // 位置信息
             decl.getRange().ifPresent(range -> {
@@ -646,19 +721,26 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
                     usage.setColumn(range.begin.column);
                 });
 
-                // 提取注解属性
                 if (annotation instanceof NormalAnnotationExpr) {
                     NormalAnnotationExpr nae = (NormalAnnotationExpr) annotation;
                     Map<String, Object> attrs = new HashMap<>();
-                    nae.getPairs().forEach(pair -> attrs.put(pair.getNameAsString(), pair.getValue().toString()));
+                    nae.getPairs().forEach(pair -> attrs.put(pair.getNameAsString(), annotationValueToString(pair.getValue())));
                     usage.setAttributes(toJson(attrs));
                 } else if (annotation instanceof SingleMemberAnnotationExpr) {
                     SingleMemberAnnotationExpr smae = (SingleMemberAnnotationExpr) annotation;
-                    usage.setAttributes(toJson(Map.of("value", smae.getMemberValue().toString())));
+                    usage.setAttributes(toJson(Map.of("value", annotationValueToString(smae.getMemberValue()))));
                 }
 
+                usage.setProvenance(EdgeProvenance.AST_EXTRACTION);
                 result.getAnnotationUsages().add(usage);
             }
+        }
+
+        private Object annotationValueToString(Expression expr) {
+            if (expr instanceof StringLiteralExpr) {
+                return ((StringLiteralExpr) expr).getValue();
+            }
+            return expr.toString();
         }
 
         /**
@@ -735,42 +817,110 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
         }
 
         /**
-         * 将Java特定标志存储到extData
-         */
-        private void buildExtData(boolean synchronizedFlag, boolean nativeFlag, boolean volatileFlag, boolean transientFlag, CodeSymbol symbol) {
-            if (synchronizedFlag || nativeFlag || volatileFlag || transientFlag) {
-                StringBuilder json = new StringBuilder("{");
-                boolean first = true;
-                if (synchronizedFlag) {
-                    if (!first) json.append(",");
-                    json.append("\"synchronized\":true");
-                    first = false;
-                }
-                if (nativeFlag) {
-                    if (!first) json.append(",");
-                    json.append("\"native\":true");
-                    first = false;
-                }
-                if (volatileFlag) {
-                    if (!first) json.append(",");
-                    json.append("\"volatile\":true");
-                    first = false;
-                }
-                if (transientFlag) {
-                    if (!first) json.append(",");
-                    json.append("\"transient\":true");
-                    first = false;
-                }
-                json.append("}");
-                symbol.setExtData(json.toString());
-            }
-        }
-
-        /**
          * 简单的JSON转换
          */
         private String toJson(Map<String, Object> map) {
             return JsonTool.stringify(map);
+        }
+
+        private CodeSymbol findSymbolByShortName(String shortName) {
+            for (CodeSymbol s : symbolMap.values()) {
+                if (CodeSymbolKind.isTypeKind(s.getKind()) && s.getName() != null && s.getName().equals(shortName)) {
+                    return s;
+                }
+            }
+            return null;
+        }
+
+        private final java.util.Set<String> SPRING_MAPPING_ANNOTATIONS = java.util.Set.of(
+                "RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+                "DeleteMapping", "PatchMapping");
+
+        private String extractRoutePath(AnnotationExpr annotation) {
+            if (annotation instanceof NormalAnnotationExpr) {
+                NormalAnnotationExpr nae = (NormalAnnotationExpr) annotation;
+                for (var pair : nae.getPairs()) {
+                    if (pair.getNameAsString().equals("path") || pair.getNameAsString().equals("value")) {
+                        String val = pair.getValue().toString();
+                        return val.replaceAll("^\"|\"$", "");
+                    }
+                }
+            } else if (annotation instanceof SingleMemberAnnotationExpr) {
+                SingleMemberAnnotationExpr smae = (SingleMemberAnnotationExpr) annotation;
+                String val = smae.getMemberValue().toString();
+                return val.replaceAll("^\"|\"$", "");
+            }
+            return "";
+        }
+
+        private String extractSpringHttpMethod(String annotationName) {
+            switch (annotationName) {
+                case "GetMapping": return "GET";
+                case "PostMapping": return "POST";
+                case "PutMapping": return "PUT";
+                case "DeleteMapping": return "DELETE";
+                case "PatchMapping": return "PATCH";
+                case "RequestMapping": return "";
+                default: return "";
+            }
+        }
+
+        private void extractSpringRoutes(ClassOrInterfaceDeclaration classDecl) {
+            String classPrefix = "";
+            for (AnnotationExpr annot : classDecl.getAnnotations()) {
+                if (annot.getNameAsString().equals("RequestMapping")) {
+                    classPrefix = extractRoutePath(annot);
+                    break;
+                }
+            }
+
+            for (MethodDeclaration methodDecl : classDecl.getMethods()) {
+                for (AnnotationExpr annot : methodDecl.getAnnotations()) {
+                    String annotName = annot.getNameAsString();
+                    if (SPRING_MAPPING_ANNOTATIONS.contains(annotName)) {
+                        String methodPath = extractRoutePath(annot);
+                        String fullPath = (classPrefix + "/" + methodPath)
+                                .replaceAll("/+", "/")
+                                .replaceAll("/$", "");
+                        if (fullPath.isEmpty()) fullPath = "/";
+
+                        String httpMethod = extractSpringHttpMethod(annotName);
+
+                        CodeSymbol methodSymbol = symbolMap.get(
+                                classDecl.getFullyQualifiedName().orElse("") + "." + methodDecl.getNameAsString());
+
+                        CodeRouteInfo route = new CodeRouteInfo();
+                        route.setHttpMethod(httpMethod);
+                        route.setRoutePath(fullPath);
+                        route.setHandlerSymbolId(methodSymbol != null ? methodSymbol.getId() : null);
+                        route.setHandlerQualifiedName(methodSymbol != null ? methodSymbol.getQualifiedName() : null);
+                        result.getRoutes().add(route);
+
+                        if (methodSymbol != null) {
+                            Map<String, Object> routeExt = new LinkedHashMap<>();
+                            routeExt.put("routePath", fullPath);
+                            routeExt.put("httpMethod", httpMethod);
+                            String existingExt = methodSymbol.getExtData();
+                            if (existingExt != null && !existingExt.isEmpty()) {
+                                try {
+                                    Object parsed = JsonTool.parseNonStrict(existingExt);
+                                    if (parsed instanceof Map) {
+                                        @SuppressWarnings("unchecked")
+                                        Map<String, Object> merged = new LinkedHashMap<>((Map<String, Object>) parsed);
+                                        merged.put("routePath", fullPath);
+                                        merged.put("httpMethod", httpMethod);
+                                        methodSymbol.setExtData(JsonTool.stringify(merged));
+                                        continue;
+                                    }
+                                } catch (Exception e) {
+                                    LOG.debug("Failed to parse Spring route annotation", e);
+                                }
+                            }
+                            methodSymbol.setExtData(JsonTool.stringify(routeExt));
+                        }
+                    }
+                }
+            }
         }
     }
 

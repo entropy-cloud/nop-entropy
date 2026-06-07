@@ -160,7 +160,7 @@ Exit Criteria:
 - [x] 全量测试通过：`./mvnw test -pl nop-stream -am` 退出码 0
 - [x] 不存在被静默降级到 deferred 的 in-scope live defect
 - [x] Anti-Hollow 检查：每个 Phase 的端到端测试证明组件调用链在运行时确实连通
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Deferred But Adjudicated
 

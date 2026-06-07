@@ -1,55 +1,91 @@
-# 维度04：ORM 模型与实体设计
+# 维度 04：ORM 模型与实体设计
 
 ## 第 1 轮（初审）
 
-### [维度04-01] NopJobFire 唯一键在快速连续手动触发时可能冲突
+### [维度04-01] remark 域 precision=1000 与列声明 precision=200 矛盾
 
-- **文件**: `nop-job/model/nop-job.orm.xml:300-304`
+- **文件**: `nop-job/model/nop-job.orm.xml:69`（域定义）、行 187/288/400（列引用）
 - **证据片段**:
-  ```xml
-  <unique-keys>
-      <unique-key name="UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE"
-                  columns="jobScheduleId,scheduledFireTime,triggerSource"
-                  i18n-en:displayName="Unique Fire Per Schedule Time Source"/>
-  </unique-keys>
-  ```
-- **严重程度**: P2
-- **现状**: 唯一键由 `(jobScheduleId, scheduledFireTime, triggerSource)` 三列组成。`triggerNow()` 中 `scheduledFireTime` 取自 `getCurrentTime()`（毫秒级），`triggerSource` 固定为 `TRIGGER_SOURCE_MANUAL = 2`。如果用户对同一 Schedule 在同一毫秒内连续调用 triggerNow，`insertManualFire` 会因 UK 冲突抛出数据库异常。
-- **风险**: 同一毫秒对同一 Schedule 连续手动触发应视为幂等丢弃，而非报错。`saveEntityDirectly` 不处理 UK 冲突。
-- **建议**: 在 `insertManualFire` 中对 UK 冲突添加 catch 处理，或加入 `triggeredBy` 列增加唯一键区分度。
-- **信心水平**: 确定
-- **误报排除**: UK 定义确实存在且 saveEntityDirectly 不处理冲突。
+```xml
+<domain name="remark" precision="1000" stdSqlType="VARCHAR"/>
+```
+vs
+```xml
+<column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" .../>
+```
+- **严重程度**: P3
+- **现状**: 域 `remark` 声明 `precision="1000"`，但三个实体的 REMARK 列都显式写了 `precision="200"`。column 级别覆盖 domain，实际 DDL 为 VARCHAR(200)，行为正确。
+- **风险**: 低风险。阅读时会困惑。
+- **建议**: 将 domain `remark` 的 precision 改为 200，或在 column 上移除 `precision="200"` 依赖 domain 默认值。
+- **信心水平**: 95%
+- **误报排除**: 已确认生成 DDL 正确（VARCHAR(200)），不影响运行。
 - **复核状态**: 未复核
 
-### [维度04-02] NopJobTask 缺少到 NopJobSchedule 的直接关系
+### [维度04-02] 9 个域声明从未被任何列引用
 
-- **文件**: `nop-job/model/nop-job.orm.xml:403-411`
+- **文件**: `nop-job/model/nop-job.orm.xml:59-75`
 - **证据片段**:
-  ```xml
-  <relations>
-      <to-one displayName="触发批次" name="jobFire"
-              refEntityName="io.nop.job.dao.entity.NopJobFire" tagSet="pub,ref-pub">
-          <join>
-              <on leftProp="jobFireId" rightProp="jobFireId"/>
-          </join>
-      </to-one>
-  </relations>
-  ```
-- **严重程度**: P2
-- **现状**: NopJobTask 只定义了到 NopJobFire 的 to-one 关系，到达 Schedule 需两跳。代码中多处需从 Task 关联 Schedule（如 `JobTimeoutCheckerImpl`），必须先拿到 Fire 再查 Schedule。
-- **风险**: 增加 Join 开销和代码复杂度。若 Schedule 有被删除的场景，两跳查询可能因中间 Fire 缺失而断链。
-- **建议**: 评估是否在 Task 上添加 `jobScheduleId` 冗余字段和直接关系，或确认当前两跳路径是否满足所有业务场景。
-- **信心水平**: 很可能
-- **误报排除**: Task 不直接持有 scheduleId 外键，关系定义与数据模型一致。
+```xml
+<domain name="image" precision="100" stdSqlType="VARCHAR"/>
+<domain name="email" precision="100" stdSqlType="VARCHAR"/>
+<domain name="phone" precision="100" stdSqlType="VARCHAR"/>
+<domain name="roleId" precision="100" stdSqlType="VARCHAR"/>
+<domain name="userId" precision="50" stdSqlType="VARCHAR"/>
+<domain name="deptId" precision="50" stdSqlType="VARCHAR"/>
+<domain name="userName" precision="50" stdSqlType="VARCHAR"/>
+<domain name="json-1000" precision="1000" stdDomain="json" stdSqlType="VARCHAR"/>
+<domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
+```
+- **严重程度**: P3
+- **现状**: 9 个域（image, email, phone, roleId, userId, deptId, userName, json-1000, delFlag）从未被任何列引用。可能是模板复制残留。
+- **风险**: 增加维护负担和阅读干扰。
+- **建议**: 删除未使用的域定义。`delFlag` 的存在可能暗示设计时考虑了软删除但最终没有实现。
+- **信心水平**: 99%
+- **误报排除**: 已对全部列定义和 Java 代码做搜索确认无引用。
 - **复核状态**: 未复核
 
-## 维度复核结论
+### [维度04-03] NopJobSchedule 实体缺少 delFlag（软删除）字段
 
-待复核。
+- **文件**: `nop-job/model/nop-job.orm.xml:83-202`
+- **证据片段**: NopJobSchedule 有审计字段（version, createdBy, createTime, updatedBy, updateTime, remark）但没有 `delFlag` 字段。域定义中有 `delFlag`（行 75）但未被使用。
+- **严重程度**: P3
+- **现状**: 三个实体都没有逻辑删除标记。如果需要"删除"一条调度定义，只能物理删除。
+- **风险**: 物理删除后数据无法恢复。但 scheduleStatus=ARCHIVED 可能是有意的替代方案。
+- **建议**: 明确业务意图：如果通过 scheduleStatus=ARCHIVED 替代，在注释中说明并删除未使用的 delFlag 域。
+- **信心水平**: 80%
+- **误报排除**: 可能是刻意设计：通过 scheduleStatus=ARCHIVED(40) 来归档而非删除。
+- **复核状态**: 未复核
 
-## 最终保留项
+### [维度04-04] NopJobSchedule propId 顺序不连续（28→35，跳过 29-34）
 
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|----------|
-| 04-01 | P2 | nop-job.orm.xml:300 | NopJobFire UK在快速连续手动触发时可能冲突 |
-| 04-02 | P2 | nop-job.orm.xml:403 | NopJobTask缺少到NopJobSchedule的直接关系 |
+- **文件**: `nop-job/model/nop-job.orm.xml:164-171`
+- **证据片段**: `propId="28"` → `propId="35"` → `propId="36"` → `propId="37"` → `propId="38"` → `propId="29"`
+- **严重程度**: P3
+- **现状**: propId 分配表明统计字段（35-38）是后加的。框架不要求连续，但阅读时困惑。
+- **风险**: 低。框架层面无问题。
+- **建议**: 后续增字段按当前最大 propId (38) 继续递增。
+- **信心水平**: 95%
+- **误报排除**: 已确认 propId 无重复。
+- **复核状态**: 未复核
+
+### [维度04-05] NopJobSchedule 缺少反向 to-many 关系到 NopJobFire
+
+- **文件**: `nop-job/model/nop-job.orm.xml:83-202`
+- **证据片段**: NopJobSchedule 无 `<relations>` 节点，NopJobFire 有 to-one 到 Schedule 但 Schedule 无反向 to-many。
+- **严重程度**: P3
+- **现状**: 只定义了"子到父"的 to-one 关系，没有"父到子"的 to-many。业务代码通过 DAO 独立查询实现关联。
+- **风险**: 缺少 to-many 关系导致 GraphQL 自动嵌套查询无法生成。
+- **建议**: 如果不需要 GraphQL 自动嵌套查询，保持现状。否则增加 to-many 关系。
+- **信心水平**: 90%
+- **误报排除**: 已检查业务代码，Fire 的查询确实通过独立查询实现。
+- **复核状态**: 未复核
+
+### 正向确认（无问题）
+
+- 字典与 Java 常量完全一致（7 个字典逐一校验）
+- 主键设计规范（VARCHAR(32) + tagSet="seq"）
+- 审计字段完整（createTime/updateTime/createdBy/updatedBy）
+- 乐观锁配置正确（三个实体均有 versionProp="version"，并发更新场景需要）
+- i18n 本地化到位（中英文全覆盖）
+- 唯一键设计合理（UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE 包含 triggerSource 允许同时间不同来源触发）
+- useDefaultCalendar 的 boolFlag + TINYINT 是平台标准用法

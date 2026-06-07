@@ -169,25 +169,41 @@ class TestFlowDetector {
         cg.addEdge("app.Main", "app.Impl");
 
         List<ExecutionFlow> flowsNoTest = d.detectFlows("no-test-idx", st, cg);
+        assertFalse(flowsNoTest.isEmpty(), "Should detect flow from entry point");
+        ExecutionFlow flowNoTest = flowsNoTest.get(0);
+        double criticalityNoTest = flowNoTest.getCriticality();
 
-        st.add(entry);
+        CallGraph cg2 = new CallGraph();
+        SymbolTable st2 = new SymbolTable();
+
+        CodeSymbol entry2 = new CodeSymbol();
+        entry2.setId("app.Main2");
+        entry2.setQualifiedName("app.Main2.run");
+        entry2.setName("run");
+        entry2.setKind(CodeSymbolKind.METHOD);
+        st2.add(entry2);
+
         CodeSymbol testedImpl = new CodeSymbol();
         testedImpl.setId("app.TestedImpl");
         testedImpl.setQualifiedName("app.TestedImpl.doWork");
         testedImpl.setName("doWork");
         testedImpl.setKind(CodeSymbolKind.METHOD);
         testedImpl.setExtData(ExtDataHelper.setFilePath(null, "src/test/app/TestedImpl.java"));
-        st.add(testedImpl);
+        st2.add(testedImpl);
 
-        CallGraph cg2 = new CallGraph();
-        CodeSymbol entry2 = new CodeSymbol();
-        entry2.setId("app.Main2");
-        entry2.setQualifiedName("app.Main2.run");
-        entry2.setName("run");
-        entry2.setKind(CodeSymbolKind.METHOD);
-        st.add(entry2);
         cg2.addEdge("app.Main2", "app.TestedImpl");
 
-        List<ExecutionFlow> flowsWithTest = d.detectFlows("with-test-idx", st, cg2);
+        List<ExecutionFlow> flowsWithTest = d.detectFlows("with-test-idx", st2, cg2);
+        assertFalse(flowsWithTest.isEmpty(), "Should detect flow from entry point with test");
+        ExecutionFlow flowWithTest = flowsWithTest.get(0);
+        double criticalityWithTest = flowWithTest.getCriticality();
+
+        assertTrue(criticalityNoTest > criticalityWithTest,
+                "Flow without test files should have higher criticality (" + criticalityNoTest
+                        + ") than flow with test files (" + criticalityWithTest + ")");
+        assertTrue(criticalityNoTest >= 0.0 && criticalityNoTest <= 1.0,
+                "Criticality should be in [0,1], got " + criticalityNoTest);
+        assertTrue(criticalityWithTest >= 0.0 && criticalityWithTest <= 1.0,
+                "Criticality should be in [0,1], got " + criticalityWithTest);
     }
 }

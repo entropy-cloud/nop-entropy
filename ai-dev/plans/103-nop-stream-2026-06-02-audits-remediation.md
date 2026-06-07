@@ -1,6 +1,6 @@
 # 103 nop-stream 2026-06-02 Audits Remediation
 
-> Plan Status: partially completed
+> Plan Status: completed
 > Last Reviewed: 2026-06-02
 > Source: `ai-dev/audits/2026-06-02-deep-audit-nop-stream/` (21 dimensions, 50 findings) + `ai-dev/audits/2026-06-02-adversarial-review-nop-stream/` (15 new findings, 13 known unfixed)
 > Related: 102-nop-stream-remaining-audit-findings-remediation (completed, covers R12/R13 residual only — AR-8/windowNamespace 已在 Plan 102 Phase 1 修复)
@@ -445,7 +445,7 @@ Exit Criteria:
 - [x] 关键 P2 发现已修复（14-01~04, AR-12~15, 09-02, 09-03）
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] `./mvnw test -pl nop-stream -am` 通过
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 独立子 agent closure-audit 已完成并记录证据
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Deferred But Adjudicated

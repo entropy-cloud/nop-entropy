@@ -1,10 +1,12 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestJobCoordinatorScanner extends JunitBaseTestCase {
@@ -107,10 +110,11 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     @Test
     public void testCompletionUpdatesFireAndSchedule() {
         PreparedChain chain = prepareChain(newSchedule("schedule-2", "job-2"));
-        Timestamp startTime = new Timestamp(System.currentTimeMillis());
+        NopJobTask task = taskStore.loadTask(chain.task.getJobTaskId());
+        NopJobFire currentFire = fireStore.loadFire(chain.fire.getJobFireId());
+        Timestamp startTime = currentFire.getStartTime();
         Timestamp endTime = new Timestamp(startTime.getTime() + 2000);
 
-        NopJobTask task = taskStore.loadTask(chain.task.getJobTaskId());
         task.setTaskStatus(TASK_STATUS_SUCCESS);
         task.setStartTime(startTime);
         task.setEndTime(endTime);
@@ -171,7 +175,9 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
     @Test
     public void testCompletionMarksScheduleCompletedWhenTaskRequestsCompletion() {
-        PreparedChain chain = prepareChain(newSchedule("schedule-8", "job-8"));
+        NopJobSchedule schedule = newSchedule("schedule-8", "job-8");
+        schedule.setJobParams(JsonTool.stringify(Map.of("allowResultCompletion", true)));
+        PreparedChain chain = prepareChain(schedule);
         Timestamp endTime = new Timestamp(System.currentTimeMillis() + 2000);
 
         NopJobTask task = taskStore.loadTask(chain.task.getJobTaskId());
@@ -523,7 +529,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         NopJobSchedule schedule = newSchedule("schedule-11", "job-11");
         schedule.setBlockStrategy(BLOCK_STRATEGY_RECOVERY);
         schedule.setFireCount(1L);
-        schedule.setActiveFireCount(0);
+        schedule.setActiveFireCount(1);
         Timestamp failedFireTime = new Timestamp(schedule.getNextFireTime().getTime() - 1000);
         schedule.setLastFireTime(failedFireTime);
         daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
@@ -565,7 +571,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         assertEquals(TASK_STATUS_WAITING, recoveredTask.getTaskStatus());
 
         NopJobSchedule savedSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
-        assertEquals(1, savedSchedule.getActiveFireCount());
+        assertEquals(2, savedSchedule.getActiveFireCount());
         assertNotNull(savedSchedule.getNextFireTime());
     }
 
@@ -615,6 +621,97 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             this.scheduleId = schedule.getJobScheduleId();
             this.fireId = fire.getJobFireId();
             this.taskId = task.getJobTaskId();
+        }
+    }
+
+    @Test
+    public void testCoordinatorStopExceptionDoesNotCascade() {
+        JobCoordinator coordinator = new JobCoordinator();
+
+        RecordingStopScanner planner = new RecordingStopScanner();
+        ThrowingStopScanner dispatcher = new ThrowingStopScanner("dispatcher-failed");
+        RecordingStopScanner completion = new RecordingStopScanner();
+        RecordingStopScanner timeout = new RecordingStopScanner();
+
+        coordinator.setPlannerScanner(planner);
+        coordinator.setDispatcherScanner(dispatcher);
+        coordinator.setCompletionProcessor(completion);
+        coordinator.setTimeoutChecker(timeout);
+
+        coordinator.start();
+        coordinator.stop();
+
+        assertTrue(planner.stopped, "planner should be stopped");
+        assertTrue(dispatcher.stopCalled, "dispatcher stop should be called even though it throws");
+        assertTrue(completion.stopped, "completion should be stopped despite dispatcher failure");
+        assertTrue(timeout.stopped, "timeout should be stopped despite dispatcher failure");
+    }
+
+    @Test
+    public void testCoordinatorStopOrder() {
+        JobCoordinator coordinator = new JobCoordinator();
+        List<String> stopOrder = new java.util.ArrayList<>();
+
+        coordinator.setPlannerScanner(new OrderRecordingScanner(stopOrder, "planner"));
+        coordinator.setDispatcherScanner(new OrderRecordingScanner(stopOrder, "dispatcher"));
+        coordinator.setCompletionProcessor(new OrderRecordingScanner(stopOrder, "completion"));
+        coordinator.setTimeoutChecker(new OrderRecordingScanner(stopOrder, "timeout"));
+
+        coordinator.start();
+        coordinator.stop();
+
+        assertEquals(List.of("planner", "dispatcher", "completion", "timeout"), stopOrder);
+    }
+
+    private static final class RecordingStopScanner implements IJobPlannerScanner, IJobDispatcherScanner,
+            IJobCompletionProcessor, IJobTimeoutChecker {
+        boolean stopped;
+
+        @Override
+        public void startScanning() {}
+
+        @Override
+        public void stopScanning() {
+            stopped = true;
+        }
+    }
+
+    private static final class ThrowingStopScanner implements IJobPlannerScanner, IJobDispatcherScanner,
+            IJobCompletionProcessor, IJobTimeoutChecker {
+        boolean stopCalled;
+
+        private final String message;
+
+        ThrowingStopScanner(String message) {
+            this.message = message;
+        }
+
+        @Override
+        public void startScanning() {}
+
+        @Override
+        public void stopScanning() {
+            stopCalled = true;
+            throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED);
+        }
+    }
+
+    private static final class OrderRecordingScanner implements IJobPlannerScanner, IJobDispatcherScanner,
+            IJobCompletionProcessor, IJobTimeoutChecker {
+        private final List<String> order;
+        private final String name;
+
+        OrderRecordingScanner(List<String> order, String name) {
+            this.order = order;
+            this.name = name;
+        }
+
+        @Override
+        public void startScanning() {}
+
+        @Override
+        public void stopScanning() {
+            order.add(name);
         }
     }
 }

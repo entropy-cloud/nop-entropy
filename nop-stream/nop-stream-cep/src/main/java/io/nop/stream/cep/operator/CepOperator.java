@@ -59,6 +59,8 @@ import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
@@ -116,6 +118,8 @@ public class CepOperator<IN, KEY, OUT>
 
     private transient NFA<IN> nfa;
 
+    private transient Set<Long> registeredEventTimeTimers;
+
     /**
      * Comparator for secondary sorting. Primary sorting is always done on time.
      */
@@ -160,6 +164,8 @@ public class CepOperator<IN, KEY, OUT>
 
     private transient long currentWatermark = Long.MIN_VALUE;
 
+    private transient boolean watermarkRestored = false;
+
     public CepOperator(
             @Nullable final TypeSerializer<IN> inputSerializer,
             final boolean isProcessingTime,
@@ -187,8 +193,11 @@ public class CepOperator<IN, KEY, OUT>
     @Override
    @SuppressWarnings({"unchecked", "rawtypes"})
    public void open() throws Exception {
-         super.open();
-         currentWatermark = Long.MIN_VALUE;
+          super.open();
+          if (!watermarkRestored) {
+              currentWatermark = Long.MIN_VALUE;
+          }
+          watermarkRestored = false;
 
         IKeyedStateBackend<?> backend = getKeyedStateBackend();
         if (backend == null && this.stateBackend != null) {
@@ -214,7 +223,7 @@ public class CepOperator<IN, KEY, OUT>
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(keyedStateStore, inputSerializer, new SharedBufferCacheConfig());
 
-        final Set<Long> registeredEventTimeTimers = new TreeSet<>();
+        registeredEventTimeTimers = new TreeSet<>();
 
         timerService = new InternalTimerService<VoidNamespace>() {
             @Override
@@ -288,6 +297,40 @@ public class CepOperator<IN, KEY, OUT>
         }
         if (partialMatches != null) {
             partialMatches.releaseCacheStatisticsTimer();
+        }
+    }
+
+    private static final String WATERMARK_STATE_NAME = "cep-current-watermark";
+    private static final String EVENT_TIME_TIMERS_STATE_NAME = "cep-event-time-timers";
+
+    @Override
+    public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
+        OperatorSnapshotResult result = super.snapshotState(context);
+        result.putOperatorState(WATERMARK_STATE_NAME, currentWatermark);
+        if (registeredEventTimeTimers != null) {
+            result.putOperatorState(EVENT_TIME_TIMERS_STATE_NAME, new ArrayList<>(registeredEventTimeTimers));
+        }
+        return result;
+    }
+
+    @Override
+    public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
+        super.restoreState(snapshotResult);
+        if (snapshotResult != null) {
+            Object wmObj = snapshotResult.getOperatorState(WATERMARK_STATE_NAME);
+            if (wmObj instanceof Number) {
+                currentWatermark = ((Number) wmObj).longValue();
+                watermarkRestored = true;
+            }
+            Object timersObj = snapshotResult.getOperatorState(EVENT_TIME_TIMERS_STATE_NAME);
+            if (timersObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Long> timers = (List<Long>) timersObj;
+                if (registeredEventTimeTimers == null) {
+                    registeredEventTimeTimers = new TreeSet<>();
+                }
+                registeredEventTimeTimers.addAll(timers);
+            }
         }
     }
 
@@ -398,6 +441,16 @@ public class CepOperator<IN, KEY, OUT>
                 }
             }
             if (allTimedOut) {
+                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
+                    for (Object pm : nfaState.getPartialMatches()) {
+                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
+                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
+                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
+                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
+                            }
+                        }
+                    }
+                }
                 computationStates.clear();
             }
         }
@@ -430,6 +483,37 @@ public class CepOperator<IN, KEY, OUT>
 
         // STEP 4
         updateNFA(nfa);
+
+        // STEP 5: Clean up dangling partial matches (same logic as onEventTime)
+        if (nfa.getPartialMatches().size() == 1 && nfa.getCompletedMatches().isEmpty()) {
+            boolean allTimedOut = true;
+            for (Object pm : nfa.getPartialMatches()) {
+                if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
+                    io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
+                    String stateName = cs.getCurrentStateName();
+                    Map<String, Long> windowTimes = this.nfa.getWindowTimes();
+                    long wt = windowTimes != null && windowTimes.containsKey(stateName)
+                            ? windowTimes.get(stateName) : this.nfa.getWindowTime();
+                    if (wt <= 0 || timerService.currentProcessingTime() < cs.getStartTimestamp() + wt) {
+                        allTimedOut = false;
+                        break;
+                    }
+                }
+            }
+            if (allTimedOut) {
+                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
+                    for (Object pm : nfa.getPartialMatches()) {
+                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
+                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
+                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
+                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
+                            }
+                        }
+                    }
+                }
+                computationStates.clear();
+            }
+        }
     }
 
     private Stream<IN> sort(Collection<IN> elements) {
@@ -635,5 +719,9 @@ public class CepOperator<IN, KEY, OUT>
 
     public SharedBuffer<IN> getPartialMatches() {
         return partialMatches;
+    }
+
+    public long getCurrentWatermark() {
+        return currentWatermark;
     }
 }

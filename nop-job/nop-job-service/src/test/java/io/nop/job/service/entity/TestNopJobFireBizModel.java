@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -45,6 +47,7 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
     private static final int TRIGGER_TYPE_FIXED_DELAY = 3;
     private static final int TRIGGER_SOURCE_SCHEDULE = 1;
     private static final int TRIGGER_SOURCE_MANUAL = 2;
+    private static final int BLOCK_STRATEGY_DISCARD = 1;
 
     @Inject
     IDaoProvider daoProvider;
@@ -222,9 +225,9 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         assertEquals(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY, rerunFire.getTriggerSource());
         assertEquals(FIRE_STATUS_WAITING, rerunFire.getFireStatus());
         assertEquals("bob", rerunFire.getTriggeredBy());
-        assertEquals(JsonTool.parseMap(sourceFire.getJobParamsSnapshot()), JsonTool.parseMap(rerunFire.getJobParamsSnapshot()));
-        assertEquals(sourceFire.getExecutorKind(), rerunFire.getExecutorKind());
-        assertEquals(sourceFire.getRetryPolicyId(), rerunFire.getRetryPolicyId());
+        assertEquals(JsonTool.parseMap(schedule.getJobParams()), JsonTool.parseMap(rerunFire.getJobParamsSnapshot()));
+        assertEquals(schedule.getExecutorKind(), rerunFire.getExecutorKind());
+        assertEquals(schedule.getRetryPolicyId(), rerunFire.getRetryPolicyId());
         assertNotNull(rerunFire.getScheduledFireTime());
 
         NopJobSchedule savedSchedule = loadSchedule(schedule.getJobScheduleId());
@@ -232,6 +235,45 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         assertEquals(1, savedSchedule.getActiveFireCount());
         assertEquals(nextFireTime, savedSchedule.getNextFireTime());
         assertEquals(schedule.getLastFireTime(), savedSchedule.getLastFireTime());
+    }
+
+    @Test
+    public void test_rerunFireUsesCurrentScheduleParams() {
+        long now = System.currentTimeMillis();
+        Timestamp nextFireTime = new Timestamp(now + 60_000L);
+
+        NopJobSchedule schedule = newSchedule("schedule-fire-rerun-cp", "job-fire-rerun-cp");
+        schedule.setFireCount(1L);
+        schedule.setActiveFireCount(0);
+        schedule.setNextFireTime(nextFireTime);
+        schedule.setExecutorKind("scheduleExecutor");
+        schedule.setRetryPolicyId("scheduleRetryPolicy");
+        schedule.setJobParams(JsonTool.stringify(Map.of("k", "scheduleValue", "newKey", "newVal")));
+        saveSchedule(schedule);
+
+        NopJobFire sourceFire = newFire("fire-rerun-cp", schedule, _NopJobCoreConstants.FIRE_STATUS_FAILED,
+                TRIGGER_SOURCE_MANUAL, new Timestamp(now - 5_000L));
+        sourceFire.setJobParamsSnapshot(JsonTool.stringify(Map.of("k", "staleSource")));
+        sourceFire.setExecutorKind("staleExecutor");
+        sourceFire.setRetryPolicyId("staleRetryPolicy");
+        saveFire(sourceFire);
+
+        fireBiz.rerunFire(sourceFire.getJobFireId(), newContext());
+
+        List<NopJobFire> fires = findFiresBySchedule(schedule.getJobScheduleId());
+        NopJobFire rerunFire = fires.stream()
+                .filter(f -> !sourceFire.getJobFireId().equals(f.getJobFireId()))
+                .findFirst()
+                .orElseThrow();
+
+        Map<String, Object> rerunParams = JsonTool.parseMap(rerunFire.getJobParamsSnapshot());
+        assertEquals("scheduleValue", rerunParams.get("k"),
+                "rerun fire should use current schedule params, not stale source fire params");
+        assertEquals("newVal", rerunParams.get("newKey"));
+        assertEquals("scheduleExecutor", rerunFire.getExecutorKind(),
+                "rerun fire should use current schedule executorKind");
+        assertEquals("scheduleRetryPolicy", rerunFire.getRetryPolicyId(),
+                "rerun fire should use current schedule retryPolicyId");
     }
 
     @Test
@@ -273,6 +315,29 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         NopException completedError = assertThrows(NopException.class,
                 () -> fireBiz.rerunFire(completedFire.getJobFireId(), newContext()));
         assertEquals(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED.getErrorCode(), completedError.getErrorCode());
+    }
+
+    @Test
+    public void testRerunFireDiscardedWithBlockStrategyDiscard() {
+        long now = System.currentTimeMillis();
+
+        NopJobSchedule schedule = newSchedule("schedule-fire-rerun-discard", "job-fire-rerun-discard");
+        schedule.setBlockStrategy(BLOCK_STRATEGY_DISCARD);
+        schedule.setFireCount(1L);
+        schedule.setActiveFireCount(1);
+        saveSchedule(schedule);
+
+        NopJobFire activeFire = newFire("fire-active-discard", schedule, FIRE_STATUS_WAITING, TRIGGER_SOURCE_SCHEDULE,
+                new Timestamp(now));
+        saveFire(activeFire);
+
+        NopJobFire sourceFire = newFire("fire-rerun-discard", schedule, _NopJobCoreConstants.FIRE_STATUS_FAILED,
+                TRIGGER_SOURCE_MANUAL, new Timestamp(now - 5_000L));
+        saveFire(sourceFire);
+
+        NopException error = assertThrows(NopException.class,
+                () -> fireBiz.rerunFire(sourceFire.getJobFireId(), newContext()));
+        assertEquals(ERR_JOB_FIRE_RERUN_DISCARDED.getErrorCode(), error.getErrorCode());
     }
 
     private IServiceContext newContext() {
@@ -378,5 +443,22 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         task.setUpdatedBy("test");
         task.setUpdateTime(new Timestamp(now));
         return task;
+    }
+
+    @Test
+    public void testDelete_isBlocked() {
+        NopJobSchedule schedule = newSchedule("test-delete-sched", "job-del");
+        schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_ENABLED);
+        saveSchedule(schedule);
+
+        NopJobFire fire = newFire("fire-delete-1", schedule, _NopJobCoreConstants.FIRE_STATUS_WAITING,
+                TRIGGER_SOURCE_SCHEDULE, new Timestamp(System.currentTimeMillis()));
+        saveFire(fire);
+
+        IServiceContext context = newContext();
+
+        NopException ex = assertThrows(NopException.class,
+                () -> fireBiz.delete(fire.getJobFireId(), context));
+        assertEquals(ERR_JOB_FIRE_DELETE_NOT_ALLOWED.getErrorCode(), ex.getErrorCode());
     }
 }

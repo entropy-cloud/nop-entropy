@@ -11,13 +11,16 @@ function getPlanStatus(filePath) {
   try {
     const text = readFileSync(filePath, "utf8");
     const patterns = [
-      /Plan Status:\s*\*\*(.+?)\*\*/i,
-      /^>\s*Plan Status:\s*(.+)$/m,
-      /^>\s*Status:\s*(.+)$/m,
+      /^>\s*\*{0,2}Plan Status\*{0,2}:\s*(.+)$/m,
+      /^>\s*\*{0,2}Status\*{0,2}:\s*(.+)$/m,
     ];
     for (const re of patterns) {
       const m = text.match(re);
-      if (m) return m[1].trim().toLowerCase();
+      if (m) {
+        let val = m[1].trim();
+        val = val.replace(/^\*{1,2}(.+?)\*{1,2}.*$/, "$1");
+        return val.toLowerCase();
+      }
     }
     return "unknown";
   } catch {

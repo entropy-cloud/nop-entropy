@@ -54,9 +54,28 @@
         </crud>
 
         <simple name="symbolsView" form="fileDetailForm">
-            <initApi url="@query:NopCodeFile__getByPath?filePath=$filePath&amp;indexId=$indexId" gql:selection="filePath,packageName,language,lineCount,symbols{name,kind,accessModifier,line,qualifiedName}"/>
+            <initApi url="@query:NopCodeFile__getByPath?filePath=$filePath&amp;indexId=$indexId" gql:selection="filePath,packageName,language,lineCount,sourceCode,symbols{name,kind,accessModifier,line,qualifiedName}"/>
             <afterForm>
 [
+    {
+        "type": "divider"
+    },
+    {
+        "type": "panel",
+        "title": "源码",
+        "visibleOn": "this.sourceCode != null",
+        "collapsable": true,
+        "body": {
+            "type": "editor",
+            "name": "sourceCode",
+            "language": "java",
+            "readOnly": true,
+            "options": {
+                "lineNumbers": true,
+                "wrap": true
+            }
+        }
+    },
     {
         "type": "divider"
     },

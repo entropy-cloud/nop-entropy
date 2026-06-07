@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -18,6 +19,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestJobStoreImpl extends JunitBaseTestCase {
@@ -27,7 +30,6 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
     private static final int FIRE_STATUS_RUNNING = 20;
     private static final int TASK_STATUS_WAITING = 0;
     private static final int TASK_STATUS_CANCELED = 60;
-    private static final String EXECUTOR_KIND_TEST = "test";
     private static final int TRIGGER_TYPE_FIXED_RATE = 2;
     private static final int TRIGGER_SOURCE_SCHEDULE = 1;
 
@@ -112,6 +114,51 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals(FIRE_STATUS_CANCELED, savedSchedule.getLastFireStatus());
     }
 
+    @Test
+    public void testDispatchStartTimeIsCurrentTime() {
+        NopJobSchedule schedule = newSchedule("schedule-ar1", "job-ar1");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("fire-ar1", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        long lockTimeoutMs = 5000L;
+        List<NopJobFire> waitingFires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-ar1", lockTimeoutMs);
+
+        assertEquals(1, lockedFires.size());
+        NopJobFire dispatched = lockedFires.get(0);
+
+        long startTimeMs = dispatched.getStartTime().getTime();
+        long approxNow = System.currentTimeMillis();
+
+        assertTrue(Math.abs(startTimeMs - approxNow) < 5000,
+                "startTime should be close to current time (dispatch time), not now + lockTimeoutMs");
+    }
+
+    @Test
+    public void testRecoveryFireNoFailedFiresContainsAllFields() {
+        NopJobSchedule schedule = newSchedule("schedule-ar2", "job-ar2");
+        schedule.setRetryPolicyId("retry-abc");
+        schedule.setJobParams("{\"p1\":\"v1\"}");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        scheduleStore.recoveryFireAndAdvanceSchedule(schedule,
+                new Timestamp(System.currentTimeMillis() + 60000));
+
+        List<NopJobFire> fires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        assertEquals(1, fires.size());
+
+        NopJobFire recoveryFire = fires.get(0);
+        assertEquals(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY, recoveryFire.getTriggerSource());
+        assertEquals("retry-abc", recoveryFire.getRetryPolicyId());
+        assertNotNull(recoveryFire.getJobParamsSnapshot());
+        assertTrue(recoveryFire.getJobParamsSnapshot().contains("p1"),
+                "recovery fire should have jobParamsSnapshot from schedule");
+        assertEquals(schedule.getExecutorKind(), recoveryFire.getExecutorKind());
+    }
+
     private NopJobSchedule newSchedule(String id, String jobName) {
         NopJobSchedule schedule = new NopJobSchedule();
         schedule.setJobScheduleId(id);
@@ -120,7 +167,6 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         schedule.setJobName(jobName);
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
-        schedule.setExecutorKind(EXECUTOR_KIND_TEST);
         schedule.setExecutorKind("testInvoker");
         schedule.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);

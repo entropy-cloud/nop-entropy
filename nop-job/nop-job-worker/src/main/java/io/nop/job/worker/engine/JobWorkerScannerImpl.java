@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVOKER_RETURNED_NULL;
+
 public class JobWorkerScannerImpl implements IJobWorkerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobWorkerScannerImpl.class);
 
@@ -77,16 +79,28 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
 
     @InjectValue("@cfg:nop.job.worker.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
+        if (scanIntervalMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.worker.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
+        }
         this.scanIntervalMs = scanIntervalMs;
     }
 
     @InjectValue("@cfg:nop.job.worker.batch-size|100")
     public void setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.worker.batch-size must be >= 1, got " + batchSize);
+        }
         this.batchSize = batchSize;
     }
 
     @InjectValue("@cfg:nop.job.worker.lock-timeout-ms|60000")
     public void setLockTimeoutMs(long lockTimeoutMs) {
+        if (lockTimeoutMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.worker.lock-timeout-ms must be >= 1000, got " + lockTimeoutMs);
+        }
         this.lockTimeoutMs = lockTimeoutMs;
     }
 
@@ -134,7 +148,7 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             int effectiveBatchSize = batchSize;
 
             if (maxConcurrency > 0) {
-                long runningCount = taskStore.countRunningTasks(AppConfig.hostId());
+                long runningCount = taskStore.countInFlightTasks(AppConfig.hostId());
                 int remaining = maxConcurrency - (int) runningCount;
                 if (remaining <= 0) {
                     workerMetrics.onRejected((int) runningCount);
@@ -190,7 +204,8 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         try {
             var promise = invoker.invokeAsync(ctx);
             if (promise == null) {
-                handleExecutionResult(runningTask.getJobTaskId(), null, null);
+                handleExecutionResult(runningTask.getJobTaskId(), null,
+                        new NopException(ERR_JOB_INVOKER_RETURNED_NULL));
             } else {
                 promise.whenComplete((result, err) -> handleExecutionResult(runningTask.getJobTaskId(), result, err));
             }
@@ -202,10 +217,28 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     private void handleExecutionResult(String jobTaskId, io.nop.job.api.execution.JobFireResult result, Throwable err) {
         try {
             NopJobTask task = taskStore.loadTask(jobTaskId);
-            if (task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                    || task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
-                    || task.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+            Integer taskStatus = task.getTaskStatus();
+            if (taskStatus != null
+                    && (taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                    || taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
+                    || taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS)) {
                 return;
+            }
+            if (taskStatus == null) {
+                return;
+            }
+
+            NopJobFire fire = fireStore.loadFire(task.getJobFireId());
+            if (fire != null && fire.getFireStatus() != null) {
+                int fs = fire.getFireStatus();
+                if (fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_CANCELED
+                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_TIMEOUT
+                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_FAILED
+                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
+                    LOG.warn("nop.job.worker.fire-already-terminal:taskId={},fireId={},fireStatus={}",
+                            jobTaskId, task.getJobFireId(), fs);
+                    return;
+                }
             }
 
             JobTaskExecutionUpdate update = executionContextBuilder.buildResultUpdate(task, result, err);
@@ -235,7 +268,46 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             }
             task.setUpdatedBy("system");
             task.setUpdateTime(endTime);
-            taskStore.updateTask(task);
+            boolean updated = taskStore.updateTask(task);
+            if (!updated) {
+                NopJobTask freshTask = taskStore.loadTask(jobTaskId);
+                Integer freshStatus = freshTask.getTaskStatus();
+                if (freshStatus == null
+                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
+                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                    return;
+                }
+
+                freshTask.setTaskStatus(update.getTaskStatus());
+                freshTask.setEndTime(endTime);
+                if (freshTask.getStartTime() != null) {
+                    freshTask.setDurationMs(Math.max(endTime.getTime() - freshTask.getStartTime().getTime(), 0L));
+                }
+                if (update.getError() != null) {
+                    freshTask.setErrorCode(update.getError().getErrorCode());
+                    freshTask.setErrorMessage(update.getError().getDescription());
+                } else {
+                    freshTask.setErrorCode(null);
+                    freshTask.setErrorMessage(null);
+                }
+                if (update.getNextScheduleTime() != null || update.isCompleted()) {
+                    Map<String, Object> resultPayload = new LinkedHashMap<>();
+                    if (update.getNextScheduleTime() != null) {
+                        resultPayload.put("nextScheduleTime", update.getNextScheduleTime());
+                    }
+                    if (update.isCompleted()) {
+                        resultPayload.put("completed", true);
+                    }
+                    freshTask.setResultPayload(JsonTool.stringify(resultPayload));
+                }
+                freshTask.setUpdatedBy("system");
+                freshTask.setUpdateTime(endTime);
+                if (!taskStore.updateTask(freshTask)) {
+                    LOG.warn("nop.job.worker.update-task-conflict-after-retry:taskId={},status={},resultStatus={}",
+                            jobTaskId, freshTask.getTaskStatus(), update.getTaskStatus());
+                }
+            }
 
             long duration = task.getStartTime() != null ? Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L) : 0L;
             if (update.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUCCESS) {
@@ -269,7 +341,9 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         freshTask.setWorkerInstanceId(AppConfig.hostId());
         freshTask.setUpdatedBy("system");
         freshTask.setUpdateTime(endTime);
-        taskStore.updateTask(freshTask);
+        if (!taskStore.updateTask(freshTask)) {
+            LOG.warn("nop.job.worker.complete-task-failure-update-conflict:taskId={}", freshTask.getJobTaskId());
+        }
     }
 
     protected IScheduledExecutor getExecutor() {

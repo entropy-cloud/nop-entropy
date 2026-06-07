@@ -12,6 +12,7 @@ public class CodeAnnotationUsage {
     private String attributes;
     private int line;
     private int column;
+    private EdgeProvenance provenance;
 
     public String getId() {
         return id;
@@ -59,5 +60,13 @@ public class CodeAnnotationUsage {
 
     public void setColumn(int column) {
         this.column = column;
+    }
+
+    public EdgeProvenance getProvenance() {
+        return provenance;
+    }
+
+    public void setProvenance(EdgeProvenance provenance) {
+        this.provenance = provenance;
     }
 }

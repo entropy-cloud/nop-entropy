@@ -15,6 +15,8 @@ import io.nop.job.biz.INopJobScheduleBiz;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +38,6 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
     private static final int SCHEDULE_STATUS_ENABLED = 10;
     private static final int SCHEDULE_STATUS_PAUSED = 20;
     private static final int SCHEDULE_STATUS_ARCHIVED = 40;
-    private static final String EXECUTOR_KIND_TEST = "test";
     private static final int TRIGGER_TYPE_FIXED_RATE = 2;
 
     @Inject
@@ -44,6 +45,9 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
 
     @Inject
     INopJobScheduleBiz scheduleBiz;
+
+    @Inject
+    IJobScheduleStore scheduleStore;
 
     @Test
     public void testDisablePauseAndArchiveSchedule() {
@@ -364,7 +368,6 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
         schedule.setJobName(jobName);
         schedule.setDisplayName(jobName);
         schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
-        schedule.setExecutorKind(EXECUTOR_KIND_TEST);
         schedule.setExecutorKind("testInvoker");
         schedule.setJobParams(JsonTool.stringify(Map.of("k", "v")));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
@@ -380,5 +383,57 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
         schedule.setUpdatedBy("test");
         schedule.setUpdateTime(new Timestamp(now));
         return schedule;
+    }
+
+    @Test
+    public void testDisableSchedulePreservesEngineCountersOnVersionConflict() {
+        NopJobSchedule schedule = newSchedule("schedule-ar22", "job-ar22");
+        schedule.setActiveFireCount(3);
+        schedule.setFireCount(10L);
+        schedule.setTotalFireCount(8L);
+        schedule.setSuccessFireCount(5L);
+        schedule.setFailFireCount(3L);
+        saveSchedule(schedule);
+
+        @SuppressWarnings("unchecked")
+        IOrmEntityDao<NopJobSchedule> schedDao =
+                (IOrmEntityDao<NopJobSchedule>) daoProvider.daoFor(NopJobSchedule.class);
+
+        NopJobSchedule concurrent = schedDao.requireEntityById(schedule.getJobScheduleId());
+        concurrent.setActiveFireCount(5);
+        concurrent.setFireCount(15L);
+        concurrent.setTotalFireCount(12L);
+        concurrent.setSuccessFireCount(8L);
+        concurrent.setFailFireCount(4L);
+        schedDao.updateEntityDirectly(concurrent);
+
+        scheduleBiz.disableSchedule(schedule.getJobScheduleId(), newContext());
+
+        NopJobSchedule saved = loadSchedule(schedule.getJobScheduleId());
+        assertEquals(SCHEDULE_STATUS_DISABLED, saved.getScheduleStatus());
+        assertEquals(5, saved.getActiveFireCount(),
+                "Engine field activeFireCount should be preserved from concurrent update");
+        assertEquals(15L, saved.getFireCount(),
+                "Engine field fireCount should be preserved from concurrent update");
+        assertEquals(12L, saved.getTotalFireCount(),
+                "Engine field totalFireCount should be preserved from concurrent update");
+    }
+
+    @Test
+    public void test_recalculateNextFireTimeUsesDbClock() {
+        NopJobSchedule schedule = newSchedule("schedule-db-clock", "job-db-clock");
+        schedule.setScheduleStatus(SCHEDULE_STATUS_DISABLED);
+        schedule.setNextFireTime(null);
+        saveSchedule(schedule);
+
+        long dbTime = scheduleStore.getCurrentTime();
+        long systemBefore = System.currentTimeMillis();
+
+        scheduleBiz.enableSchedule(schedule.getJobScheduleId(), newContext());
+
+        NopJobSchedule saved = loadSchedule(schedule.getJobScheduleId());
+        assertNotNull(saved.getNextFireTime());
+        assertTrue(saved.getNextFireTime().getTime() >= dbTime,
+                "nextFireTime should be based on DB clock, not System.currentTimeMillis()");
     }
 }

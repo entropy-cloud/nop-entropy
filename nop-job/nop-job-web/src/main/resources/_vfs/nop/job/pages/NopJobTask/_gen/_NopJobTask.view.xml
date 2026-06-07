@@ -24,8 +24,11 @@
                 <!--批次ID-->
                 <col id="jobFireId" mandatory="true" sortable="true"/>
 
-                <!--任务序号-->
-                <col id="taskNo" mandatory="true" ui:number="true" sortable="true"/>
+                <!--分片索引-->
+                <col id="shardingIndex" ui:number="true" sortable="true"/>
+
+                <!--总分片数-->
+                <col id="shardingTotal" ui:number="true" sortable="true"/>
 
                 <!--任务状态-->
                 <col id="taskStatus" mandatory="true" ui:number="true" sortable="true"/>
@@ -35,9 +38,6 @@
 
                 <!--执行节点地址-->
                 <col id="workerAddress" sortable="true"/>
-
-                <!--投递参数-->
-                <col id="taskPayload" sortable="true"/>
 
                 <!--开始时间-->
                 <col id="startTime" sortable="true"/>
@@ -56,6 +56,12 @@
 
                 <!--错误消息-->
                 <col id="errorMessage" sortable="true"/>
+
+                <!--投递参数-->
+                <col id="taskPayload" sortable="true"/>
+
+                <!--任务序号-->
+                <col id="taskNo" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--分区索引-->
                 <col id="partitionIndex" mandatory="true" ui:number="true" sortable="true"/>
@@ -83,12 +89,6 @@
 
                 <!--目标节点地址-->
                 <col id="targetHost" sortable="true"/>
-
-                <!--分片索引-->
-                <col id="shardingIndex" ui:number="true" sortable="true"/>
-
-                <!--总分片数-->
-                <col id="shardingTotal" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -98,28 +98,27 @@
         <form id="view" editMode="view" title="查看-执行任务" i18n-en:title="View Job Task">
             <layout>
  jobTaskId[任务ID] jobFireId[批次ID]
- taskNo[任务序号] taskStatus[任务状态]
- workerInstanceId[执行节点ID] workerAddress[执行节点地址]
- taskPayload[投递参数] startTime[开始时间]
+ shardingIndex[分片索引] shardingTotal[总分片数]
+ taskStatus[任务状态] workerInstanceId[执行节点ID]
+ workerAddress[执行节点地址] startTime[开始时间]
  endTime[结束时间] durationMs[执行时长(毫秒)]
  resultPayload[执行结果] errorCode[错误码]
- errorMessage[错误消息] partitionIndex[分区索引]
+ errorMessage[错误消息] taskPayload[投递参数]
+ taskNo[任务序号] partitionIndex[分区索引]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
  remark[备注] progress[执行进度]
  progressMessage[进度消息] targetHost[目标节点地址]
- shardingIndex[分片索引] shardingTotal[总分片数]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行任务" i18n-en:title="Add Job Task" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-执行任务" i18n-en:title="Edit Job Task">
             <layout>
  jobTaskId[任务ID] jobFireId[批次ID]
- taskNo[任务序号] taskPayload[投递参数]
+ shardingIndex[分片索引] shardingTotal[总分片数]
+ taskPayload[投递参数] taskNo[任务序号]
  partitionIndex[分区索引] remark[备注]
  progress[执行进度] progressMessage[进度消息]
- targetHost[目标节点地址] shardingIndex[分片索引]
- shardingTotal[总分片数] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -21,6 +21,7 @@ public class CodeFileAnalysisResult {
     private List<CodeInheritance> inheritances = new ArrayList<>();
     private List<CodeAnnotationUsage> annotationUsages = new ArrayList<>();
     private List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
+    private List<CodeRouteInfo> routes = new ArrayList<>();
 
     public String getFilePath() {
         return filePath;
@@ -108,5 +109,13 @@ public class CodeFileAnalysisResult {
 
     public void setSemanticEdges(List<CodeSemanticEdge> semanticEdges) {
         this.semanticEdges = semanticEdges != null ? semanticEdges : new ArrayList<>();
+    }
+
+    public List<CodeRouteInfo> getRoutes() {
+        return routes;
+    }
+
+    public void setRoutes(List<CodeRouteInfo> routes) {
+        this.routes = routes != null ? routes : new ArrayList<>();
     }
 }

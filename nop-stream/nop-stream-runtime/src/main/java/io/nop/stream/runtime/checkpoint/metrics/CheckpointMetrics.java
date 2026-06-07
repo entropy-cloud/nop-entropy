@@ -91,7 +91,7 @@ public class CheckpointMetrics {
         lastCheckpointTimestamp.set(0);
     }
 
-    public CheckpointMetricsSnapshot snapshot() {
+    public synchronized CheckpointMetricsSnapshot snapshot() {
         return new CheckpointMetricsSnapshot(
                 numCompletedCheckpoints.get(),
                 numFailedCheckpoints.get(),

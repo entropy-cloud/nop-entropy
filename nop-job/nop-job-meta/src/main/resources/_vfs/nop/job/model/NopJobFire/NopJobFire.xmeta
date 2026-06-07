@@ -10,5 +10,14 @@
         <prop name="durationMs" insertable="false" updatable="false"/>
         <prop name="errorCode" insertable="false" updatable="false"/>
         <prop name="errorMessage" insertable="false" updatable="false"/>
+        <prop name="triggerSource" insertable="false" updatable="false"/>
+        <prop name="scheduledFireTime" updatable="false"/>
+        <prop name="triggeredBy" insertable="false" updatable="false"/>
+        <prop name="retryPolicyId" updatable="false"/>
+        <prop name="retryRecordId" updatable="false"/>
+        <prop name="partitionIndex" updatable="false"/>
+        <prop name="jobScheduleId" updatable="false"/>
+        <prop name="jobParamsSnapshot" updatable="false"/>
+        <prop name="executorKind" updatable="false"/>
     </props>
 </meta>

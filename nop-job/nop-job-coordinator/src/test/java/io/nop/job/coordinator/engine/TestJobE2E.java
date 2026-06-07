@@ -226,6 +226,10 @@ public class TestJobE2E {
 
         checker.scanOnce();
 
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, task.getTaskStatus());
+
+        checker.scanOnce();
+
         assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus());
         assertNotNull(task.getEndTime());
     }
@@ -236,6 +240,7 @@ public class TestJobE2E {
 
         @Override public long getCurrentTime() { return currentTime; }
         @Override public NopJobSchedule loadSchedule(String id) { return schedules.get(id); }
+        @Override public NopJobSchedule tryLoadSchedule(String id) { return schedules.get(id); }
         @Override public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> ids) {
             Map<String, NopJobSchedule> result = new HashMap<>();
             for (String id : ids) { NopJobSchedule s = schedules.get(id); if (s != null) result.put(id, s); }
@@ -253,6 +258,7 @@ public class TestJobE2E {
     static class SimpleFireStore implements IJobFireStore {
         final List<NopJobFire> runningFires = new ArrayList<>();
         final Map<String, NopJobFire> fires = new HashMap<>();
+        final java.util.concurrent.atomic.AtomicBoolean completeFireCalled = new java.util.concurrent.atomic.AtomicBoolean();
 
         @Override public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet p) { return new ArrayList<>(runningFires); }
         @Override public Map<String, NopJobFire> batchLoadFires(Set<String> ids) {
@@ -261,11 +267,13 @@ public class TestJobE2E {
             return result;
         }
         @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
+        @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> f, String d, long t) { return f; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire f, List<NopJobTask> t) {}
-        @Override public void completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) {}
+        @Override public void completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) { completeFireCalled.set(true); }
         @Override public boolean cancelFire(String id) { return false; }
+        @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {}
         @Override public NopJobFire loadFire(String id) { return fires.get(id); }
     }
 
@@ -275,11 +283,11 @@ public class TestJobE2E {
 
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet p) { return new ArrayList<>(runningTasks); }
         @Override public List<NopJobTask> findTasksByFireId(String fireId) { return tasksByFire.getOrDefault(fireId, Collections.emptyList()); }
-        @Override public void updateTask(NopJobTask t) {}
+        @Override public boolean updateTask(NopJobTask t) { return true; }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> t, String w, long l) { return t; }
         @Override public NopJobTask loadTask(String id) { return null; }
-        @Override public long countRunningTasks(String w) { return 0; }
+        @Override public long countInFlightTasks(String w) { return 0; }
     }
 
     static class MockNamingService implements INamingService {
@@ -306,10 +314,9 @@ public class TestJobE2E {
         final AtomicInteger callCount = new AtomicInteger();
         String lastPolicyId;
 
-        @Override public String onFireFailed(JobFireFailedEvent event) {
+        @Override public void onFireFailed(JobFireFailedEvent event) {
             callCount.incrementAndGet();
             lastPolicyId = event.getRetryPolicyId();
-            return "retry-record";
         }
     }
 

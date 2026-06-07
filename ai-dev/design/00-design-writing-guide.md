@@ -55,21 +55,72 @@
 
 层级和 precedence model 定义在 `ai-dev/design/README.md`（本目录的 attractor index）。
 
-子系统目录应该有一个 `README.md` 说明：
-1. 本目录的设计文档结构和内部层级
-2. 阅读顺序
-3. 各文档的职责边界
+### 子系统目录结构
 
-参考范例：`nop-ai-agent/README.md`（4 层结构：DSL / Engine / Semantics / Strategy）。
+每个子系统目录必须有一个 `README.md`，说明：
+1. 本目录的设计文档结构和内部层级
+2. 阅读顺序（必读路径 + 按需深入 + 扩展方向）
+3. 各文档的职责边界
+4. 声明本目录遵循 AGE（Attractor-Guided Engineering）owner-doc 模式组织
+
+### 必备层级
+
+不论模块如何命名，每个子系统必须包含以下两层：
+
+| 层级 | 职责 | 必须回答的问题 |
+|------|------|---------------|
+| **Vision**（愿景/原则层） | 产品定位、成功标准、不可违反的约束、显式 non-goals、设计收敛路径 | 做什么、不做什么、凭什么判断成功、哪些决策必须由人做出 |
+| **Architecture Baseline**（架构基线层） | 系统分层、核心对象职责契约、模块边界、关键设计决策 | 怎么分层、核心对象各自的职责是什么、模块间依赖方向是什么 |
+
+其余层级（执行模型、DSL、引擎、策略等）按子系统实际需要自行组织，命名不强求统一。不同模块复杂度不同，层数和名称可以不同，但 Vision 和 Architecture Baseline 是底线。
+
+### 编号命名（推荐）
+
+编号前缀（`00-`、`01-`、`02-`…）用于标识阅读顺序和层级归属，不是强制要求。当子系统文档较多（>5 篇）时推荐使用，便于新读者快速定位入口。
+
+未使用编号的子系统，至少要在 README.md 中明确标注哪些文档是 Vision 级别、哪些是 Architecture Baseline 级别。
 
 ### 命名规范
 
 | 场景 | 文件名格式 | 示例 |
 |------|-----------|------|
-| 子系统级设计 | `{topic}-design.md` | `core-design.md`、`invoker-design.md` |
-| 子系统架构总览 | `README.md` | `nop-code/README.md` |
-| 跨子系统专题 | `{topic}-design.md` | `semantic-edge-design.md` |
+| Vision 层 | `00-vision.md` 或 `{topic}-vision.md` | `00-vision.md` |
+| Architecture Baseline 层 | `01-architecture-baseline.md` 或 `{topic}-architecture.md` | `01-architecture-baseline.md`、`architecture.md` |
+| 子系统专题设计 | `{topic}-design.md` | `core-design.md`、`invoker-design.md` |
+| 子系统索引 | `README.md` | 每个子系统目录一个 |
+| 跨子系统专题 | `{topic}-design.md`（放在 `ai-dev/design/` 根目录） | `semantic-edge-design.md` |
 | 目录名 | 模块名（与 Maven 模块一致） | `nop-job/`、`nop-stream/` |
+
+### 完整范例
+
+`nop-ai-agent/` 是当前最完整的范例，8 层结构：
+
+```
+nop-ai-agent/
+├── README.md                           # 索引 + 阅读顺序 + AGE 声明
+├── 00-vision.md                        # Vision 层
+├── 01-architecture-baseline.md         # Architecture Baseline 层
+├── 02-execution-model.md               # 执行模型
+├── 04-tool-invocation.md               # 工具调用
+├── nop-ai-agent-dsl.md                 # DSL 层（多篇）
+├── nop-ai-agent-react-engine.md        # 引擎层（多篇）
+├── nop-ai-agent-runtime-semantics.md   # 语义映射层
+├── nop-ai-agent-session-and-storage.md # 策略层（多篇）
+└── nop-ai-agent-roadmap.md             # 愿景演进
+```
+
+README 中明确声明："本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织"。
+
+### 被取代文档的处理
+
+当一篇设计文档的内容已被新文档完全覆盖时：
+
+1. **逐节核对**新文档是否覆盖了旧文档的全部内容
+2. 确认覆盖后**直接删除**旧文档，不保留作"历史参照"
+3. 更新所有引用旧文档的链接（包括其他设计文档、README、`docs-for-ai/`）
+4. 如果旧文档中有个别内容未被覆盖，先补充到新文档中，再删除旧文档
+
+**不保留 superseded 文档的理由**：设计文档是当前基线，不是版本历史。保留过时文档会造成读者无法判断哪篇是权威来源，且容易产生不一致。历史追溯使用 git。
 
 ### 推荐模板
 

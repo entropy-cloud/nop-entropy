@@ -68,7 +68,7 @@ public class StateShard implements Serializable {
         if (stateShardCount == 1) {
             return 0;
         }
-        return Math.abs(stableHash(key)) % stateShardCount;
+        return (stableHash(key) & 0x7FFFFFFF) % stateShardCount;
     }
 
     public static int stableHash(Object key) {

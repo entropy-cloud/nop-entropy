@@ -2,6 +2,7 @@ package io.nop.code.graph.diff;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 public class GraphSnapshot {
     private final long timestamp;
@@ -54,7 +55,7 @@ public class GraphSnapshot {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             EdgeKey edgeKey = (EdgeKey) o;
-            return source.equals(edgeKey.source) && target.equals(edgeKey.target);
+            return Objects.equals(source, edgeKey.source) && Objects.equals(target, edgeKey.target);
         }
 
         @Override

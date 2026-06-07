@@ -1,6 +1,16 @@
 package io.nop.code.flow;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -230,11 +240,16 @@ public class FlowDetector implements IFlowDetector {
     }
 
     private String guessExtension(String qualifiedName) {
-        String lower = qualifiedName.toLowerCase();
-        for (String ext : SOURCE_EXTENSIONS) {
-            if (lower.contains(ext.substring(1))) {
-                return ext;
-            }
+        if (qualifiedName == null) return SOURCE_EXTENSIONS.get(0);
+        String className = qualifiedName;
+        int parenIdx = className.indexOf('(');
+        if (parenIdx > 0) className = className.substring(0, parenIdx);
+        int lastDot = className.lastIndexOf('.');
+        if (lastDot >= 0) className = className.substring(lastDot + 1);
+        String lower = className.toLowerCase();
+        if (lower.endsWith("service") || lower.endsWith("controller") || lower.endsWith("repository")
+                || lower.endsWith("config") || lower.endsWith("component") || lower.endsWith("bean")) {
+            return ".java";
         }
         return SOURCE_EXTENSIONS.get(0);
     }
@@ -269,6 +284,10 @@ public class FlowDetector implements IFlowDetector {
             List<String> callees = callGraph.getCallees(current.symbolId);
             for (String calleeId : callees) {
                 if (!visited.contains(calleeId)) {
+                    CodeSymbol callee = symbolTable.getById(calleeId);
+                    if (callee != null && isExternalPackage(callee.getQualifiedName())) {
+                        result.externalCallCount++;
+                    }
                     queue.add(new TraversalNode(calleeId, current.depth + 1));
                 }
             }
@@ -325,25 +344,19 @@ public class FlowDetector implements IFlowDetector {
             fileSpread = 0.0;
         }
 
-        int externalCalls = 0;
         int securitySymbols = 0;
         for (String nodeId : result.pathNodeIds) {
             CodeSymbol symbol = symbolTable.getById(nodeId);
             if (symbol == null) {
                 continue;
             }
-
-            if (isExternalCall(symbol.getQualifiedName())) {
-                externalCalls++;
-            }
-
             if (isSecuritySensitive(symbol)) {
                 securitySymbols++;
             }
         }
 
         double externalScore = result.totalCalls > 0
-                ? (double) externalCalls / result.totalCalls
+                ? (double) result.externalCallCount / result.totalCalls
                 : 0.0;
 
         double securityScore = (double) securitySymbols / symbolCount;
@@ -468,6 +481,7 @@ public class FlowDetector implements IFlowDetector {
         List<String> pathNodeIds = new ArrayList<>();
         int maxDepthReached = 0;
         int totalCalls = 0;
+        int externalCallCount = 0;
     }
 
     private static class TraversalNode {
@@ -515,9 +529,10 @@ public class FlowDetector implements IFlowDetector {
             // Check extData for annotation short names
             String extData = symbol.getExtData();
             if (extData != null) {
+                List<String> annotations = ExtDataHelper.getAnnotations(extData);
                 for (String annotation : SPRING_ENTRY_ANNOTATIONS) {
                     String shortName = annotation.substring(annotation.lastIndexOf('.') + 1);
-                    if (extData.contains(shortName)) {
+                    if (annotations.contains(shortName) || annotations.contains(annotation)) {
                         return true;
                     }
                 }

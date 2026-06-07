@@ -403,7 +403,7 @@ class TestCheckpointParticipantIntegration {
         CheckpointPlan plan = CheckpointPlanBuilder.build(executionPlan, "job-1", "p-1");
         assertFalse(plan.getCheckpointParticipants().isEmpty(),
                 "Should auto-detect TwoPhaseCommitSinkFunction as participant");
-        assertTrue(plan.getCheckpointParticipants().contains("sink-3"),
+        assertTrue(plan.getCheckpointParticipants().contains("sink-3-0"),
                 "sink-3 should be detected as participant. Participants: " + plan.getCheckpointParticipants());
     }
 

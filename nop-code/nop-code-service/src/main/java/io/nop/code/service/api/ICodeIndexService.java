@@ -8,7 +8,7 @@ import io.nop.code.core.model.*;
 import io.nop.code.flow.ChangeAnalysisResult;
 import io.nop.code.flow.DeadCodeReport;
 import io.nop.code.flow.ExecutionFlow;
-import io.nop.code.service.api.dto.*;
+import io.nop.code.api.dto.*;
 /**
  * 代码索引服务接口
  */

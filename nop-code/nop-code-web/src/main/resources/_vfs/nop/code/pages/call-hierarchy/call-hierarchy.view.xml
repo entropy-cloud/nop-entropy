@@ -13,7 +13,9 @@
             <cells>
                 <cell id="indexId" label="索引ID" domain="string"/>
                 <cell id="qualifiedName" label="方法全限定名" domain="string"/>
-                <cell id="direction" label="方向" domain="string"/>
+                <cell id="direction" label="方向" domain="string">
+                    <schema dict="code/call_direction"/>
+                </cell>
                 <cell id="maxDepth" label="最大深度" domain="int"/>
             </cells>
         </form>
@@ -43,9 +45,16 @@
                 "visibleOn": "this.callers != null &amp;&amp; this.callers.length > 0",
                 "collapsable": true,
                 "body": {
-                    "type": "json",
-                    "source": "${callers}",
-                    "levelExpand": 10
+                    "type": "input-tree",
+                    "name": "callers",
+                    "multiple": false,
+                    "showIcon": true,
+                    "initiallyOpen": false,
+                    "valueField": "symbol.qualifiedName",
+                    "labelField": "label",
+                    "childrenField": "children",
+                    "source": "${callers | map: item => ({ label: item.symbol.qualifiedName + ' (' + item.symbol.kind + ')', children: [].concat(item.callers || [], item.callees || []) }) }",
+                    "searchable": true
                 }
             },
             {
@@ -54,9 +63,16 @@
                 "visibleOn": "this.callees != null &amp;&amp; this.callees.length > 0",
                 "collapsable": true,
                 "body": {
-                    "type": "json",
-                    "source": "${callees}",
-                    "levelExpand": 10
+                    "type": "input-tree",
+                    "name": "callees",
+                    "multiple": false,
+                    "showIcon": true,
+                    "initiallyOpen": false,
+                    "valueField": "symbol.qualifiedName",
+                    "labelField": "label",
+                    "childrenField": "children",
+                    "source": "${callees | map: item => ({ label: item.symbol.qualifiedName + ' (' + item.symbol.kind + ')', children: [].concat(item.callers || [], item.callees || []) }) }",
+                    "searchable": true
                 }
             }
         ]

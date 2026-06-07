@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestJobWorkerScanner extends JunitBaseTestCase {
@@ -276,6 +277,195 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task);
 
         return new PreparedTask(schedule, fire, task);
+    }
+
+    private static final int FIRE_STATUS_CANCELED = 60;
+
+    @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+    public static class Inner extends JunitBaseTestCase {
+        private static final int SCHEDULE_STATUS_ENABLED = 10;
+        private static final int FIRE_STATUS_RUNNING = 20;
+        private static final int FIRE_STATUS_CANCELED = 60;
+        private static final int TASK_STATUS_WAITING = 0;
+        private static final int TASK_STATUS_CLAIMED = 15;
+        private static final String EXECUTOR_KIND_TEST = "test";
+        private static final int TRIGGER_TYPE_FIXED_RATE = 2;
+        private static final int TRIGGER_SOURCE_SCHEDULE = 1;
+
+        @Inject
+        IDaoProvider daoProvider;
+
+        @Inject
+        IJobScheduleStore scheduleStore;
+
+        @Inject
+        IJobFireStore fireStore;
+
+        @Inject
+        IJobTaskStore taskStore;
+
+        private IBeanContainer originalBeanContainer;
+
+        @AfterEach
+        public void tearDown() {
+            if (originalBeanContainer != null) {
+                BeanContainer.registerInstance(originalBeanContainer);
+                originalBeanContainer = null;
+            }
+        }
+
+        @Test
+        public void testCanceledFireDoesNotWriteSuccess() {
+            if (originalBeanContainer == null && BeanContainer.isInitialized()) {
+                originalBeanContainer = BeanContainer.instance();
+            }
+            StaticBeanContainer container = new StaticBeanContainer();
+            container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+                @Override
+                public java.util.concurrent.CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                    return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+                }
+
+                @Override
+                public java.util.concurrent.CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                    return CompletableFuture.completedFuture(Boolean.TRUE);
+                }
+            });
+            BeanContainer.registerInstance(container);
+
+            PreparedTask prepared = prepareWaitingTask("schedule-ar36-1", "job-ar36-1");
+
+            NopJobFire fire = fireStore.loadFire(prepared.fire.getJobFireId());
+            fire.setFireStatus(FIRE_STATUS_CANCELED);
+            fire.setUpdatedBy("test-cancel");
+            fire.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+            daoProvider.daoFor(NopJobFire.class).updateEntityDirectly(fire);
+
+            JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+            worker.setTaskStore(taskStore);
+            worker.setFireStore(fireStore);
+            worker.setScheduleStore(scheduleStore);
+            worker.setInvokerResolver(new DefaultJobInvokerResolver());
+            worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+            worker.setBatchSize(10);
+            worker.setAssignedPartitions("1");
+            worker.setLockTimeoutMs(1000);
+            worker.scanOnce();
+
+            NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
+            assertEquals(TASK_STATUS_WAITING, savedTask.getTaskStatus(),
+                    "Task should remain in WAITING status when fire is already CANCELED");
+            assertNull(savedTask.getErrorCode());
+        }
+
+        @Test
+        public void testNullPromiseTreatedAsError() {
+            if (originalBeanContainer == null && BeanContainer.isInitialized()) {
+                originalBeanContainer = BeanContainer.instance();
+            }
+            StaticBeanContainer container = new StaticBeanContainer();
+            container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+                @Override
+                public java.util.concurrent.CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                    return null;
+                }
+
+                @Override
+                public java.util.concurrent.CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                    return CompletableFuture.completedFuture(Boolean.TRUE);
+                }
+            });
+            BeanContainer.registerInstance(container);
+
+            PreparedTask prepared = prepareWaitingTask("schedule-ar41-1", "job-ar41-1");
+
+            JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+            worker.setTaskStore(taskStore);
+            worker.setFireStore(fireStore);
+            worker.setScheduleStore(scheduleStore);
+            worker.setInvokerResolver(new DefaultJobInvokerResolver());
+            worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+            worker.setBatchSize(10);
+            worker.setAssignedPartitions("1");
+            worker.setLockTimeoutMs(1000);
+            worker.scanOnce();
+
+            NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
+            assertEquals(TASK_STATUS_FAILED, savedTask.getTaskStatus(),
+                    "Null promise should be treated as error, not SUCCESS");
+            assertEquals("JOB_INVOKER_RETURNED_NULL", savedTask.getErrorCode());
+        }
+
+        private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {
+            long now = System.currentTimeMillis();
+
+            NopJobSchedule schedule = new NopJobSchedule();
+            schedule.setJobScheduleId(scheduleId);
+            schedule.setNamespaceId("default");
+            schedule.setGroupId("default");
+            schedule.setJobName(jobName);
+            schedule.setDisplayName(jobName);
+            schedule.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
+            schedule.setExecutorKind(EXECUTOR_KIND_TEST);
+            schedule.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
+            schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
+            schedule.setRepeatIntervalMs(1000L);
+            schedule.setPartitionIndex((short) 1);
+            schedule.setFireCount(1L);
+            schedule.setActiveFireCount(1);
+            schedule.setLastFireTime(new Timestamp(now - 1000));
+            schedule.setVersion(0L);
+            schedule.setCreatedBy("test");
+            schedule.setCreateTime(new Timestamp(now));
+            schedule.setUpdatedBy("test");
+            schedule.setUpdateTime(new Timestamp(now));
+            daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+            NopJobFire fire = new NopJobFire();
+            fire.setJobScheduleId(schedule.getJobScheduleId());
+            fire.setNamespaceId(schedule.getNamespaceId());
+            fire.setGroupId(schedule.getGroupId());
+            fire.setJobName(schedule.getJobName());
+            fire.setTriggerSource(TRIGGER_SOURCE_SCHEDULE);
+            fire.setScheduledFireTime(new Timestamp(now - 1000));
+            fire.setFireStatus(FIRE_STATUS_RUNNING);
+            fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("k", "v"));
+            fire.setExecutorKind(schedule.getExecutorKind());
+            fire.setPartitionIndex(schedule.getPartitionIndex());
+            fire.setVersion(0L);
+            fire.setCreatedBy("test");
+            fire.setCreateTime(new Timestamp(now));
+            fire.setUpdatedBy("test");
+            fire.setUpdateTime(new Timestamp(now));
+            daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
+
+            NopJobTask task = new NopJobTask();
+            task.setJobFireId(fire.getJobFireId());
+            task.setTaskNo(1);
+            task.setTaskStatus(TASK_STATUS_WAITING);
+            task.getTaskPayloadComponent().set_jsonValue(Map.of("jobFireId", fire.getJobFireId()));
+            task.setPartitionIndex(fire.getPartitionIndex());
+            task.setVersion(0L);
+            task.setCreatedBy("test");
+            task.setCreateTime(new Timestamp(now));
+            task.setUpdatedBy("test");
+            task.setUpdateTime(new Timestamp(now));
+            daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task);
+
+            return new PreparedTask(schedule, fire, task);
+        }
+
+        private static final class PreparedTask {
+            private final NopJobSchedule schedule;
+            private final NopJobFire fire;
+            private final NopJobTask task;
+
+            private PreparedTask(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+                this.schedule = schedule;
+                this.fire = fire;
+                this.task = task;
+            }
+        }
     }
 
     private void rememberOriginalBeanContainer() {

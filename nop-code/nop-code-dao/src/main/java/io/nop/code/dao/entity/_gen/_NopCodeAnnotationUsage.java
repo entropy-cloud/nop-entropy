@@ -48,8 +48,12 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     public static final String PROP_NAME_attributes = "attributes";
     public static final int PROP_ID_attributes = 7;
     
+    /* 来源: PROVENANCE VARCHAR */
+    public static final String PROP_NAME_provenance = "provenance";
+    public static final int PROP_ID_provenance = 8;
+    
 
-    private static int _PROP_ID_BOUND = 8;
+    private static int _PROP_ID_BOUND = 9;
 
     
     /* relation:  */
@@ -68,7 +72,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[8];
+    private static final String[] PROP_ID_TO_NAME = new String[9];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -93,6 +97,9 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_attributes] = PROP_NAME_attributes;
           PROP_NAME_TO_ID.put(PROP_NAME_attributes, PROP_ID_attributes);
       
+          PROP_ID_TO_NAME[PROP_ID_provenance] = PROP_NAME_provenance;
+          PROP_NAME_TO_ID.put(PROP_NAME_provenance, PROP_ID_provenance);
+      
     }
 
     
@@ -116,6 +123,9 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     
     /* 属性值: ATTRIBUTES */
     private java.lang.String _attributes;
+    
+    /* 来源: PROVENANCE */
+    private java.lang.String _provenance;
     
 
     public _NopCodeAnnotationUsage(){
@@ -212,6 +222,9 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
             case PROP_ID_attributes:
                return getAttributes();
         
+            case PROP_ID_provenance:
+               return getProvenance();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -293,6 +306,16 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_provenance:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_provenance));
+               }
+               setProvenance(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -347,6 +370,13 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
             case PROP_ID_attributes:{
                onInitProp(propId);
                this._attributes = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_provenance:{
+               onInitProp(propId);
+               this._provenance = (java.lang.String)value;
                
                break;
             }
@@ -486,6 +516,25 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_attributes,value)){
             this._attributes = value;
             internalClearRefs(PROP_ID_attributes);
+            
+        }
+    }
+    
+    /**
+     * 来源: PROVENANCE
+     */
+    public final java.lang.String getProvenance(){
+         onPropGet(PROP_ID_provenance);
+         return _provenance;
+    }
+
+    /**
+     * 来源: PROVENANCE
+     */
+    public final void setProvenance(java.lang.String value){
+        if(onPropSet(PROP_ID_provenance,value)){
+            this._provenance = value;
+            internalClearRefs(PROP_ID_provenance);
             
         }
     }

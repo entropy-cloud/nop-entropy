@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -126,7 +127,10 @@ public class ResultPartition implements IWriteStatus {
      */
     public void close() {
         finished = true;
-        queue.offer(END_OF_STREAM);
+        if (!queue.offer(END_OF_STREAM)) {
+            queue.clear();
+            queue.offer(END_OF_STREAM);
+        }
     }
 
     /**

@@ -22,9 +22,9 @@ class TestLockable {
     }
 
     @Test
-    void testReleaseReturnsTrueWhenCounterAlreadyZeroOrNegative() {
+    void testReleaseThrowsWhenCounterAlreadyZero() {
         Lockable<String> lockable = new Lockable<>("test", 0);
-        assertTrue(lockable.release());
+        assertThrows(IllegalStateException.class, lockable::release);
         assertEquals(0, lockable.getRefCounter());
     }
 

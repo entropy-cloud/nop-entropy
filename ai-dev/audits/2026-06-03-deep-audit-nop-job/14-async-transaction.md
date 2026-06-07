@@ -1,98 +1,67 @@
-# 维度14：异步与事务模式
+# 维度 14：异步与事务模式
 
 ## 第 1 轮（初审）
 
-### [维度14-01] completeFireAndUpdateSchedule 对 schedule 使用 updateEntityDirectly 绕过乐观锁
+### [维度14-01] 乐观锁重试耗尽后 fallback 到 updateEntityDirectly
 
-- **文件**: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobFireStoreImpl.java:117-128`
-- **证据片段**:
-  ```java
-  @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-  @Override
-  public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
-      NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-      if (TERMINAL_FIRE_STATUSES.contains(currentFire.getFireStatus())) {
-          return;
-      }
-      List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fire));
-      if (updated.isEmpty()) {
-          return;
-      }
-      scheduleDao().updateEntityDirectly(schedule);    // ← 无版本检查
-  }
-  ```
+- **文件**: `JobScheduleStoreImpl.java:155-156,205-206,253-254,289,343-344`, `NopJobScheduleBizModel.java:157-158`
+- **证据片段** (JobScheduleStoreImpl.java:153-156):
+```java
+        NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+        schedule.setVersion(fresh.getVersion());
+    }
+    scheduleDao().updateEntityDirectly(schedule);
+```
 - **严重程度**: P2
-- **现状**: fire 使用 `tryUpdateManyWithVersionCheck` 做乐观锁保护，但同事务内 schedule 使用 `updateEntityDirectly` 直接写入。调用方（CompletionProcessor/TimeoutChecker）在 `@SingleSession` 定时扫描中先 loadSchedule 再修改字段，如果期间 schedule 被其他事务修改（如 BizModel 的 enableSchedule），修改会被直接覆盖。
-- **风险**: 并发场景下可能丢失 schedule 的更新。schedule 有 version 字段，`updateEntityDirectly` 绕过了乐观锁。
-- **建议**: 改为 `scheduleDao().tryUpdateManyWithVersionCheck(Collections.singletonList(schedule))`，版本冲突时重试。
-- **信心水平**: 确定
-- **误报排除**: `updateEntityDirectly` 确实不检查 version，`tryUpdateManyWithVersionCheck` 确实检查。两者在同一事务中使用是设计不一致。
+- **现状**: 5 次乐观锁重试全部失败后回退到 updateEntityDirectly（绕过版本检查），有 WARN 日志。
+- **风险**: 极端高并发场景下可能导致计数器更新丢失（fireCount, activeFireCount 偏低）。
+- **建议**: 考虑增加重试次数或在 fallback 中使用原子 SQL（SET fireCount = fireCount + 1）。
+- **信心水平**: 92%
+- **误报排除**: 有意设计，但确实存在数据精度风险。
 - **复核状态**: 未复核
 
-### [维度14-02] NopJobFireBizModel.cancelFire TOCTOU 多次加载 fire 实体
+### [维度14-02] Store 层长事务风险
 
-- **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/entity/NopJobFireBizModel.java:47-58`
+- **文件**: `JobScheduleStoreImpl.java:158-207` (overlayFireAndAdvanceSchedule)
 - **证据片段**:
-  ```java
-  public void cancelFire(@Name("id") String id, IServiceContext context) {
-      NopJobFire fire = fireStore.loadFire(id);                     // 第1次加载
-      if (!isCancelableStatus(fire.getFireStatus())) {
-          throwCancelNotAllowed(fire, "cancelFire");
-      }
-      if (!fireStore.cancelFire(id)) {                              // 内部第2次加载+version check
-          throwCancelNotAllowed(fireStore.loadFire(id), "cancelFire");  // 第3次加载
-      }
-      afterEntityChange(fireStore.loadFire(id), "cancelFire", context); // 第4次加载
-  }
-  ```
+```java
+@Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+public void overlayFireAndAdvanceSchedule(NopJobSchedule schedule, ...) {
+    // 1. 查询活跃 fires
+    // 2. 循环取消每个 fire + tasks
+    // 3. 插入新 fire
+    // 4. 乐观锁重试更新 schedule
+}
+```
 - **严重程度**: P2
-- **现状**: BizModel 层先 loadFire 检查状态（第1次），然后调用 fireStore.cancelFire（内部第2次+version check），失败时第3次加载，最后第4次加载。BizModel 层的第一次检查是多余的——Store 层已有完整状态校验和乐观锁保护。
-- **风险**: 多余的数据库查询增加 I/O 开销。BizModel 层的状态检查使用旧快照，可能已过时。功能上不会导致数据错误。
-- **建议**: 移除 BizModel 层的 isCancelableStatus 预检查，直接调用 fireStore.cancelFire(id) 并根据返回值决定。
-- **信心水平**: 确定
-- **误报排除**: Store 层的 version check 保护了数据完整性，不会导致脏写。
+- **现状**: 单个 REQUIRES_NEW 事务内涉及多表多行读写。当活跃 fire 数量多或乐观锁冲突频繁时，事务持续时间可能较长。
+- **风险**: 高并发调度场景下可能导致锁竞争和响应延迟。
+- **建议**: 监控事务执行时间；考虑为 findActiveFires 查询添加 LIMIT 上限。
+- **信心水平**: 80%
+- **误报排除**: 如果实际部署中每个调度活跃 fire 极少（0-1 个），则事务很短。
 - **复核状态**: 未复核
 
-### [维度14-03] overlayFireAndAdvanceSchedule 吞掉异常后仍按全量计数
+### [维度14-03] cancelFire fallback 中 schedule 计数器直接赋值
 
-- **文件**: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobScheduleStoreImpl.java:125-139`
+- **文件**: `JobFireStoreImpl.java:253-256`
 - **证据片段**:
-  ```java
-  for (NopJobFire activeFire : activeFires) {
-      try {
-          cancelFire(activeFire, cancelTime);
-          cancelTasks(activeFire.getJobFireId(), cancelTime);
-      } catch (Exception e) {
-          LOG.warn("nop.job.schedule.cancel-fire-failed:fireId={}", activeFire.getJobFireId(), e);
-      }
-  }
-  // Count overlay-cancelled fires as completed failures
-  int cancelledCount = activeFires.size();  // ← 包括取消失败的
-  schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
-  schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
-  ```
-- **严重程度**: P2
-- **现状**: overlay 策略取消 active fires 时，异常被 catch 后仅 log warn，然后 `cancelledCount = activeFires.size()` 把所有 active fires 都计入失败数，包括可能取消失败的 fire。
-- **风险**: 统计数字与实际状态不一致。failFireCount 可能高于实际失败数。
-- **建议**: 跟踪实际成功取消的数量来更新计数，或将取消失败作为不可恢复错误传播出去。
-- **信心水平**: 确定
-- **误报排除**: 已确认异常被吞掉后计数仍按全量计算。
+```java
+schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
+schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
+schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
+scheduleDao().updateEntityDirectly(schedule);
+```
+- **严重程度**: P3
+- **现状**: 与 [维度14-01] 同源问题。fallback 路径中计数器基于重试时的 fresh 值计算，存在极小窗口的并发覆盖风险。
+- **建议**: 可考虑 fallback 路径中使用增量式 SQL。
+- **信心水平**: 85%
 - **复核状态**: 未复核
 
-## 合规确认项
+### [维度14-04] persistSchedule 未用 @Transactional
 
-- txn() 未被使用；事务管理统一使用 @Transactional(REQUIRES_NEW)——模式清晰合理。
-- @SingleSession 的定时扫描方法只做只读查询+委托调用，不存在长事务风险。
-- txn().afterCommit() 未使用（nop-job 不需要异步回调场景）。
-
-## 维度复核结论
-
-待复核。
-
-## 最终保留项
-
-| 编号 | 严重程度 | 文件 | 一句话摘要 |
-|------|---------|------|----------|
-| 14-01 | P2 | JobFireStoreImpl.java:117 | schedule使用updateEntityDirectly绕过乐观锁 |
-| 14-02 | P2 | NopJobFireBizModel.java:47 | cancelFire TOCTOU多次加载fire实体 |
-| 14-03 | P2 | JobScheduleStoreImpl.java:125 | overlay操作吞掉异常后仍按全量计数 |
+- **文件**: `NopJobScheduleBizModel.java:141-161`
+- **严重程度**: P3
+- **现状**: tryUpdateManyWithVersionCheck 在 ORM 层面是原子的（单条 UPDATE WHERE version=?）。但重试循环中 restoreEngineFields 未恢复 nextFireTime。
+- **建议**: 可在重试循环中也恢复 nextFireTime。
+- **信心水平**: 75%
+- **复核状态**: 未复核

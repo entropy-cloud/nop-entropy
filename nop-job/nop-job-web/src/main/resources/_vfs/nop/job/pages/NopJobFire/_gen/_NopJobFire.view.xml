@@ -21,27 +21,6 @@
                 <!--触发批次ID-->
                 <col id="jobFireId" mandatory="true" sortable="true"/>
 
-                <!--调度ID-->
-                <col id="jobScheduleId" mandatory="true" sortable="true"/>
-
-                <!--命名空间-->
-                <col id="namespaceId" sortable="true"/>
-
-                <!--分组-->
-                <col id="groupId" sortable="true"/>
-
-                <!--作业名-->
-                <col id="jobName" sortable="true"/>
-
-                <!--触发来源-->
-                <col id="triggerSource" ui:number="true" sortable="true"/>
-
-                <!--计划触发时间-->
-                <col id="scheduledFireTime" mandatory="true" sortable="true"/>
-
-                <!--触发人-->
-                <col id="triggeredBy" sortable="true"/>
-
                 <!--批次状态-->
                 <col id="fireStatus" mandatory="true" ui:number="true" sortable="true"/>
 
@@ -60,23 +39,26 @@
                 <!--执行时长(毫秒)-->
                 <col id="durationMs" ui:number="true" sortable="true"/>
 
-                <!--参数快照-->
-                <col id="jobParamsSnapshot" sortable="true"/>
+                <!--错误码-->
+                <col id="errorCode" sortable="true"/>
 
-                <!--执行器类型-->
-                <col id="executorKind" sortable="true"/>
+                <!--错误消息-->
+                <col id="errorMessage" sortable="true"/>
+
+                <!--触发来源-->
+                <col id="triggerSource" ui:number="true" sortable="true"/>
+
+                <!--计划触发时间-->
+                <col id="scheduledFireTime" mandatory="true" sortable="true"/>
+
+                <!--触发人-->
+                <col id="triggeredBy" sortable="true"/>
 
                 <!--重试策略ID-->
                 <col id="retryPolicyId" sortable="true"/>
 
                 <!--重试记录ID-->
                 <col id="retryRecordId" sortable="true"/>
-
-                <!--错误码-->
-                <col id="errorCode" sortable="true"/>
-
-                <!--错误消息-->
-                <col id="errorMessage" sortable="true"/>
 
                 <!--分区索引-->
                 <col id="partitionIndex" mandatory="true" ui:number="true" sortable="true"/>
@@ -95,6 +77,24 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--调度ID-->
+                <col id="jobScheduleId" mandatory="true" sortable="true"/>
+
+                <!--命名空间-->
+                <col id="namespaceId" sortable="true"/>
+
+                <!--分组-->
+                <col id="groupId" sortable="true"/>
+
+                <!--作业名-->
+                <col id="jobName" sortable="true"/>
+
+                <!--参数快照-->
+                <col id="jobParamsSnapshot" sortable="true"/>
+
+                <!--执行器类型-->
+                <col id="executorKind" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -103,31 +103,30 @@
     <forms>
         <form id="view" editMode="view" title="查看-触发批次" i18n-en:title="View Job Fire">
             <layout>
- jobFireId[触发批次ID] jobScheduleId[调度ID]
- namespaceId[命名空间] groupId[分组]
- jobName[作业名] triggerSource[触发来源]
+ jobFireId[触发批次ID] fireStatus[批次状态]
+ plannerInstanceId[计划节点ID] dispatchInstanceId[分发节点ID]
+ startTime[开始时间] endTime[结束时间]
+ durationMs[执行时长(毫秒)] errorCode[错误码]
+ errorMessage[错误消息] triggerSource[触发来源]
  scheduledFireTime[计划触发时间] triggeredBy[触发人]
- fireStatus[批次状态] plannerInstanceId[计划节点ID]
- dispatchInstanceId[分发节点ID] startTime[开始时间]
- endTime[结束时间] durationMs[执行时长(毫秒)]
- jobParamsSnapshot[参数快照] executorKind[执行器类型]
  retryPolicyId[重试策略ID] retryRecordId[重试记录ID]
- errorCode[错误码] errorMessage[错误消息]
  partitionIndex[分区索引] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] remark[备注]
+ jobScheduleId[调度ID] namespaceId[命名空间]
+ groupId[分组] jobName[作业名]
+ jobParamsSnapshot[参数快照] executorKind[执行器类型]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-触发批次" i18n-en:title="Add Job Fire" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-触发批次" i18n-en:title="Edit Job Fire">
             <layout>
- jobFireId[触发批次ID] jobScheduleId[调度ID]
- namespaceId[命名空间] groupId[分组]
- jobName[作业名] triggerSource[触发来源]
- scheduledFireTime[计划触发时间] triggeredBy[触发人]
- jobParamsSnapshot[参数快照] executorKind[执行器类型]
+ jobFireId[触发批次ID] scheduledFireTime[计划触发时间]
  retryPolicyId[重试策略ID] retryRecordId[重试记录ID]
  partitionIndex[分区索引] remark[备注]
+ jobScheduleId[调度ID] namespaceId[命名空间]
+ groupId[分组] jobName[作业名]
+ jobParamsSnapshot[参数快照] executorKind[执行器类型]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -5,8 +5,8 @@ import io.nop.code.core.model.CodeInheritance;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.core.model.CodeRelationType;
-import io.nop.code.service.api.dto.TypeHierarchyDTO;
-import io.nop.code.service.api.dto.SymbolInfoDTO;
+import io.nop.code.api.dto.TypeHierarchyDTO;
+import io.nop.code.api.dto.SymbolInfoDTO;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;

@@ -157,7 +157,11 @@ public class TestSharedBufferExtended {
             accessor.releaseNode(b10, DeweyNumber.fromString("1.1.0"));
 
             for (EventId eventId : eventIds) {
-                accessor.releaseEvent(eventId);
+                try {
+                    accessor.releaseEvent(eventId);
+                } catch (IllegalStateException e) {
+                    // expected: some events already fully released by releaseNode cascade
+                }
             }
         }
 

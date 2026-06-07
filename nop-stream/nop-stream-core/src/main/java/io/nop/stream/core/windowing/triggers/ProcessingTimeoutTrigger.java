@@ -103,10 +103,7 @@ public class ProcessingTimeoutTrigger<T, W extends Window> extends Trigger<T, W>
     @Override
     public TriggerResult onEventTime(long timestamp, W window, TriggerContext ctx) {
         TriggerResult triggerResult = this.nestedTrigger.onEventTime(timestamp, window, ctx);
-        if (shouldClearOnTimeout) {
-            this.clear(window, ctx);
-        }
-        return triggerResult.isPurge() ? TriggerResult.FIRE_AND_PURGE : TriggerResult.FIRE;
+        return triggerResult;
     }
 
     @Override

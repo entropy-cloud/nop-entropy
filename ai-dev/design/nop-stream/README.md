@@ -2,73 +2,129 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-25（更新定位、阅读顺序、心智模型、设计原则）
+> Updated: 2026-06-06（按 AGE owner-doc 模式重组）
 
-## 定位
+本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，从高层设计原则到分项设计逐层展开：
 
-nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布式执行引擎**。
+1. **愿景层** — 定位、成功标准、约束、non-goals、设计不变量
+2. **架构基线层** — 模块划分、分层设计、执行模型、分布式控制面、数据流模型
+3. **核心模型层** — StreamModel、DataStream API、算子模型、稳定身份
+4. **图模型与执行层** — StreamGraph、JobGraph、算子链化、Task/TaskExecutor
+5. **容错层** — Checkpoint、Epoch 协议、Exactly-Once、恢复
+6. **状态与时间层** — 状态管理、窗口机制、时间模型
+7. **集成层** — 连接器、CEP 引擎
+8. **参考层** — 架构对比、组件路线
 
-核心模型是 **StreamModel**（可序列化的算子图及其组件注册表），可由 XDSL 声明式定义、Java DataStream API 编程构造、或 Delta 定制合成。三种入口最终生成同一套 canonical StreamModel，经统一的五层执行管线（StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology）编译执行。
+---
 
-## 设计文档结构
+## 愿景层
 
-| 文档 | 职责 |
-|------|------|
-| `architecture.md` | 整体架构：模块划分、五层执行管线、分布式控制面、数据流模型 |
-| `core-design.md` | StreamModel、StreamComponents、StreamRequirement、DataStream API、算子模型、稳定身份 |
-| `graph-model-design.md` | 图模型：StreamGraph、JobGraph、算子链优化、PartitionedPlan、DeploymentPlan |
-| `checkpoint-design.md` | Epoch Checkpoint 协议、CheckpointParticipant、ProcessingGuarantee、Source/Sink Exactly-Once、JobTerminationMode、故障恢复 |
-| `state-management-design.md` | StateShard、StatePath、状态后端、序列化、State Segment、Timer State、内存预算 |
-| `connector-design.md` | SourceWorkUnit 协议（Restriction/DynamicSplit/DrainTruncate/WatermarkEstimator）、nop-batch 桥接、消息队列/CDC 适配 |
-| `window-design.md` | WindowingStrategy、窗口四要素、AccumulationMode、PaneState、WindowCompatibilityCheck |
-| `time-model-design.md` | WatermarkStrategy、TimestampAssigner、WatermarkGenerator、传播机制 |
-| `cep-design.md` | NFA、Pattern DSL、SharedBuffer、事件匹配语义 |
-| `component-roadmap.md` | 组件分解与开发路线 |
-| `comparison.md` | 与 Flink / Beam / Hazelcast Jet 的架构对比 |
+- `00-vision.md`
+  - 产品定位、成功标准、不可违反的约束、显式 non-goals、设计收敛路径、必须由人决策的决策点、核心取舍、设计不变量、拒绝了什么
+
+## 架构基线层
+
+- `01-architecture-baseline.md`
+  - 模块划分与依赖方向、七层分层设计、五层执行管线、分布式控制面（三面架构）、数据流模型、与 Nop 平台的集成
+
+## 核心模型层
+
+- `core-design.md`
+  - StreamModel、StreamComponents、StreamRequirement、StreamBackendCapability、StreamModelFingerprint
+  - DataStream API（Builder）、Transformation DAG
+  - 算子模型、算子生命周期、Output 机制、算子链化
+  - 稳定身份体系（operatorId、taskId、StateShard、TaskLocation）
+  - 函数接口
+
+## 图模型与执行层
+
+- `graph-model-design.md`
+  - 三层转换管线（Transformation → StreamGraph → JobGraph → Task）
+  - 算子链识别算法、链化条件
+  - StreamGraph / JobGraph 数据结构
+  - Task / SubtaskTask / TaskExecutor 运行时执行
+  - 执行路径统一（图模型为唯一路径）
+  - 与 Flink 的差异
+
+## 容错层
+
+- `checkpoint-design.md`
+  - Epoch Checkpoint 协议（生命周期、Barrier 注入/对齐、Snapshot、Manifest）
+  - CheckpointParticipant（泛化事务参与）
+  - ProcessingGuarantee（四种保证级别）
+  - Source / Sink Exactly-Once 协议
+  - JobTerminationMode
+  - 故障恢复模型（fencing、Coordinator HA、恢复兼容性）
+  - Serializer Fingerprint 策略
+  - 可观测性契约
+
+## 状态与时间层
+
+- `state-management-design.md`
+  - 状态接口层次（ValueState/MapState/AppendingState/ListState）
+  - StateShard（确定性分片路由）、StatePath（持久化路径）
+  - 状态后端（IStateBackend → IKeyedStateBackend → IInternalStateBackend）
+  - 序列化策略、State Segment、Timer State、内存预算
+
+- `window-design.md`
+  - 窗口四要素（WindowAssigner + Trigger + Evictor + WindowFunction）
+  - WindowingStrategy（可序列化模型）
+  - 统一算子架构（单一 WindowOperator）
+  - InternalWindowFunction 适配层、WindowOperatorBuilder
+  - PaneState、WindowCompatibilityCheck
+  - 合并窗口处理流程
+
+- `time-model-design.md`
+  - WatermarkStrategy、TimestampAssigner、WatermarkGenerator
+  - Watermark 生成策略（Ascending / BoundedOutOfOrderness）
+  - Watermark 传播机制
+  - TimestampsAndWatermarksOperator
+
+## 集成层
+
+- `connector-design.md`
+  - nop-batch 桥接（BatchLoaderSourceFunction / BatchConsumerSinkFunction）
+  - SourceWorkUnit 协议（RestrictionTracker、DynamicSplit、DrainTruncate、WatermarkEstimator）
+  - Split Assignment Recovery 协议
+  - 消息队列与 CDC 适配
+
+- `cep-design.md`
+  - Pattern DSL、NFA 编译与匹配
+  - SharedBuffer（引用计数 + Dewey 编号）
+  - CepOperator、匹配后策略
+  - 声明式模型（XMeta）
+
+## 参考层
+
+- `comparison.md`
+  - 与 Flink / SeaTunnel / NiFi / Node-RED / StreamSets 的架构对比
+
+- `component-roadmap.md`
+  - 组件分解（C1–C8 + D1–D9 + P1–P4）
+  - 开发方法（审计-规划-执行循环）
+  - 已知技术债
+
+---
 
 ## 阅读顺序
 
-1. `architecture.md` — 整体架构、模块结构、定位与设计目标、五层执行管线、数据流模型
-2. `core-design.md` — **StreamModel/StreamComponents（核心模型入口）** → DataStream API（Builder）→ 算子模型 → 稳定身份
-3. `graph-model-design.md` — 图模型转换、算子链优化、PartitionedPlan、DeploymentPlan
-4. `checkpoint-design.md` — Epoch 协议、CheckpointParticipant、ProcessingGuarantee、故障恢复
-5. `state-management-design.md` — StateShard、状态后端（对象接口层次）、序列化、内存预算
-6. `window-design.md` — WindowingStrategy、窗口四要素、PaneState
-7. `time-model-design.md` — 事件时间、Watermark 机制
-8. `connector-design.md` — SourceWorkUnit、nop-batch 桥接、CDC
-9. `cep-design.md` — CEP 引擎设计
-10. `comparison.md` — 架构对比（Flink / NiFi / Node-RED / SeaTunnel）
-11. `component-roadmap.md` — 开发路线和优先级
+**必读路径**（理解定位 → 架构 → 核心模型）：
 
-## 快速心智模型
+1. `00-vision.md` — 设计原则、约束、non-goals
+2. `01-architecture-baseline.md` — 架构基线、模块划分、执行管线
+3. `core-design.md` — StreamModel、DataStream API、算子模型
 
-nop-stream 的运行方式：
+**按需深入**：
 
-1. **入口**：StreamModel 可由 XDSL、DataStream API 或 Delta 合成三种路径构造
-2. **编译为 canonical StreamModel**（含 StreamComponents、StreamRequirement、fingerprint）
-3. **五层执行管线**：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology
-4. **部署模式选择**：`DeploymentMode.LOCAL`（线程池）或 `DeploymentMode.DISTRIBUTED`（多 TaskManager 实例），通过 `IStreamExecutionDispatcher` SPI 分发。分布式解决高可用和资源隔离，吞吐量由具体部署决定
-5. **数据通道**：StreamRecord、CheckpointBarrier、Watermark 三者通过统一的 `RecordWriter → ResultPartition → InputChannel → RecordReader` 管线传输，对算子层透明
-6. **分布式 exactly-once**：epoch checkpoint + barrier 对齐（走数据通道）+ CheckpointParticipant + fencing
+4. `graph-model-design.md` — 图模型转换、算子链化、执行路径
+5. `checkpoint-design.md` — Checkpoint 协议、Exactly-Once
+6. `state-management-design.md` — 状态后端、StateShard、序列化
+7. `window-design.md` — 窗口机制、Trigger、Evictor
+8. `time-model-design.md` — Watermark、时间戳分配
+9. `connector-design.md` — 连接器适配
+10. `cep-design.md` — CEP 引擎
 
-### 分布式执行架构
+**扩展方向**：
 
-分布式模式采用三面分离：
-
-| 面 | 职责 | 传输 |
-|---|---|---|
-| 控制面 | 作业调度、task 分配、cancel | `IStreamTaskRpcService` / `IStreamCoordinatorRpcService` |
-| 数据面 | 记录传输、barrier/watermark 传播 | `IMessageService` + RemoteResultPartition / RemoteInputChannel |
-| 编排面 | Invokable 安装、算子链配置 | 直接 Java 调用 |
-
-核心角色：`JobCoordinator`（持有 canonical plan，分发 subtask）、`TaskManager`（管理本节点 TaskExecutor）、`EmbeddedDistributedExecutor`（嵌入式模式下的编排器）。
-
-## 设计原则
-
-1. **图模型为核**：StreamModel（可序列化算子图）是系统核心，XDSL、DataStream API 和 Delta 都是它的构造路径
-2. **模型优先**：所有语义由可序列化模型决定，运行时只执行模型，不重新发明拓扑语义
-3. **可替换后端**：本地线程、远程进程、外部引擎都遵守同一语义契约
-4. **可 Delta 定制**：三种入口最终落到同一套 canonical StreamModel，Delta 只作用于模型层
-5. **对象级接口**：状态接口（IStateBackend → IKeyedStateBackend → IInternalStateBackend）操作 Java 对象而非二进制字节，序列化仅在持久化层内部发生
-6. **统一数据通道**：Record、Barrier、Watermark 三者在同一数据管线传输，Barrier 不需要独立 RPC
-7. **Nop 平台集成**：使用 IJdbcTemplate、IBatchLoader、IMessageService、JsonTool
+11. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
+12. `component-roadmap.md` — 组件路线和开发方法

@@ -35,7 +35,7 @@ nop:
 
 ## `_dump` 是什么
 
-调试模式下，平台会把最终合并后的模型输出到 `_dump/{appName}/...`。
+调试模式下（`nop.debug=true`），平台会把所有 XDSL 模型经过差量合并后的最终结果输出到 `_dump/{appName}/...`。
 
 `_dump/` 是调试期临时输出目录，不是源码目录：
 
@@ -43,11 +43,32 @@ nop:
 2. 不要把 `_dump/` 当成常规质量修复目标。
 3. 需要修复 `_dump` 中看到的问题时，回到源模型、Delta、保留层文件或模板，再让 debug 输出自动刷新。
 
-这比直接读源文件更适合回答这些问题：
+### 属性来源追踪
 
-1. 某个 Delta 到底有没有生效。
-2. 某个 bean 最终是否真的被启用。
-3. 一个模型最终长成了什么样。
+`_dump` 输出的核心价值不仅是看"最终长什么样"，更重要的是**通过 XML 注释记录每个节点和属性的实际来源源码位置**。格式如下：
+
+```xml
+<!--LOC:[17:6:0:0]/nop/auth/orm/_app.orm.xml-->
+<domains>
+    ...
+</domains>
+
+<!--LOC:[41:10:0:0]/nop/auth/orm/_app.orm.xml
+ @name=[370:56:0:0]/nop/orm/xlib/orm-gen.xlib#/nop/auth/orm/app.orm.xml
+-->
+<entity name="io.nop.auth.dao.entity.NopAuthUser" ...>
+```
+
+含义：
+- `<!--LOC:[行:列:0:0]/vfs路径-->`：该节点的来源文件和位置
+- `@属性名=[行:列:0:0]/vfs路径`：某个属性的来源与节点主体不同时，单独标注该属性来自哪个文件（例如节点来自 `_app.orm.xml`，但 `name` 属性由 `x:gen-extends` 中的 `orm-gen.xlib` 生成）
+
+通过 LOC 注释可以定位：
+1. 某个 Delta 到底有没有生效——看 LOC 注释中的路径是否指向 Delta 文件。
+2. 某个值是被哪一层覆盖的——看 LOC 路径指向的是基础模型、`x:gen-extends` 产物（`.xlib#`）还是 Delta 文件。
+3. 合并顺序是否正确——结合 `./xdef-and-xdsl.md` 中的合并链理解覆盖关系。
+
+也可以在单个模型根节点设置 `x:dump="true"` 打印合并过程的中间结果（不仅是最终结果）。
 
 ## 页面生成调试
 
@@ -92,6 +113,7 @@ curl -s "http://localhost:8080/p/PageProvider__getPage?path=/nop/code/pages/dash
 1. 文件路径是否在 `_vfs/_delta/{deltaDir}/...`。
 2. 是否使用了正确的 `x:extends` / `x:override`。
 3. `_dump` 中的最终模型是否已经出现你的变更。
+4. `_dump` 中 LOC 注释的路径指向哪个文件——如果指向的不是 Delta 文件，说明被其他层覆盖了。检查合并顺序（见 `./xdef-and-xdsl.md` 的合并链）。
 
 ### 新文件没被运行时看到
 

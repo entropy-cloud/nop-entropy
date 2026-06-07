@@ -39,7 +39,11 @@ public class TumblingProcessingTimeWindows extends WindowAssigner<Object, TimeWi
             Object element, long timestamp, WindowAssignerContext assignerContext) {
         long now = assignerContext.getCurrentProcessingTime();
         long start = TimeWindow.getWindowStartWithOffset(now, 0, size);
-        return Collections.singletonList(new TimeWindow(start, start + size));
+        long end = start + size;
+        if (end < start) {
+            end = Long.MAX_VALUE;
+        }
+        return Collections.singletonList(new TimeWindow(start, end));
     }
 
     @Override

@@ -126,7 +126,7 @@ public class SubtaskTask implements Runnable {
 
     public boolean isFinished() {
         State s = state.get();
-        return s == State.COMPLETED || s == State.FAILED || s == State.CANCELED || s == State.CANCELING;
+        return s == State.COMPLETED || s == State.FAILED || s == State.CANCELED;
     }
 
     public String getTaskName() {

@@ -198,15 +198,27 @@ public class CheckpointPlanBuilder {
             // Auto-detect: find operators that contain TwoPhaseCommitSinkFunction
             for (String vertexId : executionPlan.getSortedVertexIds()) {
                 JobVertex vertex = executionPlan.getExecutionVertices().get(vertexId);
+                List<Subtask> subtaskList2 = executionPlan.getSubtasks(vertexId);
+                boolean found2PC = false;
+                outerChain:
                 for (OperatorChain chain : vertex.getOperatorChains()) {
                     for (StreamOperator<?> op : chain.getOperators()) {
                         if (op instanceof AbstractUdfStreamOperator) {
                             Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
                             if (udf instanceof TwoPhaseCommitSinkFunction) {
-                                participantIds.add(vertexId);
-                                break;
+                                found2PC = true;
+                                break outerChain;
                             }
                         }
+                    }
+                }
+                if (found2PC) {
+                    if (subtaskList2 != null && !subtaskList2.isEmpty()) {
+                        for (Subtask subtask : subtaskList2) {
+                            participantIds.add(vertexId + "-" + subtask.getTaskIndex());
+                        }
+                    } else {
+                        participantIds.add(vertexId + "-0");
                     }
                 }
             }

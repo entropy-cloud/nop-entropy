@@ -12,6 +12,7 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,10 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJobCompletionProcessor {
 
@@ -250,6 +253,99 @@ public class TestJobCompletionProcessor {
         assertEquals(0, alarmHandler.getFailedCount());
     }
 
+    @Test
+    void testSuspiciousWithRunningTask_staysPending() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        NopJobTask runningTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_RUNNING);
+        taskStore.addTask("f1", suspiciousTask);
+        taskStore.addTask("f1", runningTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_RUNNING, fire.getFireStatus());
+    }
+
+    @Test
+    void testSuspiciousOnly_treatedAsTimeout() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        taskStore.addTask("f1", suspiciousTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus());
+        assertEquals(1, alarmHandler.getTimeoutCount());
+    }
+
+    @Test
+    void testSuspiciousWithSuccess_treatedAsTimeout() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        NopJobTask successTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        taskStore.addTask("f1", suspiciousTask);
+        taskStore.addTask("f1", successTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus());
+    }
+
+    @Test
+    void testMixedTimeoutCanceledSuccess_timeoutWins() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask timeoutTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_TIMEOUT);
+        NopJobTask canceledTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_CANCELED);
+        NopJobTask successTask = createTask("t3", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        taskStore.addTask("f1", timeoutTask);
+        taskStore.addTask("f1", canceledTask);
+        taskStore.addTask("f1", successTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus());
+    }
+
+    @Test
+    void testSuspiciousWithFailed_treatedAsTimeout() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask suspiciousTask = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        NopJobTask failedTask = createTask("t2", "f1", _NopJobCoreConstants.TASK_STATUS_FAILED);
+        failedTask.setErrorCode("ERR_X");
+        taskStore.addTask("f1", suspiciousTask);
+        taskStore.addTask("f1", failedTask);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus(),
+                "SUSPICIOUS is treated as TIMEOUT which has higher priority than FAILED");
+    }
+
     private NopJobFire createFire(String fireId, String scheduleId, int status) {
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId(fireId);
@@ -284,13 +380,12 @@ public class TestJobCompletionProcessor {
         JobFireFailedEvent getLastEvent() { return lastEvent; }
 
         @Override
-        public String onFireFailed(JobFireFailedEvent event) {
+        public void onFireFailed(JobFireFailedEvent event) {
             callCount.incrementAndGet();
             this.lastEvent = event;
             if (shouldThrow) {
-                throw new RuntimeException("bridge error");
+                throw NopException.adapt(new RuntimeException("bridge error"));
             }
-            return "retry-" + event.getJobFireId();
         }
     }
 
@@ -312,7 +407,7 @@ public class TestJobCompletionProcessor {
         public void onFireFailed(JobAlarmEvent event) {
             failedCount.incrementAndGet();
             this.lastFailedEvent = event;
-            if (throwOnFailed) throw new RuntimeException("alarm error");
+            if (throwOnFailed) throw NopException.adapt(new RuntimeException("alarm error"));
         }
 
         @Override
@@ -324,8 +419,14 @@ public class TestJobCompletionProcessor {
 
     static class MockFireStore implements IJobFireStore {
         private final List<NopJobFire> runningFires = new ArrayList<>();
+        private String failedFireId;
+        private String failedErrorCode;
+        private final java.util.concurrent.atomic.AtomicBoolean completeFireCalled = new java.util.concurrent.atomic.AtomicBoolean();
 
         void addRunningFire(NopJobFire fire) { runningFires.add(fire); }
+
+        String getFailedFireId() { return failedFireId; }
+        String getFailedErrorCode() { return failedErrorCode; }
 
         @Override
         public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) {
@@ -334,12 +435,18 @@ public class TestJobCompletionProcessor {
 
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
+        @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
-        @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {}
+        @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) { completeFireCalled.set(true); }
         @Override public boolean cancelFire(String jobFireId) { return false; }
         @Override public NopJobFire loadFire(String jobFireId) { return null; }
         @Override public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) { return Collections.emptyMap(); }
+        @Override
+        public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+            this.failedFireId = jobFireId;
+            this.failedErrorCode = errorCode;
+        }
     }
 
     static class MockScheduleStore implements IJobScheduleStore {
@@ -351,6 +458,7 @@ public class TestJobCompletionProcessor {
 
         @Override public long getCurrentTime() { return currentTime; }
         @Override public NopJobSchedule loadSchedule(String id) { return schedules.get(id); }
+        @Override public NopJobSchedule tryLoadSchedule(String id) { return schedules.get(id); }
         @Override public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> ids) { return schedules; }
         @Override public List<NopJobSchedule> fetchDueSchedules(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobSchedule> tryLockSchedulesForPlan(List<NopJobSchedule> schedules, String plannerInstanceId, long lockTimeoutMs) { return schedules; }
@@ -371,11 +479,84 @@ public class TestJobCompletionProcessor {
         @Override public List<NopJobTask> findTasksByFireId(String fireId) {
             return tasksByFireId.getOrDefault(fireId, Collections.emptyList());
         }
-        @Override public void updateTask(NopJobTask task) {}
+        @Override public boolean updateTask(NopJobTask task) { return true; }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
         @Override public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
-        @Override public long countRunningTasks(String workerInstanceId) { return 0; }
+        @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
+    }
+
+    @Test
+    void testResultDrivenCompletion_disabledByDefault() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        task.setResultPayload("{\"completed\":true}");
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertNull(schedule.getScheduleStatus(),
+                "Schedule should NOT be marked COMPLETED when allowResultCompletion is not set");
+        assertEquals(_NopJobCoreConstants.FIRE_STATUS_SUCCESS, fire.getFireStatus());
+    }
+
+    @Test
+    void testResultDrivenCompletion_enabledWhenFlagSet() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        schedule.getJobParamsComponent().set_jsonValue(Map.of("allowResultCompletion", true));
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        task.setResultPayload("{\"completed\":true}");
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED, schedule.getScheduleStatus(),
+                "Schedule should be marked COMPLETED when allowResultCompletion=true and task returns completed:true");
+    }
+
+    @Test
+    void testResultDrivenCompletion_nextScheduleTime_stillWorksWithoutFlag() {
+        NopJobSchedule schedule = createSchedule("s1", "testJob");
+        scheduleStore.addSchedule("s1", schedule);
+
+        NopJobFire fire = createFire("f1", "s1", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_SUCCESS);
+        long nextTime = currentTime + 60000;
+        task.setResultPayload("{\"nextScheduleTime\":" + nextTime + "}");
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertNull(schedule.getScheduleStatus(),
+                "Schedule should NOT be COMPLETED without allowResultCompletion flag");
+    }
+
+    @Test
+    void testScheduleDeleted_fireMarkedFailed() {
+        NopJobFire fire = createFire("f1", "deleted-schedule", _NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        fireStore.addRunningFire(fire);
+
+        NopJobTask task = createTask("t1", "f1", _NopJobCoreConstants.TASK_STATUS_FAILED);
+        taskStore.addTask("f1", task);
+
+        processor.scanOnce();
+
+        assertEquals("f1", fireStore.getFailedFireId());
+        assertNotNull(fireStore.getFailedErrorCode());
+        assertTrue(fireStore.getFailedErrorCode().contains("schedule-deleted"),
+                "Error code should indicate schedule was deleted");
     }
 }

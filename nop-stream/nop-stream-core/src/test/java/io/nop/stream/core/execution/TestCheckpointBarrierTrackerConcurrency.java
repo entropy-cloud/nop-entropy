@@ -36,6 +36,36 @@ class TestCheckpointBarrierTrackerConcurrency {
     }
 
     @Test
+    void testRejectedBarrierDoesNotLeaveDirtyState() throws Exception {
+        List<AbstractStreamOperator<?>> operators = createMockOperators(2);
+        AtomicInteger callbackCount = new AtomicInteger(0);
+
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC, new ArrayList<>(operators), snapshot -> {
+            callbackCount.incrementAndGet();
+        });
+
+        setSnapshotCallbacks(operators, tracker);
+
+        boolean first = tracker.triggerCheckpoint(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        assertTrue(first, "First trigger should succeed");
+
+        boolean second = tracker.triggerCheckpoint(2L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        assertFalse(second, "Second trigger while first is pending should be rejected");
+
+        assertEquals(1L, tracker.getCurrentCheckpointId(), "Checkpoint ID should remain at 1 after rejection");
+
+        for (int i = 0; i < operators.size(); i++) {
+            tracker.acknowledgeOperator(i, new OperatorSnapshotResult());
+        }
+
+        assertEquals(1, callbackCount.get(), "Callback should fire for checkpoint 1");
+
+        boolean third = tracker.triggerCheckpoint(3L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        assertTrue(third, "Third trigger after completion of first should succeed");
+        assertEquals(3L, tracker.getCurrentCheckpointId(), "Checkpoint ID should be 3 after successful trigger");
+    }
+
+    @Test
     void testConcurrentAckCallbackCalledExactlyOnce() throws Exception {
         int operatorCount = 10;
         List<AbstractStreamOperator<?>> operators = createMockOperators(operatorCount);

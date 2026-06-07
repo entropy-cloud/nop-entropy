@@ -78,6 +78,7 @@ public class TestBlockStrategies {
     @Test
     void testRecovery_usesRecoveryPath() {
         NopJobSchedule schedule = createSchedule("s1");
+        schedule.setActiveFireCount(1);
         schedule.setBlockStrategy(_NopJobCoreConstants.BLOCK_STRATEGY_RECOVERY);
         schedule.setTriggerType(_NopJobCoreConstants.TRIGGER_TYPE_FIXED_DELAY);
         scheduleStore.dueSchedules.add(schedule);
@@ -85,6 +86,20 @@ public class TestBlockStrategies {
         planner.scanOnce();
 
         assertEquals(1, scheduleStore.recoveryCount);
+    }
+
+    @Test
+    void testRecovery_createsFireWhenNoActiveFire() {
+        NopJobSchedule schedule = createSchedule("s1");
+        schedule.setActiveFireCount(0);
+        schedule.setBlockStrategy(_NopJobCoreConstants.BLOCK_STRATEGY_RECOVERY);
+        schedule.setTriggerType(_NopJobCoreConstants.TRIGGER_TYPE_FIXED_DELAY);
+        scheduleStore.dueSchedules.add(schedule);
+
+        planner.scanOnce();
+
+        assertEquals(0, scheduleStore.recoveryCount);
+        assertEquals(1, scheduleStore.insertCount);
     }
 
     @Test
@@ -125,6 +140,7 @@ public class TestBlockStrategies {
         @Override public void recoveryFireAndAdvanceSchedule(NopJobSchedule schedule, Timestamp nextFireTime) { recoveryCount++; }
         @Override public boolean insertManualFire(NopJobSchedule schedule, NopJobFire fire) { return true; }
         @Override public NopJobSchedule loadSchedule(String scheduleId) { return null; }
+        @Override public NopJobSchedule tryLoadSchedule(String id) { return null; }
         @Override public Map<String, NopJobSchedule> batchLoadSchedules(Set<String> scheduleIds) { return Collections.emptyMap(); }
     }
 }

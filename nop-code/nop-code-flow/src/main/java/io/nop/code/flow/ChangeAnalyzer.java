@@ -4,7 +4,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,10 +64,12 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
     @Override
     public ChangeAnalysisResult analyzeChanges(String indexId, String baselineCommitish,
                                                 String targetCommitish,
-                                                SymbolTable symbolTable, CallGraph callGraph) {
+                                                SymbolTable symbolTable, CallGraph callGraph,
+                                                String workingDirectory) {
         validateGitRef(baselineCommitish);
         validateGitRef(targetCommitish);
-        Map<String, List<LineRange>> fileChanges = parseGitDiff(baselineCommitish, targetCommitish, null);
+        DiffResult diffResult = parseGitDiff(baselineCommitish, targetCommitish, workingDirectory);
+        Map<String, List<LineRange>> fileChanges = diffResult.fileChanges;
 
         List<String> changedFiles = new ArrayList<>(fileChanges.keySet());
         List<ChangeAnalysisResult.AffectedSymbol> affectedSymbols = new ArrayList<>();
@@ -97,6 +106,7 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         result.setAffectedSymbols(affectedSymbols);
         result.setRiskSummary(computeRiskSummary(affectedSymbols));
         result.setSuggestedActions(buildSuggestedActions(affectedSymbols));
+        result.setTruncated(diffResult.truncated);
         return result;
     }
 
@@ -118,8 +128,9 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         return matching;
     }
 
-    protected Map<String, List<LineRange>> parseGitDiff(String baseline, String target, String workingDirectory) {
+    protected DiffResult parseGitDiff(String baseline, String target, String workingDirectory) {
         Map<String, List<LineRange>> result = new LinkedHashMap<>();
+        boolean truncated = false;
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
@@ -192,20 +203,21 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
 
                 if (!process.waitFor(30, TimeUnit.SECONDS)) {
                     LOG.warn("Git diff process timed out after 30 seconds for {}..{}", baseline, target);
+                    truncated = true;
                 }
             } finally {
                 process.destroyForcibly();
             }
         } catch (IOException e) {
             LOG.warn("Failed to parse git diff output", e);
-            return result;
+            return new DiffResult(result, truncated);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             LOG.warn("Interrupted while parsing git diff output", e);
-            return result;
+            return new DiffResult(result, truncated);
         }
 
-        return result;
+        return new DiffResult(result, truncated);
     }
 
     private List<CodeSymbol> findSymbolsByFile(SymbolTable symbolTable, String filePath) {
@@ -335,14 +347,25 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         for (String callerId : callers) {
             CodeSymbol caller = symbolTable.getById(callerId);
             if (caller != null && caller.getQualifiedName() != null) {
-                int lastDot = caller.getQualifiedName().lastIndexOf('.');
-                if (lastDot > 0) {
-                    packages.add(caller.getQualifiedName().substring(0, lastDot));
+                String pkg = extractPackageName(caller.getQualifiedName());
+                if (pkg != null) {
+                    packages.add(pkg);
                 }
             }
         }
 
         return packages.size() > 1 ? CAP_COMMUNITY_CROSSING : 0.0;
+    }
+
+    private static String extractPackageName(String qualifiedName) {
+        int parenIndex = qualifiedName.indexOf('(');
+        String qn = parenIndex > 0 ? qualifiedName.substring(0, parenIndex) : qualifiedName;
+        int lastDot = qn.lastIndexOf('.');
+        if (lastDot <= 0) return null;
+        String beforeLast = qn.substring(0, lastDot);
+        int secondLastDot = beforeLast.lastIndexOf('.');
+        if (secondLastDot < 0) return beforeLast;
+        return beforeLast.substring(0, secondLastDot);
     }
 
     private double computeTestCoverageGap(CodeSymbol symbol) {
@@ -441,6 +464,16 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         LineRange(int start, int end) {
             this.start = start;
             this.end = end;
+        }
+    }
+
+    protected static class DiffResult {
+        final Map<String, List<LineRange>> fileChanges;
+        final boolean truncated;
+
+        DiffResult(Map<String, List<LineRange>> fileChanges, boolean truncated) {
+            this.fileChanges = fileChanges;
+            this.truncated = truncated;
         }
     }
 }

@@ -6591,6 +6591,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.excel.model.ExcelImage"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.excel.model.ExcelPageMargins"
   },
   {
@@ -6790,6 +6800,33 @@
       }
     ],
     "name": "io.nop.excel.model._gen._ExcelFont"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelImage"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.model._gen._ExcelImage"
   },
   {
     "allDeclaredConstructors": true,
@@ -7877,6 +7914,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.http.server.filters.CoreInitializationGuardFilter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.integration.api.qrcode.QrcodeOptions"
   },
   {
     "allDeclaredConstructors": true,

@@ -1,7 +1,18 @@
 package io.nop.code.graph.community;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import nl.cwts.networkanalysis.Clustering;
 import nl.cwts.networkanalysis.LeidenAlgorithm;
@@ -164,7 +175,7 @@ public class CommunityDetector {
         }
         
         public List<String> getSymbolIds() {
-            return symbolIds != null ? symbolIds : Collections.emptyList();
+            return symbolIds != null ? symbolIds : new ArrayList<>();
         }
         
         public void setSymbolIds(List<String> symbolIds) {
@@ -500,7 +511,7 @@ public class CommunityDetector {
             }
         }
         
-        if (subGraph.edgeSet().size() == 0) return null;
+        if (subGraph.edgeSet().isEmpty()) return null;
         
         int nNodes = memberSet.size();
         double resolution = Math.max(0.05, 1.0 / Math.log10(Math.max(nNodes, 10)));
@@ -511,9 +522,13 @@ public class CommunityDetector {
                 lpc.getClustering();
         
         List<Community> subCommunities = new ArrayList<>();
+        List<String> unclusteredNodes = new ArrayList<>();
         int idx = 0;
         for (Set<String> cluster : clustering.getClusters()) {
-            if (cluster.size() < 2) continue;
+            if (cluster.size() < 2) {
+                unclusteredNodes.addAll(cluster);
+                continue;
+            }
             
             Community sub = new Community();
             sub.setId(community.getId() + "_" + idx++);
@@ -529,6 +544,37 @@ public class CommunityDetector {
             subCommunities.add(sub);
         }
         
+        if (!unclusteredNodes.isEmpty() && !subCommunities.isEmpty()) {
+            for (String node : unclusteredNodes) {
+                Community bestMatch = null;
+                int bestConnections = 0;
+                for (Community sub : subCommunities) {
+                    int connections = 0;
+                    for (String memberId : sub.getSymbolIds()) {
+                        List<String> callees = callGraph.getCallees(node);
+                        if (callees != null) {
+                            for (String callee : callees) {
+                                if (memberId.equals(callee)) connections++;
+                            }
+                        }
+                    }
+                    if (connections > bestConnections) {
+                        bestConnections = connections;
+                        bestMatch = sub;
+                    }
+                }
+                if (bestMatch != null) {
+                    bestMatch.getSymbolIds().add(node);
+                } else {
+                    Community singleton = new Community();
+                    singleton.setId(community.getId() + "_singleton_" + idx++);
+                    singleton.setSymbolIds(new ArrayList<>(List.of(node)));
+                    singleton.setCohesion(0);
+                    subCommunities.add(singleton);
+                }
+            }
+        }
+
         if (subCommunities.isEmpty()) return null;
         
         List<Community> result = new ArrayList<>();
@@ -573,7 +619,7 @@ public class CommunityDetector {
                 edges[1].set(i, edge[1]);
             }
             
-            Network network = new Network(nNodes, true, edges, false, false);
+            Network network = new Network(nNodes, false, edges, false, false);
             
             int nIterations = isLargeGraph ? config.getLargeGraphMaxIterations() : config.getMaxIterations();
             LeidenAlgorithm leidenAlgorithm = new LeidenAlgorithm(

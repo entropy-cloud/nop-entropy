@@ -73,7 +73,14 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
         assertTrue(response.isOk(),
                 "detectFlows BizModel action should be registered and succeed");
         List<Map<String, Object>> flows = (List<Map<String, Object>>) response.getData();
-        assertNotNull(flows);
+        assertNotNull(flows, "detectFlows should return a non-null list");
+        if (!flows.isEmpty()) {
+            Map<String, Object> firstFlow = flows.get(0);
+            assertNotNull(firstFlow.get("entryPointSymbolId"),
+                    "Flow should have entryPointSymbolId");
+            assertTrue(firstFlow.containsKey("criticality"),
+                    "Flow should contain criticality field");
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -90,7 +97,12 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
         assertTrue(response.isOk(),
                 "listFlows BizModel action should be registered and succeed");
         List<Map<String, Object>> flows = (List<Map<String, Object>>) response.getData();
-        assertNotNull(flows);
+        assertNotNull(flows, "listFlows should return a non-null list");
+        if (!flows.isEmpty()) {
+            Map<String, Object> firstFlow = flows.get(0);
+            assertNotNull(firstFlow.get("entryPointSymbolId"),
+                    "Cached flow should have entryPointSymbolId");
+        }
     }
 
     @Test
@@ -103,5 +115,7 @@ public class TestNopCodeFlowBizModel extends JunitAutoTestCase {
                 "detectDeadCode BizModel action should be registered and succeed");
         Map<String, Object> result = (Map<String, Object>) response.getData();
         assertNotNull(result);
+        assertNotNull(result.get("deadSymbols"), "detectDeadCode result should contain deadSymbols");
+        assertNotNull(result.get("suspiciousSymbols"), "detectDeadCode result should contain suspiciousSymbols");
     }
 }

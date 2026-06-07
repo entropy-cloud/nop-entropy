@@ -15,6 +15,8 @@ public class CodeMethodCall {
     private int line;
     private int column;
     private EdgeConfidence confidence;
+    private EdgeProvenance provenance;
+    private String metadata;
 
     public String getId() {
         return id;
@@ -102,5 +104,21 @@ public class CodeMethodCall {
 
     public void setConfidence(EdgeConfidence confidence) {
         this.confidence = confidence;
+    }
+
+    public EdgeProvenance getProvenance() {
+        return provenance;
+    }
+
+    public void setProvenance(EdgeProvenance provenance) {
+        this.provenance = provenance;
+    }
+
+    public String getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
     }
 }

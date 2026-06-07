@@ -20,6 +20,10 @@ import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
+import io.nop.api.core.exceptions.NopException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,16 +35,10 @@ import java.util.Set;
 import static io.nop.job.dao.entity._gen._NopJobFire.*;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_FIRE_STATUS_CONFLICT;
 
 public class JobFireStoreImpl implements IJobFireStore {
-    private static final int FIRE_STATUS_WAITING = 0;
-    private static final int FIRE_STATUS_DISPATCHING = 10;
-    private static final int FIRE_STATUS_RUNNING = 20;
-    private static final int FIRE_STATUS_CANCELED = 60;
-    private static final int TASK_STATUS_WAITING = 0;
-    private static final int TASK_STATUS_CLAIMED = 10;
-    private static final int TASK_STATUS_RUNNING = 20;
-    private static final int TASK_STATUS_CANCELED = 60;
+    static final Logger LOG = LoggerFactory.getLogger(JobFireStoreImpl.class);
 
     private IDaoProvider daoProvider;
 
@@ -53,7 +51,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, FIRE_STATUS_WAITING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_WAITING));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
@@ -64,7 +62,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, FIRE_STATUS_RUNNING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_RUNNING));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
@@ -80,12 +78,11 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
 
         long now = fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
-        Timestamp lockTime = new Timestamp(now + Math.max(lockTimeoutMs, 1));
+        Timestamp startTime = new Timestamp(now);
         for (NopJobFire fire : fires) {
-            fire.setFireStatus(FIRE_STATUS_DISPATCHING);
+            fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_DISPATCHING);
             fire.setDispatchInstanceId(dispatchInstanceId);
-            fire.setStartTime(lockTime);
-            fire.setUpdateTime(lockTime);
+            fire.setStartTime(startTime);
         }
         return fireDao().tryUpdateManyWithVersionCheck(fires);
     }
@@ -94,15 +91,21 @@ public class JobFireStoreImpl implements IJobFireStore {
     @Override
     public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
         NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-        if (currentFire.getFireStatus() == null || currentFire.getFireStatus() != FIRE_STATUS_DISPATCHING) {
+        if (currentFire.getFireStatus() == null || currentFire.getFireStatus() != _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
             return;
+        }
+
+        currentFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_RUNNING);
+        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(currentFire));
+        if (updated.isEmpty()) {
+            throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                    .param("jobFireId", fire.getJobFireId())
+                    .param("expectedStatus", _NopJobCoreConstants.FIRE_STATUS_DISPATCHING);
         }
 
         for (NopJobTask task : tasks) {
             taskDao().saveEntityDirectly(task);
         }
-        currentFire.setFireStatus(FIRE_STATUS_RUNNING);
-        fireDao().updateEntityDirectly(currentFire);
     }
 
     private static final Set<Integer> TERMINAL_FIRE_STATUSES = Set.of(
@@ -124,7 +127,44 @@ public class JobFireStoreImpl implements IJobFireStore {
         if (updated.isEmpty()) {
             return;
         }
-        scheduleDao().updateEntityDirectly(schedule);
+
+        NopJobSchedule baseline = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            int origActiveFireCount = baseline.getActiveFireCount();
+            long origFireCount = defaultLong(baseline.getFireCount());
+            long origTotalFireCount = defaultLong(baseline.getTotalFireCount());
+            long origSuccessFireCount = defaultLong(baseline.getSuccessFireCount());
+            long origFailFireCount = defaultLong(baseline.getFailFireCount());
+
+            int activeDelta = schedule.getActiveFireCount() - origActiveFireCount;
+            long fireCountDelta = schedule.getFireCount() - origFireCount;
+            Long totalTarget = schedule.getTotalFireCount();
+            Long successTarget = schedule.getSuccessFireCount();
+            Long failTarget = schedule.getFailFireCount();
+
+            List<NopJobSchedule> updatedSchedules = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updatedSchedules.isEmpty()) {
+                return;
+            }
+            baseline = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(baseline.getVersion());
+            schedule.setActiveFireCount(baseline.getActiveFireCount() + activeDelta);
+            schedule.setFireCount(defaultLong(baseline.getFireCount()) + fireCountDelta);
+            if (totalTarget != null) {
+                schedule.setTotalFireCount(defaultLong(baseline.getTotalFireCount()) + (totalTarget - origTotalFireCount));
+            }
+            if (successTarget != null) {
+                schedule.setSuccessFireCount(defaultLong(baseline.getSuccessFireCount()) + (successTarget - origSuccessFireCount));
+            }
+            if (failTarget != null) {
+                schedule.setFailFireCount(defaultLong(baseline.getFailFireCount()) + (failTarget - origFailFireCount));
+            }
+        }
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("jobFireId", fire.getJobFireId())
+                .param("reason", "Failed to update schedule after 5 optimistic lock retries");
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -139,7 +179,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         NopJobSchedule schedule = scheduleDao().requireEntityById(fire.getJobScheduleId());
         Timestamp cancelTime = new Timestamp(fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis());
 
-        fire.setFireStatus(FIRE_STATUS_CANCELED);
+        fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
         fire.setEndTime(cancelTime);
         fire.setDurationMs(calculateDuration(fire.getStartTime(), cancelTime));
         fire.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
@@ -156,26 +196,55 @@ public class JobFireStoreImpl implements IJobFireStore {
                 continue;
             }
 
-            task.setTaskStatus(TASK_STATUS_CANCELED);
+            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CANCELED);
             task.setEndTime(cancelTime);
             task.setDurationMs(calculateDuration(task.getStartTime(), cancelTime));
             task.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
             task.setErrorMessage(ERR_JOB_CANCELED.getDescription());
             task.setUpdatedBy("system");
             task.setUpdateTime(cancelTime);
-            taskDao().updateEntityDirectly(task);
+
+            List<NopJobTask> updatedTasks = taskDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(task));
+            if (updatedTasks.isEmpty()) {
+                NopJobTask freshTask = taskDao().requireEntityById(task.getJobTaskId());
+                if (isTaskFinished(freshTask.getTaskStatus())) {
+                    LOG.debug("nop.job.cancel.task-already-terminal:taskId={},status={}",
+                            task.getJobTaskId(), freshTask.getTaskStatus());
+                    continue;
+                }
+                task.setVersion(freshTask.getVersion());
+                taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task));
+            }
         }
 
-        schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
-        schedule.setLastEndTime(cancelTime);
-        schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
-        if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
-            schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, cancelTime));
+        for (int attempt = 0; attempt < 5; attempt++) {
+            schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
+            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
+            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
+            schedule.setLastEndTime(cancelTime);
+            schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
+            if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
+                schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, cancelTime));
+            }
+            schedule.setUpdatedBy("system");
+            schedule.setUpdateTime(cancelTime);
+
+            List<NopJobSchedule> updatedSchedules = scheduleDao().tryUpdateManyWithVersionCheck(
+                    Collections.singletonList(schedule));
+            if (!updatedSchedules.isEmpty()) {
+                return true;
+            }
+
+            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+            schedule.setVersion(fresh.getVersion());
+            schedule.setActiveFireCount(fresh.getActiveFireCount());
+            schedule.setTotalFireCount(fresh.getTotalFireCount());
+            schedule.setFailFireCount(fresh.getFailFireCount());
         }
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(cancelTime);
-        scheduleDao().updateEntityDirectly(schedule);
-        return true;
+        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
+                .param("jobFireId", fire.getJobFireId())
+                .param("reason", "Failed to update schedule after cancel fire, 5 retries exhausted");
     }
 
     @Override
@@ -203,10 +272,32 @@ public class JobFireStoreImpl implements IJobFireStore {
     public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
-        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, FIRE_STATUS_DISPATCHING));
+        query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_DISPATCHING));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_startTime, false);
         return fireDao().findAllByQuery(query);
+    }
+
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public void updateRetryRecordId(String jobFireId, String retryRecordId) {
+        NopJobFire fire = fireDao().requireEntityById(jobFireId);
+        fire.setRetryRecordId(retryRecordId);
+        fireDao().updateEntityDirectly(fire);
+    }
+
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
+        NopJobFire fire = fireDao().requireEntityById(jobFireId);
+        fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);
+        fire.setEndTime(new Timestamp(fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis()));
+        fire.setDurationMs(calculateDuration(fire.getStartTime(), fire.getEndTime()));
+        fire.setErrorCode(errorCode);
+        fire.setErrorMessage(errorMessage);
+        fire.setUpdatedBy("system");
+        fire.setUpdateTime(fire.getEndTime());
+        fireDao().updateEntityDirectly(fire);
     }
 
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
@@ -246,10 +337,10 @@ public class JobFireStoreImpl implements IJobFireStore {
         if (fireStatus == null) {
             return false;
         }
-        if (fireStatus == FIRE_STATUS_WAITING || fireStatus == FIRE_STATUS_DISPATCHING) {
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_WAITING || fireStatus == _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
             return true;
         }
-        if (fireStatus != FIRE_STATUS_RUNNING) {
+        if (fireStatus != _NopJobCoreConstants.FIRE_STATUS_RUNNING) {
             return false;
         }
         if (tasks.isEmpty()) {
@@ -265,9 +356,9 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     private boolean isTaskFinished(Integer taskStatus) {
         return taskStatus != null
-                && taskStatus != TASK_STATUS_WAITING
-                && taskStatus != TASK_STATUS_CLAIMED
-                && taskStatus != TASK_STATUS_RUNNING;
+                && taskStatus != _NopJobCoreConstants.TASK_STATUS_WAITING
+                && taskStatus != _NopJobCoreConstants.TASK_STATUS_CLAIMED
+                && taskStatus != _NopJobCoreConstants.TASK_STATUS_RUNNING;
     }
 
     private boolean shouldAdvanceFixedDelaySchedule(NopJobSchedule schedule, NopJobFire fire) {

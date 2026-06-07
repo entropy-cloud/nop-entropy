@@ -17,10 +17,14 @@
 
 package io.nop.job.core.calendar;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.job.core.ICalendar;
 
 import java.io.Serializable;
 import java.util.TimeZone;
+
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_DAY;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_NULL_DAYS;
 
 /**
  * <p>
@@ -83,7 +87,7 @@ public class MonthlyCalendar extends BaseCalendar implements ICalendar, Serializ
      */
     public boolean isDayExcluded(int day) {
         if ((day < 1) || (day > MAX_DAYS_IN_MONTH)) {
-            throw new IllegalArgumentException("The day parameter must be in the range of 1 to " + MAX_DAYS_IN_MONTH);
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_DAY).param("day", day);
         }
 
         return excludeDays[day - 1];
@@ -97,12 +101,12 @@ public class MonthlyCalendar extends BaseCalendar implements ICalendar, Serializ
      */
     public void setDaysExcluded(boolean[] days) {
         if (days == null) {
-            throw new IllegalArgumentException("The days parameter cannot be null.");
+            throw new NopException(ERR_JOB_CALENDAR_NULL_DAYS);
         }
 
         if (days.length < MAX_DAYS_IN_MONTH) {
-            throw new IllegalArgumentException(
-                    "The days parameter must have a length of at least " + MAX_DAYS_IN_MONTH + " elements.");
+            throw new NopException(ERR_JOB_CALENDAR_NULL_DAYS).param("reason",
+                    "days array must have at least " + MAX_DAYS_IN_MONTH + " elements");
         }
 
         excludeDays = days;
@@ -118,7 +122,7 @@ public class MonthlyCalendar extends BaseCalendar implements ICalendar, Serializ
      */
     public void setDayExcluded(int day, boolean exclude) {
         if ((day < 1) || (day > MAX_DAYS_IN_MONTH)) {
-            throw new IllegalArgumentException("The day parameter must be in the range of 1 to " + MAX_DAYS_IN_MONTH);
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_DAY).param("day", day);
         }
 
         excludeDays[day - 1] = exclude;

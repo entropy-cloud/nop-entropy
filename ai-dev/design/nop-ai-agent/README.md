@@ -2,26 +2,42 @@
 
 核心定位：**面向大规模无人值守自动化执行**。
 
-本目录采用分层设计方式，明确区分：
+本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，从高层设计原则到分项设计逐层展开：
 
-1. 架构总览层
-2. DSL 层
-3. Java 引擎层
-4. DSL 到引擎的语义映射层
-5. 策略层
+1. **设计原则层** — 为什么做、约束是什么、不做什么
+2. **架构基线层** — 系统分层、核心对象、模块边界、关键决策
+3. **执行模型层** — 双循环、Hook 生命周期、Steering
+4. **DSL 层** — 配置形态
+5. **Java 引擎层** — 执行引擎详细设计
+6. **语义映射层** — DSL 到运行时的映射
+7. **策略层** — 会话、安全、可靠性等边界约束
+8. **愿景层** — 未来演进方向（不驱动当前实现）
 
-## 架构总览层
+---
 
-- `nop-ai-agent-core-architecture.md`
-  - 核心架构设计：无人值守定位、分层、核心对象、双循环执行流程、关键决策
-  - 本目录的顶层入口，建议首先阅读
-- `nop-ai-agent-architecture-comparison.md`
-  - 外部框架对比分析（agentscope-java, solon-ai, pi-agent, openai-agents, smolagents）
-  - 记录架构决策的外部参照和理由
+## 设计原则层
+
+- `00-vision.md`
+  - 高层设计原则：产品定位、成功标准、不可违反的约束、显式 non-goals、设计收敛路径、必须由人决策的决策点、核心隐喻（三层分离 + Actor 模型）
+
+## 架构基线层
+
+- `01-architecture-baseline.md`
+  - 架构分层、核心对象职责契约、模块边界、关键设计决策
+  - 部署模型（单进程/多实例）、通信模型（IMessageService）、存储模型（VFS + 持久化接口）
+  - Session 模型、Agent 身份模型、多租户与资源隔离、Plan 与 Todo 系统
+  - 与传统 Actor 框架的对应关系
 - `nop-ai-agent-context-model.md`
   - Agent 上下文模型：组成维度、Tool 可见性、Agent-as-Subprocess 隐喻、上下文继承与 fork、内部 Agent 化
 - `nop-ai-agent-multi-agent.md`
   - 多 Agent 并行协同：冲突分类、文件写意图、资源声明、通信模型
+
+## 执行模型层
+
+- `02-execution-model.md`
+  - 双循环模型（followUp + ReAct）、Steering 机制、Hook 生命周期、执行控制（循环控制 + 资源控制）、错误处理分类
+- `04-tool-invocation.md`
+  - 工具发现、执行流程、并行执行、JSON Schema 兼容
 
 ## DSL 层
 
@@ -31,19 +47,15 @@
   - 对应 `agent-plan.xdef`
 - `nop-ai-tool-dsl.md`
   - 对应 `tool.xdef`、`tool-call.xdef`、`call-tools.xdef`、`call-tools-response.xdef`
-  - 包含工具执行上下文可见性定义
 - `nop-ai-call-agent-dsl.md`
   - 对应真实 `call-agent.tool.xml`
 
 ## Java 引擎层
 
-- `nop-ai-agent-engine.md`
-  - Java 执行引擎总体设计
-  - **注意**：此文档已被 `nop-ai-agent-core-architecture.md` 替代。本目录保留它作为历史参照。
 - `nop-ai-agent-react-engine.md`
-  - 单 Agent ReAct 执行引擎，含双循环模型（仍然有效）
+  - 单 Agent ReAct 执行引擎详细设计
 - `nop-ai-agent-hook-skill-engine.md`
-  - Hook / Skill 的引擎层组织方式，含内部 Agent 化概念
+  - Hook / Skill 的引擎层组织方式
 - `nop-ai-agent-session-engine.md`
   - Session 的引擎层设计
 
@@ -55,50 +67,42 @@
 ## 策略层
 
 - `nop-ai-agent-session-and-storage.md`
-  - Session、快照、分叉、每消息 snapshotId、Session Tree、压缩回写、存储边界
+  - Session、快照、分叉、Session Tree、压缩回写、存储边界
 - `nop-ai-agent-security-and-permissions.md`
   - 权限、安全边界、目录保护
 - `nop-ai-agent-reliability.md`
-  - 错误分类、压缩、超时、回退、恢复
+  - 错误分类、压缩、超时、回退、恢复、崩溃恢复模型
+- `skill-system-design.md`
+  - Skill 系统三层表示（SSL 参照）、匹配机制
+
+## 愿景层
+
+- `nop-ai-agent-actor-runtime-vision.md`
+  - Platform Layer 具体架构：ActorRuntime、MessageRouter、TeamManager、RecoveryManager、ResourceGuard
 - `nop-ai-agent-roadmap.md`
-  - DSL-first + engine-aware 的实施路线
+  - DSL-first + engine-aware 的实施路线和阶段定义
+
+---
 
 ## 阅读顺序
 
-1. `nop-ai-agent-core-architecture.md` — 核心架构全景（含无人值守定位）
-2. `nop-ai-agent-context-model.md` — Agent 上下文与 subprocess 模型
-3. `nop-ai-agent-architecture-comparison.md` — 为什么这样设计
-4. `nop-ai-agent-dsl.md`
-5. `nop-ai-agent-plan-dsl.md`
-6. `nop-ai-tool-dsl.md`
-7. `nop-ai-call-agent-dsl.md`
-8. `nop-ai-agent-react-engine.md`
-9. `nop-ai-agent-hook-skill-engine.md`
-10. `nop-ai-agent-session-engine.md`
-11. `nop-ai-agent-runtime-semantics.md`
-12. `nop-ai-agent-multi-agent.md`
-13. `nop-ai-agent-session-and-storage.md`
-14. `nop-ai-agent-security-and-permissions.md`
-15. `nop-ai-agent-reliability.md`
-16. `nop-ai-agent-roadmap.md`
+**必读路径**（理解设计原则 → 架构 → 执行模型）：
 
-## 设计原则
+1. `00-vision.md` — 设计原则和约束
+2. `01-architecture-baseline.md` — 架构基线和核心决策
+3. `02-execution-model.md` — 执行模型
 
-1. 核心定位：大规模无人值守自动化
-2. 先明确 DSL 形态
-3. 再明确 Java 引擎设计
-4. 再说明 DSL 如何映射到引擎
-5. 再补安全、存储、可靠性等策略层约束
-6. 不把未来设想伪装成当前 DSL 字段
-7. 架构决策有外部参照（对比分析文档）
-8. Agent 类似子进程——fork、exec、inherit、pipe
+**按需深入**：
 
-## 当前结论
+4. `nop-ai-agent-context-model.md` — 上下文模型
+5. `04-tool-invocation.md` — 工具调用架构
+6. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
+7. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
+8. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
+9. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
+10. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`skill-system-design.md`
 
-当前目录已经形成五层结构，覆盖 17 篇设计文档：
+**扩展方向**：
 
-- 架构总览层定义核心架构、上下文模型、多 Agent 协同和决策理由
-- DSL 层定义配置形态
-- Java 引擎层定义执行模型
-- 语义映射层定义两者关系
-- 策略层定义边界和运行约束
+11. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
+12. `nop-ai-agent-roadmap.md` — 实施路线

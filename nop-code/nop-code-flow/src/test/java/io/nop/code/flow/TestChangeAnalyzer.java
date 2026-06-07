@@ -60,7 +60,7 @@ class TestChangeAnalyzer {
         CallGraph cg = buildCallGraph();
 
         ChangeAnalysisResult result = analyzer.analyzeChanges(
-                "test-idx", "nonexistent~1", "nonexistent~2", st, cg);
+                "test-idx", "nonexistent~1", "nonexistent~2", st, cg, null);
 
         assertNotNull(result);
         assertNotNull(result.getChangedFiles());
@@ -75,7 +75,7 @@ class TestChangeAnalyzer {
         CallGraph cg = buildCallGraph();
 
         ChangeAnalysisResult result = analyzer.analyzeChanges(
-                "test-idx", "nonexistent~1", "nonexistent~2", st, cg);
+                "test-idx", "nonexistent~1", "nonexistent~2", st, cg, null);
 
         for (ChangeAnalysisResult.AffectedSymbol affected : result.getAffectedSymbols()) {
             if (affected.getQualifiedName() != null
@@ -93,7 +93,7 @@ class TestChangeAnalyzer {
         CallGraph cg = buildCallGraph();
 
         ChangeAnalysisResult result = analyzer.analyzeChanges(
-                "test-idx", "nonexistent~1", "nonexistent~2", st, cg);
+                "test-idx", "nonexistent~1", "nonexistent~2", st, cg, null);
 
         ChangeAnalysisResult.RiskSummary summary = result.getRiskSummary();
         assertNotNull(summary);
@@ -108,7 +108,7 @@ class TestChangeAnalyzer {
         CallGraph cg = buildCallGraph();
 
         ChangeAnalysisResult result = analyzer.analyzeChanges(
-                "test-idx", "nonexistent~1", "nonexistent~2", st, cg);
+                "test-idx", "nonexistent~1", "nonexistent~2", st, cg, null);
 
         assertNotNull(result.getAffectedSymbols());
         assertNotNull(result.getChangedFiles());
@@ -125,7 +125,7 @@ class TestChangeAnalyzer {
         for (int i = 0; i < 3; i++) {
             var diff = analyzer.parseGitDiff("nonexistent~" + i, "nonexistent~" + (i + 1), null);
             assertNotNull(diff, "parseGitDiff should return non-null even for invalid refs");
-            assertTrue(diff.isEmpty(), "Invalid refs should produce empty diff");
+            assertTrue(diff.fileChanges.isEmpty(), "Invalid refs should produce empty diff");
         }
     }
 }

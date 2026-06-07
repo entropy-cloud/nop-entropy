@@ -41,6 +41,9 @@
 
                 <!--更新人-->
                 <col id="updatedBy" sortable="true"/>
+
+                <!--索引ID-->
+                <col id="indexId" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -57,6 +60,7 @@
  createdBy[创建人]
  updateTime[更新时间]
  updatedBy[更新人]
+ indexId[索引ID]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行流成员" i18n-en:title="Add Execution Flow Membership" x:prototype="edit"/>
@@ -70,6 +74,7 @@
  createdBy[创建人]
  updateTime[更新时间]
  updatedBy[更新人]
+ indexId[索引ID]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

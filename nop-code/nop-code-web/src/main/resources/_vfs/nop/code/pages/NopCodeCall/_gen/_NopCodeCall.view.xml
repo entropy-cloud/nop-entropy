@@ -41,6 +41,12 @@
 
                 <!--上下文-->
                 <col id="context" sortable="true"/>
+
+                <!--来源-->
+                <col id="provenance" sortable="true"/>
+
+                <!--元数据-->
+                <col id="metadata" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -49,27 +55,21 @@
     <forms>
         <form id="view" editMode="view" title="查看-方法调用" i18n-en:title="View Method Call">
             <layout>
- indexId[索引ID]
- callerId[调用方ID]
- calleeId[被调用方ID]
- fileId[文件ID]
- line[行号]
- column[列号]
- callType[调用类型]
- context[上下文]
+ indexId[索引ID] callerId[调用方ID]
+ calleeId[被调用方ID] fileId[文件ID]
+ line[行号] column[列号]
+ callType[调用类型] context[上下文]
+ provenance[来源] metadata[元数据]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-方法调用" i18n-en:title="Add Method Call" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-方法调用" i18n-en:title="Edit Method Call">
             <layout>
- indexId[索引ID]
- callerId[调用方ID]
- calleeId[被调用方ID]
- fileId[文件ID]
- line[行号]
- column[列号]
- callType[调用类型]
- context[上下文]
+ indexId[索引ID] callerId[调用方ID]
+ calleeId[被调用方ID] fileId[文件ID]
+ line[行号] column[列号]
+ callType[调用类型] context[上下文]
+ provenance[来源] metadata[元数据]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

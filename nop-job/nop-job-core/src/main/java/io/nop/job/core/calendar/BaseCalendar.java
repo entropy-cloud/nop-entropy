@@ -17,11 +17,14 @@
 
 package io.nop.job.core.calendar;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.job.core.ICalendar;
 
 import java.io.Serializable;
 import java.util.Date;
 import java.util.TimeZone;
+
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_CALENDAR_INVALID_TIMESTAMP;
 
 /**
  * <p>
@@ -144,7 +147,7 @@ public class BaseCalendar implements ICalendar, Serializable {
     public boolean isTimeIncluded(long timeStamp) {
 
         if (timeStamp <= 0) {
-            throw new IllegalArgumentException("timeStamp must be greater 0");
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_TIMESTAMP);
         }
 
         if (baseCalendar != null) {
@@ -167,7 +170,7 @@ public class BaseCalendar implements ICalendar, Serializable {
     public long getNextIncludedTime(long timeStamp) {
 
         if (timeStamp <= 0) {
-            throw new IllegalArgumentException("timeStamp must be greater 0");
+            throw new NopException(ERR_JOB_CALENDAR_INVALID_TIMESTAMP);
         }
 
         if (baseCalendar != null) {

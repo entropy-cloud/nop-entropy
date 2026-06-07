@@ -149,26 +149,33 @@ public class Task implements Runnable, Serializable {
         LOG.info("Starting task: {}", getTaskName());
 
         try {
-            // Open all operator chains
             openOperatorChains();
 
-            // Execute the invokable logic
             Invokable<?> invokable = jobVertex.getInvokable();
             invokable.invoke();
 
-            // Transition to COMPLETED state
-            state.set(State.COMPLETED);
-            LOG.info("Task completed successfully: {}", getTaskName());
+            if (!state.compareAndSet(State.RUNNING, State.COMPLETED)) {
+                LOG.warn("Task {} state changed from RUNNING during execution to {}", getTaskName(), state.get());
+            } else {
+                LOG.info("Task completed successfully: {}", getTaskName());
+            }
 
         } catch (Throwable t) {
-            // Record the error and transition to FAILED state
             this.error = t;
             state.set(State.FAILED);
             LOG.error("Task failed: " + getTaskName(), t);
 
         } finally {
-            // Always close operator chains
-            closeOperatorChains();
+            try {
+                closeOperatorChains();
+            } catch (Exception closeEx) {
+                if (this.error == null) {
+                    this.error = closeEx;
+                    state.compareAndSet(State.RUNNING, State.FAILED);
+                } else {
+                    this.error.addSuppressed(closeEx);
+                }
+            }
         }
     }
 

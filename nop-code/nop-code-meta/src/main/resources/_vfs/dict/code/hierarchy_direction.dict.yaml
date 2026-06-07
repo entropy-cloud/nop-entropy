@@ -1,0 +1,13 @@
+label: 继承方向
+name: code/hierarchy_direction
+valueType: string
+options:
+  - code: super
+    label: 父类型
+    value: "10"
+  - code: sub
+    label: 子类型
+    value: "20"
+  - code: both
+    label: 双向
+    value: "30"

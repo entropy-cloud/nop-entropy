@@ -71,10 +71,64 @@ public class TestProcessingTimeoutTrigger {
         assertTrue(ctx.registeredProcessingTimers.isEmpty());
     }
 
+    @Test
+    void testOnEventTimeReturnsNestedResultNotForcedFire() throws Exception {
+        EventTimeTrigger nested = EventTimeTrigger.create();
+        ProcessingTimeoutTrigger<Object, TimeWindow> trigger =
+                ProcessingTimeoutTrigger.of(nested, Duration.ofMillis(100));
+
+        TimeWindow window = new TimeWindow(0, 1000);
+        MockTriggerContext ctx = new MockTriggerContext();
+
+        TriggerResult result = trigger.onEventTime(500, window, ctx);
+        assertEquals(TriggerResult.CONTINUE, result,
+                "onEventTime should delegate to nested trigger and return CONTINUE, not forced FIRE");
+    }
+
+    @Test
+    void testOnEventTimeFireAndPurgeFromNestedNotOverridden() throws Exception {
+        ContinuousEventTimeTrigger<TimeWindow> nested =
+                ContinuousEventTimeTrigger.of(Duration.ofMillis(100));
+        ProcessingTimeoutTrigger<Object, TimeWindow> trigger =
+                ProcessingTimeoutTrigger.of(nested, Duration.ofMillis(500));
+
+        TimeWindow window = new TimeWindow(0, 1000);
+        MockTriggerContext ctx = new MockTriggerContext();
+        ctx.currentWatermark = 500;
+
+        trigger.onElement("a", 0, window, ctx);
+
+        TriggerResult result = trigger.onEventTime(100, window, ctx);
+        assertNotNull(result);
+        assertEquals(TriggerResult.FIRE, result,
+                "onEventTime should delegate to nested trigger (ContinuousEventTimeTrigger returns FIRE for matching fire timestamp)");
+    }
+
+    @Test
+    void testOnEventTimeDoesNotClearOnTimeout() throws Exception {
+        ProcessingTimeoutTrigger<Object, TimeWindow> trigger =
+                ProcessingTimeoutTrigger.of(
+                        ProcessingTimeTrigger.create(),
+                        Duration.ofMillis(100),
+                        false,
+                        true);
+
+        TimeWindow window = new TimeWindow(0, 1000);
+        MockTriggerContext ctx = new MockTriggerContext();
+
+        trigger.onElement("a", 0, window, ctx);
+        assertFalse(ctx.registeredProcessingTimers.isEmpty(),
+                "Timer should be registered on first element");
+
+        TriggerResult result = trigger.onEventTime(500, window, ctx);
+        assertFalse(ctx.registeredProcessingTimers.isEmpty(),
+                "onEventTime should not clear processing-time timeout timer");
+    }
+
     private static class MockTriggerContext implements Trigger.OnMergeContext {
         private final Map<String, SimpleAccumulator<?>> accumulators = new HashMap<>();
         private long currentProcessingTime = System.currentTimeMillis();
-        private long currentWatermark = Long.MIN_VALUE;
+        long currentWatermark = Long.MIN_VALUE;
         final Set<Long> registeredProcessingTimers = new LinkedHashSet<>();
 
         @Override

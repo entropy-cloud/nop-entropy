@@ -89,6 +89,11 @@ public interface _NopCodeDaoConstants {
     String SYMBOL_KIND_IMPORT = "98";
                     
     /**
+     * 符号类型: 路由 
+     */
+    String SYMBOL_KIND_ROUTE = "100";
+                    
+    /**
      * 访问修饰符: 公开 
      */
     String ACCESS_MODIFIER_PUBLIC = "10";
@@ -164,6 +169,16 @@ public interface _NopCodeDaoConstants {
     String REFERENCE_KIND_OVERRIDES = "90";
                     
     /**
+     * 引用类型: 类型引用 
+     */
+    String REFERENCE_KIND_TYPE_OF = "100";
+                    
+    /**
+     * 引用类型: 实例化 
+     */
+    String REFERENCE_KIND_INSTANTIATES = "110";
+                    
+    /**
      * 索引状态: 已创建 
      */
     String INDEX_STATUS_CREATED = "10";
@@ -214,6 +229,11 @@ public interface _NopCodeDaoConstants {
     String LANGUAGE_JAVASCRIPT = "40";
                     
     /**
+     * 调用类型: 构造函数调用 
+     */
+    String CALL_TYPE_CONSTRUCTOR = "10";
+                    
+    /**
      * 继承关系类型: 继承 
      */
     String RELATION_TYPE_EXTENDS = "10";
@@ -222,5 +242,45 @@ public interface _NopCodeDaoConstants {
      * 继承关系类型: 实现 
      */
     String RELATION_TYPE_IMPLEMENTS = "20";
+                    
+    /**
+     * 语义关系类型: 语义相似 
+     */
+    String SEMANTIC_RELATION_TYPE_SEMANTICALLY_SIMILAR_TO = "10";
+                    
+    /**
+     * 语义关系类型: 概念相关 
+     */
+    String SEMANTIC_RELATION_TYPE_CONCEPTUALLY_RELATED_TO = "20";
+                    
+    /**
+     * 语义关系类型: 解决同一问题 
+     */
+    String SEMANTIC_RELATION_TYPE_SOLVES_SAME_PROBLEM = "30";
+                    
+    /**
+     * 语义关系类型: 实现模式 
+     */
+    String SEMANTIC_RELATION_TYPE_IMPLEMENTS_PATTERN = "40";
+                    
+    /**
+     * 语义关系类型: 替代方案 
+     */
+    String SEMANTIC_RELATION_TYPE_ALTERNATIVE_OF = "50";
+                    
+    /**
+     * 语义关系类型: 被文档记录 
+     */
+    String SEMANTIC_RELATION_TYPE_DOCUMENTED_BY = "60";
+                    
+    /**
+     * 语义关系类型: 原因说明 
+     */
+    String SEMANTIC_RELATION_TYPE_RATIONALE_FOR = "70";
+                    
+    /**
+     * 语义关系类型: 跨语言对等 
+     */
+    String SEMANTIC_RELATION_TYPE_CROSS_LANGUAGE_PEER = "80";
                     
 }

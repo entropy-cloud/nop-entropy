@@ -2,21 +2,10 @@
 label: 调用类型
 locale: zh-CN
 valueType: string
-description: 方法调用类型
+description: 方法调用类型。CONSTRUCTOR 为构造函数调用，其余值为被调用方法的返回类型描述（如 void、String 等），属自由文本
 options:
 
-  - label: 直接调用
-    value: DIRECT
+  - label: 构造函数调用
+    value: 10
     description: 
-
-  - label: 虚拟调用
-    value: VIRTUAL
-    description: 
-
-  - label: 静态调用
-    value: STATIC
-    description: 
-
-  - label: 构造调用
-    value: CONSTRUCTOR
-    description: 
+  

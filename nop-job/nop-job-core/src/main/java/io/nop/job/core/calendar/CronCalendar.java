@@ -7,6 +7,8 @@
  */
 package io.nop.job.core.calendar;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.core.ICalendar;
 import io.nop.job.core.trigger.CronTrigger;
 import io.nop.job.core.utils.CronExpression;
@@ -29,6 +31,8 @@ import java.util.TimeZone;
  */
 public class CronCalendar extends BaseCalendar {
     static final long serialVersionUID = -8172103999750856831L;
+
+    private static final int MAX_ITERATION = 10000;
 
     CronExpression cronExpression;
 
@@ -106,22 +110,26 @@ public class CronCalendar extends BaseCalendar {
      */
     @Override
     public long getNextIncludedTime(long timeInMillis) {
-        long nextIncludedTime = timeInMillis + 1; // plus on millisecond
+        long nextIncludedTime = timeInMillis + 1;
 
+        int iterations = 0;
         while (!isTimeIncluded(nextIncludedTime)) {
+            if (++iterations > MAX_ITERATION) {
+                throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED)
+                        .param("calendarType", "CronCalendar")
+                        .param("startTime", timeInMillis);
+            }
 
-            // If the time is in a range excluded by this calendar, we can
-            // move to the end of the excluded time range and continue testing
-            // from there. Otherwise, if nextIncludedTime is excluded by the
-            // baseCalendar, ask it the next time it includes and begin testing
-            // from there. Failing this, add one millisecond and continue
-            // testing.
             if (cronExpression.isSatisfiedBy(nextIncludedTime)) {
                 nextIncludedTime = cronExpression.getNextInvalidTimeAfter(nextIncludedTime);
             } else if ((getBaseCalendar() != null) && (!getBaseCalendar().isTimeIncluded(nextIncludedTime))) {
                 nextIncludedTime = getBaseCalendar().getNextIncludedTime(nextIncludedTime);
             } else {
-                nextIncludedTime++;
+                if (getBaseCalendar() != null) {
+                    nextIncludedTime = getBaseCalendar().getNextIncludedTime(nextIncludedTime);
+                } else {
+                    nextIncludedTime++;
+                }
             }
         }
 
@@ -177,7 +185,7 @@ public class CronCalendar extends BaseCalendar {
      */
     public void setCronExpression(CronExpression expression) {
         if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null");
+            throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_NULL_EXPRESSION);
         }
 
         this.cronExpression = expression;

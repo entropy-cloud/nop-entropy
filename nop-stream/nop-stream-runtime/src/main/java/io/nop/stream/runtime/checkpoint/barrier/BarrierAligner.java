@@ -56,7 +56,13 @@ public class BarrierAligner {
                 return false;
             }
             barriers.put(checkpointId, barrier);
-            return checkComplete();
+            boolean anyComplete = false;
+            boolean found;
+            do {
+                found = checkComplete();
+                if (found) anyComplete = true;
+            } while (found);
+            return anyComplete;
         } finally {
             lock.unlock();
         }

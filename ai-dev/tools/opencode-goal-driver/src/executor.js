@@ -69,35 +69,28 @@ export function execute(config, label, cmd, args, opts = {}) {
     }, timeout);
   }
 
-  // Watchdog: 定期检查日志 stall，spawn 独立子 agent 自行判断并 kill
+  // Watchdog: 定期 spawn 独立子 agent 智能检查子进程状态
+  // 不在 driver 侧做 mtime/内容检测（fd 重定向日志有心跳噪声，不可靠），
+  // 而是由独立子 agent 查看子进程的 opencode 内部日志来智能判断
   const watchdogIntervalMs = config.watchdogIntervalMs;
   const watchdogStallMs = config.watchdogStallMs;
   let watchdogTimer = null;
   let watchdogRunning = false;
-  let lastKnownMtime = Date.now();
+  let lastWatchdogTime = Date.now();
 
   if (!opts.quiet && watchdogIntervalMs > 0 && watchdogStallMs > 0) {
-    // 定期刷新 lastKnownMtime（由子进程自身的写入驱动）
-    const mtimeTracker = setInterval(() => {
-      try {
-        const stat = statSync(logFile);
-        if (stat.mtimeMs > lastKnownMtime) lastKnownMtime = stat.mtimeMs;
-      } catch { }
-    }, 60_000);
-
     watchdogTimer = setInterval(async () => {
       if (child.exitCode !== null) return;
       if (watchdogRunning) return;
-      try {
-        // 用独立追踪的时间戳而非文件 mtime，避免被 watchdog 自身的写入污染
-        const stalledMs = Date.now() - lastKnownMtime;
-        if (stalledMs < watchdogStallMs) return;
+      const elapsed = Date.now() - lastWatchdogTime;
+      if (elapsed < watchdogStallMs) return;
 
+      try {
         watchdogRunning = true;
         if (child.exitCode !== null) { watchdogRunning = false; return; }
 
-        process.stderr.write(`  [WATCHDOG] ${label} 日志 ${Math.round(stalledMs / 60_000)} 分钟无更新，spawn 独立子 agent 自行检查并处理 ...\n`);
-        appendFileSync(logFile, `\n# watchdog: 日志 ${Math.round(stalledMs / 60_000)}min 无更新，spawn 检查 agent @ ${new Date().toISOString()}\n`);
+        process.stderr.write(`  [WATCHDOG] ${label} 运行 ${Math.round(elapsed / 60_000)} 分钟，spawn 独立子 agent 检查状态 ...\n`);
+        appendFileSync(logFile, `\n# watchdog: 运行 ${Math.round(elapsed / 60_000)}min，spawn 检查 agent @ ${new Date().toISOString()}\n`);
 
         const wdResult = await spawnWatchdogAgent(config, label, logFile, child.pid);
 
@@ -105,22 +98,13 @@ export function execute(config, label, cmd, args, opts = {}) {
         appendFileSync(logFile, `# watchdog result: ${summary} @ ${new Date().toISOString()}\n`);
         process.stderr.write(`  [WATCHDOG] ${label} → ${summary}\n`);
 
+        lastWatchdogTime = Date.now();
         watchdogRunning = false;
       } catch (e) {
         watchdogRunning = false;
         process.stderr.write(`  [WATCHDOG] 异常: ${e.message}\n`);
       }
     }, watchdogIntervalMs);
-
-    // 让 watchdog timer 也参与 mtimeTracker 的清理
-    const origWatchdogTimer = watchdogTimer;
-    watchdogTimer = {
-      _raw: origWatchdogTimer,
-      ref() { origWatchdogTimer.ref(); },
-      unref() { origWatchdogTimer.unref(); },
-    };
-    // 将 mtimeTracker 引用保存以便在 cleanup 中一并清除
-    watchdogTimer._mtimeTracker = mtimeTracker;
   }
 
   function cleanup() {
@@ -128,8 +112,7 @@ export function execute(config, label, cmd, args, opts = {}) {
     if (timeoutTimer) clearTimeout(timeoutTimer);
     if (sigkillTimer) clearTimeout(sigkillTimer);
     if (watchdogTimer) {
-      clearInterval(watchdogTimer._raw || watchdogTimer);
-      if (watchdogTimer._mtimeTracker) clearInterval(watchdogTimer._mtimeTracker);
+      clearInterval(watchdogTimer);
     }
     try { closeSync(fd); } catch { }
   }
@@ -170,36 +153,40 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
     `你是 opencode goal driver 的独立 watchdog 子 agent。`,
     ``,
     `## 背景`,
-    `一个名为 "${label}" 的子 agent (PID=${stalledPid}) 的日志文件已超过 30 分钟没有新输出。`,
+    `一个名为 "${label}" 的子 agent (PID=${stalledPid}) 已运行超过 30 分钟，需要检查其状态。`,
     `主 driver 进程 PID=${driverPid}。`,
-    `日志文件路径: ${stalledLogFile}`,
+    `fd 重定向日志: ${stalledLogFile}`,
     ``,
     `## 你的任务`,
     `请自行检查并处理，不要请求确认。`,
     ``,
     `### 步骤 1: 诊断`,
     `1. 用 bash 执行 \`ps -o pid,ppid,stat,etime -p ${stalledPid}\` 检查进程是否仍在运行`,
-    `2. 读取日志文件 ${stalledLogFile} 的最后 100 行`,
-    `3. 判断卡住的原因：`,
-    `   - 日志末尾有 # exit: 或 # finished: 或 <*_RESULT> 标签 → 子 agent 已完成但信号丢失（僵尸态）`,
-    `   - 日志停在中间操作且进程仍在 → LLM 调用挂起`,
-    `   - 进程已不存在 → 进程已退出但父进程未收到信号`,
+    `2. 找到子进程的 opencode 内部日志：`,
+    `   - 执行 \`lsof -p ${stalledPid} -Fn 2>/dev/null | grep 'opencode/log' | grep '.log'\` 找到日志文件路径`,
+    `   - 或 \`ls -t ~/.local/share/opencode/log/*.log | head -3\` 找最近的日志文件`,
+    `3. 读取 opencode 内部日志的最后 80 行（注意：其中会有大量 service=bus type=message.part.delta 的流式心跳，忽略这些）`,
+    `4. 判断子 agent 状态（看最后一条非 bus 心跳的条目）：`,
+    `   - 有近期的 service=tool、service=permission、service=session.prompt → 正常工作中，不需要 kill`,
+    `   - 最后几十行全是 service=bus type=message.part.delta，无任何 tool/permission/prompt 活动 → LLM 调用挂起`,
+    `   - 内部日志有 # exit: 或进程已不存在 → 已完成但信号丢失（僵尸态）`,
+    `5. 如有疑问，再读 fd 重定向日志 ${stalledLogFile} 的最后 50 行作为补充`,
     ``,
     `### 步骤 2: 决策与执行`,
     `如果诊断确认子 agent 卡住/僵死/已完成但信号丢失：`,
     `  用 bash 执行 \`kill ${stalledPid}\` 来终止卡住的子 agent`,
     `  然后执行 \`kill -0 ${stalledPid} 2>/dev/null && echo 'still alive' || echo 'dead'\` 确认已终止`,
     ``,
-    `如果诊断发现是误报（日志实际有近期更新）：`,
+    `如果诊断发现子 agent 正常工作中：`,
     `  不做任何操作`,
     ``,
     `### 绝对禁止`,
-    `- 只能 kill PID=${stalledPid}（卡住的子 agent），绝对不能 kill PID=${driverPid}（主 driver）`,
+    `- 只能 kill PID=${stalledPid}（子 agent），绝对不能 kill PID=${driverPid}（主 driver）`,
     `- 不能 kill 任何其他进程`,
     `- 如果 ${stalledPid} 进程已不存在，不需要做任何操作`,
     ``,
     `### 输出`,
-    `完成后输出你的诊断和操作结果：`,
+    `完成后输出：`,
     `<WATCHDOG_RESULT>`,
     `  diagnosis: 一句话诊断`,
     `  action: kill / no-action`,

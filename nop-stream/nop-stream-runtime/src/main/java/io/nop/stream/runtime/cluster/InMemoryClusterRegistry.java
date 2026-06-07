@@ -29,6 +29,15 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
     private final Map<String, NodeInfo> nodes = new ConcurrentHashMap<>();
     private final Map<String, Long> leaseTimestamps = new ConcurrentHashMap<>();
     private final Map<String, TaskAssignment> taskAssignments = new ConcurrentHashMap<>();
+    private final long leaseTtlMs;
+
+    public InMemoryClusterRegistry() {
+        this(LEASE_TIMEOUT_MS);
+    }
+
+    public InMemoryClusterRegistry(long leaseTtlMs) {
+        this.leaseTtlMs = leaseTtlMs;
+    }
 
     @Override
     public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {
@@ -52,11 +61,18 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public boolean renewLease(String nodeId, long leaseTimeoutMs) {
-        if (!nodes.containsKey(nodeId)) {
-            return false;
+        synchronized (nodes) {
+            if (!nodes.containsKey(nodeId)) {
+                return false;
+            }
+            long now = System.currentTimeMillis();
+            leaseTimestamps.put(nodeId, now);
+            NodeInfo info = nodes.get(nodeId);
+            if (info != null) {
+                info.setLastHeartbeatAt(now);
+            }
+            return true;
         }
-        leaseTimestamps.put(nodeId, System.currentTimeMillis());
-        return true;
     }
 
     @Override
@@ -65,7 +81,23 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
         if (timestamp == null) {
             return null;
         }
-        return new LeaseInfo(nodeId, timestamp, timestamp + LEASE_TIMEOUT_MS, true);
+        long now = System.currentTimeMillis();
+        boolean active = (now - timestamp) < leaseTtlMs;
+        return new LeaseInfo(nodeId, timestamp, timestamp + leaseTtlMs, active);
+    }
+
+    public void evictExpiredNodes() {
+        long now = System.currentTimeMillis();
+        synchronized (nodes) {
+            for (Map.Entry<String, Long> entry : leaseTimestamps.entrySet()) {
+                if ((now - entry.getValue()) >= leaseTtlMs) {
+                    String nodeId = entry.getKey();
+                    nodes.remove(nodeId);
+                    leaseTimestamps.remove(nodeId);
+                    LOG.debug("Evicted expired node {}", nodeId);
+                }
+            }
+        }
     }
 
     @Override
@@ -74,7 +106,7 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
         List<NodeInfo> active = new ArrayList<>();
         for (Map.Entry<String, NodeInfo> entry : nodes.entrySet()) {
             Long leaseTime = leaseTimestamps.get(entry.getKey());
-            if (leaseTime != null && (now - leaseTime) < LEASE_TIMEOUT_MS) {
+            if (leaseTime != null && (now - leaseTime) < leaseTtlMs) {
                 active.add(entry.getValue());
             }
         }

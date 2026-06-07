@@ -32,10 +32,10 @@ Each subsystem directory contains architecture decisions and usage contracts for
 
 | Directory | Subsystem | README | Status |
 |-----------|-----------|--------|--------|
-| `nop-ai-agent/` | AI Agent DSL + Engine | [README](nop-ai-agent/README.md) | active — 4-layer structure (DSL / Engine / Semantics / Strategy) |
-| `nop-job/` | Job Scheduling | *(not yet created)* | active — invoker routing, block strategy, metrics |
-| `nop-code/` | Code Indexing & Semantic Analysis | [README](nop-code/README.md) | active — multi-language index, CRG feature gap, query API, semantic edges |
-| `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — architecture, core engine, CEP, Flink/SeaTunnel comparison |
+| `nop-ai-agent/` | AI Agent DSL + Engine | [README](nop-ai-agent/README.md) | active — 8-layer structure (Vision / Architecture Baseline / Execution Model / DSL / Engine / Semantics / Strategy / Vision) |
+| `nop-job/` | Job Scheduling | [README](nop-job/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Execution Strategy / Observability / Cluster) |
+| `nop-code/` | Code Indexing & Semantic Analysis | [README](nop-code/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Query / Analysis / Integration) |
+| `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — AGE 8-layer structure (Vision / Architecture Baseline / Core Model / Graph & Execution / Checkpoint / State & Time / Integration / Reference) |
 | `nop-nosql/` | NoSQL Data Access | [README](nop-nosql/README.md) | active — business-semantic NoSQL abstraction, Redis driver comparison |
 | `crud/` | CRUD Relation Write Mode | *(not yet created)* | active |
 | `crud/crud-api-codegen-design.md` | CRUD API 代码生成 | — | 草案 — ICrudApi 泛型接口 + codegen 模板 + Input/Output 决策 |

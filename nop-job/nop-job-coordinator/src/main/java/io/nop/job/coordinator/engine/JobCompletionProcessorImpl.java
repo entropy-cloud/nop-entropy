@@ -13,6 +13,7 @@ import io.nop.job.api.retry.JobFireFailedEvent;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.entity.NopJobFire;
@@ -85,11 +86,19 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
 
     @InjectValue("@cfg:nop.job.coordinator.completion.scan-interval-ms|5000")
     public void setScanIntervalMs(int scanIntervalMs) {
+        if (scanIntervalMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.completion.scan-interval-ms must be >= 1000, got " + scanIntervalMs);
+        }
         this.scanIntervalMs = scanIntervalMs;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.completion.batch-size|100")
     public void setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.completion.batch-size must be >= 1, got " + batchSize);
+        }
         this.batchSize = batchSize;
     }
 
@@ -134,8 +143,12 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, partitions);
             int completedCount = 0;
             for (NopJobFire fire : fires) {
-                if (tryCompleteFireAndGetStatus(fire) != null) {
-                    completedCount++;
+                try {
+                    if (tryCompleteFireAndGetStatus(fire) != null) {
+                        completedCount++;
+                    }
+                } catch (Exception e) {
+                    LOG.warn("nop.job.completion.fire-complete-failed:fireId={}", fire.getJobFireId(), e);
                 }
             }
             if (completedCount > 0) {
@@ -157,10 +170,24 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             return null;
         }
 
-        NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+        NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
+        if (schedule == null) {
+            LOG.warn("nop.job.completion.schedule-deleted:fireId={}", fire.getJobFireId());
+            fireStore.failFireWithoutSchedule(fire.getJobFireId(),
+                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
+                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
+            return _NopJobCoreConstants.FIRE_STATUS_FAILED;
+        }
+
+        if (schedule.getScheduleStatus() != null
+                && schedule.getScheduleStatus() != _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED) {
+            LOG.debug("nop.job.completion.schedule-not-enabled:fireId={},status={}",
+                    fire.getJobFireId(), schedule.getScheduleStatus());
+        }
+
         Timestamp fireStartTime = earliestStartTime(tasks, fire.getStartTime());
         Timestamp fireEndTime = latestEndTime(tasks, new Timestamp(scheduleStore.getCurrentTime()));
-        FireCompletionDecision completionDecision = resolveCompletionDecision(tasks);
+        FireCompletionDecision completionDecision = resolveCompletionDecision(tasks, schedule);
 
         fire.setFireStatus(finalFireStatus);
         fire.setStartTime(fireStartTime);
@@ -223,10 +250,7 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
                         fire.getJobFireId(), fire.getJobScheduleId(), retryPolicyId,
                         schedule.getNamespaceId(), schedule.getGroupId(), schedule.getJobName(),
                         fire.getExecutorKind(), fire.getErrorCode(), fire.getErrorMessage());
-                String retryRecordId = retryBridge.onFireFailed(event);
-                if (retryRecordId != null) {
-                    fire.setRetryRecordId(retryRecordId);
-                }
+                retryBridge.onFireFailed(event);
             } catch (Exception e) {
                 LOG.error("nop.job.retry.bridge-failed:fireId={}", fire.getJobFireId(), e);
             }
@@ -254,7 +278,15 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         }
     }
 
-    private FireCompletionDecision resolveCompletionDecision(List<NopJobTask> tasks) {
+    private boolean isAllowResultCompletion(NopJobSchedule schedule) {
+        if (schedule == null) return false;
+        Map<String, Object> params = schedule.getJobParamsComponent().get_jsonMap();
+        if (params == null) return false;
+        return Boolean.TRUE.equals(params.get("allowResultCompletion"));
+    }
+
+    private FireCompletionDecision resolveCompletionDecision(List<NopJobTask> tasks, NopJobSchedule schedule) {
+        boolean allowResultCompletion = isAllowResultCompletion(schedule);
         Timestamp nextScheduleTime = null;
         for (NopJobTask task : tasks) {
             String resultPayload = task.getResultPayload();
@@ -262,8 +294,15 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
                 continue;
             }
 
-            Map<String, Object> payload = JsonTool.parseMap(resultPayload);
-            if (Boolean.TRUE.equals(payload.get("completed"))) {
+            Map<String, Object> payload;
+            try {
+                payload = JsonTool.parseMap(resultPayload);
+            } catch (Exception e) {
+                LOG.warn("nop.job.completion.malformed-result-payload:taskId={}", task.getJobTaskId(), e);
+                continue;
+            }
+
+            if (allowResultCompletion && Boolean.TRUE.equals(payload.get("completed"))) {
                 return new FireCompletionDecision(true, null);
             }
 
@@ -283,22 +322,27 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
      * For broadcast fires, a single CANCELED/FAILED/TIMEOUT shard determines
      * the fire's aggregate status. Operators should inspect individual task
      * statuses for partial success details.
-     * SUSPICIOUS tasks are treated as pending (fire stays RUNNING) and will
-     * be escalated to TIMEOUT by the timeout checker.
+     * SUSPICIOUS tasks are treated as pending only while active tasks remain.
+     * Once no WAITING/CLAIMED/RUNNING tasks exist, SUSPICIOUS is treated as
+     * TIMEOUT (worker unreachable).
      */
     private Integer resolveFinalFireStatus(List<NopJobTask> tasks) {
         boolean hasPendingTask = false;
         boolean hasTimeoutTask = false;
         boolean hasFailedTask = false;
         boolean hasCanceledTask = false;
+        boolean hasSuspiciousTask = false;
 
         for (NopJobTask task : tasks) {
             Integer taskStatus = task.getTaskStatus();
             if (taskStatus == null || taskStatus == _NopJobCoreConstants.TASK_STATUS_WAITING
                     || taskStatus == _NopJobCoreConstants.TASK_STATUS_CLAIMED
-                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING
-                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING) {
                 hasPendingTask = true;
+                continue;
+            }
+            if (taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                hasSuspiciousTask = true;
                 continue;
             }
             if (taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT) {
@@ -313,6 +357,11 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         if (hasPendingTask) {
             return null;
         }
+
+        if (hasSuspiciousTask) {
+            hasTimeoutTask = true;
+        }
+
         if (hasTimeoutTask) {
             return _NopJobCoreConstants.FIRE_STATUS_TIMEOUT;
         }

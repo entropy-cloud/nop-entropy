@@ -20,6 +20,7 @@ import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeRelationType;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
+import io.nop.code.core.model.EdgeProvenance;
 /**
  * Python文件分析器
  * 使用bonede tree-sitter解析Python源代码，提取符号信息、继承关系等
@@ -246,7 +247,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
         int defIndex = -1;
         for (int i = 0; i < parent.getChildCount(); i++) {
             TSNode child = parent.getChild(i);
-            if (child != null && child.equals(defNode)) {
+            if (child != null && TSNode.eq(child, defNode)) {
                 defIndex = i;
                 break;
             }
@@ -260,6 +261,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
                 CodeAnnotationUsage usage = new CodeAnnotationUsage();
                 usage.setId(UUID.randomUUID().toString());
                 usage.setAnnotatedSymbolId(symbol.getId());
+                usage.setProvenance(EdgeProvenance.AST_EXTRACTION);
                 usage.setLine(sibling.getStartPoint().getRow() + 1);
                 usage.setColumn(sibling.getStartPoint().getColumn());
 
@@ -293,6 +295,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
                 inheritance.setSubTypeId(classSymbol.getId());
                 inheritance.setSuperTypeQualifiedName(nodeText(child, source));
                 inheritance.setRelationType(CodeRelationType.EXTENDS);
+                inheritance.setProvenance(EdgeProvenance.AST_EXTRACTION);
                 result.getInheritances().add(inheritance);
             }
         }
@@ -348,6 +351,26 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
                 // Skip standalone decorators; they're handled by processDecoratorsOnDefinition
             } else if ("expression_statement".equals(type)) {
                 walkExpressionStatement(child, source, modulePrefix, parentSymbol, result);
+            } else if ("if_statement".equals(type) || "elif_clause".equals(type) || "else_clause".equals(type)) {
+                walkControlFlowBlocks(child, source, modulePrefix, parentSymbol, result);
+            } else if ("for_statement".equals(type) || "while_statement".equals(type)) {
+                walkControlFlowBlocks(child, source, modulePrefix, parentSymbol, result);
+            } else if ("with_statement".equals(type) || "try_statement".equals(type)) {
+                walkControlFlowBlocks(child, source, modulePrefix, parentSymbol, result);
+            } else if ("except_clause".equals(type) || "finally_clause".equals(type)) {
+                walkControlFlowBlocks(child, source, modulePrefix, parentSymbol, result);
+            }
+        }
+    }
+
+    private void walkControlFlowBlocks(TSNode node, String source, String modulePrefix,
+                                       CodeSymbol parentSymbol, CodeFileAnalysisResult result) {
+        for (int i = 0; i < node.getChildCount(); i++) {
+            TSNode child = node.getChild(i);
+            if (child == null) continue;
+            String type = child.getType();
+            if ("block".equals(type)) {
+                walkBlockChildren(child, source, modulePrefix, parentSymbol, result);
             }
         }
     }
@@ -392,6 +415,7 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
             CodeMethodCall call = new CodeMethodCall();
             call.setId(UUID.randomUUID().toString());
             call.setCallerId(callerSymbol.getId());
+            call.setProvenance(EdgeProvenance.AST_EXTRACTION);
             call.setLine(node.getStartPoint().getRow() + 1);
             call.setColumn(node.getStartPoint().getColumn());
 
@@ -470,9 +494,15 @@ public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
         if (module.endsWith(".py")) {
             module = module.substring(0, module.length() - 3);
         }
+        if (module.endsWith("/__init__")) {
+            module = module.substring(0, module.length() - "/__init__".length());
+        }
         module = module.replace('/', '.');
         while (module.startsWith(".")) {
             module = module.substring(1);
+        }
+        while (module.endsWith(".")) {
+            module = module.substring(0, module.length() - 1);
         }
         return module;
     }

@@ -77,10 +77,19 @@ src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml
 2. 直接修改 `_app.orm.xml`、`_service.beans.xml`、`_*.xbiz`。
 3. 新建 Delta 文件却忘了 `x:extends="super"`。
 4. Delta 路径和原文件路径不一致。
+5. 不理解合并顺序导致改了 Delta 但被 `x:gen-extends` 或 `x:post-extends` 的输出覆盖——遇到这种情况先看 `_dump` 中的属性来源标注（见 `./debugging-and-diagnostics.md`）。
+
+## 调试 Delta 是否生效
+
+1. 启动时开启 `nop.debug=true`。
+2. 查看 `_dump/{appName}/...` 下对应模型的最终文件。
+3. `_dump` 输出通过 XML 注释（`<!--LOC:...-->`）记录每个节点的来源源码位置——如果某个属性值不是你期望的，看 LOC 注释中的路径就知道是被哪一层覆盖的。
+4. 也可以在模型根节点设置 `x:dump="true"` 打印合并过程的中间结果。
 
 ## 相关文档
 
+- `./xdef-and-xdsl.md` — x-extends 合并算法、`x:gen-extends` / `x:post-extends` 语义
+- `./debugging-and-diagnostics.md` — `_dump` 输出和属性来源追踪
 - `./model-first-development.md`
-- `./xdef-and-xdsl.md`
 - `../03-runbooks/prefer-delta-over-direct-modification.md`
 - `../04-reference/source-anchors.md`

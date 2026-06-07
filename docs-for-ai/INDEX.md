@@ -116,6 +116,7 @@
 | 在测试中补 mock bean | `03-runbooks/add-test-mock-bean.md` |
 | 查询常用 Java helper | `04-reference/common-java-helpers.md` |
 | 查询安全 API | `04-reference/safe-api-reference.md` |
+| 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
 | 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
 | 维护 AI 文档 | `90-maintenance/maintenance-rules.md` |
 

@@ -1,6 +1,7 @@
 package io.nop.code.core.semantic;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.code.core.model.EdgeProvenance;
 /**
  * A semantic edge between two code symbols.
  * Represents relationships discovered through semantic analysis (not just AST extraction).
@@ -18,6 +19,7 @@ public class CodeSemanticEdge {
     private String rationale;
     private String extractorId;
     private String extData;
+    private EdgeProvenance provenance;
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -51,4 +53,7 @@ public class CodeSemanticEdge {
 
     public String getExtData() { return extData; }
     public void setExtData(String extData) { this.extData = extData; }
+
+    public EdgeProvenance getProvenance() { return provenance; }
+    public void setProvenance(EdgeProvenance provenance) { this.provenance = provenance; }
 }

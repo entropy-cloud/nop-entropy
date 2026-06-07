@@ -1,0 +1,26 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 边来源
+locale: zh-CN
+valueType: string
+description: 关系边的数据来源方式
+options:
+
+  - value: AST_EXTRACTION
+    label: AST提取
+    description: 通过AST解析直接提取的关系
+
+  - value: SYMBOL_SOLVER
+    label: 符号解析
+    description: 通过符号解析器（Symbol Solver）推断的关系
+
+  - value: HEURISTIC
+    label: 启发式推断
+    description: 通过启发式规则（如接口实现、事件监听）推断的关系
+
+  - value: FRAMEWORK_INFERENCE
+    label: 框架推断
+    description: 通过框架约定（如Spring注解模式）推断的关系
+
+  - value: MANUAL
+    label: 手动标记
+    description: 由用户手动添加的关系

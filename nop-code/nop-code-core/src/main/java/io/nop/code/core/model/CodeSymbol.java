@@ -1,11 +1,20 @@
 package io.nop.code.core.model;
 
 import io.nop.api.core.annotations.data.DataBean;
-/**
- * 代码符号数据模型
- */
+
 @DataBean
 public class CodeSymbol {
+    public static final int MODIFIER_ABSTRACT = 1 << 0;
+    public static final int MODIFIER_FINAL = 1 << 1;
+    public static final int MODIFIER_STATIC = 1 << 2;
+    public static final int MODIFIER_SYNCHRONIZED = 1 << 3;
+    public static final int MODIFIER_NATIVE = 1 << 4;
+    public static final int MODIFIER_VOLATILE = 1 << 5;
+    public static final int MODIFIER_TRANSIENT = 1 << 6;
+    public static final int MODIFIER_ASYNC = 1 << 7;
+    public static final int MODIFIER_READONLY = 1 << 8;
+    public static final int MODIFIER_EXPORTED = 1 << 9;
+
     private String id;
     private CodeSymbolKind kind;
     private String name;
@@ -20,17 +29,15 @@ public class CodeSymbol {
     private String parentId;
     private String declaringSymbolId;
     private String superClassName;
-    private boolean abstractFlag;
-    private boolean finalFlag;
+    private int modifiers;
     private String signature;
     private String returnType;
-    private boolean staticFlag;
-    private boolean asyncFlag;
     private String fieldType;
-    private boolean readonlyFlag;
     private String extData;
     private String rawReturnType;
     private String rawFieldType;
+    private String filePath;
+    private String language;
 
     public String getId() {
         return id;
@@ -144,20 +151,104 @@ public class CodeSymbol {
         this.superClassName = superClassName;
     }
 
-    public boolean isAbstractFlag() {
-        return abstractFlag;
+    public int getModifiers() {
+        return modifiers;
     }
 
-    public void setAbstractFlag(boolean abstractFlag) {
-        this.abstractFlag = abstractFlag;
+    public void setModifiers(int modifiers) {
+        this.modifiers = modifiers;
+    }
+
+    public boolean hasModifier(int bit) {
+        return (modifiers & bit) != 0;
+    }
+
+    public void setModifier(int bit, boolean value) {
+        if (value) {
+            modifiers |= bit;
+        } else {
+            modifiers &= ~bit;
+        }
+    }
+
+    public boolean isAbstractFlag() {
+        return hasModifier(MODIFIER_ABSTRACT);
+    }
+
+    public void setAbstractFlag(boolean value) {
+        setModifier(MODIFIER_ABSTRACT, value);
     }
 
     public boolean isFinalFlag() {
-        return finalFlag;
+        return hasModifier(MODIFIER_FINAL);
     }
 
-    public void setFinalFlag(boolean finalFlag) {
-        this.finalFlag = finalFlag;
+    public void setFinalFlag(boolean value) {
+        setModifier(MODIFIER_FINAL, value);
+    }
+
+    public boolean isStaticFlag() {
+        return hasModifier(MODIFIER_STATIC);
+    }
+
+    public void setStaticFlag(boolean value) {
+        setModifier(MODIFIER_STATIC, value);
+    }
+
+    public boolean isSynchronizedFlag() {
+        return hasModifier(MODIFIER_SYNCHRONIZED);
+    }
+
+    public void setSynchronizedFlag(boolean value) {
+        setModifier(MODIFIER_SYNCHRONIZED, value);
+    }
+
+    public boolean isNativeFlag() {
+        return hasModifier(MODIFIER_NATIVE);
+    }
+
+    public void setNativeFlag(boolean value) {
+        setModifier(MODIFIER_NATIVE, value);
+    }
+
+    public boolean isVolatileFlag() {
+        return hasModifier(MODIFIER_VOLATILE);
+    }
+
+    public void setVolatileFlag(boolean value) {
+        setModifier(MODIFIER_VOLATILE, value);
+    }
+
+    public boolean isTransientFlag() {
+        return hasModifier(MODIFIER_TRANSIENT);
+    }
+
+    public void setTransientFlag(boolean value) {
+        setModifier(MODIFIER_TRANSIENT, value);
+    }
+
+    public boolean isAsyncFlag() {
+        return hasModifier(MODIFIER_ASYNC);
+    }
+
+    public void setAsyncFlag(boolean value) {
+        setModifier(MODIFIER_ASYNC, value);
+    }
+
+    public boolean isReadonlyFlag() {
+        return hasModifier(MODIFIER_READONLY);
+    }
+
+    public void setReadonlyFlag(boolean value) {
+        setModifier(MODIFIER_READONLY, value);
+    }
+
+    public boolean isExportedFlag() {
+        return hasModifier(MODIFIER_EXPORTED);
+    }
+
+    public void setExportedFlag(boolean value) {
+        setModifier(MODIFIER_EXPORTED, value);
     }
 
     public String getSignature() {
@@ -176,36 +267,12 @@ public class CodeSymbol {
         this.returnType = returnType;
     }
 
-    public boolean isStaticFlag() {
-        return staticFlag;
-    }
-
-    public void setStaticFlag(boolean staticFlag) {
-        this.staticFlag = staticFlag;
-    }
-
-    public boolean isAsyncFlag() {
-        return asyncFlag;
-    }
-
-    public void setAsyncFlag(boolean asyncFlag) {
-        this.asyncFlag = asyncFlag;
-    }
-
     public String getFieldType() {
         return fieldType;
     }
 
     public void setFieldType(String fieldType) {
         this.fieldType = fieldType;
-    }
-
-    public boolean isReadonlyFlag() {
-        return readonlyFlag;
-    }
-
-    public void setReadonlyFlag(boolean readonlyFlag) {
-        this.readonlyFlag = readonlyFlag;
     }
 
     public String getExtData() {
@@ -230,5 +297,21 @@ public class CodeSymbol {
 
     public void setRawFieldType(String rawFieldType) {
         this.rawFieldType = rawFieldType;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 }

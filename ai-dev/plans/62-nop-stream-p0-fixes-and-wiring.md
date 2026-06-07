@@ -114,12 +114,12 @@ Exit Criteria:
 - [x] 所有 P0 缺陷已修复（JobGraphGenerator 共享实例 bug）
 - [x] 所有 in-scope P1 接线问题已修复
 - [x] `./mvnw test -pl nop-stream -am -T 1C` 通过
-- [ ] `./mvnw compile -pl nop-stream -am -T 1C` 通过
+- [x] `./mvnw compile -pl nop-stream -am -T 1C` 通过
 - [x] 不存在被静默降级到 deferred 的 in-scope live defect
 - [x] No owner-doc update required（无 API 变更）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：组件间调用链在运行时确实连通，无空方法体/静默跳过
-- [ ] `ai-dev/logs/` 已更新
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：组件间调用链在运行时确实连通，无空方法体/静默跳过
+- [x] `ai-dev/logs/` 已更新
 
 ## Deferred But Adjudicated
 

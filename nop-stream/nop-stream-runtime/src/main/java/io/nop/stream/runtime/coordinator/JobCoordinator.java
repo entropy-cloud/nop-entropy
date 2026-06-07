@@ -271,12 +271,17 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         String token = fencingToken.get();
 
+        Set<String> sourceNodeIds = computeSourceNodeIds();
+
         if (!taskRpcServices.isEmpty()) {
-            for (Map.Entry<String, IStreamTaskRpcService> entry : taskRpcServices.entrySet()) {
-                try {
-                    entry.getValue().triggerCheckpoint(barrier, token);
-                } catch (Exception e) {
-                    LOG.error("Failed to send checkpoint signal to node {}", entry.getKey(), e);
+            for (String nodeId : sourceNodeIds) {
+                IStreamTaskRpcService rpc = taskRpcServices.get(nodeId);
+                if (rpc != null) {
+                    try {
+                        rpc.triggerCheckpoint(barrier, token);
+                    } catch (Exception e) {
+                        LOG.error("Failed to send checkpoint signal to source node {}", nodeId, e);
+                    }
                 }
             }
         } else {
@@ -579,6 +584,39 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 LOG.error("Failed to send barrier signal to node {}", entry.getKey(), e);
             }
         }
+    }
+
+    private Set<String> computeSourceNodeIds() {
+        Set<String> sourceVertexIds = computeSourceVertexIds();
+        Set<String> nodeIds = new HashSet<>();
+        for (String vertexId : sourceVertexIds) {
+            List<TaskAssignment> assignments = taskAssignmentMap.get(vertexId);
+            if (assignments != null) {
+                for (TaskAssignment assignment : assignments) {
+                    nodeIds.add(assignment.getNodeId());
+                }
+            }
+        }
+        return nodeIds;
+    }
+
+    private Set<String> computeSourceVertexIds() {
+        if (deploymentPlan == null || deploymentPlan.getPartitionedPlan() == null) {
+            return Collections.emptySet();
+        }
+
+        io.nop.stream.core.execution.plan.PartitionedPlan plan = deploymentPlan.getPartitionedPlan();
+        Set<String> vertexIds = plan.getVertexPlans().keySet();
+        Set<String> targetVertexIds = new HashSet<>();
+        for (io.nop.stream.core.execution.plan.PartitionedPlan.EdgePlan ep : plan.getEdgePlans()) {
+            if (ep.getTargetVertexId() != null) {
+                targetVertexIds.add(ep.getTargetVertexId());
+            }
+        }
+
+        Set<String> sourceVertexIds = new HashSet<>(vertexIds);
+        sourceVertexIds.removeAll(targetVertexIds);
+        return sourceVertexIds;
     }
 
 }

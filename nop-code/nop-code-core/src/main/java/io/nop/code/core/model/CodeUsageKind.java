@@ -12,5 +12,7 @@ public enum CodeUsageKind {
     IMPLEMENTS,
     ANNOTATES,
     IMPORTS,
-    OVERRIDES
+    OVERRIDES,
+    TYPE_OF,
+    INSTANTIATES
 }

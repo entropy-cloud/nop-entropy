@@ -212,13 +212,20 @@ public class SourceEnumerator {
         for (Map.Entry<String, Integer> entry : assignedSplits.entrySet()) {
             assignedMap.put(entry.getKey(), String.valueOf(entry.getValue()));
         }
+        Map<String, Map<String, Object>> splitMetaMap = new LinkedHashMap<>();
+        for (Map.Entry<String, SourceSplit> entry : splitMetadata.entrySet()) {
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("splitId", entry.getValue().getSplitId());
+            splitMetaMap.put(entry.getKey(), meta);
+        }
         return new SourceEnumeratorState(
                 new ArrayList<>(discoveredSplits),
                 new ArrayList<>(unassignedSplits),
                 assignedMap,
                 new LinkedHashSet<>(finishedSplits),
                 new LinkedHashSet<>(pendingAcknowledgements),
-                discoveryCursor
+                discoveryCursor,
+                splitMetaMap
         );
     }
 
@@ -252,6 +259,13 @@ public class SourceEnumerator {
         }
         if (state.getPendingAcknowledgements() != null) {
             pendingAcknowledgements.addAll(state.getPendingAcknowledgements());
+        }
+        if (state.getSplitMetadataMap() != null) {
+            for (Map.Entry<String, Map<String, Object>> entry : state.getSplitMetadataMap().entrySet()) {
+                Map<String, Object> meta = entry.getValue();
+                String splitId = meta.get("splitId") instanceof String ? (String) meta.get("splitId") : entry.getKey();
+                splitMetadata.put(entry.getKey(), new SourceSplit(splitId));
+            }
         }
         this.discoveryCursor = state.getDiscoveryCursor();
 

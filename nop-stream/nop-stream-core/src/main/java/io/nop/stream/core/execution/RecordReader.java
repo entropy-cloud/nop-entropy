@@ -42,7 +42,7 @@ public class RecordReader<T> {
             return Optional.ofNullable(element);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return Optional.empty();
+            throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, e);
         }
     }
 

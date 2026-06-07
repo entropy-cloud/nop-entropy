@@ -1,10 +1,19 @@
 package io.nop.code.service.impl;
 
-import java.util.*;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,11 +37,17 @@ import io.nop.code.graph.export.GraphExporter;
 import io.nop.code.graph.impact.ImpactAnalyzer;
 import io.nop.code.graph.knowledge.KnowledgeGapAnalyzer;
 import io.nop.code.graph.knowledge.KnowledgeGapResult;
-import io.nop.code.service.api.dto.*;
+import io.nop.code.api.dto.*;
 import io.nop.code.service.util.CodeSymbolConverter;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 class CodeGraphService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CodeGraphService.class);
+    private static final int MAX_NODES_FOR_COMMUNITY_DETECTION = 10000;
+    private static final int BATCH_QUERY_LIMIT = 10000;
 
     private final IDaoProvider daoProvider;
     private final CodeCacheManager cacheManager;
@@ -115,6 +130,16 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
+        if (symbolTable.size() > MAX_NODES_FOR_COMMUNITY_DETECTION) {
+            LOG.warn("Graph too large for critical node analysis ({} > {}), skipping betweenness centrality",
+                    symbolTable.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
+            CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
+            dto.setTotalNodes(symbolTable.size());
+            dto.setTopN(topN);
+            dto.setHubNodes(Collections.emptyList());
+            dto.setBridgeNodes(Collections.emptyList());
+            return dto;
+        }
         CriticalNodeResult result = new CriticalNodeAnalyzer().analyze(callGraph, symbolTable, topN);
         CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
         dto.setTotalNodes(result.getTotalNodes());
@@ -160,6 +185,11 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable baselineSymbolTable = cacheManager.getOrRebuildSymbolTable(baselineIndexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
+        if (baselineSymbolTable.size() > MAX_NODES_FOR_COMMUNITY_DETECTION) {
+            LOG.warn("Baseline graph too large for community detection diff ({} > {}), returning empty diff",
+                    baselineSymbolTable.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
+            return new GraphDiffDTO();
+        }
         CommunityDetector.CommunityDetectionResult baselineCommunities =
                 new CommunityDetector().detectCommunities(baselineCallGraph, baselineSymbolTable);
         GraphSnapshot baseline = GraphDiffer.buildSnapshot(baselineCallGraph, baselineCommunities);
@@ -216,15 +246,25 @@ class CodeGraphService {
             }
 
             if (!batchIds.isEmpty()) {
-                QueryBean q = new QueryBean();
-                q.addFilter(FilterBeans.eq("indexId", indexId));
-                q.addFilter(FilterBeans.or(
-                        FilterBeans.in("subTypeId", new ArrayList<>(batchIds)),
-                        FilterBeans.in("superTypeId", new ArrayList<>(batchQns))
-                ));
-                q.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
-                for (NopCodeInheritance inh : inhDao.findAllByQuery(q)) {
-                    result.add(entityToInheritance(inh));
+                int batchSize = 1000;
+                List<String> idList = new ArrayList<>(batchIds);
+                List<String> qnList = new ArrayList<>(batchQns);
+                List<NopCodeInheritance> batch = new ArrayList<>();
+                for (int from = 0; from < idList.size(); from += batchSize) {
+                    int to = Math.min(from + batchSize, idList.size());
+                    List<String> subList = idList.subList(from, to);
+                    List<String> qnSubList = qnList.subList(from, Math.min(to, qnList.size()));
+                    QueryBean q = new QueryBean();
+                    q.addFilter(FilterBeans.eq("indexId", indexId));
+                    q.addFilter(FilterBeans.or(
+                            FilterBeans.in("subTypeId", subList),
+                            FilterBeans.in("superTypeId", qnSubList)
+                    ));
+                    q.setLimit(BATCH_QUERY_LIMIT);
+                    batch.addAll(inhDao.findAllByQuery(q));
+                }
+                for (NopCodeInheritance inh : batch) {
+                    result.add(entityToInheritance(inh, table));
                     String subId = inh.getSubTypeId();
                     String superQn = inh.getSuperTypeId();
                     CodeSymbol subSym = table.getById(subId);
@@ -350,11 +390,19 @@ class CodeGraphService {
         return node;
     }
 
-    private CodeInheritance entityToInheritance(NopCodeInheritance entity) {
+    private CodeInheritance entityToInheritance(NopCodeInheritance entity, SymbolTable table) {
         CodeInheritance inh = new CodeInheritance();
         inh.setId(entity.getId());
         inh.setSubTypeId(entity.getSubTypeId());
-        inh.setSuperTypeQualifiedName(entity.getSuperTypeId());
+        String superTypeId = entity.getSuperTypeId();
+        if (superTypeId != null) {
+            CodeSymbol superSym = table.getById(superTypeId);
+            if (superSym != null) {
+                inh.setSuperTypeQualifiedName(superSym.getQualifiedName());
+            } else {
+                inh.setSuperTypeQualifiedName(superTypeId);
+            }
+        }
         inh.setRelationType(entity.getRelationType() != null
                 ? CodeRelationType.valueOf(entity.getRelationType()) : null);
         return inh;
@@ -504,11 +552,7 @@ class CodeGraphService {
 
     DepGraphDTO getDepGraph(String indexId, boolean includeExternal) {
         if (daoProvider == null) return new DepGraphDTO();
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
-        // Full dependency list needed for graph building
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         List<DepEdgeDTO> edges = new ArrayList<>();
         Map<String, int[]> degreeMap = new LinkedHashMap<>();
@@ -551,10 +595,7 @@ class CodeGraphService {
     List<String> findDependentFiles(String indexId, String filePath) {
         if (daoProvider == null || filePath == null) return Collections.emptyList();
 
-        IEntityDao<NopCodeDependency> depDao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean depQuery = new QueryBean();
-        depQuery.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> allDeps = depDao.findAllByQuery(depQuery);
+        List<NopCodeDependency> allDeps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<String>> targetToSources = new HashMap<>();
         for (NopCodeDependency dep : allDeps) {
@@ -591,10 +632,7 @@ class CodeGraphService {
     }
 
     private Map<String, List<DepEdgeDTO>> buildForwardAdjacency(String indexId) {
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<DepEdgeDTO>> adj = new HashMap<>();
         for (NopCodeDependency dep : deps) {
@@ -610,10 +648,7 @@ class CodeGraphService {
     }
 
     private Map<String, List<DepEdgeDTO>> buildReverseAdjacency(String indexId) {
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<DepEdgeDTO>> adj = new HashMap<>();
         for (NopCodeDependency dep : deps) {
@@ -629,10 +664,7 @@ class CodeGraphService {
     }
 
     private Map<String, List<String>> buildForwardStringAdjacency(String indexId) {
-        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("indexId", indexId));
-        List<NopCodeDependency> deps = dao.findAllByQuery(q);
+        List<NopCodeDependency> deps = cacheManager.getOrRebuildDependencies(indexId, daoProvider);
 
         Map<String, List<String>> adj = new HashMap<>();
         for (NopCodeDependency dep : deps) {
@@ -701,42 +733,59 @@ class CodeGraphService {
             allNodes.addAll(targets);
         }
 
-        for (String node : allNodes) {
-            if (!nodeIndex.containsKey(node)) {
-                tarjanDFS(node, adj, index, nodeIndex, lowLink, onStack, stack, result);
+        for (String startNode : allNodes) {
+            if (nodeIndex.containsKey(startNode)) continue;
+
+            Deque<Object[]> callStack = new ArrayDeque<>();
+            callStack.push(new Object[]{startNode, 0, false});
+
+            while (!callStack.isEmpty()) {
+                Object[] frame = callStack.pop();
+                String v = (String) frame[0];
+                int edgeIdx = (Integer) frame[1];
+                boolean returning = (Boolean) frame[2];
+
+                if (!returning && !nodeIndex.containsKey(v)) {
+                    nodeIndex.put(v, index[0]);
+                    lowLink.put(v, index[0]);
+                    index[0]++;
+                    stack.push(v);
+                    onStack.add(v);
+                }
+
+                List<String> neighbors = adj.getOrDefault(v, Collections.emptyList());
+                boolean pushedChild = false;
+                for (int i = edgeIdx; i < neighbors.size(); i++) {
+                    String w = neighbors.get(i);
+                    if (!nodeIndex.containsKey(w)) {
+                        callStack.push(new Object[]{v, i + 1, true});
+                        callStack.push(new Object[]{w, 0, false});
+                        pushedChild = true;
+                        break;
+                    } else if (onStack.contains(w)) {
+                        lowLink.put(v, Math.min(lowLink.get(v), nodeIndex.get(w)));
+                    }
+                }
+
+                if (!pushedChild && returning) {
+                    if (edgeIdx > 0) {
+                        String w = neighbors.get(edgeIdx - 1);
+                        lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
+                    }
+
+                    if (lowLink.get(v).equals(nodeIndex.get(v))) {
+                        List<String> scc = new ArrayList<>();
+                        String w;
+                        do {
+                            w = stack.pop();
+                            onStack.remove(w);
+                            scc.add(w);
+                        } while (!w.equals(v));
+                        result.add(scc);
+                    }
+                }
             }
         }
         return result;
-    }
-
-    private void tarjanDFS(String v, Map<String, List<String>> adj, int[] index,
-                           Map<String, Integer> nodeIndex, Map<String, Integer> lowLink,
-                           Set<String> onStack, Deque<String> stack,
-                           List<List<String>> result) {
-        nodeIndex.put(v, index[0]);
-        lowLink.put(v, index[0]);
-        index[0]++;
-        stack.push(v);
-        onStack.add(v);
-
-        for (String w : adj.getOrDefault(v, Collections.emptyList())) {
-            if (!nodeIndex.containsKey(w)) {
-                tarjanDFS(w, adj, index, nodeIndex, lowLink, onStack, stack, result);
-                lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
-            } else if (onStack.contains(w)) {
-                lowLink.put(v, Math.min(lowLink.get(v), nodeIndex.get(w)));
-            }
-        }
-
-        if (lowLink.get(v).equals(nodeIndex.get(v))) {
-            List<String> scc = new ArrayList<>();
-            String w;
-            do {
-                w = stack.pop();
-                onStack.remove(w);
-                scc.add(w);
-            } while (!w.equals(v));
-            result.add(scc);
-        }
     }
 }

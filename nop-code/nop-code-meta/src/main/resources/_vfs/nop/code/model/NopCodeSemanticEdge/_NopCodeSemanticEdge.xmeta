@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="语义边" xmlns:ui="ui" xmlns:orm="orm">
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="link" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen"
+      xmlns:biz="biz" displayName="语义边" i18n-en:displayName="Semantic Edge" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.code.dao.entity.NopCodeSemanticEdge</entityName>
 
@@ -42,7 +42,7 @@
         </prop>
         <prop name="relationType" displayName="关系类型" propId="6" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="40" dict="code/relation_type"/>
+            <schema type="java.lang.String" precision="40" dict="code/semantic_relation_type"/>
         </prop>
         <prop name="confidence" displayName="置信度级别" propId="7" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
@@ -66,15 +66,23 @@
         </prop>
         <prop name="createdBy" displayName="创建人" propId="12" queryable="true" sortable="true" insertable="true"
               updatable="true">
-            <schema type="java.lang.String"/>
+            <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="createTime" displayName="创建时间" propId="13" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="delFlag" displayName="逻辑删除" propId="14" queryable="true" sortable="true" insertable="false"
+        <prop name="provenance" displayName="来源" propId="15" queryable="true" sortable="true" insertable="true"
               updatable="true">
-            <schema stdDomain="boolFlag" type="java.lang.Boolean" precision="1"/>
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+        <prop name="updatedBy" displayName="更新人" propId="16" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="更新时间" propId="17" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
         </prop>
         <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
               ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">

@@ -54,7 +54,11 @@ public class SlidingEventTimeWindows extends WindowAssigner<Object, TimeWindow> 
             for (long start = lastStart;
                  start > timestamp - size;
                  start -= slide) {
-                windows.add(new TimeWindow(start, start + size));
+                long end = start + size;
+                if (end < start) {
+                    end = Long.MAX_VALUE;
+                }
+                windows.add(new TimeWindow(start, end));
             }
             return windows;
         } else {

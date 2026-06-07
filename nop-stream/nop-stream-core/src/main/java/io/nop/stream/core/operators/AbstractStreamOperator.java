@@ -271,10 +271,10 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
                 this.lastSnapshotResult = snapshotResult;
             } catch (Exception e) {
                 snapshotError = e;
-                LOG.error("Snapshot failed for checkpoint {}", barrier.getId(), e);
+                LOG.error("Snapshot failed for checkpoint {}, not propagating barrier downstream", barrier.getId(), e);
             }
         }
-        if (output != null) {
+        if (snapshotError == null && output != null) {
             output.emitBarrier(barrier);
         }
         if (snapshotCallback != null) {

@@ -1,6 +1,8 @@
 package io.nop.code.graph.entrypoint;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.nop.code.core.graph.CallGraph;

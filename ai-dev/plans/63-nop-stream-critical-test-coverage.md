@@ -60,7 +60,7 @@ Targets: `nop-stream-cep/src/test/java/io/nop/stream/cep/operator/`
 Exit Criteria:
 
 - [x] 测试验证 CepOperator 恢复后能正确处理新事件并产生正确的 match 结果
-- [ ] `./mvnw test -pl nop-stream/nop-stream-cep -am` 通过
+- [x] `./mvnw test -pl nop-stream/nop-stream-cep -am` 通过
 - **端到端验证**：从事件输入到 match 输出的完整路径已验证
 - No owner-doc update required
 - `ai-dev/logs/` 对应日期条目已更新
@@ -108,9 +108,9 @@ Exit Criteria:
 - [x] `./mvnw test -pl nop-stream -am -T 1C` 通过
 - [x] 不存在被静默降级到 deferred 的 in-scope test gap
 - [x] No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：测试确实验证了行为（不只是编译通过），包含断言
-- [ ] `ai-dev/logs/` 已更新
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：测试确实验证了行为（不只是编译通过），包含断言
+- [x] `ai-dev/logs/` 已更新
 
 ## Deferred But Adjudicated
 

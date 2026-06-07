@@ -1,6 +1,10 @@
 package io.nop.code.flow;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -328,6 +332,14 @@ public class DeadCodeDetector implements IDeadCodeDetector {
         return symbol.getAccessModifier() == CodeAccessModifier.PRIVATE;
     }
 
+    private static String extractClassName(String qualifiedName) {
+        int parenIndex = qualifiedName.indexOf('(');
+        String qn = parenIndex > 0 ? qualifiedName.substring(0, parenIndex) : qualifiedName;
+        int lastDot = qn.lastIndexOf('.');
+        if (lastDot < 0) return qn;
+        return qn.substring(lastDot + 1);
+    }
+
     private boolean isPotentiallyDynamic(CodeSymbol symbol) {
         Set<String> annotations = getAnnotationNames(symbol);
         if (annotations.stream().anyMatch(a ->
@@ -344,7 +356,8 @@ public class DeadCodeDetector implements IDeadCodeDetector {
 
         String qName = symbol.getQualifiedName();
         if (qName != null) {
-            String lower = qName.toLowerCase();
+            String namePart = extractClassName(qName);
+            String lower = namePart.toLowerCase();
             if (lower.contains("listener")
                     || lower.contains("handler")
                     || lower.contains("callback")

@@ -43,9 +43,14 @@ public class TestInputGate {
         p0.write(new Watermark(100));
         p1.write(new Watermark(200));
         p2.write(new Watermark(300));
+        p0.write(new Watermark(150));
+
+        p0.close();
+        p1.close();
+        p2.close();
 
         List<Long> emittedWatermarks = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        while (true) {
             Optional<StreamElement> element = gate.read();
             if (!element.isPresent()) break;
             if (element.get().isWatermark()) {
@@ -55,23 +60,8 @@ public class TestInputGate {
 
         assertFalse(emittedWatermarks.isEmpty());
         assertEquals(100L, emittedWatermarks.get(0));
-
-        p0.write(new Watermark(150));
-        p0.close();
-        p1.close();
-        p2.close();
-
-        boolean found150 = false;
-        while (true) {
-            Optional<StreamElement> element = gate.read();
-            if (!element.isPresent()) break;
-            if (element.get().isWatermark()) {
-                if (element.get().asWatermark().getTimestamp() == 150L) {
-                    found150 = true;
-                }
-            }
-        }
-        assertTrue(found150, "Should emit Watermark(150) when channel 0 advances from 100 to 150");
+        assertTrue(emittedWatermarks.contains(150L),
+                "Should emit Watermark(150) when channel 0 advances from 100 to 150");
     }
 
     @Test

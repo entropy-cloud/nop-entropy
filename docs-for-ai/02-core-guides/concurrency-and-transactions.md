@@ -99,7 +99,9 @@ public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> 
         taskDao().saveEntityDirectly(task);
     }
     currentFire.setFireStatus(FIRE_STATUS_RUNNING);
-    fireDao().updateEntityDirectly(currentFire);
+    List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(
+            Collections.singletonList(currentFire));
+    // 乐观锁版本检查，并发冲突时 updated 为空
 }
 ```
 

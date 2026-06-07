@@ -15,12 +15,16 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.job.service.JobContextHelper;
+import io.nop.job.service.fire.FireFactory;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
 
 @BizModel("NopJobFire")
@@ -30,6 +34,12 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
 
     public NopJobFireBizModel(){
         setEntityName(NopJobFire.class.getName());
+    }
+
+    @Override
+    public boolean delete(String id, IServiceContext context) {
+        throw new NopException(ERR_JOB_FIRE_DELETE_NOT_ALLOWED)
+                .param("jobFireId", id);
     }
 
     @Inject
@@ -45,7 +55,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @Override
     @BizMutation
     public void cancelFire(@Name("id") String id, IServiceContext context) {
-        NopJobFire fire = fireStore.loadFire(id);
+        NopJobFire fire = requireEntity(id, "cancelFire", context);
         if (!isCancelableStatus(fire.getFireStatus())) {
             throwCancelNotAllowed(fire, "cancelFire");
         }
@@ -60,7 +70,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @Override
     @BizMutation
     public void rerunFire(@Name("id") String id, IServiceContext context) {
-        NopJobFire sourceFire = fireStore.loadFire(id);
+        NopJobFire sourceFire = requireEntity(id, "rerunFire", context);
         if (!isRerunnableStatus(sourceFire.getFireStatus())) {
             throwRerunNotAllowed(sourceFire, "rerunFire");
         }
@@ -68,8 +78,13 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         NopJobSchedule schedule = scheduleStore.loadSchedule(sourceFire.getJobScheduleId());
         validateRerunSchedule(schedule, "rerunFire");
 
-        NopJobFire rerunFire = buildRecoveryFire(sourceFire, context);
-        scheduleStore.insertManualFire(schedule, rerunFire);
+        NopJobFire rerunFire = buildRecoveryFire(sourceFire, schedule, context);
+        if (!scheduleStore.insertManualFire(schedule, rerunFire)) {
+            throw new NopException(ERR_JOB_FIRE_RERUN_DISCARDED)
+                    .param("jobFireId", sourceFire.getJobFireId())
+                    .param("jobScheduleId", schedule.getJobScheduleId())
+                    .param("jobName", schedule.getJobName());
+        }
         afterEntityChange(rerunFire, "rerunFire", context);
     }
 
@@ -103,28 +118,25 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         }
     }
 
-    private NopJobFire buildRecoveryFire(NopJobFire sourceFire, IServiceContext context) {
+    private NopJobFire buildRecoveryFire(NopJobFire sourceFire, NopJobSchedule schedule, IServiceContext context) {
         long now = scheduleStore.getCurrentTime();
         Timestamp fireTime = new Timestamp(now);
 
         NopJobFire fire = new NopJobFire();
-        fire.setJobScheduleId(sourceFire.getJobScheduleId());
-        fire.setNamespaceId(sourceFire.getNamespaceId());
-        fire.setGroupId(sourceFire.getGroupId());
-        fire.setJobName(sourceFire.getJobName());
+        fire.setJobScheduleId(schedule.getJobScheduleId());
+        fire.setNamespaceId(schedule.getNamespaceId());
+        fire.setGroupId(schedule.getGroupId());
+        fire.setJobName(schedule.getJobName());
         fire.setTriggerSource(_NopJobCoreConstants.TRIGGER_SOURCE_RECOVERY);
         fire.setScheduledFireTime(fireTime);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
         fire.setPlannerInstanceId(AppConfig.hostId());
-        fire.setTriggeredBy(resolveTriggeredBy(context));
-        fire.setPartitionIndex(sourceFire.getPartitionIndex());
-        fire.setRetryPolicyId(sourceFire.getRetryPolicyId());
-        fire.setCreatedBy("system");
-        fire.setCreateTime(fireTime);
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(fireTime);
-        fire.setJobParamsSnapshot(sourceFire.getJobParamsSnapshot());
-        fire.setExecutorKind(sourceFire.getExecutorKind());
+        fire.setTriggeredBy(JobContextHelper.resolveTriggeredBy(context));
+        fire.setPartitionIndex(schedule.getPartitionIndex());
+        fire.setRetryPolicyId(schedule.getRetryPolicyId());
+        fire.setJobParamsSnapshot(schedule.getJobParams());
+        fire.setExecutorKind(schedule.getExecutorKind());
+        FireFactory.fillBaseFireFields(fire, fireTime);
         return fire;
     }
 
@@ -144,18 +156,5 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
                 .param("jobName", fire.getJobName())
                 .param("fireStatus", fire.getFireStatus())
                 .param("action", action);
-    }
-
-    private String resolveTriggeredBy(IServiceContext context) {
-        String userName = null;
-        if (context != null) {
-            if (context.getUserContext() != null) {
-                userName = context.getUserContext().getUserName();
-            }
-            if ((userName == null || userName.isEmpty()) && context.getContext() != null) {
-                userName = context.getContext().getUserName();
-            }
-        }
-        return userName == null || userName.isEmpty() ? "system" : userName;
     }
 }

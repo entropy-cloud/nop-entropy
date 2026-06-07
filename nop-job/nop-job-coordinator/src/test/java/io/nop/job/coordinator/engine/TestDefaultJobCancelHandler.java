@@ -1,5 +1,6 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.ioc.StaticBeanContainer;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -304,5 +306,49 @@ public class TestDefaultJobCancelHandler {
         NopJobTask task = createTask("t1", "f1");
 
         handler.cancelRunningTask(schedule, fire, task);
+    }
+
+    /**
+     * AR-17: Verify that cancel context jobParams contains targetHost header
+     * from task.getTargetHost(), not task.getWorkerAddress()
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    void testCancelRunningTask_targetHostFromTaskGetTargetHost() {
+        AtomicReference<IJobExecutionContext> capturedCtx = new AtomicReference<>();
+
+        IJobInvoker invoker = new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return null;
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                capturedCtx.set(jobCtx);
+                return CompletableFuture.completedFuture(true);
+            }
+        };
+
+        setupContainer("nopJobInvoker_test", invoker);
+
+        NopJobSchedule schedule = createSchedule("s1", "test");
+        NopJobFire fire = createFire("f1", "s1", null);
+        NopJobTask task = createTask("t1", "f1");
+        task.setTargetHost("target-host-10.0.0.1");
+        task.setWorkerAddress("worker-addr-10.0.0.2");
+
+        handler.cancelRunningTask(schedule, fire, task);
+
+        IJobExecutionContext ctx = capturedCtx.get();
+        assertNotNull(ctx, "CancelJobExecutionContext should be passed to invoker");
+
+        Map<String, Object> jobParams = ctx.getJobParams();
+        assertNotNull(jobParams, "jobParams should not be null");
+        Map<String, Object> headers = (Map<String, Object>) jobParams.get("headers");
+        assertNotNull(headers, "headers should not be null when targetHost is set");
+        assertEquals("target-host-10.0.0.1", headers.get(ApiConstants.HEADER_SVC_TARGET_HOST));
+
+        assertEquals("target-host-10.0.0.1", ctx.getAttribute("targetHost"));
     }
 }

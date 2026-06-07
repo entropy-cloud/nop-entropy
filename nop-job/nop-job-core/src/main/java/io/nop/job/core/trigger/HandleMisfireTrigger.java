@@ -26,6 +26,13 @@ public class HandleMisfireTrigger implements ITrigger {
 
     @Override
     public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
+        if (trigger instanceof OnceTrigger) {
+            long scheduleTime = ((OnceTrigger) trigger).getScheduleTime();
+            if (scheduleTime > 0 && scheduleTime < afterTime - misfireThreshold) {
+                return -1;
+            }
+        }
+
         long startTime = evalContext.getLastScheduledTime();
         if (startTime <= 0) {
             startTime = evalContext.getMinScheduleTime();

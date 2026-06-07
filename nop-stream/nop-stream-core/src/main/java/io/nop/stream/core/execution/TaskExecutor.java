@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -344,6 +345,9 @@ public class TaskExecutor {
 
             try {
                 entry.getValue().get(remainingNanos, TimeUnit.NANOSECONDS);
+            } catch (TimeoutException e) {
+                LOG.warn("Timeout elapsed while waiting for task {} to complete", entry.getKey());
+                return false;
             } catch (Exception e) {
                 LOG.debug("Task {} completed with exception", entry.getKey(), e);
             }

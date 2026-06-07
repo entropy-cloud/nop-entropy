@@ -56,6 +56,8 @@ public class CronExpression implements ICronExpression {
 
     private final TimeZone timeZone;
 
+    private ThreadLocal<GregorianCalendar> threadLocalCal;
+
     private final BitSet months = new BitSet(12);
 
     private final BitSet daysOfMonth = new BitSet(31);
@@ -89,6 +91,11 @@ public class CronExpression implements ICronExpression {
     public CronExpression(String expression, TimeZone timeZone) {
         this.expression = expression;
         this.timeZone = timeZone == null ? TimeZone.getDefault() : timeZone;
+        this.threadLocalCal = ThreadLocal.withInitial(() -> {
+            GregorianCalendar cal = new GregorianCalendar();
+            cal.setTimeZone(this.timeZone);
+            return cal;
+        });
 
         try {
             parse(expression);
@@ -137,8 +144,7 @@ public class CronExpression implements ICronExpression {
          * forwards, 4.2 Reset the minutes and seconds and go to 2
          */
 
-        Calendar calendar = new GregorianCalendar();
-        calendar.setTimeZone(this.timeZone);
+        Calendar calendar = threadLocalCal.get();
         calendar.setTimeInMillis(date);
 
         // First, just reset the milliseconds and try to calculate from there...
@@ -454,13 +460,15 @@ public class CronExpression implements ICronExpression {
         CronExpression otherCron = (CronExpression) other;
         return (this.months.equals(otherCron.months) && this.daysOfMonth.equals(otherCron.daysOfMonth)
                 && this.daysOfWeek.equals(otherCron.daysOfWeek) && this.hours.equals(otherCron.hours)
-                && this.minutes.equals(otherCron.minutes) && this.seconds.equals(otherCron.seconds));
+                && this.minutes.equals(otherCron.minutes) && this.seconds.equals(otherCron.seconds)
+                && this.timeZone.equals(otherCron.timeZone));
     }
 
     @Override
     public int hashCode() {
         return (17 * this.months.hashCode() + 29 * this.daysOfMonth.hashCode() + 37 * this.daysOfWeek.hashCode()
-                + 41 * this.hours.hashCode() + 53 * this.minutes.hashCode() + 61 * this.seconds.hashCode());
+                + 41 * this.hours.hashCode() + 53 * this.minutes.hashCode() + 61 * this.seconds.hashCode()
+                + 67 * this.timeZone.hashCode());
     }
 
     @Override

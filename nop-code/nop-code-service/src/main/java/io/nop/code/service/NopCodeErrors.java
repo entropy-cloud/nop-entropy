@@ -26,4 +26,7 @@ public interface NopCodeErrors {
 
     ErrorCode ERR_CODE_DEAD_CODE_DETECTOR_NOT_AVAILABLE =
             define("nop.err.code.dead-code-detector-not-available", "DeadCodeDetector not available");
+
+    ErrorCode ERR_CODE_SOURCE_CODE_TOO_LARGE =
+            define("nop.err.code.source-code-too-large", "Source code exceeds maximum allowed size: {filePath}", ARG_FILE_PATH);
 }

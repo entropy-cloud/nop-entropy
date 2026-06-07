@@ -76,6 +76,9 @@
 - `tool.xdef` / `tool-call.xdef` / `call-tools.xdef` / `call-tools-response.xdef` 的语义定稿
 - `call-agent.tool.xml` 的语义定稿
 - runtime 对上述 DSL 的最小解释闭环
+- 基础上下文压缩：Layer 0（Tool Result 预截断）+ Layer 1（零成本微压缩）+ 基础 Layer 3（LLM 摘要）
+- Token 计数（Provider-reported usage + 简单字符比例估算，不引入 BPE tokenizer）
+- Event Sourcing session 模型（JSONL event log + CompactionEntry）
 
 ### 4.3 验收标准
 
@@ -120,7 +123,10 @@
 
 - 错误分类语义
 - 超时预算语义
-- 压缩保真规则
+- 完整 5 层渐进压缩管道（Layer 2 无 LLM 中间 turn 裁剪 + Layer 4 强制退出）
+- 8 节结构化摘要模板 + 增量摘要更新
+- PreCompact / PostCompact Hook 生命周期
+- 子 Agent compaction 隔离机制
 - 工具验证和安全限制语义
 - 循环检测与回退策略的设计约定
 
@@ -142,12 +148,20 @@
 - 断路器和模型回退的设计定稿
 - 检查点和会话恢复的设计定稿
 - 多 Agent 编排与 Nop Flow / Task 的对齐方案
+- **Actor Runtime 平台层**（详见 `nop-ai-agent-actor-runtime-vision.md`）：
+  - ActorRuntime + ActorRegistry（Virtual Thread 调度）
+  - MessageRouter（IMessageService 内存消息队列）
+  - TeamManager + TeamSpec DSL
+  - RecoveryManager（崩溃恢复、超时清理）
+  - ResourceGuard（文件写意图、资源配额）
 
 ### 7.3 验收标准
 
 - provider 连续故障后系统可自动降级
 - 长任务中断后可以恢复
 - 多 Agent 任务可以通过 Flow / Task 组织
+- 多用户可并发运行独立 Actor，租户间资源隔离
+- Actor 崩溃后可自动恢复到最近 ReAct 步骤
 
 ## 8. 当前最值得固定的设计决策
 

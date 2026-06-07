@@ -94,7 +94,7 @@ Nop 平台已提供的能力，不在业务模块中重复实现。
 |---------|---------|---------------|
 | 全文搜索 + 向量搜索 | `nop-search` | 添加 `nop-search-api` 依赖，调用 `ISearchEngine` |
 | 权限控制 | `nop-auth` | 使用 `@BizAuth` + xmeta 权限配置 |
-| 定时任务 | `nop-job` | 使用 `@BizAction` + 任务配置 |
+| 定时任务 | `nop-job` | 通过 `IJobInvoker` 注册机制 + 任务配置 |
 | 工作流 | `nop-wf` | 调用 `IWorkflowEngine` |
 
 判断标准：如果一个功能在 Nop 平台其他模块已有完整实现，业务模块应依赖该模块的 API 接口，而不是自己写。

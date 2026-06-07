@@ -102,7 +102,11 @@ public class TaskManager implements IStreamTaskRpcService {
         this.clusterRegistry = clusterRegistry;
         this.controlTopic = controlTopic;
         this.capacitySemaphore = new Semaphore(Math.max(1, capacity));
-        this.taskExecutor = Executors.newFixedThreadPool(Math.max(1, capacity));
+        this.taskExecutor = Executors.newFixedThreadPool(Math.max(1, capacity), r -> {
+            Thread t = new Thread(r, "tm-task-" + nodeId);
+            t.setDaemon(true);
+            return t;
+        });
         this.heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "tm-heartbeat-" + nodeId);
             t.setDaemon(true);

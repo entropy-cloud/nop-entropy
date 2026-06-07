@@ -40,8 +40,12 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     public static final String PROP_NAME_relationType = "relationType";
     public static final int PROP_ID_relationType = 5;
     
+    /* 来源: PROVENANCE VARCHAR */
+    public static final String PROP_NAME_provenance = "provenance";
+    public static final int PROP_ID_provenance = 6;
+    
 
-    private static int _PROP_ID_BOUND = 6;
+    private static int _PROP_ID_BOUND = 7;
 
     
     /* relation:  */
@@ -57,7 +61,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[6];
+    private static final String[] PROP_ID_TO_NAME = new String[7];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -76,6 +80,9 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_relationType] = PROP_NAME_relationType;
           PROP_NAME_TO_ID.put(PROP_NAME_relationType, PROP_ID_relationType);
       
+          PROP_ID_TO_NAME[PROP_ID_provenance] = PROP_NAME_provenance;
+          PROP_NAME_TO_ID.put(PROP_NAME_provenance, PROP_ID_provenance);
+      
     }
 
     
@@ -93,6 +100,9 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     
     /* 关系类型: RELATION_TYPE */
     private java.lang.String _relationType;
+    
+    /* 来源: PROVENANCE */
+    private java.lang.String _provenance;
     
 
     public _NopCodeInheritance(){
@@ -183,6 +193,9 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
             case PROP_ID_relationType:
                return getRelationType();
         
+            case PROP_ID_provenance:
+               return getProvenance();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -244,6 +257,16 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_provenance:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_provenance));
+               }
+               setProvenance(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -284,6 +307,13 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
             case PROP_ID_relationType:{
                onInitProp(propId);
                this._relationType = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_provenance:{
+               onInitProp(propId);
+               this._provenance = (java.lang.String)value;
                
                break;
             }
@@ -385,6 +415,25 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_relationType,value)){
             this._relationType = value;
             internalClearRefs(PROP_ID_relationType);
+            
+        }
+    }
+    
+    /**
+     * 来源: PROVENANCE
+     */
+    public final java.lang.String getProvenance(){
+         onPropGet(PROP_ID_provenance);
+         return _provenance;
+    }
+
+    /**
+     * 来源: PROVENANCE
+     */
+    public final void setProvenance(java.lang.String value){
+        if(onPropSet(PROP_ID_provenance,value)){
+            this._provenance = value;
+            internalClearRefs(PROP_ID_provenance);
             
         }
     }

@@ -1,5 +1,6 @@
 package io.nop.job.service.executor;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
@@ -41,6 +42,7 @@ public class RpcJobInvoker implements IJobInvoker {
 
         // Inject framework-level execution context as headers (always present)
         injectFrameworkHeaders(request, jobCtx);
+        injectTimeoutHeader(request, jobCtx);
 
         // User-configured headers (override framework defaults if needed)
         @SuppressWarnings("unchecked")
@@ -75,6 +77,7 @@ public class RpcJobInvoker implements IJobInvoker {
         ApiRequest<Object> request = new ApiRequest<>();
 
         injectFrameworkHeaders(request, jobCtx);
+        injectTimeoutHeader(request, jobCtx);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> headers = (Map<String, Object>) jobParams.get("headers");
@@ -118,6 +121,25 @@ public class RpcJobInvoker implements IJobInvoker {
             if (shardingTotal != null) {
                 request.setHeader(NopJobApiConstants.HEADER_JOB_SHARDING_TOTAL, shardingTotal);
             }
+        }
+    }
+
+    private void injectTimeoutHeader(ApiRequest<Object> request, IJobExecutionContext jobCtx) {
+        Map<String, Object> attrs = jobCtx.getAttributes();
+        if (attrs != null) {
+            Object timeoutSeconds = attrs.get("timeoutSeconds");
+            if (timeoutSeconds instanceof Number) {
+                int timeout = ((Number) timeoutSeconds).intValue();
+                if (timeout > 0) {
+                    request.setHeader(ApiConstants.HEADER_TIMEOUT, timeout * 1000L);
+                } else {
+                    request.setHeader(ApiConstants.HEADER_TIMEOUT, 60_000L);
+                }
+            } else {
+                request.setHeader(ApiConstants.HEADER_TIMEOUT, 60_000L);
+            }
+        } else {
+            request.setHeader(ApiConstants.HEADER_TIMEOUT, 60_000L);
         }
     }
 

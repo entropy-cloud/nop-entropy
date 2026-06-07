@@ -23,6 +23,7 @@ public class SourceEnumeratorState implements Serializable {
     private final Set<String> finishedSplits;
     private final Set<String> pendingAcknowledgements;
     private final Object discoveryCursor;
+    private final Map<String, Map<String, Object>> splitMetadataMap;
 
     public SourceEnumeratorState(List<String> discoveredSplits,
                                  List<String> unassignedSplits,
@@ -30,6 +31,17 @@ public class SourceEnumeratorState implements Serializable {
                                  Set<String> finishedSplits,
                                  Set<String> pendingAcknowledgements,
                                  Object discoveryCursor) {
+        this(discoveredSplits, unassignedSplits, assignedSplits,
+                finishedSplits, pendingAcknowledgements, discoveryCursor, null);
+    }
+
+    public SourceEnumeratorState(List<String> discoveredSplits,
+                                 List<String> unassignedSplits,
+                                 Map<String, String> assignedSplits,
+                                 Set<String> finishedSplits,
+                                 Set<String> pendingAcknowledgements,
+                                 Object discoveryCursor,
+                                 Map<String, Map<String, Object>> splitMetadataMap) {
         this.discoveredSplits = discoveredSplits != null
                 ? Collections.unmodifiableList(new ArrayList<>(discoveredSplits)) : Collections.emptyList();
         this.unassignedSplits = unassignedSplits != null
@@ -41,6 +53,8 @@ public class SourceEnumeratorState implements Serializable {
         this.pendingAcknowledgements = pendingAcknowledgements != null
                 ? Collections.unmodifiableSet(new LinkedHashSet<>(pendingAcknowledgements)) : Collections.emptySet();
         this.discoveryCursor = discoveryCursor;
+        this.splitMetadataMap = splitMetadataMap != null
+                ? Collections.unmodifiableMap(new LinkedHashMap<>(splitMetadataMap)) : Collections.emptyMap();
     }
 
     public SourceEnumeratorState() {
@@ -53,4 +67,5 @@ public class SourceEnumeratorState implements Serializable {
     public Set<String> getFinishedSplits() { return finishedSplits; }
     public Set<String> getPendingAcknowledgements() { return pendingAcknowledgements; }
     public Object getDiscoveryCursor() { return discoveryCursor; }
+    public Map<String, Map<String, Object>> getSplitMetadataMap() { return splitMetadataMap; }
 }

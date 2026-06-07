@@ -103,7 +103,7 @@ Exit Criteria:
 - [x] **无静默跳过**: snapshotState/restoreState 遇到未知类型时抛出 StreamException
 - [x] `./mvnw test -pl nop-stream/nop-stream-core -am` 通过
 - [x] No owner-doc update required（纯 bug fix）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 窗口算子与 CEP 正确性（N107 + N110 + N111 + N114 + N115 + N120）
 
@@ -133,7 +133,7 @@ Exit Criteria:
 - [x] **端到端验证**: TestWindowOperatorMultiKeyCleanup 测试从 source 到 sink 完整 pipeline 验证 timer 清理和 trigger state 不泄漏
 - [x] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -am` 通过
 - [x] No owner-doc update required（纯 bug fix）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 执行引擎正确性（N108 + N109 + N113）
 
@@ -158,7 +158,7 @@ Exit Criteria:
 - [x] **端到端验证**: 构建包含多输入通道 + parallelism > 1 的集成场景测试
 - [x] `./mvnw test -pl nop-stream/nop-stream-core -am` 通过
 - [x] No owner-doc update required（纯 bug fix）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 安全漏洞与资源管理（13-01 + 14-01 + 14-02/03/04 + 14-05 + N119）
 
@@ -191,7 +191,7 @@ Exit Criteria:
 - [x] 新增安全测试和并发测试通过
 - [x] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -am` 通过
 - [x] No owner-doc update required（纯 bug fix + 安全加固）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - Connector 与跨模块契约修复（N116 + N117 + N118 + 20-01 + 16-01）
 
@@ -217,7 +217,7 @@ Exit Criteria:
 - [x] PartitionRouter 及三个实现有完整单元测试
 - [x] `./mvnw test -pl nop-stream -am` 通过
 - [x] No owner-doc update required（纯 bug fix）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
@@ -226,9 +226,9 @@ Exit Criteria:
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] `./mvnw test -pl nop-stream -am` 全部通过
 - [x] checkstyle / 代码规范检查通过
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 独立子 agent closure-audit 已完成并记录证据
 - [x] Anti-Hollow Check: 修复的每个组件在运行时调用链中确实被使用，无空壳实现
-- [ ] `ai-dev/logs/` 收口记录已更新
+- [x] `ai-dev/logs/` 收口记录已更新
 
 ## Deferred But Adjudicated
 

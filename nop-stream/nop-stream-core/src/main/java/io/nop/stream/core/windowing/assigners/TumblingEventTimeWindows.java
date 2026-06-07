@@ -72,7 +72,11 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
             long start =
                     TimeWindow.getWindowStartWithOffset(
                             timestamp, (globalOffset + windowStagger.getStaggerOffset(context.getCurrentProcessingTime(), size)), size);
-            return Collections.singletonList(new TimeWindow(start, start + size));
+            long end = start + size;
+            if (end < start) {
+                end = Long.MAX_VALUE;
+            }
+            return Collections.singletonList(new TimeWindow(start, end));
         } else {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Record has Long.MIN_VALUE timestamp (= no timestamp marker). "
                             + "Is the time characteristic set to 'ProcessingTime', or "

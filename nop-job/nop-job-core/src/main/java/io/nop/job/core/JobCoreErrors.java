@@ -13,10 +13,10 @@ public interface JobCoreErrors {
     String ARG_EXECUTOR_KIND = "executorKind";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
-            "计算下一次触发时间时似乎陷入死循环，循环次数超过最大限制", ARG_LOOP_COUNT);
+            "Trigger calculation loop count exceeded limit", ARG_LOOP_COUNT);
 
     ErrorCode ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL = define("nop.err.job.trigger.parse-cron-expr-fail",
-            "解析定时器表达式失败:{cronExpr}", ARG_CRON_EXPR);
+            "Failed to parse cron expression:{cronExpr}", ARG_CRON_EXPR);
 
     // Error codes stored in task/fire errorCode field - status markers, not thrown exceptions.
     // Using the same string values for backward compatibility with stored data and test assertions.
@@ -24,7 +24,7 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_TIMEOUT = define("JOB_TIMEOUT",
             "Job task timed out");
 
-    ErrorCode ERR_JOB_INVOKER_NOT_FOUND = define("JOB_INVOKER_NOT_FOUND",
+    ErrorCode ERR_JOB_INVOKER_NOT_FOUND = define("nop.err.job.invoker-not-found",
             "Job invoker not found for schedule");
 
     ErrorCode ERR_JOB_CANCELED = define("JOB_CANCELED",
@@ -33,12 +33,54 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_OVERLAID = define("JOB_OVERLAID",
             "Job fire/task canceled by overlay");
 
-    ErrorCode ERR_JOB_EXECUTION_FAILED = define("JOB_EXECUTION_FAILED",
+    ErrorCode ERR_JOB_EXECUTION_FAILED = define("nop.err.job.execution-failed",
             "Job execution failed");
 
     ErrorCode ERR_JOB_EXECUTOR_REF_EMPTY = define("nop.err.job.executor-ref-empty",
-            "Job的执行器引用为空");
+            "Job executor ref is empty");
 
     ErrorCode ERR_JOB_EXECUTOR_KIND_EMPTY = define("nop.err.job.executor-kind-empty",
-            "Job的执行器类型为空");
+            "Job executor kind is empty");
+
+    ErrorCode ERR_JOB_FIRE_STATUS_CONFLICT = define("nop.err.job.fire-status-conflict",
+            "Fire status version conflict during dispatch");
+
+    ErrorCode ERR_JOB_SCHEDULE_DELETED = define("nop.err.job.schedule-deleted",
+            "Schedule has been deleted");
+
+    ErrorCode ERR_JOB_INVOKER_RETURNED_NULL = define("JOB_INVOKER_RETURNED_NULL",
+            "Job invoker returned null promise");
+
+    ErrorCode ERR_JOB_CALENDAR_MAX_ITERATION_EXCEEDED = define("nop.err.job.calendar.max-iteration-exceeded",
+            "Calendar getNextIncludedTime exceeded max iteration limit");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_TIMESTAMP = define("nop.err.job.calendar.invalid-timestamp",
+            "Timestamp must be greater than 0");
+
+    ErrorCode ERR_JOB_CALENDAR_NULL_EXPRESSION = define("nop.err.job.calendar.null-expression",
+            "Cron expression cannot be null");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_TIME_STRING = define("nop.err.job.calendar.invalid-time-string",
+            "Invalid time string");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_TIME_RANGE = define("nop.err.job.calendar.invalid-time-range",
+            "Invalid time range");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_HOUR = define("nop.err.job.calendar.invalid-hour",
+            "Invalid hour of day");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_MINUTE = define("nop.err.job.calendar.invalid-minute",
+            "Invalid minute");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_SECOND = define("nop.err.job.calendar.invalid-second",
+            "Invalid second");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_MILLIS = define("nop.err.job.calendar.invalid-millis",
+            "Invalid milliseconds");
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_DAY = define("nop.err.job.calendar.invalid-day",
+            "Invalid day parameter");
+
+    ErrorCode ERR_JOB_CALENDAR_NULL_DAYS = define("nop.err.job.calendar.null-days",
+            "Days parameter cannot be null");
 }

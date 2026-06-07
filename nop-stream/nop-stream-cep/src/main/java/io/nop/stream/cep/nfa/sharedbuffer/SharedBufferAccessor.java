@@ -256,14 +256,19 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public void releaseNode(final NodeId node, final DeweyNumber version){
-        // the stack used to detect all nodes that needs to be released.
         Stack<NodeId> nodesToExamine = new Stack<>();
         Stack<DeweyNumber> versionsToExamine = new Stack<>();
+        java.util.Set<NodeId> visited = new java.util.HashSet<>();
         nodesToExamine.push(node);
         versionsToExamine.push(version);
 
         while (!nodesToExamine.isEmpty()) {
             NodeId curNode = nodesToExamine.pop();
+            if (!visited.add(curNode)) {
+                versionsToExamine.pop();
+                continue;
+            }
+
             Lockable<SharedBufferNode> curBufferNode = sharedBuffer.getEntry(curNode);
 
             if (curBufferNode == null) {
@@ -277,7 +282,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
                 Lockable<SharedBufferEdge> sharedBufferEdge = edgesIterator.next();
                 SharedBufferEdge edge = sharedBufferEdge.getElement();
                 if (currentVersion.isCompatibleWith(edge.getDeweyNumber())) {
-                    if (sharedBufferEdge.release()) {
+                    if (sharedBufferEdge.releaseOrDetach()) {
                         edgesIterator.remove();
                         NodeId targetId = edge.getTarget();
                         if (targetId != null) {
@@ -288,8 +293,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
                 }
             }
 
-            if (curBufferNode.release()) {
-                // first release the current node
+            if (curBufferNode.releaseOrDetach()) {
                 sharedBuffer.removeEntry(curNode);
                 releaseEvent(curNode.getEventId());
             } else {
@@ -320,7 +324,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
     public void releaseEvent(EventId eventId) {
         Lockable<V> eventWrapper = sharedBuffer.getEvent(eventId);
         if (eventWrapper != null) {
-            if (eventWrapper.release()) {
+            if (eventWrapper.releaseOrDetach()) {
                 sharedBuffer.removeEvent(eventId);
             } else {
                 sharedBuffer.upsertEvent(eventId, eventWrapper);

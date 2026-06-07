@@ -7,8 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.ScheduledFuture;
 
 import io.nop.stream.core.common.eventtime.TimestampAssigner;
 import io.nop.stream.core.common.eventtime.WatermarkGenerator;
@@ -17,11 +16,15 @@ import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class TimestampsAndWatermarksOperator<T>
         extends AbstractStreamOperator<T>
         implements OneInputStreamOperator<T, T> {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger LOG = LoggerFactory.getLogger(TimestampsAndWatermarksOperator.class);
 
     private static final long INITIAL_TIME = Long.MIN_VALUE + 1;
     private static final long DEFAULT_WATERMARK_INTERVAL_MS = 200;
@@ -35,7 +38,7 @@ public class TimestampsAndWatermarksOperator<T>
     private transient long lastEmitTime;
     private transient long elementsSinceLastEmit;
     private transient volatile boolean idle;
-    private transient Timer watermarkTimer;
+    private transient ScheduledFuture<?> watermarkTimerFuture;
 
     public TimestampsAndWatermarksOperator(WatermarkStrategy<T> watermarkStrategy) {
         this(watermarkStrategy, DEFAULT_WATERMARK_INTERVAL_MS);
@@ -58,14 +61,23 @@ public class TimestampsAndWatermarksOperator<T>
         this.idle = false;
 
         if (watermarkInterval > 0) {
-            watermarkTimer = new Timer("watermark-timer", true);
-            watermarkTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
-                }
-            }, watermarkInterval, watermarkInterval);
+            scheduleNextWatermarkTimer();
         }
+    }
+
+    private void scheduleNextWatermarkTimer() {
+        if (processingTimeService != null) {
+            long now = processingTimeService.getCurrentProcessingTime();
+            watermarkTimerFuture = processingTimeService.registerTimer(
+                    now + watermarkInterval,
+                    this::onProcessingTimeCallback
+            );
+        }
+    }
+
+    private void onProcessingTimeCallback(long timestamp) throws Exception {
+        watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
+        scheduleNextWatermarkTimer();
     }
 
     @Override
@@ -84,20 +96,14 @@ public class TimestampsAndWatermarksOperator<T>
 
         boolean shouldEmit;
         if (watermarkInterval == 0) {
-            // Every element triggers periodic emit check
             shouldEmit = true;
         } else {
             shouldEmit = now >= nextWatermarkTime;
         }
 
         if (shouldEmit) {
-            // For batch data where all elements arrive in same millisecond,
-            // use element-count trigger as fallback when time doesn't advance
             if (now == lastEmitTime && watermarkInterval == 0) {
-                // Element-count based trigger for batch data with interval=0
             } else if (now == lastEmitTime && watermarkInterval > 0) {
-                // Same millisecond batch data - still use element count as fallback
-                // to ensure watermarks advance even when system clock doesn't
             }
             watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
             lastEmitTime = now;
@@ -119,9 +125,9 @@ public class TimestampsAndWatermarksOperator<T>
 
     @Override
     public void finish() throws Exception {
-        if (watermarkTimer != null) {
-            watermarkTimer.cancel();
-            watermarkTimer = null;
+        if (watermarkTimerFuture != null) {
+            watermarkTimerFuture.cancel(false);
+            watermarkTimerFuture = null;
         }
         watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
         output.emitWatermark(Watermark.MAX_WATERMARK);

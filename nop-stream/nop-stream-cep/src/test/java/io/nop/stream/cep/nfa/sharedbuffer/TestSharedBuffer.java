@@ -12,6 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -206,6 +207,113 @@ public class TestSharedBuffer {
         try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
             EventId newEvent = accessor.registerEvent(new Event(4, "d"), 3L);
             assertNotNull(newEvent);
+        }
+    }
+
+    @Test
+    public void testAdvanceTimePreventsEventIdCollision() throws Exception {
+        SharedBuffer<Event> buffer = new SharedBuffer<>(new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+
+        EventId oldEvent;
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            oldEvent = accessor.registerEvent(new Event(1, "a"), 1L);
+            assertNotNull(oldEvent);
+            assertEquals(0, oldEvent.getId());
+        }
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            accessor.advanceTime(2L);
+        }
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId newEvent = accessor.registerEvent(new Event(3, "c"), 1L);
+            assertNotNull(newEvent);
+            assertNotEquals(oldEvent, newEvent,
+                    "New EventId must not collide with old EventId still in eventsBuffer");
+        }
+
+        Lockable<Event> oldEntry = buffer.getEvent(oldEvent);
+        assertNotNull(oldEntry, "Old entry should still be accessible");
+        assertEquals(1, oldEntry.getElement().getId());
+    }
+
+    @Test
+    public void testAdvanceTimeThenRegisterEventCompleteChain() throws Exception {
+        SharedBuffer<Event> buffer = new SharedBuffer<>(new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+
+        EventId event10, event20, event30;
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            event10 = accessor.registerEvent(new Event(1, "a"), 10L);
+            event20 = accessor.registerEvent(new Event(2, "b"), 20L);
+            event30 = accessor.registerEvent(new Event(3, "c"), 30L);
+        }
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            accessor.advanceTime(25L);
+        }
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            assertNotNull(buffer.getEvent(event10));
+            assertNotNull(buffer.getEvent(event20));
+            assertNotNull(buffer.getEvent(event30));
+
+            EventId reused = accessor.registerEvent(new Event(4, "d"), 10L);
+            assertNotNull(reused);
+            assertNotEquals(event10, reused,
+                    "New EventId at reused timestamp must not collide");
+        }
+
+        Lockable<Event> old10 = buffer.getEvent(event10);
+        assertNotNull(old10);
+        assertEquals(1, old10.getElement().getId());
+    }
+
+    @Test
+    public void testAdvanceTimeCountersResetAndNoCollision() throws Exception {
+        SharedBuffer<Event> buffer = new SharedBuffer<>(new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            accessor.registerEvent(new Event(1, "a"), 1L);
+            accessor.registerEvent(new Event(2, "b"), 1L);
+        }
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            accessor.advanceTime(2L);
+        }
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId e0 = accessor.registerEvent(new Event(3, "c"), 1L);
+            EventId e1 = accessor.registerEvent(new Event(4, "d"), 1L);
+
+            assertNotNull(e0);
+            assertNotNull(e1);
+            assertNotEquals(e0, e1, "Sequential EventIds must be unique");
+
+            assertEquals(2, e0.getId(), "Should skip past existing id=0 in eventsBuffer");
+            assertEquals(3, e1.getId(), "Should continue from last assigned id");
+        }
+    }
+
+    @Test
+    public void testFlushCacheAfterAdvanceTime() throws Exception {
+        SharedBuffer<Event> buffer = new SharedBuffer<>(new SimpleKeyedStateStore(), null, new SharedBufferCacheConfig());
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            accessor.registerEvent(new Event(1, "a"), 10L);
+            accessor.registerEvent(new Event(2, "b"), 20L);
+        }
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            accessor.advanceTime(15L);
+        }
+
+        buffer.flushCache();
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId reused = accessor.registerEvent(new Event(3, "c"), 10L);
+            assertNotNull(reused);
+            assertTrue(reused.getId() != 0,
+                    "Should not produce EventId(0,10) since it exists in eventsBuffer");
         }
     }
 }
