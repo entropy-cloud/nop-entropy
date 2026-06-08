@@ -115,7 +115,7 @@ Layer 1: Core Interfaces (核心接口层)
 
 | 接口 | 职责 | 默认实现 |
 |------|------|---------|
-| `IAgentEngine` | 顶层入口，接受配置+请求，创建上下文并启动执行 | `DefaultAgentEngine` |
+| `IAgentEngine` | Actor 消息入口：接受消息，路由到 sessionId 对应的 AgentActor，立即返回 ack | `DefaultAgentEngine` |
 | `AgentModel` | 纯配置对象，从 agent.xdef 装载，不持有逻辑和状态 | — (数据对象) |
 | `AgentSession` | 按 sessionId 的独立状态对象，持久化跨请求存在 | `DefaultAgentSession` |
 | `AgentExecutionContext` | 单次执行的全部内存态容器 | — (数据对象) |

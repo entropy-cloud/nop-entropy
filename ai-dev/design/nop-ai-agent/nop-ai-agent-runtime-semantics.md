@@ -94,7 +94,7 @@ runtime 在这里要做的，是解释这些已有字段，而不是重新定义
 
 ## 6. 事件语义
 
-Runtime 在流式模式下建议产生这些稳定事件：
+Runtime 在执行过程中通过 `AgentEventPublisher` 发布以下稳定事件：
 
 - `TextChunk`
 - `ThinkingChunk`

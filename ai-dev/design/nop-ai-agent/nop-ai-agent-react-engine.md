@@ -24,12 +24,64 @@ ReAct 引擎需要解决：
 ```java
 public interface IAgentExecutor {
     CompletionStage<AgentExecutionResult> execute(AgentExecutionContext ctx);
-
-    Flow.Publisher<AgentEvent> executeStream(AgentExecutionContext ctx);
 }
 ```
 
-### 3.2 `ReActAgentExecutor`
+> **设计决策**：移除 `executeStream()` 方法。nop-ai-agent 采用 Actor 消息模型——引擎内部以完整消息粒度执行，事件通过 `AgentEventPublisher` 独立发布，外部订阅者通过 `IMessageService` 的 topic 订阅机制接收事件。不需要通过 `Flow.Publisher` 返回值拉取事件流。
+
+### 3.2 `IAgentEngine` — Actor 消息入口
+
+`IAgentEngine` 是外部调用者（API/Gateway/IM Channel）与 Agent 交互的顶层接口，遵循 Actor 消息模型：
+
+```java
+public interface IAgentEngine {
+    /**
+     * 向 Agent 发送消息。
+     * - 如果给定 sessionId，复用已有 Session 的 AgentActor
+     * - 如果 sessionId 为空，创建新 Session + 新 AgentActor
+     * - 立即返回 ack（含 sessionId），Agent 异步执行
+     * - 执行结果通过 AgentEventPublisher 异步推送
+     */
+    AgentMessageAck sendMessage(AgentMessageRequest request);
+}
+
+public class AgentMessageRequest {
+    String sessionId;       // 空=新建 Session，非空=复用已有 Session
+    String agentName;       // Agent 配置名（agent.xml name）
+    String userMessage;     // 用户消息内容
+    Map<String, Object> metadata;  // 可选元数据（channel 类型、租户信息等）
+}
+
+public class AgentMessageAck {
+    String sessionId;       // 新建或复用的 Session ID
+    String status;          // "accepted" — 消息已投递到 Actor Mailbox
+}
+```
+
+**交互流程**：
+
+```
+调用者                        IAgentEngine                     AgentActor
+  │                                │                              │
+  ├── sendMessage(request) ──────→ │                              │
+  │                                ├── lookupOrCreateActor(sid)   │
+  │                                ├── actor.mailbox.offer(msg)   │
+  │←── ack(sessionId, "accepted") │                              │
+  │                                │                              ├── dispatch message
+  │                                │                              ├── ReAct loop...
+  │                                │                              │
+  │  （通过 AgentEventPublisher 订阅事件）                         │
+  │←── AgentResult event ─────────┤←── publish(AgentResult) ────┤
+  │←── AgentError event ──────────┤←── publish(AgentError) ─────┤
+```
+
+**设计要点**：
+- `sendMessage` 是同步方法，立即返回，不等待 Agent 执行完毕
+- 调用者通过 `AgentEventPublisher` 订阅事件（topic: `agent.{sessionId}.events`），接收执行过程中的事件和最终结果
+- 同一 sessionId 的多次 `sendMessage` 调用会依次投递到同一 AgentActor 的 Mailbox，Actor 串行处理
+- AgentActor 执行过程中收到新消息，进入 followUp 队列，当前 ReAct 循环结束后处理
+
+### 3.3 `ReActAgentExecutor`
 
 - 第一阶段核心执行器
 - 实现标准 ReAct loop
