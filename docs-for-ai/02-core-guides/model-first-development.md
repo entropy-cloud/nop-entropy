@@ -175,12 +175,45 @@ Object data = entity.getExtDataComponent().get_jsonValue();
 
 类似的自动组件还有：`stdDomain="xml"` → `XmlOrmComponent`，`stdDomain="file"` / `"file-list"` → `OrmFileComponent` / `OrmFileListComponent`。
 
+## 修改包名的影响与迁移步骤
+
+`ext:basePackageName` 和 `ext:entityPackageName` 不仅影响 orm.xml 中的实体名，还决定了 codegen 生成 Java 类的包名和目录位置。修改这两个属性后，必须同步迁移已有的 Java 源文件，否则编译失败。
+
+### 影响范围
+
+| 影响项 | 说明 |
+|--------|------|
+| orm.xml 内引用 | 所有 `entity` 的 `name`、`className`、`relations` 中的 `refEntityName` |
+| Java 源文件目录 | `src/*/java/{old_pkg_path}/` → `src/*/java/{new_pkg_path}/` |
+| Java package 声明 | `package {old_pkg}.` → `package {new_pkg}.` |
+| Java import 语句 | `import {old_pkg}.` → `import {new_pkg}.` |
+| `_gen/` 生成文件 | 旧包名的 `_gen/` 文件全部失效，需删除后通过 codegen 重新生成 |
+| beans.xml / xmeta 等引用 | 若包含完整类名引用也需更新（通常 codegen 生成物会自动更新） |
+
+### 迁移步骤
+
+1. **修改 orm.xml**：更新 `ext:basePackageName`、`ext:entityPackageName` 及所有 entity 的 `name`/`className`/`refEntityName`。
+2. **迁移 Java 目录**：将 `src/*/java/{old_path}/` 整棵目录树移动到 `src/*/java/{new_path}/`（例如 `nop/ai/` → `io/nop/ai/`）。涉及所有子模块（`*-dao`、`*-service`、`*-app`、`*-codegen`、`*-web` 等）。
+3. **更新 package 和 import**：全局替换 `package {old_pkg}.` → `package {new_pkg}.` 和 `import {old_pkg}.` → `import {new_pkg}.`。排除 `_gen/` 和 `target/`。
+4. **删除旧 `_gen/`**：删除 `*-dao/src/main/java/{old_path}/**/_gen/` 目录。
+5. **触发 codegen 重新生成**：执行 `./mvnw clean install -T 1C`，codegen 会按新包名重新生成 `_gen/` 文件。
+6. **验证**：`./mvnw test -pl {module} -am` 全部通过。
+
+### 注意事项
+
+- **不要手动编辑 `_gen/` 文件**：即使发现 `_gen/` 里的包名是旧的，也不要手动改——删除后让 codegen 重新生成。
+- **`_app.orm.xml` 等 `_` 前缀文件**：这些是 codegen 生成物，会在步骤 5 中自动更新，不需要手动改。
+- **beans.xml 中如果用了完整类名**（如 `class="nop.ai.dao.entity.Xxx"`），也需要同步更新。如果只用了 bean id 或短名，则不需要。
+- **全平台标准包名**：`io.nop.{module}`（如 `io.nop.auth`、`io.nop.job`、`io.nop.wf`）。新建模块务必从第一次就使用标准包名，避免后续迁移。
+
 ## 常见误区
 
 1. 先手写 Entity / DAO / Biz 接口，再回头补模型。
 2. 把 `*-meta` 误解为直接生成全部 service / web 代码。
 3. 只改生成物，不回到源模型。
 4. 改了模型却没有触发上游生成链。
+5. 只改 orm.xml 的包名，没有同步迁移 Java 源文件目录和 package 声明。
+6. 手动编辑 `_gen/` 里的包名，而不是删除后让 codegen 重新生成。
 
 ## 相关文档
 

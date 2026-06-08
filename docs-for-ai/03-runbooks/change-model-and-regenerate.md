@@ -52,6 +52,7 @@
 2. 以为 `*-meta` 会直接生成全部 service / web 代码。
 3. 手改生成物后再去构建，结果改动被覆盖。
 4. 只改了 `obj-schema.xdef`，却漏掉 `schema.xdef` 等共享定义点，导致运行时解析出的 xdef/xmeta 仍然缺字段。
+5. 修改了 `ext:basePackageName` / `ext:entityPackageName`，却只更新了 orm.xml 内的引用，没有同步迁移 Java 源文件目录、package 声明和 import，也没有删除旧 `_gen/` 让 codegen 重新生成。详见 `../02-core-guides/model-first-development.md` 的"修改包名的影响与迁移步骤"一节。
 
 ## 相关文档
 
