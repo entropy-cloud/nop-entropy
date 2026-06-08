@@ -71,9 +71,14 @@ Layer 1: Core Interfaces (核心接口层)
 - `nop-ai-agent-session-and-storage.md`
   - Session、快照、分叉、Session Tree、压缩回写、存储边界
 - `nop-ai-agent-security-and-permissions.md`
-  - 权限、安全边界、目录保护
+  - 安全与权限：四层接口组织（Layer 1 deny/allow → Layer 2 分级策略+内容护栏 → Layer 3 审批治理+拒绝账本 → Layer 4 沙箱+审计）
+  - 纵深防御：注入检测、敏感路径保护、通道权限矩阵、审批流
+  - 渐进式增强：从最小 deny/allow 到完整安全体系，只通过 XDSL 配置逐步引入
+  - 调研来源：OpenSquilla、VoltAgent、opencode、PilotDeck 等 15+ 框架
 - `nop-ai-agent-reliability.md`
   - 错误分类、压缩、超时、回退、恢复、崩溃恢复模型
+- `nop-ai-agent-branch-affinity-scheduling.md`
+  - 分支亲和调度、工作空间隔离、子 Agent worktree、提交与合并模型、双环境共存
 - `nop-ai-shell-design.md`
   - nop-ai-shell 模块设计：与 nop-ai-toolkit 接口对齐、命令分层、混合执行模式
 - `nop-ai-shell-syntax-spec.md`
@@ -107,7 +112,7 @@ Layer 1: Core Interfaces (核心接口层)
 8. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
 9. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
 10. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
-11. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`skill-system-design.md`
+11. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`nop-ai-agent-branch-affinity-scheduling.md`、`skill-system-design.md`
 
 **扩展方向**：
 

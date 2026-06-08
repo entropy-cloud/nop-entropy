@@ -85,21 +85,25 @@
 
 ```
 Layer 4: Platform Extensions (平台扩展层)
-   IMemoryAdapter, ISkillCurator, IMailbox, IContributionRegistry
+   IMemoryAdapter, ISkillCurator, IMailbox, IContributionRegistry,
+   ISandboxBackend, ISensitivePathProvider, IAuditLogger
    ─── 依赖 Layer 1-3 接口 ───
 
 Layer 3: Reliability Extensions (可靠性扩展层)
-   ICircuitBreaker, ISustainer, IRetryPolicy, IGoalTracker, ICheckpointManager
+   ICircuitBreaker, ISustainer, IRetryPolicy, IGoalTracker, ICheckpointManager,
+   IApprovalGate, IDenialLedger, IPostDenialGuard
    ─── 依赖 Layer 1-2 接口 ───
 
 Layer 2: Execution Extensions (执行扩展层)
    IContextGovernor, IToolCallRepairer, IContextCompactor, IContentGuardrail,
-   IAgentLifecycleHook, IModelRouter, ITalent, IModelDialect
+   IAgentLifecycleHook, IModelRouter, ITalent, IModelDialect,
+   ISecurityLevelResolver, IPermissionMatrix
    ─── 依赖 Layer 1 接口 ───
 
 Layer 1: Core Interfaces (核心接口层)
    IAgentEngine, AgentModel, AgentSession, IAgentExecutor,
-   IMessageFormat, IPermissionProvider, AgentEventPublisher
+   IMessageFormat, IPermissionProvider, IToolAccessChecker, IPathAccessChecker,
+   AgentEventPublisher
    ─── 无内部依赖，依赖 nop-ai-core / nop-ai-llm / nop-ai-toolkit ───
 ```
 
@@ -119,6 +123,8 @@ Layer 1: Core Interfaces (核心接口层)
 | `AgentEventPublisher` | 执行状态→外部可观察的事件流 | `DefaultEventPublisher` |
 | `IMessageFormat` | Provider 无关的消息格式 | `CanonicalMessageFormat`（2 role, 6 content block types） |
 | `IPermissionProvider` | 权限派生 | `HierarchicalPermissionProvider`（3-source merge） |
+| `IToolAccessChecker` | 工具 deny/allow 检查 | `DefaultToolAccessChecker`（deny-first） |
+| `IPathAccessChecker` | 路径 deny/allow 检查 | `DefaultPathAccessChecker`（glob + 规范化） |
 
 **扩展方式**：
 - 新 `IAgentExecutor` 实现（Plan-and-Execute、Reflexion 等）
@@ -136,7 +142,9 @@ Layer 1: Core Interfaces (核心接口层)
 | `IContextGovernor` | 每轮上下文治理管线 | `NoOpGovernor` | `PipelineGovernor`（5-stage: drop_orphan→backfill→microcompact→budget→snip） |
 | `IToolCallRepairer` | 工具调用修复链 | `NoOpRepairer` | `ChainRepairer`（flatten→scavenge→truncation→storm） |
 | `IContextCompactor` | 渐进上下文压缩 | `NoOpContextCompactor` | `ProgressiveContextCompactor`（MicroCompact→Snip→LLM Summary） |
-| `IContentGuardrail` | 输入/输出内容护栏 | `NoOpContentGuardrail` | 用户按需添加（内容过滤、PII 检测等） |
+| `IContentGuardrail` | 输入/输出内容护栏 | `NoOpContentGuardrail` | 用户按需添加（注入检测、PII 检测等） |
+| `ISecurityLevelResolver` | 安全等级解析（hints → level） | `NoOpSecurityLevelResolver`（全部 STANDARD） | `RuleTableSecurityLevelResolver`（XDSL 配置化规则表） |
+| `IPermissionMatrix` | 通道 × 等级权限矩阵 | `PassThroughPermissionMatrix`（全放行） | `ChannelPermissionMatrix`（webui/api/dm/group 分级） |
 | `IAgentLifecycleHook` | 生命周期事件处理 | `PriorityHookChain`（10 点） | 用户按需添加 |
 | `IModelRouter` | 请求路由策略 | `PassThroughModelRouter`（直连配置模型） | `SmartModelRouter`（Judge 分类 + Fallback Chain） |
 | `ITalent` | 动态行为准入 | — (空集合) | 用户按需添加（cli, web, file, data, lsp, text2sql...） |
@@ -161,6 +169,9 @@ Layer 1: Core Interfaces (核心接口层)
 | `IRetryPolicy` | Provider 重试策略 | `NoRetry` | `StandardRetryPolicy`（3 retries + 429 语义分类 + image fallback） |
 | `IGoalTracker` | 持续目标跟踪 | `NoOpGoalTracker` | `SessionGoalTracker`（超时豁免 + 透明续接最多 12 轮） |
 | `ICheckpointManager` | 执行状态快照/恢复 | `NoOpCheckpoint` | `ToolExecutionCheckpoint`（工具执行前自动保存） |
+| `IApprovalGate` | 人类审批门 | `AutoApproveGate`（自动通过） | `WebSocketApprovalGate`（Web/RPC 通知） |
+| `IDenialLedger` | 拒绝计数 + 阈值暂停 | `NoOpDenialLedger` | `DBDenialLedger`（持久化，sticky pause） |
+| `IPostDenialGuard` | 拒绝后盲重试阻止 | `PassThroughPostDenialGuard` | `FingerprintPostDenialGuard`（3 种合法 follow-up） |
 
 **扩展方式**：
 - `ICircuitBreaker` 和 `ISustainer` 可配置互斥选择（两种弹性哲学）
@@ -180,6 +191,9 @@ Layer 1: Core Interfaces (核心接口层)
 | `ISkillCurator` | 技能生命周期管理 | `NoOpCurator` | `LLMCurator`（ACTIVE→STALE→ARCHIVED + LLM 审查聚类） |
 | `IMailbox` | 崩溃安全异步消息 | — | `DeferredAckMailbox`（3-phase reservation, at-least-once） |
 | `IContributionRegistry` | 插件贡献注册 | `SimpleRegistry` | 7 贡献类型（Tool, Command, Hook, MCP, Permission, Prompt, Router） |
+| `ISandboxBackend` | 沙箱隔离执行 | `NoOpSandboxBackend`（host 执行） | `DockerSandboxBackend`（容器隔离） |
+| `ISensitivePathProvider` | 敏感路径 denylist | `DefaultSensitivePathProvider`（内置 denylist） | XDSL 外部配置 + Delta 覆盖 |
+| `IAuditLogger` | 安全审计持久化 | `Slf4jAuditLogger`（标准日志） | `DBAuditLogger`（数据库持久化） |
 
 **扩展方式**：
 - `IMessageService` 从 Local → DB-backed，零业务代码改动

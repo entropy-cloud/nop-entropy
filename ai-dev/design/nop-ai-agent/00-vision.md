@@ -26,10 +26,11 @@
 | 1 | **DSL-First** | 先定义 `xdef` schema 的字段语义，再定义 runtime 如何解释。不把 runtime 假设伪装成 DSL 字段。 |
 | 2 | **Agent 即配置，Engine 即执行** | Agent 是 `agent.xdef` 装载得到的纯配置对象，不持有执行逻辑和状态。执行由独立引擎层负责。 |
 | 3 | **配置、执行、状态三者分离** | AgentModel 是静态配置，Agent 是无状态执行体，AgentState/AgentSession 是独立状态对象（按 sessionId 获取，作为上下文传入 Agent）。与 Nop 可逆计算原则一致。便于 Delta 定制、便于独立测试、便于状态恢复。 |
-| 4 | **权限默认收敛** | 子 Agent 只能继承或收缩权限，不能提升。程序校验优先于 prompt 约束。 |
-| 5 | **先确定性能力，后智能决策** | 参数验证、错误分类、超时、安全限制优先于 Advisor Agent 决策（retry/compression/repair advisor）。 |
-| 6 | **不把未来设想伪装成当前设计** | Platform Layer 的具体组件（ActorRuntime、TeamManager 等）实现方案可以后置，但 Actor 心智模型本身是当前基线。 |
-| 7 | **架构决策有外部参照** | 每个关键决策（Agent 模型、Hook 机制、会话设计）需有对比分析支撑，拒绝理由同样需要记录。 |
+| 4 | **渐进式增强** | 内部运行时实现最简化——只做"不引入任何外部假定的最简行为"。更多假定通过外部 XDSL 模型逐步引入（权限规则、安全等级、审批策略等）。不是按时间分阶段实施，而是通过 DSL 配置的丰富度逐步增强系统行为。扩展通过添加接口实现，不通过阶段切换。 |
+| 5 | **权限默认收敛** | 子 Agent 只能继承或收缩权限，不能提升。程序校验优先于 prompt 约束。 |
+| 6 | **先确定性能力，后智能决策** | 参数验证、错误分类、超时、安全限制优先于 Advisor Agent 决策（retry/compression/repair advisor）。 |
+| 7 | **不把未来设想伪装成当前设计** | Platform Layer 的具体组件（ActorRuntime、TeamManager 等）实现方案可以后置，但 Actor 心智模型本身是当前基线。 |
+| 8 | **架构决策有外部参照** | 每个关键决策（Agent 模型、Hook 机制、会话设计）需有对比分析支撑，拒绝理由同样需要记录。 |
 
 ## 四、显式 Non-Goals
 
