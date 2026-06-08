@@ -428,6 +428,7 @@ Follow-up:
 3. 逐条核对 `Closure Gates`。
 4. 逐项核对文本一致性：`Plan Status`、每个 slice 的 `Status`、每个 slice 的 `Exit Criteria`、`Closure Gates`、`ai-dev/logs/` 收口记录必须彼此一致，不能保留"顶部已 completed、内部仍未勾选"的状态。
 5. 运行 `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 确认所有 checklist 已勾选且 Closure Evidence 已写入。如果此命令退出码非 0，不能关闭 plan。
+5b. 运行 `node ai-dev/tools/scan-hollow-implementations.mjs --module <affected-module> --severity high`。如果退出码非 0（有 high/critical 空壳发现），不能关闭 plan。
 5. 把剩余工作写进 `Follow-up`，明确 successor plan 或明确无剩余 debt。
 6. 明确区分"接口存在"与"行为完成"（对代码变更计划：至少抽查一轮 live code path 和 focused tests；对纯文档计划：抽查文档内容与 live repo 代码的一致性），确认实现语义真的满足 exit criteria。
 7. 由独立审阅者或独立子 agent 做 closure-audit，并在 plan 或对应 daily log 中记录证据。这里的独立子 agent 指为 closure audit 单独启动的 fresh session，而不是复用实现阶段的同一 task session 继续自查。
@@ -472,7 +473,7 @@ Closure Audit Evidence:
   - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）
   - 每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）
   - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0（确认无未勾选项 + Closure Evidence 已写入）
-  - Anti-Hollow 检查结果：<<端到端调用链追踪结果>>
+  - Anti-Hollow 检查结果：<<端到端调用链追踪结果>>；`scan-hollow-implementations.mjs` 退出码为 0
   - Deferred 项分类检查：<<确认无 in-scope live defect 被降级>>
 
 Follow-up:
@@ -491,6 +492,7 @@ Follow-up:
 - independent reviewer / subagent findings with task id or cited review note that explicitly check for plan/doc drift and interface-vs-semantics mismatch
 - explicit justification for each deferred item that remained non-blocking at closure
 - **anti-hollow evidence**：端到端测试路径和结果，或代码追踪证明调用链连通的截图/日志
+- **automated anti-hollow scan**: `node ai-dev/tools/scan-hollow-implementations.mjs --module <module> --severity high` 退出码为 0（无 high/critical 空壳实现发现）
 - **checklist 完整性证据**：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 的退出码（必须为 0）
 
 #### 实操理解
