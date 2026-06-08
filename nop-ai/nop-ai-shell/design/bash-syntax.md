@@ -211,6 +211,7 @@ public final class SimpleCommand implements CommandExpression {
  * - cmd1 | cmd2 && cmd3         -> 解析为：PipelineExpr(cmd1, cmd2) 后与 cmd3 逻辑与
  * 
  * 注意：管道操作符 | 的优先级高于逻辑运算符 && 和 ||，但低于括号和子shell
+ * 注意：管道不持有重定向，重定向由管道内各命令或外层表达式持有
  */
 public final class PipelineExpr implements CommandExpression {
     
@@ -251,10 +252,6 @@ public final class PipelineExpr implements CommandExpression {
         return commands;
     }
     
-    public List<Redirect> redirects() {
-        return redirects;
-    }
-    
     @Override
     public String toString() {
         return commands.stream()
@@ -284,9 +281,9 @@ public final class PipelineExpr implements CommandExpression {
 public final class LogicalExpr implements CommandExpression {
     
     public enum Operator {
-        AND("&&", 3),      // 逻辑与（优先级3）
-        OR("||", 2),       // 逻辑或（优先级2）
-        SEMICOLON(";", 1); // 顺序执行（优先级1）
+        AND("&&", 4),      // 逻辑与（优先级4）
+        OR("||", 3),       // 逻辑或（优先级3）
+        SEMICOLON(";", 2); // 顺序执行（优先级2）
         
         private final String symbol;
         private final int precedence;
@@ -338,7 +335,7 @@ public final class LogicalExpr implements CommandExpression {
         if (expr instanceof LogicalExpr) {
             LogicalExpr logical = (LogicalExpr) expr;
             if (logical.operator.precedence() < parentOp.precedence() ||
-                (isRight && logical.operator.precedence() == parentOp.precedence())) {
+                (!isRight && logical.operator.precedence() == parentOp.precedence())) {
                 return "(" + expr + ")";
             }
         }
@@ -654,13 +651,11 @@ public final class Redirect {
         return new Redirect(null, Type.MERGE_APPEND, file);
     }
     
-    // 解析方法（示例）
     /**
-     * 从字符串解析重定向（示例方法，实际应由解析器实现）
+     * 从字符串解析重定向
      *
-     * 注意：此方法仅用于演示。在生产环境中，
-     * 重定向应由词法分析器和语法分析器统一解析，
-     * 而非单独的解析逻辑。
+     * 支持格式：2>&1, 1>&2, &>file, &>>file, >>file, >file, <file, 2>file, 2>>file 等
+     * stderr 重定向通过 sourceFd=2 + OUTPUT/APPEND 组合表达（不使用单独的 STDERR 枚举类型）
      *
      * @param redirectStr 重定向字符串
      * @return Redirect 对象
@@ -671,43 +666,32 @@ public final class Redirect {
             throw new IllegalArgumentException("Redirect string cannot be null or empty");
         }
 
-        // 文件描述符重定向：2>&1, 1>&2
-        if (redirectStr.matches("[12]>&[12]")) {
-            int fd = Integer.parseInt(redirectStr.substring(0, 1));
-            int targetFd = Integer.parseInt(redirectStr.substring(3));
-            return new Redirect(fd, Type.FD_OUTPUT, String.valueOf(targetFd));
+        Matcher m = Pattern.compile("^(?:(\\d+)?(>&|<&)|(\\d+)?(>>|>|<)|(&>>|&>))(.+)$").matcher(redirectStr);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Cannot parse redirect: " + redirectStr);
         }
 
-        // 文件描述符输入复制：2<&1, 1<&0
-        if (redirectStr.matches("[12]<&[12]")) {
-            int fd = Integer.parseInt(redirectStr.substring(0, 1));
-            int targetFd = Integer.parseInt(redirectStr.substring(3));
-            return new Redirect(fd, Type.FD_INPUT, String.valueOf(targetFd));
+        Integer sourceFd = null;
+        Type type = null;
+        String target = m.group(6);
+
+        if (m.group(2) != null) {
+            String fdStr = m.group(1);
+            sourceFd = fdStr != null ? Integer.parseInt(fdStr) : null;
+            type = Type.fromSymbol(m.group(2));
+        } else if (m.group(4) != null) {
+            String fdStr = m.group(3);
+            sourceFd = fdStr != null ? Integer.parseInt(fdStr) : null;
+            type = Type.fromSymbol(m.group(4));
+        } else if (m.group(5) != null) {
+            type = Type.fromSymbol(m.group(5));
         }
 
-        // 标准重定向：>, >>, 2>, 2>>
-        if (redirectStr.matches("[12]?>>?")) {
-            int sourceFd = redirectStr.charAt(0) == '>' ? null :
-                        redirectStr.charAt(0) == '2' ? 2 : null;
-            boolean append = redirectStr.startsWith(">>") || redirectStr.startsWith("2>>");
-            if (redirectStr.length() > (sourceFd != null ? 4 : 3) + 1) {
-                String file = redirectStr.substring(sourceFd != null ? 4 : 3);
-                Type type = sourceFd == 2 ? 
-                    (append ? Type.STDERR_APPEND : Type.STDERR_REDIRECT) :
-                    (append ? Type.APPEND : Type.OUTPUT);
-                return new Redirect(sourceFd, type, file);
-            }
+        if (type == null) {
+            throw new IllegalArgumentException("Cannot parse redirect: " + redirectStr);
         }
 
-        // 合并重定向：&>, &>>
-        if (redirectStr.startsWith("&>") || redirectStr.startsWith("&>>")) {
-            boolean append = redirectStr.startsWith("&>>");
-            String file = redirectStr.substring(append ? 3 : 2);
-            Type type = append ? Type.MERGE_APPEND : Type.MERGE;
-            return new Redirect(null, type, file);
-        }
-
-        throw new IllegalArgumentException("Cannot parse redirect: " + redirectStr);
+        return new Redirect(sourceFd, type, target);
     }
     
     // Getters
