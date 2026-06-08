@@ -260,7 +260,7 @@ Agent 可能会反复调用同一个工具、同一组参数。
 - **结构化模板**（8 节）：Goal / Constraints & Preferences / Progress (Done/In Progress/Blocked) / Key Decisions / Next Steps / Critical Context / Relevant Files
 - **文件追踪**：Compaction 时提取 read/modified 文件列表，附加到摘要末尾（pi-agent 模式）
 - **专用模型**：摘要生成使用便宜/快速模型，不与主 Agent 的 LLM 竞争（Reasonix 用 flash，Hermes 用 auxiliary）。Compaction LLM 调用使用独立配额池（见 actor-runtime-vision.md §5.2: 20/min/tenant）
-- **PreCompact hook**：压缩前保存关键状态（todo, plan, project memory），压缩后重新注入（oh-my-claudecode 模式）。此 hook 属于 Layer 2 新增的 Hook 生命周期点（`before_compaction` / `after_compaction`），当前 Hook 引擎仅定义 `before_reasoning` / `after_reasoning` / `before_acting` / `after_acting` / `on_error`
+- **PreCompact hook**：压缩前保存关键状态（todo, plan, project memory），压缩后重新注入（oh-my-claudecode 模式）。使用 `PRE_COMPACT` / `POST_COMPACT` 生命周期点（`02-execution-model.md` §5.1 Layer 2 扩展）
 
 ### 7.4 最小保真规则
 

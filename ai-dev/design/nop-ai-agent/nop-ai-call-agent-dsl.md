@@ -16,7 +16,7 @@
 
 ```xml
 <call-agent id="!int" explanation="!string" timeoutMs="int"
-            agentId="!string" sessionId="string" skills="csv-set" inheritContext="boolean">
+            agentName="!string" sessionId="string" skills="csv-set" inheritContext="boolean">
     <input>string</input>
     <input-files>
         <input-file path="!full-path" description="string"/>
@@ -46,9 +46,9 @@
 - 子 agent 本次调用的超时时间
 - 若未指定，则由工具默认值或 Agent 约束提供缺省值
 
-### 3.4 `agentId`
+### 3.4 `agentName`
 
-- 目标 agent 名称
+- 目标 Agent 配置名（即 `agent.xdef` 的 `name` 属性）
 - 特殊值 `self` 表示创建当前 agent 的副本
 
 ### 3.5 `sessionId`
@@ -65,7 +65,7 @@
 
 ### 3.7 `inheritContext`
 
-- 仅当 `agentId="self"` 时有效
+- 仅当 `agentName="self"` 时有效
 - `true` 表示新 agent 继承当前会话上下文
 - `false` 表示以全新上下文启动
 
@@ -104,23 +104,23 @@
 
 ### 5.1 调用外部 agent 并新建会话
 
-- `agentId="translator"`
+- `agentName="translator"`
 - 不传 `sessionId`
 
 ### 5.2 调用外部 agent 并延续已有会话
 
-- `agentId="translator"`
+- `agentName="translator"`
 - 传入 `sessionId`
 
 ### 5.3 创建 `self` 副本且不继承上下文
 
-- `agentId="self"`
+- `agentName="self"`
 - `inheritContext="false"`
 - 不传 `sessionId`
 
 ### 5.4 创建 `self` 副本并继承上下文
 
-- `agentId="self"`
+- `agentName="self"`
 - `inheritContext="true"`
 
 ## 6. 当前 DSL 还不能直接表达的内容
@@ -140,7 +140,7 @@ Advisor Agent 不是独立 DSL，而是 `call-agent` 的典型使用场景。
 例如：
 
 - `retry-advisor`
-- `compression-advisor`
+- `compaction-advisor`
 - `consistency-checker`
 
 都应理解为：
@@ -165,7 +165,7 @@ Advisor Agent 不是独立 DSL，而是 `call-agent` 的典型使用场景。
 
 ```xml
 <call-agent id="1" explanation="Spawn sub-agent" timeoutMs="30000"
-            agentId="self" skills="log-analysis" inheritContext="false">
+            agentName="self" skills="log-analysis" inheritContext="false">
     <input><![CDATA[Analyze the attached log files.]]></input>
 </call-agent>
 ```
@@ -174,7 +174,7 @@ Advisor Agent 不是独立 DSL，而是 `call-agent` 的典型使用场景。
 
 ```xml
 <call-agent id="2" explanation="Continue translator session" timeoutMs="10000"
-            agentId="translator" sessionId="sess_xyz789" skills="technical">
+            agentName="translator" sessionId="sess_xyz789" skills="technical">
     <input><![CDATA[Hello, world!]]></input>
 </call-agent>
 ```

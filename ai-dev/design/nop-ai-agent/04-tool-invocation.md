@@ -9,7 +9,7 @@
 ## 一、设计结论
 
 1. 工具发现通过 `agent.xdef` 的 `<tools>` 声明 → 引擎按名称加载 `.tool.xml` → 构建 LLM 可见的工具 schema
-2. 工具执行流经 PRE_ACTING hook → HITL 检查 → 执行器 → POST_ACTING hook → 结果写回
+2. 工具执行流经 PRE_ACTING hook → IApprovalGate 检查 → 执行器 → POST_ACTING hook → 结果写回
 3. 并行工具执行通过 `call-tools.xdef` 的 `parallel` 属性控制
 4. 保持 XML Tool DSL 为主格式，JSON Schema 作为中间转换格式（Phase 2）
 
@@ -27,7 +27,7 @@ agent.xdef 中的 <tools> 声明工具名列表
 ```
 LLM 返回工具调用（XML 格式，解析为 ToolCall 对象）
   → PRE_ACTING hook（可 block）
-  → HITL 检查（如果启用人机协同）
+  → IApprovalGate 检查（高风险操作需人类审批）
   → 工具执行器执行
   → POST_ACTING hook（可修改结果）
   → 结果写回消息历史

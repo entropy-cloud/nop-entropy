@@ -150,6 +150,8 @@ Layer 1: Core Interfaces (核心接口层)
 | `ITalent` | 动态行为准入 | — (空集合) | 用户按需添加（cli, web, file, data, lsp, text2sql...） |
 | `IModelDialect` | Provider 消息格式转换 | `IdentityDialect`（无转换） | DashScope, OpenAI, Gemini, Anthropic, Ollama |
 
+**Working Memory**：不引入独立接口。通过标准工具实现（`read-memory` / `write-memory` / `search-memory`，定义为 `.tool.xml`），工具操作 Session 持久化存储（KV 或 JSON schema 验证），Agent 通过工具调用读写。工具定义在 `tool.xdef` 层面声明，Session 存储复用引擎持久化接口。
+
 **扩展方式**：
 - 替换 pass-through 为功能实现（零业务代码改动）
 - 添加自定义 `IContentGuardrail`（allow/modify/block + streaming abort）

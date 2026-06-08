@@ -63,7 +63,7 @@
 | `AgentExecutionContext` | 单次执行的全部内存态数据的容器 | 生命周期与单次执行绑定，不跨执行复用 |
 | `IAgentExecutor` | 定义执行模式（ReAct、单轮等）的策略接口 | 不持有配置——从上下文中读取；Layer 1 只实现 ReAct；无流式模式（引擎以完整消息粒度执行） |
 | `AgentEventPublisher` | 将执行状态变化投影为外部可观察的事件流 | 事件类型稳定；不修改执行状态 |
-| `IAgentMemory` | Agent 的三层记忆管理 | 短期记忆（context window 管理 + compaction）是核心职责；Working Memory（Layer 2）和长期记忆（Layer 4）按层引入 |
+| `IAgentMemory` | Agent 的三层记忆管理 | 短期记忆（context window 管理 + compaction）是核心职责；Working Memory（Layer 2 工具实现）和长期记忆（Layer 4，底层使用 `IMemoryAdapter`）按层引入 |
 | `IMessageFormat` | Provider 无关的统一消息格式 | 仅 2 角色(user/assistant)，6 种 ContentBlock，ToolResultReference 懒加载。见 `nop-ai-agent-llm-layer.md` |
 
 ### Memory 模型（三层）

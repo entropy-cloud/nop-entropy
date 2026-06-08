@@ -80,22 +80,34 @@ ReAct 主循环的期望行为：
 
 ### 5.1 完整生命周期点
 
+Hook 生命周期点按 Layer 分层。Layer 1 引擎必须实现所有核心点；Layer 2+ 可选实现扩展点。
+
+**Layer 1 核心（5 点）**：
+
+| 生命周期点 | 触发时机 | 可修改内容 |
+|-----------|---------|-----------|
+| `PRE_REASONING` | 发起 LLM 调用前 | 输入消息、chatOptions |
+| `POST_REASONING` | LLM 响应后 | LLM 输出消息 |
+| `PRE_ACTING` | 工具执行前 | 工具调用参数（可 block） |
+| `POST_ACTING` | 单个工具执行后 | 工具结果（可修改） |
+| `ON_ERROR` | 发生错误时 | 错误处理策略 |
+
+**Layer 2 扩展（5 点）**：
+
 | 生命周期点 | 触发时机 | 可修改内容 |
 |-----------|---------|-----------|
 | `PRE_CALL` | Agent 开始执行前 | 请求参数、工具列表 |
 | `POST_CALL` | Agent 执行完成后 | 最终结果 |
-| `PRE_REASONING` | 发起 LLM 调用前 | 输入消息、chatOptions |
-| `POST_REASONING` | LLM 响应后 | LLM 输出消息 |
-| `REASONING_CHUNK` | LLM 流式输出中间块 | 流式块内容 |
-| `PRE_ACTING` | 工具执行前 | 工具调用参数（可 block） |
-| `POST_ACTING` | 单个工具执行后 | 工具结果（可修改） |
-| `PRE_SUMMARY` | 达到 maxIterations 后，生成摘要前 | 无 |
-| `POST_SUMMARY` | 摘要生成后 | 摘要内容 |
-| `ON_ERROR` | 发生错误时 | 错误处理策略 |
+| `REASONING_CHUNK` | LLM 流式输出中间块（纯观察事件） | 流式块内容 |
+| `PRE_COMPACT` | 上下文压缩前 | 压缩前状态保存（oh-my-claudecode PreCompact 模式） |
+| `POST_COMPACT` | 上下文压缩后 | 摘要内容、压缩后状态注入 |
+
+> **说明**：早期设计中 `PRE_SUMMARY`/`POST_SUMMARY` 与 `PRE_COMPACT`/`POST_COMPACT` 是同一概念的两个命名，现已统一为 `PRE_COMPACT`/`POST_COMPACT`——"compact"准确描述了 5 层渐进压缩管线的行为（不仅是摘要）。
 
 ### 5.2 Hook 设计原则
 
-1. **统一事件分发**：所有 Hook 接收相同的生命周期事件类型，引擎决定事件路由
+1. **命名约定**：Java 代码中 Hook 常量使用 `UPPER_SNAKE_CASE`（如 `PRE_REASONING`），DSL `event` 属性匹配值使用 `snake_case`（如 `before_reasoning`）。两种写法是同一概念的两种表示
+2. **统一事件分发**：所有 Hook 接收相同的生命周期事件类型，引擎决定事件路由
 2. **可修改性由事件本身决定**：部分事件允许修改执行数据，部分只读
 3. **优先级排序**：数值越小优先级越高，同优先级按注册顺序
 4. **失败传播**：Hook 执行失败时，引擎根据错误类型决定继续还是中止

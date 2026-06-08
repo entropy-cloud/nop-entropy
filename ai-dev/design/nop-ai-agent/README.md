@@ -4,6 +4,8 @@
 
 本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，采用**四层接口架构**——扩展通过添加接口实现，不通过阶段切换。
 
+- **`glossary.md`** — 核心术语表，确保跨文档命名一致
+
 分层架构（详见 `nop-ai-agent-roadmap.md`）：
 
 ```
@@ -86,6 +88,13 @@ Layer 1: Core Interfaces (核心接口层)
 - `skill-system-design.md`
   - Skill 系统三层表示（SSL 参照）、匹配机制
 
+## 集成层（Gateway / 应用层）
+
+- `nop-ai-agent-channel-connector.md`
+  - 外部信道连接器设计：飞书/钉钉/企微/Webhook 等通用连接抽象
+  - IChannelAdapter 接口、信道会话映射、消息流转、与 IMessageService 的关系
+  - Gateway 层设计，不属于引擎 Layer 1~4
+
 ## 愿景层
 
 - `nop-ai-agent-actor-runtime-vision.md`
@@ -117,4 +126,5 @@ Layer 1: Core Interfaces (核心接口层)
 **扩展方向**：
 
 12. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
-13. `nop-ai-agent-roadmap.md` — 分层架构与实施路线
+13. `nop-ai-agent-channel-connector.md` — 外部信道连接器设计
+14. `nop-ai-agent-roadmap.md` — 分层架构与实施路线

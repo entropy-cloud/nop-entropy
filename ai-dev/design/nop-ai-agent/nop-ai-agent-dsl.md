@@ -150,7 +150,7 @@
 - `maxIterations`
 - `toolTimeoutSeconds`
 - `maxParallelTools`
-- `tokenCompressionThreashold`
+- `tokenCompactionThreshold`
 
 语义补充：
 
@@ -160,7 +160,7 @@
   - 作为工具执行默认超时
 - `maxParallelTools`
   - 限制同一轮 acting 的并行工具数
-- `tokenCompressionThreashold`
+- `tokenCompactionThreshold`
   - 达到阈值时触发压缩检查
 
 这些字段是 Agent DSL 中非常关键的 runtime 控制入口，不应在文档里被弱化成一般性建议。
@@ -210,7 +210,7 @@ Hook 的具体事件和执行规则见 DSL 语义补充文档。
     <availableSkills>plan,review,compression</availableSkills>
 
     <constraints maxIterations="10" toolTimeoutSeconds="300" maxParallelTools="5"
-                 tokenCompressionThreashold="0.78"/>
+                 tokenCompactionThreshold="0.78"/>
 
     <prompt><![CDATA[
 You are a coding agent.

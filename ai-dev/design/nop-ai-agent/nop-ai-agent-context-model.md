@@ -73,7 +73,7 @@ Tool 执行时，引擎提供以下上下文信息：
 |------------|-----------|------|
 | 进程 (Process) | Agent 执行实例 | 一次运行中的 Agent |
 | fork | 上下文复制 + 新 sessionId | 子 Agent 获得父 Agent 的上下文快照 |
-| exec | agentId 切换 | 在 fork 的基础上切换到新 Agent 配置 |
+| exec | agentName 切换 | 在 fork 的基础上切换到新 Agent 配置 |
 | 环境变量继承 | 上下文继承 | 子 Agent 继承父 Agent 的环境信息 |
 | 标准输入 (stdin) | 初始消息/请求 | Agent 启动时的输入 |
 | 标准输出 (stdout) | 最终结果 | Agent 执行完成后的输出 |
@@ -87,7 +87,7 @@ Tool 执行时，引擎提供以下上下文信息：
 
 | call-agent 参数 | 进程隐喻 | 说明 |
 |----------------|---------|------|
-| agentId | exec 的目标程序 | 要执行的 Agent 配置 |
+| agentName | exec 的目标程序 | 要执行的 Agent 配置 |
 | sessionId | 进程的会话关联 | 延续已有会话或新建 |
 | inheritContext | 是否继承环境变量 | self 模式下的上下文继承 |
 | skills | 进程的能力配置 | 本次调用的技能集合 |
@@ -106,7 +106,7 @@ Tool 执行时，引擎提供以下上下文信息：
 4. 新 session 的工具集和约束配置从新 Agent 配置重新装配
 5. Fork 后，父子 session 完全独立——修改互不影响
 
-**与 `call-agent` 的关系**：`call-agent` 的 `inheritContext=true` + `agentId="self"` 等价于 fork。
+**与 `call-agent` 的关系**：`call-agent` 的 `inheritContext=true` + `agentName="self"` 等价于 fork。
 
 **拒绝了**：写时复制（Copy-on-Write）。理由是 Agent 的消息和 Plan 不是高频修改的热数据，深拷贝的性能开销可接受，而 CoW 的实现复杂度不值得。
 

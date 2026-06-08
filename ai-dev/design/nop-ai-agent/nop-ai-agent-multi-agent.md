@@ -65,10 +65,10 @@
 
 | 消息类型 | 触发时机 | 内容 | 作用 |
 |---------|---------|------|------|
-| `scope_claim` | Agent 启动或接受新任务时 | sessionId, agentId, scopeDescription, resourcePatterns | 广播工作范围（"我打算改 src/core/ 下的文件"） |
-| `operation_intent` | 工具执行前 | sessionId, agentId, operation, resources, estimatedDuration | 广播具体操作意图（"我要编辑 Foo.java"） |
-| `operation_done` | 工具执行后 | sessionId, agentId, operation, resources, result | 通告操作完成 |
-| `scope_release` | Agent 完成任务或释放范围 | sessionId, agentId | 释放工作范围 |
+| `scope_claim` | Agent 启动或接受新任务时 | sessionId, agentName, scopeDescription, resourcePatterns | 广播工作范围（"我打算改 src/core/ 下的文件"） |
+| `operation_intent` | 工具执行前 | sessionId, agentName, operation, resources, estimatedDuration | 广播具体操作意图（"我要编辑 Foo.java"） |
+| `operation_done` | 工具执行后 | sessionId, agentName, operation, resources, result | 通告操作完成 |
+| `scope_release` | Agent 完成任务或释放范围 | sessionId, agentName | 释放工作范围 |
 | `conflict_alert` | 引擎检测到潜在冲突时 | conflictType, conflictingAgents, resources | 引擎级冲突预警（兜底机制） |
 
 ### 4.3 注入机制
@@ -121,7 +121,7 @@ topic: "agent.coordination.{projectId}"
 {
   "type": "scope_claim",
   "sessionId": "sess-001",
-  "agentId": "agent-refactor",
+  "agentName": "agent-refactor",
   "scopeDescription": "重构 core 模块的错误处理",
   "resourcePatterns": [
     "src/main/java/io/nop/core/**/*.java",

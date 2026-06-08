@@ -550,35 +550,35 @@ soloncode-cli
 
 ### SolonCode 对 nop-ai-agent 的参考价值
 
-#### P0 — 直接可参考（nop-ai-agent 正在实现的核心功能）
+> **修订说明**：经逐条重新评估 nop-ai-agent 现有设计文档（12 篇），SolonCode 的 12 个参考点中 **8 条已被 nop-ai-agent 现有设计覆盖**，**4 条不属于 nop-ai-agent 引擎核心范围**。nop-ai-agent 的设计体系已自洽完备，不需要因 SolonCode 而修改设计文档。
 
-1. **ReAct Agent 执行引擎**：SolonCode 的 `HarnessEngine.prompt().session().stream()` 是 ReAct 循环的参考原型。但 nop-ai-agent **不需要 stream 字符级交互**，整体采用 **Actor 消息模型**——Agent 作为一个 Actor 接收完整 Message，处理后返回完整 Message，不涉及流式 chunk 或 TUI。**建议**：nop-ai-agent 的 `ReActExecutor` 参考 SolonCode 的 Think→Act→Observe 循环结构，但将 ReActChunk 简化为完整的 `AgentMessage`（而非流式 fragment）。每次 LLM 调用、工具调用、观察结果都是一个完整的 Actor 消息。
+#### 已覆盖（nop-ai-agent 现有设计已充分解决）
 
-2. **Actor 消息模型（替代 Portal 统一引擎）**：SolonCode 用 Portal 模式（一个 Engine + 多个 Portal 适配器）实现多通道。nop-ai-agent 采用更简洁的 **Actor 模型**——每个 Channel（Web/API/IM）作为独立 Actor 与 Agent Actor 通过消息通信，无需 stream 适配、无需 TUI。Agent Actor 接收 `UserMessage`，内部执行 ReAct 循环，产出 `AgentResponse`（完整消息），由 Channel Actor 负责投递。**建议**：nop-ai-agent 可定义 `IAgentActor`（`onMessage(AgentMessage): AgentResponse`）+ `IChannelActor`（`send(reply: AgentResponse)`），参考 SolonCode 的 Channel 路由但去掉 stream/WebChunk 复杂度。
+1. **ReAct 引擎循环结构**：✅ 已覆盖。nop-ai-agent 的双循环模型（followUp 外层 + ReAct 内层）+ Steering 机制（`02-execution-model.md`）比 SolonCode 的单 ReAct 循环更完善。引擎以完整消息粒度执行（非逐 token），与 Actor 模型一致。
 
-3. **消息类型设计（简化版 WebChunk）**：SolonCode 的 `WebChunk` 有 10 种流式消息类型。nop-ai-agent 不需要流式，但消息类型分类仍有价值——可简化为 Actor 消息枚举：`TextMessage`（最终文本响应）、`ToolCallMessage`（工具调用请求）、`ToolResultMessage`（工具执行结果）、`ErrorMessage`、`ApprovalRequestMessage`（HITL）。**建议**：用 XMeta 定义 `AgentMessage` schema，类型数从 10 种压缩到 5~6 种，每条消息都是完整内容（非 chunk）。
+2. **Actor 消息模型**：✅ 已覆盖。nop-ai-agent 已定义 AgentActor（`actor-runtime-vision.md` §3.1）、IMessageService 通信（`01-architecture-baseline.md` §6）、IAgentEngine.sendMessage() → ack → 异步事件（`react-engine.md` §3.2）。外部通道通过 Gateway + IMessageService 桥接，不需要额外的"Channel Actor"概念。
 
-4. **安全校验统一模式**：SolonCode 在所有输入端统一校验路径穿越（`..`）、sessionId 安全、超时保护。nop-ai-toolkit 已实现 `IToolCallInterceptor`（`beforeCall`/`afterCall`），可直接在 `beforeCall` 中注入安全校验。**建议**：nop-ai-agent 可参考 SolonCode 的轻量校验模式，通过 `IToolCallInterceptor` 统一注入路径穿越、超时保护等安全策略。
+3. **消息类型体系**：✅ 已覆盖。事件类型 7 种（`runtime-semantics.md` §6：TextChunk/ThinkingChunk/ToolCallStart/ToolCallComplete/AgentResult/AgentError/AgentInterrupted）+ Actor 请求/响应（AgentMessageRequest/AgentMessageAck）+ 3 种通信模式（同步/异步/广播）。SolonCode 的 WebChunk 10 种流式消息类型不适用于 nop-ai-agent 的 Actor 完整消息模型。
 
-#### P1 — 中期可参考
+4. **安全校验**：✅ 已覆盖。四层纵深防御 + 12 个接口（`security-and-permissions.md`），包含 IToolAccessChecker（权限）、IPathAccessChecker（路径）、IPermissionProvider（3-source merge）。nop-ai-agent 的安全设计远比 SolonCode 完善。
 
-5. **上下文压缩**：nop-ai-agent 设计了 5 层压缩管线（Layer 0~4），远比 SolonCode 的单层 LLM 摘要更先进。`AiMemoryConfig` 已定义 trimRounds/enableSummary/summaryRounds 等配置。SolonCode 提供了一个**可运行的实现**——`compressionThreshold(summaryWindowSize, summaryWindowToken)` + `compressionModel`。**建议**：nop-ai-agent 可先实现 Layer 0（工具结果截断）和 Layer 3（LLM 摘要），参考 SolonCode 的 `compressionThreshold` 参数设计。
+5. **上下文压缩**：✅ 已覆盖，且更完善。5 层渐进压缩管道（`reliability.md` §7.1）+ 三区域上下文架构 + 增量摘要 + Tool-Call Repair 四阶段管线。比 SolonCode 的单层 LLM 摘要更成熟。
 
-6. **ConfigTalent 自管理配置**：SolonCode 让 AI 通过 `add_model`/`add_mcp_server`/`add_api_server` 工具自管理配置。nop-ai-agent 的 `ITalent` 接口已设计但未实现。**建议**：nop-ai-agent 可实现一个 `ConfigTalent`，利用 Nop 的 Delta 定制机制——AI 动态生成 `.tool.xml` 或修改 `agent.xdef`，通过 Delta 层叠加到现有配置。
+6. **动态行为准入**：✅ 已覆盖。ITalent（动态行为准入）+ Delta 定制（XDSL 模型级覆盖）组合覆盖了 SolonCode ConfigTalent 的能力，且更强大——Delta 定制是系统级的，不限于 Agent 配置。
 
-7. **IM Channel Actor**：nop-ai-agent 设计中有 channel 类型（webui/api/dm/group）但无具体实现。SolonCode 的 `Channel` 接口 + `WebStreamBuilder.bind()` 是参考，但 nop-ai-agent 用 Actor 模型更简洁——每个 IM 通道是一个 Channel Actor，接收 `AgentResponse` 完整消息后投递到 IM，无需流式转发。**建议**：nop-ai-agent 可定义 `IChannelActor` 接口（`onAgentResponse(response: AgentResponse)`），每个 IM（钉钉/飞书/企微）独立实现。
+7. **HITL 审批**：✅ 已覆盖。IApprovalGate + IDenialLedger + IPostDenialGuard（`security-and-permissions.md` §6）+ ask-oracle 工具。比 SolonCode 的单一审批机制更完善。在 Actor 模型下，审批请求通过 IMessageService 传递给 Gateway，由 Gateway 路由到人类界面。
 
-8. **Loop 定时任务**：SolonCode 的 850 行 Loop 系统是 Agent 监控/巡检场景的完整参考。nop-ai-agent 当前无对应设计。**建议**：nop-ai-agent 可利用 nop-job 的调度能力实现类似功能，定义 `LoopCommand` + `LoopTask` + JSON 持久化。
+8. **LSP 集成**：✅ 已覆盖。LSP 作为一种工具能力，注册为 `.tool.xml` 即可。通过 ITalent 或 Skill 系统实现按上下文动态激活（`skill-system-design.md`）。
 
-9. **ACP 协议适配**：SolonCode 将 ReAct 循环映射为 ACP 结构化输出（Plan/ToolCall/Thought）。nop-ai-agent 无 Agent 协议设计。**建议**：nop-ai-agent 可在 `IAgentPortal` 的基础上增加 ACP Portal，复用 ReAct→ACP 的映射逻辑。
+#### 不需要（不属于 nop-ai-agent 引擎核心范围）
 
-10. **HITL 审批流程**：nop-ai-agent 有 `AskOracleExecutor`（可运行但仅自动通过模式）和 `IApprovalGate` 设计。SolonCode 提供了完整的 HITL 实现（CLI raw mode + Web HITL chunk），但 nop-ai-agent 用 Actor 模型更简洁——Agent 发送 `ApprovalRequestMessage`，Channel Actor 转发给人类，人类回复后 Agent Actor 继续执行。**建议**：nop-ai-agent 的 `IApprovalGate` 产出 `ApprovalRequestMessage`，通过 Actor 消息传递实现审批，无需 SolonCode 那种 stream 暂停/恢复机制。
+9. **IM Channel Actor**：⬜ 不需要。IM 集成属于 Gateway 层职责。nop-ai-agent 已有 Gateway 部署模型（`01-architecture-baseline.md` §5）+ IPermissionMatrix 按 channelKind 分级（webui/api/dm/group）。IM 适配器只是 Gateway 的一个实现，不需要引擎层的"Channel Actor"概念。
 
-#### P2 — 长期可参考
+10. **Loop 定时任务**：⬜ 不需要。定时触发 Agent 执行属于应用集成层——nop-job 定时调用 IAgentEngine.sendMessage() 即可。RecoveryManager 的定时扫描（`actor-runtime-vision.md` §6.3）已是平台层对 nop-job 的唯一引用点。
 
-11. **LSP Talent 预注册模式**：SolonCode 内置 14 种语言 LSP 配置但默认禁用。nop-ai-agent 计划实现 `lsp` Talent。**建议**：采用同样的预注册+默认禁用模式，通过 `AgentModel.tools` 白名单控制启用。
+11. **ACP 协议**：⬜ 不需要。与 MCP 同类——协议层适配是 Gateway 职责。如需 ACP 兼容，在 Gateway 写一个 ACP → AgentMessageRequest 适配器即可，引擎零改动。与 vision 中 MCP 的 Non-Goal 决策一致。
 
-12. **MarketManager 技能市场**：nop-ai-agent 可参考 SolonCode 的多市场适配器模式，利用 Nop 的 VFS 机制实现技能分发。
+12. **技能市场**：⬜ 不需要。平台级产品功能，引擎已提供 Skill 注册中心 + 版本化 + Delta 覆盖（`skill-system-design.md`）作为基础设施。
 
 #### nop-ai-agent 的优势（SolonCode 应当学习的）
 
@@ -601,23 +601,19 @@ soloncode-cli
 
 ### 与 Nop 平台的关联
 
-#### 可借鉴 (高价值)
+#### 设计验证（SolonCode 证实 nop-ai-agent 设计方向正确）
 
-1. **Actor 消息模型（替代 Portal 统一引擎）**：SolonCode 的 Portal 模式（一个 Engine + 多个 Portal 适配器）可简化为 Actor 模型——Agent Actor + Channel Actor 通过消息通信，无需 stream/TUI
-2. **消息类型设计**：SolonCode 的 WebChunk 10 种消息类型可简化为 nop-ai-agent 的 `AgentMessage` 枚举（5~6 种完整消息类型），用 XMeta 定义 schema
-3. **ConfigTalent 自管理**：AI 通过工具调用自管理配置扩展，可与 Nop 的 Delta 定制结合——AI 动态注册新的 BizModel/Meta
-4. **IM Channel 路由表**：`Channel` 接口 + `WebStreamBuilder.bind()` 路由表模式，可用于 Nop 企业 IM 集成（钉钉/飞书/企微）
-5. **Loop 定时任务**：IJobManager cron 调度 + JSON 原子写入 + 进程重启恢复，是 Nop nop-job 集成 Agent 的参考实现
-6. **ACP 协议**：标准化 Agent 通信协议实现，为 Nop Agent 互操作（与 IDE/其他 Agent 集成）提供标准参考
-7. **LSP Talent 预注册**：14 种语言内置 LSP 配置但默认禁用的模式，平衡开箱即用和资源消耗——适合 Nop 的多语言支持策略
-8. **GitService AI 摘要**：`git-summary` Agent 生成提交摘要的模式，可直接用于 Nop 的代码评审辅助
+1. **Actor 消息模型验证**：SolonCode 的 Portal 模式（5 个 Portal 适配器 + stream 复杂度）证实 nop-ai-agent 选择 Actor 模型（AgentActor + IMessageService + Gateway）是正确的简化方向——同样的多通道能力，但架构更简洁
+2. **完整消息粒度验证**：SolonCode 的 WebChunk 10 种流式消息类型和 stream 状态管理证实 nop-ai-agent 选择"完整消息粒度执行"（`02-execution-model.md`）是正确的——无人值守场景不需要逐 token 交互
+3. **5 层压缩验证**：SolonCode 仅有单层 LLM 摘要，nop-ai-agent 的 5 层渐进压缩管线（`reliability.md` §7.1）设计方向正确且更完善
+4. **安全纵深验证**：SolonCode 仅有简单的路径校验 + 超时保护，nop-ai-agent 的四层 12 接口纵深防御（`security-and-permissions.md`）设计方向正确
+5. **ITalent + Delta 验证**：SolonCode 的 ConfigTalent（AI 自管理配置）是 ITalent 动态行为准入 + Delta 定制的子集
 
-#### 可借鉴 (中等价值)
+#### SolonCode 产品层面的可借鉴点
 
-9. **AGENTS.md 纯 Markdown 定制**：比 Nop 当前的 AGENTS.md 方案更简洁，值得考虑简化
-10. **三级重试策略**：apiRetries / modelRetries / mcpRetries 独立配置，对 Nop AI 的容错策略有参考价值
-11. **安全校验模式**：路径穿越校验（`..`）、sessionId 安全校验、超时保护的统一模式
-12. **MarketManager 技能市场**：多市场适配器模式可用于 Nop AI 的技能分发生态
+6. **IM 原生集成参考**：SolonCode 的 Channel 接口（41 行 3 方法）+ WebStreamBuilder.bind() 路由模式是 nop-ai-agent `IChannelConnector` 设计的主要参考来源。已形成独立设计文档 `nop-ai-agent-channel-connector.md`
+7. **GitService AI 摘要**：`git-summary` Agent 生成提交摘要的模式，可直接用于 Nop 的代码评审辅助（纯应用层功能）
+8. **三级重试策略**：apiRetries / modelRetries / mcpRetries 独立配置，对 Nop AI 的容错策略有参考价值（可在 `nop-ai-agent-llm-layer.md` 中考虑）
 
 #### 不适用
 
@@ -634,19 +630,13 @@ soloncode-cli
 
 SolonCode 是 Java AI 编码 Agent 生态中 **多通道能力最强** 的项目。其最大差异化在于：(1) **Portal 统一引擎** — 一个 HarnessEngine 服务 CLI/Web/Desktop/ACP/IM 五个门户，每个门户独立实现输入/输出适配，共享 Agent 逻辑；(2) **IM 原生集成** — 微信/飞书/钉钉三种企业 IM 通过 `Channel` 接口统一路由，`WebStreamBuilder` 将 AI 响应流式转发到 IM；(3) **ConfigTalent** — AI 通过工具调用自管理配置扩展（动态添加 Model/MCP/API），是 Agent 自进化的雏形；(4) **Loop 定时任务** — cron 调度 + JSON 持久化 + 进程重启恢复，填补了 Agent 监控/巡检场景的空白。
 
-**与 nop-ai-agent 的关系**：两者处于不同的成熟阶段，且设计哲学有本质差异。nop-ai-agent 在 **DSL/模型/代码生成/虚拟 Shell/Mock 测试** 等"框架基础"维度更强（声明式 Agent DSL、结构化 Plan、响应解析器），但在 **Agent 运行时**（ReAct 引擎、多通道、上下文压缩、HITL、记忆、IM 集成）等"产品能力"维度尚未实现。**关键设计差异**：nop-ai-agent 采用 **Actor 消息模型**（完整 Message 进出，无 stream/TUI），而 SolonCode 是 **流式 Portal 模型**（chunk 级 stream + 多 Portal 适配器）。这意味着 nop-ai-agent 不应直接照搬 WebChunk 或 Portal 模式，而应参考其功能分类（消息类型、通道路由），用 Actor 模型重新简化实现。nop-ai-agent 应在保持 DSL 优势和 Actor 简洁性的同时，优先从 SolonCode 借鉴 **P0 级** 的运行时逻辑（ReAct 循环结构、安全校验、消息类型分类）。
+**与 nop-ai-agent 的关系**：SolonCode 的最大价值是**验证** nop-ai-agent 的设计方向正确——Actor 消息模型（vs Portal+stream）、完整消息粒度（vs 逐 token）、5 层压缩（vs 单层摘要）、四层纵深安全（vs 简单校验）、ITalent+Delta（vs ConfigTalent）。nop-ai-agent 现有设计体系（12 篇文档）已自洽完备，12 个参考点中 8 条已被现有设计覆盖、4 条不属于引擎核心范围，**不需要因 SolonCode 而修改任何设计文档**。SolonCode 的产品层面参考价值在于 IM 集成实现（Gateway 层适配器）和 Git AI 摘要（应用层功能）。
 
 ## Open Questions
 
-- [ ] Actor 消息模型中 Agent Actor 与 Channel Actor 的消息协议如何定义？`AgentMessage` 的类型枚举是否 5~6 种足够？
-- [ ] SolonCode 的 WebChunk 10 种消息类型在 Actor 模型下如何简化？哪些类型可合并？
-- [ ] ConfigTalent 的 AI 自管理配置模式是否适合 Nop 的 Delta 定制机制？AI 动态生成 `.tool.xml` 是否安全？
-- [ ] Loop 定时任务的 JSON 持久化 + nop-job 调度方案能否直接在 Nop 中复用？
-- [ ] ACP 协议是否应作为 Nop Agent 互操作的标准化方向？在 Actor 模型中如何适配？
-- [ ] IM Channel Actor 模式能否扩展为 Nop 的多渠道消息分发基础设施？
-- [ ] nop-ai-agent 的 5 层压缩管线设计是否应参考 SolonCode 先实现 Layer 0 + Layer 3 的最小可用版本？
-- [ ] nop-ai-agent 已有 `IVectorStore` + `IEmbeddingModel` 接口，是否应作为 RAG/Talent 检索的底层？
-- [ ] `DefaultAiChatResponseCache` 的 hash 缓存策略是否适合 Agent 场景（工具结果差异导致请求不同）？
+- [ ] nop-ai-agent 的 Agent Runtime 层（ReAct 引擎、记忆系统）何时进入实现阶段？SolonCode 可作为运行时参考
+- [ ] IM 集成作为 Gateway 层实现时，是否需要参考 SolonCode 的 `Channel` 接口 + `WebStreamBuilder` 路由模式？
+- [ ] nop-ai-agent 的 `DefaultAiChatResponseCache` 响应缓存策略是否适合 Agent 场景（工具结果差异导致请求不同）？
 
 ## References
 

@@ -1,5 +1,7 @@
 # Nop AI Agent 会话与存储设计
 
+> **权威声明**：存储结构的权威定义在 `nop-ai/model/nop-ai.orm.xml` 中。表名、列名、类型、关系、索引、dict 均以 orm.xml 为准。本文档是概念说明，解释为什么这样设计、数据如何流转、生命周期如何管理。如果本文档描述与 orm.xml 不一致，以 orm.xml 为准。
+
 ## 1. 目标
 
 本篇定义 `nop-ai-agent` 的会话、持久化和文件布局设计，回答下面问题：
@@ -367,3 +369,125 @@ Session 延续应该解决“上下文怎么继续”，而不是隐式改变当
 - Plan 是项目级实体，独立于 session，按 AGE 规范存储在 `ai-dev/plans/`
 
 这些是当前阶段应稳定的契约，但保留未来替换底层存储的空间。
+
+## 16. 存储结构设计决策
+
+本节记录 ORM 模型中的关键架构决策。权威定义在 `nop-ai/model/nop-ai.orm.xml`。
+
+### 16.1 表职责划分
+
+Agent 运行时存储由 6 张表 + 复用现有 `NopAiProject` 组成：
+
+| 表 | 职责 | 写入频率 |
+|----|------|---------|
+| `nop_ai_session` | 会话元数据 + 聚合统计 | 中（每个 LLM turn 更新） |
+| `nop_ai_session_message` | 对话内容（8 种类型） | 高（每条消息 INSERT） |
+| `nop_ai_session_input` | 输入队列（admitted→promoted） | 中（用户发消息时） |
+| `nop_ai_session_context` | 上下文压缩快照（多版本） | 低（压缩时） |
+| `nop_ai_todo` | 待办 + 依赖关系 | 中（LLM 更新时） |
+| `nop_ai_event` | 审计事件日志（append-only） | 高（异步写入） |
+
+**决策**：复用现有 `NopAiProject`，不新建独立项目表。Agent session 通过 `projectId` FK 关联。
+
+**拒绝了**：新建独立的项目表。`NopAiProject` 已覆盖项目级上下文需求。
+
+### 16.2 SessionMessage 结构化字段 vs 全 JSON
+
+**决策**：结构化字段（`role`、`content`）+ CLOB（`toolDetails`、`reasoning`）。
+
+关键查询（按 role 过滤、按 content 搜索）可用 SQL，大字段保留在 CLOB 中。
+
+**已知取舍**：一条 assistant 消息中的多个 tool 调用合并在 `toolDetails` JSON 数组中，无法用 SQL 直接查询单个 tool 调用。这是有意的扁平化——如果 tool 级查询成为瓶颈，可拆为独立的 `NopAiToolCall` 表。
+
+**拒绝了**：opencode v2 的单 JSON `data` 字段方案。无法做 SQL 级查询。
+
+### 16.3 SessionContext 独立主键 + 多版本快照
+
+**决策**：独立 `id` PK + `sessionId` FK。每次上下文压缩产生新行（`revision` 递增），保留历史快照。
+
+**拒绝了**：`sessionId` 作为 PK（1:1 关系）。无法保留历史版本，且不符合 Nop 平台的 PK 惯例。
+
+### 16.4 Tool Output 完整保留
+
+**决策**：Tool output 完整存入 CLOB，不做截断。上下文窗口保护是运行时行为，不影响存储层。
+
+**拒绝了**：opencode 的 ToolOutputStore 分层（磁盘文件 + 数据库预览截断）。理由：MySQL/PG LONGTEXT 上限 4GB，与 SQLite 完全不同；企业级平台需要完整审计。
+
+部署注意：MySQL `max_allowed_packet` 默认仅 64MB，部署时需确保 ≥256MB。
+
+### 16.5 审计字段：手动定义 vs useStdFields
+
+**决策**：6 张新增 Agent 实体手动定义审计字段（`version`、`createdBy`、`createTime`、`updatedBy`、`updateTime`），不在 orm 根节点设置 `useStdFields`（避免影响现有 16 张 AI Coder 表）。
+
+`NopAiEvent` 为 append-only 例外，仅有 `createdBy`、`createTime`。
+
+## 17. 数据流
+
+本节描述 Agent 运行时中数据从产生到持久化的完整流转路径。
+
+### 17.1 核心写入流程
+
+```
+用户发消息
+  ├── NopAiSessionInput INSERT (delivery=steer/queue)
+  ├── NopAiSessionMessage INSERT (role=user, content=用户输入)
+  └── NopAiSession UPDATE (tokensInput 累加)
+
+LLM 推理
+  ├── NopAiSessionMessage INSERT (role=assistant, content=文本, reasoning=推理)
+  └── NopAiSessionMessage UPDATE (toolDetails: tool pending→running→completed/error)
+
+LLM turn 结束
+  ├── NopAiSessionMessage UPDATE (finishReason, metadata 含 cost/tokens)
+  └── NopAiSession UPDATE (累加 cost/tokensOutput/tokensReasoning/totalBytes)
+
+工具执行（在 LLM turn 内）
+  └── NopAiSessionMessage UPDATE (toolDetails: tool state 变更，完整 input/output)
+
+上下文压缩
+  ├── NopAiSessionContext INSERT (新 revision, baseline, snapshot)
+  ├── NopAiSessionMessage INSERT (role=compaction, content=summary)
+  └── NopAiSession UPDATE (compactedAt)
+
+事件审计（异步，不在关键路径）
+  └── NopAiEvent INSERT (sessionId, seq, eventType, data)
+```
+
+### 17.2 读取流程
+
+```
+Session 加载
+  ├── NopAiSession SELECT (元数据 + 聚合统计)
+  ├── NopAiSessionContext SELECT (最新 revision 的 baseline/snapshot)
+  └── NopAiSessionMessage SELECT (firstKeptSeq 之后的消息，按 seq 排序)
+
+历史回放
+  ├── NopAiEvent SELECT (按 sessionId + seq 排序)
+  └── NopAiSessionContext SELECT (按 revision 排序，可回溯任意版本)
+```
+
+### 17.3 消息类型与字段映射
+
+| 消息类型 | role 值 | content | toolDetails | reasoning | metadata |
+|---------|---------|---------|-------------|-----------|----------|
+| user | 10 | ✅ 用户输入 | — | — | files/agents/references |
+| assistant | 20 | ✅ 文本输出 | ✅ tool[] 含完整 state | ✅ 推理过程 | agent/model/cost/tokens/finish/error |
+| compaction | 30 | ✅ summary | — | — | reason/include |
+| shell | 40 | ✅ output | — | — | callID/command |
+| synthetic | 50 | ✅ text | — | — | sessionID |
+| system | 60 | ✅ text | — | — | — |
+| agent-switched | 70 | — | — | — | agent |
+| model-switched | 80 | — | — | — | model |
+
+### 17.4 写入频率与存储量估算
+
+| 表 | 写入频率 | 单行大小（典型） | 单行大小（最大） |
+|----|---------|---------------|---------------|
+| NopAiSession | 中（每 turn 1 次） | ~2 KB | ~10 KB |
+| NopAiSessionMessage (user) | 中（每 turn 1 次） | ~1 KB | ~50 KB |
+| NopAiSessionMessage (assistant) | 中（每 turn 1 次） | ~10 KB | ~500 KB |
+| NopAiSessionMessage (tool output) | 高（每次工具调用） | ~5 KB | ~数 MB |
+| NopAiSessionInput | 中 | ~1 KB | ~50 KB |
+| NopAiSessionContext | 低（压缩时） | ~50 KB | ~数 MB |
+| NopAiTodo | 中 | ~0.5 KB | ~2 KB |
+| NopAiEvent | 高（异步） | ~1 KB | ~50 KB |

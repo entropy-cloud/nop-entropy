@@ -90,8 +90,8 @@ public class AgentMessageAck {
 
 建议 `AgentExecutionContext` 包括：
 
-- `AgentRuntimeModel agentModel`
-- `List<ChatMessage> messages`
+- `AgentModel agentModel`
+- `List<CanonicalMessage> messages`
 - `AgentPlan plan`
 - `String sessionId`
 - `ICancelToken cancelToken`
@@ -158,7 +158,7 @@ build request
 
 ## 8. 与 Hook 的关系
 
-ReAct 引擎只暴露少量关键生命周期点：
+ReAct 引擎暴露 Layer 1 核心 5 个生命周期点（完整 Layer 1+2 定义见 `02-execution-model.md` §5.1）：
 
 - `before_reasoning`
 - `after_reasoning`
@@ -168,6 +168,28 @@ ReAct 引擎只暴露少量关键生命周期点：
 
 Hook 负责增强，引擎负责主流程。
 
-## 9. 本篇结论
+## 9. Actor 状态机与 ReAct 循环的映射
+
+AgentActor 的生命周期状态（`actor-runtime-vision.md` §3.2）与 ReAct 双循环的对应关系：
+
+| Actor 状态 | ReAct 循环位置 | 说明 |
+|-----------|---------------|------|
+| `created` | — | 收到初始请求，加载 AgentModel，初始化 Session |
+| `ready` | — | 准备就绪，即将进入执行 |
+| `running` | 内层 ReAct 循环执行中 | 包含 LLM 调用、工具执行、Steering 检查。每轮 ReAct iteration 不改变 Actor 状态 |
+| `idle` | 内层循环结束 + followUp 为空 | Agent 完成一轮执行，等待新消息（followUp 或外部 sendMessage） |
+| `running` | followUp 消息注入 → 新内层循环 | `idle` → `running`，不重新初始化 Session |
+| `failed` | 不可恢复错误 | 等待 RecoveryManager 恢复或人工干预 |
+| `recovering` | — | RecoveryManager 重放消息、恢复 Session 状态 |
+| `stopped` | — | 最终状态 |
+
+**关键设计点**：
+
+1. **Actor 状态粒度是 per-followUp-turn**：一个 followUp turn（= 一次完整的 ReAct 内层循环）内，Actor 保持 `running`，不随每轮 ReAct iteration 切换状态
+2. **followUp turn 间不重新装配**：Skill 匹配、Hook 装配、System prompt 构建只在 `created → ready` 时执行一次。followUp turn 复用已有装配，仅注入新消息
+3. **崩溃恢复粒度**：Actor 在 `running` 状态崩溃时，RecoveryManager 恢复到最近的事件边界（内层循环中的最后一条消息），而非整个 followUp turn 的起点
+4. **Steering 不改变 Actor 状态**：Steering 是内层循环内的消息注入机制，不影响 Actor 状态转换
+
+## 10. 本篇结论
 
 ReAct 是当前阶段最合适的单 Agent Java 执行引擎模型。

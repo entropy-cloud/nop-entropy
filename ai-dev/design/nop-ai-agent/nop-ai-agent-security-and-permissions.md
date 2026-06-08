@@ -57,7 +57,7 @@ Layer 1: Core Security (核心安全层)
 **接口**：3-source merge（opencode 模式）
 
 ```
-Permission resolve(toolName, agentId, sessionId, channelKind)
+Permission resolve(toolName, agentName, sessionId, channelKind)
 ```
 
 **三个来源**（按优先级）：
@@ -141,7 +141,7 @@ Permission resolve(toolName, agentId, sessionId, channelKind)
 
 安全相关执行记录：
 
-- sessionId, agentId, actorId
+- sessionId, agentName, actorId
 - toolName, 访问路径
 - 权限命中规则
 - 拒绝原因

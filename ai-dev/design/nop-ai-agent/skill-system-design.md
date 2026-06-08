@@ -10,13 +10,22 @@
 
 ## 2. 当前状态
 
-### 2.1 已有设计
+### 2.1 Skill 与 Talent 的关系
+
+| 概念 | 定位 | 层级 | 关注点 |
+|------|------|------|--------|
+| **Skill** | 结构化能力定义（含匹配签名、场景阶段、资源声明） | DSL + 引擎层 | "这个能力是什么、怎么发现、怎么匹配" |
+| **ITalent** | 运行时动态准入（基于上下文开关工具集） | Layer 2 执行扩展 | "此时此刻该激活什么工具集" |
+
+Skill 是能力的**结构化描述**，ITalent 是能力的**运行时激活机制**。一个 Skill 可以通过 ITalent 接口实现动态准入。二者互补而非重叠：Skill 定义"能力是什么"，Talent 决定"现在是否启用"。
+
+### 2.2 已有设计
 
 - `nop-ai-agent-hook-skill-engine.md` — 定义 Skill 引擎层对象（ISkillProvider、SkillResolver、SkillActivationPolicy）
 - `agent.xdef` — `availableSkills` / `requiredSkills` 作为 Agent 级声明
 - `.opencode/skills/` — 8 个手写 `SKILL.md` 技能描述
 
-### 2.2 当前缺失
+### 2.3 当前缺失
 
 | 缺失项 | 后果 |
 |--------|------|
