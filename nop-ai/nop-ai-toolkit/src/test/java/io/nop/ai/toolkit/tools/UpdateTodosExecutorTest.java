@@ -16,22 +16,22 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ManageTodoListExecutorTest {
-    private ManageTodoListExecutor executor;
+public class UpdateTodosExecutorTest {
+    private UpdateTodosExecutor executor;
 
     @BeforeEach
     void setUp() {
-        executor = new ManageTodoListExecutor();
+        executor = new UpdateTodosExecutor();
     }
 
     @Test
     void testToolName() {
-        assertEquals("manage-todo-list", executor.getToolName());
+        assertEquals("update-todos", executor.getToolName());
     }
 
     @Test
     void testExecuteWithoutAction() {
-        XNode node = XNode.make("manage-todo-list");
+        XNode node = XNode.make("update-todos");
         node.setAttr("id", "1");
         AiToolCall call = AiToolCall.fromNode(node);
         AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
@@ -41,7 +41,7 @@ public class ManageTodoListExecutorTest {
 
     @Test
     void testExecuteWithInvalidAction() {
-        XNode node = XNode.make("manage-todo-list");
+        XNode node = XNode.make("update-todos");
         node.setAttr("id", "1");
         node.setAttr("action", "invalid");
         AiToolCall call = AiToolCall.fromNode(node);
@@ -52,7 +52,7 @@ public class ManageTodoListExecutorTest {
 
     @Test
     void testReadEmptyTodoList() {
-        XNode node = XNode.make("manage-todo-list");
+        XNode node = XNode.make("update-todos");
         node.setAttr("id", "1");
         node.setAttr("action", "read");
         AiToolCall call = AiToolCall.fromNode(node);
@@ -63,7 +63,7 @@ public class ManageTodoListExecutorTest {
 
     @Test
     void testWriteTodoList() {
-        XNode node = XNode.make("manage-todo-list");
+        XNode node = XNode.make("update-todos");
         node.setAttr("id", "1");
         node.setAttr("action", "write");
         XNode todos = node.makeChild("todos");
@@ -85,7 +85,7 @@ public class ManageTodoListExecutorTest {
 
     @Test
     void testReadAfterWrite() {
-        XNode writeNode = XNode.make("manage-todo-list");
+        XNode writeNode = XNode.make("update-todos");
         writeNode.setAttr("id", "1");
         writeNode.setAttr("action", "write");
         XNode todos = writeNode.makeChild("todos");
@@ -96,7 +96,7 @@ public class ManageTodoListExecutorTest {
         todo.setAttr("priority", "high");
         executor.executeAsync(AiToolCall.fromNode(writeNode), new MockContext()).toCompletableFuture().join();
 
-        XNode readNode = XNode.make("manage-todo-list");
+        XNode readNode = XNode.make("update-todos");
         readNode.setAttr("id", "2");
         readNode.setAttr("action", "read");
         AiToolCall readCall = AiToolCall.fromNode(readNode);
@@ -107,7 +107,7 @@ public class ManageTodoListExecutorTest {
 
     @Test
     void testClearTodoList() {
-        XNode writeNode = XNode.make("manage-todo-list");
+        XNode writeNode = XNode.make("update-todos");
         writeNode.setAttr("id", "1");
         writeNode.setAttr("action", "write");
         writeNode.makeChild("todos");

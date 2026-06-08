@@ -28,7 +28,7 @@
     <!-- Agent tools -->
     <bean id="ai-tools:ask-oracle" class="io.nop.ai.toolkit.tools.AskOracleExecutor"/>
     <bean id="ai-tools:call-agent" class="io.nop.ai.toolkit.tools.CallAgentExecutor"/>
-    <bean id="ai-tools:manage-todo-list" class="io.nop.ai.toolkit.tools.ManageTodoListExecutor"/>
+    <bean id="ai-tools:update-todos" class="io.nop.ai.toolkit.tools.UpdateTodosExecutor"/>
     <bean id="ai-tools:skill" class="io.nop.ai.toolkit.tools.SkillExecutor"/>
 
     <!-- Provider and Manager -->

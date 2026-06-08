@@ -138,14 +138,14 @@ The system will return a `<call-tools-response>` containing the result for each 
 	</example>
   </tool>
   
-   <tool name="manage-todo-list">
+   <tool name="update-todos">
      <schema>
-       <manage-todo-list id="int" operation="enum:write|read">
+       <update-todos id="int" operation="enum:write|read">
          <!-- For 'write' operation, include all todo items -->
          <todo id="int" status="enum:not-started|in-progress|completed" title="concise-title">
            <description>string</description>
          </todo>
-       </manage-todo-list>
+       </update-todos>
      </schema>
      <description><![CDATA[Manage a structured todo list to plan and track tasks.
 - `operation="write"`: Replaces the entire list. You must provide all items.
@@ -153,7 +153,7 @@ The system will return a `<call-tools-response>` containing the result for each 
 - Critical Workflow: Plan -> Mark ONE as 'in-progress' -> Complete work -> Mark as 'completed' IMMEDIATELY -> Repeat.
     ]]></description>
      <example>
-       <manage-todo-list id="2" operation="write">
+       <update-todos id="2" operation="write">
          <todo id="1" status="completed" title="Set up project structure">
            <description>Create initial folders: /src, /tests, /docs.</description>
          </todo>
@@ -163,7 +163,7 @@ The system will return a `<call-tools-response>` containing the result for each 
          <todo id="3" status="not-started" title="Write unit tests for auth">
            <description>Use jest to test the login endpoint with valid and invalid credentials.</description>
          </todo>
-       </manage-todo-list>
+       </update-todos>
      </example>
    </tool>
 

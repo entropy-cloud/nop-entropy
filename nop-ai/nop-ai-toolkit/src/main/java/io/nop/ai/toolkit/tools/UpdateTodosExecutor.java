@@ -13,8 +13,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletionStage;
 
-public class ManageTodoListExecutor implements IToolExecutor {
-    public static final String TOOL_NAME = "manage-todo-list";
+public class UpdateTodosExecutor implements IToolExecutor {
+    public static final String TOOL_NAME = "update-todos";
 
     private static final Map<String, List<TodoItem>> todoLists = new ConcurrentHashMap<>();
     private static final String DEFAULT_LIST_KEY = "default";

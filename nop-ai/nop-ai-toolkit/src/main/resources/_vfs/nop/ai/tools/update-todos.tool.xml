@@ -1,12 +1,12 @@
 <tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-      name="manage-todo-list">
+      name="update-todos">
 
     <schema>
-        <manage-todo-list id="!int" explanation="!string">
+        <update-todos id="!int" explanation="!string">
             <todos xdef:body-type="list">
                 <todo content="!string" status="!enum:pending|in_progress|completed"/>
             </todos>
-        </manage-todo-list>
+        </update-todos>
     </schema>
 
     <description><![CDATA[管理任务待办列表，用于跟踪多步骤任务的执行进度。每次调用传入完整列表，服务端替换式更新。可与其他工具在同次调用中并行执行。
@@ -43,14 +43,14 @@
     <examples>
         <example index="1">
             <call-tools>
-                <manage-todo-list id="1" explanation="开始用户注册功能开发，共4步" >
+                <update-todos id="1" explanation="开始用户注册功能开发，共4步" >
                     <todos>
                         <todo content="实现表单校验" status="in_progress"/>
                         <todo content="创建注册API端点" status="pending"/>
                         <todo content="添加邮件验证流程" status="pending"/>
                         <todo content="编写集成测试" status="pending"/>
                     </todos>
-                </manage-todo-list>
+                </update-todos>
             </call-tools>
             <call-tools-response>
                 <tool-result id="1" status="success">
@@ -61,14 +61,14 @@
 
         <example index="2">
             <call-tools>
-                <manage-todo-list id="2" explanation="表单校验已完成，开始API端点开发" >
+                <update-todos id="2" explanation="表单校验已完成，开始API端点开发" >
                     <todos>
                         <todo content="实现表单校验" status="completed"/>
                         <todo content="创建注册API端点" status="in_progress"/>
                         <todo content="添加邮件验证流程" status="pending"/>
                         <todo content="编写集成测试" status="pending"/>
                     </todos>
-                </manage-todo-list>
+                </update-todos>
                 <bash id="3" explanation="创建API路由文件" timeoutMs="5000">
                     <command><![CDATA[cat src/routes/api.ts]]></command>
                 </bash>
@@ -85,13 +85,13 @@
 
         <example index="3">
             <call-tools>
-                <manage-todo-list id="4" explanation="所有任务已完成" >
+                <update-todos id="4" explanation="所有任务已完成" >
                     <todos>
                         <todo content="实现表单校验" status="completed"/>
                         <todo content="创建注册API端点" status="completed"/>
                         <todo content="编写集成测试" status="completed"/>
                     </todos>
-                </manage-todo-list>
+                </update-todos>
             </call-tools>
             <call-tools-response>
                 <tool-result id="4" status="success">
@@ -102,7 +102,7 @@
 
         <example index="4">
             <call-tools>
-                <manage-todo-list id="5" explanation="API端点开发中遇到数据库连接问题，记录阻塞" >
+                <update-todos id="5" explanation="API端点开发中遇到数据库连接问题，记录阻塞" >
                     <todos>
                         <todo content="实现表单校验" status="completed"/>
                         <todo content="创建注册API端点" status="in_progress"/>
@@ -110,7 +110,7 @@
                         <todo content="添加邮件验证流程" status="pending"/>
                         <todo content="编写集成测试" status="pending"/>
                     </todos>
-                </manage-todo-list>
+                </update-todos>
             </call-tools>
             <call-tools-response>
                 <tool-result id="5" status="success">

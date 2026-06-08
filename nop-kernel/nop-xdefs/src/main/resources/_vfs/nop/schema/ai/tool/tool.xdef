@@ -2,7 +2,7 @@
       xdef:name="AiToolModel" xdef:bean-package="io.nop.ai.toolkit.model"
       name="!string">
 
-    <!-- schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、manage-todo-list等） -->
+    <!-- schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、update-todos等） -->
     <schema xdef:mandatory="true">xml</schema>
 
     <!-- 可选的结果格式定义 -->
