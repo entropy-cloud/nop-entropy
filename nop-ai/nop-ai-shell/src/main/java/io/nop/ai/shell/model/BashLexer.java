@@ -95,6 +95,17 @@ public class BashLexer {
     private Token tryMatchOperators() {
         int currentPos = position;
 
+        if (position + 3 <= length) {
+            String threeChar = input.substring(position, position + 3);
+
+            if ("<<<".equals(threeChar)) {
+                return new Token(TokenType.REDIRECT_HERE_STRING, threeChar, currentPos);
+            }
+            if ("&>>".equals(threeChar)) {
+                return new Token(TokenType.REDIRECT_MERGE_APPEND, threeChar, currentPos);
+            }
+        }
+
         if (position + 2 <= length) {
             String twoChar = input.substring(position, position + 2);
 
@@ -104,31 +115,20 @@ public class BashLexer {
             if ("||".equals(twoChar)) {
                 return new Token(TokenType.OR, twoChar, currentPos);
             }
-            if (">>".equals(twoChar) || ">>".equals(twoChar)) {
+            if (">>".equals(twoChar)) {
                 return new Token(TokenType.REDIRECT_APPEND, twoChar, currentPos);
             }
-            if ("<&".equals(twoChar) || ">&".equals(twoChar)) {
+            if ("<&".equals(twoChar)) {
+                return new Token(TokenType.REDIRECT_FD_INPUT, twoChar, currentPos);
+            }
+            if (">&".equals(twoChar)) {
                 return new Token(TokenType.REDIRECT_FD_OUTPUT, twoChar, currentPos);
             }
-            if ("&>".equals(twoChar) || "&>>".equals(twoChar)) {
+            if ("&>".equals(twoChar)) {
                 return new Token(TokenType.REDIRECT_MERGE, twoChar, currentPos);
             }
             if ("<<".equals(twoChar)) {
                 return new Token(TokenType.REDIRECT_HERE_DOC, twoChar, currentPos);
-            }
-            if ("<<<".equals(twoChar)) {
-                return new Token(TokenType.REDIRECT_HERE_STRING, twoChar, currentPos);
-            }
-        }
-
-        if (position + 3 <= length) {
-            String threeChar = input.substring(position, position + 3);
-
-            if ("<<<".equals(threeChar)) {
-                return new Token(TokenType.REDIRECT_HERE_STRING, threeChar, currentPos);
-            }
-            if ("&>>".equals(threeChar)) {
-                return new Token(TokenType.REDIRECT_MERGE_APPEND, threeChar, currentPos);
             }
         }
 

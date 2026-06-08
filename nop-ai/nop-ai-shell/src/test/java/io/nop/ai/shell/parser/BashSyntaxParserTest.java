@@ -451,4 +451,119 @@ class BashSyntaxParserTest {
         assertEquals("PATH", cmd.envVars().get(0).name());
         assertEquals("JAVA_HOME", cmd.envVars().get(1).name());
     }
+
+    @Test
+    void testHereStringEndToEnd() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd <<< word");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof SimpleCommand);
+        SimpleCommand cmd = (SimpleCommand) expr;
+        assertEquals(1, cmd.redirects().size());
+        assertEquals(Redirect.Type.HERE_STRING, cmd.redirects().get(0).type());
+        assertEquals("word", cmd.redirects().get(0).target());
+    }
+
+    @Test
+    void testMergeAppendEndToEnd() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd &>> log.txt");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof SimpleCommand);
+        SimpleCommand cmd = (SimpleCommand) expr;
+        assertEquals(1, cmd.redirects().size());
+        assertEquals(Redirect.Type.MERGE_APPEND, cmd.redirects().get(0).type());
+        assertEquals("log.txt", cmd.redirects().get(0).target());
+    }
+
+    @Test
+    void testFdRedirectEndToEnd() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd > out.txt 2>&1");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof SimpleCommand);
+        SimpleCommand cmd = (SimpleCommand) expr;
+        assertEquals(2, cmd.redirects().size());
+        assertEquals(Redirect.Type.OUTPUT, cmd.redirects().get(0).type());
+        assertEquals("out.txt", cmd.redirects().get(0).target());
+        assertEquals(Redirect.Type.FD_OUTPUT, cmd.redirects().get(1).type());
+        assertEquals(2, cmd.redirects().get(1).sourceFd());
+        assertEquals("1", cmd.redirects().get(1).target());
+    }
+
+    @Test
+    void testExportEnvVarStructure() {
+        BashSyntaxParser parser = new BashSyntaxParser("export VAR=val cmd");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof SimpleCommand);
+        SimpleCommand cmd = (SimpleCommand) expr;
+        assertEquals(1, cmd.envVars().size());
+        assertEquals(EnvVar.Type.EXPORT, cmd.envVars().get(0).type());
+        assertEquals("VAR", cmd.envVars().get(0).name());
+        assertEquals("val", cmd.envVars().get(0).value());
+        assertEquals("cmd", cmd.command());
+    }
+
+    @Test
+    void testTrailingBackgroundWithLogicalExpr() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd1 && cmd2 &");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof BackgroundExpr);
+        BackgroundExpr bg = (BackgroundExpr) expr;
+        assertTrue(bg.inner() instanceof LogicalExpr);
+        LogicalExpr logical = (LogicalExpr) bg.inner();
+        assertEquals(LogicalExpr.Operator.AND, logical.operator());
+    }
+
+    @Test
+    void testTrailingBackgroundWithLogicalAndPipeline() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd1 && cmd2 | cmd3 &");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof BackgroundExpr);
+        BackgroundExpr bg = (BackgroundExpr) expr;
+        assertTrue(bg.inner() instanceof LogicalExpr);
+        LogicalExpr logical = (LogicalExpr) bg.inner();
+        assertEquals(LogicalExpr.Operator.AND, logical.operator());
+        assertTrue(logical.right() instanceof PipelineExpr);
+    }
+
+    @Test
+    void testFdRedirectParsing() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd > out.txt 2>&1");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof SimpleCommand);
+        SimpleCommand cmd = (SimpleCommand) expr;
+        assertEquals(2, cmd.redirects().size());
+
+        Redirect first = cmd.redirects().get(0);
+        assertEquals(Redirect.Type.OUTPUT, first.type());
+        assertNull(first.sourceFd());
+        assertEquals("out.txt", first.target());
+
+        Redirect second = cmd.redirects().get(1);
+        assertEquals(Redirect.Type.FD_OUTPUT, second.type());
+        assertEquals(2, second.sourceFd());
+        assertEquals("1", second.target());
+    }
+
+    @Test
+    void testFdInputRedirectParsing() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd < input.txt 0<&3");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof SimpleCommand);
+        SimpleCommand cmd = (SimpleCommand) expr;
+        assertEquals(2, cmd.redirects().size());
+
+        assertEquals(Redirect.Type.INPUT, cmd.redirects().get(0).type());
+        assertEquals("input.txt", cmd.redirects().get(0).target());
+
+        assertEquals(Redirect.Type.FD_INPUT, cmd.redirects().get(1).type());
+        assertEquals(0, cmd.redirects().get(1).sourceFd());
+        assertEquals("3", cmd.redirects().get(1).target());
+    }
 }

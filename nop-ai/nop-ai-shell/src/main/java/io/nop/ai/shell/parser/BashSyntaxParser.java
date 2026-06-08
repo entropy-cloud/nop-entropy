@@ -22,7 +22,14 @@ public class BashSyntaxParser {
     }
 
     private CommandExpression parseSequence() {
-        return parseExpression(0);
+        CommandExpression result = parseExpression(0);
+
+        if (peek() != null && peek().type() == TokenType.BACKGROUND) {
+            consume();
+            return new BackgroundExpr(result);
+        }
+
+        return result;
     }
 
     private CommandExpression parseExpression(int minPrecedence) {
@@ -86,13 +93,6 @@ public class BashSyntaxParser {
         if (token.type() == TokenType.LEFT_PAREN) {
             CommandExpression subshell = parseSubshell();
             List<Redirect> redirects = parseTrailingRedirects();
-            if (peek() != null && peek().type() == TokenType.BACKGROUND) {
-                consume();
-                if (!redirects.isEmpty()) {
-                    return new BackgroundExpr(new SubshellExpr(((SubshellExpr) subshell).inner(), redirects));
-                }
-                return new BackgroundExpr(subshell);
-            }
             if (!redirects.isEmpty()) {
                 return new SubshellExpr(((SubshellExpr) subshell).inner(), redirects);
             }
@@ -102,21 +102,6 @@ public class BashSyntaxParser {
         if (token.type() == TokenType.LEFT_BRACE) {
             CommandExpression group = parseGroup();
             List<Redirect> redirects = parseTrailingRedirects();
-            if (peek() != null && peek().type() == TokenType.BACKGROUND) {
-                consume();
-                if (!redirects.isEmpty()) {
-                    GroupExpr g = (GroupExpr) group;
-                    GroupExpr.Builder builder = GroupExpr.builder();
-                    for (CommandExpression cmd : g.commands()) {
-                        builder.command(cmd);
-                    }
-                    for (Redirect redirect : redirects) {
-                        builder.redirect(redirect);
-                    }
-                    return new BackgroundExpr(builder.build());
-                }
-                return new BackgroundExpr(group);
-            }
             if (!redirects.isEmpty()) {
                 GroupExpr g = (GroupExpr) group;
                 GroupExpr.Builder builder = GroupExpr.builder();
@@ -135,11 +120,6 @@ public class BashSyntaxParser {
 
         if (peek() != null && peek().type() == TokenType.PIPE) {
             return parsePipeline(cmd);
-        }
-
-        if (peek() != null && peek().type() == TokenType.BACKGROUND) {
-            consume();
-            return new BackgroundExpr(cmd);
         }
 
         return cmd;

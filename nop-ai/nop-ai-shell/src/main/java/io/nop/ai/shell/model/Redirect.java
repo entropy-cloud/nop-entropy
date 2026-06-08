@@ -1,6 +1,8 @@
 package io.nop.ai.shell.model;
 
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 重定向 - I/O重定向操作
@@ -159,5 +161,42 @@ public final class Redirect {
     @Override
     public int hashCode() {
         return Objects.hash(sourceFd, type, target);
+    }
+
+    private static final Pattern PARSE_PATTERN = Pattern.compile(
+            "^(?:(\\d+)?(>&|<&)|(\\d+)?(>>|>|<)|(&>>|&>))(.+)$"
+    );
+
+    public static Redirect parse(String input) {
+        if (input == null || input.isEmpty()) {
+            throw new IllegalArgumentException("Invalid redirect: null or empty");
+        }
+
+        Matcher m = PARSE_PATTERN.matcher(input);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Invalid redirect format: " + input);
+        }
+
+        Integer sourceFd = null;
+        Type type = null;
+        String target = m.group(6);
+
+        if (m.group(2) != null) {
+            String fdStr = m.group(1);
+            sourceFd = fdStr != null ? Integer.parseInt(fdStr) : null;
+            type = Type.fromSymbol(m.group(2));
+        } else if (m.group(4) != null) {
+            String fdStr = m.group(3);
+            sourceFd = fdStr != null ? Integer.parseInt(fdStr) : null;
+            type = Type.fromSymbol(m.group(4));
+        } else if (m.group(5) != null) {
+            type = Type.fromSymbol(m.group(5));
+        }
+
+        if (type == null) {
+            throw new IllegalArgumentException("Invalid redirect format: " + input);
+        }
+
+        return new Redirect(sourceFd, type, target);
     }
 }
