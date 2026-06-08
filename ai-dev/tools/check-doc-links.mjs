@@ -65,9 +65,12 @@ function collectMdFiles(dir) {
   const results = [];
   function walk(d) {
     for (const entry of readdirSync(d, { withFileTypes: true })) {
-      const full = join(d, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.isFile() && entry.name.endsWith('.md')) results.push(full);
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === '.git') continue;
+        walk(join(d, entry.name));
+      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+        results.push(join(d, entry.name));
+      }
     }
   }
   walk(dir);
