@@ -70,6 +70,7 @@
 | `dao().getEntityById(id)` 作为 BizModel 模板 | `requireEntity(id, action, context)` |
 | `dao().findAllByQuery(query)` 作为 BizModel 模板 | `doFindList(query, selection, context)` |
 | `dao().findPageByQuery(query)` 作为 BizModel 模板 | `doFindPage(query, selection, context)` |
+| `IDaoProvider.daoFor(Xxx.class).*` 或 `IOrmTemplate` 在 BizModel 中访问其他实体 | 优先注入 `I*Biz` 接口 → 降级到 `IDaoProvider`（注释说明原因）→ 最后才用 `IOrmTemplate` 或 `@SqlLibMapper`。每一级都绕过了上层管道（数据权限、查询预处理、事件派发），降级时必须在代码注释中说明原因 |
 | `@BizMutation @Transactional` | 只保留 `@BizMutation` |
 | `@Inject private Foo foo;` | `protected` / package-private / setter 注入 |
 | Spring `@Value` | `@InjectValue` |
@@ -100,9 +101,10 @@
 2. 这个逻辑真的需要 Java 吗？
 3. 这是普通 BizModel 还是 infra/store 边界场景？
 4. 如果是查询/修改，我走的是 `CrudBizModel` 的默认能力吗？
-5. 我是否至少做了一次与改动范围匹配的验证？
-6. 如果这次任务暴露出 `docs-for-ai/` 不准确或缺失，我是否已经顺手修正文档？
-7. 如果这是 significant 变更，我是否已经补 ai-dev/logs/ 当天日志？
+5. **BizModel 中访问其他实体时，我是否注入了 `I*Biz` 接口而不是 `IDaoProvider`？** 如果用了 `IDaoProvider.daoFor(...)`，说明绕过了数据权限和管道，必须改走 `I*Biz`。
+6. 我是否至少做了一次与改动范围匹配的验证？
+7. 如果这次任务暴露出 `docs-for-ai/` 不准确或缺失，我是否已经顺手修正文档？
+8. 如果这是 significant 变更，我是否已经补 ai-dev/logs/ 当天日志？
 
 ## 相关文档
 

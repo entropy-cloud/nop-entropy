@@ -71,6 +71,10 @@ String ARG_ORDER_ID = "orderId";
 
 每个模块定义一个异常类，继承 `NopException`，接受英文字符串消息。错误消息统一使用**英文**。
 
+**消息语言规则**：
+- `ErrorCode.define(...)` 中的描述消息使用**中文**，框架会通过 i18n 机制翻译。
+- 不走 `ErrorCode` 的异常（如直接 `new NopException("...")` 或模块异常类的字符串构造器）必须使用**英文**，因为这类消息可能被 AI 直接阅读分析。
+
 ### 定义模块异常类
 
 ```java
@@ -152,7 +156,8 @@ throw new NopAiException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
 |--------|------|
 | `throw new RuntimeException("some message")` | 绕过框架异常体系，上层无法统一处理 |
 | 手写 `try { x.close() } catch` 关闭资源 | 应使用 `IoHelper.safeClose`，见上方说明 |
-| 错误消息使用中文 | AI 读取英文消息更准确，避免编码问题 |
+| 自定义异常类不继承 `NopException`（如 `extends RuntimeException`） | 绕过框架异常体系，丢失 ErrorCode、i18n、结构化错误响应等能力。所有业务异常必须直接或间接继承 `NopException` |
+| 错误消息使用中文或非英文 | AI 读取英文消息更准确，避免编码问题；非 ErrorCode 路径的消息可能被 AI 直接阅读，必须使用英文 |
 | 丢失原始异常链 | 排查困难 |
 | 在普通 BizModel 示例中同时展示底层 DAO + 显式事务 | 容易把边界模式误当默认模板 |
 

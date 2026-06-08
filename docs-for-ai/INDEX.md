@@ -110,6 +110,7 @@
 | 构建完整后台工作台页面 | `03-runbooks/build-admin-workspace-page.md` |
 | 用 Delta 替代直接修改 | `03-runbooks/prefer-delta-over-direct-modification.md` |
 | 处理事务边界 | `03-runbooks/transaction-boundaries.md` |
+| 非 BizModel 场景访问 ORM（定时任务、监听器等） | `03-runbooks/non-bizmodel-orm-access.md` |
 | 处理错误码和异常 | `03-runbooks/error-codes-and-nop-exception.md` |
 | 写测试用例 | `03-runbooks/write-tests.md` |
 | 写容器内集成测试 | `03-runbooks/write-integration-test-with-noptestconfig.md` |
