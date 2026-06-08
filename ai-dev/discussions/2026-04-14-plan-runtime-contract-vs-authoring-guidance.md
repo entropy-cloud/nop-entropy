@@ -166,7 +166,7 @@ authoring guide 负责：
 
 - plan 是给 AI / 人 / 运行时三方共同阅读的
 - plan 不是 checklist
-- 局部线性待办应由 `manage-todo-list` 工具负责
+- 局部线性待办应由 `update-todos` 工具负责
 
 ### AI 整理
 
@@ -183,7 +183,7 @@ guide 与 DSL 文档都据此调整为：
 
 - plan 不退化为 checklist
 - runtime gate 明确
-- todo 责任单独保留给 `manage-todo-list`
+- todo 责任单独保留给 `update-todos`
 
 ---
 

@@ -3,7 +3,7 @@
 > Status: done
 > Date: 2026-06-07
 > Scope: nop-ai-agent Todo 子系统设计输入
-> Conclusion: Replace-All 模式 + 独立工具 + `{content, status}` 三状态 + 每个 Agent 独立 todo 列表。已落地到 `manage-todo-list.tool.xml`。
+> Conclusion: Replace-All 模式 + 独立工具 + `{content, status}` 三状态 + 每个 Agent 独立 todo 列表。已落地到 `update-todos.tool.xml`。
 
 ## Context
 
@@ -343,7 +343,7 @@ oh-my-claudecode 的 7 层过滤链很有参考价值。Nop 的 Sisyphean 策略
 |------|------|------|
 | 操作模式 | Replace-All（整体替换） | opencode |
 | 暴露方式 | 独立 IToolExecutor 工具（不是新 Layer 接口）+ parallel tool calls 消除额外 round-trip | opencode |
-| 工具名 | `manage-todo-list`（已有 tool.xml，命名符合项目规范） | nop-ai-toolkit 现有 |
+| 工具名 | `update-todos`（已有 tool.xml，命名符合项目规范） | nop-ai-toolkit 现有 |
 | 参数名 | `todos`（不用 `task_progress`——"progress"对 LLM 歧义大，需大量 prompt 补救） | opencode |
 | 数据模型 | `{content, status}` 仅两字段（无 id、无 priority、无 dependsOn） | opencode + 数据验证 |
 | 状态机 | `pending → in_progress → completed`（3 状态，无 cancelled） | opencode + 数据验证 |
