@@ -2,7 +2,7 @@
 
 > Plan Status: completed
 > Last Reviewed: 2026-06-08
-> Source: 代码审查 `nop-ai/nop-ai-shell/` 与设计文档 `nop-ai/nop-ai-shell/design/bash-syntax.md` 的对比分析
+> Source: 代码审查 `nop-ai/nop-ai-shell/` 与设计文档 `ai-dev/design/nop-ai-shell/04-bash-syntax.md` 的对比分析
 
 ## Purpose
 
@@ -94,7 +94,7 @@ Targets: `nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/model/Redirect.java`
 
 - Item Types: `Fix | Proof`
 
-- [x] 实现 `Redirect.parse(String)` 静态方法，支持解析常见重定向字符串。**禁止使用设计文档 `bash-syntax.md:669-711` 的参考代码**（该代码引用不存在的 `STDERR_REDIRECT`/`STDERR_APPEND` 枚举值）。仅使用实际存在的 `Redirect.Type` 枚举值（`OUTPUT`、`APPEND`、`INPUT`、`FD_OUTPUT`、`FD_INPUT`、`MERGE`、`MERGE_APPEND`、`HERE_DOC`、`HERE_STRING`），stderr 重定向通过 `sourceFd=2 + OUTPUT/APPEND` 组合表达
+- [x] 实现 `Redirect.parse(String)` 静态方法，支持解析常见重定向字符串。**禁止使用设计文档 `04-bash-syntax.md:669-711` 的参考代码**（该代码引用不存在的 `STDERR_REDIRECT`/`STDERR_APPEND` 枚举值）。仅使用实际存在的 `Redirect.Type` 枚举值（`OUTPUT`、`APPEND`、`INPUT`、`FD_OUTPUT`、`FD_INPUT`、`MERGE`、`MERGE_APPEND`、`HERE_DOC`、`HERE_STRING`），stderr 重定向通过 `sourceFd=2 + OUTPUT/APPEND` 组合表达
 - [x] 新建 `RedirectTest.java`
 
 Exit Criteria:
@@ -116,7 +116,7 @@ Exit Criteria:
 ### Phase 3 - 设计文档对齐更新
 
 Status: completed
-Targets: `nop-ai/nop-ai-shell/design/bash-syntax.md`
+Targets: `ai-dev/design/nop-ai-shell/04-bash-syntax.md`
 
 - Item Types: `Fix`
 
@@ -124,7 +124,7 @@ Targets: `nop-ai/nop-ai-shell/design/bash-syntax.md`
 - [x] 修正 `formatOperand` 结合性逻辑：设计文档中 `(isRight && childPrec == parentPrec)` 应改为 `(!isRight && childPrec == parentPrec)`，对齐 `LogicalExpr.java:88` 的实际实现（左结合）
 - [x] 从设计文档中移除 `PipelineExpr.redirects` 字段及其 getter，增加说明"管道不持有重定向，重定向由管道内各命令或外层表达式持有"
 - [x] 移除设计文档中 `Redirect` 的 `STDERR_REDIRECT`/`STDERR_APPEND` 枚举值（实际实现中不存在这些类型，stderr 重定向通过 `sourceFd=2 + OUTPUT/APPEND` 组合表达）
-- [x] 整体替换设计文档中 `Redirect.parse()` 方法体（`bash-syntax.md:669-711`）为 Phase 2 的实际实现规格（原代码引用不存在的枚举值，不可保留）
+- [x] 整体替换设计文档中 `Redirect.parse()` 方法体（`04-bash-syntax.md:669-711`）为 Phase 2 的实际实现规格（原代码引用不存在的枚举值，不可保留）
 
 Exit Criteria:
 

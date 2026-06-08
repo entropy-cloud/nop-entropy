@@ -130,6 +130,17 @@ const json = await result.json();
 - **在业务项目中搭建 E2E 测试**：创建标准 Playwright 项目，按上述 RPC 调用模式编写测试即可。后端 URL 格式与上面描述一致（`/r/{EntityName}__{action}`）。
 - **平台内部的参考实现**：nop-entropy 源码 `nop-entropy-e2e/README.md`。含共享库 API（RPC helpers、Page Objects、AMIS selectors）和新增测试包步骤。**注意**：该文档面向平台开发者，路径和模块结构是 nop-entropy 仓库特有的。
 
+## 异步与并发测试的防挂起规则
+
+涉及 `CompletableFuture`、`BlockingQueue`、线程池、后台任务的测试必须遵守以下规则，防止测试因死锁、无限等待、或线程饥饿而永远不返回：
+
+1. **类级别 `@Timeout`**：所有涉及异步操作的测试类加 `@Timeout(10)`（秒），防止单个测试无限阻塞。
+2. **每个 `Future.get()` / `join()` 都必须带超时**：用 `future.get(5, TimeUnit.SECONDS)` 而非裸 `future.get()` 或 `future.join()`。超时后 test framework 可以 kill 线程。
+3. **`BlockingQueue.take()` 不出现在测试主线程**：测试主线程调用 `take()` 会无限阻塞。用 `poll(timeout, unit)` 或确保生产者线程先 `close()` 再在主线程收集输出。
+4. **Mock 长时间运行的命令用 `Thread.sleep()` + `AtomicBoolean` 检测中断**：不要用 `CountDownLatch.await(30s)`——cancel 后线程未必能走到 `countDown`。用 `Thread.sleep(largeValue)` + `catch InterruptedException` 设置标志位。
+5. **等待后台线程启动用自旋 + 短 sleep**：`for (int i = 0; i < 100 && !started.get(); i++) Thread.sleep(10)` 而非 `latch.await(30s)`。
+6. **`close()` 必须在 `collectOutput` 之前**：如果生产者写 `BlockingQueueShellOutput`，消费者必须等 `close()`（发送 EOF）后才能 `readAllText()`，否则永远阻塞。正确顺序：先关闭输出 → 再读取。
+
 ## 相关文档
 
 - `../03-runbooks/write-tests.md`
