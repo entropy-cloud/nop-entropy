@@ -6,7 +6,7 @@
         let enDisplayName = objMeta.getExtProp('i18n-en:displayName') || objMeta['i18n-en:displayName'] || '';
     </c:script>
 
-    <objMeta>${objMeta.resourcePath()}</objMeta>
+    <objMeta>${objMeta.resourceStdPath()}</objMeta>
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
 
     <c:print>

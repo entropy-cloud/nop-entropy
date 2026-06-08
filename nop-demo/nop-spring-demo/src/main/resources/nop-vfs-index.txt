@@ -731,6 +731,13 @@
 /nop/templates/backend/{appName}-codegen/postcompile/gen-orm.xgen.xgen
 /nop/templates/backend/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
 /nop/templates/cli/app.orm.xml.xgen
+/nop/templates/crud-api/@init.xrun
+/nop/templates/crud-api/{apiPackagePath}/beans/_gen/{!entityModel.notGenCode}_{entityModel.shortName}InputBean.java.xgen
+/nop/templates/crud-api/{apiPackagePath}/beans/_gen/{!entityModel.notGenCode}_{entityModel.shortName}OutputBean.java.xgen
+/nop/templates/crud-api/{apiPackagePath}/beans/{!entityModel.notGenCode}{entityModel.shortName}InputBean.java.xgen
+/nop/templates/crud-api/{apiPackagePath}/beans/{!entityModel.notGenCode}{entityModel.shortName}OutputBean.java.xgen
+/nop/templates/crud-api/{apiPackagePath}/crud/{!entityModel.notGenCode}_{entityModel.shortName}Api.java.xgen
+/nop/templates/crud-api/{apiPackagePath}/crud/{!entityModel.notGenCode}{entityModel.shortName}Api.java.xgen
 /nop/templates/dyn-gen/{enableModuleCore}/{moduleId}/on-load.xpl.xgen
 /nop/templates/dyn-gen/{enableModuleCore}/{moduleId}/on-unload.xpl.xgen
 /nop/templates/dyn-gen/{moduleId}/model/{bizObjName}/{!!entityModel}{entityModel.shortName}.xmeta.xgen
@@ -784,7 +791,6 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm/.dockerignore
 /nop/templates/orm/.gitattributes
-/nop/templates/orm/.gitignore
 /nop/templates/orm/@init.xrun
 /nop/templates/orm/deploy/sql/{dialect}/_add_tenant_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen
@@ -826,6 +832,7 @@
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/{deltaDir}/_app.orm.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/sql/{!!entityModel.tagSet.@mapper}{entityModel.shortName}.sql-lib.xml.xgen
 /nop/templates/orm/{appName}-meta/pom.xml.xgen
+/nop/templates/orm/{appName}-meta/postcompile/gen-crud-api.xgen.xgen
 /nop/templates/orm/{appName}-meta/postcompile/gen-i18n.xgen.xgen
 /nop/templates/orm/{appName}-meta/precompile/gen-meta.xgen.xgen
 /nop/templates/orm/{appName}-meta/src/main/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
