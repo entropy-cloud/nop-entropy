@@ -30,9 +30,6 @@
                 <!--需求内容-->
                 <col id="content" sortable="true"/>
 
-                <!--当前版本-->
-                <col id="version" mandatory="true" sortable="true"/>
-
                 <!--父需求ID-->
                 <col id="parentId" sortable="true"/>
 
@@ -44,6 +41,18 @@
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -52,15 +61,12 @@
     <forms>
         <form id="view" editMode="view" title="查看-需求条目" i18n-en:title="View Requirement Item">
             <layout>
- projectId[项目ID]
- reqNumber[需求编号]
- title[需求标题]
- content[需求内容]
- version[当前版本]
- parentId[父需求ID]
- type[需求类型]
- aiSummary[AI摘要]
- status[状态]
+ projectId[项目ID] reqNumber[需求编号]
+ title[需求标题] content[需求内容]
+ parentId[父需求ID] type[需求类型]
+ aiSummary[AI摘要] status[状态]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-需求条目" i18n-en:title="Add Requirement Item" x:prototype="edit"/>
@@ -70,7 +76,6 @@
  reqNumber[需求编号]
  title[需求标题]
  content[需求内容]
- version[当前版本]
  parentId[父需求ID]
  type[需求类型]
  aiSummary[AI摘要]

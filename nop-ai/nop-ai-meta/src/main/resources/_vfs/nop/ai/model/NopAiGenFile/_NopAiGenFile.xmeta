@@ -3,7 +3,7 @@
       xmlns:xpl="xpl" ext:model="orm" ext:icon="file-code" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen"
       xmlns:biz="biz" displayName="生成文件" i18n-en:displayName="Generated File" xmlns:ui="ui" xmlns:orm="orm">
 
-    <entityName>nop.ai.dao.entity.NopAiGenFile</entityName>
+    <entityName>io.nop.ai.dao.entity.NopAiGenFile</entityName>
 
     <primaryKey>id</primaryKey>
 
@@ -32,7 +32,7 @@
         </prop>
         <prop name="moduleType" displayName="模块类型" propId="4" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="4" dict="ai/module_type"/>
+            <schema type="java.lang.String" precision="4" dict="ai/module-type"/>
         </prop>
         <prop name="content" displayName="文件内容" propId="5" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:control="textarea">
@@ -48,7 +48,27 @@
         </prop>
         <prop name="status" displayName="状态" propId="8" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="4" dict="ai/status_type"/>
+            <schema type="java.lang.String" precision="4" dict="ai/status-type"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="9" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="10" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="11" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="12" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="13" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="project" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="projectId"
               ext:joinRightProp="id" mandatory="true" lazy="true" published="false">

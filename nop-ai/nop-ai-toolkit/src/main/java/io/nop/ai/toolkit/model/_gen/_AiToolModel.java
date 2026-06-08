@@ -47,7 +47,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: schema
-     * schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、manage-todo-list等）
+     * schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、update-todos等）
      */
     private io.nop.core.lang.xml.XNode _schema ;
     
@@ -156,7 +156,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: schema
-     *  schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、manage-todo-list等）
+     *  schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、update-todos等）
      */
     
     public io.nop.core.lang.xml.XNode getSchema(){

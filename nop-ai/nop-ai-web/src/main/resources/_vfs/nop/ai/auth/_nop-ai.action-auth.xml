@@ -33,184 +33,268 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiGenFile-main" displayName="生成文件" orderNo="10007" i18n-en:displayName="Generated File"
+                <resource id="NopAiEvent-main" displayName="Agent事件" orderNo="10007" i18n-en:displayName="Agent Event"
+                          icon="scroll-text" component="AMIS" resourceType="SUBM"
+                          url="/nop/ai/pages/NopAiEvent/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAiEvent:query" displayName="查询Agent事件"
+                                  i18n-en:displayName="Query Agent Event" orderNo="10008" resourceType="FNPT">
+                            <permissions>NopAiEvent:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAiEvent:mutation" displayName="修改Agent事件"
+                                  i18n-en:displayName="Modify Agent Event" orderNo="10009" resourceType="FNPT">
+                            <permissions>NopAiEvent:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAiGenFile-main" displayName="生成文件" orderNo="10010" i18n-en:displayName="Generated File"
                           icon="file-code" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiGenFile/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiGenFile:query" displayName="查询生成文件"
-                                  i18n-en:displayName="Query Generated File" orderNo="10008" resourceType="FNPT">
+                                  i18n-en:displayName="Query Generated File" orderNo="10011" resourceType="FNPT">
                             <permissions>NopAiGenFile:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiGenFile:mutation" displayName="修改生成文件"
-                                  i18n-en:displayName="Modify Generated File" orderNo="10009" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Generated File" orderNo="10012" resourceType="FNPT">
                             <permissions>NopAiGenFile:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiGenFileHistory-main" displayName="文件历史" orderNo="10010"
+                <resource id="NopAiGenFileHistory-main" displayName="文件历史" orderNo="10013"
                           i18n-en:displayName="File History" icon="history" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiGenFileHistory/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiGenFileHistory:query" displayName="查询文件历史"
-                                  i18n-en:displayName="Query File History" orderNo="10011" resourceType="FNPT">
+                                  i18n-en:displayName="Query File History" orderNo="10014" resourceType="FNPT">
                             <permissions>NopAiGenFileHistory:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiGenFileHistory:mutation" displayName="修改文件历史"
-                                  i18n-en:displayName="Modify File History" orderNo="10012" resourceType="FNPT">
+                                  i18n-en:displayName="Modify File History" orderNo="10015" resourceType="FNPT">
                             <permissions>NopAiGenFileHistory:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiKnowledge-main" displayName="知识库" orderNo="10013"
+                <resource id="NopAiKnowledge-main" displayName="知识库" orderNo="10016"
                           i18n-en:displayName="Knowledge Base" icon="book-open" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiKnowledge/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiKnowledge:query" displayName="查询知识库"
-                                  i18n-en:displayName="Query Knowledge Base" orderNo="10014" resourceType="FNPT">
+                                  i18n-en:displayName="Query Knowledge Base" orderNo="10017" resourceType="FNPT">
                             <permissions>NopAiKnowledge:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiKnowledge:mutation" displayName="修改知识库"
-                                  i18n-en:displayName="Modify Knowledge Base" orderNo="10015" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Knowledge Base" orderNo="10018" resourceType="FNPT">
                             <permissions>NopAiKnowledge:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiModel-main" displayName="AI模型" orderNo="10016" i18n-en:displayName="AI Model"
+                <resource id="NopAiModel-main" displayName="AI模型" orderNo="10019" i18n-en:displayName="AI Model"
                           icon="bot" component="AMIS" resourceType="SUBM" url="/nop/ai/pages/NopAiModel/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiModel:query" displayName="查询AI模型" i18n-en:displayName="Query AI Model"
-                                  orderNo="10017" resourceType="FNPT">
+                                  orderNo="10020" resourceType="FNPT">
                             <permissions>NopAiModel:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiModel:mutation" displayName="修改AI模型"
-                                  i18n-en:displayName="Modify AI Model" orderNo="10018" resourceType="FNPT">
+                                  i18n-en:displayName="Modify AI Model" orderNo="10021" resourceType="FNPT">
                             <permissions>NopAiModel:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiProject-main" displayName="AI项目" orderNo="10019" i18n-en:displayName="AI Project"
+                <resource id="NopAiProject-main" displayName="AI项目" orderNo="10022" i18n-en:displayName="AI Project"
                           icon="folder-kanban" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiProject/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiProject:query" displayName="查询AI项目"
-                                  i18n-en:displayName="Query AI Project" orderNo="10020" resourceType="FNPT">
+                                  i18n-en:displayName="Query AI Project" orderNo="10023" resourceType="FNPT">
                             <permissions>NopAiProject:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiProject:mutation" displayName="修改AI项目"
-                                  i18n-en:displayName="Modify AI Project" orderNo="10021" resourceType="FNPT">
+                                  i18n-en:displayName="Modify AI Project" orderNo="10024" resourceType="FNPT">
                             <permissions>NopAiProject:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiProjectConfig-main" displayName="项目配置" orderNo="10022"
+                <resource id="NopAiProjectConfig-main" displayName="项目配置" orderNo="10025"
                           i18n-en:displayName="Project Config" icon="settings-2" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiProjectConfig/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiProjectConfig:query" displayName="查询项目配置"
-                                  i18n-en:displayName="Query Project Config" orderNo="10023" resourceType="FNPT">
+                                  i18n-en:displayName="Query Project Config" orderNo="10026" resourceType="FNPT">
                             <permissions>NopAiProjectConfig:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiProjectConfig:mutation" displayName="修改项目配置"
-                                  i18n-en:displayName="Modify Project Config" orderNo="10024" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Project Config" orderNo="10027" resourceType="FNPT">
                             <permissions>NopAiProjectConfig:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiProjectRule-main" displayName="项目规则" orderNo="10025"
+                <resource id="NopAiProjectRule-main" displayName="项目规则" orderNo="10028"
                           i18n-en:displayName="Project Rule" icon="shield-check" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiProjectRule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiProjectRule:query" displayName="查询项目规则"
-                                  i18n-en:displayName="Query Project Rule" orderNo="10026" resourceType="FNPT">
+                                  i18n-en:displayName="Query Project Rule" orderNo="10029" resourceType="FNPT">
                             <permissions>NopAiProjectRule:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiProjectRule:mutation" displayName="修改项目规则"
-                                  i18n-en:displayName="Modify Project Rule" orderNo="10027" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Project Rule" orderNo="10030" resourceType="FNPT">
                             <permissions>NopAiProjectRule:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiPromptTemplate-main" displayName="提示词模板" orderNo="10028"
+                <resource id="NopAiPromptTemplate-main" displayName="提示词模板" orderNo="10031"
                           i18n-en:displayName="Prompt Template" icon="file-text" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiPromptTemplate/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiPromptTemplate:query" displayName="查询提示词模板"
-                                  i18n-en:displayName="Query Prompt Template" orderNo="10029" resourceType="FNPT">
+                                  i18n-en:displayName="Query Prompt Template" orderNo="10032" resourceType="FNPT">
                             <permissions>NopAiPromptTemplate:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiPromptTemplate:mutation" displayName="修改提示词模板"
-                                  i18n-en:displayName="Modify Prompt Template" orderNo="10030" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Prompt Template" orderNo="10033" resourceType="FNPT">
                             <permissions>NopAiPromptTemplate:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiPromptTemplateHistory-main" displayName="模板历史" orderNo="10031"
+                <resource id="NopAiPromptTemplateHistory-main" displayName="模板历史" orderNo="10034"
                           i18n-en:displayName="Template History" icon="history" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiPromptTemplateHistory/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiPromptTemplateHistory:query" displayName="查询模板历史"
-                                  i18n-en:displayName="Query Template History" orderNo="10032" resourceType="FNPT">
+                                  i18n-en:displayName="Query Template History" orderNo="10035" resourceType="FNPT">
                             <permissions>NopAiPromptTemplateHistory:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiPromptTemplateHistory:mutation" displayName="修改模板历史"
-                                  i18n-en:displayName="Modify Template History" orderNo="10033" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Template History" orderNo="10036" resourceType="FNPT">
                             <permissions>NopAiPromptTemplateHistory:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiRequirement-main" displayName="需求条目" orderNo="10034"
+                <resource id="NopAiRequirement-main" displayName="需求条目" orderNo="10037"
                           i18n-en:displayName="Requirement Item" icon="clipboard-list" component="AMIS"
                           resourceType="SUBM" url="/nop/ai/pages/NopAiRequirement/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiRequirement:query" displayName="查询需求条目"
-                                  i18n-en:displayName="Query Requirement Item" orderNo="10035" resourceType="FNPT">
+                                  i18n-en:displayName="Query Requirement Item" orderNo="10038" resourceType="FNPT">
                             <permissions>NopAiRequirement:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiRequirement:mutation" displayName="修改需求条目"
-                                  i18n-en:displayName="Modify Requirement Item" orderNo="10036" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Requirement Item" orderNo="10039" resourceType="FNPT">
                             <permissions>NopAiRequirement:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiRequirementHistory-main" displayName="需求历史" orderNo="10037"
+                <resource id="NopAiRequirementHistory-main" displayName="需求历史" orderNo="10040"
                           i18n-en:displayName="Requirement History" icon="history" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiRequirementHistory/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiRequirementHistory:query" displayName="查询需求历史"
-                                  i18n-en:displayName="Query Requirement History" orderNo="10038" resourceType="FNPT">
+                                  i18n-en:displayName="Query Requirement History" orderNo="10041" resourceType="FNPT">
                             <permissions>NopAiRequirementHistory:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiRequirementHistory:mutation" displayName="修改需求历史"
-                                  i18n-en:displayName="Modify Requirement History" orderNo="10039" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Requirement History" orderNo="10042" resourceType="FNPT">
                             <permissions>NopAiRequirementHistory:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiTestCase-main" displayName="测试用例" orderNo="10040" i18n-en:displayName="Test Case"
+                <resource id="NopAiSession-main" displayName="Agent会话" orderNo="10043"
+                          i18n-en:displayName="Agent Session" icon="message-square" component="AMIS" resourceType="SUBM"
+                          url="/nop/ai/pages/NopAiSession/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAiSession:query" displayName="查询Agent会话"
+                                  i18n-en:displayName="Query Agent Session" orderNo="10044" resourceType="FNPT">
+                            <permissions>NopAiSession:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAiSession:mutation" displayName="修改Agent会话"
+                                  i18n-en:displayName="Modify Agent Session" orderNo="10045" resourceType="FNPT">
+                            <permissions>NopAiSession:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAiSessionContext-main" displayName="上下文快照" orderNo="10046"
+                          i18n-en:displayName="Session Context" icon="layers" component="AMIS" resourceType="SUBM"
+                          url="/nop/ai/pages/NopAiSessionContext/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAiSessionContext:query" displayName="查询上下文快照"
+                                  i18n-en:displayName="Query Session Context" orderNo="10047" resourceType="FNPT">
+                            <permissions>NopAiSessionContext:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAiSessionContext:mutation" displayName="修改上下文快照"
+                                  i18n-en:displayName="Modify Session Context" orderNo="10048" resourceType="FNPT">
+                            <permissions>NopAiSessionContext:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAiSessionInput-main" displayName="会话输入" orderNo="10049"
+                          i18n-en:displayName="Session Input" icon="inbox" component="AMIS" resourceType="SUBM"
+                          url="/nop/ai/pages/NopAiSessionInput/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAiSessionInput:query" displayName="查询会话输入"
+                                  i18n-en:displayName="Query Session Input" orderNo="10050" resourceType="FNPT">
+                            <permissions>NopAiSessionInput:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAiSessionInput:mutation" displayName="修改会话输入"
+                                  i18n-en:displayName="Modify Session Input" orderNo="10051" resourceType="FNPT">
+                            <permissions>NopAiSessionInput:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAiSessionMessage-main" displayName="会话消息" orderNo="10052"
+                          i18n-en:displayName="Session Message" icon="file-text" component="AMIS" resourceType="SUBM"
+                          url="/nop/ai/pages/NopAiSessionMessage/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAiSessionMessage:query" displayName="查询会话消息"
+                                  i18n-en:displayName="Query Session Message" orderNo="10053" resourceType="FNPT">
+                            <permissions>NopAiSessionMessage:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAiSessionMessage:mutation" displayName="修改会话消息"
+                                  i18n-en:displayName="Modify Session Message" orderNo="10054" resourceType="FNPT">
+                            <permissions>NopAiSessionMessage:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAiTestCase-main" displayName="测试用例" orderNo="10055" i18n-en:displayName="Test Case"
                           icon="flask-conical" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiTestCase/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiTestCase:query" displayName="查询测试用例"
-                                  i18n-en:displayName="Query Test Case" orderNo="10041" resourceType="FNPT">
+                                  i18n-en:displayName="Query Test Case" orderNo="10056" resourceType="FNPT">
                             <permissions>NopAiTestCase:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiTestCase:mutation" displayName="修改测试用例"
-                                  i18n-en:displayName="Modify Test Case" orderNo="10042" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Test Case" orderNo="10057" resourceType="FNPT">
                             <permissions>NopAiTestCase:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAiTestResult-main" displayName="测试结果" orderNo="10043" i18n-en:displayName="Test Result"
+                <resource id="NopAiTestResult-main" displayName="测试结果" orderNo="10058" i18n-en:displayName="Test Result"
                           icon="badge-check" component="AMIS" resourceType="SUBM"
                           url="/nop/ai/pages/NopAiTestResult/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopAiTestResult:query" displayName="查询测试结果"
-                                  i18n-en:displayName="Query Test Result" orderNo="10044" resourceType="FNPT">
+                                  i18n-en:displayName="Query Test Result" orderNo="10059" resourceType="FNPT">
                             <permissions>NopAiTestResult:query</permissions>
                         </resource>
                         <resource id="FNPT:NopAiTestResult:mutation" displayName="修改测试结果"
-                                  i18n-en:displayName="Modify Test Result" orderNo="10045" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Test Result" orderNo="10060" resourceType="FNPT">
                             <permissions>NopAiTestResult:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAiTodo-main" displayName="Agent待办" orderNo="10061" i18n-en:displayName="Agent Todo"
+                          icon="list-checks" component="AMIS" resourceType="SUBM"
+                          url="/nop/ai/pages/NopAiTodo/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAiTodo:query" displayName="查询Agent待办"
+                                  i18n-en:displayName="Query Agent Todo" orderNo="10062" resourceType="FNPT">
+                            <permissions>NopAiTodo:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAiTodo:mutation" displayName="修改Agent待办"
+                                  i18n-en:displayName="Modify Agent Todo" orderNo="10063" resourceType="FNPT">
+                            <permissions>NopAiTodo:mutation</permissions>
                         </resource>
                     </children>
                 </resource>

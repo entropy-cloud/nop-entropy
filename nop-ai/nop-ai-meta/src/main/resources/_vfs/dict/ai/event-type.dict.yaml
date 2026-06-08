@@ -1,0 +1,31 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 事件类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 创建
+    value: 10
+    description: 会话创建事件
+  
+  - label: 启动
+    value: 20
+    description: 会话启动事件
+  
+  - label: 结束
+    value: 30
+    description: 会话结束事件
+  
+  - label: 失败
+    value: 40
+    description: 会话失败事件
+  
+  - label: 压缩
+    value: 50
+    description: 上下文压缩事件
+  
+  - label: 归档
+    value: 60
+    description: 会话归档事件
+  

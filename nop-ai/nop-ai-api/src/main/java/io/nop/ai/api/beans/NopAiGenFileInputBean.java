@@ -124,4 +124,18 @@
         }
 
 
+        private Integer _version;
+
+    
+        @PropMeta(propId=9)
+    
+        public Integer getVersion(){
+            return _version;
+        }
+
+        public void setVersion(Integer value){
+            this._version = value;
+        }
+
+
     }

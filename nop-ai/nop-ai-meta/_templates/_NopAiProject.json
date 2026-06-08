@@ -5,9 +5,17 @@
   "name": "",
   "prototypeId": "",
   "projectDir": "",
+  "runtimeMetadata": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
   "prototype": null,
   "projectRules": null,
   "configs": null,
   "requirements": null,
-  "generatedFiles": null
+  "generatedFiles": null,
+  "sessions": null,
+  "runtimeMetadataComponent": null
 }

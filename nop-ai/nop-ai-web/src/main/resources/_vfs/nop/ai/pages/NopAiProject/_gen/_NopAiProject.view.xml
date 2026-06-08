@@ -29,6 +29,24 @@
 
                 <!--项目目录-->
                 <col id="projectDir" sortable="true"/>
+
+                <!--运行时元数据-->
+                <col id="runtimeMetadata" sortable="true"/>
+
+                <!--数据版本-->
+                <col id="version" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -37,19 +55,21 @@
     <forms>
         <form id="view" editMode="view" title="查看-AI项目" i18n-en:title="View AI Project">
             <layout>
- language[项目语言]
- name[项目名称]
- prototypeId[模板项目ID]
- projectDir[项目目录]
+ language[项目语言] name[项目名称]
+ prototypeId[模板项目ID] projectDir[项目目录]
+ runtimeMetadata[运行时元数据] version[数据版本]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-AI项目" i18n-en:title="Add AI Project" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-AI项目" i18n-en:title="Edit AI Project">
             <layout>
- language[项目语言]
- name[项目名称]
- prototypeId[模板项目ID]
- projectDir[项目目录]
+ language[项目语言] name[项目名称]
+ prototypeId[模板项目ID] projectDir[项目目录]
+ runtimeMetadata[运行时元数据] version[数据版本]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

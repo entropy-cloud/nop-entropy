@@ -8,6 +8,10 @@ site:
       displayName: Modify Response Result
     FNPT:NopAiChatResponse:query:
       displayName: Query Response Result
+    FNPT:NopAiEvent:mutation:
+      displayName: Modify Agent Event
+    FNPT:NopAiEvent:query:
+      displayName: Query Agent Event
     FNPT:NopAiGenFile:mutation:
       displayName: Modify Generated File
     FNPT:NopAiGenFile:query:
@@ -52,6 +56,22 @@ site:
       displayName: Modify Requirement History
     FNPT:NopAiRequirementHistory:query:
       displayName: Query Requirement History
+    FNPT:NopAiSession:mutation:
+      displayName: Modify Agent Session
+    FNPT:NopAiSession:query:
+      displayName: Query Agent Session
+    FNPT:NopAiSessionContext:mutation:
+      displayName: Modify Session Context
+    FNPT:NopAiSessionContext:query:
+      displayName: Query Session Context
+    FNPT:NopAiSessionInput:mutation:
+      displayName: Modify Session Input
+    FNPT:NopAiSessionInput:query:
+      displayName: Query Session Input
+    FNPT:NopAiSessionMessage:mutation:
+      displayName: Modify Session Message
+    FNPT:NopAiSessionMessage:query:
+      displayName: Query Session Message
     FNPT:NopAiTestCase:mutation:
       displayName: Modify Test Case
     FNPT:NopAiTestCase:query:
@@ -60,10 +80,16 @@ site:
       displayName: Modify Test Result
     FNPT:NopAiTestResult:query:
       displayName: Query Test Result
+    FNPT:NopAiTodo:mutation:
+      displayName: Modify Agent Todo
+    FNPT:NopAiTodo:query:
+      displayName: Query Agent Todo
     NopAiChatRequest-main:
       displayName: Chat Request
     NopAiChatResponse-main:
       displayName: Response Result
+    NopAiEvent-main:
+      displayName: Agent Event
     NopAiGenFile-main:
       displayName: Generated File
     NopAiGenFileHistory-main:
@@ -86,9 +112,19 @@ site:
       displayName: Requirement Item
     NopAiRequirementHistory-main:
       displayName: Requirement History
+    NopAiSession-main:
+      displayName: Agent Session
+    NopAiSessionContext-main:
+      displayName: Session Context
+    NopAiSessionInput-main:
+      displayName: Session Input
+    NopAiSessionMessage-main:
+      displayName: Session Message
     NopAiTestCase-main:
       displayName: Test Case
     NopAiTestResult-main:
       displayName: Test Result
+    NopAiTodo-main:
+      displayName: Agent Todo
     test-orm-nop-ai:
       displayName: Test nop-ai

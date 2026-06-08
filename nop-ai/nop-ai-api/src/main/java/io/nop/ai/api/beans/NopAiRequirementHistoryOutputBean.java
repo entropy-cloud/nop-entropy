@@ -69,4 +69,60 @@
         }
 
 
+        private String _createdBy;
+
+    
+        @PropMeta(propId=5)
+    
+        public String getCreatedBy(){
+            return _createdBy;
+        }
+
+        public void setCreatedBy(String value){
+            this._createdBy = value;
+        }
+
+
+        private java.sql.Timestamp _createTime;
+
+    
+        @PropMeta(propId=6)
+    
+        public java.sql.Timestamp getCreateTime(){
+            return _createTime;
+        }
+
+        public void setCreateTime(java.sql.Timestamp value){
+            this._createTime = value;
+        }
+
+
+        private String _updatedBy;
+
+    
+        @PropMeta(propId=7)
+    
+        public String getUpdatedBy(){
+            return _updatedBy;
+        }
+
+        public void setUpdatedBy(String value){
+            this._updatedBy = value;
+        }
+
+
+        private java.sql.Timestamp _updateTime;
+
+    
+        @PropMeta(propId=8)
+    
+        public java.sql.Timestamp getUpdateTime(){
+            return _updateTime;
+        }
+
+        public void setUpdateTime(java.sql.Timestamp value){
+            this._updateTime = value;
+        }
+
+
     }

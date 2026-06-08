@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 待办状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 待处理
+    value: 10
+    description: 待处理
+  
+  - label: 进行中
+    value: 20
+    description: 进行中
+  
+  - label: 已完成
+    value: 30
+    description: 已完成
+  
+  - label: 已取消
+    value: 40
+    description: 已取消
+  

@@ -32,6 +32,21 @@
 
                 <!--输出规范-->
                 <col id="outputs" sortable="true"/>
+
+                <!--数据版本-->
+                <col id="version" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -40,11 +55,11 @@
     <forms>
         <form id="view" editMode="view" title="查看-提示词模板" i18n-en:title="View Prompt Template">
             <layout>
- name[模板名称]
- content[模板内容]
- category[分类]
- inputs[输入规范]
- outputs[输出规范]
+ name[模板名称] content[模板内容]
+ category[分类] inputs[输入规范]
+ outputs[输出规范] version[数据版本]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-提示词模板" i18n-en:title="Add Prompt Template" x:prototype="edit"/>
@@ -55,6 +70,7 @@
  category[分类]
  inputs[输入规范]
  outputs[输出规范]
+ version[数据版本]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

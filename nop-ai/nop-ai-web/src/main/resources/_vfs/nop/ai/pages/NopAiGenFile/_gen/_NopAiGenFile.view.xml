@@ -38,6 +38,21 @@
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
+
+                <!--数据版本-->
+                <col id="version" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -46,13 +61,12 @@
     <forms>
         <form id="view" editMode="view" title="查看-生成文件" i18n-en:title="View Generated File">
             <layout>
- projectId[项目ID]
- requirementId[需求ID]
- moduleType[模块类型]
- content[文件内容]
- filePath[文件路径]
- chatResponseId[响应ID]
- status[状态]
+ projectId[项目ID] requirementId[需求ID]
+ moduleType[模块类型] content[文件内容]
+ filePath[文件路径] chatResponseId[响应ID]
+ status[状态] version[数据版本]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-生成文件" i18n-en:title="Add Generated File" x:prototype="edit"/>
@@ -65,6 +79,7 @@
  filePath[文件路径]
  chatResponseId[响应ID]
  status[状态]
+ version[数据版本]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

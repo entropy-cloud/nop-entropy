@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="message-square" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="Agent会话" i18n-en:displayName="Agent Session" xmlns:ui="ui"
+      xmlns:orm="orm">
+
+    <entityName>io.nop.ai.dao.entity.NopAiSession</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="主键" propId="1" i18n-en:displayName="Session Id" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="projectId" displayName="项目ID" propId="2" i18n-en:displayName="Project Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="project">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="parentSessionId" displayName="父会话ID" propId="3" i18n-en:displayName="Parent Session Id"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="parentSession">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="agentName" displayName="Agent名称" propId="4" i18n-en:displayName="Agent Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="modelProvider" displayName="模型供应商" propId="5" i18n-en:displayName="Model Provider" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4" dict="ai/model-provider"/>
+        </prop>
+        <prop name="modelName" displayName="模型名称" propId="6" i18n-en:displayName="Model Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="slug" displayName="会话Slug" propId="7" i18n-en:displayName="Session Slug" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="title" displayName="会话标题" propId="8" i18n-en:displayName="Session Title" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="directory" displayName="工作目录" propId="9" i18n-en:displayName="Working Directory" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="400"/>
+        </prop>
+        <prop name="status" displayName="会话状态" propId="10" i18n-en:displayName="Session Status" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="ai/session-status"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="11" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="cost" displayName="费用" propId="12" i18n-en:displayName="Cost" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.math.BigDecimal" precision="10" scale="6"/>
+        </prop>
+        <prop name="tokensInput" displayName="输入Token数" propId="13" i18n-en:displayName="Input Tokens" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="tokensOutput" displayName="输出Token数" propId="14" i18n-en:displayName="Output Tokens"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="tokensReasoning" displayName="推理Token数" propId="15" i18n-en:displayName="Reasoning Tokens"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="tokensCacheRead" displayName="缓存读取Token数" propId="16" i18n-en:displayName="Cache Read Tokens"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="tokensCacheWrite" displayName="缓存写入Token数" propId="17" i18n-en:displayName="Cache Write Tokens"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="totalBytes" displayName="总字节数" propId="18" i18n-en:displayName="Total Bytes" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="contextMetadata" displayName="上下文元数据" propId="19" i18n-en:displayName="Context Metadata"
+              queryable="true" sortable="true" insertable="true" updatable="true"
+              graphql:jsonComponentProp="contextMetadataComponent" ui:control="textarea">
+            <schema stdDomain="json" type="java.lang.String"/>
+        </prop>
+        <prop name="metadata" displayName="元数据" propId="20" i18n-en:displayName="Metadata" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="metadataComponent"
+              ui:control="textarea">
+            <schema stdDomain="json" type="java.lang.String"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="21" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="22" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="23" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="24" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="compactedAt" displayName="压缩时间" propId="25" i18n-en:displayName="Compacted At" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="archivedAt" displayName="归档时间" propId="26" i18n-en:displayName="Archived At" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="project" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="projectId"
+              ext:joinRightProp="id" mandatory="true" lazy="true" published="false">
+            <schema bizObjName="NopAiProject"/>
+        </prop>
+        <prop name="parentSession" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentSessionId"
+              ext:joinRightProp="id" lazy="true" published="false">
+            <schema bizObjName="NopAiSession"/>
+        </prop>
+        <prop name="childSessions" displayName="子会话" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="parentSessionId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiSession"/>
+            </schema>
+        </prop>
+        <prop name="messages" displayName="消息列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="sessionId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiSessionMessage"/>
+            </schema>
+        </prop>
+        <prop name="contexts" displayName="上下文快照" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="sessionId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiSessionContext"/>
+            </schema>
+        </prop>
+        <prop name="inputs" displayName="输入队列" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="sessionId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiSessionInput"/>
+            </schema>
+        </prop>
+        <prop name="todos" displayName="待办列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="sessionId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiTodo"/>
+            </schema>
+        </prop>
+        <prop name="events" displayName="事件日志" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="sessionId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiEvent"/>
+            </schema>
+        </prop>
+        <prop name="context" ext:kind="to-many" internal="true" ext:joinLeftProp="id" ext:joinRightProp="sessionId"
+              lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiSessionContext"/>
+            </schema>
+        </prop>
+        <prop name="contextMetadataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
+              insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="metadataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

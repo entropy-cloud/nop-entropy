@@ -1,0 +1,15 @@
+{
+  "id": "",
+  "sessionId": "",
+  "prompt": "",
+  "delivery": 0,
+  "delivery_label": "",
+  "admittedSeq": 0,
+  "promotedSeq": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "session": null
+}

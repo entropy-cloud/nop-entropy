@@ -4,7 +4,7 @@
       xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="测试结果" i18n-en:displayName="Test Result" xmlns:ui="ui"
       xmlns:orm="orm">
 
-    <entityName>nop.ai.dao.entity.NopAiTestResult</entityName>
+    <entityName>io.nop.ai.dao.entity.NopAiTestResult</entityName>
 
     <primaryKey>id</primaryKey>
 
@@ -38,6 +38,26 @@
         <prop name="errorLog" displayName="错误日志" propId="5" queryable="true" sortable="true" insertable="true"
               updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="6" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="7" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="8" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="9" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="10" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="testCase" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="testCaseId"
               ext:joinRightProp="id" mandatory="true" lazy="true" published="false">

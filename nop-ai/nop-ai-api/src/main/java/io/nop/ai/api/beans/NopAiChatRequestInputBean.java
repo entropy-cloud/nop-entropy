@@ -82,16 +82,16 @@
         }
 
 
-        private String _messageType;
+        private Integer _messageType;
 
     
         @PropMeta(propId=6)
     
-        public String getMessageType(){
+        public Integer getMessageType(){
             return _messageType;
         }
 
-        public void setMessageType(String value){
+        public void setMessageType(Integer value){
             this._messageType = value;
         }
 
@@ -135,6 +135,20 @@
 
         public void setMetadata(String value){
             this._metadata = value;
+        }
+
+
+        private Integer _version;
+
+    
+        @PropMeta(propId=10)
+    
+        public Integer getVersion(){
+            return _version;
+        }
+
+        public void setVersion(Integer value){
+            this._version = value;
         }
 
 

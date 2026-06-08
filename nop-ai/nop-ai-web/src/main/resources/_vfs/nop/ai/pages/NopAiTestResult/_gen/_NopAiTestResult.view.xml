@@ -29,6 +29,21 @@
 
                 <!--错误日志-->
                 <col id="errorLog" sortable="true"/>
+
+                <!--数据版本-->
+                <col id="version" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -41,6 +56,11 @@
  executionTime[执行时间]
  success[是否成功]
  errorLog[错误日志]
+ version[数据版本]
+ createdBy[创建人]
+ createTime[创建时间]
+ updatedBy[修改人]
+ updateTime[修改时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-测试结果" i18n-en:title="Add Test Result" x:prototype="edit"/>
@@ -50,6 +70,7 @@
  executionTime[执行时间]
  success[是否成功]
  errorLog[错误日志]
+ version[数据版本]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

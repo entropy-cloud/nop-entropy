@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 输入投递方式
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 立即投递
+    value: 10
+    description: 立即投递
+  
+  - label: 排队
+    value: 20
+    description: 排队投递
+  

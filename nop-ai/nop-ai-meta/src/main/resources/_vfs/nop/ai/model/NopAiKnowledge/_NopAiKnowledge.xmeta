@@ -3,7 +3,7 @@
       xmlns:xpl="xpl" ext:model="orm" ext:icon="book-open" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen"
       xmlns:biz="biz" displayName="知识库" i18n-en:displayName="Knowledge Base" xmlns:ui="ui" xmlns:orm="orm">
 
-    <entityName>nop.ai.dao.entity.NopAiKnowledge</entityName>
+    <entityName>io.nop.ai.dao.entity.NopAiKnowledge</entityName>
 
     <primaryKey>id</primaryKey>
 
@@ -32,7 +32,27 @@
         </prop>
         <prop name="format" displayName="格式类型" propId="4" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="4" dict="ai/file_format"/>
+            <schema type="java.lang.String" precision="4" dict="ai/file-format"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="5" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="6" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="7" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="8" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="9" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="relatedRules" displayName="关联规则" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="knowledgeId" lazy="true" published="false">

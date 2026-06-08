@@ -35,6 +35,21 @@
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
+
+                <!--数据版本-->
+                <col id="version" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -43,12 +58,12 @@
     <forms>
         <form id="view" editMode="view" title="查看-测试用例" i18n-en:title="View Test Case">
             <layout>
- requirementId[需求ID]
- testContent[测试内容]
- testData[测试数据]
- genFileId[关联文件ID]
- chatResponseId[响应ID]
- status[状态]
+ requirementId[需求ID] testContent[测试内容]
+ testData[测试数据] genFileId[关联文件ID]
+ chatResponseId[响应ID] status[状态]
+ version[数据版本] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-测试用例" i18n-en:title="Add Test Case" x:prototype="edit"/>
@@ -60,6 +75,7 @@
  genFileId[关联文件ID]
  chatResponseId[响应ID]
  status[状态]
+ version[数据版本]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

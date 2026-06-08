@@ -2,6 +2,7 @@ entity:
   label:
     NopAiChatRequest: Chat Request
     NopAiChatResponse: Response Result
+    NopAiEvent: Agent Event
     NopAiGenFile: Generated File
     NopAiGenFileHistory: File History
     NopAiKnowledge: Knowledge Base
@@ -13,8 +14,13 @@ entity:
     NopAiPromptTemplateHistory: Template History
     NopAiRequirement: Requirement Item
     NopAiRequirementHistory: Requirement History
+    NopAiSession: Agent Session
+    NopAiSessionContext: Session Context
+    NopAiSessionInput: Session Input
+    NopAiSessionMessage: Session Message
     NopAiTestCase: Test Case
     NopAiTestResult: Test Result
+    NopAiTodo: Agent Todo
 prop:
   label:
     NopAiChatRequest:
@@ -28,6 +34,11 @@ prop:
       requestTimestamp: null
       hash: null
       metadata: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       template: null
       responses: null
     NopAiChatResponse:
@@ -47,10 +58,26 @@ prop:
       performanceScore: null
       readabilityScore: null
       complianceScore: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       request: null
       model: null
       generatedFiles: null
       testCases: null
+    NopAiEvent:
+      id: Event Id
+      sessionId: Session Id
+      seq: Sequence
+      eventType: Event Type
+      eventType_label: null
+      data: Event Data
+      createdBy: Created By
+      createTime: Create Time
+      session: null
+      dataComponent: null
     NopAiGenFile:
       id: null
       projectId: null
@@ -62,6 +89,11 @@ prop:
       chatResponseId: null
       status: null
       status_label: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       project: null
       requirement: null
       chatResponse: null
@@ -72,6 +104,10 @@ prop:
       genFileId: null
       version: null
       content: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       genFile: null
     NopAiKnowledge:
       id: null
@@ -79,6 +115,11 @@ prop:
       content: null
       format: null
       format_label: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       relatedRules: null
     NopAiModel:
       id: null
@@ -87,6 +128,11 @@ prop:
       modelName: null
       baseUrl: null
       apiKey: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       responses: null
     NopAiProject:
       id: null
@@ -95,11 +141,19 @@ prop:
       name: null
       prototypeId: null
       projectDir: null
+      runtimeMetadata: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       prototype: null
       projectRules: null
       configs: null
       requirements: null
       generatedFiles: null
+      sessions: null
+      runtimeMetadataComponent: null
     NopAiProjectConfig:
       id: null
       projectId: null
@@ -107,6 +161,11 @@ prop:
       configValue: null
       configType: null
       configType_label: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       project: null
     NopAiProjectRule:
       id: null
@@ -115,7 +174,13 @@ prop:
       ruleName: null
       ruleContent: null
       ruleType: null
+      ruleType_label: null
       isActive: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       project: null
       knowledge: null
     NopAiPromptTemplate:
@@ -125,6 +190,11 @@ prop:
       category: null
       inputs: null
       outputs: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       historyRecords: null
       requests: null
     NopAiPromptTemplateHistory:
@@ -132,6 +202,10 @@ prop:
       templateId: null
       version: null
       content: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       template: null
     NopAiRequirement:
       id: null
@@ -146,6 +220,10 @@ prop:
       aiSummary: null
       status: null
       status_label: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       project: null
       parent: null
       children: null
@@ -157,7 +235,100 @@ prop:
       requirementId: null
       version: null
       content: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       requirement: null
+    NopAiSession:
+      id: Session Id
+      projectId: Project Id
+      parentSessionId: Parent Session Id
+      agentName: Agent Name
+      modelProvider: Model Provider
+      modelProvider_label: null
+      modelName: Model Name
+      slug: Session Slug
+      title: Session Title
+      directory: Working Directory
+      status: Session Status
+      status_label: null
+      version: Version
+      cost: Cost
+      tokensInput: Input Tokens
+      tokensOutput: Output Tokens
+      tokensReasoning: Reasoning Tokens
+      tokensCacheRead: Cache Read Tokens
+      tokensCacheWrite: Cache Write Tokens
+      totalBytes: Total Bytes
+      contextMetadata: Context Metadata
+      metadata: Metadata
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      compactedAt: Compacted At
+      archivedAt: Archived At
+      project: null
+      parentSession: null
+      childSessions: null
+      messages: null
+      contexts: null
+      inputs: null
+      todos: null
+      events: null
+      context: null
+      contextMetadataComponent: null
+      metadataComponent: null
+    NopAiSessionContext:
+      id: Context Id
+      sessionId: Session Id
+      baseline: Baseline
+      snapshot: Snapshot
+      baselineSeq: Baseline Seq
+      replacementSeq: Replacement Seq
+      revision: Revision
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      session: null
+    NopAiSessionInput:
+      id: Input Id
+      sessionId: Session Id
+      prompt: Prompt
+      delivery: Delivery
+      delivery_label: null
+      admittedSeq: Admitted Seq
+      promotedSeq: Promoted Seq
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      session: null
+    NopAiSessionMessage:
+      id: Message Id
+      sessionId: Session Id
+      role: Message Role
+      role_label: null
+      seq: Sequence
+      content: Content
+      toolDetails: Tool Details
+      reasoning: Reasoning
+      metadata: Metadata
+      parentId: Parent Message Id
+      finishReason: Finish Reason
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      session: null
+      parentMessage: null
+      childMessages: null
+      toolDetailsComponent: null
+      metadataComponent: null
     NopAiTestCase:
       id: null
       requirementId: null
@@ -167,6 +338,11 @@ prop:
       chatResponseId: null
       status: null
       status_label: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       requirement: null
       genFile: null
       chatResponse: null
@@ -177,4 +353,27 @@ prop:
       executionTime: null
       success: null
       errorLog: null
+      version: null
+      createdBy: null
+      createTime: null
+      updatedBy: null
+      updateTime: null
       testCase: null
+    NopAiTodo:
+      id: Todo Id
+      sessionId: Session Id
+      planId: Plan Id
+      content: Content
+      status: Status
+      status_label: null
+      priority: Priority
+      priority_label: null
+      position: Position
+      dependsOn: Depends On
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      session: null
+      dependsOnComponent: null

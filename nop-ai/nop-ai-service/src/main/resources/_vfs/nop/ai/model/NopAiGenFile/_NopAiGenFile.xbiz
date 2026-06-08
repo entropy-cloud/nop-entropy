@@ -3,7 +3,7 @@
 
     <x:gen-extends>
         <biz-gen:DefaultBizGenExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" forEntity="true"
-                                      entityName="nop.ai.dao.entity.NopAiGenFile"/>
+                                      entityName="io.nop.ai.dao.entity.NopAiGenFile"/>
     </x:gen-extends>
 
     <x:post-extends>

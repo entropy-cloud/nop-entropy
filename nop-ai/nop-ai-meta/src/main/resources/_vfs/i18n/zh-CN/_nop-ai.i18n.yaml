@@ -2,6 +2,7 @@ entity:
   label:
     NopAiChatRequest: 对话请求
     NopAiChatResponse: 响应结果
+    NopAiEvent: Agent事件
     NopAiGenFile: 生成文件
     NopAiGenFileHistory: 文件历史
     NopAiKnowledge: 知识库
@@ -13,11 +14,18 @@ entity:
     NopAiPromptTemplateHistory: 模板历史
     NopAiRequirement: 需求条目
     NopAiRequirementHistory: 需求历史
+    NopAiSession: Agent会话
+    NopAiSessionContext: 上下文快照
+    NopAiSessionInput: 会话输入
+    NopAiSessionMessage: 会话消息
     NopAiTestCase: 测试用例
     NopAiTestResult: 测试结果
+    NopAiTodo: Agent待办
 prop:
   label:
     NopAiChatRequest:
+      createTime: 创建时间
+      createdBy: 创建人
       hash: 内容哈希
       id: 主键
       messageType: 消息类型
@@ -29,7 +37,10 @@ prop:
       systemPrompt: 系统提示词
       template: null
       templateId: 模板ID
+      updateTime: 修改时间
+      updatedBy: 修改人
       userPrompt: 用户提示词
+      version: 数据版本
     NopAiChatResponse:
       aiModel: 模型名称
       aiProvider: 供应商
@@ -37,6 +48,8 @@ prop:
       completionTokens: 响应Token数
       complianceScore: 合规性分
       correctnessScore: 正确性分
+      createTime: 创建时间
+      createdBy: 创建人
       generatedFiles: 生成产物
       id: 主键
       model: null
@@ -51,10 +64,26 @@ prop:
       responseTimestamp: 响应时间戳
       sessionId: 会话ID
       testCases: 生成用例
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopAiEvent:
+      createTime: 创建时间
+      createdBy: 创建人
+      data: 事件数据
+      dataComponent: null
+      eventType: 事件类型
+      eventType_label: 事件类型
+      id: 主键
+      seq: 序号
+      session: null
+      sessionId: 会话ID
     NopAiGenFile:
       chatResponse: null
       chatResponseId: 响应ID
       content: 文件内容
+      createTime: 创建时间
+      createdBy: 创建人
       filePath: 文件路径
       historyRecords: 历史版本
       id: 主键
@@ -67,29 +96,48 @@ prop:
       status: 状态
       status_label: 状态
       testCases: 测试用例
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiGenFileHistory:
       content: 文件内容
+      createTime: 创建时间
+      createdBy: 创建人
       genFile: null
       genFileId: 文件ID
       id: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
       version: 版本号
     NopAiKnowledge:
       content: 内容
+      createTime: 创建时间
+      createdBy: 创建人
       format: 格式类型
       format_label: 格式类型
       id: 主键
       relatedRules: 关联规则
       title: 标题
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiModel:
       apiKey: API密钥
       baseUrl: API地址
+      createTime: 创建时间
+      createdBy: 创建人
       id: 主键
       modelName: 模型名称
       provider: 供应商
       provider_label: 供应商
       responses: 调用记录
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiProject:
       configs: 配置项
+      createTime: 创建时间
+      createdBy: 创建人
       generatedFiles: 生成文件
       id: 主键
       language: 项目语言
@@ -100,15 +148,28 @@ prop:
       prototype: null
       prototypeId: 模板项目ID
       requirements: 需求列表
+      runtimeMetadata: 运行时元数据
+      runtimeMetadataComponent: null
+      sessions: 会话列表
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiProjectConfig:
       configName: 配置名称
       configType: 配置类型
       configType_label: 配置类型
       configValue: 配置值
+      createTime: 创建时间
+      createdBy: 创建人
       id: 主键
       project: null
       projectId: 项目ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiProjectRule:
+      createTime: 创建时间
+      createdBy: 创建人
       id: 主键
       isActive: 是否启用
       knowledge: null
@@ -118,25 +179,40 @@ prop:
       ruleContent: 规则内容
       ruleName: 规则名称
       ruleType: 规则类型
+      ruleType_label: 规则类型
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiPromptTemplate:
       category: 分类
       content: 模板内容
+      createTime: 创建时间
+      createdBy: 创建人
       historyRecords: 历史版本
       id: 主键
       inputs: 输入规范
       name: 模板名称
       outputs: 输出规范
       requests: 测试请求
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiPromptTemplateHistory:
       content: 模板内容
+      createTime: 创建时间
+      createdBy: 创建人
       id: 主键
       template: null
       templateId: 模板ID
+      updateTime: 修改时间
+      updatedBy: 修改人
       version: 版本号
     NopAiRequirement:
       aiSummary: AI摘要
       children: 子需求
       content: 需求内容
+      createTime: 创建时间
+      createdBy: 创建人
       generatedFiles: 关联文件
       historyRecords: 历史版本
       id: 主键
@@ -151,16 +227,113 @@ prop:
       title: 需求标题
       type: 需求类型
       type_label: 需求类型
+      updateTime: 修改时间
+      updatedBy: 修改人
       version: 当前版本
     NopAiRequirementHistory:
       content: 需求内容
+      createTime: 创建时间
+      createdBy: 创建人
       id: 主键
       requirement: null
       requirementId: 需求ID
+      updateTime: 修改时间
+      updatedBy: 修改人
       version: 版本号
+    NopAiSession:
+      agentName: Agent名称
+      archivedAt: 归档时间
+      childSessions: 子会话
+      compactedAt: 压缩时间
+      context: null
+      contextMetadata: 上下文元数据
+      contextMetadataComponent: null
+      contexts: 上下文快照
+      cost: 费用
+      createTime: 创建时间
+      createdBy: 创建人
+      directory: 工作目录
+      events: 事件日志
+      id: 主键
+      inputs: 输入队列
+      messages: 消息列表
+      metadata: 元数据
+      metadataComponent: null
+      modelName: 模型名称
+      modelProvider: 模型供应商
+      modelProvider_label: 模型供应商
+      parentSession: null
+      parentSessionId: 父会话ID
+      project: null
+      projectId: 项目ID
+      slug: 会话Slug
+      status: 会话状态
+      status_label: 会话状态
+      title: 会话标题
+      todos: 待办列表
+      tokensCacheRead: 缓存读取Token数
+      tokensCacheWrite: 缓存写入Token数
+      tokensInput: 输入Token数
+      tokensOutput: 输出Token数
+      tokensReasoning: 推理Token数
+      totalBytes: 总字节数
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopAiSessionContext:
+      baseline: 基线内容
+      baselineSeq: 基线序号
+      createTime: 创建时间
+      createdBy: 创建人
+      id: 主键
+      replacementSeq: 替换序号
+      revision: 版本
+      session: null
+      sessionId: 会话ID
+      snapshot: 上下文快照
+      updateTime: 修改时间
+      updatedBy: 修改人
+    NopAiSessionInput:
+      admittedSeq: 接纳序号
+      createTime: 创建时间
+      createdBy: 创建人
+      delivery: 投递方式
+      delivery_label: 投递方式
+      id: 主键
+      promotedSeq: 提升序号
+      prompt: 输入提示
+      session: null
+      sessionId: 会话ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopAiSessionMessage:
+      childMessages: 子消息
+      content: 消息内容
+      createTime: 创建时间
+      createdBy: 创建人
+      finishReason: 停止原因
+      id: 主键
+      metadata: 元数据
+      metadataComponent: null
+      parentId: 父消息ID
+      parentMessage: null
+      reasoning: 推理内容
+      role: 消息角色
+      role_label: 消息角色
+      seq: 序号
+      session: null
+      sessionId: 会话ID
+      toolDetails: 工具详情
+      toolDetailsComponent: null
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiTestCase:
       chatResponse: null
       chatResponseId: 响应ID
+      createTime: 创建时间
+      createdBy: 创建人
       genFile: null
       genFileId: 关联文件ID
       id: 主键
@@ -171,10 +344,36 @@ prop:
       testContent: 测试内容
       testData: 测试数据
       testResults: 执行结果
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopAiTestResult:
+      createTime: 创建时间
+      createdBy: 创建人
       errorLog: 错误日志
       executionTime: 执行时间
       id: 主键
       success: 是否成功
       testCase: null
       testCaseId: 测试用例ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopAiTodo:
+      content: 待办内容
+      createTime: 创建时间
+      createdBy: 创建人
+      dependsOn: 依赖项
+      dependsOnComponent: null
+      id: 主键
+      planId: 计划ID
+      position: 位置
+      priority: 优先级
+      priority_label: 优先级
+      session: null
+      sessionId: 会话ID
+      status: 状态
+      status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本

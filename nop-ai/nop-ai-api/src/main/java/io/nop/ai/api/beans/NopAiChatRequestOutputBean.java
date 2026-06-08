@@ -83,16 +83,16 @@
         }
 
 
-        private String _messageType;
+        private Integer _messageType;
 
     
         @PropMeta(propId=6)
     
-        public String getMessageType(){
+        public Integer getMessageType(){
             return _messageType;
         }
 
-        public void setMessageType(String value){
+        public void setMessageType(Integer value){
             this._messageType = value;
         }
 
@@ -148,6 +148,76 @@
 
         public void setMetadata(String value){
             this._metadata = value;
+        }
+
+
+        private Integer _version;
+
+    
+        @PropMeta(propId=10)
+    
+        public Integer getVersion(){
+            return _version;
+        }
+
+        public void setVersion(Integer value){
+            this._version = value;
+        }
+
+
+        private String _createdBy;
+
+    
+        @PropMeta(propId=11)
+    
+        public String getCreatedBy(){
+            return _createdBy;
+        }
+
+        public void setCreatedBy(String value){
+            this._createdBy = value;
+        }
+
+
+        private java.sql.Timestamp _createTime;
+
+    
+        @PropMeta(propId=12)
+    
+        public java.sql.Timestamp getCreateTime(){
+            return _createTime;
+        }
+
+        public void setCreateTime(java.sql.Timestamp value){
+            this._createTime = value;
+        }
+
+
+        private String _updatedBy;
+
+    
+        @PropMeta(propId=13)
+    
+        public String getUpdatedBy(){
+            return _updatedBy;
+        }
+
+        public void setUpdatedBy(String value){
+            this._updatedBy = value;
+        }
+
+
+        private java.sql.Timestamp _updateTime;
+
+    
+        @PropMeta(propId=14)
+    
+        public java.sql.Timestamp getUpdateTime(){
+            return _updateTime;
+        }
+
+        public void setUpdateTime(java.sql.Timestamp value){
+            this._updateTime = value;
         }
 
 

@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 待办优先级
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 高
+    value: 10
+    description: 高优先级
+  
+  - label: 中
+    value: 20
+    description: 中优先级
+  
+  - label: 低
+    value: 30
+    description: 低优先级
+  

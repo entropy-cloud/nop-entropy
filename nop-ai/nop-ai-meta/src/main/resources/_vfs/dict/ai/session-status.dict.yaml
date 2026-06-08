@@ -1,0 +1,31 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 会话状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 已创建
+    value: 10
+    description: 会话已创建
+  
+  - label: 运行中
+    value: 20
+    description: 会话运行中
+  
+  - label: 空闲
+    value: 30
+    description: 会话空闲
+  
+  - label: 已完成
+    value: 40
+    description: 会话已完成
+  
+  - label: 失败
+    value: 50
+    description: 会话失败
+  
+  - label: 已停止
+    value: 60
+    description: 会话已停止
+  

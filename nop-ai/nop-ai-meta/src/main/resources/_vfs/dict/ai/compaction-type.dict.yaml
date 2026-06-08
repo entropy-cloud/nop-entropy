@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 压缩类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 全量
+    value: 10
+    description: 全量压缩
+  
+  - label: 增量
+    value: 20
+    description: 增量压缩
+  

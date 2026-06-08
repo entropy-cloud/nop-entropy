@@ -4,7 +4,7 @@
       xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="响应结果" i18n-en:displayName="Response Result" xmlns:ui="ui"
       xmlns:orm="orm">
 
-    <entityName>nop.ai.dao.entity.NopAiChatResponse</entityName>
+    <entityName>io.nop.ai.dao.entity.NopAiChatResponse</entityName>
 
     <primaryKey>id</primaryKey>
 
@@ -37,7 +37,7 @@
         </prop>
         <prop name="aiProvider" displayName="供应商" propId="5" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="4" dict="ai/model_provider"/>
+            <schema type="java.lang.String" precision="4" dict="ai/model-provider"/>
         </prop>
         <prop name="aiModel" displayName="模型名称" propId="6" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
@@ -78,6 +78,26 @@
         <prop name="complianceScore" displayName="合规性分" propId="15" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.math.BigDecimal" precision="5" scale="2"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="16" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="17" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="18" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="19" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="20" mandatory="true" queryable="true" sortable="true"
+              insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="request" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="requestId"
               ext:joinRightProp="id" mandatory="true" lazy="true" published="false">

@@ -1,0 +1,39 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 消息类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 用户
+    value: 10
+    description: 用户输入消息
+  
+  - label: 助手
+    value: 20
+    description: AI回复消息
+  
+  - label: 压缩
+    value: 30
+    description: 上下文压缩摘要
+  
+  - label: Shell
+    value: 40
+    description: Shell命令执行结果
+  
+  - label: 合成
+    value: 50
+    description: 系统合成的中间消息
+  
+  - label: 系统
+    value: 60
+    description: 系统级消息
+  
+  - label: Agent切换
+    value: 70
+    description: Agent切换消息
+  
+  - label: 模型切换
+    value: 80
+    description: 模型切换消息
+  

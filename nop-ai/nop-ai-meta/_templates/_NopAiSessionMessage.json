@@ -1,0 +1,23 @@
+{
+  "id": "",
+  "sessionId": "",
+  "role": 0,
+  "role_label": "",
+  "seq": 0,
+  "content": "",
+  "toolDetails": "",
+  "reasoning": "",
+  "metadata": "",
+  "parentId": "",
+  "finishReason": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "session": null,
+  "parentMessage": null,
+  "childMessages": null,
+  "toolDetailsComponent": null,
+  "metadataComponent": null
+}

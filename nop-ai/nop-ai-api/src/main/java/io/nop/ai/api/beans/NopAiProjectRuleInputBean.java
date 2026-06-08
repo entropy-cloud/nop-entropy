@@ -110,4 +110,18 @@
         }
 
 
+        private Integer _version;
+
+    
+        @PropMeta(propId=8)
+    
+        public Integer getVersion(){
+            return _version;
+        }
+
+        public void setVersion(Integer value){
+            this._version = value;
+        }
+
+
     }
