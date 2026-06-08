@@ -422,7 +422,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
                 return FunctionalInterfaceConverter.INSTANCE;
             }
 
-            if (typeInfo.getRawClass().isAnnotationPresent(DataBean.class))
+            if (typeInfo.getRawClass().isAnnotationPresent(DataBean.class) || isRecordClass(typeInfo.getRawClass()))
                 return new DataBeanTypeConverter(typeInfo);
 
             if (typeInfo.getRawClass().isArray())
@@ -456,5 +456,27 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
             reflectProxies.add(classNames);
         }
         return Proxy.newProxyInstance(ClassHelper.getDefaultClassLoader(), inf, handler);
+    }
+
+    private static final java.lang.reflect.Method IS_RECORD_METHOD;
+
+    static {
+        java.lang.reflect.Method m = null;
+        try {
+            m = Class.class.getMethod("isRecord");
+        } catch (NoSuchMethodException e) {
+            // Java < 16
+        }
+        IS_RECORD_METHOD = m;
+    }
+
+    private static boolean isRecordClass(Class<?> clazz) {
+        if (IS_RECORD_METHOD == null)
+            return false;
+        try {
+            return (Boolean) IS_RECORD_METHOD.invoke(clazz);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

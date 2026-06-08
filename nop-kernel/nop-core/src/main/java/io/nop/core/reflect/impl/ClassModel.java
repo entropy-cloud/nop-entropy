@@ -282,11 +282,35 @@ public class ClassModel extends AnnotatedElement implements IClassModel {
                 return beanModel;
             if (Annotation.class.isAssignableFrom(getRawClass())) {
                 beanModel = this.beanModel = new AnnotationBeanModelBuilder().buildFromClassModel(this);
+            } else if (isRecordClass(getRawClass())) {
+                beanModel = this.beanModel = new RecordBeanModelBuilder().buildFromClassModel(this);
             } else {
                 beanModel = this.beanModel = new BeanModelBuilder().buildFromClassModel(this);
             }
         }
 
         return beanModel;
+    }
+
+    private static final java.lang.reflect.Method IS_RECORD_METHOD;
+
+    static {
+        java.lang.reflect.Method m = null;
+        try {
+            m = Class.class.getMethod("isRecord");
+        } catch (NoSuchMethodException e) {
+            // Java < 16
+        }
+        IS_RECORD_METHOD = m;
+    }
+
+    private static boolean isRecordClass(Class<?> clazz) {
+        if (IS_RECORD_METHOD == null)
+            return false;
+        try {
+            return (Boolean) IS_RECORD_METHOD.invoke(clazz);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
