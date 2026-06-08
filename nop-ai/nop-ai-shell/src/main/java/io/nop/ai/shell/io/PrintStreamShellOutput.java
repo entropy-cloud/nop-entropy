@@ -2,48 +2,38 @@ package io.nop.ai.shell.io;
 
 import io.nop.api.core.exceptions.NopException;
 
-import java.io.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
-/**
- * 通用 PrintStream 适配器 - 复用 IShellOutput 接口实现。
- * 所有需要 PrintStream 功能的输出都使用这个类。
- */
 public class PrintStreamShellOutput implements IShellOutput {
 
     private final PrintStream printStream;
-    private final AtomicInteger writeCount = new AtomicInteger(0);
+    private volatile boolean closed = false;
 
     public PrintStreamShellOutput(PrintStream printStream) {
         this.printStream = printStream;
     }
 
-    public static PrintStreamShellOutput fromFile(File file){
-        OutputStream out = null;
-        try{
-            out = new FileOutputStream(file);
+    public static PrintStreamShellOutput fromFile(File file) {
+        try {
+            OutputStream out = new FileOutputStream(file);
             return new PrintStreamShellOutput(new PrintStream(out));
-        }catch (IOException e){
+        } catch (IOException e) {
             throw NopException.adapt(e);
         }
     }
 
     @Override
-    public void println(String line) {
-        printStream.println(line);
-        writeCount.incrementAndGet();
-    }
-
-    @Override
-    public void print(String str)  {
-        printStream.print(str);
-        writeCount.incrementAndGet();
-    }
-
-    @Override
-    public void println()  {
-        printStream.println();
-        writeCount.incrementAndGet();
+    public void write(ShellChunk chunk) {
+        if (closed) throw new IllegalStateException("output closed");
+        if (chunk.isText()) {
+            printStream.print(chunk.asText());
+        } else if (chunk.isBinary()) {
+            printStream.write(((ShellChunk.BinaryChunk) chunk).getData(), 0, ((ShellChunk.BinaryChunk) chunk).getData().length);
+        }
     }
 
     @Override
@@ -53,7 +43,10 @@ public class PrintStreamShellOutput implements IShellOutput {
 
     @Override
     public void close() {
-        printStream.close();
+        if (!closed) {
+            closed = true;
+            printStream.close();
+        }
     }
 
     @Override
@@ -61,9 +54,6 @@ public class PrintStreamShellOutput implements IShellOutput {
         throw new UnsupportedOperationException("PrintStreamOutputAdapter cannot be used as input");
     }
 
-    /**
-     * 获取内部 PrintStream（用于特殊处理）
-     */
     protected PrintStream getPrintStream() {
         return printStream;
     }

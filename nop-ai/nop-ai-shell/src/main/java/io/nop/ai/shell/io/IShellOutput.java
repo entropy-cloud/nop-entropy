@@ -2,23 +2,31 @@ package io.nop.ai.shell.io;
 
 import java.io.Closeable;
 
-/**
- * Shell 输出接口
- */
 public interface IShellOutput extends Closeable {
-    String EOF_MARKER = "__EOF__";
 
-    void print(String text);
+    void write(ShellChunk chunk);
 
-    void println(String text);
-
-    default void println(){
-        println("");
+    default void print(String text) {
+        write(ShellChunk.text(text));
     }
 
-    void flush();
+    default void writeLine(String line) {
+        write(ShellChunk.text(line + "\n"));
+    }
+
+    default void println(String text) {
+        writeLine(text);
+    }
+
+    default void println() {
+        write(ShellChunk.text("\n"));
+    }
+
+    default void flush() {
+    }
 
     IShellInput asInput();
 
+    @Override
     void close();
 }

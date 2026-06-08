@@ -3,6 +3,7 @@ package io.nop.ai.shell.commands.impl;
 import io.nop.ai.shell.commands.DefaultShellExecutionContext;
 import io.nop.ai.shell.commands.IShellCommandExecutionContext;
 import io.nop.ai.shell.io.ListShellOutput;
+import io.nop.ai.shell.io.ShellChunk;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -102,6 +103,15 @@ class CdCommandTest {
         assertEquals("/", context.workingDirectory());
     }
 
+    private boolean stderrContains(ListShellOutput stderr, String text) {
+        for (ShellChunk chunk : stderr.getChunks()) {
+            if (chunk.isText() && chunk.asText().contains(text)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Test
     void testExecuteWithMultipleArguments() throws Exception {
         ListShellOutput stdout = new ListShellOutput();
@@ -113,14 +123,7 @@ class CdCommandTest {
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
         assertEquals(1, exitCode);
-        boolean containsError = false;
-        for (String line : stderr.getList()) {
-            if (line != null && line.contains("too many arguments")) {
-                containsError = true;
-                break;
-            }
-        }
-        assertTrue(containsError, "stderr should contain 'too many arguments'");
+        assertTrue(stderrContains(stderr, "too many arguments"));
     }
 
     @Test
@@ -161,14 +164,7 @@ class CdCommandTest {
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
         assertEquals(1, exitCode);
-        boolean containsError = false;
-        for (String line : stderr.getList()) {
-            if (line != null && line.contains("too many arguments")) {
-                containsError = true;
-                break;
-            }
-        }
-        assertTrue(containsError, "stderr should contain 'too many arguments'");
+        assertTrue(stderrContains(stderr, "too many arguments"));
     }
 
     @Test
@@ -182,14 +178,7 @@ class CdCommandTest {
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
         assertEquals(1, exitCode);
-        boolean containsError = false;
-        for (String line : stderr.getList()) {
-            if (line != null && line.contains("too many arguments")) {
-                containsError = true;
-                break;
-            }
-        }
-        assertTrue(containsError, "stderr should contain 'too many arguments'");
+        assertTrue(stderrContains(stderr, "too many arguments"));
     }
 
     @Test

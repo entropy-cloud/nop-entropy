@@ -1,8 +1,13 @@
 package io.nop.ai.shell.executor;
 
+import io.nop.ai.shell.adapter.ExternalCommandAdapter;
+import io.nop.ai.shell.checker.ICommandCheckContext;
+import io.nop.ai.shell.checker.ICommandChecker;
+import io.nop.ai.shell.commands.DefaultShellExecutionContext;
 import io.nop.ai.shell.commands.IShellCommand;
 import io.nop.ai.shell.commands.IShellCommandExecutionContext;
 import io.nop.ai.shell.commands.ShellCommandRegistry;
+import io.nop.ai.shell.io.AbstractShellInput;
 import io.nop.ai.shell.io.BlockingQueueShellOutput;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
@@ -11,32 +16,39 @@ import io.nop.ai.shell.parser.BashSyntaxParser;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.core.execution.IExecution;
-import io.nop.core.execution.TaskExecutionGraph;
+import io.nop.commons.util.IoHelper;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Shell命令执行器
- * <p>
- * 负责将命令行解析为AST，转换为TaskExecutionGraph并执行。
- * 支持管道、环境变量传播、工作目录继承等bash特性。
- * </p>
- */
-public class ShellCommandExecutor {
+public class ShellCommandExecutor implements Closeable {
 
     private final ShellCommandRegistry registry;
     private final Executor executor;
+    private final ICommandChecker checker;
+    private final ExternalCommandAdapter externalAdapter;
 
     private Map<String, String> exportedEnv = new HashMap<>();
     private String currentWorkingDir = "/";
 
+    private final Map<String, CompletableFuture<?>> backgroundJobs = new LinkedHashMap<>();
+    private final AtomicLong jobIdCounter = new AtomicLong(0);
+    private volatile boolean closed = false;
+
     public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor) {
+        this(registry, executor, null);
+    }
+
+    public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor, ICommandChecker checker) {
         this.registry = registry;
         this.executor = executor != null ? executor : GlobalExecutors.globalWorker();
+        this.checker = checker;
+        this.externalAdapter = new ExternalCommandAdapter();
     }
 
     public ShellCommandExecutor(ShellCommandRegistry registry) {
@@ -51,7 +63,69 @@ public class ShellCommandExecutor {
         BashSyntaxParser parser = new BashSyntaxParser(commandLine);
         CommandExpression expr = parser.parse();
 
+        if (checker != null) {
+            String rejection = checkAst(expr);
+            if (rejection != null) {
+                return FutureHelper.success(new ExecutionResult(126, "", rejection));
+            }
+        }
+
         return executeExpression(expr, context, cancelToken);
+    }
+
+    private String checkAst(CommandExpression expr) {
+        CheckVisitor visitor = new CheckVisitor();
+        return expr.accept(visitor);
+    }
+
+    private class CheckVisitor implements CommandVisitor<String> {
+        @Override
+        public String visit(SimpleCommand cmd) {
+            ICommandCheckContext checkContext = new ICommandCheckContext() {
+                @Override
+                public String workingDirectory() { return currentWorkingDir; }
+                @Override
+                public Map<String, String> environment() { return Collections.unmodifiableMap(exportedEnv); }
+                @Override
+                public boolean isRegisteredCommand(String commandName) { return registry.findCommand(commandName) != null; }
+            };
+            return checker.check(cmd, checkContext);
+        }
+
+        @Override
+        public String visit(PipelineExpr pipe) {
+            for (CommandExpression cmd : pipe.commands()) {
+                String result = cmd.accept(this);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        @Override
+        public String visit(LogicalExpr logical) {
+            String left = logical.left().accept(this);
+            if (left != null) return left;
+            return logical.right().accept(this);
+        }
+
+        @Override
+        public String visit(GroupExpr group) {
+            for (CommandExpression cmd : group.commands()) {
+                String result = cmd.accept(this);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        @Override
+        public String visit(SubshellExpr subshell) {
+            return subshell.inner().accept(this);
+        }
+
+        @Override
+        public String visit(BackgroundExpr background) {
+            return background.inner().accept(this);
+        }
     }
 
     protected CompletionStage<ExecutionResult> executeExpression(CommandExpression expr, IShellCommandExecutionContext context, ICancelToken cancelToken) {
@@ -112,67 +186,64 @@ public class ShellCommandExecutor {
         try {
             int exitCode = executeSimpleCommandWithContext(cmd, context.stdin(), stdoutOutput, stderrOutput, context, cancelToken);
 
+            stdoutOutput.close();
+            stderrOutput.close();
+
             String stdout = collectOutput(stdoutOutput);
             String stderr = collectOutput(stderrOutput);
 
             return FutureHelper.success(new ExecutionResult(exitCode, stdout, stderr));
         } catch (Exception e) {
+            IoHelper.safeClose(stdoutOutput);
+            IoHelper.safeClose(stderrOutput);
             return FutureHelper.reject(e);
-        } finally {
-            try {
-                stdoutOutput.close();
-            } catch (Exception e) {
-            }
-            try {
-                stderrOutput.close();
-            } catch (Exception e) {
-            }
         }
     }
 
     private CompletionStage<ExecutionResult> executePipeline(PipelineExpr pipeline, IShellCommandExecutionContext context, ICancelToken cancelToken) {
-        TaskExecutionGraph graph = new TaskExecutionGraph(executor, "pipeline");
-
-        List<BlockingQueueShellOutput> outputs = new ArrayList<>();
-        List<IShellInput> inputs = new ArrayList<>();
         List<CommandExpression> commands = pipeline.commands();
-
         IShellInput currentInput = context.stdin();
+        BlockingQueueShellOutput prevOutput = null;
+        List<CompletableFuture<Integer>> stageFutures = new ArrayList<>();
 
         for (int i = 0; i < commands.size(); i++) {
             CommandExpression cmdExpr = commands.get(i);
-            BlockingQueueShellOutput output = new BlockingQueueShellOutput();
-            outputs.add(output);
 
-            final IShellInput cmdInput = (i == 0) ? currentInput : inputs.get(i - 1);
-            inputs.add(cmdInput);
-
-            if (cmdExpr instanceof SimpleCommand) {
-                final BlockingQueueShellOutput finalOutput = output;
-                SimpleCommand cmd = (SimpleCommand) cmdExpr;
-
-                graph.addTask("pipe-task-" + i, (IExecution<Integer>) token -> {
-                    try {
-                        return FutureHelper.success(executeSimpleCommandWithContext(cmd, cmdInput, finalOutput, context.stderr(), context, token));
-                    } catch (Exception e) {
-                        return FutureHelper.reject(e);
-                    }
-                });
-
-                if (i > 0) {
-                    graph.addDepend("pipe-task-" + i, "pipe-task-" + (i - 1));
-                }
-            } else {
+            if (!(cmdExpr instanceof SimpleCommand)) {
                 return FutureHelper.success(new ExecutionResult(1, "", "Pipeline does not support complex commands yet"));
             }
+
+            SimpleCommand cmd = (SimpleCommand) cmdExpr;
+            BlockingQueueShellOutput output = new BlockingQueueShellOutput();
+            IShellInput stageInput = (i == 0) ? currentInput : prevOutput.asInput();
+
+            final IShellInput input = stageInput;
+            final IShellOutput out = output;
+            final BlockingQueueShellOutput prevOut = prevOutput;
+
+            CompletableFuture<Integer> stageFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return executeSimpleCommandWithContext(cmd, input, out, context.stderr(), context, cancelToken);
+                } catch (Exception e) {
+                    throw io.nop.api.core.exceptions.NopException.adapt(e);
+                } finally {
+                    IoHelper.safeClose(out);
+                }
+            }, executor);
+
+            stageFutures.add(stageFuture);
+            prevOutput = output;
         }
 
-        BlockingQueueShellOutput lastOutput = outputs.get(outputs.size() - 1);
+        BlockingQueueShellOutput lastOutput = prevOutput;
 
-        return graph.executeAsync(cancelToken).thenApply(v -> {
-            String lastStdout = collectOutput(lastOutput);
-            return new ExecutionResult(0, lastStdout, "");
-        });
+        CompletableFuture<ExecutionResult> pipelineFuture =
+                stageFutures.get(stageFutures.size() - 1).thenApply(lastExitCode -> {
+                    String stdout = collectOutput(lastOutput);
+                    return new ExecutionResult(lastExitCode, stdout, "");
+                });
+
+        return pipelineFuture;
     }
 
     private CompletionStage<ExecutionResult> executeLogicalExpr(LogicalExpr logical, IShellCommandExecutionContext context, ICancelToken cancelToken) {
@@ -206,40 +277,51 @@ public class ShellCommandExecutor {
     }
 
     private CompletionStage<ExecutionResult> executeGroup(GroupExpr group, IShellCommandExecutionContext context, ICancelToken cancelToken) {
-        Map<String, String> originalExportedEnv = new HashMap<>(exportedEnv);
-        String originalWorkingDir = currentWorkingDir;
+        Map<String, String> savedEnv = new HashMap<>(this.exportedEnv);
+        String savedDir = this.currentWorkingDir;
 
-        final CompletableFuture<ExecutionResult> result = new CompletableFuture<>();
-
-        executeSequence(group.commands(), context, cancelToken, true).thenRun(() -> result.complete(new ExecutionResult(0, "", "")));
-
-        result.thenAccept(r -> {
-            exportedEnv = originalExportedEnv;
-            currentWorkingDir = originalWorkingDir;
-        });
-
-        return result;
+        try {
+            return executeSequence(group.commands(), context, cancelToken, true)
+                    .whenComplete((v, ex) -> {
+                        this.exportedEnv = savedEnv;
+                        this.currentWorkingDir = savedDir;
+                    }).thenApply(v -> new ExecutionResult(0, "", ""));
+        } catch (Exception e) {
+            this.exportedEnv = savedEnv;
+            this.currentWorkingDir = savedDir;
+            throw e;
+        }
     }
 
     private CompletionStage<ExecutionResult> executeSubshell(SubshellExpr subshell, IShellCommandExecutionContext context, ICancelToken cancelToken) {
-        Map<String, String> parentExportedEnv = new HashMap<>(exportedEnv);
-        String parentWorkingDir = currentWorkingDir;
+        Map<String, String> parentExportedEnv = new HashMap<>(this.exportedEnv);
+        String parentWorkingDir = this.currentWorkingDir;
 
-        exportedEnv = new HashMap<>();
-        currentWorkingDir = parentWorkingDir;
+        this.exportedEnv = new HashMap<>();
+        this.currentWorkingDir = parentWorkingDir;
 
-        CompletionStage<ExecutionResult> result = executeExpression(subshell.inner(), context, cancelToken);
-
-        result.thenAccept(r -> {
-            exportedEnv = parentExportedEnv;
-            currentWorkingDir = parentWorkingDir;
-        });
-
-        return result;
+        return executeExpression(subshell.inner(), context, cancelToken)
+                .whenComplete((result, ex) -> {
+                    this.exportedEnv = parentExportedEnv;
+                    this.currentWorkingDir = parentWorkingDir;
+                });
     }
 
     private CompletionStage<ExecutionResult> executeBackground(BackgroundExpr background, IShellCommandExecutionContext context, ICancelToken cancelToken) {
-        return executeExpression(background.inner(), context, cancelToken);
+        String jobId = String.valueOf(jobIdCounter.incrementAndGet());
+
+        CompletableFuture<ExecutionResult> bgFuture = CompletableFuture.supplyAsync(() -> {
+            return executeExpression(background.inner(), context, cancelToken)
+                    .toCompletableFuture().join();
+        }, executor);
+
+        backgroundJobs.put(jobId, bgFuture);
+
+        bgFuture.whenComplete((r, ex) -> backgroundJobs.remove(jobId));
+
+        return FutureHelper.success(
+                new ExecutionResult(0, "[" + jobId + "] running in background", "")
+        );
     }
 
     private CompletionStage<Void> executeSequence(List<CommandExpression> commands, IShellCommandExecutionContext context, ICancelToken cancelToken, boolean isolatedEnv) {
@@ -266,8 +348,12 @@ public class ShellCommandExecutor {
         IShellCommand command = registry.findCommand(commandName);
 
         if (command == null) {
-            context.stderr().println("Command not found: " + commandName);
-            return 127;
+            try {
+                return externalAdapter.execute(cmd, stdin, stdout, stderr, cancelToken);
+            } catch (UnsupportedOperationException e) {
+                stderr.println("Command not found: " + commandName);
+                return 127;
+            }
         }
 
         Map<String, String> env = buildEnvironment(cmd.getEnvVars(), context.environment());
@@ -276,40 +362,10 @@ public class ShellCommandExecutor {
         RedirectedStreams redirectedStreams = applyRedirects(cmd.getRedirects(), stdin, stdout, stderr, context.workingDirectory());
 
         try {
-            IShellCommandExecutionContext cmdContext = new IShellCommandExecutionContext() {
-                @Override
-                public IShellInput stdin() { return redirectedStreams.stdin; }
-
-                @Override
-                public IShellOutput stdout() { return redirectedStreams.stdout; }
-
-                @Override
-                public IShellOutput stderr() { return redirectedStreams.stderr; }
-
-                @Override
-                public Map<String, String> environment() { return env; }
-
-                @Override
-                public String workingDirectory() { return context.workingDirectory(); }
-
-                @Override
-                public String[] arguments() { return args; }
-
-                @Override
-                public boolean hasFlag(String flag) { return false; }
-
-                @Override
-                public String getFlagValue(String flag) { return null; }
-
-                @Override
-                public String[] positionalArguments() { return args; }
-
-                @Override
-                public io.nop.core.resource.IResourceStore resourceStore() { return context.resourceStore(); }
-
-                @Override
-                public ICancelToken cancelToken() { return cancelToken; }
-            };
+            IShellCommandExecutionContext cmdContext = new DefaultShellExecutionContext(
+                    redirectedStreams.stdin, redirectedStreams.stdout, redirectedStreams.stderr,
+                    env, context.workingDirectory(), args, context.resourceStore(), cancelToken
+            );
 
             return command.execute(cmdContext);
         } finally {
@@ -340,16 +396,10 @@ public class ShellCommandExecutor {
 
         void close() {
             for (IShellInput input : ownedInputs) {
-                try {
-                    input.close();
-                } catch (Exception e) {
-                }
+                IoHelper.safeClose(input);
             }
             for (IShellOutput output : ownedOutputs) {
-                try {
-                    output.close();
-                } catch (Exception e) {
-                }
+                IoHelper.safeClose(output);
             }
         }
     }
@@ -412,18 +462,15 @@ public class ShellCommandExecutor {
                 case 1:
                     if (targetFd == 2) {
                         streams.stdout = streams.stderr;
-                    } else if (targetFd == 1) {
                     }
                     break;
                 case 2:
                     if (targetFd == 1) {
                         streams.stderr = new io.nop.ai.shell.io.DuplexShellOutput(streams.stdout);
-                    } else if (targetFd == 2) {
                     }
                     break;
             }
-        } catch (NumberFormatException e) {
-        }
+        } catch (NumberFormatException e) { /* non-numeric fd target, ignore */ }
     }
 
     private void handleFdInputRedirect(RedirectedStreams streams, Redirect redirect) {
@@ -436,8 +483,7 @@ public class ShellCommandExecutor {
             if (sourceFd == 0 && targetFd == 1) {
                 streams.stdin = streams.stdout.asInput();
             }
-        } catch (NumberFormatException e) {
-        }
+        } catch (NumberFormatException e) { /* non-numeric fd target, ignore */ }
     }
 
     private void handleMergeRedirect(RedirectedStreams streams, Redirect redirect, boolean append) {
@@ -526,13 +572,17 @@ public class ShellCommandExecutor {
 
     private String collectOutput(BlockingQueueShellOutput output) {
         try {
+            IShellInput input = output.asInput();
+            if (input instanceof AbstractShellInput) {
+                return ((AbstractShellInput) input).readAllText();
+            }
             StringBuilder sb = new StringBuilder();
-            java.util.Iterator<String> it = output.asInput().lines();
-            while (it.hasNext()) {
-                if (sb.length() > 0) {
-                    sb.append("\n");
+            while (true) {
+                var chunk = input.read();
+                if (chunk == null || chunk.isEof()) break;
+                if (chunk.isText()) {
+                    sb.append(chunk.asText());
                 }
-                sb.append(it.next());
             }
             return sb.toString();
         } catch (Exception e) {
@@ -540,27 +590,29 @@ public class ShellCommandExecutor {
         }
     }
 
-    public static class ExecutionResult {
-        private final int exitCode;
-        private final String stdout;
-        private final String stderr;
-
-        public ExecutionResult(int exitCode, String stdout, String stderr) {
-            this.exitCode = exitCode;
-            this.stdout = stdout;
-            this.stderr = stderr;
+    @Override
+    public void close() throws IOException {
+        closed = true;
+        for (Map.Entry<String, CompletableFuture<?>> entry : backgroundJobs.entrySet()) {
+            entry.getValue().cancel(true);
         }
-
-        public int exitCode() {
-            return exitCode;
+        for (Map.Entry<String, CompletableFuture<?>> entry : backgroundJobs.entrySet()) {
+            try {
+                entry.getValue().get(1, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception e) { /* wait for cancellation, ignore timeout/interrupt */ }
         }
+        backgroundJobs.clear();
+    }
 
-        public String stdout() {
-            return stdout;
-        }
+    public Map<String, CompletableFuture<?>> getBackgroundJobs() {
+        return Collections.unmodifiableMap(backgroundJobs);
+    }
 
-        public String stderr() {
-            return stderr;
-        }
+    public Map<String, String> getExportedEnv() {
+        return Collections.unmodifiableMap(exportedEnv);
+    }
+
+    public String getCurrentWorkingDir() {
+        return currentWorkingDir;
     }
 }

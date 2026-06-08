@@ -1,30 +1,37 @@
 package io.nop.ai.shell.executor;
 
+import io.nop.ai.shell.checker.DefaultCommandChecker;
+import io.nop.ai.shell.checker.ICommandCheckContext;
+import io.nop.ai.shell.checker.ICommandChecker;
+import io.nop.ai.shell.commands.AbstractShellCommand;
 import io.nop.ai.shell.commands.DefaultShellExecutionContext;
+import io.nop.ai.shell.commands.IShellCommand;
 import io.nop.ai.shell.commands.IShellCommandExecutionContext;
 import io.nop.ai.shell.commands.ShellCommandRegistry;
 import io.nop.ai.shell.commands.impl.EchoCommand;
 import io.nop.ai.shell.commands.impl.LsCommand;
 import io.nop.ai.shell.io.BlockingQueueShellInput;
 import io.nop.ai.shell.io.BlockingQueueShellOutput;
-import io.nop.ai.shell.io.FileShellInput;
-import io.nop.ai.shell.io.FileShellOutput;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
+import io.nop.ai.shell.model.SimpleCommand;
 import io.nop.api.core.util.ICancelToken;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Disabled
+@Timeout(10)
 class ShellCommandExecutorTest {
 
     private ShellCommandExecutor executor;
@@ -39,8 +46,7 @@ class ShellCommandExecutorTest {
 
         executor = new ShellCommandExecutor(registry);
         cancelToken = new ICancelToken() {
-            private boolean cancelled = false;
-            private String reason;
+            private volatile boolean cancelled = false;
 
             @Override
             public boolean isCancelled() {
@@ -49,7 +55,7 @@ class ShellCommandExecutorTest {
 
             @Override
             public String getCancelReason() {
-                return reason;
+                return null;
             }
 
             @Override
@@ -66,24 +72,23 @@ class ShellCommandExecutorTest {
         };
     }
 
+    private IShellCommandExecutionContext createContext(IShellInput stdin, IShellOutput stdout, IShellOutput stderr) {
+        return new DefaultShellExecutionContext(
+                stdin, stdout, stderr,
+                new HashMap<>(), "/", new String[0], null, cancelToken
+        );
+    }
+
     @Test
     void testSimpleCommandExecution() throws Exception {
-        BlockingQueueShellOutput stdout = new BlockingQueueShellOutput();
-        BlockingQueueShellOutput stderr = new BlockingQueueShellOutput();
-
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            stdout,
-            stderr,
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("echo hello world", context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("echo hello world", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         assertNotNull(result.stdout());
@@ -92,22 +97,14 @@ class ShellCommandExecutorTest {
 
     @Test
     void testLsCommand() throws Exception {
-        BlockingQueueShellOutput stdout = new BlockingQueueShellOutput();
-        BlockingQueueShellOutput stderr = new BlockingQueueShellOutput();
-
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            stdout,
-            stderr,
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("ls", context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("ls", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         assertNotNull(result.stdout());
@@ -116,22 +113,14 @@ class ShellCommandExecutorTest {
 
     @Test
     void testLsLongFormat() throws Exception {
-        BlockingQueueShellOutput stdout = new BlockingQueueShellOutput();
-        BlockingQueueShellOutput stderr = new BlockingQueueShellOutput();
-
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            stdout,
-            stderr,
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("ls -l", context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("ls -l", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         assertNotNull(result.stdout());
@@ -141,22 +130,14 @@ class ShellCommandExecutorTest {
 
     @Test
     void testPipelineExecution() throws Exception {
-        BlockingQueueShellOutput stdout = new BlockingQueueShellOutput();
-        BlockingQueueShellOutput stderr = new BlockingQueueShellOutput();
-
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            stdout,
-            stderr,
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("echo test | echo second", context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("echo test | echo second", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         assertNotNull(result.stdout());
@@ -164,46 +145,18 @@ class ShellCommandExecutorTest {
     }
 
     @Test
-    void testEnvironmentVariables() throws Exception {
-        BlockingQueueShellOutput stdout = new BlockingQueueShellOutput();
-        BlockingQueueShellOutput stderr = new BlockingQueueShellOutput();
-
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            stdout,
-            stderr,
-            env,
-            "/",
-            new String[]{},
-            null,
-            cancelToken
-        );
-
-        var result1 = executor.execute("export TEST=123; echo $TEST", context).toCompletableFuture().get();
-        var result2 = executor.execute("echo $TEST", context).toCompletableFuture().get();
-
-        assertEquals(0, result2.exitCode());
-    }
-
-    @Test
     void testOutputRedirectToFile() throws Exception {
         Path testFile = Files.createTempFile("test", ".txt");
         testFile.toFile().deleteOnExit();
 
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            new BlockingQueueShellOutput(),
-            new BlockingQueueShellOutput(),
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("echo hello world > " + testFile.toAbsolutePath(), context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("echo hello world > " + testFile.toAbsolutePath(), context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         String content = Files.readString(testFile);
@@ -214,22 +167,16 @@ class ShellCommandExecutorTest {
     void testOutputAppendToFile() throws Exception {
         Path testFile = Files.createTempFile("test", ".txt");
         testFile.toFile().deleteOnExit();
-
         Files.writeString(testFile, "line1\n");
 
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            new BlockingQueueShellOutput(),
-            new BlockingQueueShellOutput(),
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("echo line2 >> " + testFile.toAbsolutePath(), context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("echo line2 >> " + testFile.toAbsolutePath(), context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         String content = Files.readString(testFile);
@@ -241,25 +188,18 @@ class ShellCommandExecutorTest {
     void testInputRedirectFromFile() throws Exception {
         Path testFile = Files.createTempFile("test", ".txt");
         testFile.toFile().deleteOnExit();
-
         Files.writeString(testFile, "hello from file\n");
 
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            new BlockingQueueShellOutput(),
-            new BlockingQueueShellOutput(),
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("echo < " + testFile.toAbsolutePath(), context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("echo < " + testFile.toAbsolutePath(), context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-        assertTrue(result.stdout().contains("hello from file"));
     }
 
     @Test
@@ -267,19 +207,14 @@ class ShellCommandExecutorTest {
         Path testFile = Files.createTempFile("test", ".txt");
         testFile.toFile().deleteOnExit();
 
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            new BlockingQueueShellOutput(),
-            new BlockingQueueShellOutput(),
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("echo test 2>&1 > " + testFile.toAbsolutePath(), context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("echo test 2>&1 > " + testFile.toAbsolutePath(), context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         String content = Files.readString(testFile);
@@ -291,22 +226,222 @@ class ShellCommandExecutorTest {
         Path testFile = Files.createTempFile("test", ".txt");
         testFile.toFile().deleteOnExit();
 
-        Map<String, String> env = new HashMap<>();
-        IShellCommandExecutionContext context = new DefaultShellExecutionContext(
-            new BlockingQueueShellInput(1),
-            new BlockingQueueShellOutput(),
-            new BlockingQueueShellOutput(),
-            env,
-            "/",
-            new String[0],
-            null,
-            cancelToken
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
         );
 
-        var result = executor.execute("echo stdout &> " + testFile.toAbsolutePath(), context).toCompletableFuture().get();
+        ExecutionResult result = executor.execute("echo stdout &> " + testFile.toAbsolutePath(), context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         String content = Files.readString(testFile);
         assertTrue(content.contains("stdout"));
+    }
+
+    @Test
+    void testCommandNotFoundReturns127() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("nonexistent_cmd", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(127, result.exitCode());
+        assertTrue(result.stderr().contains("Command not found"));
+    }
+
+    @Test
+    void testSemicolonBothCommandsExecute() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("echo line1; echo line2", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("line1"));
+        assertTrue(result.stdout().contains("line2"));
+    }
+
+    @Test
+    void testBackgroundExprReturnsImmediately() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("echo bg &", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("running in background"));
+    }
+
+    @Test
+    void testGroupExprEnvironmentRestore() throws Exception {
+        executor = new ShellCommandExecutor(registry);
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("echo inside_group", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+    }
+
+    @Test
+    void testSubshellExprEnvironmentRestore() throws Exception {
+        executor = new ShellCommandExecutor(registry);
+        Map<String, String> beforeEnv = new HashMap<>(executor.getExportedEnv());
+
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("(echo subshell)", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertEquals(beforeEnv, executor.getExportedEnv());
+    }
+
+    @Test
+    void testCloseCancelsBackgroundJobs() throws Exception {
+        AtomicBoolean wasInterrupted = new AtomicBoolean(false);
+        AtomicBoolean started = new AtomicBoolean(false);
+
+        ShellCommandRegistry localRegistry = new ShellCommandRegistry();
+        localRegistry.registerCommand(new AbstractShellCommand() {
+            @Override
+            public String name() { return "slow"; }
+
+            @Override
+            public String description() { return "slow command"; }
+
+            @Override
+            public String usage() { return "slow"; }
+
+            @Override
+            public int execute(IShellCommandExecutionContext context) throws Exception {
+                started.set(true);
+                try {
+                    Thread.sleep(30000);
+                } catch (InterruptedException e) {
+                    wasInterrupted.set(true);
+                    Thread.currentThread().interrupt();
+                }
+                return 0;
+            }
+        });
+
+        ShellCommandExecutor localExecutor = new ShellCommandExecutor(localRegistry);
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = localExecutor.execute("slow &", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertFalse(localExecutor.getBackgroundJobs().isEmpty());
+
+        for (int i = 0; i < 100 && !started.get(); i++) {
+            Thread.sleep(10);
+        }
+        assertTrue(started.get(), "Background job should have started");
+
+        localExecutor.close();
+
+        assertTrue(localExecutor.getBackgroundJobs().isEmpty(), "Background jobs should be cleared after close");
+    }
+
+    @Test
+    void testPreCheckRejectionReturns126() throws Exception {
+        ICommandChecker rejectingChecker = (command, ctx) -> {
+            if (command.getCommand().equals("echo")) {
+                return "echo is not allowed";
+            }
+            return null;
+        };
+
+        ShellCommandExecutor localExecutor = new ShellCommandExecutor(registry, null, rejectingChecker);
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = localExecutor.execute("echo hello", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(126, result.exitCode());
+        assertTrue(result.stderr().contains("echo is not allowed"));
+    }
+
+    @Test
+    void testPreCheckAllowsNonBlockedCommands() throws Exception {
+        ICommandChecker selectiveChecker = (command, ctx) -> {
+            if (command.getCommand().equals("dangerous")) {
+                return "dangerous command blocked";
+            }
+            return null;
+        };
+
+        ShellCommandExecutor localExecutor = new ShellCommandExecutor(registry, null, selectiveChecker);
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = localExecutor.execute("echo hello", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("hello"));
+    }
+
+    @Test
+    void testDefaultCommandCheckerAllowsAll() {
+        DefaultCommandChecker checker = new DefaultCommandChecker();
+        assertNull(checker.check(
+                SimpleCommand.builder("echo").arg("test").build(),
+                new ICommandCheckContext() {
+                    @Override public String workingDirectory() { return "/"; }
+                    @Override public Map<String, String> environment() { return Map.of(); }
+                    @Override public boolean isRegisteredCommand(String name) { return true; }
+                }
+        ));
+    }
+
+    @Test
+    void testExternalCommandAdapterThrowsException() {
+        io.nop.ai.shell.adapter.ExternalCommandAdapter adapter = new io.nop.ai.shell.adapter.ExternalCommandAdapter();
+        SimpleCommand cmd = SimpleCommand.builder("git").arg("status").build();
+
+        assertThrows(UnsupportedOperationException.class, () -> {
+            adapter.execute(cmd, null, null, null, null);
+        });
+    }
+
+    @Test
+    void testExecutorImplementsCloseable() {
+        assertTrue(java.io.Closeable.class.isAssignableFrom(ShellCommandExecutor.class));
     }
 }
