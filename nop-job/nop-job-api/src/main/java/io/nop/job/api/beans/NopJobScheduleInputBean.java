@@ -96,6 +96,20 @@
         }
 
 
+        private Integer _scheduleStatus;
+
+    
+        @PropMeta(propId=7)
+    
+        public Integer getScheduleStatus(){
+            return _scheduleStatus;
+        }
+
+        public void setScheduleStatus(Integer value){
+            this._scheduleStatus = value;
+        }
+
+
         private String _executorKind;
 
     

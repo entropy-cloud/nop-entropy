@@ -41,17 +41,31 @@
         }
 
 
-        private Integer _taskNo;
+        private Integer _shardingIndex;
 
     
-        @PropMeta(propId=3)
+        @PropMeta(propId=24)
     
-        public Integer getTaskNo(){
-            return _taskNo;
+        public Integer getShardingIndex(){
+            return _shardingIndex;
         }
 
-        public void setTaskNo(Integer value){
-            this._taskNo = value;
+        public void setShardingIndex(Integer value){
+            this._shardingIndex = value;
+        }
+
+
+        private Integer _shardingTotal;
+
+    
+        @PropMeta(propId=25)
+    
+        public Integer getShardingTotal(){
+            return _shardingTotal;
+        }
+
+        public void setShardingTotal(Integer value){
+            this._shardingTotal = value;
         }
 
 
@@ -106,20 +120,6 @@
 
         public void setWorkerAddress(String value){
             this._workerAddress = value;
-        }
-
-
-        private String _taskPayload;
-
-    
-        @PropMeta(propId=7)
-    
-        public String getTaskPayload(){
-            return _taskPayload;
-        }
-
-        public void setTaskPayload(String value){
-            this._taskPayload = value;
         }
 
 
@@ -204,6 +204,34 @@
 
         public void setErrorMessage(String value){
             this._errorMessage = value;
+        }
+
+
+        private String _taskPayload;
+
+    
+        @PropMeta(propId=7)
+    
+        public String getTaskPayload(){
+            return _taskPayload;
+        }
+
+        public void setTaskPayload(String value){
+            this._taskPayload = value;
+        }
+
+
+        private Integer _taskNo;
+
+    
+        @PropMeta(propId=3)
+    
+        public Integer getTaskNo(){
+            return _taskNo;
+        }
+
+        public void setTaskNo(Integer value){
+            this._taskNo = value;
         }
 
 
@@ -344,34 +372,6 @@
 
         public void setTargetHost(String value){
             this._targetHost = value;
-        }
-
-
-        private Integer _shardingIndex;
-
-    
-        @PropMeta(propId=24)
-    
-        public Integer getShardingIndex(){
-            return _shardingIndex;
-        }
-
-        public void setShardingIndex(Integer value){
-            this._shardingIndex = value;
-        }
-
-
-        private Integer _shardingTotal;
-
-    
-        @PropMeta(propId=25)
-    
-        public Integer getShardingTotal(){
-            return _shardingTotal;
-        }
-
-        public void setShardingTotal(Integer value){
-            this._shardingTotal = value;
         }
 
 

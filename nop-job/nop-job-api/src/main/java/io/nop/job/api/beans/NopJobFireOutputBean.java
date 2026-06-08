@@ -27,116 +27,6 @@
         }
 
 
-        private String _jobScheduleId;
-
-    
-        @PropMeta(propId=2)
-    
-        public String getJobScheduleId(){
-            return _jobScheduleId;
-        }
-
-        public void setJobScheduleId(String value){
-            this._jobScheduleId = value;
-        }
-
-
-        private String _namespaceId;
-
-    
-        @PropMeta(propId=3)
-    
-        public String getNamespaceId(){
-            return _namespaceId;
-        }
-
-        public void setNamespaceId(String value){
-            this._namespaceId = value;
-        }
-
-
-        private String _groupId;
-
-    
-        @PropMeta(propId=4)
-    
-        public String getGroupId(){
-            return _groupId;
-        }
-
-        public void setGroupId(String value){
-            this._groupId = value;
-        }
-
-
-        private String _jobName;
-
-    
-        @PropMeta(propId=5)
-    
-        public String getJobName(){
-            return _jobName;
-        }
-
-        public void setJobName(String value){
-            this._jobName = value;
-        }
-
-
-        private Integer _triggerSource;
-
-    
-        @PropMeta(propId=6)
-    
-        public Integer getTriggerSource(){
-            return _triggerSource;
-        }
-
-        public void setTriggerSource(Integer value){
-            this._triggerSource = value;
-        }
-
-
-        private String _triggerSource_label;
-
-    
-        public String getTriggerSource_label(){
-            return _triggerSource_label;
-        }
-
-        public void setTriggerSource_label(String value){
-            this._triggerSource_label = value;
-        }
-
-
-        private java.sql.Timestamp _scheduledFireTime;
-
-    
-        @PropMeta(propId=7)
-    
-        public java.sql.Timestamp getScheduledFireTime(){
-            return _scheduledFireTime;
-        }
-
-        public void setScheduledFireTime(java.sql.Timestamp value){
-            this._scheduledFireTime = value;
-        }
-
-
-        private String _triggeredBy;
-
-    
-        @PropMeta(propId=8)
-    
-        public String getTriggeredBy(){
-            return _triggeredBy;
-        }
-
-        public void setTriggeredBy(String value){
-            this._triggeredBy = value;
-        }
-
-
         private Integer _fireStatus;
 
     
@@ -233,43 +123,85 @@
         }
 
 
-        private String _jobParamsSnapshot;
+        private String _errorCode;
 
     
-        @PropMeta(propId=15)
+        @PropMeta(propId=19)
     
-        public String getJobParamsSnapshot(){
-            return _jobParamsSnapshot;
+        public String getErrorCode(){
+            return _errorCode;
         }
 
-        public void setJobParamsSnapshot(String value){
-            this._jobParamsSnapshot = value;
-        }
-
-
-        private String _executorKind;
-
-    
-        @PropMeta(propId=16)
-    
-        public String getExecutorKind(){
-            return _executorKind;
-        }
-
-        public void setExecutorKind(String value){
-            this._executorKind = value;
+        public void setErrorCode(String value){
+            this._errorCode = value;
         }
 
 
-        private String _executorKind_label;
+        private String _errorMessage;
 
     
-        public String getExecutorKind_label(){
-            return _executorKind_label;
+        @PropMeta(propId=20)
+    
+        public String getErrorMessage(){
+            return _errorMessage;
         }
 
-        public void setExecutorKind_label(String value){
-            this._executorKind_label = value;
+        public void setErrorMessage(String value){
+            this._errorMessage = value;
+        }
+
+
+        private Integer _triggerSource;
+
+    
+        @PropMeta(propId=6)
+    
+        public Integer getTriggerSource(){
+            return _triggerSource;
+        }
+
+        public void setTriggerSource(Integer value){
+            this._triggerSource = value;
+        }
+
+
+        private String _triggerSource_label;
+
+    
+        public String getTriggerSource_label(){
+            return _triggerSource_label;
+        }
+
+        public void setTriggerSource_label(String value){
+            this._triggerSource_label = value;
+        }
+
+
+        private java.sql.Timestamp _scheduledFireTime;
+
+    
+        @PropMeta(propId=7)
+    
+        public java.sql.Timestamp getScheduledFireTime(){
+            return _scheduledFireTime;
+        }
+
+        public void setScheduledFireTime(java.sql.Timestamp value){
+            this._scheduledFireTime = value;
+        }
+
+
+        private String _triggeredBy;
+
+    
+        @PropMeta(propId=8)
+    
+        public String getTriggeredBy(){
+            return _triggeredBy;
+        }
+
+        public void setTriggeredBy(String value){
+            this._triggeredBy = value;
         }
 
 
@@ -298,34 +230,6 @@
 
         public void setRetryRecordId(String value){
             this._retryRecordId = value;
-        }
-
-
-        private String _errorCode;
-
-    
-        @PropMeta(propId=19)
-    
-        public String getErrorCode(){
-            return _errorCode;
-        }
-
-        public void setErrorCode(String value){
-            this._errorCode = value;
-        }
-
-
-        private String _errorMessage;
-
-    
-        @PropMeta(propId=20)
-    
-        public String getErrorMessage(){
-            return _errorMessage;
-        }
-
-        public void setErrorMessage(String value){
-            this._errorMessage = value;
         }
 
 
@@ -424,6 +328,102 @@
 
         public void setRemark(String value){
             this._remark = value;
+        }
+
+
+        private String _jobScheduleId;
+
+    
+        @PropMeta(propId=2)
+    
+        public String getJobScheduleId(){
+            return _jobScheduleId;
+        }
+
+        public void setJobScheduleId(String value){
+            this._jobScheduleId = value;
+        }
+
+
+        private String _namespaceId;
+
+    
+        @PropMeta(propId=3)
+    
+        public String getNamespaceId(){
+            return _namespaceId;
+        }
+
+        public void setNamespaceId(String value){
+            this._namespaceId = value;
+        }
+
+
+        private String _groupId;
+
+    
+        @PropMeta(propId=4)
+    
+        public String getGroupId(){
+            return _groupId;
+        }
+
+        public void setGroupId(String value){
+            this._groupId = value;
+        }
+
+
+        private String _jobName;
+
+    
+        @PropMeta(propId=5)
+    
+        public String getJobName(){
+            return _jobName;
+        }
+
+        public void setJobName(String value){
+            this._jobName = value;
+        }
+
+
+        private String _jobParamsSnapshot;
+
+    
+        @PropMeta(propId=15)
+    
+        public String getJobParamsSnapshot(){
+            return _jobParamsSnapshot;
+        }
+
+        public void setJobParamsSnapshot(String value){
+            this._jobParamsSnapshot = value;
+        }
+
+
+        private String _executorKind;
+
+    
+        @PropMeta(propId=16)
+    
+        public String getExecutorKind(){
+            return _executorKind;
+        }
+
+        public void setExecutorKind(String value){
+            this._executorKind = value;
+        }
+
+
+        private String _executorKind_label;
+
+    
+        public String getExecutorKind_label(){
+            return _executorKind_label;
+        }
+
+        public void setExecutorKind_label(String value){
+            this._executorKind_label = value;
         }
 
 
