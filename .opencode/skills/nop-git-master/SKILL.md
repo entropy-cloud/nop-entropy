@@ -86,6 +86,8 @@ fi
 
 ## 标准流程（强制）
 
+**⚠️ 关键顺序：必须先 fetch 更新 `origin/$BRANCH`，再检查未推送提交。`origin/$BRANCH` 可能过期，用它检查会误报。**
+
 ```bash
 # 0. 环境检测
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
@@ -100,19 +102,21 @@ if [ -z "$REMOTE_SHA" ]; then
   exit 1
 fi
 
-# 2. 获取本地 SHA 和 origin/$BRANCH SHA
+# 2. 获取本地 SHA
 LOCAL_SHA=$(git rev-parse HEAD)
-ORIGIN_SHA=$(git rev-parse "origin/$CURRENT_BRANCH" 2>/dev/null || echo "none")
 
 echo "Remote: $REMOTE_SHA"
 echo "Local:  $LOCAL_SHA"
-echo "Origin: $ORIGIN_SHA"
 
 # 3. 对比
 if [ "$REMOTE_SHA" = "$LOCAL_SHA" ]; then
   echo "✅ 已是最新: $(git log --oneline -1)"
 else
-  # 4. 检查本地是否有未推送的提交
+  # 4. 先强制更新远程跟踪分支（必须在检查未推送之前！）
+  #    原因：origin/$BRANCH 可能过期，用它检查未推送会误报
+  git fetch origin "+refs/heads/$CURRENT_BRANCH:refs/remotes/origin/$CURRENT_BRANCH"
+
+  # 5. 用更新后的 origin/$BRANCH 检查本地是否有未推送的提交
   UNPUSHED=$(git log --oneline "origin/$CURRENT_BRANCH..HEAD" 2>/dev/null)
   if [ -n "$UNPUSHED" ]; then
     echo "⚠️ 本地有未推送的提交："
@@ -121,9 +125,6 @@ else
     echo "请先 push 或 rebase，不要用 SYNC 强制覆盖。"
     exit 1
   fi
-
-  # 5. 强制更新远程跟踪分支（refspec 方式，比 fetch origin $SHA 可靠）
-  git fetch origin "+refs/heads/$CURRENT_BRANCH:refs/remotes/origin/$CURRENT_BRANCH"
 
   # 6. 安全同步
   git pull --ff-only origin "$CURRENT_BRANCH"
@@ -829,7 +830,7 @@ perf: 性能优化
 ## 同步速查
 
 ```bash
-# 标准同步流程（安全：先检查 → 再同步）
+# 标准同步流程（安全：ls-remote → fetch → 检查未推送 → pull）
 BRANCH=$(git branch --show-current) && \
 REMOTE_SHA=$(git ls-remote origin "$BRANCH" | awk '{print $1}') && \
 LOCAL_SHA=$(git rev-parse HEAD) && \
@@ -838,6 +839,8 @@ if [ "$REMOTE_SHA" = "$LOCAL_SHA" ]; then \
 else \
   echo "⚠️ 更新中: $LOCAL_SHA → $REMOTE_SHA" && \
   git fetch origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" && \
+  UNPUSHED=$(git log --oneline "origin/$BRANCH..HEAD" 2>/dev/null) && \
+  if [ -n "$UNPUSHED" ]; then echo "⚠️ 本地有未推送提交，先 push 或 rebase"; exit 1; fi && \
   git pull --ff-only origin "$BRANCH" && \
   git log --oneline -3; \
 fi
@@ -876,7 +879,7 @@ git log --follow -- path/file.java      # 文件历史
 5. **从不跳过COMMIT PLAN输出** - 必须验证拆分计划
 6. **从不使用模糊的分组理由** - "相关"不是理由
 7. **SYNC时从不直接 pull/fetch** - 必须先用 `git ls-remote` 无缓存检查，再决定是否更新
-8. **从不信任本地 refs 缓存** - `git fetch` 结果可能与远程真实状态不一致，必须用 `git ls-remote` 验证
+8. **从不信任本地 refs 缓存** - `origin/$BRANCH` 可能过期，检查未推送前必须先 `git fetch origin +refs/heads/$BRANCH:refs/remotes/origin/$BRANCH` 更新，否则会误报
 9. **SYNC时从不使用 `reset --hard`** - 会丢弃未推送的提交，用 `pull --ff-only` 代替
 10. **从不使用 `git fetch origin $SHA`** - 不更新 refs/remotes，用 `git fetch origin +refs/heads/$BRANCH:refs/remotes/origin/$BRANCH` 代替
 
@@ -898,8 +901,8 @@ git log --follow -- path/file.java      # 文件历史
 
 **SYNC前：**
 - [ ] 用 `git ls-remote` 获取远程真实 SHA？
-- [ ] 用强制 refspec fetch 更新了 `origin/$BRANCH`？
-- [ ] 检查了是否有未推送的提交（`git log origin/$BRANCH..HEAD`）？
+- [ ] 用强制 refspec fetch 更新了 `origin/$BRANCH`（**在检查未推送之前**）？
+- [ ] 用更新后的 `origin/$BRANCH` 检查了是否有未推送的提交（`git log origin/$BRANCH..HEAD`）？
 - [ ] 使用 `pull --ff-only` 而不是 `reset --hard`？
 - [ ] 工作目录干净（或已处理未提交修改）？
 
