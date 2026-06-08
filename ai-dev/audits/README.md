@@ -14,7 +14,7 @@ ai-dev/audits/
 └── README.md
 ```
 
-- `{type}`: `deep-audit` / `adversarial-review` / `plan-closure-audit`
+- `{type}`: `deep-audit` / `adversarial-review` / `plan-closure-audit` / `doc-age-audit`
 - `{module}`: 被审计的模块名（如 `nop-stream`、`nop-job`）
 
 ## 与 skills 的关系
@@ -27,6 +27,7 @@ ai-dev/audits/
 | `skills/open-ended-adversarial-review-prompt.md` | 开放式对抗审查 |
 | `skills/plan-closure-audit-prompt.md` | 计划结项审计 |
 | `skills/plan-reviewer-prompt.md` | 计划实施前审计 |
+| `skills/age-document-audit-prompt.md` | AGE 文档体系审计（吸引子可发现性、一致性、轨迹完整性、控制有效性、抗漂移能力） |
 
 这些 prompt 是方法论模板，审计记录是执行结果。Prompt 不含业务内容，审计记录包含具体的发现和建议。
 
