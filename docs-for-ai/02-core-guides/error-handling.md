@@ -134,11 +134,24 @@ throw new NopAiException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
 2. 再做业务规则判断。
 3. 规则不满足时根据层次选择异常方式。
 
+## 资源关闭：使用 IoHelper
+
+关闭 `Closeable` / `AutoCloseable` 资源时使用 `io.nop.commons.util.IoHelper`，不要手写 `try { x.close() } catch`。
+
+| 方法 | 用途 |
+|------|------|
+| `IoHelper.safeClose(obj)` | 安全关闭单个对象 |
+| `IoHelper.safeCloseObject(autoCloseable)` | 安全关闭 AutoCloseable |
+| `IoHelper.safeCloseAll(collection)` | 批量关闭集合中所有对象 |
+
+---
+
 ## 不要这样写
 
 | 反模式 | 问题 |
 |--------|------|
 | `throw new RuntimeException("some message")` | 绕过框架异常体系，上层无法统一处理 |
+| 手写 `try { x.close() } catch` 关闭资源 | 应使用 `IoHelper.safeClose`，见上方说明 |
 | 错误消息使用中文 | AI 读取英文消息更准确，避免编码问题 |
 | 丢失原始异常链 | 排查困难 |
 | 在普通 BizModel 示例中同时展示底层 DAO + 显式事务 | 容易把边界模式误当默认模板 |
