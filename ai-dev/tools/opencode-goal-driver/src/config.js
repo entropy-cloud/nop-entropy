@@ -1,5 +1,20 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { resolve, join } from "node:path";
+
+function findModuleDir(projectRoot, moduleName) {
+  const direct = resolve(projectRoot, moduleName);
+  if (existsSync(direct) && statSync(direct).isDirectory()) return direct;
+
+  try {
+    for (const entry of readdirSync(projectRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const candidate = resolve(projectRoot, entry.name, moduleName);
+      if (existsSync(candidate) && statSync(candidate).isDirectory()) return candidate;
+    }
+  } catch {}
+
+  return null;
+}
 
 export function resolveConfig(args = {}) {
   const projectRoot = args.dir || process.env.PROJECT_ROOT || resolve(import.meta.dirname, "../../../..");
@@ -18,8 +33,10 @@ export function resolveConfig(args = {}) {
 
   if (!moduleName) throw new Error("module name is required");
 
-  const moduleDir = resolve(projectRoot, moduleName);
-  if (!existsSync(moduleDir)) throw new Error(`module '${moduleName}' not found at ${moduleDir}`);
+  const moduleDir = args.moduleDir
+    ? resolve(projectRoot, args.moduleDir)
+    : findModuleDir(projectRoot, moduleName);
+  if (!moduleDir) throw new Error(`module '${moduleName}' not found under ${projectRoot} (searched root and one level deep)`);
 
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");

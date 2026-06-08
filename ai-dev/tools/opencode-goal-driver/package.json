@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node src/main.js",
     "dry-run": "node src/main.js --dry-run",
-    "test": "node src/main.js --test --max-cycles 1 --model zhipuai-coding-plan/glm-4.7-flash",
+    "test": "node --test test/engine.test.js",
     "go": "node src/main.js --max-cycles 1 --model zhipuai-coding-plan/glm-4.7-flash"
   }
 }

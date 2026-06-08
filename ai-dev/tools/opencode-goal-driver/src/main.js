@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { resolveConfig } from "./config.js";
-import { createRunner } from "./runner.js";
-import { executeWorkflow } from "./workflow.js";
+import { createRunner, resetMockState } from "./runner.js";
+import { FlowEngine } from "./engine.js";
+import { createGoalDriverFlow } from "./flow-goal-driver.js";
 
 function parseArgs(argv) {
   const args = { module: "", dryRun: false, testMode: false };
@@ -36,20 +37,33 @@ async function main() {
   console.log("");
 
   try {
-    const result = await executeWorkflow(config, runner);
+    const flow = createGoalDriverFlow();
+    const delegates = {
+      config,
+      vars: { module: config.moduleName, projectRoot: config.projectRoot },
+      runAgent: runner.runAgent,
+      runTool: runner.runTool,
+      runParseAgent: runner.runParseAgent,
+      logFile: config.logFile,
+    };
+
+    resetMockState();
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
     console.log(`\n════════════════════════════════════════`);
-    console.log(`  Module:  ${config.moduleName}`);
-    console.log(`  Status:  ${result.status}`);
-    console.log(`  Cycles:  ${result.cycle}`);
-    console.log(`  Elapsed: ${result.elapsed || "N/A"}`);
+    console.log(`  Module:    ${config.moduleName}`);
+    console.log(`  Status:    ${result.status}`);
+    console.log(`  Steps:     ${result.stepCount}`);
+    console.log(`  Elapsed:   ${result.elapsed}`);
     console.log(`════════════════════════════════════════`);
 
     switch (result.status) {
-      case "completed":
-        process.exit(0);
-      case "failed":
-        process.exit(1);
+      case "completed": process.exit(0);
+      case "failed": process.exit(1);
       case "max_cycles":
+      case "max_total_steps":
+      case "max_retries":
         process.exit(2);
     }
   } finally {

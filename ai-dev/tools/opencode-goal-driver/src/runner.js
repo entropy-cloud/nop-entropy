@@ -1,19 +1,79 @@
 import { readFileSync } from "node:fs";
 import { execute } from "./executor.js";
 
+let _mockRoadmapCount = 0;
+let _mockPlanAuditCount = 0;
 let _mockClosureCount = 0;
-let _mockAuditCount = 0;
+let _mockDeepAuditCount = 0;
+
+export function resetMockState() {
+  _mockRoadmapCount = 0;
+  _mockPlanAuditCount = 0;
+  _mockClosureCount = 0;
+  _mockDeepAuditCount = 0;
+}
+
+const STEP_KEY_MAP = {
+  "FIX_BUILD": "fix-build",
+  "ROADMAP_CHECK": "roadmap-check",
+  "PLAN_DRAFT": "plan-draft",
+  "PLAN_AUDIT": "plan-audit",
+  "EXECUTE": "execute",
+  "CLOSURE_AUDIT": "closure-audit",
+  "DEEP_AUDIT": "deep-audit",
+  "ADVERSARIAL": "adversarial-review",
+};
+
+function _normalizeStepName(stepName) {
+  if (STEP_KEY_MAP[stepName]) return STEP_KEY_MAP[stepName];
+  return stepName.toLowerCase().replace(/_/g, "-");
+}
+
+function mockAgentResponse(stepName) {
+  const n = _normalizeStepName(stepName);
+
+  if (n === "fix-build") return "<HEALTH_STATUS>fixed</HEALTH_STATUS>";
+
+  if (n === "roadmap-check") {
+    _mockRoadmapCount++;
+    return _mockRoadmapCount <= 1
+      ? "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item priority=\"P1\">mock: 未实现功能</item></ROADMAP_ITEMS>"
+      : "<ROADMAP_RESULT>complete</ROADMAP_RESULT>";
+  }
+
+  if (n === "plan-draft") return "<PLAN_RESULT>created</PLAN_RESULT>";
+
+  if (n === "plan-audit") {
+    _mockPlanAuditCount++;
+    return _mockPlanAuditCount <= 1
+      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item severity=\"Major\">mock: Exit Criteria 不可验证</item></ISSUES>"
+      : "<AUDIT_RESULT>approved</AUDIT_RESULT>";
+  }
+
+  if (n === "execute") return "<EXECUTE_RESULT>success</EXECUTE_RESULT>";
+
+  if (n === "closure-audit") {
+    _mockClosureCount++;
+    return _mockClosureCount === 1
+      ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: 测试覆盖不足</item></REMAINING>"
+      : "<CLOSURE_RESULT>complete</CLOSURE_RESULT>";
+  }
+
+  if (n === "deep-audit") {
+    _mockDeepAuditCount++;
+    return _mockDeepAuditCount <= 1
+      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>"
+      : "<AUDIT_RESULT>clean</AUDIT_RESULT>";
+  }
+
+  if (n === "adversarial-review") return "<ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT>";
+
+  return "##MOCK_OK";
+}
 
 export async function createRunner(config) {
-  const realRun = async (stepName, command, system, files = []) => {
+  const realRun = async (stepName, prompt, system) => {
     const model = `${config.model}`;
-
-    let prompt = "";
-    if (system) prompt += `${system}\n\n`;
-    if (files.length > 0) {
-      for (const f of files) prompt += `参考文件: ${f}\n`;
-    }
-    prompt += command;
 
     process.stderr.write(`\n╔═══════════════════════════════════════════════\n`);
     process.stderr.write(`║ STEP: ${stepName}\n`);
@@ -26,7 +86,7 @@ export async function createRunner(config) {
     const args = ["run", "-m", model, "--agent", config.agent, "--dangerously-skip-permissions", prompt];
     const result = await execute(config, `oc-${stepName}`, "opencode", args, {
       cwd: config.projectRoot,
-      timeout: 36_000_000, // 10 hours
+      timeout: 36_000_000,
     });
 
     let text = "";
@@ -36,51 +96,32 @@ export async function createRunner(config) {
     return { text, logFile: result.logFile, ok: result.ok };
   };
 
-  const mockRun = async (stepName, command, system, files = []) => {
+  const mockRun = async (stepName, prompt, system) => {
     process.stderr.write(`\n╔═══════════════════════════════════════════════\n`);
     process.stderr.write(`║ MOCK STEP: ${stepName}\n`);
-    process.stderr.write(`╠═══════════════════════════════════════════════\n`);
-    process.stderr.write(`║ Command: ${command.slice(0, 120)}...\n`);
-    if (files.length > 0) {
-      for (const f of files) {
-        process.stderr.write(`║ File: ${f}\n`);
-      }
-    }
-    if (system) {
-      process.stderr.write(`║ System prompt:\n`);
-      process.stderr.write(system.split("\n").map(l => `║   ${l}`).join("\n") + "\n");
-    }
     process.stderr.write(`╚═══════════════════════════════════════════════\n`);
 
-    const mockResponses = {
-      "fix-build": "<HEALTH_STATUS>fixed</HEALTH_STATUS>",
-      "adversarial-review": "<ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT>",
-      plan: "<PLAN_RESULT>created</PLAN_RESULT>",
-      execute: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
-      "closure-audit": null,
-    };
-
-    let text;
-    if (stepName === "deep-audit") {
-      _mockAuditCount = (_mockAuditCount || 0) + 1;
-      text = _mockAuditCount <= 1
-        ? "<AUDIT_RESULT>issues</AUDIT_RESULT>"
-        : "<AUDIT_RESULT>clean</AUDIT_RESULT>";
-    } else if (stepName === "closure-audit") {
-      _mockClosureCount = (_mockClosureCount || 0) + 1;
-      text = _mockClosureCount === 1
-        ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: 测试覆盖不足</item></REMAINING>"
-        : "<CLOSURE_RESULT>complete</CLOSURE_RESULT>";
-    } else {
-      text = mockResponses[stepName] || "##MOCK_OK";
-    }
+    const text = mockAgentResponse(stepName);
     return { text, logFile: null, ok: true };
   };
 
-  const runStep = config.dryRun ? mockRun : realRun;
+  const runAgent = config.dryRun ? mockRun : realRun;
+
+  async function runTool(stepName, command, opts = {}) {
+    if (config.dryRun) {
+      console.log(`[MOCK tool] ${command}`);
+      return { ok: true, logFile: null };
+    }
+    return execute(config, stepName, "./mvnw",
+      [...command.split(" ").filter(Boolean), "-pl", config.moduleName, "-am", "-T", "1C"],
+      { cwd: config.projectRoot, timeout: opts.timeout || 1_800_000 },
+    );
+  }
 
   return {
-    runStep,
+    runAgent,
+    runTool,
+    runParseAgent: runAgent,
     async close() {},
   };
 }
