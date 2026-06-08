@@ -1,368 +1,311 @@
-# Nop AI Agent 分层架构与实施路线
+# nop-ai-agent 组件分解与开发路线
 
-**日期**：2026-06-07
-**范围**：`nop-ai-agent` 子系统
-**状态**：active
-
----
-
-## 1. 目标
-
-本篇定义 `nop-ai-agent` 的**分层架构**和设计收敛原则。
-
-**核心组织原则：系统由接口层构成，扩展通过添加接口实现，不通过阶段切换。**
-
-每一层定义接口契约和默认实现。更高级的能力 = 添加更多接口实现，而不是进入新阶段。所有接口始终存在——低级层提供 pass-through 默认实现，高级层替换为功能实现。
-
-> **模式来源**：本文的设计模式来自 15+ 个 Agent 框架的源码级分析（Reasonix, PilotDeck, OpenCode, nanobot, VoltAgent, Hermes, AgentScope Java, Solon AI 等），按 P0/P1/P2 三档组织。
+> Status: active
+> Updated: 2026-06-08（基于 live repo 独立审计 + 二轮修复）
+> Parent: `ai-dev/design/nop-ai-agent/README.md`
 
 ---
 
-## 2. 当前判断
+## 1. 定位重申
 
-`nop-ai-agent` 目前处于典型的"设计空间很大，但实现基础还不稳"的阶段。
+nop-ai-agent 是 Nop 平台的 Agent 执行引擎，定位为**面向大规模无人值守自动化执行的 DSL-First Agent 框架**。
 
-这类阶段最容易出现两个问题：
+**核心取舍**：保留 Agent-as-Configuration + Actor 消息模型 + ReAct 循环，去除交互式 REPL、中央编排器、逐 token 流式决策等特性。
 
-1. 一次性规划过多高级能力
-2. 设计文档过早进入大量实现细节
-
-因此路线图的作用，是把系统收敛到清晰的分层结构，而不是继续横向扩张设计面。
+**与 Nop 平台的关系**：nop-ai-agent 使用 Nop 平台的标准基础设施——XLang XDEF 定义 Agent DSL，IoC 容器管理引擎组件，Delta 定制 Agent 配置，nop-ai-core（含 `llm.xdef` + `{provider}.llm.xml`）提供 LLM 调用能力，nop-ai-toolkit 抽象工具调用。
 
 ---
 
-## 3. 收敛原则
+## 2. 当前状态
 
-### 3.1 先主链路，后增强
+### 2.1 已完成
 
-先稳定：
+| # | 组件 | 状态 | 说明 |
+|---|------|------|------|
+| M1 | `agent.xdef` schema | ✅ 已定义 | Agent 元模型：name, chatOptions, tools, `availableSkills`, `requiredSkills`, permissions, constraints, prompt, hooks |
+| M2 | `agent-plan.xdef` schema | ✅ 已定义 | Plan 元模型：完整的 phases > tasks (递归), errors, success criteria, scope, closure |
+| M3 | 代码生成管线 | ✅ 已完成 | `precompile/gen-agent-xdsl.xgen` → 32 个 _gen Java model 类 + 37 个非 _gen 文件（33 stub ≤9 行 + 4 实体类） |
+| M4a | agent-plan DSL 注册与加载 | ✅ 已完成 | `agent-plan.register-model.xml` 支持 xml/yaml/md 三种格式 |
+| M4b | agent DSL 注册与加载 | ❌ **缺失** | 无 `agent.register-model.xml`，`.agent.xml` 文件无法被加载 |
+| M5 | Markdown 字段映射 | ✅ 已完成 | `agent-plan.record-mappings.xml` 支持 Markdown → PlanModel 解析 |
+| M6 | 基础数据类型 | ✅ 已完成 | `AgentExecStatus` 枚举(4 值), `IAiMemoryStore` 接口, `AiMemoryConfig/Item` |
+| M7 | `BaseAgent` stub | ⚠️ 占位 | 存在但仅声明 `IAiMemoryStore memory` 字段（7 行），无执行逻辑，未被任何工作项追踪 |
+| D1 | 设计文档体系 | ✅ 已完成 | 25 篇设计文档（排除 README 和 roadmap）覆盖 4 层架构 |
 
-- `agent.xdef` 的字段语义
-- `agent-plan.xdef` 的字段语义
-- `tool.xdef` / `tool-call.xdef` / `call-tools-response.xdef` 的字段语义
-- `call-agent.tool.xml` 的现有契约
+### 2.2 未实现
 
-再做：
+> 以下按 §4 的 L 层编号引用。所有运行时代码均为零实现。
 
-- runtime 对 DSL 的解释
-- 会话、权限和容错策略
-- 多 Agent 编排和平台级增强
+| # | 组件 | 对应设计文档 | 状态 |
+|---|------|-------------|------|
+| — | ReAct 执行引擎 | `nop-ai-agent-react-engine.md` | ❌ 未开始 |
+| — | Agent Engine (Actor 入口) | `01-architecture-baseline.md` §四 | ❌ 未开始 |
+| — | AgentSession 会话管理 | `nop-ai-agent-session-engine.md` | ❌ 未开始 |
+| — | AgentEventPublisher | `01-architecture-baseline.md` §四 | ❌ 未开始 |
+| — | IMessageFormat 消息格式 | `nop-ai-agent-llm-layer.md` | ❌ 未开始 |
+| — | IPermissionProvider 权限派生 | `nop-ai-agent-security-and-permissions.md` | ❌ 未开始 |
+| — | IModelDialect Provider 适配 | `nop-ai-agent-llm-layer.md` | ❌ 未开始 |
+| — | IContextGovernor 上下文治理 | `nop-ai-agent-context-model.md` | ❌ 未开始 |
+| — | IToolCallRepairer 工具修复 | `nop-ai-agent-context-model.md` | ❌ 未开始 |
+| — | IContextCompactor 渐进压缩 | `nop-ai-agent-context-model.md` | ❌ 未开始 |
+| — | Hook/Skill 引擎 | `nop-ai-agent-hook-skill-engine.md` | ❌ 未开始 |
+| — | IContentGuardrail 护栏 | `nop-ai-agent-context-model.md` | ❌ 未开始 |
+| — | IModelRouter 模型路由 | `nop-ai-agent-llm-layer.md` | ❌ 未开始 |
+| — | IRetryPolicy 重试策略 | `nop-ai-agent-reliability.md` | ❌ 未开始 |
+| — | ICircuitBreaker 熔断 | `nop-ai-agent-reliability.md` | ❌ 未开始 |
+| — | IGoalTracker 目标跟踪 | `nop-ai-agent-reliability.md` | ❌ 未开始 |
+| — | ICheckpointManager 检查点 | `nop-ai-agent-reliability.md` | ❌ 未开始 |
+| — | Working Memory (工具) | `01-architecture-baseline.md` §四 | ❌ 未开始 |
+| — | 单元测试 | — | ❌ 未开始 |
 
-### 3.2 先单 Agent，后多 Agent
+> 说明：本表不再使用 E-number 编号，避免与 §4 的 L-number 造成双编号混乱。具体实现优先级见 §4 工作项清单。
 
-如果单 Agent runtime 还没有稳定，多 Agent 编排只会放大问题。
-
-### 3.3 先确定性能力，后智能决策能力
-
-优先程序化的部分：
-
-- 参数验证
-- 错误分类
-- 超时
-- 安全限制
-
-再引入 Advisor Agent 决策：
-
-- retry advisor
-- compression advisor
-- repair advisor
-
-### 3.4 先稳定边界，后细化实现
-
-一篇设计文档更应该固定：
-
-- 对象边界
-- 生命周期
-- 输入输出契约
-
-而不是先固定大量实现细节。
-
----
-
-## 4. 分层架构
-
-### 4.1 总览
+### 2.3 实际依赖关系（基于 pom.xml 审计）
 
 ```
-Layer 4: Platform Extensions (平台扩展层)
-   IMemoryAdapter, ISkillCurator, IMailbox, IContributionRegistry,
-   ISandboxBackend, ISensitivePathProvider, IAuditLogger
-   ─── 依赖 Layer 1-3 接口 ───
+nop-ai-api (ChatMessage, ChatOptions 等 AI 接口定义)
+    ↑
+nop-ai-core (ChatCompletion 实现, llm.xdef + {provider}.llm.xml 多模型配置)
+    ↑ (直接依赖)
 
-Layer 3: Reliability Extensions (可靠性扩展层)
-   ICircuitBreaker, ISustainer, IRetryPolicy, IGoalTracker, ICheckpointManager,
-   IApprovalGate, IDenialLedger, IPostDenialGuard
-   ─── 依赖 Layer 1-2 接口 ───
-
-Layer 2: Execution Extensions (执行扩展层)
-   IContextGovernor, IToolCallRepairer, IContextCompactor, IContentGuardrail,
-   IAgentLifecycleHook, IModelRouter, ITalent, IModelDialect,
-   ISecurityLevelResolver, IPermissionMatrix
-   ─── 依赖 Layer 1 接口 ───
-
-Layer 1: Core Interfaces (核心接口层)
-   IAgentEngine, AgentModel, AgentSession, IAgentExecutor,
-   IMessageFormat, IPermissionProvider, IToolAccessChecker, IPathAccessChecker,
-   AgentEventPublisher
-   ─── 无内部依赖，依赖 nop-ai-core / nop-ai-llm / nop-ai-toolkit ───
+nop-ai-toolkit (工具 DSL, tool.xdef; 依赖 nop-ai-api + nop-xlang，不依赖 nop-ai-core)
+    ↑
+nop-ai-agent ← 本模块（依赖 nop-ai-toolkit + nop-ai-core）
 ```
 
-**依赖规则**：上层只依赖下层的接口，不依赖具体实现。Layer N 的接口实现在 Layer N+1 中提供。
+**关键事实**：
 
-### 4.2 Layer 1: Core Interfaces（核心接口层）
-
-系统运行的最低要求。没有这些接口，Agent 无法执行。
-
-| 接口 | 职责 | 默认实现 |
-|------|------|---------|
-| `IAgentEngine` | Actor 消息入口：接受消息，路由到 sessionId 对应的 AgentActor，立即返回 ack | `DefaultAgentEngine` |
-| `AgentModel` | 纯配置对象，从 agent.xdef 装载，不持有逻辑和状态 | — (数据对象) |
-| `AgentSession` | 按 sessionId 的独立状态对象，持久化跨请求存在 | `DefaultAgentSession` |
-| `AgentExecutionContext` | 单次执行的全部内存态容器 | — (数据对象) |
-| `IAgentExecutor` | 执行策略接口（ReAct、单轮等） | `ReActExecutor` |
-| `AgentEventPublisher` | 执行状态→外部可观察的事件流 | `DefaultEventPublisher` |
-| `IMessageFormat` | Provider 无关的消息格式 | `CanonicalMessageFormat`（2 role, 6 content block types） |
-| `IPermissionProvider` | 权限派生 | `HierarchicalPermissionProvider`（3-source merge） |
-| `IToolAccessChecker` | 工具 deny/allow 检查 | `DefaultToolAccessChecker`（deny-first） |
-| `IPathAccessChecker` | 路径 deny/allow 检查 | `DefaultPathAccessChecker`（glob + 规范化） |
-
-**扩展方式**：
-- 新 `IAgentExecutor` 实现（Plan-and-Execute、Reflexion 等）
-- 新 `IMessageFormat` 适配器（非标准 Provider）
-- 自定义 `IPermissionProvider`（组织特定规则）
-
-**来源**：Pattern 1.4 (Agent-as-Schema), 1.5 (Permission Derivation), 1.8 (CanonicalMessage)
-
-### 4.3 Layer 2: Execution Extensions（执行扩展层）
-
-扩展执行行为，不改变核心契约。所有接口有 pass-through 默认实现——系统可以不带任何扩展运行。
-
-| 接口 | 职责 | Pass-through 默认 | 推荐功能实现 |
-|------|------|------------------|-------------|
-| `IContextGovernor` | 每轮上下文治理管线 | `NoOpGovernor` | `PipelineGovernor`（5-stage: drop_orphan→backfill→microcompact→budget→snip） |
-| `IToolCallRepairer` | 工具调用修复链 | `NoOpRepairer` | `ChainRepairer`（flatten→scavenge→truncation→storm） |
-| `IContextCompactor` | 渐进上下文压缩 | `NoOpContextCompactor` | `ProgressiveContextCompactor`（MicroCompact→Snip→LLM Summary） |
-| `IContentGuardrail` | 输入/输出内容护栏 | `NoOpContentGuardrail` | 用户按需添加（注入检测、PII 检测等） |
-| `ISecurityLevelResolver` | 安全等级解析（hints → level） | `NoOpSecurityLevelResolver`（全部 STANDARD） | `RuleTableSecurityLevelResolver`（XDSL 配置化规则表） |
-| `IPermissionMatrix` | 通道 × 等级权限矩阵 | `PassThroughPermissionMatrix`（全放行） | `ChannelPermissionMatrix`（webui/api/dm/group 分级） |
-| `IAgentLifecycleHook` | 生命周期事件处理 | `PriorityHookChain`（10 点） | 用户按需添加 |
-| `IModelRouter` | 请求路由策略 | `PassThroughModelRouter`（直连配置模型） | `SmartModelRouter`（Judge 分类 + Fallback Chain） |
-| `ITalent` | 动态行为准入 | — (空集合) | 用户按需添加（cli, web, file, data, lsp, text2sql...） |
-| `IModelDialect` | Provider 消息格式转换 | `IdentityDialect`（无转换） | DashScope, OpenAI, Gemini, Anthropic, Ollama |
-
-**Working Memory**：不引入独立接口。通过标准工具实现（`read-memory` / `write-memory` / `search-memory`，定义为 `.tool.xml`），工具操作 Session 持久化存储（KV 或 JSON schema 验证），Agent 通过工具调用读写。工具定义在 `tool.xdef` 层面声明，Session 存储复用引擎持久化接口。
-
-**扩展方式**：
-- 替换 pass-through 为功能实现（零业务代码改动）
-- 添加自定义 `IContentGuardrail`（allow/modify/block + streaming abort）
-- 添加 `ITalent` 实现（基于关键词/上下文分析动态激活行为和工具集）
-- 添加 Provider 特定 `IModelDialect`（Formatter pattern，与 Nop `IDialect` 一致）
-
-**来源**：Pattern 1.1 (Cache-First), 1.2 (Tool-Call Repair), 1.7 (Context Governance), 2.1 (Smart Router), 2.2 (Three-tier Compaction), 2.5 (Guardrail), 2.8 (Contribution Types), 2.10 (Formatter), 2.11 (Talent)
-
-### 4.4 Layer 3: Reliability Extensions（可靠性扩展层）
-
-为生产环境加固。所有接口有最简默认实现。
-
-| 接口 | 职责 | 最简默认 | 推荐功能实现 |
-|------|------|---------|-------------|
-| `ICircuitBreaker` | 连续故障后断路（fail-fast） | `AlwaysClosed` | `ThresholdBreaker`（3 连续失败 → open, 60s cooldown） |
-| `ISustainer` | "永不放弃"策略（与 ICircuitBreaker 互斥选择） | `NoOpSustainer` | `SisypheanSustainer`（stop-hook + todo 检查强制继续） |
-| `IRetryPolicy` | Provider 重试策略 | `NoRetry` | `StandardRetryPolicy`（3 retries + 429 语义分类 + image fallback） |
-| `IGoalTracker` | 持续目标跟踪 | `NoOpGoalTracker` | `SessionGoalTracker`（超时豁免 + 透明续接最多 12 轮） |
-| `ICheckpointManager` | 执行状态快照/恢复 | `NoOpCheckpoint` | `ToolExecutionCheckpoint`（工具执行前自动保存） |
-| `IApprovalGate` | 人类审批门 | `AutoApproveGate`（自动通过） | `WebSocketApprovalGate`（Web/RPC 通知） |
-| `IDenialLedger` | 拒绝计数 + 阈值暂停 | `NoOpDenialLedger` | `DBDenialLedger`（持久化，sticky pause） |
-| `IPostDenialGuard` | 拒绝后盲重试阻止 | `PassThroughPostDenialGuard` | `FingerprintPostDenialGuard`（3 种合法 follow-up） |
-
-**扩展方式**：
-- `ICircuitBreaker` 和 `ISustainer` 可配置互斥选择（两种弹性哲学）
-- `IRetryPolicy` 可选 standard（3 次后退）或 persistent（无限重试，相同错误 10 次停）
-- `IGoalTracker` 让活跃 goal 获得 LLM 超时豁免和 turn 透明续接
-
-**来源**：Pattern 2.3 (Circuit Breaker), 2.6 (Sustained Goals), 3.6 (Sisyphean), 3.9 (Provider Retry)
-
-### 4.5 Layer 4: Platform Extensions（平台扩展层）
-
-多 Agent、多租户、分布式场景。所有接口有单进程默认实现。
-
-| 接口 | 职责 | 单进程默认 | 分布式实现 |
-|------|------|-----------|-----------|
-| `IMessageService` | Agent 间通信 | `LocalMessageService`（内存队列 + CompletableFuture） | `DBMessageService`（跨进程路由） |
-| `IMemoryAdapter` | 记忆持久化三适配器 | `InProcessAdapter`（本地存储） | Storage / Embedding / Vector 三适配器 |
-| `ISkillCurator` | 技能生命周期管理 | `NoOpCurator` | `LLMCurator`（ACTIVE→STALE→ARCHIVED + LLM 审查聚类） |
-| `IMailbox` | 崩溃安全异步消息 | — | `DeferredAckMailbox`（3-phase reservation, at-least-once） |
-| `IContributionRegistry` | 插件贡献注册 | `SimpleRegistry` | 7 贡献类型（Tool, Command, Hook, MCP, Permission, Prompt, Router） |
-| `ISandboxBackend` | 沙箱隔离执行 | `NoOpSandboxBackend`（host 执行） | `DockerSandboxBackend`（容器隔离） |
-| `ISensitivePathProvider` | 敏感路径 denylist | `DefaultSensitivePathProvider`（内置 denylist） | XDSL 外部配置 + Delta 覆盖 |
-| `IAuditLogger` | 安全审计持久化 | `Slf4jAuditLogger`（标准日志） | `DBAuditLogger`（数据库持久化） |
-
-**扩展方式**：
-- `IMessageService` 从 Local → DB-backed，零业务代码改动
-- 添加 `IMemoryAdapter` 实现（向量存储、语义搜索）
-- 添加 `ISkillCurator` 实现（LLM 驱动的技能审查和聚类）
-
-**来源**：Pattern 2.4 (Three-Adapter Memory), 2.7 (Deferred-Ack Mailbox), 2.8 (Contribution Types), 2.9 (Curator), 3.3 (Dual Bus)
+1. `nop-ai-agent` 通过 `nop-ai-core` 调用 LLM。`nop-ai-core` 已包含完整的 LLM 调用能力：`llm.xdef` schema + `{provider}.llm.xml` 配置文件（ollama/deepseek/claude/gemini/azure/volcengine/bailian/lm-studio 等）+ `ChatServiceImpl` + `DefaultAiChatService`。
+2. `nop-ai-toolkit` **不依赖** `nop-ai-core`。它只依赖 `nop-ai-api`（接口层）。两个模块独立发展。
+3. `nop-ai-llm` 和 `nop-ai-llms` 是**废弃模块**——有 pom.xml 但零源码，未在父 POM reactor 中，仅保留历史 build 遗留的 `target/` 目录。LLM 多模型支持已通过 `llm.xml` DSL 在 `nop-ai-core` 中实现。
 
 ---
 
-## 5. 实施优先级
+## 3. 开发方法：审计-规划-执行循环
 
-实施按优先级推进，但架构不按阶段切换。以下顺序反映依赖关系和业务价值。
+不在本文档中预设完整的工作项清单。采用动态规划模式：
 
-### 5.1 必须先稳定（Layer 1 全部 + Layer 2 核心）
+1. 审计当前代码状态
+2. 拟定一个 plan：基于审计结果，只规划**当前最紧迫的一个可交付单元**
+3. 执行 plan：编码、测试、验证
+4. plan 完成后，回到步骤 1
 
-**DSL 语义定稿**：
-1. `agent.xdef` / `agent-plan.xdef` / `tool.xdef` 语义定稿
-2. `call-agent.tool.xml` 的现有契约确认
+### 规划优先级指引
 
-**Layer 1 核心**：
-3. `IAgentEngine` + `ReActExecutor` 最小闭环
-4. `IMessageFormat` (CanonicalMessage — 2 role, 6 block types)
-5. `IPermissionProvider` (3-source merge 算法, ~200 行)
-6. Event Sourcing session 模型（JSONL event log + CompactionEntry）
+当有多个候选工作项时，按以下优先级排序：
 
-**Layer 2 核心**：
-7. `IModelDialect` (Formatter — 5 Provider 适配，参考 AgentScope Java)
-8. `ITalent` (动态准入扩展点，参考 Solon AI)
-9. `IContextGovernor` (5-stage pipeline)
-10. `IToolCallRepairer` (4-stage repair chain)
-11. `IContextCompactor` 渐进压缩初始版（Layer 0 Tool Result 预截断 + Layer 1 零成本微压缩 + 基础 Layer 3 LLM 摘要）
-12. Token 计数（Provider-reported usage + 简单字符比例估算）
+1. **构建/测试失败** — 最高优先级
+2. **主链路未通** — ReAct 循环是所有上层能力的基础
+3. **接口定义缺失** — 无法 mock/test 的接口优先
+4. **Pass-through 默认实现** — 需要存在才能跑通主链路
+5. **功能实现** — 替换 pass-through 为实际功能
+6. **测试覆盖** — 功能工作但缺少测试
 
-### 5.2 其次加固（Layer 2 完善 + Layer 3 核心）
+### 前置阻塞项
 
-13. `IContentGuardrail` 护栏管线（allow/modify/block + streaming abort）
-14. `IModelRouter` (Smart Router: Judge 分类 + Fallback Chain)
-15. `ICircuitBreaker` (ThresholdBreaker) + `IRetryPolicy` (StandardRetryPolicy)
-16. `IGoalTracker` (SessionGoalTracker: 超时豁免 + 透明续接)
-17. `IContextCompactor` 完整 5 层管道（补充 Layer 2 中间 turn 裁剪 + Layer 4 强制退出）
-18. `ICheckpointManager` (ToolExecutionCheckpoint)
-
-### 5.3 后续扩展（Layer 3 完善 + Layer 4）
-
-19. `ISustainer` (SisypheanSustainer — 与 ICircuitBreaker 互斥)
-20. `IMemoryAdapter` (Storage / Embedding / Vector 三适配器)
-21. `ISkillCurator` (LLMCurator — ACTIVE→STALE→ARCHIVED + LLM 审查)
-22. `IMailbox` (DeferredAckMailbox — 3-phase reservation)
-23. `IContributionRegistry` (7 贡献类型)
-24. Actor Runtime 平台层（ActorRuntime, MessageRouter, TeamManager, RecoveryManager, ResourceGuard — 详见 `nop-ai-agent-actor-runtime-vision.md`）
+Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.register-model.xml、L0-2 枚举不一致）。L0-3（LLM 调用路径）已确认：通过 nop-ai-core 调用。详情见 §4 Layer 0 表格。
 
 ---
 
-## 6. 验收标准
+## 4. 按层组织的工作项清单
 
-### 6.1 Layer 1 验收
+> 以下清单标注状态，但不预设执行顺序。实际执行由 goal driver 的路线图检查决定。
+> 编号格式：L{层号}-{序号}，唯一编号，全文通用。
 
-- 可以仅根据 DSL 文档写出合法的 `.agent.xml`、`plan.xml`、工具调用 XML
-- 可以明确区分哪些字段是 DSL 语义，哪些是 runtime 解释
-- 一轮 Agent 执行可以描述为 "DSL → runtime 解释 → 工具/结果回灌" 的闭环
+### 前置层 (Layer 0): 阻塞项修复
 
-### 6.2 Layer 2 验收
+| # | 工作项 | 依赖 | 状态 |
+|---|--------|------|------|
+| L0-1 | 创建 `agent.register-model.xml` | 无 | ❌ |
+| L0-2 | 统一枚举：解决 `AgentExecStatus` vs `AgentTaskStatus/AgentPlanStatus` 不一致 | 无 | ❌ |
+| L0-3 | 🔑 **设计决策（已解决）**：Agent 通过 `nop-ai-core` 的 `ChatServiceImpl` / `DefaultAiChatService` 调用 LLM，基于 `{name}.llm.xml` 配置区分不同 Provider。不依赖废弃的 `nop-ai-llm` 模块 | 无 | ✅ 已确认 |
 
-- 能清楚说明 Skill、Hook、Plan、Todo 如何附着在现有 DSL 之上
-- 能清楚说明 Context Governance、Tool-Call Repair、Guardrail 这些扩展如何替换 pass-through 默认
-- 不把运行时假设误写成新的 DSL 字段
+### Layer 1: Core Interfaces — 系统运行的最低要求
 
-### 6.3 Layer 3 验收
+| # | 工作项 | 依赖 | 状态 |
+|---|--------|------|------|
+| L1-1 | `IAgentEngine` Actor 消息入口 + `DefaultAgentEngine` | L0-3 | ❌ |
+| L1-2 | `AgentExecutionContext` 执行上下文数据对象 | 无 | ❌ |
+| L1-3 | `IAgentExecutor` 执行策略接口定义 | 无 | ❌ |
+| L1-4 | `IMessageFormat` CanonicalMessage (2 role, 6 block types) | nop-ai-core (已满足) | ❌ |
+| L1-5 | `ReActExecutor` ReAct 循环核心实现 | L1-2, L1-3, L1-4 | ❌ |
+| L1-6 | `IPermissionProvider` 三源合并权限派生 | agent.xdef permissions | ❌ |
+| L1-7 | `IToolAccessChecker` 工具 deny/allow | L1-6 | ❌ |
+| L1-8 | `IPathAccessChecker` 路径 deny/allow (glob + 规范化) | L1-6 | ❌ |
+| L1-9 | `AgentEventPublisher` 事件流 | 无 | ❌ |
+| L1-10 | `AgentSession` 基础会话对象 | 无 | ❌ |
+| L1-11 | 缺失的枚举类（如 L0-2 确认需要单独创建）：`AgentTaskStatus`, `AgentPlanStatus` | L0-2 | ❌ |
+| L1-12 | 端到端示例：一个 `.agent.xml` + ReAct 循环 + 工具调用 | L0-1, L1-5, L1-4 | ❌ |
+| L1-13 | 基础单元测试框架搭建 | 无 | ❌ |
+| L1-14 | `BaseAgent` 清理（决定保留并完善 or 删除） | L1-1 | ❌ |
 
-- LLM 调用故障可以区分是否自动重试
-- 工具调用能在执行前被验证和拦截
-- 长对话能触发压缩并继续运行
-- 运行时间和工具超时可控
+**Layer 1 验收标准**：
 
-### 6.4 Layer 4 验收
+- [ ] 可以仅根据 xdef schema 写出合法的 `.agent.xml`
+- [ ] `.agent.xml` 可通过 `agent.register-model.xml` 被正确加载为 `AgentModel`
+- [ ] 一轮 Agent 执行可以描述为 "DSL → runtime 解释 → 工具调用 → 结果回灌" 的闭环
+- [ ] `./mvnw test -pl nop-ai-agent -am -T 1C` 全部通过
+- [ ] 至少 1 个端到端测试验证 ReAct 循环
 
-- provider 连续故障后系统可自动降级
-- 长任务中断后可以恢复
-- 多 Agent 任务可以通过 Flow / Task 组织
-- 多用户可并发运行独立 Actor，租户间资源隔离
+### Layer 2: Execution Extensions — 所有接口有 pass-through 默认
+
+| # | 工作项 | 依赖 | 状态 |
+|---|--------|------|------|
+| L2-1 | `IContextGovernor` 接口 + `NoOpGovernor` pass-through | L1-5 | ❌ |
+| L2-2 | `IContextGovernor` `PipelineGovernor` (5-stage) | L2-1 | ❌ |
+| L2-3 | `IToolCallRepairer` 接口 + `NoOpRepairer` pass-through | L1-5 | ❌ |
+| L2-4 | `IToolCallRepairer` `ChainRepairer` (4-stage) | L2-3 | ❌ |
+| L2-5 | `IContextCompactor` 接口 + `NoOpContextCompactor` | L1-5 | ❌ |
+| L2-6 | `IContextCompactor` 渐进压缩初始版 (Layer 0 预截断 + Layer 1 微压缩) | L2-5 | ❌ |
+| L2-7 | `IContentGuardrail` 接口 + `NoOpContentGuardrail` | L1-5 | ❌ |
+| L2-8 | `IModelDialect` 接口 + `IdentityDialect` pass-through | L1-4 | ❌ |
+| L2-9 | `IModelDialect` DashScope/OpenAI/Gemini/Ollama 适配 | L2-8 | ❌ |
+| L2-10 | `IModelRouter` 接口 + `PassThroughModelRouter` | L1-5 | ❌ |
+| L2-11 | `ITalent` 动态准入扩展点 | L1-5 | ❌ |
+| L2-12 | `IAgentLifecycleHook` 10 点生命周期 | L1-5 | ❌ |
+| L2-13 | `ISecurityLevelResolver` 接口 + `NoOpSecurityLevelResolver` | L1-6 | ❌ |
+| L2-14 | `IPermissionMatrix` 接口 + `PassThroughPermissionMatrix` | L1-6 | ❌ |
+| L2-15 | Working Memory 工具实现 (read-memory/write-memory/search-memory) | L1-10, L1-5 | ❌ |
+| L2-16 | Token 计数 (Provider-reported usage + 字符比例估算) | L1-4 | ❌ |
+
+**Layer 2 验收标准**：
+
+- [ ] 能清楚说明每个扩展如何替换 pass-through 默认
+- [ ] 不把运行时假设误写成新的 DSL 字段
+- [ ] ContextGovernor Pipeline 可通过 Delta 配置启用
+
+### Layer 3: Reliability Extensions — 生产环境加固
+
+| # | 工作项 | 依赖 | 状态 |
+|---|--------|------|------|
+| L3-1 | `ICircuitBreaker` 接口 + `AlwaysClosed` 默认 + `ThresholdBreaker` | L1-5 | ❌ |
+| L3-2 | `IRetryPolicy` 接口 + `NoRetry` 默认 + `StandardRetryPolicy` | L1-5 | ❌ |
+| L3-3 | `IGoalTracker` 接口 + `NoOpGoalTracker` + `SessionGoalTracker` | L1-10 | ❌ |
+| L3-4 | `ICheckpointManager` 接口 + `NoOpCheckpoint` + `ToolExecutionCheckpoint` | L1-10 | ❌ |
+| L3-5 | `IApprovalGate` 接口 + `AutoApproveGate` | L1-6 | ❌ |
+| L3-6 | `IDenialLedger` 接口 + `NoOpDenialLedger` + `DBDenialLedger` | L1-6 | ❌ |
+| L3-7 | `IPostDenialGuard` 接口 + `PassThroughPostDenialGuard` + `FingerprintPostDenialGuard` | L3-6 | ❌ |
+| L3-8 | `ISustainer` 接口 + `NoOpSustainer` + `SisypheanSustainer` | 与 L3-1 互斥（设计决策：选熔断或自愈） | ❌ |
+| L3-9 | `IContextCompactor` 完整 5 层管道 (补充 L2-6) | L2-6 | ❌ |
+
+**Layer 3 验收标准**：
+
+- [ ] LLM 调用故障可以区分是否自动重试
+- [ ] 连续故障后系统可自动熔断
+- [ ] 长对话能触发压缩并继续运行
+- [ ] 工具调用可在执行前被验证和拦截
+
+### Layer 4: Platform Extensions — 多 Agent / 多租户 / 分布式
+
+| # | 工作项 | 依赖 | 状态 |
+|---|--------|------|------|
+| L4-1 | `IMessageService` `LocalMessageService` (内存队列) | L1-1 | ❌ |
+| L4-2 | `IMessageService` `DBMessageService` (跨进程路由) | L4-1, nop-dao | ❌ |
+| L4-3 | `IMemoryAdapter` 三适配器 (Storage / Embedding / Vector) | L2-15 | ❌ |
+| L4-4 | `ISkillCurator` `LLMCurator` (技能生命周期) | L2-11 | ❌ |
+| L4-5 | `IMailbox` `DeferredAckMailbox` (3-phase reservation) | L1-1 | ❌ |
+| L4-6 | `IContributionRegistry` 7 贡献类型 | L2-12 | ❌ |
+| L4-7 | `ISandboxBackend` `DockerSandboxBackend` | L1-8 | ❌ |
+| L4-8 | Actor Runtime 平台层 | L4-1 ~ L4-6 | ❌ |
+
+**Layer 4 验收标准**：
+
+- [ ] 多 Agent 任务可以通过 Flow / Task 组织
+- [ ] 多用户可并发运行独立 Actor，租户间资源隔离
+- [ ] 长任务中断后可以恢复
 
 ---
 
-## 7. 当前最值得固定的设计决策
+## 5. 技术债
 
-建议明确固定以下决策，不再反复摇摆：
-
-1. 以现有 `xdef` 和 `.tool.xml` 作为设计入口
-2. 文档先定义 DSL 语义，再定义 runtime 解释
-3. `call-agent` 以真实 `call-agent.tool.xml` 为准，不在文档里额外发明字段
-4. Hook 基于 `agent.xdef` 的事件模式
-5. Plan 与 Todo 独立
-6. 多 Agent 编排后置
-7. 扩展通过添加接口实现，不通过阶段切换
-8. 所有 Layer 2-4 接口有 pass-through/最简/单进程默认实现
+| 问题 | 优先级 | 说明 |
+|------|--------|------|
+| 零单元测试 | P0 | 模块完全无测试覆盖（`src/test/` 零 Java 文件） |
+| `agent.register-model.xml` 缺失 | P0 | `.agent.xml` DSL 无法加载，等同于 DSL 死代码 |
+| 枚举 schema 不一致 | P1 | xdef 用 `AgentExecStatus`(status 字段)，record-mappings 用 `AgentTaskStatus`/`AgentPlanStatus`(taskStatus/planStatus 字段) — 值域和字段名均不匹配 |
+| 33 个空 stub 类（≤9 行） | P2 | 延伸 generated base 但无自定义逻辑，占位符（含 `BaseAgent`）。另有 4 个实体类（AgentExecStatus, IAiMemoryStore, AiMemoryItem, AiMemoryConfig） |
+| `nop-ai-llm` / `nop-ai-llms` 废弃模块未清理 | P2 | 零源码，未在父 POM reactor 中，LLM 能力已由 `nop-ai-core` 的 `llm.xdef` + `{provider}.llm.xml` 替代 |
+| `BaseAgent` 未追踪 | P2 | 存在于代码中但不在任何设计文档或工作项中 |
 
 ---
 
-## 8. 当前最值得延期的设计决策
+## 6. 设计决策记录
 
-下面这些先不要写成当前 DSL 或当前主体架构：
+### D1：为什么 Agent 是配置对象而非执行体
 
-- `call-agent` 的未来字段扩展
-- `async/detached` 的完整行为语义
-- 通用 AgentSession 消息队列
-- AI repair branch 的分支合并模型
-- 多 Agent 图执行的统一抽象
+**选了什么**：`AgentModel` 从 `agent.xdef` 装载，不持有执行逻辑和状态。执行由 `IAgentEngine` + `IAgentExecutor` 负责。
 
-这些内容都依赖实现经验，应在第一轮 runtime 落地后再定。
+**为什么**：与 Nop 可逆计算原则一致。配置可被 Delta 定制，执行逻辑不需要 Delta。便于独立测试引擎。便于状态恢复（状态不绑定在 Agent 上）。
 
----
+### D2：为什么采用 Actor 消息模型而非请求-响应模型
 
-## 9. 拒绝了什么
+**选了什么**：`IAgentEngine.sendMessage()` 立即返回 ack，执行结果通过 `AgentEventPublisher` 异步推送（接口待 L1-1 阶段定义验证）。
 
-### 9.1 拒绝：Phase-driven 架构（"第一阶段做 A，第二阶段做 B"）
+**为什么**：无人值守场景需要长时间执行（分钟级到小时级）。请求-响应模型会阻塞调用线程或需要轮询。Actor 模型天然支持异步、恢复、多实例接管。
 
-**方案**：按实施阶段组织架构，每个阶段定义不同的接口集合和依赖关系。
+### D3：为什么 Layer 2-4 接口全部有 pass-through 默认
 
-**拒绝理由**：Phase-driven 假设系统在阶段切换时发生结构性变化。实际上，Layer 2 的 pass-through 默认实现使得所有接口始终存在——高级能力只是用功能实现替换默认实现。扩展通过添加接口实现完成，不需要阶段切换。
+**选了什么**：每个扩展接口都有一个最简默认实现（NoOp 或 PassThrough），系统可以不带任何扩展运行。
 
-### 9.2 拒绝：每层独立部署模块
+**为什么**：扩展通过添加接口实现完成，不需要阶段切换。测试可以只测核心链路而不用初始化全部扩展。外部框架可以渐进式引入高级能力。
 
-**方案**：Layer 1/2/3/4 各自是独立的 Maven 模块。
+### D4：为什么不做 MCP 支持
 
-**拒绝理由**：层是逻辑组织，不是物理边界。Layer 2 的 pass-through 实现需要在 Layer 1 的 classpath 中可用。拆分模块会增加依赖管理复杂度但没有部署隔离收益。
+**选了什么**：使用 Nop 自有的 `tool.xdef` DSL，不引入 MCP 协议层。
 
-### 9.3 拒绝：Router/Talent/RetryPolicy 作为 DSL 字段
+**为什么**：Nop 有完整的 XLang 生态和 IoC 集成。引入 MCP 会增加协议转换层且无独特收益。外部工具通过标准 REST/GraphQL 集成即可。
 
-**方案**：在 `agent.xdef` 中定义 `<router strategy="smart"/>`、`<talent name="cli"/>` 等字段。
+### D5：LLM 调用路径选择
 
-**拒绝理由**：路由、动态准入、重试是运行时策略，不是 Agent 配置的固有语义。保持 DSL 精简——只有 Agent 配置语义进 DSL，运行时策略通过 IoC/Delta 注入。
+**选了什么**：Agent 通过 `nop-ai-core` 的 `ChatServiceImpl` 调用 LLM。多模型支持通过 `llm.xdef` + `{provider}.llm.xml` DSL 配置实现（ollama/deepseek/claude/gemini/azure/volcengine/bailian/lm-studio 等 provider 已有配置）。不依赖废弃的 `nop-ai-llm` / `nop-ai-llms` 模块。
+
+**为什么**：`nop-ai-core` 已包含完整的 LLM 调用能力和多 Provider 支持。`llm.xml` DSL 可通过 Delta 定制新 Provider，无需引入额外模块依赖。
 
 ---
 
-## 10. 文档维护建议
+## 7. 审计检查清单
 
-后续设计文档建议遵守下面规则：
+每次规划前，用以下检查清单评估各组件的真实状态：
 
-1. 总览文档只讲边界、对象和核心决策
-2. 专题文档只讲一个主题
-3. 研究过程和框架对照不要混进主设计文档
-4. 伪代码只保留最小必要片段
-5. 路线图只保留分层结构、接口列表和优先级
+### 前置层检查
+
+- [ ] `agent.register-model.xml` 存在且可正确加载 `.agent.xml`
+- [ ] 枚举定义一致：xdef `AgentExecStatus` 与 record-mappings 引用的枚举字段名和值域匹配
+- [ ] LLM 调用路径已确认：Agent 通过 `nop-ai-core` 的 `ChatServiceImpl` 调用，基于 `llm.xml` 配置区分 Provider
+
+### Layer 1 核心
+
+- [ ] `agent.xdef` 字段语义稳定，无 ambiguous 字段（注意：`availableSkills` / `requiredSkills`，不是 `skills`）
+- [ ] `agent-plan.xdef` 字段语义稳定
+- [ ] `AgentModel` 可从 `.agent.xml` 正确装载
+- [ ] `AgentPlanModel` 可从 `.agent-plan.xml`/`.yaml`/`.md` 正确装载
+- [ ] 缺失枚举 `AgentTaskStatus`, `AgentPlanStatus` 已创建（或已与 `AgentExecStatus` 统一）
+- [ ] ReAct 循环可以完整跑通：LLM 调用 → 工具调用 → 结果回灌 → 继续推理
+- [ ] 至少 1 个 `.agent.xml` 示例文件可被加载执行
+- [ ] `BaseAgent` 的去留已决定
+
+### Maven 依赖正确性
+
+- [ ] `nop-ai-agent` pom.xml 的依赖列表与实际代码 import 一致
+- [ ] `nop-ai-llm` / `nop-ai-llms` 废弃模块状态已记录，Agent LLM 调用通过 `nop-ai-core` 完成
+
+### 整体
+
+- [ ] `./mvnw clean install -pl nop-ai-agent -am -T 1C` 全量构建通过
+- [ ] `./mvnw test -pl nop-ai-agent -am -T 1C` 全量测试通过
+- [ ] 设计文档与实际代码一致（xdef 字段 vs 设计描述）
 
 ---
 
-## 11. 结论
+## 8. 与其他文档的关系
 
-`nop-ai-agent` 的架构组织为四层接口，每层有默认实现和扩展点：
-
-1. **Layer 1 (Core)** 定义系统运行的最低要求——Agent 配置、执行策略、消息格式、权限派生
-2. **Layer 2 (Execution)** 扩展执行行为——上下文治理、工具修复、压缩、护栏、路由、Provider 适配
-3. **Layer 3 (Reliability)** 加固生产环境——熔断、重试、持续目标、检查点
-4. **Layer 4 (Platform)** 支持多 Agent / 多租户 / 分布式——消息服务、记忆适配器、技能管理
-
-实施按优先级推进，但架构不按阶段切换——所有接口始终存在，高级能力 = 添加更多接口实现。
-
-只要分层边界不乱，设计文档就不会再次滑回 Java-first 或 Phase-driven。
-
----
-
-## 与其他文档的关系
-
-- `00-vision.md` — 设计原则和约束
-- `01-architecture-baseline.md` — 架构基线（Layer 1 核心对象的详细定义）
+- `00-vision.md` — 设计原则和约束（不可违反）
+- `01-architecture-baseline.md` — 架构基线（核心对象职责契约）
 - `02-execution-model.md` — 执行模型（双循环、Hook 生命周期）
-- `nop-ai-agent-reliability.md` — 可靠性增强（Layer 3 的详细设计）
-- `nop-ai-agent-llm-layer.md` — LLM 层设计（IMessageFormat, IModelDialect, ITalent, IModelRouter, IRetryPolicy）
-- `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 愿景（Layer 4 的演进方向）
+- `nop-ai-agent-roadmap.md` — **本文件**（开发路线）
+- `nop-ai-agent-react-engine.md` — ReAct 引擎详细设计
+- `nop-ai-agent-session-engine.md` — 会话引擎详细设计
+- `nop-ai-agent-context-model.md` — 上下文治理详细设计
+- `nop-ai-agent-llm-layer.md` — LLM 层详细设计
+- `nop-ai-agent-reliability.md` — 可靠性增强详细设计
+- `nop-ai-agent-security-and-permissions.md` — 安全权限详细设计
