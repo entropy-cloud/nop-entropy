@@ -47,6 +47,8 @@
 | **后台开发** | **`00-required-reading-backend.md`** | `02-core-guides/service-layer.md` |
 | **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/view-and-page-customization.md` |
 | **权限开发** | **`02-core-guides/auth-and-permissions.md`** | 同左（操作权限、数据权限、菜单资源） |
+| **单元/集成测试** | **`00-required-reading-testing.md`** | `02-core-guides/testing.md` |
+| **E2E 测试** | **`00-required-reading-e2e-testing.md`** | `02-core-guides/e2e-testing.md` |
 
 ## 快速路由
 
@@ -55,6 +57,8 @@
 | **模型设计** | **`00-required-reading-model-design.md`**（模型设计必读总入口） |
 | **后端服务开发** | **`00-required-reading-backend.md`**（后端必读总入口） |
 | **前端页面开发** | **`00-required-reading-frontend.md`**（前端必读总入口） |
+| **单元/集成测试** | **`00-required-reading-testing.md`**（测试必读总入口） |
+| **E2E 测试** | **`00-required-reading-e2e-testing.md`**（E2E 测试必读总入口） |
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
@@ -90,6 +94,7 @@
 | 理解 XLang / XPL / xrun / xgen 基本写法 | `02-core-guides/xlang-and-xpl-basics.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
+| 编写 E2E 测试 | `02-core-guides/e2e-testing.md` |
 | 修改流处理引擎（nop-stream） | `01-repo-map/module-groups.md`（nop-stream 子模块） |
 | CEP 模式匹配开发 | `01-repo-map/module-groups.md`（nop-stream-cep） |
 | 检查点/状态管理机制 | `01-repo-map/module-groups.md`（nop-stream-runtime） |

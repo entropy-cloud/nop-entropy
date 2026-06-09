@@ -57,9 +57,11 @@
 
 ### 测试
 
+> 单元/集成测试有独立必读入口：**`00-required-reading-testing.md`**。E2E 测试入口：**`00-required-reading-e2e-testing.md`**。以下仅列出最常用的快速跳转。
+
 | 文档 | 场景 |
 |------|------|
-| `02-core-guides/testing.md` | 测试模式与约定 |
+| `02-core-guides/testing.md` | 测试模式与约定（快速参考） |
 | `03-runbooks/write-tests.md` | 写测试用例 |
 | `03-runbooks/write-integration-test-with-noptestconfig.md` | JunitAutoTestCase + @NopTestConfig 集成测试 |
 

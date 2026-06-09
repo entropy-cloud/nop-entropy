@@ -62,13 +62,19 @@
 | `override-platform-page-with-delta.md` | 用 Delta 覆盖平台页面 |
 | `prefer-delta-over-direct-modification.md` | 用 Delta 替代直接修改 |
 
-### 测试
+### 单元/集成测试
 
 | 文档 | 任务场景 |
 |------|---------|
 | `write-tests.md` | 编写测试 |
 | `write-integration-test-with-noptestconfig.md` | 编写容器内集成测试 |
 | `add-test-mock-bean.md` | 在测试中补 mock bean |
+
+### E2E 测试
+
+| 文档 | 任务场景 |
+|------|---------|
+| `../02-core-guides/e2e-testing.md` | E2E 测试模式（Playwright、RPC 调用、浏览器测试） |
 
 ## 默认规则
 
