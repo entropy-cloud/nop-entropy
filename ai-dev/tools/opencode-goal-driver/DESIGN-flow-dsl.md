@@ -290,51 +290,38 @@ This pattern is critical: git hooks (lint, secrets detection) can reject commits
 
 ## 4. Engine Execution Loop
 
-```mermaid
-flowchart TD
-    START([run entry]) --> INIT["currentStep = entry<br/>totalSteps = 0"]
-    INIT --> LOOP{totalSteps<br/>< maxTotalSteps?}
+```
+function run(entry):
+  currentStep = entry || flow.entry
 
-    LOOP -->|no| MAX_STEPS["return max_total_steps"]
-    LOOP -->|yes| FIND["stepDef = steps[currentStep]"]
+  while totalSteps < maxTotalSteps:
+    stepDef = flow.steps[currentStep]
+    if !stepDef → return "unknown_step"
 
-    FIND --> STEP_EXISTS{stepDef<br/>exists?}
-    STEP_EXISTS -->|no| UNKNOWN["return unknown_step"]
-    STEP_EXISTS -->|yes| VISIT["visitCount++<br/>totalSteps++"]
+    visitCount[currentStep]++
+    if visitCount > maxCycleVisits → return "max_cycles"
+    totalSteps++
 
-    VISIT --> CYCLE{visitCount<br/>gt maxCycleVisits?}
-    CYCLE -->|yes| MAX_CYCLES["return max_cycles"]
-    CYCLE -->|no| EXECUTE["result = executeStep()"]
+    try:
+      result = executeStep(currentStep, stepDef)
+    catch:
+      → execute onError action
 
-    EXECUTE --> CATCH{exception?}
-    CATCH -->|yes| ON_ERROR["→ onError action"]
-    CATCH -->|no| EXTRACT["extractVars(stepDef, result)<br/>context[currentStep] = result"]
+    extractVars(stepDef, result)
+    context[currentStep] = result
 
-    EXTRACT --> OK_CHECK{result.ok == false<br/>AND not tool?}
-    OK_CHECK -->|yes| ON_ERROR
-    OK_CHECK -->|no| MARKER["marker = resolveMarker()"]
+    if result.ok == false AND step is not tool:
+      → execute onError action
 
-    MARKER --> MARKER_FOUND{marker<br/>found?}
-    MARKER_FOUND -->|no| ON_UNKNOWN["→ onUnknown action"]
-    MARKER_FOUND -->|yes| TRANS["transition = findTransition()"]
+    marker = resolveMarker(result, stepDef)
+    if !marker → execute onUnknown action
 
-    TRANS --> TRANS_FOUND{transition<br/>found?}
-    TRANS_FOUND -->|no| CORRECT["alias → case-insensitive<br/>→ session correction"]
-    CORRECT --> TRANS_FOUND
+    transition = findTransition(stepDef, marker)
+    // try: exact → alias → case-insensitive → session correction
 
-    TRANS_FOUND -->|yes| DISPATCH{transition type?}
-    DISPATCH -->|done| DONE(["return status"])
-    DISPATCH -->|retry| RETRY["handleRetry() → goto"]
-    DISPATCH -->|goto| GOTO["handleGoto() → goto"]
-
-    RETRY --> LOOP
-    GOTO --> LOOP
-
-    style START fill:#4a9eff,color:#fff
-    style DONE fill:#2d9c2d,color:#fff
-    style MAX_STEPS fill:#d32f2f,color:#fff
-    style MAX_CYCLES fill:#d32f2f,color:#fff
-    style UNKNOWN fill:#d32f2f,color:#fff
+    if transition.done → return transition.done
+    if transition.retry → handleRetry(transition) → goto target
+    if transition.goto → handleGoto(transition) → goto target
 ```
 
 ## 5. File Organization
