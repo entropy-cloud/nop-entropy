@@ -43,12 +43,17 @@ doFindList(query, (q, ctx) -> {
 
 | 场景 | 优先方法 |
 |------|---------|
-| 列表查询 | `doFindList(query, this::invokeDefaultPrepareQuery, selection, context)` |
-| 分页查询 | `doFindPage(query, this::invokeDefaultPrepareQuery, selection, context)` |
+| 列表查询（需要定制 prepareQuery） | `doFindList(query, prepareQuery, selection, context)` |
+| 列表查询（不需要定制 prepareQuery） | `findList(query, selection, context)` |
+| 分页查询（需要定制 prepareQuery） | `doFindPage(query, prepareQuery, selection, context)` |
+| 分页查询（不需要定制 prepareQuery） | `findPage(query, selection, context)` |
 | 总数 | `findCount(query, context)` |
 | 第一条 | `findFirst(query, selection, context)` |
 
-> **`doFindList` 签名是 4 参数**：`(query, prepareQuery, selection, context)`。`prepareQuery` 的用法见上方"组合式回调参数"一节。
+> **`doFindList` vs `findList`**：
+> - `doFindList(query, prepareQuery, selection, context)` — 4 参数，`prepareQuery` 是 `BiConsumer<QueryBean, IServiceContext>`，用于组合式注入默认过滤/排序。需要定制查询预处理时使用。
+> - `findList(query, selection, context)` — 3 参数，内部自动调用 `this::invokeDefaultPrepareQuery`。不需要定制 prepareQuery 时直接用这个更简洁。实体方法内通过 `requireBiz` 获取 `I*Biz` 后也只能调用这个 3 参数版本。
+> - `doFindPage` / `findPage` 同理。
 
 ## 写操作
 
@@ -116,8 +121,8 @@ FilterBeans.contains("name", keyword);
 | 不推荐 | 推荐 |
 |--------|------|
 | `dao().getEntityById(id)` | `requireEntity(id, action, context)` |
-| `dao().findAllByQuery(query)` | `doFindList(query, this::invokeDefaultPrepareQuery, selection, context)` |
-| `dao().findPageByQuery(query)` | `doFindPage(query, this::invokeDefaultPrepareQuery, selection, context)` |
+| `dao().findAllByQuery(query)` | `findList(query, selection, context)` 或 `doFindList(query, prepareQuery, selection, context)` |
+| `dao().findPageByQuery(query)` | `findPage(query, selection, context)` 或 `doFindPage(query, prepareQuery, selection, context)` |
 | `dao().saveEntity(entity)` | `saveEntity(entity, action, context)`（程序化创建）或 `save(data, context)`（前端 Map） |
 | `@BizMutation @Transactional` | 只用 `@BizMutation` |
 

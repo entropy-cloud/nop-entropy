@@ -57,12 +57,14 @@ public class LitemallOrder extends _LitemallOrder {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("orderId", orm_idString()));
         query.addFilter(FilterBeans.in("status", Arrays.asList(1, 2)));
-        return biz.findList(query, null, IServiceContext.getCtx());
+        return biz.findList(query, null, IServiceContext.requireCtx());
     }
 }
 ```
 
 > **使用 `requireBiz()` 而不是 `BeanContainer`**：`requireBiz()` 是 `OrmEntity` 基类提供的实体级服务访问方法，由 ORM 引擎的 `IOrmEntityEnhancer` 机制提供，与实体的 session 生命周期一致。`BeanContainer` 是全局 IoC 容器入口，不感知实体上下文。
+
+> **使用 `IServiceContext.requireCtx()` 而不是 `getCtx()`**：`getCtx()` 在没有线程上下文时返回 `null`，会导致空指针。`requireCtx()` 在没有上下文时直接抛错，避免静默失败。
 
 > **约束：实体通过 `I*Biz` 只能做只读查询，不能做写操作。** 写操作（`@BizMutation`）必须通过 BizModel 入口，保证事务、权限、状态机等管道逻辑不被绕过。
 
@@ -79,7 +81,7 @@ public class LitemallOrder extends _LitemallOrder {
             QueryBean query = new QueryBean();
             query.addFilter(FilterBeans.eq("orderId", orm_idString()));
             query.addFilter(FilterBeans.in("status", Arrays.asList(1, 2)));
-            return biz.findList(query, null, IServiceContext.getCtx());
+            return biz.findList(query, null, IServiceContext.requireCtx());
         });
     }
 }
