@@ -42,7 +42,7 @@
 | `_dump/` 是调试输出 | `_dump/{appName}/...` 仅用于查看最终合并结果，不手改、不作为质量修复目标 |
 | 服务入口是 BizModel | 普通服务代码默认写在 BizModel，复杂流程再拆 Processor |
 | BizModel 返回值 | 默认返回 Entity，由 xmeta 控制字段可见性。不要为了限制字段而改返回 DTO。仅计算结果（无对应实体）才用 DTO |
-| 普通实体服务默认基类 | `CrudBizModel<T>` |
+| 普通实体服务默认基类 | `CrudBizModel<T>`，已内置 `dao()`、`daoProvider()`、`daoFor(clazz)` 等方法，使用前先阅读 `CrudBizModel` 和 `ICrudBiz` |
 | 普通查询/取数默认路径 | `requireEntity()`、`doFindList()`、`doFindPage()` |
 | 普通写操作默认事务 | `@BizMutation` 已自动包事务 |
 | IoC 注入限制 | `@Inject` 字段不能是 `private` |
@@ -70,11 +70,12 @@
 | `dao().getEntityById(id)` 作为 BizModel 模板 | `requireEntity(id, action, context)` |
 | `dao().findAllByQuery(query)` 作为 BizModel 模板 | `doFindList(query, selection, context)` |
 | `dao().findPageByQuery(query)` 作为 BizModel 模板 | `doFindPage(query, selection, context)` |
-| `IDaoProvider.daoFor(Xxx.class).*` 或 `IOrmTemplate` 在 BizModel 中访问其他实体 | 优先注入 `I*Biz` 接口 → 降级到 `IDaoProvider`（注释说明原因）→ 最后才用 `IOrmTemplate` 或 `@SqlLibMapper`。每一级都绕过了上层管道（数据权限、查询预处理、事件派发），降级时必须在代码注释中说明原因 |
+| `IDaoProvider.daoFor(Xxx.class).*` 或 `IOrmTemplate` 在 BizModel 中访问其他实体 | 注入 `I*Biz` 接口（继承 `ICrudBiz`，使用前先阅读 `ICrudBiz`）。仅当 `I*Biz` 确实无法满足需求时才降级到基类内置的 `daoProvider().daoFor(...)`（注释说明原因），最后才用 `IOrmTemplate` 或 `@SqlLibMapper`。每一级降级都绕过了上层管道，必须注释说明原因。**不要重复 `@Inject IDaoProvider`，基类已提供 `daoProvider()`** |
 | `@BizMutation @Transactional` | 只保留 `@BizMutation` |
 | `@Inject private Foo foo;` | `protected` / package-private / setter 注入 |
 | Spring `@Value` | `@InjectValue` |
 | `Map<String, Object>` 作为复杂返回 DTO | 定义 `@DataBean` DTO |
+| DTO 日期时间字段使用 `String` 类型 | 使用 `java.time` 标准类型（`LocalDateTime`、`LocalDate`、`LocalTime`），框架自动处理序列化 |
 | 自定义 BizModel 查询返回 DTO 而不是 Entity | 直接返回 Entity，字段可见性在 xmeta 中配置。仅无对应实体的计算结果（图分析、层级树等）才用 DTO |
 | 将 XDSL→运行时 桥接器标 `@Deprecated` 并推荐绕过 DSL 直接用 Java API | Nop 平台 DSL 优先：桥接器有 bug 应修复，不应绕过。任何 Model→Runtime 桥接都是 DSL 体系的核心，不是可废弃的附属品 |
 | 直接注入另一个 BizModel 实现类 | 注入 `I*Biz` 接口 |
@@ -101,7 +102,7 @@
 2. 这个逻辑真的需要 Java 吗？
 3. 这是普通 BizModel 还是 infra/store 边界场景？
 4. 如果是查询/修改，我走的是 `CrudBizModel` 的默认能力吗？
-5. **BizModel 中访问其他实体时，我是否注入了 `I*Biz` 接口而不是 `IDaoProvider`？** 如果用了 `IDaoProvider.daoFor(...)`，说明绕过了数据权限和管道，必须改走 `I*Biz`。
+5. **BizModel 中访问其他实体时，我是否注入了 `I*Biz` 接口？** 如果用了 `IDaoProvider`（包括 `@Inject` 或基类 `daoProvider()`），说明绕过了数据权限和管道，必须改走 `I*Biz`。
 6. 我是否至少做了一次与改动范围匹配的验证？
 7. 如果这次任务暴露出 `docs-for-ai/` 不准确或缺失，我是否已经顺手修正文档？
 8. 如果这是 significant 变更，我是否已经补 ai-dev/logs/ 当天日志？

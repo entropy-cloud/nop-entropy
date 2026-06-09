@@ -278,14 +278,6 @@ public class DateHelper {
         return ConvertHelper.stringToLocalDate(s, NopException::new);
     }
 
-    public static LocalDateTime parseDataTime(String s) {
-        return ConvertHelper.stringToLocalDateTime(s, NopException::new);
-    }
-
-    public static LocalTime parseTime(String s) {
-        return ConvertHelper.toLocalTime(s, NopException::new);
-    }
-
     public static LocalDate parseDate(String s, String pattern) {
         if (StringHelper.isEmpty(s))
             return null;
@@ -306,11 +298,19 @@ public class DateHelper {
         return null;
     }
 
+    public static LocalDateTime parseDataTime(String s) {
+        return ConvertHelper.stringToLocalDateTime(s, NopException::new);
+    }
+
     public static LocalDateTime parseDateTime(String s, String pattern) {
         if (StringHelper.isEmpty(s))
             return null;
         DateTimeFormatter formatter = buildFormatter(pattern);
         return LocalDateTime.parse(s, formatter);
+    }
+
+    public static LocalTime parseTime(String s) {
+        return ConvertHelper.toLocalTime(s, NopException::new);
     }
 
     public static Duration parseDuration(String s) {

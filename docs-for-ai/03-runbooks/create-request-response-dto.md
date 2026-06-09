@@ -52,6 +52,7 @@ public SubmitOrderResult submitOrder(@RequestBean SubmitOrderRequest request,
 2. 提供标准 getter / setter。
 3. 如果这是局部 DTO 且需要跨边界序列化，或周边代码已经统一实现 `Serializable`，再补 `Serializable`。
 4. 不要默认使用 Lombok `@Data` 代替手写访问器。
+5. **日期时间字段必须使用 `java.time` 标准类型**（`LocalDateTime`、`LocalDate`、`LocalTime`），不要使用 `String`。框架会自动处理序列化/反序列化。
 
 ## 什么时候跟随 `ExtensibleBean` 风格
 
