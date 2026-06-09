@@ -152,11 +152,31 @@ export class FlowEngine {
   }
 
   async _executeScriptStep(stepName, stepDef) {
-    const ret = await stepDef.run(this.delegates);
+    let scriptFn;
+    if (typeof stepDef.run === "function") {
+      scriptFn = stepDef.run;
+    } else if (typeof stepDef.run === "string") {
+      const scripts = this.delegates.scripts || {};
+      scriptFn = scripts[stepDef.run];
+      if (!scriptFn) throw new Error(`script "${stepDef.run}" not found in delegates.scripts`);
+    } else {
+      throw new Error(`step "${stepName}" has invalid "run" field`);
+    }
+    const args = stepDef.scriptArgs ? this._templateVarsObj(stepDef.scriptArgs) : undefined;
+    const ret = await scriptFn(this.delegates, args);
     if (typeof ret === "object" && ret.marker !== undefined) {
       return { ok: true, marker: ret.marker, text: String(ret.marker), vars: ret.vars || {} };
     }
     return { ok: true, marker: ret, text: String(ret) };
+  }
+
+  _templateVarsObj(obj) {
+    const vars = this._buildVars();
+    const result = {};
+    for (const [k, v] of Object.entries(obj)) {
+      result[k] = typeof v === "string" ? this._templateVar(v, vars) : v;
+    }
+    return result;
   }
 
   async _resolveMarker(result, stepDef) {

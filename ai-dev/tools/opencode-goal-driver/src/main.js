@@ -1,8 +1,19 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { resolveConfig } from "./config.js";
-import { createRunner, resetMockState } from "./opencode-runner.js";
+import { createRunner } from "./opencode-runner.js";
+import { resetMockState } from "./mock-responses.js";
 import { FlowEngine } from "./engine.js";
-import { createGoalDriverFlow } from "./flow-goal-driver.js";
+import * as scripts from "./scripts.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadFlow() {
+  const flowPath = resolve(__dirname, "goal-driver-flow.json");
+  return JSON.parse(readFileSync(flowPath, "utf8"));
+}
 
 function parseArgs(argv) {
   const args = { module: "", dryRun: false, testMode: false };
@@ -37,10 +48,11 @@ async function main() {
   console.log("");
 
   try {
-    const flow = createGoalDriverFlow();
+    const flow = loadFlow();
     const delegates = {
       config,
       vars: { module: config.moduleName, projectRoot: config.projectRoot },
+      scripts,
       runAgent: runner.runAgent,
       runTool: runner.runTool,
       runParseAgent: runner.runParseAgent,

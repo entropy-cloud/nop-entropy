@@ -1,6 +1,15 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { FlowEngine } from "../src/engine.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadGoalDriverFlow() {
+  return JSON.parse(readFileSync(resolve(__dirname, "../src/goal-driver-flow.json"), "utf8"));
+}
 
 function makeMockDelegates(overrides = {}) {
   const responses = overrides.responses || {};
@@ -677,8 +686,7 @@ describe("FlowEngine — context tracking", () => {
 
 describe("FlowEngine — goal driver integration", () => {
   it("completes full cycle: fix-tests → pending plans → roadmap → plan → execute → closure → needs-deep-audit → loop", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
-    const flow = createGoalDriverFlow();
+    const flow = loadGoalDriverFlow();
     flow.maxTotalSteps = 120;
 
     let roadmapCount = 0;
@@ -688,8 +696,6 @@ describe("FlowEngine — goal driver integration", () => {
     const delegates = makeMockDelegates({
       responses: {
         FIX_TESTS: "<TEST_RESULT>no_errors</TEST_RESULT>",
-
-        CHECK_PENDING_PLANS: { text: "", ok: true, marker: "no_plans" },
 
         ROADMAP_CHECK: () => {
           roadmapCount++;
@@ -722,8 +728,10 @@ describe("FlowEngine — goal driver integration", () => {
 
     delegates.config = { moduleName: "test-mod", projectRoot: "/tmp/test" };
     delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
-
-    flow.steps.PLAN_COMMIT.run = () => "committed";
+    delegates.scripts = {
+      checkPendingPlans: () => "no_plans",
+      gitCommit: () => "committed",
+    };
 
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
@@ -737,8 +745,7 @@ describe("FlowEngine — goal driver integration", () => {
   });
 
   it("executes pending plans before roadmap check", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
-    const flow = createGoalDriverFlow();
+    const flow = loadGoalDriverFlow();
 
     let checkPendingCallCount = 0;
 
@@ -754,16 +761,16 @@ describe("FlowEngine — goal driver integration", () => {
 
     delegates.config = { moduleName: "test-mod", projectRoot: "/tmp/test" };
     delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
-
-    flow.steps.CHECK_PENDING_PLANS.run = () => {
-      checkPendingCallCount++;
-      if (checkPendingCallCount <= 1) {
-        return { marker: "has_plans", vars: { activePlanCount: "1" } };
-      }
-      return "no_plans";
+    delegates.scripts = {
+      checkPendingPlans: () => {
+        checkPendingCallCount++;
+        if (checkPendingCallCount <= 1) {
+          return { marker: "has_plans", vars: { activePlanCount: "1" } };
+        }
+        return "no_plans";
+      },
+      gitCommit: () => "committed",
     };
-
-    flow.steps.COMMIT_PENDING_PLAN.run = () => "committed";
 
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
@@ -775,8 +782,7 @@ describe("FlowEngine — goal driver integration", () => {
   });
 
   it("handles adversarial issues → audit plan cycle → loop back to FIX_TESTS", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js?" + Date.now());
-    const flow = createGoalDriverFlow();
+    const flow = loadGoalDriverFlow();
 
     let adversarialCount = 0;
     let fixTestsCount = 0;
@@ -784,6 +790,10 @@ describe("FlowEngine — goal driver integration", () => {
     const delegates = {
       config: { moduleName: "test-mod", projectRoot: "/tmp/test" },
       vars: { module: "test-mod", projectRoot: "/tmp/test" },
+      scripts: {
+        checkPendingPlans: () => "no_plans",
+        gitCommit: () => "committed",
+      },
       callLog: [],
       async runAgent(stepName, prompt, system, sessionId) {
         delegates.callLog.push({ type: "agent", stepName, prompt, system, sessionId });
@@ -816,11 +826,6 @@ describe("FlowEngine — goal driver integration", () => {
       },
     };
 
-    flow.steps.CHECK_PENDING_PLANS.run = () => "no_plans";
-    flow.steps.COMMIT_PENDING_PLAN.run = () => "nothing";
-    flow.steps.PLAN_COMMIT.run = () => "nothing";
-    flow.steps.AUDIT_COMMIT.run = () => "committed";
-
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
@@ -837,8 +842,7 @@ describe("FlowEngine — goal driver integration", () => {
 
 describe("Flow definition — structural validation", () => {
   it("all goto/retry targets reference existing steps", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
-    const flow = createGoalDriverFlow();
+    const flow = loadGoalDriverFlow();
     const stepNames = new Set(Object.keys(flow.steps));
 
     for (const [name, step] of Object.entries(flow.steps)) {
@@ -866,14 +870,12 @@ describe("Flow definition — structural validation", () => {
   });
 
   it("entry step exists", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
-    const flow = createGoalDriverFlow();
+    const flow = loadGoalDriverFlow();
     assert.ok(flow.steps[flow.entry], `entry "${flow.entry}" not found`);
   });
 
   it("every step has type and transitions", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
-    const flow = createGoalDriverFlow();
+    const flow = loadGoalDriverFlow();
     for (const [name, step] of Object.entries(flow.steps)) {
       assert.ok(step.type, `${name} has no type`);
       if (step.type === "agent") {
@@ -885,8 +887,7 @@ describe("Flow definition — structural validation", () => {
   });
 
   it("at least one step has a done transition", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
-    const flow = createGoalDriverFlow();
+    const flow = loadGoalDriverFlow();
     const hasDone = Object.values(flow.steps).some(step =>
       Object.values(step.transitions || {}).some(t => t.done) ||
       (step.onError && step.onError.done),
