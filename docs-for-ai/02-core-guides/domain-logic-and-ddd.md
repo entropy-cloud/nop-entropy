@@ -45,22 +45,24 @@ IOrmEntitySet<LitemallOrderGoods> items = order.getOrderGoods();
 
 这些关联由 ORM 引擎延迟加载，不需要手动查数据库。关联对象已经加载过的会自动缓存，不会重复查询。
 
-### 2. 实体可以通过 `BeanContainer` 获取 `I*Biz` 服务做只读查询
+### 2. 实体可以通过 `requireBiz` 获取 `I*Biz` 服务做只读查询
 
-当关联关系不足以直接导航到需要的数据时，实体可以通过 `BeanContainer` 获取 `I*Biz` 接口做只读查询：
+当关联关系不足以直接导航到需要的数据时，实体可以通过基类 `OrmEntity` 提供的 `requireBiz()` 方法获取 `I*Biz` 接口做只读查询：
 
 ```java
 @BizObjName("LitemallOrder")
 public class LitemallOrder extends _LitemallOrder {
     public List<LitemallAftersale> getActiveAftersales() {
-        ILitemallAftersaleBiz aftersaleBiz = BeanContainer.getBeanByType(ILitemallAftersaleBiz.class);
+        ILitemallAftersaleBiz biz = requireBiz(ILitemallAftersaleBiz.class);
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("orderId", orm_idString()));
         query.addFilter(FilterBeans.in("status", Arrays.asList(1, 2)));
-        return aftersaleBiz.findList(query, null, IServiceContext.getCtx());
+        return biz.findList(query, null, IServiceContext.getCtx());
     }
 }
 ```
+
+> **使用 `requireBiz()` 而不是 `BeanContainer`**：`requireBiz()` 是 `OrmEntity` 基类提供的实体级服务访问方法，由 ORM 引擎的 `IOrmEntityEnhancer` 机制提供，与实体的 session 生命周期一致。`BeanContainer` 是全局 IoC 容器入口，不感知实体上下文。
 
 > **约束：实体通过 `I*Biz` 只能做只读查询，不能做写操作。** 写操作（`@BizMutation`）必须通过 BizModel 入口，保证事务、权限、状态机等管道逻辑不被绕过。
 
@@ -73,7 +75,7 @@ public class LitemallOrder extends _LitemallOrder {
 public class LitemallOrder extends _LitemallOrder {
     public List<LitemallAftersale> getActiveAftersaleCached() {
         return computeIfAbsent("activeAftersales", k -> {
-            ILitemallAftersaleBiz biz = BeanContainer.getBeanByType(ILitemallAftersaleBiz.class);
+            ILitemallAftersaleBiz biz = requireBiz(ILitemallAftersaleBiz.class);
             QueryBean query = new QueryBean();
             query.addFilter(FilterBeans.eq("orderId", orm_idString()));
             query.addFilter(FilterBeans.in("status", Arrays.asList(1, 2)));
