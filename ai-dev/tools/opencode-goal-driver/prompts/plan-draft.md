@@ -30,6 +30,7 @@ Draft a development plan for module {module}. Each plan covers **exactly one** w
 ## Output Format
 
 ```
+Plan file: ai-dev/plans/{YYYY}-{MM}-{DD}-{NNN}-{slug}.md
 <PLAN_RESULT>created</PLAN_RESULT>
 ```
 or

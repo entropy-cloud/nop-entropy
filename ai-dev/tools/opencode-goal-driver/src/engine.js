@@ -78,12 +78,21 @@ export class FlowEngine {
 
   _buildVars() {
     const vars = { ...(this.delegates.vars || {}) };
+    const steps = {};
     for (const [name, result] of this.context) {
+      const stepObj = {
+        text: result.text || "",
+        ok: String(result.ok ?? ""),
+        logFile: result.logFile || "",
+        marker: result.marker || "",
+        vars: result.vars || {},
+      };
+      steps[name] = stepObj;
       const prefix = `steps.${name}`;
-      vars[`${prefix}.text`] = result.text || "";
-      vars[`${prefix}.ok`] = String(result.ok ?? "");
-      vars[`${prefix}.logFile`] = result.logFile || "";
-      vars[`${prefix}.marker`] = result.marker || "";
+      vars[`${prefix}.text`] = stepObj.text;
+      vars[`${prefix}.ok`] = stepObj.ok;
+      vars[`${prefix}.logFile`] = stepObj.logFile;
+      vars[`${prefix}.marker`] = stepObj.marker;
       if (result.vars) {
         for (const [vk, vv] of Object.entries(result.vars)) {
           if (Array.isArray(vv)) {
@@ -94,6 +103,7 @@ export class FlowEngine {
         }
       }
     }
+    vars.steps = steps;
     return vars;
   }
 
@@ -249,7 +259,8 @@ export class FlowEngine {
   }
 
   _buildChildDelegates(flowArgs, itemContext) {
-    const vars = { ...this.delegates.vars, ...flowArgs };
+    const parentVars = this._buildVars();
+    const vars = { ...parentVars, ...this.delegates.vars, ...flowArgs };
     if (itemContext.currentItem !== undefined) {
       vars.currentItem = itemContext.currentItem;
       vars.itemIndex = String(itemContext.itemIndex);
@@ -290,6 +301,18 @@ export class FlowEngine {
       return extractTag(retry.text, stepDef.resultTag);
     }
     return null;
+  }
+
+  _extractVars(stepName, stepDef, result) {
+    const patterns = stepDef.extractVars;
+    if (!patterns || !result.text) return;
+    if (!result.vars) result.vars = {};
+    for (const [varName, regex] of Object.entries(patterns)) {
+      const m = result.text.match(regex);
+      if (m && m[1]) {
+        result.vars[varName] = m[1];
+      }
+    }
   }
 
   _formatAppend(append, fromStep, result) {
@@ -387,6 +410,7 @@ export class FlowEngine {
         return this._result("failed", totalSteps);
       }
 
+      this._extractVars(currentStep, stepDef, result);
       this.context.set(currentStep, result);
 
       // For tool steps, ok=false is a normal "fail" marker, not an error

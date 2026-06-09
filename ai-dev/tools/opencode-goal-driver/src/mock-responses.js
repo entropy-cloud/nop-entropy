@@ -15,20 +15,17 @@ export function resetMockState() {
 const STEP_KEY_MAP = {
   "FIX_TESTS": "fix-tests",
   "FIX_TESTS_RECOVERY": "fix-tests-recovery",
+  "FIX_TESTS_COMMIT_FIX": "commit-fix",
   "ROADMAP_CHECK": "roadmap-check",
   "PLAN_DRAFT": "plan-draft",
-  "PLAN_AUDIT": "plan-audit",
-  "EXECUTE_PLAN": "execute",
-  "PLAN_CLOSURE": "closure-audit",
+  "AUDIT": "plan-audit",
+  "EXECUTE": "execute",
+  "CLOSURE": "closure-audit",
+  "COMMIT_FIX": "commit-fix",
   "DEEP_AUDIT": "deep-audit",
   "ADVERSARIAL": "adversarial-review",
   "NEEDS_DEEP_AUDIT": "needs-deep-audit",
-  "EXECUTE_PENDING_PLAN": "execute-pending",
-  "VERIFY_PENDING_PLAN": "verify-pending",
   "AUDIT_PLAN_DRAFT": "audit-plan-draft",
-  "AUDIT_PLAN_AUDIT": "audit-plan-audit",
-  "AUDIT_EXECUTE": "audit-execute",
-  "AUDIT_CLOSURE": "audit-closure",
 };
 
 function _normalizeStepName(stepName) {
@@ -41,6 +38,7 @@ export function mockAgentResponse(stepName) {
 
   if (n === "fix-tests") return "<TEST_RESULT>no_errors</TEST_RESULT>";
   if (n === "fix-tests-recovery") return "<TEST_RESULT>fixed</TEST_RESULT>";
+  if (n === "commit-fix") return "<COMMIT_RESULT>fixed</COMMIT_RESULT>";
 
   if (n === "roadmap-check") {
     _mockRoadmapCount++;
@@ -49,7 +47,7 @@ export function mockAgentResponse(stepName) {
       : "<ROADMAP_RESULT>complete</ROADMAP_RESULT>";
   }
 
-  if (n === "plan-draft" || n === "audit-plan-draft") return "<PLAN_RESULT>created</PLAN_RESULT>";
+  if (n === "plan-draft" || n === "audit-plan-draft") return "Plan file: ai-dev/plans/2026-06-09-001-mock-plan.md\n<PLAN_RESULT>created</PLAN_RESULT>";
 
   if (n === "plan-audit" || n === "audit-plan-audit") {
     _mockPlanAuditCount++;
@@ -58,9 +56,7 @@ export function mockAgentResponse(stepName) {
       : "<AUDIT_RESULT>approved</AUDIT_RESULT>";
   }
 
-  if (n === "execute" || n === "execute-pending" || n === "audit-execute") return "<EXECUTE_RESULT>success</EXECUTE_RESULT>";
-
-  if (n === "verify-pending") return "<VERIFY_RESULT>complete</VERIFY_RESULT>";
+  if (n === "execute" || n === "audit-execute") return "<EXECUTE_RESULT>success</EXECUTE_RESULT>";
 
   if (n === "closure-audit" || n === "audit-closure") {
     _mockClosureCount++;

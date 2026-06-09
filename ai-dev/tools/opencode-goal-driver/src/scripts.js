@@ -26,11 +26,15 @@ export function checkPendingPlans(delegates) {
       }
     }
 
+    if (planFiles.length === 0) {
+      return { marker: "no_plans", vars: { activePlanCount: String(activeCount) } };
+    }
+
     return {
       marker: "has_plans",
       vars: {
         activePlanCount: String(activeCount),
-        activePlanFiles: planFiles.length > 0 ? planFiles : undefined,
+        activePlanFiles: planFiles,
       },
     };
   } catch {
@@ -68,10 +72,11 @@ export function setPlanStatus(delegates, args) {
 
   try {
     let content = readFileSync(fullPath, "utf8");
-    content = content.replace(
-      /\*\*Plan Status\*\*:\s*\w+/,
-      `**Plan Status**: ${newStatus}`,
-    );
+    const re = /\*\*Plan Status\*\*:\s*\w+/;
+    if (!re.test(content)) {
+      return { marker: "error", vars: { error: "Plan Status field not found in " + planFile } };
+    }
+    content = content.replace(re, `**Plan Status**: ${newStatus}`);
     writeFileSync(fullPath, content, "utf8");
     return { marker: "ok", vars: { planFile, planStatus: newStatus } };
   } catch (e) {

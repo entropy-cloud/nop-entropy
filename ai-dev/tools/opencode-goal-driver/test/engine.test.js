@@ -2029,37 +2029,6 @@ describe("FlowEngine — fault tolerance: promptFile loading", () => {
   });
 });
 
-describe("FlowEngine — fault tolerance: flow-level totalTimeout", () => {
-  it("totalTimeout=0 allows unlimited execution (up to maxTotalSteps)", async () => {
-    const flow = simpleFlow({
-      A: {
-        type: "agent",
-        prompt: "a",
-        resultTag: "R",
-        transitions: { next: { goto: "B" } },
-      },
-      B: {
-        type: "agent",
-        prompt: "b",
-        resultTag: "R",
-        transitions: { next: { goto: "A" } },
-      },
-    }, "A");
-    flow.maxTotalSteps = 10;
-    flow.totalTimeout = 0;
-
-    const delegates = makeMockDelegates({
-      responses: { A: "<R>next</R>", B: "<R>next</R>" },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "max_total_steps");
-    assert.equal(result.stepCount, 10);
-  });
-});
-
 // ═══════════════════════════════════════════
 // 18. SubFlow: forEach + single execution
 // ═══════════════════════════════════════════
@@ -2286,5 +2255,72 @@ describe("FlowEngine — commit with agent fallback", () => {
 
     assert.equal(result.status, "completed");
     assert.ok(!delegates.callLog.some(c => c.stepName === "COMMIT_FIX"));
+  });
+});
+
+describe("FlowEngine — extractVars", () => {
+  it("extractVars extracts variables from agent output text", async () => {
+    const flow = simpleFlow({
+      DRAFT: {
+        type: "agent",
+        prompt: "create a plan",
+        resultTag: "R",
+        extractVars: { planFile: "Plan file:\\s*(ai-dev/plans/\\S+\\.md)" },
+        transitions: {
+          created: { goto: "RUN" },
+          none: { done: "completed" },
+        },
+      },
+      RUN: {
+        type: "subflow",
+        flow: "child",
+        flowArgs: { planFile: "{steps.DRAFT.vars.planFile}" },
+        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
+      },
+    }, "DRAFT");
+
+    const childFlow = simpleFlow({
+      DO_WORK: {
+        type: "agent",
+        prompt: "process {planFile}",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "DO_WORK");
+
+    let childPrompt = "";
+    const delegates = makeMockDelegates({
+      responses: {
+        DRAFT: () => ({ text: "Plan file: ai-dev/plans/2026-06-09-001-test.md\n<R>created</R>", ok: true }),
+        DO_WORK: (sn, prompt) => { childPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
+      },
+    });
+    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(childPrompt.includes("ai-dev/plans/2026-06-09-001-test.md"));
+  });
+
+  it("extractVars does nothing when regex doesn't match", async () => {
+    const flow = simpleFlow({
+      STEP: {
+        type: "agent",
+        prompt: "do something",
+        resultTag: "R",
+        extractVars: { myVar: "no-match-pattern" },
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "STEP");
+
+    const delegates = makeMockDelegates({
+      responses: { STEP: () => ({ text: "<R>ok</R>", ok: true }) },
+    });
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
   });
 });

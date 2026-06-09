@@ -109,6 +109,9 @@
       "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/plan-draft.md",
       "resultTag": "PLAN_RESULT",
       "onUnknownMaxRetries": 2,
+      "extractVars": {
+        "planFile": "Plan file:\\s*(ai-dev/plans/\\S+\\.md)"
+      },
       "transitions": {
         "created": { "goto": "PLAN_EXECUTE" },
         "none": { "goto": "NEEDS_DEEP_AUDIT" }
@@ -119,10 +122,10 @@
     "PLAN_EXECUTE": {
       "type": "subflow",
       "flow": "plan-lifecycle",
+      "flowArgs": { "planFile": "{steps.PLAN_DRAFT.vars.planFile}" },
       "transitions": {
         "complete": { "goto": "NEEDS_DEEP_AUDIT" },
-        "failed": { "goto": "NEEDS_DEEP_AUDIT" },
-        "no_plan": { "goto": "NEEDS_DEEP_AUDIT" }
+        "failed": { "goto": "NEEDS_DEEP_AUDIT" }
       }
     },
 
@@ -164,9 +167,12 @@
 
     "AUDIT_PLAN_DRAFT": {
       "type": "agent",
-      "prompt": "Draft a remediation plan for module {module} based on audit findings. Audit results: {steps.ADVERSARIAL.text}\n\nRead ai-dev/plans/00-plan-authoring-and-execution-guide.md for plan format. Write the plan file to ai-dev/plans/. Output <PLAN_RESULT>created</PLAN_RESULT> or <PLAN_RESULT>none</PLAN_RESULT>.",
+      "prompt": "Draft a remediation plan for module {module} based on audit findings. Audit results: {steps.ADVERSARIAL.text}\n\nRead ai-dev/plans/00-plan-authoring-and-execution-guide.md for plan format. Write the plan file to ai-dev/plans/. Output <PLAN_RESULT>created</PLAN_RESULT> or <PLAN_RESULT>none</PLAN_RESULT>.\n\nWhen creating a plan, include a line: Plan file: ai-dev/plans/YYYY-MM-DD-NNN-slug.md",
       "resultTag": "PLAN_RESULT",
       "onUnknownMaxRetries": 2,
+      "extractVars": {
+        "planFile": "Plan file:\\s*(ai-dev/plans/\\S+\\.md)"
+      },
       "transitions": {
         "created": { "goto": "AUDIT_PLAN_EXECUTE" },
         "none": { "goto": "FIX_TESTS" }
@@ -177,10 +183,10 @@
     "AUDIT_PLAN_EXECUTE": {
       "type": "subflow",
       "flow": "plan-lifecycle",
+      "flowArgs": { "planFile": "{steps.AUDIT_PLAN_DRAFT.vars.planFile}" },
       "transitions": {
         "complete": { "goto": "FIX_TESTS" },
-        "failed": { "goto": "FIX_TESTS" },
-        "no_plan": { "goto": "FIX_TESTS" }
+        "failed": { "goto": "FIX_TESTS" }
       }
     }
   }
