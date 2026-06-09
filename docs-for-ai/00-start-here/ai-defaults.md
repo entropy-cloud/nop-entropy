@@ -68,8 +68,8 @@
 | 直接修 `_dump/` 下文件 | 把它当调试快照，去修源模型/Delta/模板/运行条件，然后让 debug 输出自动刷新 |
 | 直接编辑 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml` 等以 `_` 开头的配置文件 | 这些文件由 codegen 管线从 ORM 模型自动生成，改了会在 `mvn install` 时被覆盖。应改对应的非下划线文件（如 `app-service.beans.xml`）或改源模型文件（如 `model/*.orm.xml`） |
 | `dao().getEntityById(id)` 作为 BizModel 模板 | `requireEntity(id, action, context)` |
-| `dao().findAllByQuery(query)` 作为 BizModel 模板 | `doFindList(query, selection, context)` |
-| `dao().findPageByQuery(query)` 作为 BizModel 模板 | `doFindPage(query, selection, context)` |
+| `dao().findAllByQuery(query)` 作为 BizModel 模板 | `doFindList(query, this::invokeDefaultPrepareQuery, selection, context)` |
+| `dao().findPageByQuery(query)` 作为 BizModel 模板 | `doFindPage(query, this::invokeDefaultPrepareQuery, selection, context)` |
 | `IDaoProvider.daoFor(Xxx.class).*` 或 `IOrmTemplate` 在 BizModel 中访问其他实体 | 注入 `I*Biz` 接口（继承 `ICrudBiz`，使用前先阅读 `ICrudBiz`）。仅当 `I*Biz` 确实无法满足需求时才降级到基类内置的 `daoProvider().daoFor(...)`（注释说明原因），最后才用 `IOrmTemplate` 或 `@SqlLibMapper`。每一级降级都绕过了上层管道，必须注释说明原因。**不要重复 `@Inject IDaoProvider`，基类已提供 `daoProvider()`** |
 | `@BizMutation @Transactional` | 只保留 `@BizMutation` |
 | `@Inject private Foo foo;` | `protected` / package-private / setter 注入 |
@@ -95,6 +95,16 @@
 4. 框架内部、调度器、底层引擎、特殊遗留 BizModel。
 
 仓库中确实存在这类实现，例如 `nop-job` 的 store 层和少量已有 BizModel；阅读它们时要区分“存在”与“推荐默认写法”不是一回事。
+
+## 阅读即理解
+
+文档中所有"阅读 X"、"先读 X"、"使用前先阅读 X"的指令，执行时必须做到：
+
+1. **读之前不写代码。** Required Pre-Reading 列出的每一个文档，在写任何业务代码之前必须全部读完。不是扫描标题和表格，是逐段读到能复述关键规则的程度。
+2. **读的目的是获得能力，不是收集规则条文。** 读 `ICrudBiz` 不是为了记住"要用 `I*Biz`"这句话，而是为了知道 `ICrudBiz` 提供了 `get()`、`findList()`、`deleteByQuery()` 等方法签名和语义，这样写代码时才有正确的能力可用。
+3. **遇到障碍先补知识，不绕路。** 如果编译报错让你想违反已读文档中的规则，说明你对某个接口或机制的理解有缺口。此时应该回到文档或源码补上这个缺口，而不是找一个能编译通过但违反规范的方式。每一级降级都绕过了上层管道，必须注释说明原因。
+
+违反这条元规则的典型症状：读完了文档但写代码时仍然用了文档明确禁止的反模式，然后用"我读过了但没注意"来解释。
 
 ## 完成前自检
 

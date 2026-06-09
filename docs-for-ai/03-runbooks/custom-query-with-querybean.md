@@ -17,7 +17,7 @@
 QueryBean query = new QueryBean();
 query.addFilter(FilterBeans.eq("status", 1));
 query.setLimit(20);
-return doFindList(query, selection, context);
+return doFindList(query, this::invokeDefaultPrepareQuery, selection, context);
 ```
 
 ## 动态拼装过滤条件
@@ -45,7 +45,7 @@ query.addFilter(FilterBeans.and(
     FilterBeans.contains("name", keyword)
 ));
 query.setLimit(20);
-return doFindPage(query, selection, context);
+return doFindPage(query, this::invokeDefaultPrepareQuery, selection, context);
 ```
 
 常用模式：

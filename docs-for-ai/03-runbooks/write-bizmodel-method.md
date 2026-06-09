@@ -21,11 +21,15 @@ public List<Order> getOrdersByUser(@Name("userId") String userId,
                                    IServiceContext context) {
     QueryBean query = new QueryBean();
     query.addFilter(FilterBeans.eq("userId", userId));
-    return doFindList(query, selection, context);
+    return doFindList(query, this::invokeDefaultPrepareQuery, selection, context);
 }
 ```
 
+> **注意：`doFindList` 签名是 4 参数** `(query, prepareQuery, selection, context)`，`prepareQuery` 是 `BiConsumer<QueryBean, IServiceContext>`，多数场景传 `this::invokeDefaultPrepareQuery`。传 `null` 则跳过默认预处理。
+
 ## 修改方法最小模板
+
+### 更新已有实体
 
 ```java
 @BizMutation
@@ -37,6 +41,42 @@ public Order cancel(@Name("orderId") String orderId,
     return order;
 }
 ```
+
+### 程序化创建新实体
+
+在 BizModel 内部构造实体对象（非前端 Map 输入）时，用 `saveEntity`：
+
+```java
+@BizMutation
+public Order createOrder(@Name("addressId") String addressId,
+                         IServiceContext context) {
+    Order order = new Order();
+    order.setUserId(context.getUserId());
+    order.setOrderSn(generateSn());
+    // ... 设置字段 ...
+    saveEntity(order, "create", context);
+    return order;
+}
+```
+
+> **`save(Map)` vs `saveEntity(entity)`**：`save(Map, context)` 用于前端传入的 `Map<String, Object>` 数据；`saveEntity(entity, action, context)` 用于 BizModel 内部已持有实体对象时直接持久化。两者都含权限检查和 afterEntityChange 触发。
+
+## `do*` 方法的组合式回调
+
+CrudBizModel 的 `doFindList`、`doSave`、`doUpdate`、`doDelete` 等管道方法都有一个 `prepare*` 回调参数，用于组合式扩展。不需要子类 override，在调用时直接传入逻辑即可。
+
+```java
+// 组合式：注入额外的查询条件
+doFindList(query, (q, ctx) -> {
+    q.addFilter(FilterBeans.eq("userId", ctx.getUserId()));
+    q.addOrderField("createTime", false);
+}, null, context);
+
+// 继承式：传 this::invokeDefaultPrepareQuery，走子类 override 的 defaultPrepareQuery
+// 详见 extend-crud-with-hooks.md
+```
+
+更多细节见 `../04-reference/safe-api-reference.md` 中的"组合式回调参数"一节。
 
 ## 多参数场景
 
