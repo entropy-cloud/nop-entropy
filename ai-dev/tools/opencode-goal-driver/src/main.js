@@ -12,7 +12,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function loadFlow() {
   const flowPath = resolve(__dirname, "goal-driver-flow.json");
-  return JSON.parse(readFileSync(flowPath, "utf8"));
+  const mainFlow = JSON.parse(readFileSync(flowPath, "utf8"));
+  return mainFlow;
+}
+
+function loadSubFlows() {
+  const lifecyclePath = resolve(__dirname, "plan-lifecycle-flow.json");
+  return {
+    "plan-lifecycle": JSON.parse(readFileSync(lifecyclePath, "utf8")),
+  };
 }
 
 function parseArgs(argv) {
@@ -53,6 +61,7 @@ async function main() {
       config,
       vars: { module: config.moduleName, projectRoot: config.projectRoot },
       scripts,
+      subFlows: loadSubFlows(),
       runAgent: runner.runAgent,
       runTool: runner.runTool,
       runParseAgent: runner.runParseAgent,

@@ -63,6 +63,66 @@ function simpleFlow(steps, entry = "START") {
   return { name: "test-flow", maxTotalSteps: 50, maxCycleVisits: 20, entry, steps };
 }
 
+function mockPlanLifecycleFlow() {
+  return {
+    name: "plan-lifecycle",
+    maxTotalSteps: 30,
+    maxCycleVisits: 10,
+    entry: "CHECK_STATUS",
+    steps: {
+      CHECK_STATUS: {
+        type: "script",
+        run: "readPlanStatus",
+        transitions: {
+          draft: { goto: "AUDIT" },
+          active: { goto: "AUDIT" },
+          reviewed: { goto: "EXECUTE" },
+          completed: { done: "completed" },
+        },
+      },
+      AUDIT: {
+        type: "agent",
+        prompt: "audit plan {planFile}",
+        resultTag: "AUDIT_RESULT",
+        transitions: {
+          approved: { goto: "EXECUTE" },
+          issues: { retry: "AUDIT", maxRetries: 2, append: true },
+        },
+        onMaxRetries: { goto: "EXECUTE" },
+      },
+      EXECUTE: {
+        type: "agent",
+        prompt: "execute plan {planFile}",
+        resultTag: "EXECUTE_RESULT",
+        transitions: {
+          success: { goto: "CLOSURE" },
+          failed: { goto: "CLOSURE" },
+        },
+      },
+      CLOSURE: {
+        type: "agent",
+        prompt: "verify plan {planFile}",
+        resultTag: "CLOSURE_RESULT",
+        maxRetries: 3,
+        transitions: {
+          complete: { goto: "COMMIT" },
+          incomplete: { retry: "EXECUTE", maxRetries: 3, append: true },
+        },
+        onMaxRetries: { goto: "COMMIT" },
+      },
+      COMMIT: {
+        type: "script",
+        run: "gitCommit",
+        scriptArgs: { message: "feat({module}): plan done" },
+        transitions: {
+          committed: { done: "completed" },
+          nothing: { done: "completed" },
+        },
+      },
+    },
+  };
+}
+
 // ═══════════════════════════════════════════
 // 1. Engine Core: linear flow
 // ═══════════════════════════════════════════
@@ -685,43 +745,26 @@ describe("FlowEngine — context tracking", () => {
 // ═══════════════════════════════════════════
 
 describe("FlowEngine — goal driver integration", () => {
-  it("completes full cycle: fix-tests → pending plans → roadmap → plan → execute → closure → needs-deep-audit → loop", async () => {
+  it("completes full cycle: fix-tests → roadmap → draft → subflow execute → needs-deep-audit → done", async () => {
     const flow = loadGoalDriverFlow();
     flow.maxTotalSteps = 120;
 
-    let roadmapCount = 0;
-    let planAuditCount = 0;
+    const subFlow = mockPlanLifecycleFlow();
     let closureCount = 0;
 
     const delegates = makeMockDelegates({
       responses: {
         FIX_TESTS: "<TEST_RESULT>no_errors</TEST_RESULT>",
-
-        ROADMAP_CHECK: () => {
-          roadmapCount++;
-          return roadmapCount <= 1
-            ? { text: "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true }
-            : { text: "<ROADMAP_RESULT>complete</ROADMAP_RESULT>", ok: true };
-        },
-
+        ROADMAP_CHECK: { text: "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true },
         PLAN_DRAFT: "<PLAN_RESULT>created</PLAN_RESULT>",
-
-        PLAN_AUDIT: () => {
-          planAuditCount++;
-          return planAuditCount <= 1
-            ? { text: "<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item>Major: fix X</item></ISSUES>", ok: true }
-            : { text: "<AUDIT_RESULT>approved</AUDIT_RESULT>", ok: true };
-        },
-
-        EXECUTE_PLAN: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
-
-        PLAN_CLOSURE: () => {
+        AUDIT: "<AUDIT_RESULT>approved</AUDIT_RESULT>",
+        EXECUTE: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
+        CLOSURE: () => {
           closureCount++;
           return closureCount === 1
             ? { text: "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>todo</item></REMAINING>", ok: true }
             : { text: "<CLOSURE_RESULT>complete</CLOSURE_RESULT>", ok: true };
         },
-
         NEEDS_DEEP_AUDIT: "<DEEP_AUDIT_NEEDED>not_needed</DEEP_AUDIT_NEEDED>",
       },
     });
@@ -730,30 +773,35 @@ describe("FlowEngine — goal driver integration", () => {
     delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
     delegates.scripts = {
       checkPendingPlans: () => "no_plans",
+      readPlanStatus: () => "reviewed",
+      setPlanStatus: () => "ok",
+      updateRoadmap: () => "updated",
       gitCommit: () => "committed",
     };
+    delegates.subFlows = { "plan-lifecycle": subFlow };
 
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.ok(result.stepCount > 8, `expected >8 steps, got ${result.stepCount}`);
-
-    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_AUDIT"), "PLAN_AUDIT should be called");
-    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_CLOSURE"), "PLAN_CLOSURE should be called");
-    assert.ok(delegates.callLog.some(c => c.stepName === "NEEDS_DEEP_AUDIT"), "NEEDS_DEEP_AUDIT should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_DRAFT"));
+    assert.ok(delegates.callLog.some(c => c.stepName === "EXECUTE"), "subflow EXECUTE should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "CLOSURE"), "subflow CLOSURE should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "NEEDS_DEEP_AUDIT"));
   });
 
-  it("executes pending plans before roadmap check", async () => {
+  it("executes pending plans via forEach before roadmap check", async () => {
     const flow = loadGoalDriverFlow();
+    const subFlow = mockPlanLifecycleFlow();
 
     let checkPendingCallCount = 0;
 
     const delegates = makeMockDelegates({
       responses: {
         FIX_TESTS: "<TEST_RESULT>no_errors</TEST_RESULT>",
-        EXECUTE_PENDING_PLAN: "<PLAN_EXEC_RESULT>success</PLAN_EXEC_RESULT>",
-        VERIFY_PENDING_PLAN: "<VERIFY_RESULT>complete</VERIFY_RESULT>",
+        AUDIT: "<AUDIT_RESULT>approved</AUDIT_RESULT>",
+        EXECUTE: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
+        CLOSURE: "<CLOSURE_RESULT>complete</CLOSURE_RESULT>",
         ROADMAP_CHECK: "<ROADMAP_RESULT>complete</ROADMAP_RESULT>",
         NEEDS_DEEP_AUDIT: "<DEEP_AUDIT_NEEDED>not_needed</DEEP_AUDIT_NEEDED>",
       },
@@ -764,25 +812,36 @@ describe("FlowEngine — goal driver integration", () => {
     delegates.scripts = {
       checkPendingPlans: () => {
         checkPendingCallCount++;
-        if (checkPendingCallCount <= 1) {
-          return { marker: "has_plans", vars: { activePlanCount: "1" } };
+        if (checkPendingCallCount === 1) {
+          return {
+            marker: "has_plans",
+            vars: {
+              activePlanCount: "2",
+              activePlanFiles: ["ai-dev/plans/plan-a.md", "ai-dev/plans/plan-b.md"],
+            },
+          };
         }
         return "no_plans";
       },
+      readPlanStatus: () => "reviewed",
+      setPlanStatus: () => "ok",
+      updateRoadmap: () => "updated",
       gitCommit: () => "committed",
     };
+    delegates.subFlows = { "plan-lifecycle": subFlow };
 
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.ok(delegates.callLog.some(c => c.stepName === "EXECUTE_PENDING_PLAN"),
-      `Expected EXECUTE_PENDING_PLAN: ${delegates.callLog.map(c => c.stepName).join(", ")}`);
+    const executeCalls = delegates.callLog.filter(c => c.stepName === "EXECUTE");
+    assert.ok(executeCalls.length >= 2, `Expected >=2 EXECUTE calls (one per plan), got ${executeCalls.length}`);
     assert.ok(delegates.callLog.some(c => c.stepName === "ROADMAP_CHECK"));
   });
 
-  it("handles adversarial issues → audit plan cycle → loop back to FIX_TESTS", async () => {
+  it("handles adversarial issues → audit plan draft → subflow execute → loop back to FIX_TESTS", async () => {
     const flow = loadGoalDriverFlow();
+    const subFlow = mockPlanLifecycleFlow();
 
     let adversarialCount = 0;
     let fixTestsCount = 0;
@@ -792,12 +851,16 @@ describe("FlowEngine — goal driver integration", () => {
       vars: { module: "test-mod", projectRoot: "/tmp/test" },
       scripts: {
         checkPendingPlans: () => "no_plans",
+        readPlanStatus: () => "reviewed",
+        setPlanStatus: () => "ok",
+        updateRoadmap: () => "updated",
         gitCommit: () => "committed",
       },
+      subFlows: { "plan-lifecycle": subFlow },
       callLog: [],
       async runAgent(stepName, prompt, system, sessionId) {
         delegates.callLog.push({ type: "agent", stepName, prompt, system, sessionId });
-        if (stepName === "FIX_TESTS" || stepName.startsWith("FIX_TESTS:")) {
+        if (stepName === "FIX_TESTS" || stepName.startsWith("FIX_TESTS")) {
           fixTestsCount++;
           return { text: "<TEST_RESULT>no_errors</TEST_RESULT>", ok: true };
         }
@@ -811,9 +874,9 @@ describe("FlowEngine — goal driver integration", () => {
             : { text: "<ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT>", ok: true };
         }
         if (stepName === "AUDIT_PLAN_DRAFT") return { text: "<PLAN_RESULT>created</PLAN_RESULT>", ok: true };
-        if (stepName === "AUDIT_PLAN_AUDIT") return { text: "<AUDIT_RESULT>approved</AUDIT_RESULT>", ok: true };
-        if (stepName === "AUDIT_EXECUTE") return { text: "<EXECUTE_RESULT>success</EXECUTE_RESULT>", ok: true };
-        if (stepName === "AUDIT_CLOSURE") return { text: "<CLOSURE_RESULT>complete</CLOSURE_RESULT>", ok: true };
+        if (stepName === "AUDIT") return { text: "<AUDIT_RESULT>approved</AUDIT_RESULT>", ok: true };
+        if (stepName === "EXECUTE") return { text: "<EXECUTE_RESULT>success</EXECUTE_RESULT>", ok: true };
+        if (stepName === "CLOSURE") return { text: "<CLOSURE_RESULT>complete</CLOSURE_RESULT>", ok: true };
         return { text: "##MOCK_OK", ok: true };
       },
       async runTool(stepName, command, opts) {
@@ -831,7 +894,7 @@ describe("FlowEngine — goal driver integration", () => {
 
     assert.equal(result.status, "completed");
     assert.ok(delegates.callLog.some(c => c.stepName === "AUDIT_PLAN_DRAFT"));
-    assert.ok(delegates.callLog.some(c => c.stepName === "AUDIT_EXECUTE"));
+    assert.ok(delegates.callLog.some(c => c.stepName === "EXECUTE"), "subflow EXECUTE should be called");
     assert.ok(fixTestsCount >= 2, `fix-tests should be called >= 2 times (loop), got ${fixTestsCount}`);
   });
 });

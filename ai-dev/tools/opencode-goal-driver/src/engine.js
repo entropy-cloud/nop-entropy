@@ -86,8 +86,11 @@ export class FlowEngine {
       vars[`${prefix}.marker`] = result.marker || "";
       if (result.vars) {
         for (const [vk, vv] of Object.entries(result.vars)) {
-          vars[`${prefix}.${vk}`] = String(vv);
-          if (!vars[vk]) vars[vk] = String(vv);
+          if (Array.isArray(vv)) {
+            vars[vk] = vv;
+          } else {
+            vars[vk] = String(vv);
+          }
         }
       }
     }
@@ -179,11 +182,95 @@ export class FlowEngine {
     return result;
   }
 
+  async _executeSubFlowStep(stepName, stepDef) {
+    const subFlowDef = this._resolveSubFlowDef(stepDef.flow);
+    if (!subFlowDef) throw new Error(`sub-flow "${stepDef.flow}" not found`);
+
+    const flowArgs = stepDef.flowArgs ? this._templateVarsObj(stepDef.flowArgs) : {};
+    const forEachKey = stepDef.forEach;
+
+    if (forEachKey) {
+      const vars = this._buildVars();
+      const items = vars[forEachKey];
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return { ok: true, marker: "all_complete", text: "no items to process" };
+      }
+
+      this._log(`  subflow "${stepDef.flow}" iterating over ${items.length} items`);
+
+      let failedCount = 0;
+      let successCount = 0;
+      const summaries = [];
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const itemLabel = typeof item === "string" ? item : JSON.stringify(item);
+        this._log(`  subflow item ${i + 1}/${items.length}: ${itemLabel}`);
+
+        const childDelegates = this._buildChildDelegates(flowArgs, { currentItem: item, itemIndex: i });
+        const childEngine = new FlowEngine(subFlowDef, childDelegates);
+        const childResult = await childEngine.run();
+
+        if (childResult.status === "completed") {
+          successCount++;
+        } else {
+          failedCount++;
+          this._log(`  subflow item ${itemLabel} failed: ${childResult.status}`);
+        }
+        summaries.push({ item, status: childResult.status, steps: childResult.stepCount });
+
+        if (childResult.status !== "completed" && stepDef.onItemError?.stopOnError) break;
+      }
+
+      const marker = failedCount === 0 ? "all_complete" : (successCount > 0 ? "some_failed" : "all_failed");
+      return {
+        ok: true,
+        marker,
+        text: summaries.map(s => `${typeof s.item === "string" ? s.item : JSON.stringify(s.item)}: ${s.status}`).join("\n"),
+        vars: { successCount: String(successCount), failedCount: String(failedCount) },
+      };
+    }
+
+    this._log(`  subflow "${stepDef.flow}" single execution`);
+    const childDelegates = this._buildChildDelegates(flowArgs, {});
+    const childEngine = new FlowEngine(subFlowDef, childDelegates);
+    const childResult = await childEngine.run();
+
+    const marker = childResult.status === "completed" ? "complete" : "failed";
+    return { ok: childResult.status === "completed", marker, text: childResult.status };
+  }
+
+  _resolveSubFlowDef(flowName) {
+    if (typeof flowName === "object") return flowName;
+    if (!this.delegates.subFlows) return null;
+    return this.delegates.subFlows[flowName] || null;
+  }
+
+  _buildChildDelegates(flowArgs, itemContext) {
+    const vars = { ...this.delegates.vars, ...flowArgs };
+    if (itemContext.currentItem !== undefined) {
+      vars.currentItem = itemContext.currentItem;
+      vars.itemIndex = String(itemContext.itemIndex);
+      if (typeof itemContext.currentItem === "string") {
+        vars.currentItemName = itemContext.currentItem;
+        vars.planFile = itemContext.currentItem;
+      }
+    }
+    return {
+      ...this.delegates,
+      vars,
+      logFile: this.delegates.logFile,
+    };
+  }
+
   async _resolveMarker(result, stepDef) {
     if (stepDef.type === "tool") {
       return result.ok ? "pass" : "fail";
     }
     if (stepDef.type === "script") {
+      return result.marker;
+    }
+    if (stepDef.type === "subflow") {
       return result.marker;
     }
     if (!result.text) return null;
@@ -285,6 +372,8 @@ export class FlowEngine {
           result = await this._executeToolStep(currentStep, stepDef);
         } else if (stepDef.type === "script") {
           result = await this._executeScriptStep(currentStep, stepDef);
+        } else if (stepDef.type === "subflow") {
+          result = await this._executeSubFlowStep(currentStep, stepDef);
         } else {
           return this._result("unknown_type", totalSteps);
         }

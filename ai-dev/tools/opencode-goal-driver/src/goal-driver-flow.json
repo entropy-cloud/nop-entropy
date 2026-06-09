@@ -53,48 +53,19 @@
       "type": "script",
       "run": "checkPendingPlans",
       "transitions": {
-        "has_plans": { "goto": "EXECUTE_PENDING_PLAN" },
+        "has_plans": { "goto": "PROCESS_PENDING_PLANS" },
         "no_plans": { "goto": "ROADMAP_CHECK" }
       }
     },
 
-    "EXECUTE_PENDING_PLAN": {
-      "type": "agent",
-      "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/execute-pending-plan.md",
-      "resultTag": "PLAN_EXEC_RESULT",
-      "onUnknownMaxRetries": 2,
+    "PROCESS_PENDING_PLANS": {
+      "type": "subflow",
+      "flow": "plan-lifecycle",
+      "forEach": "activePlanFiles",
       "transitions": {
-        "success": { "goto": "VERIFY_PENDING_PLAN" },
-        "partial": { "goto": "VERIFY_PENDING_PLAN" },
-        "failed": { "goto": "VERIFY_PENDING_PLAN" }
-      },
-      "onError": { "retry": "EXECUTE_PENDING_PLAN", "maxRetries": 2 }
-    },
-
-    "VERIFY_PENDING_PLAN": {
-      "type": "agent",
-      "prompt": "Verify that the just-executed plan is truly complete. Read the updated plan file in ai-dev/plans/, check all Exit Criteria are satisfied. Run ./mvnw test -pl {module} -am -T 1C to confirm tests pass. Output <VERIFY_RESULT>complete</VERIFY_RESULT> or <VERIFY_RESULT>incomplete</VERIFY_RESULT>. If incomplete, include <REMAINING>items still pending</REMAINING>.",
-      "resultTag": "VERIFY_RESULT",
-      "maxRetries": 3,
-      "transitions": {
-        "complete": { "goto": "COMMIT_PENDING_PLAN" },
-        "incomplete": {
-          "retry": "EXECUTE_PENDING_PLAN",
-          "maxRetries": 3,
-          "append": { "extract": "REMAINING", "template": "\n\nItems still pending:\n${output}" }
-        }
-      },
-      "onError": { "retry": "EXECUTE_PENDING_PLAN", "maxRetries": 2 },
-      "onMaxRetries": { "goto": "COMMIT_PENDING_PLAN" }
-    },
-
-    "COMMIT_PENDING_PLAN": {
-      "type": "script",
-      "run": "gitCommit",
-      "scriptArgs": { "message": "feat({module}): complete pending plan execution" },
-      "transitions": {
-        "committed": { "goto": "CHECK_PENDING_PLANS" },
-        "nothing": { "goto": "CHECK_PENDING_PLANS" }
+        "all_complete": { "goto": "ROADMAP_CHECK" },
+        "some_failed": { "goto": "ROADMAP_CHECK" },
+        "all_failed": { "goto": "ROADMAP_CHECK" }
       }
     },
 
@@ -116,71 +87,19 @@
       "resultTag": "PLAN_RESULT",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "created": { "goto": "PLAN_AUDIT" },
-        "none": { "goto": "ROADMAP_CHECK" }
+        "created": { "goto": "PLAN_EXECUTE" },
+        "none": { "goto": "NEEDS_DEEP_AUDIT" }
       },
-      "onError": { "goto": "ROADMAP_CHECK" }
+      "onError": { "goto": "NEEDS_DEEP_AUDIT" }
     },
 
-    "PLAN_AUDIT": {
-      "type": "agent",
-      "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/plan-audit.md",
-      "resultTag": "AUDIT_RESULT",
-      "maxRetries": 3,
-      "onUnknownMaxRetries": 2,
+    "PLAN_EXECUTE": {
+      "type": "subflow",
+      "flow": "plan-lifecycle",
       "transitions": {
-        "approved": { "goto": "EXECUTE_PLAN" },
-        "issues": {
-          "retry": "PLAN_DRAFT",
-          "maxRetries": 3,
-          "append": { "template": "\n\nPlan audit feedback:\n${output}" }
-        }
-      },
-      "onError": { "retry": "PLAN_DRAFT", "maxRetries": 2 },
-      "onMaxRetries": { "goto": "EXECUTE_PLAN", "append": { "template": "\n\nWARNING: Plan did not pass audit after multiple rounds. Proceed with caution:\n${output}" } }
-    },
-
-    "EXECUTE_PLAN": {
-      "type": "agent",
-      "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/execute-plan.md",
-      "resultTag": "EXECUTE_RESULT",
-      "onUnknownMaxRetries": 2,
-      "transitions": {
-        "success": { "goto": "PLAN_CLOSURE" },
-        "failed": { "goto": "PLAN_CLOSURE" }
-      },
-      "onError": { "goto": "PLAN_CLOSURE" }
-    },
-
-    "PLAN_CLOSURE": {
-      "type": "agent",
-      "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/closure-audit-v2.md",
-      "resultTag": "CLOSURE_RESULT",
-      "maxRetries": 5,
-      "onUnknownMaxRetries": 2,
-      "transitions": {
-        "complete": { "goto": "PLAN_COMMIT" },
-        "incomplete": {
-          "retry": "EXECUTE_PLAN",
-          "maxRetries": 5,
-          "append": { "extract": "REMAINING", "template": "\n\nItems still pending:\n${output}" }
-        }
-      },
-      "onError": {
-        "retry": "EXECUTE_PLAN",
-        "maxRetries": 3,
-        "append": { "template": "\n\nClosure audit subprocess was killed. Please re-check Exit Criteria." }
-      },
-      "onMaxRetries": { "goto": "PLAN_COMMIT" }
-    },
-
-    "PLAN_COMMIT": {
-      "type": "script",
-      "run": "gitCommit",
-      "scriptArgs": { "message": "feat({module}): complete plan execution" },
-      "transitions": {
-        "committed": { "goto": "NEEDS_DEEP_AUDIT" },
-        "nothing": { "goto": "NEEDS_DEEP_AUDIT" }
+        "complete": { "goto": "NEEDS_DEEP_AUDIT" },
+        "failed": { "goto": "NEEDS_DEEP_AUDIT" },
+        "no_plan": { "goto": "NEEDS_DEEP_AUDIT" }
       }
     },
 
@@ -226,71 +145,19 @@
       "resultTag": "PLAN_RESULT",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "created": { "goto": "AUDIT_PLAN_AUDIT" },
+        "created": { "goto": "AUDIT_PLAN_EXECUTE" },
         "none": { "goto": "FIX_TESTS" }
       },
       "onError": { "goto": "FIX_TESTS" }
     },
 
-    "AUDIT_PLAN_AUDIT": {
-      "type": "agent",
-      "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/plan-audit.md",
-      "resultTag": "AUDIT_RESULT",
-      "maxRetries": 3,
-      "onUnknownMaxRetries": 2,
+    "AUDIT_PLAN_EXECUTE": {
+      "type": "subflow",
+      "flow": "plan-lifecycle",
       "transitions": {
-        "approved": { "goto": "AUDIT_EXECUTE" },
-        "issues": {
-          "retry": "AUDIT_PLAN_DRAFT",
-          "maxRetries": 3,
-          "append": { "template": "\n\nPlan audit feedback:\n${output}" }
-        }
-      },
-      "onError": { "retry": "AUDIT_PLAN_DRAFT", "maxRetries": 2 },
-      "onMaxRetries": { "goto": "AUDIT_EXECUTE", "append": { "template": "\n\nWARNING: Audit remediation plan did not pass review. Proceed with caution:\n${output}" } }
-    },
-
-    "AUDIT_EXECUTE": {
-      "type": "agent",
-      "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/execute-plan.md",
-      "resultTag": "EXECUTE_RESULT",
-      "onUnknownMaxRetries": 2,
-      "transitions": {
-        "success": { "goto": "AUDIT_CLOSURE" },
-        "failed": { "goto": "AUDIT_CLOSURE" }
-      },
-      "onError": { "goto": "AUDIT_CLOSURE" }
-    },
-
-    "AUDIT_CLOSURE": {
-      "type": "agent",
-      "promptFile": "ai-dev/tools/opencode-goal-driver/prompts/closure-audit-v2.md",
-      "resultTag": "CLOSURE_RESULT",
-      "maxRetries": 3,
-      "onUnknownMaxRetries": 2,
-      "transitions": {
-        "complete": { "goto": "AUDIT_COMMIT" },
-        "incomplete": {
-          "retry": "AUDIT_EXECUTE",
-          "maxRetries": 3,
-          "append": { "extract": "REMAINING", "template": "\n\nItems still pending:\n${output}" }
-        }
-      },
-      "onError": {
-        "retry": "AUDIT_EXECUTE",
-        "maxRetries": 2,
-        "append": { "template": "\n\nAudit plan execution verification failed. Please re-check." }
-      },
-      "onMaxRetries": { "goto": "AUDIT_COMMIT" }
-    },
-
-    "AUDIT_COMMIT": {
-      "type": "script",
-      "run": "gitCommit",
-      "scriptArgs": { "message": "fix({module}): audit finding remediation" },
-      "transitions": {
-        "committed": { "goto": "FIX_TESTS" },
-        "nothing": { "goto": "FIX_TESTS" }
+        "complete": { "goto": "FIX_TESTS" },
+        "failed": { "goto": "FIX_TESTS" },
+        "no_plan": { "goto": "FIX_TESTS" }
       }
     }
   }
