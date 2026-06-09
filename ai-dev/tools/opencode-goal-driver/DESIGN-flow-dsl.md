@@ -1,711 +1,593 @@
 # Goal Driver Flow Engine 设计文档
 
-> Status: draft
-> Last Reviewed: 2026-06-08
-> Source: ai-dev/tools/opencode-goal-driver 重构需求
+> Status: draft v2
+> Last Reviewed: 2026-06-09
+> Source: ai-dev/tools/opencode-goal-driver
 
 ## 1. 动机
 
-当前 `workflow.js` 用硬编码的 if/else + for 循环编排整个工作流。随着需求增长（开发循环、审计循环、计划拟制自动审计、错误恢复），代码变得越来越复杂且难以扩展。
+将硬编码的 workflow 重构为声明式 Flow DSL + 通用引擎。核心原则：
 
-核心问题：
-
-1. **流程逻辑与执行逻辑耦合** — 添加一个步骤需要同时修改 prompts.js 和 workflow.js 的控制流
-2. **重复模式未抽象** — "run step → extract marker → branch" 在代码中重复出现 20+ 次
-3. **无法表达重试+上下文追加** — 当前只有 execute-loop 支持 remainingXml 追加，其他步骤失败只能跳过或终止
-4. **计划拟制缺少审计闭环** — plan guide 明确要求"写初稿 → 子 agent 对抗性审查 → 修复 → 再审查"，但 driver 没有实现这个迭代
-
-目标：用一个声明式的 **Flow DSL** 描述工作流，一个通用的 **Flow Engine** 执行它。
+1. **引擎不含业务逻辑** — 所有业务语义在 Flow 定义（DSL）中表达，引擎只负责"执行 step → 提取结果 → 查表跳转"
+2. **每个 step 是原子单元** — 执行一个固定脚本、或发送一个 AI prompt，返回一个结构化结果
+3. **结果驱动跳转** — step 的返回值查 transitions 表决定下一步
+4. **统一容错** — 每个 step 有独立的重试/降级配置
 
 ## 2. 核心概念
 
 ### 2.1 Flow
 
-一个 Flow 是一个**有限状态机**：由若干 Step 组成，Step 之间通过 Transition 连接。Engine 从入口 Step 开始，按 Transition 规则逐步执行，直到到达终态。
+Flow 是一个**有限状态机**：由若干 Step 组成，Step 之间通过 Transition 连接。
 
-```
-┌─────────┐    marker="pass"    ┌─────────┐    marker="pending"   ┌──────────┐
-│  BUILD  │ ──────────────────→ │ ROADMAP │ ──────────────────→  │ PLAN     │
-│ (tool)  │                     │ (agent) │                       │ (agent)  │
-└─────────┘                     └─────────┘                       └──────────┘
-   │ marker="fail"                  │ marker="complete"               │
-   ↓                                ↓                                ↓
-┌─────────┐                    [dev loop done]               ┌──────────┐
-│ FIX     │                                                 │ PLAN     │
-│ (agent) │                                                 │ AUDIT    │
-└─────────┘                                                 │ (agent)  │
-                                                            └──────────┘
+```javascript
+const flow = {
+  name: "goal-driver",
+  entry: "DETECT_START",
+  maxTotalSteps: 100,
+  maxCycleVisits: 15,
+  totalTimeout: 0,             // flow 总执行时限（毫秒），0 = 不限
+
+  // 全局 marker 别名映射（容错：AI 返回非预期值时尝试映射）
+  markerAliases: {
+    "已创建": "created", "已批准": "approved", "有问题": "issues",
+    "完成": "complete", "未完成": "incomplete", "成功": "success",
+    "失败": "failed", "修复": "fixed", "待处理": "pending", "干净": "clean",
+  },
+
+  steps: { /* ... */ },
+};
 ```
 
 ### 2.2 Step
 
 每个 Step 是一个原子工作单元。有三种类型：
 
-| 类型 | 说明 | 输入 | 输出 |
-|------|------|------|------|
-| `agent` | 启动 opencode 子 agent | prompt（字符串模板） | AI 输出文本，从中提取 marker |
-| `tool` | 执行 bash 命令 | command 模板 | exit code (0=pass, 非0=fail) |
-| `script` | 执行 JS 函数 | config 对象 | 直接返回 marker 值 |
+| 类型 | 执行方式 | 结果提取 |
+|------|---------|---------|
+| `script` | 执行 JS 函数 | 返回值直接作为 marker |
+| `tool` | 执行 bash 命令 | `exit 0` → marker=`pass`，非零 → marker=`fail` |
+| `agent` | spawn `opencode run` 子进程 | 从 AI 输出中提取 `<resultTag>值</resultTag>` |
 
-### 2.3 Marker & Transition
+Step 定义：
 
-Agent step 的输出中包含 XML 标签（如 `<PLAN_RESULT>created</PLAN_RESULT>`），Engine 提取标签值作为 **marker**。
+```typescript
+interface Step {
+  name: string;                    // 唯一标识（key in steps map）
+  type: "script" | "tool" | "agent";
 
-每个 Step 定义一个 `transitions` 映射：`marker → action`。
+  // === 执行配置 ===
+  run?: (ctx) => string | { marker: string; vars?: Record<string, string> };  // script: 返回 marker 或 marker+vars
+  command?: string;                // tool: bash 命令模板（支持 {var} 替换）
+  prompt?: string;                 // agent: 内联 AI prompt（短提示词）
+  promptFile?: string;             // agent: 从文件加载 prompt（长提示词，引擎运行时读取，不占 AI turn）
+  resultTag?: string;              // agent: 从输出中提取此 XML 标签的值作为 marker
+  system?: string;                 // agent: system prompt
 
-### 2.4 Action 类型
+  // === 超时控制 ===
+  timeout?: number;                // 总执行时限（毫秒），硬上限，超时 SIGTERM
+  activityTimeout?: number;        // 活动超时（毫秒），无活动输出则判定卡死
+  activityProbe?: ProbeSpec;       // 活动探测方案（见 §3.6）
+  onActivityTimeout?: {            // 活动超时后的行为
+    action: "kill" | "watchdog";
+    fallback?: Action;
+  };
+
+  // === 结果跳转 ===
+  transitions: Record<string, Action>;  // marker → action 映射
+
+  // === 容错配置 ===
+  maxRetries?: number;             // retry action 的最大重试次数（默认 3）
+  onError?: Action;                // 子进程被 kill / 执行异常时的 fallback action
+  onUnknown?: Action;              // marker 提取失败时的 fallback action
+  onUnknownMaxRetries?: number;    // marker 值不在 transitions 中时，尝试 session 纠正的最大次数（默认 2）
+  onMaxRetries?: Action;           // maxRetries 耗尽时的降级 action
+}
+```
+
+### 2.3 Action
+
+Action 描述"下一步做什么"：
 
 ```typescript
 type Action =
-  | { goto: string }                          // 跳转到指定 step
-  | { goto: string; append: AppendSpec }      // 跳转并追加上下文到目标 step 的 prompt
-  | { done: string }                          // 终止 flow，返回 status
-  | { retry: string; maxRetries: number }     // 重试指定 step（带上下文追加）
+  | { goto: string }                         // 跳转到指定 step
+  | { goto: string; append: AppendSpec }     // 跳转并追加上下文到目标 step 的 prompt
+  | { done: string }                         // 终止 flow，返回 status
+  | { retry: string; maxRetries?: number; append?: AppendSpec }  // 重试目标 step
 ```
 
-`append` 和 `retry` 的核心区别：
-- `append`：目标 step 是首次执行，但它的 prompt 会被修改（拼接当前 step 的输出）
-- `retry`：目标 step 已经执行过，重新执行时 prompt 包含之前所有迭代的累积反馈
+**goto vs retry 的区别**：
 
-### 2.5 Context & 上下文追加
+| | goto | retry |
+|---|---|---|
+| 目标 step 计数 | +1 visit | +1 retry（独立于 visit 计数） |
+| 上下文追加 | 按 append spec | 按 append spec，且历史反馈**累积** |
+| 超限处理 | maxCycleVisits → 终止 | maxRetries → onMaxRetries |
+| prompt 拼接 | 原始 prompt + append | 原始 prompt + 所有历史 append 累积 |
 
-Flow 执行过程中维护一个 **context bag**，每个 step 的输出可以存入 context，后续 step 可以引用。
+**跳转方向约束**：`goto` 和 `retry` 只能跳转到**同层兄弟 step 或外层 step**。类似嵌套调用的 `break to label`。引擎不强制此约束（当前为单层 flat 结构），但设计上应遵守。
+
+### 2.4 模板变量与上下文模型
+
+引擎维护一个**上下文变量池**，prompt 和 command 中的 `{variable}` 在运行时从中替换：
+
+```typescript
+// 上下文变量来源：
+// 1. 静态配置（delegates.vars）
+{ module }              → config.moduleName (如 "nop-ai-agent")
+{ projectRoot }         → config.projectRoot
+
+// 2. 前序 step 的输出结果（自动注入）
+{ steps.STEP_NAME.text }     → step 的 AI 输出文本
+{ steps.STEP_NAME.marker }   → step 的 marker 值
+{ steps.STEP_NAME.ok }       → step 的 ok 值 ("true"/"false")
+{ steps.STEP_NAME.logFile }  → step 的日志文件路径
+
+// 3. script step 返回的 vars（自动展平到顶层）
+// script 返回 { marker: "execute", vars: { activePlanCount: "3" } }
+{ activePlanCount }           → "3"
+```
+
+**模板语法**：`{variable}` 支持点分路径（如 `{steps.ROADMAP_CHECK.text}`）。正则为 `\{(\w[\w.]*)\}`，匹配 `a.b.c` 形式。未匹配的变量保留原样（如 `{DATE}` 不在上下文中，保留为 `{DATE}`，AI 自行解释）。
+
+**`promptFile` 与 `prompt` 优先级**：若 step 定义了 `promptFile`，引擎运行时从文件加载内容作为 prompt 基础文本（不占用 AI turn）。若未定义，使用 `prompt` 内联文本。两者都经过模板变量替换。
+
+### 2.5 结果提取与 Marker 别名
+
+**agent step 的结果提取链**：
+
+```
+AI 输出 → 查找 <resultTag>标签</resultTag>
+       → 未找到 → spawn parse agent 推断
+       → 未找到 → 使用 onUnknown action
+
+找到 marker → 查 transitions 表
+           → 不匹配 → 尝试 markerAliases 映射
+           → 不匹配 → 尝试大小写不敏感匹配
+           → 不匹配 → session 纠正（最多 onUnknownMaxRetries 次）
+           → 不匹配 → 使用 onUnknown action
+```
+
+**markerAliases 是 workflow 级别的配置**，用于容错。AI 可能返回"已创建"而不是"created"，别名映射让引擎理解两者等价。
+
+### 2.6 上下文追加（AppendSpec）
 
 ```typescript
 type AppendSpec =
-  | true                          // 追加上一步的完整输出
-  | string                        // 追加指定 context key 的内容
-  | { from: string; template: string }  // 用模板格式化指定 context key
+  | true                                    // 追加上一步的完整输出
+  | string                                  // 追加固定文本
+  | { template: string }                    // 用模板格式化输出
+  | { extract: string; template: string }   // 从输出中提取 XML 块，再用模板格式化
 ```
 
-示例：
+append 文本拼接到**目标 step 的 prompt 尾部**。retry 场景下，每次重试的反馈用分隔线累积追加。
+
+### 2.7 循环抽象
+
+当前引擎为单层 flat 结构。循环通过 `goto` 跳转回之前的 step 实现。
+
+**未来扩展：嵌套循环**
+
+当需要"遍历每个未完成计划，对每个计划执行子步骤"时，需要引入 `foreach` step 类型：
 
 ```javascript
-// PLAN_AUDIT 发现 issues → retry PLAN_DRAFT，并追加审计反馈
+FOREACH_PLAN: {
+  type: "foreach",
+  source: "node ai-dev/tools/check-plan-status.mjs --json",  // 返回 JSON 数组
+  iteratorVar: "currentPlan",     // 内部变量名（循环体内引用）
+  outputVar: "completedPlans",    // 外部变量名（循环结束后写入上下文）
+  body: [                         // 子步骤序列
+    { name: "EXECUTE_PLAN", type: "agent", prompt: "执行计划 {currentPlan}...", ... },
+    { name: "AUDIT_PLAN", type: "agent", prompt: "验证计划 {currentPlan}...", ... },
+  ],
+  onItemError: { continue: true },    // 单项失败时继续下一项
+  transitions: {
+    done: { goto: "ROADMAP_CHECK" },
+    allFailed: { done: "failed" },
+  },
+}
+```
+
+变量作用域规则：
+- `iteratorVar` 是**内部变量**，只在 foreach body 内可见
+- `outputVar` 是**外部变量**，循环结束后写入 flow 级别上下文
+- 嵌套 foreach 时，内层的 iteratorVar 不能与外层同名（引擎应检测冲突）
+
+**当前状态**：尚未实现 foreach。EXECUTE step 的 prompt 让 AI 自行遍历计划，CLOSURE_AUDIT 检查断点续传。
+
+## 3. 容错设计
+
+### 3.1 错误分类
+
+| 错误类型 | 触发条件 | 处理方式 |
+|---------|---------|---------|
+| **subprocess killed** | agent step 返回 `ok=false` | 使用 `onError` action |
+| **执行异常** | try/catch 捕获到异常 | 使用 `onError` action |
+| **总时限超时** | step `timeout` 到达 | SIGTERM → `ok=false` → `onError` |
+| **活动超时** | step `activityTimeout` 到达，无有效活动 | `onActivityTimeout`（kill 或 watchdog） |
+| **marker 提取失败** | AI 输出中无 resultTag | spawn parse agent → `onUnknown` |
+| **marker 不在 transitions** | AI 返回意外值 | alias 映射 → 大小写匹配 → session 纠正 → `onUnknown` |
+| **重试次数耗尽** | retry count > maxRetries | 使用 `onMaxRetries` action |
+| **循环次数过多** | visit count > maxCycleVisits | 返回 `max_cycles` |
+| **总步数过多** | totalSteps > maxTotalSteps | 返回 `max_total_steps` |
+| **Flow 总超时** | flow.totalTimeout 到达 | 返回 `total_timeout` |
+
+### 3.2 重试机制
+
+retry action 的重试行为：
+
+```
+首次执行 step → marker 命中 retry action
+  → 计算 retryKey = "fromStep→targetStep"
+  → retryCount++
+  → 如果 > maxRetries → 执行 onMaxRetries
+  → 否则 → 拼接 append 到目标 step 的 appendBuffer → goto 目标 step
+```
+
+**重试时的 prompt 构建**：
+
+```
+[原始 prompt]
+                              ← 第 1 次 append（如果是第 2+ 次重试）
+───────────────               ← 分隔线（第 2+ 次重试时插入）
+[第 2 次 append]              ← 新追加的反馈
+```
+
+### 3.3 重试提示词
+
+当前设计中，重试时通过 `append` 追加上次反馈到原始 prompt 尾部。
+
+**未来扩展**：可配置 `retryPrefix`，在重试时拼接到 prompt **前方**而非尾部：
+
+```javascript
 {
-  marker: "issues",
-  action: { retry: "PLAN_DRAFT", append: { from: "PLAN_AUDIT", template: 
-    "\n\n以下是计划审计的反馈，请据此修改计划：\n${output}" } }
+  retryPrefix: "⚠️ 这是第 {retryCount} 次重试。之前的问题是：\n",
+  append: { template: "${output}" },
 }
 ```
 
-Engine 拼接后的 PLAN_DRAFT prompt：
-
-```
-[原始 PLAN_DRAFT prompt]
-
-以下是计划审计的反馈，请据此修改计划：
-<AUDIT_RESULT>issues</AUDIT_RESULT>
-<ISSUES>
-  <item severity="Blocker">Exit Criteria 不可验证：...</item>
-  <item severity="Major">引用的文件路径不存在：...</item>
-</ISSUES>
-```
-
-### 2.6 Evidence
-
-当 step 的 transition 包含 `evidence: true` 时，Engine 自动将 step 的输出记录到指定位置。
-
-对于计划相关的 step，evidence 写入 plan 文件的 `## Draft Audit Evidence` 段落。这样工具脚本可以自动检查：
-
-```bash
-node ai-dev/tools/check-plan-audit.mjs <plan-file>   # 检查 draft audit evidence 存在且结果为 approved
-node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict  # 已有，检查 closure
-```
-
-## 3. Flow DSL Schema
-
-### 3.1 JavaScript 表示
+或通过上下文变量动态构建重试提示词：
 
 ```javascript
-const flow = {
-  name: "goal-driver",
-
-  // 全局循环限制
-  maxTotalSteps: 100,      // 任何 flow 执行不超过 100 个 step
-  maxCycleVisits: 10,      // 同一个 step 不超过 10 次访问（防无限循环）
-
-  // 入口 step 的 marker 决定从哪里开始
-  entry: "DETECT_START",
-
-  steps: {
-    DETECT_START: {
-      type: "script",
-      run: (ctx) => detectStartPhase(ctx.config),
-      transitions: {
-        execute:  { goto: "HEALTH_CHECK" },
-        roadmap:  { goto: "HEALTH_CHECK" },
-        plan:     { goto: "HEALTH_CHECK" },
-        audit:    { goto: "HEALTH_CHECK" },
-      },
-    },
-
-    HEALTH_CHECK: {
-      type: "tool",
-      command: "./mvnw clean install -pl {module} -am -T 1C",
-      timeout: 1_800_000,
-      transitions: {
-        pass: { goto: "ROADMAP_CHECK" },
-        fail: { goto: "FIX_BUILD" },
-      },
-      onError: { goto: "FIX_BUILD" },    // 子进程被 kill
-    },
-
-    FIX_BUILD: {
-      type: "agent",
-      prompt: "修复模块 {module} 的编译错误...",
-      resultTag: "HEALTH_STATUS",
-      transitions: {
-        fixed:  { goto: "ROADMAP_CHECK" },
-        failed: { done: "failed" },
-      },
-      onError: { done: "failed" },
-    },
-
-    ROADMAP_CHECK: {
-      type: "agent",
-      prompt: "请检查模块 {module} 的路线图未实现项...",
-      resultTag: "ROADMAP_RESULT",
-      transitions: {
-        pending:  { goto: "PLAN_DRAFT", append: true },
-        complete: { goto: "DEEP_AUDIT" },   // dev loop 退出，进入审计循环
-      },
-      onError: { goto: "DEEP_AUDIT" },      // roadmap check 失败 → 跳过开发，直接审计
-    },
-
-    PLAN_DRAFT: {
-      type: "agent",
-      prompt: "请为模块 {module} 拟定开发计划...",
-      resultTag: "PLAN_RESULT",
-      transitions: {
-        created: { goto: "PLAN_AUDIT" },
-        none:    { goto: "ROADMAP_CHECK" },  // 无需计划，重新检查路线图
-      },
-      onError: { goto: "ROADMAP_CHECK" },    // plan draft 失败 → 回到路线图检查
-    },
-
-    PLAN_AUDIT: {
-      type: "agent",
-      prompt: "你是一个独立的计划审查者。请审查刚刚创建的计划...",
-      resultTag: "AUDIT_RESULT",
-      transitions: {
-        approved: { goto: "PLAN_AUDIT_EVIDENCE" },
-        issues:   { retry: "PLAN_DRAFT", append: {
-          from: "PLAN_AUDIT",
-          template: "\n\n以下是计划审查的反馈，请据此修改计划：\n${output}"
-        }},
-      },
-      onError: { retry: "PLAN_DRAFT" },      // audit agent 被 kill → 重试 draft
-      maxRetries: 3,                          // PLAN_DRAFT↔PLAN_AUDIT 循环最多 3 轮
-    },
-
-    PLAN_AUDIT_EVIDENCE: {
-      type: "tool",
-      command: "node ai-dev/tools/record-plan-audit.mjs {latest_plan}",
-      transitions: {
-        pass: { goto: "EXECUTE" },
-        fail: { retry: "PLAN_DRAFT" },        // 写入失败（不应发生），重试
-      },
-    },
-
-    EXECUTE: {
-      type: "agent",
-      prompt: "请执行模块 {module} 的未完成计划...",
-      resultTag: "EXECUTE_RESULT",
-      transitions: {
-        success: { goto: "CLOSURE_AUDIT" },
-        failed:  { goto: "CLOSURE_AUDIT" },   // 即使 failed 也做 closure audit 看实际进度
-      },
-      onError: { goto: "CLOSURE_AUDIT" },
-    },
-
-    CLOSURE_AUDIT: {
-      type: "agent",
-      prompt: "你是一个独立验证者...",
-      resultTag: "CLOSURE_RESULT",
-      transitions: {
-        complete:   { goto: "BUILD_VERIFY" },
-        incomplete: { retry: "EXECUTE", append: {
-          from: "CLOSURE_AUDIT",
-          extract: "REMAINING",  // 从输出中提取 <REMAINING>...</REMAINING> 块
-          template: "\n\n以下是未完成项，请继续：\n${extracted}"
-        }},
-      },
-      onError: { retry: "EXECUTE", append: {
-        template: "\n\nclosure audit 子进程被 kill，请重新检查计划 Exit Criteria"
-      }},
-      maxRetries: 5,
-    },
-
-    BUILD_VERIFY: {
-      type: "tool",
-      command: "./mvnw clean install -pl {module} -am -T 1C",
-      timeout: 1_800_000,
-      transitions: {
-        pass: { goto: "ROADMAP_CHECK" },      // dev loop: 回到路线图检查
-        fail: { retry: "EXECUTE" },            // 构建失败 → 重新执行修复
-      },
-      onError: { retry: "EXECUTE" },
-    },
-
-    // ── 审计循环 ──
-    DEEP_AUDIT: {
-      type: "agent",
-      prompt: "请对模块 {module} 执行深度审计...",
-      resultTag: "AUDIT_RESULT",
-      transitions: {
-        issues: { goto: "PLAN_DRAFT" },        // 审计发现问题 → 拟定修复计划
-        clean:  { goto: "ADVERSARIAL" },
-      },
-      onError: { goto: "PLAN_DRAFT" },         // 被 kill 视为有问题
-    },
-
-    ADVERSARIAL: {
-      type: "agent",
-      prompt: "请对模块 {module} 执行对抗性审查...",
-      resultTag: "ADVERSARIAL_RESULT",
-      transitions: {
-        issues: { goto: "PLAN_DRAFT" },
-        clean:  { done: "completed" },          // 审计循环无问题 → 完成
-      },
-      onError: { done: "completed" },           // 被 kill 不视为有问题（保守策略）
-    },
-  },
-};
-```
-
-### 3.2 Template 变量
-
-所有 prompt 和 command 中可以使用 `{variable}` 模板变量，在运行时从 context 替换：
-
-| 变量 | 来源 |
-|------|------|
-| `{module}` | config.moduleName |
-| `{projectRoot}` | config.projectRoot |
-| `{latest_plan}` | Engine 自动检测最新活跃计划文件路径 |
-| `{prev_output}` | 上一步的完整输出（当 append=true 时自动可用） |
-
-## 4. Engine 行为
-
-### 4.1 执行循环
-
-```
-1. 初始化 context bag，设 entry step 为当前 step
-2. while (当前 step 不是终态)：
-   a. 检查 step 访问次数 ≤ maxCycleVisits，否则返回 "max_cycles"
-   b. 根据 step.type 执行：
-      - agent: 拼接 prompt（含 append 的上下文），spawn opencode run，提取 marker
-      - tool:  替换 command 模板变量，spawn bash，取 exit code
-      - script: 调用 JS 函数，取返回值
-   c. 将 step 输出存入 context bag（以 step name 为 key）
-   d. 在 transitions 中查找 marker 对应的 action
-   e. 执行 action：
-      - goto: 设目标 step 为当前 step
-      - retry: 增加重试计数，设目标 step 为当前 step，标记需要 append
-      - done: 返回最终结果
-3. 返回结果
-```
-
-### 4.2 Retry 机制
-
-`retry` action 与 `goto` 的区别：
-
-| 行为 | goto | retry |
-|------|------|-------|
-| 目标 step 计数 | +1 visit | +1 retry（独立计数） |
-| 上下文追加 | 按 append spec | 按 append spec |
-| 超限处理 | maxCycleVisits → "max_cycles" | maxRetries → onError or "max_retries" |
-| prompt 拼接 | 原始 prompt + append | 原始 prompt + 所有历史 append 累积 |
-
-Retry 的 prompt 拼接示例（PLAN_DRAFT 被 retry 3 次）：
-
-```
-第 1 次执行 PLAN_DRAFT：
-  [原始 prompt]
-
-第 2 次执行（第 1 次审计反馈）：
-  [原始 prompt]
-  以下是计划审查的反馈，请据此修改计划：
-  <AUDIT_RESULT>issues</AUDIT_RESULT>...
-
-第 3 次执行（第 1+2 次审计反馈）：
-  [原始 prompt]
-  以下是第 1 轮审查反馈：...
-  ───────────────
-  以下是第 2 轮审查反馈：...
-```
-
-**为什么不是 resume 同一个 opencode session？**
-
-`opencode run` 是 one-shot 模式：接收 prompt，返回输出。不支持对话式交互。
-
-retry 的效果等价于"把之前的对话历史拼接到新 prompt 中"。对于计划拟制这种迭代场景，AI agent 能看到所有历史反馈，效果接近真实的多轮对话。
-
-如果未来 opencode 支持 `--session resume` 模式，Engine 可以切换到真正的 session resume 而不改变 DSL 定义。
-
-### 4.3 onError 处理
-
-每个 step 可以定义 `onError`，当：
-- agent step 的子进程被 kill（ok === false）
-- tool step 执行异常
-
-onError 的值是一个 action（goto / retry / done），默认行为是 `{ done: "failed" }`。
-
-### 4.4 marker 提取失败
-
-当 agent step 的输出中找不到 resultTag 对应的 XML 标签时，Engine 会：
-1. spawn 一个轻量 "parse" agent，让其阅读 AI 输出并推断 marker 值
-2. 如果 parse agent 也无法提取，使用 step 的 `onUnknown` action，默认 `{ done: "failed" }`
-
-### 4.5 全局安全网
-
-- `maxTotalSteps`: 防止因 DSL 定义错误导致的无限跳转
-- `maxCycleVisits`: 防止同一个 step 被无限访问（如 goto 循环）
-- 每个 step 的 `maxRetries`: 防止 retry 循环无限迭代
-
-## 5. 计划拟制的自动审计闭环
-
-### 5.1 流程
-
-```
-PLAN_DRAFT ──created──→ PLAN_AUDIT ──approved──→ PLAN_AUDIT_EVIDENCE ──→ EXECUTE
-     ↑                      │
-     │                      │ issues
-     └──── retry ───────────┘
-```
-
-### 5.2 与 plan guide 的关系
-
-Plan guide (ai-dev/plans/00-plan-authoring-and-execution-guide.md §322-393) 明确要求：
-
-> Plan 不是写完就定稿的。写初稿 → 子 agent 审查 → 修改 → 再审查，直到所有维度的问题都被解决。
-
-Engine 的 PLAN_DRAFT → PLAN_AUDIT → retry 循环**自动执行**了这个迭代流程。
-
-### 5.3 PLAN_AUDIT 的 prompt 要点
-
-PLAN_AUDIT step 的 prompt 应包含：
-
-1. **引用 plan guide 的审查维度**：想象性分析、格式完整性、内容合理性、引用准确性
-2. **要求结构化输出**：每条发现包含 severity (Blocker/Major/Minor)
-3. **明确的通过标准**：无 Blocker 且无 Major 时才算 approved
-
-### 5.4 Draft Audit Evidence
-
-当 PLAN_AUDIT 返回 `approved` 时，PLAN_AUDIT_EVIDENCE step 执行：
-
-```bash
-node ai-dev/tools/record-plan-audit.mjs <plan-file>
-```
-
-该工具在 plan 文件中写入：
-
-```markdown
-## Draft Audit Evidence
-
-- Auditor: automated plan-audit sub-agent (flow engine)
-- Date: 2026-06-08
-- Result: approved
-- Iterations: 2 (初稿 + 1 轮修复)
-- Findings resolved:
-  - [Major] Exit Criteria 不可验证 → 已改为具体文件路径和断言
-  - [Minor] 引用路径拼写错误 → 已修正
-```
-
-### 5.5 工具检查
-
-新增工具 `check-plan-audit.mjs`：
-
-```bash
-node ai-dev/tools/check-plan-audit.mjs <plan-file>
-# 退出码 0 = draft audit evidence 存在且结果为 approved
-# 退出码 1 = 缺少 draft audit evidence 或结果不是 approved
-```
-
-已有的工具保持不变：
-
-```bash
-node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict
-# 检查 closure audit evidence 和所有 checklist
-```
-
-## 6. 完整 Flow 定义：Goal Driver
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Goal Driver Flow                          │
-│                                                                  │
-│  DETECT_START ──→ HEALTH_CHECK ──pass──→ ROADMAP_CHECK          │
-│                       │ fail                  │ pending           │
-│                       ↓                       │ complete           │
-│                    FIX_BUILD                  ↓                   │
-│                    fixed──┘            ┌─────────────┐            │
-│                    failed──→ [failed]  │ PLAN_DRAFT  │←──┐        │
-│                                       └──────┬──────┘   │        │
-│                                         created          │        │
-│                                              ↓           │        │
-│                                       ┌─────────────┐    │        │
-│                                  ┌──→ │ PLAN_AUDIT   │    │        │
-│                                  │    └──────┬──────┘    │        │
-│                                  │ issues     │approved  │        │
-│                                  │            ↓           │        │
-│                                  │    PLAN_AUDIT_EVIDENCE │        │
-│                                  │            │           │        │
-│                                  │            ↓           │        │
-│                                  │    ┌─────────────┐    │        │
-│                                  │    │   EXECUTE    │←──┐│        │
-│                                  │    └──────┬──────┘   ││        │
-│                                  │           │           ││        │
-│                                  │           ↓           ││        │
-│                                  │    ┌─────────────┐    ││        │
-│                                  │    │CLOSURE_AUDIT │───┘│        │
-│                                  │    └──────┬──────┘incomplete    │
-│                                  │           │complete             │
-│                                  │           ↓                     │
-│                                  │    BUILD_VERIFY                 │
-│                                  │    pass ──→ ROADMAP_CHECK      │
-│                                  │    fail ──→ retry EXECUTE      │
-│                                  │                                │
-│                                  └── retry PLAN_DRAFT (maxRetries=3)│
-│                                                                   │
-│  ─── 审计循环 (从 ROADMAP_CHECK complete 进入) ───                │
-│                                                                   │
-│  DEEP_AUDIT ──issues──→ PLAN_DRAFT (同上)                        │
-│     │clean                                                        │
-│     ↓                                                             │
-│  ADVERSARIAL ──issues──→ PLAN_DRAFT                               │
-│     │clean                                                        │
-│     ↓                                                             │
-│  [completed]                                                      │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-## 7. 错误恢复场景
-
-### 7.1 场景一：计划拟制失败（subprocess killed）
-
-```
-PLAN_DRAFT → subprocess 被 watchdog kill (ok=false)
-         → onError: { goto: "ROADMAP_CHECK" }
-         → ROADMAP_CHECK 重新评估路线图
-         → 如果仍有 pending 项 → 重新进入 PLAN_DRAFT
-```
-
-**设计决策**：Plan draft 被 kill 时不直接 retry，而是先回到 ROADMAP_CHECK 重新评估。原因是：plan draft 可能因为计划过大/过复杂导致超时，重新评估路线图可能拆分出更小的计划。
-
-### 7.2 场景二：计划审计反复失败
-
-```
-PLAN_DRAFT ──→ PLAN_AUDIT (issues) ──retry──→ PLAN_DRAFT
-                                           ──→ PLAN_AUDIT (issues) ──retry──→ PLAN_DRAFT
-                                           ──→ PLAN_AUDIT (issues) ──maxRetries exceeded──→ ?
-```
-
-**maxRetries 耗尽时的处理**：当 PLAN_AUDIT 的 retry 达到 maxRetries(3) 时，Engine 使用 `onMaxRetries` action。默认行为是 `{ done: "max_retries" }`。
-
-但更合理的处理是：**降级执行**。即使计划质量未通过审计，也比完全没有计划好：
-
-```javascript
-PLAN_AUDIT: {
-  ...
-  maxRetries: 3,
-  onMaxRetries: { 
-    goto: "EXECUTE",
-    append: { 
-      template: "\n\n⚠️ 计划未通过自动审计（已尝试 {retryCount} 轮），但以下问题需要执行中注意：\n${output}" 
-    }
-  },
+{
+  append: { template: "第 {retryCount}/{maxRetries} 次尝试。上次返回：\n${output}" },
 }
 ```
 
-### 7.3 场景三：执行中构建失败
+### 3.4 每个 step 的总失败次数
 
-```
-EXECUTE → CLOSURE_AUDIT(complete) → BUILD_VERIFY(fail)
-                                         │
-                                         └─ retry: "EXECUTE"
-                                            append: { from: "BUILD_VERIFY",
-                                              template: "构建失败，请修复编译错误。日志: ${logFile}" }
-```
+当前设计中，每条 transition 可以独立配置 `maxRetries`。不存在"step 级别总失败次数"的概念——每条 retry 路径独立计数。
 
-**注意**：BUILD_VERIFY 是 tool step，它没有 AI 输出。它的 context 包含 `{ ok: false, logFile: "/path/to/log" }`。append 模板引用 `${logFile}` 时从 context 中取值。
-
-### 7.4 场景四：Closure audit 反复 incomplete
-
-```
-EXECUTE → CLOSURE_AUDIT(incomplete) → retry EXECUTE (with REMAINING)
-         → EXECUTE → CLOSURE_AUDIT(incomplete) → retry EXECUTE
-         → ... (maxRetries=5) → onMaxRetries
-```
-
-maxRetries 耗尽后：继续到 BUILD_VERIFY（如果构建通过则进入下一轮审计循环，审计会发现剩余问题）。
+**如果需要"step 总失败次数"**，可以在 step 上增加：
 
 ```javascript
-CLOSURE_AUDIT: {
-  ...
-  maxRetries: 5,
-  onMaxRetries: { goto: "BUILD_VERIFY" },  // 不终止，让后续审计循环处理剩余问题
+{
+  maxTotalFailures: 5,  // 此 step 所有 retry 路径的累计失败次数上限
+  onTotalFailures: { done: "degraded" },
 }
 ```
 
-### 7.5 场景五：起点检测发现未完成计划
+**当前状态**：未实现。现有设计通过 `maxCycleVisits`（同一 step 的总访问次数上限）间接控制。
 
-```
-DETECT_START → "execute" → HEALTH_CHECK → EXECUTE → CLOSURE_AUDIT → BUILD_VERIFY
-                                                                           │
-                                                        (dev loop: ROADMAP_CHECK)
-```
+### 3.6 双层超时：总时限 vs 活动超时
 
-当 DETECT_START 检测到未完成计划时，流程进入 HEALTH_CHECK → ... → BUILD_VERIFY → ROADMAP_CHECK。也就是：先执行完已有计划，再检查路线图是否有新工作。
+每个 step 可配置两层独立的超时：
 
-### 7.6 场景六：marker 提取失败
-
-```
-PLAN_DRAFT → AI 输出中没有 <PLAN_RESULT> 标签
-          → Engine spawn parse agent
-          → parse agent 推断出 "created"
-          → 正常进入 PLAN_AUDIT
+```typescript
+interface Step {
+  // ...
+  timeout?: number;           // 总执行时限（毫秒），硬上限，超时无条件 SIGTERM
+  activityTimeout?: number;   // 活动超时（毫秒），无新活动输出则判定卡死
+  activityProbe?: ProbeSpec;  // 活动探测方案（按 step 类型不同）
+}
 ```
 
-如果 parse agent 也推断不出：
+**双层逻辑**：
 
 ```
-PLAN_DRAFT → AI 输出无标签 → parse agent 也失败 → onUnknown: { retry: "PLAN_DRAFT" }
+进程启动 → 同时启动两个定时器
+  ├── 总时限 timer: 到达 → SIGTERM → SIGKILL → result.ok=false
+  └── 活动探测 loop: 每隔 probeInterval 检查一次
+        ├── 检测到活动 → 重置活动超时计时
+        └── 活动超时到达 → 通知引擎（触发 onError 或 graceful kill）
 ```
 
-## 8. 文件组织
+**为什么需要两层**：
+- `timeout` 是硬上限，防止失控（如 LLM API 无限挂起）
+- `activityTimeout` 是软检测，区分"正常慢"和"真正卡死"
+- 例：EXECUTE step timeout=3600s，activityTimeout=600s——AI 可能思考 5 分钟才输出（正常），但连续 10 分钟无任何活动则是卡死
+
+**活动探测方案（ProbeSpec）**：
+
+```typescript
+type ProbeSpec =
+  | { type: "fd-log" }                          // tool step: 检查 fd 重定向日志的 mtime
+  | { type: "opencode-log"; sessionHint?: string }  // agent step: 检查 opencode 内部日志
+  | { type: "custom"; check: (ctx) => boolean } // script step: 自定义判断
+  | { type: "none" }                            // 不探测（默认）
+```
+
+| step 类型 | 默认 probe | 探测逻辑 |
+|-----------|-----------|---------|
+| `tool` | `fd-log` | 检查 fd 重定向日志文件的 `mtime`，`mtime` 变化 = 有输出 = 活跃 |
+| `agent` | `opencode-log` | 检查 opencode 内部日志中的 `service=` 行（见 §3.7） |
+| `script` | `none` | JS 函数执行在主线程/await，天然可控 |
+
+**活动超时后的行为**：
+
+```typescript
+// step 级配置
+onActivityTimeout?: {
+  action: "kill" | "watchdog";  // kill: 直接杀进程; watchdog: spawn 子 agent 诊断
+  fallback?: Action;            // 杀死后走 onError 还是 goto 其他 step
+}
+```
+
+- `kill`：直接 SIGTERM，结果 `ok=false`，走 `onError`
+- `watchdog`：spawn 独立子 agent 智能判断（当前已实现的 watchdog 机制），子 agent 决定是否 kill
+
+### 3.7 opencode 子 agent 活动探测
+
+当 driver spawn 一个 `opencode run` 子进程时，如何判断子 agent 是否真正在工作？
+
+**探测层次**（从简单到复杂）：
+
+#### 层次 1：fd 重定向日志 mtime（快速，但不精确）
+
+```
+probe: { type: "fd-log" }
+逻辑: stat(logFile).mtime 在最近 activityTimeout 内变化 → 活跃
+局限: opencode 的流式输出持续写 fd 日志（大量 bus 心跳），即使 AI 真正卡住，
+      mtime 也会变化 → 误判为活跃
+适用: tool step（如 mvnw），输出与进程活动强关联
+```
+
+#### 层次 2：opencode 内部日志解析（精确，推荐 agent step 使用）
+
+```
+probe: { type: "opencode-log" }
+逻辑:
+  1. 定位日志文件: ls -t ~/.local/share/opencode/log/*.log | head -1
+     或 lsof -p <childPid> -Fn 2>/dev/null | grep opencode/log
+  2. 读取最后 N 行（如 tail -100）
+  3. 过滤出有效活动行（排除 service=bus 心跳噪声）:
+     - service=tool.* → AI 在调用工具（活跃）
+     - service=permission.* → AI 请求权限（活跃）
+     - service=session.prompt.* → AI 新一轮对话（活跃）
+     - service=llm.* → LLM 调用中（活跃）
+     - service=bus type=message.part.delta → 流式心跳（忽略）
+  4. 最后一条有效活动的时间戳距今 > activityTimeout → 卡死
+```
+
+**为什么排除 `service=bus`**：
+opencode 的流式响应通过 bus 消息传递，每秒产生大量 `message.part.delta`。这些是 LLM 的流式 token，不代表 AI 在"做事"——AI 可能卡在等待 API 响应，但 bus 心跳仍在（重连、ping 等）。
+
+**有效活动指标定义**：
+
+| 日志 pattern | 含义 | 是否有效活动 |
+|-------------|------|------------|
+| `service=tool` | AI 调用了 bash/read/write 等工具 | 是 |
+| `service=permission` | AI 请求了权限许可 | 是 |
+| `service=session.prompt` | AI 发起了新一轮对话循环 | 是 |
+| `service=llm` | 发起了 LLM API 调用 | 是 |
+| `service=snapshot` | 保存了状态快照 | 否（后台自动） |
+| `service=bus type=message.part.delta` | 流式 token 传输 | 否（心跳噪声） |
+
+#### 层次 3：watchdog 子 agent（智能诊断，兜底）
+
+当层次 2 检测到卡死时，可以 spawn 一个独立的 watchdog 子 agent 来做更智能的判断：
+
+```
+当前已实现：executor.js 的 spawnWatchdogAgent()
+  - spawn 独立 opencode run 子进程
+  - 子 agent 读取内部日志、检查进程状态
+  - 决策：kill / no-action
+  - 结果写入 <WATCHDOG_RESULT> 标签
+```
+
+**未来优化**：watchdog 应能读取 fd 重定向日志的最后部分（子 agent 的实际输出内容），结合内部日志的 silence 做综合判断。
+
+### 3.8 Step 执行超时与引擎超时的关系
+
+引擎层面有两个安全网：
+
+```
+flow.maxTotalSteps  →  总步数上限（防止无限循环）
+flow.maxCycleVisits →  单步循环上限（防止 goto 环）
+
+step.timeout        →  单步总执行时限（硬上限）
+step.activityTimeout →  单步活动超时（软检测）
+```
+
+引擎在 `run()` 循环中等待 step 完成。如果 step 配置了 `timeout`，executor 层面保证在 timeout 内返回（要么正常完成，要么被 kill）。引擎不需要自己维护 step 级别的定时器。
+
+**引擎级别的总超时**（尚未实现，预留）：
+
+```typescript
+interface Flow {
+  // ...
+  totalTimeout?: number;  // 整个 flow 的总执行时限（毫秒）
+}
+```
+
+当 flow 总执行时间超过 `totalTimeout`，引擎在下一个 step 开始前检查并终止，返回 `total_timeout`。
+
+### 3.5 结果是否标记成功
+
+| step 类型 | 成功判定 | 失败判定 |
+|----------|---------|---------|
+| tool | exit code = 0 → `pass` | exit code ≠ 0 → `fail`（正常 marker，不触发 onError） |
+| script | 函数正常返回 → 返回值作为 marker | 函数抛异常 → 触发 onError |
+| agent | `ok=true` → 从输出提取 marker | `ok=false`（进程被 kill）→ 触发 onError |
+
+**关键区别**：tool step 的 `fail` 是**正常业务 marker**，不是错误。agent step 的 `ok=false` 才是真正的执行错误。
+
+## 4. 引擎执行循环
+
+```
+function run(entry):
+  currentStep = entry || flow.entry
+  flowStartTime = Date.now()
+
+  while totalSteps < maxTotalSteps:
+    // === 引擎级总超时检查 ===
+    if flow.totalTimeout > 0 AND (Date.now() - flowStartTime) > flow.totalTimeout:
+      return "total_timeout"
+
+    stepDef = flow.steps[currentStep]
+    if !stepDef → return "unknown_step"
+
+    visitCount[currentStep]++
+    if visitCount > maxCycleVisits → return "max_cycles"
+    totalSteps++
+
+    try:
+      // executor 内部处理 timeout + activityTimeout
+      result = executeStep(currentStep, stepDef)
+    catch:
+      → execute onError action
+
+    context[currentStep] = result
+
+    if result.ok == false AND step is not tool:
+      → execute onError action
+
+    marker = resolveMarker(result, stepDef)
+    if !marker:
+      → execute onUnknown action
+
+    transition = findTransition(stepDef, marker)
+    // 尝试: 直接匹配 → alias 映射 → 大小写 → session 纠正
+
+    if transition.done → return transition.done
+    if transition.retry → handleRetry(transition) → goto target
+    if transition.goto → handleGoto(transition) → goto target
+```
+
+## 5. 文件组织
 
 ```
 ai-dev/tools/opencode-goal-driver/
 ├── src/
-│   ├── main.js              # CLI 入口（不变）
-│   ├── config.js            # 配置解析（不变）
-│   ├── executor.js          # 进程执行器（不变）
-│   ├── runner.js            # opencode runStep 封装（简化）
-│   ├── engine.js            # [新增] 通用 Flow Engine
-│   ├── flow-goal-driver.js  # [新增] Goal Driver Flow 定义（DSL）
-│   └── prompts.js           # [重构] 仅保留 prompt 模板（去掉 transitions）
+│   ├── main.js              # CLI 入口：解析参数，创建 flow + runner，启动引擎
+│   ├── config.js            # 配置解析：模块目录发现（支持嵌套模块如 nop-ai/nop-ai-agent）
+│   ├── engine.js            # 通用 Flow Engine（不含业务逻辑）
+│   ├── runner.js            # opencode/tool 执行封装（真实执行 + mock 模式）
+│   ├── executor.js          # 底层进程管理（spawn + fd 重定向 + watchdog）
+│   └── flow-goal-driver.js  # Goal Driver Flow 定义（纯数据 DSL + 业务 prompt 引用）
+├── prompts/                       # prompt 文件（引擎运行时加载，不占 AI turn）
+│   ├── roadmap-check.md           # 路线图检查提示词
+│   ├── plan-draft.md              # 计划拟制提示词
+│   ├── plan-audit.md              # 计划审查提示词
+│   ├── execute-plan.md            # 计划执行提示词
+│   └── closure-audit.md           # 闭环验证提示词
+├── test/
+│   └── engine.test.js       # 引擎单元测试（34 个测试，不含业务 prompt）
+└── DESIGN-flow-dsl.md       # 本文件
 ```
 
-### 8.1 engine.js — 通用 Flow Engine
+### 职责划分
 
-```javascript
-export class FlowEngine {
-  constructor(flowDef, config, runner) { ... }
-  
-  async run() {
-    // 主循环：execute step → extract marker → find transition → execute action
-    // 返回 { status, stepCount, elapsed, history }
-  }
-  
-  async _executeStep(step) { ... }
-  async _executeAgentStep(step) { ... }
-  async _executeToolStep(step) { ... }
-  async _executeScriptStep(step) { ... }
-  _resolveTransition(step, marker) { ... }
-  _buildPrompt(step, appendContext) { ... }
-  _recordEvidence(step, output) { ... }
-}
-```
+| 文件 | 职责 | 是否含业务逻辑 |
+|------|------|-------------|
+| engine.js | 通用 FSM 执行器 | 否 |
+| runner.js | 执行封装（真实/mock） | 否 |
+| executor.js | 进程 spawn + watchdog | 否 |
+| config.js | 参数解析 + 模块目录发现 | 否 |
+| flow-goal-driver.js | Flow 定义 + prompt | **是**（所有业务语义在此） |
+| main.js | 胶水代码 | 否 |
 
-### 8.2 flow-goal-driver.js — Flow 定义
+## 6. 错误恢复场景
 
-纯数据，描述步骤、提示词、转换规则。不含执行逻辑。
-
-### 8.3 prompts.js — 简化
-
-只导出 prompt 模板和 resultTag/markerValues 定义，不再包含 transitions。
-
-### 8.4 workflow.js — 删除
-
-被 engine.js + flow-goal-driver.js 替代。
-
-## 9. 新增工具
-
-### 9.1 record-plan-audit.mjs
-
-在 plan 文件中写入 Draft Audit Evidence 段落。
-
-```bash
-node ai-dev/tools/record-plan-audit.mjs <plan-file> [--result approved|issues] [--findings "..."]
-```
-
-### 9.2 check-plan-audit.mjs
-
-检查 plan 文件中是否存在 Draft Audit Evidence 且结果为 approved。
-
-```bash
-node ai-dev/tools/check-plan-audit.mjs <plan-file>
-# 退出码 0 = 通过
-# 退出码 1 = 未通过
-```
-
-## 10. Mock 测试场景
-
-Engine 的 dry-run 模式下，每个 step 的 mock 行为：
-
-| Step | 第 1 次 mock | 第 2 次 mock | 第 3+ 次 mock |
-|------|-------------|-------------|--------------|
-| HEALTH_CHECK | pass | pass | pass |
-| FIX_BUILD | fixed | - | - |
-| ROADMAP_CHECK | pending | complete | complete |
-| PLAN_DRAFT | created | created | created |
-| PLAN_AUDIT | issues | approved | approved |
-| PLAN_AUDIT_EVIDENCE | pass | pass | pass |
-| EXECUTE | success | success | success |
-| CLOSURE_AUDIT | incomplete | complete | complete |
-| BUILD_VERIFY | pass | pass | pass |
-| DEEP_AUDIT | issues | clean | clean |
-| ADVERSARIAL | clean | clean | clean |
-
-这个 mock 矩阵产生的 dry-run 流程：
+### 6.1 构建失败 → 修复 → 继续
 
 ```
-DETECT_START(roadmap)
-→ HEALTH_CHECK(pass)
-→ ROADMAP_CHECK(pending)
-→ PLAN_DRAFT(created)
-→ PLAN_AUDIT(issues) ──retry──→ PLAN_DRAFT'(created)
-→ PLAN_AUDIT(approved)
-→ PLAN_AUDIT_EVIDENCE(pass)
-→ EXECUTE(success)
-→ CLOSURE_AUDIT(incomplete) ──retry──→ EXECUTE'(success)
-→ CLOSURE_AUDIT(complete)
-→ BUILD_VERIFY(pass)
-→ ROADMAP_CHECK(complete)  [dev loop 退出]
-→ DEEP_AUDIT(issues)
-→ PLAN_DRAFT(created)      [审计循环发现的问题]
-→ PLAN_AUDIT(approved)     [mock 矩阵：第 3+ 次 approved]
-→ PLAN_AUDIT_EVIDENCE(pass)
-→ EXECUTE(success)
-→ CLOSURE_AUDIT(complete)
-→ BUILD_VERIFY(pass)
-→ ROADMAP_CHECK(complete)
-→ DEEP_AUDIT(clean)
-→ ADVERSARIAL(clean)
-→ done: completed
+HEALTH_CHECK(fail) → FIX_BUILD(fixed) → ROADMAP_CHECK(...)
+BUILD_VERIFY(fail) → FIX_BUILD_VERIFY(fixed) → ROADMAP_CHECK(...)
 ```
 
-## 11. 实施计划
+两种构建修复：入口处的 `FIX_BUILD`（首次构建失败）和计划执行后的 `FIX_BUILD_VERIFY`（计划引入的编译错误）。后者只修构建不修业务逻辑。
 
-### Phase 1: Engine + Flow DSL 核心
+### 6.2 计划审计反复失败 → 降级执行
 
-1. 实现 `engine.js`：FlowEngine 类
-2. 实现 `flow-goal-driver.js`：Goal Driver Flow 定义
-3. 重构 `prompts.js`：只保留 prompt 模板
-4. 更新 `runner.js`：简化 mock，适配 engine
-5. 更新 `main.js`：用 engine 替代旧 workflow.js
-6. dry-run 测试通过
+```
+PLAN_DRAFT → PLAN_AUDIT(issues) → retry PLAN_DRAFT
+PLAN_DRAFT → PLAN_AUDIT(issues) → retry PLAN_DRAFT
+PLAN_DRAFT → PLAN_AUDIT(issues) → maxRetries exceeded
+→ onMaxRetries: { goto: EXECUTE, append: "⚠️ 以下问题需要注意：..." }
+```
 
-### Phase 2: Plan Audit 闭环
+降级而非终止——不完美的计划也比没有计划好。
 
-1. 实现 `record-plan-audit.mjs` 工具
-2. 实现 `check-plan-audit.mjs` 工具
-3. 完善 PLAN_AUDIT prompt（引用 plan guide 审查维度）
-4. 端到端测试：plan draft → audit → evidence 记录 → 工具检查
+### 6.3 Closure audit 反复 incomplete → 继续
 
-### Phase 3: 清理
+```
+EXECUTE → CLOSURE_AUDIT(incomplete) → retry EXECUTE (with REMAINING)
+... (maxRetries=5)
+→ onMaxRetries: { goto: BUILD_VERIFY }
+```
 
-1. 删除旧 `workflow.js`
-2. 更新 `run-goal-driver-go.sh` 和相关文档
-3. 干跑（dry-run）+ 真实模块测试
+耗尽重试后不终止，走 BUILD_VERIFY → ROADMAP_CHECK 路径，让下一轮审计循环处理剩余问题。
+
+### 6.4 起点：检测到未完成计划
+
+```
+DETECT_START → "execute" → HEALTH_CHECK → ROADMAP_CHECK → ...
+```
+
+无论检测到哪种起始状态（execute/roadmap/plan/audit），都先走 HEALTH_CHECK。
+
+## 7. 工具脚本
+
+### 已有
+
+| 脚本 | 用途 |
+|------|------|
+| `check-plan-status.mjs` | 扫描 `ai-dev/plans/` 目录，解析每个计划的 `Plan Status`，输出活跃计划列表 |
+| `check-plan-checklist.mjs` | 检查计划文件的 Exit Criteria checklist |
+
+### 计划中
+
+| 脚本 | 用途 |
+|------|------|
+| `record-plan-audit.mjs` | 在计划文件中写入 Draft Audit Evidence 段落 |
+| `check-plan-audit.mjs` | 检查 Draft Audit Evidence 是否存在且结果为 approved |
+
+## 8. 模块兼容性
+
+引擎通过 `config.js` 的 `findModuleDir()` 自动发现模块目录：
+
+- 顶层模块（如 `nop-stream`）：`{projectRoot}/nop-stream/`
+- 嵌套模块（如 `nop-ai-agent`）：`{projectRoot}/nop-ai/nop-ai-agent/`（搜索一级子目录）
+- 手动覆盖：`--module-dir nop-ai/nop-ai-agent`
+
+Maven `-pl` 使用 artifactId（如 `nop-ai-agent`），Maven reactor 能解析嵌套模块。
+
+## 9. Goal Driver Flow 图
+
+```
+DETECT_START ──→ HEALTH_CHECK ──pass──→ ROADMAP_CHECK ──pending──→ PLAN_DRAFT
+                    │ fail                  │ complete                     │
+                    ↓                       ↓                             ↓ created
+                FIX_BUILD              DEEP_AUDIT ──issues──→ PLAN_DRAFT ←┘
+                fixed──┘                  │          ↑              │
+                failed──→ [failed]        │          │              │ approved
+                                         │          │              ↓
+                                         │          │         PLAN_AUDIT
+                                         │          │          │ issues → retry
+                                         │          │          ↓ approved
+                                         │          │         EXECUTE ←──── retry
+                                         │          │          │              ↑
+                                         │          │          ↓              │
+                                         │          │    CLOSURE_AUDIT ───────┘ incomplete
+                                         │          │          │ complete
+                                         │          │          ↓
+                                         │          │    BUILD_VERIFY
+                                         │          │    pass → ROADMAP_CHECK
+                                         │          │    fail → FIX_BUILD_VERIFY → ROADMAP_CHECK
+                                         │          ↓
+                                         │    ADVERSARIAL ──clean──→ [completed]
+                                         │    issues → PLAN_DRAFT
+                                         ↓
+                                    clean → ADVERSARIAL
+```

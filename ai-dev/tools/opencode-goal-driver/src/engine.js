@@ -1,4 +1,5 @@
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 function localTimeStr(d = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -63,12 +64,59 @@ export class FlowEngine {
 
   _templateVar(str, vars) {
     if (typeof str !== "string") return str;
-    return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
+    return str.replace(/\{(\w[\w.]*)\}/g, (_, k) => {
+      if (vars[k] !== undefined) return String(vars[k]);
+      const parts = k.split(".");
+      let val = vars;
+      for (const p of parts) {
+        if (val == null || typeof val !== "object") return `{${k}}`;
+        val = val[p];
+      }
+      return val !== undefined ? String(val) : `{${k}}`;
+    });
+  }
+
+  _buildVars() {
+    const vars = { ...(this.delegates.vars || {}) };
+    for (const [name, result] of this.context) {
+      const prefix = `steps.${name}`;
+      vars[`${prefix}.text`] = result.text || "";
+      vars[`${prefix}.ok`] = String(result.ok ?? "");
+      vars[`${prefix}.logFile`] = result.logFile || "";
+      vars[`${prefix}.marker`] = result.marker || "";
+      if (result.vars) {
+        for (const [vk, vv] of Object.entries(result.vars)) {
+          vars[`${prefix}.${vk}`] = String(vv);
+          if (!vars[vk]) vars[vk] = String(vv);
+        }
+      }
+    }
+    return vars;
+  }
+
+  _loadPromptFile(promptFile) {
+    if (!promptFile) return "";
+    const vars = this._buildVars();
+    const resolved = this._templateVar(promptFile, vars);
+    const candidates = [
+      resolved,
+      resolve(this.delegates.config?.projectRoot || ".", resolved),
+    ];
+    for (const p of candidates) {
+      try { return readFileSync(p, "utf8"); } catch {}
+    }
+    this._log(`  WARNING: promptFile not found: ${promptFile}`);
+    return "";
   }
 
   _buildPrompt(stepName, stepDef) {
-    let prompt = stepDef.prompt || "";
-    prompt = this._templateVar(prompt, this.delegates.vars || {});
+    let prompt;
+    if (stepDef.promptFile) {
+      prompt = this._loadPromptFile(stepDef.promptFile);
+    } else {
+      prompt = stepDef.prompt || "";
+    }
+    prompt = this._templateVar(prompt, this._buildVars());
 
     const buf = this.appendBuffers.get(stepName);
     if (buf) {
@@ -77,28 +125,10 @@ export class FlowEngine {
     return prompt;
   }
 
-  _markerAliases() {
-    return {
-      "已创建": "created",
-      "已批准": "approved",
-      "有问题": "issues",
-      "无": "none",
-      "完成": "complete",
-      "已完成": "complete",
-      "未完成": "incomplete",
-      "成功": "success",
-      "失败": "failed",
-      "修复": "fixed",
-      "通过": "approved",
-      "待处理": "pending",
-      "干净": "clean",
-    };
-  }
-
   _tryAliasMarker(marker, transitions) {
     if (transitions[marker]) return marker;
-    const alias = this._markerAliases()[marker];
-    if (alias && transitions[alias]) return alias;
+    const aliases = this.flow.markerAliases || {};
+    if (aliases[marker] && transitions[aliases[marker]]) return aliases[marker];
     if (marker && typeof marker === "string") {
       const lower = marker.toLowerCase();
       for (const key of Object.keys(transitions)) {
@@ -116,14 +146,17 @@ export class FlowEngine {
   }
 
   async _executeToolStep(stepName, stepDef) {
-    const command = this._templateVar(stepDef.command || "", this.delegates.vars || {});
+    const command = this._templateVar(stepDef.command || "", this._buildVars());
     const timeout = stepDef.timeout || 0;
     return await this.delegates.runTool(stepName, command, { timeout });
   }
 
   async _executeScriptStep(stepName, stepDef) {
-    const marker = await stepDef.run(this.delegates);
-    return { ok: true, marker, text: String(marker) };
+    const ret = await stepDef.run(this.delegates);
+    if (typeof ret === "object" && ret.marker !== undefined) {
+      return { ok: true, marker: ret.marker, text: String(ret.marker), vars: ret.vars || {} };
+    }
+    return { ok: true, marker: ret, text: String(ret) };
   }
 
   async _resolveMarker(result, stepDef) {
@@ -139,14 +172,9 @@ export class FlowEngine {
     if (tag) return tag;
 
     if (this.delegates.runParseAgent) {
-      const parsePrompt = [
-        `输出中未找到 <${stepDef.resultTag}> 标签，请阅读以下 AI 输出并推断结果。`,
-        `预期取值: ${Object.keys(stepDef.transitions).join(", ")}`,
-        `只输出 <${stepDef.resultTag}>值</${stepDef.resultTag}> 格式，不要其他内容。`,
-        ``,
-        `AI 输出内容：`,
-        result.text,
-      ].join("\n");
+      const parsePrompt = this.delegates.buildParsePrompt
+        ? this.delegates.buildParsePrompt(stepDef.resultTag, Object.keys(stepDef.transitions).join(", "), result.text)
+        : `No <${stepDef.resultTag}> tag found. Valid values: ${Object.keys(stepDef.transitions).join(", ")}. Only output <${stepDef.resultTag}>value</${stepDef.resultTag}>.\n\nAI output:\n${result.text}`;
       const retry = await this.delegates.runParseAgent(
         `parse-${stepDef.resultTag}`, parsePrompt, stepDef.system || "",
       );
@@ -282,6 +310,7 @@ export class FlowEngine {
       }
 
       let marker = await this._resolveMarker(result, stepDef);
+      if (marker) result.marker = marker;
       if (!marker) {
         this._log(`  marker not found in output`);
         const onUnknown = stepDef.onUnknown || { done: "failed" };
@@ -314,11 +343,9 @@ export class FlowEngine {
           const sessionId = this.lastSessionId;
           this._log(`  marker "${marker}" not in transitions, correction retry ${correctCount}/${maxCorrect} (session=${sessionId ? sessionId.slice(0, 20) + "..." : "none"})`);
 
-          const correctionPrompt = [
-            `你的上一次输出中 ${stepDef.resultTag} 标签的值 "${marker}" 不是有效值。`,
-            `有效值只有: ${validValues}`,
-            `请只输出 <${stepDef.resultTag}>有效值</${stepDef.resultTag}>，不要输出其他内容。`,
-          ].join("\n");
+          const correctionPrompt = this.delegates.buildCorrectionPrompt
+            ? this.delegates.buildCorrectionPrompt(stepDef.resultTag, marker, validValues)
+            : `The value "${marker}" in <${stepDef.resultTag}> is not valid. Valid values: ${validValues}. Only output <${stepDef.resultTag}>valid_value</${stepDef.resultTag}>.`;
 
           try {
             const corrected = await this._executeAgentStep(
