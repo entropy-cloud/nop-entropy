@@ -20,6 +20,7 @@ Nop 不照搬传统“把所有行为都塞进聚合根”的 DDD。当前仓库
 - `canXxx()`
 - `calculateXxx()`
 - 基于已有字段和关联的只读 helper
+- 通过 `I*Biz` 获取关联数据的只读方法（需要时可缓存）
 
 这些逻辑应同时满足：
 
@@ -28,14 +29,71 @@ Nop 不照搬传统“把所有行为都塞进聚合根”的 DDD。当前仓库
 3. 不依赖易变的业务策略。
 4. 能表达稳定的领域事实。
 
+## Nop 的实体与传统 DDD 的区别
+
+Nop 的 ORM 实体与传统 DDD 实体有几个重要差异：
+
+### 1. 实体之间可以直接引用和导航
+
+ORM 模型中定义了 `to-one` / `to-many` 关系，实体可以直接通过关联属性导航到其他实体：
+
+```java
+// LitemallOrder 上直接访问关联
+LitemallUser user = order.getUser();
+IOrmEntitySet<LitemallOrderGoods> items = order.getOrderGoods();
+```
+
+这些关联由 ORM 引擎延迟加载，不需要手动查数据库。关联对象已经加载过的会自动缓存，不会重复查询。
+
+### 2. 实体可以通过 `BeanContainer` 获取 `I*Biz` 服务做只读查询
+
+当关联关系不足以直接导航到需要的数据时，实体可以通过 `BeanContainer` 获取 `I*Biz` 接口做只读查询：
+
+```java
+@BizObjName("LitemallOrder")
+public class LitemallOrder extends _LitemallOrder {
+    public List<LitemallAftersale> getActiveAftersales() {
+        ILitemallAftersaleBiz aftersaleBiz = BeanContainer.getBeanByType(ILitemallAftersaleBiz.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("orderId", orm_idString()));
+        query.addFilter(FilterBeans.in("status", Arrays.asList(1, 2)));
+        return aftersaleBiz.findList(query, null, IServiceContext.getCtx());
+    }
+}
+```
+
+> **约束：实体通过 `I*Biz` 只能做只读查询，不能做写操作。** 写操作（`@BizMutation`）必须通过 BizModel 入口，保证事务、权限、状态机等管道逻辑不被绕过。
+
+### 3. 实体上可以缓存计算结果
+
+`OrmEntity` 基类提供了临时属性缓存 `_t`，可以缓存已经计算过的复杂结果，避免重复查询或计算：
+
+```java
+@BizObjName("LitemallOrder")
+public class LitemallOrder extends _LitemallOrder {
+    public List<LitemallAftersale> getActiveAftersaleCached() {
+        return computeIfAbsent("activeAftersales", k -> {
+            ILitemallAftersaleBiz biz = BeanContainer.getBeanByType(ILitemallAftersaleBiz.class);
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("orderId", orm_idString()));
+            query.addFilter(FilterBeans.in("status", Arrays.asList(1, 2)));
+            return biz.findList(query, null, IServiceContext.getCtx());
+        });
+    }
+}
+```
+
+`computeIfAbsent(key, fn)` 是 `OrmEntity` 内置方法：第一次调用执行 `fn` 并将结果存入 `_t` 临时属性，后续调用直接返回缓存值。实体被 `orm_reset()` 或 `orm_unload()` 时 `_t` 会被清空。
+
 ## Entity 不要放什么
 
 默认不要在 Entity 中做这些事：
 
-1. `dao()`、`I*Biz`、远程调用、消息发送。
-2. 长流程编排。
-3. 容易因租户或业务场景变化而改变的规则。
-4. 直接承担事务和持久化入口。
+1. 写操作（`save`、`update`、`delete`、`@BizMutation` 级别的操作）。
+2. 远程调用、消息发送。
+3. 长流程编排。
+4. 容易因租户或业务场景变化而改变的规则。
+5. 直接承担事务和持久化入口。
 
 如果一段逻辑需要 `IServiceContext`、需要安全 API、需要跨多个聚合协作，默认就不该继续留在 Entity。
 
@@ -97,6 +155,7 @@ Step 只在下面两种情况同时满足时再抽：
 2. BizModel 一个方法塞满全部业务流程。
 3. 还没出现复用就先抽 Step。
 4. 为了“架构好看”新增很多没有稳定职责的 Java 类。
+5. 实体上通过 `I*Biz` 做写操作而非只读查询——写操作必须走 BizModel。
 
 ## 相关文档
 
