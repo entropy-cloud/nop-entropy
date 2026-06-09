@@ -5,15 +5,16 @@ import { FlowEngine } from "../src/engine.js";
 function makeMockDelegates(overrides = {}) {
   const responses = overrides.responses || {};
   const scriptResults = overrides.scriptResults || {};
+  const hasOverrideRunAgent = !!overrides.runAgent;
 
-  return {
+  const base = {
     config: { moduleName: "test-mod", projectRoot: "/tmp/test" },
     vars: { module: "test-mod", projectRoot: "/tmp/test" },
     logFile: null,
     callLog: [],
 
-    async runAgent(stepName, prompt, system) {
-      this.callLog.push({ type: "agent", stepName, prompt, system });
+    async runAgent(stepName, prompt, system, sessionId) {
+      this.callLog.push({ type: "agent", stepName, prompt, system, sessionId });
       if (stepName in responses) {
         const r = responses[stepName];
         if (typeof r === "function") return r(stepName, prompt);
@@ -37,9 +38,16 @@ function makeMockDelegates(overrides = {}) {
       this.callLog.push({ type: "parse", stepName, prompt });
       return { text: "<MOCK_TAG>unknown</MOCK_TAG>", ok: true };
     },
-
-    ...overrides,
   };
+
+  if (hasOverrideRunAgent) {
+    const overrideRunAgent = overrides.runAgent;
+    const result = { ...base, ...overrides };
+    result.callLog = base.callLog;
+    return result;
+  }
+
+  return { ...base, ...overrides };
 }
 
 function simpleFlow(steps, entry = "START") {
@@ -988,5 +996,185 @@ describe("FlowEngine — plan audit retry loop", () => {
 
     assert.equal(result.status, "completed");
     assert.ok(execPrompt.includes("⚠️ plan audit failed"));
+  });
+});
+
+// ═══════════════════════════════════════════
+// 14. Chinese marker alias resolution
+// ═══════════════════════════════════════════
+
+describe("FlowEngine — Chinese marker aliases", () => {
+  it("resolves Chinese marker 已创建 to created", async () => {
+    const flow = simpleFlow({
+      PLAN_DRAFT: {
+        type: "agent",
+        prompt: "draft",
+        resultTag: "PLAN_RESULT",
+        transitions: { created: { goto: "NEXT" }, none: { done: "failed" } },
+      },
+      NEXT: {
+        type: "agent",
+        prompt: "next",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "PLAN_DRAFT");
+
+    const delegates = makeMockDelegates({
+      responses: {
+        PLAN_DRAFT: "<PLAN_RESULT>已创建</PLAN_RESULT>",
+        NEXT: "<R>ok</R>",
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+  });
+
+  it("resolves multiple Chinese aliases", async () => {
+    const flow = simpleFlow({
+      START: {
+        type: "agent",
+        prompt: "go",
+        resultTag: "R",
+        transitions: {
+          fixed: { goto: "DONE" },
+          failed: { done: "failed" },
+        },
+      },
+      DONE: {
+        type: "agent",
+        prompt: "done",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        START: "<R>修复</R>",
+        DONE: "<R>ok</R>",
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+  });
+
+  it("falls back to no_transition when alias not found", async () => {
+    const flow = simpleFlow({
+      START: {
+        type: "agent",
+        prompt: "go",
+        resultTag: "R",
+        onUnknownMaxRetries: 0,
+        transitions: { yes: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: { START: "<R>不存在的值</R>" },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "no_transition");
+  });
+});
+
+// ═══════════════════════════════════════════
+// 15. Marker correction retry with session continue
+// ═══════════════════════════════════════════
+
+describe("FlowEngine — marker correction retry", () => {
+  it("retries with correction prompt when marker not in transitions", async () => {
+    let callCount = 0;
+    const flow = simpleFlow({
+      START: {
+        type: "agent",
+        prompt: "go",
+        resultTag: "R",
+        onUnknownMaxRetries: 2,
+        transitions: { yes: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      async runAgent(stepName, prompt, system, sessionId) {
+        delegates.callLog.push({ type: "agent", stepName, prompt, system, sessionId });
+        callCount++;
+        if (stepName.includes("correct")) {
+          return { text: "<R>yes</R>", ok: true };
+        }
+        return { text: "<R>no</R>", ok: true, sessionId: "ses_test123" };
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(callCount >= 2);
+    const correctionCalls = delegates.callLog.filter(c => c.stepName.includes("correct"));
+    assert.ok(correctionCalls.length >= 1, "should have at least one correction call");
+  });
+
+  it("passes sessionId to correction retry", async () => {
+    const flow = simpleFlow({
+      START: {
+        type: "agent",
+        prompt: "go",
+        resultTag: "R",
+        onUnknownMaxRetries: 2,
+        transitions: { yes: { done: "completed" } },
+      },
+    });
+
+    let capturedSessionId = null;
+    const delegates = makeMockDelegates({
+      responses: {
+        START: () => ({ text: "<R>no</R>", ok: true, sessionId: "ses_test456" }),
+      },
+      async runAgent(stepName, prompt, system, sessionId) {
+        delegates.callLog.push({ type: "agent", stepName, prompt, system, sessionId });
+        if (stepName.includes("correct")) capturedSessionId = sessionId;
+        if (stepName.includes("correct")) return { text: "<R>yes</R>", ok: true };
+        return { text: "<R>no</R>", ok: true, sessionId: "ses_test456" };
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.equal(capturedSessionId, "ses_test456");
+  });
+
+  it("gives up after onUnknownMaxRetries attempts", async () => {
+    const flow = simpleFlow({
+      START: {
+        type: "agent",
+        prompt: "go",
+        resultTag: "R",
+        onUnknownMaxRetries: 1,
+        transitions: { yes: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        START: "<R>garbage</R>",
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "no_transition");
   });
 });

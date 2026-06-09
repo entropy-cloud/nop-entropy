@@ -38,6 +38,8 @@ export class FlowEngine {
     this.appendBuffers = new Map();
     this.logEntries = [];
     this.startTime = null;
+    this.lastSessionId = null;
+    this.markerCorrectionCounts = new Map();
   }
 
   _log(msg) {
@@ -75,9 +77,42 @@ export class FlowEngine {
     return prompt;
   }
 
-  async _executeAgentStep(stepName, stepDef) {
+  _markerAliases() {
+    return {
+      "已创建": "created",
+      "已批准": "approved",
+      "有问题": "issues",
+      "无": "none",
+      "完成": "complete",
+      "已完成": "complete",
+      "未完成": "incomplete",
+      "成功": "success",
+      "失败": "failed",
+      "修复": "fixed",
+      "通过": "approved",
+      "待处理": "pending",
+      "干净": "clean",
+    };
+  }
+
+  _tryAliasMarker(marker, transitions) {
+    if (transitions[marker]) return marker;
+    const alias = this._markerAliases()[marker];
+    if (alias && transitions[alias]) return alias;
+    if (marker && typeof marker === "string") {
+      const lower = marker.toLowerCase();
+      for (const key of Object.keys(transitions)) {
+        if (key.toLowerCase() === lower) return key;
+      }
+    }
+    return null;
+  }
+
+  async _executeAgentStep(stepName, stepDef, sessionId) {
     const prompt = this._buildPrompt(stepName, stepDef);
-    return await this.delegates.runAgent(stepName, prompt, stepDef.system || "");
+    const result = await this.delegates.runAgent(stepName, prompt, stepDef.system || "", sessionId);
+    if (result && result.sessionId) this.lastSessionId = result.sessionId;
+    return result;
   }
 
   async _executeToolStep(stepName, stepDef) {
@@ -197,7 +232,7 @@ export class FlowEngine {
       let result;
       try {
         if (stepDef.type === "agent") {
-          result = await this._executeAgentStep(currentStep, stepDef);
+          result = await this._executeAgentStep(currentStep, stepDef, null);
         } else if (stepDef.type === "tool") {
           result = await this._executeToolStep(currentStep, stepDef);
         } else if (stepDef.type === "script") {
@@ -246,7 +281,7 @@ export class FlowEngine {
         return this._result("failed", totalSteps);
       }
 
-      const marker = await this._resolveMarker(result, stepDef);
+      let marker = await this._resolveMarker(result, stepDef);
       if (!marker) {
         this._log(`  marker not found in output`);
         const onUnknown = stepDef.onUnknown || { done: "failed" };
@@ -257,10 +292,61 @@ export class FlowEngine {
 
       this._log(`  marker: ${marker}`);
 
-      const transition = stepDef.transitions[marker];
+      let transition = stepDef.transitions[marker];
+
       if (!transition) {
-        this._log(`  no transition for marker "${marker}"`);
-        return this._result("no_transition", totalSteps);
+        const aliased = this._tryAliasMarker(marker, stepDef.transitions);
+        if (aliased) {
+          this._log(`  marker alias: ${marker} → ${aliased}`);
+          marker = aliased;
+          transition = stepDef.transitions[marker];
+        }
+      }
+
+      if (!transition) {
+        const maxCorrect = stepDef.onUnknownMaxRetries ?? 2;
+        const correctKey = `${currentStep}:marker-correct`;
+        const correctCount = (this.markerCorrectionCounts.get(correctKey) || 0) + 1;
+        this.markerCorrectionCounts.set(correctKey, correctCount);
+
+        if (correctCount <= maxCorrect) {
+          const validValues = Object.keys(stepDef.transitions).join(", ");
+          const sessionId = this.lastSessionId;
+          this._log(`  marker "${marker}" not in transitions, correction retry ${correctCount}/${maxCorrect} (session=${sessionId ? sessionId.slice(0, 20) + "..." : "none"})`);
+
+          const correctionPrompt = [
+            `你的上一次输出中 ${stepDef.resultTag} 标签的值 "${marker}" 不是有效值。`,
+            `有效值只有: ${validValues}`,
+            `请只输出 <${stepDef.resultTag}>有效值</${stepDef.resultTag}>，不要输出其他内容。`,
+          ].join("\n");
+
+          try {
+            const corrected = await this._executeAgentStep(
+              `${currentStep}:correct-${correctCount}`, { prompt: correctionPrompt }, sessionId,
+            );
+            if (corrected && corrected.text) {
+              const newMarker = extractTag(corrected.text, stepDef.resultTag);
+              if (newMarker) {
+                const aliasedNew = this._tryAliasMarker(newMarker, stepDef.transitions);
+                if (aliasedNew) {
+                  this._log(`  corrected marker: ${newMarker} → ${aliasedNew}`);
+                  marker = aliasedNew;
+                  transition = stepDef.transitions[marker];
+                }
+              }
+            }
+          } catch (e) {
+            this._log(`  correction retry failed: ${e.message}`);
+          }
+        }
+
+        if (!transition) {
+          this._log(`  no transition for marker "${marker}" after correction attempts`);
+          const onUnknown = stepDef.onUnknown || { done: "no_transition" };
+          if (onUnknown.done) return this._result(onUnknown.done, totalSteps);
+          if (onUnknown.goto) { currentStep = onUnknown.goto; continue; }
+          return this._result("no_transition", totalSteps);
+        }
       }
 
       if (transition.done) {

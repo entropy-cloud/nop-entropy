@@ -69,6 +69,7 @@ export function createGoalDriverFlow() {
         type: "agent",
         prompt: "修复模块 {module} 的编译错误。运行 ./mvnw clean install -pl {module} -am -T 1C，修复所有编译错误使构建通过。",
         resultTag: "HEALTH_STATUS",
+        onUnknownMaxRetries: 2,
         transitions: {
           fixed: { goto: "ROADMAP_CHECK" },
           failed: { done: "failed" },
@@ -98,6 +99,7 @@ export function createGoalDriverFlow() {
 <NEXT_ITEM id="工作项编号" layer="层级" priority="P0|P1|P2">选中理由和现状描述</NEXT_ITEM>
 <ROADMAP_ITEMS><item id="编号" priority="P0|P1|P2|P3">所有未实现项摘要</item></ROADMAP_ITEMS>`,
         resultTag: "ROADMAP_RESULT",
+        onUnknownMaxRetries: 2,
         transitions: {
           pending: { goto: "PLAN_DRAFT", append: true },
           complete: { goto: "DEEP_AUDIT" },
@@ -134,6 +136,7 @@ export function createGoalDriverFlow() {
 
 输出 <PLAN_RESULT>created</PLAN_RESULT> 或 <PLAN_RESULT>none</PLAN_RESULT>。`,
         resultTag: "PLAN_RESULT",
+        onUnknownMaxRetries: 2,
         transitions: {
           created: { goto: "PLAN_AUDIT" },
           none: { goto: "ROADMAP_CHECK" },
@@ -159,6 +162,7 @@ export function createGoalDriverFlow() {
 <ISSUES><item severity="Blocker|Major|Minor">问题描述</item></ISSUES>`,
         resultTag: "AUDIT_RESULT",
         maxRetries: 3,
+        onUnknownMaxRetries: 2,
         transitions: {
           approved: { goto: "EXECUTE" },
           issues: {
@@ -192,6 +196,7 @@ export function createGoalDriverFlow() {
 
 输出 <EXECUTE_RESULT>success</EXECUTE_RESULT> 或 <EXECUTE_RESULT>failed</EXECUTE_RESULT>。`,
         resultTag: "EXECUTE_RESULT",
+        onUnknownMaxRetries: 2,
         transitions: {
           success: { goto: "CLOSURE_AUDIT" },
           failed: { goto: "CLOSURE_AUDIT" },
@@ -219,6 +224,7 @@ export function createGoalDriverFlow() {
 <REMAINING><item>具体未完成项描述</item></REMAINING>`,
         resultTag: "CLOSURE_RESULT",
         maxRetries: 5,
+        onUnknownMaxRetries: 2,
         transitions: {
           complete: { goto: "BUILD_VERIFY" },
           incomplete: {
@@ -252,6 +258,7 @@ export function createGoalDriverFlow() {
 
 输出 <AUDIT_RESULT>clean</AUDIT_RESULT> 或 <AUDIT_RESULT>issues</AUDIT_RESULT>。`,
         resultTag: "AUDIT_RESULT",
+        onUnknownMaxRetries: 2,
         transitions: {
           issues: { goto: "PLAN_DRAFT" },
           clean: { goto: "ADVERSARIAL" },
@@ -265,6 +272,7 @@ export function createGoalDriverFlow() {
 
 输出 <ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT> 或 <ADVERSARIAL_RESULT>issues</ADVERSARIAL_RESULT>。`,
         resultTag: "ADVERSARIAL_RESULT",
+        onUnknownMaxRetries: 2,
         transitions: {
           issues: { goto: "PLAN_DRAFT" },
           clean: { done: "completed" },
