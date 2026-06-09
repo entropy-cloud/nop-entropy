@@ -183,7 +183,7 @@ export class FlowEngine {
   }
 
   async _executeSubFlowStep(stepName, stepDef) {
-    const subFlowDef = this._resolveSubFlowDef(stepDef.flow);
+    const subFlowDef = await this._resolveSubFlowDef(stepDef.flow);
     if (!subFlowDef) throw new Error(`sub-flow "${stepDef.flow}" not found`);
 
     const flowArgs = stepDef.flowArgs ? this._templateVarsObj(stepDef.flowArgs) : {};
@@ -240,10 +240,12 @@ export class FlowEngine {
     return { ok: childResult.status === "completed", marker, text: childResult.status };
   }
 
-  _resolveSubFlowDef(flowName) {
+  async _resolveSubFlowDef(flowName) {
     if (typeof flowName === "object") return flowName;
-    if (!this.delegates.subFlows) return null;
-    return this.delegates.subFlows[flowName] || null;
+    if (this.delegates.loadSubFlow) {
+      return await this.delegates.loadSubFlow(flowName);
+    }
+    return null;
   }
 
   _buildChildDelegates(flowArgs, itemContext) {

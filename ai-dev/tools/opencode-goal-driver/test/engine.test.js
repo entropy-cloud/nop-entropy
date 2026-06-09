@@ -778,8 +778,7 @@ describe("FlowEngine — goal driver integration", () => {
       updateRoadmap: () => "updated",
       gitCommit: () => "committed",
     };
-    delegates.subFlows = { "plan-lifecycle": subFlow };
-
+    delegates.loadSubFlow = async (name) => name === "plan-lifecycle" ? subFlow : null;
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
@@ -828,8 +827,7 @@ describe("FlowEngine — goal driver integration", () => {
       updateRoadmap: () => "updated",
       gitCommit: () => "committed",
     };
-    delegates.subFlows = { "plan-lifecycle": subFlow };
-
+    delegates.loadSubFlow = async (name) => name === "plan-lifecycle" ? subFlow : null;
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
@@ -856,7 +854,8 @@ describe("FlowEngine — goal driver integration", () => {
         updateRoadmap: () => "updated",
         gitCommit: () => "committed",
       },
-      subFlows: { "plan-lifecycle": subFlow },
+      subFlows: undefined,
+      loadSubFlow: async (name) => name === "plan-lifecycle" ? subFlow : null,
       callLog: [],
       async runAgent(stepName, prompt, system, sessionId) {
         delegates.callLog.push({ type: "agent", stepName, prompt, system, sessionId });
@@ -2093,8 +2092,7 @@ describe("FlowEngine — subflow", () => {
     const delegates = makeMockDelegates({
       responses: { DO_WORK: "<R>ok</R>" },
     });
-    delegates.subFlows = { child: childFlow };
-
+    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
@@ -2147,8 +2145,7 @@ describe("FlowEngine — subflow", () => {
         },
       },
     });
-    delegates.subFlows = { child: childFlow };
-
+    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
@@ -2180,8 +2177,7 @@ describe("FlowEngine — subflow", () => {
       },
     });
     delegates.vars = { module: "test", planFile: "ai-dev/plans/test-plan.md" };
-    delegates.subFlows = { child: childFlow };
-
+    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
@@ -2214,8 +2210,7 @@ describe("FlowEngine — subflow", () => {
     }, "SETUP");
 
     const delegates = makeMockDelegates();
-    delegates.subFlows = { child: childFlow };
-
+    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 

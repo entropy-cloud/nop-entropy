@@ -16,11 +16,19 @@ function loadFlow() {
   return mainFlow;
 }
 
-function loadSubFlows() {
-  const lifecyclePath = resolve(__dirname, "plan-lifecycle-flow.json");
-  return {
-    "plan-lifecycle": JSON.parse(readFileSync(lifecyclePath, "utf8")),
+const subFlowCache = new Map();
+
+async function loadSubFlow(name) {
+  if (subFlowCache.has(name)) return subFlowCache.get(name);
+  const knownFlows = {
+    "plan-lifecycle": "plan-lifecycle-flow.json",
   };
+  const fileName = knownFlows[name];
+  if (!fileName) throw new Error(`unknown sub-flow: ${name}`);
+  const path = resolve(__dirname, fileName);
+  const def = JSON.parse(readFileSync(path, "utf8"));
+  subFlowCache.set(name, def);
+  return def;
 }
 
 function parseArgs(argv) {
@@ -61,7 +69,7 @@ async function main() {
       config,
       vars: { module: config.moduleName, projectRoot: config.projectRoot },
       scripts,
-      subFlows: loadSubFlows(),
+      loadSubFlow,
       runAgent: runner.runAgent,
       runTool: runner.runTool,
       runParseAgent: runner.runParseAgent,
