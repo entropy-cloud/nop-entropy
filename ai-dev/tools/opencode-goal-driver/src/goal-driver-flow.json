@@ -30,11 +30,34 @@
       "resultTag": "TEST_RESULT",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "fixed": { "goto": "CHECK_PENDING_PLANS" },
+        "fixed": { "goto": "FIX_TESTS_COMMIT" },
         "no_errors": { "goto": "CHECK_PENDING_PLANS" },
         "failed": { "goto": "FIX_TESTS_RECOVERY" }
       },
       "onError": { "retry": "FIX_TESTS", "maxRetries": 2 }
+    },
+
+    "FIX_TESTS_COMMIT": {
+      "type": "script",
+      "run": "gitCommit",
+      "scriptArgs": { "message": "fix({module}): fix unit test errors" },
+      "transitions": {
+        "committed": { "goto": "CHECK_PENDING_PLANS" },
+        "nothing": { "goto": "CHECK_PENDING_PLANS" },
+        "error": { "goto": "FIX_TESTS_COMMIT_FIX" }
+      }
+    },
+
+    "FIX_TESTS_COMMIT_FIX": {
+      "type": "agent",
+      "prompt": "Git commit failed after fixing tests for module {module}. Error: {commitError}\n\nFix the issue (resolve conflicts, fix lint errors, remove secrets) and commit using nop-git-master skill. Output <COMMIT_RESULT>fixed</COMMIT_RESULT> or <COMMIT_RESULT>skipped</COMMIT_RESULT>.",
+      "resultTag": "COMMIT_RESULT",
+      "onUnknownMaxRetries": 1,
+      "transitions": {
+        "fixed": { "goto": "CHECK_PENDING_PLANS" },
+        "skipped": { "goto": "CHECK_PENDING_PLANS" }
+      },
+      "onError": { "goto": "CHECK_PENDING_PLANS" }
     },
 
     "FIX_TESTS_RECOVERY": {

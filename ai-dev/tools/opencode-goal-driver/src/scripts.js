@@ -156,10 +156,18 @@ export function gitCommit(delegates, args) {
     }
 
     execSync("git add -A", { cwd: config.projectRoot, timeout: 30_000 });
-    execSync(`git commit -m "${message}" --no-verify`, {
-      cwd: config.projectRoot,
-      timeout: 60_000,
-    });
+
+    try {
+      execSync(`git commit -m "${message}" --no-verify`, {
+        cwd: config.projectRoot,
+        timeout: 60_000,
+      });
+    } catch (commitErr) {
+      return {
+        marker: "error",
+        vars: { commitError: commitErr.stderr?.toString() || commitErr.message },
+      };
+    }
 
     const hash = execSync("git rev-parse --short HEAD", {
       cwd: config.projectRoot,
@@ -169,6 +177,6 @@ export function gitCommit(delegates, args) {
 
     return { marker: "committed", vars: { commitHash: hash } };
   } catch (e) {
-    return { marker: "nothing", vars: { commitError: e.message } };
+    return { marker: "error", vars: { commitError: e.message } };
   }
 }

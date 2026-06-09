@@ -104,8 +104,21 @@
       "scriptArgs": { "message": "feat({module}): complete plan execution" },
       "transitions": {
         "committed": { "goto": "UPDATE_ROADMAP" },
-        "nothing": { "goto": "UPDATE_ROADMAP" }
+        "nothing": { "goto": "UPDATE_ROADMAP" },
+        "error": { "goto": "COMMIT_FIX" }
       }
+    },
+
+    "COMMIT_FIX": {
+      "type": "agent",
+      "prompt": "Git commit failed for module {module}. Error: {commitError}\n\nFix the issue (e.g. resolve merge conflicts, fix lint errors, remove secrets) and commit using nop-git-master skill. Output <COMMIT_RESULT>fixed</COMMIT_RESULT> or <COMMIT_RESULT>skipped</COMMIT_RESULT>.",
+      "resultTag": "COMMIT_RESULT",
+      "onUnknownMaxRetries": 1,
+      "transitions": {
+        "fixed": { "goto": "UPDATE_ROADMAP" },
+        "skipped": { "goto": "UPDATE_ROADMAP" }
+      },
+      "onError": { "goto": "UPDATE_ROADMAP" }
     },
 
     "UPDATE_ROADMAP": {

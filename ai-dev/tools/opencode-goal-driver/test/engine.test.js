@@ -2060,3 +2060,236 @@ describe("FlowEngine — fault tolerance: flow-level totalTimeout", () => {
     assert.equal(result.stepCount, 10);
   });
 });
+
+// ═══════════════════════════════════════════
+// 18. SubFlow: forEach + single execution
+// ═══════════════════════════════════════════
+
+describe("FlowEngine — subflow", () => {
+  it("forEach iterates over array from script vars", async () => {
+    const childFlow = simpleFlow({
+      DO_WORK: {
+        type: "agent",
+        prompt: "work on {currentItem}",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "DO_WORK");
+
+    const flow = simpleFlow({
+      SETUP: {
+        type: "script",
+        run: () => ({ marker: "go", vars: { items: ["x", "y", "z"] } }),
+        transitions: { go: { goto: "PROCESS" } },
+      },
+      PROCESS: {
+        type: "subflow",
+        flow: "child",
+        forEach: "items",
+        transitions: { all_complete: { done: "completed" } },
+      },
+    }, "SETUP");
+
+    const delegates = makeMockDelegates({
+      responses: { DO_WORK: "<R>ok</R>" },
+    });
+    delegates.subFlows = { child: childFlow };
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    const workCalls = delegates.callLog.filter(c => c.stepName === "DO_WORK");
+    assert.equal(workCalls.length, 3);
+    assert.ok(workCalls[0].prompt.includes("work on x"));
+    assert.ok(workCalls[1].prompt.includes("work on y"));
+    assert.ok(workCalls[2].prompt.includes("work on z"));
+  });
+
+  it("forEach returns some_failed when some items fail", async () => {
+    const childFlow = simpleFlow({
+      DO_WORK: {
+        type: "agent",
+        prompt: "work",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "DO_WORK");
+
+    const flow = simpleFlow({
+      SETUP: {
+        type: "script",
+        run: () => ({ marker: "go", vars: { items: ["a", "b"] } }),
+        transitions: {
+          go: { goto: "PROCESS" },
+        },
+      },
+      PROCESS: {
+        type: "subflow",
+        flow: "child",
+        forEach: "items",
+        transitions: {
+          all_complete: { done: "completed" },
+          some_failed: { done: "partial" },
+          all_failed: { done: "failed" },
+        },
+      },
+    }, "SETUP");
+
+    let callCount = 0;
+    const delegates = makeMockDelegates({
+      responses: {
+        DO_WORK: () => {
+          callCount++;
+          return callCount === 1
+            ? { text: "", ok: false }
+            : { text: "<R>ok</R>", ok: true };
+        },
+      },
+    });
+    delegates.subFlows = { child: childFlow };
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "partial");
+  });
+
+  it("single execution passes planFile to child", async () => {
+    const childFlow = simpleFlow({
+      DO_WORK: {
+        type: "agent",
+        prompt: "process plan {planFile}",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "DO_WORK");
+
+    const flow = simpleFlow({
+      RUN: {
+        type: "subflow",
+        flow: "child",
+        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
+      },
+    }, "RUN");
+
+    let receivedPrompt = "";
+    const delegates = makeMockDelegates({
+      responses: {
+        DO_WORK: (sn, prompt) => { receivedPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
+      },
+    });
+    delegates.vars = { module: "test", planFile: "ai-dev/plans/test-plan.md" };
+    delegates.subFlows = { child: childFlow };
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(receivedPrompt.includes("ai-dev/plans/test-plan.md"));
+  });
+
+  it("empty forEach array returns all_complete immediately", async () => {
+    const childFlow = simpleFlow({
+      DO_WORK: {
+        type: "agent",
+        prompt: "work",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "DO_WORK");
+
+    const flow = simpleFlow({
+      SETUP: {
+        type: "script",
+        run: () => ({ marker: "go", vars: { items: [] } }),
+        transitions: { go: { goto: "PROCESS" } },
+      },
+      PROCESS: {
+        type: "subflow",
+        flow: "child",
+        forEach: "items",
+        transitions: { all_complete: { done: "completed" } },
+      },
+    }, "SETUP");
+
+    const delegates = makeMockDelegates();
+    delegates.subFlows = { child: childFlow };
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(!delegates.callLog.some(c => c.stepName === "DO_WORK"));
+  });
+});
+
+// ═══════════════════════════════════════════
+// 19. Commit error → agent fallback
+// ═══════════════════════════════════════════
+
+describe("FlowEngine — commit with agent fallback", () => {
+  it("script commit error triggers agent fix step", async () => {
+    const flow = simpleFlow({
+      COMMIT: {
+        type: "script",
+        run: () => ({ marker: "error", vars: { commitError: "pre-commit hook failed" } }),
+        transitions: {
+          committed: { done: "completed" },
+          nothing: { done: "completed" },
+          error: { goto: "COMMIT_FIX" },
+        },
+      },
+      COMMIT_FIX: {
+        type: "agent",
+        prompt: "fix commit error: {commitError}",
+        resultTag: "COMMIT_RESULT",
+        transitions: {
+          fixed: { done: "completed" },
+          skipped: { done: "completed" },
+        },
+      },
+    }, "COMMIT");
+
+    let fixPrompt = "";
+    const delegates = makeMockDelegates({
+      responses: {
+        COMMIT_FIX: (sn, prompt) => { fixPrompt = prompt; return { text: "<COMMIT_RESULT>fixed</COMMIT_RESULT>", ok: true }; },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(fixPrompt.includes("pre-commit hook failed"));
+    assert.ok(delegates.callLog.some(c => c.stepName === "COMMIT_FIX"));
+  });
+
+  it("commit nothing skips fix step entirely", async () => {
+    const flow = simpleFlow({
+      COMMIT: {
+        type: "script",
+        run: () => ({ marker: "nothing", vars: { commitHash: "none" } }),
+        transitions: {
+          committed: { done: "completed" },
+          nothing: { done: "completed" },
+          error: { goto: "COMMIT_FIX" },
+        },
+      },
+      COMMIT_FIX: {
+        type: "agent",
+        prompt: "fix",
+        resultTag: "R",
+        transitions: { fixed: { done: "completed" } },
+      },
+    }, "COMMIT");
+
+    const delegates = makeMockDelegates();
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(!delegates.callLog.some(c => c.stepName === "COMMIT_FIX"));
+  });
+});
