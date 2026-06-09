@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { execute } from "./executor.js";
+import { execute } from "./process-executor.js";
 
 let _mockRoadmapCount = 0;
 let _mockPlanAuditCount = 0;

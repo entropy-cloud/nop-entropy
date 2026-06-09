@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { resolveConfig } from "./config.js";
-import { createRunner, resetMockState } from "./runner.js";
+import { createRunner, resetMockState } from "./opencode-runner.js";
 import { FlowEngine } from "./engine.js";
 import { createGoalDriverFlow } from "./flow-goal-driver.js";
 
