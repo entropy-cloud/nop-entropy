@@ -108,14 +108,21 @@ txn().afterCommit(null, () -> {
 
 这个写法只适用于当前已经在事务里的修改动作。普通 `@BizMutation` 可以这样写；`@BizQuery` 不要直接照搬。
 
-## 常见坑
+## 写后自检清单
 
-1. `@BizMutation @Transactional`
-2. `dao().getEntityById(id)` 作为默认模板
-3. 参数缺少 `@Name`
-4. 复杂返回值用 `Map<String, Object>`
-5. `@Inject private Foo foo;`
-6. `new Order()` 直接构造实体 — 必须用 `newEntity()` 以支持 Delta 扩展
+**写完每个 BizModel 方法后，必须逐条检查以下规则。** 不要把清单当阅读材料跳过——它是写完代码后的硬性校验步骤。
+
+- [ ] 没有多余的 `@Transactional`（`@BizMutation` 已自带事务）
+- [ ] 数据获取走 `requireEntity()` / `doFindList()` / `doFindPage()`，没有直接 `dao().getEntityById()`
+- [ ] 所有参数有 `@Name` 注解（或使用 `@RequestBean`）
+- [ ] **返回值没有使用 `Map<String, Object>`** — 多字段返回用 `@DataBean` DTO，单实体返回直接返回实体
+- [ ] `@Inject` 字段不是 `private`（使用 package-private 或 protected）
+- [ ] 新建实体用 `newEntity()` / `xxxBiz.newEntity()`，没有直接 `new XxxEntity()`
+- [ ] BizModel 新增的 public 方法已同步到 `I*Biz` 接口（含注解和 `@Name`）
+- [ ] `I*Biz` 接口方法有 `@BizQuery` / `@BizMutation` / `@BizAction` 之一
+- [ ] 程序化创建实体用 `saveEntity()`，不是 `save(Map)`
+
+> **为什么强调逐条检查而不是"读了就知道"：** 实现阶段注意力集中在让逻辑跑通，容易跳过文档中已明确的约定。把规则变成写后自检步骤，是防止"读了规则但写出来违反规则"的最有效方式。
 
 ## 相关文档
 
