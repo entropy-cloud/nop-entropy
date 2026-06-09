@@ -1,8 +1,9 @@
 # Goal Driver Flow Engine Design
 
-> Status: v3
+> Status: v4
 > Last Reviewed: 2026-06-09
-> Source: ai-dev/tools/opencode-goal-driver
+> Changes: Added §8 Session Strategy (independent sessions + marker correction reuse)
+> Source: ai-dev/tools/opencode-goal-driver (src/ only)
 
 ## 1. Motivation
 
@@ -349,8 +350,8 @@ ai-dev/tools/opencode-goal-driver/
 │   ├── execute-pending-plan.md
 │   └── closure-audit.md
 ├── test/
-│   └── engine.test.js             # 70 tests
-└── DESIGN-flow-dsl.md             # This file
+│   └── engine.test.js             # 69 tests
+└── prompts/                       # Prompt files (loaded at runtime)
 ```
 
 ### Responsibility Matrix
@@ -550,7 +551,45 @@ flowchart LR
 | `updateRoadmap(delegates)` | scripts.js | `{ marker: "updated"/"skipped"/"error" }` |
 | `gitCommit(delegates, args)` | scripts.js | `{ marker: "committed"/"nothing"/"error" }` |
 
-## 8. Module Compatibility
+## 8. Session Strategy
+
+### 8.1 Design Decision: Independent Sessions by Default
+
+Each agent step spawns an **independent `opencode run` session**. The engine does NOT carry a session ID from one step to the next.
+
+**Decision reason**:
+
+1. **Context is passed via template variables, not conversation history.** The engine already has a complete context-passing mechanism (`{steps.X.text}`, `{steps.X.marker}`, `append` buffers, `extractVars`). Every downstream step receives all necessary information through its prompt — no reliance on opencode's conversation memory.
+2. **Each step has a clearly defined role.** `FIX_TESTS` does not need to see `ROADMAP_CHECK`'s dialogue history. Its `promptFile` already contains sufficient instructions and injected context.
+3. **Avoids cross-step contamination.** Shared sessions risk the agent referencing stale or irrelevant context from previous steps, producing unpredictable behavior.
+4. **Predictable token usage.** Independent sessions guarantee each step starts from a clean context window, independent of cumulative conversation length.
+
+**Rejected alternative**: Shared session across the entire flow. Would require managing conversation compaction, risk context window overflow in long flows, and add tight coupling between steps that should be independent.
+
+### 8.2 Exception: Session Reuse for Marker Correction
+
+When an agent returns a marker not found in the transitions table, the engine performs **marker correction** — it re-prompts the same agent (in the same session) to output a valid marker value.
+
+```
+agent step → marker not in transitions
+  → spawn correction prompt IN SAME SESSION (up to onUnknownMaxRetries times)
+  → agent sees its own previous output and corrects the marker
+  → if still invalid → onUnknown action
+```
+
+**Why reuse session here**: The correction prompt is a small follow-up asking the agent to fix a formatting error in its own output. The agent needs to see its previous response to produce the corrected marker. Starting a new session would lose the context of what it just said.
+
+Implementation: `engine.js` `_executeAgentStep` receives `sessionId` parameter. Normal flow calls it with `null`; the marker correction path (`_resolveMarker` → correction retry) passes `this.lastSessionId`.
+
+### 8.3 Session Lifecycle Summary
+
+| Scenario | Session | Rationale |
+|----------|---------|-----------|
+| Normal agent step | **New** (sessionId=null) | Context via template vars, no history needed |
+| Marker correction retry | **Reuse** (sessionId=lastSessionId) | Agent needs to see its own output to correct |
+| Subprocess killed → onError | **New** (no sessionId) | Previous session is from a dead process |
+
+## 9. Module Compatibility
 
 Engine uses `config.js` `findModuleDir()` for module directory discovery:
 
