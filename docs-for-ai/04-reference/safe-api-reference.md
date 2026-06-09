@@ -54,12 +54,15 @@ doFindList(query, (q, ctx) -> {
 
 | 场景 | 优先方法 |
 |------|---------|
+| **创建实体实例** | **`newEntity()`**（不要 `new Order()`） |
 | 前端 Map 数据新建 | `save(data, context)` |
 | 前端 Map 数据更新 | `update(data, context)` |
 | **程序化创建新实体**（已持有实体对象） | **`saveEntity(entity, action, context)`** |
 | 已拿到实体后更新 | `updateEntity(entity, action, context)` |
 | 已拿到实体后删除 | `deleteEntity(entity, action, context)` |
 | 按 id 删除 | `delete(id, context)` |
+
+> **必须用 `newEntity()` 而不是 `new Order()`**：实体可能被 Delta 机制扩展为派生类。`newEntity()` 通过 DAO 创建实例，确保返回正确的派生类。直接 `new` 会丢失 Delta 增强的字段和行为。
 
 > **`save` vs `saveEntity` 区别**：
 > - `save(Map, context)` 接收前端传入的 `Map<String, Object>`，经 xmeta 校验和 `OrmEntityCopier` 拷贝到实体后持久化。适用于 GraphQL/REST 前端请求。

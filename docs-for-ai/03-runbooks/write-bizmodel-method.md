@@ -44,13 +44,13 @@ public Order cancel(@Name("orderId") String orderId,
 
 ### 程序化创建新实体
 
-在 BizModel 内部构造实体对象（非前端 Map 输入）时，用 `saveEntity`：
+在 BizModel 内部构造实体对象（非前端 Map 输入）时，用 `newEntity()` 创建 + `saveEntity()` 持久化：
 
 ```java
 @BizMutation
 public Order createOrder(@Name("addressId") String addressId,
                          IServiceContext context) {
-    Order order = new Order();
+    Order order = newEntity();
     order.setUserId(context.getUserId());
     order.setOrderSn(generateSn());
     // ... 设置字段 ...
@@ -58,6 +58,8 @@ public Order createOrder(@Name("addressId") String addressId,
     return order;
 }
 ```
+
+> **必须用 `newEntity()` 而不是 `new Order()`**：`newEntity()` 通过 DAO 创建实例，如果实体被 Delta 机制扩展为派生类，`newEntity()` 会返回正确的派生类实例。直接 `new` 会绕过扩展，导致丢失 Delta 增强的字段和行为。
 
 > **`save(Map)` vs `saveEntity(entity)`**：`save(Map, context)` 用于前端传入的 `Map<String, Object>` 数据；`saveEntity(entity, action, context)` 用于 BizModel 内部已持有实体对象时直接持久化。两者都含权限检查和 afterEntityChange 触发。
 
@@ -99,6 +101,7 @@ txn().afterCommit(null, () -> {
 3. 参数缺少 `@Name`
 4. 复杂返回值用 `Map<String, Object>`
 5. `@Inject private Foo foo;`
+6. `new Order()` 直接构造实体 — 必须用 `newEntity()` 以支持 Delta 扩展
 
 ## 相关文档
 
