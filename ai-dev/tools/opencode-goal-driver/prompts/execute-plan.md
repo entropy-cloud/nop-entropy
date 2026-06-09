@@ -1,29 +1,29 @@
 # Execute Plan Procedure
 
-执行模块 {module} 的活跃计划，**完整执行整个计划直到结束**。
+Execute the active plan for module {module}. **Execute the entire plan to completion.**
 
-## 执行步骤
+## Execution Steps
 
-1. 运行 node ai-dev/tools/check-plan-status.mjs 获取活跃计划列表
-2. 选择 Active 列表中的第一个计划
-3. 读取计划文件，跳过已标记 [x] 的 Phase，按顺序执行所有 [ ] Phase
-4. 每完成一个 Phase：
-   a. 运行 ./mvnw test -pl {module} -am -T 1C 确认测试通过
-   b. 将该 Phase 在计划文件中标记为 [x]
-   c. 用 nop-git-master skill 提交代码（commit message 包含工作项编号）
-5. 所有 Phase 完成后：
-   a. 将计划的 Plan Status 更新为 completed
-   b. 读取计划中的工作项编号，在路线图文件（ai-dev/design/*{module}*/*roadmap*.md）中将该工作项从 ❌ 改为 ✅
+1. Run `node ai-dev/tools/check-plan-status.mjs` to get the active plan list
+2. Select the first plan in the Active list
+3. Read the plan file, skip Phases already marked [x], and execute all [ ] Phases in order
+4. After completing each Phase:
+   a. Run `./mvnw test -pl {module} -am -T 1C` to confirm tests pass
+   b. Mark that Phase as [x] in the plan file
+   c. Commit code using the nop-git-master skill (include the work item ID in the commit message)
+5. After all Phases are complete:
+   a. Update the plan's Plan Status to `completed`
+   b. Read the work item ID from the plan, then update the roadmap file (ai-dev/design/*{module}*/*roadmap*.md) — change that work item from ❌ to ✅
 
-如果执行中途中断或失败也没关系——计划自身记录了进度（[x]/[ ]），下次重新执行时会从断点继续。
-不要试图节省步骤，完整执行每一个未完成的 Phase。
+If execution is interrupted or fails partway through, that is fine — the plan itself records progress ([x]/[ ]), and the next run will resume from the checkpoint.
+Do not skip steps — fully execute every incomplete Phase.
 
-## 输出格式
+## Output Format
 
 ```
 <EXECUTE_RESULT>success</EXECUTE_RESULT>
 ```
-或
+or
 ```
 <EXECUTE_RESULT>failed</EXECUTE_RESULT>
 ```

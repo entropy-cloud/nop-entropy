@@ -13,17 +13,17 @@ const SIGKILL_DELAY = 10_000;
 /**
  * Run any external command via fd redirect (equivalent to shell >>file 2>&1).
  *
- * 通过文件描述符重定向 stdout/stderr → 日志文件，等价于 shell 重定向
- * `>>file 2>&1`，但避免 shell 转义问题。子进程的输出与终端执行一致。
+ * Redirects stdout/stderr to a log file via file descriptor, avoiding shell
+ * escaping issues. Child process output matches terminal execution.
  *
- * @param {object}   config         – 全局配置 (必须有 runDir)
- * @param {string}   label          – 日志文件标签 (如 "mvnw", "oc-deep-audit")
- * @param {string}   cmd            – 可执行路径 (如 "./mvnw", "opencode")
- * @param {string[]} args           – 命令行参数
+ * @param {object}   config         – Global config (must have runDir)
+ * @param {string}   label          – Log file label (e.g. "mvnw", "oc-deep-audit")
+ * @param {string}   cmd            – Executable path (e.g. "./mvnw", "opencode")
+ * @param {string[]} args           – Command-line arguments
  * @param {object}   [opts]
- * @param {string}   [opts.cwd]     – 工作目录 (默认 config.projectRoot)
- * @param {number}   [opts.timeout] – 超时毫秒 (0 = 不限, 默认 0)
- * @param {boolean}  [opts.quiet]   – 禁止进度输出 (默认 false)
+ * @param {string}   [opts.cwd]     – Working directory (default: config.projectRoot)
+ * @param {number}   [opts.timeout] – Timeout in ms (0 = no limit, default: 0)
+ * @param {boolean}  [opts.quiet]   – Suppress progress output (default: false)
  * @returns {{ ok: boolean, logFile: string }}
  */
 export function execute(config, label, cmd, args, opts = {}) {
@@ -31,7 +31,6 @@ export function execute(config, label, cmd, args, opts = {}) {
   const cwd = opts.cwd || config.projectRoot;
   const timeout = opts.timeout || 0;
 
-  // 日志文件头
   mkdirSync(dirname(logFile), { recursive: true });
   const header = [
     `# cmd: ${cmd} ${args.join(" ")}`,
@@ -44,34 +43,29 @@ export function execute(config, label, cmd, args, opts = {}) {
   const fd = openSync(logFile, "a");
   const child = spawn(cmd, args, { cwd, stdio: ["ignore", fd, fd], shell: false });
 
-  // 每 60s 进度
   let progressTimer = null;
   if (!opts.quiet) {
     progressTimer = setInterval(() => {
       if (child.exitCode === null) {
         const ts = new Date().toISOString().slice(11, 19);
-        process.stderr.write(`  [${ts}] ${label} 运行中 ... (pid ${child.pid})\n`);
+        process.stderr.write(`  [${ts}] ${label} running ... (pid ${child.pid})\n`);
       }
     }, 60000);
   }
 
-  // 超时终止: SIGTERM → SIGKILL fallback
   let timeoutTimer = null;
   let sigkillTimer = null;
   if (timeout > 0) {
     timeoutTimer = setTimeout(() => {
-      process.stderr.write(`  [TIMEOUT] ${label} 超时 ${timeout}ms，终止进程\n`);
+      process.stderr.write(`  [TIMEOUT] ${label} timed out after ${timeout}ms, terminating process\n`);
       try { child.kill("SIGTERM"); } catch { }
       sigkillTimer = setTimeout(() => {
-        process.stderr.write(`  [TIMEOUT] ${label} SIGTERM 后 10s 未退出，发送 SIGKILL\n`);
+        process.stderr.write(`  [TIMEOUT] ${label} did not exit 10s after SIGTERM, sending SIGKILL\n`);
         try { child.kill("SIGKILL"); } catch { }
       }, SIGKILL_DELAY);
     }, timeout);
   }
 
-  // Watchdog: 定期 spawn 独立子 agent 智能检查子进程状态
-  // 不在 driver 侧做 mtime/内容检测（fd 重定向日志有心跳噪声，不可靠），
-  // 而是由独立子 agent 查看子进程的 opencode 内部日志来智能判断
   const watchdogIntervalMs = config.watchdogIntervalMs;
   const watchdogStallMs = config.watchdogStallMs;
   let watchdogTimer = null;
@@ -89,20 +83,21 @@ export function execute(config, label, cmd, args, opts = {}) {
         watchdogRunning = true;
         if (child.exitCode !== null) { watchdogRunning = false; return; }
 
-        process.stderr.write(`  [WATCHDOG] ${label} 运行 ${Math.round(elapsed / 60_000)} 分钟，spawn 独立子 agent 检查状态 ...\n`);
-        appendFileSync(logFile, `\n# watchdog: 运行 ${Math.round(elapsed / 60_000)}min，spawn 检查 agent @ ${new Date().toISOString()}\n`);
+        const minutes = Math.round(elapsed / 60_000);
+        process.stderr.write(`  [WATCHDOG] ${label} running for ${minutes} minutes, spawning watchdog agent to check status ...\n`);
+        appendFileSync(logFile, `\n# watchdog: running ${minutes}min, spawning check agent @ ${new Date().toISOString()}\n`);
 
         const wdResult = await spawnWatchdogAgent(config, label, logFile, child.pid);
 
         const summary = `action=${wdResult.action} diagnosis=${wdResult.diagnosis} log=${wdResult.logFile || "N/A"}`;
         appendFileSync(logFile, `# watchdog result: ${summary} @ ${new Date().toISOString()}\n`);
-        process.stderr.write(`  [WATCHDOG] ${label} → ${summary}\n`);
+        process.stderr.write(`  [WATCHDOG] ${label} -> ${summary}\n`);
 
         lastWatchdogTime = Date.now();
         watchdogRunning = false;
       } catch (e) {
         watchdogRunning = false;
-        process.stderr.write(`  [WATCHDOG] 异常: ${e.message}\n`);
+        process.stderr.write(`  [WATCHDOG] error: ${e.message}\n`);
       }
     }, watchdogIntervalMs);
   }
@@ -138,11 +133,13 @@ export function execute(config, label, cmd, args, opts = {}) {
 }
 
 /**
- * Spawn 一个独立 opencode run 子 agent，让它自己判断是否需要 kill 卡住的进程。
+ * Spawn an independent opencode run sub-agent to check whether a stalled process
+ * needs to be killed.
  *
- * 关键设计：主 driver 不做 kill 决定，也不执行 kill。
- * 子 agent 通过 bash 工具自行检查日志、判断状态、决定是否 kill。
- * 如果子 agent 自身也失败/超时，对主 driver 无影响（只是 watchdog 没生效）。
+ * Key design: the main driver never makes kill decisions or executes kills.
+ * The sub-agent checks logs, assesses status, and decides whether to kill.
+ * If the sub-agent itself fails/times out, the main driver is unaffected
+ * (watchdog simply did not trigger).
  *
  * @returns {{ action: string, diagnosis: string, logFile: string|null }}
  */
@@ -150,45 +147,45 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
   const driverPid = process.pid;
 
   const prompt = [
-    `你是 opencode goal driver 的独立 watchdog 子 agent。`,
+    `You are an independent watchdog sub-agent for the opencode goal driver.`,
     ``,
-    `## 背景`,
-    `一个名为 "${label}" 的子 agent (PID=${stalledPid}) 已运行超过 30 分钟，需要检查其状态。`,
-    `主 driver 进程 PID=${driverPid}。`,
-    `fd 重定向日志: ${stalledLogFile}`,
+    `## Background`,
+    `A sub-agent named "${label}" (PID=${stalledPid}) has been running for over 30 minutes and needs a status check.`,
+    `The main driver process PID=${driverPid}.`,
+    `FD-redirected log: ${stalledLogFile}`,
     ``,
-    `## 你的任务`,
-    `请自行检查并处理，不要请求确认。`,
+    `## Your Task`,
+    `Perform the check and take action autonomously — do not ask for confirmation.`,
     ``,
-    `### 步骤 1: 诊断`,
-    `1. 用 bash 执行 \`ps -o pid,ppid,stat,etime -p ${stalledPid}\` 检查进程是否仍在运行`,
-    `2. 找到子进程的 opencode 内部日志：`,
-    `   - 执行 \`lsof -p ${stalledPid} -Fn 2>/dev/null | grep 'opencode/log' | grep '.log'\` 找到日志文件路径`,
-    `   - 或 \`ls -t ~/.local/share/opencode/log/*.log | head -3\` 找最近的日志文件`,
-    `3. 读取 opencode 内部日志的最后 80 行（注意：其中会有大量 service=bus type=message.part.delta 的流式心跳，忽略这些）`,
-    `4. 判断子 agent 状态（看最后一条非 bus 心跳的条目）：`,
-    `   - 有近期的 service=tool、service=permission、service=session.prompt → 正常工作中，不需要 kill`,
-    `   - 最后几十行全是 service=bus type=message.part.delta，无任何 tool/permission/prompt 活动 → LLM 调用挂起`,
-    `   - 内部日志有 # exit: 或进程已不存在 → 已完成但信号丢失（僵尸态）`,
-    `5. 如有疑问，再读 fd 重定向日志 ${stalledLogFile} 的最后 50 行作为补充`,
+    `### Step 1: Diagnosis`,
+    `1. Run \`ps -o pid,ppid,stat,etime -p ${stalledPid}\` via bash to check if the process is still running`,
+    `2. Find the sub-process opencode internal log:`,
+    `   - Run \`lsof -p ${stalledPid} -Fn 2>/dev/null | grep 'opencode/log' | grep '.log'\` to find the log file path`,
+    `   - Or run \`ls -t ~/.local/share/opencode/log/*.log | head -3\` to find the most recent log files`,
+    `3. Read the last 80 lines of the opencode internal log (note: there will be many service=bus type=message.part.delta streaming heartbeats — ignore those)`,
+    `4. Determine the sub-agent status (look at the last non-bus-heartbeat entry):`,
+    `   - Recent service=tool, service=permission, or service=session.prompt entries → actively working, do NOT kill`,
+    `   - Last dozens of lines are all service=bus type=message.part.delta with no tool/permission/prompt activity → LLM call is hung`,
+    `   - Internal log has # exit: or the process no longer exists → completed but signal was lost (zombie state)`,
+    `5. If in doubt, also read the last 50 lines of the FD-redirected log ${stalledLogFile} for additional context`,
     ``,
-    `### 步骤 2: 决策与执行`,
-    `如果诊断确认子 agent 卡住/僵死/已完成但信号丢失：`,
-    `  用 bash 执行 \`kill ${stalledPid}\` 来终止卡住的子 agent`,
-    `  然后执行 \`kill -0 ${stalledPid} 2>/dev/null && echo 'still alive' || echo 'dead'\` 确认已终止`,
+    `### Step 2: Decision and Action`,
+    `If diagnosis confirms the sub-agent is stuck/zombie/completed-but-signal-lost:`,
+    `  Run \`kill ${stalledPid}\` via bash to terminate the stuck sub-agent`,
+    `  Then run \`kill -0 ${stalledPid} 2>/dev/null && echo 'still alive' || echo 'dead'\` to confirm termination`,
     ``,
-    `如果诊断发现子 agent 正常工作中：`,
-    `  不做任何操作`,
+    `If diagnosis shows the sub-agent is actively working:`,
+    `  Take no action`,
     ``,
-    `### 绝对禁止`,
-    `- 只能 kill PID=${stalledPid}（子 agent），绝对不能 kill PID=${driverPid}（主 driver）`,
-    `- 不能 kill 任何其他进程`,
-    `- 如果 ${stalledPid} 进程已不存在，不需要做任何操作`,
+    `### Strict Prohibitions`,
+    `- You may ONLY kill PID=${stalledPid} (the sub-agent). NEVER kill PID=${driverPid} (the main driver)`,
+    `- Do not kill any other process`,
+    `- If process ${stalledPid} no longer exists, no action is needed`,
     ``,
-    `### 输出`,
-    `完成后输出：`,
+    `### Output`,
+    `When done, output:`,
     `<WATCHDOG_RESULT>`,
-    `  diagnosis: 一句话诊断`,
+    `  diagnosis: one-sentence diagnosis`,
     `  action: kill / no-action`,
     `  pid: ${stalledPid}`,
     `</WATCHDOG_RESULT>`,
@@ -202,7 +199,7 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
 
   return new Promise((res) => {
     let settled = false;
-    const fallback = { action: "unknown", diagnosis: "watchdog agent 未正常完成", logFile: wdLogFile };
+    const fallback = { action: "unknown", diagnosis: "watchdog agent did not complete normally", logFile: wdLogFile };
     const done = (result) => {
       if (settled) return;
       settled = true;
@@ -213,8 +210,8 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
     try {
       wdFd = openSync(wdLogFile, "a");
     } catch (e) {
-      process.stderr.write(`  [WATCHDOG] 打开日志文件失败: ${e.message}\n`);
-      done({ ...fallback, diagnosis: `watchdog agent 日志文件打开失败: ${e.message}` });
+      process.stderr.write(`  [WATCHDOG] failed to open log file: ${e.message}\n`);
+      done({ ...fallback, diagnosis: `watchdog agent log file open failed: ${e.message}` });
       return;
     }
 
@@ -227,13 +224,13 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
 
       let wdSigkillTimer;
       const wdTimeout = setTimeout(() => {
-        process.stderr.write(`  [WATCHDOG] 检查 agent 自身超时 (10min)，强制终止\n`);
+        process.stderr.write(`  [WATCHDOG] check agent timed out (10min), force-terminating\n`);
         try { wdChild.kill("SIGTERM"); } catch { }
         wdSigkillTimer = setTimeout(() => {
           try { wdChild.kill("SIGKILL"); } catch { }
         }, SIGKILL_DELAY);
         try { closeSync(wdFd); } catch { }
-        done({ ...fallback, diagnosis: "watchdog agent 自身超时" });
+        done({ ...fallback, diagnosis: "watchdog agent itself timed out" });
       }, 10 * 60_000);
 
       wdChild.on("close", () => {
@@ -241,7 +238,7 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
         if (wdSigkillTimer) clearTimeout(wdSigkillTimer);
         try { closeSync(wdFd); } catch { }
         appendFileSync(wdLogFile, `# watchdog agent finished: ${new Date().toISOString()}\n`);
-        process.stderr.write(`  [WATCHDOG] 检查 agent 执行完毕，日志: ${wdLogFile}\n`);
+        process.stderr.write(`  [WATCHDOG] check agent finished, log: ${wdLogFile}\n`);
 
         try {
           const text = readFileSync(wdLogFile, "utf8");
@@ -258,19 +255,19 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
             return;
           }
         } catch { }
-        done({ ...fallback, diagnosis: "watchdog agent 未输出 WATCHDOG_RESULT 标签" });
+        done({ ...fallback, diagnosis: "watchdog agent did not output WATCHDOG_RESULT tag" });
       });
 
       wdChild.on("error", (err) => {
         clearTimeout(wdTimeout);
         try { closeSync(wdFd); } catch { }
-        process.stderr.write(`  [WATCHDOG] 检查 agent 启动失败: ${err.message}\n`);
-        done({ ...fallback, diagnosis: `watchdog agent 启动失败: ${err.message}` });
+        process.stderr.write(`  [WATCHDOG] check agent failed to start: ${err.message}\n`);
+        done({ ...fallback, diagnosis: `watchdog agent start failed: ${err.message}` });
       });
     } catch (e) {
       try { closeSync(wdFd); } catch { }
-      process.stderr.write(`  [WATCHDOG] spawn 异常: ${e.message}\n`);
-      done({ ...fallback, diagnosis: `watchdog agent spawn 异常: ${e.message}` });
+      process.stderr.write(`  [WATCHDOG] spawn exception: ${e.message}\n`);
+      done({ ...fallback, diagnosis: `watchdog agent spawn exception: ${e.message}` });
     }
   });
 }

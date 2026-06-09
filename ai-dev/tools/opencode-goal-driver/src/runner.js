@@ -49,7 +49,7 @@ function mockAgentResponse(stepName) {
   if (n === "roadmap-check") {
     _mockRoadmapCount++;
     return _mockRoadmapCount <= 1
-      ? "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item priority=\"P1\">mock: 未实现功能</item></ROADMAP_ITEMS>"
+      ? "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item priority=\"P1\">mock: unimplemented feature</item></ROADMAP_ITEMS>"
       : "<ROADMAP_RESULT>complete</ROADMAP_RESULT>";
   }
 
@@ -58,7 +58,7 @@ function mockAgentResponse(stepName) {
   if (n === "plan-audit" || n === "audit-plan-audit") {
     _mockPlanAuditCount++;
     return _mockPlanAuditCount <= 1
-      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item severity=\"Major\">mock: Exit Criteria 不可验证</item></ISSUES>"
+      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item severity=\"Major\">mock: Exit Criteria not verifiable</item></ISSUES>"
       : "<AUDIT_RESULT>approved</AUDIT_RESULT>";
   }
 
@@ -69,7 +69,7 @@ function mockAgentResponse(stepName) {
   if (n === "closure-audit" || n === "audit-closure") {
     _mockClosureCount++;
     return _mockClosureCount === 1
-      ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: 测试覆盖不足</item></REMAINING>"
+      ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: insufficient test coverage</item></REMAINING>"
       : "<CLOSURE_RESULT>complete</CLOSURE_RESULT>";
   }
 

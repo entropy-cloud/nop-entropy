@@ -110,7 +110,7 @@ export function createGoalDriverFlow() {
 
     steps: {
       // ═══════════════════════════════════════
-      // Step 1: 智能修复所有单元测试错误
+      // Step 1: Smart-fix all unit test errors
       // ═══════════════════════════════════════
       FIX_TESTS: {
         type: "agent",
@@ -127,7 +127,7 @@ export function createGoalDriverFlow() {
 
       FIX_TESTS_RECOVERY: {
         type: "agent",
-        prompt: "模块 {module} 的测试修复失败。请重新分析测试失败根因，使用更保守的修复策略。如果某些测试的预期行为确实需要更新，更新测试并说明理由。运行 ./mvnw test -pl {module} -am -T 1C 验证。输出 <TEST_RESULT>fixed</TEST_RESULT> 或 <TEST_RESULT>failed</TEST_RESULT>。",
+        prompt: "Test fix for module {module} failed. Re-analyze test failures with a more conservative strategy. If test expectations genuinely need updating, update them with a clear explanation. Run ./mvnw test -pl {module} -am -T 1C to verify. Output <TEST_RESULT>fixed</TEST_RESULT> or <TEST_RESULT>failed</TEST_RESULT>.",
         resultTag: "TEST_RESULT",
         onUnknownMaxRetries: 1,
         transitions: {
@@ -138,7 +138,7 @@ export function createGoalDriverFlow() {
       },
 
       // ═══════════════════════════════════════
-      // Step 2: 循环完成所有未完成的计划
+      // Step 2: Loop through all pending plans
       // ═══════════════════════════════════════
       CHECK_PENDING_PLANS: {
         type: "script",
@@ -164,7 +164,7 @@ export function createGoalDriverFlow() {
 
       VERIFY_PENDING_PLAN: {
         type: "agent",
-        prompt: "验证刚执行的计划是否真正完成。读取 ai-dev/plans/ 中刚更新的计划文件，检查 Exit Criteria 是否全部满足。运行 ./mvnw test -pl {module} -am -T 1C 确认测试通过。输出 <VERIFY_RESULT>complete</VERIFY_RESULT> 或 <VERIFY_RESULT>incomplete</VERIFY_RESULT>。incomplete 时附带 <REMAINING>未完成项</REMAINING>。",
+        prompt: "Verify that the just-executed plan is truly complete. Read the updated plan file in ai-dev/plans/, check all Exit Criteria are satisfied. Run ./mvnw test -pl {module} -am -T 1C to confirm tests pass. Output <VERIFY_RESULT>complete</VERIFY_RESULT> or <VERIFY_RESULT>incomplete</VERIFY_RESULT>. If incomplete, include <REMAINING>items still pending</REMAINING>.",
         resultTag: "VERIFY_RESULT",
         maxRetries: 3,
         transitions: {
@@ -172,7 +172,7 @@ export function createGoalDriverFlow() {
           incomplete: {
             retry: "EXECUTE_PENDING_PLAN",
             maxRetries: 3,
-            append: { extract: "REMAINING", template: "\n\n以下项仍需完成：\n${output}" },
+            append: { extract: "REMAINING", template: "\n\nItems still pending:\n${output}" },
           },
         },
         onError: { retry: "EXECUTE_PENDING_PLAN", maxRetries: 2 },
@@ -181,7 +181,7 @@ export function createGoalDriverFlow() {
 
       COMMIT_PENDING_PLAN: {
         type: "script",
-        run: (delegates) => gitCommit(delegates, "plan", "feat({module}): 完成待执行计划"),
+        run: (delegates) => gitCommit(delegates, "plan", "feat({module}): complete pending plan execution"),
         transitions: {
           committed: { goto: "CHECK_PENDING_PLANS" },
           nothing: { goto: "CHECK_PENDING_PLANS" },
@@ -189,7 +189,7 @@ export function createGoalDriverFlow() {
       },
 
       // ═══════════════════════════════════════
-      // Step 3: 检查 roadmap → 拟制计划
+      // Step 3: Check roadmap -> draft plan
       // ═══════════════════════════════════════
       ROADMAP_CHECK: {
         type: "agent",
@@ -204,7 +204,7 @@ export function createGoalDriverFlow() {
       },
 
       // ═══════════════════════════════════════
-      // Step 4: 审核拟制的计划
+      // Step 4: Audit drafted plan
       // ═══════════════════════════════════════
       PLAN_DRAFT: {
         type: "agent",
@@ -229,16 +229,16 @@ export function createGoalDriverFlow() {
           issues: {
             retry: "PLAN_DRAFT",
             maxRetries: 3,
-            append: { template: "\n\n计划审查反馈：\n${output}" },
+            append: { template: "\n\nPlan audit feedback:\n${output}" },
           },
         },
         onError: { retry: "PLAN_DRAFT", maxRetries: 2 },
-        onMaxRetries: { goto: "EXECUTE_PLAN", append: { template: "\n\n⚠️ 计划未通过审计（多轮尝试），执行时请注意：\n${output}" } },
+        onMaxRetries: { goto: "EXECUTE_PLAN", append: { template: "\n\nWARNING: Plan did not pass audit after multiple rounds. Proceed with caution:\n${output}" } },
       },
 
       // ═══════════════════════════════════════
-      // Step 5: 执行计划
-      // Step 6: 审核计划完成 + 6.1 自动提交
+      // Step 5: Execute plan
+      // Step 6: Verify plan completion + 6.1 auto-commit
       // ═══════════════════════════════════════
       EXECUTE_PLAN: {
         type: "agent",
@@ -263,20 +263,20 @@ export function createGoalDriverFlow() {
           incomplete: {
             retry: "EXECUTE_PLAN",
             maxRetries: 5,
-            append: { extract: "REMAINING", template: "\n\n未完成项：\n${output}" },
+            append: { extract: "REMAINING", template: "\n\nItems still pending:\n${output}" },
           },
         },
         onError: {
           retry: "EXECUTE_PLAN",
           maxRetries: 3,
-          append: { template: "\n\nclosure audit 子进程被 kill，请重新检查 Exit Criteria" },
+          append: { template: "\n\nClosure audit subprocess was killed. Please re-check Exit Criteria." },
         },
         onMaxRetries: { goto: "PLAN_COMMIT" },
       },
 
       PLAN_COMMIT: {
         type: "script",
-        run: (delegates) => gitCommit(delegates, "plan", "feat({module}): 完成计划执行"),
+        run: (delegates) => gitCommit(delegates, "plan", "feat({module}): complete plan execution"),
         transitions: {
           committed: { goto: "NEEDS_DEEP_AUDIT" },
           nothing: { goto: "NEEDS_DEEP_AUDIT" },
@@ -284,7 +284,7 @@ export function createGoalDriverFlow() {
       },
 
       // ═══════════════════════════════════════
-      // Step 7: 智能判断是否需要深度审计
+      // Step 7: Smart-judge whether deep audit is needed
       // ═══════════════════════════════════════
       NEEDS_DEEP_AUDIT: {
         type: "agent",
@@ -299,11 +299,11 @@ export function createGoalDriverFlow() {
       },
 
       // ═══════════════════════════════════════
-      // Step 8: 执行智能深度审计
+      // Step 8: Execute smart deep audit
       // ═══════════════════════════════════════
       DEEP_AUDIT: {
         type: "agent",
-        prompt: "对模块 {module} 执行多维度深度审计。阅读 ai-dev/skills/deep-audit-prompts.md。结果写入 ai-dev/audits/{DATE}-deep-audit-{module}/。输出 <AUDIT_RESULT>clean</AUDIT_RESULT> 或 <AUDIT_RESULT>issues</AUDIT_RESULT>。",
+        prompt: "Run a multi-dimensional deep audit on module {module}. Read and follow ai-dev/skills/deep-audit-prompts.md. Write results to ai-dev/audits/{DATE}-deep-audit-{module}/. Output <AUDIT_RESULT>clean</AUDIT_RESULT> or <AUDIT_RESULT>issues</AUDIT_RESULT>.",
         resultTag: "AUDIT_RESULT",
         onUnknownMaxRetries: 2,
         transitions: {
@@ -314,11 +314,11 @@ export function createGoalDriverFlow() {
       },
 
       // ═══════════════════════════════════════
-      // Step 9: 开放式对抗性审计
+      // Step 9: Open-ended adversarial review
       // ═══════════════════════════════════════
       ADVERSARIAL: {
         type: "agent",
-        prompt: "对模块 {module} 执行对抗性审查。阅读 ai-dev/skills/open-ended-adversarial-review-prompt.md。结果写入 ai-dev/audits/{DATE}-adversarial-review-{module}/。输出 <ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT> 或 <ADVERSARIAL_RESULT>issues</ADVERSARIAL_RESULT>。",
+        prompt: "Run an adversarial review on module {module}. Read and follow ai-dev/skills/open-ended-adversarial-review-prompt.md. Write results to ai-dev/audits/{DATE}-adversarial-review-{module}/. Output <ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT> or <ADVERSARIAL_RESULT>issues</ADVERSARIAL_RESULT>.",
         resultTag: "ADVERSARIAL_RESULT",
         onUnknownMaxRetries: 2,
         transitions: {
@@ -329,11 +329,11 @@ export function createGoalDriverFlow() {
       },
 
       // ═══════════════════════════════════════
-      // Step 10-14: 审计结果 → 拟制计划 → 审核 → 执行 → 提交
+      // Step 10-14: Audit findings -> plan -> audit -> execute -> commit
       // ═══════════════════════════════════════
       AUDIT_PLAN_DRAFT: {
         type: "agent",
-        prompt: "根据审计结果为模块 {module} 拟制修复计划。审计结果：{steps.ADVERSARIAL.text}\n\n读取 ai-dev/plans/00-plan-authoring-and-execution-guide.md 了解计划格式，将计划文件写入 ai-dev/plans/。输出 <PLAN_RESULT>created</PLAN_RESULT> 或 <PLAN_RESULT>none</PLAN_RESULT>。",
+        prompt: "Draft a remediation plan for module {module} based on audit findings. Audit results: {steps.ADVERSARIAL.text}\n\nRead ai-dev/plans/00-plan-authoring-and-execution-guide.md for plan format. Write the plan file to ai-dev/plans/. Output <PLAN_RESULT>created</PLAN_RESULT> or <PLAN_RESULT>none</PLAN_RESULT>.",
         resultTag: "PLAN_RESULT",
         onUnknownMaxRetries: 2,
         transitions: {
@@ -354,11 +354,11 @@ export function createGoalDriverFlow() {
           issues: {
             retry: "AUDIT_PLAN_DRAFT",
             maxRetries: 3,
-            append: { template: "\n\n计划审查反馈：\n${output}" },
+            append: { template: "\n\nPlan audit feedback:\n${output}" },
           },
         },
         onError: { retry: "AUDIT_PLAN_DRAFT", maxRetries: 2 },
-        onMaxRetries: { goto: "AUDIT_EXECUTE", append: { template: "\n\n⚠️ 审计修复计划未通过审查，执行时请注意：\n${output}" } },
+        onMaxRetries: { goto: "AUDIT_EXECUTE", append: { template: "\n\nWARNING: Audit remediation plan did not pass review. Proceed with caution:\n${output}" } },
       },
 
       AUDIT_EXECUTE: {
@@ -384,20 +384,20 @@ export function createGoalDriverFlow() {
           incomplete: {
             retry: "AUDIT_EXECUTE",
             maxRetries: 3,
-            append: { extract: "REMAINING", template: "\n\n未完成项：\n${output}" },
+            append: { extract: "REMAINING", template: "\n\nItems still pending:\n${output}" },
           },
         },
         onError: {
           retry: "AUDIT_EXECUTE",
           maxRetries: 2,
-          append: { template: "\n\n审计计划执行验证失败，请重新检查" },
+          append: { template: "\n\nAudit plan execution verification failed. Please re-check." },
         },
         onMaxRetries: { goto: "AUDIT_COMMIT" },
       },
 
       AUDIT_COMMIT: {
         type: "script",
-        run: (delegates) => gitCommit(delegates, "audit", "fix({module}): 审计问题修复"),
+        run: (delegates) => gitCommit(delegates, "audit", "fix({module}): audit finding remediation"),
         transitions: {
           committed: { goto: "FIX_TESTS" },
           nothing: { goto: "FIX_TESTS" },
