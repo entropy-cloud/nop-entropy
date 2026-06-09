@@ -116,7 +116,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 
 | # | 工作项 | 依赖 | 状态 |
 |---|--------|------|------|
-| L0-1 | 创建 `agent.register-model.xml` | 无 | ❌ |
+| L0-1 | 创建 `agent.register-model.xml` | 无 | ✅ |
 | L0-2 | 统一枚举：解决 `AgentExecStatus` vs `AgentTaskStatus/AgentPlanStatus` 不一致 | 无 | ❌ |
 | L0-3 | 🔑 **设计决策（已解决）**：Agent 通过 `nop-ai-core` 的 `ChatServiceImpl` / `DefaultAiChatService` 调用 LLM，基于 `{name}.llm.xml` 配置区分不同 Provider。不依赖废弃的 `nop-ai-llm` 模块 | 无 | ✅ 已确认 |
 
