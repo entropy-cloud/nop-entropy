@@ -121,6 +121,7 @@ txn().afterCommit(null, () -> {
 - [ ] BizModel 新增的 public 方法已同步到 `I*Biz` 接口（含注解和 `@Name`）
 - [ ] `I*Biz` 接口方法有 `@BizQuery` / `@BizMutation` / `@BizAction` 之一
 - [ ] 程序化创建实体用 `saveEntity()`，不是 `save(Map)`
+- [ ] **没有修改 `_` 前缀文件**（`_service.beans.xml`、`_dao.beans.xml`、`_gen/` 等）— IoC 注册放在 `app-service.beans.xml` 等非下划线文件中
 
 > **为什么强调逐条检查而不是"读了就知道"：** 实现阶段注意力集中在让逻辑跑通，容易跳过文档中已明确的约定。把规则变成写后自检步骤，是防止"读了规则但写出来违反规则"的最有效方式。
 
