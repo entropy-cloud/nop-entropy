@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="agent">
+
+    <loaders>
+        <xdsl-loader fileType="agent.xml" schemaPath="/nop/schema/ai/agent.xdef"/>
+    </loaders>
+
+</model>

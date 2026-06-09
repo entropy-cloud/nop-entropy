@@ -1,0 +1,8 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-agent">
+
+    <description>A minimal test agent</description>
+
+    <prompt>You are a helpful assistant.</prompt>
+
+</agent>
