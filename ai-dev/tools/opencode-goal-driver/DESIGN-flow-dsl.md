@@ -290,39 +290,51 @@ This pattern is critical: git hooks (lint, secrets detection) can reject commits
 
 ## 4. Engine Execution Loop
 
-```
-function run(entry):
-  currentStep = entry || flow.entry
+```mermaid
+flowchart TD
+    START([run entry]) --> INIT["currentStep = entry<br/>totalSteps = 0"]
+    INIT --> LOOP{totalSteps<br/>< maxTotalSteps?}
 
-  while totalSteps < maxTotalSteps:
-    stepDef = flow.steps[currentStep]
-    if !stepDef → return "unknown_step"
+    LOOP -->|no| MAX_STEPS["return max_total_steps"]
+    LOOP -->|yes| FIND["stepDef = steps[currentStep]"]
 
-    visitCount[currentStep]++
-    if visitCount > maxCycleVisits → return "max_cycles"
-    totalSteps++
+    FIND --> STEP_EXISTS{stepDef<br/>exists?}
+    STEP_EXISTS -->|no| UNKNOWN["return unknown_step"]
+    STEP_EXISTS -->|yes| VISIT["visitCount++<br/>totalSteps++"]
 
-    try:
-      result = executeStep(currentStep, stepDef)
-    catch:
-      → execute onError action
+    VISIT --> CYCLE{visitCount<br/>gt maxCycleVisits?}
+    CYCLE -->|yes| MAX_CYCLES["return max_cycles"]
+    CYCLE -->|no| EXECUTE["result = executeStep()"]
 
-    extractVars(stepDef, result)        // apply extractVars patterns
-    context[currentStep] = result
+    EXECUTE --> CATCH{exception?}
+    CATCH -->|yes| ON_ERROR["→ onError action"]
+    CATCH -->|no| EXTRACT["extractVars(stepDef, result)<br/>context[currentStep] = result"]
 
-    if result.ok == false AND step is not tool:
-      → execute onError action
+    EXTRACT --> OK_CHECK{result.ok == false<br/>AND not tool?}
+    OK_CHECK -->|yes| ON_ERROR
+    OK_CHECK -->|no| MARKER["marker = resolveMarker()"]
 
-    marker = resolveMarker(result, stepDef)
-    if !marker:
-      → execute onUnknown action
+    MARKER --> MARKER_FOUND{marker<br/>found?}
+    MARKER_FOUND -->|no| ON_UNKNOWN["→ onUnknown action"]
+    MARKER_FOUND -->|yes| TRANS["transition = findTransition()"]
 
-    transition = findTransition(stepDef, marker)
-    // try: exact → alias → case-insensitive → session correction
+    TRANS --> TRANS_FOUND{transition<br/>found?}
+    TRANS_FOUND -->|no| CORRECT["alias → case-insensitive<br/>→ session correction"]
+    CORRECT --> TRANS_FOUND
 
-    if transition.done → return transition.done
-    if transition.retry → handleRetry(transition) → goto target
-    if transition.goto → handleGoto(transition) → goto target
+    TRANS_FOUND -->|yes| DISPATCH{transition type?}
+    DISPATCH -->|done| DONE(["return status"])
+    DISPATCH -->|retry| RETRY["handleRetry() → goto"]
+    DISPATCH -->|goto| GOTO["handleGoto() → goto"]
+
+    RETRY --> LOOP
+    GOTO --> LOOP
+
+    style START fill:#4a9eff,color:#fff
+    style DONE fill:#2d9c2d,color:#fff
+    style MAX_STEPS fill:#d32f2f,color:#fff
+    style MAX_CYCLES fill:#d32f2f,color:#fff
+    style UNKNOWN fill:#d32f2f,color:#fff
 ```
 
 ## 5. File Organization
@@ -372,100 +384,173 @@ ai-dev/tools/opencode-goal-driver/
 
 ### 6.1 Main Flow (goal-driver-flow.json)
 
-```
- ┌──────────────────────────────────────────────────────────────┐
- │ 1. FIX_TESTS ──fixed──→ FIX_TESTS_COMMIT ──committed──→ 2.  │
- │    │                        │                                │
- │    │ no_errors ──→ 2.       │ error                          │
- │    │                        ↓                                │
- │    │ failed         FIX_TESTS_COMMIT_FIX ──→ 2.             │
- │    ↓                                                        │
- │    FIX_TESTS_RECOVERY ──fixed──→ 2.                         │
- │    │ failed → [tests_failed]                                │
- │                                                             │
- │ 2. CHECK_PENDING_PLANS ──has_plans──→                       │
- │    │                     PROCESS_PENDING_PLANS (subflow)     │
- │    │                     plan-lifecycle × forEach            │
- │    │                             │                           │
- │    │ no_plans                    ↓                           │
- │    ↓                     → ROADMAP_CHECK                    │
- │    ROADMAP_CHECK ──complete──→ 3. NEEDS_DEEP_AUDIT          │
- │       │                                   │                  │
- │       │ pending                            │ not_needed       │
- │       ↓                                    │ → [completed]   │
- │    4. PLAN_DRAFT                            │ needed          │
- │       │ extractVars: planFile              ↓                 │
- │       │ created           8. DEEP_AUDIT ←──┘                 │
- │       ↓                       │                              │
- │    5. PLAN_EXECUTE             │ issues                      │
- │    (subflow: plan-lifecycle    ↓                              │
- │     flowArgs: planFile)     9. ADVERSARIAL                   │
- │       │                        │                             │
- │       ↓                        │ clean → [completed]         │
- │    → 3. NEEDS_DEEP_AUDIT       │ issues                      │
- │                                ↓                             │
- │                           10. AUDIT_PLAN_DRAFT               │
- │                                │ extractVars: planFile       │
- │                                │ created                     │
- │                                ↓                             │
- │                           11. AUDIT_PLAN_EXECUTE             │
- │                           (subflow: plan-lifecycle           │
- │                            flowArgs: planFile)               │
- │                                │                             │
- │                                ↓                             │
- │                           → 1. FIX_TESTS (loop)              │
- └──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    FIX_TESTS["🔧 FIX_TESTS<br/><i>agent: fix-tests.md</i>"]
+
+    FIX_TESTS -->|fixed| FIX_TESTS_COMMIT["📦 FIX_TESTS_COMMIT<br/><i>script: gitCommit</i>"]
+    FIX_TESTS -->|no_errors| CHECK_PENDING_PLANS
+    FIX_TESTS -->|failed| FIX_TESTS_RECOVERY["🔧 FIX_TESTS_RECOVERY<br/><i>agent: conservative fix</i>"]
+    FIX_TESTS -->|onError| FIX_TESTS
+
+    FIX_TESTS_COMMIT -->|committed| CHECK_PENDING_PLANS
+    FIX_TESTS_COMMIT -->|nothing| CHECK_PENDING_PLANS
+    FIX_TESTS_COMMIT -->|error| FIX_TESTS_COMMIT_FIX["🤖 FIX_TESTS_COMMIT_FIX<br/><i>agent: nop-git-master</i>"]
+    FIX_TESTS_COMMIT_FIX -->|fixed/skipped| CHECK_PENDING_PLANS
+    FIX_TESTS_COMMIT_FIX -->|onError| CHECK_PENDING_PLANS
+
+    FIX_TESTS_RECOVERY -->|fixed| CHECK_PENDING_PLANS
+    FIX_TESTS_RECOVERY -->|failed| DONE_FAIL["❌ tests_failed"]
+
+    CHECK_PENDING_PLANS["📋 CHECK_PENDING_PLANS<br/><i>script: checkPendingPlans</i>"]
+    CHECK_PENDING_PLANS -->|has_plans| PROCESS_PENDING_PLANS
+    CHECK_PENDING_PLANS -->|no_plans| ROADMAP_CHECK
+
+    PROCESS_PENDING_PLANS["🔄 PROCESS_PENDING_PLANS<br/><i>subflow: plan-lifecycle × forEach</i>"]
+    PROCESS_PENDING_PLANS -->|all_complete/some_failed| ROADMAP_CHECK
+
+    ROADMAP_CHECK["🗺️ ROADMAP_CHECK<br/><i>agent: roadmap-check.md</i>"]
+    ROADMAP_CHECK -->|pending| PLAN_DRAFT
+    ROADMAP_CHECK -->|complete| NEEDS_DEEP_AUDIT
+    ROADMAP_CHECK -->|onError| NEEDS_DEEP_AUDIT
+
+    PLAN_DRAFT["📝 PLAN_DRAFT<br/><i>agent: plan-draft.md<br/>extractVars: planFile</i>"]
+    PLAN_DRAFT -->|created| PLAN_EXECUTE
+    PLAN_DRAFT -->|none| NEEDS_DEEP_AUDIT
+
+    PLAN_EXECUTE["▶️ PLAN_EXECUTE<br/><i>subflow: plan-lifecycle<br/>flowArgs: planFile</i>"]
+    PLAN_EXECUTE -->|complete/failed| NEEDS_DEEP_AUDIT
+
+    NEEDS_DEEP_AUDIT["🔍 NEEDS_DEEP_AUDIT<br/><i>agent: needs-deep-audit.md</i>"]
+    NEEDS_DEEP_AUDIT -->|needed| DEEP_AUDIT
+    NEEDS_DEEP_AUDIT -->|not_needed| DONE_OK["✅ completed"]
+    NEEDS_DEEP_AUDIT -->|onError| DONE_OK
+
+    DEEP_AUDIT["🔬 DEEP_AUDIT<br/><i>agent: deep-audit skill</i>"]
+    DEEP_AUDIT -->|issues/clean| ADVERSARIAL
+    DEEP_AUDIT -->|onError| ADVERSARIAL
+
+    ADVERSARIAL["⚔️ ADVERSARIAL<br/><i>agent: adversarial-review skill</i>"]
+    ADVERSARIAL -->|issues| AUDIT_PLAN_DRAFT
+    ADVERSARIAL -->|clean| DONE_OK
+    ADVERSARIAL -->|onError| DONE_OK
+
+    AUDIT_PLAN_DRAFT["📝 AUDIT_PLAN_DRAFT<br/><i>agent: inline<br/>extractVars: planFile</i>"]
+    AUDIT_PLAN_DRAFT -->|created| AUDIT_PLAN_EXECUTE
+    AUDIT_PLAN_DRAFT -->|none| FIX_TESTS
+
+    AUDIT_PLAN_EXECUTE["▶️ AUDIT_PLAN_EXECUTE<br/><i>subflow: plan-lifecycle<br/>flowArgs: planFile</i>"]
+    AUDIT_PLAN_EXECUTE -->|complete/failed| FIX_TESTS
+
+    style FIX_TESTS fill:#4a9eff,color:#fff
+    style DONE_OK fill:#2d9c2d,color:#fff
+    style DONE_FAIL fill:#d32f2f,color:#fff
+    style PROCESS_PENDING_PLANS fill:#7c4dff,color:#fff
+    style PLAN_EXECUTE fill:#7c4dff,color:#fff
+    style AUDIT_PLAN_EXECUTE fill:#7c4dff,color:#fff
 ```
 
 ### 6.2 Plan Lifecycle Sub-flow (plan-lifecycle-flow.json)
 
-```
- CHECK_STATUS ──draft/active──→ AUDIT ──approved──→ SET_REVIEWED ──→ EXECUTE
-     │                             │                                     │
-     │ reviewed                    │ issues → retry AUDIT (max 3)        │
-     └──→ EXECUTE                 │ onMaxRetries → SET_REVIEWED          │
-                                   │                                     │
-                                   ↓                                     ↓
-                                CLOSURE ──complete──→ SET_COMPLETED     │
-                                   │                        │            │
-                                   │ incomplete →           ↓            │
-                                   │   retry EXECUTE     COMMIT         │
-                                   │   (max 5, append       │            │
-                                   │    REMAINING block)    │ error      │
-                                   │                        ↓            │
-                                   │ onMaxRetries →      COMMIT_FIX      │
-                                   │   SET_COMPLETED    (agent fallback) │
-                                   │                        │            │
-                                   │                        ↓            │
-                                   │                   UPDATE_ROADMAP    │
-                                   │                        │            │
-                                   │                        ↓            │
-                                   │                   [completed]       │
+```mermaid
+flowchart TD
+    CHECK_STATUS["📋 CHECK_STATUS<br/><i>script: readPlanStatus</i>"]
+    CHECK_STATUS -->|draft/active| AUDIT
+    CHECK_STATUS -->|reviewed| EXECUTE
+    CHECK_STATUS -->|completed| DONE["✅ completed"]
+
+    AUDIT["🔍 AUDIT<br/><i>agent: plan-audit.md</i>"]
+    AUDIT -->|approved| SET_REVIEWED
+    AUDIT -->|issues| AUDIT_RETRY["🔄 retry AUDIT<br/><i>max 3, append feedback</i>"]
+    AUDIT_RETRY --> AUDIT
+    AUDIT_RETRY -->|onMaxRetries| SET_REVIEWED
+    AUDIT -->|onError| AUDIT_RETRY2["🔄 retry AUDIT<br/><i>max 2</i>"]
+    AUDIT_RETRY2 --> AUDIT
+    AUDIT_RETRY2 -->|onMaxRetries| SET_REVIEWED
+
+    SET_REVIEWED["✏️ SET_REVIEWED<br/><i>script: setPlanStatus → reviewed</i>"]
+    SET_REVIEWED -->|ok/error| EXECUTE
+
+    EXECUTE["▶️ EXECUTE<br/><i>agent: execute-plan.md</i>"]
+    EXECUTE -->|success| CLOSURE
+    EXECUTE -->|failed| CLOSURE
+    EXECUTE -->|onError| CLOSURE
+
+    CLOSURE["🔎 CLOSURE<br/><i>agent: closure-audit-v2.md</i>"]
+    CLOSURE -->|complete| SET_COMPLETED
+    CLOSURE -->|incomplete| EXECUTE_RETRY["🔄 retry EXECUTE<br/><i>max 5, append REMAINING block</i>"]
+    EXECUTE_RETRY --> EXECUTE
+    EXECUTE_RETRY -->|onMaxRetries| SET_COMPLETED
+    CLOSURE -->|onError| EXECUTE_RETRY2["🔄 retry EXECUTE<br/><i>max 3</i>"]
+    EXECUTE_RETRY2 --> EXECUTE
+    EXECUTE_RETRY2 -->|onMaxRetries| SET_COMPLETED
+
+    SET_COMPLETED["✏️ SET_COMPLETED<br/><i>script: setPlanStatus → completed</i>"]
+    SET_COMPLETED -->|ok/error| COMMIT
+
+    COMMIT["📦 COMMIT<br/><i>script: gitCommit</i>"]
+    COMMIT -->|committed| UPDATE_ROADMAP
+    COMMIT -->|nothing| UPDATE_ROADMAP
+    COMMIT -->|error| COMMIT_FIX
+
+    COMMIT_FIX["🤖 COMMIT_FIX<br/><i>agent: nop-git-master</i>"]
+    COMMIT_FIX -->|fixed| UPDATE_ROADMAP
+    COMMIT_FIX -->|skipped| UPDATE_ROADMAP
+    COMMIT_FIX -->|onError| UPDATE_ROADMAP
+
+    UPDATE_ROADMAP["🗺️ UPDATE_ROADMAP<br/><i>script: updateRoadmap</i>"]
+    UPDATE_ROADMAP -->|updated/skipped/error| DONE
+
+    style CHECK_STATUS fill:#4a9eff,color:#fff
+    style DONE fill:#2d9c2d,color:#fff
+    style COMMIT_FIX fill:#ff9800,color:#fff
 ```
 
-### 6.3 Error Recovery Scenarios
+### 6.3 Commit Error → Agent Fix Pattern
+
+```mermaid
+flowchart LR
+    COMMIT["📦 COMMIT<br/><i>gitCommit --no-verify</i>"]
+    COMMIT -->|committed| NEXT["→ next step"]
+    COMMIT -->|nothing| NEXT
+    COMMIT -->|error| FIX["🤖 COMMIT_FIX<br/><i>agent fallback</i>"]
+    FIX -->|fixed| NEXT
+    FIX -->|skipped| NEXT
+    FIX -->|onError| NEXT
+
+    style COMMIT fill:#4a9eff,color:#fff
+    style FIX fill:#ff9800,color:#fff
+    style NEXT fill:#2d9c2d,color:#fff
+```
+
+### 6.4 Error Recovery Scenarios
 
 **Test fix failed → recovery**:
-```
-FIX_TESTS(failed) → FIX_TESTS_RECOVERY(fixed) → CHECK_PENDING_PLANS
-FIX_TESTS_RECOVERY(failed) → [tests_failed]
+```mermaid
+flowchart LR
+    A[FIX_TESTS] -->|failed| B[FIX_TESTS_RECOVERY]
+    B -->|fixed| C[CHECK_PENDING_PLANS]
+    B -->|failed| D[❌ tests_failed]
 ```
 
 **Pending plans loop (subflow)**:
-```
-CHECK_PENDING_PLANS(has_plans) → PROCESS_PENDING_PLANS (subflow forEach)
-  → plan-lifecycle for each plan file
-  → all_complete → ROADMAP_CHECK
+```mermaid
+flowchart LR
+    A[CHECK_PENDING_PLANS] -->|has_plans| B["PROCESS_PENDING_PLANS<br/>(subflow forEach)"]
+    B -->|all_complete| C[ROADMAP_CHECK]
 ```
 
 **Plan audit retry exhaustion → degraded execution**:
-```
-AUDIT(issues) → retry AUDIT (max 3) → onMaxRetries → SET_REVIEWED → EXECUTE
+```mermaid
+flowchart LR
+    A[AUDIT] -->|issues ×3| A
+    A -.->|onMaxRetries| B[SET_REVIEWED] --> C[EXECUTE]
 ```
 
 **Audit findings → plan → back to FIX_TESTS**:
-```
-ADVERSARIAL(issues) → AUDIT_PLAN_DRAFT → AUDIT_PLAN_EXECUTE (subflow) → FIX_TESTS
+```mermaid
+flowchart LR
+    A[ADVERSARIAL] -->|issues| B[AUDIT_PLAN_DRAFT] --> C["AUDIT_PLAN_EXECUTE<br/>(subflow)"] --> D[FIX_TESTS]
 ```
 
 ## 7. Script Functions
