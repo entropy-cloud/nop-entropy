@@ -39,10 +39,22 @@
 - `@Inject` 不支持 `private` 字段，配置值使用 `@InjectValue`。
 - 构建和再生成优先走 Maven Reactor 与 `./mvnw`，不要手改生成物。
 
+## 按开发阶段入口
+
+| 开发阶段 | 必读入口 | 核心规范 |
+|----------|---------|---------|
+| **模型设计** | **`00-required-reading-model-design.md`** | `02-core-guides/orm-model-design.md` |
+| **后台开发** | **`00-required-reading-backend.md`** | `02-core-guides/service-layer.md` |
+| **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/view-and-page-customization.md` |
+| **权限开发** | **`02-core-guides/auth-and-permissions.md`** | 同左（操作权限、数据权限、菜单资源） |
+
 ## 快速路由
 
 | 任务 | 首选文档 |
 |------|----------|
+| **模型设计** | **`00-required-reading-model-design.md`**（模型设计必读总入口） |
+| **后端服务开发** | **`00-required-reading-backend.md`**（后端必读总入口） |
+| **前端页面开发** | **`00-required-reading-frontend.md`**（前端必读总入口） |
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
@@ -51,6 +63,7 @@
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
+| 理解 ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计） | `02-core-guides/orm-model-design.md` |
 | 理解外部应用从 design 到模型、生成、BizModel、测试、联调的默认顺序 | `02-core-guides/application-development-workflow.md` |
 | 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |

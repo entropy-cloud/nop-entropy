@@ -91,6 +91,7 @@
 
 ## 相关文档
 
+- `./orm-model-design.md` — ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计的概念知识归该文档所有，本文档保留命名格式规范）
 - `./model-first-development.md`
 - `./service-layer.md`
 - `./error-handling.md`

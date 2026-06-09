@@ -217,6 +217,7 @@ Object data = entity.getExtDataComponent().get_jsonValue();
 
 ## 相关文档
 
+- `./orm-model-design.md` — ORM 模型设计规范（stdDataType/stdSqlType 分离、主键策略、字段设计、关系设计的概念知识归该文档所有）
 - `../01-repo-map/domain-module-pattern.md`
 - `../03-runbooks/create-new-entity.md`
 - `../03-runbooks/add-field-and-validation.md`
