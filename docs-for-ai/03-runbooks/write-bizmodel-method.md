@@ -47,6 +47,7 @@ public Order cancel(@Name("orderId") String orderId,
 在 BizModel 内部构造实体对象（非前端 Map 输入）时，用 `newEntity()` 创建 + `saveEntity()` 持久化：
 
 ```java
+// 创建本 BizModel 对应的实体
 @BizMutation
 public Order createOrder(@Name("addressId") String addressId,
                          IServiceContext context) {
@@ -59,7 +60,20 @@ public Order createOrder(@Name("addressId") String addressId,
 }
 ```
 
-> **必须用 `newEntity()` 而不是 `new Order()`**：`newEntity()` 通过 DAO 创建实例，如果实体被 Delta 机制扩展为派生类，`newEntity()` 会返回正确的派生类实例。直接 `new` 会绕过扩展，导致丢失 Delta 增强的字段和行为。
+**创建其他实体时，通过注入的 `I*Biz` 调用 `newEntity()`**：
+
+```java
+// OrderBizModel 中创建 OrderGoods（不是本 BizModel 的实体）
+@Inject
+IOrderGoodsBiz orderGoodsBiz;
+
+OrderGoods item = orderGoodsBiz.newEntity();
+item.setOrderId(order.getId());
+item.setGoodsId(goodsId);
+orderGoodsBiz.saveEntity(item, "create", context);
+```
+
+> **禁止 `new Order()` / `new OrderGoods()`**：实体可能被 Delta 机制扩展为派生类。`newEntity()` 通过 DAO 创建实例，确保返回正确的派生类。创建自身实体用 `newEntity()`（继承自 `CrudBizModel`），创建其他实体用 `xxxBiz.newEntity()`。
 
 > **`save(Map)` vs `saveEntity(entity)`**：`save(Map, context)` 用于前端传入的 `Map<String, Object>` 数据；`saveEntity(entity, action, context)` 用于 BizModel 内部已持有实体对象时直接持久化。两者都含权限检查和 afterEntityChange 触发。
 
