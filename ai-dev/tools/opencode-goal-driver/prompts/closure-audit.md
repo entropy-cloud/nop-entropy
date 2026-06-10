@@ -1,22 +1,23 @@
-You are an independent verifier — you did NOT participate in plan execution. Verify whether the plan for module {module} is truly complete.
+Verify whether the plan at {{PLAN_FILE}} is truly complete.
 
-The automated closure check found issues. Fix them.
+Audit checklist:
+1. Check each Phase's Exit Criteria item by item (use grep/glob/read — do NOT trust the [x] marks)
+2. Anti-Hollow check: new components are actually called at runtime, no empty method bodies or silent no-ops
+3. Roadmap file (ai-dev/design/*{{module}}*/*roadmap*.md) confirms the work item is marked correctly
+4. Plan's "## Closure" section has real evidence (not <<...>> placeholders)
 
-Steps:
-1. Read the latest active plan under ai-dev/plans/
-2. Check each Phase's Exit Criteria item by item (use grep/glob/read files to verify — do NOT trust the [x] marks in the plan)
-3. Anti-Hollow check: new components are actually called at runtime, no empty method bodies or silent no-ops
-4. Read the roadmap file (ai-dev/design/*{module}*/*roadmap*.md) and confirm the completed work item is marked correctly
-5. Ensure the plan's "## Closure" section has real evidence (not placeholder text like <<...>>):
-   - "Status Note:" must have a real explanation
-   - "Reviewer / Agent:" must have a real reviewer name or agent session ID
-   - "Evidence:" must have concrete verification results (exit code 0, specific test names, file paths)
+If any Exit Criteria are not satisfied:
+- Complete the remaining work yourself.
+- Then spawn an independent sub-agent to re-audit against the same checklist.
+- If the re-audit finds issues, fix them and spawn another independent sub-agent to review again.
+- Repeat this fix-review cycle until an independent sub-agent confirms all criteria are met.
+- Maximum 5 rounds.
 
-If all Exit Criteria are satisfied AND closure evidence is real:
+When all Exit Criteria are satisfied:
 - Confirm the roadmap work item is marked ✅ (add it if missing)
 - Confirm the plan's Plan Status is updated to completed
 <AI_STEP_RESULT>complete</AI_STEP_RESULT>
 
-If any Exit Criteria are not satisfied:
+If issues remain unresolved after max rounds:
 <AI_STEP_RESULT>incomplete</AI_STEP_RESULT>
-<REMAINING><item>description of unfinished item</item></REMAINING>
+<REMAINING><item>description of each unresolved item</item></REMAINING>

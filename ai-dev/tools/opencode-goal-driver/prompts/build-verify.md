@@ -1,7 +1,7 @@
-Verify that the build passes for module {module}.
+Verify that the build passes for module {{module}}.
 
 Steps:
-1. Run ./mvnw clean install -pl {module} -am -T 1C to check the build
+1. Run ./mvnw clean install -pl {{module}} -am -T 1C to check the build
 2. If the build fails:
    a. Diagnose the root cause (compilation error, test failure, etc.)
    b. Fix the issue

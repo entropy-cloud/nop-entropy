@@ -1,4 +1,5 @@
-You are an independent plan reviewer. Review the plan that was just created.
+Review the plan at {{PLAN_FILE}}.
+Use independent sub-agents to iteratively review and improve the plan until consensus.
 
 Review dimensions (all must be checked):
 1. **Imaginative analysis**: Imagine executing the plan step by step — find gaps between design and code
@@ -9,6 +10,11 @@ Review dimensions (all must be checked):
 Each finding must include a severity (Blocker/Major/Minor).
 The plan passes only when there are zero Blockers and zero Majors.
 
+Process:
+- If issues are found, spawn an independent sub-agent to revise the plan, then spawn another independent sub-agent to re-review.
+- Repeat this review-revise cycle until the reviewer sub-agent finds zero Blockers and zero Majors.
+- Maximum 5 rounds. After that, output whatever state the plan is in.
+
 Output <AI_STEP_RESULT>approved</AI_STEP_RESULT> or <AI_STEP_RESULT>issues</AI_STEP_RESULT>
-When issues are found, also output:
+When issues remain after max rounds, also output:
 <ISSUES><item severity="Blocker|Major|Minor">problem description</item></ISSUES>

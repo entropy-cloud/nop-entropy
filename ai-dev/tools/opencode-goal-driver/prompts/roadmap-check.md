@@ -1,7 +1,7 @@
-Check the roadmap for module {module} and select the **single most urgent** work item.
+Check the roadmap for module {{module}} and select the **single most urgent** work item.
 
 Steps:
-1. Find *roadmap*.md files under ai-dev/design/ related to {module}
+1. Find *roadmap*.md files under ai-dev/design/ related to {{module}}
 2. Read the full roadmap, focusing on: §2 "Current State", §3 "Priority Guide", §4 "Work Items", §5 "Tech Debt"
 3. Find all items marked with ❌ or ⚠️
 4. For each unfinished item, use grep/glob to check whether the implementation already exists in the codebase (exclude _gen generated code)
