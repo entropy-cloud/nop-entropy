@@ -2,7 +2,7 @@
 import { resolveConfig } from "./config.js";
 import { createRunner, resetMockState } from "./runner.js";
 import { FlowEngine } from "./engine.js";
-import { createGoalDriverFlow } from "./flow-loader.js";
+import { createGoalDriverFlow, loadSubFlow } from "./flow-loader.js";
 
 function parseArgs(argv) {
   const args = { module: "", dryRun: false, testMode: false };
@@ -45,6 +45,7 @@ async function main() {
       runTool: runner.runTool,
       runParseAgent: runner.runParseAgent,
       logFile: config.logFile,
+      loadSubFlow,
     };
 
     resetMockState();

@@ -33,6 +33,7 @@ export class FlowEngine {
     this.flow = flowDef;
     this.delegates = delegates;
     this.context = new Map();
+    this.flowVars = new Map();
     this.visitCounts = new Map();
     this.retryCounts = new Map();
     this.appendBuffers = new Map();
@@ -63,18 +64,34 @@ export class FlowEngine {
 
   _templateVar(str, vars) {
     if (typeof str !== "string") return str;
-    return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
+    return str.replace(/\{\{(\w+)\}\}/g, (_, k) => {
+      if (vars[k] === undefined) throw new Error(`Unresolved template variable: {{${k}}}`);
+      return vars[k];
+    });
   }
 
   _buildPrompt(stepName, stepDef) {
     let prompt = stepDef.prompt || "";
-    prompt = this._templateVar(prompt, this.delegates.vars || {});
+    const allVars = { ...(this.delegates.vars || {}), ...Object.fromEntries(this.flowVars) };
+    prompt = this._templateVar(prompt, allVars);
 
     const buf = this.appendBuffers.get(stepName);
     if (buf) {
       prompt += "\n" + buf;
     }
     return prompt;
+  }
+
+  _extractFlowVars(text) {
+    const m = text.match(/<FLOW_VARS>([\s\S]*?)<\/FLOW_VARS>/);
+    if (!m) return {};
+    const vars = {};
+    const re = /<(\w+)>([^<]*)<\/\1>/g;
+    let match;
+    while ((match = re.exec(m[1])) !== null) {
+      vars[match[1]] = match[2].trim();
+    }
+    return vars;
   }
 
   _markerAliases() {
@@ -98,6 +115,12 @@ export class FlowEngine {
     const prompt = this._buildPrompt(stepName, stepDef);
     const result = await this.delegates.runAgent(stepName, prompt, stepDef.system || "", sessionId);
     if (result && result.sessionId) this.lastSessionId = result.sessionId;
+    if (result && result.text) {
+      const vars = this._extractFlowVars(result.text);
+      for (const [k, v] of Object.entries(vars)) {
+        this.flowVars.set(k, v);
+      }
+    }
     return result;
   }
 
@@ -108,8 +131,16 @@ export class FlowEngine {
   }
 
   async _executeScriptStep(stepName, stepDef) {
-    const marker = await stepDef.run(this.delegates);
-    return { ok: true, marker, text: String(marker) };
+    const ret = await stepDef.run(this.delegates, this.flowVars);
+    if (ret && typeof ret === "object" && ret.marker !== undefined) {
+      if (ret.vars) {
+        for (const [k, v] of Object.entries(ret.vars)) {
+          this.flowVars.set(k, v);
+        }
+      }
+      return { ok: true, marker: ret.marker, text: String(ret.marker) };
+    }
+    return { ok: true, marker: ret, text: String(ret) };
   }
 
   async _executeScriptStepWithOverride(stepName, stepDef) {
@@ -118,6 +149,86 @@ export class FlowEngine {
       if (result !== undefined) return result;
     }
     return this._executeScriptStep(stepName, stepDef);
+  }
+
+  async _executeSubflowStep(stepName, stepDef) {
+    const flowName = this._templateVar(stepDef.flow || "", this._allVars());
+    const flowDef = await this.delegates.loadSubFlow(flowName);
+    if (!flowDef) throw new Error(`Subflow not found: ${flowName}`);
+
+    const baseArgs = {};
+    if (stepDef.flowArgs) {
+      const allVars = this._allVars();
+      for (const [k, v] of Object.entries(stepDef.flowArgs)) {
+        baseArgs[k] = this._templateVar(String(v), allVars);
+      }
+    }
+
+    if (stepDef.forEach) {
+      const listRaw = this._allVars()[stepDef.forEach];
+      let items = [];
+      if (Array.isArray(listRaw)) {
+        items = listRaw;
+      } else if (typeof listRaw === "string") {
+        try { items = JSON.parse(listRaw); } catch { items = listRaw.split(",").map(s => s.trim()).filter(Boolean); }
+      }
+      if (items.length === 0) {
+        this._log(`  subflow ${stepName}: forEach "${stepDef.forEach}" resolved to empty list → all_complete`);
+        return { ok: true, marker: "all_complete", text: "all_complete" };
+      }
+
+      let completed = 0, failed = 0;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        this._log(`  subflow ${stepName}: forEach item ${i + 1}/${items.length}`);
+        const childVars = { ...baseArgs, forEachItem: item, forEachIndex: i, forEachTotal: items.length };
+        const childResult = await this._runChildSubflow(flowDef, childVars);
+        this._log(`  subflow ${stepName}: forEach item ${i + 1} → ${childResult.status}`);
+        if (childResult.status === "completed") {
+          completed++;
+        } else {
+          failed++;
+          if (stepDef.onItemError && stepDef.onItemError.stopOnError) break;
+        }
+      }
+
+      let marker;
+      if (failed === 0) marker = "all_complete";
+      else if (completed === 0) marker = "all_failed";
+      else marker = "some_failed";
+      this._log(`  subflow ${stepName}: forEach done (${completed} completed, ${failed} failed) → ${marker}`);
+      return { ok: true, marker, text: marker };
+    }
+
+    const childResult = await this._runChildSubflow(flowDef, baseArgs);
+    const marker = childResult.status === "completed" ? "complete" : "failed";
+    this._log(`  subflow ${stepName}: child ${childResult.status} → ${marker}`);
+    return { ok: true, marker, text: marker };
+  }
+
+  _allVars() {
+    return { ...(this.delegates.vars || {}), ...Object.fromEntries(this.flowVars) };
+  }
+
+  async _runChildSubflow(flowDef, extraVars) {
+    const parentDelegates = this.delegates;
+    const childVars = { ...(parentDelegates.vars || {}), ...extraVars };
+    const childDelegates = {
+      ...parentDelegates,
+      vars: childVars,
+      callLog: [],
+    };
+    const childEngine = new FlowEngine(flowDef, childDelegates);
+    const childResult = await childEngine.run();
+    for (const [k, v] of childEngine.flowVars) {
+      this.flowVars.set(k, v);
+    }
+    if (childResult.history) {
+      for (const line of childResult.history) {
+        this._log(`  [child] ${line}`);
+      }
+    }
+    return childResult;
   }
 
   async _executeSubStep(stepName, stepDef) {
@@ -129,6 +240,9 @@ export class FlowEngine {
     }
     if (stepDef.type === "script") {
       return await this._executeScriptStepWithOverride(stepName, stepDef);
+    }
+    if (stepDef.type === "subflow") {
+      return await this._executeSubflowStep(stepName, stepDef);
     }
     throw new Error(`Unknown sub-step type: ${stepDef.type}`);
   }
@@ -221,7 +335,7 @@ export class FlowEngine {
     if (stepDef.type === "tool") {
       return result.ok ? "pass" : "fail";
     }
-    if (stepDef.type === "script" || stepDef.type === "group") {
+    if (stepDef.type === "script" || stepDef.type === "group" || stepDef.type === "subflow") {
       return result.marker;
     }
     if (!result.text) return null;
@@ -331,6 +445,8 @@ export class FlowEngine {
           result = await this._executeScriptStepWithOverride(currentStep, stepDef);
         } else if (stepDef.type === "group") {
           result = await this._executeGroupStep(currentStep, stepDef);
+        } else if (stepDef.type === "subflow") {
+          result = await this._executeSubflowStep(currentStep, stepDef);
         } else {
           return this._result("unknown_type", totalSteps);
         }

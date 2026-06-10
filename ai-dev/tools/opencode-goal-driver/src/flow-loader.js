@@ -101,4 +101,15 @@ export function createGoalDriverFlow(flowPath) {
   return raw;
 }
 
+const SUBFLOW_DIR = resolve(TOOL_ROOT, "flows");
+
+export function loadSubFlow(name) {
+  const baseDir = this?.config?.subflowDir || SUBFLOW_DIR;
+  const filePath = resolve(baseDir, `${name}.json`);
+  const raw = JSON.parse(readFileSync(filePath, "utf8"));
+  resolveStepPrompts(raw.steps);
+  resolveStepScripts(raw.steps);
+  return raw;
+}
+
 export { SCRIPT_REGISTRY, TOOL_ROOT };

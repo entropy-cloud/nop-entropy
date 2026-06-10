@@ -38,6 +38,12 @@ function makeMockDelegates(overrides = {}) {
       this.callLog.push({ type: "parse", stepName, prompt });
       return { text: "<MOCK_TAG>unknown</MOCK_TAG>", ok: true };
     },
+
+    loadSubFlow(name) {
+      const sub = overrides.subFlows?.[name];
+      if (sub) return sub;
+      throw new Error(`Mock subflow not found: ${name}`);
+    },
   };
 
   if (hasOverrideRunAgent) {
@@ -551,20 +557,20 @@ describe("FlowEngine — safety nets", () => {
 // ═══════════════════════════════════════════
 
 describe("FlowEngine — template vars", () => {
-  it("substitutes {module} and {projectRoot} in prompts and commands", async () => {
+  it("substitutes variables in prompts and commands", async () => {
     let agentPrompt = "";
     let toolCommand = "";
 
     const flow = simpleFlow({
       AGENT_STEP: {
         type: "agent",
-        prompt: "build module {module} in {projectRoot}",
+        prompt: "build module {{module}} in {{projectRoot}}",
         resultTag: "R",
         transitions: { ok: { goto: "TOOL_STEP" } },
       },
       TOOL_STEP: {
         type: "tool",
-        command: "./mvnw -pl {module} -C",
+        command: "./mvnw -pl {{module}} -C",
         transitions: { pass: { done: "completed" } },
       },
     }, "AGENT_STEP");
@@ -580,9 +586,9 @@ describe("FlowEngine — template vars", () => {
     await engine.run();
 
     assert.ok(agentPrompt.includes("build module test-mod in /tmp/test"));
-    assert.ok(!agentPrompt.includes("{module}"));
+    assert.ok(!agentPrompt.includes("{{module}}"));
     assert.ok(toolCommand.includes("./mvnw -pl test-mod -C"));
-    assert.ok(!toolCommand.includes("{module}"));
+    assert.ok(!toolCommand.includes("{{module}}"));
   });
 });
 
@@ -702,7 +708,7 @@ describe("FlowEngine — goal driver integration", () => {
 
         FIX_BUILD: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>",
 
-        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
+        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/test-plan.md</PLAN_FILE>\n</FLOW_VARS>",
 
         PLAN_AUDIT: () => {
           planAuditCount++;
@@ -778,9 +784,10 @@ describe("FlowEngine — goal driver integration", () => {
             : { text: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>", ok: true };
         },
         ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
-        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
+        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/test-plan.md</PLAN_FILE>\n</FLOW_VARS>",
         PLAN_AUDIT: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>",
         FIX_BUILD: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>",
+        EXECUTE: "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
       },
       async runScript(stepName) {
         if (stepName === "CLOSURE_VERIFY.SCRIPT_CHECK") return { ok: true, marker: "pass", text: "pass" };
@@ -1099,7 +1106,297 @@ describe("FlowEngine — group step", () => {
 });
 
 // ═══════════════════════════════════════════
-// 12. Flow definition validation
+// 12. Subflow step
+// ═══════════════════════════════════════════
+
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
+
+function withSubflowDir(fn) {
+  return async () => {
+    const dir = mkdtempSync(join(tmpdir(), "subflow-test-"));
+    mkdirSync(dir, { recursive: true });
+    try {
+      await fn(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+}
+
+function writeSubflow(dir, name, flowDef) {
+  writeFileSync(resolve(dir, `${name}.json`), JSON.stringify(flowDef));
+}
+
+describe("FlowEngine — subflow step", () => {
+  it("runs a child subflow that completes", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: { type: "agent", prompt: "work", transitions: { done: { done: "completed" } } },
+      },
+    });
+
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child",
+        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: { "WORK": "<AI_STEP_RESULT>done</AI_STEP_RESULT>" },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+  }));
+
+  it("runs a child subflow that fails", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child-fail", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: { type: "agent", prompt: "work", transitions: { done: { done: "completed" } } },
+      },
+    });
+
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child-fail",
+        transitions: { complete: { done: "failed" }, failed: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: { "WORK": { text: "", ok: false } },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+  }));
+
+  it("forEach: all items complete", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: {
+          type: "agent", prompt: "work on {{forEachItem}}",
+          transitions: { done: { done: "completed" } },
+        },
+      },
+    });
+
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child", forEach: "items",
+        transitions: {
+          all_complete: { done: "completed" },
+          some_failed: { done: "failed" },
+          all_failed: { done: "failed" },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "WORK": (sn, prompt) => {
+          const item = prompt.includes("item-a") ? "item-a" : "item-b";
+          return { text: `<AI_STEP_RESULT>done</AI_STEP_RESULT>`, ok: true };
+        },
+      },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.vars.items = '["item-a","item-b"]';
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+  }));
+
+  it("forEach: some items fail", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: {
+          type: "agent", prompt: "work on {{forEachItem}}",
+          transitions: { done: { done: "completed" } },
+        },
+      },
+    });
+
+    let callCount = 0;
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child", forEach: "items",
+        transitions: {
+          all_complete: { done: "all_ok" },
+          some_failed: { done: "completed" },
+          all_failed: { done: "all_bad" },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "WORK": () => {
+          callCount++;
+          return callCount === 1
+            ? { text: `<AI_STEP_RESULT>done</AI_STEP_RESULT>`, ok: true }
+            : { text: "", ok: false };
+        },
+      },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.vars.items = '["item-a","item-b"]';
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+  }));
+
+  it("forEach: all items fail", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: {
+          type: "agent", prompt: "work on {{forEachItem}}",
+          transitions: { done: { done: "completed" } },
+        },
+      },
+    });
+
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child", forEach: "items",
+        transitions: {
+          all_complete: { done: "all_ok" },
+          some_failed: { done: "some_ok" },
+          all_failed: { done: "completed" },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "WORK": { text: "", ok: false },
+      },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.vars.items = '["item-a","item-b"]';
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+  }));
+
+  it("forEach: empty list", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: { type: "agent", prompt: "work", transitions: { done: { done: "completed" } } },
+      },
+    });
+
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child", forEach: "items",
+        transitions: { all_complete: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.vars.items = "[]";
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+  }));
+
+  it("resolves flowArgs template variables from parent context", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: {
+          type: "agent", prompt: "build {{planFile}} in {{module}}",
+          transitions: { done: { done: "completed" } },
+        },
+      },
+    });
+
+    let childPrompt = "";
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child",
+        flowArgs: { planFile: "ai-dev/plans/test.md", module: "{{module}}" },
+        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "WORK": (sn, prompt) => { childPrompt = prompt; return { text: "<AI_STEP_RESULT>done</AI_STEP_RESULT>", ok: true }; },
+      },
+      config: { moduleName: "my-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.vars = { module: "my-mod", projectRoot: "/tmp/test" };
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+    assert.ok(childPrompt.includes("ai-dev/plans/test.md"));
+    assert.ok(childPrompt.includes("my-mod"));
+  }));
+
+  it("propagates flowVars from child back to parent", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: {
+          type: "agent", prompt: "create plan",
+          transitions: { done: { done: "completed" } },
+        },
+      },
+    });
+
+    let parentPrompt = "";
+    const flow = simpleFlow({
+      SUB: {
+        type: "subflow", flow: "child",
+        transitions: { complete: { goto: "AFTER" }, failed: { done: "failed" } },
+      },
+      AFTER: {
+        type: "agent", prompt: "check {{PLAN_FILE}}",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "SUB");
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "WORK": "<AI_STEP_RESULT>done</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/test.md</PLAN_FILE>\n</FLOW_VARS>",
+        AFTER: "<AI_STEP_RESULT>ok</AI_STEP_RESULT>",
+      },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+    assert.equal(result.status, "completed");
+    // verify AFTER received PLAN_FILE from child's flowVars
+    const afterCall = delegates.callLog.find(c => c.stepName === "AFTER");
+    assert.ok(afterCall, "AFTER should be called");
+    assert.ok(afterCall.prompt.includes("ai-dev/plans/test.md"));
+  }));
+});
+
+// ═══════════════════════════════════════════
+// 13. Flow definition validation
 // ═══════════════════════════════════════════
 
 describe("Flow definition — structural validation", () => {
