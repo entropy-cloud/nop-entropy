@@ -70,7 +70,7 @@ BizModel 方法
 |------|------|
 | 返回实体本身 | 直接返回实体 |
 | 返回多个业务字段 | `@DataBean` DTO |
-| 返回集合或分页 | `List<T>` / `PageBean<T>` / 框架默认分页结果 |
+| 返回集合或分页 | `List<T>` / `PageBean<T>`（`io.nop.api.core.beans.PageBean`）/ 框架默认分页结果 |
 
 ## 扩展返回字段的默认做法
 

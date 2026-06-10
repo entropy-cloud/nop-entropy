@@ -2,6 +2,22 @@
 
 本页只收录普通 BizModel / `CrudBizModel` 场景下应优先使用的 API。
 
+## 常用类型全限定名
+
+文档中使用简写，实际 import 时注意区分包名：
+
+| 简写 | 全限定名 |
+|------|---------|
+| `PageBean` | `io.nop.api.core.beans.PageBean` |
+| `QueryBean` | `io.nop.api.core.beans.query.QueryBean` |
+| `FieldSelectionBean` | `io.nop.api.core.beans.FieldSelectionBean` |
+| `IServiceContext` | `io.nop.core.context.IServiceContext` |
+| `FilterBeans` | `io.nop.api.core.beans.FilterBeans` |
+| `ApiRequest` | `io.nop.api.core.beans.ApiRequest` |
+| `ApiResponse` | `io.nop.api.core.beans.ApiResponse` |
+
+> **注意：`PageBean` 在 `io.nop.api.core.beans` 包，与 `QueryBean`（在 `.query` 子包）不同。不要写成 `io.nop.api.core.beans.query.PageBean`。**
+
 ## 获取实体
 
 | 场景 | 优先方法 |
@@ -9,6 +25,9 @@
 | 不存在直接抛错 | `requireEntity(id, actionName, context)` |
 | 可返回 `null` | `get(id, ignoreUnknown, context)` |
 | 批量获取 | `batchGet(ids, ignoreUnknown, context)` |
+| 已持有实体，读取其关联实体 | ORM 关系 getter（如 `cart.getGoods()`） |
+
+> **`requireEntity()`/`get()` vs 关系 getter**：`requireEntity()` 和 `get()` 内部调用 `checkDataAuth` + `checkMetaFilter`，会校验当前用户对该实体的数据访问权限。如果只需要读取已加载实体上的关联数据（内部业务逻辑），直接用关系 getter 即可，无需额外权限检查。仅当需要校验访问权限时（如前端传入 id 获取实体）才走 `requireEntity()`/`get()`。
 
 ## 组合式回调参数（`do*` 方法的设计模式）
 
@@ -126,6 +145,7 @@ FilterBeans.contains("name", keyword);
 | `dao().findPageByQuery(query)` | `findPage(query, selection, context)` 或 `doFindPage(query, prepareQuery, selection, context)` |
 | `dao().saveEntity(entity)` | `saveEntity(entity, actionName, context)`（程序化创建）或 `save(data, context)`（前端 Map） |
 | `@BizMutation @Transactional` | 只用 `@BizMutation` |
+| `I*Biz.get()` 获取已有 ORM 关系的关联实体 | 用关系 getter（如 `cart.getGoods()`）。`I*Biz.get()` 会触发 `checkDataAuth` 权限检查，仅当需要校验访问权限时才使用 |
 
 ## 什么时候才可以直接使用 DAO
 
