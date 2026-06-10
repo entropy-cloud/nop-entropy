@@ -1,8 +1,8 @@
 # Goal Driver Flow Engine Design
 
-> Status: v4
-> Last Reviewed: 2026-06-09
-> Changes: Added §8 Session Strategy (independent sessions + marker correction reuse)
+> Status: v5
+> Last Reviewed: 2026-06-10
+> Changes: Added §2.7 Subflow Execution, file-system subflow loading
 > Source: ai-dev/tools/opencode-goal-driver (src/ only)
 
 ## 1. Motivation
@@ -41,7 +41,7 @@ const flow = {
 
 ### 2.2 Step
 
-Each Step is an atomic work unit. Four types:
+Each Step is an atomic work unit. Five types:
 
 | Type | Execution | Result extraction |
 |------|-----------|-------------------|
@@ -65,8 +65,7 @@ interface Step {
   resultTag?: string;
   system?: string;
 
-  // === Variable extraction from output ===
-  extractVars?: Record<string, RegExp>;  // Extract structured vars from result.text
+  // === Variable extraction via <FLOW_VARS> (agent steps only) ===
 
   // === Subflow config (type=subflow only) ===
   flow?: string;                         // Sub-flow name (resolved via delegates.loadSubFlow)
@@ -86,23 +85,45 @@ interface Step {
 }
 ```
 
-#### extractVars
+#### flowVars (engine-level variable environment)
 
-The `extractVars` field allows extracting structured variables from agent step output text using regex patterns. Each key is a variable name, each value is a regex with one capture group.
+The engine maintains a shared `flowVars` Map that accumulates variables across steps. Variables are automatically extracted from agent step output via the `<FLOW_VARS>` XML convention:
+
+**Agent step output:**
+```
+<FLOW_VARS>
+  <PLAN_FILE>ai-dev/plans/2026-06-10-001-my-plan.md</PLAN_FILE>
+</FLOW_VARS>
+```
+
+**Step definition** — no per-step config needed. The engine automatically parses `<FLOW_VARS>` from any agent step output and merges into `flowVars`.
 
 ```javascript
 {
   type: "agent",
-  prompt: "create a plan",
-  resultTag: "PLAN_RESULT",
-  extractVars: {
-    planFile: "Plan file:\\s*(ai-dev/plans/\\S+\\.md)"
-  },
-  transitions: { created: { goto: "RUN" } }
+  prompt: "Draft a plan...",
+  transitions: { created: { goto: "PLAN_AUDIT" } }
+  // No extractVars needed — engine parses <FLOW_VARS> automatically
 }
 ```
 
-After step execution, extracted vars are available as `{steps.STEP_NAME.vars.varName}` in downstream templates and as `steps.STEP_NAME.vars.varName` via dot-notation traversal.
+**Template substitution** — `flowVars` takes precedence over static `delegates.vars`:
+
+```
+Priority: flowVars (dynamic) > delegates.vars (static) > literal {VAR} retained
+```
+
+**Script steps** can also set flowVars by returning `{ marker, vars }`:
+
+```javascript
+run: (delegates, flowVars) => {
+  return { marker: "done", vars: { ACTIVE_PLANS: "3" } };
+}
+```
+
+#### Variable Scope
+
+Variables are **flow-scoped** (not step-scoped). Once set, they persist until overwritten or the flow ends. This is intentional: the plan file path set by PLAN_DRAFT should be available to all downstream steps (PLAN_AUDIT, EXECUTE, CLOSURE_VERIFY).
 
 ### 2.3 Action
 
@@ -127,83 +148,18 @@ type Action =
 
 **retry fallback chain**: `transition.maxRetries` → `stepDef.maxRetries` → `3` (default).
 
-### 2.4 Template Variables & Context Model
+### 2.4 Template Variables
 
-Engine maintains a **context variable pool**. `{variable}` in prompts and commands are resolved at runtime.
+`{variable}` in prompts and commands are resolved at runtime from two sources:
 
-```typescript
-// Context variable sources:
-// 1. Static config (delegates.vars)
-{ module }              → config.moduleName
+| Priority | Source | Set by |
+|----------|--------|--------|
+| 1 (highest) | `flowVars` (dynamic) | Agent `<FLOW_VARS>` output or script `{ marker, vars }` return |
+| 2 (base) | `delegates.vars` (static) | `main.js` at startup |
 
-// 2. Step output results (auto-injected via _buildVars)
-{ steps.STEP_NAME.text }      → step output text
-{ steps.STEP_NAME.marker }    → step marker value
-{ steps.STEP_NAME.ok }        → "true"/"false"
-{ steps.STEP_NAME.logFile }   → log file path
-{ steps.STEP_NAME.vars.X }    → extracted/script-returned var (dot-notation traversal)
+Unresolved variables (e.g. `{DATE}`) are kept as literal text for the AI to interpret.
 
-// 3. Script step returned vars (flattened to top level)
-// script returns { marker: "has_plans", vars: { activePlanFiles: [...] } }
-{ activePlanFiles }            → [...] (array preserved)
-```
-
-**Template syntax**: `{variable}` supports dot-notation paths. Regex: `\{(\w[\w.]*)\}`. Unresolved variables are kept as-is (e.g., `{DATE}` → AI interprets).
-
-**`_buildVars` internals**: Stores both flat keys (`steps.NAME.text`) AND nested object (`steps.NAME.vars.X`) so that dot-notation traversal works correctly.
-
-### 2.5 Subflow
-
-A subflow step spawns a child `FlowEngine` instance with a separate flow definition. Two modes:
-
-**forEach mode**: Iterates over an array from context vars. Each item becomes `currentItem` + `planFile` in child vars.
-
-```javascript
-PROCESS_PENDING_PLANS: {
-  type: "subflow",
-  flow: "plan-lifecycle",
-  forEach: "activePlanFiles",
-  transitions: {
-    all_complete: { goto: "NEXT" },
-    some_failed:  { goto: "NEXT" },
-    all_failed:   { goto: "NEXT" }
-  }
-}
-```
-
-**Single execution mode**: Runs one instance of the sub-flow. Passes `flowArgs` (template-resolved) to child.
-
-```javascript
-PLAN_EXECUTE: {
-  type: "subflow",
-  flow: "plan-lifecycle",
-  flowArgs: { planFile: "{steps.PLAN_DRAFT.vars.planFile}" },
-  transitions: {
-    complete: { goto: "NEXT" },
-    failed:   { goto: "NEXT" }
-  }
-}
-```
-
-**Child delegate inheritance**: `_buildChildDelegates` merges parent's `_buildVars()` context + `delegates.vars` + `flowArgs` + `itemContext`. For forEach, `currentItem` and `planFile` are explicitly set from the array item.
-
-**Sub-flow loading**: Dynamic via `delegates.loadSubFlow(name)`. The engine caches results in the caller. No pre-registration required.
-
-**forEach result markers**:
-| Condition | Marker |
-|-----------|--------|
-| All items completed | `all_complete` |
-| Some failed, some succeeded | `some_failed` |
-| All failed | `all_failed` |
-| Empty array | `all_complete` (no work) |
-
-**Single execution result markers**:
-| Condition | Marker |
-|-----------|--------|
-| Child completed | `complete` |
-| Child failed | `failed` |
-
-### 2.6 AppendSpec
+### 2.5 AppendSpec
 
 ```typescript
 type AppendSpec =
@@ -213,7 +169,7 @@ type AppendSpec =
   | { extract: string; template: string }
 ```
 
-### 2.7 Result Extraction & Marker Aliases
+### 2.6 Result Extraction & Marker Aliases
 
 **agent step extraction chain**:
 
@@ -230,6 +186,47 @@ Found marker → lookup transitions table
 ```
 
 **markerAliases** is a flow-level config for fault tolerance. AI might return Chinese text like "已创建" instead of "created" — alias mapping lets the engine understand both.
+
+### 2.7 Subflow Execution
+
+Subflow steps spawn a child `FlowEngine` that runs a separate flow definition loaded from the filesystem. Two modes:
+
+**Single execution** (`forEach` not set):
+- `delegates.loadSubFlow(flowName)` reads `<subflowDir>/{name}.json` from the filesystem
+- Child engine receives resolved `flowArgs` as `delegates.vars` (merged with parent vars)
+- Child `completed` → marker `complete`; any other status → marker `failed`
+- Child `flowVars` propagate back to parent engine
+
+**forEach mode** (`forEach: "varName"`):
+- Resolves `varName` from parent context (JSON array string or comma-separated string)
+- Runs child subflow once per item, with `forEachItem`, `forEachIndex`, `forEachTotal` injected into child vars
+- Aggregated markers:
+
+| All children | Some failed | All failed |
+|-------------|-------------|------------|
+| `all_complete` | `some_failed` | `all_failed` |
+
+- Empty list → `all_complete` (no child spawned)
+- `onItemError: { stopOnError: true }` stops iteration on first failure
+
+**File loading**: `loadSubFlow` reads from `delegates.config.subflowDir` (default: `flows/` relative to tool root). Subflow JSON files follow the same format as the main flow and undergo the same prompt resolution and script registration.
+
+**Template resolution**: `flowArgs` values have `{{var}}` resolved against parent `allVars` before passing to child. The child inherits parent's `delegates.vars` merged with `flowArgs`.
+
+```json
+{
+  "type": "subflow",
+  "flow": "commit-flow",
+  "flowArgs": {
+    "planFile": "{{PLAN_FILE}}",
+    "module": "{{module}}"
+  },
+  "transitions": {
+    "complete": { "goto": "NEXT" },
+    "failed": { "goto": "HANDLE_FAILURE" }
+  }
+}
+```
 
 ## 3. Fault Tolerance
 
@@ -308,7 +305,7 @@ function run(entry):
     catch:
       → execute onError action
 
-    extractVars(stepDef, result)
+    extractFlowVars(result)
     context[currentStep] = result
 
     if result.ok == false AND step is not tool:
@@ -332,224 +329,115 @@ ai-dev/tools/opencode-goal-driver/
 ├── src/
 │   ├── main.js                    # CLI entry: parse args, create flow + runner, start engine
 │   ├── config.js                  # Config: module directory discovery
-│   ├── engine.js                  # Generic FlowEngine (no business logic)
-│   ├── scripts.js                 # Business logic functions (checkPendingPlans, gitCommit, etc.)
-│   ├── mock-responses.js          # Mock agent responses (test/dry-run mode)
-│   ├── opencode-runner.js         # opencode CLI wrapper (real execution + mock mode)
-│   ├── process-executor.js        # Low-level process spawn + fd redirect + watchdog
-│   ├── goal-driver-flow.json      # Main flow definition (DSL)
-│   └── plan-lifecycle-flow.json   # Reusable plan lifecycle sub-flow
-├── prompts/                       # Prompt files (loaded at runtime)
-│   ├── fix-tests.md
+│   ├── engine.js                  # Generic FlowEngine (no business logic) — 41 tests
+│   ├── executor.js                # Process spawn + fd redirect + watchdog
+│   ├── runner.js                  # opencode CLI wrapper (real execution + mock/dry-run mode)
+│   ├── flow-loader.js             # Load flow JSON + prompts + script registry
+│   └── prompts.js                 # Test-only: mock step configs
+├── prompts/                       # Prompt files (loaded at runtime by flow-loader)
+│   ├── fix-build.md
 │   ├── roadmap-check.md
 │   ├── plan-draft.md
 │   ├── plan-audit.md
-│   ├── execute-plan.md
-│   ├── closure-audit-v2.md
-│   ├── needs-deep-audit.md
-│   ├── execute-pending-plan.md
-│   └── closure-audit.md
+│   ├── execute.md
+│   ├── closure-audit.md
+│   ├── build-verify.md
+│   ├── deep-audit.md
+│   └── adversarial-review.md
+├── flows/
+│   └── goal-driver.json           # Main flow definition (DSL)
 ├── test/
-│   └── engine.test.js             # 69 tests
-└── prompts/                       # Prompt files (loaded at runtime)
-```
+│   └── engine.test.js             # 41 tests
+└── package.json
 
 ### Responsibility Matrix
 
 | File | Responsibility | Business logic? |
 |------|---------------|----------------|
 | engine.js | Generic FSM executor | No |
-| scripts.js | Business logic functions | **Yes** |
-| goal-driver-flow.json | Flow definition | **Yes** |
-| plan-lifecycle-flow.json | Sub-flow definition | **Yes** |
-| opencode-runner.js | opencode CLI wrapper | No |
-| process-executor.js | Process spawn + watchdog | No |
+| flow-loader.js | Load flow JSON + prompt files + script functions | **Yes** (script functions) |
+| goal-driver.json | Flow definition | **Yes** |
+| runner.js | opencode CLI wrapper + mock mode | No |
+| executor.js | Process spawn + fd redirect + watchdog | No |
 | config.js | Parameter parsing + module discovery | No |
-| mock-responses.js | Mock responses for test mode | No |
 | main.js | Glue code | No |
 
 ## 6. Flow Diagram
 
-### 6.1 Main Flow (goal-driver-flow.json)
+The actual flow definition is the authoritative source: `ai-dev/tools/opencode-goal-driver/flows/goal-driver.json`.
 
 ```mermaid
 flowchart TD
-    FIX_TESTS["🔧 FIX_TESTS<br/><i>agent: fix-tests.md</i>"]
+    DETECT["🔍 DETECT_START<br/><i>script: detectStartPhase</i>"]
+    DETECT -->|execute/roadmap/plan/audit| HEALTH["🏥 HEALTH_CHECK<br/><i>tool: mvn clean install</i>"]
+    HEALTH -->|pass| ROADMAP["🗺️ ROADMAP_CHECK<br/><i>agent</i>"]
+    HEALTH -->|fail| FIX["🔧 FIX_BUILD<br/><i>agent</i>"]
+    FIX -->|fixed| ROADMAP
+    FIX -->|failed| FAILED["❌ failed"]
 
-    FIX_TESTS -->|fixed| FIX_TESTS_COMMIT["📦 FIX_TESTS_COMMIT<br/><i>script: gitCommit</i>"]
-    FIX_TESTS -->|no_errors| CHECK_PENDING_PLANS
-    FIX_TESTS -->|failed| FIX_TESTS_RECOVERY["🔧 FIX_TESTS_RECOVERY<br/><i>agent: conservative fix</i>"]
-    FIX_TESTS -->|onError| FIX_TESTS
+    ROADMAP -->|pending| PLAN["📝 PLAN_DRAFT<br/><i>agent → flowVars: PLAN_FILE</i>"]
+    ROADMAP -->|complete| DEEP["🔬 DEEP_AUDIT<br/><i>agent</i>"]
+    ROADMAP -->|onError| DEEP
 
-    FIX_TESTS_COMMIT -->|committed| CHECK_PENDING_PLANS
-    FIX_TESTS_COMMIT -->|nothing| CHECK_PENDING_PLANS
-    FIX_TESTS_COMMIT -->|error| FIX_TESTS_COMMIT_FIX["🤖 FIX_TESTS_COMMIT_FIX<br/><i>agent: nop-git-master</i>"]
-    FIX_TESTS_COMMIT_FIX -->|fixed/skipped| CHECK_PENDING_PLANS
-    FIX_TESTS_COMMIT_FIX -->|onError| CHECK_PENDING_PLANS
+    PLAN -->|created| AUDIT["🔍 PLAN_AUDIT<br/><i>agent</i>"]
+    PLAN -->|none| ROADMAP
 
-    FIX_TESTS_RECOVERY -->|fixed| CHECK_PENDING_PLANS
-    FIX_TESTS_RECOVERY -->|failed| DONE_FAIL["❌ tests_failed"]
+    AUDIT -->|approved| EXEC["▶️ EXECUTE<br/><i>agent</i>"]
+    AUDIT -->|issues| PLAN
 
-    CHECK_PENDING_PLANS["📋 CHECK_PENDING_PLANS<br/><i>script: checkPendingPlans</i>"]
-    CHECK_PENDING_PLANS -->|has_plans| PROCESS_PENDING_PLANS
-    CHECK_PENDING_PLANS -->|no_plans| ROADMAP_CHECK
+    EXEC -->|success/failed| CLOSURE["🔎 CLOSURE_VERIFY<br/><i>group: SCRIPT_CHECK → AI_AUDIT</i>"]
+    EXEC -->|onError| CLOSURE
 
-    PROCESS_PENDING_PLANS["🔄 PROCESS_PENDING_PLANS<br/><i>subflow: plan-lifecycle × forEach</i>"]
-    PROCESS_PENDING_PLANS -->|all_complete/some_failed| ROADMAP_CHECK
+    CLOSURE -->|pass| BUILD["🏗️ BUILD_VERIFY<br/><i>agent</i>"]
+    CLOSURE -->|fail| EXEC
 
-    ROADMAP_CHECK["🗺️ ROADMAP_CHECK<br/><i>agent: roadmap-check.md</i>"]
-    ROADMAP_CHECK -->|pending| PLAN_DRAFT
-    ROADMAP_CHECK -->|complete| NEEDS_DEEP_AUDIT
-    ROADMAP_CHECK -->|onError| NEEDS_DEEP_AUDIT
+    BUILD -->|pass| ROADMAP
+    BUILD -->|fail| EXEC
 
-    PLAN_DRAFT["📝 PLAN_DRAFT<br/><i>agent: plan-draft.md<br/>extractVars: planFile</i>"]
-    PLAN_DRAFT -->|created| PLAN_EXECUTE
-    PLAN_DRAFT -->|none| NEEDS_DEEP_AUDIT
+    DEEP -->|issues| PLAN
+    DEEP -->|clean| ADV["⚔️ ADVERSARIAL<br/><i>agent</i>"]
 
-    PLAN_EXECUTE["▶️ PLAN_EXECUTE<br/><i>subflow: plan-lifecycle<br/>flowArgs: planFile</i>"]
-    PLAN_EXECUTE -->|complete/failed| NEEDS_DEEP_AUDIT
-
-    NEEDS_DEEP_AUDIT["🔍 NEEDS_DEEP_AUDIT<br/><i>agent: needs-deep-audit.md</i>"]
-    NEEDS_DEEP_AUDIT -->|needed| DEEP_AUDIT
-    NEEDS_DEEP_AUDIT -->|not_needed| DONE_OK["✅ completed"]
-    NEEDS_DEEP_AUDIT -->|onError| DONE_OK
-
-    DEEP_AUDIT["🔬 DEEP_AUDIT<br/><i>agent: deep-audit skill</i>"]
-    DEEP_AUDIT -->|issues/clean| ADVERSARIAL
-    DEEP_AUDIT -->|onError| ADVERSARIAL
-
-    ADVERSARIAL["⚔️ ADVERSARIAL<br/><i>agent: adversarial-review skill</i>"]
-    ADVERSARIAL -->|issues| AUDIT_PLAN_DRAFT
-    ADVERSARIAL -->|clean| DONE_OK
-    ADVERSARIAL -->|onError| DONE_OK
-
-    AUDIT_PLAN_DRAFT["📝 AUDIT_PLAN_DRAFT<br/><i>agent: inline<br/>extractVars: planFile</i>"]
-    AUDIT_PLAN_DRAFT -->|created| AUDIT_PLAN_EXECUTE
-    AUDIT_PLAN_DRAFT -->|none| FIX_TESTS
-
-    AUDIT_PLAN_EXECUTE["▶️ AUDIT_PLAN_EXECUTE<br/><i>subflow: plan-lifecycle<br/>flowArgs: planFile</i>"]
-    AUDIT_PLAN_EXECUTE -->|complete/failed| FIX_TESTS
-
-    style FIX_TESTS fill:#4a9eff,color:#fff
-    style DONE_OK fill:#2d9c2d,color:#fff
-    style DONE_FAIL fill:#d32f2f,color:#fff
-    style PROCESS_PENDING_PLANS fill:#7c4dff,color:#fff
-    style PLAN_EXECUTE fill:#7c4dff,color:#fff
-    style AUDIT_PLAN_EXECUTE fill:#7c4dff,color:#fff
+    ADV -->|issues| PLAN
+    ADV -->|clean| DONE["✅ completed"]
 ```
 
-### 6.2 Plan Lifecycle Sub-flow (plan-lifecycle-flow.json)
+### 6.1 CLOSURE_VERIFY Sub-flow (group step)
 
 ```mermaid
 flowchart TD
-    CHECK_STATUS["📋 CHECK_STATUS<br/><i>script: readPlanStatus</i>"]
-    CHECK_STATUS -->|draft/active| AUDIT
-    CHECK_STATUS -->|reviewed| EXECUTE
-    CHECK_STATUS -->|completed| DONE["✅ completed"]
+    CHECK["📋 SCRIPT_CHECK<br/><i>script: closureScriptCheck</i>"]
+    CHECK -->|pass| PASS["→ group exit: pass"]
+    CHECK -->|fail| AI["🤖 AI_AUDIT<br/><i>agent: closure-audit.md</i>"]
 
-    AUDIT["🔍 AUDIT<br/><i>agent: plan-audit.md</i>"]
-    AUDIT -->|approved| SET_REVIEWED
-    AUDIT -->|issues| AUDIT_RETRY["🔄 retry AUDIT<br/><i>max 3, append feedback</i>"]
-    AUDIT_RETRY --> AUDIT
-    AUDIT_RETRY -->|onMaxRetries| SET_REVIEWED
-    AUDIT -->|onError| AUDIT_RETRY2["🔄 retry AUDIT<br/><i>max 2</i>"]
-    AUDIT_RETRY2 --> AUDIT
-    AUDIT_RETRY2 -->|onMaxRetries| SET_REVIEWED
-
-    SET_REVIEWED["✏️ SET_REVIEWED<br/><i>script: setPlanStatus → reviewed</i>"]
-    SET_REVIEWED -->|ok/error| EXECUTE
-
-    EXECUTE["▶️ EXECUTE<br/><i>agent: execute-plan.md</i>"]
-    EXECUTE -->|success| CLOSURE
-    EXECUTE -->|failed| CLOSURE
-    EXECUTE -->|onError| CLOSURE
-
-    CLOSURE["🔎 CLOSURE<br/><i>agent: closure-audit-v2.md</i>"]
-    CLOSURE -->|complete| SET_COMPLETED
-    CLOSURE -->|incomplete| EXECUTE_RETRY["🔄 retry EXECUTE<br/><i>max 5, append REMAINING block</i>"]
-    EXECUTE_RETRY --> EXECUTE
-    EXECUTE_RETRY -->|onMaxRetries| SET_COMPLETED
-    CLOSURE -->|onError| EXECUTE_RETRY2["🔄 retry EXECUTE<br/><i>max 3</i>"]
-    EXECUTE_RETRY2 --> EXECUTE
-    EXECUTE_RETRY2 -->|onMaxRetries| SET_COMPLETED
-
-    SET_COMPLETED["✏️ SET_COMPLETED<br/><i>script: setPlanStatus → completed</i>"]
-    SET_COMPLETED -->|ok/error| COMMIT
-
-    COMMIT["📦 COMMIT<br/><i>script: gitCommit</i>"]
-    COMMIT -->|committed| UPDATE_ROADMAP
-    COMMIT -->|nothing| UPDATE_ROADMAP
-    COMMIT -->|error| COMMIT_FIX
-
-    COMMIT_FIX["🤖 COMMIT_FIX<br/><i>agent: nop-git-master</i>"]
-    COMMIT_FIX -->|fixed| UPDATE_ROADMAP
-    COMMIT_FIX -->|skipped| UPDATE_ROADMAP
-    COMMIT_FIX -->|onError| UPDATE_ROADMAP
-
-    UPDATE_ROADMAP["🗺️ UPDATE_ROADMAP<br/><i>script: updateRoadmap</i>"]
-    UPDATE_ROADMAP -->|updated/skipped/error| DONE
-
-    style CHECK_STATUS fill:#4a9eff,color:#fff
-    style DONE fill:#2d9c2d,color:#fff
-    style COMMIT_FIX fill:#ff9800,color:#fff
+    AI -->|complete| RETRY["→ _retry (next round)"]
+    AI -->|incomplete| FAIL["→ group exit: fail"]
+    AI -->|onError| FAIL
 ```
 
-### 6.3 Commit Error → Agent Fix Pattern
+### 6.2 Error Recovery
 
+**Build fix → retry**:
 ```mermaid
 flowchart LR
-    COMMIT["📦 COMMIT<br/><i>gitCommit --no-verify</i>"]
-    COMMIT -->|committed| NEXT["→ next step"]
-    COMMIT -->|nothing| NEXT
-    COMMIT -->|error| FIX["🤖 COMMIT_FIX<br/><i>agent fallback</i>"]
-    FIX -->|fixed| NEXT
-    FIX -->|skipped| NEXT
-    FIX -->|onError| NEXT
-
-    style COMMIT fill:#4a9eff,color:#fff
-    style FIX fill:#ff9800,color:#fff
-    style NEXT fill:#2d9c2d,color:#fff
+    HEALTH -->|fail| FIX["FIX_BUILD<br/><i>agent</i>"]
+    FIX -->|fixed| ROADMAP_CHECK
+    FIX -->|failed| DONE["❌ failed"]
 ```
 
-### 6.4 Error Recovery Scenarios
-
-**Test fix failed → recovery**:
+**Closure audit → retry execution**:
 ```mermaid
 flowchart LR
-    A[FIX_TESTS] -->|failed| B[FIX_TESTS_RECOVERY]
-    B -->|fixed| C[CHECK_PENDING_PLANS]
-    B -->|failed| D[❌ tests_failed]
-```
-
-**Pending plans loop (subflow)**:
-```mermaid
-flowchart LR
-    A[CHECK_PENDING_PLANS] -->|has_plans| B["PROCESS_PENDING_PLANS<br/>(subflow forEach)"]
-    B -->|all_complete| C[ROADMAP_CHECK]
-```
-
-**Plan audit retry exhaustion → degraded execution**:
-```mermaid
-flowchart LR
-    A[AUDIT] -->|issues ×3| A
-    A -.->|onMaxRetries| B[SET_REVIEWED] --> C[EXECUTE]
-```
-
-**Audit findings → plan → back to FIX_TESTS**:
-```mermaid
-flowchart LR
-    A[ADVERSARIAL] -->|issues| B[AUDIT_PLAN_DRAFT] --> C["AUDIT_PLAN_EXECUTE<br/>(subflow)"] --> D[FIX_TESTS]
+    CLOSURE["CLOSURE_VERIFY"] -->|fail| EXEC["EXECUTE<br/><i>retry max 5</i>"]
+    EXEC -->|success/failed| CLOSURE
+    CLOSURE -->|pass| BUILD["BUILD_VERIFY"]
 ```
 
 ## 7. Script Functions
 
 | Function | File | Returns |
 |----------|------|---------|
-| `checkPendingPlans(delegates)` | scripts.js | `{ marker: "has_plans"/"no_plans", vars: { activePlanFiles: [...] } }` |
-| `readPlanStatus(delegates)` | scripts.js | `{ marker: status, vars: { planFile, planStatus } }` |
-| `setPlanStatus(delegates, args)` | scripts.js | `{ marker: "ok"/"error" }` — validates Plan Status field exists |
-| `updateRoadmap(delegates)` | scripts.js | `{ marker: "updated"/"skipped"/"error" }` |
-| `gitCommit(delegates, args)` | scripts.js | `{ marker: "committed"/"nothing"/"error" }` |
+| `detectStartPhase(delegates)` | flow-loader.js | `"execute"` / `"roadmap"` / `"plan"` / `"audit"` (string marker) |
+| `closureScriptCheck(delegates)` | flow-loader.js | `"pass"` / `"fail"` (string marker) |
 
 ## 8. Session Strategy
 
@@ -559,7 +447,7 @@ Each agent step spawns an **independent `opencode run` session**. The engine doe
 
 **Decision reason**:
 
-1. **Context is passed via template variables, not conversation history.** The engine already has a complete context-passing mechanism (`{steps.X.text}`, `{steps.X.marker}`, `append` buffers, `extractVars`). Every downstream step receives all necessary information through its prompt — no reliance on opencode's conversation memory.
+ 1. **Context is passed via template variables, not conversation history.** The engine already has a complete context-passing mechanism (`{steps.X.text}`, `{steps.X.marker}`, `append` buffers, `flowVars`). Every downstream step receives all necessary information through its prompt — no reliance on opencode's conversation memory.
 2. **Each step has a clearly defined role.** `FIX_TESTS` does not need to see `ROADMAP_CHECK`'s dialogue history. Its `promptFile` already contains sufficient instructions and injected context.
 3. **Avoids cross-step contamination.** Shared sessions risk the agent referencing stale or irrelevant context from previous steps, producing unpredictable behavior.
 4. **Predictable token usage.** Independent sessions guarantee each step starts from a clean context window, independent of cumulative conversation length.
