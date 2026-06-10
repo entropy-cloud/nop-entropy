@@ -1746,3 +1746,211 @@ describe("FlowEngine — marker correction retry", () => {
     assert.equal(result.status, "no_transition");
   });
 });
+
+// ═══════════════════════════════════════════
+// 16. StepResult unification: new tests
+// ═══════════════════════════════════════════
+
+describe("FlowEngine — StepResult unification", () => {
+  it("group step aggregates sub-step vars into StepResult.vars", async () => {
+    const flow = simpleFlow({
+      START: {
+        type: "group",
+        maxRounds: 1,
+        steps: {
+          CHECK: {
+            type: "agent",
+            prompt: "check",
+            resultTag: "R",
+            transitions: { pass: { exit: "pass" } },
+          },
+        },
+        transitions: {
+          pass: { goto: "AFTER" },
+          fail: { done: "failed" },
+        },
+      },
+      AFTER: {
+        type: "agent",
+        prompt: "use {{X}} and {{Y}}",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "START");
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.CHECK": { text: "<R>pass</R>\n<FLOW_VARS>\n<X>hello</X>\n<Y>world</Y>\n</FLOW_VARS>", ok: true },
+        AFTER: (sn, prompt) => {
+          assert.ok(prompt.includes("hello"), "AFTER should have X=hello from group vars");
+          assert.ok(prompt.includes("world"), "AFTER should have Y=world from group vars");
+          return { text: "<R>ok</R>", ok: true };
+        },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    const groupResult = engine.context.get("START");
+    assert.ok(groupResult.vars, "group result should have vars field");
+    assert.equal(groupResult.vars.X, "hello");
+    assert.equal(groupResult.vars.Y, "world");
+  });
+
+  it("subflow step propagates vars via StepResult.vars (single)", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: {
+          type: "agent", prompt: "work",
+          transitions: { done: { done: "completed" } },
+        },
+      },
+    });
+
+    const flow = simpleFlow({
+      SUB: {
+        type: "subflow", flow: "child",
+        transitions: { complete: { goto: "AFTER" }, failed: { done: "failed" } },
+      },
+      AFTER: {
+        type: "agent", prompt: "check {{PLAN_FILE}}",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    }, "SUB");
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "WORK": "<AI_STEP_RESULT>done</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>my-plan.md</PLAN_FILE>\n</FLOW_VARS>",
+        AFTER: (sn, prompt) => {
+          assert.ok(prompt.includes("my-plan.md"), "AFTER should have PLAN_FILE from subflow vars");
+          return { text: "<R>ok</R>", ok: true };
+        },
+      },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    const subResult = engine.context.get("SUB");
+    assert.ok(subResult.vars, "subflow result should have vars field");
+    assert.equal(subResult.vars.PLAN_FILE, "my-plan.md");
+  }));
+
+  it("subflow forEach aggregates vars from all children via StepResult.vars", withSubflowDir(async (dir) => {
+    writeSubflow(dir, "child", {
+      name: "child", entry: "WORK", maxTotalSteps: 20, steps: {
+        WORK: {
+          type: "agent", prompt: "work on {{forEachItem}}",
+          transitions: { done: { done: "completed" } },
+        },
+      },
+    });
+
+    let callIdx = 0;
+    const flow = simpleFlow({
+      START: {
+        type: "subflow", flow: "child", forEach: "items",
+        transitions: { all_complete: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "WORK": () => {
+          callIdx++;
+          return {
+            text: `<AI_STEP_RESULT>done</AI_STEP_RESULT>\n<FLOW_VARS>\n  <ITEM_KEY>item-${callIdx}</ITEM_KEY>\n</FLOW_VARS>`,
+            ok: true,
+          };
+        },
+      },
+      config: { moduleName: "test-mod", projectRoot: "/tmp/test", subflowDir: dir },
+    });
+    delegates.vars.items = '["a","b"]';
+    delegates.loadSubFlow = (await import("../src/flow-loader.js")).loadSubFlow;
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    const subResult = engine.context.get("START");
+    assert.ok(subResult.vars, "forEach subflow result should have vars field");
+    assert.equal(subResult.vars.ITEM_KEY, "item-2", "last-write-wins aggregation");
+  }));
+
+  it("agent marker correction stays internal (parse agent fallback + correction)", async () => {
+    let agentCalls = [];
+    let parseCalls = [];
+
+    const flow = simpleFlow({
+      START: {
+        type: "agent",
+        prompt: "go",
+        resultTag: "R",
+        onUnknownMaxRetries: 2,
+        transitions: { yes: { done: "completed" } },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      async runAgent(stepName, prompt, system, sessionId) {
+        agentCalls.push({ stepName, sessionId });
+        if (stepName === "START") return { text: "<R>no</R>", ok: true, sessionId: "ses_abc" };
+        if (stepName.includes("correct")) return { text: "<R>yes</R>", ok: true };
+        return { text: "<R>no</R>", ok: true };
+      },
+      async runParseAgent(stepName, prompt) {
+        parseCalls.push({ stepName });
+        return { text: "<R>unknown</R>", ok: true };
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(parseCalls.length === 0, "parse agent should NOT be called when tag exists");
+    assert.ok(agentCalls.some(c => c.stepName.includes("correct")), "correction should happen internally");
+    assert.ok(agentCalls.length >= 2, "at least original + correction call");
+  });
+
+  it("group step with tool sub-step ok:false does not trigger error path", async () => {
+    const flow = simpleFlow({
+      START: {
+        type: "group",
+        maxRounds: 1,
+        steps: {
+          BUILD: {
+            type: "tool",
+            command: "exit 1",
+            transitions: { pass: { exit: "pass" }, fail: { exit: "fail" } },
+          },
+        },
+        transitions: {
+          pass: { done: "completed" },
+          fail: { done: "build_failed" },
+        },
+      },
+    }, "START");
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.BUILD": false,
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "build_failed");
+    const groupResult = engine.context.get("START");
+    assert.equal(groupResult.marker, "fail");
+    assert.equal(groupResult.ok, true);
+  });
+});

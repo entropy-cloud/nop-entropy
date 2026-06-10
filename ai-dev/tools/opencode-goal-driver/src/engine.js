@@ -40,7 +40,6 @@ export class FlowEngine {
     this.logEntries = [];
     this.startTime = null;
     this.lastSessionId = null;
-    this.markerCorrectionCounts = new Map();
   }
 
   _log(msg) {
@@ -115,38 +114,126 @@ export class FlowEngine {
     const prompt = this._buildPrompt(stepName, stepDef);
     const result = await this.delegates.runAgent(stepName, prompt, stepDef.system || "", sessionId);
     if (result && result.sessionId) this.lastSessionId = result.sessionId;
-    if (result && result.text) {
-      const vars = this._extractFlowVars(result.text);
-      for (const [k, v] of Object.entries(vars)) {
-        this.flowVars.set(k, v);
+
+    if (!result || !result.text) {
+      return { marker: null, vars: {}, ok: !!result?.ok, text: result?.text || "" };
+    }
+
+    const vars = this._extractFlowVars(result.text);
+
+    let marker = null;
+    const rTag = stepDef.resultTag || "AI_STEP_RESULT";
+    marker = extractTag(result.text, rTag);
+
+    if (!marker && this.delegates.runParseAgent) {
+      const parsePrompt = [
+        `No <${rTag}> tag found in output. Read the AI output below and infer the result.`,
+        `Expected values: ${Object.keys(stepDef.transitions || {}).join(", ")}`,
+        `Output only <${rTag}>value</${rTag}> format, nothing else.`,
+        ``,
+        `AI output:`,
+        result.text,
+      ].join("\n");
+      const retry = await this.delegates.runParseAgent(
+        `parse-${rTag}`, parsePrompt, stepDef.system || "",
+      );
+      marker = extractTag(retry.text, rTag);
+    }
+
+    if (marker) {
+      const aliased = this._tryAliasMarker(marker, stepDef.transitions || {});
+      if (aliased) marker = aliased;
+    }
+
+    if (marker) {
+      const transitions = stepDef.transitions || {};
+      if (!transitions[marker]) {
+        marker = await this._runCorrectionAgent(
+          marker, result.text, rTag, transitions, stepDef, this.lastSessionId,
+        );
       }
     }
-    return result;
+
+    return { marker, vars, ok: result.ok, text: result.text };
+  }
+
+  async _runCorrectionAgent(marker, resultText, resultTag, transitions, stepDef, sessionId) {
+    const maxRetries = stepDef.onUnknownMaxRetries ?? 2;
+    let currentMarker = marker;
+
+    for (let i = 0; i < maxRetries; i++) {
+      const validValues = Object.keys(transitions).join(", ");
+      this._log(`  marker "${currentMarker}" not in transitions, correction retry ${i + 1}/${maxRetries} (session=${sessionId ? sessionId.slice(0, 20) + "..." : "none"})`);
+
+      const correctionPrompt = [
+        `The value "${currentMarker}" in the <${resultTag}> tag from your last output is not valid.`,
+        `Valid values are: ${validValues}`,
+        `Output only <${resultTag}>valid_value</${resultTag}>, nothing else.`,
+      ].join("\n");
+
+      try {
+        const corrected = await this.delegates.runAgent(
+          `correct-${i + 1}`, correctionPrompt, stepDef.system || "", sessionId,
+        );
+        if (corrected && corrected.text) {
+          const newMarker = extractTag(corrected.text, resultTag);
+          if (newMarker) {
+            const aliasedNew = this._tryAliasMarker(newMarker, transitions);
+            if (aliasedNew) {
+              this._log(`  corrected marker: ${newMarker} → ${aliasedNew}`);
+              return aliasedNew;
+            }
+          }
+        }
+      } catch (e) {
+        this._log(`  correction retry failed: ${e.message}`);
+      }
+    }
+
+    return currentMarker;
   }
 
   async _executeToolStep(stepName, stepDef) {
     const command = this._templateVar(stepDef.command || "", this.delegates.vars || {});
     const timeout = stepDef.timeout || 0;
-    return await this.delegates.runTool(stepName, command, { timeout });
+    const delegateResult = await this.delegates.runTool(stepName, command, { timeout });
+    return {
+      marker: delegateResult.ok ? "pass" : "fail",
+      ok: true,
+      vars: {},
+      text: delegateResult.logFile || "",
+    };
   }
 
   async _executeScriptStep(stepName, stepDef) {
     const ret = await stepDef.run(this.delegates, this.flowVars);
     if (ret && typeof ret === "object" && ret.marker !== undefined) {
-      if (ret.vars) {
-        for (const [k, v] of Object.entries(ret.vars)) {
-          this.flowVars.set(k, v);
-        }
-      }
-      return { ok: true, marker: ret.marker, text: String(ret.marker) };
+      return {
+        marker: ret.marker,
+        ok: true,
+        vars: ret.vars || {},
+        text: ret.text || String(ret.marker),
+      };
     }
-    return { ok: true, marker: ret, text: String(ret) };
+    return { marker: ret, ok: true, vars: {}, text: String(ret) };
   }
 
   async _executeScriptStepWithOverride(stepName, stepDef) {
     if (this.delegates.runScript) {
       const result = await this.delegates.runScript(stepName, stepDef);
-      if (result !== undefined) return result;
+      if (result !== undefined) {
+        if (typeof result === "string") {
+          return { marker: result, ok: true, vars: {}, text: String(result) };
+        }
+        if (typeof result === "object") {
+          return {
+            marker: result.marker,
+            ok: true,
+            vars: result.vars || {},
+            text: result.text || String(result.marker),
+          };
+        }
+      }
     }
     return this._executeScriptStep(stepName, stepDef);
   }
@@ -174,15 +261,17 @@ export class FlowEngine {
       }
       if (items.length === 0) {
         this._log(`  subflow ${stepName}: forEach "${stepDef.forEach}" resolved to empty list → all_complete`);
-        return { ok: true, marker: "all_complete", text: "all_complete" };
+        return { ok: true, marker: "all_complete", vars: {}, text: "all_complete" };
       }
 
       let completed = 0, failed = 0;
+      const aggregatedVars = {};
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         this._log(`  subflow ${stepName}: forEach item ${i + 1}/${items.length}`);
         const childVars = { ...baseArgs, forEachItem: item, forEachIndex: i, forEachTotal: items.length };
-        const childResult = await this._runChildSubflow(flowDef, childVars);
+        const { childResult, childFlowVars } = await this._runChildSubflow(flowDef, childVars);
+        Object.assign(aggregatedVars, childFlowVars);
         this._log(`  subflow ${stepName}: forEach item ${i + 1} → ${childResult.status}`);
         if (childResult.status === "completed") {
           completed++;
@@ -197,13 +286,13 @@ export class FlowEngine {
       else if (completed === 0) marker = "all_failed";
       else marker = "some_failed";
       this._log(`  subflow ${stepName}: forEach done (${completed} completed, ${failed} failed) → ${marker}`);
-      return { ok: true, marker, text: marker };
+      return { ok: true, marker, vars: aggregatedVars, text: marker };
     }
 
-    const childResult = await this._runChildSubflow(flowDef, baseArgs);
+    const { childResult, childFlowVars } = await this._runChildSubflow(flowDef, baseArgs);
     const marker = childResult.status === "completed" ? "complete" : "failed";
     this._log(`  subflow ${stepName}: child ${childResult.status} → ${marker}`);
-    return { ok: true, marker, text: marker };
+    return { ok: true, marker, vars: childFlowVars, text: marker };
   }
 
   _allVars() {
@@ -216,19 +305,19 @@ export class FlowEngine {
     const childDelegates = {
       ...parentDelegates,
       vars: childVars,
-      callLog: [],
+      callLog: parentDelegates.callLog,
     };
     const childEngine = new FlowEngine(flowDef, childDelegates);
     const childResult = await childEngine.run();
-    for (const [k, v] of childEngine.flowVars) {
-      this.flowVars.set(k, v);
-    }
     if (childResult.history) {
       for (const line of childResult.history) {
         this._log(`  [child] ${line}`);
       }
     }
-    return childResult;
+    return {
+      childResult,
+      childFlowVars: Object.fromEntries(childEngine.flowVars),
+    };
   }
 
   async _executeSubStep(stepName, stepDef) {
@@ -252,6 +341,7 @@ export class FlowEngine {
     const onExhausted = groupDef.onExhausted || "fail";
     const subSteps = groupDef.steps;
     const firstStepName = Object.keys(subSteps)[0];
+    const accumulatedVars = {};
 
     for (let round = 1; round <= maxRounds; round++) {
       this._log(`  group ${groupName} (round ${round}/${maxRounds})`);
@@ -261,7 +351,7 @@ export class FlowEngine {
         const subDef = subSteps[currentSub];
         if (!subDef) {
           this._log(`  group ${groupName}: unknown sub-step ${currentSub}`);
-          return { ok: true, marker: onExhausted, text: onExhausted };
+          return { ok: true, marker: onExhausted, vars: accumulatedVars, text: onExhausted };
         }
 
         let result;
@@ -271,27 +361,34 @@ export class FlowEngine {
           this._log(`  group ${groupName}.${currentSub} error: ${err.message}`);
           const onError = subDef.onError;
           if (onError && onError.exit) {
-            return { ok: true, marker: onError.exit, text: onError.exit };
+            return { ok: true, marker: onError.exit, vars: accumulatedVars, text: onError.exit };
           }
-          return { ok: true, marker: onExhausted, text: onExhausted };
+          return { ok: true, marker: onExhausted, vars: accumulatedVars, text: onExhausted };
         }
 
-        if (!result.ok && subDef.type !== "tool") {
+        if (!result.ok) {
           this._log(`  group ${groupName}.${currentSub} subprocess failed`);
           const onError = subDef.onError;
           if (onError && onError.exit) {
-            return { ok: true, marker: onError.exit, text: result.text || onError.exit };
+            return { ok: true, marker: onError.exit, vars: accumulatedVars, text: result.text || onError.exit };
           }
           if (onError && onError.goto === "_retry") {
             break;
           }
-          return { ok: true, marker: onExhausted, text: onExhausted };
+          return { ok: true, marker: onExhausted, vars: accumulatedVars, text: onExhausted };
         }
 
-        let marker = await this._resolveMarker(result, subDef);
+        if (result.vars) {
+          for (const [k, v] of Object.entries(result.vars)) {
+            this.flowVars.set(k, v);
+          }
+          Object.assign(accumulatedVars, result.vars);
+        }
+
+        let marker = result.marker;
         if (!marker) {
           this._log(`  group ${groupName}.${currentSub} marker not found`);
-          return { ok: true, marker: onExhausted, text: onExhausted };
+          return { ok: true, marker: onExhausted, vars: accumulatedVars, text: onExhausted };
         }
 
         if (marker) {
@@ -304,13 +401,13 @@ export class FlowEngine {
         const transition = subDef.transitions[marker];
         if (!transition) {
           this._log(`  group ${groupName}.${currentSub}: no transition for marker "${marker}"`);
-          return { ok: true, marker: onExhausted, text: onExhausted };
+          return { ok: true, marker: onExhausted, vars: accumulatedVars, text: onExhausted };
         }
 
         if (transition.exit) {
           this._log(`  group ${groupName} exit: ${transition.exit}`);
           const exitText = result.text || transition.exit;
-          return { ok: true, marker: transition.exit, text: exitText };
+          return { ok: true, marker: transition.exit, vars: accumulatedVars, text: exitText };
         }
 
         if (transition.goto === "_retry") {
@@ -323,42 +420,12 @@ export class FlowEngine {
         }
 
         this._log(`  group ${groupName}.${currentSub}: invalid sub-transition ${JSON.stringify(transition)}`);
-        return { ok: true, marker: onExhausted, text: onExhausted };
+        return { ok: true, marker: onExhausted, vars: accumulatedVars, text: onExhausted };
       }
     }
 
     this._log(`  group ${groupName} exhausted (${maxRounds} rounds) → ${onExhausted}`);
-    return { ok: true, marker: onExhausted, text: onExhausted };
-  }
-
-  async _resolveMarker(result, stepDef) {
-    if (stepDef.type === "tool") {
-      return result.ok ? "pass" : "fail";
-    }
-    if (stepDef.type === "script" || stepDef.type === "group" || stepDef.type === "subflow") {
-      return result.marker;
-    }
-    if (!result.text) return null;
-
-    const tag = extractTag(result.text, stepDef.resultTag || "AI_STEP_RESULT");
-    if (tag) return tag;
-
-    if (this.delegates.runParseAgent) {
-      const rTag = stepDef.resultTag || "AI_STEP_RESULT";
-      const parsePrompt = [
-        `No <${rTag}> tag found in output. Read the AI output below and infer the result.`,
-        `Expected values: ${Object.keys(stepDef.transitions).join(", ")}`,
-        `Output only <${rTag}>value</${rTag}> format, nothing else.`,
-        ``,
-        `AI output:`,
-        result.text,
-      ].join("\n");
-      const retry = await this.delegates.runParseAgent(
-        `parse-${rTag}`, parsePrompt, stepDef.system || "",
-      );
-      return extractTag(retry.text, rTag);
-    }
-    return null;
+    return { ok: true, marker: onExhausted, vars: accumulatedVars, text: onExhausted };
   }
 
   _formatAppend(append, fromStep, result) {
@@ -460,9 +527,13 @@ export class FlowEngine {
 
       this.context.set(currentStep, result);
 
-      // For tool steps, ok=false is a normal "fail" marker, not an error
-      // For agent steps, ok=false means subprocess was killed → onError
-      if (!result.ok && stepDef.type !== "tool") {
+      if (result.vars) {
+        for (const [k, v] of Object.entries(result.vars)) {
+          this.flowVars.set(k, v);
+        }
+      }
+
+      if (!result.ok) {
         const onError = stepDef.onError || { done: "failed" };
         this._log(`  subprocess failed → ${JSON.stringify(onError)}`);
         if (onError.done) return this._result(onError.done, totalSteps);
@@ -491,7 +562,7 @@ export class FlowEngine {
         return this._result("failed", totalSteps);
       }
 
-      let marker = await this._resolveMarker(result, stepDef);
+      let marker = result.marker;
       if (!marker) {
         this._log(`  marker not found in output`);
         const onUnknown = stepDef.onUnknown || { done: "failed" };
@@ -514,50 +585,11 @@ export class FlowEngine {
       }
 
       if (!transition) {
-        const maxCorrect = stepDef.onUnknownMaxRetries ?? 2;
-        const correctKey = `${currentStep}:marker-correct`;
-        const correctCount = (this.markerCorrectionCounts.get(correctKey) || 0) + 1;
-        this.markerCorrectionCounts.set(correctKey, correctCount);
-
-        if (correctCount <= maxCorrect) {
-          const validValues = Object.keys(stepDef.transitions).join(", ");
-          const sessionId = this.lastSessionId;
-          const rTag = stepDef.resultTag || "AI_STEP_RESULT";
-          this._log(`  marker "${marker}" not in transitions, correction retry ${correctCount}/${maxCorrect} (session=${sessionId ? sessionId.slice(0, 20) + "..." : "none"})`);
-
-          const correctionPrompt = [
-            `The value "${marker}" in the <${rTag}> tag from your last output is not valid.`,
-            `Valid values are: ${validValues}`,
-            `Output only <${rTag}>valid_value</${rTag}>, nothing else.`,
-          ].join("\n");
-
-          try {
-            const corrected = await this._executeAgentStep(
-              `${currentStep}:correct-${correctCount}`, { prompt: correctionPrompt }, sessionId,
-            );
-            if (corrected && corrected.text) {
-              const newMarker = extractTag(corrected.text, rTag);
-              if (newMarker) {
-                const aliasedNew = this._tryAliasMarker(newMarker, stepDef.transitions);
-                if (aliasedNew) {
-                  this._log(`  corrected marker: ${newMarker} → ${aliasedNew}`);
-                  marker = aliasedNew;
-                  transition = stepDef.transitions[marker];
-                }
-              }
-            }
-          } catch (e) {
-            this._log(`  correction retry failed: ${e.message}`);
-          }
-        }
-
-        if (!transition) {
-          this._log(`  no transition for marker "${marker}" after correction attempts`);
-          const onUnknown = stepDef.onUnknown || { done: "no_transition" };
-          if (onUnknown.done) return this._result(onUnknown.done, totalSteps);
-          if (onUnknown.goto) { currentStep = onUnknown.goto; continue; }
-          return this._result("no_transition", totalSteps);
-        }
+        this._log(`  no transition for marker "${marker}"`);
+        const onUnknown = stepDef.onUnknown || { done: "no_transition" };
+        if (onUnknown.done) return this._result(onUnknown.done, totalSteps);
+        if (onUnknown.goto) { currentStep = onUnknown.goto; continue; }
+        return this._result("no_transition", totalSteps);
       }
 
       if (transition.done) {
