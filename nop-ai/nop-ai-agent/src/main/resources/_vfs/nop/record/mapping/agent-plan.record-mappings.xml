@@ -20,8 +20,8 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="taskStatus" from="任务状态">
-                <schema dict="io.nop.ai.agent.plan.AgentTaskStatus"/>
+            <field name="status" from="任务状态">
+                <schema dict="io.nop.ai.agent.model.AgentExecStatus"/>
             </field>
 
             <field name="resultMessage" from="执行结果">
@@ -70,7 +70,7 @@
             </field>
 
             <field name="planStatus" from="计划状态">
-                <schema dict="io.nop.ai.agent.plan.AgentPlanStatus"/>
+                <schema dict="io.nop.ai.agent.model.AgentExecStatus"/>
             </field>
 
             <field name="tasks" from="任务" keyProp="taskNo"
