@@ -100,6 +100,11 @@ public class StringHelper extends ApiStringHelper {
         static final int s_maxPadLen = CFG_UTILS_STRING_MAX_PAD_LEN.get();
     }
 
+    @Deterministic
+    public static boolean equals(String s1, String s2) {
+        return Objects.equals(s1, s2);
+    }
+
     public static String safeToString(Object value) {
         if (value == null)
             return "null";
@@ -1418,9 +1423,9 @@ public class StringHelper extends ApiStringHelper {
     /**
      * 限制字符串长度，超过时添加指定后缀
      *
-     * @param str     待处理的字符串
-     * @param maxLen  最大长度
-     * @param suffix  超过最大长度时添加的后缀
+     * @param str    待处理的字符串
+     * @param maxLen 最大长度
+     * @param suffix 超过最大长度时添加的后缀
      * @return 处理后的字符串
      */
     @Deterministic
@@ -1432,8 +1437,8 @@ public class StringHelper extends ApiStringHelper {
             return str.toString();
         }
 
-        if(suffix == null)
-            return str.subSequence(0,maxLen).toString();
+        if (suffix == null)
+            return str.subSequence(0, maxLen).toString();
 
         if (maxLen <= suffix.length()) {
             return suffix.substring(0, maxLen);
@@ -2359,7 +2364,7 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
-    public static Map<String,Object> parseQuery(String query){
+    public static Map<String, Object> parseQuery(String query) {
         return parseQuery(query, ENCODING_UTF8);
     }
 
@@ -4902,7 +4907,7 @@ public class StringHelper extends ApiStringHelper {
             return false;
         }
 
-        if(isDigit(s.charAt(0)))
+        if (isDigit(s.charAt(0)))
             return false;
 
         for (int i = 0, n = s.length(); i < n; i++) {

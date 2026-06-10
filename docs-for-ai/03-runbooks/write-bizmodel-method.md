@@ -12,6 +12,18 @@
 - 参数少时用 `@Name`（1–5 个），超过 5 个参数用 `@RequestBean` + `@DataBean` DTO。
 - 普通数据访问优先 `requireEntity()`、`doFindList()`、`doFindPage()`。
 
+## 强制实现顺序
+
+**每个 BizModel 方法必须按以下顺序实现，不得跳步或倒序：**
+
+1. **定义 ErrorCode**（如需要）— 在模块 `Errors` 接口中定义错误码。
+2. **声明 `I*Biz` 接口方法** — 在 `*-dao/.../biz/IXxxBiz.java` 中添加方法声明，含 `@BizQuery`/`@BizMutation` 和 `@Name` 注解。
+3. **实现 BizModel 方法** — 在 `*-service/.../entity/XxxBizModel.java` 中实现，`@Override` 标注。
+4. **逐条执行写后自检清单**（见下方）。
+5. **编写测试** — 通过 `IGraphQLEngine` 验证。
+
+> **为什么接口必须在实现之前：** 动态代理（`BizProxyFactoryBean`）只识别 `I*Biz` 接口上的方法。如果先写实现后补接口，容易出现"实现写完、接口忘补、代理调用报 unsupported-method"的问题。接口先行确保每个方法从定义到实现到测试的路径完整。
+
 ## 查询方法最小模板
 
 ```java

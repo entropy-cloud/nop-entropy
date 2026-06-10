@@ -1,15 +1,21 @@
 # 前端页面开发必读索引
 
-> **用途：** 计划阶段和执行阶段的 `Required Pre-Reading` 入口。前端/页面任务只需引用本文件，执行时按实际涉及的内容项选择阅读。
+> **用途：** 本文件是前端/页面任务的必读文档路由入口。Plan 中 `Required Pre-Reading` 引用本文件时，agent 必须逐个打开并通读下表中列出的每一个文档，不能用"已读本索引"替代阅读子文档。
 
-## 全局必读（任何前端/页面任务都要读）
+## 全局必读（写任何前端/页面代码之前必须全部读完）
 
-| 文档 | 为什么必读 |
-|------|-----------|
-| `00-start-here/application-project-defaults.md` | 决策顺序（Model→Delta→Java）、view.xml 三层模型 |
-| `02-core-guides/view-and-page-customization.md` | view.xml 三层模型、bounded-merge、x:prototype 模式 |
+> **本索引文件不包含任何规则内容。** 下表的"为什么必读"列只是说明用途，不是规则摘要。不读原文就会破坏生成物或违反平台规范。
+>
+> **阅读顺序：** 按表格从上到下逐个打开、通读全文。读完一篇才能读下一篇。
+
+| 文档 | 为什么必读 | 不读会怎样 |
+|------|-----------|-----------|
+| `00-start-here/application-project-defaults.md` | 决策顺序（Model→Delta→Java）、view.xml 三层模型 | 优先级搞反，手改生成物 |
+| `02-core-guides/view-and-page-customization.md` | view.xml 三层模型、bounded-merge、x:prototype 模式、生成物与定制物关系 | **编辑生成物（_gen/ 目录）→下次重新生成被覆盖**；merge 策略选错→定制丢失或冲突 |
 
 ## 按场景选读
+
+> 以下文档按需阅读。判断依据：你接下来要写的代码涉及表格中描述的场景时，必须先读对应的文档再写代码。
 
 ### 后台管理页面
 
@@ -55,5 +61,3 @@
 | 文档 | 场景 |
 |------|------|
 | `02-core-guides/index-html-extensions.md` | 定制 index.html 扩展注入 |
-
-> 计划阶段只引用本索引确定路径；执行阶段才实际阅读具体文档。流程由 plan guide 定义。

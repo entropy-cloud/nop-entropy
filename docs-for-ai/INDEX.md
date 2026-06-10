@@ -106,6 +106,7 @@
 | 排查 `module-meta.json`、页面菜单或 TOPM 图标生成结果 | `03-runbooks/debug-codegen-and-generated-files.md` |
 | 查后台页面开发路线图 | `03-runbooks/admin-page-development-roadmap.md` |
 | 写 BizModel 方法 | `03-runbooks/write-bizmodel-method.md` |
+| **功能实现总流程（端到端 checklist）** | **`03-runbooks/feature-implementation-checklist.md`** |
 | 创建 Request / Response DTO | `03-runbooks/create-request-response-dto.md` |
 | 新增跨模块 Biz 接口 | `03-runbooks/add-cross-module-biz-interface.md` |
 | 选择 Entity / BizModel / Processor | `03-runbooks/choose-entity-bizmodel-processor.md` |
@@ -135,6 +136,20 @@
 | 在测试中补 mock bean | `03-runbooks/add-test-mock-bean.md` |
 | 查询常用 Java helper | `04-reference/common-java-helpers.md` |
 | 查询安全 API | `04-reference/safe-api-reference.md` |
+| **选择可复用业务模块** | **`03-modules/reusable-modules-overview.md`**（总览 + 场景→模块路由） |
+| 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md` |
+| 理解 nop-sys（字典/序列号/锁/事件） | `03-modules/nop-sys.md` |
+| 理解 nop-report（报表引擎） | `03-modules/nop-report.md` |
+| 理解 nop-rule（规则引擎） | `03-modules/nop-rule.md` |
+| 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md` |
+| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` |
+| 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
+| 理解 nop-job（分布式定时任务） | `03-modules/nop-job.md` |
+| 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
+| 理解 nop-dyn（动态表单/实体） | `03-modules/nop-dyn.md` |
+| 理解 nop-file（文件管理） | `03-modules/nop-file.md` |
+| 理解 nop-retry（分布式重试） | `03-modules/nop-retry.md` |
+| 理解 nop-tcc（TCC 分布式事务） | `03-modules/nop-tcc.md` |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
 | 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
 | 维护 AI 文档 | `90-maintenance/maintenance-rules.md` |
@@ -146,6 +161,7 @@
 | `00-start-here/` | AI 默认规则与全局反模式 |
 | `01-repo-map/` | 当前仓库结构、模块分组、文件位置 |
 | `02-core-guides/` | 规范主干，回答“默认应该怎么做” |
+| `03-modules/` | 可复用业务模块文档，回答"这个模块能做什么、怎么用" |
 | `03-runbooks/` | 任务型手册，回答“这件事具体怎么做” |
 | `04-reference/` | 速查与实现锚点，回答“需要看哪个类/方法定义” |
 | `90-maintenance/` | 文档治理规则，不是日常开发入口 |

@@ -28,16 +28,27 @@
 2. `JunitBaseTestCase` 不强制要求 `@NopTestConfig`；仓库里也存在不加该注解的普通测试。
 3. 只有需要本地库、测试配置、测试 beans 或快照相关能力时再加。
 
-当前仓库里的 `@NopTestConfig` 至少控制这些能力：
+`@NopTestConfig` 的关键参数默认值：
 
-- `localDb`
-- `initDatabaseSchema`
-- `enableConfig`
-- `enableIoc`
-- `snapshotTest`
-- `forceSaveOutput`
-- `testBeansFile`
-- `testConfigFile`
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `localDb` | `true` | 强制使用 H2 内存/文件数据库。CHECKING 模式下始终为 true。 |
+| `initDatabaseSchema` | `NOT_SET` | 不从注解控制；依赖 `application.yaml` 中的 `nop.orm.init-database-schema` 或其他配置源。**RECORDING 模式也不会自动触发 schema 初始化。** |
+| `snapshotTest` | `CHECKING` | 校验模式。首次录制时设为 `RECORDING`。 |
+| `forceSaveOutput` | `false` | 仅更新输出不校验。 |
+
+**重要：** `initDatabaseSchema` 默认是 `NOT_SET`（不是 `true`）。从空 H2 文件库首次录制时，必须显式设为 `OptionalBoolean.TRUE`。已有的 H2 文件库（`db/test.mv.db`）如果 schema 已存在则不需要此设置。
+
+**分场景推荐配置：**
+
+| 场景 | 配置 | 说明 |
+|------|------|------|
+| **首次录制**（从空库） | `@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE, snapshotTest = SnapshotTest.RECORDING)` | schema 初始化 + 录制快照 |
+| **首次录制**（已有库） | `@NopTestConfig(localDb = true, snapshotTest = SnapshotTest.RECORDING)` | 不设 `initDatabaseSchema`，schema 已存在 |
+| **后续校验**（日常 CI） | 裸 `@NopTestConfig` | CHECKING 模式自动从 `_cases/` 加载快照数据 |
+| **更新输出** | `@NopTestConfig(forceSaveOutput = true)` | 不校验，仅更新输出文件。更新后改回默认 |
+
+> **为什么裸 `@NopTestConfig` 在日常校验时也能工作？** CHECKING 模式下，框架从 `_cases/` 加载录制时的数据库快照（CSV 文件）恢复到 H2 内存库，不需要 schema 初始化。
 
 ## 快照测试的默认工作流
 
@@ -52,7 +63,98 @@
 3. `output(...)`
 4. `outputText(...)`
 
-录制模式下，框架在保存快照后会抛出一个表示“录制完成”的专用异常，这是正常流程，不要误判成普通业务失败。
+录制模式下，每个测试方法执行完毕后框架会抛出错误码为 `nop.err.autotest.snapshot-finished` 的异常表示录制完成。这是**预期行为**，不是测试失败。Maven 输出会显示 `Tests run: X, Errors: X`（Errors 数等于录制的方法数），看到此异常和 Errors 计数请忽略。切换到 CHECKING 模式后 Errors 会归零。
+
+## 自动测试变量（`@var:`）机制
+
+### 哪些字段会成为变量
+
+快照测试录制过程中，ORM 实体的某些字段值会被自动收集为变量。判断逻辑在 `AutoTestHelper.isVarCol()`：
+
+| 条件 | 对应 ORM 配置 | 变量名示例 |
+|------|-------------|-----------|
+| 主键的 `tagSet` 包含 `seq` 或 `seq-default` | `<column code="ID" tagSet="seq" .../>` | `LitemallAddress@id` |
+| 字段的 `tagSet` 包含 `var` | `<column code="OPEN_ID" tagSet="var" .../>` | `NopAuthUser@openId` |
+| 字段的 `tagSet` 包含 `clock` | `<column code="LOGIN_TIME" tagSet="clock" .../>` | `NopAuthSession@loginTime` |
+| 字段是实体的 `createTimeProp` | `entity createTimeProp="addTime"` | `LitemallAddress@addTime` |
+| 字段是实体的 `updateTimeProp` | `entity updateTimeProp="updateTime"` | `LitemallAddress@updateTime` |
+
+变量名格式固定为：`{实体ShortName}@{字段名}`，例如 `LitemallAddress@id`、`NopAuthUser@openId`。
+
+### 外键变量自动传递
+
+如果 A 表的外键列引用了 B 表的主键，且 B 表主键是变量列（`tagSet="seq"`），则 A 表输出 CSV 中该外键列的值会被替换为 B 表主键的 `@var:` 引用。开发者**无需**在外键列上重复标注 `tagSet`。
+
+示例：`nop_auth_session` 表的 `userId` 列引用 `nop_auth_user` 表的 `userId`（`tagSet="seq"`），则录制后的 CSV 中：
+```
+_chgType,SESSION_ID,USER_ID,...
+A,@var:NopAuthSession@sessionId,@var:NopAuthUser@userId,...
+```
+
+此逻辑由 `TagVarCollector.addRefVars()` 实现：遍历实体上的 `to-one` 关系，对每个关联条件，如果右表主键是 var 列，就将左表外键的变量名前缀注册为右表主键的变量名前缀。
+
+### 变量生命周期
+
+**录制阶段**（`saveOutput=true`）：
+
+1. **ORM 拦截器收集**：`AutoTestOrmHook` 拦截 `postSave`/`postUpdate`/`postLoad` 事件，对每个实体的变量列调用 `AutoTestVars.addVar(name, value)`。
+2. **同名处理**：若同一变量名出现多次（如连续创建两条地址），`addVar` 自动追加数字后缀：`LitemallAddress@id` → `LitemallAddress@id_1` → `LitemallAddress@id_2`。
+3. **输出 JSON 变量替换**：`output("response.json5", result)` 保存响应时，`AutoTestVars.replaceValueByVarName()` 遍历 JSON 中的每个值，如果值匹配某个已知变量，则替换为 `@var:变量名`。
+4. **输出 CSV 变量替换**：保存表格数据时，`TagVarCollector.replaceVars()` 对每行每列的值做相同替换。
+
+**校验阶段**（`checkOutput=true`）：
+
+1. **输入变量解析**：`input()`/`request()` 读取文件时，`AutoTestVars.resolveVarName()` 将 `@var:变量名` 替换回录制时的实际值。
+2. **输出比对**：`output()` 将当前结果与录制的 JSON 比对，表格数据与 CSV 比对，变量引用会被解析回实际值后进行比较。
+
+### 多步测试模式：无需手动提取 ID
+
+每个 GraphQL 步骤通过 `request()` 读取输入（含 `@var:` 引用），通过 `output()` 保存输出（框架自动注入 `@var:` 引用），步骤之间的数据流由变量机制自动连接：
+
+```java
+@EnableSnapshot
+@Test
+public void testMultiStep() {
+    setUser("0", "test");
+
+    // Step 1: 创建实体 —— 响应被录制，ORM 钩子自动注册 @var:LitemallAddress@id
+    ApiResponse<?> r1 = executeRpc("LitemallAddress__saveAddress",
+            request("1_save_request.json5", ApiRequest.class));
+    output("1_save_response.json5", r1);
+
+    // Step 2: 删除实体 —— @var:LitemallAddress@id 由上一步自动提供
+    executeRpc("LitemallAddress__deleteAddress",
+            request("2_delete_request.json5", ApiRequest.class));
+
+    // Step 3: 查询并录制最终结果
+    ApiResponse<?> r3 = executeRpc("LitemallAddress__getMyAddresses",
+            request("3_getMyAddresses_request.json5", ApiRequest.class));
+    output("response.json5", r3);
+}
+```
+
+对应的输入文件：
+
+`1_save_request.json5`（初始创建，无 `@var:` 引用）：
+```json5
+{ data: { data: { name: "张三", tel: "13800138000", ... } } }
+```
+
+`2_delete_request.json5`（引用步骤 1 生成的变量）：
+```json5
+{ data: { id: "@var:LitemallAddress@id" } }
+```
+
+`3_getMyAddresses_request.json5`（无参数查询）：
+```json5
+{ data: {} }
+```
+
+**关键规则**：
+- `request()` 读取输入文件时会自动解析 `@var:` 引用，变量值必须已经被前面的步骤注册过。
+- `executeRpc()` 返回的 `ApiResponse<?>` 不经手动提取直接传给 `output()`，框架负责变量替换。
+- 不要手动解析响应中的 ID 值并作为 Java 变量传递（如 `extractId(result)`），这会绕过变量机制，导致录制结果不正确。
+- 对于只执行但不需要录制响应的步骤（如返回 void 的删除操作），可以省略 `output()` 调用。
 
 ## 测试数据位置
 
@@ -75,6 +177,8 @@
 2. `@Inject private` 导致注入失效。
 3. 快照测试把数据放错目录。
 4. 明明是进程内服务测试，却先去搭 HTTP E2E。
+5. **首次录制以为 RECORDING 模式会自动初始化 schema** — 不会。需显式加 `initDatabaseSchema = OptionalBoolean.TRUE`。
+6. **把 `saveEntity(entity, actionName, context)` 的 `actionName` 当成 `boolean` 传** — `actionName` 是 `String`，传 `null` 使用默认值即可。
 
 ## 异步与并发测试的防挂起规则
 

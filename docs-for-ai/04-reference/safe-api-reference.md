@@ -6,7 +6,7 @@
 
 | 场景 | 优先方法 |
 |------|---------|
-| 不存在直接抛错 | `requireEntity(id, action, context)` |
+| 不存在直接抛错 | `requireEntity(id, actionName, context)` |
 | 可返回 `null` | `get(id, ignoreUnknown, context)` |
 | 批量获取 | `batchGet(ids, ignoreUnknown, context)` |
 
@@ -62,16 +62,17 @@ doFindList(query, (q, ctx) -> {
 | **创建实体实例** | **`newEntity()`**（不要 `new Order()`） |
 | 前端 Map 数据新建 | `save(data, context)` |
 | 前端 Map 数据更新 | `update(data, context)` |
-| **程序化创建新实体**（已持有实体对象） | **`saveEntity(entity, action, context)`** |
-| 已拿到实体后更新 | `updateEntity(entity, action, context)` |
-| 已拿到实体后删除 | `deleteEntity(entity, action, context)` |
+| **程序化创建新实体**（已持有实体对象） | **`saveEntity(entity, actionName, context)`** |
+| 已拿到实体后更新 | `updateEntity(entity, actionName, context)` |
+| 已拿到实体后删除 | `deleteEntity(entity, actionName, context)` |
 | 按 id 删除 | `delete(id, context)` |
 
 > **必须用 `newEntity()` 而不是 `new Order()`**：实体可能被 Delta 机制扩展为派生类。`newEntity()` 通过 DAO 创建实例，确保返回正确的派生类。直接 `new` 会丢失 Delta 增强的字段和行为。
 
 > **`save` vs `saveEntity` 区别**：
 > - `save(Map, context)` 接收前端传入的 `Map<String, Object>`，经 xmeta 校验和 `OrmEntityCopier` 拷贝到实体后持久化。适用于 GraphQL/REST 前端请求。
-> - `saveEntity(entity, action, context)` 直接持久化已构造好的实体对象，含权限检查、唯一性校验、afterEntityChange 触发。适用于 BizModel 内部程序化创建实体（如从购物车行创建订单）。
+> - `saveEntity(entity, actionName, context)` 直接持久化已构造好的实体对象，含权限检查、唯一性校验、afterEntityChange 触发。适用于 BizModel 内部程序化创建实体（如从购物车行创建订单）。<br/>
+> 注意：`actionName` 是 `String` 类型，平台内置方法默认为 `"save"`/`"update"`/`"delete"`。传 `null` 即可使用默认值，不要传 `boolean`。
 
 ## 事务后回调
 
@@ -120,10 +121,10 @@ FilterBeans.contains("name", keyword);
 
 | 不推荐 | 推荐 |
 |--------|------|
-| `dao().getEntityById(id)` | `requireEntity(id, action, context)` |
+| `dao().getEntityById(id)` | `requireEntity(id, actionName, context)` |
 | `dao().findAllByQuery(query)` | `findList(query, selection, context)` 或 `doFindList(query, prepareQuery, selection, context)` |
 | `dao().findPageByQuery(query)` | `findPage(query, selection, context)` 或 `doFindPage(query, prepareQuery, selection, context)` |
-| `dao().saveEntity(entity)` | `saveEntity(entity, action, context)`（程序化创建）或 `save(data, context)`（前端 Map） |
+| `dao().saveEntity(entity)` | `saveEntity(entity, actionName, context)`（程序化创建）或 `save(data, context)`（前端 Map） |
 | `@BizMutation @Transactional` | 只用 `@BizMutation` |
 
 ## 什么时候才可以直接使用 DAO
