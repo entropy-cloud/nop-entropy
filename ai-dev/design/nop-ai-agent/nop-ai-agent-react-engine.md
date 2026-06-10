@@ -91,7 +91,7 @@ public class AgentMessageAck {
 建议 `AgentExecutionContext` 包括：
 
 - `AgentModel agentModel`
-- `List<CanonicalMessage> messages`
+- `List<ChatMessage> messages`
 - `AgentPlan plan`
 - `String sessionId`
 - `ICancelToken cancelToken`

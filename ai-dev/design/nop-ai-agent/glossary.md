@@ -20,8 +20,9 @@
 | `Agent` | 类 | 无状态执行体，根据 AgentModel 驱动执行循环 | 01-architecture-baseline.md §4 |
 | `AgentSession` | 类 | 按 sessionId 获取的独立持久化状态对象 | 01-architecture-baseline.md §4 |
 | `AgentExecutionContext` | 类 | 单次执行的全部内存态数据容器 | 01-architecture-baseline.md §4 |
-| `CanonicalMessage` | sealed interface | Provider 无关的统一消息格式（2 角色 6 ContentBlock） | nop-ai-agent-llm-layer.md §3 |
-| `CanonicalContentBlock` | sealed interface | 消息内容块（Text/Thinking/Image/ToolCall/ToolResult/ToolResultRef） | nop-ai-agent-llm-layer.md §3 |
+| `ChatMessage` | abstract class | Provider 无关的统一消息基类（5 种子类型：user/assistant/system/tool/custom），定义在 `nop-ai-api` | nop-ai-agent-llm-layer.md §3 |
+| `ChatToolCall` | 类 | 工具调用数据：`id`, `name`, `Map arguments` | nop-ai-agent-llm-layer.md §3 |
+| `ChatAttachment` | 类 | 多模态附件：`resourceType`, `resourceUrl`, `fileName` | nop-ai-agent-llm-layer.md §3 |
 | `CompactionEntry` | 数据结构 | Event Log 中的压缩边界记录 | nop-ai-agent-session-and-storage.md §5.2 |
 
 ## 核心接口
@@ -32,12 +33,10 @@
 | `IAgentExecutor` | Layer 1 | 执行策略接口（`execute()` 返回 `CompletionStage<AgentExecutionResult>`） |
 | `IAgentMemory` | Layer 1 | 三层记忆管理（短期 compaction + Working Memory 工具 + 长期 IMemoryAdapter） |
 | `IMessageService` | 基础设施 | Agent 间内部通信（LocalMessageService / DB-backed） |
-| `IMessageFormat` | Layer 1 | Provider 无关的消息格式转换 |
-| `IModelDialect` | Layer 2 | Provider 消息格式转换（Formatter pattern） |
+| `ILlmDialect` | nop-ai-core | Provider 消息格式转换（Formatter pattern），Agent Engine 不直接依赖 |
 | `IModelRouter` | Layer 2 | 请求路由策略（Judge + Fallback Chain） |
 | `ITalent` | Layer 2 | 动态行为准入（运行时上下文开关工具集） |
 | `IRetryPolicy` | Layer 3 | Provider 重试策略 |
-| `IContextGovernor` | Layer 2 | 每轮上下文治理管线 |
 | `IContextCompactor` | Layer 2 | 渐进上下文压缩 |
 | `IToolCallRepairer` | Layer 2 | 工具调用修复链 |
 | `IContentGuardrail` | Layer 2 | 输入/输出内容护栏 |
@@ -108,7 +107,7 @@ Java 常量使用 `UPPER_SNAKE_CASE`，DSL event 属性匹配使用 `snake_case`
 | 类别 | 约定 | 示例 |
 |------|------|------|
 | 接口名 | `I` + PascalCase | `IAgentEngine`, `IToolExecutor` |
-| 类名 | PascalCase | `AgentModel`, `CanonicalMessage` |
+| 类名 | PascalCase | `AgentModel`, `ChatMessage` |
 | 字段名 | camelCase | `sessionId`, `actorId`, `agentName` |
 | DSL 属性 | camelCase | `tokenCompactionThreshold` |
 | Hook 常量 | UPPER_SNAKE_CASE | `PRE_REASONING`, `POST_ACTING` |

@@ -19,7 +19,7 @@
 |------|------|------|
 | 架构层级 | Gateway 层适配器模式 | 引擎层（AgentActor / IMessageService）不感知外部信道存在 |
 | 信道抽象 | `IChannelConnector` 接口 | 参考 SolonCode Channel（41 行 3 方法）+ Nanobot BaseChannel 的精华 || 输入输出分离 | 接口内双向方法 | 输入侧：webhook 回调 / 长连接消息 → `IAgentEngine.sendMessage()`；输出侧：订阅 `AgentEvent` → 信道原生 API |
-| 消息格式转换 | 各适配器内部处理 | 外部格式五花八门，在适配器内转成 `AgentMessageRequest` 即可，不需要额外的 CanonicalMessage 层 |
+| 消息格式转换 | 各适配器内部处理 | 外部格式五花八门，在适配器内转成 `AgentMessageRequest` 即可，不需要额外的消息转换层 |
 | 信道能力声明 | 适配器自描述 | 参考 OpenSquilla 通道能力矩阵，每个适配器声明自己的能力集 |
 | 会话绑定 | `channelType:channelSessionId` | 参考 Nanobot 的 `channel:chat_id` 格式，引擎 sessionId 由 Gateway 维护映射 |
 

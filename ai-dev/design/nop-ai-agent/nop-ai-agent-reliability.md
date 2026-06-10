@@ -368,4 +368,4 @@ Agent 可能会反复调用同一个工具、同一组参数。
 ## 与其他文档的关系
 
 - `nop-ai-agent-roadmap.md` — 分层架构（本篇覆盖 Layer 1-3 的可靠性部分）
-- `nop-ai-agent-llm-layer.md` — LLM 层设计（IRetryPolicy、IModelDialect 的详细设计）
+- `nop-ai-agent-llm-layer.md` — LLM 层设计（IRetryPolicy、ILlmDialect 的详细设计）
