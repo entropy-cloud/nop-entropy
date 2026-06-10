@@ -128,7 +128,7 @@ public class TestLlmDialectFactory {
 
         @Override
         public java.util.Map<String, Object> convertMessage(io.nop.ai.api.chat.messages.ChatMessage message,
-                io.nop.ai.core.model.LlmModelModel modelConfig, boolean isLast, io.nop.ai.api.chat.ChatOptions options) {
+                io.nop.ai.core.model.LlmModelModel modelConfig, io.nop.ai.api.chat.ChatOptions options) {
             return new java.util.LinkedHashMap<>();
         }
 

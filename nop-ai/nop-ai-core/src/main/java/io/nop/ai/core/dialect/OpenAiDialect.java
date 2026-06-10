@@ -169,16 +169,11 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
 
     @Override
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
-                                               boolean isLast, ChatOptions options) {
+                                               ChatOptions options) {
         Map<String, Object> msgMap = new LinkedHashMap<>();
 
         msgMap.put("role", getRole(message));
-
-        String content = message.getContent();
-        if (isLast && modelConfig != null) {
-            content = applyThinkingPrompt(content, modelConfig, options);
-        }
-        msgMap.put("content", content);
+        msgMap.put("content", message.getContent());
 
         if (message instanceof ChatAssistantMessage) {
             ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
@@ -218,8 +213,11 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         ChatOptions options = request.getOptions();
 
         for (ChatMessage msg : request.getMessages()) {
-            // OpenAI 支持 system 消息作为 messages 数组的一部分
-            messages.add(convertMessage(msg, modelConfig, msg == lastMessage, options));
+            Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
+            if (msg == lastMessage && modelConfig != null) {
+                msgMap.put("content", applyThinkingPrompt((String) msgMap.get("content"), modelConfig, options));
+            }
+            messages.add(msgMap);
         }
 
         return messages;

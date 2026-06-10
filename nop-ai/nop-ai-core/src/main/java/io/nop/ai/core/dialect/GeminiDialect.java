@@ -87,12 +87,17 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         // 分离 system 消息
         String systemContent = null;
         List<Map<String, Object>> contents = new ArrayList<>();
+        ChatMessage lastMessage = request.getLastMessage();
 
         for (ChatMessage msg : request.getMessages()) {
             if (msg instanceof io.nop.ai.api.chat.messages.ChatSystemMessage) {
                 systemContent = msg.getContent();
             } else {
-                contents.add(convertMessage(msg, modelConfig, msg == request.getLastMessage(), options));
+                Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
+                if (msg == lastMessage && modelConfig != null) {
+                    applyThinkingToParts(msgMap, modelConfig, options);
+                }
+                contents.add(msgMap);
             }
         }
 
@@ -266,20 +271,14 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
 
     @Override
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
-                                               boolean isLast, ChatOptions options) {
+                                               ChatOptions options) {
         Map<String, Object> msgMap = new LinkedHashMap<>();
         
-        // Gemini 使用 model 而不是 assistant
         msgMap.put("role", getRole(message));
 
-        // 内容放在 parts 数组中
         List<Map<String, Object>> parts = new ArrayList<>();
 
         String textContent = message.getContent();
-        if (isLast && modelConfig != null) {
-            textContent = applyThinkingPrompt(textContent, modelConfig, options);
-        }
-        
         if (textContent != null && !textContent.isEmpty()) {
             Map<String, Object> textPart = new LinkedHashMap<>();
             textPart.put("text", textContent);
@@ -289,14 +288,12 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         if (message instanceof ChatAssistantMessage) {
             ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
             
-            // 思考内容作为单独的 text part（Gemini 没有专门的 thinking 类型）
             if (assistantMsg.getThink() != null) {
                 Map<String, Object> thinkingPart = new LinkedHashMap<>();
                 thinkingPart.put("text", "<thinking>" + assistantMsg.getThink() + "</thinking>");
                 parts.add(thinkingPart);
             }
             
-            // 工具调用（Gemini 使用 functionCall）
             if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
                 for (ChatToolCall toolCall : assistantMsg.getToolCalls()) {
                     Map<String, Object> functionCall = new LinkedHashMap<>();
@@ -310,7 +307,6 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
             }
         }
 
-        // 工具响应（Gemini 使用 functionResponse）
         if (message instanceof ChatToolResponseMessage) {
             ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
             Map<String, Object> functionResponse = new LinkedHashMap<>();
@@ -327,6 +323,21 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
 
         msgMap.put("parts", parts);
         return msgMap;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyThinkingToParts(Map<String, Object> msgMap,
+                                       LlmModelModel modelConfig, ChatOptions options) {
+        List<Map<String, Object>> parts = (List<Map<String, Object>>) msgMap.get("parts");
+        if (parts != null) {
+            for (Map<String, Object> part : parts) {
+                if (part.containsKey("text")) {
+                    String text = (String) part.get("text");
+                    part.put("text", applyThinkingPrompt(text, modelConfig, options));
+                    break;
+                }
+            }
+        }
     }
 
     @Override

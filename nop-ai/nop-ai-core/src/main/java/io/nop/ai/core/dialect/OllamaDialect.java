@@ -196,33 +196,25 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
 
     @Override
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
-                                               boolean isLast, ChatOptions options) {
+                                               ChatOptions options) {
         Map<String, Object> msgMap = new LinkedHashMap<>();
 
         msgMap.put("role", getRole(message));
-
-        String content = message.getContent();
-        if (isLast && modelConfig != null) {
-            content = applyThinkingPrompt(content, modelConfig, options);
-        }
-        msgMap.put("content", content);
+        msgMap.put("content", message.getContent());
 
         if (message instanceof ChatAssistantMessage) {
             ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
             if (assistantMsg.getThink() != null) {
                 msgMap.put("thinking", assistantMsg.getThink());
             }
-            // 工具调用（Ollama 使用 OpenAI 风格）
             if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
                 msgMap.put("tool_calls", convertToolCalls(assistantMsg.getToolCalls()));
             }
         }
 
-        // 工具响应（Ollama 使用 OpenAI 风格）
         if (message instanceof ChatToolResponseMessage) {
             ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
             msgMap.put("tool_call_id", toolMsg.getToolCallId());
-            // Ollama 的工具响应也支持 name 字段
             if (toolMsg.getName() != null) {
                 msgMap.put("name", toolMsg.getName());
             }
@@ -271,7 +263,11 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
             if (msg instanceof io.nop.ai.api.chat.messages.ChatSystemMessage) {
                 continue;
             }
-            messages.add(convertMessage(msg, modelConfig, msg == lastMessage, options));
+            Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
+            if (msg == lastMessage && modelConfig != null) {
+                msgMap.put("content", applyThinkingPrompt((String) msgMap.get("content"), modelConfig, options));
+            }
+            messages.add(msgMap);
         }
 
         return messages;

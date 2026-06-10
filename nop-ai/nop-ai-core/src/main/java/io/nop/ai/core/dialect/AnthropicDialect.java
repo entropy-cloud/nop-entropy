@@ -101,11 +101,16 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
 
         // 分离 system 消息到单独字段
         List<Map<String, Object>> messages = new ArrayList<>();
+        ChatMessage lastMessage = request.getLastMessage();
         for (ChatMessage msg : request.getMessages()) {
             if (msg instanceof io.nop.ai.api.chat.messages.ChatSystemMessage) {
                 body.put("system", msg.getContent());
             } else {
-                messages.add(convertMessage(msg, modelConfig, msg == request.getLastMessage(), options));
+                Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
+                if (msg == lastMessage && modelConfig != null) {
+                    applyThinkingToContentBlocks(msgMap, modelConfig, options);
+                }
+                messages.add(msgMap);
             }
         }
 
@@ -341,20 +346,14 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
 
     @Override
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
-                                               boolean isLast, ChatOptions options) {
+                                               ChatOptions options) {
         Map<String, Object> msgMap = new LinkedHashMap<>();
         
-        // Claude 使用 model 而不是 assistant
         msgMap.put("role", getRole(message));
 
-        // 内容使用数组格式
         List<Map<String, Object>> contentBlocks = new ArrayList<>();
 
         String textContent = message.getContent();
-        if (isLast && modelConfig != null) {
-            textContent = applyThinkingPrompt(textContent, modelConfig, options);
-        }
-        
         if (textContent != null && !textContent.isEmpty()) {
             Map<String, Object> textBlock = new LinkedHashMap<>();
             textBlock.put("type", "text");
@@ -365,7 +364,6 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
         if (message instanceof ChatAssistantMessage) {
             ChatAssistantMessage assistantMsg = (ChatAssistantMessage) message;
             
-            // 思考内容作为单独的 thinking 块
             if (assistantMsg.getThink() != null) {
                 Map<String, Object> thinkingBlock = new LinkedHashMap<>();
                 thinkingBlock.put("type", "thinking");
@@ -373,7 +371,6 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 contentBlocks.add(thinkingBlock);
             }
             
-            // 工具调用块
             if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
                 for (ChatToolCall toolCall : assistantMsg.getToolCalls()) {
                     Map<String, Object> toolBlock = new LinkedHashMap<>();
@@ -395,8 +392,27 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             contentBlocks.add(toolResultBlock);
         }
 
+        if (message.getProviderHints() != null && message.getProviderHints().containsKey("cache_control")) {
+            msgMap.put("cache_control", message.getProviderHints().get("cache_control"));
+        }
+
         msgMap.put("content", contentBlocks);
         return msgMap;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyThinkingToContentBlocks(Map<String, Object> msgMap,
+                                               LlmModelModel modelConfig, ChatOptions options) {
+        List<Map<String, Object>> contentBlocks = (List<Map<String, Object>>) msgMap.get("content");
+        if (contentBlocks != null) {
+            for (Map<String, Object> block : contentBlocks) {
+                if ("text".equals(block.get("type"))) {
+                    String text = (String) block.get("text");
+                    block.put("text", applyThinkingPrompt(text, modelConfig, options));
+                    break;
+                }
+            }
+        }
     }
 
     @Override

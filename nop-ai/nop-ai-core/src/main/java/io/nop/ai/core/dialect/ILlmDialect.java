@@ -87,16 +87,15 @@ public interface ILlmDialect {
     ChatStreamChunk parseStreamChunk(String data);
 
     /**
-     * 转换消息为方言特定格式
+     * 转换消息为方言特定格式（纯函数：相同输入永远产生相同输出）
      *
      * @param message 消息对象
      * @param modelConfig 模型配置
-     * @param isLast 是否是最后一条消息
      * @param options 聊天选项
      * @return 转换后的 Map
      */
     Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
-                                        boolean isLast, ChatOptions options);
+                                        ChatOptions options);
 
     /**
      * 获取消息角色
