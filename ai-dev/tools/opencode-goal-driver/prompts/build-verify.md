@@ -6,7 +6,6 @@ Steps:
    a. Diagnose the root cause (compilation error, test failure, etc.)
    b. Fix the issue
    c. Re-run the build to confirm it passes
-   d. Commit the fix using the nop-git-master skill
-3. If the build passes, no further action needed
+ 3. If the build passes, no further action needed
 
 Output <AI_STEP_RESULT>pass</AI_STEP_RESULT> or <AI_STEP_RESULT>fail</AI_STEP_RESULT>.

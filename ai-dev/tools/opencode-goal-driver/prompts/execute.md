@@ -6,7 +6,6 @@ Steps:
 3. After completing each Phase:
    a. Run ./mvnw test -pl {{module}} -am -T 1C to confirm tests pass
    b. Mark the Phase as [x] in the plan file
-   c. Commit using the nop-git-master skill (commit message must include the work item ID)
 4. After all Phases are complete:
    a. Update the plan's Plan Status to completed
    b. Read the work item ID from the plan and update the roadmap file (ai-dev/design/*{{module}}*/*roadmap*.md): change the item from ❌ to ✅
