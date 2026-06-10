@@ -141,9 +141,7 @@ view.xml 中 `<api url="@query:BizObjName__actionName?param=$param"/>` 的处理
 
 ### 命名规则
 
-**自定义 BizModel 的 `@BizQuery`/`@BizMutation` 方法名不得与上表中的标准动作名重名。** 后端 `BizObjectBuilder` 用 `HashMap.put()` 注册 operation，不检测重名，不会报错。问题只在前端：重名会导致自定义参数被预定义签名覆盖。
-
-源码位置：`nop-chaos/packages/nop-core/src/core/graphql.ts`
+**自定义 BizModel 的 `@BizQuery`/`@BizMutation` 方法名不得与上表中的标准动作名重名。** `GraphQLBizModel` 在注册时会检查同名方法，同优先级下直接抛 `ERR_GRAPHQL_DUPLICATE_ACTION`。不同优先级时高优先级覆盖低优先级（delta 机制依赖此行为）。自定义方法用不同的名字，如 `getById`、`saveOrder`。
 
 ## 相关文档
 

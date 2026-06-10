@@ -50,6 +50,7 @@
 1. 编辑 `_gen/` 或其他下划线生成物。
 2. 改了模型却没有重新构建。
 3. 把业务骨架理解成手工搭目录，而不是从模板生成。
+4. 使用 `TINYINT` / `SMALLINT` 类型。整数字段统一用 `INTEGER`（int），布尔字段直接用 `BOOLEAN`。详见 `../02-core-guides/orm-model-design.md`。
 
 ## 相关文档
 

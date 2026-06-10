@@ -9,7 +9,7 @@
 
 - 查询用 `@BizQuery`，修改用 `@BizMutation`。
 - 最后一个参数通常是 `IServiceContext`。
-- 参数少时用 `@Name`，复杂入参用 `@RequestBean`。
+- 参数少时用 `@Name`（1–5 个），超过 5 个参数用 `@RequestBean` + `@DataBean` DTO。
 - 普通数据访问优先 `requireEntity()`、`doFindList()`、`doFindPage()`。
 
 ## 查询方法最小模板
