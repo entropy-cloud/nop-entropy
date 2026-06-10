@@ -91,25 +91,25 @@ Exit Criteria:
 
 ### Phase 2 - Add test for Markdown status parsing
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/test/`
 
 - Item Types: `Proof`
 
-- [ ] 编写测试：构造包含 `任务状态` / `计划状态` Markdown 列的输入，验证 record-mapping 解析后对应字段为 `AgentExecStatus` 枚举值
-- [ ] 测试覆盖：`pending`、`running`、`completed`、`failed` 四种状态值
-- [ ] 测试覆盖：status 字段为空时的默认行为（不抛异常）
-- [ ] 关键断言：`taskModel.getStatus() == AgentExecStatus.pending`（验证 model 属性，非 extProps）
-- [ ] 关键断言：`planModel.getPlanStatus() == AgentExecStatus.pending`（验证 model 属性，非 extProps）
+- [x] 编写测试：构造包含 `任务状态` / `计划状态` Markdown 列的输入，验证 record-mapping 解析后对应字段为 `AgentExecStatus` 枚举值
+- [x] 测试覆盖：`pending`、`running`、`completed`、`failed` 四种状态值
+- [x] 测试覆盖：status 字段为空时的默认行为（不抛异常）
+- [x] 关键断言：`taskModel.getStatus() == AgentExecStatus.pending`（验证 model 属性，非 extProps）
+- [x] 关键断言：`planModel.getPlanStatus() == AgentExecStatus.pending`（验证 model 属性，非 extProps）
 
 Exit Criteria:
 
-- [ ] 新测试文件存在于 `nop-ai/nop-ai-agent/src/test/`
-- [ ] 测试断言 `taskModel.getStatus()` 返回正确的 `AgentExecStatus` 值（不是 extProps）
-- [ ] 测试断言 `planModel.getPlanStatus()` 返回正确的 `AgentExecStatus` 值（不是 extProps）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新测试文件存在于 `nop-ai/nop-ai-agent/src/test/`
+- [x] 测试断言 `taskModel.getStatus()` 返回正确的 `AgentExecStatus` 值（不是 extProps）
+- [x] 测试断言 `planModel.getPlanStatus()` 返回正确的 `AgentExecStatus` 值（不是 extProps）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Update roadmap and verify build
 
