@@ -40,6 +40,15 @@
 
 **关键发现**：只有 5 个框架使用精确 token 计数（Reasonix, PilotDeck, oh-my-pi, pi-agent 混合, OpenCode 部分精确）。其余依赖 char/4 估算或完全依赖 Provider 报告。
 
+> **补充调研（2026-06-10）**：对 Codex、Claude Code、OpenCode、SolonCode、Reasonix 五个框架的 token 估算方式进行了更深入的源码级追踪，发现：
+> - Codex 使用 `ceil(bytes/4)` + API `response.completed` usage 混合，图片固定 ~7373 字节估算
+> - Claude Code 使用 API `usage` 精确值 + `chars/4` 回退，图片固定 1334 tokens
+> - OpenCode 纯 `chars/4`，无任何精确计数
+> - SolonCode 使用 jtokkit `o200k_base` 编码（对 DeepSeek 偏差 <5%），逐消息计数 + metadata 缓存
+> - Reasonix 自研完整 V4 BPE tokenizer + bounded 估算优化（头尾采样外推）+ 双层 LRU 缓存
+>
+> 详见 `ai-dev/analysis/agent-survey/2026-06-10-token-estimation-and-context-compression-survey.md` §1。
+
 ### 2.2 压缩算法分类
 
 #### Tier A: 多级渐进压缩（最精细）

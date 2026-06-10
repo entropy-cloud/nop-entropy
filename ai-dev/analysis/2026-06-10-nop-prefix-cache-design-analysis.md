@@ -4,6 +4,7 @@
 > Date: 2026-06-10
 > Scope: nop-ai-api / nop-ai-core — 前缀缓存如何在 Nop 体系下落地
 > 依据: `agent-survey/2026-06-10-reasonix-prefix-cache-immutability.md` 源码级调研
+> 相关: `agent-survey/2026-06-10-token-estimation-and-context-compression-survey.md` — 五框架 token 估算与压缩策略对比
 
 ---
 
