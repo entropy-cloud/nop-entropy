@@ -16,7 +16,7 @@ public class SingleThreadConfigExecutor implements IConfigExecutor {
 
     @Override
     public void start() {
-        executor = DefaultThreadPoolExecutor.newExecutor("nop-config-executor", 1, 100);
+        executor = DefaultThreadPoolExecutor.newExecutor("nop-config-executor", 1, 100, true);
     }
 
     @Override
