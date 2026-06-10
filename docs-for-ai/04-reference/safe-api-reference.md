@@ -18,16 +18,73 @@
 
 > **注意：`PageBean` 在 `io.nop.api.core.beans` 包，与 `QueryBean`（在 `.query` 子包）不同。不要写成 `io.nop.api.core.beans.query.PageBean`。**
 
+## 跨实体访问：业务代码 vs 底层代码
+
+BizModel 中访问**非自身实体**时，根据代码的层级选择路径：
+
+### 业务代码（绝大多数场景）
+
+业务 BizModel 中的常规读写**需要走权限和 Meta 管道**，因此默认通过 I*Biz：
+
+```
+1. 已持有实体的关联对象？
+   → 是：ORM 关系 getter（如 cart.getGoods()）          ← 最直接
+
+2. 按ID获取 / 查询其他实体
+   → 注入 I*Biz 接口，调用 get() / findList() 等         ← 走权限管道
+
+3. 需要原子 SQL（如库存扣减 WHERE number >= ${num}）
+   → @SqlLibMapper，注释说明为什么需要绕过管道
+```
+
+```java
+@Inject
+ILitemallGoodsProductBiz goodsProductBiz;
+
+// 业务代码：走权限管道
+LitemallGoodsProduct product = goodsProductBiz.get(productId, false, context);
+LitemallGoodsProduct product = goodsProductBiz.requireEntity(productId, null, context);
+
+List<LitemallGoodsProduct> list = goodsProductBiz.findList(query, null, context);
+```
+
+### 底层代码（store / infra / 框架内部 / 批量操作）
+
+底层代码**有意跳过权限和 Meta 管道**，直接操作 DAO：
+
+```java
+// 底层代码：有意绕过权限，直接操作
+LitemallGoodsProduct product = daoProvider().daoFor(LitemallGoodsProduct.class)
+        .requireEntityById(productId);
+```
+
+**不要在业务 BizModel 中混用底层写法。** 业务代码里用 `daoProvider().daoFor()` 省事，等于静默跳过了数据权限和 Meta 过滤，后续排查问题很难发现。
+
+### @SqlLibMapper
+
+用于需要原子 SQL 的场景（如 `WHERE number >= ${num}` 的库存扣减），这既不是业务代码的默认选择，也不是底层代码的特权，而是独立的能力，按需使用即可。
+
 ## 获取实体
+
+### 自身实体（CrudBizModel<T> 内置方法）
 
 | 场景 | 优先方法 |
 |------|---------|
 | 不存在直接抛错 | `requireEntity(id, actionName, context)` |
 | 可返回 `null` | `get(id, ignoreUnknown, context)` |
 | 批量获取 | `batchGet(ids, ignoreUnknown, context)` |
+
+### 其他实体
+
+| 场景 | 优先方法 |
+|------|---------|
 | 已持有实体，读取其关联实体 | ORM 关系 getter（如 `cart.getGoods()`） |
+| 按ID获取其他实体 | 注入 `I*Biz`，调用 `get()` / `requireEntity()` |
+| 查询其他实体 | 注入 `I*Biz`，调用 `findList()` / `findPage()` |
 
 > **`requireEntity()`/`get()` vs 关系 getter**：`requireEntity()` 和 `get()` 内部调用 `checkDataAuth` + `checkMetaFilter`，会校验当前用户对该实体的数据访问权限。如果只需要读取已加载实体上的关联数据（内部业务逻辑），直接用关系 getter 即可，无需额外权限检查。仅当需要校验访问权限时（如前端传入 id 获取实体）才走 `requireEntity()`/`get()`。
+
+> **`I*Biz.get()` vs `daoProvider().daoFor()`**：`I*Biz.get()` 走完整管道（权限、Meta、逻辑删除）。`daoProvider().daoFor()` 绕过全部管道。在 BizModel 中，默认永远用 `I*Biz`。只有在 `I*Biz` 确实无法满足需求时才降级到 `daoProvider()`，且必须写注释说明原因。
 
 ## 组合式回调参数（`do*` 方法的设计模式）
 
@@ -136,25 +193,17 @@ FilterBeans.contains("name", keyword);
 @InjectValue("@cfg:app.value")
 ```
 
-## 普通 BizModel 中默认不要这样写
+## 反模式速查
 
-| 不推荐 | 推荐 |
+| 不要这样写 | 应该这样写 |
 |--------|------|
 | `dao().getEntityById(id)` | `requireEntity(id, actionName, context)` |
 | `dao().findAllByQuery(query)` | `findList(query, selection, context)` 或 `doFindList(query, prepareQuery, selection, context)` |
 | `dao().findPageByQuery(query)` | `findPage(query, selection, context)` 或 `doFindPage(query, prepareQuery, selection, context)` |
 | `dao().saveEntity(entity)` | `saveEntity(entity, actionName, context)`（程序化创建）或 `save(data, context)`（前端 Map） |
+| `daoProvider().daoFor(Xxx.class)` 获取其他实体 | 业务代码：注入 `I*Biz`，用 `get()` / `requireEntity()` / `findList()`。底层代码可以直接用 `daoProvider()` |
 | `@BizMutation @Transactional` | 只用 `@BizMutation` |
 | `I*Biz.get()` 获取已有 ORM 关系的关联实体 | 用关系 getter（如 `cart.getGoods()`）。`I*Biz.get()` 会触发 `checkDataAuth` 权限检查，仅当需要校验访问权限时才使用 |
-
-## 什么时候才可以直接使用 DAO
-
-以下属于边界层：
-
-1. store / infra 层
-2. 显式 `REQUIRES_NEW`
-3. 版本锁、调度、底层批量操作
-4. 框架内部能力
 
 ## 相关文档
 

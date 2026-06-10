@@ -14,6 +14,8 @@
 
 ## 最小闭环
 
+> import 和代码骨架参见 `../05-examples/test-examples.java`。
+
 ### 1. 选择基类
 
 | 场景 | 基类 |

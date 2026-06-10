@@ -71,7 +71,7 @@
 | `dao().getEntityById(id)` 作为 BizModel 模板 | `requireEntity(id, action, context)` |
 | `dao().findAllByQuery(query)` 作为 BizModel 模板 | `doFindList(query, this::invokeDefaultPrepareQuery, selection, context)` |
 | `dao().findPageByQuery(query)` 作为 BizModel 模板 | `doFindPage(query, this::invokeDefaultPrepareQuery, selection, context)` |
-| `IDaoProvider.daoFor(Xxx.class).*` 或 `IOrmTemplate` 在 BizModel 中访问其他实体 | 注入 `I*Biz` 接口（继承 `ICrudBiz`，使用前先阅读 `ICrudBiz`）。仅当 `I*Biz` 确实无法满足需求时才降级到基类内置的 `daoProvider().daoFor(...)`（注释说明原因），最后才用 `IOrmTemplate` 或 `@SqlLibMapper`。每一级降级都绕过了上层管道，必须注释说明原因。**不要重复 `@Inject IDaoProvider`，基类已提供 `daoProvider()`** |
+| `IDaoProvider.daoFor(Xxx.class).*` 或 `IOrmTemplate` 在 BizModel 中访问其他实体 | **业务代码：注入 `I*Biz` 接口**（继承 `ICrudBiz`，使用前先阅读 `ICrudBiz`）。`I*Biz` 走完整管道（数据权限、Meta 过滤、逻辑删除），这是业务代码需要的。`daoProvider().daoFor()` 和 `IOrmTemplate` 绕过管道，属于底层代码（store / infra / 框架内部）的写法。业务 BizModel 中不应该混用底层写法，否则静默跳过了权限检查。`@SqlLibMapper` 用于需要原子 SQL 的场景（如库存扣减），按需使用即可。**不要重复 `@Inject IDaoProvider`，基类已提供 `daoProvider()`**。详见 `04-reference/safe-api-reference.md` 跨实体访问章节。 |
 | `@BizMutation @Transactional` | 只保留 `@BizMutation` |
 | `@Inject private Foo foo;` | `protected` / package-private / setter 注入 |
 | Spring `@Value` | `@InjectValue` |
@@ -115,7 +115,7 @@
 2. 这个逻辑真的需要 Java 吗？
 3. 这是普通 BizModel 还是 infra/store 边界场景？
 4. 如果是查询/修改，我走的是 `CrudBizModel` 的默认能力吗？
-5. **BizModel 中访问其他实体时，我是否注入了 `I*Biz` 接口？** 如果用了 `IDaoProvider`（包括 `@Inject` 或基类 `daoProvider()`），说明绕过了数据权限和管道，必须改走 `I*Biz`。
+5. **BizModel 中访问其他实体时，我是否注入了 `I*Biz` 接口？** 业务 BizModel 里用 `daoProvider()` 或 `IDaoProvider` 意味着静默绕过了数据权限和 Meta 管道——这是底层代码的写法，不是业务代码的写法。
 6. 我是否至少做了一次与改动范围匹配的验证？
 7. 如果这次任务暴露出 `docs-for-ai/` 不准确或缺失，我是否已经顺手修正文档？
 8. 如果这是 significant 变更，我是否已经补 ai-dev/logs/ 当天日志？
