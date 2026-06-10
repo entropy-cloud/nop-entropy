@@ -123,18 +123,18 @@ Exit Criteria:
 
 ### Phase 2 - Update Design Doc to Match Implementation
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/opencode-goal-driver/flow-engine-design.md`
 
 - Item Types: `Follow-up`
 
-- [ ] 确认 v7 设计文档与最终实现一致。如有偏差（如 tool executor 始终返回 ok: true 而设计文档 §2.3 写了 spawn error → ok: false），修正文档
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 确认 v7 设计文档与最终实现一致。如有偏差（如 tool executor 始终返回 ok: true 而设计文档 §2.3 写了 spawn error → ok: false），修正文档
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档中每个步骤执行器的描述与实际代码行为一致
-- [ ] No owner-doc update required
+- [x] 设计文档中每个步骤执行器的描述与实际代码行为一致
+- [x] No owner-doc update required
 
 ## Closure Gates
 
