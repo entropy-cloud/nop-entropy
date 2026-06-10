@@ -42,7 +42,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `crud/` | CRUD Relation Write Mode | *(not yet created)* | active |
 | `crud/crud-api-codegen-design.md` | CRUD API 代码生成 | — | 草案 — ICrudApi 泛型接口 + codegen 模板 + Input/Output 决策 |
 | `word-editor/` | Online Word Editor Model | *(not yet created)* | active |
-| `opencode-goal-driver/` | Goal Driver Flow Engine | — | active — Flow DSL + session strategy + fault tolerance |
+| `opencode-goal-driver/` | Goal Driver Flow Engine | — | active — Flow DSL + session strategy + fault tolerance + group step (implemented) + context passing (superseded by v4 extractVars) |
 
 ## Precedence Model
 
