@@ -160,7 +160,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L2-13 | `ISecurityLevelResolver` 接口 + `NoOpSecurityLevelResolver` | L1-6 | ❌ |
 | L2-14 | `IPermissionMatrix` 接口 + `PassThroughPermissionMatrix` | L1-6 | ❌ |
 | L2-15 | Working Memory 工具实现 (read-memory/write-memory/search-memory) | L1-10, L1-5 | ❌ |
-| L2-16 | Token 计数 (Provider-reported usage + 字符比例估算) | L1-4 | ❌ |
+| L2-16 | Token 计数 — `ILlmDialect.estimateTokens()` (default chars/4) + Provider usage 校准 | L1-4, nop-ai-core | ❌ |
 
 **Layer 2 验收标准**：
 
@@ -180,7 +180,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L3-6 | `IDenialLedger` 接口 + `NoOpDenialLedger` + `DBDenialLedger` | L1-6 | ❌ |
 | L3-7 | `IPostDenialGuard` 接口 + `PassThroughPostDenialGuard` + `FingerprintPostDenialGuard` | L3-6 | ❌ |
 | L3-8 | `ISustainer` 接口 + `NoOpSustainer` + `SisypheanSustainer` | 与 L3-1 互斥（设计决策：选熔断或自愈） | ❌ |
-| L3-9 | `IContextCompactor` 完整 5 层管道 (补充 L2-6) | L2-6 | ❌ |
+| L3-9 | `IContextCompactor` 完整 5 层管道 + `ICompressionStrategy` 扩展点 | L2-4, L2-16 | ❌ |
 
 **Layer 3 验收标准**：
 

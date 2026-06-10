@@ -233,47 +233,130 @@ Agent 可能会反复调用同一个工具、同一组参数。
 
 ## 7. 上下文窗口保护
 
-基于 10 框架调研（LangGraph、CrewAI、AutoGen、OpenCode、DeepAgents、PilotDeck、Reasonix、EdgeClaw、Claude Code、Codex CLI）的源码级对比，建议采用**5 层渐进压缩管道**，核心原则是**逐级升级、不可跳级**——先尝试零成本操作，再尝试无 LLM 调用操作，最后才调用 LLM 生成摘要。
+基于 5 框架（Codex, Claude Code, OpenCode, SolonCode, Reasonix）源码级深度调研（详见 `ai-dev/analysis/agent-survey/2026-06-10-token-estimation-and-context-compression-survey.md`），结合 Nop 框架的可插拔定位，确定以下策略。
 
-### 7.1 五层保护模型
+### 7.1 设计原则
+
+1. **逐级升级，不可跳级**——先尝试零成本操作，再尝试无 LLM 调用操作，最后才调用 LLM 生成摘要
+2. **5 层管道为默认实现**——清晰、可操作、每个层级做什么和什么时候触发一目了然
+3. **双维度触发**——token 占比和消息数量两个维度独立检查，任一越线即触发（来自 SolonCode 的实践）
+4. **可插拔策略作为 Layer 3 扩展点**——默认 5 层管道不需要任何配置即可运行，高级用户通过 `ICompressionStrategy` 接口替换或扩展
+5. **前缀缓存感知**——压缩操作不影响 `prefixLength` 前缀区（见 `nop-ai-agent-llm-layer.md` §八）
+
+### 7.2 五层保护模型（默认实现）
 
 | 层级 | 名称 | LLM 调用 | 触发时机 | 操作 | 参考 |
 |------|------|---------|---------|------|------|
-| Layer 0 | Tool Result 预截断 | 无 | 每次工具执行后 | 截断 tool result 超过阈值（默认 8000 tokens）的部分，截断算法保留 head + 1KB tail | Reasonix |
-| Layer 1 | 零成本微压缩 | 无 | ReAct 循环每轮检查 | 替换旧 tool_result 内容为 placeholder，仅处理可压缩工具（read_file, bash, grep 等），保留最新 N 条 | PilotDeck MicroCompaction |
+| Layer 0 | Tool Result 预截断 | 无 | 每次工具执行后 | 截断 tool result 超过阈值（默认 8000 tokens）的部分，保留 head + 1KB tail | Reasonix |
+| Layer 1 | 零成本微压缩 | 无 | ReAct 循环每轮检查 | 替换旧 tool_result 内容为 placeholder，仅处理可压缩工具（read_file, bash, grep 等），保留最近 N 条 | PilotDeck MicroCompaction |
 | Layer 2 | 中间 Turn 裁剪 | 无 | 超过 Layer 1 阈值 | 裁剪中间 turns，保留 head + tail anchors，维护 tool_call/tool_result 跨边界完整性 | PilotDeck SnipEngine |
 | Layer 3 | LLM 摘要 | 1 次（便宜模型） | 超过 Layer 2 阈值 | LLM 生成结构化摘要（增量更新前次 summary），完整历史 offload 到持久存储 | OpenCode + DeepAgents |
 | Layer 4 | 强制退出 | 0 或 1 次 | context >90% | 生成最终摘要，停止工具调用，发布 AgentEvent.FORCED_STOP | Reasonix |
 
-### 7.2 Token 计数
+**逐级升级规则**：Layer 0 是独立预截断（每次工具执行后自动应用），Layer 1→2→3 逐级尝试——本级解决问题则停止，不跳级。Layer 4 是硬上限保护。
+
+### 7.3 触发机制
+
+**双维度 OR 门**（参考 SolonCode）：
+
+```
+ReAct reason 循环开始前（每轮检查）:
+  tokenEstimate > maxTokens * triggerTokenPercent    // 默认 0.8
+  OR
+  messageCount > triggerMaxMessages                   // 默认 30
+
+  任一条件满足 → 从 Layer 1 开始逐级尝试压缩
+```
+
+**两个触发点**：
+
+1. **Pre-iteration**（每轮 ReAct reason 前检查）：`ILlmDialect.estimateTokens()` 本地估算 vs 阈值
+2. **Post-response**（每次 LLM 响应后检查）：Provider 报告的精确 `usage.prompt_tokens` vs 阈值。Post-response 使用精确值，可校准 Pre-iteration 的估算偏差
+
+### 7.4 Token 计数
 
 双层策略：Provider 报告为主，轻量估算为辅。
 
 - **Post-call（精确）**：直接使用 LLM API 响应中的 `usage.prompt_tokens` / `usage.completion_tokens`。这是精确值，无需自行计算
-- **Pre-call（估算）**：发送请求前需要估算当前 context 大小以决定是否触发 compaction。使用简单字符比例估算（如 `chars / 4`）即可，不需要引入 BPE tokenizer 依赖
-- **校准**：Post-call 的精确值可用于校准 Pre-call 估算的偏差，运行时自动修正比例系数
-- **不引入 JTokkit**：LLM API 返回的 token 数是 source of truth，自行 BPE 计数既不准确（各模型 tokenizer 不同）又增加依赖
+- **Pre-call（估算）**：通过 `ILlmDialect.estimateTokens()` 估算，缺省 chars/4（见 `nop-ai-agent-llm-layer.md` §4.0）。对触发阈值（80%）来说精度够用——chars/4 的 ±10% 偏差不会导致错误决策
+- **校准**：Post-call 精确值与 Pre-call 估算值的偏差记录在 Dialect 内部，用于修正后续估算
 
-### 7.3 摘要策略
+### 7.5 摘要策略
 
 - **增量更新**：如果前次 summary 存在，用 `<previous-summary>` 传递，要求 LLM 增量更新（非全量重写）（OpenCode 模式）
 - **结构化模板**（8 节）：Goal / Constraints & Preferences / Progress (Done/In Progress/Blocked) / Key Decisions / Next Steps / Critical Context / Relevant Files
 - **文件追踪**：Compaction 时提取 read/modified 文件列表，附加到摘要末尾（pi-agent 模式）
-- **专用模型**：摘要生成使用便宜/快速模型，不与主 Agent 的 LLM 竞争（Reasonix 用 flash，Hermes 用 auxiliary）。Compaction LLM 调用使用独立配额池（见 actor-runtime-vision.md §5.2: 20/min/tenant）
+- **专用模型**：摘要生成使用便宜/快速模型，不与主 Agent 的 LLM 竞争（Reasonix 用 flash，Hermes 用 auxiliary）。通过 `compressionModel` 配置
 - **PreCompact hook**：压缩前保存关键状态（todo, plan, project memory），压缩后重新注入（oh-my-claudecode 模式）。使用 `PRE_COMPACT` / `POST_COMPACT` 生命周期点（`02-execution-model.md` §5.1 Layer 2 扩展）
 
-### 7.4 最小保真规则
+### 7.6 压缩后保留规则
 
-压缩后必须保留：
+必须保留：
 
 1. 最早的 system message
 2. 最早的用户初始目标
-3. 当前 plan 的任务状态摘要
-4. 最近 N 条消息
-5. Pinned items（活跃 skills、约束条件）
-6. 文件追踪列表（read-files, modified-files）
+3. 压缩生成的摘要消息
+4. 最近 N 条消息（`keepTailPercent` 决定大小）
+5. Pinned items（活跃 skills、约束条件——Reasonix 的 `<skill-pin>` 模式）
+6. 文件追踪列表（read-files, modified-files——pi-agent 模式）
 
-同时禁止递归压缩：执行压缩的流程本身不应再次触发相同压缩逻辑。
+禁止递归压缩：执行压缩的流程本身不再触发压缩。
+
+### 7.7 配置模型
+
+通过 `agent.xdef` 的 `<compaction>` 元素配置。所有参数都有合理默认值，零配置即可运行。
+
+```xml
+<agent name="my-agent">
+  <compaction enabled="true"
+              triggerTokenPercent="0.8"
+              triggerMaxMessages="30"
+              forcedStopPercent="0.9"
+              keepTailPercent="0.15"
+              compressionModel=""/>
+</agent>
+```
+
+| 参数 | 默认值 | 含义 |
+|------|--------|------|
+| `enabled` | `true` | 是否启用自动压缩 |
+| `triggerTokenPercent` | `0.8` | token 占比超过此值触发（Post-call 用精确值，Pre-call 用估算值） |
+| `triggerMaxMessages` | `30` | 非首链消息数超过此值触发 |
+| `forcedStopPercent` | `0.9` | 超过此值触发 Layer 4 强制退出 |
+| `keepTailPercent` | `0.15` | Layer 3 压缩时保留尾部消息的比例 |
+| `compressionModel` | 空（=主模型） | Layer 3 摘要使用的模型（建议用便宜模型） |
+
+### 7.8 可插拔策略（Layer 3 扩展点）
+
+默认 5 层管道覆盖绝大多数场景。如果需要定制，实现 `ICompressionStrategy` 接口并通过 Delta 替换 Layer 3 的默认摘要逻辑：
+
+```
+ICompressionStrategy:
+  String name()
+  CompactionResult compact(CompactionContext ctx)
+```
+
+可用策略实现（Layer 3 可选）：
+
+| 策略 | LLM 调用 | 机制 | 参考 |
+|------|---------|------|------|
+| `FullSummary`（默认 Layer 3） | 1 次 | 结构化摘要（8 节模板），增量更新 | OpenCode |
+| `KeyInfoExtraction` | 1 次 | 提取业务参数、确认事实、失败路径 | SolonCode |
+| `HierarchicalRolling` | 1 次 | 合并旧摘要 + 新过期消息，输出有界（max 500 chars） | SolonCode |
+| `VectorArchive` | 0 次 | 过期消息存入向量存储，提供 recall 工具 | SolonCode |
+
+Delta 定制示例：
+
+```xml
+<!-- delta: /delta/default/my-agent.agent.xml -->
+<compaction>
+  <strategy class="com.mycompany.MyCustomSummaryStrategy"/>
+</compaction>
+```
+
+### 7.9 与前缀缓存的协同
+
+压缩操作只修改 `messages[prefixLength..]` 的 Log Zone，不触及前缀区。引擎层在 `AgentExecutionContext` 中维护 `prefixLength` 和 `prefixHash`（见 `nop-ai-agent-llm-layer.md` §八），压缩前后校验前缀完整性。
 
 ## 8. 超时与预算
 
@@ -346,6 +429,18 @@ Agent 可能会反复调用同一个工具、同一组参数。
 **方案**：每次触发压缩时，LLM 重写整个消息历史为摘要。
 
 **拒绝理由**：全量重写成本高（需要传入完整历史），增量更新更高效（传入前次 summary + 新消息）。OpenCode 和 Reasonix 的实践证明增量摘要效果足够好。
+
+### 拒绝：固定四级梯度触发
+
+**方案**：采用 Reasonix 的 75%/78%/80%/90% 四级梯度。
+
+**拒绝理由**：四级是为 DeepSeek 1M 超大窗口优化的 Provider 特定设计。Nop 作为通用框架面向 128K-200K 的常见窗口，5 层管道的逐级升级更清晰、更通用。需要更精细控制的用户可通过 `ICompressionStrategy` 扩展点定制。
+
+### 拒绝：Layer 1 就暴露 7 种可配置策略
+
+**方案**：默认实现就提供 7 种可组合策略，通过 `<strategy>` 元素配置管道。
+
+**拒绝理由**：对 Layer 1-2 的实现者来说，7 种策略是认知负担。5 层管道每一层做什么和什么时候触发一目了然，实施者读完就知道要实现什么。可插拔策略作为 Layer 3 扩展点保留，需要时才引入。
 
 ### 拒绝：断路器和 Sisyphean 同时启用
 
