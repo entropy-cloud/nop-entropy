@@ -113,7 +113,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | # | 工作项 | 依赖 | 状态 |
 |---|--------|------|------|
 | L0-1 | 创建 `agent.register-model.xml` | 无 | ✅ |
-| L0-2 | 统一枚举：解决 `AgentExecStatus` vs `AgentTaskStatus/AgentPlanStatus` 不一致 | 无 | ❌ |
+| L0-2 | 统一枚举：解决 `AgentExecStatus` vs `AgentTaskStatus/AgentPlanStatus` 不一致 | 无 | ✅ |
 | L0-3 | 🔑 **设计决策（已解决）**：Agent 通过 `nop-ai-core` 的 `ChatServiceImpl` / `DefaultAiChatService` 调用 LLM，基于 `{name}.llm.xml` 配置区分不同 Provider | 无 | ✅ 已确认 |
 
 ### Layer 1: Core Interfaces — 系统运行的最低要求
@@ -214,9 +214,9 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 
 | 问题 | 优先级 | 说明 |
 |------|--------|------|
-| 零单元测试 | P0 | 模块完全无测试覆盖（`src/test/` 零 Java 文件） |
+| 零单元测试 | P0 | 模块完全无测试覆盖（`src/test/` 零 Java 文件） → 已添加 TestAgentPlanRecordMapping（Phase 2） |
 | `agent.register-model.xml` 缺失 | P0 | `.agent.xml` DSL 无法加载，等同于 DSL 死代码 |
-| 枚举 schema 不一致 | P1 | xdef 用 `AgentExecStatus`(status 字段)，record-mappings 用 `AgentTaskStatus`/`AgentPlanStatus`(taskStatus/planStatus 字段) — 值域和字段名均不匹配 |
+| ~~枚举 schema 不一致~~ | ~~P1~~ | ✅ 已解决：record-mappings 统一引用 `AgentExecStatus`，field name `taskStatus` → `status` |
 | 33 个空 stub 类（≤9 行） | P2 | 延伸 generated base 但无自定义逻辑，占位符（含 `BaseAgent`）。另有 4 个实体类（AgentExecStatus, IAiMemoryStore, AiMemoryItem, AiMemoryConfig） |
 | `BaseAgent` 未追踪 | P2 | 存在于代码中但不在任何设计文档或工作项中 |
 
@@ -263,7 +263,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 ### 前置层检查
 
 - [ ] `agent.register-model.xml` 存在且可正确加载 `.agent.xml`
-- [ ] 枚举定义一致：xdef `AgentExecStatus` 与 record-mappings 引用的枚举字段名和值域匹配
+- [x] 枚举定义一致：xdef `AgentExecStatus` 与 record-mappings 引用的枚举字段名和值域匹配
 - [ ] LLM 调用路径已确认：Agent 通过 `nop-ai-core` 的 `ChatServiceImpl` 调用，基于 `llm.xml` 配置区分 Provider
 
 ### Layer 1 核心
@@ -272,7 +272,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 - [ ] `agent-plan.xdef` 字段语义稳定
 - [ ] `AgentModel` 可从 `.agent.xml` 正确装载
 - [ ] `AgentPlanModel` 可从 `.agent-plan.xml`/`.yaml`/`.md` 正确装载
-- [ ] 缺失枚举 `AgentTaskStatus`, `AgentPlanStatus` 已创建（或已与 `AgentExecStatus` 统一）
+- [x] 缺失枚举 `AgentTaskStatus`, `AgentPlanStatus` 已创建（或已与 `AgentExecStatus` 统一）
 - [ ] ReAct 循环可以完整跑通：LLM 调用 → 工具调用 → 结果回灌 → 继续推理
 - [ ] 至少 1 个 `.agent.xml` 示例文件可被加载执行
 - [ ] `BaseAgent` 的去留已决定
