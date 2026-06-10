@@ -72,6 +72,7 @@ public class ChatUserMessage extends ChatMessage {
     public ChatUserMessage copy() {
         ChatUserMessage copy = new ChatUserMessage();
         copy.setMessageId(this.getMessageId());
+        copy.setProviderHints(this.providerHints);
         copy.content = this.content;
         if (this.attachments != null) {
             copy.attachments = new ArrayList<>();

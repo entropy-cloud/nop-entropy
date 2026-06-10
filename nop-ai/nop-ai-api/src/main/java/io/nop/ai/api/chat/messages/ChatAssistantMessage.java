@@ -31,6 +31,11 @@ public class ChatAssistantMessage extends ChatMessage {
     private String think;
 
     /**
+     * Anthropic extended thinking 签名（用于多轮对话时回传 thinking block）
+     */
+    private String thinkSignature;
+
+    /**
      * 工具调用列表
      */
     private List<ChatToolCall> toolCalls;
@@ -64,6 +69,15 @@ public class ChatAssistantMessage extends ChatMessage {
 
     public void setThink(String think) {
         this.think = think;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getThinkSignature() {
+        return thinkSignature;
+    }
+
+    public void setThinkSignature(String thinkSignature) {
+        this.thinkSignature = thinkSignature;
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -115,8 +129,10 @@ public class ChatAssistantMessage extends ChatMessage {
     public ChatAssistantMessage copy() {
         ChatAssistantMessage copy = new ChatAssistantMessage();
         copy.setMessageId(this.getMessageId());
+        copy.setProviderHints(this.providerHints);
         copy.content = this.content;
         copy.think = this.think;
+        copy.thinkSignature = this.thinkSignature;
         if (this.toolCalls != null) {
             copy.toolCalls = new ArrayList<>();
             for (ChatToolCall toolCall : this.toolCalls) {

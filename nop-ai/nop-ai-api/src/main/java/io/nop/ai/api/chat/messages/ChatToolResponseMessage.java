@@ -7,6 +7,7 @@
  */
 package io.nop.ai.api.chat.messages;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
 /**
@@ -32,6 +33,18 @@ public class ChatToolResponseMessage extends ChatMessage {
      * 工具执行结果内容
      */
     private String content;
+
+    /**
+     * 结构化工具结果（JSON 对象），与 content 互补：
+     * content 为文本摘要，result 为结构化数据。
+     * 为 null 时表示纯文本结果（使用 content 字段）
+     */
+    private Object result;
+
+    /**
+     * 结果类型标记："text"(默认) | "json" | "error" | "content"
+     */
+    private String resultType;
 
     public ChatToolResponseMessage() {
     }
@@ -73,13 +86,34 @@ public class ChatToolResponseMessage extends ChatMessage {
         this.name = name;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Object getResult() {
+        return result;
+    }
+
+    public void setResult(Object result) {
+        this.result = result;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getResultType() {
+        return resultType;
+    }
+
+    public void setResultType(String resultType) {
+        this.resultType = resultType;
+    }
+
     @Override
     public ChatToolResponseMessage copy() {
         ChatToolResponseMessage copy = new ChatToolResponseMessage();
         copy.setMessageId(this.getMessageId());
+        copy.setProviderHints(this.providerHints);
         copy.toolCallId = this.toolCallId;
         copy.name = this.name;
         copy.content = this.content;
+        copy.result = this.result;
+        copy.resultType = this.resultType;
         return copy;
     }
 
@@ -95,5 +129,13 @@ public class ChatToolResponseMessage extends ChatMessage {
      */
     public static ChatToolResponseMessage error(String toolCallId, String name, String errorMessage) {
         return new ChatToolResponseMessage(toolCallId, name, "Error: " + errorMessage);
+    }
+
+    public static ChatToolResponseMessage structured(String toolCallId, String name,
+                                                      String content, Object result) {
+        ChatToolResponseMessage msg = new ChatToolResponseMessage(toolCallId, name, content);
+        msg.setResult(result);
+        msg.setResultType("json");
+        return msg;
     }
 }

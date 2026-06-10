@@ -27,6 +27,11 @@ public class ChatAttachment {
     private String resourceUrl;
 
     /**
+     * 内联资源数据（base64编码），与 resourceUrl 二选一
+     */
+    private String data;
+
+    /**
      * 文件名（可选）
      */
     private String fileName;
@@ -55,6 +60,15 @@ public class ChatAttachment {
 
     public void setResourceUrl(String resourceUrl) {
         this.resourceUrl = resourceUrl;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -89,6 +103,12 @@ public class ChatAttachment {
         return attachment;
     }
 
+    public static ChatAttachment forImageData(String mimeType, String base64Data) {
+        ChatAttachment attachment = new ChatAttachment("image", null);
+        attachment.setData(base64Data);
+        return attachment;
+    }
+
     /**
      * 创建附件的深拷贝
      */
@@ -96,6 +116,7 @@ public class ChatAttachment {
         ChatAttachment copy = new ChatAttachment();
         copy.resourceType = this.resourceType;
         copy.resourceUrl = this.resourceUrl;
+        copy.data = this.data;
         copy.fileName = this.fileName;
         return copy;
     }

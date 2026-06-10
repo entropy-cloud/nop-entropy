@@ -61,6 +61,7 @@ public class ChatSystemMessage extends ChatMessage {
     public ChatSystemMessage copy() {
         ChatSystemMessage copy = new ChatSystemMessage();
         copy.setMessageId(this.getMessageId());
+        copy.setProviderHints(this.providerHints);
         copy.content = this.content;
         copy.name = this.name;
         return copy;

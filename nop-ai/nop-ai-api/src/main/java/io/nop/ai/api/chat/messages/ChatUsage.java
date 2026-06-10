@@ -7,6 +7,7 @@
  */
 package io.nop.ai.api.chat.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
@@ -40,6 +41,11 @@ public class ChatUsage {
      * 缓存创建的token数量（创建 Prompt Cache 时消耗的 token）
      */
     private Integer cacheCreationTokens;
+
+    /**
+     * 缓存未命中的token数量（需要重新计算的 token）
+     */
+    private Integer cacheMissTokens;
 
     public ChatUsage() {
     }
@@ -95,6 +101,21 @@ public class ChatUsage {
         this.cacheCreationTokens = cacheCreationTokens;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Integer getCacheMissTokens() {
+        return cacheMissTokens;
+    }
+
+    public void setCacheMissTokens(Integer cacheMissTokens) {
+        this.cacheMissTokens = cacheMissTokens;
+    }
+
+    @JsonIgnore
+    public double getCacheHitRate() {
+        if (promptTokens == null || promptTokens == 0) return 0;
+        return (cacheHitTokens != null ? cacheHitTokens : 0) / (double) promptTokens;
+    }
+
     /**
      * 创建Token使用信息的深拷贝
      */
@@ -102,6 +123,7 @@ public class ChatUsage {
         ChatUsage copy = new ChatUsage(this.promptTokens, this.completionTokens);
         copy.setCacheHitTokens(this.cacheHitTokens);
         copy.setCacheCreationTokens(this.cacheCreationTokens);
+        copy.setCacheMissTokens(this.cacheMissTokens);
         return copy;
     }
 }

@@ -7,9 +7,12 @@
  */
 package io.nop.ai.api.chat.messages;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.nop.api.core.annotations.data.DataBean;
+
+import java.util.Map;
 
 /**
  * 聊天消息基类，支持角色区分
@@ -25,10 +28,12 @@ import io.nop.api.core.annotations.data.DataBean;
 @DataBean
 public abstract class ChatMessage {
 
-    /**
-     * 消息ID
-     */
     private String messageId;
+
+    /**
+     * Provider-specific hints, e.g. Anthropic cache_control: {"cache_control": {"type": "ephemeral"}}
+     */
+    protected Map<String, Object> providerHints;
 
     /**
      * 消息角色（user/assistant/system）
@@ -51,6 +56,15 @@ public abstract class ChatMessage {
 
     public void setMessageId(String messageId) {
         this.messageId = messageId;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Map<String, Object> getProviderHints() {
+        return providerHints;
+    }
+
+    public void setProviderHints(Map<String, Object> providerHints) {
+        this.providerHints = providerHints;
     }
 
     /**

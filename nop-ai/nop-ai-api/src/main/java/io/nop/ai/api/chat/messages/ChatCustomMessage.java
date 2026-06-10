@@ -113,6 +113,7 @@ public class ChatCustomMessage extends ChatMessage {
     public ChatCustomMessage copy() {
         ChatCustomMessage copy = new ChatCustomMessage();
         copy.setMessageId(this.getMessageId());
+        copy.setProviderHints(this.providerHints);
         copy.customRole = this.customRole;
         copy.content = this.content;
         if (this.extensions != null) {
