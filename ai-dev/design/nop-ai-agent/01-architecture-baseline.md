@@ -63,6 +63,7 @@
 | `AgentEventPublisher` | 将执行状态变化投影为外部可观察的事件流 | 事件类型稳定；不修改执行状态 |
 | `IAgentMemory` | Agent 的三层记忆管理 | 短期记忆（context window 管理 + compaction）是核心职责；Working Memory（Layer 2 工具实现）和长期记忆（Layer 4，底层使用 `IMemoryAdapter`）按层引入 |
 | `ChatMessage` | Provider 无关的统一消息格式，定义在 `nop-ai-api` | 5 种子类型覆盖 user/assistant/system/tool/custom 角色，含 tool call、thinking、attachments。Agent Engine 直接使用，Provider 差异由 `nop-ai-core` 的 `ILlmDialect` 屏蔽。见 `nop-ai-agent-llm-layer.md` |
+| `ILlmDialect` | Provider 消息格式适配 + Token 估算 | 定义在 `nop-ai-core`。序列化为纯函数（前缀缓存安全）；token 估算缺省 chars/4，`AbstractLlmDialect` 覆盖为 jtokkit 精确计数。见 `nop-ai-agent-llm-layer.md` §四 |
 
 ### Memory 模型（三层）
 

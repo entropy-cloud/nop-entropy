@@ -33,7 +33,8 @@
 | `IAgentExecutor` | Layer 1 | 执行策略接口（`execute()` 返回 `CompletionStage<AgentExecutionResult>`） |
 | `IAgentMemory` | Layer 1 | 三层记忆管理（短期 compaction + Working Memory 工具 + 长期 IMemoryAdapter） |
 | `IMessageService` | 基础设施 | Agent 间内部通信（LocalMessageService / DB-backed） |
-| `ILlmDialect` | nop-ai-core | Provider 消息格式转换（Formatter pattern），Agent Engine 不直接依赖 |
+| `ILlmDialect` | nop-ai-core | Provider 消息格式转换（Formatter pattern）+ Token 估算（default chars/4，具体 Dialect 可覆盖为精确实现）。Agent Engine 不直接依赖 |
+| `ICompressionStrategy` | Layer 3 | 可插拔压缩策略扩展点（默认 5 层管道不使用此接口，定制 Layer 3 摘要逻辑时才引入） |
 | `IModelRouter` | Layer 2 | 请求路由策略（Judge + Fallback Chain） |
 | `ITalent` | Layer 2 | 动态行为准入（运行时上下文开关工具集） |
 | `IRetryPolicy` | Layer 3 | Provider 重试策略 |
