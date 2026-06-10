@@ -64,7 +64,10 @@ export class FlowEngine {
   _templateVar(str, vars) {
     if (typeof str !== "string") return str;
     return str.replace(/\{\{(\w+)\}\}/g, (_, k) => {
-      if (vars[k] === undefined) throw new Error(`Unresolved template variable: {{${k}}}`);
+      if (vars[k] === undefined) {
+        this._log(`  WARNING: unresolved template variable {{${k}}}`);
+        return `{{${k}}}`;
+      }
       return vars[k];
     });
   }

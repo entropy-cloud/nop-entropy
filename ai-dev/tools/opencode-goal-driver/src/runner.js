@@ -24,6 +24,7 @@ const STEP_KEY_MAP = {
   "CLOSURE_AUDIT": "closure-audit",
   "DEEP_AUDIT": "deep-audit",
   "ADVERSARIAL": "adversarial-review",
+  "BUILD_VERIFY": "build-verify",
 };
 
 function _normalizeStepName(stepName) {
@@ -34,43 +35,45 @@ function _normalizeStepName(stepName) {
 function mockAgentResponse(stepName) {
   const n = _normalizeStepName(stepName);
 
-  if (n === "fix-build") return "<HEALTH_STATUS>fixed</HEALTH_STATUS>";
+  if (n === "fix-build") return "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>";
 
   if (n === "roadmap-check") {
     _mockRoadmapCount++;
     return _mockRoadmapCount <= 1
-      ? "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item priority=\"P1\">mock: unimplemented feature</item></ROADMAP_ITEMS>"
-      : "<ROADMAP_RESULT>complete</ROADMAP_RESULT>";
+      ? "<AI_STEP_RESULT>pending</AI_STEP_RESULT>\n<NEXT_ITEM id=\"mock-P1\" layer=\"L1\" priority=\"P1\">mock: unimplemented feature</NEXT_ITEM>\n<ROADMAP_ITEMS><item id=\"mock-P1\" priority=\"P1\">mock: unimplemented feature</item></ROADMAP_ITEMS>"
+      : "<AI_STEP_RESULT>complete</AI_STEP_RESULT>";
   }
 
-  if (n === "plan-draft") return "<PLAN_RESULT>created</PLAN_RESULT>";
+  if (n === "plan-draft") return "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/mock-plan.md</PLAN_FILE>\n</FLOW_VARS>";
 
   if (n === "plan-audit") {
     _mockPlanAuditCount++;
     return _mockPlanAuditCount <= 1
-      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item severity=\"Major\">mock: Exit Criteria not verifiable</item></ISSUES>"
-      : "<AUDIT_RESULT>approved</AUDIT_RESULT>";
+      ? "<AI_STEP_RESULT>issues</AI_STEP_RESULT>\n<ISSUES><item severity=\"Major\">mock: Exit Criteria not verifiable</item></ISSUES>"
+      : "<AI_STEP_RESULT>approved</AI_STEP_RESULT>";
   }
 
-  if (n === "execute") return "<EXECUTE_RESULT>success</EXECUTE_RESULT>";
+  if (n === "execute") return "<AI_STEP_RESULT>success</AI_STEP_RESULT>";
 
   if (n === "closure-audit") {
     _mockClosureCount++;
     return _mockClosureCount === 1
-      ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: insufficient test coverage</item></REMAINING>"
-      : "<CLOSURE_RESULT>complete</CLOSURE_RESULT>";
+      ? "<AI_STEP_RESULT>incomplete</AI_STEP_RESULT>\n<REMAINING><item>mock: insufficient test coverage</item></REMAINING>"
+      : "<AI_STEP_RESULT>complete</AI_STEP_RESULT>";
   }
 
   if (n === "deep-audit") {
     _mockDeepAuditCount++;
     return _mockDeepAuditCount <= 1
-      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>"
-      : "<AUDIT_RESULT>clean</AUDIT_RESULT>";
+      ? "<AI_STEP_RESULT>issues</AI_STEP_RESULT>"
+      : "<AI_STEP_RESULT>clean</AI_STEP_RESULT>";
   }
 
-  if (n === "adversarial-review") return "<ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT>";
+  if (n === "adversarial-review") return "<AI_STEP_RESULT>clean</AI_STEP_RESULT>";
 
-  return "##MOCK_OK";
+  if (n === "build-verify") return "<AI_STEP_RESULT>pass</AI_STEP_RESULT>";
+
+  return "<AI_STEP_RESULT>ok</AI_STEP_RESULT>";
 }
 
 function extractSessionId(text) {
