@@ -3,32 +3,32 @@
 /**
  * scan-hollow-implementations.mjs
  *
- * 启发式扫描 Java 源码中的空壳/未完成/静默跳过实现。
+ * Heuristic scanner for hollow/incomplete/silent-no-op implementations in Java source code.
  *
- * 灵感来源：Plan 00 的 Anti-Hollow Rule (Rule #8, #9, #24)，
- * 以及历史中反复出现的空壳实现问题（如 nop-stream 的 CheckpointCoordinator，
- * Plan 98 的 windowState UnsupportedOperationException，Plan 97 的空壳类等）。
+ * Inspired by Plan 00 Anti-Hollow Rule (Rule #8, #9, #24),
+ * and recurring hollow implementation issues (e.g. nop-stream CheckpointCoordinator,
+ * Plan 98 windowState UnsupportedOperationException, Plan 97 hollow classes, etc.).
  *
- * 用法：
+ * Usage:
  *   node ai-dev/tools/scan-hollow-implementations.mjs [options] [paths...]
  *
- * 选项：
- *   --src-only         只扫描 src/main，跳过测试代码（默认）
- *   --include-tests    同时扫描测试代码
- *   --severity <level> 最低严重级别：critical, high, medium, low, info（默认 medium）
- *   --format <fmt>     输出格式：json, markdown, summary（默认 summary）
- *   --output <file>    输出到文件（默认 stdout）
- *   --no-header        不输出标题头
- *   --module <name>    只扫描指定模块（如 nop-stream, nop-code）
+ * Options:
+ *   --src-only         Scan src/main only, skip test code (default)
+ *   --include-tests    Also scan test code
+ *   --severity <level> Minimum severity: critical, high, medium, low, info (default medium)
+ *   --format <fmt>     Output format: json, markdown, summary (default summary)
+ *   --output <file>    Output to file (default stdout)
+ *   --no-header        Suppress header output
+ *   --module <name>    Scan only the specified module (e.g. nop-stream, nop-code)
  *
- * 检测模式：
- *   [P1] UnsupportedOperationException（"not yet" / "not supported" / "minimal"）
- *   [P2] 空方法体 / 单行 return null/0/false
- *   [P3] 空 catch 块（吞异常）
- *   [P4] TODO / FIXME 标记
- *   [P5] 未使用的 public 方法（仅在声明类中使用）
- *   [P6] "stub" / "placeholder" / "dummy" 注释或命名
- *   [P7] 抽象类/接口只有空实现（单一实现且所有方法都是 return null/空体）
+ * Detection patterns:
+ *   [P1] UnsupportedOperationException ("not yet" / "not supported" / "minimal")
+ *   [P2] Empty method body / single-line return null/0/false
+ *   [P3] Empty catch blocks (swallowing exceptions)
+ *   [P4] TODO / FIXME markers
+ *   [P5] Unused public methods (only used in declaring class)
+ *   [P6] "stub" / "placeholder" / "dummy" comments or naming
+ *   [P7] Abstract class/interface with only hollow implementations (single impl where all methods return null/empty body)
  */
 
 import fs from 'fs';
@@ -123,19 +123,19 @@ const PATTERNS = [
     id: 'P1',
     name: 'UnsupportedOperationException',
     severity: 'high',
-    description: '抛出 UnsupportedOperationException，可能表示未实现的功能',
+    description: 'Throws UnsupportedOperationException, likely indicating unimplemented functionality',
     regex: /throw new UnsupportedOperationException\s*\(\s*"([^"]*)"\s*\)/g,
     extract: (m) => m[1],
     filter: (relPath, line) => {
       return !relPath.includes('/src/test/');
     },
-    rationale: 'Plan 00 Rule #8（空壳实现）和 Rule #24（静默跳过）明确要求未实现功能应使用语义明确的异常，而非 UnsupportedOperationException。历史计划 84/86/97/98 中多次修复此类问题。',
+    rationale: 'Plan 00 Rule #8 (hollow implementation) and Rule #24 (silent no-op) require unimplemented features to use semantically clear exceptions, not UnsupportedOperationException. Fixed in historical plans 84/86/97/98.',
   },
   {
     id: 'P2a',
-    name: '空方法体',
+    name: 'Empty method body',
     severity: 'high',
-    description: '方法体只有空花括号，无任何逻辑',
+    description: 'Method body contains only empty braces with no logic',
     regex: /\{\s*\}[ \t]*$/g,
     contextBefore: 1,
     filter: (relPath, line, prevLines) => {
@@ -148,13 +148,13 @@ const PATTERNS = [
       const methodSig = prevLine || '';
       return /(void|\w+)\s+\w+\s*\([^)]*\)\s*(throws\s+[\w\s,]+)?\s*\{?\s*$/.test(methodSig) || /Runnable|Callable|Supplier|Function|Consumer/.test(methodSig);
     },
-    rationale: 'Plan 00 Rule #8：空壳实现的典型症状。历史中 CheckpointCoordinator 的方法曾经如此。',
+    rationale: 'Plan 00 Rule #8: classic symptom of hollow implementation. Historically, CheckpointCoordinator methods were like this.',
   },
   {
     id: 'P2b',
-    name: '单行 return null 作为方法体',
+    name: 'Single-line return null as method body',
     severity: 'medium',
-    description: '非空检查目的的 return null 可能是 placeholder',
+    description: 'return null that is not for null-check purposes may be a placeholder',
     regex: /return null;\s*$/g,
     contextBefore: 3,
     filter: (relPath, line, prevLines) => {
@@ -165,13 +165,13 @@ const PATTERNS = [
       if (/@Override/.test(ctx)) return false;
       return true;
     },
-    rationale: 'Plan 00 Rule #8：placeholder return 值。需人工判断是合理 null 返回还是未实现。',
+    rationale: 'Plan 00 Rule #8: placeholder return value. Requires human judgment on whether null is legitimate or unimplemented.',
   },
   {
     id: 'P3',
-    name: '空 catch 块（吞异常）',
+    name: 'Empty catch block (swallowing exceptions)',
     severity: 'high',
-    description: 'catch 块为空或只包含注释，异常被静默吞掉',
+    description: 'Catch block is empty or contains only comments, silently swallowing exceptions',
     regex: /\{\s*\}\s*$/g,
     contextBefore: 2,
     filter: (relPath, line, prevLines) => {
@@ -179,52 +179,52 @@ const PATTERNS = [
       const ctx = (prevLines && prevLines.length > 0) ? prevLines.join('\n') : '';
       return /catch\s*\(/.test(ctx);
     },
-    rationale: 'Plan 00 Rule #24：静默跳过的典型模式。历史计划中多次发现并修复。',
+    rationale: 'Plan 00 Rule #24: classic silent no-op pattern. Found and fixed multiple times in historical plans.',
   },
   {
     id: 'P3b',
-    name: 'catch 块只打印日志不重新抛出',
+    name: 'Catch block only logs without re-throwing',
     severity: 'medium',
-    description: 'catch 块只有 e.printStackTrace() 或 LOG 但不重新抛出',
+    description: 'Catch block has only e.printStackTrace() or LOG but does not re-throw',
     regex: /catch\s*\([^)]+\)\s*\{[^}]*e\.printStackTrace\(\)|catch\s*\([^)]+\)\s*\{[^}]*LOG\.\w+\([^)]*e[^)]*\)[^}]*\}/g,
     filter: () => true,
-    rationale: 'Plan 00 Rule #24 变体：日志打印不等于处理。需人工判断是否应该重新抛出。',
+    rationale: 'Plan 00 Rule #24 variant: logging is not the same as handling. Requires human judgment on whether re-throwing is needed.',
   },
   {
     id: 'P4',
-    name: 'TODO/FIXME 标记',
+    name: 'TODO/FIXME markers',
     severity: 'low',
-    description: '代码中的 TODO 或 FIXME 注释，可能标记未完成工作',
+    description: 'TODO or FIXME comments in code, possibly marking unfinished work',
     regex: /\/\/\s*(TODO|FIXME)\b[:\s]/gi,
     extract: (m) => m[0].trim(),
     filter: () => true,
-    rationale: 'Plan 00 Rule #24 明确禁止将 TODO/FIXME 标记的代码当作已完成。',
+    rationale: 'Plan 00 Rule #24 explicitly forbids treating TODO/FIXME-marked code as completed.',
   },
   {
     id: 'P6',
-    name: 'Stub/Placeholder/Dummy 命名',
+    name: 'Stub/Placeholder/Dummy naming',
     severity: 'medium',
-    description: '类名或方法名包含 stub/placeholder/dummy/fake/mock（生产代码中）',
+    description: 'Class or method name contains stub/placeholder/dummy/fake/mock (in production code)',
     regex: /\b(class|interface|void|\w+)\s+(Stub|Placeholder|Dummy|Fake|Mock|Temp|Temporary)\w*\b/gi,
     filter: (relPath) => {
       return !relPath.includes('/src/test/');
     },
-    rationale: '生产代码中不应该有 stub/placeholder 命名的类。历史计划 90/96 中发现过空壳模块。',
+    rationale: 'Production code should not have stub/placeholder-named classes. Hollow modules found in historical plans 90/96.',
   },
   {
     id: 'P6b',
-    name: '"not yet implemented" 注释',
+    name: '"not yet implemented" comments',
     severity: 'high',
-    description: '注释中出现 not yet implemented / minimal implementation 等措辞',
+    description: 'Comments containing not yet implemented / minimal implementation / etc.',
     regex: /\/\/.*not yet implemented|\/\/.*minimal implementation|\/\/.*stub implementation|\/\/.*placeholder|\/\/.*temp\s/i,
     filter: (relPath) => !relPath.includes('/src/test/'),
-    rationale: '这些注释明确标记了代码未完成，属于 Plan 00 Rule #8 中的空壳模式。',
+    rationale: 'These comments explicitly mark code as unfinished, part of Plan 00 Rule #8 hollow patterns.',
   },
   {
     id: 'P8',
-    name: 'continue 跳过循环体（疑似静默跳过）',
+    name: 'Continue skipping loop body (suspected silent no-op)',
     severity: 'medium',
-    description: '循环中的 continue 可能跳过了应处理的逻辑',
+    description: 'Continue in a loop may be skipping logic that should be processed',
     regex: /^\s*continue;\s*$/g,
     contextBefore: 2,
     filter: (relPath, line, prevLines) => {
@@ -232,7 +232,7 @@ const PATTERNS = [
       if (/null\s*check|null\s*\)|isEmpty|isBlank|\.isEmpty|filter|skip/i.test(ctx)) return false;
       return true;
     },
-    rationale: 'Plan 00 Rule #24：静默跳过模式。需人工判断是合理的过滤还是遗漏的逻辑。',
+    rationale: 'Plan 00 Rule #24: silent no-op pattern. Requires human judgment on whether it is legitimate filtering or missing logic.',
   },
 ];
 

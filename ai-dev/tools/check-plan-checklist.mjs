@@ -6,7 +6,7 @@ import { join, resolve, relative } from 'node:path';
 const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..');
 const PLANS_DIR = join(PROJECT_ROOT, 'ai-dev', 'plans');
 
-const PLAN_STATUS_RE = /^>\s*(?:Plan\s+)?Status:\s*\*{0,2}(proposed|planned|in progress|partially completed|completed|superseded|replaced|deferred|cancelled|draft)\*{0,2}\s*$/im;
+const PLAN_STATUS_RE = /^>\s*(?:\*\*)?(?:Plan\s+)?Status(?:\*\*)?:\s*\*{0,2}(proposed|planned|in progress|partially completed|completed|superseded|replaced|deferred|cancelled|draft|active)\*{0,2}\s*$/im;
 const PHASE_HEADER_RE = /^#{2,3}\s+(?:Phase|Workstream)\s+\d+/i;
 const PHASE_STATUS_RE = /^Status:\s*(.*)$/im;
 const CHECKLIST_UNCHECKED_RE = /^(\s*)-\s+\[\s?\]\s+(.+)$/gm;
@@ -112,8 +112,44 @@ function analyzePlan(filePath) {
   }
   
   const closureAuditSection = sections.find(s => /^Closure$/i.test(s.heading));
+  const closureEvidenceIssues = [];
+  
   const hasClosureEvidence = content.match(/Closure Audit Evidence|Closure Evidence|Reviewer.*Agent.*audit/i) !== null
     || (closureAuditSection && content.substring(closureAuditSection.startIndex, closureAuditSection.endIndex).includes('Evidence:'));
+
+  if (closureAuditSection) {
+    const closureContent = content.substring(closureAuditSection.startIndex, closureAuditSection.endIndex);
+    const PLACEHOLDER_RE = /^.*(?:<<.*?>>|<TBD>|<TODO>|<FILL>|N\/A\s*$|---+\s*$)/im;
+    
+    const statusNoteMatch = closureContent.match(/Status\s*Note:\s*(.+)/i);
+    if (!statusNoteMatch) {
+      closureEvidenceIssues.push('Missing "Status Note:" field');
+    } else if (PLACEHOLDER_RE.test(statusNoteMatch[1]) || statusNoteMatch[1].trim().length < 5) {
+      closureEvidenceIssues.push(`"Status Note:" appears to be placeholder or too short: "${statusNoteMatch[1].trim()}"`);
+    }
+
+    const reviewerMatch = closureContent.match(/Reviewer\s*\/?\s*Agent:\s*(.+)/i);
+    if (!reviewerMatch) {
+      closureEvidenceIssues.push('Missing "Reviewer / Agent:" field');
+    } else if (PLACEHOLDER_RE.test(reviewerMatch[1]) || reviewerMatch[1].trim().length < 2) {
+      closureEvidenceIssues.push(`"Reviewer / Agent:" appears to be placeholder: "${reviewerMatch[1].trim()}"`);
+    }
+
+    const evidenceMatch = closureContent.match(/Evidence:\s*\n([\s\S]+?)(?=\n\s*\n|\n##|$)/i);
+    if (!evidenceMatch) {
+      closureEvidenceIssues.push('Missing "Evidence:" field with content block');
+    } else {
+      const evidenceText = evidenceMatch[1].trim();
+      if (evidenceText.length < 50) {
+        closureEvidenceIssues.push(`"Evidence:" too short (${evidenceText.length} chars, need ≥ 50)`);
+      }
+      if (PLACEHOLDER_RE.test(evidenceText)) {
+        closureEvidenceIssues.push('"Evidence:" contains placeholder text');
+      }
+    }
+  } else if (isCompleted) {
+    closureEvidenceIssues.push('Missing "## Closure" section entirely');
+  }
   
   const deferredSection = sections.find(s => /^Deferred\s+But\s+Adjudicated/i.test(s.heading));
   const deferredItems = [];
@@ -145,6 +181,7 @@ function analyzePlan(filePath) {
     uncheckedBySection,
     closureUnchecked,
     hasClosureEvidence,
+    closureEvidenceIssues,
     deferredItems,
     phaseStatuses,
     allUnchecked
@@ -193,14 +230,41 @@ function formatReport(result, verbose) {
     report += `\n  WARNING: Plan is "completed" but Closure section has no Evidence record.\n`;
     report += `  Per plan guide rule #27: Closure evidence MUST be written into the plan file.\n`;
   }
+
+  if (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0) {
+    report += `\n  Closure evidence issues:\n`;
+    for (const issue of result.closureEvidenceIssues) {
+      report += `    - ${issue}\n`;
+    }
+  }
   
   return report;
+}
+
+function findActivePlans(plansDir) {
+  if (!existsSync(plansDir)) return [];
+  const plans = [];
+  for (const entry of readdirSync(plansDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.md') || entry.name.startsWith('00-')) continue;
+    const filePath = join(plansDir, entry.name);
+    try {
+      const content = readFileSync(filePath, 'utf-8');
+      const statusMatch = content.match(PLAN_STATUS_RE);
+      const status = statusMatch ? statusMatch[1].trim().toLowerCase() : '';
+      if (['in progress', 'active', 'planned', 'partially completed'].includes(status)) {
+        plans.push(filePath);
+      }
+    } catch { /* skip unreadable */ }
+  }
+  return plans.sort();
 }
 
 function main() {
   const args = process.argv.slice(2);
   const strictMode = args.includes('--strict');
   const verbose = args.includes('--verbose') || args.includes('-v');
+  const quietMode = args.includes('--quiet');
+  const activeOnly = args.includes('--active-only');
   
   const planFiles = [];
   
@@ -215,14 +279,25 @@ function main() {
         if (existsSync(inPlansDir)) {
           planFiles.push(inPlansDir);
         } else {
-          console.error(`Plan file not found: ${name}`);
+          if (!quietMode) console.error(`Plan file not found: ${name}`);
           process.exit(1);
         }
       }
     }
+  } else if (activeOnly) {
+    const active = findActivePlans(PLANS_DIR);
+    planFiles.push(...active);
+    if (planFiles.length === 0) {
+      if (quietMode) {
+        console.log('NO_ACTIVE_PLAN');
+        process.exit(0);
+      }
+      console.log('No active (in-progress) plans found.');
+      process.exit(0);
+    }
   } else {
     if (!existsSync(PLANS_DIR)) {
-      console.error(`Plans directory not found: ${PLANS_DIR}`);
+      if (!quietMode) console.error(`Plans directory not found: ${PLANS_DIR}`);
       process.exit(1);
     }
     for (const entry of readdirSync(PLANS_DIR, { withFileTypes: true })) {
@@ -234,25 +309,53 @@ function main() {
   }
   
   if (planFiles.length === 0) {
+    if (quietMode) {
+      console.log('NO_PLANS');
+      process.exit(0);
+    }
     console.log('No plan files found.');
     process.exit(0);
   }
   
-  console.log(`Checking ${planFiles.length} plan(s)...\n`);
+  if (!quietMode) console.log(`Checking ${planFiles.length} plan(s)...\n`);
   
   let totalFail = 0;
   let totalPass = 0;
-  let totalWarn = 0;
-  
+
   const results = [];
   for (const f of planFiles) {
     results.push(analyzePlan(f));
   }
-  
-  const failedResults = results.filter(r => r.totalUnchecked > 0 || (r.isCompleted && !r.hasClosureEvidence));
-  const passedResults = results.filter(r => r.totalUnchecked === 0 && !(r.isCompleted && !r.hasClosureEvidence));
+
+  const failedResults = results.filter(r =>
+    r.totalUnchecked > 0
+    || (r.isCompleted && !r.hasClosureEvidence)
+    || (r.closureEvidenceIssues && r.closureEvidenceIssues.length > 0)
+  );
+  const passedResults = results.filter(r =>
+    r.totalUnchecked === 0
+    && !(r.isCompleted && !r.hasClosureEvidence)
+    && (!r.closureEvidenceIssues || r.closureEvidenceIssues.length === 0)
+  );
   const hardFailResults = failedResults.filter(r => r.isCompleted);
-  
+
+  if (quietMode) {
+    if (failedResults.length === 0) {
+      console.log('PASS');
+      process.exit(0);
+    }
+    for (const result of failedResults) {
+      const issues = [];
+      if (result.totalUnchecked > 0) issues.push(`${result.totalUnchecked} unchecked items`);
+      if (result.isCompleted && !result.hasClosureEvidence) issues.push('missing closure evidence');
+      if (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0) {
+        issues.push(...result.closureEvidenceIssues);
+      }
+      console.log(`FAIL ${result.file}: ${issues.join('; ')}`);
+    }
+    process.exit(strictMode ? 1 : 0);
+  }
+
   for (const result of failedResults) {
     const report = formatReport(result, verbose);
     if (report) {
@@ -278,7 +381,8 @@ function main() {
     console.log(`  1. Complete each unchecked item and mark it [x]`);
     console.log(`  2. Or move it to "Deferred But Adjudicated" with a justification`);
     console.log(`  3. Or revert Plan Status from "completed" to "in progress"`);
-    console.log(`  4. Re-run: node ai-dev/tools/check-plan-checklist.mjs`);
+    console.log(`  4. Ensure ## Closure section has real Status Note, Reviewer/Agent, and Evidence`);
+    console.log(`  5. Re-run: node ai-dev/tools/check-plan-checklist.mjs`);
     if (strictMode) process.exit(1);
   } else if (failedResults.length > 0) {
     console.log(`\n${failedResults.length} non-completed plan(s) have unchecked items (warnings only).`);

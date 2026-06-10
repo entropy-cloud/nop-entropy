@@ -1,7 +1,77 @@
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { execute } from "./process-executor.js";
-import { mockAgentResponse } from "./mock-responses.js";
+import { relative } from "node:path";
+import { execute } from "./executor.js";
+
+let _mockRoadmapCount = 0;
+let _mockPlanAuditCount = 0;
+let _mockClosureCount = 0;
+let _mockDeepAuditCount = 0;
+
+export function resetMockState() {
+  _mockRoadmapCount = 0;
+  _mockPlanAuditCount = 0;
+  _mockClosureCount = 0;
+  _mockDeepAuditCount = 0;
+}
+
+const STEP_KEY_MAP = {
+  "FIX_BUILD": "fix-build",
+  "ROADMAP_CHECK": "roadmap-check",
+  "PLAN_DRAFT": "plan-draft",
+  "PLAN_AUDIT": "plan-audit",
+  "EXECUTE": "execute",
+  "CLOSURE_AUDIT": "closure-audit",
+  "DEEP_AUDIT": "deep-audit",
+  "ADVERSARIAL": "adversarial-review",
+};
+
+function _normalizeStepName(stepName) {
+  if (STEP_KEY_MAP[stepName]) return STEP_KEY_MAP[stepName];
+  return stepName.toLowerCase().replace(/_/g, "-");
+}
+
+function mockAgentResponse(stepName) {
+  const n = _normalizeStepName(stepName);
+
+  if (n === "fix-build") return "<HEALTH_STATUS>fixed</HEALTH_STATUS>";
+
+  if (n === "roadmap-check") {
+    _mockRoadmapCount++;
+    return _mockRoadmapCount <= 1
+      ? "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item priority=\"P1\">mock: unimplemented feature</item></ROADMAP_ITEMS>"
+      : "<ROADMAP_RESULT>complete</ROADMAP_RESULT>";
+  }
+
+  if (n === "plan-draft") return "<PLAN_RESULT>created</PLAN_RESULT>";
+
+  if (n === "plan-audit") {
+    _mockPlanAuditCount++;
+    return _mockPlanAuditCount <= 1
+      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item severity=\"Major\">mock: Exit Criteria not verifiable</item></ISSUES>"
+      : "<AUDIT_RESULT>approved</AUDIT_RESULT>";
+  }
+
+  if (n === "execute") return "<EXECUTE_RESULT>success</EXECUTE_RESULT>";
+
+  if (n === "closure-audit") {
+    _mockClosureCount++;
+    return _mockClosureCount === 1
+      ? "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>mock: insufficient test coverage</item></REMAINING>"
+      : "<CLOSURE_RESULT>complete</CLOSURE_RESULT>";
+  }
+
+  if (n === "deep-audit") {
+    _mockDeepAuditCount++;
+    return _mockDeepAuditCount <= 1
+      ? "<AUDIT_RESULT>issues</AUDIT_RESULT>"
+      : "<AUDIT_RESULT>clean</AUDIT_RESULT>";
+  }
+
+  if (n === "adversarial-review") return "<ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT>";
+
+  return "##MOCK_OK";
+}
 
 function extractSessionId(text) {
   if (!text) return null;
@@ -80,8 +150,12 @@ export async function createRunner(config) {
       console.log(`[MOCK tool] ${command}`);
       return { ok: true, logFile: null };
     }
-    return execute(config, stepName, "./mvnw",
-      [...command.split(" ").filter(Boolean), "-pl", config.moduleName, "-am", "-T", "1C"],
+    const parts = command.split(" ").filter(Boolean);
+    const cmd = parts[0];
+    const cmdArgs = parts.slice(1);
+    const plPath = config.moduleDir ? relative(config.projectRoot, config.moduleDir) : config.moduleName;
+    return execute(config, stepName, cmd,
+      [...cmdArgs, "-pl", plPath, "-am", "-T", "1C"],
       { cwd: config.projectRoot, timeout: opts.timeout || 1_800_000 },
     );
   }

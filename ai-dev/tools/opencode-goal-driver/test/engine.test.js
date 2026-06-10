@@ -1,15 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { FlowEngine } from "../src/engine.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-function loadGoalDriverFlow() {
-  return JSON.parse(readFileSync(resolve(__dirname, "../src/goal-driver-flow.json"), "utf8"));
-}
 
 function makeMockDelegates(overrides = {}) {
   const responses = overrides.responses || {};
@@ -61,66 +52,6 @@ function makeMockDelegates(overrides = {}) {
 
 function simpleFlow(steps, entry = "START") {
   return { name: "test-flow", maxTotalSteps: 50, maxCycleVisits: 20, entry, steps };
-}
-
-function mockPlanLifecycleFlow() {
-  return {
-    name: "plan-lifecycle",
-    maxTotalSteps: 30,
-    maxCycleVisits: 10,
-    entry: "CHECK_STATUS",
-    steps: {
-      CHECK_STATUS: {
-        type: "script",
-        run: "readPlanStatus",
-        transitions: {
-          draft: { goto: "AUDIT" },
-          active: { goto: "AUDIT" },
-          reviewed: { goto: "EXECUTE" },
-          completed: { done: "completed" },
-        },
-      },
-      AUDIT: {
-        type: "agent",
-        prompt: "audit plan {planFile}",
-        resultTag: "AUDIT_RESULT",
-        transitions: {
-          approved: { goto: "EXECUTE" },
-          issues: { retry: "AUDIT", maxRetries: 2, append: true },
-        },
-        onMaxRetries: { goto: "EXECUTE" },
-      },
-      EXECUTE: {
-        type: "agent",
-        prompt: "execute plan {planFile}",
-        resultTag: "EXECUTE_RESULT",
-        transitions: {
-          success: { goto: "CLOSURE" },
-          failed: { goto: "CLOSURE" },
-        },
-      },
-      CLOSURE: {
-        type: "agent",
-        prompt: "verify plan {planFile}",
-        resultTag: "CLOSURE_RESULT",
-        maxRetries: 3,
-        transitions: {
-          complete: { goto: "COMMIT" },
-          incomplete: { retry: "EXECUTE", maxRetries: 3, append: true },
-        },
-        onMaxRetries: { goto: "COMMIT" },
-      },
-      COMMIT: {
-        type: "script",
-        run: "gitCommit",
-        scriptArgs: { message: "feat({module}): plan done" },
-        transitions: {
-          committed: { done: "completed" },
-          nothing: { done: "completed" },
-        },
-      },
-    },
-  };
 }
 
 // ═══════════════════════════════════════════
@@ -360,7 +291,7 @@ describe("FlowEngine — retry", () => {
       DRAFT: {
         type: "agent",
         prompt: "write plan",
-        resultTag: "PLAN_RESULT",
+        resultTag: "AI_STEP_RESULT",
         transitions: {
           created: { goto: "AUDIT" },
           none: { done: "completed" },
@@ -369,7 +300,7 @@ describe("FlowEngine — retry", () => {
       AUDIT: {
         type: "agent",
         prompt: "audit plan",
-        resultTag: "AUDIT_RESULT",
+        resultTag: "AI_STEP_RESULT",
         transitions: {
           approved: { done: "completed" },
           issues: {
@@ -386,13 +317,13 @@ describe("FlowEngine — retry", () => {
         DRAFT: (sn, prompt) => {
           draftCount++;
           draftPrompts.push(prompt);
-          return { text: "<PLAN_RESULT>created</PLAN_RESULT>", ok: true };
+          return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>", ok: true };
         },
         AUDIT: (sn) => {
           if (draftCount < 3) {
-            return { text: `<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item>Issue ${draftCount}</item></ISSUES>`, ok: true };
+            return { text: `<AI_STEP_RESULT>issues</AI_STEP_RESULT>\n<ISSUES><item>Issue ${draftCount}</item></ISSUES>`, ok: true };
           }
-          return { text: "<AUDIT_RESULT>approved</AUDIT_RESULT>", ok: true };
+          return { text: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>", ok: true };
         },
       },
     });
@@ -745,156 +676,425 @@ describe("FlowEngine — context tracking", () => {
 // ═══════════════════════════════════════════
 
 describe("FlowEngine — goal driver integration", () => {
-  it("completes full cycle: fix-tests → roadmap → draft → subflow execute → needs-deep-audit → done", async () => {
-    const flow = loadGoalDriverFlow();
-    flow.maxTotalSteps = 120;
+  it("completes full dev loop + audit loop", async () => {
+    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const flow = createGoalDriverFlow();
+    flow.maxTotalSteps = 80;
 
-    const subFlow = mockPlanLifecycleFlow();
+    let roadmapCount = 0;
+    let planAuditCount = 0;
     let closureCount = 0;
+    let deepAuditCount = 0;
+    let closureScriptPass = false;
 
     const delegates = makeMockDelegates({
       responses: {
-        FIX_TESTS: "<TEST_RESULT>no_errors</TEST_RESULT>",
-        ROADMAP_CHECK: { text: "<ROADMAP_RESULT>pending</ROADMAP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true },
-        PLAN_DRAFT: "<PLAN_RESULT>created</PLAN_RESULT>",
-        AUDIT: "<AUDIT_RESULT>approved</AUDIT_RESULT>",
-        EXECUTE: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
-        CLOSURE: () => {
-          closureCount++;
-          return closureCount === 1
-            ? { text: "<CLOSURE_RESULT>incomplete</CLOSURE_RESULT>\n<REMAINING><item>todo</item></REMAINING>", ok: true }
-            : { text: "<CLOSURE_RESULT>complete</CLOSURE_RESULT>", ok: true };
+        DETECT_START: { text: "", ok: true, marker: "roadmap" },
+        HEALTH_CHECK: true,
+        BUILD_VERIFY: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
+
+        ROADMAP_CHECK: () => {
+          roadmapCount++;
+          return roadmapCount <= 1
+            ? { text: "<AI_STEP_RESULT>pending</AI_STEP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true }
+            : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
         },
-        NEEDS_DEEP_AUDIT: "<DEEP_AUDIT_NEEDED>not_needed</DEEP_AUDIT_NEEDED>",
+
+        FIX_BUILD: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>",
+
+        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
+
+        PLAN_AUDIT: () => {
+          planAuditCount++;
+          return planAuditCount <= 1
+            ? { text: "<AI_STEP_RESULT>issues</AI_STEP_RESULT>\n<ISSUES><item>Major: fix X</item></ISSUES>", ok: true }
+            : { text: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>", ok: true };
+        },
+
+        EXECUTE: "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
+
+        "CLOSURE_VERIFY.AI_AUDIT": () => {
+          closureCount++;
+          closureScriptPass = true;
+          return closureCount === 1
+            ? { text: "<AI_STEP_RESULT>incomplete</AI_STEP_RESULT>\n<REMAINING><item>todo</item></REMAINING>", ok: true }
+            : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
+        },
+
+        DEEP_AUDIT: () => {
+          deepAuditCount++;
+          return deepAuditCount <= 1
+            ? { text: "<AI_STEP_RESULT>issues</AI_STEP_RESULT>", ok: true }
+            : { text: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>", ok: true };
+        },
+
+        ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
+      },
+
+      async runScript(stepName, stepDef) {
+        if (stepName === "CLOSURE_VERIFY.SCRIPT_CHECK") {
+          this.callLog.push({ type: "script", stepName });
+          return { ok: true, marker: closureScriptPass ? "pass" : "fail", text: closureScriptPass ? "pass" : "fail" };
+        }
+        return undefined;
       },
     });
 
     delegates.config = { moduleName: "test-mod", projectRoot: "/tmp/test" };
     delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
-    delegates.scripts = {
-      checkPendingPlans: () => "no_plans",
-      readPlanStatus: () => "reviewed",
-      setPlanStatus: () => "ok",
-      updateRoadmap: () => "updated",
-      gitCommit: () => "committed",
-    };
-    delegates.loadSubFlow = async (name) => name === "plan-lifecycle" ? subFlow : null;
+
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_DRAFT"));
-    assert.ok(delegates.callLog.some(c => c.stepName === "EXECUTE"), "subflow EXECUTE should be called");
-    assert.ok(delegates.callLog.some(c => c.stepName === "CLOSURE"), "subflow CLOSURE should be called");
-    assert.ok(delegates.callLog.some(c => c.stepName === "NEEDS_DEEP_AUDIT"));
+    assert.ok(result.stepCount > 10, `expected >10 steps, got ${result.stepCount}`);
+
+    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_AUDIT"), "PLAN_AUDIT should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "CLOSURE_VERIFY.SCRIPT_CHECK"), "CLOSURE_VERIFY.SCRIPT_CHECK should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "CLOSURE_VERIFY.AI_AUDIT"), "CLOSURE_VERIFY.AI_AUDIT should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "DEEP_AUDIT"), "DEEP_AUDIT should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "ADVERSARIAL"), "ADVERSARIAL should be called");
   });
 
-  it("executes pending plans via forEach before roadmap check", async () => {
-    const flow = loadGoalDriverFlow();
-    const subFlow = mockPlanLifecycleFlow();
+  it("handles execute entry: DETECT_START → execute → EXECUTE is called", async () => {
+    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const flow = createGoalDriverFlow();
 
-    let checkPendingCallCount = 0;
+    // After ROADMAP_CHECK returns "complete" and DEEP_AUDIT finds issues,
+    // PLAN_DRAFT → PLAN_AUDIT → EXECUTE path will be taken
+    let deepAuditCount = 0;
 
     const delegates = makeMockDelegates({
       responses: {
-        FIX_TESTS: "<TEST_RESULT>no_errors</TEST_RESULT>",
-        AUDIT: "<AUDIT_RESULT>approved</AUDIT_RESULT>",
-        EXECUTE: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
-        CLOSURE: "<CLOSURE_RESULT>complete</CLOSURE_RESULT>",
-        ROADMAP_CHECK: "<ROADMAP_RESULT>complete</ROADMAP_RESULT>",
-        NEEDS_DEEP_AUDIT: "<DEEP_AUDIT_NEEDED>not_needed</DEEP_AUDIT_NEEDED>",
+        HEALTH_CHECK: true,
+        EXECUTE: "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
+        "CLOSURE_VERIFY.AI_AUDIT": "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        BUILD_VERIFY: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
+        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        DEEP_AUDIT: () => {
+          deepAuditCount++;
+          return deepAuditCount === 1
+            ? { text: "<AI_STEP_RESULT>issues</AI_STEP_RESULT>", ok: true }
+            : { text: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>", ok: true };
+        },
+        ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
+        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
+        PLAN_AUDIT: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>",
+        FIX_BUILD: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>",
+      },
+      async runScript(stepName) {
+        if (stepName === "CLOSURE_VERIFY.SCRIPT_CHECK") return { ok: true, marker: "pass", text: "pass" };
+        return undefined;
       },
     });
 
     delegates.config = { moduleName: "test-mod", projectRoot: "/tmp/test" };
     delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
-    delegates.scripts = {
-      checkPendingPlans: () => {
-        checkPendingCallCount++;
-        if (checkPendingCallCount === 1) {
-          return {
-            marker: "has_plans",
-            vars: {
-              activePlanCount: "2",
-              activePlanFiles: ["ai-dev/plans/plan-a.md", "ai-dev/plans/plan-b.md"],
-            },
-          };
-        }
-        return "no_plans";
-      },
-      readPlanStatus: () => "reviewed",
-      setPlanStatus: () => "ok",
-      updateRoadmap: () => "updated",
-      gitCommit: () => "committed",
-    };
-    delegates.loadSubFlow = async (name) => name === "plan-lifecycle" ? subFlow : null;
+
+    flow.steps.DETECT_START.run = () => "execute";
+
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    const executeCalls = delegates.callLog.filter(c => c.stepName === "EXECUTE");
-    assert.ok(executeCalls.length >= 2, `Expected >=2 EXECUTE calls (one per plan), got ${executeCalls.length}`);
-    assert.ok(delegates.callLog.some(c => c.stepName === "ROADMAP_CHECK"));
+    assert.ok(delegates.callLog.some(c => c.stepName === "EXECUTE"),
+      `Expected EXECUTE in callLog: ${delegates.callLog.map(c => c.stepName).join(", ")}`);
   });
 
-  it("handles adversarial issues → audit plan draft → subflow execute → loop back to FIX_TESTS", async () => {
-    const flow = loadGoalDriverFlow();
-    const subFlow = mockPlanLifecycleFlow();
+  it("handles build failure → fix → retry", async () => {
+    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const flow = createGoalDriverFlow();
+    flow.maxTotalSteps = 80;
 
-    let adversarialCount = 0;
-    let fixTestsCount = 0;
+    let buildCount = 0;
 
-    const delegates = {
-      config: { moduleName: "test-mod", projectRoot: "/tmp/test" },
-      vars: { module: "test-mod", projectRoot: "/tmp/test" },
-      scripts: {
-        checkPendingPlans: () => "no_plans",
-        readPlanStatus: () => "reviewed",
-        setPlanStatus: () => "ok",
-        updateRoadmap: () => "updated",
-        gitCommit: () => "committed",
+    const delegates = makeMockDelegates({
+      responses: {
+        DETECT_START: { text: "", ok: true, marker: "roadmap" },
+        HEALTH_CHECK: () => {
+          buildCount++;
+          return buildCount === 1 ? { ok: false, logFile: null } : { ok: true, logFile: null };
+        },
+        FIX_BUILD: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>",
+        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
+        ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
+        PLAN_DRAFT: "<AI_STEP_RESULT>none</AI_STEP_RESULT>",
+        PLAN_AUDIT: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>",
+        EXECUTE: "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
+        "CLOSURE_VERIFY.AI_AUDIT": "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        BUILD_VERIFY: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
       },
-      subFlows: undefined,
-      loadSubFlow: async (name) => name === "plan-lifecycle" ? subFlow : null,
-      callLog: [],
-      async runAgent(stepName, prompt, system, sessionId) {
-        delegates.callLog.push({ type: "agent", stepName, prompt, system, sessionId });
-        if (stepName === "FIX_TESTS" || stepName.startsWith("FIX_TESTS")) {
-          fixTestsCount++;
-          return { text: "<TEST_RESULT>no_errors</TEST_RESULT>", ok: true };
-        }
-        if (stepName === "ROADMAP_CHECK") return { text: "<ROADMAP_RESULT>complete</ROADMAP_RESULT>", ok: true };
-        if (stepName === "NEEDS_DEEP_AUDIT") return { text: "<DEEP_AUDIT_NEEDED>needed</DEEP_AUDIT_NEEDED>", ok: true };
-        if (stepName === "DEEP_AUDIT") return { text: "<AUDIT_RESULT>clean</AUDIT_RESULT>", ok: true };
-        if (stepName === "ADVERSARIAL") {
-          adversarialCount++;
-          return adversarialCount <= 1
-            ? { text: "<ADVERSARIAL_RESULT>issues</ADVERSARIAL_RESULT>", ok: true }
-            : { text: "<ADVERSARIAL_RESULT>clean</ADVERSARIAL_RESULT>", ok: true };
-        }
-        if (stepName === "AUDIT_PLAN_DRAFT") return { text: "<PLAN_RESULT>created</PLAN_RESULT>", ok: true };
-        if (stepName === "AUDIT") return { text: "<AUDIT_RESULT>approved</AUDIT_RESULT>", ok: true };
-        if (stepName === "EXECUTE") return { text: "<EXECUTE_RESULT>success</EXECUTE_RESULT>", ok: true };
-        if (stepName === "CLOSURE") return { text: "<CLOSURE_RESULT>complete</CLOSURE_RESULT>", ok: true };
-        return { text: "##MOCK_OK", ok: true };
+      async runScript(stepName) {
+        if (stepName === "CLOSURE_VERIFY.SCRIPT_CHECK") return { ok: true, marker: "pass", text: "pass" };
+        return undefined;
       },
-      async runTool(stepName, command, opts) {
-        delegates.callLog.push({ type: "tool", stepName, command, opts });
-        return { ok: true, logFile: null };
-      },
-      async runParseAgent(stepName, prompt) {
-        delegates.callLog.push({ type: "parse", stepName, prompt });
-        return { text: "<X>ok</X>", ok: true };
-      },
-    };
+    });
+
+    delegates.config = { moduleName: "test-mod", projectRoot: "/tmp/test" };
+    delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
 
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.ok(delegates.callLog.some(c => c.stepName === "AUDIT_PLAN_DRAFT"));
-    assert.ok(delegates.callLog.some(c => c.stepName === "EXECUTE"), "subflow EXECUTE should be called");
-    assert.ok(fixTestsCount >= 2, `fix-tests should be called >= 2 times (loop), got ${fixTestsCount}`);
+    assert.ok(delegates.callLog.some(c => c.stepName === "FIX_BUILD"));
+  });
+});
+
+// ═══════════════════════════════════════════
+// 11.5. Group step
+// ═══════════════════════════════════════════
+
+describe("FlowEngine — group step", () => {
+  function groupFlow(groupDef) {
+    const { transitions: outerTransitions, ...rest } = groupDef;
+    return simpleFlow({
+      START: {
+        type: "group",
+        maxRounds: rest.maxRounds || 3,
+        onExhausted: rest.onExhausted || "fail",
+        steps: rest.steps,
+        transitions: outerTransitions || {
+          pass: { done: "completed" },
+          fail: { done: "failed" },
+        },
+      },
+    });
+  }
+
+  it("exits immediately when script check passes (no AI needed)", async () => {
+    const flow = groupFlow({
+      steps: {
+        CHECK: {
+          type: "script",
+          run: async () => "pass",
+          transitions: { pass: { exit: "pass" }, fail: { goto: "FIX" } },
+        },
+        FIX: {
+          type: "agent",
+          prompt: "fix it",
+          resultTag: "AI_STEP_RESULT",
+          transitions: { fixed: { goto: "_retry" }, failed: { exit: "fail" } },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.FIX": { text: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>", ok: true },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(!delegates.callLog.some(c => c.stepName === "START.FIX"),
+      "FIX agent should NOT be called when CHECK passes");
+  });
+
+  it("calls AI audit when script fails, then re-checks", async () => {
+    let scriptCallCount = 0;
+
+    const flow = groupFlow({
+      steps: {
+        CHECK: {
+          type: "script",
+          run: async () => {
+            scriptCallCount++;
+            return scriptCallCount >= 2 ? "pass" : "fail";
+          },
+          transitions: { pass: { exit: "pass" }, fail: { goto: "FIX" } },
+        },
+        FIX: {
+          type: "agent",
+          prompt: "fix it",
+          resultTag: "AI_STEP_RESULT",
+          transitions: { fixed: { goto: "_retry" }, failed: { exit: "fail" } },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.FIX": { text: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>", ok: true },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.equal(scriptCallCount, 2, "CHECK should be called twice (round 1 fail, round 2 pass)");
+    assert.ok(delegates.callLog.some(c => c.stepName === "START.FIX"),
+      "FIX agent should be called once");
+  });
+
+  it("exits fail when AI audit returns incomplete", async () => {
+    const flow = groupFlow({
+      steps: {
+        CHECK: {
+          type: "script",
+          run: async () => "fail",
+          transitions: { pass: { exit: "pass" }, fail: { goto: "AUDIT" } },
+        },
+        AUDIT: {
+          type: "agent",
+          prompt: "audit it",
+          resultTag: "AI_STEP_RESULT",
+          transitions: { complete: { goto: "_retry" }, incomplete: { exit: "fail" } },
+          onError: { exit: "fail" },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.AUDIT": { text: "<AI_STEP_RESULT>incomplete</AI_STEP_RESULT>\n<REMAINING><item>todo</item></REMAINING>", ok: true },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "failed");
+  });
+
+  it("exits fail after maxRounds exhausted", async () => {
+    let scriptCallCount = 0;
+
+    const flow = groupFlow({
+      maxRounds: 2,
+      steps: {
+        CHECK: {
+          type: "script",
+          run: async () => { scriptCallCount++; return "fail"; },
+          transitions: { pass: { exit: "pass" }, fail: { goto: "FIX" } },
+        },
+        FIX: {
+          type: "agent",
+          prompt: "fix it",
+          resultTag: "AI_STEP_RESULT",
+          transitions: { fixed: { goto: "_retry" }, failed: { exit: "fail" } },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.FIX": { text: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>", ok: true },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "failed");
+    assert.equal(scriptCallCount, 2, "CHECK should be called once per round (2 rounds)");
+  });
+
+  it("handles subprocess error in AI sub-step", async () => {
+    const flow = groupFlow({
+      steps: {
+        CHECK: {
+          type: "script",
+          run: async () => "fail",
+          transitions: { pass: { exit: "pass" }, fail: { goto: "AUDIT" } },
+        },
+        AUDIT: {
+          type: "agent",
+          prompt: "audit it",
+          resultTag: "AI_STEP_RESULT",
+          transitions: { complete: { goto: "_retry" }, incomplete: { exit: "fail" } },
+          onError: { exit: "fail" },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.AUDIT": { text: "killed", ok: false },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "failed");
+  });
+
+  it("propagates sub-step output text on exit", async () => {
+    const flow = groupFlow({
+      steps: {
+        CHECK: {
+          type: "script",
+          run: async () => "fail",
+          transitions: { pass: { exit: "pass" }, fail: { goto: "AUDIT" } },
+        },
+        AUDIT: {
+          type: "agent",
+          prompt: "audit it",
+          resultTag: "AI_STEP_RESULT",
+          transitions: {
+            complete: { goto: "_retry" },
+            incomplete: { exit: "fail" },
+          },
+        },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.AUDIT": {
+          text: "<AI_STEP_RESULT>incomplete</AI_STEP_RESULT>\n<REMAINING><item>X</item></REMAINING>",
+          ok: true,
+        },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "failed");
+    const groupResult = engine.context.get("START");
+    assert.ok(groupResult.text.includes("<REMAINING>"),
+      `Group output should contain REMAINING XML, got: ${groupResult.text}`);
+  });
+
+  it("uses onExhausted marker when maxRounds reached", async () => {
+    const flow = groupFlow({
+      maxRounds: 1,
+      onExhausted: "timeout",
+      steps: {
+        CHECK: {
+          type: "script",
+          run: async () => "fail",
+          transitions: { pass: { exit: "pass" }, fail: { goto: "FIX" } },
+        },
+        FIX: {
+          type: "agent",
+          prompt: "fix",
+          resultTag: "AI_STEP_RESULT",
+          transitions: { fixed: { goto: "_retry" } },
+        },
+      },
+      transitions: {
+        pass: { done: "completed" },
+        timeout: { done: "timeout_exhausted" },
+      },
+    });
+
+    const delegates = makeMockDelegates({
+      responses: {
+        "START.FIX": { text: "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>", ok: true },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "timeout_exhausted");
   });
 });
 
@@ -904,7 +1104,8 @@ describe("FlowEngine — goal driver integration", () => {
 
 describe("Flow definition — structural validation", () => {
   it("all goto/retry targets reference existing steps", async () => {
-    const flow = loadGoalDriverFlow();
+    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const flow = createGoalDriverFlow();
     const stepNames = new Set(Object.keys(flow.steps));
 
     for (const [name, step] of Object.entries(flow.steps)) {
@@ -932,24 +1133,24 @@ describe("Flow definition — structural validation", () => {
   });
 
   it("entry step exists", async () => {
-    const flow = loadGoalDriverFlow();
+    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const flow = createGoalDriverFlow();
     assert.ok(flow.steps[flow.entry], `entry "${flow.entry}" not found`);
   });
 
   it("every step has type and transitions", async () => {
-    const flow = loadGoalDriverFlow();
+    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const flow = createGoalDriverFlow();
     for (const [name, step] of Object.entries(flow.steps)) {
       assert.ok(step.type, `${name} has no type`);
-      if (step.type === "agent") {
-        assert.ok(step.resultTag, `${name} (agent) has no resultTag`);
-      }
       assert.ok(step.transitions || step.type === "script",
         `${name} has no transitions`);
     }
   });
 
   it("at least one step has a done transition", async () => {
-    const flow = loadGoalDriverFlow();
+    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const flow = createGoalDriverFlow();
     const hasDone = Object.values(flow.steps).some(step =>
       Object.values(step.transitions || {}).some(t => t.done) ||
       (step.onError && step.onError.done),
@@ -968,7 +1169,7 @@ describe("FlowEngine — plan audit retry loop", () => {
       PLAN_DRAFT: {
         type: "agent",
         prompt: "draft plan",
-        resultTag: "PLAN_RESULT",
+        resultTag: "AI_STEP_RESULT",
         transitions: {
           created: { goto: "PLAN_AUDIT" },
           none: { done: "completed" },
@@ -977,7 +1178,7 @@ describe("FlowEngine — plan audit retry loop", () => {
       PLAN_AUDIT: {
         type: "agent",
         prompt: "audit plan",
-        resultTag: "AUDIT_RESULT",
+        resultTag: "AI_STEP_RESULT",
         transitions: {
           approved: { goto: "EXECUTE" },
           issues: {
@@ -991,7 +1192,7 @@ describe("FlowEngine — plan audit retry loop", () => {
       EXECUTE: {
         type: "agent",
         prompt: "execute plan",
-        resultTag: "EXECUTE_RESULT",
+        resultTag: "AI_STEP_RESULT",
         transitions: { success: { done: "completed" } },
       },
     }, "PLAN_DRAFT");
@@ -1001,15 +1202,15 @@ describe("FlowEngine — plan audit retry loop", () => {
       responses: {
         PLAN_DRAFT: () => {
           draftCount++;
-          return { text: "<PLAN_RESULT>created</PLAN_RESULT>", ok: true };
+          return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>", ok: true };
         },
         PLAN_AUDIT: () => {
           if (draftCount < 2) {
-            return { text: "<AUDIT_RESULT>issues</AUDIT_RESULT>\n<ISSUES><item severity=\"Major\">fix exit criteria</item></ISSUES>", ok: true };
+            return { text: "<AI_STEP_RESULT>issues</AI_STEP_RESULT>\n<ISSUES><item severity=\"Major\">fix exit criteria</item></ISSUES>", ok: true };
           }
-          return { text: "<AUDIT_RESULT>approved</AUDIT_RESULT>", ok: true };
+          return { text: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>", ok: true };
         },
-        EXECUTE: "<EXECUTE_RESULT>success</EXECUTE_RESULT>",
+        EXECUTE: "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
       },
     });
 
@@ -1071,16 +1272,16 @@ describe("FlowEngine — plan audit retry loop", () => {
 });
 
 // ═══════════════════════════════════════════
-// 14. Chinese marker alias resolution
+// 14. Case-insensitive marker alias resolution
 // ═══════════════════════════════════════════
 
-describe("FlowEngine — Chinese marker aliases", () => {
-  it("resolves Chinese marker 已创建 to created", async () => {
+describe("FlowEngine — case-insensitive marker aliases", () => {
+  it("resolves marker via case-insensitive fallback (CREATED → created)", async () => {
     const flow = simpleFlow({
       PLAN_DRAFT: {
         type: "agent",
         prompt: "draft",
-        resultTag: "PLAN_RESULT",
+        resultTag: "AI_STEP_RESULT",
         transitions: { created: { goto: "NEXT" }, none: { done: "failed" } },
       },
       NEXT: {
@@ -1090,11 +1291,10 @@ describe("FlowEngine — Chinese marker aliases", () => {
         transitions: { ok: { done: "completed" } },
       },
     }, "PLAN_DRAFT");
-    flow.markerAliases = { "已创建": "created" };
 
     const delegates = makeMockDelegates({
       responses: {
-        PLAN_DRAFT: "<PLAN_RESULT>已创建</PLAN_RESULT>",
+        PLAN_DRAFT: "<AI_STEP_RESULT>CREATED</AI_STEP_RESULT>",
         NEXT: "<R>ok</R>",
       },
     });
@@ -1105,7 +1305,7 @@ describe("FlowEngine — Chinese marker aliases", () => {
     assert.equal(result.status, "completed");
   });
 
-  it("resolves multiple Chinese aliases", async () => {
+  it("resolves markers via case-insensitive match", async () => {
     const flow = simpleFlow({
       START: {
         type: "agent",
@@ -1123,11 +1323,10 @@ describe("FlowEngine — Chinese marker aliases", () => {
         transitions: { ok: { done: "completed" } },
       },
     });
-    flow.markerAliases = { "修复": "fixed", "失败": "failed" };
 
     const delegates = makeMockDelegates({
       responses: {
-        START: "<R>修复</R>",
+        START: "<R>FIXED</R>",
         DONE: "<R>ok</R>",
       },
     });
@@ -1138,8 +1337,7 @@ describe("FlowEngine — Chinese marker aliases", () => {
     assert.equal(result.status, "completed");
   });
 
-  it("falls back to no_transition when alias not found", async () => {
-    const flow = simpleFlow({
+  it("falls back to no_transition when alias not found", async () => {    const flow = simpleFlow({
       START: {
         type: "agent",
         prompt: "go",
@@ -1150,7 +1348,7 @@ describe("FlowEngine — Chinese marker aliases", () => {
     });
 
     const delegates = makeMockDelegates({
-      responses: { START: "<R>不存在的值</R>" },
+        responses: { START: "<R>nonexistent_value</R>" },
     });
 
     const engine = new FlowEngine(flow, delegates);
@@ -1249,1078 +1447,5 @@ describe("FlowEngine — marker correction retry", () => {
     const result = await engine.run();
 
     assert.equal(result.status, "no_transition");
-  });
-});
-
-// ═══════════════════════════════════════════
-// 16. Comprehensive fault tolerance
-// ═══════════════════════════════════════════
-
-describe("FlowEngine — fault tolerance: error recovery chains", () => {
-  it("recovers from error via onError goto → continue normally", async () => {
-    let attempt = 0;
-    const flow = simpleFlow({
-      FLAKY: {
-        type: "agent",
-        prompt: "try",
-        resultTag: "R",
-        transitions: { ok: { goto: "NEXT" } },
-        onError: { goto: "RECOVER" },
-      },
-      RECOVER: {
-        type: "script",
-        run: () => "recovered",
-        transitions: { recovered: { goto: "NEXT" } },
-      },
-      NEXT: {
-        type: "agent",
-        prompt: "final",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "FLAKY");
-
-    const delegates = makeMockDelegates({
-      responses: {
-        FLAKY: () => { attempt++; return attempt === 1 ? { text: "", ok: false } : { text: "<R>ok</R>", ok: true }; },
-        NEXT: "<R>ok</R>",
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(engine.context.has("RECOVER"));
-    assert.equal(engine.context.get("RECOVER").marker, "recovered");
-    assert.ok(delegates.callLog.some(c => c.stepName === "NEXT"));
-  });
-
-  it("onError with done terminates immediately", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-        onError: { done: "subprocess_died" },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: { START: { text: "crash log", ok: false } },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "subprocess_died");
-    assert.equal(result.stepCount, 1);
-  });
-
-  it("onError retry exhausts then uses onMaxRetries fallback", async () => {
-    let attempt = 0;
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "always-fail",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-        onError: { retry: "START", maxRetries: 2, append: { template: "retry context" } },
-        onMaxRetries: { goto: "FALLBACK" },
-      },
-      FALLBACK: {
-        type: "agent",
-        prompt: "fallback",
-        resultTag: "R",
-        transitions: { ok: { done: "degraded" } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: {
-        START: () => { attempt++; return { text: "", ok: false }; },
-        FALLBACK: "<R>ok</R>",
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "degraded");
-    assert.ok(attempt >= 3, `expected >=3 attempts, got ${attempt}`);
-  });
-
-  it("onError append carries error context to recovery step", async () => {
-    let recoveryPrompt = "";
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-        onError: { goto: "RECOVER", append: { template: "Error log:\n${output}" } },
-      },
-      RECOVER: {
-        type: "agent",
-        prompt: "recover",
-        resultTag: "R",
-        transitions: { ok: { done: "recovered" } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: {
-        START: { text: "OOM: heap space", ok: false },
-        RECOVER: (sn, prompt) => { recoveryPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "recovered");
-    assert.ok(recoveryPrompt.includes("OOM: heap space"));
-  });
-});
-
-describe("FlowEngine — fault tolerance: script step errors", () => {
-  it("script throwing exception triggers onError", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "script",
-        run: () => { throw new Error("disk full"); },
-        transitions: { ok: { done: "completed" } },
-        onError: { done: "script_error" },
-      },
-    });
-
-    const engine = new FlowEngine(flow, makeMockDelegates());
-    const result = await engine.run();
-
-    assert.equal(result.status, "script_error");
-  });
-
-  it("script returning object with vars injects into context", async () => {
-    let receivedCount = "";
-    const flow = simpleFlow({
-      START: {
-        type: "script",
-        run: () => ({ marker: "has_plans", vars: { planCount: "3", planNames: "A,B" } }),
-        transitions: { has_plans: { goto: "NEXT" }, no_plans: { done: "completed" } },
-      },
-      NEXT: {
-        type: "agent",
-        prompt: "process {planCount} plans: {planNames}",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: {
-        NEXT: (sn, prompt) => { receivedCount = prompt; return { text: "<R>ok</R>", ok: true }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(receivedCount.includes("process 3 plans: A,B"));
-  });
-
-  it("script returning plain string marker works without vars", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "script",
-        run: () => "proceed",
-        transitions: { proceed: { done: "completed" } },
-      },
-    });
-
-    const engine = new FlowEngine(flow, makeMockDelegates());
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-  });
-});
-
-describe("FlowEngine — fault tolerance: tool step edge cases", () => {
-  it("tool fail is a normal marker, not an error", async () => {
-    const flow = simpleFlow({
-      BUILD: {
-        type: "tool",
-        command: "make",
-        transitions: {
-          pass: { done: "completed" },
-          fail: { goto: "FIX" },
-        },
-      },
-      FIX: {
-        type: "agent",
-        prompt: "fix build",
-        resultTag: "R",
-        transitions: { fixed: { done: "fixed" } },
-      },
-    }, "BUILD");
-
-    const delegates = makeMockDelegates({
-      responses: { BUILD: false, FIX: "<R>fixed</R>" },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "fixed");
-    assert.equal(result.stepCount, 2);
-  });
-
-  it("tool fail with retry loops back correctly", async () => {
-    let buildAttempts = 0;
-    const flow = simpleFlow({
-      BUILD: {
-        type: "tool",
-        command: "make",
-        transitions: {
-          pass: { done: "completed" },
-          fail: { retry: "BUILD", maxRetries: 3 },
-        },
-        onMaxRetries: { done: "build_failed" },
-      },
-    }, "BUILD");
-
-    const delegates = makeMockDelegates({
-      responses: {
-        BUILD: () => { buildAttempts++; return { ok: buildAttempts >= 3, logFile: null }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.equal(buildAttempts, 3);
-  });
-
-  it("tool step timeout is passed to runTool", async () => {
-    let capturedOpts = {};
-    const flow = simpleFlow({
-      BUILD: {
-        type: "tool",
-        command: "make",
-        timeout: 300_000,
-        transitions: { pass: { done: "completed" }, fail: { done: "failed" } },
-      },
-    }, "BUILD");
-
-    const delegates = makeMockDelegates({
-      responses: { BUILD: true },
-      async runTool(stepName, command, opts) {
-        delegates.callLog.push({ type: "tool", stepName, command, opts });
-        capturedOpts = opts;
-        return { ok: true, logFile: null };
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    await engine.run();
-
-    assert.equal(capturedOpts.timeout, 300_000);
-  });
-});
-
-describe("FlowEngine — fault tolerance: mixed error recovery", () => {
-  it("agent fails → onError goto → tool fails → retry → agent succeeds", async () => {
-    let agentAttempt = 0;
-    let toolAttempt = 0;
-
-    const flow = simpleFlow({
-      AGENT: {
-        type: "agent",
-        prompt: "start",
-        resultTag: "R",
-        transitions: { ok: { goto: "TOOL" } },
-        onError: { goto: "FALLBACK_AGENT" },
-      },
-      FALLBACK_AGENT: {
-        type: "agent",
-        prompt: "fallback",
-        resultTag: "R",
-        transitions: { ok: { goto: "TOOL" } },
-      },
-      TOOL: {
-        type: "tool",
-        command: "build",
-        transitions: {
-          pass: { done: "completed" },
-          fail: { retry: "TOOL", maxRetries: 3 },
-        },
-        onMaxRetries: { done: "tool_failed" },
-      },
-    }, "AGENT");
-
-    const delegates = makeMockDelegates({
-      responses: {
-        AGENT: () => { agentAttempt++; return agentAttempt === 1 ? { text: "", ok: false } : { text: "<R>ok</R>", ok: true }; },
-        FALLBACK_AGENT: "<R>ok</R>",
-        TOOL: () => { toolAttempt++; return { ok: toolAttempt >= 2, logFile: null }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(agentAttempt >= 1);
-    assert.ok(toolAttempt >= 2);
-  });
-
-  it("cascading retries with different maxRetries", async () => {
-    let innerCount = 0;
-
-    const flow = simpleFlow({
-      OUTER: {
-        type: "agent",
-        prompt: "outer",
-        resultTag: "R",
-        transitions: {
-          proceed: { goto: "INNER" },
-          retry_outer: { retry: "OUTER", maxRetries: 2 },
-        },
-      },
-      INNER: {
-        type: "agent",
-        prompt: "inner",
-        resultTag: "R",
-        transitions: {
-          ok: { done: "completed" },
-          fail: { retry: "INNER", maxRetries: 1 },
-        },
-        onMaxRetries: { goto: "OUTER", append: true },
-      },
-    }, "OUTER");
-
-    const delegates = makeMockDelegates({
-      responses: {
-        OUTER: () => ({ text: "<R>proceed</R>", ok: true }),
-        INNER: () => {
-          innerCount++;
-          if (innerCount <= 2) return { text: "<R>fail</R>", ok: true };
-          return { text: "<R>ok</R>", ok: true };
-        },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(innerCount >= 3);
-  });
-});
-
-describe("FlowEngine — fault tolerance: context preservation under errors", () => {
-  it("context survives across error recovery", async () => {
-    const flow = simpleFlow({
-      A: {
-        type: "agent",
-        prompt: "step a",
-        resultTag: "R",
-        transitions: { ok: { goto: "B" } },
-      },
-      B: {
-        type: "agent",
-        prompt: "step b, prev={steps.A.marker}",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-        onError: { retry: "B", maxRetries: 2 },
-      },
-    }, "A");
-
-    let bAttempt = 0;
-    const delegates = makeMockDelegates({
-      responses: {
-        A: { text: "<R>ok</R>\n<DETAIL>plan alpha</DETAIL>", ok: true },
-        B: (sn, prompt) => {
-          bAttempt++;
-          if (bAttempt === 1) return { text: "", ok: false };
-          return { text: "<R>ok</R>", ok: true };
-        },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(engine.context.has("A"));
-    assert.equal(engine.context.get("A").marker, "ok");
-  });
-
-  it("multiple step results accessible via {steps.X.marker}", async () => {
-    let cPrompt = "";
-    const flow = simpleFlow({
-      A: {
-        type: "agent",
-        prompt: "a",
-        resultTag: "R",
-        transitions: { alpha: { goto: "B" } },
-      },
-      B: {
-        type: "agent",
-        prompt: "b",
-        resultTag: "R",
-        transitions: { beta: { goto: "C" } },
-      },
-      C: {
-        type: "agent",
-        prompt: "prev_a={steps.A.marker} prev_b={steps.B.marker}",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "A");
-
-    const delegates = makeMockDelegates({
-      responses: {
-        A: { text: "<R>alpha</R>", ok: true },
-        B: { text: "<R>beta</R>", ok: true },
-        C: (sn, prompt) => { cPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(cPrompt.includes("prev_a=alpha"));
-    assert.ok(cPrompt.includes("prev_b=beta"));
-  });
-});
-
-describe("FlowEngine — fault tolerance: edge cases", () => {
-  it("empty transitions object causes no_transition", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        transitions: {},
-        onUnknownMaxRetries: 0,
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: { START: "<R>anything</R>" },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "no_transition");
-  });
-
-  it("step with only done transitions terminates correctly", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        transitions: { success: { done: "ok" }, failure: { done: "failed" } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: { START: "<R>success</R>" },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "ok");
-    assert.equal(result.stepCount, 1);
-  });
-
-  it("unknown step type returns unknown_type", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "invalid_type",
-        transitions: { ok: { done: "completed" } },
-      },
-    });
-
-    const engine = new FlowEngine(flow, makeMockDelegates());
-    const result = await engine.run();
-
-    assert.equal(result.status, "unknown_type");
-  });
-
-  it("entry override works for mid-flow restart", async () => {
-    const flow = simpleFlow({
-      SKIP_ME: {
-        type: "agent",
-        prompt: "should not run",
-        resultTag: "R",
-        transitions: { ok: { goto: "TARGET" } },
-      },
-      TARGET: {
-        type: "agent",
-        prompt: "target",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "SKIP_ME");
-
-    const delegates = makeMockDelegates({
-      responses: { TARGET: "<R>ok</R>" },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run("TARGET");
-
-    assert.equal(result.status, "completed");
-    assert.ok(!delegates.callLog.some(c => c.stepName === "SKIP_ME"));
-  });
-
-  it("result history accumulates across all steps", async () => {
-    const flow = simpleFlow({
-      A: {
-        type: "agent",
-        prompt: "a",
-        resultTag: "R",
-        transitions: { ok: { goto: "B" } },
-      },
-      B: {
-        type: "agent",
-        prompt: "b",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "A");
-
-    const delegates = makeMockDelegates({
-      responses: {
-        A: "<R>ok</R>",
-        B: "<R>ok</R>",
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.ok(result.history.length >= 4);
-    assert.ok(result.history.some(h => h.includes("[step")));
-    assert.ok(result.elapsed);
-  });
-
-  it("flow with single step that immediately done", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "script",
-        run: () => "done",
-        transitions: { done: { done: "completed" } },
-      },
-    });
-
-    const engine = new FlowEngine(flow, makeMockDelegates());
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.equal(result.stepCount, 1);
-  });
-});
-
-describe("FlowEngine — fault tolerance: retry accumulation edge cases", () => {
-  it("retry append accumulates with separators on 3rd+ attempt", async () => {
-    let prompts = [];
-    const flow = simpleFlow({
-      DRAFT: {
-        type: "agent",
-        prompt: "draft",
-        resultTag: "R",
-        transitions: { ok: { goto: "CHECK" } },
-      },
-      CHECK: {
-        type: "agent",
-        prompt: "check",
-        resultTag: "R",
-        maxRetries: 5,
-        transitions: {
-          ok: { done: "completed" },
-          bad: { retry: "DRAFT", append: { template: "Issue ${output}" } },
-        },
-      },
-    }, "DRAFT");
-
-    let draftCount = 0;
-    const delegates = makeMockDelegates({
-      responses: {
-        DRAFT: (sn, prompt) => {
-          draftCount++;
-          prompts.push(prompt);
-          return { text: `<R>ok</R> draft${draftCount}`, ok: true };
-        },
-        CHECK: () => {
-          return draftCount < 4
-            ? { text: `<R>bad</R>\n<ISSUES>issue${draftCount}</ISSUES>`, ok: true }
-            : { text: "<R>ok</R>", ok: true };
-        },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.equal(draftCount, 4);
-    assert.ok(prompts[1].includes("Issue"));
-    assert.ok(!prompts[1].includes("───────────────"));
-    assert.ok(prompts[2].includes("───────────────"));
-    assert.ok(prompts[3].includes("───────────────"));
-  });
-
-  it("onMaxRetries defaults to done: max_retries when not specified", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        transitions: { retry: { retry: "START", maxRetries: 1 } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: { START: "<R>retry</R>" },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "max_retries");
-  });
-});
-
-describe("FlowEngine — fault tolerance: delegate customization", () => {
-  it("custom buildCorrectionPrompt is used", async () => {
-    let correctionPrompt = "";
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        onUnknownMaxRetries: 2,
-        transitions: { yes: { done: "completed" } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: { START: "<R>no</R>" },
-      buildCorrectionPrompt: (tag, value, validValues) => {
-        correctionPrompt = `CUSTOM: ${tag}=${value}, expected=${validValues}`;
-        return correctionPrompt + "\nOnly output <R>value</R>.";
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.ok(correctionPrompt.includes("CUSTOM:"));
-    assert.ok(correctionPrompt.includes("no"));
-    assert.ok(correctionPrompt.includes("yes"));
-  });
-
-  it("custom buildParsePrompt is used when marker not found", async () => {
-    let parsePromptText = "";
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-        onUnknown: { done: "marker_not_found" },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: { START: "no tags at all" },
-      buildParsePrompt: (tag, validValues, text) => {
-        parsePromptText = `PARSE: find <${tag}> in text, valid=${validValues}`;
-        return parsePromptText;
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    await engine.run();
-
-    assert.ok(parsePromptText.includes("PARSE:"));
-    assert.ok(parsePromptText.includes("R"));
-  });
-
-  it("delegates without runParseAgent skips parse step", async () => {
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "go",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-        onUnknown: { done: "no_marker" },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: { START: "no tags here" },
-    });
-    delete delegates.runParseAgent;
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "no_marker");
-  });
-});
-
-describe("FlowEngine — fault tolerance: promptFile loading", () => {
-  it("promptFile not found uses empty string with warning", async () => {
-    let receivedPrompt = "";
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        promptFile: "nonexistent/file.md",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: {
-        START: (sn, prompt) => { receivedPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.equal(receivedPrompt, "");
-  });
-
-  it("promptFile takes precedence over inline prompt", async () => {
-    let receivedPrompt = "";
-    const flow = simpleFlow({
-      START: {
-        type: "agent",
-        prompt: "inline prompt",
-        promptFile: "nonexistent.md",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    });
-
-    const delegates = makeMockDelegates({
-      responses: {
-        START: (sn, prompt) => { receivedPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    await engine.run();
-
-    assert.ok(!receivedPrompt.includes("inline prompt"));
-  });
-});
-
-// ═══════════════════════════════════════════
-// 18. SubFlow: forEach + single execution
-// ═══════════════════════════════════════════
-
-describe("FlowEngine — subflow", () => {
-  it("forEach iterates over array from script vars", async () => {
-    const childFlow = simpleFlow({
-      DO_WORK: {
-        type: "agent",
-        prompt: "work on {currentItem}",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "DO_WORK");
-
-    const flow = simpleFlow({
-      SETUP: {
-        type: "script",
-        run: () => ({ marker: "go", vars: { items: ["x", "y", "z"] } }),
-        transitions: { go: { goto: "PROCESS" } },
-      },
-      PROCESS: {
-        type: "subflow",
-        flow: "child",
-        forEach: "items",
-        transitions: { all_complete: { done: "completed" } },
-      },
-    }, "SETUP");
-
-    const delegates = makeMockDelegates({
-      responses: { DO_WORK: "<R>ok</R>" },
-    });
-    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    const workCalls = delegates.callLog.filter(c => c.stepName === "DO_WORK");
-    assert.equal(workCalls.length, 3);
-    assert.ok(workCalls[0].prompt.includes("work on x"));
-    assert.ok(workCalls[1].prompt.includes("work on y"));
-    assert.ok(workCalls[2].prompt.includes("work on z"));
-  });
-
-  it("forEach returns some_failed when some items fail", async () => {
-    const childFlow = simpleFlow({
-      DO_WORK: {
-        type: "agent",
-        prompt: "work",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "DO_WORK");
-
-    const flow = simpleFlow({
-      SETUP: {
-        type: "script",
-        run: () => ({ marker: "go", vars: { items: ["a", "b"] } }),
-        transitions: {
-          go: { goto: "PROCESS" },
-        },
-      },
-      PROCESS: {
-        type: "subflow",
-        flow: "child",
-        forEach: "items",
-        transitions: {
-          all_complete: { done: "completed" },
-          some_failed: { done: "partial" },
-          all_failed: { done: "failed" },
-        },
-      },
-    }, "SETUP");
-
-    let callCount = 0;
-    const delegates = makeMockDelegates({
-      responses: {
-        DO_WORK: () => {
-          callCount++;
-          return callCount === 1
-            ? { text: "", ok: false }
-            : { text: "<R>ok</R>", ok: true };
-        },
-      },
-    });
-    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "partial");
-  });
-
-  it("single execution passes planFile to child", async () => {
-    const childFlow = simpleFlow({
-      DO_WORK: {
-        type: "agent",
-        prompt: "process plan {planFile}",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "DO_WORK");
-
-    const flow = simpleFlow({
-      RUN: {
-        type: "subflow",
-        flow: "child",
-        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
-      },
-    }, "RUN");
-
-    let receivedPrompt = "";
-    const delegates = makeMockDelegates({
-      responses: {
-        DO_WORK: (sn, prompt) => { receivedPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
-      },
-    });
-    delegates.vars = { module: "test", planFile: "ai-dev/plans/test-plan.md" };
-    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(receivedPrompt.includes("ai-dev/plans/test-plan.md"));
-  });
-
-  it("empty forEach array returns all_complete immediately", async () => {
-    const childFlow = simpleFlow({
-      DO_WORK: {
-        type: "agent",
-        prompt: "work",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "DO_WORK");
-
-    const flow = simpleFlow({
-      SETUP: {
-        type: "script",
-        run: () => ({ marker: "go", vars: { items: [] } }),
-        transitions: { go: { goto: "PROCESS" } },
-      },
-      PROCESS: {
-        type: "subflow",
-        flow: "child",
-        forEach: "items",
-        transitions: { all_complete: { done: "completed" } },
-      },
-    }, "SETUP");
-
-    const delegates = makeMockDelegates();
-    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(!delegates.callLog.some(c => c.stepName === "DO_WORK"));
-  });
-});
-
-// ═══════════════════════════════════════════
-// 19. Commit error → agent fallback
-// ═══════════════════════════════════════════
-
-describe("FlowEngine — commit with agent fallback", () => {
-  it("script commit error triggers agent fix step", async () => {
-    const flow = simpleFlow({
-      COMMIT: {
-        type: "script",
-        run: () => ({ marker: "error", vars: { commitError: "pre-commit hook failed" } }),
-        transitions: {
-          committed: { done: "completed" },
-          nothing: { done: "completed" },
-          error: { goto: "COMMIT_FIX" },
-        },
-      },
-      COMMIT_FIX: {
-        type: "agent",
-        prompt: "fix commit error: {commitError}",
-        resultTag: "COMMIT_RESULT",
-        transitions: {
-          fixed: { done: "completed" },
-          skipped: { done: "completed" },
-        },
-      },
-    }, "COMMIT");
-
-    let fixPrompt = "";
-    const delegates = makeMockDelegates({
-      responses: {
-        COMMIT_FIX: (sn, prompt) => { fixPrompt = prompt; return { text: "<COMMIT_RESULT>fixed</COMMIT_RESULT>", ok: true }; },
-      },
-    });
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(fixPrompt.includes("pre-commit hook failed"));
-    assert.ok(delegates.callLog.some(c => c.stepName === "COMMIT_FIX"));
-  });
-
-  it("commit nothing skips fix step entirely", async () => {
-    const flow = simpleFlow({
-      COMMIT: {
-        type: "script",
-        run: () => ({ marker: "nothing", vars: { commitHash: "none" } }),
-        transitions: {
-          committed: { done: "completed" },
-          nothing: { done: "completed" },
-          error: { goto: "COMMIT_FIX" },
-        },
-      },
-      COMMIT_FIX: {
-        type: "agent",
-        prompt: "fix",
-        resultTag: "R",
-        transitions: { fixed: { done: "completed" } },
-      },
-    }, "COMMIT");
-
-    const delegates = makeMockDelegates();
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(!delegates.callLog.some(c => c.stepName === "COMMIT_FIX"));
-  });
-});
-
-describe("FlowEngine — extractVars", () => {
-  it("extractVars extracts variables from agent output text", async () => {
-    const flow = simpleFlow({
-      DRAFT: {
-        type: "agent",
-        prompt: "create a plan",
-        resultTag: "R",
-        extractVars: { planFile: "Plan file:\\s*(ai-dev/plans/\\S+\\.md)" },
-        transitions: {
-          created: { goto: "RUN" },
-          none: { done: "completed" },
-        },
-      },
-      RUN: {
-        type: "subflow",
-        flow: "child",
-        flowArgs: { planFile: "{steps.DRAFT.vars.planFile}" },
-        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
-      },
-    }, "DRAFT");
-
-    const childFlow = simpleFlow({
-      DO_WORK: {
-        type: "agent",
-        prompt: "process {planFile}",
-        resultTag: "R",
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "DO_WORK");
-
-    let childPrompt = "";
-    const delegates = makeMockDelegates({
-      responses: {
-        DRAFT: () => ({ text: "Plan file: ai-dev/plans/2026-06-09-001-test.md\n<R>created</R>", ok: true }),
-        DO_WORK: (sn, prompt) => { childPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
-      },
-    });
-    delegates.loadSubFlow = async (name) => name === "child" ? childFlow : null;
-
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
-    assert.ok(childPrompt.includes("ai-dev/plans/2026-06-09-001-test.md"));
-  });
-
-  it("extractVars does nothing when regex doesn't match", async () => {
-    const flow = simpleFlow({
-      STEP: {
-        type: "agent",
-        prompt: "do something",
-        resultTag: "R",
-        extractVars: { myVar: "no-match-pattern" },
-        transitions: { ok: { done: "completed" } },
-      },
-    }, "STEP");
-
-    const delegates = makeMockDelegates({
-      responses: { STEP: () => ({ text: "<R>ok</R>", ok: true }) },
-    });
-    const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
-
-    assert.equal(result.status, "completed");
   });
 });

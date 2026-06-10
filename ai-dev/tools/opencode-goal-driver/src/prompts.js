@@ -14,7 +14,7 @@ export const STEP_NAMES = {
 
 export function createTestStepConfigs() {
   const make = (tag, value) => ({
-    command: `输出 <${tag}>${value}</${tag}>`,
+    command: `output <${tag}>${value}</${tag}>`,
     system: "",
     resultTag: tag,
     markerValues: { DEFAULT: value },

@@ -13,17 +13,17 @@ const SIGKILL_DELAY = 10_000;
 /**
  * Run any external command via fd redirect (equivalent to shell >>file 2>&1).
  *
- * Redirects stdout/stderr to a log file via file descriptor, avoiding shell
- * escaping issues. Child process output matches terminal execution.
+ * Redirects stdout/stderr to a log file via file descriptors, avoiding
+ * shell escaping issues. Child process output is identical to terminal execution.
  *
- * @param {object}   config         – Global config (must have runDir)
- * @param {string}   label          – Log file label (e.g. "mvnw", "oc-deep-audit")
- * @param {string}   cmd            – Executable path (e.g. "./mvnw", "opencode")
- * @param {string[]} args           – Command-line arguments
+ * @param {object}   config         – global config (must have runDir)
+ * @param {string}   label          – log file label (e.g. "mvnw", "oc-deep-audit")
+ * @param {string}   cmd            – executable path (e.g. "./mvnw", "opencode")
+ * @param {string[]} args           – command line arguments
  * @param {object}   [opts]
- * @param {string}   [opts.cwd]     – Working directory (default: config.projectRoot)
- * @param {number}   [opts.timeout] – Timeout in ms (0 = no limit, default: 0)
- * @param {boolean}  [opts.quiet]   – Suppress progress output (default: false)
+ * @param {string}   [opts.cwd]     – working directory (default config.projectRoot)
+ * @param {number}   [opts.timeout] – timeout in ms (0 = none, default 0)
+ * @param {boolean}  [opts.quiet]   – suppress progress output (default false)
  * @returns {{ ok: boolean, logFile: string }}
  */
 export function execute(config, label, cmd, args, opts = {}) {
@@ -31,6 +31,7 @@ export function execute(config, label, cmd, args, opts = {}) {
   const cwd = opts.cwd || config.projectRoot;
   const timeout = opts.timeout || 0;
 
+  // Log file header
   mkdirSync(dirname(logFile), { recursive: true });
   const header = [
     `# cmd: ${cmd} ${args.join(" ")}`,
@@ -43,6 +44,7 @@ export function execute(config, label, cmd, args, opts = {}) {
   const fd = openSync(logFile, "a");
   const child = spawn(cmd, args, { cwd, stdio: ["ignore", fd, fd], shell: false });
 
+  // Progress every 60s
   let progressTimer = null;
   if (!opts.quiet) {
     progressTimer = setInterval(() => {
@@ -53,19 +55,24 @@ export function execute(config, label, cmd, args, opts = {}) {
     }, 60000);
   }
 
+  // Timeout kill: SIGTERM → SIGKILL fallback
   let timeoutTimer = null;
   let sigkillTimer = null;
   if (timeout > 0) {
     timeoutTimer = setTimeout(() => {
-      process.stderr.write(`  [TIMEOUT] ${label} timed out after ${timeout}ms, terminating process\n`);
+      process.stderr.write(`  [TIMEOUT] ${label} timed out after ${timeout}ms, terminating\n`);
       try { child.kill("SIGTERM"); } catch { }
       sigkillTimer = setTimeout(() => {
-        process.stderr.write(`  [TIMEOUT] ${label} did not exit 10s after SIGTERM, sending SIGKILL\n`);
+        process.stderr.write(`  [TIMEOUT] ${label} did not exit after SIGTERM within 10s, sending SIGKILL\n`);
         try { child.kill("SIGKILL"); } catch { }
       }, SIGKILL_DELAY);
     }, timeout);
   }
 
+  // Watchdog: periodically spawn an independent sub-agent to check subprocess status.
+  // Does not do mtime/content checking on the driver side (fd-redirected logs have
+  // heartbeat noise and are unreliable). Instead, an independent sub-agent inspects
+  // the subprocess's opencode internal logs for intelligent status assessment.
   const watchdogIntervalMs = config.watchdogIntervalMs;
   const watchdogStallMs = config.watchdogStallMs;
   let watchdogTimer = null;
@@ -83,15 +90,14 @@ export function execute(config, label, cmd, args, opts = {}) {
         watchdogRunning = true;
         if (child.exitCode !== null) { watchdogRunning = false; return; }
 
-        const minutes = Math.round(elapsed / 60_000);
-        process.stderr.write(`  [WATCHDOG] ${label} running for ${minutes} minutes, spawning watchdog agent to check status ...\n`);
-        appendFileSync(logFile, `\n# watchdog: running ${minutes}min, spawning check agent @ ${new Date().toISOString()}\n`);
+        process.stderr.write(`  [WATCHDOG] ${label} running for ${Math.round(elapsed / 60_000)} min, spawning independent sub-agent to check status ...\n`);
+        appendFileSync(logFile, `\n# watchdog: running ${Math.round(elapsed / 60_000)}min, spawning check agent @ ${new Date().toISOString()}\n`);
 
         const wdResult = await spawnWatchdogAgent(config, label, logFile, child.pid);
 
         const summary = `action=${wdResult.action} diagnosis=${wdResult.diagnosis} log=${wdResult.logFile || "N/A"}`;
         appendFileSync(logFile, `# watchdog result: ${summary} @ ${new Date().toISOString()}\n`);
-        process.stderr.write(`  [WATCHDOG] ${label} -> ${summary}\n`);
+        process.stderr.write(`  [WATCHDOG] ${label} → ${summary}\n`);
 
         lastWatchdogTime = Date.now();
         watchdogRunning = false;
@@ -133,13 +139,11 @@ export function execute(config, label, cmd, args, opts = {}) {
 }
 
 /**
- * Spawn an independent opencode run sub-agent to check whether a stalled process
- * needs to be killed.
+ * Spawn an independent opencode run sub-agent to determine whether a stalled process needs killing.
  *
- * Key design: the main driver never makes kill decisions or executes kills.
- * The sub-agent checks logs, assesses status, and decides whether to kill.
- * If the sub-agent itself fails/times out, the main driver is unaffected
- * (watchdog simply did not trigger).
+ * Key design: the main driver does NOT make kill decisions or execute kills.
+ * The sub-agent uses bash tools to inspect logs, assess status, and decide whether to kill.
+ * If the sub-agent itself fails/times out, it has no impact on the main driver (watchdog simply didn't fire).
  *
  * @returns {{ action: string, diagnosis: string, logFile: string|null }}
  */
@@ -151,23 +155,23 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
     ``,
     `## Background`,
     `A sub-agent named "${label}" (PID=${stalledPid}) has been running for over 30 minutes and needs a status check.`,
-    `The main driver process PID=${driverPid}.`,
+    `Main driver process PID=${driverPid}.`,
     `FD-redirected log: ${stalledLogFile}`,
     ``,
-    `## Your Task`,
-    `Perform the check and take action autonomously — do not ask for confirmation.`,
+    `## Your task`,
+    `Proceed autonomously — do not ask for confirmation.`,
     ``,
     `### Step 1: Diagnosis`,
     `1. Run \`ps -o pid,ppid,stat,etime -p ${stalledPid}\` via bash to check if the process is still running`,
-    `2. Find the sub-process opencode internal log:`,
+    `2. Find the subprocess's opencode internal log:`,
     `   - Run \`lsof -p ${stalledPid} -Fn 2>/dev/null | grep 'opencode/log' | grep '.log'\` to find the log file path`,
-    `   - Or run \`ls -t ~/.local/share/opencode/log/*.log | head -3\` to find the most recent log files`,
+    `   - Or \`ls -t ~/.local/share/opencode/log/*.log | head -3\` to find the most recent log files`,
     `3. Read the last 80 lines of the opencode internal log (note: there will be many service=bus type=message.part.delta streaming heartbeats — ignore those)`,
-    `4. Determine the sub-agent status (look at the last non-bus-heartbeat entry):`,
-    `   - Recent service=tool, service=permission, or service=session.prompt entries → actively working, do NOT kill`,
+    `4. Assess the sub-agent's status (look at the last non-bus-heartbeat entry):`,
+    `   - Has recent service=tool, service=permission, or service=session.prompt entries → actively working, do NOT kill`,
     `   - Last dozens of lines are all service=bus type=message.part.delta with no tool/permission/prompt activity → LLM call is hung`,
-    `   - Internal log has # exit: or the process no longer exists → completed but signal was lost (zombie state)`,
-    `5. If in doubt, also read the last 50 lines of the FD-redirected log ${stalledLogFile} for additional context`,
+    `   - Internal log has # exit: or process no longer exists → completed but signal was lost (zombie state)`,
+    `5. If uncertain, also read the last 50 lines of the FD-redirected log ${stalledLogFile} as supplementary info`,
     ``,
     `### Step 2: Decision and Action`,
     `If diagnosis confirms the sub-agent is stuck/zombie/completed-but-signal-lost:`,
@@ -175,12 +179,12 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
     `  Then run \`kill -0 ${stalledPid} 2>/dev/null && echo 'still alive' || echo 'dead'\` to confirm termination`,
     ``,
     `If diagnosis shows the sub-agent is actively working:`,
-    `  Take no action`,
+    `  Do nothing`,
     ``,
-    `### Strict Prohibitions`,
-    `- You may ONLY kill PID=${stalledPid} (the sub-agent). NEVER kill PID=${driverPid} (the main driver)`,
+    `### Absolute Prohibitions`,
+    `- Only kill PID=${stalledPid} (the sub-agent). NEVER kill PID=${driverPid} (the main driver)`,
     `- Do not kill any other process`,
-    `- If process ${stalledPid} no longer exists, no action is needed`,
+    `- If ${stalledPid} no longer exists, no action is needed`,
     ``,
     `### Output`,
     `When done, output:`,
@@ -266,8 +270,8 @@ function spawnWatchdogAgent(config, label, stalledLogFile, stalledPid) {
       });
     } catch (e) {
       try { closeSync(wdFd); } catch { }
-      process.stderr.write(`  [WATCHDOG] spawn exception: ${e.message}\n`);
-      done({ ...fallback, diagnosis: `watchdog agent spawn exception: ${e.message}` });
+    process.stderr.write(`  [WATCHDOG] spawn error: ${e.message}\n`);
+    done({ ...fallback, diagnosis: `watchdog agent spawn error: ${e.message}` });
     }
   });
 }

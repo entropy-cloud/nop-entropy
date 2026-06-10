@@ -1,35 +1,8 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { resolveConfig } from "./config.js";
-import { createRunner } from "./opencode-runner.js";
-import { resetMockState } from "./mock-responses.js";
+import { createRunner, resetMockState } from "./runner.js";
 import { FlowEngine } from "./engine.js";
-import * as scripts from "./scripts.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-function loadFlow() {
-  const flowPath = resolve(__dirname, "goal-driver-flow.json");
-  const mainFlow = JSON.parse(readFileSync(flowPath, "utf8"));
-  return mainFlow;
-}
-
-const subFlowCache = new Map();
-
-async function loadSubFlow(name) {
-  if (subFlowCache.has(name)) return subFlowCache.get(name);
-  const knownFlows = {
-    "plan-lifecycle": "plan-lifecycle-flow.json",
-  };
-  const fileName = knownFlows[name];
-  if (!fileName) throw new Error(`unknown sub-flow: ${name}`);
-  const path = resolve(__dirname, fileName);
-  const def = JSON.parse(readFileSync(path, "utf8"));
-  subFlowCache.set(name, def);
-  return def;
-}
+import { createGoalDriverFlow } from "./flow-goal-driver.js";
 
 function parseArgs(argv) {
   const args = { module: "", dryRun: false, testMode: false };
@@ -64,12 +37,10 @@ async function main() {
   console.log("");
 
   try {
-    const flow = loadFlow();
+    const flow = createGoalDriverFlow();
     const delegates = {
       config,
       vars: { module: config.moduleName, projectRoot: config.projectRoot },
-      scripts,
-      loadSubFlow,
       runAgent: runner.runAgent,
       runTool: runner.runTool,
       runParseAgent: runner.runParseAgent,
