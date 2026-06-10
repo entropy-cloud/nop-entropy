@@ -10,7 +10,8 @@
 
 | 文档 | 为什么必读 | 不读会怎样 |
 |------|-----------|-----------|
-| `02-core-guides/testing.md` | 基类选择（`JunitAutoTestCase` / `JunitBaseTestCase`）、`@NopTestConfig` 能力矩阵、快照模式、异步防挂起规则 | **选错测试基类→容器不启动或录制回放不生效**；不用 IGraphQLEngine 而用纯 JUnit→BizModel 方法无法通过框架调用验证 |
+| **`05-examples/test-examples.java`** | **先看示例再写测试。** 简单测试 / 快照录制回放 / 多步骤流程 / 复杂断言的精简代码骨架 | 选错测试基类；不知道 input/output 怎么用 |
+| `02-core-guides/testing.md` | 示例之后的规则补充：基类选择、`@NopTestConfig` 能力矩阵、快照模式、异步防挂起规则 | 容器不启动或录制回放不生效 |
 
 ## 按场景选读
 

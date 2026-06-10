@@ -153,6 +153,7 @@
 | 理解 nop-tcc（TCC 分布式事务） | `03-modules/nop-tcc.md` |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
 | 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
+| 查看代码示例（Entity/BizModel/IBiz/beans/Delta） | **`05-examples/README.md`** |
 | 维护 AI 文档 | `90-maintenance/maintenance-rules.md` |
 
 ## 目录角色
@@ -166,6 +167,7 @@
 | `03-runbooks/` | 任务型手册，回答“这件事具体怎么做” |
 | `04-reference/` | 速查与实现锚点，回答“需要看哪个类/方法定义” |
 | `90-maintenance/` | 文档治理规则，不是日常开发入口 |
+| `05-examples/` | 精简代码示例，回答"各类文件实际长什么样" |
 
 ## 当前项目的关键认知
 

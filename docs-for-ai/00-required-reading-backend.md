@@ -10,9 +10,9 @@
 
 | 文档 | 为什么必读 | 不读会怎样 |
 |------|-----------|-----------|
-| `00-start-here/application-project-defaults.md` | 决策顺序（Model→Delta→Java）、反模式表、自检清单 | 优先级搞反，手改生成物 |
-| `02-core-guides/service-layer.md` | I*Biz 接口契约、@BizQuery/@BizMutation/@BizAction 注解规则、开发顺序、跨实体访问规则、safe API、反模式表 | **I*Biz 接口方法漏注解→运行时代理无法路由→调用抛异常**；@Inject 写成 private；用 new Entity() 而非 newEntity()；用 dao() 而非 requireEntity/findList |
-| `02-core-guides/error-handling.md` | NopException + ErrorCode 规则、两层级策略、模块异常类写法 | throws RuntimeException；错误消息用中文；丢失异常链 |
+| **`05-examples/README.md`** | **先看示例再写代码。** Entity / IBiz / BizModel / DTO / 错误码 / 测试的精简代码骨架 | 不知道各类文件实际怎么写，凭猜测生成不符合约定的代码 |
+| `02-core-guides/service-layer.md` | 示例之后的规则补充：I*Biz 接口契约、注解规则、开发顺序、跨实体访问、safe API、反模式表 | I*Biz 接口方法漏注解→运行时代理无法路由；@Inject 写成 private；用 dao() 而非 requireEntity |
+| `02-core-guides/error-handling.md` | NopException + ErrorCode 规则 | throws RuntimeException；错误消息用中文；丢失异常链 |
 | `04-reference/safe-api-reference.md` | requireEntity / doFindList / saveEntity / newEntity 等 safe API 速查 | 绕过 CrudBizModel 管道直接操作 dao() |
 
 ## 按场景选读
