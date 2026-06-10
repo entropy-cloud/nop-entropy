@@ -1,8 +1,10 @@
 # Group Step 设计文档
 
-> Status: draft
+> Status: **implemented** — 已迁移至 `ai-dev/design/opencode-goal-driver/group-step-design.md`
 > Last Reviewed: 2026-06-10
 > Source: CLOSURE_SCRIPT_CHECK ↔ CLOSURE_AUDIT 循环的抽象需求
+>
+> **注意**：本文档保留作为历史参考。权威文档见 [group-step-design.md](../../../design/opencode-goal-driver/group-step-design.md)。
 
 ## 1. 动机
 

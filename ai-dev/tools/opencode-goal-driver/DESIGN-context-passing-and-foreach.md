@@ -1,8 +1,10 @@
 # Context Passing & For-Each Step Design
 
-> Status: draft
+> Status: **superseded** — 已迁移至 `ai-dev/design/opencode-goal-driver/context-passing-and-foreach-design.md`，并标注 superseded 状态
 > Last Reviewed: 2026-06-10
 > Reviewers: (round 1 complete — see §8 for review log)
+>
+> **注意**：本文档保留作为历史参考。权威设计见 [flow-engine-design.md](../../../design/opencode-goal-driver/flow-engine-design.md)。
 
 ## 1. Problem Statement
 
