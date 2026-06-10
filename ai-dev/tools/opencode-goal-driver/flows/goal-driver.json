@@ -1,0 +1,165 @@
+{
+  "name": "goal-driver",
+  "maxTotalSteps": 80,
+  "maxCycleVisits": 15,
+  "entry": "DETECT_START",
+
+  "steps": {
+    "DETECT_START": {
+      "type": "script",
+      "scriptId": "detect-start-phase",
+      "transitions": {
+        "execute": { "goto": "HEALTH_CHECK" },
+        "roadmap": { "goto": "HEALTH_CHECK" },
+        "plan":    { "goto": "HEALTH_CHECK" },
+        "audit":   { "goto": "HEALTH_CHECK" }
+      }
+    },
+
+    "HEALTH_CHECK": {
+      "type": "tool",
+      "command": "./mvnw clean install",
+      "timeout": 1800000,
+      "transitions": {
+        "pass": { "goto": "ROADMAP_CHECK" },
+        "fail": { "goto": "FIX_BUILD" }
+      },
+      "onError": { "goto": "FIX_BUILD" }
+    },
+
+    "FIX_BUILD": {
+      "type": "agent",
+      "promptPath": "prompts/fix-build.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "fixed": { "goto": "ROADMAP_CHECK" },
+        "failed": { "done": "failed" }
+      },
+      "onError": { "done": "failed" }
+    },
+
+    "ROADMAP_CHECK": {
+      "type": "agent",
+      "promptPath": "prompts/roadmap-check.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "pending": { "goto": "PLAN_DRAFT", "append": true },
+        "complete": { "goto": "DEEP_AUDIT" }
+      },
+      "onError": { "goto": "DEEP_AUDIT" }
+    },
+
+    "PLAN_DRAFT": {
+      "type": "agent",
+      "promptPath": "prompts/plan-draft.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "created": { "goto": "PLAN_AUDIT" },
+        "none":    { "goto": "ROADMAP_CHECK" }
+      },
+      "onError": { "goto": "ROADMAP_CHECK" }
+    },
+
+    "PLAN_AUDIT": {
+      "type": "agent",
+      "promptPath": "prompts/plan-audit.md",
+      "maxRetries": 3,
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "approved": { "goto": "EXECUTE" },
+        "issues": {
+          "retry": "PLAN_DRAFT",
+          "maxRetries": 3,
+          "append": { "template": "\n\nPlan review feedback — revise the plan accordingly:\n${output}" }
+        }
+      },
+      "onError": { "retry": "PLAN_DRAFT", "maxRetries": 2 },
+      "onMaxRetries": { "goto": "EXECUTE", "append": { "template": "\n\nWarning: plan did not pass automated audit after multiple rounds. Note these issues during execution:\n${output}" } }
+    },
+
+    "EXECUTE": {
+      "type": "agent",
+      "promptPath": "prompts/execute.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "success": { "goto": "CLOSURE_VERIFY" },
+        "failed":  { "goto": "CLOSURE_VERIFY" }
+      },
+      "onError": { "goto": "CLOSURE_VERIFY" }
+    },
+
+    "CLOSURE_VERIFY": {
+      "type": "group",
+      "maxRounds": 3,
+      "onExhausted": "fail",
+      "steps": {
+        "SCRIPT_CHECK": {
+          "type": "script",
+          "scriptId": "closure-script-check",
+          "transitions": {
+            "pass": { "exit": "pass" },
+            "fail": { "goto": "AI_AUDIT" }
+          }
+        },
+        "AI_AUDIT": {
+          "type": "agent",
+          "promptPath": "prompts/closure-audit.md",
+          "onUnknownMaxRetries": 2,
+          "transitions": {
+            "complete":   { "goto": "_retry" },
+            "incomplete": { "exit": "fail" }
+          },
+          "onError": { "exit": "fail" }
+        }
+      },
+      "transitions": {
+        "pass": { "goto": "BUILD_VERIFY" },
+        "fail": {
+          "retry": "EXECUTE",
+          "maxRetries": 5,
+          "append": { "extract": "REMAINING", "template": "\n\nThe following items remain unfinished — continue:\n${output}" }
+        }
+      },
+      "onError": {
+        "retry": "EXECUTE",
+        "maxRetries": 3,
+        "append": { "template": "\n\nClosure audit subprocess was killed. Re-check the plan Exit Criteria." }
+      },
+      "onMaxRetries": { "goto": "BUILD_VERIFY" }
+    },
+
+    "BUILD_VERIFY": {
+      "type": "agent",
+      "promptPath": "prompts/build-verify.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "pass": { "goto": "ROADMAP_CHECK" },
+        "fail": { "retry": "EXECUTE", "maxRetries": 3 }
+      },
+      "onError": { "retry": "EXECUTE", "maxRetries": 2 },
+      "onMaxRetries": { "goto": "ROADMAP_CHECK" }
+    },
+
+    "DEEP_AUDIT": {
+      "type": "agent",
+      "promptPath": "prompts/deep-audit.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "issues": { "goto": "PLAN_DRAFT" },
+        "clean":  { "goto": "ADVERSARIAL" }
+      },
+      "onError": { "goto": "PLAN_DRAFT" }
+    },
+
+    "ADVERSARIAL": {
+      "type": "agent",
+      "promptPath": "prompts/adversarial-review.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "issues": { "goto": "PLAN_DRAFT" },
+        "clean":  { "done": "completed" }
+      },
+      "onError": { "done": "completed" }
+    }
+  }
+}

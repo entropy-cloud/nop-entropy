@@ -677,7 +677,7 @@ describe("FlowEngine — context tracking", () => {
 
 describe("FlowEngine — goal driver integration", () => {
   it("completes full dev loop + audit loop", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     flow.maxTotalSteps = 80;
 
@@ -757,7 +757,7 @@ describe("FlowEngine — goal driver integration", () => {
   });
 
   it("handles execute entry: DETECT_START → execute → EXECUTE is called", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
 
     // After ROADMAP_CHECK returns "complete" and DEEP_AUDIT finds issues,
@@ -802,7 +802,7 @@ describe("FlowEngine — goal driver integration", () => {
   });
 
   it("handles build failure → fix → retry", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     flow.maxTotalSteps = 80;
 
@@ -1104,7 +1104,7 @@ describe("FlowEngine — group step", () => {
 
 describe("Flow definition — structural validation", () => {
   it("all goto/retry targets reference existing steps", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     const stepNames = new Set(Object.keys(flow.steps));
 
@@ -1133,13 +1133,13 @@ describe("Flow definition — structural validation", () => {
   });
 
   it("entry step exists", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     assert.ok(flow.steps[flow.entry], `entry "${flow.entry}" not found`);
   });
 
   it("every step has type and transitions", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     for (const [name, step] of Object.entries(flow.steps)) {
       assert.ok(step.type, `${name} has no type`);
@@ -1149,7 +1149,7 @@ describe("Flow definition — structural validation", () => {
   });
 
   it("at least one step has a done transition", async () => {
-    const { createGoalDriverFlow } = await import("../src/flow-goal-driver.js");
+    const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     const hasDone = Object.values(flow.steps).some(step =>
       Object.values(step.transitions || {}).some(t => t.done) ||

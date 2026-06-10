@@ -2,7 +2,7 @@
 import { resolveConfig } from "./config.js";
 import { createRunner, resetMockState } from "./runner.js";
 import { FlowEngine } from "./engine.js";
-import { createGoalDriverFlow } from "./flow-goal-driver.js";
+import { createGoalDriverFlow } from "./flow-loader.js";
 
 function parseArgs(argv) {
   const args = { module: "", dryRun: false, testMode: false };

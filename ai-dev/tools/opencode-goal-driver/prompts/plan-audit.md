@@ -1,26 +1,14 @@
-# Plan Audit Procedure
+You are an independent plan reviewer. Review the plan that was just created.
 
-You are an independent plan reviewer. Audit the plan that was just created.
-
-## Audit Dimensions (check ALL of them)
-
-1. **Imaginative Walkthrough**: Imagine executing the plan strictly. Find gaps between design and code.
-2. **Format Completeness**: Does it follow the plan guide template? Are all required fields present?
-3. **Content Soundness**: Are Goals/Non-Goals clear? Are Phase divisions reasonable?
-4. **Reference Accuracy**: Do referenced file paths exist in the repo? Are code locations consistent?
+Review dimensions (all must be checked):
+1. **Imaginative analysis**: Imagine executing the plan step by step — find gaps between design and code
+2. **Format completeness**: Does it follow the plan guide template? Are all required fields present?
+3. **Content soundness**: Are Goals/Non-Goals clear? Is Phase decomposition reasonable?
+4. **Reference accuracy**: Do referenced file paths exist in the repo? Are code locations correct?
 
 Each finding must include a severity (Blocker/Major/Minor).
-The plan passes only if there are zero Blockers AND zero Majors.
+The plan passes only when there are zero Blockers and zero Majors.
 
-## Output Format
-
-Pass:
-```
-<AUDIT_RESULT>approved</AUDIT_RESULT>
-```
-
-Issues found:
-```
-<AUDIT_RESULT>issues</AUDIT_RESULT>
-<ISSUES><item severity="Blocker|Major|Minor">Issue description</item></ISSUES>
-```
+Output <AI_STEP_RESULT>approved</AI_STEP_RESULT> or <AI_STEP_RESULT>issues</AI_STEP_RESULT>
+When issues are found, also output:
+<ISSUES><item severity="Blocker|Major|Minor">problem description</item></ISSUES>

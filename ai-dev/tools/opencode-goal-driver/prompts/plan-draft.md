@@ -1,20 +1,16 @@
-# Plan Draft Procedure
-
 Draft a development plan for module {module}. Each plan covers **exactly one** work item.
 
-## Source Selection
-
-- If the previous ROADMAP_CHECK step provided a <NEXT_ITEM>, draft a plan based on that work item
-- If there are audit findings (under ai-dev/audits/), draft a plan based on those
-- If both exist, prefer the NEXT_ITEM
+Source selection:
+- If the previous ROADMAP_CHECK provided <NEXT_ITEM>, base the plan on that work item
+- If there are audit findings (ai-dev/audits/), base the plan on those
+- If both exist, prioritize NEXT_ITEM
 - If neither exists, do not create a plan
 
-## Hard Requirements
-
+Requirements:
 1. Read and follow ai-dev/plans/00-plan-authoring-and-execution-guide.md
-2. Each plan covers **one work item only** — do not bundle multiple items
-3. Plan file name format: {YYYY}-{MM}-{DD}-{NNN}-{slug}.md, placed under ai-dev/plans/
-4. The file header MUST include this format (check-plan-status.mjs parses the status from it):
+2. Each plan covers **only one work item** — do not bundle multiple items
+3. File naming: {YYYY}-{MM}-{DD}-{NNN}-{slug}.md, placed under ai-dev/plans/
+4. The file header must include this format (check-plan-status.mjs depends on it):
 
 ```markdown
 > **Plan Status**: active
@@ -24,16 +20,7 @@ Draft a development plan for module {module}. Each plan covers **exactly one** w
 # Plan Title
 ```
 
-5. Divide into reasonable Phases (executable increments with clear Exit Criteria)
-6. Write explicit Exit Criteria (verifiable conditions like "file exists", "tests pass", "compiles successfully")
+5. Split into reasonable Phases (executable increments with clear Exit Criteria)
+6. Write explicit Exit Criteria (verifiable conditions like "file exists", "tests pass", "build passes")
 
-## Output Format
-
-```
-Plan file: ai-dev/plans/{YYYY}-{MM}-{DD}-{NNN}-{slug}.md
-<PLAN_RESULT>created</PLAN_RESULT>
-```
-or
-```
-<PLAN_RESULT>none</PLAN_RESULT>
-```
+Output <AI_STEP_RESULT>created</AI_STEP_RESULT> or <AI_STEP_RESULT>none</AI_STEP_RESULT>.
