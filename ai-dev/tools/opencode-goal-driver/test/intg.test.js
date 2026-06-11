@@ -29,7 +29,7 @@ describe("FlowEngine — goal driver integration", () => {
       steps: {
         EXECUTE: {
           type: "agent", prompt: "execute {{PLAN_FILE}}",
-          transitions: { success: { done: "completed" }, failed: { retry: "EXECUTE", maxRetries: 2 } },
+          transitions: { pass: { done: "completed" }, failed: { retry: "EXECUTE", maxRetries: 2 } },
           onMaxRetries: { done: "failed" },
         },
       },
