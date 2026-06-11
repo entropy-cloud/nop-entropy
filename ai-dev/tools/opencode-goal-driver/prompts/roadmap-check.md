@@ -27,5 +27,5 @@ Steps:
 
 If all items are implemented (every ❌ has actual code) and no carry-over items exist: <AI_STEP_RESULT>complete</AI_STEP_RESULT>
 If unfinished items exist: <AI_STEP_RESULT>pending</AI_STEP_RESULT>
-<NEXT_ITEM id="item-id" layer="layer" priority="P0|P1|P2" type="roadmap|carry-over">reason and current status</NEXT_ITEM>
+<NEXT_ITEM id="item-id" layer="layer" priority="P0|P1|P2" type="roadmap|carry-over" source-plan="path/to/original-plan.md">reason and current status</NEXT_ITEM>
 <ROADMAP_ITEMS><item id="id" priority="P0|P1|P2|P3">summary of all unfinished items</item></ROADMAP_ITEMS>
