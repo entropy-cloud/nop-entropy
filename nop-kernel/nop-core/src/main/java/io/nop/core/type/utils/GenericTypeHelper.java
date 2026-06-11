@@ -7,6 +7,8 @@
  */
 package io.nop.core.type.utils;
 
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.IRawType;
@@ -96,10 +98,14 @@ public class GenericTypeHelper {
     }
 
     public static IGenericType buildRequestType(IGenericType type) {
+        if (type.getRawClass() == ApiRequest.class || type.getRawClass() == ApiResponse.class)
+            throw new IllegalArgumentException("request body type must not be ApiRequest or ApiResponse");
         return buildParameterizedType(PredefinedGenericTypes.API_REQUEST_TYPE, Collections.singletonList(type));
     }
 
     public static IGenericType buildResponseType(IGenericType type) {
+        if (type.getRawClass() == ApiRequest.class || type.getRawClass() == ApiResponse.class)
+            throw new IllegalArgumentException("response body type must not be ApiRequest or ApiResponse");
         return buildParameterizedType(PredefinedGenericTypes.API_RESPONSE_TYPE, Collections.singletonList(type));
     }
 

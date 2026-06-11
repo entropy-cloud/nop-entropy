@@ -524,7 +524,6 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Description("@i18n:biz.save|保存数据")
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    @BizMakerChecker(tryMethod = METHOD_TRY_SAVE)
     public T save(@Name("data") Map<String, Object> data, IServiceContext context) {
         return doSave(data, null, this::invokeDefaultPrepareSave, context);
     }
@@ -655,15 +654,15 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         return false;
     }
 
-    @BizAction
-    public void trySave(@Name("data") Map<String, Object> data, FieldSelectionBean selection, IServiceContext context) {
-        if (CollectionHelper.isEmptyMap(data))
-            throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
-
-        EntityData<T> entityData = buildEntityDataForSave(data, selection, context);
-
-        defaultPrepareSave(entityData, context);
-    }
+//    @BizAction
+//    public void trySave(@Name("data") Map<String, Object> data, FieldSelectionBean selection, IServiceContext context) {
+//        if (CollectionHelper.isEmptyMap(data))
+//            throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+//
+//        EntityData<T> entityData = buildEntityDataForSave(data, selection, context);
+//
+//        defaultPrepareSave(entityData, context);
+//    }
 
     @BizAction
     protected EntityData<T> buildEntityDataForSave(@Name("data") Map<String, Object> data,
@@ -818,7 +817,6 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Description("@i18n:biz.update|更新数据")
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    @BizMakerChecker(tryMethod = METHOD_TRY_UPDATE)
     public T update(@Name("data") Map<String, Object> data, IServiceContext context) {
         return doUpdate(data, null, this::invokeDefaultPrepareUpdate, context);
     }
@@ -876,14 +874,14 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         }
     }
 
-    @BizAction
-    public void tryUpdate(@Name("data") Map<String, Object> data,
-                          @Name("inputSelection") FieldSelectionBean inputSelection, IServiceContext context) {
-        if (CollectionHelper.isEmptyMap(data))
-            throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
-
-        buildEntityDataForUpdate(data, inputSelection, context);
-    }
+//    @BizAction
+//    public void tryUpdate(@Name("data") Map<String, Object> data,
+//                          @Name("inputSelection") FieldSelectionBean inputSelection, IServiceContext context) {
+//        if (CollectionHelper.isEmptyMap(data))
+//            throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+//
+//        buildEntityDataForUpdate(data, inputSelection, context);
+//    }
 
     @BizAction
     public T requireEntity(@Name("id") String id, @Name("action") String action, IServiceContext context) {
@@ -1040,7 +1038,6 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
     @Description("@i18n:biz.delete|根据主键删除指定对象")
     @BizMutation
-    @BizMakerChecker(tryMethod = METHOD_TRY_DELETE)
     public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id, IServiceContext context) {
         return doDelete(id, this.getDefaultRefNamesToCheckExists(), this::invokeDefaultPrepareDelete, context);
     }
@@ -1273,13 +1270,13 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         return cascadeProps;
     }
 
-    @BizAction
-    public void tryDelete(@Name("id") String id, IServiceContext context) {
-        checkMandatoryParam("tryDelete", "id", id);
-
-        T entity = this.requireEntity(id, BizConstants.METHOD_DELETE, context);
-        checkEntityRefsNotExists(entity, getDefaultRefNamesToCheckExists(), context);
-    }
+//    @BizAction
+//    public void tryDelete(@Name("id") String id, IServiceContext context) {
+//        checkMandatoryParam("tryDelete", "id", id);
+//
+//        T entity = this.requireEntity(id, BizConstants.METHOD_DELETE, context);
+//        checkEntityRefsNotExists(entity, getDefaultRefNamesToCheckExists(), context);
+//    }
 
     @Description("@i18n:biz.batchUpdate|批量修改")
     @BizMutation
