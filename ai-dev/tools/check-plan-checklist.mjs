@@ -259,6 +259,32 @@ function findActivePlans(plansDir) {
   return plans.sort();
 }
 
+export function inspectPlan(filePath) {
+  const result = analyzePlan(filePath);
+  const failed =
+    result.totalUnchecked > 0 ||
+    (result.isCompleted && !result.hasClosureEvidence) ||
+    (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0);
+
+  const details = [];
+  if (result.totalUnchecked > 0)
+    details.push(`${result.totalUnchecked} unchecked items`);
+  if (result.isCompleted && !result.hasClosureEvidence)
+    details.push("missing closure evidence");
+  if (result.closureEvidenceIssues?.length > 0)
+    details.push(...result.closureEvidenceIssues);
+
+  return {
+    passed: !failed,
+    file: result.file,
+    planStatus: result.planStatus,
+    totalChecked: result.totalChecked,
+    totalUnchecked: result.totalUnchecked,
+    details,
+    allUnchecked: result.allUnchecked,
+  };
+}
+
 function main() {
   const args = process.argv.slice(2);
   const strictMode = args.includes('--strict');

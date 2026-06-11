@@ -1,62 +1,78 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TOOL_ROOT = resolve(__dirname, "..");
 
-function detectStartPhase(delegates) {
-  const config = delegates.config;
-  try {
-    const output = execSync("node ai-dev/tools/check-plan-status.mjs", {
-      cwd: config.projectRoot,
-      encoding: "utf8",
-      timeout: 30_000,
-    });
-    const activeMatch = output.match(/Active:\s*(\d+)/);
-    const activeCount = activeMatch ? parseInt(activeMatch[1], 10) : 0;
+const PLAN_STATUS_RE = /^>\s*\*{0,2}(?:Plan\s+)?Status\*{0,2}:\s*\*{0,2}(.+?)\*{0,2}\s*$/m;
+const ACTIVE_STATUSES = new Set([
+  "in progress", "active", "planned", "partially completed",
+]);
 
-    if (activeCount > 0) return "execute";
+function planRouter(delegates, flowVars) {
+  const projectRoot = delegates.config.projectRoot;
+  const plansDir = resolve(projectRoot, "ai-dev", "plans");
 
-    try {
-      const roadmaps = execSync(
-        `ls ${config.projectRoot}/ai-dev/design/*${config.moduleName}*/*roadmap* ${config.projectRoot}/ai-dev/design/*roadmap*${config.moduleName}* 2>/dev/null || true`,
-        { encoding: "utf8", timeout: 5_000 },
-      ).trim();
-      if (roadmaps) return "roadmap";
-    } catch {}
+  if (existsSync(plansDir)) {
+    const files = readdirSync(plansDir)
+      .filter(f => f.endsWith(".md") && !f.startsWith("00-"))
+      .sort();
 
-    const auditsDir = `${config.projectRoot}/ai-dev/audits`;
-    const recentAudit = execSync(
-      `ls -td ${auditsDir}/*${config.moduleName}* 2>/dev/null | head -1`,
-      { encoding: "utf8", timeout: 5_000 },
-    ).trim();
-    if (recentAudit) return "plan";
-
-    return "audit";
-  } catch {
-    return "roadmap";
+    for (const f of files) {
+      const content = readFileSync(resolve(plansDir, f), "utf8");
+      const m = content.match(PLAN_STATUS_RE);
+      const status = m ? m[1].trim().toLowerCase() : "";
+      if (ACTIVE_STATUSES.has(status)) {
+        flowVars.set("PLAN_FILE", resolve(plansDir, f));
+        return "execute";
+      }
+    }
   }
+
+  return "roadmap";
 }
 
-async function closureScriptCheck(delegates) {
-  const { execSync: es } = await import("node:child_process");
+async function closureScriptCheck(delegates, flowVars) {
+  const planFile =
+    flowVars?.get?.("PLAN_FILE") || delegates?.vars?.PLAN_FILE;
+  if (!planFile) {
+    console.error(
+      "[closureScriptCheck] ERROR: no PLAN_FILE in flowVars — cannot verify specific plan"
+    );
+    return "fail";
+  }
+
   try {
-    es("node ai-dev/tools/check-plan-checklist.mjs --active-only --quiet --strict", {
-      cwd: delegates.config.projectRoot,
-      encoding: "utf8",
-      timeout: 30_000,
-    });
-    return "pass";
-  } catch {
+    const { inspectPlan } = await import(
+      "../../check-plan-checklist.mjs"
+    );
+    const result = inspectPlan(planFile);
+
+    if (result.passed) return "pass";
+
+    console.error(`[closureScriptCheck] FAIL: ${result.file}`);
+    console.error(`  status: ${result.planStatus}`);
+    console.error(`  ${result.totalUnchecked} unchecked / ${result.totalUnchecked + result.totalChecked} total`);
+    if (result.planStatus === "completed" && result.totalUnchecked > 0) {
+      console.error("  ERROR: plan is 'completed' but has unchecked items!");
+    }
+    for (const d of result.details) {
+      console.error(`  - ${d}`);
+    }
+    for (const item of result.allUnchecked) {
+      console.error(`    L${item.line}: - [ ] ${item.text}`);
+    }
+    return "fail";
+  } catch (err) {
+    console.error(`[closureScriptCheck] ERROR: ${err.message}`);
     return "fail";
   }
 }
 
 const SCRIPT_REGISTRY = {
-  "detect-start-phase": (delegates) => detectStartPhase(delegates),
-  "closure-script-check": (delegates) => closureScriptCheck(delegates),
+  "plan-router": (delegates, flowVars) => planRouter(delegates, flowVars),
+  "closure-script-check": (delegates, flowVars) => closureScriptCheck(delegates, flowVars),
 };
 
 function loadPrompt(promptPath) {

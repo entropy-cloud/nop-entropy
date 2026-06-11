@@ -1,0 +1,58 @@
+{
+  "name": "deep-audit-loop",
+  "maxTotalSteps": 40,
+  "maxCycleVisits": 15,
+  "entry": "DEEP_AUDIT",
+
+  "steps": {
+    "DEEP_AUDIT": {
+      "type": "agent",
+      "promptPath": "prompts/deep-audit.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "clean": { "done": "completed" },
+        "issues": { "goto": "DRAFT_PLAN" }
+      },
+      "onError": { "retry": "DEEP_AUDIT", "maxRetries": 2 }
+    },
+
+    "DRAFT_PLAN": {
+      "type": "agent",
+      "promptPath": "prompts/plan-draft.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "created": { "goto": "AUDIT_PLAN" },
+        "none": { "goto": "DEEP_AUDIT" }
+      },
+      "onError": { "goto": "DEEP_AUDIT" }
+    },
+
+    "AUDIT_PLAN": {
+      "type": "agent",
+      "promptPath": "prompts/plan-audit.md",
+      "maxRetries": 3,
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "approved": { "goto": "EXECUTE_PLAN" },
+        "issues": {
+          "retry": "DRAFT_PLAN",
+          "maxRetries": 3,
+          "append": { "template": "\n\nPlan review feedback — revise the plan accordingly:\n${output}" }
+        }
+      },
+      "onError": { "retry": "DRAFT_PLAN", "maxRetries": 2 },
+      "onMaxRetries": { "goto": "EXECUTE_PLAN" }
+    },
+
+    "EXECUTE_PLAN": {
+      "type": "subflow",
+      "flow": "plan-execution",
+      "flowArgs": { "PLAN_FILE": "{{PLAN_FILE}}" },
+      "transitions": {
+        "complete": { "goto": "DRAFT_PLAN" },
+        "failed": { "goto": "DRAFT_PLAN" }
+      },
+      "onError": { "goto": "DRAFT_PLAN" }
+    }
+  }
+}

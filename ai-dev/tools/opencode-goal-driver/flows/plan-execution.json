@@ -1,0 +1,62 @@
+{
+  "name": "plan-execution",
+  "maxTotalSteps": 20,
+  "maxCycleVisits": 10,
+  "entry": "EXECUTE",
+
+  "steps": {
+    "EXECUTE": {
+      "type": "agent",
+      "promptPath": "prompts/execute.md",
+      "transitions": {
+        "success": { "goto": "CLOSURE_VERIFY" },
+        "failed": { "retry": "EXECUTE", "maxRetries": 3 }
+      },
+      "onMaxRetries": { "goto": "CLOSURE_VERIFY" },
+      "onError": { "goto": "CLOSURE_VERIFY" }
+    },
+
+    "CLOSURE_VERIFY": {
+      "type": "group",
+      "maxRounds": 3,
+      "onExhausted": "fail",
+      "steps": {
+        "SCRIPT_CHECK": {
+          "type": "script",
+          "scriptId": "closure-script-check",
+          "transitions": {
+            "pass": { "exit": "pass" },
+            "fail": { "goto": "AI_AUDIT" }
+          }
+        },
+        "AI_AUDIT": {
+          "type": "agent",
+          "promptPath": "prompts/closure-audit.md",
+          "onUnknownMaxRetries": 2,
+          "transitions": {
+            "complete": { "goto": "_retry" },
+            "incomplete": { "exit": "fail" }
+          },
+          "onError": { "exit": "fail" }
+        }
+      },
+      "transitions": {
+        "pass": { "goto": "BUILD_VERIFY" },
+        "fail": { "goto": "EXECUTE" }
+      },
+      "onError": { "goto": "EXECUTE" }
+    },
+
+    "BUILD_VERIFY": {
+      "type": "agent",
+      "promptPath": "prompts/build-verify.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "pass": { "done": "completed" },
+        "fail": { "retry": "EXECUTE", "maxRetries": 3 }
+      },
+      "onMaxRetries": { "done": "failed" },
+      "onError": { "retry": "EXECUTE", "maxRetries": 2 }
+    }
+  }
+}

@@ -418,47 +418,42 @@ ai-dev/tools/opencode-goal-driver/
 ## 6. Flow Diagram
 
 The actual flow definition is the authoritative source: `ai-dev/tools/opencode-goal-driver/flows/goal-driver.json`.
+Subflows: `flows/plan-execution.json`, `flows/deep-audit-loop.json`.
+
+### 6.1 Top-level Flow
 
 ```mermaid
 flowchart TD
-    DETECT["🔍 DETECT_START<br/><i>script: detectStartPhase</i>"]
-    DETECT -->|execute/roadmap/plan/audit| HEALTH["🏥 HEALTH_CHECK<br/><i>tool: mvn clean install</i>"]
-    HEALTH -->|pass| ROADMAP["🗺️ ROADMAP_CHECK<br/><i>agent</i>"]
-    HEALTH -->|fail| FIX["🔧 FIX_BUILD<br/><i>agent</i>"]
-    FIX -->|fixed| ROADMAP
-    FIX -->|failed| FAILED["❌ failed"]
+    HC["🏥 HEALTH_CHECK<br/><i>AI agent: health-check.md</i>"]
+    HC -->|pass| PR["🔀 PLAN_ROUTER<br/><i>script: planRouter</i>"]
+    HC -->|"fail ×3"| FAILED["❌ failed"]
 
-    ROADMAP -->|pending| PLAN["📝 PLAN_DRAFT<br/><i>agent → flowVars: PLAN_FILE</i>"]
-    ROADMAP -->|complete| DEEP["🔬 DEEP_AUDIT<br/><i>agent</i>"]
-    ROADMAP -->|onError| DEEP
+    PR -->|execute| EP["▶️ EXECUTE_PLAN<br/><i>subflow: plan-execution</i>"]
+    PR -->|roadmap| RC["🗺️ ROADMAP_CHECK<br/><i>agent</i>"]
 
-    PLAN -->|created| AUDIT["🔍 PLAN_AUDIT<br/><i>agent</i>"]
-    PLAN -->|none| ROADMAP
+    RC -->|pending| PD["📝 PLAN_DRAFT<br/><i>agent → flowVars: PLAN_FILE</i>"]
+    RC -->|complete| DAL["🔬 DEEP_AUDIT_LOOP<br/><i>subflow: deep-audit-loop</i>"]
 
-    AUDIT -->|approved| EXEC["▶️ EXECUTE<br/><i>agent</i>"]
-    AUDIT -->|issues| PLAN
+    PD -->|created| PA["🔍 PLAN_AUDIT<br/><i>agent</i>"]
+    PD -->|none| PR
 
-    EXEC -->|success/failed| CLOSURE["🔎 CLOSURE_VERIFY<br/><i>group: SCRIPT_CHECK → AI_AUDIT</i>"]
-    EXEC -->|onError| CLOSURE
+    PA -->|approved| EP
+    PA -->|"issues ×3"| PD
 
-    CLOSURE -->|pass| BUILD["🏗️ BUILD_VERIFY<br/><i>agent</i>"]
-    CLOSURE -->|fail| EXEC
+    EP -->|complete/failed| PR
 
-    BUILD -->|pass| ROADMAP
-    BUILD -->|fail| EXEC
+    DAL -->|completed| AD["⚔️ ADVERSARIAL<br/><i>agent</i>"]
+    DAL -->|failed| PR
 
-    DEEP -->|issues| PLAN
-    DEEP -->|clean| ADV["⚔️ ADVERSARIAL<br/><i>agent</i>"]
-
-    ADV -->|issues| PLAN
-    ADV -->|clean| DONE["✅ completed"]
+    AD -->|clean| DONE["✅ completed"]
+    AD -->|issues| PD
 ```
 
-### 6.1 CLOSURE_VERIFY Sub-flow (group step)
+### 6.2 CLOSURE_VERIFY Sub-flow (group step within plan-execution)
 
 ```mermaid
 flowchart TD
-    CHECK["📋 SCRIPT_CHECK<br/><i>script: closureScriptCheck</i>"]
+    CHECK["📋 SCRIPT_CHECK<br/><i>script: inspectPlan(planFile)</i>"]
     CHECK -->|pass| PASS["→ group exit: pass"]
     CHECK -->|fail| AI["🤖 AI_AUDIT<br/><i>agent: closure-audit.md</i>"]
 
@@ -467,30 +462,46 @@ flowchart TD
     AI -->|onError| FAIL
 ```
 
-### 6.2 Error Recovery
+### 6.3 DEEP_AUDIT_LOOP Sub-flow
 
-**Build fix → retry**:
 ```mermaid
-flowchart LR
-    HEALTH -->|fail| FIX["FIX_BUILD<br/><i>agent</i>"]
-    FIX -->|fixed| ROADMAP_CHECK
-    FIX -->|failed| DONE["❌ failed"]
+flowchart TD
+    DA["🔬 DEEP_AUDIT<br/><i>agent</i>"] -->|clean| DONE["→ subflow exit: completed"]
+    DA -->|issues| DP["📝 DRAFT_PLAN<br/><i>agent → flowVars: PLAN_FILE</i>"]
+
+    DP -->|created| AP["🔍 AUDIT_PLAN<br/><i>agent</i>"]
+    DP -->|none| DA
+
+    AP -->|approved| EP["▶️ EXECUTE_PLAN<br/><i>subflow: plan-execution</i>"]
+    AP -->|"issues ×3"| DP
+
+    EP -->|complete/failed| DP
 ```
 
-**Closure audit → retry execution**:
-```mermaid
-flowchart LR
-    CLOSURE["CLOSURE_VERIFY"] -->|fail| EXEC["EXECUTE<br/><i>retry max 5</i>"]
-    EXEC -->|success/failed| CLOSURE
-    CLOSURE -->|pass| BUILD["BUILD_VERIFY"]
+### 6.4 Error Recovery
+
+**HEALTH_CHECK retry chain**:
+- AI agent fails → retry up to 3 times, each with a fresh session (no context accumulation)
+- All retries exhausted → overall `failed`
+
+**CLOSURE_VERIFY → retry execution**:
+```
+CLOSURE_VERIFY →|fail| EXECUTE (retry max 3)
+EXECUTE →|success| CLOSURE_VERIFY (next round)
+```
+
+**BUILD_VERIFY → retry execution**:
+```
+BUILD_VERIFY →|fail| EXECUTE (retry max 3)
+BUILD_VERIFY →|pass| subflow exit: completed
 ```
 
 ## 7. Script Functions
 
 | Function | File | Returns |
 |----------|------|---------|
-| `detectStartPhase(delegates)` | flow-loader.js | `"execute"` / `"roadmap"` / `"plan"` / `"audit"` (marker) |
-| `closureScriptCheck(delegates)` | flow-loader.js | `"pass"` / `"fail"` (marker) |
+| `planRouter(delegates, flowVars)` | flow-loader.js | `"execute"` / `"roadmap"` (marker); direct-mutates `flowVars.set("PLAN_FILE", ...)` |
+| `closureScriptCheck(delegates, flowVars)` | flow-loader.js | `"pass"` / `"fail"` (marker); dynamically imports `inspectPlan()` from check-plan-checklist.mjs |
 
 ## 8. Session Strategy
 
