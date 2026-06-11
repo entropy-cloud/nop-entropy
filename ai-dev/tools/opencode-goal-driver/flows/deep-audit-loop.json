@@ -44,15 +44,15 @@
       "onMaxRetries": { "goto": "EXECUTE_PLAN" }
     },
 
-    "EXECUTE_PLAN": {
-      "type": "subflow",
-      "flow": "plan-execution",
-      "flowArgs": { "PLAN_FILE": "{{PLAN_FILE}}" },
-      "transitions": {
-        "complete": { "goto": "DRAFT_PLAN" },
-        "failed": { "goto": "DRAFT_PLAN" }
-      },
-      "onError": { "goto": "DRAFT_PLAN" }
-    }
+      "EXECUTE_PLAN": {
+        "type": "subflow",
+        "flow": "plan-execution",
+        "flowArgs": { "PLAN_FILE": "{{PLAN_FILE}}" },
+        "transitions": {
+          "pass": { "goto": "DRAFT_PLAN" },
+          "failed": { "goto": "DRAFT_PLAN" }
+        },
+        "onError": { "goto": "DRAFT_PLAN" }
+      }
   }
 }

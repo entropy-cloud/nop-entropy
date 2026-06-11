@@ -52,10 +52,11 @@ export class FlowEngine {
     }
   }
 
-  _result(status, stepCount) {
+   _result(status, stepCount, marker) {
     return {
       status,
       stepCount,
+      marker: marker || null,
       elapsed: this.startTime ? durationStr(Date.now() - this.startTime) : "N/A",
       history: this.logEntries,
     };
@@ -293,7 +294,7 @@ export class FlowEngine {
     }
 
     const { childResult, childFlowVars } = await this._runChildSubflow(flowDef, baseArgs);
-    const marker = childResult.status === "completed" ? "complete" : "failed";
+    const marker = childResult.marker || (childResult.status === "completed" ? "complete" : "failed");
     this._log(`  subflow ${stepName}: child ${childResult.status} → ${marker}`);
     return { ok: true, marker, vars: childFlowVars, text: marker };
   }
@@ -597,7 +598,7 @@ export class FlowEngine {
 
       if (transition.done) {
         this._log(`  → done: ${transition.done}`);
-        return this._result(transition.done, totalSteps);
+        return this._result(transition.done, totalSteps, result.marker);
       }
 
       if (transition.retry) {

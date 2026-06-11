@@ -14,6 +14,7 @@
 3. **路由驱动**：`PLAN_ROUTER` 脚本扫描活跃 plan 并决定是继续执行还是转向 roadmap/深度审计
 4. **深度审计循环**：`deep-audit-loop` 子流程内部自循环（审计 → 拟制多计划 → 逐个执行 → 再审计），直到 P0/P1 问题清空
 5. **无死代码**：所有步骤的 transition 都有实际分支，不再有全部指向同一节点的伪路由
+6. **子流程 marker 透传**：子流程返回内部最后一步的实际 marker，而非硬编码 `"complete"`/`"failed"`。父步骤的 transition 直接对原子流程的内部 marker（如 `"pass"`、`"clean"`）
 
 ---
 
@@ -52,9 +53,9 @@ flowchart TD
     PA -->|approved| EP
     PA -->|issues| PD
 
-    EP -->|complete/failed| PR
+    EP -->|pass/failed| PR
 
-    DAL -->|complete| AD["ADVERSARIAL<br/>AI agent"]
+    DAL -->|clean| AD["ADVERSARIAL<br/>AI agent"]
     DAL -->|failed| PR
 
     AD -->|clean| DONE
@@ -180,6 +181,32 @@ flowchart TD
 | 用一个 script 同时扫描所有 active plan 并 forEach 执行 | 一次只执行一个 plan（由 `PLAN_FILE` 指定），通过 `PLAN_ROUTER` 循环回到执行入口更简单可靠 |
 | 把 `plan-execution` 逻辑内联到主流程 | 两个地方（主流程 + deep-audit-loop）都用到，抽成子流程避免重复 |
 | `PLAN_ROUTER` 传给 `ROADMAP_CHECK` 的 `roadmap` 和 `audit` 分开 | `PLAN_ROUTER` 只区分"有活跃 plan → 执行"和"无 →  roadmap"，roadmap 完成后自然进入 audit，不需要第三个分支 |
+
+---
+
+## 六、子流程 marker 传播规则
+
+子流程步骤（`type: "subflow"`）的结果处理有透明与封装两种设计选择。本系统采用**透明透传**：
+
+| 设计方案 | 行为 | 选用理由 |
+|----------|------|---------|
+| **封装式** | 子流程总是返回 `"complete"`/`"failed"` | 接口清晰，但丢失内部信息 |
+| **透明式 ✅** | 子流程返回内部最后一步的实际 marker（如 `"pass"`、`"clean"`） | 父步骤可感知具体结果 |
+
+### 实现机制
+
+1. `_result()` 新增 `marker` 字段（`{ status, marker, stepCount, ... }`）
+2. `_executeSubflowStep()` 优先取用 `childResult.marker`，若为空则回退到 `"complete"`/`"failed"`（基于 child status）
+3. `_result()` 在 `transition.done` 路径记录 `result.marker`，确保 marker 从最后一步传递到顶
+
+### 对流程的影响
+
+| 子流程 | 之前返回的 marker | 现在返回的 marker | 消费步骤 |
+|--------|------------------|-------------------|---------|
+| `plan-execution` | `"complete"` | `"pass"`（BUILD_VERIFY 成功时） | `EXECUTE_PLAN` |
+| `deep-audit-loop` | `"complete"` | `"clean"`（DEEP_AUDIT 通过时） | `DEEP_AUDIT_LOOP` |
+
+对应 flow JSON 的 transitions 已同步更新。
 
 ---
 

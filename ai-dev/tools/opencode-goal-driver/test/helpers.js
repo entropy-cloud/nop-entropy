@@ -62,7 +62,7 @@ export function mockSubFlows() {
     steps: {
       EXECUTE: {
         type: "agent", prompt: "execute {{PLAN_FILE}}",
-        transitions: { success: { done: "completed" }, failed: { retry: "EXECUTE", maxRetries: 2 } },
+        transitions: { pass: { done: "completed" }, failed: { retry: "EXECUTE", maxRetries: 2 } },
         onMaxRetries: { done: "failed" },
       },
     },
@@ -73,7 +73,7 @@ export function mockSubFlows() {
       DEEP_AUDIT: {
         type: "agent", prompt: "deep audit",
         resultTag: "AI_STEP_RESULT",
-        transitions: { clean: { done: "completed" }, issues: { done: "completed" } },
+        transitions: { clean: { done: "completed" }, issues: { retry: "DEEP_AUDIT", maxRetries: 3 } },
       },
     },
   };

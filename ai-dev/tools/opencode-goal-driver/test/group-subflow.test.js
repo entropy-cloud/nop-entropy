@@ -286,7 +286,7 @@ describe("FlowEngine — subflow step", () => {
     const flow = simpleFlow({
       START: {
         type: "subflow", flow: "child",
-        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
+        transitions: { done: { done: "completed" }, failed: { done: "failed" } },
       },
     });
 
@@ -480,7 +480,7 @@ describe("FlowEngine — subflow step", () => {
       START: {
         type: "subflow", flow: "child",
         flowArgs: { planFile: "ai-dev/plans/test.md", module: "{{module}}" },
-        transitions: { complete: { done: "completed" }, failed: { done: "failed" } },
+        transitions: { done: { done: "completed" }, failed: { done: "failed" } },
       },
     });
 
@@ -514,7 +514,7 @@ describe("FlowEngine — subflow step", () => {
     const flow = simpleFlow({
       SUB: {
         type: "subflow", flow: "child",
-        transitions: { complete: { goto: "AFTER" }, failed: { done: "failed" } },
+        transitions: { done: { goto: "AFTER" }, failed: { done: "failed" } },
       },
       AFTER: {
         type: "agent", prompt: "check {{PLAN_FILE}}",

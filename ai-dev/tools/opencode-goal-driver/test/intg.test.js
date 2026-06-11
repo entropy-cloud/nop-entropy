@@ -40,7 +40,7 @@ describe("FlowEngine — goal driver integration", () => {
         DEEP_AUDIT: {
           type: "agent", prompt: "deep audit",
           resultTag: "AI_STEP_RESULT",
-          transitions: { clean: { done: "completed" }, issues: { done: "completed" } },
+          transitions: { clean: { done: "completed" }, issues: { retry: "DEEP_AUDIT", maxRetries: 3 } },
         },
       },
     };
@@ -77,7 +77,7 @@ describe("FlowEngine — goal driver integration", () => {
             : { text: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>", ok: true };
         },
 
-        "EXECUTE": "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
+        "EXECUTE": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
 
         DEEP_AUDIT: () => {
           deepAuditCount++;
@@ -128,7 +128,7 @@ describe("FlowEngine — goal driver integration", () => {
         ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
         DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
-        "EXECUTE": "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
+        "EXECUTE": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
       },
     });
 
@@ -297,7 +297,7 @@ describe("FlowEngine — StepResult unification", () => {
     const flow = simpleFlow({
       SUB: {
         type: "subflow", flow: "child",
-        transitions: { complete: { goto: "AFTER" }, failed: { done: "failed" } },
+        transitions: { done: { goto: "AFTER" }, failed: { done: "failed" } },
       },
       AFTER: {
         type: "agent", prompt: "check {{PLAN_FILE}}",

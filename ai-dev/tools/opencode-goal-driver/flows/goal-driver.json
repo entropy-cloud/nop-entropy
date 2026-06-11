@@ -70,7 +70,7 @@
       "flow": "plan-execution",
       "flowArgs": { "PLAN_FILE": "{{PLAN_FILE}}" },
       "transitions": {
-        "complete": { "goto": "PLAN_ROUTER" },
+        "pass": { "goto": "PLAN_ROUTER" },
         "failed": { "goto": "PLAN_ROUTER" }
       },
       "onError": { "goto": "PLAN_ROUTER" }
@@ -80,7 +80,7 @@
       "type": "subflow",
       "flow": "deep-audit-loop",
       "transitions": {
-        "complete": { "goto": "ADVERSARIAL" },
+        "clean": { "goto": "ADVERSARIAL" },
         "failed": { "goto": "PLAN_ROUTER" }
       },
       "onError": { "goto": "PLAN_ROUTER" }
