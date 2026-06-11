@@ -126,6 +126,8 @@ doFindList(query, (q, ctx) -> {
 | 总数 | `findCount(query, context)` |
 | 第一条 | `findFirst(query, selection, context)` |
 
+> **QueryBean 会被原地修改**：以上所有方法都会直接修改传入的 `query` 对象（追加权限过滤、排序、limit 裁剪等），不做防御性拷贝。如果需要复用 query，调用前用 `query.cloneInstance()` 拷贝。详见 `service-layer.md` 查询章节。
+
 > **`doFindList` vs `findList`**：
 > - `doFindList(query, prepareQuery, selection, context)` — 4 参数，`prepareQuery` 是 `BiConsumer<QueryBean, IServiceContext>`，用于组合式注入默认过滤/排序。需要定制查询预处理时使用。
 > - `findList(query, selection, context)` — 3 参数，内部自动调用 `this::invokeDefaultPrepareQuery`。不需要定制 prepareQuery 时直接用这个更简洁。实体方法内通过 `requireBiz` 获取 `I*Biz` 后也只能调用这个 3 参数版本。

@@ -69,6 +69,7 @@ return doFindPage(query, this::invokeDefaultPrepareQuery, selection, context);
 1. 在普通 BizModel 中直接回退到 `dao().findAllByQuery(query)`。
 2. 把查询 DTO 设计得过重，而不是先用 `QueryBean` 与基础参数表达。
 3. **为多选 IN 查询创建冗余的 `List<String>` 字段**（如 `kinds`），而应该利用 Nop 标准 `filter_` 前缀机制。
+4. **同一个 QueryBean 多次传入 `findPage`/`findList` 等方法**——这些方法会原地修改 query（追加过滤、排序、limit 裁剪等），不做防御性拷贝。需要复用时必须先 `query.cloneInstance()`。
 
 ## 多选 IN 查询（前端 → 后端）
 

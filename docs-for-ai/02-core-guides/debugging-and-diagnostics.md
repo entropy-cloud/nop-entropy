@@ -221,6 +221,84 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/
 
 同样的模式适用于仓库中所有 Quarkus 应用模块（`nop-quarkus-demo`、`nop-auth-app` 等），替换路径即可。
 
+## 测试失败调试铁律
+
+### 第一步永远是看完整堆栈
+
+**不猜，先看证据。** 这是最重要的原则。
+
+当测试失败时：
+
+1. **读 surefire 报告**：`{module}/target/surefire-reports/{TestClass}.txt` 包含完整堆栈
+2. **从最内层 `Caused by` 往外读**：最内层是真正出错的地方，外层是传播链
+3. **关注 `at` 行中的文件名和行号**：直接跳到源码对应行
+
+### 反面教材（真实案例）
+
+测试返回 `status=-1`，排查过程走了以下弯路：
+
+| 猜测方向 | 耗时 | 结果 |
+|---------|------|------|
+| 命名转换 `addCart` → `addToCart` | 30分钟 | 无关 |
+| classpath 缓存问题 | 20分钟 | 无关 |
+| `mvn clean` vs `mvn test` 差异 | 20分钟 | 无关 |
+| xbiz/xmeta 配置问题 | 15分钟 | 无关 |
+| **最终看堆栈：`findFirst(query, null, null)` 传了 null context** | **5分钟** | **根因** |
+
+堆栈直接显示了 `CrudBizModel.prepareFindPageQuery:381` → `context.getDataAuthChecker()` NPE，追溯到 `findUserCartByProduct` 方法把 null 传给了 `findFirst` 的 context 参数。
+
+### 正确的排查顺序
+
+```
+1. 看 surefire 报告完整堆栈（1分钟）
+2. 定位最内层异常类型和消息（30秒）
+3. 看 at 行的源码位置（30秒）
+4. 如果堆栈不够，加 System.out 打印 response（2分钟）
+5. 只在堆栈信息不足时才扩大排查范围
+```
+
+### 常见测试失败模式
+
+| 现象 | 根因 | 排查方式 |
+|------|------|---------|
+| `status=-1` | 业务异常或 NPE | 看 surefire 报告的完整堆栈 |
+| `ApiResponse.getData() is null` | 业务方法抛异常，GraphQL engine 返回错误响应 | 先看 `result.getMsg()` 和 `result.getCode()` |
+| `ClassNotFoundException` | 依赖版本不匹配或 surefire classpath 问题 | `mvn clean` 后重新编译 |
+| `BizObject not support action` | BizModel 方法名与 xbiz 生成的 action 名不匹配 | 检查 `_dump/` 中 xbiz 的 action 列表 |
+| `context is null` NPE | 私有辅助方法没传 `IServiceContext` 参数 | 检查 `findFirst`/`findList` 等 CrudBizModel 方法的 context 参数 |
+| IoC 启动失败 `create-bean-fail` | BizObject 初始化时发现不存在的 tryMethod 或方法 | 检查 `_dump/` 中 xbiz 的 action 配置，确认 BizModel 有对应方法 |
+
+### 快速获取错误信息的技巧
+
+在测试中加打印（仅调试时用，提交前删除）：
+
+```java
+ApiResponse<?> result = graphQLEngine.executeRpc(ctx);
+if (result.getStatus() != 0) {
+    System.out.println("ERROR: status=" + result.getStatus()
+        + ", code=" + result.getCode()
+        + ", msg=" + result.getMsg());
+}
+```
+
+surefire 的 stdout 输出在 `{module}/target/surefire-reports/{TestClass}-output.txt`。
+
+### CrudBizModel 方法调用必须传 context
+
+`CrudBizModel` 的 `findFirst`、`findList`、`findPage` 等方法内部会调用 `context.getDataAuthChecker()`。在私有辅助方法中调用这些方法时，**必须把 context 透传下去**，不能传 null：
+
+```java
+// 错误
+private LitemallCart findByProduct(String userId, String productId) {
+    return findFirst(query, null, null); // NPE!
+}
+
+// 正确
+private LitemallCart findByProduct(String userId, String productId, IServiceContext context) {
+    return findFirst(query, null, context);
+}
+```
+
 ## 相关文档
 
 - `../03-runbooks/debug-codegen-and-generated-files.md`

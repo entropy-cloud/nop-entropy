@@ -37,15 +37,18 @@
 
 关键点：
 
-1. `x:override="bounded-merge"` 常用于 `cols`、`rowActions`。
-2. `x:prototype-override="bounded-merge"` 常用于基于 prototype 派生出的 page/action 变体。
-3. 没有显式重写的继承子节点会被删掉。
+1. `x:override="bounded-merge"` 用于 `x:extends` 继承链中的 `cols`、`rowActions` 等。
+2. `x:prototype-override="bounded-merge"` 用于 `x:prototype` 克隆变体中的 `rowActions`、`listActions` 等。
+3. 需要两个属性是因为合并分两个阶段：先 `x:extends`（用 `x:override`），再 `x:prototype`（用 `x:prototype-override`），同一节点可能需要不同策略。
+4. 没有显式重写的继承/克隆子节点会被删掉。
 
 参考：
 
 1. 见 `./external-app-examples.md` 第 1 节
 
 ## 2. `x:prototype` 复用
+
+`x:prototype` 的值是同一父节点下的兄弟节点的 key（如 `id`）。运行时在该兄弟节点集合中找到匹配的节点，克隆它作为当前节点的模板，再将当前节点的自定义内容合并上去。
 
 适合：
 

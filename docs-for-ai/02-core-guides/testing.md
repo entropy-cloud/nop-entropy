@@ -52,11 +52,79 @@
 
 > **为什么裸 `@NopTestConfig` 在日常校验时也能工作？** CHECKING 模式下，框架从 `_cases/` 加载录制时的数据库快照（CSV 文件）恢复到 H2 内存库，不需要 schema 初始化。
 
+## `@EnableSnapshot` 方法级快照控制
+
+`@EnableSnapshot` 是方法级注解（`@Target(ElementType.METHOD)`），用于在 CHECKING 模式下对单个测试方法进行细粒度快照控制。
+
+### 参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `localDb` | `true` | 强制使用 H2 内存数据库 |
+| `sqlInput` | `true` | 是否自动执行 input 目录下的 SQL 文件 |
+| `sqlInit` | `true` | 是否执行 SQL 初始化脚本 |
+| `tableInit` | `true` | 是否将 `input/tables/` 目录下的 CSV 数据插入数据库 |
+| `saveOutput` | `false` | 是否保存输出（录制模式开关） |
+| `checkOutput` | `true` | 是否校验输出与录制结果匹配 |
+
+### 核心机制（源码：`JunitAutoTestCase.configExecutionMode`）
+
+1. 框架先检查 `disable` 标志：全局配置 `nop.autotest.disable-snapshot=true` 或类级 `snapshotTest == RECORDING` 时 `disable=true`。
+2. `disable=false` 且方法标注了 `@EnableSnapshot` → 使用 `@EnableSnapshot` 的参数（方法级控制）。
+3. 否则 → 回退到类级 `@NopTestConfig.snapshotTest()` 决定的行为。
+
+**关键约束：类级 RECORDING 模式下 `@EnableSnapshot` 被完全忽略。** 所有方法强制走 RECORDING 逻辑，无法用 `@EnableSnapshot` 让某个方法跳过录制。
+
+### 不加 vs 加
+
+| 情况 | 行为 |
+|------|------|
+| 不加 `@EnableSnapshot`，类为 CHECKING（默认） | 走 CHECKING 分支：`checkOutput=true, saveOutput=false` — 加载快照并校验 |
+| 不加 `@EnableSnapshot`，类为 RECORDING | 走 RECORDING 分支：`saveOutput=true, checkOutput=false` — 所有方法录制 |
+| 加裸 `@EnableSnapshot`，类为 CHECKING | 行为与不加相同（默认值一致），仅用于多步测试的惯例标记 |
+| 加 `@EnableSnapshot(saveOutput=true)`，类为 CHECKING | **仅此方法重新录制**，执行后抛 `snapshot-finished`，其他方法仍为 CHECKING |
+
+### 全局 vs 单方法录制控制
+
+| 目标 | 做法 |
+|------|------|
+| 全部重新录制 | `@NopTestConfig(snapshotTest = SnapshotTest.RECORDING)` |
+| 全部仅更新输出 | `@NopTestConfig(forceSaveOutput = true)` |
+| 单个方法重新录制 | 类保持裸 `@NopTestConfig`，目标方法加 `@EnableSnapshot(saveOutput = true)` |
+| 单个方法跳过校验 | `@EnableSnapshot(checkOutput = false)` |
+| 全局禁用快照 | 设置 `nop.autotest.disable-snapshot=true` 或 `@NopTestConfig(snapshotTest = SnapshotTest.NOT_USE)` |
+
+### 单方法重新录制示例
+
+```java
+@NopTestConfig  // 默认 CHECKING
+public class TestOrder extends JunitAutoTestCase {
+    @Inject
+    IGraphQLEngine graphQLEngine;
+
+    @Test
+    public void testQuery() {
+        // 普通校验模式
+    }
+
+    @EnableSnapshot(saveOutput = true)  // 仅此方法重新录制
+    @Test
+    public void testCreate() {
+        ApiResponse<?> result = executeRpc(GraphQLOperationType.mutation,
+            "LitemallOrder__createOrder", request("request.json5", Map.class));
+        output("response.json5", result);
+    }
+}
+```
+
+录制完成后去掉 `saveOutput = true`（或去掉整个 `@EnableSnapshot`），该方法恢复为 CHECKING 模式。
+
 ## 快照测试的默认工作流
 
 1. 首次录制：`snapshotTest = SnapshotTest.RECORDING`
 2. 日常验证：默认 `CHECKING`
 3. 只更新输出时：`forceSaveOutput = true`
+4. 单方法重新录制：`@EnableSnapshot(saveOutput = true)`
 
 实操里最常用的 helper：
 

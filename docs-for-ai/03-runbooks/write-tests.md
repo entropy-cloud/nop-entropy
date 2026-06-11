@@ -40,6 +40,7 @@ public class OrderBizModelTest extends JunitBaseTestCase {
 1. 首次录制：`snapshotTest = SnapshotTest.RECORDING`
 2. 日常验证：默认 `CHECKING`
 3. 只更新输出：`forceSaveOutput = true`
+4. 单方法重新录制：目标方法加 `@EnableSnapshot(saveOutput = true)`（详见下方）
 
 常用 helper：
 
@@ -49,6 +50,36 @@ public class OrderBizModelTest extends JunitBaseTestCase {
 4. `outputText(...)`
 
 录制模式保存输出后会抛出一个错误码为 `nop.err.autotest.snapshot-finished` 的专用异常表示录制完成，这是**预期行为**不是失败。Maven 会报告 `Errors: X`，切换到 CHECKING 模式后 Errors 归零。
+
+### 4. 全局 vs 单方法录制控制
+
+| 目标 | 做法 |
+|------|------|
+| 全部重新录制 | `@NopTestConfig(snapshotTest = SnapshotTest.RECORDING)` |
+| 全部仅更新输出 | `@NopTestConfig(forceSaveOutput = true)` |
+| 单个方法重新录制 | 类保持裸 `@NopTestConfig`，目标方法加 `@EnableSnapshot(saveOutput = true)` |
+
+`@EnableSnapshot` 是方法级注解，在 CHECKING 模式（裸 `@NopTestConfig`）下按方法控制快照行为。注意：**类级 RECORDING 模式下 `@EnableSnapshot` 被忽略**，所有方法强制录制。
+
+单方法重新录制示例：
+
+```java
+@NopTestConfig  // 默认 CHECKING
+public class TestOrder extends JunitAutoTestCase {
+    @Test
+    public void testQuery() { /* 普通校验 */ }
+
+    @EnableSnapshot(saveOutput = true)  // 仅此方法重新录制
+    @Test
+    public void testCreate() {
+        output("response.json5", executeRpc(...));
+    }
+}
+```
+
+录制完成后去掉 `saveOutput = true` 或去掉整个 `@EnableSnapshot`。
+
+关于 `@EnableSnapshot` 的完整参数说明和源码机制，见 `../02-core-guides/testing.md` 的"@EnableSnapshot 方法级快照控制"章节。
 
 ### 4. 数据目录
 

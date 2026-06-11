@@ -39,6 +39,19 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 - 需要字段选择时带 `FieldSelectionBean`
 - 查询能力优先走 `doFindList()`、`doFindPage()`
 
+> **QueryBean 会被原地修改**
+>
+> `CrudBizModel` 的 `findPage`、`findList`、`findCount`、`findFirst` 等方法**不会**对传入的 `QueryBean` 做防御性拷贝，而是在原对象上直接修改。执行过程中会追加数据权限过滤、objMeta 过滤/排序、limit 上限裁剪、主键排序补全、filter 转换等操作，全部作用于同一个 query 实例。
+>
+> **如果需要在调用后复用原始查询条件，必须在调用前自行拷贝：**
+>
+> ```java
+> QueryBean copy = query.cloneInstance();
+> PageBean<T> page = bizObj.findPage(copy, selection, context);
+> ```
+>
+> 这条规则同时适用于直接调用 `findPage`/`findList` 和通过 `I*Biz` 代理调用。
+
 ### 修改
 
 - 使用 `@BizMutation`

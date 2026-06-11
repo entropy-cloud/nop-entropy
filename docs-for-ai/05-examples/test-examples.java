@@ -251,11 +251,78 @@ public class TestOrderBizLogic extends JunitBaseTestCase {
 // - graphQLEngine.executeRpc(ctx) 同步返回 ApiResponse<?>
 // - 适合需要精确断言逻辑结果的场景
 
+// ====== 5. 从空库自建数据 + IGraphQLEngine（JunitBaseTestCase） ======
+// 适用场景: 数据简单可完全自建，不需要录制回放。比 JunitAutoTestCase 更轻量。
+
+package demo.service;
+
+import demo.dao.entity.Product;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.engine.IGraphQLEngine;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestCartBiz extends JunitBaseTestCase {
+
+    @Inject
+    IGraphQLEngine graphQLEngine;
+
+    @Inject
+    IDaoProvider daoProvider;
+
+    String productId;
+
+    @BeforeEach
+    void setup() {
+        ContextProvider.getOrCreateContext().setUserId("1");
+        ContextProvider.getOrCreateContext().setUserName("test");
+
+        Product p = daoProvider.daoFor(Product.class).newEntity();
+        p.setName("test");
+        p.setPrice(java.math.BigDecimal.TEN);
+        p.setNumber(100);
+        daoProvider.daoFor(Product.class).saveEntity(p);
+        productId = p.orm_idString();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testAddToCart() {
+        ApiRequest<Map<String, Object>> req = ApiRequest.build(
+                Map.of("productId", productId, "number", 2));
+        IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(
+                GraphQLOperationType.mutation, "Cart__addToCart", req);
+        ApiResponse<?> result = graphQLEngine.executeRpc(ctx);
+
+        assertEquals(0, result.getStatus());
+        assertEquals(2, ((Number) ((Map<?, ?>) result.getData()).get("number")).intValue());
+    }
+}
+
+// 要点:
+// - 从空库开始，DAO 自建种子数据，IGraphQLEngine 调 BizModel，直接断言
+// - ContextProvider 设置用户身份
+// - 适合数据简单可自建、不需要录制回放的场景
+// - 数据复杂或依赖外部库时用 JunitAutoTestCase 录制回放更合适
+
 // ====== 总结: 选哪个基类 ======
 // | 场景 | 基类 | 特点 |
 // |------|------|------|
 // | 纯逻辑（无DB无IoC） | BaseTestCase + CoreInitialization | 最轻量 |
-// | 需要容器+DB，不需要快照 | JunitBaseTestCase | @Inject 可用，localDb |
+// | 空库自建数据+IGraphQLEngine | JunitBaseTestCase | DAO 建种子 + 断言 |
 // | 需要录制回放 | JunitAutoTestCase | input/output + _cases 目录 |
 // | 多步骤流程 | JunitAutoTestCase | 编号文件 + @var: 占位符 |
-// | 需要精确断言 | JunitBaseTestCase | 直接 JUnit assertXxx |
