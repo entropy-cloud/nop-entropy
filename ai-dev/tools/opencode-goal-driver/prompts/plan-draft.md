@@ -1,10 +1,10 @@
 Draft a development plan for module {{module}}. Each plan covers **exactly one** work item.
 
-Source selection:
-- If the previous ROADMAP_CHECK provided <NEXT_ITEM>, base the plan on that work item
-- If there are audit findings (ai-dev/audits/), base the plan on those
-- If both exist, prioritize NEXT_ITEM
-- If neither exists, do not create a plan
+Source selection (priority order):
+1. If <NEXT_ITEM type="carry-over">: base the plan on that carry-over item (unfinished work from a prior plan — complete it first)
+2. If <NEXT_ITEM type="roadmap">: base the plan on that roadmap work item
+3. If there are audit findings (ai-dev/audits/) and no NEXT_ITEM was provided: base the plan on the most critical finding
+4. If neither NEXT_ITEM nor audit findings: do not create a plan
 
 Requirements:
 1. Read and follow ai-dev/plans/00-plan-authoring-and-execution-guide.md
