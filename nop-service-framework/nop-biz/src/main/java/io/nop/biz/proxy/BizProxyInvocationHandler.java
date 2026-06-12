@@ -85,10 +85,11 @@ public class BizProxyInvocationHandler implements InvocationHandler {
                 if (methodName != null) {
                     IServiceAction action = bizObj.requireAction(methodName);
                     map.put(methodName, buildActionFunction(action, method, bizObj.getBizObjName()));
-                } else {
+                } else if (!map.containsKey(method.getName())) {
                     for (Object bizModelBean : bizObj.getBizModelBeans()) {
-                        if (bizModelBean.getClass().isInstance(clazz)) {
-                            map.put(methodName, buildBeanModelInvoker(bizModelBean, method));
+                        if (clazz.isInstance(bizModelBean)) {
+                            // 从具体实现的bean中获取一个实现，这里有一定的随机性
+                            map.put(method.getName(), buildBeanModelInvoker(bizModelBean, method));
                             break;
                         }
                     }
