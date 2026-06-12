@@ -58,6 +58,7 @@
 | **后端服务开发** | **`00-required-reading-backend.md`**（后端必读总入口） |
 | **前端页面开发** | **`00-required-reading-frontend.md`**（前端必读总入口） |
 | **单元/集成测试** | **`00-required-reading-testing.md`**（测试必读总入口） |
+| **调试诊断** | **`04-reference/debugging-checklist.md`**（按症状索引根因） |
 | **E2E 测试** | **`00-required-reading-e2e-testing.md`**（E2E 测试必读总入口） |
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
