@@ -11,7 +11,7 @@
 | `ibiz-and-bizmodel.java` | IBiz 接口 + BizModel：Order（@RequestBean/@Name/@Optional/@BizAction）+ Product（defaultPrepareSave/Update/Delete 钩子 + sql-lib mapper） |
 | `dto-and-errors.java` | `@DataBean` DTO + `ErrorCode.define()` 错误码（含 `.param()` 参数） |
 | `test-examples.java` | 简单测试 + 快照录制回放 + 多步骤流程 + 复杂断言，四种测试模式 |
-| `sql-lib-and-mapper.java` | EQL sql-lib.xml + `@SqlLibMapper` 接口 |
+| `sql-lib-and-mapper.java` | `<eql>`（实体属性名）vs `<sql>`（数据库列名）+ `@SqlLibMapper` 接口 |
 | `delta-customization.java` | 继承平台 BizModel + beans 替换注册 |
 
 ## 核心速记
