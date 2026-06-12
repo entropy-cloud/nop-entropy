@@ -66,11 +66,15 @@ BizModel 方法
 
 ## 返回值建议
 
+BizModel 方法的返回值是 `ApiResponse.data`，即**成功场景下的业务数据**。失败通过抛 `NopException` 由框架统一转为 `{status, code, msg}` 标准错误响应，不在返回 bean 中表达。
+
 | 场景 | 推荐 |
 |------|------|
 | 返回实体本身 | 直接返回实体 |
 | 返回多个业务字段 | `@DataBean` DTO |
 | 返回集合或分页 | `List<T>` / `PageBean<T>`（`io.nop.api.core.beans.PageBean`）/ 框架默认分页结果 |
+
+**不要**在返回 bean 中内嵌 `success`/`errorCode`/`errorMsg` 等字段来表达失败——这绕过了框架统一的 ApiResponse 错误机制。详见 `./error-handling.md`。
 
 ## 扩展返回字段的默认做法
 

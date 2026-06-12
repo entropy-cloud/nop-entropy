@@ -164,6 +164,7 @@ throw new NopAiException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
 | 错误消息使用中文或非英文 | AI 读取英文消息更准确，避免编码问题；非 ErrorCode 路径的消息可能被 AI 直接阅读，必须使用英文 |
 | 丢失原始异常链 | 排查困难 |
 | 在普通 BizModel 示例中同时展示底层 DAO + 显式事务 | 容易把边界模式误当默认模板 |
+| 在 `@BizQuery`/`@BizMutation` 返回 bean 中内嵌 `success`/`errorCode`/`errorMsg` 等字段来表达失败 | 绕过框架统一的 ApiResponse 错误机制。BizModel 方法的返回值只承载成功场景的数据（ApiResponse.data），失败应直接抛 `NopException`，由框架自动转为 `{status, code, msg}` 标准错误响应。调用方不需要检查返回 bean 中的成功标志 |
 
 ## API 层的表现
 
