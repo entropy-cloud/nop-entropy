@@ -1,0 +1,25 @@
+package io.nop.ai.agent.engine;
+
+public enum AgentEventType {
+    EXECUTION_STARTED,
+
+    ITERATION_STARTED,
+
+    LLM_RESPONSE_RECEIVED,
+
+    TOOL_CALL_STARTED,
+
+    TOOL_CALL_COMPLETED,
+
+    TOOL_CALL_DENIED,
+
+    PATH_ACCESS_DENIED,
+
+    EXECUTION_COMPLETED,
+
+    EXECUTION_FAILED,
+
+    SESSION_CREATED,
+
+    SESSION_LOADED
+}

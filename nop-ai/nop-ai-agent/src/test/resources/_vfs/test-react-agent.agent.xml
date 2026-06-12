@@ -1,0 +1,12 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-react-agent">
+
+    <description>E2E test agent with tools</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.7"/>
+
+    <tools>test-calculator,test-echo</tools>
+
+    <prompt>You are a helpful calculator agent. Use the available tools to answer questions.</prompt>
+
+</agent>
