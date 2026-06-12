@@ -407,7 +407,7 @@
 /nop/schema/ai/chat-options.xdef
 /nop/schema/ai/llm.xdef
 /nop/schema/ai/prompt.xdef
-/nop/schema/ai/tool/avaliable-skills.xdef
+/nop/schema/ai/tool/available-skills.xdef
 /nop/schema/ai/tool/call-tools-response.xdef
 /nop/schema/ai/tool/call-tools.xdef
 /nop/schema/ai/tool/tool-call.xdef
