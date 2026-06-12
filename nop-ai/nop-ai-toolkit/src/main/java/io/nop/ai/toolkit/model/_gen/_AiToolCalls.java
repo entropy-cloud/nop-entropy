@@ -32,10 +32,10 @@ public abstract class _AiToolCalls extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: paralllel
+     * xml name: parallel
      * 
      */
-    private java.lang.Boolean _paralllel  = true;
+    private java.lang.Boolean _parallel  = true;
     
     /**
      * 
@@ -85,19 +85,19 @@ public abstract class _AiToolCalls extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: paralllel
+     * xml name: parallel
      *  
      */
     
-    public java.lang.Boolean getParalllel(){
-      return _paralllel;
+    public java.lang.Boolean getParallel(){
+      return _parallel;
     }
 
     
-    public void setParalllel(java.lang.Boolean value){
+    public void setParallel(java.lang.Boolean value){
         checkAllowChange();
         
-        this._paralllel = value;
+        this._parallel = value;
            
     }
 
@@ -121,7 +121,7 @@ public abstract class _AiToolCalls extends io.nop.core.resource.component.Abstra
         
         out.putNotNull("body",this.getBody());
         out.putNotNull("maxConcurrency",this.getMaxConcurrency());
-        out.putNotNull("paralllel",this.getParalllel());
+        out.putNotNull("parallel",this.getParallel());
     }
 
     public AiToolCalls cloneInstance(){
@@ -135,7 +135,7 @@ public abstract class _AiToolCalls extends io.nop.core.resource.component.Abstra
         
         instance.setBody(this.getBody());
         instance.setMaxConcurrency(this.getMaxConcurrency());
-        instance.setParalllel(this.getParalllel());
+        instance.setParallel(this.getParallel());
     }
 
     protected AiToolCalls newInstance(){

@@ -18,10 +18,10 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
-     * xml name: contextLenth
+     * xml name: contextLength
      * 
      */
-    private java.lang.Integer _contextLenth ;
+    private java.lang.Integer _contextLength ;
     
     /**
      *  
@@ -81,19 +81,19 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
-     * xml name: contextLenth
+     * xml name: contextLength
      *  
      */
     
-    public java.lang.Integer getContextLenth(){
-      return _contextLenth;
+    public java.lang.Integer getContextLength(){
+      return _contextLength;
     }
 
     
-    public void setContextLenth(java.lang.Integer value){
+    public void setContextLength(java.lang.Integer value){
         checkAllowChange();
         
-        this._contextLenth = value;
+        this._contextLength = value;
            
     }
 
@@ -265,7 +265,7 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("contextLenth",this.getContextLenth());
+        out.putNotNull("contextLength",this.getContextLength());
         out.putNotNull("defaultMaxTokens",this.getDefaultMaxTokens());
         out.putNotNull("disableThinkingPrompt",this.getDisableThinkingPrompt());
         out.putNotNull("enableThinkingPrompt",this.getEnableThinkingPrompt());
@@ -285,7 +285,7 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void copyTo(LlmModelModel instance){
         super.copyTo(instance);
         
-        instance.setContextLenth(this.getContextLenth());
+        instance.setContextLength(this.getContextLength());
         instance.setDefaultMaxTokens(this.getDefaultMaxTokens());
         instance.setDisableThinkingPrompt(this.getDisableThinkingPrompt());
         instance.setEnableThinkingPrompt(this.getEnableThinkingPrompt());

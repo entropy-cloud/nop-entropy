@@ -1,0 +1,4 @@
+<available-skills x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                   xdef:bean-package="io.nop.ai.toolkit.model">
+    <skill name="!string">!string</skill>
+</available-skills>

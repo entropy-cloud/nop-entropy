@@ -65,7 +65,7 @@ public class ToolManagerImpl implements IToolManager {
             return CompletableFuture.completedFuture(new AiToolCallsResponse());
         }
 
-        Boolean parallel = calls.getParalllel();
+        Boolean parallel = calls.getParallel();
         Integer maxConcurrency = calls.getMaxConcurrency();
 
         if (parallel != null && parallel) {

@@ -4,7 +4,8 @@
 <agent x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xdef:name="AgentModel" xdef:bean-package="io.nop.ai.agent.model"
        xmlns:xdef="/nop/schema/xdef.xdef"
-       name="!string" tagSet="csv-set">
+       name="!string" tagSet="csv-set"
+       mode="enum:react,plan,single-turn|react">
 
     <description>!string</description>
 
@@ -26,7 +27,7 @@
 
     <constraints xdef:name="AgentConstraintsModel"
                  maxIterations="int" toolTimeoutSeconds="int" maxParallelTools="int"
-                 tokenCompressionThreashold="double-percent"/>
+                 tokenCompactionThreshold="double-percent"/>
 
     <!-- 系统提示词，指导agent的行为模式 -->
     <prompt>prompt-syntax</prompt>

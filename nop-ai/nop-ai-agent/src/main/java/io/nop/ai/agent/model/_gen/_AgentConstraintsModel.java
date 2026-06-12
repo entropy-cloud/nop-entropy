@@ -32,10 +32,10 @@ public abstract class _AgentConstraintsModel extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: tokenCompressionThreashold
+     * xml name: tokenCompactionThreshold
      * 
      */
-    private java.lang.Double _tokenCompressionThreashold ;
+    private java.lang.Double _tokenCompactionThreshold ;
     
     /**
      *  
@@ -84,19 +84,19 @@ public abstract class _AgentConstraintsModel extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: tokenCompressionThreashold
+     * xml name: tokenCompactionThreshold
      *  
      */
     
-    public java.lang.Double getTokenCompressionThreashold(){
-      return _tokenCompressionThreashold;
+    public java.lang.Double getTokenCompactionThreshold(){
+      return _tokenCompactionThreshold;
     }
 
     
-    public void setTokenCompressionThreashold(java.lang.Double value){
+    public void setTokenCompactionThreshold(java.lang.Double value){
         checkAllowChange();
         
-        this._tokenCompressionThreashold = value;
+        this._tokenCompactionThreshold = value;
            
     }
 
@@ -137,7 +137,7 @@ public abstract class _AgentConstraintsModel extends io.nop.core.resource.compon
         
         out.putNotNull("maxIterations",this.getMaxIterations());
         out.putNotNull("maxParallelTools",this.getMaxParallelTools());
-        out.putNotNull("tokenCompressionThreashold",this.getTokenCompressionThreashold());
+        out.putNotNull("tokenCompactionThreshold",this.getTokenCompactionThreshold());
         out.putNotNull("toolTimeoutSeconds",this.getToolTimeoutSeconds());
     }
 
@@ -152,7 +152,7 @@ public abstract class _AgentConstraintsModel extends io.nop.core.resource.compon
         
         instance.setMaxIterations(this.getMaxIterations());
         instance.setMaxParallelTools(this.getMaxParallelTools());
-        instance.setTokenCompressionThreashold(this.getTokenCompressionThreashold());
+        instance.setTokenCompactionThreshold(this.getTokenCompactionThreshold());
         instance.setToolTimeoutSeconds(this.getToolTimeoutSeconds());
     }
 

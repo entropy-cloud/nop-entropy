@@ -3,5 +3,5 @@
     codeGenerator.renderModel('/nop/schema/ai/tool/tool.xdef','/nop/templates/xdsl', '/',$scope);
     codeGenerator.renderModel('/nop/schema/ai/tool/call-tools.xdef','/nop/templates/xdsl', '/',$scope);
     codeGenerator.renderModel('/nop/schema/ai/tool/call-tools-response.xdef','/nop/templates/xdsl', '/',$scope);
-    codeGenerator.renderModel('/nop/schema/ai/tool/avaliable-skills.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/ai/tool/available-skills.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>
