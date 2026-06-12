@@ -69,6 +69,7 @@
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
 | 理解 ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计） | `02-core-guides/orm-model-design.md` |
+| 理解逻辑删除（delFlag / delVersion / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
 | 理解外部应用从 design 到模型、生成、BizModel、测试、联调的默认顺序 | `02-core-guides/application-development-workflow.md` |
 | 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |
@@ -149,7 +150,7 @@
 | 理解 nop-job（分布式定时任务） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
 | 理解 nop-dyn（动态表单/实体） | `03-modules/nop-dyn.md` |
-| 理解 nop-file（文件管理） | `03-modules/nop-file.md` |
+| 理解 nop-file（文件上传下载与存储机制） | `03-modules/nop-file.md` |
 | 理解 nop-retry（分布式重试） | `03-modules/nop-retry.md` |
 | 理解 nop-tcc（TCC 分布式事务） | `03-modules/nop-tcc.md` |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
