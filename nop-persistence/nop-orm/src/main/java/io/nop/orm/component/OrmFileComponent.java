@@ -138,6 +138,28 @@ public class OrmFileComponent extends AbstractOrmComponent {
         return fileStore.getFileResource(fileId, bizObjName, entity.orm_idString(), propName);
     }
 
+    public void copyFrom(OrmFileComponent source) {
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) tryGetBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        if (fileStore == null)
+            return;
+
+        String sourceFileId = source.getFileId();
+        if (StringHelper.isEmpty(sourceFileId))
+            return;
+
+        IOrmEntity entity = orm_owner();
+        if (!entity.orm_hasId()) {
+            entity.orm_enhancer().initEntityId(entity);
+        }
+
+        int propId = getColPropId(PROP_NAME_filePath);
+        String propName = entity.orm_propName(propId);
+        String bizObjName = getBizObjName();
+
+        String newFileId = fileStore.copyFile(sourceFileId, bizObjName, entity.orm_idString(), propName);
+        setFilePath(fileStore.getFileLink(newFileId));
+    }
+
     public String getBizObjName() {
         IOrmEntity entity = orm_owner();
         return StringHelper.lastPart(entity.orm_entityName(), '.');
