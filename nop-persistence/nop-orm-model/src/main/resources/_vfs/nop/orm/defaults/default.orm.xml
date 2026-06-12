@@ -20,11 +20,12 @@
         <domain name="updateTime" stdSqlType="TIMESTAMP"/>
         <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
         <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="delVersion" stdSqlType="BIGINT"/>
     </domains>
 
     <entities>
         <entity className="io.nop.orm.support.DynamicOrmEntity" createTimeProp="createTime" createrProp="createdBy"
-                deleteFlagProp="delFlag" displayName="字典表" name="io.nop.orm.defaults.NopDefaultCols"
+                deleteFlagProp="delVersion" deleteVersionProp="delVersion" displayName="字典表" name="io.nop.orm.defaults.NopDefaultCols"
                 registerShortName="true" tableName="nop_default_cols" updateTimeProp="updateTime"
                 updaterProp="updatedBy" x:abstract="true"
                 useLogicalDelete="true" versionProp="version">
@@ -36,6 +37,9 @@
                         propId="4"
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Deleted"
                         ui:show="X"/>
+                <column code="DEL_VERSION" displayName="删除版本" domain="delVersion" mandatory="true" name="delVersion"
+                        propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Delete Version" ui:show="X"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
                         propId="5"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
