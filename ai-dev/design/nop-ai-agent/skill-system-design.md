@@ -166,13 +166,14 @@ Phase 3 - intentSignature 精确匹配:
   request.intentSignature == candidate.intentSignature → activated set
 
 回退: Phase 3 无匹配时，回退到 Phase 2 结果
-      Phase 2 无匹配时，回退到 Phase 1 结果（全体候选 skill 以低优先级注入）
+      Phase 2 无匹配时，不注入任何 Skill（空集）
 ```
 
 **决策**：采用递减式多阶段匹配。理由：
 1. 声明过滤保证安全性（Agent 只感知它声明了的 Skill）
 2. `topPattern` 粗筛性能开销极低
 3. `intentSignature` 精确匹配提供最准确的匹配
+4. 回退到空集而非全体——符合 00-vision.md 约束 4（不引入任何外部假定的最简行为）。匹配失败时注入全体 Skill 会违反"最小运行时"原则，导致工具集非预期膨胀
 
 **拒绝了**：单一向量相似度匹配。理由：在无可靠 Embedding 模型时，精确匹配优于语义模糊匹配；精确匹配失败时可以优雅回退。
 

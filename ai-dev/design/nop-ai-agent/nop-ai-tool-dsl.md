@@ -114,7 +114,7 @@
 - `paralllel` 表达是否允许并行
 - `maxConcurrency` 限制这一批调用的最大并发数
 
-注意：schema 中属性名当前是 `paralllel`，文档应忠实反映现状，不擅自修正成别的 DSL 名称。
+注意：schema 中属性名当前是 `paralllel`（拼写错误），文档应忠实反映现状。**修正计划**：在 xdef schema 中将属性名修正为 `parallel`，同时保留 `paralllel` 作为 deprecated alias（XDSL 兼容性），下个 breaking version 移除 alias。
 
 ## 5. `call-tools-response.xdef`
 

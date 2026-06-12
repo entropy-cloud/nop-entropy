@@ -28,9 +28,9 @@
 
 1. 引擎维护一个"写意图注册表"（Phase 1 的简化机制）
 2. 工具执行写操作前，先注册写意图
-3. 如果检测到冲突（同一文件已有其他 Agent 的写意图），触发冲突处理策略
-4. Phase 1 策略：报错中止（fail-fast，即 §4.4 的 L3 层）
-5. Phase 2+ 策略：通过协调信道广播 scope_claim/operation_intent，实现 LLM 智能协调 + 引擎级预警（见 §4）
+3. 如果检测到冲突（同一文件已有其他 Agent 的写意图），委托给 `IConflictStrategy` 处理（见 §4.4）
+4. 默认策略 `FailFastStrategy`：报错中止
+5. 扩展策略 `CoordinationBusStrategy`：通过协调信道广播 scope_claim/operation_intent，实现 LLM 智能协调 + 引擎级预警（见 §4）
 
 ### 3.2 共享资源竞争
 
@@ -42,8 +42,8 @@
 
 1. 工具可以通过上下文声明资源需求（如"需要独占端口 3000"）
 2. 引擎检查当前资源使用情况
-3. Phase 1 策略：不自动协调，依赖外部调度
-4. Phase 2+ 策略：资源调度队列
+3. 默认策略：不自动协调，依赖外部调度
+4. 扩展策略：资源调度队列（通过 `IConflictStrategy` 扩展或独立 `IResourceScheduler` 接口）
 
 ### 3.3 上下文依赖冲突
 
@@ -94,7 +94,17 @@
 | **L2: 引擎级预警** | conflict_alert | 引擎检测到 scope 交叉时主动广播预警 |
 | **L3: 引擎级 fail-fast** | 操作前检查 | scope_claim 的资源模式冲突时直接拒绝（安全兜底） |
 
-Phase 1 实现 L3（简单 fail-fast）。Phase 2 实现 L1+L2（协调信道 + 注入）。
+**接口抽象**：三层策略通过 `IConflictStrategy` 接口统一：
+
+```
+IConflictStrategy:
+  ConflictResult resolve(WriteIntent current, Set<WriteIntent> existing)
+```
+
+- `FailFastStrategy`（默认）— 检测到冲突直接拒绝。Phase 1 使用此实现
+- `CoordinationBusStrategy`（扩展）— 通过协调信道广播 scope_claim/operation_intent，实现 LLM 智能协调 + 引擎级预警。通过 XDSL 配置切换
+
+**渐进式增强路径**：引擎通过 `IConflictStrategy` 接口调用，不直接包含 if-branching。Phase 1 注册 `FailFastStrategy`；Phase 2 替换为 `CoordinationBusStrategy`。引擎代码不变。
 
 ### 4.5 与 IMessageService 的关系
 

@@ -29,6 +29,10 @@
 
 | 术语 | 层级 | 定义 |
 |------|------|------|
+| `IAuditLogger` | Layer 1 | 审计日志记录（默认 `Slf4jAuditLogger`，写入标准日志；可替换为 DB 持久化实现） |
+| `IContentTrustEvaluator` | Layer 1 | 内容来源可信度评估（默认 `DefaultContentTrustEvaluator`：CHANNEL_INPUT/AGENT_GENERATED 为 trusted） |
+| `IConflictStrategy` | Layer 2 | 多 Agent 冲突解决策略（默认 `FailFastStrategy`；扩展 `CoordinationBusStrategy`） |
+| `ISessionManager` | Layer 1 | Session 生命周期管理（加载/保存/分叉/压缩/快照） |
 | `IAgentEngine` | Gateway | Actor 消息入口：接受消息，路由到 AgentActor |
 | `IAgentExecutor` | Layer 1 | 执行策略接口（`execute()` 返回 `CompletionStage<AgentExecutionResult>`） |
 | `IAgentMemory` | Layer 1 | 三层记忆管理（短期 compaction + Working Memory 工具 + 长期 IMemoryAdapter） |
@@ -53,7 +57,18 @@
 | `IChannelConnector` | Gateway | 外部信道连接器 |
 | `ISkillProvider` | Layer 2 | Skill 引擎：发现和装配技能 |
 
+## 数据结构
+
+| 术语 | 定义 | 首次定义 |
+|------|------|---------|
+| `TeamAclEntry` | Team ACL 规则：actorRole × resource → actions | actor-runtime-vision.md §5.1 |
+| `FencingToken` | 并发写入防护令牌：actorId + monotonicCounter + issuedAt | actor-runtime-vision.md §5.1 |
+| `SessionSnapshot` | Session 快照：snapshotId + sessionId + messageCount + tokenEstimate + storageRef | session-engine.md §6.2 |
+| `ContentOrigin` | 内容来源枚举：CHANNEL_INPUT, WEB_FETCH, FILE_READ, AGENT_GENERATED | security-and-permissions.md §4 |
+
 ## 事件类型
+
+**核心事件（Layer 1）**：
 
 | 术语 | 定义 |
 |------|------|
@@ -64,6 +79,20 @@
 | `AgentResult` | Agent 执行完成 |
 | `AgentError` | Agent 执行错误 |
 | `AgentInterrupted` | Agent 被中断 |
+
+**扩展事件（Layer 2-4）**：
+
+| 术语 | 层级 | 定义 |
+|------|------|------|
+| `HookExecuted` | Layer 2 | Hook 执行完成（含 hook 名称、耗时、结果） |
+| `SteeringInjected` | Layer 2 | Steering 消息注入（含消息来源、内容摘要） |
+| `CompactionCompleted` | Layer 2 | 上下文压缩完成（含 CompactionEntry 关键字段） |
+| `ForkCreated` | Layer 2 | Session 分叉（含 parentSessionId, childSessionId） |
+| `ConflictDetected` | Layer 3 | 多 Agent 冲突检测（含冲突类型、涉及 Agent、资源） |
+| `ConflictResolved` | Layer 3 | 冲突解决（含策略名称、决策结果） |
+| `CoordinationMessage` | Layer 3 | 协调消息广播/接收（含消息类型、发送方、内容） |
+| `ApprovalDecision` | Layer 3 | 审批决策（含决策结果、审批人、原因） |
+| `SecurityDecision` | Layer 1 | 安全决策（含决策类型 allow/deny、命中规则、原因） |
 
 ## Hook 生命周期点
 

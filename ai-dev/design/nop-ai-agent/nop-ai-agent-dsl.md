@@ -58,6 +58,17 @@
 - 不直接参与 runtime 主循环语义
 - 适合做管理和发现维度
 
+### 3.3 `mode`
+
+- 可选值：`react` | `plan` | `single-turn`
+- 默认值：`react`
+- Phase 1 只实现 `react`；`plan` 和 `single-turn` 为 Phase 2+ 预留
+- `DefaultAgentEngine` 根据此属性分发到不同 `IAgentExecutor` 实现：
+  - `react` → `ReActAgentExecutor`（标准 ReAct 循环）
+  - `plan` → `PlanAgentExecutor`（按 Plan 阶段驱动执行，Phase 2）
+  - `single-turn` → `SingleTurnExecutor`（一轮问答，无工具调用循环，Phase 2）
+- **Phase 1 锁死前必须加入**：如果 Phase 1 的 ReActAgentExecutor 假设"agent 就是 ReAct 循环"，Phase 2 添加 `mode="plan"` 时接口不需要改，只需新增 executor 实现。XDEF 新增可选属性不影响已有 `.agent.xml`
+
 ## 4. 顶层子节点语义
 
 ### 4.1 `description`

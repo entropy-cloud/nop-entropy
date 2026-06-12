@@ -24,7 +24,7 @@ Agent 上下文是引擎层概念，不是 DSL 层概念。它由以下维度构
 | 维度 | 说明 | 是否持久化 |
 |------|------|-----------|
 | 消息历史 | 当前会话的完整消息序列 | 是（VFS `.nop/` Event Log） |
-| 协调消息 | 其他 Agent 的 scope_claim/operation_intent（见 multi-agent.md §4） | 否（每轮 ReAct 前注入，不持久化） |
+| 协调消息 | 其他 Agent 的 scope_claim/operation_intent（见 multi-agent.md §4） | 是（标记为 `pinned`，至少在 session 生命周期内保留。审计需要追溯协调决策的影响） |
 | 计划状态 | 当前 Plan 的结构和进度 | 是（项目级 `ai-dev/plans/`，AGE 规范，跨 session） |
 | 工具集 | 当前 Agent 可见的工具集合 | 否（运行时装配） |
 | 约束配置 | maxIterations、token 预算、超时等 | 否（从 DSL 读取） |

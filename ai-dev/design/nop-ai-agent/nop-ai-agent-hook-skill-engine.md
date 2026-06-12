@@ -19,6 +19,12 @@ Hook 引擎负责：
 - `HookInvoker`
 - `HookExecutionPolicy`
 
+**排序语义**：同一 Hook 点上的多个 Hook 按 `priority` 升序执行（数值小的先执行）。无 `priority` 声明时默认 `0`。相同 `priority` 按注册序执行。
+
+**超时策略**：每个 Hook 执行有 `hookTimeoutSeconds` 限制（默认 30s），超时后记录 `HookTimeout` 警告并继续（不中断 ReAct 循环）。`before_*` 和 `after_*` Hook 超时不阻断执行；`on_error` Hook 超时使用 fallback 默认错误处理。
+
+**失败传播**：`before_*` Hook 失败 → 阻止当前操作（返回 Hook veto）；`after_*` Hook 失败 → 记录但不影响已完成操作；`on_error` Hook 失败 → 使用引擎默认错误处理。
+
 ## 3. Skill 引擎
 
 Skill 引擎负责：
@@ -53,6 +59,23 @@ ReAct 引擎负责调用：
 - 发现 Skill
 - 解析 Skill 激活条件
 - 管理 Hook 优先级规则
+
+## 5a. Hook 类型扩展（MiMoCode 吸收）
+
+除了 §4 定义的 before/after/on_error 事件 Hook，新增两个**允许 ReAct 重入**的 Hook 点：
+
+| Hook 点 | 触发时机 | 允许重入 | 典型用途 |
+|---------|---------|---------|---------|
+| `before_tool_result_processed` | 工具执行完成、结果写入消息历史之前 | ✅ 可返回 `ReenterResult` | 工具结果修复、结果拦截重试 |
+| `after_tool_result_processed` | 工具结果已写入消息历史、下一轮推理之前 | ✅ 可返回 `ReenterResult` | 结果评审、触发子任务 |
+
+**重入语义**：
+- Hook 返回 `ReenterResult{message}` → 引擎注入该消息，跳过当前轮剩余步骤，进入下一轮 ReAct
+- Hook 返回 `PassResult` → 继续正常流程
+- Hook 超时 → 默认 Pass
+- 重入次数限制：单个 Hook 点连续重入 N 次（默认 3 次）→ 强制 Pass，防止死循环
+
+**设计理由**：MiMoCode 的 PreStop/PostStop ReAct 重入钩子被证明能有效处理工具结果异常（JSON 截断修复、结果拦截重试）和后处理（结果评审、知识提取）。Nop 现有 Hook 只有事件通知，没有"改变执行流"的能力。两个新 Hook 点给引擎增加了"执行流修正"能力，而不需要拆解 ReAct 循环本身。
 
 ## 6. 内部 Agent 化
 

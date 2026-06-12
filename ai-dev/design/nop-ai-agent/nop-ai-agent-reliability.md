@@ -209,6 +209,69 @@ Agent 可能会反复调用同一个工具、同一组参数。
 
 这类能力需要明确存储模型和触发时机，因此建议等 runtime 稳定后再实现。
 
+### 5.4a Checkpoint Journal 格式（MiMoCode 吸收）
+
+参考 MiMoCode 的 `checkpoint.ts`（1478 行），检查点日志采用 `journal.md` + `snapshot.json` 双文件格式：
+
+**journal.md**（追加写入，source of truth）：
+```markdown
+# Checkpoint Journal - sess-001
+
+## CP-001
+type: tool_execution
+seq: 1
+timestamp: 2026-06-12T10:00:00Z
+entries:
+  - tool: file_write
+    callId: call_abc
+    input: { path: "src/main.java", content: "..." }
+    output: { status: "ok" }
+watermark: cp_001
+
+## CP-002
+type: llm_turn
+seq: 2
+timestamp: 2026-06-12T10:01:00Z
+entries:
+  - turn: 3
+    promptTokens: 4500
+    completionTokens: 1200
+    toolCalls: [call_def, call_ghi]
+watermark: cp_002
+```
+
+**snapshot.json**（派生缓存，可重建）：
+```json
+{
+  "snapshotId": "snap-003",
+  "sessionId": "sess-001",
+  "lastWatermark": "cp_002",
+  "messageCount": 14,
+  "tokenEstimate": 8500,
+  "planStatus": { "phase": "implementation", "progress": "0.6" },
+  "toolResults": [
+    { "callId": "call_def", "tool": "file_write", "status": "success" }
+  ],
+  "createdAt": "2026-06-12T10:01:00Z"
+}
+```
+
+**恢复流程**：
+1. 定位最近的 `snapshot.json`
+2. 从 `lastWatermark` 之后的 journal entries 重建增量状态
+3. 加载 `firstKeptEntryId` 之后的消息（与 session-and-storage.md §5.3 一致）
+
+**触发时机**：
+- 每个 LLM turn 完成后自动写入 journal entry
+- 压缩时生成完整 snapshot
+- 工具执行前后（仅 long-running tool）写入 tool-level checkpoint
+
+**与 Nop Event Log 的关系**：
+- Journal 是 Event Log 的运行时加速结构，不是替代
+- Event Log（`events.jsonl`）保持 source of truth 地位
+- Journal 提供按 watermark 快速定位和恢复的能力
+- Phase 1 用 Event Log 重建即可；Phase 2 可选启用 journal 加速恢复
+
 ## 6. 工具失败处理
 
 ### 6.1 两类失败
@@ -254,6 +317,16 @@ Agent 可能会反复调用同一个工具、同一组参数。
 | Layer 4 | 强制退出 | 0 或 1 次 | context >90% | 生成最终摘要，停止工具调用，发布 AgentEvent.FORCED_STOP | Reasonix |
 
 **逐级升级规则**：Layer 0 是独立预截断（每次工具执行后自动应用），Layer 1→2→3 逐级尝试——本级解决问题则停止，不跳级。Layer 4 是硬上限保护。
+
+**各层 NoOp/fallback 行为**：
+
+| 层级 | 前提条件不满足时 | 触发条件独立？ |
+|------|---------------|-------------|
+| Layer 0 | `enabled=false` 时不截断 | ✅ 独立（每次工具执行后） |
+| Layer 1 | 无可压缩工具（非 read_file/bash/grep 等）→跳过 | ✅ 独立（ReAct 每轮检查 token 占比） |
+| Layer 2 | head + tail 窗口重叠（消息过少）→跳过 | ⚠️ 依赖 Layer 1 已执行。**设计修正**：Layer 2 改为独立检查自己的触发条件（`messageCount > layer2Threshold`），而非"超过 Layer 1 阈值" |
+| Layer 3 | LLM 不可用 → 降级为 Layer 2 效果（保留更多原始消息），记录 fallback 日志 | ✅ 独立（有自己的触发阈值） |
+| Layer 4 | 不适用（硬保护始终生效） | ✅ 独立 |
 
 ### 7.3 触发机制
 

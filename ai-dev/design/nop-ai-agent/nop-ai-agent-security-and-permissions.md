@@ -30,7 +30,7 @@
 
 ```
 Layer 4: Platform Security (平台安全层)
-   ISandboxBackend, ISensitivePathProvider, IAuditLogger
+   ISandboxBackend, ISensitivePathProvider
    ─── 依赖 Layer 1-3 ───
 
 Layer 3: Approval Governance (审批治理层)
@@ -42,11 +42,13 @@ Layer 2: Policy Extensions (策略扩展层)
    ─── 依赖 Layer 1 ───
 
 Layer 1: Core Security (核心安全层)
-   IPermissionProvider, IToolAccessChecker, IPathAccessChecker
+   IPermissionProvider, IToolAccessChecker, IPathAccessChecker, IAuditLogger
    ─── 无内部依赖 ───
 ```
 
 **依赖规则**：上层只依赖下层的接口。每层都有 pass-through 默认实现——系统可以只带 Layer 1 运行。
+
+**IAuditLogger 位于 Layer 1 的理由**：审计日志是安全底线决策的记录机制。Layer 1 的 deny/allow 决策如果没有审计记录，则 Layer 2-3 的分级策略和审批治理就没有可追溯的基线。IAuditLogger 的默认实现为 `Slf4jAuditLogger`（写入标准日志，单进程够用），Layer 4 的持久化审计（写入数据库）通过替换此接口实现升级。
 
 ## 4. Layer 1: Core Security（核心安全层）
 
@@ -57,8 +59,10 @@ Layer 1: Core Security (核心安全层)
 **接口**：3-source merge（opencode 模式）
 
 ```
-Permission resolve(toolName, agentName, sessionId, channelKind)
+Permission resolve(toolName, agentName, sessionId)
 ```
+
+> **Note**: `channelKind` parameter deferred to L2-14 (`IPermissionMatrix`). L1-6 interface omits it.
 
 **三个来源**（按优先级）：
 
@@ -70,7 +74,7 @@ Permission resolve(toolName, agentName, sessionId, channelKind)
 
 **合并语义**：deny-first（先匹配 deny，再匹配 allow，未命中默认拒绝）。
 
-**默认实现**：`HierarchicalPermissionProvider`（roadmap.md Layer 1 已定义）。
+**默认实现**：`DefaultPermissionProvider`（L1-6 ✅ 已实现）。实现类名从设计文档原始名 `HierarchicalPermissionProvider` 更名为 `DefaultPermissionProvider`。
 
 ### 4.2 IToolAccessChecker — 工具访问检查
 
@@ -185,6 +189,15 @@ Permission resolve(toolName, agentName, sessionId, channelKind)
 | 其他 | STANDARD | `!trustedSource` → ELEVATED; `highImpact` → RESTRICTED |
 
 **默认实现**：`NoOpSecurityLevelResolver`（所有操作返回 STANDARD，等于不分级）。
+
+**LevelHints 评估**：`trustedSource` 等 hints 需要程序化评估。定义 `IContentTrustEvaluator` 接口：
+
+```
+IContentTrustEvaluator:
+  boolean isTrustedSource(ContentOrigin origin, AgentExecutionContext ctx)
+```
+
+**来源**：ContentOrigin 枚举标识内容来源（`CHANNEL_INPUT`, `WEB_FETCH`, `FILE_READ`, `AGENT_GENERATED`）。默认实现 `DefaultContentTrustEvaluator`：CHANNEL_INPUT 和 AGENT_GENERATED 为 trusted，WEB_FETCH 和 FILE_READ 为 untrusted。可通过 XDSL 配置覆盖。
 
 **XDSL 配置化**：规则表定义为 `security-policy.xdef` schema，运行时从 DSL 装载。操作员可通过 Delta 覆盖默认规则，不需要改代码。
 

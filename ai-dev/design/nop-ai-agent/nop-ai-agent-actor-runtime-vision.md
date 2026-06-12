@@ -220,6 +220,48 @@ ActorRuntime
 - **User 隔离**：同一租户内的不同用户，只能看到自己的 Actor（除非通过团队共享）
 - **团队共享**：Team 内的 Actor 对团队成员可见，通过 Team 的 ACL 控制
 
+**Team ACL 模型**：
+
+```
+TeamAclEntry:
+  - teamId: String
+  - actorRole: ActorRole (LEAD | MEMBER)
+  - resource: AclResource
+  - actions: Set<AclAction>
+
+AclResource 枚举:
+  SESSION, PLAN, TOOL_EXECUTION, FILE_SCOPE, MESSAGE_CHANNEL
+
+AclAction 枚举:
+  READ, WRITE, EXECUTE, ADMIN
+```
+
+**默认 ACL 规则**：
+
+| 角色 | SESSION | PLAN | TOOL_EXECUTION | FILE_SCOPE | MESSAGE_CHANNEL |
+|------|---------|------|----------------|------------|-----------------|
+| LEAD | ADMIN | ADMIN | ADMIN | ADMIN | ADMIN |
+| MEMBER | READ (own), WRITE (own) | READ | EXECUTE | WRITE (assigned) | READ + WRITE |
+
+**权限派生**：子 Actor 继承父 Actor 的 ACL 规则，`LEAD` 可以通过 `permissions` override 收紧成员权限（只能收紧，不能放款）。
+
+**Fencing Token 协议**：解决并发写入冲突：
+
+```
+FencingToken:
+  - actorId: String
+  - monotonicCounter: long
+  - issuedAt: long (epoch ms)
+
+使用规则：
+  1. Actor 每次 scope_claim 时附带当前 fencing token
+  2. ResourceGuard 校验：token.counter 必须严格递增
+  3. 收到过期 token（counter <= 已记录值）→ 拒绝操作，广播 conflict_alert
+  4. Actor 恢复后重新获取 fencing token（counter 重置为 DB 中最大值 + 1）
+```
+
+Fencing token 的实现依赖 DB 的原子 CAS 操作（`UPDATE ... SET counter = ? WHERE counter = ?`），不需要分布式锁。
+
 ### 5.2 资源配额
 
 | 资源 | 配额维度 | 默认值 | 强制方式 |
@@ -251,12 +293,13 @@ ActorRuntime
 ### 6.2 持久化策略
 
 **Session 快照**（已有设计，见 `nop-ai-agent-session-and-storage.md`）：
-- Phase 1 使用文件系统保存 Session 状态（见 session-and-storage.md §2），本篇描述的 DB 持久化是 Phase 2+ 的演进
+- 初始阶段使用文件系统保存 Session 状态（见 session-and-storage.md §2），DB 持久化是后续演进
 - Actor 状态变更（status 转换、compaction 边界）立即写入 DB（事务保护）
 - `running` → `idle` / `failed` / `stopped` 都有对应的 DB 记录
 - 消息增量以 append-only event log 写入（非每次迭代完整快照）
 - 完整快照仅在 compaction 边界生成（CompactionEntry），非每次 ReAct 迭代
 - 邮箱中的未处理消息持久化到 DB（不怕进程崩溃丢消息）
+- **Fencing Token**：Compaction 和快照操作附带 fencing token，防止并发写入导致状态不一致
 
 **Actor 状态持久化**：
 - Actor 状态变更（status 转换）立即写入 DB（事务保护）
@@ -368,7 +411,7 @@ Lead Actor
 |---------|---------|
 | `01-architecture-baseline.md` | 本篇在其上方新增 Platform Layer，不改变 Agent Engine Layer |
 | `nop-ai-agent-react-engine.md` | ReAct 引擎不变，Actor 是其运行时容器 |
-| `nop-ai-agent-multi-agent.md` | 本篇是其 Phase 2+ 的具体实现方案 |
+| `nop-ai-agent-multi-agent.md` | 本篇的 `IConflictStrategy`、Team ACL、Fencing Token 是其协调策略的具体实现方案 |
 | `nop-ai-agent-session-and-storage.md` | Session 机制不变，增加 Actor 状态持久化 |
 | `nop-ai-agent-reliability.md` | 本篇的恢复策略是其具体实现 |
 | `nop-ai-agent-context-model.md` | 上下文模型不变，Actor 提供运行时上下文容器 |
@@ -380,11 +423,11 @@ Lead Actor
 |------|------|------|
 | **Phase 1** | ActorRuntime + ActorRegistry + Virtual Thread 调度 | ReAct 引擎完成 |
 | **Phase 2** | MessageRouter + call-agent 异步模式 + 多用户隔离 | Phase 1 |
-| **Phase 3** | TeamManager + TeamSpec DSL + 共享任务表 | Phase 2 |
-| **Phase 4** | RecoveryManager + 崩溃恢复 + 归档清理 | Phase 1 |
+| **Phase 3** | TeamManager + TeamSpec DSL + 共享任务表 + Team ACL | Phase 2 |
+| **Phase 4** | RecoveryManager + 崩溃恢复 + 归档清理 + Fencing Token | Phase 1 |
 | **Phase 5** | ResourceGuard + 协调信道 + 资源配额 | Phase 2 |
 
-Phase 1 和 Phase 4 可并行开发。Phase 3 依赖 Phase 2 完成。
+Phase 1 和 Phase 4 可并行开发。Phase 3 依赖 Phase 2 完成。各 Phase 通过接口隔离——引擎层只依赖 `IConflictStrategy`、`ITeamAclProvider`、`IFencingTokenService` 等接口，不直接依赖具体实现。
 
 ## 11. Open Questions
 

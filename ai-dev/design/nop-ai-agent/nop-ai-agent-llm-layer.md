@@ -236,9 +236,14 @@ nanobot 的 Provider 重试比简单的"重试 3 次"精细得多：需要区分
 
 重试上下文包含：尝试次数、上次错误、错误分类（TRANSIENT / NON_TRANSIENT / RATE_LIMITED / QUOTA_EXCEEDED）、是否已流出内容（用于流式保护）。
 
-### 7.3 两种重试模式
+### 7.3 三种重试模式
 
-**Standard 模式**（默认）：
+**NoRetry 模式**（Layer 1 默认）：
+- 从不重试，fail-fast
+- 适合确定性强、延迟敏感的调用（如幂等只读查询）
+- 符合 00-vision.md 约束 4 的"不引入任何外部假定"
+
+**Standard 模式**（Layer 3 默认，通过 XDSL 配置启用）：
 - 最多 3 次重试，指数退避
 - transient 错误重试，non-transient 不重试
 - 429: `rate_limit_exceeded` 按 Retry-After 等待重试，`insufficient_quota` 不重试
