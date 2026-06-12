@@ -1,18 +1,19 @@
 package io.nop.ai.toolkit.fs;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.io.stream.SafeLineReader;
 import io.nop.commons.path.AntPathMatcher;
-import io.nop.commons.path.IPathMatcher;
+import io.nop.commons.path.ICompiledPathMatcher;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.IoHelper;
+import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
     private static final Logger LOG = LoggerFactory.getLogger(LocalToolFileSystem.class);
 
     private final File workDir;
-    private final IPathMatcher pathMatcher = new AntPathMatcher();
+    private final AntPathMatcher antMatcher = new AntPathMatcher();
 
     public LocalToolFileSystem(File workDir) {
         this.workDir = workDir;
@@ -32,13 +33,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
 
     @Override
     public String normalizePath(String path) {
-        if (path == null) return null;
-        path = path.replace('\\', '/');
-        while (path.contains("/./") || path.contains("/..")) {
-            path = path.replace("/./", "/");
-            path = path.replaceAll("/[^/]+/\\.\\./", "");
-        }
-        return path;
+        return StringHelper.normalizePath(path);
     }
 
     @Override
@@ -48,7 +43,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
             File resolved = resolveFile(path);
             String canonicalWorkDir = workDir.getCanonicalPath();
             String canonicalPath = resolved.getCanonicalPath();
-            return canonicalPath.startsWith(canonicalWorkDir);
+            return StringHelper.pathStartsWith(canonicalPath, canonicalWorkDir);
         } catch (IOException e) {
             return false;
         }
@@ -90,16 +85,16 @@ public class LocalToolFileSystem implements IToolFileSystem {
             throw new IllegalArgumentException("File not found: " + path);
         }
 
+        Reader reader = null;
         try {
-            String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-            boolean truncated = false;
-            if (maxChars > 0 && content.length() > maxChars) {
-                content = content.substring(0, maxChars);
-                truncated = true;
-            }
+            reader = java.nio.file.Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
+            String content = SafeLineReader.readText(reader, maxChars);
+            boolean truncated = maxChars > 0 && content.length() >= maxChars && file.length() > maxChars;
             return new TextResult(path, content, truncated);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read file: " + path, e);
+            throw NopException.adapt(e);
+        } finally {
+            IoHelper.safeClose(reader);
         }
     }
 
@@ -110,30 +105,26 @@ public class LocalToolFileSystem implements IToolFileSystem {
             throw new IllegalArgumentException("File not found: " + path);
         }
 
+        int maxLen = maxLineLength > 0 ? maxLineLength : Integer.MAX_VALUE;
         List<Line> lines = new ArrayList<>();
-        int totalLines = 0;
-        int currentLine = 0;
+        int[] totalLines = {0};
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                totalLines++;
-                currentLine++;
-                if (currentLine >= fromLine && currentLine <= toLine) {
-                    boolean truncated = false;
-                    String content = line;
-                    if (maxLineLength > 0 && content.length() > maxLineLength) {
-                        content = content.substring(0, maxLineLength);
-                        truncated = true;
-                    }
-                    lines.add(new Line(currentLine, content, truncated));
-                }
+        Reader reader = null;
+        try {
+            reader = java.nio.file.Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
+            List<SafeLineReader.LineRead> lineReads = SafeLineReader.readLines(reader, fromLine, toLine, maxLen);
+            for (int i = 0; i < lineReads.size(); i++) {
+                SafeLineReader.LineRead lr = lineReads.get(i);
+                int lineNum = fromLine + i;
+                lines.add(new Line(lineNum, lr.getContent() != null ? lr.getContent() : "", lr.isTruncated()));
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read file: " + path, e);
+            throw NopException.adapt(e);
+        } finally {
+            IoHelper.safeClose(reader);
         }
 
-        return new LineResult(path, totalLines, fromLine, Math.min(toLine, totalLines), lines);
+        return new LineResult(path, lines.isEmpty() ? 0 : toLine, fromLine, Math.min(toLine, fromLine + lines.size() - 1), lines);
     }
 
     @Override
@@ -143,37 +134,24 @@ public class LocalToolFileSystem implements IToolFileSystem {
             throw new IllegalArgumentException("File not found: " + path);
         }
 
-        int count = 0;
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            while (reader.readLine() != null) {
-                count++;
-                if (maxLines > 0 && count >= maxLines) {
-                    break;
-                }
+        Reader reader = null;
+        try {
+            reader = java.nio.file.Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
+            if (maxLines <= 0) {
+                return SafeLineReader.countLines(reader);
             }
+            return SafeLineReader.countLines(reader, maxLines);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to count lines: " + path, e);
+            throw NopException.adapt(e);
+        } finally {
+            IoHelper.safeClose(reader);
         }
-        return count;
     }
 
     @Override
     public void writeText(String path, String content, boolean append) {
         File file = resolveFile(path);
-        if (!file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
-        }
-        try {
-            if (append) {
-                Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8),
-                        java.nio.file.StandardOpenOption.CREATE,
-                        java.nio.file.StandardOpenOption.APPEND);
-            } else {
-                Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write file: " + path, e);
-        }
+        FileHelper.writeText(file, content, StandardCharsets.UTF_8.name(), append);
     }
 
     @Override
@@ -223,27 +201,13 @@ public class LocalToolFileSystem implements IToolFileSystem {
         }
 
         if (file.isDirectory() && recursive) {
-            deleteRecursive(file);
+            FileHelper.deleteAll(file);
         } else {
             if (force && file.isFile()) {
                 file.setWritable(true);
             }
             file.delete();
         }
-    }
-
-    private void deleteRecursive(File dir) {
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    deleteRecursive(file);
-                } else {
-                    file.delete();
-                }
-            }
-        }
-        dir.delete();
     }
 
     @Override
@@ -258,12 +222,10 @@ public class LocalToolFileSystem implements IToolFileSystem {
             throw new IllegalArgumentException("Target file already exists: " + toPath);
         }
 
-        if (!toFile.getParentFile().exists()) {
-            toFile.getParentFile().mkdirs();
-        }
+        FileHelper.assureParent(toFile);
 
-        if (!fromFile.renameTo(toFile)) {
-            throw new RuntimeException("Failed to move file: " + fromPath + " to " + toPath);
+        if (!FileHelper.moveFile(fromFile, toFile)) {
+            throw NopException.adapt(new IOException("Failed to move file: " + fromPath + " to " + toPath));
         }
     }
 
@@ -279,72 +241,47 @@ public class LocalToolFileSystem implements IToolFileSystem {
             throw new IllegalArgumentException("Target file already exists: " + toPath);
         }
 
-        if (!toFile.getParentFile().exists()) {
-            toFile.getParentFile().mkdirs();
-        }
+        FileHelper.assureParent(toFile);
 
-        try {
-            if (fromFile.isDirectory() && recursive) {
-                copyDirectory(fromFile, toFile);
-            } else {
-                Files.copy(fromFile.toPath(), toFile.toPath());
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to copy file: " + fromPath + " to " + toPath, e);
-        }
-    }
-
-    private void copyDirectory(File fromDir, File toDir) throws IOException {
-        if (!toDir.exists()) {
-            toDir.mkdirs();
-        }
-        File[] files = fromDir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                File targetFile = new File(toDir, file.getName());
-                if (file.isDirectory()) {
-                    copyDirectory(file, targetFile);
-                } else {
-                    Files.copy(file.toPath(), targetFile.toPath());
-                }
-            }
+        if (fromFile.isDirectory() && recursive) {
+            FileHelper.copyWithFilter(fromFile, toFile, null);
+        } else {
+            FileHelper.copyFile(fromFile, toFile);
         }
     }
 
     @Override
     public List<FileInfo> glob(String pattern, String directory, boolean recursive, int maxDepth, int maxResults) {
         List<FileInfo> result = new ArrayList<>();
-        try {
-            PathMatcher pathMatcher = new PathMatcher(pattern);
-            Path basePath = directory == null || directory.isEmpty() 
-                ? workDir.toPath() 
+        ICompiledPathMatcher matcher = antMatcher.compile(pattern);
+        Path basePath = StringHelper.isEmpty(directory)
+                ? workDir.toPath()
                 : resolveFile(directory).toPath();
-            globRecursive(basePath, "", pathMatcher, recursive, maxDepth, 0, maxResults, result);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to glob: " + pattern, e);
-        }
+        globRecursive(basePath, "", matcher, recursive, maxDepth, 0, maxResults, result);
         return result;
     }
 
-    private void globRecursive(Path baseDir, String relativePath, PathMatcher matcher, 
+    private void globRecursive(Path baseDir, String relativePath, ICompiledPathMatcher matcher,
                                boolean recursive, int maxDepth, int currentDepth,
-                               int maxCount, List<FileInfo> result) throws IOException {
+                               int maxCount, List<FileInfo> result) {
         if (result.size() >= maxCount) return;
         if (maxDepth > 0 && currentDepth >= maxDepth) return;
 
-        try (Stream<Path> paths = Files.list(baseDir)) {
+        try (Stream<Path> paths = java.nio.file.Files.list(baseDir)) {
             for (Path path : paths.collect(Collectors.toList())) {
                 if (result.size() >= maxCount) break;
 
                 String relPath = relativePath.isEmpty() ? path.getFileName().toString()
                         : relativePath + "/" + path.getFileName().toString();
-                if (Files.isDirectory(path) && recursive) {
+                if (java.nio.file.Files.isDirectory(path) && recursive) {
                     globRecursive(path, relPath, matcher, recursive, maxDepth, currentDepth + 1, maxCount, result);
-                } else if (matcher.matches(relPath)) {
+                } else if (matcher.match(relPath)) {
                     File file = path.toFile();
                     result.add(new FileInfo(relPath, file.getName(), false, file.length(), file.lastModified()));
                 }
             }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
         }
     }
 
@@ -377,8 +314,8 @@ public class LocalToolFileSystem implements IToolFileSystem {
             if (filesWithMatches >= maxFiles) break;
 
             if (file.isDirectory() && recursive) {
-                grepRecursive(file, basePath + "/" + file.getName(), pattern, recursive, 
-                             maxMatchesPerFile, maxFiles, maxDepth, currentDepth + 1, result);
+                grepRecursive(file, basePath + "/" + file.getName(), pattern, recursive,
+                        maxMatchesPerFile, maxFiles, maxDepth, currentDepth + 1, result);
             } else if (file.isFile()) {
                 int matchesBefore = result.size();
                 grepInFile(file, basePath + "/" + file.getName(), pattern, maxMatchesPerFile, result);
@@ -390,35 +327,25 @@ public class LocalToolFileSystem implements IToolFileSystem {
     }
 
     private void grepInFile(File file, String filePath, Pattern pattern, int maxMatches, List<SearchMatch> result) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
-            int lineNumber = 0;
+        SafeLineReader sr = null;
+        try {
+            Reader reader = java.nio.file.Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
+            sr = new SafeLineReader(reader);
             int matchesInFile = 0;
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                if (matchesInFile >= maxMatches) return;
-
-                java.util.regex.Matcher matcher = pattern.matcher(line);
+            while (sr.hasNext() && matchesInFile < maxMatches) {
+                SafeLineReader.LineRead lr = sr.readLine(65536);
+                if (lr.getContent() == null) break;
+                java.util.regex.Matcher matcher = pattern.matcher(lr.getContent());
                 if (matcher.find()) {
                     String matchedText = matcher.group();
-                    result.add(new SearchMatch(filePath, lineNumber, line, matchedText, false));
+                    result.add(new SearchMatch(filePath, (int) sr.getLineIndex(), lr.getContent(), matchedText, lr.isTruncated()));
                     matchesInFile++;
                 }
             }
         } catch (IOException e) {
             LOG.debug("Failed to read file for grep: {}", filePath);
-        }
-    }
-
-    private static class PathMatcher {
-        private final String pattern;
-
-        PathMatcher(String pattern) {
-            this.pattern = pattern.replace("*", ".*").replace("?", ".");
-        }
-
-        boolean matches(String path) {
-            return path.matches(pattern);
+        } finally {
+            IoHelper.safeCloseObject(sr);
         }
     }
 }
