@@ -147,6 +147,29 @@ ORM 文件组件在实体 flush/delete 时自动管理文件绑定：
 - **实体删除**：自动 detach 并删除文件记录；如果物理文件无其他引用则一并删除
 - **实体复制**：`copyFile()` 创建新记录指向同一物理文件
 
+#### attachFile bizObjName 约束
+
+`onEntityFlush()` 执行 attach 时，校验 `NopFileRecord.bizObjName` 必须与当前实体的实体名一致（`entity.orm_entityName()` 的简短名，如 `NopAuthUser`）。**直接设置 filePath 为其他实体的文件链接会导致 flush 时抛出 `ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ`**：
+
+```java
+// ❌ 错误：fileId 来自其他实体的文件记录
+entity.setFilePath("/f/download/" + someOtherFileId);
+// flush 时 attachFile 报错：bizObjName 不匹配
+
+// ✅ 正确：使用 copyFrom 复制文件记录
+OrmFileComponent src = sourceEntity.getAvatarComponent();
+entity.getAvatarComponent().copyFrom(src);
+// copyFrom 内部调用 DaoResourceFileStore.copyFile()，创建新 NopFileRecord
+// 并自动设置目标实体的 bizObjName，flush 时 attachFile 通过
+```
+
+`copyFrom(OrmFileComponent)` 方法（仅 `OrmFileComponent` 有，`OrmFileListComponent` 无对应方法）：
+
+1. 通过 `IOrmEntityFileStore.copyFile()` 创建新 `NopFileRecord`，`bizObjName` 设为目标实体名、`originFileId` 指向源文件
+2. 新记录指向同一物理文件（不复制文件内容）
+3. 自动调用 `setFilePath()` 更新组件路径
+4. 如果源文件为空，`copyFrom` 无操作
+
 前端使用：实体字段的 `stdDomain="file"` 或 `control="file"` 时，`XuiViewAnalyzer` 自动将 `{propName}ComponentFileStatus` 的所有字段加入 GraphQL Selection，前端无需手动配置。
 
 ## 在 BizModel 中编程式操作文件
