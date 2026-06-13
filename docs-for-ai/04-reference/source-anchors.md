@@ -73,6 +73,10 @@
 | `INT-001` | `nop-integration/nop-integration-api/src/main/java/io/nop/integration/api/sms/ISmsSender.java` + `SmsMessage.java` | 外发短信默认接口与消息对象 |
 | `INT-002` | `nop-integration/nop-integration-api/src/main/java/io/nop/integration/api/email/IEmailSender.java` | 外发邮件默认接口 |
 | `RPT-001` | `nop-report/model/nop-report.orm.xml` + `nop-report/nop-report-web/src/main/resources/_vfs/nop/report/auth/_nop-report.action-auth.xml` | `nop-report` 的数据集、报表定义、结果文件和后台页面入口 |
+| `DB-001` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/DaoConfigs.java` (`CFG_AUTO_CONVERT_EMPTY_STRING_TO_NULL`) | 空字符串转 NULL 配置项，默认 `true`，Oracle 兼容 |
+| `DB-002` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java` (`getStringBinder` / `jdbcSet`) | Dialect 层空字符串转 NULL、VARCHAR 超长自动提升 CLOB 的实现 |
+| `DB-003` | `nop-kernel/nop-dataset/src/main/java/io/nop/dataset/binder/DataParameterBinders.java` (`STRING_EX`) | 空字符串转 NULL 的参数绑定器实现 |
+| `DB-004` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/_gen/_DialectFeatures.java` | Dialect 特性标志（useAsInFrom、supportNullsFirst 等） |
 
 ## 当前最重要的校准点
 
