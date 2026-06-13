@@ -250,6 +250,16 @@ public class ReActAgentExecutor implements IAgentExecutor {
             }
 
             while (ctx.getCurrentIteration() < ctx.getMaxIterations()) {
+                if (ctx.isCancelRequested()) {
+                    handleCancellation(ctx, sessionId, agentName);
+                    break;
+                }
+
+                if (shouldForceStop(ctx)) {
+                    handleForcedStop(ctx, sessionId, agentName);
+                    break;
+                }
+
                 if (shouldTriggerCompaction(ctx)) {
                     performCompaction(ctx, agentName);
                 }
@@ -475,6 +485,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     }
                 }
 
+                if (ctx.isCancelRequested()) {
+                    handleCancellation(ctx, sessionId, agentName);
+                    break;
+                }
+
                 ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
             }
 
@@ -482,23 +497,78 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 ctx.setStatus(AgentExecStatus.completed);
             }
 
-            invokeHooks(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
+            if (ctx.getStatus() != AgentExecStatus.cancelled
+                    && ctx.getStatus() != AgentExecStatus.forced_stopped) {
+                invokeHooks(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
 
-            Map<String, Object> completedPayload = new HashMap<>();
-            completedPayload.put("totalIterations", ctx.getCurrentIteration());
-            completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
-            completedPayload.put("durationMs", System.currentTimeMillis() - ctx.getStartTimeMs());
-            publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);
+                Map<String, Object> completedPayload = new HashMap<>();
+                completedPayload.put("totalIterations", ctx.getCurrentIteration());
+                completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
+                completedPayload.put("durationMs", System.currentTimeMillis() - ctx.getStartTimeMs());
+                publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);
+            }
 
         } catch (Exception e) {
-            ctx.setStatus(AgentExecStatus.failed);
-            ctx.setLastError(e.toString());
+            if (ctx.isCancelRequested()) {
+                Thread.currentThread().interrupt();
+                handleCancellation(ctx, sessionId, agentName);
+            } else {
+                ctx.setStatus(AgentExecStatus.failed);
+                ctx.setLastError(e.toString());
 
-            invokeOnError(ctx, agentName);
-            publishErrorEvent(AgentEventType.EXECUTION_FAILED, sessionId, agentName, e.toString());
+                invokeOnError(ctx, agentName);
+                publishErrorEvent(AgentEventType.EXECUTION_FAILED, sessionId, agentName, e.toString());
+            }
         }
 
         return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
+    }
+
+    private void handleCancellation(AgentExecutionContext ctx, String sessionId, String agentName) {
+        ctx.setStatus(AgentExecStatus.cancelled);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("reason", ctx.getCancelReason() != null ? ctx.getCancelReason() : "");
+        publishEvent(AgentEventType.SESSION_CANCELLED, sessionId, agentName, payload);
+    }
+
+    /**
+     * Layer 4 forced-stop hard protection (design §7.2 Layer 4 / §7.3). Uses the
+     * calibrated {@link ITokenEstimator}'s <b>pre-call</b> estimate: if the
+     * estimated pending request exceeds {@code maxContextTokens *
+     * forcedStopPercent} (default 0.9), forced stop fires.
+     */
+    private boolean shouldForceStop(AgentExecutionContext ctx) {
+        long maxContextTokens = resolveMaxContextTokens(ctx);
+        double forcedStopPercent = CompactConfig.defaults().getForcedStopPercent();
+        long estimate = tokenEstimator.estimateTokens(ctx.getMessages());
+        if (estimate > maxContextTokens * forcedStopPercent) {
+            LOG.warn("Forced-stop triggered: pre-call estimate {} exceeds {}% of maxContextTokens {}. session={}",
+                    estimate, forcedStopPercent, maxContextTokens, ctx.getSessionId());
+            return true;
+        }
+        return false;
+    }
+
+    private void handleForcedStop(AgentExecutionContext ctx, String sessionId, String agentName) {
+        long maxContextTokens = resolveMaxContextTokens(ctx);
+        long estimate = tokenEstimator.estimateTokens(ctx.getMessages());
+
+        // Best-effort final summary: run the compaction pipeline (Layer 1 -> 2 -> 3)
+        // so a final summary/tail is retained for the record. Never fails the agent.
+        try {
+            performCompaction(ctx, agentName);
+        } catch (Exception e) {
+            LOG.warn("Final-summary compaction during forced stop failed, continuing with tail retention. session={}",
+                    sessionId, e);
+        }
+
+        ctx.setStatus(AgentExecStatus.forced_stopped);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("reason", "context-window-overflow");
+        payload.put("estimatedTokens", estimate);
+        payload.put("maxContextTokens", maxContextTokens);
+        payload.put("forcedStopPercent", CompactConfig.defaults().getForcedStopPercent());
+        publishEvent(AgentEventType.FORCED_STOP, sessionId, agentName, payload);
     }
 
     private boolean shouldTriggerCompaction(AgentExecutionContext ctx) {

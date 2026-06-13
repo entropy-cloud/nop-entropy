@@ -21,5 +21,11 @@ public enum AgentEventType {
 
     SESSION_CREATED,
 
-    SESSION_LOADED
+    SESSION_LOADED,
+
+    SESSION_CANCEL_REQUESTED,
+
+    SESSION_CANCELLED,
+
+    FORCED_STOP
 }

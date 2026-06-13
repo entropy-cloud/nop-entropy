@@ -26,6 +26,8 @@ public class AgentExecutionContext {
     private Map<String, Object> metadata;
     private String lastError;
     private long startTimeMs;
+    private volatile boolean cancelRequested;
+    private volatile String cancelReason;
 
     public AgentExecutionContext(AgentModel agentModel) {
         this.agentModel = agentModel;
@@ -150,5 +152,21 @@ public class AgentExecutionContext {
 
     public void setStartTimeMs(long startTimeMs) {
         this.startTimeMs = startTimeMs;
+    }
+
+    public boolean isCancelRequested() {
+        return cancelRequested;
+    }
+
+    public void setCancelRequested(boolean cancelRequested) {
+        this.cancelRequested = cancelRequested;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    public void setCancelReason(String cancelReason) {
+        this.cancelReason = cancelReason;
     }
 }

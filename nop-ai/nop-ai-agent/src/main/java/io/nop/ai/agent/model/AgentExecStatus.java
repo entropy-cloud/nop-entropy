@@ -7,5 +7,9 @@ public enum AgentExecStatus {
 
     completed,
 
-    failed
+    failed,
+
+    cancelled,
+
+    forced_stopped
 }

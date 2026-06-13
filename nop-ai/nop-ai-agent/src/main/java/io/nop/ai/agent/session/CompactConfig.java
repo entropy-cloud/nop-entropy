@@ -6,12 +6,22 @@ public class CompactConfig {
 
     public static final int DEFAULT_MAX_RECENT_TOOL_RESULTS = 6;
     public static final int DEFAULT_TRUNCATION_THRESHOLD_CHARS = 8000;
+    public static final double DEFAULT_TRIGGER_TOKEN_PERCENT = 0.8;
+    public static final double DEFAULT_FORCED_STOP_PERCENT = 0.9;
+    public static final double DEFAULT_KEEP_TAIL_PERCENT = 0.15;
+    public static final int DEFAULT_TRIGGER_MAX_MESSAGES = 30;
+    public static final String DEFAULT_COMPRESSION_MODEL = "";
 
     private final int targetTokens;
     private final String strategy;
     private final boolean preserveSystemMessages;
     private final int maxRecentToolResults;
     private final int truncationThresholdChars;
+    private final double triggerTokenPercent;
+    private final double forcedStopPercent;
+    private final double keepTailPercent;
+    private final int triggerMaxMessages;
+    private final String compressionModel;
 
     public CompactConfig(int targetTokens, String strategy, boolean preserveSystemMessages) {
         this(targetTokens, strategy, preserveSystemMessages,
@@ -20,11 +30,26 @@ public class CompactConfig {
 
     public CompactConfig(int targetTokens, String strategy, boolean preserveSystemMessages,
                          int maxRecentToolResults, int truncationThresholdChars) {
+        this(targetTokens, strategy, preserveSystemMessages,
+                maxRecentToolResults, truncationThresholdChars,
+                DEFAULT_TRIGGER_TOKEN_PERCENT, DEFAULT_FORCED_STOP_PERCENT,
+                DEFAULT_KEEP_TAIL_PERCENT, DEFAULT_TRIGGER_MAX_MESSAGES, DEFAULT_COMPRESSION_MODEL);
+    }
+
+    public CompactConfig(int targetTokens, String strategy, boolean preserveSystemMessages,
+                         int maxRecentToolResults, int truncationThresholdChars,
+                         double triggerTokenPercent, double forcedStopPercent,
+                         double keepTailPercent, int triggerMaxMessages, String compressionModel) {
         this.targetTokens = targetTokens;
         this.strategy = strategy;
         this.preserveSystemMessages = preserveSystemMessages;
         this.maxRecentToolResults = maxRecentToolResults;
         this.truncationThresholdChars = truncationThresholdChars;
+        this.triggerTokenPercent = triggerTokenPercent;
+        this.forcedStopPercent = forcedStopPercent;
+        this.keepTailPercent = keepTailPercent;
+        this.triggerMaxMessages = triggerMaxMessages;
+        this.compressionModel = compressionModel != null ? compressionModel : DEFAULT_COMPRESSION_MODEL;
     }
 
     public static CompactConfig defaults() {
@@ -52,6 +77,26 @@ public class CompactConfig {
         return truncationThresholdChars;
     }
 
+    public double getTriggerTokenPercent() {
+        return triggerTokenPercent;
+    }
+
+    public double getForcedStopPercent() {
+        return forcedStopPercent;
+    }
+
+    public double getKeepTailPercent() {
+        return keepTailPercent;
+    }
+
+    public int getTriggerMaxMessages() {
+        return triggerMaxMessages;
+    }
+
+    public String getCompressionModel() {
+        return compressionModel;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -61,13 +106,20 @@ public class CompactConfig {
                 && preserveSystemMessages == that.preserveSystemMessages
                 && maxRecentToolResults == that.maxRecentToolResults
                 && truncationThresholdChars == that.truncationThresholdChars
-                && Objects.equals(strategy, that.strategy);
+                && Double.compare(that.triggerTokenPercent, triggerTokenPercent) == 0
+                && Double.compare(that.forcedStopPercent, forcedStopPercent) == 0
+                && Double.compare(that.keepTailPercent, keepTailPercent) == 0
+                && triggerMaxMessages == that.triggerMaxMessages
+                && Objects.equals(strategy, that.strategy)
+                && Objects.equals(compressionModel, that.compressionModel);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(targetTokens, strategy, preserveSystemMessages,
-                maxRecentToolResults, truncationThresholdChars);
+                maxRecentToolResults, truncationThresholdChars,
+                triggerTokenPercent, forcedStopPercent, keepTailPercent,
+                triggerMaxMessages, compressionModel);
     }
 
     @Override
@@ -78,6 +130,11 @@ public class CompactConfig {
                 ", preserveSystemMessages=" + preserveSystemMessages +
                 ", maxRecentToolResults=" + maxRecentToolResults +
                 ", truncationThresholdChars=" + truncationThresholdChars +
+                ", triggerTokenPercent=" + triggerTokenPercent +
+                ", forcedStopPercent=" + forcedStopPercent +
+                ", keepTailPercent=" + keepTailPercent +
+                ", triggerMaxMessages=" + triggerMaxMessages +
+                ", compressionModel='" + compressionModel + '\'' +
                 '}';
     }
 }

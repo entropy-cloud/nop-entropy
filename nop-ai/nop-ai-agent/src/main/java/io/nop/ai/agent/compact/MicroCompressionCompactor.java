@@ -14,13 +14,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class MicroCompressionCompactor implements IContextCompactor {
+public class MicroCompressionCompactor implements IContextCompactor, ICompressionStrategy {
+
+    public static final String NAME = "layer1-micro-compression";
 
     public static final Set<String> COMPRESSIBLE_TOOLS = Set.of(
             "read_file", "bash", "grep", "search", "list_directory",
             "cat", "head", "tail", "glob", "find", "rg", "ls",
             "type", "dir", "get-content", "select-string"
     );
+
+    @Override
+    public String name() {
+        return NAME;
+    }
 
     @Override
     public CompactionResult compact(CompactionContext ctx) {
