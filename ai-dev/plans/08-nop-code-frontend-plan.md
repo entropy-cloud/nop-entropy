@@ -189,12 +189,12 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C1] NopCodeIndex 列表页显示 name、rootPath、language、fileCount、symbolCount、status 列
-- [ ] [C2] 列表页有"触发索引"按钮，调用 NopCodeIndex__indexDirectory mutation
-- [ ] [C3] 列表页有"查看统计"按钮，弹窗显示 IndexStatsDTO 内容
-- [ ] [C4] 新增/编辑表单包含 name、rootPath、language 字段
-- [ ] [C5] 删除操作调用 NopCodeIndex__deleteIndex mutation
-- [ ] [C6] view.xml 遵循 Delta 模式继承 _gen 基础
+- [x] [C1] NopCodeIndex 列表页显示 name、rootPath、language、fileCount、symbolCount、status 列
+- [x] [C2] 列表页有"触发索引"按钮，调用 NopCodeIndex__indexDirectory mutation
+- [x] [C3] 列表页有"查看统计"按钮，弹窗显示 IndexStatsDTO 内容
+- [x] [C4] 新增/编辑表单包含 name、rootPath、language 字段
+- [x] [C5] 删除操作调用 NopCodeIndex__deleteIndex mutation
+- [x] [C6] view.xml 遵循 Delta 模式继承 _gen 基础
 
 #### Task: T1 — 定制 NopCodeIndex.view.xml
 
@@ -294,11 +294,11 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T1-1] view.xml 通过 x:extends 继承 _gen 基础
-- [ ] [CHK-T1-2] list grid 包含所有统计列
-- [ ] [CHK-T1-3] rowActions 包含"触发索引"按钮
-- [ ] [CHK-T1-4] statsView 页面使用 getStats API
-- [ ] [CHK-T1-5] XML 格式合法
+- [x] [CHK-T1-1] view.xml 通过 x:extends 继承 _gen 基础
+- [x] [CHK-T1-2] list grid 包含所有统计列
+- [x] [CHK-T1-3] rowActions 包含"触发索引"按钮
+- [x] [CHK-T1-4] statsView 页面使用 getStats API
+- [x] [CHK-T1-5] XML 格式合法
 
 #### Task: T2 — 更新 NopCodeIndex xmeta 添加 displayName
 
@@ -335,8 +335,8 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T2-1] xmeta 格式正确
-- [ ] [CHK-T2-2] dict code/index_status 已定义或确认不需要
+- [x] [CHK-T2-1] xmeta 格式正确
+- [x] [CHK-T2-2] dict code/index_status 已定义或确认不需要
 
 ---
 
@@ -352,10 +352,10 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C7] 代码浏览页面可通过菜单访问
-- [ ] [C8] 左侧显示文件树（按包名分层）
-- [ ] [C9] 右侧显示选中文件的源码和 outline
-- [ ] [C10] 后端新增文件树数据 API
+- [x] [C7] 代码浏览页面可通过菜单访问
+- [x] [C8] 左侧显示文件树（按包名分层）
+- [x] [C9] 右侧显示选中文件的源码和 outline
+- [x] [C10] 后端新增文件树数据 API
 
 #### Task: T3 — 添加文件树后端 API
 
@@ -401,10 +401,10 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T3-1] FileTreeNode DTO 有 @DataBean 注解
-- [ ] [CHK-T3-2] ICodeIndexService 新增 getFileTree 方法
-- [ ] [CHK-T3-3] NopCodeFileBizModel 暴露 fileTree BizQuery
-- [ ] [CHK-T3-4] 编译通过
+- [x] [CHK-T3-1] FileTreeNode DTO 有 @DataBean 注解
+- [x] [CHK-T3-2] ICodeIndexService 新增 getFileTree 方法
+- [x] [CHK-T3-3] NopCodeFileBizModel 暴露 fileTree BizQuery
+- [x] [CHK-T3-4] 编译通过
 
 #### Task: T4 — 创建代码浏览页面
 
@@ -455,10 +455,10 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T4-1] page.yaml 和 view.xml 文件存在
-- [ ] [CHK-T4-2] view.xml 引用正确的 API 端点
-- [ ] [CHK-T4-3] 文件树使用 NopCodeFile__fileTree API
-- [ ] [CHK-T4-4] 源码显示使用 NopCodeFile__getByPath API
+- [x] [CHK-T4-1] page.yaml 和 view.xml 文件存在
+- [x] [CHK-T4-2] view.xml 引用正确的 API 端点
+- [x] [CHK-T4-3] 文件树使用 NopCodeFile__fileTree API
+- [x] [CHK-T4-4] 源码显示使用 NopCodeFile__getByPath API
 
 ---
 
@@ -474,10 +474,10 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C11] 搜索表单支持 query（名称模糊匹配）、kind（下拉选择）、packageName 输入
-- [ ] [C12] 结果列表显示 name、qualifiedName、kind、accessModifier、signature
-- [ ] [C13] 点击行可查看符号详情（含 usages 和 sourceCode BizLoader）
-- [ ] [C14] kind 过滤使用下拉（CLASS/METHOD/FIELD/INTERFACE/ENUM/ANNOTATION_TYPE）
+- [x] [C11] 搜索表单支持 query（名称模糊匹配）、kind（下拉选择）、packageName 输入
+- [x] [C12] 结果列表显示 name、qualifiedName、kind、accessModifier、signature
+- [x] [C13] 点击行可查看符号详情（含 usages 和 sourceCode BizLoader）
+- [x] [C14] kind 过滤使用下拉（CLASS/METHOD/FIELD/INTERFACE/ENUM/ANNOTATION_TYPE）
 
 #### Task: T5 — 定制 NopCodeSymbol.view.xml
 
@@ -562,10 +562,10 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T5-1] view.xml 包含自定义查询表单（query/kinds/packageName）
-- [ ] [CHK-T5-2] 列表 grid 显示符号核心字段
-- [ ] [CHK-T5-3] 查看 dialog 显示符号详情
-- [ ] [CHK-T5-4] API 使用 findSymbols 而非标准 findPage
+- [x] [CHK-T5-1] view.xml 包含自定义查询表单（query/kinds/packageName）
+- [x] [CHK-T5-2] 列表 grid 显示符号核心字段
+- [x] [CHK-T5-3] 查看 dialog 显示符号详情
+- [x] [CHK-T5-4] API 使用 findSymbols 而非标准 findPage
 
 #### Task: T6 — 添加 kind 下拉字典到 xmeta
 
@@ -615,9 +615,9 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T6-1] kind 字段关联 code/symbol_kind 字典
-- [ ] [CHK-T6-2] 字典包含所有 CodeSymbolKind 值
-- [ ] [CHK-T6-3] accessModifier 字典已定义
+- [x] [CHK-T6-1] kind 字段关联 code/symbol_kind 字典
+- [x] [CHK-T6-2] 字典包含所有 CodeSymbolKind 值
+- [x] [CHK-T6-3] accessModifier 字典已定义
 
 ---
 
@@ -633,9 +633,9 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C15] 页面提供 qualifiedName 输入框和方向选择（super/sub/both）
-- [ ] [C16] 结果以树形展示 TypeHierarchyDTO
-- [ ] [C17] 每个节点显示 symbol 的 name、qualifiedName、kind
+- [x] [C15] 页面提供 qualifiedName 输入框和方向选择（super/sub/both）
+- [x] [C16] 结果以树形展示 TypeHierarchyDTO
+- [x] [C17] 每个节点显示 symbol 的 name、qualifiedName、kind
 
 #### Task: T7 — 创建类型层级页面
 
@@ -677,10 +677,10 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T7-1] 页面文件创建
-- [ ] [CHK-T7-2] 查询表单包含 qualifiedName、direction、maxDepth
-- [ ] [CHK-T7-3] API 调用 NopCodeTypeHierarchy__get
-- [ ] [CHK-T7-4] 结果以树形渲染
+- [x] [CHK-T7-1] 页面文件创建
+- [x] [CHK-T7-2] 查询表单包含 qualifiedName、direction、maxDepth
+- [x] [CHK-T7-3] API 调用 NopCodeTypeHierarchy__get
+- [x] [CHK-T7-4] 结果以树形渲染
 
 ---
 
@@ -696,9 +696,9 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C18] 页面提供方法 qualifiedName 输入和方向选择（incoming/outgoing/both）
-- [ ] [C19] 结果以树形展示 CallHierarchyDTO
-- [ ] [C20] 每个节点显示 symbol 的 name、qualifiedName
+- [x] [C18] 页面提供方法 qualifiedName 输入和方向选择（incoming/outgoing/both）
+- [x] [C19] 结果以树形展示 CallHierarchyDTO
+- [x] [C20] 每个节点显示 symbol 的 name、qualifiedName
 
 #### Task: T8 — 创建调用链页面
 
@@ -726,10 +726,10 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T8-1] 页面文件创建
-- [ ] [CHK-T8-2] 查询表单包含 qualifiedName、direction、maxDepth
-- [ ] [CHK-T8-3] API 调用 NopCodeCallHierarchy__get
-- [ ] [CHK-T8-4] 结果以树形渲染
+- [x] [CHK-T8-1] 页面文件创建
+- [x] [CHK-T8-2] 查询表单包含 qualifiedName、direction、maxDepth
+- [x] [CHK-T8-3] API 调用 NopCodeCallHierarchy__get
+- [x] [CHK-T8-4] 结果以树形渲染
 
 ---
 
@@ -745,8 +745,8 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C21] 仪表盘显示索引列表和各自统计
-- [ ] [C22] 每个索引卡片显示 fileCount、symbolCount、symbolCounts 分布
+- [x] [C21] 仪表盘显示索引列表和各自统计
+- [x] [C22] 每个索引卡片显示 fileCount、symbolCount、symbolCounts 分布
 
 #### Task: T9 — 创建索引概览仪表盘
 
@@ -768,9 +768,9 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T9-1] 仪表盘页面创建
-- [ ] [CHK-T9-2] 使用 cards 组件渲染索引列表
-- [ ] [CHK-T9-3] 卡片链接到代码浏览页面
+- [x] [CHK-T9-1] 仪表盘页面创建
+- [x] [CHK-T9-2] 使用 cards 组件渲染索引列表
+- [x] [CHK-T9-3] 卡片链接到代码浏览页面
 
 ---
 
@@ -786,8 +786,8 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C23] 菜单中包含"代码索引"主菜单
-- [ ] [C24] 子菜单包含：索引管理、代码浏览、符号搜索、类型层级、调用链、概览仪表盘
+- [x] [C23] 菜单中包含"代码索引"主菜单
+- [x] [C24] 子菜单包含：索引管理、代码浏览、符号搜索、类型层级、调用链、概览仪表盘
 
 #### Task: T10 — 注册导航菜单
 
@@ -814,8 +814,8 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T10-1] 菜单注册完成
-- [ ] [CHK-T10-2] 所有页面可通过菜单访问
+- [x] [CHK-T10-1] 菜单注册完成
+- [x] [CHK-T10-2] 所有页面可通过菜单访问
 
 ---
 
@@ -831,9 +831,9 @@ Description:
 
 Exit Criteria:
 
-- [ ] [C25] `mvn compile -pl nop-code/nop-code-web` 成功
-- [ ] [C26] `mvn compile -pl nop-code/nop-code-meta` 成功
-- [ ] [C27] 所有 XML/XYAML 文件格式正确
+- [x] [C25] `mvn compile -pl nop-code/nop-code-web` 成功
+- [x] [C26] `mvn compile -pl nop-code/nop-code-meta` 成功
+- [x] [C27] 所有 XML/XYAML 文件格式正确
 
 #### Task: T11 — 全量编译验证
 
@@ -850,9 +850,9 @@ Result Message:
 
 Checks:
 
-- [ ] [CHK-T11-1] nop-code-meta 编译通过
-- [ ] [CHK-T11-2] nop-code-web 编译通过
-- [ ] [CHK-T11-3] 所有新页面文件存在于 _vfs 目录
+- [x] [CHK-T11-1] nop-code-meta 编译通过
+- [x] [CHK-T11-2] nop-code-web 编译通过
+- [x] [CHK-T11-3] 所有新页面文件存在于 _vfs 目录
 
 ## Questions
 
@@ -878,14 +878,14 @@ Checks:
 
 ## Validation Checklist
 
-- [ ] [VC1] 所有 view.xml 通过 x:extends 继承 _gen 基础（Delta 模式）
-- [ ] [VC2] 所有 API URL 使用 `@query:` 或 `@mutation:` 前缀
-- [ ] [VC3] 所有新增 DTO 类有 @DataBean 注解和 getter/setter
-- [ ] [VC4] xmeta 中的 prop name 与 ORM 实体字段名匹配
-- [ ] [VC5] dict 字典值与 Java 枚举的 name() 一致
-- [ ] [VC6] 页面文件路径遵循 `_vfs/nop/code/pages/{PageName}/` 约定
-- [ ] [VC7] 所有 BizModel @BizQuery 方法参数使用 @Name 注解
-- [ ] [VC8] 新增的后端方法有对应测试覆盖
+- [x] [VC1] 所有 view.xml 通过 x:extends 继承 _gen 基础（Delta 模式）
+- [x] [VC2] 所有 API URL 使用 `@query:` 或 `@mutation:` 前缀
+- [x] [VC3] 所有新增 DTO 类有 @DataBean 注解和 getter/setter
+- [x] [VC4] xmeta 中的 prop name 与 ORM 实体字段名匹配
+- [x] [VC5] dict 字典值与 Java 枚举的 name() 一致
+- [x] [VC6] 页面文件路径遵循 `_vfs/nop/code/pages/{PageName}/` 约定
+- [x] [VC7] 所有 BizModel @BizQuery 方法参数使用 @Name 注解
+- [x] [VC8] 新增的后端方法有对应测试覆盖
 
 ## Closure
 

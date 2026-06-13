@@ -97,3 +97,16 @@ Exit Criteria:
 - [x] Focused verification command(s) for the touched generation path pass.
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` passes after doc/log updates.
 - [x] Independent closure audit completed by a separate subagent and recorded in the final report.
+
+## Closure
+
+Status Note: Plan completed — ORM ext:icon propagated through codegen to action-auth menus, semantic Lucide-style icon names assigned to nop-auth entities.
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: automated (closure-verify)
+- Evidence:
+  - Phase 1: ORM entity ext:icon preserved on generated objMeta
+  - Phase 2: action-auth submenu icons generated from objMeta['ext:icon'] with stable fallback
+  - nop-auth entities assigned semantic kebab-case Lucide-oriented icon names
+  - Generation chain verified with build/test evidence

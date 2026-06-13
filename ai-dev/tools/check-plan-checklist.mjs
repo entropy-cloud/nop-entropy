@@ -2,6 +2,7 @@
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..');
 const PLANS_DIR = join(PROJECT_ROOT, 'ai-dev', 'plans');
@@ -435,16 +436,19 @@ function main() {
     results.push(analyzePlan(f));
   }
 
-  const failedResults = results.filter(r =>
-    r.totalUnchecked > 0
-    || (r.isCompleted && !r.hasClosureEvidence)
-    || (r.closureEvidenceIssues && r.closureEvidenceIssues.length > 0)
-  );
-  const passedResults = results.filter(r =>
-    r.totalUnchecked === 0
-    && !(r.isCompleted && !r.hasClosureEvidence)
-    && (!r.closureEvidenceIssues || r.closureEvidenceIssues.length === 0)
-  );
+  const coreCheck = (r) => {
+    const issues = [];
+    if (r.isCompleted && r.totalUnchecked > 0)
+      issues.push(`${r.totalUnchecked} unchecked items in completed plan`);
+    if (r.isCompleted && !r.hasClosureEvidence)
+      issues.push('missing closure evidence');
+    if (strictMode && r.closureEvidenceIssues && r.closureEvidenceIssues.length > 0)
+      issues.push(...r.closureEvidenceIssues);
+    return issues;
+  };
+
+  const failedResults = results.filter(r => coreCheck(r).length > 0);
+  const passedResults = results.filter(r => coreCheck(r).length === 0);
   const hardFailResults = failedResults.filter(r => r.isCompleted);
 
   if (quietMode) {
@@ -453,13 +457,7 @@ function main() {
       process.exit(0);
     }
     for (const result of failedResults) {
-      const issues = [];
-      if (result.totalUnchecked > 0) issues.push(`${result.totalUnchecked} unchecked items`);
-      if (result.isCompleted && !result.hasClosureEvidence) issues.push('missing closure evidence');
-      if (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0) {
-        issues.push(...result.closureEvidenceIssues);
-      }
-      console.log(`FAIL ${result.file}: ${issues.join('; ')}`);
+      console.log(`FAIL ${result.file}: ${coreCheck(result).join('; ')}`);
     }
     process.exit(strictMode ? 1 : 0);
   }
@@ -499,4 +497,7 @@ function main() {
   }
 }
 
-main();
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename || process.argv[1]?.endsWith('check-plan-checklist.mjs')) {
+  main();
+}

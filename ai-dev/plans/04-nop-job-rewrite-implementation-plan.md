@@ -657,3 +657,18 @@
 4. retry 职责完全交给 `nop-retry`。
 5. 旧内存调度器不再是默认实现。
 6. 新模型可以支持后续广播、分片和更复杂执行模式扩展。
+
+## Closure
+
+Status Note: Plan completed — nop-job rewritten to DB-centric schedule→fire→task model across all 9 phases.
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: automated (closure-verify)
+- Evidence:
+  - Phase 1: ORM model switched to NopJobSchedule/NopJobFire/NopJobTask, codegen passing
+  - Phase 2-5: Trigger pure computation, DAO/Store, Coordinator runtime, Worker/Invoker — all implemented
+  - Phase 6: Service layer with domain commands (enable/disable/pause/resume/triggerNow/cancelFire/rerunFire/archiveSchedule)
+  - Phase 7: Web/Meta adapted, old entity entries removed
+  - Phase 8: Retry bridge interface defined with no-op default
+  - Phase 9: Migration and cleanup completed

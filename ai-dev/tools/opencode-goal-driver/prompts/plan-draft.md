@@ -36,12 +36,13 @@ Requirements:
 5. Split into reasonable Phases (executable increments with clear Exit Criteria)
 6. Write explicit Exit Criteria (verifiable conditions like "file exists", "tests pass", "build passes")
 
-After creating the file, report the path in a FLOW_VARS block:
-<FLOW_VARS>
-  <PLAN_FILE>ai-dev/plans/NNN-slug.md</PLAN_FILE>
-</FLOW_VARS>
+After creating the file, report the path in a FLOW_VARS block.
+Replace `REAL_NNN` with the next available number and `REAL_SLUG` with a kebab-case summary.
+The path will be verified — it must point to a real file that exists on disk. If the file does not exist, you will be asked to fix it.
 
-Replace NNN with the next available number and slug with a kebab-case summary. The path will be verified — it must point to a real file that exists on disk. If the file does not exist, you will be asked to fix it.
+<FLOW_VARS>
+  <PLAN_FILE>ai-dev/plans/REAL_NNN-REAL_SLUG.md</PLAN_FILE>
+</FLOW_VARS>
 
 IMPORTANT: Your output marker MUST be exactly one of these two values:
 - <AI_STEP_RESULT>created</AI_STEP_RESULT> — when you created or updated a plan file

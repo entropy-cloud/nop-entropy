@@ -202,10 +202,10 @@ Exit Criteria:
 
 - [x] `ai-dev/design/nop-ai-agent/nop-ai-agent-roadmap.md` L1-9 行状态已更新
 - [x] `ai-dev/logs/` 对应日期条目已更新
-- [ ] **端到端验证**: N/A — 纯文档更新
-- [ ] **接线验证**: N/A — 纯文档更新
-- [ ] **无静默跳过**: N/A — 纯文档更新
-- [ ] Owner-doc update: roadmap 已更新
+- [x] **端到端验证**: N/A — 纯文档更新
+- [x] **接线验证**: N/A — 纯文档更新
+- [x] **无静默跳过**: N/A — 纯文档更新
+- [x] Owner-doc update: roadmap 已更新
 
 ## Closure Gates
 

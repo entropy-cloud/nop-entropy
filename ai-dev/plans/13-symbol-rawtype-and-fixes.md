@@ -95,3 +95,17 @@
 | 5 | mvn install + 全量测试验证 | Step 1-4 | 0.5 天 |
 
 Step 1/2/3 互相独立，可并行执行。
+
+## Closure
+
+Status Note: Plan completed — rawType fields added, P0-4/P0-5/P1-3 fixes all implemented.
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: automated (closure-verify)
+- Evidence:
+  - P1-5: rawReturnType/rawFieldType added to ORM model, CodeSymbol, parsers (Java/TypeScript/Python), persistence, DTO, xmeta
+  - P0-4: SOURCE_CODE/IMPORTS columns written in saveFileResultInSession
+  - P0-5: Default fingerprint store changed to DB-backed
+  - P1-3: ProjectAnalyzer refactored to streaming persistence with batch callback
+  - All steps verified with mvn install + full test

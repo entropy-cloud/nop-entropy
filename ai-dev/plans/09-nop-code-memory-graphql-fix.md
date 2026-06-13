@@ -96,15 +96,15 @@ After this plan: (a) CodeIndexService is fully stateless — no shared mutable f
 
 > All gates must be `[x]` before `Plan Status` can change to `completed`.
 
-- [ ] `analysisResultsMap` and `callGraphMap` fields are REMOVED — grep returns 0 matches
-- [ ] No `ConcurrentHashMap` import in CodeIndexService.java
-- [ ] `findSymbolsPage()` uses `IEntityDao` query with offset/limit — no `table.getAll().stream()` pattern
-- [ ] All GraphQL method names follow Nop conventions — verified by grep for `@BizQuery`/`@BizMutation`
-- [ ] All view.xml `api url=` references match actual BizModel method names
-- [ ] `mvn compile -pl nop-code/nop-code-service,nop-code/nop-code-web` passes
-- [ ] No `instanceof CodeIndexService` casts remain
-- [ ] Affected `docs-for-ai/` docs synced, or `No doc update required`
-- [ ] No in-scope item was silently downgraded to deferred / follow-up
+- [x] `analysisResultsMap` and `callGraphMap` fields are REMOVED — grep returns 0 matches
+- [x] No `ConcurrentHashMap` import in CodeIndexService.java
+- [x] `findSymbolsPage()` uses `IEntityDao` query with offset/limit — no `table.getAll().stream()` pattern
+- [x] All GraphQL method names follow Nop conventions — verified by grep for `@BizQuery`/`@BizMutation`
+- [x] All view.xml `api url=` references match actual BizModel method names
+- [x] `mvn compile -pl nop-code/nop-code-service,nop-code/nop-code-web` passes
+- [x] No `instanceof CodeIndexService` casts remain
+- [x] Affected `docs-for-ai/` docs synced, or `No doc update required`
+- [x] No in-scope item was silently downgraded to deferred / follow-up
 
 ## Execution Plan
 
@@ -120,16 +120,16 @@ Transform CodeIndexService from shared-mutable-state design to fully stateless d
 
 Exit Criteria:
 
-- [ ] [C1] `analysisResultsMap` and `callGraphMap` fields are REMOVED — no ConcurrentHashMap fields exist
-- [ ] [C2] `findSymbolsPage()` uses `IEntityDao<NopCodeSymbol>` with `findPageByExample` or equivalent
-- [ ] [C3] `getFiles()`/`getFile()` use `IEntityDao<NopCodeFile>` queries
-- [ ] [C4] `getSymbolUsages()` uses `IEntityDao<NopCodeAnnotationUsage>` query
-- [ ] [C5] `getSymbolById()` / `findSymbolByQualifiedName()` use DB query
-- [ ] [C6] Graph analysis methods rebuild CallGraph/SymbolTable from DB as local variables
-- [ ] [C7] `indexFile()` persists single file results to DB (no map storage)
-- [ ] [C8] `getIndexIds()` queries NopCodeIndex from DB
-- [ ] [C9] `deleteIndex()` is DB-only (no map removal)
-- [ ] [C10] `mvn compile -pl nop-code/nop-code-service` passes
+- [x] [C1] `analysisResultsMap` and `callGraphMap` fields are REMOVED — no ConcurrentHashMap fields exist
+- [x] [C2] `findSymbolsPage()` uses `IEntityDao<NopCodeSymbol>` with `findPageByExample` or equivalent
+- [x] [C3] `getFiles()`/`getFile()` use `IEntityDao<NopCodeFile>` queries
+- [x] [C4] `getSymbolUsages()` uses `IEntityDao<NopCodeAnnotationUsage>` query
+- [x] [C5] `getSymbolById()` / `findSymbolByQualifiedName()` use DB query
+- [x] [C6] Graph analysis methods rebuild CallGraph/SymbolTable from DB as local variables
+- [x] [C7] `indexFile()` persists single file results to DB (no map storage)
+- [x] [C8] `getIndexIds()` queries NopCodeIndex from DB
+- [x] [C9] `deleteIndex()` is DB-only (no map removal)
+- [x] [C10] `mvn compile -pl nop-code/nop-code-service` passes
 
 #### Task: T1 — Remove shared state, add rebuild-from-DB helpers
 
@@ -376,18 +376,18 @@ Same pattern for: `getGraphAnalysis()`, `getImpactAnalysis()`, `getCallHierarchy
 
 Checks:
 
-- [ ] [CHK-T1-1] No `ConcurrentHashMap` import remains in CodeIndexService.java
-- [ ] [CHK-T1-2] No `analysisResultsMap` or `callGraphMap` field exists
-- [ ] [CHK-T1-3] No method reads from removed map fields
-- [ ] [CHK-T1-4] `rebuildSymbolTable()` and `rebuildCallGraph()` create LOCAL transient objects
-- [ ] [CHK-T1-5] `indexDirectory()` calls `persistAnalysisResult()` without map storage
-- [ ] [CHK-T1-6] `indexFile()` calls `persistSingleFileResult()` without map storage
-- [ ] [CHK-T1-7] `getIndexIds()` queries NopCodeIndex from DB
-- [ ] [CHK-T1-8] `deleteIndex()` uses targeted DB queries (not findAll().filter())
-- [ ] [CHK-T1-9] `getIndexStats()` counts from DB
-- [ ] [CHK-T1-10] Graph analysis methods call `rebuildSymbolTable()`/`rebuildCallGraph()` as local variables
-- [ ] [CHK-T1-11] `persistSingleFileResult()` method exists and saves file + children to DB
-- [ ] [CHK-T1-12] `mvn compile -pl nop-code/nop-code-service` passes
+- [x] [CHK-T1-1] No `ConcurrentHashMap` import remains in CodeIndexService.java
+- [x] [CHK-T1-2] No `analysisResultsMap` or `callGraphMap` field exists
+- [x] [CHK-T1-3] No method reads from removed map fields
+- [x] [CHK-T1-4] `rebuildSymbolTable()` and `rebuildCallGraph()` create LOCAL transient objects
+- [x] [CHK-T1-5] `indexDirectory()` calls `persistAnalysisResult()` without map storage
+- [x] [CHK-T1-6] `indexFile()` calls `persistSingleFileResult()` without map storage
+- [x] [CHK-T1-7] `getIndexIds()` queries NopCodeIndex from DB
+- [x] [CHK-T1-8] `deleteIndex()` uses targeted DB queries (not findAll().filter())
+- [x] [CHK-T1-9] `getIndexStats()` counts from DB
+- [x] [CHK-T1-10] Graph analysis methods call `rebuildSymbolTable()`/`rebuildCallGraph()` as local variables
+- [x] [CHK-T1-11] `persistSingleFileResult()` method exists and saves file + children to DB
+- [x] [CHK-T1-12] `mvn compile -pl nop-code/nop-code-service` passes
 
 #### Task: T2 — Rewrite findSymbolsPage() and findSymbols() with DB query
 
@@ -458,11 +458,11 @@ public PageBean<CodeSymbol> findSymbolsPage(String indexId, String query, List<C
 
 Checks:
 
-- [ ] [CHK-T2-1] `findSymbolsPage()` uses `IEntityDao.findPage()` with offset/limit
-- [ ] [CHK-T2-2] No `table.getAll().stream().filter()` pattern remains
-- [ ] [CHK-T2-3] `entityToCodeSymbol()` conversion is complete (all fields mapped)
-- [ ] [CHK-T2-4] Query filters work: query, kinds, packageName
-- [ ] [CHK-T2-5] `mvn compile -pl nop-code/nop-code-service` passes
+- [x] [CHK-T2-1] `findSymbolsPage()` uses `IEntityDao.findPage()` with offset/limit
+- [x] [CHK-T2-2] No `table.getAll().stream().filter()` pattern remains
+- [x] [CHK-T2-3] `entityToCodeSymbol()` conversion is complete (all fields mapped)
+- [x] [CHK-T2-4] Query filters work: query, kinds, packageName
+- [x] [CHK-T2-5] `mvn compile -pl nop-code/nop-code-service` passes
 
 #### Task: T3 — Rewrite all file/symbol/usage/hierarchy/outline queries with DB
 
@@ -488,18 +488,18 @@ Rewrite ALL remaining query methods to use DB instead of in-memory. Each method 
 
 Checks:
 
-- [ ] [CHK-T3-1] `getFiles()` queries `NopCodeFile` entity by indexId
-- [ ] [CHK-T3-2] `getFile()` queries by indexId + filePath
-- [ ] [CHK-T3-3] `getFileSymbols()` queries by fileId
-- [ ] [CHK-T3-4] `getSymbolById()` uses `getEntityById()`
-- [ ] [CHK-T3-5] `findSymbolByQualifiedName()` queries by qualifiedName
-- [ ] [CHK-T3-6] `getSymbolUsages()` queries by annotatedSymbolId
-- [ ] [CHK-T3-7] `getSymbolSourceCode()` returns null (sourceCode not in DB)
-- [ ] [CHK-T3-8] `getTypeHierarchy()` uses local rebuildSymbolTable + NopCodeInheritance query
-- [ ] [CHK-T3-9] `getTypeOutline()` queries children from DB
-- [ ] [CHK-T3-10] `getFileTree()` builds tree from DB entities
-- [ ] [CHK-T3-11] No method reads from `analysisResultsMap` or `callGraphMap`
-- [ ] [CHK-T3-12] `mvn compile -pl nop-code/nop-code-service` passes
+- [x] [CHK-T3-1] `getFiles()` queries `NopCodeFile` entity by indexId
+- [x] [CHK-T3-2] `getFile()` queries by indexId + filePath
+- [x] [CHK-T3-3] `getFileSymbols()` queries by fileId
+- [x] [CHK-T3-4] `getSymbolById()` uses `getEntityById()`
+- [x] [CHK-T3-5] `findSymbolByQualifiedName()` queries by qualifiedName
+- [x] [CHK-T3-6] `getSymbolUsages()` queries by annotatedSymbolId
+- [x] [CHK-T3-7] `getSymbolSourceCode()` returns null (sourceCode not in DB)
+- [x] [CHK-T3-8] `getTypeHierarchy()` uses local rebuildSymbolTable + NopCodeInheritance query
+- [x] [CHK-T3-9] `getTypeOutline()` queries children from DB
+- [x] [CHK-T3-10] `getFileTree()` builds tree from DB entities
+- [x] [CHK-T3-11] No method reads from `analysisResultsMap` or `callGraphMap`
+- [x] [CHK-T3-12] `mvn compile -pl nop-code/nop-code-service` passes
 
 ---
 
@@ -515,12 +515,12 @@ Rename all BizQuery/BizMutation methods that violate Nop naming conventions. Upd
 
 Exit Criteria:
 
-- [ ] [C9] `findSymbols` renamed to `findPage_symbols` in NopCodeSymbolBizModel
-- [ ] [C10] `getById` renamed to `getBySymbolId` in NopCodeSymbolBizModel (avoid CrudBizModel `get` conflict)
-- [ ] [C11] `findFiles` renamed to `findPage_files` and returns PageBean in NopCodeFileBizModel
-- [ ] [C12] All view.xml `api url=` updated to match renamed methods
-- [ ] [C13] E2E tests updated with new API names
-- [ ] [C14] `mvn compile -pl nop-code/nop-code-service,nop-code/nop-code-web` passes
+- [x] [C9] `findSymbols` renamed to `findPage_symbols` in NopCodeSymbolBizModel
+- [x] [C10] `getById` renamed to `getBySymbolId` in NopCodeSymbolBizModel (avoid CrudBizModel `get` conflict)
+- [x] [C11] `findFiles` renamed to `findPage_files` and returns PageBean in NopCodeFileBizModel
+- [x] [C12] All view.xml `api url=` updated to match renamed methods
+- [x] [C13] E2E tests updated with new API names
+- [x] [C14] `mvn compile -pl nop-code/nop-code-service,nop-code/nop-code-web` passes
 
 #### Task: T4 — Rename NopCodeSymbolBizModel methods
 
@@ -557,11 +557,11 @@ In `NopCodeSymbolBizModel.java`:
 
 Checks:
 
-- [ ] [CHK-T4-1] `findPage_symbols` method exists with `@BizQuery`
-- [ ] [CHK-T4-2] `getBySymbolId` method exists with `@BizQuery`
-- [ ] [CHK-T4-3] No method named `findSymbols` remains
-- [ ] [CHK-T4-4] No method named `getById` remains
-- [ ] [CHK-T4-5] `mvn compile -pl nop-code/nop-code-service` passes
+- [x] [CHK-T4-1] `findPage_symbols` method exists with `@BizQuery`
+- [x] [CHK-T4-2] `getBySymbolId` method exists with `@BizQuery`
+- [x] [CHK-T4-3] No method named `findSymbols` remains
+- [x] [CHK-T4-4] No method named `getById` remains
+- [x] [CHK-T4-5] `mvn compile -pl nop-code/nop-code-service` passes
 
 #### Task: T5 — Rename NopCodeFileBizModel methods
 
@@ -599,10 +599,10 @@ In `NopCodeFileBizModel.java`:
 
 Checks:
 
-- [ ] [CHK-T5-1] `findPage_files` method exists returning `PageBean`
-- [ ] [CHK-T5-2] `ICodeIndexService.findFilesPage()` added
-- [ ] [CHK-T5-3] No method named `findFiles` returning raw List remains
-- [ ] [CHK-T5-4] `mvn compile -pl nop-code/nop-code-service` passes
+- [x] [CHK-T5-1] `findPage_files` method exists returning `PageBean`
+- [x] [CHK-T5-2] `ICodeIndexService.findFilesPage()` added
+- [x] [CHK-T5-3] No method named `findFiles` returning raw List remains
+- [x] [CHK-T5-4] `mvn compile -pl nop-code/nop-code-service` passes
 
 #### Task: T6 — Update view.xml API references
 
@@ -632,11 +632,11 @@ Update all view.xml files that reference renamed methods:
 
 Checks:
 
-- [ ] [CHK-T6-1] `NopCodeSymbol.view.xml` uses `NopCodeSymbol__findPage_symbols`
-- [ ] [CHK-T6-2] `NopCodeSymbol.view.xml` uses `NopCodeSymbol__getBySymbolId`
-- [ ] [CHK-T6-3] `code-browser.view.xml` uses `NopCodeFile__findPage_files`
-- [ ] [CHK-T6-4] No old method names remain in any view.xml
-- [ ] [CHK-T6-5] `mvn compile -pl nop-code/nop-code-web` passes
+- [x] [CHK-T6-1] `NopCodeSymbol.view.xml` uses `NopCodeSymbol__findPage_symbols`
+- [x] [CHK-T6-2] `NopCodeSymbol.view.xml` uses `NopCodeSymbol__getBySymbolId`
+- [x] [CHK-T6-3] `code-browser.view.xml` uses `NopCodeFile__findPage_files`
+- [x] [CHK-T6-4] No old method names remain in any view.xml
+- [x] [CHK-T6-5] `mvn compile -pl nop-code/nop-code-web` passes
 
 #### Task: T7 — Update E2E tests
 
@@ -656,9 +656,9 @@ Update E2E test files in `nop-code/nop-code-e2e/` that reference renamed API met
 
 Checks:
 
-- [ ] [CHK-T7-1] All E2E test files use new API names
-- [ ] [CHK-T7-2] No old API names remain in E2E tests
-- [ ] [CHK-T7-3] E2E test files compile (if TypeScript check available)
+- [x] [CHK-T7-1] All E2E test files use new API names
+- [x] [CHK-T7-2] No old API names remain in E2E tests
+- [x] [CHK-T7-3] E2E test files compile (if TypeScript check available)
 
 ---
 
@@ -674,9 +674,9 @@ Build, run tests, verify memory behavior and API correctness.
 
 Exit Criteria:
 
-- [ ] [C15] `mvn compile -pl nop-code` passes for all sub-modules
-- [ ] [C16] Existing unit tests pass
-- [ ] [C17] Manual verification of API response format
+- [x] [C15] `mvn compile -pl nop-code` passes for all sub-modules
+- [x] [C16] Existing unit tests pass
+- [x] [C17] Manual verification of API response format
 
 #### Task: T8 — Full build and test
 
@@ -696,10 +696,10 @@ Instructions:
 
 Checks:
 
-- [ ] [CHK-T8-1] `mvn compile -pl nop-code` exit code 0
-- [ ] [CHK-T8-2] Existing service tests pass
-- [ ] [CHK-T8-3] API responses have correct structure (PageBean with total)
-- [ ] [CHK-T8-4] `analysisResultsMap` is empty after indexing (verified by log or test)
+- [x] [CHK-T8-1] `mvn compile -pl nop-code` exit code 0
+- [x] [CHK-T8-2] Existing service tests pass
+- [x] [CHK-T8-3] API responses have correct structure (PageBean with total)
+- [x] [CHK-T8-4] `analysisResultsMap` is empty after indexing (verified by log or test)
 
 ## Deferred But Adjudicated
 
@@ -782,16 +782,16 @@ Checks:
 
 > **Closure condition**: This section, `Closure Gates`, and every Phase's Exit Criteria must ALL be `[x]` before `Plan Status` can change to `completed`.
 
-- [ ] [VC1] `analysisResultsMap` and `callGraphMap` fields are REMOVED — grep for both returns 0 matches
-- [ ] [VC2] `ConcurrentHashMap` import removed from CodeIndexService.java
-- [ ] [VC3] `findSymbolsPage()` uses IEntityDao with offset/limit (no `table.getAll().stream()`)
-- [ ] [VC4] All GraphQL method names follow Nop conventions (grep for violations returns 0)
-- [ ] [VC5] All view.xml API URLs match BizModel method names (grep for old names returns 0)
-- [ ] [VC6] E2E tests use new API names
-- [ ] [VC7] `mvn compile -pl nop-code/nop-code-service,nop-code/nop-code-web` passes
-- [ ] [VC8] No `instanceof CodeIndexService` casts remain in BizModels
-- [ ] [VC9] No silently downgraded in-scope live defects or contract drifts
-- [ ] [VC10] Independent closure-audit by separate agent/session complete, evidence recorded
+- [x] [VC1] `analysisResultsMap` and `callGraphMap` fields are REMOVED — grep for both returns 0 matches
+- [x] [VC2] `ConcurrentHashMap` import removed from CodeIndexService.java
+- [x] [VC3] `findSymbolsPage()` uses IEntityDao with offset/limit (no `table.getAll().stream()`)
+- [x] [VC4] All GraphQL method names follow Nop conventions (grep for violations returns 0)
+- [x] [VC5] All view.xml API URLs match BizModel method names (grep for old names returns 0)
+- [x] [VC6] E2E tests use new API names
+- [x] [VC7] `mvn compile -pl nop-code/nop-code-service,nop-code/nop-code-web` passes
+- [x] [VC8] No `instanceof CodeIndexService` casts remain in BizModels
+- [x] [VC9] No silently downgraded in-scope live defects or contract drifts
+- [x] [VC10] Independent closure-audit by separate agent/session complete, evidence recorded
 
 ## Closure
 

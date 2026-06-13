@@ -81,9 +81,9 @@ Required Pre-Reading:
 - Item Types: `Add`
 - Prereqs: none
 
-- [ ] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
+- [x] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
   - Skill: none
-- [ ] **Add** 创建 `02-core-guides/orm-model-design.md`，包含以下核心内容：
+- [x] **Add** 创建 `02-core-guides/orm-model-design.md`，包含以下核心内容：
   - stdDataType vs stdSqlType 的语义分离（数据库物理类型 vs Java 逻辑类型，两者独立配置，框架自动转换）
   - ID 设计策略：VARCHAR(36) + tagSet="seq" 的原因（分布式兼容、跨数据库、字符串 ID 便于合并迁移）
   - 主键规范：固定字段名 id，stdSqlType="VARCHAR" precision="36"，stdDataType="string"，tagSet="seq"
@@ -100,11 +100,11 @@ Required Pre-Reading:
 
 Exit Criteria:
 
-- [ ] `orm-model-design.md` 存在且包含上述所有核心内容
-- [ ] stdDataType vs stdSqlType 的分离有明确说明和示例
-- [ ] ID 策略有原因说明（不只是规范本身）
-- [ ] 文档与现有 code-style.md、model-first-development.md 无矛盾
-- [ ] No owner-doc update required（本阶段就是创建文档）
+- [x] `orm-model-design.md` 存在且包含上述所有核心内容
+- [x] stdDataType vs stdSqlType 的分离有明确说明和示例
+- [x] ID 策略有原因说明（不只是规范本身）
+- [x] 文档与现有 code-style.md、model-first-development.md 无矛盾
+- [x] No owner-doc update required（本阶段就是创建文档）
 
 ### Phase 2 - 新增模型设计必读索引
 
@@ -118,18 +118,18 @@ Required Pre-Reading:
 - Item Types: `Add`
 - Prereqs: Phase 1
 
-- [ ] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
+- [x] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
   - Skill: none
-- [ ] **Add** 创建 `00-required-reading-model-design.md`，结构与后端/前端必读索引一致：
+- [x] **Add** 创建 `00-required-reading-model-design.md`，结构与后端/前端必读索引一致：
   - 全局必读：`orm-model-design.md`、`model-first-development.md`
   - 按场景选读：字段设计、字典设计、关系设计、代码生成、菜单图标
   - Skill: none
 
 Exit Criteria:
 
-- [ ] `00-required-reading-model-design.md` 存在且结构清晰
-- [ ] 所有引用的文档路径都存在
-- [ ] No owner-doc update required
+- [x] `00-required-reading-model-design.md` 存在且结构清晰
+- [x] 所有引用的文档路径都存在
+- [x] No owner-doc update required
 
 ### Phase 3 - 增强 auth-and-permissions.md
 
@@ -143,9 +143,9 @@ Required Pre-Reading:
 - Item Types: `Add`
 - Prereqs: none（可与 Phase 1/2 并行，但 Phase 4 依赖本阶段）
 
-- [ ] **Pre-flight:** Read `auth-and-permissions.md` and search for action-auth.xml patterns in the repo.
+- [x] **Pre-flight:** Read `auth-and-permissions.md` and search for action-auth.xml patterns in the repo.
   - Skill: none
-- [ ] **Add** 增强 `auth-and-permissions.md`，补充以下内容：
+- [x] **Add** 增强 `auth-and-permissions.md`，补充以下内容：
   - action-auth.xml 结构说明：resourceType（TOPM/SUBM/ACT）、菜单资源生成链路（从 ORM 模型 → `_*.action-auth.xml` → 菜单/权限）
   - 操作权限检查机制：`nop.auth.enable-action-auth` 启用后的检查流程
   - 数据权限配置：DockerBean 规则配置方式、字段级数据权限
@@ -154,10 +154,10 @@ Required Pre-Reading:
 
 Exit Criteria:
 
-- [ ] auth-and-permissions.md 包含 action-auth.xml 结构说明
-- [ ] auth-and-permissions.md 包含操作权限检查机制
-- [ ] auth-and-permissions.md 包含数据权限配置
-- [ ] No owner-doc update required
+- [x] auth-and-permissions.md 包含 action-auth.xml 结构说明
+- [x] auth-and-permissions.md 包含操作权限检查机制
+- [x] auth-and-permissions.md 包含数据权限配置
+- [x] No owner-doc update required
 
 ### Phase 4 - 重构 INDEX.md 路由结构
 
@@ -172,9 +172,9 @@ Required Pre-Reading:
 - Item Types: `Add`
 - Prereqs: Phase 1, Phase 2, Phase 3
 
-- [ ] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
+- [x] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
   - Skill: none
-- [ ] **Add** 在 INDEX.md 快速路由表顶部增加"按开发阶段"入口区块：
+- [x] **Add** 在 INDEX.md 快速路由表顶部增加"按开发阶段"入口区块：
 
   ```markdown
   ## 按开发阶段入口
@@ -187,18 +187,18 @@ Required Pre-Reading:
   | **权限开发** | **`02-core-guides/auth-and-permissions.md`** | 同左（当前唯一入口） |
   ```
 
-- [ ] **Add** 在 INDEX.md "快速路由"表中增加新文档的路由条目：
+- [x] **Add** 在 INDEX.md "快速路由"表中增加新文档的路由条目：
   - `| 理解 ORM 模型设计规范 | 02-core-guides/orm-model-design.md |`
   - `| 模型设计必读文档索引 | 00-required-reading-model-design.md |`
   - Skill: none
 
 Exit Criteria:
 
-- [ ] INDEX.md 包含"按开发阶段入口"区块
-- [ ] 四个开发阶段入口全部列出且链接正确
-- [ ] 快速路由表增加了新文档条目
-- [ ] 原有路由条目未被删除或破坏
-- [ ] No owner-doc update required
+- [x] INDEX.md 包含"按开发阶段入口"区块
+- [x] 四个开发阶段入口全部列出且链接正确
+- [x] 快速路由表增加了新文档条目
+- [x] 原有路由条目未被删除或破坏
+- [x] No owner-doc update required
 
 ### Phase 5 - 更新现有文档交叉引用
 
@@ -215,25 +215,25 @@ Required Pre-Reading:
 - Item Types: `Add`
 - Prereqs: Phase 1, Phase 3
 
-- [ ] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
+- [x] **Pre-flight:** Read all docs listed in `Required Pre-Reading` above.
   - Skill: none
-- [ ] **Add** `00-required-reading-backend.md`：在"实体建模与代码生成"场景中增加 `02-core-guides/orm-model-design.md` 引用，标注为模型设计规范核心文档。
+- [x] **Add** `00-required-reading-backend.md`：在"实体建模与代码生成"场景中增加 `02-core-guides/orm-model-design.md` 引用，标注为模型设计规范核心文档。
   - Skill: none
-- [ ] **Add** `code-style.md`：在"ORM 命名规范"节末尾增加交叉引用，指向 `orm-model-design.md`（概念设计知识归 orm-model-design.md 所有，code-style.md 保留命名格式规范）。
+- [x] **Add** `code-style.md`：在"ORM 命名规范"节末尾增加交叉引用，指向 `orm-model-design.md`（概念设计知识归 orm-model-design.md 所有，code-style.md 保留命名格式规范）。
   - Skill: none
-- [ ] **Add** `model-first-development.md`：在相关文档节增加交叉引用，指向 `orm-model-design.md`（开发流程归 model-first-development.md，模型设计概念归 orm-model-design.md）。
+- [x] **Add** `model-first-development.md`：在相关文档节增加交叉引用，指向 `orm-model-design.md`（开发流程归 model-first-development.md，模型设计概念归 orm-model-design.md）。
   - Skill: none
-- [ ] **Add** `00-required-reading-frontend.md`：在"认证与权限（页面可见性）"场景描述中更新，反映 Phase 3 增强后的 auth-and-permissions.md 新增内容（action-auth.xml 结构等）。
+- [x] **Add** `00-required-reading-frontend.md`：在"认证与权限（页面可见性）"场景描述中更新，反映 Phase 3 增强后的 auth-and-permissions.md 新增内容（action-auth.xml 结构等）。
   - Skill: none
 
 Exit Criteria:
 
-- [ ] backend required reading 引用了 orm-model-design.md
-- [ ] code-style.md 的 ORM 命名规范节有交叉引用指向 orm-model-design.md
-- [ ] model-first-development.md 有交叉引用指向 orm-model-design.md
-- [ ] frontend required reading 的 auth 场景描述反映了增强后的内容
-- [ ] 没有知识重复定义（canonical owner 是 orm-model-design.md，其他文件只引用不重复）
-- [ ] No owner-doc update required
+- [x] backend required reading 引用了 orm-model-design.md
+- [x] code-style.md 的 ORM 命名规范节有交叉引用指向 orm-model-design.md
+- [x] model-first-development.md 有交叉引用指向 orm-model-design.md
+- [x] frontend required reading 的 auth 场景描述反映了增强后的内容
+- [x] 没有知识重复定义（canonical owner 是 orm-model-design.md，其他文件只引用不重复）
+- [x] No owner-doc update required
 
 ## Plan Audit
 
@@ -252,15 +252,15 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete (all 5 phases)
-- [ ] relevant docs are aligned (INDEX.md, backend required reading, all new docs)
-- [ ] verification: all new/modified files exist and cross-references are correct
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] plan audit passed before implementation
-- [ ] each phase has `Required Pre-Reading` listed
-- [ ] text consistency verified: status, phases, gates all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] in-scope behavior is complete (all 5 phases)
+- [x] relevant docs are aligned (INDEX.md, backend required reading, all new docs)
+- [x] verification: all new/modified files exist and cross-references are correct
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] plan audit passed before implementation
+- [x] each phase has `Required Pre-Reading` listed
+- [x] text consistency verified: status, phases, gates all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 

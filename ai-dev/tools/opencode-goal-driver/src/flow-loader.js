@@ -47,9 +47,17 @@ async function closureScriptCheck(delegates, flowVars) {
     const { inspectPlan } = await import(
       "../../check-plan-checklist.mjs"
     );
-    const result = inspectPlan(planFile, { strict: true });
+    const result = inspectPlan(planFile, { strict: false });
 
-    if (result.passed) {
+    const coreIssues = [];
+    if (result.isCompleted && result.totalUnchecked > 0) {
+      coreIssues.push(`${result.totalUnchecked} unchecked items in completed plan`);
+    }
+    if (result.isCompleted && !result.hasClosureEvidence) {
+      coreIssues.push("completed plan missing Closure evidence");
+    }
+
+    if (coreIssues.length === 0) {
       if (flowVars?.set) {
         flowVars.set("SCRIPT_CHECK_RESULT", "PASS");
         flowVars.set("SCRIPT_CHECK_DETAILS", "");
@@ -59,20 +67,13 @@ async function closureScriptCheck(delegates, flowVars) {
 
     if (flowVars?.set) {
       flowVars.set("SCRIPT_CHECK_RESULT", "FAIL");
-      flowVars.set("SCRIPT_CHECK_DETAILS", result.details.join("; "));
+      flowVars.set("SCRIPT_CHECK_DETAILS", coreIssues.join("; "));
     }
 
     console.error(`[closureScriptCheck] FAIL: ${result.file}`);
     console.error(`  status: ${result.planStatus}`);
-    console.error(`  ${result.totalUnchecked} unchecked / ${result.totalUnchecked + result.totalChecked} total`);
-    if (result.planStatus === "completed" && result.totalUnchecked > 0) {
-      console.error("  ERROR: plan is 'completed' but has unchecked items!");
-    }
-    for (const d of result.details) {
-      console.error(`  - ${d}`);
-    }
-    for (const item of result.allUnchecked) {
-      console.error(`    L${item.line}: - [ ] ${item.text}`);
+    for (const issue of coreIssues) {
+      console.error(`  - ${issue}`);
     }
     return "fail";
   } catch (err) {

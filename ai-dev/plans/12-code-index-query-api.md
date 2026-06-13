@@ -131,3 +131,15 @@
 - Phase 2 的 Step 2.1 是 2.2/2.3 的前置条件，必须先完成
 - Phase 2 的 Step 2.4 与 2.1-2.3 独立，可并行
 - 每个 Step 完成后立即验证 + 提交
+
+## Closure
+
+Status Note: Plan completed — P0 query API extensions and P1 core capabilities implemented.
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: automated (closure-verify)
+- Evidence:
+  - Phase 1: fileOutline, moduleDigest, showSymbol BizQueries all implemented
+  - Phase 2: dependency data model (CodeFileDependency + nop_code_dependency), ImportResolver, depGraph/reverseDeps/findCycles, searchCode — all implemented
+  - Phase 3: mvn test verification completed

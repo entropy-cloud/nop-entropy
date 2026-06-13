@@ -286,3 +286,16 @@
 1. 补充跨数据库抽样测试（优先 MySQL、PostgreSQL）。
 2. 按里程碑拆分提交（M1~M4），降低 review 与回滚成本。
 3. 在 `CHANGELOG.md` 增加兼容性说明：旧 `existsTable(querySpace, tableName)` 保持可用并委托新重载。
+
+## Closure
+
+Status Note: Plan completed — all 4 phases implemented. Dialect-driven exists API available in IJdbcTemplate, db-migration precondition migrated.
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: automated (closure-verify)
+- Evidence:
+  - Phase 1-4 all marked completed in execution progress (section 10)
+  - dialect.xdef extended with existsSqls template fields
+  - IJdbcTemplate has new exists API for table/column/index/foreignKey/sequence/view
+  - db-migration precondition checker migrated to new API

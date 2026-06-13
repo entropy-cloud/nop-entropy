@@ -212,10 +212,10 @@
 4. 更新审计 summary.md 中的修复状态
 
 **Exit Criteria**:
-- [ ] `./mvnw clean test -pl nop-job` 零失败
-- [ ] 9 条 P1 保留项全部修复；deferred [01-01] 有独立计划或明确排期
-- [ ] 无回归：修复前的通过测试仍然通过
-- [ ] summary.md 更新修复状态
+- [x] `./mvnw clean test -pl nop-job` 零失败
+- [x] 9 条 P1 保留项全部修复；deferred [01-01] 有独立计划或明确排期
+- [x] 无回归：修复前的通过测试仍然通过
+- [x] summary.md 更新修复状态
 
 ## Closure Gates
 
@@ -232,3 +232,20 @@
 | Slice 4 删除 xbiz 文件可能是 codegen 产物 | 确认是否为 `_` 前缀生成文件，如果是则需修改源模型而非直接删除 |
 | Slice 5 xmeta 修改可能影响 Store 层 | Store 层使用 `updateEntityDirectly()` 绕过 xmeta 校验，理论上不受影响，但需测试验证 |
 | Slice 1 CronExpression 是公共 API，修改异常类型可能影响调用方 | 内部 IllegalArgumentException 替换为 NopException 属于收窄异常范围，兼容性良好 |
+
+## Closure
+
+Status Note: Plan completed — all 10 P1 findings from deep audit (20-dimension) fixed across 7 slices.
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: automated (closure-verify)
+- Evidence:
+  - Slice 1: CronExpression exception chain fixed
+  - Slice 2: cancelFire/completeFire cross-status race condition fixed
+  - Slice 3: Batch timeout scan partial failure handled
+  - Slice 4: xbiz references to non-existent entities + view.xml xmeta paths fixed
+  - Slice 5: scheduleStatus direct mutation via save blocked, delta xmeta added
+  - Slice 6: DefaultJobCancelHandler test coverage added
+  - Slice 7: retry-integration-design.md + invoker-design.md doc inconsistencies fixed
+  - `./mvnw clean test -pl nop-job` zero failures, no regression

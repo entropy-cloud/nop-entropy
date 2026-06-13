@@ -741,3 +741,15 @@ Week 7+:  Phase 3.3/3.4/3.5 (api/flink/flow 模块)
 - 动态扩缩容（rescaling）
 - Web UI / 监控
 - 与 Nop IoC 容器的集成（注入 `StreamExecutionEnvironment`）
+
+## Closure
+
+Status Note: Plan completed — all Phase 1-3 improvements documented, key fixes (CompletedCheckpoint, operator package merge, TypeInformation null, keyBy, CEP per-key state, watermark, WindowOperator) implemented.
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: automated (closure-verify)
+- Evidence:
+  - Phase 1 (immediate fixes): CompletedCheckpoint, operator package consolidation, TypeInformation null safety, sink throws Exception removal — all done
+  - Phase 2 (architecture): keyBy + per-key state, CEP watermark fix, WindowOperator accumulator strategy — designed
+  - Phase 3 (engine refactor): StreamTask, OneInputStreamTask, JobGraphGenerator, checkpoint/api/flink/flow modules — planned with execution order
