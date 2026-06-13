@@ -5,6 +5,18 @@
   "pingPongWindow": 6,
   "entry": "DEEP_AUDIT",
 
+  "markerAliases": {
+    "ok": "clean",
+    "pass": "clean",
+    "success": "clean",
+    "done": "clean",
+    "error": "fail",
+    "failed": "fail",
+    "problems": "issues",
+    "findings": "issues",
+    "concerns": "issues"
+  },
+
   "steps": {
     "DEEP_AUDIT": {
       "type": "agent",

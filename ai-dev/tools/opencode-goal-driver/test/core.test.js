@@ -390,4 +390,44 @@ describe("FlowEngine — ping-pong detection", () => {
 
     assert.equal(result.status, "max_total_steps");
   });
+
+  it("skips ping-pong when B→A is retry with maxRetries", async () => {
+    const flow = simpleFlow({
+      DRAFT: {
+        type: "agent",
+        prompt: "draft",
+        resultTag: "R",
+        transitions: { created: { goto: "AUDIT" } },
+      },
+      AUDIT: {
+        type: "agent",
+        prompt: "audit",
+        resultTag: "R",
+        transitions: {
+          approved: { done: "completed" },
+          issues: { retry: "DRAFT", maxRetries: 5 },
+        },
+      },
+    }, "DRAFT");
+    flow.pingPongWindow = 6;
+    flow.maxTotalSteps = 20;
+    flow.maxCycleVisits = 10;
+
+    let auditCount = 0;
+    const delegates = makeMockDelegates({
+      responses: {
+        DRAFT: "<R>created</R>",
+        AUDIT: () => {
+          auditCount++;
+          return { text: `<R>${auditCount < 4 ? "issues" : "approved"}</R>`, ok: true };
+        },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.ok(result.stepCount >= 8, `expected >= 8 steps, got ${result.stepCount}`);
+  });
 });

@@ -5,6 +5,14 @@
   "pingPongWindow": 6,
   "entry": "EXECUTE",
 
+  "markerAliases": {
+    "ok": "pass",
+    "success": "success",
+    "done": "pass",
+    "error": "fail",
+    "failed": "fail"
+  },
+
   "steps": {
     "EXECUTE": {
       "type": "agent",

@@ -5,6 +5,21 @@
   "pingPongWindow": 6,
   "entry": "HEALTH_CHECK",
 
+  "markerAliases": {
+    "ok": "pass",
+    "healthy": "pass",
+    "success": "pass",
+    "error": "fail",
+    "failed": "fail",
+    "incomplete": "pending",
+    "done": "complete",
+    "has_pending": "pending",
+    "has_work": "pending",
+    "problems": "issues",
+    "findings": "issues",
+    "concerns": "issues"
+  },
+
   "steps": {
     "HEALTH_CHECK": {
       "type": "agent",

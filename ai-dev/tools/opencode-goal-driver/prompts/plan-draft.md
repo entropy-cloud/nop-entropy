@@ -41,4 +41,8 @@ After creating the plan, output the file path:
   <PLAN_FILE>path/to/plan/file.md</PLAN_FILE>
 </FLOW_VARS>
 
-Output <AI_STEP_RESULT>created</AI_STEP_RESULT> or <AI_STEP_RESULT>none</AI_STEP_RESULT>.
+IMPORTANT: Your output marker MUST be exactly one of these two values:
+- <AI_STEP_RESULT>created</AI_STEP_RESULT> — when you created or updated a plan file
+- <AI_STEP_RESULT>none</AI_STEP_RESULT> — when no plan was needed
+
+Do NOT output "approved", "pass", "success", "done", or any other value. These are the ONLY valid markers for this step.
