@@ -139,9 +139,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
+Status Note: All 3 phases completed. IToolAccessChecker integrated into ReAct loop as first gate before IPermissionProvider (defense-in-depth). DefaultToolAccessChecker has hardcoded deny list (bash, write-file, delete-file, move-file, patch-file, apply-delta, http-request, graphql-query). AllowAllToolAccessChecker pass-through for backward compatibility. BUILD SUCCESS (2026-06-12), 163 tests pass.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: Independent closure audit (2026-06-12)
 - Evidence:
+  - Phase 1 EC1 (ToolAccessResult): PASS — `security/ToolAccessResult.java` has `allow()`, `deny(String)`, `denyByRule(String, String)` factories; `isAllowed()`, `getReason()`, `getMatchedRule()` accessors; equals/hashCode/toString
+  - Phase 1 EC2 (IToolAccessChecker): PASS — `security/IToolAccessChecker.java` has `checkAccess(String toolName, AgentExecutionContext ctx)`
+  - Phase 2 EC1 (DefaultToolAccessChecker): PASS — `security/DefaultToolAccessChecker.java` with hardcoded deny list (8 entries), case-insensitive matching via `toLowerCase()`
+  - Phase 2 EC2 (AllowAllToolAccessChecker): PASS — `security/AllowAllToolAccessChecker.java` always returns `allow()`
+  - Phase 2 EC3 (TestDefaultToolAccessChecker): PASS — 12 tests covering deny list hits, allow case, case-insensitive, null tool name, AllowAll
+  - Phase 3 EC1 (5-arg constructor): PASS — `ReActAgentExecutor.java` 5-arg constructor at line 69; existing constructors (2-arg, 3-arg, 4-arg) delegate with `AllowAllToolAccessChecker`
+  - Phase 3 EC2 (check before permission): PASS — `ReActAgentExecutor.execute()` line 164 calls `toolAccessChecker.checkAccess()` before `permissionProvider.resolve()` at line 182
+  - Phase 3 EC3 (DefaultAgentEngine 5-arg): PASS — `DefaultAgentEngine.java` 5-arg constructor at line 53; uses 5-arg `ReActAgentExecutor` constructor at line 130
+  - Phase 3 EC4 (TestToolAccessCheckerInReActLoop): PASS — 4 tests: hardcoded deny blocks even when permission allows, TOOL_CALL_DENIED event published with reason, non-denied tool proceeds to permission check, both allow tool executes
+  - Anti-Hollow: PASS — `toolAccessChecker.checkAccess()` called at `ReActAgentExecutor.execute()` line 164; denied tools produce explicit `ChatToolResponseMessage.error()`; `DefaultAgentEngine.java:130` wires the checker
+  - `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C`: PASS — 163 tests, 0 failures, BUILD SUCCESS
+
+Follow-up:
+
+- no remaining plan-owned work
