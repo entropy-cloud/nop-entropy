@@ -301,6 +301,10 @@ Closure Audit Evidence:
 
 L2-3 `IContextCompactor` interface + `NoOpContextCompactor` + ReAct integration (context compaction carry-over from this plan's Non-Blocking Follow-ups) is now tracked in plan 152.
 
+## Follow-up handled by 153-nop-ai-agent-content-guardrail.md
+
+L2-7 `IContentGuardrail` interface + `NoOpContentGuardrail` + ReAct integration (content guardrail carry-over from this plan's Non-Blocking Follow-ups "Content guardrail (L2-7) mounted on POST_REASONING") is now tracked in plan 153.
+
 Follow-up:
 
-- Hook timeout, SingleTurnExecutor hooks, DSL priority, REASONING_CHUNK activation, Skill system, Content guardrail
+- Hook timeout, SingleTurnExecutor hooks, DSL priority, REASONING_CHUNK activation, Skill system

@@ -1,10 +1,10 @@
 # 152 IContextCompactor Interface + NoOpContextCompactor + ReAct Integration
 
-> **Plan Status**: planned
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: L2-3
 > **Last Reviewed**: 2026-06-13
-> **Source**: Carry-over from plan 150 (`ai-dev/plans/150-nop-ai-agent-lifecycle-hook.md`), `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` §7, `ai-dev/design/nop-ai-agent/02-execution-model.md` §5.1
+> **Source**: Carry-over from plan 150 (`ai-dev/plans/150-nop-ai-agent-lifecycle-hook.md`), `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` §7, `ai-dev/design/nop-ai-agent/02/execut-model.md` §5.1
 > **Related**: Plan 150 (lifecycle hook system — established PRE_COMPACT/POST_COMPACT lifecycle points)
 
 ## Purpose
@@ -70,114 +70,114 @@ Define the `IContextCompactor` interface and integrate it into the ReAct executi
 
 ### Phase 1 - Compaction Types and Interface
 
-Status: planned
+Status: completed
 Targets: `io.nop.ai.agent.compact` package (new)
 
 - Item Types: `Proof`
 
-- [ ] Create `CompactionContext` data class with fields: `messages` (List<ChatMessage> — the messages to potentially compact), `compactConfig` (CompactConfig), `sessionId` (String), `agentName` (String), `executionContext` (AgentExecutionContext — for access to constraints, model, etc.)
-- [ ] Create `IContextCompactor` interface with method: `CompactionResult compact(CompactionContext ctx)` — takes current messages and config, returns compaction result. The implementor is responsible for deciding whether compaction is needed and performing it
+- [x] Create `CompactionContext` data class with fields: `messages` (List<ChatMessage> — the messages to potentially compact), `compactConfig` (CompactConfig), `sessionId` (String), `agentName` (String), `executionContext` (AgentExecutionContext — for access to constraints, model, etc.)
+- [x] Create `IContextCompactor` interface with method: `CompactionResult compact(CompactionContext ctx)` — takes current messages and config, returns compaction result. The implementor is responsible for deciding whether compaction is needed and performing it
 
 Exit Criteria:
 
-- [ ] `CompactionContext` exists as an immutable data carrier with messages, compactConfig, sessionId, agentName, executionContext
-- [ ] `IContextCompactor` interface defines `compact(CompactionContext)` returning `CompactionResult`
-- [ ] **端到端验证** N/A: interface definition phase
-- [ ] **接线验证** N/A: no inter-component wiring yet
-- [ ] **无静默跳过** N/A: pure type definitions
-- [ ] No owner-doc update required (design docs already describe compaction contract)
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] `CompactionContext` exists as an immutable data carrier with messages, compactConfig, sessionId, agentName, executionContext
+- [x] `IContextCompactor` interface defines `compact(CompactionContext)` returning `CompactionResult`
+- [x] **端到端验证** N/A: interface definition phase
+- [x] **接线验证** N/A: no inter-component wiring yet
+- [x] **无静默跳过** N/A: pure type definitions
+- [x] No owner-doc update required (design docs already describe compaction contract)
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 2 - NoOpContextCompactor Implementation
 
-Status: planned
+Status: completed
 Targets: `io.nop.ai.agent.compact.NoOpContextCompactor`
 
 - Item Types: `Proof`
 
-- [ ] Create `NoOpContextCompactor` implementing `IContextCompactor` — `compact()` returns a `CompactionResult` with `tokensBefore == tokensAfter`, `retainedMessageCount == messages.size()`, `snapshotId = null`, and the messages list unchanged. This signals "no compaction occurred" to the executor
+- [x] Create `NoOpContextCompactor` implementing `IContextCompactor` — `compact()` returns a `CompactionResult` with `tokensBefore == tokensAfter`, `retainedMessageCount == messages.size()`, `snapshotId = null`, and the messages list unchanged. This signals "no compaction occurred" to the executor
 
 Exit Criteria:
 
-- [ ] `NoOpContextCompactor.compact()` returns a result where `tokensBefore == tokensAfter`
-- [ ] `NoOpContextCompactor.compact()` returns `retainedMessageCount == input message count`
-- [ ] `NoOpContextCompactor.compact()` returns `snapshotId = null`
-- [ ] **端到端验证** N/A: pass-through implementation, no pipeline
-- [ ] **接线验证** N/A: not yet wired into executor
-- [ ] **无静默跳过**: NoOp returns valid CompactionResult with equal before/after counts, not null or empty
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] `NoOpContextCompactor.compact()` returns a result where `tokensBefore == tokensAfter`
+- [x] `NoOpContextCompactor.compact()` returns `retainedMessageCount == input message count`
+- [x] `NoOpContextCompactor.compact()` returns `snapshotId = null`
+- [x] **端到端验证** N/A: pass-through implementation, no pipeline
+- [x] **接线验证** N/A: not yet wired into executor
+- [x] **无静默跳过**: NoOp returns valid CompactionResult with equal before/after counts, not null or empty
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 3 - ReActAgentExecutor Integration
 
-Status: planned
+Status: completed
 Targets: `io.nop.ai.agent.engine.ReActAgentExecutor`, `io.nop.ai.agent.engine.DefaultAgentEngine`
 
 - Item Types: `Proof`
 
-- [ ] Add `IContextCompactor` field to `ReActAgentExecutor` (final, set via Builder)
-- [ ] Add `contextCompactor(IContextCompactor)` method to `ReActAgentExecutor.Builder`, defaulting to `NoOpContextCompactor` if not set
-- [ ] Add compaction trigger check in the ReAct loop — before each iteration (after incrementing iteration counter, before PRE_REASONING hook), check if compaction should be triggered. Trigger condition: `ctx.getTokensUsed() > ctx.getMaxTokens() * TRIGGER_TOKEN_PERCENT` (default 0.8) OR `ctx.getMessages().size() > TRIGGER_MAX_MESSAGES` (default 30). Both thresholds are constants in the executor for now (L2-16 will introduce `ILlmDialect.estimateTokens()` for pre-call estimation; currently using `ctx.getTokensUsed()` which accumulates from LLM response usage)
-- [ ] When triggered: invoke `PRE_COMPACT` hook → call `contextCompactor.compact()` → invoke `POST_COMPACT` hook → if `CompactionResult.tokensAfter < tokensBefore`, replace messages in context and call `session.markCompacted()` (if session is available via execution context)
-- [ ] Wire `IContextCompactor` through `DefaultAgentEngine` — pass `NoOpContextCompactor.INSTANCE` to executor builder (no DSL loading yet; actual compactor selection from agent config is L2-4 scope)
-- [ ] Guard: compaction is never triggered during the same iteration that already performed compaction (prevent recursive compaction per design doc §7.6)
+- [x] Add `IContextCompactor` field to `ReActAgentExecutor` (final, set via Builder)
+- [x] Add `contextCompactor(IContextCompactor)` method to `ReActAgentExecutor.Builder`, defaulting to `NoOpContextCompactor` if not set
+- [x] Add compaction trigger check in the ReAct loop — before each iteration (after incrementing iteration counter, before PRE_REASONING hook), check if compaction should be triggered. Trigger condition: `ctx.getTokensUsed() > ctx.getMaxTokens() * TRIGGER_TOKEN_PERCENT` (default 0.8) OR `ctx.getMessages().size() > TRIGGER_MAX_MESSAGES` (default 30). Both thresholds are constants in the executor for now (L2-16 will introduce `ILlmDialect.estimateTokens()` for pre-call estimation; currently using `ctx.getTokensUsed()` which accumulates from LLM response usage)
+- [x] When triggered: invoke `PRE_COMPACT` hook → call `contextCompactor.compact()` → invoke `POST_COMPACT` hook → if `CompactionResult.tokensAfter < tokensBefore`, replace messages in context and call `session.markCompacted()` (if session is available via execution context)
+- [x] Wire `IContextCompactor` through `DefaultAgentEngine` — pass `NoOpContextCompactor.INSTANCE` to executor builder (no DSL loading yet; actual compactor selection from agent config is L2-4 scope)
+- [x] Guard: compaction is never triggered during the same iteration that already performed compaction (prevent recursive compaction per design doc §7.6)
 
 Exit Criteria:
 
-- [ ] `ReActAgentExecutor.Builder` has `contextCompactor()` method
-- [ ] Default contextCompactor is `NoOpContextCompactor` (backward compatible)
-- [ ] Compaction trigger check runs before each ReAct iteration using token and message count thresholds
-- [ ] `PRE_COMPACT` hook fires before `contextCompactor.compact()`
-- [ ] `POST_COMPACT` hook fires after compaction completes
-- [ ] NoOp default means no messages are actually modified
-- [ ] Recursive compaction is prevented (flag reset each iteration)
-- [ ] Existing tests pass unchanged (NoOp default)
-- [ ] **端到端验证**: existing e2e test `TestEndToEndReAct` passes without modification (NoOp default)
-- [ ] **接线验证**: new test verifies compactor is actually called from ReAct loop when threshold is artificially exceeded
-- [ ] **无静默跳过**: compaction trigger check produces no side effects when not triggered; when triggered but NoOp, result is explicit (tokensBefore == tokensAfter)
-- [ ] No owner-doc update required (design docs already describe trigger mechanism)
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] `ReActAgentExecutor.Builder` has `contextCompactor()` method
+- [x] Default contextCompactor is `NoOpContextCompactor` (backward compatible)
+- [x] Compaction trigger check runs before each ReAct iteration using token and message count thresholds
+- [x] `PRE_COMPACT` hook fires before `contextCompactor.compact()`
+- [x] `POST_COMPACT` hook fires after compaction completes
+- [x] NoOp default means no messages are actually modified
+- [x] Recursive compaction is prevented (flag reset each iteration)
+- [x] Existing tests pass unchanged (NoOp default)
+- [x] **端到端验证**: existing e2e test `TestEndToEndReAct` passes without modification (NoOp default)
+- [x] **接线验证**: new test verifies compactor is actually called from ReAct loop when threshold is artificially exceeded
+- [x] **无静默跳过**: compaction trigger check produces no side effects when not triggered; when triggered but NoOp, result is explicit (tokensBefore == tokensAfter)
+- [x] No owner-doc update required (design docs already describe trigger mechanism)
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 4 - Tests
 
-Status: planned
+Status: completed
 Targets: `io.nop.ai.agent.compact.TestCompactionContext`, `io.nop.ai.agent.compact.TestNoOpContextCompactor`, `io.nop.ai.agent.compact.TestCompactionInReActLoop`
 
 - Item Types: `Proof`
 
-- [ ] `TestCompactionContext`: verify construction with all fields, verify immutability
-- [ ] `TestNoOpContextCompactor`: verify `compact()` returns result with equal before/after token counts, verify `retainedMessageCount == input.size()`, verify `snapshotId == null`
-- [ ] `TestCompactionInReActLoop` (integration): verify compactor is NOT called when below thresholds (default NoOp), verify compactor IS called when `tokensUsed > maxTokens * 0.8`, verify compactor IS called when `messageCount > 30`, verify PRE_COMPACT hook fires before compact(), verify POST_COMPACT hook fires after compact(), verify recursive compaction prevention (compaction not triggered twice in same iteration), verify existing ReAct tests pass unchanged
+- [x] `TestCompactionContext`: verify construction with all fields, verify immutability
+- [x] `TestNoOpContextCompactor`: verify `compact()` returns result with equal before/after token counts, verify `retainedMessageCount == input.size()`, verify `snapshotId == null`
+- [x] `TestCompactionInReActLoop` (integration): verify compactor is NOT called when below thresholds (default NoOp), verify compactor IS called when `tokensUsed > maxTokens * 0.8`, verify compactor IS called when `messageCount > 30`, verify PRE_COMPACT hook fires before compact(), verify POST_COMPACT hook fires after compact(), verify recursive compaction prevention (compaction not triggered twice in same iteration), verify existing ReAct tests pass unchanged
 
 Exit Criteria:
 
-- [ ] Unit tests cover CompactionContext construction and field access
-- [ ] Unit tests cover NoOpContextCompactor pass-through behavior (equal before/after, null snapshot)
-- [ ] Integration test verifies compaction trigger when token threshold exceeded
-- [ ] Integration test verifies compaction trigger when message count threshold exceeded
-- [ ] Integration test verifies PRE_COMPACT/POST_COMPACT hooks fire around compaction
-- [ ] Integration test verifies no recursive compaction
-- [ ] All existing tests pass (backward compatible)
-- [ ] **端到端验证**: existing e2e test `TestEndToEndReAct` passes without modification
-- [ ] **接线验证**: `TestCompactionInReActLoop` verifies compactor is called from `ReActAgentExecutor.execute()` when thresholds are exceeded
-- [ ] **无静默跳过**: tests verify NoOp returns explicit equal-count result, not null or empty
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` passes
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] Unit tests cover CompactionContext construction and field access
+- [x] Unit tests cover NoOpContextCompactor pass-through behavior (equal before/after, null snapshot)
+- [x] Integration test verifies compaction trigger when token threshold exceeded
+- [x] Integration test verifies compaction trigger when message count threshold exceeded
+- [x] Integration test verifies PRE_COMPACT/POST_COMPACT hooks fire around compaction
+- [x] Integration test verifies no recursive compaction
+- [x] All existing tests pass (backward compatible)
+- [x] **端到端验证**: existing e2e test `TestEndToEndReAct` passes without modification
+- [x] **接线验证**: `TestCompactionInReActLoop` verifies compactor is called from `ReActAgentExecutor.execute()` when thresholds are exceeded
+- [x] **无静默跳过**: tests verify NoOp returns explicit equal-count result, not null or empty
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` passes
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ## Closure Gates
 
-- [ ] `IContextCompactor` interface defines `compact(CompactionContext)` returning `CompactionResult`
-- [ ] `CompactionContext` data object carries messages, config, session info
-- [ ] `NoOpContextCompactor` returns explicit no-change result (equal before/after counts)
-- [ ] `ReActAgentExecutor` checks compaction thresholds before each iteration
-- [ ] `PRE_COMPACT` and `POST_COMPACT` hooks are invoked during compaction
-- [ ] Backward compatible: all existing tests pass with NoOp default
-- [ ] Roadmap L2-3 updated from ❌ to ✅
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` passes
-- [ ] No silent no-op or empty method body in new code
-- [ ] No owner-doc update required
-- [ ] Independent closure audit completed and evidence recorded
+- [x] `IContextCompactor` interface defines `compact(CompactionContext)` returning `CompactionResult`
+- [x] `CompactionContext` data object carries messages, config, session info
+- [x] `NoOpContextCompactor` returns explicit no-change result (equal before/after counts)
+- [x] `ReActAgentExecutor` checks compaction thresholds before each iteration
+- [x] `PRE_COMPACT` and `POST_COMPACT` hooks are invoked during compaction
+- [x] Backward compatible: all existing tests pass with NoOp default
+- [x] Roadmap L2-3 updated from ❌ to ✅
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` passes
+- [x] No silent no-op or empty method body in new code
+- [x] No owner-doc update required
+- [x] Independent closure audit completed and evidence recorded
 
 ## Deferred But Adjudicated
 
@@ -214,14 +214,27 @@ Exit Criteria:
 - DSL `<compaction>` element in `agent.xdef`
 - L3-9 full 5-layer pipeline with `ICompressionStrategy` extension point
 
+## Follow-up handled by 155-nop-ai-agent-progressive-compression.md
+
+Plan 155 picks up L2-4 (progressive compression initial version: Layer 0 pre-truncation + Layer 1 micro-compression), the direct successor work item from this plan's Non-Blocking Follow-ups.
+
 ## Closure
 
-Status Note: <<filled at closure>>
+Status Note: All 4 phases implemented and verified. 288 tests pass (270 existing + 18 new). Backward compatible with NoOp default. Independent closure audit completed — all 7 closure gates PASS, all 4 anti-hollow checks PASS.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<filled at closure>>
-- Evidence: <<filled at closure>>
+- Reviewer / Agent: Independent general subagent (task ses_1409b80cdffeHnqMWPQsy3hXvl)
+- Evidence:
+  - Gate 1 (IContextCompactor interface): PASS — `IContextCompactor.java:7` defines `compact(CompactionContext)` returning `CompactionResult`
+  - Gate 2 (CompactionContext data object): PASS — `CompactionContext.java:13-17` immutable fields with `List.copyOf`
+  - Gate 3 (NoOpContextCompactor returns no-change): PASS — `NoOpContextCompactor.java:10-18` equal before/after counts, null snapshotId
+  - Gate 4 (ReActAgentExecutor threshold check): PASS — `ReActAgentExecutor.java:212-214` calls `shouldTriggerCompaction` before each iteration
+  - Gate 5 (PRE/POST_COMPACT hooks invoked): PASS — `ReActAgentExecutor.java:450` PRE_COMPACT, line 454 POST_COMPACT
+  - Gate 6 (Backward compatible): PASS — `DefaultAgentEngine.java:165` passes NoOpContextCompactor.INSTANCE, builder defaults to INSTANCE
+  - Gate 7 (No silent no-op): PASS — all methods have substantive logic, no empty bodies or TODOs
+  - Anti-Hollow: compaction trigger actually calls `contextCompactor.compact()` at line 452, hook ordering verified (PRE→compact→POST)
+  - Tests: 18 new tests all pass (TestCompactionContext:6, TestNoOpContextCompactor:6, TestCompactionInReActLoop:6)
 
 Follow-up:
 

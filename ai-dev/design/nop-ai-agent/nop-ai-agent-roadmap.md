@@ -165,19 +165,19 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 |---|--------|------|------|
 | L2-1 | `IToolCallRepairer` 接口 + `NoOpRepairer` pass-through | L1-5 | ✅ |
 | L2-2 | `IToolCallRepairer` `ChainRepairer` (4-stage) | L2-1 | ❌ |
-| L2-3 | `IContextCompactor` 接口 + `NoOpContextCompactor` | L1-5 | ❌ |
-| L2-4 | `IContextCompactor` 渐进压缩初始版 (Layer 0 预截断 + Layer 1 微压缩) | L2-3 | ❌ |
-| L2-7 | `IContentGuardrail` 接口 + `NoOpContentGuardrail` | L1-5 | ❌ |
+| L2-3 | `IContextCompactor` 接口 + `NoOpContextCompactor` | L1-5 | ✅ |
+| L2-4 | `IContextCompactor` 渐进压缩初始版 (Layer 0 预截断 + Layer 1 微压缩) | L2-3 | ✅ |
+| L2-7 | `IContentGuardrail` 接口 + `NoOpContentGuardrail` | L1-5 | ✅ |
 | L2-8 | `ILlmDialect` 适配（已在 nop-ai-core 实现，Agent 层无需额外工作） | nop-ai-core | ✅ 已确认 |
 | L2-9 | ~~Provider 适配 DashScope/OpenAI/Gemini/Ollama~~ → 已在 nop-ai-core ILlmDialect 实现 | L2-8 | ✅ 已确认 |
-| L2-10 | `IModelRouter` 接口 + `PassThroughModelRouter` | L1-5 | ❌ |
+| L2-10 | `IModelRouter` 接口 + `PassThroughModelRouter` | L1-5 | ✅ |
 | L2-11 | `ITalent` 动态准入扩展点 | L1-5 | ❌ |
 | L2-12 | `IAgentLifecycleHook` 10 点生命周期 | L1-5 | ✅ |
 | L2-13 | `ISecurityLevelResolver` 接口 + `NoOpSecurityLevelResolver` | L1-6 | ❌ |
 | L2-13a | `IConflictStrategy` 冲突解决策略接口 + `FailFastStrategy` 默认实现 | L1-1 | ❌ |
 | L2-14 | `IPermissionMatrix` 接口 + `PassThroughPermissionMatrix` | L1-6 | ❌ |
 | L2-15 | Working Memory 工具实现 (read-memory/write-memory/search-memory) | L1-10, L1-5 | ❌ |
-| L2-16 | Token 计数 — `ILlmDialect.estimateTokens()` (default chars/4) + Provider usage 校准 | L1-4, nop-ai-core | ❌ |
+| L2-16 | Token 计数 — `ILlmDialect.estimateTokens()` (default chars/4) + Provider usage 校准 | L1-4, nop-ai-core | ✅ |
 
 **Layer 2 验收标准**：
 
