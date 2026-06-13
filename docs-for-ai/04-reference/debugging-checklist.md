@@ -9,6 +9,7 @@
 | `nop.err.eql.unknown-column-name` | `<eql>` 中用了数据库列名（如 `update_time`）而非实体属性名（如 `updateTime`） | 检查对应实体 ORM XML 中的 `name`（驼峰属性名） |
 | `nop.err.eql.unknown-table-name` | `<eql>` 中用了表名而非实体名 | 实体名 = `app.mall.dao.entity.XXX` 的简名（或用全限定名） |
 | `<sql>` 查询结果为空/错列 | `<sql>` 中列名大小写与数据库实际列名不匹配 | PG 缺省折叠为小写；检查 DDL 是否加引号 |
+| sql-lib `${}` 输出异常或 SQL 注入 | 按 MyBatis 习惯认为 `#{}` 才参数化，但 XPL sql 模式中 **所有 `${}` 默认参数化**，需用 `raw()` 跳参数化 | XPL 与 MyBatis 默认行为相反：MyBatis `${}`=原样替换，XPL `${}`=参数绑定 |
 
 **规则速记：** `<eql>` 用实体属性名（驼峰）；`<sql>` 用数据库列名（DDL 实际大小写）。
 

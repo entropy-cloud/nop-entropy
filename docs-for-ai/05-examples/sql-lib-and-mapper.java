@@ -1,10 +1,82 @@
 -- ====== SQL 库: _vfs/demo/sql/Product.sql-lib.xml ======
--- <eql> 与 <sql> 的选择：
---   <eql> ：使用 实体属性名（驼峰, 如 productName），支持自动关联查询
---          Nop 自动转成数据库列名
---   <sql> ：直接写原生 SQL，使用 数据库列名（大写蛇形, 如 PRODUCT_NAME）
---          不经过实体解析，适合复杂原生查询
---   无特殊需求优先用 <eql>，保持与 ORM 实体模型一致
+--
+-- == 核心认知：sql-lib 使用 XPL 模板，不是 MyBatis ==
+-- MyBatis:   ${} = 原样替换(有注入风险)   #{} = 参数绑定
+-- XPL sql:   ${} = 自动参数化(转?+JDBC参数,安全)  raw($expr) = 原样拼接
+-- 两者默认行为相反。sql-lib 的 <source> 是 xpl-sql 类型(xpl:outputMode="sql")。
+--
+-- == <eql> 优先于 <sql> ==
+-- EQL = 标准 SQL + AutoJoin。EQL 不是新语言，就是在标准 SQL 基础上支持实体关联属性导航：
+--   完整支持: SELECT / FROM / WHERE / GROUP BY / HAVING / ORDER BY / 子查询 / 窗口函数
+--   扩展:     o.关联属性.字段 → 自动 LEFT JOIN 关联表，无需手写 JOIN ON
+--   比 JPQL 更简单: JPQL 要手写 JOIN FETCH，EQL 直接点属性就自动展开
+--
+--   SELECT o.id, o.customer.name FROM Order o WHERE o.customer.status = 1
+--   → 自动 JOIN 客户表，自动处理关联条件
+--
+--   <eql> ：使用 实体名 + 属性名（驼峰），支持关联属性自动 JOIN
+--   <sql> ：直接写原生 SQL，使用 数据库列名（大写蛇形），无实体解析
+--   规则：能写 <eql> 就不用 <sql>，<sql> 仅用于 EQL 无法表达的原生方言/复杂聚合
+--
+-- == XPL sql 模式自动参数化规则 ==
+-- source 中是 xpl-sql 模板(即 xpl:outputMode="sql")，CollectSqlOutput 处理输出：
+--   ${expr}             → JDBC 参数 ? (默认，防注入)
+--   ${raw(expr)}        → 原样拼接 SQL 文本 (RawText 包装，跳过参数化)
+--   ${...} 展开 Collection → 展开为多个 ? 参数 (IN 子句)
+--   ${...} 展开 ISqlExpr → 自定义 SQL 表达式拼接
+-- ${} 外部的纯文本保持为 SQL 字面文本。
+--
+-- == 输出 raw SQL 的方式 ==
+-- 使用 GlobalFunctions.raw() 将值包装为 RawText：
+--     SELECT * FROM ${raw(tableName)} WHERE id = ${id}
+--   → tableName 原样拼接，id 仍参数化为 ?
+--   仅用于动态表名/列名等必须原样拼接的场景。
+--
+-- == 语法结构：查看 sql-lib.xdef 为准 ==
+-- 所有 XDSL 文件以对应 XDEF 为语法权威来源，文档仅辅助说明。
+-- 路径: nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/sql-lib.xdef
+-- 顶层结构:
+--   <sql-lib>
+--     <fragments>                    -- 可复用 SQL 片段
+--       <fragment id="xx">xpl-sql</fragment>
+--     </fragments>
+--     <sqls>                          -- SQL 语句定义
+--       <sql name=".." sqlMethod="findAll|findFirst|findPage|exists|execute"
+--            rowType=".." colNameCamelCase="false" ...>
+--         <source xdef:mandatory="true">xpl-sql</source>
+--         <fields>                     -- 列类型声明
+--           <field name=".." stdSqlType="DATETIME|VARCHAR|.." stdDataType=".."/>
+--         </fields>
+--         <arg name=".."/>             -- 入参声明
+--         <validate-input>xpl</validate-input>
+--         <buildRowMapper>xpl-fn</buildRowMapper>
+--         <buildResult>xpl-fn</buildResult>
+--         <batchLoadSelection>field-selection</batchLoadSelection>
+--       </sql>
+--       <eql name=".." allowUnderscoreName="false" enableFilter="false" ...>
+--         <source xdef:mandatory="true">xpl-sql</source>
+--       </eql>
+--       <query name="..">              -- 复杂查询(QueryBean 模式)
+--         <source xdef:mandatory="true">xpl-node</source>
+--       </query>
+--     </sqls>
+--   </sql-lib>
+--
+-- == 常用属性速查(sql/eql 共享, 来自 SqlItemModel) ==
+-- @name            SQL 片段名称
+-- @sqlMethod       执行方法: findAll/findFirst/findPage/exists/execute
+-- @rowType         返回行包装类(按字段别名映射)
+-- @colNameCamelCase sql 时是否下划线转驼峰(默认 false)
+-- @querySpace      查询空间(对应数据库)
+-- @cacheName+@cacheKeyExpr  结果缓存
+-- @fetchSize       JDBC fetchSize
+-- @timeout         超时毫秒
+-- @disableLogicalDelete  禁用逻辑删除过滤
+-- @ormEntityRefreshBehavior 实体刷新策略
+-- @fields          列类型声明(stdSqlType 控制 DataSet 读取方法)
+-- @batchLoadSelection 查询后自动批量加载关联属性
+-- @buildRowMapper  自定义行映射
+-- @buildResult     行结果后处理
 <?xml version="1.0" encoding="UTF-8"?>
 <sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <sqls>
