@@ -170,7 +170,75 @@ function analyzePlan(filePath) {
       status: phaseStatusMatch ? phaseStatusMatch[1].trim() : 'unknown'
     };
   });
-  
+
+  const structureIssues = [];
+
+  if (isCompleted) {
+    const sectionNames = sections.map(s => s.heading.toLowerCase());
+
+    const findSection = (patterns) => {
+      for (const p of patterns) {
+        const found = sections.find(s => p.test(s.heading));
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const goalsSection = findSection([/^Goals$/i]);
+    const nonGoalsSection = findSection([/^Non[- ]?Goals$/i, /^Out of Scope$/i]);
+    const currentBaseline = findSection([/^Current\s+Baseline$/i, /^Baseline$/i]);
+    const closureGates = findSection([/^Closure\s+Gates$/i]);
+    const closureSection2 = findSection([/^Closure$/i]);
+
+    if (!goalsSection) {
+      structureIssues.push('Missing required section "## Goals" (plan guide rule #3)');
+    }
+    if (!nonGoalsSection && !sectionNames.some(n => n.includes('out of scope') || n.includes('non-goal') || n.includes('nongoal'))) {
+      structureIssues.push('Missing required section "## Non-Goals" or "## Out Of Scope" (plan guide rule #3)');
+    }
+    if (!currentBaseline) {
+      structureIssues.push('Missing required section "## Current Baseline" (plan guide rule #1)');
+    }
+    if (!closureGates) {
+      structureIssues.push('Missing required section "## Closure Gates" (plan guide rule #4)');
+    }
+    if (!closureSection2) {
+      structureIssues.push('Missing required section "## Closure" (plan guide rule #27)');
+    } else {
+      const closureContent = content.substring(closureSection2.startIndex, closureSection2.endIndex);
+      if (!/Status\s*Note\s*:/i.test(closureContent)) {
+        structureIssues.push('Missing "Status Note:" in Closure section (plan guide template)');
+      }
+      if (!/Closure\s+Audit\s+Evidence/i.test(closureContent)) {
+        structureIssues.push('Missing "Closure Audit Evidence:" in Closure section (plan guide rule #27)');
+      }
+      if (!/Reviewer\s*\/?\s*Agent\s*:/i.test(closureContent)) {
+        structureIssues.push('Missing "Reviewer / Agent:" in Closure section (plan guide rule #27)');
+      }
+      if (!/Evidence\s*:/i.test(closureContent)) {
+        structureIssues.push('Missing "Evidence:" in Closure Audit Evidence (plan guide rule #27)');
+      }
+    }
+
+    if (phaseSections.length === 0) {
+      structureIssues.push('Missing execution phases: no "## Phase N" or "## Workstream N" sections found');
+    }
+
+    for (const phase of phaseSections) {
+      const phaseContent = content.substring(phase.startIndex, phase.endIndex);
+      if (!PHASE_STATUS_RE.test(phaseContent)) {
+        structureIssues.push(`${phase.heading}: Missing "Status:" field (plan guide required status markers)`);
+      }
+      if (!/Exit\s+Criteria/i.test(phaseContent)) {
+        structureIssues.push(`${phase.heading}: Missing "Exit Criteria:" section (plan guide template)`);
+      }
+    }
+
+    if (!statusMatch) {
+      structureIssues.push('Missing "Plan Status:" in front matter');
+    }
+  }
+
   return {
     file: relPath,
     planStatus,
@@ -184,7 +252,8 @@ function analyzePlan(filePath) {
     closureEvidenceIssues,
     deferredItems,
     phaseStatuses,
-    allUnchecked
+    allUnchecked,
+    structureIssues
   };
 }
 
@@ -237,6 +306,13 @@ function formatReport(result, verbose) {
       report += `    - ${issue}\n`;
     }
   }
+
+  if (result.structureIssues && result.structureIssues.length > 0) {
+    report += `\n  Structure issues (missing required sections per plan guide):\n`;
+    for (const issue of result.structureIssues) {
+      report += `    - ${issue}\n`;
+    }
+  }
   
   return report;
 }
@@ -264,7 +340,8 @@ export function inspectPlan(filePath) {
   const failed =
     result.totalUnchecked > 0 ||
     (result.isCompleted && !result.hasClosureEvidence) ||
-    (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0);
+    (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0) ||
+    (result.structureIssues && result.structureIssues.length > 0);
 
   const details = [];
   if (result.totalUnchecked > 0)
@@ -273,6 +350,8 @@ export function inspectPlan(filePath) {
     details.push("missing closure evidence");
   if (result.closureEvidenceIssues?.length > 0)
     details.push(...result.closureEvidenceIssues);
+  if (result.structureIssues?.length > 0)
+    details.push(...result.structureIssues);
 
   return {
     passed: !failed,
@@ -357,11 +436,13 @@ function main() {
     r.totalUnchecked > 0
     || (r.isCompleted && !r.hasClosureEvidence)
     || (r.closureEvidenceIssues && r.closureEvidenceIssues.length > 0)
+    || (r.structureIssues && r.structureIssues.length > 0)
   );
   const passedResults = results.filter(r =>
     r.totalUnchecked === 0
     && !(r.isCompleted && !r.hasClosureEvidence)
     && (!r.closureEvidenceIssues || r.closureEvidenceIssues.length === 0)
+    && (!r.structureIssues || r.structureIssues.length === 0)
   );
   const hardFailResults = failedResults.filter(r => r.isCompleted);
 

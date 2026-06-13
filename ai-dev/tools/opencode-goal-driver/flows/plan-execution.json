@@ -26,7 +26,7 @@
           "type": "script",
           "scriptId": "closure-script-check",
           "transitions": {
-            "pass": { "exit": "pass" },
+            "pass": { "goto": "AI_AUDIT" },
             "fail": { "goto": "AI_AUDIT" }
           }
         },
@@ -35,8 +35,8 @@
           "promptPath": "prompts/closure-audit.md",
           "onUnknownMaxRetries": 2,
           "transitions": {
-            "complete": { "goto": "_retry" },
-            "incomplete": { "exit": "fail" }
+            "complete": { "exit": "pass" },
+            "incomplete": { "goto": "_retry" }
           },
           "onError": { "exit": "fail" }
         }

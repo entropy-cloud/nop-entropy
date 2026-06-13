@@ -49,7 +49,15 @@ async function closureScriptCheck(delegates, flowVars) {
     );
     const result = inspectPlan(planFile);
 
-    if (result.passed) return "pass";
+    if (result.passed) {
+      if (flowVars?.set) flowVars.set("SCRIPT_CHECK_RESULT", "PASS");
+      return "pass";
+    }
+
+    if (flowVars?.set) {
+      flowVars.set("SCRIPT_CHECK_RESULT", "FAIL");
+      flowVars.set("SCRIPT_CHECK_DETAILS", result.details.join("; "));
+    }
 
     console.error(`[closureScriptCheck] FAIL: ${result.file}`);
     console.error(`  status: ${result.planStatus}`);
