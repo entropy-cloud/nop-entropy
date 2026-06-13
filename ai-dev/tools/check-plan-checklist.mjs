@@ -184,10 +184,10 @@ function analyzePlan(filePath) {
       return null;
     };
 
-    const goalsSection = findSection([/^Goals$/i]);
-    const nonGoalsSection = findSection([/^Non[- ]?Goals$/i, /^Out of Scope$/i]);
+    const goalsSection = findSection([/^Goals?$/i]);
+    const nonGoalsSection = findSection([/^Non[- ]?Goals?$/i, /^Out\s+of\s+Scope$/i]);
     const currentBaseline = findSection([/^Current\s+Baseline$/i, /^Baseline$/i]);
-    const closureGates = findSection([/^Closure\s+Gates$/i]);
+    const closureGates = findSection([/^Closure\s+Gates?$/i]);
     const closureSection2 = findSection([/^Closure$/i]);
 
     if (!goalsSection) {
@@ -335,13 +335,14 @@ function findActivePlans(plansDir) {
   return plans.sort();
 }
 
-export function inspectPlan(filePath) {
+export function inspectPlan(filePath, options = {}) {
+  const strict = options.strict === true;
   const result = analyzePlan(filePath);
   const failed =
     result.totalUnchecked > 0 ||
     (result.isCompleted && !result.hasClosureEvidence) ||
     (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0) ||
-    (result.structureIssues && result.structureIssues.length > 0);
+    (strict && result.structureIssues && result.structureIssues.length > 0);
 
   const details = [];
   if (result.totalUnchecked > 0)
@@ -350,7 +351,7 @@ export function inspectPlan(filePath) {
     details.push("missing closure evidence");
   if (result.closureEvidenceIssues?.length > 0)
     details.push(...result.closureEvidenceIssues);
-  if (result.structureIssues?.length > 0)
+  if (strict && result.structureIssues?.length > 0)
     details.push(...result.structureIssues);
 
   return {
@@ -436,13 +437,11 @@ function main() {
     r.totalUnchecked > 0
     || (r.isCompleted && !r.hasClosureEvidence)
     || (r.closureEvidenceIssues && r.closureEvidenceIssues.length > 0)
-    || (r.structureIssues && r.structureIssues.length > 0)
   );
   const passedResults = results.filter(r =>
     r.totalUnchecked === 0
     && !(r.isCompleted && !r.hasClosureEvidence)
     && (!r.closureEvidenceIssues || r.closureEvidenceIssues.length === 0)
-    && (!r.structureIssues || r.structureIssues.length === 0)
   );
   const hardFailResults = failedResults.filter(r => r.isCompleted);
 

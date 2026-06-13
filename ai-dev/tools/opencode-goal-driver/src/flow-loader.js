@@ -47,7 +47,7 @@ async function closureScriptCheck(delegates, flowVars) {
     const { inspectPlan } = await import(
       "../../check-plan-checklist.mjs"
     );
-    const result = inspectPlan(planFile);
+    const result = inspectPlan(planFile, { strict: true });
 
     if (result.passed) {
       if (flowVars?.set) flowVars.set("SCRIPT_CHECK_RESULT", "PASS");
