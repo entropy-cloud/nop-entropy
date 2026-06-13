@@ -1,11 +1,5 @@
 package io.nop.ai.shell.io;
 
-import io.nop.api.core.exceptions.NopException;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 
 public class PrintStreamShellOutput implements IShellOutput {
@@ -15,15 +9,6 @@ public class PrintStreamShellOutput implements IShellOutput {
 
     public PrintStreamShellOutput(PrintStream printStream) {
         this.printStream = printStream;
-    }
-
-    public static PrintStreamShellOutput fromFile(File file) {
-        try {
-            OutputStream out = new FileOutputStream(file);
-            return new PrintStreamShellOutput(new PrintStream(out));
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
     }
 
     @Override

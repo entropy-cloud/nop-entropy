@@ -44,9 +44,9 @@ public class CdCommand extends AbstractShellCommand {
         }
 
         String currentDir = context.workingDirectory();
-        String resolvedDir = resolvePath(currentDir, targetDir);
+        String resolvedDir = resolvePath(currentDir, targetDir, context.fileSystem().normalizePath("/"));
 
-        if (!isAbsolutePath(resolvedDir)) {
+        if (resolvedDir == null || !resolvedDir.startsWith("/")) {
             context.stderr().println("cd: " + targetDir + ": No such file or directory");
             return 1;
         }
@@ -58,25 +58,22 @@ public class CdCommand extends AbstractShellCommand {
         return 0;
     }
 
-    private String resolvePath(String currentDir, String targetPath) {
-        if (isAbsolutePath(targetPath)) {
-            return normalizePath(targetPath);
+    static String resolvePath(String currentDir, String targetPath, String normalizedRoot) {
+        if (targetPath.startsWith("/")) {
+            return normalize(targetPath);
         }
 
-        // Split current and target paths
         String[] currentParts = currentDir.split("/");
         String[] targetParts = targetPath.split("/");
 
         java.util.List<String> resultParts = new java.util.ArrayList<>();
 
-        // Add current directory parts (skip empty first element)
         for (String part : currentParts) {
             if (!part.isEmpty()) {
                 resultParts.add(part);
             }
         }
 
-        // Process target path parts
         for (String part : targetParts) {
             if (part.isEmpty() || part.equals(".")) {
                 continue;
@@ -89,7 +86,6 @@ public class CdCommand extends AbstractShellCommand {
             }
         }
 
-        // Build absolute path
         StringBuilder result = new StringBuilder("/");
         for (int i = 0; i < resultParts.size(); i++) {
             if (i > 0) {
@@ -98,23 +94,17 @@ public class CdCommand extends AbstractShellCommand {
             result.append(resultParts.get(i));
         }
 
-        return normalizePath(result.toString());
+        return normalize(result.toString());
     }
 
-    private boolean isAbsolutePath(String path) {
-        return path != null && !path.isEmpty() && path.startsWith("/");
-    }
-
-    private String normalizePath(String path) {
+    private static String normalize(String path) {
         if (path == null || path.isEmpty()) {
             return "/";
         }
-
         String result = path;
         while (result.contains("//")) {
             result = result.replace("//", "/");
         }
-
         return result.isEmpty() ? "/" : result;
     }
 }

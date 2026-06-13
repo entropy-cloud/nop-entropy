@@ -15,6 +15,8 @@ import io.nop.ai.shell.io.BlockingQueueShellOutput;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
 import io.nop.ai.shell.model.SimpleCommand;
+import io.nop.ai.toolkit.fs.IToolFileSystem;
+import io.nop.ai.toolkit.fs.LocalToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,14 +39,24 @@ class ShellCommandExecutorTest {
     private ShellCommandExecutor executor;
     private ShellCommandRegistry registry;
     private ICancelToken cancelToken;
+    private IToolFileSystem fileSystem;
+    private String workDir;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         registry = new ShellCommandRegistry();
         registry.registerCommand(new EchoCommand());
         registry.registerCommand(new LsCommand());
 
-        executor = new ShellCommandExecutor(registry);
+        Path tempDir = Files.createTempDirectory("shell-test");
+        tempDir.toFile().deleteOnExit();
+        fileSystem = new LocalToolFileSystem(tempDir.toFile());
+        workDir = tempDir.toAbsolutePath().toString();
+
+        fileSystem.writeText("file1.txt", "content", false);
+        fileSystem.mkdirs("subdir");
+
+        executor = new ShellCommandExecutor(registry, fileSystem);
         cancelToken = new ICancelToken() {
             private volatile boolean cancelled = false;
 
@@ -75,7 +87,7 @@ class ShellCommandExecutorTest {
     private IShellCommandExecutionContext createContext(IShellInput stdin, IShellOutput stdout, IShellOutput stderr) {
         return new DefaultShellExecutionContext(
                 stdin, stdout, stderr,
-                new HashMap<>(), "/", new String[0], null, cancelToken
+                new HashMap<>(), workDir, new String[0], fileSystem, cancelToken
         );
     }
 
@@ -146,28 +158,23 @@ class ShellCommandExecutorTest {
 
     @Test
     void testOutputRedirectToFile() throws Exception {
-        Path testFile = Files.createTempFile("test", ".txt");
-        testFile.toFile().deleteOnExit();
-
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
                 new BlockingQueueShellOutput()
         );
 
-        ExecutionResult result = executor.execute("echo hello world > " + testFile.toAbsolutePath(), context)
+        ExecutionResult result = executor.execute("echo hello world > test_output.txt", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-        String content = Files.readString(testFile);
+        String content = fileSystem.readText("test_output.txt", 0).getContent();
         assertTrue(content.contains("hello world"));
     }
 
     @Test
     void testOutputAppendToFile() throws Exception {
-        Path testFile = Files.createTempFile("test", ".txt");
-        testFile.toFile().deleteOnExit();
-        Files.writeString(testFile, "line1\n");
+        fileSystem.writeText("test_append.txt", "line1\n", false);
 
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
@@ -175,20 +182,18 @@ class ShellCommandExecutorTest {
                 new BlockingQueueShellOutput()
         );
 
-        ExecutionResult result = executor.execute("echo line2 >> " + testFile.toAbsolutePath(), context)
+        ExecutionResult result = executor.execute("echo line2 >> test_append.txt", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-        String content = Files.readString(testFile);
+        String content = fileSystem.readText("test_append.txt", 0).getContent();
         assertTrue(content.contains("line1"));
         assertTrue(content.contains("line2"));
     }
 
     @Test
     void testInputRedirectFromFile() throws Exception {
-        Path testFile = Files.createTempFile("test", ".txt");
-        testFile.toFile().deleteOnExit();
-        Files.writeString(testFile, "hello from file\n");
+        fileSystem.writeText("test_input.txt", "hello from file\n", false);
 
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
@@ -196,7 +201,7 @@ class ShellCommandExecutorTest {
                 new BlockingQueueShellOutput()
         );
 
-        ExecutionResult result = executor.execute("echo < " + testFile.toAbsolutePath(), context)
+        ExecutionResult result = executor.execute("echo < test_input.txt", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
@@ -204,39 +209,33 @@ class ShellCommandExecutorTest {
 
     @Test
     void testStderrRedirectToStdout() throws Exception {
-        Path testFile = Files.createTempFile("test", ".txt");
-        testFile.toFile().deleteOnExit();
-
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
                 new BlockingQueueShellOutput()
         );
 
-        ExecutionResult result = executor.execute("echo test 2>&1 > " + testFile.toAbsolutePath(), context)
+        ExecutionResult result = executor.execute("echo test 2>&1 > test_stderr.txt", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-        String content = Files.readString(testFile);
+        String content = fileSystem.readText("test_stderr.txt", 0).getContent();
         assertTrue(content.contains("test"));
     }
 
     @Test
     void testMergeStdoutAndStderr() throws Exception {
-        Path testFile = Files.createTempFile("test", ".txt");
-        testFile.toFile().deleteOnExit();
-
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
                 new BlockingQueueShellOutput()
         );
 
-        ExecutionResult result = executor.execute("echo stdout &> " + testFile.toAbsolutePath(), context)
+        ExecutionResult result = executor.execute("echo stdout &> test_merge.txt", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-        String content = Files.readString(testFile);
+        String content = fileSystem.readText("test_merge.txt", 0).getContent();
         assertTrue(content.contains("stdout"));
     }
 
@@ -288,7 +287,7 @@ class ShellCommandExecutorTest {
 
     @Test
     void testGroupExprEnvironmentRestore() throws Exception {
-        executor = new ShellCommandExecutor(registry);
+        executor = new ShellCommandExecutor(registry, fileSystem);
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
@@ -303,7 +302,7 @@ class ShellCommandExecutorTest {
 
     @Test
     void testSubshellExprEnvironmentRestore() throws Exception {
-        executor = new ShellCommandExecutor(registry);
+        executor = new ShellCommandExecutor(registry, fileSystem);
         Map<String, String> beforeEnv = new HashMap<>(executor.getExportedEnv());
 
         IShellCommandExecutionContext context = createContext(
@@ -348,7 +347,7 @@ class ShellCommandExecutorTest {
             }
         });
 
-        ShellCommandExecutor localExecutor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor localExecutor = new ShellCommandExecutor(localRegistry, fileSystem);
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
@@ -380,7 +379,7 @@ class ShellCommandExecutorTest {
             return null;
         };
 
-        ShellCommandExecutor localExecutor = new ShellCommandExecutor(registry, null, rejectingChecker);
+        ShellCommandExecutor localExecutor = new ShellCommandExecutor(registry, null, rejectingChecker, fileSystem);
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
@@ -403,7 +402,7 @@ class ShellCommandExecutorTest {
             return null;
         };
 
-        ShellCommandExecutor localExecutor = new ShellCommandExecutor(registry, null, selectiveChecker);
+        ShellCommandExecutor localExecutor = new ShellCommandExecutor(registry, null, selectiveChecker, fileSystem);
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),

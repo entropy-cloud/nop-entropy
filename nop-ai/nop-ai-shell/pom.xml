@@ -14,7 +14,7 @@
      <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-core</artifactId>
+            <artifactId>nop-ai-toolkit</artifactId>
         </dependency>
 
         <dependency>

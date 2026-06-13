@@ -1,8 +1,12 @@
 package io.nop.ai.shell.io;
 
+import io.nop.ai.toolkit.fs.IToolFileSystem;
+import io.nop.ai.toolkit.fs.LocalToolFileSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -238,16 +242,21 @@ class ShellIOTest {
 
     @Test
     void testFileShellOutputOverwriteMode() throws Exception {
-        java.nio.file.Path tmp = java.nio.file.Files.createTempFile("test", ".txt");
+        Path tmp = Files.createTempFile("test", ".txt");
         tmp.toFile().deleteOnExit();
-        java.nio.file.Files.writeString(tmp, "old line\n");
+        Files.writeString(tmp, "old line\n");
 
-        FileShellOutput output = new FileShellOutput(tmp);
+        Path tempDir = Files.createTempDirectory("shell-io-test");
+        tempDir.toFile().deleteOnExit();
+        IToolFileSystem fs = new LocalToolFileSystem(tempDir.toFile());
+        String relPath = tempDir.relativize(tmp).toString();
+
+        FileShellOutput output = new FileShellOutput(relPath, fs);
         output.println("new line 1");
         output.println("new line 2");
         output.close();
 
-        String content = java.nio.file.Files.readString(tmp);
+        String content = fs.readText(relPath, 0).getContent();
         assertFalse(content.contains("old"), "Old content should be truncated");
         assertTrue(content.contains("new line 1"));
         assertTrue(content.contains("new line 2"));
@@ -255,15 +264,20 @@ class ShellIOTest {
 
     @Test
     void testFileShellOutputAppendMode() throws Exception {
-        java.nio.file.Path tmp = java.nio.file.Files.createTempFile("test", ".txt");
+        Path tmp = Files.createTempFile("test", ".txt");
         tmp.toFile().deleteOnExit();
-        java.nio.file.Files.writeString(tmp, "existing\n");
+        Files.writeString(tmp, "existing\n");
 
-        FileShellOutput output = new FileShellOutput(tmp, true);
+        Path tempDir = Files.createTempDirectory("shell-io-test");
+        tempDir.toFile().deleteOnExit();
+        IToolFileSystem fs = new LocalToolFileSystem(tempDir.toFile());
+        String relPath = tempDir.relativize(tmp).toString();
+
+        FileShellOutput output = new FileShellOutput(relPath, fs, true);
         output.println("appended");
         output.close();
 
-        String content = java.nio.file.Files.readString(tmp);
+        String content = fs.readText(relPath, 0).getContent();
         assertTrue(content.contains("existing"));
         assertTrue(content.contains("appended"));
     }

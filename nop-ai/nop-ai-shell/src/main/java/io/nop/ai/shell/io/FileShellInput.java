@@ -1,33 +1,23 @@
 package io.nop.ai.shell.io;
 
-import io.nop.api.core.exceptions.NopException;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import io.nop.ai.toolkit.fs.IToolFileSystem;
+import io.nop.ai.toolkit.fs.TextResult;
 
 public class FileShellInput extends AbstractShellInput {
 
-    private final Path filePath;
+    private final String filePath;
     private final String content;
     private int position = 0;
 
-    public FileShellInput(String filePath) {
-        this(Path.of(filePath));
+    public FileShellInput(String filePath, IToolFileSystem fileSystem) {
+        this.filePath = filePath;
+        TextResult result = fileSystem.readText(filePath, 0);
+        this.content = result != null ? result.getContent() : "";
     }
 
-    public FileShellInput(Path filePath) {
+    public FileShellInput(String filePath, String content) {
         this.filePath = filePath;
-        try {
-            if (Files.exists(filePath)) {
-                this.content = Files.readString(filePath, StandardCharsets.UTF_8);
-            } else {
-                this.content = "";
-            }
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
+        this.content = content != null ? content : "";
     }
 
     @Override
@@ -39,7 +29,7 @@ public class FileShellInput extends AbstractShellInput {
         return ShellChunk.text(remaining);
     }
 
-    public Path getFilePath() {
+    public String getFilePath() {
         return filePath;
     }
 }

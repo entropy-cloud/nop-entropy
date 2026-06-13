@@ -8,11 +8,16 @@ import io.nop.ai.shell.io.BlockingQueueShellInput;
 import io.nop.ai.shell.io.BlockingQueueShellOutput;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
+import io.nop.ai.toolkit.fs.IToolFileSystem;
+import io.nop.ai.toolkit.fs.LocalToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -28,12 +33,17 @@ class ShellConcurrencyEdgeCaseTest {
 
     private ShellCommandRegistry registry;
     private ICancelToken cancelToken;
+    private IToolFileSystem fileSystem;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         registry = new ShellCommandRegistry();
         registry.registerCommand(new io.nop.ai.shell.commands.impl.EchoCommand());
         registry.registerCommand(new io.nop.ai.shell.commands.impl.LsCommand());
+
+        Path tempDir = Files.createTempDirectory("shell-test");
+        tempDir.toFile().deleteOnExit();
+        fileSystem = new LocalToolFileSystem(tempDir.toFile());
 
         cancelToken = new ICancelToken() {
             @Override public boolean isCancelled() { return false; }
@@ -61,7 +71,7 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testPipelineThreeStages() throws Exception {
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         ExecutionResult result = executor.execute("echo aaa | echo bbb | echo ccc", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -100,7 +110,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         CompletableFuture<ExecutionResult> future = executor.execute("blocker | waiter", defaultContext())
                 .toCompletableFuture();
 
@@ -131,7 +141,7 @@ class ShellConcurrencyEdgeCaseTest {
         });
         localRegistry.registerCommand(new io.nop.ai.shell.commands.impl.EchoCommand());
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("failcmd | echo after", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -153,7 +163,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("echo ok | failtail", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -182,7 +192,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("failcmd && neverrun", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -192,7 +202,7 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testLogicalAndBothSucceed() throws Exception {
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         ExecutionResult result = executor.execute("echo first && echo second", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -216,7 +226,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("echo ok || neverrun", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -236,7 +246,7 @@ class ShellConcurrencyEdgeCaseTest {
         });
         localRegistry.registerCommand(new io.nop.ai.shell.commands.impl.EchoCommand());
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("failcmd || echo fallback", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -246,7 +256,7 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testBackgroundJobRemovedFromMapOnCompletion() throws Exception {
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         ExecutionResult result = executor.execute("echo done &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -273,7 +283,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("crash &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -302,7 +312,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
 
         ExecutionResult r1 = executor.execute("counter &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
@@ -328,7 +338,7 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testCloseIdempotent() throws Exception {
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         executor.close();
         executor.close();
         executor.close();
@@ -336,7 +346,7 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testCloseWithNoBackgroundJobs() throws Exception {
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         executor.execute("echo hello", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
         executor.close();
@@ -355,7 +365,7 @@ class ShellConcurrencyEdgeCaseTest {
             public int execute(IShellCommandExecutionContext ctx) { return 5; }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("failcmd; echo after", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -365,7 +375,7 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testPipelineWithCommandNotFoundInMiddle() throws Exception {
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         ExecutionResult result = executor.execute("nonexistent_cmd | echo recovery", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -408,7 +418,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("producer | consumer", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -450,7 +460,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         ExecutionResult result = executor.execute("slowprod | fastcon", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -479,7 +489,7 @@ class ShellConcurrencyEdgeCaseTest {
             }
         });
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
         executor.execute("veryslow &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -497,7 +507,7 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testSubshellWithBackgroundJobInside() throws Exception {
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         ExecutionResult result = executor.execute("(echo inside)", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -507,8 +517,8 @@ class ShellConcurrencyEdgeCaseTest {
 
     @Test
     void testExportedEnvDoesNotLeakBetweenExecutors() throws Exception {
-        ShellCommandExecutor executor1 = new ShellCommandExecutor(registry);
-        ShellCommandExecutor executor2 = new ShellCommandExecutor(registry);
+        ShellCommandExecutor executor1 = new ShellCommandExecutor(registry, fileSystem);
+        ShellCommandExecutor executor2 = new ShellCommandExecutor(registry, fileSystem);
 
         Map<String, String> env1 = executor1.getExportedEnv();
         Map<String, String> env2 = executor2.getExportedEnv();
@@ -529,7 +539,7 @@ class ShellConcurrencyEdgeCaseTest {
             return null;
         };
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry, null, checker);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, null, checker, fileSystem);
         ExecutionResult result = executor.execute("echo ok | blocked", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -545,7 +555,7 @@ class ShellConcurrencyEdgeCaseTest {
             return null;
         };
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry, null, checker);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, null, checker, fileSystem);
         ExecutionResult result = executor.execute("echo first && echo second", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -561,7 +571,7 @@ class ShellConcurrencyEdgeCaseTest {
             return null;
         };
 
-        ShellCommandExecutor executor = new ShellCommandExecutor(registry, null, checker);
+        ShellCommandExecutor executor = new ShellCommandExecutor(registry, null, checker, fileSystem);
         ExecutionResult result = executor.execute("echo bg &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 

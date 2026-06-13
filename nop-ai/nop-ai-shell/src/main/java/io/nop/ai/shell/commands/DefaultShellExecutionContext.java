@@ -2,19 +2,14 @@ package io.nop.ai.shell.commands;
 
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
+import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
-import io.nop.core.resource.IResourceStore;
 
-import java.util.Collections;import java.util.HashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Shell命令执行上下文的默认实现
- * <p>
- * 封装了命令执行所需的所有上下文信息，包括I/O流、环境变量、工作目录和参数解析。
- * </p>
- */
 public class DefaultShellExecutionContext implements IShellCommandExecutionContext {
 
     private final IShellInput stdin;
@@ -23,22 +18,12 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
     private final Map<String, String> environment;
     private String workingDirectory;
     private final String[] arguments;
-    private final IResourceStore resourceStore;
+    private final IToolFileSystem fileSystem;
     private final ICancelToken cancelToken;
 
     private final Map<String, String> flags;
     private final String[] positionalArgs;
-    /**
-     * 创建默认命令执行上下文
-     *
-     * @param stdin 标准输入
-     * @param stdout 标准输出
-     * @param stderr 标准错误输出
-     * @param environment 环境变量
-     * @param workingDirectory 工作目录
-     * @param arguments 命令行参数
-     * @param resourceStore 虚拟文件系统资源存储
-     */
+
     public DefaultShellExecutionContext(
             IShellInput stdin,
             IShellOutput stdout,
@@ -46,22 +31,10 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
             Map<String, String> environment,
             String workingDirectory,
             String[] arguments,
-            IResourceStore resourceStore) {
-        this(stdin, stdout, stderr, environment, workingDirectory, arguments, resourceStore, null);
+            IToolFileSystem fileSystem) {
+        this(stdin, stdout, stderr, environment, workingDirectory, arguments, fileSystem, null);
     }
 
-    /**
-     * 创建默认命令执行上下文（带取消令牌）
-     *
-     * @param stdin 标准输入
-     * @param stdout 标准输出
-     * @param stderr 标准错误输出
-     * @param environment 环境变量
-     * @param workingDirectory 工作目录
-     * @param arguments 命令行参数
-     * @param resourceStore 虚拟文件系统资源存储
-     * @param cancelToken 取消令牌
-     */
     public DefaultShellExecutionContext(
             IShellInput stdin,
             IShellOutput stdout,
@@ -69,18 +42,20 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
             Map<String, String> environment,
             String workingDirectory,
             String[] arguments,
-            IResourceStore resourceStore,
+            IToolFileSystem fileSystem,
             ICancelToken cancelToken) {
         this.stdin = stdin;
         this.stdout = stdout;
-        this.stderr = stderr;        this.environment = environment != null ? environment : Collections.emptyMap();
+        this.stderr = stderr;
+        this.environment = environment != null ? environment : Collections.emptyMap();
         this.workingDirectory = workingDirectory != null ? workingDirectory : "/";
         this.arguments = arguments != null ? arguments : new String[0];
-        this.resourceStore = resourceStore;
+        this.fileSystem = fileSystem;
         this.cancelToken = cancelToken;
 
         this.flags = new HashMap<>();
-        this.positionalArgs = parseArguments(this.arguments);    }
+        this.positionalArgs = parseArguments(this.arguments);
+    }
 
     @Override
     public IShellInput stdin() {
@@ -128,8 +103,8 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
     }
 
     @Override
-    public IResourceStore resourceStore() {
-        return resourceStore;
+    public IToolFileSystem fileSystem() {
+        return fileSystem;
     }
 
     @Override
@@ -137,28 +112,10 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
         return cancelToken;
     }
 
-    /**
-     * 设置工作目录
-     *     * @param workingDirectory 新的工作目录
-     */
     public void setWorkingDirectory(String workingDirectory) {
         this.workingDirectory = workingDirectory;
     }
 
-    /**
-     * 解析命令行参数为标志和位置参数
-     * <p>
-     * 支持格式：
-     * <ul>
-     * <li>--flag=value：长格式带值</li>
-     * <li>--flag：长格式布尔标志</li>
-     * <li>-f：短格式标志（多个字符如 -abc 等同于 -a -b -c）</li>
-     * </ul>
-     * </p>
-     *
-     * @param args 命令行参数
-     * @return 位置参数数组
-     */
     private String[] parseArguments(String[] args) {
         Map<String, String> parsedFlags = new LinkedHashMap<>();
         java.util.List<String> positional = new java.util.ArrayList<>();

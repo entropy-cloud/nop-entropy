@@ -9,10 +9,15 @@ import io.nop.ai.shell.commands.IShellCommandExecutionContext;
 import io.nop.ai.shell.commands.ShellCommandRegistry;
 import io.nop.ai.shell.io.AbstractShellInput;
 import io.nop.ai.shell.io.BlockingQueueShellOutput;
+import io.nop.ai.shell.io.DuplexShellOutput;
+import io.nop.ai.shell.io.FileShellInput;
+import io.nop.ai.shell.io.FileShellOutput;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
+import io.nop.ai.shell.io.TeeOutput;
 import io.nop.ai.shell.model.*;
 import io.nop.ai.shell.parser.BashSyntaxParser;
+import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
@@ -32,6 +37,7 @@ public class ShellCommandExecutor implements Closeable {
     private final Executor executor;
     private final ICommandChecker checker;
     private final ExternalCommandAdapter externalAdapter;
+    private final IToolFileSystem fileSystem;
 
     private Map<String, String> exportedEnv = new HashMap<>();
     private String currentWorkingDir = "/";
@@ -40,19 +46,16 @@ public class ShellCommandExecutor implements Closeable {
     private final AtomicLong jobIdCounter = new AtomicLong(0);
     private volatile boolean closed = false;
 
-    public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor) {
-        this(registry, executor, null);
-    }
-
-    public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor, ICommandChecker checker) {
+    public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor, ICommandChecker checker, IToolFileSystem fileSystem) {
         this.registry = registry;
         this.executor = executor != null ? executor : GlobalExecutors.globalWorker();
         this.checker = checker;
         this.externalAdapter = new ExternalCommandAdapter();
+        this.fileSystem = fileSystem;
     }
 
-    public ShellCommandExecutor(ShellCommandRegistry registry) {
-        this(registry, null);
+    public ShellCommandExecutor(ShellCommandRegistry registry, IToolFileSystem fileSystem) {
+        this(registry, null, null, fileSystem);
     }
 
     public CompletionStage<ExecutionResult> execute(String commandLine, IShellCommandExecutionContext context) {
@@ -219,7 +222,6 @@ public class ShellCommandExecutor implements Closeable {
 
             final IShellInput input = stageInput;
             final IShellOutput out = output;
-            final BlockingQueueShellOutput prevOut = prevOutput;
 
             CompletableFuture<Integer> stageFuture = CompletableFuture.supplyAsync(() -> {
                 try {
@@ -359,12 +361,12 @@ public class ShellCommandExecutor implements Closeable {
         Map<String, String> env = buildEnvironment(cmd.getEnvVars(), context.environment());
         String[] args = cmd.getArgs().toArray(new String[0]);
 
-        RedirectedStreams redirectedStreams = applyRedirects(cmd.getRedirects(), stdin, stdout, stderr, context.workingDirectory());
+        RedirectedStreams redirectedStreams = applyRedirects(cmd.getRedirects(), stdin, stdout, stderr);
 
         try {
             IShellCommandExecutionContext cmdContext = new DefaultShellExecutionContext(
                     redirectedStreams.stdin, redirectedStreams.stdout, redirectedStreams.stderr,
-                    env, context.workingDirectory(), args, context.resourceStore(), cancelToken
+                    env, context.workingDirectory(), args, context.fileSystem(), cancelToken
             );
 
             return command.execute(cmdContext);
@@ -404,7 +406,7 @@ public class ShellCommandExecutor implements Closeable {
         }
     }
 
-    private RedirectedStreams applyRedirects(List<Redirect> redirects, IShellInput stdin, IShellOutput stdout, IShellOutput stderr, String workingDir) {
+    private RedirectedStreams applyRedirects(List<Redirect> redirects, IShellInput stdin, IShellOutput stdout, IShellOutput stderr) {
         RedirectedStreams streams = new RedirectedStreams(stdin, stdout, stderr);
 
         for (Redirect redirect : redirects) {
@@ -440,13 +442,13 @@ public class ShellCommandExecutor implements Closeable {
     }
 
     private void handleOutputRedirect(RedirectedStreams streams, Redirect redirect, boolean append) {
-        io.nop.ai.shell.io.FileShellOutput fileOutput = new io.nop.ai.shell.io.FileShellOutput(redirect.target(), append);
+        FileShellOutput fileOutput = new FileShellOutput(redirect.target(), fileSystem, append);
         streams.stdout = fileOutput;
         streams.addOwnedOutput(fileOutput);
     }
 
     private void handleInputRedirect(RedirectedStreams streams, Redirect redirect) {
-        io.nop.ai.shell.io.FileShellInput fileInput = new io.nop.ai.shell.io.FileShellInput(redirect.target());
+        FileShellInput fileInput = new FileShellInput(redirect.target(), fileSystem);
         streams.stdin = fileInput;
         streams.addOwnedInput(fileInput);
     }
@@ -466,7 +468,7 @@ public class ShellCommandExecutor implements Closeable {
                     break;
                 case 2:
                     if (targetFd == 1) {
-                        streams.stderr = new io.nop.ai.shell.io.DuplexShellOutput(streams.stdout);
+                        streams.stderr = new DuplexShellOutput(streams.stdout);
                     }
                     break;
             }
@@ -487,8 +489,8 @@ public class ShellCommandExecutor implements Closeable {
     }
 
     private void handleMergeRedirect(RedirectedStreams streams, Redirect redirect, boolean append) {
-        io.nop.ai.shell.io.FileShellOutput fileOutput = new io.nop.ai.shell.io.FileShellOutput(redirect.target(), append);
-        io.nop.ai.shell.io.TeeOutput teeOutput = new io.nop.ai.shell.io.TeeOutput(fileOutput, fileOutput);
+        FileShellOutput fileOutput = new FileShellOutput(redirect.target(), fileSystem, append);
+        TeeOutput teeOutput = new TeeOutput(fileOutput, fileOutput);
         streams.stdout = teeOutput;
         streams.stderr = teeOutput;
         streams.addOwnedOutput(fileOutput);

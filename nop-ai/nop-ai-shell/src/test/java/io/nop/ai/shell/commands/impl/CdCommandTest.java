@@ -4,11 +4,27 @@ import io.nop.ai.shell.commands.DefaultShellExecutionContext;
 import io.nop.ai.shell.commands.IShellCommandExecutionContext;
 import io.nop.ai.shell.io.ListShellOutput;
 import io.nop.ai.shell.io.ShellChunk;
+import io.nop.ai.toolkit.fs.IToolFileSystem;
+import io.nop.ai.toolkit.fs.LocalToolFileSystem;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CdCommandTest {
+
+    private IToolFileSystem fileSystem;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        Path tempDir = Files.createTempDirectory("cd-test");
+        tempDir.toFile().deleteOnExit();
+        fileSystem = new LocalToolFileSystem(tempDir.toFile());
+    }
 
     @Test
     void testName() throws Exception {
@@ -42,7 +58,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/home/user", new String[]{"/tmp"}, null
+                java.util.Map.of(), "/home/user", new String[]{"/tmp"}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -55,7 +71,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/home/user", new String[]{"documents"}, null
+                java.util.Map.of(), "/home/user", new String[]{"documents"}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -69,7 +85,7 @@ class CdCommandTest {
         ListShellOutput stderr = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stderr,
-                java.util.Map.of(), "/home/user/documents", new String[]{".."}, null
+                java.util.Map.of(), "/home/user/documents", new String[]{".."}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -82,7 +98,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/home/user", new String[]{"."}, null
+                java.util.Map.of(), "/home/user", new String[]{"."}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -95,7 +111,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/home/user", new String[0], null
+                java.util.Map.of(), "/home/user", new String[0], fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -118,7 +134,7 @@ class CdCommandTest {
         ListShellOutput stderr = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stderr,
-                java.util.Map.of(), "/home/user", new String[]{"/tmp", "/home"}, null
+                java.util.Map.of(), "/home/user", new String[]{"/tmp", "/home"}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -131,7 +147,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/home/user", new String[]{""}, null
+                java.util.Map.of(), "/home/user", new String[]{""}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -145,7 +161,7 @@ class CdCommandTest {
         ListShellOutput stderr = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stderr,
-                java.util.Map.of(), "/home/user/documents/files", new String[]{"../.."}, null
+                java.util.Map.of(), "/home/user/documents/files", new String[]{"../.."}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -159,7 +175,7 @@ class CdCommandTest {
         ListShellOutput stderr = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stderr,
-                java.util.Map.of(), "/home/user", new String[]{"documents", "/tmp/files", "subdir"}, null
+                java.util.Map.of(), "/home/user", new String[]{"documents", "/tmp/files", "subdir"}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -173,7 +189,7 @@ class CdCommandTest {
         ListShellOutput stderr = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stderr,
-                java.util.Map.of(), "/home/user", new String[]{"home", "user", "documents"}, null
+                java.util.Map.of(), "/home/user", new String[]{"home", "user", "documents"}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -186,7 +202,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/home/user", new String[]{"/"}, null
+                java.util.Map.of(), "/home/user", new String[]{"/"}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -199,7 +215,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/", new String[]{".."}, null
+                java.util.Map.of(), "/", new String[]{".."}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);
@@ -212,7 +228,7 @@ class CdCommandTest {
         ListShellOutput stdout = new ListShellOutput();
         DefaultShellExecutionContext context = new DefaultShellExecutionContext(
                 null, stdout, stdout,
-                java.util.Map.of(), "/home/user", new String[]{"//tmp//files"}, null
+                java.util.Map.of(), "/home/user", new String[]{"//tmp//files"}, fileSystem
         );
         CdCommand cd = new CdCommand();
         int exitCode = cd.execute(context);

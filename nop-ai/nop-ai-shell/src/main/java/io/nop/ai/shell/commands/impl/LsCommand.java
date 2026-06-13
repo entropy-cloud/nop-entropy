@@ -2,6 +2,9 @@ package io.nop.ai.shell.commands.impl;
 
 import io.nop.ai.shell.commands.AbstractShellCommand;
 import io.nop.ai.shell.commands.IShellCommandExecutionContext;
+import io.nop.ai.toolkit.fs.FileInfo;
+
+import java.util.List;
 
 public class LsCommand extends AbstractShellCommand {
 
@@ -12,7 +15,7 @@ public class LsCommand extends AbstractShellCommand {
 
     @Override
     public String description() {
-        return "List directory contents (mock implementation)";
+        return "List directory contents";
     }
 
     @Override
@@ -23,7 +26,7 @@ public class LsCommand extends AbstractShellCommand {
     @Override
     public String getHelp() {
         return "ls [OPTIONS] [DIRECTORY]...\n" +
-                "List directory contents (mock implementation)\n\n" +
+                "List directory contents\n\n" +
                 "Options:\n" +
                 "    -l    Use long listing format\n";
     }
@@ -33,14 +36,35 @@ public class LsCommand extends AbstractShellCommand {
         boolean longFormat = context.hasFlag("l");
         String[] args = context.positionalArguments();
 
-        StringBuilder output = new StringBuilder();
+        String dirPath = args.length > 0 ? args[0] : context.workingDirectory();
 
-        if (longFormat) {
-            output.append("mock: -rw-r--r--  1 user  group 1234 Jan 1 00:00 file1.txt\n");
-            output.append("mock: -rw-r--r--  1 user  group  5678 Jan 1 00:00 file2.txt\n");
-            output.append("mock: drwxr-xr-x  2 user  group  4096 Jan 1 00:00 directory/\n");
-        } else {
-            output.append("mock: file1.txt file2.txt directory/\n");
+        if (!context.fileSystem().isDirectory(dirPath)) {
+            context.stderr().println("ls: cannot access '" + dirPath + "': No such directory");
+            return 1;
+        }
+
+        List<FileInfo> entries = context.fileSystem().listDirectory(dirPath, 1, 1000);
+
+        StringBuilder output = new StringBuilder();
+        for (FileInfo entry : entries) {
+            String name = entry.getName();
+            if (entry.isDirectory()) {
+                name += "/";
+            }
+
+            if (longFormat) {
+                String type = entry.isDirectory() ? "d" : "-";
+                String perms = "rwxr-xr-x";
+                long size = entry.getSize();
+                output.append(String.format("%s%s  1 user  group %6d Jan 1 00:00 %s\n",
+                        type, perms, size, name));
+            } else {
+                output.append(name).append(" ");
+            }
+        }
+
+        if (!longFormat && output.length() > 0) {
+            output.setLength(output.length() - 1);
         }
 
         context.stdout().println(output.toString().trim());
