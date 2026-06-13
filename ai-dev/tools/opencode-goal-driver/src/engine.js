@@ -37,6 +37,7 @@ export class FlowEngine {
     this.visitCounts = new Map();
     this.retryCounts = new Map();
     this.appendBuffers = new Map();
+    this.pingPongHistory = [];
     this.logEntries = [];
     this.startTime = null;
     this.lastSessionId = null;
@@ -485,8 +486,10 @@ export class FlowEngine {
   async run(entryOverride) {
     this.startTime = Date.now();
     let currentStep = entryOverride || this.flow.entry;
-    const maxTotalSteps = this.flow.maxTotalSteps || 100;
-    const maxCycleVisits = this.flow.maxCycleVisits || 10;
+    const cfg = this.delegates.config || {};
+    const maxTotalSteps = cfg.maxTotalSteps ?? this.flow.maxTotalSteps ?? 100;
+    const maxCycleVisits = cfg.maxCycles ?? this.flow.maxCycleVisits ?? 10;
+    const pingPongWindow = this.flow.pingPongWindow ?? 6;
     let totalSteps = 0;
 
     while (totalSteps < maxTotalSteps) {
@@ -505,6 +508,24 @@ export class FlowEngine {
 
       totalSteps++;
       this._log(`[step ${totalSteps}] ${currentStep} (visit #${visits})`);
+
+      this.pingPongHistory.push(currentStep);
+      if (this.pingPongHistory.length > pingPongWindow) {
+        this.pingPongHistory.shift();
+        const unique = new Set(this.pingPongHistory);
+        if (unique.size === 2) {
+          const [a, b] = unique;
+          let sawAB = false, sawBA = false;
+          for (let i = 0; i < this.pingPongHistory.length - 1; i++) {
+            if (this.pingPongHistory[i] === a && this.pingPongHistory[i + 1] === b) sawAB = true;
+            if (this.pingPongHistory[i] === b && this.pingPongHistory[i + 1] === a) sawBA = true;
+          }
+          if (sawAB && sawBA) {
+            this._log(`ping-pong detected: ${a} ↔ ${b} over last ${pingPongWindow} steps → failed`);
+            return this._result("ping_pong", totalSteps);
+          }
+        }
+      }
 
       let result;
       try {

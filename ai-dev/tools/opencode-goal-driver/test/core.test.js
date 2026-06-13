@@ -319,3 +319,75 @@ describe("FlowEngine — marker extraction", () => {
     assert.ok(delegates.callLog.some(c => c.type === "parse"));
   });
 });
+
+describe("FlowEngine — ping-pong detection", () => {
+  it("detects A↔B ping-pong and returns ping_pong status", async () => {
+    const flow = simpleFlow({
+      A: {
+        type: "agent",
+        prompt: "a",
+        resultTag: "R",
+        transitions: { next: { goto: "B" } },
+      },
+      B: {
+        type: "agent",
+        prompt: "b",
+        resultTag: "R",
+        transitions: { next: { goto: "A" } },
+      },
+    }, "A");
+    flow.pingPongWindow = 6;
+
+    const delegates = makeMockDelegates({
+      responses: {
+        A: "<R>next</R>",
+        B: "<R>next</R>",
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "ping_pong");
+    assert.ok(result.stepCount >= 6, `expected >= 6 steps, got ${result.stepCount}`);
+  });
+
+  it("does not trigger on linear revisits", async () => {
+    const flow = simpleFlow({
+      A: {
+        type: "agent",
+        prompt: "a",
+        resultTag: "R",
+        transitions: { next: { goto: "B" } },
+      },
+      B: {
+        type: "agent",
+        prompt: "b",
+        resultTag: "R",
+        transitions: { next: { goto: "C" } },
+      },
+      C: {
+        type: "agent",
+        prompt: "c",
+        resultTag: "R",
+        transitions: { next: { goto: "A" } },
+      },
+    }, "A");
+    flow.pingPongWindow = 6;
+    flow.maxTotalSteps = 10;
+    flow.maxCycleVisits = 5;
+
+    const delegates = makeMockDelegates({
+      responses: {
+        A: "<R>next</R>",
+        B: "<R>next</R>",
+        C: "<R>next</R>",
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "max_total_steps");
+  });
+});

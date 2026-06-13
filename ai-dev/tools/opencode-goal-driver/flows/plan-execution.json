@@ -1,7 +1,8 @@
 {
   "name": "plan-execution",
-  "maxTotalSteps": 20,
-  "maxCycleVisits": 10,
+  "maxTotalSteps": 30,
+  "maxCycleVisits": 12,
+  "pingPongWindow": 6,
   "entry": "EXECUTE",
 
   "steps": {

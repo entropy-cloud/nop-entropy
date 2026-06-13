@@ -24,9 +24,9 @@ export function resolveConfig(args = {}) {
 
   const agent = args.agent || process.env.OPENCODE_AGENT || "build";
   const model = args.model || process.env.OPENCODE_MODEL || "zhipuai-coding-plan/glm-5.1";
-  const maxCycles = args.maxCycles || Number(process.env.MAX_CYCLES) || 10;
-  const maxInnerCycles = args.maxInnerCycles || Number(process.env.MAX_INNER_CYCLES) || 5;
-  const maxTotalSteps = args.maxTotalSteps || Number(process.env.MAX_TOTAL_STEPS) || 0;
+  const maxCycles = args.maxCycles || Number(process.env.MAX_CYCLES) || undefined;
+  const maxInnerCycles = args.maxInnerCycles || Number(process.env.MAX_INNER_CYCLES) || undefined;
+  const maxTotalSteps = args.maxTotalSteps || Number(process.env.MAX_TOTAL_STEPS) || undefined;
   if (!moduleName) throw new Error("module name is required");
 
   const moduleDir = args.moduleDir
