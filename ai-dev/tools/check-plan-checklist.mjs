@@ -173,6 +173,23 @@ function analyzePlan(filePath) {
 
   const structureIssues = [];
 
+  const closureSection2 = sections.find(s => /^Closure$/i.test(s.heading));
+  if (closureSection2) {
+    const closureContent = content.substring(closureSection2.startIndex, closureSection2.endIndex);
+    if (!/Status\s*Note\s*:/i.test(closureContent)) {
+      structureIssues.push('Missing "Status Note:" in Closure section (plan guide template)');
+    }
+    if (!/Closure\s+Audit\s+Evidence/i.test(closureContent)) {
+      structureIssues.push('Missing "Closure Audit Evidence:" in Closure section (plan guide rule #27)');
+    }
+    if (!/Reviewer\s*\/?\s*Agent\s*:/i.test(closureContent)) {
+      structureIssues.push('Missing "Reviewer / Agent:" in Closure section (plan guide rule #27)');
+    }
+    if (!/Evidence\s*:/i.test(closureContent)) {
+      structureIssues.push('Missing "Evidence:" in Closure Audit Evidence (plan guide rule #27)');
+    }
+  }
+
   if (isCompleted) {
     const sectionNames = sections.map(s => s.heading.toLowerCase());
 
@@ -188,7 +205,6 @@ function analyzePlan(filePath) {
     const nonGoalsSection = findSection([/^Non[- ]?Goals?$/i, /^Out\s+of\s+Scope$/i]);
     const currentBaseline = findSection([/^Current\s+Baseline$/i, /^Baseline$/i]);
     const closureGates = findSection([/^Closure\s+Gates?$/i]);
-    const closureSection2 = findSection([/^Closure$/i]);
 
     if (!goalsSection) {
       structureIssues.push('Missing required section "## Goals" (plan guide rule #3)');
@@ -204,20 +220,6 @@ function analyzePlan(filePath) {
     }
     if (!closureSection2) {
       structureIssues.push('Missing required section "## Closure" (plan guide rule #27)');
-    } else {
-      const closureContent = content.substring(closureSection2.startIndex, closureSection2.endIndex);
-      if (!/Status\s*Note\s*:/i.test(closureContent)) {
-        structureIssues.push('Missing "Status Note:" in Closure section (plan guide template)');
-      }
-      if (!/Closure\s+Audit\s+Evidence/i.test(closureContent)) {
-        structureIssues.push('Missing "Closure Audit Evidence:" in Closure section (plan guide rule #27)');
-      }
-      if (!/Reviewer\s*\/?\s*Agent\s*:/i.test(closureContent)) {
-        structureIssues.push('Missing "Reviewer / Agent:" in Closure section (plan guide rule #27)');
-      }
-      if (!/Evidence\s*:/i.test(closureContent)) {
-        structureIssues.push('Missing "Evidence:" in Closure Audit Evidence (plan guide rule #27)');
-      }
     }
 
     if (phaseSections.length === 0) {
@@ -340,17 +342,17 @@ export function inspectPlan(filePath, options = {}) {
   const result = analyzePlan(filePath);
   const failed =
     result.totalUnchecked > 0 ||
+    (strict && result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0) ||
     (result.isCompleted && !result.hasClosureEvidence) ||
-    (result.closureEvidenceIssues && result.closureEvidenceIssues.length > 0) ||
     (strict && result.structureIssues && result.structureIssues.length > 0);
 
   const details = [];
   if (result.totalUnchecked > 0)
     details.push(`${result.totalUnchecked} unchecked items`);
+  if (strict && result.closureEvidenceIssues?.length > 0)
+    details.push(...result.closureEvidenceIssues);
   if (result.isCompleted && !result.hasClosureEvidence)
     details.push("missing closure evidence");
-  if (result.closureEvidenceIssues?.length > 0)
-    details.push(...result.closureEvidenceIssues);
   if (strict && result.structureIssues?.length > 0)
     details.push(...result.structureIssues);
 
