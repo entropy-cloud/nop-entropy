@@ -133,6 +133,14 @@ export class FlowEngine {
 
     const vars = this._extractFlowVars(result.text);
 
+    if (vars.PLAN_FILE) {
+      const { existsSync } = await import("node:fs");
+      if (!existsSync(vars.PLAN_FILE) && vars.PLAN_FILE.includes("path/to/")) {
+        this._log(`  WARNING: PLAN_FILE "${vars.PLAN_FILE}" looks like a template placeholder, ignoring`);
+        delete vars.PLAN_FILE;
+      }
+    }
+
     let marker = null;
     const rTag = stepDef.resultTag || "AI_STEP_RESULT";
     marker = extractTag(result.text, rTag);
