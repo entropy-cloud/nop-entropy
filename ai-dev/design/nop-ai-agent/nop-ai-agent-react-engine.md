@@ -286,7 +286,7 @@ Hook 负责增强，引擎负责主流程。
 
 ## 9. Actor 状态机与 ReAct 循环的映射
 
-AgentActor 的生命周期状态（`actor-runtime-vision.md` §3.2）与 ReAct 双循环的对应关系：
+AgentActor 的生命周期状态（计划文档 actor-runtime-vision §3.2，尚未创建）与 ReAct 双循环的对应关系：
 
 | Actor 状态 | ReAct 循环位置 | 说明 |
 |-----------|---------------|------|

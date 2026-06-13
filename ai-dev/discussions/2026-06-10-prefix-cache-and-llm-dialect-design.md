@@ -106,7 +106,7 @@ Reasonix 源码调研揭示：ImmutablePrefix 是引擎内部状态，不是 API
 
 - `nop-ai-api`: ChatUsage、ChatMessage（+ providerHints）、所有子类 copy()
 - `nop-ai-core`: ILlmDialect、OpenAiDialect、AnthropicDialect、GeminiDialect、OllamaDialect、TestLlmDialectFactory
-- 删除 `nop-ai/nop-ai-llm/`、`nop-ai/nop-ai-llms/` 目录
+- 删除 nop-ai-llm、nop-ai-llms 两个子模块目录
 - 清理 `nop-bom/pom.xml` 中的引用
 
 ### 已更新的设计文档

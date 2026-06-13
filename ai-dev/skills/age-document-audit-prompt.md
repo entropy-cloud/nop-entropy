@@ -221,7 +221,7 @@ AGE 把工程文档分为三层：
 
 1. `AGENTS.md` — 路由表、保护区域、验证命令
 2. `docs-for-ai/INDEX.md` — 文档路由和目录职责
-3. 项目上下文文件 — `docs-for-ai/00-start-here/project-context`
+3. 项目上下文文件 — `docs-for-ai/00-start-here/project-context.md`
 4. 所有 owner doc 的目录列表
 5. 最近的 dev log 目录列表
 6. `ai-dev/` 下各子目录的文件列表（不读内容，只看结构）
@@ -257,7 +257,7 @@ AGE（吸引子引导工程）核心概念：
 执行前先阅读：
 1. docs-for-ai/INDEX.md（文档导航基线）
 2. AGENTS.md（代码规范、验证命令、agent 工作流）
-3. docs-for-ai/00-start-here/project-context（项目上下文）
+3. docs-for-ai/00-start-here/project-context.md（项目上下文）
 4. docs-for-ai/01-repo-map/module-groups.md（模块分组）
 5. ai-dev/analysis/00-analysis-writing-guide.md（分析报告写作规范）
 

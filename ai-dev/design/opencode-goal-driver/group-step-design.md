@@ -358,5 +358,5 @@ PLAN_DRAFT_LOOP: {
 |-------|--------|----------|
 | Phase 1: Engine 扩展 | ✅ | `engine.js` `_executeGroupStep()` (line 136), 主循环 `type === "group"` 分支 (line 332) |
 | Phase 2: Flow 重构 | ✅ | `flow-goal-driver.js` `CLOSURE_VERIFY` group step (line 202) |
-| Phase 3: 测试 | ✅ | `test/engine.test.js` group step 测试 |
+| Phase 3: 测试 | ✅ | `../../tools/opencode-goal-driver/test/engine.test.js` group step 测试 |
 | Phase 4: 文档更新 | ✅ | `flow-engine-design.md` v4 §2.2 Step 类型表含 group |
