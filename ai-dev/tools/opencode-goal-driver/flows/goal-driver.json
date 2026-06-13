@@ -59,9 +59,9 @@
       "onUnknownMaxRetries": 2,
       "transitions": {
         "created": { "goto": "PLAN_AUDIT" },
-        "none": { "goto": "PLAN_ROUTER" }
+        "none": { "goto": "DEEP_AUDIT_LOOP" }
       },
-      "onError": { "goto": "PLAN_ROUTER" }
+      "onError": { "goto": "DEEP_AUDIT_LOOP" }
     },
 
     "PLAN_AUDIT": {
