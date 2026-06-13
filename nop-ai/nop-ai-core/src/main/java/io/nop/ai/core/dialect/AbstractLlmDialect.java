@@ -14,6 +14,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,6 +25,36 @@ import java.util.Map;
  * @author canonical_entropy@163.com
  */
 public abstract class AbstractLlmDialect {
+
+    public static final int PER_MESSAGE_TOKEN_OVERHEAD = 4;
+
+    public static final int CHARS_PER_TOKEN = 4;
+
+    /**
+     * Baseline token estimation for a list of chat messages.
+     * <p>
+     * Sum of non-null content length divided by {@value #CHARS_PER_TOKEN},
+     * plus a fixed {@value #PER_MESSAGE_TOKEN_OVERHEAD} tokens per message
+     * to approximate role/format overhead. Empty/null-safe: empty list or
+     * null returns 0.
+     *
+     * @param messages the messages to estimate, may be null or empty
+     * @return estimated token count (always {@code >= 0})
+     */
+    public static long estimateTokensBaseline(List<ChatMessage> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return 0;
+        }
+        long total = 0;
+        for (ChatMessage msg : messages) {
+            total += PER_MESSAGE_TOKEN_OVERHEAD;
+            String content = msg.getContent();
+            if (content != null) {
+                total += content.length() / CHARS_PER_TOKEN;
+            }
+        }
+        return total;
+    }
 
     /**
      * 应用思考模式提示词

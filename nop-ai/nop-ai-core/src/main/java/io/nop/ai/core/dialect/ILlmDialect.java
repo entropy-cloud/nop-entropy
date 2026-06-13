@@ -144,4 +144,19 @@ public interface ILlmDialect {
         }
         return result;
     }
+
+    /**
+     * Estimate the token count for a list of chat messages (pre-call approximation).
+     * <p>
+     * The default implementation delegates to {@link AbstractLlmDialect#estimateTokensBaseline(List)},
+     * which sums content length / 4 plus a small per-message overhead. Concrete dialects
+     * may override for Provider-specific accuracy. The result is intended as a rough
+     * estimate for compaction accounting; runtime calibration refines it further.
+     *
+     * @param messages the messages to estimate, may be null or empty
+     * @return estimated token count (always {@code >= 0})
+     */
+    default long estimateTokens(List<ChatMessage> messages) {
+        return AbstractLlmDialect.estimateTokensBaseline(messages);
+    }
 }
