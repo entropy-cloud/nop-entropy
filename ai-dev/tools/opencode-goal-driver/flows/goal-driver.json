@@ -5,6 +5,10 @@
   "pingPongWindow": 6,
   "entry": "HEALTH_CHECK",
 
+  "validateFlowVars": {
+    "PLAN_FILE": { "exists": true }
+  },
+
   "markerAliases": {
     "ok": "pass",
     "healthy": "pass",

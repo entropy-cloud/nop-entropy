@@ -36,10 +36,13 @@ Requirements:
 5. Split into reasonable Phases (executable increments with clear Exit Criteria)
 6. Write explicit Exit Criteria (verifiable conditions like "file exists", "tests pass", "build passes")
 
-After creating the plan, output the file path:
+After creating the plan file, output the ACTUAL file path (not a placeholder):
 <FLOW_VARS>
-  <PLAN_FILE>path/to/plan/file.md</PLAN_FILE>
+  <PLAN_FILE>ai-dev/plans/YYYY-MM-DD-NNN-slug.md</PLAN_FILE>
 </FLOW_VARS>
+
+Replace the filename with the actual file you created. The path MUST be a real file that exists on disk.
+Do NOT output `path/to/plan/file.md` — that is a placeholder and will be rejected.
 
 IMPORTANT: Your output marker MUST be exactly one of these two values:
 - <AI_STEP_RESULT>created</AI_STEP_RESULT> — when you created or updated a plan file

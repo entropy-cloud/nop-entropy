@@ -1,4 +1,4 @@
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync } from "node:fs";
 
 function localTimeStr(d = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -99,6 +99,10 @@ export class FlowEngine {
     return vars;
   }
 
+  _fileExists(path) {
+    try { return existsSync(path); } catch { return false; }
+  }
+
   _markerAliases() {
     return this.flow.markerAliases || {};
   }
@@ -132,14 +136,6 @@ export class FlowEngine {
     }
 
     const vars = this._extractFlowVars(result.text);
-
-    if (vars.PLAN_FILE) {
-      const { existsSync } = await import("node:fs");
-      if (!existsSync(vars.PLAN_FILE) && vars.PLAN_FILE.includes("path/to/")) {
-        this._log(`  WARNING: PLAN_FILE "${vars.PLAN_FILE}" looks like a template placeholder, ignoring`);
-        delete vars.PLAN_FILE;
-      }
-    }
 
     let marker = null;
     const rTag = stepDef.resultTag || "AI_STEP_RESULT";
@@ -581,7 +577,12 @@ export class FlowEngine {
       this.context.set(currentStep, result);
 
       if (result.vars) {
+        const validations = this.flow.validateFlowVars;
         for (const [k, v] of Object.entries(result.vars)) {
+          if (validations?.[k]?.exists && !this._fileExists(v)) {
+            this._log(`  ERROR: ${k}="${v}" does not exist — AI returned placeholder, ignoring`);
+            continue;
+          }
           this.flowVars.set(k, v);
         }
       }
