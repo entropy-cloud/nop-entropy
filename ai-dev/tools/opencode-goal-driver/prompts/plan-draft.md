@@ -41,7 +41,7 @@ After creating the file, report the path in a FLOW_VARS block:
   <PLAN_FILE>ai-dev/plans/NNN-slug.md</PLAN_FILE>
 </FLOW_VARS>
 
-Replace NNN and slug with actual values. The path must point to a file you actually created on disk.
+Replace NNN with the next available number and slug with a kebab-case summary. The path will be verified — it must point to a real file that exists on disk. If the file does not exist, you will be asked to fix it.
 
 IMPORTANT: Your output marker MUST be exactly one of these two values:
 - <AI_STEP_RESULT>created</AI_STEP_RESULT> — when you created or updated a plan file
