@@ -50,7 +50,10 @@ async function closureScriptCheck(delegates, flowVars) {
     const result = inspectPlan(planFile, { strict: true });
 
     if (result.passed) {
-      if (flowVars?.set) flowVars.set("SCRIPT_CHECK_RESULT", "PASS");
+      if (flowVars?.set) {
+        flowVars.set("SCRIPT_CHECK_RESULT", "PASS");
+        flowVars.set("SCRIPT_CHECK_DETAILS", "");
+      }
       return "pass";
     }
 
