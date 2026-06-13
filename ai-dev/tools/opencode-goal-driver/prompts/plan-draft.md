@@ -36,19 +36,21 @@ Requirements:
 5. Split into reasonable Phases (executable increments with clear Exit Criteria)
 6. Write explicit Exit Criteria (verifiable conditions like "file exists", "tests pass", "build passes")
 
-After creating the file, report its real path. Your returned result MUST conform to the XDef metamodel format below — the `<FLOW_VARS>` block is a strict output schema, and `PLAN_FILE` must be the exact path of the file you just wrote (it will be verified to exist on disk; if it does not exist, you will be asked to fix it).
+After creating the file, report its real path. The engine will verify the path exists on disk.
 
-<!-- PLAN_FILE format: ai-dev/plans/{NNN}-{slug}.md
-     {NNN}  = next available number (scan ai-dev/plans/ for the highest existing number, add 1)
-     {slug} = kebab-case summary of the work item
-     Output the REAL path you used in your write tool call. Never emit the literal
-     tokens "{NNN}", "{slug}", "REAL_NNN", "REAL_SLUG", or "path" — always substitute real values. -->
+## Case A — you created a plan file
+Output exactly this structure (replace `/path/to/plan.md` with the real path you used):
+```
+<AI_STEP_RESULT>created</AI_STEP_RESULT>
 <FLOW_VARS>
-  <PLAN_FILE>path</PLAN_FILE>
+  <PLAN_FILE>/path/to/plan.md</PLAN_FILE>
 </FLOW_VARS>
+```
 
-IMPORTANT: Your output marker MUST be exactly one of these two values:
-- <AI_STEP_RESULT>created</AI_STEP_RESULT> — when you created or updated a plan file (must include the <FLOW_VARS> block above)
-- <AI_STEP_RESULT>none</AI_STEP_RESULT> — when no plan was needed (do NOT include a <FLOW_VARS> block)
+## Case B — no plan needed
+Output exactly this, nothing else:
+```
+<AI_STEP_RESULT>none</AI_STEP_RESULT>
+```
 
-Do NOT output "approved", "pass", "success", "done", or any other value. These are the ONLY valid markers for this step.
+Choose only ONE case. Do not output both.

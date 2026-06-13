@@ -283,7 +283,7 @@ function isHistoricalFile(sourceRel) {
   if (sourceRel.startsWith('ai-dev/logs/')) return true;
   if (sourceRel.startsWith('ai-dev/analysis/')) return true;
   if (sourceRel.startsWith('ai-dev/audits/')) return true;
-  if (/\/archive\//.test(sourceRel)) return true;
+  if (/\/archived?\//.test(sourceRel)) return true;
   return false;
 }
 
