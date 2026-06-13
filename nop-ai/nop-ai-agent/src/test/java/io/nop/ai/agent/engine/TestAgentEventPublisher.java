@@ -1,6 +1,6 @@
 package io.nop.ai.agent.engine;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.api.exceptions.NopAiException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.ChatRequest;
@@ -171,7 +171,7 @@ public class TestAgentEventPublisher {
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         publisher.addSubscriber(events::add);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, publisher);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).eventPublisher(publisher).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -220,7 +220,7 @@ public class TestAgentEventPublisher {
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         publisher.addSubscriber(events::add);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, publisher);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).eventPublisher(publisher).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -269,7 +269,7 @@ public class TestAgentEventPublisher {
         IChatService chatService = createChatService(response);
         IToolManager toolManager = new NoOpToolManager();
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, null);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -291,7 +291,7 @@ public class TestAgentEventPublisher {
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         publisher.addSubscriber(events::add);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, publisher);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).eventPublisher(publisher).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.failed, result.getStatus());

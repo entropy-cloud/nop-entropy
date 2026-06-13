@@ -1,0 +1,8 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-unknown-mode-agent" mode="unknown">
+
+    <description>Test agent for unknown mode</description>
+
+    <prompt>You are a test assistant.</prompt>
+
+</agent>

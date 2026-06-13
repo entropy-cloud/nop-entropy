@@ -60,6 +60,13 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: mode
+     * 
+     */
+    private java.lang.String _mode ;
+    
+    /**
+     *  
      * xml name: name
      * agent的唯一名称
      */
@@ -246,6 +253,25 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: mode
+     *  
+     */
+    
+    public java.lang.String getMode(){
+      return _mode;
+    }
+
+    
+    public void setMode(java.lang.String value){
+        checkAllowChange();
+        
+        this._mode = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  agent的唯一名称
      */
@@ -413,6 +439,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("description",this.getDescription());
         out.putNotNull("hooks",this.getHooks());
         out.putNotNull("meta",this.getMeta());
+        out.putNotNull("mode",this.getMode());
         out.putNotNull("name",this.getName());
         out.putNotNull("permissions",this.getPermissions());
         out.putNotNull("prompt",this.getPrompt());
@@ -436,6 +463,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         instance.setDescription(this.getDescription());
         instance.setHooks(this.getHooks());
         instance.setMeta(this.getMeta());
+        instance.setMode(this.getMode());
         instance.setName(this.getName());
         instance.setPermissions(this.getPermissions());
         instance.setPrompt(this.getPrompt());

@@ -20,6 +20,9 @@ public class AgentSession {
     private long updatedAt;
     private AgentExecStatus status;
     private Map<String, Object> metadata;
+    private String parentSessionId;
+    private String planId;
+    private Long compactedAt;
 
     private AgentSession(String sessionId, String agentName) {
         this.sessionId = sessionId;
@@ -102,5 +105,34 @@ public class AgentSession {
 
     public void touch() {
         this.updatedAt = System.currentTimeMillis();
+    }
+
+    public String getParentSessionId() {
+        return parentSessionId;
+    }
+
+    public void setParentSessionId(String parentSessionId) {
+        this.parentSessionId = parentSessionId;
+    }
+
+    public String getPlanId() {
+        return planId;
+    }
+
+    public void setPlanId(String planId) {
+        this.planId = planId;
+    }
+
+    public Long getCompactedAt() {
+        return compactedAt;
+    }
+
+    public void setCompactedAt(Long compactedAt) {
+        this.compactedAt = compactedAt;
+    }
+
+    public void markCompacted() {
+        this.compactedAt = System.currentTimeMillis();
+        this.touch();
     }
 }

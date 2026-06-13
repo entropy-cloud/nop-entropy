@@ -1,5 +1,7 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.hook.DefaultHookRegistry;
+import io.nop.ai.agent.hook.NoOpHookRegistry;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
@@ -127,8 +129,7 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         ctx.addMessage(new ChatUserMessage(request.getUserMessage()));
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager,
-                eventPublisher, permissionProvider, toolAccessChecker, pathAccessChecker);
+        IAgentExecutor executor = resolveExecutor(agentModel);
 
         return CompletableFuture.supplyAsync(() -> {
             AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
@@ -146,6 +147,29 @@ public class DefaultAgentEngine implements IAgentEngine {
 
             return result;
         });
+    }
+
+    IAgentExecutor resolveExecutor(AgentModel model) {
+        String mode = model.getMode();
+        if (mode == null || mode.isEmpty() || "react".equals(mode)) {
+            DefaultHookRegistry hookRegistry = DefaultHookRegistry.fromAgentModel(model);
+            return ReActAgentExecutor.builder()
+                    .chatService(chatService)
+                    .toolManager(toolManager)
+                    .eventPublisher(eventPublisher)
+                    .permissionProvider(permissionProvider)
+                    .toolAccessChecker(toolAccessChecker)
+                    .pathAccessChecker(pathAccessChecker)
+                    .hookRegistry(hookRegistry)
+                    .build();
+        }
+        if ("single-turn".equals(mode)) {
+            return new SingleTurnExecutor(chatService, eventPublisher);
+        }
+        if ("plan".equals(mode)) {
+            throw new UnsupportedOperationException("Plan execution mode is not yet implemented: mode=plan");
+        }
+        throw new NopAiAgentException("Unknown agent execution mode: " + mode);
     }
 
     private String resolveSessionId(String sessionId) {

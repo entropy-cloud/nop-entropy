@@ -135,8 +135,10 @@ public class TestPathAccessCheckerInReActLoop {
         IToolManager toolManager = mockToolManager(toolCalled, "should not be called");
         IChatService chatService = mockChatService(toolCall);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(
-                chatService, toolManager, null, allowAll, toolChecker, pathChecker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(toolManager)
+                .permissionProvider(allowAll).toolAccessChecker(toolChecker)
+                .pathAccessChecker(pathChecker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -175,8 +177,11 @@ public class TestPathAccessCheckerInReActLoop {
         DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
         publisher.addSubscriber(event -> events.add(event));
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(
-                chatService, toolManager, publisher, allowAll, toolChecker, pathChecker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(toolManager)
+                .eventPublisher(publisher)
+                .permissionProvider(allowAll).toolAccessChecker(toolChecker)
+                .pathAccessChecker(pathChecker).build();
         executor.execute(ctx).toCompletableFuture().join();
 
         AgentEvent deniedEvent = events.stream()
@@ -207,8 +212,10 @@ public class TestPathAccessCheckerInReActLoop {
         IToolManager toolManager = mockToolManager(toolCalled, "file content");
         IChatService chatService = mockChatService(toolCall);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(
-                chatService, toolManager, null, allowAll, toolChecker, pathChecker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(toolManager)
+                .permissionProvider(allowAll).toolAccessChecker(toolChecker)
+                .pathAccessChecker(pathChecker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -241,8 +248,10 @@ public class TestPathAccessCheckerInReActLoop {
         IToolManager toolManager = mockToolManager(toolCalled, "4");
         IChatService chatService = mockChatService(toolCall);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(
-                chatService, toolManager, null, allowAll, toolChecker, pathChecker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(toolManager)
+                .permissionProvider(allowAll).toolAccessChecker(toolChecker)
+                .pathAccessChecker(pathChecker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -275,8 +284,10 @@ public class TestPathAccessCheckerInReActLoop {
         IToolManager toolManager = mockToolManager(toolCalled, "root:x:0:0");
         IChatService chatService = mockChatService(toolCall);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(
-                chatService, toolManager, null, allowAll, toolChecker, pathChecker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(toolManager)
+                .permissionProvider(allowAll).toolAccessChecker(toolChecker)
+                .pathAccessChecker(pathChecker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -302,8 +313,10 @@ public class TestPathAccessCheckerInReActLoop {
         IToolManager toolManager = mockToolManager(toolCalled, "");
         IChatService chatService = mockChatService(toolCall);
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(
-                chatService, toolManager, null, allowAll, toolChecker, pathChecker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(toolManager)
+                .permissionProvider(allowAll).toolAccessChecker(toolChecker)
+                .pathAccessChecker(pathChecker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());

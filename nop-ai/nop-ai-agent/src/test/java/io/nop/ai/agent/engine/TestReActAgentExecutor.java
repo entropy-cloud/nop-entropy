@@ -89,7 +89,7 @@ public class TestReActAgentExecutor {
         IChatService chatService = new StubChatService(buildSuccessResponse("Hello, I can help you."));
         IToolManager toolManager = new NoOpToolManager();
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -137,7 +137,7 @@ public class TestReActAgentExecutor {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -195,7 +195,7 @@ public class TestReActAgentExecutor {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -226,7 +226,7 @@ public class TestReActAgentExecutor {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -240,7 +240,7 @@ public class TestReActAgentExecutor {
         IChatService chatService = new StubChatService(buildErrorResponse("rate_limit_exceeded"));
         IToolManager toolManager = new NoOpToolManager();
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.failed, result.getStatus());
@@ -284,7 +284,7 @@ public class TestReActAgentExecutor {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());

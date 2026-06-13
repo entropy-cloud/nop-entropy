@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -107,6 +108,53 @@ public class TestAgentSession {
         Thread.sleep(10);
         session.touch();
 
+        assertTrue(session.getUpdatedAt() >= before);
+    }
+
+    @Test
+    void testNewFieldsDefaultToNull() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+
+        assertNull(session.getParentSessionId());
+        assertNull(session.getPlanId());
+        assertNull(session.getCompactedAt());
+    }
+
+    @Test
+    void testParentSessionIdRoundTrip() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+
+        session.setParentSessionId("parent-1");
+        assertEquals("parent-1", session.getParentSessionId());
+    }
+
+    @Test
+    void testPlanIdRoundTrip() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+
+        session.setPlanId("plan-42");
+        assertEquals("plan-42", session.getPlanId());
+    }
+
+    @Test
+    void testCompactedAtRoundTrip() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+
+        Long ts = System.currentTimeMillis();
+        session.setCompactedAt(ts);
+        assertEquals(ts, session.getCompactedAt());
+    }
+
+    @Test
+    void testMarkCompacted() throws InterruptedException {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+        long before = session.getUpdatedAt();
+
+        Thread.sleep(10);
+        session.markCompacted();
+
+        assertNotNull(session.getCompactedAt());
+        assertTrue(session.getCompactedAt() >= before);
         assertTrue(session.getUpdatedAt() >= before);
     }
 }

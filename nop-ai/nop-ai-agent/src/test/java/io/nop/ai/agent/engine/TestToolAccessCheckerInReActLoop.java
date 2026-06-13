@@ -126,7 +126,8 @@ public class TestToolAccessCheckerInReActLoop {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, null, allowAll, checker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .permissionProvider(allowAll).toolAccessChecker(checker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -202,7 +203,9 @@ public class TestToolAccessCheckerInReActLoop {
         DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
         publisher.addSubscriber(event -> events.add(event));
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, publisher, allowAll, checker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .eventPublisher(publisher)
+                .permissionProvider(allowAll).toolAccessChecker(checker).build();
         executor.execute(ctx).toCompletableFuture().join();
 
         AgentEvent deniedEvent = events.stream()
@@ -278,7 +281,8 @@ public class TestToolAccessCheckerInReActLoop {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, null, denyAll, checker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .permissionProvider(denyAll).toolAccessChecker(checker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -350,7 +354,8 @@ public class TestToolAccessCheckerInReActLoop {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, null, allowAll, checker);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .permissionProvider(allowAll).toolAccessChecker(checker).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());

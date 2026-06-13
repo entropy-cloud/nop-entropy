@@ -136,7 +136,8 @@ public class TestPermissionInReActLoop {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, null, permProvider);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .permissionProvider(permProvider).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -213,7 +214,8 @@ public class TestPermissionInReActLoop {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, null, permProvider);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .permissionProvider(permProvider).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -306,7 +308,8 @@ public class TestPermissionInReActLoop {
             }
         };
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, null, permProvider);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .permissionProvider(permProvider).build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
@@ -387,7 +390,9 @@ public class TestPermissionInReActLoop {
         DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
         publisher.addSubscriber(event -> events.add(event));
 
-        ReActAgentExecutor executor = new ReActAgentExecutor(chatService, toolManager, publisher, denyAll);
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
+                .eventPublisher(publisher)
+                .permissionProvider(denyAll).build();
         executor.execute(ctx).toCompletableFuture().join();
 
         boolean hasDeniedEvent = events.stream()

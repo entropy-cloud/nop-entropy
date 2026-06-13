@@ -1,0 +1,8 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-plan-agent" mode="plan">
+
+    <description>Test agent for plan mode</description>
+
+    <prompt>You are a planning assistant.</prompt>
+
+</agent>
