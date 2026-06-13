@@ -610,16 +610,32 @@ export class FlowEngine {
 
       if (result.vars) {
         const validations = this.flow.validateFlowVars;
+        let rejected = false;
+        let rejectedKey = "", rejectedValue = "";
         for (const [k, v] of Object.entries(result.vars)) {
           if (validations?.[k]?.exists && !this._fileExists(v)) {
-            this._log(`  ERROR: ${k}="${v}" does not exist — AI returned placeholder, ignoring`);
-            if (marker && validations[k].onReject) {
-              this._log(`  setting marker to "${validations[k].onReject}"`);
-              marker = validations[k].onReject;
-            }
+            this._log(`  ERROR: ${k}="${v}" does not exist — AI returned placeholder`);
+            rejected = true;
+            rejectedKey = k;
+            rejectedValue = v;
             continue;
           }
           this.flowVars.set(k, v);
+        }
+        if (rejected) {
+          const key = `validate:${currentStep}`;
+          const count = (this.retryCounts.get(key) || 0) + 1;
+          this.retryCounts.set(key, count);
+          const maxRetries = this.flow.maxValidationRetries ?? 3;
+          if (count > maxRetries) {
+            this._log(`  maxValidationRetries (${maxRetries}) exceeded for ${currentStep}, injecting path despite invalidity`);
+            this.flowVars.set(rejectedKey, rejectedValue);
+          } else {
+            const feedback = `\n\nThe file you specified for ${rejectedKey} does not exist: "${rejectedValue}". Please create the file and then output its real path in a <FLOW_VARS> block.`;
+            const existing = this.appendBuffers.get(currentStep) || "";
+            this.appendBuffers.set(currentStep, existing + feedback);
+            continue;
+          }
         }
       }
       if (!marker) {

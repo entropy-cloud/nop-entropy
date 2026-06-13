@@ -109,36 +109,53 @@ describe("FlowEngine — goal driver integration", () => {
     assert.ok(delegates.callLog.some(c => c.stepName === "ADVERSARIAL"), "ADVERSARIAL should be called");
   });
 
-  it("rejects placeholder PLAN_FILE and routes to DEEP_AUDIT_LOOP instead of PLAN_AUDIT", async () => {
+  it("retries PLAN_DRAFT with feedback when PLAN_FILE does not exist, then proceeds normally", async () => {
     const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     flow.maxTotalSteps = 40;
 
+    let planDraftCalls = 0;
+    let roadmapCalls = 0;
     const delegates = makeMockDelegates({
       subFlows: mockSubFlows(),
       responses: {
         HEALTH_CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
-        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        ROADMAP_CHECK: () => {
+          roadmapCalls++;
+          return roadmapCalls <= 1
+            ? { text: "<AI_STEP_RESULT>pending</AI_STEP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true }
+            : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
+        },
+        PLAN_AUDIT: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>",
         DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         "EXECUTE": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
-        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/YYYY-MM-DD-NNN-slug.md</PLAN_FILE>\n</FLOW_VARS>",
+        PLAN_DRAFT: () => {
+          planDraftCalls++;
+          if (planDraftCalls === 1) {
+            // first call: placeholder path
+            return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/YYYY-MM-DD-NNN-slug.md</PLAN_FILE>\n</FLOW_VARS>", ok: true };
+          }
+          // second call: valid path (AI corrected after feedback)
+          return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE>\n</FLOW_VARS>", ok: true };
+        },
       },
     });
 
     delegates.config = { moduleName: "test-mod", projectRoot: "/tmp/test" };
     delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
-    const { rmSync } = await import("node:fs");
+    const { rmSync, mkdirSync, writeFileSync } = await import("node:fs");
     rmSync("/tmp/test/ai-dev/plans", { recursive: true, force: true });
+    mkdirSync("/tmp/_goal-driver-test", { recursive: true });
+    writeFileSync("/tmp/_goal-driver-test-plan.md", "# Test Plan\n\n> **Plan Status**: active");
 
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.ok(!delegates.callLog.some(c => c.stepName === "PLAN_AUDIT"),
-      "PLAN_AUDIT should NOT be called — placeholder rejected, marker downgraded to none");
-    assert.ok(delegates.callLog.some(c => c.stepName === "DEEP_AUDIT"),
-      "DEEP_AUDIT should still be called via DEEP_AUDIT_LOOP");
+    assert.equal(planDraftCalls, 2, "PLAN_DRAFT should be called twice (first with placeholder, retry with valid)");
+    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_AUDIT"),
+      "PLAN_AUDIT should be called after valid PLAN_FILE on retry");
   });
 
   it("handles execute entry via PLAN_ROUTER with active plan", async () => {

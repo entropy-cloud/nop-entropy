@@ -2,11 +2,12 @@
   "name": "goal-driver",
   "maxTotalSteps": 500,
   "maxCycleVisits": 30,
+  "maxValidationRetries": 2,
   "pingPongWindow": 6,
   "entry": "HEALTH_CHECK",
 
   "validateFlowVars": {
-    "PLAN_FILE": { "exists": true, "onReject": "none" }
+    "PLAN_FILE": { "exists": true }
   },
 
   "markerAliases": {
