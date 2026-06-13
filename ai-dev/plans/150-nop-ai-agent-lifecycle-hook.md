@@ -297,6 +297,10 @@ Closure Audit Evidence:
   - Anti-Hollow: No empty method bodies or silent skips — NoOpHookRegistry.register() throws UOE; hook integration in ReActAgentExecutor has concrete invocation logic at all 12 points
   - Roadmap L2-12 updated from ❌ to ✅
 
+## Follow-up handled by 152-nop-ai-agent-context-compactor.md
+
+L2-3 `IContextCompactor` interface + `NoOpContextCompactor` + ReAct integration (context compaction carry-over from this plan's Non-Blocking Follow-ups) is now tracked in plan 152.
+
 Follow-up:
 
-- Hook timeout, SingleTurnExecutor hooks, DSL priority, REASONING_CHUNK activation, Skill system, Content guardrail, Context compaction
+- Hook timeout, SingleTurnExecutor hooks, DSL priority, REASONING_CHUNK activation, Skill system, Content guardrail

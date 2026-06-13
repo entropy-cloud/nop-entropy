@@ -428,13 +428,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 if (result.isVeto()) {
                     return result;
                 }
-            } catch (NopAiAgentException e) {
-                throw e;
             } catch (Exception e) {
                 if (point == AgentLifecyclePoint.ON_ERROR) {
                     LOG.warn("on_error hook failed, using engine default error handling", e);
                 } else if (point.name().startsWith("PRE_") || point.name().startsWith("BEFORE_")) {
                     LOG.error("before_* hook at {} failed", point, e);
+                    throw e;
                 } else {
                     LOG.warn("after_* hook at {} failed, continuing", point, e);
                 }
