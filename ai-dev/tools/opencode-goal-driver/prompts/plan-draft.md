@@ -22,7 +22,7 @@ When working on a carry-over item (source-plan attribute points to the original 
 Requirements:
 1. Read and follow ai-dev/plans/00-plan-authoring-and-execution-guide.md
 2. Each plan covers **only one work item** — do not bundle multiple items
-3. File naming: {YYYY}-{MM}-{DD}-{NNN}-{slug}.md, placed under ai-dev/plans/
+3. Save the plan file at `ai-dev/plans/{NNN}-{slug}.md` where NNN is the next available number (scan ai-dev/plans/ to find the highest existing number and add 1)
 4. The file header must include this format (check-plan-status.mjs depends on it):
 
 ```markdown
@@ -36,13 +36,12 @@ Requirements:
 5. Split into reasonable Phases (executable increments with clear Exit Criteria)
 6. Write explicit Exit Criteria (verifiable conditions like "file exists", "tests pass", "build passes")
 
-After creating the plan file, tell me the real file path in a FLOW_VARS block. Example:
+After creating the file, report the path in a FLOW_VARS block:
 <FLOW_VARS>
-  <PLAN_FILE>TODO_REPLACE_WITH_REAL_PATH</PLAN_FILE>
+  <PLAN_FILE>ai-dev/plans/NNN-slug.md</PLAN_FILE>
 </FLOW_VARS>
 
-You MUST replace TODO_REPLACE_WITH_REAL_PATH with the actual path of the file you created.
-The path must be a real file on disk under ai-dev/plans/. Do not output the placeholder text as-is.
+Replace NNN and slug with actual values. The path must point to a file you actually created on disk.
 
 IMPORTANT: Your output marker MUST be exactly one of these two values:
 - <AI_STEP_RESULT>created</AI_STEP_RESULT> — when you created or updated a plan file
