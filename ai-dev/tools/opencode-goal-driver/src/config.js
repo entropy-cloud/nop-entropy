@@ -23,7 +23,7 @@ export function resolveConfig(args = {}) {
   const testMode = args.testMode === true;
 
   const agent = args.agent || process.env.OPENCODE_AGENT || "build";
-  const model = args.model || process.env.OPENCODE_MODEL || "zhipuai-coding-plan/glm-5.1";
+  const model = args.model || process.env.OPENCODE_MODEL || "zhipuai-coding-plan/glm-5.2";
   const maxCycles = args.maxCycles || Number(process.env.MAX_CYCLES) || undefined;
   const maxInnerCycles = args.maxInnerCycles || Number(process.env.MAX_INNER_CYCLES) || undefined;
   const maxTotalSteps = args.maxTotalSteps || Number(process.env.MAX_TOTAL_STEPS) || undefined;

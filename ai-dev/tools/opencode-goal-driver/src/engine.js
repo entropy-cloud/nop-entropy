@@ -628,8 +628,11 @@ export class FlowEngine {
           this.retryCounts.set(key, count);
           const maxRetries = this.flow.maxValidationRetries ?? 3;
           if (count > maxRetries) {
-            this._log(`  maxValidationRetries (${maxRetries}) exceeded for ${currentStep}, injecting path despite invalidity`);
-            this.flowVars.set(rejectedKey, rejectedValue);
+            this._log(`  maxValidationRetries (${maxRetries}) exceeded for ${currentStep}; ${rejectedKey} left unset (invalid value not injected)`);
+            // Do NOT inject the invalid value into flowVars — it would silently propagate a
+            // placeholder path into downstream steps. Let marker processing decide the next
+            // step: if the marker is "none" no var is needed; if it indicates success the
+            // downstream will fail honestly on the missing file rather than consuming a fake path.
           } else {
             const feedback = `\n\nThe file you specified for ${rejectedKey} does not exist: "${rejectedValue}". Please create the file and then output its real path in a <FLOW_VARS> block.`;
             const existing = this.appendBuffers.get(currentStep) || "";

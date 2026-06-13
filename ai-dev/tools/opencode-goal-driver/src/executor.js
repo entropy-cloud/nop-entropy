@@ -4,6 +4,18 @@ import { dirname, resolve } from "node:path";
 
 const IS_WIN32 = process.platform === "win32";
 
+function pad(n) {
+  return String(n).padStart(2, "0");
+}
+
+function localTimeStr(d = new Date()) {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function localDateTimeStr(d = new Date()) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${localTimeStr(d)}`;
+}
+
 function genLogFile(config, label) {
   const ts = Date.now();
   const rand = Math.random().toString(36).slice(2, 8);
@@ -32,7 +44,7 @@ export function execute(config, label, cmd, args, opts = {}) {
   const header = [
     `# cmd: ${cmd} ${args.join(" ")}`,
     `# cwd: ${cwd}`,
-    `# started: ${new Date().toISOString()}`,
+    `# started: ${localDateTimeStr()}`,
     "",
   ].join("\n") + "\n";
   writeFileSync(logFile, header);
@@ -82,7 +94,7 @@ export function execute(config, label, cmd, args, opts = {}) {
         deadline = Date.now() + BASE_TIMEOUT_MS;
       }
 
-      const ts = new Date().toISOString().slice(11, 19);
+      const ts = localTimeStr();
       const remainMin = Math.max(0, Math.round((deadline - Date.now()) / 60_000));
       process.stderr.write(`  [${ts}] ${label} running ... (pid ${childPid}, timeout in ${remainMin}min)\n`);
 
