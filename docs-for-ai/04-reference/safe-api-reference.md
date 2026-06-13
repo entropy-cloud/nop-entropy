@@ -133,6 +133,51 @@ doFindList(query, (q, ctx) -> {
 > - `findList(query, selection, context)` — 3 参数，内部自动调用 `this::invokeDefaultPrepareQuery`。不需要定制 prepareQuery 时直接用这个更简洁。实体方法内通过 `requireBiz` 获取 `I*Biz` 后也只能调用这个 3 参数版本。
 > - `doFindPage` / `findPage` 同理。
 
+## Example 查询（强类型等值匹配）
+
+`IEntityDao` 提供一族 `byExample` 方法，以**实体对象本身**作为查询条件。与 `QueryBean`（字符串字段名 + 动态条件）不同，`byExample` 是**强类型**的——通过实体的 setter 设置匹配字段，编译器可以检查字段名和类型。
+
+### API 列表
+
+| 方法 | 返回 | 说明 |
+|------|------|------|
+| `findFirstByExample(T example)` | `T` 或 `null` | 返回第一条匹配记录 |
+| `requireFirstByExample(T example)` | `T` | 返回第一条匹配，未找到抛 `ERR_DAO_MISSING_ENTITY_WITH_PROPS` |
+| `findAllByExample(T example)` | `List<T>` | 返回全部匹配 |
+| `findAllByExample(T example, List<OrderFieldBean> orderBy)` | `List<T>` | 带排序 |
+| `findPageByExample(T example, orderBy, offset, limit)` | `List<T>` | 分页 |
+| `countByExample(T example)` | `long` | 计数 |
+| `deleteByExample(T example)` | `long` | 按条件删除 |
+
+### 匹配规则
+
+- 只有**已初始化的属性**（通过 setter 显式赋值的）才生成 `WHERE col = ?` 条件，未设置的属性被忽略。
+- 所有条件之间为 **AND**，运算符固定为 **等值（=）**。
+- 多租户和版本化实体的过滤条件由框架自动追加。
+
+### 代码示例
+
+```java
+// 强类型：编译器检查字段名和类型
+NopAuthUser example = dao().newEntity();
+example.setOpenId(openId);
+NopAuthUser user = dao().findFirstByExample(example);
+```
+
+### byExample vs QueryBean 选择
+
+| 维度 | `byExample` | `byQuery` (QueryBean) |
+|------|-------------|----------------------|
+| 类型安全 | **强类型**（实体 setter） | 弱类型（字符串字段名） |
+| 条件运算符 | 仅等值 `=` | `=`, `!=`, `>`, `<`, `IN`, `LIKE`, `AND/OR` 嵌套等 |
+| 适用场景 | 按已知字段精确匹配（唯一键查重、按外键查关联） | 复杂条件、范围查询、模糊搜索 |
+| 排序 | 通过 `OrderFieldBean` 参数 | 通过 `QueryBean.addOrder` |
+| 分页 | `findPageByExample` | `findPageByQuery` / `findPage` |
+
+**规则：** 简单等值匹配优先 `byExample`（类型安全、代码简洁）；需要非等值条件、OR 组合或动态过滤时用 `QueryBean`。
+
+> `byExample` 方法是 `IEntityDao` 层 API，不走 `CrudBizModel` 的权限/Meta 管道。在 BizModel 中使用时，如需数据权限过滤，应改用 `findList(query, selection, context)` 等 CrudBizModel 方法。CrudBizModel 内部的唯一性校验（`checkUniqueForSaveEntity`）自身使用了 `findFirstByExample`，这是平台内部的正确用法。
+
 ## 写操作
 
 | 场景 | 优先方法 |
