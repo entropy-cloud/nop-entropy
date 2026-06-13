@@ -135,7 +135,7 @@ Agent 执行有**循环控制**和**计算资源控制**：
 | 工具执行失败 | 记录错误，继续或中止（可配置） | 文件不存在 |
 | 工具超时 | 中止该工具，返回超时错误 | 长时间运行的工具 |
 | Agent 预算耗尽 | 中止执行，返回部分结果 | token 超限 |
-| 外部取消 | 优雅停止，保存当前状态 | 用户取消 |
+| 外部取消 | 两级取消语义（见下方），状态置 `cancelled` | 用户取消、运维强制停止 |
 
 ### 重试策略
 
@@ -145,6 +145,17 @@ Agent 执行有**循环控制**和**计算资源控制**：
 - 重试策略通过 Hook/Interceptor 实现，不在引擎主循环中硬编码
 
 详细设计见 `nop-ai-agent-reliability.md`。
+
+### 外部取消两级语义
+
+`IAgentEngine.cancelSession(sessionId, reason, forced)` 实现两级取消，取消结果通过 `AgentExecStatus.cancelled` 和 `SESSION_CANCELLED` 事件可观测：
+
+- **graceful（`forced=false`）**：设置 `AgentExecutionContext` 的 volatile 取消标志。当前正在执行的工具调用正常完成后，ReAct 主循环在下一次迭代边界（LLM 调用前）检测到取消标志并退出，已完成的部分消息被持久化到 session。
+- **forced（`forced=true`）**：在 graceful 基础上额外中断执行线程。阻塞中的调用（如 `CompletableFuture.allOf(futuresArray).join()` 或 LLM 调用）抛出 `InterruptedException`，被 ReAct 的 catch 块识别为取消（取消标志为 true）而非失败，状态置 `cancelled` 而非 `failed`。
+
+**fail-fast 约束**：`cancelSession` 和 `getSessionStatus` 对不存在的 sessionId 抛出 `NopAiAgentException`，不静默返回 null 或空操作——防止调用方误以为取消生效。
+
+**不在本设计范围**：超时自动取消（可基于取消标志机制后续实现）、跨进程取消传播（属于 Layer 4 Actor Runtime / IMessageService）、checkpoint 恢复（属于 L3-4）。
 
 ---
 

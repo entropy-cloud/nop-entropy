@@ -71,6 +71,15 @@
 
 27. **Closure Evidence 必须写入 plan 文件。** 独立子 agent 的 closure audit 结果必须记录在 plan 的 `Closure` 段落中，包含 Reviewer/Agent 标识、session ID、每条 Exit Criterion 和 Closure Gate 的验证结果。没有 evidence 记录的 closure 等于没有做 closure。
 
+28. **归档目录结构**：已关闭历史计划移入 `ai-dev/archived/` 下按月分片（如 `2026-06`），按 `Completed` 日期确定月份子目录。`ai-dev/plans/` 根目录仅保留活跃计划。归档规则：
+    - 归档对象不限状态：已关闭（completed/superseded/cancelled）、已延期（deferred）、甚至无状态的 stub 计划，只要不再活跃即可归档。判定标准：**在 `ai-dev/plans/` 根目录中当前不再执行或无需跟踪的计划**
+    - 按 `Completed: YYYY-MM-DD` 确定目标月份子目录
+    - 无 `Completed` 字段的计划：优先使用 `Last Reviewed: YYYY-MM-DD`；仍无日期时用文件 mtime 或 git log 推导合理月份
+    - 文件名（`NN-描述.md`）在归档后**保持不变**，确保引用可追溯
+    - 跨月度搜索统一通过 glob/grep 工具递归完成，不在 `ls` 级别导航
+    - 工具（`check-plan-checklist.mjs`）应同时扫描 `ai-dev/plans/` 根目录和所有 `ai-dev/archived/` 下子目录
+    - 归档是一次性批量操作，不要求实时迁移；当 `ai-dev/plans/` 根目录接近 ~50 个文件时执行一次
+
 ## Anti-Slacking Rule
 
 计划可以延期优化工作，但不能延期"这个 in-scope 项目到底是不是 closure 必需项"的裁定。
@@ -297,6 +306,7 @@ Exit Criteria:
 ## Closure
 
 Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
+Completed: YYYY-MM-DD
 
 Closure Audit Evidence:
 
@@ -464,6 +474,7 @@ closure audit 完成后，**必须**在 plan 文件的 `Closure` 段落中写入
 ## Closure
 
 Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
+Completed: YYYY-MM-DD
 
 Closure Audit Evidence:
 

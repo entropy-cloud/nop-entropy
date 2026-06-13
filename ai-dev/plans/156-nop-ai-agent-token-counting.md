@@ -203,6 +203,10 @@ Exit Criteria:
 - DSL configuration for the smoothing constant / clamp band
 - Per-model (not just per-ApiStyle) calibration granularity
 
+## Follow-up handled by 158-nop-ai-agent-compression-pipeline.md
+
+Plan 158 picks up L3-9 (the complete 5-layer compression pipeline + `ICompressionStrategy` extension point + forced-stop hard protection) — the successor work item from this plan's Deferred "Forced-Stop Trigger Logic (Layer 4)" and Non-Blocking Follow-up "L3-9 full 5-layer pipeline + `ICompressionStrategy` extension point + forced-stop using the estimator". It consumes the `CalibratedTokenEstimator` delivered here for the 90% forced-stop pre-call check. Plan 155 also carries L3-9 forward (its Layer 2 / Layer 3 / Layer 4 deferred items all name "future plan for L3-9").
+
 ## Closure
 
 Status Note: All three phases completed. `ILlmDialect.estimateTokens()` provides a dialect-aware baseline (Phase 1), `CalibratedTokenEstimator` refines it via EMA-smoothed Provider usage calibration (Phase 2), and the compaction system consumes the calibrated estimator instead of chars/4 (Phase 3). The estimator is shared between the ReAct loop (feed) and the compactor (consume) via `DefaultAgentEngine`. Pre-call token estimation is available as a capability for any caller. Backward compatible — `NoOpContextCompactor.INSTANCE` remains usable with a default estimator (factor 1.0).

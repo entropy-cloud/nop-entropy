@@ -51,6 +51,10 @@ Each subsystem directory contains architecture decisions and usage contracts for
 3. When two subsystem designs make conflicting claims about a shared boundary, the conflict must be resolved by updating the docs — the older or less precise doc yields.
 4. `docs-for-ai/` owns platform usage knowledge (API, conventions, development patterns). `ai-dev/design/` owns architecture decisions for platform development. When both cover the same topic, `docs-for-ai/` is the usage-facing source of truth; `ai-dev/design/` is the decision-facing source of truth.
 
+## `ai-dev/archived/` 目录结构
+
+历史计划归档在 `ai-dev/archived/` 下按月分片（如 `2026-06`），按 `Completed` 日期确定月份目录，文件名（`NN-描述.md`）保持不变。详见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 规则 #28。
+
 ## Relationship to `docs-for-ai/`
 
 | `docs-for-ai/` | `ai-dev/design/` |

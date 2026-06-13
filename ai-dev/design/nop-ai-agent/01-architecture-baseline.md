@@ -55,7 +55,7 @@
 | 对象 | 职责契约 | 设计约束 |
 |------|----------|---------|
 | `AgentModel` | 从 `agent.xdef` 装载得到的纯配置对象，是 DSL 在引擎层的投影 | 不持有执行逻辑，不持有状态；可被 Delta 定制 |
-| `IAgentEngine` | Agent 的 Actor 入口：接受消息，路由到对应 Session 的 Agent Actor | 无状态——每次调用根据 sessionId 查找或创建 AgentActor，投递消息后立即返回；执行结果通过 `AgentEventPublisher` 异步推送。Phase 1 已通过 default 方法预留 `forkSession`/`getSessionStatus`/`cancelSession` 的 Phase 2 扩展点（抛 UOE） |
+| `IAgentEngine` | Agent 的 Actor 入口：接受消息，路由到对应 Session 的 Agent Actor | 无状态——每次调用根据 sessionId 查找或创建 AgentActor，投递消息后立即返回；执行结果通过 `AgentEventPublisher` 异步推送。`cancelSession`（graceful/forced 两级语义）与 `getSessionStatus` 已在 `DefaultAgentEngine` 中实现：graceful 设置取消标志在下一个迭代边界停止，forced 额外中断执行线程；两者对不存在的 sessionId 均 fail-fast 抛 `NopAiAgentException`；`forkSession` 仍为 Phase 2 stub（抛 UOE，待 VFS session store） |
 | `Agent` | 无状态执行体，根据 AgentModel 的配置驱动执行循环 | 不持有状态——AgentSession 作为上下文传入 |
 | `AgentSession` | 按 sessionId 获取的独立状态对象，持久化跨请求存在 | 状态恢复的载体；可以被任意服务实例接管 |
 | `AgentExecutionContext` | 单次执行的全部内存态数据的容器 | 生命周期与单次执行绑定，不跨执行复用 |
