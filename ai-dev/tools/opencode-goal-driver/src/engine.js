@@ -497,6 +497,8 @@ export class FlowEngine {
     const maxTotalSteps = cfg.maxTotalSteps ?? this.flow.maxTotalSteps ?? 100;
     const maxCycleVisits = cfg.maxCycles ?? this.flow.maxCycleVisits ?? 10;
     const pingPongWindow = this.flow.pingPongWindow ?? 6;
+    const maxAuditRounds = this.flow.maxAuditRounds ?? 0;
+    const auditEntry = this.flow.auditEntry || this.flow.entry;
     let totalSteps = 0;
 
     while (totalSteps < maxTotalSteps) {
@@ -511,6 +513,11 @@ export class FlowEngine {
       if (visits > maxCycleVisits) {
         this._log(`maxCycleVisits (${maxCycleVisits}) exceeded for step ${currentStep}`);
         return this._result("max_cycles", totalSteps);
+      }
+
+      if (maxAuditRounds > 0 && currentStep === auditEntry && visits > maxAuditRounds) {
+        this._log(`maxAuditRounds (${maxAuditRounds}) exceeded for ${currentStep} → completed`);
+        return this._result("completed", totalSteps);
       }
 
       totalSteps++;

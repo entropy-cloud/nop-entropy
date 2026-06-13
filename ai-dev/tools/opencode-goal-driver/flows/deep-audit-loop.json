@@ -3,6 +3,7 @@
   "maxTotalSteps": 40,
   "maxCycleVisits": 15,
   "pingPongWindow": 6,
+  "maxAuditRounds": 3,
   "entry": "DEEP_AUDIT",
 
   "markerAliases": {
@@ -26,7 +27,7 @@
         "clean": { "done": "completed" },
         "issues": { "goto": "DRAFT_PLAN" }
       },
-      "onError": { "retry": "DEEP_AUDIT", "maxRetries": 2 }
+      "onError": { "done": "completed" }
     },
 
     "DRAFT_PLAN": {
@@ -57,15 +58,15 @@
       "onMaxRetries": { "goto": "EXECUTE_PLAN" }
     },
 
-      "EXECUTE_PLAN": {
-        "type": "subflow",
-        "flow": "plan-execution",
-        "flowArgs": { "PLAN_FILE": "{{PLAN_FILE}}" },
-        "transitions": {
-          "pass": { "goto": "DRAFT_PLAN" },
-          "failed": { "goto": "DRAFT_PLAN" }
-        },
-        "onError": { "goto": "DRAFT_PLAN" }
-      }
+    "EXECUTE_PLAN": {
+      "type": "subflow",
+      "flow": "plan-execution",
+      "flowArgs": { "PLAN_FILE": "{{PLAN_FILE}}" },
+      "transitions": {
+        "pass": { "goto": "DEEP_AUDIT" },
+        "failed": { "goto": "DEEP_AUDIT" }
+      },
+      "onError": { "goto": "DEEP_AUDIT" }
+    }
   }
 }
