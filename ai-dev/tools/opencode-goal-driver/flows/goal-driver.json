@@ -6,7 +6,7 @@
   "entry": "HEALTH_CHECK",
 
   "validateFlowVars": {
-    "PLAN_FILE": { "exists": true }
+    "PLAN_FILE": { "exists": true, "onReject": "none" }
   },
 
   "markerAliases": {

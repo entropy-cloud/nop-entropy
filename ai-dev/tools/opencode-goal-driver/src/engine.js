@@ -576,17 +576,6 @@ export class FlowEngine {
 
       this.context.set(currentStep, result);
 
-      if (result.vars) {
-        const validations = this.flow.validateFlowVars;
-        for (const [k, v] of Object.entries(result.vars)) {
-          if (validations?.[k]?.exists && !this._fileExists(v)) {
-            this._log(`  ERROR: ${k}="${v}" does not exist — AI returned placeholder, ignoring`);
-            continue;
-          }
-          this.flowVars.set(k, v);
-        }
-      }
-
       if (!result.ok) {
         const onError = stepDef.onError || { done: "failed" };
         this._log(`  subprocess failed → ${JSON.stringify(onError)}`);
@@ -618,6 +607,21 @@ export class FlowEngine {
       }
 
       let marker = result.marker;
+
+      if (result.vars) {
+        const validations = this.flow.validateFlowVars;
+        for (const [k, v] of Object.entries(result.vars)) {
+          if (validations?.[k]?.exists && !this._fileExists(v)) {
+            this._log(`  ERROR: ${k}="${v}" does not exist — AI returned placeholder, ignoring`);
+            if (marker && validations[k].onReject) {
+              this._log(`  setting marker to "${validations[k].onReject}"`);
+              marker = validations[k].onReject;
+            }
+            continue;
+          }
+          this.flowVars.set(k, v);
+        }
+      }
       if (!marker) {
         this._log(`  marker not found in output`);
         const onUnknown = stepDef.onUnknown || { done: "failed" };

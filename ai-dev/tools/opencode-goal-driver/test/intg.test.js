@@ -68,7 +68,7 @@ describe("FlowEngine — goal driver integration", () => {
             : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
         },
 
-        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/test-plan.md</PLAN_FILE>\n</FLOW_VARS>",
+        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE>\n</FLOW_VARS>",
 
         PLAN_AUDIT: () => {
           planAuditCount++;
@@ -92,6 +92,11 @@ describe("FlowEngine — goal driver integration", () => {
 
     delegates.config = { moduleName: "test-mod", projectRoot: "/tmp/test" };
     delegates.vars = { module: "test-mod", projectRoot: "/tmp/test" };
+
+    const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+    rmSync("/tmp/test/ai-dev/plans", { recursive: true, force: true });
+    mkdirSync("/tmp/_goal-driver-test", { recursive: true });
+    writeFileSync("/tmp/_goal-driver-test-plan.md", "# Test Plan\n\n> **Plan Status**: active");
 
     const engine = new FlowEngine(flow, delegates);
     const result = await engine.run();
