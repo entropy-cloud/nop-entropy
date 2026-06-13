@@ -140,6 +140,60 @@ public class TestProductBizSnapshot extends JunitAutoTestCase {
 // - 日常校验: 默认 CHECKING 模式，自动加载快照数据到 H2 并比对输出
 // - @var:xxx 占位符: 输出文件中用 @var:Product@id 匹配动态生成的ID
 
+// ====== 2b. 快照 + 显式断言组合测试（推荐写法） ======
+// 快照测试中必须对核心业务字段额外加 assert 断言，不要只依赖 output() 比对。
+// 三层验证: assert 核心字段 + output() 完整响应快照 + 框架自动数据库状态快照
+
+package demo.service;
+
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
+import io.nop.autotest.junit.JunitAutoTestCase;
+import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.engine.IGraphQLEngine;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestOrderCancelSnapshot extends JunitAutoTestCase {
+
+    @Inject
+    IGraphQLEngine graphQLEngine;
+
+    @Test
+    public void testCancelOrder() {
+        ApiResponse<?> result = executeRpc(GraphQLOperationType.mutation,
+            "Order__cancelOrder", request("request.json5", Map.class));
+
+        // 第一层: 显式断言核心业务字段 — 确认业务逻辑正确
+        assertEquals(0, result.getStatus());
+        assertEquals("CANCELLED", ((Map<?, ?>) result.getData()).get("status"));
+
+        // 第二层 + 第三层: 快照自动校验
+        //   output() 固化完整响应结构，任何字段变化都会被捕获
+        //   框架自动录制比对数据库变更 (output/tables/*.csv)，无需手写 DAO 查询
+        output("response.json5", result);
+    }
+
+    private ApiResponse<?> executeRpc(GraphQLOperationType opType, String action, ApiRequest<?> request) {
+        IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(opType, action, request);
+        return graphQLEngine.executeRpc(ctx);
+    }
+}
+
+// 要点:
+// - 快照和断言不互斥，叠加使用是推荐写法
+// - assert 验证"核心字段正确"，output() 验证"整体状态没意外变化"
+// - 框架自动录制初始化数据(input/tables/*.csv)，校验时从快照恢复到 H2，不触碰外部数据库
+// - 录制可利用外部数据库中的复杂数据，人工准备成本极高也能一次录制永久复用
+// - 相比纯手写断言，三层验证覆盖面更广，新增字段也自动纳入快照保护
+
 // ====== 3. 多步骤业务流程测试 ======
 package demo.service;
 
@@ -325,4 +379,5 @@ public class TestCartBiz extends JunitBaseTestCase {
 // | 纯逻辑（无DB无IoC） | BaseTestCase + CoreInitialization | 最轻量 |
 // | 空库自建数据+IGraphQLEngine | JunitBaseTestCase | DAO 建种子 + 断言 |
 // | 需要录制回放 | JunitAutoTestCase | input/output + _cases 目录 |
+// | 快照 + 显式断言（推荐） | JunitAutoTestCase | assert 核心字段 + output 快照 + DB自动校验 |
 // | 多步骤流程 | JunitAutoTestCase | 编号文件 + @var: 占位符 |

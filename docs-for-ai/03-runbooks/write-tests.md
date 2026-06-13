@@ -81,7 +81,37 @@ public class TestOrder extends JunitAutoTestCase {
 
 关于 `@EnableSnapshot` 的完整参数说明和源码机制，见 `../02-core-guides/testing.md` 的"@EnableSnapshot 方法级快照控制"章节。
 
-### 4. 数据目录
+### 4. 快照 + 显式断言的组合写法
+
+快照测试中**必须对核心业务字段额外加 `assertXXX()` 断言**，不要只依赖 `output()` 比对。两者叠加实现三层验证：
+
+- **显式断言**（`assertEquals` 等）：验证关键业务字段正确性，语义清晰、失败时快速定位。
+- **响应快照**（`output()`）：固化完整响应结构，捕获任何意外变化。
+- **数据库快照**（框架自动）：自动比对操作前后的数据库变更（`output/tables/*.csv`），无需手写 DAO 查询。
+
+此外，录制时框架会**自动录制初始化数据快照**（`input/tables/*.csv`），校验时从快照恢复到 H2 内存库，不触碰外部数据库，保证测试可稳定复现。录制还可以直接利用外部数据库中的复杂数据——这些数据人工准备成本极高，录制一次即可永久复用。
+
+```java
+@NopTestConfig
+public class TestOrder extends JunitAutoTestCase {
+    @Test
+    public void testCancelOrder() {
+        ApiResponse<?> result = executeRpc(GraphQLOperationType.mutation,
+            "Order__cancelOrder", request("request.json5", Map.class));
+
+        // 核心业务字段显式断言
+        assertEquals(0, result.getStatus());
+        assertEquals("CANCELLED", ((Map<?, ?>) result.getData()).get("status"));
+
+        // 快照自动校验完整响应 + 数据库状态
+        output("response.json5", result);
+    }
+}
+```
+
+> 完整说明见 `../02-core-guides/testing.md` 的"快照测试与显式断言的组合：三层验证"章节。
+
+### 5. 数据目录
 
 | 场景 | 位置 |
 |------|------|

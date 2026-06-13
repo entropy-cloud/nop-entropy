@@ -135,6 +135,57 @@ public class TestOrder extends JunitAutoTestCase {
 
 录制模式下，每个测试方法执行完毕后框架会抛出错误码为 `nop.err.autotest.snapshot-finished` 的异常表示录制完成。这是**预期行为**，不是测试失败。Maven 输出会显示 `Tests run: X, Errors: X`（Errors 数等于录制的方法数），看到此异常和 Errors 计数请忽略。切换到 CHECKING 模式后 Errors 会归零。
 
+## 快照测试与显式断言的组合：三层验证
+
+快照测试不排斥显式断言——**两者叠加才是推荐的完整写法**。一个测试方法中同时使用 `assertXXX()` 和 `output()`，实现三层验证：
+
+| 验证层 | 手段 | 作用 |
+|--------|------|------|
+| **核心业务字段** | `assertEquals` / `assertNull` 等显式断言 | 确认关键结果正确，语义清晰、失败定位快 |
+| **完整响应快照** | `output("response.json5", result)` | 固化整个响应结构，任何字段变化都会被捕获 |
+| **数据库状态快照** | 框架自动录制 `output/tables/*.csv` | 自动比对操作前后的数据库变更，无需手写 DAO 查询 |
+
+三层叠加后，测试覆盖面远超手写断言：不仅验证"该对的字段对了"，还自动验证"不该变的没变、该变的变了"。
+
+```java
+@NopTestConfig
+public class TestOrder extends JunitAutoTestCase {
+    @Inject
+    IGraphQLEngine graphQLEngine;
+
+    @Test
+    public void testCancelOrder() {
+        ApiResponse<?> result = executeRpc(GraphQLOperationType.mutation,
+            "Order__cancelOrder", request("request.json5", Map.class));
+
+        // 第一层：显式断言核心业务字段
+        assertEquals(0, result.getStatus());
+        assertEquals("CANCELLED", ((Map<?, ?>) result.getData()).get("status"));
+
+        // 第二层 + 第三层：快照自动校验完整响应和数据库状态
+        output("response.json5", result);
+    }
+}
+```
+
+### 初始化数据的自动录制与可复现性
+
+快照测试录制时，框架不仅录制输出，还**自动录制输入侧的数据库快照**（`input/tables/*.csv`）。校验模式下，框架从 CSV 恢复数据到 H2 内存库，**不触碰外部数据库**，因此：
+
+1. **测试可稳定复现**——每次运行的数据状态完全一致，不受外部环境干扰。
+2. **无副作用**——不对真实数据库产生任何影响。
+3. **可利用外部数据库中的已有数据**——大部分测试从空库准备数据，但录制回放可以直接从有数据的外部库录制初始化快照。这些数据可能非常复杂，人工准备成本极高，录制机制让它们可以被固化为可复现的测试基线。
+
+### 为什么快照测试比单独编写断言更全面
+
+| 对比项 | 纯手写断言 | 快照 + 显式断言 |
+|--------|-----------|----------------|
+| 需要手写的断言量 | 大量逐字段断言 | 仅断言核心字段 |
+| 数据库变更验证 | 手写 DAO 查询 + 逐字段比对 | **自动录制比对** |
+| 新增字段回归保护 | 需手动补断言 | **自动纳入快照** |
+| 初始化数据准备 | 手动 `@BeforeEach` 构造 | **从录制快照自动恢复** |
+| 利用复杂外部数据 | 几乎不可能（数据太复杂） | **录制一次，永久复用** |
+
 ## 自动测试变量（`@var:`）机制
 
 ### 哪些字段会成为变量
