@@ -69,6 +69,12 @@ async function main() {
     console.log(`  Status:    ${result.status}`);
     console.log(`  Steps:     ${result.stepCount}`);
     console.log(`  Elapsed:   ${result.elapsed}`);
+    if (result.marker) console.log(`  Last marker: ${result.marker}`);
+    const tail = result.history.slice(-5);
+    if (tail.length > 0) {
+      console.log(`  Last activity:`);
+      for (const line of tail) console.log(`    ${line}`);
+    }
     console.log(`════════════════════════════════════════`);
 
     const exitMap = { completed: 0, failed: 1, max_cycles: 2, max_total_steps: 2, max_retries: 2 };
