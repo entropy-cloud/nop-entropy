@@ -72,13 +72,45 @@ Nop ORM 的列类型系统有两个独立维度：
 
 > 完整列表（含 file、files、point、geometry、map、list 等）见 `StdDataType.java`。
 
-### domain / stdDomain / stdDataType 三层关系
+### 四层类型结构：type / stdDataType / stdDomain / domain
 
-1. **stdDataType**：最基础的类型系统，决定 Java 类型和 GraphQL 类型。
-2. **stdDomain**：在 stdDataType 之上增加语义约束（如 `file` → 文件附件、`json` → JSON 组件）。
-3. **domain**：应用模块自定义的域，可复用 stdDomain 或定义新的。domain 全局唯一，优先复用已有 domain。
+Nop 平台在多个层面描述字段的类型，按具体程度从高到低排列：
 
-控件匹配链（前端渲染）：`control` → `domain` → `stdDomain` → `stdDataType`，从 `control.xlib` 中查找匹配的渲染控件。
+| 层 | 含义 | 示例 | 说明 |
+|----|------|------|------|
+| `type` | Java 泛型类型 | `String`、`List&lt;String&gt;` | 最具体。XMeta `<prop type="...">`、ORM `<alias>`/`<compute>` 上使用 |
+| `stdDataType` | JSON/GraphQL 层次的简单类型 | `string`、`int`、`boolean`、`date` | `StdDataType` 枚举。决定 JSON 序列化方式和 GraphQL scalar 类型 |
+| `stdDomain` | XDef 元模型中注册的标准业务语义类型 | `string`、`v-path`、`class-name`、`file`、`json`、`enum` | 绑定 `IStdDomainHandler`，可推导 `type` 和 `stdDataType`。xdef 元模型定义中使用 |
+| `domain` | 业务模块自定义的域名称 | `boolFlag`、`userName`、`roleId` | 应用级命名，ORM 中可展开为 `stdDomain`/`stdDataType`/`stdSqlType` |
+
+#### ORM 与 XMeta 中的分布差异
+
+**ORM `<column>`**：有 `stdSqlType`（物理）、`stdDataType`（逻辑）、`stdDomain`（语义触发）、`domain`（域名引用）。**没有 `type`**。`type` 仅出现在 `<alias>` 和 `<compute>` 上。
+
+**XMeta `<prop>`**：有 `type`（Java 类型）、`stdDomain`（标准域）、`domain`（自定义域）。**不直接设 `stdDataType`**，类型信息由 `type` 或 `stdDomain` 推导。没有 `stdSqlType`。
+
+> ORM `<column>` 上设的 `stdDomain` 会反映到生成的 XMeta 属性上。ORM 的 `domain` 解析后也会展开为 `stdDomain`/`stdDataType`，这些值最终都会映射到 XMeta 中。
+
+#### domain 的解析行为差异
+
+**ORM 中 `domain` 会被解析**：初始化时 `OrmModelInitializer.syncDomains()` 查找 `<domains>` 定义，将其 `stdDomain`/`stdSqlType`/`stdDataType`/`precision`/`scale` 复制到 column 上。如果 `domain` 指定但未找到定义，抛异常。
+
+**XMeta 中 `domain` 不解析**：纯字符串，无内置类型解析逻辑，主要用于 UI 控件匹配。
+
+#### 控件匹配链
+
+前端根据 XMeta 属性查找渲染控件时按以下优先级匹配，逐级 fallback：
+
+`control`（显式指定）→ `domain` → `stdDomain` → `stdDataType`
+
+从 `control.xlib` 中查找 `{mode}-{type}` 标签：
+
+1. 先看 `control="xxx"` 是否显式指定
+2. 没指定则看 `domain` 是否有对应控件（如 `domain="int"` → `edit-int`）
+3. `domain` 没匹配则看 `stdDomain`
+4. `stdDomain` 也没匹配则以 `stdDataType` 兜底
+
+常见映射：`string` → `input-text`、`int/long` → `input-text` + `isInt`、`double/decimal` → `input-number`、`enum` → `select`。
 
 ## 主键设计
 
