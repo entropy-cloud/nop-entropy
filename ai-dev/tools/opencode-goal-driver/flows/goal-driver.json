@@ -47,7 +47,10 @@
       "promptPath": "prompts/roadmap-check.md",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "pending": { "goto": "PLAN_DRAFT" },
+        "pending": {
+          "goto": "PLAN_DRAFT",
+          "append": { "template": "\n\nSelected work item from roadmap check:\n${output}" }
+        },
         "complete": { "goto": "DEEP_AUDIT_LOOP" }
       },
       "onError": { "goto": "DEEP_AUDIT_LOOP" }
