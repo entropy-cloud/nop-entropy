@@ -3,6 +3,18 @@ import { execSync } from "node:child_process";
 import { relative } from "node:path";
 import { execute } from "./executor.js";
 
+const IS_WIN32 = process.platform === "win32";
+
+function killTree(pid) {
+  try {
+    if (IS_WIN32) {
+      execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore", timeout: 5_000 });
+    } else {
+      process.kill(-pid, "SIGKILL");
+    }
+  } catch {}
+}
+
 let _mockRoadmapCount = 0;
 let _mockPlanAuditCount = 0;
 let _mockClosureCount = 0;
@@ -103,6 +115,8 @@ function findLatestSessionId(projectRoot) {
 }
 
 export async function createRunner(config) {
+  let currentPid = null;
+
   const realRun = async (stepName, prompt, system, sessionId) => {
     const model = `${config.model}`;
 
@@ -121,8 +135,9 @@ export async function createRunner(config) {
     }
     const result = await execute(config, `oc-${stepName}`, "opencode", args, {
       cwd: config.projectRoot,
-      timeout: 36_000_000,
+      onSpawn(pid) { currentPid = pid; },
     });
+    currentPid = null;
 
     let text = "";
     if (result.logFile) {
@@ -157,16 +172,23 @@ export async function createRunner(config) {
     const cmd = parts[0];
     const cmdArgs = parts.slice(1);
     const plPath = config.moduleDir ? relative(config.projectRoot, config.moduleDir) : config.moduleName;
-    return execute(config, stepName, cmd,
+    const result = await execute(config, stepName, cmd,
       [...cmdArgs, "-pl", plPath, "-am", "-T", "1C"],
-      { cwd: config.projectRoot, timeout: opts.timeout || 1_800_000 },
+      { cwd: config.projectRoot, onSpawn(pid) { currentPid = pid; } },
     );
+    currentPid = null;
+    return result;
   }
 
   return {
     runAgent,
     runTool,
     runParseAgent: runAgent,
-    async close() {},
+    async close() {
+      if (currentPid) {
+        killTree(currentPid);
+        currentPid = null;
+      }
+    },
   };
 }

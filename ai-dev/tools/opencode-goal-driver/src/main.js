@@ -15,6 +15,7 @@ function parseArgs(argv) {
     else if (a === "--model") args.model = argv[++i];
     else if (a === "--max-cycles") args.maxCycles = Number(argv[++i]);
     else if (a === "--max-inner-cycles") args.maxInnerCycles = Number(argv[++i]);
+    else if (a === "--max-total-steps") args.maxTotalSteps = Number(argv[++i]);
     else if (a === "--test") args.testMode = true;
     else if (!a.startsWith("--")) args.module = a;
     i++;
@@ -27,12 +28,23 @@ async function main() {
   const config = resolveConfig(args);
   const runner = await createRunner(config);
 
+  process.on("SIGTERM", async () => {
+    process.stderr.write("\n[SIGTERM] cleaning up ...\n");
+    await runner.close();
+    process.exit(130);
+  });
+  process.on("SIGINT", async () => {
+    process.stderr.write("\n[SIGINT] cleaning up ...\n");
+    await runner.close();
+    process.exit(130);
+  });
+
   console.log(`Module:   ${config.moduleName}`);
   console.log(`Agent:    ${config.agent}`);
   console.log(`Model:    ${config.model}`);
   console.log(`DryRun:   ${config.dryRun}`);
   console.log(`TestMode: ${config.testMode}`);
-  console.log(`Watchdog: interval=${config.watchdogIntervalMs / 1000}s stall=${config.watchdogStallMs / 1000}s`);
+  console.log(`Timeout:  60min (auto-extend on output)`);
   console.log(`Log:      ${config.logFile}`);
   console.log("");
 
@@ -59,14 +71,9 @@ async function main() {
     console.log(`  Elapsed:   ${result.elapsed}`);
     console.log(`════════════════════════════════════════`);
 
-    switch (result.status) {
-      case "completed": process.exit(0);
-      case "failed": process.exit(1);
-      case "max_cycles":
-      case "max_total_steps":
-      case "max_retries":
-        process.exit(2);
-    }
+    const exitMap = { completed: 0, failed: 1, max_cycles: 2, max_total_steps: 2, max_retries: 2 };
+    const exitCode = exitMap[result.status];
+    if (exitCode !== undefined) process.exitCode = exitCode;
   } finally {
     await runner.close();
   }
