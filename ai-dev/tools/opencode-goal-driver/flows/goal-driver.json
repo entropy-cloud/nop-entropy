@@ -1,7 +1,7 @@
 {
   "name": "goal-driver",
-  "maxTotalSteps": 200,
-  "maxCycleVisits": 20,
+  "maxTotalSteps": 500,
+  "maxCycleVisits": 30,
   "pingPongWindow": 6,
   "entry": "HEALTH_CHECK",
 
