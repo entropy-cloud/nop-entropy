@@ -112,6 +112,8 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     public String decodeFileId(String fileLink) {
         if (StringHelper.isEmpty(fileLink))
             return null;
+        if (!fileLink.startsWith(FileConstants.PATH_DOWNLOAD + "/"))
+            return null;
         String fileId = StringHelper.lastPart(fileLink, '/');
         // 除去文件后缀名
         fileId = StringHelper.removeFileExt(fileId);
