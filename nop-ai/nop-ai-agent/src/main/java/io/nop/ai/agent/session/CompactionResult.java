@@ -1,5 +1,8 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.api.chat.messages.ChatMessage;
+
+import java.util.List;
 import java.util.Objects;
 
 public class CompactionResult {
@@ -9,14 +12,22 @@ public class CompactionResult {
     private final long tokensAfter;
     private final int retainedMessageCount;
     private final String snapshotId;
+    private final List<ChatMessage> compactedMessages;
 
     public CompactionResult(String sessionId, long tokensBefore, long tokensAfter,
                             int retainedMessageCount, String snapshotId) {
+        this(sessionId, tokensBefore, tokensAfter, retainedMessageCount, snapshotId, null);
+    }
+
+    public CompactionResult(String sessionId, long tokensBefore, long tokensAfter,
+                            int retainedMessageCount, String snapshotId,
+                            List<ChatMessage> compactedMessages) {
         this.sessionId = sessionId;
         this.tokensBefore = tokensBefore;
         this.tokensAfter = tokensAfter;
         this.retainedMessageCount = retainedMessageCount;
         this.snapshotId = snapshotId;
+        this.compactedMessages = compactedMessages;
     }
 
     public String getSessionId() {
@@ -39,6 +50,10 @@ public class CompactionResult {
         return snapshotId;
     }
 
+    public List<ChatMessage> getCompactedMessages() {
+        return compactedMessages;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -48,12 +63,13 @@ public class CompactionResult {
                 && tokensAfter == that.tokensAfter
                 && retainedMessageCount == that.retainedMessageCount
                 && Objects.equals(sessionId, that.sessionId)
-                && Objects.equals(snapshotId, that.snapshotId);
+                && Objects.equals(snapshotId, that.snapshotId)
+                && Objects.equals(compactedMessages, that.compactedMessages);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sessionId, tokensBefore, tokensAfter, retainedMessageCount, snapshotId);
+        return Objects.hash(sessionId, tokensBefore, tokensAfter, retainedMessageCount, snapshotId, compactedMessages);
     }
 
     @Override
@@ -64,6 +80,7 @@ public class CompactionResult {
                 ", tokensAfter=" + tokensAfter +
                 ", retainedMessageCount=" + retainedMessageCount +
                 ", snapshotId='" + snapshotId + '\'' +
+                ", compactedMessages=" + (compactedMessages != null ? compactedMessages.size() + " messages" : "null") +
                 '}';
     }
 }
