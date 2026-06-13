@@ -1,5 +1,13 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.CompactionContext;
+import io.nop.ai.agent.compact.IContextCompactor;
+import io.nop.ai.agent.compact.NoOpContextCompactor;
+import io.nop.ai.agent.compact.ToolResultTruncator;
+import io.nop.ai.agent.guardrail.GuardrailDirection;
+import io.nop.ai.agent.guardrail.GuardrailResult;
+import io.nop.ai.agent.guardrail.IContentGuardrail;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
 import io.nop.ai.agent.hook.HookContext;
@@ -9,6 +17,11 @@ import io.nop.ai.agent.hook.IHookRegistry;
 import io.nop.ai.agent.hook.NoOpHookRegistry;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.repair.NoOpToolCallRepairer;
+import io.nop.ai.agent.router.IModelRouter;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.router.RoutingResult;
+import io.nop.ai.agent.session.CompactConfig;
+import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
@@ -29,9 +42,11 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.core.model.ChatOptionsModel;
 import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
@@ -54,6 +69,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(ReActAgentExecutor.class);
 
     public static final int DEFAULT_MAX_REENTRIES = 3;
+    public static final double DEFAULT_TRIGGER_TOKEN_PERCENT = 0.8;
+    public static final int DEFAULT_TRIGGER_MAX_MESSAGES = 30;
+    public static final int DEFAULT_MAX_CONTEXT_TOKENS = 128000;
 
     private final IChatService chatService;
     private final IToolManager toolManager;
@@ -64,6 +82,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IAuditLogger auditLogger;
     private final IHookRegistry hookRegistry;
     private final IToolCallRepairer toolCallRepairer;
+    private final IContextCompactor contextCompactor;
+    private final IContentGuardrail contentGuardrail;
+    private final IModelRouter modelRouter;
+    private final ITokenEstimator tokenEstimator;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -72,7 +94,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                IPathAccessChecker pathAccessChecker,
                                IAuditLogger auditLogger,
                                IHookRegistry hookRegistry,
-                               IToolCallRepairer toolCallRepairer) {
+                               IToolCallRepairer toolCallRepairer,
+                               IContextCompactor contextCompactor,
+                               IContentGuardrail contentGuardrail,
+                               IModelRouter modelRouter,
+                               ITokenEstimator tokenEstimator) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -82,6 +108,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.auditLogger = auditLogger;
         this.hookRegistry = hookRegistry != null ? hookRegistry : NoOpHookRegistry.INSTANCE;
         this.toolCallRepairer = toolCallRepairer != null ? toolCallRepairer : NoOpToolCallRepairer.INSTANCE;
+        this.contextCompactor = contextCompactor != null ? contextCompactor : NoOpContextCompactor.INSTANCE;
+        this.contentGuardrail = contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp();
+        this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
+        this.tokenEstimator = tokenEstimator != null ? tokenEstimator : CalibratedTokenEstimator.defaultInstance();
     }
 
     public static Builder builder() {
@@ -98,6 +128,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IAuditLogger auditLogger;
         private IHookRegistry hookRegistry;
         private IToolCallRepairer toolCallRepairer;
+        private IContextCompactor contextCompactor;
+        private IContentGuardrail contentGuardrail;
+        private IModelRouter modelRouter;
+        private ITokenEstimator tokenEstimator;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -144,6 +178,26 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        public Builder contextCompactor(IContextCompactor contextCompactor) {
+            this.contextCompactor = contextCompactor;
+            return this;
+        }
+
+        public Builder contentGuardrail(IContentGuardrail contentGuardrail) {
+            this.contentGuardrail = contentGuardrail;
+            return this;
+        }
+
+        public Builder modelRouter(IModelRouter modelRouter) {
+            this.modelRouter = modelRouter;
+            return this;
+        }
+
+        public Builder tokenEstimator(ITokenEstimator tokenEstimator) {
+            this.tokenEstimator = tokenEstimator;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -160,7 +214,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     pathAccessChecker != null ? pathAccessChecker : new AllowAllPathAccessChecker(),
                     auditLogger != null ? auditLogger : new NoOpAuditLogger(),
                     hookRegistry != null ? hookRegistry : NoOpHookRegistry.INSTANCE,
-                    toolCallRepairer != null ? toolCallRepairer : NoOpToolCallRepairer.INSTANCE
+                    toolCallRepairer != null ? toolCallRepairer : NoOpToolCallRepairer.INSTANCE,
+                    contextCompactor != null ? contextCompactor : NoOpContextCompactor.INSTANCE,
+                    contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp(),
+                    modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough(),
+                    tokenEstimator != null ? tokenEstimator : CalibratedTokenEstimator.defaultInstance()
             );
         }
     }
@@ -192,14 +250,32 @@ public class ReActAgentExecutor implements IAgentExecutor {
             }
 
             while (ctx.getCurrentIteration() < ctx.getMaxIterations()) {
+                if (shouldTriggerCompaction(ctx)) {
+                    performCompaction(ctx, agentName);
+                }
+
                 HookResult preReasoningResult = invokeHooks(AgentLifecyclePoint.PRE_REASONING, ctx, agentName, null, null);
                 if (preReasoningResult.isVeto()) {
                     ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
                     continue;
                 }
 
+                GuardrailResult inputGuardrailResult = checkInputGuardrail(ctx);
+                if (inputGuardrailResult.isBlock()) {
+                    String blockReason = ((GuardrailResult.BlockResult) inputGuardrailResult).getReason();
+                    ctx.addMessage(ChatToolResponseMessage.error(
+                            "guardrail-block-input", "guardrail",
+                            "Input blocked by content guardrail: " + (blockReason != null ? blockReason : "unspecified")));
+                    ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+                    continue;
+                }
+
+                RoutingResult routingResult = modelRouter.route(ctx.getMessages(), options, ctx);
+                ChatOptions routedOptions = routingResult.getOptions();
+
                 ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
-                request.setOptions(options);
+                request.setOptions(routedOptions);
+                List<ChatMessage> messagesAtCallTime = request.getMessages();
 
                 ChatResponse response = chatService.call(request, null);
 
@@ -221,6 +297,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     int promptTokens = response.getPromptTokens() != null ? response.getPromptTokens() : 0;
                     int completionTokens = response.getCompletionTokens() != null ? response.getCompletionTokens() : 0;
                     ctx.setTokensUsed(ctx.getTokensUsed() + promptTokens + completionTokens);
+
+                    if (promptTokens > 0) {
+                        tokenEstimator.record(messagesAtCallTime, promptTokens);
+                    }
                 }
 
                 Map<String, Object> llmPayload = new HashMap<>();
@@ -229,6 +309,21 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 publishEvent(AgentEventType.LLM_RESPONSE_RECEIVED, sessionId, agentName, llmPayload);
 
                 invokeHooks(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
+
+                String outputContent = assistantMsg.getContent() != null ? assistantMsg.getContent() : "";
+                GuardrailResult outputGuardrailResult = contentGuardrail.check(GuardrailDirection.OUTPUT, outputContent, ctx);
+                if (outputGuardrailResult.isBlock()) {
+                    String blockReason = ((GuardrailResult.BlockResult) outputGuardrailResult).getReason();
+                    ctx.addMessage(ChatToolResponseMessage.error(
+                            "guardrail-block-output", "guardrail",
+                            "Output blocked by content guardrail: " + (blockReason != null ? blockReason : "unspecified")));
+                    ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+                    continue;
+                }
+                if (outputGuardrailResult.isModify()) {
+                    String modifiedContent = ((GuardrailResult.ModifyResult) outputGuardrailResult).getContent();
+                    assistantMsg.setContent(modifiedContent);
+                }
 
                 if (!assistantMsg.hasToolCalls()) {
                     ctx.setStatus(AgentExecStatus.completed);
@@ -325,8 +420,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         ChatToolResponseMessage toolResponse;
                         if ("success".equals(toolResult.getStatus()) && toolResult.getError() == null) {
                             String resultText = toolResult.getOutput() != null ? toolResult.getOutput().getBody() : "";
-                            toolResponse = ChatToolResponseMessage.fromToolCall(chatToolCall,
-                                    resultText != null ? resultText : "");
+                            resultText = resultText != null ? resultText : "";
+                            resultText = ToolResultTruncator.truncateIfAllowed(
+                                    resultText,
+                                    ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS,
+                                    toolName);
+                            toolResponse = ChatToolResponseMessage.fromToolCall(chatToolCall, resultText);
                             toolStatus = "success";
                         } else {
                             String errorMsg = toolResult.getError() != null ? toolResult.getError().getBody() : "unknown error";
@@ -400,6 +499,54 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
 
         return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
+    }
+
+    private boolean shouldTriggerCompaction(AgentExecutionContext ctx) {
+        long maxContextTokens = resolveMaxContextTokens(ctx);
+        if (ctx.getTokensUsed() > maxContextTokens * DEFAULT_TRIGGER_TOKEN_PERCENT) {
+            return true;
+        }
+        return ctx.getMessages().size() > DEFAULT_TRIGGER_MAX_MESSAGES;
+    }
+
+    private long resolveMaxContextTokens(AgentExecutionContext ctx) {
+        if (ctx.getChatOptionsModel() != null && ctx.getChatOptionsModel().getMaxTokens() != null) {
+            return ctx.getChatOptionsModel().getMaxTokens();
+        }
+        return DEFAULT_MAX_CONTEXT_TOKENS;
+    }
+
+    private void performCompaction(AgentExecutionContext ctx, String agentName) {
+        CompactConfig config = CompactConfig.defaults();
+
+        CompactionContext compactCtx = new CompactionContext(
+                new ArrayList<>(ctx.getMessages()),
+                config,
+                ctx.getSessionId(),
+                agentName,
+                ctx,
+                tokenEstimator
+        );
+
+        invokeHooks(AgentLifecyclePoint.PRE_COMPACT, ctx, agentName, null, null);
+
+        CompactionResult result = contextCompactor.compact(compactCtx);
+
+        invokeHooks(AgentLifecyclePoint.POST_COMPACT, ctx, agentName, null, null);
+
+        if (result.getCompactedMessages() != null) {
+            if (result.getCompactedMessages().isEmpty()) {
+                LOG.warn("Compactor returned empty compactedMessages for session {}, skipping replacement",
+                        ctx.getSessionId());
+            } else if (result.getTokensAfter() < result.getTokensBefore()) {
+                ctx.getMessages().clear();
+                ctx.getMessages().addAll(result.getCompactedMessages());
+                ctx.setTokensUsed(ctx.getTokensUsed() - (result.getTokensBefore() - result.getTokensAfter()));
+                LOG.info("Context compacted: tokens {} -> {}, retained {} messages for session {}",
+                        result.getTokensBefore(), result.getTokensAfter(),
+                        result.getRetainedMessageCount(), ctx.getSessionId());
+            }
+        }
     }
 
     private HookResult invokeHooks(AgentLifecyclePoint point, AgentExecutionContext ctx,
@@ -509,6 +656,32 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
 
         return null;
+    }
+
+    private GuardrailResult checkInputGuardrail(AgentExecutionContext ctx) {
+        String inputContent = extractLastUserContent(ctx);
+        GuardrailResult result = contentGuardrail.check(GuardrailDirection.INPUT, inputContent, ctx);
+        if (result.isModify()) {
+            String modifiedContent = ((GuardrailResult.ModifyResult) result).getContent();
+            List<ChatMessage> messages = ctx.getMessages();
+            for (int i = messages.size() - 1; i >= 0; i--) {
+                if (messages.get(i) instanceof ChatUserMessage) {
+                    messages.get(i).setContent(modifiedContent);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private String extractLastUserContent(AgentExecutionContext ctx) {
+        List<ChatMessage> messages = ctx.getMessages();
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            if (messages.get(i) instanceof ChatUserMessage) {
+                return messages.get(i).getContent();
+            }
+        }
+        return "";
     }
 
     private List<ChatToolDefinition> buildToolDefinitions(AgentModel agentModel) {

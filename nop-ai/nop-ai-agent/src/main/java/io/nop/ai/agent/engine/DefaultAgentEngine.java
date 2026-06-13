@@ -1,8 +1,14 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.IContextCompactor;
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.compact.NoOpContextCompactor;
+import io.nop.ai.agent.guardrail.IContentGuardrail;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
-import io.nop.ai.agent.hook.NoOpHookRegistry;
 import io.nop.ai.agent.model.AgentModel;
+import io.nop.ai.agent.router.IModelRouter;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
@@ -37,6 +43,10 @@ public class DefaultAgentEngine implements IAgentEngine {
     private final IPermissionProvider permissionProvider;
     private final IToolAccessChecker toolAccessChecker;
     private final IPathAccessChecker pathAccessChecker;
+    private final IContentGuardrail contentGuardrail;
+    private final IModelRouter modelRouter;
+    private final IContextCompactor contextCompactor;
+    private final ITokenEstimator tokenEstimator;
 
     public DefaultAgentEngine(IChatService chatService, IToolManager toolManager) {
         this(chatService, toolManager, new InMemorySessionStore());
@@ -60,8 +70,37 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                              ISessionStore sessionStore, IPermissionProvider permissionProvider,
-                              IToolAccessChecker toolAccessChecker, IPathAccessChecker pathAccessChecker) {
+                               ISessionStore sessionStore,
+                               IPermissionProvider permissionProvider,
+                               IToolAccessChecker toolAccessChecker,
+                               IPathAccessChecker pathAccessChecker) {
+        this(chatService, toolManager, sessionStore, permissionProvider,
+                toolAccessChecker, pathAccessChecker, NoOpContentGuardrail.noOp());
+    }
+
+    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
+                               ISessionStore sessionStore, IPermissionProvider permissionProvider,
+                               IToolAccessChecker toolAccessChecker, IPathAccessChecker pathAccessChecker,
+                               IContentGuardrail contentGuardrail) {
+        this(chatService, toolManager, sessionStore, permissionProvider,
+                toolAccessChecker, pathAccessChecker, contentGuardrail,
+                PassThroughModelRouter.passThrough());
+    }
+
+    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
+                               ISessionStore sessionStore, IPermissionProvider permissionProvider,
+                               IToolAccessChecker toolAccessChecker, IPathAccessChecker pathAccessChecker,
+                               IContentGuardrail contentGuardrail, IModelRouter modelRouter) {
+        this(chatService, toolManager, sessionStore, permissionProvider,
+                toolAccessChecker, pathAccessChecker, contentGuardrail,
+                modelRouter, new MicroCompressionCompactor());
+    }
+
+    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
+                               ISessionStore sessionStore, IPermissionProvider permissionProvider,
+                               IToolAccessChecker toolAccessChecker, IPathAccessChecker pathAccessChecker,
+                               IContentGuardrail contentGuardrail, IModelRouter modelRouter,
+                               IContextCompactor contextCompactor) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = new DefaultAgentEventPublisher();
@@ -69,6 +108,10 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.permissionProvider = permissionProvider != null ? permissionProvider : new AllowAllPermissionProvider();
         this.toolAccessChecker = toolAccessChecker != null ? toolAccessChecker : new AllowAllToolAccessChecker();
         this.pathAccessChecker = pathAccessChecker != null ? pathAccessChecker : new AllowAllPathAccessChecker();
+        this.contentGuardrail = contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp();
+        this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
+        this.contextCompactor = contextCompactor != null ? contextCompactor : new MicroCompressionCompactor();
+        this.tokenEstimator = CalibratedTokenEstimator.defaultInstance();
     }
 
     public IAgentEventPublisher getEventPublisher() {
@@ -161,6 +204,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .toolAccessChecker(toolAccessChecker)
                     .pathAccessChecker(pathAccessChecker)
                     .hookRegistry(hookRegistry)
+                    .contextCompactor(contextCompactor)
+                    .contentGuardrail(contentGuardrail)
+                    .modelRouter(modelRouter)
+                    .tokenEstimator(tokenEstimator)
                     .build();
         }
         if ("single-turn".equals(mode)) {
