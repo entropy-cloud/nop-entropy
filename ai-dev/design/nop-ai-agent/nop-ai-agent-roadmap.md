@@ -1,7 +1,7 @@
 # nop-ai-agent 组件分解与开发路线
 
 > Status: active
-> Updated: 2026-06-12（L1-8 IPathAccessChecker 完成）
+> Updated: 2026-06-12（L1-18 ReActAgentExecutor Builder 模式完成）
 > Parent: `ai-dev/design/nop-ai-agent/README.md`
 
 ---
@@ -128,20 +128,20 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L1-6 | `IPermissionProvider` 三源合并权限派生 | agent.xdef permissions | ✅ |
 | L1-7 | `IToolAccessChecker` 工具 deny/allow | L1-6 | ✅ |
 | L1-8 | `IPathAccessChecker` 路径 deny/allow (glob + 规范化) | L1-6 | ✅ |
-| L1-8a | `IAuditLogger` 审计日志接口 + `Slf4jAuditLogger` 默认实现 | L1-6 | ❌ |
-| L1-8b | `IContentTrustEvaluator` 内容可信度评估 + `DefaultContentTrustEvaluator` | L1-6 | ❌ |
+| L1-8a | `IAuditLogger` 审计日志接口 + `Slf4jAuditLogger` 默认实现 | L1-6 | ✅ |
+| L1-8b | `IContentTrustEvaluator` 内容可信度评估 + `DefaultContentTrustEvaluator` | L1-6 | ✅ |
 | L1-9 | `AgentEventPublisher` 事件流 | 无 | ✅ |
 | L1-10 | `AgentSession` 基础会话对象 | 无 | ✅ |
 | L1-11 | 缺失的枚举类（如 L0-2 确认需要单独创建）：`AgentTaskStatus`, `AgentPlanStatus` | L0-2 | ❌ |
 | L1-12 | 端到端示例：一个 `.agent.xml` + ReAct 循环 + 工具调用 | L0-1, L1-5, L1-4 | ✅ |
 | L1-13 | 基础单元测试框架搭建 | 无 | ❌ |
 | L1-14 | `BaseAgent` 清理（决定保留并完善 or 删除） | L1-1 | ✅ |
-| L1-15 | 🔴 ISessionStore 扩展：为 fork/event/compaction/snapshot 加 default 方法（抛 UOE） | L1-10 | ❌ |
-| L1-16 | 🔴 IAiMemoryStore 扩展：加 update/remove/batchAdd/readBudgeted 方法 + AiMemoryItem 补充 priority/tokenEstimate/pinned/checksum | M6 | ❌ |
-| L1-17 | 🔴 IAgentEngine 扩展：加 forkSession/getSessionStatus/cancelSession default 方法 | L1-1 | ❌ |
-| L1-18 | 🔴 ReActAgentExecutor Builder 模式：移除构造器链，用 Builder 替换（见 react-engine.md §3.3） | L1-5 | ❌ |
-| L1-19 | 🟡 agent.xdef 加 mode 属性（react/plan/single-turn，默认 react） | 无 | ❌ |
-| L1-20 | 🟡 AgentSession 补充 parentSessionId/planId/compactedAt 字段（nullable，向下兼容） | L1-10 | ❌ |
+| L1-15 | 🔴 ISessionStore 扩展：为 fork/event/compaction/snapshot 加 default 方法（抛 UOE） | L1-10 | ✅ |
+| L1-16 | 🔴 IAiMemoryStore 扩展：加 update/remove/batchAdd/readBudgeted 方法 + AiMemoryItem 补充 priority/tokenEstimate/pinned/checksum | M6 | ✅ |
+| L1-17 | 🔴 IAgentEngine 扩展：加 forkSession/getSessionStatus/cancelSession default 方法 | L1-1 | ✅ |
+| L1-18 | 🔴 ReActAgentExecutor Builder 模式：移除构造器链，用 Builder 替换（见 react-engine.md §3.3） | L1-5 | ✅ |
+| L1-19 | 🟡 agent.xdef 加 mode 属性（react/plan/single-turn，默认 react） | 无 | ✅ |
+| L1-20 | 🟡 AgentSession 补充 parentSessionId/planId/compactedAt 字段（nullable，向下兼容） | L1-10 | ✅ |
 | A1 | 🌟 Budgeted Injection: AiMemoryItem 补充 priority/tokenEstimate/pinned 等字段 + IAiMemoryStore.readBudgeted() default 方法 | L1-16 | ❌ |
 | A2 | 🌟 Completion Gate: ReAct 循环"无 tool calls"后加 Judge 验证点 | L1-5 | ❌ |
 | A3 | 🌟 PreStop/PostStop ReAct 钩子: before_tool_result_processed / after_tool_result_processed（允许重入） | L2-12 | ❌ |
@@ -155,15 +155,15 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 - [ ] 一轮 Agent 执行可以描述为 "DSL → runtime 解释 → 工具调用 → 结果回灌" 的闭环
 - [ ] `./mvnw test -pl nop-ai-agent -am -T 1C` 全部通过
 - [ ] 至少 1 个端到端测试验证 ReAct 循环
-- [ ] L1-15 ~ L1-17 已确认 ISessionStore/IAiMemoryStore/IAgentEngine 接口 Phase 2 扩展点就绪（default UOE）
-- [ ] L1-18 ReActAgentExecutor 使用 Builder 模式，无新增构造器风险
-- [ ] L1-19 agent.xdef 已包含 mode 属性，DefaultAgentEngine 根据 mode 分发 executor
+- [x] L1-15 ~ L1-17 已确认 ISessionStore/IAiMemoryStore/IAgentEngine 接口 Phase 2 扩展点就绪（default UOE）
+- [x] L1-18 ReActAgentExecutor 使用 Builder 模式，无新增构造器风险
+- [x] L1-19 agent.xdef 已包含 mode 属性，DefaultAgentEngine 根据 mode 分发 executor
 
 ### Layer 2: Execution Extensions — 所有接口有 pass-through 默认
 
 | # | 工作项 | 依赖 | 状态 |
 |---|--------|------|------|
-| L2-1 | `IToolCallRepairer` 接口 + `NoOpRepairer` pass-through | L1-5 | ❌ |
+| L2-1 | `IToolCallRepairer` 接口 + `NoOpRepairer` pass-through | L1-5 | ✅ |
 | L2-2 | `IToolCallRepairer` `ChainRepairer` (4-stage) | L2-1 | ❌ |
 | L2-3 | `IContextCompactor` 接口 + `NoOpContextCompactor` | L1-5 | ❌ |
 | L2-4 | `IContextCompactor` 渐进压缩初始版 (Layer 0 预截断 + Layer 1 微压缩) | L2-3 | ❌ |
@@ -172,7 +172,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L2-9 | ~~Provider 适配 DashScope/OpenAI/Gemini/Ollama~~ → 已在 nop-ai-core ILlmDialect 实现 | L2-8 | ✅ 已确认 |
 | L2-10 | `IModelRouter` 接口 + `PassThroughModelRouter` | L1-5 | ❌ |
 | L2-11 | `ITalent` 动态准入扩展点 | L1-5 | ❌ |
-| L2-12 | `IAgentLifecycleHook` 10 点生命周期 | L1-5 | ❌ |
+| L2-12 | `IAgentLifecycleHook` 10 点生命周期 | L1-5 | ✅ |
 | L2-13 | `ISecurityLevelResolver` 接口 + `NoOpSecurityLevelResolver` | L1-6 | ❌ |
 | L2-13a | `IConflictStrategy` 冲突解决策略接口 + `FailFastStrategy` 默认实现 | L1-1 | ❌ |
 | L2-14 | `IPermissionMatrix` 接口 + `PassThroughPermissionMatrix` | L1-6 | ❌ |
@@ -237,7 +237,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | 33 个空 stub 类（≤9 行） | P2 | 延伸 generated base 但无自定义逻辑，占位符（不含 `BaseAgent`，已删除）。另有 4 个实体类（AgentExecStatus, IAiMemoryStore, AiMemoryItem, AiMemoryConfig） |
 | ~~`BaseAgent` 未追踪~~ | ~~P2~~ | ✅ 已解决：L1-14 判定删除，空壳类无引用，已移除 |
 | Phase 1 接口锁定风险 | P1 | ISessionStore/IAiMemoryStore/IAgentEngine 接口太窄，无法承载 Phase 2+ 渐进式设计。必须 Phase 1 关闭前加 default 方法（见 L1-15~L1-17） |
-| ReActAgentExecutor 构造器链 | P1 | 6 个构造器（3-arg ~ 6-arg），每个新能力增加一次构造器膨胀。必须改为 Builder 模式（见 L1-18） |
+| ~~ReActAgentExecutor 构造器链~~ | ~~P1~~ | ✅ 已解决：L1-18 改为 Builder 模式，6 个构造器已移除（见 plan 146） |
 | AiMemoryItem 字段不足 | P2 | 4 字段缺 priority/tokenEstimate/pinned，Phase 2 Budgeted Injection 无法实现（见 L1-16） |
 
 ---
