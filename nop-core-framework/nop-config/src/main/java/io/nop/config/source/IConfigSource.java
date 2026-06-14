@@ -51,4 +51,20 @@ public interface IConfigSource extends AutoCloseable {
      * @param callback 回调函数
      */
     void addOnChange(Runnable callback);
+
+    /**
+     * 是否包含以 '%' 为前缀的 profile 变量（如 %dev.xxx）。
+     * 返回 false 时跳过 ProfileConfigSource 包装，避免不必要的 map 复制。
+     * 默认实现扫描一次 getConfigValues() 的 key 集合。
+     */
+    default boolean hasProfilePrefixedVars() {
+        Map<String, ValueWithLocation> vars = getConfigValues();
+        if (vars == null)
+            return false;
+        for (String name : vars.keySet()) {
+            if (!name.isEmpty() && name.charAt(0) == '%')
+                return true;
+        }
+        return false;
+    }
 }

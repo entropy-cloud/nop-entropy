@@ -135,7 +135,9 @@ doFindList(query, (q, ctx) -> {
 
 ## Example 查询（强类型等值匹配）
 
-`IEntityDao` 提供一族 `byExample` 方法，以**实体对象本身**作为查询条件。与 `QueryBean`（字符串字段名 + 动态条件）不同，`byExample` 是**强类型**的——通过实体的 setter 设置匹配字段，编译器可以检查字段名和类型。
+> **默认首选 byExample。** 等值查询场景必须优先使用 `byExample`，而不是用 `QueryBean` + `FilterBeans.eq()`。原因：`byExample` 通过实体 setter 设置匹配字段，字段名和类型受编译器检查；`QueryBean` 用字符串拼字段名，重构改名时编译器不会报错，容易引入隐蔽 bug。只有 `byExample` 无法表达的条件（非等值、OR 组合、动态过滤）才降级到 `QueryBean`。
+
+`IEntityDao` 提供一族 `byExample` 方法，以**实体对象本身**作为查询条件。
 
 ### API 列表
 
@@ -168,13 +170,16 @@ NopAuthUser user = dao().findFirstByExample(example);
 
 | 维度 | `byExample` | `byQuery` (QueryBean) |
 |------|-------------|----------------------|
-| 类型安全 | **强类型**（实体 setter） | 弱类型（字符串字段名） |
+| 类型安全 | **强类型**（实体 setter） | 弱类型（字符串字段名，重构时编译器不报错） |
 | 条件运算符 | 仅等值 `=` | `=`, `!=`, `>`, `<`, `IN`, `LIKE`, `AND/OR` 嵌套等 |
-| 适用场景 | 按已知字段精确匹配（唯一键查重、按外键查关联） | 复杂条件、范围查询、模糊搜索 |
 | 排序 | 通过 `OrderFieldBean` 参数 | 通过 `QueryBean.addOrder` |
 | 分页 | `findPageByExample` | `findPageByQuery` / `findPage` |
 
-**规则：** 简单等值匹配优先 `byExample`（类型安全、代码简洁）；需要非等值条件、OR 组合或动态过滤时用 `QueryBean`。
+**选择规则：**
+
+1. **等值匹配 → `byExample`。** 这是默认选择，不需要考虑 `QueryBean`。
+2. `byExample` 无法表达的条件（`>`/`<`/`LIKE`/`IN`/`OR`）→ `QueryBean`。
+3. 需要走权限/Meta 管道的查询 → `CrudBizModel` 的 `findList` / `findPage`（内部使用 `QueryBean`）。
 
 > `byExample` 方法是 `IEntityDao` 层 API，不走 `CrudBizModel` 的权限/Meta 管道。在 BizModel 中使用时，如需数据权限过滤，应改用 `findList(query, selection, context)` 等 CrudBizModel 方法。CrudBizModel 内部的唯一性校验（`checkUniqueForSaveEntity`）自身使用了 `findFirstByExample`，这是平台内部的正确用法。
 
@@ -245,6 +250,7 @@ FilterBeans.contains("name", keyword);
 | 不要这样写 | 应该这样写 |
 |--------|------|
 | `dao().getEntityById(id)` | `requireEntity(id, actionName, context)` |
+| `FilterBeans.eq("userName", name)` 等值查询 | `dao().findFirstByExample(example)` — byExample 强类型，首选 |
 | `dao().findAllByQuery(query)` | `findList(query, selection, context)` 或 `doFindList(query, prepareQuery, selection, context)` |
 | `dao().findPageByQuery(query)` | `findPage(query, selection, context)` 或 `doFindPage(query, prepareQuery, selection, context)` |
 | `dao().saveEntity(entity)` | `saveEntity(entity, actionName, context)`（程序化创建）或 `save(data, context)`（前端 Map） |

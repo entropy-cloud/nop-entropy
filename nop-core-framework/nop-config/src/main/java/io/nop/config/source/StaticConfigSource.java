@@ -17,10 +17,13 @@ import java.util.Map;
 public class StaticConfigSource implements IConfigSource {
     private final String name;
     private final Map<String, ValueWithLocation> configValues;
+    private final boolean hasProfilePrefixedVars;
 
     public StaticConfigSource(String name, Map<String, ValueWithLocation> configValues) {
         this.name = name;
         this.configValues = configValues;
+        this.hasProfilePrefixedVars = configValues.keySet().stream()
+                .anyMatch(k -> !k.isEmpty() && k.charAt(0) == '%');
     }
 
     public String getName() {
@@ -30,6 +33,11 @@ public class StaticConfigSource implements IConfigSource {
     @Override
     public Map<String, ValueWithLocation> getConfigValues() {
         return configValues;
+    }
+
+    @Override
+    public boolean hasProfilePrefixedVars() {
+        return hasProfilePrefixedVars;
     }
 
     @Override

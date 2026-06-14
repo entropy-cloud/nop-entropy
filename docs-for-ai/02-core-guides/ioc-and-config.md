@@ -34,12 +34,21 @@ public class MyComponent {
 | `application.yaml` | 应用主配置 |
 | `application-{profile}.yaml` | 按 `nop.profile` 激活的环境覆盖配置 |
 
-对当前仓库里的 AI 开发，记住这几个结论就够了：
+## 配置优先级
 
-1. 基础层里，环境变量和系统属性优先级高于 `bootstrap.yaml`。
-2. 之后还可能叠加配置中心、key file、props file、JDBC、扩展配置和应用配置。
-3. `bootstrap.yaml` 会先于应用配置参与加载。
-4. `application-{profile}.yaml` 会覆盖 `application.yaml`。
+配置按 **source 优先级** 从高到低合并，同一 source 内 profile 专有值覆盖非 profile 值。**跨 source 时高优先级 source 直接生效，低优先级 source 的 profile 值不能覆盖高优先级 source 的非 profile 值**（与 Quarkus / Spring Boot 行为一致）。
+
+| 优先级（高→低） | Source | 示例 |
+|------|--------|------|
+| 1 | 配置中心 | Nacos / Apollo |
+| 2 | key file / props file | `keyfile:/...`, `propsfile:/...` |
+| 3 | 环境变量 | `NOP_DATASOURCE_JDBC_URL=...` |
+| 4 | **系统属性 `-D`** | `-Dnop.datasource.jdbc-url=...` |
+| 5 | `bootstrap.yaml` | 启动期基础配置 |
+| 6 | 扩展配置加载器 | SPI `IConfigSourceLoader` |
+| 7 | `application.yaml` + `application-{profile}.yaml` | 应用主配置 |
+
+**关键规则**：`-D` 系统属性可以覆盖 `application.yaml` 中的一切值，包括 `%dev.xxx` 等 profile 专有值。
 
 ### 激活 profile
 
@@ -51,6 +60,53 @@ nop:
 ```
 
 也可以通过启动参数设置 `-Dnop.profile=dev`。
+
+## 通过命令行参数覆盖配置
+
+系统属性（`-D` 参数）优先级高于 `application.yaml`（包括其 profile 覆盖），可直接覆盖任意 `nop.*` 配置项。
+
+### 数据源覆盖
+
+`application.yaml` 中的数据源配置：
+
+```yaml
+nop:
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:./db/test
+    username: sa
+    password:
+```
+
+对应的命令行覆盖参数：
+
+```bash
+java -Dnop.datasource.jdbc-url=jdbc:h2:mem:e2e \
+     -Dnop.datasource.driver-class-name=org.h2.Driver \
+     -Dnop.datasource.username=sa \
+     -Dnop.orm.init-database-schema=true \
+     -jar app/target/quarkus-app/quarkus-run.jar
+```
+
+配置键到 `-D` 参数名的映射规则：YAML 嵌套层级用 `.` 连接，驼峰转 kebab-case。例如 `nop.datasource.jdbcUrl` → `nop.datasource.jdbc-url`。
+
+**常见场景：E2E 测试使用内存数据库**
+
+当 `application.yaml` 配置了文件型 H2（`jdbc:h2:./db/test`）时，多个应用实例会因文件锁冲突而启动失败。通过 `-Dnop.datasource.jdbc-url=jdbc:h2:mem:e2e` 切换到内存数据库可避免此问题，且无需修改配置文件。即使 `%dev` profile 中也定义了 `jdbc-url`，`-D` 参数仍能覆盖它。
+
+```bash
+java -Dquarkus.profile=dev \
+     -Dnop.datasource.jdbc-url=jdbc:h2:mem:e2e \
+     -jar app/target/quarkus-app/quarkus-run.jar
+```
+
+> **注意**：内存数据库的数据在 JVM 退出后即丢失。`%dev` profile 的 `init-database-schema: true` 会自动建表并初始化种子数据。如果未使用 `%dev` profile，需要显式设置 `-Dnop.orm.init-database-schema=true`。
+
+### 实现锚点
+
+- 配置键定义：`DaoConfigs.java`（`CFG_DATASOURCE_JDBC_URL` 等）
+- 数据源 bean 绑定：`quarkus-defaults.beans.xml` → `${nop.datasource.jdbc-url}` 占位符
+- 单元/集成测试中同样的机制：`AutoTestCase.java` 通过 `setTestConfig(DaoConfigs.CFG_DATASOURCE_JDBC_URL, "jdbc:h2:mem:" + uuid)` 设置随机内存库
 
 ## 为什么 `private` 不行
 

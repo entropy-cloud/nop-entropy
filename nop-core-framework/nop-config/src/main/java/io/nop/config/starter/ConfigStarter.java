@@ -192,10 +192,22 @@ public class ConfigStarter extends LifeCycleSupport {
 
         LOG.info("nop.profiles.active:{}", profiles);
 
-        configSource = new CompositeConfigSource(configSources);
         if (!profiles.isEmpty()) {
-            configSource = new ProfileConfigSource(profiles, configSource);
+            // 在每个 source 内部独立解析 profile，然后再合并。
+            // 这样高优先级 source（如系统属性 -D）的非 profile 值可以覆盖
+            // 低优先级 source（如 application.yaml）的 profile 专有值，
+            // 与 Quarkus/Spring 的配置优先级行为保持一致。
+            List<IConfigSource> profiled = new ArrayList<>(configSources.size());
+            for (IConfigSource src : configSources) {
+                if (src.hasProfilePrefixedVars()) {
+                    profiled.add(new ProfileConfigSource(profiles, src));
+                } else {
+                    profiled.add(src);
+                }
+            }
+            configSources = profiled;
         }
+        configSource = new CompositeConfigSource(configSources);
         configSource = new RouterConfigSource(configSource);
 
         // 9. 初始化AppConfig
