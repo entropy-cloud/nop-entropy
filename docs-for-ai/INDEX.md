@@ -71,6 +71,7 @@
 | 理解 ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计） | `02-core-guides/orm-model-design.md` |
 | 理解 EQL 语法、`<eql>` 与 `<sql>` 区别、数据库兼容性（空字符串转 NULL、VARCHAR 自动提升 CLOB、Dialect 特性标志） | `02-core-guides/eql-and-database-compatibility.md` |
 | 理解逻辑删除（delFlag / delVersion / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
+| 理解多租户机制（自动过滤、自动填充、临时切换、跨租户保护） | `02-core-guides/tenant-model.md` |
 | 理解外部应用从 design 到模型、生成、BizModel、测试、联调的默认顺序 | `02-core-guides/application-development-workflow.md` |
 | 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |
@@ -142,7 +143,7 @@
 | 查询常用 Java helper | `04-reference/common-java-helpers.md` |
 | 查询安全 API | `04-reference/safe-api-reference.md` |
 | **选择可复用业务模块** | **`03-modules/reusable-modules-overview.md`**（总览 + 场景→模块路由） |
-| 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md` |
+| 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md`（多租户核心机制见 `02-core-guides/tenant-model.md`） |
 | 理解 nop-sys（字典/序列号/锁/事件） | `03-modules/nop-sys.md` |
 | 理解 nop-report（报表引擎） | `03-modules/nop-report.md` |
 | 理解 nop-rule（规则引擎） | `03-modules/nop-rule.md` |

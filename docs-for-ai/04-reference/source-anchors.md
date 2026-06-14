@@ -70,6 +70,14 @@
 | `AUTH-001` | `nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml` (bean `nopAuthFilterConfig`) | HTTP 路径认证配置：`defaultPublic`/`publicPaths`/`authPaths`/`servicePaths` |
 | `AUTH-002` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthFilterConfig.java` | 认证配置类，`isPublicPath()` 判定逻辑 |
 | `AUTH-003` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthHttpServerFilter.java` | 认证过滤器实现，token 解析、OAuth、cookie 处理 |
+| `TNT-001` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/context/IContext.java` | 上下文持有租户 ID（`getTenantId()` / `setTenantId()`） |
+| `TNT-002` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/context/ContextProvider.java` | `currentTenantId()` / `runWithTenant()` / `runWithoutTenantId()` |
+| `TNT-003` | `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlTransformVisitor.java` | EQL 编译自动注入 `tenantId = ?` |
+| `TNT-004` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java` | 实体加载时自动填充/校验租户 ID |
+| `TNT-005` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/id/OrmEntityIdGenerator.java` | 实体保存时自动填充租户 ID |
+| `TNT-006` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/session/TenantOrmSessionEntityCache.java` | Session 缓存按租户分区隔离 |
+| `TNT-007` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/sql/GenSqlHelper.java` | SQL 生成自动追加租户过滤条件 |
+| `TNT-008` | `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/init/OrmEntityModelInitializer.java` | `useTenant=true` 时自动创建 `nopTenantId` 列 |
 | `VFS-001` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java` | Delta 层式解析：tenant → deltaLayers → base；`getSuperResource()` 实现 `super:` 语义 |
 | `VFS-002` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStoreBuilder.java` | VFS 构建入口：classpath 扫描、VFS index、libPaths、当前项目资源、duplicate 检测 |
 | `VFS-003` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DefaultVirtualFileSystem.java` | VFS 全局单例；namespace handler 注册（`super:` / `raw:` / `v:` / `module:` 等） |
