@@ -57,6 +57,7 @@
   - 故障恢复模型（fencing、Coordinator HA、恢复兼容性）
   - Serializer Fingerprint 策略
   - 可观测性契约
+  - 容错约束边界（§13：执行路径分层 + 容错契约 + 缓解选项 + 不变量与契约的关系；实现状态与缺口见 `component-roadmap.md` §3 C5）
 
 ## 状态与时间层
 

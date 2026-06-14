@@ -181,6 +181,26 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 - 多次 checkpoint 循环后恢复验证
 - GraphModelCheckpointExecutor 代码重复清理
 
+**容错缺口**（契约定义见 `checkpoint-design.md` §13.2；此处记录实现状态与修复优先级）：
+
+| 契约（§13.2） | 当前实现状态 | 优先级 |
+|---|---|---|
+| 对齐超时 | ✅ **已修复**：`InputGate.readMultiChannel` 在对齐等待时检查累计 elapsed，超 `barrierAlignmentTimeout`（默认 30s，通过 `CheckpointConfig` 配置 → `GraphExecutionPlan.build` → `InputGate` 构造传递）抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`。finished-channel 隐式对齐保留。超时后 task FAILED → 触发恢复 | **P0** ✅ |
+| abort 接线 | ✅ **已修复（local 路径）**：`CheckpointCoordinator.setAbortHandler` + `GraphModelCheckpointExecutor.registerLocalAbortHandler` 实现 abort → task cancel 接线。abort 后 executor 侧 abort 标记使 job 明确失败（`checkAbortMarker` 抛异常），跳过 final checkpoint。distributed 路径 abort 接线（cancelTask RPC + JobCoordinator listener）仍为 Deferred（lease failover 兜底） | **P0** ✅ |
+| 触发线程安全 | ✅ **已修复**：`tryTriggerPendingCheckpoint` 和 `abortPendingCheckpoint` 已改为 `synchronized`，消除 TOCTOU 竞态。并发测试（`TestCheckpointTriggerSafety`）验证 `numPendingCheckpoints` 不被突破 | P1 ✅ |
+| 失败可观测 | ✅ **已修复**：生产路径 `startBarrierScheduler` 的 exception 路径调用 `coordinator.incrementTriggerFailures()`；`completePendingCheckpoint` 成功时 `consecutiveTriggerFailures.set(0)`。超 `maxConsecutiveCheckpointFailures` 阈值（默认 3）触发 ERROR 日志 | P1 ✅ |
+| abort 传播通道 | 无 `CancelCheckpointMarker`；barrier/控制信息混在 `ResultPartition` 数据队列，对齐等待时读不到。前置依赖：独立控制通道（local 直接方法调用，distributed 需 RPC 通道） | P1 |
+| 多输入对齐统一 | `BarrierAligner`（`pollAlignedBarrier(timeout)` / `TreeMap` 多 checkpoint / `ReentrantLock` / `abortAll`）已实现未启用（仅测试引用）；实际用 `InputGate` 内联逻辑。启用可一并解决超时/并发（需修 `findCompletedCheckpointId` 的 O(输入数×待完成数)） | P1 |
+| 并发能力一致 | ✅ **已修复**：Coordinator 在 `tryTriggerPendingCheckpoint` 中通过 `effectiveMaxConcurrent = Math.min(1, config)` 强制 max=1，配置 >1 不崩溃（降级 + 警告）。task 层多 checkpoint 支持作为 Deferred | P1 ✅ |
+| channel 心跳（distributed） | `RemoteInputChannel` 无心跳，网络分区只靠 lease ~15-20s 兜底（`TaskManager` lease 15s + `JobCoordinator` 轮询 5s；`DEFAULT_LEASE_EXPIRE_THRESHOLD_MS=30000` 是未使用死常量） | P2 |
+| 背压逃生（unaligned） | 未实现。前置依赖：channel state 持久化、priority event、`EpochManifest` segments 落地（`buildEpochManifest` 当前传 null） | P3 |
+
+**已实现的容错能力**：checkpoint 级超时 abort（默认 10min）、两阶段提交重试（`retryFailedCommits` 逆拓扑序）、`StreamModelFingerprint` 恢复校验（算子链变更拒绝恢复）、distributed fencing（`fencingToken`+`epochId`）、distributed lease failover（`globalRecovery`）、finished channel 隐式对齐。
+
+**演进路径**：P0 补 abort 接线（`scheduleTimeout` 回调调 `SubtaskTask.cancel`）+ 对齐超时 → P1 启用 `BarrierAligner` + trigger synchronized + 失败计数 + abort 控制通道 → P2 `RemoteInputChannel` 心跳 → P3 unaligned checkpoint。
+
+**缓解选项**：P0 修复前，对不需要算子状态一致快照的场景，可用 `EFFECTIVELY_ONCE` 模式（`barrierAlignment=false` + `requiresDurableCheckpoint=true`）绕开对齐——barrier 不阻塞，靠 sink 两阶段提交保证 exactly-once（sink 必须幂等或两阶段提交）。
+
 #### C6 CEP 引擎
 
 **已完成度**：高。NFA、SharedBuffer、Pattern API、声明式模型都是 nop-stream 中最成熟的部分。
@@ -286,6 +306,9 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 | `WindowedStreamImpl` apply/aggregate/reduce | ✅ 已修复（Plan 51） | — |
 | Barrier 注入线程安全 | ✅ 已修复（source-pull 模式） | — |
 | Keyed state 碰撞 | ✅ 已修复（(namespace, key) 复合键） | — |
+| 对齐超时缺失 + abort 未接线（生产 hang，stuck channel） | ✅ 已修复（Plan 172：abort 接线 + 对齐超时） | — |
+| 触发竞态 / 失败无计数 / abort 无控制通道 / BarrierAligner 未启用 / 并发能力不一致 | ✅ 触发竞态 + 失败计数 + 并发能力一致 已修复（Plan 172）；abort 控制通道 + BarrierAligner 未启用 仍为 Deferred | P1 |
+| RemoteInputChannel 无心跳 / unaligned checkpoint 未实现 | 未修复（见 §3 C5 容错缺口） | P2/P3 |
 
 ---
 
