@@ -207,9 +207,18 @@ Agent 可能会反复调用同一个工具、同一组参数。
 - 崩溃后可恢复到最近安全点
 - plan/todo/message/token budget 等状态可继续使用
 
-这类能力需要明确存储模型和触发时机，因此建议等 runtime 稳定后再实现。
+**实现状态（L3-4 ✅ 已落地）**：检查点的 **记录/检索能力** 已落地为 `ICheckpointManager` 契约 + `NoOpCheckpoint` 透传默认 + `ToolExecutionCheckpoint` in-memory 功能化实现。分发循环在每次工具执行完成后调用 `saveCheckpoint`（§5.4a "工具执行后" 触发点），checkpoint 携带 toolName/callId/input-output 摘要 + messageCount/tokenEstimate 快照。检索方法 `getLatestCheckpoint` / `getCheckpoint(watermark)` 是契约表面，供 crash/restart recovery successor 消费。
 
-### 5.4a Checkpoint Journal 格式（MiMoCode 吸收）
+**架构决策**：
+
+- **save-side 先行，restore-side 延期**：L3-4 交付 save side（记录 + in-memory 检索）。restore-on-restart（executor 启动时从 checkpoint 重建 `AgentExecutionContext` + 跨进程 session 接管锁）是独立 successor（plan 180 carry-over）。这平行于 L3-6 模式：plan 177 交付 `recordDenial` save-side，plan 180 单独交付 sticky-pause restore-side。
+- **in-memory 不持久化**：`ToolExecutionCheckpoint` 为 in-memory（单进程内 save→retrieve 往返可用）。DB-backed 持久化（如 `DBCheckpointStore`，参照 plan 179 `DBDenialLedger` 模式）是独立 successor。持久化非接口契约——与 L3-6 finding L3-G5 收窄一致。
+- **reliability 包归属**：checkpoint 类型放入 `io.nop.ai.agent.reliability` 包，与 `io.nop.ai.agent.security`（安全/治理层）平行。可靠性增强（L3-1 circuit breaker / L3-2 retry / L3-3 goal tracker / L3-4 checkpoint / L3-8 sustainer）非安全治理，包边界反映这一区分。
+- **in-memory 触发范围**：`ToolExecutionCheckpoint` 对 **所有** 工具执行记录 checkpoint（非仅 long-running tool）。§5.4a "仅 long-running tool" 限定本是为约束持久化 I/O 频率，对 in-memory 默认不适用；过滤将下沉到持久化层（roadmap A4 journal/snapshot）应用。
+
+### 5.4a Checkpoint Journal 格式（MiMoCode 吸收）— roadmap A4（deferred，blocked-by L3-4 ✅ 已满足）
+
+> **状态**：以下 journal.md + snapshot.json 双文件格式 + 按 watermark 恢复流程是 roadmap A4（独立工作项，blocked-by L3-4）。L3-4 已落地 checkpoint 记录/检索契约 + in-memory 功能化实现，A4 现可规划但不在 L3-4 scope。
 
 参考 MiMoCode 的 `checkpoint.ts`（1478 行），检查点日志采用 `journal.md` + `snapshot.json` 双文件格式：
 
