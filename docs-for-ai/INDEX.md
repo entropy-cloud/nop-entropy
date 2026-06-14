@@ -93,6 +93,7 @@
 | 查外部应用页面 DSL 示例代码片段 | `02-core-guides/external-app-examples.md` |
 | 理解认证与权限控制 | `02-core-guides/auth-and-permissions.md` |
 | 调试与排障 | `02-core-guides/debugging-and-diagnostics.md` |
+| 理解 VFS 路径解析与资源加载 | `02-core-guides/vfs-and-resource-resolution.md` |
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
 | 理解 XLang / XPL / xrun / xgen 基本写法 | `02-core-guides/xlang-and-xpl-basics.md` |

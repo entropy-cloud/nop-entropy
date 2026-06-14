@@ -88,6 +88,7 @@ src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml
 
 ## 相关文档
 
+- `./vfs-and-resource-resolution.md` — VFS 路径解析完整链路、类扫描机制、重复检测规则
 - `./xdef-and-xdsl.md` — x-extends 合并算法、`x:gen-extends` / `x:post-extends` 语义
 - `./debugging-and-diagnostics.md` — `_dump` 输出和属性来源追踪
 - `./model-first-development.md`

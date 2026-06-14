@@ -70,6 +70,12 @@
 | `AUTH-001` | `nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml` (bean `nopAuthFilterConfig`) | HTTP 路径认证配置：`defaultPublic`/`publicPaths`/`authPaths`/`servicePaths` |
 | `AUTH-002` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthFilterConfig.java` | 认证配置类，`isPublicPath()` 判定逻辑 |
 | `AUTH-003` | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/filter/AuthHttpServerFilter.java` | 认证过滤器实现，token 解析、OAuth、cookie 处理 |
+| `VFS-001` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java` | Delta 层式解析：tenant → deltaLayers → base；`getSuperResource()` 实现 `super:` 语义 |
+| `VFS-002` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStoreBuilder.java` | VFS 构建入口：classpath 扫描、VFS index、libPaths、当前项目资源、duplicate 检测 |
+| `VFS-003` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DefaultVirtualFileSystem.java` | VFS 全局单例；namespace handler 注册（`super:` / `raw:` / `v:` / `module:` 等） |
+| `VFS-004` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/scan/ClassPathScanner.java` | Classpath 扫描 `_vfs/` 的 JAR/ZIP/directory 实现 |
+| `VFS-005` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/InMemoryResourceStore.java` | VFS 内存资源树，`addResourceIfAbsent() first-wins` |
+| `VFS-006` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/VirtualFileSystem.java` | VFS 全局单例持有者（`instance()` / `registerInstance()`） |
 | `INT-001` | `nop-integration/nop-integration-api/src/main/java/io/nop/integration/api/sms/ISmsSender.java` + `SmsMessage.java` | 外发短信默认接口与消息对象 |
 | `INT-002` | `nop-integration/nop-integration-api/src/main/java/io/nop/integration/api/email/IEmailSender.java` | 外发邮件默认接口 |
 | `RPT-001` | `nop-report/model/nop-report.orm.xml` + `nop-report/nop-report-web/src/main/resources/_vfs/nop/report/auth/_nop-report.action-auth.xml` | `nop-report` 的数据集、报表定义、结果文件和后台页面入口 |
