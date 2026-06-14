@@ -114,3 +114,6 @@ test-results/
 
 # AI temp files (scratch output, logs, analysis dumps)
 _tmp/
+
+# CodeGraph index database
+.codegraph/
