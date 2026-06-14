@@ -138,4 +138,32 @@
         }
 
 
+        private String _provenance;
+
+    
+        @PropMeta(propId=10)
+    
+        public String getProvenance(){
+            return _provenance;
+        }
+
+        public void setProvenance(String value){
+            this._provenance = value;
+        }
+
+
+        private String _metadata;
+
+    
+        @PropMeta(propId=11)
+    
+        public String getMetadata(){
+            return _metadata;
+        }
+
+        public void setMetadata(String value){
+            this._metadata = value;
+        }
+
+
     }

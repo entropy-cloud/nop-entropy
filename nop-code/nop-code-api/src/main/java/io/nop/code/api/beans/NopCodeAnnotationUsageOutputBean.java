@@ -111,6 +111,20 @@
         }
 
 
+        private String _provenance;
+
+    
+        @PropMeta(propId=8)
+    
+        public String getProvenance(){
+            return _provenance;
+        }
+
+        public void setProvenance(String value){
+            this._provenance = value;
+        }
+
+
         private Map<String,Object> _index;
 
         public Map<String,Object> getIndex(){

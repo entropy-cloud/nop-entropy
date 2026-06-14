@@ -207,17 +207,45 @@
         }
 
 
-        private Boolean _delFlag;
+        private String _provenance;
 
     
-        @PropMeta(propId=14)
+        @PropMeta(propId=15)
     
-        public Boolean getDelFlag(){
-            return _delFlag;
+        public String getProvenance(){
+            return _provenance;
         }
 
-        public void setDelFlag(Boolean value){
-            this._delFlag = value;
+        public void setProvenance(String value){
+            this._provenance = value;
+        }
+
+
+        private String _updatedBy;
+
+    
+        @PropMeta(propId=16)
+    
+        public String getUpdatedBy(){
+            return _updatedBy;
+        }
+
+        public void setUpdatedBy(String value){
+            this._updatedBy = value;
+        }
+
+
+        private java.sql.Timestamp _updateTime;
+
+    
+        @PropMeta(propId=17)
+    
+        public java.sql.Timestamp getUpdateTime(){
+            return _updateTime;
+        }
+
+        public void setUpdateTime(java.sql.Timestamp value){
+            this._updateTime = value;
         }
 
 

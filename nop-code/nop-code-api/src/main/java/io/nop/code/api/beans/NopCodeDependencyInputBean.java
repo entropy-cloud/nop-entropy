@@ -96,4 +96,18 @@
         }
 
 
+        private String _dependencyKeyHash;
+
+    
+        @PropMeta(propId=7)
+    
+        public String getDependencyKeyHash(){
+            return _dependencyKeyHash;
+        }
+
+        public void setDependencyKeyHash(String value){
+            this._dependencyKeyHash = value;
+        }
+
+
     }

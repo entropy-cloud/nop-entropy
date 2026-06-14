@@ -55,6 +55,18 @@
         }
 
 
+        private String _query;
+
+    
+        public String getQuery(){
+            return _query;
+        }
+
+        public void setQuery(String value){
+            this._query = value;
+        }
+
+
         private String _kind;
 
     
@@ -78,6 +90,18 @@
 
         public void setKind_label(String value){
             this._kind_label = value;
+        }
+
+
+        private String _packageName;
+
+    
+        public String getPackageName(){
+            return _packageName;
+        }
+
+        public void setPackageName(String value){
+            this._packageName = value;
         }
 
 
@@ -219,20 +243,6 @@
         }
 
 
-        private Integer _usageCount;
-
-    
-        @PropMeta(propId=14)
-    
-        public Integer getUsageCount(){
-            return _usageCount;
-        }
-
-        public void setUsageCount(Integer value){
-            this._usageCount = value;
-        }
-
-
         private String _parentId;
 
     
@@ -275,38 +285,24 @@
         }
 
 
-        private Boolean _isAbstract;
+        private Integer _modifiers;
 
     
         @PropMeta(propId=18)
     
-        public Boolean getIsAbstract(){
-            return _isAbstract;
+        public Integer getModifiers(){
+            return _modifiers;
         }
 
-        public void setIsAbstract(Boolean value){
-            this._isAbstract = value;
-        }
-
-
-        private Boolean _isFinal;
-
-    
-        @PropMeta(propId=19)
-    
-        public Boolean getIsFinal(){
-            return _isFinal;
-        }
-
-        public void setIsFinal(Boolean value){
-            this._isFinal = value;
+        public void setModifiers(Integer value){
+            this._modifiers = value;
         }
 
 
         private String _signature;
 
     
-        @PropMeta(propId=20)
+        @PropMeta(propId=19)
     
         public String getSignature(){
             return _signature;
@@ -320,7 +316,7 @@
         private String _returnType;
 
     
-        @PropMeta(propId=21)
+        @PropMeta(propId=20)
     
         public String getReturnType(){
             return _returnType;
@@ -331,52 +327,10 @@
         }
 
 
-        private Boolean _isStatic;
-
-    
-        @PropMeta(propId=22)
-    
-        public Boolean getIsStatic(){
-            return _isStatic;
-        }
-
-        public void setIsStatic(Boolean value){
-            this._isStatic = value;
-        }
-
-
-        private Boolean _isSynchronized;
-
-    
-        @PropMeta(propId=23)
-    
-        public Boolean getIsSynchronized(){
-            return _isSynchronized;
-        }
-
-        public void setIsSynchronized(Boolean value){
-            this._isSynchronized = value;
-        }
-
-
-        private Boolean _isNative;
-
-    
-        @PropMeta(propId=24)
-    
-        public Boolean getIsNative(){
-            return _isNative;
-        }
-
-        public void setIsNative(Boolean value){
-            this._isNative = value;
-        }
-
-
         private String _fieldType;
 
     
-        @PropMeta(propId=25)
+        @PropMeta(propId=21)
     
         public String getFieldType(){
             return _fieldType;
@@ -387,38 +341,10 @@
         }
 
 
-        private Boolean _isVolatile;
-
-    
-        @PropMeta(propId=26)
-    
-        public Boolean getIsVolatile(){
-            return _isVolatile;
-        }
-
-        public void setIsVolatile(Boolean value){
-            this._isVolatile = value;
-        }
-
-
-        private Boolean _isTransient;
-
-    
-        @PropMeta(propId=27)
-    
-        public Boolean getIsTransient(){
-            return _isTransient;
-        }
-
-        public void setIsTransient(Boolean value){
-            this._isTransient = value;
-        }
-
-
         private String _extData;
 
     
-        @PropMeta(propId=28)
+        @PropMeta(propId=22)
     
         public String getExtData(){
             return _extData;
@@ -429,38 +355,10 @@
         }
 
 
-        private Boolean _asyncFlag;
-
-    
-        @PropMeta(propId=29)
-    
-        public Boolean getAsyncFlag(){
-            return _asyncFlag;
-        }
-
-        public void setAsyncFlag(Boolean value){
-            this._asyncFlag = value;
-        }
-
-
-        private Boolean _readonlyFlag;
-
-    
-        @PropMeta(propId=30)
-    
-        public Boolean getReadonlyFlag(){
-            return _readonlyFlag;
-        }
-
-        public void setReadonlyFlag(Boolean value){
-            this._readonlyFlag = value;
-        }
-
-
         private String _rawReturnType;
 
     
-        @PropMeta(propId=31)
+        @PropMeta(propId=23)
     
         public String getRawReturnType(){
             return _rawReturnType;
@@ -474,7 +372,7 @@
         private String _rawFieldType;
 
     
-        @PropMeta(propId=32)
+        @PropMeta(propId=24)
     
         public String getRawFieldType(){
             return _rawFieldType;
@@ -485,39 +383,31 @@
         }
 
 
-        private String _query;
+        private String _filePath;
 
     
-        public String getQuery(){
-            return _query;
+        @PropMeta(propId=25)
+    
+        public String getFilePath(){
+            return _filePath;
         }
 
-        public void setQuery(String value){
-            this._query = value;
+        public void setFilePath(String value){
+            this._filePath = value;
         }
 
 
-        private java.util.List<java.lang.String> _kinds;
+        private String _language;
 
     
-        public java.util.List<java.lang.String> getKinds(){
-            return _kinds;
-        }
-
-        public void setKinds(java.util.List<java.lang.String> value){
-            this._kinds = value;
-        }
-
-
-        private String _packageName;
-
+        @PropMeta(propId=26)
     
-        public String getPackageName(){
-            return _packageName;
+        public String getLanguage(){
+            return _language;
         }
 
-        public void setPackageName(String value){
-            this._packageName = value;
+        public void setLanguage(String value){
+            this._language = value;
         }
 
 

@@ -138,4 +138,18 @@
         }
 
 
+        private String _indexId;
+
+    
+        @PropMeta(propId=10)
+    
+        public String getIndexId(){
+            return _indexId;
+        }
+
+        public void setIndexId(String value){
+            this._indexId = value;
+        }
+
+
     }

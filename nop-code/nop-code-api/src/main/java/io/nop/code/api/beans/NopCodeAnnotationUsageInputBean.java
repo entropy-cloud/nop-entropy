@@ -110,4 +110,18 @@
         }
 
 
+        private String _provenance;
+
+    
+        @PropMeta(propId=8)
+    
+        public String getProvenance(){
+            return _provenance;
+        }
+
+        public void setProvenance(String value){
+            this._provenance = value;
+        }
+
+
     }

@@ -139,6 +139,20 @@
         }
 
 
+        private String _indexId;
+
+    
+        @PropMeta(propId=10)
+    
+        public String getIndexId(){
+            return _indexId;
+        }
+
+        public void setIndexId(String value){
+            this._indexId = value;
+        }
+
+
         private Map<String,Object> _flow;
 
         public Map<String,Object> getFlow(){
