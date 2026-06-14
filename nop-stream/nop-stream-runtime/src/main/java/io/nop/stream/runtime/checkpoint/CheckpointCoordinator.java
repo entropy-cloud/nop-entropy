@@ -54,6 +54,8 @@ public class CheckpointCoordinator {
 
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
+    private volatile java.util.function.Consumer<Long> abortHandler;
+
     public CheckpointCoordinator(
             String jobId,
             String pipelineId,
@@ -68,6 +70,11 @@ public class CheckpointCoordinator {
         this.pendingCheckpoints = new ConcurrentHashMap<>();
         this.numPendingCheckpoints = new AtomicInteger(0);
         this.tasksToAcknowledge = ConcurrentHashMap.newKeySet();
+        if (config.getMaxConcurrentCheckpoints() > 1) {
+            LOG.warn("maxConcurrentCheckpoints={} is configured for job {} but the current implementation " +
+                    "only supports concurrent=1. Checkpoints will be limited to maxConcurrent=1.",
+                    config.getMaxConcurrentCheckpoints(), jobId);
+        }
         this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "checkpoint-timeout-" + jobId);
             t.setDaemon(true);
@@ -93,6 +100,10 @@ public class CheckpointCoordinator {
 
     public List<CheckpointParticipant> getParticipants() {
         return Collections.unmodifiableList(participants);
+    }
+
+    public void setAbortHandler(java.util.function.Consumer<Long> handler) {
+        this.abortHandler = handler;
     }
 
     public synchronized void startCheckpointScheduler() {
@@ -162,8 +173,9 @@ public class CheckpointCoordinator {
         LOG.info("Checkpoint scheduler stopped for job {}", jobId);
     }
 
-    public PendingCheckpoint tryTriggerPendingCheckpoint(CheckpointType checkpointType) {
-        if (numPendingCheckpoints.get() >= config.getMaxConcurrentCheckpoints()) {
+    public synchronized PendingCheckpoint tryTriggerPendingCheckpoint(CheckpointType checkpointType) {
+        int effectiveMaxConcurrent = Math.min(1, config.getMaxConcurrentCheckpoints());
+        if (numPendingCheckpoints.get() >= effectiveMaxConcurrent) {
             LOG.debug("Cannot trigger checkpoint: too many pending checkpoints ({})",
                     numPendingCheckpoints.get());
             return null;
@@ -280,11 +292,13 @@ public class CheckpointCoordinator {
 
         checkpointSuccessMap.remove(checkpointId);
 
+        consecutiveTriggerFailures.set(0);
+
         LOG.info("Completed checkpoint {} for job {}, duration: {}ms",
                 checkpointId, jobId, completed.getDuration());
     }
 
-    public void abortPendingCheckpoint(PendingCheckpoint pending, String reason) {
+    public synchronized void abortPendingCheckpoint(PendingCheckpoint pending, String reason) {
         long checkpointId = pending.getCheckpointId();
 
         if (!pending.getStatus().compareAndSet(PendingCheckpoint.Status.RUNNING, PendingCheckpoint.Status.ABORTED)) {
@@ -307,6 +321,15 @@ public class CheckpointCoordinator {
         notifyParticipantsFinishCommit(checkpointId, false);
 
         notifyCheckpointAborted(checkpointId);
+
+        java.util.function.Consumer<Long> handler = this.abortHandler;
+        if (handler != null) {
+            try {
+                handler.accept(checkpointId);
+            } catch (Exception e) {
+                LOG.error("Abort handler failed for checkpoint {}", checkpointId, e);
+            }
+        }
 
         LOG.warn("Aborted checkpoint {} for job {}: {}", checkpointId, jobId, reason);
     }
@@ -331,6 +354,21 @@ public class CheckpointCoordinator {
 
     public int getNumberOfPendingCheckpoints() {
         return numPendingCheckpoints.get();
+    }
+
+    public void incrementTriggerFailures() {
+        int failures = consecutiveTriggerFailures.incrementAndGet();
+        int threshold = config.getMaxConsecutiveCheckpointFailures();
+        if (failures >= threshold) {
+            LOG.error("Checkpoint trigger failed {} consecutive times for job {} (threshold={})",
+                    failures, jobId, threshold);
+        } else {
+            LOG.warn("Checkpoint trigger failed for job {} (consecutive failures={})", jobId, failures);
+        }
+    }
+
+    public int getConsecutiveTriggerFailures() {
+        return consecutiveTriggerFailures.get();
     }
 
     public CheckpointMetrics getMetrics() {
@@ -484,6 +522,7 @@ public class CheckpointCoordinator {
         participants.clear();
         failedCommitParticipants.clear();
         checkpointSuccessMap.clear();
+        abortHandler = null;
 
         LOG.info("Checkpoint coordinator shutdown for job {}", jobId);
     }

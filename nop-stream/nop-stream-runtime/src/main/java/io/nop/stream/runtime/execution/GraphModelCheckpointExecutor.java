@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +65,7 @@ public class GraphModelCheckpointExecutor {
         long startTime = System.currentTimeMillis();
 
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 
@@ -81,9 +82,11 @@ public class GraphModelCheckpointExecutor {
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
+        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
             submitAndRun(execPlan, tasks, executor);
+            checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
 
@@ -120,7 +123,7 @@ public class GraphModelCheckpointExecutor {
         checkpointConfig.setPipelineId(pipelineId);
 
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
@@ -140,9 +143,11 @@ public class GraphModelCheckpointExecutor {
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
+        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
             submitAndRun(execPlan, tasks, executor);
+            checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
 
@@ -187,7 +192,7 @@ public class GraphModelCheckpointExecutor {
         }
 
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
@@ -206,9 +211,11 @@ public class GraphModelCheckpointExecutor {
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
+        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
             submitAndRun(execPlan, tasks, executor);
+            checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
 
@@ -244,7 +251,7 @@ public class GraphModelCheckpointExecutor {
              String targetPath) throws Exception {
 
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 
@@ -262,9 +269,11 @@ public class GraphModelCheckpointExecutor {
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
+        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
             submitAndRun(execPlan, tasks, executor);
+            checkAbortMarker(abortMarked);
 
             PendingCheckpoint savepointPending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
             String savepointPath = null;
@@ -294,7 +303,7 @@ public class GraphModelCheckpointExecutor {
         long startTime = System.currentTimeMillis();
 
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment);
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 
@@ -313,9 +322,11 @@ public class GraphModelCheckpointExecutor {
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
+        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
             submitAndRun(execPlan, tasks, executor);
+            checkAbortMarker(abortMarked);
             triggerFinalCheckpoint(allInvokables, coordinator);
             checkTaskFailures(tasks);
 
@@ -418,9 +429,19 @@ public class GraphModelCheckpointExecutor {
         return GraphExecutionPlan.build(jobGraph, null, barrierAlignment);
     }
 
+    private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, boolean barrierAlignment,
+                                                         long barrierAlignmentTimeout) {
+        return GraphExecutionPlan.build(jobGraph, null, barrierAlignment, barrierAlignmentTimeout);
+    }
+
     private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, DeploymentPlan deploymentPlan,
                                                          boolean barrierAlignment) {
         return GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
+    }
+
+    private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                                         boolean barrierAlignment, long barrierAlignmentTimeout) {
+        return GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment, barrierAlignmentTimeout);
     }
 
     private static boolean resolveBarrierAlignment(CheckpointConfig config) {
@@ -539,7 +560,8 @@ public class GraphModelCheckpointExecutor {
                     triggerBarrierOnAllInvokables(allInvokables, pending);
                 }
             } catch (Exception e) {
-                LOG.error("Failed to inject checkpoint barrier", e);
+                LOG.error("Failed to inject checkpoint barrier for job {}", jobId, e);
+                coordinator.incrementTriggerFailures();
             }
         }, config.getCheckpointInterval(), config.getCheckpointInterval(), TimeUnit.MILLISECONDS);
 
@@ -603,6 +625,28 @@ public class GraphModelCheckpointExecutor {
             if (task.getState() == SubtaskTask.State.FAILED) {
                 throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_EXECUTE_FAILED, task.getError());
             }
+        }
+    }
+
+    private static AtomicBoolean registerLocalAbortHandler(
+            CheckpointCoordinator coordinator,
+            Map<String, SubtaskTask> tasks) {
+        AtomicBoolean abortMarked = new AtomicBoolean(false);
+        coordinator.setAbortHandler(abortedCheckpointId -> {
+            abortMarked.set(true);
+            LOG.warn("Checkpoint {} aborted, cancelling all local tasks", abortedCheckpointId);
+            for (SubtaskTask task : tasks.values()) {
+                task.cancel();
+            }
+        });
+        return abortMarked;
+    }
+
+    private static void checkAbortMarker(AtomicBoolean abortMarked) {
+        if (abortMarked != null && abortMarked.get()) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON,
+                    "Checkpoint was aborted (timeout or explicit abort), job entering failure/recovery state. " +
+                    "handleJobTermination final checkpoint is skipped.");
         }
     }
 
