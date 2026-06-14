@@ -196,7 +196,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L3-3 | `IGoalTracker` 接口 + `NoOpGoalTracker` + `SessionGoalTracker` | L1-10 | ❌ |
 | L3-4 | `ICheckpointManager` 接口 + `NoOpCheckpoint` + `ToolExecutionCheckpoint` | L1-10 | ❌ |
 | L3-5 | `IApprovalGate` 接口 + `AutoApproveGate` | L1-6 | ✅ |
-| L3-6 | `IDenialLedger` 接口 + `NoOpDenialLedger` + `DBDenialLedger` | L1-6 | ✅ |
+| L3-6 | `IDenialLedger` 接口 + `NoOpDenialLedger` + `DBDenialLedger` + sticky-pause 恢复协议（`IAgentEngine.resumeSession`） | L1-6 | ✅ |
 | L3-7 | `IPostDenialGuard` 接口 + `PassThroughPostDenialGuard` + `FingerprintPostDenialGuard` | L3-6 | ✅ |
 | L3-8 | `ISustainer` 接口 + `NoOpSustainer` + `SisypheanSustainer` | 与 L3-1 互斥（设计决策：选熔断或自愈） | ❌ |
 | L3-9 | `IContextCompactor` 完整 5 层管道 + `ICompressionStrategy` 扩展点 | L2-4, L2-16 | ✅ |

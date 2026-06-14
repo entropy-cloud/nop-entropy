@@ -361,28 +361,31 @@ IContentTrustEvaluator:
 
 **来源**：OpenSquilla sandbox.governance 模块的 DenialLedger（见 `ai-dev/analysis/agent-survey/2026-06-08-opensquilla-analysis.md` §4.4.2）。
 
-**状态**：契约表面（`IDenialLedger` + `DenialRecord` + `DenialRecordOutcome` + `DenialLayerSource` + `NoOpDenialLedger`）已落地。dispatch-path 集成已接通：每个 deny 路径（Layer 1/2/3 共 5 个 deny 点）向 ledger 记录拒绝，达到阈值后 dispatch for-loop 中止 + ReAct 循环迭代开始时 `isPaused` 检查中止。`DBDenialLedger`（DB 持久化实现）为 deferred successor。
+**状态**：契约表面（`IDenialLedger` + `DenialRecord` + `DenialRecordOutcome` + `DenialLayerSource` + `NoOpDenialLedger`）已落地。dispatch-path 集成已接通：每个 deny 路径（Layer 1/2/3 共 5 个 deny 点）向 ledger 记录拒绝，达到阈值后 dispatch for-loop 中止 + ReAct 循环迭代开始时 `isPaused` 检查中止。`DBDenialLedger`（DB 持久化实现）已落地：per-session 拒绝记录持久化到 `ai_agent_denial` 表，拒绝计数与暂停状态经 ledger 实例重建（模拟 session 恢复 / 跨进程）后依然存活。`pauseBehavior = sticky` 完整恢复协议已落地：`IAgentEngine.resumeSession(sessionId, approver, reason)` 是人类干预恢复入口点——调用 `denialLedger.reset` 清除暂停、发布 `SESSION_RESUMED` 审计事件、重新执行 session。
 
 **关键设计**：
 
 | 参数 | 默认值 | 说明 |
 |------|-------|------|
 | `denialThreshold` | 3 | 累计 N 次拒绝后暂停 |
-| `pauseBehavior` | sticky | 暂停后只有人类干预才能恢复（sticky 完整语义延期至 successor） |
-| `persistence` | DB | DenialLedger 持久化到数据库（`DBDenialLedger` successor 职责，`NoOpDenialLedger` 默认不持久化） |
+| `pauseBehavior` | sticky | 暂停后只有人类干预才能恢复（已落地：`IAgentEngine.resumeSession` 清除暂停 + 重新执行；auto-recovery 经 `isPaused` 检查禁止） |
+| `persistence` | DB | DenialLedger 持久化到数据库（`DBDenialLedger` 已交付，`NoOpDenialLedger` 默认不持久化） |
 
 **Fingerprint**：`action_fingerprint = SHA-256(actionKind + argv + cwd + criticalEnv)[:32]`，用于标识"相同的危险意图"。fingerprint 基础设施在 L3-7 落地时引入，`DenialRecord` 届时可扩展携带 fingerprint 字段。
 
-**默认实现**：`NoOpDenialLedger`（不计数，不暂停）。
+**默认实现**：`NoOpDenialLedger`（不计数，不暂停）。功能化实现：`DBDenialLedger`（raw JDBC，per-session 拒绝记录持久化到 `ai_agent_denial` 表，计数与暂停状态跨 ledger 实例重建存活）。通过 `DefaultAgentEngine.setDenialLedger(new DBDenialLedger(dataSource))` 显式注册启用。
 
 **架构决策**：
 
-1. **接口契约不强制持久化**（收窄审计发现 L3-G5）：`NoOpDenialLedger` 不持久化在设计上合法。持久化是 `DBDenialLedger`（successor）的职责，非接口契约的硬性要求。跨 session 恢复的拒绝计数持久化在 successor plan 中解决。
+1. **接口契约不强制持久化**（收窄审计发现 L3-G5）：`NoOpDenialLedger` 不持久化在设计上合法。持久化是 `DBDenialLedger`（已落地）的职责，非接口契约的硬性要求。
 2. **每个 deny 路径均记录到 ledger**：dispatch loop 的全部 5 个 deny 点（Layer 1 tool access / Layer 1 permission / Layer 1 path access / Layer 2 security policy / Layer 3 approval gate）均通过 `handleDenialAndCheckThreshold` 向 ledger 记录拒绝，覆盖全部拒绝来源（非仅 Layer 3）。
 3. **阈值检查双重机制**：(a) 每次 `recordDenial` 后立即检查返回的 `DenialRecordOutcome.thresholdExceeded`；(b) ReAct 迭代开始时检查 `isPaused`。两个机制职责分离——Mechanism 1 (dispatch-path) 负责跳过当前迭代剩余执行（break dispatch for-loop + 跳过 allowedCalls 执行但不 break reactLoop），Mechanism 2 (迭代开始检查) 负责中止 ReAct 循环（break reactLoop）。
 4. **`AgentExecStatus.paused` 语义独立**：`paused` 与 `forced_stopped`/`cancelled`/`escalated` 语义不同——paused 是治理策略自动触发（denial threshold exceeded），非用户干预（cancelled）、非系统决策（forced_stopped）、非升级路径（escalated）。post-loop bookkeeping 排除 `paused`，暂停 session 不发布 `EXECUTION_COMPLETED` / 不执行 `POST_CALL` hooks。
 5. **`NoOpDenialLedger` shipped 默认保证向后兼容**：不设 ledger 的引擎执行行为与接线前完全一致（0 spurious 暂停），无人值守 Layer 1 自动化不受影响。
-6. **`pauseBehavior = sticky` 延期至 successor**：当前实现是非 sticky 的（session 可通过 `IDenialLedger.reset()` 恢复后重新执行）。sticky 恢复协议（只有人类干预才能恢复 + 可能的审批通道集成）在 `DBDenialLedger` successor 或独立 governance plan 中解决。
+6. **`pauseBehavior = sticky` 已落地**：`IAgentEngine.resumeSession(sessionId, approver, reason)` 是人类干预恢复入口点（`DefaultAgentEngine` 实现）。恢复协议：(a) resume 调用本身即设计要求的"人类干预"——显式、带 approver 身份和 reason 的调用 IS the human intervention，不需要额外的 `IApprovalChannel` 审批（`IApprovalChannel` gated resume 仍标注为 deferred enhancement，非前置条件）；(b) resume re-execution 从 paused session 的已有 conversation history 重建 `AgentExecutionContext`（系统 prompt + 已有消息），**不**添加新 user message——resume 是 transparent continuation 而非新一轮对话；(c) resume 调用 `denialLedger.reset(sessionId)` 清除暂停 + 发布 `SESSION_RESUMED` 审计事件（payload: approver + reason + preResetDenialCount）+ 重新执行 session；(d) sticky enforcement 经运行时 `isPaused` 检查强制执行——对 paused session 调用 `execute()`（不 resume）会在 ReAct 循环迭代开始时被 `isPaused` 中止并 re-pause，auto-recovery 不可能；(e) `resumeSession` fail-fast 语义：仅 `AgentExecStatus.paused` 的 session 能被 resume（non-existent / non-paused session 抛 `NopAiAgentException`，不静默 no-op）。
+7. **`DBDenialLedger` 列存储而非 JSON blob**：`ai_agent_denial` 表每字段一列（SID + SESSION_ID + TOOL_NAME + LAYER_SOURCE + REASON + MATCHED_RULE + DENIAL_TIMESTAMP + CREATED_AT），而非 messenger 的 JSON blob 模式。理由：(1) `DenialRecord` 全部字段为简单类型（String + enum + long），无 opaque payload；(2) 核心操作是 per-session COUNT + per-session DELETE，列存储使原生 SQL 高效；(3) `DenialLayerSource` 枚举存为 VARCHAR（枚举名）。
+8. **`DBDenialLedger` 使用 raw JDBC 而非 IOrmSession**（与 `DBMessageService` 一致）：`IDenialLedger` 操作是同步的 record/count/delete，无后台轮询需求，raw JDBC 对简单 COUNT/INSERT/DELETE 足够且无额外抽象层。
+9. **`DBDenialLedger` 线程安全经 DB 操作保证而非内存锁**：每个 `recordDenial` 是原子 INSERT + COUNT 查询（计数实时从 DB 读取，非内存累加）；`isPaused` / `getDenialCount` 是 COUNT 查询；`reset` 是 DELETE。多 session 并发访问同一 ledger 实例时，per-session INSERT/COUNT/DELETE 互不干扰（WHERE SESSION_ID=? 隔离），无需 `ConcurrentHashMap` 内存状态。
 
 ### 6.3 IPostDenialGuard — 拒绝后守卫
 

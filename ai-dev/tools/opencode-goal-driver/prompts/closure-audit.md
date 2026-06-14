@@ -59,6 +59,16 @@ Do NOT output plan content, the Closure template, or any other text. This trigge
 
 The plan structure is valid. Now verify the SEMANTICS:
 
+0. **Phase status / items consistency** (do this FIRST): For every Phase, if
+   `Status:` says `completed` but the Phase body still contains any `- [ ]`
+   item, that is an inconsistency (a prior run set the status without
+   finishing the work or ticking the items). Do NOT blindly tick the items —
+   first use grep/glob/read to verify whether the work actually landed in the
+   codebase. If it landed, tick the items `[x]` and re-run
+   `node ai-dev/tools/check-plan-checklist.mjs {{PLAN_FILE}} --strict`. If it
+   did NOT land, the Phase is genuinely unfinished — output `incomplete` with
+   a `<REMAINING>` entry naming the Phase so the flow returns to EXECUTE.
+
 1. **Exit Criteria vs live repo**: Read each Exit Criterion. Use grep/glob/read to confirm it matches the LIVE codebase. Do NOT trust `[x]` marks blindly.
 
 2. **Anti-Hollow check**: New components must be called at runtime. Look for empty method bodies `{}`, `continue` skipping branches, swallowed exceptions.
