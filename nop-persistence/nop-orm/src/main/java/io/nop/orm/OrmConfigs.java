@@ -51,6 +51,14 @@ public interface OrmConfigs {
     IConfigReference<Boolean> CFG_INIT_DATABASE_SCHEMA = varRef(s_loc, "nop.orm.init-database-schema",
             Boolean.class, false);
 
+    @Description("启动时从CSV/SQL文件初始化数据库数据")
+    IConfigReference<Boolean> CFG_INIT_DATABASE_DATA = varRef(s_loc, "nop.orm.init-database-data",
+            Boolean.class, false);
+
+    @Description("启动时初始数据的查找目录，默认为/_init-data/")
+    IConfigReference<String> CFG_INIT_DATABASE_DATA_LOCATION = varRef(s_loc, "nop.orm.init-database-data-location",
+            String.class, "/_init-data/");
+
     /**
      * 注意，数据库自动升级由 DataBaseUpgradeInitializer 提供实现，在工程内需引入依赖 io.github.entropy-cloud:nop-dbtool-core
      */

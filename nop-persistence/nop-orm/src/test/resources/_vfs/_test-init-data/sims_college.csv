@@ -1,0 +1,3 @@
+COLLEGE_ID,COLLEGE_NAME,SHORT_NAME,INTRO
+csv-col-01,CSV College A,CSV-A,Loaded from CSV
+csv-col-02,CSV College B,CSV-B,Another CSV row

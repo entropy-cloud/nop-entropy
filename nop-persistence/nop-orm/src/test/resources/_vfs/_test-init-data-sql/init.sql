@@ -1,0 +1,1 @@
+INSERT INTO sims_college(COLLEGE_ID,COLLEGE_NAME,SHORT_NAME,TENANT_ID) VALUES('sql-only-01','SQL Only College','SQL-O','123');
