@@ -248,3 +248,9 @@ Follow-up:
 ## Follow-up handled by 168-nop-ai-agent-call-agent-tool.md
 
 Plan 168 picks up the "call-agent / send-message 工具" deferred item — the Layer 4 consumers of the messenger delivered in this plan. It replaces the hollow `CallAgentExecutor` mock in `nop-ai-toolkit` (which never invokes any agent engine) with a functional call-agent tool using the fork+exec model (`IAgentEngine.execute()` on a sub-session, design-aligned per `nop-ai-agent-multi-agent.md` §Phase 1), and adds a send-message tool that consumes this plan's `IAgentMessenger.send()` for fire-and-forget delivery. The call-agent tool is the synchronous subagent-invocation capability; send-message is the async inter-agent messaging capability — both defined by `nop-ai-agent-actor-runtime-vision.md` §3.3. The messenger-based call-agent model (send to inbox, actor processes) remains the L4-8 actor-runtime successor.
+
+## Follow-up handled by 171-nop-ai-agent-db-backed-messenger.md
+
+> Additive annotation (2026-06-14). This completed plan is historical record; this section only records successor traceability and does not alter the closure above.
+
+The deferred "DB-backed Messenger (DBMessageService)" item (see `Deferred But Adjudicated` → "DB-backed Messenger (DBMessageService)", Successor Required: yes) is being handled by successor plan [`171-nop-ai-agent-db-backed-messenger.md`](171-nop-ai-agent-db-backed-messenger.md). The successor delivers a `DBMessageService implements IMessageService` — a sibling implementation to `LocalMessageService` that uses a database table for message persistence and background polling for delivery. Because `LocalAgentMessenger` is transport-agnostic (accepts any `IMessageService`), swapping `LocalMessageService` for `DBMessageService` enables cross-process Agent messaging without modifying any Agent-domain code.

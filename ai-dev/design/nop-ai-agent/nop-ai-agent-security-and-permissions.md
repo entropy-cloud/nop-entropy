@@ -136,7 +136,7 @@ Permission resolve(toolName, agentName, sessionId)
 **继承语义**：
 
 - 工具权限 = 父权限 ∩ 子配置（交集或收缩）— **已交付** ✅
-- 文件权限 = 父权限 ∩ 子配置（交集或收缩）— **deferred**（见下方）
+- 文件权限 = 父权限 ∩ 子配置（交集或收缩）— **已交付** ✅
 - 未明确授权的提升行为一律拒绝
 
 **为什么**：call-agent 是能力扩张入口。如果子 Agent 可以提升权限，任意 prompt 都可能绕过父 Agent 约束。
@@ -151,7 +151,21 @@ Permission resolve(toolName, agentName, sessionId)
 
 3. **约束传播（constraint propagation）**：约束通过 `AgentMessageRequest.metadata` 在 well-known key `"parentPermissionConstraint"` 下传播，复用现有 metadata 基础设施。`CallAgentExecutor` 从 `AgentToolExecuteContext.getAllowedTools()` 读取父 Agent 的 effective set 并构建约束；`DefaultAgentEngine.doExecute()` 从 metadata 读取约束并包装 checker。`ReActAgentExecutor` 在构造 `AgentToolExecuteContext` 时计算 effective set = `incomingParentConstraint ∩ agentModel.getTools()`。
 
-**文件权限继承（deferred）**：文件权限使用 rule-pattern matching（`IPathAccessChecker` 的 glob 规则），而非 set membership。两个规则集的交集需要不同的机制（规则组合或组合模式评估）。工具集交集已解决更高优先级的安全问题，因为工具是直接的能力扩张向量。文件权限 clamp 是一个改进，不会留下直接的工具提升漏洞。
+**文件权限继承实施（已交付，Plan 170）**：
+
+文件权限继承复用工具权限继承的三个架构决策（同一约束对象、同一传播机制、同一包装时机），通过五个决策实现：
+
+1. **路径范围表示（path-scope representation）**：`ParentPermissionConstraint` 扩展为携带 additive `allowedPathRoots` 字段（类型 `Set<String>`，规范化绝对目录根）。`null` 表示 ABSENT（无声明路径范围 → 无路径约束）；非 null Set（含空集）表示 PRESENT（约束激活 — 路径不在这些根下则拒绝）。PRESENT({}) = 拒绝所有路径（最大限制，如嵌套 clamp 塌缩为空时）。现有的 tool-only 构造器委托为 `allowedPathRoots = null`（ABSENT），所有 plan-169 构造路径和测试不受影响。三值语义（ABSENT/PRESENT/PRESENT({})）与工具集表示对称。
+
+2. **路径范围 clamp（nested delegation clamping）**：Agent 的 effective path roots = `incomingParentRoots ∩ ownDeclaredRoots`，其中 ABSENT 作为单位元（ABSENT ∩ X = X），PRESENT 作为集合操作。Agent 自身声明的根 = PRESENT({normalized workDir})（当 `workDir != null`），ABSENT（当 null）。具体 clamp 规则：当 incoming parent roots 为 PRESENT 时，effective roots = agent 自身声明根中位于 incoming parent roots 之下的子集（`isUnderAnyRoot` 判定）；无任何自身根位于父根之下时 → PRESENT({})（拒绝所有路径）。这使得嵌套委派安全：中间 Agent B 的 effective roots 已被 A clamp，当 B 委派给 C 时，C 继承 B clamp 后的范围而非 B 声明的范围。
+
+3. **路径范围来源（scope source）**：父 Agent 的声明路径范围来自其 `workDir`。`AgentModel` 通过 agent DSL schema `nop/schema/ai/agent.xdef` 新增 `workDir` 属性（type string，default null = ABSENT）。`ReActAgentExecutor` 将 `agentModel.getWorkDir()`（解析为 `File` 或 null）传入 `AgentToolExecuteContext`，替代此前硬编码的 `new File(".")`（JVM CWD）。非 null workDir → PRESENT({normalized workDir})；null/absent workDir → ABSENT（无约束）。这是一个最小、additive 的 DSL/schema 变更（一个可选字符串属性），不引入 per-agent 路径规则模型。
+
+4. **执行机制（enforcement mechanism）**：`ParentConstrainedPathAccessChecker` 包装 `IPathAccessChecker`。语义：(a) 约束的 `allowedPathRoots` 为 ABSENT → 完全委托（no-op pass-through，向后兼容）；(b) PRESENT 且请求路径（规范化后）不在任何允许根之下 → 拒绝（fail-closed），通过 `PathAccessResult.deny(reason, matchedRule)` 工厂产生，reason 标识 "parent path permission constraint" 且包含父 Agent 名称和违规路径，matchedRule 标记为 `"parent_path_permission_constraint"`；(c) PRESENT 且路径在允许根之下 → 委托给被包装的 checker（全局 deny-list 和子 Agent 自身规则仍叠加生效）。路径匹配：路径 P 在根 R 之下当且仅当 P 的规范化绝对形式等于 R 或以 `R + "/"` 开头。规范化复用 `DefaultPathAccessChecker.normalizePathStatic()`（tilde 展开、反斜杠→正斜杠、`Paths.get(p).normalize()`）。相对路径先对子 Agent 的 `workDir` 解析再匹配。
+
+5. **约束传播（constraint propagation）**：路径根通过同一 `ParentPermissionConstraint` 对象、同一 metadata key（`"parentPermissionConstraint"`）传播，复用 plan-169 的 metadata 基础设施。`CallAgentExecutor.buildParentConstraint()` 从 `AgentToolExecuteContext.getAllowedPathRoots()` 读取当前 Agent 的 effective path roots 并纳入约束；`DefaultAgentEngine.doExecute()` 从 metadata 读取同一约束对象，同时包装 tool checker（已有）和 path checker（新增）。`DefaultAgentEngine.resolveEffectivePathAccessChecker()` 是 `resolveEffectiveToolAccessChecker()` 的类比，当约束的 path roots 为 PRESENT 时返回 `ParentConstrainedPathAccessChecker`，否则返回引擎自身的 `pathAccessChecker`。
+
+**关于 "glob 规则" 的更正**：早期设计文档提及 "IPathAccessChecker 的 glob 规则"，暗示存在 per-agent 的 glob allow/deny 模式系统。实际 live 实现中 `DefaultPathAccessChecker` 是全局静态 deny-list（路径穿越防御、敏感前缀 `~/.ssh/`、`/etc/` 等、敏感文件名 `.env`/`id_rsa` 等），无 per-agent 状态、无可配置规则、无 glob 模式模型。本计划交付的路径范围来源是 agent DSL 中新增的 `workDir` 派生范围（根集），而非 glob 规则系统。更丰富的 per-agent glob 路径规则模型是独立的后续关注点（Layer 2 / `IPermissionMatrix` L2-14 territory），且本计划的 enforcement wrapper 设计为可被未来 glob-rule 模型替换 scope source 而不改变 wrapper 本身。
 
 ### 4.5 日志与审计
 

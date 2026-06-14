@@ -214,6 +214,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L4-1 | `IMessageService` `LocalMessageService` (内存队列) | L1-1 | ✅ |
 | L4-1b | `call-agent` 工具（fork+exec via `IAgentEngine.execute()`）+ `send-message` 工具（fire-and-forget via `IAgentMessenger.send()`）+ 工具上下文增强（`AgentToolExecuteContext`） | L4-1, L1-1 | ✅ |
 | L4-1c (sec-4.4) | Sub-agent permission inheritance enforcement: `ParentPermissionConstraint` + `ParentConstrainedToolAccessChecker` — 子 Agent 工具权限 = 父权限 ∩ 子配置（fail-closed，nested delegation clamped-set 传播） | L4-1b, L1-7 | ✅ |
+| L4-1d (sec-4.4) | Sub-agent path-permission inheritance: `ParentPermissionConstraint` (extended with `allowedPathRoots`) + `ParentConstrainedPathAccessChecker` + `AgentModel.workDir` (DSL) — 子 Agent 文件权限 = 父权限 ∩ 子配置（fail-closed，nested delegation clamped-root 传播，workDir-derived scope source） | L4-1c, L1-8 | ✅ |
 | L4-2 | `IMessageService` `DBMessageService` (跨进程路由) | L4-1, nop-dao | ❌ |
 | L4-3 | `IMemoryAdapter` 三适配器 (Storage / Embedding / Vector) | L2-15 | ❌ |
 | L4-4 | `ISkillCurator` `LLMCurator` (技能生命周期) | L2-11 | ✅ |
