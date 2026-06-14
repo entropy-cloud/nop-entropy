@@ -149,7 +149,7 @@
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md` |
 | 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` |
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
-| 理解 nop-job（分布式定时任务） | `03-modules/nop-job.md` |
+| 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
 | 理解 nop-dyn（动态表单/实体） | `03-modules/nop-dyn.md` |
 | 理解 nop-file（文件上传下载与存储机制） | `03-modules/nop-file.md` |
