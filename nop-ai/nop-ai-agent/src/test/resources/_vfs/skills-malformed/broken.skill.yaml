@@ -1,0 +1,4 @@
+skill:
+  name: broken-skill
+  goal: This file has malformed YAML
+    bad: indentation: [unclosed

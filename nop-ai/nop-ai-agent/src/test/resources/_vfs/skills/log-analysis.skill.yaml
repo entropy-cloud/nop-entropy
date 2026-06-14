@@ -1,0 +1,14 @@
+skill:
+  name: log-analysis
+  goal: Analyze log files for errors and patterns
+  intentSignature:
+    - log-analysis
+    - error-detection
+  topPattern: VERIFY
+  dependencies:
+    - read_file
+    - grep
+  tags: code,ops
+  resourceScope:
+    - LOCAL_FS
+    - MEMORY

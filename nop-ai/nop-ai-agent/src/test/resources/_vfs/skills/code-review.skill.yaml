@@ -1,0 +1,12 @@
+skill:
+  name: code-review
+  goal: Review code changes for quality, security, and best practices
+  intentSignature: code-review
+  topPattern: VERIFY
+  dependencies:
+    - read_file
+    - git_diff
+  tags: code,review
+  resourceScope:
+    - CODEBASE
+    - MEMORY

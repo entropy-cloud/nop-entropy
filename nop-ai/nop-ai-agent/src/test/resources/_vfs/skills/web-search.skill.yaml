@@ -1,0 +1,9 @@
+skill:
+  name: web-search
+  goal: Search the web for up-to-date information
+  topPattern: RETRIEVE
+  dependencies:
+    - http_request
+  tags: web,search
+  resourceScope:
+    - NETWORK
