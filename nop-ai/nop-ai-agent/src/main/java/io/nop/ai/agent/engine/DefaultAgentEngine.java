@@ -14,6 +14,8 @@ import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.repair.IToolCallRepairer;
+import io.nop.ai.agent.reliability.ICheckpointManager;
+import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
@@ -92,6 +94,7 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IApprovalGate approvalGate = AutoApproveGate.autoApprove();
     private IDenialLedger denialLedger = NoOpDenialLedger.noOp();
     private IPostDenialGuard postDenialGuard = PassThroughPostDenialGuard.passThrough();
+    private ICheckpointManager checkpointManager = NoOpCheckpoint.noOp();
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
 
@@ -431,6 +434,31 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public IPostDenialGuard getPostDenialGuard() {
         return postDenialGuard;
+    }
+
+    /**
+     * Register the {@link ICheckpointManager} used for Layer 3-4 checkpoint
+     * recording (design §5.4). Composition via this setter — no constructor
+     * chain change. Default is {@link NoOpCheckpoint} (no checkpoints
+     * recorded), so engine behaviour is unchanged unless a functional manager
+     * is explicitly registered.
+     *
+     * <p>The manager is consulted in the dispatch loop after every tool
+     * execution completes: a {@code TOOL_EXECUTION} checkpoint is recorded
+     * capturing the tool-call payload and context-size snapshot.
+     */
+    public void setCheckpointManager(ICheckpointManager checkpointManager) {
+        this.checkpointManager = checkpointManager != null
+                ? checkpointManager
+                : NoOpCheckpoint.noOp();
+    }
+
+    /**
+     * Return the {@link ICheckpointManager} wired into this engine, or the
+     * {@link NoOpCheckpoint} default if none was explicitly set.
+     */
+    public ICheckpointManager getCheckpointManager() {
+        return checkpointManager;
     }
 
     /**
@@ -904,6 +932,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .approvalGate(approvalGate)
                     .denialLedger(denialLedger)
                     .postDenialGuard(postDenialGuard)
+                    .checkpointManager(checkpointManager)
                     .build();
         }
         if ("single-turn".equals(mode)) {

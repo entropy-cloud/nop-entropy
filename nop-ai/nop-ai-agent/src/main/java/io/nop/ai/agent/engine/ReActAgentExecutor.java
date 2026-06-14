@@ -22,6 +22,10 @@ import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.repair.ChainRepairer;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.repair.NoOpToolCallRepairer;
+import io.nop.ai.agent.reliability.Checkpoint;
+import io.nop.ai.agent.reliability.CheckpointType;
+import io.nop.ai.agent.reliability.ICheckpointManager;
+import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.router.RoutingResult;
@@ -137,6 +141,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IApprovalGate approvalGate;
     private final IDenialLedger denialLedger;
     private final IPostDenialGuard postDenialGuard;
+    private final ICheckpointManager checkpointManager;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -158,9 +163,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                ISecurityLevelResolver securityLevelResolver,
                                IPermissionMatrix permissionMatrix,
                                  ILevelHintsProducer levelHintsProducer,
-                                 IApprovalGate approvalGate,
-                                 IDenialLedger denialLedger,
-                                 IPostDenialGuard postDenialGuard) {
+                                  IApprovalGate approvalGate,
+                                  IDenialLedger denialLedger,
+                                  IPostDenialGuard postDenialGuard,
+                                  ICheckpointManager checkpointManager) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -197,6 +203,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.postDenialGuard = postDenialGuard != null
                 ? postDenialGuard
                 : PassThroughPostDenialGuard.passThrough();
+        this.checkpointManager = checkpointManager != null
+                ? checkpointManager
+                : NoOpCheckpoint.noOp();
     }
 
     public static Builder builder() {
@@ -228,6 +237,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IApprovalGate approvalGate;
         private IDenialLedger denialLedger;
         private IPostDenialGuard postDenialGuard;
+        private ICheckpointManager checkpointManager;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -411,6 +421,19 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Wire the {@link ICheckpointManager} consulted in the dispatch loop
+         * (design §5.4 / L3-4) after every tool execution completes: a
+         * {@link CheckpointType#TOOL_EXECUTION} checkpoint is recorded
+         * capturing the tool-call payload and context-size snapshot. Optional:
+         * when null, defaults to {@link NoOpCheckpoint} (no checkpoints
+         * recorded — backward compatible).
+         */
+        public Builder checkpointManager(ICheckpointManager checkpointManager) {
+            this.checkpointManager = checkpointManager;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -442,7 +465,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     levelHintsProducer,
                     approvalGate,
                     denialLedger,
-                    postDenialGuard
+                    postDenialGuard,
+                    checkpointManager
             );
         }
     }
@@ -467,6 +491,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
         Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
 
         int consecutiveContinues = 0;
+
+        // Per-execution checkpoint sequence counter (design §5.4 / L3-4):
+        // monotonically increments each time a TOOL_EXECUTION checkpoint is
+        // recorded, so checkpoints within one execute() call are ordered.
+        int checkpointSeq = 0;
 
         try {
             HookResult preCallResult = invokeHooks(AgentLifecyclePoint.PRE_CALL, ctx, agentName, null, null);
@@ -876,6 +905,31 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         }
 
                         ctx.addMessage(toolResponse);
+
+                        // Layer 3-4 checkpoint recording (design §5.4a
+                        // "tool execution after" trigger point): after the tool
+                        // result is added to the context and before the next
+                        // LLM call, record a TOOL_EXECUTION checkpoint capturing
+                        // the tool-call payload and context-size snapshot. With
+                        // the shipped NoOpCheckpoint default this is a no-op;
+                        // with the ToolExecutionCheckpoint functional impl the
+                        // checkpoint is stored in-memory for save→retrieve
+                        // round-trip validation and crash/restart recovery.
+                        checkpointManager.saveCheckpoint(Checkpoint.of(
+                                sessionId,
+                                sessionId != null
+                                        ? sessionId + ":tool:" + chatToolCall.getId() + ":" + checkpointSeq
+                                        : "anon:tool:" + chatToolCall.getId() + ":" + checkpointSeq,
+                                checkpointSeq,
+                                System.currentTimeMillis(),
+                                CheckpointType.TOOL_EXECUTION,
+                                toolName,
+                                chatToolCall.getId(),
+                                chatToolCall.getArgumentsText(),
+                                toolResponse.getContent(),
+                                ctx.getMessages().size(),
+                                ctx.getTokensUsed()));
+                        checkpointSeq++;
 
                         invokeHooks(AgentLifecyclePoint.POST_ACTING, ctx, agentName, toolName, chatToolCall.getId());
 
