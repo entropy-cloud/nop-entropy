@@ -22,6 +22,13 @@ function genLogFile(config, label) {
   return resolve(config.runDir, `${label}-${ts}-${rand}.log`);
 }
 
+export function summarizeArg(a) {
+  if (typeof a !== "string") a = String(a);
+  if (a.length <= 80 && !a.includes("\n")) return a;
+  const preview = a.replace(/\s+/g, " ").slice(0, 80);
+  return `${preview}...(${a.length} chars)`;
+}
+
 const SIGKILL_DELAY = 10_000;
 const LIVENESS_CHECK_MS = 5 * 60_000;
 const BASE_TIMEOUT_MS = 60 * 60_000;
@@ -42,7 +49,7 @@ export function execute(config, label, cmd, args, opts = {}) {
 
   mkdirSync(dirname(logFile), { recursive: true });
   const header = [
-    `# cmd: ${cmd} ${args.join(" ")}`,
+    `# cmd: ${cmd} ${args.map(summarizeArg).join(" ")}`,
     `# cwd: ${cwd}`,
     `# started: ${localDateTimeStr()}`,
     "",

@@ -1,20 +1,41 @@
-Review the plan at {{PLAN_FILE}}.
-Use independent sub-agents to iteratively review and improve the plan until consensus.
+Review the plan at `{{PLAN_FILE}}`. You are the **coordinator**, not a reviewer.
 
-Review dimensions (all must be checked):
-1. **Imaginative analysis**: Imagine executing the plan step by step — find gaps between design and code
-2. **Format completeness**: Does it follow the plan guide template? Are all required fields present?
-3. **Content soundness**: Are Goals/Non-Goals clear? Is Phase decomposition reasonable?
-4. **Reference accuracy**: Do referenced file paths exist in the repo? Are code locations correct?
+## Coordinator constraints
 
-Each finding must include a severity (Blocker/Major/Minor).
-The plan passes only when there are zero Blockers and zero Majors.
+- Read ONLY `{{PLAN_FILE}}` and `ai-dev/plans/00-plan-authoring-and-execution-guide.md`.
+- Do NOT Read/Grep/Glob source code, design docs, or other plans. All repo verification is the review sub-agent's job — it runs in a separate session and cannot see your context, so pre-verifying references yourself is wasted work.
+- Spawn review sub-agents, relay findings, and stop the instant the pass criterion is met.
 
-Process:
-- If issues are found, spawn an independent sub-agent to revise the plan, then spawn another independent sub-agent to re-review.
-- Repeat this review-revise cycle until the reviewer sub-agent finds zero Blockers and zero Majors.
-- Maximum 5 rounds. After that, output whatever state the plan is in.
+## Review dimensions (sub-agent checks all four)
 
-Output <AI_STEP_RESULT>approved</AI_STEP_RESULT> or <AI_STEP_RESULT>issues</AI_STEP_RESULT>
-When issues remain after max rounds, also output:
-<ISSUES><item severity="Blocker|Major|Minor">problem description</item></ISSUES>
+1. **Imaginative analysis** — mentally execute the plan; find design↔code gaps.
+2. **Format completeness** — follows the plan guide template; required fields present.
+3. **Content soundness** — Goals/Non-Goals clear; Phase decomposition reasonable; Exit Criteria repo-observable.
+4. **Reference accuracy** — referenced paths exist; line numbers / method / class names correct. Verified by the sub-agent against the live repo.
+
+Each finding carries a severity: **Blocker / Major / Minor**.
+
+## Pass criterion
+
+**Pass = zero Blockers AND zero Majors.** Minors never block and never trigger a revise.
+
+## Process (max 2 review rounds)
+
+**Round 1** — spawn one review sub-agent.
+- 0 Blocker & 0 Major → output `approved` immediately. Do NOT revise to "fix Minors" or "reach consensus". Minors resolve during execution.
+- ≥1 Blocker or Major → go to Round 2.
+
+**Round 2** (only if Round 1 failed):
+1. Spawn a revise sub-agent to fix **only** the Blocker/Major findings. It MUST NOT touch Minor-level text (editing Minors tends to introduce new errors).
+2. Spawn a fresh review sub-agent to re-verify.
+3. Pass → `approved`. Still failing → `issues`.
+
+Never run Round 3+. Never add "polish"/"confirm" rounds after a pass.
+
+## Output
+
+- `<AI_STEP_RESULT>approved</AI_STEP_RESULT>` — pass criterion met.
+- `<AI_STEP_RESULT>issues</AI_STEP_RESULT>` — Round 2 still has a Blocker/Major. Also output:
+  ```
+  <ISSUES><item severity="Blocker|Major|Minor">description</item></ISSUES>
+  ```

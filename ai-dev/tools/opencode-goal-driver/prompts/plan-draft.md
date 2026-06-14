@@ -47,6 +47,8 @@ Output exactly this structure (replace `/path/to/plan.md` with the real path you
 </FLOW_VARS>
 ```
 
+⚠️ CRITICAL: The literal string `/path/to/plan.md` in the template above is a placeholder — it will NOT exist on disk. You MUST substitute your real file path. If the engine receives `/path/to/plan.md`, it will reject the plan and force a retry.
+
 ## Case B — no plan needed
 Output exactly this, nothing else:
 ```

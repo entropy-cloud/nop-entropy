@@ -88,12 +88,13 @@ export class FlowEngine {
   }
 
   _extractFlowVars(text) {
-    const m = text.match(/<FLOW_VARS>([\s\S]*?)<\/FLOW_VARS>/);
-    if (!m) return {};
+    const matches = [...text.matchAll(/<FLOW_VARS>([\s\S]*?)<\/FLOW_VARS>/g)];
+    if (matches.length === 0) return {};
+    const inner = matches[matches.length - 1][1];
     const vars = {};
     const re = /<(\w+)>([^<]*)<\/\1>/g;
     let match;
-    while ((match = re.exec(m[1])) !== null) {
+    while ((match = re.exec(inner)) !== null) {
       vars[match[1]] = match[2].trim();
     }
     return vars;

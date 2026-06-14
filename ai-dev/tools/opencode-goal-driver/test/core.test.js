@@ -1,6 +1,7 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { FlowEngine } from "../src/engine.js";
+import { summarizeArg } from "../src/executor.js";
 import { makeMockDelegates, simpleFlow, mockSubFlows } from "./helpers.js";
 
 describe("FlowEngine — linear flow", () => {
@@ -429,5 +430,66 @@ describe("FlowEngine — ping-pong detection", () => {
 
     assert.equal(result.status, "completed");
     assert.ok(result.stepCount >= 8, `expected >= 8 steps, got ${result.stepCount}`);
+  });
+});
+
+describe("FlowEngine — flowVars extraction takes LAST block", () => {
+  it("returns the real value when a prompt-example <FLOW_VARS> block precedes the AI output", () => {
+    const flow = simpleFlow({
+      START: {
+        type: "agent",
+        prompt: "x",
+        resultTag: "R",
+        transitions: { ok: { done: "completed" } },
+      },
+    });
+    const engine = new FlowEngine(flow, makeMockDelegates({ responses: {} }));
+
+    const text = [
+      "# cmd: opencode run Draft a plan. Example output format:",
+      "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
+      "<FLOW_VARS>",
+      "  <PLAN_FILE>/path/to/plan.md</PLAN_FILE>",
+      "</FLOW_VARS>",
+      "--- AI real response ---",
+      "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
+      "<FLOW_VARS>",
+      "  <PLAN_FILE>/real/dir/160-plan.md</PLAN_FILE>",
+      "</FLOW_VARS>",
+    ].join("\n");
+
+    const vars = engine._extractFlowVars(text);
+    assert.equal(vars.PLAN_FILE, "/real/dir/160-plan.md");
+  });
+
+  it("returns empty when no <FLOW_VARS> block is present", () => {
+    const flow = simpleFlow({
+      START: { type: "agent", prompt: "x", resultTag: "R", transitions: { ok: { done: "completed" } } },
+    });
+    const engine = new FlowEngine(flow, makeMockDelegates({ responses: {} }));
+    assert.deepEqual(engine._extractFlowVars("no vars here"), {});
+  });
+});
+
+describe("summarizeArg — keeps prompt out of log header", () => {
+  it("passes short single-line args through unchanged", () => {
+    assert.equal(summarizeArg("run"), "run");
+    assert.equal(summarizeArg("-m"), "-m");
+  });
+
+  it("truncates long args and reports total length", () => {
+    const longPrompt = "Draft a development plan for module nop-ai-agent.\nOutput:\n<FLOW_VARS>\n  <PLAN_FILE>/path/to/plan.md</PLAN_FILE>\n</FLOW_VARS>";
+    const out = summarizeArg(longPrompt);
+    assert.ok(out.length < longPrompt.length, "should be shorter than input");
+    assert.ok(out.endsWith(`...(${longPrompt.length} chars)`));
+    assert.ok(!out.includes("/path/to/plan.md"), "must not leak placeholder example token");
+    assert.ok(!out.includes("\n"), "must be single line");
+  });
+
+  it("truncates args that exceed 80 chars even without newlines", () => {
+    const arg = "x".repeat(200);
+    const out = summarizeArg(arg);
+    assert.ok(out.endsWith("...(200 chars)"));
+    assert.ok(out.length < 200);
   });
 });
