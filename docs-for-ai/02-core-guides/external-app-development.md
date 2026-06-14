@@ -6,23 +6,23 @@
 
 ## 先看什么
 
-外部应用的真实参考样例：`C:/can/nop/nop-app-mall`
+外部应用是基于 `nop-entropy` parent 构建的独立应用工程，不是 `nop-entropy` 主仓库内置模块。
 
-它不是 `nop-entropy` 主仓库内置模块，而是基于 `nop-entropy` parent 构建的独立应用工程。
+参考外部应用项目中的典型文件结构来理解本页描述的模式。
 
 ## 最小骨架
 
-`nop-app-mall/pom.xml` 展示了一个完整外部应用的常见模块拆分：
+一个完整外部应用的常见模块拆分：
 
-1. `app-mall-codegen`
-2. `app-mall-api`
-3. `app-mall-dao`
-4. `app-mall-service`
-5. `app-mall-web`
-6. `app-mall-app`
-7. `app-mall-wx`
-8. `app-mall-delta`
-9. `app-mall-meta`
+1. `app-xxx-codegen`
+2. `app-xxx-api`
+3. `app-xxx-dao`
+4. `app-xxx-service`
+5. `app-xxx-web`
+6. `app-xxx-app`
+7. `app-xxx-wx`（可选，第三方集成）
+8. `app-xxx-delta`（可选，覆盖平台模块）
+9. `app-xxx-meta`
 
 这说明外部应用默认仍然沿用 `model -> codegen -> dao -> meta -> service -> web -> app -> api` 主链路，但经常会额外带上：
 
@@ -33,19 +33,16 @@
 
 ### 1. 先改源模型
 
-`nop-app-mall` 的源模型位于：
+外部应用的源模型通常位于 `model/` 目录下，如 `app-xxx.orm.xlsx`、`app-xxx.orm.xml`、`app-xxx.api.xml`。
 
-1. `C:/can/nop/nop-app-mall/model/app-mall.orm.xlsx`
-2. `C:/can/nop/nop-app-mall/model/app-mall.api.xml`
-
-说明：外部应用的 API 模型默认优先维护为 `*.api.xml`，便于文本化审阅和 AI 编辑；如需保留 Excel 展示或导出，可同时保留 `*.api.xlsx`，但 live codegen 输入应以 `api.xml` 为准。ORM 模型仍可按场景使用 XML 或 Excel。
+说明：外部应用的 API 模型默认优先维护为 `.api.xml`，便于文本化审阅和 AI 编辑；如需保留 Excel 展示或导出，可同时保留 `.api.xlsx`，但 live codegen 输入应以 `api.xml` 为准。ORM 模型仍可按场景使用 XML 或 Excel。
 
 ### 2. 再走 codegen / meta / web 生成链
 
-真实入口：
+codegen 入口通常在 `*-codegen` 和 `*-web` 的测试目录中：
 
-1. `app-mall-codegen/src/test/java/app/mall/codegen/AppMallCodeGen.java`
-2. `app-mall-web/src/test/java/app/mall/web/AppMallWebCodeGen.java`
+1. `app-xxx-codegen/src/test/java/.../XxxCodeGen.java`
+2. `app-xxx-web/src/test/java/.../XxxWebCodeGen.java`
 
 这两个文件直接展示了：
 
@@ -58,29 +55,22 @@
 
 典型例子：
 
-1. `app-mall-dao/src/main/resources/_vfs/app/mall/orm/app.orm.xml`
+1. `app-xxx-dao/src/main/resources/_vfs/.../orm/app.orm.xml`
    只做 `x:extends="_app.orm.xml"` 的薄扩展。
-2. `app-mall-meta/src/main/resources/_vfs/app/mall/model/LitemallGoods/LitemallGoods.xmeta`
+2. `app-xxx-meta/src/main/resources/_vfs/.../model/Xxx/Xxx.xmeta`
    只覆盖 `insertable` / `updatable` 等局部属性。
-3. `app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
-   继承 `_gen/_LitemallGoods.view.xml` 后做保留层定制。
+3. `app-xxx-web/src/main/resources/_vfs/.../pages/Xxx/Xxx.view.xml`
+   继承 `_gen/_Xxx.view.xml` 后做保留层定制。
 
 ### 4. 服务层仍以 BizModel 为中心
 
-参考：`app-mall-service/src/main/java/app/mall/service/entity/LitemallGoodsBizModel.java`
-
-这个类展示了外部应用里最常见的 3 类定制：
+外部应用里最常见的 3 类定制：
 
 1. 覆盖 `defaultPrepareQuery(...)` 做查询条件转换。
 2. 覆盖 `defaultPrepareSave(...)` 做保存前同步字段。
 3. 覆盖 `defaultPrepareUpdate(...)` 做更新后联动处理。
 
 ### 5. 集成接口与实现分离
-
-参考：
-
-1. `app-mall-api/src/main/java/app/mall/pay/PayService.java`
-2. `app-mall-wx/src/main/resources/_vfs/app/mall/beans/app-wx.beans.xml`
 
 默认模式：
 
@@ -92,20 +82,9 @@
 
 ### 1. 覆盖平台内置模块
 
-参考：
+外部应用并不只是开发自己的 `app/...` 资源，也经常要通过 `_delta/default/nop/...` 覆盖平台已有模块。
 
-1. `app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml`
-2. `app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml`
-
-这说明外部应用并不只是开发自己的 `app/...` 资源，也经常要通过 `_delta/default/nop/...` 覆盖平台已有模块。
-
-### 2. 外部应用前端通常是“生成 + 保留层 + 少量 page.yaml 包装”
-
-参考：
-
-1. `app-mall-web/.../LitemallGoods/LitemallGoods.view.xml`
-2. `app-mall-web/.../LitemallGoods/attributes.page.yaml`
-3. `app-mall-web/.../LitemallGoods/add.page.yaml`
+### 2. 外部应用前端通常是"生成 + 保留层 + 少量 page.yaml 包装"
 
 默认顺序：
 

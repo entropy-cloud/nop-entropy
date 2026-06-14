@@ -43,25 +43,19 @@
 
 ## 最值得抄的真实链路
 
-`C:/can/nop/nop-app-mall` 的 `LitemallGoods`
+典型链路（以父表 `Xxx` 编辑子表为例）：
 
-1. ORM relation：
-   `app-mall-dao/src/main/resources/_vfs/app/mall/orm/_app.orm.xml`
-2. 生成 XMeta：
-   `app-mall-meta/src/main/resources/_vfs/app/mall/model/LitemallGoods/_LitemallGoods.xmeta`
-3. 保留层 XMeta：
-   `app-mall-meta/src/main/resources/_vfs/app/mall/model/LitemallGoods/LitemallGoods.xmeta`
-4. 父页面：
-   `app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
-5. 外部子表 view：
-   `app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoodsProduct/LitemallGoodsProduct.view.xml`
+1. ORM relation：在 `*.orm.xml` 中声明 `to-many` 关系。
+2. 生成 XMeta：在 `_Xxx.xmeta` 中生成 `sub-grid-edit` / `sub-grid-view` 能力。
+3. 保留层 XMeta：在 `Xxx.xmeta` 中明确开放插入和更新。
+4. 父页面：`Xxx.view.xml` 中用 `input-table`、外部 `view`、外部 `page.yaml` 三种方式接入子表。
 
-这个例子里：
+这个链路展示了：
 
-1. ORM 先声明 `attributes/products/specifications` 三个 `to-many`。
-2. XMeta 为它们生成 `sub-grid-edit` / `sub-grid-view` 能力。
-3. 保留层 XMeta 再明确开放插入和更新。
-4. 页面里分别用 `input-table`、外部 `view`、外部 `page.yaml` 三种方式接入子表。
+1. ORM 先声明关系。
+2. XMeta 为关系生成编辑/查看能力。
+3. 保留层 XMeta 再明确开放操作权限。
+4. 页面里用不同方式接入子表编辑。
 
 ## 常见坑
 

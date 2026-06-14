@@ -37,17 +37,15 @@ public void refund(@Name("id") String id, IServiceContext context) {
 
 ## 最值得抄的真实链路
 
-`C:/can/nop/nop-app-mall` 的 `LitemallAftersale`
+典型链路（以父表 `Xxx` 上的业务动作为例）：
 
-1. 页面动作：
-   `app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
-2. BizModel 实现：
-   `app-mall-service/src/main/java/app/mall/service/entity/LitemallAftersaleBizModel.java`
+1. 页面动作：在 `Xxx.view.xml` 中定义 `batchApprove`、`batchReject` 等动作。
+2. BizModel 实现：在 `XxxBizModel.java` 中对应有 `@BizMutation` 方法。
 
-这个例子里：
+这个链路展示了：
 
-1. 页面定义了 `batchApprove`、`batchReject`、`refund` 三类动作。
-2. 页面通过 `@mutation:LitemallAftersale__...` 直接调 BizModel。
+1. 页面定义动作按钮。
+2. 页面通过 `@mutation:Xxx__...` 直接调 BizModel。
 3. BizModel 里对应有 `@BizMutation` 方法。
 4. 按钮的出现范围由页面结构和所在 tab/filter 共同约束。
 

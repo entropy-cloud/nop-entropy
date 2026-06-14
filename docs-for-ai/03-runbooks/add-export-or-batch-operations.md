@@ -55,8 +55,6 @@
    适合看：批量发布、导入、批量导出、单行导出、关联模块批量增删。
 2. `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml`
    适合看：picker + batch add + batch delete + reload。
-3. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
-   适合看：派生 tab 页上的 batch approve / batch reject。
 
 ## 常见坑
 

@@ -43,8 +43,6 @@
    适合看：`editor`、`input-kv`、`condition-builder`。
 3. `nop-dyn/nop-dyn-web/src/main/resources/_vfs/nop/dyn/pages/NopDynEntityMeta/NopDynEntityMeta.view.xml`
    适合看：列表列用 `gen-control` 打开 schemaApi 对话框测试页面。
-4. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
-   适合看：`input-table`、外部 page 片段、子表编辑控件。
 
 ## 常见坑
 
