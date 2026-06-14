@@ -1,6 +1,6 @@
 # 178 nop-ai-agent IPostDenialGuard + PassThroughPostDenialGuard + FingerprintPostDenialGuard (L3-7)
 
-> **Plan Status**: active
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: L3-7
 
@@ -175,10 +175,10 @@ Exit Criteria:
 - [x] `PassThroughPostDenialGuard` 默认向后兼容，现有全部测试通过
 - [x] 不存在被静默降级到 deferred 的 in-scope live defect 或 contract drift
 - [x] 受影响的 owner docs（设计 §6.3 + IApprovalGate/IDenialLedger Javadoc）已同步到 live baseline
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**: closure audit 验证 (a) `checkBeforeDispatch` 和 `recordDeniedAction` 在 dispatch loop 中确实被调用（不只是组件被传递），(b) consultation deny 路径有审计 + 事件 + error response + ledger 记录（非静默跳过），(c) 端到端路径从 request 到 blind-retry-blocked 完整走通——场景 A + B + C 均验证，(d) `PassThroughPostDenialGuard` 默认下 0 spurious 拒绝
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**: closure audit 验证 (a) `checkBeforeDispatch` 和 `recordDeniedAction` 在 dispatch loop 中确实被调用（不只是组件被传递），(b) consultation deny 路径有审计 + 事件 + error response + ledger 记录（非静默跳过），(c) 端到端路径从 request 到 blind-retry-blocked 完整走通——场景 A + B + C 均验证，(d) `PassThroughPostDenialGuard` 默认下 0 spurious 拒绝
 - [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过
+- [x] checkstyle / 代码规范检查通过（`./mvnw compile` + `./mvnw test` BUILD SUCCESS）
 
 ## Deferred But Adjudicated
 
@@ -213,3 +213,33 @@ Exit Criteria:
 - `DenialReason` 完整枚举穷举（后续按需扩展）
 - fingerprint 碰撞处理（更长指纹或多级 hash——session 级别碰撞概率可忽略）
 - `ISandboxBackend`（Layer 4 隔离执行——纵深防御链的下一节点）
+
+## Closure
+
+Status Note: Plan 178 完成 Layer 3 纵深防御链的最后一个节点（`IPostDenialGuard` 盲重试阻止）。契约表面（`IPostDenialGuard` + `DenialResult` + `DenialReason` + `DenialSuggestedStep` + `ActionFingerprint` + `PassThroughPostDenialGuard` + `FingerprintPostDenialGuard`）+ 引擎接线（`DefaultAgentEngine` field/setter/getter + `ReActAgentExecutor.Builder` + `resolveExecutor` 传递）+ dispatch-path 集成（pre-Layer-1 consultation + 6 个 deny 路径 fingerprint recording）全部落地。端到端验证证明：`FingerprintPostDenialGuard` 注册后盲重试在 Layer 1 之前被拦截（场景 A/B），参数变化（legitimate follow-up）自动放行（场景 C）；`PassThroughPostDenialGuard` 默认下 0 spurious 拒绝（向后兼容）。所有 deferred 项已裁定为 non-blocking out-of-scope improvements。
+Completed: 2026-06-14
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: independent closure-audit subagent (task_id `ses_13a960ae0ffecHUgm7IjFMILlh`, general type, fresh session)
+- Audit Session: `ses_13a960ae0ffecHUgm7IjFMILlh`
+- Evidence:
+  - **Phase 1 Exit Criteria**: PASS — 7 contract files 存在于 `io.nop.ai.agent.security` 包；`DenialLayerSource.LAYER3_POST_DENIAL_GUARD` 存在（`DenialLayerSource.java:31`）；4 个 Phase 1 测试文件存在且非平凡（43 tests）
+  - **Phase 2 Exit Criteria**: PASS — `DefaultAgentEngine.java:94` field + `:422` setter (null-fallback) + `:432` getter + `:812` resolveExecutor 传递；`ReActAgentExecutor.java:409` Builder method + `:197` 构造器 null-default；dispatch loop `:661` consultation 在 `:690` Layer 1 之前；`:663-688` consultation deny 路径有 audit+event+error+ledger；`:996` recordDeniedAction 在 handleDenialAndCheckThreshold 内覆盖全部 6 个 deny 点
+  - **Closure Gates**: 全部 PASS — 见上方勾选状态
+  - **端到端验证 (Anti-Hollow #22)**: PASS — `TestDispatchPathPostDenialGuard` 场景 A 断言 `tools.checkCount==1`（Layer 1 仅调一次，第 2 个盲重试被 guard 拦截）；场景 B 断言 `tools.checkCount<=1`；场景 C 断言 `tools.checkCount==2`（不同参数 → 不同 fingerprint → Layer 1 正常执行）
+  - **接线验证 (Anti-Hollow #23)**: PASS — `CountingFingerprintGuard` 的 `consultCount`/`recordCount` AtomicInteger 计数器在测试中断言 > 0，证明 guard 方法在 dispatch loop 运行时确实被调用（非仅组件被传递）
+  - **无静默跳过 (Anti-Hollow #24)**: PASS — consultation deny 路径有 audit+event+error response（非 silent continue）；`PassThroughPostDenialGuard` 方法有显式语义 Javadoc（非 bare empty body）；`FingerprintPostDenialGuard` sessionId=null 有显式注释
+  - **向后兼容**: PASS — `PassThroughPostDenialGuard` 默认下 1144 tests 全部通过，0 spurious guard-deny
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/178-nop-ai-agent-post-denial-guard.md --strict` → exit 0
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai/nop-ai-agent --severity high` → 无 L3-7 文件被标记（14 个发现全部是 pre-existing 的 UnsupportedOperationException，位于 memory/session 模块，非本计划文件）
+  - `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` → 1144 tests, 0 failures, 0 errors（+50 新增 = Phase1 43 + Phase2 7）
+  - Deferred 项分类检查：3 个 deferred 项全部为 `out-of-scope improvement`，无 in-scope live defect 被降级
+
+Follow-up:
+
+- `DenialFollowUpTag` 显式检测（推理文本分析 / tool-call metadata 标注）
+- `DenialResult` 的 ReAct 循环消费策略（自动 replan / ask-user）
+- 跨 session fingerprint 持久化（DB-backed guard，与 `DBDenialLedger` successor 合并）
+- post-denial-guard XDSL（§9 Layer 3 渐进式增强）
+- `ISandboxBackend`（Layer 4 — 纵深防御链的下一节点）

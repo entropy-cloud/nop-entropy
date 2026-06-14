@@ -174,9 +174,10 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L2-10 | `IModelRouter` 接口 + `PassThroughModelRouter` | L1-5 | ✅ |
 | L2-11 | `ITalent` 动态准入扩展点 | L1-5 | ✅ |
 | L2-12 | `IAgentLifecycleHook` 10 点生命周期 | L1-5 | ✅ |
-| L2-13 | `ISecurityLevelResolver` 接口 + `NoOpSecurityLevelResolver` | L1-6 | ❌ |
+| L2-13 | `ISecurityLevelResolver` 接口 + `NoOpSecurityLevelResolver` | L1-6 | ✅ |
 | L2-13a | `IConflictStrategy` 冲突解决策略接口 + `FailFastStrategy` 默认实现 | L1-1 | ❌ |
-| L2-14 | `IPermissionMatrix` 接口 + `PassThroughPermissionMatrix` | L1-6 | ❌ |
+| L2-14 | `IPermissionMatrix` 接口 + `PassThroughPermissionMatrix` | L1-6 | ✅ |
+| L2-14a | Dispatch-path 咨询集成（L2-13/L2-14 → ReAct 分发路径：`ILevelHintsProducer` + channel/principal 传播 + `checkLayer2Consultation`） | L2-13, L2-14 | ✅ |
 | L2-15 | Working Memory 工具实现 (read-memory/write-memory/search-memory) | L1-10, L1-5 | ❌ |
 | L2-16 | Token 计数 — `ILlmDialect.estimateTokens()` (default chars/4) + Provider usage 校准 | L1-4, nop-ai-core | ✅ |
 
@@ -194,9 +195,9 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L3-2 | `IRetryPolicy` 接口 + `NoRetry` 默认 + `StandardRetryPolicy` | L1-5 | ❌ |
 | L3-3 | `IGoalTracker` 接口 + `NoOpGoalTracker` + `SessionGoalTracker` | L1-10 | ❌ |
 | L3-4 | `ICheckpointManager` 接口 + `NoOpCheckpoint` + `ToolExecutionCheckpoint` | L1-10 | ❌ |
-| L3-5 | `IApprovalGate` 接口 + `AutoApproveGate` | L1-6 | ❌ |
-| L3-6 | `IDenialLedger` 接口 + `NoOpDenialLedger` + `DBDenialLedger` | L1-6 | ❌ |
-| L3-7 | `IPostDenialGuard` 接口 + `PassThroughPostDenialGuard` + `FingerprintPostDenialGuard` | L3-6 | ❌ |
+| L3-5 | `IApprovalGate` 接口 + `AutoApproveGate` | L1-6 | ✅ |
+| L3-6 | `IDenialLedger` 接口 + `NoOpDenialLedger` + `DBDenialLedger` | L1-6 | ✅ |
+| L3-7 | `IPostDenialGuard` 接口 + `PassThroughPostDenialGuard` + `FingerprintPostDenialGuard` | L3-6 | ✅ |
 | L3-8 | `ISustainer` 接口 + `NoOpSustainer` + `SisypheanSustainer` | 与 L3-1 互斥（设计决策：选熔断或自愈） | ❌ |
 | L3-9 | `IContextCompactor` 完整 5 层管道 + `ICompressionStrategy` 扩展点 | L2-4, L2-16 | ✅ |
 
@@ -215,7 +216,8 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L4-1b | `call-agent` 工具（fork+exec via `IAgentEngine.execute()`）+ `send-message` 工具（fire-and-forget via `IAgentMessenger.send()`）+ 工具上下文增强（`AgentToolExecuteContext`） | L4-1, L1-1 | ✅ |
 | L4-1c (sec-4.4) | Sub-agent permission inheritance enforcement: `ParentPermissionConstraint` + `ParentConstrainedToolAccessChecker` — 子 Agent 工具权限 = 父权限 ∩ 子配置（fail-closed，nested delegation clamped-set 传播） | L4-1b, L1-7 | ✅ |
 | L4-1d (sec-4.4) | Sub-agent path-permission inheritance: `ParentPermissionConstraint` (extended with `allowedPathRoots`) + `ParentConstrainedPathAccessChecker` + `AgentModel.workDir` (DSL) — 子 Agent 文件权限 = 父权限 ∩ 子配置（fail-closed，nested delegation clamped-root 传播，workDir-derived scope source） | L4-1c, L1-8 | ✅ |
-| L4-2 | `IMessageService` `DBMessageService` (跨进程路由) | L4-1, nop-dao | ❌ |
+| L4-1e (sec-4.3) | Per-agent glob path-rules: `PathRuleModel` (DSL `<path-rules>`) + `PathAccessDecision` enum + `RuleBasedPathAccessChecker` (first-match-wins) + `ParentPermissionConstraint` (extended with `allowedPathRules`) + `ParentConstrainedPathAccessChecker` (cross-level deny-wins) — per-agent glob allow/deny 规则评估 + 跨委派层 deny-wins 继承 | L4-1d, L1-8 | ✅ |
+| L4-2 | `IMessageService` `DBMessageService` (跨进程路由) | L4-1, nop-dao | ✅ |
 | L4-3 | `IMemoryAdapter` 三适配器 (Storage / Embedding / Vector) | L2-15 | ❌ |
 | L4-4 | `ISkillCurator` `LLMCurator` (技能生命周期) | L2-11 | ✅ |
 | L4-5 | `IMailbox` `DeferredAckMailbox` (3-phase reservation) | L1-1 | ❌ |
