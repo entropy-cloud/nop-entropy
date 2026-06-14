@@ -4,6 +4,9 @@ import io.nop.ai.agent.compact.CompactionContext;
 import io.nop.ai.agent.compact.IContextCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.compact.ToolResultTruncator;
+import io.nop.ai.agent.completion.CompletionDecision;
+import io.nop.ai.agent.completion.ICompletionJudge;
+import io.nop.ai.agent.completion.NoOpCompletionJudge;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.ai.agent.guardrail.GuardrailResult;
 import io.nop.ai.agent.guardrail.IContentGuardrail;
@@ -15,6 +18,8 @@ import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
 import io.nop.ai.agent.hook.IHookRegistry;
 import io.nop.ai.agent.hook.NoOpHookRegistry;
+import io.nop.ai.agent.message.IAgentMessenger;
+import io.nop.ai.agent.repair.ChainRepairer;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.repair.NoOpToolCallRepairer;
 import io.nop.ai.agent.router.IModelRouter;
@@ -34,15 +39,22 @@ import io.nop.ai.agent.security.IPathAccessChecker;
 import io.nop.ai.agent.security.IPermissionProvider;
 import io.nop.ai.agent.security.IToolAccessChecker;
 import io.nop.ai.agent.security.NoOpAuditLogger;
+import io.nop.ai.agent.security.ParentPermissionConstraint;
 import io.nop.ai.agent.security.PathAccessResult;
 import io.nop.ai.agent.security.Permission;
 import io.nop.ai.agent.security.ToolAccessResult;
+import io.nop.ai.agent.skill.ISkillProvider;
+import io.nop.ai.agent.skill.NoOpSkillProvider;
+import io.nop.ai.agent.skill.SkillAssemblyResult;
+import io.nop.ai.agent.skill.SkillResolver;
+import io.nop.ai.agent.talent.ITalent;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
@@ -57,7 +69,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +83,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(ReActAgentExecutor.class);
 
     public static final int DEFAULT_MAX_REENTRIES = 3;
+    public static final int DEFAULT_MAX_COMPLETION_CONTINUES = 3;
     public static final double DEFAULT_TRIGGER_TOKEN_PERCENT = 0.8;
     public static final int DEFAULT_TRIGGER_MAX_MESSAGES = 30;
     public static final int DEFAULT_MAX_CONTEXT_TOKENS = 128000;
@@ -86,6 +101,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IContentGuardrail contentGuardrail;
     private final IModelRouter modelRouter;
     private final ITokenEstimator tokenEstimator;
+    private final ICompletionJudge completionJudge;
+    private final List<ITalent> talents;
+    private final ISkillProvider skillProvider;
+    private final IAgentEngine engine;
+    private final IAgentMessenger messenger;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -98,7 +118,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                IContextCompactor contextCompactor,
                                IContentGuardrail contentGuardrail,
                                IModelRouter modelRouter,
-                               ITokenEstimator tokenEstimator) {
+                               ITokenEstimator tokenEstimator,
+                               ICompletionJudge completionJudge,
+                               List<ITalent> talents,
+                               ISkillProvider skillProvider,
+                               IAgentEngine engine,
+                               IAgentMessenger messenger) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -112,6 +137,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.contentGuardrail = contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp();
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
         this.tokenEstimator = tokenEstimator != null ? tokenEstimator : CalibratedTokenEstimator.defaultInstance();
+        this.completionJudge = completionJudge != null ? completionJudge : NoOpCompletionJudge.noOp();
+        this.talents = talents != null ? List.copyOf(talents) : List.of();
+        this.skillProvider = skillProvider != null ? skillProvider : NoOpSkillProvider.noOp();
+        this.engine = engine;
+        this.messenger = messenger;
     }
 
     public static Builder builder() {
@@ -132,6 +162,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IContentGuardrail contentGuardrail;
         private IModelRouter modelRouter;
         private ITokenEstimator tokenEstimator;
+        private ICompletionJudge completionJudge;
+        private List<ITalent> talents;
+        private ISkillProvider skillProvider;
+        private IAgentEngine engine;
+        private IAgentMessenger messenger;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -178,6 +213,20 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Opt in to the 4-stage {@link ChainRepairer}, wired with this
+         * Builder's {@code toolManager}. The {@code toolManager} must be set
+         * before calling this method. The default remains
+         * {@code NoOpToolCallRepairer.INSTANCE} when this method is not called.
+         */
+        public Builder enableChainRepairer() {
+            if (toolManager == null) {
+                throw new NopAiAgentException("toolManager must be set before enabling ChainRepairer");
+            }
+            this.toolCallRepairer = ChainRepairer.withDefaults(toolManager);
+            return this;
+        }
+
         public Builder contextCompactor(IContextCompactor contextCompactor) {
             this.contextCompactor = contextCompactor;
             return this;
@@ -195,6 +244,43 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
         public Builder tokenEstimator(ITokenEstimator tokenEstimator) {
             this.tokenEstimator = tokenEstimator;
+            return this;
+        }
+
+        public Builder completionJudge(ICompletionJudge completionJudge) {
+            this.completionJudge = completionJudge;
+            return this;
+        }
+
+        public Builder talents(List<ITalent> talents) {
+            this.talents = talents;
+            return this;
+        }
+
+        public Builder skillProvider(ISkillProvider skillProvider) {
+            this.skillProvider = skillProvider;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IAgentEngine} self-reference so that engine-aware
+         * tools (call-agent) can execute sub-agents. Optional: when null
+         * (e.g. executor constructed outside the engine for testing),
+         * engine-aware tools fail fast at execution time. The engine is the
+         * only production caller of the Builder and always passes itself.
+         */
+        public Builder engine(IAgentEngine engine) {
+            this.engine = engine;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IAgentMessenger} so that engine-aware tools
+         * (send-message) can deliver inter-agent messages. Optional: when null,
+         * messenger-aware tools fail fast at execution time.
+         */
+        public Builder messenger(IAgentMessenger messenger) {
+            this.messenger = messenger;
             return this;
         }
 
@@ -218,7 +304,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     contextCompactor != null ? contextCompactor : NoOpContextCompactor.INSTANCE,
                     contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp(),
                     modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough(),
-                    tokenEstimator != null ? tokenEstimator : CalibratedTokenEstimator.defaultInstance()
+                    tokenEstimator != null ? tokenEstimator : CalibratedTokenEstimator.defaultInstance(),
+                    completionJudge != null ? completionJudge : NoOpCompletionJudge.noOp(),
+                    talents,
+                    skillProvider,
+                    engine,
+                    messenger
             );
         }
     }
@@ -236,9 +327,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 Map.of("agentName", agentName != null ? agentName : ""));
 
         List<ChatToolDefinition> toolDefs = buildToolDefinitions(agentModel);
+        consultTalents(ctx, toolDefs);
+        consultSkills(ctx, agentModel, toolDefs);
         ChatOptions options = buildChatOptions(agentModel.getChatOptions(), toolDefs);
 
         Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
+
+        int consecutiveContinues = 0;
 
         try {
             HookResult preCallResult = invokeHooks(AgentLifecyclePoint.PRE_CALL, ctx, agentName, null, null);
@@ -336,12 +431,56 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 }
 
                 if (!assistantMsg.hasToolCalls()) {
+                    CompletionDecision decision = completionJudge.decide(assistantMsg, ctx);
+
+                    if (decision.isComplete()) {
+                        ctx.setStatus(AgentExecStatus.completed);
+                        break;
+                    }
+
+                    if (decision.isContinue()) {
+                        if (consecutiveContinues >= DEFAULT_MAX_COMPLETION_CONTINUES) {
+                            LOG.warn("Completion-judge dead-loop protection: {} consecutive Continue decisions, force-exiting loop. session={}",
+                                    DEFAULT_MAX_COMPLETION_CONTINUES, sessionId);
+                            ctx.setStatus(AgentExecStatus.completed);
+                            break;
+                        }
+                        String continuationMessage = ((CompletionDecision.Continue) decision).getMessage();
+                        ctx.addMessage(new ChatUserMessage(
+                                continuationMessage != null ? continuationMessage : ""));
+                        consecutiveContinues++;
+                        ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+                        continue;
+                    }
+
+                    if (decision.isEscalate()) {
+                        String reason = ((CompletionDecision.Escalate) decision).getReason();
+                        ctx.setStatus(AgentExecStatus.escalated);
+                        ctx.setLastError(reason);
+                        ctx.getMetadata().put("completion.escalateReason",
+                                reason != null ? reason : "");
+                        consecutiveContinues = 0;
+                        break;
+                    }
+
                     ctx.setStatus(AgentExecStatus.completed);
                     break;
                 }
 
-                SimpleToolExecuteContext toolExecCtx = new SimpleToolExecuteContext(
-                        new File("."), null, null);
+                consecutiveContinues = 0;
+
+                AgentToolExecuteContext toolExecCtx = new AgentToolExecuteContext(
+                        new File("."),
+                        Collections.emptyMap(),
+                        0L,
+                        null,
+                        null,
+                        null,
+                        engine,
+                        messenger,
+                        sessionId,
+                        agentName,
+                        computeEffectiveAllowedTools(agentModel, ctx));
 
                 List<ChatToolCall> allowedCalls = new ArrayList<>();
 
@@ -498,7 +637,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
             }
 
             if (ctx.getStatus() != AgentExecStatus.cancelled
-                    && ctx.getStatus() != AgentExecStatus.forced_stopped) {
+                    && ctx.getStatus() != AgentExecStatus.forced_stopped
+                    && ctx.getStatus() != AgentExecStatus.escalated) {
                 invokeHooks(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
 
                 Map<String, Object> completedPayload = new HashMap<>();
@@ -764,16 +904,174 @@ public class ReActAgentExecutor implements IAgentExecutor {
             if (toolModel == null)
                 continue;
 
-            Map<String, Object> parameters = ToolSchemaConverter.convert(toolModel.getSchema());
-            ChatToolDefinition def;
-            if (parameters != null) {
-                def = ChatToolDefinition.of(toolModel.getName(), toolModel.getDescription(), parameters);
-            } else {
-                def = ChatToolDefinition.of(toolModel.getName(), toolModel.getDescription());
-            }
-            defs.add(def);
+            defs.add(toToolDefinition(toolModel));
         }
         return defs;
+    }
+
+    /**
+     * Compute the current agent's <b>effective (clamped)</b> allowed tool set,
+     * propagated to engine-aware tools (e.g. {@code call-agent}) via
+     * {@link AgentToolExecuteContext#getAllowedTools()} for sub-agent
+     * permission inheritance (design §4.4: 工具权限 = 父权限 ∩ 子配置).
+     *
+     * <p>Clamping rule:
+     * <ul>
+     *   <li>If an incoming parent constraint is present in the execution
+     *       context metadata (key
+     *       {@link ParentPermissionConstraint#METADATA_KEY}), the effective set
+     *       is the intersection of the parent's allowed tool set and the
+     *       current agent's <b>declared</b> tool set
+     *       ({@link AgentModel#getTools()}). This is what makes nested
+     *       delegation safe: a middle agent B's effective set is already
+     *       clamped to A's constraint, so when B delegates to C, C inherits
+     *       B's clamped set rather than B's declared set.</li>
+     *   <li>If no parent constraint is present (top-level agent), the
+     *       effective set equals the declared set unchanged.</li>
+     * </ul>
+     *
+     * @return the effective tool set; never null (an agent with no declared
+     *         tools yields an empty set)
+     */
+    private Set<String> computeEffectiveAllowedTools(AgentModel agentModel, AgentExecutionContext ctx) {
+        Set<String> declared = agentModel.getTools();
+        if (declared == null) {
+            declared = Collections.emptySet();
+        }
+
+        ParentPermissionConstraint parentConstraint = null;
+        if (ctx.getMetadata() != null) {
+            Object raw = ctx.getMetadata().get(ParentPermissionConstraint.METADATA_KEY);
+            if (raw instanceof ParentPermissionConstraint) {
+                parentConstraint = (ParentPermissionConstraint) raw;
+            }
+        }
+
+        if (parentConstraint == null) {
+            return new HashSet<>(declared);
+        }
+
+        Set<String> parentAllowed = parentConstraint.getAllowedTools();
+        Set<String> effective = new HashSet<>(declared);
+        effective.retainAll(parentAllowed);
+        return effective;
+    }
+
+    private static ChatToolDefinition toToolDefinition(AiToolModel toolModel) {
+        Map<String, Object> parameters = ToolSchemaConverter.convert(toolModel.getSchema());
+        if (parameters != null) {
+            return ChatToolDefinition.of(toolModel.getName(), toolModel.getDescription(), parameters);
+        }
+        return ChatToolDefinition.of(toolModel.getName(), toolModel.getDescription());
+    }
+
+    /**
+     * Consult registered talents once at execution setup (before the first LLM
+     * call). For each talent whose admission gate passes, fire its activation
+     * callback, then merge its dynamic instruction fragment into the
+     * system-prompt context and its dynamic tool set (resolved through the
+     * existing {@code IToolManager} pipeline) into {@code toolDefs}. All merges
+     * are additive; an inactive talent is excluded only because its gate
+     * explicitly returned false.
+     */
+    private void consultTalents(AgentExecutionContext ctx, List<ChatToolDefinition> toolDefs) {
+        if (talents.isEmpty()) {
+            return;
+        }
+
+        List<String> instructions = new ArrayList<>();
+        List<String> talentToolNames = new ArrayList<>();
+
+        for (ITalent talent : talents) {
+            if (talent.isSupported(ctx)) {
+                talent.onAttach(ctx);
+                String instruction = talent.getInstruction(ctx);
+                if (instruction != null && !instruction.isEmpty()) {
+                    instructions.add(instruction);
+                }
+                List<String> tools = talent.getTools(ctx);
+                if (tools != null) {
+                    talentToolNames.addAll(tools);
+                }
+            }
+        }
+
+        for (String toolName : talentToolNames) {
+            AiToolModel toolModel = toolManager.loadTool(toolName);
+            if (toolModel == null) {
+                LOG.warn("Talent-provided tool not found in registry, skipping: toolName={} session={}",
+                        toolName, ctx.getSessionId());
+            } else {
+                toolDefs.add(toToolDefinition(toolModel));
+            }
+        }
+
+        if (!instructions.isEmpty()) {
+            injectSystemInstruction(ctx, String.join("\n\n", instructions));
+        }
+    }
+
+    private void injectSystemInstruction(AgentExecutionContext ctx, String instruction) {
+        List<ChatMessage> messages = ctx.getMessages();
+        int insertAt = 0;
+        while (insertAt < messages.size() && messages.get(insertAt) instanceof ChatSystemMessage) {
+            insertAt++;
+        }
+        messages.add(insertAt, new ChatSystemMessage(instruction));
+    }
+
+    /**
+     * Consult the skill resolver once at execution setup (before the first LLM
+     * call, alongside {@link #consultTalents}). Resolves the agent's
+     * {@code availableSkills} / {@code requiredSkills} declarations against the
+     * registered {@link ISkillProvider}, then merges:
+     * <ul>
+     *   <li>Skill instruction fragments (goals) → system-prompt context via
+     *       {@link #injectSystemInstruction} (additive to agent prompt and
+     *       talent instructions).</li>
+     *   <li>Skill tool-name dependencies → resolved through
+     *       {@code IToolManager.loadTool()} and merged into {@code toolDefs}
+     *       (additive to agent + talent tools, same access-check pipeline — no
+     *       parallel tool type). Missing tools are skipped with a warning, same
+     *       pattern as talent tools.</li>
+     *   <li>resourceScope → logged at DEBUG for observability (not enforced in
+     *       phase 1).</li>
+     * </ul>
+     *
+     * <p>A missing {@code requiredSkill} propagates the resolver's
+     * {@link NopAiAgentException} fail-fast before any LLM call. With the
+     * default {@link NoOpSkillProvider} (or no skills declared), this method
+     * resolves an empty assembly and injects nothing — backward compatible.
+     */
+    private void consultSkills(AgentExecutionContext ctx, AgentModel agentModel,
+                               List<ChatToolDefinition> toolDefs) {
+        SkillResolver resolver = new SkillResolver(skillProvider);
+        SkillAssemblyResult assembly = resolver.resolve(agentModel);
+
+        if (assembly.isEmpty()) {
+            return;
+        }
+
+        for (String toolName : assembly.getToolDependencies()) {
+            AiToolModel toolModel = toolManager.loadTool(toolName);
+            if (toolModel == null) {
+                LOG.warn("Skill-provided tool not found in registry, skipping: toolName={} skillNames={} session={}",
+                        toolName, assembly.getActivatedSkillNames(), ctx.getSessionId());
+            } else {
+                toolDefs.add(toToolDefinition(toolModel));
+            }
+        }
+
+        List<String> instructions = assembly.getInstructions();
+        if (!instructions.isEmpty()) {
+            injectSystemInstruction(ctx, String.join("\n\n", instructions));
+        }
+
+        if (LOG.isDebugEnabled() && !assembly.getResourceScope().isEmpty()) {
+            LOG.debug("Skill assembly resourceScope (collected for tracing, not enforced in phase 1): "
+                    + "scope={} activatedSkills={} session={}",
+                    assembly.getResourceScope(), assembly.getActivatedSkillNames(), ctx.getSessionId());
+        }
     }
 
     private ChatOptions buildChatOptions(ChatOptionsModel model, List<ChatToolDefinition> toolDefs) {

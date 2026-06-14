@@ -17,14 +17,6 @@ public class TestIAgentEngineDefaultMethods {
     private final IAgentEngine engine = new DefaultAgentEngine(null, null);
 
     @Test
-    void forkSessionThrowsUOE() {
-        AgentMessageRequest request = new AgentMessageRequest("test-agent", "hello");
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
-                () -> engine.forkSession(request, true));
-        assertEquals("forkSession requires Phase 2 ISessionStore", ex.getMessage());
-    }
-
-    @Test
     void getSessionStatusThrowsForUnknownSession() {
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> engine.getSessionStatus("non-existent-session"));

@@ -27,5 +27,7 @@ public enum AgentEventType {
 
     SESSION_CANCELLED,
 
+    SESSION_FORKED,
+
     FORCED_STOP
 }

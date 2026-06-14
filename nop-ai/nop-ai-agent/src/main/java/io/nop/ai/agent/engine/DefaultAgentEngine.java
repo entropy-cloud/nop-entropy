@@ -9,8 +9,11 @@ import io.nop.ai.agent.compact.PipelineCompactor;
 import io.nop.ai.agent.guardrail.IContentGuardrail;
 import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
+import io.nop.ai.agent.message.IAgentMessenger;
+import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
+import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
@@ -19,9 +22,18 @@ import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.IPathAccessChecker;
 import io.nop.ai.agent.security.IPermissionProvider;
 import io.nop.ai.agent.security.IToolAccessChecker;
+import io.nop.ai.agent.security.ParentConstrainedToolAccessChecker;
+import io.nop.ai.agent.security.ParentPermissionConstraint;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.ISessionStore;
+import io.nop.ai.agent.skill.ISkillProvider;
+import io.nop.ai.agent.skill.ISkillCurator;
+import io.nop.ai.agent.skill.NoOpSkillCurator;
+import io.nop.ai.agent.skill.NoOpSkillProvider;
+import io.nop.ai.agent.skill.SkillCurationResult;
+import io.nop.ai.agent.skill.SkillModel;
+import io.nop.ai.agent.talent.ITalent;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
@@ -54,6 +66,11 @@ public class DefaultAgentEngine implements IAgentEngine {
     private final IModelRouter modelRouter;
     private final IContextCompactor contextCompactor;
     private final ITokenEstimator tokenEstimator;
+    private List<ITalent> talents = java.util.Collections.emptyList();
+    private ISkillProvider skillProvider = NoOpSkillProvider.noOp();
+    private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
+    private IToolCallRepairer toolCallRepairer;
+    private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
 
@@ -143,6 +160,108 @@ public class DefaultAgentEngine implements IAgentEngine {
         return eventPublisher;
     }
 
+    /**
+     * Register the set of dynamic-admission talents ({@link ITalent}) passed to
+     * the executor on the ReAct path. Composition via the executor Builder —
+     * no constructor chain change. Default is an empty list (no talents), so
+     * engine behaviour is unchanged unless talents are explicitly registered.
+     */
+    public void setTalents(List<ITalent> talents) {
+        this.talents = talents != null ? talents : java.util.Collections.emptyList();
+    }
+
+    /**
+     * Register the {@link ISkillProvider} passed to the executor on the ReAct
+     * path. Composition via the executor Builder — no constructor chain change.
+     * Default is {@link NoOpSkillProvider} (discovers zero skills), so engine
+     * behaviour is unchanged unless a provider is explicitly registered.
+     */
+    public void setSkillProvider(ISkillProvider skillProvider) {
+        this.skillProvider = skillProvider != null ? skillProvider : NoOpSkillProvider.noOp();
+    }
+
+    /**
+     * Register the {@link ISkillCurator} used for on-demand skill quality
+     * evaluation. Composition via this setter — no constructor chain change.
+     * Default is {@link NoOpSkillCurator} (returns an empty curation result),
+     * so engine behaviour is unchanged unless a curator is explicitly
+     * registered. The curator is an on-demand analytical tool, not invoked
+     * during {@code ReActAgentExecutor.execute()} (design
+     * {@code skill-system-design.md} §5.5).
+     */
+    public void setSkillCurator(ISkillCurator skillCurator) {
+        this.skillCurator = skillCurator != null ? skillCurator : NoOpSkillCurator.noOp();
+    }
+
+    /**
+     * On-demand skill curation: source the skill registry from the registered
+     * {@link ISkillProvider}, invoke the registered {@link ISkillCurator}, and
+     * return the {@link SkillCurationResult} synchronously. The curator is
+     * advisory and non-mutating — it evaluates skill definitions and produces
+     * recommendations, never modifies them.
+     *
+     * <p>If no {@code ISkillProvider} is registered (defaults to
+     * {@code NoOpSkillProvider}), curation returns an empty success result
+     * (zero skills to assess).
+     *
+     * @return the curation result (never null); carries per-skill assessments,
+     *         registry-level observations, and metadata with a success/fail
+     *         marker
+     */
+    public SkillCurationResult curateSkills() {
+        java.util.Collection<SkillModel> skills = skillProvider.getSkills();
+        return skillCurator.curate(skills);
+    }
+
+    /**
+     * Register the {@link IToolCallRepairer} passed to the executor on the ReAct
+     * path. Composition via the executor Builder — no constructor chain change.
+     * Default is {@code null}, which causes the executor to default to
+     * {@code NoOpToolCallRepairer.INSTANCE}, so engine behaviour is unchanged
+     * unless a repairer is explicitly registered. Set to a
+     * {@link io.nop.ai.agent.repair.ChainRepairer} to opt in to 4-stage
+     * functional repair.
+     */
+    public void setToolCallRepairer(IToolCallRepairer toolCallRepairer) {
+        this.toolCallRepairer = toolCallRepairer;
+    }
+
+    /**
+     * Register the {@link IAgentMessenger} used for inter-agent messaging
+     * (request-response and fire-and-forget between agent endpoints). Composition
+     * via this setter — no constructor chain change. Default is
+     * {@link NoOpAgentMessenger#noOp()} (send is a debug-log no-op; request
+     * fails fast with {@code UnsupportedOperationException}), so engine
+     * behaviour is unchanged unless a messenger is explicitly registered. Set to
+     * a {@link io.nop.ai.agent.message.LocalAgentMessenger} backed by the
+     * platform {@code LocalMessageService} to opt in to inter-agent messaging.
+     *
+     * <p>The messenger is accessible to future tools (e.g. {@code call-agent},
+     * {@code send-message}) and the actor runtime (L4-8) via
+     * {@link #getMessenger()}.
+     */
+    public void setMessenger(IAgentMessenger messenger) {
+        this.messenger = messenger != null ? messenger : NoOpAgentMessenger.noOp();
+    }
+
+    /**
+     * Return the {@link IAgentMessenger} wired into this engine, or the
+     * {@link NoOpAgentMessenger} default if none was explicitly set.
+     */
+    public IAgentMessenger getMessenger() {
+        return messenger;
+    }
+
+    /**
+     * Test-only accessor for the engine's own tool access checker. Used by
+     * integration tests to verify that
+     * {@link #resolveEffectiveToolAccessChecker} wraps (or does not wrap) this
+     * checker based on request metadata.
+     */
+    IToolAccessChecker getToolAccessCheckerForTest() {
+        return this.toolAccessChecker;
+    }
+
     @Override
     public AgentExecStatus getSessionStatus(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
@@ -196,6 +315,43 @@ public class DefaultAgentEngine implements IAgentEngine {
         payload.put("reason", reason != null ? reason : "");
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_CANCELLED,
                 sessionId, agentName, payload));
+    }
+
+    @Override
+    public CompletableFuture<String> forkSession(AgentMessageRequest request, boolean inheritContext) {
+        String parentSessionId = request.getSessionId();
+        if (parentSessionId == null || parentSessionId.isEmpty()) {
+            throw new NopAiAgentException(
+                    "forkSession failed: request.sessionId is null or empty, cannot resolve parent session");
+        }
+
+        AgentSession parentSession = sessionStore.get(parentSessionId);
+        if (parentSession == null) {
+            throw new NopAiAgentException(
+                    "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
+        }
+
+        Map<String, Object> props = new HashMap<>();
+        if (request.getAgentName() != null && !request.getAgentName().isEmpty()) {
+            props.put("agentName", request.getAgentName());
+        }
+        if (request.getMetadata() != null && !request.getMetadata().isEmpty()) {
+            props.putAll(request.getMetadata());
+        }
+
+        String childSessionId = sessionStore.forkSession(parentSessionId, inheritContext, props);
+
+        Map<String, Object> eventPayload = new HashMap<>();
+        eventPayload.put("parentSessionId", parentSessionId);
+        eventPayload.put("childSessionId", childSessionId);
+        eventPayload.put("inheritContext", inheritContext);
+
+        AgentSession childSession = sessionStore.get(childSessionId);
+        String childAgentName = childSession != null ? childSession.getAgentName() : null;
+        eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_FORKED,
+                childSessionId, childAgentName, eventPayload));
+
+        return CompletableFuture.completedFuture(childSessionId);
     }
 
     private static final class CancelHandle {
@@ -262,7 +418,8 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         ctx.addMessage(new ChatUserMessage(request.getUserMessage()));
 
-        IAgentExecutor executor = resolveExecutor(agentModel);
+        IToolAccessChecker effectiveToolAccessChecker = resolveEffectiveToolAccessChecker(request);
+        IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker);
 
         return CompletableFuture.supplyAsync(() -> {
             session.setStatus(AgentExecStatus.running);
@@ -293,7 +450,46 @@ public class DefaultAgentEngine implements IAgentEngine {
         });
     }
 
+    /**
+     * Resolve the effective {@link IToolAccessChecker} for the current
+     * execution: if the request carries a parent permission constraint in its
+     * metadata (propagated by {@code call-agent}), wrap the engine's own
+     * {@code toolAccessChecker} with a {@link ParentConstrainedToolAccessChecker}
+     * scoped to this sub-agent execution. When no constraint is present
+     * (top-level agent), return the engine's own checker unchanged — backward
+     * compatible.
+     *
+     * <p>The wrapping is scoped to this execution only — it does not mutate the
+     * engine's own {@code toolAccessChecker} field.
+     *
+     * <p><b>Fail-fast</b>: if the metadata key is present but the value is not a
+     * {@link ParentPermissionConstraint} (malformed), throw
+     * {@link NopAiAgentException} — never silently ignore a malformed
+     * constraint.
+     */
+    IToolAccessChecker resolveEffectiveToolAccessChecker(AgentMessageRequest request) {
+        if (request.getMetadata() == null || request.getMetadata().isEmpty()) {
+            return this.toolAccessChecker;
+        }
+        Object raw = request.getMetadata().get(ParentPermissionConstraint.METADATA_KEY);
+        if (raw == null) {
+            return this.toolAccessChecker;
+        }
+        if (!(raw instanceof ParentPermissionConstraint)) {
+            throw new NopAiAgentException(
+                    "doExecute failed: metadata key '" + ParentPermissionConstraint.METADATA_KEY
+                            + "' is present but not a ParentPermissionConstraint (got: "
+                            + raw.getClass().getName() + ")");
+        }
+        ParentPermissionConstraint constraint = (ParentPermissionConstraint) raw;
+        return new ParentConstrainedToolAccessChecker(constraint, this.toolAccessChecker);
+    }
+
     IAgentExecutor resolveExecutor(AgentModel model) {
+        return resolveExecutor(model, this.toolAccessChecker);
+    }
+
+    IAgentExecutor resolveExecutor(AgentModel model, IToolAccessChecker toolAccessChecker) {
         String mode = model.getMode();
         if (mode == null || mode.isEmpty() || "react".equals(mode)) {
             DefaultHookRegistry hookRegistry = DefaultHookRegistry.fromAgentModel(model);
@@ -309,6 +505,11 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .contentGuardrail(contentGuardrail)
                     .modelRouter(modelRouter)
                     .tokenEstimator(tokenEstimator)
+                    .talents(talents)
+                    .skillProvider(skillProvider)
+                    .toolCallRepairer(toolCallRepairer)
+                    .engine(this)
+                    .messenger(messenger)
                     .build();
         }
         if ("single-turn".equals(mode)) {

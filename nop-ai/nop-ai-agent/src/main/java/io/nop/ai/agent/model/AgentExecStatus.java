@@ -11,5 +11,7 @@ public enum AgentExecStatus {
 
     cancelled,
 
-    forced_stopped
+    forced_stopped,
+
+    escalated
 }

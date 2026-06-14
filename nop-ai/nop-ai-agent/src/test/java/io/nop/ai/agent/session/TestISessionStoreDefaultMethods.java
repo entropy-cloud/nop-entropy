@@ -12,13 +12,6 @@ public class TestISessionStoreDefaultMethods {
     private final InMemorySessionStore store = new InMemorySessionStore();
 
     @Test
-    void forkSessionThrowsUOE() {
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
-                () -> store.forkSession("s1", true, Collections.emptyMap()));
-        assertEquals("forkSession requires VfsSessionStore", ex.getMessage());
-    }
-
-    @Test
     void appendEventThrowsUOE() {
         VfsEvent event = new VfsEvent("test", Collections.emptyMap(), System.currentTimeMillis());
         UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
