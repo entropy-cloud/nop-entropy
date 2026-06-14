@@ -5,13 +5,27 @@ import { execute } from "./executor.js";
 
 const IS_WIN32 = process.platform === "win32";
 
-function killTree(pid) {
+async function killTree(pid) {
   try {
     if (IS_WIN32) {
       execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore", timeout: 5_000 });
-    } else {
-      process.kill(-pid, "SIGKILL");
+      return;
     }
+    // Phase 1: SIGTERM - allow graceful shutdown (Effect finalizers, MCP cleanup)
+    process.kill(-pid, "SIGTERM");
+    // Phase 2: Wait up to 6s for the process group to exit
+    const deadline = Date.now() + 6000;
+    while (Date.now() < deadline) {
+      try {
+        process.kill(pid, 0);
+        await new Promise(r => setTimeout(r, 100));
+      } catch {
+        return; // process exited gracefully
+      }
+    }
+    // Phase 3: SIGKILL - force kill if still alive
+    process.stderr.write(`  [WARN] process group ${pid} did not exit after SIGTERM, sending SIGKILL\n`);
+    process.kill(-pid, "SIGKILL");
   } catch {}
 }
 
@@ -186,7 +200,7 @@ export async function createRunner(config) {
     runParseAgent: runAgent,
     async close() {
       if (currentPid) {
-        killTree(currentPid);
+        await killTree(currentPid);
         currentPid = null;
       }
     },
