@@ -49,11 +49,23 @@ async function closureScriptCheck(delegates, flowVars) {
     );
     const result = inspectPlan(planFile, { strict: false });
 
+    // NOTE: inspectPlan() returns { passed, file, planStatus, totalChecked,
+    // totalUnchecked, details, allUnchecked }. It does NOT expose isCompleted
+    // or hasClosureEvidence. The previous checks referenced those non-existent
+    // fields (always undefined), so SCRIPT_CHECK silently passed EVERY plan
+    // regardless of real state — which sent the auditor down the wrong branch
+    // and caused the EXECUTE <-> CLOSURE_VERIFY death loop.
+    //
+    // CLOSURE_VERIFY runs after EXECUTE, so every checklist item must be [x]
+    // by now. Any unchecked item means EXECUTE did not finish its bookkeeping
+    // (or the work itself) — surface it so the auditor can fix or send back.
     const coreIssues = [];
-    if (result.isCompleted && result.totalUnchecked > 0) {
-      coreIssues.push(`${result.totalUnchecked} unchecked items in completed plan`);
+    if (result.totalUnchecked > 0) {
+      coreIssues.push(
+        `${result.totalUnchecked} unchecked items remain after EXECUTE (every [ ] must become [x] before closure)`
+      );
     }
-    if (result.isCompleted && !result.hasClosureEvidence) {
+    if (result.planStatus === "completed" && result.details.includes("missing closure evidence")) {
       coreIssues.push("completed plan missing Closure evidence");
     }
 
