@@ -250,6 +250,18 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-job-coordinator</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-job-worker</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-job-dao</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
