@@ -4,6 +4,8 @@ import io.nop.ai.agent.model.AgentConstraintsModel;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.AgentPlanModel;
+import io.nop.ai.agent.security.ChannelKind;
+import io.nop.ai.agent.security.Principal;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.core.model.ChatOptionsModel;
 
@@ -28,6 +30,8 @@ public class AgentExecutionContext {
     private long startTimeMs;
     private volatile boolean cancelRequested;
     private volatile String cancelReason;
+    private ChannelKind channelKind;
+    private Principal principal;
 
     public AgentExecutionContext(AgentModel agentModel) {
         this.agentModel = agentModel;
@@ -168,5 +172,21 @@ public class AgentExecutionContext {
 
     public void setCancelReason(String cancelReason) {
         this.cancelReason = cancelReason;
+    }
+
+    public ChannelKind getChannelKind() {
+        return channelKind;
+    }
+
+    public void setChannelKind(ChannelKind channelKind) {
+        this.channelKind = channelKind;
+    }
+
+    public Principal getPrincipal() {
+        return principal;
+    }
+
+    public void setPrincipal(Principal principal) {
+        this.principal = principal;
     }
 }
