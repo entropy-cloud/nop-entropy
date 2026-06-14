@@ -39,5 +39,17 @@ public enum AgentEventType {
      * {@link #SESSION_CANCELLED} (user-initiated): paused is a governance
      * policy action triggered automatically by accumulated denials.
      */
-    SESSION_PAUSED
+    SESSION_PAUSED,
+
+    /**
+     * Session resumed by human intervention after a Layer 3 denial-ledger
+     * pause (design §6.2 {@code pauseBehavior = sticky}): an explicit
+     * {@code IAgentEngine.resumeSession(sessionId, approver, reason)} call
+     * cleared the pause (via {@code IDenialLedger.reset}) and re-executed the
+     * session. Semantically the inverse of {@link #SESSION_PAUSED} — paused
+     * is an automatic governance action, resumed is an explicit human
+     * recovery action. The event payload carries {@code approver},
+     * {@code reason}, and {@code preResetDenialCount} for audit trail.
+     */
+    SESSION_RESUMED
 }

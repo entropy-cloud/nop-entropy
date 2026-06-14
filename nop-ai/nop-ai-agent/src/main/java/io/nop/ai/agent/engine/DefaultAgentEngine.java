@@ -588,7 +588,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     java.util.Map.of("historyCount", historyCount)));
         }
 
-        AgentExecutionContext ctx = AgentExecutionContext.create(agentModel, sessionId);
+        AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
 
         if (request.getMetadata() != null) {
             ctx.getMetadata().putAll(request.getMetadata());
@@ -601,19 +601,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         ctx.setChannelKind(request.getChannelKind());
         ctx.setPrincipal(request.getPrincipal());
 
-        String systemPrompt = null;
-        if (agentModel.getPrompt() != null) {
-            systemPrompt = agentModel.getPrompt().getSource();
-        }
-
-        if (systemPrompt != null && !systemPrompt.isEmpty()) {
-            ctx.addMessage(new ChatSystemMessage(systemPrompt));
-        }
-
-        if (historyCount > 0) {
-            ctx.getMessages().addAll(session.getMessages());
-        }
-
         ctx.addMessage(new ChatUserMessage(request.getUserMessage()));
 
         IToolAccessChecker effectiveToolAccessChecker = resolveEffectiveToolAccessChecker(request);
@@ -624,6 +611,113 @@ public class DefaultAgentEngine implements IAgentEngine {
         return CompletableFuture.supplyAsync(() -> {
             session.setStatus(AgentExecStatus.running);
 
+            CancelHandle handle = new CancelHandle(ctx, Thread.currentThread());
+            runningExecutions.put(sessionId, handle);
+
+            AgentExecutionResult result;
+            try {
+                result = executor.execute(ctx).toCompletableFuture().join();
+            } finally {
+                runningExecutions.remove(sessionId);
+                session.setStatus(ctx.getStatus());
+            }
+
+            List<ChatMessage> allMessages = ctx.getMessages();
+            int currentCount = allMessages.size();
+            if (currentCount > historyCount) {
+                List<ChatMessage> newMessages = new ArrayList<>(allMessages.subList(historyCount, currentCount));
+                session.appendMessages(newMessages);
+            }
+
+            session.addTokensUsed(ctx.getTokensUsed());
+            session.addIterations(ctx.getCurrentIteration());
+            session.touch();
+
+            return result;
+        });
+    }
+
+    /**
+     * Build the base {@link AgentExecutionContext} shared by the normal
+     * {@code doExecute} path and the {@code resumeSession} path: create the
+     * context from the agent model + session, add the system prompt, and replay
+     * the session's existing message history. The caller is responsible for
+     * appending any new user message ({@code doExecute} appends one;
+     * {@code resumeSession} does not — resume is a transparent continuation of
+     * the existing conversation, not a new turn).
+     * <p>
+     * Extracted from {@code doExecute} so resume re-uses the exact same
+     * context-building sequence (system prompt + history) without duplicating
+     * it.
+     */
+    private AgentExecutionContext buildBaseExecutionContext(AgentModel agentModel, AgentSession session) {
+        AgentExecutionContext ctx = AgentExecutionContext.create(agentModel, session.getSessionId());
+
+        String systemPrompt = null;
+        if (agentModel.getPrompt() != null) {
+            systemPrompt = agentModel.getPrompt().getSource();
+        }
+
+        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+            ctx.addMessage(new ChatSystemMessage(systemPrompt));
+        }
+
+        if (session.getMessageCount() > 0) {
+            ctx.getMessages().addAll(session.getMessages());
+        }
+
+        return ctx;
+    }
+
+    @Override
+    public CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {
+        AgentSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            throw new NopAiAgentException(
+                    "resumeSession failed: session not found: sessionId=" + sessionId);
+        }
+        if (session.getStatus() != AgentExecStatus.paused) {
+            throw new NopAiAgentException(
+                    "resumeSession failed: session is not paused (status=" + session.getStatus()
+                            + "), only paused sessions can be resumed: sessionId=" + sessionId);
+        }
+
+        String agentName = session.getAgentName();
+
+        // Capture the pre-reset denial count for the audit event before clearing.
+        int preResetDenialCount = denialLedger.getDenialCount(sessionId);
+
+        // Clear the pause by resetting the ledger (design §6.2 sticky recovery).
+        denialLedger.reset(sessionId);
+
+        // Transition the session back to running before re-execution.
+        session.setStatus(AgentExecStatus.running);
+
+        Map<String, Object> resumePayload = new HashMap<>();
+        resumePayload.put("approver", approver != null ? approver : "");
+        resumePayload.put("reason", reason != null ? reason : "");
+        resumePayload.put("preResetDenialCount", preResetDenialCount);
+        eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESUMED,
+                sessionId, agentName, resumePayload));
+
+        // Re-execute the session as a transparent continuation: rebuild the
+        // context from the agent model + the existing conversation history (NO
+        // new user message is appended — resume continues where the paused
+        // execution left off, letting the LLM re-plan from the last denied
+        // tool-call error response rather than starting a new turn).
+        AgentModel agentModel = loadAgentModel(agentName);
+        int historyCount = session.getMessageCount();
+        AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
+
+        // Resolve the executor with the engine's own checkers (no parent
+        // constraint applies on resume — resume is a top-level recovery action,
+        // not a sub-agent call). Per-agent path rules are still honoured so the
+        // resumed execution is consistent with a normal top-level execution.
+        IToolAccessChecker effectiveToolAccessChecker = this.toolAccessChecker;
+        IPathAccessChecker effectivePathAccessChecker = resolvePerAgentPathChecker(agentModel);
+        IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
+
+        return CompletableFuture.supplyAsync(() -> {
             CancelHandle handle = new CancelHandle(ctx, Thread.currentThread());
             runningExecutions.put(sessionId, handle);
 
