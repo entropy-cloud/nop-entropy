@@ -28,10 +28,11 @@ package io.nop.ai.agent.security;
  *
  * <p><b>Persistence</b>: the contract does not mandate persistence. The
  * {@link NoOpDenialLedger} default does not persist; a {@code DBDenialLedger}
- * successor (deferred) persists per-session counts to the database so they
- * survive session recovery. The audit-readiness finding L3-G5 (interface did
- * not define a persistence contract) is narrowed here: persistence is a
- * property of the functional implementation, not the interface contract.
+ * implementation persists per-session counts to the database so they survive
+ * session recovery / ledger-instance reconstruction. The audit-readiness
+ * finding L3-G5 (interface did not define a persistence contract) is narrowed
+ * here: persistence is a property of the functional implementation, not the
+ * interface contract.
  */
 public interface IDenialLedger {
 

@@ -8,6 +8,13 @@
         <domain name="messageStatus" stdSqlType="INTEGER"/>
         <domain name="consumerId" precision="100" stdSqlType="VARCHAR"/>
         <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="denialId" precision="32" stdSqlType="VARCHAR"/>
+        <domain name="sessionId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="toolName" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="layerSource" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="denialReason" precision="500" stdSqlType="VARCHAR"/>
+        <domain name="matchedRule" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="denialTimestamp" stdSqlType="BIGINT"/>
     </domains>
 
     <entities>
@@ -38,6 +45,35 @@
                 <column name="consumedAt" code="CONSUMED_AT" propId="8"
                         domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         displayName="Consumed At"/>
+            </columns>
+        </entity>
+        <entity name="io.nop.ai.agent.security.AiAgentDenial" tableName="ai_agent_denial"
+                displayName="AI Agent Denial Record" registerShortName="true">
+            <columns>
+                <column name="sid" code="SID" propId="1" primary="true" mandatory="true"
+                        domain="denialId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Denial SID"/>
+                <column name="sessionId" code="SESSION_ID" propId="2" mandatory="true"
+                        domain="sessionId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Session ID"/>
+                <column name="toolName" code="TOOL_NAME" propId="3"
+                        domain="toolName" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Tool Name"/>
+                <column name="layerSource" code="LAYER_SOURCE" propId="4" mandatory="true"
+                        domain="layerSource" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Layer Source"/>
+                <column name="reason" code="REASON" propId="5"
+                        domain="denialReason" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Denial Reason"/>
+                <column name="matchedRule" code="MATCHED_RULE" propId="6"
+                        domain="matchedRule" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Matched Rule"/>
+                <column name="denialTimestamp" code="DENIAL_TIMESTAMP" propId="7" mandatory="true"
+                        domain="denialTimestamp" stdDataType="long" stdSqlType="BIGINT"
+                        displayName="Denial Timestamp"/>
+                <column name="createdAt" code="CREATED_AT" propId="8" mandatory="true"
+                        domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        displayName="Created At"/>
             </columns>
         </entity>
     </entities>
