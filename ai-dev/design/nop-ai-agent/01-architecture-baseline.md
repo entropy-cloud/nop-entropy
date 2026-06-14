@@ -135,14 +135,14 @@ Working Memory 是 Session 状态的一部分（持久化）。短期记忆是 A
 Agent 间通信（包括 `call-agent` 同步调用、`send-message` 异步消息）统一通过 **IMessageService 抽象层**：
 
 - **单进程**：`LocalMessageService`（内存队列 + `CompletableFuture`），延迟极低
-- **多实例**：DB-backed `MessageService`，请求/结果通过数据库传递，支持跨进程路由
+- **多实例**：`DBMessageService`（已落地，L4-2），请求/结果通过数据库（`ai_agent_message` 表）传递，支持跨进程路由。后台轮询线程投递 pending 消息给已注册消费者；多个实例共享同一 DB 时通过原子 claim 竞争消息（至少一次投递语义）；payload 序列化为 JSON 存储（DB-backed 传输要求 payload 可 JSON 序列化，内存传输无此约束）
 - **引擎层不感知部署拓扑**：`call-agent` 工具只往 mailbox 发消息、等待响应，不知道对方在同一进程还是远程实例。（MVP 实现注：plan 168 交付的 `call-agent` 采用 fork+exec 模型——直接调用 `IAgentEngine.execute()` 同步执行子 Agent，不经 mailbox。基于 mailbox 的 call-agent 模型是 Actor Runtime 的目标。）
 - **IMessageService 是可能出错的基础设施**：所有调用都包含超时、重试、错误处理。调用方不假设底层可靠
 - **`call-agent` 是运行时提供给 Agent 的能力**：Agent 通过工具调用 `call-agent`，引擎和 actor 调度系统负责实际的 session fork、消息路由、超时和恢复。（`send-message` 工具已交付：通过 `IAgentMessenger.send()` 向目标 inbox topic 投递 fire-and-forget 消息。）
 
 **Agent 域 messenger 已接线（L4-1 已落地）**：`nop-ai-agent` 已在平台 `IMessageService` / `LocalMessageService` 之上叠加了 Agent 域 messenger 抽象（`IAgentMessenger`），提供 fire-and-forget（`send`）与请求-响应（`request` → `CompletableFuture`，含超时）两种语义。Topic 命名采用独立 `agent.*` 命名空间（inbox topic = `agent.{sessionId}.inbox`、共享 reply topic = `agent.{sessionId}.reply`，由信封 correlationId 区分在途请求），不复用平台 `bro-`/`reply-`/`bat-` 前缀。`DefaultAgentEngine` 经 `setMessenger` setter 接线，默认 `NoOpAgentMessenger`（send 为 no-op，request fail-fast 抛 `UnsupportedOperationException`，向后兼容）。内存实现底层经平台 `LocalMessageService` 路由（非自建队列），并在 handler→`IMessageConsumer` 适配层显式抑制平台的 `ack-{topic}` 自动路由，确保响应仅经 requester 的 reply topic 返回。
 
-**注意**：不同 IMessageService 实现的故障语义不同（内存实现崩溃丢消息，DB-backed 不丢）。这是预期行为——调用方通过超时+重试+幂等处理应对。
+**注意**：不同 IMessageService 实现的故障语义不同（内存实现崩溃丢消息，DB-backed 不丢——消息持久化到 DB 后即使 JVM 崩溃，pending 消息在下次轮询恢复后被重新投递）。这是预期行为——调用方通过超时+重试+幂等处理应对。
 
 ```
 Agent A                    IMessageService                    Agent B

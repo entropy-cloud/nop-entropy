@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:ext="ext">
+
+    <domains>
+        <domain name="messageId" precision="32" stdSqlType="VARCHAR"/>
+        <domain name="topic" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="messageStatus" stdSqlType="INTEGER"/>
+        <domain name="consumerId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+    </domains>
+
+    <entities>
+        <entity name="io.nop.ai.agent.message.AiAgentMessage" tableName="ai_agent_message"
+                displayName="AI Agent Message" registerShortName="true">
+            <columns>
+                <column name="sid" code="SID" propId="1" primary="true" mandatory="true"
+                        domain="messageId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Message SID"/>
+                <column name="topic" code="TOPIC" propId="2" mandatory="true"
+                        domain="topic" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Topic"/>
+                <column name="messageBody" code="MESSAGE_BODY" propId="3" mandatory="true"
+                        stdDataType="string" stdSqlType="CLOB"
+                        displayName="Message Body"/>
+                <column name="status" code="STATUS" propId="4" mandatory="true"
+                        domain="messageStatus" stdDataType="int" stdSqlType="INTEGER"
+                        displayName="Status"/>
+                <column name="consumerId" code="CONSUMER_ID" propId="5"
+                        domain="consumerId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Consumer ID"/>
+                <column name="createdAt" code="CREATED_AT" propId="6" mandatory="true"
+                        domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        displayName="Created At"/>
+                <column name="claimedAt" code="CLAIMED_AT" propId="7"
+                        domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        displayName="Claimed At"/>
+                <column name="consumedAt" code="CONSUMED_AT" propId="8"
+                        domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        displayName="Consumed At"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
