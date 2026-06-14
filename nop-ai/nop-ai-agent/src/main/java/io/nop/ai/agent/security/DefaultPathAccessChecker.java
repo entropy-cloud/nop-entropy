@@ -97,6 +97,22 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
     }
 
     private String normalizePath(String path) {
+        return normalizePathStatic(path);
+    }
+
+    /**
+     * Normalize a path string: backslash → forward slash, tilde expansion,
+     * {@code Paths.get(p).normalize()}, return forward-slash form. Returns
+     * {@code null} when normalization fails (e.g. invalid traversal that
+     * escapes normalization, or tilde expansion with no known home dir).
+     *
+     * <p>Public static so that
+     * {@link ParentConstrainedPathAccessChecker} and
+     * {@link io.nop.ai.agent.engine.ReActAgentExecutor} can reuse the exact
+     * same normalization algorithm for parent-root matching without
+     * duplicating logic (design §4.4 path-permission inheritance).
+     */
+    public static String normalizePathStatic(String path) {
         String p = path.replace("\\", "/");
 
         if (p.startsWith("~")) {

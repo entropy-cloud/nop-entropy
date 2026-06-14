@@ -5,6 +5,7 @@
        xdef:name="AgentModel" xdef:bean-package="io.nop.ai.agent.model"
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="!string" tagSet="csv-set"
+       workDir="string"
        mode="enum:react,plan,single-turn|react">
 
     <description>!string</description>

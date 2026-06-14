@@ -136,18 +136,26 @@ public class CallAgentExecutor implements IToolExecutor {
 
     /**
      * Build the parent permission constraint from the parent agent's effective
-     * (clamped) allowed tool set carried in the execution context. Returns
-     * {@code null} when no constraint information is available (backward-
-     * compatible caller), in which case the sub-agent executes without a parent
-     * constraint.
+     * (clamped) allowed tool set and effective (clamped) allowed path roots
+     * carried in the execution context. Returns {@code null} when no constraint
+     * information is available (backward-compatible caller), in which case the
+     * sub-agent executes without a parent constraint.
+     *
+     * <p>The tool set and path roots propagate together through a single
+     * {@link ParentPermissionConstraint} object under the well-known metadata
+     * key, reusing the plan-169 metadata infrastructure (design §4.4:
+     * 工具权限 = 父权限 ∩ 子配置, 文件权限 = 父权限 ∩ 子配置).
      */
     private ParentPermissionConstraint buildParentConstraint(AgentToolExecuteContext agentCtx) {
         java.util.Set<String> allowedTools = agentCtx.getAllowedTools();
-        if (allowedTools == null) {
+        java.util.Set<String> allowedPathRoots = agentCtx.getAllowedPathRoots();
+        if (allowedTools == null && allowedPathRoots == null) {
             return null;
         }
         return new ParentPermissionConstraint(
-                allowedTools, agentCtx.getAgentName(), agentCtx.getSessionId());
+                allowedTools != null ? allowedTools : java.util.Set.of(),
+                allowedPathRoots,
+                agentCtx.getAgentName(), agentCtx.getSessionId());
     }
 
     /**

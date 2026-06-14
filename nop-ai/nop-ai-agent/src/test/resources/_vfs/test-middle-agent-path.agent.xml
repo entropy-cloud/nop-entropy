@@ -1,0 +1,11 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-middle-agent-path"
+       workDir="/workspace/project-a/sub">
+
+    <description>Middle agent in a nested path-permission delegation chain (workDir within parent scope)</description>
+
+    <prompt>You are middle path agent B.</prompt>
+
+    <tools>read-file,call-agent</tools>
+
+</agent>

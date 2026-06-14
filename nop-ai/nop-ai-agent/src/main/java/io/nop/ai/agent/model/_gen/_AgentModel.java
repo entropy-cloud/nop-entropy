@@ -108,6 +108,13 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     private java.util.Set<java.lang.String> _tools ;
     
     /**
+     *  
+     * xml name: workDir
+     * 
+     */
+    private java.lang.String _workDir ;
+    
+    /**
      * 
      * xml name: availableSkills
      *  
@@ -410,6 +417,25 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     }
 
     
+    /**
+     * 
+     * xml name: workDir
+     *  
+     */
+    
+    public java.lang.String getWorkDir(){
+      return _workDir;
+    }
+
+    
+    public void setWorkDir(java.lang.String value){
+        checkAllowChange();
+        
+        this._workDir = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -446,6 +472,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("requiredSkills",this.getRequiredSkills());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("tools",this.getTools());
+        out.putNotNull("workDir",this.getWorkDir());
     }
 
     public AgentModel cloneInstance(){
@@ -470,6 +497,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         instance.setRequiredSkills(this.getRequiredSkills());
         instance.setTagSet(this.getTagSet());
         instance.setTools(this.getTools());
+        instance.setWorkDir(this.getWorkDir());
     }
 
     protected AgentModel newInstance(){

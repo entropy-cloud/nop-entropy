@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-sub-agent-path">
+
+    <description>Sub-agent for path-permission inheritance tests (no workDir — inherits parent scope)</description>
+
+    <prompt>You are sub path agent S.</prompt>
+
+    <tools>read-file</tools>
+
+</agent>

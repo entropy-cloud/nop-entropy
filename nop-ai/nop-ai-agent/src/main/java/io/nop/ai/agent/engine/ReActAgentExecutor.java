@@ -43,6 +43,7 @@ import io.nop.ai.agent.security.ParentPermissionConstraint;
 import io.nop.ai.agent.security.PathAccessResult;
 import io.nop.ai.agent.security.Permission;
 import io.nop.ai.agent.security.ToolAccessResult;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.skill.ISkillProvider;
 import io.nop.ai.agent.skill.NoOpSkillProvider;
 import io.nop.ai.agent.skill.SkillAssemblyResult;
@@ -470,7 +471,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 consecutiveContinues = 0;
 
                 AgentToolExecuteContext toolExecCtx = new AgentToolExecuteContext(
-                        new File("."),
+                        resolveWorkDir(agentModel),
                         Collections.emptyMap(),
                         0L,
                         null,
@@ -480,7 +481,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         messenger,
                         sessionId,
                         agentName,
-                        computeEffectiveAllowedTools(agentModel, ctx));
+                        computeEffectiveAllowedTools(agentModel, ctx),
+                        computeEffectivePathRoots(agentModel, ctx));
 
                 List<ChatToolCall> allowedCalls = new ArrayList<>();
 
@@ -955,6 +957,130 @@ public class ReActAgentExecutor implements IAgentExecutor {
         Set<String> effective = new HashSet<>(declared);
         effective.retainAll(parentAllowed);
         return effective;
+    }
+
+    /**
+     * Resolve the agent's declared {@code workDir} (from
+     * {@link AgentModel#getWorkDir()}) to a {@link File}, or {@code null} when
+     * no workDir is declared (ABSENT). Replaces the hardcoded {@code new File(".")}
+     * so each agent carries its own declared working directory — distinct agents
+     * with distinct {@code workDir} values produce distinct effective path roots
+     * rather than the shared JVM CWD (design §4.4).
+     */
+    private File resolveWorkDir(AgentModel agentModel) {
+        String workDir = agentModel.getWorkDir();
+        if (workDir == null || workDir.trim().isEmpty()) {
+            return null;
+        }
+        return new File(workDir);
+    }
+
+    /**
+     * Compute the current agent's <b>effective (clamped)</b> allowed path roots,
+     * propagated to engine-aware tools (e.g. {@code call-agent}) via
+     * {@link AgentToolExecuteContext#getAllowedPathRoots()} for sub-agent
+     * path-permission inheritance (design §4.4:
+     * 文件权限 = 父权限 ∩ 子配置).
+     *
+     * <p>Clamping rule (three-valued ABSENT/PRESENT semantics):
+     * <ul>
+     *   <li>If an incoming parent constraint is present with PRESENT path roots,
+     *       the effective roots are the subset of the agent's own declared roots
+     *       (from {@code workDir}) that fall UNDER any incoming parent root. This
+     *       is what makes nested delegation safe: a middle agent B's effective
+     *       roots are already clamped within A's scope, so when B delegates to C,
+     *       C inherits a scope within A's. If none of the agent's own roots are
+     *       under any incoming root, the effective set is empty (PRESENT({}) =
+     *       deny all paths — maximum restriction, e.g. when the agent declares a
+     *       workDir outside the parent's scope).</li>
+     *   <li>If an incoming parent constraint is present but its path roots are
+     *       ABSENT (null), the effective roots equal the agent's own declared
+     *       roots (ABSENT acts as identity).</li>
+     *   <li>If no parent constraint is present (top-level agent), the effective
+     *       roots equal the agent's own declared roots
+     *       (PRESENT({normalized workDir}) or ABSENT when workDir is null).</li>
+     * </ul>
+     *
+     * @return the effective path roots; {@code null} (ABSENT) when the agent has
+     *         no declared path scope and no incoming parent roots; a non-null
+     *         Set (PRESENT, possibly empty) when path-scope confinement is active
+     */
+    private Set<String> computeEffectivePathRoots(AgentModel agentModel, AgentExecutionContext ctx) {
+        Set<String> ownRoots = computeOwnDeclaredPathRoots(agentModel);
+
+        ParentPermissionConstraint parentConstraint = null;
+        if (ctx.getMetadata() != null) {
+            Object raw = ctx.getMetadata().get(ParentPermissionConstraint.METADATA_KEY);
+            if (raw instanceof ParentPermissionConstraint) {
+                parentConstraint = (ParentPermissionConstraint) raw;
+            }
+        }
+
+        if (parentConstraint == null || !parentConstraint.hasPathRoots()) {
+            // No incoming parent roots (ABSENT) → effective = own declared roots
+            // (ABSENT or PRESENT)
+            return ownRoots;
+        }
+
+        Set<String> incomingRoots = parentConstraint.getAllowedPathRoots();
+
+        if (ownRoots == null) {
+            // No own declared roots → inherit parent's roots (ABSENT is identity)
+            return new HashSet<>(incomingRoots);
+        }
+
+        // Both PRESENT → keep own roots that are under any incoming root
+        Set<String> effective = new HashSet<>();
+        for (String ownRoot : ownRoots) {
+            if (isUnderAnyRoot(ownRoot, incomingRoots)) {
+                effective.add(ownRoot);
+            }
+        }
+        return effective;
+    }
+
+    /**
+     * Compute the agent's own declared path roots from its {@code workDir}.
+     *
+     * @return {@code null} (ABSENT) when no workDir is declared; a non-null Set
+     *         containing the normalized workDir as the single root when declared
+     */
+    private Set<String> computeOwnDeclaredPathRoots(AgentModel agentModel) {
+        String workDir = agentModel.getWorkDir();
+        if (workDir == null || workDir.trim().isEmpty()) {
+            return null;
+        }
+        String normalized = DefaultPathAccessChecker.normalizePathStatic(workDir);
+        if (normalized == null) {
+            return null;
+        }
+        return new HashSet<>(Collections.singleton(normalized));
+    }
+
+    /**
+     * Check whether a normalized path root is "under" any of the given
+     * (possibly non-normalized) root set. Uses the same normalization as
+     * {@link DefaultPathAccessChecker#normalizePathStatic(String)}.
+     */
+    private boolean isUnderAnyRoot(String normalizedPath, Set<String> roots) {
+        for (String root : roots) {
+            if (root == null || root.trim().isEmpty()) {
+                continue;
+            }
+            String normalizedRoot = DefaultPathAccessChecker.normalizePathStatic(root);
+            if (normalizedRoot == null) {
+                continue;
+            }
+            if (normalizedPath.equals(normalizedRoot)) {
+                return true;
+            }
+            String rootWithSlash = normalizedRoot.endsWith("/")
+                    ? normalizedRoot : normalizedRoot + "/";
+            if (normalizedPath.startsWith(rootWithSlash)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ChatToolDefinition toToolDefinition(AiToolModel toolModel) {

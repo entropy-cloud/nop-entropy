@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-leaf-agent-path">
+
+    <description>Leaf agent at the bottom of a nested path-permission delegation chain</description>
+
+    <prompt>You are leaf path agent C.</prompt>
+
+    <tools>read-file</tools>
+
+</agent>

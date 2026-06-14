@@ -1,0 +1,11 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-parent-agent-path"
+       workDir="/workspace/project-a">
+
+    <description>Parent agent with a declared workDir for path-permission inheritance tests</description>
+
+    <prompt>You are parent path agent P.</prompt>
+
+    <tools>read-file,call-agent</tools>
+
+</agent>

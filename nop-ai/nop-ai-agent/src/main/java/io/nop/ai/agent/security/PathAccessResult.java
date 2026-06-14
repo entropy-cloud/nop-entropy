@@ -26,6 +26,20 @@ public class PathAccessResult {
         return new PathAccessResult(false, "Path denied by rule '" + ruleName + "': " + path, ruleName);
     }
 
+    /**
+     * Build a denial carrying BOTH an explicit descriptive {@code reason} and a
+     * {@code matchedRule} token. Used by the parent path-permission constraint
+     * wrapper to identify the parent agent (via {@code reason}) and to tag the
+     * denial with a stable rule token (e.g.
+     * {@code "parent_path_permission_constraint"}) for audit categorization.
+     * The existing {@link #deny(String)} leaves {@code matchedRule} null, and
+     * {@link #denyByRule(String, String)} auto-formats the reason with no slot
+     * for the parent agent name — neither satisfies both requirements.
+     */
+    public static PathAccessResult deny(String reason, String matchedRule) {
+        return new PathAccessResult(false, reason, matchedRule);
+    }
+
     public boolean isAllowed() {
         return allowed;
     }

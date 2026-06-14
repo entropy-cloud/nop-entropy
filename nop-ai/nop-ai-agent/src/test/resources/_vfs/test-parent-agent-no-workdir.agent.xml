@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-parent-agent-no-workdir">
+
+    <description>Parent agent with NO declared workDir for null-workDir backward-compatibility tests</description>
+
+    <prompt>You are parent no-workdir agent N.</prompt>
+
+    <tools>read-file,call-agent</tools>
+
+</agent>

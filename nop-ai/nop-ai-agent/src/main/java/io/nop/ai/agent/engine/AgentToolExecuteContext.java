@@ -39,6 +39,7 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
     private final String sessionId;
     private final String agentName;
     private final Set<String> allowedTools;
+    private final Set<String> allowedPathRoots;
 
     public AgentToolExecuteContext(File workDir,
                                    Map<String, String> envs,
@@ -79,6 +80,43 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
                                    String sessionId,
                                    String agentName,
                                    Set<String> allowedTools) {
+        this(workDir, envs, expireAt, cancelToken, fileSystem, executor,
+                engine, messenger, sessionId, agentName, allowedTools, null);
+    }
+
+    /**
+     * Full constructor carrying both the current agent's effective (clamped)
+     * allowed tool set AND its effective (clamped) allowed path roots, used by
+     * engine-aware tools (e.g. {@code call-agent}) to propagate a parent
+     * permission constraint to sub-agents (design §4.4:
+     * 工具权限 = 父权限 ∩ 子配置, 文件权限 = 父权限 ∩ 子配置).
+     *
+     * @param allowedTools     the current agent's effective (clamped) allowed
+     *                         tool names; {@code null} means "no constraint
+     *                         information available" (backward-compatible
+     *                         top-level behavior). A non-null set (including
+     *                         empty) is propagated as the parent's effective
+     *                         tool set.
+     * @param allowedPathRoots the current agent's effective (clamped) allowed
+     *                         path roots (normalized absolute directory roots);
+     *                         {@code null} means ABSENT (no declared path scope
+     *                         → no path confinement, backward compatible). A
+     *                         non-null set (including empty) is propagated as
+     *                         the parent's effective path roots. PRESENT({}) =
+     *                         deny all paths (maximum restriction).
+     */
+    public AgentToolExecuteContext(File workDir,
+                                   Map<String, String> envs,
+                                   long expireAt,
+                                   ICancelToken cancelToken,
+                                   IToolFileSystem fileSystem,
+                                   IThreadPoolExecutor executor,
+                                   IAgentEngine engine,
+                                   IAgentMessenger messenger,
+                                   String sessionId,
+                                   String agentName,
+                                   Set<String> allowedTools,
+                                   Set<String> allowedPathRoots) {
         this.workDir = workDir;
         this.envs = envs != null ? envs : Collections.emptyMap();
         this.expireAt = expireAt;
@@ -90,6 +128,7 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
         this.sessionId = sessionId;
         this.agentName = agentName;
         this.allowedTools = allowedTools;
+        this.allowedPathRoots = allowedPathRoots;
     }
 
     @Override
@@ -148,5 +187,19 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
      */
     public Set<String> getAllowedTools() {
         return allowedTools;
+    }
+
+    /**
+     * Return the current agent's effective (clamped) allowed path roots
+     * (normalized absolute directory roots), or {@code null} when no path-scope
+     * information is available (ABSENT — no declared path scope, backward
+     * compatible). {@code call-agent} reads this set to include the parent's
+     * path roots in the propagated
+     * {@link io.nop.ai.agent.security.ParentPermissionConstraint}.
+     *
+     * @return {@code null} (ABSENT) or a non-null Set (PRESENT, possibly empty)
+     */
+    public Set<String> getAllowedPathRoots() {
+        return allowedPathRoots;
     }
 }

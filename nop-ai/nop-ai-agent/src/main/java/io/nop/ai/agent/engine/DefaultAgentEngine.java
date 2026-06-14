@@ -22,6 +22,7 @@ import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.IPathAccessChecker;
 import io.nop.ai.agent.security.IPermissionProvider;
 import io.nop.ai.agent.security.IToolAccessChecker;
+import io.nop.ai.agent.security.ParentConstrainedPathAccessChecker;
 import io.nop.ai.agent.security.ParentConstrainedToolAccessChecker;
 import io.nop.ai.agent.security.ParentPermissionConstraint;
 import io.nop.ai.agent.session.AgentSession;
@@ -262,6 +263,16 @@ public class DefaultAgentEngine implements IAgentEngine {
         return this.toolAccessChecker;
     }
 
+    /**
+     * Test-only accessor for the engine's own path access checker. Used by
+     * integration tests to verify that
+     * {@link #resolveEffectivePathAccessChecker} wraps (or does not wrap) this
+     * checker based on request metadata.
+     */
+    IPathAccessChecker getPathAccessCheckerForTest() {
+        return this.pathAccessChecker;
+    }
+
     @Override
     public AgentExecStatus getSessionStatus(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
@@ -419,7 +430,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         ctx.addMessage(new ChatUserMessage(request.getUserMessage()));
 
         IToolAccessChecker effectiveToolAccessChecker = resolveEffectiveToolAccessChecker(request);
-        IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker);
+        IPathAccessChecker effectivePathAccessChecker = resolveEffectivePathAccessChecker(request);
+        IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
         return CompletableFuture.supplyAsync(() -> {
             session.setStatus(AgentExecStatus.running);
@@ -485,11 +497,71 @@ public class DefaultAgentEngine implements IAgentEngine {
         return new ParentConstrainedToolAccessChecker(constraint, this.toolAccessChecker);
     }
 
-    IAgentExecutor resolveExecutor(AgentModel model) {
-        return resolveExecutor(model, this.toolAccessChecker);
+    /**
+     * Resolve the effective {@link IPathAccessChecker} for the current
+     * execution: if the request carries a parent permission constraint in its
+     * metadata (propagated by {@code call-agent}) AND the constraint's path
+     * roots are PRESENT (non-null), wrap the engine's own
+     * {@code pathAccessChecker} with a
+     * {@link ParentConstrainedPathAccessChecker} scoped to this sub-agent
+     * execution. When no constraint is present OR the constraint's path roots
+     * are ABSENT (null), return the engine's own checker unchanged — backward
+     * compatible (no path confinement).
+     *
+     * <p>The wrapping is scoped to this execution only — it does not mutate the
+     * engine's own {@code pathAccessChecker} field.
+     *
+     * <p><b>Fail-fast</b>: if the metadata key is present but the value is not a
+     * {@link ParentPermissionConstraint} (malformed), throw
+     * {@link NopAiAgentException} — never silently ignore a malformed
+     * constraint. This mirrors the tool-checker fail-fast in
+     * {@link #resolveEffectiveToolAccessChecker}.
+     */
+    IPathAccessChecker resolveEffectivePathAccessChecker(AgentMessageRequest request) {
+        if (request.getMetadata() == null || request.getMetadata().isEmpty()) {
+            return this.pathAccessChecker;
+        }
+        Object raw = request.getMetadata().get(ParentPermissionConstraint.METADATA_KEY);
+        if (raw == null) {
+            return this.pathAccessChecker;
+        }
+        if (!(raw instanceof ParentPermissionConstraint)) {
+            throw new NopAiAgentException(
+                    "doExecute failed: metadata key '" + ParentPermissionConstraint.METADATA_KEY
+                            + "' is present but not a ParentPermissionConstraint (got: "
+                            + raw.getClass().getName() + ")");
+        }
+        ParentPermissionConstraint constraint = (ParentPermissionConstraint) raw;
+        if (!constraint.hasPathRoots()) {
+            // Constraint present but path roots ABSENT → no path confinement
+            return this.pathAccessChecker;
+        }
+        return new ParentConstrainedPathAccessChecker(constraint, this.pathAccessChecker);
     }
 
+    IAgentExecutor resolveExecutor(AgentModel model) {
+        return resolveExecutor(model, this.toolAccessChecker, this.pathAccessChecker);
+    }
+
+    /**
+     * Backward-compatible two-arg overload. Delegates with the engine's own
+     * {@code pathAccessChecker} for the path checker. Existing callers (e.g.
+     * plan-169 tests) that only override the tool checker continue to compile
+     * and behave identically.
+     */
     IAgentExecutor resolveExecutor(AgentModel model, IToolAccessChecker toolAccessChecker) {
+        return resolveExecutor(model, toolAccessChecker, this.pathAccessChecker);
+    }
+
+    /**
+     * Build the executor for the given agent model, using the effective
+     * (possibly wrapped) tool and path access checkers. Both checkers default
+     * to the engine's own fields when no override is supplied, so top-level
+     * agent executions receive the unwrapped checkers and sub-agent executions
+     * (where a parent constraint is present) receive the wrapped checkers.
+     */
+    IAgentExecutor resolveExecutor(AgentModel model, IToolAccessChecker toolAccessChecker,
+                                   IPathAccessChecker pathAccessChecker) {
         String mode = model.getMode();
         if (mode == null || mode.isEmpty() || "react".equals(mode)) {
             DefaultHookRegistry hookRegistry = DefaultHookRegistry.fromAgentModel(model);
