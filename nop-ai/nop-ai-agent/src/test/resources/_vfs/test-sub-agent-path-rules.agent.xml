@@ -1,0 +1,14 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-sub-agent-path-rules">
+
+    <description>Sub-agent with own path-rules for per-agent rule inheritance tests</description>
+
+    <prompt>You are sub rules agent B.</prompt>
+
+    <tools>read-file</tools>
+
+    <path-rules>
+        <rule pattern="/workspace/temp/**" access="deny"/>
+    </path-rules>
+
+</agent>

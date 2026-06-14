@@ -1,6 +1,7 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.message.IAgentMessenger;
+import io.nop.ai.agent.model.PathRuleModel;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
@@ -8,6 +9,7 @@ import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,6 +42,7 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
     private final String agentName;
     private final Set<String> allowedTools;
     private final Set<String> allowedPathRoots;
+    private final List<PathRuleModel> allowedPathRules;
 
     public AgentToolExecuteContext(File workDir,
                                    Map<String, String> envs,
@@ -117,6 +120,36 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
                                    String agentName,
                                    Set<String> allowedTools,
                                    Set<String> allowedPathRoots) {
+        this(workDir, envs, expireAt, cancelToken, fileSystem, executor,
+                engine, messenger, sessionId, agentName, allowedTools, allowedPathRoots, null);
+    }
+
+    /**
+     * Full constructor carrying the current agent's effective (clamped) allowed
+     * tool set, effective (clamped) allowed path roots, AND effective (clamped)
+     * allowed path rules, used by engine-aware tools (e.g. {@code call-agent})
+     * to propagate a parent permission constraint to sub-agents (design §4.4:
+     * 文件权限 = 父权限 ∩ 子配置).
+     *
+     * @param allowedPathRules the current agent's effective (clamped) accumulated
+     *                         path-rule chain; {@code null} means ABSENT (no
+     *                         declared path-rules → no rule confinement). A
+     *                         non-null List (including empty) is propagated as
+     *                         the parent's effective path rules.
+     */
+    public AgentToolExecuteContext(File workDir,
+                                   Map<String, String> envs,
+                                   long expireAt,
+                                   ICancelToken cancelToken,
+                                   IToolFileSystem fileSystem,
+                                   IThreadPoolExecutor executor,
+                                   IAgentEngine engine,
+                                   IAgentMessenger messenger,
+                                   String sessionId,
+                                   String agentName,
+                                   Set<String> allowedTools,
+                                   Set<String> allowedPathRoots,
+                                   List<PathRuleModel> allowedPathRules) {
         this.workDir = workDir;
         this.envs = envs != null ? envs : Collections.emptyMap();
         this.expireAt = expireAt;
@@ -129,6 +162,7 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
         this.agentName = agentName;
         this.allowedTools = allowedTools;
         this.allowedPathRoots = allowedPathRoots;
+        this.allowedPathRules = allowedPathRules;
     }
 
     @Override
@@ -201,5 +235,19 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
      */
     public Set<String> getAllowedPathRoots() {
         return allowedPathRoots;
+    }
+
+    /**
+     * Return the current agent's effective (clamped) accumulated path-rule
+     * chain, or {@code null} when no path-rule information is available
+     * (ABSENT — no declared path-rules, backward compatible).
+     * {@code call-agent} reads this list to include the parent's effective
+     * path rules in the propagated
+     * {@link io.nop.ai.agent.security.ParentPermissionConstraint}.
+     *
+     * @return {@code null} (ABSENT) or a non-null List (PRESENT)
+     */
+    public List<PathRuleModel> getAllowedPathRules() {
+        return allowedPathRules;
     }
 }

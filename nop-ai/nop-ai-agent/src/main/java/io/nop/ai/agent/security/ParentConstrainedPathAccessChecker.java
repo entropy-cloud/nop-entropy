@@ -1,7 +1,11 @@
 package io.nop.ai.agent.security;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.model.PathRuleModel;
+import io.nop.commons.path.AntPathMatcher;
+import io.nop.commons.path.IPathMatcher;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -46,6 +50,14 @@ public final class ParentConstrainedPathAccessChecker implements IPathAccessChec
      */
     public static final String MATCHED_RULE = "parent_path_permission_constraint";
 
+    /**
+     * Stable rule token tagging denials produced by a parent DENY path-rule
+     * (cross-level deny-wins evaluation of inherited path-rules).
+     */
+    public static final String MATCHED_RULE_PATH_RULE = "parent_path_rule_deny";
+
+    private static final IPathMatcher MATCHER = new AntPathMatcher();
+
     private final ParentPermissionConstraint constraint;
     private final IPathAccessChecker delegate;
 
@@ -78,14 +90,14 @@ public final class ParentConstrainedPathAccessChecker implements IPathAccessChec
     @Override
     public PathAccessResult checkAccess(String path, AgentExecutionContext ctx) {
         Set<String> roots = constraint.getAllowedPathRoots();
+        List<PathRuleModel> rules = constraint.getAllowedPathRules();
 
-        // ABSENT (null roots) → pass-through, backward compatible with plan 169
-        if (roots == null) {
+        // Both ABSENT → pass-through (backward compatible)
+        if (roots == null && rules == null) {
             return delegate.checkAccess(path, ctx);
         }
 
-        // null/blank path → delegate to wrapped checker (same as
-        // DefaultPathAccessChecker which allows null/blank paths)
+        // null/blank path → delegate to wrapped checker
         if (path == null || path.trim().isEmpty()) {
             return delegate.checkAccess(path, ctx);
         }
@@ -93,29 +105,68 @@ public final class ParentConstrainedPathAccessChecker implements IPathAccessChec
         // Resolve relative paths against the sub-agent's workDir, then normalize
         String normalized = resolveAndNormalize(path, ctx);
 
-        // Normalization failed → deny (fail-closed). The wrapped checker would
-        // also deny such paths, but we deny first with the parent-constraint
-        // reason rather than silently passing a suspicious path through.
+        // Normalization failed → deny (fail-closed)
         if (normalized == null) {
-            return deny(path);
+            return denyByRoot(path);
         }
 
-        // PRESENT roots: check if the normalized path is under any allowed root
-        if (isUnderAnyRoot(normalized, roots)) {
-            return delegate.checkAccess(path, ctx);
+        // Dimension 1: root check (if roots PRESENT)
+        if (roots != null && !isUnderAnyRoot(normalized, roots)) {
+            return denyByRoot(path);
         }
 
-        // Not under any root → deny (fail-closed). PRESENT({}) reaches here for
-        // every path (maximum restriction).
-        return deny(path);
+        // Dimension 2: parent path-rule check (if rules PRESENT)
+        // Cross-level deny-wins: any parent DENY rule matching → denied
+        if (rules != null) {
+            for (PathRuleModel rule : rules) {
+                String pattern = rule.getPattern();
+                if (pattern == null || pattern.trim().isEmpty()) {
+                    continue;
+                }
+                String matchPattern = adjustPatternForm(pattern, normalized);
+                if (MATCHER.match(matchPattern, normalized)) {
+                    if (rule.getAccessDecision() == PathAccessDecision.DENY) {
+                        return denyByRule(path, pattern);
+                    }
+                    // ALLOW → continue scanning (cross-level deny-wins: we only
+                    // stop on a DENY; an ALLOW doesn't short-circuit)
+                }
+            }
+        }
+
+        // Both dimensions passed → delegate to wrapped checker
+        return delegate.checkAccess(path, ctx);
     }
 
-    private PathAccessResult deny(String path) {
+    private PathAccessResult denyByRoot(String path) {
         String parentAgent = constraint.getParentAgentName();
         return PathAccessResult.deny(
                 "denied by parent path permission constraint: path '" + path
                         + "' outside parent agent '" + parentAgent + "' allowed roots",
                 MATCHED_RULE);
+    }
+
+    private PathAccessResult denyByRule(String path, String matchedPattern) {
+        String parentAgent = constraint.getParentAgentName();
+        return PathAccessResult.deny(
+                "denied by parent path-rule: pattern '" + matchedPattern
+                        + "' (access=deny) from parent agent '" + parentAgent
+                        + "' matched path '" + path + "'",
+                MATCHED_RULE_PATH_RULE);
+    }
+
+    /**
+     * Adjust the pattern form so that {@code **}-leading patterns match
+     * absolute resolved paths (mirroring {@link RuleBasedPathAccessChecker}'s
+     * form adjustment for within-agent rules).
+     */
+    private static String adjustPatternForm(String pattern, String resolvedPath) {
+        boolean pathAbsolute = resolvedPath.startsWith("/")
+                || (resolvedPath.length() >= 2 && resolvedPath.charAt(1) == ':');
+        if (pathAbsolute && !pattern.startsWith("/") && pattern.startsWith("**")) {
+            return "/" + pattern;
+        }
+        return pattern;
     }
 
     /**

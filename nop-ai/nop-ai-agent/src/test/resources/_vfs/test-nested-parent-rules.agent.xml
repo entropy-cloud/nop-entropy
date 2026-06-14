@@ -1,0 +1,14 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-nested-parent-rules">
+
+    <description>Parent agent A with path-rules for nested delegation accumulation tests</description>
+
+    <prompt>You are nested parent agent A.</prompt>
+
+    <tools>read-file,call-agent</tools>
+
+    <path-rules>
+        <rule pattern="/shared/secret/**" access="deny"/>
+    </path-rules>
+
+</agent>

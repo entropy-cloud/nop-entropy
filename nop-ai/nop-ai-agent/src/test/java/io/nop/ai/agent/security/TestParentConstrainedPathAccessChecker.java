@@ -510,4 +510,132 @@ public class TestParentConstrainedPathAccessChecker {
         assertTrue(r.getReason().contains("/some/path"));
         assertEquals("rule_x", r.getMatchedRule());
     }
+
+    // ---- Phase 3: path-rules extension (deny-wins cross-level) ----
+
+    private io.nop.ai.agent.model.PathRuleModel pathRule(String pattern, String access) {
+        io.nop.ai.agent.model.PathRuleModel r = new io.nop.ai.agent.model.PathRuleModel();
+        r.setPattern(pattern);
+        r.setAccess(access);
+        return r;
+    }
+
+    @Test
+    void parentDenyRuleBlocksMatchingPath() {
+        ParentPermissionConstraint constraint = new ParentPermissionConstraint(
+                Set.of("read-file"), null,
+                java.util.List.of(pathRule("/workspace/secret/**", "deny")),
+                "parent-agent", "parent-sess");
+        IPathAccessChecker delegate = (path, ctx) -> PathAccessResult.allow();
+
+        ParentConstrainedPathAccessChecker wrapper =
+                new ParentConstrainedPathAccessChecker(constraint, delegate);
+
+        PathAccessResult result = wrapper.checkAccess("/workspace/secret/key", newContext());
+        assertFalse(result.isAllowed(), "Parent DENY rule must block matching path");
+        assertEquals(ParentConstrainedPathAccessChecker.MATCHED_RULE_PATH_RULE, result.getMatchedRule());
+        assertTrue(result.getReason().contains("/workspace/secret/**"),
+                "Reason must identify the matched pattern. Got: " + result.getReason());
+        assertTrue(result.getReason().contains("parent-agent"),
+                "Reason must identify the parent agent. Got: " + result.getReason());
+    }
+
+    @Test
+    void parentAllowRuleDoesNotBlockAndDelegateApplies() {
+        ParentPermissionConstraint constraint = new ParentPermissionConstraint(
+                Set.of("read-file"), null,
+                java.util.List.of(pathRule("/workspace/**", "allow")),
+                "parent-agent", "parent-sess");
+        IPathAccessChecker delegate = (path, ctx) -> PathAccessResult.allow();
+
+        ParentConstrainedPathAccessChecker wrapper =
+                new ParentConstrainedPathAccessChecker(constraint, delegate);
+
+        PathAccessResult result = wrapper.checkAccess("/workspace/file.txt", newContext());
+        assertTrue(result.isAllowed(),
+                "Parent ALLOW rule does not block — delegates to wrapped checker which allows");
+    }
+
+    @Test
+    void parentDenyWinsOverAllowInAccumulatedChain() {
+        // Cross-level deny-wins: even if an ALLOW rule precedes a DENY rule,
+        // the DENY must win (all rules are scanned, not first-match-wins).
+        ParentPermissionConstraint constraint = new ParentPermissionConstraint(
+                Set.of("read-file"), null,
+                java.util.List.of(
+                        pathRule("/workspace/**", "allow"),
+                        pathRule("/workspace/secret/**", "deny")),
+                "parent-agent", "parent-sess");
+        IPathAccessChecker delegate = (path, ctx) -> PathAccessResult.allow();
+
+        ParentConstrainedPathAccessChecker wrapper =
+                new ParentConstrainedPathAccessChecker(constraint, delegate);
+
+        PathAccessResult result = wrapper.checkAccess("/workspace/secret/key", newContext());
+        assertFalse(result.isAllowed(),
+                "Cross-level deny-wins: DENY rule must block even when preceded by a broader ALLOW");
+        assertEquals(ParentConstrainedPathAccessChecker.MATCHED_RULE_PATH_RULE, result.getMatchedRule());
+    }
+
+    @Test
+    void parentRulesAbsentPassesThrough() {
+        // ABSENT path-rules (null) → no rule confinement, backward compatible
+        ParentPermissionConstraint constraint = new ParentPermissionConstraint(
+                Set.of("read-file"), null, null,
+                "parent-agent", "parent-sess");
+        IPathAccessChecker delegate = (path, ctx) -> PathAccessResult.allow();
+
+        ParentConstrainedPathAccessChecker wrapper =
+                new ParentConstrainedPathAccessChecker(constraint, delegate);
+
+        assertTrue(wrapper.checkAccess("/any/path", newContext()).isAllowed(),
+                "ABSENT path-rules → pass-through to delegate");
+    }
+
+    @Test
+    void rootsAndRulesBothPresentBothEnforced() {
+        // Both roots AND rules PRESENT → both dimensions enforced (fail-closed)
+        ParentPermissionConstraint constraint = new ParentPermissionConstraint(
+                Set.of("read-file"),
+                Set.of("/workspace"),
+                java.util.List.of(pathRule("/workspace/secret/**", "deny")),
+                "parent-agent", "parent-sess");
+        IPathAccessChecker delegate = (path, ctx) -> PathAccessResult.allow();
+
+        ParentConstrainedPathAccessChecker wrapper =
+                new ParentConstrainedPathAccessChecker(constraint, delegate);
+
+        // Path outside roots → denied by root check (regardless of rules)
+        assertFalse(wrapper.checkAccess("/etc/file", newContext()).isAllowed(),
+                "Path outside roots must be denied by root check");
+
+        // Path under roots but matching DENY rule → denied by rule check
+        PathAccessResult ruleResult = wrapper.checkAccess("/workspace/secret/key", newContext());
+        assertFalse(ruleResult.isAllowed(),
+                "Path under roots but matching parent DENY rule must be denied by rule check");
+        assertEquals(ParentConstrainedPathAccessChecker.MATCHED_RULE_PATH_RULE, ruleResult.getMatchedRule());
+
+        // Path under roots, no rule match → passes both, delegates
+        assertTrue(wrapper.checkAccess("/workspace/src/Main.java", newContext()).isAllowed(),
+                "Path under roots with no rule match passes both dimensions");
+    }
+
+    @Test
+    void constraintCarriesPathRules() {
+        ParentPermissionConstraint c = new ParentPermissionConstraint(
+                Set.of("read-file"), null,
+                java.util.List.of(pathRule("/**", "deny")),
+                "parent-agent", "parent-sess");
+        assertNotNull(c.getAllowedPathRules(), "Path rules must be PRESENT");
+        assertTrue(c.hasPathRules());
+        assertEquals(1, c.getAllowedPathRules().size());
+    }
+
+    @Test
+    void constraintAbsentPathRulesByDefault() {
+        ParentPermissionConstraint c = new ParentPermissionConstraint(
+                Set.of("read-file"), "parent-agent", "parent-sess");
+        assertNull(c.getAllowedPathRules(), "Tool-only constructor must default to ABSENT path rules");
+        assertFalse(c.hasPathRules());
+    }
 }
