@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-nested-leaf-rules">
+
+    <description>Leaf agent C for nested delegation accumulation tests</description>
+
+    <prompt>You are nested leaf agent C.</prompt>
+
+    <tools>read-file</tools>
+
+</agent>

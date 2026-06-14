@@ -51,9 +51,7 @@
 
 1. `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthResource/NopAuthResource.view.xml`
    适合看 `@TreeChildren`、`loadDataOnce`、`row-add-child-button`、树形 `tree-select`。
-2. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallRegion/_gen/_LitemallRegion.view.xml`
-   适合看树形 CRUD 基线和 `add-child` 预填父节点。
-3. `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/NopRuleNode.view.xml`
+2. `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/NopRuleNode.view.xml`
    适合看 `add-child` 时如何显式回填 `parentId`、`ruleId` 等上下文。
 
 ## 常见坑

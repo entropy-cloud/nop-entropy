@@ -149,12 +149,14 @@ public class CallAgentExecutor implements IToolExecutor {
     private ParentPermissionConstraint buildParentConstraint(AgentToolExecuteContext agentCtx) {
         java.util.Set<String> allowedTools = agentCtx.getAllowedTools();
         java.util.Set<String> allowedPathRoots = agentCtx.getAllowedPathRoots();
-        if (allowedTools == null && allowedPathRoots == null) {
+        java.util.List<io.nop.ai.agent.model.PathRuleModel> allowedPathRules = agentCtx.getAllowedPathRules();
+        if (allowedTools == null && allowedPathRoots == null && allowedPathRules == null) {
             return null;
         }
         return new ParentPermissionConstraint(
                 allowedTools != null ? allowedTools : java.util.Set.of(),
                 allowedPathRoots,
+                allowedPathRules,
                 agentCtx.getAgentName(), agentCtx.getSessionId());
     }
 

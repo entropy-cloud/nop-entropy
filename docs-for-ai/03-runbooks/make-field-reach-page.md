@@ -3,7 +3,7 @@
 ## 适用场景
 
 - 新增字段后，希望它最终出现在列表、查看页或编辑页里。
-- 你不只是想“字段存在”，而是要把它真正走通到页面。
+- 你不只是想"字段存在"，而是要把它真正走通到页面。
 
 ## AI 决策提示
 
@@ -39,23 +39,19 @@
 
 ## 最值得抄的真实链路
 
-`C:/can/nop/nop-app-mall` 的 `LitemallGoods.detail`
+典型链路（以实体 `Xxx` 的 `detail` 字段为例）：
 
-1. ORM 字段：
-   `app-mall-dao/src/main/resources/_vfs/app/mall/orm/_app.orm.xml`
-2. XMeta 字段：
-   `app-mall-meta/src/main/resources/_vfs/app/mall/model/LitemallGoods/_LitemallGoods.xmeta`
-3. 生成 view 基线：
-   `app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/_gen/_LitemallGoods.view.xml`
-4. 保留层页面定制：
-   `app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
+1. ORM 字段：在 `*.orm.xml` 中定义字段类型（如 `html-64k`）。
+2. XMeta 字段：在 `_Xxx.xmeta` 中声明 `insertable/updatable/queryable/sortable`。
+3. 生成 view 基线：`_gen/_Xxx.view.xml` 自动带出字段到 list/view/edit。
+4. 保留层页面定制：`Xxx.view.xml` 把字段改成目标展示方式。
 
-这个例子里：
+这个链路展示了：
 
-1. `detail` 在 ORM 中定义为 `html-64k`。
-2. XMeta 把它声明为可插入、可更新、可查询、可排序。
-3. 生成 view 已经把它放进 list/view/edit。
-4. 保留层 view 再把它改成列表中的“查看详情”按钮和编辑表单里的富文本字段。
+1. ORM 定义数据类型。
+2. XMeta 控制可见性和操作权限。
+3. 生成 view 打通到页面的默认路径。
+4. 保留层做最终展示定制。
 
 ## 常见坑
 

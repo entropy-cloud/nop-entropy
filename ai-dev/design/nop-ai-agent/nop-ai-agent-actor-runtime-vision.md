@@ -194,7 +194,7 @@ AgentActor A (Lead)                AgentActor B (Worker)
 |------|------|-------------|
 | **ActorRuntime** | 创建/销毁 Actor 实例，管理 Virtual Thread 生命周期 | 基于 `GlobalExecutors` 的 Virtual Thread 池 |
 | **ActorRegistry** | 维护所有活跃 Actor 的注册表，按 tenantId/userId 隔离 | 内存 `ConcurrentHashMap` + DB 持久化索引 |
-| **MessageRouter** | Actor 间消息路由，topic 匹配，背压控制 | `LocalMessageService` + topic 命名约定（L4-1 已落地：以 `LocalMessageService` 为底的 Agent 域 messenger `IAgentMessenger` 已可作为 MessageRouter 的路由基底，提供 inbox 直达投递 + 共享 reply topic 请求-响应） |
+| **MessageRouter** | Actor 间消息路由，topic 匹配，背压控制 | `LocalMessageService` + topic 命名约定（L4-1 已落地：以 `LocalMessageService` 为底的 Agent 域 messenger `IAgentMessenger` 已可作为 MessageRouter 的路由基底，提供 inbox 直达投递 + 共享 reply topic 请求-响应；L4-2 已落地：`DBMessageService` 已可作为多实例路由基底——消息持久化到 `ai_agent_message` 表，跨进程投递经 DB 路由，至少一次语义） |
 | **TeamManager** | Agent 团队的生命周期（创建/解散/成员管理/状态查询） | `@BizModel("AiTeam")` + ORM 实体持久化 |
 | **RecoveryManager** | 崩溃恢复、超时清理、orphan 检测、消息重放 | 定时任务（nop-job）+ DB 状态机 |
 | **ResourceGuard** | 协调信道（scope_claim/conflict_alert，见 multi-agent.md §4）、资源配额、冲突检测 | `@BizAction` 拦截工具执行 |

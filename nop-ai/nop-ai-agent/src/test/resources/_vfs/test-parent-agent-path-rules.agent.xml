@@ -1,0 +1,15 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-parent-agent-path-rules">
+
+    <description>Parent agent with declared path-rules for per-agent rule inheritance tests</description>
+
+    <prompt>You are parent rules agent A.</prompt>
+
+    <tools>read-file,call-agent</tools>
+
+    <path-rules>
+        <rule pattern="/workspace/secret/**" access="deny"/>
+        <rule pattern="/workspace/**" access="allow"/>
+    </path-rules>
+
+</agent>

@@ -98,9 +98,20 @@ Permission resolve(toolName, agentName, sessionId)
 
 **职责**：每次文件操作前检查路径权限。
 
-**访问级别**：`read` | `read-write` | `deny`
+**访问级别**：`allow` | `deny`（两值模型，已交付 ✅）。设计原始构想的 `read | read-write | deny` 三值模型延后为未来精化，绑定 tool-kind 分析（L2-13/L2-14）。
 
-**路径匹配**：glob 模式，从上到下匹配，第一条命中生效。
+**路径匹配**：glob 模式（`AntPathMatcher`），从上到下匹配，第一条命中生效（within-agent first-match-wins）。
+
+**Per-agent glob 路径规则（已交付 ✅，Plan 174）**：Agent 可在 DSL 中声明 `<path-rules>` — 一个有序的 glob 模式列表，每个模式带 `allow` 或 `deny` 决策。`RuleBasedPathAccessChecker` 在 agent 自身规则集内执行 first-match-wins 评估：第一条匹配的模式决定结果 — `deny` → 拒绝，`allow` → 委托给被包装的全局 checker，无匹配 → 委托给被包装的全局 checker。架构决策：
+
+1. **访问级别模型 = allow/deny**（两值），匹配当前 `DefaultPathAccessChecker` 的 deny/allow 语义。`read | read-write | deny` 三值模型延后（需要 tool-kind 分析，绑定 L2-13/L2-14）。
+2. **within-agent 评估策略 = first-match-wins**（设计 §4.3："从上到下匹配，第一条命中生效"）。第一条匹配的模式决定结果，Agent 通过规则排序控制优先级。
+3. **跨层评估策略 = deny-wins**（任何父 DENY 匹配 → 拒绝）。跨委派层（父 → 子），父约束的路径规则扫描全部规则，任何 DENY 匹配即拒绝。这与 within-agent 的 first-match-wins 不同，是安全必需的：父的 deny 不能被子或更早的父 allow 覆盖。
+4. **无匹配回退 = 委托全局 deny-list**。per-agent 规则是叠加在全局 deny-list 之上的额外限制，不是替代。Agent 无法 ALLOW 全局 deny-list 拒绝的路径（如 `~/.ssh/**`）。
+5. **规则链累积**：嵌套委派（A → B → C）中，B 的 effective path-rules = incoming parent rules + B's own rules（拼接，父规则在前）。累积链由 C 的 wrapper 以 deny-wins 评估。C 继承完整约束链 — A 的 deny 即使 B 未重新声明也对 C 生效。
+6. **与 workDir root-confinement 共存**（Plan 170）。约束可同时携带 `allowedPathRoots`（来自 workDir）和 `allowedPathRules`（来自 `<path-rules>`）。两者都 PRESENT 时，wrapper 同时检查两个维度：路径必须在允许根下 AND 通过所有 deny-rules。任一维度可独立拒绝。fail-closed（最严格）。
+
+**`**`-leading 模式的 form 调整**：`**`-leading 模式（如 `**/secrets/**`）被设计为 workDir 无关的。实现中，当解析路径为绝对路径时，`**`-leading 模式自动前补 `/`（变为 `/**/secrets/**`）以匹配绝对路径。非 `**`-leading 的相对模式（如 `src/**`）仅匹配相对路径（当 workDir ABSENT 时）。
 
 **路径规范化**（必须防御）：
 
@@ -127,7 +138,7 @@ Permission resolve(toolName, agentName, sessionId)
 | Shell 历史 | `**/.bash_history`, `**/.zsh_history` |
 | 系统目录 | `/etc/**`, `/boot/**`, `/sys/**`, `/proc/**`, `/root/**` |
 
-**默认实现**：`DefaultPathAccessChecker`——只做 deny/allow + 路径规范化。敏感路径 denylist 可通过 XDSL 外部配置。
+**默认实现**：`DefaultPathAccessChecker`——全局静态 deny-list + 路径规范化（无 per-agent 状态）。`RuleBasedPathAccessChecker`——per-agent glob 规则评估（first-match-wins，包装全局 checker）。敏感路径 denylist 可通过 XDSL 外部配置（未来，`ISensitivePathProvider` L4）。
 
 ### 4.4 Subagent 权限继承
 
@@ -165,7 +176,7 @@ Permission resolve(toolName, agentName, sessionId)
 
 5. **约束传播（constraint propagation）**：路径根通过同一 `ParentPermissionConstraint` 对象、同一 metadata key（`"parentPermissionConstraint"`）传播，复用 plan-169 的 metadata 基础设施。`CallAgentExecutor.buildParentConstraint()` 从 `AgentToolExecuteContext.getAllowedPathRoots()` 读取当前 Agent 的 effective path roots 并纳入约束；`DefaultAgentEngine.doExecute()` 从 metadata 读取同一约束对象，同时包装 tool checker（已有）和 path checker（新增）。`DefaultAgentEngine.resolveEffectivePathAccessChecker()` 是 `resolveEffectiveToolAccessChecker()` 的类比，当约束的 path roots 为 PRESENT 时返回 `ParentConstrainedPathAccessChecker`，否则返回引擎自身的 `pathAccessChecker`。
 
-**关于 "glob 规则" 的更正**：早期设计文档提及 "IPathAccessChecker 的 glob 规则"，暗示存在 per-agent 的 glob allow/deny 模式系统。实际 live 实现中 `DefaultPathAccessChecker` 是全局静态 deny-list（路径穿越防御、敏感前缀 `~/.ssh/`、`/etc/` 等、敏感文件名 `.env`/`id_rsa` 等），无 per-agent 状态、无可配置规则、无 glob 模式模型。本计划交付的路径范围来源是 agent DSL 中新增的 `workDir` 派生范围（根集），而非 glob 规则系统。更丰富的 per-agent glob 路径规则模型是独立的后续关注点（Layer 2 / `IPermissionMatrix` L2-14 territory），且本计划的 enforcement wrapper 设计为可被未来 glob-rule 模型替换 scope source 而不改变 wrapper 本身。
+**Per-agent glob 路径规则模型（已交付，Plan 174）**：Plan 174 在上述 root-based 范围来源之上交付了 per-agent glob allow/deny 路径规则模型。Agent 可在 DSL 中声明 `<path-rules>`（`PathRuleModel` 由 codegen 从 `agent.xdef` 生成）。`RuleBasedPathAccessChecker` 在 agent 自身规则集内执行 first-match-wins 评估（DENY → 拒绝，ALLOW/无匹配 → 委托全局 checker）。引擎在 executor-resolution 时解析 per-agent checker：声明了 `<path-rules>` 的 agent 获得 `RuleBasedPathAccessChecker` 包装全局 checker，未声明的 agent 获得全局 checker 不变（向后兼容）。组合顺序：全局 deny-list（最内层）→ per-agent 规则 → 父约束（最外层）。路径必须通过所有层。继承机制（plan 170 的 `ParentConstrainedPathAccessChecker`）被 additively 扩展以携带和跨委派层强制执行路径规则（deny-wins 跨层语义），复用现有的 wrapper 和传播机制。
 
 ### 4.5 日志与审计
 
@@ -183,6 +194,8 @@ Permission resolve(toolName, agentName, sessionId)
 ### 5.1 ISecurityLevelResolver — 安全等级解析
 
 **职责**：根据 action 种类和上下文 hints 解析安全等级。
+
+**状态**：契约 + pass-through 默认已落地（L2-13 ✅），且 dispatch-path 咨询已接通（plan 175 ✅）。`ISecurityLevelResolver` 接口 + `NoOpSecurityLevelResolver` 默认 + `LevelHints` 值类型位于 `io.nop.ai.agent.security` 包，引擎通过 `DefaultAgentEngine.setSecurityLevelResolver` / `getSecurityLevelResolver` 接线，默认 = NoOp。`ReActAgentExecutor` dispatch loop 在 Layer 1 检查之后调用 `resolver.resolve(toolName, hints)`；hints 由可插拔 `ILevelHintsProducer`（默认 `DefaultLevelHintsProducer`）运行时生产。
 
 **来源**：OpenSquilla sandbox.policy 模块的 `select_level(action_kind, hints)` 确定性规则表（见 `ai-dev/analysis/agent-survey/2026-06-08-opensquilla-analysis.md` §4.3.1）。
 
@@ -214,7 +227,13 @@ Permission resolve(toolName, agentName, sessionId)
 | `network.fetch`, `web.fetch` | STANDARD | `!trustedSource` → RESTRICTED |
 | 其他 | STANDARD | `!trustedSource` → ELEVATED; `highImpact` → RESTRICTED |
 
-**默认实现**：`NoOpSecurityLevelResolver`（所有操作返回 STANDARD，等于不分级）。
+**默认实现**：`NoOpSecurityLevelResolver`（所有操作返回 STANDARD，等于不分级）。上表中的确定性规则表是功能化实现，归类为 priority-5，在 NoOp 默认之上独立交付。
+
+**架构决策**：
+
+1. **LevelHints 值类型归属**：`LevelHints` 在本计划（L2-13）中定义，因为 resolver 契约需要它作为输入参数。`SecurityLevel` 枚举复用 L2-14（plan 172，矩阵消费者）的定义——消费者先于生产者落地，因为矩阵契约需要 SecurityLevel 作为输入参数。生产者（resolver）落地时直接复用此枚举，不重复定义。
+
+2. **dispatch-path 咨询已接通（plan 175）**：`ReActAgentExecutor` 工具分发循环在 Layer 1 检查（toolAccessChecker / permissionProvider / pathAccessChecker）之后调用 `resolver.resolve(toolName, hints)`。`LevelHints` 由可插拔 `ILevelHintsProducer`（默认 `DefaultLevelHintsProducer`）运行时生产——`trustedSource` 经 `IContentTrustEvaluator` 评估（agent 内部推理链 → AGENT_GENERATED → trusted），`writesOutsideWorkspace` 经 path-arg（`ToolPathArgKeys`）× workDir 比对，`needsNetwork`/`highImpact` 经 tool-name 分类，`crossesTrustBoundary` 保守为 false（精确评估是后续增强）。通道与身份经 `AgentMessageRequest` → `AgentExecutionContext` 传播（`channelKind`/`principal` 可选字段，null = 未知通道/匿名身份）。NoOp 默认对所有操作返回 STANDARD，即使接通也不改变运行时行为。功能化规则表 resolver（上表的确定性 shipped 实现）归类为 priority-5，在 NoOp 默认之上独立交付。
 
 **LevelHints 评估**：`trustedSource` 等 hints 需要程序化评估。定义 `IContentTrustEvaluator` 接口：
 
@@ -272,6 +291,8 @@ IContentTrustEvaluator:
 
 **来源**：OpenSquilla safety.permission_matrix 模块（见 `ai-dev/analysis/agent-survey/2026-06-08-opensquilla-analysis.md` §4.3.2）。
 
+**状态**：契约 + pass-through 默认已落地（L2-14 ✅），且 dispatch-path 咨询已接通（plan 175 ✅）。`IPermissionMatrix` 接口 + `PassThroughPermissionMatrix` 默认 + `SecurityLevel`/`ChannelKind`/`Principal`/`PrincipalRole` 共享值类型位于 `io.nop.ai.agent.security` 包，引擎通过 `DefaultAgentEngine.setPermissionMatrix` / `getPermissionMatrix` 接线，默认 = PassThrough。`ReActAgentExecutor` dispatch loop 在 `ISecurityLevelResolver` 解析出 `SecurityLevel` 之后调用 `matrix.check(channelKind, principal, level)`；deny 时记录审计日志 + 发布 `TOOL_CALL_DENIED` 事件 + 返回 error response（与 Layer 1 deny 路径一致）。
+
 | 通道类型 | 允许的工具等级 |
 |---------|--------------|
 | `webui` | STANDARD + ELEVATED + RESTRICTED |
@@ -284,17 +305,25 @@ IContentTrustEvaluator:
 
 | 字段 | 含义 |
 |------|------|
-| `role` | `user` / `operator`（operator 可绕过 RESTRICTED） |
+| `role` | `PrincipalRole` 枚举：`USER` / `OPERATOR`（OPERATOR 可绕过 RESTRICTED） |
 | `channelId` | 用于 per-channel override |
 | `tenantId` | 多租户标识（Nop `IContext` 天然支持） |
 
-**默认实现**：`PassThroughPermissionMatrix`（所有通道允许所有等级）。
+**默认实现**：`PassThroughPermissionMatrix`（所有通道允许所有等级，singleton + `passThrough()` 工厂）。上表中的通道限制规则是功能化实现，归类为 priority-5，在 pass-through 默认之上独立交付。
+
+**架构决策**：
+
+1. **SecurityLevel 共享值类型的归属**：`SecurityLevel` 枚举在本计划（L2-14，矩阵消费者）中定义，而非 L2-13（`ISecurityLevelResolver`，SecurityLevel 生产者）。消费者先于生产者落地，因为矩阵契约需要 SecurityLevel 作为输入参数。L2-13 落地时直接复用此枚举，不重复定义。
+
+2. **dispatch-path 咨询已接通（plan 175）**：`ReActAgentExecutor` 工具分发循环在 `ISecurityLevelResolver`（plan 173）解析出 `SecurityLevel` 之后调用 `matrix.check(channelKind, principal, level)`。consultation 点位于 Layer 1 检查之后；deny 路径与 Layer 1 deny 一致——记录 `AuditEvent`（DENY + reason + matched rule `layer2_permission_matrix`）+ 发布 `TOOL_CALL_DENIED` 事件 + 返回 `ChatToolResponseMessage.error(...)` 并跳过该工具调用。`channelKind`/`principal` 经 `AgentMessageRequest` → `AgentExecutionContext` 传播（可选字段，null = 未知/匿名）。pass-through 默认放行一切，即使接通也不改变运行时行为。功能化限制性 matrix（上表通道限制的 shipped 实现）归类为 priority-5，在 pass-through 默认之上独立交付。
 
 ## 6. Layer 3: Approval Governance（审批治理层）
 
 为生产环境提供人类审批和拒绝治理。所有接口有最简默认。
 
 ### 6.1 IApprovalGate — 审批门
+
+**状态**：契约表面 + `AutoApproveGate` 默认 + dispatch-path 咨询点已落地（plan 176 ✅）。功能化人类审批流（异步等待 + 超时 + 多通道）为后续工作项。
 
 **职责**：当 `ISecurityLevelResolver` 返回需要审批的等级时，向人类请求批准。
 
@@ -307,13 +336,24 @@ IContentTrustEvaluator:
 3. 等待人类响应（带超时，默认 300s）
 4. 超时或拒绝 → DenialResult
 
+> **已落地范围**：步骤 1 的契约表面 + dispatch-path 咨询点 + `AutoApproveGate` shipped 默认（所有请求自动通过，approver = "auto"）。步骤 2-4 的异步人类审批流（入队 + 等待 + 超时）是功能化 gate 实现的职责，不在当前范围；`AutoApproveGate` 不涉及外部审批通道。
+
 **审批通道**：
 
 - Web UI 通知
 - GraphQL Subscription
 - RPC 轮询
 
-**默认实现**：`AutoApproveGate`（所有请求自动通过——适用于无人值守自动化的 Layer 1 基线）。
+> 通道抽象为可插拔接口（`IApprovalChannel`）为后续功能化审批流增强（审计发现 L3-G3），当前 `AutoApproveGate` 不需要外部通道。
+
+**默认实现**：`AutoApproveGate`（所有请求自动通过——适用于无人值守自动化的 Layer 1 基线）。经 `DefaultAgentEngine.setApprovalGate` 程序化注入功能化实现。
+
+**决策记录（plan 176）**：
+
+1. **`ApprovalDecision` 作为 `IApprovalGate` 专用返回类型**，与 L3-7 的 `DenialResult` 信封边界清晰：gate 自身的 approve/deny 决策（approver + denial kind + reason）vs 拒绝后治理信封（suggestedNextStep + actionFingerprint + retryable）。`DenialResult` 归属于 L3-7（`IPostDenialGuard`），不在本工作项范围。
+2. **consultation 点位于 Layer 2 matrix 放行之后**、`allowedCalls.add` 之前。deny 路径记录 `AuditEvent`（DENY + reason + matched rule `layer3_approval_gate`）+ 发布 `TOOL_CALL_DENIED` 事件 + 返回 `ChatToolResponseMessage.error(...)`，与 Layer 1/2 deny 路径完全一致。
+3. **`AutoApproveGate` shipped 默认保证向后兼容**：不设 gate 的引擎执行行为与接线前完全一致（0 spurious 拒绝），无人值守 Layer 1 自动化不受影响。
+4. **denial reason 区分 human_rejected / timeout**（收窄审计发现 L3-G1 到审批门自身语义）：`ApprovalDenialKind` 枚举（HUMAN_REJECTED / TIMEOUT / OTHER）使审批超时与人类拒绝在审计中可区分，而非模糊合并为一个 reason 字符串。完整枚举（threshold_exceeded / repeated_same_intent 等 L3-6/L3-7 场景）在后续工作项中扩展。
 
 ### 6.2 IDenialLedger — 拒绝账本
 
@@ -321,17 +361,28 @@ IContentTrustEvaluator:
 
 **来源**：OpenSquilla sandbox.governance 模块的 DenialLedger（见 `ai-dev/analysis/agent-survey/2026-06-08-opensquilla-analysis.md` §4.4.2）。
 
+**状态**：契约表面（`IDenialLedger` + `DenialRecord` + `DenialRecordOutcome` + `DenialLayerSource` + `NoOpDenialLedger`）已落地。dispatch-path 集成已接通：每个 deny 路径（Layer 1/2/3 共 5 个 deny 点）向 ledger 记录拒绝，达到阈值后 dispatch for-loop 中止 + ReAct 循环迭代开始时 `isPaused` 检查中止。`DBDenialLedger`（DB 持久化实现）为 deferred successor。
+
 **关键设计**：
 
 | 参数 | 默认值 | 说明 |
 |------|-------|------|
 | `denialThreshold` | 3 | 累计 N 次拒绝后暂停 |
-| `pauseBehavior` | sticky | 暂停后只有人类干预才能恢复 |
-| `persistence` | DB | DenialLedger 持久化到数据库（不丢失） |
+| `pauseBehavior` | sticky | 暂停后只有人类干预才能恢复（sticky 完整语义延期至 successor） |
+| `persistence` | DB | DenialLedger 持久化到数据库（`DBDenialLedger` successor 职责，`NoOpDenialLedger` 默认不持久化） |
 
-**Fingerprint**：`action_fingerprint = SHA-256(actionKind + argv + cwd + criticalEnv)[:32]`，用于标识"相同的危险意图"。
+**Fingerprint**：`action_fingerprint = SHA-256(actionKind + argv + cwd + criticalEnv)[:32]`，用于标识"相同的危险意图"。fingerprint 基础设施在 L3-7 落地时引入，`DenialRecord` 届时可扩展携带 fingerprint 字段。
 
 **默认实现**：`NoOpDenialLedger`（不计数，不暂停）。
+
+**架构决策**：
+
+1. **接口契约不强制持久化**（收窄审计发现 L3-G5）：`NoOpDenialLedger` 不持久化在设计上合法。持久化是 `DBDenialLedger`（successor）的职责，非接口契约的硬性要求。跨 session 恢复的拒绝计数持久化在 successor plan 中解决。
+2. **每个 deny 路径均记录到 ledger**：dispatch loop 的全部 5 个 deny 点（Layer 1 tool access / Layer 1 permission / Layer 1 path access / Layer 2 security policy / Layer 3 approval gate）均通过 `handleDenialAndCheckThreshold` 向 ledger 记录拒绝，覆盖全部拒绝来源（非仅 Layer 3）。
+3. **阈值检查双重机制**：(a) 每次 `recordDenial` 后立即检查返回的 `DenialRecordOutcome.thresholdExceeded`；(b) ReAct 迭代开始时检查 `isPaused`。两个机制职责分离——Mechanism 1 (dispatch-path) 负责跳过当前迭代剩余执行（break dispatch for-loop + 跳过 allowedCalls 执行但不 break reactLoop），Mechanism 2 (迭代开始检查) 负责中止 ReAct 循环（break reactLoop）。
+4. **`AgentExecStatus.paused` 语义独立**：`paused` 与 `forced_stopped`/`cancelled`/`escalated` 语义不同——paused 是治理策略自动触发（denial threshold exceeded），非用户干预（cancelled）、非系统决策（forced_stopped）、非升级路径（escalated）。post-loop bookkeeping 排除 `paused`，暂停 session 不发布 `EXECUTION_COMPLETED` / 不执行 `POST_CALL` hooks。
+5. **`NoOpDenialLedger` shipped 默认保证向后兼容**：不设 ledger 的引擎执行行为与接线前完全一致（0 spurious 暂停），无人值守 Layer 1 自动化不受影响。
+6. **`pauseBehavior = sticky` 延期至 successor**：当前实现是非 sticky 的（session 可通过 `IDenialLedger.reset()` 恢复后重新执行）。sticky 恢复协议（只有人类干预才能恢复 + 可能的审批通道集成）在 `DBDenialLedger` successor 或独立 governance plan 中解决。
 
 ### 6.3 IPostDenialGuard — 拒绝后守卫
 
@@ -361,7 +412,18 @@ DenialResult {
 }
 ```
 
-**默认实现**：`PassThroughPostDenialGuard`（不阻止重试）。
+**默认实现**：`PassThroughPostDenialGuard`（不阻止重试）。功能化实现：`FingerprintPostDenialGuard`（纯内存，per-session 已拒绝 fingerprint 集合 + exact-fingerprint matching）。
+
+**架构决策**（L3-7 已落地）：
+
+1. **`DenialResult` 作为 `IPostDenialGuard` 专用返回类型**，与 `IApprovalGate` 的 `ApprovalDecision`（gate 自身决策）和 `IDenialLedger` 的 `DenialRecord`（ledger 记录结构）三者边界清晰——`DenialResult` 是 post-denial 治理信封（`DenialReason` + `DenialSuggestedStep` + `actionFingerprint` + `message` + `retryable`）。三者描述纵深防御链的不同阶段：gate 产生 `ApprovalDecision`，dispatch path 向 ledger 记录 `DenialRecord`，post-denial guard 在阻止盲重试时产生 `DenialResult`。
+2. **consultation 点位于 Layer 1 检查之前**（dispatch loop 中 `toolAccessChecker.checkAccess` 之前）：盲重试在安全检查链入口被拦截，不浪费 Layer 1/2/3 检查开销，也不污染 `IDenialLedger` 的拒绝计数（每次 guard-deny 也记录到 ledger，但使用 `LAYER3_POST_DENIAL_GUARD` layerSource 可区分）。
+3. **recording 在每个 deny 之后**（包括 post-denial-guard 自身的 deny——形成闭环：guard deny 的 action 也被记录到 guard 自身，防止"guard deny 后 Agent 重试 guard deny 的结果"）。recording 在 `handleDenialAndCheckThreshold` 内部完成，6 个 deny 点（5 个 Layer 1/2/3 + 1 个 guard consultation）统一覆盖。
+4. **`ActionFingerprint` 使用 exact-fingerprint matching**：`SHA-256(actionKind + argv + cwd + criticalEnv)[:32]`，canonical 序列化（`TreeMap` key 排序）保证确定性。相同 actionKind + argv + cwd + criticalEnv = 盲重试；参数变化自然产生不同 fingerprint = legitimate follow-up 自动放行——这覆盖了 legitimate follow-up 的主要场景（参数变化），无需显式标签检测。
+5. **`PassThroughPostDenialGuard` shipped 默认保证向后兼容**：不设 guard 的引擎执行行为与接线前完全一致（0 spurious 拒绝），无人值守 Layer 1 自动化不受影响。
+6. **`FingerprintPostDenialGuard` 是 shipped 功能化实现**（纯内存、`ConcurrentHashMap` per-session、无外部依赖），经 `DefaultAgentEngine.setPostDenialGuard` setter 注册启用。
+7. **follow-up 标签的显式检测延期**（exact-fingerprint matching 已覆盖 legitimate follow-up 的主要场景——参数变化）；推理文本分析 / tool-call metadata 标注是后续增强。
+8. **`DenialLayerSource.LAYER3_POST_DENIAL_GUARD` 新增**，使 ledger 可区分 guard deny 与其他 layer deny，5 个 layer source 扩展为 6 个。
 
 ## 7. Layer 4: Platform Security（平台安全层）
 

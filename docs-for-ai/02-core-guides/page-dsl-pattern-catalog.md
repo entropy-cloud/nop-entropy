@@ -14,18 +14,18 @@
 
 | 模式 | 解决什么问题 | 最佳参考 |
 |------|-------------|---------|
-| `bounded-merge` keep-only override | 只保留你显式列出的继承子节点 | `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml` |
-| `x:prototype` 复用 | 基于一个 grid / form / page 派生多个变体 | `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml` |
-| tabs 组装多个子页 | 把多个 CRUD / simple 页面组装成一个工作台 | `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobSchedule/NopJobSchedule.view.xml` |
-| 外部子表 view / page 片段复用 | 在父表单内嵌子表编辑，而不复制子表 DSL | `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml` |
-| 薄 `page.yaml` wrapper | 从已有 view/page 快速生成独立入口页 | `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/add.page.yaml` |
-| 树形 CRUD + add-child | 树表、子节点创建、层级回填 | `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthResource/NopAuthResource.view.xml` |
-| `feature:on` 条件布局切换 | 同一页面按 feature flag 切两套布局 | `C:/can/nop/nop-app-mall/app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml` |
-| 动作直连 `@query` / `@mutation` | 在表格动作上直接挂业务 API | `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobSchedule/NopJobSchedule.view.xml` |
-| `gen-control` 自定义控件 | 缺省控件不够用时，服务端生成控件 | `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthResource/NopAuthResource.view.xml` |
-| `initApi` / `api` / `gql:selection` / `withFormData` | 统一 CRUD 页面取数、初始化、提交 wiring | `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallRegion/_gen/_LitemallRegion.view.xml` |
-| `fixedProps` 关联子表页 | 把某个外键固定为上层传入值 | `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml` |
-| 混合生成页 + 大块手写 page | 专用设计器、编辑器一类页面 | `nop-wf/nop-wf-web/src/main/resources/_vfs/nop/wf/designer/designer.page.yaml` |
+| `bounded-merge` keep-only override | 只保留你显式列出的继承子节点 | 见 `./external-app-examples.md` 第 1 节 |
+| `x:prototype` 复用 | 基于一个 grid / form / page 派生多个变体 | 见 `./external-app-examples.md` 第 2-3 节 |
+| tabs 组装多个子页 | 把多个 CRUD / simple 页面组装成一个工作台 | `nop-job/nop-job-web/.../NopJobSchedule.view.xml`、见 `./external-app-examples.md` 第 4 节 |
+| 外部子表 view / page 片段复用 | 在父表单内嵌子表编辑，而不复制子表 DSL | 见 `./external-app-examples.md` 第 7-8 节 |
+| 薄 `page.yaml` wrapper | 从已有 view/page 快速生成独立入口页 | 见 `./external-app-examples.md` 第 9 节 |
+| 树形 CRUD + add-child | 树表、子节点创建、层级回填 | `nop-auth/nop-auth-web/.../NopAuthResource.view.xml`、见 `./external-app-examples.md` 第 11 节 |
+| `feature:on` 条件布局切换 | 同一页面按 feature flag 切两套布局 | 见 `./external-app-examples.md` 第 10 节 |
+| 动作直连 `@query` / `@mutation` | 在表格动作上直接挂业务 API | `nop-job/nop-job-web/.../NopJobSchedule.view.xml` |
+| `gen-control` 自定义控件 | 缺省控件不够用时，服务端生成控件 | `nop-auth/nop-auth-web/.../NopAuthResource.view.xml`、见 `./external-app-examples.md` 第 5-6 节 |
+| `initApi` / `api` / `gql:selection` / `withFormData` | 统一 CRUD 页面取数、初始化、提交 wiring | 见 `./external-app-examples.md` 第 12 节 |
+| `fixedProps` 关联子表页 | 把某个外键固定为上层传入值 | `nop-rule/nop-rule-web/.../ref-ruleDefinition.page.yaml` |
+| 混合生成页 + 大块手写 page | 专用设计器、编辑器一类页面 | `nop-wf/nop-wf-web/.../designer.page.yaml` |
 | `custom="true"` 非实体字段 | 表单字段不在 objMeta 中时跳过校验 | `nop-auth/.../NopAuthUser.view.xml`（`__password2`）、`nop-rule/.../NopRuleDefinition.view.xml`（`__useImportFile`） |
 
 ## 1. `bounded-merge`
@@ -43,8 +43,7 @@
 
 参考：
 
-1. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
-2. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
+1. 见 `./external-app-examples.md` 第 1 节
 
 ## 2. `x:prototype` 复用
 
@@ -61,7 +60,7 @@
 
 参考：
 
-1. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
+1. 见 `./external-app-examples.md` 第 2-3 节
 2. `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthResource/NopAuthResource.view.xml`
 3. `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/NopRuleNode.view.xml`
 
@@ -74,10 +73,8 @@
 
 参考：
 
-1. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
-2. `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobSchedule/NopJobSchedule.view.xml`
-
-前者是“多状态 CRUD tabs”，后者是“summary + related CRUD tabs”。
+1. `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobSchedule/NopJobSchedule.view.xml`
+2. 见 `./external-app-examples.md` 第 4 节
 
 ## 4. 嵌套子表编辑与外部片段复用
 
@@ -93,7 +90,7 @@
 
 参考：
 
-1. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
+1. 见 `./external-app-examples.md` 第 7-8 节
 
 ## 5. 树形 CRUD / add-child
 
@@ -111,7 +108,7 @@
 参考：
 
 1. `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthResource/NopAuthResource.view.xml`
-2. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallRegion/_gen/_LitemallRegion.view.xml`
+2. 见 `./external-app-examples.md` 第 11 节
 
 补充：
 
@@ -135,7 +132,7 @@
 参考：
 
 1. `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobSchedule/NopJobSchedule.view.xml`
-2. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
+2. 见 `./external-app-examples.md` 第 4 节
 3. `nop-sys/nop-sys-web/src/main/resources/_vfs/nop/sys/pages/NopSysDict/NopSysDict.view.xml`
 
 ## 7. `gen-control` 自定义控件
@@ -158,7 +155,7 @@
 
 1. `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthResource/NopAuthResource.view.xml`
 2. `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/NopRuleNode.view.xml`
-3. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
+3. 见 `./external-app-examples.md` 第 5-6 节
 
 ## 8. 薄 `page.yaml` wrapper 与 `fixedProps`
 
@@ -169,9 +166,8 @@
 
 参考：
 
-1. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/add.page.yaml`
-2. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallBrand/main.page.yaml`
-3. `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml`
+1. 见 `./external-app-examples.md` 第 9 节
+2. `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml`
 
 其中 `ref-ruleDefinition.page.yaml` 明确展示了：`fixedProps="ruleId"` 会把关联字段固定为上层传入值，并把该字段的编辑控件转为只读上下文字段。
 
@@ -184,9 +180,7 @@
 
 参考：
 
-1. `C:/can/nop/nop-app-mall/app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml`
-
-这个例子用两份同 id 的 form 配合 `feature:on` 切换布局。
+1. 见 `./external-app-examples.md` 第 10 节
 
 ## 10. 混合生成页 + 大块手写 page
 
@@ -216,7 +210,7 @@
 
 最适合看的基线：
 
-1. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallRegion/_gen/_LitemallRegion.view.xml`
+1. 见 `./external-app-examples.md` 第 12 节
 2. `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobSchedule/NopJobSchedule.view.xml`
 
 ## 什么时候不要来这里找答案
@@ -229,5 +223,6 @@
 
 - `./view-and-page-customization.md`
 - `./external-app-development.md`
+- `./external-app-examples.md`
 - `./api-and-graphql.md`
 - `../04-reference/source-anchors.md`

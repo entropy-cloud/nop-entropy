@@ -49,8 +49,6 @@
    适合看 `runtimeSummary + runtimeFires + vertical tabs`。
 2. `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobFire/NopJobFire.view.xml`
    适合看 `runtimeSummary + runtimeTasks + row action 钻取`。
-3. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
-   适合看多状态 CRUD tabs。
 
 ## 常见坑
 

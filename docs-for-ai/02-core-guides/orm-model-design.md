@@ -41,7 +41,6 @@ Nop ORM 的列类型系统有两个独立维度：
 | DECIMAL / NUMERIC | decimal | BigDecimal |
 | REAL | float | Float |
 | FLOAT / DOUBLE | double | Double |
-| DOUBLE | double | Double |
 | CHAR / VARCHAR / JSON / CLOB | string | String |
 | DATE | date | LocalDate |
 | TIME | time | LocalTime |
@@ -200,6 +199,6 @@ Nop ORM 的列类型系统有两个独立维度：
 
 - `code-style.md` — ORM 命名规范（表名、列名、实体名格式）
 - `model-first-development.md` — 模型优先开发流程、代码生成链路、VARCHAR precision 自动选择
-- `./create-new-entity.md` — 新建实体 runbook
-- `./add-field-and-validation.md` — 新增字段 runbook
-- `./add-dict-and-constants.md` — 新增字典 runbook
+- `../03-runbooks/create-new-entity.md` — 新建实体 runbook
+- `../03-runbooks/add-field-and-validation.md` — 新增字段 runbook
+- `../03-runbooks/add-dict-and-constants.md` — 新增字典 runbook

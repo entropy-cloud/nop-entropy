@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-nested-middle-rules">
+
+    <description>Middle agent B (no own path-rules) for nested delegation accumulation tests</description>
+
+    <prompt>You are nested middle agent B.</prompt>
+
+    <tools>read-file,call-agent</tools>
+
+</agent>

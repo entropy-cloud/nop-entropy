@@ -229,3 +229,11 @@ Follow-up:
 - Per-agent glob path-rules — deferred, requires a path-rule model (see Deferred But Adjudicated; successor plan will replace workDir-derived scope with explicit rule set, reusing this plan's wrapper + propagation machinery)
 - Argument-level path restrictions — out-of-scope, Layer 2+ concern
 - Path-scope constraint persistence across session continuation — optimization candidate
+
+## Follow-up handled by 174-nop-ai-agent-per-agent-path-rules.md
+
+> Additive annotation (2026-06-14). This completed plan is historical record; this section only records successor traceability and does not alter the closure above.
+
+The deferred "Per-agent glob path-rules" item (see `Deferred But Adjudicated` → "Per-agent glob path-rules (allow/deny pattern model)", Successor Required: yes) is being handled by successor plan [`174-nop-ai-agent-per-agent-path-rules.md`](174-nop-ai-agent-per-agent-path-rules.md).
+
+Carry-over note for the successor: this plan delivered the inheritance MECHANISM (`ParentConstrainedPathAccessChecker` wrapper + propagation via `ParentPermissionConstraint.allowedPathRoots` + clamping via `computeEffectivePathRoots`) with `workDir`-derived root-sets as the scope source. The successor replaces the workDir-derived scope with an explicit glob allow/deny rule model (design §4.3). The successor reuses this plan's wrapper and propagation machinery — the constraint is extended additively with a `allowedPathRules` field, and the wrapper is extended to evaluate parent rules (deny-wins cross-level) before delegating. The root-based confinement from this plan remains intact for agents that only declare `workDir` (backward compatible).

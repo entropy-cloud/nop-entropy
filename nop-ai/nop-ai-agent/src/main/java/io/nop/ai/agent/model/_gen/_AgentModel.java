@@ -74,6 +74,13 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: path-rules
+     * per-agent glob path-rules: ordered allow/deny patterns, first-match-wins
+     */
+    private java.util.List<io.nop.ai.agent.model.PathRuleModel> _pathRules = java.util.Collections.emptyList();
+    
+    /**
+     *  
      * xml name: permissions
      * 
      */
@@ -298,6 +305,25 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: path-rules
+     *  per-agent glob path-rules: ordered allow/deny patterns, first-match-wins
+     */
+    
+    public java.util.List<io.nop.ai.agent.model.PathRuleModel> getPathRules(){
+      return _pathRules;
+    }
+
+    
+    public void setPathRules(java.util.List<io.nop.ai.agent.model.PathRuleModel> value){
+        checkAllowChange();
+        
+        this._pathRules = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: permissions
      *  
      */
@@ -450,6 +476,8 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
             
            this._hooks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._hooks);
             
+           this._pathRules = io.nop.api.core.util.FreezeHelper.deepFreeze(this._pathRules);
+            
            this._permissions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._permissions);
             
         }
@@ -467,6 +495,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("meta",this.getMeta());
         out.putNotNull("mode",this.getMode());
         out.putNotNull("name",this.getName());
+        out.putNotNull("pathRules",this.getPathRules());
         out.putNotNull("permissions",this.getPermissions());
         out.putNotNull("prompt",this.getPrompt());
         out.putNotNull("requiredSkills",this.getRequiredSkills());
@@ -492,6 +521,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         instance.setMeta(this.getMeta());
         instance.setMode(this.getMode());
         instance.setName(this.getName());
+        instance.setPathRules(this.getPathRules());
         instance.setPermissions(this.getPermissions());
         instance.setPrompt(this.getPrompt());
         instance.setRequiredSkills(this.getRequiredSkills());

@@ -30,6 +30,11 @@
                  maxIterations="int" toolTimeoutSeconds="int" maxParallelTools="int"
                  tokenCompactionThreshold="double-percent"/>
 
+    <!-- per-agent glob path-rules: ordered allow/deny patterns, first-match-wins -->
+    <path-rules xdef:body-type="list">
+        <rule xdef:name="PathRuleModel" pattern="!string" access="string"/>
+    </path-rules>
+
     <!-- 系统提示词，指导agent的行为模式 -->
     <prompt>prompt-syntax</prompt>
 

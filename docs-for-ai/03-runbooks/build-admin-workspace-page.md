@@ -31,9 +31,7 @@
    这是“主列表 + 运行态 summary + 关联 fires + 生命周期动作”的完整工作台。
 2. `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobFire/NopJobFire.view.xml`
    这是“主列表 + 运行态 summary + 关联 tasks + 跨对象 drill-down”的完整工作台。
-3. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
-   这是“全部 / 待审批 / 待退款”多状态后台工作台。
-4. `nop-dyn/nop-dyn-web/src/main/resources/_vfs/nop/dyn/pages/NopDynModule/NopDynModule.view.xml`
+3. `nop-dyn/nop-dyn-web/src/main/resources/_vfs/nop/dyn/pages/NopDynModule/NopDynModule.view.xml`
    这是“批量发布 / 导入 / 导出 / 关联模块管理 / 关联实体页 / 页面页”的应用型后台工作台。
 
 ## 设计顺序

@@ -19,12 +19,26 @@ import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
+import io.nop.ai.agent.security.AutoApproveGate;
+import io.nop.ai.agent.security.DefaultLevelHintsProducer;
+import io.nop.ai.agent.security.IApprovalGate;
+import io.nop.ai.agent.security.IDenialLedger;
 import io.nop.ai.agent.security.IPathAccessChecker;
+import io.nop.ai.agent.security.IPermissionMatrix;
 import io.nop.ai.agent.security.IPermissionProvider;
+import io.nop.ai.agent.security.IPostDenialGuard;
+import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.IToolAccessChecker;
+import io.nop.ai.agent.security.ILevelHintsProducer;
+import io.nop.ai.agent.security.NoOpAuditLogger;
+import io.nop.ai.agent.security.NoOpDenialLedger;
+import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.ParentConstrainedPathAccessChecker;
 import io.nop.ai.agent.security.ParentConstrainedToolAccessChecker;
 import io.nop.ai.agent.security.ParentPermissionConstraint;
+import io.nop.ai.agent.security.PassThroughPermissionMatrix;
+import io.nop.ai.agent.security.PassThroughPostDenialGuard;
+import io.nop.ai.agent.security.RuleBasedPathAccessChecker;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.ISessionStore;
@@ -72,6 +86,12 @@ public class DefaultAgentEngine implements IAgentEngine {
     private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
     private IToolCallRepairer toolCallRepairer;
     private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
+    private IPermissionMatrix permissionMatrix = PassThroughPermissionMatrix.passThrough();
+    private ISecurityLevelResolver securityLevelResolver = NoOpSecurityLevelResolver.noOp();
+    private ILevelHintsProducer levelHintsProducer = new DefaultLevelHintsProducer();
+    private IApprovalGate approvalGate = AutoApproveGate.autoApprove();
+    private IDenialLedger denialLedger = NoOpDenialLedger.noOp();
+    private IPostDenialGuard postDenialGuard = PassThroughPostDenialGuard.passThrough();
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
 
@@ -254,6 +274,166 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Register the {@link IPermissionMatrix} used for channel × security-level
+     * permission decisions (design §5.3). Composition via this setter — no
+     * constructor chain change. Default is {@link PassThroughPermissionMatrix}
+     * (all channels allow all levels), so engine behaviour is unchanged unless
+     * a matrix is explicitly registered.
+     *
+     * <p>The dispatch-path consultation (calling {@code matrix.check(...)} in
+     * the ReAct / tool-dispatch path) is deferred to the L2-13 successor
+     * ({@code ISecurityLevelResolver} produces the {@code SecurityLevel} input).
+     * The pass-through default makes this wiring transparent to runtime
+     * behaviour.
+     */
+    public void setPermissionMatrix(IPermissionMatrix permissionMatrix) {
+        this.permissionMatrix = permissionMatrix != null ? permissionMatrix : PassThroughPermissionMatrix.passThrough();
+    }
+
+    /**
+     * Return the {@link IPermissionMatrix} wired into this engine, or the
+     * {@link PassThroughPermissionMatrix} default if none was explicitly set.
+     */
+    public IPermissionMatrix getPermissionMatrix() {
+        return permissionMatrix;
+    }
+
+    /**
+     * Register the {@link ISecurityLevelResolver} used for action-kind × hints
+     * security-level resolution (design §5.1). Composition via this setter — no
+     * constructor chain change. Default is {@link NoOpSecurityLevelResolver}
+     * (all operations resolve to STANDARD, equivalent to no classification), so
+     * engine behaviour is unchanged unless a resolver is explicitly registered.
+     *
+     * <p>The dispatch-path consultation (calling {@code resolver.resolve(...)}
+     * in the ReAct / tool-dispatch path) is deferred to a successor plan
+     * (requires {@code AgentExecutionContext} channelKind/principal fields + a
+     * {@code io.nop.ai.agent.security.LevelHints} runtime-production chain). The
+     * NoOp default makes this wiring transparent to runtime behaviour.
+     */
+    public void setSecurityLevelResolver(ISecurityLevelResolver securityLevelResolver) {
+        this.securityLevelResolver = securityLevelResolver != null
+                ? securityLevelResolver
+                : NoOpSecurityLevelResolver.noOp();
+    }
+
+    /**
+     * Return the {@link ISecurityLevelResolver} wired into this engine, or the
+     * {@link NoOpSecurityLevelResolver} default if none was explicitly set.
+     */
+    public ISecurityLevelResolver getSecurityLevelResolver() {
+        return securityLevelResolver;
+    }
+
+    /**
+     * Register the {@link ILevelHintsProducer} used to derive the auditable
+     * {@link io.nop.ai.agent.security.LevelHints} for each tool call on the
+     * dispatch path (design §5.1). Composition via this setter — no constructor
+     * chain change. Default is {@link DefaultLevelHintsProducer} (a functional
+     * implementation that produces semantically-distinct hints), so engine
+     * behaviour is unchanged unless a producer is explicitly registered.
+     *
+     * <p>The producer feeds the {@link ISecurityLevelResolver}; both are
+     * consulted together in the dispatch-path Layer 2 step.
+     */
+    public void setLevelHintsProducer(ILevelHintsProducer levelHintsProducer) {
+        this.levelHintsProducer = levelHintsProducer != null
+                ? levelHintsProducer
+                : new DefaultLevelHintsProducer();
+    }
+
+    /**
+     * Return the {@link ILevelHintsProducer} wired into this engine, or the
+     * {@link DefaultLevelHintsProducer} default if none was explicitly set.
+     */
+    public ILevelHintsProducer getLevelHintsProducer() {
+        return levelHintsProducer;
+    }
+
+    /**
+     * Register the {@link IApprovalGate} used for Layer 3 human-approval
+     * governance (design §6.1). Composition via this setter — no constructor
+     * chain change. Default is {@link AutoApproveGate} (all requests
+     * auto-approved with approver "auto"), so engine behaviour is unchanged
+     * unless a functional gate is explicitly registered.
+     *
+     * <p>The gate is consulted in the dispatch loop after the Layer 2
+     * permission matrix allows a tool call and before the call is added to
+     * {@code allowedCalls}. A denial records an {@code AuditEvent} (DENY +
+     * reason + matched rule {@code "layer3_approval_gate"}) and produces a
+     * {@code ChatToolResponseMessage.error(...)}, mirroring the Layer 1 / 2
+     * deny paths.
+     */
+    public void setApprovalGate(IApprovalGate approvalGate) {
+        this.approvalGate = approvalGate != null ? approvalGate : AutoApproveGate.autoApprove();
+    }
+
+    /**
+     * Return the {@link IApprovalGate} wired into this engine, or the
+     * {@link AutoApproveGate} default if none was explicitly set.
+     */
+    public IApprovalGate getApprovalGate() {
+        return approvalGate;
+    }
+
+    /**
+     * Register the {@link IDenialLedger} used for Layer 3 denial-counting and
+     * threshold-pause governance (design §6.2). Composition via this setter —
+     * no constructor chain change. Default is {@link NoOpDenialLedger} (no
+     * counting, no pausing), so engine behaviour is unchanged unless a
+     * functional ledger is explicitly registered.
+     *
+     * <p>The ledger is consulted in the dispatch loop at every deny checkpoint
+     * (Layer 1 / 2 / 3 — five deny paths): each denial is recorded, and the
+     * returned {@code thresholdExceeded} flag decides whether to abort the
+     * dispatch loop and mark the session as {@code paused}. On the next
+     * ReAct-loop iteration start, {@code IDenialLedger.isPaused(...)} is
+     * consulted: a paused session aborts the ReAct loop before any further
+     * LLM call.
+     */
+    public void setDenialLedger(IDenialLedger denialLedger) {
+        this.denialLedger = denialLedger != null ? denialLedger : NoOpDenialLedger.noOp();
+    }
+
+    /**
+     * Return the {@link IDenialLedger} wired into this engine, or the
+     * {@link NoOpDenialLedger} default if none was explicitly set.
+     */
+    public IDenialLedger getDenialLedger() {
+        return denialLedger;
+    }
+
+    /**
+     * Register the {@link IPostDenialGuard} used for Layer 3 post-denial
+     * blind-retry blocking (design §6.3 / L3-7). Composition via this setter
+     * — no constructor chain change. Default is
+     * {@link PassThroughPostDenialGuard} (no blocking, no recording), so
+     * engine behaviour is unchanged unless a functional guard is explicitly
+     * registered.
+     *
+     * <p>The guard is consulted in the dispatch loop before the Layer 1
+     * {@code IToolAccessChecker} check for each tool call: if the action's
+     * fingerprint is already in the session's denied set (a blind retry),
+     * the call is denied before any Layer 1/2/3 check. After every Layer 1/2/3
+     * deny (and after the guard's own consultation deny), the denied action's
+     * fingerprint is recorded into the guard, so a subsequent blind retry is
+     * detectable.
+     */
+    public void setPostDenialGuard(IPostDenialGuard postDenialGuard) {
+        this.postDenialGuard = postDenialGuard != null
+                ? postDenialGuard
+                : PassThroughPostDenialGuard.passThrough();
+    }
+
+    /**
+     * Return the {@link IPostDenialGuard} wired into this engine, or the
+     * {@link PassThroughPostDenialGuard} default if none was explicitly set.
+     */
+    public IPostDenialGuard getPostDenialGuard() {
+        return postDenialGuard;
+    }
+
+    /**
      * Test-only accessor for the engine's own tool access checker. Used by
      * integration tests to verify that
      * {@link #resolveEffectiveToolAccessChecker} wraps (or does not wrap) this
@@ -414,6 +594,13 @@ public class DefaultAgentEngine implements IAgentEngine {
             ctx.getMetadata().putAll(request.getMetadata());
         }
 
+        // Propagate the request's channel / principal into the execution context
+        // so the dispatch path can consult the Layer 2 security matrix. Both are
+        // optional (null = unknown channel / anonymous identity); null inputs are
+        // set as-is so downstream consumers see the semantically-correct "unknown".
+        ctx.setChannelKind(request.getChannelKind());
+        ctx.setPrincipal(request.getPrincipal());
+
         String systemPrompt = null;
         if (agentModel.getPrompt() != null) {
             systemPrompt = agentModel.getPrompt().getSource();
@@ -430,7 +617,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         ctx.addMessage(new ChatUserMessage(request.getUserMessage()));
 
         IToolAccessChecker effectiveToolAccessChecker = resolveEffectiveToolAccessChecker(request);
-        IPathAccessChecker effectivePathAccessChecker = resolveEffectivePathAccessChecker(request);
+        IPathAccessChecker perAgentBase = resolvePerAgentPathChecker(agentModel);
+        IPathAccessChecker effectivePathAccessChecker = resolveEffectivePathAccessChecker(request, perAgentBase);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
         return CompletableFuture.supplyAsync(() -> {
@@ -498,32 +686,66 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Resolve the per-agent base {@link IPathAccessChecker} from the agent
+     * model's declared {@code <path-rules>}. When the agent declares non-empty
+     * path-rules, the engine's global {@code pathAccessChecker} is wrapped with
+     * a {@link RuleBasedPathAccessChecker} so the agent's own glob rules
+     * (first-match-wins, DENY → deny, ALLOW/no-match → delegate) are enforced.
+     * When no path-rules are declared, the global checker is returned unchanged
+     * (backward compatible).
+     *
+     * <p>Composition order: global deny-list (innermost) → per-agent rules →
+     * parent constraint (outermost, applied by
+     * {@link #resolveEffectivePathAccessChecker(AgentMessageRequest, IPathAccessChecker)}).
+     * A path must pass all layers.
+     */
+    IPathAccessChecker resolvePerAgentPathChecker(AgentModel agentModel) {
+        java.util.List<io.nop.ai.agent.model.PathRuleModel> rules = agentModel.getPathRules();
+        if (rules == null || rules.isEmpty()) {
+            return this.pathAccessChecker;
+        }
+        return new RuleBasedPathAccessChecker(rules, this.pathAccessChecker);
+    }
+
+    /**
+     * Backward-compatible single-arg overload. Delegates to the two-arg version
+     * with the engine's own {@code pathAccessChecker} as the per-agent base
+     * (existing tests that do not opt into per-agent path-rules continue to
+     * compile and behave identically).
+     */
+    IPathAccessChecker resolveEffectivePathAccessChecker(AgentMessageRequest request) {
+        return resolveEffectivePathAccessChecker(request, this.pathAccessChecker);
+    }
+
+    /**
      * Resolve the effective {@link IPathAccessChecker} for the current
-     * execution: if the request carries a parent permission constraint in its
-     * metadata (propagated by {@code call-agent}) AND the constraint's path
-     * roots are PRESENT (non-null), wrap the engine's own
-     * {@code pathAccessChecker} with a
+     * execution, using the supplied {@code perAgentBase} as the base checker
+     * (typically the global checker wrapped with the agent's own
+     * {@link RuleBasedPathAccessChecker} when path-rules are declared). If the
+     * request carries a parent permission constraint in its metadata
+     * (propagated by {@code call-agent}) AND the constraint's path roots are
+     * PRESENT (non-null), wrap {@code perAgentBase} with a
      * {@link ParentConstrainedPathAccessChecker} scoped to this sub-agent
      * execution. When no constraint is present OR the constraint's path roots
-     * are ABSENT (null), return the engine's own checker unchanged — backward
-     * compatible (no path confinement).
+     * are ABSENT (null), return {@code perAgentBase} unchanged.
      *
-     * <p>The wrapping is scoped to this execution only — it does not mutate the
-     * engine's own {@code pathAccessChecker} field.
+     * <p>Composition order: {@code perAgentBase} (global deny-list + per-agent
+     * rules) is the innermost layer; the parent-constraint wrapper is the
+     * outermost layer.
      *
      * <p><b>Fail-fast</b>: if the metadata key is present but the value is not a
      * {@link ParentPermissionConstraint} (malformed), throw
      * {@link NopAiAgentException} — never silently ignore a malformed
-     * constraint. This mirrors the tool-checker fail-fast in
-     * {@link #resolveEffectiveToolAccessChecker}.
+     * constraint.
      */
-    IPathAccessChecker resolveEffectivePathAccessChecker(AgentMessageRequest request) {
+    IPathAccessChecker resolveEffectivePathAccessChecker(AgentMessageRequest request,
+                                                          IPathAccessChecker perAgentBase) {
         if (request.getMetadata() == null || request.getMetadata().isEmpty()) {
-            return this.pathAccessChecker;
+            return perAgentBase;
         }
         Object raw = request.getMetadata().get(ParentPermissionConstraint.METADATA_KEY);
         if (raw == null) {
-            return this.pathAccessChecker;
+            return perAgentBase;
         }
         if (!(raw instanceof ParentPermissionConstraint)) {
             throw new NopAiAgentException(
@@ -532,11 +754,11 @@ public class DefaultAgentEngine implements IAgentEngine {
                             + raw.getClass().getName() + ")");
         }
         ParentPermissionConstraint constraint = (ParentPermissionConstraint) raw;
-        if (!constraint.hasPathRoots()) {
-            // Constraint present but path roots ABSENT → no path confinement
-            return this.pathAccessChecker;
+        if (!constraint.hasPathRoots() && !constraint.hasPathRules()) {
+            // Constraint present but path roots AND path rules ABSENT → no path confinement
+            return perAgentBase;
         }
-        return new ParentConstrainedPathAccessChecker(constraint, this.pathAccessChecker);
+        return new ParentConstrainedPathAccessChecker(constraint, perAgentBase);
     }
 
     IAgentExecutor resolveExecutor(AgentModel model) {
@@ -582,6 +804,12 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .toolCallRepairer(toolCallRepairer)
                     .engine(this)
                     .messenger(messenger)
+                    .securityLevelResolver(securityLevelResolver)
+                    .permissionMatrix(permissionMatrix)
+                    .levelHintsProducer(levelHintsProducer)
+                    .approvalGate(approvalGate)
+                    .denialLedger(denialLedger)
+                    .postDenialGuard(postDenialGuard)
                     .build();
         }
         if ("single-turn".equals(mode)) {

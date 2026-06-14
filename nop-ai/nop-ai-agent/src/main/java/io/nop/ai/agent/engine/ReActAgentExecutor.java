@@ -34,16 +34,40 @@ import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
+import io.nop.ai.agent.security.AutoApproveGate;
+import io.nop.ai.agent.security.ApprovalDecision;
+import io.nop.ai.agent.security.ChannelKind;
+import io.nop.ai.agent.security.DefaultLevelHintsProducer;
+import io.nop.ai.agent.security.DenialLayerSource;
+import io.nop.ai.agent.security.DenialRecord;
+import io.nop.ai.agent.security.DenialRecordOutcome;
+import io.nop.ai.agent.security.DenialResult;
+import io.nop.ai.agent.security.FingerprintPostDenialGuard;
+import io.nop.ai.agent.security.IApprovalGate;
 import io.nop.ai.agent.security.IAuditLogger;
+import io.nop.ai.agent.security.IDenialLedger;
+import io.nop.ai.agent.security.IPostDenialGuard;
+import io.nop.ai.agent.security.ILevelHintsProducer;
 import io.nop.ai.agent.security.IPathAccessChecker;
+import io.nop.ai.agent.security.IPermissionMatrix;
 import io.nop.ai.agent.security.IPermissionProvider;
+import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.IToolAccessChecker;
+import io.nop.ai.agent.security.LevelHints;
+import io.nop.ai.agent.security.MatrixDecision;
 import io.nop.ai.agent.security.NoOpAuditLogger;
+import io.nop.ai.agent.security.NoOpDenialLedger;
+import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.ParentPermissionConstraint;
+import io.nop.ai.agent.security.PassThroughPermissionMatrix;
+import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.PathAccessResult;
 import io.nop.ai.agent.security.Permission;
+import io.nop.ai.agent.security.Principal;
+import io.nop.ai.agent.security.SecurityLevel;
 import io.nop.ai.agent.security.ToolAccessResult;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.ToolPathArgKeys;
 import io.nop.ai.agent.skill.ISkillProvider;
 import io.nop.ai.agent.skill.NoOpSkillProvider;
 import io.nop.ai.agent.skill.SkillAssemblyResult;
@@ -107,6 +131,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final ISkillProvider skillProvider;
     private final IAgentEngine engine;
     private final IAgentMessenger messenger;
+    private final ISecurityLevelResolver securityLevelResolver;
+    private final IPermissionMatrix permissionMatrix;
+    private final ILevelHintsProducer levelHintsProducer;
+    private final IApprovalGate approvalGate;
+    private final IDenialLedger denialLedger;
+    private final IPostDenialGuard postDenialGuard;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -124,7 +154,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                List<ITalent> talents,
                                ISkillProvider skillProvider,
                                IAgentEngine engine,
-                               IAgentMessenger messenger) {
+                               IAgentMessenger messenger,
+                               ISecurityLevelResolver securityLevelResolver,
+                               IPermissionMatrix permissionMatrix,
+                                 ILevelHintsProducer levelHintsProducer,
+                                 IApprovalGate approvalGate,
+                                 IDenialLedger denialLedger,
+                                 IPostDenialGuard postDenialGuard) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -143,6 +179,24 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.skillProvider = skillProvider != null ? skillProvider : NoOpSkillProvider.noOp();
         this.engine = engine;
         this.messenger = messenger;
+        this.securityLevelResolver = securityLevelResolver != null
+                ? securityLevelResolver
+                : NoOpSecurityLevelResolver.noOp();
+        this.permissionMatrix = permissionMatrix != null
+                ? permissionMatrix
+                : PassThroughPermissionMatrix.passThrough();
+        this.levelHintsProducer = levelHintsProducer != null
+                ? levelHintsProducer
+                : new DefaultLevelHintsProducer();
+        this.approvalGate = approvalGate != null
+                ? approvalGate
+                : AutoApproveGate.autoApprove();
+        this.denialLedger = denialLedger != null
+                ? denialLedger
+                : NoOpDenialLedger.noOp();
+        this.postDenialGuard = postDenialGuard != null
+                ? postDenialGuard
+                : PassThroughPostDenialGuard.passThrough();
     }
 
     public static Builder builder() {
@@ -168,6 +222,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private ISkillProvider skillProvider;
         private IAgentEngine engine;
         private IAgentMessenger messenger;
+        private ISecurityLevelResolver securityLevelResolver;
+        private IPermissionMatrix permissionMatrix;
+        private ILevelHintsProducer levelHintsProducer;
+        private IApprovalGate approvalGate;
+        private IDenialLedger denialLedger;
+        private IPostDenialGuard postDenialGuard;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -285,6 +345,72 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Wire the {@link ISecurityLevelResolver} consulted in the Layer 2
+         * dispatch-path step (design §5.1). Optional: when null, defaults to
+         * {@link NoOpSecurityLevelResolver} (all operations → STANDARD).
+         */
+        public Builder securityLevelResolver(ISecurityLevelResolver securityLevelResolver) {
+            this.securityLevelResolver = securityLevelResolver;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IPermissionMatrix} consulted in the Layer 2
+         * dispatch-path step (design §5.3). Optional: when null, defaults to
+         * {@link PassThroughPermissionMatrix} (all channels allow all levels).
+         */
+        public Builder permissionMatrix(IPermissionMatrix permissionMatrix) {
+            this.permissionMatrix = permissionMatrix;
+            return this;
+        }
+
+        /**
+         * Wire the {@link ILevelHintsProducer} that derives the
+         * {@link LevelHints} fed to the {@link ISecurityLevelResolver} in the
+         * Layer 2 dispatch-path step. Optional: when null, defaults to
+         * {@link DefaultLevelHintsProducer}.
+         */
+        public Builder levelHintsProducer(ILevelHintsProducer levelHintsProducer) {
+            this.levelHintsProducer = levelHintsProducer;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IApprovalGate} consulted in the Layer 3
+         * dispatch-path step (design §6.1) after the Layer 2 permission matrix
+         * allows a tool call. Optional: when null, defaults to
+         * {@link AutoApproveGate} (all requests auto-approved).
+         */
+        public Builder approvalGate(IApprovalGate approvalGate) {
+            this.approvalGate = approvalGate;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IDenialLedger} consulted in the Layer 3 dispatch-path
+         * step (design §6.2) at every deny checkpoint (Layer 1 / 2 / 3).
+         * Optional: when null, defaults to {@link NoOpDenialLedger} (no
+         * counting, no pausing).
+         */
+        public Builder denialLedger(IDenialLedger denialLedger) {
+            this.denialLedger = denialLedger;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IPostDenialGuard} consulted in the dispatch loop
+         * (design §6.3 / L3-7) before the Layer 1 {@code IToolAccessChecker}
+         * check for each tool call (blind-retry detection), and recorded to
+         * after every Layer 1/2/3 deny. Optional: when null, defaults to
+         * {@link PassThroughPostDenialGuard} (no blocking, no recording —
+         * backward compatible).
+         */
+        public Builder postDenialGuard(IPostDenialGuard postDenialGuard) {
+            this.postDenialGuard = postDenialGuard;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -310,7 +436,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     talents,
                     skillProvider,
                     engine,
-                    messenger
+                    messenger,
+                    securityLevelResolver,
+                    permissionMatrix,
+                    levelHintsProducer,
+                    approvalGate,
+                    denialLedger,
+                    postDenialGuard
             );
         }
     }
@@ -345,10 +477,25 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
             }
 
+            reactLoop:
             while (ctx.getCurrentIteration() < ctx.getMaxIterations()) {
                 if (ctx.isCancelRequested()) {
                     handleCancellation(ctx, sessionId, agentName);
                     break;
+                }
+
+                // Layer 3 denial-ledger pause check (design §6.2): before any
+                // further LLM call, verify the session has not been paused by
+                // the denial ledger (threshold exceeded during a prior
+                // dispatch-path deny). Position rationale: cancelRequested takes
+                // the highest priority (user-initiated), pause is checked before
+                // shouldForceStop (governance decision before system decision).
+                // This is the sole reactLoop-breaking mechanism for the pause
+                // state — session A's deny threshold reached last iteration
+                // surfaces here on the next iteration start.
+                if (denialLedger.isPaused(sessionId)) {
+                    handleSessionPaused(ctx, sessionId, agentName);
+                    break reactLoop;
                 }
 
                 if (shouldForceStop(ctx)) {
@@ -482,10 +629,18 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         sessionId,
                         agentName,
                         computeEffectiveAllowedTools(agentModel, ctx),
-                        computeEffectivePathRoots(agentModel, ctx));
+                        computeEffectivePathRoots(agentModel, ctx),
+                        computeEffectivePathRules(agentModel, ctx));
+
+                // The workDir string used for action-fingerprint computation
+                // (design §6.3). Resolved once per iteration so all dispatch-loop
+                // consultations/recordings within this iteration share the same
+                // value.
+                String fingerprintWorkDir = resolveWorkDirString(agentModel);
 
                 List<ChatToolCall> allowedCalls = new ArrayList<>();
 
+                dispatchLoop:
                 for (ChatToolCall chatToolCall : assistantMsg.getToolCalls()) {
                     chatToolCall = toolCallRepairer.repair(chatToolCall, ctx);
 
@@ -494,6 +649,43 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     publishEvent(AgentEventType.TOOL_CALL_STARTED, sessionId, agentName,
                             Map.of("toolName", toolName,
                                     "iteration", ctx.getCurrentIteration()));
+
+                    // Layer 3 post-denial-guard consultation (design §6.3 / L3-7):
+                    // before the Layer 1 checks, consult the guard to detect
+                    // blind retries. If the action's fingerprint is already in
+                    // the session's denied set, deny here and skip all Layer
+                    // 1/2/3 checks (saving token budget and preventing repeated
+                    // denials from inflating the ledger count). With the shipped
+                    // PassThroughPostDenialGuard default this always returns
+                    // null (backward compatible — no spurious denials).
+                    DenialResult postDenialResult = postDenialGuard.checkBeforeDispatch(
+                            sessionId, toolName, chatToolCall.getArguments(), fingerprintWorkDir);
+                    if (postDenialResult != null) {
+                        String denyMessage = postDenialResult.getMessage() != null
+                                ? postDenialResult.getMessage()
+                                : "Repeated same denied action";
+                        auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
+                                AuditDecision.DENY, denyMessage, "layer3_post_denial_guard",
+                                postDenialResult.getActionFingerprint(), System.currentTimeMillis()));
+                        publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
+                                Map.of("toolName", toolName != null ? toolName : "",
+                                        "reason", denyMessage,
+                                        "denialReason", postDenialResult.getReason().name(),
+                                        "suggestedNextStep", postDenialResult.getSuggestedNextStep().name()));
+
+                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
+                                chatToolCall.getId(),
+                                toolName,
+                                denyMessage + " (suggested: " + postDenialResult.getSuggestedNextStep() + ")");
+                        ctx.addMessage(toolResponse);
+                        if (handleDenialAndCheckThreshold(sessionId, toolName,
+                                DenialLayerSource.LAYER3_POST_DENIAL_GUARD, denyMessage,
+                                "layer3_post_denial_guard", ctx, agentName,
+                                chatToolCall, fingerprintWorkDir)) {
+                            break dispatchLoop;
+                        }
+                        continue;
+                    }
 
                     ToolAccessResult accessResult = toolAccessChecker.checkAccess(toolName, ctx);
                     auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
@@ -510,6 +702,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                 toolName,
                                 "Access denied: " + (accessResult.getReason() != null ? accessResult.getReason() : "hardcoded deny"));
                         ctx.addMessage(toolResponse);
+                        if (handleDenialAndCheckThreshold(sessionId, toolName,
+                                DenialLayerSource.LAYER1_TOOL_ACCESS, accessResult.getReason(),
+                                accessResult.getMatchedRule(), ctx, agentName,
+                                chatToolCall, fingerprintWorkDir)) {
+                            break dispatchLoop;
+                        }
                         continue;
                     }
 
@@ -528,6 +726,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                 toolName,
                                 "Permission denied: " + (perm.getReason() != null ? perm.getReason() : "access denied"));
                         ctx.addMessage(toolResponse);
+                        if (handleDenialAndCheckThreshold(sessionId, toolName,
+                                DenialLayerSource.LAYER1_PERMISSION, perm.getReason(),
+                                perm.getMatchedRuleId(), ctx, agentName,
+                                chatToolCall, fingerprintWorkDir)) {
+                            break dispatchLoop;
+                        }
                         continue;
                     }
 
@@ -538,10 +742,78 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                 toolName,
                                 "Path access denied: " + pathDenied);
                         ctx.addMessage(toolResponse);
+                        if (handleDenialAndCheckThreshold(sessionId, toolName,
+                                DenialLayerSource.LAYER1_PATH_ACCESS, pathDenied,
+                                "path_access_checker", ctx, agentName,
+                                chatToolCall, fingerprintWorkDir)) {
+                            break dispatchLoop;
+                        }
+                        continue;
+                    }
+
+                    // Layer 2 consultation (design §5.1/§5.3): after the Layer 1
+                    // checks pass, derive the LevelHints, resolve the
+                    // SecurityLevel, and consult the channel × level permission
+                    // matrix. On denial: audit + event + error response, mirroring
+                    // the Layer 1 deny path. NoOp/PassThrough defaults allow
+                    // everything (backward compatible). The resolved level is
+                    // carried forward to the Layer 3 consultation so it is not
+                    // resolved twice.
+                    SecurityConsultationOutcome layer2 = checkLayer2Consultation(
+                            chatToolCall, ctx, sessionId, agentName, agentModel);
+                    if (layer2.isDenied()) {
+                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
+                                chatToolCall.getId(),
+                                toolName,
+                                "Security policy denied: " + layer2.getDenialReason());
+                        ctx.addMessage(toolResponse);
+                        if (handleDenialAndCheckThreshold(sessionId, toolName,
+                                DenialLayerSource.LAYER2_SECURITY_POLICY, layer2.getDenialReason(),
+                                "layer2_permission_matrix", ctx, agentName,
+                                chatToolCall, fingerprintWorkDir)) {
+                            break dispatchLoop;
+                        }
+                        continue;
+                    }
+
+                    // Layer 3 consultation (design §6.1/§8): after the Layer 2
+                    // matrix allows, consult the approval gate with the resolved
+                    // security level + tool-call context. On denial: audit + event
+                    // + error response, mirroring the Layer 1/2 deny paths.
+                    // AutoApproveGate default approves everything (backward
+                    // compatible — no spurious denials).
+                    String layer3Denied = checkLayer3Approval(
+                            layer2.getResolvedLevel(), toolName, ctx, sessionId, agentName);
+                    if (layer3Denied != null) {
+                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
+                                chatToolCall.getId(),
+                                toolName,
+                                "Approval denied: " + layer3Denied);
+                        ctx.addMessage(toolResponse);
+                        if (handleDenialAndCheckThreshold(sessionId, toolName,
+                                DenialLayerSource.LAYER3_APPROVAL_GATE, layer3Denied,
+                                "layer3_approval_gate", ctx, agentName,
+                                chatToolCall, fingerprintWorkDir)) {
+                            break dispatchLoop;
+                        }
                         continue;
                     }
 
                     allowedCalls.add(chatToolCall);
+                }
+
+                // Dispatch-loop pause handling (design §6.2): if the ledger
+                // marked the session as paused during this iteration's deny
+                // recording (threshold exceeded), skip the allowedCalls
+                // execution but do NOT break reactLoop here. The reactLoop
+                // break is the exclusive responsibility of the
+                // denialLedger.isPaused check at the next iteration start.
+                // This separation keeps the two mechanisms disjoint:
+                //   * Mechanism 1 (here): skip remaining execution this iteration.
+                //   * Mechanism 2 (iteration start): abort the ReAct loop.
+                if (ctx.getStatus() == AgentExecStatus.paused) {
+                    ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+                    continue reactLoop;
                 }
 
                 if (!allowedCalls.isEmpty()) {
@@ -638,9 +910,14 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 ctx.setStatus(AgentExecStatus.completed);
             }
 
+            // Post-loop bookkeeping (design §6.2): a paused session must NOT
+            // publish EXECUTION_COMPLETED or run POST_CALL hooks, consistent
+            // with cancelled / forced_stopped / escalated. The session is
+            // suspended, not finished.
             if (ctx.getStatus() != AgentExecStatus.cancelled
                     && ctx.getStatus() != AgentExecStatus.forced_stopped
-                    && ctx.getStatus() != AgentExecStatus.escalated) {
+                    && ctx.getStatus() != AgentExecStatus.escalated
+                    && ctx.getStatus() != AgentExecStatus.paused) {
                 invokeHooks(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
 
                 Map<String, Object> completedPayload = new HashMap<>();
@@ -671,6 +948,109 @@ public class ReActAgentExecutor implements IAgentExecutor {
         Map<String, Object> payload = new HashMap<>();
         payload.put("reason", ctx.getCancelReason() != null ? ctx.getCancelReason() : "");
         publishEvent(AgentEventType.SESSION_CANCELLED, sessionId, agentName, payload);
+    }
+
+    /**
+     * Layer 3 denial-ledger dispatch-path integration (design §6.2 / §6.3 / §8).
+     * Called at every deny checkpoint (Layer 1 / 2 / 3 + post-denial-guard
+     * consultation — six deny paths) after the existing audit + event + error
+     * response. Records the denial into the ledger, records the denied
+     * action's fingerprint into the {@link IPostDenialGuard} (design §6.3, so
+     * a subsequent blind retry is detectable by the pre-Layer-1
+     * consultation), then inspects the returned ledger outcome to decide
+     * whether the session has reached the denial threshold.
+     *
+     * <p>On threshold exceeded: marks the session as {@link AgentExecStatus#paused},
+     * records an {@link AuditEvent} (DENY + reason {@code "denial threshold exceeded"}
+     * + matched rule {@code "layer3_denial_ledger"}), and publishes a
+     * {@link AgentEventType#SESSION_PAUSED} event. The caller then
+     * {@code break}s out of the dispatch for-loop.
+     *
+     * <p>The fingerprint-guard recording forms a closed loop with the
+     * pre-Layer-1 consultation: a guard-deny is itself recorded back to the
+     * guard, preventing "retry the guard-deny result" loops (design §6.3
+     * recording-after-every-deny, including the guard's own deny).
+     *
+     * <p>With the shipped {@link NoOpDenialLedger} /
+     * {@link PassThroughPostDenialGuard} defaults this is a no-op
+     * pass-through that always returns {@code false} (backward compatible —
+     * no spurious pauses, no fingerprint tracking).
+     *
+     * @param chatToolCall   the denied tool call (used to extract arguments
+     *                       for the fingerprint); never null
+     * @param fingerprintWorkDir the workDir string used for fingerprint
+     *                       computation; may be null
+     * @return {@code true} if the denial threshold has been reached and the
+     *         dispatch loop should abort; {@code false} to continue with the
+     *         next tool call
+     */
+    private boolean handleDenialAndCheckThreshold(String sessionId, String toolName,
+                                                  DenialLayerSource layerSource, String reason,
+                                                  String matchedRule, AgentExecutionContext ctx,
+                                                  String agentName,
+                                                  ChatToolCall chatToolCall, String fingerprintWorkDir) {
+        // Record the denied action's fingerprint into the post-denial guard
+        // (design §6.3) so a subsequent blind retry is detectable by the
+        // pre-Layer-1 consultation. With the PassThroughPostDenialGuard
+        // default this is a no-op (0 overhead).
+        postDenialGuard.recordDeniedAction(sessionId, toolName,
+                extractArguments(chatToolCall), fingerprintWorkDir);
+
+        DenialRecord record = DenialRecord.of(
+                sessionId, toolName, layerSource, reason, matchedRule,
+                System.currentTimeMillis());
+        DenialRecordOutcome outcome = denialLedger.recordDenial(record);
+        if (!outcome.isThresholdExceeded()) {
+            return false;
+        }
+        ctx.setStatus(AgentExecStatus.paused);
+        auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
+                AuditDecision.DENY, "denial threshold exceeded (count=" + outcome.getCount() + ")",
+                "layer3_denial_ledger", null, System.currentTimeMillis()));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("toolName", toolName != null ? toolName : "");
+        payload.put("layerSource", layerSource.name());
+        payload.put("denialCount", outcome.getCount());
+        payload.put("reason", reason != null ? reason : "");
+        publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
+        return true;
+    }
+
+    /**
+     * Extract the arguments map from a tool call for fingerprint computation.
+     * Returns an empty map when the tool call carries no arguments.
+     */
+    private static Map<String, Object> extractArguments(ChatToolCall chatToolCall) {
+        Map<String, Object> args = chatToolCall.getArguments();
+        return args != null ? args : Collections.emptyMap();
+    }
+
+    /**
+     * Resolve the workDir as a String for action-fingerprint computation
+     * (design §6.3). Returns null when the agent model declares no workDir.
+     */
+    private static String resolveWorkDirString(AgentModel agentModel) {
+        String workDir = agentModel.getWorkDir();
+        return (workDir != null && !workDir.trim().isEmpty()) ? workDir : null;
+    }
+
+    /**
+     * Mark the session as paused by the denial ledger and emit the
+     * {@link AgentEventType#SESSION_PAUSED} event. Used at the ReAct-loop
+     * iteration start when {@code denialLedger.isPaused(sessionId)} returns
+     * {@code true} (e.g. a prior iteration's threshold-abort carried over).
+     *
+     * <p>Does not re-record a denial or increment the count — the session is
+     * already over threshold. Only the state transition + event are emitted.
+     */
+    private void handleSessionPaused(AgentExecutionContext ctx, String sessionId, String agentName) {
+        ctx.setStatus(AgentExecStatus.paused);
+        int count = denialLedger.getDenialCount(sessionId);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("denialCount", count);
+        payload.put("reason", "denial threshold exceeded (prior iteration)");
+        publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
+        LOG.warn("Session paused by denial ledger: session={}, denialCount={}", sessionId, count);
     }
 
     /**
@@ -830,11 +1210,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
     }
 
-    private static final Set<String> PATH_ARG_KEYS = Set.of(
-            "path", "file", "filePath", "filename", "directory", "dir",
-            "destination", "output", "input", "source", "target", "cwd"
-    );
-
     private String checkPathAccess(ChatToolCall chatToolCall, AgentExecutionContext ctx,
                                    String sessionId, String agentName) {
         Map<String, Object> arguments = chatToolCall.getArguments();
@@ -843,7 +1218,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
 
         for (Map.Entry<String, Object> entry : arguments.entrySet()) {
-            if (!PATH_ARG_KEYS.contains(entry.getKey())) {
+            if (!ToolPathArgKeys.KEYS.contains(entry.getKey())) {
                 continue;
             }
             Object value = entry.getValue();
@@ -867,6 +1242,107 @@ public class ReActAgentExecutor implements IAgentExecutor {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Layer 2 dispatch-path consultation (design §5.1/§5.3/§8). Produces the
+     * {@link LevelHints} for the tool call, resolves the {@link SecurityLevel}
+     * via {@link ISecurityLevelResolver}, and consults the channel × level
+     * {@link IPermissionMatrix} using the context's {@code channelKind} and
+     * {@code principal}.
+     *
+     * <p>On denial: records an {@link AuditEvent} (DENY + reason + matched rule
+     * {@code "layer2_permission_matrix"}) and publishes a
+     * {@code TOOL_CALL_DENIED} event, then carries the auditable reason in the
+     * returned outcome — mirroring the Layer 1 deny path. The caller turns a
+     * denied outcome into a {@code ChatToolResponseMessage.error(...)} and
+     * skips the call.
+     *
+     * <p>On allow: the outcome carries a null denial reason and the tool call
+     * proceeds. With the shipped {@link NoOpSecurityLevelResolver} /
+     * {@link PassThroughPermissionMatrix} defaults this always allows
+     * (backward compatible — no spurious denials).
+     *
+     * <p>The resolved {@link SecurityLevel} is always carried in the outcome so
+     * the Layer 3 consultation can reuse it without resolving twice.
+     *
+     * @return the consultation outcome (resolved level + optional denial
+     *         reason); never null
+     */
+    private SecurityConsultationOutcome checkLayer2Consultation(ChatToolCall chatToolCall, AgentExecutionContext ctx,
+                                                                String sessionId, String agentName, AgentModel agentModel) {
+        String toolName = chatToolCall.getName();
+
+        File workDir = resolveWorkDir(agentModel);
+        LevelHints hints = levelHintsProducer.produce(toolName, chatToolCall.getArguments(), workDir, ctx);
+        SecurityLevel level = securityLevelResolver.resolve(toolName, hints);
+
+        ChannelKind channel = ctx.getChannelKind();
+        Principal principal = ctx.getPrincipal();
+        MatrixDecision decision = permissionMatrix.check(channel, principal, level);
+        if (decision.isDenied()) {
+            String reason = decision.getReason() != null
+                    ? decision.getReason()
+                    : "security level " + level + " denied for channel " + channel;
+            String auditContext = "channel=" + (channel != null ? channel.name() : "unknown")
+                    + ",level=" + level.name();
+            auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
+                    AuditDecision.DENY, reason, "layer2_permission_matrix",
+                    auditContext, System.currentTimeMillis()));
+            publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
+                    Map.of("toolName", toolName,
+                            "reason", decision.getReason() != null ? decision.getReason() : "",
+                            "securityLevel", level.name(),
+                            "channel", channel != null ? channel.name() : "unknown"));
+            return SecurityConsultationOutcome.denied(level, reason);
+        }
+        return SecurityConsultationOutcome.allowed(level);
+    }
+
+    /**
+     * Layer 3 dispatch-path consultation (design §6.1/§8). After the Layer 2
+     * matrix allows, consults the {@link IApprovalGate} with the resolved
+     * {@link SecurityLevel} and the tool-call context.
+     *
+     * <p>On denial: records an {@link AuditEvent} (DENY + reason + matched rule
+     * {@code "layer3_approval_gate"}) and publishes a
+     * {@code TOOL_CALL_DENIED} event, then returns the auditable reason —
+     * mirroring the Layer 1/2 deny paths. The caller turns the non-null return
+     * into a {@code ChatToolResponseMessage.error(...)} and skips the call.
+     *
+     * <p>On approval: returns {@code null} and the tool call proceeds. With the
+     * shipped {@link AutoApproveGate} default this always approves (backward
+     * compatible — no spurious denials).
+     *
+     * @param level the security level already resolved during the Layer 2
+     *              consultation (reused to avoid a second resolve)
+     * @return the denial reason, or {@code null} when the call is approved
+     */
+    private String checkLayer3Approval(SecurityLevel level, String toolName,
+                                       AgentExecutionContext ctx, String sessionId, String agentName) {
+        ChannelKind channel = ctx.getChannelKind();
+        Principal principal = ctx.getPrincipal();
+        ApprovalDecision decision = approvalGate.requestApproval(
+                level, toolName, channel, principal, sessionId, agentName);
+        if (decision.isDenied()) {
+            String reason = decision.getReason() != null
+                    ? decision.getReason()
+                    : "approval denied (kind=" + decision.getDenialKind() + ") for level " + level;
+            String auditContext = "channel=" + (channel != null ? channel.name() : "unknown")
+                    + ",level=" + level.name()
+                    + ",kind=" + decision.getDenialKind();
+            auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
+                    AuditDecision.DENY, reason, "layer3_approval_gate",
+                    auditContext, System.currentTimeMillis()));
+            publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
+                    Map.of("toolName", toolName,
+                            "reason", decision.getReason() != null ? decision.getReason() : "",
+                            "securityLevel", level.name(),
+                            "denialKind", decision.getDenialKind() != null ? decision.getDenialKind().name() : "",
+                            "channel", channel != null ? channel.name() : "unknown"));
+            return reason;
+        }
         return null;
     }
 
@@ -1058,6 +1534,59 @@ public class ReActAgentExecutor implements IAgentExecutor {
     }
 
     /**
+     * Compute the current agent's <b>effective (clamped)</b> allowed path rules,
+     * propagated to engine-aware tools (e.g. {@code call-agent}) via
+     * {@link AgentToolExecuteContext#getAllowedPathRules()} for sub-agent
+     * path-rule inheritance (design §4.4).
+     *
+     * <p>Rule-chain accumulation (design §4.3/§4.4):
+     * <ul>
+     *   <li>If no incoming parent constraint or parent rules ABSENT → effective
+     *       = own declared rules (from {@link AgentModel#getPathRules()}).</li>
+     *   <li>If incoming parent rules PRESENT → effective = accumulated chain
+     *       (incoming parent rules + own declared rules, parent rules first).
+     *       This accumulated chain is evaluated with deny-wins by the
+     *       sub-agent's {@link ParentConstrainedPathAccessChecker}.</li>
+     * </ul>
+     *
+     * @return the effective path-rule chain; {@code null} (ABSENT) when the
+     *         agent has no own path-rules and no incoming parent rules; a
+     *         non-null List (PRESENT) when path-rule confinement is active
+     */
+    private java.util.List<io.nop.ai.agent.model.PathRuleModel> computeEffectivePathRules(
+            AgentModel agentModel, AgentExecutionContext ctx) {
+        java.util.List<io.nop.ai.agent.model.PathRuleModel> ownRules = agentModel.getPathRules();
+        boolean ownHasRules = ownRules != null && !ownRules.isEmpty();
+
+        ParentPermissionConstraint parentConstraint = null;
+        if (ctx.getMetadata() != null) {
+            Object raw = ctx.getMetadata().get(ParentPermissionConstraint.METADATA_KEY);
+            if (raw instanceof ParentPermissionConstraint) {
+                parentConstraint = (ParentPermissionConstraint) raw;
+            }
+        }
+
+        boolean parentHasRules = parentConstraint != null && parentConstraint.hasPathRules();
+
+        if (!ownHasRules && !parentHasRules) {
+            return null;
+        }
+
+        if (!parentHasRules) {
+            return ownRules;
+        }
+
+        // Accumulate: incoming parent rules + own declared rules
+        java.util.List<io.nop.ai.agent.model.PathRuleModel> incomingRules =
+                parentConstraint.getAllowedPathRules();
+        java.util.List<io.nop.ai.agent.model.PathRuleModel> effective = new ArrayList<>(incomingRules);
+        if (ownHasRules) {
+            effective.addAll(ownRules);
+        }
+        return effective;
+    }
+
+    /**
      * Check whether a normalized path root is "under" any of the given
      * (possibly non-normalized) root set. Uses the same normalization as
      * {@link DefaultPathAccessChecker#normalizePathStatic(String)}.
@@ -1232,6 +1761,42 @@ public class ReActAgentExecutor implements IAgentExecutor {
         ToolCallOutput(ChatToolCall chatToolCall, AiToolCallResult result) {
             this.chatToolCall = chatToolCall;
             this.result = result;
+        }
+    }
+
+    /**
+     * Immutable result of the Layer 2 security consultation. Carries the
+     * resolved {@link SecurityLevel} (always set, so the Layer 3 approval
+     * consultation can reuse it without a second resolve) and an optional
+     * denial reason (non-null when the Layer 2 matrix denied the call).
+     */
+    private static final class SecurityConsultationOutcome {
+        private final SecurityLevel resolvedLevel;
+        private final String denialReason;
+
+        private SecurityConsultationOutcome(SecurityLevel resolvedLevel, String denialReason) {
+            this.resolvedLevel = resolvedLevel;
+            this.denialReason = denialReason;
+        }
+
+        static SecurityConsultationOutcome allowed(SecurityLevel level) {
+            return new SecurityConsultationOutcome(level, null);
+        }
+
+        static SecurityConsultationOutcome denied(SecurityLevel level, String reason) {
+            return new SecurityConsultationOutcome(level, reason);
+        }
+
+        SecurityLevel getResolvedLevel() {
+            return resolvedLevel;
+        }
+
+        String getDenialReason() {
+            return denialReason;
+        }
+
+        boolean isDenied() {
+            return denialReason != null;
         }
     }
 }
