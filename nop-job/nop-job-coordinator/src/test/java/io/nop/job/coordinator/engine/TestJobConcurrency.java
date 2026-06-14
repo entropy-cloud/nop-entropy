@@ -333,7 +333,8 @@ public class TestJobConcurrency extends JunitBaseTestCase {
         schedule.setExecutorKind("testInvoker");
         schedule.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
         schedule.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
-        schedule.setRepeatIntervalMs(1000L);
+        schedule.setRepeatIntervalMs(60000L);
+        schedule.setLastFireTime(new Timestamp(now - 61000L));
         schedule.setPartitionIndex((short) 1);
         schedule.setFireCount(0L);
         schedule.setActiveFireCount(0);
