@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-leaf-agent">
+
+    <description>Leaf agent at the bottom of a nested delegation chain</description>
+
+    <prompt>You are leaf agent C.</prompt>
+
+    <tools>read-file,write-file</tools>
+
+</agent>

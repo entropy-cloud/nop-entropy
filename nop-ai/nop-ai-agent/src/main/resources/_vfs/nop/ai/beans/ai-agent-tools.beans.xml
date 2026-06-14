@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="urn: nop-ioc:1.0">
+
+    <!-- Engine-aware tool executors that require access to IAgentEngine / IAgentMessenger.
+         These beans are auto-collected by the existing <ioc:collect-beans by-type="...IToolExecutor"/>
+         in nop-ai-toolkit's ai-tools-defaults.beans.xml. -->
+
+    <bean id="ai-agent-tools:call-agent" class="io.nop.ai.agent.tool.CallAgentExecutor"/>
+    <bean id="ai-agent-tools:send-message" class="io.nop.ai.agent.tool.SendMessageExecutor"/>
+
+</beans>

@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-sub-agent-wide">
+
+    <description>Sub-agent that declares more tools than the parent allows</description>
+
+    <prompt>You are sub agent S.</prompt>
+
+    <tools>read-file,write-file,bash</tools>
+
+</agent>

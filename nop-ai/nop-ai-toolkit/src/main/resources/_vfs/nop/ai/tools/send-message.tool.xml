@@ -1,0 +1,35 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="send-message">
+
+    <schema>
+        <send-message id="!int" explanation="!string" timeoutMs="int"
+                      targetSessionId="!string" correlationId="string">
+            <input>string</input>
+        </send-message>
+    </schema>
+
+    <description><![CDATA[Send an asynchronous (fire-and-forget) message to a target agent session's inbox via the inter-agent messenger.
+
+- targetSessionId: the recipient session or agent identifier (required). The tool derives the inbox topic as `agent.{targetSessionId}.inbox`.
+- input: the message body (text payload)
+- correlationId: optional correlation identifier for tracing; auto-generated if not provided
+
+Returns a delivery confirmation noting the target topic and correlationId. If no messenger is configured (NoOp messenger), the result honestly reports that the message was not delivered.]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <send-message id="1" explanation="Notify translation agent" timeoutMs="5000"
+                              targetSessionId="translator-sess-1">
+                    <input><![CDATA[Please translate the latest document.]]></input>
+                </send-message>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Message sent to topic agent.translator-sess-1.inbox (correlationId: uuid-abc-123)]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

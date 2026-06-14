@@ -27,7 +27,7 @@
 
     <!-- Agent tools -->
     <bean id="ai-tools:ask-oracle" class="io.nop.ai.toolkit.tools.AskOracleExecutor"/>
-    <bean id="ai-tools:call-agent" class="io.nop.ai.toolkit.tools.CallAgentExecutor"/>
+    <!-- call-agent executor is registered in nop-ai-agent (functional fork+exec implementation) -->
     <bean id="ai-tools:update-todos" class="io.nop.ai.toolkit.tools.UpdateTodosExecutor"/>
     <bean id="ai-tools:skill" class="io.nop.ai.toolkit.tools.SkillExecutor"/>
 

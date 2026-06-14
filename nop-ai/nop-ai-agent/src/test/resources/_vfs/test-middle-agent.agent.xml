@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-middle-agent">
+
+    <description>Middle agent that deliberately declares MORE tools than its parent allows (write-file)</description>
+
+    <prompt>You are middle agent B.</prompt>
+
+    <tools>read-file,call-agent,write-file</tools>
+
+</agent>

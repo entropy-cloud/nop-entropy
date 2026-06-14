@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-parent-agent">
+
+    <description>Parent agent with read-file and call-agent tools</description>
+
+    <prompt>You are parent agent P.</prompt>
+
+    <tools>read-file,call-agent</tools>
+
+</agent>
