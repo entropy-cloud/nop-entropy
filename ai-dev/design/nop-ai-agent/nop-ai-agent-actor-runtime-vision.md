@@ -143,8 +143,8 @@ AgentActor A (Lead)                AgentActor B (Worker)
 ```
 
 **通信模型**：
-- **同步请求-响应**：`call-agent` 工具，Caller 挂起等待 Callee 完成
-- **异步消息**：`send-message` 工具，发后即忘，Callee 在下一轮 ReAct 循环中读取
+- **同步请求-响应**：`call-agent` 工具，Caller 挂起等待 Callee 完成。（MVP 已交付：fork+exec 模型，`CallAgentExecutor` 直接调用 `IAgentEngine.execute()` 同步执行子 Agent。上述 Actor mailbox 模型是 Actor Runtime Phase 2 的目标。）
+- **异步消息**：`send-message` 工具，发后即忘，Callee 在下一轮 ReAct 循环中读取。（已交付：`SendMessageExecutor` 通过 `IAgentMessenger.send()` 向目标 inbox topic 投递 ASYNC 信封。）
 - **广播**：Lead Agent 可广播给所有团队成员
 
 **实现机制**：
@@ -194,7 +194,7 @@ AgentActor A (Lead)                AgentActor B (Worker)
 |------|------|-------------|
 | **ActorRuntime** | 创建/销毁 Actor 实例，管理 Virtual Thread 生命周期 | 基于 `GlobalExecutors` 的 Virtual Thread 池 |
 | **ActorRegistry** | 维护所有活跃 Actor 的注册表，按 tenantId/userId 隔离 | 内存 `ConcurrentHashMap` + DB 持久化索引 |
-| **MessageRouter** | Actor 间消息路由，topic 匹配，背压控制 | `LocalMessageService` + topic 命名约定 |
+| **MessageRouter** | Actor 间消息路由，topic 匹配，背压控制 | `LocalMessageService` + topic 命名约定（L4-1 已落地：以 `LocalMessageService` 为底的 Agent 域 messenger `IAgentMessenger` 已可作为 MessageRouter 的路由基底，提供 inbox 直达投递 + 共享 reply topic 请求-响应） |
 | **TeamManager** | Agent 团队的生命周期（创建/解散/成员管理/状态查询） | `@BizModel("AiTeam")` + ORM 实体持久化 |
 | **RecoveryManager** | 崩溃恢复、超时清理、orphan 检测、消息重放 | 定时任务（nop-job）+ DB 状态机 |
 | **ResourceGuard** | 协调信道（scope_claim/conflict_alert，见 multi-agent.md §4）、资源配额、冲突检测 | `@BizAction` 拦截工具执行 |
@@ -423,6 +423,8 @@ Lead Actor
 |------|------|------|
 | **Phase 1** | ActorRuntime + ActorRegistry + Virtual Thread 调度 | ReAct 引擎完成 |
 | **Phase 2** | MessageRouter + call-agent 异步模式 + 多用户隔离 | Phase 1 |
+
+> 注：`call-agent`（fork+exec MVP）和 `send-message`（fire-and-forget）工具已在 plan 168 交付。Phase 2 的"call-agent 异步模式"指基于 Actor mailbox 的请求-响应模型（Caller 发 REQUEST 到 Callee inbox、Callee actor 消费并回复 RESPONSE），是 fork+exec 的 Actor Runtime 升级版。
 | **Phase 3** | TeamManager + TeamSpec DSL + 共享任务表 + Team ACL | Phase 2 |
 | **Phase 4** | RecoveryManager + 崩溃恢复 + 归档清理 + Fencing Token | Phase 1 |
 | **Phase 5** | ResourceGuard + 协调信道 + 资源配额 | Phase 2 |

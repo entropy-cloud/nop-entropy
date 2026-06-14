@@ -1,6 +1,6 @@
 # 158 Complete 5-Layer Compression Pipeline — ICompressionStrategy Extension Point + Forced Stop
 
-> **Plan Status**: active
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: L3-9
 > **Last Reviewed**: 2026-06-13
@@ -200,7 +200,7 @@ Exit Criteria:
 - [x] Roadmap L3-9 updated ❌ → ✅
 - [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` passes
 - [x] Affected `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` sections synced to the landed contract (or `No owner-doc update required` per phase)
-- [ ] Independent closure audit completed and evidence recorded
+- [x] Independent closure audit completed and evidence recorded
 
 ## Deferred But Adjudicated
 
@@ -246,14 +246,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: *(filled at closure)*
+Status Note: The 5-layer compression pipeline is complete. `ICompressionStrategy` extension point + `PipelineCompactor` orchestrator compose Layer 1 (micro-compression) → Layer 2 (turn pruning) → Layer 3 (LLM summarization with graceful fallback) with dual-dimension escalation relief. Layer 4 forced-stop hard protection consumes the calibrated estimator's pre-call estimate at 90%, terminates tool calls, sets the additive `forced_stopped` terminal status, and publishes the `FORCED_STOP` event. The full path (trigger → escalation → forced stop) is verified end-to-end. Zero-config runnable via `CompactConfig` defaults; backward compatible (`NoOpContextCompactor` / `MicroCompressionCompactor` still usable).
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: *(filled at closure by an independent subagent)*
-- Audit Session: *(filled at closure)*
-- Evidence: *(filled at closure — per-Exit-Criterion PASS/FAIL + live code/test anchors + `check-plan-checklist.mjs` exit 0 + `scan-hollow-implementations.mjs` exit 0)*
+- Reviewer / Agent: independent closure-audit subagent (general, task ses_13ec15966ffeqMwvC5awn4n8yN)
+- Audit Session: ses_13ec15966ffeqMwvC5awn4n8yN
+- Evidence:
+  - All 23 Exit Criteria (Phase 1-4) PASS with live code/test anchors — e.g. escalation ordering (`TestPipelineCompactor.orchestratorEscalatesOnlyWhenPreviousLayerDidNotRelieve`), boundary integrity (`TestLayer2TurnPruningStrategy.toolCallResponsePairingIntactAfterPruning`), incremental summary (`TestLayer3FullSummaryStrategy.incrementalUpdatePassesPreviousSummary`), forced-stop pre-call estimate (`TestForcedStop.forcedStopFiresWhenPreCallEstimateExceeds90Percent` + `forcedStopUsesEstimatorNotAccumulatedUsage`), FORCED_STOP event (`forcedStopEventCarriesEstimatePayload`), no-tool-calls-after (`forcedStopStopsFurtherToolCalls`).
+  - All Closure Gates PASS.
+  - `node ai-dev/tools/check-plan-checklist.mjs 158-...md --strict` exit code 0 (no unchecked items; closure evidence present).
+  - Anti-Hollow check PASS: runtime call chain traced `DefaultAgentEngine.defaultPipelineCompactor` → `PipelineCompactor(strategy.compact())` → `Layer3FullSummaryStrategy(chatService.call())`; `ReActAgentExecutor.execute` → `shouldForceStop(tokenEstimator.estimateTokens)` → `handleForcedStop` (status + FORCED_STOP event + break). No stub on success path.
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-agent --severity high` exit code 0 (0 critical/high/medium/low findings).
+  - Deferred-items honesty PASS: 3 × out-of-scope improvement + 2 × optimization candidate; none hides an in-scope live defect.
+  - `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` → 437 tests, 0 failures, 0 errors. Targeted suite: TestPipelineCompactor (10) + TestLayer2TurnPruningStrategy (9) + TestLayer3FullSummaryStrategy (10) + TestForcedStop (7) = 36, all green.
+  - Non-blocking observation: `shouldForceStop` uses `CompactConfig.defaults().getForcedStopPercent()` (0.9) at the executor rather than a per-agent override — acceptable for this plan (per-agent tuning is out of scope; zero-config defaults are in scope).
 
 Follow-up:
 
-- *(filled at closure; only non-blocking items listed in Non-Blocking Follow-ups / Deferred But Adjudicated)*
+- Prefix-cache integrity validation (`prefixHash` check) across compaction (design §7.9) — watch-only residual.
+- Alternative summarization strategies (KeyInfoExtraction / HierarchicalRolling / VectorArchive) — out-of-scope improvement, addable via `ICompressionStrategy`.
+- DSL `<compaction>` element + Delta `<strategy>` override (codegen/schema, plan-first) — out-of-scope improvement.
+- `compressionModel` dedicated cheap-model service — optimization candidate.
+- Per-agent forced-stop percent override (currently executor-default 0.9) — optimization candidate, not a defect.

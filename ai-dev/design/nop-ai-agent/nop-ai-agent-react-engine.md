@@ -110,7 +110,7 @@ public interface IAgentEngine {
 设计理由：
 
 - `execute()`: L1-9 `AgentEventPublisher` 尚未实现时，调用者无法通过事件机制获取执行结果。`execute()` 返回 `CompletableFuture`，允许调用者同步等待或异步回调获取结果
-- `forkSession/getSessionStatus/cancelSession`: Phase 2 的 Actor 生命周期管理无法通过深化 Phase 1 实现，必须在接口层面预留。default + UOE 确保 Phase 1 实现类不受影响，Phase 2 消费者在误用 InMemorySessionStore 时立刻失败
+- `forkSession/getSessionStatus/cancelSession`: Phase 2 的 Actor 生命周期管理。`forkSession`、`getSessionStatus`、`cancelSession` 均已在 `DefaultAgentEngine` + `InMemorySessionStore` 中实现。`forkSession` 基于 `InMemorySessionStore.forkSession` 创建独立子 session，发布 `SESSION_FORKED` 事件；`getSessionStatus` 从 store 查询状态；`cancelSession` 支持 graceful/forced 两级语义。接口 default 方法仍保留 UOE 以保护其他尚未覆盖的 `IAgentEngine` 实现
 - `DefaultAgentEngine.execute()` 内部使用 `CompletableFuture.supplyAsync()` 将同步的 `ReActAgentExecutor.execute()` 包装为异步执行，不阻塞调用线程
 - 测试和简单场景可直接使用 `execute()` 获取结果；生产环境推荐使用 `sendMessage()` + 事件订阅
 

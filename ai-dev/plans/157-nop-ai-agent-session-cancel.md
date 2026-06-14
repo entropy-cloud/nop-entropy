@@ -211,3 +211,7 @@ Follow-up:
 
 - 无 plan-owned 剩余工作
 - Deferred 项（forkSession / DB-backed 跨进程取消传播 / 超时自动取消）均已在 `Deferred But Adjudicated` 中裁定为 non-blocking out-of-scope
+
+## Follow-up handled by 161-nop-ai-agent-session-fork.md
+
+Plan 161 picks up the forkSession implementation — the successor work item from this plan's `Deferred But Adjudicated` §"forkSession 实现" (Successor Required: yes). It implements `IAgentEngine.forkSession` and `ISessionStore.forkSession` in `DefaultAgentEngine` and `InMemorySessionStore` respectively, replacing the UOE stubs with functional session-fork semantics (deep-copy messages, parent-child link, inheritContext flag). forkSession UOE is no longer present after plan 161 lands.

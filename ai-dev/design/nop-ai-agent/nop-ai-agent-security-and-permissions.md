@@ -135,11 +135,23 @@ Permission resolve(toolName, agentName, sessionId)
 
 **继承语义**：
 
-- 工具权限 = 父权限 ∩ 子配置（交集或收缩）
-- 文件权限 = 父权限 ∩ 子配置（交集或收缩）
+- 工具权限 = 父权限 ∩ 子配置（交集或收缩）— **已交付** ✅
+- 文件权限 = 父权限 ∩ 子配置（交集或收缩）— **deferred**（见下方）
 - 未明确授权的提升行为一律拒绝
 
 **为什么**：call-agent 是能力扩张入口。如果子 Agent 可以提升权限，任意 prompt 都可能绕过父 Agent 约束。
+
+**工具权限继承实施（已交付，Plan 169）**：
+
+工具权限继承通过三个架构决策实现：
+
+1. **约束表示（constraint representation）**：父 Agent 的约束携带其 **effective（clamped）allowed tool set** — 即父 Agent 在当前执行中实际可调用的工具名集合，而非其 DSL 声明的集合。对于顶层 Agent（无 incoming parent constraint），effective set 等于其 declared set（`AgentModel.getTools()`）。对于嵌套 Agent，effective set 是 incoming parent constraint 与自身 declared set 的交集。使用 effective（clamped）set 而非 declared set 是嵌套委派安全的关键：当中间 Agent B 委派给 C 时，C 的约束基于 B 的 effective set（已被 A 的约束 clamp），因此 C 无法重新获得 A 从 B 中移除的工具。约束是不可变的值对象，携带 allowed tool names + parent agent name + parent session ID（审计追溯）。
+
+2. **执行机制（enforcement mechanism）**：在 `DefaultAgentEngine` 的 executor-resolution 时，用 `ParentConstrainedToolAccessChecker` 包装子 Agent 的 `IToolAccessChecker`。当约束存在且请求的工具不在父 Agent 的 effective set 中时，fail-closed 拒绝（拒绝原因明确标识 "parent permission constraint"）；当工具在父 Agent 的 set 中时，委托给被包装的 checker（子 Agent 自身规则仍叠加生效）；当无约束时（单 Agent 执行），wrapper 是 no-op pass-through。此包装不修改引擎自身的 `toolAccessChecker` 字段，仅在子 Agent 执行范围内生效。
+
+3. **约束传播（constraint propagation）**：约束通过 `AgentMessageRequest.metadata` 在 well-known key `"parentPermissionConstraint"` 下传播，复用现有 metadata 基础设施。`CallAgentExecutor` 从 `AgentToolExecuteContext.getAllowedTools()` 读取父 Agent 的 effective set 并构建约束；`DefaultAgentEngine.doExecute()` 从 metadata 读取约束并包装 checker。`ReActAgentExecutor` 在构造 `AgentToolExecuteContext` 时计算 effective set = `incomingParentConstraint ∩ agentModel.getTools()`。
+
+**文件权限继承（deferred）**：文件权限使用 rule-pattern matching（`IPathAccessChecker` 的 glob 规则），而非 set membership。两个规则集的交集需要不同的机制（规则组合或组合模式评估）。工具集交集已解决更高优先级的安全问题，因为工具是直接的能力扩张向量。文件权限 clamp 是一个改进，不会留下直接的工具提升漏洞。
 
 ### 4.5 日志与审计
 

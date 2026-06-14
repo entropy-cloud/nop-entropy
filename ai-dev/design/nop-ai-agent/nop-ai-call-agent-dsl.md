@@ -1,5 +1,7 @@
 # Nop AI call-agent DSL
 
+> **Status**: `call-agent` tool executor is functional (fork+exec via `IAgentEngine.execute()`), delivered in plan 168. The executor lives in `nop-ai-agent` (`io.nop.ai.agent.tool.CallAgentExecutor`); the previous hollow mock in `nop-ai-toolkit` has been removed. The DSL schema (`call-agent.tool.xml`) is unchanged.
+
 ## 1. 目标
 
 本篇以真实的 `call-agent.tool.xml` 为中心说明 `call-agent` DSL。

@@ -194,6 +194,33 @@ Skill 装配结果包括三部分注入到 Agent 执行上下文：
 2. **Tool 注册** — Skill 依赖的 tool 注册到 Agent 的 tool 集合中（需要权限叠加检查）
 3. **ResourceScope 声明** — 与 Agent 的 `permissions` 叠加，取交集
 
+### 5.5 Skill 策展 / Curation
+
+Skill 策展（curation）是技能质量评估层——一个**建议性、非变更性**的分析工具。它读取已注册的 Skill 定义，评估其清晰度、完整性、覆盖范围，并产出策展建议（质量评级、改进推荐），但**绝不修改** Skill 定义。
+
+**与 ISkillProvider 的关系**：策展器只消费 skill 注册表集合（`Collection<SkillModel>`），不直接接触 `ISkillProvider`。从 provider 获取 skills 是引擎的职责——引擎调用 provider，将结果集合传给策展器。
+
+**质量评级分类法（三级）**：
+
+| 评级 | 含义 |
+|------|------|
+| `WELL_DEFINED` | 目标、签名、依赖、资源范围清晰完整，且与其他 skill 不冗余 |
+| `NEEDS_IMPROVEMENT` | 可用但有缺陷：目标模糊、缺少依赖、签名不明确、资源范围不充分 |
+| `REDUNDANT` | 与注册表中其他 skill 大量重叠，建议合并或移除 |
+
+**调用模型**：策展器是**按需分析工具**，不是 ReAct 循环内的组件。它注册在 `DefaultAgentEngine` 上（setter，默认 `NoOpSkillCurator`），按需调用，不在 `ReActAgentExecutor.execute()` 中被调用。策展是元层关注点（skill 质量评估），不是每次执行的关注点（skill 激活）。
+
+**成功/失败标记语义**：策展结果携带明确的成功/失败标记。"成功且零评估"（空注册表的合法结果）与"策展失败"（LLM 错误、解析失败）必须可区分。两者都是显式的，绝非吞掉异常的产物。
+
+**LLM 策展的输出格式契约**（`LLMCurator`）：策展器与其默认系统 prompt 必须约定单一的结构化输出格式。LLM 响应必须按 skill 携带名称引用和评估字段（质量评级、推荐、理由），且可被机器解析为评估对象。具体格式选择（JSON，per-skill 对象数组）和解析契约（期望字段、缺失/格式错误条目的错误处理）是实现决策，记录在此处，以确保解析器与默认 prompt 一致。解析器从 LLM 响应中提取 JSON（处理 markdown 代码围栏），使用 `JsonTool` 解析；缺失或格式错误的条目被跳过（不导致整批失败，除非整个响应不可解析）。当整个批次响应不可解析时，该批次产出失败标记。批处理部分失败语义：成功的批次贡献其评估，失败的批次贡献失败标记；如果任何批次失败，合并结果的总体标记为"失败"，但仍保留成功批次的评估。
+
+**拒绝了**：
+
+- **变更性策展器**（自动应用推荐）——回写语义需要独立的安全设计，且与静态加载设计（§7.3）冲突。策展器只推荐，不修改。
+- **基于执行轨迹的策展**——需要尚不存在的 session-history/telemetry 基础设施。定义质量策展（评估 skill 定义的清晰度/完整性/覆盖）是基础能力，无需执行轨迹即可交付。
+- **ReAct 循环后生命周期钩子调用**——会使每次执行都承担策展开销，混淆两个不同关注点。
+- **定期/后台策展调度**——策展器按需调用；调度是平台关注点（Actor Runtime, L4-8）。
+
 ---
 
 ## 6. 与现有设计的接合点
@@ -252,7 +279,7 @@ SSL 的 Logical 层（`logic_step`）不适合 Nop：
 
 - Skill DSL 只实现 Scheduling 层（无 `scenes` 结构）
 - Agent DSL 支持 `availableSkills` / `requiredSkills` 引用
-- 匹配只做声明过滤 + `topPattern` 粗筛
+- 匹配只做声明过滤（`requiredSkills` fail-fast + `availableSkills` 激活）；`topPattern` 粗筛推迟到第二阶段，因为请求侧 `topPattern` 机制尚不存在
 - Skill 注册中心：文件系统扫描 `nop-ai-agent/skills/*.skill.yaml`
 
 ### 8.2 第二阶段

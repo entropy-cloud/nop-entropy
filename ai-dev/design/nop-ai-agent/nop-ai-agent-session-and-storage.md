@@ -254,12 +254,14 @@ Session 延续应该解决“上下文怎么继续”，而不是隐式改变当
 
 ### 9.2 分叉流程
 
-推荐流程：
+推荐流程（VFS 持久化后端）：
 
 1. 为父 session 生成历史快照
 2. 创建子 session 目录
 3. 复制或重建子 session 的初始状态
 4. 记录父 session 和 snapshot 引用
+
+**当前实现**：`InMemorySessionStore.forkSession` 已在内存中实现上述语义——直接拷贝父消息列表（独立 ArrayList）、继承 planId 引用、合并 props 到 metadata、设置 parentSessionId。快照持久化（SessionSnapshot offload）是未来 VFS 后端的能力，当前内存模式无需显式快照文件。
 
 ### 9.3 父子关系
 

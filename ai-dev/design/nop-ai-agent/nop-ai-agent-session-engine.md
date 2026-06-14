@@ -97,9 +97,9 @@ public interface ISessionStore {
 
 **设计决策**：选 default 方法抛 `UnsupportedOperationException`，而非新增 `IVfsSessionStore extends ISessionStore`。理由：
 1. 单接口，消费者只需依赖一个类型，无需 `instanceof` 或双接口感知
-2. Phase 1 的 `InMemorySessionStore` 不继承任何额外行为（4 原始方法不变，5 default 自然继承 UOE）
+2. Phase 1 的 `InMemorySessionStore` 覆盖了 `forkSession`（4 原始方法 + 1 具体覆盖，其余 4 个 default 自然继承 UOE）；`forkSession` 已在 `InMemorySessionStore` 中功能化实现
 3. Phase 2 的 `VfsEventLogSessionStore` 覆盖全部 9 个方法，消费者无感升级
-4. 抛 UOE 确保 Phase 2 代码误用 `InMemorySessionStore` 时立刻失败，而非静默忽略
+4. 抛 UOE 确保 Phase 2 代码误用尚未实现的 default 方法时立刻失败，而非静默忽略
 
 ### 6.3 IAiMemoryStore 与 Budgeted Injection（MiMoCode 吸收）
 

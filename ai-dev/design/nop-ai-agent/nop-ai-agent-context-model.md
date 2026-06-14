@@ -102,13 +102,13 @@ Tool 执行时，引擎提供以下上下文信息：
 
 1. Fork 基于当前 session 创建新的 session
 2. 新 session 的消息历史是当前 session 的快照
-3. 新 session 的 Plan 状态是当前 Plan 的深拷贝
+3. 新 session 继承父 session 的 planId 引用（Plan 是项目级共享实体，见 `nop-ai-agent-session-and-storage.md` §6，不深拷贝）
 4. 新 session 的工具集和约束配置从新 Agent 配置重新装配
 5. Fork 后，父子 session 完全独立——修改互不影响
 
 **与 `call-agent` 的关系**：`call-agent` 的 `inheritContext=true` + `agentName="self"` 等价于 fork。
 
-**拒绝了**：写时复制（Copy-on-Write）。理由是 Agent 的消息和 Plan 不是高频修改的热数据，深拷贝的性能开销可接受，而 CoW 的实现复杂度不值得。
+**拒绝了**：写时复制（Copy-on-Write）。理由是 Agent 的消息历史不是高频修改的热数据，快照拷贝的性能开销可接受，而 CoW 的实现复杂度不值得。Plan 是项目级共享实体，fork 时仅继承 planId 引用，无需拷贝。
 
 ### 5.4 上下文继承协议
 
@@ -117,7 +117,7 @@ Tool 执行时，引擎提供以下上下文信息：
 | 上下文维度 | 继承行为 |
 |-----------|---------|
 | 消息历史 | inheritContext=true 时继承快照，否则为空 |
-| Plan 状态 | inheritContext=true 时继承深拷贝，否则为空 |
+| Plan 状态 | inheritContext=true 时继承 planId 引用（Plan 是项目级共享实体，见 `nop-ai-agent-session-and-storage.md` §6，不深拷贝），否则为空 |
 | 工具集 | 不继承——从子 Agent 的 agent.xdef 重新装配 |
 | 约束配置 | 不继承——从子 Agent 的 agent.xdef 重新装配 |
 | 环境信息 | 继承（工作目录、文件系统范围） |

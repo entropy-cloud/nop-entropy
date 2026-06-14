@@ -55,7 +55,7 @@
 | 对象 | 职责契约 | 设计约束 |
 |------|----------|---------|
 | `AgentModel` | 从 `agent.xdef` 装载得到的纯配置对象，是 DSL 在引擎层的投影 | 不持有执行逻辑，不持有状态；可被 Delta 定制 |
-| `IAgentEngine` | Agent 的 Actor 入口：接受消息，路由到对应 Session 的 Agent Actor | 无状态——每次调用根据 sessionId 查找或创建 AgentActor，投递消息后立即返回；执行结果通过 `AgentEventPublisher` 异步推送。`cancelSession`（graceful/forced 两级语义）与 `getSessionStatus` 已在 `DefaultAgentEngine` 中实现：graceful 设置取消标志在下一个迭代边界停止，forced 额外中断执行线程；两者对不存在的 sessionId 均 fail-fast 抛 `NopAiAgentException`；`forkSession` 仍为 Phase 2 stub（抛 UOE，待 VFS session store） |
+| `IAgentEngine` | Agent 的 Actor 入口：接受消息，路由到对应 Session 的 Agent Actor | 无状态——每次调用根据 sessionId 查找或创建 AgentActor，投递消息后立即返回；执行结果通过 `AgentEventPublisher` 异步推送。`cancelSession`（graceful/forced 两级语义）、`getSessionStatus`、`forkSession` 均已在 `DefaultAgentEngine` 中实现：graceful cancel 设置取消标志在下一个迭代边界停止，forced 额外中断执行线程；`forkSession` 基于 `InMemorySessionStore.forkSession` 创建独立子 session（inheritContext 控制消息/planId/metadata 继承），发布 `SESSION_FORKED` 事件；三者对不存在的 sessionId 均 fail-fast 抛 `NopAiAgentException` |
 | `Agent` | 无状态执行体，根据 AgentModel 的配置驱动执行循环 | 不持有状态——AgentSession 作为上下文传入 |
 | `AgentSession` | 按 sessionId 获取的独立状态对象，持久化跨请求存在 | 状态恢复的载体；可以被任意服务实例接管 |
 | `AgentExecutionContext` | 单次执行的全部内存态数据的容器 | 生命周期与单次执行绑定，不跨执行复用 |
@@ -136,9 +136,11 @@ Agent 间通信（包括 `call-agent` 同步调用、`send-message` 异步消息
 
 - **单进程**：`LocalMessageService`（内存队列 + `CompletableFuture`），延迟极低
 - **多实例**：DB-backed `MessageService`，请求/结果通过数据库传递，支持跨进程路由
-- **引擎层不感知部署拓扑**：`call-agent` 工具只往 mailbox 发消息、等待响应，不知道对方在同一进程还是远程实例
+- **引擎层不感知部署拓扑**：`call-agent` 工具只往 mailbox 发消息、等待响应，不知道对方在同一进程还是远程实例。（MVP 实现注：plan 168 交付的 `call-agent` 采用 fork+exec 模型——直接调用 `IAgentEngine.execute()` 同步执行子 Agent，不经 mailbox。基于 mailbox 的 call-agent 模型是 Actor Runtime 的目标。）
 - **IMessageService 是可能出错的基础设施**：所有调用都包含超时、重试、错误处理。调用方不假设底层可靠
-- **`call-agent` 是运行时提供给 Agent 的能力**：Agent 通过工具调用 `call-agent`，引擎和 actor 调度系统负责实际的 session fork、消息路由、超时和恢复
+- **`call-agent` 是运行时提供给 Agent 的能力**：Agent 通过工具调用 `call-agent`，引擎和 actor 调度系统负责实际的 session fork、消息路由、超时和恢复。（`send-message` 工具已交付：通过 `IAgentMessenger.send()` 向目标 inbox topic 投递 fire-and-forget 消息。）
+
+**Agent 域 messenger 已接线（L4-1 已落地）**：`nop-ai-agent` 已在平台 `IMessageService` / `LocalMessageService` 之上叠加了 Agent 域 messenger 抽象（`IAgentMessenger`），提供 fire-and-forget（`send`）与请求-响应（`request` → `CompletableFuture`，含超时）两种语义。Topic 命名采用独立 `agent.*` 命名空间（inbox topic = `agent.{sessionId}.inbox`、共享 reply topic = `agent.{sessionId}.reply`，由信封 correlationId 区分在途请求），不复用平台 `bro-`/`reply-`/`bat-` 前缀。`DefaultAgentEngine` 经 `setMessenger` setter 接线，默认 `NoOpAgentMessenger`（send 为 no-op，request fail-fast 抛 `UnsupportedOperationException`，向后兼容）。内存实现底层经平台 `LocalMessageService` 路由（非自建队列），并在 handler→`IMessageConsumer` 适配层显式抑制平台的 `ack-{topic}` 自动路由，确保响应仅经 requester 的 reply topic 返回。
 
 **注意**：不同 IMessageService 实现的故障语义不同（内存实现崩溃丢消息，DB-backed 不丢）。这是预期行为——调用方通过超时+重试+幂等处理应对。
 

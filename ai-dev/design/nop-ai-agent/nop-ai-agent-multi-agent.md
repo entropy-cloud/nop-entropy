@@ -172,10 +172,12 @@ topic: "agent.coordination.{projectId}"
 
 | 阶段 | 编排方式 |
 |------|---------|
-| Phase 1 | `call-agent` 工具 + 引擎级 fail-fast |
+| Phase 1 ✅ | `call-agent` 工具（fork+exec via `IAgentEngine.execute()`）+ `send-message` 工具（fire-and-forget via `IAgentMessenger.send()`）+ 引擎级 fail-fast |
 | Phase 2 | 协调信道（scope_claim/operation_intent）+ LLM 智能协调 |
 | Phase 3 | Nop Flow 图编排 + Agent 节点 + 协调信道集成 |
 | Phase 4 | 自适应编排（协调器 Agent + 协调信道） |
+
+> Phase 1 已交付：`call-agent` 采用 fork+exec 模型（直接调用 `IAgentEngine.execute()` 同步等待子 Agent 完成），`send-message` 采用 fire-and-forget 模型（通过 `IAgentMessenger.send()` 投递到目标 inbox topic）。基于 mailbox 的 call-agent 模型（发 REQUEST 到目标 inbox、等待 actor 响应）是 Actor Runtime (Phase 2+) 的目标。
 
 参考 solon-ai 的做法：Agent 作为 Solon Flow 的 NamedTaskComponent。Nop 可以将 Agent 作为 Nop Flow 的节点类型，通过 Flow 图定义多 Agent 编排逻辑。
 
