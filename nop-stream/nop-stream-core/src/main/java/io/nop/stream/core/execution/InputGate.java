@@ -49,6 +49,8 @@ public class InputGate {
 
     private static final Logger LOG = LoggerFactory.getLogger(InputGate.class);
 
+    static final long DEFAULT_ALIGNMENT_TIMEOUT_MS = 30000L;
+
     private final List<InputChannel> channels;
     private final long[] currentWatermarks;
     private final EdgeConfig edgeConfig;
@@ -59,6 +61,8 @@ public class InputGate {
     private CheckpointBarrier pendingBarrier;
     private int barriersRemaining;
     private boolean barrierEmitted;
+    private long alignmentStartTime;
+    private final long barrierAlignmentTimeout;
 
     private int currentChannelIndex;
     private int emptyRounds;
@@ -88,12 +92,29 @@ public class InputGate {
      *                         (STRICT_EXACTLY_ONCE); if false, don't block (AT_LEAST_ONCE)
      */
     public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig, boolean barrierAlignment) {
+        this(channels, edgeConfig, barrierAlignment, DEFAULT_ALIGNMENT_TIMEOUT_MS);
+    }
+
+    /**
+     * Creates an InputGate with multiple channels, edge configuration,
+     * barrier alignment mode, and barrier alignment timeout.
+     *
+     * @param channels               the input channels (must not be null or empty)
+     * @param edgeConfig             optional edge configuration for flow control (nullable)
+     * @param barrierAlignment       if true, block channels after receiving barrier
+     *                               (STRICT_EXACTLY_ONCE); if false, don't block (AT_LEAST_ONCE)
+     * @param barrierAlignmentTimeout maximum time in milliseconds to wait for all barrier
+     *                                alignments to complete before throwing a timeout exception
+     */
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig,
+                     boolean barrierAlignment, long barrierAlignmentTimeout) {
         if (channels == null || channels.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "channels");
         }
         this.channels = new ArrayList<>(channels);
         this.edgeConfig = edgeConfig;
         this.barrierAlignment = barrierAlignment;
+        this.barrierAlignmentTimeout = barrierAlignmentTimeout;
         this.currentWatermarks = new long[channels.size()];
         for (int i = 0; i < currentWatermarks.length; i++) {
             currentWatermarks[i] = Long.MIN_VALUE;
@@ -103,6 +124,7 @@ public class InputGate {
         this.pendingBarrier = null;
         this.barrierEmitted = false;
         this.currentChannelIndex = 0;
+        this.alignmentStartTime = 0;
     }
 
     /**
@@ -126,11 +148,13 @@ public class InputGate {
         this.channels.add(channel);
         this.edgeConfig = edgeConfig;
         this.barrierAlignment = true;
+        this.barrierAlignmentTimeout = DEFAULT_ALIGNMENT_TIMEOUT_MS;
         this.currentWatermarks = new long[]{Long.MIN_VALUE};
         this.barrierReceived = new boolean[1];
         this.barriersRemaining = 0;
         this.pendingBarrier = null;
         this.currentChannelIndex = 0;
+        this.alignmentStartTime = 0;
     }
 
     /**
@@ -260,6 +284,14 @@ public class InputGate {
                 return Optional.empty();
             }
 
+            if (pendingBarrier != null && barriersRemaining > 0 && barrierAlignment) {
+                long elapsed = System.currentTimeMillis() - alignmentStartTime;
+                if (elapsed > barrierAlignmentTimeout) {
+                    throw new StreamException(ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT)
+                            .param(ARG_TIMEOUT_MS, elapsed);
+                }
+            }
+
             LockSupport.parkNanos(10_000_000L);
         }
     }
@@ -270,6 +302,7 @@ public class InputGate {
             if (pendingBarrier == null) {
                 pendingBarrier = barrier;
                 barriersRemaining = channels.size();
+                alignmentStartTime = System.currentTimeMillis();
             }
             barriersRemaining--;
 
@@ -338,6 +371,7 @@ public class InputGate {
         pendingBarrier = null;
         barriersRemaining = 0;
         barrierEmitted = false;
+        alignmentStartTime = 0;
     }
 
     private Optional<StreamElement> checkBarrierAlignmentComplete() {

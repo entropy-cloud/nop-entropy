@@ -157,6 +157,13 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_CHECKPOINT_ABORTED =
             define("nop.err.stream.checkpoint-aborted", "Checkpoint aborted: {reason}", ARG_REASON);
 
+    String ARG_TIMEOUT_MS = "timeoutMs";
+
+    ErrorCode ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT =
+            define("nop.err.stream.barrier-alignment-timeout",
+                    "Barrier alignment timed out after {timeoutMs}ms: not all input channels delivered barriers within the configured timeout",
+                    ARG_TIMEOUT_MS);
+
     String ARG_EXPECTED_TYPE = "expectedType";
     String ARG_ACTUAL_TYPE = "actualType";
 

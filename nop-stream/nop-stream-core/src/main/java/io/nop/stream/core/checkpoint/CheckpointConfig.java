@@ -20,16 +20,20 @@ public class CheckpointConfig implements Serializable {
 
     public static final long DEFAULT_CHECKPOINT_INTERVAL = 60000L;
     public static final long DEFAULT_CHECKPOINT_TIMEOUT = 600000L;
+    public static final long DEFAULT_BARRIER_ALIGNMENT_TIMEOUT = 30000L;
     public static final long DEFAULT_MIN_PAUSE = 500L;
     public static final int DEFAULT_MAX_CONCURRENT_CHECKPOINTS = 1;
     public static final int DEFAULT_MAX_RETAINED_CHECKPOINTS = 5;
+    public static final int DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES = 3;
 
     private boolean checkpointEnabled = true;
     private long checkpointInterval = DEFAULT_CHECKPOINT_INTERVAL;
     private long checkpointTimeout = DEFAULT_CHECKPOINT_TIMEOUT;
+    private long barrierAlignmentTimeout = DEFAULT_BARRIER_ALIGNMENT_TIMEOUT;
     private long minPause = DEFAULT_MIN_PAUSE;
     private int maxConcurrentCheckpoints = DEFAULT_MAX_CONCURRENT_CHECKPOINTS;
     private int maxRetainedCheckpoints = DEFAULT_MAX_RETAINED_CHECKPOINTS;
+    private int maxConsecutiveCheckpointFailures = DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES;
     private ProcessingGuarantee processingGuarantee = ProcessingGuarantee.STRICT_EXACTLY_ONCE;
     private String storageType = "local";
     private Map<String, String> storageConfig = new HashMap<>();
@@ -64,6 +68,14 @@ public class CheckpointConfig implements Serializable {
         this.checkpointTimeout = checkpointTimeout;
     }
 
+    public long getBarrierAlignmentTimeout() {
+        return barrierAlignmentTimeout;
+    }
+
+    public void setBarrierAlignmentTimeout(long barrierAlignmentTimeout) {
+        this.barrierAlignmentTimeout = barrierAlignmentTimeout;
+    }
+
     public long getMinPause() {
         return minPause;
     }
@@ -86,6 +98,14 @@ public class CheckpointConfig implements Serializable {
 
     public void setMaxRetainedCheckpoints(int maxRetainedCheckpoints) {
         this.maxRetainedCheckpoints = maxRetainedCheckpoints;
+    }
+
+    public int getMaxConsecutiveCheckpointFailures() {
+        return maxConsecutiveCheckpointFailures;
+    }
+
+    public void setMaxConsecutiveCheckpointFailures(int maxConsecutiveCheckpointFailures) {
+        this.maxConsecutiveCheckpointFailures = maxConsecutiveCheckpointFailures;
     }
 
     public String getStorageType() {
@@ -166,6 +186,11 @@ public class CheckpointConfig implements Serializable {
             return this;
         }
 
+        public Builder barrierAlignmentTimeout(long timeout) {
+            config.setBarrierAlignmentTimeout(timeout);
+            return this;
+        }
+
         public Builder minPause(long minPause) {
             config.setMinPause(minPause);
             return this;
@@ -178,6 +203,11 @@ public class CheckpointConfig implements Serializable {
 
         public Builder maxRetainedCheckpoints(int max) {
             config.setMaxRetainedCheckpoints(max);
+            return this;
+        }
+
+        public Builder maxConsecutiveCheckpointFailures(int max) {
+            config.setMaxConsecutiveCheckpointFailures(max);
             return this;
         }
 

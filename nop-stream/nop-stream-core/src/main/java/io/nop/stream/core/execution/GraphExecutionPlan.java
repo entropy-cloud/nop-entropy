@@ -150,6 +150,21 @@ public class GraphExecutionPlan {
      */
     public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
                                            boolean barrierAlignment) {
+        return build(jobGraph, deploymentPlan, barrierAlignment, InputGate.DEFAULT_ALIGNMENT_TIMEOUT_MS);
+    }
+
+    /**
+     * Builds an execution plan from the given JobGraph with full configuration including
+     * barrier alignment timeout.
+     *
+     * @param jobGraph                the job graph to plan execution for
+     * @param deploymentPlan          optional deployment plan (null uses default behavior)
+     * @param barrierAlignment        if true, InputGates use barrier alignment
+     * @param barrierAlignmentTimeout maximum time in ms for barrier alignment before timeout
+     * @return the execution plan
+     */
+    public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                           boolean barrierAlignment, long barrierAlignmentTimeout) {
         // --- 1. Build adjacency maps ---
         Map<String, List<JobEdge>> outgoingEdges = new HashMap<>();
         Map<String, List<JobEdge>> incomingEdges = new HashMap<>();
@@ -266,7 +281,7 @@ public class GraphExecutionPlan {
 
                     if (!channels.isEmpty()) {
                         EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
-                        inputGate = new InputGate(channels, gateConfig, barrierAlignment);
+                        inputGate = new InputGate(channels, gateConfig, barrierAlignment, barrierAlignmentTimeout);
                     }
                 }
 
