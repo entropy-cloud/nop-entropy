@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -308,8 +309,8 @@ public class TestDBDenialLedger {
 
     @Test
     void constructorRejectsNonPositiveThreshold() {
-        assertThrows(IllegalArgumentException.class, () -> new DBDenialLedger(dataSource, 0));
-        assertThrows(IllegalArgumentException.class, () -> new DBDenialLedger(dataSource, -1));
+        assertThrows(NopAiAgentException.class, () -> new DBDenialLedger(dataSource, 0));
+        assertThrows(NopAiAgentException.class, () -> new DBDenialLedger(dataSource, -1));
     }
 
     @Test

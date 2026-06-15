@@ -1,17 +1,17 @@
 package io.nop.ai.agent.security;
 
 /**
- * Pass-through {@link IApprovalGate} used as the default when no functional
- * gate is registered. All requests are auto-approved with approver
- * {@code "auto"} (design §6.1 default). Consistent with the
- * {@code NoOpSecurityLevelResolver} / {@code PassThroughPermissionMatrix} /
- * {@code PassThroughModelRouter} sibling pattern.
+ * Pass-through {@link IApprovalGate} that <b>unconditionally approves all
+ * requests</b> (including {@link SecurityLevel#RESTRICTED}) with approver
+ * {@code "auto"}. Consistent with the {@code AllowAll*} opt-in pattern (plan
+ * 193): this class is retained as a public opt-in for integrators who need
+ * unconditional auto-approval (e.g. trusted test environments).
  *
- * <p>The auto-approve semantics are semantically correct (design §6.1 default):
- * the shipped default does not require human approval, so unattended Layer 1
- * automation is unaffected. A functional gate (implementing the real
- * enqueue / wait / timeout workflow) is registered explicitly via
- * {@code DefaultAgentEngine.setApprovalGate}.
+ * <p><b>Not the engine default</b> (plan 199 / design §4.8): the
+ * {@code DefaultAgentEngine} shipped default is now
+ * {@link DefaultApprovalGate}, which defense-in-depth denies RESTRICTED
+ * operations. To opt back into unconditional auto-approval, explicitly call
+ * {@code DefaultAgentEngine.setApprovalGate(AutoApproveGate.autoApprove())}.
  *
  * <p>This implementation does not differentiate between {@link SecurityLevel}
  * values: STANDARD, ELEVATED, and RESTRICTED are all approved. Functional

@@ -1,6 +1,7 @@
 package io.nop.ai.agent.message;
 
 import java.util.Objects;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Immutable inter-agent message envelope routed over the platform
@@ -32,7 +33,7 @@ public final class AgentMessageEnvelope {
     public AgentMessageEnvelope(String senderId, String targetTopic, String correlationId,
                                 AgentMessageKind kind, Object payload, long timestamp) {
         if (kind == null) {
-            throw new IllegalArgumentException("AgentMessageEnvelope: kind must not be null");
+            throw new NopAiAgentException("AgentMessageEnvelope: kind must not be null");
         }
         this.senderId = senderId;
         this.targetTopic = targetTopic;

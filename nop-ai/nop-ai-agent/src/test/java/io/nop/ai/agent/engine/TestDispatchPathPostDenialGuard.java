@@ -2,6 +2,7 @@ package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ChannelKind;
+import io.nop.ai.agent.security.DefaultPostDenialGuard;
 import io.nop.ai.agent.security.FingerprintPostDenialGuard;
 import io.nop.ai.agent.security.IPostDenialGuard;
 import io.nop.ai.agent.security.PassThroughPostDenialGuard;
@@ -410,18 +411,19 @@ public class TestDispatchPathPostDenialGuard {
                 new io.nop.ai.agent.session.InMemorySessionStore(),
                 new io.nop.ai.agent.security.AllowAllPermissionProvider(),
                 tools);
-        // Deliberately do NOT call setPostDenialGuard — the default must be
-        // PassThroughPostDenialGuard.
+        // Deliberately opt into PassThroughPostDenialGuard to verify the
+        // backward-compat behavior (default is now DefaultPostDenialGuard).
+        engine.setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", null, null, ChannelKind.WEBUI, Principal.user());
 
         AgentExecutionResult result = engine.execute(req).toCompletableFuture().join();
 
-        // Layer 1 ran for BOTH tool calls — the pass-through default does not
+        // Layer 1 ran for BOTH tool calls — the pass-through does not
         // block any retry.
         assertEquals(2, tools.checkCount.get(),
-                "With PassThroughPostDenialGuard default, Layer 1 must run for every tool call. Got: "
+                "With PassThroughPostDenialGuard, Layer 1 must run for every tool call. Got: "
                         + tools.checkCount.get());
 
         // No guard-deny messages — the pass-through never produces a
@@ -445,10 +447,10 @@ public class TestDispatchPathPostDenialGuard {
                 new RecordingChatService(List.of(finalAssistant("done"))),
                 stubToolManager());
 
-        // Default is PassThroughPostDenialGuard.
+        // Default is DefaultPostDenialGuard.
         assertNotNull(engine.getPostDenialGuard(), "engine must expose a default post-denial guard");
-        assertSame(PassThroughPostDenialGuard.passThrough(), engine.getPostDenialGuard(),
-                "Default post-denial guard must be PassThroughPostDenialGuard");
+        assertTrue(engine.getPostDenialGuard() instanceof DefaultPostDenialGuard,
+                "Default post-denial guard must be DefaultPostDenialGuard");
 
         // Setter registers a functional guard.
         FingerprintPostDenialGuard functional = new FingerprintPostDenialGuard();
@@ -458,8 +460,8 @@ public class TestDispatchPathPostDenialGuard {
 
         // Setter with null falls back to the default (not null, not silently ignored).
         engine.setPostDenialGuard(null);
-        assertSame(PassThroughPostDenialGuard.passThrough(), engine.getPostDenialGuard(),
-                "setPostDenialGuard(null) must fall back to PassThroughPostDenialGuard, not null");
+        assertTrue(engine.getPostDenialGuard() instanceof DefaultPostDenialGuard,
+                "setPostDenialGuard(null) must fall back to DefaultPostDenialGuard, not null");
     }
 
     /**
@@ -498,10 +500,12 @@ public class TestDispatchPathPostDenialGuard {
 
     /**
      * Builder null-fallback: when no guard is supplied, the executor defaults
-     * to {@link PassThroughPostDenialGuard} and Layer 1 runs for every call.
+     * to {@link DefaultPostDenialGuard} (fingerprint-based). With two identical
+     * shell.exec calls and a DenyAll tool checker, the second identical call
+     * is blocked as a blind retry — so Layer 1 runs only for the first call.
      */
     @Test
-    void builderNullFallbackDefaultsToPassThrough() {
+    void builderNullFallbackDefaultsToDefaultPostDenialGuard() {
         CountingDenyAllTools tools = new CountingDenyAllTools();
 
         Map<String, Object> args = Map.of("command", "ls");
@@ -516,15 +520,18 @@ public class TestDispatchPathPostDenialGuard {
                 .chatService(chat)
                 .toolManager(stubToolManager())
                 .toolAccessChecker(tools)
-                // no postDenialGuard() — defaults to PassThroughPostDenialGuard
+                // no postDenialGuard() — defaults to DefaultPostDenialGuard
                 .build();
 
         AgentExecutionContext ctx = AgentExecutionContext.create(
                 buildMinimalReactAgentModel(), "session-nf");
         executor.execute(ctx).toCompletableFuture().join();
 
-        assertEquals(2, tools.checkCount.get(),
-                "Builder with no guard must default to pass-through (Layer 1 runs for both calls). Got: "
+        // DefaultPostDenialGuard blocks the second identical call as a blind
+        // retry — Layer 1 runs only for the first call.
+        assertEquals(1, tools.checkCount.get(),
+                "Builder with no guard defaults to DefaultPostDenialGuard — second identical call "
+                        + "is blocked as blind retry, Layer 1 runs once. Got: "
                         + tools.checkCount.get());
     }
 

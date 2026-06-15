@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Verifies the {@link DenialResult} value semantics (design §6.3): factory
@@ -47,7 +48,7 @@ public class TestDenialResult {
         try {
             DenialResult.of(null, DenialSuggestedStep.REPLAN, "fp", "msg", false);
             fail("DenialResult.of must reject null reason");
-        } catch (IllegalArgumentException expected) {
+        } catch (NopAiAgentException expected) {
             // expected: reason is a required structured field
         }
     }
@@ -57,7 +58,7 @@ public class TestDenialResult {
         try {
             DenialResult.of(DenialReason.HUMAN_REJECTED, null, "fp", "msg", false);
             fail("DenialResult.of must reject null suggestedNextStep");
-        } catch (IllegalArgumentException expected) {
+        } catch (NopAiAgentException expected) {
             // expected: suggestedNextStep is a required structured field
         }
     }

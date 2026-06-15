@@ -91,14 +91,14 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     public void setPollIntervalMs(long pollIntervalMs) {
         if (pollIntervalMs <= 0) {
-            throw new IllegalArgumentException("pollIntervalMs must be positive, got: " + pollIntervalMs);
+            throw new NopAiAgentException("pollIntervalMs must be positive, got: " + pollIntervalMs);
         }
         this.pollIntervalMs = pollIntervalMs;
     }
 
     public void setMaxBatch(int maxBatch) {
         if (maxBatch <= 0) {
-            throw new IllegalArgumentException("maxBatch must be positive, got: " + maxBatch);
+            throw new NopAiAgentException("maxBatch must be positive, got: " + maxBatch);
         }
         this.maxBatch = maxBatch;
     }
@@ -191,7 +191,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     @Override
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
         if (topic == null || topic.isEmpty()) {
-            throw new IllegalArgumentException("DBMessageService.subscribe: topic must not be null or empty");
+            throw new NopAiAgentException("DBMessageService.subscribe: topic must not be null or empty");
         }
         Objects.requireNonNull(listener, "listener must not be null");
 

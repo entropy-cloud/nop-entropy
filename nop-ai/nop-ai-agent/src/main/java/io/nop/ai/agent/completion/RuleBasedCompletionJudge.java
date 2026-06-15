@@ -1,6 +1,7 @@
 package io.nop.ai.agent.completion;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 
 /**
@@ -33,7 +34,7 @@ public final class RuleBasedCompletionJudge implements ICompletionJudge {
 
     public RuleBasedCompletionJudge(CompletionRuleConfig config) {
         if (config == null) {
-            throw new IllegalArgumentException("CompletionRuleConfig must not be null");
+            throw new NopAiAgentException("CompletionRuleConfig must not be null");
         }
         this.config = config;
     }

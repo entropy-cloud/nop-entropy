@@ -4,6 +4,9 @@ import io.nop.ai.agent.compact.CompactionContext;
 import io.nop.ai.agent.compact.IContextCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.compact.ToolResultTruncator;
+import io.nop.ai.agent.budget.BudgetSnapshot;
+import io.nop.ai.agent.budget.IBudgetProvider;
+import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.completion.CompletionDecision;
 import io.nop.ai.agent.completion.ICompletionJudge;
 import io.nop.ai.agent.completion.NoOpCompletionJudge;
@@ -27,8 +30,14 @@ import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.repair.NoOpToolCallRepairer;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
+import io.nop.ai.agent.reliability.ErrorClassification;
 import io.nop.ai.agent.reliability.ICheckpointManager;
+import io.nop.ai.agent.reliability.IRetryPolicy;
+import io.nop.ai.agent.reliability.LlmErrorClassifier;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
+import io.nop.ai.agent.reliability.NoRetryPolicy;
+import io.nop.ai.agent.reliability.RetryContext;
+import io.nop.ai.agent.reliability.RetryOutcome;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.router.RoutingResult;
@@ -39,10 +48,16 @@ import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
-import io.nop.ai.agent.security.AutoApproveGate;
 import io.nop.ai.agent.security.ApprovalDecision;
 import io.nop.ai.agent.security.ChannelKind;
+import io.nop.ai.agent.security.DefaultApprovalGate;
+import io.nop.ai.agent.security.DefaultDenialLedger;
 import io.nop.ai.agent.security.DefaultLevelHintsProducer;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultPermissionMatrix;
+import io.nop.ai.agent.security.DefaultPostDenialGuard;
+import io.nop.ai.agent.security.DefaultSecurityLevelResolver;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.security.DenialLayerSource;
 import io.nop.ai.agent.security.DenialRecord;
 import io.nop.ai.agent.security.DenialRecordOutcome;
@@ -75,12 +90,18 @@ import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.security.ToolPathArgKeys;
 import io.nop.ai.agent.session.AgentSession;
+import io.nop.ai.agent.session.DbModelSwitchedMessageWriter;
+import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.ISessionStore;
+import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;
 import io.nop.ai.agent.skill.ISkillProvider;
 import io.nop.ai.agent.skill.NoOpSkillProvider;
 import io.nop.ai.agent.skill.SkillAssemblyResult;
 import io.nop.ai.agent.skill.SkillResolver;
 import io.nop.ai.agent.talent.ITalent;
+import io.nop.ai.agent.usage.IUsageRecorder;
+import io.nop.ai.agent.usage.NoOpUsageRecorder;
+import io.nop.ai.agent.usage.UsageRecord;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
@@ -148,6 +169,22 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final ICheckpointManager checkpointManager;
     private final ISessionStore sessionStore;
     private final IMemoryStoreProvider memoryStoreProvider;
+    private final IUsageRecorder usageRecorder;
+    private final IModelSwitchedMessageWriter modelSwitchedMessageWriter;
+    // Plan 206 (L2-22): budget provider consulted once per ReAct iteration,
+    // immediately before IModelRouter.route(), to refresh the budget snapshot
+    // stored in ctx. A functional router reads ctx.getBudgetSnapshot() to
+    // decide whether to downgrade the model on budget exhaustion.
+    private final IBudgetProvider budgetProvider;
+    // Plan 207 (L3-2): retry policy consulted by the single-LLM-call retry
+    // loop (design nop-ai-agent-llm-layer.md §7 / nop-ai-agent-reliability.md
+    // §3.1). When chatService.call(...) throws, the loop classifies the error,
+    // builds a RetryContext, and asks the policy RETRY / STOP / FALLBACK. The
+    // shipped NoRetryPolicy default unconditionally returns STOP, so the loop
+    // executes the call exactly once and propagates the exception as-is —
+    // zero-regression versus the pre-plan-207 behaviour. A functional policy
+    // (StandardRetryPolicy) is registered via DefaultAgentEngine.setRetryPolicy.
+    private final IRetryPolicy retryPolicy;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -172,9 +209,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                   IApprovalGate approvalGate,
                                   IDenialLedger denialLedger,
                                   IPostDenialGuard postDenialGuard,
-                                   ICheckpointManager checkpointManager,
-                                   ISessionStore sessionStore,
-                                   IMemoryStoreProvider memoryStoreProvider) {
+                                    ICheckpointManager checkpointManager,
+                                    ISessionStore sessionStore,
+                                      IMemoryStoreProvider memoryStoreProvider,
+                                      IUsageRecorder usageRecorder,
+                                       IModelSwitchedMessageWriter modelSwitchedMessageWriter,
+                                       IBudgetProvider budgetProvider,
+                                       IRetryPolicy retryPolicy) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -195,27 +236,33 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.messenger = messenger;
         this.securityLevelResolver = securityLevelResolver != null
                 ? securityLevelResolver
-                : NoOpSecurityLevelResolver.noOp();
+                : new DefaultSecurityLevelResolver();
         this.permissionMatrix = permissionMatrix != null
                 ? permissionMatrix
-                : PassThroughPermissionMatrix.passThrough();
+                : new DefaultPermissionMatrix();
         this.levelHintsProducer = levelHintsProducer != null
                 ? levelHintsProducer
                 : new DefaultLevelHintsProducer();
         this.approvalGate = approvalGate != null
                 ? approvalGate
-                : AutoApproveGate.autoApprove();
+                : new DefaultApprovalGate();
         this.denialLedger = denialLedger != null
                 ? denialLedger
-                : NoOpDenialLedger.noOp();
+                : new DefaultDenialLedger();
         this.postDenialGuard = postDenialGuard != null
                 ? postDenialGuard
-                : PassThroughPostDenialGuard.passThrough();
+                : new DefaultPostDenialGuard();
         this.checkpointManager = checkpointManager != null
                 ? checkpointManager
                 : NoOpCheckpoint.noOp();
         this.sessionStore = sessionStore;
         this.memoryStoreProvider = memoryStoreProvider;
+        this.usageRecorder = usageRecorder != null ? usageRecorder : NoOpUsageRecorder.noOp();
+        this.modelSwitchedMessageWriter = modelSwitchedMessageWriter != null
+                ? modelSwitchedMessageWriter
+                : NoOpModelSwitchedMessageWriter.noOp();
+        this.budgetProvider = budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp();
+        this.retryPolicy = retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry();
     }
 
     public static Builder builder() {
@@ -250,6 +297,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private ICheckpointManager checkpointManager;
         private ISessionStore sessionStore;
         private IMemoryStoreProvider memoryStoreProvider;
+        private IUsageRecorder usageRecorder;
+        private IModelSwitchedMessageWriter modelSwitchedMessageWriter;
+        private IBudgetProvider budgetProvider;
+        private IRetryPolicy retryPolicy;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -370,7 +421,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         /**
          * Wire the {@link ISecurityLevelResolver} consulted in the Layer 2
          * dispatch-path step (design §5.1). Optional: when null, defaults to
-         * {@link NoOpSecurityLevelResolver} (all operations → STANDARD).
+         * {@link DefaultSecurityLevelResolver} (trusted-by-default variant).
          */
         public Builder securityLevelResolver(ISecurityLevelResolver securityLevelResolver) {
             this.securityLevelResolver = securityLevelResolver;
@@ -380,7 +431,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
         /**
          * Wire the {@link IPermissionMatrix} consulted in the Layer 2
          * dispatch-path step (design §5.3). Optional: when null, defaults to
-         * {@link PassThroughPermissionMatrix} (all channels allow all levels).
+         * {@link DefaultPermissionMatrix} (§5.3 channel × level matrix with
+         * usability-safe null channel).
          */
         public Builder permissionMatrix(IPermissionMatrix permissionMatrix) {
             this.permissionMatrix = permissionMatrix;
@@ -400,9 +452,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
         /**
          * Wire the {@link IApprovalGate} consulted in the Layer 3
-         * dispatch-path step (design §6.1) after the Layer 2 permission matrix
+         * dispatch-path step (design §6.1 / §4.8) after the Layer 2 permission matrix
          * allows a tool call. Optional: when null, defaults to
-         * {@link AutoApproveGate} (all requests auto-approved).
+         * {@link DefaultApprovalGate} (STANDARD/ELEVATED auto-approved,
+         * RESTRICTED defense-in-depth denied — plan 199).
          */
         public Builder approvalGate(IApprovalGate approvalGate) {
             this.approvalGate = approvalGate;
@@ -412,8 +465,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
         /**
          * Wire the {@link IDenialLedger} consulted in the Layer 3 dispatch-path
          * step (design §6.2) at every deny checkpoint (Layer 1 / 2 / 3).
-         * Optional: when null, defaults to {@link NoOpDenialLedger} (no
-         * counting, no pausing).
+         * Optional: when null, defaults to {@link DefaultDenialLedger} (in-memory
+         * threshold-based counting, threshold = 3).
          */
         public Builder denialLedger(IDenialLedger denialLedger) {
             this.denialLedger = denialLedger;
@@ -425,8 +478,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
          * (design §6.3 / L3-7) before the Layer 1 {@code IToolAccessChecker}
          * check for each tool call (blind-retry detection), and recorded to
          * after every Layer 1/2/3 deny. Optional: when null, defaults to
-         * {@link PassThroughPostDenialGuard} (no blocking, no recording —
-         * backward compatible).
+         * {@link DefaultPostDenialGuard} (fingerprint-based blind-retry blocking).
          */
         public Builder postDenialGuard(IPostDenialGuard postDenialGuard) {
             this.postDenialGuard = postDenialGuard;
@@ -486,6 +538,62 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Wire the {@link IUsageRecorder} consulted at the ReAct loop's token
+         * accumulation point (plan 201 / design
+         * {@code nop-ai-agent-usage-and-billing.md} §3.1). Optional: when
+         * null, defaults to {@link NoOpUsageRecorder} (usage data discarded —
+         * pass-through, backward compatible).
+         */
+        public Builder usageRecorder(IUsageRecorder usageRecorder) {
+            this.usageRecorder = usageRecorder;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IModelSwitchedMessageWriter} consulted after
+         * {@code IModelRouter.route()} returns in the ReAct loop (plan 205 /
+         * design {@code nop-ai-agent-usage-and-billing.md} §3.5). When the
+         * routed model differs from the previous iteration's model, the writer
+         * persists a {@code model-switched} audit message (role=80) to
+         * {@code nop_ai_session_message}. Optional: when null, defaults to
+         * {@link NoOpModelSwitchedMessageWriter} (pass-through, backward
+         * compatible).
+         */
+        public Builder modelSwitchedMessageWriter(IModelSwitchedMessageWriter modelSwitchedMessageWriter) {
+            this.modelSwitchedMessageWriter = modelSwitchedMessageWriter;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IBudgetProvider} consulted once per ReAct iteration,
+         * immediately before {@code IModelRouter.route()} (plan 206 / L2-22 /
+         * design {@code nop-ai-agent-usage-and-billing.md} §3.6). The returned
+         * snapshot is stored into {@code ctx.setBudgetSnapshot(...)} so a
+         * functional router can read it and downgrade the model on budget
+         * exhaustion. Optional: when null, defaults to
+         * {@link NoOpBudgetProvider} (unlimited pass-through, backward
+         * compatible).
+         */
+        public Builder budgetProvider(IBudgetProvider budgetProvider) {
+            this.budgetProvider = budgetProvider;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IRetryPolicy} consulted by the single-LLM-call retry
+         * loop (plan 207 / L3-2 / design {@code nop-ai-agent-llm-layer.md}
+         * §7). When {@code chatService.call(...)} throws, the loop classifies
+         * the error, builds a {@link RetryContext}, and asks the policy RETRY
+         * / STOP / FALLBACK. Optional: when null, defaults to
+         * {@link NoRetryPolicy} (unconditional STOP — fail fast, backward
+         * compatible, zero-regression).
+         */
+        public Builder retryPolicy(IRetryPolicy retryPolicy) {
+            this.retryPolicy = retryPolicy;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -520,7 +628,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     postDenialGuard,
                     checkpointManager,
                     sessionStore,
-                    memoryStoreProvider
+                    memoryStoreProvider,
+                    usageRecorder != null ? usageRecorder : NoOpUsageRecorder.noOp(),
+                    modelSwitchedMessageWriter != null
+                            ? modelSwitchedMessageWriter
+                            : NoOpModelSwitchedMessageWriter.noOp(),
+                    budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp(),
+                    retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry()
             );
         }
     }
@@ -545,6 +659,18 @@ public class ReActAgentExecutor implements IAgentExecutor {
         Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
 
         int consecutiveContinues = 0;
+
+        // Per-execution model-switched message tracking (plan 205 / L2-21,
+        // design nop-ai-agent-usage-and-billing.md §3.5): lastModelKey holds
+        // the previous iteration's model identity (provider:model composite
+        // key) so a change between iterations is detected. messageSeq is the
+        // per-execution monotonically increasing sequence counter for
+        // nop_ai_session_message rows written by this execution. Both are
+        // loop-local (not promoted to AgentExecutionContext) because there is
+        // no fork/restore of the context within execute(), consistent with
+        // the checkpointSeq precedent.
+        String lastModelKey = null;
+        long[] messageSeq = {0};
 
         // Per-execution checkpoint sequence counter (design §5.4 / L3-4):
         // monotonically increments each time a checkpoint (TOOL_EXECUTION /
@@ -619,14 +745,164 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     continue;
                 }
 
+                // Plan 206 (L2-22): refresh the session-level budget snapshot
+                // before routing so a functional IModelRouter can read
+                // ctx.getBudgetSnapshot() and downgrade the model on budget
+                // exhaustion (design nop-ai-agent-usage-and-billing.md §3.6).
+                // Position rationale: this is immediately before route() AND
+                // after the previous iteration's token/cost accumulation
+                // (tokens are accumulated at the end of each iteration after
+                // the LLM responds), so the snapshot reflects all usage up to
+                // this routing decision. With the shipped NoOpBudgetProvider
+                // default the snapshot is always an unlimited pass-through
+                // (exceeded=false), so a functional router is the only
+                // consumer — combined with PassThroughModelRouter the shipped
+                // behaviour is zero-change. The provider must return a non-null
+                // snapshot (IBudgetProvider contract); null-defence is the
+                // fail-loud guard against a broken provider.
+                BudgetSnapshot snapshot = budgetProvider.getBudget(ctx);
+                if (snapshot == null) {
+                    throw new NopAiAgentException(
+                            "budgetProvider.getBudget() returned null: provider=" + budgetProvider.getClass().getName());
+                }
+                ctx.setBudgetSnapshot(snapshot);
+
                 RoutingResult routingResult = modelRouter.route(ctx.getMessages(), options, ctx);
                 ChatOptions routedOptions = routingResult.getOptions();
+
+                // Plan 205 (L2-21): detect model switches between iterations and
+                // persist a model-switched audit message (role=80) when the
+                // routed model differs from the previous iteration's model
+                // (design nop-ai-agent-usage-and-billing.md §3.5). The message
+                // is an audit record persisted to nop_ai_session_message — it is
+                // NOT added to ctx.getMessages() and therefore never injected
+                // into the LLM reasoning context.
+                String currentModelKey = buildModelKey(routedOptions);
+                if (lastModelKey != null && !currentModelKey.equals(lastModelKey)
+                        && sessionId != null) {
+                    messageSeq[0]++;
+                    modelSwitchedMessageWriter.writeModelSwitched(
+                            sessionId, lastModelKey, currentModelKey,
+                            routingResult.getRoutingReason(),
+                            routingResult.getComplexity(),
+                            messageSeq[0]);
+                }
+                lastModelKey = currentModelKey;
 
                 ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
                 request.setOptions(routedOptions);
                 List<ChatMessage> messagesAtCallTime = request.getMessages();
 
-                ChatResponse response = chatService.call(request, null);
+                // Plan 202 (L2-18): capture the LLM call start time so the
+                // usage recorder can persist the actual call duration. The end
+                // time is computed when the UsageRecord is built (after a
+                // successful response), so a failed call leaves duration unset.
+                //
+                // Plan 207 (L3-2): the single LLM call point is wrapped in a
+                // retry loop (design nop-ai-agent-llm-layer.md §7). On a thrown
+                // exception the loop classifies the error, builds a
+                // RetryContext, and consults retryPolicy: RETRY → sleep the
+                // policy-computed backoff then reissue the same request;
+                // STOP → rethrow the original error (fail fast); FALLBACK →
+                // fail loud (no fallback model chain is wired in this plan —
+                // Non-Goal; Minimum Rules #24: no silent skip). With the
+                // shipped NoRetryPolicy default the loop runs exactly one
+                // attempt and propagates any exception as-is, so the engine's
+                // pre-plan-207 zero-retry behaviour is preserved (zero
+                // regression). llmCallStart is reset per attempt so the usage
+                // recorder captures the duration of the final (successful)
+                // attempt only.
+                long llmCallStart = System.currentTimeMillis();
+                ChatResponse response;
+                {
+                    int attempt = 0;
+                    Throwable lastError = null;
+                    ChatResponse attemptResponse = null;
+                    while (true) {
+                        try {
+                            llmCallStart = System.currentTimeMillis();
+                            attemptResponse = chatService.call(request, null);
+                            break;
+                        } catch (RuntimeException | Error ex) {
+                            lastError = ex;
+                            ErrorClassification classification = LlmErrorClassifier.classify(ex);
+                            // Current call path is non-streaming → hasStreamedContent
+                            // is always false (Non-Goal: actual streaming wiring is
+                            // an independent successor).
+                            RetryContext retryCtx = new RetryContext(
+                                    attempt, ex, classification, false);
+                            RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
+                            if (outcome == null) {
+                                // Contract defence: policy must never return null.
+                                throw new NopAiAgentException(
+                                        "retryPolicy.shouldRetry() returned null for classification="
+                                                + classification + ", attempt=" + attempt, ex);
+                            }
+                            if (outcome.isRetry()) {
+                                LOG.warn("LLM call failed (classification={}, attempt={}), "
+                                                + "retrying after {} ms: {}",
+                                        classification, attempt, outcome.getDelayMs(),
+                                        ex.toString());
+                                attempt++;
+                                sleepBackoff(outcome.getDelayMs());
+                                continue;
+                            }
+                            if (outcome.isFallback()) {
+                                // Plan 209: consult the model router for a
+                                // fallback model. A functional router
+                                // (SmartModelRouter) returns the next model in
+                                // its configured fallback chain; the shipped
+                                // PassThroughModelRouter default and an
+                                // exhausted chain return null → fail loud
+                                // (Minimum Rules #24 — no silent skip).
+                                ChatOptions fallbackOptions = modelRouter.getFallback(routedOptions);
+                                if (fallbackOptions == null) {
+                                    LOG.error("LLM call retry policy returned FALLBACK at "
+                                            + "attempt={} (classification={}), but the model "
+                                            + "router provided no fallback model — stopping "
+                                            + "execution. Last error: {}",
+                                            attempt, classification, ex.toString());
+                                    throw new NopAiAgentException(
+                                            "LLM call retry policy returned FALLBACK but no "
+                                                    + "fallback model is available from the model "
+                                                    + "router (classification=" + classification
+                                                    + ", attempt=" + attempt + ")", ex);
+                                }
+                                // Apply the fallback model for the next attempt.
+                                // routedOptions is updated so the downstream usage
+                                // record attributes tokens to the fallback model that
+                                // actually executed the call (plan 209 usage-attribution
+                                // requirement), not the original primary model. Note:
+                                // the model-switched audit message (plan 205, role=80)
+                                // is written BEFORE the retry loop based on inter-
+                                // iteration model change detection; an intra-iteration
+                                // fallback switch is intentionally not recorded as a
+                                // separate role=80 message (Non-Goal).
+                                int failedAttempt = attempt;
+                                String prevModelKey = buildModelKey(routedOptions);
+                                routedOptions = fallbackOptions;
+                                request.setOptions(routedOptions);
+                                // Reset the attempt counter: the fallback model is a
+                                // fresh call cycle that deserves its own retry budget
+                                // (plan 209 adjudication).
+                                attempt = 0;
+                                lastError = null;
+                                LOG.warn("LLM call FALLBACK after attempt={} "
+                                                + "(classification={}): switching model {} -> {} "
+                                                + "(attempt reset to 0) and retrying",
+                                        failedAttempt, classification, prevModelKey,
+                                        buildModelKey(routedOptions));
+                                continue;
+                            }
+                            // STOP: propagate the original error as-is.
+                            if (lastError instanceof RuntimeException) {
+                                throw (RuntimeException) lastError;
+                            }
+                            throw (Error) lastError;
+                        }
+                    }
+                    response = attemptResponse;
+                }
 
                 if (!response.isSuccess()) {
                     ctx.setStatus(AgentExecStatus.failed);
@@ -646,6 +922,28 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     int promptTokens = response.getPromptTokens() != null ? response.getPromptTokens() : 0;
                     int completionTokens = response.getCompletionTokens() != null ? response.getCompletionTokens() : 0;
                     ctx.setTokensUsed(ctx.getTokensUsed() + promptTokens + completionTokens);
+
+                    // Plan 201 (L2-17): record per-LLM-call usage via the
+                    // IUsageRecorder extension point (design §3.1). The
+                    // shipped NoOpUsageRecorder default discards the record
+                    // (explicit pass-through); a functional recorder persists
+                    // it. modelId is null here — the NopAiModel entity key is
+                    // resolved by the L2-18 recorder at persistence time
+                    // (agent runtime has no DB lookup). responseDurationMs is
+                    // measured from llmCallStart (plan 202 L2-18) — the
+                    // wall-clock span of the LLM call captured just before
+                    // chatService.call().
+                    UsageRecord usageRecord = new UsageRecord();
+                    usageRecord.setSessionId(sessionId);
+                    usageRecord.setAgentName(agentName);
+                    usageRecord.setRequestId(response.getRequestId());
+                    usageRecord.setAiProvider(routedOptions.getProvider());
+                    usageRecord.setAiModel(routedOptions.getModel());
+                    usageRecord.setPromptTokens(promptTokens);
+                    usageRecord.setCompletionTokens(completionTokens);
+                    usageRecord.setResponseDurationMs(System.currentTimeMillis() - llmCallStart);
+                    usageRecord.setResponseTimestamp(System.currentTimeMillis());
+                    usageRecorder.record(usageRecord);
 
                     if (promptTokens > 0) {
                         tokenEstimator.record(messagesAtCallTime, promptTokens);
@@ -932,8 +1230,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     // matrix allows, consult the approval gate with the resolved
                     // security level + tool-call context. On denial: audit + event
                     // + error response, mirroring the Layer 1/2 deny paths.
-                    // AutoApproveGate default approves everything (backward
-                    // compatible — no spurious denials).
+                    // DefaultApprovalGate default approves STANDARD/ELEVATED and
+                    // defense-in-depth denies RESTRICTED (plan 199).
                     String layer3Denied = checkLayer3Approval(
                             layer2.getResolvedLevel(), toolName, ctx, sessionId, agentName);
                     if (layer3Denied != null) {
@@ -1209,6 +1507,39 @@ public class ReActAgentExecutor implements IAgentExecutor {
         payload.put("reason", reason != null ? reason : "");
         publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
         return true;
+    }
+
+    /**
+     * Build the composite model identity key ({@code provider:model}) from a
+     * {@link ChatOptions} instance, as returned by {@code RoutingResult.getOptions()}.
+     * Null provider/model are normalized to empty strings so the key is always
+     * non-null and comparable (plan 205 / L2-21). This is the model identity
+     * used to detect switches between ReAct iterations.
+     */
+    private static String buildModelKey(ChatOptions options) {
+        String provider = options.getProvider() != null ? options.getProvider() : "";
+        String model = options.getModel() != null ? options.getModel() : "";
+        return provider + ":" + model;
+    }
+
+    /**
+     * Plan 207 (L3-2): sleep for the retry-policy-computed backoff delay.
+     * A zero/negative delay is a no-op (the policy opted for immediate
+     * retry). An interrupted sleep propagates as an {@link NopAiAgentException}
+     * wrapping the {@link InterruptedException} (no silent swallow — Minimum
+     * Rules #24) and re-sets the interrupt flag so upper layers honour it.
+     */
+    private static void sleepBackoff(long delayMs) {
+        if (delayMs <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(delayMs);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new NopAiAgentException(
+                    "LLM retry backoff sleep interrupted: delayMs=" + delayMs, ie);
+        }
     }
 
     /**
@@ -1551,8 +1882,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
      * into a {@code ChatToolResponseMessage.error(...)} and skips the call.
      *
      * <p>On approval: returns {@code null} and the tool call proceeds. With the
-     * shipped {@link AutoApproveGate} default this always approves (backward
-     * compatible — no spurious denials).
+     * shipped {@link DefaultApprovalGate} default this approves
+     * STANDARD/ELEVATED and defense-in-depth denies RESTRICTED (plan 199).
      *
      * @param level the security level already resolved during the Layer 2
      *              consultation (reused to avoid a second resolve)

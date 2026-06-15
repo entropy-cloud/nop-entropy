@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.PathRuleModel;
 
 import java.util.Collections;
@@ -109,7 +110,7 @@ public final class ParentPermissionConstraint {
                                       List<PathRuleModel> allowedPathRules,
                                       String parentAgentName, String parentSessionId) {
         if (allowedTools == null) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "ParentPermissionConstraint: allowedTools must not be null (use empty set for max restriction)");
         }
         this.allowedTools = Set.copyOf(allowedTools);

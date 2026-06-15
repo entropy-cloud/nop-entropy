@@ -28,11 +28,9 @@ import java.util.Map;
  *       detectable by {@code checkBeforeDispatch}.</li>
  * </ol>
  *
- * <p><b>Default</b>: {@link PassThroughPostDenialGuard} — consultation always
- * returns {@code null} (no blind-retry detection), recording and reset are
- * no-ops. This is the shipped default injected into the engine, so unattended
- * Layer 1 automation is unaffected unless a functional guard (e.g.
- * {@link FingerprintPostDenialGuard}) is explicitly registered.
+ * <p><b>Default</b>: {@link DefaultPostDenialGuard} — fingerprint-based
+ * blind-retry blocking (plan 200). {@link PassThroughPostDenialGuard} is
+ * retained as a public opt-in.
  *
  * <p><b>Thread safety</b>: implementations must be thread-safe. Multiple
  * sessions may access the same guard instance concurrently, and per-session

@@ -1,6 +1,7 @@
 package io.nop.ai.agent.compact;
 
 import io.nop.ai.agent.engine.ITokenEstimator;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
@@ -196,7 +197,7 @@ public class Layer2TurnPruningStrategy implements ICompressionStrategy {
             }
         }
         if (!calledIds.equals(respondedIds)) {
-            throw new IllegalStateException(
+            throw new NopAiAgentException(
                     "Layer 2 boundary integrity violated: tool_call ids " + calledIds
                             + " do not match tool_response ids " + respondedIds);
         }

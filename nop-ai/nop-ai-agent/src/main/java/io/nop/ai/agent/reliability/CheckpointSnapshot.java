@@ -2,6 +2,7 @@ package io.nop.ai.agent.reliability;
 
 import java.time.Instant;
 import java.util.Objects;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * The recovery-critical aggregate state captured by a {@code snapshot.json}
@@ -54,13 +55,13 @@ public final class CheckpointSnapshot {
     public static CheckpointSnapshot of(String snapshotId, String sessionId, String lastWatermark,
                                         int messageCount, long tokenEstimate, long createdAtEpochMillis) {
         if (snapshotId == null) {
-            throw new IllegalArgumentException("CheckpointSnapshot.snapshotId must not be null");
+            throw new NopAiAgentException("CheckpointSnapshot.snapshotId must not be null");
         }
         if (lastWatermark == null) {
-            throw new IllegalArgumentException("CheckpointSnapshot.lastWatermark must not be null");
+            throw new NopAiAgentException("CheckpointSnapshot.lastWatermark must not be null");
         }
         if (messageCount < 0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "CheckpointSnapshot.messageCount must not be negative, got: " + messageCount);
         }
         return new CheckpointSnapshot(snapshotId, sessionId, lastWatermark,

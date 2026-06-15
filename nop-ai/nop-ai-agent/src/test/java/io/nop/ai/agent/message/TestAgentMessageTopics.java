@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 public class TestAgentMessageTopics {
 
@@ -51,19 +52,19 @@ public class TestAgentMessageTopics {
 
     @Test
     void inboxTopicRejectsNullOrEmptySessionId() {
-        assertThrows(IllegalArgumentException.class, () -> AgentMessageTopics.inboxTopic(null));
-        assertThrows(IllegalArgumentException.class, () -> AgentMessageTopics.inboxTopic(""));
+        assertThrows(NopAiAgentException.class, () -> AgentMessageTopics.inboxTopic(null));
+        assertThrows(NopAiAgentException.class, () -> AgentMessageTopics.inboxTopic(""));
     }
 
     @Test
     void replyTopicRejectsNullOrEmptySessionId() {
-        assertThrows(IllegalArgumentException.class, () -> AgentMessageTopics.replyTopic(null));
-        assertThrows(IllegalArgumentException.class, () -> AgentMessageTopics.replyTopic(""));
+        assertThrows(NopAiAgentException.class, () -> AgentMessageTopics.replyTopic(null));
+        assertThrows(NopAiAgentException.class, () -> AgentMessageTopics.replyTopic(""));
     }
 
     @Test
     void broadcastTopicRejectsNullOrEmptyScope() {
-        assertThrows(IllegalArgumentException.class, () -> AgentMessageTopics.broadcastTopic(null));
-        assertThrows(IllegalArgumentException.class, () -> AgentMessageTopics.broadcastTopic(""));
+        assertThrows(NopAiAgentException.class, () -> AgentMessageTopics.broadcastTopic(null));
+        assertThrows(NopAiAgentException.class, () -> AgentMessageTopics.broadcastTopic(""));
     }
 }

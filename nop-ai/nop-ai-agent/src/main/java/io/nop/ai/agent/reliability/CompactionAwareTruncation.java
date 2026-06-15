@@ -2,6 +2,7 @@ package io.nop.ai.agent.reliability;
 
 import java.util.ArrayList;
 import java.util.List;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Compaction-aware truncation helper (plan 188). Shared by
@@ -66,7 +67,7 @@ public final class CompactionAwareTruncation {
      */
     public static List<Checkpoint> truncateToLatestCompaction(List<Checkpoint> checkpoints) {
         if (checkpoints == null) {
-            throw new IllegalArgumentException("CompactionAwareTruncation: checkpoints must not be null");
+            throw new NopAiAgentException("CompactionAwareTruncation: checkpoints must not be null");
         }
 
         int lastCompactionIdx = -1;

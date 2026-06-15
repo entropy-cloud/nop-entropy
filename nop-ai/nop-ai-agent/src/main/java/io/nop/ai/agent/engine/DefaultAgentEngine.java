@@ -6,6 +6,8 @@ import io.nop.ai.agent.compact.Layer3FullSummaryStrategy;
 import io.nop.ai.agent.compact.MicroCompressionCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.compact.PipelineCompactor;
+import io.nop.ai.agent.budget.IBudgetProvider;
+import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.guardrail.IContentGuardrail;
 import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
@@ -18,15 +20,22 @@ import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.ICheckpointManager;
+import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
+import io.nop.ai.agent.reliability.NoRetryPolicy;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.AutoApproveGate;
+import io.nop.ai.agent.security.DefaultApprovalGate;
+import io.nop.ai.agent.security.DefaultDenialLedger;
 import io.nop.ai.agent.security.DefaultLevelHintsProducer;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultPermissionMatrix;
+import io.nop.ai.agent.security.DefaultPostDenialGuard;
+import io.nop.ai.agent.security.DefaultSecurityLevelResolver;
 import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.security.IApprovalGate;
 import io.nop.ai.agent.security.IAuditLogger;
@@ -49,8 +58,10 @@ import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.RuleBasedPathAccessChecker;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
 import io.nop.ai.agent.session.AgentSession;
+import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.ISessionStore;
+import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;
 import io.nop.ai.agent.skill.ISkillProvider;
 import io.nop.ai.agent.skill.ISkillCurator;
 import io.nop.ai.agent.skill.NoOpSkillCurator;
@@ -58,6 +69,8 @@ import io.nop.ai.agent.skill.NoOpSkillProvider;
 import io.nop.ai.agent.skill.SkillCurationResult;
 import io.nop.ai.agent.skill.SkillModel;
 import io.nop.ai.agent.talent.ITalent;
+import io.nop.ai.agent.usage.IUsageRecorder;
+import io.nop.ai.agent.usage.NoOpUsageRecorder;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
@@ -97,12 +110,12 @@ public class DefaultAgentEngine implements IAgentEngine {
     private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
     private IToolCallRepairer toolCallRepairer;
     private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
-    private IPermissionMatrix permissionMatrix = PassThroughPermissionMatrix.passThrough();
-    private ISecurityLevelResolver securityLevelResolver = NoOpSecurityLevelResolver.noOp();
+    private IPermissionMatrix permissionMatrix = new DefaultPermissionMatrix();
+    private ISecurityLevelResolver securityLevelResolver = new DefaultSecurityLevelResolver();
     private ILevelHintsProducer levelHintsProducer = new DefaultLevelHintsProducer();
-    private IApprovalGate approvalGate = AutoApproveGate.autoApprove();
-    private IDenialLedger denialLedger = NoOpDenialLedger.noOp();
-    private IPostDenialGuard postDenialGuard = PassThroughPostDenialGuard.passThrough();
+    private IApprovalGate approvalGate = new DefaultApprovalGate();
+    private IDenialLedger denialLedger = new DefaultDenialLedger();
+    private IPostDenialGuard postDenialGuard = new DefaultPostDenialGuard();
     // Plan 194 (AUDIT-13-02): audit logger defaults to Slf4jAuditLogger so the
     // engine produces a visible audit trail out-of-the-box (tool decisions are
     // logged to SLF4J INFO) instead of silently discarding audit events via
@@ -111,6 +124,31 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IAuditLogger auditLogger = new Slf4jAuditLogger();
     private ICheckpointManager checkpointManager = NoOpCheckpoint.noOp();
     private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
+    // Plan 201 (L2-17): usage recorder defaults to NoOpUsageRecorder so the
+    // ReAct loop's token accumulation point is wired out-of-the-box without
+    // forcing a persistence sink. A functional recorder (e.g. DbUsageRecorder,
+    // L2-18) is registered via setUsageRecorder.
+    private IUsageRecorder usageRecorder = NoOpUsageRecorder.noOp();
+    // Plan 205 (L2-21): model-switched message writer defaults to
+    // NoOpModelSwitchedMessageWriter so the ReAct loop's model-switch detection
+    // is wired out-of-the-box without forcing a persistence sink. A functional
+    // writer (e.g. DbModelSwitchedMessageWriter) is registered via
+    // setModelSwitchedMessageWriter.
+    private IModelSwitchedMessageWriter modelSwitchedMessageWriter = NoOpModelSwitchedMessageWriter.noOp();
+    // Plan 206 (L2-22): budget provider defaults to NoOpBudgetProvider so the
+    // ReAct loop's pre-route budget refresh is wired out-of-the-box without
+    // forcing a cost/limit source. A functional provider (e.g. a future
+    // DbBudgetProvider) is registered via setBudgetProvider. Combined with the
+    // shipped PassThroughModelRouter (which never changes the model), the
+    // shipped default behaviour is zero-change — no budget-driven downgrade.
+    private IBudgetProvider budgetProvider = NoOpBudgetProvider.noOp();
+    // Plan 207 (L3-2): retry policy defaults to NoRetryPolicy so the ReAct
+    // loop's single-LLM-call retry point is wired out-of-the-box without
+    // changing the pre-plan-207 fail-fast behaviour (NoRetryPolicy
+    // unconditionally returns STOP → the call executes exactly once and any
+    // exception propagates as-is). A functional policy (e.g.
+    // StandardRetryPolicy) is registered via setRetryPolicy.
+    private IRetryPolicy retryPolicy = NoRetryPolicy.noRetry();
     // Plan 192: max token budget for budgeted working-memory auto-injection into
     // the system prompt. Shipped default gives memory a reasonable share of the
     // context without dominating it. A value <= 0 disables injection (explicit
@@ -183,7 +221,9 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
         this.contextCompactor = contextCompactor != null ? contextCompactor : defaultPipelineCompactor(chatService);
         this.tokenEstimator = CalibratedTokenEstimator.defaultInstance();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger);
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
+                this.approvalGate, this.securityLevelResolver, this.permissionMatrix,
+                this.denialLedger, this.postDenialGuard);
     }
 
     /**
@@ -203,29 +243,48 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
-     * Emit a one-time WARN per engine instance when the resolved Layer 1
-     * checkers are {@code AllowAll*} instances, or when the resolved audit
-     * logger is a {@code NoOpAuditLogger} — i.e. the integrator has
-     * explicitly opted into an insecure downgrade (open box: dangerous tools
-     * and sensitive paths have no protection; audit events are silently
-     * discarded). The default constructor chain now resolves to
-     * {@code Default*} checkers and {@code Slf4jAuditLogger} (secure by
-     * default, plans 193 + 194), so these WARNs fire only when an integrator
-     * deliberately passes an {@code AllowAll*} / {@code NoOpAuditLogger}
-     * instance — making the security downgrade visible rather than silent.
-     * See design {@code nop-ai-agent-security-and-permissions.md} §4.6 / §4.7.
+     * Emit a WARN when the resolved security components are insecure-default
+     * instances. Makes security downgrades visible rather than silent (design
+     * §4.6 / §4.7 / §4.8 / §4.9).
      *
-     * <p>The WARN covers the Layer 1 tool/path checkers (plan 193) and the
-     * audit logger (plan 194). Layer 2/3 components default-downgrade
-     * enumeration is a successor extension point ([13-4]).
+     * <p><b>Always-checked components</b> (have secure defaults — checked on
+     * every call, both at construction and at setter time):
+     * <ul>
+     *   <li>{@code AllowAllToolAccessChecker} / {@code AllowAllPathAccessChecker}
+     *       (plan 193 — Layer 1)</li>
+     *   <li>{@code NoOpAuditLogger} (plan 194 — Layer 1 audit)</li>
+     *   <li>{@code AutoApproveGate} (plan 199 — Layer 3 approval gate;
+     *       default switched to {@code DefaultApprovalGate})</li>
+     *   <li>{@code NoOpSecurityLevelResolver} (plan 200 — Layer 2;
+     *       default switched to {@code DefaultSecurityLevelResolver})</li>
+     *   <li>{@code PassThroughPermissionMatrix} (plan 200 — Layer 2;
+     *       default switched to {@code DefaultPermissionMatrix})</li>
+     *   <li>{@code NoOpDenialLedger} (plan 200 — Layer 3;
+     *       default switched to {@code DefaultDenialLedger})</li>
+     *   <li>{@code PassThroughPostDenialGuard} (plan 200 — Layer 3;
+     *       default switched to {@code DefaultPostDenialGuard})</li>
+     * </ul>
      *
-     * <p>Fail-loud: the WARN is unconditionally emitted via {@code LOG.warn}
-     * when an {@code AllowAll*} / {@code NoOpAuditLogger} instance is
-     * detected — never silently swallowed or written as an empty body.
+     * <p>Construction passes the resolved instances for all components (the
+     * Default* defaults do not trigger WARN). Each setter passes the non-null
+     * value it just set for its own component and {@code null} for the other
+     * Layer 2/3 components (so calling {@code setSecurityLevelResolver} does
+     * not produce spurious WARNs about the matrix/ledger/guard that the
+     * caller never touched — noise control).
+     *
+     * <p>Fail-loud: every WARN is unconditionally emitted via {@code LOG.warn}
+     * when an insecure instance is detected — never silently swallowed or
+     * written as an empty body.
      */
     private static void warnIfInsecureDefaults(IToolAccessChecker toolChecker,
                                                IPathAccessChecker pathChecker,
-                                               IAuditLogger auditLogger) {
+                                               IAuditLogger auditLogger,
+                                               IApprovalGate approvalGate,
+                                               ISecurityLevelResolver securityLevelResolver,
+                                               IPermissionMatrix permissionMatrix,
+                                               IDenialLedger denialLedger,
+                                               IPostDenialGuard postDenialGuard) {
+        // --- Always-checked: components with secure defaults ---
         if (toolChecker instanceof AllowAllToolAccessChecker) {
             LOG.warn("DefaultAgentEngine constructed with AllowAllToolAccessChecker: "
                     + "dangerous tools (bash/write-file/delete-file/move-file/patch-file/apply-delta/"
@@ -247,6 +306,48 @@ public class DefaultAgentEngine implements IAgentEngine {
                     + "To restore secure-by-default behaviour, do not pass a NoOpAuditLogger "
                     + "to setAuditLogger — the default already uses Slf4jAuditLogger. "
                     + "For a custom audit sink (e.g. database), supply your own IAuditLogger.");
+        }
+        if (approvalGate instanceof AutoApproveGate) {
+            LOG.warn("DefaultAgentEngine wired with AutoApproveGate: "
+                    + "ALL operations including RESTRICTED are unconditionally auto-approved — "
+                    + "the defense-in-depth RESTRICTED deny provided by the default "
+                    + "DefaultApprovalGate is bypassed. This is an insecure downgrade of the "
+                    + "Layer 3 approval gate. To restore secure-by-default behaviour, do not pass "
+                    + "an AutoApproveGate to setApprovalGate — the default already uses "
+                    + "DefaultApprovalGate (denies RESTRICTED, approves STANDARD/ELEVATED).");
+        }
+
+        // --- Layer 2/3 NoOp/PassThrough: always-checked (plan 200 migrated to Default* defaults) ---
+        if (securityLevelResolver instanceof NoOpSecurityLevelResolver) {
+            LOG.warn("DefaultAgentEngine wired with NoOpSecurityLevelResolver: "
+                    + "all operations resolve to STANDARD — no security-level classification is "
+                    + "performed. RESTRICTED/ELEVATED levels are never produced, so the approval "
+                    + "gate's defense-in-depth deny and the permission matrix's level checks are "
+                    + "ineffective. To restore secure-by-default behaviour, do not pass a "
+                    + "NoOpSecurityLevelResolver to setSecurityLevelResolver — the default already "
+                    + "uses DefaultSecurityLevelResolver.");
+        }
+        if (permissionMatrix instanceof PassThroughPermissionMatrix) {
+            LOG.warn("DefaultAgentEngine wired with PassThroughPermissionMatrix: "
+                    + "all channels allow all security levels — no channel-based permission "
+                    + "restrictions are enforced. To restore secure-by-default behaviour, do not "
+                    + "pass a PassThroughPermissionMatrix to setPermissionMatrix — the default "
+                    + "already uses DefaultPermissionMatrix.");
+        }
+        if (denialLedger instanceof NoOpDenialLedger) {
+            LOG.warn("DefaultAgentEngine wired with NoOpDenialLedger: "
+                    + "denials are not counted and no sessions are paused on threshold — "
+                    + "repeated security denials do not trigger autonomous-execution pause. "
+                    + "To restore secure-by-default behaviour, do not pass a NoOpDenialLedger "
+                    + "to setDenialLedger — the default already uses DefaultDenialLedger.");
+        }
+        if (postDenialGuard instanceof PassThroughPostDenialGuard) {
+            LOG.warn("DefaultAgentEngine wired with PassThroughPostDenialGuard: "
+                    + "blind retries of denied actions are not detected or blocked — "
+                    + "the agent can repeatedly attempt the same denied operation. "
+                    + "To restore secure-by-default behaviour, do not pass a "
+                    + "PassThroughPostDenialGuard to setPostDenialGuard — the default already "
+                    + "uses DefaultPostDenialGuard.");
         }
     }
 
@@ -349,23 +450,20 @@ public class DefaultAgentEngine implements IAgentEngine {
     /**
      * Register the {@link IPermissionMatrix} used for channel × security-level
      * permission decisions (design §5.3). Composition via this setter — no
-     * constructor chain change. Default is {@link PassThroughPermissionMatrix}
-     * (all channels allow all levels), so engine behaviour is unchanged unless
-     * a matrix is explicitly registered.
-     *
-     * <p>The dispatch-path consultation (calling {@code matrix.check(...)} in
-     * the ReAct / tool-dispatch path) is deferred to the L2-13 successor
-     * ({@code ISecurityLevelResolver} produces the {@code SecurityLevel} input).
-     * The pass-through default makes this wiring transparent to runtime
-     * behaviour.
+     * constructor chain change. Shipped default is
+     * {@link DefaultPermissionMatrix} (design §5.3 channel × level matrix
+     * with usability-safe null channel). {@link PassThroughPermissionMatrix}
+     * is retained as a public opt-in.
      */
     public void setPermissionMatrix(IPermissionMatrix permissionMatrix) {
-        this.permissionMatrix = permissionMatrix != null ? permissionMatrix : PassThroughPermissionMatrix.passThrough();
+        this.permissionMatrix = permissionMatrix != null ? permissionMatrix : new DefaultPermissionMatrix();
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
+                this.approvalGate, null, this.permissionMatrix, null, null);
     }
 
     /**
      * Return the {@link IPermissionMatrix} wired into this engine, or the
-     * {@link PassThroughPermissionMatrix} default if none was explicitly set.
+     * {@link DefaultPermissionMatrix} default if none was explicitly set.
      */
     public IPermissionMatrix getPermissionMatrix() {
         return permissionMatrix;
@@ -374,25 +472,22 @@ public class DefaultAgentEngine implements IAgentEngine {
     /**
      * Register the {@link ISecurityLevelResolver} used for action-kind × hints
      * security-level resolution (design §5.1). Composition via this setter — no
-     * constructor chain change. Default is {@link NoOpSecurityLevelResolver}
-     * (all operations resolve to STANDARD, equivalent to no classification), so
-     * engine behaviour is unchanged unless a resolver is explicitly registered.
-     *
-     * <p>The dispatch-path consultation (calling {@code resolver.resolve(...)}
-     * in the ReAct / tool-dispatch path) is deferred to a successor plan
-     * (requires {@code AgentExecutionContext} channelKind/principal fields + a
-     * {@code io.nop.ai.agent.security.LevelHints} runtime-production chain). The
-     * NoOp default makes this wiring transparent to runtime behaviour.
+     * constructor chain change. Shipped default is
+     * {@link DefaultSecurityLevelResolver} (trusted-by-default variant of the
+     * design §5.1 rule table). {@link NoOpSecurityLevelResolver} is retained
+     * as a public opt-in.
      */
     public void setSecurityLevelResolver(ISecurityLevelResolver securityLevelResolver) {
         this.securityLevelResolver = securityLevelResolver != null
                 ? securityLevelResolver
-                : NoOpSecurityLevelResolver.noOp();
+                : new DefaultSecurityLevelResolver();
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
+                this.approvalGate, this.securityLevelResolver, null, null, null);
     }
 
     /**
      * Return the {@link ISecurityLevelResolver} wired into this engine, or the
-     * {@link NoOpSecurityLevelResolver} default if none was explicitly set.
+     * {@link DefaultSecurityLevelResolver} default if none was explicitly set.
      */
     public ISecurityLevelResolver getSecurityLevelResolver() {
         return securityLevelResolver;
@@ -425,10 +520,16 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     /**
      * Register the {@link IApprovalGate} used for Layer 3 human-approval
-     * governance (design §6.1). Composition via this setter — no constructor
-     * chain change. Default is {@link AutoApproveGate} (all requests
-     * auto-approved with approver "auto"), so engine behaviour is unchanged
-     * unless a functional gate is explicitly registered.
+     * governance (design §6.1 / §4.8). Composition via this setter — no
+     * constructor chain change. Shipped default is {@link DefaultApprovalGate}
+     * (STANDARD/ELEVATED auto-approved, RESTRICTED defense-in-depth denied —
+     * plan 199), so the engine provides a visible approval-gate boundary
+     * out-of-the-box. Setting to {@code null} preserves the
+     * {@code DefaultApprovalGate} default.
+     *
+     * <p>To explicitly opt into unconditional auto-approval of ALL levels
+     * (including RESTRICTED), pass {@link AutoApproveGate#autoApprove()} —
+     * this triggers a one-time WARN making the downgrade visible.
      *
      * <p>The gate is consulted in the dispatch loop after the Layer 2
      * permission matrix allows a tool call and before the call is added to
@@ -438,12 +539,14 @@ public class DefaultAgentEngine implements IAgentEngine {
      * deny paths.
      */
     public void setApprovalGate(IApprovalGate approvalGate) {
-        this.approvalGate = approvalGate != null ? approvalGate : AutoApproveGate.autoApprove();
+        this.approvalGate = approvalGate != null ? approvalGate : new DefaultApprovalGate();
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
+                this.approvalGate, null, null, null, null);
     }
 
     /**
      * Return the {@link IApprovalGate} wired into this engine, or the
-     * {@link AutoApproveGate} default if none was explicitly set.
+     * {@link DefaultApprovalGate} default if none was explicitly set.
      */
     public IApprovalGate getApprovalGate() {
         return approvalGate;
@@ -452,9 +555,9 @@ public class DefaultAgentEngine implements IAgentEngine {
     /**
      * Register the {@link IDenialLedger} used for Layer 3 denial-counting and
      * threshold-pause governance (design §6.2). Composition via this setter —
-     * no constructor chain change. Default is {@link NoOpDenialLedger} (no
-     * counting, no pausing), so engine behaviour is unchanged unless a
-     * functional ledger is explicitly registered.
+     * no constructor chain change. Shipped default is
+     * {@link DefaultDenialLedger} (in-memory threshold-based counting,
+     * threshold = 3). {@link NoOpDenialLedger} is retained as a public opt-in.
      *
      * <p>The ledger is consulted in the dispatch loop at every deny checkpoint
      * (Layer 1 / 2 / 3 — five deny paths): each denial is recorded, and the
@@ -465,12 +568,14 @@ public class DefaultAgentEngine implements IAgentEngine {
      * LLM call.
      */
     public void setDenialLedger(IDenialLedger denialLedger) {
-        this.denialLedger = denialLedger != null ? denialLedger : NoOpDenialLedger.noOp();
+        this.denialLedger = denialLedger != null ? denialLedger : new DefaultDenialLedger();
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
+                this.approvalGate, null, null, this.denialLedger, null);
     }
 
     /**
      * Return the {@link IDenialLedger} wired into this engine, or the
-     * {@link NoOpDenialLedger} default if none was explicitly set.
+     * {@link DefaultDenialLedger} default if none was explicitly set.
      */
     public IDenialLedger getDenialLedger() {
         return denialLedger;
@@ -479,10 +584,9 @@ public class DefaultAgentEngine implements IAgentEngine {
     /**
      * Register the {@link IPostDenialGuard} used for Layer 3 post-denial
      * blind-retry blocking (design §6.3 / L3-7). Composition via this setter
-     * — no constructor chain change. Default is
-     * {@link PassThroughPostDenialGuard} (no blocking, no recording), so
-     * engine behaviour is unchanged unless a functional guard is explicitly
-     * registered.
+     * — no constructor chain change. Shipped default is
+     * {@link DefaultPostDenialGuard} (fingerprint-based blind-retry blocking).
+     * {@link PassThroughPostDenialGuard} is retained as a public opt-in.
      *
      * <p>The guard is consulted in the dispatch loop before the Layer 1
      * {@code IToolAccessChecker} check for each tool call: if the action's
@@ -495,12 +599,14 @@ public class DefaultAgentEngine implements IAgentEngine {
     public void setPostDenialGuard(IPostDenialGuard postDenialGuard) {
         this.postDenialGuard = postDenialGuard != null
                 ? postDenialGuard
-                : PassThroughPostDenialGuard.passThrough();
+                : new DefaultPostDenialGuard();
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
+                this.approvalGate, null, null, null, this.postDenialGuard);
     }
 
     /**
      * Return the {@link IPostDenialGuard} wired into this engine, or the
-     * {@link PassThroughPostDenialGuard} default if none was explicitly set.
+     * {@link DefaultPostDenialGuard} default if none was explicitly set.
      */
     public IPostDenialGuard getPostDenialGuard() {
         return postDenialGuard;
@@ -528,7 +634,8 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public void setAuditLogger(IAuditLogger auditLogger) {
         this.auditLogger = auditLogger != null ? auditLogger : new Slf4jAuditLogger();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger);
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
+                this.approvalGate, null, null, null, null);
     }
 
     /**
@@ -578,6 +685,77 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     public IMemoryStoreProvider getMemoryStoreProvider() {
         return memoryStoreProvider;
+    }
+
+    /**
+     * Wire the {@link IUsageRecorder} consulted at the ReAct loop's token
+     * accumulation point (plan 201 / design
+     * {@code nop-ai-agent-usage-and-billing.md} §3.1). The shipped default is
+     * {@link NoOpUsageRecorder} (usage data discarded — pass-through). When
+     * explicitly set to {@code null} the recorder falls back to
+     * {@link NoOpUsageRecorder} so the accumulation point always has a non-null
+     * sink.
+     */
+    public void setUsageRecorder(IUsageRecorder usageRecorder) {
+        this.usageRecorder = usageRecorder != null ? usageRecorder : NoOpUsageRecorder.noOp();
+    }
+
+    public IUsageRecorder getUsageRecorder() {
+        return usageRecorder;
+    }
+
+    /**
+     * Plan 205 (L2-21): wire a functional {@link IModelSwitchedMessageWriter}
+     * that persists model-switched audit messages (role=80) to
+     * {@code nop_ai_session_message} when the routed model changes between
+     * ReAct iterations (design {@code nop-ai-agent-usage-and-billing.md}
+     * §3.5). Optional: when null, falls back to
+     * {@link NoOpModelSwitchedMessageWriter} (pass-through).
+     */
+    public void setModelSwitchedMessageWriter(IModelSwitchedMessageWriter modelSwitchedMessageWriter) {
+        this.modelSwitchedMessageWriter = modelSwitchedMessageWriter != null
+                ? modelSwitchedMessageWriter
+                : NoOpModelSwitchedMessageWriter.noOp();
+    }
+
+    public IModelSwitchedMessageWriter getModelSwitchedMessageWriter() {
+        return modelSwitchedMessageWriter;
+    }
+
+    /**
+     * Plan 206 (L2-22): wire a functional {@link IBudgetProvider} that computes
+     * a session-level cost/limit snapshot consulted by the ReAct loop before
+     * each {@code IModelRouter.route()} call (design
+     * {@code nop-ai-agent-usage-and-billing.md} §3.6). Optional: when null,
+     * falls back to {@link NoOpBudgetProvider} (unlimited pass-through) so the
+     * refresh point always has a non-null provider. Budget is not a security
+     * component, so no insecure-default WARN is emitted.
+     */
+    public void setBudgetProvider(IBudgetProvider budgetProvider) {
+        this.budgetProvider = budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp();
+    }
+
+    public IBudgetProvider getBudgetProvider() {
+        return budgetProvider;
+    }
+
+    /**
+     * Plan 207 (L3-2): wire a functional {@link IRetryPolicy} consulted by the
+     * ReAct loop's single-LLM-call retry point (design
+     * {@code nop-ai-agent-llm-layer.md} §7 / {@code nop-ai-agent-reliability.md}
+     * §3.1). When {@code chatService.call(...)} throws, the retry loop
+     * classifies the error and asks the policy RETRY / STOP / FALLBACK.
+     * Optional: when null, falls back to {@link NoRetryPolicy} (unconditional
+     * STOP — fail fast, backward compatible, zero-regression) so the retry
+     * loop always has a non-null policy. Retry is not a security component,
+     * so no insecure-default WARN is emitted.
+     */
+    public void setRetryPolicy(IRetryPolicy retryPolicy) {
+        this.retryPolicy = retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry();
+    }
+
+    public IRetryPolicy getRetryPolicy() {
+        return retryPolicy;
     }
 
     /**
@@ -1442,6 +1620,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .checkpointManager(checkpointManager)
                     .sessionStore(this.sessionStore)
                     .memoryStoreProvider(this.memoryStoreProvider)
+                    .usageRecorder(this.usageRecorder)
+                    .modelSwitchedMessageWriter(this.modelSwitchedMessageWriter)
+                    .budgetProvider(this.budgetProvider)
+                    .retryPolicy(this.retryPolicy)
                     .build();
         }
         if ("single-turn".equals(mode)) {

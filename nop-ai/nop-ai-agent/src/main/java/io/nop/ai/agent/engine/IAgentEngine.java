@@ -60,8 +60,8 @@ public interface IAgentEngine {
      * existing conversation history (no new user message is appended).
      * <p>
      * Calling this on a non-paused session, a session that does not exist, or
-     * an engine with the default {@code NoOpDenialLedger} (which never pauses)
-     * fails fast with a {@link NopAiAgentException} rather than silently
+     * an engine with a ledger that never pauses (e.g. {@code NoOpDenialLedger}
+     * opt-in) fails fast with a {@link NopAiAgentException} rather than silently
      * no-op'ing. This enforces the sticky contract: only an explicit resume
      * clears a pause; auto-recovery is forbidden.
      *

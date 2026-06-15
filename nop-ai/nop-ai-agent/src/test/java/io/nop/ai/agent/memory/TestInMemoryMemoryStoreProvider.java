@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Phase 1 unit tests for the default {@link InMemoryMemoryStoreProvider}.
@@ -106,12 +107,12 @@ public class TestInMemoryMemoryStoreProvider {
     @Test
     void nullSessionIdFailsFast() {
         InMemoryMemoryStoreProvider provider = new InMemoryMemoryStoreProvider();
-        assertThrows(IllegalArgumentException.class, () -> provider.getOrCreate(null));
+        assertThrows(NopAiAgentException.class, () -> provider.getOrCreate(null));
     }
 
     @Test
     void emptySessionIdFailsFast() {
         InMemoryMemoryStoreProvider provider = new InMemoryMemoryStoreProvider();
-        assertThrows(IllegalArgumentException.class, () -> provider.getOrCreate(""));
+        assertThrows(NopAiAgentException.class, () -> provider.getOrCreate(""));
     }
 }

@@ -16,10 +16,10 @@ package io.nop.ai.agent.security;
  * {@link #isPaused} is consulted: a paused session aborts the ReAct loop
  * before any further LLM call.
  *
- * <p><b>Default</b>: {@link NoOpDenialLedger} — no counting, no pausing,
- * {@code isPaused} always returns {@code false}. This is the shipped default
- * injected into the engine, so unattended Layer 1 automation is unaffected
- * unless a functional ledger is explicitly registered.
+ * <p><b>Default</b>: {@link DefaultDenialLedger} — in-memory threshold-based
+ * counting (threshold = 3, design §6.2). {@link NoOpDenialLedger} is retained
+ * as a public opt-in; {@link DBDenialLedger} persists per-session counts to
+ * the database.
  *
  * <p><b>Thread safety</b>: implementations must be thread-safe. Multiple
  * sessions may access the same ledger instance concurrently, and per-session

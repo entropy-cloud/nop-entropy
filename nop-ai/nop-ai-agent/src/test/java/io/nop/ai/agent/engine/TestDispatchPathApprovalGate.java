@@ -3,8 +3,8 @@ package io.nop.ai.agent.engine;
 import io.nop.ai.agent.security.ApprovalDecision;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
-import io.nop.ai.agent.security.AutoApproveGate;
 import io.nop.ai.agent.security.ChannelKind;
+import io.nop.ai.agent.security.DefaultApprovalGate;
 import io.nop.ai.agent.security.IApprovalGate;
 import io.nop.ai.agent.security.IAuditLogger;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
@@ -55,8 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Includes wiring verification ({@code gate.requestApproval(...)} is actually
  * invoked in the dispatch loop), audit verification (a denial records an
  * {@link AuditEvent} with matched rule {@code "layer3_approval_gate"}), and
- * backward-compat ({@link AutoApproveGate} default produces zero spurious
- * denials).
+ * backward-compat ({@link DefaultApprovalGate} default approves STANDARD/ELEVATED
+ * — zero spurious denials for non-RESTRICTED actions).
  */
 public class TestDispatchPathApprovalGate {
 
@@ -331,20 +331,23 @@ public class TestDispatchPathApprovalGate {
     }
 
     // ========================================================================
-    // Backward-compat: AutoApproveGate default → no spurious denials
+    // Backward-compat: DefaultApprovalGate default → no spurious denials
+    // (STANDARD/ELEVATED approved; RESTRICTED defense-in-depth denied)
     // ========================================================================
 
     @Test
-    void defaultAutoApproveGateProducesNoSpuriousDenials() {
-        // Engine with default gate (AutoApproveGate) — never explicitly
+    void defaultApprovalGateProducesNoSpuriousDenials() {
+        // Engine with default gate (DefaultApprovalGate) — never explicitly
         // registered. The Layer 3 consultation must approve the tool call
         // (no spurious denial), even for an ELEVATED-level action.
+        // DefaultApprovalGate approves STANDARD and ELEVATED (only RESTRICTED
+        // is defense-in-depth denied — plan 199).
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 chatServiceReturningToolThenFinal("shell.exec", "call_shell_1"), stubToolManager());
         engine.setSecurityLevelResolver(new TestResolver());
 
-        assertTrue(engine.getApprovalGate() instanceof AutoApproveGate,
-                "Default approval gate must be AutoApproveGate");
+        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+                "Default approval gate must be DefaultApprovalGate (plan 199)");
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run ls", null, null, ChannelKind.GROUP, Principal.user());
@@ -352,7 +355,7 @@ public class TestDispatchPathApprovalGate {
         AgentExecutionResult result = engine.execute(req).toCompletableFuture().join();
 
         assertFalse(containsMessage(result, "Approval denied"),
-                "AutoApproveGate default must approve the tool call — no spurious Layer 3 denial");
+                "DefaultApprovalGate must approve ELEVATED shell.exec — no spurious Layer 3 denial");
     }
 
     // ========================================================================
@@ -362,7 +365,8 @@ public class TestDispatchPathApprovalGate {
     @Test
     void builderDefaultsWhenGateNotSet() {
         // A Builder-built executor without the approval gate must still build
-        // (AutoApproveGate default applied) and never throw during a dispatch loop.
+        // (DefaultApprovalGate default applied — plan 199) and never throw
+        // during a dispatch loop.
         ReActAgentExecutor executor = ReActAgentExecutor.builder()
                 .chatService(chatServiceReturningToolThenFinal("shell.exec", "call_b_1"))
                 .toolManager(stubToolManager())
@@ -373,7 +377,7 @@ public class TestDispatchPathApprovalGate {
         AgentExecutionContext ctx = AgentExecutionContext.create(model, "btest-session");
         ctx.addMessage(new io.nop.ai.api.chat.messages.ChatUserMessage("hi"));
 
-        // Default gate = AutoApproveGate → no denial, completes without throwing.
+        // Default gate = DefaultApprovalGate → ELEVATED approved, no denial.
         executor.execute(ctx).toCompletableFuture().join();
         // No exception thrown = wiring default is sound.
     }
@@ -387,8 +391,8 @@ public class TestDispatchPathApprovalGate {
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 chatServiceReturningToolThenFinal("fs.read", "call_sg_1"), stubToolManager());
 
-        assertTrue(engine.getApprovalGate() instanceof AutoApproveGate,
-                "Engine default approval gate must be AutoApproveGate");
+        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+                "Engine default approval gate must be DefaultApprovalGate (plan 199)");
 
         CountingGate custom = new CountingGate();
         engine.setApprovalGate(custom);
@@ -397,7 +401,7 @@ public class TestDispatchPathApprovalGate {
 
         // Null setter must fall back to the default, not silently store null.
         engine.setApprovalGate(null);
-        assertTrue(engine.getApprovalGate() instanceof AutoApproveGate,
-                "setApprovalGate(null) must fall back to AutoApproveGate default");
+        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+                "setApprovalGate(null) must fall back to DefaultApprovalGate default (plan 199)");
     }
 }

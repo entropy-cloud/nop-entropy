@@ -1,6 +1,7 @@
 package io.nop.ai.agent.security;
 
 import java.util.Objects;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * The structured record of a single per-session denial, produced at every
@@ -53,7 +54,7 @@ public final class DenialRecord {
                                   DenialLayerSource layerSource, String reason,
                                   String matchedRule, long timestamp) {
         if (layerSource == null) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "DenialRecord.layerSource must not be null");
         }
         return new DenialRecord(sessionId, toolName, layerSource, reason, matchedRule, timestamp);

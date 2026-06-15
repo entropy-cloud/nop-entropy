@@ -1,6 +1,7 @@
 package io.nop.ai.agent.reliability;
 
 import java.util.Objects;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * The structured record of a single recovery-safe checkpoint, produced at a
@@ -93,17 +94,17 @@ public final class Checkpoint {
                                 String inputSummary, String outputSummary,
                                 int messageCount, long tokenEstimate) {
         if (watermark == null) {
-            throw new IllegalArgumentException("Checkpoint.watermark must not be null");
+            throw new NopAiAgentException("Checkpoint.watermark must not be null");
         }
         if (type == null) {
-            throw new IllegalArgumentException("Checkpoint.type must not be null");
+            throw new NopAiAgentException("Checkpoint.type must not be null");
         }
         if (seq < 0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "Checkpoint.seq must not be negative, got: " + seq);
         }
         if (messageCount < 0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "Checkpoint.messageCount must not be negative, got: " + messageCount);
         }
         return new Checkpoint(sessionId, watermark, seq, timestamp, type, toolName, callId,

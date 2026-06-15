@@ -20,9 +20,10 @@ package io.nop.ai.agent.security;
  * <p>A {@link PrincipalRole#OPERATOR} may bypass {@link SecurityLevel#RESTRICTED}
  * in a restrictive implementation.
  *
- * <p><b>Default</b>: {@link PassThroughPermissionMatrix} — all channels allow
- * all levels, so engine behaviour is unchanged unless a restrictive matrix is
- * explicitly registered.
+ * <p><b>Default</b>: {@link DefaultPermissionMatrix} — the design §5.3
+ * channel × level matrix with a usability-safe null channel (plan 200).
+ * {@link PassThroughPermissionMatrix} is retained as a public opt-in for
+ * integrators who need the "allow all" behavior.
  *
  * <p><b>Dispatch-path consultation</b>: this contract surface is landed now;
  * the actual consultation call in the ReAct / tool-dispatch path is deferred to

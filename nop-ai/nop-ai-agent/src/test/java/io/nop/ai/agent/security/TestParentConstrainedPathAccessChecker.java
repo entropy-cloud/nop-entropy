@@ -1,6 +1,7 @@
 package io.nop.ai.agent.security;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
 import org.junit.jupiter.api.Test;
 
@@ -448,7 +449,7 @@ public class TestParentConstrainedPathAccessChecker {
     @Test
     void wrapperConstructorRejectsNullConstraint() {
         IPathAccessChecker delegate = (path, ctx) -> PathAccessResult.allow();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ParentConstrainedPathAccessChecker(null, delegate));
     }
 
@@ -456,7 +457,7 @@ public class TestParentConstrainedPathAccessChecker {
     void wrapperConstructorRejectsNullDelegate() {
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
                 Set.of("read-file"), Set.of("/workspace/a"), "agent", "sess");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ParentConstrainedPathAccessChecker(constraint, null));
     }
 

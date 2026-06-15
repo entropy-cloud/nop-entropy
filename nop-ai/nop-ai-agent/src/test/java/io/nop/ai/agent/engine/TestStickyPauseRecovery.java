@@ -8,6 +8,7 @@ import io.nop.ai.agent.security.DenialRecord;
 import io.nop.ai.agent.security.DenialRecordOutcome;
 import io.nop.ai.agent.security.IDenialLedger;
 import io.nop.ai.agent.security.NoOpDenialLedger;
+import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.Principal;
 import io.nop.ai.agent.security.ToolAccessResult;
 import io.nop.ai.agent.security.IToolAccessChecker;
@@ -305,6 +306,10 @@ public class TestStickyPauseRecovery {
                 new AllowAllPermissionProvider(),
                 checker);
         engine.setDenialLedger(ledger);
+        // Test isolates ledger/resume behavior: opt into PassThroughPostDenialGuard
+        // so the resumed tool call is not blocked as a blind retry by the
+        // DefaultPostDenialGuard default (this test is not about guard behavior).
+        engine.setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -448,10 +453,12 @@ public class TestStickyPauseRecovery {
                 new InMemorySessionStore(),
                 new AllowAllPermissionProvider(),
                 new ToggleableChecker()); // deny=true, but NoOp ledger never pauses
-        // Note: no setDenialLedger → default NoOpDenialLedger.
+        // Test needs insecure default: opt into NoOpDenialLedger to verify
+        // the opt-in backward-compat path (no counting, no pausing).
+        engine.setDenialLedger(NoOpDenialLedger.noOp());
 
         assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
-                "engine default denial ledger must be NoOpDenialLedger");
+                "opted-in denial ledger must be NoOpDenialLedger");
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "bc-session", null, ChannelKind.WEBUI, Principal.user());

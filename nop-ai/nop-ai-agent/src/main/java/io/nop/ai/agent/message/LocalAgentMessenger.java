@@ -1,5 +1,6 @@
 package io.nop.ai.agent.message;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -69,20 +70,20 @@ public class LocalAgentMessenger implements IAgentMessenger {
         Objects.requireNonNull(requestEnvelope, "requestEnvelope");
         Objects.requireNonNull(timeout, "timeout");
         if (requestEnvelope.getKind() != AgentMessageKind.REQUEST) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "LocalAgentMessenger.request: envelope kind must be REQUEST, got " + requestEnvelope.getKind());
         }
         if (requestEnvelope.getCorrelationId() == null || requestEnvelope.getCorrelationId().isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "LocalAgentMessenger.request: envelope correlationId must not be null or empty");
         }
         if (requestEnvelope.getSenderId() == null || requestEnvelope.getSenderId().isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "LocalAgentMessenger.request: envelope senderId must not be null or empty");
         }
         long millis = timeout.toMillis();
         if (millis <= 0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "LocalAgentMessenger.request: timeout must be positive, got " + millis + "ms");
         }
 
@@ -114,7 +115,7 @@ public class LocalAgentMessenger implements IAgentMessenger {
     @Override
     public IMessageSubscription registerHandler(String topic, IAgentMessageHandler handler) {
         if (topic == null || topic.isEmpty()) {
-            throw new IllegalArgumentException("LocalAgentMessenger.registerHandler: topic must not be null or empty");
+            throw new NopAiAgentException("LocalAgentMessenger.registerHandler: topic must not be null or empty");
         }
         Objects.requireNonNull(handler, "handler");
         HandlerAdapter adapter = new HandlerAdapter(handler, messageService);

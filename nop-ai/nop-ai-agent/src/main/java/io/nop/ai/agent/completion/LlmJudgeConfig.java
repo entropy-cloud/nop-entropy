@@ -1,5 +1,6 @@
 package io.nop.ai.agent.completion;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.IChatService;
 
 import java.util.Objects;
@@ -64,17 +65,17 @@ public final class LlmJudgeConfig {
                           int maxContextMessages,
                           String defaultContinuationMessage) {
         if (chatService == null) {
-            throw new IllegalArgumentException("chatService must not be null");
+            throw new NopAiAgentException("chatService must not be null");
         }
         if (maxTokens != null && maxTokens <= 0) {
-            throw new IllegalArgumentException("maxTokens must be > 0: " + maxTokens);
+            throw new NopAiAgentException("maxTokens must be > 0: " + maxTokens);
         }
         if (temperature != null && (Float.isNaN(temperature) || temperature < 0.0f || temperature > 2.0f)) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "temperature must be in [0.0, 2.0] range, got: " + temperature);
         }
         if (maxContextMessages < 0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "maxContextMessages must be >= 0: " + maxContextMessages);
         }
         this.chatService = chatService;

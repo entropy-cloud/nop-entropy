@@ -1,6 +1,7 @@
 package io.nop.ai.agent.memory;
 
 import java.util.concurrent.ConcurrentHashMap;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Default in-memory {@link IMemoryStoreProvider} implementation. Maintains a
@@ -19,7 +20,7 @@ public class InMemoryMemoryStoreProvider implements IMemoryStoreProvider {
     @Override
     public IAiMemoryStore getOrCreate(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new IllegalArgumentException("sessionId must not be null or empty");
+            throw new NopAiAgentException("sessionId must not be null or empty");
         }
         return stores.computeIfAbsent(sessionId, k -> new InMemoryAiMemoryStore());
     }

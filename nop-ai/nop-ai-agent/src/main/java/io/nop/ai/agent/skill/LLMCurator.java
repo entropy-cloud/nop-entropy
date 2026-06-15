@@ -1,5 +1,6 @@
 package io.nop.ai.agent.skill;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -52,7 +53,7 @@ public final class LLMCurator implements ISkillCurator {
 
     public LLMCurator(CuratorConfig config) {
         if (config == null) {
-            throw new IllegalArgumentException("CuratorConfig must not be null");
+            throw new NopAiAgentException("CuratorConfig must not be null");
         }
         this.config = config;
     }

@@ -1,6 +1,7 @@
 package io.nop.ai.agent.security;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +49,7 @@ public class TestParentConstrainedToolAccessChecker {
 
     @Test
     void constraintNullAllowedToolsThrows() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ParentPermissionConstraint(null, "agent", "sess"));
     }
 
@@ -188,7 +189,7 @@ public class TestParentConstrainedToolAccessChecker {
     @Test
     void wrapperConstructorRejectsNullConstraint() {
         IToolAccessChecker delegate = (toolName, ctx) -> ToolAccessResult.allow();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ParentConstrainedToolAccessChecker(null, delegate));
     }
 
@@ -196,7 +197,7 @@ public class TestParentConstrainedToolAccessChecker {
     void wrapperConstructorRejectsNullDelegate() {
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
                 Set.of("read-file"), "agent", "sess");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ParentConstrainedToolAccessChecker(constraint, null));
     }
 

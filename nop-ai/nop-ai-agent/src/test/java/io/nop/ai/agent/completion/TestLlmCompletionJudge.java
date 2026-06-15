@@ -1,6 +1,7 @@
 package io.nop.ai.agent.completion;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.AgentPlanModel;
@@ -474,49 +475,49 @@ public class TestLlmCompletionJudge {
 
     @Test
     void configRejectsNullChatService() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new LlmJudgeConfig(null, null, null, null, null, null, 20, null));
     }
 
     @Test
     void configRejectsZeroMaxTokens() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new LlmJudgeConfig(new NullMessageChatService(), null, null, 0, null, null, 20, null));
     }
 
     @Test
     void configRejectsNegativeMaxTokens() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new LlmJudgeConfig(new NullMessageChatService(), null, null, -5, null, null, 20, null));
     }
 
     @Test
     void configRejectsTemperatureBelowZero() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new LlmJudgeConfig(new NullMessageChatService(), null, null, null, -0.1f, null, 20, null));
     }
 
     @Test
     void configRejectsTemperatureAboveTwo() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new LlmJudgeConfig(new NullMessageChatService(), null, null, null, 2.5f, null, 20, null));
     }
 
     @Test
     void configRejectsNanTemperature() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new LlmJudgeConfig(new NullMessageChatService(), null, null, null, Float.NaN, null, 20, null));
     }
 
     @Test
     void configRejectsNegativeMaxContextMessages() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new LlmJudgeConfig(new NullMessageChatService(), null, null, null, null, null, -1, null));
     }
 
     @Test
     void judgeRejectsNullConfig() {
-        assertThrows(IllegalArgumentException.class, () -> new LlmCompletionJudge(null));
+        assertThrows(NopAiAgentException.class, () -> new LlmCompletionJudge(null));
     }
 
     // ===== additional behavior coverage =====

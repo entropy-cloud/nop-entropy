@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Verifies the {@link NoOpDenialLedger} contract (design §6.2 default): no
@@ -193,7 +194,7 @@ public class TestNoOpDenialLedger {
             DenialRecord.of("s1", "shell.exec", null, "no", "rule", 1L);
             org.junit.jupiter.api.Assertions.fail(
                     "DenialRecord.of must reject null layerSource");
-        } catch (IllegalArgumentException expected) {
+        } catch (NopAiAgentException expected) {
             // expected: layer source must be present so each denial is attributable
         }
     }
@@ -285,7 +286,7 @@ public class TestNoOpDenialLedger {
             DenialRecordOutcome.of(-1, false);
             org.junit.jupiter.api.Assertions.fail(
                     "DenialRecordOutcome.of must reject negative count");
-        } catch (IllegalArgumentException expected) {
+        } catch (NopAiAgentException expected) {
             // expected: counts cannot be negative
         }
     }

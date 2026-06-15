@@ -81,7 +81,7 @@ public class DBDenialLedger implements IDenialLedger {
     public DBDenialLedger(DataSource dataSource, int denialThreshold) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
         if (denialThreshold <= 0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "denialThreshold must be positive, got: " + denialThreshold);
         }
         this.denialThreshold = denialThreshold;

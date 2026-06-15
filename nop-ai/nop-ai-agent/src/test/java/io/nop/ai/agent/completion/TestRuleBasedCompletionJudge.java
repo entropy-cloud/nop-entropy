@@ -1,6 +1,7 @@
 package io.nop.ai.agent.completion;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
@@ -312,31 +313,31 @@ public class TestRuleBasedCompletionJudge {
     // Config validation
     @Test
     void configRejectsNegativeMinResponseLength() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CompletionRuleConfig(-1, 0.9, null, null));
     }
 
     @Test
     void configRejectsNanEscalationRatio() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CompletionRuleConfig(10, Double.NaN, null, null));
     }
 
     @Test
     void configRejectsNegativeEscalationRatio() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CompletionRuleConfig(10, -0.1, null, null));
     }
 
     @Test
     void configRejectsRatioAboveOne() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CompletionRuleConfig(10, 1.5, null, null));
     }
 
     @Test
     void judgeRejectsNullConfig() {
-        assertThrows(IllegalArgumentException.class, () -> new RuleBasedCompletionJudge(null));
+        assertThrows(NopAiAgentException.class, () -> new RuleBasedCompletionJudge(null));
     }
 
     @Test

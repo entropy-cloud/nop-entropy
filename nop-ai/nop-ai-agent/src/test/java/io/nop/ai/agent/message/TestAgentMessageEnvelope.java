@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 public class TestAgentMessageEnvelope {
 
@@ -44,7 +45,7 @@ public class TestAgentMessageEnvelope {
 
     @Test
     void nullKindRejected() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 new AgentMessageEnvelope("s", "t", "c", null, "p"));
     }
 

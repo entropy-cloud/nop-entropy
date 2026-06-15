@@ -1,6 +1,7 @@
 package io.nop.ai.agent.security;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.PathRuleModel;
 import org.junit.jupiter.api.Test;
@@ -273,13 +274,13 @@ public class TestRuleBasedPathAccessChecker {
 
     @Test
     void constructorRejectsNullRules() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new RuleBasedPathAccessChecker(null, allowAll()));
     }
 
     @Test
     void constructorRejectsNullDelegate() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new RuleBasedPathAccessChecker(Collections.emptyList(), null));
     }
 

@@ -518,38 +518,38 @@ public class TestLLMCurator {
 
     @Test
     void constructorRejectsNullConfig() {
-        assertThrows(IllegalArgumentException.class, () -> new LLMCurator(null));
+        assertThrows(NopAiAgentException.class, () -> new LLMCurator(null));
     }
 
     @Test
     void configRejectsNullChatService() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CuratorConfig(null, null, null, null, null, 20));
     }
 
     @Test
     void configRejectsZeroMaxTokens() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CuratorConfig(new NullMessageChatService(), null, null, 0, null, 20));
     }
 
     @Test
     void configRejectsNegativeMaxTokens() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CuratorConfig(new NullMessageChatService(), null, null, -1, null, 20));
     }
 
     @Test
     void configRejectsNegativeMaxSkillsPerCall() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CuratorConfig(new NullMessageChatService(), null, null, null, null, -1));
     }
 
     @Test
     void configRejectsTemperatureOutOfRange() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CuratorConfig(new NullMessageChatService(), null, null, null, -0.1f, 20));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CuratorConfig(new NullMessageChatService(), null, null, null, 2.1f, 20));
     }
 

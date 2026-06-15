@@ -262,11 +262,14 @@ public class TestDispatchPathSecurityConsultation {
 
     @Test
     void defaultNoOpAndPassThroughProduceNoSpuriousDenials() {
-        // Engine with default resolver (NoOp) + default matrix (PassThrough) —
-        // never explicitly registered. The dispatch-path consultation must allow
-        // the shell.exec tool call (no spurious denial).
+        // Test needs insecure default: opt into NoOp/PassThrough to verify
+        // the opt-in backward-compat path (no classification, no channel
+        // restrictions). Default is now Default* which classifies shell.exec
+        // as ELEVATED and would deny it on GROUP channel.
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 chatServiceReturningShellExecThenFinal(), stubToolManager());
+        engine.setSecurityLevelResolver(NoOpSecurityLevelResolver.noOp());
+        engine.setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
 
         assertTrue(engine.getSecurityLevelResolver() instanceof NoOpSecurityLevelResolver);
         assertTrue(engine.getPermissionMatrix() instanceof PassThroughPermissionMatrix);

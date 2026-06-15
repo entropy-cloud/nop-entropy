@@ -2,6 +2,7 @@ package io.nop.ai.agent.session;
 
 import java.util.Collection;
 import java.util.Map;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 public interface ISessionStore {
 

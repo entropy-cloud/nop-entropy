@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Phase 1 unit tests for the checkpoint contract surface: {@link NoOpCheckpoint}
@@ -214,28 +215,28 @@ public class TestNoOpCheckpointAndValue {
 
     @Test
     void checkpointFactoryRejectsNullWatermark() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 Checkpoint.of("sess", null, 0, 1L, CheckpointType.TOOL_EXECUTION,
                         "tool", "call", null, null, 0, 0L));
     }
 
     @Test
     void checkpointFactoryRejectsNullType() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 Checkpoint.of("sess", "wm", 0, 1L, null,
                         "tool", "call", null, null, 0, 0L));
     }
 
     @Test
     void checkpointFactoryRejectsNegativeSeq() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 Checkpoint.of("sess", "wm", -1, 1L, CheckpointType.TOOL_EXECUTION,
                         "tool", "call", null, null, 0, 0L));
     }
 
     @Test
     void checkpointFactoryRejectsNegativeMessageCount() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 Checkpoint.of("sess", "wm", 0, 1L, CheckpointType.TOOL_EXECUTION,
                         "tool", "call", null, null, -1, 0L));
     }

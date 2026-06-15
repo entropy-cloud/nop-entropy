@@ -1,4 +1,6 @@
 package io.nop.ai.agent.message;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 
 /**
  * Topic naming conventions for Agent-domain inter-agent messaging, layered on
@@ -74,14 +76,14 @@ public final class AgentMessageTopics {
      */
     public static String broadcastTopic(String scope) {
         if (scope == null || scope.isEmpty()) {
-            throw new IllegalArgumentException("AgentMessageTopics.broadcastTopic: scope must not be null or empty");
+            throw new NopAiAgentException("AgentMessageTopics.broadcastTopic: scope must not be null or empty");
         }
         return NAMESPACE_PREFIX + BROADCAST_INFIX + scope;
     }
 
     private static void requireSessionId(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "AgentMessageTopics: sessionId must not be null or empty");
         }
     }

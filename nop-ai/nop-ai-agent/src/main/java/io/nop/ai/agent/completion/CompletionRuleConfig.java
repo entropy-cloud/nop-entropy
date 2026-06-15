@@ -1,6 +1,7 @@
 package io.nop.ai.agent.completion;
 
 import java.util.Objects;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 public final class CompletionRuleConfig {
 
@@ -25,10 +26,10 @@ public final class CompletionRuleConfig {
     public CompletionRuleConfig(int minResponseLength, double escalationRatio,
                                 String continuationMessage, String escalationReasonTemplate) {
         if (minResponseLength < 0) {
-            throw new IllegalArgumentException("minResponseLength must not be negative: " + minResponseLength);
+            throw new NopAiAgentException("minResponseLength must not be negative: " + minResponseLength);
         }
         if (Double.isNaN(escalationRatio) || escalationRatio < 0.0 || escalationRatio > 1.0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(
                     "escalationRatio must be in [0.0, 1.0] range, got: " + escalationRatio);
         }
         this.minResponseLength = minResponseLength;

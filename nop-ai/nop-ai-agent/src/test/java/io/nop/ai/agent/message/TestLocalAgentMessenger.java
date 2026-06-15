@@ -202,7 +202,7 @@ public class TestLocalAgentMessenger {
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
         AgentMessageEnvelope async = new AgentMessageEnvelope(
                 "A", "agent.B.inbox", "c1", AgentMessageKind.ASYNC, "p");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> messenger.request(async, Duration.ofSeconds(1)));
     }
 
@@ -212,7 +212,7 @@ public class TestLocalAgentMessenger {
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
         AgentMessageEnvelope env = new AgentMessageEnvelope(
                 "A", "agent.B.inbox", null, AgentMessageKind.REQUEST, "p");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> messenger.request(env, Duration.ofSeconds(1)));
     }
 
@@ -222,7 +222,7 @@ public class TestLocalAgentMessenger {
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
         AgentMessageEnvelope env = new AgentMessageEnvelope(
                 null, "agent.B.inbox", "c1", AgentMessageKind.REQUEST, "p");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> messenger.request(env, Duration.ofSeconds(1)));
     }
 
@@ -232,9 +232,9 @@ public class TestLocalAgentMessenger {
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
         AgentMessageEnvelope env = new AgentMessageEnvelope(
                 "A", "agent.B.inbox", "c1", AgentMessageKind.REQUEST, "p");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> messenger.request(env, Duration.ZERO));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> messenger.request(env, Duration.ofMillis(-1)));
     }
 
@@ -289,9 +289,9 @@ public class TestLocalAgentMessenger {
     void registerHandlerRejectsNullOrEmptyTopic() {
         LocalMessageService platform = new LocalMessageService();
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> messenger.registerHandler(null, envelope -> null));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> messenger.registerHandler("", envelope -> null));
     }
 

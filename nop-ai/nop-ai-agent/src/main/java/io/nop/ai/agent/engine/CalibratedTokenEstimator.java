@@ -38,7 +38,7 @@ public class CalibratedTokenEstimator implements ITokenEstimator {
 
     public CalibratedTokenEstimator(ILlmDialect dialect, ApiStyle apiStyle) {
         if (dialect == null) {
-            throw new IllegalArgumentException("dialect must not be null");
+            throw new NopAiAgentException("dialect must not be null");
         }
         this.dialect = dialect;
         this.apiStyle = apiStyle != null ? apiStyle : ApiStyle.openai;

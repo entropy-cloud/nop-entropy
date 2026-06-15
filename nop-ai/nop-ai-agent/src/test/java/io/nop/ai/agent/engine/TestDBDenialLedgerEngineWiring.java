@@ -206,7 +206,8 @@ public class TestDBDenialLedgerEngineWiring {
      */
     @Test
     void defaultNoOpLedgerProducesNoSpuriousPausesAndWritesNoDbRows() {
-        // Engine with default ledger (NoOpDenialLedger) — never explicitly set.
+        // Test needs insecure default: opt into NoOpDenialLedger to verify
+        // the opt-in backward-compat path (no counting, no pausing).
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("bc1", "shell.exec")),
@@ -218,9 +219,10 @@ public class TestDBDenialLedgerEngineWiring {
                 new io.nop.ai.agent.session.InMemorySessionStore(),
                 new io.nop.ai.agent.security.AllowAllPermissionProvider(),
                 new DenyAllTools());
+        engine.setDenialLedger(NoOpDenialLedger.noOp());
 
         assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
-                "default denial ledger must be NoOpDenialLedger");
+                "opted-in denial ledger must be NoOpDenialLedger");
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "bc-session", null, ChannelKind.WEBUI, Principal.user());
@@ -228,7 +230,7 @@ public class TestDBDenialLedgerEngineWiring {
         AgentExecutionResult result = engine.execute(req).toCompletableFuture().join();
 
         assertNotEquals(AgentExecStatus.paused, result.getStatus(),
-                "NoOpDenialLedger default must never pause, even after many denials");
+                "NoOpDenialLedger must never pause, even after many denials");
     }
 
     // ========================================================================

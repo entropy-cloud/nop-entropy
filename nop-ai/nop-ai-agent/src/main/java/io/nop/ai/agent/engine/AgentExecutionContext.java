@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.model.AgentConstraintsModel;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
@@ -32,6 +33,12 @@ public class AgentExecutionContext {
     private volatile String cancelReason;
     private ChannelKind channelKind;
     private Principal principal;
+    // Plan 206 (L2-22): per-iteration budget snapshot refreshed by the ReAct
+    // loop before each IModelRouter.route() call. A functional router reads
+    // this to decide whether to downgrade the model on budget exhaustion.
+    // Nullable (null before the first refresh); the shipped NoOpBudgetProvider
+    // default makes this a non-null unlimited snapshot after the first refresh.
+    private BudgetSnapshot budgetSnapshot;
 
     public AgentExecutionContext(AgentModel agentModel) {
         this.agentModel = agentModel;
@@ -188,5 +195,22 @@ public class AgentExecutionContext {
 
     public void setPrincipal(Principal principal) {
         this.principal = principal;
+    }
+
+    /**
+     * Plan 206 (L2-22): the current session-level budget snapshot. Refreshed by
+     * the ReAct loop before each {@code IModelRouter.route()} call. Nullable
+     * (null before the first refresh); after the first refresh it is non-null
+     * (the shipped {@code NoOpBudgetProvider} returns an unlimited snapshot).
+     *
+     * @return the current budget snapshot, or {@code null} before the first
+     *         refresh
+     */
+    public BudgetSnapshot getBudgetSnapshot() {
+        return budgetSnapshot;
+    }
+
+    public void setBudgetSnapshot(BudgetSnapshot budgetSnapshot) {
+        this.budgetSnapshot = budgetSnapshot;
     }
 }

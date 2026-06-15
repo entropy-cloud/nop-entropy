@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
  * Functional in-memory {@link IAiMemoryStore} implementation covering all 8
@@ -73,7 +74,7 @@ public class InMemoryAiMemoryStore implements IAiMemoryStore {
     @Override
     public void add(AiMemoryItem item) {
         if (item == null) {
-            throw new IllegalArgumentException("AiMemoryItem must not be null");
+            throw new NopAiAgentException("AiMemoryItem must not be null");
         }
         AiMemoryItem normalized = normalize(item);
         items.put(resolveKey(normalized), normalized);
@@ -116,10 +117,10 @@ public class InMemoryAiMemoryStore implements IAiMemoryStore {
     @Override
     public void update(String key, AiMemoryItem item) {
         if (key == null || key.isEmpty()) {
-            throw new IllegalArgumentException("key must not be null or empty");
+            throw new NopAiAgentException("key must not be null or empty");
         }
         if (item == null) {
-            throw new IllegalArgumentException("AiMemoryItem must not be null");
+            throw new NopAiAgentException("AiMemoryItem must not be null");
         }
         AiMemoryItem normalized = normalize(item);
         normalized.setKey(key);

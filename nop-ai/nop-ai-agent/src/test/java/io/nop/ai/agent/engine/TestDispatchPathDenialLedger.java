@@ -2,6 +2,7 @@ package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ChannelKind;
+import io.nop.ai.agent.security.DefaultDenialLedger;
 import io.nop.ai.agent.security.DenialLayerSource;
 import io.nop.ai.agent.security.DenialRecord;
 import io.nop.ai.agent.security.DenialRecordOutcome;
@@ -485,15 +486,14 @@ public class TestDispatchPathDenialLedger {
     // ========================================================================
 
     /**
-     * Backward-compat: with the shipped {@link NoOpDenialLedger} default (never
-     * explicitly registered), even multiple denials must NOT pause the session.
-     * The session completes normally or fails for unrelated reasons, never
-     * because of a spurious denial-ledger pause.
+     * Backward-compat: explicitly opting into {@link NoOpDenialLedger} means
+     * even multiple denials do NOT pause the session. The session completes
+     * normally or fails for unrelated reasons, never because of a spurious
+     * denial-ledger pause. (Default is now {@link DefaultDenialLedger}; this
+     * test opts into NoOp to verify the opt-in backward-compat path.)
      */
     @Test
     void defaultNoOpDenialLedgerProducesNoSpuriousPauses() {
-        // Engine with default ledger (NoOpDenialLedger) — never explicitly set.
-        // Even with DenyAllTools, the session must not be paused by the ledger.
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_bc1", "shell.exec")),
@@ -505,6 +505,9 @@ public class TestDispatchPathDenialLedger {
                 new io.nop.ai.agent.session.InMemorySessionStore(),
                 new io.nop.ai.agent.security.AllowAllPermissionProvider(),
                 new DenyAllTools());
+        // Test needs insecure default: opt into NoOpDenialLedger to verify
+        // backward-compat (no counting, no pausing).
+        engine.setDenialLedger(NoOpDenialLedger.noOp());
 
         assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
                 "Default denial ledger must be NoOpDenialLedger");
@@ -560,8 +563,8 @@ public class TestDispatchPathDenialLedger {
                 new RecordingChatService(List.of(finalAssistant("done"))),
                 stubToolManager());
 
-        assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
-                "Engine default denial ledger must be NoOpDenialLedger");
+        assertTrue(engine.getDenialLedger() instanceof DefaultDenialLedger,
+                "Engine default denial ledger must be DefaultDenialLedger");
 
         CountingLedger custom = new CountingLedger(3);
         engine.setDenialLedger(custom);
@@ -570,8 +573,8 @@ public class TestDispatchPathDenialLedger {
 
         // Null setter must fall back to the default, not silently store null.
         engine.setDenialLedger(null);
-        assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
-                "setDenialLedger(null) must fall back to NoOpDenialLedger default");
+        assertTrue(engine.getDenialLedger() instanceof DefaultDenialLedger,
+                "setDenialLedger(null) must fall back to DefaultDenialLedger default");
     }
 
     // ========================================================================

@@ -8,9 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the {@link AutoApproveGate} contract (design §6.1 default): all
- * security levels, all channels, all principals are auto-approved, and the
- * pass-through is a semantically-correct approve (not a silent no-op).
+ * Verifies the {@link AutoApproveGate} contract: all security levels, all
+ * channels, all principals are auto-approved, and the pass-through is a
+ * semantically-correct approve (not a silent no-op).
+ *
+ * <p>{@link AutoApproveGate} is the <b>opt-in</b> unconditional-approval gate
+ * (plan 199 / design §4.8): it is no longer the engine default (which is now
+ * {@link DefaultApprovalGate}), but retains its "approve everything" behavior
+ * for integrators who explicitly choose it.
  */
 public class TestAutoApproveGate {
 

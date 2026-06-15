@@ -1,6 +1,7 @@
 package io.nop.ai.agent.completion;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.AgentPlanModel;
 import io.nop.ai.api.chat.ChatRequest;
@@ -47,7 +48,7 @@ public final class LlmCompletionJudge implements ICompletionJudge {
 
     public LlmCompletionJudge(LlmJudgeConfig config) {
         if (config == null) {
-            throw new IllegalArgumentException("LlmJudgeConfig must not be null");
+            throw new NopAiAgentException("LlmJudgeConfig must not be null");
         }
         this.config = config;
     }

@@ -18,10 +18,10 @@ package io.nop.ai.agent.security;
  *   <tr><td>other</td><td>STANDARD</td><td>{@code !trustedSource} &rarr; ELEVATED; {@code highImpact} &rarr; RESTRICTED</td></tr>
  * </table>
  *
- * <p><b>Default</b>: {@link NoOpSecurityLevelResolver} &mdash; all action kinds
- * and all hints resolve to {@link SecurityLevel#STANDARD}, equivalent to no
- * classification, so engine behaviour is unchanged unless a resolver is
- * explicitly registered.
+ * <p><b>Default</b>: {@link DefaultSecurityLevelResolver} &mdash; a
+ * trusted-by-default variant of the design §5.1 rule table (plan 200).
+ * {@link NoOpSecurityLevelResolver} is retained as a public opt-in for
+ * integrators who need the "all STANDARD" behavior.
  *
  * <p><b>Dispatch-path consultation</b>: this contract surface is landed now;
  * the actual consultation call in the ReAct / tool-dispatch path is deferred to
