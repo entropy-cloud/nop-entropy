@@ -197,34 +197,53 @@ ITalent:
 
 ### 6.3 Smart Router 六步管线
 
-来自 PilotDeck 的源码级设计：
+来自 PilotDeck 的源码级设计。实现状态以 plan 209 为基准标注：
 
 ```
-Step 1: Scenario Detection → subagent / explicit / default
-Step 2: Short Continuation → ≤30 chars 且匹配正则 → 继承前轮 tier
-Step 3: Judge Classification → 便宜模型分类 simple/medium/complex
-Step 4: Orchestration → 注入编排 prompt，精简工具集
-Step 5: Execute with Fallback Chain → 主模型失败→备选
-Step 6: Zero-usage Retry Detection → 检测空用量自动重试
+Step 1: Scenario Detection → subagent / explicit / default        [deferred — 独立 successor]
+Step 2: Short Continuation → ≤30 chars 且匹配正则 → 继承前轮 tier  [deferred — 独立 successor]
+Step 3: Judge Classification → 便宜模型分类 simple/medium/complex [deferred — Judge LLM 为 successor；
+                                                                    首版使用启发式分类，见 §6.4]
+Step 4: Orchestration → 注入编排 prompt，精简工具集                [deferred — 独立 successor]
+Step 5: Execute with Fallback Chain → 主模型失败→备选             [✅ 已落地 — plan 209：ReAct 重试
+                                                                    循环消费 RetryDecision.FALLBACK，
+                                                                    向 IModelRouter 查询回退模型]
+Step 6: Zero-usage Retry Detection → 检测空用量自动重试           [deferred — 独立 successor]
 ```
+
+首版只落地 Step 5 的回退链消费与 §6.4 的启发式分类路由；Steps 1/2/3/4/6 均为显式 Non-Goal（独立 successor plan），不在当前 supported baseline 内。
 
 ### 6.4 默认实现
 
-- `PassThroughModelRouter`（默认）——直连 AgentModel 配置的模型，无路由逻辑
-- `SmartModelRouter`——可选的功能实现，使用便宜模型做 Judge 分类
+**实现状态（plan 209 ✅ 已落地 — SmartModelRouter 启发式分类 + 预算感知降级 + 回退链消费）**：
+
+- `PassThroughModelRouter`（shipped 默认）——直连 AgentModel 配置的模型，无路由逻辑；opt-in 装配时才被 `SmartModelRouter` 替换。
+- `SmartModelRouter`（opt-in 功能实现）——按请求复杂度路由到不同模型 tier：
+  - **复杂度分类（启发式，首版）**：基于可观测信号——消息总长度、工具数量、是否包含代码（fenced code block）/ 结构化内容（`{` / `<`）——把请求分为 `simple`/`medium`/`complex` 三档，阈值可配置（有默认值）。**不调用额外 LLM 做分类**：Judge LLM 分类（Step 3）引入额外延迟与成本，是独立 successor。
+  - **Tier 路由**：集成商通过构造器为每个 tier 配置主模型（provider+model）；router 选择分类 tier 的主模型，保留请求的 tools/settings（只覆盖 model 身份）。
+  - **预算感知降级**：读取 `AgentExecutionContext.getBudgetSnapshot()`，当 `exceeded == true` 时降级到配置过的更便宜 tier；无更便宜 tier 时保持原 tier 并在 routingReason 标注。
+  - **routingReason**：每次决策填充可读原因（如 `complexity=medium` / `complexity=complex; budget-exceeded->downgraded to medium`），驱动 plan 205 的 model-switched 审计消息。
+  - **回退链（plan 209 Step 5）**：每个 tier 可配置有序回退链；ReAct 重试循环收到 `RetryDecision.FALLBACK` 时调用 `IModelRouter.getFallback(currentOptions)`，router 返回链中下一个模型（合并保留 tools）或 `null`（链耗尽）。回退后 attempt 计数器重置为 0（新模型的新调用周期），且 usage record 归属回退模型而非原始首选模型。
 
 ### 6.5 Fallback 错误分类
 
-| 错误类型 | 处理 |
-|---------|------|
-| `invalid_tool_arguments` | 可自纠正，重试 |
-| `prompt_too_long`, `context_overflow` | 不可重试，终止 |
-| 429 rate limit | 按 Retry-After 等待后重试 |
-| 5xx, timeout | 切换 Fallback Chain |
+**实现状态（plan 209 ✅ — §6.5 表中"切换 Fallback Chain"已落地）**：当 `IRetryPolicy` 返回 `RetryDecision.FALLBACK` 时，ReAct 重试循环向 `IModelRouter.getFallback(...)` 查询回退模型；有回退模型则以新模型重试（attempt 重置、usage 归属新模型），无回退模型（含 `PassThroughModelRouter` 默认与回退链耗尽）则 fail-loud 抛 `NopAiAgentException`（Minimum Rules #24，无静默跳过）。
+
+| 错误类型 | 处理 | 实现状态 |
+|---------|------|---------|
+| `invalid_tool_arguments` | 可自纠正，重试 | deferred（由 `IToolCallRepairer` ChainRepairer 处理，独立于本表） |
+| `prompt_too_long`, `context_overflow` | 不可重试，终止 | deferred |
+| 429 rate limit | 按 Retry-After 等待后重试 | deferred（当前用指数退避，见 §7） |
+| 5xx, timeout | 切换 Fallback Chain | ✅ 已落地（plan 209） |
 
 ---
 
 ## 七、重试策略（IRetryPolicy）— Layer 3
+
+**实现状态（plan 207 ✅ 已落地 — IRetryPolicy 契约 + NoRetryPolicy 默认 + StandardRetryPolicy）**：
+
+- **契约 + NoRetry 默认 + 重试循环接线（Phase 1 ✅）**：`IRetryPolicy` 接口 + `RetryDecision`（RETRY/STOP/FALLBACK）枚举 + `RetryOutcome`（决策 + 延迟毫秒）+ `RetryContext`（attempt/lastError/errorClassification/hasStreamedContent）+ `ErrorClassification`（TRANSIENT/NON_TRANSIENT/RATE_LIMITED/QUOTA_EXCEEDED）+ `NoRetryPolicy`（恒 STOP）+ `LlmErrorClassifier`（按 HTTP 状态码映射）全部落地于 `io.nop.ai.agent.reliability` 包。`ReActAgentExecutor` 的单次 LLM 调用点（`chatService.call`）被重试循环包装：捕获异常 → `LlmErrorClassifier.classify` → 构造 `RetryContext` → `policy.shouldRetry` → RETRY(sleep backoff 后重试同一 request)/STOP(rethrow)/FALLBACK(plan 209：向 `IModelRouter.getFallback(...)` 查询回退模型，有则切换模型重试、无则 fail-loud 抛 `NopAiAgentException`，Minimum Rules #24)。`DefaultAgentEngine` 通过 field+setter+`resolveExecutor` 装配（默认 `NoRetryPolicy`，零行为回归）。
+- **StandardRetryPolicy 功能实现（Phase 2 ✅）**：最大尝试次数（默认 3）+ 指数退避（baseDelay * 2^attempt，封顶 maxDelay）+ 仅 TRANSIENT/RATE_LIMITED 重试、NON_TRANSIENT/QUOTA_EXCEEDED 立即 STOP。429 RATE_LIMITED 使用指数退避（当前调用路径异常不含 Retry-After header，见 Non-Goals）。
 
 ### 7.1 问题
 

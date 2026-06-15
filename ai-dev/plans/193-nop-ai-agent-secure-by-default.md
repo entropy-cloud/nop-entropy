@@ -184,3 +184,7 @@ AUDIT-13-02（Non-Blocking Follow-ups 第一条）已由 successor plan `194-nop
 ## Follow-up handled by 196-nop-ai-agent-exception-base-class.md
 
 AUDIT-09-01（Non-Goals 引用为"[09-1]（`NopAiAgentException` 基类）... 独立 work item，见 roadmap §5b"的 P1）已由 successor plan `196-nop-ai-agent-exception-base-class.md` 接管：将 `NopAiAgentException` 从 `extends RuntimeException` 改为 `extends NopException`，补齐 `serialVersionUID` 与 `(ErrorCode)` / `(ErrorCode, Throwable)` 构造器，使模块异常纳入框架统一异常体系。此段为事实性交叉引用追加，不修改本计划已关闭的 closure 内容。
+
+## Follow-up handled by 199-nop-ai-agent-layer23-secure-defaults.md
+
+[13-4]（Non-Blocking Follow-ups 第二条，标 `successor plan required`）已由 successor plan `199-nop-ai-agent-layer23-secure-defaults.md` 接管：收紧 `AutoApproveGate` 对 RESTRICTED 级别的行为 + 扩展本计划（及 plan 194）建立的 `warnIfInsecureDefaults` WARN 框架，枚举 5 个 Layer 2/3 NoOp/PassThrough 组件（`AutoApproveGate`/`NoOpSecurityLevelResolver`/`PassThroughPermissionMatrix`/`NoOpDenialLedger`/`PassThroughPostDenialGuard`）。此段为事实性交叉引用追加，不修改本计划已关闭的 closure 内容。

@@ -1,6 +1,6 @@
 # 197 nop-ai-agent 同 Session 并发执行竞态修复（AUDIT-14-01）
 
-> **Plan Status**: active
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: AUDIT-14-01
 > Last Reviewed: 2026-06-15
@@ -119,47 +119,47 @@ Exit Criteria:
 
 ### Phase 3 - Focused 测试 + roadmap 同步
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/test/**`、`ai-dev/design/nop-ai-agent/nop-ai-agent-roadmap.md`
 
 - Item Types: `Proof`、`Follow-up`
 
-- [ ] 新增 focused 测试（Minimum Rules #25），覆盖以下行为点：
+- [x] 新增 focused 测试（Minimum Rules #25），覆盖以下行为点：
   - (1) **并发执行 fail-fast**：对同一 sessionId 发起两次 `execute()`（或 `execute` + `resumeSession`），断言第二次抛 `NopAiAgentException`（消息含 "already executing" 或等价），且第一次正常完成。
   - (2) **finally 不误删他人 handle（值比较 remove 核心保证）**：构造场景使第一次执行在第二次注册后结束（或 mock 序列），断言第一次的 finally 未移除第二次的 handle——`cancelSession` 仍能找到第二次的 handle（或等价地，第二次执行期间 handle 在 map 中可见）。
   - (3) **cancel 窗口生效**：`execute()` 返回 future 后、在 `supplyAsync` lambda 实际运行前（用 latch/屏障控制时序），调用 `cancelSession`，断言后续执行线程感知 cancel（执行以 cancelled 状态结束，或 `ctx.isCancelRequested()` 为 true），而非被 `setStatus(running)` 覆盖后正常执行。
   - (4) **restoreSession 与新 guard 一致**：`restoreSession` 对已在 `runningExecutions` 的 session fail-fast（行为与 execute/resume 一致，错误消息按 Phase 1 裁定）。
   - (5) **正常路径无回归**：单线程顺序执行/恢复/restore 的正常流程不受影响（`putIfAbsent` 在无竞争时成功，`remove(sessionId, handle)` 在 handle 匹配时移除）。
-- [ ] 审计既有测试受影响面：grep 测试中是否有依赖"同 session 可并发 execute"的行为（预期没有），确认既有测试无回归。
-- [ ] roadmap §5b：将 `AUDIT-14-01` 行 ❌ → ✅，落地 plan 标注 197。
+- [x] 审计既有测试受影响面：grep 测试中是否有依赖"同 session 可并发 execute"的行为（预期没有），确认既有测试无回归。
+- [x] roadmap §5b：将 `AUDIT-14-01` 行 ❌ → ✅，落地 plan 标注 197。
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` 全绿（既有测试无回归，新增测试已加入并覆盖上述行为点）。
-- [ ] 新增测试**显式列出**所验证的新行为（concurrent-execute-fail-fast、finally-no-misremove、cancel-window-honored、restore-guard-consistent、no-regression-normal-path），不是"原有测试通过"。
-- [ ] **端到端验证（Minimum Rules #22）**：至少一条测试从 `engine.execute(request)` 入口、经 `doExecute` → `supplyAsync` → `runningExecutions` 注册、到并发第二次 `execute` 被 fail-fast 拒绝，完整路径走通——验证 guard 在运行时实际生效（不只是 map 类型正确）。
-- [ ] **接线验证（Minimum Rules #23）**：测试断言 `cancelSession` 在 cancel 窗口内发起后，执行线程的 `ctx.isCancelRequested()` 确实为 true（cancel 信号从 cancelSession → runningExecutions/CancelHandle → 执行线程 ctx 连通）。
-- [ ] **无静默跳过（Minimum Rules #24）**：fail-fast 路径的测试断言异常被抛出（非静默返回）；cancel 窗口测试断言 cancel 被感知（非静默覆盖）。
-- [ ] roadmap §5b `AUDIT-14-01` 行已更新为 ✅ 并指向本 plan。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` 全绿（既有测试无回归，新增测试已加入并覆盖上述行为点）。
+- [x] 新增测试**显式列出**所验证的新行为（concurrent-execute-fail-fast、finally-no-misremove、cancel-window-honored、restore-guard-consistent、no-regression-normal-path），不是"原有测试通过"。
+- [x] **端到端验证（Minimum Rules #22）**：至少一条测试从 `engine.execute(request)` 入口、经 `doExecute` → `supplyAsync` → `runningExecutions` 注册、到并发第二次 `execute` 被 fail-fast 拒绝，完整路径走通——验证 guard 在运行时实际生效（不只是 map 类型正确）。
+- [x] **接线验证（Minimum Rules #23）**：测试断言 `cancelSession` 在 cancel 窗口内发起后，执行线程的 `ctx.isCancelRequested()` 确实为 true（cancel 信号从 cancelSession → runningExecutions/CancelHandle → 执行线程 ctx 连通）。
+- [x] **无静默跳过（Minimum Rules #24）**：fail-fast 路径的测试断言异常被抛出（非静默返回）；cancel 窗口测试断言 cancel 被感知（非静默覆盖）。
+- [x] roadmap §5b `AUDIT-14-01` 行已更新为 ✅ 并指向本 plan。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：本 section 与每个 Phase 的 Exit Criteria 全部 `[x]` 后，方可将 `Plan Status` 改为 `completed`。关闭流程见 plan guide 的 `When Closing The Plan` 与 `Closure Audit Rule`。
 
-- [ ] `DefaultAgentEngine` 三个执行入口点全部使用 `putIfAbsent`（或等价原子注册）+ fail-fast，不再有无条件 `put`（live code 验证，非仅类型存在）。
-- [ ] 三个入口点的 `finally` 全部使用值比较 `remove(sessionId, handle)`，不再按 key `remove`。
-- [ ] cancel 丢失窗口已修复：cancel 在入队窗口内发起时被后续执行线程感知（由测试证明）。
-- [ ] finally 不误删他人 handle：由测试证明（值比较 remove 核心保证）。
-- [ ] roadmap §5b `AUDIT-14-01` 同步为 ✅。
-- [ ] 设计文档记录了并发保护策略（fail-fast + cancel-window 修复决策，最终状态，无 Proposed/Current 对比）。
-- [ ] 不存在被静默降级到 deferred/follow-up 的 in-scope live defect（[14-3]/[14-4]/[14-6 非 volatile 部分]/[14-7~14-10] 等已显式移入 Non-Goals，属裁定移出而非隐藏）。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**：closure audit 验证并发 guard 在运行时确被触发（端到端测试：第二次 execute 真实 fail-fast，非仅字段类型正确），无空方法体/静默 no-op。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` 通过。
-- [ ] checkstyle / 代码规范检查通过。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/197-nop-ai-agent-session-concurrency-guard.md --strict` 退出码为 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai/nop-ai-agent --severity high` — 在本计划触碰文件中无 NEW high/critical findings（区分 pre-existing UOE stubs 与本计划引入的新增）。
+- [x] `DefaultAgentEngine` 三个执行入口点全部使用 `putIfAbsent`（或等价原子注册）+ fail-fast，不再有无条件 `put`（live code 验证，非仅类型存在）。
+- [x] 三个入口点的 `finally` 全部使用值比较 `remove(sessionId, handle)`，不再按 key `remove`。
+- [x] cancel 丢失窗口已修复：cancel 在入队窗口内发起时被后续执行线程感知（由测试证明）。
+- [x] finally 不误删他人 handle：由测试证明（值比较 remove 核心保证）。
+- [x] roadmap §5b `AUDIT-14-01` 同步为 ✅。
+- [x] 设计文档记录了并发保护策略（fail-fast + cancel-window 修复决策，最终状态，无 Proposed/Current 对比）。
+- [x] 不存在被静默降级到 deferred/follow-up 的 in-scope live defect（[14-3]/[14-4]/[14-6 非 volatile 部分]/[14-7~14-10] 等已显式移入 Non-Goals，属裁定移出而非隐藏）。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
+- [x] **Anti-Hollow Check**：closure audit 验证并发 guard 在运行时确被触发（端到端测试：第二次 execute 真实 fail-fast，非仅字段类型正确），无空方法体/静默 no-op。
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` 通过。
+- [x] checkstyle / 代码规范检查通过。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/197-nop-ai-agent-session-concurrency-guard.md --strict` 退出码为 0。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai/nop-ai-agent --severity high` — 在本计划触碰文件中无 NEW high/critical findings（区分 pre-existing UOE stubs 与本计划引入的新增）。
 
 ## Deferred But Adjudicated
 
@@ -173,15 +173,35 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: AUDIT-14-01（同 session 并发执行竞态）已修复。三个执行入口点（doExecute/resumeSession/restoreSession）的 runningExecutions 注册从无条件 put 收敛为 putIfAbsent + fail-fast；注销从按 key remove 收敛为值比较 remove(sessionId, handle)；cancel 丢失窗口通过同步阶段预注册 handle 修复（cancel 信号经由 ctx.cancelRequested volatile 传递）；restoreSession 冗余 containsKey 检查移除。1547 tests 全绿（1542 既有 + 5 新增），零回归。
+Completed: 2026-06-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<session ID>>
-- Evidence: <<关闭时填写>>
+- Reviewer / Agent: 独立 closure-audit subagent（fresh session，task_id ses_134660222ffeFIb0BMn1Im36dG）
+- Audit Session: ses_134660222ffeFIb0BMn1Im36dG
+- Evidence:
+  - Phase 1 Exit Criteria — PASS：`nop-ai-agent-reliability.md` §1.3（line 88）记录了 7 条裁定（putIfAbsent + fail-fast / 值比较 remove / 选项 A 预注册 / volatile thread 延迟绑定 / containsKey 移除 / status volatile 不纳入 / sendMessage 异常传播），无类签名/伪代码
+  - Phase 2 Exit Criteria — PASS：live code 验证（grep 确认 0 个无条件 `put(` + 0 个 key-only `remove(sessionId)` + 0 个 `containsKey`）；doExecute L797/819/845、resumeSession L1014/1029/1048、restoreSession L1140/1155/1172 全部 putIfAbsent + 值比较 remove；CancelHandle.thread L728 volatile；cancelSession L644-647 null-check
+  - Phase 3 Exit Criteria — PASS：TestDefaultAgentEngineConcurrencyGuard 5 tests（concurrentExecuteFailFast L187 / finallyDoesNotMisremoveHandle L231 / cancelWindowHonored L273 / restoreSessionGuardConsistentWithExecute L316 / noRegressionNormalPath L368）全绿；端到端验证（concurrentExecuteFailFast 从 engine.execute 入口经 doExecute → putIfAbsent → 第二次 execute 被 fail-fast 拒绝）；接线验证（cancelWindowHonored 断言 cancel 被 ctx 感知，result=cancelled）；无静默跳过（fail-fast 抛 NopAiAgentException，cancel 被感知非静默覆盖）
+  - Closure Gates — PASS（逐条）：
+    1. putIfAbsent + fail-fast：L797/L1014/L1140 live code 验证 PASS
+    2. 值比较 remove：L819/L1029/L1155 live code 验证 PASS
+    3. cancel 丢失窗口修复：cancelWindowHonored 测试证明 PASS
+    4. finally 不误删：finallyDoesNotMisremoveHandle 测试证明 PASS
+    5. roadmap §5b：L273 ✅ 已修复 PASS
+    6. 设计文档：§1.3 最终状态无 Proposed/Current 对比 PASS
+    7. 无 in-scope defect 降级：[14-3]/[14-4]/[14-6 volatile]/[14-7~14-10] 显式移入 Non-Goals PASS
+    8. 独立 closure-audit：本条记录即证据 PASS
+    9. Anti-Hollow：concurrentExecuteFailFast 端到端测试第二次 execute 真实 fail-fast，非字段类型检查 PASS
+    10. `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C`：1547 tests, 0 failures, 0 errors PASS
+    11. checkstyle：BUILD SUCCESS PASS
+    12. `check-plan-checklist.mjs --strict` 退出码 0 PASS
+    13. `scan-hollow-implementations.mjs --severity high`：本计划触碰文件无 NEW findings（DefaultAgentEngine.java 唯一 finding 是 pre-existing mode=plan UOE at L1451，未触碰）PASS
+  - Deferred 项分类检查：[14-6] cancel 生效速度（optimization candidate）、[14-6] status volatile（watch-only residual）、并发排队语义（out-of-scope improvement）——均属 non-blocking follow-up，无 in-scope defect 被降级
 
 Follow-up:
 
-- <<关闭时填写>>
+- [维度14-6] cancel 生效速度（thread.interrupt() 对 HTTP 阻塞调用无立即效果）——optimization candidate，独立 hardening
+- [维度14-6] AgentSession 其他可变字段的 volatile——watch-only residual，独立 hardening
+- 并发执行排队语义（第二次 execute 排队等待而非 fail-fast）——out-of-scope improvement，产品策略变更

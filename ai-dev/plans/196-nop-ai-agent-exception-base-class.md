@@ -7,6 +7,10 @@
 > Source: carry-over from `ai-dev/plans/193-nop-ai-agent-secure-by-default.md`（Non-Goals 引用 `[09-1]（NopAiAgentException 基类）... 独立 work item`）；`ai-dev/design/nop-ai-agent/nop-ai-agent-roadmap.md` §5b（`AUDIT-09-01 | P1 | ❌ 未修复`，roadmap 第 275 行）；`ai-dev/audits/2026-06-15-1146-deep-audit-nop-ai-agent/09-error-handling.md` 发现 [维度09-1]（P1，复核维持）；平台规范 `docs-for-ai/02-core-guides/error-handling.md`（"模式二：模块异常类" + 反模式表明确文点名 `extends RuntimeException`）
 > Related: `193`（把本项裁定为 successor）、`194`（同为 carry-over 链上的 P1 安全收敛，已 completed）
 
+## Follow-up handled by 198-nop-ai-agent-exception-consistency-cleanup.md
+
+本计划的 Non-Goals [维度09-2]（49 处 `IllegalArgumentException` 迁移）与 [维度09-3]（1 处 `IllegalStateException` 迁移）已由 `ai-dev/plans/198-nop-ai-agent-exception-consistency-cleanup.md` 接管。
+
 ## Purpose
 
 把 `NopAiAgentException` 从 `extends RuntimeException` 改为 `extends NopException`，补齐 `serialVersionUID` 与 `(ErrorCode)` / `(ErrorCode, Throwable)` 构造器，使模块异常纳入框架统一异常体系（结构化错误响应、`.param(...)` 链式上下文、`getErrorCode()`、i18n 钩子）。本计划只负责这一件事：让模块异常类与平台规范对齐，不再脱离框架异常体系。

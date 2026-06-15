@@ -161,8 +161,9 @@ function getDiskFree(path) {
 function getMemoryPressureLevel() {
   if (!IS_MACOS) return "";
   const raw = safeExec("memory_pressure -Q");
-  const m = raw.match(/(\d+)%/);
-  return m ? `${m[1]}%` : "";
+  const m = raw.match(/System-wide memory free percentage:\s*(\d+)%/);
+  if (!m) return "";
+  return `${100 - parseInt(m[1], 10)}%`;
 }
 
 function snapshot(runDir, label = "") {

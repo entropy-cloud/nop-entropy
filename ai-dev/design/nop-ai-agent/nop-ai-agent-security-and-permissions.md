@@ -205,7 +205,7 @@ Permission resolve(toolName, agentName, sessionId)
 - **触发条件**：解析后的 `toolAccessChecker` 或 `pathAccessChecker` 为 `AllowAllToolAccessChecker` / `AllowAllPathAccessChecker` 实例（即集成商显式 opt-in 了全放行，或显式传 `null` 触发了 AllowAll 兜底——后者在本决策后已不会发生，因为字段默认值已切换为 `Default*`，但保留检查以覆盖集成商显式 opt-in 的场景）。
 - **日志级别**：WARN（非 ERROR，因为显式 opt-in 是合法用法；非 INFO/DEBUG，因为安全降级必须可见）。
 - **文案要点**：明确告知"开箱不安全，危险工具/敏感路径无防护"，并指引如何显式装配 `Default*` checker 或修复调用点。文案按 checker 类型分别给出（tool / path），便于定位。
-- **覆盖范围**：WARN 当前覆盖 Layer 1 的 `IToolAccessChecker`、`IPathAccessChecker`，以及 `IAuditLogger`（见 §4.7）。Layer 2/3（`AutoApproveGate`、`NoOpSecurityLevelResolver`、`PassThroughPermissionMatrix`、`NoOpDenialLedger`、`PassThroughPostDenialGuard`）的默认值降级枚举是独立 successor 的扩展点，不在本决策范围内。
+- **覆盖范围**：WARN 当前覆盖 Layer 1 的 `IToolAccessChecker`、`IPathAccessChecker`，`IAuditLogger`（见 §4.7），以及 Layer 2/3 的全部 5 个组件（见 §4.8：`AutoApproveGate` 构造期+setter 检查；`NoOpSecurityLevelResolver`/`PassThroughPermissionMatrix`/`NoOpDenialLedger`/`PassThroughPostDenialGuard` 仅 setter 检查以避免构造期噪音）。
 
 **向后兼容处理原则**：
 
@@ -235,6 +235,97 @@ Permission resolve(toolName, agentName, sessionId)
 **向后兼容处理原则**：改为默认 `Slf4jAuditLogger` 后，通过 engine 短构造器运行的测试会产生 SLF4j INFO 审计日志（不影响断言，SLF4j INFO 不抛异常、不改变返回值）。需要捕获审计事件做断言的测试可通过 `setAuditLogger` 注入 `CollectingAuditLogger`（不再需要绕过 engine 直接用 Builder 构造 executor）。
 
 **`ReActAgentExecutor.Builder` 默认值一致性**：`ReActAgentExecutor.Builder.build()` 的 `auditLogger` null 兜底从 `NoOpAuditLogger` 切换为 `Slf4jAuditLogger`，使绕过 engine 直接构造 executor 的路径也与引擎默认一致。
+
+### 4.8 Layer 2/3 默认收敛（AutoApproveGate 收紧 + WARN 可见性扩展）
+
+**决策（1）— 引入 `DefaultApprovalGate` 作为 engine 默认，收紧 RESTRICTED 级别（defense-in-depth）**：`DefaultAgentEngine` 的 `approvalGate` 字段默认值从 `AutoApproveGate` 切换为新增的 `DefaultApprovalGate`。`DefaultApprovalGate` 的行为：STANDARD 和 ELEVATED 级别操作自动批准（approver = `"default"`），RESTRICTED 级别操作拒绝（`ApprovalDecision.deny(OTHER, reason)`）。`AutoApproveGate` 保留为 public 类，集成商可通过显式 `setApprovalGate(AutoApproveGate.autoApprove())` opt-in 全自动批准（用于测试或可信环境），与 plan 193 保留 `AllowAll*` 的模式一致。`setApprovalGate(null)` 的兜底默认同步切换为 `DefaultApprovalGate`。
+
+**Defense-in-depth 性质**：默认 `NoOpSecurityLevelResolver` 恒返回 `SecurityLevel.STANDARD`，dispatch 链以 STANDARD 调用 approval gate——RESTRICTED 在默认配置下永远不可达。`DefaultApprovalGate` 的 RESTRICTED 收紧仅在集成商注册功能性 `ISecurityLevelResolver`（返回 RESTRICTED）后才可观测。这是纵深防御：当 RESTRICTED 级别操作到达 gate 时，不再被静默放行。
+
+**为什么选引入新 `DefaultApprovalGate` 而非直接修改 `AutoApproveGate`**：与 plan 193 的 `AllowAll*` → `Default*` 模式一致。保留原全放行实现作为 public opt-in，使"显式选择全放行"的代码意图清晰可搜索（grep `AutoApproveGate`），且已有的 `TestAutoApproveGate` 测试无需修改（它验证的就是 opt-in 行为）。直接修改 `AutoApproveGate` 会使 RESTRICTED 行为在类名层面不可见——`AutoApproveGate` 名字暗示"全部批准"但实际拒绝了 RESTRICTED，语义与类名冲突。
+
+**决策（2）— ELEVATED 仍由默认批准**：`DefaultApprovalGate` 对 ELEVATED 级别仍然批准。设计语义中 ELEVATED 是"需要确认"（比 STANDARD 严格，比 RESTRICTED 宽松），而"确认"不等同于"人类审批"——功能性 gate 实现负责真正的 ELEVATED 确认流。默认 gate 只对 RESTRICTED（"需要审批"）做 defense-in-depth 拒绝。
+
+**决策（3）— WARN 覆盖扩展与噪音控制策略**：`warnIfInsecureDefaults` 扩展为覆盖全部 5 个 Layer 2/3 NoOp/PassThrough 组件，但按"行为是否已变更"区分 WARN 触发时机，避免每次引擎构造产生噪音：
+
+- **行为已变更的组件（`AutoApproveGate`）**：engine 默认从 `AutoApproveGate` 切换为 `DefaultApprovalGate`，因此 `AutoApproveGate` 成为"显式 opt-in 不安全"选项。WARN 在构造期（defense-in-depth，默认不会命中）和 `setApprovalGate` setter 赋值后均检查——当检测到 `AutoApproveGate` 实例时触发一次性 WARN。与 plan 193 的 `AllowAll*` 和 plan 194 的 `NoOpAuditLogger` 模式完全一致。
+- **默认仍为 insecure 的组件（`NoOpSecurityLevelResolver`、`PassThroughPermissionMatrix`、`NoOpDenialLedger`、`PassThroughPostDenialGuard`）**：这些组件的默认仍为 NoOp/PassThrough（Non-Goals 明确不改，secure 替代实现是独立 successor）。构造期**不**检查这 4 个组件（默认值即为 NoOp/PassThrough，检查会在每次引擎构造时触发 WARN = 噪音）。WARN 仅在对应 setter 被调用且解析后的值为 NoOp/PassThrough 实例时触发——setter 调用是集成商的显式动作，将不安全装配可见化便于安全审计。
+
+**为什么拒绝替代 WARN 策略**：
+
+1. **"照搬 193/194 的 opt-in WARN 模式（构造期对全部 5 个组件 instanceof 检查）"**：不采用。4 个 unchanged-insecure-default 组件的构造期默认值就是 NoOp/PassThrough，构造期检查会在每次引擎构造时触发 WARN——这是纯粹的日志噪音，违反"避免每次引擎构造触发噪音 WARN"的噪音控制目标。
+2. **"构造期摘要式一次性 WARN（合并列出全部 insecure 默认）"**：不采用。即使合并为一条，也会在每次引擎构造时触发，对于 NoOp 是设计性默认（非 bug）的场景，持续的 WARN 会被日志噪声淹没。摘要式 WARN 仅在创建了 secure 默认替代后才有意义（那时默认不再是 NoOp，WARN 仅在 opt-in 回退时触发）。
+3. **"仅覆盖 AutoApproveGate，其他 4 个不覆盖"**：不采用。Goal 明确要求覆盖全部 5 个组件。setter-time WARN 覆盖使集成商的不安全装配可见，且不产生构造期噪音——在 noise-control 和 coverage 之间取得平衡。
+
+**决策（4）— WARN 调用点策略**：构造器在解析出全部组件后调用一次 `warnIfInsecureDefaults`（与 plan 193/194 一致，覆盖 Layer 1 checker + audit logger + AutoApproveGate）。每个 Layer 2/3 setter（`setApprovalGate`、`setSecurityLevelResolver`、`setPermissionMatrix`、`setDenialLedger`、`setPostDenialGuard`）在赋值后也调用 `warnIfInsecureDefaults`，使 setter-time 降级即时可见。这与 plan 194 的 `setAuditLogger` 模式一致。
+
+**决策（5）— 向后兼容处理原则**：受影响既有测试统一按以下原则处理：
+
+- `DefaultApprovalGate` 对 STANDARD/ELEVATED 批准的行为与 `AutoApproveGate` 一致，因此默认 `NoOpSecurityLevelResolver`（恒返回 STANDARD）下的全部既有测试不受影响——RESTRICTED 不可达，gate 行为不可观测差异。
+- 测试若显式验证"RESTRICTED 级别被 AutoApproveGate 批准"的行为（即显式使用 `AutoApproveGate`），保持不变——`AutoApproveGate` 的行为未改变，它仍是 public opt-in。
+- 测试若需要 RESTRICTED 不可达的正常执行路径，无需修改（默认 resolver 返回 STANDARD）。
+- 测试若需要验证 RESTRICTED 被 approval gate 拒绝的 defense-in-depth 行为，显式注入功能性 `ISecurityLevelResolver` 返回 RESTRICTED + 默认 gate（`DefaultApprovalGate`）。
+
+**`ReActAgentExecutor.Builder` 默认值一致性**：`ReActAgentExecutor.Builder.build()` 的 `approvalGate` null 兜底同步从 `AutoApproveGate` 切换为 `DefaultApprovalGate`，使绕过 engine 直接构造 executor 的路径也与引擎默认一致。
+
+### 4.9 Layer 2/3 全套 Secure 默认实现（NoOp/PassThrough → Default*）
+
+**决策背景**：§4.8 仅收敛了 `IApprovalGate`（AutoApproveGate → DefaultApprovalGate）。其余 4 个 Layer 2/3 组件（`ISecurityLevelResolver`、`IPermissionMatrix`、`IDenialLedger`、`IPostDenialGuard`）仍以 NoOp/PassThrough 作为 engine 默认。本节决策将这 4 个组件的 engine 默认切换为功能性 `Default*` 实现，使引擎开箱即用具备安全级别分类、通道权限矩阵、拒绝计数/暂停、盲重试阻断能力。`NoOp*` / `PassThrough*` 4 个组件保留为 public opt-in（与 `AutoApproveGate` / `AllowAll*` 模式一致）。
+
+**决策（1）— DefaultSecurityLevelResolver 采用 trusted-by-default 变体**：
+
+设计 §5.1 规则表对 `shell.exec`/`code.exec` 标注 `highImpact → RESTRICTED`。但 `DefaultLevelHintsProducer` 对 shell.exec 恒产出 `highImpact=true`（tool-name 分类），完整实现规则表会导致 shell.exec → RESTRICTED → DefaultApprovalGate 拒绝 RESTRICTED → 引擎无法执行 shell 工具。
+
+**选了什么**：trusted-by-default 变体。当 `trustedSource=true`（agent 自身推理链产生）时，`highImpact` 仅升级到 ELEVATED 而非 RESTRICTED；RESTRICTED 仅在 `!trustedSource && highImpact` 时触发。完整规则表变体如下：
+
+| 条件 | 结果 |
+|------|------|
+| trustedSource=true, highImpact | ELEVATED |
+| trustedSource=true, writesOutsideWorkspace | ELEVATED |
+| trustedSource=true, 其他 | STANDARD |
+| trustedSource=false, network.fetch/web.fetch | RESTRICTED |
+| trustedSource=false, highImpact | RESTRICTED |
+| trustedSource=false, writesOutsideWorkspace | ELEVATED |
+| trustedSource=false, 其他 | ELEVATED |
+
+**为什么选 trusted-by-default 而非完整规则表**：agent 自身推理链产生的 tool call 是引擎运行的基线场景（`DefaultContentTrustEvaluator` 对 `AGENT_GENERATED` 返回 trusted）。完整规则表会使这个基线场景中的 shell.exec 被分类为 RESTRICTED，导致引擎不可用。trusted-by-default 变体保留了功能性分类（trusted 高影响操作 → ELEVATED，untrusted 高影响操作 → RESTRICTED），同时不阻断基线执行。
+
+**为什么拒绝替代方案**：
+- **(a) 完整实现规则表，接受 shell.exec 变为 RESTRICTED**：不采用。需要同步调整 DefaultApprovalGate 或添加豁免规则才能使引擎可用，引入额外复杂度且偏离 defense-in-depth 原则。
+- **(c) 仅在 `!trustedSource` 时升级（highImpact 不单独触发 RESTRICTED）**：不采用。与 (b) 的实际效果相同（trusted 时 highImpact → ELEVATED，untrusted 时 highImpact → RESTRICTED），但 (b) 的表述更清晰地映射到规则表结构。
+
+**决策（2）— DefaultPermissionMatrix 采用 §5.3 表 + usability-safe null channel**：
+
+设计 §5.3 表对 unknown/null channel 标注 "STANDARD only (fail-closed)"。但引擎在很多场景下 channel 为 null（测试环境、未显式设置 channelKind 的集成场景）。若 null channel fail-closed 到 STANDARD-only，则 trusted-by-default resolver 产出的 ELEVATED 操作（如 trusted shell.exec）会被 matrix 拒绝，引擎不可用。
+
+**选了什么**：按 §5.3 表实现已知通道（WEBUI/API/DM/GROUP）的限制，但对 null/unknown channel 采用 **STANDARD + ELEVATED（deny RESTRICTED only）** 的部分 fail-closed 语义——而非完全 fail-closed 到 STANDARD-only。`PrincipalRole.OPERATOR` 可绕过 RESTRICTED（与 §5.3 设计一致）。
+
+**为什么选 usability-safe null channel 而非完全 fail-closed**：作为 engine 默认，需要平衡安全与可用性。deny RESTRICTED 是有意义的安全边界（untrusted 高影响操作、untrusted 网络操作被拒绝）；allow STANDARD + ELEVATED 保持引擎可用（trusted 高影响操作如 shell.exec 可执行）。完全 fail-closed 到 STANDARD-only 会使 trusted-by-default resolver 产出的 ELEVATED 不可观测，matrix 的分类能力被架空。当集成商需要更严格策略时，可注册自定义 matrix 实现 §5.3 的完全 fail-closed 语义。
+
+**决策（3）— DefaultDenialLedger 采用纯内存 threshold-based 计数**：
+
+**选了什么**：`ConcurrentHashMap<String, AtomicInteger>` per-session 计数，threshold = 3（设计 §6.2，与 `DBDenialLedger.DEFAULT_DENIAL_THRESHOLD` 一致）。anonymous session（null sessionId）不计数（返回 count=0, threshold-not-exceeded），与 `DBDenialLedger` 语义一致。不持久化（纯内存）。
+
+**为什么选纯内存而非 DB-backed 默认**：`DBDenialLedger` 需要 DataSource + schema init，不适合作为 engine 零依赖默认。纯内存实现使引擎开箱即用具备拒绝计数/暂停能力；DB 持久化是显式 opt-in（已有 `DBDenialLedger`）。
+
+**决策（4）— 新建 DefaultPostDenialGuard 作为独立类**：
+
+**选了什么**：新建 `DefaultPostDenialGuard` 类（与 `DefaultApprovalGate`/`DefaultToolAccessChecker` 命名一致），内部委托 `FingerprintPostDenialGuard` 实例（避免代码重复，最小 wrapper ceremony）。
+
+**为什么选新建 Default* 而非直接提升 FingerprintPostDenialGuard**：命名一致性。全部 Layer 1/2/3 secure 默认均以 `Default*` 命名（`DefaultToolAccessChecker`、`DefaultPathAccessChecker`、`DefaultApprovalGate`、`DefaultLevelHintsProducer`）。`FingerprintPostDenialGuard` 保留为 public 类（描述实现策略的命名），`DefaultPostDenialGuard` 作为 shipped 默认（描述角色的命名）。
+
+**决策（5）— WARN 策略迁移到 always-checked**：
+
+4 个组件从 conditionally-checked 迁移到 always-checked。构造期 `warnIfInsecureDefaults` 传非 null 给全部 4 个组件（与新 Default* 默认一致）。`instanceof NoOp/PassThrough` 检查仍保留——构造期 Default* 实例不触发 WARN（非 NoOp/PassThrough），集成商经 setter 显式注入 NoOp/PassThrough 时触发 WARN。各 setter 仍只传自己刚设的组件 + null 给其余 3 个（noise control 保留）。
+
+**决策（6）— 向后兼容处理原则**：
+
+- 受影响既有测试统一按以下原则处理，不允许"为图省事整体关闭防护"的回退。
+- 当测试需要验证 NoOp/PassThrough 行为（安全级别恒 STANDARD、permission 恒 allow、denial 不计数/不暂停、retry 不阻断）时，显式经 setter 注入 NoOp/PassThrough 实例 + 注释"测试需要 insecure 默认"。
+- 当测试本身不依赖特定安全行为（如只验证 ReAct 循环正常执行不被阻断），使用非 deny-list、非 high-impact 工具名（如 `echo`、`mock-tool`），这些工具在 Default* 默认下分类为 STANDARD → 全通道放行。
+- 当测试需要验证 Default* 的新行为（分类、matrix deny、denial 计数、retry 阻断），使用默认短构造器即可。
+
+**`ReActAgentExecutor.Builder` 默认值一致性**：`ReActAgentExecutor.Builder.build()` 的 4 个 null 兜底同步从 NoOp/PassThrough 切换为 Default*，使绕过 engine 直接构造 executor 的路径也与引擎默认一致。
 
 ## 5. Layer 2: Policy Extensions（策略扩展层）
 

@@ -1,7 +1,7 @@
 # Goal Driver 流程设计
 
 **日期**：2026-06-15（v3 堆栈嵌套重构，v4 移除 execute-all-active-plans 子流程改用 group + forEach）
-**范围**：`flows/goal-driver.json`，子流程 `flows/plan-execution.json`、`flows/deep-audit-loop.json`
+**范围**：`ai-dev/tools/opencode-goal-driver/flows/goal-driver.json`，子流程 `ai-dev/tools/opencode-goal-driver/flows/plan-execution.json`、`ai-dev/tools/opencode-goal-driver/flows/deep-audit-loop.json`
 **状态**：active
 **取代**：v3 `execute-all-active-plans` 子流程 + `plan-router` 脚本
 
@@ -66,7 +66,7 @@ flowchart TD
 
 ### 步骤说明
 
-**HEALTH_CHECK**（`prompts/health-check.md`）
+**HEALTH_CHECK**（`ai-dev/tools/opencode-goal-driver/prompts/health-check.md`）
 - AI agent 步骤，运行 `mvnw clean install`，失败时 AI 自行诊断并修复
 - `fail` transition 配置了 `retry: HEALTH_CHECK, maxRetries: 3`，无 append buffer，因此每次重试是**空上下文 + 新 session**
 - 仍失败时通过 `onMaxRetries` 结束
@@ -163,7 +163,7 @@ flowchart TD
 
 ### 步骤说明
 
-**EXECUTE**（`prompts/execute.md`）
+**EXECUTE**（`ai-dev/tools/opencode-goal-driver/prompts/execute.md`）
 - AI 执行 plan 文件的每个 Phase（从第一个 `- [ ]` 开始到最后一个 Phase 全部 `[x]`）
 - 每完成一个 Phase 跑 `mvnw test` 确认测试通过
 - 完成后更新 plan 的 `Plan Status: completed` + roadmap 对应 item 从 ❌ 改为 ✅
@@ -176,13 +176,13 @@ flowchart TD
 - **pass → BUILD_VERIFY**：机械检查通过，跳过 AI audit（AI audit 的核心价值是失败时诊断修复，通过时无需冗余确认）
 - **fail → CLOSURE_AUDIT**：脚本发现不合规项，AI 介入诊断修复
 
-**CLOSURE_AUDIT**（`prompts/closure-audit.md`）
+**CLOSURE_AUDIT**（`ai-dev/tools/opencode-goal-driver/prompts/closure-audit.md`）
 - AI 驱动的关闭审计（仅在 script check 失败时进入）：
   - 按 plan guide 严格修复（强制段名、字段名、Phase 格式）
   - 修复后返回 `approved` → BUILD_VERIFY
   - 无法修复则返回 `issues` → 重试 EXECUTE，带审计反馈追加
 
-**BUILD_VERIFY**（`prompts/build-verify.md`）
+**BUILD_VERIFY**（`ai-dev/tools/opencode-goal-driver/prompts/build-verify.md`）
 - 运行 `mvnw clean install` 确认编译通过
 - 失败时诊断修复并重试
 - 返回 `pass` → 子流程完成
@@ -297,6 +297,6 @@ DRAFT_PLAN (deep-audit-loop 子流程内)
 ## 十、与已有设计的关系
 
 - 本设计依赖 `flow-engine-design.md` 的 Step/Transition/Subflow/Group/forEach 机制
-- 流程定义位于 `flows/goal-driver.json`，子流程位于 `flows/plan-execution.json`、`flows/deep-audit-loop.json`
-- 脚本函数 `scanActivePlans`、`closureScriptCheck` 位于 `src/flow-loader.js`
-- `flowArgs` 模板变量在 forEach 循环中每次迭代 resolve（`src/engine.js`）
+- 流程定义位于 `ai-dev/tools/opencode-goal-driver/flows/goal-driver.json`，子流程位于 `ai-dev/tools/opencode-goal-driver/flows/plan-execution.json`、`ai-dev/tools/opencode-goal-driver/flows/deep-audit-loop.json`
+- 脚本函数 `scanActivePlans`、`closureScriptCheck` 位于 `ai-dev/tools/opencode-goal-driver/src/flow-loader.js`
+- `flowArgs` 模板变量在 forEach 循环中每次迭代 resolve（`ai-dev/tools/opencode-goal-driver/src/engine.js`）

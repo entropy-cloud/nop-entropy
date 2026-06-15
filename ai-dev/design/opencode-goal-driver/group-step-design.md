@@ -2,7 +2,7 @@
 
 > Status: **implemented** — Phase 1–3 已落地（engine.js `_executeGroupStep`, flow-goal-driver.js `CLOSURE_VERIFY`）
 > Last Reviewed: 2026-06-10
-> Migrated from: `ai-dev/tools/opencode-goal-driver/DESIGN-group-step.md`
+> Migrated from: ai-dev/tools/opencode-goal-driver/DESIGN-group-step.md（原文件已迁移删除）
 > Parent: [flow-engine-design.md](./flow-engine-design.md) §2.2 Step 类型
 > Source: CLOSURE_SCRIPT_CHECK ↔ CLOSURE_AUDIT 循环的抽象需求
 

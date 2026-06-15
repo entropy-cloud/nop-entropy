@@ -249,7 +249,7 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
 - Phase 1：两个新 Hook 点默认无实现，不改变现有行为
 - Phase 2：用于工具结果修复、结果评审等场景
 
-**与 Skilled Hook 的关系**（见 `hook-skill-engine.md`）：
+**与 Skilled Hook 的关系**（见 `nop-ai-agent-hook-skill-engine.md`）：
 - `before_tool_result_processed` / `after_tool_result_processed` 作为新的 Hook 事件类型加入引擎生命周期
 - 与 before_reasoning / after_reasoning 等现有 Hook 地位相同
 - 区别仅在于它们可以返回 `ReenterResult`，触发 ReAct 重入

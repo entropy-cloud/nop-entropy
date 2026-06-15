@@ -417,7 +417,7 @@ ai-dev/tools/opencode-goal-driver/
 ## 6. Flow Diagram
 
 The actual flow definition is the authoritative source: `ai-dev/tools/opencode-goal-driver/flows/goal-driver.json`.
-Subflows: `flows/plan-execution.json`, `flows/deep-audit-loop.json`.
+Subflows: `ai-dev/tools/opencode-goal-driver/flows/plan-execution.json`, `ai-dev/tools/opencode-goal-driver/flows/deep-audit-loop.json`.
 
 ### 6.1 Top-level Flow
 

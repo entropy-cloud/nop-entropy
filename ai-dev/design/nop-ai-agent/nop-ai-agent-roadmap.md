@@ -132,9 +132,9 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L1-8b | `IContentTrustEvaluator` 内容可信度评估 + `DefaultContentTrustEvaluator` | L1-6 | ✅ |
 | L1-9 | `AgentEventPublisher` 事件流 | 无 | ✅ |
 | L1-10 | `AgentSession` 基础会话对象 | 无 | ✅ |
-| L1-11 | 缺失的枚举类（如 L0-2 确认需要单独创建）：`AgentTaskStatus`, `AgentPlanStatus` | L0-2 | ❌ |
+| L1-11 | 缺失的枚举类（如 L0-2 确认需要单独创建）：`AgentTaskStatus`, `AgentPlanStatus`；已通过 L0-2 与 `AgentExecStatus` 统一，不再单独创建（`AgentExecStatus.java` 已被全模块使用，`AgentTaskStatus`/`AgentPlanStatus` 经 `find` 确认不存在） | L0-2 | ✅ |
 | L1-12 | 端到端示例：一个 `.agent.xml` + ReAct 循环 + 工具调用 | L0-1, L1-5, L1-4 | ✅ |
-| L1-13 | 基础单元测试框架搭建 | 无 | ❌ |
+| L1-13 | 基础单元测试框架搭建；已落地：205 test files / 1595+ tests 全绿（JUnit 5 + Nop AutoTest + focused test patterns，多份已关闭 plan closure 引证） | 无 | ✅ |
 | L1-14 | `BaseAgent` 清理（决定保留并完善 or 删除） | L1-1 | ✅ |
 | L1-15 | 🔴 ISessionStore 扩展：为 fork/event/compaction/snapshot 加 default 方法（抛 UOE） | L1-10 | ✅ |
 | L1-16 | 🔴 IAiMemoryStore 扩展：加 update/remove/batchAdd/readBudgeted 方法 + AiMemoryItem 补充 priority/tokenEstimate/pinned/checksum | M6 | ✅ |
@@ -144,7 +144,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L1-20 | 🟡 AgentSession 补充 parentSessionId/planId/compactedAt 字段（nullable，向下兼容） | L1-10 | ✅ |
 | A1 | 🌟 Budgeted Injection functional consumption: AiMemoryItem priority/tokenEstimate/pinned 字段 + IAiMemoryStore.readBudgeted() default 方法（L1-16 ✅）+ InMemoryAiMemoryStore 功能化实现（plan 189 ✅）+ system-prompt 自动注入（buildBaseExecutionContext 每轮注入 budgeted memory，plan 192 ✅） | L1-16 | ✅ |
 | A2 | 🌟 Completion Gate: ReAct 循环"无 tool calls"后加 Judge 验证点（contract: Plan 159; functional `RuleBasedCompletionJudge`: Plan 162; LLM `LlmCompletionJudge`: Plan 165） | L1-5 | ✅ |
-| A3 | 🌟 PreStop/PostStop ReAct 钩子: before_tool_result_processed / after_tool_result_processed（允许重入） | L2-12 | ❌ |
+| A3 | 🌟 PreStop/PostStop ReAct 钩子: before_tool_result_processed / after_tool_result_processed（允许重入）；已落地：`ReActAgentExecutor.java:1282,1345` 触发 + re-entry 语义（`reentryCounters`，`DEFAULT_MAX_REENTRIES=3`，`:1699-1702` 校验）+ `TestHookInReActLoop.java` 3 focused tests（before/after re-entry + 计数器强制 Pass） | L2-12 | ✅ |
 | A4 | 🌟 Checkpoint Journal 格式: journal.md + snapshot.json 双文件，按 watermark 恢复（plan 182 已落地；crash/restart restore = plan 183 已落地；DB persistence = plan 186 已落地，实现为 `DBCheckpointManager`；LLM-turn/compaction triggers = plan 187 已落地，三个触发点全部 ✅；compaction-aware 截断加载 = plan 188 已落地，`firstKeptEntryId` 由 COMPACTION checkpoint 位置实现） | L3-4 | ✅ |
 | A5 | 🌟 Actor Cancel 两级语义: graceful（完成当前 tool）/ forced（立即中断） | L1-17 | ✅ |
 | A6 | 🌟 Session Fork: forkSession 功能化实现（InMemorySessionStore + DefaultAgentEngine，SESSION_FORKED 事件，inheritContext 语义） | L1-17, A5 | ✅ |
@@ -180,28 +180,35 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L2-14a | Dispatch-path 咨询集成（L2-13/L2-14 → ReAct 分发路径：`ILevelHintsProducer` + channel/principal 传播 + `checkLayer2Consultation`） | L2-13, L2-14 | ✅ |
 | L2-15 | Working Memory 工具实现 (read-memory/write-memory/search-memory) | L1-10, L1-5 | ✅ |
 | L2-16 | Token 计数 — `ILlmDialect.estimateTokens()` (default chars/4) + Provider usage 校准 | L1-4, nop-ai-core | ✅ |
-| L2-17 | 🔴 `IUsageRecorder` 接口 + `NoOpUsageRecorder` pass-through + `UsageRecord` 数据对象 | L1-5 | ❌ |
-| L2-18 | 🔴 `DbUsageRecorder` 实现：ReAct 循环 token 累加点写 `NopAiChatResponse`（modelId + promptTokens + completionTokens + durationMs） | L2-17 | ❌ |
-| L2-19 | 🔴 `NopAiModel` 加定价列（`input_price_per_1m`/`output_price_per_1m`/`reasoning_price_per_1m`/`cache_read_price_per_1m`/`cache_write_price_per_1m`/`currency`） | 无 | ❌ |
-| L2-20 | 🔴 per-model 聚合查询：`NopAiChatResponseBizModel.summarizeByModel(sessionId)` → SQL GROUP BY model_id | L2-18 | ❌ |
-| L2-21 | 🔴 `model-switched` 消息产生：ReAct 循环中 IModelRouter 返回后检查模型变更 → 写 NopAiSessionMessage(role=80) | L2-10 | ❌ |
-| L2-22 | 🟡 预算控制 hook：IModelRouter 查询已用预算决定是否降级模型 | L2-20, L2-10 | ❌ |
+| L2-17 | ✅ `IUsageRecorder` 接口 + `NoOpUsageRecorder` pass-through + `UsageRecord` 数据对象（plan 201） | L1-5 | ✅ |
+| L2-18 | ✅ `DbUsageRecorder` 实现：ReAct 循环 token 累加点写 `NopAiChatResponse`（modelId + promptTokens + completionTokens + durationMs） | L2-17 | ✅（plan 202） |
+| L2-19 | ✅ `NopAiModel` 加定价列（`input_price_per_1m`/`output_price_per_1m`/`reasoning_price_per_1m`/`cache_read_price_per_1m`/`cache_write_price_per_1m`/`currency`）+ `summarizeByModel` 的 `estimatedCost` 计算启用 | 无 | ✅（plan 204） |
+| L2-20 | ✅ per-model 聚合查询：`NopAiChatResponseBizModel.summarizeByModel(sessionId)` → SQL GROUP BY model_id（+ ai_provider + ai_model） | L2-18 | ✅（plan 203） |
+| L2-21 | ✅ `model-switched` 消息产生：ReAct 循环中 IModelRouter 返回后检查模型变更 → 写 NopAiSessionMessage(role=80) | L2-10 | ✅（plan 205） |
+| L2-22 | ✅ 预算控制 hook：`IBudgetProvider` 扩展点 + `BudgetSnapshot` + `NoOpBudgetProvider` 默认 + ReAct 循环每轮 `IModelRouter.route()` 前刷新预算快照，router 可基于预算降级模型 | L2-20, L2-10 | ✅（plan 206） |
+| L2-23 | ✅ `SmartModelRouter` 功能性路由器：启发式复杂度分类（simple/medium/complex）→ tier 路由 + 预算感知降级 + `RetryDecision.FALLBACK` 回退链消费（`IModelRouter.getFallback`）；`PassThroughModelRouter` 仍为 shipped 默认 | L2-10, L2-22, L3-2 | ✅（plan 209） |
 
 **Layer 2 验收标准**：
 
 - [ ] 能清楚说明每个扩展如何替换 pass-through 默认
 - [ ] 不把运行时假设误写成新的 DSL 字段
 - [ ] ContextGovernor Pipeline 可通过 Delta 配置启用
-- [ ] L2-17~L2-18：每次 LLM 调用产生一行 `NopAiChatResponse`，含 model_id + tokens
-- [ ] L2-20：SQL GROUP BY model_id 可查到 session 级 per-model token 聚合
-- [ ] L2-21：模型切换时产生 `model-switched` 消息（role=80）
+- [x] L2-17~L2-18：每次 LLM 调用产生一行 `NopAiChatResponse`，含 model_id + tokens
+  - L2-17 ✅（plan 201）：`IUsageRecorder` 接口 + `NoOpUsageRecorder` pass-through + `UsageRecord` 已接线到 ReAct 循环 token 累积点（`record()` 每次调用被调用）
+  - L2-18 ✅（plan 202）：`DbUsageRecorder` 写 `NopAiChatResponse` 持久化已实现（raw JDBC，不依赖 nop-ai-dao；modelId 按 provider+model_name 解析；responseDurationMs 在 ReActAgentExecutor 计量）
+- [x] L2-20：SQL GROUP BY model_id 可查到 session 级 per-model token 聚合
+- [x] L2-21：模型切换时产生 `model-switched` 消息（role=80）
+- [x] L2-22：`IBudgetProvider` 扩展点可在每轮路由前提供预算快照，功能性 router 可基于预算超限降级模型（NoOp 默认零变化）
+  - L2-22 ✅（plan 206）：`IBudgetProvider` 接口 + `BudgetSnapshot`（estimatedTotalCost/totalTokensUsed/budgetLimit/exceeded）+ `NoOpBudgetProvider` 默认已接线到 ReAct 循环 route() 调用前；端到端测试验证预算超限时 router 降级模型
+- [x] L2-23：功能性 router 按复杂度路由 + 预算降级 + 回退链消费（PassThrough 默认零变化）
+  - L2-23 ✅（plan 209）：`SmartModelRouter`（启发式分类 simple/medium/complex + tier 路由 + `BudgetSnapshot.exceeded` 降级 + 有意义的 routingReason）+ `IModelRouter.getFallback` default 方法 + ReAct 重试循环 `RetryDecision.FALLBACK` 分支消费回退链（有回退则切换模型重试 + attempt 重置 + usage 归属回退模型，无回退则 fail-loud）；端到端测试覆盖 `DefaultAgentEngine` → ReAct → SmartModelRouter → LLM 失败 → FALLBACK → 回退模型 → 成功
 
 ### Layer 3: Reliability Extensions — 生产环境加固
 
 | # | 工作项 | 依赖 | 状态 |
 |---|--------|------|------|
 | L3-1 | `ICircuitBreaker` 接口 + `AlwaysClosed` 默认 + `ThresholdBreaker` | L1-5 | ❌ |
-| L3-2 | `IRetryPolicy` 接口 + `NoRetry` 默认 + `StandardRetryPolicy` | L1-5 | ❌ |
+| L3-2 | `IRetryPolicy` 接口 + `NoRetry` 默认 + `StandardRetryPolicy` | L1-5 | ✅ |
 | L3-3 | `IGoalTracker` 接口 + `NoOpGoalTracker` + `SessionGoalTracker` | L1-10 | ❌ |
 | L3-4 | `ICheckpointManager` 接口 + `NoOpCheckpoint` + `ToolExecutionCheckpoint` | L1-10 | ✅ |
 | L3-4b | 🔴 Crash/restart durable session restore: `FileBackedSessionStore` (per-session JSON) + `ISessionStore.save` contract bridge + `IAgentEngine.restoreSession` + `SESSION_RESTORED` event + intra-execution persistence + checkpoint journal 消费（`getLatestCheckpoint` 一致性校验） — 单进程 crash/restart restore（plan 183 已落地；跨进程接管锁依赖 L4-8） | L3-4, A4 | ✅ |
@@ -215,7 +222,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 
 **Layer 3 验收标准**：
 
-- [ ] LLM 调用故障可以区分是否自动重试
+- [x] LLM 调用故障可以区分是否自动重试（L3-2 ✅ plan 207：`IRetryPolicy` + `LlmErrorClassifier` 把 429/5xx/超时/4xx 映射为 `ErrorClassification`，`StandardRetryPolicy` 仅对 TRANSIENT/RATE_LIMITED 重试）
 - [ ] 连续故障后系统可自动熔断
 - [ ] 长对话能触发压缩并继续运行
 - [ ] 工具调用可在执行前被验证和拦截
@@ -270,9 +277,12 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | AUDIT-13-16 | P2 | ✅ 已修复 | plan 191：`AgentNames` allow-list 校验接入 `DefaultAgentEngine.loadAgentModel` chokepoint + `CallAgentExecutor` non-`"self"` agentId defense-in-depth，fail-closed |
 | AUDIT-13-01 | P1 | ✅ 已修复 | plan 193：`DefaultAgentEngine` 短构造器 + 字段兜底 + `ReActAgentExecutor.Builder.build()` null 兜底全部从 `AllowAll*` 切换为 `Default*`；新增构造期一次性 WARN（AllowAll* 实例触发，fail-loud via `LOG.warn`）；secure-by-default 端到端验证（`TestSecureByDefault` 6 tests） |
 | AUDIT-13-02 | P1 | ✅ 已修复 | plan 194：`DefaultAgentEngine` 新增 `auditLogger` 字段（默认 `Slf4jAuditLogger`）+ `setAuditLogger` setter；`resolveExecutor` Builder 链透传 `.auditLogger(this.auditLogger)`；`ReActAgentExecutor.Builder.build()` null 兜底从 `NoOpAuditLogger` 切换为 `Slf4jAuditLogger`；`warnIfInsecureDefaults` 扩展检查 `NoOpAuditLogger`（setter 注入时触发一次性 WARN，fail-loud via `LOG.warn`）；端到端审计验证（`TestAuditLoggerDefault` 5 tests） |
-| AUDIT-14-01 | P1 | ❌ 未修复 | 同 session 并发执行竞态 |
+| AUDIT-13-04 | P1 | ✅ 已修复 | plan 199：新增 `DefaultApprovalGate`（STANDARD/ELEVATED 批准，RESTRICTED defense-in-depth 拒绝）替代 `AutoApproveGate` 作为 engine 默认 + `ReActAgentExecutor.Builder` null 兜底；`AutoApproveGate` 保留为 public opt-in；`warnIfInsecureDefaults` 扩展为 8-arg 覆盖全部 5 个 Layer 2/3 组件（AutoApproveGate 构造期+setter 检查；其他 4 个 NoOp/PassThrough 仅 setter 检查，构造期传 null 跳过以避免噪音）；全部 Layer 2/3 setter 增加赋值后 WARN 调用；focused 测试（`TestDefaultApprovalGate` 6 tests + `TestLayer23SecureDefaults` 10 tests，含端到端 defense-in-depth RESTRICTED 拒绝 + 审计事件验证 + WARN 覆盖验证） |
+| AUDIT-14-01 | P1 | ✅ 已修复 | plan 197：`DefaultAgentEngine` 三个执行入口点（`doExecute` / `resumeSession` / `restoreSession`）的 `runningExecutions` 注册/注销从无条件 `put` + 按 key `remove` 收敛为 `putIfAbsent` + fail-fast（`NopAiAgentException`）+ 值比较 `remove(sessionId, handle)`；`CancelHandle.thread` 改为 `volatile` 延迟绑定（同步阶段预注册 handle 关闭 cancel 丢失窗口，lambda 入口绑定执行线程）；移除 `restoreSession` 冗余 `containsKey` 检查；`cancelSession` forced-interrupt null-safe；focused 测试 `TestDefaultAgentEngineConcurrencyGuard` 5 tests（concurrent-execute-fail-fast / finally-no-misremove / cancel-window-honored / restore-guard-consistent / no-regression-normal-path），含端到端 + 接线验证 |
 | AUDIT-14-04 | P1 | ✅ 已修复 | plan 195：`SessionFileWriter.write()` + `CheckpointSnapshotWriter.write()` 收敛为 write-to-tmp + `Files.move(ATOMIC_MOVE, REPLACE_EXISTING)` + `finally { deleteIfExists(tmp) }`（POSIX rename 原子性）；focused 测试覆盖 target-intact / tmp-cleanup / stale-tmp-recovery / pre-move-failure-isolation / overwrite-write，含 `FileBackedSessionStore.save()` → `SessionFileWriter.write()` 端到端接线验证（`TestSessionFileWriterAtomicWrite` 7 tests + `TestCheckpointSnapshotWriterAtomicWrite` 6 tests） |
 | AUDIT-09-01 | P1 | ✅ 已修复 | plan 196：`NopAiAgentException extends RuntimeException` → `extends NopException`，补齐 `serialVersionUID` 与四构造器 `(String)` / `(String, Throwable)` / `(ErrorCode)` / `(ErrorCode, Throwable)`（前两签名保留，100+ 抛出站点与 4 处 catch 站点零改动）；模块异常纳入框架统一异常体系（结构化 `getMessage()`、`.param(...)` 链式、`getErrorCode()`、i18n 钩子）；focused 测试 `TestNopAiAgentExceptionBaseClass` 8 tests 覆盖 `instanceof NopException` / `getErrorCode` 保留原文本 / `getMessage().contains` 兼容 / `.param` 链式 / `(ErrorCode)` ctor / cause 链保留 |
+| AUDIT-09-02 | P2 | ✅ 已修复 | plan 198（吸收 AUDIT-09-03）：nop-ai-agent 全模块 49 处 `throw new IllegalArgumentException` + 1 处 `throw new IllegalStateException`（`Layer2TurnPruningStrategy:199`）统一迁移为 `throw new NopAiAgentException`，消息文本不变（构造器签名兼容）；受影响 49 处 `assertThrows(IllegalArgumentException.class,...)` + 4 处 `catch (IllegalArgumentException expected)` 测试断言同步迁移为 `NopAiAgentException`；5 处捕获 JDK `Enum.valueOf()` 异常的 `catch (IllegalArgumentException)` 翻译块保持不变（非本模块 throw 站点消费者）；`./mvnw test` 1547 tests 零回归 |
+| L23-SDI | P1 | ✅ 已修复 | plan 200：新增 4 个 `Default*` secure 默认实现（`DefaultSecurityLevelResolver` trusted-by-default 变体 / `DefaultPermissionMatrix` §5.3 channel×level 矩阵 + usability-safe null channel / `DefaultDenialLedger` 纯内存 threshold=3 计数 / `DefaultPostDenialGuard` fingerprint-based 盲重试阻断），替代 4 个 NoOp/PassThrough 作为 engine 默认（field + setter null 兜底 + `ReActAgentExecutor` 构造器 null 兜底）；`warnIfInsecureDefaults` 从 conditionally-checked 迁移到 always-checked（构造期传非 null 给全部 4 个组件）；NoOp/PassThrough 保留为 public opt-in；focused 测试 32 tests（4 个 Default* 组件单元测试 + `TestLayer23SecureDefaultImpls` 端到端 dispatch 测试含 RESTRICTED Layer 2 deny / denial-pause / blind-retry-block / audit-event 验证）；1595 tests 全绿 |
 
 ---
 
