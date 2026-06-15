@@ -34,6 +34,46 @@ public class InMemorySessionStore implements ISessionStore {
         return sessions.values();
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>In-memory store semantics</b>: every session held by an
+     * {@code InMemorySessionStore} already lives in the in-memory cache
+     * (there is no disk concept), so discovery is equivalent to
+     * {@link #getAll()}. A fresh {@code InMemorySessionStore} instance has
+     * an empty cache — this method correctly returns an empty collection,
+     * which is the "no persisted sessions to restore" signal consumed by
+     * the auto-restore orchestrator (it returns an empty restore summary
+     * rather than failing, because "no unfinished sessions" is a legitimate
+     * state).
+     */
+    @Override
+    public Collection<AgentSession> listAllSessions() {
+        return getAll();
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>In-memory store semantics</b>: this override is a documented no-op,
+     * not a silent skip. The {@code InMemorySessionStore} holds the live
+     * {@link AgentSession} object reference returned by {@code getOrCreate} /
+     * {@code get}; every reader of the store sees the latest in-memory state
+     * directly through that reference. Therefore persisting the session to a
+     * side-channel is unnecessary for an in-memory store: there is nothing to
+     * copy. This is the correct, complete implementation of {@code save} for
+     * an in-memory backend — distinct from the interface default
+     * {@link UnsupportedOperationException}, which is reserved for stores that
+     * claim no persistence capability at all (and thus must fail fast to
+     * surface programmer error rather than silently swallow the save).
+     */
+    @Override
+    public void save(AgentSession session) {
+        // No-op: see Javadoc above. The live session object already shared via
+        // the in-memory map is the source of truth; no extra persistence work
+        // is required for an in-memory backend.
+    }
+
     @Override
     public String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props) {
         AgentSession parent = sessions.get(parentSessionId);

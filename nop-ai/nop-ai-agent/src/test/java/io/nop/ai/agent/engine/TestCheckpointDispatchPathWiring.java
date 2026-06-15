@@ -34,6 +34,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -184,13 +185,24 @@ public class TestCheckpointDispatchPathWiring {
 
         executor.execute(ctx).toCompletableFuture().join();
 
-        // Wiring verification: at least one checkpoint was recorded for the session.
-        Checkpoint latest = mgr.getLatestCheckpoint("wiring-session");
-        assertNotNull(latest,
-                "checkpointManager.saveCheckpoint(...) must be invoked in the dispatch loop after tool execution (wiring verification)");
-        assertEquals(CheckpointType.TOOL_EXECUTION, latest.getType());
-        assertEquals("echo", latest.getToolName());
-        assertEquals("call_w1", latest.getCallId());
+        // Wiring verification: checkpoints were recorded for the session. With
+        // plan 187, LLM_TURN checkpoints are emitted after each LLM response
+        // too, so the latest checkpoint is the trailing LLM_TURN from the
+        // final "done" response (not the TOOL_EXECUTION). Both types must be
+        // present.
+        List<Checkpoint> all = mgr.getCheckpoints("wiring-session");
+        assertFalse(all.isEmpty(),
+                "checkpointManager.saveCheckpoint(...) must be invoked in the dispatch loop (wiring verification)");
+
+        Checkpoint toolCp = all.stream()
+                .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .findFirst().orElse(null);
+        assertNotNull(toolCp, "A TOOL_EXECUTION checkpoint must be recorded after tool execution");
+        assertEquals("echo", toolCp.getToolName());
+        assertEquals("call_w1", toolCp.getCallId());
+
+        assertTrue(all.stream().anyMatch(c -> c.getType() == CheckpointType.LLM_TURN),
+                "An LLM_TURN checkpoint must be recorded after each LLM response (plan 187)");
     }
 
     /**
@@ -223,19 +235,40 @@ public class TestCheckpointDispatchPathWiring {
 
         executor.execute(ctx).toCompletableFuture().join();
 
-        // The latest checkpoint should be the second tool ("ls").
-        Checkpoint latest = mgr.getLatestCheckpoint("multi-session");
-        assertNotNull(latest);
-        assertEquals("ls", latest.getToolName());
-        assertEquals("call_m2", latest.getCallId());
-        assertEquals(1, latest.getSeq(), "seq must increment per checkpoint within one execute() call");
+        // With plan 187, the checkpoint sequence across one execute() call is:
+        //   LLM_TURN(0) -> TOOL_EXECUTION(1, echo) -> LLM_TURN(2)
+        //   -> TOOL_EXECUTION(3, ls) -> LLM_TURN(4)
+        // All three trigger-point types share the per-execution counter.
+        List<Checkpoint> all = mgr.getCheckpoints("multi-session");
+        assertFalse(all.isEmpty());
 
-        // The first checkpoint should be retrievable by watermark.
-        // The watermark format is sessionId:tool:callId:seq
-        Checkpoint first = mgr.getCheckpoint("multi-session:tool:call_m1:0");
-        assertNotNull(first, "First checkpoint must be retrievable by watermark");
+        List<Checkpoint> toolCps = all.stream()
+                .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .collect(java.util.stream.Collectors.toList());
+        assertEquals(2, toolCps.size(), "Two TOOL_EXECUTION checkpoints (echo, ls) must be recorded");
+
+        // First tool checkpoint is "echo", second is "ls".
+        assertEquals("echo", toolCps.get(0).getToolName());
+        assertEquals("call_m1", toolCps.get(0).getCallId());
+        assertEquals("ls", toolCps.get(1).getToolName());
+        assertEquals("call_m2", toolCps.get(1).getCallId());
+
+        // seq must monotonically increase across ALL checkpoint types.
+        for (int i = 1; i < all.size(); i++) {
+            assertTrue(all.get(i).getSeq() > all.get(i - 1).getSeq(),
+                    "seq must monotonically increase across checkpoint types");
+        }
+
+        // The TOOL_EXECUTION checkpoints must still be retrievable by their
+        // watermark (the format embeds an exec-start-time disambiguator so it
+        // is unique across execute() calls). Use the checkpoint's own
+        // watermark to verify round-trip retrieval rather than hardcoding it.
+        Checkpoint first = mgr.getCheckpoint(toolCps.get(0).getWatermark());
+        assertNotNull(first, "First TOOL_EXECUTION checkpoint must be retrievable by watermark");
         assertEquals("echo", first.getToolName());
-        assertEquals(0, first.getSeq());
+        Checkpoint second = mgr.getCheckpoint(toolCps.get(1).getWatermark());
+        assertNotNull(second, "Second TOOL_EXECUTION checkpoint must be retrievable by watermark");
+        assertEquals("ls", second.getToolName());
     }
 
     // ========================================================================
@@ -276,15 +309,18 @@ public class TestCheckpointDispatchPathWiring {
         assertNotNull(sessionId, "Result must carry a sessionId");
 
         // The checkpoint was recorded with the correct tool payload.
-        Checkpoint latest = mgr.getLatestCheckpoint(sessionId);
-        assertNotNull(latest,
-                "engine.execute → dispatch loop → saveCheckpoint must record a checkpoint (end-to-end Anti-Hollow)");
-        assertEquals(CheckpointType.TOOL_EXECUTION, latest.getType());
-        assertEquals("echo", latest.getToolName());
-        assertEquals("call_e2e", latest.getCallId());
-        assertEquals("tool-output-echo", latest.getOutputSummary(),
+        List<Checkpoint> all = mgr.getCheckpoints(sessionId);
+        assertFalse(all.isEmpty(),
+                "engine.execute -> dispatch loop -> saveCheckpoint must record checkpoints (end-to-end Anti-Hollow)");
+        Checkpoint toolCp = all.stream()
+                .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .findFirst().orElse(null);
+        assertNotNull(toolCp, "A TOOL_EXECUTION checkpoint must be recorded for the echo tool");
+        assertEquals("echo", toolCp.getToolName());
+        assertEquals("call_e2e", toolCp.getCallId());
+        assertEquals("tool-output-echo", toolCp.getOutputSummary(),
                 "Checkpoint output summary must match the tool result body");
-        assertTrue(latest.getMessageCount() > 0,
+        assertTrue(toolCp.getMessageCount() > 0,
                 "Checkpoint messageCount must reflect the context size after tool execution");
     }
 
@@ -406,15 +442,28 @@ public class TestCheckpointDispatchPathWiring {
                 "test-react-agent", "run", "iso-session-b", null, ChannelKind.WEBUI, Principal.user());
         engineB.execute(reqB).toCompletableFuture().join();
 
-        // Session A's latest is "echo", session B's latest is "ls".
-        Checkpoint latestA = mgr.getLatestCheckpoint("iso-session-a");
-        Checkpoint latestB = mgr.getLatestCheckpoint("iso-session-b");
+        // Session A's TOOL_EXECUTION is "echo", session B's is "ls". Each
+        // session's checkpoint list is isolated.
+        List<Checkpoint> allA = mgr.getCheckpoints("iso-session-a");
+        List<Checkpoint> allB = mgr.getCheckpoints("iso-session-b");
 
-        assertNotNull(latestA, "Session A must have a checkpoint");
-        assertNotNull(latestB, "Session B must have a checkpoint");
-        assertEquals("echo", latestA.getToolName(),
-                "Session A's latest checkpoint must be its own tool, not session B's");
-        assertEquals("ls", latestB.getToolName(),
-                "Session B's latest checkpoint must be its own tool, not session A's");
+        Checkpoint toolA = allA.stream()
+                .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .findFirst().orElse(null);
+        Checkpoint toolB = allB.stream()
+                .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .findFirst().orElse(null);
+
+        assertNotNull(toolA, "Session A must have a TOOL_EXECUTION checkpoint");
+        assertNotNull(toolB, "Session B must have a TOOL_EXECUTION checkpoint");
+        assertEquals("echo", toolA.getToolName(),
+                "Session A's TOOL_EXECUTION checkpoint must be its own tool, not session B's");
+        assertEquals("ls", toolB.getToolName(),
+                "Session B's TOOL_EXECUTION checkpoint must be its own tool, not session A's");
+
+        // No cross-session contamination of watermarks.
+        for (Checkpoint c : allA) {
+            assertTrue(!allB.contains(c), "Session A's checkpoints must not appear in session B");
+        }
     }
 }

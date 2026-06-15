@@ -47,8 +47,9 @@ package io.nop.ai.agent.reliability;
  * (consistent with the L3-6 finding L3-G5 narrowing). The
  * {@link NoOpCheckpoint} default does not persist; the
  * {@code ToolExecutionCheckpoint} functional implementation is in-memory (no
- * persistence). A DB-backed persistent checkpoint store is an independent
- * successor (refer to the plan 179 {@code DBDenialLedger} pattern).
+ * persistence). The DB-backed persistent checkpoint store has landed as
+ * {@link DBCheckpointManager} (plan 186), following the plan 179
+ * {@code DBDenialLedger} pattern.
  */
 public interface ICheckpointManager {
 

@@ -157,4 +157,80 @@ public class TestAgentSession {
         assertTrue(session.getCompactedAt() >= before);
         assertTrue(session.getUpdatedAt() >= before);
     }
+
+    // ========================================================================
+    // replaceMessages (plan 183 Phase 1)
+    // ========================================================================
+
+    @Test
+    void replaceMessagesClearsAndSetsFullList() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+        session.appendMessages(List.of(new ChatUserMessage("old")));
+
+        ChatAssistantMessage msg1 = new ChatAssistantMessage();
+        msg1.setContent("new1");
+        ChatAssistantMessage msg2 = new ChatAssistantMessage();
+        msg2.setContent("new2");
+
+        session.replaceMessages(List.of(msg1, msg2));
+
+        assertEquals(2, session.getMessageCount(),
+                "replaceMessages must replace the full list (not append)");
+        assertEquals("new1", session.getMessages().get(0).getContent());
+        assertEquals("new2", session.getMessages().get(1).getContent());
+    }
+
+    @Test
+    void replaceMessagesIsIdempotent() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+
+        List<ChatMessage> msgs = List.of(new ChatUserMessage("a"), new ChatUserMessage("b"));
+
+        session.replaceMessages(msgs);
+        int countAfterFirst = session.getMessageCount();
+
+        session.replaceMessages(msgs);
+        int countAfterSecond = session.getMessageCount();
+
+        assertEquals(countAfterFirst, countAfterSecond,
+                "replaceMessages must be idempotent — same input, same terminal state");
+        assertEquals(2, countAfterSecond);
+    }
+
+    @Test
+    void replaceMessagesWithNullClearsAll() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+        session.appendMessages(List.of(new ChatUserMessage("a"), new ChatUserMessage("b")));
+
+        session.replaceMessages(null);
+
+        assertEquals(0, session.getMessageCount(),
+                "replaceMessages(null) must clear all messages");
+    }
+
+    @Test
+    void replaceMessagesDoesNotMutateInput() {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+        List<ChatMessage> input = new java.util.ArrayList<>();
+        input.add(new ChatUserMessage("a"));
+
+        session.replaceMessages(input);
+        // Mutate the input list after replace
+        input.add(new ChatUserMessage("b"));
+
+        assertEquals(1, session.getMessageCount(),
+                "replaceMessages must copy the input — subsequent input mutation must not affect the session");
+    }
+
+    @Test
+    void replaceMessagesTouchesUpdatedAt() throws InterruptedException {
+        AgentSession session = AgentSession.create("sess-1", "agent");
+        long before = session.getUpdatedAt();
+
+        Thread.sleep(5);
+        session.replaceMessages(List.of(new ChatUserMessage("x")));
+
+        assertTrue(session.getUpdatedAt() >= before,
+                "replaceMessages must touch updatedAt");
+    }
 }

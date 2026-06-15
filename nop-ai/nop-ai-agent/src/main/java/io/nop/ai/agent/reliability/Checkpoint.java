@@ -29,8 +29,8 @@ import java.util.Objects;
  * <p><b>Persistence non-mandate</b>: a {@code Checkpoint} is a pure data
  * holder. Whether it is persisted is a property of the
  * {@link ICheckpointManager} implementation (the {@link NoOpCheckpoint}
- * default does not persist; a future DB-backed successor will). This is
- * consistent with the L3-6 {@code IDenialLedger} persistence-narrowing
+ * default does not persist; the DB-backed {@link DBCheckpointManager} does).
+ * This is consistent with the L3-6 {@code IDenialLedger} persistence-narrowing
  * (finding L3-G5): persistence is an implementation property, not an
  * interface contract.
  */

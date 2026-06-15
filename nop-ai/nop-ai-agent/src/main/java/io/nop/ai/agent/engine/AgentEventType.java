@@ -51,5 +51,30 @@ public enum AgentEventType {
      * recovery action. The event payload carries {@code approver},
      * {@code reason}, and {@code preResetDenialCount} for audit trail.
      */
-    SESSION_RESUMED
+    SESSION_RESUMED,
+
+    /**
+     * Session restored after a process crash/restart (plan 183
+     * crash/restart durable session restore protocol, design §1.1 / §5.4a):
+     * an explicit {@code IAgentEngine.restoreSession(sessionId, approver, reason)}
+     * call detected that the session was not in the active-execution map
+     * ({@code runningExecutions}), loaded its persistent state from a
+     * {@link io.nop.ai.agent.session.FileBackedSessionStore}, rebuilt the
+     * {@link AgentExecutionContext} via {@code buildBaseExecutionContext}
+     * (complete message-history replay), verified consistency against the
+     * latest {@link io.nop.ai.agent.reliability.Checkpoint} (checkpoint
+     * journal consumption — first time the checkpoint subsystem is used on
+     * the restore path), transitioned status to {@code running}, and resumed
+     * ReAct execution.
+     * <p>
+     * Semantically distinct from {@link #SESSION_RESUMED}: resume clears a
+     * denial-ledger sticky-pause on an in-memory paused session (plan 180);
+     * restore recovers a session from persistent state after a crash/restart
+     * where the session is not in the active memory (plan 183).
+     * <p>
+     * The event payload carries {@code approver}, {@code reason}, and
+     * {@code latestCheckpointWatermark} (null when no checkpoint exists) for
+     * audit trail.
+     */
+    SESSION_RESTORED
 }

@@ -72,6 +72,8 @@ import io.nop.ai.agent.security.SecurityLevel;
 import io.nop.ai.agent.security.ToolAccessResult;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.security.ToolPathArgKeys;
+import io.nop.ai.agent.session.AgentSession;
+import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.agent.skill.ISkillProvider;
 import io.nop.ai.agent.skill.NoOpSkillProvider;
 import io.nop.ai.agent.skill.SkillAssemblyResult;
@@ -142,6 +144,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IDenialLedger denialLedger;
     private final IPostDenialGuard postDenialGuard;
     private final ICheckpointManager checkpointManager;
+    private final ISessionStore sessionStore;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -166,7 +169,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                   IApprovalGate approvalGate,
                                   IDenialLedger denialLedger,
                                   IPostDenialGuard postDenialGuard,
-                                  ICheckpointManager checkpointManager) {
+                                  ICheckpointManager checkpointManager,
+                                  ISessionStore sessionStore) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -206,6 +210,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.checkpointManager = checkpointManager != null
                 ? checkpointManager
                 : NoOpCheckpoint.noOp();
+        this.sessionStore = sessionStore;
     }
 
     public static Builder builder() {
@@ -238,6 +243,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IDenialLedger denialLedger;
         private IPostDenialGuard postDenialGuard;
         private ICheckpointManager checkpointManager;
+        private ISessionStore sessionStore;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -434,6 +440,27 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Wire the {@link ISessionStore} consulted in the dispatch loop
+         * (plan 183 Phase 1) after every {@code saveCheckpoint} call: the
+         * session's message list is synchronized to the latest
+         * {@code ctx.getMessages()} (via {@code replaceMessages}) and the
+         * session is persisted via {@code save}. This is the
+         * <b>intra-execution</b> persistence path that makes crash/restart
+         * restore viable — a crash mid-execution leaves a session file with
+         * all messages produced up to the last completed tool call. With the
+         * {@link io.nop.ai.agent.session.InMemorySessionStore} default
+         * {@code save} is a no-op (in-memory readers share the live
+         * reference), so wiring is transparent to existing behaviour
+         * (backward compatible). When {@code sessionStore} is null (executor
+         * constructed outside the engine for testing), the intra-execution
+         * persistence is skipped.
+         */
+        public Builder sessionStore(ISessionStore sessionStore) {
+            this.sessionStore = sessionStore;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -466,7 +493,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     approvalGate,
                     denialLedger,
                     postDenialGuard,
-                    checkpointManager
+                    checkpointManager,
+                    sessionStore
             );
         }
     }
@@ -493,9 +521,22 @@ public class ReActAgentExecutor implements IAgentExecutor {
         int consecutiveContinues = 0;
 
         // Per-execution checkpoint sequence counter (design §5.4 / L3-4):
-        // monotonically increments each time a TOOL_EXECUTION checkpoint is
-        // recorded, so checkpoints within one execute() call are ordered.
-        int checkpointSeq = 0;
+        // monotonically increments each time a checkpoint (TOOL_EXECUTION /
+        // LLM_TURN / COMPACTION) is recorded, so checkpoints within one
+        // execute() call are ordered across trigger-point types. Passed as a
+        // 1-element holder so performCompaction / handleForcedStop can record
+        // a COMPACTION checkpoint on the same counter (plan 187). The holder
+        // stays a per-execution local (not promoted to a field), consistent
+        // with the TOOL_EXECUTION-only behaviour.
+        int[] checkpointSeq = {0};
+
+        // Per-execution disambiguator embedded in checkpoint watermarks so
+        // watermarks stay unique across separate execute() calls sharing the
+        // same sessionId (e.g. a crash/restart restore re-execution persists
+        // to the same DB-backed manager). The seq alone resets to 0 on each
+        // execute(), so without this component a restored LLM_TURN(0) would
+        // collide with the pre-crash LLM_TURN(0) watermark (plan 187).
+        long execStartTime = ctx.getStartTimeMs();
 
         try {
             HookResult preCallResult = invokeHooks(AgentLifecyclePoint.PRE_CALL, ctx, agentName, null, null);
@@ -528,12 +569,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 }
 
                 if (shouldForceStop(ctx)) {
-                    handleForcedStop(ctx, sessionId, agentName);
+                    handleForcedStop(ctx, sessionId, agentName, checkpointSeq);
                     break;
                 }
 
                 if (shouldTriggerCompaction(ctx)) {
-                    performCompaction(ctx, agentName);
+                    performCompaction(ctx, agentName, checkpointSeq);
                 }
 
                 HookResult preReasoningResult = invokeHooks(AgentLifecyclePoint.PRE_REASONING, ctx, agentName, null, null);
@@ -582,6 +623,52 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
                     if (promptTokens > 0) {
                         tokenEstimator.record(messagesAtCallTime, promptTokens);
+                    }
+                }
+
+                // Plan 187 Phase 1 LLM-turn checkpoint (design §5.4a "after
+                // each LLM turn completes" trigger point): now that the
+                // assistant response has been added to the context and token
+                // accounting is done, record an LLM_TURN checkpoint. This
+                // provides a finer-grained recovery point than TOOL_EXECUTION
+                // — a crash after the LLM responds but before a tool executes
+                // resumes from this turn instead of the previous tool call.
+                // Emitted before the completion judge and the output guardrail
+                // so the checkpoint captures the original LLM response for
+                // every successful turn regardless of the judge/guardrail
+                // outcome. With the shipped NoOpCheckpoint default this is a
+                // no-op.
+                String llmOutputSummary = assistantMsg.getContent() != null ? assistantMsg.getContent() : "";
+                llmOutputSummary = ToolResultTruncator.truncateIfAllowed(
+                        llmOutputSummary,
+                        ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS,
+                        null);
+                checkpointManager.saveCheckpoint(Checkpoint.of(
+                        sessionId,
+                        sessionId != null
+                                ? sessionId + ":llm:" + execStartTime + ":" + checkpointSeq[0]
+                                : "anon:llm:" + execStartTime + ":" + checkpointSeq[0],
+                        checkpointSeq[0],
+                        System.currentTimeMillis(),
+                        CheckpointType.LLM_TURN,
+                        null,
+                        null,
+                        null,
+                        llmOutputSummary,
+                        ctx.getMessages().size(),
+                        ctx.getTokensUsed()));
+                checkpointSeq[0]++;
+
+                // Plan 187 intra-execution persistence (same plan 183
+                // TOOL_EXECUTION pattern): after the LLM_TURN checkpoint is
+                // written, synchronize the persisted session's message list so
+                // the restore invariant checkpoint.messageCount <=
+                // session.messageCount holds for LLM_TURN checkpoints too.
+                if (sessionStore != null) {
+                    AgentSession persistedLlm = sessionStore.get(sessionId);
+                    if (persistedLlm != null) {
+                        persistedLlm.replaceMessages(ctx.getMessages());
+                        sessionStore.save(persistedLlm);
                     }
                 }
 
@@ -918,9 +1005,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         checkpointManager.saveCheckpoint(Checkpoint.of(
                                 sessionId,
                                 sessionId != null
-                                        ? sessionId + ":tool:" + chatToolCall.getId() + ":" + checkpointSeq
-                                        : "anon:tool:" + chatToolCall.getId() + ":" + checkpointSeq,
-                                checkpointSeq,
+                                        ? sessionId + ":tool:" + chatToolCall.getId() + ":" + execStartTime + ":" + checkpointSeq[0]
+                                        : "anon:tool:" + chatToolCall.getId() + ":" + execStartTime + ":" + checkpointSeq[0],
+                                checkpointSeq[0],
                                 System.currentTimeMillis(),
                                 CheckpointType.TOOL_EXECUTION,
                                 toolName,
@@ -929,7 +1016,25 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                 toolResponse.getContent(),
                                 ctx.getMessages().size(),
                                 ctx.getTokensUsed()));
-                        checkpointSeq++;
+                        checkpointSeq[0]++;
+
+                        // Plan 183 Phase 1 intra-execution persistence: after
+                        // the checkpoint is written, synchronize the session's
+                        // message list with the live ctx.getMessages() and
+                        // persist via sessionStore.save. This makes the
+                        // session file carry all messages produced up to the
+                        // last completed tool call, so a crash mid-execution
+                        // leaves a restorable state. With the
+                        // InMemorySessionStore default save is a no-op
+                        // (in-memory readers share the live reference), so
+                        // this is transparent to existing behaviour.
+                        if (sessionStore != null) {
+                            AgentSession persisted = sessionStore.get(sessionId);
+                            if (persisted != null) {
+                                persisted.replaceMessages(ctx.getMessages());
+                                sessionStore.save(persisted);
+                            }
+                        }
 
                         invokeHooks(AgentLifecyclePoint.POST_ACTING, ctx, agentName, toolName, chatToolCall.getId());
 
@@ -1125,14 +1230,15 @@ public class ReActAgentExecutor implements IAgentExecutor {
         return false;
     }
 
-    private void handleForcedStop(AgentExecutionContext ctx, String sessionId, String agentName) {
+    private void handleForcedStop(AgentExecutionContext ctx, String sessionId, String agentName,
+                                  int[] checkpointSeq) {
         long maxContextTokens = resolveMaxContextTokens(ctx);
         long estimate = tokenEstimator.estimateTokens(ctx.getMessages());
 
         // Best-effort final summary: run the compaction pipeline (Layer 1 -> 2 -> 3)
         // so a final summary/tail is retained for the record. Never fails the agent.
         try {
-            performCompaction(ctx, agentName);
+            performCompaction(ctx, agentName, checkpointSeq);
         } catch (Exception e) {
             LOG.warn("Final-summary compaction during forced stop failed, continuing with tail retention. session={}",
                     sessionId, e);
@@ -1162,7 +1268,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         return DEFAULT_MAX_CONTEXT_TOKENS;
     }
 
-    private void performCompaction(AgentExecutionContext ctx, String agentName) {
+    private void performCompaction(AgentExecutionContext ctx, String agentName, int[] checkpointSeq) {
         CompactConfig config = CompactConfig.defaults();
 
         CompactionContext compactCtx = new CompactionContext(
@@ -1191,6 +1297,49 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 LOG.info("Context compacted: tokens {} -> {}, retained {} messages for session {}",
                         result.getTokensBefore(), result.getTokensAfter(),
                         result.getRetainedMessageCount(), ctx.getSessionId());
+
+                // Plan 187 Phase 2 compaction checkpoint (design §5.4a
+                // "snapshot on compaction" trigger point): after the context
+                // has actually been compacted (messages replaced + token
+                // accounting adjusted), record a COMPACTION checkpoint
+                // marking the new post-compaction baseline. Emitted only when
+                // real compaction happened — the NoOpContextCompactor default
+                // returns compactedMessages == null, so no spurious checkpoint
+                // is produced. With the shipped NoOpCheckpoint default the
+                // saveCheckpoint call itself is a no-op.
+                String compactSummary = "compacted: " + result.getTokensBefore() + "->"
+                        + result.getTokensAfter() + " tokens, " + result.getRetainedMessageCount()
+                        + " messages";
+                String compactionSessionId = ctx.getSessionId();
+                long compactExecStart = ctx.getStartTimeMs();
+                checkpointManager.saveCheckpoint(Checkpoint.of(
+                        compactionSessionId,
+                        compactionSessionId != null
+                                ? compactionSessionId + ":compact:" + compactExecStart + ":" + checkpointSeq[0]
+                                : "anon:compact:" + compactExecStart + ":" + checkpointSeq[0],
+                        checkpointSeq[0],
+                        System.currentTimeMillis(),
+                        CheckpointType.COMPACTION,
+                        null,
+                        null,
+                        null,
+                        compactSummary,
+                        ctx.getMessages().size(),
+                        ctx.getTokensUsed()));
+                checkpointSeq[0]++;
+
+                // Plan 187 intra-execution persistence: compaction replaced
+                // the message list, so the persisted session must be
+                // re-synchronized. Without this, a crash after compaction
+                // would restore pre-compaction messages and break the
+                // checkpoint.messageCount <= session.messageCount invariant.
+                if (sessionStore != null) {
+                    AgentSession persistedCompacted = sessionStore.get(compactionSessionId);
+                    if (persistedCompacted != null) {
+                        persistedCompacted.replaceMessages(ctx.getMessages());
+                        sessionStore.save(persistedCompacted);
+                    }
+                }
             }
         }
     }

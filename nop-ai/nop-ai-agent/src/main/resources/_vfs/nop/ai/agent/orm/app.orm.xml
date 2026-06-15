@@ -15,6 +15,13 @@
         <domain name="denialReason" precision="500" stdSqlType="VARCHAR"/>
         <domain name="matchedRule" precision="200" stdSqlType="VARCHAR"/>
         <domain name="denialTimestamp" stdSqlType="BIGINT"/>
+        <domain name="agentName" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="sessionStatus" precision="30" stdSqlType="VARCHAR"/>
+        <domain name="epochMillis" stdSqlType="BIGINT"/>
+        <domain name="watermark" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="callId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="checkpointType" precision="30" stdSqlType="VARCHAR"/>
+        <domain name="seqNumber" stdSqlType="INTEGER"/>
     </domains>
 
     <entities>
@@ -74,6 +81,67 @@
                 <column name="createdAt" code="CREATED_AT" propId="8" mandatory="true"
                         domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         displayName="Created At"/>
+            </columns>
+        </entity>
+        <entity name="io.nop.ai.agent.session.AiAgentSession" tableName="ai_agent_session"
+                displayName="AI Agent Session" registerShortName="true">
+            <columns>
+                <column name="sessionId" code="SESSION_ID" propId="1" primary="true" mandatory="true"
+                        domain="sessionId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Session ID"/>
+                <column name="agentName" code="AGENT_NAME" propId="2"
+                        domain="agentName" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Agent Name"/>
+                <column name="status" code="STATUS" propId="3"
+                        domain="sessionStatus" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Session Status"/>
+                <column name="sessionData" code="SESSION_DATA" propId="4" mandatory="true"
+                        stdDataType="string" stdSqlType="CLOB"
+                        displayName="Session Data (JSON)"/>
+                <column name="createdAt" code="CREATED_AT" propId="5" mandatory="true"
+                        domain="epochMillis" stdDataType="long" stdSqlType="BIGINT"
+                        displayName="Created At"/>
+                <column name="updatedAt" code="UPDATED_AT" propId="6" mandatory="true"
+                        domain="epochMillis" stdDataType="long" stdSqlType="BIGINT"
+                        displayName="Updated At"/>
+            </columns>
+        </entity>
+        <entity name="io.nop.ai.agent.reliability.AiAgentCheckpoint" tableName="ai_agent_checkpoint"
+                displayName="AI Agent Checkpoint" registerShortName="true">
+            <columns>
+                <column name="watermark" code="WATERMARK" propId="1" primary="true" mandatory="true"
+                        domain="watermark" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Watermark"/>
+                <column name="sessionId" code="SESSION_ID" propId="2"
+                        domain="sessionId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Session ID"/>
+                <column name="seq" code="SEQ" propId="3" mandatory="true"
+                        domain="seqNumber" stdDataType="int" stdSqlType="INTEGER"
+                        displayName="Sequence"/>
+                <column name="checkpointTimestamp" code="CHECKPOINT_TIMESTAMP" propId="4" mandatory="true"
+                        domain="epochMillis" stdDataType="long" stdSqlType="BIGINT"
+                        displayName="Checkpoint Timestamp"/>
+                <column name="checkpointType" code="CHECKPOINT_TYPE" propId="5" mandatory="true"
+                        domain="checkpointType" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Checkpoint Type"/>
+                <column name="toolName" code="TOOL_NAME" propId="6"
+                        domain="toolName" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Tool Name"/>
+                <column name="callId" code="CALL_ID" propId="7"
+                        domain="callId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Call ID"/>
+                <column name="inputSummary" code="INPUT_SUMMARY" propId="8"
+                        stdDataType="string" stdSqlType="CLOB"
+                        displayName="Input Summary"/>
+                <column name="outputSummary" code="OUTPUT_SUMMARY" propId="9"
+                        stdDataType="string" stdSqlType="CLOB"
+                        displayName="Output Summary"/>
+                <column name="messageCount" code="MESSAGE_COUNT" propId="10" mandatory="true"
+                        domain="seqNumber" stdDataType="int" stdSqlType="INTEGER"
+                        displayName="Message Count"/>
+                <column name="tokenEstimate" code="TOKEN_ESTIMATE" propId="11" mandatory="true"
+                        domain="epochMillis" stdDataType="long" stdSqlType="BIGINT"
+                        displayName="Token Estimate"/>
             </columns>
         </entity>
     </entities>

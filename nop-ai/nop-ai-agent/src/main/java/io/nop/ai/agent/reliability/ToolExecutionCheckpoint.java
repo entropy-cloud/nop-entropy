@@ -16,10 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * link with a real in-memory counter).
  *
  * <p><b>In-memory, non-persistent</b>: checkpoints survive only as long as this
- * instance lives. A DB-backed persistent checkpoint store (e.g.
- * {@code DBCheckpointStore}) is an independent successor, following the plan
- * 179 {@code DBDenialLedger} pattern. The in-memory default is fully usable
- * for single-process crash recovery and for testing the dispatch-loop wiring.
+ * instance lives. The DB-backed persistent checkpoint store has landed as
+ * {@link DBCheckpointManager}, following the plan 179 {@code DBDenialLedger}
+ * pattern. The in-memory default is fully usable for single-process crash
+ * recovery and for testing the dispatch-loop wiring.
  *
  * <p><b>Thread safety</b>: guaranteed by concurrent data structures.
  * Per-session checkpoint lists are stored as synchronized {@link ArrayList}s
@@ -76,5 +76,29 @@ public class ToolExecutionCheckpoint implements ICheckpointManager {
             return null;
         }
         return byWatermark.get(watermark);
+    }
+
+    /**
+     * Return an unmodifiable snapshot copy of all checkpoints recorded for a
+     * session, in insertion (seq) order. Enables callers (tests, restore
+     * successor) to inspect the full checkpoint history of a session and
+     * filter by {@link CheckpointType}, rather than only retrieving the latest
+     * or a single watermark.
+     *
+     * @param sessionId the session identifier; may be null (returns empty list)
+     * @return an unmodifiable list of checkpoints for the session; empty if
+     *         none recorded
+     */
+    public List<Checkpoint> getCheckpoints(String sessionId) {
+        if (sessionId == null) {
+            return List.of();
+        }
+        List<Checkpoint> list = bySession.get(sessionId);
+        if (list == null || list.isEmpty()) {
+            return List.of();
+        }
+        synchronized (list) {
+            return List.copyOf(list);
+        }
     }
 }

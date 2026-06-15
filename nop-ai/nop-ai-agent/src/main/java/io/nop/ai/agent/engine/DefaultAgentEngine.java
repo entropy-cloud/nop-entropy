@@ -14,6 +14,7 @@ import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.repair.IToolCallRepairer;
+import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.ICheckpointManager;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.router.IModelRouter;
@@ -61,6 +62,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -650,16 +653,21 @@ public class DefaultAgentEngine implements IAgentEngine {
                 session.setStatus(ctx.getStatus());
             }
 
-            List<ChatMessage> allMessages = ctx.getMessages();
-            int currentCount = allMessages.size();
-            if (currentCount > historyCount) {
-                List<ChatMessage> newMessages = new ArrayList<>(allMessages.subList(historyCount, currentCount));
-                session.appendMessages(newMessages);
-            }
+            // Plan 183 Phase 1: replaceMessages replaces the session's message
+            // list with the full ctx.getMessages() (idempotent full-sync). This
+            // unifies the intra-execution and post-execution sync paths: both
+            // produce the same terminal state (session.messages == ctx
+            // messages) without duplicate appends. When the executor ran
+            // intra-execution persistence (FileBackedSessionStore), the final
+            // replaceMessages here is idempotent — same messages, same result.
+            // When no intra-execution persistence ran (InMemorySessionStore),
+            // this is the only sync and produces the complete session state.
+            session.replaceMessages(ctx.getMessages());
 
             session.addTokensUsed(ctx.getTokensUsed());
             session.addIterations(ctx.getCurrentIteration());
             session.touch();
+            sessionStore.save(session);
 
             return result;
         });
@@ -734,7 +742,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         // execution left off, letting the LLM re-plan from the last denied
         // tool-call error response rather than starting a new turn).
         AgentModel agentModel = loadAgentModel(agentName);
-        int historyCount = session.getMessageCount();
         AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
 
         // Resolve the executor with the engine's own checkers (no parent
@@ -757,19 +764,235 @@ public class DefaultAgentEngine implements IAgentEngine {
                 session.setStatus(ctx.getStatus());
             }
 
-            List<ChatMessage> allMessages = ctx.getMessages();
-            int currentCount = allMessages.size();
-            if (currentCount > historyCount) {
-                List<ChatMessage> newMessages = new ArrayList<>(allMessages.subList(historyCount, currentCount));
-                session.appendMessages(newMessages);
-            }
+            // Plan 183 Phase 1: replaceMessages unifies the post-execution
+            // sync with the intra-execution persistence path (see doExecute
+            // for the full rationale). Idempotent full-sync — no duplicate
+            // appends.
+            session.replaceMessages(ctx.getMessages());
 
             session.addTokensUsed(ctx.getTokensUsed());
             session.addIterations(ctx.getCurrentIteration());
             session.touch();
+            sessionStore.save(session);
 
             return result;
         });
+    }
+
+    @Override
+    public CompletableFuture<AgentExecutionResult> restoreSession(String sessionId, String approver, String reason) {
+        if (sessionId == null || sessionId.isEmpty()) {
+            throw new NopAiAgentException(
+                    "restoreSession failed: sessionId must not be null or empty");
+        }
+        // Fail-fast: session is still in active memory — not a crash-restart
+        // scenario. Use execute/resumeSession instead.
+        if (runningExecutions.containsKey(sessionId)) {
+            throw new NopAiAgentException(
+                    "restoreSession failed: session is still in active execution map "
+                            + "(not a crash-restart scenario — use execute or resumeSession): sessionId="
+                            + sessionId);
+        }
+
+        // Load from persistent store (FileBackedSessionStore.get returns the
+        // persisted session on cache-miss; InMemorySessionStore.get returns
+        // null for unknown sessions, which is the correct "no persistent
+        // state" signal).
+        AgentSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            throw new NopAiAgentException(
+                    "restoreSession failed: no persistent state found for session "
+                            + "(was the session ever persisted, or is the session store in-memory only?): sessionId="
+                            + sessionId);
+        }
+
+        AgentExecStatus currentStatus = session.getStatus();
+        if (isTerminalStatus(currentStatus)) {
+            throw new NopAiAgentException(
+                    "restoreSession failed: session is in a terminal state (status="
+                            + currentStatus + "), only non-terminal sessions can be restored: sessionId="
+                            + sessionId);
+        }
+
+        String agentName = session.getAgentName();
+
+        // Checkpoint journal consumption (plan 182 investment realized on
+        // the restore path): the latest checkpoint provides resume-point
+        // metadata + a consistency check (checkpoint.messageCount ≤ persisted
+        // session.messageCount, since the checkpoint was written after a tool
+        // execution that produced messages now present in the session file).
+        // Best-effort: a warning is logged on inconsistency but recovery is
+        // not blocked — the persisted session is the source of truth, the
+        // checkpoint is a verification supplement, not a message source.
+        Checkpoint latestCheckpoint = checkpointManager.getLatestCheckpoint(sessionId);
+        String latestCheckpointWatermark = null;
+        if (latestCheckpoint != null) {
+            latestCheckpointWatermark = latestCheckpoint.getWatermark();
+            int checkpointMsgCount = latestCheckpoint.getMessageCount();
+            int sessionMsgCount = session.getMessageCount();
+            if (checkpointMsgCount > sessionMsgCount) {
+                LOG.warn("restoreSession checkpoint consistency warning: checkpoint messageCount {} "
+                                + "exceeds persisted session messageCount {} — persisted history may be incomplete. "
+                                + "Continuing with best-effort recovery (session is source of truth). session={}",
+                        checkpointMsgCount, sessionMsgCount, sessionId);
+            }
+        }
+
+        // Transition the session back to running before re-execution. A
+        // session that was running when the process crashed has status=running
+        // in the persisted file; a pending session has status=pending. Both
+        // are non-terminal and valid restore candidates.
+        session.setStatus(AgentExecStatus.running);
+
+        // Publish the SESSION_RESTORED audit event carrying approver, reason,
+        // and latestCheckpointWatermark for audit trail.
+        Map<String, Object> restorePayload = new HashMap<>();
+        restorePayload.put("approver", approver != null ? approver : "");
+        restorePayload.put("reason", reason != null ? reason : "");
+        restorePayload.put("latestCheckpointWatermark",
+                latestCheckpointWatermark != null ? latestCheckpointWatermark : "");
+        restorePayload.put("preRestoreStatus", currentStatus != null ? currentStatus.name() : "");
+        eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESTORED,
+                sessionId, agentName, restorePayload));
+
+        // Rebuild the execution context from the agent model + the persisted
+        // conversation history (NO new user message — restore continues where
+        // the crashed execution left off, letting the LLM re-plan from the
+        // last completed tool result rather than starting a new turn).
+        AgentModel agentModel = loadAgentModel(agentName);
+        AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
+
+        IToolAccessChecker effectiveToolAccessChecker = this.toolAccessChecker;
+        IPathAccessChecker effectivePathAccessChecker = resolvePerAgentPathChecker(agentModel);
+        IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
+
+        return CompletableFuture.supplyAsync(() -> {
+            CancelHandle handle = new CancelHandle(ctx, Thread.currentThread());
+            runningExecutions.put(sessionId, handle);
+
+            AgentExecutionResult result;
+            try {
+                result = executor.execute(ctx).toCompletableFuture().join();
+            } finally {
+                runningExecutions.remove(sessionId);
+                session.setStatus(ctx.getStatus());
+            }
+
+            // Plan 183 Phase 1: replaceMessages unifies the post-execution
+            // sync with the intra-execution persistence path.
+            session.replaceMessages(ctx.getMessages());
+
+            session.addTokensUsed(ctx.getTokensUsed());
+            session.addIterations(ctx.getCurrentIteration());
+            session.touch();
+            sessionStore.save(session);
+
+            return result;
+        });
+    }
+
+    /**
+     * Plan 184 auto-restore-on-startup batch orchestrator. Discovers every
+     * persisted session via {@link ISessionStore#listAllSessions()}, filters
+     * to {@code running}/{@code pending} candidates (skipping {@code paused}
+     * — governance — and terminal statuses), restores each candidate
+     * sequentially by delegating to {@link #restoreSession}, and returns a
+     * {@link SessionRestoreSummary}. Per-session failure isolation: a thrown
+     * restore is recorded in the failed bucket and the batch continues.
+     *
+     * <p>See {@link IAgentEngine#restorePendingSessions} for the full
+     * contract. The implementation deliberately reuses {@code restoreSession}
+     * rather than re-implementing the restore protocol, so the checkpoint
+     * consistency check, {@code SESSION_RESTORED} event publication, and
+     * post-execution persistence are identical for batch and single-session
+     * restores (Wiring Verification — Minimum Rules #23).
+     */
+    @Override
+    public SessionRestoreSummary restorePendingSessions(String approver, String reason) {
+        Collection<AgentSession> discovered;
+        try {
+            discovered = sessionStore.listAllSessions();
+        } catch (UnsupportedOperationException e) {
+            // Fail-fast: store does not support discovery. Surface as
+            // NopAiAgentException so the operator learns the deployment is
+            // misconfigured rather than seeing a silent empty summary.
+            throw new NopAiAgentException(
+                    "restorePendingSessions failed: the session store does not support "
+                            + "discovery (listAllSessions threw UnsupportedOperationException). "
+                            + "Auto-restore requires a discovery-capable store such as "
+                            + "FileBackedSessionStore. Underlying error: " + e.getMessage(), e);
+        }
+        if (discovered == null || discovered.isEmpty()) {
+            return new SessionRestoreSummary(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList());
+        }
+
+        List<SessionRestoreSummary.Entry> restored = new ArrayList<>();
+        List<SessionRestoreSummary.SkipEntry> skipped = new ArrayList<>();
+        List<SessionRestoreSummary.Entry> failed = new ArrayList<>();
+
+        // Iterate over a snapshot to avoid concurrent-modification surprises
+        // if restoreSession mutates the store's cache.
+        List<AgentSession> snapshot = new ArrayList<>(discovered);
+        for (AgentSession session : snapshot) {
+            String sessionId = session.getSessionId();
+            AgentExecStatus status = session.getStatus();
+
+            if (status == AgentExecStatus.running || status == AgentExecStatus.pending) {
+                // Restore candidate. Delegate to the single-session primitive
+                // (Wiring Verification: this calls restoreSession rather than
+                // duplicating the restore protocol). Sequential restore with
+                // per-session failure isolation.
+                try {
+                    AgentExecutionResult result = restoreSession(sessionId, approver, reason)
+                            .toCompletableFuture().join();
+                    restored.add(new SessionRestoreSummary.Entry(
+                            sessionId,
+                            result.getStatus() != null ? result.getStatus().name() : "unknown"));
+                } catch (Throwable t) {
+                    // A single session restore failure must not abort the
+                    // batch. Record the failure and continue.
+                    LOG.warn("DefaultAgentEngine.restorePendingSessions: failed to restore session {}",
+                            sessionId, t);
+                    failed.add(new SessionRestoreSummary.Entry(sessionId, t.toString()));
+                }
+            } else if (status == AgentExecStatus.paused) {
+                // Governance: sticky-pause requires an explicit human
+                // resumeSession (plan 180). Auto-restore would bypass the
+                // human-intervention contract.
+                skipped.add(new SessionRestoreSummary.SkipEntry(
+                        sessionId, status,
+                        "paused: sticky-pause requires an explicit resumeSession (plan 180)"));
+            } else if (isTerminalStatus(status)) {
+                skipped.add(new SessionRestoreSummary.SkipEntry(
+                        sessionId, status,
+                        "terminal: session already reached a final outcome"));
+            } else {
+                skipped.add(new SessionRestoreSummary.SkipEntry(
+                        sessionId, status,
+                        "non-restorable status: " + status));
+            }
+        }
+
+        LOG.info("restorePendingSessions completed: restored={}, skipped={}, failed={} (approver={}, reason={})",
+                restored.size(), skipped.size(), failed.size(), approver, reason);
+
+        return new SessionRestoreSummary(restored, skipped, failed);
+    }
+
+    /**
+     * Returns true if the status is terminal (the session has finished and
+     * cannot be restored). A session in a terminal state has no reason to be
+     * restored — it already reached a final outcome.
+     */
+    private static boolean isTerminalStatus(AgentExecStatus status) {
+        return status == AgentExecStatus.completed
+                || status == AgentExecStatus.failed
+                || status == AgentExecStatus.cancelled
+                || status == AgentExecStatus.forced_stopped
+                || status == AgentExecStatus.escalated;
     }
 
     /**
@@ -933,6 +1156,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .denialLedger(denialLedger)
                     .postDenialGuard(postDenialGuard)
                     .checkpointManager(checkpointManager)
+                    .sessionStore(this.sessionStore)
                     .build();
         }
         if ("single-turn".equals(mode)) {
@@ -946,7 +1170,15 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     private String resolveSessionId(String sessionId) {
         if (sessionId != null && !sessionId.isEmpty()) {
-            return sessionId;
+            // P0 path-traversal guard (finding [13-15]): a caller-controlled
+            // sessionId flows into Path.resolve(sessionId) in the file-backed
+            // stores. Reject any id outside [A-Za-z0-9_-] before use. The
+            // UUID fallback below produces a regex-safe id by construction.
+            // Note: this covers execute/sendMessage only — resumeSession/
+            // restoreSession/cancelSession bypass resolveSessionId and are
+            // guarded by the store/checkpoint-layer containment check
+            // (SessionIds.requireContainedPath).
+            return SessionIds.requireValidIdentifier(sessionId);
         }
         return UUID.randomUUID().toString();
     }

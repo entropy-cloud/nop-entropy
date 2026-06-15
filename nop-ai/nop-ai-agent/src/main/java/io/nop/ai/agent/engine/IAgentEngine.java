@@ -75,4 +75,115 @@ public interface IAgentEngine {
     default CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {
         throw new UnsupportedOperationException("resumeSession requires a registered denial ledger and a paused session");
     }
+
+    /**
+     * Restore a session after a process crash/restart (plan 183 crash/restart
+     * durable session restore protocol, design §1.1 / §5.4a). This is the
+     * <b>crash-restart recovery</b> entry point — distinct from
+     * {@link #resumeSession} (which is the <b>sticky-pause</b> recovery entry
+     * point, plan 180). The two are mutually exclusive:
+     * <ul>
+     *   <li>{@code restoreSession}: the session is <b>not</b> in the active
+     *       execution map ({@code runningExecutions}) — it was lost when the
+     *       process restarted. The implementation loads the session from a
+     *       persistent {@link io.nop.ai.agent.session.FileBackedSessionStore},
+     *       rebuilds the {@link AgentExecutionContext}, verifies consistency
+     *       against the latest {@link io.nop.ai.agent.reliability.Checkpoint}
+     *       (checkpoint journal consumption), and resumes ReAct execution.</li>
+     *   <li>{@code resumeSession}: the session <b>is</b> in the active memory
+     *       and its status is {@link AgentExecStatus#paused} (sticky-pause by
+     *       Layer 3 denial-ledger governance). The implementation clears the
+     *       pause via {@code IDenialLedger.reset} and resumes.</li>
+     * </ul>
+     * <p>
+     * Calling this on a session that is still in active memory (not a
+     * crash-restart scenario), a session that has no persistent state, or a
+     * session that is in a terminal state (completed/failed/cancelled/
+     * forced_stopped/escalated) fails fast with a {@link NopAiAgentException}
+     * rather than silently no-op'ing. This enforces the crash-restart
+     * contract: restore is only valid for a session that was running when
+     * the process crashed and is now absent from the active execution map.
+     *
+     * @param sessionId the crashed session to restore; must have persistent
+     *                  state and must not be in the active execution map
+     * @param approver  the identity of the operator performing the recovery
+     *                  (recorded for audit; never used for permission checks)
+     * @param reason    a free-text reason for the recovery (recorded for audit)
+     * @return a future that completes with the result of the resumed execution
+     */
+    default CompletableFuture<AgentExecutionResult> restoreSession(String sessionId, String approver, String reason) {
+        throw new UnsupportedOperationException(
+                "restoreSession requires a FileBackedSessionStore-backed engine");
+    }
+
+    /**
+     * Auto restore-on-startup batch orchestrator (plan 184, design §1.1
+     * recovery model). This is the <b>"unattended automation"</b> entry point
+     * that turns plan 183's single-session {@link #restoreSession} primitive
+     * into a full scan-and-restore workflow: after a process crash/restart,
+     * the caller invokes this method on a freshly-constructed engine pointing
+     * at the same persistent session/checkpoint root directories, and every
+     * unfinished session is automatically discovered and resumed — without
+     * any caller having to know a sessionId ahead of time.
+     *
+     * <p><b>Protocol</b> (each step realized on top of existing primitives):
+     * <ol>
+     *   <li><b>Discover</b>: call {@code sessionStore.listAllSessions()} to
+     *       enumerate every persisted session (including those not yet in the
+     *       in-memory cache). This is the new discovery contract introduced
+     *       by plan 184.</li>
+     *   <li><b>Filter</b>: select restore candidates by status. Only
+     *       {@link AgentExecStatus#running} (crashed mid-execution) and
+     *       {@link AgentExecStatus#pending} (never started) are candidates.
+     *       {@link AgentExecStatus#paused} is <b>skipped</b> — sticky-pause is
+     *       a Layer 3 governance state that requires an explicit human
+     *       {@link #resumeSession} (plan 180); auto-restoring a paused
+     *       session would silently bypass the human-intervention contract.
+     *       Terminal statuses (completed/failed/cancelled/forced_stopped/
+     *       escalated) are skipped because they already reached a final
+     *       outcome.</li>
+     *   <li><b>Sequential restore</b>: for each candidate, call
+     *       {@link #restoreSession(String, String, String)} and wait for it
+     *       to complete (sequential — not parallel — to avoid concurrent LLM
+     *       calls that could trip provider rate limits). Per-session failure
+     *       isolation: if one restore throws, the failure is recorded and the
+     *       next candidate is still processed; the batch never aborts on a
+     *       single session failure.</li>
+     *   <li><b>Summary</b>: return a {@link SessionRestoreSummary} with the
+     *       restored / skipped / failed buckets and per-session reasons.</li>
+     * </ol>
+     *
+     * <p><b>Fail-fast</b>: if the session store does not support discovery
+     * (its {@code listAllSessions()} throws {@link UnsupportedOperationException}
+     * or is not overridden), this method throws
+     * {@link NopAiAgentException} rather than silently returning an empty
+     * summary — "store cannot discover" is a deployment misconfiguration that
+     * must surface to the operator. An <em>empty</em> store (no persisted
+     * sessions, e.g. a fresh root or an in-memory store whose cache is empty
+     * after a restart) is a legitimate state and returns an empty summary,
+     * not an exception.
+     *
+     * <p><b>Opt-in, not lifecycle-coupled</b>: this method is an explicit
+     * opt-in. The engine does <em>not</em> call it from a constructor or any
+     * lifecycle callback — <em>when</em> to run auto-restore (at startup? on
+     * a timer?) is a deployment-layer decision, not an engine-layer contract.
+     * The caller invokes it after construction to implement "restore on
+     * startup".
+     *
+     * <p><b>Blocking</b>: this method blocks until every candidate restore has
+     * completed (each {@code restoreSession} future is joined). For a large
+     * backlog the caller may wish to invoke it from a dedicated thread; the
+     * engine makes no threading guarantee beyond "sequential per session".
+     *
+     * @param approver the identity of the operator (or automated system)
+     *                 performing the batch recovery; recorded for audit on
+     *                 every per-session {@code SESSION_RESTORED} event
+     * @param reason   a free-text reason for the batch recovery (recorded for audit)
+     * @return a summary of the restore outcome (restored / skipped / failed);
+     *         never null, possibly empty if no sessions were discovered
+     */
+    default SessionRestoreSummary restorePendingSessions(String approver, String reason) {
+        throw new UnsupportedOperationException(
+                "restorePendingSessions requires a DefaultAgentEngine with a discovery-capable session store");
+    }
 }
