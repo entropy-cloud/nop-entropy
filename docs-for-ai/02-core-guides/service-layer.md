@@ -110,9 +110,11 @@ Nop 平台的前后端分离方式与传统 RPC 不同：
 - **后端 `I*Biz` 接口**：方法签名直接使用实体类型（如 `LitemallOrder`）、`IServiceContext` 等，不需要转换为 Message Bean。注入 `I*Biz` 的调用方与 BizModel 在同一进程中，通过动态代理走 `IServiceAction` 管道。
 
 ```
-前端 ──GraphQL──> GraphQL Engine ──> BizModel 方法（@BizQuery/@BizMutation）
+前端 ──/graphql · /r/ · /p/──> GraphQL Engine ──> BizModel 方法（@BizQuery/@BizMutation）
 后端模块A ──I*Biz代理──> BizObject.invoke() ──> BizModel 方法（@BizQuery/@BizMutation/@BizAction）
 ```
+
+> 各 HTTP 入口（`/graphql`、`/r/`、`/p/` 等）的详细对比和统一分发机制见 `./api-and-graphql.md` 的"统一请求分发模型"章节。
 
 ### BizModel 的 public 方法必须同步到 `I*Biz` 接口
 

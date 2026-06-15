@@ -11,29 +11,68 @@
 5. 扩展返回字段时优先 `@BizLoader`；字段不存在时优先 Delta + `@BizLoader(autoCreateField = true)` + `@LazyLoad`。
 6. **Nop 平台内置 BizModel 对象名以 `Nop` 为前缀**（如 `NopAuthUser`、`NopCodeIndex`），用于与用户业务对象区分，避免 GraphQL 类型名冲突。用户自定义 BizModel 不需要 `Nop` 前缀。
 
-## 最小理解模型
+## 统一请求分发模型
+
+**核心原理：Nop 平台的所有 HTTP 入口都是同一个 `IGraphQLEngine` 的薄适配层。** 无论前端通过哪种路径调用，最终都由 GraphQL 引擎按 operationName 路由到同一个 BizModel 方法。BizModel 方法不需要关心调用来源。
 
 ```text
-BizModel 方法
-  -> 框架暴露 GraphQL / RPC 能力
-  -> 选择字段、错误转换、事务边界由框架处理
+          POST /graphql          ┌──────────────────┐
+       (GraphQL query string)    │                  │     ┌───────────┐
+  ┌─────────────────────────────▶│                  │     │ BizModel  │
+  │                              │                  │────▶│ 方法       │
+  │   GET|POST /r/{opName}       │                  │     │ @BizQuery │
+  ├─────────────────────────────▶│  IGraphQLEngine  │     │ @BizMutation
+  │   (REST, 返回 JSON)           │                  │     └───────────┘
+  │                              │  (统一分发引擎)    │
+  │   GET|POST /p/{opName}/path  │                  │
+  ├─────────────────────────────▶│  按 operationName │
+  │   (内容感知, 支持二进制响应)    │  路由到 BizAction │
+  │                              │                  │
+  │   POST /px/{svc}/{method}    │                  │
+  ├─────────────────────────────▶│  (代理 RPC)       │
+  │   (分布式服务代理)             │                  │
+  │                              │                  │
+  │   POST /jsonrpc              │                  │
+  └─────────────────────────────▶│  (JSON-RPC 2.0)  │
+                                 └──────────────────┘
 ```
 
-## BizModel REST Adapter Contract
+### operationName 命名约定
 
-对前端或外部调用来说，当前仓库里最稳定的通用 REST adapter 入口是：
+所有入口共用同一个 operationName 命名规则（由 `GraphQLNameHelper.getOperationName()` 定义）：
 
-1. `/r/{operationName}`
-2. `/p/{query}`
+```
+{bizObj}__{method}
+```
 
-其中 `operationName` 在 BizModel 场景下通常是：
+其中 `__` 是常量 `GraphQLConstants.OBJ_ACTION_SEPARATOR`。例如 `NopAuthUser__findPage` 表示调用 `NopAuthUser` BizModel 的 `findPage` 方法。
 
-`{bizObj}__{method}`
+### 各 HTTP 入口对比
 
-默认判断：
+| 入口 | HTTP 方法 | operationName 格式 | 响应类型 | 适用场景 |
+|------|----------|-------------------|---------|---------|
+| `/graphql` | POST | GraphQL query string 内的 field name | JSON（GraphQL response envelope） | 前端 AMIS 页面默认入口；支持 selection（字段选择）、多操作批量、relation 嵌套查询 |
+| `/r/{opName}` | GET / POST | `{bizObj}__{method}` | JSON（`ApiResponse`） | REST 风格单操作调用；E2E 测试、外部系统集成、curl 调试 |
+| `/p/{opName}[/path]` | GET / POST | `{bizObj}__{method}` + 可选 `/{path}` 后缀 | 内容感知（支持二进制/文件/流/自定义 contentType） | 文件下载、Excel 导出、PDF 生成、图片返回等需要非 JSON 响应的场景 |
+| `/px/{svc}/{method}` | POST | `{serviceName}/{serviceMethod}` | JSON（`ApiResponse`） | 分布式 RPC 服务代理，转发到远程服务 |
+| `/jsonrpc` | POST | JSON-RPC 2.0 `method` 字段 | JSON-RPC 2.0 response | JSON-RPC 协议客户端 |
 
-1. 通用 adapter 下，`@BizQuery` 可通过 `GET /r/{operationName}` 或 `POST /r/{operationName}` 调用。
-2. 通用 adapter 下，`@BizMutation` 走 `POST /r/{operationName}`。
+**关键认知：**
+
+1. **`/r/` 和 `/p/` 调用同一个 BizModel 方法，区别仅在响应处理。** `/r/` 永远返回 JSON `ApiResponse`；`/p/` 通过 `buildWebContent()` 检测响应数据类型，支持返回 `WebContentBean`（二进制内容、文件流、自定义 contentType）。
+2. **`/p/` 不是"页面专用"端点。** 它可以调用任何 BizModel operation。名称中的 "page" 源自其内部实现 `doPageQuery()`，但其能力远超页面获取——它是对 `/r/` 的内容感知扩展。
+3. **`/p/{query}` 的 `query` 支持路径后缀。** 格式为 `{operationName}/{optionalPath}`，路径部分通过 `PARAM_PATH` 传入 BizModel 方法，常用于下载场景中指定文件路径。
+4. **`/graphql` 是前端 AMIS 的默认入口。** view.xml 中 `@query:` / `@mutation:` 前缀的 URL 由前端组装成 GraphQL query，POST 到 `/graphql`。
+5. **前端 `@query:` URL 和后端 `/r/` URL 使用同一个 operationName。** 例如 `@query:NopAuthUser__findPage` 在前端组装成 GraphQL query 发到 `/graphql`，直接用 `/r/NopAuthUser__findPage` 也能调用同一个方法，只是响应封装不同。
+
+### 实现锚点
+
+所有 HTTP 入口的统一分发由 `GraphQLWebService` 基类实现（见 `04-reference/source-anchors.md` 的 `GQL-002`）。Spring 适配器为 `SpringGraphQLWebService`，Quarkus 适配器为 `QuarkusGraphQLWebService`。
+
+## REST 调用（`/r/`）详细规则
+
+1. `@BizQuery` 可通过 `GET /r/{operationName}` 或 `POST /r/{operationName}` 调用。
+2. `@BizMutation` 走 `POST /r/{operationName}`。
 3. `POST` 默认使用 JSON body。
 4. **RPC JSON body 格式：参数直接平铺，不包裹 `data` 字段。**
    ```bash
@@ -43,9 +82,28 @@ BizModel 方法
    curl -X POST /r/NopAuthUser__findPage -d '{"data":{"query":{...}}}'
    ```
 5. `GET` 场景会通过 `@args` 和普通 query 参数做特殊处理。
-6. `/p/PageProvider__getPage?path=xxx.page.yaml` — 获取页面 AMIS JSON，返回前端渲染所需的完整 schema。
+6. 可通过 `?selection=field1,field2{subField}` 指定字段选择。
 
 补充说明：仓库里的生成型 typed API 目前是明显偏 `POST` 风格的，即使是 `@BizQuery` 生成接口也常见 `POST`，不要把通用 adapter 行为和 typed API 代码生成结果混为一谈。
+
+## 内容感知调用（`/p/`）详细规则
+
+`/p/{operationName}` 的处理流程：`doPageQuery()` 解析 `query` 为 `{operationName}/{path}`，然后调用 `runRest()`（与 `/r/` 同一路径），差异仅在响应构建阶段使用 `buildWebContent()` 处理 `WebContentBean`。
+
+典型用法：
+
+```bash
+# 获取页面 AMIS JSON（PageProvider 是一个 BizModel，getPage 是它的方法）
+GET /p/PageProvider__getPage?path=/nop/auth/pages/NopAuthUser/main.page.yaml
+
+# Excel 导出（NopAuthUser 是 BizModel，exportExcel 是自定义方法）
+GET /p/NopAuthUser__exportExcel?filter=userName_like=admin
+
+# 文件下载（带路径后缀）
+GET /p/NopFile__download/abc/report.pdf
+```
+
+BizModel 方法通过返回 `WebContentBean` 或包含 `contentType` + `content` 的 `Map` 来触发非 JSON 响应。
 
 ## 普通 API 方法的默认写法
 
