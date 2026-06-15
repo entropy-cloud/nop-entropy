@@ -64,11 +64,46 @@ plan 183 交付了文件级持久化（`FileBackedSessionStore` per-session JSON
 **架构决策（plan 185 已落地）**：
 
 - **raw JDBC（vs IOrmSession）**：与 plan 179 `DBDenialLedger` + plan 171 `DBMessageService` 同级的兄弟实现模式，保持一致。`ISessionStore` 操作是同步的 save/get/remove，raw JDBC 足够且无额外抽象层。
+
+### 1.2 文件写入 crash-safety（plan 195 已落地）
+
+专为 crash-recovery 设计的 FileBacked 持久化链路（`SessionFileWriter` 写 session.json、`CheckpointSnapshotWriter` 写 snapshot.json）必须保证：写入过程中 JVM/OS 崩溃、kill、磁盘满发生时，目标文件**要么是完整的旧内容、要么是完整的新内容**——不存在截断或部分写入的中间状态。这是 plan 183/184 crash/restart restore 链路的最后一道 crash-safety 缺口（写入路径的非原子性会导致 `listAllSessions` 永久 skip 被截断的 session，使专为 crash-recovery 设计的子系统"crash 时丢失正在恢复的 session"）。
+
+**架构决策（plan 195 已落地）**：
+
+- **write-to-tmp + ATOMIC_MOVE + REPLACE_EXISTING 模式**：目标文件经由同目录 sibling `.tmp` 文件写入后，通过 `Files.move(tmp, target, ATOMIC_MOVE, REPLACE_EXISTING)` 原子替换。POSIX rename(2) 的原子性语义保证目标在任何时刻要么是完整旧内容、要么是完整新内容。这收敛了原 `TRUNCATE_EXISTING` 写法"先截断目标到 0 字节再写入"的非原子窗口。
+- **为什么选这个方案**：(1) POSIX rename 原子性是 OS 级保证，覆盖 JVM crash / kill 场景；(2) 仓库内已有先例——`nop-stream` `LocalFileCheckpointStorage` 使用完全相同的 write-to-tmp + `ATOMIC_MOVE` + `REPLACE_EXISTING` + `finally { deleteIfExists(tmp) }` 模式，保持一致；(3) 不引入 fsync（kernel page cache 刷盘的 power-loss hardening 属存储引擎级增强，超出 JVM crash scope，且 nop-stream 先例未使用 fsync）。
+- **拒绝的替代方案**："仅把 `TRUNCATE_EXISTING` 改为写新文件不 truncate"——仍非原子：直接覆写目标文件在写入完成前崩溃仍留下部分字节。POSIX 下只有 rename(2) 提供文件级原子替换。
+- **tmp 命名与位置**：tmp 文件必须是 target 的 sibling（同目录），命名 `target.getFileName() + ".tmp"`。`ATOMIC_MOVE` 要求源/目标在同一文件系统（同一 mount point），sibling 保证这一点；否则抛 `AtomicMoveNotSupportedException`。与 nop-stream 先例一致。
+- **失败路径 tmp 清理**：`finally` 块中 `Files.deleteIfExists(tmp)`，确保即使 `Files.move` 失败（或 JVM 在 move 前被中断但 finally 仍执行）也不留 stale tmp。`deleteIfExists` 的异常不掩盖主异常（IO 异常统一转 `NopAiAgentException` 抛出）。
+- **不提取共享 helper（inline 修复）**：两个 writer 的写入逻辑虽是 copy-paste，但裁定各自内联修复而非提取共享 `AtomicFileWriter` helper。理由：(1) 只有两个 writer，无第三个消费者；(2) 两者分属不同包（`session` vs `reliability`），共享 helper 需中性包位置，引入新的模块内依赖方向；(3) 只有 ~5 行 IO 写入段重复，序列化逻辑完全不同；(4) nop-stream 先例在每个调用点内联该模式。保持 per-writer 独立性与现有代码结构一致。
+- **`ioLock` 语义不变**：现有 `synchronized(ioLock)` 序列化同一 writer 实例的并发写。crash-safe 改动不改变锁语义——tmp 写 + move 仍在 `synchronized` 块内执行。`Files.move(ATOMIC_MOVE)` 本身在 POSIX 上是原子的；`ioLock` 保护的是"同一 writer 实例的两个并发 write() 不交错"，而非 move 的原子性。
+
 - **混合列布局（scalar queryable columns + full session JSON CLOB）**：`SESSION_ID`(PK) / `AGENT_NAME` / `STATUS` / `CREATED_AT` / `UPDATED_AT` scalar 列支撑未来 status-based SQL 筛选、监控、cleanup；`SESSION_DATA` CLOB 经 `SessionFileWriter.serialize`/`SessionFileReader.deserialize` 序列化（package-private static 方法，同包直接复用），与 `FileBackedSessionStore` 序列化逻辑 100% 一致——零新增序列化代码。
 - **write-through cache（同 FileBackedSessionStore 模式）**：`ConcurrentHashMap` mirrors DB state。`save` write-through（更新 cache + DB）；`get` cache-miss 时 DB lazy-load；`remove` 删 cache + DB 行。cache 避免 ReAct dispatch loop intra-execution `save` 的每次 `get` DB round-trip。
 - **MERGE INTO upsert（等幂覆写）**：`save(session)` 使用 `MERGE INTO ... KEY (SESSION_ID) VALUES (...)`（H2/PostgreSQL/MySQL 兼容），同 sessionId 重复 save 是等幂覆写。
 - **listAllSessions SQL-based discovery（vs FileBackedSessionStore 磁盘扫描）**：`SELECT SESSION_DATA FROM ai_agent_session` → 逐行 deserialize。损坏/截断 JSON 跳过 + LOG.warn（corruption isolation，同 `FileBackedSessionStore.listAllSessions`）。
 - **跨进程接管锁仍 deferred**：`DBSessionStore` 使 session 可被发现和加载（任何共享 DB 的服务实例都能 `get(sessionId)`），但"防止多实例同时恢复同一 session"的并发接管锁是 L4-8 Actor Runtime 的职责（设计 §1.1 并发接管的锁机制由 actor 调度系统负责）。
+
+### 1.3 同 session 并发执行保护（plan 197 已落地）
+
+`DefaultAgentEngine` 用 `ConcurrentHashMap<String, CancelHandle> runningExecutions` 提供单进程内 session 执行并发管理。三个执行入口点（`doExecute` / `resumeSession` / `restoreSession`）的注册/注销逻辑统一收敛为 **fail-fast + cancel-safe** 模式，消除审计 [维度14-1]（put/remove 不去重导致 handle 互覆）与 [维度14-2]（cancel 在异步入队窗口内丢失）两处 P1 竞态。
+
+**架构决策（plan 197 已落地）**：
+
+- **去重注册策略 = `putIfAbsent` + fail-fast（拒绝无条件 `put`）**：三个执行入口点在 **同步阶段**（`supplyAsync` 之外）执行 `putIfAbsent(sessionId, handle)`——返回值非 null 表示 session 已在执行，立即抛 `NopAiAgentException("session already executing: sessionId=...")`（fail-fast，Minimum Rules #24），绝不静默覆盖。采用字符串消息而非 `ErrorCode`（与模块内 100+ 既有抛出站点风格一致；`NopAiAgentException` 已支持 `ErrorCode` 构造器，但本场景的错误消息足够自描述，无需额外 `ErrorCode` 常量）。并发执行排队/复用语义（第二次 execute 排队等待第一次完成而非 fail-fast）是产品策略变更，属 successor（Non-Goals），本层采用 fail-fast。
+
+- **值比较注销策略 = `remove(sessionId, handle)`（拒绝按 key `remove`）**：三个入口点的 `finally` 块使用 `ConcurrentHashMap.remove(key, value)`——仅当当前映射值 `==` 调用者注册的 handle 时才移除。`CancelHandle` 是无 `equals` 覆写的 `private static final class`，`remove(key, value)` 使用引用相等：同一 handle 实例可移除，不同执行创建的不同 handle 实例不被误删。这保证了第一个执行的 `finally` 不清除第二个仍在运行的 handle（消除 [维度14-1] 的 handle 互覆竞态）。
+
+- **cancel 丢失窗口修复 = 选项 A（同步阶段预注册 handle）**：在 `supplyAsync` **之外**（同步阶段）创建并注册 `CancelHandle`，使 `cancelSession` 在 `execute()` 返回后、`supplyAsync` lambda 实际运行前的入队窗口内即可通过 `runningExecutions.get(sessionId)` 找到 handle，走 `ctx.setCancelRequested(true)` 路径（而非 else 分支的 `session.setStatus(cancelled)`，后者会被 lambda 内的 `session.setStatus(running)` 覆盖）。cancel 信号经由 `AgentExecutionContext.cancelRequested`（`volatile boolean`，已存在）传递，**不**经由 `AgentSession.status`——因此 `AgentSession.status` 的 `volatile` 修饰不是 cancel-window 修复的必要前置（[14-6] 的 status volatile 留为 non-blocking follow-up）。拒绝选项 B（lambda 入口状态检查，依赖 `AgentSession.status` 可见性→需纳入 volatile）与"排队等待而非 fail-fast"替代方案。
+
+- **`CancelHandle.thread` 延迟绑定（`volatile Thread`，null 初始化）**：预注册发生在同步阶段，此时 ForkJoinPool 执行线程尚未确定。`CancelHandle.thread` 从 `final Thread` 改为 `volatile Thread thread`，同步阶段初始化为 `null`，lambda 入口更新为 `Thread.currentThread()`（执行线程）。`cancelSession(forced=true)` 在 `handle.thread.interrupt()` 前 null 检查——入队窗口内 forced cancel 不 interrupt 任何人（避免误 interrupt 调用线程），但 `ctx.setCancelRequested(true)` 保证 lambda 启动后执行器在首个循环边界检测到 cancel 并 abort。
+
+- **`restoreSession` 既有 `containsKey` 检查移除（putIfAbsent 是唯一 guard）**：`restoreSession` 在 `supplyAsync` 之前的 `runningExecutions.containsKey(sessionId)` 检查（原 TOCTOU 竞态——containsKey 通过后、putIfAbsent 之前另一线程可能已注册）被移除。`putIfAbsent` 本身是原子操作，是唯一的并发 guard。移除冗余检查使三个入口点的 fail-fast 行为一致（统一抛 "session already executing"），而非 restore 给出不同错误消息。
+
+- **`AgentSession.status` volatile 不纳入 scope**：cancel 信号经由 `AgentExecutionContext.cancelRequested`（已 volatile）传递，不经由 `AgentSession.status`。`session.setStatus(running)` 在 lambda 内设置后，执行器检测到 `ctx.isCancelRequested()` → abort → `ctx.setStatus(cancelled)` → `finally { session.setStatus(ctx.getStatus()) }` 把 cancelled 写回 session。status 的跨线程可见性不影响 cancel 正确性（[14-6] 的 status volatile 是独立 hardening，留为 non-blocking follow-up）。
+
+- **`sendMessage` 向后兼容 = fail-fast 异常传播**：`sendMessage` 调用 `doExecute` 并立即返回 ack（fire-and-forget）。`putIfAbsent` 在同步阶段 fail-fast 抛出 `NopAiAgentException` 时，异常在 `doExecute` 返回 future 之前同步传播到 `sendMessage` 调用方（不进入 `future.exceptionally(...)` 路径）。这是正确的 fail-fast 行为——对正在执行的 session 发送消息应报错而非静默覆盖。`AgentMessageAck` 不新增 error 字段（API 变更属 successor），调用方需 catch 异常。
 
 ## 2. 故障模型
 

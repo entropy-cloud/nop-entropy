@@ -1,7 +1,7 @@
 # nop-ai-agent 组件分解与开发路线
 
 > Status: active
-> Updated: 2026-06-15（L3-4d DB-backed session store 完成 — Plan 185；`DBSessionStore` 使任何共享 DB 的服务实例可接管恢复 session）
+> Updated: 2026-06-15（L3-4d DB-backed session store 完成 — Plan 185；`DBSessionStore` 使任何共享 DB 的服务实例可接管恢复 session；L2-17~L2-22 用量追踪与按模型计费设计完成 — 见 `nop-ai-agent-usage-and-billing.md`）
 > Parent: `ai-dev/design/nop-ai-agent/README.md`
 
 ---
@@ -180,12 +180,21 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L2-14a | Dispatch-path 咨询集成（L2-13/L2-14 → ReAct 分发路径：`ILevelHintsProducer` + channel/principal 传播 + `checkLayer2Consultation`） | L2-13, L2-14 | ✅ |
 | L2-15 | Working Memory 工具实现 (read-memory/write-memory/search-memory) | L1-10, L1-5 | ✅ |
 | L2-16 | Token 计数 — `ILlmDialect.estimateTokens()` (default chars/4) + Provider usage 校准 | L1-4, nop-ai-core | ✅ |
+| L2-17 | 🔴 `IUsageRecorder` 接口 + `NoOpUsageRecorder` pass-through + `UsageRecord` 数据对象 | L1-5 | ❌ |
+| L2-18 | 🔴 `DbUsageRecorder` 实现：ReAct 循环 token 累加点写 `NopAiChatResponse`（modelId + promptTokens + completionTokens + durationMs） | L2-17 | ❌ |
+| L2-19 | 🔴 `NopAiModel` 加定价列（`input_price_per_1m`/`output_price_per_1m`/`reasoning_price_per_1m`/`cache_read_price_per_1m`/`cache_write_price_per_1m`/`currency`） | 无 | ❌ |
+| L2-20 | 🔴 per-model 聚合查询：`NopAiChatResponseBizModel.summarizeByModel(sessionId)` → SQL GROUP BY model_id | L2-18 | ❌ |
+| L2-21 | 🔴 `model-switched` 消息产生：ReAct 循环中 IModelRouter 返回后检查模型变更 → 写 NopAiSessionMessage(role=80) | L2-10 | ❌ |
+| L2-22 | 🟡 预算控制 hook：IModelRouter 查询已用预算决定是否降级模型 | L2-20, L2-10 | ❌ |
 
 **Layer 2 验收标准**：
 
 - [ ] 能清楚说明每个扩展如何替换 pass-through 默认
 - [ ] 不把运行时假设误写成新的 DSL 字段
 - [ ] ContextGovernor Pipeline 可通过 Delta 配置启用
+- [ ] L2-17~L2-18：每次 LLM 调用产生一行 `NopAiChatResponse`，含 model_id + tokens
+- [ ] L2-20：SQL GROUP BY model_id 可查到 session 级 per-model token 聚合
+- [ ] L2-21：模型切换时产生 `model-switched` 消息（role=80）
 
 ### Layer 3: Reliability Extensions — 生产环境加固
 
@@ -260,10 +269,10 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | AUDIT-13-15 | P0 | ✅ 已修复 | plan 190：`SessionIds` 两层校验（identifier + containment）接入 `DefaultAgentEngine.resolveSessionId` + `FileBackedSessionStore` / `FileBackedCheckpointManager` 全部 `rootDirectory.resolve(sessionId)` site，fail-closed |
 | AUDIT-13-16 | P2 | ✅ 已修复 | plan 191：`AgentNames` allow-list 校验接入 `DefaultAgentEngine.loadAgentModel` chokepoint + `CallAgentExecutor` non-`"self"` agentId defense-in-depth，fail-closed |
 | AUDIT-13-01 | P1 | ✅ 已修复 | plan 193：`DefaultAgentEngine` 短构造器 + 字段兜底 + `ReActAgentExecutor.Builder.build()` null 兜底全部从 `AllowAll*` 切换为 `Default*`；新增构造期一次性 WARN（AllowAll* 实例触发，fail-loud via `LOG.warn`）；secure-by-default 端到端验证（`TestSecureByDefault` 6 tests） |
-| AUDIT-13-02 | P1 | ❌ 未修复 | 默认 NoOpAuditLogger 丢弃审计事件 |
+| AUDIT-13-02 | P1 | ✅ 已修复 | plan 194：`DefaultAgentEngine` 新增 `auditLogger` 字段（默认 `Slf4jAuditLogger`）+ `setAuditLogger` setter；`resolveExecutor` Builder 链透传 `.auditLogger(this.auditLogger)`；`ReActAgentExecutor.Builder.build()` null 兜底从 `NoOpAuditLogger` 切换为 `Slf4jAuditLogger`；`warnIfInsecureDefaults` 扩展检查 `NoOpAuditLogger`（setter 注入时触发一次性 WARN，fail-loud via `LOG.warn`）；端到端审计验证（`TestAuditLoggerDefault` 5 tests） |
 | AUDIT-14-01 | P1 | ❌ 未修复 | 同 session 并发执行竞态 |
-| AUDIT-14-04 | P1 | ❌ 未修复 | FileBacked 非原子写 |
-| AUDIT-09-01 | P1 | ❌ 未修复 | NopAiAgentException extends RuntimeException 而非 NopException |
+| AUDIT-14-04 | P1 | ✅ 已修复 | plan 195：`SessionFileWriter.write()` + `CheckpointSnapshotWriter.write()` 收敛为 write-to-tmp + `Files.move(ATOMIC_MOVE, REPLACE_EXISTING)` + `finally { deleteIfExists(tmp) }`（POSIX rename 原子性）；focused 测试覆盖 target-intact / tmp-cleanup / stale-tmp-recovery / pre-move-failure-isolation / overwrite-write，含 `FileBackedSessionStore.save()` → `SessionFileWriter.write()` 端到端接线验证（`TestSessionFileWriterAtomicWrite` 7 tests + `TestCheckpointSnapshotWriterAtomicWrite` 6 tests） |
+| AUDIT-09-01 | P1 | ✅ 已修复 | plan 196：`NopAiAgentException extends RuntimeException` → `extends NopException`，补齐 `serialVersionUID` 与四构造器 `(String)` / `(String, Throwable)` / `(ErrorCode)` / `(ErrorCode, Throwable)`（前两签名保留，100+ 抛出站点与 4 处 catch 站点零改动）；模块异常纳入框架统一异常体系（结构化 `getMessage()`、`.param(...)` 链式、`getErrorCode()`、i18n 钩子）；focused 测试 `TestNopAiAgentExceptionBaseClass` 8 tests 覆盖 `instanceof NopException` / `getErrorCode` 保留原文本 / `getMessage().contains` 兼容 / `.param` 链式 / `(ErrorCode)` ctor / cause 链保留 |
 
 ---
 
@@ -344,5 +353,6 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 - `nop-ai-agent-session-engine.md` — 会话引擎详细设计
 - `nop-ai-agent-context-model.md` — 上下文治理详细设计
 - `nop-ai-agent-llm-layer.md` — LLM 层详细设计
+- `nop-ai-agent-usage-and-billing.md` — 用量追踪与按模型计费设计（L2-17~L2-22）
 - `nop-ai-agent-reliability.md` — 可靠性增强详细设计
 - `nop-ai-agent-security-and-permissions.md` — 安全权限详细设计

@@ -40,6 +40,8 @@ Layer 1: Core Interfaces (核心接口层)
   - 双循环模型（followUp + ReAct）、Steering 机制、Hook 生命周期、执行控制（循环控制 + 资源控制）、错误处理分类
 - `nop-ai-agent-llm-layer.md`
   - LLM 层接口设计：Layer 1 ChatMessage (nop-ai-api) + Layer 2 ILlmDialect (nop-ai-core 内部)/ITalent (动态准入)/IModelRouter (Smart Router) + Layer 3 IRetryPolicy (Provider 重试)、前缀缓存设计
+- `nop-ai-agent-usage-and-billing.md`
+  - 用量追踪与按模型计费：`IUsageRecorder` 扩展点、`NopAiChatResponse` 写入、`NopAiModel` 定价列、多模型 session 的 per-model 聚合、`model-switched` 消息产生
 - `04-tool-invocation.md`
   - 工具发现、执行流程、并行执行、JSON Schema 兼容
 
@@ -115,16 +117,17 @@ Layer 1: Core Interfaces (核心接口层)
 **按需深入**：
 
 4. `nop-ai-agent-llm-layer.md` — LLM 层接口设计
-5. `nop-ai-agent-context-model.md` — 上下文模型
-6. `04-tool-invocation.md` — 工具调用架构
-7. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
-8. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
-9. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
-10. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
-11. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`nop-ai-agent-branch-affinity-scheduling.md`、`skill-system-design.md`
+5. `nop-ai-agent-usage-and-billing.md` — 用量追踪与按模型计费
+6. `nop-ai-agent-context-model.md` — 上下文模型
+7. `04-tool-invocation.md` — 工具调用架构
+8. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
+9. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
+10. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
+11. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
+12. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`nop-ai-agent-branch-affinity-scheduling.md`、`skill-system-design.md`
 
 **扩展方向**：
 
-12. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
-13. `nop-ai-agent-channel-connector.md` — 外部信道连接器设计
-14. `nop-ai-agent-roadmap.md` — 分层架构与实施路线
+13. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
+14. `nop-ai-agent-channel-connector.md` — 外部信道连接器设计
+15. `nop-ai-agent-roadmap.md` — 分层架构与实施路线

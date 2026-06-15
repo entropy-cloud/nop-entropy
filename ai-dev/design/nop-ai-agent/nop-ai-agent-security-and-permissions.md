@@ -205,7 +205,7 @@ Permission resolve(toolName, agentName, sessionId)
 - **触发条件**：解析后的 `toolAccessChecker` 或 `pathAccessChecker` 为 `AllowAllToolAccessChecker` / `AllowAllPathAccessChecker` 实例（即集成商显式 opt-in 了全放行，或显式传 `null` 触发了 AllowAll 兜底——后者在本决策后已不会发生，因为字段默认值已切换为 `Default*`，但保留检查以覆盖集成商显式 opt-in 的场景）。
 - **日志级别**：WARN（非 ERROR，因为显式 opt-in 是合法用法；非 INFO/DEBUG，因为安全降级必须可见）。
 - **文案要点**：明确告知"开箱不安全，危险工具/敏感路径无防护"，并指引如何显式装配 `Default*` checker 或修复调用点。文案按 checker 类型分别给出（tool / path），便于定位。
-- **覆盖范围**：WARN 当前**只**覆盖 Layer 1 的 `IToolAccessChecker` 与 `IPathAccessChecker`。Layer 2/3（`AutoApproveGate`、`NoOpSecurityLevelResolver`、`PassThroughPermissionMatrix`、`NoOpDenialLedger`、`PassThroughPostDenialGuard`）与 Layer 1 的 `IAuditLogger`（`NoOpAuditLogger` 默认）的默认值降级枚举是独立 successor 的扩展点，不在本决策范围内。
+- **覆盖范围**：WARN 当前覆盖 Layer 1 的 `IToolAccessChecker`、`IPathAccessChecker`，以及 `IAuditLogger`（见 §4.7）。Layer 2/3（`AutoApproveGate`、`NoOpSecurityLevelResolver`、`PassThroughPermissionMatrix`、`NoOpDenialLedger`、`PassThroughPostDenialGuard`）的默认值降级枚举是独立 successor 的扩展点，不在本决策范围内。
 
 **向后兼容处理原则**：
 
@@ -214,7 +214,27 @@ Permission resolve(toolName, agentName, sessionId)
 - 当测试本身就是为了验证 deny 行为时（如 deny-list 工具被拒绝），使用默认短构造器即可——这正是被测试的 in-scope 行为。
 - 当测试用到名为 deny-list 同名的工具但目的是验证其它行为（非 checker 行为）时，优先改用非 deny-list 工具名（如 `mock-tool`、`echo`），避免与默认 deny 行为冲突。
 
-**`ReActAgentExecutor.Builder` 默认值一致性**：`ReActAgentExecutor.Builder.build()` 的 null 兜底默认同步切换为 `Default*`，避免集成商绕过 engine 直接构造 executor 时仍 AllowAll。`auditLogger` 的 null 兜底属 AUDIT-13-02（successor），本决策不改。
+**`ReActAgentExecutor.Builder` 默认值一致性**：`ReActAgentExecutor.Builder.build()` 的 null 兜底默认同步切换为 `Default*`，避免集成商绕过 engine 直接构造 executor 时仍 AllowAll。`auditLogger` 的 null 兜底默认同步切换为 `Slf4jAuditLogger`，见 §4.7。
+
+### 4.7 审计 Logger 默认装配（Audit Trail Secure by Default）
+
+**决策**：`DefaultAgentEngine` 开箱即通过 `Slf4jAuditLogger` 将审计事件（工具决策 deny/approve/override 等）记录到 SLF4J——无需集成商显式装配。引擎持有 `auditLogger` 字段（默认 `Slf4jAuditLogger`），通过 `setAuditLogger` setter 暴露替换能力，使集成商可按需替换为自定义实现（如写入数据库的 logger）。`resolveExecutor` 把 engine 的 auditLogger 透传到 `ReActAgentExecutor.Builder.auditLogger(...)`，确保从 engine 入口构造的 executor 审计事件不被丢弃。`ReActAgentExecutor.Builder.build()` 的 null 兜底同步从 `NoOpAuditLogger` 切换为 `Slf4jAuditLogger`，使绕过 engine 直接构造 executor 的路径也与引擎默认一致。
+
+**为什么选 field + setter 而非构造器重载**：`DefaultAgentEngine` 的构造器链已包含 9 层委派（chatService/toolManager → sessionStore → permissionProvider → toolAccessChecker → pathAccessChecker → ... → contextCompactor），每层都是 Layer 1 核心组件。audit logger 与 `denialLedger`/`postDenialGuard`/`checkpointManager`/`memoryStoreProvider` 等 Layer 2/3 组件同级，这些组件已统一采用"private 字段 + shipped 默认值 + public setter"模式（无构造器参数）。audit logger 沿用同一模式保持一致性，且避免构造器链进一步膨胀。
+
+**WARN 扩展语义（审计降级可见性）**：plan 193 的 `warnIfInsecureDefaults` WARN 机制被扩展为同时检查 `NoOpAuditLogger`——当 audit logger 为 `NoOpAuditLogger` 实例时发出一次性 WARN（文案点明"审计事件将被丢弃，工具决策（deny/approve/override）无记录"，并指引如何显式装配 `Slf4jAuditLogger` 或自定义 logger）。该 WARN 与 AllowAll tool/path checker 的 WARN 共存于同一方法，不引入新的 WARN 入口点。
+
+- **触发时机**：(a) 构造期检查——构造期字段默认为 `Slf4jAuditLogger`，此项为 defense-in-depth，默认构造不会命中 NoOp；(b) `setAuditLogger` 赋值后检查——`NoOpAuditLogger` 经 setter 注入时的实际命中路径。setter-time WARN 是"让审计降级可见而非静默"的核心。
+- **为什么 setter 触发 WARN（而 `setDenialLedger` 不触发）**：`setDenialLedger` 的 NoOp 默认是计划性的（Layer 3 denial-counting 是 successor，见 Non-Goals），而 audit logger 的 NoOp 默认是被本决策收敛的安全缺陷——审计降级必须可见，故 setter 对 audit logger 有额外 WARN 要求，不能照搬 `setDenialLedger` 的无-WARN 行为。
+
+**为什么拒绝替代方案**：
+
+1. **"仅 WARN 不改默认值"**：不采用。理由同 §4.6——WARN 在生产部署中常被日志噪声淹没，且无法替代默认值本身的安全语义。本设计同时采用 WARN 与默认值切换：默认值切换提供实际审计可见性，WARN 提供降级可见性。
+2. **"新增构造器重载装配 audit logger"**：不采用。audit logger 与其他 Layer 2/3 setter 组件同级，统一用 field + setter 模式即可，新增构造器重载会使 9 层构造器链变成 10 层，且与 `setDenialLedger`/`setCheckpointManager` 等已有 setter 模式不一致。
+
+**向后兼容处理原则**：改为默认 `Slf4jAuditLogger` 后，通过 engine 短构造器运行的测试会产生 SLF4j INFO 审计日志（不影响断言，SLF4j INFO 不抛异常、不改变返回值）。需要捕获审计事件做断言的测试可通过 `setAuditLogger` 注入 `CollectingAuditLogger`（不再需要绕过 engine 直接用 Builder 构造 executor）。
+
+**`ReActAgentExecutor.Builder` 默认值一致性**：`ReActAgentExecutor.Builder.build()` 的 `auditLogger` null 兜底从 `NoOpAuditLogger` 切换为 `Slf4jAuditLogger`，使绕过 engine 直接构造 executor 的路径也与引擎默认一致。
 
 ## 5. Layer 2: Policy Extensions（策略扩展层）
 
