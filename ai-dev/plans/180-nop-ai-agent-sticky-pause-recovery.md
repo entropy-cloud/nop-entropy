@@ -1,6 +1,6 @@
 # 180 nop-ai-agent Sticky-Pause Recovery Protocol
 
-> **Plan Status**: planned
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: L3-6 (Sticky-Pause Recovery)
 
@@ -107,7 +107,7 @@ Exit Criteria:
 - [x] **无静默跳过**: resumeSession 对 invalid state 抛 `NopAiAgentException`（不静默返回 null / 不静默 no-op）（Minimum Rules #24）
 - [x] No owner-doc update required（设计文档更新在 Phase 2）
 - [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` Phase 1 新增测试通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - End-to-end sticky recovery + sticky enforcement + backward compat + design doc
 
@@ -116,48 +116,48 @@ Targets: `nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/` 或 `securi
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] 端到端测试（**sticky recovery——核心价值**）：构造 `DefaultAgentEngine` + `setDenialLedger(new DBDenialLedger(dataSource, 3))` + 功能化 `IToolAccessChecker`（对 tool call deny）→ 执行 ReAct 循环 → 3 次 deny → `SESSION_PAUSED` 事件 + session status == `paused`。**然后**：替换 checker 为 allow-all → `resumeSession(sessionId, "operator-1", "denial false positive")` → `denialLedger.isPaused` 归 false → session status == running → re-execute → LLM 继续 → `EXECUTION_COMPLETED`。验证完整链路：pause → resume → continued execution
-- [ ] 端到端测试（**sticky enforcement——sticky 契约验证**）：构造同上 → 3 次 deny → paused。**然后**：直接调用 `engine.execute(newMessageRequest)` （不 resume）→ ReAct 循环入口 `denialLedger.isPaused` 仍 true → 立即 re-pause → session status 回到 paused。**这证明 sticky 语义**：没有显式 `resumeSession`（不清空 ledger），paused session 无法通过 `execute` 自动恢复
-- [ ] 端到端测试（向后兼容）：构造 `DefaultAgentEngine` **不**设 ledger（默认 `NoOpDenialLedger`）→ ReAct 循环正常执行 → 0 spurious 暂停 → `resumeSession` 在此配置下永不被需要（如被调用，因无暂停 session，fail-fast）
-- [ ] 端到端测试（resume 审计）：`resumeSession` 发布的 `SESSION_RESUMED` 事件 payload 含 approver + reason + preResetDenialCount（preResetDenialCount == threshold == 3，证明审计记录了恢复前的拒绝计数）
-- [ ] 更新 `nop-ai-agent-security-and-permissions.md` §6.2：(1) 状态行 `pauseBehavior = sticky` 从"延期至 successor"改为"已落地"；(2) 记录架构决策——resume 作为人类干预语义（不需 IApprovalChannel）、resume re-execution 不添加新用户消息（transparent continuation）、sticky enforcement 经 `isPaused` 检查强制执行（execute without resume = re-pause）、resumeSession fail-fast 语义（only paused session can be resumed）；(3) `IApprovalChannel` gated resume 仍标注为 deferred enhancement（非前置条件）
-- [ ] 更新 `nop-ai-agent-roadmap.md` §4 L3-6 行（如需）：确认 sticky recovery 已落地（L3-6 行已标 ✅——确保不矛盾）
+- [x] 端到端测试（**sticky recovery——核心价值**）：构造 `DefaultAgentEngine` + `setDenialLedger(new DBDenialLedger(dataSource, 3))` + 功能化 `IToolAccessChecker`（对 tool call deny）→ 执行 ReAct 循环 → 3 次 deny → `SESSION_PAUSED` 事件 + session status == `paused`。**然后**：替换 checker 为 allow-all → `resumeSession(sessionId, "operator-1", "denial false positive")` → `denialLedger.isPaused` 归 false → session status == running → re-execute → LLM 继续 → `EXECUTION_COMPLETED`。验证完整链路：pause → resume → continued execution
+- [x] 端到端测试（**sticky enforcement——sticky 契约验证**）：构造同上 → 3 次 deny → paused。**然后**：直接调用 `engine.execute(newMessageRequest)` （不 resume）→ ReAct 循环入口 `denialLedger.isPaused` 仍 true → 立即 re-pause → session status 回到 paused。**这证明 sticky 语义**：没有显式 `resumeSession`（不清空 ledger），paused session 无法通过 `execute` 自动恢复
+- [x] 端到端测试（向后兼容）：构造 `DefaultAgentEngine` **不**设 ledger（默认 `NoOpDenialLedger`）→ ReAct 循环正常执行 → 0 spurious 暂停 → `resumeSession` 在此配置下永不被需要（如被调用，因无暂停 session，fail-fast）
+- [x] 端到端测试（resume 审计）：`resumeSession` 发布的 `SESSION_RESUMED` 事件 payload 含 approver + reason + preResetDenialCount（preResetDenialCount == threshold == 3，证明审计记录了恢复前的拒绝计数）
+- [x] 更新 `nop-ai-agent-security-and-permissions.md` §6.2：(1) 状态行 `pauseBehavior = sticky` 从"延期至 successor"改为"已落地"；(2) 记录架构决策——resume 作为人类干预语义（不需 IApprovalChannel）、resume re-execution 不添加新用户消息（transparent continuation）、sticky enforcement 经 `isPaused` 检查强制执行（execute without resume = re-pause）、resumeSession fail-fast 语义（only paused session can be resumed）；(3) `IApprovalChannel` gated resume 仍标注为 deferred enhancement（非前置条件）
+- [x] 更新 `nop-ai-agent-roadmap.md` §4 L3-6 行（如需）：确认 sticky recovery 已落地（L3-6 行已标 ✅——确保不矛盾）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**（sticky recovery）：threshold pause → `resumeSession` → denial ledger 清空 → re-execute → session 从 paused 恢复到 completed——证明恢复协议完整可用（Minimum Rules #22 Anti-Hollow Rule）
-- [ ] **端到端验证**（sticky enforcement）：对 paused session 调用 `execute()`（不 resume）→ 立即 re-pause——证明 sticky 语义经现有 `isPaused` 检查强制执行
-- [ ] **接线验证**：`resumeSession` 调用 `denialLedger.reset` + re-execute 经 executor——运行时调用连通性已验证（非仅方法存在）（Minimum Rules #23 Wiring Verification Rule）
-- [ ] **端到端验证**（向后兼容）：`NoOpDenialLedger` 默认行为不变，全部现有测试通过，0 spurious 暂停
-- [ ] **Anti-Hollow Check**: sticky recovery 测试证明 pause → resume → continue 完整链路连通（resumeSession 不只是发布事件，实际清空 ledger + re-execute + LLM 继续推理）
-- [ ] **无静默跳过**: resumeSession 对 invalid state fail-fast（非静默返回 null/no-op）
-- [ ] **新增功能测试**: sticky recovery + sticky enforcement + 向后兼容 + resume 审计——各有对应通过的测试（Minimum Rules #25）
-- [ ] `nop-ai-agent-security-and-permissions.md` §6.2 已更新（`pauseBehavior = sticky` 标记为已落地 + 架构决策记录）；`nop-ai-agent-roadmap.md` L3-6 行不矛盾
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` 全部通过（含新增 + 现有测试不受影响）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**（sticky recovery）：threshold pause → `resumeSession` → denial ledger 清空 → re-execute → session 从 paused 恢复到 completed——证明恢复协议完整可用（Minimum Rules #22 Anti-Hollow Rule）
+- [x] **端到端验证**（sticky enforcement）：对 paused session 调用 `execute()`（不 resume）→ 立即 re-pause——证明 sticky 语义经现有 `isPaused` 检查强制执行
+- [x] **接线验证**：`resumeSession` 调用 `denialLedger.reset` + re-execute 经 executor——运行时调用连通性已验证（非仅方法存在）（Minimum Rules #23 Wiring Verification Rule）
+- [x] **端到端验证**（向后兼容）：`NoOpDenialLedger` 默认行为不变，全部现有测试通过，0 spurious 暂停
+- [x] **Anti-Hollow Check**: sticky recovery 测试证明 pause → resume → continue 完整链路连通（resumeSession 不只是发布事件，实际清空 ledger + re-execute + LLM 继续推理）
+- [x] **无静默跳过**: resumeSession 对 invalid state fail-fast（非静默返回 null/no-op）
+- [x] **新增功能测试**: sticky recovery + sticky enforcement + 向后兼容 + resume 审计——各有对应通过的测试（Minimum Rules #25）
+- [x] `nop-ai-agent-security-and-permissions.md` §6.2 已更新（`pauseBehavior = sticky` 标记为已落地 + 架构决策记录）；`nop-ai-agent-roadmap.md` L3-6 行不矛盾
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` 全部通过（含新增 + 现有测试不受影响）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] `IAgentEngine.resumeSession` default 方法 + `DefaultAgentEngine` 实现已落地
-- [ ] `AgentEventType.SESSION_RESUMED` 已落地
-- [ ] `resumeSession` 调用 `denialLedger.reset` + 发布 `SESSION_RESUMED` + re-execute（完整恢复链路）
-- [ ] Sticky recovery 端到端验证（pause → resume → continued execution）
-- [ ] Sticky enforcement 验证（execute without resume = re-pause；sticky 经 `isPaused` 强制执行）
-- [ ] `resumeSession` fail-fast 语义（non-existent / non-paused session → `NopAiAgentException`）
-- [ ] `NoOpDenialLedger` 默认向后兼容（全部现有测试通过，0 spurious 暂停）
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs（设计 §6.2、roadmap L3-6）已同步到 live baseline
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**: closure audit 已验证 (a) resumeSession → denialLedger.reset → re-execute → LLM continues 调用链在运行时连通，(b) sticky enforcement 经 isPaused 检查强制执行（非仅文档约定），(c) 无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/180-nop-ai-agent-sticky-pause-recovery.md --strict` 退出码为 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-agent --severity high` 退出码为 0
-- [ ] checkstyle / 代码规范检查通过
+- [x] `IAgentEngine.resumeSession` default 方法 + `DefaultAgentEngine` 实现已落地
+- [x] `AgentEventType.SESSION_RESUMED` 已落地
+- [x] `resumeSession` 调用 `denialLedger.reset` + 发布 `SESSION_RESUMED` + re-execute（完整恢复链路）
+- [x] Sticky recovery 端到端验证（pause → resume → continued execution）
+- [x] Sticky enforcement 验证（execute without resume = re-pause；sticky 经 `isPaused` 强制执行）
+- [x] `resumeSession` fail-fast 语义（non-existent / non-paused session → `NopAiAgentException`）
+- [x] `NoOpDenialLedger` 默认向后兼容（全部现有测试通过，0 spurious 暂停）
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs（设计 §6.2、roadmap L3-6）已同步到 live baseline
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**: closure audit 已验证 (a) resumeSession → denialLedger.reset → re-execute → LLM continues 调用链在运行时连通，(b) sticky enforcement 经 isPaused 检查强制执行（非仅文档约定），(c) 无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/180-nop-ai-agent-sticky-pause-recovery.md --strict` 退出码为 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-agent --severity high` 退出码为 0
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -191,13 +191,46 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: *(to be filled at closure)*
-Completed: *(to be filled at closure)*
+Status Note: Sticky-pause recovery protocol 完整落地。`IAgentEngine.resumeSession(sessionId, approver, reason)` 人类干预恢复入口点已交付（default 方法 throw UOE + `DefaultAgentEngine` 实现），设计 §6.2 `pauseBehavior = sticky` 从延期状态收口为已落地。全部 10 个测试（Phase 1 单元 6 + Phase 2 端到端 4）通过，全模块 1183 tests 0 failures。独立子 agent closure audit（fresh session）全部 18 项验证 PASS。
+Completed: 2026-06-14
 
 Closure Audit Evidence:
 
-- *(to be filled by independent subagent closure audit)*
+- Reviewer / Agent: independent closure-audit subagent (task_id: ses_1394d40b9ffebgfjLE4Koi06nr, fresh session — NOT the implementation session)
+- Audit Session: ses_1394d40b9ffebgfjLE4Koi06nr
+- Evidence:
+  - Phase 1 Exit Criteria (all PASS):
+    - `SESSION_RESUMED` enum exists: `AgentEventType.java:54` (Javadoc lines 44-53)
+    - `resumeSession` default (UOE) in `IAgentEngine.java:75-77` + override in `DefaultAgentEngine.java:672-745` — PASS
+    - Fail-fast NopAiAgentException: non-existent (`DefaultAgentEngine.java:675-678`), non-paused (`:679-683`) — PASS
+    - `denialLedger.reset` call (`:691`) + count→0 + isPaused→false: verified by `TestResumeSession.resumeSession_pausedSession_callsDenialLedgerResetClearingPause` (resetCount==1, getDenialCount==0, isPaused==false) — PASS
+    - SESSION_RESUMED payload (approver+reason+preResetDenialCount): `DefaultAgentEngine.java:696-701`, verified by `TestResumeSession.resumeSession_publishesSessionResumedEventWithAuditPayload` — PASS
+  - Phase 2 Exit Criteria (all PASS):
+    - Anti-Hollow sticky recovery e2e: `TestStickyPauseRecovery.stickyRecovery_thresholdPauseThenResume_continuesToCompletion` — asserts paused→resume→completed + LLM callCount increased + tool success "ok" — PASS
+    - Sticky enforcement: `stickyEnforcement_executeWithoutResume_repausesAtGate` — asserts re-paused + resetCount==0 + LLM NOT called (isPaused gate aborts) — PASS
+    - Wiring verification: `resetCount==1` at runtime (`:332`) + `executor.execute(ctx)` at `DefaultAgentEngine.java:726` — PASS
+    - Backward compat: `backwardCompat_noOpLedgerNeverPauses_andResumeFailsFast` — NoOp never pauses + resume fail-fast — PASS
+    - Resume audit: `resumeAudit_preResetDenialCountEqualsThreshold` — preResetDenialCount==3==threshold — PASS
+    - Design doc §6.2 updated: line 364 (已落地), line 371 (table 已落地), line 385 (decision #6 a-e) — PASS
+    - Roadmap L3-6 ✅: `nop-ai-agent-roadmap.md:199` (no contradiction) — PASS
+  - Closure Gates (all PASS):
+    - No silent no-op: `resumeSession` full impl, throws NopAiAgentException on invalid state — PASS
+    - Deferred items honest: IApprovalChannel / crash-restart / 权限校验 all Non-Goals, none in-scope defects — PASS
+    - Owner docs synced: design §6.2 + roadmap L3-6 — PASS
+  - Anti-Hollow Check: runtime call chain `resumeSession` → `denialLedger.reset` → `buildBaseExecutionContext` → `resolveExecutor` → `executor.execute` → LLM (callCount increase) → completed — each link verified by passing tests — PASS
+  - Sticky enforcement via `isPaused` gate: `ReActAgentExecutor.java:496-498` — `isPaused` check at reactLoop iteration start, `handleSessionPaused` + `break reactLoop` before LLM invocation — PASS
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/180-nop-ai-agent-sticky-pause-recovery.md --strict` exit 0 (no unchecked items + closure evidence written)
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-agent --severity high` exit 0 (0 hollow findings)
+  - Deferred 项分类检查: 3 deferred items (IApprovalChannel gated resume / crash-restart durable recovery / resume 权限校验) all correctly classified as out-of-scope improvements with explicit Non-Goals coverage — no in-scope live defect downgraded
 
 Follow-up:
 
-- *(to be filled at closure)*
+- `IApprovalChannel` pre-approval gating (resume 前需人类审批流) — successor to plan 176
+- Crash/restart durable session recovery (`ICheckpointManager` L3-4) — independent plan
+- Resume rate limiting (防止恶意反复 resume 清空拒绝计数)
+- Resume 自动通知 LLM (向 conversation 追加 system message — 行为增强)
+- Resume 权限校验 (调用方身份验证 + 角色授权)
+
+## Follow-up handled by 181-nop-ai-agent-checkpoint-manager.md
+
+The `Crash/restart durable session recovery` carry-over from this plan's `Deferred But Adjudicated` section (`Successor Required: yes, Successor Path: L3-4 ICheckpointManager 独立计划`) and `Non-Blocking Follow-ups` / `Follow-up` sections is handled by plan 181 (`ai-dev/plans/181-nop-ai-agent-checkpoint-manager.md`). Plan 181 delivers the L3-4 `ICheckpointManager` contract surface + `Checkpoint`/checkpoint-type value model + `NoOpCheckpoint` pass-through default + `ToolExecutionCheckpoint` functional implementation (in-memory) + `ReActAgentExecutor` dispatch-loop save-side wiring (after tool execution) + `DefaultAgentEngine` Builder/engine wiring (field + null-fallback setter + Builder pass, parallel to `denialLedger`). This lands the checkpoint *record/retrieve* capability that crash/restart recovery depends on. The full crash/restart durable session restore protocol (rebuilding an `AgentExecutionContext` from persisted checkpoints across a process boundary) and the `journal.md` + `snapshot.json` dual-file format (roadmap A4, blocked-by L3-4) remain deferred to successor plans — L3-4 delivers the contract + save side + functional store, not the restore-on-restart protocol.

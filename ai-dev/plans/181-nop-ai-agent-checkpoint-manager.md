@@ -252,3 +252,7 @@ Follow-up:
 - LLM-turn checkpoint + compaction-triggered snapshot（§5.4a 其他触发点，roadmap A4 范畴）
 - Checkpoint retention/rotation policy（数量上限 + 自动清理 + 保留窗口）
 - Automatic restore-on-engine-startup（crash/restart successor 的职责）
+
+## Follow-up handled by 182-nop-ai-agent-checkpoint-journal.md
+
+The `journal.md` + `snapshot.json` 双文件格式 (roadmap A4) carry-over from this plan's `Deferred But Adjudicated` ("journal.md + snapshot.json 双文件格式 (roadmap A4)" — `Successor Required: yes, Successor Path: roadmap A4 独立计划（L3-4 ✅ 后可规划）`) and `Non-Blocking Follow-ups` / `Follow-up` sections is handled by plan 182 (`ai-dev/plans/182-nop-ai-agent-checkpoint-journal.md`). Plan 182 delivers the §5.4a journal.md (append-only source of truth) + snapshot.json (derived cache) dual-file checkpoint persistence format + watermark-based recovery read path + a file-backed `ICheckpointManager` functional implementation (drop-in replacement for `ToolExecutionCheckpoint`, same contract surface, file-persisted storage). L3-4's executor/engine dispatch-path wiring already calls `saveCheckpoint`; plan 182 verifies the file-backed manager works as a drop-in. Crash/restart durable session restore protocol, DB-backed checkpoint persistence, LLM-turn/compaction trigger points, and retention/rotation policy remain deferred to separate successors.

@@ -1,7 +1,7 @@
 # nop-ai-agent 组件分解与开发路线
 
 > Status: active
-> Updated: 2026-06-14（A2 Phase-2 LLM Judge `LlmCompletionJudge` 完成 — Plan 165；rule-based + LLM 双策略均已交付）
+> Updated: 2026-06-15（L3-4d DB-backed session store 完成 — Plan 185；`DBSessionStore` 使任何共享 DB 的服务实例可接管恢复 session）
 > Parent: `ai-dev/design/nop-ai-agent/README.md`
 
 ---
@@ -145,7 +145,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | A1 | 🌟 Budgeted Injection: AiMemoryItem 补充 priority/tokenEstimate/pinned 等字段 + IAiMemoryStore.readBudgeted() default 方法 | L1-16 | ❌ |
 | A2 | 🌟 Completion Gate: ReAct 循环"无 tool calls"后加 Judge 验证点（contract: Plan 159; functional `RuleBasedCompletionJudge`: Plan 162; LLM `LlmCompletionJudge`: Plan 165） | L1-5 | ✅ |
 | A3 | 🌟 PreStop/PostStop ReAct 钩子: before_tool_result_processed / after_tool_result_processed（允许重入） | L2-12 | ❌ |
-| A4 | 🌟 Checkpoint Journal 格式: journal.md + snapshot.json 双文件，按 watermark 恢复 | L3-4 | ❌ |
+| A4 | 🌟 Checkpoint Journal 格式: journal.md + snapshot.json 双文件，按 watermark 恢复（plan 182 已落地；crash/restart restore = plan 183 已落地；DB persistence = plan 186 已落地，实现为 `DBCheckpointManager`；LLM-turn/compaction triggers = plan 187 已落地，三个触发点全部 ✅；compaction-aware 截断加载 = plan 188 已落地，`firstKeptEntryId` 由 COMPACTION checkpoint 位置实现） | L3-4 | ✅ |
 | A5 | 🌟 Actor Cancel 两级语义: graceful（完成当前 tool）/ forced（立即中断） | L1-17 | ✅ |
 | A6 | 🌟 Session Fork: forkSession 功能化实现（InMemorySessionStore + DefaultAgentEngine，SESSION_FORKED 事件，inheritContext 语义） | L1-17, A5 | ✅ |
 
@@ -195,6 +195,9 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L3-2 | `IRetryPolicy` 接口 + `NoRetry` 默认 + `StandardRetryPolicy` | L1-5 | ❌ |
 | L3-3 | `IGoalTracker` 接口 + `NoOpGoalTracker` + `SessionGoalTracker` | L1-10 | ❌ |
 | L3-4 | `ICheckpointManager` 接口 + `NoOpCheckpoint` + `ToolExecutionCheckpoint` | L1-10 | ✅ |
+| L3-4b | 🔴 Crash/restart durable session restore: `FileBackedSessionStore` (per-session JSON) + `ISessionStore.save` contract bridge + `IAgentEngine.restoreSession` + `SESSION_RESTORED` event + intra-execution persistence + checkpoint journal 消费（`getLatestCheckpoint` 一致性校验） — 单进程 crash/restart restore（plan 183 已落地；跨进程接管锁依赖 L4-8） | L3-4, A4 | ✅ |
+| L3-4c | 🔴 Auto restore-on-startup: `ISessionStore.listAllSessions()` 磁盘发现契约（不改 `getAll()` 语义）+ `IAgentEngine.restorePendingSessions(approver, reason)` 批量入口（发现 → 筛选 running/pending 候选 → 逐个 restoreSession → 摘要）+ `SessionRestoreSummary` — 进程重启后自动扫描+批量恢复，补齐"无人值守自动化"最后一块（plan 184 已落地；并行/限流恢复 + 定时扫描 = deferred successors） | L3-4b | ✅ |
+| L3-4d | 🔴 DB-backed session store: `DBSessionStore implements ISessionStore`（`ai_agent_session` 表，raw JDBC + MERGE INTO upsert + 混合列布局 + SESSION_DATA JSON CLOB 复用 SessionFileWriter/Reader 序列化）+ 跨实例存活 + `listAllSessions` SQL-based discovery — 任何共享 DB 的服务实例可接管恢复（plan 185 已落地；跨进程接管锁依赖 L4-8） | L3-4b | ✅ |
 | L3-5 | `IApprovalGate` 接口 + `AutoApproveGate` | L1-6 | ✅ |
 | L3-6 | `IDenialLedger` 接口 + `NoOpDenialLedger` + `DBDenialLedger` + sticky-pause 恢复协议（`IAgentEngine.resumeSession`） | L1-6 | ✅ |
 | L3-7 | `IPostDenialGuard` 接口 + `PassThroughPostDenialGuard` + `FingerprintPostDenialGuard` | L3-6 | ✅ |
@@ -229,7 +232,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 
 - [ ] 多 Agent 任务可以通过 Flow / Task 组织
 - [ ] 多用户可并发运行独立 Actor，租户间资源隔离
-- [ ] 长任务中断后可以恢复
+- [x] 长任务中断后可以恢复（plan 183 已落地：`IAgentEngine.restoreSession` + `FileBackedSessionStore` 单进程 crash/restart restore；plan 184 已落地：`IAgentEngine.restorePendingSessions` 自动扫描+批量恢复，补齐"无人值守"最后一块；plan 185 已落地：`DBSessionStore` 使任何共享 DB 的服务实例可接管恢复 session；跨进程接管锁依赖 L4-8 Actor Runtime，是独立 successor）
 
 ---
 
@@ -245,6 +248,22 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | Phase 1 接口锁定风险 | P1 | ISessionStore/IAiMemoryStore/IAgentEngine 接口太窄，无法承载 Phase 2+ 渐进式设计。必须 Phase 1 关闭前加 default 方法（见 L1-15~L1-17） |
 | ~~ReActAgentExecutor 构造器链~~ | ~~P1~~ | ✅ 已解决：L1-18 改为 Builder 模式，6 个构造器已移除（见 plan 146） |
 | AiMemoryItem 字段不足 | P2 | 4 字段缺 priority/tokenEstimate/pinned，Phase 2 Budgeted Injection 无法实现（见 L1-16） |
+
+---
+
+## 5b. 安全审计发现追踪（2026-06-15 deep audit）
+
+来源：`ai-dev/audits/2026-06-15-deep-audit-nop-ai-agent/`。每个发现的修复状态在此追踪，修复后 ❌→✅ 并标注落地 plan。
+
+| 发现 ID | 严重程度 | 修复状态 | 落地 plan / 说明 |
+|---------|---------|---------|-----------------|
+| AUDIT-13-15 | P0 | ✅ 已修复 | plan 190：`SessionIds` 两层校验（identifier + containment）接入 `DefaultAgentEngine.resolveSessionId` + `FileBackedSessionStore` / `FileBackedCheckpointManager` 全部 `rootDirectory.resolve(sessionId)` site，fail-closed |
+| AUDIT-13-16 | P2 | ❌ 未修复 | agentName 路径注入（`loadAgentModel` + `CallAgentExecutor` agentId 白名单），独立 surface，successor 待建 |
+| AUDIT-13-01 | P1 | ❌ 未修复 | 默认 AllowAll/PassThrough 装配，开箱全放行 |
+| AUDIT-13-02 | P1 | ❌ 未修复 | 默认 NoOpAuditLogger 丢弃审计事件 |
+| AUDIT-14-01 | P1 | ❌ 未修复 | 同 session 并发执行竞态 |
+| AUDIT-14-04 | P1 | ❌ 未修复 | FileBacked 非原子写 |
+| AUDIT-09-01 | P1 | ❌ 未修复 | NopAiAgentException extends RuntimeException 而非 NopException |
 
 ---
 
