@@ -18,6 +18,9 @@ import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
 import io.nop.ai.agent.hook.IHookRegistry;
 import io.nop.ai.agent.hook.NoOpHookRegistry;
+import io.nop.ai.agent.memory.IAiMemoryStore;
+import io.nop.ai.agent.memory.IMemoryStoreProvider;
+import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.repair.ChainRepairer;
 import io.nop.ai.agent.repair.IToolCallRepairer;
@@ -145,6 +148,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IPostDenialGuard postDenialGuard;
     private final ICheckpointManager checkpointManager;
     private final ISessionStore sessionStore;
+    private final IMemoryStoreProvider memoryStoreProvider;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -169,8 +173,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                   IApprovalGate approvalGate,
                                   IDenialLedger denialLedger,
                                   IPostDenialGuard postDenialGuard,
-                                  ICheckpointManager checkpointManager,
-                                  ISessionStore sessionStore) {
+                                   ICheckpointManager checkpointManager,
+                                   ISessionStore sessionStore,
+                                   IMemoryStoreProvider memoryStoreProvider) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -211,6 +216,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 ? checkpointManager
                 : NoOpCheckpoint.noOp();
         this.sessionStore = sessionStore;
+        this.memoryStoreProvider = memoryStoreProvider;
     }
 
     public static Builder builder() {
@@ -244,6 +250,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IPostDenialGuard postDenialGuard;
         private ICheckpointManager checkpointManager;
         private ISessionStore sessionStore;
+        private IMemoryStoreProvider memoryStoreProvider;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -461,6 +468,25 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Wire the {@link IMemoryStoreProvider} consulted by working-memory
+         * tools (read-memory / write-memory / search-memory) to resolve the
+         * per-session {@link IAiMemoryStore} from the current
+         * {@code sessionId} (plan 189 Phase 1). Optional: when null, the
+         * dispatch loop skips memory-store resolution (context's
+         * {@code memoryStore} stays null) and memory tools fail fast at
+         * execution time. When non-null, the executor does NOT inherit a
+         * default — it stays null until explicitly set.
+         *
+         * <p>The shipped default in {@link io.nop.ai.agent.engine.DefaultAgentEngine}
+         * is an {@link io.nop.ai.agent.memory.InMemoryMemoryStoreProvider}
+         * instance, so working-memory tools work out-of-the-box.
+         */
+        public Builder memoryStoreProvider(IMemoryStoreProvider memoryStoreProvider) {
+            this.memoryStoreProvider = memoryStoreProvider;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -494,7 +520,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     denialLedger,
                     postDenialGuard,
                     checkpointManager,
-                    sessionStore
+                    sessionStore,
+                    memoryStoreProvider
             );
         }
     }
@@ -733,6 +760,15 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
                 consecutiveContinues = 0;
 
+                // Plan 189 Phase 1: resolve the per-session memory store from
+                // the provider (when wired). When the provider is null
+                // (executor constructed outside the engine for testing, or
+                // explicitly opted out), the store stays null and memory tools
+                // fail fast at execution time with a descriptive error.
+                IAiMemoryStore memoryStore = memoryStoreProvider != null && sessionId != null
+                        ? memoryStoreProvider.getOrCreate(sessionId)
+                        : null;
+
                 AgentToolExecuteContext toolExecCtx = new AgentToolExecuteContext(
                         resolveWorkDir(agentModel),
                         Collections.emptyMap(),
@@ -746,7 +782,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         agentName,
                         computeEffectiveAllowedTools(agentModel, ctx),
                         computeEffectivePathRoots(agentModel, ctx),
-                        computeEffectivePathRules(agentModel, ctx));
+                        computeEffectivePathRules(agentModel, ctx),
+                        memoryStore);
 
                 // The workDir string used for action-fingerprint computation
                 // (design §6.3). Resolved once per iteration so all dispatch-loop

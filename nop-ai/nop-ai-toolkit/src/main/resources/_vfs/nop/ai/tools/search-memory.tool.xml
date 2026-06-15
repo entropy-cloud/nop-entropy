@@ -1,0 +1,41 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="search-memory">
+
+    <schema>
+        <search-memory id="!int" explanation="!string" timeoutMs="int"
+                       query="!string"/>
+    </schema>
+
+    <description><![CDATA[Search the current agent session's working memory by keyword.
+
+- query: the search term (required). The in-memory store performs case-insensitive substring matching on each item's content, type, and key. Semantic / vector search is a L4-3 successor scope (IMemoryAdapter).
+
+Returns the matching items as a formatted listing. When the store is configured but no items match, returns a success result noting "No matching memory items" (this is a legitimate state, not an error). When no memory store is configured (no provider wired), returns an honest error result.]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <search-memory id="1" explanation="Find items about the user" query="user"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Memory search (query='user'): 1 match(es).
+- key=user-pref type=note
+  content: User prefers concise answers.]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="2">
+            <call-tools>
+                <search-memory id="2" explanation="Search with no matches" query="nonexistent-term"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Memory search (query='nonexistent-term'): 0 match(es).
+No matching memory items.]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

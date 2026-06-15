@@ -1,0 +1,76 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="write-memory">
+
+    <schema>
+        <write-memory id="!int" explanation="!string" timeoutMs="int"
+                      action="string" key="string" type="string"
+                      priority="int" pinned="boolean">
+            <content>string</content>
+        </write-memory>
+    </schema>
+
+    <description><![CDATA[Write / update / remove items in the current agent session's working memory.
+
+- action: one of `add` (default), `update`, `remove`, `clear`
+    - add: insert a new item (requires `content`; optional `key` / `type` / `priority` / `pinned`)
+    - update: overwrite the item at `key` (requires `key`; optional `content` / `type` / `priority` / `pinned`)
+    - remove: delete the item at `key` (requires `key`)
+    - clear: remove all items (no args)
+- key: identifier for the item; auto-generated when omitted on `add`
+- type: optional category label (e.g. note, fact, task)
+- priority: integer importance score (higher = more important; used by budgeted read), default 0
+- pinned: boolean — when true the item is always included by budgeted read regardless of token budget, default false
+- content: the memory payload text (the item's stored content)
+
+Returns a confirmation summary noting the operation performed and the remaining item count, or an honest error result when no memory store is configured (no provider wired).]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <write-memory id="1" explanation="Persist user preference" action="add"
+                              key="user-pref" type="note" priority="5" pinned="true">
+                    <content><![CDATA[User prefers concise answers.]]></content>
+                </write-memory>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Added memory item (key=user-pref). Total items in store: 1]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="2">
+            <call-tools>
+                <write-memory id="2" explanation="Update an existing item" action="update"
+                              key="user-pref" priority="10">
+                    <content><![CDATA[User prefers concise answers and concrete examples.]]></content>
+                </write-memory>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Updated memory item (key=user-pref). Total items in store: 1]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="3">
+            <call-tools>
+                <write-memory id="3" explanation="Delete an item" action="remove" key="user-pref"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="3" status="success">
+                    <output><![CDATA[Removed memory item (key=user-pref). Remaining items in store: 0]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="4">
+            <call-tools>
+                <write-memory id="4" explanation="Clear all memory" action="clear"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="4" status="success">
+                    <output><![CDATA[Cleared all memory items. Remaining items in store: 0]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

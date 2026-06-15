@@ -9,6 +9,8 @@ import io.nop.ai.agent.compact.PipelineCompactor;
 import io.nop.ai.agent.guardrail.IContentGuardrail;
 import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
+import io.nop.ai.agent.memory.IMemoryStoreProvider;
+import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -98,6 +100,7 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IDenialLedger denialLedger = NoOpDenialLedger.noOp();
     private IPostDenialGuard postDenialGuard = PassThroughPostDenialGuard.passThrough();
     private ICheckpointManager checkpointManager = NoOpCheckpoint.noOp();
+    private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
 
@@ -462,6 +465,22 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public ICheckpointManager getCheckpointManager() {
         return checkpointManager;
+    }
+
+    /**
+     * Wire the {@link IMemoryStoreProvider} consulted by working-memory tools
+     * (read-memory / write-memory / search-memory) via the dispatch loop. The
+     * shipped default is an {@link InMemoryMemoryStoreProvider} (working-memory
+     * tools work out-of-the-box without any provider configuration). When
+     * explicitly set to {@code null} the executor skips memory-store
+     * resolution and memory tools fail fast at execution time.
+     */
+    public void setMemoryStoreProvider(IMemoryStoreProvider memoryStoreProvider) {
+        this.memoryStoreProvider = memoryStoreProvider;
+    }
+
+    public IMemoryStoreProvider getMemoryStoreProvider() {
+        return memoryStoreProvider;
     }
 
     /**
@@ -1157,6 +1176,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .postDenialGuard(postDenialGuard)
                     .checkpointManager(checkpointManager)
                     .sessionStore(this.sessionStore)
+                    .memoryStoreProvider(this.memoryStoreProvider)
                     .build();
         }
         if ("single-turn".equals(mode)) {

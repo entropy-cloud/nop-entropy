@@ -1,0 +1,74 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="read-memory">
+
+    <schema>
+        <read-memory id="!int" explanation="!string" timeoutMs="int"
+                     action="string" type="string" key="string" n="int" maxTokens="int"/>
+    </schema>
+
+    <description><![CDATA[Read the current agent session's working memory.
+
+- action: one of `list` (default), `last`, `budgeted`, `key`
+    - list: return all items (optionally filter by `type`)
+    - last: return the most recent `n` items (requires `n`)
+    - budgeted: return items selected by the Budgeted Injection algorithm — pinned items always included, non-pinned items sorted by priority descending and accumulated until `maxTokens` is reached (requires `maxTokens`)
+    - key: return the single item matching `key`
+- type: optional filter for action=list
+- key: required for action=key
+- n: required for action=last
+- maxTokens: required for action=budgeted
+
+Returns a formatted listing of the matching memory items, or an honest error result when no memory store is configured (no provider wired). Empty results from a configured store are a legitimate state and return success with "(no memory items)".]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <read-memory id="1" explanation="List all memory items" action="list"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Memory (list): 2 item(s).
+- key=user-pref type=note priority=5 [pinned]
+  content: User prefers concise answers.
+- key=task-ctx type=task
+  content: Current task is to refactor the ORM layer.]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="2">
+            <call-tools>
+                <read-memory id="2" explanation="Get last 3 items" action="last" n="3"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Memory (last n=3): 3 item(s).
+...]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="3">
+            <call-tools>
+                <read-memory id="3" explanation="Budgeted read" action="budgeted" maxTokens="500"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="3" status="success">
+                    <output><![CDATA[Memory (budgeted maxTokens=500): 2 item(s).
+...]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="4">
+            <call-tools>
+                <read-memory id="4" explanation="Read single key" action="key" key="user-pref"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="4" status="success">
+                    <output><![CDATA[Memory (key=user-pref): 1 item(s).
+- key=user-pref type=note priority=5 [pinned]
+  content: User prefers concise answers.]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

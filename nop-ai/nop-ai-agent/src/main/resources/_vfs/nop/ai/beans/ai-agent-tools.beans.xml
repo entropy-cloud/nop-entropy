@@ -9,4 +9,11 @@
     <bean id="ai-agent-tools:call-agent" class="io.nop.ai.agent.tool.CallAgentExecutor"/>
     <bean id="ai-agent-tools:send-message" class="io.nop.ai.agent.tool.SendMessageExecutor"/>
 
+    <!-- Working-memory tool executors (plan 189). Same auto-collect path
+         via <ioc:collect-beans by-type="...IToolExecutor"/>. Each tool
+         reads the per-session IAiMemoryStore from AgentToolExecuteContext. -->
+    <bean id="ai-agent-tools:read-memory" class="io.nop.ai.agent.tool.ReadMemoryExecutor"/>
+    <bean id="ai-agent-tools:write-memory" class="io.nop.ai.agent.tool.WriteMemoryExecutor"/>
+    <bean id="ai-agent-tools:search-memory" class="io.nop.ai.agent.tool.SearchMemoryExecutor"/>
+
 </beans>

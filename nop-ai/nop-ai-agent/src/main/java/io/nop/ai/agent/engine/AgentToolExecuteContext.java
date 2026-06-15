@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.model.PathRuleModel;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
@@ -43,6 +44,7 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
     private final Set<String> allowedTools;
     private final Set<String> allowedPathRoots;
     private final List<PathRuleModel> allowedPathRules;
+    private final IAiMemoryStore memoryStore;
 
     public AgentToolExecuteContext(File workDir,
                                    Map<String, String> envs,
@@ -150,6 +152,40 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
                                    Set<String> allowedTools,
                                    Set<String> allowedPathRoots,
                                    List<PathRuleModel> allowedPathRules) {
+        this(workDir, envs, expireAt, cancelToken, fileSystem, executor,
+                engine, messenger, sessionId, agentName, allowedTools, allowedPathRoots,
+                allowedPathRules, null);
+    }
+
+    /**
+     * Full constructor additionally carrying the per-session
+     * {@link IAiMemoryStore} resolved by the dispatch loop from the
+     * engine's {@link io.nop.ai.agent.memory.IMemoryStoreProvider}. Working-memory
+     * tools (read-memory / write-memory / search-memory) read the store from
+     * here.
+     *
+     * <p>When {@code memoryStore} is {@code null} (the engine has not been
+     * wired with a provider, or the caller is testing the executor outside the
+     * engine), memory tools fail fast at execution time with a descriptive
+     * error rather than silently no-op.
+     *
+     * @param memoryStore the per-session memory store; {@code null} is a
+     *                    legitimate value (memory tools fail fast when null)
+     */
+    public AgentToolExecuteContext(File workDir,
+                                   Map<String, String> envs,
+                                   long expireAt,
+                                   ICancelToken cancelToken,
+                                   IToolFileSystem fileSystem,
+                                   IThreadPoolExecutor executor,
+                                   IAgentEngine engine,
+                                   IAgentMessenger messenger,
+                                   String sessionId,
+                                   String agentName,
+                                   Set<String> allowedTools,
+                                   Set<String> allowedPathRoots,
+                                   List<PathRuleModel> allowedPathRules,
+                                   IAiMemoryStore memoryStore) {
         this.workDir = workDir;
         this.envs = envs != null ? envs : Collections.emptyMap();
         this.expireAt = expireAt;
@@ -163,6 +199,7 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
         this.allowedTools = allowedTools;
         this.allowedPathRoots = allowedPathRoots;
         this.allowedPathRules = allowedPathRules;
+        this.memoryStore = memoryStore;
     }
 
     @Override
@@ -249,5 +286,18 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
      */
     public List<PathRuleModel> getAllowedPathRules() {
         return allowedPathRules;
+    }
+
+    /**
+     * Return the per-session {@link IAiMemoryStore} resolved from the
+     * engine's {@link io.nop.ai.agent.memory.IMemoryStoreProvider}, or
+     * {@code null} when no provider is wired (memory tools fail fast at
+     * execution time with a descriptive error). Working-memory tools
+     * (read-memory / write-memory / search-memory) read the store from here.
+     *
+     * @return {@code null} (no provider wired) or a non-null per-session store
+     */
+    public IAiMemoryStore getMemoryStore() {
+        return memoryStore;
     }
 }
