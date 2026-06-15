@@ -38,7 +38,7 @@ Requirements:
 
 After creating the file, report its real path. The engine will verify the path exists on disk.
 
-## Case A — you created a plan file
+## Case A — you created a NEW plan file
 Output exactly this structure (replace `/path/to/plan.md` with the real path you used):
 ```
 <AI_STEP_RESULT>created</AI_STEP_RESULT>
@@ -55,4 +55,11 @@ Output exactly this, nothing else:
 <AI_STEP_RESULT>none</AI_STEP_RESULT>
 ```
 
-Choose only ONE case. Do not output both.
+## Case C — you REVISED an existing plan in-place
+If your prompt includes a **REVISION REQUEST** section with review feedback (appended below), you must revise the **existing** plan file at the path specified — edit it in-place, do NOT create a new plan. After editing the existing file, output exactly this:
+```
+<AI_STEP_RESULT>revised</AI_STEP_RESULT>
+```
+Do NOT output a `<FLOW_VARS>` block for Case C — the engine already knows the plan path from the previous step.
+
+Choose only ONE case. Do not output multiple.

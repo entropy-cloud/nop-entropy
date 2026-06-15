@@ -461,8 +461,10 @@ export class FlowEngine {
         content = result.text || "";
       }
       const template = append.template || "${output}";
-      return "\n\n" + template.replace(/\$\{output\}/g, content)
+      let text = "\n\n" + template.replace(/\$\{output\}/g, content)
         .replace(/\$\{logFile\}/g, result.logFile || "N/A");
+      text = this._templateVar(text, this._allVars());
+      return text;
     }
     return "";
   }

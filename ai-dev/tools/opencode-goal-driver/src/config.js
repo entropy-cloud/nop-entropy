@@ -37,10 +37,11 @@ export function resolveConfig(args = {}) {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   const ts = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
   const runDir = resolve(projectRoot, `_tmp/${ts}-goal-driver`);
   mkdirSync(runDir, { recursive: true });
 
-  return { projectRoot, moduleName, moduleDir, runDir,
+  return { projectRoot, moduleName, moduleDir, runDir, timestamp,
            agent, model, maxCycles, maxInnerCycles, maxTotalSteps, dryRun, testMode,
            logFile: resolve(runDir, `${moduleName}.log`) };
 }

@@ -43,7 +43,7 @@
 
 3. **派发独立子 agent**（使用 `ai-dev/skills/deep-audit-prompts.md` 作为提示词）执行审计：
    - 子 agent 为每个选定维度独立执行审计
-   - 子 agent **必须将审计结果写入 `ai-dev/audits/` 目录**，命名格式：`YYYY-MM-DD-deep-audit-{module}/`（含多份报告时用目录）或 `YYYY-MM-DD-deep-audit-{module}.md`（单文件时）
+   - 子 agent **必须将审计结果写入 `ai-dev/audits/` 目录**，命名格式：`YYYY-MM-DD-HHMM-deep-audit-{module}/`（含多份报告时用目录）或 `YYYY-MM-DD-HHMM-deep-audit-{module}.md`（单文件时）。`HHMM` 为 24 小时制时分，用于区分同一天内的多次执行。
    - 审计记录必须包含 `summary.md`（或摘要段落），每条发现标注严重程度（P0/P1/P2/P3）
 
 4. 主 agent 读取审计结果，判断是否有 P0/P1 问题：
@@ -60,7 +60,7 @@
 
 1. **派发独立子 agent**（使用 `ai-dev/skills/open-ended-adversarial-review-prompt.md` 作为提示词）执行对抗性审查：
    - 子 agent 不受固定维度约束，从代码异常信号、模式、矛盾、缺失物或跨边界连锁效应出发
-   - 子 agent **必须将审查结果写入 `ai-dev/audits/` 目录**，命名格式：`YYYY-MM-DD-adversarial-review-{module}/` 或 `YYYY-MM-DD-adversarial-review-{module}.md`
+   - 子 agent **必须将审查结果写入 `ai-dev/audits/` 目录**，命名格式：`YYYY-MM-DD-HHMM-adversarial-review-{module}/` 或 `YYYY-MM-DD-HHMM-adversarial-review-{module}.md`
    - 审查记录必须包含摘要，每条发现标注严重程度
 
 2. 主 agent 读取审查结果，判断是否有需要修复的问题：

@@ -540,4 +540,72 @@ describe("FlowEngine — plan audit retry loop", () => {
     assert.equal(result.status, "completed");
     assert.ok(execPrompt.includes("⚠️ plan audit failed"));
   });
+
+  it("revised marker routes back to PLAN_AUDIT instead of escaping (regression for plan 189 bug)", async () => {
+    const flow = simpleFlow({
+      PLAN_DRAFT: {
+        type: "agent",
+        prompt: "draft plan",
+        resultTag: "AI_STEP_RESULT",
+        transitions: {
+          created: { goto: "PLAN_AUDIT" },
+          revised: { goto: "PLAN_AUDIT" },
+          none: { done: "completed" },
+        },
+      },
+      PLAN_AUDIT: {
+        type: "agent",
+        prompt: "audit plan",
+        resultTag: "AI_STEP_RESULT",
+        transitions: {
+          approved: { goto: "EXECUTE" },
+          issues: {
+            retry: "PLAN_DRAFT",
+            maxRetries: 3,
+            append: { template: "## REVISION REQUEST\n\nPlan at {{PLAN_FILE}} — revise in-place:\n\n${output}" },
+          },
+        },
+        onMaxRetries: { goto: "EXECUTE" },
+      },
+      EXECUTE: {
+        type: "agent",
+        prompt: "execute plan",
+        resultTag: "AI_STEP_RESULT",
+        transitions: { success: { done: "completed" } },
+      },
+    }, "PLAN_DRAFT");
+
+    let draftCount = 0;
+    const delegates = makeMockDelegates({
+      responses: {
+        PLAN_DRAFT: (sn, prompt) => {
+          draftCount++;
+          if (draftCount === 1) {
+            return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS><PLAN_FILE>/plans/189.md</PLAN_FILE></FLOW_VARS>", ok: true };
+          }
+          return { text: "<AI_STEP_RESULT>revised</AI_STEP_RESULT>", ok: true };
+        },
+        PLAN_AUDIT: () => {
+          if (draftCount < 3) {
+            return { text: "<AI_STEP_RESULT>issues</AI_STEP_RESULT>\n<ISSUES><item severity=\"Major\">fix X</item></ISSUES>", ok: true };
+          }
+          return { text: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>", ok: true };
+        },
+        EXECUTE: "<AI_STEP_RESULT>success</AI_STEP_RESULT>",
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.equal(draftCount, 3);
+
+    const draftCalls = delegates.callLog.filter(c => c.stepName === "PLAN_DRAFT");
+    assert.equal(draftCalls.length, 3);
+    assert.equal(draftCalls[0].prompt.includes("REVISION REQUEST"), false);
+    assert.ok(draftCalls[1].prompt.includes("REVISION REQUEST"));
+    assert.ok(draftCalls[1].prompt.includes("/plans/189.md"));
+    assert.ok(draftCalls[2].prompt.includes("REVISION REQUEST"));
+  });
 });

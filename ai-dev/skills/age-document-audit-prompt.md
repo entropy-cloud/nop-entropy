@@ -132,7 +132,7 @@ AGE 把工程文档分为三层：
    b. **禁止阅读 `ai-dev/audits/`、`ai-dev/plans/`、`ai-dev/bugs/`、`ai-dev/lessons/` 等历史记录**。只审计当前 live 文档，不要浪费时间回查历史。
 3. **阶段一 — 迭代深挖**：
    a. 主 agent 用"共享提示词前缀 + 该维度正文"拼接出完整 prompt，派发**第 1 轮（初审）子 agent**。
-   b. 初审完成后，将发现保存到 `ai-dev/analysis/{日期}-doc-age-audit-{标识}/{维度编号}-{名}.md`。
+   b. 初审完成后，将发现保存到 `ai-dev/analysis/{YYYY}-{MM}-{DD}-{HHMM}-doc-age-audit-{标识}/{维度编号}-{名}.md`。
    c. 如果第 1 轮有发现，主 agent 派发**第 2 轮（追加深挖）子 agent**，prompt 中包含：
       - 共享提示词前缀
       - 该维度正文（相同）
@@ -844,7 +844,7 @@ AGE 层次校准（必须遵守）：
 全面审计：
 
 ```
-ai-dev/analysis/{year}-{month}-{day}-doc-age-audit-{标识}/
+ai-dev/analysis/{year}-{month}-{day}-{time}-doc-age-audit-{标识}/
 ├── A-attractor-discoverability.md
 ├── B-owner-doc-quality.md
 ├── C-trajectory-completeness.md
@@ -857,7 +857,7 @@ ai-dev/analysis/{year}-{month}-{day}-doc-age-audit-{标识}/
 设计阶段审计：
 
 ```
-ai-dev/analysis/{year}-{month}-{day}-doc-age-audit-design-{标识}/
+ai-dev/analysis/{year}-{month}-{day}-{time}-doc-age-audit-design-{标识}/
 ├── B-owner-doc-quality.md
 ├── Bp-design-self-check.md
 └── summary.md
@@ -865,7 +865,7 @@ ai-dev/analysis/{year}-{month}-{day}-doc-age-audit-design-{标识}/
 
 **命名规则**：
 
-- 目录名格式：`{YYYY}-{MM}-{DD}-doc-age-audit-{简短标识}`（如 `2026-06-08-doc-age-audit-full` 或 `2026-06-08-doc-age-audit-quick`）
+- 目录名格式：`{YYYY}-{MM}-{DD}-{HHMM}-doc-age-audit-{简短标识}`（如 `2026-06-08-1430-doc-age-audit-full` 或 `2026-06-08-0900-doc-age-audit-quick`）。`{HHMM}` 为 24 小时制时分，用于区分同一天内的多次执行。
 - 每个维度一个 md 文件，文件名格式：`{维度编号}-{英文简短名}.md`
 - `summary.md` 保存主 agent 的汇总报告（格式见附录 B）
 

@@ -6,16 +6,17 @@
 
 ```
 ai-dev/audits/
-├── YYYY-MM-DD-{type}-{module}/        # 深度审计（含多份报告）
-│   ├── summary.md                     # 总体发现摘要
-│   ├── {detail-report}.md             # 分项报告
+├── YYYY-MM-DD-HHMM-{type}-{module}/    # 深度审计（含多份报告）
+│   ├── summary.md                       # 总体发现摘要
+│   ├── {detail-report}.md               # 分项报告
 │   └── ...
-├── YYYY-MM-DD-{type}-{module}.md      # 独立审计记录
+├── YYYY-MM-DD-HHMM-{type}-{module}.md   # 独立审计记录
 └── README.md
 ```
 
 - `{type}`: `deep-audit` / `adversarial-review` / `plan-closure-audit` / `doc-age-audit`
 - `{module}`: 被审计的模块名（如 `nop-stream`、`nop-job`）
+- `HHMM`: 24 小时制时分（如 `0930`、`1430`），用于区分同一天内的多次执行。历史记录可能只有 `YYYY-MM-DD`（无时分），新记录一律带 `HHMM`。
 
 ## 与 skills 的关系
 

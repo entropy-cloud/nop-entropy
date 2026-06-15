@@ -67,6 +67,7 @@
       "onUnknownMaxRetries": 2,
       "transitions": {
         "created": { "goto": "PLAN_AUDIT" },
+        "revised": { "goto": "PLAN_AUDIT" },
         "none": { "goto": "DEEP_AUDIT_LOOP" }
       },
       "onError": { "goto": "DEEP_AUDIT_LOOP" }
@@ -82,11 +83,11 @@
         "issues": {
           "retry": "PLAN_DRAFT",
           "maxRetries": 3,
-          "append": { "template": "\n\nPlan review feedback — revise the plan accordingly:\n${output}" }
+          "append": { "template": "\n\n## REVISION REQUEST\n\nYour previous plan at `{{PLAN_FILE}}` did not pass audit. Revise it **in-place** (edit the existing file, do NOT create a new plan) based on the feedback below, then output `revised`:\n\n${output}" }
         }
       },
       "onError": { "retry": "PLAN_DRAFT", "maxRetries": 2 },
-      "onMaxRetries": { "goto": "EXECUTE_PLAN" }
+      "onMaxRetries": { "goto": "EXECUTE_PLAN", "append": { "template": "\n\n⚠️ This plan did not pass audit after max retries. Proceeding in degraded mode." } }
     },
 
     "EXECUTE_PLAN": {

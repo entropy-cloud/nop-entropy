@@ -52,7 +52,7 @@ async function main() {
     const flow = createGoalDriverFlow();
     const delegates = {
       config,
-      vars: { module: config.moduleName, projectRoot: config.projectRoot },
+      vars: { module: config.moduleName, projectRoot: config.projectRoot, TIMESTAMP: config.timestamp },
       runAgent: runner.runAgent,
       runTool: runner.runTool,
       runParseAgent: runner.runParseAgent,

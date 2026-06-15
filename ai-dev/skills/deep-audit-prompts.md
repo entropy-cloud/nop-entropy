@@ -76,7 +76,7 @@
    c. **禁止阅读 `ai-dev/audits/`、`ai-dev/plans/`、`ai-dev/bugs/`、`ai-dev/lessons/` 等历史记录**。只审计当前 live code，不要浪费时间回查历史。如果问题尚未修复，审计时自然会再次发现。
 3. **阶段一 — 迭代深挖**：
    a. 主 agent 用"共享提示词前缀 + 该维度正文"拼接出完整 prompt，派发**第 1 轮（初审）子 agent**。
-   b. 初审完成后，将发现保存到 `ai-dev/audits/{日期}-deep-audit-{模块名}-{标识}/{维度编号}-{名}.md`。
+   b. 初审完成后，将发现保存到 `ai-dev/audits/{YYYY}-{MM}-{DD}-{HHMM}-deep-audit-{模块名}-{标识}/{维度编号}-{名}.md`。
    c. 如果第 1 轮有发现，主 agent 派发**第 2 轮（追加深挖）子 agent**，prompt 中包含：
       - 共享提示词前缀
       - 该维度正文（相同）
@@ -164,7 +164,7 @@
 **深挖追加轮次示例**（维度 01 第 1 轮有 5 个发现）：
 
 ```
-维度 01 第 1 轮发现已保存到 ai-dev/audits/2026-05-18-deep-audit-nop-code-full/01-dependency-graph.md。
+维度 01 第 1 轮发现已保存到 ai-dev/audits/2026-05-18-1430-deep-audit-nop-code-full/01-dependency-graph.md。
 第 1 轮有 5 个发现，继续深挖：
 
 Task(
@@ -201,7 +201,7 @@ Task(
 **目录结构**：
 
 ```
-ai-dev/audits/{year}-{month}-{day}-deep-audit-{模块名}-{简短标识}/
+ai-dev/audits/{year}-{month}-{day}-{time}-deep-audit-{模块名}-{简短标识}/
 ├── 01-dependency-graph.md
 ├── 02-module-responsibility.md
 ├── 03-api-surface.md
@@ -228,7 +228,7 @@ ai-dev/audits/{year}-{month}-{day}-deep-audit-{模块名}-{简短标识}/
 
 **命名规则**：
 
-- 子目录名格式：`{YYYY}-{MM}-{DD}-deep-audit-{模块名}-{简短标识}`（如 `2026-05-18-deep-audit-nop-code-full` 或 `2026-05-18-deep-audit-nop-auth-service`）
+- 子目录名格式：`{YYYY}-{MM}-{DD}-{HHMM}-deep-audit-{模块名}-{简短标识}`（如 `2026-05-18-1430-deep-audit-nop-code-full` 或 `2026-05-18-0900-deep-audit-nop-auth-service`）。其中 `{HHMM}` 为 24 小时制的时分（如 `0930`、`1430`），用于区分同一天内的多次执行。
 - 每个维度一个 md 文件，文件名格式：`{维度编号}-{英文简短名}.md`
 - `summary.md` 保存主 agent 的汇总报告（格式见附录 A）
 
