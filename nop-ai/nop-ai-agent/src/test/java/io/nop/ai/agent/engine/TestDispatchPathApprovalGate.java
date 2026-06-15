@@ -294,8 +294,9 @@ public class TestDispatchPathApprovalGate {
 
     // ========================================================================
     // Audit verification: denial records AuditEvent with matched rule
-    // "layer3_approval_gate" (Builder-based, since engine has no auditLogger
-    // setter — the audit logger is an executor-internal component)
+    // "layer3_approval_gate" (Builder-based direct executor construction;
+    // engine also exposes setAuditLogger since plan 194, but this test
+    // exercises the executor Builder path directly)
     // ========================================================================
 
     @Test

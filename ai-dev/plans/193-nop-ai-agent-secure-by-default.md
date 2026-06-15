@@ -176,3 +176,11 @@ Closure Audit Evidence:
 Follow-up:
 
 - AUDIT-13-02（审计 logger 装配）、[13-4]（Layer 2/3 默认收敛）、[13-5/6/7]（checker 逻辑）为已裁定 successor，见 Non-Blocking Follow-ups。本计划无剩余 plan-owned work。
+
+## Follow-up handled by 194-nop-ai-agent-audit-logger-default.md
+
+AUDIT-13-02（Non-Blocking Follow-ups 第一条）已由 successor plan `194-nop-ai-agent-audit-logger-default.md` 接管：装配 `Slf4jAuditLogger` 为默认审计 logger、给 `DefaultAgentEngine` 加 `auditLogger` 字段/setter、`resolveExecutor` 调用 `.auditLogger(...)`、并扩展本计划新增的 `warnIfInsecureDefaults` WARN 机制以枚举 `NoOpAuditLogger`。此段为事实性交叉引用追加，不修改本计划已关闭的 closure 内容。
+
+## Follow-up handled by 196-nop-ai-agent-exception-base-class.md
+
+AUDIT-09-01（Non-Goals 引用为"[09-1]（`NopAiAgentException` 基类）... 独立 work item，见 roadmap §5b"的 P1）已由 successor plan `196-nop-ai-agent-exception-base-class.md` 接管：将 `NopAiAgentException` 从 `extends RuntimeException` 改为 `extends NopException`，补齐 `serialVersionUID` 与 `(ErrorCode)` / `(ErrorCode, Throwable)` 构造器，使模块异常纳入框架统一异常体系。此段为事实性交叉引用追加，不修改本计划已关闭的 closure 内容。

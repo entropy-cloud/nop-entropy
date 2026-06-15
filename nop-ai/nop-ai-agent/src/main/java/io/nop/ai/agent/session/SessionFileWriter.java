@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -71,18 +72,36 @@ public final class SessionFileWriter {
         String json = serialize(session);
 
         synchronized (ioLock) {
+            // Crash-safe write (plan 195): write to a sibling .tmp file, then
+            // atomically replace the target via Files.move(ATOMIC_MOVE,
+            // REPLACE_EXISTING). POSIX rename(2) guarantees the target file
+            // is at all times either the complete previous content or the
+            // complete new content — never truncated or partially written.
+            // The .tmp file is a sibling of the target so both reside on the
+            // same filesystem/mount point (required for ATOMIC_MOVE).
+            Path tmp = sessionFile.resolveSibling(sessionFile.getFileName() + ".tmp");
             try {
                 Path parent = sessionFile.getParent();
                 if (parent != null) {
                     Files.createDirectories(parent);
                 }
-                Files.write(sessionFile, json.getBytes(StandardCharsets.UTF_8),
+                Files.write(tmp, json.getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.CREATE, StandardOpenOption.WRITE,
                         StandardOpenOption.TRUNCATE_EXISTING);
+                Files.move(tmp, sessionFile, StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 throw new NopAiAgentException(
                         "SessionFileWriter.write: failed to write " + sessionFile
                                 + ": " + e.getMessage(), e);
+            } finally {
+                try {
+                    Files.deleteIfExists(tmp);
+                } catch (IOException deleteErr) {
+                    // Best-effort cleanup of a stale tmp — must not mask the
+                    // primary exception (already thrown above if write/move
+                    // failed). Only logged.
+                }
             }
         }
     }

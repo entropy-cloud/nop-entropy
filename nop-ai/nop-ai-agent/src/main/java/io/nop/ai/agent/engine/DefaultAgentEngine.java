@@ -29,6 +29,7 @@ import io.nop.ai.agent.security.DefaultLevelHintsProducer;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.security.IApprovalGate;
+import io.nop.ai.agent.security.IAuditLogger;
 import io.nop.ai.agent.security.IDenialLedger;
 import io.nop.ai.agent.security.IPathAccessChecker;
 import io.nop.ai.agent.security.IPermissionMatrix;
@@ -46,6 +47,7 @@ import io.nop.ai.agent.security.ParentPermissionConstraint;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
 import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.RuleBasedPathAccessChecker;
+import io.nop.ai.agent.security.Slf4jAuditLogger;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.ISessionStore;
@@ -101,6 +103,12 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IApprovalGate approvalGate = AutoApproveGate.autoApprove();
     private IDenialLedger denialLedger = NoOpDenialLedger.noOp();
     private IPostDenialGuard postDenialGuard = PassThroughPostDenialGuard.passThrough();
+    // Plan 194 (AUDIT-13-02): audit logger defaults to Slf4jAuditLogger so the
+    // engine produces a visible audit trail out-of-the-box (tool decisions are
+    // logged to SLF4J INFO) instead of silently discarding audit events via
+    // NoOpAuditLogger. Integrators can replace it via setAuditLogger (e.g. to
+    // write audit events to a database).
+    private IAuditLogger auditLogger = new Slf4jAuditLogger();
     private ICheckpointManager checkpointManager = NoOpCheckpoint.noOp();
     private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
     // Plan 192: max token budget for budgeted working-memory auto-injection into
@@ -175,7 +183,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
         this.contextCompactor = contextCompactor != null ? contextCompactor : defaultPipelineCompactor(chatService);
         this.tokenEstimator = CalibratedTokenEstimator.defaultInstance();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker);
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger);
     }
 
     /**
@@ -196,25 +204,28 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     /**
      * Emit a one-time WARN per engine instance when the resolved Layer 1
-     * checkers are {@code AllowAll*} instances — i.e. the integrator has
-     * explicitly opted into the "insecure default" (open box: dangerous tools
-     * and sensitive paths have no protection). The default constructor chain
-     * now resolves to {@code Default*} checkers (secure by default, plan 193),
-     * so this WARN fires only when an integrator deliberately passes an
-     * {@code AllowAll*} instance — making the security downgrade visible
-     * rather than silent. See design
-     * {@code nop-ai-agent-security-and-permissions.md} §4.6.
+     * checkers are {@code AllowAll*} instances, or when the resolved audit
+     * logger is a {@code NoOpAuditLogger} — i.e. the integrator has
+     * explicitly opted into an insecure downgrade (open box: dangerous tools
+     * and sensitive paths have no protection; audit events are silently
+     * discarded). The default constructor chain now resolves to
+     * {@code Default*} checkers and {@code Slf4jAuditLogger} (secure by
+     * default, plans 193 + 194), so these WARNs fire only when an integrator
+     * deliberately passes an {@code AllowAll*} / {@code NoOpAuditLogger}
+     * instance — making the security downgrade visible rather than silent.
+     * See design {@code nop-ai-agent-security-and-permissions.md} §4.6 / §4.7.
      *
-     * <p>The WARN explicitly covers only the Layer 1 tool and path checkers
-     * in scope of plan 193. Layer 2/3 components and {@code NoOpAuditLogger}
-     * default-downgrade enumeration is a successor extension point
-     * (AUDIT-13-02 / [13-4]).
+     * <p>The WARN covers the Layer 1 tool/path checkers (plan 193) and the
+     * audit logger (plan 194). Layer 2/3 components default-downgrade
+     * enumeration is a successor extension point ([13-4]).
      *
      * <p>Fail-loud: the WARN is unconditionally emitted via {@code LOG.warn}
-     * when an {@code AllowAll*} instance is detected — never silently
-     * swallowed or written as an empty body.
+     * when an {@code AllowAll*} / {@code NoOpAuditLogger} instance is
+     * detected — never silently swallowed or written as an empty body.
      */
-    private static void warnIfInsecureDefaults(IToolAccessChecker toolChecker, IPathAccessChecker pathChecker) {
+    private static void warnIfInsecureDefaults(IToolAccessChecker toolChecker,
+                                               IPathAccessChecker pathChecker,
+                                               IAuditLogger auditLogger) {
         if (toolChecker instanceof AllowAllToolAccessChecker) {
             LOG.warn("DefaultAgentEngine constructed with AllowAllToolAccessChecker: "
                     + "dangerous tools (bash/write-file/delete-file/move-file/patch-file/apply-delta/"
@@ -228,6 +239,14 @@ public class DefaultAgentEngine implements IAgentEngine {
                     + "This is an insecure default. To restore secure-by-default behaviour, do not pass "
                     + "an AllowAllPathAccessChecker to the constructor — the default already uses "
                     + "DefaultPathAccessChecker.");
+        }
+        if (auditLogger instanceof NoOpAuditLogger) {
+            LOG.warn("DefaultAgentEngine constructed with NoOpAuditLogger: "
+                    + "audit events are being DISCARDED — tool decisions (deny/approve/override) "
+                    + "leave NO record. This is an insecure downgrade of the audit trail. "
+                    + "To restore secure-by-default behaviour, do not pass a NoOpAuditLogger "
+                    + "to setAuditLogger — the default already uses Slf4jAuditLogger. "
+                    + "For a custom audit sink (e.g. database), supply your own IAuditLogger.");
         }
     }
 
@@ -488,6 +507,39 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Register the {@link IAuditLogger} used to record tool-decision audit
+     * events (deny/approve/override) produced on the dispatch path (design
+     * §4.7 / plan 194). Composition via this setter — no constructor chain
+     * change. Shipped default is {@link Slf4jAuditLogger} (audit events logged
+     * to SLF4J INFO), so the engine produces a visible audit trail
+     * out-of-the-box. Setting to {@code null} preserves the
+     * {@code Slf4jAuditLogger} default.
+     *
+     * <p>Unlike {@link #setDenialLedger} (whose NoOp default is a planful
+     * successor, Layer 3 denial-counting), a {@link NoOpAuditLogger}
+     * downgrade discards the audit trail entirely — a security downgrade of
+     * an already-shipped secure default. To keep that downgrade visible
+     * rather than silent, this setter re-runs {@code warnIfInsecureDefaults}
+     * after the assignment, which emits a one-time WARN when a
+     * {@code NoOpAuditLogger} instance is detected. This is the actual
+     * hit-path for a NoOp downgrade (the constructor-time field defaults to
+     * {@code Slf4jAuditLogger}, so the constructor-time check never hits
+     * NoOp on the shipped default).
+     */
+    public void setAuditLogger(IAuditLogger auditLogger) {
+        this.auditLogger = auditLogger != null ? auditLogger : new Slf4jAuditLogger();
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger);
+    }
+
+    /**
+     * Return the {@link IAuditLogger} wired into this engine, or the
+     * {@link Slf4jAuditLogger} default if none was explicitly set.
+     */
+    public IAuditLogger getAuditLogger() {
+        return auditLogger;
+    }
+
+    /**
      * Register the {@link ICheckpointManager} used for Layer 3-4 checkpoint
      * recording (design §5.4). Composition via this setter — no constructor
      * chain change. Default is {@link NoOpCheckpoint} (no checkpoints
@@ -585,7 +637,14 @@ public class DefaultAgentEngine implements IAgentEngine {
             publishCancelRequested(sessionId, agentName, reason, forced);
 
             if (forced) {
-                handle.thread.interrupt();
+                // Plan 197: null-check — during the async-enqueue window the
+                // handle is pre-registered but thread is not yet bound to the
+                // execution thread. Interrupting null would NPE; interrupting
+                // the calling thread (if we pre-bound it) would be wrong.
+                Thread t = handle.thread;
+                if (t != null) {
+                    t.interrupt();
+                }
             }
         } else {
             AgentSession session = sessionStore.get(sessionId);
@@ -654,9 +713,19 @@ public class DefaultAgentEngine implements IAgentEngine {
         return CompletableFuture.completedFuture(childSessionId);
     }
 
+    /**
+     * Plan 197 (AUDIT-14-01): {@code thread} is {@code volatile} and
+     * lazily bound. The handle is pre-registered in the synchronous phase
+     * (before {@code supplyAsync}) to close the cancel-lost-window — at
+     * that point the ForkJoinPool execution thread is not yet known, so
+     * {@code thread} is initialized to {@code null}. The lambda updates it
+     * to {@code Thread.currentThread()} at entry. {@code cancelSession}
+     * null-checks before {@code interrupt()} so a forced cancel during the
+     * enqueue window does not interrupt the calling thread.
+     */
     private static final class CancelHandle {
         final AgentExecutionContext context;
-        final Thread thread;
+        volatile Thread thread;
 
         CancelHandle(AgentExecutionContext context, Thread thread) {
             this.context = context;
@@ -717,19 +786,39 @@ public class DefaultAgentEngine implements IAgentEngine {
         IPathAccessChecker effectivePathAccessChecker = resolveEffectivePathAccessChecker(request, perAgentBase);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
-        return CompletableFuture.supplyAsync(() -> {
-            session.setStatus(AgentExecStatus.running);
+        // Plan 197 (AUDIT-14-01): Pre-register the CancelHandle in the
+        // synchronous phase (before supplyAsync) so that cancelSession can
+        // find it during the async-enqueue window (after execute() returns
+        // but before the supplyAsync lambda starts running). putIfAbsent is
+        // the atomic dedup guard — a non-null return means another execution
+        // is already registered for this session, so we fail-fast instead of
+        // silently overwriting the existing handle.
+        CancelHandle handle = new CancelHandle(ctx, null);
+        CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
+        if (existing != null) {
+            throw new NopAiAgentException(
+                    "doExecute failed: session already executing: sessionId=" + sessionId);
+        }
 
-            CancelHandle handle = new CancelHandle(ctx, Thread.currentThread());
-            runningExecutions.put(sessionId, handle);
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                session.setStatus(AgentExecStatus.running);
 
-            AgentExecutionResult result;
-            try {
-                result = executor.execute(ctx).toCompletableFuture().join();
-            } finally {
-                runningExecutions.remove(sessionId);
-                session.setStatus(ctx.getStatus());
-            }
+                // Plan 197: bind the execution thread now that the lambda is
+                // running. cancelSession(forced=true) reads this volatile field.
+                handle.thread = Thread.currentThread();
+
+                AgentExecutionResult result;
+                try {
+                    result = executor.execute(ctx).toCompletableFuture().join();
+                } finally {
+                    // Plan 197: value-comparison remove — only remove our own
+                    // handle, never another execution's handle (eliminates the
+                    // [14-1] mutual-clobber race where the first execution's
+                    // finally removes the second execution's handle).
+                    runningExecutions.remove(sessionId, handle);
+                    session.setStatus(ctx.getStatus());
+                }
 
             // Plan 183 Phase 1: replaceMessages replaces the session's message
             // list with the full ctx.getMessages() (idempotent full-sync). This
@@ -749,6 +838,13 @@ public class DefaultAgentEngine implements IAgentEngine {
 
             return result;
         });
+        } catch (RuntimeException e) {
+            // Plan 197: if supplyAsync itself fails to submit the task
+            // (e.g. RejectedExecutionException), clean up the pre-registered
+            // handle so a subsequent execute() is not permanently blocked.
+            runningExecutions.remove(sessionId, handle);
+            throw e;
+        }
     }
 
     /**
@@ -820,7 +916,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             io.nop.ai.agent.memory.IAiMemoryStore store = memoryStoreProvider.getOrCreate(sessionId);
             items = store.readBudgeted(memoryInjectionBudgetTokens, context);
         } catch (RuntimeException e) {
-            LOG.warn("Budgeted memory injection skipped for sessionId={}: {}", sessionId, e.getMessage(), e);
+            LOG.warn("Budgeted memory injection skipped for sessionId={}", sessionId, e);
             return null;
         }
 
@@ -912,17 +1008,27 @@ public class DefaultAgentEngine implements IAgentEngine {
         IPathAccessChecker effectivePathAccessChecker = resolvePerAgentPathChecker(agentModel);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
-        return CompletableFuture.supplyAsync(() -> {
-            CancelHandle handle = new CancelHandle(ctx, Thread.currentThread());
-            runningExecutions.put(sessionId, handle);
+        // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
+        // phase with putIfAbsent + fail-fast (see doExecute for full rationale).
+        CancelHandle handle = new CancelHandle(ctx, null);
+        CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
+        if (existing != null) {
+            throw new NopAiAgentException(
+                    "resumeSession failed: session already executing: sessionId=" + sessionId);
+        }
 
-            AgentExecutionResult result;
-            try {
-                result = executor.execute(ctx).toCompletableFuture().join();
-            } finally {
-                runningExecutions.remove(sessionId);
-                session.setStatus(ctx.getStatus());
-            }
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                handle.thread = Thread.currentThread();
+
+                AgentExecutionResult result;
+                try {
+                    result = executor.execute(ctx).toCompletableFuture().join();
+                } finally {
+                    // Plan 197: value-comparison remove — only remove our own handle.
+                    runningExecutions.remove(sessionId, handle);
+                    session.setStatus(ctx.getStatus());
+                }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
             // sync with the intra-execution persistence path (see doExecute
@@ -937,6 +1043,11 @@ public class DefaultAgentEngine implements IAgentEngine {
 
             return result;
         });
+        } catch (RuntimeException e) {
+            // Plan 197: clean up pre-registered handle if supplyAsync fails.
+            runningExecutions.remove(sessionId, handle);
+            throw e;
+        }
     }
 
     @Override
@@ -945,14 +1056,11 @@ public class DefaultAgentEngine implements IAgentEngine {
             throw new NopAiAgentException(
                     "restoreSession failed: sessionId must not be null or empty");
         }
-        // Fail-fast: session is still in active memory — not a crash-restart
-        // scenario. Use execute/resumeSession instead.
-        if (runningExecutions.containsKey(sessionId)) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: session is still in active execution map "
-                            + "(not a crash-restart scenario — use execute or resumeSession): sessionId="
-                            + sessionId);
-        }
+        // Plan 197 (AUDIT-14-01): the redundant containsKey check is removed.
+        // putIfAbsent below is the atomic dedup guard; the old containsKey was
+        // a TOCTOU race (could pass, then another thread registers before
+        // putIfAbsent). All three entry points now share the same fail-fast
+        // behavior via putIfAbsent.
 
         // Load from persistent store (FileBackedSessionStore.get returns the
         // persisted session on cache-miss; InMemorySessionStore.get returns
@@ -1026,17 +1134,27 @@ public class DefaultAgentEngine implements IAgentEngine {
         IPathAccessChecker effectivePathAccessChecker = resolvePerAgentPathChecker(agentModel);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
-        return CompletableFuture.supplyAsync(() -> {
-            CancelHandle handle = new CancelHandle(ctx, Thread.currentThread());
-            runningExecutions.put(sessionId, handle);
+        // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
+        // phase with putIfAbsent + fail-fast (see doExecute for full rationale).
+        CancelHandle handle = new CancelHandle(ctx, null);
+        CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
+        if (existing != null) {
+            throw new NopAiAgentException(
+                    "restoreSession failed: session already executing: sessionId=" + sessionId);
+        }
 
-            AgentExecutionResult result;
-            try {
-                result = executor.execute(ctx).toCompletableFuture().join();
-            } finally {
-                runningExecutions.remove(sessionId);
-                session.setStatus(ctx.getStatus());
-            }
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                handle.thread = Thread.currentThread();
+
+                AgentExecutionResult result;
+                try {
+                    result = executor.execute(ctx).toCompletableFuture().join();
+                } finally {
+                    // Plan 197: value-comparison remove — only remove our own handle.
+                    runningExecutions.remove(sessionId, handle);
+                    session.setStatus(ctx.getStatus());
+                }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
             // sync with the intra-execution persistence path.
@@ -1049,6 +1167,11 @@ public class DefaultAgentEngine implements IAgentEngine {
 
             return result;
         });
+        } catch (RuntimeException e) {
+            // Plan 197: clean up pre-registered handle if supplyAsync fails.
+            runningExecutions.remove(sessionId, handle);
+            throw e;
+        }
     }
 
     /**
@@ -1315,6 +1438,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .approvalGate(approvalGate)
                     .denialLedger(denialLedger)
                     .postDenialGuard(postDenialGuard)
+                    .auditLogger(this.auditLogger)
                     .checkpointManager(checkpointManager)
                     .sessionStore(this.sessionStore)
                     .memoryStoreProvider(this.memoryStoreProvider)

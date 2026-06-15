@@ -60,7 +60,6 @@ import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.IToolAccessChecker;
 import io.nop.ai.agent.security.LevelHints;
 import io.nop.ai.agent.security.MatrixDecision;
-import io.nop.ai.agent.security.NoOpAuditLogger;
 import io.nop.ai.agent.security.NoOpDenialLedger;
 import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.ParentPermissionConstraint;
@@ -70,6 +69,7 @@ import io.nop.ai.agent.security.PathAccessResult;
 import io.nop.ai.agent.security.Permission;
 import io.nop.ai.agent.security.Principal;
 import io.nop.ai.agent.security.SecurityLevel;
+import io.nop.ai.agent.security.Slf4jAuditLogger;
 import io.nop.ai.agent.security.ToolAccessResult;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.security.DefaultToolAccessChecker;
@@ -500,7 +500,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     permissionProvider != null ? permissionProvider : new AllowAllPermissionProvider(),
                     toolAccessChecker != null ? toolAccessChecker : new DefaultToolAccessChecker(),
                     pathAccessChecker != null ? pathAccessChecker : new DefaultPathAccessChecker(),
-                    auditLogger != null ? auditLogger : new NoOpAuditLogger(),
+                    auditLogger != null ? auditLogger : new Slf4jAuditLogger(),
                     hookRegistry != null ? hookRegistry : NoOpHookRegistry.INSTANCE,
                     toolCallRepairer != null ? toolCallRepairer : NoOpToolCallRepairer.INSTANCE,
                     contextCompactor != null ? contextCompactor : NoOpContextCompactor.INSTANCE,
