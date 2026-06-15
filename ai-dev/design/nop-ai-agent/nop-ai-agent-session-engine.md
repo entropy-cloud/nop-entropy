@@ -103,20 +103,26 @@ public interface ISessionStore {
 
 ### 6.3 IAiMemoryStore 与 Budgeted Injection（MiMoCode 吸收）
 
-`IAiMemoryStore` 是 Agent 的长期记忆存储接口。Phase 1 只有基础 4 方法（getAll/getLastN/search/add），Phase 2 需要 Budgeted Injection——按重要性排序后注入不超过 token 预算的记忆内容。
+`IAiMemoryStore` 是 Agent 的 per-session 记忆存储接口。接口方法**不含 sessionId 参数**——每个实例代表一个 session 的记忆。per-session 隔离由 `IMemoryStoreProvider.getOrCreate(sessionId)` 解析（plan 189 Phase 1）。
 
-**Budgeted Injection 算法**（来自 MiMoCode `readBudgeted()`）：
+**实现状态**：
+- **接口（8 方法）✅**：L1-16 已落地 4 个抽象（`getAll`/`getLastN`/`search`/`add`）+ 4 个 default UOE（`readBudgeted`/`update`/`remove`/`batchAdd`）。接口 default 上的 UOE 保留作为其他实现的 fail-fast 选择
+- **`InMemoryAiMemoryStore`（功能化 in-memory 实现）✅**（plan 189 Phase 1）：覆盖全部 8 方法（含 4 个 Phase 2 default 的真实逻辑，无 UOE 残留），线程安全（`ConcurrentHashMap` + `synchronized` 复合操作）。`search` 为 content/type/key 子串匹配（in-memory 无向量检索，L4-3 scope）
+- **`IMemoryStoreProvider` + `InMemoryMemoryStoreProvider` ✅**（plan 189 Phase 1）：Provider 模式，`ConcurrentHashMap.computeIfAbsent` 原子创建 per-session store。`DefaultAgentEngine` 默认持有 `InMemoryMemoryStoreProvider`（开箱即用，同 `InMemorySessionStore` 一致）
+- **分发循环接线 ✅**（plan 189 Phase 1）：`ReActAgentExecutor` 分发循环在构造 `AgentToolExecuteContext` 时，经 `provider.getOrCreate(sessionId)` 解析当前 session 的 store 注入 context。Working-memory 工具（read-memory / write-memory / search-memory，plan 189 Phase 2）从 `AgentToolExecuteContext.getMemoryStore()` 读取。Provider 为 null 时 context 中 store = null，工具 fail-fast（同 SendMessageExecutor 的 NoOp messenger 模式）
+
+**Budgeted Injection 算法**（来自 MiMoCode `readBudgeted()`，已功能化实现于 `InMemoryAiMemoryStore.readBudgeted`）：
 
 ```
 readBudgeted(maxTokens, context):
-  1. getAll(filters) 或 search(query) → 候选记忆列表
-  2. 对每条记忆计算 priority (importance) + tokenEstimate
-  3. 按 priority 降序排列
-  4. 从高到低取，直到累计 tokenEstimate ≥ maxTokens
-  5. 返回 (items, totalTokens, droppedCount)
+  1. 分离 pinned vs 非 pinned
+  2. pinned 始终包含（累计 tokenEstimate）
+  3. 非 pinned 按 priority 降序排列（同 priority 按 createTime 升序）
+  4. 从高到低取，累计 tokenEstimate，跳过超出 maxTokens 的项
+  5. 返回选中列表
 ```
 
-**AiMemoryItem 扩展字段**（Phase 1 补充，见 L1-16）：
+**AiMemoryItem 字段**（L1-16 已落地）：
 
 | 字段 | 类型 | 用途 |
 |------|------|------|
@@ -127,7 +133,7 @@ readBudgeted(maxTokens, context):
 | lastAccessTime | LocalDateTime | 最近访问时间，用于 LRU 淘汰，默认 createTime |
 | accessCount | int | 访问次数，用于 LFU 淘汰，默认 0 |
 
-**Phase 2 扩展方法**（L1-16 已通过 default UOE 预留）：
+**接口上的 default UOE（保留给未来实现选择）**：
 ```java
 default List<AiMemoryItem> readBudgeted(int maxTokens, Map<String, Object> context) {
     throw new UnsupportedOperationException("readBudgeted requires Phase 2");
@@ -148,6 +154,13 @@ default void batchAdd(List<AiMemoryItem> items) {
 - `priority` + `tokenEstimate` 双字段控制，不需要外部排序服务
 - `pinned` 标记确保关键记忆（系统指令、安全规则）不被 budget 裁剪
 - MiMoCode 的实践经验证明此模式在长会话中显著提升记忆利用率
+- Provider 模式保持 `IAiMemoryStore` 接口签名稳定（L1-16 契约不变），L4-3 `IMemoryAdapter` 可替换为 DB/vector 后端 Provider
+
+**Deferred（L4-3 IMemoryAdapter successor scope）**：
+- DB / 文件持久化：`InMemoryAiMemoryStore` 数据**不**随 `AgentSession` 序列化。进程重启后 memory 丢失
+- 向量检索（embedding-based search）：当前 `search` 为子串匹配
+- Session fork 时复制 memory：子 session 获得独立的空 memory
+- Memory retention / TTL / 容量上限：`InMemoryAiMemoryStore` 无界保存
 
 ### 6.4 SessionSnapshot
 

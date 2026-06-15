@@ -61,7 +61,7 @@
 | `AgentExecutionContext` | 单次执行的全部内存态数据的容器 | 生命周期与单次执行绑定，不跨执行复用 |
 | `IAgentExecutor` | 定义执行模式（ReAct、单轮等）的策略接口 | 不持有配置——从上下文中读取；Layer 1 只实现 ReAct；无流式模式（引擎以完整消息粒度执行） |
 | `AgentEventPublisher` | 将执行状态变化投影为外部可观察的事件流 | 事件类型稳定；不修改执行状态 |
-| `IAgentMemory` | Agent 的三层记忆管理 | 短期记忆（context window 管理 + compaction）是核心职责；Working Memory（Layer 2 工具实现）和长期记忆（Layer 4，底层使用 `IMemoryAdapter`）按层引入 |
+| `IAgentMemory` | Agent 的三层记忆管理 | 短期记忆（context window 管理 + compaction）是核心职责；Working Memory（`IAiMemoryStore` + `IMemoryStoreProvider` + 三个 read/write/search 工具，plan 189 ✅ Layer 2 落地）和长期记忆（Layer 4，底层使用 `IMemoryAdapter`）按层引入 |
 | `ChatMessage` | Provider 无关的统一消息格式，定义在 `nop-ai-api` | 5 种子类型覆盖 user/assistant/system/tool/custom 角色，含 tool call、thinking、attachments。Agent Engine 直接使用，Provider 差异由 `nop-ai-core` 的 `ILlmDialect` 屏蔽。见 `nop-ai-agent-llm-layer.md` |
 | `ILlmDialect` | Provider 消息格式适配 + Token 估算 | 定义在 `nop-ai-core`。序列化为纯函数（前缀缓存安全）；token 估算缺省 chars/4，`AbstractLlmDialect` 覆盖为 jtokkit 精确计数。见 `nop-ai-agent-llm-layer.md` §四 |
 
@@ -69,13 +69,20 @@
 
 基于 10 框架调研（LangGraph、CrewAI、AutoGen、OpenCode、DeepAgents、PilotDeck、Reasonix、EdgeClaw、Claude Code、Codex CLI）的源码级对比：
 
-| 层级 | 内容 | 架构层 |
-|------|------|--------|
-| **短期记忆** | Context window 内的消息历史，含 5 层渐进 compaction（Layer 0-4） | Layer 1 核心 + Layer 2 扩展 |
-| **Working Memory** | Per-session KV store，支持 JSON schema 验证或 Markdown 模板，session 启动时注入 system prompt，Agent 通过工具读写 | Layer 2 |
-| **长期记忆** | IMessageService + 向量存储 + retain/recall/reflect 工具 + EdgeClaw 风格的 captureTurn/retrieve | Layer 4 |
+| 层级 | 内容 | 架构层 | 状态 |
+|------|------|--------|------|
+| **短期记忆** | Context window 内的消息历史，含 5 层渐进 compaction（Layer 0-4） | Layer 1 核心 + Layer 2 扩展 | ✅ |
+| **Working Memory** | Per-session KV store。三个工具（`read-memory` / `write-memory` / `search-memory`）经 `IAiMemoryStore` + `IMemoryStoreProvider` 实现 per-session 隔离；shipped 默认 `InMemoryMemoryStoreProvider`（开箱即用，工具读写 ✅ plan 189）。system-prompt 自动注入 deferred 至 A1（Budgeted Injection 功能化消费） | Layer 2 | ✅ 工具读写 / ⏳ system-prompt 自动注入 (A1 successor) |
+| **长期记忆** | IMessageService + 向量存储 + retain/recall/reflect 工具 + EdgeClaw 风格的 captureTurn/retrieve | Layer 4 | ❌ |
 
-Working Memory 是 Session 状态的一部分（持久化）。短期记忆是 Agent Engine 的运行时职责（compaction 触发和执行）。长期记忆是独立子系统。
+Working Memory 的 per-session 数据**当前由 `InMemoryAiMemoryStore` 持有（不随 `AgentSession` 持久化）**——进程重启后 memory 丢失，持久化（DB / 文件 / `AgentSession` 序列化）deferred 至 L4-3 `IMemoryAdapter`（Storage / Embedding / Vector 三适配器 successor）。短期记忆是 Agent Engine 的运行时职责（compaction 触发和执行）。长期记忆是独立子系统。
+
+**Working Memory 工具（plan 189）**：
+- `read-memory`（`io.nop.ai.agent.tool.ReadMemoryExecutor`）：list / last / budgeted / key 四种 action
+- `write-memory`（`io.nop.ai.agent.tool.WriteMemoryExecutor`）：add / update / remove / clear 四种 action
+- `search-memory`（`io.nop.ai.agent.tool.SearchMemoryExecutor`）：keyword 子串匹配（向量检索 deferred 至 L4-3）
+
+三个工具均在 `ai-agent-tools.beans.xml` 注册为 bean，被 toolkit 的 `<ioc:collect-beans by-type="...IToolExecutor"/>` 自动收集，经各自的 `.tool.xml` schema 文件加载（`nop-ai-toolkit/src/main/resources/_vfs/nop/ai/tools/`）。工具从 `AgentToolExecuteContext.getMemoryStore()` 获取 per-session store（分发循环经 `provider.getOrCreate(sessionId)` 解析注入）；store 为 null（provider 未配置）时 fail-fast 返回描述性错误结果（honest no-config 模式，同 SendMessageExecutor 的 NoOp messenger 一致）。
 
 ### 前缀缓存设计
 
