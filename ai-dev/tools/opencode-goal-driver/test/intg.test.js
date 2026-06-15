@@ -71,7 +71,6 @@ describe("FlowEngine — goal driver integration", () => {
     flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
 
     let roadmapCount = 0;
-    let planAuditCount = 0;
     let deepAuditCount = 0;
 
     const delegates = makeMockDelegates({
@@ -87,13 +86,6 @@ describe("FlowEngine — goal driver integration", () => {
         },
 
         PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE>\n</FLOW_VARS>",
-
-        PLAN_AUDIT: () => {
-          planAuditCount++;
-          return planAuditCount <= 1
-            ? { text: "<AI_STEP_RESULT>issues</AI_STEP_RESULT>\n<ISSUES><item>Major: fix X</item></ISSUES>", ok: true }
-            : { text: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>", ok: true };
-        },
 
         "EXECUTE": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
         "CLOSURE_SCRIPT_CHECK": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
@@ -123,9 +115,9 @@ describe("FlowEngine — goal driver integration", () => {
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.ok(result.stepCount > 8, `expected >8 steps, got ${result.stepCount}`);
+    assert.ok(result.stepCount >= 7, `expected >=7 steps, got ${result.stepCount}`);
 
-    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_AUDIT"), "PLAN_AUDIT should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_DRAFT"), "PLAN_DRAFT should be called");
     assert.ok(delegates.callLog.some(c => c.stepName === "DEEP_AUDIT"), "DEEP_AUDIT should be called");
   });
 
@@ -147,7 +139,6 @@ describe("FlowEngine — goal driver integration", () => {
             ? { text: "<AI_STEP_RESULT>pending</AI_STEP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true }
             : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
         },
-        PLAN_AUDIT: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>",
         "EXECUTE": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
         CLOSURE_SCRIPT_CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
         CLOSURE_AUDIT: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>",
@@ -177,8 +168,8 @@ describe("FlowEngine — goal driver integration", () => {
 
     assert.equal(result.status, "completed");
     assert.equal(planDraftCalls, 2, "PLAN_DRAFT should be called twice (first with placeholder, retry with valid)");
-    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_AUDIT"),
-      "PLAN_AUDIT should be called after valid PLAN_FILE on retry");
+    assert.ok(delegates.callLog.some(c => c.stepName === "ROADMAP_CHECK"),
+      "flow should progress past PLAN_DRAFT to ROADMAP_CHECK after valid PLAN_FILE on retry");
   });
 
   it("handles execute entry via execute-all-active-plans with active plan", async () => {

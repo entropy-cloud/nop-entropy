@@ -24,13 +24,11 @@ async function killTree(pid) {
 }
 
 let _mockRoadmapCount = 0;
-let _mockPlanAuditCount = 0;
 let _mockClosureCount = 0;
 let _mockDeepAuditCount = 0;
 
 export function resetMockState() {
   _mockRoadmapCount = 0;
-  _mockPlanAuditCount = 0;
   _mockClosureCount = 0;
   _mockDeepAuditCount = 0;
 }
@@ -39,7 +37,6 @@ const STEP_KEY_MAP = {
   "FIX_BUILD": "fix-build",
   "ROADMAP_CHECK": "roadmap-check",
   "PLAN_DRAFT": "plan-draft",
-  "PLAN_AUDIT": "plan-audit",
   "EXECUTE": "execute",
   "CLOSURE_AUDIT": "closure-audit",
   "DEEP_AUDIT": "deep-audit",
@@ -65,13 +62,6 @@ function mockAgentResponse(stepName) {
   }
 
   if (n === "plan-draft") return "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/mock-plan.md</PLAN_FILE>\n</FLOW_VARS>";
-
-  if (n === "plan-audit") {
-    _mockPlanAuditCount++;
-    return _mockPlanAuditCount <= 1
-      ? "<AI_STEP_RESULT>issues</AI_STEP_RESULT>\n<ISSUES><item severity=\"Major\">mock: Exit Criteria not verifiable</item></ISSUES>"
-      : "<AI_STEP_RESULT>approved</AI_STEP_RESULT>";
-  }
 
   if (n === "execute") return "<AI_STEP_RESULT>success</AI_STEP_RESULT>";
 

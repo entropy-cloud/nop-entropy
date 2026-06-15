@@ -91,26 +91,9 @@
       "promptPath": "prompts/plan-draft.md",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "created": { "goto": "PLAN_AUDIT" }
+        "created": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" }
       },
       "onError": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" }
-    },
-
-    "PLAN_AUDIT": {
-      "type": "agent",
-      "promptPath": "prompts/plan-audit.md",
-      "maxRetries": 3,
-      "onUnknownMaxRetries": 2,
-      "transitions": {
-        "approved": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" },
-        "issues": {
-          "retry": "PLAN_DRAFT",
-          "maxRetries": 3,
-          "append": { "template": "\n\n## REVISION REQUEST\n\nYour previous plan at `{{PLAN_FILE}}` did not pass audit. Revise it **in-place** (edit the existing file, do NOT create a new plan) based on the feedback below, then output `created`:\n\n${output}" }
-        }
-      },
-      "onError": { "retry": "PLAN_DRAFT", "maxRetries": 2 },
-      "onMaxRetries": { "goto": "EXECUTE_ALL_ACTIVE_PLANS", "append": { "template": "\n\n⚠️ This plan did not pass audit after max retries. Proceeding in degraded mode." } }
     },
 
     "DEEP_AUDIT_LOOP": {

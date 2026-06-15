@@ -320,6 +320,8 @@ BUILD_FIX_LOOP: {
 
 ### 6.2 PLAN_DRAFT + PLAN_AUDIT 循环
 
+> **⚠️ 已被取代（v5）**：此 group-step 方案将 draft 与 audit 建模为引擎级循环。v5 起，draft 与 audit 合并为单个 `PLAN_DRAFT` agent 步骤——审查循环在 agent 步内通过独立 session sub-agent 完成，不再需要引擎级 group/retry 编排。以下保留作为 group-step 建模参考。
+
 ```javascript
 PLAN_DRAFT_LOOP: {
   type: "group",

@@ -390,7 +390,6 @@ ai-dev/tools/opencode-goal-driver/
 │   ├── fix-build.md
 │   ├── roadmap-check.md
 │   ├── plan-draft.md
-│   ├── plan-audit.md
 │   ├── execute.md
 │   ├── closure-audit.md
 │   ├── build-verify.md
@@ -434,11 +433,7 @@ flowchart TD
     RC -->|pending| PD["📝 PLAN_DRAFT<br/><i>agent → flowVars: PLAN_FILE</i>"]
     RC -->|complete| DAL["🔬 DEEP_AUDIT_LOOP<br/><i>subflow: deep-audit-loop</i>"]
 
-    PD -->|created| PA["🔍 PLAN_AUDIT<br/><i>agent</i>"]
-    PD -->|none| PR
-
-    PA -->|approved| EP
-    PA -->|"issues ×3"| PD
+    PD -->|created| EP
 
     EP -->|complete/failed| PR
 

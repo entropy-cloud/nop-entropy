@@ -13,7 +13,7 @@
 2. **AI 修复前置**：`HEALTH_CHECK` 是 AI agent 步骤，可在编译失败时自动诊断修复，**支持无上下文重试**（每次 fresh session）
 3. **EXECUTE_ALL_ACTIVE_PLANS 用 group + forEach**：`scan-active-plans` 脚本扫描所有活跃计划写入 `items`，`EXECUTE_EACH_PLAN` 用 `forEach` 对每个计划执行 `plan-execution` 子流程。不循环——主流程从 `ROADMAP_CHECK` 或 `DEEP_AUDIT_LOOP` 返回后重新扫描
 4. **深度审计流程**：`deep-audit-loop` 子流程三步骤（DEEP_AUDIT → ADVERSARIAL → DRAFT_PLANS），在子流程内完成审计和计划创建，不包含执行（执行由主流程的 `EXECUTE_ALL_ACTIVE_PLANS` 处理）
-5. **Plan Draft 单输出**：`PLAN_DRAFT` 只输出 `created`+PLAN_FILE，移除 `none`/`revised` 两个易混淆的分支
+5. **Plan Draft 合并审计（v5）**：`PLAN_DRAFT` 合并了拟制与独立子 agent 审计，单步输出 `created`+PLAN_FILE。审查循环（最多 2 轮，独立 session sub-agent）在步内完成，移除引擎级 PLAN_AUDIT 步骤及其 retry/onMaxRetries 转移
 6. **深度审计出口**：`DEEP_AUDIT_LOOP` `clean` → `EXECUTE_ALL_ACTIVE_PLANS`（审计可能创建新计划，需要重新执行）
 7. **子流程 marker 透传**：子流程返回内部最后一步的实际 marker，而非硬编码 `"complete"`/`"failed"`
 8. **容错兜底路由到 EXECUTE_ALL_ACTIVE_PLANS**：所有子流程和 agent 步骤的意外失败都回到计划执行，不中断整体循环
@@ -53,13 +53,10 @@ flowchart TD
 
     EAP -->|done| RC["ROADMAP_CHECK<br/>AI agent"]
 
-    RC -->|pending| PD["PLAN_DRAFT<br/>AI agent"]
+    RC -->|pending| PD["PLAN_DRAFT + self-audit<br/>AI agent"]
     RC -->|complete| DAL["DEEP_AUDIT_LOOP<br/>subflow: deep-audit-loop"]
 
-    PD -->|created| PA["PLAN_AUDIT<br/>AI agent"]
-
-    PA -->|approved| EAP
-    PA -->|issues| PD
+    PD -->|created| EAP
 
     DAL -->|clean| EAP
     DAL -->|failed| EAP
@@ -83,13 +80,12 @@ flowchart TD
 - 不循环——主流程从 `ROADMAP_CHECK` 创建的 plan 或 `DEEP_AUDIT_LOOP` 创建的计划返回后重新扫描
 - 见 §四
 
-**ROADMAP_CHECK** → **PLAN_DRAFT** → **PLAN_AUDIT** → **EXECUTE_ALL_ACTIVE_PLANS**
-- 标准 roadmap → 拟制 → 审计 → 执行链路
-- `PLAN_DRAFT` 始终输出 `created`（不再有 `none`/`revised` 分支）
-- `PLAN_AUDIT` 的 `issues` 会回退到 `PLAN_DRAFT` 并追加 REVISION REQUEST
-  - 重试时 agent 编辑已有 plan 文件，输出 `created`（不含 FLOW_VARS）
-- 审计通过后回到 `EXECUTE_ALL_ACTIVE_PLANS`，新创建的计划将被发现并执行
-- 审计超过 `maxRetries` 退回到 `EXECUTE_ALL_ACTIVE_PLANS`（降级执行）
+**ROADMAP_CHECK** → **PLAN_DRAFT** → **EXECUTE_ALL_ACTIVE_PLANS**
+- 标准 roadmap → 拟制+自审计 → 执行链路
+- `PLAN_DRAFT` 合并了拟制与审计（v5）：agent 先写计划，然后切换为 coordinator 模式，spawn 独立子 agent 对抗性审查（最多 2 轮），通过 pass criterion（zero Blocker/Major）后输出 `created`
+- 审查循环在单步内完成，不再有引擎级别的 PLAN_AUDIT 步骤和 retry 转移
+- pass criterion 未达成时进入 degraded mode：仍输出 `created`，计划进入执行，由下游 closure audit / deep audit 兜底
+- 独立性保证：审查 sub-agent 是独立 session（不同 task_id），看不到 coordinator 的上下文——审查的独立性来自独立 session，而非独立编排步骤
 
 **DEEP_AUDIT_LOOP**（子流程 `deep-audit-loop.json`）
 - 见 §六
@@ -294,6 +290,7 @@ DRAFT_PLAN (deep-audit-loop 子流程内)
 | `plan-router` 脚本保持单计划扫描 | 改用 `scan-active-plans` 一次扫描所有活跃计划写入 `items`，配合 `forEach` 一次执行多条 |
 | PLAN_DRAFT 保留 `none`/`revised` 分支 | AI 频繁选错分支导致计划被跳过；单输出 `created` 强制始终创建 plan |
 | 把 `plan-execution` 逻辑内联到主流程 | 两个地方（EXECUTE_ALL_ACTIVE_PLANS + deep-audit-loop）都用到，抽成子流程避免重复 |
+| PLAN_AUDIT 作为独立引擎步骤（v4 及之前） | 连续自动循环中审查只紧跟 draft 发生，独立编排步骤不增加信息只增加 round-trip 开销；审查的独立性由独立 session sub-agent 保证（而非独立编排步骤），合并后降级兜底由下游 closure/deep audit 承接 |
 
 ---
 

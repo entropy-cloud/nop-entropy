@@ -197,7 +197,7 @@ describe("goal-driver — path coverage", () => {
     assert.equal(healthCalls.length, 4); // 1 initial + 3 retries = 4
   });
 
-  it("PLAN_DRAFT → PLAN_AUDIT → approved → EXECUTE_ALL_ACTIVE_PLANS → done", async () => {
+  it("PLAN_DRAFT(created) → EXECUTE_ALL_ACTIVE_PLANS → done (audit is internal to PLAN_DRAFT)", async () => {
     const flow = loadFlow("goal-driver");
     flow.maxTotalSteps = 20;
     flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
@@ -212,12 +212,13 @@ describe("goal-driver — path coverage", () => {
             : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
         },
         PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
-        PLAN_AUDIT: "<AI_STEP_RESULT>approved</AI_STEP_RESULT>",
       },
     });
     const engine = new FlowEngine(flow, d);
     const result = await engine.run();
     assert.equal(result.status, "completed");
+    // PLAN_DRAFT should go straight to EXECUTE_ALL_ACTIVE_PLANS, no PLAN_AUDIT step
+    assert.ok(!d.callLog.some(c => c.stepName === "PLAN_AUDIT"), "PLAN_AUDIT step should not exist");
   });
 
   it("DEEP_AUDIT_LOOP triggers cycle via EXECUTE_ALL_ACTIVE_PLANS → ROADMAP_CHECK → ... → max_total_steps", async () => {
@@ -233,31 +234,6 @@ describe("goal-driver — path coverage", () => {
     const result = await engine.run();
     // cycles: EXECUTE_ALL_ACTIVE_PLANS → ROADMAP_CHECK → DEEP_AUDIT_LOOP until maxTotalSteps
     assert.equal(result.status, "max_total_steps");
-  });
-
-  it("PLAN_AUDIT maxRetries exceeded → degrades to EXECUTE_ALL_ACTIVE_PLANS", async () => {
-    const flow = loadFlow("goal-driver");
-    flow.maxTotalSteps = 30;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
-    let rmCalls = 0;
-
-    const d = fullDelegates(mockSubFlows(), {
-      responses: {
-        ROADMAP_CHECK: () => {
-          rmCalls++;
-          return rmCalls <= 1
-            ? { text: "<AI_STEP_RESULT>pending</AI_STEP_RESULT>", ok: true }
-            : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
-        },
-        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
-        PLAN_AUDIT: "<AI_STEP_RESULT>issues</AI_STEP_RESULT>",
-      },
-    });
-    const engine = new FlowEngine(flow, d);
-    const result = await engine.run();
-    assert.equal(result.status, "completed");
-    const auditCalls = d.callLog.filter(c => c.stepName === "PLAN_AUDIT");
-    assert.ok(auditCalls.length >= 3, "PLAN_AUDIT should retry at least 3 times");
   });
 });
 
