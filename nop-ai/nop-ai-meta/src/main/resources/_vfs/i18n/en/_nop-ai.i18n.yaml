@@ -133,6 +133,12 @@ prop:
       createTime: null
       updatedBy: null
       updateTime: null
+      inputPricePer1m: null
+      outputPricePer1m: null
+      reasoningPricePer1m: null
+      cacheReadPricePer1m: null
+      cacheWritePricePer1m: null
+      currency: null
       responses: null
     NopAiProject:
       id: null

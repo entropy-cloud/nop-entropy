@@ -10,5 +10,11 @@
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
+  "inputPricePer1m": 0.0,
+  "outputPricePer1m": 0.0,
+  "reasoningPricePer1m": 0.0,
+  "cacheReadPricePer1m": 0.0,
+  "cacheWritePricePer1m": 0.0,
+  "currency": "",
   "responses": null
 }

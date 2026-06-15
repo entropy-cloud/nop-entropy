@@ -165,4 +165,88 @@
         }
 
 
+        private java.math.BigDecimal _inputPricePer1m;
+
+    
+        @PropMeta(propId=11)
+    
+        public java.math.BigDecimal getInputPricePer1m(){
+            return _inputPricePer1m;
+        }
+
+        public void setInputPricePer1m(java.math.BigDecimal value){
+            this._inputPricePer1m = value;
+        }
+
+
+        private java.math.BigDecimal _outputPricePer1m;
+
+    
+        @PropMeta(propId=12)
+    
+        public java.math.BigDecimal getOutputPricePer1m(){
+            return _outputPricePer1m;
+        }
+
+        public void setOutputPricePer1m(java.math.BigDecimal value){
+            this._outputPricePer1m = value;
+        }
+
+
+        private java.math.BigDecimal _reasoningPricePer1m;
+
+    
+        @PropMeta(propId=13)
+    
+        public java.math.BigDecimal getReasoningPricePer1m(){
+            return _reasoningPricePer1m;
+        }
+
+        public void setReasoningPricePer1m(java.math.BigDecimal value){
+            this._reasoningPricePer1m = value;
+        }
+
+
+        private java.math.BigDecimal _cacheReadPricePer1m;
+
+    
+        @PropMeta(propId=14)
+    
+        public java.math.BigDecimal getCacheReadPricePer1m(){
+            return _cacheReadPricePer1m;
+        }
+
+        public void setCacheReadPricePer1m(java.math.BigDecimal value){
+            this._cacheReadPricePer1m = value;
+        }
+
+
+        private java.math.BigDecimal _cacheWritePricePer1m;
+
+    
+        @PropMeta(propId=15)
+    
+        public java.math.BigDecimal getCacheWritePricePer1m(){
+            return _cacheWritePricePer1m;
+        }
+
+        public void setCacheWritePricePer1m(java.math.BigDecimal value){
+            this._cacheWritePricePer1m = value;
+        }
+
+
+        private String _currency;
+
+    
+        @PropMeta(propId=16)
+    
+        public String getCurrency(){
+            return _currency;
+        }
+
+        public void setCurrency(String value){
+            this._currency = value;
+        }
+
+
     }

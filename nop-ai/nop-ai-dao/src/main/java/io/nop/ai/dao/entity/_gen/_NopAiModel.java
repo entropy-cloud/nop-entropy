@@ -60,8 +60,32 @@ public class _NopAiModel extends DynamicOrmEntity{
     public static final String PROP_NAME_updateTime = "updateTime";
     public static final int PROP_ID_updateTime = 10;
     
+    /* 输入单价: input_price_per_1m DECIMAL */
+    public static final String PROP_NAME_inputPricePer1m = "inputPricePer1m";
+    public static final int PROP_ID_inputPricePer1m = 11;
+    
+    /* 输出单价: output_price_per_1m DECIMAL */
+    public static final String PROP_NAME_outputPricePer1m = "outputPricePer1m";
+    public static final int PROP_ID_outputPricePer1m = 12;
+    
+    /* 推理单价: reasoning_price_per_1m DECIMAL */
+    public static final String PROP_NAME_reasoningPricePer1m = "reasoningPricePer1m";
+    public static final int PROP_ID_reasoningPricePer1m = 13;
+    
+    /* 缓存读单价: cache_read_price_per_1m DECIMAL */
+    public static final String PROP_NAME_cacheReadPricePer1m = "cacheReadPricePer1m";
+    public static final int PROP_ID_cacheReadPricePer1m = 14;
+    
+    /* 缓存写单价: cache_write_price_per_1m DECIMAL */
+    public static final String PROP_NAME_cacheWritePricePer1m = "cacheWritePricePer1m";
+    public static final int PROP_ID_cacheWritePricePer1m = 15;
+    
+    /* 币种: currency VARCHAR */
+    public static final String PROP_NAME_currency = "currency";
+    public static final int PROP_ID_currency = 16;
+    
 
-    private static int _PROP_ID_BOUND = 11;
+    private static int _PROP_ID_BOUND = 17;
 
     
     /* relation: 调用记录 */
@@ -71,7 +95,7 @@ public class _NopAiModel extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[11];
+    private static final String[] PROP_ID_TO_NAME = new String[17];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -105,6 +129,24 @@ public class _NopAiModel extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
       
+          PROP_ID_TO_NAME[PROP_ID_inputPricePer1m] = PROP_NAME_inputPricePer1m;
+          PROP_NAME_TO_ID.put(PROP_NAME_inputPricePer1m, PROP_ID_inputPricePer1m);
+      
+          PROP_ID_TO_NAME[PROP_ID_outputPricePer1m] = PROP_NAME_outputPricePer1m;
+          PROP_NAME_TO_ID.put(PROP_NAME_outputPricePer1m, PROP_ID_outputPricePer1m);
+      
+          PROP_ID_TO_NAME[PROP_ID_reasoningPricePer1m] = PROP_NAME_reasoningPricePer1m;
+          PROP_NAME_TO_ID.put(PROP_NAME_reasoningPricePer1m, PROP_ID_reasoningPricePer1m);
+      
+          PROP_ID_TO_NAME[PROP_ID_cacheReadPricePer1m] = PROP_NAME_cacheReadPricePer1m;
+          PROP_NAME_TO_ID.put(PROP_NAME_cacheReadPricePer1m, PROP_ID_cacheReadPricePer1m);
+      
+          PROP_ID_TO_NAME[PROP_ID_cacheWritePricePer1m] = PROP_NAME_cacheWritePricePer1m;
+          PROP_NAME_TO_ID.put(PROP_NAME_cacheWritePricePer1m, PROP_ID_cacheWritePricePer1m);
+      
+          PROP_ID_TO_NAME[PROP_ID_currency] = PROP_NAME_currency;
+          PROP_NAME_TO_ID.put(PROP_NAME_currency, PROP_ID_currency);
+      
     }
 
     
@@ -137,6 +179,24 @@ public class _NopAiModel extends DynamicOrmEntity{
     
     /* 修改时间: update_time */
     private java.sql.Timestamp _updateTime;
+    
+    /* 输入单价: input_price_per_1m */
+    private java.math.BigDecimal _inputPricePer1m;
+    
+    /* 输出单价: output_price_per_1m */
+    private java.math.BigDecimal _outputPricePer1m;
+    
+    /* 推理单价: reasoning_price_per_1m */
+    private java.math.BigDecimal _reasoningPricePer1m;
+    
+    /* 缓存读单价: cache_read_price_per_1m */
+    private java.math.BigDecimal _cacheReadPricePer1m;
+    
+    /* 缓存写单价: cache_write_price_per_1m */
+    private java.math.BigDecimal _cacheWritePricePer1m;
+    
+    /* 币种: currency */
+    private java.lang.String _currency;
     
 
     public _NopAiModel(){
@@ -241,6 +301,24 @@ public class _NopAiModel extends DynamicOrmEntity{
         
             case PROP_ID_updateTime:
                return getUpdateTime();
+        
+            case PROP_ID_inputPricePer1m:
+               return getInputPricePer1m();
+        
+            case PROP_ID_outputPricePer1m:
+               return getOutputPricePer1m();
+        
+            case PROP_ID_reasoningPricePer1m:
+               return getReasoningPricePer1m();
+        
+            case PROP_ID_cacheReadPricePer1m:
+               return getCacheReadPricePer1m();
+        
+            case PROP_ID_cacheWritePricePer1m:
+               return getCacheWritePricePer1m();
+        
+            case PROP_ID_currency:
+               return getCurrency();
         
            default:
               return super.orm_propValue(propId);
@@ -353,6 +431,66 @@ public class _NopAiModel extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_inputPricePer1m:{
+               java.math.BigDecimal typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBigDecimal(value,
+                       err-> newTypeConversionError(PROP_NAME_inputPricePer1m));
+               }
+               setInputPricePer1m(typedValue);
+               break;
+            }
+        
+            case PROP_ID_outputPricePer1m:{
+               java.math.BigDecimal typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBigDecimal(value,
+                       err-> newTypeConversionError(PROP_NAME_outputPricePer1m));
+               }
+               setOutputPricePer1m(typedValue);
+               break;
+            }
+        
+            case PROP_ID_reasoningPricePer1m:{
+               java.math.BigDecimal typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBigDecimal(value,
+                       err-> newTypeConversionError(PROP_NAME_reasoningPricePer1m));
+               }
+               setReasoningPricePer1m(typedValue);
+               break;
+            }
+        
+            case PROP_ID_cacheReadPricePer1m:{
+               java.math.BigDecimal typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBigDecimal(value,
+                       err-> newTypeConversionError(PROP_NAME_cacheReadPricePer1m));
+               }
+               setCacheReadPricePer1m(typedValue);
+               break;
+            }
+        
+            case PROP_ID_cacheWritePricePer1m:{
+               java.math.BigDecimal typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBigDecimal(value,
+                       err-> newTypeConversionError(PROP_NAME_cacheWritePricePer1m));
+               }
+               setCacheWritePricePer1m(typedValue);
+               break;
+            }
+        
+            case PROP_ID_currency:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_currency));
+               }
+               setCurrency(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -428,6 +566,48 @@ public class _NopAiModel extends DynamicOrmEntity{
             case PROP_ID_updateTime:{
                onInitProp(propId);
                this._updateTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_inputPricePer1m:{
+               onInitProp(propId);
+               this._inputPricePer1m = (java.math.BigDecimal)value;
+               
+               break;
+            }
+        
+            case PROP_ID_outputPricePer1m:{
+               onInitProp(propId);
+               this._outputPricePer1m = (java.math.BigDecimal)value;
+               
+               break;
+            }
+        
+            case PROP_ID_reasoningPricePer1m:{
+               onInitProp(propId);
+               this._reasoningPricePer1m = (java.math.BigDecimal)value;
+               
+               break;
+            }
+        
+            case PROP_ID_cacheReadPricePer1m:{
+               onInitProp(propId);
+               this._cacheReadPricePer1m = (java.math.BigDecimal)value;
+               
+               break;
+            }
+        
+            case PROP_ID_cacheWritePricePer1m:{
+               onInitProp(propId);
+               this._cacheWritePricePer1m = (java.math.BigDecimal)value;
+               
+               break;
+            }
+        
+            case PROP_ID_currency:{
+               onInitProp(propId);
+               this._currency = (java.lang.String)value;
                
                break;
             }
@@ -624,6 +804,120 @@ public class _NopAiModel extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
+            
+        }
+    }
+    
+    /**
+     * 输入单价: input_price_per_1m
+     */
+    public final java.math.BigDecimal getInputPricePer1m(){
+         onPropGet(PROP_ID_inputPricePer1m);
+         return _inputPricePer1m;
+    }
+
+    /**
+     * 输入单价: input_price_per_1m
+     */
+    public final void setInputPricePer1m(java.math.BigDecimal value){
+        if(onPropSet(PROP_ID_inputPricePer1m,value)){
+            this._inputPricePer1m = value;
+            internalClearRefs(PROP_ID_inputPricePer1m);
+            
+        }
+    }
+    
+    /**
+     * 输出单价: output_price_per_1m
+     */
+    public final java.math.BigDecimal getOutputPricePer1m(){
+         onPropGet(PROP_ID_outputPricePer1m);
+         return _outputPricePer1m;
+    }
+
+    /**
+     * 输出单价: output_price_per_1m
+     */
+    public final void setOutputPricePer1m(java.math.BigDecimal value){
+        if(onPropSet(PROP_ID_outputPricePer1m,value)){
+            this._outputPricePer1m = value;
+            internalClearRefs(PROP_ID_outputPricePer1m);
+            
+        }
+    }
+    
+    /**
+     * 推理单价: reasoning_price_per_1m
+     */
+    public final java.math.BigDecimal getReasoningPricePer1m(){
+         onPropGet(PROP_ID_reasoningPricePer1m);
+         return _reasoningPricePer1m;
+    }
+
+    /**
+     * 推理单价: reasoning_price_per_1m
+     */
+    public final void setReasoningPricePer1m(java.math.BigDecimal value){
+        if(onPropSet(PROP_ID_reasoningPricePer1m,value)){
+            this._reasoningPricePer1m = value;
+            internalClearRefs(PROP_ID_reasoningPricePer1m);
+            
+        }
+    }
+    
+    /**
+     * 缓存读单价: cache_read_price_per_1m
+     */
+    public final java.math.BigDecimal getCacheReadPricePer1m(){
+         onPropGet(PROP_ID_cacheReadPricePer1m);
+         return _cacheReadPricePer1m;
+    }
+
+    /**
+     * 缓存读单价: cache_read_price_per_1m
+     */
+    public final void setCacheReadPricePer1m(java.math.BigDecimal value){
+        if(onPropSet(PROP_ID_cacheReadPricePer1m,value)){
+            this._cacheReadPricePer1m = value;
+            internalClearRefs(PROP_ID_cacheReadPricePer1m);
+            
+        }
+    }
+    
+    /**
+     * 缓存写单价: cache_write_price_per_1m
+     */
+    public final java.math.BigDecimal getCacheWritePricePer1m(){
+         onPropGet(PROP_ID_cacheWritePricePer1m);
+         return _cacheWritePricePer1m;
+    }
+
+    /**
+     * 缓存写单价: cache_write_price_per_1m
+     */
+    public final void setCacheWritePricePer1m(java.math.BigDecimal value){
+        if(onPropSet(PROP_ID_cacheWritePricePer1m,value)){
+            this._cacheWritePricePer1m = value;
+            internalClearRefs(PROP_ID_cacheWritePricePer1m);
+            
+        }
+    }
+    
+    /**
+     * 币种: currency
+     */
+    public final java.lang.String getCurrency(){
+         onPropGet(PROP_ID_currency);
+         return _currency;
+    }
+
+    /**
+     * 币种: currency
+     */
+    public final void setCurrency(java.lang.String value){
+        if(onPropSet(PROP_ID_currency,value)){
+            this._currency = value;
+            internalClearRefs(PROP_ID_currency);
             
         }
     }

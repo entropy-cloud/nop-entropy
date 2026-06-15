@@ -307,6 +307,23 @@
                         propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="update_time" displayName="修改时间" domain="updateTime" mandatory="true"
                         name="updateTime" propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="input_price_per_1m" comment="每百万输入token单价" displayName="输入单价"
+                        name="inputPricePer1m" precision="10" propId="11" scale="4" stdDataType="decimal"
+                        stdSqlType="DECIMAL"/>
+                <column code="output_price_per_1m" comment="每百万输出token单价" displayName="输出单价"
+                        name="outputPricePer1m" precision="10" propId="12" scale="4" stdDataType="decimal"
+                        stdSqlType="DECIMAL"/>
+                <column code="reasoning_price_per_1m" comment="每百万推理token单价" displayName="推理单价"
+                        name="reasoningPricePer1m" precision="10" propId="13" scale="4" stdDataType="decimal"
+                        stdSqlType="DECIMAL"/>
+                <column code="cache_read_price_per_1m" comment="每百万缓存读token单价" displayName="缓存读单价"
+                        name="cacheReadPricePer1m" precision="10" propId="14" scale="4" stdDataType="decimal"
+                        stdSqlType="DECIMAL"/>
+                <column code="cache_write_price_per_1m" comment="每百万缓存写token单价" displayName="缓存写单价"
+                        name="cacheWritePricePer1m" precision="10" propId="15" scale="4" stdDataType="decimal"
+                        stdSqlType="DECIMAL"/>
+                <column code="currency" comment="币种代码" displayName="币种" ext:defaultValue="USD"
+                        name="currency" precision="3" propId="16" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>第三方AI模型注册信息</comment>
             <relations>

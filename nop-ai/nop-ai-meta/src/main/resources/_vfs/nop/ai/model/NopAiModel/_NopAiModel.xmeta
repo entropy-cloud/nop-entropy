@@ -58,6 +58,30 @@
               insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
+        <prop name="inputPricePer1m" displayName="输入单价" propId="11" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.math.BigDecimal" precision="10" scale="4"/>
+        </prop>
+        <prop name="outputPricePer1m" displayName="输出单价" propId="12" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.math.BigDecimal" precision="10" scale="4"/>
+        </prop>
+        <prop name="reasoningPricePer1m" displayName="推理单价" propId="13" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.math.BigDecimal" precision="10" scale="4"/>
+        </prop>
+        <prop name="cacheReadPricePer1m" displayName="缓存读单价" propId="14" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.math.BigDecimal" precision="10" scale="4"/>
+        </prop>
+        <prop name="cacheWritePricePer1m" displayName="缓存写单价" propId="15" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.math.BigDecimal" precision="10" scale="4"/>
+        </prop>
+        <prop name="currency" displayName="币种" propId="16" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="3"/>
+        </prop>
         <prop name="responses" displayName="调用记录" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="modelId" lazy="true" published="false">
             <schema>

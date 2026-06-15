@@ -38,6 +38,12 @@ CREATE TABLE nop_ai_model(
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
+  INPUT_PRICE_PER_1M NUMBER(10,4)  ,
+  OUTPUT_PRICE_PER_1M NUMBER(10,4)  ,
+  REASONING_PRICE_PER_1M NUMBER(10,4)  ,
+  CACHE_READ_PRICE_PER_1M NUMBER(10,4)  ,
+  CACHE_WRITE_PRICE_PER_1M NUMBER(10,4)  ,
+  CURRENCY VARCHAR2(3)  ,
   constraint PK_nop_ai_model primary key (ID)
 );
 
@@ -402,6 +408,18 @@ CREATE TABLE nop_ai_test_result(
       COMMENT ON COLUMN nop_ai_model.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_ai_model.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_ai_model.INPUT_PRICE_PER_1M IS '输入单价';
+                    
+      COMMENT ON COLUMN nop_ai_model.OUTPUT_PRICE_PER_1M IS '输出单价';
+                    
+      COMMENT ON COLUMN nop_ai_model.REASONING_PRICE_PER_1M IS '推理单价';
+                    
+      COMMENT ON COLUMN nop_ai_model.CACHE_READ_PRICE_PER_1M IS '缓存读单价';
+                    
+      COMMENT ON COLUMN nop_ai_model.CACHE_WRITE_PRICE_PER_1M IS '缓存写单价';
+                    
+      COMMENT ON COLUMN nop_ai_model.CURRENCY IS '币种';
                     
       COMMENT ON TABLE nop_ai_prompt_template IS '提示词模板';
                 

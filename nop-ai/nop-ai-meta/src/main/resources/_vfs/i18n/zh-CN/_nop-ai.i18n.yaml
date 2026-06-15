@@ -124,12 +124,18 @@ prop:
     NopAiModel:
       apiKey: API密钥
       baseUrl: API地址
+      cacheReadPricePer1m: 缓存读单价
+      cacheWritePricePer1m: 缓存写单价
       createTime: 创建时间
       createdBy: 创建人
+      currency: 币种
       id: 主键
+      inputPricePer1m: 输入单价
       modelName: 模型名称
+      outputPricePer1m: 输出单价
       provider: 供应商
       provider_label: 供应商
+      reasoningPricePer1m: 推理单价
       responses: 调用记录
       updateTime: 修改时间
       updatedBy: 修改人
