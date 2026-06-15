@@ -1,4 +1,6 @@
 import { appendFileSync, existsSync } from "node:fs";
+import { snapshot as sysSnapshot } from "./sys-snapshot.mjs";
+import { reapStartupOrphans } from "./reap-orphans.mjs";
 
 function localTimeStr(d = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -260,7 +262,7 @@ export class FlowEngine {
     const flowDef = await this.delegates.loadSubFlow(flowName);
     if (!flowDef) throw new Error(`Subflow not found: ${flowName}`);
 
-    const baseArgs = {};
+    let baseArgs = {};
     if (stepDef.flowArgs) {
       const allVars = this._allVars();
       for (const [k, v] of Object.entries(stepDef.flowArgs)) {
@@ -286,7 +288,15 @@ export class FlowEngine {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         this._log(`  subflow ${stepName}: forEach item ${i + 1}/${items.length}`);
-        const childVars = { ...baseArgs, forEachItem: item, forEachIndex: i, forEachTotal: items.length };
+        // Re-resolve flowArgs per iteration so forEachItem/forEachIndex/forEachTotal template vars work
+        const iterArgs = {};
+        if (stepDef.flowArgs) {
+          const iterVars = { ...this._allVars(), forEachItem: item, forEachIndex: i, forEachTotal: items.length };
+          for (const [k, v] of Object.entries(stepDef.flowArgs)) {
+            iterArgs[k] = this._templateVar(String(v), iterVars);
+          }
+        }
+        const childVars = { ...iterArgs, forEachItem: item, forEachIndex: i, forEachTotal: items.length };
         const { childResult, childFlowVars } = await this._runChildSubflow(flowDef, childVars);
         Object.assign(aggregatedVars, childFlowVars);
         this._log(`  subflow ${stepName}: forEach item ${i + 1} → ${childResult.status}`);
@@ -508,6 +518,20 @@ export class FlowEngine {
     const auditEntry = this.flow.auditEntry || this.flow.entry;
     let totalSteps = 0;
 
+    const _runDir = cfg.runDir;
+    const _sysMon = (label) => {
+      if (!_runDir) return;
+      try { sysSnapshot(_runDir, label); } catch {}
+    };
+
+    const _warnOrphans = () => {
+      if (!_runDir) return;
+      try { reapStartupOrphans(_runDir, process.pid); } catch {}
+    };
+
+    _sysMon(`START:${this.flow.name || "flow"}`);
+    _warnOrphans();
+
     while (totalSteps < maxTotalSteps) {
       const stepDef = this.flow.steps[currentStep];
       if (!stepDef) {
@@ -529,6 +553,8 @@ export class FlowEngine {
 
       totalSteps++;
       this._log(`[step ${totalSteps}] ${currentStep} (visit #${visits})`);
+
+      _sysMon(`step-${totalSteps}:${currentStep}`);
 
       this.pingPongHistory.push({ step: currentStep, viaRetry: false });
       if (this.pingPongHistory.length > pingPongWindow) {

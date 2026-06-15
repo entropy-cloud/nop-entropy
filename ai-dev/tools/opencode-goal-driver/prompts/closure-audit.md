@@ -51,7 +51,10 @@ Each Phase MUST have:
 6. If it still fails, fix again. Maximum 3 fix rounds.
 
 After fixing, output ONLY the marker:
-<AI_STEP_RESULT>incomplete</AI_STEP_RESULT>
+<AI_STEP_RESULT>issues</AI_STEP_RESULT>
+<REMAINING>
+<item>description of what was fixed so the executor knows what changed</item>
+</REMAINING>
 
 Do NOT output plan content, the Closure template, or any other text. This triggers a re-run of the script check to verify your fixes.
 
@@ -66,8 +69,8 @@ The plan structure is valid. Now verify the SEMANTICS:
    first use grep/glob/read to verify whether the work actually landed in the
    codebase. If it landed, tick the items `[x]` and re-run
    `node ai-dev/tools/check-plan-checklist.mjs {{PLAN_FILE}} --strict`. If it
-   did NOT land, the Phase is genuinely unfinished — output `incomplete` with
-   a `<REMAINING>` entry naming the Phase so the flow returns to EXECUTE.
+did NOT land, the Phase is genuinely unfinished — output `issues` with
+a `<REMAINING>` entry naming the Phase so the flow returns to EXECUTE.
 
 1. **Exit Criteria vs live repo**: Read each Exit Criterion. Use grep/glob/read to confirm it matches the LIVE codebase. Do NOT trust `[x]` marks blindly.
 
@@ -80,10 +83,10 @@ The plan structure is valid. Now verify the SEMANTICS:
 5. **Owner doc sync**: If plan changed live baseline, verify `docs-for-ai/` updated.
 
 If ALL checks pass, output ONLY:
-<AI_STEP_RESULT>complete</AI_STEP_RESULT>
+<AI_STEP_RESULT>approved</AI_STEP_RESULT>
 
 If any fails, fix the issue by editing the file with the Edit tool, then output ONLY:
-<AI_STEP_RESULT>incomplete</AI_STEP_RESULT>
+<AI_STEP_RESULT>issues</AI_STEP_RESULT>
 <REMAINING>
 <item>description</item>
 </REMAINING>

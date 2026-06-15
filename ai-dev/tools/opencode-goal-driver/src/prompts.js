@@ -25,7 +25,7 @@ export function createTestStepConfigs() {
     [STEP_NAMES.HEALTH_CHECK]:  { command: "echo ok", system: "", type: "tool" },
     [STEP_NAMES.FIX_BUILD]:     { ...make("HEALTH_STATUS", "fixed"), markerValues: { fixed: "fixed", failed: "failed" } },
     [STEP_NAMES.ROADMAP_CHECK]: { ...make("ROADMAP_RESULT", "complete"), markerValues: { pending: "pending", complete: "complete" } },
-    [STEP_NAMES.PLAN_DRAFT]:    { ...make("PLAN_RESULT", "created"), markerValues: { created: "created", none: "none" } },
+    [STEP_NAMES.PLAN_DRAFT]:    { ...make("PLAN_RESULT", "created"), markerValues: { created: "created" } },
     [STEP_NAMES.PLAN_AUDIT]:    { ...make("AUDIT_RESULT", "approved"), markerValues: { approved: "approved", issues: "issues" } },
     [STEP_NAMES.EXECUTE]:       { ...make("EXECUTE_RESULT", "success"), markerValues: { success: "success", failed: "failed" } },
     [STEP_NAMES.CLOSURE_AUDIT]: { ...make("CLOSURE_RESULT", "complete"), markerValues: { complete: "complete", incomplete: "incomplete" } },

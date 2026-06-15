@@ -6,6 +6,8 @@ import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.security.AllowAllPathAccessChecker;
+import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -340,8 +342,18 @@ public class TestSubAgentPermissionEndToEnd {
             }
         };
 
-        // Default engine: AllowAllToolAccessChecker (no deny rules), no constraint
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, noOpToolManager);
+        // Test allow path: backward-compat baseline uses AllowAll* checkers
+        // explicitly to isolate parent-constraint enforcement (tested in the
+        // other tests of this class) from Layer 1 deny-list enforcement.
+        // The engine's default checkers are now Default* (secure by default,
+        // plan 193), which would deny "write-file" — but this test verifies
+        // that the parent-constraint wiring does not produce SPURIOUS denials
+        // in single-agent mode, so AllowAll* isolates that concern.
+        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, noOpToolManager,
+                new io.nop.ai.agent.session.InMemorySessionStore(),
+                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
+                new AllowAllToolAccessChecker(),
+                new AllowAllPathAccessChecker());
 
         AgentMessageRequest request = new AgentMessageRequest("test-parent-agent", "do work");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);

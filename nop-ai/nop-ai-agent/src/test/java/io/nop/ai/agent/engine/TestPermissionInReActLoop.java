@@ -3,6 +3,7 @@ package io.nop.ai.agent.engine;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.AgentPermissionModel;
+import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.DefaultPermissionProvider;
 import io.nop.ai.agent.security.IPermissionProvider;
 import io.nop.ai.agent.security.Permission;
@@ -136,8 +137,14 @@ public class TestPermissionInReActLoop {
             }
         };
 
+        // Test allow path: isolate permission-provider deny behavior by passing
+        // AllowAllToolAccessChecker explicitly, so the deny comes from the
+        // permission provider (not from DefaultToolAccessChecker's hardcoded
+        // deny-list which would also deny "bash" with a different message).
         ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager)
-                .permissionProvider(permProvider).build();
+                .permissionProvider(permProvider)
+                .toolAccessChecker(new AllowAllToolAccessChecker())
+                .build();
         AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());

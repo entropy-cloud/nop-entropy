@@ -26,6 +26,8 @@ import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.AutoApproveGate;
 import io.nop.ai.agent.security.DefaultLevelHintsProducer;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.security.IApprovalGate;
 import io.nop.ai.agent.security.IDenialLedger;
 import io.nop.ai.agent.security.IPathAccessChecker;
@@ -101,6 +103,11 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IPostDenialGuard postDenialGuard = PassThroughPostDenialGuard.passThrough();
     private ICheckpointManager checkpointManager = NoOpCheckpoint.noOp();
     private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
+    // Plan 192: max token budget for budgeted working-memory auto-injection into
+    // the system prompt. Shipped default gives memory a reasonable share of the
+    // context without dominating it. A value <= 0 disables injection (explicit
+    // opt-out / backward-compatible escape hatch).
+    private int memoryInjectionBudgetTokens = 1024;
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
 
@@ -114,15 +121,15 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                              ISessionStore sessionStore, IPermissionProvider permissionProvider) {
-        this(chatService, toolManager, sessionStore, permissionProvider, new AllowAllToolAccessChecker());
+                               ISessionStore sessionStore, IPermissionProvider permissionProvider) {
+        this(chatService, toolManager, sessionStore, permissionProvider, new DefaultToolAccessChecker());
     }
 
     public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                              ISessionStore sessionStore, IPermissionProvider permissionProvider,
-                              IToolAccessChecker toolAccessChecker) {
+                               ISessionStore sessionStore, IPermissionProvider permissionProvider,
+                               IToolAccessChecker toolAccessChecker) {
         this(chatService, toolManager, sessionStore, permissionProvider,
-                toolAccessChecker, new AllowAllPathAccessChecker());
+                toolAccessChecker, new DefaultPathAccessChecker());
     }
 
     public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
@@ -162,12 +169,13 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.eventPublisher = new DefaultAgentEventPublisher();
         this.sessionStore = sessionStore;
         this.permissionProvider = permissionProvider != null ? permissionProvider : new AllowAllPermissionProvider();
-        this.toolAccessChecker = toolAccessChecker != null ? toolAccessChecker : new AllowAllToolAccessChecker();
-        this.pathAccessChecker = pathAccessChecker != null ? pathAccessChecker : new AllowAllPathAccessChecker();
+        this.toolAccessChecker = toolAccessChecker != null ? toolAccessChecker : new DefaultToolAccessChecker();
+        this.pathAccessChecker = pathAccessChecker != null ? pathAccessChecker : new DefaultPathAccessChecker();
         this.contentGuardrail = contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp();
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
         this.contextCompactor = contextCompactor != null ? contextCompactor : defaultPipelineCompactor(chatService);
         this.tokenEstimator = CalibratedTokenEstimator.defaultInstance();
+        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker);
     }
 
     /**
@@ -184,6 +192,43 @@ public class DefaultAgentEngine implements IAgentEngine {
                 new Layer2TurnPruningStrategy(),
                 new Layer3FullSummaryStrategy(chatService)
         );
+    }
+
+    /**
+     * Emit a one-time WARN per engine instance when the resolved Layer 1
+     * checkers are {@code AllowAll*} instances — i.e. the integrator has
+     * explicitly opted into the "insecure default" (open box: dangerous tools
+     * and sensitive paths have no protection). The default constructor chain
+     * now resolves to {@code Default*} checkers (secure by default, plan 193),
+     * so this WARN fires only when an integrator deliberately passes an
+     * {@code AllowAll*} instance — making the security downgrade visible
+     * rather than silent. See design
+     * {@code nop-ai-agent-security-and-permissions.md} §4.6.
+     *
+     * <p>The WARN explicitly covers only the Layer 1 tool and path checkers
+     * in scope of plan 193. Layer 2/3 components and {@code NoOpAuditLogger}
+     * default-downgrade enumeration is a successor extension point
+     * (AUDIT-13-02 / [13-4]).
+     *
+     * <p>Fail-loud: the WARN is unconditionally emitted via {@code LOG.warn}
+     * when an {@code AllowAll*} instance is detected — never silently
+     * swallowed or written as an empty body.
+     */
+    private static void warnIfInsecureDefaults(IToolAccessChecker toolChecker, IPathAccessChecker pathChecker) {
+        if (toolChecker instanceof AllowAllToolAccessChecker) {
+            LOG.warn("DefaultAgentEngine constructed with AllowAllToolAccessChecker: "
+                    + "dangerous tools (bash/write-file/delete-file/move-file/patch-file/apply-delta/"
+                    + "http-request/graphql-query) are NOT blocked. This is an insecure default. "
+                    + "To restore secure-by-default behaviour, do not pass an AllowAllToolAccessChecker "
+                    + "to the constructor — the default already uses DefaultToolAccessChecker.");
+        }
+        if (pathChecker instanceof AllowAllPathAccessChecker) {
+            LOG.warn("DefaultAgentEngine constructed with AllowAllPathAccessChecker: "
+                    + "sensitive paths (~/.ssh/, ~/.aws/, /etc/, .env, id_rsa, ...) are NOT blocked. "
+                    + "This is an insecure default. To restore secure-by-default behaviour, do not pass "
+                    + "an AllowAllPathAccessChecker to the constructor — the default already uses "
+                    + "DefaultPathAccessChecker.");
+        }
     }
 
     public IAgentEventPublisher getEventPublisher() {
@@ -484,6 +529,20 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Plan 192: max token budget for budgeted working-memory auto-injection
+     * into the system prompt (consumed in {@link #buildBaseExecutionContext}).
+     * Shipped default is 1024. A value {@code <= 0} disables injection
+     * (explicit opt-out; empty memory is also never injected).
+     */
+    public void setMemoryInjectionBudgetTokens(int memoryInjectionBudgetTokens) {
+        this.memoryInjectionBudgetTokens = memoryInjectionBudgetTokens;
+    }
+
+    public int getMemoryInjectionBudgetTokens() {
+        return memoryInjectionBudgetTokens;
+    }
+
+    /**
      * Test-only accessor for the engine's own tool access checker. Used by
      * integration tests to verify that
      * {@link #resolveEffectiveToolAccessChecker} wraps (or does not wrap) this
@@ -713,6 +772,22 @@ public class DefaultAgentEngine implements IAgentEngine {
             systemPrompt = agentModel.getPrompt().getSource();
         }
 
+        // Plan 192: auto-inject budgeted working memory into the system prompt.
+        // Memory is a session-level persistent context (like the system prompt),
+        // so it is injected here — the single point shared by doExecute (new
+        // turn) and resumeSession (recovery continuation). Only non-empty
+        // budgeted memory is injected (backward compatible). A null provider
+        // (test-only opt-out) or budget <= 0 (explicit opt-out) skips injection
+        // without throwing.
+        String memorySection = buildBudgetedMemorySection(session.getSessionId());
+        if (memorySection != null) {
+            if (systemPrompt == null || systemPrompt.isEmpty()) {
+                systemPrompt = memorySection;
+            } else {
+                systemPrompt = systemPrompt + "\n\n" + memorySection;
+            }
+        }
+
         if (systemPrompt != null && !systemPrompt.isEmpty()) {
             ctx.addMessage(new ChatSystemMessage(systemPrompt));
         }
@@ -722,6 +797,72 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         return ctx;
+    }
+
+    /**
+     * Plan 192: resolve the current session's budgeted working memory and
+     * format it as a single memory section string. Returns {@code null} when
+     * there is nothing to inject (null provider, budget <= 0, empty store, or
+     * empty {@code readBudgeted} result) — callers must check for null before
+     * appending, so empty memory never produces a system message (backward
+     * compatible).
+     */
+    private String buildBudgetedMemorySection(String sessionId) {
+        if (memoryStoreProvider == null || memoryInjectionBudgetTokens <= 0) {
+            return null;
+        }
+        java.util.Map<String, Object> context = new HashMap<>();
+        context.put("sessionId", sessionId);
+        context.put("source", "system-prompt-auto-injection");
+
+        List<io.nop.ai.agent.memory.AiMemoryItem> items;
+        try {
+            io.nop.ai.agent.memory.IAiMemoryStore store = memoryStoreProvider.getOrCreate(sessionId);
+            items = store.readBudgeted(memoryInjectionBudgetTokens, context);
+        } catch (RuntimeException e) {
+            LOG.warn("Budgeted memory injection skipped for sessionId={}: {}", sessionId, e.getMessage(), e);
+            return null;
+        }
+
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+
+        return formatMemorySection(items);
+    }
+
+    /**
+     * Plan 192: format a non-empty list of budgeted memory items into a single
+     * LLM-readable section. The section has a recognizable header (so the LLM
+     * and human reviewers can distinguish injected memory from the base system
+     * prompt) and one line per item (content is mandatory; key/type are
+     * included when present for context).
+     */
+    static String formatMemorySection(List<io.nop.ai.agent.memory.AiMemoryItem> items) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("## Working Memory\n");
+        for (io.nop.ai.agent.memory.AiMemoryItem item : items) {
+            sb.append("- ");
+            String key = item.getKey();
+            String type = item.getType();
+            boolean hasMeta = false;
+            if (type != null && !type.isEmpty()) {
+                sb.append('[').append(type).append("] ");
+                hasMeta = true;
+            }
+            if (key != null && !key.isEmpty()) {
+                sb.append('[').append(key).append("] ");
+                hasMeta = true;
+            }
+            sb.append(item.getContent() != null ? item.getContent() : "");
+            sb.append('\n');
+        }
+        // Trim the trailing newline so the section is clean.
+        int len = sb.length();
+        if (len > 0 && sb.charAt(len - 1) == '\n') {
+            sb.setLength(len - 1);
+        }
+        return sb.toString();
     }
 
     @Override
@@ -1203,7 +1344,32 @@ public class DefaultAgentEngine implements IAgentEngine {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * Load the {@link AgentModel} for the given agent name from the VFS
+     * resource {@code "/<agentName>.agent.xml"}.
+     *
+     * <p><b>Fail-closed path-injection guard (finding [13-16])</b>: the
+     * agentName is validated against the strict allow-list
+     * {@code ^[A-Za-z0-9_-]+$} via {@link AgentNames#requireValidIdentifier}
+     * <b>before</b> any string concatenation or
+     * {@code ResourceComponentManager} call. A caller-controlled agentName
+     * (sourced from the public API {@code AgentMessageRequest.agentName}, or
+     * indirectly from LLM-supplied {@code call-agent} tool args) containing
+     * {@code /}, {@code \}, {@code ..}, NUL, whitespace, or any Unicode is
+     * rejected by throwing {@link NopAiAgentException} — no silent
+     * sanitization, no truncation, no fall-back. This single guard covers all
+     * three callers ({@code doExecute}, {@code resumeSession},
+     * {@code restoreSession}) and the indirect
+     * {@code CallAgentExecutor} → {@code engine.execute} path.
+     *
+     * @param agentName the caller-supplied agent name
+     * @return the loaded agent model
+     * @throws NopAiAgentException if the agentName is {@code null}, empty, or
+     *         contains any character outside {@code [A-Za-z0-9_-]}, or if the
+     *         model fails to load
+     */
     private AgentModel loadAgentModel(String agentName) {
+        AgentNames.requireValidIdentifier(agentName);
         String path = "/" + agentName + ".agent.xml";
         try {
             Object obj = ResourceComponentManager.instance().loadComponentModel(path);

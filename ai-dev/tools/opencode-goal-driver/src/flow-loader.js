@@ -10,27 +10,26 @@ const ACTIVE_STATUSES = new Set([
   "in progress", "active", "planned", "partially completed",
 ]);
 
-function planRouter(delegates, flowVars) {
+function scanActivePlans(delegates, flowVars) {
   const projectRoot = delegates.config.projectRoot;
   const plansDir = resolve(projectRoot, "ai-dev", "plans");
-
+  const activePlans = [];
   if (existsSync(plansDir)) {
     const files = readdirSync(plansDir)
       .filter(f => f.endsWith(".md") && !f.startsWith("00-"))
       .sort();
-
     for (const f of files) {
       const content = readFileSync(resolve(plansDir, f), "utf8");
       const m = content.match(PLAN_STATUS_RE);
       const status = m ? m[1].trim().toLowerCase() : "";
       if (ACTIVE_STATUSES.has(status)) {
-        flowVars.set("PLAN_FILE", resolve(plansDir, f));
-        return "execute";
+        activePlans.push(resolve(plansDir, f));
       }
     }
   }
-
-  return "roadmap";
+  const json = JSON.stringify(activePlans);
+  flowVars.set("items", json);
+  return activePlans.length > 0 ? "ok" : "empty";
 }
 
 async function closureScriptCheck(delegates, flowVars) {
@@ -95,7 +94,7 @@ async function closureScriptCheck(delegates, flowVars) {
 }
 
 const SCRIPT_REGISTRY = {
-  "plan-router": (delegates, flowVars) => planRouter(delegates, flowVars),
+  "scan-active-plans": (delegates, flowVars) => scanActivePlans(delegates, flowVars),
   "closure-script-check": (delegates, flowVars) => closureScriptCheck(delegates, flowVars),
 };
 

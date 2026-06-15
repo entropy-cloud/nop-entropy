@@ -36,9 +36,7 @@ import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
-import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
-import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
 import io.nop.ai.agent.security.AutoApproveGate;
@@ -74,6 +72,7 @@ import io.nop.ai.agent.security.Principal;
 import io.nop.ai.agent.security.SecurityLevel;
 import io.nop.ai.agent.security.ToolAccessResult;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.security.ToolPathArgKeys;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.ISessionStore;
@@ -499,8 +498,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     toolManager,
                     eventPublisher,
                     permissionProvider != null ? permissionProvider : new AllowAllPermissionProvider(),
-                    toolAccessChecker != null ? toolAccessChecker : new AllowAllToolAccessChecker(),
-                    pathAccessChecker != null ? pathAccessChecker : new AllowAllPathAccessChecker(),
+                    toolAccessChecker != null ? toolAccessChecker : new DefaultToolAccessChecker(),
+                    pathAccessChecker != null ? pathAccessChecker : new DefaultPathAccessChecker(),
                     auditLogger != null ? auditLogger : new NoOpAuditLogger(),
                     hookRegistry != null ? hookRegistry : NoOpHookRegistry.INSTANCE,
                     toolCallRepairer != null ? toolCallRepairer : NoOpToolCallRepairer.INSTANCE,

@@ -187,6 +187,35 @@ Permission resolve(toolName, agentName, sessionId)
 - 权限命中规则
 - 拒绝原因
 
+### 4.6 默认装配策略（Secure by Default）
+
+**决策**：`DefaultAgentEngine` 的全部短构造器与字段兜底默认装配 `DefaultToolAccessChecker` 与 `DefaultPathAccessChecker`，而不是 `AllowAllToolAccessChecker` / `AllowAllPathAccessChecker`。集成商使用 `new DefaultAgentEngine(chatService, toolManager)` 开箱即获得：(a) 对 deny-list 危险工具（`bash`、`write-file`、`delete-file`、`move-file`、`patch-file`、`apply-delta`、`http-request`、`graphql-query`，大小写不敏感）的拒绝；(b) 对敏感路径前缀（`~/.ssh/`、`~/.aws/`、`/etc/` 等）与凭证文件（`.env`、`id_rsa` 等）的拒绝。`AllowAll*` 类保留为 public，集成商可通过显式构造器参数 opt-in 全放行（用于测试或可信环境）。
+
+**为什么选这个方案**：开箱默认必须以"对调用方最危险的选项"为假设——若集成商忘记装配 checker，后果应当是"安全地拒绝危险调用"而非"无声地全放行"。`Default*` 实现已存在并经过单元测试覆盖，本决策只是切换默认装配点，不引入新代码。
+
+**为什么拒绝替代方案**：
+
+1. **"仅 WARN 不改默认值"**：不采用。WARN 在生产部署中常被日志噪声淹没，且无法替代默认值本身的安全语义——一旦集成商漏读日志，引擎仍处于全放行状态。本设计同时采用 WARN 与默认值切换：默认值切换提供实际安全边界，WARN 提供降级可见性。
+2. **"引入全局开关配置项"**：不采用。新增配置项意味着新一度的不安全默认（配置项本身也有默认值），且增加集成心智负担。本设计保持"默认值即安全"，集成商通过显式构造器参数或 setter 表达非默认意图。
+3. **"仅改字段默认，不改构造器委派链"**：不采用。短构造器委派链中的每一层兜底都需要同步切换，否则任何走短构造器的路径仍会落回 AllowAll，使默认安全失效。
+
+**WARN 语义（不安全默认降级可见性）**：
+
+- **触发时机**：引擎构造期（最短构造器调用解析出最终 checker 实例后），每个 engine 实例至多触发一次。
+- **触发条件**：解析后的 `toolAccessChecker` 或 `pathAccessChecker` 为 `AllowAllToolAccessChecker` / `AllowAllPathAccessChecker` 实例（即集成商显式 opt-in 了全放行，或显式传 `null` 触发了 AllowAll 兜底——后者在本决策后已不会发生，因为字段默认值已切换为 `Default*`，但保留检查以覆盖集成商显式 opt-in 的场景）。
+- **日志级别**：WARN（非 ERROR，因为显式 opt-in 是合法用法；非 INFO/DEBUG，因为安全降级必须可见）。
+- **文案要点**：明确告知"开箱不安全，危险工具/敏感路径无防护"，并指引如何显式装配 `Default*` checker 或修复调用点。文案按 checker 类型分别给出（tool / path），便于定位。
+- **覆盖范围**：WARN 当前**只**覆盖 Layer 1 的 `IToolAccessChecker` 与 `IPathAccessChecker`。Layer 2/3（`AutoApproveGate`、`NoOpSecurityLevelResolver`、`PassThroughPermissionMatrix`、`NoOpDenialLedger`、`PassThroughPostDenialGuard`）与 Layer 1 的 `IAuditLogger`（`NoOpAuditLogger` 默认）的默认值降级枚举是独立 successor 的扩展点，不在本决策范围内。
+
+**向后兼容处理原则**：
+
+- 受影响既有测试统一按以下原则处理，不允许"为图省事整体关闭 checker"的回退。
+- 当测试需要验证 allow 路径（如 ReAct 循环正常执行不被 checker 阻断）时，显式向构造器传入 `AllowAllToolAccessChecker` / `AllowAllPathAccessChecker` 实例，并在构造点注释"测试 allow 路径"。
+- 当测试本身就是为了验证 deny 行为时（如 deny-list 工具被拒绝），使用默认短构造器即可——这正是被测试的 in-scope 行为。
+- 当测试用到名为 deny-list 同名的工具但目的是验证其它行为（非 checker 行为）时，优先改用非 deny-list 工具名（如 `mock-tool`、`echo`），避免与默认 deny 行为冲突。
+
+**`ReActAgentExecutor.Builder` 默认值一致性**：`ReActAgentExecutor.Builder.build()` 的 null 兜底默认同步切换为 `Default*`，避免集成商绕过 engine 直接构造 executor 时仍 AllowAll。`auditLogger` 的 null 兜底属 AUDIT-13-02（successor），本决策不改。
+
 ## 5. Layer 2: Policy Extensions（策略扩展层）
 
 扩展安全策略的粒度，不改变核心 deny/allow 语义。所有接口有 pass-through 默认。

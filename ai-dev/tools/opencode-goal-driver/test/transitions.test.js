@@ -91,7 +91,6 @@ describe("FlowEngine — retry", () => {
         resultTag: "AI_STEP_RESULT",
         transitions: {
           created: { goto: "AUDIT" },
-          none: { done: "completed" },
         },
       },
       AUDIT: {
@@ -270,7 +269,7 @@ describe("FlowEngine — case-insensitive marker aliases", () => {
         type: "agent",
         prompt: "draft",
         resultTag: "AI_STEP_RESULT",
-        transitions: { created: { goto: "NEXT" }, none: { done: "failed" } },
+        transitions: { created: { goto: "NEXT" } },
       },
       NEXT: {
         type: "agent",
@@ -443,7 +442,6 @@ describe("FlowEngine — plan audit retry loop", () => {
         resultTag: "AI_STEP_RESULT",
         transitions: {
           created: { goto: "PLAN_AUDIT" },
-          none: { done: "completed" },
         },
       },
       PLAN_AUDIT: {
@@ -541,7 +539,7 @@ describe("FlowEngine — plan audit retry loop", () => {
     assert.ok(execPrompt.includes("⚠️ plan audit failed"));
   });
 
-  it("revised marker routes back to PLAN_AUDIT instead of escaping (regression for plan 189 bug)", async () => {
+  it("retry PLAN_DRAFT returns created without FLOW_VARS, keeping existing PLAN_FILE (replaces old revised marker)", async () => {
     const flow = simpleFlow({
       PLAN_DRAFT: {
         type: "agent",
@@ -549,8 +547,6 @@ describe("FlowEngine — plan audit retry loop", () => {
         resultTag: "AI_STEP_RESULT",
         transitions: {
           created: { goto: "PLAN_AUDIT" },
-          revised: { goto: "PLAN_AUDIT" },
-          none: { done: "completed" },
         },
       },
       PLAN_AUDIT: {
@@ -581,9 +577,11 @@ describe("FlowEngine — plan audit retry loop", () => {
         PLAN_DRAFT: (sn, prompt) => {
           draftCount++;
           if (draftCount === 1) {
+            // first call: creates plan with path
             return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS><PLAN_FILE>/plans/189.md</PLAN_FILE></FLOW_VARS>", ok: true };
           }
-          return { text: "<AI_STEP_RESULT>revised</AI_STEP_RESULT>", ok: true };
+          // retry: edits in-place, outputs created without FLOW_VARS
+          return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>", ok: true };
         },
         PLAN_AUDIT: () => {
           if (draftCount < 3) {

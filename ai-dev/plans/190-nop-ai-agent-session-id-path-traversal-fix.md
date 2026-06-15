@@ -124,7 +124,11 @@ Exit Criteria:
 - Classification: `out-of-scope improvement`
 - Why Not Blocking Closure: distinct attack surface (VFS resource path + LLM-controlled sub-agent id), different files (`loadAgentModel`, `CallAgentExecutor`), and a different severity (P2). Fixing 13-15 does not depend on it and vice versa. Will be addressed by its own work item.
 - Successor Required: yes
-- Successor Path: to be created (next available plan number when picked up)
+- Successor Path: ai-dev/plans/191-nop-ai-agent-agentname-path-traversal-fix.md
+
+## Follow-up handled by 191-nop-ai-agent-agentname-path-traversal-fix.md
+
+The successor plan `ai-dev/plans/191-nop-ai-agent-agentname-path-traversal-fix.md` has been created to close finding [13-16] (agentName path injection in `DefaultAgentEngine.loadAgentModel` + `CallAgentExecutor` agentId whitelist). It mirrors the `SessionIds.requireValidIdentifier` pattern delivered by this plan.
 
 ## Non-Blocking Follow-ups
 

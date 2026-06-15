@@ -1,8 +1,9 @@
 import { closeSync, mkdirSync, openSync, statSync, writeFileSync } from "node:fs";
-import { spawn, execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
-
-const IS_WIN32 = process.platform === "win32";
+import { snapshot as sysSnapshot } from "./sys-snapshot.mjs";
+import { reapProcessGroup } from "./reap-orphans.mjs";
+import { IS_WIN32, killProcessTree } from "./platform.mjs";
 
 function pad(n) {
   return String(n).padStart(2, "0");
@@ -34,13 +35,7 @@ const LIVENESS_CHECK_MS = 5 * 60_000;
 const BASE_TIMEOUT_MS = 60 * 60_000;
 
 function killTree(pid) {
-  try {
-    if (IS_WIN32) {
-      execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore", timeout: 5_000 });
-    } else {
-      process.kill(-pid, "SIGKILL");
-    }
-  } catch {}
+  killProcessTree(pid);
 }
 
 export function execute(config, label, cmd, args, opts = {}) {
@@ -62,8 +57,8 @@ export function execute(config, label, cmd, args, opts = {}) {
     child = spawn(cmd, args, {
       cwd,
       stdio: ["ignore", fd, fd],
-      shell: false,
-      detached: !IS_WIN32,
+      shell: opts.shell ?? false,
+      detached: !IS_WIN32 && !opts.shell,
     });
   } catch (err) {
     try { closeSync(fd); } catch {}
@@ -105,6 +100,8 @@ export function execute(config, label, cmd, args, opts = {}) {
       const remainMin = Math.max(0, Math.round((deadline - Date.now()) / 60_000));
       process.stderr.write(`  [${ts}] ${label} running ... (pid ${childPid}, timeout in ${remainMin}min)\n`);
 
+      try { sysSnapshot(config.runDir, `heartbeat:${label}`); } catch {}
+
       if (Date.now() > deadline) {
         process.stderr.write(`  [TIMEOUT] ${label} no output for 60min, killing process tree ${childPid}\n`);
         killGroup();
@@ -123,6 +120,7 @@ export function execute(config, label, cmd, args, opts = {}) {
       if (settled) return;
       settled = true;
       cleanup();
+      try { reapProcessGroup(childPid, config.runDir, childPid); } catch {}
       resolveFn({ ok: code === 0, logFile, pid: childPid });
     });
 
@@ -130,6 +128,7 @@ export function execute(config, label, cmd, args, opts = {}) {
       if (settled) return;
       settled = true;
       cleanup();
+      try { reapProcessGroup(childPid, config.runDir, childPid); } catch {}
       resolveFn({ ok: false, logFile, pid: childPid });
     });
   });

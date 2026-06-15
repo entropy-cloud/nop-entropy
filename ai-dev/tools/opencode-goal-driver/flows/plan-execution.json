@@ -1,13 +1,13 @@
 {
   "name": "plan-execution",
-  "maxTotalSteps": 20,
+  "maxTotalSteps": 30,
   "maxCycleVisits": 10,
   "pingPongWindow": 6,
   "entry": "EXECUTE",
 
   "markerAliases": {
+    "success": "pass",
     "ok": "pass",
-    "success": "success",
     "done": "pass",
     "error": "fail",
     "failed": "fail"
@@ -17,43 +17,39 @@
     "EXECUTE": {
       "type": "agent",
       "promptPath": "prompts/execute.md",
+      "onUnknownMaxRetries": 2,
       "transitions": {
-        "success": { "goto": "CLOSURE_VERIFY" },
-        "failed": { "retry": "EXECUTE", "maxRetries": 3 }
+        "pass": { "goto": "CLOSURE_SCRIPT_CHECK" },
+        "fail": { "retry": "EXECUTE", "maxRetries": 3 }
       },
-      "onMaxRetries": { "goto": "CLOSURE_VERIFY" },
-      "onError": { "goto": "CLOSURE_VERIFY" }
+      "onMaxRetries": { "goto": "CLOSURE_SCRIPT_CHECK" },
+      "onError": { "goto": "CLOSURE_SCRIPT_CHECK" }
     },
 
-    "CLOSURE_VERIFY": {
-      "type": "group",
-      "maxRounds": 3,
-      "onExhausted": "fail",
-      "steps": {
-        "SCRIPT_CHECK": {
-          "type": "script",
-          "scriptId": "closure-script-check",
-          "transitions": {
-            "pass": { "goto": "AI_AUDIT" },
-            "fail": { "goto": "AI_AUDIT" }
-          }
-        },
-        "AI_AUDIT": {
-          "type": "agent",
-          "promptPath": "prompts/closure-audit.md",
-          "onUnknownMaxRetries": 2,
-          "transitions": {
-            "complete": { "exit": "pass" },
-            "incomplete": { "goto": "_retry" }
-          },
-          "onError": { "exit": "fail" }
-        }
-      },
+    "CLOSURE_SCRIPT_CHECK": {
+      "type": "script",
+      "scriptId": "closure-script-check",
       "transitions": {
         "pass": { "goto": "BUILD_VERIFY" },
-        "fail": { "goto": "EXECUTE" }
+        "fail": { "goto": "CLOSURE_AUDIT" }
+      }
+    },
+
+    "CLOSURE_AUDIT": {
+      "type": "agent",
+      "promptPath": "prompts/closure-audit.md",
+      "maxRetries": 3,
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "approved": { "goto": "BUILD_VERIFY" },
+        "issues": {
+          "retry": "EXECUTE",
+          "maxRetries": 3,
+          "append": { "template": "\n\n## Closure Audit Feedback\n\nThe plan `{{PLAN_FILE}}` was not properly closed. Re-execute it based on the following feedback:\n\nScript check result: {{SCRIPT_CHECK_RESULT}}\nScript check details: {{SCRIPT_CHECK_DETAILS}}\n\nAudit findings:\n${output}" }
+        }
       },
-      "onError": { "goto": "EXECUTE" }
+      "onMaxRetries": { "goto": "BUILD_VERIFY" },
+      "onError": { "retry": "EXECUTE", "maxRetries": 2 }
     },
 
     "BUILD_VERIFY": {

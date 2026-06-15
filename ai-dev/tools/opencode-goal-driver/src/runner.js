@@ -1,14 +1,12 @@
 import { readFileSync } from "node:fs";
-import { execSync } from "node:child_process";
 import { relative } from "node:path";
 import { execute } from "./executor.js";
-
-const IS_WIN32 = process.platform === "win32";
+import { IS_WIN32, killProcessTree, isAlive } from "./platform.mjs";
 
 async function killTree(pid) {
   try {
     if (IS_WIN32) {
-      execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore", timeout: 5_000 });
+      killProcessTree(pid);
       return;
     }
     // Phase 1: SIGTERM - allow graceful shutdown (Effect finalizers, MCP cleanup)
@@ -16,12 +14,8 @@ async function killTree(pid) {
     // Phase 2: Wait up to 6s for the process group to exit
     const deadline = Date.now() + 6000;
     while (Date.now() < deadline) {
-      try {
-        process.kill(pid, 0);
-        await new Promise(r => setTimeout(r, 100));
-      } catch {
-        return; // process exited gracefully
-      }
+      if (!isAlive(pid)) return; // process exited gracefully
+      await new Promise(r => setTimeout(r, 100));
     }
     // Phase 3: SIGKILL - force kill if still alive
     process.stderr.write(`  [WARN] process group ${pid} did not exit after SIGTERM, sending SIGKILL\n`);
@@ -143,7 +137,8 @@ export async function createRunner(config) {
     process.stderr.write(preview + "\n");
     process.stderr.write(`╚═══════════════════════════════════════════════\n`);
 
-    const args = ["run", "-m", model, "--agent", config.agent, "--dangerously-skip-permissions", prompt];
+    const markedPrompt = `[GOAL_DRIVER] ${prompt}`;
+    const args = ["run", "-m", model, "--agent", config.agent, "--dangerously-skip-permissions", markedPrompt];
     if (sessionId) {
       args.push("--session", sessionId);
     }
@@ -182,13 +177,20 @@ export async function createRunner(config) {
       console.log(`[MOCK tool] ${command}`);
       return { ok: true, logFile: null };
     }
-    const parts = command.split(" ").filter(Boolean);
+    let parts = command.split(" ").filter(Boolean);
+    // On Windows, ./mvnw must become mvnw.cmd (Node.js spawn with shell:false
+    // cannot execute .cmd/.bat files directly — needs CreateProcess resolution).
+    if (IS_WIN32) {
+      if (parts[0] === "./mvnw" || parts[0] === "mvnw") {
+        parts[0] = "mvnw.cmd";
+      }
+    }
     const cmd = parts[0];
     const cmdArgs = parts.slice(1);
     const plPath = config.moduleDir ? relative(config.projectRoot, config.moduleDir) : config.moduleName;
     const result = await execute(config, stepName, cmd,
       [...cmdArgs, "-pl", plPath, "-am", "-T", "1C"],
-      { cwd: config.projectRoot, onSpawn(pid) { currentPid = pid; } },
+      { cwd: config.projectRoot, onSpawn(pid) { currentPid = pid; }, shell: IS_WIN32 },
     );
     currentPid = null;
     return result;

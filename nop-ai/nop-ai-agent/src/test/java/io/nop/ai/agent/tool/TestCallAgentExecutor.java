@@ -1,12 +1,14 @@
 package io.nop.ai.agent.tool;
 
 import io.nop.ai.agent.engine.AgentExecutionResult;
+import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.message.NoOpAgentMessenger;
+import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.api.chat.ChatRequest;
@@ -36,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -334,5 +337,135 @@ public class TestCallAgentExecutor {
         assertEquals("failure", result.getStatus());
         assertNotNull(result.getError());
         assertTrue(result.getError().getBody().contains("AgentToolExecuteContext"));
+    }
+
+    // ========================================================================
+    // P2 path-injection guard (plan 191, finding [13-16]): defense-in-depth
+    // agentId allow-list in CallAgentExecutor (non-"self" branch). A
+    // traversal-shaped agentId sourced from LLM tool args must return a clean
+    // LLM-facing error result BEFORE engine.execute is invoked, never throw
+    // uncaught, and never reach the VFS path concatenation in loadAgentModel.
+    // ========================================================================
+
+    /**
+     * Minimal recording engine: counts {@code execute} invocations and captures
+     * the agentName seen, so tests can assert the engine was (or was not)
+     * reached by the call-agent executor.
+     */
+    private static IAgentEngine recordingEngine(AtomicInteger executeCount, java.util.concurrent.atomic.AtomicReference<String> seenAgentName) {
+        return new IAgentEngine() {
+            @Override
+            public AgentMessageAck sendMessage(AgentMessageRequest request) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request) {
+                executeCount.incrementAndGet();
+                seenAgentName.set(request.getAgentName());
+                return CompletableFuture.completedFuture(new AgentExecutionResult(
+                        AgentExecStatus.completed, "mock-reply", Collections.emptyList(),
+                        1, 0L, 0L, null, "mock-session"));
+            }
+        };
+    }
+
+    /**
+     * (a) A {@code call-agent} tool call with a traversal-shaped
+     * {@code agentId} (e.g. {@code "../../../etc/passwd"}) returns an
+     * {@link AiToolCallResult} error result — does NOT throw, does NOT reach
+     * {@code engine.execute}. The agentId allow-list in CallAgentExecutor
+     * (non-"self" branch) rejects it with a clean LLM-facing error before the
+     * engine is invoked (defense-in-depth, before the VFS path concatenation
+     * in loadAgentModel).
+     */
+    @Test
+    void traversalAgentIdReturnsErrorResultWithoutInvokingEngine() throws Exception {
+        AtomicInteger executeCount = new AtomicInteger();
+        java.util.concurrent.atomic.AtomicReference<String> seenAgentName =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        IAgentEngine engine = recordingEngine(executeCount, seenAgentName);
+        AgentToolExecuteContext ctx = createContext(engine, "parent-sess-trav", "parent-agent");
+
+        AiToolCall call = createCall("../../../etc/passwd", "hello", null, null);
+
+        CallAgentExecutor executor = new CallAgentExecutor();
+        // Must NOT throw — the documented contract is fail-with-error-result.
+        AiToolCallResult result = executor.executeAsync(call, ctx)
+                .toCompletableFuture().get(10, TimeUnit.SECONDS);
+
+        assertEquals("failure", result.getStatus(),
+                "A traversal-shaped agentId must yield a failure result (not silent success)");
+        assertNotNull(result.getError());
+        assertTrue(result.getError().getBody().contains("agentId")
+                        && (result.getError().getBody().contains("path-injection guard")
+                        || result.getError().getBody().contains("invalid characters")
+                        || result.getError().getBody().contains("[A-Za-z0-9_-]")),
+                "Error message must identify the agentId path-injection guard: "
+                        + result.getError().getBody());
+        assertEquals(0, executeCount.get(),
+                "engine.execute must NOT be invoked when the agentId is rejected by the "
+                        + "defense-in-depth allow-list (no VFS load path reached)");
+        assertEquals(null, seenAgentName.get(),
+                "No agentName should have been observed by the engine");
+    }
+
+    /**
+     * (b) The {@code "self"} branch is unaffected by the new allow-list check:
+     * it resolves to the parent agent's already-validated agentName and
+     * proceeds to {@code engine.execute}. This proves the guard is scoped to
+     * the non-"self" branch only and does not block legitimate self-invocation.
+     */
+    @Test
+    void selfBranchUnaffectedByAgentIdAllowList() throws Exception {
+        AtomicInteger executeCount = new AtomicInteger();
+        java.util.concurrent.atomic.AtomicReference<String> seenAgentName =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        IAgentEngine engine = recordingEngine(executeCount, seenAgentName);
+        // parent agentName "parent-agent" is a valid allow-list name and is
+        // what "self" resolves to.
+        AgentToolExecuteContext ctx = createContext(engine, "parent-sess-self", "parent-agent");
+
+        AiToolCall call = createCall("self", "do something", null, null);
+
+        CallAgentExecutor executor = new CallAgentExecutor();
+        AiToolCallResult result = executor.executeAsync(call, ctx)
+                .toCompletableFuture().get(10, TimeUnit.SECONDS);
+
+        assertEquals("success", result.getStatus(),
+                "The 'self' branch must not be blocked by the agentId allow-list "
+                        + "(it resolves to the parent's already-validated agentName)");
+        assertEquals(1, executeCount.get(),
+                "engine.execute must be invoked exactly once for a valid 'self' call-agent");
+        assertEquals("parent-agent", seenAgentName.get(),
+                "'self' must resolve to the parent agent's agentName, not be rejected");
+    }
+
+    /**
+     * (c) A valid allow-list {@code agentId} (e.g. {@code "child-agent"}) is
+     * NOT over-blocked by the new check: it proceeds to
+     * {@code engine.execute} normally. This proves the guard only rejects
+     * traversal-shaped values, not legitimate agent names.
+     */
+    @Test
+    void validAgentIdNotOverBlockedProceedsToEngine() throws Exception {
+        AtomicInteger executeCount = new AtomicInteger();
+        java.util.concurrent.atomic.AtomicReference<String> seenAgentName =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        IAgentEngine engine = recordingEngine(executeCount, seenAgentName);
+        AgentToolExecuteContext ctx = createContext(engine, "parent-sess-valid", "parent-agent");
+
+        AiToolCall call = createCall("child-agent", "hello", null, null);
+
+        CallAgentExecutor executor = new CallAgentExecutor();
+        AiToolCallResult result = executor.executeAsync(call, ctx)
+                .toCompletableFuture().get(10, TimeUnit.SECONDS);
+
+        assertEquals("success", result.getStatus(),
+                "A valid allow-list agentId must not be over-blocked by the guard");
+        assertEquals(1, executeCount.get(),
+                "engine.execute must be invoked exactly once for a valid agentId");
+        assertEquals("child-agent", seenAgentName.get(),
+                "The valid agentId must be passed through to engine.execute unchanged");
     }
 }

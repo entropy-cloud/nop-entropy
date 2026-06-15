@@ -62,8 +62,21 @@ export function mockSubFlows() {
     steps: {
       EXECUTE: {
         type: "agent", prompt: "execute {{PLAN_FILE}}",
-        transitions: { pass: { done: "completed" }, failed: { retry: "EXECUTE", maxRetries: 2 } },
-        onMaxRetries: { done: "failed" },
+        transitions: { pass: { goto: "CLOSURE_SCRIPT_CHECK" }, fail: { retry: "EXECUTE", maxRetries: 2 } },
+        onMaxRetries: { goto: "CLOSURE_SCRIPT_CHECK" },
+      },
+      CLOSURE_SCRIPT_CHECK: {
+        type: "agent", prompt: "script check {{PLAN_FILE}}",
+        resultTag: "AI_STEP_RESULT",
+        transitions: { pass: { goto: "BUILD_VERIFY" }, fail: { goto: "CLOSURE_AUDIT" } },
+      },
+      CLOSURE_AUDIT: {
+        type: "agent", prompt: "closure audit",
+        transitions: { approved: { goto: "BUILD_VERIFY" }, issues: { done: "completed" } },
+      },
+      BUILD_VERIFY: {
+        type: "agent", prompt: "build verify",
+        transitions: { pass: { done: "completed" }, fail: { done: "failed" } },
       },
     },
   };
@@ -73,7 +86,17 @@ export function mockSubFlows() {
       DEEP_AUDIT: {
         type: "agent", prompt: "deep audit",
         resultTag: "AI_STEP_RESULT",
-        transitions: { clean: { done: "completed" }, issues: { retry: "DEEP_AUDIT", maxRetries: 3 } },
+        transitions: { clean: { goto: "ADVERSARIAL" }, issues: { goto: "ADVERSARIAL" } },
+      },
+      ADVERSARIAL: {
+        type: "agent", prompt: "adversarial review",
+        resultTag: "AI_STEP_RESULT",
+        transitions: { clean: { done: "completed" }, issues: { goto: "DRAFT_PLANS" } },
+      },
+      DRAFT_PLANS: {
+        type: "agent", prompt: "draft plans",
+        resultTag: "AI_STEP_RESULT",
+        transitions: { created: { done: "completed" } },
       },
     },
   };

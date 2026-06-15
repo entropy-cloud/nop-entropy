@@ -139,7 +139,7 @@ public class TestChainRepairerInReActLoop {
         Map<String, Object> args = new LinkedHashMap<>();
         args.put("id", "1");
         args.put("explanation", "read hosts");
-        args.put("path", "/etc/hosts");
+        args.put("path", "/tmp/test-read.txt");
         args.put("fromLine", "10");
         args.put("noise_arg", "garbage");
         args.put("null_arg", null);
@@ -175,7 +175,7 @@ public class TestChainRepairerInReActLoop {
         // Stage 3: id and fromLine coerced to int
         // Stage 4: noise_arg and null_arg removed
         // The tool manager input is a JSON string built from the repaired arguments
-        assertTrue(inputText.contains("/etc/hosts"), "path should be present");
+        assertTrue(inputText.contains("/tmp/test-read.txt"), "path should be present");
         assertFalse(inputText.contains("noise_arg"), "noise_arg should have been removed");
         assertFalse(inputText.contains("null_arg"), "null_arg should have been removed");
         // id should be coerced to integer (no quotes around the number)
@@ -197,7 +197,7 @@ public class TestChainRepairerInReActLoop {
         ChatToolCall wellFormed = new ChatToolCall();
         wellFormed.setId("call_1");
         wellFormed.setName("read_file");
-        wellFormed.setArguments(Map.of("path", "/etc/hosts"));
+        wellFormed.setArguments(Map.of("path", "/tmp/test-read.txt"));
 
         AtomicReference<AiToolCall> capturedCall = new AtomicReference<>();
 
@@ -220,7 +220,7 @@ public class TestChainRepairerInReActLoop {
         assertEquals(AgentExecStatus.completed, result.getStatus());
         assertNotNull(capturedCall.get());
         // Well-formed call passes through unchanged
-        assertTrue(capturedCall.get().getInput().contains("/etc/hosts"));
+        assertTrue(capturedCall.get().getInput().contains("/tmp/test-read.txt"));
     }
 
     /**
@@ -240,7 +240,7 @@ public class TestChainRepairerInReActLoop {
         Map<String, Object> args = new LinkedHashMap<>();
         args.put("id", 1);
         args.put("explanation", "read hosts");
-        args.put("path", "/etc/hosts");
+        args.put("path", "/tmp/test-read.txt");
         args.put("fromLine", 10);
         wellFormed.setArguments(args);
 
@@ -269,7 +269,7 @@ public class TestChainRepairerInReActLoop {
         // All args should be present, no mutation
         assertTrue(inputText.contains("\"id\":1"));
         assertTrue(inputText.contains("\"fromLine\":10"));
-        assertTrue(inputText.contains("/etc/hosts"));
+        assertTrue(inputText.contains("/tmp/test-read.txt"));
         assertTrue(inputText.contains("read hosts"));
     }
 
@@ -289,7 +289,7 @@ public class TestChainRepairerInReActLoop {
         malformed.setId("call_1");
         malformed.setName("read.file");
         malformed.setArguments(new LinkedHashMap<>());
-        malformed.getArguments().put("path", "/etc/hosts");
+        malformed.getArguments().put("path", "/tmp/test-read.txt");
 
         AtomicReference<String> capturedToolName = new AtomicReference<>();
 

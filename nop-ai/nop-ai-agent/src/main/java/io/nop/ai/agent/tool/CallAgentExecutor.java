@@ -40,6 +40,16 @@ import java.util.concurrent.TimeUnit;
  * <p><b>Fail-fast</b>: returns descriptive error results (never throws
  * uncaught) when the engine is missing, agentId is empty, the target agent
  * model cannot be loaded, or the sub-agent execution fails.
+ *
+ * <p><b>Defense-in-depth path-injection guard (finding [13-16])</b>: a
+ * non-{@code "self"} {@code agentId} sourced from LLM-supplied tool args is
+ * validated against the strict allow-list {@code ^[A-Za-z0-9_-]+$} via
+ * {@link io.nop.ai.agent.engine.AgentNames#isValidIdentifier} <b>before</b>
+ * the engine is invoked. A traversal-shaped agentId (e.g.
+ * {@code "../../../etc/passwd"}) returns a descriptive LLM-facing error
+ * result rather than reaching the unvalidated VFS path concatenation in
+ * {@code DefaultAgentEngine.loadAgentModel}. The {@code "self"} branch is
+ * left unchanged (it resolves to the parent's already-validated agentName).
  */
 public class CallAgentExecutor implements IToolExecutor {
     public static final String TOOL_NAME = "call-agent";
@@ -106,6 +116,16 @@ public class CallAgentExecutor implements IToolExecutor {
                         "call-agent with agentId='self' requires a non-null agentName in the execution context");
             }
         } else {
+            // Defense-in-depth path-injection guard (finding [13-16]): an
+            // LLM-supplied agentId flows into the VFS path concatenation in
+            // loadAgentModel. Reject any agentId outside [A-Za-z0-9_-] with a
+            // clean LLM-facing error result BEFORE the engine is invoked (no
+            // throw — the documented contract is fail-with-error-result).
+            if (!io.nop.ai.agent.engine.AgentNames.isValidIdentifier(agentId)) {
+                return fail(call.getId(),
+                        "call-agent failed: agentId contains invalid characters; only [A-Za-z0-9_-] are allowed "
+                                + "(agent-name path-injection guard): agentId=" + agentId);
+            }
             targetAgentId = agentId;
         }
 

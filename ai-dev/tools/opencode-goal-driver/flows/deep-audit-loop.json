@@ -3,7 +3,6 @@
   "maxTotalSteps": 40,
   "maxCycleVisits": 15,
   "pingPongWindow": 6,
-  "maxAuditRounds": 3,
   "entry": "DEEP_AUDIT",
 
   "markerAliases": {
@@ -15,7 +14,9 @@
     "failed": "fail",
     "problems": "issues",
     "findings": "issues",
-    "concerns": "issues"
+    "concerns": "issues",
+    "none": "created",
+    "revised": "created"
   },
 
   "steps": {
@@ -24,50 +25,40 @@
       "promptPath": "prompts/deep-audit.md",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "clean": { "done": "completed" },
-        "issues": { "goto": "DRAFT_PLAN" }
+        "clean": {
+          "goto": "ADVERSARIAL",
+          "append": { "template": "\n\n## Deep Audit Result\n\nDeep audit found no issues:\n${output}" }
+        },
+        "issues": {
+          "goto": "ADVERSARIAL",
+          "append": { "template": "\n\n## Deep Audit Result\n\nDeep audit found issues:\n${output}" }
+        }
       },
       "onError": { "done": "completed" }
     },
 
-    "DRAFT_PLAN": {
+    "ADVERSARIAL": {
       "type": "agent",
-      "promptPath": "prompts/plan-draft.md",
+      "promptPath": "prompts/adversarial-review.md",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "created": { "goto": "AUDIT_PLAN" },
-        "revised": { "goto": "AUDIT_PLAN" },
-        "none": { "goto": "DEEP_AUDIT" }
-      },
-      "onError": { "goto": "DEEP_AUDIT" }
-    },
-
-    "AUDIT_PLAN": {
-      "type": "agent",
-      "promptPath": "prompts/plan-audit.md",
-      "maxRetries": 3,
-      "onUnknownMaxRetries": 2,
-      "transitions": {
-        "approved": { "goto": "EXECUTE_PLAN" },
+        "clean": { "done": "completed" },
         "issues": {
-          "retry": "DRAFT_PLAN",
-          "maxRetries": 3,
-          "append": { "template": "\n\n## REVISION REQUEST\n\nYour previous plan at `{{PLAN_FILE}}` did not pass audit. Revise it **in-place** (edit the existing file, do NOT create a new plan) based on the feedback below, then output `revised`:\n\n${output}" }
+          "goto": "DRAFT_PLANS",
+          "append": { "template": "\n\n## Combined Audit + Adversarial Findings\n\n${output}" }
         }
       },
-      "onError": { "retry": "DRAFT_PLAN", "maxRetries": 2 },
-      "onMaxRetries": { "goto": "EXECUTE_PLAN", "append": { "template": "\n\n⚠️ This plan did not pass audit after max retries. Proceeding in degraded mode." } }
+      "onError": { "done": "completed" }
     },
 
-    "EXECUTE_PLAN": {
-      "type": "subflow",
-      "flow": "plan-execution",
-      "flowArgs": { "PLAN_FILE": "{{PLAN_FILE}}" },
+    "DRAFT_PLANS": {
+      "type": "agent",
+      "promptPath": "prompts/draft-plans.md",
+      "onUnknownMaxRetries": 2,
       "transitions": {
-        "pass": { "goto": "DEEP_AUDIT" },
-        "failed": { "goto": "DEEP_AUDIT" }
+        "created": { "done": "completed" }
       },
-      "onError": { "goto": "DEEP_AUDIT" }
+      "onError": { "done": "completed" }
     }
   }
 }

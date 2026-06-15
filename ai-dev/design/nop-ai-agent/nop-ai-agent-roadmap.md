@@ -142,7 +142,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | L1-18 | 🔴 ReActAgentExecutor Builder 模式：移除构造器链，用 Builder 替换（见 react-engine.md §3.3） | L1-5 | ✅ |
 | L1-19 | 🟡 agent.xdef 加 mode 属性（react/plan/single-turn，默认 react） | 无 | ✅ |
 | L1-20 | 🟡 AgentSession 补充 parentSessionId/planId/compactedAt 字段（nullable，向下兼容） | L1-10 | ✅ |
-| A1 | 🌟 Budgeted Injection: AiMemoryItem 补充 priority/tokenEstimate/pinned 等字段 + IAiMemoryStore.readBudgeted() default 方法 | L1-16 | ❌ |
+| A1 | 🌟 Budgeted Injection functional consumption: AiMemoryItem priority/tokenEstimate/pinned 字段 + IAiMemoryStore.readBudgeted() default 方法（L1-16 ✅）+ InMemoryAiMemoryStore 功能化实现（plan 189 ✅）+ system-prompt 自动注入（buildBaseExecutionContext 每轮注入 budgeted memory，plan 192 ✅） | L1-16 | ✅ |
 | A2 | 🌟 Completion Gate: ReAct 循环"无 tool calls"后加 Judge 验证点（contract: Plan 159; functional `RuleBasedCompletionJudge`: Plan 162; LLM `LlmCompletionJudge`: Plan 165） | L1-5 | ✅ |
 | A3 | 🌟 PreStop/PostStop ReAct 钩子: before_tool_result_processed / after_tool_result_processed（允许重入） | L2-12 | ❌ |
 | A4 | 🌟 Checkpoint Journal 格式: journal.md + snapshot.json 双文件，按 watermark 恢复（plan 182 已落地；crash/restart restore = plan 183 已落地；DB persistence = plan 186 已落地，实现为 `DBCheckpointManager`；LLM-turn/compaction triggers = plan 187 已落地，三个触发点全部 ✅；compaction-aware 截断加载 = plan 188 已落地，`firstKeptEntryId` 由 COMPACTION checkpoint 位置实现） | L3-4 | ✅ |
@@ -258,8 +258,8 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | 发现 ID | 严重程度 | 修复状态 | 落地 plan / 说明 |
 |---------|---------|---------|-----------------|
 | AUDIT-13-15 | P0 | ✅ 已修复 | plan 190：`SessionIds` 两层校验（identifier + containment）接入 `DefaultAgentEngine.resolveSessionId` + `FileBackedSessionStore` / `FileBackedCheckpointManager` 全部 `rootDirectory.resolve(sessionId)` site，fail-closed |
-| AUDIT-13-16 | P2 | ❌ 未修复 | agentName 路径注入（`loadAgentModel` + `CallAgentExecutor` agentId 白名单），独立 surface，successor 待建 |
-| AUDIT-13-01 | P1 | ❌ 未修复 | 默认 AllowAll/PassThrough 装配，开箱全放行 |
+| AUDIT-13-16 | P2 | ✅ 已修复 | plan 191：`AgentNames` allow-list 校验接入 `DefaultAgentEngine.loadAgentModel` chokepoint + `CallAgentExecutor` non-`"self"` agentId defense-in-depth，fail-closed |
+| AUDIT-13-01 | P1 | ✅ 已修复 | plan 193：`DefaultAgentEngine` 短构造器 + 字段兜底 + `ReActAgentExecutor.Builder.build()` null 兜底全部从 `AllowAll*` 切换为 `Default*`；新增构造期一次性 WARN（AllowAll* 实例触发，fail-loud via `LOG.warn`）；secure-by-default 端到端验证（`TestSecureByDefault` 6 tests） |
 | AUDIT-13-02 | P1 | ❌ 未修复 | 默认 NoOpAuditLogger 丢弃审计事件 |
 | AUDIT-14-01 | P1 | ❌ 未修复 | 同 session 并发执行竞态 |
 | AUDIT-14-04 | P1 | ❌ 未修复 | FileBacked 非原子写 |

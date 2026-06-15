@@ -72,7 +72,7 @@
 | 层级 | 内容 | 架构层 | 状态 |
 |------|------|--------|------|
 | **短期记忆** | Context window 内的消息历史，含 5 层渐进 compaction（Layer 0-4） | Layer 1 核心 + Layer 2 扩展 | ✅ |
-| **Working Memory** | Per-session KV store。三个工具（`read-memory` / `write-memory` / `search-memory`）经 `IAiMemoryStore` + `IMemoryStoreProvider` 实现 per-session 隔离；shipped 默认 `InMemoryMemoryStoreProvider`（开箱即用，工具读写 ✅ plan 189）。system-prompt 自动注入 deferred 至 A1（Budgeted Injection 功能化消费） | Layer 2 | ✅ 工具读写 / ⏳ system-prompt 自动注入 (A1 successor) |
+| **Working Memory** | Per-session KV store。三个工具（`read-memory` / `write-memory` / `search-memory`）经 `IAiMemoryStore` + `IMemoryStoreProvider` 实现 per-session 隔离；shipped 默认 `InMemoryMemoryStoreProvider`（开箱即用，工具读写 ✅ plan 189）。system-prompt 自动注入 ✅（plan 192）：`DefaultAgentEngine.buildBaseExecutionContext`（doExecute + resumeSession 共用）在每轮执行启动时经 `readBudgeted(budget)` 将非空 budgeted memory 追加到 system prompt 尾部（单条 ChatSystemMessage，base prompt 在前 memory 段落在后），空 memory 不注入（向后兼容），budget engine 级可配（默认 1024，≤0 禁用） | Layer 2 | ✅ 工具读写 + ✅ system-prompt 自动注入 |
 | **长期记忆** | IMessageService + 向量存储 + retain/recall/reflect 工具 + EdgeClaw 风格的 captureTurn/retrieve | Layer 4 | ❌ |
 
 Working Memory 的 per-session 数据**当前由 `InMemoryAiMemoryStore` 持有（不随 `AgentSession` 持久化）**——进程重启后 memory 丢失，持久化（DB / 文件 / `AgentSession` 序列化）deferred 至 L4-3 `IMemoryAdapter`（Storage / Embedding / Vector 三适配器 successor）。短期记忆是 Agent Engine 的运行时职责（compaction 触发和执行）。长期记忆是独立子系统。
