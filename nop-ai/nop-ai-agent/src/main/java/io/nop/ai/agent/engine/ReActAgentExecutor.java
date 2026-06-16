@@ -4,12 +4,22 @@ import io.nop.ai.agent.compact.CompactionContext;
 import io.nop.ai.agent.compact.IContextCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.compact.ToolResultTruncator;
+import io.nop.ai.agent.conflict.ConflictResult;
+import io.nop.ai.agent.conflict.FailFastStrategy;
+import io.nop.ai.agent.conflict.IConflictStrategy;
+import io.nop.ai.agent.conflict.InMemoryWriteIntentRegistry;
+import io.nop.ai.agent.conflict.IWriteIntentRegistry;
+import io.nop.ai.agent.conflict.WriteIntent;
 import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.completion.CompletionDecision;
 import io.nop.ai.agent.completion.ICompletionJudge;
 import io.nop.ai.agent.completion.NoOpCompletionJudge;
+import io.nop.ai.agent.contribution.Contribution;
+import io.nop.ai.agent.contribution.ContributionType;
+import io.nop.ai.agent.contribution.IContributionRegistry;
+import io.nop.ai.agent.contribution.NoOpContributionRegistry;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.ai.agent.guardrail.GuardrailResult;
 import io.nop.ai.agent.guardrail.IContentGuardrail;
@@ -28,16 +38,28 @@ import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.repair.ChainRepairer;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.repair.NoOpToolCallRepairer;
+import io.nop.ai.agent.reliability.AlwaysClosed;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
+import io.nop.ai.agent.reliability.CircuitState;
 import io.nop.ai.agent.reliability.ErrorClassification;
+import io.nop.ai.agent.reliability.GoalAssessment;
 import io.nop.ai.agent.reliability.ICheckpointManager;
+import io.nop.ai.agent.reliability.ICircuitBreaker;
+import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
+import io.nop.ai.agent.reliability.IterationSnapshot;
 import io.nop.ai.agent.reliability.LlmErrorClassifier;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
+import io.nop.ai.agent.reliability.NoOpGoalTracker;
+import io.nop.ai.agent.reliability.NoOpSustainer;
 import io.nop.ai.agent.reliability.NoRetryPolicy;
+import io.nop.ai.agent.reliability.ISustainer;
 import io.nop.ai.agent.reliability.RetryContext;
 import io.nop.ai.agent.reliability.RetryOutcome;
+import io.nop.ai.agent.reliability.SustainContext;
+import io.nop.ai.agent.reliability.SustainDecision;
+import io.nop.ai.agent.reliability.SustainStopReason;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.router.RoutingResult;
@@ -118,6 +140,7 @@ import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolModel;
+import io.nop.api.core.json.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,6 +152,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -185,6 +209,88 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // zero-regression versus the pre-plan-207 behaviour. A functional policy
     // (StandardRetryPolicy) is registered via DefaultAgentEngine.setRetryPolicy.
     private final IRetryPolicy retryPolicy;
+    // Plan 210 (L3-1): circuit breaker consulted at the single-LLM-call retry
+    // loop's OUTER layer (design nop-ai-agent-reliability.md §3.3 platform
+    // layer / §5.1 three-state breaker). Before entering the retry loop the
+    // breaker is asked whether the primary model may be called; a false
+    // return means the circuit is OPEN and the loop fails fast with a
+    // NopAiAgentException (no silent skip). Per-attempt failures are recorded
+    // back (recordFailure) so a functional breaker trips on consecutive
+    // failures, and a successful call is recorded back (recordSuccess) so a
+    // HALF_OPEN breaker can reset to CLOSED. The shipped AlwaysClosed default
+    // unconditionally allows every call and treats the recording methods as
+    // explicit no-ops, so the wiring is zero-regression versus the pre-plan-210
+    // behaviour. A functional breaker (ThresholdBreaker) is registered via
+    // DefaultAgentEngine.setCircuitBreaker.
+    private final ICircuitBreaker circuitBreaker;
+    // Plan 211 (L3-3): goal tracker consulted at the ReAct loop's
+    // per-iteration boundary (design nop-ai-agent-reliability.md §5.3).
+    // recordIteration is called once per iteration, after the LLM response is
+    // available and before the tool-dispatch / completion-judge branch, so the
+    // tracker can update its per-session progress state from this iteration's
+    // tool-call signatures. assessGoal is called at the next iteration's start,
+    // after the force-stop hard guard and before the PRE_REASONING hook; a STUCK
+    // return aborts the loop with status=escalated (no silent skip). The shipped
+    // NoOpGoalTracker default unconditionally reports PROGRESSING and treats
+    // recordIteration as an explicit no-op, so the wiring is zero-regression
+    // versus the pre-plan-211 behaviour. A functional tracker
+    // (SessionGoalTracker) is registered via DefaultAgentEngine.setGoalTracker.
+    private final IGoalTracker goalTracker;
+    // Plan 212 (L3-8): sustainer consulted at the ReAct loop's exit decision
+    // point (design nop-ai-agent-reliability.md §5.1a Sisyphean model). When
+    // the reactLoop exits naturally because the iteration budget was exhausted
+    // (MAX_ITERATIONS) while the status is still running, the engine asks the
+    // sustainer whether to force a continuation (CONTINUE → extend the budget
+    // by one sustain-round step and re-enter the reactLoop from the top) or
+    // allow the stop (STOP → proceed to the terminal-state change + event
+    // publication). This is the structural opposite of the fail-fast
+    // ICircuitBreaker philosophy (design §5.1a / §11a — mutual exclusivity is
+    // a deployment-layer documentation constraint, not a runtime guard). The
+    // shipped NoOpSustainer default unconditionally returns STOP, so the
+    // wiring is zero-regression versus the pre-plan-212 zero-sustain
+    // behaviour. A functional sustainer (SisypheanSustainer) is registered via
+    // DefaultAgentEngine.setSustainer. Only MAX_ITERATIONS is a sustainable
+    // exit point in this version; other exit points (completed/escalated/
+    // forced_stopped/cancelled/paused) set a terminal status inside the loop
+    // and bypass the sustainer consult.
+    private final ISustainer sustainer;
+    // Plan 214 (L2-13a): conflict strategy consulted in the dispatch loop
+    // after the Layer 3 approval gate and before allowedCalls.add(...).
+    // When the write-intent registry reports a cross-session conflict on a
+    // file targeted by the current tool call, the strategy decides ALLOW or
+    // DENY. The shipped FailFastStrategy default denies on any cross-session
+    // conflict (zero-regression for single-session executions, where the
+    // registry contains no other-session intents → no conflict → ALLOW).
+    private final IConflictStrategy conflictStrategy;
+    // Plan 214 (L2-13a): write-intent registry consulted in the dispatch
+    // loop to register the current tool call's write intent and detect
+    // cross-session conflicts on the same file. The shipped
+    // InMemoryWriteIntentRegistry default is an in-process implementation;
+    // cross-process registry (DB-backed) is a successor.
+    private final IWriteIntentRegistry writeIntentRegistry;
+    // Plan 217 (L4-6): plugin contribution registry consulted at execution
+    // setup time (alongside consultSkills) for PROMPT contribution
+    // resolution. PROMPT contributions' String fragments are concatenated in
+    // ascending priority order and injected into the system prompt via
+    // injectSystemInstruction (additive, same mechanism as skill
+    // instructions). HOOK contributions are resolved engine-side in
+    // DefaultAgentEngine.resolveExecutor (they register into the hook
+    // registry before the Builder is built). The shipped
+    // NoOpContributionRegistry default returns empty for every query, so
+    // no PROMPT fragment is injected — zero-regression versus the
+    // pre-plan-217 behaviour.
+    private final IContributionRegistry contributionRegistry;
+
+    // Plan 219 (L4-7): Layer 4 sandbox backend (design §7.1 / §8). The
+    // executor holds the backend reference and makes it available to tool
+    // executors that run inside the ReAct loop (future shell-exec /
+    // code-exec IToolExecutor successors). The executor itself does not
+    // call the backend on the dispatch path — high-risk tool execution is
+    // the consumer's responsibility. Shipped default is NoOpSandboxBackend
+    // (host ProcessBuilder, designable baseline). A functional backend
+    // (e.g. DockerSandboxBackend) is registered via the Builder, which the
+    // engine wires in resolveExecutor.
+    private final io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
 
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
@@ -215,7 +321,14 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                       IUsageRecorder usageRecorder,
                                        IModelSwitchedMessageWriter modelSwitchedMessageWriter,
                                        IBudgetProvider budgetProvider,
-                                       IRetryPolicy retryPolicy) {
+                                       IRetryPolicy retryPolicy,
+                                         ICircuitBreaker circuitBreaker,
+                                         IGoalTracker goalTracker,
+                                         ISustainer sustainer,
+                                           IConflictStrategy conflictStrategy,
+                                           IWriteIntentRegistry writeIntentRegistry,
+                                           IContributionRegistry contributionRegistry,
+                                           io.nop.ai.agent.security.ISandboxBackend sandboxBackend) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -263,6 +376,21 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 : NoOpModelSwitchedMessageWriter.noOp();
         this.budgetProvider = budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp();
         this.retryPolicy = retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry();
+        this.circuitBreaker = circuitBreaker != null ? circuitBreaker : AlwaysClosed.alwaysClosed();
+        this.goalTracker = goalTracker != null ? goalTracker : NoOpGoalTracker.noOp();
+        this.sustainer = sustainer != null ? sustainer : NoOpSustainer.noOp();
+        this.conflictStrategy = conflictStrategy != null
+                ? conflictStrategy
+                : FailFastStrategy.failFast();
+        this.writeIntentRegistry = writeIntentRegistry != null
+                ? writeIntentRegistry
+                : new InMemoryWriteIntentRegistry();
+        this.contributionRegistry = contributionRegistry != null
+                ? contributionRegistry
+                : NoOpContributionRegistry.noOp();
+        this.sandboxBackend = sandboxBackend != null
+                ? sandboxBackend
+                : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE;
     }
 
     public static Builder builder() {
@@ -301,6 +429,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IModelSwitchedMessageWriter modelSwitchedMessageWriter;
         private IBudgetProvider budgetProvider;
         private IRetryPolicy retryPolicy;
+        private ICircuitBreaker circuitBreaker;
+        private IGoalTracker goalTracker;
+        private ISustainer sustainer;
+        private IConflictStrategy conflictStrategy;
+        private IWriteIntentRegistry writeIntentRegistry;
+        private IContributionRegistry contributionRegistry;
+        private io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -594,6 +729,118 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Wire the {@link ICircuitBreaker} consulted at the single-LLM-call
+         * retry loop's outer layer (plan 210 / L3-1 / design
+         * {@code nop-ai-agent-reliability.md} §3.3 / §5.1). Before entering
+         * the retry loop the breaker is asked whether the primary model may
+         * be called; a false return fails fast with a {@code NopAiAgentException}.
+         * Per-attempt failures and the eventual success are recorded back so
+         * a functional breaker can track consecutive-failure patterns across
+         * call cycles. Optional: when null, defaults to {@link AlwaysClosed}
+         * (unconditional allow + explicit no-op recording — fail fast,
+         * backward compatible, zero-regression).
+         */
+        public Builder circuitBreaker(ICircuitBreaker circuitBreaker) {
+            this.circuitBreaker = circuitBreaker;
+            return this;
+        }
+
+        /**
+         * Wire the {@link IGoalTracker} consulted at the ReAct loop's
+         * per-iteration boundary (plan 211 / L3-3 / design
+         * {@code nop-ai-agent-reliability.md} §5.3). {@code recordIteration} is
+         * called once per iteration after the LLM response so the tracker can
+         * update its per-session progress state; {@code assessGoal} is called at
+         * the next iteration's start and a STUCK return aborts the loop with
+         * status=escalated. Optional: when null, defaults to
+         * {@link NoOpGoalTracker} (unconditional PROGRESSING + explicit no-op
+         * recording — backward compatible, zero-regression).
+         */
+        public Builder goalTracker(IGoalTracker goalTracker) {
+            this.goalTracker = goalTracker;
+            return this;
+        }
+
+        /**
+         * Wire the {@link ISustainer} consulted at the ReAct loop's exit
+         * decision point (plan 212 / L3-8 / design
+         * {@code nop-ai-agent-reliability.md} §5.1a Sisyphean model). When the
+         * reactLoop exits naturally because the iteration budget was exhausted
+         * (MAX_ITERATIONS) while the status is still running, the engine asks
+         * the sustainer CONTINUE (extend the budget and re-enter the loop) or
+         * STOP (proceed to the terminal-state change). Optional: when null,
+         * defaults to {@link NoOpSustainer} (unconditional STOP — backward
+         * compatible, zero-regression).
+         */
+        public Builder sustainer(ISustainer sustainer) {
+            this.sustainer = sustainer;
+            return this;
+        }
+
+        /**
+         * Plan 214 (L2-13a): wire the {@link IConflictStrategy} consulted
+         * in the dispatch loop after the Layer 3 approval gate and before
+         * {@code allowedCalls.add(...)} (design
+         * {@code nop-ai-agent-multi-agent.md} §4.4). When the write-intent
+         * registry reports a cross-session conflict on a file targeted by
+         * the current tool call, the strategy decides ALLOW or DENY.
+         * Optional: when null, defaults to {@link FailFastStrategy}
+         * (fail-fast on cross-session conflicts — backward compatible,
+         * zero-regression for single-session executions).
+         */
+        public Builder conflictStrategy(IConflictStrategy conflictStrategy) {
+            this.conflictStrategy = conflictStrategy;
+            return this;
+        }
+
+        /**
+         * Plan 214 (L2-13a): wire the {@link IWriteIntentRegistry}
+         * consulted in the dispatch loop to register write intents and
+         * detect cross-session conflicts (design
+         * {@code nop-ai-agent-multi-agent.md} §3.1). Optional: when null,
+         * defaults to {@link InMemoryWriteIntentRegistry} (in-process
+         * registry — backward compatible).
+         */
+        public Builder writeIntentRegistry(IWriteIntentRegistry writeIntentRegistry) {
+            this.writeIntentRegistry = writeIntentRegistry;
+            return this;
+        }
+
+        /**
+         * Plan 217 (L4-6): wire the {@link IContributionRegistry} consulted
+         * at execution setup time for {@link ContributionType#PROMPT}
+         * contribution resolution. PROMPT contributions' String fragments are
+         * concatenated in ascending priority order and injected into the
+         * system prompt via {@code injectSystemInstruction} (additive, same
+         * mechanism as skill instructions). HOOK contributions are resolved
+         * engine-side in {@code DefaultAgentEngine.resolveExecutor}. Optional:
+         * when null, defaults to {@link NoOpContributionRegistry} (every
+         * query returns empty, so no PROMPT fragment is injected — zero
+         * regression).
+         */
+        public Builder contributionRegistry(IContributionRegistry contributionRegistry) {
+            this.contributionRegistry = contributionRegistry;
+            return this;
+        }
+
+        /**
+         * Plan 219 (L4-7): wire the {@link io.nop.ai.agent.security.ISandboxBackend}
+         * — the Layer 4 defense-in-depth chain tail (design §7.1 / §8).
+         * The wired backend is held by the executor and made available to
+         * tool executors that run inside the ReAct loop (future
+         * shell-exec / code-exec IToolExecutor successors). The executor
+         * itself does not call the backend on the dispatch path. Optional:
+         * when null, defaults to
+         * {@link io.nop.ai.agent.security.NoOpSandboxBackend} (host
+         * ProcessBuilder execution — Layer 1 designable baseline, design
+         * §7.1).
+         */
+        public Builder sandboxBackend(io.nop.ai.agent.security.ISandboxBackend sandboxBackend) {
+            this.sandboxBackend = sandboxBackend;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -634,9 +881,30 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             ? modelSwitchedMessageWriter
                             : NoOpModelSwitchedMessageWriter.noOp(),
                     budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp(),
-                    retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry()
+                    retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry(),
+                    circuitBreaker != null ? circuitBreaker : AlwaysClosed.alwaysClosed(),
+                    goalTracker != null ? goalTracker : NoOpGoalTracker.noOp(),
+                    sustainer != null ? sustainer : NoOpSustainer.noOp(),
+                    conflictStrategy != null ? conflictStrategy : FailFastStrategy.failFast(),
+                    writeIntentRegistry != null ? writeIntentRegistry : new InMemoryWriteIntentRegistry(),
+                    contributionRegistry != null ? contributionRegistry : NoOpContributionRegistry.noOp(),
+                    sandboxBackend != null
+                            ? sandboxBackend
+                            : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE
             );
         }
+    }
+
+    /**
+     * Plan 219 (L4-7): the {@link io.nop.ai.agent.security.ISandboxBackend}
+     * wired into this executor. The executor holds the reference and makes
+     * it available to tool executors that run inside the ReAct loop
+     * (future shell-exec / code-exec IToolExecutor successors). Public so
+     * wiring tests can assert the engine → executor reference chain
+     * (Minimum Rules #23 Wiring Verification).
+     */
+    public io.nop.ai.agent.security.ISandboxBackend getSandboxBackend() {
+        return sandboxBackend;
     }
 
     @Override
@@ -654,6 +922,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         List<ChatToolDefinition> toolDefs = buildToolDefinitions(agentModel);
         consultTalents(ctx, toolDefs);
         consultSkills(ctx, agentModel, toolDefs);
+        consultPromptContributions(ctx);
         ChatOptions options = buildChatOptions(agentModel.getChatOptions(), toolDefs);
 
         Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
@@ -699,6 +968,26 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
             }
 
+            // Plan 212 (L3-8): capture the original maxIterations as the
+            // sustain-round step. Each sustain CONTINUE extends the budget by
+            // this amount (giving the agent another full round of its original
+            // iteration budget), so after k sustains the total budget is
+            // originalMaxIterations * (1 + k). The sustainCount tracks how many
+            // sustain rounds have been granted in this execution; it is passed
+            // to the sustainer via SustainContext.sustainCountSoFar so a
+            // stateless sustainer can enforce its maxSustainCount ceiling.
+            int originalMaxIterations = ctx.getMaxIterations();
+            int sustainCount = 0;
+
+            // Plan 212 (L3-8): the sustainLoop wraps the reactLoop. When the
+            // reactLoop exits naturally (status still running = MAX_ITERATIONS
+            // truncation), the engine consults the sustainer. CONTINUE extends
+            // the budget and re-enters the reactLoop from the top; STOP (or a
+            // terminal status set inside the loop) breaks out to the
+            // terminal-state change. See the sustainer field comment + the
+            // post-reactLoop consult block for the full adjudication.
+            sustainLoop:
+            while (true) {
             reactLoop:
             while (ctx.getCurrentIteration() < ctx.getMaxIterations()) {
                 if (ctx.isCancelRequested()) {
@@ -723,6 +1012,25 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 if (shouldForceStop(ctx)) {
                     handleForcedStop(ctx, sessionId, agentName, checkpointSeq);
                     break;
+                }
+
+                // Plan 211 (L3-3): session-level goal assessment. assessGoal is
+                // consulted at the iteration start, after the force-stop
+                // (context-overflow) hard guard and before compaction /
+                // PRE_REASONING hook (design nop-ai-agent-reliability.md §5.3).
+                // Position rationale: (1) force-stop is a context-safety hard
+                // guard with higher priority than stuck detection; (2) aborting
+                // before the PRE_REASONING hook avoids hook side effects; (3)
+                // this sits at the same governance-abort tier as the
+                // denial-ledger pause check. A STUCK assessment aborts the loop
+                // with status=escalated (no silent skip — Minimum Rules #24).
+                // With the shipped NoOpGoalTracker default assessGoal always
+                // returns PROGRESSING, so this path is never taken (zero
+                // regression).
+                GoalAssessment goalAssessment = goalTracker.assessGoal(sessionId);
+                if (goalAssessment == GoalAssessment.STUCK) {
+                    handleGoalStuck(ctx, sessionId, agentName);
+                    break reactLoop;
                 }
 
                 if (shouldTriggerCompaction(ctx)) {
@@ -770,6 +1078,29 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 RoutingResult routingResult = modelRouter.route(ctx.getMessages(), options, ctx);
                 ChatOptions routedOptions = routingResult.getOptions();
 
+                // Plan 213 (circuit-aware-routing): resolve the routed options
+                // against the circuit breaker BEFORE the model-switched audit
+                // detection below. This upgrades the engine's handling of a
+                // circuit-OPEN primary model from "reject → terminate the
+                // whole agent execution" (plan 210) to "reject → proactively
+                // scan the router's fallback chain for a circuit-allowed model
+                // → switch routedOptions and continue" (design
+                // nop-ai-agent-reliability.md §3.3 / §5.2). With the shipped
+                // AlwaysClosed default allowCall always returns true, so the
+                // resolution is a zero-overhead pass-through (zero-regression).
+                // Positioning BEFORE the model-switched detection (plan 205,
+                // role=80) is deliberate: the resolution may change
+                // routedOptions, so the detection must observe the
+                // post-resolution final model to correctly emit the audit
+                // message. See resolveCircuitAware(...) javadoc for the full
+                // algorithm. The routingReason is intentionally NOT mutated
+                // (RoutingResult is an immutable value object); the
+                // circuit-induced switch is recorded via LOG.warn (inside the
+                // resolver) and naturally reflected in the model-switched
+                // audit message's fromModel/toModel below.
+                routedOptions = resolveCircuitAware(
+                        routedOptions, modelRouter, circuitBreaker, sessionId);
+
                 // Plan 205 (L2-21): detect model switches between iterations and
                 // persist a model-switched audit message (role=80) when the
                 // routed model differs from the previous iteration's model
@@ -812,6 +1143,52 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // regression). llmCallStart is reset per attempt so the usage
                 // recorder captures the duration of the final (successful)
                 // attempt only.
+                //
+                // Plan 210 (L3-1): the circuit breaker is consulted at the
+                // retry loop's OUTER layer (design nop-ai-agent-reliability.md
+                // §3.3 / §5.1). Before entering the retry loop the breaker is
+                // asked whether the PRIMARY model (the routedOptions at this
+                // point, before any intra-loop FALLBACK switch) may be called.
+                // A false return means the circuit is OPEN and the loop fails
+                // fast with a NopAiAgentException (no silent skip — Minimum
+                // Rules #24). Circuit-breaking and retry are orthogonal: retry
+                // handles transient failures within a single call cycle; the
+                // breaker handles consecutive-failure patterns that span call
+                // cycles, so the check is layered OUTSIDE the retry loop. The
+                // check covers only the primary model — a FALLBACK-switched
+                // model is intentionally not checked (FALLBACK is itself a
+                // response to failure; checking it would add complexity with
+                // no clear benefit). With the shipped AlwaysClosed default the
+                // check always passes (zero-regression). The primary model key
+                // is captured here (before the retry block) because
+                // routedOptions can be reassigned inside the loop by a
+                // FALLBACK switch.
+                //
+                // Plan 213 (circuit-aware-routing): the upstream
+                // resolveCircuitAware(...) step already guarantees
+                // routedOptions is circuit-cleared (it scanned the router's
+                // fallback chain for a circuit-allowed model before reaching
+                // here). This check therefore now functions as a SAFETY-NET
+                // for the rare concurrent-circuit-trip race: a model that was
+                // circuit-cleared by the resolution tripping OPEN between the
+                // resolution and this check (e.g. a parallel caller's failures
+                // pushed the model over threshold). The safety-net preserves
+                // fail-fast in that race; under normal single-threaded
+                // execution it never rejects (the resolution already selected
+                // an allowed model). The cost is one allowCall invocation —
+                // negligible. See resolveCircuitAware(...) javadoc.
+                String primaryModelKey = buildModelKey(routedOptions);
+                if (!circuitBreaker.allowCall(primaryModelKey)) {
+                    CircuitState rejectedState = circuitBreaker.getState(primaryModelKey);
+                    LOG.warn("Circuit breaker rejected LLM call for model {} (state={}); "
+                                    + "failing fast. session={}", primaryModelKey, rejectedState, sessionId);
+                    throw new NopAiAgentException(
+                            "Circuit breaker is " + rejectedState + " for model "
+                                    + primaryModelKey + "; rejecting call to avoid wasting "
+                                    + "time/tokens on a consecutively-failing model. Configure "
+                                    + "an IModelRouter fallback chain or wait for the breaker "
+                                    + "cooldown before retrying.");
+                }
                 long llmCallStart = System.currentTimeMillis();
                 ChatResponse response;
                 {
@@ -824,6 +1201,23 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             attemptResponse = chatService.call(request, null);
                             break;
                         } catch (RuntimeException | Error ex) {
+                            // Plan 210 (L3-1): record this attempt's failure
+                            // to the circuit breaker BEFORE any RETRY/STOP/
+                            // FALLBACK branching and BEFORE a FALLBACK switch
+                            // reassigns routedOptions. Every attempt failure is
+                            // evidence of model health regardless of whether it
+                            // is subsequently retried or triggers a fallback —
+                            // a model that repeatedly forces retries is exactly
+                            // the consecutive-failure pattern the breaker must
+                            // catch. recordSuccess (called after a successful
+                            // retry cycle) clears the counter, so an ultimately
+                            // successful retry cycle leaves no accumulated
+                            // debt; the breaker only trips on failures with no
+                            // intervening success. The current routedOptions is
+                            // used (not primaryModelKey) so a fallback model's
+                            // failures are attributed to the fallback model
+                            // once a FALLBACK switch has happened.
+                            circuitBreaker.recordFailure(buildModelKey(routedOptions));
                             lastError = ex;
                             ErrorClassification classification = LlmErrorClassifier.classify(ex);
                             // Current call path is non-streaming → hasStreamedContent
@@ -905,6 +1299,15 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 }
 
                 if (!response.isSuccess()) {
+                    // Plan 210 (L3-1): chatService.call may return a non-error
+                    // response that still indicates failure (response.isSuccess()
+                    // == false) rather than throwing. Such a response is also
+                    // evidence of model health and must be recorded to the
+                    // breaker — otherwise a model that consistently returns
+                    // error responses (without throwing) would never trip the
+                    // circuit. The current routedOptions (possibly a fallback
+                    // model) is used so the failure is attributed correctly.
+                    circuitBreaker.recordFailure(buildModelKey(routedOptions));
                     ctx.setStatus(AgentExecStatus.failed);
                     ctx.setLastError(response.getError());
 
@@ -914,6 +1317,14 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
                     break;
                 }
+
+                // Plan 210 (L3-1): the retry cycle completed successfully.
+                // Record the success so a functional breaker can reset its
+                // consecutive-failure counter (CLOSED stays CLOSED; HALF_OPEN
+                // transitions to CLOSED). The current routedOptions is used
+                // because a successful call after a FALLBACK switch attributes
+                // the success to the fallback model that actually executed it.
+                circuitBreaker.recordSuccess(buildModelKey(routedOptions));
 
                 ChatAssistantMessage assistantMsg = response.getMessage();
                 ctx.addMessage(assistantMsg);
@@ -1017,6 +1428,21 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     String modifiedContent = ((GuardrailResult.ModifyResult) outputGuardrailResult).getContent();
                     assistantMsg.setContent(modifiedContent);
                 }
+
+                // Plan 211 (L3-3): record this iteration's progress with the
+                // goal tracker. Called once per iteration after the LLM
+                // response is finalised (assistantMsg built + output guardrail
+                // applied) and before the tool-dispatch / completion-judge
+                // branch (design nop-ai-agent-reliability.md §5.3). This is the
+                // single call site covering both branches: the engine extracts
+                // the request-level tool-call signatures from
+                // assistantMsg.getToolCalls() (empty when the LLM produced no
+                // tool calls — the completion-judge branch). With the shipped
+                // NoOpGoalTracker default recordIteration is an explicit no-op,
+                // so this is zero-regression.
+                goalTracker.recordIteration(sessionId,
+                        new IterationSnapshot(ctx.getCurrentIteration(),
+                                buildToolCallSignatures(assistantMsg)));
 
                 if (!assistantMsg.hasToolCalls()) {
                     CompletionDecision decision = completionJudge.decide(assistantMsg, ctx);
@@ -1249,6 +1675,35 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         continue;
                     }
 
+                    // Plan 214 (L2-13a): Layer 2 conflict-strategy consultation
+                    // (design nop-ai-agent-multi-agent.md §4.4). After the Layer 3
+                    // approval gate allows and before the call is added to
+                    // allowedCalls, detect cross-session write conflicts: extract
+                    // path arguments, register a write intent per path, and — if
+                    // another session already holds an intent on the same path —
+                    // ask the IConflictStrategy whether to ALLOW or DENY. On
+                    // denial: audit + event + error response, mirroring the
+                    // Layer 1/2/3 deny paths. The shipped FailFastStrategy
+                    // default denies on any cross-session conflict (zero-regression
+                    // for single-session executions, where the registry contains
+                    // no other-session intents → empty conflict set → ALLOW).
+                    String conflictDenied = checkWriteConflict(
+                            chatToolCall, ctx, sessionId, agentName, agentModel);
+                    if (conflictDenied != null) {
+                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
+                                chatToolCall.getId(),
+                                toolName,
+                                "Conflict denied: " + conflictDenied);
+                        ctx.addMessage(toolResponse);
+                        if (handleDenialAndCheckThreshold(sessionId, toolName,
+                                DenialLayerSource.LAYER2_CONFLICT_STRATEGY, conflictDenied,
+                                "layer2_conflict_strategy", ctx, agentName,
+                                chatToolCall, fingerprintWorkDir)) {
+                            break dispatchLoop;
+                        }
+                        continue;
+                    }
+
                     allowedCalls.add(chatToolCall);
                 }
 
@@ -1399,6 +1854,56 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
             }
 
+            // Plan 212 (L3-8): sustainer consult at the exit decision point.
+            // The reactLoop just exited. If the status is still running, the
+            // exit was a MAX_ITERATIONS truncation (the only sustainable exit
+            // point in this version) — the iteration budget was exhausted
+            // without the completion judge declaring completion, without
+            // escalating, and without a force-stop / cancel / pause. Other
+            // exit points set a terminal status (completed / escalated /
+            // forced_stopped / cancelled / paused) inside the loop and skip
+            // this consult entirely. Position rationale: the consult happens
+            // BEFORE the post-loop terminal-state change (running → completed)
+            // and BEFORE EXECUTION_COMPLETED / POST_CALL event publication,
+            // because CONTINUE means the execution is not complete —
+            // publishing "completed" then reviving it would corrupt the
+            // event/status semantics. A CONTINUE decision skips the
+            // terminal-state change + event publication, extends the budget
+            // by one sustain-round step (originalMaxIterations), and re-enters
+            // the reactLoop from the top. The full top-of-loop check chain
+            // (cancel / denial-ledger pause / force-stop / assessGoal) is
+            // re-evaluated on every sustain round, so sustaining never
+            // bypasses governance. With the shipped NoOpSustainer default
+            // onStop unconditionally returns STOP, so this path always falls
+            // through to the terminal-state change (zero-regression).
+            if (ctx.getStatus() == AgentExecStatus.running) {
+                SustainContext sustainCtx = new SustainContext(
+                        sessionId,
+                        SustainStopReason.MAX_ITERATIONS,
+                        ctx.getCurrentIteration(),
+                        sustainCount);
+                SustainDecision sustainDecision = sustainer.onStop(sustainCtx);
+                if (sustainDecision == null) {
+                    // Contract defence: sustainer must never return null.
+                    throw new NopAiAgentException(
+                            "sustainer.onStop() returned null for stopReason="
+                                    + SustainStopReason.MAX_ITERATIONS
+                                    + ", sustainCountSoFar=" + sustainCount);
+                }
+                if (sustainDecision == SustainDecision.CONTINUE) {
+                    int previousMax = ctx.getMaxIterations();
+                    ctx.setMaxIterations(previousMax + originalMaxIterations);
+                    sustainCount++;
+                    LOG.info("Sustainer forced continuation (sustain round {}): "
+                                    + "extending maxIterations {} -> {}. session={}",
+                            sustainCount, previousMax, ctx.getMaxIterations(), sessionId);
+                    continue sustainLoop;
+                }
+                // STOP: fall through to the terminal-state change.
+            }
+            break sustainLoop;
+            } // end sustainLoop
+
             if (ctx.getStatus() == AgentExecStatus.running) {
                 ctx.setStatus(AgentExecStatus.completed);
             }
@@ -1523,6 +2028,133 @@ public class ReActAgentExecutor implements IAgentExecutor {
     }
 
     /**
+     * Plan 213 (circuit-aware-routing): resolve the routed options against the
+     * circuit breaker BEFORE the model-switched audit detection and the retry
+     * loop's outer circuit check. This upgrades the engine's handling of a
+     * circuit-OPEN primary model from "reject → terminate the whole agent
+     * execution" (plan 210 behaviour) to "reject → proactively scan the
+     * {@link IModelRouter} fallback chain via {@code getFallback(...)} for a
+     * circuit-allowed model → switch {@code routedOptions} to it and continue"
+     * (design {@code nop-ai-agent-reliability.md} §3.3 / §5.2).
+     *
+     * <p><b>Algorithm</b>:
+     * <ol>
+     *   <li>Build the primary model-key from {@code routedOptions} and consult
+     *       {@code circuitBreaker.allowCall(key)}.</li>
+     *   <li>If {@code true} → the primary model is circuit-closed; return
+     *       {@code routedOptions} unchanged (zero-overhead path; the shipped
+     *       {@link AlwaysClosed} default always takes this branch, so wiring
+     *       this step is a zero-regression change).</li>
+     *   <li>If {@code false} → scan the fallback chain: repeatedly call
+     *       {@code router.getFallback(current)}; for each non-null fallback,
+     *       check {@code allowCall(fallback-key)}. The first circuit-allowed
+     *       fallback is logged (circuit-induced switch) and returned as the
+     *       new routed options.</li>
+     *   <li>If {@code getFallback} returns {@code null} (chain exhausted) or
+     *       every fallback is also circuit-rejected, fail fast with a
+     *       {@link NopAiAgentException} listing every checked model-key + its
+     *       circuit state + operator guidance (Minimum Rules #24 — no silent
+     *       skip, no swallowing).</li>
+     * </ol>
+     *
+     * <p><b>Positioning</b>: invoked between {@code modelRouter.route(...)} and
+     * the model-switched audit detection (plan 205, role=80 message). This
+     * ordering is deliberate: the resolution may change {@code routedOptions},
+     * so the audit detection must observe the <i>post-resolution</i> final
+     * model to correctly emit the model-switched message (the {@code fromModel}
+     * is the previous iteration's model, the {@code toModel} is the
+     * circuit-resolved model). The downstream outer circuit check (formerly
+     * the primary rejection point) now acts as a safety-net for the rare
+     * concurrent-circuit-trip race (a model that was circuit-cleared by this
+     * resolution tripping OPEN between resolution and the check).
+     *
+     * <p><b>No RoutingResult mutation</b>: this method does not modify the
+     * immutable {@link io.nop.ai.agent.router.RoutingResult} returned by
+     * {@code route()} — the circuit-induced switch is recorded only via
+     * {@code LOG.warn} and the natural model-switched audit message. The
+     * {@code routingReason} stays as route()'s original decision.
+     *
+     * <p><b>Loop bound</b>: the fallback chain length is bounded by router
+     * configuration (SmartModelRouter's configured chain, typically ≤5). A
+     * defensive hard cap ({@link #MAX_FALLBACK_SCAN}) guards against a buggy
+     * custom {@code IModelRouter} whose {@code getFallback} never returns
+     * {@code null} — the cap fails loud rather than spinning forever.
+     *
+     * @param routedOptions the options returned by {@code route()}; non-null
+     * @param router        the model router used for fallback-chain lookup;
+     *                      non-null
+     * @param breaker       the circuit breaker consulted for allow-call
+     *                      decisions; non-null
+     * @param sessionId     the session id for log correlation; may be null
+     *                      (anonymous executions still resolve correctly)
+     * @return the circuit-cleared options to use for this iteration (either
+     *         the unchanged {@code routedOptions} or a circuit-allowed
+     *         fallback); never null
+     * @throws NopAiAgentException if the primary and every fallback model are
+     *         all circuit-rejected (fail fast — no silent skip)
+     */
+    private ChatOptions resolveCircuitAware(ChatOptions routedOptions,
+                                            IModelRouter router,
+                                            ICircuitBreaker breaker,
+                                            String sessionId) {
+        String primaryKey = buildModelKey(routedOptions);
+        if (breaker.allowCall(primaryKey)) {
+            // Zero-overhead path: primary model is circuit-closed. With the
+            // shipped AlwaysClosed default this branch is always taken, so
+            // wiring this resolution step is a zero-regression change.
+            return routedOptions;
+        }
+
+        // Primary circuit is OPEN or HALF_OPEN-probe-busy → scan the fallback
+        // chain for a circuit-allowed model. Collect every checked model-key
+        // + state so the fail-fast diagnostic surfaces the full picture.
+        CircuitState primaryState = breaker.getState(primaryKey);
+        List<String> checked = new ArrayList<>();
+        checked.add(primaryKey + "=" + primaryState);
+
+        ChatOptions current = routedOptions;
+        for (int step = 0; step < MAX_FALLBACK_SCAN; step++) {
+            ChatOptions fallback = router.getFallback(current);
+            if (fallback == null) {
+                // Chain exhausted without a circuit-allowed model.
+                break;
+            }
+            String fallbackKey = buildModelKey(fallback);
+            if (breaker.allowCall(fallbackKey)) {
+                LOG.warn("Circuit-aware routing switched model {} -> {} "
+                                + "(primary {} circuit={}). session={}",
+                        primaryKey, fallbackKey, primaryKey, primaryState, sessionId);
+                return fallback;
+            }
+            checked.add(fallbackKey + "=" + breaker.getState(fallbackKey));
+            current = fallback;
+        }
+
+        // All models circuit-rejected → fail fast (Minimum Rules #24 — no
+        // silent skip, no swallowing). The message lists every checked
+        // model-key + its circuit state so the operator can see the full
+        // picture, plus actionable guidance.
+        throw new NopAiAgentException(
+                "Circuit breaker rejected all available models for session "
+                        + sessionId + ". Checked models (key=circuitState): " + checked
+                        + ". Wait for the breaker cooldown before retrying, or configure "
+                        + "additional IModelRouter fallback models via SmartModelRouter.fallback(...).");
+    }
+
+    /**
+     * Defensive hard cap on the circuit-aware fallback-chain scan. A correctly
+     * implemented {@link IModelRouter} returns {@code null} from
+     * {@code getFallback} when its (bounded) chain is exhausted; this cap only
+     * triggers for a buggy custom router that never returns {@code null}, in
+     * which case the fail-fast at {@link #resolveCircuitAware} surfaces the
+     * problem rather than spinning forever. 64 is well above any realistic
+     * configured chain length (SmartModelRouter's configured chains are
+     * typically ≤5).
+     */
+    private static final int MAX_FALLBACK_SCAN = 64;
+
+
+    /**
      * Plan 207 (L3-2): sleep for the retry-policy-computed backoff delay.
      * A zero/negative delay is a no-op (the policy opted for immediate
      * retry). An interrupted sleep propagates as an {@link NopAiAgentException}
@@ -1577,6 +2209,53 @@ public class ReActAgentExecutor implements IAgentExecutor {
         payload.put("reason", "denial threshold exceeded (prior iteration)");
         publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
         LOG.warn("Session paused by denial ledger: session={}, denialCount={}", sessionId, count);
+    }
+
+    /**
+     * Plan 211 (L3-3): abort the ReAct loop because the goal tracker assessed
+     * the session as STUCK (design {@code nop-ai-agent-reliability.md} §5.3).
+     * Mirrors the {@link #handleSessionPaused} governance-abort pattern: set
+     * status to {@code escalated}, record a non-empty lastError describing the
+     * abort cause, and emit an event so the escalation is observable (no
+     * silent skip — Minimum Rules #24).
+     */
+    private void handleGoalStuck(AgentExecutionContext ctx, String sessionId, String agentName) {
+        ctx.setStatus(AgentExecStatus.escalated);
+        String reason = "goal tracker detected stuck/looping behavior: sessionId="
+                + (sessionId != null ? sessionId : "<anonymous>")
+                + ", iteration=" + ctx.getCurrentIteration();
+        ctx.setLastError(reason);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("reason", "goal tracker STUCK assessment");
+        payload.put("iteration", ctx.getCurrentIteration());
+        publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
+        LOG.warn("Session aborted by goal tracker (stuck/looping): session={}, iteration={}",
+                sessionId, ctx.getCurrentIteration());
+    }
+
+    /**
+     * Plan 211 (L3-3): build the stable tool-call signatures for an iteration
+     * from the assistant message's requested tool calls (design
+     * {@code nop-ai-agent-reliability.md} §5.3). Each signature is
+     * {@code toolName:stableArgsString} where {@code stableArgsString} is the
+     * args map serialised with sorted keys, so key-order differences across
+     * iterations do not produce different signatures. Returns an empty list
+     * when the LLM produced no tool calls (the completion-judge branch).
+     */
+    private static List<String> buildToolCallSignatures(ChatAssistantMessage assistantMsg) {
+        if (!assistantMsg.hasToolCalls()) {
+            return List.of();
+        }
+        List<String> signatures = new ArrayList<>();
+        for (ChatToolCall call : assistantMsg.getToolCalls()) {
+            String name = call.getName();
+            Map<String, Object> args = call.getArguments();
+            String stableArgs = args != null && !args.isEmpty()
+                    ? JSON.stringify(new TreeMap<>(args))
+                    : "{}";
+            signatures.add(name + ":" + stableArgs);
+        }
+        return signatures;
     }
 
     /**
@@ -1914,6 +2593,138 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return reason;
         }
         return null;
+    }
+
+    /**
+     * Plan 214 (L2-13a): Layer 2 conflict-strategy consultation (design
+     * {@code nop-ai-agent-multi-agent.md} §4.4). Called from the dispatch
+     * loop after the Layer 3 approval gate allows and before
+     * {@code allowedCalls.add(...)}. Extracts the path arguments from the
+     * current tool call, normalizes each to an absolute path (reusing the
+     * same normalization as the Layer 1 path-access check and the
+     * LevelHints producer), and registers a {@link WriteIntent} per path
+     * into the {@link IWriteIntentRegistry}. If any registration returns a
+     * non-empty conflict set (another session has an active intent on the
+     * same file), the {@link IConflictStrategy} decides ALLOW or DENY.
+     *
+     * <p><b>Path normalization rule</b> (design裁定): relative paths are
+     * resolved against the agent's declared {@code workDir} (or JVM CWD
+     * when no workDir is declared, matching
+     * {@code DefaultLevelHintsProducer.evaluateWritesOutside}). The
+     * resulting absolute path is normalized via
+     * {@link DefaultPathAccessChecker#normalizePathStatic(String)} so the
+     * registry key is identical to the key used by the Layer 1 path checker
+     * — two intents on the same physical file compare equal by {@code filePath}.
+     *
+     * <p><b>Multi-path handling</b>: a tool call may carry multiple
+     * {@code ToolPathArgKeys} hits (e.g. {@code copy-file} with
+     * {@code source} + {@code destination}). Each hit produces an
+     * independent {@link WriteIntent}; the call is denied if any one path
+     * is denied (conservative — never partially register a multi-path call).
+     *
+     * <p><b>Known Phase-1 limitation</b>: a path-arg hit on a non-write
+     * tool (e.g. {@code read-file}) also registers an intent. Under the
+     * shipped {@link FailFastStrategy} this is a conservative false-positive
+     * (宁可误拒); tool-name-level write-tool classification is a successor.
+     *
+     * @return the denial reason, or {@code null} when the call has no path
+     *         arguments or every conflict was allowed by the strategy. When
+     *         non-null, the caller must take the standard deny path (error
+     *         response + audit + denial-ledger recording); the denied intent
+     *         remains registered and is reclaimed by {@code releaseSession}
+     *         when the session terminates.
+     */
+    private String checkWriteConflict(ChatToolCall chatToolCall, AgentExecutionContext ctx,
+                                      String sessionId, String agentName, AgentModel agentModel) {
+        Map<String, Object> arguments = chatToolCall.getArguments();
+        if (arguments == null || arguments.isEmpty()) {
+            return null;
+        }
+        // Resolve the base directory for relative-path resolution. Mirrors
+        // DefaultLevelHintsProducer: agent workDir when declared, JVM CWD
+        // otherwise. Reuse resolveWorkDir(agentModel) for the agent-workDir
+        // case so the File instance is identical to the one used elsewhere
+        // in this executor.
+        File agentWorkDir = resolveWorkDir(agentModel);
+        File baseDir = agentWorkDir != null ? agentWorkDir : new File(".").getAbsoluteFile();
+
+        String toolName = chatToolCall.getName();
+        long now = System.currentTimeMillis();
+
+        for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+            if (!ToolPathArgKeys.KEYS.contains(entry.getKey())) {
+                continue;
+            }
+            Object value = entry.getValue();
+            if (!(value instanceof String)) {
+                continue;
+            }
+            String rawPath = (String) value;
+            if (rawPath == null || rawPath.trim().isEmpty()) {
+                continue;
+            }
+
+            String absolutePath = resolveAbsolute(rawPath, baseDir);
+            String normalized = DefaultPathAccessChecker.normalizePathStatic(absolutePath);
+            if (normalized == null) {
+                // Normalization failed (invalid traversal, no home dir for
+                // tilde, etc.). Skip conflict detection for this path — the
+                // Layer 1 path-access check is the authoritative guard for
+                // malformed paths, and we must not throw here (the call may
+                // still be denied by Layer 1 on its own merits).
+                continue;
+            }
+
+            WriteIntent intent = new WriteIntent(
+                    sessionId, agentName, normalized, toolName, now);
+            Set<WriteIntent> conflicting =
+                    writeIntentRegistry.registerAndGetConflicting(intent);
+
+            // Always consult the strategy — even with an empty conflict set.
+            // The FailFastStrategy default returns ALLOW immediately on an
+            // empty set (zero overhead), but always calling resolve() lets a
+            // future CoordinationBusStrategy observe/broadcast every write
+            // intent (not just conflicting ones) and keeps the
+            // dispatch-path → strategy wiring verifiable without
+            // pre-population (Minimum Rules #23).
+            ConflictResult result = conflictStrategy.resolve(intent, conflicting);
+            auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
+                    result.isDenied() ? AuditDecision.DENY : AuditDecision.ALLOW,
+                    result.getReason(), "layer2_conflict_strategy",
+                    normalized, now));
+            if (result.isDenied()) {
+                publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
+                        Map.of("toolName", toolName != null ? toolName : "",
+                                "reason", result.getReason() != null ? result.getReason() : "",
+                                "conflictPath", normalized,
+                                "conflictStrategy", result.getStrategyName() != null
+                                        ? result.getStrategyName() : "",
+                                "conflictingSessions", conflicting.stream()
+                                        .map(WriteIntent::getSessionId)
+                                        .findFirst().orElse("")));
+                return result.getReason() != null
+                        ? result.getReason()
+                        : "write conflict on path " + normalized;
+            }
+            // ALLOW (with or without conflict): the intent is already
+            // registered; proceed to the next path argument.
+        }
+        return null;
+    }
+
+    /**
+     * Resolve a (possibly relative) path string against the given base
+     * directory and return the absolute form. Mirrors
+     * {@code DefaultLevelHintsProducer.isOutsideBase}'s relative→absolute
+     * resolution so both layers agree on what "absolute" means for the
+     * same raw path.
+     */
+    private static String resolveAbsolute(String rawPath, File baseDir) {
+        File resolved = new File(rawPath);
+        if (!resolved.isAbsolute()) {
+            resolved = new File(baseDir, rawPath);
+        }
+        return resolved.getAbsolutePath();
     }
 
     private GuardrailResult checkInputGuardrail(AgentExecutionContext ctx) {
@@ -2296,6 +3107,49 @@ public class ReActAgentExecutor implements IAgentExecutor {
             LOG.debug("Skill assembly resourceScope (collected for tracing, not enforced in phase 1): "
                     + "scope={} activatedSkills={} session={}",
                     assembly.getResourceScope(), assembly.getActivatedSkillNames(), ctx.getSessionId());
+        }
+    }
+
+    /**
+     * Plan 217 (L4-6): assembly-time PROMPT contribution resolution. Iterates
+     * every {@link ContributionType#PROMPT} contribution in the wired
+     * registry (returned in ascending priority order, stable), concatenates
+     * their String fragments with a blank-line separator, and injects the
+     * joined fragment into the system prompt context via
+     * {@link #injectSystemInstruction} (additive, same mechanism as talent
+     * and skill instructions). Runs once at execution setup, before the
+     * first LLM call, alongside {@link #consultSkills}.
+     *
+     * <p>A PROMPT contribution whose payload is null or not a String is
+     * logged at WARN and skipped — fail-visible, not a silent no-op
+     * (Minimum Rules #24). A single bad contribution does not abort the
+     * rest of the batch.
+     *
+     * <p>With the shipped {@link NoOpContributionRegistry} default the loop
+     * iterates an empty list, so behaviour is unchanged.
+     */
+    private void consultPromptContributions(AgentExecutionContext ctx) {
+        List<Contribution> prompts = contributionRegistry.getContributions(ContributionType.PROMPT);
+        if (prompts.isEmpty()) {
+            return;
+        }
+        List<String> fragments = new ArrayList<>(prompts.size());
+        for (Contribution c : prompts) {
+            Object payload = c.getPayload();
+            if (!(payload instanceof String)) {
+                LOG.warn("ReActAgentExecutor: skipping PROMPT contribution with non-String payload"
+                        + " (expected String): type={}, id={}, source={}, payloadClass={}",
+                        c.getType(), c.getId(), c.getSource(),
+                        payload != null ? payload.getClass().getName() : "null");
+                continue;
+            }
+            String fragment = (String) payload;
+            if (!fragment.isEmpty()) {
+                fragments.add(fragment);
+            }
+        }
+        if (!fragments.isEmpty()) {
+            injectSystemInstruction(ctx, String.join("\n\n", fragments));
         }
     }
 

@@ -19,6 +19,16 @@ public enum DenialLayerSource {
     /** Layer 2 security-policy denial ({@code ISecurityLevelResolver} + {@code IPermissionMatrix}). */
     LAYER2_SECURITY_POLICY,
 
+    /**
+     * Layer 2 conflict-strategy denial (plan 214 / design
+     * {@code nop-ai-agent-multi-agent.md} §4.4): a multi-agent write
+     * conflict detected by the {@code IConflictStrategy}. Conflict
+     * detection is a coordination concern (not a security boundary), so it
+     * carries its own denial-layer source rather than reusing
+     * {@link #LAYER2_SECURITY_POLICY}.
+     */
+    LAYER2_CONFLICT_STRATEGY,
+
     /** Layer 3 approval-gate denial ({@code IApprovalGate}). */
     LAYER3_APPROVAL_GATE,
 

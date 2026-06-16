@@ -6,6 +6,15 @@ import io.nop.ai.agent.compact.Layer3FullSummaryStrategy;
 import io.nop.ai.agent.compact.MicroCompressionCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.compact.PipelineCompactor;
+import io.nop.ai.agent.conflict.FailFastStrategy;
+import io.nop.ai.agent.conflict.IConflictStrategy;
+import io.nop.ai.agent.conflict.InMemoryWriteIntentRegistry;
+import io.nop.ai.agent.conflict.IWriteIntentRegistry;
+import io.nop.ai.agent.contribution.Contribution;
+import io.nop.ai.agent.contribution.ContributionType;
+import io.nop.ai.agent.contribution.HookPayload;
+import io.nop.ai.agent.contribution.IContributionRegistry;
+import io.nop.ai.agent.contribution.NoOpContributionRegistry;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.guardrail.IContentGuardrail;
@@ -15,16 +24,28 @@ import io.nop.ai.agent.memory.IMemoryStoreProvider;
 import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.message.NoOpAgentMessenger;
+import io.nop.ai.agent.message.AgentMessageTopics;
+import io.nop.ai.agent.message.IMailbox;
+import io.nop.ai.agent.message.MailboxMessageHandler;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.repair.IToolCallRepairer;
+import io.nop.ai.agent.reliability.AlwaysClosed;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.ICheckpointManager;
+import io.nop.ai.agent.reliability.ICircuitBreaker;
+import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
+import io.nop.ai.agent.reliability.ISustainer;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
+import io.nop.ai.agent.reliability.NoOpGoalTracker;
+import io.nop.ai.agent.reliability.NoOpSustainer;
 import io.nop.ai.agent.reliability.NoRetryPolicy;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.runtime.AgentActor;
+import io.nop.ai.agent.runtime.IActorRuntime;
+import io.nop.ai.agent.runtime.NoOpActorRuntime;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
@@ -76,6 +97,7 @@ import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.toolkit.api.IToolManager;
+import io.nop.api.core.message.IMessageSubscription;
 import io.nop.core.resource.component.ResourceComponentManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +111,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class DefaultAgentEngine implements IAgentEngine {
 
@@ -110,6 +133,18 @@ public class DefaultAgentEngine implements IAgentEngine {
     private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
     private IToolCallRepairer toolCallRepairer;
     private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
+    // Plan 216 (L4-5): optional per-session deferred-ack mailbox factory. When
+    // non-null, the engine creates a mailbox for each session on first
+    // execution and registers a MailboxMessageHandler on the session's inbox
+    // topic so that ASYNC messages delivered via the messenger are buffered in
+    // the mailbox for deferred-ack consumption. Shipped default is null (no
+    // mailbox — messages go through the existing synchronous handler path,
+    // zero behaviour regression). A functional factory (e.g.
+    // sessionId -> new DeferredAckMailbox(...)) is registered via
+    // setMailboxFactory.
+    private Function<String, IMailbox> mailboxFactory;
+    private final ConcurrentHashMap<String, IMailbox> sessionMailboxes = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, IMessageSubscription> sessionMailboxSubscriptions = new ConcurrentHashMap<>();
     private IPermissionMatrix permissionMatrix = new DefaultPermissionMatrix();
     private ISecurityLevelResolver securityLevelResolver = new DefaultSecurityLevelResolver();
     private ILevelHintsProducer levelHintsProducer = new DefaultLevelHintsProducer();
@@ -149,6 +184,89 @@ public class DefaultAgentEngine implements IAgentEngine {
     // exception propagates as-is). A functional policy (e.g.
     // StandardRetryPolicy) is registered via setRetryPolicy.
     private IRetryPolicy retryPolicy = NoRetryPolicy.noRetry();
+    // Plan 210 (L3-1): circuit breaker defaults to AlwaysClosed so the ReAct
+    // loop's single-LLM-call outer check is wired out-of-the-box without
+    // changing the pre-plan-210 zero-circuit-breaking behaviour (AlwaysClosed
+    // unconditionally allows every call and treats recording as explicit
+    // no-ops). A functional breaker (e.g. ThresholdBreaker) is registered via
+    // setCircuitBreaker.
+    private ICircuitBreaker circuitBreaker = AlwaysClosed.alwaysClosed();
+    // Plan 211 (L3-3): goal tracker defaults to NoOpGoalTracker so the ReAct
+    // loop's per-iteration progress assessment is wired out-of-the-box without
+    // changing the pre-plan-211 behaviour (NoOpGoalTracker unconditionally
+    // reports PROGRESSING and treats recordIteration as an explicit no-op, so
+    // no STUCK abort ever fires). A functional tracker (e.g.
+    // SessionGoalTracker) is registered via setGoalTracker.
+    private IGoalTracker goalTracker = NoOpGoalTracker.noOp();
+    // Plan 212 (L3-8): sustainer defaults to NoOpSustainer so the ReAct
+    // loop's exit decision point is wired out-of-the-box without changing
+    // the pre-plan-212 zero-sustain behaviour (NoOpSustainer unconditionally
+    // returns STOP, so the loop exits the first time it would naturally stop).
+    // A functional sustainer (e.g. SisypheanSustainer) is registered via
+    // setSustainer.
+    private ISustainer sustainer = NoOpSustainer.noOp();
+    // Plan 214 (L2-13a): conflict strategy defaults to FailFastStrategy so
+    // the ReAct loop's dispatch-path conflict detection is wired
+    // out-of-the-box. FailFastStrategy is a functional default (not an
+    // insecure pass-through): single-session executions never see a conflict
+    // (the registry contains no other-session intents), so the default is
+    // zero-regression; multi-session executions get fail-fast cross-session
+    // write-conflict detection. Conflict detection is a coordination
+    // concern (not a security boundary), so no insecure-default WARN is
+    // emitted. A functional strategy (e.g. a future
+    // CoordinationBusStrategy) is registered via setConflictStrategy.
+    private IConflictStrategy conflictStrategy = FailFastStrategy.failFast();
+    // Plan 214 (L2-13a): write-intent registry defaults to the in-process
+    // InMemoryWriteIntentRegistry. The dispatch path registers a write
+    // intent before allowing a tool call with a path argument; the strategy
+    // is consulted only when another session has an active intent on the
+    // same path. Cross-process registry (DB-backed) is a successor that
+    // depends on the L4-8 Actor Runtime.
+    private IWriteIntentRegistry writeIntentRegistry = new InMemoryWriteIntentRegistry();
+    // Plan 217 (L4-6): plugin contribution registry. Defaults to
+    // NoOpContributionRegistry (empty registry — register is an explicit
+    // false, queries return empty, zero behaviour regression). Integrators
+    // wire a functional registry (e.g. InMemoryContributionRegistry) and
+    // register contributions via register(...) to enable assembly-time
+    // resolution. The engine resolves HOOK contributions into the hook
+    // registry in resolveExecutor, and the executor resolves PROMPT
+    // contributions into the system prompt in its setup phase. The other
+    // five contribution types are queryable but not auto-resolved by the
+    // engine in this version (explicit successor each). Contributions are
+    // incremental capability (NoOp → system runs normally), so no
+    // insecure-default WARN is emitted (consistent with IMailbox /
+    // IUsageRecorder adjudication).
+    private IContributionRegistry contributionRegistry = NoOpContributionRegistry.noOp();
+    // Plan 218 (L4-8): optional Actor Runtime container. Defaults to
+    // NoOpActorRuntime (isEnabled() returns false — the engine skips the
+    // Actor path entirely, zero behaviour regression). When a functional
+    // runtime is wired (e.g. InMemoryActorRuntime via setActorRuntime), the
+    // three execution entry points (doExecute / resumeSession / restoreSession)
+    // additionally register an AgentActor at supplyAsync-lambda entry and
+    // destroy it in the finally block — the Actor runs an observation-only
+    // mailbox consumption loop on a dedicated single thread, NOT replacing the
+    // ReAct executor. Actor is an execution container/observer, not an engine
+    // replacement. The Actor runtime is incremental capability (NoOp → engine
+    // walks existing supplyAsync path), so no insecure-default WARN is emitted
+    // (consistent with IMailbox / IContributionRegistry adjudication).
+    private IActorRuntime actorRuntime = NoOpActorRuntime.noOp();
+    // Plan 219 (L4-7): sandbox backend — the Layer 4 defense-in-depth chain
+    // tail (design §7.1 / §8). Defaults to NoOpSandboxBackend (host
+    // ProcessBuilder execution — Layer 1 designable baseline, design §7.1
+    // "Noop | 无隔离（默认）"). A functional backend (e.g.
+    // DockerSandboxBackend) is registered via setSandboxBackend. The
+    // backend is platform-level isolation infrastructure provided for
+    // high-risk tool executors to consume (shell-exec / code-exec
+    // IToolExecutor successors); the engine does not call it on the
+    // dispatch path itself. NoOp is NOT a fallback — it is the starting
+    // state, and (unlike AutoApproveGate which was superseded by
+    // DefaultApprovalGate) has never been superseded by a more-secure
+    // shipped alternative, so setSandboxBackend does NOT call
+    // warnIfInsecureDefaults (plan 219 Phase 1 Decision). If a future
+    // DefaultSandboxBackend (host hardening such as seccomp/chroot) ships
+    // and becomes the default, the WARN will be added at that time.
+    private io.nop.ai.agent.security.ISandboxBackend sandboxBackend =
+            io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE;
     // Plan 192: max token budget for budgeted working-memory auto-injection into
     // the system prompt. Shipped default gives memory a reasonable share of the
     // context without dominating it. A value <= 0 disables injection (explicit
@@ -445,6 +563,42 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public IAgentMessenger getMessenger() {
         return messenger;
+    }
+
+    /**
+     * Plan 216 (L4-5): wire an optional per-session deferred-ack mailbox
+     * factory. When non-null, the engine creates a mailbox for each session on
+     * first execution (via {@code factory.apply(sessionId)}) and registers a
+     * {@link MailboxMessageHandler} on the session's inbox topic
+     * ({@code agent.{sessionId}.inbox}) so ASYNC messages delivered via the
+     * messenger are buffered in the mailbox for deferred-ack consumption. The
+     * mailbox is reused across re-executions of the same session (per-session
+     * dedup via {@code computeIfAbsent}).
+     *
+     * <p>Optional: when null (the shipped default), no mailbox is created and
+     * engine behaviour is unchanged (messages go through the existing
+     * synchronous handler path, zero regression). Mailbox buffering is not a
+     * security component, so no insecure-default WARN is emitted.
+     */
+    public void setMailboxFactory(Function<String, IMailbox> mailboxFactory) {
+        this.mailboxFactory = mailboxFactory;
+    }
+
+    /**
+     * Return the per-session mailbox factory wired into this engine, or
+     * {@code null} if none was set (the shipped default).
+     */
+    public Function<String, IMailbox> getMailboxFactory() {
+        return mailboxFactory;
+    }
+
+    /**
+     * Return the mailbox created for the given session, or {@code null} if no
+     * mailbox has been created for it (no factory wired, or the session has
+     * not yet executed). Test/inspection accessor.
+     */
+    public IMailbox getSessionMailbox(String sessionId) {
+        return sessionMailboxes.get(sessionId);
     }
 
     /**
@@ -759,6 +913,207 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Plan 210 (L3-1): wire a functional {@link ICircuitBreaker} consulted at
+     * the ReAct loop's single-LLM-call retry loop outer layer (design
+     * {@code nop-ai-agent-reliability.md} §3.3 / §5.1). Before entering the
+     * retry loop the breaker is asked whether the primary model may be called;
+     * per-attempt failures and the eventual success are recorded back. A
+     * functional breaker (e.g. ThresholdBreaker) trips on consecutive failures.
+     * Optional: when null, falls back to {@link AlwaysClosed} (unconditional
+     * allow + explicit no-op recording — backward compatible, zero-regression)
+     * so the ReAct loop always has a non-null breaker. Circuit-breaking is not
+     * a security component, so no insecure-default WARN is emitted.
+     */
+    public void setCircuitBreaker(ICircuitBreaker circuitBreaker) {
+        this.circuitBreaker = circuitBreaker != null ? circuitBreaker : AlwaysClosed.alwaysClosed();
+    }
+
+    public ICircuitBreaker getCircuitBreaker() {
+        return circuitBreaker;
+    }
+
+    /**
+     * Plan 211 (L3-3): wire a functional {@link IGoalTracker} consulted at the
+     * ReAct loop's per-iteration boundary (design
+     * {@code nop-ai-agent-reliability.md} §5.3). {@code recordIteration} is
+     * called once per iteration after the LLM response so the tracker can
+     * update its per-session progress state; {@code assessGoal} is called at
+     * the next iteration's start and a STUCK return aborts the loop with
+     * status=escalated. Optional: when null, falls back to
+     * {@link NoOpGoalTracker} (unconditional PROGRESSING + explicit no-op
+     * recording — backward compatible, zero-regression) so the ReAct loop
+     * always has a non-null tracker. Goal tracking is not a security
+     * component, so no insecure-default WARN is emitted.
+     */
+    public void setGoalTracker(IGoalTracker goalTracker) {
+        this.goalTracker = goalTracker != null ? goalTracker : NoOpGoalTracker.noOp();
+    }
+
+    public IGoalTracker getGoalTracker() {
+        return goalTracker;
+    }
+
+    /**
+     * Plan 212 (L3-8): wire a functional {@link ISustainer} consulted at the
+     * ReAct loop's exit decision point (design
+     * {@code nop-ai-agent-reliability.md} §5.1a Sisyphean model). When the
+     * reactLoop exits naturally because the iteration budget was exhausted
+     * (MAX_ITERATIONS) while the status is still running, the engine asks the
+     * sustainer CONTINUE (extend the budget by one sustain-round step and
+     * re-enter the loop) or STOP (proceed to the terminal-state change).
+     * Optional: when null, falls back to {@link NoOpSustainer} (unconditional
+     * STOP — backward compatible, zero-regression) so the ReAct loop always
+     * has a non-null sustainer. Sustaining is not a security component, so no
+     * insecure-default WARN is emitted.
+     */
+    public void setSustainer(ISustainer sustainer) {
+        this.sustainer = sustainer != null ? sustainer : NoOpSustainer.noOp();
+    }
+
+    public ISustainer getSustainer() {
+        return sustainer;
+    }
+
+    /**
+     * Plan 214 (L2-13a): wire a functional {@link IConflictStrategy}
+     * consulted in the dispatch loop after the Layer 3 approval gate and
+     * before {@code allowedCalls.add(...)} (design
+     * {@code nop-ai-agent-multi-agent.md} §4.4). When the
+     * {@link IWriteIntentRegistry} reports that the current tool call's
+     * write intent collides with another session's existing intent on the
+     * same file, the strategy decides ALLOW or DENY. Optional: when null,
+     * falls back to {@link FailFastStrategy} (fail-fast on cross-session
+     * conflicts — backward compatible, zero-regression for single-session
+     * executions). Conflict detection is not a security component, so no
+     * insecure-default WARN is emitted.
+     */
+    public void setConflictStrategy(IConflictStrategy conflictStrategy) {
+        this.conflictStrategy = conflictStrategy != null
+                ? conflictStrategy
+                : FailFastStrategy.failFast();
+    }
+
+    public IConflictStrategy getConflictStrategy() {
+        return conflictStrategy;
+    }
+
+    /**
+     * Plan 214 (L2-13a): wire the {@link IWriteIntentRegistry} consulted in
+     * the dispatch loop to register write intents and detect cross-session
+     * conflicts (design {@code nop-ai-agent-multi-agent.md} §3.1). Optional:
+     * when null, falls back to {@link InMemoryWriteIntentRegistry}
+     * (in-process registry — backward compatible). Cross-process registry
+     * (DB-backed) is a successor that depends on the L4-8 Actor Runtime.
+     */
+    public void setWriteIntentRegistry(IWriteIntentRegistry writeIntentRegistry) {
+        this.writeIntentRegistry = writeIntentRegistry != null
+                ? writeIntentRegistry
+                : new InMemoryWriteIntentRegistry();
+    }
+
+    public IWriteIntentRegistry getWriteIntentRegistry() {
+        return writeIntentRegistry;
+    }
+
+    /**
+     * Plan 217 (L4-6): wire a functional {@link IContributionRegistry} that
+     * holds the 7 plugin contribution types (TOOL / COMMAND / HOOK /
+     * MCP_SERVER / PERMISSION_RULE / PROMPT / ROUTER). The engine resolves
+     * HOOK contributions into the per-execution hook registry at
+     * {@code resolveExecutor} assembly time (after
+     * {@code DefaultHookRegistry.fromAgentModel(model)}), and the executor
+     * resolves PROMPT contributions into the system prompt at setup time
+     * (additive, alongside skill instructions). The other five types are
+     * queryable via {@link IContributionRegistry#getContributions} but are
+     * not auto-resolved into their eventual extension points in this
+     * version — each is an explicit successor.
+     *
+     * <p>Optional: when null, falls back to {@link NoOpContributionRegistry}
+     * (register is an explicit false, queries return empty — zero behaviour
+     * regression). Contributions are incremental capability, so no
+     * insecure-default WARN is emitted (consistent with IMailbox /
+     * IUsageRecorder adjudication).
+     */
+    public void setContributionRegistry(IContributionRegistry contributionRegistry) {
+        this.contributionRegistry = contributionRegistry != null
+                ? contributionRegistry
+                : NoOpContributionRegistry.noOp();
+    }
+
+    /**
+     * Return the {@link IContributionRegistry} wired into this engine, or the
+     * {@link NoOpContributionRegistry} default if none was explicitly set.
+     */
+    public IContributionRegistry getContributionRegistry() {
+        return contributionRegistry;
+    }
+
+    /**
+     * Plan 218 (L4-8): wire an optional {@link IActorRuntime} that manages
+     * {@link io.nop.ai.agent.runtime.AgentActor} instances. When the runtime
+     * is enabled ({@code isEnabled() == true}), the three execution entry
+     * points (doExecute / resumeSession / restoreSession) additionally
+     * register an Actor at supplyAsync-lambda entry (after session status is
+     * set to running) and destroy it in the finally block. The Actor runs an
+     * observation-only mailbox consumption loop on a dedicated single thread
+     * — it is an execution container/observer, NOT a replacement for the
+     * ReAct executor.
+     *
+     * <p>Optional: when null, falls back to {@link NoOpActorRuntime}
+     * ({@code isEnabled() == false} — the engine skips the Actor path
+     * entirely, zero behaviour regression). Actor runtime is incremental
+     * capability, so no insecure-default WARN is emitted (consistent with
+     * IMailbox / IContributionRegistry adjudication).
+     */
+    public void setActorRuntime(IActorRuntime actorRuntime) {
+        this.actorRuntime = actorRuntime != null ? actorRuntime : NoOpActorRuntime.noOp();
+    }
+
+    /**
+     * Return the {@link IActorRuntime} wired into this engine, or the
+     * {@link NoOpActorRuntime} default if none was explicitly set.
+     */
+    public IActorRuntime getActorRuntime() {
+        return actorRuntime;
+    }
+
+    /**
+     * Plan 219 (L4-7): wire the {@link io.nop.ai.agent.security.ISandboxBackend}
+     * — the Layer 4 defense-in-depth chain tail (design §7.1 / §8). The
+     * sandbox backend is platform-level isolation infrastructure for
+     * high-risk tool executors (shell-exec / code-exec IToolExecutor
+     * successors) to consume; the engine itself does not call it on the
+     * dispatch path. The wired backend is propagated to the
+     * {@link ReActAgentExecutor} via {@link ReActAgentExecutor.Builder#sandboxBackend}
+     * in {@code resolveExecutor} so a functional tool executor running
+     * inside the ReAct loop can reach it.
+     *
+     * <p>Shipped default is {@link io.nop.ai.agent.security.NoOpSandboxBackend}
+     * (host ProcessBuilder execution — the Layer 1 designable baseline,
+     * design §7.1 "Noop | 无隔离（默认）"). Optional: when null, falls back
+     * to {@link io.nop.ai.agent.security.NoOpSandboxBackend#INSTANCE}.
+     *
+     * <p>This setter does NOT call {@code warnIfInsecureDefaults}. NoOp is
+     * the starting state (not a downgrade of a more-secure shipped
+     * alternative); see the field-level comment and plan 219 Phase 1
+     * Decision for the full rationale.
+     */
+    public void setSandboxBackend(io.nop.ai.agent.security.ISandboxBackend sandboxBackend) {
+        this.sandboxBackend = sandboxBackend != null
+                ? sandboxBackend
+                : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE;
+    }
+
+    /**
+     * Return the {@link io.nop.ai.agent.security.ISandboxBackend} wired
+     * into this engine, or the {@link io.nop.ai.agent.security.NoOpSandboxBackend}
+     * default if none was explicitly set.
+     */
+    public io.nop.ai.agent.security.ISandboxBackend getSandboxBackend() {
+        return sandboxBackend;
+    }
+
+    /**
      * Plan 192: max token budget for budgeted working-memory auto-injection
      * into the system prompt (consumed in {@link #buildBaseExecutionContext}).
      * Shipped default is 1024. A value {@code <= 0} disables injection
@@ -962,6 +1317,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         IToolAccessChecker effectiveToolAccessChecker = resolveEffectiveToolAccessChecker(request);
         IPathAccessChecker perAgentBase = resolvePerAgentPathChecker(agentModel);
         IPathAccessChecker effectivePathAccessChecker = resolveEffectivePathAccessChecker(request, perAgentBase);
+        ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
         // Plan 197 (AUDIT-14-01): Pre-register the CancelHandle in the
@@ -986,6 +1342,21 @@ public class DefaultAgentEngine implements IAgentEngine {
                 // running. cancelSession(forced=true) reads this volatile field.
                 handle.thread = Thread.currentThread();
 
+                // Plan 218 (L4-8): opt-in Actor registration. The engine gates
+                // on isEnabled() (NoOp default returns false → skipped, no
+                // exception-based control flow). When enabled, createActor
+                // registers an AgentActor that runs a mailbox consumption loop
+                // on a dedicated thread. The Actor is a container/observer,
+                // not a replacement for the ReAct executor.
+                // Plan 220 (L4-8-steering): bind the ctx steering queue to the
+                // Actor immediately after createActor returns and before
+                // execute(ctx), so the consumption loop can inject polled
+                // messages into the ReAct reasoning context.
+                if (actorRuntime.isEnabled()) {
+                    AgentActor actor = actorRuntime.createActor(sessionId, request.getAgentName());
+                    actor.setSteeringQueue(ctx.getSteeringQueue());
+                }
+
                 AgentExecutionResult result;
                 try {
                     result = executor.execute(ctx).toCompletableFuture().join();
@@ -996,6 +1367,18 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // finally removes the second execution's handle).
                     runningExecutions.remove(sessionId, handle);
                     session.setStatus(ctx.getStatus());
+                    // Plan 214 (L2-13a): release this session's write intents
+                    // so finished sessions do not block future sessions from
+                    // writing the same files. Safe to call on every exit path
+                    // (release of an unknown/empty session is a no-op).
+                    writeIntentRegistry.releaseSession(sessionId);
+                    // Plan 218 (L4-8): destroy the Actor registered at lambda
+                    // entry. The actorId is reverse-looked-up via sessionId
+                    // (no CancelHandle or AgentExecutionContext modification).
+                    if (actorRuntime.isEnabled()) {
+                        actorRuntime.getActorBySession(sessionId)
+                                .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
+                    }
                 }
 
             // Plan 183 Phase 1: replaceMessages replaces the session's message
@@ -1184,6 +1567,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         // resumed execution is consistent with a normal top-level execution.
         IToolAccessChecker effectiveToolAccessChecker = this.toolAccessChecker;
         IPathAccessChecker effectivePathAccessChecker = resolvePerAgentPathChecker(agentModel);
+        ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
         // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
@@ -1199,6 +1583,14 @@ public class DefaultAgentEngine implements IAgentEngine {
             return CompletableFuture.supplyAsync(() -> {
                 handle.thread = Thread.currentThread();
 
+                // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
+                // Plan 220 (L4-8-steering): bind the ctx steering queue to the
+                // Actor (see doExecute).
+                if (actorRuntime.isEnabled()) {
+                    AgentActor actor = actorRuntime.createActor(sessionId, agentName);
+                    actor.setSteeringQueue(ctx.getSteeringQueue());
+                }
+
                 AgentExecutionResult result;
                 try {
                     result = executor.execute(ctx).toCompletableFuture().join();
@@ -1206,6 +1598,14 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // Plan 197: value-comparison remove — only remove our own handle.
                     runningExecutions.remove(sessionId, handle);
                     session.setStatus(ctx.getStatus());
+                    // Plan 214 (L2-13a): release this session's write intents
+                    // (mirrors doExecute / restoreSession finally cleanup).
+                    writeIntentRegistry.releaseSession(sessionId);
+                    // Plan 218 (L4-8): destroy the Actor (see doExecute).
+                    if (actorRuntime.isEnabled()) {
+                        actorRuntime.getActorBySession(sessionId)
+                                .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
+                    }
                 }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
@@ -1310,6 +1710,7 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         IToolAccessChecker effectiveToolAccessChecker = this.toolAccessChecker;
         IPathAccessChecker effectivePathAccessChecker = resolvePerAgentPathChecker(agentModel);
+        ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
         // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
@@ -1325,6 +1726,14 @@ public class DefaultAgentEngine implements IAgentEngine {
             return CompletableFuture.supplyAsync(() -> {
                 handle.thread = Thread.currentThread();
 
+                // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
+                // Plan 220 (L4-8-steering): bind the ctx steering queue to the
+                // Actor (see doExecute).
+                if (actorRuntime.isEnabled()) {
+                    AgentActor actor = actorRuntime.createActor(sessionId, agentName);
+                    actor.setSteeringQueue(ctx.getSteeringQueue());
+                }
+
                 AgentExecutionResult result;
                 try {
                     result = executor.execute(ctx).toCompletableFuture().join();
@@ -1332,6 +1741,14 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // Plan 197: value-comparison remove — only remove our own handle.
                     runningExecutions.remove(sessionId, handle);
                     session.setStatus(ctx.getStatus());
+                    // Plan 214 (L2-13a): release this session's write intents
+                    // (mirrors doExecute / resumeSession finally cleanup).
+                    writeIntentRegistry.releaseSession(sessionId);
+                    // Plan 218 (L4-8): destroy the Actor (see doExecute).
+                    if (actorRuntime.isEnabled()) {
+                        actorRuntime.getActorBySession(sessionId)
+                                .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
+                    }
                 }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
@@ -1593,6 +2010,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         String mode = model.getMode();
         if (mode == null || mode.isEmpty() || "react".equals(mode)) {
             DefaultHookRegistry hookRegistry = DefaultHookRegistry.fromAgentModel(model);
+            resolveHookContributions(hookRegistry);
             return ReActAgentExecutor.builder()
                     .chatService(chatService)
                     .toolManager(toolManager)
@@ -1624,6 +2042,13 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .modelSwitchedMessageWriter(this.modelSwitchedMessageWriter)
                     .budgetProvider(this.budgetProvider)
                     .retryPolicy(this.retryPolicy)
+                    .circuitBreaker(this.circuitBreaker)
+                    .goalTracker(this.goalTracker)
+                    .sustainer(this.sustainer)
+                    .conflictStrategy(this.conflictStrategy)
+                    .writeIntentRegistry(this.writeIntentRegistry)
+                    .contributionRegistry(this.contributionRegistry)
+                    .sandboxBackend(this.sandboxBackend)
                     .build();
         }
         if ("single-turn".equals(mode)) {
@@ -1633,6 +2058,79 @@ public class DefaultAgentEngine implements IAgentEngine {
             throw new UnsupportedOperationException("Plan execution mode is not yet implemented: mode=plan");
         }
         throw new NopAiAgentException("Unknown agent execution mode: " + mode);
+    }
+
+    /**
+     * Plan 217 (L4-6): assembly-time HOOK contribution resolution. Iterate
+     * every {@link ContributionType#HOOK} contribution in the wired registry
+     * (ascending priority order), and register its payload into the given
+     * {@code hookRegistry} so the ReAct loop fires the hook at the
+     * corresponding {@link io.nop.ai.agent.hook.AgentLifecyclePoint}.
+     *
+     * <p>Payload contract (plan 217 裁定 5): the payload must be a
+     * {@link HookPayload}. A HOOK contribution whose payload is not a
+     * {@code HookPayload} is logged at WARN and skipped — fail-visible, not
+     * a silent no-op (Minimum Rules #24). A single bad contribution does
+     * not abort the rest of the batch — the remaining HOOK contributions
+     * are registered normally.
+     *
+     * <p>This resolution runs after {@code DefaultHookRegistry.fromAgentModel}
+     * so static (XDSL-declared) hooks fire first (priority 0 by default) —
+     * the registry contributions layer on top. With the shipped
+     * {@link NoOpContributionRegistry} default the loop iterates an empty
+     * list, so behaviour is unchanged.
+     */
+    private void resolveHookContributions(io.nop.ai.agent.hook.IHookRegistry hookRegistry) {
+        List<Contribution> hookContributions = contributionRegistry.getContributions(ContributionType.HOOK);
+        if (hookContributions.isEmpty()) {
+            return;
+        }
+        for (Contribution c : hookContributions) {
+            Object payload = c.getPayload();
+            if (!(payload instanceof HookPayload)) {
+                LOG.warn("DefaultAgentEngine: skipping HOOK contribution with unexpected payload type"
+                        + " (expected HookPayload): type={}, id={}, source={}, payloadClass={}",
+                        c.getType(), c.getId(), c.getSource(),
+                        payload != null ? payload.getClass().getName() : "null");
+                continue;
+            }
+            HookPayload hp = (HookPayload) payload;
+            hookRegistry.register(hp.getPoint(), hp.getHook());
+        }
+    }
+
+    /**
+     * Plan 216 (L4-5): ensure a per-session deferred-ack mailbox exists and is
+     * wired to the session's inbox topic before execution. Idempotent per
+     * session: the first call creates the mailbox (via the registered
+     * factory) and registers a {@link MailboxMessageHandler} on
+     * {@code agent.{sessionId}.inbox}; subsequent calls reuse the existing
+     * mailbox (computeIfAbsent dedup — the handler is registered only once).
+     *
+     * <p>No-op when no factory is wired ({@code mailboxFactory == null}) —
+     * zero behaviour regression for the shipped default.
+     */
+    private void ensureSessionMailbox(String sessionId) {
+        if (mailboxFactory == null) {
+            return;
+        }
+        sessionMailboxes.computeIfAbsent(sessionId, sid -> {
+            IMailbox mailbox = mailboxFactory.apply(sid);
+            if (mailbox == null) {
+                LOG.warn("DefaultAgentEngine: mailboxFactory returned null for sessionId={}, "
+                        + "no mailbox will be created for this session", sid);
+                return null;
+            }
+            String inboxTopic = AgentMessageTopics.inboxTopic(sid);
+            MailboxMessageHandler handler = new MailboxMessageHandler(mailbox);
+            IMessageSubscription subscription = messenger.registerHandler(inboxTopic, handler);
+            if (subscription != null) {
+                sessionMailboxSubscriptions.put(sid, subscription);
+            }
+            LOG.debug("DefaultAgentEngine: created mailbox for sessionId={}, registered handler on topic={}",
+                    sid, inboxTopic);
+            return mailbox;
+        });
     }
 
     private String resolveSessionId(String sessionId) {

@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class AgentExecutionContext {
 
@@ -39,6 +41,19 @@ public class AgentExecutionContext {
     // Nullable (null before the first refresh); the shipped NoOpBudgetProvider
     // default makes this a non-null unlimited snapshot after the first refresh.
     private BudgetSnapshot budgetSnapshot;
+
+    // Plan 220 (L4-8-steering): thread-safe steering message queue. External
+    // messages (injected via the Actor mailbox consumption loop) are enqueued
+    // here by the Actor's consumption thread and drained by the ReAct loop at
+    // the round boundary (after all tools in a round complete, before the next
+    // LLM call). ConcurrentLinkedQueue provides lock-free multi-thread
+    // coordination: the Actor thread writes (enqueueSteering) and the ReAct
+    // thread reads (drainSteering) without explicit synchronization. A
+    // per-execution instance (created with the context, garbage-collected when
+    // the context goes away). With the shipped NoOpActorRuntime default no
+    // Actor consumption loop runs, so this queue is always empty and the ReAct
+    // loop's drain is a no-op (one isEmpty/poll check).
+    private final Queue<ChatMessage> steeringQueue = new ConcurrentLinkedQueue<>();
 
     public AgentExecutionContext(AgentModel agentModel) {
         this.agentModel = agentModel;
@@ -212,5 +227,58 @@ public class AgentExecutionContext {
 
     public void setBudgetSnapshot(BudgetSnapshot budgetSnapshot) {
         this.budgetSnapshot = budgetSnapshot;
+    }
+
+    /**
+     * Plan 220 (L4-8-steering): the thread-safe steering message queue shared
+     * with the Actor mailbox consumption loop. The Actor holds a reference to
+     * this exact queue object (bound via {@code AgentActor.setSteeringQueue})
+     * and enqueues polled mailbox messages (converted to {@link ChatMessage})
+     * from its dedicated consumption thread. The ReAct loop drains it at the
+     * round boundary from the ReAct thread. The returned queue is the live
+     * instance; callers must not retain it beyond the execution lifetime.
+     *
+     * @return the live steering queue (never null)
+     */
+    public Queue<ChatMessage> getSteeringQueue() {
+        return steeringQueue;
+    }
+
+    /**
+     * Plan 220 (L4-8-steering): enqueue a steering message into the steering
+     * queue. Called from the Actor's consumption thread (after converting the
+     * polled mailbox envelope payload to a {@link ChatMessage}). Safe to call
+     * concurrently with {@link #drainSteering()} (the underlying queue is a
+     * {@link ConcurrentLinkedQueue}).
+     *
+     * @param message the steering message to enqueue (must not be null)
+     */
+    public void enqueueSteering(ChatMessage message) {
+        if (message == null) {
+            throw new IllegalArgumentException("enqueueSteering: message must not be null");
+        }
+        steeringQueue.add(message);
+    }
+
+    /**
+     * Plan 220 (L4-8-steering): drain all currently-queued steering messages
+     * and return them as a list (in enqueue order). Called from the ReAct
+     * thread at the round boundary (after all tools in a round complete,
+     * before the next LLM call). After this call the steering queue is empty.
+     * Returns an empty list when no steering messages are queued (the shipped
+     * NoOpActorRuntime default — no consumption loop running — makes this the
+     * always-path, so the drain is a cheap no-op: a single poll loop that
+     * immediately finds null).
+     *
+     * @return the drained steering messages (never null, empty when the queue
+     *         was empty)
+     */
+    public List<ChatMessage> drainSteering() {
+        List<ChatMessage> drained = new ArrayList<>();
+        ChatMessage msg;
+        while ((msg = steeringQueue.poll()) != null) {
+            drained.add(msg);
+        }
+        return drained;
     }
 }
