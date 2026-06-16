@@ -157,11 +157,20 @@ default void batchAdd(List<AiMemoryItem> items) {
 - MiMoCode 的实践经验证明此模式在长会话中显著提升记忆利用率
 - Provider 模式保持 `IAiMemoryStore` 接口签名稳定（L1-16 契约不变），L4-3 `IMemoryAdapter` 可替换为 DB/vector 后端 Provider
 
-**Deferred（L4-3 IMemoryAdapter successor scope）**：
-- DB / 文件持久化：`InMemoryAiMemoryStore` 数据**不**随 `AgentSession` 序列化。进程重启后 memory 丢失
-- 向量检索（embedding-based search）：当前 `search` 为子串匹配
-- Session fork 时复制 memory：子 session 获得独立的空 memory
-- Memory retention / TTL / 容量上限：`InMemoryAiMemoryStore` 无界保存
+**L4-3 适配器契约已交付（plan 215）**：Working Memory 后端的存储 / 嵌入 / 检索三关注点已切分为三个独立适配器接口（`io.nop.ai.agent.memory` 包），允许集成商按需替换为 DB / 向量后端：
+
+- `IStorageAdapter`：per-session AiMemoryItem CRUD（`save` / `loadAll(typeFilter)` / `loadByKey` → null 表示不存在 / `update` / `remove` / `batchSave`）。NoOp 默认 `NoOpStorageAdapter` 全方法 fail-fast 抛 `NopAiAgentException`（无优雅降级路径——storage 无 keyword fallback）。
+- `IEmbeddingAdapter`：文本 → `double[]`（`embed` / `embedBatch`）+ capability-query `isAvailable()`。NoOp 默认 `NoOpEmbeddingAdapter` 的 `isAvailable()` 返回 `false`（使调用方走 keyword fallback），`embed` / `embedBatch` 抛 `UnsupportedOperationException` 作为防御性不可达路径。
+- `IVectorAdapter`：向量索引 + 相似度检索（`index(key, vector)` upsert / `search(queryVector, topK)` → 相似 key 降序 / `remove`）。NoOp 默认 `NoOpVectorAdapter` 全方法 fail-fast（无优雅降级路径）。
+
+**设计裁定（plan 215 §设计裁定 1-5）**：
+1. **三个独立接口**（非单一 `IMemoryAdapter`）：存储 / 嵌入 / 检索是三个正交关注点，各自可独立替换；集成商可能只需 DB 持久化而不需向量检索（只功能化 `IStorageAdapter`，其余保持 NoOp）；与 nop-ai-core 的 `IEmbeddingModel` / `IVectorStore` 分离一一对应。`IMemoryAdapter` 作为术语保留在 glossary 中，指代三适配器的组合概念，不是代码层面的单一接口。
+2. **复合 store 的 search fallback 策略**：embedding NoOp（`isAvailable()=false`）→ keyword 子串匹配（与 `InMemoryAiMemoryStore.search` 行为一致）；embedding 功能化 → 向量检索（经 `IVectorAdapter`），向量结果为空时不 fallback（避免语义不一致）。
+3. **与 nop-ai-core 基础设施的关系**：agent 层适配器接口定义在 `io.nop.ai.agent.memory` 包，不直接引用 nop-ai-core 的 `IEmbeddingModel` / `IVectorStore` 类型（保持 agent 层契约独立性）。功能性实现（successor）可包装 nop-ai-core 类型；in-memory 功能实现使用自带 cosine 相似度计算。
+4. **shipped 默认不变**：`DefaultAgentEngine.memoryStoreProvider` 默认值保持 `InMemoryMemoryStoreProvider`（零行为回归）。adapter-backed provider 是 opt-in。
+5. **NoOp 检测机制——capability-query 而非异常**：`IEmbeddingAdapter.isAvailable()` 是 capability-query；复合 store 在调用 `embed()` 前先检查 `isAvailable()`（不调用、不抛异常、不 catch-and-swallow）。`IStorageAdapter` 和 `IVectorAdapter` 的 NoOp 默认仍 fail-fast（抛异常），因为它们的方法被 composite store 直接调用且没有"优雅降级"的 fallback 路径——只有 embedding 有 keyword fallback。
+
+**显式 Non-Goals（独立 successor）**：DB-backed storage adapter（raw JDBC 写 memory 表）、真实 embedding API 集成（包装 nop-ai-core `IEmbeddingModel` 调用真实 LLM API）、真实向量索引（包装 nop-ai-core `IVectorStore` 接入 FAISS / pgvector / Milvus）、Memory retention / TTL / 容量上限、Session fork 时复制 memory、`AgentSession` 序列化 memory 状态、长期记忆子系统（`IMessageService` + retain/recall/reflect）、XDSL 配置化。本契约交付让这些 successor 可以被插入的契约和接线，不交付其生产实现。
 
 ### 6.4 SessionSnapshot
 

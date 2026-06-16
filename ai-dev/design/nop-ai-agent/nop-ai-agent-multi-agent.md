@@ -101,8 +101,8 @@ IConflictStrategy:
   ConflictResult resolve(WriteIntent current, Set<WriteIntent> existing)
 ```
 
-- `FailFastStrategy`（默认）— 检测到冲突直接拒绝。Phase 1 使用此实现
-- `CoordinationBusStrategy`（扩展）— 通过协调信道广播 scope_claim/operation_intent，实现 LLM 智能协调 + 引擎级预警。通过 XDSL 配置切换
+- `FailFastStrategy`（默认）— 检测到冲突直接拒绝。Phase 1 使用此实现。**已落地**（plan 214 / L2-13a）：`io.nop.ai.agent.conflict.FailFastStrategy` + `InMemoryWriteIntentRegistry` 已接线到 `DefaultAgentEngine` / `ReActAgentExecutor` dispatch path（Layer 3 approval gate 之后、`allowedCalls.add` 之前的冲突检测步骤）
+- `CoordinationBusStrategy`（扩展）— 通过协调信道广播 scope_claim/operation_intent，实现 LLM 智能协调 + 引擎级预警。通过 XDSL 配置切换。**Successor**（依赖 `IMessageService` topic 基础设施 + L4-8 Actor Runtime）
 
 **渐进式增强路径**：引擎通过 `IConflictStrategy` 接口调用，不直接包含 if-branching。Phase 1 注册 `FailFastStrategy`；Phase 2 替换为 `CoordinationBusStrategy`。引擎代码不变。
 

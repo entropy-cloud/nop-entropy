@@ -599,6 +599,15 @@ DenialResult {
 
 **默认实现**：`NoOpSandboxBackend`（直接在 host 执行——Layer 1 无沙箱）。
 
+**实现约定**（plan 219 落地后补录）：
+
+- 接口与全部数据对象（`SandboxRequest`/`SandboxResult`/`SandboxConfig`/`SandboxException`/`SandboxFailureReason`）位于 `io.nop.ai.agent.security` 包，与其他纵深防御链接口同包（裁定：保持链组件内聚，避免新建 `io.nop.ai.agent.sandbox` 包；`SandboxException extends NopAiAgentException` 已跨包）。
+- `DockerSandboxBackend` 通过 Docker CLI（`ProcessBuilder` 调用 `docker run`/`docker kill`/`docker rm`）与容器交互，不引入 Docker Java client 依赖（裁定：CLI 是服务器端通用前提；与 `NoOpSandboxBackend` 的 `ProcessBuilder` 模型对称）。
+- 失败分类（`SandboxFailureReason`）：`IOException` 或 daemon 连接错误 → `DOCKER_UNAVAILABLE`；镜像缺失 / OCI runtime / 权限拒绝 → `CONTAINER_START_FAILED`；exit code 137（OOM-killer SIGKILL）→ `RESOURCE_LIMIT_EXCEEDED`；exit code 124（`timeout` SIGTERM）/ wall-budget 超时 → `TIMEOUT`；其余非零 exit → `CONTAINER_START_FAILED`（保守 fail-closed，绝不静默吞掉）。
+- 容器清理：`--rm` 保证自然退出后自动删除；超时路径走 `docker kill <name>` + `docker rm -f` 兜底。
+- `DefaultAgentEngine.setSandboxBackend` 不调用 `warnIfInsecureDefaults`：`NoOpSandboxBackend` 是 Layer 1 设计性基线（从未被更安全的 shipped 替代取代），与 `AutoApproveGate`（已被 `DefaultApprovalGate` 取代 → 回退是降级）的语义不同。
+- 高风险工具执行器（shell-exec / code-exec `IToolExecutor`）如何消费 `ISandboxBackend` 是独立 successor plan；本契约仅提供平台级隔离能力。
+
 ### 7.2 ISensitivePathProvider — 敏感路径配置
 
 **职责**：外部化敏感路径 denylist，支持 Delta 覆盖。

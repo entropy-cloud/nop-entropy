@@ -60,18 +60,22 @@ ReAct 主循环的期望行为：
 
 ## 四、Steering 机制
 
-**期望行为**：在 ReAct 循环中，每轮工具执行后检查是否有外部注入的 steering 消息。如果有，注入消息、跳过当前剩余工具、进入下一轮推理。
+**期望行为**：在 ReAct 循环中，每轮工具执行后检查是否有外部注入的 steering 消息。如果有，注入消息、进入下一轮推理。
+
+**已落地（plan 220 / L4-8-steering）**：round 边界检查 + 注入。Steering 消息队列位于 `AgentExecutionContext`（线程安全 `ConcurrentLinkedQueue`），由 Actor mailbox 消费循环在专用单线程上 enqueue（poll mailbox 消息后将 envelope payload 转换为 `ChatMessage`），由 ReAct 循环在 ReAct 线程上 drain。ReAct 循环在每轮工具执行完成（所有工具调用结果已写回消息列表）后、进入下一轮 LLM 调用前 drain steering queue，drain 出的消息 append 到 ctx 消息列表（追加新消息，非修改历史），然后进入下一轮推理。若 drain 结果为空，正常继续。`DefaultAgentEngine` 三个执行入口点（`doExecute` / `resumeSession` / `restoreSession`）在 `createActor` 返回后、`execute(ctx)` 调用前将 ctx steering queue 关联到 Actor（`actor.setSteeringQueue(ctx.getSteeringQueue())`）。shipped 默认（`NoOpActorRuntime`，`isEnabled()==false`）下无 Actor 消费循环运行，steering queue 恒空，ReAct 循环 steering 检查为 no-op（drain 空队列 → continue），既有行为零回归。
+
+**Successor（未落地）**：mid-round steering（工具执行中途打断）——"跳过当前剩余工具"。foundational slice 在 round 边界（所有当前轮工具执行完成后）检查 steering。多个并行工具执行中、steering 到达时跳过剩余工具是独立增强（optimization candidate）。
 
 **决策理由**：现有 Hook 机制是自动化的（按生命周期点触发），缺少人工/外部注入消息的能力。Steering 填补这个空白。
 
 **拒绝了什么**：
 - 通过 Hook 注入 steering 消息：Hook 的语义是"增强当前事件"，不是"注入新消息流"。职责不同。
-- 通过修改消息历史注入：绕过引擎主循环，难以保证一致性。
+- 通过修改消息历史注入：绕过引擎主循环，难以保证一致性。Steering 消息是新追加的消息，不是对已有消息的修改。
 
 **边界条件**：
 - Steering 是引擎层机制，当前不需要 DSL 支持（不需要在 `agent.xdef` 中新增元素）
-- Steering 消息的来源是外部调用者（API 层），不是 Hook
-- 同一轮中，steering 优先于剩余工具执行
+- Steering 消息的来源是外部调用者（经 Actor mailbox 投递），不是 Hook
+- Steering 检查点位于 round 边界（所有当前轮工具执行完成后）；mid-round 打断为 successor
 - Steering 不影响 Hook 的正常触发
 
 **后续考虑**：如果 steering 证明有价值，未来可以在 `agent.xdef` 的 `constraints` 中增加 steering 相关配置。但这属于 Phase 2+ 范畴。

@@ -62,7 +62,7 @@
 │                                      │
 │  ┌──────────┐  ┌──────────────────┐  │
 │  │ Mailbox  │  │  Execution Loop  │  │
-│  │ (无界队列) │  │  (ReAct 循环)    │  │
+│  │(IMailbox)│  │  (ReAct 循环)    │  │
 │  └────┬─────┘  └────────┬─────────┘  │
 │       │                 │            │
 │       └─────→ dispatch ─┘            │
@@ -71,7 +71,7 @@
 │  - actorId (UUID)                    │
 │  - agentModel (配置)                  │
 │  - session (持久化会话)               │
-│  - mailbox (待处理消息)               │
+│  - mailbox (IMailbox: DeferredAck)   │
 │  - status: created|ready|running|idle|  │
 │           failed|recovering|stopped     │
 │  - cancelToken (取消令牌)             │
@@ -80,6 +80,8 @@
 │  - createdAt, lastActiveAt            │
 └──────────────────────────────────────┘
 ```
+
+**Mailbox 契约（L4-5 已落地）**：`IMailbox` 是 Agent 域的 deferred-ack 邮箱原语，实现 3-phase reservation 协议（`offer` 投递 → `poll` 取出并标记 in-flight → `ack`/`nack` 确认/拒绝）。`DeferredAckMailbox` 是 in-memory 功能实现（线程安全、可配置容量、nack 重投递、达 `maxDeliveryAttempts` 转 dead-letter）；`NoOpMailbox` 是显式 no-op 默认（offer=false / poll=null / ack,nack=false）。`MailboxMessageHandler` 适配器将 `IMailbox` 经现有 `IAgentMessenger.registerHandler` 接入消息流（消息到达 inbox topic 时 offer 到邮箱），不改 `IAgentMessenger` 接口。Actor 执行循环（poll → process → ack）的消费侧是 L4-8 的独立 successor。
 
 **关键约束**：
 - 每个 Actor 在**单个 Virtual Thread** 上执行，内部无并发
@@ -124,6 +126,8 @@
 - **failed** → 不可恢复错误，等待恢复或人工干预
 - **recovering** → 自动恢复中（重放消息、恢复 Session 状态）
 - **stopped** → 最终状态
+
+**状态机落地范围（plan 218 / L4-8 已落地）**：foundational slice 实现核心转换 `CREATED → READY → RUNNING ↔ IDLE → STOPPED` + `any → FAILED`（消费循环异常显式 log + 状态转换，非静默吞没）。`FAILED → RECOVERING → RUNNING/IDLE` 自动恢复转换由 RecoveryManager（Phase 4 successor）驱动，`RECOVERING` 状态已在 `AgentActorStatus` 枚举中预留并经 registry 识别，foundational slice 不实现自动恢复。`AgentActorStatus` 为 7 值枚举（`CREATED` / `READY` / `RUNNING` / `IDLE` / `FAILED` / `RECOVERING` / `STOPPED`），Javadoc 明确每个状态的进入条件与合法转换（状态转换图写入 Javadoc）。
 
 ### 3.3 Actor 间通信
 
@@ -190,14 +194,14 @@ AgentActor A (Lead)                AgentActor B (Worker)
 
 ### 4.2 Platform Layer 的六大组件
 
-| 组件 | 职责 | Nop 平台映射 |
-|------|------|-------------|
-| **ActorRuntime** | 创建/销毁 Actor 实例，管理 Virtual Thread 生命周期 | 基于 `GlobalExecutors` 的 Virtual Thread 池 |
-| **ActorRegistry** | 维护所有活跃 Actor 的注册表，按 tenantId/userId 隔离 | 内存 `ConcurrentHashMap` + DB 持久化索引 |
-| **MessageRouter** | Actor 间消息路由，topic 匹配，背压控制 | `LocalMessageService` + topic 命名约定（L4-1 已落地：以 `LocalMessageService` 为底的 Agent 域 messenger `IAgentMessenger` 已可作为 MessageRouter 的路由基底，提供 inbox 直达投递 + 共享 reply topic 请求-响应；L4-2 已落地：`DBMessageService` 已可作为多实例路由基底——消息持久化到 `ai_agent_message` 表，跨进程投递经 DB 路由，至少一次语义） |
-| **TeamManager** | Agent 团队的生命周期（创建/解散/成员管理/状态查询） | `@BizModel("AiTeam")` + ORM 实体持久化 |
-| **RecoveryManager** | 崩溃恢复、超时清理、orphan 检测、消息重放 | 定时任务（nop-job）+ DB 状态机 |
-| **ResourceGuard** | 协调信道（scope_claim/conflict_alert，见 multi-agent.md §4）、资源配额、冲突检测 | `@BizAction` 拦截工具执行 |
+| 组件 | 职责 | Nop 平台映射 | 状态 |
+|------|------|-------------|------|
+| **ActorRuntime** | 创建/销毁 Actor 实例，管理 Virtual Thread 生命周期 | 基于 `GlobalExecutors` 的 Virtual Thread 池 | ✅ 基础层已落地（plan 218 / L4-8）：`IActorRuntime` 契约 + `InMemoryActorRuntime` 功能实现（专用单线程 executor，Java 11 兼容；Virtual Thread 优化为 successor 待模块迁移 Java 21）+ `NoOpActorRuntime` shipped 默认（`isEnabled()=false`，引擎据此跳过 Actor 路径，零回归）+ 引擎接线（`DefaultAgentEngine` 三个执行入口点经 `isEnabled()` guard opt-in 注册/注销 Actor） |
+| **ActorRegistry** | 维护所有活跃 Actor 的注册表，按 tenantId/userId 隔离 | 内存 `ConcurrentHashMap` + DB 持久化索引 | ✅ 基础层已落地（plan 218 / L4-8）：`ActorRegistry` 契约 + `InMemoryActorRegistry` 双索引功能实现（`actorId → AgentActor` + `sessionId → actorId`，`ConcurrentHashMap` 线程安全）。foundational 身份维度 = actorId + sessionId + agentName；多租户 tenantId/userId 隔离维度为 ResourceGuard successor（Phase 5） |
+| **MessageRouter** | Actor 间消息路由，topic 匹配，背压控制 | `LocalMessageService` + topic 命名约定（L4-1 已落地：以 `LocalMessageService` 为底的 Agent 域 messenger `IAgentMessenger` 已可作为 MessageRouter 的路由基底，提供 inbox 直达投递 + 共享 reply topic 请求-响应；L4-2 已落地：`DBMessageService` 已可作为多实例路由基底——消息持久化到 `ai_agent_message` 表，跨进程投递经 DB 路由，至少一次语义） | — |
+| **TeamManager** | Agent 团队的生命周期（创建/解散/成员管理/状态查询） | `@BizModel("AiTeam")` + ORM 实体持久化 | successor（Phase 3） |
+| **RecoveryManager** | 崩溃恢复、超时清理、orphan 检测、消息重放 | 定时任务（nop-job）+ DB 状态机 | successor（Phase 4，依赖 nop-job） |
+| **ResourceGuard** | 协调信道（scope_claim/conflict_alert，见 multi-agent.md §4）、资源配额、冲突检测 | `@BizAction` 拦截工具执行 | successor（Phase 5） |
 
 ## 5. 多用户与资源隔离
 
@@ -419,10 +423,10 @@ Lead Actor
 
 ## 10. 实施路线
 
-| 阶段 | 内容 | 依赖 |
-|------|------|------|
-| **Phase 1** | ActorRuntime + ActorRegistry + Virtual Thread 调度 | ReAct 引擎完成 |
-| **Phase 2** | MessageRouter + call-agent 异步模式 + 多用户隔离 | Phase 1 |
+| 阶段 | 内容 | 依赖 | 状态 |
+|------|------|------|------|
+| **Phase 1** | ActorRuntime + ActorRegistry + Virtual Thread 调度 | ReAct 引擎完成 | ✅ 基础层已落地（plan 218 / L4-8）：`IActorRuntime` + `AgentActor` + `AgentActorStatus` + `ActorRegistry`/`InMemoryActorRegistry` + `NoOpActorRuntime` shipped 默认 + `InMemoryActorRuntime` 功能实现（专用单线程 executor observation-only mailbox 消费循环，Java 11 兼容）+ 引擎接线（`DefaultAgentEngine` 三个执行入口点 opt-in 注册/注销 Actor）。Virtual Thread 调度优化（`Thread.ofVirtual()`）为 successor，待模块迁移到 Java 21 release 后切换 |
+| **Phase 2** | MessageRouter + call-agent 异步模式 + 多用户隔离 + Steering 注入 | Phase 1 | 🟡 部分落地：**Steering 注入已落地（plan 220 / L4-8-steering）**——Actor mailbox 消费循环从 observation-only 升级为 steering-injection（poll → envelope payload 转 `ChatMessage` → enqueue 到 `AgentExecutionContext` 线程安全 steering queue → ack），ReAct 循环在 round 边界 drain steering queue 并注入到下一轮 LLM 请求，`DefaultAgentEngine` 三入口点在 `createActor` 后关联 ctx steering queue 到 Actor。call-agent 异步 mailbox 模型 + 多用户隔离仍为 successor |
 
 > 注：`call-agent`（fork+exec MVP）和 `send-message`（fire-and-forget）工具已在 plan 168 交付。Phase 2 的"call-agent 异步模式"指基于 Actor mailbox 的请求-响应模型（Caller 发 REQUEST 到 Callee inbox、Callee actor 消费并回复 RESPONSE），是 fork+exec 的 Actor Runtime 升级版。
 | **Phase 3** | TeamManager + TeamSpec DSL + 共享任务表 + Team ACL | Phase 2 |
@@ -433,7 +437,7 @@ Phase 1 和 Phase 4 可并行开发。Phase 3 依赖 Phase 2 完成。各 Phase 
 
 ## 11. Open Questions
 
-- [ ] Actor 邮箱是无界队列还是有界队列？有界时背压策略如何？（倾向：有界 + 背压拒绝，默认 1000 条）
+- [x] ~~Actor 邮箱是无界队列还是有界队列？有界时背压策略如何？~~（**已裁定 plan 216 / L4-5**：`DeferredAckMailbox` 构造器接受 `capacity`（`<= 0` 无界，默认无界）；有界邮箱满时 `offer()` 返回 `false`（背压信号，非异常），生产者据此决策重试/降级/丢弃。Actor Runtime L4-8 将按本节倾向配置有界容量（如默认 1000）。）
 - [ ] 子 Actor 的权限派生是否复用 AgentModel 的 permissions 字段，还是需要独立的 permissions override？（倾向：复用 + override 合并）
 - [ ] 团队模式中的共享任务表，是用独立实体还是复用 nop-task 的 ITaskRuntime？（倾向：独立实体，更轻量）
 - [ ] RecoveryManager 的恢复粒度：是恢复到最近 ReAct 步骤，还是恢复到最近 LLM 调用？（倾向：最近 ReAct 步骤，工具调用结果可重放）
