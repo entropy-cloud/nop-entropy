@@ -72,12 +72,14 @@
 | 理解 EQL 语法、`<eql>` 与 `<sql>` 区别、数据库兼容性（空字符串转 NULL、VARCHAR 自动提升 CLOB、Dialect 特性标志） | `02-core-guides/eql-and-database-compatibility.md` |
 | 理解逻辑删除（delFlag / delVersion / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
 | 理解多租户机制（自动过滤、自动填充、临时切换、跨租户保护） | `02-core-guides/tenant-model.md` |
+| 理解模块系统（`_module` 文件、moduleId/moduleName 规则、发现生命周期、app.module.yaml 格式、启禁用配置） | `02-core-guides/vfs-and-resource-resolution.md`（"模块发现与注册"章节） |
 | 理解外部应用从 design 到模型、生成、BizModel、测试、联调的默认顺序 | `02-core-guides/application-development-workflow.md` |
 | 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |
 | 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
 | 理解 GraphQL / API 暴露方式 | `02-core-guides/api-and-graphql.md` |
 | 理解 API 模型（*.api.xml）与代码生成（API 接口 vs SPI、生成物清单） | `02-core-guides/api-model-and-codegen.md` |
+| 理解 RPC 机制、分布式代理（/px/）、IRpcService、token 转发 | `02-core-guides/rpc-and-distributed-rpc.md` |
 | 判断领域逻辑和 DDD 落位 | `02-core-guides/domain-logic-and-ddd.md` |
 | 理解跨切面架构原则（聚合根与表、模块依赖方向、DSL优先等） | `02-core-guides/architecture-principles.md` |
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |

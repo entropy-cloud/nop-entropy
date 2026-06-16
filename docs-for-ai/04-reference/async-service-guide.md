@@ -2,6 +2,21 @@
 
 > 高级特性，一般业务开发不需要使用。优先使用同步调用。
 
+## 框架层异步（始终生效）
+
+Nop 平台的所有 HTTP 入口（`/graphql`、`/r/`、`/p/`、`/px/`、`/jsonrpc`）在 HTTP 传输层**始终是异步的**，所有 `GraphQLWebService` 方法返回 `CompletionStage<T>`，不阻塞工作线程。这是框架自身的异步机制，与业务代码是否返回 `CompletionStage` 无关。
+
+因此即使业务方法定义为同步（返回 `void` 或普通 POJO），HTTP 传输层已经在 Servlet 3.1 async / Quarkus reactive 模式下运行。
+
+框架层异步与业务层异步的区别：
+
+| 层次 | 异步方式 | 业务代码是否需要关心 |
+|------|---------|-------------------|
+| HTTP 传输 | `CompletionStage<T>` + 非阻塞 I/O | 不需要，始终生效 |
+| 服务接口 | 业务方法返回 `CompletionStage<T>` | 按需使用 |
+
+详细架构见 `../02-core-guides/rpc-and-distributed-rpc.md`。
+
 ## 同步调用（默认）
 
 Service 接口直接使用业务 DTO 类型，不包装 `ApiRequest`/`ApiResponse`：

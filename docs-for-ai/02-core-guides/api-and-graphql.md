@@ -54,7 +54,7 @@
 | `/graphql` | POST | GraphQL query string 内的 field name | JSON（GraphQL response envelope） | 前端 AMIS 页面默认入口；支持 selection（字段选择）、多操作批量、relation 嵌套查询 |
 | `/r/{opName}` | GET / POST | `{bizObj}__{method}` | JSON（`ApiResponse`） | REST 风格单操作调用；E2E 测试、外部系统集成、curl 调试 |
 | `/p/{opName}[/path]` | GET / POST | `{bizObj}__{method}` + 可选 `/{path}` 后缀 | 内容感知（支持二进制/文件/流/自定义 contentType） | 文件下载、Excel 导出、PDF 生成、图片返回等需要非 JSON 响应的场景 |
-| `/px/{svc}/{method}` | POST | `{serviceName}/{serviceMethod}` | JSON（`ApiResponse`） | 分布式 RPC 服务代理，转发到远程服务 |
+| `/px/{serviceName}/{opName}` | POST | `{serviceName}` = RPC 注册服务名，`{opName}` = `{bizObj}__{method}` | JSON（`ApiResponse`） | 分布式 RPC 服务代理，转发到远程服务 |
 | `/jsonrpc` | POST | JSON-RPC 2.0 `method` 字段 | JSON-RPC 2.0 response | JSON-RPC 协议客户端 |
 
 **关键认知：**
@@ -64,6 +64,18 @@
 3. **`/p/{query}` 的 `query` 支持路径后缀。** 格式为 `{operationName}/{optionalPath}`，路径部分通过 `PARAM_PATH` 传入 BizModel 方法，常用于下载场景中指定文件路径。
 4. **`/graphql` 是前端 AMIS 的默认入口。** view.xml 中 `@query:` / `@mutation:` 前缀的 URL 由前端组装成 GraphQL query，POST 到 `/graphql`。
 5. **前端 `@query:` URL 和后端 `/r/` URL 使用同一个 operationName。** 例如 `@query:NopAuthUser__findPage` 在前端组装成 GraphQL query 发到 `/graphql`，直接用 `/r/NopAuthUser__findPage` 也能调用同一个方法，只是响应封装不同。
+
+### 三种调用的内在关系
+
+上表中的五个 HTTP 入口对应三种不同的调用模型：
+
+- **基本 HTTP（进程内）**：`/graphql`、`/r/`、`/p/` 直接调用同 JVM 内的 BizModel 方法，不涉及远程调用。
+- **分布式 RPC 代理**：`/px/{svc}/{method}` 将请求转发到远程服务（通过 `IRpcServiceInvoker`），适合非 Java 客户端或网关场景。
+- **JSON-RPC 协议**：`/jsonrpc` 适配 JSON-RPC 2.0 协议客户端。
+
+此外，Java 服务间还有**类型化 RPC**（由 `*.api.xml` codegen 生成），通过 AOP 代理透明地将本地方法调用转为远程 HTTP 调用，不经 `/px/` 网关。
+
+详见 `./rpc-and-distributed-rpc.md`。
 
 ### 实现锚点
 

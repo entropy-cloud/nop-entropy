@@ -123,11 +123,12 @@ java -Dquarkus.profile=dev \
 ## 模块与 bean 发现规则
 
 1. Nop 应用侧 bean 发现默认是基于文件，不是基于 Java classpath scanning。
-2. 启用模块通过 `/<moduleId>/_module` 被发现。
-3. app 容器自动加载的通常是 `/<moduleId>/beans/app.beans.xml` 和 `app-*.beans.xml`。
-4. `/nop/autoconfig/*.beans` 和 `nop.ioc.app-beans.files` 也可以补充 bean 文件。
-5. `_service.beans.xml` 这类生成文件通常是被 `app-service.beans.xml` 导入，而不是自己被自动发现。
-6. **所有以 `_` 开头的文件都是 codegen 管线自动生成的，不允许手动修改**。包括但不限于 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml`、`_gen/*.java` 等。如需定制 IoC 注册，修改对应的非下划线文件（如 `app-service.beans.xml`）。如需添加新 BizModel 但 `codegen` 尚未生成，在 `app-service.beans.xml` 中手动添加 bean 定义。
+2. 启用模块通过 `/{moduleId}/_module` 被发现（零字节标记文件）。详见 `vfs-and-resource-resolution.md` 的"模块发现与注册"章节。
+3. app 容器自动加载的通常是 `/{moduleId}/beans/app.beans.xml` 和 `app-*.beans.xml`。
+4. 每个模块可选提供 `/{moduleId}/app.module.yaml`，包含 `version`、`displayName`、`description`、`dependsOn` 等元数据。详见 `vfs-and-resource-resolution.md` 的 `app.module.yaml` 章节。
+5. `/nop/autoconfig/*.beans` 和 `nop.ioc.app-beans.files` 也可以补充 bean 文件。
+6. `_service.beans.xml` 这类生成文件通常是被 `app-service.beans.xml` 导入，而不是自己被自动发现。
+7. **所有以 `_` 开头的文件都是 codegen 管线自动生成的，不允许手动修改**。包括但不限于 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml`、`_gen/*.java` 等。如需定制 IoC 注册，修改对应的非下划线文件（如 `app-service.beans.xml`）。如需添加新 BizModel 但 `codegen` 尚未生成，在 `app-service.beans.xml` 中手动添加 bean 定义。
 
 ## 不要默认传播的模式
 

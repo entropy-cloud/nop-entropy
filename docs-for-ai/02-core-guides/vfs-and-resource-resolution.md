@@ -104,6 +104,115 @@ VFS 的路径空间是**全局平坦**的，不依赖调用方所在的模块：
 - `_module` 文件（各模块根目录下的零字节标记文件）是唯一的例外——它是 VFS 唯一允许重复的路径，用于 `ModuleManager` 收集所有已注册的模块
 - Bean 发现（`/<moduleId>/beans/app-*.beans.xml`）也是通过 VFS 遍历完成，不是 Java 类路径扫描
 
+## 模块发现与注册
+
+### moduleId 与 moduleName
+
+Nop 模块在 VFS 中用两段式路径标识：
+
+| 概念 | 格式 | 示例 | 说明 |
+|------|------|------|------|
+| `moduleId` | `{part1}/{part2}` | `nop/auth`, `nop/core` | VFS 路径中的目录名，使用 `/` 分隔 |
+| `moduleName` | `{part1}-{part2}` | `nop-auth`, `nop-core` | 配置项、Java 代码中引用时使用，`-` 分隔 |
+
+转换规则（`ResourceHelper.java:162-179`）：
+
+```
+moduleId = moduleName.replace('-', '/')
+moduleName = moduleId.replace('/', '-')
+```
+
+从 VFS 路径提取：取路径前两段，如 `/nop/auth/beans/app.beans.xml` 的 moduleId 为 `nop/auth`，moduleName 为 `nop-auth`。
+
+### 发现生命周期
+
+模块发现由 `ModuleManager`（全局单例）管理，在 VFS 初始化完成后自动触发：
+
+```
+VirtualFileSystemInitializer.init()
+  └── ModuleManager.instance().discover()
+        └── VFS.findAll("*/*/_module")          ← 扫描所有两段式路径下的 _module
+              │
+              ├── 匹配 disabled-module-names → 跳过
+              ├── enabled-module-names 非空且不匹配 → 跳过
+              │
+              └── /{moduleId}/app.module.yaml 存在？
+                    ├── 是 → 解析为 ModuleModel（YAML → Java bean）
+                    └── 否 → 创建默认 ModuleModel（version=1.0）
+                          └── 按 moduleName 排序注册到模块 Map
+```
+
+> `_module` 文件是**零字节标记文件**（empty marker），它的存在仅表示"此目录是一个模块根"。
+
+关键源码：
+- `ModuleManager.java:70-94` — `discover()` 方法
+- `ModuleManager.java:116-127` — `loadModuleById()` 加载 `app.module.yaml`
+- `ModuleManager.java:39-57` — 全局单例
+
+### 启禁用模块
+
+通过配置项控制哪些模块生效：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `nop.core.module.enabled-module-names` | Set | null | 非空时**仅**启用列表内的模块 |
+| `nop.core.module.disabled-module-names` | Set | null | 排除列表内的模块（优先于 enabled） |
+
+值使用逗号分隔的 moduleName，如 `nop-auth,nop-wf`。定义在 `CoreConfigs.java:184-188`。
+
+### app.module.yaml
+
+每个模块可以在 `/{moduleId}/app.module.yaml` 提供元数据。文件**可选**，不存在的模块自动使用 `version: "1.0"` 的默认值。内容使用 YAML 格式，解析为 `ModuleModel` 的 Java bean。
+
+```yaml
+# /nop/core/app.module.yaml 示例
+version: 2.0
+```
+
+支持的全部属性（`ModuleModel.java:16-118`）：
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `moduleId` | String | 派生 | VFS 路径确定，如 `nop/auth` |
+| `moduleName` | String | 派生 | `moduleId` 中 `/` 替换为 `-` |
+| `version` | String | `"1.0"` | 模块版本 |
+| `displayName` | String | null | 显示名称 |
+| `description` | String | null | 描述 |
+| `dependsOn` | Set\<String\> | null | 依赖的 moduleName 集合 |
+| `author` | String | null | 作者 |
+| `publishDate` | String | null | 发布日期 |
+| `dynamic` | boolean | false | 运行时动态注册的模块 |
+| `sid` | String | null | 动态模块的会话 ID |
+
+### module: 名字空间
+
+VFS 支持 `module:` 前缀，按模块隔离查找资源。路径 `module:/path/to/file` 等价于"遍历已启用模块，返回第一个存在的 `/{moduleId}/path/to/file`"。实现类 `ModuleNamespaceHandler.java`，内部调用 `ModuleManager.instance().getModuleResource(true, path)`。
+
+### 模块消费者一览
+
+以下核心功能遍历已启用的模块列表，按约定路径发现资源（`ModuleManager` 的 `getEnabledModules()`、`findModuleResources()`、`getAllModuleResources()` 三种模式）：
+
+| 功能 | 类 | VFS 扫描路径 |
+|------|---|-------------|
+| **IoC bean 定义** | `AppBeanContainerLoader` | `/{moduleId}/beans/app.beans.xml` 和 `app-*.beans.xml` |
+| **ORM 模型** | `OrmModelLoader` | `/{moduleId}/orm/app.orm.xml` |
+| **ORM 拦截器** | `XplOrmInterceptorLoader` | `/{moduleId}/orm/app.orm-interceptor.xml` |
+| **Biz 模型** | `GraphQLBizModels` | `/{moduleId}/model/*.xbiz` |
+| **XMeta 元模型** | `GraphQLBizModels` | `/{moduleId}/model/*.xmeta` |
+| **SQL 库** | `SqlLibManager` | `/{moduleId}/sql/*.sql-lib.xml` |
+| **配置变量** | `ConfigModelLoader` | `/{moduleId}/conf/config.vars.yaml` |
+| **错误码映射** | `ErrorCodeMappingsLoader` | `/{moduleId}/conf/app.errors.yaml` |
+| **页面定义** | `PageProvider` | `/{moduleId}/pages/*/*.page.yaml` |
+| **动态 XJS/XCSS** | `DynamicWebFileProvider` | `/{moduleId}/pages/*.xjs`, `/{moduleId}/js/*.xjs` 等 |
+| **TCC 元数据** | `DefaultTccServiceMetaLoader` | `/{moduleId}/tcc/meta/*.tcc-meta.json5` |
+| **Spring bean** | `NopBeansAutoConfiguration` | `/{moduleId}/beans/spring-*.beans.xml` |
+| **MyBatis mapper** | `NopMybatisSessionFactoryCustomizer` | `/{moduleId}/mapper/*.mapper.xml` |
+| **版本化模型** | `ResourceVersionedModelStore` | `/{moduleId}/{basePath}/{name}/*.{ext}` |
+
+**不遍历模块的功能**：
+- **i18n 国际化**：从 `/i18n/{locale}/` 扁平目录加载，非按模块扫描
+- **Auth 权限/菜单**：从 `/nop/main/auth/app.action-auth.xml` 单一路径加载，非按模块扫描
+
 ## Classpath 扫描机制
 
 VFS 内容的发现通过 `ClassPathScanner` 实现，流程如下：
