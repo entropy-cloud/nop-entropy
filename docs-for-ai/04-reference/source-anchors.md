@@ -52,6 +52,7 @@
 | `DBG-002` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java` | DevDoc 提供 beans、configVars、graphql 等调试查询 |
 | `DBG-003` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/dev/DevToolBizModel.java` | DevTool 提供刷新 VFS 与清理缓存能力 |
 | `DBG-004` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DumpNamespaceHandler.java` | `_dump/{appName}/...` 是最终合并结果的重要调试出口 |
+| `DBG-005` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/impl/BizObjectManager.java`（`dumpGraphQLSchema`） | `nop.debug=true` 时启动自动 dump GraphQL schema 到 `_dump/{appName}/nop/main/graphql/schema.graphql` |
 | `GQL-001` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/GraphQLConstants.java` + `nop-service-framework/nop-graphql/nop-graphql-orm/src/main/java/io/nop/graphql/orm/OrmFetcherBuilder.java` + `nop-service-framework/nop-graphql/nop-graphql-orm/src/main/java/io/nop/graphql/orm/fetcher/OrmEntityPropConnectionFetcher.java` | relation 字段可通过 `graphql:filter` / `graphql:orderBy` 补默认查询元数据 |
 | `GQL-002` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/web/GraphQLWebService.java` (`runGraphQL` / `runRest` / `doPageQuery` / `runProxy`) + `nop-spring/nop-spring-web-starter/src/main/java/io/nop/spring/web/service/SpringGraphQLWebService.java` + `nop-quarkus/nop-quarkus-web/src/main/java/io/nop/quarkus/web/service/QuarkusGraphQLWebService.java` + `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/utils/GraphQLNameHelper.java` (`getOperationName`) | 所有 HTTP 入口（`/graphql`、`/r/{opName}`、`/p/{opName}`、`/px/{svc}/{method}`、`/jsonrpc`）统一由 `GraphQLWebService` 适配到 `IGraphQLEngine`，按 operationName `{bizObj}__{method}` 路由到同一个 BizModel 方法。`/r/` 与 `/p/` 共用 `runRest()` 执行路径，`/p/` 仅在响应阶段通过 `buildWebContent()` 增加二进制/文件/流支持。operationName 分隔符 `__` 定义在 `GraphQLConstants.OBJ_ACTION_SEPARATOR` |
 | `IOC-003` | `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/beans/dao-defaults.beans.xml` + `nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/beans/orm-defaults.beans.xml` + `nop-service-framework/nop-biz/src/main/resources/_vfs/nop/biz/beans/biz-defaults.beans.xml` | 平台内置 bean 广泛使用 `nop*` 命名，这是仓库强约定，但不是 IoC 层面的保留前缀规则 |
@@ -91,6 +92,19 @@
 | `DB-002` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java` (`getStringBinder` / `jdbcSet`) | Dialect 层空字符串转 NULL、VARCHAR 超长自动提升 CLOB 的实现 |
 | `DB-003` | `nop-kernel/nop-dataset/src/main/java/io/nop/dataset/binder/DataParameterBinders.java` (`STRING_EX`) | 空字符串转 NULL 的参数绑定器实现 |
 | `DB-004` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/_gen/_DialectFeatures.java` | Dialect 特性标志（useAsInFrom、supportNullsFirst 等） |
+| `RPC-001` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/rpc/IRpcService.java` | NopRPC 核心接口：`callAsync(serviceMethod, request, cancelToken)`，所有 RPC 实现统一于此 |
+| `RPC-002` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/rpc/IRpcServiceInvoker.java` | 服务发现与路由抽象：`invokeAsync(serviceName, serviceMethod, request, cancelToken)` |
+| `RPC-003` | `nop-cluster/nop-rpc-cluster/src/main/java/io/nop/rpc/cluster/ClusterRpcServiceInvoker.java` | `IRpcServiceInvoker` 默认实现：服务名白名单校验 + `ClusterRpcClient` |
+| `RPC-004` | `nop-cluster/nop-rpc-cluster/src/main/java/io/nop/rpc/cluster/ClusterRpcClient.java` | 集群 RPC 客户端：通过 `IServerChooser` 选择实例，支持重试 |
+| `RPC-005` | `nop-network/nop-rpc/nop-rpc-http/src/main/java/io/nop/rpc/http/HttpRpcService.java` | HTTP RPC 实现：将 `ApiRequest` 序列化为 HTTP 请求并通过 `IHttpClient` 发送 |
+| `RPC-006` | `nop-network/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java` | RPC 上下文绑定：从 `ApiRequest.headers` 提取 locale/timezone/tenant 等传播到 `IContext` |
+| `RPC-007` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/web/GraphQLWebService.java` (`runProxy`) | `/px/` 分布式代理入口：从 `ApiRequest.headers` 原样转发 HTTP 头到远程服务 |
+| `RPC-008` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/rpc/RpcServiceOnGraphQL.java` | 将 GraphQL BizModel 包装为 `IRpcService`，支持字段选择 |
+| `MOD-001` | `nop-kernel/nop-core/src/main/java/io/nop/core/module/ModuleManager.java` | 模块管理器全局单例；`discover()` 扫描 `*/*/_module`，`getEnabledModules()` 供所有消费者遍历 |
+| `MOD-002` | `nop-kernel/nop-core/src/main/java/io/nop/core/module/ModuleModel.java` | 模块数据模型；对应 `app.module.yaml` 的 Java bean |
+| `MOD-003` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/ModuleNamespaceHandler.java` | 实现 `module:` VFS 名字空间；`getResource()` 按模块隔离查找 |
+| `MOD-004` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/ResourceHelper.java` | `getModuleId()`、`getModuleName()`、`getModuleIdFromModuleName()` 等转换方法 |
+| `MOD-005` | `nop-kernel/nop-core/src/main/java/io/nop/core/CoreConfigs.java` | `CFG_MODULE_ENABLED_MODULE_NAMES`、`CFG_MODULE_DISABLED_MODULE_NAMES` 配置定义 |
 
 ## 当前最重要的校准点
 

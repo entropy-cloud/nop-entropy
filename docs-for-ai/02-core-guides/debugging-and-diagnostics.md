@@ -26,7 +26,7 @@ nop:
 |---------|---------|
 | Bean 没按预期注入 | `_dump/{appName}/nop/main/beans/merged-app.beans.xml`，以及 `DevDoc__beans` |
 | 配置值不对 | `DevDoc__configVars`，以及 `bootstrap.yaml` / `application.yaml` / `application-{profile}.yaml` |
-| GraphQL schema 或字段不对 | `DevDoc__graphql` |
+| GraphQL schema 或字段不对 | `_dump/{appName}/nop/main/graphql/schema.graphql`（启动时自动 dump）或运行时 `DevDoc__graphql` |
 | Delta 合并结果不对 | `_dump/{appName}/...` 下对应模型的最终文件 |
 | 新增 `_vfs` 文件不生效 | 刷新 VFS / 清理缓存 |
 | 生成链路结果不对 | `../03-runbooks/debug-codegen-and-generated-files.md` |
@@ -35,7 +35,12 @@ nop:
 
 ## `_dump` 是什么
 
-调试模式下（`nop.debug=true`），平台会把所有 XDSL 模型经过差量合并后的最终结果输出到 `_dump/{appName}/...`。
+调试模式下（`nop.debug=true`），平台会把以下内容输出到 `_dump/{appName}/...`：
+
+- 所有 XDSL 模型经过差量合并后的最终结果（XML + LOC 注释）
+- 所有 IoC bean 配置合并后的最终 `merged-app.beans.xml`
+- GraphQL schema 定义（SDL 格式文本）
+- 其他调试期中间产物（i18n 合并结果等）
 
 `_dump/` 是调试期临时输出目录，不是源码目录：
 
@@ -70,6 +75,21 @@ nop:
 
 也可以在单个模型根节点设置 `x:dump="true"` 打印合并过程的中间结果（不仅是最终结果）。
 
+### `_dump` 中的 GraphQL schema
+
+`nop.debug=true` 且应用启动完成后，`_dump/{appName}/nop/main/graphql/schema.graphql` 会包含完整的 GraphQL schema 定义（SDL 格式），包括：
+
+- 所有 Query / Mutation / Subscription 操作
+- 所有 Object / Input / Enum / Interface / Scalar 类型定义
+- 所有类型字段、参数、返回值
+
+这个文件在启动时自动产生，与运行时 `DevDoc__graphql` 返回的内容一致，但无需启动服务即可离线查看。
+
+**典型用途：**
+1. 确认某个字段/操作是否已注册到 schema 中
+2. 对比不同模块版本间的 schema 差异
+3. 作为 API 文档离线参考
+
 ## 页面生成调试
 
 通过 REST 接口获取 view.xml 经过模板展开后的最终 AMIS JSON，用于验证页面配置是否正确：
@@ -90,11 +110,24 @@ curl -s "http://localhost:8080/p/PageProvider__getPage?path=/nop/code/pages/dash
 
 1. `DevDoc__beans`：查看最终启用的 bean。
 2. `DevDoc__configVars`：查看配置变量。
-3. `DevDoc__graphql`：查看 GraphQL 文档。
+3. `DevDoc__graphql`：运行时查看 GraphQL 文档（返回 SDL 格式文本）。
 4. `DevTool.refreshVirtualFileSystem`：刷新虚拟文件系统。
 5. `DevTool.clearComponentCache`：清理组件与 GraphQL 缓存。
 
 不要把访问路径写死成某个固定 HTTP URL。优先按 GraphQL 调用名理解这些能力。
+
+### `_dump` vs DevDoc — 关系说明
+
+| 机制 | 时机 | 内容格式 | 适用场景 |
+|------|------|---------|---------|
+| `_dump/{appName}/...`（XDSL/beans 模型） | 启动时自动产生 | XML + LOC 注释 | 追踪 Delta 合并来源、属性覆盖层 |
+| `_dump/{appName}/nop/main/graphql/schema.graphql` | 启动时自动产生 | GraphQL SDL 文本 | 查看完整 schema 类型定义、操作列表 |
+| `DevDoc__graphql` | 运行时按需查询 | GraphQL SDL 文本 | 运行时对比当前 schema、热加载后确认变更 |
+| `DevDoc__beans` | 运行时按需查询 | XML | 运行时确认 bean 定义 |
+
+- `_dump` 是静态快照，适合离线查看和对比。
+- DevDoc 是动态查询，反映当前运行时状态（包括热加载/动态注册的变更）。
+- **如果 `_dump` 中看不到预期内容，先确认 `nop.debug=true` 且应用已完成启动。**
 
 ## 常见定位路径
 

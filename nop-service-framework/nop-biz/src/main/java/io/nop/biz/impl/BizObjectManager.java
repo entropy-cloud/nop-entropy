@@ -10,6 +10,7 @@ package io.nop.biz.impl;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.biz.api.IBizObject;
@@ -23,6 +24,9 @@ import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.graphql.core.GraphQLConstants;
@@ -141,6 +145,18 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
                 getBizObject(bizObjName);
             }
         }
+        dumpGraphQLSchema();
+    }
+
+    void dumpGraphQLSchema() {
+        if (!AppConfig.isDebugMode())
+            return;
+
+        GraphQLDocument doc = getGraphQLDocument();
+        String text = doc.toSource();
+        String dumpPath = ResourceHelper.getDumpPath("/nop/main/graphql/schema.graphql");
+        IResource resource = VirtualFileSystem.instance().getResource(dumpPath);
+        ResourceHelper.writeText(resource, text);
     }
 
     public void clearCache() {
