@@ -68,7 +68,7 @@ describe("FlowEngine — goal driver integration", () => {
     const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     flow.maxTotalSteps = 80;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
 
     let roadmapCount = 0;
     let deepAuditCount = 0;
@@ -76,16 +76,16 @@ describe("FlowEngine — goal driver integration", () => {
     const delegates = makeMockDelegates({
       subFlows: mockSubFlows(),
       responses: {
-        HEALTH_CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
+        CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
 
-        ROADMAP_CHECK: () => {
+        ROADMAP: () => {
           roadmapCount++;
           return roadmapCount <= 1
             ? { text: "<AI_STEP_RESULT>pending</AI_STEP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true }
             : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
         },
 
-        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE>\n</FLOW_VARS>",
+        DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE>\n</FLOW_VARS>",
 
         "EXECUTE": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
         "CLOSURE_SCRIPT_CHECK": "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
@@ -117,23 +117,23 @@ describe("FlowEngine — goal driver integration", () => {
     assert.equal(result.status, "completed");
     assert.ok(result.stepCount >= 7, `expected >=7 steps, got ${result.stepCount}`);
 
-    assert.ok(delegates.callLog.some(c => c.stepName === "PLAN_DRAFT"), "PLAN_DRAFT should be called");
+    assert.ok(delegates.callLog.some(c => c.stepName === "DRAFT"), "DRAFT should be called");
     assert.ok(delegates.callLog.some(c => c.stepName === "DEEP_AUDIT"), "DEEP_AUDIT should be called");
   });
 
-  it("retries PLAN_DRAFT with feedback when PLAN_FILE does not exist, then proceeds normally", async () => {
+  it("retries DRAFT with feedback when PLAN_FILE does not exist, then proceeds normally", async () => {
     const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     flow.maxTotalSteps = 40;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
 
-    let planDraftCalls = 0;
+    let draftCalls = 0;
     let roadmapCalls = 0;
     const delegates = makeMockDelegates({
       subFlows: mockSubFlows(),
       responses: {
-        HEALTH_CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
-        ROADMAP_CHECK: () => {
+        CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
+        ROADMAP: () => {
           roadmapCalls++;
           return roadmapCalls <= 1
             ? { text: "<AI_STEP_RESULT>pending</AI_STEP_RESULT>\n<ROADMAP_ITEMS><item>P1</item></ROADMAP_ITEMS>", ok: true }
@@ -146,9 +146,9 @@ describe("FlowEngine — goal driver integration", () => {
         DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         DRAFT_PLANS: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS><PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE></FLOW_VARS>",
-        PLAN_DRAFT: () => {
-          planDraftCalls++;
-          if (planDraftCalls === 1) {
+        DRAFT: () => {
+          draftCalls++;
+          if (draftCalls === 1) {
             return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/YYYY-MM-DD-NNN-slug.md</PLAN_FILE>\n</FLOW_VARS>", ok: true };
           }
           return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE>\n</FLOW_VARS>", ok: true };
@@ -167,24 +167,24 @@ describe("FlowEngine — goal driver integration", () => {
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.equal(planDraftCalls, 2, "PLAN_DRAFT should be called twice (first with placeholder, retry with valid)");
-    assert.ok(delegates.callLog.some(c => c.stepName === "ROADMAP_CHECK"),
-      "flow should progress past PLAN_DRAFT to ROADMAP_CHECK after valid PLAN_FILE on retry");
+    assert.equal(draftCalls, 2, "DRAFT should be called twice (first with placeholder, retry with valid)");
+    assert.ok(delegates.callLog.some(c => c.stepName === "ROADMAP"),
+      "flow should progress past DRAFT to ROADMAP after valid PLAN_FILE on retry");
   });
 
-  it("handles execute entry via execute-all-active-plans with active plan", async () => {
+  it("handles execute entry via PLANS with active plan", async () => {
     const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     flow.maxTotalSteps = 40;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
 
     let scanCalls = 0;
 
     const delegates = makeMockDelegates({
       subFlows: mockSubFlows(),
       responses: {
-        HEALTH_CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
-        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
+        ROADMAP: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
         DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         DRAFT_PLANS: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS><PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE></FLOW_VARS>",
@@ -194,7 +194,7 @@ describe("FlowEngine — goal driver integration", () => {
         BUILD_VERIFY: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
       },
       async runScript(stepName, stepDef) {
-        if (stepName === "EXECUTE_ALL_ACTIVE_PLANS.SCAN_PLANS") {
+        if (stepName === "PLANS.SCAN_PLANS") {
           scanCalls++;
           return scanCalls === 1
             ? { marker: "ok", vars: { items: '["/tmp/test/ai-dev/plans/active-plan.md"]' }, text: "ok" }
@@ -215,24 +215,24 @@ describe("FlowEngine — goal driver integration", () => {
     assert.ok(executeCalls.length >= 1, `Expected EXECUTE in child subflow, callLog: ${delegates.callLog.map(c => c.stepName).join(", ")}`);
   });
 
-  it("retries HEALTH_CHECK on failure, then proceeds", async () => {
+  it("retries CHECK on failure, then proceeds", async () => {
     const { createGoalDriverFlow } = await import("../src/flow-loader.js");
     const flow = createGoalDriverFlow();
     flow.maxTotalSteps = 40;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
 
-    let healthCount = 0;
+    let checkCount = 0;
 
     const delegates = makeMockDelegates({
       subFlows: mockSubFlows(),
       responses: {
-        HEALTH_CHECK: () => {
-          healthCount++;
-          return healthCount < 2
+        CHECK: () => {
+          checkCount++;
+          return checkCount < 2
             ? { text: "<AI_STEP_RESULT>fail</AI_STEP_RESULT>", ok: true }
             : { text: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>", ok: true };
         },
-        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        ROADMAP: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
         DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
         DRAFT_PLANS: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS><PLAN_FILE>/tmp/_goal-driver-test-plan.md</PLAN_FILE></FLOW_VARS>",
@@ -246,7 +246,7 @@ describe("FlowEngine — goal driver integration", () => {
     const result = await engine.run();
 
     assert.equal(result.status, "completed");
-    assert.equal(healthCount, 2, "HEALTH_CHECK should be retried once after first fail");
+    assert.equal(checkCount, 2, "CHECK should be retried once after first fail");
   });
 });
 

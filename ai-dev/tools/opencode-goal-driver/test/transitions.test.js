@@ -265,7 +265,7 @@ describe("FlowEngine — onError (subprocess killed)", () => {
 describe("FlowEngine — case-insensitive marker aliases", () => {
   it("resolves marker via case-insensitive fallback (CREATED → created)", async () => {
     const flow = simpleFlow({
-      PLAN_DRAFT: {
+      DRAFT: {
         type: "agent",
         prompt: "draft",
         resultTag: "AI_STEP_RESULT",
@@ -277,11 +277,11 @@ describe("FlowEngine — case-insensitive marker aliases", () => {
         resultTag: "R",
         transitions: { ok: { done: "completed" } },
       },
-    }, "PLAN_DRAFT");
+    }, "DRAFT");
 
     const delegates = makeMockDelegates({
       responses: {
-        PLAN_DRAFT: "<AI_STEP_RESULT>CREATED</AI_STEP_RESULT>",
+        DRAFT: "<AI_STEP_RESULT>CREATED</AI_STEP_RESULT>",
         NEXT: "<R>ok</R>",
       },
     });
@@ -436,7 +436,7 @@ describe("FlowEngine — marker correction retry", () => {
 describe("FlowEngine — plan audit retry loop", () => {
   it("retries plan draft when audit finds issues, then proceeds on approval", async () => {
     const flow = simpleFlow({
-      PLAN_DRAFT: {
+      DRAFT: {
         type: "agent",
         prompt: "draft plan",
         resultTag: "AI_STEP_RESULT",
@@ -451,7 +451,7 @@ describe("FlowEngine — plan audit retry loop", () => {
         transitions: {
           approved: { goto: "EXECUTE" },
           issues: {
-            retry: "PLAN_DRAFT",
+            retry: "DRAFT",
             maxRetries: 3,
             append: { template: "Feedback:\n${output}" },
           },
@@ -464,12 +464,12 @@ describe("FlowEngine — plan audit retry loop", () => {
         resultTag: "AI_STEP_RESULT",
         transitions: { success: { done: "completed" } },
       },
-    }, "PLAN_DRAFT");
+    }, "DRAFT");
 
     let draftCount = 0;
     const delegates = makeMockDelegates({
       responses: {
-        PLAN_DRAFT: () => {
+        DRAFT: () => {
           draftCount++;
           return { text: "<AI_STEP_RESULT>created</AI_STEP_RESULT>", ok: true };
         },
@@ -489,7 +489,7 @@ describe("FlowEngine — plan audit retry loop", () => {
     assert.equal(result.status, "completed");
     assert.equal(draftCount, 2);
 
-    const draftCalls = delegates.callLog.filter(c => c.stepName === "PLAN_DRAFT");
+    const draftCalls = delegates.callLog.filter(c => c.stepName === "DRAFT");
     assert.equal(draftCalls.length, 2);
     assert.ok(!draftCalls[0].prompt.includes("Feedback"));
     assert.ok(draftCalls[1].prompt.includes("Feedback"));
@@ -498,7 +498,7 @@ describe("FlowEngine — plan audit retry loop", () => {
 
   it("degrades gracefully when plan audit retries exhausted", async () => {
     const flow = simpleFlow({
-      PLAN_DRAFT: {
+      DRAFT: {
         type: "agent",
         prompt: "draft",
         resultTag: "R",
@@ -511,7 +511,7 @@ describe("FlowEngine — plan audit retry loop", () => {
         maxRetries: 2,
         transitions: {
           approved: { goto: "EXECUTE" },
-          issues: { retry: "PLAN_DRAFT", append: true },
+          issues: { retry: "DRAFT", append: true },
         },
         onMaxRetries: { goto: "EXECUTE", append: { template: "⚠️ plan audit failed" } },
       },
@@ -521,12 +521,12 @@ describe("FlowEngine — plan audit retry loop", () => {
         resultTag: "R",
         transitions: { ok: { done: "completed" } },
       },
-    }, "PLAN_DRAFT");
+    }, "DRAFT");
 
     let execPrompt = "";
     const delegates = makeMockDelegates({
       responses: {
-        PLAN_DRAFT: "<R>ok</R>",
+        DRAFT: "<R>ok</R>",
         PLAN_AUDIT: "<R>issues</R>",
         EXECUTE: (sn, prompt) => { execPrompt = prompt; return { text: "<R>ok</R>", ok: true }; },
       },
@@ -539,9 +539,9 @@ describe("FlowEngine — plan audit retry loop", () => {
     assert.ok(execPrompt.includes("⚠️ plan audit failed"));
   });
 
-  it("retry PLAN_DRAFT returns created without FLOW_VARS, keeping existing PLAN_FILE (replaces old revised marker)", async () => {
+  it("retry DRAFT returns created without FLOW_VARS, keeping existing PLAN_FILE (replaces old revised marker)", async () => {
     const flow = simpleFlow({
-      PLAN_DRAFT: {
+      DRAFT: {
         type: "agent",
         prompt: "draft plan",
         resultTag: "AI_STEP_RESULT",
@@ -556,7 +556,7 @@ describe("FlowEngine — plan audit retry loop", () => {
         transitions: {
           approved: { goto: "EXECUTE" },
           issues: {
-            retry: "PLAN_DRAFT",
+            retry: "DRAFT",
             maxRetries: 3,
             append: { template: "## REVISION REQUEST\n\nPlan at {{PLAN_FILE}} — revise in-place:\n\n${output}" },
           },
@@ -569,12 +569,12 @@ describe("FlowEngine — plan audit retry loop", () => {
         resultTag: "AI_STEP_RESULT",
         transitions: { success: { done: "completed" } },
       },
-    }, "PLAN_DRAFT");
+    }, "DRAFT");
 
     let draftCount = 0;
     const delegates = makeMockDelegates({
       responses: {
-        PLAN_DRAFT: (sn, prompt) => {
+        DRAFT: (sn, prompt) => {
           draftCount++;
           if (draftCount === 1) {
             // first call: creates plan with path
@@ -599,7 +599,7 @@ describe("FlowEngine — plan audit retry loop", () => {
     assert.equal(result.status, "completed");
     assert.equal(draftCount, 3);
 
-    const draftCalls = delegates.callLog.filter(c => c.stepName === "PLAN_DRAFT");
+    const draftCalls = delegates.callLog.filter(c => c.stepName === "DRAFT");
     assert.equal(draftCalls.length, 3);
     assert.equal(draftCalls[0].prompt.includes("REVISION REQUEST"), false);
     assert.ok(draftCalls[1].prompt.includes("REVISION REQUEST"));

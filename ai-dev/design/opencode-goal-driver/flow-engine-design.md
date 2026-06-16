@@ -421,28 +421,9 @@ Subflows: `ai-dev/tools/opencode-goal-driver/flows/plan-execution.json`, `ai-dev
 
 ### 6.1 Top-level Flow
 
-```mermaid
-flowchart TD
-    HC["🏥 HEALTH_CHECK<br/><i>AI agent: health-check.md</i>"]
-    HC -->|pass| PR["🔀 PLAN_ROUTER<br/><i>script: planRouter</i>"]
-    HC -->|"fail ×3"| FAILED["❌ failed"]
+> The authoritative source for the current flow is `ai-dev/tools/opencode-goal-driver/flows/goal-driver.json`. The diagram below is a conceptual overview; exact step names are `CHECK`, `PLANS`, `ROADMAP`, `DRAFT`, `AUDIT` (as of v8).
 
-    PR -->|execute| EP["▶️ EXECUTE_PLAN<br/><i>subflow: plan-execution</i>"]
-    PR -->|roadmap| RC["🗺️ ROADMAP_CHECK<br/><i>agent</i>"]
-
-    RC -->|pending| PD["📝 PLAN_DRAFT<br/><i>agent → flowVars: PLAN_FILE</i>"]
-    RC -->|complete| DAL["🔬 DEEP_AUDIT_LOOP<br/><i>subflow: deep-audit-loop</i>"]
-
-    PD -->|created| EP
-
-    EP -->|complete/failed| PR
-
-    DAL -->|completed| AD["⚔️ ADVERSARIAL<br/><i>agent</i>"]
-    DAL -->|failed| PR
-
-    AD -->|clean| DONE["✅ completed"]
-    AD -->|issues| PD
-```
+<!-- Top-level flow has 5 top-level steps in a cycle: CHECK → PLANS → ROADMAP → DRAFT or AUDIT → PLANS → ... Steps: CHECK (health-check agent), PLANS (group: scan + forEach plan-execution), ROADMAP (roadmap-check agent), DRAFT (plan draft + self-audit agent), AUDIT (deep-audit-loop subflow). See goal-driver-flow-design.md for the full mermaid diagram with transitions. -->
 
 ### 6.2 CLOSURE_VERIFY Sub-flow (group step within plan-execution)
 
@@ -457,25 +438,13 @@ flowchart TD
     AI -->|onError| FAIL
 ```
 
-### 6.3 DEEP_AUDIT_LOOP Sub-flow
+### 6.3 deep-audit-loop Sub-flow
 
-```mermaid
-flowchart TD
-    DA["🔬 DEEP_AUDIT<br/><i>agent</i>"] -->|clean| DONE["→ subflow exit: completed"]
-    DA -->|issues| DP["📝 DRAFT_PLAN<br/><i>agent → flowVars: PLAN_FILE</i>"]
-
-    DP -->|created| AP["🔍 AUDIT_PLAN<br/><i>agent</i>"]
-    DP -->|none| DA
-
-    AP -->|approved| EP["▶️ EXECUTE_PLAN<br/><i>subflow: plan-execution</i>"]
-    AP -->|"issues ×3"| DP
-
-    EP -->|complete/failed| DP
-```
+> The authoritative source is `ai-dev/tools/opencode-goal-driver/flows/deep-audit-loop.json`. The sub-flow has three steps: DEEP_AUDIT, ADVERSARIAL, DRAFT_PLANS. See `ai-dev/design/opencode-goal-driver/goal-driver-flow-design.md` §六 for the full mermaid diagram.
 
 ### 6.4 Error Recovery
 
-**HEALTH_CHECK retry chain**:
+**CHECK retry chain**:
 - AI agent fails → retry up to 3 times, each with a fresh session (no context accumulation)
 - All retries exhausted → overall `failed`
 

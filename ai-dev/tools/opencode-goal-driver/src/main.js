@@ -1,11 +1,14 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { resolveConfig } from "./config.js";
 import { createRunner, resetMockState } from "./runner.js";
 import { FlowEngine } from "./engine.js";
 import { createGoalDriverFlow, loadSubFlow } from "./flow-loader.js";
 
 function parseArgs(argv) {
-  const args = { module: "", dryRun: false, testMode: false };
+  const args = { module: "", dryRun: false, testMode: false, listSteps: false };
   let i = 2;
   while (i < argv.length) {
     const a = argv[i];
@@ -17,14 +20,39 @@ function parseArgs(argv) {
     else if (a === "--max-inner-cycles") args.maxInnerCycles = Number(argv[++i]);
     else if (a === "--max-total-steps") args.maxTotalSteps = Number(argv[++i]);
     else if (a === "--test") args.testMode = true;
+    else if (a === "--step") args.entryStep = argv[++i];
+    else if (a === "--list-steps") args.listSteps = true;
     else if (!a.startsWith("--")) args.module = a;
     i++;
   }
   return args;
 }
 
+function getTopSteps() {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const flowFile = resolve(__dirname, "..", "flows", "goal-driver.json");
+  const flow = JSON.parse(readFileSync(flowFile, "utf8"));
+  return Object.keys(flow.steps || {});
+}
+
+function printStepList() {
+  const steps = getTopSteps();
+  console.log("Available top-level steps:");
+  for (const s of steps) {
+    console.log(`  ${s}`);
+  }
+  console.log("");
+  console.log("Usage: --step <STEP_NAME> to start from a specific step");
+}
+
 async function main() {
   const args = parseArgs(process.argv);
+
+  if (args.listSteps) {
+    printStepList();
+    return;
+  }
+
   const config = resolveConfig(args);
   const runner = await createRunner(config);
 
@@ -60,9 +88,26 @@ async function main() {
       loadSubFlow,
     };
 
+    if (args.entryStep) {
+      const step = flow.steps[args.entryStep];
+      if (!step) {
+        console.error(`ERROR: step "${args.entryStep}" not found in flow. Use --list-steps to see available steps.`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(`Step:     ${args.entryStep} (single-step mode)`);
+      // Replace goto transitions with done so the flow stops after this step
+      for (const [marker, t] of Object.entries(step.transitions || {})) {
+        if (t.goto && !t.retry) {
+          t.done = "completed";
+          delete t.goto;
+        }
+      }
+    }
+
     resetMockState();
     const engine = new FlowEngine(flow, delegates);
-    const result = await engine.run();
+    const result = await engine.run(args.entryStep);
 
     console.log(`\n════════════════════════════════════════`);
     console.log(`  Module:    ${config.moduleName}`);

@@ -17,8 +17,8 @@ function fullDelegates(subFlows, overrides = {}) {
   const overridesResponses = overrides.responses || {};
   const overridesRunScript = overrides.runScript;
   const mergedResponses = {
-    HEALTH_CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
-    ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+    CHECK: "<AI_STEP_RESULT>pass</AI_STEP_RESULT>",
+    ROADMAP: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
     DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
     ADVERSARIAL: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
     DRAFT_PLANS: "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS><PLAN_FILE>/tmp/test-plan.md</PLAN_FILE></FLOW_VARS>",
@@ -40,7 +40,7 @@ function fullDelegates(subFlows, overrides = {}) {
       const result = await overridesRunScript(stepName, stepDef);
       if (result !== undefined) return result;
     }
-    if (stepName === "EXECUTE_ALL_ACTIVE_PLANS.SCAN_PLANS") {
+    if (stepName === "PLANS.SCAN_PLANS") {
       return "empty";
     }
     return undefined;
@@ -59,8 +59,8 @@ describe("goal-driver flow definition", () => {
   it("loads goal-driver.json without error", () => {
     const flow = loadFlow("goal-driver");
     assert.equal(flow.name, "goal-driver");
-    assert.equal(flow.entry, "HEALTH_CHECK");
-    assert.ok(flow.steps.HEALTH_CHECK);
+    assert.equal(flow.entry, "CHECK");
+    assert.ok(flow.steps.CHECK);
   });
 
   it("loads plan-execution.json without error", () => {
@@ -98,12 +98,12 @@ describe("goal-driver — subflow marker propagation", () => {
   it("EXECUTE_PLAN returns 'pass' when plan-execution completes", async () => {
     const flow = loadFlow("goal-driver");
     flow.maxTotalSteps = 30;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
 
     let scanCalls = 0;
     const d = fullDelegates(mockSubFlows(), {
       runScript: async (stepName, stepDef) => {
-        if (stepName === "EXECUTE_ALL_ACTIVE_PLANS.SCAN_PLANS") {
+        if (stepName === "PLANS.SCAN_PLANS") {
           scanCalls++;
           return scanCalls <= 1
             ? { marker: "ok", vars: { items: '["/tmp/test-plan.md"]' }, text: "ok" }
@@ -120,14 +120,14 @@ describe("goal-driver — subflow marker propagation", () => {
     assert.ok(steps.length >= 1, "EXECUTE should be called in plan-execution subflow");
   });
 
-  it("DEEP_AUDIT_LOOP returns 'clean' when deep-audit-loop completes", async () => {
+  it("AUDIT returns 'clean' when deep-audit-loop completes", async () => {
     const flow = loadFlow("goal-driver");
     flow.maxTotalSteps = 30;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
 
     const d = fullDelegates(mockSubFlows(), {
       responses: {
-        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        ROADMAP: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
       },
     });
 
@@ -156,19 +156,19 @@ describe("goal-driver — subflow marker propagation", () => {
 // 3. Flow path coverage
 // ═══════════════════════════════════════════════
 describe("goal-driver — path coverage", () => {
-  it("execute path: HEALTH_CHECK → EXECUTE_ALL_ACTIVE_PLANS → ROADMAP_CHECK → complete → DEEP_AUDIT_LOOP → clean → done", async () => {
+  it("execute path: CHECK → PLANS → ROADMAP → complete → AUDIT → clean → done", async () => {
     const flow = loadFlow("goal-driver");
     flow.maxTotalSteps = 20;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
 
     let scanCalls = 0;
     const d = fullDelegates(mockSubFlows(), {
       responses: {
-        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        ROADMAP: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
         DEEP_AUDIT: "<AI_STEP_RESULT>clean</AI_STEP_RESULT>",
       },
       runScript: async (stepName, stepDef) => {
-        if (stepName === "EXECUTE_ALL_ACTIVE_PLANS.SCAN_PLANS") {
+        if (stepName === "PLANS.SCAN_PLANS") {
           scanCalls++;
           return scanCalls <= 1
             ? { marker: "ok", vars: { items: '["/tmp/test-plan.md"]' }, text: "ok" }
@@ -183,56 +183,56 @@ describe("goal-driver — path coverage", () => {
     assert.equal(scanCalls, 1);
   });
 
-  it("HEALTH_CHECK fails 3 times → done failed", async () => {
+  it("CHECK fails 3 times → done failed", async () => {
     const flow = loadFlow("goal-driver");
     flow.maxTotalSteps = 10;
 
     const d = fullDelegates(mockSubFlows(), {
-      responses: { HEALTH_CHECK: "<AI_STEP_RESULT>fail</AI_STEP_RESULT>" },
+      responses: { CHECK: "<AI_STEP_RESULT>fail</AI_STEP_RESULT>" },
     });
     const engine = new FlowEngine(flow, d);
     const result = await engine.run();
     assert.equal(result.status, "failed");
-    const healthCalls = d.callLog.filter(c => c.stepName === "HEALTH_CHECK");
+    const healthCalls = d.callLog.filter(c => c.stepName === "CHECK");
     assert.equal(healthCalls.length, 4); // 1 initial + 3 retries = 4
   });
 
-  it("PLAN_DRAFT(created) → EXECUTE_ALL_ACTIVE_PLANS → done (audit is internal to PLAN_DRAFT)", async () => {
+  it("DRAFT(created) → PLANS → done (audit is internal to DRAFT)", async () => {
     const flow = loadFlow("goal-driver");
     flow.maxTotalSteps = 20;
-    flow.steps.DEEP_AUDIT_LOOP.transitions.clean = { done: "completed" };
+    flow.steps.AUDIT.transitions.clean = { done: "completed" };
     let rmCalls = 0;
 
     const d = fullDelegates(mockSubFlows(), {
       responses: {
-        ROADMAP_CHECK: () => {
+        ROADMAP: () => {
           rmCalls++;
           return rmCalls <= 1
             ? { text: "<AI_STEP_RESULT>pending</AI_STEP_RESULT>", ok: true }
             : { text: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>", ok: true };
         },
-        PLAN_DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
+        DRAFT: "<AI_STEP_RESULT>created</AI_STEP_RESULT>",
       },
     });
     const engine = new FlowEngine(flow, d);
     const result = await engine.run();
     assert.equal(result.status, "completed");
-    // PLAN_DRAFT should go straight to EXECUTE_ALL_ACTIVE_PLANS, no PLAN_AUDIT step
+    // DRAFT should go straight to PLANS, no PLAN_AUDIT step
     assert.ok(!d.callLog.some(c => c.stepName === "PLAN_AUDIT"), "PLAN_AUDIT step should not exist");
   });
 
-  it("DEEP_AUDIT_LOOP triggers cycle via EXECUTE_ALL_ACTIVE_PLANS → ROADMAP_CHECK → ... → max_total_steps", async () => {
+  it("AUDIT triggers cycle via PLANS → ROADMAP → ... → max_total_steps", async () => {
     const flow = loadFlow("goal-driver");
     flow.maxTotalSteps = 10;
 
     const d = fullDelegates(mockSubFlows(), {
       responses: {
-        ROADMAP_CHECK: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
+        ROADMAP: "<AI_STEP_RESULT>complete</AI_STEP_RESULT>",
       },
     });
     const engine = new FlowEngine(flow, d);
     const result = await engine.run();
-    // cycles: EXECUTE_ALL_ACTIVE_PLANS → ROADMAP_CHECK → DEEP_AUDIT_LOOP until maxTotalSteps
+    // cycles: PLANS → ROADMAP → AUDIT until maxTotalSteps
     assert.equal(result.status, "max_total_steps");
   });
 });

@@ -35,8 +35,8 @@ export function resetMockState() {
 
 const STEP_KEY_MAP = {
   "FIX_BUILD": "fix-build",
-  "ROADMAP_CHECK": "roadmap-check",
-  "PLAN_DRAFT": "plan-draft",
+  "ROADMAP": "roadmap",
+  "DRAFT": "draft",
   "EXECUTE": "execute",
   "CLOSURE_AUDIT": "closure-audit",
   "DEEP_AUDIT": "deep-audit",
@@ -54,14 +54,14 @@ function mockAgentResponse(stepName) {
 
   if (n === "fix-build") return "<AI_STEP_RESULT>fixed</AI_STEP_RESULT>";
 
-  if (n === "roadmap-check") {
+  if (n === "roadmap") {
     _mockRoadmapCount++;
     return _mockRoadmapCount <= 1
       ? "<AI_STEP_RESULT>pending</AI_STEP_RESULT>\n<NEXT_ITEM id=\"mock-P1\" layer=\"L1\" priority=\"P1\">mock: unimplemented feature</NEXT_ITEM>\n<ROADMAP_ITEMS><item id=\"mock-P1\" priority=\"P1\">mock: unimplemented feature</item></ROADMAP_ITEMS>"
       : "<AI_STEP_RESULT>complete</AI_STEP_RESULT>";
   }
 
-  if (n === "plan-draft") return "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/mock-plan.md</PLAN_FILE>\n</FLOW_VARS>";
+  if (n === "draft") return "<AI_STEP_RESULT>created</AI_STEP_RESULT>\n<FLOW_VARS>\n  <PLAN_FILE>ai-dev/plans/mock-plan.md</PLAN_FILE>\n</FLOW_VARS>";
 
   if (n === "execute") return "<AI_STEP_RESULT>success</AI_STEP_RESULT>";
 

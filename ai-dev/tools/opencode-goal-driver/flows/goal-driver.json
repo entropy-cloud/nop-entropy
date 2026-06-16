@@ -4,7 +4,7 @@
   "maxCycleVisits": 30,
   "maxValidationRetries": 2,
   "pingPongWindow": 6,
-  "entry": "HEALTH_CHECK",
+  "entry": "CHECK",
 
   "validateFlowVars": {
     "PLAN_FILE": { "exists": true }
@@ -28,19 +28,19 @@
   },
 
   "steps": {
-    "HEALTH_CHECK": {
+    "CHECK": {
       "type": "agent",
       "promptPath": "prompts/health-check.md",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "pass": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" },
-        "fail": { "retry": "HEALTH_CHECK", "maxRetries": 3 }
+        "pass": { "goto": "PLANS" },
+        "fail": { "retry": "CHECK", "maxRetries": 3 }
       },
       "onMaxRetries": { "done": "failed" },
-      "onError": { "retry": "HEALTH_CHECK", "maxRetries": 3 }
+      "onError": { "retry": "CHECK", "maxRetries": 3 }
     },
 
-    "EXECUTE_ALL_ACTIVE_PLANS": {
+    "PLANS": {
       "type": "group",
       "maxRounds": 1,
       "steps": {
@@ -66,44 +66,44 @@
         }
       },
       "transitions": {
-        "done": { "goto": "ROADMAP_CHECK" },
-        "fail": { "goto": "ROADMAP_CHECK" }
+        "done": { "goto": "ROADMAP" },
+        "fail": { "goto": "ROADMAP" }
       },
-      "onError": { "goto": "ROADMAP_CHECK" }
+      "onError": { "goto": "ROADMAP" }
     },
 
-    "ROADMAP_CHECK": {
+    "ROADMAP": {
       "type": "agent",
       "promptPath": "prompts/roadmap-check.md",
       "onUnknownMaxRetries": 2,
       "transitions": {
         "pending": {
-          "goto": "PLAN_DRAFT",
+          "goto": "DRAFT",
           "append": { "template": "\n\nSelected work item from roadmap check:\n${output}" }
         },
-        "complete": { "goto": "DEEP_AUDIT_LOOP" }
+        "complete": { "goto": "AUDIT" }
       },
-      "onError": { "goto": "DEEP_AUDIT_LOOP" }
+      "onError": { "goto": "AUDIT" }
     },
 
-    "PLAN_DRAFT": {
+    "DRAFT": {
       "type": "agent",
       "promptPath": "prompts/plan-draft.md",
       "onUnknownMaxRetries": 2,
       "transitions": {
-        "created": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" }
+        "created": { "goto": "PLANS" }
       },
-      "onError": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" }
+      "onError": { "goto": "PLANS" }
     },
 
-    "DEEP_AUDIT_LOOP": {
+    "AUDIT": {
       "type": "subflow",
       "flow": "deep-audit-loop",
       "transitions": {
-        "clean": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" },
-        "failed": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" }
+        "clean": { "goto": "PLANS" },
+        "failed": { "goto": "PLANS" }
       },
-      "onError": { "goto": "EXECUTE_ALL_ACTIVE_PLANS" }
+      "onError": { "goto": "PLANS" }
     }
   }
 }
