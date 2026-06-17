@@ -722,8 +722,11 @@ export class FlowEngine {
       if (transition.goto) {
         if (transition.append) {
           const appendText = this._formatAppend(transition.append, currentStep, result);
-          const existing = this.appendBuffers.get(transition.goto) || "";
-          this.appendBuffers.set(transition.goto, existing + appendText);
+          // Replace (not accumulate): each cycle = template + this round's append only.
+          // Cross-cycle transitions like ROADMAP→DRAFT must not grow the prompt unboundedly.
+          // Template-first ordering is preserved by _buildPrompt (template then append),
+          // so the stable prefix stays cache-friendly.
+          this.appendBuffers.set(transition.goto, appendText);
         }
         if (transition.evidence) {
           this._log(`  recording evidence for ${currentStep}`);

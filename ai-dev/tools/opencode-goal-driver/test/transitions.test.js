@@ -79,6 +79,51 @@ describe("FlowEngine — goto with append", () => {
   });
 });
 
+describe("FlowEngine — cross-cycle append does not accumulate", () => {
+  it("each cycle's target step sees only the latest append, not history", async () => {
+    const flow = simpleFlow({
+      ROADMAP: {
+        type: "agent",
+        prompt: "pick item",
+        resultTag: "R",
+        transitions: {
+          pending: { goto: "WORK", append: { template: "Item:\n${output}" } },
+          done: { done: "completed" },
+        },
+      },
+      WORK: {
+        type: "agent",
+        prompt: "do work",
+        resultTag: "R",
+        transitions: { ok: { goto: "ROADMAP" } },
+      },
+    }, "ROADMAP");
+
+    let cycle = 0;
+    const workPrompts = [];
+    const delegates = makeMockDelegates({
+      responses: {
+        ROADMAP: () => {
+          cycle++;
+          if (cycle <= 2) return { text: `<R>pending</R>\n<ITEM>item-${cycle}</ITEM>`, ok: true };
+          return { text: "<R>done</R>", ok: true };
+        },
+        WORK: (_sn, prompt) => { workPrompts.push(prompt); return { text: "<R>ok</R>", ok: true }; },
+      },
+    });
+
+    const engine = new FlowEngine(flow, delegates);
+    const result = await engine.run();
+
+    assert.equal(result.status, "completed");
+    assert.equal(workPrompts.length, 2);
+    assert.ok(workPrompts[0].includes("item-1"));
+    assert.ok(workPrompts[1].includes("item-2"));
+    assert.ok(!workPrompts[1].includes("item-1"),
+      "second cycle must not carry first cycle's append (cross-cycle leak)");
+  });
+});
+
 describe("FlowEngine — retry", () => {
   it("retries target step and accumulates append context", async () => {
     let draftCount = 0;
