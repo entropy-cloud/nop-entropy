@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="nopJobScheduledExecutor" class="io.nop.commons.concurrent.executor.DefaultScheduledExecutor"
+          destroy-method="destroy">
+        <property name="config">
+            <bean class="io.nop.commons.concurrent.executor.ThreadPoolConfig">
+                <property name="name" value="nop-job-local-scheduler"/>
+                <property name="corePoolSize" value="1"/>
+                <property name="maxPoolSize" value="1"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="nopJobInvokerResolver" class="io.nop.job.service.config.BeanContainerInvokerResolver"/>
+
+    <bean id="nopJobLocalScheduler" class="io.nop.job.core.LocalJobScheduler">
+        <constructor-arg index="0" ref="nopJobScheduledExecutor"/>
+        <constructor-arg index="1" ref="nopJobInvokerResolver"/>
+    </bean>
+
+    <bean id="nopJobInvoker_beanMethod" class="io.nop.job.service.executor.BeanMethodJobInvoker"/>
+
+    <bean id="nopJobLocalConfigLoader" class="io.nop.job.service.config.LocalJobConfigLoader">
+        <property name="scheduler" ref="nopJobLocalScheduler"/>
+        <property name="configPath" value="@cfg:nop.job.scheduler.config-path|/nop/job/conf/scheduler.yaml"/>
+    </bean>
+</beans>

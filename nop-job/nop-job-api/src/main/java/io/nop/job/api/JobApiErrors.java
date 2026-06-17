@@ -75,4 +75,28 @@ public interface JobApiErrors {
             "nop.err.job.rpc-invoker-missing-param",
             "RPC invoker missing required parameter: {paramName}"
     );
+
+    String ARG_BEAN_NAME = "beanName";
+
+    String ARG_METHOD_NAME = "methodName";
+
+    String ARG_CONFIG_PATH = "configPath";
+
+    ErrorCode ERR_JOB_BEAN_NOT_FOUND = define(
+            "nop.err.job.bean-not-found",
+            "Bean not found: {beanName}",
+            ARG_BEAN_NAME
+    );
+
+    ErrorCode ERR_JOB_METHOD_NOT_FOUND = define(
+            "nop.err.job.method-not-found",
+            "Method not found: {beanName}.{methodName}",
+            ARG_BEAN_NAME, ARG_METHOD_NAME
+    );
+
+    ErrorCode ERR_JOB_LOCAL_CONFIG_INVALID = define(
+            "nop.err.job.local-config-invalid",
+            "Local scheduler config is invalid: {configPath}",
+            ARG_CONFIG_PATH
+    );
 }

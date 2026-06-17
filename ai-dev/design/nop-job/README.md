@@ -9,8 +9,9 @@
 1. **愿景层** — 产品定位、成功标准、约束、non-goals、设计收敛路径、设计不变量
 2. **架构基线层** — 三层模型、模块划分、数据模型、核心流程、API 层
 3. **执行策略层** — 阻塞策略、Invoker 路由、限流
-4. **可观测层** — Metrics 命名和埋点规范
-5. **集群层** — 集群 HA 与动态分区、retry 桥接
+4. **本地调度层** — 本地配置调度（无数据库模式）
+5. **可观测层** — Metrics 命名和埋点规范
+6. **集群层** — 集群 HA 与动态分区、retry 桥接
 
 ---
 
@@ -37,6 +38,12 @@
 - `rate-limiting-design.md`
   - 限流设计与 nop 平台限流体系集成（Worker 级并发控制、RPC 限流启用）
   - 状态：draft
+
+## 本地调度层
+
+- `local-config-scheduling.md`
+  - 无数据库模式下的本地配置调度：YAML 配置格式与位置、delta 定制加载、条件激活、BeanMethodJobInvoker、IoC 集成
+  - 状态：草案
 
 ## 可观测层
 
@@ -67,10 +74,11 @@
 
 3. `invoker-design.md` — Invoker 路由体系
 4. `block-strategy-design.md` — 阻塞策略
-5. `cluster-ha-design.md` — 集群 HA 与动态分区
-6. `retry-integration-design.md` — retry 桥接
-7. `metrics-design.md` — Metrics 命名和埋点规范
-8. `rate-limiting-design.md` — 限流设计
+5. `local-config-scheduling.md` — 本地配置调度
+6. `cluster-ha-design.md` — 集群 HA 与动态分区
+7. `retry-integration-design.md` — retry 桥接
+8. `metrics-design.md` — Metrics 命名和埋点规范
+9. `rate-limiting-design.md` — 限流设计
 
 **扩展方向**：
 
