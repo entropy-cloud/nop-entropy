@@ -117,3 +117,6 @@ _tmp/
 
 # CodeGraph index database
 .codegraph/
+
+# Qoder
+.qoder/
