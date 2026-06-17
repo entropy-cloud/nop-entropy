@@ -60,7 +60,10 @@ public class TestActorMailboxConsumption {
         assertEquals("hello-world", received.get(0).getEnvelope().getPayload());
         assertEquals(AgentMessageKind.ASYNC, received.get(0).getEnvelope().getKind());
 
-        // The message was acked (removed from mailbox — no pending, no in-flight)
+        // The message was acked (removed from mailbox — no pending, no in-flight).
+        // record→ack ordering: addReceivedMessage happens before ack, so we must
+        // wait for the mailbox to be drained, not just for the record to appear.
+        waitForMailboxDrained(mailbox, 3000);
         assertEquals(0, mailbox.pendingCount());
         assertEquals(0, mailbox.inFlightCount());
 
@@ -89,6 +92,9 @@ public class TestActorMailboxConsumption {
         assertEquals("msg-2", received.get(1).getEnvelope().getPayload());
         assertEquals("msg-3", received.get(2).getEnvelope().getPayload());
 
+        // record→ack ordering: ack follows addReceivedMessage, so wait for the
+        // mailbox to be fully drained before asserting emptiness.
+        waitForMailboxDrained(mailbox, 3000);
         assertEquals(0, mailbox.pendingCount());
         assertEquals(0, mailbox.inFlightCount());
 
@@ -164,7 +170,10 @@ public class TestActorMailboxConsumption {
         mailbox.offer(envelope("permanent-ack"));
         waitForReceivedMessages(actor, 1, 3000);
 
-        // After ack, the message is permanently gone — no dead-letter, no redelivery
+        // After ack, the message is permanently gone — no dead-letter, no redelivery.
+        // record→ack ordering: ack follows addReceivedMessage, so wait for the
+        // mailbox to be fully drained before asserting emptiness.
+        waitForMailboxDrained(mailbox, 3000);
         assertEquals(0, mailbox.pendingCount());
         assertEquals(0, mailbox.inFlightCount());
         assertEquals(0, mailbox.deadLetterCount());
@@ -184,6 +193,23 @@ public class TestActorMailboxConsumption {
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
             if (actor.getReceivedMessages().size() >= expected) {
+                return;
+            }
+            Thread.sleep(10);
+        }
+    }
+
+    /**
+     * Wait until the mailbox is fully drained (no pending, no in-flight entries).
+     * The consumption loop records to {@code receivedMessages} before calling
+     * {@code ack}, so callers that assert mailbox emptiness must wait for the
+     * ack to complete, not just for the record to appear.
+     */
+    private static void waitForMailboxDrained(DeferredAckMailbox mailbox, long timeoutMs)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (mailbox.pendingCount() == 0 && mailbox.inFlightCount() == 0) {
                 return;
             }
             Thread.sleep(10);
