@@ -252,3 +252,7 @@ Closure Audit Evidence:
 Follow-up:
 
 - no remaining plan-owned work（全部 in-scope 项已落地）。剩余 non-blocking follow-up 见 Non-Blocking Follow-ups 段（均为显式 successor plan required，不在本计划 scope）。
+
+## Follow-up handled by 235-nop-ai-agent-fencing-token.md
+
+Non-Blocking Follow-up "Fencing Token（vision §5.1）：Classification: successor plan required（独立 carry-over `L4-fencing-token`）" 现由 `ai-dev/plans/235-nop-ai-agent-fencing-token.md` 接管。本节仅为可追溯链接，不修改本计划既有内容（Rule #20）。

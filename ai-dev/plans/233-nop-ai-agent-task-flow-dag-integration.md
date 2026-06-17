@@ -231,3 +231,7 @@ Closure Audit Evidence:
 Follow-up:
 
 - 无 plan-owned 剩余工作。所有显式 successor（blockedBy 自动调度守护 `L4-blockedBy-resolution-engine` / auto-spawn `L4-auto-spawn-member-agent` / 异步跨进程流编排 / LLM 直面编排工具 / nop-task decorator 接入 / 运行时动态改图 / DaoTaskStateStore 持久化）均为独立 Non-Goals successor，已在 `Non-Goals` 与 `Non-Blocking Follow-ups` 中显式切出。
+
+## Follow-up handled by 236-nop-ai-agent-task-scheduler-daemon.md
+
+> 2026-06-17 追加（carry-over 追溯指针，非内容回写）：本计划 Non-Goals「blockedBy 自动调度守护进程」+ Non-Blocking Follow-ups 列出的独立 carry-over `L4-blockedBy-resolution-engine`（定时扫描就绪任务自动 claim/派发，消费本计划就绪查询 + 同步编排基础）现由 `ai-dev/plans/236-nop-ai-agent-task-scheduler-daemon.md` 接管实施。本计划本体（含 Closure Evidence）保持历史记录状态不变。
