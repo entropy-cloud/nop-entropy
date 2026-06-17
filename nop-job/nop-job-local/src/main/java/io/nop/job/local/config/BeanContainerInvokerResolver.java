@@ -1,8 +1,7 @@
-package io.nop.job.service.config;
+package io.nop.job.local.config;
 
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.job.api.execution.IJobInvoker;
-import jakarta.inject.Named;
 
 import java.util.function.Function;
 

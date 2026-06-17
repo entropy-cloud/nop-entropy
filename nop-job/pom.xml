@@ -28,5 +28,6 @@
         <module>nop-job-app</module>
         <module>nop-job-meta</module>
         <module>nop-job-retry-adapter</module>
+        <module>nop-job-local</module>
     </modules>
 </project>

@@ -1,4 +1,4 @@
-package io.nop.job.service.config;
+package io.nop.job.local.config;
 
 import io.nop.job.api.IJobScheduler;
 import io.nop.job.api.JobDetail;

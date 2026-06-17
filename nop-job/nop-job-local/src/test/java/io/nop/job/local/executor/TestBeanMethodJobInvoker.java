@@ -1,4 +1,4 @@
-package io.nop.job.service.executor;
+package io.nop.job.local.executor;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;

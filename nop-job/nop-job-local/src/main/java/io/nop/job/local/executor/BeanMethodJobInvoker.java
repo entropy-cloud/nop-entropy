@@ -1,4 +1,4 @@
-package io.nop.job.service.executor;
+package io.nop.job.local.executor;
 
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
@@ -47,7 +47,6 @@ public class BeanMethodJobInvoker implements IJobInvoker {
 
         Map<String, Object> methodParams = extractMethodParams(params);
 
-        // resolve method first — fail-fast for configuration errors
         Method method = resolveMethod(bean.getClass(), methodName, methodParams);
 
         try {
@@ -72,7 +71,6 @@ public class BeanMethodJobInvoker implements IJobInvoker {
         Method noArgMethod = findMethod(clazz, methodName, 0);
         Method withParamMethod = findMethod(clazz, methodName, 1);
 
-        // Prefer no-arg method when params are empty
         if (noArgMethod != null && (methodParams == null || methodParams.isEmpty())) {
             return noArgMethod;
         }

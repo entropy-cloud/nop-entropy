@@ -1,4 +1,4 @@
-package io.nop.job.service.config;
+package io.nop.job.local.config;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;

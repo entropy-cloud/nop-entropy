@@ -125,10 +125,11 @@ java -Dquarkus.profile=dev \
 1. Nop 应用侧 bean 发现默认是基于文件，不是基于 Java classpath scanning。
 2. 启用模块通过 `/{moduleId}/_module` 被发现（零字节标记文件）。详见 `vfs-and-resource-resolution.md` 的"模块发现与注册"章节。
 3. app 容器自动加载的通常是 `/{moduleId}/beans/app.beans.xml` 和 `app-*.beans.xml`。
-4. 每个模块可选提供 `/{moduleId}/app.module.yaml`，包含 `version`、`displayName`、`description`、`dependsOn` 等元数据。详见 `vfs-and-resource-resolution.md` 的 `app.module.yaml` 章节。
-5. `/nop/autoconfig/*.beans` 和 `nop.ioc.app-beans.files` 也可以补充 bean 文件。
-6. `_service.beans.xml` 这类生成文件通常是被 `app-service.beans.xml` 导入，而不是自己被自动发现。
-7. **所有以 `_` 开头的文件都是 codegen 管线自动生成的，不允许手动修改**。包括但不限于 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml`、`_gen/*.java` 等。如需定制 IoC 注册，修改对应的非下划线文件（如 `app-service.beans.xml`）。如需添加新 BizModel 但 `codegen` 尚未生成，在 `app-service.beans.xml` 中手动添加 bean 定义。
+4. **关键约束：若模块在 `_vfs/{moduleId}/beans/` 下放置了 `app-*.beans.xml` 文件，则该模块 JAR 必须在 `_vfs/{moduleId}/_module` 处提供零字节标记文件，否则该模块的 beans 不会被自动发现。** 例如 `nop-job-local` 作为独立模块使用时，必须提供自己的 `_module` 文件（即使 `nop-job-dao`/`nop-job-service` 等也提供了同一 moduleId 的 `_module`——这是因为 `_module` 文件是 VFS 中唯一允许重复的资源类型，多个子模块可以为同一 moduleId 放置 `_module` 而不会冲突）。
+5. 每个模块可选提供 `/{moduleId}/app.module.yaml`，包含 `version`、`displayName`、`description`、`dependsOn` 等元数据。详见 `vfs-and-resource-resolution.md` 的 `app.module.yaml` 章节。
+6. `/nop/autoconfig/*.beans` 和 `nop.ioc.app-beans.files` 也可以补充 bean 文件。
+7. `_service.beans.xml` 这类生成文件通常是被 `app-service.beans.xml` 导入，而不是自己被自动发现。
+8. **所有以 `_` 开头的文件都是 codegen 管线自动生成的，不允许手动修改**。包括但不限于 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml`、`_gen/*.java` 等。如需定制 IoC 注册，修改对应的非下划线文件（如 `app-service.beans.xml`）。如需添加新 BizModel 但 `codegen` 尚未生成，在 `app-service.beans.xml` 中手动添加 bean 定义。
 
 ## 不要默认传播的模式
 

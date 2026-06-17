@@ -15,16 +15,16 @@
         </property>
     </bean>
 
-    <bean id="nopJobInvokerResolver" class="io.nop.job.service.config.BeanContainerInvokerResolver"/>
+    <bean id="nopJobInvokerResolver" class="io.nop.job.local.config.BeanContainerInvokerResolver"/>
 
     <bean id="nopJobLocalScheduler" class="io.nop.job.core.LocalJobScheduler">
         <constructor-arg index="0" ref="nopJobScheduledExecutor"/>
         <constructor-arg index="1" ref="nopJobInvokerResolver"/>
     </bean>
 
-    <bean id="nopJobInvoker_beanMethod" class="io.nop.job.service.executor.BeanMethodJobInvoker"/>
+    <bean id="nopJobInvoker_beanMethod" class="io.nop.job.local.executor.BeanMethodJobInvoker"/>
 
-    <bean id="nopJobLocalConfigLoader" class="io.nop.job.service.config.LocalJobConfigLoader">
+    <bean id="nopJobLocalConfigLoader" class="io.nop.job.local.config.LocalJobConfigLoader">
         <property name="scheduler" ref="nopJobLocalScheduler"/>
         <property name="configPath" value="@cfg:nop.job.scheduler.config-path|/nop/job/conf/scheduler.yaml"/>
     </bean>
