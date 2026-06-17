@@ -44,6 +44,24 @@
 
                 <!--修改时间-->
                 <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--输入单价-->
+                <col id="inputPricePer1m" ui:number="true" sortable="true"/>
+
+                <!--输出单价-->
+                <col id="outputPricePer1m" ui:number="true" sortable="true"/>
+
+                <!--推理单价-->
+                <col id="reasoningPricePer1m" ui:number="true" sortable="true"/>
+
+                <!--缓存读单价-->
+                <col id="cacheReadPricePer1m" ui:number="true" sortable="true"/>
+
+                <!--缓存写单价-->
+                <col id="cacheWritePricePer1m" ui:number="true" sortable="true"/>
+
+                <!--币种-->
+                <col id="currency" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -52,25 +70,25 @@
     <forms>
         <form id="view" editMode="view" title="查看-AI模型" i18n-en:title="View AI Model">
             <layout>
- provider[供应商]
- modelName[模型名称]
- baseUrl[API地址]
- apiKey[API密钥]
- version[数据版本]
- createdBy[创建人]
- createTime[创建时间]
- updatedBy[修改人]
- updateTime[修改时间]
+ provider[供应商] modelName[模型名称]
+ baseUrl[API地址] apiKey[API密钥]
+ version[数据版本] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] inputPricePer1m[输入单价]
+ outputPricePer1m[输出单价] reasoningPricePer1m[推理单价]
+ cacheReadPricePer1m[缓存读单价] cacheWritePricePer1m[缓存写单价]
+ currency[币种] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-AI模型" i18n-en:title="Add AI Model" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-AI模型" i18n-en:title="Edit AI Model">
             <layout>
- provider[供应商]
- modelName[模型名称]
- baseUrl[API地址]
- apiKey[API密钥]
- version[数据版本]
+ provider[供应商] modelName[模型名称]
+ baseUrl[API地址] apiKey[API密钥]
+ version[数据版本] inputPricePer1m[输入单价]
+ outputPricePer1m[输出单价] reasoningPricePer1m[推理单价]
+ cacheReadPricePer1m[缓存读单价] cacheWritePricePer1m[缓存写单价]
+ currency[币种] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
