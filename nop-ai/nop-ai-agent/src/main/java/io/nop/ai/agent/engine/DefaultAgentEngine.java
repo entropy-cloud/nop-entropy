@@ -24,11 +24,17 @@ import io.nop.ai.agent.memory.IMemoryStoreProvider;
 import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.message.NoOpAgentMessenger;
+import io.nop.ai.agent.message.AgentMessageEnvelope;
+import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.AgentMessageTopics;
+import io.nop.ai.agent.message.CallAgentRequestPayload;
+import io.nop.ai.agent.message.CallAgentResponsePayload;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxMessageHandler;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
+import io.nop.ai.agent.model.TeamMemberRefModel;
+import io.nop.ai.agent.model.TeamModel;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.reliability.AlwaysClosed;
 import io.nop.ai.agent.reliability.Checkpoint;
@@ -46,6 +52,10 @@ import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.runtime.AgentActor;
 import io.nop.ai.agent.runtime.IActorRuntime;
 import io.nop.ai.agent.runtime.NoOpActorRuntime;
+import io.nop.ai.agent.runtime.lock.ISessionTakeoverLock;
+import io.nop.ai.agent.runtime.lock.NoOpSessionTakeoverLock;
+import io.nop.ai.agent.runtime.recovery.IRecoveryManager;
+import io.nop.ai.agent.runtime.recovery.NoOpRecoveryManager;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
@@ -78,6 +88,7 @@ import io.nop.ai.agent.security.PassThroughPermissionMatrix;
 import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.RuleBasedPathAccessChecker;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
+import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.InMemorySessionStore;
@@ -90,12 +101,24 @@ import io.nop.ai.agent.skill.NoOpSkillProvider;
 import io.nop.ai.agent.skill.SkillCurationResult;
 import io.nop.ai.agent.skill.SkillModel;
 import io.nop.ai.agent.talent.ITalent;
+import io.nop.ai.agent.team.ITeamAclChecker;
+import io.nop.ai.agent.team.ITeamManager;
+import io.nop.ai.agent.team.ITeamTaskStore;
+import io.nop.ai.agent.team.NoOpTeamAclChecker;
+import io.nop.ai.agent.team.NoOpTeamManager;
+import io.nop.ai.agent.team.NoOpTeamTaskStore;
+import io.nop.ai.agent.team.Team;
+import io.nop.ai.agent.team.TeamMember;
+import io.nop.ai.agent.team.TeamModelConverter;
+import io.nop.ai.agent.team.TeamSpec;
+import io.nop.ai.agent.team.TeamStatus;
 import io.nop.ai.agent.usage.IUsageRecorder;
 import io.nop.ai.agent.usage.NoOpUsageRecorder;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -111,6 +134,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class DefaultAgentEngine implements IAgentEngine {
@@ -133,6 +157,13 @@ public class DefaultAgentEngine implements IAgentEngine {
     private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
     private IToolCallRepairer toolCallRepairer;
     private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
+    // Plan 224 (L4-8-call-agent-async): subscription for the engine-level
+    // call-agent request handler. Registered on the call-agent topic when a
+    // functional messenger is wired via setMessenger; cancelled and re-registered
+    // idempotently on each setMessenger call. NoOp messenger leaves it null
+    // (no registration, zero regression). The handler executes the requested
+    // sub-agent via engine.execute() and returns a CallAgentResponsePayload.
+    private volatile IMessageSubscription callAgentSubscription;
     // Plan 216 (L4-5): optional per-session deferred-ack mailbox factory. When
     // non-null, the engine creates a mailbox for each session on first
     // execution and registers a MailboxMessageHandler on the session's inbox
@@ -250,6 +281,45 @@ public class DefaultAgentEngine implements IAgentEngine {
     // walks existing supplyAsync path), so no insecure-default WARN is emitted
     // (consistent with IMailbox / IContributionRegistry adjudication).
     private IActorRuntime actorRuntime = NoOpActorRuntime.noOp();
+    // Plan 223 (L4-8-team-manager): optional team lifecycle manager. Defaults
+    // to NoOpTeamManager (all write operations throw
+    // UnsupportedOperationException, all read operations return empty —
+    // Minimum Rules #24 No Silent No-Op) so engine behaviour is unchanged
+    // unless a functional manager (e.g. InMemoryTeamManager) is explicitly
+    // wired via setTeamManager. The engine does NOT call teamManager on its
+    // execution path in the foundational slice — team creation and member
+    // binding are driven by integrators/tools (successor team tools). The
+    // TeamManager is incremental capability (NoOp → engine runs unchanged),
+    // so no insecure-default WARN is emitted (consistent with IActorRuntime /
+    // IMailbox / IContributionRegistry adjudication). Auto team binding
+    // (creating a team from agent config's TeamSpec + binding member sessions
+    // at the three entry points) is an explicit successor that depends on
+    // TeamSpec XDSL configuration.
+    private ITeamManager teamManager = NoOpTeamManager.noOp();
+    // Plan 225 (L4-8-team-tools): optional team task store backing the
+    // team-task-create tool and team-status task count. Defaults to
+    // NoOpTeamTaskStore (createTask throws UnsupportedOperationException,
+    // queries return empty — Minimum Rules #24 No Silent No-Op) so engine
+    // behaviour is unchanged unless a functional store (e.g.
+    // InMemoryTeamTaskStore) is explicitly wired via setTeamTaskStore. The
+    // engine does NOT call teamTaskStore on its execution path — team tools
+    // consume it at execution time. The TeamTaskStore is incremental
+    // capability (NoOp → engine runs unchanged), so no insecure-default WARN
+    // is emitted (consistent with teamManager / IActorRuntime adjudication).
+    private ITeamTaskStore teamTaskStore = NoOpTeamTaskStore.noOp();
+    // Plan 228 (L4-team-acl-enforcement): optional team ACL checker backing
+    // the 4 team tool executors' permission check. Defaults to
+    // NoOpTeamAclChecker (checkAccess always returns allow(null) —
+    // Minimum Rules #24: an explicit allow decision, not a silent skip) so
+    // engine behaviour is unchanged unless a functional checker (e.g.
+    // DefaultTeamAclChecker enforcing the §5.1 default role matrix) is
+    // explicitly wired via setTeamAclChecker. The engine does NOT call
+    // teamAclChecker on its dispatch path — the 4 team tools consult it at
+    // execution time via AgentToolExecuteContext.getTeamAclChecker(). The
+    // TeamAclChecker is incremental capability (NoOp → engine runs
+    // unchanged), so no insecure-default WARN is emitted (consistent with
+    // teamManager / teamTaskStore adjudication).
+    private ITeamAclChecker teamAclChecker = NoOpTeamAclChecker.noOp();
     // Plan 219 (L4-7): sandbox backend — the Layer 4 defense-in-depth chain
     // tail (design §7.1 / §8). Defaults to NoOpSandboxBackend (host
     // ProcessBuilder execution — Layer 1 designable baseline, design §7.1
@@ -267,6 +337,51 @@ public class DefaultAgentEngine implements IAgentEngine {
     // and becomes the default, the WARN will be added at that time.
     private io.nop.ai.agent.security.ISandboxBackend sandboxBackend =
             io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE;
+    // Plan 221 (L4-8-P4): cross-process session takeover lock. Defaults to
+    // NoOpSessionTakeoverLock — single-process deployments keep relying on
+    // the engine's in-process runningExecutions.putIfAbsent guard (plan
+    // 197), so engine behaviour is unchanged unless a functional lock
+    // (e.g. DbSessionTakeoverLock) is explicitly wired via
+    // setSessionTakeoverLock. When a functional lock is wired, the three
+    // execution entry points (doExecute / resumeSession / restoreSession)
+    // call tryAcquire before putIfAbsent and release it on every cleanup
+    // path (putIfAbsent-fail / outer catch / inner finally) via the
+    // fault-tolerant releaseLockQuietly helper. restorePendingSessions
+    // additionally consults isHeld to skip sessions already being
+    // processed by another instance. The takeover lock is incremental
+    // capability (NoOp → engine walks existing supplyAsync path), so no
+    // insecure-default WARN is emitted (consistent with IActorRuntime /
+    // IMailbox / IContributionRegistry adjudication).
+    private ISessionTakeoverLock sessionTakeoverLock = NoOpSessionTakeoverLock.noOp();
+    // Plan 221 (L4-8-P4): engine instance identity. Generated once at
+    // construction via UUID.randomUUID(). Used as the ownerId argument to
+    // sessionTakeoverLock.tryAcquire / release / tryRenew so that
+    // conditional release only frees this engine's own locks. Immutable
+    // after construction.
+    private final String instanceId = UUID.randomUUID().toString();
+    // Plan 221 (L4-8-P4): lease duration in milliseconds for the takeover
+    // lock. Default = 30 minutes (1_800_000 ms). Integrators tune via
+    // setLockLeaseMs (e.g. align with the agent's maxWallClockMinutes).
+    // Passive TTL expiry: when the lock holder crashes, the lease
+    // auto-expires and another instance can preempt — no background sweeper
+    // thread is needed.
+    private long lockLeaseMs = 1_800_000L;
+    // Plan 222 (L4-8-P4-RecoveryDaemon): RecoveryManager daemon for
+    // continuous periodic stale-lock cleanup + orphan-session detection.
+    // Defaults to NoOpRecoveryManager — single-process deployments keep
+    // relying on the one-shot startup restorePendingSessions scan, so
+    // engine behaviour is unchanged unless a functional manager (e.g.
+    // ScheduledRecoveryManager) is explicitly wired via
+    // setRecoveryManager. The engine does NOT call
+    // recoveryManager.start()/stop() — per IAgentEngine's design contract
+    // (IAgentEngine.java:166-171) lifecycle management is a
+    // deployment-layer decision, not an engine-layer contract. Integrators
+    // wire the manager and call start()/stop() from the deployment layer
+    // (e.g. after app startup / before app shutdown). The RecoveryManager
+    // is incremental capability (NoOp → engine walks existing path), so
+    // no insecure-default WARN is emitted (consistent with
+    // IActorRuntime / ISessionTakeoverLock adjudication).
+    private IRecoveryManager recoveryManager = NoOpRecoveryManager.noOp();
     // Plan 192: max token budget for budgeted working-memory auto-injection into
     // the system prompt. Shipped default gives memory a reasonable share of the
     // context without dominating it. A value <= 0 disables injection (explicit
@@ -552,9 +667,122 @@ public class DefaultAgentEngine implements IAgentEngine {
      * <p>The messenger is accessible to future tools (e.g. {@code call-agent},
      * {@code send-message}) and the actor runtime (L4-8) via
      * {@link #getMessenger()}.
+     *
+     * <p>Plan 224 (L4-8-call-agent-async): when a functional (non-NoOp)
+     * messenger is registered, this setter additionally registers an engine-level
+     * call-agent request handler on {@link AgentMessageTopics#callAgentTopic()}.
+     * The registration is idempotent: any previously-registered call-agent
+     * subscription is cancelled before the new handler is registered, so
+     * repeated {@code setMessenger} calls never double-register. When the
+     * resolved messenger is NoOp (including {@code setMessenger(null)}), no
+     * handler is registered and any existing subscription is cancelled.
      */
     public void setMessenger(IAgentMessenger messenger) {
-        this.messenger = messenger != null ? messenger : NoOpAgentMessenger.noOp();
+        IAgentMessenger resolved = messenger != null ? messenger : NoOpAgentMessenger.noOp();
+        this.messenger = resolved;
+        registerCallAgentHandler(resolved);
+    }
+
+    /**
+     * Idempotently register (or unregister) the engine-level call-agent request
+     * handler. Cancels any existing {@code callAgentSubscription} first, then
+     * registers a fresh handler when {@code messenger} is functional (not a
+     * {@link NoOpAgentMessenger}). NoOp messenger → no registration (zero
+     * regression for the shipped default).
+     */
+    private void registerCallAgentHandler(IAgentMessenger messenger) {
+        IMessageSubscription existing = this.callAgentSubscription;
+        if (existing != null) {
+            try {
+                existing.cancel();
+            } catch (Exception e) {
+                LOG.warn("DefaultAgentEngine: failed to cancel existing call-agent subscription", e);
+            }
+            this.callAgentSubscription = null;
+        }
+        if (messenger instanceof NoOpAgentMessenger) {
+            return;
+        }
+        String topic = AgentMessageTopics.callAgentTopic();
+        IMessageSubscription subscription = messenger.registerHandler(topic, this::handleCallAgentRequest);
+        this.callAgentSubscription = subscription;
+        LOG.debug("DefaultAgentEngine: registered call-agent request handler on topic={}", topic);
+    }
+
+    /**
+     * Engine-level call-agent request handler (plan 224). Receives a
+     * {@link CallAgentRequestPayload} carried in a REQUEST envelope, executes
+     * the requested sub-agent via {@link #execute(AgentMessageRequest)} with the
+     * payload's timeout, and returns a {@link CallAgentResponsePayload}. The
+     * messenger adapter routes the non-null return value as a RESPONSE to the
+     * requester's reply topic.
+     *
+     * <p><b>Fail-safe</b>: the entire {@code engine.execute().orTimeout().join()}
+     * chain is wrapped in try/catch. Any exception (sub-agent failure,
+     * {@code CompletionException(TimeoutException)} on timeout, fork/execution
+     * error) is caught and returned as a {@code RESPONSE(status="failure")}
+     * rather than propagating to the messenger dispatch layer —
+     * {@code LocalAgentMessenger} swallows handler exceptions and would leave
+     * the requester hanging until its own timeout otherwise.
+     */
+    private Object handleCallAgentRequest(AgentMessageEnvelope envelope) {
+        Object payload = envelope.getPayload();
+        if (!(payload instanceof CallAgentRequestPayload)) {
+            LOG.warn("nop.ai.agent.call-agent.handler.unexpected-payload: payloadClass={}",
+                    payload == null ? "null" : payload.getClass().getName());
+            return new CallAgentResponsePayload(
+                    "failure", null, "",
+                    "call-agent handler: unexpected payload type: "
+                            + (payload == null ? "null" : payload.getClass().getName()));
+        }
+        CallAgentRequestPayload req = (CallAgentRequestPayload) payload;
+        try {
+            AgentMessageRequest execRequest = new AgentMessageRequest(
+                    req.getTargetAgentId(),
+                    req.getInput(),
+                    req.getResolvedSessionId(),
+                    req.getParentConstraintMetadata());
+            CompletableFuture<AgentExecutionResult> future = this.execute(execRequest);
+            AgentExecutionResult result = future.orTimeout(req.getTimeoutMs(), TimeUnit.MILLISECONDS).join();
+            String finalMessage = extractFinalAssistantMessage(result);
+            String sessionId = result.getSessionId() != null
+                    ? result.getSessionId()
+                    : req.getResolvedSessionId();
+            boolean success = result.getStatus() == AgentExecStatus.completed;
+            String status = success ? "success" : "failure";
+            String error = success ? null
+                    : (result.getError() != null ? result.getError()
+                            : "sub-agent did not complete: status=" + result.getStatus());
+            return new CallAgentResponsePayload(status, sessionId, finalMessage, error);
+        } catch (Exception e) {
+            LOG.warn("nop.ai.agent.call-agent.handler.execution-failed: targetAgentId={}, correlationId={}",
+                    req.getTargetAgentId(), envelope.getCorrelationId(), e);
+            return new CallAgentResponsePayload(
+                    "failure", req.getResolvedSessionId(), "",
+                    "call-agent handler execution failed: agentId=" + req.getTargetAgentId()
+                            + ", error=" + e);
+        }
+    }
+
+    /**
+     * Extract the last assistant message content from an execution result's
+     * message history. Mirrors {@code CallAgentExecutor.extractFinalMessage}
+     * (kept here because the engine does not depend on the {@code tool}
+     * package). Returns an empty string when there is no assistant message.
+     */
+    private static String extractFinalAssistantMessage(AgentExecutionResult result) {
+        List<ChatMessage> messages = result.getMessages();
+        if (messages == null || messages.isEmpty()) {
+            return "";
+        }
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessage msg = messages.get(i);
+            if (msg instanceof ChatAssistantMessage) {
+                String content = msg.getContent();
+                return content != null ? content : "";
+            }
+        }
+        return "";
     }
 
     /**
@@ -1078,6 +1306,86 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Plan 223 (L4-8-team-manager): wire an optional {@link ITeamManager}
+     * that manages agent team lifecycles (create / disband / member
+     * management / status query). The engine does NOT call the teamManager
+     * on its execution path in the foundational slice — team creation and
+     * member binding are driven by integrators / successor team tools
+     * (e.g. {@code team-task-create} / {@code team-send-message} /
+     * {@code team-status} as IToolExecutor, which are explicit successors).
+     *
+     * <p>Optional: when null, falls back to {@link NoOpTeamManager}
+     * (write operations throw {@link UnsupportedOperationException}, read
+     * operations return empty — Minimum Rules #24 No Silent No-Op, zero
+     * behaviour regression). TeamManager is incremental capability, so no
+     * insecure-default WARN is emitted (consistent with IActorRuntime /
+     * IMailbox adjudication).
+     */
+    public void setTeamManager(ITeamManager teamManager) {
+        this.teamManager = teamManager != null ? teamManager : NoOpTeamManager.noOp();
+    }
+
+    /**
+     * Return the {@link ITeamManager} wired into this engine, or the
+     * {@link NoOpTeamManager} default if none was explicitly set.
+     */
+    public ITeamManager getTeamManager() {
+        return teamManager;
+    }
+
+    /**
+     * Plan 225 (L4-8-team-tools): wire an optional {@link ITeamTaskStore}
+     * that backs the {@code team-task-create} tool and the {@code team-status}
+     * task count. The engine does NOT call the teamTaskStore on its execution
+     * path — team tools consume it at execution time via
+     * {@link AgentToolExecuteContext#getTeamTaskStore()}.
+     *
+     * <p>Optional: when null, falls back to {@link NoOpTeamTaskStore}
+     * (createTask throws {@link UnsupportedOperationException}, queries return
+     * empty — Minimum Rules #24 No Silent No-Op, zero behaviour regression).
+     * TeamTaskStore is incremental capability, so no insecure-default WARN
+     * is emitted (consistent with teamManager / IActorRuntime adjudication).
+     */
+    public void setTeamTaskStore(ITeamTaskStore teamTaskStore) {
+        this.teamTaskStore = teamTaskStore != null ? teamTaskStore : NoOpTeamTaskStore.noOp();
+    }
+
+    /**
+     * Return the {@link ITeamTaskStore} wired into this engine, or the
+     * {@link NoOpTeamTaskStore} default if none was explicitly set.
+     */
+    public ITeamTaskStore getTeamTaskStore() {
+        return teamTaskStore;
+    }
+
+    /**
+     * Plan 228 (L4-team-acl-enforcement): wire an optional
+     * {@link ITeamAclChecker} that the 4 team tool executors
+     * (team-send-message / team-status / team-task-create / team-task-update)
+     * consult after resolving the caller's team and before performing the
+     * actual operation. The engine does NOT call the checker on its dispatch
+     * path — team tools consume it at execution time via
+     * {@link AgentToolExecuteContext#getTeamAclChecker()}.
+     *
+     * <p>Optional: when null, falls back to {@link NoOpTeamAclChecker}
+     * ({@code checkAccess} always returns {@code allow(null)} — an explicit
+     * allow decision, not a silent skip; zero behaviour regression).
+     * TeamAclChecker is incremental capability, so no insecure-default WARN
+     * is emitted (consistent with teamManager / teamTaskStore adjudication).
+     */
+    public void setTeamAclChecker(ITeamAclChecker teamAclChecker) {
+        this.teamAclChecker = teamAclChecker != null ? teamAclChecker : NoOpTeamAclChecker.noOp();
+    }
+
+    /**
+     * Return the {@link ITeamAclChecker} wired into this engine, or the
+     * {@link NoOpTeamAclChecker} default if none was explicitly set.
+     */
+    public ITeamAclChecker getTeamAclChecker() {
+        return teamAclChecker;
+    }
+
+    /**
      * Plan 219 (L4-7): wire the {@link io.nop.ai.agent.security.ISandboxBackend}
      * — the Layer 4 defense-in-depth chain tail (design §7.1 / §8). The
      * sandbox backend is platform-level isolation infrastructure for
@@ -1111,6 +1419,128 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public io.nop.ai.agent.security.ISandboxBackend getSandboxBackend() {
         return sandboxBackend;
+    }
+
+    /**
+     * Plan 221 (L4-8-P4): wire an optional cross-process
+     * {@link ISessionTakeoverLock} that prevents two JVM instances sharing
+     * the same backing store from simultaneously restoring and executing
+     * the same crashed/pending session (double-execution correctness gap).
+     *
+     * <p>When a functional lock is wired (e.g.
+     * {@link io.nop.ai.agent.runtime.lock.DbSessionTakeoverLock}), the
+     * three execution entry points (doExecute / resumeSession /
+     * restoreSession) call {@code tryAcquire(sessionId, instanceId,
+     * lockLeaseMs)} before {@code putIfAbsent} and release it on every
+     * cleanup path via {@code releaseLockQuietly}.
+     * {@code restorePendingSessions} additionally consults {@code isHeld}
+     * to skip sessions already being processed by another instance.
+     *
+     * <p>Optional: when null, falls back to
+     * {@link NoOpSessionTakeoverLock} ({@code tryAcquire} unconditionally
+     * returns {@code true}, {@code isHeld} returns {@code false} — engine
+     * walks the existing in-process {@code putIfAbsent} path, zero
+     * behaviour regression). The takeover lock is incremental capability,
+     * so no insecure-default WARN is emitted (consistent with
+     * {@code IActorRuntime} / {@code IMailbox} adjudication).
+     */
+    public void setSessionTakeoverLock(ISessionTakeoverLock sessionTakeoverLock) {
+        this.sessionTakeoverLock = sessionTakeoverLock != null
+                ? sessionTakeoverLock
+                : NoOpSessionTakeoverLock.noOp();
+    }
+
+    /**
+     * Return the {@link ISessionTakeoverLock} wired into this engine, or
+     * the {@link NoOpSessionTakeoverLock} default if none was explicitly
+     * set.
+     */
+    public ISessionTakeoverLock getSessionTakeoverLock() {
+        return sessionTakeoverLock;
+    }
+
+    /**
+     * Plan 221 (L4-8-P4): set the lease duration (in ms) used when
+     * acquiring the takeover lock. Default = {@code 1_800_000L} (30 min).
+     * Integrators may align this with the agent's
+     * {@code maxWallClockMinutes}. The lease is passive — the lock
+     * auto-expires when the holder crashes, no background sweeper thread.
+     */
+    public void setLockLeaseMs(long lockLeaseMs) {
+        this.lockLeaseMs = lockLeaseMs;
+    }
+
+    public long getLockLeaseMs() {
+        return lockLeaseMs;
+    }
+
+    /**
+     * Plan 222 (L4-8-P4-RecoveryDaemon): wire an optional
+     * {@link IRecoveryManager} daemon that continuously sweeps stale
+     * takeover locks and detects orphan sessions in multi-instance
+     * unattended deployments (complementing the one-shot
+     * {@code restorePendingSessions} startup scan).
+     *
+     * <p>The engine does <b>not</b> call {@code start()}/{@code stop()} on
+     * the manager — per {@code IAgentEngine}'s design contract
+     * (deployment-layer lifecycle decision, see
+     * {@code IAgentEngine.java:166-171}). Integrators wire the manager
+     * here, then call {@code start()} (e.g. after app startup) and
+     * {@code stop()} (e.g. before app shutdown) from the deployment layer.
+     *
+     * <p>Optional: when null, falls back to
+     * {@link NoOpRecoveryManager} ({@code scanOnce} returns an all-zero
+     * {@code RecoveryScanResult}, {@code start}/{@code stop} are no-ops —
+     * zero behaviour regression). The RecoveryManager is incremental
+     * capability, so no insecure-default WARN is emitted.
+     */
+    public void setRecoveryManager(IRecoveryManager recoveryManager) {
+        this.recoveryManager = recoveryManager != null
+                ? recoveryManager
+                : NoOpRecoveryManager.noOp();
+    }
+
+    /**
+     * Return the {@link IRecoveryManager} wired into this engine, or the
+     * {@link NoOpRecoveryManager} default if none was explicitly set.
+     */
+    public IRecoveryManager getRecoveryManager() {
+        return recoveryManager;
+    }
+
+    /**
+     * Plan 221 (L4-8-P4): the unique identity of this engine instance —
+     * used as the {@code ownerId} argument to
+     * {@link ISessionTakeoverLock#tryAcquire} /
+     * {@link ISessionTakeoverLock#release} /
+     * {@link ISessionTakeoverLock#tryRenew}. Generated once at
+     * construction via {@code UUID.randomUUID()} and immutable afterwards,
+     * so conditional release only ever frees this engine's own locks.
+     */
+    public String getInstanceId() {
+        return instanceId;
+    }
+
+    /**
+     * Plan 221 (L4-8-P4): fault-tolerant lock release — wraps
+     * {@link ISessionTakeoverLock#release} in try-catch. A release failure
+     * (e.g. DB connection lost) is logged at WARN and swallowed so that
+     * session-state persist / handle cleanup is never blocked by a
+     * transient lock-store failure. The lease/TTL guarantees the stale
+     * lock auto-expires, so a single failed release is bounded.
+     *
+     * <p>Under the shipped {@link NoOpSessionTakeoverLock} default this is
+     * a no-op (release returns true unconditionally), so the call adds no
+     * overhead in single-process deployments.
+     */
+    private void releaseLockQuietly(String sessionId, String ownerId) {
+        try {
+            sessionTakeoverLock.release(sessionId, ownerId);
+        } catch (RuntimeException e) {
+            LOG.warn("DefaultAgentEngine: failed to release takeover lock for sessionId={}, "
+                    + "ownerId={} (the lease will auto-expire via TTL): {}", sessionId, ownerId,
+                    e.toString());
+        }
     }
 
     /**
@@ -1158,40 +1588,50 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     @Override
     public CompletableFuture<Void> cancelSession(String sessionId, String reason, boolean forced) {
-        CancelHandle handle = sessionId != null ? runningExecutions.get(sessionId) : null;
+        // Plan 232: cancelSession is synchronous and touches the session store.
+        // It has no Principal source in the foundational slice, so the tenant
+        // context is null = all data visible. The set/clear structure is
+        // present for uniformity (a future principal source only changes the
+        // captured value).
+        ThreadLocalTenantResolver.set(null);
+        try {
+            CancelHandle handle = sessionId != null ? runningExecutions.get(sessionId) : null;
 
-        if (handle != null) {
-            AgentExecutionContext ctx = handle.context;
-            ctx.setCancelRequested(true);
-            ctx.setCancelReason(reason);
+            if (handle != null) {
+                AgentExecutionContext ctx = handle.context;
+                ctx.setCancelRequested(true);
+                ctx.setCancelReason(reason);
 
-            AgentSession session = sessionStore.get(sessionId);
-            String agentName = session != null ? session.getAgentName() : null;
-            publishCancelRequested(sessionId, agentName, reason, forced);
+                AgentSession session = sessionStore.get(sessionId);
+                String agentName = session != null ? session.getAgentName() : null;
+                publishCancelRequested(sessionId, agentName, reason, forced);
 
-            if (forced) {
-                // Plan 197: null-check — during the async-enqueue window the
-                // handle is pre-registered but thread is not yet bound to the
-                // execution thread. Interrupting null would NPE; interrupting
-                // the calling thread (if we pre-bound it) would be wrong.
-                Thread t = handle.thread;
-                if (t != null) {
-                    t.interrupt();
+                if (forced) {
+                    // Plan 197: null-check — during the async-enqueue window the
+                    // handle is pre-registered but thread is not yet bound to the
+                    // execution thread. Interrupting null would NPE; interrupting
+                    // the calling thread (if we pre-bound it) would be wrong.
+                    Thread t = handle.thread;
+                    if (t != null) {
+                        t.interrupt();
+                    }
                 }
+            } else {
+                AgentSession session = sessionStore.get(sessionId);
+                if (session == null) {
+                    throw new NopAiAgentException(
+                            "cancelSession failed: session not found: sessionId=" + sessionId);
+                }
+                session.setStatus(AgentExecStatus.cancelled);
+                String agentName = session.getAgentName();
+                publishCancelRequested(sessionId, agentName, reason, forced);
+                publishCancelled(sessionId, agentName, reason);
             }
-        } else {
-            AgentSession session = sessionStore.get(sessionId);
-            if (session == null) {
-                throw new NopAiAgentException(
-                        "cancelSession failed: session not found: sessionId=" + sessionId);
-            }
-            session.setStatus(AgentExecStatus.cancelled);
-            String agentName = session.getAgentName();
-            publishCancelRequested(sessionId, agentName, reason, forced);
-            publishCancelled(sessionId, agentName, reason);
-        }
 
-        return CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(null);
+        } finally {
+            ThreadLocalTenantResolver.clear();
+        }
     }
 
     private void publishCancelRequested(String sessionId, String agentName, String reason, boolean forced) {
@@ -1211,39 +1651,47 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     @Override
     public CompletableFuture<String> forkSession(AgentMessageRequest request, boolean inheritContext) {
-        String parentSessionId = request.getSessionId();
-        if (parentSessionId == null || parentSessionId.isEmpty()) {
-            throw new NopAiAgentException(
-                    "forkSession failed: request.sessionId is null or empty, cannot resolve parent session");
+        // Plan 232: forkSession is synchronous but touches the session store,
+        // so set the thread-local tenant context from the request's Principal
+        // (null-safe) for the duration of the DB operations, then clear it.
+        ThreadLocalTenantResolver.set(resolveTenantId(request));
+        try {
+            String parentSessionId = request.getSessionId();
+            if (parentSessionId == null || parentSessionId.isEmpty()) {
+                throw new NopAiAgentException(
+                        "forkSession failed: request.sessionId is null or empty, cannot resolve parent session");
+            }
+
+            AgentSession parentSession = sessionStore.get(parentSessionId);
+            if (parentSession == null) {
+                throw new NopAiAgentException(
+                        "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
+            }
+
+            Map<String, Object> props = new HashMap<>();
+            if (request.getAgentName() != null && !request.getAgentName().isEmpty()) {
+                props.put("agentName", request.getAgentName());
+            }
+            if (request.getMetadata() != null && !request.getMetadata().isEmpty()) {
+                props.putAll(request.getMetadata());
+            }
+
+            String childSessionId = sessionStore.forkSession(parentSessionId, inheritContext, props);
+
+            Map<String, Object> eventPayload = new HashMap<>();
+            eventPayload.put("parentSessionId", parentSessionId);
+            eventPayload.put("childSessionId", childSessionId);
+            eventPayload.put("inheritContext", inheritContext);
+
+            AgentSession childSession = sessionStore.get(childSessionId);
+            String childAgentName = childSession != null ? childSession.getAgentName() : null;
+            eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_FORKED,
+                    childSessionId, childAgentName, eventPayload));
+
+            return CompletableFuture.completedFuture(childSessionId);
+        } finally {
+            ThreadLocalTenantResolver.clear();
         }
-
-        AgentSession parentSession = sessionStore.get(parentSessionId);
-        if (parentSession == null) {
-            throw new NopAiAgentException(
-                    "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
-        }
-
-        Map<String, Object> props = new HashMap<>();
-        if (request.getAgentName() != null && !request.getAgentName().isEmpty()) {
-            props.put("agentName", request.getAgentName());
-        }
-        if (request.getMetadata() != null && !request.getMetadata().isEmpty()) {
-            props.putAll(request.getMetadata());
-        }
-
-        String childSessionId = sessionStore.forkSession(parentSessionId, inheritContext, props);
-
-        Map<String, Object> eventPayload = new HashMap<>();
-        eventPayload.put("parentSessionId", parentSessionId);
-        eventPayload.put("childSessionId", childSessionId);
-        eventPayload.put("inheritContext", inheritContext);
-
-        AgentSession childSession = sessionStore.get(childSessionId);
-        String childAgentName = childSession != null ? childSession.getAgentName() : null;
-        eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_FORKED,
-                childSessionId, childAgentName, eventPayload));
-
-        return CompletableFuture.completedFuture(childSessionId);
     }
 
     /**
@@ -1284,9 +1732,30 @@ public class DefaultAgentEngine implements IAgentEngine {
         return doExecute(request, sessionId);
     }
 
-    private CompletableFuture<AgentExecutionResult> doExecute(AgentMessageRequest request, String sessionId) {
-        AgentModel agentModel = loadAgentModel(request.getAgentName());
+    /**
+     * Plan 232 (L4-multi-tenant-isolation): null-safe extraction of the
+     * tenantId from a request's {@link io.nop.ai.agent.security.Principal}.
+     * Returns {@code null} when the request, principal, or tenantId is absent
+     * — the explicit "no tenant context" signal (all data visible, backward
+     * compatible).
+     */
+    private static String resolveTenantId(AgentMessageRequest request) {
+        if (request == null || request.getPrincipal() == null) {
+            return null;
+        }
+        return request.getPrincipal().getTenantId();
+    }
 
+    private CompletableFuture<AgentExecutionResult> doExecute(AgentMessageRequest request, String sessionId) {
+        // Plan 232: capture the tenantId in the synchronous phase (null-safe)
+        // so the supplyAsync lambda body can set the thread-local tenant
+        // context on the worker thread before any DB store operation.
+        String tenantId = resolveTenantId(request);
+        AgentModel agentModel = loadAgentModel(request.getAgentName());
+        // Plan 231: synchronous fail-fast precheck — if the agent declares a
+        // team but no functional ITeamManager is wired, surface the
+        // misconfiguration before entering the async block.
+        precheckTeamDeclarations(agentModel);
         AgentSession session = sessionStore.getOrCreate(sessionId, request.getAgentName());
         int historyCount = session.getMessageCount();
 
@@ -1327,15 +1796,39 @@ public class DefaultAgentEngine implements IAgentEngine {
         // the atomic dedup guard — a non-null return means another execution
         // is already registered for this session, so we fail-fast instead of
         // silently overwriting the existing handle.
+        //
+        // Plan 221 (L4-8-P4): cross-process takeover lock. tryAcquire is
+        // called BEFORE putIfAbsent — if another JVM instance is already
+        // restoring/executing this session, fail-fast (裁定 4 路径 a/b).
+        // tryAcquire + putIfAbsent are wrapped together so the catch path
+        // can release the lock when putIfAbsent fails (裁定 5 路径 1).
         CancelHandle handle = new CancelHandle(ctx, null);
-        CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
-        if (existing != null) {
-            throw new NopAiAgentException(
-                    "doExecute failed: session already executing: sessionId=" + sessionId);
+        try {
+            if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
+                throw new NopAiAgentException(
+                        "doExecute failed: session is locked by another instance: sessionId="
+                                + sessionId);
+            }
+            CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
+            if (existing != null) {
+                throw new NopAiAgentException(
+                        "doExecute failed: session already executing: sessionId=" + sessionId);
+            }
+        } catch (RuntimeException e) {
+            releaseLockQuietly(sessionId, instanceId);
+            throw e;
         }
 
         try {
             return CompletableFuture.supplyAsync(() -> {
+                // Plan 232 (L4-multi-tenant-isolation): set the thread-local
+                // tenant context on the worker thread BEFORE any DB store
+                // operation. Standard ThreadLocal does not cross the
+                // supplyAsync boundary, so the capture from the synchronous
+                // phase must be re-applied here. Cleared in the finally below
+                // so the pooled worker thread does not leak tenant context.
+                ThreadLocalTenantResolver.set(tenantId);
+                try {
                 session.setStatus(AgentExecStatus.running);
 
                 // Plan 197: bind the execution thread now that the lambda is
@@ -1356,6 +1849,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     AgentActor actor = actorRuntime.createActor(sessionId, request.getAgentName());
                     actor.setSteeringQueue(ctx.getSteeringQueue());
                 }
+
+                // Plan 231: declarative team auto-bind (lead and/or member).
+                // Runs after createActor so the actorId is available.
+                autoBindTeam(agentModel, sessionId, request.getAgentName());
 
                 AgentExecutionResult result;
                 try {
@@ -1379,6 +1876,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                         actorRuntime.getActorBySession(sessionId)
                                 .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
                     }
+                    // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
+                    // 路径 3 — inner finally). Fault-tolerant: a failed
+                    // release only LOG.warn (the lease auto-expires via TTL).
+                    releaseLockQuietly(sessionId, instanceId);
                 }
 
             // Plan 183 Phase 1: replaceMessages replaces the session's message
@@ -1398,12 +1899,21 @@ public class DefaultAgentEngine implements IAgentEngine {
             sessionStore.save(session);
 
             return result;
+                } finally {
+                    // Plan 232: clear the worker-thread tenant context so the
+                    // pooled thread does not leak tenant state to the next task.
+                    ThreadLocalTenantResolver.clear();
+                }
         });
         } catch (RuntimeException e) {
             // Plan 197: if supplyAsync itself fails to submit the task
             // (e.g. RejectedExecutionException), clean up the pre-registered
             // handle so a subsequent execute() is not permanently blocked.
             runningExecutions.remove(sessionId, handle);
+            // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2
+            // — outer catch / supplyAsync submission failure). Same
+            // fault-tolerant releaseLockQuietly as the inner finally.
+            releaseLockQuietly(sessionId, instanceId);
             throw e;
         }
     }
@@ -1559,6 +2069,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         // execution left off, letting the LLM re-plan from the last denied
         // tool-call error response rather than starting a new turn).
         AgentModel agentModel = loadAgentModel(agentName);
+        // Plan 231: synchronous fail-fast precheck (see doExecute).
+        precheckTeamDeclarations(agentModel);
         AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
 
         // Resolve the executor with the engine's own checkers (no parent
@@ -1572,15 +2084,37 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
         // phase with putIfAbsent + fail-fast (see doExecute for full rationale).
+        //
+        // Plan 221 (L4-8-P4): cross-process takeover lock (see doExecute for
+        // full rationale — tryAcquire before putIfAbsent, release on every
+        // cleanup path).
         CancelHandle handle = new CancelHandle(ctx, null);
-        CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
-        if (existing != null) {
-            throw new NopAiAgentException(
-                    "resumeSession failed: session already executing: sessionId=" + sessionId);
+        try {
+            if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
+                throw new NopAiAgentException(
+                        "resumeSession failed: session is locked by another instance: sessionId="
+                                + sessionId);
+            }
+            CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
+            if (existing != null) {
+                throw new NopAiAgentException(
+                        "resumeSession failed: session already executing: sessionId=" + sessionId);
+            }
+        } catch (RuntimeException e) {
+            releaseLockQuietly(sessionId, instanceId);
+            throw e;
         }
 
         try {
             return CompletableFuture.supplyAsync(() -> {
+                // Plan 232: set/clear tenant context on the worker thread.
+                // resumeSession has no Principal source in the foundational
+                // slice (no request parameter), so the tenant context is null
+                // = all data visible (recovery-path semantics). The structure
+                // is present so a future principal source only changes the
+                // captured value.
+                ThreadLocalTenantResolver.set(null);
+                try {
                 handle.thread = Thread.currentThread();
 
                 // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
@@ -1590,6 +2124,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     AgentActor actor = actorRuntime.createActor(sessionId, agentName);
                     actor.setSteeringQueue(ctx.getSteeringQueue());
                 }
+
+                // Plan 231: declarative team auto-bind (lead and/or member).
+                // Runs after createActor so the actorId is available.
+                autoBindTeam(agentModel, sessionId, agentName);
 
                 AgentExecutionResult result;
                 try {
@@ -1606,6 +2144,9 @@ public class DefaultAgentEngine implements IAgentEngine {
                         actorRuntime.getActorBySession(sessionId)
                                 .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
                     }
+                    // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
+                    // 路径 3 — inner finally).
+                    releaseLockQuietly(sessionId, instanceId);
                 }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
@@ -1620,10 +2161,15 @@ public class DefaultAgentEngine implements IAgentEngine {
             sessionStore.save(session);
 
             return result;
+                } finally {
+                    ThreadLocalTenantResolver.clear();
+                }
         });
         } catch (RuntimeException e) {
             // Plan 197: clean up pre-registered handle if supplyAsync fails.
             runningExecutions.remove(sessionId, handle);
+            // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2).
+            releaseLockQuietly(sessionId, instanceId);
             throw e;
         }
     }
@@ -1706,6 +2252,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         // the crashed execution left off, letting the LLM re-plan from the
         // last completed tool result rather than starting a new turn).
         AgentModel agentModel = loadAgentModel(agentName);
+        // Plan 231: synchronous fail-fast precheck (see doExecute).
+        precheckTeamDeclarations(agentModel);
         AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
 
         IToolAccessChecker effectiveToolAccessChecker = this.toolAccessChecker;
@@ -1715,15 +2263,35 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
         // phase with putIfAbsent + fail-fast (see doExecute for full rationale).
+        //
+        // Plan 221 (L4-8-P4): cross-process takeover lock (see doExecute for
+        // full rationale — tryAcquire before putIfAbsent, release on every
+        // cleanup path).
         CancelHandle handle = new CancelHandle(ctx, null);
-        CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
-        if (existing != null) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: session already executing: sessionId=" + sessionId);
+        try {
+            if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
+                throw new NopAiAgentException(
+                        "restoreSession failed: session is locked by another instance: sessionId="
+                                + sessionId);
+            }
+            CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
+            if (existing != null) {
+                throw new NopAiAgentException(
+                        "restoreSession failed: session already executing: sessionId=" + sessionId);
+            }
+        } catch (RuntimeException e) {
+            releaseLockQuietly(sessionId, instanceId);
+            throw e;
         }
 
         try {
             return CompletableFuture.supplyAsync(() -> {
+                // Plan 232: set/clear tenant context on the worker thread.
+                // restoreSession has no Principal source in the foundational
+                // slice (no request parameter), so the tenant context is null
+                // = all data visible (recovery-path semantics).
+                ThreadLocalTenantResolver.set(null);
+                try {
                 handle.thread = Thread.currentThread();
 
                 // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
@@ -1733,6 +2301,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     AgentActor actor = actorRuntime.createActor(sessionId, agentName);
                     actor.setSteeringQueue(ctx.getSteeringQueue());
                 }
+
+                // Plan 231: declarative team auto-bind (lead and/or member).
+                // Runs after createActor so the actorId is available.
+                autoBindTeam(agentModel, sessionId, agentName);
 
                 AgentExecutionResult result;
                 try {
@@ -1749,6 +2321,9 @@ public class DefaultAgentEngine implements IAgentEngine {
                         actorRuntime.getActorBySession(sessionId)
                                 .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
                     }
+                    // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
+                    // 路径 3 — inner finally).
+                    releaseLockQuietly(sessionId, instanceId);
                 }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
@@ -1761,10 +2336,15 @@ public class DefaultAgentEngine implements IAgentEngine {
             sessionStore.save(session);
 
             return result;
+                } finally {
+                    ThreadLocalTenantResolver.clear();
+                }
         });
         } catch (RuntimeException e) {
             // Plan 197: clean up pre-registered handle if supplyAsync fails.
             runningExecutions.remove(sessionId, handle);
+            // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2).
+            releaseLockQuietly(sessionId, instanceId);
             throw e;
         }
     }
@@ -1819,6 +2399,16 @@ public class DefaultAgentEngine implements IAgentEngine {
             AgentExecStatus status = session.getStatus();
 
             if (status == AgentExecStatus.running || status == AgentExecStatus.pending) {
+                // Plan 221 (L4-8-P4): skip sessions already being processed by
+                // another instance. isHeld returns true iff an active (non-
+                // expired) lease exists for this sessionId regardless of
+                // owner — a true return means another JVM instance is
+                // handling this session, so add to skipped (not failed).
+                if (sessionTakeoverLock.isHeld(sessionId)) {
+                    skipped.add(new SessionRestoreSummary.SkipEntry(
+                            sessionId, status, "locked by another instance"));
+                    continue;
+                }
                 // Restore candidate. Delegate to the single-session primitive
                 // (Wiring Verification: this calls restoreSession rather than
                 // duplicating the restore protocol). Sequential restore with
@@ -2049,6 +2639,9 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .writeIntentRegistry(this.writeIntentRegistry)
                     .contributionRegistry(this.contributionRegistry)
                     .sandboxBackend(this.sandboxBackend)
+                    .teamManager(this.teamManager)
+                    .teamTaskStore(this.teamTaskStore)
+                    .teamAclChecker(this.teamAclChecker)
                     .build();
         }
         if ("single-turn".equals(mode)) {
@@ -2187,5 +2780,176 @@ public class DefaultAgentEngine implements IAgentEngine {
         } catch (Exception e) {
             throw new NopAiAgentException("Failed to load agent model: agentName=" + agentName, e);
         }
+    }
+
+    // ============================================================
+    // Plan 231 (L4-team-auto-binding): declarative team auto-bind
+    // ============================================================
+    //
+    // A lead agent's <team> element declares the team structure; a member
+    // agent's <team-member> element declares its membership. When a
+    // functional ITeamManager is wired, the three execution entry points
+    // (doExecute / resumeSession / restoreSession) auto-bind the declared
+    // team/member without any integrator code. The shipped default
+    // (NoOpTeamManager + no <team>/<team-member> declarations) leaves engine
+    // behaviour unchanged (zero regression).
+    //
+    // Two-phase design (Design Decision #7):
+    //   1. Synchronous fail-fast precheck (precheckTeamDeclarations): run
+    //      right after loadAgentModel, before supplyAsync. Surfaces a
+    //      NoOp+declaration misconfiguration early.
+    //   2. Async-block binding (autoBindTeam): run inside supplyAsync after
+    //      actorRuntime.createActor(), because bindMemberSession needs a
+    //      non-null actorId which only becomes available then.
+
+    /**
+     * Synchronous fail-fast precheck (Plan 231, Design Decision #6/#7). If
+     * the agent declares {@code <team>} or {@code <team-member>} but the
+     * wired {@code teamManager} is a {@link NoOpTeamManager} (no functional
+     * manager), throw {@link NopAiAgentException} before entering the async
+     * execution block. This surfaces the deployment misconfiguration early
+     * rather than failing inside the async block or silently skipping the
+     * binding (Minimum Rules #24 — No Silent No-Op). When neither
+     * declaration is present, this method touches no teamManager state (zero
+     * regression).
+     */
+    private void precheckTeamDeclarations(AgentModel agentModel) {
+        boolean hasTeamDecl = agentModel.getTeam() != null;
+        boolean hasMemberDecl = agentModel.getTeamMember() != null;
+        if ((hasTeamDecl || hasMemberDecl) && teamManager instanceof NoOpTeamManager) {
+            throw new NopAiAgentException(
+                    "Agent declares <team>/<team-member> but no functional ITeamManager "
+                            + "is wired; call setTeamManager(InMemoryTeamManager/DbTeamManager) "
+                            + "to enable declarative team binding. agentName=" + agentModel.getName());
+        }
+    }
+
+    /**
+     * Async-block auto-bind (Plan 231). Called from each entry point's
+     * {@code supplyAsync} lambda after {@code actorRuntime.createActor()}
+     * (the {@code actorId} is only available then). Idempotently binds the
+     * lead session ({@code <team>}) and/or member session
+     * ({@code <team-member>}). Both paths are opt-in: if neither declaration
+     * is present, this method touches no teamManager state (zero regression).
+     */
+    private void autoBindTeam(AgentModel agentModel, String sessionId, String agentName) {
+        TeamModel teamDecl = agentModel.getTeam();
+        if (teamDecl != null) {
+            autoBindLead(teamDecl, sessionId, agentName);
+        }
+        TeamMemberRefModel memberDecl = agentModel.getTeamMember();
+        if (memberDecl != null) {
+            autoBindMember(memberDecl, sessionId);
+        }
+    }
+
+    /**
+     * Lead-side auto-bind (Plan 231, Design Decisions #3/#4). Convert the
+     * declared {@code <team>} into a {@link TeamSpec}, idempotently create
+     * the team (probe {@code getTeamBySession} first to avoid re-creating on
+     * resume/restore), and bind the lead session. The converter guarantees
+     * {@code leadAgentName} is in the roster with {@code role=LEAD}, so the
+     * first binding transitions the team {@code CREATED → ACTIVE}. A
+     * {@code false} return from {@code bindMemberSession} fails fast
+     * (Design Decision #8 — No Silent No-Op).
+     */
+    private void autoBindLead(TeamModel teamDecl, String sessionId, String agentName) {
+        String actorId = resolveActorId(sessionId);
+        String leadAgentName = teamDecl.getLeadAgentName();
+
+        // Idempotent create: probe the session index first so resume/restore
+        // do not re-create the team (createTeam generates a fresh UUID and is
+        // not itself idempotent).
+        java.util.Optional<Team> existing = teamManager.getTeamBySession(sessionId);
+        String teamId;
+        if (existing.isPresent()) {
+            teamId = existing.get().getTeamId();
+        } else {
+            TeamSpec spec = TeamModelConverter.toTeamSpec(teamDecl, agentName);
+            teamId = teamManager.createTeam(spec).getTeamId();
+        }
+
+        boolean bound = teamManager.bindMemberSession(teamId, leadAgentName, sessionId, actorId);
+        if (!bound) {
+            throw new NopAiAgentException(
+                    "Auto-bind failed: lead member '" + leadAgentName
+                            + "' could not be bound to team '" + teamId
+                            + "' (not in roster or team not in a bindable state). sessionId="
+                            + sessionId);
+        }
+    }
+
+    /**
+     * Member-side auto-bind (Plan 231, Design Decisions #5/#8). Resolve the
+     * team by {@code teamName} among ACTIVE teams (a CREATED-only team means
+     * the lead has not yet bound/activated it — members must not bind to an
+     * unactivated team), then idempotently bind the member session. Missing
+     * ACTIVE team → fail-fast; {@code bindMemberSession} returning
+     * {@code false} → fail-fast (No Silent No-Op).
+     */
+    private void autoBindMember(TeamMemberRefModel memberDecl, String sessionId) {
+        String actorId = resolveActorId(sessionId);
+        String teamName = memberDecl.getTeamName();
+        String memberName = memberDecl.getMemberName();
+
+        // getActiveTeams() returns CREATED+ACTIVE; an explicit ACTIVE filter
+        // is required so members only bind to an activated team.
+        Team matched = null;
+        int activeCount = 0;
+        for (Team team : teamManager.getActiveTeams()) {
+            if (teamName.equals(team.getSpec().getTeamName())
+                    && team.getStatus() == TeamStatus.ACTIVE) {
+                activeCount++;
+                if (matched == null) {
+                    matched = team;
+                }
+            }
+        }
+        if (matched == null) {
+            throw new NopAiAgentException(
+                    "Auto-bind failed: member declares <team-member teamName='" + teamName
+                            + "'> but no ACTIVE team with that name was found "
+                            + "(ensure the lead agent has executed and bound/activated the team). "
+                            + "sessionId=" + sessionId);
+        }
+        if (activeCount > 1) {
+            LOG.warn("Auto-bind: multiple ACTIVE teams named '{}' found; binding to the first "
+                    + "(teamId={}). Cross-process teamName uniqueness arbitration is a successor (Non-Goal).",
+                    teamName, matched.getTeamId());
+        }
+
+        // Idempotent: skip the bind if the member is already bound.
+        java.util.Optional<TeamMember> already = teamManager.getMember(matched.getTeamId(), memberName);
+        if (already.isPresent() && already.get().isBound()) {
+            return;
+        }
+
+        boolean bound = teamManager.bindMemberSession(matched.getTeamId(), memberName, sessionId, actorId);
+        if (!bound) {
+            throw new NopAiAgentException(
+                    "Auto-bind failed: member '" + memberName
+                            + "' declares <team-member> but is not in the lead's team roster, "
+                            + "or the team is not in a bindable state. teamName=" + teamName
+                            + ", sessionId=" + sessionId);
+        }
+    }
+
+    /**
+     * Resolve the {@code actorId} to pass to {@code bindMemberSession}. When
+     * a functional actorRuntime is enabled, use the Actor's UUID actorId;
+     * otherwise (NoOp shipped default) fall back to the sessionId. The
+     * {@code actorId} is an opaque association tag on {@link TeamMember} —
+     * team binding/routing semantics depend on {@code sessionId}, not on a
+     * live Actor, so the sessionId is a legitimate stand-in when no Actor
+     * runtime is configured (Design Decision #7).
+     */
+    private String resolveActorId(String sessionId) {
+        if (actorRuntime.isEnabled()) {
+            java.util.Optional<AgentActor> actor = actorRuntime.getActorBySession(sessionId);
+            if (actor.isPresent()) {
+                return actor.get().getActorId();
+            }
+        }
+        return sessionId;
     }
 }

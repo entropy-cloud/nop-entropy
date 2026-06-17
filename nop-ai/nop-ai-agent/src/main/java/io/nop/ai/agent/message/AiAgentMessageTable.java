@@ -24,6 +24,11 @@ public final class AiAgentMessageTable {
     public static final String COL_CREATED_AT = "CREATED_AT";
     public static final String COL_CLAIMED_AT = "CLAIMED_AT";
     public static final String COL_CONSUMED_AT = "CONSUMED_AT";
+    /**
+     * Multi-tenant isolation column (plan 232 / vision §5.1). Nullable:
+     * {@code null} means "no tenant context" (legacy / single-tenant row).
+     */
+    public static final String COL_TENANT_ID = "TENANT_ID";
 
     public static final int STATUS_PENDING = 0;
     public static final int STATUS_CLAIMED = 10;
@@ -39,6 +44,7 @@ public final class AiAgentMessageTable {
             + COL_CREATED_AT + " TIMESTAMP NOT NULL, "
             + COL_CLAIMED_AT + " TIMESTAMP, "
             + COL_CONSUMED_AT + " TIMESTAMP, "
+            + COL_TENANT_ID + " VARCHAR(100), "
             + "PRIMARY KEY (" + COL_SID + ")"
             + ")";
 

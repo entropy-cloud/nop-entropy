@@ -40,6 +40,11 @@ public final class NopAiSessionMessageTable {
     public static final String COL_CREATE_TIME = "create_time";
     public static final String COL_UPDATED_BY = "updated_by";
     public static final String COL_UPDATE_TIME = "update_time";
+    /**
+     * Multi-tenant isolation column (plan 232 / vision §5.1). Nullable:
+     * {@code null} means "no tenant context" (legacy / single-tenant row).
+     */
+    public static final String COL_TENANT_ID = "tenant_id";
 
     public static final String INDEX_UK_SEQ = "uk_nop_ai_session_msg_seq";
 
@@ -70,6 +75,7 @@ public final class NopAiSessionMessageTable {
             + COL_CREATE_TIME + " TIMESTAMP NOT NULL, "
             + COL_UPDATED_BY + " VARCHAR(50) NOT NULL, "
             + COL_UPDATE_TIME + " TIMESTAMP NOT NULL, "
+            + COL_TENANT_ID + " VARCHAR(100), "
             + "PRIMARY KEY (" + COL_ID + ")"
             + ")";
 

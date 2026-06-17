@@ -1,6 +1,9 @@
 package io.nop.ai.agent.session;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.security.ITenantResolver;
+import io.nop.ai.agent.security.NullTenantResolver;
+import io.nop.ai.agent.security.TenantSql;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,16 +66,53 @@ public class DBSessionStore implements ISessionStore {
 
     private final DataSource dataSource;
     private final ConcurrentHashMap<String, AgentSession> sessions = new ConcurrentHashMap<>();
+    private final ITenantResolver tenantResolver;
 
     /**
      * Create a DB-backed session store and initialize the DB schema (create
-     * table + index if absent).
+     * table + index if absent). Uses the backward-compatible
+     * {@link NullTenantResolver} (no tenant filtering — all data visible).
      *
      * @param dataSource the JDBC data source; never null
      */
     public DBSessionStore(DataSource dataSource) {
+        this(dataSource, NullTenantResolver.INSTANCE);
+    }
+
+    /**
+     * Create a DB-backed session store with a contextual tenant resolver
+     * (plan 232 / vision §5.1). When the resolver reports a non-null tenant,
+     * all SQL injects the tenant {@code WHERE} condition, the MERGE key becomes
+     * {@code (SESSION_ID, TENANT_ID)}, and the write-through cache is bypassed
+     * (a sessionId cache key cannot distinguish tenants). When the resolver
+     * reports {@code null}, behaviour is byte-identical to the single-tenant
+     * store (zero regression).
+     *
+     * @param dataSource     the JDBC data source; never null
+     * @param tenantResolver the contextual tenant resolver; never null
+     */
+    public DBSessionStore(DataSource dataSource, ITenantResolver tenantResolver) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
+        this.tenantResolver = Objects.requireNonNull(tenantResolver, "tenantResolver must not be null");
         initSchema();
+    }
+
+    /**
+     * @return the active tenantId for the current thread, or {@code null} when
+     *         no tenant context is active (all data visible)
+     */
+    private String currentTenant() {
+        return tenantResolver.resolveTenantId();
+    }
+
+    /**
+     * Plan 232 (Design Decision 8): when a tenant context is active the
+     * write-through cache is bypassed — a sessionId cache key cannot
+     * distinguish tenants, so cross-tenant sessionId reuse would leak via the
+     * cache. When there is no tenant context the cache is used as before.
+     */
+    private boolean cacheEnabled() {
+        return currentTenant() == null;
     }
 
     private void initSchema() {
@@ -88,42 +128,61 @@ public class DBSessionStore implements ISessionStore {
 
     @Override
     public AgentSession getOrCreate(String sessionId, String agentName) {
-        AgentSession existing = sessions.get(sessionId);
-        if (existing != null) {
-            return existing;
+        if (cacheEnabled()) {
+            AgentSession existing = sessions.get(sessionId);
+            if (existing != null) {
+                return existing;
+            }
         }
         AgentSession loaded = loadFromDb(sessionId);
         if (loaded != null) {
-            AgentSession raced = putIfAbsent(sessionId, loaded);
-            return raced != null ? raced : loaded;
+            if (cacheEnabled()) {
+                AgentSession raced = putIfAbsent(sessionId, loaded);
+                return raced != null ? raced : loaded;
+            }
+            return loaded;
         }
         AgentSession fresh = AgentSession.create(sessionId, agentName);
-        AgentSession raced = putIfAbsent(sessionId, fresh);
-        return raced != null ? raced : fresh;
+        if (cacheEnabled()) {
+            AgentSession raced = putIfAbsent(sessionId, fresh);
+            return raced != null ? raced : fresh;
+        }
+        return fresh;
     }
 
     @Override
     public AgentSession get(String sessionId) {
-        AgentSession cached = sessions.get(sessionId);
-        if (cached != null) {
-            return cached;
+        if (cacheEnabled()) {
+            AgentSession cached = sessions.get(sessionId);
+            if (cached != null) {
+                return cached;
+            }
         }
         AgentSession loaded = loadFromDb(sessionId);
-        if (loaded != null) {
+        if (loaded != null && cacheEnabled()) {
             AgentSession raced = putIfAbsent(sessionId, loaded);
             return raced != null ? raced : loaded;
         }
-        return null;
+        return loaded;
     }
 
     @Override
     public void remove(String sessionId) {
-        sessions.remove(sessionId);
+        if (cacheEnabled()) {
+            sessions.remove(sessionId);
+        }
+        String tenant = currentTenant();
         String deleteSql = "DELETE FROM " + AiAgentSessionTable.TABLE_NAME
                 + " WHERE " + AiAgentSessionTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            deleteSql += TenantSql.whereTenant(AiAgentSessionTable.COL_TENANT_ID);
+        }
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(deleteSql)) {
             ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopAiAgentException(
@@ -134,7 +193,14 @@ public class DBSessionStore implements ISessionStore {
 
     @Override
     public Collection<AgentSession> getAll() {
-        return sessions.values();
+        // When a tenant context is active the cache cannot be trusted (it is
+        // keyed by sessionId without a tenant dimension), so fall through to
+        // a tenant-scoped DB scan. When no tenant context, return the cache
+        // (existing single-tenant semantics).
+        if (cacheEnabled()) {
+            return sessions.values();
+        }
+        return listAllSessions();
     }
 
     /**
@@ -161,23 +227,35 @@ public class DBSessionStore implements ISessionStore {
     @Override
     public Collection<AgentSession> listAllSessions() {
         Collection<AgentSession> discovered = new ArrayList<>();
+        String tenant = currentTenant();
         String selectAll = "SELECT " + AiAgentSessionTable.COL_SESSION_DATA
                 + " FROM " + AiAgentSessionTable.TABLE_NAME;
+        if (tenant != null) {
+            selectAll += " WHERE " + AiAgentSessionTable.COL_TENANT_ID + " = ?"
+                    + " OR " + AiAgentSessionTable.COL_TENANT_ID + " IS NULL";
+        }
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(selectAll);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String json = rs.getString(1);
-                String sessionId = null;
-                try {
-                    AgentSession loaded = SessionFileReader.deserialize(json);
-                    sessionId = loaded.getSessionId();
-                    AgentSession raced = sessions.putIfAbsent(sessionId, loaded);
-                    discovered.add(raced != null ? raced : loaded);
-                } catch (NopAiAgentException e) {
-                    LOG.warn("DBSessionStore.listAllSessions: skipping unreadable "
-                                    + "session row (corrupt or truncated JSON)",
-                            e);
+             PreparedStatement ps = conn.prepareStatement(selectAll)) {
+            if (tenant != null) {
+                ps.setString(1, tenant);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String json = rs.getString(1);
+                    try {
+                        AgentSession loaded = SessionFileReader.deserialize(json);
+                        String sid = loaded.getSessionId();
+                        if (cacheEnabled()) {
+                            AgentSession raced = sessions.putIfAbsent(sid, loaded);
+                            discovered.add(raced != null ? raced : loaded);
+                        } else {
+                            discovered.add(loaded);
+                        }
+                    } catch (NopAiAgentException e) {
+                        LOG.warn("DBSessionStore.listAllSessions: skipping unreadable "
+                                        + "session row (corrupt or truncated JSON)",
+                                e);
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -204,14 +282,35 @@ public class DBSessionStore implements ISessionStore {
             throw new NopAiAgentException("DBSessionStore.save: session must not be null");
         }
         String json = SessionFileWriter.serialize(session);
-        String mergeSql = "MERGE INTO " + AiAgentSessionTable.TABLE_NAME
-                + " (" + AiAgentSessionTable.COL_SESSION_ID
-                + ", " + AiAgentSessionTable.COL_AGENT_NAME
-                + ", " + AiAgentSessionTable.COL_STATUS
-                + ", " + AiAgentSessionTable.COL_SESSION_DATA
-                + ", " + AiAgentSessionTable.COL_CREATED_AT
-                + ", " + AiAgentSessionTable.COL_UPDATED_AT
-                + ") KEY (" + AiAgentSessionTable.COL_SESSION_ID + ") VALUES (?, ?, ?, ?, ?, ?)";
+        String tenant = currentTenant();
+        // Plan 232 (Design Decision 9): when a tenant is active, the MERGE key
+        // becomes (SESSION_ID, TENANT_ID) so each tenant has its own session
+        // namespace; TENANT_ID is appended as the last VALUES column. When no
+        // tenant context, the SQL is byte-identical to the original upsert
+        // (KEY (SESSION_ID), no TENANT_ID column) — zero regression.
+        String mergeSql;
+        if (tenant != null) {
+            mergeSql = "MERGE INTO " + AiAgentSessionTable.TABLE_NAME
+                    + " (" + AiAgentSessionTable.COL_SESSION_ID
+                    + ", " + AiAgentSessionTable.COL_AGENT_NAME
+                    + ", " + AiAgentSessionTable.COL_STATUS
+                    + ", " + AiAgentSessionTable.COL_SESSION_DATA
+                    + ", " + AiAgentSessionTable.COL_CREATED_AT
+                    + ", " + AiAgentSessionTable.COL_UPDATED_AT
+                    + ", " + AiAgentSessionTable.COL_TENANT_ID
+                    + ") KEY (" + AiAgentSessionTable.COL_SESSION_ID
+                    + ", " + AiAgentSessionTable.COL_TENANT_ID
+                    + ") VALUES (?, ?, ?, ?, ?, ?, ?)";
+        } else {
+            mergeSql = "MERGE INTO " + AiAgentSessionTable.TABLE_NAME
+                    + " (" + AiAgentSessionTable.COL_SESSION_ID
+                    + ", " + AiAgentSessionTable.COL_AGENT_NAME
+                    + ", " + AiAgentSessionTable.COL_STATUS
+                    + ", " + AiAgentSessionTable.COL_SESSION_DATA
+                    + ", " + AiAgentSessionTable.COL_CREATED_AT
+                    + ", " + AiAgentSessionTable.COL_UPDATED_AT
+                    + ") KEY (" + AiAgentSessionTable.COL_SESSION_ID + ") VALUES (?, ?, ?, ?, ?, ?)";
+        }
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(mergeSql)) {
             ps.setString(1, session.getSessionId());
@@ -220,13 +319,18 @@ public class DBSessionStore implements ISessionStore {
             ps.setString(4, json);
             ps.setLong(5, session.getCreatedAt());
             ps.setLong(6, session.getUpdatedAt());
+            if (tenant != null) {
+                ps.setString(7, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopAiAgentException(
                     "DBSessionStore.save: failed to persist session '" + session.getSessionId()
                             + "': " + e.getMessage(), e);
         }
-        sessions.put(session.getSessionId(), session);
+        if (cacheEnabled()) {
+            sessions.put(session.getSessionId(), session);
+        }
     }
 
     @Override
@@ -264,12 +368,19 @@ public class DBSessionStore implements ISessionStore {
     }
 
     private AgentSession loadFromDb(String sessionId) {
+        String tenant = currentTenant();
         String selectSql = "SELECT " + AiAgentSessionTable.COL_SESSION_DATA
                 + " FROM " + AiAgentSessionTable.TABLE_NAME
                 + " WHERE " + AiAgentSessionTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            selectSql += TenantSql.whereTenant(AiAgentSessionTable.COL_TENANT_ID);
+        }
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(selectSql)) {
             ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String json = rs.getString(1);

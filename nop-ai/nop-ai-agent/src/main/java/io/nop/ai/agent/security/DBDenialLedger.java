@@ -59,33 +59,57 @@ public class DBDenialLedger implements IDenialLedger {
 
     private final DataSource dataSource;
     private final int denialThreshold;
+    private final ITenantResolver tenantResolver;
 
     /**
      * Create a {@code DBDenialLedger} with the default threshold
      * ({@value #DEFAULT_DENIAL_THRESHOLD}) and initialize the DB schema.
+     * Uses the backward-compatible {@link NullTenantResolver}.
      *
      * @param dataSource the JDBC data source; never null
      */
     public DBDenialLedger(DataSource dataSource) {
-        this(dataSource, DEFAULT_DENIAL_THRESHOLD);
+        this(dataSource, DEFAULT_DENIAL_THRESHOLD, NullTenantResolver.INSTANCE);
     }
 
     /**
      * Create a {@code DBDenialLedger} with a configurable threshold and
-     * initialize the DB schema (create table + index if absent).
+     * initialize the DB schema (create table + index if absent). Uses the
+     * backward-compatible {@link NullTenantResolver}.
      *
      * @param dataSource       the JDBC data source; never null
      * @param denialThreshold  the per-session denial count at which the session
      *                         is paused; must be positive
      */
     public DBDenialLedger(DataSource dataSource, int denialThreshold) {
+        this(dataSource, denialThreshold, NullTenantResolver.INSTANCE);
+    }
+
+    /**
+     * Create a {@code DBDenialLedger} with a configurable threshold and a
+     * contextual tenant resolver (plan 232 / vision §5.1). When the resolver
+     * reports a non-null tenant, INSERT writes {@code TENANT_ID} and
+     * COUNT/DELETE inject the tenant {@code WHERE}. When the resolver reports
+     * {@code null}, SQL is byte-identical to the original (zero regression).
+     *
+     * @param dataSource       the JDBC data source; never null
+     * @param denialThreshold  the per-session denial count at which the session
+     *                         is paused; must be positive
+     * @param tenantResolver   the contextual tenant resolver; never null
+     */
+    public DBDenialLedger(DataSource dataSource, int denialThreshold, ITenantResolver tenantResolver) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
         if (denialThreshold <= 0) {
             throw new NopAiAgentException(
                     "denialThreshold must be positive, got: " + denialThreshold);
         }
         this.denialThreshold = denialThreshold;
+        this.tenantResolver = Objects.requireNonNull(tenantResolver, "tenantResolver must not be null");
         initSchema();
+    }
+
+    private String currentTenant() {
+        return tenantResolver.resolveTenantId();
     }
 
     /**
@@ -119,6 +143,7 @@ public class DBDenialLedger implements IDenialLedger {
         }
 
         String sid = generateSid();
+        String tenant = currentTenant();
         String insertSql = "INSERT INTO " + AiAgentDenialTable.TABLE_NAME
                 + " (" + AiAgentDenialTable.COL_SID
                 + ", " + AiAgentDenialTable.COL_SESSION_ID
@@ -127,8 +152,15 @@ public class DBDenialLedger implements IDenialLedger {
                 + ", " + AiAgentDenialTable.COL_REASON
                 + ", " + AiAgentDenialTable.COL_MATCHED_RULE
                 + ", " + AiAgentDenialTable.COL_DENIAL_TIMESTAMP
-                + ", " + AiAgentDenialTable.COL_CREATED_AT
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + ", " + AiAgentDenialTable.COL_CREATED_AT;
+        if (tenant != null) {
+            insertSql += ", " + AiAgentDenialTable.COL_TENANT_ID;
+        }
+        insertSql += ") VALUES (?, ?, ?, ?, ?, ?, ?, ?";
+        if (tenant != null) {
+            insertSql += ", ?";
+        }
+        insertSql += ")";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(insertSql)) {
@@ -140,6 +172,9 @@ public class DBDenialLedger implements IDenialLedger {
             ps.setString(6, record.getMatchedRule());
             ps.setLong(7, record.getTimestamp());
             ps.setTimestamp(8, new Timestamp(System.currentTimeMillis()));
+            if (tenant != null) {
+                ps.setString(9, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopAiAgentException(
@@ -178,11 +213,18 @@ public class DBDenialLedger implements IDenialLedger {
         if (sessionId == null) {
             return;
         }
+        String tenant = currentTenant();
         String deleteSql = "DELETE FROM " + AiAgentDenialTable.TABLE_NAME
                 + " WHERE " + AiAgentDenialTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            deleteSql += TenantSql.whereTenant(AiAgentDenialTable.COL_TENANT_ID);
+        }
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(deleteSql)) {
             ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopAiAgentException(
@@ -192,11 +234,18 @@ public class DBDenialLedger implements IDenialLedger {
     }
 
     private int countDenials(String sessionId) {
+        String tenant = currentTenant();
         String sql = "SELECT COUNT(*) FROM " + AiAgentDenialTable.TABLE_NAME
                 + " WHERE " + AiAgentDenialTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentDenialTable.COL_TENANT_ID);
+        }
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);

@@ -1,0 +1,14 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-team-member-b">
+
+    <description>Plan 231 E2E fixture: member agent B declaring team membership.</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.0"/>
+
+    <tools>test-echo</tools>
+
+    <prompt>You are member B of a test team.</prompt>
+
+    <team-member teamName="test-team" memberName="member-b"/>
+
+</agent>

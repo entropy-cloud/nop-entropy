@@ -1,0 +1,21 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-team-delta-base">
+
+    <description>Plan 231 Delta test base: a team whose teamName is overridden by the delta layer.</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.0"/>
+
+    <tools>test-echo</tools>
+
+    <prompt>Base lead.</prompt>
+
+    <team teamName="base-team-name" description="base description"
+          leadAgentName="test-team-delta-base" maxParallelMembers="3">
+        <members>
+            <member name="test-team-delta-base" agentModel="test-team-delta-base" role="LEAD"/>
+            <member name="alpha" agentModel="alpha-agent" role="MEMBER"/>
+            <member name="beta" agentModel="beta-agent" role="MEMBER"/>
+        </members>
+    </team>
+
+</agent>

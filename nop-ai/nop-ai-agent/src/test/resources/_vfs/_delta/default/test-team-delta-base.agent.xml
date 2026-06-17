@@ -1,0 +1,14 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-team-delta-base"
+       x:extends="super">
+
+    <team teamName="delta-overridden-team" description="delta-overridden description"
+          leadAgentName="test-team-delta-base" maxParallelMembers="2"
+          x:override="replace">
+        <members>
+            <member name="test-team-delta-base" agentModel="test-team-delta-base" role="LEAD"/>
+            <member name="gamma" agentModel="gamma-agent" role="MEMBER"/>
+        </members>
+    </team>
+
+</agent>

@@ -1,0 +1,14 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-team-member-ghost">
+
+    <description>Plan 231 fixture: member declaring a name NOT in the lead's roster (fail-fast).</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.0"/>
+
+    <tools>test-echo</tools>
+
+    <prompt>You are a ghost member.</prompt>
+
+    <team-member teamName="test-team" memberName="ghost"/>
+
+</agent>

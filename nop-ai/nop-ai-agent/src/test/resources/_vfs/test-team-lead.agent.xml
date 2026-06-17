@@ -1,0 +1,21 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-team-lead">
+
+    <description>Plan 231 E2E fixture: lead agent that declares a 2-member team.</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.0"/>
+
+    <tools>test-echo</tools>
+
+    <prompt>You are the lead agent of a test team.</prompt>
+
+    <team teamName="test-team" description="Plan 231 test team"
+          leadAgentName="test-team-lead" maxParallelMembers="4">
+        <members>
+            <member name="test-team-lead" agentModel="test-team-lead" role="LEAD"/>
+            <member name="member-a" agentModel="test-team-member-a" role="MEMBER"/>
+            <member name="member-b" agentModel="test-team-member-b" role="MEMBER"/>
+        </members>
+    </team>
+
+</agent>

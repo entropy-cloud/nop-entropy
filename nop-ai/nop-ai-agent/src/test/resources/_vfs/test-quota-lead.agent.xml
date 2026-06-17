@@ -1,0 +1,23 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-quota-lead">
+
+    <description>Plan 234 E2E fixture: lead agent declaring a team with maxParallelMembers=2
+        (3 members total) so the 3rd bindMemberSession is denied by the functional
+        ResourceGuard.</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.0"/>
+
+    <tools>test-echo</tools>
+
+    <prompt>You are the lead agent of a quota test team.</prompt>
+
+    <team teamName="test-quota-team" description="Plan 234 quota test team"
+          leadAgentName="test-quota-lead" maxParallelMembers="2">
+        <members>
+            <member name="test-quota-lead" agentModel="test-quota-lead" role="LEAD"/>
+            <member name="quota-member-a" agentModel="test-quota-member-a" role="MEMBER"/>
+            <member name="quota-member-b" agentModel="test-quota-member-b" role="MEMBER"/>
+        </members>
+    </team>
+
+</agent>

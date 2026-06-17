@@ -45,6 +45,11 @@ public final class AiAgentCheckpointTable {
     public static final String COL_OUTPUT_SUMMARY = "OUTPUT_SUMMARY";
     public static final String COL_MESSAGE_COUNT = "MESSAGE_COUNT";
     public static final String COL_TOKEN_ESTIMATE = "TOKEN_ESTIMATE";
+    /**
+     * Multi-tenant isolation column (plan 232 / vision §5.1). Nullable:
+     * {@code null} means "no tenant context" (legacy / single-tenant row).
+     */
+    public static final String COL_TENANT_ID = "TENANT_ID";
 
     public static final String INDEX_SESSION_SEQ = "IDX_AI_AGENT_CHECKPOINT_SESSION_SEQ";
 
@@ -61,6 +66,7 @@ public final class AiAgentCheckpointTable {
             + COL_OUTPUT_SUMMARY + " CLOB, "
             + COL_MESSAGE_COUNT + " INTEGER NOT NULL, "
             + COL_TOKEN_ESTIMATE + " BIGINT NOT NULL, "
+            + COL_TENANT_ID + " VARCHAR(100), "
             + "PRIMARY KEY (" + COL_WATERMARK + ")"
             + ")";
 

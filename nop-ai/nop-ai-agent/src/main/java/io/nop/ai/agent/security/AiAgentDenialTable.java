@@ -28,6 +28,11 @@ public final class AiAgentDenialTable {
     public static final String COL_MATCHED_RULE = "MATCHED_RULE";
     public static final String COL_DENIAL_TIMESTAMP = "DENIAL_TIMESTAMP";
     public static final String COL_CREATED_AT = "CREATED_AT";
+    /**
+     * Multi-tenant isolation column (plan 232 / vision §5.1). Nullable:
+     * {@code null} means "no tenant context" (legacy / single-tenant row).
+     */
+    public static final String COL_TENANT_ID = "TENANT_ID";
 
     public static final String INDEX_SESSION_ID = "IDX_AI_AGENT_DENIAL_SESSION_ID";
 
@@ -41,6 +46,7 @@ public final class AiAgentDenialTable {
             + COL_MATCHED_RULE + " VARCHAR(200), "
             + COL_DENIAL_TIMESTAMP + " BIGINT NOT NULL, "
             + COL_CREATED_AT + " TIMESTAMP NOT NULL, "
+            + COL_TENANT_ID + " VARCHAR(100), "
             + "PRIMARY KEY (" + COL_SID + ")"
             + ")";
 

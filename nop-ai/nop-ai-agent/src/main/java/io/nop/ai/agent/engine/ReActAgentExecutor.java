@@ -121,6 +121,9 @@ import io.nop.ai.agent.skill.NoOpSkillProvider;
 import io.nop.ai.agent.skill.SkillAssemblyResult;
 import io.nop.ai.agent.skill.SkillResolver;
 import io.nop.ai.agent.talent.ITalent;
+import io.nop.ai.agent.team.ITeamAclChecker;
+import io.nop.ai.agent.team.ITeamManager;
+import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.usage.IUsageRecorder;
 import io.nop.ai.agent.usage.NoOpUsageRecorder;
 import io.nop.ai.agent.usage.UsageRecord;
@@ -292,6 +295,21 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // engine wires in resolveExecutor.
     private final io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
 
+    // Plan 225 (L4-8-team-tools): team manager + team task store made
+    // available to team-aware tools (team-send-message / team-status /
+    // team-task-create) via the dispatch loop's AgentToolExecuteContext. The
+    // executor itself does not call them on the dispatch path — team tools
+    // consume them at execution time. When null (executor constructed
+    // outside the engine, or team functionality not enabled), team tools
+    // honestly report that the operation was not executed.
+    private final ITeamManager teamManager;
+    private final ITeamTaskStore teamTaskStore;
+    // Plan 228 (L4-team-acl-enforcement): team ACL checker held by the
+    // executor and propagated into AgentToolExecuteContext so the 4 team
+    // tool executors can consult it. The executor itself does not call it
+    // on the dispatch path — team tools consume it at execution time.
+    private final ITeamAclChecker teamAclChecker;
+
     private ReActAgentExecutor(IChatService chatService, IToolManager toolManager,
                                IAgentEventPublisher eventPublisher,
                                IPermissionProvider permissionProvider,
@@ -328,7 +346,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                            IConflictStrategy conflictStrategy,
                                            IWriteIntentRegistry writeIntentRegistry,
                                            IContributionRegistry contributionRegistry,
-                                           io.nop.ai.agent.security.ISandboxBackend sandboxBackend) {
+                                           io.nop.ai.agent.security.ISandboxBackend sandboxBackend,
+                                           ITeamManager teamManager,
+                                           ITeamTaskStore teamTaskStore,
+                                           ITeamAclChecker teamAclChecker) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -391,6 +412,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.sandboxBackend = sandboxBackend != null
                 ? sandboxBackend
                 : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE;
+        this.teamManager = teamManager;
+        this.teamTaskStore = teamTaskStore;
+        this.teamAclChecker = teamAclChecker;
     }
 
     public static Builder builder() {
@@ -436,6 +460,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IWriteIntentRegistry writeIntentRegistry;
         private IContributionRegistry contributionRegistry;
         private io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
+        // Plan 225 (L4-8-team-tools)
+        private ITeamManager teamManager;
+        private ITeamTaskStore teamTaskStore;
+        // Plan 228 (L4-team-acl-enforcement)
+        private ITeamAclChecker teamAclChecker;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -841,6 +870,49 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Plan 225 (L4-8-team-tools): wire the {@link ITeamManager} made
+         * available to team-aware tools (team-send-message / team-status /
+         * team-task-create) via the dispatch loop's
+         * {@link AgentToolExecuteContext}. The executor itself does not call
+         * the teamManager on the dispatch path — team tools consume it at
+         * execution time. Optional: when null, team tools honestly report
+         * that the operation was not executed (backward compatible).
+         */
+        public Builder teamManager(ITeamManager teamManager) {
+            this.teamManager = teamManager;
+            return this;
+        }
+
+        /**
+         * Plan 225 (L4-8-team-tools): wire the {@link ITeamTaskStore} made
+         * available to team task tools (team-task-create / team-status task
+         * count) via the dispatch loop's
+         * {@link AgentToolExecuteContext}. Optional: when null, team task
+         * tools honestly report that the operation was not executed
+         * (backward compatible).
+         */
+        public Builder teamTaskStore(ITeamTaskStore teamTaskStore) {
+            this.teamTaskStore = teamTaskStore;
+            return this;
+        }
+
+        /**
+         * Plan 228 (L4-team-acl-enforcement): wire the
+         * {@link ITeamAclChecker} made available to the 4 team tool
+         * executors (team-send-message / team-status / team-task-create /
+         * team-task-update) via the dispatch loop's
+         * {@link AgentToolExecuteContext}. The executor itself does not call
+         * the checker on the dispatch path — team tools consume it at
+         * execution time. Optional: when null, the shipped
+         * {@link io.nop.ai.agent.team.NoOpTeamAclChecker} default applies
+         * (allow(null) — zero behaviour regression).
+         */
+        public Builder teamAclChecker(ITeamAclChecker teamAclChecker) {
+            this.teamAclChecker = teamAclChecker;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -890,7 +962,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     contributionRegistry != null ? contributionRegistry : NoOpContributionRegistry.noOp(),
                     sandboxBackend != null
                             ? sandboxBackend
-                            : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE
+                            : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE,
+                    teamManager,
+                    teamTaskStore,
+                    teamAclChecker
             );
         }
     }
@@ -1506,7 +1581,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         computeEffectiveAllowedTools(agentModel, ctx),
                         computeEffectivePathRoots(agentModel, ctx),
                         computeEffectivePathRules(agentModel, ctx),
-                        memoryStore);
+                        memoryStore,
+                        teamManager,
+                        teamTaskStore,
+                        teamAclChecker);
 
                 // The workDir string used for action-fingerprint computation
                 // (design §6.3). Resolved once per iteration so all dispatch-loop
@@ -1849,6 +1927,29 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 if (ctx.isCancelRequested()) {
                     handleCancellation(ctx, sessionId, agentName);
                     break;
+                }
+
+                // Plan 220 (L4-8-steering): steering checkpoint at the round
+                // boundary. After all tool calls in this round completed and
+                // their results written back to the ctx message list (above),
+                // drain the steering queue and append any queued steering
+                // messages to ctx before the next LLM call. The drain runs on
+                // the ReAct thread; the Actor's consumption thread enqueues via
+                // ConcurrentLinkedQueue (lock-free coordination). With the
+                // shipped NoOpActorRuntime default the queue is always empty,
+                // so drainSteering() returns an empty list (one poll that
+                // finds null) — zero-regression no-op. When steering messages
+                // are present, they are appended as new messages (裁定 4:
+                // append, not modify history) and the next iteration's LLM
+                // call sees them via ctx.getMessages() (裁定 3: round boundary).
+                List<ChatMessage> steeringMessages = ctx.drainSteering();
+                if (!steeringMessages.isEmpty()) {
+                    for (ChatMessage steeringMsg : steeringMessages) {
+                        ctx.addMessage(steeringMsg);
+                    }
+                    LOG.info("Steering checkpoint: injected {} steering message(s) at round boundary "
+                            + "(iteration={}). session={}",
+                            steeringMessages.size(), ctx.getCurrentIteration(), sessionId);
                 }
 
                 ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);

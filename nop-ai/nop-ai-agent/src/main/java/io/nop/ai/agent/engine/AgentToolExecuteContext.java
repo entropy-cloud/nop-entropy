@@ -3,6 +3,10 @@ package io.nop.ai.agent.engine;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.model.PathRuleModel;
+import io.nop.ai.agent.team.ITeamAclChecker;
+import io.nop.ai.agent.team.ITeamManager;
+import io.nop.ai.agent.team.ITeamTaskStore;
+import io.nop.ai.agent.team.NoOpTeamAclChecker;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
@@ -45,6 +49,9 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
     private final Set<String> allowedPathRoots;
     private final List<PathRuleModel> allowedPathRules;
     private final IAiMemoryStore memoryStore;
+    private final ITeamManager teamManager;
+    private final ITeamTaskStore teamTaskStore;
+    private final ITeamAclChecker teamAclChecker;
 
     public AgentToolExecuteContext(File workDir,
                                    Map<String, String> envs,
@@ -186,6 +193,98 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
                                    Set<String> allowedPathRoots,
                                    List<PathRuleModel> allowedPathRules,
                                    IAiMemoryStore memoryStore) {
+        this(workDir, envs, expireAt, cancelToken, fileSystem, executor,
+                engine, messenger, sessionId, agentName, allowedTools, allowedPathRoots,
+                allowedPathRules, memoryStore, null, null);
+    }
+
+    /**
+     * Full constructor additionally carrying the per-session
+     * {@link IAiMemoryStore} resolved by the dispatch loop from the
+     * engine's {@link io.nop.ai.agent.memory.IMemoryStoreProvider}, AND the
+     * engine's {@link ITeamManager} + {@link ITeamTaskStore} for team-aware
+     * tools (team-send-message / team-status / team-task-create). Working-memory
+     * tools read the store from here; team tools read the teamManager /
+     * teamTaskStore from here.
+     *
+     * <p>When {@code memoryStore} is {@code null} (the engine has not been
+     * wired with a provider, or the caller is testing the executor outside the
+     * engine), memory tools fail fast at execution time with a descriptive
+     * error rather than silently no-op. When {@code teamManager} /
+     * {@code teamTaskStore} is {@code null} (team functionality not enabled),
+     * team tools honestly report that the operation was not executed.
+     *
+     * @param memoryStore   the per-session memory store; {@code null} is a
+     *                      legitimate value (memory tools fail fast when null)
+     * @param teamManager   the engine's team manager; {@code null} means team
+     *                      functionality is not enabled (team tools honestly
+     *                      report)
+     * @param teamTaskStore the engine's team task store; {@code null} means
+     *                      team task functionality is not enabled
+     */
+    public AgentToolExecuteContext(File workDir,
+                                   Map<String, String> envs,
+                                   long expireAt,
+                                   ICancelToken cancelToken,
+                                   IToolFileSystem fileSystem,
+                                   IThreadPoolExecutor executor,
+                                   IAgentEngine engine,
+                                   IAgentMessenger messenger,
+                                   String sessionId,
+                                   String agentName,
+                                   Set<String> allowedTools,
+                                   Set<String> allowedPathRoots,
+                                   List<PathRuleModel> allowedPathRules,
+                                   IAiMemoryStore memoryStore,
+                                   ITeamManager teamManager,
+                                   ITeamTaskStore teamTaskStore) {
+        // Plan 228 (L4-team-acl-enforcement): the 16-param endpoint now
+        // delegates to the 17-param endpoint, defaulting teamAclChecker to
+        // NoOp so the 5 existing test callers (TestTeamSendMessageExecutor
+        // / TestTeamStatusExecutor / TestTeamTaskCreateExecutor /
+        // TestTeamTaskUpdateExecutor / TestTeamTaskUpdateEndToEnd) compile
+        // and behave unchanged (NoOp allow → zero regression).
+        this(workDir, envs, expireAt, cancelToken, fileSystem, executor,
+                engine, messenger, sessionId, agentName, allowedTools, allowedPathRoots,
+                allowedPathRules, memoryStore, teamManager, teamTaskStore,
+                NoOpTeamAclChecker.noOp());
+    }
+
+    /**
+     * Plan 228 (L4-team-acl-enforcement): full constructor additionally
+     * carrying the engine's {@link ITeamAclChecker} for team-aware tools.
+     * The 4 team tool executors consult this checker after resolving the
+     * caller's team and before performing the actual store / messenger
+     * operation.
+     *
+     * <p>When {@code teamAclChecker} is the shipped {@link NoOpTeamAclChecker}
+     * (the engine default), all team-tool operations are permitted with no
+     * extra authorisation overhead — zero behaviour regression. When a
+     * functional {@link io.nop.ai.agent.team.DefaultTeamAclChecker} is
+     * wired, the §5.1 default role-permission matrix is enforced.
+     *
+     * @param teamAclChecker the engine's team ACL checker; the engine always
+     *                      passes a non-null value (NoOp by default). A null
+     *                      value is treated as NoOp for defensive backward
+     *                      compatibility.
+     */
+    public AgentToolExecuteContext(File workDir,
+                                   Map<String, String> envs,
+                                   long expireAt,
+                                   ICancelToken cancelToken,
+                                   IToolFileSystem fileSystem,
+                                   IThreadPoolExecutor executor,
+                                   IAgentEngine engine,
+                                   IAgentMessenger messenger,
+                                   String sessionId,
+                                   String agentName,
+                                   Set<String> allowedTools,
+                                   Set<String> allowedPathRoots,
+                                   List<PathRuleModel> allowedPathRules,
+                                   IAiMemoryStore memoryStore,
+                                   ITeamManager teamManager,
+                                   ITeamTaskStore teamTaskStore,
+                                   ITeamAclChecker teamAclChecker) {
         this.workDir = workDir;
         this.envs = envs != null ? envs : Collections.emptyMap();
         this.expireAt = expireAt;
@@ -200,6 +299,9 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
         this.allowedPathRoots = allowedPathRoots;
         this.allowedPathRules = allowedPathRules;
         this.memoryStore = memoryStore;
+        this.teamManager = teamManager;
+        this.teamTaskStore = teamTaskStore;
+        this.teamAclChecker = teamAclChecker != null ? teamAclChecker : NoOpTeamAclChecker.noOp();
     }
 
     @Override
@@ -299,5 +401,41 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
      */
     public IAiMemoryStore getMemoryStore() {
         return memoryStore;
+    }
+
+    /**
+     * Return the engine's {@link ITeamManager} for team-aware tools
+     * (team-send-message / team-status / team-task-create), or {@code null}
+     * when team functionality is not enabled (team tools honestly report).
+     *
+     * @return {@code null} (not enabled) or a non-null team manager
+     */
+    public ITeamManager getTeamManager() {
+        return teamManager;
+    }
+
+    /**
+     * Return the engine's {@link ITeamTaskStore} for team task tools
+     * (team-task-create / team-status task count), or {@code null} when team
+     * task functionality is not enabled.
+     *
+     * @return {@code null} (not enabled) or a non-null team task store
+     */
+    public ITeamTaskStore getTeamTaskStore() {
+        return teamTaskStore;
+    }
+
+    /**
+     * Plan 228 (L4-team-acl-enforcement): return the engine's
+     * {@link ITeamAclChecker} for team-aware tools (team-send-message /
+     * team-status / team-task-create / team-task-update). Always non-null —
+     * the shipped default is {@link NoOpTeamAclChecker} (allow(null)), and
+     * the engine guarantees a non-null value via
+     * {@code DefaultAgentEngine.setTeamAclChecker} null-safe fallback.
+     *
+     * @return the team ACL checker (never null; NoOp allow by default)
+     */
+    public ITeamAclChecker getTeamAclChecker() {
+        return teamAclChecker;
     }
 }

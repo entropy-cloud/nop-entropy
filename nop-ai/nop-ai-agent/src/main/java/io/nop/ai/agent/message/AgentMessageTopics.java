@@ -34,6 +34,16 @@ public final class AgentMessageTopics {
     /** Infix used for broadcast topic names. */
     public static final String BROADCAST_INFIX = "broadcast.";
 
+    /**
+     * Engine-level topic for async {@code call-agent} REQUEST/RESPONSE routing
+     * (plan 224 / L4-8-call-agent-async). When a functional messenger is wired,
+     * the engine registers a single handler on this topic that executes the
+     * requested sub-agent and returns the result as a RESPONSE payload. This is
+     * the single source of the {@code agent.call-agent} literal — no other file
+     * may hardcode the topic string.
+     */
+    public static final String CALL_AGENT_TOPIC = "agent.call-agent";
+
     private AgentMessageTopics() {
     }
 
@@ -79,6 +89,19 @@ public final class AgentMessageTopics {
             throw new NopAiAgentException("AgentMessageTopics.broadcastTopic: scope must not be null or empty");
         }
         return NAMESPACE_PREFIX + BROADCAST_INFIX + scope;
+    }
+
+    /**
+     * Return the engine-level call-agent topic ({@value #CALL_AGENT_TOPIC}),
+     * the routing target for async {@code call-agent} REQUEST envelopes when a
+     * functional messenger is configured (plan 224). This is the canonical
+     * accessor for the topic name — callers must use this method (or
+     * {@link #CALL_AGENT_TOPIC}) rather than hardcoding the string.
+     *
+     * @return the call-agent topic name
+     */
+    public static String callAgentTopic() {
+        return CALL_AGENT_TOPIC;
     }
 
     private static void requireSessionId(String sessionId) {

@@ -1,6 +1,9 @@
 package io.nop.ai.agent.message;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.security.ITenantResolver;
+import io.nop.ai.agent.security.NullTenantResolver;
+import io.nop.ai.agent.security.TenantSql;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
@@ -70,6 +73,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     private final DataSource dataSource;
     private final String consumerId;
+    private final ITenantResolver tenantResolver;
 
     private final Map<String, IMessageConsumer> consumers = new ConcurrentHashMap<>();
 
@@ -81,12 +85,32 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     private int maxBatch = DEFAULT_MAX_BATCH;
 
     public DBMessageService(DataSource dataSource) {
-        this(dataSource, "db-msg-" + UUID.randomUUID());
+        this(dataSource, "db-msg-" + UUID.randomUUID(), NullTenantResolver.INSTANCE);
     }
 
     public DBMessageService(DataSource dataSource, String consumerId) {
+        this(dataSource, consumerId, NullTenantResolver.INSTANCE);
+    }
+
+    /**
+     * Create a DB-backed message service with a contextual tenant resolver
+     * (plan 232 / vision §5.1). When the resolver reports a non-null tenant,
+     * INSERT writes {@code TENANT_ID} and all SELECT/UPDATE inject the tenant
+     * {@code WHERE} so one tenant's pending messages are invisible to another;
+     * when {@code null}, SQL is byte-identical to the original (zero regression).
+     *
+     * @param dataSource     the JDBC data source; never null
+     * @param consumerId     this consumer instance's identity; never null
+     * @param tenantResolver the contextual tenant resolver; never null
+     */
+    public DBMessageService(DataSource dataSource, String consumerId, ITenantResolver tenantResolver) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
         this.consumerId = Objects.requireNonNull(consumerId, "consumerId");
+        this.tenantResolver = Objects.requireNonNull(tenantResolver, "tenantResolver");
+    }
+
+    private String currentTenant() {
+        return tenantResolver.resolveTenantId();
     }
 
     public void setPollIntervalMs(long pollIntervalMs) {
@@ -163,14 +187,22 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
         String json = serializeForDb(message);
         String sid = StringHelper.generateUUID();
+        String tenant = currentTenant();
 
         String sql = "INSERT INTO " + AiAgentMessageTable.TABLE_NAME
                 + " (" + AiAgentMessageTable.COL_SID + ", "
                 + AiAgentMessageTable.COL_TOPIC + ", "
                 + AiAgentMessageTable.COL_MESSAGE_BODY + ", "
                 + AiAgentMessageTable.COL_STATUS + ", "
-                + AiAgentMessageTable.COL_CREATED_AT
-                + ") VALUES (?, ?, ?, ?, ?)";
+                + AiAgentMessageTable.COL_CREATED_AT;
+        if (tenant != null) {
+            sql += ", " + AiAgentMessageTable.COL_TENANT_ID;
+        }
+        sql += ") VALUES (?, ?, ?, ?, ?";
+        if (tenant != null) {
+            sql += ", ?";
+        }
+        sql += ")";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -179,6 +211,9 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             ps.setString(3, json);
             ps.setInt(4, AiAgentMessageTable.STATUS_PENDING);
             ps.setTimestamp(5, new Timestamp(System.currentTimeMillis()));
+            if (tenant != null) {
+                ps.setString(6, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopAiAgentException(
@@ -260,19 +295,28 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     private List<MessageRow> findPending(String topic, int limit) {
         List<MessageRow> rows = new ArrayList<>();
+        String tenant = currentTenant();
         String sql = "SELECT " + AiAgentMessageTable.COL_SID + ", "
                 + AiAgentMessageTable.COL_MESSAGE_BODY
                 + " FROM " + AiAgentMessageTable.TABLE_NAME
                 + " WHERE " + AiAgentMessageTable.COL_TOPIC + " = ?"
-                + " AND " + AiAgentMessageTable.COL_STATUS + " = ?"
-                + " ORDER BY " + AiAgentMessageTable.COL_CREATED_AT
+                + " AND " + AiAgentMessageTable.COL_STATUS + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
+        }
+        sql += " ORDER BY " + AiAgentMessageTable.COL_CREATED_AT
                 + " LIMIT ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, topic);
             ps.setInt(2, AiAgentMessageTable.STATUS_PENDING);
-            ps.setInt(3, limit);
+            if (tenant != null) {
+                ps.setString(3, tenant);
+                ps.setInt(4, limit);
+            } else {
+                ps.setInt(3, limit);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     rows.add(new MessageRow(rs.getString(1), rs.getString(2)));
@@ -286,12 +330,16 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     }
 
     private boolean claimMessage(String sid) {
+        String tenant = currentTenant();
         String sql = "UPDATE " + AiAgentMessageTable.TABLE_NAME
                 + " SET " + AiAgentMessageTable.COL_STATUS + " = ?, "
                 + AiAgentMessageTable.COL_CONSUMER_ID + " = ?, "
                 + AiAgentMessageTable.COL_CLAIMED_AT + " = ?"
                 + " WHERE " + AiAgentMessageTable.COL_SID + " = ?"
                 + " AND " + AiAgentMessageTable.COL_STATUS + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
+        }
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -300,6 +348,9 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
             ps.setString(4, sid);
             ps.setInt(5, AiAgentMessageTable.STATUS_PENDING);
+            if (tenant != null) {
+                ps.setString(6, tenant);
+            }
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new NopAiAgentException("DBMessageService: failed to claim message " + sid, e);
@@ -307,16 +358,23 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     }
 
     private void releaseClaim(String sid) {
+        String tenant = currentTenant();
         String sql = "UPDATE " + AiAgentMessageTable.TABLE_NAME
                 + " SET " + AiAgentMessageTable.COL_STATUS + " = ?, "
                 + AiAgentMessageTable.COL_CONSUMER_ID + " = NULL, "
                 + AiAgentMessageTable.COL_CLAIMED_AT + " = NULL"
                 + " WHERE " + AiAgentMessageTable.COL_SID + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
+        }
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_PENDING);
             ps.setString(2, sid);
+            if (tenant != null) {
+                ps.setString(3, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             LOG.error("nop.ai.agent.message.db-release-claim-error:sid={}", sid, e);
@@ -324,16 +382,23 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     }
 
     private void markConsumed(String sid) {
+        String tenant = currentTenant();
         String sql = "UPDATE " + AiAgentMessageTable.TABLE_NAME
                 + " SET " + AiAgentMessageTable.COL_STATUS + " = ?, "
                 + AiAgentMessageTable.COL_CONSUMED_AT + " = ?"
                 + " WHERE " + AiAgentMessageTable.COL_SID + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
+        }
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_CONSUMED);
             ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
             ps.setString(3, sid);
+            if (tenant != null) {
+                ps.setString(4, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             LOG.error("nop.ai.agent.message.db-mark-consumed-error:sid={}", sid, e);

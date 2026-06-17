@@ -9,10 +9,12 @@ import java.util.Optional;
  * identity ({@code sessionId}).
  *
  * <p>Foundational-slice identity dimensions: {@code actorId} + {@code sessionId}
- * + {@code agentName}. Multi-tenant tenantId/userId isolation (vision §5.1)
- * is a successor that depends on normalising the tenant-identifier
- * propagation through {@code AgentExecutionContext} (the foundational
- * registry does not track tenantId/userId).
+ * + {@code agentName}. Multi-tenant Tenant isolation (vision §5.1) is landed
+ * via {@link InMemoryActorRegistry}'s internal tenant tag map: actors are
+ * tagged with the tenant active at {@link #register} time and query results
+ * are filtered by the current tenant when one is active (plan 232 /
+ * L4-multi-tenant-isolation). User isolation (same-tenant per-user filtering)
+ * remains an explicit successor.
  *
  * <h2>Thread safety</h2>
  * Implementations must be safe for concurrent {@link #register} /

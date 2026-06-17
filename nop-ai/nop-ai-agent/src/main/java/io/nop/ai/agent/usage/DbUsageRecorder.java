@@ -1,6 +1,8 @@
 package io.nop.ai.agent.usage;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.security.ITenantResolver;
+import io.nop.ai.agent.security.NullTenantResolver;
 import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,15 +82,31 @@ public class DbUsageRecorder implements IUsageRecorder {
             + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private final DataSource dataSource;
+    private final ITenantResolver tenantResolver;
 
     /**
      * Create a DB-backed usage recorder and defensively initialize the
-     * {@code nop_ai_chat_response} schema (CREATE TABLE IF NOT EXISTS).
+     * {@code nop_ai_chat_response} schema (CREATE TABLE IF NOT EXISTS). Uses
+     * the backward-compatible {@link NullTenantResolver}.
      *
      * @param dataSource the JDBC data source; never null
      */
     public DbUsageRecorder(DataSource dataSource) {
+        this(dataSource, NullTenantResolver.INSTANCE);
+    }
+
+    /**
+     * Create a DB-backed usage recorder with a contextual tenant resolver
+     * (plan 232 / vision §5.1). When the resolver reports a non-null tenant,
+     * the INSERT writes {@code TENANT_ID}; when {@code null}, the INSERT is
+     * byte-identical to the original (zero regression).
+     *
+     * @param dataSource     the JDBC data source; never null
+     * @param tenantResolver the contextual tenant resolver; never null
+     */
+    public DbUsageRecorder(DataSource dataSource, ITenantResolver tenantResolver) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
+        this.tenantResolver = Objects.requireNonNull(tenantResolver, "tenantResolver must not be null");
         initSchema();
     }
 
@@ -112,9 +130,18 @@ public class DbUsageRecorder implements IUsageRecorder {
         String rowId = StringHelper.generateUUID();
         Timestamp now = new Timestamp(System.currentTimeMillis());
         Timestamp responseTs = new Timestamp(record.getResponseTimestamp());
+        String tenant = tenantResolver.resolveTenantId();
+
+        String insertSql = SQL_INSERT_USAGE;
+        int lastParamIndex = 13;
+        if (tenant != null) {
+            insertSql = insertSql.substring(0, insertSql.length() - 1)
+                    + ", " + NopAiChatResponseTable.COL_TENANT_ID + ")";
+            lastParamIndex = 14;
+        }
 
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_INSERT_USAGE)) {
+             PreparedStatement ps = conn.prepareStatement(insertSql)) {
             ps.setString(1, rowId);
             ps.setString(2, record.getRequestId());
             ps.setString(3, record.getSessionId());
@@ -132,6 +159,9 @@ public class DbUsageRecorder implements IUsageRecorder {
             ps.setInt(11, 0);
             ps.setTimestamp(12, now);
             ps.setTimestamp(13, now);
+            if (tenant != null) {
+                ps.setString(lastParamIndex, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopAiAgentException(

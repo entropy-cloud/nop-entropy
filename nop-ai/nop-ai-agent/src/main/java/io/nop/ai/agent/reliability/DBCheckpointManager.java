@@ -1,6 +1,9 @@
 package io.nop.ai.agent.reliability;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.security.ITenantResolver;
+import io.nop.ai.agent.security.NullTenantResolver;
+import io.nop.ai.agent.security.TenantSql;
 
 import javax.sql.DataSource;
 import java.io.StringReader;
@@ -74,6 +77,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DBCheckpointManager implements ICheckpointManager {
 
     private final DataSource dataSource;
+    private final ITenantResolver tenantResolver;
 
     private final ConcurrentHashMap<String, Checkpoint> byWatermark = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, List<Checkpoint>> bySession = new ConcurrentHashMap<>();
@@ -81,13 +85,44 @@ public class DBCheckpointManager implements ICheckpointManager {
 
     /**
      * Create a DB-backed checkpoint manager and initialize the DB schema
-     * (create table + index if absent).
+     * (create table + index if absent). Uses the backward-compatible
+     * {@link NullTenantResolver}.
      *
      * @param dataSource the JDBC data source; never null
      */
     public DBCheckpointManager(DataSource dataSource) {
+        this(dataSource, NullTenantResolver.INSTANCE);
+    }
+
+    /**
+     * Create a DB-backed checkpoint manager with a contextual tenant resolver
+     * (plan 232 / vision §5.1). When the resolver reports a non-null tenant,
+     * INSERT writes {@code TENANT_ID}, SELECTs inject the tenant {@code WHERE},
+     * and the write-through cache is bypassed (the bySession cache is keyed by
+     * sessionId without a tenant dimension). When the resolver reports
+     * {@code null}, behaviour is byte-identical to the original (zero
+     * regression).
+     *
+     * @param dataSource     the JDBC data source; never null
+     * @param tenantResolver the contextual tenant resolver; never null
+     */
+    public DBCheckpointManager(DataSource dataSource, ITenantResolver tenantResolver) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
+        this.tenantResolver = Objects.requireNonNull(tenantResolver, "tenantResolver must not be null");
         initSchema();
+    }
+
+    private String currentTenant() {
+        return tenantResolver.resolveTenantId();
+    }
+
+    /**
+     * Plan 232: the bySession cache is keyed by sessionId without a tenant
+     * dimension, so it is bypassed when a tenant context is active (mirrors
+     * {@code DBSessionStore} cache bypass).
+     */
+    private boolean cacheEnabled() {
+        return currentTenant() == null;
     }
 
     private void initSchema() {
@@ -107,6 +142,7 @@ public class DBCheckpointManager implements ICheckpointManager {
             throw new NopAiAgentException("DBCheckpointManager.saveCheckpoint: checkpoint must not be null");
         }
 
+        String tenant = currentTenant();
         String insertSql = "INSERT INTO " + AiAgentCheckpointTable.TABLE_NAME
                 + " (" + AiAgentCheckpointTable.COL_WATERMARK
                 + ", " + AiAgentCheckpointTable.COL_SESSION_ID
@@ -118,8 +154,15 @@ public class DBCheckpointManager implements ICheckpointManager {
                 + ", " + AiAgentCheckpointTable.COL_INPUT_SUMMARY
                 + ", " + AiAgentCheckpointTable.COL_OUTPUT_SUMMARY
                 + ", " + AiAgentCheckpointTable.COL_MESSAGE_COUNT
-                + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE;
+        if (tenant != null) {
+            insertSql += ", " + AiAgentCheckpointTable.COL_TENANT_ID;
+        }
+        insertSql += ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+        if (tenant != null) {
+            insertSql += ", ?";
+        }
+        insertSql += ")";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(insertSql)) {
@@ -134,6 +177,9 @@ public class DBCheckpointManager implements ICheckpointManager {
             setClob(ps, 9, checkpoint.getOutputSummary());
             ps.setInt(10, checkpoint.getMessageCount());
             ps.setLong(11, checkpoint.getTokenEstimate());
+            if (tenant != null) {
+                ps.setString(12, tenant);
+            }
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopAiAgentException(
@@ -141,12 +187,14 @@ public class DBCheckpointManager implements ICheckpointManager {
                             + checkpoint.getWatermark() + "': " + e.getMessage(), e);
         }
 
-        // Write-through cache
-        byWatermark.put(checkpoint.getWatermark(), checkpoint);
-        String sid = checkpoint.getSessionId();
-        if (sid != null) {
-            bySession.computeIfAbsent(sid, k -> Collections.synchronizedList(new ArrayList<>()))
-                    .add(checkpoint);
+        if (cacheEnabled()) {
+            // Write-through cache
+            byWatermark.put(checkpoint.getWatermark(), checkpoint);
+            String sid = checkpoint.getSessionId();
+            if (sid != null) {
+                bySession.computeIfAbsent(sid, k -> Collections.synchronizedList(new ArrayList<>()))
+                        .add(checkpoint);
+            }
         }
     }
 
@@ -154,6 +202,12 @@ public class DBCheckpointManager implements ICheckpointManager {
     public Checkpoint getLatestCheckpoint(String sessionId) {
         if (sessionId == null) {
             return null;
+        }
+        // Plan 232: bypass the bySession cache when a tenant context is active
+        // (the cache key has no tenant dimension). Go direct to the DB with a
+        // tenant-scoped latest-row query.
+        if (!cacheEnabled()) {
+            return loadLatestCheckpointFromDb(sessionId);
         }
         ensureSessionLoaded(sessionId);
         List<Checkpoint> list = bySession.get(sessionId);
@@ -170,9 +224,11 @@ public class DBCheckpointManager implements ICheckpointManager {
         if (watermark == null) {
             return null;
         }
-        Checkpoint cached = byWatermark.get(watermark);
-        if (cached != null) {
-            return cached;
+        if (cacheEnabled()) {
+            Checkpoint cached = byWatermark.get(watermark);
+            if (cached != null) {
+                return cached;
+            }
         }
         return loadCheckpointFromDb(watermark);
     }
@@ -191,6 +247,13 @@ public class DBCheckpointManager implements ICheckpointManager {
     public List<Checkpoint> getCheckpoints(String sessionId) {
         if (sessionId == null) {
             return List.of();
+        }
+        // Plan 232: bypass cache when a tenant context is active — go direct
+        // to the DB with a tenant-scoped query (highest-seq-first, then
+        // reverse to ascending).
+        if (!cacheEnabled()) {
+            List<Checkpoint> loaded = loadSessionListFromDb(sessionId);
+            return List.copyOf(loaded);
         }
         ensureSessionLoaded(sessionId);
         List<Checkpoint> list = bySession.get(sessionId);
@@ -212,42 +275,51 @@ public class DBCheckpointManager implements ICheckpointManager {
         }
     }
 
-    private void loadSessionFromDb(String sessionId) {
-        String sql = "SELECT " + AiAgentCheckpointTable.COL_WATERMARK
-                + ", " + AiAgentCheckpointTable.COL_SESSION_ID
-                + ", " + AiAgentCheckpointTable.COL_SEQ
-                + ", " + AiAgentCheckpointTable.COL_CHECKPOINT_TIMESTAMP
-                + ", " + AiAgentCheckpointTable.COL_CHECKPOINT_TYPE
-                + ", " + AiAgentCheckpointTable.COL_TOOL_NAME
-                + ", " + AiAgentCheckpointTable.COL_CALL_ID
-                + ", " + AiAgentCheckpointTable.COL_INPUT_SUMMARY
-                + ", " + AiAgentCheckpointTable.COL_OUTPUT_SUMMARY
-                + ", " + AiAgentCheckpointTable.COL_MESSAGE_COUNT
-                + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE
-                + " FROM " + AiAgentCheckpointTable.TABLE_NAME
-                + " WHERE " + AiAgentCheckpointTable.COL_SESSION_ID + " = ?"
-                + " ORDER BY " + AiAgentCheckpointTable.COL_SEQ + " DESC";
-
-        List<Checkpoint> loaded = new ArrayList<>();
+    private Checkpoint loadLatestCheckpointFromDb(String sessionId) {
+        String tenant = currentTenant();
+        String sql = checkpointColumnsSelect()
+                + " WHERE " + AiAgentCheckpointTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentCheckpointTable.COL_TENANT_ID);
+        }
+        sql += " ORDER BY " + AiAgentCheckpointTable.COL_SEQ + " DESC FETCH FIRST 1 ROWS ONLY";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Checkpoint cp = readCheckpoint(rs);
-                    loaded.add(cp);
-                    byWatermark.putIfAbsent(cp.getWatermark(), cp);
+                if (rs.next()) {
+                    return readCheckpoint(rs);
                 }
             }
         } catch (SQLException e) {
             throw new NopAiAgentException(
-                    "DBCheckpointManager.loadSessionFromDb: failed to load checkpoints for session '"
+                    "DBCheckpointManager.loadLatestCheckpointFromDb: failed to load latest checkpoint for session '"
                             + sessionId + "': " + e.getMessage(), e);
         }
+        return null;
+    }
 
+    private List<Checkpoint> loadSessionListFromDb(String sessionId) {
+        List<Checkpoint> loaded = loadSessionRowsFromDb(sessionId);
+        // loadSessionRowsFromDb returns DESC; reverse to ascending.
+        Collections.reverse(loaded);
+        return loaded;
+    }
+
+    private void loadSessionFromDb(String sessionId) {
+        List<Checkpoint> loaded = loadSessionRowsFromDb(sessionId);
         if (!loaded.isEmpty()) {
             // Reverse to ascending order so list.get(size-1) is the highest seq
             Collections.reverse(loaded);
+
+            // Populate the byWatermark index with the full set (cache-enabled
+            // path only — the tenant-active path never calls loadSessionFromDb).
+            for (Checkpoint cp : loaded) {
+                byWatermark.putIfAbsent(cp.getWatermark(), cp);
+            }
 
             // Compaction-aware truncation (plan 188): truncate the active
             // restore set (bySession) to start from the most recent
@@ -255,19 +327,52 @@ public class DBCheckpointManager implements ICheckpointManager {
             // checkpoints reference messageCount values beyond the compacted
             // session's messageCount, violating the documented invariant
             // checkpoint.messageCount <= session.messageCount. The byWatermark
-            // index was already populated above with the full set
-            // (putIfAbsent loop), and DB-backed getCheckpoint(oldWatermark)
-            // additionally falls back to loadCheckpointFromDb — so
-            // pre-compaction checkpoints remain resolvable for audit/debug
-            // by watermark even after truncation. The ai_agent_checkpoint
-            // table rows are never deleted.
+            // index was already populated above with the full set, and
+            // DB-backed getCheckpoint(oldWatermark) additionally falls back to
+            // loadCheckpointFromDb — so pre-compaction checkpoints remain
+            // resolvable for audit/debug by watermark even after truncation.
+            // The ai_agent_checkpoint table rows are never deleted.
             List<Checkpoint> active = CompactionAwareTruncation.truncateToLatestCompaction(loaded);
             bySession.put(sessionId, Collections.synchronizedList(active));
         }
     }
 
-    private Checkpoint loadCheckpointFromDb(String watermark) {
-        String sql = "SELECT " + AiAgentCheckpointTable.COL_WATERMARK
+    /**
+     * Select all checkpoint rows for a session in DESC seq order (no cache
+     * writes). Plan 232: injects the tenant {@code WHERE} when a tenant context
+     * is active.
+     */
+    private List<Checkpoint> loadSessionRowsFromDb(String sessionId) {
+        String tenant = currentTenant();
+        String sql = checkpointColumnsSelect()
+                + " WHERE " + AiAgentCheckpointTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentCheckpointTable.COL_TENANT_ID);
+        }
+        sql += " ORDER BY " + AiAgentCheckpointTable.COL_SEQ + " DESC";
+
+        List<Checkpoint> loaded = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    loaded.add(readCheckpoint(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new NopAiAgentException(
+                    "DBCheckpointManager.loadSessionRowsFromDb: failed to load checkpoints for session '"
+                            + sessionId + "': " + e.getMessage(), e);
+        }
+        return loaded;
+    }
+
+    private String checkpointColumnsSelect() {
+        return "SELECT " + AiAgentCheckpointTable.COL_WATERMARK
                 + ", " + AiAgentCheckpointTable.COL_SESSION_ID
                 + ", " + AiAgentCheckpointTable.COL_SEQ
                 + ", " + AiAgentCheckpointTable.COL_CHECKPOINT_TIMESTAMP
@@ -278,16 +383,29 @@ public class DBCheckpointManager implements ICheckpointManager {
                 + ", " + AiAgentCheckpointTable.COL_OUTPUT_SUMMARY
                 + ", " + AiAgentCheckpointTable.COL_MESSAGE_COUNT
                 + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE
-                + " FROM " + AiAgentCheckpointTable.TABLE_NAME
+                + " FROM " + AiAgentCheckpointTable.TABLE_NAME;
+    }
+
+    private Checkpoint loadCheckpointFromDb(String watermark) {
+        String tenant = currentTenant();
+        String sql = checkpointColumnsSelect()
                 + " WHERE " + AiAgentCheckpointTable.COL_WATERMARK + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentCheckpointTable.COL_TENANT_ID);
+        }
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, watermark);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     Checkpoint cp = readCheckpoint(rs);
-                    byWatermark.putIfAbsent(cp.getWatermark(), cp);
+                    if (cacheEnabled()) {
+                        byWatermark.putIfAbsent(cp.getWatermark(), cp);
+                    }
                     return cp;
                 }
             }

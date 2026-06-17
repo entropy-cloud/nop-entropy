@@ -1,0 +1,16 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-quota-member-b">
+
+    <description>Plan 234 E2E fixture: member agent B declaring team membership.
+        Binding this member is the 3rd concurrent binding and must be denied by the
+        functional ResourceGuard (maxParallelMembers=2).</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.0"/>
+
+    <tools>test-echo</tools>
+
+    <prompt>You are member B of a quota test team.</prompt>
+
+    <team-member teamName="test-quota-team" memberName="quota-member-b"/>
+
+</agent>

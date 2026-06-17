@@ -4,6 +4,13 @@ import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.IAgentEngine;
+import io.nop.ai.agent.message.AgentMessageEnvelope;
+import io.nop.ai.agent.message.AgentMessageKind;
+import io.nop.ai.agent.message.AgentMessageTopics;
+import io.nop.ai.agent.message.CallAgentRequestPayload;
+import io.nop.ai.agent.message.CallAgentResponsePayload;
+import io.nop.ai.agent.message.IAgentMessenger;
+import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ParentPermissionConstraint;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
@@ -19,18 +26,38 @@ import io.nop.api.core.json.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Functional call-agent tool executor (fork+exec model). Resolves a target
- * agent by name, creates/forks/continues a sub-session, executes the sub-agent
- * via {@link IAgentEngine#execute(AgentMessageRequest)}, and returns the
- * sub-agent's response as an {@link AiAgentCallResult}.
+ * Functional call-agent tool executor. Resolves a target agent by name,
+ * creates/forks/continues a sub-session, executes the sub-agent, and returns
+ * the sub-agent's response as an {@link AiAgentCallResult}.
+ *
+ * <p><b>Two execution pathways</b> (plan 224 / L4-8-call-agent-async):
+ * <ul>
+ *     <li><b>Async mailbox pathway</b> (default when a functional messenger is
+ *         wired): the sub-agent execution request is routed as a REQUEST
+ *         envelope to {@link AgentMessageTopics#callAgentTopic()} via
+ *         {@link IAgentMessenger#request}. The engine-registered handler
+ *         executes the sub-agent and returns a RESPONSE. This decouples the
+ *         caller from the callee engine instance and makes the call path
+ *         observable. The caller still resolves all three session modes
+ *         (continue/fork/create-new) locally before building the REQUEST
+ *         payload; fork mode calls {@code engine.forkSession()} first to
+ *         obtain the child session id.</li>
+ *     <li><b>Fork+exec pathway</b> (fallback): the shipped default. When the
+ *         messenger is {@link NoOpAgentMessenger} (no messenger configured),
+ *         the executor directly calls {@link IAgentEngine#execute} with
+ *         {@code .orTimeout} protection — zero behaviour change from the
+ *         pre-plan-224 baseline.</li>
+ * </ul>
  *
  * <p>This executor lives in {@code nop-ai-agent} (not {@code nop-ai-toolkit})
  * because it needs access to {@link IAgentEngine}, which lives in
@@ -132,7 +159,7 @@ public class CallAgentExecutor implements IToolExecutor {
         if (sessionId != null && !sessionId.isEmpty()) {
             LOG.debug("call-agent continuing existing sub-session: targetAgentId={}, sessionId={}",
                     targetAgentId, sessionId);
-            return executeSubAgent(engine, call, targetAgentId, input, sessionId, timeoutMs, parentConstraint);
+            return dispatch(call, agentCtx, engine, targetAgentId, input, sessionId, timeoutMs, parentConstraint);
         }
 
         if ("self".equals(agentId) && inheritContext) {
@@ -147,11 +174,132 @@ public class CallAgentExecutor implements IToolExecutor {
                     targetAgentId, "", parentSessionId, buildConstraintMetadata(parentConstraint));
             return engine.forkSession(forkRequest, true)
                     .thenCompose(childSessionId ->
-                            executeSubAgent(engine, call, targetAgentId, input, childSessionId, timeoutMs, parentConstraint));
+                            dispatch(call, agentCtx, engine, targetAgentId, input, childSessionId,
+                                    timeoutMs, parentConstraint));
         }
 
         LOG.debug("call-agent creating new sub-session: targetAgentId={}", targetAgentId);
-        return executeSubAgent(engine, call, targetAgentId, input, null, timeoutMs, parentConstraint);
+        return dispatch(call, agentCtx, engine, targetAgentId, input, null, timeoutMs, parentConstraint);
+    }
+
+    /**
+     * Route the resolved sub-agent execution to the async mailbox pathway (when
+     * a functional messenger is wired) or the fork+exec fallback. The decision
+     * is based on {@code instanceof NoOpAgentMessenger} (Design Decisions §2),
+     * consistent with {@code SendMessageExecutor}.
+     *
+     * <p>{@code resolvedSessionId} is the caller-resolved sub-session id:
+     * non-null for continue/fork modes, null for create-new. Both pathways
+     * receive the same value so the observable result (sub-session id in the
+     * tool result) is identical regardless of which pathway executes.
+     */
+    private CompletionStage<AiToolCallResult> dispatch(
+            AiToolCall call, AgentToolExecuteContext agentCtx,
+            IAgentEngine engine, String targetAgentId,
+            String input, String resolvedSessionId, long timeoutMs,
+            ParentPermissionConstraint parentConstraint) {
+        IAgentMessenger messenger = agentCtx.getMessenger();
+        if (messenger != null && !(messenger instanceof NoOpAgentMessenger)) {
+            return executeViaMessenger(call, agentCtx, messenger, targetAgentId, input,
+                    resolvedSessionId, timeoutMs, parentConstraint);
+        }
+        return executeSubAgent(engine, call, targetAgentId, input, resolvedSessionId, timeoutMs, parentConstraint);
+    }
+
+    /**
+     * Async mailbox pathway (plan 224): build a REQUEST envelope carrying a
+     * {@link CallAgentRequestPayload}, send it via
+     * {@link IAgentMessenger#request} to the call-agent topic, and convert the
+     * RESPONSE payload to an {@link AiToolCallResult}. The engine-registered
+     * handler executes the sub-agent on the receiving side.
+     *
+     * <p>The {@code messenger.request} future is already timeout-guarded inside
+     * {@code LocalAgentMessenger} (via {@code .orTimeout(timeoutMs)}). On
+     * timeout or request failure the future completes exceptionally; this
+     * method converts that into a fail-fast error result rather than
+     * propagating the exception.
+     */
+    private CompletionStage<AiToolCallResult> executeViaMessenger(
+            AiToolCall call, AgentToolExecuteContext agentCtx,
+            IAgentMessenger messenger, String targetAgentId,
+            String input, String resolvedSessionId, long timeoutMs,
+            ParentPermissionConstraint parentConstraint) {
+
+        String senderId = agentCtx.getSessionId();
+        if (senderId == null || senderId.isEmpty()) {
+            senderId = "unknown-sender";
+        }
+        String correlationId = UUID.randomUUID().toString();
+        String targetTopic = AgentMessageTopics.callAgentTopic();
+
+        CallAgentRequestPayload payload = new CallAgentRequestPayload(
+                targetAgentId,
+                input != null ? input : "",
+                resolvedSessionId,
+                buildConstraintMetadata(parentConstraint),
+                timeoutMs);
+
+        AgentMessageEnvelope envelope = new AgentMessageEnvelope(
+                senderId, targetTopic, correlationId, AgentMessageKind.REQUEST, payload);
+
+        LOG.debug("call-agent async pathway: targetAgentId={}, resolvedSessionId={}, "
+                        + "targetTopic={}, correlationId={}, timeoutMs={}",
+                targetAgentId, resolvedSessionId, targetTopic, correlationId, timeoutMs);
+
+        Duration timeout = Duration.ofMillis(timeoutMs);
+        return messenger.request(envelope, timeout)
+                .handle((response, ex) -> {
+                    if (ex != null) {
+                        return AiToolCallResult.errorResult(call.getId(),
+                                "call-agent async request failed or timed out: agentId=" + targetAgentId
+                                        + ", error=" + rootCauseMessage(ex));
+                    }
+                    if (!(response instanceof CallAgentResponsePayload)) {
+                        return AiToolCallResult.errorResult(call.getId(),
+                                "call-agent async received unexpected response type: "
+                                        + (response == null ? "null" : response.getClass().getName()));
+                    }
+                    return responseToToolCallResult(call, (CallAgentResponsePayload) response, resolvedSessionId);
+                });
+    }
+
+    /**
+     * Convert a {@link CallAgentResponsePayload} (RESPONSE from the handler)
+     * into an {@link AiAgentCallResult}, mirroring {@link #toToolCallResult}
+     * for the fork+exec pathway so the observable result shape is identical
+     * across both pathways.
+     */
+    private AiToolCallResult responseToToolCallResult(
+            AiToolCall call, CallAgentResponsePayload resp, String providedSessionId) {
+        AiAgentCallResult agentResult = new AiAgentCallResult();
+        agentResult.setId(call.getId());
+
+        String resultSessionId = resp.getSessionId() != null ? resp.getSessionId() : providedSessionId;
+        agentResult.setSessionId(resultSessionId);
+
+        if (!"success".equals(resp.getStatus())) {
+            agentResult.setStatus("failure");
+            AiToolError error = new AiToolError();
+            String errorMsg = resp.getError() != null ? resp.getError()
+                    : "sub-agent async execution failed: status=" + resp.getStatus();
+            error.setBody(errorMsg);
+            agentResult.setError(error);
+            return agentResult;
+        }
+
+        agentResult.setStatus("success");
+        AiToolOutput output = new AiToolOutput();
+        output.setBody(resp.getFinalMessage());
+        agentResult.setOutput(output);
+        return agentResult;
+    }
+
+    private static String rootCauseMessage(Throwable ex) {
+        Throwable cur = ex;
+        while (cur.getCause() != null && cur.getCause() != cur) {
+            cur = cur.getCause();
+        }
+        return cur.getClass().getSimpleName() + ": " + cur.getMessage();
     }
 
     /**
