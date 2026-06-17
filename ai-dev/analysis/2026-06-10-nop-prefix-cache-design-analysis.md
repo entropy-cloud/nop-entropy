@@ -1,7 +1,8 @@
 # Nop 平台前缀缓存设计构想
 
-> Status: analysis
+> Status: superseded
 > Date: 2026-06-10
+> Superseded By: `ai-dev/design/nop-ai-agent/nop-ai-agent-llm-layer.md` §八（2026-06-17 扩展版，含运行时机制）+ `ai-dev/analysis/agent-survey/2026-06-17-pie-ds4-cache-analysis.md`
 > Scope: nop-ai-api / nop-ai-core — 前缀缓存如何在 Nop 体系下落地
 > 依据: `agent-survey/2026-06-10-reasonix-prefix-cache-immutability.md` 源码级调研
 > 相关: `agent-survey/2026-06-10-token-estimation-and-context-compression-survey.md` — 五框架 token 估算与压缩策略对比

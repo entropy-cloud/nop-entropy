@@ -148,6 +148,8 @@ topic: "agent.coordination.{projectId}"
 
 父子 Agent 通过 `call-agent` 的输入/输出传递消息。这是同步的请求-响应模式。
 
+**call-agent 异步 mailbox 模型 foundational 已由 plan 224 落地**：`CallAgentExecutor` 在功能性 `IAgentMessenger` 可用时经 `IAgentMessenger.request()` 投递 REQUEST 信封到引擎级 `agent.call-agent` topic（携带 `CallAgentRequestPayload` 不可变载荷：targetAgentId/input/resolvedSessionId/parentConstraintMetadata/timeoutMs），引擎在 `setMessenger` 时 idempotent 注册 call-agent handler（handler 内 `engine.execute().orTimeout().join()` 执行子 Agent，try/catch 返回 `CallAgentResponsePayload` failure RESPONSE 非传播）。`CallAgentExecutor` 保留全部 session-mode 分支解析（continue/fork/create-new），fork 模式先同步调用 `engine.forkSession()` 获得 childSessionId 再填入 payload。shipped 默认（`NoOpAgentMessenger`）保留 fork+exec 零回归。
+
 ### 5.2 兄弟通信
 
 **决策**：Phase 1 通过父 Agent 中转；Phase 2 通过协调信道（§4）实现间接感知。
@@ -173,11 +175,11 @@ topic: "agent.coordination.{projectId}"
 | 阶段 | 编排方式 |
 |------|---------|
 | Phase 1 ✅ | `call-agent` 工具（fork+exec via `IAgentEngine.execute()`）+ `send-message` 工具（fire-and-forget via `IAgentMessenger.send()`）+ 引擎级 fail-fast |
-| Phase 2 | 协调信道（scope_claim/operation_intent）+ LLM 智能协调 |
+| Phase 2 🟡 | call-agent 异步 mailbox 模型 foundational 已落地（plan 224：经 `IAgentMessenger.request()` 投递 REQUEST 到引擎级 topic + 引擎级 handler）+ 协调信道（scope_claim/operation_intent）+ LLM 智能协调（协调信道仍为 successor）|
 | Phase 3 | Nop Flow 图编排 + Agent 节点 + 协调信道集成 |
 | Phase 4 | 自适应编排（协调器 Agent + 协调信道） |
 
-> Phase 1 已交付：`call-agent` 采用 fork+exec 模型（直接调用 `IAgentEngine.execute()` 同步等待子 Agent 完成），`send-message` 采用 fire-and-forget 模型（通过 `IAgentMessenger.send()` 投递到目标 inbox topic）。基于 mailbox 的 call-agent 模型（发 REQUEST 到目标 inbox、等待 actor 响应）是 Actor Runtime (Phase 2+) 的目标。
+> Phase 1 已交付：`call-agent` 采用 fork+exec 模型（直接调用 `IAgentEngine.execute()` 同步等待子 Agent 完成），`send-message` 采用 fire-and-forget 模型（通过 `IAgentMessenger.send()` 投递到目标 inbox topic）。基于 mailbox 的 call-agent 模型（发 REQUEST 到目标 topic、等待 handler 响应）的 **foundational 已由 plan 224 落地**：`CallAgentExecutor` 在功能性 `IAgentMessenger` 可用时经 `IAgentMessenger.request()` 投递 REQUEST 到引擎级 `agent.call-agent` topic，引擎在 `setMessenger` 时 idempotent 注册 call-agent handler 执行子 Agent 并返回 RESPONSE（`CallAgentRequestPayload`/`CallAgentResponsePayload` 不可变载荷契约）；shipped 默认（`NoOpAgentMessenger`）保留 fork+exec 零回归。per-session inbox 路由（发 REQUEST 到 Callee inbox topic 而非引擎级 topic）+ 异步非阻塞 handler + 跨进程路由仍为 Actor Runtime successor。
 
 参考 solon-ai 的做法：Agent 作为 Solon Flow 的 NamedTaskComponent。Nop 可以将 Agent 作为 Nop Flow 的节点类型，通过 Flow 图定义多 Agent 编排逻辑。
 

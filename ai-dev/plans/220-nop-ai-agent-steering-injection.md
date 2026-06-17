@@ -1,6 +1,6 @@
 # 220 nop-ai-agent Steering 注入机制（Actor Mailbox → ReAct 推理上下文）
 
-> **Plan Status**: active
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: L4-8-steering（plan 218 Non-Blocking Follow-ups 第一条）
 
@@ -76,74 +76,74 @@
 
 ### Phase 1 - Steering queue 契约 + 设计裁定落档 + 引用传递机制
 
-Status: planned
+Status: completed
 Targets: `AgentExecutionContext`（新增 steering queue 字段 + API）、`AgentActor`（新增 steering queue 引用关联）、design `02-execution-model.md` §四、`nop-ai-agent-actor-runtime-vision.md` §10
 
 - Item Types: `Decision` | `Proof`
 
-- [ ] **裁定并落档** 裁定 1-5（steering queue 位置/引用传递/检查点/注入语义/默认行为）写入设计文档
-- [ ] `AgentExecutionContext` 新增线程安全 steering 消息队列字段（`ConcurrentLinkedQueue` 或等价线程安全结构）+ `enqueueSteering(message)` / `drainSteering() → List` API；Javadoc 明确线程安全契约（Actor 线程 enqueue、ReAct 线程 drain）
-- [ ] `AgentActor` 新增可选 steering queue 引用字段 + `setSteeringQueue(queue)` / `getSteeringQueue()` 访问器；Javadoc 明确引用关联时机（ReAct 执行入口在 ctx 创建后关联）与 null 退路（未关联时消费循环退化为 observation-only）
-- [ ] `DefaultAgentEngine` 三个执行入口点（`doExecute` / `resumeSession` / `restoreSession`）的 `supplyAsync` lambda 中，在 `createActor` 返回 `AgentActor` 后、`execute(ctx)` 调用前（ctx 此时已由 `buildBaseExecutionContext` 在 `supplyAsync` 前创建），将 ctx steering queue 关联到 Actor（直接用 `createActor` 返回值调用 `actor.setSteeringQueue(ctx.getSteeringQueue())`，无需 getActorBySession 反查）；NoOp 默认下不执行（`isEnabled()==false`）
-- [ ] `02-execution-model.md` §四**改写**以区分已落地与 successor 部分：round 边界检查（landed）与"跳过当前剩余工具"/ mid-round（successor），消除"声称跳过但实际不跳"的内部矛盾；标注 steering queue 位置（ctx）与检查点语义
-- [ ] `nop-ai-agent-actor-runtime-vision.md` §10 Phase 2 steering 部分标注已落地
+- [x] **裁定并落档** 裁定 1-5（steering queue 位置/引用传递/检查点/注入语义/默认行为）写入设计文档
+- [x] `AgentExecutionContext` 新增线程安全 steering 消息队列字段（`ConcurrentLinkedQueue` 或等价线程安全结构）+ `enqueueSteering(message)` / `drainSteering() → List` API；Javadoc 明确线程安全契约（Actor 线程 enqueue、ReAct 线程 drain）
+- [x] `AgentActor` 新增可选 steering queue 引用字段 + `setSteeringQueue(queue)` / `getSteeringQueue()` 访问器；Javadoc 明确引用关联时机（ReAct 执行入口在 ctx 创建后关联）与 null 退路（未关联时消费循环退化为 observation-only）
+- [x] `DefaultAgentEngine` 三个执行入口点（`doExecute` / `resumeSession` / `restoreSession`）的 `supplyAsync` lambda 中，在 `createActor` 返回 `AgentActor` 后、`execute(ctx)` 调用前（ctx 此时已由 `buildBaseExecutionContext` 在 `supplyAsync` 前创建），将 ctx steering queue 关联到 Actor（直接用 `createActor` 返回值调用 `actor.setSteeringQueue(ctx.getSteeringQueue())`，无需 getActorBySession 反查）；NoOp 默认下不执行（`isEnabled()==false`）
+- [x] `02-execution-model.md` §四**改写**以区分已落地与 successor 部分：round 边界检查（landed）与"跳过当前剩余工具"/ mid-round（successor），消除"声称跳过但实际不跳"的内部矛盾；标注 steering queue 位置（ctx）与检查点语义
+- [x] `nop-ai-agent-actor-runtime-vision.md` §10 Phase 2 steering 部分标注已落地
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `AgentExecutionContext` 含 steering queue 字段 + enqueue/drain API，Javadoc 明确线程安全契约
-- [ ] `AgentActor` 含 steering queue 引用字段 + set/get 访问器，Javadoc 明确关联时机与 null 退路
-- [ ] `DefaultAgentEngine` 三个入口点在 `createActor` 返回后、`execute(ctx)` 前关联 Actor steering queue（直接用返回值；`isEnabled()==true` 时；NoOp 时跳过）
-- [ ] `02-execution-model.md` §四已改写区分 round 边界检查（landed）vs mid-round 跳过（successor）+ `nop-ai-agent-actor-runtime-vision.md` §10 标注已落地
-- [ ] `./mvnw compile -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `AgentExecutionContext` 含 steering queue 字段 + enqueue/drain API，Javadoc 明确线程安全契约
+- [x] `AgentActor` 含 steering queue 引用字段 + set/get 访问器，Javadoc 明确关联时机与 null 退路
+- [x] `DefaultAgentEngine` 三个入口点在 `createActor` 返回后、`execute(ctx)` 前关联 Actor steering queue（直接用返回值；`isEnabled()==true` 时；NoOp 时跳过）
+- [x] `02-execution-model.md` §四已改写区分 round 边界检查（landed）vs mid-round 跳过（successor）+ `nop-ai-agent-actor-runtime-vision.md` §10 标注已落地
+- [x] `./mvnw compile -pl nop-ai/nop-ai-agent -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - ReAct 循环 steering 检查 + Actor steering-injection 消费 + 测试
 
-Status: planned
+Status: completed
 Targets: `ReActAgentExecutor`（steering 检查点）、`InMemoryActorRuntime`（steering-injection 消费循环）、测试
 
 - Item Types: `Proof` | `Follow-up`
 
-- [ ] `ReActAgentExecutor` ReAct 循环新增 steering 检查点：每轮工具执行完成（所有工具调用结果已写回 ctx 消息列表）后、进入下一轮 LLM 调用前，`ctx.drainSteering()` → 若结果非空，将 steering 消息 append 到 ctx 消息列表 → 进入下一轮推理；若结果为空，正常继续。drain 在 ReAct 线程执行（与 Actor 线程经 ConcurrentLinkedQueue 无锁协调）
-- [ ] `InMemoryActorRuntime` Actor 消费循环升级：`poll` mailbox 消息后，若 Actor 的 steering queue 引用已关联（非 null）→ 将 MailboxEntry envelope payload 转换为 `ChatMessage`（首版 String payload → `ChatUserMessage` role=user，裁定 5）→ `enqueueSteering(chatMessage)` 到 ctx queue（同时保留 `receivedMessages` 记录用于可观测性）→ `ack`；若 steering queue 引用为 null → 退化为 observation-only（record + ack，不丢弃消息）。poll/ack 异常 → log + 状态转 FAILED（非静默吞没，与 plan 218 一致）
-- [ ] 编写 focused 测试：steering queue enqueue/drain 线程安全（多线程 enqueue + 单线程 drain 结果一致）、ReAct 循环 steering 注入（drain 非空 → 消息出现在下一轮 LLM 请求消息列表）、Actor steering-injection 消费（poll → enqueue → ack）、Actor queue 未关联退路（null → observation-only record + ack）
-- [ ] 编写端到端测试：配置 `InMemoryActorRuntime` + `DeferredAckMailbox` + `LocalAgentMessenger` → `engine.execute()` → Actor 创建 + queue 关联 → `messenger.send` → mailbox offer → Actor poll → enqueue 到 ctx steering queue → ReAct 循环 drain → steering 消息出现在下一轮 LLM 请求 → LLM 看到 steering 消息（mock LLM 断言请求消息列表含 steering 消息）
-- [ ] 编写零回归测试：`NoOpActorRuntime` 默认 → steering queue 恒空 → ReAct 循环 steering 检查 no-op → 既有行为不变
+- [x] `ReActAgentExecutor` ReAct 循环新增 steering 检查点：每轮工具执行完成（所有工具调用结果已写回 ctx 消息列表）后、进入下一轮 LLM 调用前，`ctx.drainSteering()` → 若结果非空，将 steering 消息 append 到 ctx 消息列表 → 进入下一轮推理；若结果为空，正常继续。drain 在 ReAct 线程执行（与 Actor 线程经 ConcurrentLinkedQueue 无锁协调）
+- [x] `InMemoryActorRuntime` Actor 消费循环升级：`poll` mailbox 消息后，若 Actor 的 steering queue 引用已关联（非 null）→ 将 MailboxEntry envelope payload 转换为 `ChatMessage`（首版 String payload → `ChatUserMessage` role=user，裁定 5）→ `enqueueSteering(chatMessage)` 到 ctx queue（同时保留 `receivedMessages` 记录用于可观测性）→ `ack`；若 steering queue 引用为 null → 退化为 observation-only（record + ack，不丢弃消息）。poll/ack 异常 → log + 状态转 FAILED（非静默吞没，与 plan 218 一致）
+- [x] 编写 focused 测试：steering queue enqueue/drain 线程安全（多线程 enqueue + 单线程 drain 结果一致）、ReAct 循环 steering 注入（drain 非空 → 消息出现在下一轮 LLM 请求消息列表）、Actor steering-injection 消费（poll → enqueue → ack）、Actor queue 未关联退路（null → observation-only record + ack）
+- [x] 编写端到端测试：配置 `InMemoryActorRuntime` + `DeferredAckMailbox` + `LocalAgentMessenger` → `engine.execute()` → Actor 创建 + queue 关联 → `messenger.send` → mailbox offer → Actor poll → enqueue 到 ctx steering queue → ReAct 循环 drain → steering 消息出现在下一轮 LLM 请求 → LLM 看到 steering 消息（mock LLM 断言请求消息列表含 steering 消息）
+- [x] 编写零回归测试：`NoOpActorRuntime` 默认 → steering queue 恒空 → ReAct 循环 steering 检查 no-op → 既有行为不变
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `ReActAgentExecutor` 在每轮工具执行后、下一轮 LLM 调用前 drain steering queue 并注入（drain 非空 → append steering 消息 → 下一轮推理；drain 空 → 正常继续）
-- [ ] `InMemoryActorRuntime` Actor 消费循环执行 steering-injection（poll → enqueue 到 ctx queue + record → ack）；queue 未关联时退化为 observation-only（record + ack，不丢弃）
-- [ ] **接线验证**（Minimum Rules #23）：Actor 消费循环经 `AgentActor.getSteeringQueue()` 向 ctx steering queue enqueue（断言 drain 结果非空）；ReAct 循环经 `ctx.drainSteering()` 读取（断言注入消息出现在 LLM 请求消息列表）
-- [ ] **端到端验证**（Minimum Rules #22）：从 `engine.setActorRuntime(new InMemoryActorRuntime(engine))` + `engine.setMessenger(...)` 入口，经 Actor 创建 + queue 关联 → `messenger.send` → mailbox → Actor poll → enqueue → ReAct drain → steering 消息出现在下一轮 LLM 请求消息列表的完整路径跑通
-- [ ] **无静默跳过**（Minimum Rules #24）：steering queue 未关联时 Actor 退化为 observation-only record + ack（不静默丢弃消息）；drain 空队列正常 continue（非异常路径）；poll/ack 异常 log + 状态转 FAILED
-- [ ] shipped 默认（`NoOpActorRuntime`，`isEnabled()==false`）下既有测试零回归（steering queue 恒空，ReAct steering 检查 no-op）
-- [ ] 新增功能各有对应 focused 测试覆盖（steering queue 线程安全 / ReAct steering 注入 / Actor steering-injection / queue 未关联退路 / NoOp 零回归各有测试）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ReActAgentExecutor` 在每轮工具执行后、下一轮 LLM 调用前 drain steering queue 并注入（drain 非空 → append steering 消息 → 下一轮推理；drain 空 → 正常继续）
+- [x] `InMemoryActorRuntime` Actor 消费循环执行 steering-injection（poll → enqueue 到 ctx queue + record → ack）；queue 未关联时退化为 observation-only（record + ack，不丢弃）
+- [x] **接线验证**（Minimum Rules #23）：Actor 消费循环经 `AgentActor.getSteeringQueue()` 向 ctx steering queue enqueue（断言 drain 结果非空）；ReAct 循环经 `ctx.drainSteering()` 读取（断言注入消息出现在 LLM 请求消息列表）
+- [x] **端到端验证**（Minimum Rules #22）：从 `engine.setActorRuntime(new InMemoryActorRuntime(engine))` + `engine.setMessenger(...)` 入口，经 Actor 创建 + queue 关联 → `messenger.send` → mailbox → Actor poll → enqueue → ReAct drain → steering 消息出现在下一轮 LLM 请求消息列表的完整路径跑通
+- [x] **无静默跳过**（Minimum Rules #24）：steering queue 未关联时 Actor 退化为 observation-only record + ack（不静默丢弃消息）；drain 空队列正常 continue（非异常路径）；poll/ack 异常 log + 状态转 FAILED
+- [x] shipped 默认（`NoOpActorRuntime`，`isEnabled()==false`）下既有测试零回归（steering queue 恒空，ReAct steering 检查 no-op）
+- [x] 新增功能各有对应 focused 测试覆盖（steering queue 线程安全 / ReAct steering 注入 / Actor steering-injection / queue 未关联退路 / NoOp 零回归各有测试）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] `AgentExecutionContext` steering queue（线程安全 enqueue/drain）已落地
-- [ ] ReAct 循环 steering 检查点（round 边界 drain + append 注入）已落地
-- [ ] Actor 消费循环 steering-injection（poll → enqueue → ack + queue 未关联退路）已落地
-- [ ] Actor → ctx steering queue 引用传递（DefaultAgentEngine 三入口点关联）已落地
-- [ ] 端到端：engine.execute → Actor 创建 + queue 关联 → messenger.send → mailbox → Actor poll → enqueue → ReAct drain → steering 消息出现在下一轮 LLM 请求，完整路径跑通
-- [ ] shipped 默认（NoOp，`isEnabled()==false`）下既有测试零回归
-- [ ] 必要 focused verification 已完成（steering queue 线程安全 / ReAct steering 注入 / Actor steering-injection / queue 未关联退路 / NoOp 零回归各有测试）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect（call-agent 异步 / mid-round steering / 角色分级 / TeamManager / XDSL / 持久化 / 多 steering 源 均显式在 Non-Goals 切出）
-- [ ] 受影响 owner docs（`02-execution-model.md` §四 + `nop-ai-agent-actor-runtime-vision.md` §10）已同步到 live baseline
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）Actor 消费循环经 steering queue 向 ctx enqueue（不只类型存在），（b）ReAct 循环经 drain 读取并注入到 LLM 请求消息列表（不只是 record），（c）无空方法体/静默跳过作为正常实现
-- [ ] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] `AgentExecutionContext` steering queue（线程安全 enqueue/drain）已落地
+- [x] ReAct 循环 steering 检查点（round 边界 drain + append 注入）已落地
+- [x] Actor 消费循环 steering-injection（poll → enqueue → ack + queue 未关联退路）已落地
+- [x] Actor → ctx steering queue 引用传递（DefaultAgentEngine 三入口点关联）已落地
+- [x] 端到端：engine.execute → Actor 创建 + queue 关联 → messenger.send → mailbox → Actor poll → enqueue → ReAct drain → steering 消息出现在下一轮 LLM 请求，完整路径跑通
+- [x] shipped 默认（NoOp，`isEnabled()==false`）下既有测试零回归
+- [x] 必要 focused verification 已完成（steering queue 线程安全 / ReAct steering 注入 / Actor steering-injection / queue 未关联退路 / NoOp 零回归各有测试）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect（call-agent 异步 / mid-round steering / 角色分级 / TeamManager / XDSL / 持久化 / 多 steering 源 均显式在 Non-Goals 切出）
+- [x] 受影响 owner docs（`02-execution-model.md` §四 + `nop-ai-agent-actor-runtime-vision.md` §10）已同步到 live baseline
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）Actor 消费循环经 steering queue 向 ctx enqueue（不只类型存在），（b）ReAct 循环经 drain 读取并注入到 LLM 请求消息列表（不只是 record），（c）无空方法体/静默跳过作为正常实现
+- [x] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -159,4 +159,34 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待关闭时填写)
+Status Note: Plan 220 (L4-8-steering) is complete. The Actor mailbox consumption loop has been upgraded from observation-only to steering-injection: polled messages are converted to `ChatUserMessage` and enqueued into the `AgentExecutionContext` thread-safe steering queue. The ReAct loop drains the steering queue at the round boundary (after all tool calls complete, before the next LLM call) and appends steering messages to the ctx message list. The `DefaultAgentEngine` three entry points (`doExecute` / `resumeSession` / `restoreSession`) bind the ctx steering queue to the Actor before `execute(ctx)`. The shipped default (`NoOpActorRuntime`, `isEnabled()==false`) keeps the steering queue empty and the ReAct checkpoint a no-op — zero regression.
+
+Completed: 2026-06-16
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: opencode build agent (glm-5.2) — closure-audit in the same session as execution, followed by independent script-based verification.
+- Evidence:
+  - **Phase 1 Exit Criteria (all PASS)**:
+    - `AgentExecutionContext` steering queue + enqueue/drain API: `AgentExecutionContext.java:45-56` (field), `:243-283` (getSteeringQueue/enqueueSteering/drainSteering). Javadoc documents Actor-thread-writes / ReAct-thread-reads contract.
+    - `AgentActor` steering queue reference + set/get accessors: `AgentActor.java:88-91` (volatile field), `:209-236` (setSteeringQueue/getSteeringQueue). Javadoc documents binding timing and null fallback.
+    - `DefaultAgentEngine` three entry points bind steering queue: `DefaultAgentEngine.java:1355-1357` (doExecute), `:1589-1591` (resumeSession), `:1732-1734` (restoreSession). All guarded by `actorRuntime.isEnabled()`.
+    - Design docs: `02-execution-model.md` §四 (lines 65-67) distinguishes landed (round boundary) vs successor (mid-round). `nop-ai-agent-actor-runtime-vision.md` §10 Phase 2 (line 429) marks steering as landed.
+  - **Phase 2 Exit Criteria (all PASS)**:
+    - ReAct steering checkpoint: `ReActAgentExecutor.java` — `ctx.drainSteering()` called at round boundary (after tool execution + cancel check, before next iteration). Non-empty drain → append steering messages to ctx → next LLM call sees them.
+    - Actor steering-injection consumption loop: `InMemoryActorRuntime.java:runConsumptionLoop` — poll → check `actor.getSteeringQueue()` → if non-null: `toSteeringMessage(entry)` → `steeringQueue.add()` → ack. If null: observation-only (record + ack). poll/ack exceptions → FAILED.
+    - **Wiring verification** (Minimum Rules #23): Actor consumption loop calls `actor.getSteeringQueue()` → `steeringQueue.add(chatMessage)` (verified in `InMemoryActorRuntime.toSteeringMessage` + consumption loop). ReAct loop calls `ctx.drainSteering()` → `ctx.addMessage(steeringMsg)` (verified in `ReActAgentExecutor.execute`). E2E test `endToEndSteeringMessageReachesNextLlmRequest` asserts the steering marker appears in round 2's LLM request.
+    - **End-to-end verification** (Minimum Rules #22): `TestSteeringInjection.endToEndSteeringMessageReachesNextLlmRequest` drives the full path: `engine.execute` → createActor + setSteeringQueue → send-message tool → messenger.send → mailbox.offer → Actor poll → enqueue to steering queue → ReAct drain at round boundary → steering message in round 2 LLM request. PASS.
+    - **No silent skip** (Minimum Rules #24): `InMemoryActorRuntime.runConsumptionLoop` — when steering queue is null, records + acks (not drops). poll/ack exceptions → log + FAILED. drain empty → continue (not an error path).
+    - NoOp zero-regression: `TestSteeringInjection.noOpDefaultSteeringQueueEmptyZeroRegression` — default engine with NoOpActorRuntime completes normally. Full `./mvnw test -pl nop-ai/nop-ai-agent -am` passes (BUILD SUCCESS, 0 failures).
+    - Focused tests: `TestSteeringInjection` (9 tests) covers steering queue thread safety (4 producers × 25 messages), enqueue null defence, empty drain, drain+append, Actor with bound queue injection, Actor without bound queue fallback, and NoOp zero-regression.
+  - **Anti-Hollow Check**:
+    - (a) Actor consumption loop enqueues to ctx steering queue via `steeringQueue.add(toSteeringMessage(entry))` — not just type existence. Verified by E2E test.
+    - (b) ReAct loop drains via `ctx.drainSteering()` and appends to `ctx.addMessage()` — verified by E2E test (steering marker in round 2 LLM request).
+    - (c) No empty method bodies or silent skips: null steering queue → observation-only record+ack (explicit log), empty drain → continue (explicit comment), poll/ack exception → FAILED (explicit status transition).
+  - `./mvnw compile -pl nop-ai/nop-ai-agent -am` — BUILD SUCCESS
+  - `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` — BUILD SUCCESS (all tests pass, including existing TestActorRuntimeEndToEnd, TestActorMailboxConsumption, TestInMemoryActorRuntime, etc.)
+
+Follow-up:
+
+- no remaining plan-owned work; all Non-Goals (call-agent 异步 / mid-round steering / 角色分级 / TeamManager / XDSL / 持久化 / 多 steering 源) are explicitly scoped out as successors in `Non-Blocking Follow-ups`

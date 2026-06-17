@@ -210,3 +210,7 @@ Follow-up:
 ## Follow-up handled by 220-nop-ai-agent-steering-injection.md
 
 Steering 注入机制（Non-Blocking Follow-ups 第一条，标 `successor plan required`）已由 successor plan `ai-dev/plans/220-nop-ai-agent-steering-injection.md` 接管：在 `AgentExecutionContext` 新增线程安全 steering 消息队列，ReAct 循环每轮工具执行后检查队列并注入 steering 消息，Actor 消费循环从 observation-only 升级为 steering-injection（poll → enqueue 到 ctx steering queue → ack），闭合"邮箱消息 → ReAct 推理上下文"注入主路径。此段为事实性交叉引用追加，不修改本计划已关闭的 closure 内容。
+
+## Follow-up handled by 221-nop-ai-agent-cross-process-session-takeover-lock.md
+
+RecoveryManager + 跨进程接管锁（Non-Blocking Follow-ups 第四条，标 `successor plan required`）已由 successor plan `ai-dev/plans/221-nop-ai-agent-cross-process-session-takeover-lock.md` 接管：交付 `ISessionTakeoverLock` 接口 + `NoOpSessionTakeoverLock` shipped 默认 + `DbSessionTakeoverLock` 功能实现（独立 `ai_agent_session_lock` 表 + lease/TTL CAS 锁 + stale-lock 过期抢占）+ `DefaultAgentEngine` 三入口点 tryAcquire/release 接线 + `restorePendingSessions` isHeld 跳过增强，闭合多实例部署中 session 恢复的 double-execution correctness gap。nop-job 定时扫描 / orphan liveness / 恢复策略 / 超时中止 / 归档为独立 successor。此段为事实性交叉引用追加，不修改本计划已关闭的 closure 内容。
