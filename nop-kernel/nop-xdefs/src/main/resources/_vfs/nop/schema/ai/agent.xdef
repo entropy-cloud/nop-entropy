@@ -44,4 +44,23 @@
         </on>
     </hooks>
 
+    <!-- Plan 231: declarative team declaration. A lead agent declares its
+         team structure here; the engine auto-binds the lead session at the
+         three execution entry points (doExecute/resumeSession/restoreSession)
+         when a functional ITeamManager is wired. Optional; absent => the
+         agent does not lead a team. -->
+    <team xdef:name="TeamModel" teamName="!string" description="string"
+          leadAgentName="!string" maxParallelMembers="int">
+        <members xdef:body-type="list" xdef:key-attr="name">
+            <member xdef:name="TeamMemberModel" name="!string" agentModel="!string"
+                    role="enum:io.nop.ai.agent.team.MemberRole"/>
+        </members>
+    </team>
+
+    <!-- Plan 231: declarative team-member reference. A member agent declares
+         its team membership here; the engine auto-binds the member session
+         when a functional ITeamManager is wired. Optional; absent => the
+         agent does not join a team. -->
+    <team-member xdef:name="TeamMemberRefModel" teamName="!string" memberName="!string"/>
+
 </agent>

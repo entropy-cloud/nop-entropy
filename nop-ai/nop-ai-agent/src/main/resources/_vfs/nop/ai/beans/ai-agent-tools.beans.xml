@@ -16,4 +16,13 @@
     <bean id="ai-agent-tools:write-memory" class="io.nop.ai.agent.tool.WriteMemoryExecutor"/>
     <bean id="ai-agent-tools:search-memory" class="io.nop.ai.agent.tool.SearchMemoryExecutor"/>
 
+    <!-- Team-aware tool executors (plan 225 / L4-8-team-tools). Each tool
+         reads the ITeamManager / ITeamTaskStore from AgentToolExecuteContext.
+         NoOp defaults (NoOpTeamManager + NoOpTeamTaskStore) cause honest
+         "not enabled" reports, not silent success. Same auto-collect path. -->
+    <bean id="ai-agent-tools:team-send-message" class="io.nop.ai.agent.tool.TeamSendMessageExecutor"/>
+    <bean id="ai-agent-tools:team-status" class="io.nop.ai.agent.tool.TeamStatusExecutor"/>
+    <bean id="ai-agent-tools:team-task-create" class="io.nop.ai.agent.tool.TeamTaskCreateExecutor"/>
+    <bean id="ai-agent-tools:team-task-update" class="io.nop.ai.agent.tool.TeamTaskUpdateExecutor"/>
+
 </beans>

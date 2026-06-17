@@ -22,6 +22,7 @@
         <domain name="callId" precision="100" stdSqlType="VARCHAR"/>
         <domain name="checkpointType" precision="30" stdSqlType="VARCHAR"/>
         <domain name="seqNumber" stdSqlType="INTEGER"/>
+        <domain name="tenantId" precision="100" stdSqlType="VARCHAR"/>
     </domains>
 
     <entities>
@@ -52,6 +53,9 @@
                 <column name="consumedAt" code="CONSUMED_AT" propId="8"
                         domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         displayName="Consumed At"/>
+                <column name="tenantId" code="TENANT_ID" propId="9"
+                        domain="tenantId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Tenant ID"/>
             </columns>
         </entity>
         <entity name="io.nop.ai.agent.security.AiAgentDenial" tableName="ai_agent_denial"
@@ -81,6 +85,9 @@
                 <column name="createdAt" code="CREATED_AT" propId="8" mandatory="true"
                         domain="createTime" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         displayName="Created At"/>
+                <column name="tenantId" code="TENANT_ID" propId="9"
+                        domain="tenantId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Tenant ID"/>
             </columns>
         </entity>
         <entity name="io.nop.ai.agent.session.AiAgentSession" tableName="ai_agent_session"
@@ -104,6 +111,9 @@
                 <column name="updatedAt" code="UPDATED_AT" propId="6" mandatory="true"
                         domain="epochMillis" stdDataType="long" stdSqlType="BIGINT"
                         displayName="Updated At"/>
+                <column name="tenantId" code="TENANT_ID" propId="7"
+                        domain="tenantId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Tenant ID"/>
             </columns>
         </entity>
         <entity name="io.nop.ai.agent.reliability.AiAgentCheckpoint" tableName="ai_agent_checkpoint"
@@ -142,6 +152,9 @@
                 <column name="tokenEstimate" code="TOKEN_ESTIMATE" propId="11" mandatory="true"
                         domain="epochMillis" stdDataType="long" stdSqlType="BIGINT"
                         displayName="Token Estimate"/>
+                <column name="tenantId" code="TENANT_ID" propId="12"
+                        domain="tenantId" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Tenant ID"/>
             </columns>
         </entity>
     </entities>

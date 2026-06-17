@@ -109,6 +109,27 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: team
+     * Plan 231: declarative team declaration. A lead agent declares its
+     * team structure here; the engine auto-binds the lead session at the
+     * three execution entry points (doExecute/resumeSession/restoreSession)
+     * when a functional ITeamManager is wired. Optional; absent => the
+     * agent does not lead a team.
+     */
+    private io.nop.ai.agent.model.TeamModel _team ;
+    
+    /**
+     *  
+     * xml name: team-member
+     * Plan 231: declarative team-member reference. A member agent declares
+     * its team membership here; the engine auto-binds the member session
+     * when a functional ITeamManager is wired. Optional; absent => the
+     * agent does not join a team.
+     */
+    private io.nop.ai.agent.model.TeamMemberRefModel _teamMember ;
+    
+    /**
+     *  
      * xml name: tools
      * 
      */
@@ -426,6 +447,51 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: team
+     *  Plan 231: declarative team declaration. A lead agent declares its
+     * team structure here; the engine auto-binds the lead session at the
+     * three execution entry points (doExecute/resumeSession/restoreSession)
+     * when a functional ITeamManager is wired. Optional; absent => the
+     * agent does not lead a team.
+     */
+    
+    public io.nop.ai.agent.model.TeamModel getTeam(){
+      return _team;
+    }
+
+    
+    public void setTeam(io.nop.ai.agent.model.TeamModel value){
+        checkAllowChange();
+        
+        this._team = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: team-member
+     *  Plan 231: declarative team-member reference. A member agent declares
+     * its team membership here; the engine auto-binds the member session
+     * when a functional ITeamManager is wired. Optional; absent => the
+     * agent does not join a team.
+     */
+    
+    public io.nop.ai.agent.model.TeamMemberRefModel getTeamMember(){
+      return _teamMember;
+    }
+
+    
+    public void setTeamMember(io.nop.ai.agent.model.TeamMemberRefModel value){
+        checkAllowChange();
+        
+        this._teamMember = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tools
      *  
      */
@@ -480,6 +546,10 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
             
            this._permissions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._permissions);
             
+           this._team = io.nop.api.core.util.FreezeHelper.deepFreeze(this._team);
+            
+           this._teamMember = io.nop.api.core.util.FreezeHelper.deepFreeze(this._teamMember);
+            
         }
     }
 
@@ -500,6 +570,8 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("prompt",this.getPrompt());
         out.putNotNull("requiredSkills",this.getRequiredSkills());
         out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("team",this.getTeam());
+        out.putNotNull("teamMember",this.getTeamMember());
         out.putNotNull("tools",this.getTools());
         out.putNotNull("workDir",this.getWorkDir());
     }
@@ -526,6 +598,8 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         instance.setPrompt(this.getPrompt());
         instance.setRequiredSkills(this.getRequiredSkills());
         instance.setTagSet(this.getTagSet());
+        instance.setTeam(this.getTeam());
+        instance.setTeamMember(this.getTeamMember());
         instance.setTools(this.getTools());
         instance.setWorkDir(this.getWorkDir());
     }
