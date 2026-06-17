@@ -221,15 +221,15 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     }
 
     
-    public io.nop.excel.model.XptXplModel getEditr(String name){
+    public io.nop.excel.model.XptXplModel getEditor(String name){
         return this._editors.getByKey(name);
     }
 
-    public boolean hasEditr(String name){
+    public boolean hasEditor(String name){
         return this._editors.containsKey(name);
     }
 
-    public void addEditr(io.nop.excel.model.XptXplModel item) {
+    public void addEditor(io.nop.excel.model.XptXplModel item) {
         checkAllowChange();
         java.util.List<io.nop.excel.model.XptXplModel> list = this.getEditors();
         if (list == null || list.isEmpty()) {

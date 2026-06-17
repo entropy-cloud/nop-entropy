@@ -181,7 +181,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
         <afterExpand>xpl</afterExpand>
 
         <editors xdef:body-type="list" xdef:key-attr="id">
-            <editr id="!string" xdef:name="XptXplModel">xpl-xjson</editr>
+            <editor id="!string" xdef:name="XptXplModel">xpl-xjson</editor>
         </editors>
 
         <viewers xdef:body-type="list" xdef:key-attr="id">
