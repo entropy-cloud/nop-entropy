@@ -1,0 +1,18 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="recoverableStep">
+            <decorator name="retry" retry:maxRetryCount="2" retry:retryDelay="0"/>
+            <source><![CDATA[
+                const sim = inject("testFailureSimulator");
+                sim.throwRecoverable();
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

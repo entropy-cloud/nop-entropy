@@ -16,8 +16,10 @@ import java.util.Map;
 
 import static io.nop.task.ext.TaskExtErrors.ERR_TASK_DECORATOR_INVALID_CONFIG;
 import static io.nop.task.TaskErrors.ERR_TASK_REQUEST_RATE_EXCEED_LIMIT;
+import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
 import static io.nop.task.TaskErrors.ERR_TASK_STEP_TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -88,6 +90,45 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
         // maxRetryCount=2 → 共执行 1 + 2 = 3 次
         assertEquals(3, counter().get(),
                 "retry decorator should execute step body 1 + maxRetryCount times when exhausted");
+    }
+
+    // -------- retry 异常分类（plan 247：依赖 TaskStepStateBean.fail/exception 真实保存） --------
+    //
+    // 注：xpl 函数调用（AbstractObjFunctionExecutable.doInvoke*）会把被调用方法抛出的异常包装为
+    // NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)，丢失 bizFatal 标记。这是 xpl 既有行为，非 plan 247 scope。
+    // 因此 bizFatal 分类的 focused 验证在 nop-task-core 单元测试层完成（不经 xpl 包装）：
+    //   TestTaskStepStateBeanExceptionPersistence#retryPolicy_classifiesBizFatalAsUnrecoverable_afterFail
+    // 此处的 E2E 测试覆盖可恢复路径（xpl 包装后的 NopEvalException 默认非 bizFatal → 可恢复 → 按 maxRetryCount 重试），
+    // 验证 plan 247 修复后 state.fail() → state.exception() → RetryPolicy 联动在 .task.xml 端到端路径连通。
+
+    @Test
+    public void retry_recoverableExceptionRetriedE2e() {
+        // plan 247 E2E 验证：从 .task.xml 声明 retry decorator → step 抛异常（经 FailureSimulatorBean 构造的真正
+        // NopException，但 xpl 调用包装为 NopEvalException，仍为非 bizFatal → 可恢复）→
+        // TaskStepHelper.retry 经 state.fail() 保存异常 → state.exception() 返回非 null →
+        // RetryPolicy.getRetryDelay(state.exception(), ...) 分类为可恢复 → 按 maxRetryCount 重试至耗尽 → honest throw。
+        //
+        // 修复前：state.exception() 恒 null → getRetryDelay 跳过分类 → 仍按 retryCount 重试（巧合相同结果），
+        // 但 state.exception() 永远为 null（honest throw 真实异常的能力丧失）。
+        // 修复后：state.exception() 返回真实异常（端到端路径连通可观测：重试耗尽后抛出的是 state.exception() 保存的异常，
+        // 而非 ERR_TASK_RETRY_TIMES_EXCEED_LIMIT generic error）。
+        try {
+            runTask("test/retry-decorator-recoverable");
+            fail("step that always fails should throw after retry exhausted");
+        } catch (NopException e) {
+            assertNotNull(e, "recoverable exception exhausted must propagate");
+            // 接线验证（#23）：修复后 state.exception() 非 null → 抛出的是 state.exception() 保存的异常
+            // （NopEvalException 经 NopException.adapt 原样返回），而非 ERR_TASK_RETRY_TIMES_EXCEED_LIMIT。
+            // 这证明 fail() → exception() → getRetryDelay → throw 连通（plan 247 核心价值）。
+            assertNotEquals(ERR_TASK_RETRY_TIMES_EXCEED_LIMIT.getErrorCode(), e.getErrorCode(),
+                    "after plan 247 fix, state.exception() is non-null so the thrown exception is the saved one, "
+                            + "not the generic ERR_TASK_RETRY_TIMES_EXCEED_LIMIT fallback");
+        }
+        // maxRetryCount=2 → 共执行 1 + 2 = 3 次（≥ 2 验证真实重试发生）
+        assertTrue(counter().get() >= 2,
+                "recoverable exception should be retried (>= 2 executions), actual=" + counter().get());
+        assertEquals(3, counter().get(),
+                "recoverable exception with maxRetryCount=2 should execute 1 + 2 = 3 times before exhaustion");
     }
 
     // -------- timeout decorator --------

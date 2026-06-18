@@ -43,7 +43,7 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public void fail(Throwable exception, ITaskRuntime taskRt) {
-
+        exception(exception);
     }
 
     @Override
@@ -73,7 +73,7 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public void exception(Throwable exp) {
-
+        this.exception = exp;
     }
 
     @Override
