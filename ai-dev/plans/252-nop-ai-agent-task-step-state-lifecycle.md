@@ -232,3 +232,9 @@ Follow-up:
 - **result/success 跨重启持久化（serialization）**：Classification: optimization candidate（plan 247 carry-over）。
 - **`afterLoad`/`beforeSave` load/save 生命周期 no-op**：Classification: successor plan required。
 - **完整 outputs map 持久化**：Classification: out-of-scope improvement。
+
+## Follow-up handled by 253-nop-ai-agent-succeed-driver-non-retry-async-wiring
+
+> 本节为 carry-over 可追溯性链接（plan 252 已 `completed`，此为后续 successor 接管记录，未改动上方历史内容）。
+
+plan 252 §Non-Blocking Follow-ups L229 + §Non-Goals L52-53 裁定的 successor——「succeed() driver 在非 retry step 类型 + retry async 成功路径的 wiring」——由 `ai-dev/plans/253-nop-ai-agent-succeed-driver-non-retry-async-wiring.md` 接管。其余 follow-ups（continuation-skip 消费侧 / 终态 FAILED / result 跨重启持久化 / afterLoad-beforeSave）仍未分配 successor owner，保持在本计划 §Non-Blocking Follow-ups 记录。
