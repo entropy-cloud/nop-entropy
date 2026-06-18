@@ -179,3 +179,7 @@ Follow-up:
 - EXPIRED/KILLED 终态 status 的 driver（out-of-scope improvement，4× carry-over）：reader 检查 isDone 含 EXPIRED/KILLED 终态集，但无 driver 设置这两个 status。
 - 完整 task-level resume 编排（successor plan required，task 级 mainStep 状态语义 / 跨 step flow 位置恢复）。
 - 无剩余 plan-owned work（本 plan in-scope 项全部 landed）。
+
+## Follow-up handled by 259-nop-ai-agent-task-level-resume-orchestration.md
+
+本 plan Non-Goals + Non-Blocking Follow-ups 中记录为 `successor plan required` 的「完整 task-level resume 编排（task 级 mainStep 状态语义 / 跨 step flow 位置恢复）」carry-over 由 plan `259-nop-ai-agent-task-level-resume-orchestration.md` 接管。traceability 经本节（old → new）与 plan 259 `Source` 字段（new → old）双向链接建立。依 Minimum Rules #20，本历史 `completed` plan 仅追加此 traceability 链接，不回写正文。
