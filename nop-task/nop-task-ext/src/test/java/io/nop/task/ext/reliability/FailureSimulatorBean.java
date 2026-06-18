@@ -49,4 +49,29 @@ public class FailureSimulatorBean {
         counter.incrementAndGet();
         throw new NopException(ERR_TEST_BIZ_FATAL).bizFatal(true);
     }
+
+    /**
+     * 属性 getter 抛 bizFatal NopException（plan 250 attr 路径 fixture）。
+     *
+     * <p>区别于 {@link #throwBizFatal()}（方法调用 → {@code doInvoke*} 包装，plan 249 路径）：
+     * 本 getter 经 xpl <b>bracket 记法</b> {@code sim['bizFatalAttr']}（编译为 {@code GetAttrExecutable}
+     * → {@code AbstractExecutable.readAttr}）访问时触发。plan 250 修复后，{@code readAttr} 包装异常保留
+     * bizFatal 标记 → {@code RetryPolicy.isRecoverableException} 判定不可恢复 → 执行次数 = 1。
+     *
+     * <p>同时递增 execution counter，供测试断言执行次数。
+     */
+    public Object getBizFatalAttr() {
+        counter.incrementAndGet();
+        throw new NopException(ERR_TEST_BIZ_FATAL).bizFatal(true);
+    }
+
+    /**
+     * 属性 getter 抛非 bizFatal NopException（plan 250 attr 路径对偶回归 fixture）。
+     * 经 xpl bracket 记法 {@code sim['recoverableAttr']}（{@code GetAttrExecutable} → {@code readAttr}）访问触发，
+     * 包装后仍非 bizFatal → 可恢复 → 按 maxRetryCount 重试至耗尽。
+     */
+    public Object getRecoverableAttr() {
+        counter.incrementAndGet();
+        throw new NopException(ERR_TEST_RECOVERABLE);
+    }
 }

@@ -143,8 +143,7 @@ public abstract class AbstractExecutable implements IExecutableExpression {
 
             return beanModel.getProperty(obj, attrValue.toString());
         } catch (Exception e) {
-            throw newError(ERR_EXEC_READ_ATTR_FAIL, e).forWrap().param(ARG_CLASS_NAME, obj.getClass().getName())
-                    .param(ARG_ATTR_VALUE, attrValue);
+            throw wrapAttrException(ERR_EXEC_READ_ATTR_FAIL, e, obj, attrValue);
         }
     }
 
@@ -160,9 +159,23 @@ public abstract class AbstractExecutable implements IExecutableExpression {
                 beanModel.setProperty(obj, attrValue.toString(), value);
             }
         } catch (Exception e) {
-            throw newError(ERR_EXEC_WRITE_ATTR_FAIL, e).forWrap().param(ARG_CLASS_NAME, obj.getClass().getName())
-                    .param(ARG_ATTR_VALUE, attrValue);
+            throw wrapAttrException(ERR_EXEC_WRITE_ATTR_FAIL, e, obj, attrValue);
         }
+    }
+
+    /**
+     * 将属性读/写异常包装为 {@code NopEvalException(errorCode)}，保留 {@code wrapException} /
+     * cause / errorCode 全部既有语义。当属性 getter/setter 抛出 bizFatal
+     * {@link NopException} 时，将 bizFatal 标记传播到包装异常，使下游分类器（如
+     * {@code RetryPolicy.isRecoverableException}）能正确识别不可恢复异常。
+     */
+    private NopException wrapAttrException(ErrorCode errorCode, Throwable e, Object obj, Object attrValue) {
+        NopException err = newError(errorCode, e).forWrap()
+                .param(ARG_CLASS_NAME, obj.getClass().getName())
+                .param(ARG_ATTR_VALUE, attrValue);
+        if (e instanceof NopException && ((NopException) e).isBizFatal())
+            err.bizFatal(true);
+        return err;
     }
 
     @Override
