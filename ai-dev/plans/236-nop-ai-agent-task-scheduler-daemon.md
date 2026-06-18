@@ -1,6 +1,6 @@
 # 236 nop-ai-agent blockedBy 自动调度守护进程（定时扫描就绪任务自动 claim/派发，闭合无人值守多 Agent 编排链路）
 
-> **Plan Status**: planned
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: L4-blockedBy-resolution-engine
 
@@ -87,76 +87,76 @@
 
 ### Phase 1 - 守护进程核心（周期扫描 + 就绪解析 + idempotent claim + 派发 + 生命周期）+ focused 测试
 
-Status: planned
+Status: completed
 Targets: `io.nop.ai.agent.team.scheduler`（守护进程新包）
 
 - Item Types: `Fix`（无人值守自动调度能力 gap）、`Decision`（调度/依赖序/生命周期/失败裁定）、`Proof`
 
-- [ ] 新建 `io.nop.ai.agent.team.scheduler` 守护进程组件：周期性扫描（可配置周期，复用 `ScheduledRecoveryManager`/`IScheduledExecutor` 范式），每周期经 `TeamTaskTopology.getReadyTasks()` 识别就绪任务集并过滤至 `status==CREATED` 且所有 blockedBy 已 COMPLETED
-- [ ] CREATED 就绪任务经 `ITeamTaskStore.claimTask` CAS idempotent 认领；认领成功后经既有成员 agent 委派原语（`ITeamManager` 成员解析 + `IAgentEngine.execute`）同步执行（**不复用 `TeamTaskFlowOrchestrator.execute(teamId)`**）；成功 `completeTask`，失败诚实处理（仅对自认领成功任务 abandon/fail-fast；CLAIMED 他人任务跳过不误弃，不静默跳过）
-- [ ] 生命周期管理：start/stop（复用 `ScheduledRecoveryManager` 幂等 start/stop + `IScheduledExecutor` 调度 + NoOp 默认范式）；stop 优雅处理（进行中任务不强制中断，不再派发新任务）；扫描周期、团队范围可配置
-- [ ] 守护进程只读消费既有 `TeamTaskTopology`（就绪查询）/ `ITeamTaskStore`（claim/complete/abandon）/ `ITeamManager`（成员解析）/ `IAgentEngine`（成员执行）/ `ScheduledRecoveryManager` 范式（生命周期），不改其契约；**不调用 `TeamTaskFlowOrchestrator.execute(teamId)`**（整团队一次性入口不适用增量推进，详见 Design Decision 1）
-- [ ] 编写 focused 测试：单周期就绪解析正确（线性/菱形依赖的就绪集，过滤至 CREATED）/ CAS idempotent（模拟多周期扫描不重复派发）/ 依赖序自动推进（A 完成后下周期 B 就绪）/ CLAIMED 他人任务不被误弃（getReadyTasks 含 CLAIMED 时守护进程跳过不 abandon）/ 生命周期 start-stop（stop 后新任务不被派发）/ 空团队与无 CREATED 就绪任务诚实空转（合法）/ 未绑定成员快速失败（No Silent No-Op）
+- [x] 新建 `io.nop.ai.agent.team.scheduler` 守护进程组件：周期性扫描（可配置周期，复用 `ScheduledRecoveryManager`/`IScheduledExecutor` 范式），每周期经 `TeamTaskTopology.getReadyTasks()` 识别就绪任务集并过滤至 `status==CREATED` 且所有 blockedBy 已 COMPLETED
+- [x] CREATED 就绪任务经 `ITeamTaskStore.claimTask` CAS idempotent 认领；认领成功后经既有成员 agent 委派原语（`ITeamManager` 成员解析 + `IAgentEngine.execute`）同步执行（**不复用 `TeamTaskFlowOrchestrator.execute(teamId)`**）；成功 `completeTask`，失败诚实处理（仅对自认领成功任务 abandon/fail-fast；CLAIMED 他人任务跳过不误弃，不静默跳过）
+- [x] 生命周期管理：start/stop（复用 `ScheduledRecoveryManager` 幂等 start/stop + `IScheduledExecutor` 调度 + NoOp 默认范式）；stop 优雅处理（进行中任务不强制中断，不再派发新任务）；扫描周期、团队范围可配置
+- [x] 守护进程只读消费既有 `TeamTaskTopology`（就绪查询）/ `ITeamTaskStore`（claim/complete/abandon）/ `ITeamManager`（成员解析）/ `IAgentEngine`（成员执行）/ `ScheduledRecoveryManager` 范式（生命周期），不改其契约；**不调用 `TeamTaskFlowOrchestrator.execute(teamId)`**（整团队一次性入口不适用增量推进，详见 Design Decision 1）
+- [x] 编写 focused 测试：单周期就绪解析正确（线性/菱形依赖的就绪集，过滤至 CREATED）/ CAS idempotent（模拟多周期扫描不重复派发）/ 依赖序自动推进（A 完成后下周期 B 就绪）/ CLAIMED 他人任务不被误弃（getReadyTasks 含 CLAIMED 时守护进程跳过不 abandon）/ 生命周期 start-stop（stop 后新任务不被派发）/ 空团队与无 CREATED 就绪任务诚实空转（合法）/ 未绑定成员快速失败（No Silent No-Op）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 守护进程组件存在于 `io.nop.ai.agent.team.scheduler`，真实消费 `TeamTaskTopology.getReadyTasks()` 就绪查询 + `ITeamTaskStore` CAS claim/complete + `IAgentEngine` 成员委派（非自行重写 nop-task 图分析/依赖序；不调用 `execute(teamId)`）
-- [ ] **CAS idempotent 验证**：focused 测试断言多周期扫描不重复派发同一任务（经 claimTask CAS 返回空 Optional 或状态非 CREATED）
-- [ ] **CLAIMED 安全验证**：focused 测试断言 `getReadyTasks()` 返回的 CLAIMED（他人进行中）任务被跳过、不被 claim、不被 abandon（兑现 Non-Goal 不强占 CLAIMED 任务）
-- [ ] **依赖序自动保证验证**：focused 测试断言任务永不在 blockedBy 未完成前被派发；依赖完成后下周期自动就绪
-- [ ] **生命周期验证**：focused 测试断言 start 后开始派发、stop 后新 CREATED 就绪任务不再被派发（进行中任务自然结束）
-- [ ] **无静默跳过**（Minimum Rules #24）：未绑定成员/派发失败/completeTask CAS 失败均诚实处理（abandon 或抛异常），不静默跳过；空团队/无 CREATED 就绪任务空转为合法正常状态（有测试区分两者）
-- [ ] **接线验证**（Minimum Rules #23）：focused 测试断言守护进程确实调用 `TeamTaskTopology.getReadyTasks()` + `claimTask` + `IAgentEngine.execute` + `completeTask`（非仅自建循环）
-- [ ] focused 测试全绿
-- [ ] No owner-doc update required（owner doc 更新在 Phase 2）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 守护进程组件存在于 `io.nop.ai.agent.team.scheduler`，真实消费 `TeamTaskTopology.getReadyTasks()` 就绪查询 + `ITeamTaskStore` CAS claim/complete + `IAgentEngine` 成员委派（非自行重写 nop-task 图分析/依赖序；不调用 `execute(teamId)`）
+- [x] **CAS idempotent 验证**：focused 测试断言多周期扫描不重复派发同一任务（经 claimTask CAS 返回空 Optional 或状态非 CREATED）
+- [x] **CLAIMED 安全验证**：focused 测试断言 `getReadyTasks()` 返回的 CLAIMED（他人进行中）任务被跳过、不被 claim、不被 abandon（兑现 Non-Goal 不强占 CLAIMED 任务）
+- [x] **依赖序自动保证验证**：focused 测试断言任务永不在 blockedBy 未完成前被派发；依赖完成后下周期自动就绪
+- [x] **生命周期验证**：focused 测试断言 start 后开始派发、stop 后新 CREATED 就绪任务不再被派发（进行中任务自然结束）
+- [x] **无静默跳过**（Minimum Rules #24）：未绑定成员/派发失败/completeTask CAS 失败均诚实处理（abandon 或抛异常），不静默跳过；空团队/无 CREATED 就绪任务空转为合法正常状态（有测试区分两者）
+- [x] **接线验证**（Minimum Rules #23）：focused 测试断言守护进程确实调用 `TeamTaskTopology.getReadyTasks()` + `claimTask` + `IAgentEngine.execute` + `completeTask`（非仅自建循环）
+- [x] focused 测试全绿
+- [x] No owner-doc update required（owner doc 更新在 Phase 2）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 端到端无人值守验证 + 引擎接线 + 设计文档 + roadmap/vision 同步 + 全量回归
 
-Status: planned
+Status: completed
 Targets: 守护进程引擎接线、端到端测试、`ai-dev/design/nop-ai-agent/nop-ai-agent-task-scheduler-daemon.md`（新）、`nop-ai-agent-roadmap.md` §4、`nop-ai-agent-actor-runtime-vision.md`
 
 - Item Types: `Proof`
 
-- [ ] 守护进程接线：可被 `DefaultAgentEngine` / 集成商经构造注入或工厂创建并启动（具体注入点属实现细节，plan 约束"可被启动且只读消费既有组件"）
-- [ ] 编写端到端无人值守测试：构造 `DefaultAgentEngine`（InMemoryTeamManager + InMemoryTeamTaskStore + mock LLM 成员 agent）→ 程序化建团 + 绑定 lead/member → 创建 3 任务 A（无依赖）/ B（blockedBy A）/ C（blockedBy B）→ **启动守护进程（不调用任何手动 `TeamTaskFlowOrchestrator.execute`）** → 断言 A/B/C 全部自动转 COMPLETED → **Anti-Hollow 断言**：完成顺序 A→B→C（B 派发严格晚于 A 完成，经执行时间戳/计数器/执行序记录验证，非仅最终状态）→ 断言 stop 后新建任务不被派发
-- [ ] 编写端到端菱形无人值守测试：A→{B,C}→D 自动完成，断言依赖序
-- [ ] 新建 `ai-dev/design/nop-ai-agent/nop-ai-agent-task-scheduler-daemon.md`：记录 4 项设计裁定（调度模型 / 依赖序自动保证 / 生命周期 / 失败语义）+ 拒绝的替代方案（运行时阻塞等待依赖 / 分布式跨进程协调 / 内建重试 decorator）及原因。遵循 design doc 规范（只记最终设计状态与决策，不放类签名/代码）
-- [ ] 更新 `nop-ai-agent-roadmap.md` §4 Layer 4：`L4-blockedBy-resolution-engine` 标注已落地（定时扫描就绪任务自动 claim/派发已交付）；保留 auto-spawn / 异步跨进程 / LLM 直面工具 / task-reclaim / 超时自动 abandon 仍为 successor 未完成状态
-- [ ] 更新 `nop-ai-agent-actor-runtime-vision.md`：无人值守自动调度守护已落地（为 auto-spawn 解除前置阻塞）
-- [ ] 验证全量测试：`./mvnw test -pl nop-ai/nop-ai-agent -am`
-- [ ] 运行 `node ai-dev/tools/check-doc-links.mjs --strict`（退出码 0）
+- [x] 守护进程接线：可被 `DefaultAgentEngine` / 集成商经构造注入或工厂创建并启动（具体注入点属实现细节，plan 约束"可被启动且只读消费既有组件"）
+- [x] 编写端到端无人值守测试：构造 `DefaultAgentEngine`（InMemoryTeamManager + InMemoryTeamTaskStore + mock LLM 成员 agent）→ 程序化建团 + 绑定 lead/member → 创建 3 任务 A（无依赖）/ B（blockedBy A）/ C（blockedBy B）→ **启动守护进程（不调用任何手动 `TeamTaskFlowOrchestrator.execute`）** → 断言 A/B/C 全部自动转 COMPLETED → **Anti-Hollow 断言**：完成顺序 A→B→C（B 派发严格晚于 A 完成，经执行时间戳/计数器/执行序记录验证，非仅最终状态）→ 断言 stop 后新建任务不被派发
+- [x] 编写端到端菱形无人值守测试：A→{B,C}→D 自动完成，断言依赖序
+- [x] 新建 `ai-dev/design/nop-ai-agent/nop-ai-agent-task-scheduler-daemon.md`：记录 4 项设计裁定（调度模型 / 依赖序自动保证 / 生命周期 / 失败语义）+ 拒绝的替代方案（运行时阻塞等待依赖 / 分布式跨进程协调 / 内建重试 decorator）及原因。遵循 design doc 规范（只记最终设计状态与决策，不放类签名/代码）
+- [x] 更新 `nop-ai-agent-roadmap.md` §4 Layer 4：`L4-blockedBy-resolution-engine` 标注已落地（定时扫描就绪任务自动 claim/派发已交付）；保留 auto-spawn / 异步跨进程 / LLM 直面工具 / task-reclaim / 超时自动 abandon 仍为 successor 未完成状态
+- [x] 更新 `nop-ai-agent-actor-runtime-vision.md`：无人值守自动调度守护已落地（为 auto-spawn 解除前置阻塞）
+- [x] 验证全量测试：`./mvnw test -pl nop-ai/nop-ai-agent -am`
+- [x] 运行 `node ai-dev/tools/check-doc-links.mjs --strict`（退出码 0）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**（Minimum Rules #22）：从守护进程 start → 周期扫描 → 就绪解析 → CAS claim → 编排派发 → 成员 agent 执行 → completeTask → 依赖完成后继任务下周期自动就绪 → 全图 COMPLETED，完整路径跑通且**无任何手动编排调用**（证明无人值守）
-- [ ] **Anti-Hollow 断言**：B 派发严格晚于 A 完成（依赖序自动生效，有执行序证据，非仅最终 COMPLETED 状态）
-- [ ] **生命周期端到端验证**：stop 后新建 CREATED 就绪任务不被派发（有测试覆盖）
-- [ ] **接线验证**（Minimum Rules #23）：端到端测试断言守护进程确实经 `TeamTaskTopology.getReadyTasks()` + `claimTask` + `IAgentEngine.execute` 成员委派（非仅自建循环），completeTask 实际改 store status
-- [ ] `nop-ai-agent-task-scheduler-daemon.md` 存在，含 4 项裁定 + 拒绝替代方案，无类签名/代码（符合 design doc 规范）
-- [ ] roadmap §4 + vision 已更新（`L4-blockedBy-resolution-engine` 已落地，successor 未完成状态保留）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 全绿（零回归）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**（Minimum Rules #22）：从守护进程 start → 周期扫描 → 就绪解析 → CAS claim → 编排派发 → 成员 agent 执行 → completeTask → 依赖完成后继任务下周期自动就绪 → 全图 COMPLETED，完整路径跑通且**无任何手动编排调用**（证明无人值守）
+- [x] **Anti-Hollow 断言**：B 派发严格晚于 A 完成（依赖序自动生效，有执行序证据，非仅最终 COMPLETED 状态）
+- [x] **生命周期端到端验证**：stop 后新建 CREATED 就绪任务不被派发（有测试覆盖）
+- [x] **接线验证**（Minimum Rules #23）：端到端测试断言守护进程确实经 `TeamTaskTopology.getReadyTasks()` + `claimTask` + `IAgentEngine.execute` 成员委派（非仅自建循环），completeTask 实际改 store status
+- [x] `nop-ai-agent-task-scheduler-daemon.md` 存在，含 4 项裁定 + 拒绝替代方案，无类签名/代码（符合 design doc 规范）
+- [x] roadmap §4 + vision 已更新（`L4-blockedBy-resolution-engine` 已落地，successor 未完成状态保留）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 全绿（零回归）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 守护进程组件落地为真实（非空壳）代码，真实消费 plan 233 `TeamTaskTopology` 就绪查询 + 既有 claim/engine/complete 原语 + `ScheduledRecoveryManager` 生命周期范式
-- [ ] 周期扫描 + idempotent claim + 依赖序自动派发生效
-- [ ] 生命周期 start/stop 落地（stop 后不派发新任务）
-- [ ] NoOp / 空团队 / 无就绪任务 / 未绑定成员 / 派发失败均诚实处理（无静默跳过 #24）
-- [ ] 必要 focused verification + 端到端无人值守验证已完成（线性 A→B→C + 菱形 + 生命周期 stop）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect（auto-spawn / LLM 直面工具 / 异步跨进程 / DaoTaskStateStore 持久化 / decorator / 动态改图 / task-reclaim / 超时 abandon 均显式 Non-Goals 切出）
-- [ ] 受影响 owner docs 已同步到 live baseline（design doc + roadmap §4 + vision）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）守护进程运行时确实调用 `TeamTaskTopology.getReadyTasks()` + `claimTask` + `IAgentEngine.execute` + `completeTask`（不只是类型存在），（b）端到端无人值守路径完整连通（start → 全图 COMPLETED 无手动编排），（c）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] 守护进程组件落地为真实（非空壳）代码，真实消费 plan 233 `TeamTaskTopology` 就绪查询 + 既有 claim/engine/complete 原语 + `ScheduledRecoveryManager` 生命周期范式
+- [x] 周期扫描 + idempotent claim + 依赖序自动派发生效
+- [x] 生命周期 start/stop 落地（stop 后不派发新任务）
+- [x] NoOp / 空团队 / 无就绪任务 / 未绑定成员 / 派发失败均诚实处理（无静默跳过 #24）
+- [x] 必要 focused verification + 端到端无人值守验证已完成（线性 A→B→C + 菱形 + 生命周期 stop）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect（auto-spawn / LLM 直面工具 / 异步跨进程 / DaoTaskStateStore 持久化 / decorator / 动态改图 / task-reclaim / 超时 abandon 均显式 Non-Goals 切出）
+- [x] 受影响 owner docs 已同步到 live baseline（design doc + roadmap §4 + vision）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）守护进程运行时确实调用 `TeamTaskTopology.getReadyTasks()` + `claimTask` + `IAgentEngine.execute` + `completeTask`（不只是类型存在），（b）端到端无人值守路径完整连通（start → 全图 COMPLETED 无手动编排），（c）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -172,21 +172,32 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: Plan 236 闭合 plan 233 反复 carry-over 的「blockedBy 自动调度守护进程」successor——交付 `ITeamTaskSchedulerDaemon` + `TeamTaskSchedulerDaemon` 定时扫描就绪任务自动 claim/派发组件，复用 plan 233 `TeamTaskTopology` 就绪查询 + 既有 claim/engine/complete 原语 + plan 222 `ScheduledRecoveryManager` 生命周期范式，真实消费既有契约（不改其契约），依赖序经就绪查询天然保证（非运行时阻塞），CLAIMED 他人任务严格不被误弃，未绑定成员/派发失败诚实 abandon（不静默跳过）。端到端无人值守验证（线性 A→B→C + 菱形 A→{B,C}→D + 生命周期 stop）证明守护进程启动后 DAG 在依赖序约束下自动推进至完成，无需手动编排调用。所有 in-scope 项已落地；所有显式 Non-Goals（auto-spawn / LLM 直面工具 / 异步跨进程 / DaoTaskStateStore / decorator / 动态改图 / task-reclaim / 超时 abandon / 并行委派 / 多租户隔离）均为独立 successor，未降级任何 in-scope live defect。owner docs（design doc + roadmap §4 + vision §8.2/§10 + task-flow-integration §6）已同步到 live baseline。
+Completed: 2026-06-17
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
+- Reviewer / Agent: independent-closure-auditor-subagent（独立 closure-audit subagent，research-only live-code 验证，未参与实现）
+- Audit Session: ses_129c3d42effeqCBFJIxmrJuMyf
 - Evidence:
-  - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）
-  - 每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
-  - Anti-Hollow 检查结果：<<端到端无人值守调用链追踪结果>>；`scan-hollow-implementations.mjs` 退出码为 0
-  - Deferred 项分类检查：<<确认无 in-scope live defect 被降级>>
+  - **每条 Phase 1 Exit Criterion**: PASS — `TeamTaskSchedulerDaemon.scanOnce()`（`TeamTaskSchedulerDaemon.java:278-366`）真实调用 `new TeamTaskTopology(tasks).getReadyTasks()`（:307-308）+ `taskStore.claimTask`（:328，CAS idempotent）+ `agentEngine.execute(request).join()`（:462-463）+ `taskStore.completeTask`（:481）/ `taskStore.abandonTask`（:503）。CAS idempotent 验证：`casIdempotentMultiScanDoesNotRedispatch` + `casClaimLossRecordedAsClaimLostNotAbandoned`。CLAIMED 安全验证：`claimedTasksFromTopologyAreSkippedNotAbandoned`（pre-claim A 由 another-member-session，断言 readyCreatedTasks=0/claimedTasks=0/abandonedTasks=0/claimedBy 不变；代码控制流 :319-321 在任何 claim/abandon 前 continue）。依赖序自动保证验证：`dependencyOrderAutoAdvancesAcrossScans`。生命周期验证：`stopCancelsPeriodicScheduleSoNewTasksNotAutoDispatched` + `startAndStopAreIdempotent` + `stopBeforeStartIsNoOp`。无静默跳过验证：`unboundMemberAbandonsClaimedTaskNoSilentSkip`（abandonedTasks=1，与 `emptyTeamIdleIsLegitimate`/`noCreatedReadyTasksIdleIsLegitimate` 区分）+ `dispatchFailureByExceptionAbandonsClaimedTask`/`dispatchFailureByNonCompletedStatusAbandonsClaimedTask`。接线验证 #23：`wiringDaemonInvokesReadyQueryClaimExecuteComplete`（engine.execute 实际调用 + store 状态实际 CREATED→CLAIMED→COMPLETED + claimedBy=DEFAULT_DAEMON_SESSION_ID）。
+  - **每条 Phase 2 Exit Criterion**: PASS — 端到端验证：`linearUnattended_dagAutoCompletesInDependencyOrder`（**无任何 TeamTaskFlowOrchestrator.execute 调用**——grep 确认仅 javadoc 引用）。Anti-Hollow 断言：`completedBeforeStart.get(b).contains(a)` 经执行序快照证明 B 派发严格晚于 A 完成（非仅最终 COMPLETED 状态）。生命周期端到端：`stopAfterStartNewTasksNotAutoDispatched_e2e`（stop 后新任务 B 保持 CREATED）。接线端到端：`wiringDaemonInvokesRealTopologyClaimEngineComplete_e2e` + `daemonWiredIntoDefaultAgentEngine`（DefaultAgentEngine setter/getter null-safe NoOp 默认）+ `noOpDaemonOnEngineByDefault_zeroRegression`。设计文档存在含 4 项裁定 + 拒绝替代方案表 + 无类签名/代码块（grep 确认 NO_CODE_BLOCKS_OR_SIGNATURES_FOUND）。roadmap §4 + vision §8.2/§10 + task-flow-integration §6 已更新（`L4-blockedBy-resolution-engine` ✅，successor 列表移除该项）。
+  - **每条 Closure Gate**: PASS — 守护进程非空壳（Anti-Hollow 上面已详证）；NoOp 默认零回归（`noOpDaemonReturnsAllZeroResult` + `noOpDaemonOnEngineByDefault_zeroRegression`）；in-scope live defect 无降级（所有 Non-Goals 显式切出为 successor）；owner docs 同步；独立 closure-audit 完成。
+  - **Anti-Hollow Check**: PASS — (a) 运行时调用链完整连通（getReadyTasks → claimTask → execute → completeTask/abandonTask 均为真实运行时调用，非仅类型存在）；(b) 端到端无人值守路径完整（start → 周期扫描 → 就绪解析 → CAS claim → 成员 agent 委派 → completeTask → 依赖完成后继自动就绪 → 全图 COMPLETED，无手动编排）；(c) 无空方法体/静默跳过/no-op 作为正常实现（dispatchClaimedTask 4 个失败分支全部 abandonClaimed + 记录；NoOp 的 start/stop 空 body 是 shipped 默认合法语义）。
+  - `./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` → BUILD SUCCESS（2506 tests，0 failures）。
+  - `./mvnw compile -pl nop-ai/nop-ai-agent -am` → BUILD SUCCESS。
+  - `node ai-dev/tools/check-doc-links.mjs --strict` → 退出码 0（39 个 BROKEN_LINK 警告全部为既有其他 plan 的预存问题，本次新增/修改文件零新增警告）。
+  - Deferred 项分类检查：PASS — 无 in-scope live defect 被降级。auto-spawn / LLM 直面工具 / 异步跨进程 / DaoTaskStateStore 持久化 / decorator / 动态改图 / task-reclaim / 超时 abandon / 并行委派 / 多租户隔离强化 均为显式 Non-Goals 独立 successor，记录于 design doc §5 + plan Non-Goals/Non-Blocking Follow-ups。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- auto-spawn 成员 agent（独立 carry-over `L4-auto-spawn-member-agent`）：本计划解除其调度前置阻塞。Classification: successor plan required。
+- LLM 直面编排工具（`team-execute-flow`）：Classification: successor plan required（依赖本计划 + auto-spawn + 调度策略裁定）。
+- 异步/长时/跨进程流编排执行 + 分布式守护协调：Classification: successor plan required。
+- 任务 RE-CLAIM / 超时自动 ABANDON（`task-reclaim` / `task-timeout-auto-abandon`）：Classification: successor plan required。
+- nop-task decorator（retry/timeout/rate-limit）接入：Classification: successor plan required。
+- 并行委派就绪任务集（CompletableFuture 并行）：Classification: successor plan required（实现细节优化）。
+
+## Follow-up handled by 237-nop-ai-agent-member-auto-spawn.md
+
+The `L4-auto-spawn-member-agent` carry-over listed above is handled by `ai-dev/plans/237-nop-ai-agent-member-auto-spawn.md`（active）。该计划在本守护进程的 dispatch 路径（`resolveBoundMember` 返回 null 时）叠加可插拔成员 spawn 扩展点，NoOp shipped 默认零回归，functional 实现基于 `TeamMemberSpec.agentModel` 自动 spawn 成员 agent 执行。
