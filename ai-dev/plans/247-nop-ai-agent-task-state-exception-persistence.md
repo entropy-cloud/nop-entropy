@@ -186,3 +186,7 @@ Follow-up:
 ## Follow-up handled by 248-nop-ai-agent-retry-sync-success-return.md
 
 plan 247 §Non-Goals line 41 / §Deferred But Adjudicated line 140-145 / §Non-Blocking Follow-ups line 156 切出的 carry-over「retry loop 同步成功路径不 return 的 quirk」由 successor plan `ai-dev/plans/248-nop-ai-agent-retry-sync-success-return.md` 接管（修复 `TaskStepHelper.retry()` 同步成功路径缺 `return result;`，独立结果面：成功路径 return vs 本计划的失败路径 exception 持久化）。本链接仅为可追溯性标注，不回写 plan 247 的历史结论。
+
+## Follow-up handled by 249-nop-ai-agent-xpl-bizfatal-wrap-preserve.md
+
+plan 247 §Follow-up line 181 / §Closure line 162 已知限制 / §Phase 2 line 102/114 实现裁定切出的 carry-over「xpl 函数调用异常包装丢失 bizFatal 标记」由 successor plan `ai-dev/plans/249-nop-ai-agent-xpl-bizfatal-wrap-preserve.md` 接管（修复 `AbstractObjFunctionExecutable.doInvoke*` 包装异常丢弃 bizFatal，使 retry 分类在 `.task.xml` E2E 路径端到端成立）。本链接仅为可追溯性标注，不回写 plan 247 的历史结论。
