@@ -195,3 +195,7 @@ Follow-up:
 - 其他 NopException 语义标记包装传播裁定（`notRollback` / `status` / `params`）: out-of-scope improvement（仅 bizFatal 被 RetryPolicy 直接消费）
 - 跨重启 exception 持久化（移除 `transient` + 异常序列化）: optimization candidate（plan 247 carry-over，in-memory retry 不依赖跨重启异常传递）
 - bizFatal 完整语义（retry/rollback 交互）的 owner-doc 文档化: out-of-scope improvement（更适合 reliability/retry 上下文，非 error-handling.md）
+
+## Follow-up Handled By
+
+- `ai-dev/plans/250-nop-ai-agent-xpl-attr-bizfatal-wrap-preserve.md` — attr 读/写包装 bizFatal 穿透（`readAttr:146` / `setAttr:163`），carry-over 本计划 §Non-Goals:42 / §Deferred:146-151 / §Closure Follow-up:194 三处一致标记的独立 successor。本计划已修复方法调用路径（doInvoke*），plan 250 修复其 sibling 属性读/写路径。
