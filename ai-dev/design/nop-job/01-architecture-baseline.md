@@ -119,6 +119,7 @@ Job Planner Scanner ------------> JobFire
 | `job_name` | 作业唯一名，在 `namespace_id + group_id` 内唯一 |
 | `schedule_status` | `DISABLED/ENABLED/PAUSED/COMPLETED/ARCHIVED` |
 | `executor_kind` | 执行器类型，V1 先支持 `BEAN` |
+| `dispatch_mode` | 派发模式快照（single/partition/broadcast/bestFit），从 schedule 快照（Plan 213） |
 | `trigger_type` | `CRON/FIXED_RATE/FIXED_DELAY/ONCE` |
 | `block_strategy` | `DISCARD/OVERLAY/PARALLEL` |
 | `timeout_seconds` | 执行超时时间 |
@@ -128,6 +129,8 @@ Job Planner Scanner ------------> JobFire
 | `next_fire_time` | 下一次触发时间（调度扫描核心索引字段） |
 | `task_cost_cpu` | 任务 CPU 开销（毫核），dispatch 时快照到 task，用于 worker 侧资源限制（Plan 212） |
 | `task_cost_memory` | 任务内存开销（MB），同上 |
+| `dispatch_mode` | 派发模式（single/partition/broadcast/bestFit），默认 single，控制 task builder 路由（Plan 213） |
+| `partition_count` | 分片数量（int，默认 1），partition 模式下决定切分 worker 数（Plan 213） |
 | `version` | 乐观锁 |
 
 索引：
@@ -189,6 +192,7 @@ Job Planner Scanner ------------> JobFire
 | `partition_index` | 分区索引 |
 | `cost_cpu` | dispatch 时从 `schedule.taskCostCpu` 快照，用于 worker 侧 reserved 资源聚合（Plan 212） |
 | `cost_memory` | dispatch 时从 `schedule.taskCostMemory` 快照，同上 |
+| `partition_range` | 分片模式下的 hash range（IntRangeBean.toString 格式），业务方解析后拼 SQL（Plan 213） |
 | `version` | 乐观锁 |
 
 索引：
