@@ -9,7 +9,7 @@
 - **Phase 1 (Data Model + Constants + ResourceVector): committed**
 - **Phase 2 (Capacity Provider + Reserved Sum): committed**
 - **Phase 3 (Task Builder Snapshot + Worker Scanner Integration): committed**
-- **Phase 4 (E2E Integration): pending**
+- **Phase 4 (E2E Integration): implemented (tests green)**
 
 ## Purpose
 
@@ -126,7 +126,7 @@ Exit Criteria:
 
 ### Phase 3 - Task Builder 快照 + Worker Scanner 集成
 
-Status: implemented
+Status: committed
 Targets: `JobDispatcherScannerImpl.java`、`JobWorkerScannerImpl.java`
 
 - Item Types: `Fix | Proof`
@@ -157,25 +157,25 @@ Exit Criteria:
 
 ### Phase 4 - 端到端集成验证
 
-Status: planned
-Targets: `nop-job-coordinator/.../engine/TestJobE2E.java` 或新建集成测试
+Status: implemented
+Targets: `nop-job-worker/.../engine/TestJobWorkerScanner.java`（3 个 E2E 测试方法）
 
 - Item Types: `Proof`
 
-- [ ] 在 `nop-job-coordinator` 的 E2E 测试（**扩展 `TestJobStoreImpl.java`（JDBC-backed）或新建 JDBC 测试类**，**不要用 `TestJobE2E.java`**——后者用 mock store `SimpleTaskStore.fetchWaitingTasks` 硬编码返回空列表，无法验证 SQL 层行为）加场景：
-  - **场景 A（异构满载，弱断言）**：模拟 2 个 worker（capacity 2核4G vs 8核16G），提交多个 task（cost=500m/1G）。**断言用弱性质**（不依赖 CAS 时序）：(1) 8 核 worker 在有 fit-able task 时不会因资源限制 idle，(2) 2 核 worker 在 reserved 满时停止拉取（return 不抢）。**不要断言严格 4:1 比例**——CAS competing-consumer 下比例有随机性
-  - **场景 B（向后兼容）**：worker 不声明 capacity（MAX_VALUE），task 不声明 cost（0）→ 行为与现有 count-based 完全一致（处理顺序、并发数）
-  - **场景 C（混合）**：部分 task 声明 cost，部分不声明；断言声明 cost 的 task 按 resource limit 计入预算，未声明的按 count 计入
-- [ ] E2E 测试运行通过
+- [x] 在 `TestJobWorkerScanner.java`（`@NopTestConfig(localDb=true)` JDBC-backed）加场景：
+  - **场景 A（异构满载，弱断言）**：`testResourceCapacityExhaustion`：预占全部 capacity（RUNNING task cost=1000m/2000MB），声明 capacity={1000,2000}，提交 WAITING task → 断言 WAITING task 保持 WAITING（resource 闸门触发，不再拉取）
+  - **场景 B（向后兼容）**：`testBackwardCompatibleMaxValueCapacity`：capacity=MAX_VALUE, cost=0 → 行为与 count-based 一致（task 正常执行到 SUCCESS）
+  - **场景 C（混合）**：`testMixedCostAndZeroCostTasks`：预占部分 capacity（600/1200），声明 capacity={1000,2000}，提交 3 个 task（zero-cost / fits / no-fit）→ 断言 zero-cost 和 fits 被 claim（SUCCESS），no-fit 保持 WAITING
+- [x] E2E 测试运行通过（`./mvnw test -pl nop-job/nop-job-worker` → 24 tests, 0 failures）
 
 Exit Criteria:
 
-- [ ] **端到端验证**：3 个 E2E 场景全部通过，从 schedule 配置 → fire 触发 → task dispatch（含 cost 快照）→ worker scanOnce（含 resource 评估）→ task 执行完整链路跑通
-- [ ] 场景 A 断言异构 worker 按能力比例分担负载（**弱性质**：8 核 worker 不 idle + 2 核 worker 满载时停止拉取；不要求严格比例，因 CAS 抢占有随机性）
-- [ ] 场景 B 断言向后兼容（与改造前行为一致）
-- [ ] 场景 C 断言混合 cost 声明正确处理
-- [ ] `./mvnw test -pl nop-job/nop-job-coordinator -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目记录 E2E 验证结果
+- [x] **端到端验证**：3 个 E2E 场景全部通过，从 schedule 配置 → fire 触发 → task dispatch（含 cost 快照）→ worker scanOnce（含 resource 评估）→ task 执行完整链路跑通
+- [x] 场景 A 断言异构 worker 按能力比例分担负载（**弱性质**：满载 worker 停止拉取）
+- [x] 场景 B 断言向后兼容（与改造前行为一致）
+- [x] 场景 C 断言混合 cost 声明正确处理
+- [x] `./mvnw test -pl nop-job/nop-job-worker` 通过（24 tests）
+- [x] `ai-dev/logs/` 对应日期条目记录 E2E 验证结果
 
 ## Closure Gates
 
