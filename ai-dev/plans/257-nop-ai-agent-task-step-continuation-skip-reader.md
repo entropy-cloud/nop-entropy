@@ -212,3 +212,7 @@ Follow-up:
 - 完整 task-level resume 编排（successor plan required，task 级 mainStep 状态语义 / 跨 step flow 位置恢复）。
 - step-state 全量字段持久化 / 完整历史 entity 模型（optimization candidate，本计划仅持久化 reader 依赖字段）。
 - DaoTaskStateStore 生产路径终态持久化（execution-flow saveStepState 在 ACTIVE 时调用，终态 driver 后需额外 save 才能持久化终态 snapshot 到 DB——当前 in-memory reference 语义已足够 reader E2E；DB snapshot 终态持久化为 production deployment follow-up）。
+
+## Follow-up handled by 258-nop-ai-agent-terminal-state-db-persist.md
+
+The above carry-over（DaoTaskStateStore 生产路径终态持久化）is now handled by successor plan `ai-dev/plans/258-nop-ai-agent-terminal-state-db-persist.md`。此段仅为 traceability link（carry-over workflow），不回写 plan 257 历史正文（Minimum Rules #20）。
