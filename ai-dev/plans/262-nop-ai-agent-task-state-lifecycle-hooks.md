@@ -143,6 +143,10 @@ Exit Criteria:
 - `loadMainStepState` mainStep envelope intermediate-state restore（successor plan candidate，plan 261 carry-over）。
 - step-state 全量字段持久化 / 完整历史 entity 模型（optimization candidate，5× carry-over）。
 
+## Follow-up handled by 263-nop-ai-agent-main-step-envelope-resume.md
+
+`ai-dev/plans/263-nop-ai-agent-main-step-envelope-resume.md` 接续本计划 Non-Goals:39 + Non-Blocking Follow-ups:143 记录为 `successor plan candidate` 的「`loadMainStepState` mainStep envelope intermediate-state restore」（3× carry-over 自 plans 258/259/261，本计划再次登记）。traceability 经本节（old → new）与 plan 263 `Source` 字段（new → old）双向链接建立。依 Minimum Rules #20，本历史 `completed` plan 仅追加此 traceability 链接，不回写正文。
+
 ## Closure
 
 Status Note: 闭合 nop-task 持久化生命周期不对称缺口——task 级 `ITaskState` 新增 `afterLoad(ITaskRuntime)`/`beforeSave(ITaskRuntime)`（`default` no-op，对称 step 级 `ITaskStepState:82,84`，向后兼容）+ `TaskStateBean` 显式实现（对称 `TaskStepStateBean:31-38` 扩展点基类）+ `DaoTaskStateStore.loadTaskState`/`saveTaskState` 接线（对称 step 级 `:188`/`:202`，新增 `protected newTaskStateBean()` 工厂使 load 路径 hook 调用可观测）。经真实 `DaoTaskStateStore` localDb DB round-trip（实体↔DB 列 JSON 序列化，非 in-memory 引用）证明 wiring 在 runtime 真实调用 hook（save 路径 custom 子类 + load 路径 spy 工厂 + cross-restart fresh store），各终态（ACTIVE/COMPLETED/FAILED/KILLED/TIMEOUT）save→load round-trip 后 `beforeSave`/`afterLoad` 各精确调用一次。所有 Non-Goals（step 级 no-op 改造 / 既有 reconstruction 迁入 hook / loadMainStepState / 全量字段持久化 / stacktrace / task EXPIRED 生成文件 / 独立 watchdog / 异常子类恢复 / fail() 变更）均为显式 rejected/out-of-scope/successor/optimization，无 in-scope live defect 被降级。
