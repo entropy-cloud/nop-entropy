@@ -228,3 +228,7 @@ Follow-up:
 - decorator 在 nop-ai-agent team-task DAG 实战接线（successor plan required，依赖 team-task 配置面 successor）
 - nop-task-core 内部修正（in-memory state exception 保存 / retry loop 同步返回路径）（successor plan required，Protected Area）
 - 已诚实记录：不可重试异常分类在 in-memory state 模式下不生效（依赖 state 保存 exception）；retry 同步成功路径不主动 return（loop 继续至 retryCount 耗尽）；两者均为 nop-task-core 既有 quirk，本计划 Non-Goal 不修正
+
+## Follow-up handled by 247-nop-ai-agent-task-state-exception-persistence.md
+
+plan 246 §Closure 已知限制「in-memory state 不保存 exception → 不可重试分类不生效」由 successor plan 247 处理：修复 `TaskStepStateBean.fail()` / `exception(Throwable)` 空方法体，使 retry 异常分类在 in-memory state 模式下生效。（retry loop 同步成功路径 return 的 quirk 仍为独立 successor，不在 plan 247 scope 内。）
