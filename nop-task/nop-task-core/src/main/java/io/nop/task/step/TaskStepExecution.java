@@ -272,6 +272,9 @@ public class TaskStepExecution implements ITaskStepExecution {
                     // retry-wrapped step 已在 TaskStepHelper.retry:178 由 fail() 保存 exception，harmless re-save。
                     stepRt.getState().fail(err, taskRt);
                     stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
+                    // plan 258: 终态 saveStepState wiring —— FAILED-driver 设置 FAILED 终态后追加 save，
+                    // 使 DB snapshot 反映终态 + exception（非停留在 ACTIVE-time save 的 ACTIVE 行）。
+                    saveTerminalStateIfDone(stepRt);
 
                     if (nextStepNameOnError != null)
                         return buildErrorResult(stepRt, parentScope, err);
@@ -301,6 +304,9 @@ public class TaskStepExecution implements ITaskStepExecution {
                             stepRt.getStepPath(), stepRt.getRunId(), ret.getNextStepName(), ret.getOutputs(),
                             step.getLocation());
                     stepRt.getState().succeed(ret.getResult(), ret.getNextStepName(), taskRt);
+                    // plan 258: 终态 saveStepState wiring —— succeed-driver 设置 COMPLETED 终态后追加 save，
+                    // 使 DB snapshot 反映终态（非停留在 ACTIVE-time save 的 ACTIVE 行）。
+                    saveTerminalStateIfDone(stepRt);
                     return ret;
                 }
             });
@@ -325,6 +331,9 @@ public class TaskStepExecution implements ITaskStepExecution {
             // retry-wrapped step 已在 TaskStepHelper.retry:178 由 fail() 保存 exception，harmless re-save。
             stepRt.getState().fail(e, taskRt);
             stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
+            // plan 258: 终态 saveStepState wiring —— FAILED-driver 设置 FAILED 终态后追加 save，
+            // 使 DB snapshot 反映终态 + exception（非停留在 ACTIVE-time save 的 ACTIVE 行）。
+            saveTerminalStateIfDone(stepRt);
 
             if (nextStepNameOnError != null) {
                 return buildErrorResult(stepRt, parentScope, e);
@@ -340,6 +349,21 @@ public class TaskStepExecution implements ITaskStepExecution {
         if (when != null && !when.passConditions(parentRt))
             return false;
         return true;
+    }
+
+    /**
+     * plan 258: succeed/FAILED 终态 driver 设置终态 stepStatus（COMPLETED/FAILED）后，追加 saveStepState
+     * 使 DB snapshot 反映终态，而非停留在 ACTIVE-time save（{@code stepRt.saveState()} at ACTIVE 创建时）的 ACTIVE 行。
+     * 条件于 {@code isDone()==true}（设计裁定 3，仅持久化终态，不持久化 ACTIVE/SUSPENDED 中间态）。
+     * 幂等 upsert 同一行（设计裁定 2，{@link io.nop.task.dao.store.DaoTaskStateStore#saveStepState} 按
+     * taskInstanceId + stepPath upsert）。使 DB-backed resume（cross-process / crash-restart）经 loadStepState
+     * 取回终态 snapshot → reader 命中 isDone → 跳过 step body / 重抛 exception。
+     */
+    void saveTerminalStateIfDone(ITaskStepRuntime stepRt) {
+        ITaskStepState state = stepRt.getState();
+        if (state != null && state.isDone()) {
+            stepRt.saveState();
+        }
     }
 
     TaskStepReturn buildErrorResult(ITaskStepRuntime stepRt, IEvalScope parentScope, Throwable e) {
