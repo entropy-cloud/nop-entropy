@@ -1,0 +1,34 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="s1">
+            <source><![CDATA[
+                const counter = inject("testExecutionCounter");
+                counter.incrementAndGet();
+                return "step1";
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+        <xpl name="s2">
+            <source><![CDATA[
+                const counter = inject("testExecutionCounter");
+                counter.incrementAndGet();
+                return "step2";
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+        <xpl name="s3">
+            <source><![CDATA[
+                const counter = inject("testExecutionCounter");
+                counter.incrementAndGet();
+                return "OK";
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

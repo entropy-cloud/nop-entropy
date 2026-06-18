@@ -165,6 +165,28 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         return state;
     }
 
+    /**
+     * plan 263: 按 path {@code @main} 加载持久化的 mainStep envelope 状态。
+     *
+     * <p>resume 路径（recoverMode=true）下经 {@code TaskRuntimeImpl.newMainStepRuntime} 调用，使 composite mainStep
+     * （Sequential/Selector/Loop/LoopN/Graph，经 {@code TaskStepBuilder.buildMainStep} 构造）从其执行中经
+     * {@code stepRt.saveState()} 持久化的 {@code bodyStepIndex}（flow 位置）续跑。复用 {@link #toStepStateBean}
+     * （已 round-trip {@code bodyStepIndex}/{@code stepStatus}/result/{@code errorBeanData}）+ step 级
+     * {@code afterLoad(taskRt)} hook（对称 {@link #loadStepState} 的 afterLoad 调用，plan 262 扩展点）。
+     *
+     * <p>无持久化行（fresh execute 时 {@code newTaskState} 只写 task instance 行不写 mainStep 行）返回 null，
+     * 使调用方回退 {@link #newMainStepState}（零回归）。
+     */
+    @Override
+    public ITaskStepState loadMainStepState(ITaskState taskState, ITaskRuntime taskRt) {
+        NopTaskStepInstance entity = findStepEntity(taskState.getTaskInstanceId(), TaskConstants.MAIN_STEP_NAME);
+        if (entity == null)
+            return null;
+        TaskStepStateBean state = toStepStateBean(entity);
+        state.afterLoad(taskRt);
+        return state;
+    }
+
     @Override
     public ITaskStepState newStepState(ITaskStepState parentState, String stepName, String stepType, ITaskRuntime taskRt) {
         TaskStepStateBean state = new TaskStepStateBean();

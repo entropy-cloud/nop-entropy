@@ -196,7 +196,19 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
 
     @Override
     public ITaskStepRuntime newMainStepRuntime() {
-        ITaskStepState state = stateStore.newMainStepState(this.getTaskState());
+        // plan 263: resume 路径（recoverMode=true）优先加载持久化 mainStep 状态（stepPath=`@main`）。
+        // composite mainStep（Sequential/Selector/Loop/LoopN/Graph）执行中经 stepRt.saveState() 把自身 bodyStepIndex
+        // （flow 位置）持久化到 DB；命中则用之使 mainStep 从已持久化的中间位置续跑（前置已完成子步骤不被重复执行）。
+        // 未命中（fresh execute / in-memory store / 无持久化行 / 终态 task 已被 TaskImpl.execute:98 短路）回退
+        // newMainStepState（fresh ACTIVE，零回归）。fresh execute（recoverMode=false）恒走 newMainStepState（门控与
+        // TaskImpl.execute:98 终态短路条件 isRecoverMode() 对称）。
+        ITaskStepState state = null;
+        if (recoverMode) {
+            state = stateStore.loadMainStepState(this.getTaskState(), this);
+        }
+        if (state == null) {
+            state = stateStore.newMainStepState(this.getTaskState());
+        }
         // 使用taskRt的scope
         TaskStepRuntimeImpl stepRt = new TaskStepRuntimeImpl(this, stateStore, getEvalScope());
         stepRt.setCancelToken(getSvcCtx());
