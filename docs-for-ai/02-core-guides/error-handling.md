@@ -13,6 +13,44 @@
 
 ---
 
+## 异常传播与捕获边界（强制约束）
+
+异常处理遵循 **fail-fast / let-it-crash**：内部函数让异常自然传播，由系统边界统一捕获。**禁止把异常转成返回值**（`return null` / `return Optional.empty()` / `return failureResult(...)` / boolean 状态码）来伪装异常已处理。
+
+### catch 仅允许出现在三类位置
+
+| 场景 | 形式 | 必备条件 |
+|------|------|---------|
+| **外部系统边界** | HTTP handler / GraphQL resolver / `IToolExecutor` / `IAgentEngine` 入口 | 可 catch，转换为该边界的标准错误响应 |
+| **资源关闭** | `try { x.close() } catch` | **禁止手写**，必须用 `IoHelper.safeClose*` |
+| **per-element 故障隔离** | 批处理循环 / scan 周期 / DAG 节点 | 必须 `LOG.warn` 及以上 **且 throwable 作为 logger 末参数**；单元素失败不得中断整批 |
+
+其它位置一律 throw。
+
+### 丢弃异常前必须留证
+
+即便在允许 catch 的位置，丢弃 throwable 前必须满足下列任一：
+
+1. **rethrow with cause** — `throw new NopXxxException("...", e)`，保留原始异常链
+2. **LOG.info 及以上** — `LOG.warn("...", e)`，throwable 作为 logger 末参数（不能只传 `e.getMessage()`）
+
+**禁止**：catch + 用返回值表达失败，且既不 rethrow 也没 LOG.info 以上。
+
+### 边界判断速查
+
+| 代码位置 | 是否可 catch | 说明 |
+|----------|------------|------|
+| HTTP / GraphQL / tool / engine 入口 | ✅ 可 | 系统边界，转标准错误响应 |
+| BizModel / Service 公开方法 | ✅ 可 | 框架会转 ApiResponse |
+| 内部组件（spawner / store / handler / daemon dispatch / step） | ❌ 否 | 必须 throw |
+| 批处理 scanOnce / DAG 节点执行 | 🟡 per-element | LOG.warn(e) + 继续下个元素 |
+
+### Actor 系统的特殊性
+
+nop-ai-agent 是 actor runtime。Actor 内部故障应让 actor 失败，由 supervisor 决定重启/恢复/传播。**Actor 内部不 catch + 不恢复**——这是 supervisor 模式的核心契约，违反它会让 supervisor 决策失据。
+
+---
+
 ## 模式一：ErrorCode（框架/公共 API）
 
 ### 默认规则
@@ -159,6 +197,9 @@ throw new NopAiException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
 | 反模式 | 问题 |
 |--------|------|
 | `throw new RuntimeException("some message")` | 绕过框架异常体系，上层无法统一处理 |
+| 内部函数 catch 异常转返回值（`return null` / `return Optional.empty()` / `return failureResult(...)`） | 把系统故障伪装成业务结果，丢失传播链，违反 fail-fast；详见上方「异常传播与捕获边界」 |
+| catch 后丢弃异常，既不 rethrow with cause 也没 `LOG.info` 以上 | 静默吞异常，运维不可见、排查无凭据；丢弃前必须满足二者之一 |
+| `LOG.warn("...: {}", e.getMessage())` 不传 throwable | 丢失 stack trace；正确写法 `LOG.warn("...", e)`（throwable 作为末参数） |
 | 手写 `try { x.close() } catch` 关闭资源 | 应使用 `IoHelper.safeClose`，见上方说明 |
 | 自定义异常类不继承 `NopException`（如 `extends RuntimeException`） | 绕过框架异常体系，丢失 ErrorCode、i18n、结构化错误响应等能力。所有业务异常必须直接或间接继承 `NopException` |
 | 错误消息使用中文或非英文 | AI 读取英文消息更准确，避免编码问题；非 ErrorCode 路径的消息可能被 AI 直接阅读，必须使用英文 |
