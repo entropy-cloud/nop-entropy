@@ -12,6 +12,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.execution.JobFireResult;
+import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -24,7 +25,9 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -94,6 +97,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         worker.setBatchSize(10);
         worker.setAssignedPartitions("1");
         worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
         worker.scanOnce();
 
         NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
@@ -140,6 +144,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         worker.setBatchSize(10);
         worker.setAssignedPartitions("1");
         worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
         worker.scanOnce();
 
         NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
@@ -178,6 +183,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         worker.setAssignedPartitions("1");
         worker.setLockTimeoutMs(1000);
         worker.setMaxConcurrency(1);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
         worker.scanOnce();
 
         NopJobTask task2 = taskStore.loadTask(prepared2.task.getJobTaskId());
@@ -213,10 +219,156 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         worker.setAssignedPartitions("1");
         worker.setLockTimeoutMs(1000);
         worker.setMaxConcurrency(5);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
         worker.scanOnce();
 
         NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
         assertEquals(TASK_STATUS_SUCCESS, savedTask.getTaskStatus());
+    }
+
+    // ========== Plan 212 Phase 4 E2E 验证 ==========
+
+    /**
+     * 场景 A（异构满载，弱断言）：capacity 完全耗尽 → isZeroOrNegative 闸门触发，不再拉取新 task。
+     * 用 RUNNING task 预占全部 capacity。
+     */
+    @Test
+    public void testResourceCapacityExhaustion() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        // 预占全部 capacity（RUNNING task，cost=1000m cpu, 2000MB mem）
+        saveRunningTaskWithCost("occ-schedule", "occ-job", AppConfig.hostId(), 1000, 2000);
+
+        ResourceVector reserved = taskStore.sumReservedCost(AppConfig.hostId());
+        assertEquals(1000, reserved.getCpu());
+        assertEquals(2000, reserved.getMemory());
+
+        PreparedTask pt = prepareWaitingTask("exhaust-schedule", "exhaust-job");
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> new ResourceVector(1000, 2000));
+        worker.scanOnce();
+
+        NopJobTask saved = taskStore.loadTask(pt.task.getJobTaskId());
+        assertEquals(TASK_STATUS_WAITING, saved.getTaskStatus(),
+                "Running task fully occupies capacity -> waiting task should remain WAITING");
+    }
+
+    /**
+     * 场景 B（向后兼容）：capacity=MAX_VALUE, cost=0 → 行为与 count-based 一致。
+     * 语义契约验证：与 testWorkerExecutesTaskSuccess 等价，但显式声明向后兼容。
+     */
+    @Test
+    public void testBackwardCompatibleMaxValueCapacity() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask pt = prepareWaitingTask("compat-schedule", "compat-job");
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
+        worker.scanOnce();
+
+        NopJobTask saved = taskStore.loadTask(pt.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, saved.getTaskStatus(),
+                "MAX_VALUE capacity + cost=0 must behave identically to count-based mode");
+    }
+
+    /**
+     * 场景 C（混合）：部分 task 有 cost，部分无 cost（cost=0）。
+     * 无 cost task 始终通过 fits 过滤，有 cost task 仅在容量内通过。
+     */
+    @Test
+    public void testMixedCostAndZeroCostTasks() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        // 预占部分 capacity（600 cpu, 1200 MB）→ remaining = {400, 800} 在 capacity={1000,2000} 下
+        saveRunningTaskWithCost("occ-mix-schedule", "occ-mix-job", AppConfig.hostId(), 600, 1200);
+
+        // task 0 cost: cost=0,0 → ZERO 永远 fits
+        PreparedTask taskZero = prepareWaitingTask("mix-zero-schedule", "mix-zero-job");
+        // task fits: cost=300,500 → 400>=300 && 800>=500 → fits
+        PreparedTask taskFits = prepareWaitingTaskWithCost("mix-fits-schedule", "mix-fits-job", 300, 500);
+        // task no fit: cost=500,900 → 400>=500? no → does NOT fit
+        PreparedTask taskNoFit = prepareWaitingTaskWithCost("mix-nofit-schedule", "mix-nofit-job", 500, 900);
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> new ResourceVector(1000, 2000));
+        worker.scanOnce();
+
+        NopJobTask savedZero = taskStore.loadTask(taskZero.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, savedZero.getTaskStatus(),
+                "Zero-cost task must always be claimed (ZERO fits any remaining)");
+
+        NopJobTask savedFits = taskStore.loadTask(taskFits.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, savedFits.getTaskStatus(),
+                "Task with cost <= remaining must be claimed");
+
+        NopJobTask savedNoFit = taskStore.loadTask(taskNoFit.task.getJobTaskId());
+        assertEquals(TASK_STATUS_WAITING, savedNoFit.getTaskStatus(),
+                "Task with cost > remaining must NOT be claimed");
     }
 
     private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {
@@ -277,6 +429,86 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
         daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task);
 
         return new PreparedTask(schedule, fire, task);
+    }
+
+    // ========== Plan 212 Phase 4 helpers ==========
+
+    private void saveRunningTaskWithCost(String scheduleId, String jobName,
+                                          String workerInstanceId,
+                                          int costCpu, int costMemory) {
+        long now = System.currentTimeMillis();
+        String sid = scheduleId + "-" + UUID.randomUUID();
+        String fid = "fire-" + sid;
+        String tid = "task-" + sid;
+
+        NopJobSchedule s = new NopJobSchedule();
+        s.setJobScheduleId(sid);
+        s.setNamespaceId("default");
+        s.setGroupId("default");
+        s.setJobName(jobName);
+        s.setDisplayName(jobName);
+        s.setScheduleStatus(SCHEDULE_STATUS_ENABLED);
+        s.setExecutorKind("test");
+        s.getJobParamsComponent().set_jsonValue(Map.of("k", "v"));
+        s.setTriggerType(TRIGGER_TYPE_FIXED_RATE);
+        s.setRepeatIntervalMs(1000L);
+        s.setPartitionIndex((short) 1);
+        s.setFireCount(1L);
+        s.setActiveFireCount(1);
+        s.setLastFireTime(new Timestamp(now - 1000));
+        s.setVersion(0L);
+        s.setCreatedBy("test");
+        s.setCreateTime(new Timestamp(now));
+        s.setUpdatedBy("test");
+        s.setUpdateTime(new Timestamp(now));
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(s);
+
+        NopJobFire f = new NopJobFire();
+        f.setJobFireId(fid);
+        f.setJobScheduleId(sid);
+        f.setNamespaceId("default");
+        f.setGroupId("default");
+        f.setJobName(jobName);
+        f.setTriggerSource(TRIGGER_SOURCE_SCHEDULE);
+        f.setScheduledFireTime(new Timestamp(now - 1000));
+        f.setFireStatus(FIRE_STATUS_RUNNING);
+        f.getJobParamsSnapshotComponent().set_jsonValue(Map.of("k", "v"));
+        f.setExecutorKind("test");
+        f.setPartitionIndex((short) 1);
+        f.setVersion(0L);
+        f.setCreatedBy("test");
+        f.setCreateTime(new Timestamp(now));
+        f.setUpdatedBy("test");
+        f.setUpdateTime(new Timestamp(now));
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(f);
+
+        NopJobTask t = new NopJobTask();
+        t.setJobTaskId(tid);
+        t.setJobFireId(fid);
+        t.setTaskNo(1);
+        t.setTaskStatus(TASK_STATUS_RUNNING);
+        t.setWorkerInstanceId(workerInstanceId);
+        t.setStartTime(new Timestamp(now));
+        t.setCostCpu(costCpu);
+        t.setCostMemory(costMemory);
+        t.getTaskPayloadComponent().set_jsonValue(Map.of("jobFireId", fid));
+        t.setPartitionIndex((short) 1);
+        t.setVersion(0L);
+        t.setCreatedBy("test");
+        t.setCreateTime(new Timestamp(now));
+        t.setUpdatedBy("test");
+        t.setUpdateTime(new Timestamp(now));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(t);
+    }
+
+    private PreparedTask prepareWaitingTaskWithCost(String scheduleId, String jobName,
+                                                     int costCpu, int costMemory) {
+        PreparedTask pt = prepareWaitingTask(scheduleId, jobName);
+        NopJobTask task = taskStore.loadTask(pt.task.getJobTaskId());
+        task.setCostCpu(costCpu);
+        task.setCostMemory(costMemory);
+        daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(task);
+        return new PreparedTask(pt.schedule, pt.fire, task);
     }
 
     private static final int FIRE_STATUS_CANCELED = 60;

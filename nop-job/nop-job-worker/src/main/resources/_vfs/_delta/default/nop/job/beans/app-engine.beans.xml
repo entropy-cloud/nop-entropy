@@ -16,4 +16,7 @@
 
     <bean id="io.nop.job.worker.engine.JobWorker"
           class="io.nop.job.worker.engine.JobWorker"/>
+
+    <bean id="io.nop.job.worker.capacity.IWorkerCapacityProvider"
+          class="io.nop.job.worker.capacity.MetadataWorkerCapacityProvider"/>
 </beans>

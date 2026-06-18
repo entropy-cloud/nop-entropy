@@ -10,12 +10,14 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
+import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.job.worker.capacity.IWorkerCapacityProvider;
 import io.nop.job.worker.metrics.EmptyJobWorkerMetrics;
 import io.nop.job.worker.metrics.IJobWorkerMetrics;
 import jakarta.inject.Inject;
@@ -23,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +36,14 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVOKER_RETURNED_NULL;
 
 public class JobWorkerScannerImpl implements IJobWorkerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobWorkerScannerImpl.class);
+    static final int OVERFETCH_FACTOR = 3;
 
     private IJobTaskStore taskStore;
     private IJobFireStore fireStore;
     private IJobScheduleStore scheduleStore;
     private IJobInvokerResolver invokerResolver;
     private IJobExecutionContextBuilder executionContextBuilder;
+    private IWorkerCapacityProvider capacityProvider;
     private IJobWorkerMetrics workerMetrics = new EmptyJobWorkerMetrics();
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
@@ -75,6 +80,11 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
 
     public void setWorkerMetrics(IJobWorkerMetrics workerMetrics) {
         this.workerMetrics = workerMetrics;
+    }
+
+    @Inject
+    public void setCapacityProvider(IWorkerCapacityProvider capacityProvider) {
+        this.capacityProvider = capacityProvider;
     }
 
     @InjectValue("@cfg:nop.job.worker.scan-interval-ms|5000")
@@ -147,6 +157,7 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         try {
             int effectiveBatchSize = batchSize;
 
+            // 1. Count-based ceiling (backward-compatible hard cap)
             if (maxConcurrency > 0) {
                 long runningCount = taskStore.countInFlightTasks(AppConfig.hostId());
                 int remaining = maxConcurrency - (int) runningCount;
@@ -157,11 +168,38 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                 effectiveBatchSize = Math.min(batchSize, remaining);
             }
 
-            List<NopJobTask> tasks = taskStore.fetchWaitingTasks(effectiveBatchSize, assignedPartitions);
+            // 2. Resource-based check
+            ResourceVector myCapacity = capacityProvider.getMyCapacity();
+            ResourceVector myReserved = taskStore.sumReservedCost(AppConfig.hostId());
+            ResourceVector myRemaining = myCapacity.subtract(myReserved);
+            if (myRemaining.isZeroOrNegative()) {
+                LOG.warn("nop.job.worker.resource-exhausted:cpu={},mem={}",
+                        myRemaining.getCpu(), myRemaining.getMemory());
+                workerMetrics.onRejected(0);
+                return;
+            }
+
+            // 3. Overfetch candidates, client-side fit filter
+            int overfetchBatchSize = effectiveBatchSize * OVERFETCH_FACTOR;
+            List<NopJobTask> candidates = taskStore.fetchWaitingTasks(overfetchBatchSize, assignedPartitions);
+            if (candidates.isEmpty()) {
+                return;
+            }
+
+            List<NopJobTask> tasks = new ArrayList<>();
+            for (NopJobTask task : candidates) {
+                if (tasks.size() >= effectiveBatchSize)
+                    break;
+                if (myRemaining.fits(new ResourceVector(task.getCostCpu(), task.getCostMemory()))) {
+                    tasks.add(task);
+                }
+            }
+
             if (tasks.isEmpty()) {
                 return;
             }
 
+            // 4. CAS grab (unchanged)
             List<NopJobTask> lockedTasks = taskStore.tryLockTasksForExecute(tasks, AppConfig.hostId(), lockTimeoutMs);
             if (!lockedTasks.isEmpty()) {
                 workerMetrics.onTasksClaimed(lockedTasks.size());
