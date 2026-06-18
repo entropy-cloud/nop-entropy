@@ -65,7 +65,7 @@
 -- == 常用属性速查(sql/eql 共享, 来自 SqlItemModel) ==
 -- @name            SQL 片段名称
 -- @sqlMethod       执行方法: findAll/findFirst/findPage/exists/execute
--- @rowType         返回行包装类(按字段别名映射)
+-- @rowType         返回行包装类(按字段别名映射)——优先使用，避免返回 Map
 -- @colNameCamelCase sql 时是否下划线转驼峰(默认 false)
 -- @querySpace      查询空间(对应数据库)
 -- @cacheName+@cacheKeyExpr  结果缓存
@@ -75,8 +75,20 @@
 -- @ormEntityRefreshBehavior 实体刷新策略
 -- @fields          列类型声明(stdSqlType 控制 DataSet 读取方法)
 -- @batchLoadSelection 查询后自动批量加载关联属性
--- @buildRowMapper  自定义行映射
--- @buildResult     行结果后处理
+-- @buildRowMapper  自定义行映射(xpl-fn:(sqlItemModel)=>any)
+-- @buildResult     行结果后处理(xpl-fn:(row,sqlItemModel)=>any)
+--
+-- == rowType：用 DTO 封装结果，不要返回 Map ==
+-- SmartRowMapper 按 select 别名 → setter 映射，目标类需有默认构造器和 setter。
+--   <eql name="sumCost" rowType="demo.dao.mapper.CostSummary">
+--     <source>select sum(o.costCpu) as cpu, sum(o.costMemory) as memory from ...</source>
+--   </eql>
+-- Mapper 方法签名: CostSummary sumCost(...)
+-- 目标类: public class CostSummary { int cpu; int memory; // getter/setter }
+-- 如果目标类是不可变值类型（无默认构造器），用 buildResult 在 XML 内转换：
+--   <eql name="sumCost" buildResult="${io.nop.app.api.resource.ResourceVector.of(row.cpu, row.memory)}">
+--     <source>...</source>
+--   </eql>
 <?xml version="1.0" encoding="UTF-8"?>
 <sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <sqls>
@@ -106,6 +118,17 @@
 </sql-lib>
 
 -- ====== Mapper 接口 ======
+-- 
+-- == 如何创建 Mapper：在 ORM 实体上加 tagSet="mapper" ==
+-- 不要手写 Mapper 接口和 bean 注册。在 model/*.orm.xml 的实体上加 tagSet="mapper"：
+--   <entity name="..." tableName="..." tagSet="mapper" ...>
+-- 然后运行 mvn install，codegen 自动生成：
+--   1. {ShortName}Mapper.java 空接口（retention，不覆盖已有）
+--   2. {ShortName}.sql-lib.xml 空骨架（retention，不覆盖已有）
+--   3. _dao.beans.xml 中的 SqlLibProxyFactoryBean 注册（每次 codegen 重新生成）
+-- 开发者在生成的 Mapper.java 和 sql-lib.xml 上添加方法和查询即可。
+-- 详见 orm-model-design.md "Sql-Lib Mapper 自动生成"。
+--
 package demo.dao.mapper;
 
 import demo.dao.entity.Product;
