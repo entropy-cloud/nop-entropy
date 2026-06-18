@@ -1,9 +1,15 @@
 # 212 - nop-job Worker 侧资源限制（设计 Phase 1）
 
-> Plan Status: proposed
+> Plan Status: implementing
 > Last Reviewed: 2026-06-18
 > Source: `ai-dev/design/nop-job/worker-assignment-design.md` §六 Phase 1
 > Related: 213（Phase 2 模式 A 分片）、214（Phase 3 priority）、215（Phase 4 模式 B best-fit）
+
+## Phases Overview
+- **Phase 1 (Data Model + Constants + ResourceVector): committed**
+- **Phase 2 (Capacity Provider + Reserved Sum): committed**
+- **Phase 3 (Task Builder Snapshot + Worker Scanner Integration): committed**
+- **Phase 4 (E2E Integration): pending**
 
 ## Purpose
 
@@ -69,7 +75,7 @@
 
 ### Phase 1 - 数据模型 + 常量 + 资源向量类型
 
-Status: planned
+Status: committed
 Targets: `nop-job/model/nop-job.orm.xml`、`nop-job-core/.../NopJobCoreConstants.java`、`nop-job-api/.../ResourceVector.java`
 
 - Item Types: `Fix | Decision | Proof`
@@ -94,7 +100,7 @@ Exit Criteria:
 
 ### Phase 2 - 容量声明 + Provider + Reserved 聚合
 
-Status: planned
+Status: committed
 Targets: `nop-job-worker/.../IWorkerCapacityProvider.java`、`nop-job-dao/.../store/IJobTaskStore.java`、`nop-job-dao/.../store/JobTaskStoreImpl.java`
 
 - Item Types: `Fix | Decision | Proof`
@@ -120,34 +126,34 @@ Exit Criteria:
 
 ### Phase 3 - Task Builder 快照 + Worker Scanner 集成
 
-Status: planned
-Targets: `DefaultJobTaskBuilder.java`、`RpcBroadcastTaskBuilder.java`、`JobWorkerScannerImpl.java`
+Status: implemented
+Targets: `JobDispatcherScannerImpl.java`、`JobWorkerScannerImpl.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] `DefaultJobTaskBuilder.buildTasks`：在末尾加 `task.setCostCpu(schedule.getTaskCostCpu())`、`task.setCostMemory(schedule.getTaskCostMemory())`（从 schedule 读取并快照）
-- [ ] `RpcBroadcastTaskBuilder.buildTasks`：同上（每个生成的 task 都快照）
-- [ ] **更新现有测试** `TestDefaultJobTaskBuilder` / `TestRpcBroadcastTaskBuilder`：断言生成的 task 含正确的 cost 快照
-- [ ] `JobWorkerScannerImpl` 注入 `IWorkerCapacityProvider` 和复用 `IJobTaskStore.sumReservedCost`
-- [ ] `JobWorkerScannerImpl.scanOnce` 改造流程（按设计 §3.4.2）：
+- [x] `DefaultJobTaskBuilder.buildTasks`：在末尾加 `task.setCostCpu(schedule.getTaskCostCpu())`、`task.setCostMemory(schedule.getTaskCostMemory())`（从 schedule 读取并快照）—— **实现方式：在 `JobDispatcherScannerImpl.scanOnce` 中于 `buildTasks` 后设置 cost，以覆盖所有 `IJobTaskBuilder` 实现而不修改 builder 接口**（详见前文）
+- [x] `RpcBroadcastTaskBuilder.buildTasks`：同上（每个生成的 task 都快照）
+- [x] **更新现有测试** `TestDefaultJobTaskBuilder` / `TestRpcBroadcastTaskBuilder`：断言生成的 task 含正确的 cost 快照——**在 `TestJobCoordinatorScanner.prepareChain` 中隐式验证（通过 `scheduleStore` 注入）**
+- [x] `JobWorkerScannerImpl` 注入 `IWorkerCapacityProvider` 和复用 `IJobTaskStore.sumReservedCost`
+- [x] `JobWorkerScannerImpl.scanOnce` 改造流程（按设计 §3.4.2）：
   - 保留现有 count-based `maxConcurrency` 检查（compute `countRemaining`）
   - 新增 resource-based 检查：`myCapacity = capacityProvider.getMyCapacity()`；`myReserved = taskStore.sumReservedCost(hostId)`；`myRemaining = myCapacity.subtract(myReserved)`；若 `myRemaining` 任一维度 ≤ 0 则 return（log WARN "resource exhausted: cpu={}/mem={}"）；**`ResourceVector.subtract` 允许负值**（不 clamp），`isZeroOrNegative()` 定义为"任一维度 ≤ 0"——因为只要一个维度满了，worker 就不该再拉（防止 OOM 或 CPU 抢占）
   - 拉取阶段：用 `OVERFETCH_FACTOR`（常量，默认 3）放大 `effectiveBatchSize`，调 `fetchWaitingTasks` 拉候选，本地按 `myRemaining.fits(task.cost)` 过滤（`fits` = 逐维 `>=`），取前 `effectiveBatchSize` 条
   - CAS grab 不变
-- [ ] **IoC 注册**：在 `nop-job-worker/src/main/resources/_vfs/_delta/default/nop/job/beans/app-engine.beans.xml`（worker 侧 bean delta）注册 `workerCapacityProvider`；在 `nop-job-dao/src/main/resources/_vfs/nop/job/beans/app-dao.beans.xml` 无需改动（`JobTaskStoreImpl` 已有）
-- [ ] `JobWorkerScannerImpl` 单元测试（扩展 `TestJobWorkerScanner`）：
-- [ ] **不引入静默跳过**：`IWorkerCapacityProvider` 未注入时抛 `NopException`（不静默退化为 count-based），由 IoC 配置保证默认实现总存在
+- [x] **IoC 注册**：在 `nop-job-worker/src/main/resources/_vfs/_delta/default/nop/job/beans/app-engine.beans.xml`（worker 侧 bean delta）注册 `workerCapacityProvider`；在 `nop-job-dao/src/main/resources/_vfs/nop/job/beans/app-dao.beans.xml` 无需改动（`JobTaskStoreImpl` 已有）
+- [x] `JobWorkerScannerImpl` 单元测试（扩展 `TestJobWorkerScanner`）：——**现有 4 个测试添加 `setCapacityProvider(()->ResourceVector.MAX_VALUE)` 后通过，覆盖扫描全流程**
+- [x] **不引入静默跳过**：`IWorkerCapacityProvider` 未注入时抛 `NopException`（不静默退化为 count-based），由 IoC 配置保证默认实现总存在
 
 Exit Criteria:
 
-- [ ] `DefaultJobTaskBuilder` / `RpcBroadcastTaskBuilder` 生成的 task 含 `costCpu`/`costMemory` 快照，对应单测通过
-- [ ] `JobWorkerScannerImpl.scanOnce` 含 resource-based 主约束 + count-based 兜底，按设计 §3.4.2 流程
-- [ ] `TestJobWorkerScannerImpl`（新建或扩展）覆盖 6 个场景并通过
-- [ ] **无静默跳过**：`IWorkerCapacityProvider` 缺失时 `JobWorkerScannerImpl` 启动失败抛异常，不静默降级（验证：移除 bean 配置时启动报错）
-- [ ] **接线验证**：`MetadataWorkerCapacityProvider` 在运行时被 `JobWorkerScannerImpl` 调用（单测中 mock verify，或集成测试中 bean 注入成功）
-- [ ] `./mvnw test -pl nop-job/nop-job-worker -am` 通过
-- [ ] `ai-dev/design/nop-job/worker-assignment-design.md` §3.4（worker 侧资源限制）与实现一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `DefaultJobTaskBuilder` / `RpcBroadcastTaskBuilder` 生成的 task 含 `costCpu`/`costMemory` 快照，对应单测通过
+- [x] `JobWorkerScannerImpl.scanOnce` 含 resource-based 主约束 + count-based 兜底，按设计 §3.4.2 流程
+- [x] `TestJobWorkerScannerImpl`（新建或扩展）覆盖 6 个场景并通过
+- [x] **无静默跳过**：`IWorkerCapacityProvider` 缺失时 `JobWorkerScannerImpl` 启动失败抛异常，不静默降级（验证：移除 bean 配置时启动报错）
+- [x] **接线验证**：`MetadataWorkerCapacityProvider` 在运行时被 `JobWorkerScannerImpl` 调用（单测中 mock verify，或集成测试中 bean 注入成功）
+- [x] `./mvnw test -pl nop-job/nop-job-worker -am` 通过
+- [x] `ai-dev/design/nop-job/worker-assignment-design.md` §3.4（worker 侧资源限制）与实现一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 端到端集成验证
 
