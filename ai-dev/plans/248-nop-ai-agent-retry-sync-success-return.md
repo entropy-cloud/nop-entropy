@@ -182,3 +182,7 @@ Follow-up:
 - `succeed/isDone/isSuccess/result` 完整生命周期实现（plan 247 carry-over）：successor plan required（不同结果面）
 - exception 跨重启持久化（transient 移除）（plan 247 carry-over）：optimization candidate（in-memory retry 不依赖跨重启）
 - TaskStepHelper.retry() 延迟调度路径（:147-162）sync 处理：watch-only residual（未确认缺陷，若执行中确认则升级为独立 successor）
+
+## Follow-up handled by 252-nop-ai-agent-task-step-state-lifecycle.md
+
+plan 248 §Non-Goals line 41 / §Non-Blocking Follow-ups line 149 切出的 carry-over「`succeed/isDone/isSuccess/result/result(TaskStepReturn)` 完整生命周期实现」由 successor plan `ai-dev/plans/252-nop-ai-agent-task-step-state-lifecycle.md` 接管（实现 `TaskStepStateBean` 5 个 no-op 生命周期方法的 result/success 状态机，独立结果面：result/success 持久化数据层 vs 本计划的 retry 控制流 return）。本链接仅为可追溯性标注，不回写 plan 248 的历史结论。
