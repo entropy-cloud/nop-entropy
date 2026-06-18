@@ -259,3 +259,7 @@ Closure Audit Evidence:
 Follow-up:
 
 - No remaining plan-owned work. Successors are tracked as explicit Non-Goals / Non-Blocking Follow-ups (cross-process daemon coordination + nop-job integration; claimer-liveness cross-check; `team-task-reclaim` LLM tool; nop-task decorator; fan-out in-flight cancellation / partitioning / pipeline / quorum-majority reduction; daemon scheduling-policy changes; spawn session pooling; runtime dynamic graph mutation).
+
+## Follow-up handled by 246-nop-ai-agent-task-step-decorator.md
+
+> 本计划 Non-Goals line 46「nop-task decorator（retry/timeout/rate-limit）接入」+ §Non-Blocking Follow-ups line 226（以及同源 carry-over plans 236/241/243/244）中的「nop-task decorator（retry/timeout/rate-limit）接入」一项，已由后继计划 `ai-dev/plans/246-nop-ai-agent-task-step-decorator.md` 接管：把 nop-task 的可组合 `ITaskStepDecorator` 体系从「仅 transaction/ormSession 两枚」扩展为「retry/timeout/rate-limit 三枚 composable reliability decorator bean」（`nop-task-ext`），**委托** nop-task 既有 `RetryTaskStepWrapper`/`TimeoutTaskStepWrapper`/`RateLimitTaskStepWrapper`（Anti-Hollow，不重写算法），经标准 `<decorator name="retry|timeout|rate-limit"/>` 语法接入，任何 nop-task step（含团队任务 DAG 节点）均可组合使用。team-task 配置持久化面 + `TeamTaskGraphBuilder` 自动传播为独立 successor（ORM Protected Area）。

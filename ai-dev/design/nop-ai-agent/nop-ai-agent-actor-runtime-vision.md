@@ -32,7 +32,7 @@
 |---------------|--------------|
 | **Virtual Thread** | 每个 Agent 实例一个虚拟线程，轻量级，百万级并发 |
 | **IMessageService** (nop-api-core / nop-message-core) | Agent 间通信的内存消息队列，已有 topic pub/sub |
-| **ITaskStep + Decorator** (nop-task) | Agent 编排的 DAG 执行，内置 retry/timeout/rate-limit（DAG 拓扑 + 依赖序同步编排切片已落地 plan 233 / `nop-ai-agent-task-flow-integration.md`；decorator 体系接入为 successor） |
+| **ITaskStep + Decorator** (nop-task) | Agent 编排的 DAG 执行，内置 retry/timeout/rate-limit（DAG 拓扑 + 依赖序同步编排切片已落地 plan 233 / `nop-ai-agent-task-flow-integration.md`；**decorator 体系接入已落地 plan 246 / `nop-ai-agent-task-step-decorator.md`**——retry / timeout / rateLimit 三枚可组合 reliability decorator bean 在 nop-task-ext 落地，任何 nop-task step（含团队任务 DAG 节点）经标准 `<decorator>` 语法 + bean `nopTaskStepDecorator_<name>` 即获得 step 级重试/超时/限流；team-task builder 自动传播 + DB 配置面仍为 successor） |
 | **IBizObject + @BizAction** | Agent 能力暴露为 GraphQL/RPC，自动鉴权 |
 | **XDSL + Delta** | Agent 配置的可逆计算定制 |
 | **IOrmSession** | Agent 状态持久化到 DB，事务保护 |
