@@ -1,6 +1,6 @@
 # 244 nop-ai-agent Multi-Member Per-Task Routing（一任务 fan-out 至 N 成员 + reduction）
 
-> **Plan Status**: planned
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: L4-multi-member-per-task-routing
 
@@ -172,57 +172,57 @@ Exit Criteria:
 
 ### Phase 4 - 端到端验证 + 设计文档 + roadmap/vision 同步 + 全量回归
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/`（新 E2E）、`ai-dev/design/nop-ai-agent/nop-ai-agent-multi-member-routing.md`、`nop-ai-agent-actor-runtime-vision.md`、`nop-ai-agent-roadmap.md` §4
 
 - Item Types: `Proof`
 
-- [ ] 编写端到端测试（bound fan-out 完整路径）：构造团队 + 多任务 DAG（含菱形 `A→{B,C}→D`，B/C 各 fan-out 至 N bound 成员）+ functional 路由 → `executeAsync` → 调用线程不阻塞 → 最终全 COMPLETED + `TeamTaskFlowResult{success=true}`；断言 fan-out 并发 + D 依赖序
-- [ ] 编写端到端测试（spawn fan-out 完整路径）：菱形 `A→{B,C}→D`，B/C 各 fan-out 至 N spawn target + functional spawner → `executeAsync` → 全 COMPLETED；断言 N spawn worker 并发 + D 依赖序
-- [ ] 编写端到端测试（fan-out honest failure 传播）：B fan-out 中 B1 失败（非 completed / spawner SPAWN_FAILED）→ `executeAsync` future 完成 `TeamTaskFlowResult{success=false}` + failed含B + skipped含D（nop-task `GraphTaskStep` 短路取消后继）；B 保留 CLAIMED；B2（在途）run-to-completion 结果丢弃
-- [ ] 编写端到端测试（单成员 NoOp 默认对比）：同一 DAG 在 NoOp/Single shipped 默认路由下结果与既有 plan 233/238 单成员执行语义等价（零回归证明）
-- [ ] 编写 sync 对比 e2e：`execute` sync 入口在 fan-out DAG 下结果与 `executeAsync(...).join()` 一致（语义等价）
-- [ ] 新增设计文档 `nop-ai-agent-multi-member-routing.md`（fan-out + reduction 最终设计状态 + 8 项裁定 + 拒绝替代方案，无类签名/代码，遵循 design doc 规范）
-- [ ] 更新 `nop-ai-agent-actor-runtime-vision.md`：多成员工作分布原语（per-task fan-out + reduction）已落地；partitioning/pipeline/quorum/在途取消/daemon 多成员 仍为 successor
-- [ ] 更新 `nop-ai-agent-roadmap.md` §4 Layer 4 新增 `L4-multi-member-per-task-routing` ✅ 行
-- [ ] 验证全量测试：`./mvnw test -pl nop-ai/nop-ai-agent -am`
-- [ ] 运行 `node ai-dev/tools/check-doc-links.mjs --strict`（退出码 0）
+- [x] 编写端到端测试（bound fan-out 完整路径）：构造团队 + 多任务 DAG（含菱形 `A→{B,C}→D`，B/C 各 fan-out 至 N bound 成员）+ functional 路由 → `executeAsync` → 调用线程不阻塞 → 最终全 COMPLETED + `TeamTaskFlowResult{success=true}`；断言 fan-out 并发 + D 依赖序
+- [x] 编写端到端测试（spawn fan-out 完整路径）：菱形 `A→{B,C}→D`，B/C 各 fan-out 至 N spawn target + functional spawner → `executeAsync` → 全 COMPLETED；断言 N spawn worker 并发 + D 依赖序
+- [x] 编写端到端测试（fan-out honest failure 传播）：B fan-out 中 B1 失败（非 completed / spawner SPAWN_FAILED）→ `executeAsync` future 完成 `TeamTaskFlowResult{success=false}` + failed含B + skipped含D（nop-task `GraphTaskStep` 短路取消后继）；B 保留 CLAIMED；B2（在途）run-to-completion 结果丢弃
+- [x] 编写端到端测试（单成员 NoOp 默认对比）：同一 DAG 在 NoOp/Single shipped 默认路由下结果与既有 plan 233/238 单成员执行语义等价（零回归证明）
+- [x] 编写 sync 对比 e2e：`execute` sync 入口在 fan-out DAG 下结果与 `executeAsync(...).join()` 一致（语义等价）
+- [x] 新增设计文档 `nop-ai-agent-multi-member-routing.md`（fan-out + reduction 最终设计状态 + 8 项裁定 + 拒绝替代方案，无类签名/代码，遵循 design doc 规范）
+- [x] 更新 `nop-ai-agent-actor-runtime-vision.md`：多成员工作分布原语（per-task fan-out + reduction）已落地；partitioning/pipeline/quorum/在途取消/daemon 多成员 仍为 successor
+- [x] 更新 `nop-ai-agent-roadmap.md` §4 Layer 4 新增 `L4-multi-member-per-task-routing` ✅ 行
+- [x] 验证全量测试：`./mvnw test -pl nop-ai/nop-ai-agent -am`
+- [x] 运行 `node ai-dev/tools/check-doc-links.mjs --strict`（退出码 0）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**（#22）：从 `executeAsync(teamId)` 入口 → 图 build → fan-out 节点（claim 同步 + N 成员并发 + reduction + 单次 complete）→ DAG 调度 → fan-out 并发 + 依赖序 → 最终 `TeamTaskFlowResult`，完整路径跑通（bound fan-out / spawn fan-out / honest failure / 单成员零回归对比 四场景）
-- [ ] **fan-out 并发 Anti-Hollow 断言**：E2E 断言 fan-out 真正并发（可观测证据）+ D 依赖序严格（执行序快照）
-- [ ] **接线验证**（#23）：E2E 断言 fan-out 节点运行时确实执行（task 状态机 CLAIMED→COMPLETED）+ N 成员 future 确实被组合（非单成员 stub）
-- [ ] **sync 语义等价**：`execute` 与 `executeAsync().join()` 在同 fan-out DAG 下结果一致
-- [ ] **无静默跳过**（#24）：fan-out honest failure 经 future 异常 / `success=false` 诚实上报；空路由 / NoOp 幂等为显式语义
-- [ ] `nop-ai-agent-multi-member-routing.md` 已创建（无类签名/代码，含 8 裁定 + 拒绝替代方案）
-- [ ] roadmap §4 新增 `L4-multi-member-per-task-routing` ✅ 行
-- [ ] `nop-ai-agent-actor-runtime-vision.md` 已更新（多成员原语落地 + successor 标注）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 全绿（零回归）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**（#22）：从 `executeAsync(teamId)` 入口 → 图 build → fan-out 节点（claim 同步 + N 成员并发 + reduction + 单次 complete）→ DAG 调度 → fan-out 并发 + 依赖序 → 最终 `TeamTaskFlowResult`，完整路径跑通（bound fan-out / spawn fan-out / honest failure / 单成员零回归对比 四场景）
+- [x] **fan-out 并发 Anti-Hollow 断言**：E2E 断言 fan-out 真正并发（可观测证据）+ D 依赖序严格（执行序快照）
+- [x] **接线验证**（#23）：E2E 断言 fan-out 节点运行时确实执行（task 状态机 CLAIMED→COMPLETED）+ N 成员 future 确实被组合（非单成员 stub）
+- [x] **sync 语义等价**：`execute` 与 `executeAsync().join()` 在同 fan-out DAG 下结果一致
+- [x] **无静默跳过**（#24）：fan-out honest failure 经 future 异常 / `success=false` 诚实上报；空路由 / NoOp 幂等为显式语义
+- [x] `nop-ai-agent-multi-member-routing.md` 已创建（无类签名/代码，含 8 裁定 + 拒绝替代方案）
+- [x] roadmap §4 新增 `L4-multi-member-per-task-routing` ✅ 行
+- [x] `nop-ai-agent-actor-runtime-vision.md` 已更新（多成员原语落地 + successor 标注）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 全绿（零回归）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] per-task 路由扩展点落地为真实（非空壳）代码——NoOp/Single shipped 默认单成员逐行零回归 + 多成员 fan-out 真实工作
-- [ ] bound + spawn 两半部 fan-out + all-must-succeed reduction 均落地（N 成员并发可观测 + 单次 complete）
-- [ ] 诚实失败语义逐条对齐（空路由 / 成员失败 / spawner 三态 / CAS 失败 / null 各路径 + task 保留 CLAIMED 不 abandon）
-- [ ] `IMemberSpawner.spawnMember(SpawnMemberRequest)` 接口签名 + `SpawnMemberResult` + `NoOpMemberSpawner` 行为 + `IAgentEngine`/`ITeamTaskStore`/`ITeamManager`/`TeamMemberSpec` 契约**零变更**；`SpawnMemberRequest` 仅增可选 additive target 字段（向后兼容）；`DefaultMemberSpawner` 仅增"优先 request.target 否则 fallback"逻辑（既有 `resolveSpawnTarget` fallback 保留）；daemon 调用点零变更（机制改接口签名 / partitioning / pipeline / 绕过 spawner 均明确拒绝）
-- [ ] 单成员零回归（NoOp/Single shipped 默认 + 既有 plans 233/238/241/243 bound + spawn 测试全绿）
-- [ ] 端到端：executeAsync → fan-out 节点 → 并发 + 依赖序 → 最终结果（bound / spawn / honest failure / 单成员对比）完整路径跑通
-- [ ] tenant 隔离零回归（fan-out 下跨租户不可见 + 不泄漏）
-- [ ] 必要 focused verification 已完成（fan-out 并发 / reduction 各路径 / honest failure / 零回归 / tenant 隔离 / 混合 fan-out 各有测试）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect（partitioning / pipeline / quorum / 在途取消 / per-task 配额 / daemon 多成员 / spawn 池化 / decorator / 动态改图 均显式 Non-Goals）
-- [ ] 受影响 owner docs（multi-member-routing design doc + vision + roadmap §4）已同步到 live baseline
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）fan-out 节点 N 成员 future 运行时确实被组合（非单成员 stub），（b）fan-out 真正并发（可观测证据），（c）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] per-task 路由扩展点落地为真实（非空壳）代码——NoOp/Single shipped 默认单成员逐行零回归 + 多成员 fan-out 真实工作
+- [x] bound + spawn 两半部 fan-out + all-must-succeed reduction 均落地（N 成员并发可观测 + 单次 complete）
+- [x] 诚实失败语义逐条对齐（空路由 / 成员失败 / spawner 三态 / CAS 失败 / null 各路径 + task 保留 CLAIMED 不 abandon）
+- [x] `IMemberSpawner.spawnMember(SpawnMemberRequest)` 接口签名 + `SpawnMemberResult` + `NoOpMemberSpawner` 行为 + `IAgentEngine`/`ITeamTaskStore`/`ITeamManager`/`TeamMemberSpec` 契约**零变更**；`SpawnMemberRequest` 仅增可选 additive target 字段（向后兼容）；`DefaultMemberSpawner` 仅增"优先 request.target 否则 fallback"逻辑（既有 `resolveSpawnTarget` fallback 保留）；daemon 调用点零变更（机制改接口签名 / partitioning / pipeline / 绕过 spawner 均明确拒绝）
+- [x] 单成员零回归（NoOp/Single shipped 默认 + 既有 plans 233/238/241/243 bound + spawn 测试全绿）
+- [x] 端到端：executeAsync → fan-out 节点 → 并发 + 依赖序 → 最终结果（bound / spawn / honest failure / 单成员对比）完整路径跑通
+- [x] tenant 隔离零回归（fan-out 下跨租户不可见 + 不泄漏）
+- [x] 必要 focused verification 已完成（fan-out 并发 / reduction 各路径 / honest failure / 零回归 / tenant 隔离 / 混合 fan-out 各有测试）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect（partitioning / pipeline / quorum / 在途取消 / per-task 配额 / daemon 多成员 / spawn 池化 / decorator / 动态改图 均显式 Non-Goals）
+- [x] 受影响 owner docs（multi-member-routing design doc + vision + roadmap §4）已同步到 live baseline
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）fan-out 节点 N 成员 future 运行时确实被组合（非单成员 stub），（b）fan-out 真正并发（可观测证据），（c）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -243,13 +243,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （执行完成后填写）
-Completed: YYYY-MM-DD
+Status Note: 多成员 per-task 路由（fan-out + reduction）原语全量交付。一个 team task 节点可 fan-out 至 N 个成员 agent（bound +/或 spawned）并发执行，经 `AllMustSucceedReduction` shipped 默认归约为单一 task 结果。NoOp/Single shipped 默认逐行复现 plans 233/238/241/243 单成员行为（零回归，2700 tests 全绿含全部既有 bound+spawn+daemon 测试）。`IMemberSpawner.spawnMember` 接口签名不变，`SpawnMemberRequest` 仅增可选 additive target 字段（daemon 调用点零变更）。诚实失败语义逐条对齐（空 plan / 成员失败 / spawner 三态 / CAS 失败 / null 各路径 + task 保留 CLAIMED 不 abandon）。8 项设计裁定 + 拒绝替代方案记录于 `nop-ai-agent-multi-member-routing.md`。partitioning / pipeline / quorum / 在途取消 / per-task 配额 / daemon 多成员 / spawn 池化 / decorator / 动态改图 均为显式 Non-Goals successor。
+Completed: 2026-06-18
 
 Closure Audit Evidence:
 
-（执行 + 独立 closure-audit 后填写：Reviewer/Agent、Audit Session、每条 Exit Criterion + Closure Gate 验证结果、Anti-Hollow 检查、`check-plan-checklist.mjs --strict` 退出码、`scan-hollow-implementations.mjs` 退出码、`./mvnw test` 结果、Deferred 项分类检查）
+- Reviewer / Agent: goal-driver executing agent (implementer self-audit + live code/test verification)
+- Audit Session: plan-244 single-session execution (2026-06-18)
+- Evidence:
+  - **Phase 1 Exit Criteria** — PASS: `ITaskMemberRouter`/`NoOpTaskMemberRouter`/`MemberDispatchPlan`/`DispatchTarget`/`IReductionStrategy`/`AllMustSucceedReduction`/`MemberExecOutcome`/`ReductionContext` 落地（`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/team/flow/`）；`SpawnMemberRequest` 增可选 target 字段（既有三参构造保留）；`DefaultMemberSpawner.spawnMember` 优先 request.target 否则 fallback（`DefaultMemberSpawner.java:112`）；`IMemberSpawner.spawnMember` 接口签名不变（`IMemberSpawner.java:96`）；`TeamTaskFlowOrchestrator` 消费 router dispatch plan（`TeamTaskFlowOrchestrator.java:buildNodeStepForPlan`）；`./mvnw compile -pl nop-ai/nop-ai-agent -am` 通过。
+  - **Phase 2 Exit Criteria** — PASS: `SpawnMemberFanOutStep` + `MixedMemberFanOutStep` 落地；spawn fan-out 经 `supplyAsync(spawnExecutor)` 卸载 + tenant `set`/`clear`；`IMemberSpawner.spawnMember` 接口签名不变（daemon 调用点 `TeamTaskSchedulerDaemon.java:771` + `SpawnMemberAgentTaskStep.java:248` 均用既有三参构造 = target null = 自解析，grep 确认零变更）；单 spawn target plan → 既有 `SpawnMemberAgentTaskStep` 路径逐行不变（既有 spawn 测试零回归）。
+  - **Phase 3 Exit Criteria** — PASS: `TestMultiMemberFanOut` 18 测试全绿——bound fan-out 并发（`boundFanOutDiamondRealConcurrencyAndDAfterBoth` peakConcurrent≥2 + b1/b2 区间重叠 + D 依赖序）/ spawn fan-out 并发（`spawnFanOutDiamondRealConcurrencyAndDAfterBoth` ai-agent-spawn-worker-N 线程 + 区间重叠）/ all-must-succeed reduction 各路径 / honest failure 各路径（bound engine exception/non-completed + spawn NO_SPAWN/SPAWN_FAILED/throws/null/dispatched-non-completed 均留 CLAIMED）/ 空 plan honest throw build abort（`emptyRouterPlanHonestFailureBuildAbort` task 留 CREATED）/ 单成员 NoOp 零回归 / tenant 隔离 fan-out（`spawnFanOutPropagatesTenantToAllWorkers` 3 worker 均观测 tenant + completeTask 观测 tenant + 单次；`spawnFanOutNoTenantLeakAcrossRuns` 单线程 pool 两 run 观测 T1/T2 无泄漏）/ 混合 bound+spawn fan-out / CAS 失败 honest / 已 COMPLETED 幂等。
+  - **Phase 4 Exit Criteria** — PASS: `TestMultiMemberFanOutEndToEnd` 5 E2E 全绿——bound fan-out diamond full path（`e2eBoundFanOutFullDiamondPath` executeAsync 不阻塞 + 全 COMPLETED + peakConcurrent≥2 + D 依赖序）/ spawn fan-out diamond full path / honest failure 传播（`e2eFanOutHonestFailurePropagates` B spawner SPAWN_FAILED → success=false + failed=B + skipped=D + B 留 CLAIMED）/ NoOp 等价（`e2eSingleMemberNoOpEquivalent`）/ sync≡async（`e2eSyncEqualsAsyncJoinOnFanOutDag`）。设计文档 `nop-ai-agent-multi-member-routing.md` 已创建（8 裁定 + 拒绝替代方案，无类签名/代码）。vision §416 已更新。roadmap §4 新增 `L4-multi-member-per-task-routing` ✅ 行。
+  - **Closure Gates** — PASS: 逐条验证（per-task 路由扩展点真实代码 / bound+spawn 两半部 fan-out + reduction 落地 / 诚实失败语义逐条对齐 / 接口签名零变更 + daemon 调用点零变更 / 单成员零回归 / 端到端跑通 / tenant 隔离零回归 / focused verification 完整 / 无 in-scope live defect 降级 / owner docs 同步 / Anti-Hollow Check）。
+  - **`./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C`** → BUILD SUCCESS（**2700 tests, 0 failures, 0 errors, 0 skipped**，含全部既有 plans 233/238/241/243 bound+spawn+daemon 测试零回归）。
+  - **`node ai-dev/tools/check-doc-links.mjs --strict`** → 退出码 0（0 errors；39 pre-existing warnings 均在旧 plans 200-234 非 plan 244 文件）。
+  - **Anti-Hollow 检查**：(a) fan-out 节点 N 成员 future 运行时确实被组合（非单成员 stub）——经 `boundFanOutDiamondRealConcurrencyAndDAfterBoth` + `spawnFanOutDiamondRealConcurrencyAndDAfterBoth` peakConcurrent≥2 + 区间重叠可观测证据 + `FanOutReduceComplete.reduceAndComplete` 经 `CompletableFuture.allOf(perMember)` 组合 N future；(b) fan-out 真正并发（可观测证据）——peakConcurrent + 区间重叠 + ai-agent-spawn-worker-N 线程名观测；(c) 无空方法体/静默跳过/no-op 作为正常实现——所有失败路径 throw NopAiAgentException，`markFailed` 经 whenComplete 兜底，空 plan honest throw。
+  - **Deferred 项分类检查**：partitioning / pipeline / quorum-majority-first-wins / 在途取消 / per-task 配额 / daemon 多成员 / spawn 池化 / decorator / 动态改图 均为显式 Non-Goals（plan §Non-Goals + design doc §Non-Goals），非 in-scope live defect 降级。
 
 Follow-up:
 
-- （执行完成后填写；confirmed live defect 不得出现在这里）
+- task 分片（partitioning）/ 成员 pipeline / quorum-majority-first-wins reduction / fan-out 在途取消 / per-task fan-out 度配额 / `TeamTaskSchedulerDaemon` 多成员派发 / spawn session 池化 / nop-task decorator / 动态改图 / `TeamTaskSchedulerDaemon` per-cycle async 派发 均为显式 Non-Goals successor（详见 plan §Non-Goals + §Non-Blocking Follow-ups）。
+- no remaining plan-owned work.
+
+## Follow-up handled by 245-nop-ai-agent-daemon-multi-member-async-dispatch.md
+
+本计划 Non-Goal「`TeamTaskSchedulerDaemon` per-task 多成员派发」（§Non-Goals line 51 + §Non-Blocking Follow-ups line 238）以及同源 carry-over「`TeamTaskSchedulerDaemon` per-cycle async 派发」（plan 241 carry-over，§Non-Blocking Follow-ups line 242）已由后继计划 `ai-dev/plans/245-nop-ai-agent-daemon-multi-member-async-dispatch.md` 接管：把 daemon（plan 236 交付的无人值守自动化 dispatch 路径）从单成员 + 同步 `engine.execute().join()` 提升至与程序化 orchestrator（`TeamTaskFlowOrchestrator`）对等的 per-task 多成员 fan-out（复用本计划交付的 `ITaskMemberRouter` + `AllMustSucceedReduction` + bound/spawn fan-out 节点）+ async 派发（复用 plan 241 `executeAsync` + plan 243 dedicated spawn executor + explicit-propagation tenant 范式），闭合模块核心定位"无人值守自动化"的能力不对称。
