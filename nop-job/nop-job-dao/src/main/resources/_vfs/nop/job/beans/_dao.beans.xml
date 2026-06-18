@@ -4,7 +4,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.job.dao.store.NopJobTaskMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
+    <bean id="io.nop.job.dao.mapper.NopJobTaskMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
           ioc:type="@bean:id" ioc:bean-method="build">
         <property name="mapperClass" value="@bean:type"/>
     </bean>

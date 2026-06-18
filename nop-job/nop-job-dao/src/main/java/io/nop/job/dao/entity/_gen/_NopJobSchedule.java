@@ -180,8 +180,16 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     public static final String PROP_NAME_taskCostMemory = "taskCostMemory";
     public static final int PROP_ID_taskCostMemory = 40;
     
+    /* 派发模式: DISPATCH_MODE VARCHAR */
+    public static final String PROP_NAME_dispatchMode = "dispatchMode";
+    public static final int PROP_ID_dispatchMode = 41;
+    
+    /* 分片数量: PARTITION_COUNT INTEGER */
+    public static final String PROP_NAME_partitionCount = "partitionCount";
+    public static final int PROP_ID_partitionCount = 42;
+    
 
-    private static int _PROP_ID_BOUND = 41;
+    private static int _PROP_ID_BOUND = 43;
 
     
     /* component:  */
@@ -194,7 +202,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobScheduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobScheduleId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[41];
+    private static final String[] PROP_ID_TO_NAME = new String[43];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -318,6 +326,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_taskCostMemory] = PROP_NAME_taskCostMemory;
           PROP_NAME_TO_ID.put(PROP_NAME_taskCostMemory, PROP_ID_taskCostMemory);
       
+          PROP_ID_TO_NAME[PROP_ID_dispatchMode] = PROP_NAME_dispatchMode;
+          PROP_NAME_TO_ID.put(PROP_NAME_dispatchMode, PROP_ID_dispatchMode);
+      
+          PROP_ID_TO_NAME[PROP_ID_partitionCount] = PROP_NAME_partitionCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_partitionCount, PROP_ID_partitionCount);
+      
     }
 
     
@@ -440,6 +454,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     
     /* 任务内存开销(MB): TASK_COST_MEMORY */
     private java.lang.Integer _taskCostMemory;
+    
+    /* 派发模式: DISPATCH_MODE */
+    private java.lang.String _dispatchMode;
+    
+    /* 分片数量: PARTITION_COUNT */
+    private java.lang.Integer _partitionCount;
     
 
     public _NopJobSchedule(){
@@ -634,6 +654,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         
             case PROP_ID_taskCostMemory:
                return getTaskCostMemory();
+        
+            case PROP_ID_dispatchMode:
+               return getDispatchMode();
+        
+            case PROP_ID_partitionCount:
+               return getPartitionCount();
         
            default:
               return super.orm_propValue(propId);
@@ -1046,6 +1072,26 @@ public class _NopJobSchedule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_dispatchMode:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_dispatchMode));
+               }
+               setDispatchMode(typedValue);
+               break;
+            }
+        
+            case PROP_ID_partitionCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_partitionCount));
+               }
+               setPartitionCount(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1331,6 +1377,20 @@ public class _NopJobSchedule extends DynamicOrmEntity{
             case PROP_ID_taskCostMemory:{
                onInitProp(propId);
                this._taskCostMemory = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_dispatchMode:{
+               onInitProp(propId);
+               this._dispatchMode = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_partitionCount:{
+               onInitProp(propId);
+               this._partitionCount = (java.lang.Integer)value;
                
                break;
             }
@@ -2097,6 +2157,44 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_taskCostMemory,value)){
             this._taskCostMemory = value;
             internalClearRefs(PROP_ID_taskCostMemory);
+            
+        }
+    }
+    
+    /**
+     * 派发模式: DISPATCH_MODE
+     */
+    public final java.lang.String getDispatchMode(){
+         onPropGet(PROP_ID_dispatchMode);
+         return _dispatchMode;
+    }
+
+    /**
+     * 派发模式: DISPATCH_MODE
+     */
+    public final void setDispatchMode(java.lang.String value){
+        if(onPropSet(PROP_ID_dispatchMode,value)){
+            this._dispatchMode = value;
+            internalClearRefs(PROP_ID_dispatchMode);
+            
+        }
+    }
+    
+    /**
+     * 分片数量: PARTITION_COUNT
+     */
+    public final java.lang.Integer getPartitionCount(){
+         onPropGet(PROP_ID_partitionCount);
+         return _partitionCount;
+    }
+
+    /**
+     * 分片数量: PARTITION_COUNT
+     */
+    public final void setPartitionCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_partitionCount,value)){
+            this._partitionCount = value;
+            internalClearRefs(PROP_ID_partitionCount);
             
         }
     }

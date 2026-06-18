@@ -8,7 +8,8 @@
             - worker 侧 scanOnce 用它算 myRemaining = myCapacity - myReserved（Plan 212）。
             - 状态集与 RESERVED_TASK_STATUSES 一致，与 countInFlightTasks 故意不对称（design §3.3.4）。
         -->
-        <eql name="sumReservedCost" sqlMethod="findFirst">
+        <eql name="sumReservedCost" sqlMethod="findFirst"
+             rowType="io.nop.job.dao.mapper.ReservedCostRow">
             <arg name="workerInstanceId"/>
             <arg name="activeStatuses"/>
             <source>

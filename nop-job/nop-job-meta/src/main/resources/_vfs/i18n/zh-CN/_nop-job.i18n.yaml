@@ -9,6 +9,8 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       dispatchInstanceId: 分发节点ID
+      dispatchMode: 派发模式
+      dispatchMode_label: 派发模式
       durationMs: 执行时长(毫秒)
       endTime: 结束时间
       errorCode: 错误码
@@ -33,6 +35,8 @@ prop:
       retryRecordId: 重试记录ID
       scheduledFireTime: 计划触发时间
       startTime: 开始时间
+      taskCostCpu: 任务CPU开销(毫核)
+      taskCostMemory: 任务内存开销(MB)
       triggerSource: 触发来源
       triggerSource_label: 触发来源
       triggeredBy: 触发人
@@ -47,6 +51,8 @@ prop:
       createdBy: 创建人
       cronExpr: CRON表达式
       description: 描述
+      dispatchMode: 派发模式
+      dispatchMode_label: 派发模式
       displayName: 显示名
       executorKind: 执行器类型
       executorKind_label: 执行器类型
@@ -68,6 +74,7 @@ prop:
       misfireThresholdMs: Misfire阈值(毫秒)
       namespaceId: 命名空间
       nextFireTime: 下次触发时间
+      partitionCount: 分片数量
       partitionIndex: 分区索引
       pauseCalendarSpec: 暂停日历配置
       pauseCalendarSpecComponent: null
@@ -77,6 +84,8 @@ prop:
       scheduleStatus: 调度状态
       scheduleStatus_label: 调度状态
       successFireCount: 成功触发次数
+      taskCostCpu: 任务CPU开销(毫核)
+      taskCostMemory: 任务内存开销(MB)
       timeoutSeconds: 超时时间(秒)
       totalFireCount: 总触发次数
       triggerType: 触发器类型
@@ -86,6 +95,8 @@ prop:
       useDefaultCalendar: 使用默认日历
       version: 数据版本
     NopJobTask:
+      costCpu: CPU开销(毫核)
+      costMemory: 内存开销(MB)
       createTime: 创建时间
       createdBy: 创建人
       durationMs: 执行时长(毫秒)
@@ -96,6 +107,7 @@ prop:
       jobFireId: 批次ID
       jobTaskId: 任务ID
       partitionIndex: 分区索引
+      partitionRange: 分片范围
       progress: 执行进度
       progressMessage: 进度消息
       remark: 备注

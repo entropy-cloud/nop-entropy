@@ -29,6 +29,10 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      taskCostCpu: Task Cost Cpu(Millicore)
+      taskCostMemory: Task Cost Memory(MB)
+      dispatchMode: Dispatch Mode
+      dispatchMode_label: null
       jobSchedule: Job Schedule
       jobSchedule.displayName: Job Schedule
       jobParamsSnapshotComponent: null
@@ -83,6 +87,11 @@ prop:
       totalFireCount: Total Fire Count
       successFireCount: Success Fire Count
       failFireCount: Fail Fire Count
+      taskCostCpu: Task Cost Cpu(Millicore)
+      taskCostMemory: Task Cost Memory(MB)
+      dispatchMode: Dispatch Mode
+      dispatchMode_label: null
+      partitionCount: Partition Count
       jobParamsComponent: null
       pauseCalendarSpecComponent: null
     NopJobTask:
@@ -90,6 +99,9 @@ prop:
       jobFireId: Job Fire Id
       shardingIndex: Sharding Index
       shardingTotal: Sharding Total
+      costCpu: Cost Cpu(Millicore)
+      costMemory: Cost Memory(MB)
+      partitionRange: Partition Range
       jobFire: Job Fire
       taskPayloadComponent: null
       resultPayloadComponent: null

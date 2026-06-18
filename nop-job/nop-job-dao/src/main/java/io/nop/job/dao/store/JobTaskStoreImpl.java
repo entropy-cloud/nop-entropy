@@ -12,12 +12,13 @@ import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.mapper.NopJobTaskMapper;
+import io.nop.job.dao.mapper.ReservedCostRow;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_jobFireId;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_jobTaskId;
@@ -116,25 +117,14 @@ public class JobTaskStoreImpl implements IJobTaskStore {
 
     @Override
     public ResourceVector sumReservedCost(String workerInstanceId) {
-        Map<String, Object> row = taskMapper.sumReservedCost(
+        ReservedCostRow row = taskMapper.sumReservedCost(
                 workerInstanceId, NopJobCoreConstants.RESERVED_TASK_STATUSES);
         if (row == null) {
             return ResourceVector.ZERO;
         }
-        // SUM 在 H2/MySQL 等数据库可能返回 Long / BigDecimal / BigInteger，统一转 int
-        int cpu = toInt(row.get("cpu"));
-        int memory = toInt(row.get("memory"));
+        int cpu = row.getCpu() != null ? row.getCpu() : 0;
+        int memory = row.getMemory() != null ? row.getMemory() : 0;
         return new ResourceVector(cpu, memory);
-    }
-
-    private static int toInt(Object value) {
-        if (value == null) {
-            return 0;
-        }
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        return Integer.parseInt(String.valueOf(value).trim());
     }
 
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {

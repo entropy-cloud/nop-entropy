@@ -228,6 +228,7 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
         fire.setUpdateTime(new Timestamp(now));
         fire.getJobParamsSnapshotComponent().set_jsonValue(copyMap(schedule.getJobParamsComponent().get_jsonMap()));
         fire.setExecutorKind(schedule.getExecutorKind());
+        fire.setDispatchMode(schedule.getDispatchMode());
         return fire;
     }
 

@@ -136,6 +136,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         fire.setRetryPolicyId(schedule.getRetryPolicyId());
         fire.setJobParamsSnapshot(schedule.getJobParams());
         fire.setExecutorKind(schedule.getExecutorKind());
+        fire.setDispatchMode(schedule.getDispatchMode());
         FireFactory.fillBaseFireFields(fire, fireTime);
         return fire;
     }

@@ -183,6 +183,11 @@
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Cpu(Millicore)"/>
                 <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
                         propId="40" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Memory(MB)"/>
+                <column code="DISPATCH_MODE" defaultValue="single" displayName="派发模式" name="dispatchMode" precision="30"
+                        propId="41" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dispatch Mode"
+                        ext:dict="job/dispatch-mode"/>
+                <column code="PARTITION_COUNT" defaultValue="1" displayName="分片数量" name="partitionCount" propId="42"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Partition Count"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_SCHEDULE_SCAN" unique="false">
@@ -267,6 +272,9 @@
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Cpu(Millicore)"/>
                 <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
                         propId="29" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Memory(MB)"/>
+                <column code="DISPATCH_MODE" displayName="派发模式" name="dispatchMode" precision="30" propId="30"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dispatch Mode"
+                        ext:dict="job/dispatch-mode"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_FIRE_DISPATCH_SCAN" unique="false">
@@ -302,8 +310,8 @@
         </entity>
         <entity className="io.nop.job.dao.entity.NopJobTask" createTimeProp="createTime" createrProp="createdBy"
                 displayName="执行任务" name="io.nop.job.dao.entity.NopJobTask" registerShortName="true"
-                tableName="nop_job_task" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                ext:icon="circle-play" i18n-en:displayName="Job Task">
+                tableName="nop_job_task" tagSet="mapper" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="circle-play" i18n-en:displayName="Job Task">
             <columns>
                 <column code="JOB_TASK_ID" displayName="任务ID" mandatory="true" name="jobTaskId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -365,6 +373,8 @@
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Cost Cpu(Millicore)"/>
                 <column code="COST_MEMORY" defaultValue="0" displayName="内存开销(MB)" name="costMemory" propId="27"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Cost Memory(MB)"/>
+                <column code="PARTITION_RANGE" displayName="分片范围" name="partitionRange" precision="400" propId="28"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Partition Range"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_TASK_RUN_SCAN" unique="false">

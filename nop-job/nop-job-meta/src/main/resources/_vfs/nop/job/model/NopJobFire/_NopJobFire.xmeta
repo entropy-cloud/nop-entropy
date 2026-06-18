@@ -129,6 +129,18 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="taskCostCpu" displayName="任务CPU开销(毫核)" propId="28" i18n-en:displayName="Task Cost Cpu(Millicore)"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="taskCostMemory" displayName="任务内存开销(MB)" propId="29" i18n-en:displayName="Task Cost Memory(MB)"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="dispatchMode" displayName="派发模式" propId="30" i18n-en:displayName="Dispatch Mode" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="30" dict="job/dispatch-mode"/>
+        </prop>
         <prop name="jobSchedule" displayName="调度定义" i18n-en:displayName="Job Schedule" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="jobScheduleId"
               ext:joinRightProp="jobScheduleId" ext:joinRightDisplayProp="displayName" insertable="false"

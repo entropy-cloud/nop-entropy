@@ -153,6 +153,13 @@
                 <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
                         propId="40" stdDataType="int" stdSqlType="INTEGER"
                         i18n-en:displayName="Task Cost Memory(MB)"/>
+                <!-- 分片/派发模式控制 -->
+                <column code="DISPATCH_MODE" defaultValue="single" displayName="派发模式" name="dispatchMode"
+                        propId="41" stdDataType="string" stdSqlType="VARCHAR" precision="30"
+                        i18n-en:displayName="Dispatch Mode" ext:dict="job/dispatch-mode"/>
+                <column code="PARTITION_COUNT" defaultValue="1" displayName="分片数量" name="partitionCount"
+                        propId="42" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Partition Count"/>
                 <!-- 调度游标 -->
                 <column code="FIRE_COUNT" defaultValue="0" displayName="已触发次数" mandatory="true" name="fireCount"
                         propId="23" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Fire Count"/>
@@ -262,6 +269,9 @@
                 <column code="EXECUTOR_KIND" displayName="执行器类型" name="executorKind" precision="50"
                         propId="16" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Executor Kind" ext:dict="job/executor-kind"/>
+                <column code="DISPATCH_MODE" displayName="派发模式" name="dispatchMode" precision="30"
+                        propId="30" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Dispatch Mode" ext:dict="job/dispatch-mode"/>
                 <column code="RETRY_POLICY_ID" displayName="重试策略ID" name="retryPolicyId" precision="32"
                         propId="17" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Retry Policy Id"/>
@@ -343,6 +353,7 @@
         <entity className="io.nop.job.dao.entity.NopJobTask" createTimeProp="createTime" createrProp="createdBy"
                 displayName="执行任务" name="io.nop.job.dao.entity.NopJobTask" registerShortName="true"
                 tableName="nop_job_task" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                tagSet="mapper"
                 ext:icon="circle-play" i18n-en:displayName="Job Task">
             <columns>
                 <!-- 标识与关联 -->
@@ -402,6 +413,10 @@
                 <column code="COST_MEMORY" defaultValue="0" displayName="内存开销(MB)" name="costMemory"
                         propId="27" stdDataType="int" stdSqlType="INTEGER"
                         i18n-en:displayName="Cost Memory(MB)"/>
+                <!-- 分片模式：本 task 覆盖的 hash range（IntRangeSet.toString() 格式，如 "0,10922"） -->
+                <column code="PARTITION_RANGE" displayName="分片范围" name="partitionRange" precision="400"
+                        propId="28" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Partition Range"/>
                 <column code="PROGRESS" displayName="执行进度" name="progress" propId="21"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Progress"/>
                 <column code="PROGRESS_MESSAGE" displayName="进度消息" name="progressMessage" precision="500"

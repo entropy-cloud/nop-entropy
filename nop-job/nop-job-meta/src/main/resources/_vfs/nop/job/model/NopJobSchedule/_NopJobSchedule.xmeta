@@ -177,6 +177,22 @@
               queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
             <schema type="java.lang.Long"/>
         </prop>
+        <prop name="taskCostCpu" displayName="任务CPU开销(毫核)" propId="39" i18n-en:displayName="Task Cost Cpu(Millicore)"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="taskCostMemory" displayName="任务内存开销(MB)" propId="40" i18n-en:displayName="Task Cost Memory(MB)"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="dispatchMode" displayName="派发模式" propId="41" i18n-en:displayName="Dispatch Mode" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="single">
+            <schema type="java.lang.String" precision="30" dict="job/dispatch-mode"/>
+        </prop>
+        <prop name="partitionCount" displayName="分片数量" propId="42" i18n-en:displayName="Partition Count"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="1">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="jobParamsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

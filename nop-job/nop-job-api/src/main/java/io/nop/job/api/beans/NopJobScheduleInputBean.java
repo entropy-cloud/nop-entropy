@@ -334,4 +334,60 @@
         }
 
 
+        private Integer _taskCostCpu;
+
+    
+        @PropMeta(propId=39)
+    
+        public Integer getTaskCostCpu(){
+            return _taskCostCpu;
+        }
+
+        public void setTaskCostCpu(Integer value){
+            this._taskCostCpu = value;
+        }
+
+
+        private Integer _taskCostMemory;
+
+    
+        @PropMeta(propId=40)
+    
+        public Integer getTaskCostMemory(){
+            return _taskCostMemory;
+        }
+
+        public void setTaskCostMemory(Integer value){
+            this._taskCostMemory = value;
+        }
+
+
+        private String _dispatchMode;
+
+    
+        @PropMeta(propId=41)
+    
+        public String getDispatchMode(){
+            return _dispatchMode;
+        }
+
+        public void setDispatchMode(String value){
+            this._dispatchMode = value;
+        }
+
+
+        private Integer _partitionCount;
+
+    
+        @PropMeta(propId=42)
+    
+        public Integer getPartitionCount(){
+            return _partitionCount;
+        }
+
+        public void setPartitionCount(Integer value){
+            this._partitionCount = value;
+        }
+
+
     }

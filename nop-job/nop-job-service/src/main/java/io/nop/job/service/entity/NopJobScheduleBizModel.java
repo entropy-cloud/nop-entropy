@@ -243,6 +243,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         fire.setRetryPolicyId(schedule.getRetryPolicyId());
         fire.setJobParamsSnapshot(JsonTool.stringify(resolveJobParams(schedule, overrideParams)));
         fire.setExecutorKind(schedule.getExecutorKind());
+        fire.setDispatchMode(schedule.getDispatchMode());
         FireFactory.fillBaseFireFields(fire, fireTime);
         return fire;
     }

@@ -96,6 +96,48 @@
         }
 
 
+        private Integer _taskCostCpu;
+
+    
+        @PropMeta(propId=28)
+    
+        public Integer getTaskCostCpu(){
+            return _taskCostCpu;
+        }
+
+        public void setTaskCostCpu(Integer value){
+            this._taskCostCpu = value;
+        }
+
+
+        private Integer _taskCostMemory;
+
+    
+        @PropMeta(propId=29)
+    
+        public Integer getTaskCostMemory(){
+            return _taskCostMemory;
+        }
+
+        public void setTaskCostMemory(Integer value){
+            this._taskCostMemory = value;
+        }
+
+
+        private String _dispatchMode;
+
+    
+        @PropMeta(propId=30)
+    
+        public String getDispatchMode(){
+            return _dispatchMode;
+        }
+
+        public void setDispatchMode(String value){
+            this._dispatchMode = value;
+        }
+
+
         private String _jobScheduleId;
 
     

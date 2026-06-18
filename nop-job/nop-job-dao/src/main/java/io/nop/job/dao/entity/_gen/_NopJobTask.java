@@ -128,8 +128,12 @@ public class _NopJobTask extends DynamicOrmEntity{
     public static final String PROP_NAME_costMemory = "costMemory";
     public static final int PROP_ID_costMemory = 27;
     
+    /* 分片范围: PARTITION_RANGE VARCHAR */
+    public static final String PROP_NAME_partitionRange = "partitionRange";
+    public static final int PROP_ID_partitionRange = 28;
+    
 
-    private static int _PROP_ID_BOUND = 28;
+    private static int _PROP_ID_BOUND = 29;
 
     
     /* relation: 触发批次 */
@@ -145,7 +149,7 @@ public class _NopJobTask extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobTaskId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobTaskId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[28];
+    private static final String[] PROP_ID_TO_NAME = new String[29];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -230,6 +234,9 @@ public class _NopJobTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_costMemory] = PROP_NAME_costMemory;
           PROP_NAME_TO_ID.put(PROP_NAME_costMemory, PROP_ID_costMemory);
       
+          PROP_ID_TO_NAME[PROP_ID_partitionRange] = PROP_NAME_partitionRange;
+          PROP_NAME_TO_ID.put(PROP_NAME_partitionRange, PROP_ID_partitionRange);
+      
     }
 
     
@@ -313,6 +320,9 @@ public class _NopJobTask extends DynamicOrmEntity{
     
     /* 内存开销(MB): COST_MEMORY */
     private java.lang.Integer _costMemory;
+    
+    /* 分片范围: PARTITION_RANGE */
+    private java.lang.String _partitionRange;
     
 
     public _NopJobTask(){
@@ -468,6 +478,9 @@ public class _NopJobTask extends DynamicOrmEntity{
         
             case PROP_ID_costMemory:
                return getCostMemory();
+        
+            case PROP_ID_partitionRange:
+               return getPartitionRange();
         
            default:
               return super.orm_propValue(propId);
@@ -750,6 +763,16 @@ public class _NopJobTask extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_partitionRange:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_partitionRange));
+               }
+               setPartitionRange(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -944,6 +967,13 @@ public class _NopJobTask extends DynamicOrmEntity{
             case PROP_ID_costMemory:{
                onInitProp(propId);
                this._costMemory = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_partitionRange:{
+               onInitProp(propId);
+               this._partitionRange = (java.lang.String)value;
                
                break;
             }
@@ -1463,6 +1493,25 @@ public class _NopJobTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_costMemory,value)){
             this._costMemory = value;
             internalClearRefs(PROP_ID_costMemory);
+            
+        }
+    }
+    
+    /**
+     * 分片范围: PARTITION_RANGE
+     */
+    public final java.lang.String getPartitionRange(){
+         onPropGet(PROP_ID_partitionRange);
+         return _partitionRange;
+    }
+
+    /**
+     * 分片范围: PARTITION_RANGE
+     */
+    public final void setPartitionRange(java.lang.String value){
+        if(onPropSet(PROP_ID_partitionRange,value)){
+            this._partitionRange = value;
+            internalClearRefs(PROP_ID_partitionRange);
             
         }
     }

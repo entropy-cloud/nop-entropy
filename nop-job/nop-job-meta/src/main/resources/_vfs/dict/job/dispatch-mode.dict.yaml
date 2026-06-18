@@ -1,0 +1,22 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 派发模式
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 单任务
+    value: single
+    description: 默认模式，走 executorKind 路由（DefaultJobTaskBuilder 或自定义）
+
+  - label: 分片
+    value: partition
+    description: 按 worker weight 切分 hash range，每个 worker 一个 task
+
+  - label: 广播
+    value: broadcast
+    description: 每个 healthy 实例一个 task（1:1 广播）
+
+  - label: 最优匹配
+    value: bestFit
+    description: dispatcher 侧负载感知派发，显式指定 worker

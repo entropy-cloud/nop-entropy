@@ -14,6 +14,8 @@ public interface JobCoreErrors {
     String ARG_METADATA_KEY = "metadataKey";
     String ARG_METADATA_VALUE = "metadataValue";
     String ARG_WORKER_INSTANCE_ID = "workerInstanceId";
+    String ARG_DISPATCH_MODE = "dispatchMode";
+    String ARG_JOB_FIRE_ID = "jobFireId";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
             "Trigger calculation loop count exceeded limit", ARG_LOOP_COUNT);
@@ -92,4 +94,8 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_WORKER_CAPACITY_PROVIDER_REQUIRED = define("nop.err.job.worker-capacity-provider-required",
             "IWorkerCapacityProvider is not injected; cannot evaluate worker-side resource limit");
+
+    ErrorCode ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED = define("nop.err.job.dispatch-mode-not-implemented",
+            "dispatchMode '{dispatchMode}' is not yet implemented (jobFireId={jobFireId}); use 'single', 'partition', or 'broadcast' instead",
+            ARG_DISPATCH_MODE, ARG_JOB_FIRE_ID);
 }

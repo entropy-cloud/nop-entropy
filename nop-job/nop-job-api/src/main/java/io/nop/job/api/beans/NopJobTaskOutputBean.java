@@ -69,6 +69,48 @@
         }
 
 
+        private Integer _costCpu;
+
+    
+        @PropMeta(propId=26)
+    
+        public Integer getCostCpu(){
+            return _costCpu;
+        }
+
+        public void setCostCpu(Integer value){
+            this._costCpu = value;
+        }
+
+
+        private Integer _costMemory;
+
+    
+        @PropMeta(propId=27)
+    
+        public Integer getCostMemory(){
+            return _costMemory;
+        }
+
+        public void setCostMemory(Integer value){
+            this._costMemory = value;
+        }
+
+
+        private String _partitionRange;
+
+    
+        @PropMeta(propId=28)
+    
+        public String getPartitionRange(){
+            return _partitionRange;
+        }
+
+        public void setPartitionRange(String value){
+            this._partitionRange = value;
+        }
+
+
         private Integer _taskStatus;
 
     

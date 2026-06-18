@@ -42,6 +42,11 @@
   "totalFireCount": 0,
   "successFireCount": 0,
   "failFireCount": 0,
+  "taskCostCpu": 0,
+  "taskCostMemory": 0,
+  "dispatchMode": "",
+  "dispatchMode_label": "",
+  "partitionCount": 0,
   "jobParamsComponent": null,
   "pauseCalendarSpecComponent": null
 }

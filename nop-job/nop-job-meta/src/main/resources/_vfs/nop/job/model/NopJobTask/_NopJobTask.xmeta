@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" ext:icon="circle-play" xmlns:c="c" xmlns:graphql="graphql"
-      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="执行任务" i18n-en:displayName="Job Task" xmlns:ui="ui"
-      xmlns:orm="orm">
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="执行任务" i18n-en:displayName="Job Task" tagSet="mapper"
+      xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.job.dao.entity.NopJobTask</entityName>
 
@@ -120,6 +120,18 @@
         <prop name="shardingTotal" displayName="总分片数" propId="25" i18n-en:displayName="Sharding Total" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="costCpu" displayName="CPU开销(毫核)" propId="26" i18n-en:displayName="Cost Cpu(Millicore)"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="costMemory" displayName="内存开销(MB)" propId="27" i18n-en:displayName="Cost Memory(MB)"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="partitionRange" displayName="分片范围" propId="28" i18n-en:displayName="Partition Range"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="400"/>
         </prop>
         <prop name="jobFire" displayName="触发批次" i18n-en:displayName="Job Fire" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="jobFireId" ext:joinRightProp="jobFireId"

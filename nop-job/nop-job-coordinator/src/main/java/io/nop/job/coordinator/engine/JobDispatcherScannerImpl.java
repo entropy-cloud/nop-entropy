@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
@@ -21,6 +22,10 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import static io.nop.job.core.JobCoreErrors.ARG_DISPATCH_MODE;
+import static io.nop.job.core.JobCoreErrors.ARG_JOB_FIRE_ID;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED;
 
 public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobDispatcherScannerImpl.class);
@@ -160,6 +165,19 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     }
 
     private IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
+        String dispatchMode = fire.getDispatchMode();
+        if (dispatchMode != null && !dispatchMode.isBlank() && !"single".equals(dispatchMode)) {
+            if ("bestFit".equals(dispatchMode)) {
+                throw new NopException(ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED)
+                        .param(ARG_DISPATCH_MODE, dispatchMode)
+                        .param(ARG_JOB_FIRE_ID, fire.getJobFireId());
+            }
+            String beanName = TASK_BUILDER_PREFIX + dispatchMode;
+            Object bean = BeanContainer.tryGetBean(beanName);
+            if (bean instanceof IJobTaskBuilder) {
+                return (IJobTaskBuilder) bean;
+            }
+        }
         String executorKind = fire.getExecutorKind();
         if (executorKind != null && !executorKind.isBlank()) {
             String beanName = TASK_BUILDER_PREFIX + executorKind;

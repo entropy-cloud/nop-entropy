@@ -211,6 +211,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             newFire.setUpdateTime(fireTime);
             newFire.setPartitionIndex(schedule.getPartitionIndex());
             newFire.setExecutorKind(schedule.getExecutorKind());
+            newFire.setDispatchMode(schedule.getDispatchMode());
 
             fireDao().saveEntityDirectly(newFire);
 
