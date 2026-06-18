@@ -1,6 +1,6 @@
 # 213 - nop-job Hash-Range 分片模式（设计 Phase 2）
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-06-18
 > Source: `ai-dev/design/nop-job/worker-assignment-design.md` §六 Phase 2、§3.2
 > Related: 212（Phase 1 worker 资源限制）、214（Phase 3 priority）、215（Phase 4 best-fit）
@@ -190,15 +190,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Plan 213 全部 3 Phase 落地。独立子 agent closure audit 发现 4 个 blocker（缺失路由测试、缺失 dedicated pool 隔离测试、invoker-design 未同步），全部修复后再次验证通过。dispatchMode 路由、PartitionTaskBuilder 分片、fetchWaitingTasks opt-in 过滤三大功能完整实现。
+Completed: 2026-06-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待填>>
-- Audit Session: <<待填>>
-- Evidence: <<待填>>
+- Reviewer / Agent: independent closure auditor (fresh session, ses_124f90bc8ffesOTG6sfD5ZVTwx)
+- Audit Session: 2026-06-18
+- Evidence:
+  - Phase 1 Exit Criteria: 全部 PASS。ORM 4 字段（`nop-job.orm.xml:157-162,272-275,417-419`），dict `job/dispatch-mode` 含 4 值，4 处 snapshot（`JobPlannerScannerImpl:231`/`JobScheduleStoreImpl:214`/`NopJobScheduleBizModel:246`/`NopJobFireBizModel:139`），`resolveTaskBuilder` dispatchMode 优先路由。
+  - Phase 2 Exit Criteria: 全部 PASS。`PartitionTaskBuilder` 复用 `WeightedPartitionAssigner`，`TestPartitionTaskBuilder` 7 场景，`partitionRange` ↔ `IntRangeBean.parse()` 双向验证。
+  - Phase 3 Exit Criteria: 全部 PASS（审计修复后）。`fetchWaitingTasks` 新签名 + 旧重载兼容，`enforceAttribution` 默认 false，`TestJobStoreImpl.testDedicatedPoolIsolationScenarioC` 验证 dedicated pool 隔离，`TestJobDispatcherScannerRouting` 5 个路由测试（含 bestFit exception）。
+  - Closure Gates: 全部 PASS。`invoker-design.md §3.6` 已更新为 dispatchMode 优先路由表。`./mvnw test` 153 tests（coordinator 113 + dao 22 + worker 24）全部通过。
+  - Anti-Hollow Check: PASS。`resolveTaskBuilder` 在 `dispatchMode=partition` 时返回 `PartitionTaskBuilder`（TestJobDispatcherScannerRouting 验证）；`enforceAttribution` 在 `scanOnce` 中传给 `fetchWaitingTasks`。
+  - Deferred 项: `partitionRange` 多段 rebalance（optimization candidate），`bestFit` 路由（out-of-scope, Plan 215）。
 
 Follow-up:
 
-- <<待填>>
+- Phase 3 E2E 场景 A/B 以 DAO 级 unit test 覆盖（`testFetchWaitingTasksEnforceAttributionFiltersByWorker/FalseShowsAll`），多 worker 端到端场景留作集成测试演进
+- `nopJobTaskBuilder_broadcast` bean alias 已注册（与 `nopJobTaskBuilder_rpcBroadcast` 并存）
