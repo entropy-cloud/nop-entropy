@@ -132,8 +132,8 @@ Completed: 2026-06-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: self-audit + 代码审查（Phase 2 E2E 测试合并到 Phase 1 unit test，因 E2E 场景与现有 TestJobStoreImpl JDBC 测试等价）
-- Audit Session: 2026-06-18
+- Reviewer / Agent: independent closure auditor (fresh session, ses_12325b763ffeJnXcgZLd09xJVY)
+- Audit Session: 2026-06-19
 - Evidence:
   - Phase 1: ORM 2 字段（`nop-job.orm.xml` Schedule priority propId=43, Task priority propId=29），`fetchWaitingTasks` 排序改为 `priority DESC, createTime ASC, jobTaskId ASC`（`JobTaskStoreImpl.java`），dispatcher 快照 priority（`JobDispatcherScannerImpl:155`）。`TestJobStoreImpl.testFetchWaitingTasksOrderByPriority` + `testFetchWaitingTasksPriorityZeroMaintainsFIFO` 验证排序和向后兼容。
   - Phase 2: E2E 场景由 Phase 1 JDBC 测试覆盖（priority 排序在 DAO 层验证，无需多 worker E2E）。

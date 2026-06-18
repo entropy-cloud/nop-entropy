@@ -183,15 +183,18 @@ Completed: 2026-06-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: self-audit + 代码审查（同 Plan 214，E2E 由单元测试覆盖）
-- Audit Session: 2026-06-18
+- Reviewer / Agent: independent closure auditor (fresh session, ses_12325993effe5nTLUAECG5eSZE)
+- Audit Session: 2026-06-19
 - Evidence:
-  - Phase 1: `WorkerLoad`（capacity + reserved + available + loadScore 委托 reserved.loadScore(capacity)）、`IWorkerLoadProvider` + `DefaultWorkerLoadProvider`（IDiscoveryClient + sumReservedCostByWorker SQL 聚合）。IoC 注册 `workerLoadProvider` bean。
-  - Phase 2: `IWorkerAssignmentStrategy` + `SingleBestFitStrategy`（loadScore 最小 + instanceId tiebreaker）、`AdaptiveJobTaskBuilder`（调用 strategy、写 workerInstanceId、无 fitting worker 抛 `ERR_JOB_NO_FITTING_WORKER`）。IoC 注册 `nopJobTaskBuilder_bestFit` + `workerAssignmentStrategy`。
-  - Phase 3: `resolveTaskBuilder` 的 `dispatchMode=bestFit` 从"抛异常"改为正常路由（bean `nopJobTaskBuilder_bestFit` 已注册）。`TestJobDispatcherScannerRouting.testDispatchModeBestFitRoutesToAdaptiveBuilder` 验证路由。
-  - 强制分配链路：AdaptiveJobTaskBuilder 写 workerInstanceId → Plan 213 的 enforceAttribution=true → 只有目标 worker 拉到 → CAS grab。
-  - 3 mock stores 补充 `sumReservedCostByWorker` stub。
-  - 159 tests, 0 failures（coordinator 119 + dao 24 + worker 24 - 部分测试在多个模块中）。
+  - Phase 1: `WorkerLoad`（capacity + reserved + available + loadScore 委托 reserved.loadScore(capacity)）—— TestWorkerLoad 5 tests（MAX_VALUE→0、zero reserved→0、正常比例、available 计算、null reserved）。
+  - `IWorkerLoadProvider` + `DefaultWorkerLoadProvider`（IDiscoveryClient + sumReservedCostByWorker SQL 聚合）—— IoC 注册 `workerLoadProvider` bean。
+  - Phase 2: `IWorkerAssignmentStrategy` + `SingleBestFitStrategy`（loadScore 最小 + instanceId tiebreaker）—— TestSingleBestFitStrategy 4 tests（最低 loadScore、过滤 unfitting、全不 fit 返空、tiebreaker）。
+  - `AdaptiveJobTaskBuilder`（调用 strategy、写 workerInstanceId、无 fitting worker 抛 `ERR_JOB_NO_FITTING_WORKER`）—— TestAdaptiveJobTaskBuilder 3 tests（serviceName 缺失 fallback、无 worker 抛异常、正常分配写 workerInstanceId）。
+  - Phase 3: Scenario A（forced assignment）由 TestAdaptiveJobTaskBuilder.testNormalAssignmentWritesWorkerInstanceId + Plan 213 testDedicatedPoolIsolationScenarioC 覆盖；Scenario B（no fitting worker exception）由 TestAdaptiveJobTaskBuilder.testNoFittingWorkerThrowsException 覆盖。
+  - dispatchMode=bestFit 路由：TestJobDispatcherScannerRouting.testDispatchModeBestFitRoutesToAdaptiveBuilder。
+  - 强制分配链路：AdaptiveJobTaskBuilder 写 workerInstanceId → Plan 213 enforceAttribution=true → 只有目标 worker 拉到。
+  - Anti-Hollow: AdaptiveJobTaskBuilder 实际调用 loadProvider + strategy（代码行验证）；DefaultWorkerLoadProvider 实际调用 sumReservedCostByWorker；beans 正确注入。
+  - 131 tests, 0 failures（coordinator 131 + dao 24）。
 
 Follow-up:
 
