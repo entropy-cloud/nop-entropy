@@ -1,5 +1,6 @@
 package io.nop.task.state;
 
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskState;
 import io.nop.task.TaskStepReturn;
 
@@ -25,6 +26,16 @@ public class TaskStateBean extends AbstractTaskStateCommon implements ITaskState
     private int nextRunId;
 
     private transient Throwable exception;
+
+    @Override
+    public void afterLoad(ITaskRuntime taskRt) {
+
+    }
+
+    @Override
+    public void beforeSave(ITaskRuntime taskRt) {
+
+    }
 
     @Override
     public String getDescription() {

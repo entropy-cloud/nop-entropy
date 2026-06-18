@@ -84,7 +84,12 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         NopTaskInstance entity = taskDao().getEntityById(taskInstanceId);
         if (entity == null)
             return null;
-        return toTaskStateBean(entity);
+        // plan 262: task 级 afterLoad hook，对称 step 级 loadStepState:188。在 toTaskStateBean 完成
+        // 既有内联 reconstruction（result/exception 恢复）之后、返回之前调用，使 custom task state bean
+        // 可在 cross-restart resume 时重建 transient 字段、校验状态一致性。
+        TaskStateBean state = toTaskStateBean(entity);
+        state.afterLoad(taskRt);
+        return state;
     }
 
     @Override
@@ -96,6 +101,9 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             entity = taskDao().newEntity();
             entity.setTaskInstanceId(state.getTaskInstanceId());
         }
+        // plan 262: task 级 beforeSave hook，对称 step 级 saveStepState:202（在 copyStepStateToEntity 之前）。
+        // 在既有状态拷贝到 entity 之前调用，使 custom task state bean 可参与 save 前归一化/清理性写入。
+        state.beforeSave(taskRt);
         entity.setTaskName(state.getTaskName());
         if (state.getTaskVersion() != null)
             entity.setTaskVersion(state.getTaskVersion());
@@ -218,8 +226,17 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         return stepDao().findFirstByQuery(query);
     }
 
+    /**
+     * plan 262: 构造 task state bean 的工厂方法。默认返回 {@link TaskStateBean}，子类可 override 返回可观测
+     * 的 custom 子类（如测试 spy），使 {@link #loadTaskState} 的 {@code afterLoad} hook 调用可被 runtime 观测
+     * （load 路径 state 经 store 内部构造，外部无法注入可观测实例）。
+     */
+    protected TaskStateBean newTaskStateBean() {
+        return new TaskStateBean();
+    }
+
     protected TaskStateBean toTaskStateBean(NopTaskInstance entity) {
-        TaskStateBean state = new TaskStateBean();
+        TaskStateBean state = newTaskStateBean();
         state.setTaskInstanceId(entity.getTaskInstanceId());
         state.setTaskName(entity.getTaskName());
         if (entity.getTaskVersion() != null)

@@ -108,4 +108,23 @@ public interface ITaskState extends ITaskStateCommon {
     Map<String, Object> getTaskVars();
 
     void setTaskVar(String name, Object value);
+
+    /**
+     * task 级状态从持久化存储中恢复后调用（对称 step 级 {@link ITaskStepState#afterLoad(ITaskRuntime)}）。
+     * <p>
+     * {@link io.nop.task.dao.store.DaoTaskStateStore#loadTaskState} 在 {@code toTaskStateBean} 完成
+     * 既有内联 reconstruction 之后、返回之前调用本 hook。默认 no-op 作为扩展点基类，custom 子类可 override
+     * 重建 transient 字段、校验状态一致性等。镜像 step 级 hook 接线语义，闭合 task 级持久化生命周期缺口。
+     */
+    default void afterLoad(ITaskRuntime taskRt) {
+    }
+
+    /**
+     * task 级状态持久化到存储之前调用（对称 step 级 {@link ITaskStepState#beforeSave(ITaskRuntime)}）。
+     * <p>
+     * {@link io.nop.task.dao.store.DaoTaskStateStore#saveTaskState} 在既有状态拷贝到 entity 之前调用本 hook。
+     * 默认 no-op 作为扩展点基类，custom 子类可 override 参与归一化、清理性写入等。
+     */
+    default void beforeSave(ITaskRuntime taskRt) {
+    }
 }
