@@ -181,3 +181,7 @@ Follow-up:
 - 其他 NopException 语义标记包装传播裁定（notRollback/status/params）：out-of-scope improvement（仅 bizFatal 被 RetryPolicy 直接消费，plan 249 carry-over）。
 - bizFatal 完整语义（retry/rollback 交互）的 owner-doc 文档化：out-of-scope improvement（更适合 reliability/retry 上下文，非 error-handling.md，plan 249 carry-over）。
 - 跨重启 exception 持久化（移除 transient + 异常序列化）：optimization candidate（plan 247 carry-over，in-memory retry 不依赖跨重启异常传递）。
+
+## Follow-up handled by 251-nop-ai-agent-xpl-prop-bizfatal-wrap-preserve.md
+
+> **Traceability note**（added 2026-06-18，非历史 closure 记录的回写）：本计划 §Non-Goals:46 + §Follow-up:180 中 dot/prop 路径（`AbstractPropertyExecutable.readProp`/`setProp` 及子类覆写、`StaticGetterGetPropertyExecutable`，error code `ERR_EXEC_READ_PROP_FAIL`/`ERR_EXEC_WRITE_PROP_FAIL`）的 bizFatal 穿透 successor 已由 `ai-dev/plans/251-nop-ai-agent-xpl-prop-bizfatal-wrap-preserve.md` 接管。此 section 仅为旧→新 plan 可追溯链接，不改动上方已审计的 closure 记录。
