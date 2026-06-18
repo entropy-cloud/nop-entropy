@@ -17,6 +17,7 @@ import io.nop.task.ITaskStepFlagOperation;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.core._NopTaskCoreConstants;
 import io.nop.task.metrics.ITaskFlowMetrics;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
@@ -229,6 +230,14 @@ public class TaskStepExecution implements ITaskStepExecution {
                     if (TaskStepHelper.isCancelledException(err))
                         throw NopException.adapt(err);
 
+                    // plan 254: 终态失败 FAILED driver wiring（对称 plan 252/253 succeed-driver）。
+                    // cancel-check 之后（cancelled != failed）、nextStepNameOnError/rethrow 之前，
+                    // 使 step 终态失败后 stepStatus==FAILED + isDone + !isSuccess + exception() 非 null 可观测。
+                    // fail() 仅保存 exception（plan 247 裁定，不变），setStepStatus(FAILED) 标记终态。
+                    // retry-wrapped step 已在 TaskStepHelper.retry:178 由 fail() 保存 exception，harmless re-save。
+                    stepRt.getState().fail(err, taskRt);
+                    stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
+
                     if (nextStepNameOnError != null)
                         return buildErrorResult(stepRt, parentScope, err);
                     if (err instanceof NopException)
@@ -273,6 +282,14 @@ public class TaskStepExecution implements ITaskStepExecution {
 
             if (e instanceof NopException)
                 ((NopException) e).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
+
+            // plan 254: 终态失败 FAILED driver wiring（对称 plan 252/253 succeed-driver）。
+            // cancel-check 之后（cancelled != failed）、nextStepNameOnError/rethrow 之前，
+            // 使 step 终态失败后 stepStatus==FAILED + isDone + !isSuccess + exception() 非 null 可观测。
+            // fail() 仅保存 exception（plan 247 裁定，不变），setStepStatus(FAILED) 标记终态。
+            // retry-wrapped step 已在 TaskStepHelper.retry:178 由 fail() 保存 exception，harmless re-save。
+            stepRt.getState().fail(e, taskRt);
+            stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
 
             if (nextStepNameOnError != null) {
                 return buildErrorResult(stepRt, parentScope, e);

@@ -2,6 +2,7 @@ package io.nop.task.ext.reliability;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.task.exceptions.NopTaskCancelledException;
 
 /**
  * Plan 247/249 测试辅助 bean：从 xpl step 中抛出 NopException，使 retry decorator 端到端路径可观测。
@@ -100,5 +101,17 @@ public class FailureSimulatorBean {
     public Object getRecoverableProp() {
         counter.incrementAndGet();
         throw new NopException(ERR_TEST_RECOVERABLE);
+    }
+
+    /**
+     * 抛出 {@link NopTaskCancelledException}（plan 254 cancel 排除验证 fixture）。
+     *
+     * <p>{@link io.nop.task.utils.TaskStepHelper#isCancelledException} 对 {@code NopTaskCancelledException}
+     * 返回 true，故 {@link io.nop.task.step.TaskStepExecution} 错误分支的 cancel-check（async `:230` / sync `:280`）
+     * 在 plan 254 FAILED-driver wiring 之前 throw，cancelled step 不应被标记 FAILED（cancelled != failed）。
+     */
+    public void throwCancelled() {
+        counter.incrementAndGet();
+        throw NopTaskCancelledException.INSTANCE;
     }
 }

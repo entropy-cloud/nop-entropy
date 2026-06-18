@@ -1,0 +1,23 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <loop name="loopFailStep" varName="a" itemsExpr="[1]">
+            <steps>
+                <xpl name="body">
+                    <source><![CDATA[
+                        const sim = inject("testFailureSimulator");
+                        sim.throwRecoverable();
+                    ]]></source>
+                </xpl>
+            </steps>
+            <output name="RESULT">
+                <source>return "OK"</source>
+            </output>
+        </loop>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

@@ -1,0 +1,20 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="delayExhaustedStep">
+            <decorator name="retry" retry:maxRetryCount="1" retry:retryDelay="10"/>
+            <source><![CDATA[
+                import io.nop.api.core.exceptions.NopException;
+                const counter = inject("testExecutionCounter");
+                counter.incrementAndGet();
+                throw new NopException("nop.err.test.permanent-failure");
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

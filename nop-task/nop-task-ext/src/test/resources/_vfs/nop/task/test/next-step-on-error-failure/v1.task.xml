@@ -1,0 +1,21 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="routedFailStep" next="errorHandler" nextOnError="errorHandler">
+            <source><![CDATA[
+                const sim = inject("testFailureSimulator");
+                sim.throwRecoverable();
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+        <xpl name="errorHandler">
+            <source>return "RECOVERED"</source>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

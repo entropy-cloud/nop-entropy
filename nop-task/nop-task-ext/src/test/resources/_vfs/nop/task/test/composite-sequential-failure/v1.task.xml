@@ -1,0 +1,23 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <sequential name="seqFailStep">
+            <steps>
+                <xpl name="s1">
+                    <source>return "OK1"</source>
+                </xpl>
+                <xpl name="innerFail">
+                    <source><![CDATA[
+                        const sim = inject("testFailureSimulator");
+                        sim.throwRecoverable();
+                    ]]></source>
+                </xpl>
+            </steps>
+        </sequential>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>
