@@ -8,13 +8,16 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_jobFireId;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_jobTaskId;
@@ -29,9 +32,16 @@ public class JobTaskStoreImpl implements IJobTaskStore {
 
     private IDaoProvider daoProvider;
 
+    private NopJobTaskMapper taskMapper;
+
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
+    }
+
+    @Inject
+    public void setTaskMapper(NopJobTaskMapper taskMapper) {
+        this.taskMapper = taskMapper;
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -102,6 +112,29 @@ public class JobTaskStoreImpl implements IJobTaskStore {
                 List.of(_NopJobCoreConstants.TASK_STATUS_RUNNING, _NopJobCoreConstants.TASK_STATUS_CLAIMED)));
         query.addFilter(FilterBeans.eq(PROP_NAME_workerInstanceId, workerInstanceId));
         return taskDao().countByQuery(query);
+    }
+
+    @Override
+    public ResourceVector sumReservedCost(String workerInstanceId) {
+        Map<String, Object> row = taskMapper.sumReservedCost(
+                workerInstanceId, NopJobCoreConstants.RESERVED_TASK_STATUSES);
+        if (row == null) {
+            return ResourceVector.ZERO;
+        }
+        // SUM 在 H2/MySQL 等数据库可能返回 Long / BigDecimal / BigInteger，统一转 int
+        int cpu = toInt(row.get("cpu"));
+        int memory = toInt(row.get("memory"));
+        return new ResourceVector(cpu, memory);
+    }
+
+    private static int toInt(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return Integer.parseInt(String.valueOf(value).trim());
     }
 
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {

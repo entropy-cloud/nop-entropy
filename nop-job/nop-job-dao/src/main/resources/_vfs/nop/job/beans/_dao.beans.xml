@@ -2,4 +2,10 @@
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
        xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"/>
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="io.nop.job.dao.store.NopJobTaskMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
+          ioc:type="@bean:id" ioc:bean-method="build">
+        <property name="mapperClass" value="@bean:type"/>
+    </bean>
+</beans>

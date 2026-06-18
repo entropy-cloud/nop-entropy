@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
@@ -157,6 +158,135 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertTrue(recoveryFire.getJobParamsSnapshot().contains("p1"),
                 "recovery fire should have jobParamsSnapshot from schedule");
         assertEquals(schedule.getExecutorKind(), recoveryFire.getExecutorKind());
+    }
+
+    // ============== sumReservedCost（Plan 212 Phase 2）==============
+
+    /**
+     * 无匹配 worker 时返回 ZERO（不抛异常，不返回 null）。
+     */
+    @Test
+    public void testSumReservedCostEmptyReturnsZero() {
+        ResourceVector result = taskStore.sumReservedCost("worker-empty");
+        assertEquals(ResourceVector.ZERO, result);
+    }
+
+    /**
+     * 单个 WAITING task：cost 完整计入 reserved。
+     */
+    @Test
+    public void testSumReservedCostSingleWaitingTask() {
+        NopJobSchedule schedule = newSchedule("schedule-src-1", "job-src-1");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+        NopJobFire fire = newFire("fire-src-1", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        NopJobTask task = newTask("task-src-1", fire);
+        task.setWorkerInstanceId("worker-src");
+        task.setCostCpu(500);
+        task.setCostMemory(1024);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task);
+
+        ResourceVector result = taskStore.sumReservedCost("worker-src");
+        assertEquals(500, result.getCpu());
+        assertEquals(1024, result.getMemory());
+    }
+
+    /**
+     * 多个非终态 task 求和（WAITING + CLAIMED + SUSPICIOUS + RUNNING 全部计入）。
+     */
+    @Test
+    public void testSumReservedCostMultipleActiveStatuses() {
+        NopJobSchedule schedule = newSchedule("schedule-src-2", "job-src-2");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        String workerId = "worker-src-multi";
+
+        saveCostTask("task-src-multi-w", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_WAITING, 100, 200);
+        saveCostTask("task-src-multi-c", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_CLAIMED, 200, 300);
+        saveCostTask("task-src-multi-s", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, 300, 400);
+        saveCostTask("task-src-multi-r", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_RUNNING, 400, 500);
+
+        ResourceVector result = taskStore.sumReservedCost(workerId);
+        // SUM = 100+200+300+400=1000 cpu, 200+300+400+500=1400 memory
+        assertEquals(1000, result.getCpu());
+        assertEquals(1400, result.getMemory());
+    }
+
+    /**
+     * 终态 task（SUCCESS / FAILED / TIMEOUT / CANCELED）不计入 reserved。
+     */
+    @Test
+    public void testSumReservedCostExcludesTerminalStatuses() {
+        NopJobSchedule schedule = newSchedule("schedule-src-3", "job-src-3");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        String workerId = "worker-src-terminal";
+
+        saveCostTask("task-src-term-r", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_RUNNING, 500, 1024);
+        // 这些终态不应计入
+        saveCostTask("task-src-term-s", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_SUCCESS, 9999, 9999);
+        saveCostTask("task-src-term-f", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_FAILED, 9999, 9999);
+        saveCostTask("task-src-term-t", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_TIMEOUT, 9999, 9999);
+        saveCostTask("task-src-term-c", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_CANCELED, 9999, 9999);
+
+        ResourceVector result = taskStore.sumReservedCost(workerId);
+        assertEquals(500, result.getCpu());
+        assertEquals(1024, result.getMemory());
+    }
+
+    /**
+     * SUSPICIOUS(15) 必须计入 reserved（design §3.3.4 关键约定）。
+     */
+    @Test
+    public void testSumReservedCostSuspiciousCounted() {
+        NopJobSchedule schedule = newSchedule("schedule-src-4", "job-src-4");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        String workerId = "worker-src-suspicious";
+        saveCostTask("task-src-susp", schedule, workerId, _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, 700, 2048);
+
+        ResourceVector result = taskStore.sumReservedCost(workerId);
+        assertEquals(700, result.getCpu());
+        assertEquals(2048, result.getMemory());
+    }
+
+    /**
+     * 其它 worker 的 task 不应被计入本 worker 的 reserved。
+     */
+    @Test
+    public void testSumReservedCostIsolatesByWorkerId() {
+        NopJobSchedule schedule = newSchedule("schedule-src-5", "job-src-5");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        saveCostTask("task-src-iso-mine", schedule, "worker-mine", _NopJobCoreConstants.TASK_STATUS_RUNNING, 300, 600);
+        saveCostTask("task-src-iso-other", schedule, "worker-other", _NopJobCoreConstants.TASK_STATUS_RUNNING, 9999, 9999);
+
+        ResourceVector mine = taskStore.sumReservedCost("worker-mine");
+        assertEquals(300, mine.getCpu());
+        assertEquals(600, mine.getMemory());
+
+        ResourceVector other = taskStore.sumReservedCost("worker-other");
+        assertEquals(9999, other.getCpu());
+        assertEquals(9999, other.getMemory());
+
+        ResourceVector absent = taskStore.sumReservedCost("worker-absent");
+        assertEquals(ResourceVector.ZERO, absent);
+    }
+
+    private void saveCostTask(String taskId, NopJobSchedule schedule, String workerId,
+                              int taskStatus, int cpu, int memory) {
+        NopJobFire fire = newFire("fire-" + taskId, schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        NopJobTask task = newTask(taskId, fire);
+        task.setWorkerInstanceId(workerId);
+        task.setTaskStatus(taskStatus);
+        task.setCostCpu(cpu);
+        task.setCostMemory(memory);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task);
     }
 
     private NopJobSchedule newSchedule(String id, String jobName) {

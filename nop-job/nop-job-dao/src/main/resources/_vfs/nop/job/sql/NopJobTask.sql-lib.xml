@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sqls>
+        <!--
+            聚合查询：单个 worker 已归因（WAITING/CLAIMED/SUSPICIOUS/RUNNING）的 task cost 求和。
+            返回 Map&lt;String,Object&gt;（key: cpu, memory），由 JobTaskStoreImpl 转换为 ResourceVector。
+            - worker 侧 scanOnce 用它算 myRemaining = myCapacity - myReserved（Plan 212）。
+            - 状态集与 RESERVED_TASK_STATUSES 一致，与 countInFlightTasks 故意不对称（design §3.3.4）。
+        -->
+        <eql name="sumReservedCost" sqlMethod="findFirst">
+            <arg name="workerInstanceId"/>
+            <arg name="activeStatuses"/>
+            <source>
+                select sum(o.costCpu) as cpu, sum(o.costMemory) as memory
+                from io.nop.job.dao.entity.NopJobTask o
+                where o.workerInstanceId = ${workerInstanceId}
+                  and o.taskStatus in (${activeStatuses})
+            </source>
+        </eql>
+
+        <!--
+            跨 worker 聚合查询：所有 worker 的 reserved cost，按 workerInstanceId 分组。
+            用于 dispatcher 侧 WorkerLoad 派生（Plan 215 DefaultWorkerLoadProvider）。
+            worker_instance_id 为 NULL 的历史行不返回（dispatcher 无法对应到具体实例）。
+        -->
+        <eql name="sumReservedCostByWorker" sqlMethod="findAll"
+             rowType="io.nop.job.dao.store.WorkerReservedCost">
+            <arg name="activeStatuses"/>
+            <source>
+                select o.workerInstanceId as workerInstanceId,
+                       sum(o.costCpu) as cpu,
+                       sum(o.costMemory) as memory
+                from io.nop.job.dao.entity.NopJobTask o
+                where o.taskStatus in (${activeStatuses})
+                  and o.workerInstanceId is not null
+                group by o.workerInstanceId
+            </source>
+        </eql>
+    </sqls>
+</sql-lib>
