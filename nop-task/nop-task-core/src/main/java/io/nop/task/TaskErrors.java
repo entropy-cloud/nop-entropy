@@ -147,4 +147,7 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_THROTTLE_TIMEOUT = define("nop.err.task.throttle-timeout",
             "任务[{taskName}]的步骤[{stepPath}]的限流等待超时", ARG_TASK_NAME, ARG_STEP_PATH);
+
+    ErrorCode ERR_TASK_STEP_ALREADY_FAILED = define("nop.err.task.step.already-failed",
+            "步骤[{stepPath}]在历史状态中已终态失败，恢复执行时重抛终态异常", ARG_TASK_NAME, ARG_STEP_PATH);
 }

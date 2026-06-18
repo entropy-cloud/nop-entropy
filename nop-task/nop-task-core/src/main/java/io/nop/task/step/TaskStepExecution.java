@@ -15,7 +15,9 @@ import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepFlagOperation;
 import io.nop.task.ITaskStepRuntime;
+import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
+import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.core._NopTaskCoreConstants;
 import io.nop.task.metrics.ITaskFlowMetrics;
@@ -32,6 +34,7 @@ import java.util.Set;
 import static io.nop.task.TaskErrors.ARG_INPUT_NAME;
 import static io.nop.task.TaskErrors.ARG_STEP_PATH;
 import static io.nop.task.TaskErrors.ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY;
+import static io.nop.task.TaskErrors.ERR_TASK_STEP_ALREADY_FAILED;
 
 public class TaskStepExecution implements ITaskStepExecution {
     static final Logger LOG = LoggerFactory.getLogger(TaskStepExecution.class);
@@ -185,6 +188,38 @@ public class TaskStepExecution implements ITaskStepExecution {
         LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepPath={},runId={},loc={}",
                 taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                 stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
+
+        // plan 257: continuation-skip reader —— resume/re-execution 时检查 state.isDone()。
+        // 终态 COMPLETED → 返回缓存 result（step body 不被调用）；终态 FAILED → 重抛 exception。
+        // 这是 plans 252-256 状态机 write-side（succeed/COMPLETED + FAILED driver）的 read-side 消费方，
+        // 使 ITaskStepState.isDone()/result() 首次被 production 消费。
+        ITaskStepState stepState = stepRt.getState();
+        if (stepState != null && stepState.isDone()) {
+            if (stepState.isSuccess()) {
+                TaskStepReturn cached = stepState.result();
+                LOG.info("nop.task.step.continuation-skip:taskName={},taskInstanceId={},stepPath={},runId={},loc={}",
+                        taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+                        stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
+                if (cached != null) {
+                    parentScope.setLocalValue(TaskConstants.VAR_RESULT, cached.getResult());
+                    if (cached.getNextStepName() == null && nextStepName != null)
+                        cached = TaskStepReturn.RETURN(nextStepName, cached.get());
+                    return cached;
+                }
+                return TaskStepReturn.CONTINUE;
+            } else {
+                // 终态失败（FAILED/EXPIRED/KILLED）→ 重抛 exception（非静默跳过，设计裁定 4）
+                Throwable exp = stepState.exception();
+                if (exp == null) {
+                    exp = new NopException(ERR_TASK_STEP_ALREADY_FAILED)
+                            .param(TaskErrors.ARG_TASK_NAME, taskRt.getTaskName())
+                            .param(TaskErrors.ARG_STEP_PATH, stepRt.getStepPath());
+                }
+                if (exp instanceof NopException)
+                    ((NopException) exp).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
+                throw NopException.adapt(exp);
+            }
+        }
 
         TaskStepHelper.checkNotCancelled(parentRt);
 
