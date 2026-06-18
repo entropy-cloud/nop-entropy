@@ -152,6 +152,7 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
                 for (NopJobTask task : tasks) {
                     task.setCostCpu(schedule.getTaskCostCpu());
                     task.setCostMemory(schedule.getTaskCostMemory());
+                    task.setPriority(schedule.getPriority());
                 }
                 fireStore.insertTasksAndMarkFireDispatching(fire, tasks);
             }

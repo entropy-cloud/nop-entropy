@@ -353,6 +353,52 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
                 "Dedicated worker must NOT see single-mode coordinator-attributed task");
     }
 
+    /**
+     * Plan 214: priority-based ordering.
+     * fetchWaitingTasks should return tasks ordered by priority DESC, then createTime ASC.
+     */
+    @Test
+    void testFetchWaitingTasksOrderByPriority() {
+        NopJobSchedule schedule = newSchedule("sched-prio", "job-prio");
+
+        NopJobTask lowPrio = newTask("task-low", newFire("fire-low", schedule));
+        lowPrio.setPriority(-5);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(lowPrio);
+
+        NopJobTask normalPrio = newTask("task-normal", newFire("fire-normal", schedule));
+        normalPrio.setPriority(0);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(normalPrio);
+
+        NopJobTask highPrio = newTask("task-high", newFire("fire-high", schedule));
+        highPrio.setPriority(10);
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(highPrio);
+
+        List<NopJobTask> result = taskStore.fetchWaitingTasks(10, IntRangeSet.parse("1"));
+        assertEquals(3, result.size());
+        assertEquals("task-high", result.get(0).getJobTaskId(), "Highest priority task should come first");
+        assertEquals("task-normal", result.get(1).getJobTaskId(), "Normal priority (0) second");
+        assertEquals("task-low", result.get(2).getJobTaskId(), "Low priority (-5) last");
+    }
+
+    /**
+     * Plan 214: backward compat — all priority=0 should maintain FIFO (createTime ASC).
+     */
+    @Test
+    void testFetchWaitingTasksPriorityZeroMaintainsFIFO() {
+        NopJobSchedule schedule = newSchedule("sched-fifo", "job-fifo");
+
+        NopJobTask task1 = newTask("task-fifo-1", newFire("fire-fifo-1", schedule));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task1);
+
+        NopJobTask task2 = newTask("task-fifo-2", newFire("fire-fifo-2", schedule));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(task2);
+
+        List<NopJobTask> result = taskStore.fetchWaitingTasks(10, IntRangeSet.parse("1"));
+        assertEquals(2, result.size());
+        assertEquals("task-fifo-1", result.get(0).getJobTaskId(), "Same priority → FIFO by createTime");
+        assertEquals("task-fifo-2", result.get(1).getJobTaskId());
+    }
+
     private void saveCostTask(String taskId, NopJobSchedule schedule, String workerId,
                               int taskStatus, int cpu, int memory) {
         NopJobFire fire = newFire("fire-" + taskId, schedule);

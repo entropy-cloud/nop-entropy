@@ -188,6 +188,8 @@
                         ext:dict="job/dispatch-mode"/>
                 <column code="PARTITION_COUNT" defaultValue="1" displayName="分片数量" name="partitionCount" propId="42"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Partition Count"/>
+                <column code="PRIORITY" defaultValue="0" displayName="优先级" name="priority" propId="43" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Priority"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_SCHEDULE_SCAN" unique="false">
@@ -375,6 +377,8 @@
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Cost Memory(MB)"/>
                 <column code="PARTITION_RANGE" displayName="分片范围" name="partitionRange" precision="400" propId="28"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Partition Range"/>
+                <column code="PRIORITY" defaultValue="0" displayName="优先级" name="priority" propId="29" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Priority"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_TASK_RUN_SCAN" unique="false">

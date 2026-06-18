@@ -6,6 +6,7 @@
   "costCpu": 0,
   "costMemory": 0,
   "partitionRange": "",
+  "priority": 0,
   "jobFire": null,
   "taskPayloadComponent": null,
   "resultPayloadComponent": null,

@@ -42,6 +42,7 @@ CREATE TABLE nop_job_schedule(
   TASK_COST_MEMORY INTEGER default 0  NULL    COMMENT '任务内存开销(MB)',
   DISPATCH_MODE VARCHAR(30) default 'single'  NULL    COMMENT '派发模式',
   PARTITION_COUNT INTEGER default 1  NULL    COMMENT '分片数量',
+  PRIORITY INTEGER default 0  NULL    COMMENT '优先级',
   constraint PK_nop_job_schedule primary key (JOB_SCHEDULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -108,6 +109,7 @@ CREATE TABLE nop_job_task(
   COST_CPU INTEGER default 0  NULL    COMMENT 'CPU开销(毫核)',
   COST_MEMORY INTEGER default 0  NULL    COMMENT '内存开销(MB)',
   PARTITION_RANGE VARCHAR(400) NULL    COMMENT '分片范围',
+  PRIORITY INTEGER default 0  NULL    COMMENT '优先级',
   constraint PK_nop_job_task primary key (JOB_TASK_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 

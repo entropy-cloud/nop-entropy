@@ -193,6 +193,10 @@
               queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="1">
             <schema type="java.lang.Integer"/>
         </prop>
+        <prop name="priority" displayName="优先级" propId="43" i18n-en:displayName="Priority" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="jobParamsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

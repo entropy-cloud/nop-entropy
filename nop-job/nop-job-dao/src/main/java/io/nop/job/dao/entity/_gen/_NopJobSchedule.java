@@ -188,8 +188,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     public static final String PROP_NAME_partitionCount = "partitionCount";
     public static final int PROP_ID_partitionCount = 42;
     
+    /* 优先级: PRIORITY INTEGER */
+    public static final String PROP_NAME_priority = "priority";
+    public static final int PROP_ID_priority = 43;
+    
 
-    private static int _PROP_ID_BOUND = 43;
+    private static int _PROP_ID_BOUND = 44;
 
     
     /* component:  */
@@ -202,7 +206,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobScheduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobScheduleId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[43];
+    private static final String[] PROP_ID_TO_NAME = new String[44];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -332,6 +336,9 @@ public class _NopJobSchedule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_partitionCount] = PROP_NAME_partitionCount;
           PROP_NAME_TO_ID.put(PROP_NAME_partitionCount, PROP_ID_partitionCount);
       
+          PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
+          PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
+      
     }
 
     
@@ -460,6 +467,9 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     
     /* 分片数量: PARTITION_COUNT */
     private java.lang.Integer _partitionCount;
+    
+    /* 优先级: PRIORITY */
+    private java.lang.Integer _priority;
     
 
     public _NopJobSchedule(){
@@ -660,6 +670,9 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         
             case PROP_ID_partitionCount:
                return getPartitionCount();
+        
+            case PROP_ID_priority:
+               return getPriority();
         
            default:
               return super.orm_propValue(propId);
@@ -1092,6 +1105,16 @@ public class _NopJobSchedule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_priority:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_priority));
+               }
+               setPriority(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1391,6 +1414,13 @@ public class _NopJobSchedule extends DynamicOrmEntity{
             case PROP_ID_partitionCount:{
                onInitProp(propId);
                this._partitionCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_priority:{
+               onInitProp(propId);
+               this._priority = (java.lang.Integer)value;
                
                break;
             }
@@ -2195,6 +2225,25 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_partitionCount,value)){
             this._partitionCount = value;
             internalClearRefs(PROP_ID_partitionCount);
+            
+        }
+    }
+    
+    /**
+     * 优先级: PRIORITY
+     */
+    public final java.lang.Integer getPriority(){
+         onPropGet(PROP_ID_priority);
+         return _priority;
+    }
+
+    /**
+     * 优先级: PRIORITY
+     */
+    public final void setPriority(java.lang.Integer value){
+        if(onPropSet(PROP_ID_priority,value)){
+            this._priority = value;
+            internalClearRefs(PROP_ID_priority);
             
         }
     }

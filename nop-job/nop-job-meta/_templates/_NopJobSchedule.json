@@ -47,6 +47,7 @@
   "dispatchMode": "",
   "dispatchMode_label": "",
   "partitionCount": 0,
+  "priority": 0,
   "jobParamsComponent": null,
   "pauseCalendarSpecComponent": null
 }

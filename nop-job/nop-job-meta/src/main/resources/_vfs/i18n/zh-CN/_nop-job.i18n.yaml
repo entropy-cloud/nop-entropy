@@ -78,6 +78,7 @@ prop:
       partitionIndex: 分区索引
       pauseCalendarSpec: 暂停日历配置
       pauseCalendarSpecComponent: null
+      priority: 优先级
       remark: 备注
       repeatIntervalMs: 重复间隔(毫秒)
       retryPolicyId: 重试策略ID
@@ -108,6 +109,7 @@ prop:
       jobTaskId: 任务ID
       partitionIndex: 分区索引
       partitionRange: 分片范围
+      priority: 优先级
       progress: 执行进度
       progressMessage: 进度消息
       remark: 备注

@@ -92,6 +92,7 @@ prop:
       dispatchMode: Dispatch Mode
       dispatchMode_label: null
       partitionCount: Partition Count
+      priority: Priority
       jobParamsComponent: null
       pauseCalendarSpecComponent: null
     NopJobTask:
@@ -102,6 +103,7 @@ prop:
       costCpu: Cost Cpu(Millicore)
       costMemory: Cost Memory(MB)
       partitionRange: Partition Range
+      priority: Priority
       jobFire: Job Fire
       taskPayloadComponent: null
       resultPayloadComponent: null

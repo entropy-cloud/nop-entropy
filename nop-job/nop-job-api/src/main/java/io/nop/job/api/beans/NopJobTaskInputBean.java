@@ -110,6 +110,20 @@
         }
 
 
+        private Integer _priority;
+
+    
+        @PropMeta(propId=29)
+    
+        public Integer getPriority(){
+            return _priority;
+        }
+
+        public void setPriority(Integer value){
+            this._priority = value;
+        }
+
+
         private String _taskPayload;
 
     

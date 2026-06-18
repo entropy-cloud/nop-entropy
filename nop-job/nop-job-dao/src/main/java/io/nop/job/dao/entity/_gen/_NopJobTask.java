@@ -132,8 +132,12 @@ public class _NopJobTask extends DynamicOrmEntity{
     public static final String PROP_NAME_partitionRange = "partitionRange";
     public static final int PROP_ID_partitionRange = 28;
     
+    /* 优先级: PRIORITY INTEGER */
+    public static final String PROP_NAME_priority = "priority";
+    public static final int PROP_ID_priority = 29;
+    
 
-    private static int _PROP_ID_BOUND = 29;
+    private static int _PROP_ID_BOUND = 30;
 
     
     /* relation: 触发批次 */
@@ -149,7 +153,7 @@ public class _NopJobTask extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobTaskId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobTaskId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[29];
+    private static final String[] PROP_ID_TO_NAME = new String[30];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -237,6 +241,9 @@ public class _NopJobTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_partitionRange] = PROP_NAME_partitionRange;
           PROP_NAME_TO_ID.put(PROP_NAME_partitionRange, PROP_ID_partitionRange);
       
+          PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
+          PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
+      
     }
 
     
@@ -323,6 +330,9 @@ public class _NopJobTask extends DynamicOrmEntity{
     
     /* 分片范围: PARTITION_RANGE */
     private java.lang.String _partitionRange;
+    
+    /* 优先级: PRIORITY */
+    private java.lang.Integer _priority;
     
 
     public _NopJobTask(){
@@ -481,6 +491,9 @@ public class _NopJobTask extends DynamicOrmEntity{
         
             case PROP_ID_partitionRange:
                return getPartitionRange();
+        
+            case PROP_ID_priority:
+               return getPriority();
         
            default:
               return super.orm_propValue(propId);
@@ -773,6 +786,16 @@ public class _NopJobTask extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_priority:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_priority));
+               }
+               setPriority(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -974,6 +997,13 @@ public class _NopJobTask extends DynamicOrmEntity{
             case PROP_ID_partitionRange:{
                onInitProp(propId);
                this._partitionRange = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_priority:{
+               onInitProp(propId);
+               this._priority = (java.lang.Integer)value;
                
                break;
             }
@@ -1512,6 +1542,25 @@ public class _NopJobTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_partitionRange,value)){
             this._partitionRange = value;
             internalClearRefs(PROP_ID_partitionRange);
+            
+        }
+    }
+    
+    /**
+     * 优先级: PRIORITY
+     */
+    public final java.lang.Integer getPriority(){
+         onPropGet(PROP_ID_priority);
+         return _priority;
+    }
+
+    /**
+     * 优先级: PRIORITY
+     */
+    public final void setPriority(java.lang.Integer value){
+        if(onPropSet(PROP_ID_priority,value)){
+            this._priority = value;
+            internalClearRefs(PROP_ID_priority);
             
         }
     }

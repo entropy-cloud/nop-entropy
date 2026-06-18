@@ -160,6 +160,9 @@
                 <column code="PARTITION_COUNT" defaultValue="1" displayName="分片数量" name="partitionCount"
                         propId="42" stdDataType="int" stdSqlType="INTEGER"
                         i18n-en:displayName="Partition Count"/>
+                <column code="PRIORITY" defaultValue="0" displayName="优先级" name="priority"
+                        propId="43" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Priority"/>
                 <!-- 调度游标 -->
                 <column code="FIRE_COUNT" defaultValue="0" displayName="已触发次数" mandatory="true" name="fireCount"
                         propId="23" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Fire Count"/>
@@ -417,6 +420,9 @@
                 <column code="PARTITION_RANGE" displayName="分片范围" name="partitionRange" precision="400"
                         propId="28" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Partition Range"/>
+                <column code="PRIORITY" defaultValue="0" displayName="优先级" name="priority"
+                        propId="29" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Priority"/>
                 <column code="PROGRESS" displayName="执行进度" name="progress" propId="21"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Progress"/>
                 <column code="PROGRESS_MESSAGE" displayName="进度消息" name="progressMessage" precision="500"

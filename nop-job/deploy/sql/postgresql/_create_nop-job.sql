@@ -42,6 +42,7 @@ CREATE TABLE nop_job_schedule(
   task_cost_memory INT4 default 0   ,
   dispatch_mode VARCHAR(30) default 'single'   ,
   partition_count INT4 default 1   ,
+  priority INT4 default 0   ,
   constraint PK_nop_job_schedule primary key (job_schedule_id)
 );
 
@@ -108,6 +109,7 @@ CREATE TABLE nop_job_task(
   cost_cpu INT4 default 0   ,
   cost_memory INT4 default 0   ,
   partition_range VARCHAR(400)  ,
+  priority INT4 default 0   ,
   constraint PK_nop_job_task primary key (job_task_id)
 );
 
@@ -197,6 +199,8 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_schedule.dispatch_mode IS '派发模式';
                     
       COMMENT ON COLUMN nop_job_schedule.partition_count IS '分片数量';
+                    
+      COMMENT ON COLUMN nop_job_schedule.priority IS '优先级';
                     
       COMMENT ON TABLE nop_job_fire IS '触发批次';
                 
@@ -317,4 +321,6 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_task.cost_memory IS '内存开销(MB)';
                     
       COMMENT ON COLUMN nop_job_task.partition_range IS '分片范围';
+                    
+      COMMENT ON COLUMN nop_job_task.priority IS '优先级';
                     

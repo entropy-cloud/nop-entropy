@@ -390,4 +390,18 @@
         }
 
 
+        private Integer _priority;
+
+    
+        @PropMeta(propId=43)
+    
+        public Integer getPriority(){
+            return _priority;
+        }
+
+        public void setPriority(Integer value){
+            this._priority = value;
+        }
+
+
     }

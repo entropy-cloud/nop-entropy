@@ -20,10 +20,11 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_createTime;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_jobFireId;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_jobTaskId;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_partitionIndex;
-import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_createTime;
+import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_priority;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_startTime;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_taskNo;
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_taskStatus;
@@ -69,6 +70,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
             ));
         }
         addPartitionFilter(query, partitions);
+        query.addOrderField(PROP_NAME_priority, true);
         query.addOrderField(PROP_NAME_createTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
         return taskDao().findAllByQuery(query);
