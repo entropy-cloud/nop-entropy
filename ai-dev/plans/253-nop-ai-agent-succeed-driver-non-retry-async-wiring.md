@@ -210,3 +210,7 @@ Follow-up:
 - 终态失败（stepStatus=FAILED）设置路径——successor plan required
 - `afterLoad`/`beforeSave` load/save 生命周期 no-op——successor plan required
 - result/success 跨重启持久化（serialization）——optimization candidate
+
+## Follow-up handled by 254-nop-ai-agent-terminal-failure-failed-driver.md
+
+plan 253 §Non-Goals L37 / §Non-Blocking Follow-ups L182 / §Follow-up L210 切出的 carry-over「终态失败（stepStatus=FAILED）设置路径」由 successor plan `ai-dev/plans/254-nop-ai-agent-terminal-failure-failed-driver.md` 接管。注意：原 carry-over 描述「`fail()` 内 1 行 setStepStatus(FAILED)」与 plan 247 §设计裁定 1 冲突（fail 在 retry catch 每次失败调用，设终态会 prematurely 标记可恢复中间失败）；successor plan 纠正为在 `TaskStepExecution` 终态失败 choke-point wiring FAILED，对称本计划的 succeed-driver 架构。本链接仅为可追溯性标注，不回写 plan 253 的历史结论。
