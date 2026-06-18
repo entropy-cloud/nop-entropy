@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-04-04
-> Updated: 2026-06-07（按 AGE owner-doc 模式重组）
+> Updated: 2026-06-18（新增 worker-assignment-design.md、priority-design.md，经独立审核一轮修订）
 
 本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，从高层设计原则到分项设计逐层展开：
 
@@ -38,6 +38,14 @@
 - `rate-limiting-design.md`
   - 限流设计与 nop 平台限流体系集成（Worker 级并发控制、RPC 限流启用）
   - 状态：draft
+
+- `worker-assignment-design.md`
+  - Worker 分配策略：三层机制——模式 A（Hash-Range 分片，复用 `WeightedPartitionAssigner` + `IntRangeSet`，task 携带 `partitionRange` 字符串）、模式 B（Best-Fit dispatcher 侧强制派发，配合 fetch-side workerInstanceId 过滤）、**worker 侧资源自限制**（与 count-based `maxConcurrency` 并存作为主约束，异构机器满载核心）
+  - 状态：草案
+
+- `priority-design.md`
+  - 任务调度优先级：`NopJobSchedule.priority` + `NopJobTask.priority` 快照，影响 `fetchWaitingTasks` 排序。与 worker 分配正交，混合负载场景（ad-hoc + 批次）下协同收益最大
+  - 状态：草案
 
 ## 本地调度层
 
@@ -79,6 +87,8 @@
 7. `retry-integration-design.md` — retry 桥接
 8. `metrics-design.md` — Metrics 命名和埋点规范
 9. `rate-limiting-design.md` — 限流设计
+10. `worker-assignment-design.md` — Worker 分配策略与负载感知
+11. `priority-design.md` — 任务调度优先级
 
 **扩展方向**：
 
