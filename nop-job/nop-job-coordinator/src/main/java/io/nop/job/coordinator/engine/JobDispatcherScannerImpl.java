@@ -164,7 +164,7 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
         }
     }
 
-    private IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
+    IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
         String dispatchMode = fire.getDispatchMode();
         if (dispatchMode != null && !dispatchMode.isBlank() && !"single".equals(dispatchMode)) {
             if ("bestFit".equals(dispatchMode)) {

@@ -320,6 +320,39 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals(2, result.size(), "enforceAttribution=false → competing-consumer, all tasks visible");
     }
 
+    /**
+     * Plan 213 Phase 3 scenario C: dedicated pool isolation.
+     * A worker with enforceAttribution=true must NOT see single-mode tasks
+     * (attributed to coordinator) — only its own partition tasks + unattributed tasks.
+     */
+    @Test
+    void testDedicatedPoolIsolationScenarioC() {
+        NopJobSchedule schedule = newSchedule("sched-pool-c", "job-pool-c");
+
+        // Single-mode task attributed to coordinator (not to any worker)
+        NopJobTask coordinatorTask = newTask("task-coordinator", newFire("fire-coord", schedule));
+        coordinatorTask.setWorkerInstanceId("coordinator-host-1");
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(coordinatorTask);
+
+        // Partition-mode task attributed to worker-A
+        NopJobTask workerATask = newTask("task-worker-a", newFire("fire-wa", schedule));
+        workerATask.setWorkerInstanceId("worker-A");
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(workerATask);
+
+        // Unattributed task (no workerInstanceId)
+        NopJobTask nullTask = newTask("task-unattributed", newFire("fire-null-c", schedule));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(nullTask);
+
+        // Worker-A with enforceAttribution=true: should see own + null, NOT coordinator's
+        List<NopJobTask> visible = taskStore.fetchWaitingTasks(
+                10, IntRangeSet.parse("1"), "worker-A", true);
+        assertEquals(2, visible.size(), "Dedicated worker sees own partition task + unattributed task");
+        assertTrue(visible.stream().anyMatch(t -> "task-worker-a".equals(t.getJobTaskId())));
+        assertTrue(visible.stream().anyMatch(t -> "task-unattributed".equals(t.getJobTaskId())));
+        assertTrue(visible.stream().noneMatch(t -> "task-coordinator".equals(t.getJobTaskId())),
+                "Dedicated worker must NOT see single-mode coordinator-attributed task");
+    }
+
     private void saveCostTask(String taskId, NopJobSchedule schedule, String workerId,
                               int taskStatus, int cpu, int memory) {
         NopJobFire fire = newFire("fire-" + taskId, schedule);

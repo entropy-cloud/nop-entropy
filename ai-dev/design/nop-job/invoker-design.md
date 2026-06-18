@@ -15,7 +15,7 @@
 5. **不需要 executorMethod**。RPC 调用的 serviceName、serviceMethod 等参数由 invoker 自行从 `jobParams` 中解析。
 6. **RPC invoker 注入 `IRpcServiceInvoker`**（平台已有的 `nopRpcServiceInvoker` bean），利用已有服务发现和负载均衡。
 7. **RPC 调用参数由 header + data 两部分构成**，都从 `jobParams` 解析。`jobParams` 中可包含 `headers` 子对象指定 RPC header。
-8. **广播/分片通过 `IJobTaskBuilder` 接口扩展**。Dispatcher 查找 `nopJobTaskBuilder_{executorKind}`，找不到则用默认的单 task 构建。
+8. **广播/分片通过 `IJobTaskBuilder` 接口扩展**。Dispatcher 查找 `nopJobTaskBuilder_{dispatchMode}` 或 `nopJobTaskBuilder_{executorKind}`，找不到则用默认的单 task 构建。**`dispatchMode` 优先于 `executorKind` 路由**（Plan 213 引入），详见 §3.6。
 
 ---
 
@@ -384,7 +384,7 @@ Fire(WAITING) → Dispatcher → nopJobTaskBuilder_rpcBroadcast (已注册)
                            → 分片：按 shardingIndex 处理对应数据子集
 ```
 
-### 3.6 executorKind dict 与配套 bean 对照表
+### 3.6 executorKind / dispatchMode dict 与配套 bean 对照表
 
 扩展 `job/executor-kind` dict：
 
@@ -396,15 +396,29 @@ Fire(WAITING) → Dispatcher → nopJobTaskBuilder_rpcBroadcast (已注册)
 </dict>
 ```
 
+新增 `job/dispatch-mode` dict（Plan 213）：
+
+```xml
+<dict name="job/dispatch-mode" valueType="string">
+    <option code="single" label="单任务"/>
+    <option code="partition" label="分片"/>
+    <option code="broadcast" label="广播"/>
+    <option code="bestFit" label="最优匹配"/>
+</dict>
+```
+
+**路由优先级**：`dispatchMode` 非空且非 `single` 时优先路由（`nopJobTaskBuilder_{dispatchMode}`），否则回退到 `executorKind` 路由（`nopJobTaskBuilder_{executorKind}`）。`dispatchMode=bestFit` 在 Plan 215 落地前抛 `NopException`。
+
 配套 bean 对照：
 
-| executorKind | Invoker Bean | TaskBuilder Bean | 说明 |
-|-------------|-------------|-----------------|------|
-| `test` | `nopJobInvoker_test` | — (default) | e2e 测试 |
-| `rpc` | `nopJobInvoker_rpc` | — (default) | 单次 RPC，负载均衡选一个实例 |
-| `rpcBroadcast` | `nopJobInvoker_rpc` | `nopJobTaskBuilder_rpcBroadcast` | 每个实例一个 task，自动注入 shardingIndex/shardingTotal header |
-
-`rpc` 和 `rpcBroadcast` 共用同一个 `nopJobInvoker_rpc`，因为 invoker 本身的逻辑相同（构造 ApiRequest → 调用 IRpcServiceInvoker）。区别在于 Dispatcher 阶段创建的 task 数量和每个 task 的 `targetHost` / `shardingIndex` / `shardingTotal` header。
+| dispatchMode | executorKind | Invoker Bean | TaskBuilder Bean | 说明 |
+|-------------|-------------|-------------|-----------------|------|
+| `single`(默认) / 未设 | `test` | `nopJobInvoker_test` | — (default) | e2e 测试 |
+| `single`(默认) / 未设 | `rpc` | `nopJobInvoker_rpc` | — (default) | 单次 RPC |
+| `single`(默认) / 未设 | `rpcBroadcast` | `nopJobInvoker_rpc` | `nopJobTaskBuilder_rpcBroadcast` | 每个实例一个 task |
+| `broadcast` | (任意) | (按 executorKind) | `nopJobTaskBuilder_rpcBroadcast` | 1:1 广播 |
+| `partition` | (任意) | (按 executorKind) | `nopJobTaskBuilder_partition` | 按 weight 切 hash range |
+| `bestFit` | (任意) | — | `nopJobTaskBuilder_bestFit` (Plan 215) | 负载感知派发 |
 
 ---
 
