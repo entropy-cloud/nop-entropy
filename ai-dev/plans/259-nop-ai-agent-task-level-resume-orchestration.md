@@ -192,3 +192,7 @@ Follow-up:
 - 跨重启 exception 持久化 transient 优化（optimization candidate）
 - step-state 全量字段持久化 / 完整历史 entity 模型（optimization candidate）
 - no remaining plan-owned work
+
+## Follow-up handled by 260-nop-ai-agent-terminal-killed-timeout-expired-driver.md
+
+`ai-dev/plans/260-nop-ai-agent-terminal-killed-timeout-expired-driver.md` 接续本计划 Non-Goals 中的「EXPIRED/KILLED/TIMEOUT 终态 driver」（5× carry-over）：交付 step 层 EXPIRED/KILLED driver + task 层 KILLED/TIMEOUT driver（闭合 read-but-never-written 缺口）+ resume 短路区分非 COMPLETED 终态。本计划已交付的 COMPLETED/FAILED driver、saveTaskState 接线、isTerminal() resume 短路为该 follow-up 的前置依赖（不变）。
