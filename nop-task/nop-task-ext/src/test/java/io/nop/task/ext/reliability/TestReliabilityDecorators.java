@@ -95,11 +95,10 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
     // -------- retry 异常分类（plan 247：依赖 TaskStepStateBean.fail/exception 真实保存） --------
     //
     // 注：xpl 函数调用（AbstractObjFunctionExecutable.doInvoke*）会把被调用方法抛出的异常包装为
-    // NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)，丢失 bizFatal 标记。这是 xpl 既有行为，非 plan 247 scope。
-    // 因此 bizFatal 分类的 focused 验证在 nop-task-core 单元测试层完成（不经 xpl 包装）：
-    //   TestTaskStepStateBeanExceptionPersistence#retryPolicy_classifiesBizFatalAsUnrecoverable_afterFail
-    // 此处的 E2E 测试覆盖可恢复路径（xpl 包装后的 NopEvalException 默认非 bizFatal → 可恢复 → 按 maxRetryCount 重试），
-    // 验证 plan 247 修复后 state.fail() → state.exception() → RetryPolicy 联动在 .task.xml 端到端路径连通。
+    // NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)。plan 249 修复后，该包装保留 bizFatal 标记，
+    // 故 bizFatal 分类的端到端验证在 .task.xml E2E 路径成立（下方 retry_bizFatalFailFastE2e）。
+    // plan 247 的 nop-task-core 单元测试 TestTaskStepStateBeanExceptionPersistence#retryPolicy_classifiesBizFatalAsUnrecoverable_afterFail
+    // 验证 state.fail()→exception()→RetryPolicy 联动（不经 xpl 包装）。
 
     @Test
     public void retry_recoverableExceptionRetriedE2e() {
@@ -129,6 +128,38 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
                 "recoverable exception should be retried (>= 2 executions), actual=" + counter().get());
         assertEquals(3, counter().get(),
                 "recoverable exception with maxRetryCount=2 should execute 1 + 2 = 3 times before exhaustion");
+    }
+
+    // -------- plan 249: bizFatal fail-fast E2E（retry 分类端到端修复） --------
+
+    @Test
+    public void retry_bizFatalFailFastE2e() {
+        // plan 249 端到端验证（#22, #23）：从 `.task.xml` 声明 `<decorator name="retry" maxRetryCount=2>` →
+        // step 经 xpl 调用 FailureSimulatorBean.throwBizFatal() 抛 bizFatal NopException →
+        // AbstractObjFunctionExecutable.doInvoke0 包装为 NopEvalException（plan 249 修复后 bizFatal 标记保留）→
+        // TaskStepHelper.retry:176 state.fail(e) → state.exception() 返回包装异常（isBizFatal()==true）→
+        // :138 retryPolicy.getRetryDelay → RetryPolicy.isRecoverableException 判定不可恢复 → delay < 0 →
+        // 立即 honest throw（执行次数 = 1，不重试）。
+        //
+        // 修复前（plan 249 前）：包装异常 bizFatal 丢失 → isRecoverableException 返回 true →
+        // 重试至 retryCount 耗尽 → 执行次数 = 1 + maxRetryCount(2) = 3，抛出 state.exception()（非 bizFatal）。
+        try {
+            runTask("test/retry-decorator-bizfatal-failfast");
+            fail("bizFatal exception should fail-fast without retry");
+        } catch (NopException e) {
+            assertNotNull(e, "bizFatal exception must propagate honestly (fail-fast)");
+            // 接线验证（#23）：修复后包装异常保留 bizFatal → 分类器判定不可恢复 → 抛出的异常 isBizFatal()==true。
+            // 这是 plan 249 核心价值主张的端到端可观测证据。
+            assertTrue(e.isBizFatal(),
+                    "plan 249 fix: bizFatal flag must be preserved through xpl method-invocation wrap, "
+                            + "so the honest-thrown exception reports isBizFatal()==true. got errorCode="
+                            + e.getErrorCode());
+        }
+        // 端到端验证（#22）：bizFatal = 不可恢复 → 立即 honest throw → 执行次数 = 1（不重试）。
+        // 修复前此处为 3（1 + maxRetryCount），修复后为 1。
+        assertEquals(1, counter().get(),
+                "bizFatal exception must fail-fast: execute exactly once (no retry). "
+                        + "Pre-fix this was 1 + maxRetryCount = 3 because bizFatal was lost in xpl wrap.");
     }
 
     // -------- plan 248: retry-wrapped 同步成功 step 执行恰好一次（sync success return 修复） --------

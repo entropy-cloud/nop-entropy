@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.exec;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -56,8 +57,7 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
         try {
             return func.invoke(obj, attrValues, scope);
         } catch (Exception e) {
-            throw newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap().param(ARG_CLASS_NAME, getClassName(obj))
-                    .param(ARG_FUNC_NAME, funcName);
+            throw wrapInvokeException(e, obj);
         }
     }
 
@@ -69,12 +69,26 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
         return o.getClass().getName();
     }
 
+    /**
+     * 将方法调用异常包装为 {@code NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)}，
+     * 保留 {@code wrapException} / cause / errorCode 全部既有语义。当被调用方法抛出 bizFatal
+     * {@link NopException} 时，将 bizFatal 标记传播到包装异常，使下游分类器（如
+     * {@code RetryPolicy.isRecoverableException}）能正确识别不可恢复异常。
+     */
+    private NopException wrapInvokeException(Exception e, Object obj) {
+        NopException err = newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap()
+                .param(ARG_CLASS_NAME, getClassName(obj))
+                .param(ARG_FUNC_NAME, funcName);
+        if (e instanceof NopException && ((NopException) e).isBizFatal())
+            err.bizFatal(true);
+        return err;
+    }
+
     protected Object doInvoke0(IEvalFunction func, Object obj, IEvalScope scope) {
         try {
             return func.call0(obj, scope);
         } catch (Exception e) {
-            throw newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap().param(ARG_CLASS_NAME, getClassName(obj))
-                    .param(ARG_FUNC_NAME, funcName);
+            throw wrapInvokeException(e, obj);
         }
     }
 
@@ -82,8 +96,7 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
         try {
             return func.call1(obj, arg1, scope);
         } catch (Exception e) {
-            throw newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap().param(ARG_CLASS_NAME, getClassName(obj))
-                    .param(ARG_FUNC_NAME, funcName);
+            throw wrapInvokeException(e, obj);
         }
     }
 
@@ -91,8 +104,7 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
         try {
             return func.call2(obj, arg1, arg2, scope);
         } catch (Exception e) {
-            throw newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap().param(ARG_CLASS_NAME, getClassName(obj))
-                    .param(ARG_FUNC_NAME, funcName);
+            throw wrapInvokeException(e, obj);
         }
     }
 
@@ -101,8 +113,7 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
         try {
             return func.call3(obj, arg1, arg2, arg3, scope);
         } catch (Exception e) {
-            throw newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap().param(ARG_CLASS_NAME, getClassName(obj))
-                    .param(ARG_FUNC_NAME, funcName);
+            throw wrapInvokeException(e, obj);
         }
     }
 
