@@ -206,6 +206,11 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
     }
 
     @Override
+    public void saveTaskState() {
+        stateStore.saveTaskState(this);
+    }
+
+    @Override
     public IRateLimiter getRateLimiter(String key, double requestsPerSecond, boolean global) {
         return taskManager.getRateLimiter(this, key, requestsPerSecond, global);
     }

@@ -139,6 +139,18 @@ public interface ITaskRuntime extends IEvalContext, ICancellable, IEditableTagSe
 
     ITaskStepRuntime newMainStepRuntime();
 
+    /**
+     * 是否是中断后从历史状态恢复（resume 路径）。镜像 {@link ITaskStepRuntime#isRecoverMode()} 的 task 级判定。
+     * resume 路径下，若 task 已终态则短路返回缓存 result / 重抛缓存 exception（不重跑 mainStep）。
+     */
+    boolean isRecoverMode();
+
+    /**
+     * 将 task state（taskStatus / response / result / exception 等）持久化到存储中。
+     * 镜像 {@link ITaskStepRuntime#saveState()} 的 task 级持久化，使终态 driver 出口可回写 DB。
+     */
+    void saveTaskState();
+
     IRateLimiter getRateLimiter(String key, double requestsPerSecond, boolean global);
 
     ISemaphore getSemaphore(String key, int maxPermits, boolean global);

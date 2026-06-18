@@ -12,6 +12,37 @@ import java.util.Map;
 public interface ITaskState extends ITaskStateCommon {
 
     /**
+     * Task实例是否已进入终态（COMPLETED/KILLED/FAILED/TIMEOUT）。
+     * <p>
+     * 镜像 {@link ITaskStepState#isDone()} 的 task 级终态判定，使 task envelope 能表达
+     * 「已终态」语义。resume 路径据此短路（设计裁定 3）：终态 task 不重跑 mainStep。
+     */
+    default boolean isTerminal() {
+        Integer status = getTaskStatus();
+        if (status == null)
+            return false;
+        return status == TaskConstants.TASK_STATUS_COMPLETED
+                || status == TaskConstants.TASK_STATUS_KILLED
+                || status == TaskConstants.TASK_STATUS_FAILED
+                || status == TaskConstants.TASK_STATUS_TIMEOUT;
+    }
+
+    /**
+     * Task实例是否成功终态（COMPLETED）。镜像 {@link ITaskStepState#isSuccess()}。
+     */
+    default boolean isSuccess() {
+        return Integer.valueOf(TaskConstants.TASK_STATUS_COMPLETED).equals(getTaskStatus());
+    }
+
+    /**
+     * 终态失败时捕获的异常。resume 路径据此重抛（非静默跳过，设计裁定 3/4）。
+     * 镜像 {@link ITaskStepState#exception()} 的 task 级异常访问器。
+     */
+    Throwable exception();
+
+    void exception(Throwable exp);
+
+    /**
      * 一个JobInstance可能包含多个TaskInstance
      *
      * @return

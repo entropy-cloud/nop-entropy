@@ -24,6 +24,8 @@ public class TaskStateBean extends AbstractTaskStateCommon implements ITaskState
 
     private int nextRunId;
 
+    private transient Throwable exception;
+
     @Override
     public String getDescription() {
         return description;
@@ -143,6 +145,16 @@ public class TaskStateBean extends AbstractTaskStateCommon implements ITaskState
 
     @Override
     public void result(TaskStepReturn result) {
+        setResultValue(result == null ? null : result.getResult());
+    }
 
+    @Override
+    public Throwable exception() {
+        return exception;
+    }
+
+    @Override
+    public void exception(Throwable exp) {
+        this.exception = exp;
     }
 }

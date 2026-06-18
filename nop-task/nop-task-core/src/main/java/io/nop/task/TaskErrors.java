@@ -150,4 +150,7 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_STEP_ALREADY_FAILED = define("nop.err.task.step.already-failed",
             "步骤[{stepPath}]在历史状态中已终态失败，恢复执行时重抛终态异常", ARG_TASK_NAME, ARG_STEP_PATH);
+
+    ErrorCode ERR_TASK_ALREADY_FAILED = define("nop.err.task.already-failed",
+            "任务[{taskName}]在历史状态中已终态失败，恢复执行时重抛终态异常", ARG_TASK_NAME, ARG_TASK_INSTANCE_ID);
 }
