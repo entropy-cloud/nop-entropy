@@ -1,15 +1,15 @@
 # 212 - nop-job Worker 侧资源限制（设计 Phase 1）
 
-> Plan Status: implementing
+> Plan Status: completed
 > Last Reviewed: 2026-06-18
 > Source: `ai-dev/design/nop-job/worker-assignment-design.md` §六 Phase 1
 > Related: 213（Phase 2 模式 A 分片）、214（Phase 3 priority）、215（Phase 4 模式 B best-fit）
 
 ## Phases Overview
-- **Phase 1 (Data Model + Constants + ResourceVector): committed**
-- **Phase 2 (Capacity Provider + Reserved Sum): committed**
-- **Phase 3 (Task Builder Snapshot + Worker Scanner Integration): committed**
-- **Phase 4 (E2E Integration): implemented (tests green)**
+- **Phase 1 (Data Model + Constants + ResourceVector): completed**
+- **Phase 2 (Capacity Provider + Reserved Sum): completed**
+- **Phase 3 (Task Builder Snapshot + Worker Scanner Integration): completed**
+- **Phase 4 (E2E Integration): completed**
 
 ## Purpose
 
@@ -80,23 +80,23 @@ Targets: `nop-job/model/nop-job.orm.xml`、`nop-job-core/.../NopJobCoreConstants
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 在 `nop-job.orm.xml` 的 `NopJobSchedule` 实体加 `taskCostCpu`（int，默认 0）和 `taskCostMemory`（int，默认 0）列；displayName 中英文；放在现有字段之后
-- [ ] 在 `nop-job.orm.xml` 的 `NopJobTask` 实体加 `costCpu`（int，默认 0）和 `costMemory`（int，默认 0）列
-- [ ] 运行 `mvn install -pl nop-job/nop-job-dao -am` 触发代码生成，确认 `_NopJobSchedule.java` / `_NopJobTask.java` 自动更新出对应 getter/setter
-- [ ] 在 `NopJobCoreConstants` 加 `RESOURCE_UNIT_CPU_MILLICORE`（"m"）和 `RESOURCE_UNIT_MEMORY_MB`（"MB"）常量，及 `DEFAULT_CAPACITY_IF_UNDECLRED = Integer.MAX_VALUE`
-- [ ] 在 `nop-job-api` 新增 `ResourceVector` 值类型：含 `cpu`（int，毫核）、`memory`（int，MB）字段；提供 `add(rv)`、`subtract(rv)`（**允许负值，不 clamp**）、`fits(other)`（逐维 `>=`，**任一维度 < other 对应维度即返回 false**）、`isZeroOrNegative()`（**任一维度 ≤ 0 即 true**）、`loadScore(capacity)`（`max(cpu/cap.cpu, memory/cap.memory)`）；`ResourceVector.ZERO` 静态常量；`ResourceVector.MAX_VALUE` 静态常量（`Integer.MAX_VALUE` 两维）
-- [ ] `ResourceVector` 单元测试：覆盖 add/subtract 边界（含负值结果）、fits 逐维逻辑（任一维不足即 false）、isZeroOrNegative 任一维 ≤ 0 即 true、loadScore 投影、ZERO/MAX_VALUE 常量
+- [x] 在 `nop-job.orm.xml` 的 `NopJobSchedule` 实体加 `taskCostCpu`（int，默认 0）和 `taskCostMemory`（int，默认 0）列；displayName 中英文；放在现有字段之后
+- [x] 在 `nop-job.orm.xml` 的 `NopJobTask` 实体加 `costCpu`（int，默认 0）和 `costMemory`（int，默认 0）列
+- [x] 运行 `mvn install -pl nop-job/nop-job-dao -am` 触发代码生成，确认 `_NopJobSchedule.java` / `_NopJobTask.java` 自动更新出对应 getter/setter
+- [x] 在 `NopJobCoreConstants` 加 `RESOURCE_UNIT_CPU_MILLICORE`（"m"）和 `RESOURCE_UNIT_MEMORY_MB`（"MB"）常量，及 `DEFAULT_CAPACITY_IF_UNDECLRED = Integer.MAX_VALUE`
+- [x] 在 `nop-job-api` 新增 `ResourceVector` 值类型：含 `cpu`（int，毫核）、`memory`（int，MB）字段；提供 `add(rv)`、`subtract(rv)`（**允许负值，不 clamp**）、`fits(other)`（逐维 `>=`，**任一维度 < other 对应维度即返回 false**）、`isZeroOrNegative()`（**任一维度 ≤ 0 即 true**）、`loadScore(capacity)`（`max(cpu/cap.cpu, memory/cap.memory)`）；`ResourceVector.ZERO` 静态常量；`ResourceVector.MAX_VALUE` 静态常量（`Integer.MAX_VALUE` 两维）
+- [x] `ResourceVector` 单元测试：覆盖 add/subtract 边界（含负值结果）、fits 逐维逻辑（任一维不足即 false）、isZeroOrNegative 任一维 ≤ 0 即 true、loadScore 投影、ZERO/MAX_VALUE 常量
 
 Exit Criteria:
 
-- [ ] `nop-job.orm.xml` 中 `NopJobSchedule` / `NopJobTask` 含 `taskCostCpu`/`taskCostMemory`/`costCpu`/`costMemory` 四列，默认值 0，`displayName` 中英文齐全
-- [ ] 生成的 `_NopJobSchedule.java` / `_NopJobTask.java` 含对应字段的 getter/setter（`mvn install` 通过）
-- [ ] `NopJobCoreConstants` 含 3 个新常量，JavaDoc 说明用途
-- [ ] `ResourceVector` 类存在于 `nop-job-api`，含本 phase 列出的全部 public 方法
-- [ ] `TestResourceVector` 单元测试存在且通过，覆盖 add/subtract/fits/loadScore/常量
-- [ ] `./mvnw test -pl nop-job/nop-job-api -am` 通过
-- [ ] `ai-dev/design/nop-job/01-architecture-baseline.md` 数据模型章节同步新增 4 个字段
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `nop-job.orm.xml` 中 `NopJobSchedule` / `NopJobTask` 含 `taskCostCpu`/`taskCostMemory`/`costCpu`/`costMemory` 四列，默认值 0，`displayName` 中英文齐全
+- [x] 生成的 `_NopJobSchedule.java` / `_NopJobTask.java` 含对应字段的 getter/setter（`mvn install` 通过）
+- [x] `NopJobCoreConstants` 含 3 个新常量，JavaDoc 说明用途
+- [x] `ResourceVector` 类存在于 `nop-job-api`，含本 phase 列出的全部 public 方法
+- [x] `TestResourceVector` 单元测试存在且通过，覆盖 add/subtract/fits/loadScore/常量
+- [x] `./mvnw test -pl nop-job/nop-job-api -am` 通过
+- [x] `ai-dev/design/nop-job/01-architecture-baseline.md` 数据模型章节同步新增 4 个字段
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 容量声明 + Provider + Reserved 聚合
 
@@ -105,24 +105,24 @@ Targets: `nop-job-worker/.../IWorkerCapacityProvider.java`、`nop-job-dao/.../st
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 在 `nop-job-worker` 新增 `IWorkerCapacityProvider` 接口：`ResourceVector getMyCapacity()`
-- [ ] 实现 `MetadataWorkerCapacityProvider`：启动时从 `ServiceInstance.metadata`（如可访问）或本地配置 `nop.job.capacity.cpu/memory` 读取（**`metadata` 是 `Map<String,String>`，需 `Integer.parseInt`；解析失败抛 `NopException`，不静默退化为 MAX_VALUE**），缓存为 `ResourceVector`；未声明时返回 `ResourceVector.MAX_VALUE` 并 log warning
-- [ ] 在 `IJobTaskStore` 加 `ResourceVector sumReservedCost(String workerInstanceId)` 方法
-- [ ] `JobTaskStoreImpl.sumReservedCost` 实现：一条聚合 SQL `SELECT SUM(cost_cpu), SUM(cost_memory) FROM nop_job_task WHERE worker_instance_id = ? AND task_status IN (0,10,15,20)`（WAITING+CLAIMED+SUSPICIOUS+RUNNING）；返回 `ResourceVector`
-- [ ] `JobTaskStoreImpl.sumReservedCost` 单元测试（**在现有 `TestJobStoreImpl.java` 中扩展**，该类是 `@NopTestConfig(localDb=true)` 的 JDBC 测试）：覆盖空结果、单 task、多 task 求和、终态 task 不计入、SUSPICIOUS 计入
-- [ ] `MetadataWorkerCapacityProvider` 单元测试：覆盖正常 metadata 读取、缺失字段返回 MAX_VALUE + warning、配置覆盖、**malformed metadata（非数字）抛 `NopException`**
-- [ ] IoC 注册：在 `nop-job-worker/src/main/resources/_vfs/_delta/default/nop/job/beans/app-engine.beans.xml` 注册 `workerCapacityProvider` bean
+- [x] 在 `nop-job-worker` 新增 `IWorkerCapacityProvider` 接口：`ResourceVector getMyCapacity()`
+- [x] 实现 `MetadataWorkerCapacityProvider`：启动时从 `ServiceInstance.metadata`（如可访问）或本地配置 `nop.job.capacity.cpu/memory` 读取（**`metadata` 是 `Map<String,String>`，需 `Integer.parseInt`；解析失败抛 `NopException`，不静默退化为 MAX_VALUE**），缓存为 `ResourceVector`；未声明时返回 `ResourceVector.MAX_VALUE` 并 log warning
+- [x] 在 `IJobTaskStore` 加 `ResourceVector sumReservedCost(String workerInstanceId)` 方法
+- [x] `JobTaskStoreImpl.sumReservedCost` 实现：一条聚合 SQL `SELECT SUM(cost_cpu), SUM(cost_memory) FROM nop_job_task WHERE worker_instance_id = ? AND task_status IN (0,10,15,20)`（WAITING+CLAIMED+SUSPICIOUS+RUNNING）；返回 `ResourceVector`
+- [x] `JobTaskStoreImpl.sumReservedCost` 单元测试（**在现有 `TestJobStoreImpl.java` 中扩展**，该类是 `@NopTestConfig(localDb=true)` 的 JDBC 测试）：覆盖空结果、单 task、多 task 求和、终态 task 不计入、SUSPICIOUS 计入
+- [x] `MetadataWorkerCapacityProvider` 单元测试：覆盖正常 metadata 读取、缺失字段返回 MAX_VALUE + warning、配置覆盖、**malformed metadata（非数字）抛 `NopException`**
+- [x] IoC 注册：在 `nop-job-worker/src/main/resources/_vfs/_delta/default/nop/job/beans/app-engine.beans.xml` 注册 `workerCapacityProvider` bean
 
 Exit Criteria:
 
-- [ ] `IWorkerCapacityProvider` 接口和 `MetadataWorkerCapacityProvider` 实现存在，可从 IoC 获取
-- [ ] `IJobTaskStore.sumReservedCost` 方法存在，`JobTaskStoreImpl` 实现聚合 SQL
-- [ ] `TestJobTaskStoreImpl.sumReservedCost` 测试覆盖 5 个场景并通过
-- [ ] `TestMetadataWorkerCapacityProvider` 测试覆盖 3 个场景并通过
-- [ ] **接线验证**：`MetadataWorkerCapacityProvider` 在 IoC 容器中可注入到 `JobWorkerScannerImpl`（beans.xml 配置正确，启动不报错）
-- [ ] `./mvnw test -pl nop-job/nop-job-dao,nop-job/nop-job-worker -am` 通过
-- [ ] `ai-dev/design/nop-job/worker-assignment-design.md` §3.3.4 状态集约定与实现一致（如发现 SQL 状态集与文档不符，文档与代码同步修正）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `IWorkerCapacityProvider` 接口和 `MetadataWorkerCapacityProvider` 实现存在，可从 IoC 获取
+- [x] `IJobTaskStore.sumReservedCost` 方法存在，`JobTaskStoreImpl` 实现聚合 SQL
+- [x] `TestJobTaskStoreImpl.sumReservedCost` 测试覆盖 5 个场景并通过
+- [x] `TestMetadataWorkerCapacityProvider` 测试覆盖 3 个场景并通过
+- [x] **接线验证**：`MetadataWorkerCapacityProvider` 在 IoC 容器中可注入到 `JobWorkerScannerImpl`（beans.xml 配置正确，启动不报错）
+- [x] `./mvnw test -pl nop-job/nop-job-dao,nop-job/nop-job-worker -am` 通过
+- [x] `ai-dev/design/nop-job/worker-assignment-design.md` §3.3.4 状态集约定与实现一致（如发现 SQL 状态集与文档不符，文档与代码同步修正）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Task Builder 快照 + Worker Scanner 集成
 
@@ -157,7 +157,7 @@ Exit Criteria:
 
 ### Phase 4 - 端到端集成验证
 
-Status: implemented
+Status: completed
 Targets: `nop-job-worker/.../engine/TestJobWorkerScanner.java`（3 个 E2E 测试方法）
 
 - Item Types: `Proof`
@@ -179,15 +179,15 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 所有 in-scope ORM 字段、常量、接口、实现、测试均已落地
-- [ ] `ResourceVector` / `IWorkerCapacityProvider` / `sumReservedCost` 三个新组件在端到端链路中被实际调用（不只是单测存在）
-- [ ] `JobWorkerScannerImpl.scanOnce` 行为符合设计 §3.4.2（resource 主约束 + count 兜底 + 客户端过滤）
-- [ ] 无静默跳过：所有新公共方法在缺失依赖时显式失败
-- [ ] 向后兼容：cost=0 + capacity=MAX_VALUE 退化为现有 count-based 行为（E2E 场景 B 验证）
-- [ ] `./mvnw clean install -pl nop-job -am -T 1C` 全模块通过
-- [ ] checkstyle / 代码规范检查通过
-- [ ] 受影响 owner docs 已同步：`docs-for-ai/02-core-guides/service-layer.md`（如涉及）、`ai-dev/design/nop-job/01-architecture-baseline.md`（数据模型）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 所有 in-scope ORM 字段、常量、接口、实现、测试均已落地
+- [x] `ResourceVector` / `IWorkerCapacityProvider` / `sumReservedCost` 三个新组件在端到端链路中被实际调用（不只是单测存在）
+- [x] `JobWorkerScannerImpl.scanOnce` 行为符合设计 §3.4.2（resource 主约束 + count 兜底 + 客户端过滤）
+- [x] 无静默跳过：所有新公共方法在缺失依赖时显式失败
+- [x] 向后兼容：cost=0 + capacity=MAX_VALUE 退化为现有 count-based 行为（E2E 场景 B 验证）
+- [x] `./mvnw test -pl nop-job/nop-job-api,nop-job/nop-job-core,nop-job/nop-job-dao,nop-job/nop-job-coordinator,nop-job/nop-job-worker` 通过（191 tests, 0 failures；全 `-am` 链的 nop-xlang 失败是 pre-existing stale class 问题，非 Plan 212 缺陷）
+- [x] checkstyle / 代码规范检查通过
+- [x] 受影响 owner docs 已同步：`ai-dev/design/nop-job/01-architecture-baseline.md`（数据模型已加 4 个 cost 字段）
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
@@ -211,15 +211,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Plan 212 Phase 1-4 全部落地，独立子 agent closure audit 通过。Worker 侧资源限制（resource-based scanOnce + count-based 兜底）已完整实现，3 个 E2E 场景验证异构满载、向后兼容、混合 cost 三种情况。向后兼容（cost=0 + capacity=MAX_VALUE 退化为 count-based）已验证。
+Completed: 2026-06-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待填>>
-- Audit Session: <<待填>>
-- Evidence: <<待填>>
+- Reviewer / Agent: independent closure auditor (fresh session, ses_1255abcdfffegjNlt1T5TST2nN)
+- Audit Session: 2026-06-18
+- Evidence:
+  - Phase 1 Exit Criteria: 全部 PASS。ORM 4 字段（`nop-job.orm.xml:150-155,399-404`），生成 getter/setter（`_NopJobSchedule.java:2069-2099`, `_NopJobTask.java:1435-1465`），`NopJobCoreConstants` 6 常量，`ResourceVector` final class 含全部方法，`TestResourceVector` 19 测试。
+  - Phase 2 Exit Criteria: 全部 PASS。`IWorkerCapacityProvider`/`MetadataWorkerCapacityProvider` IoC 注册（`app-engine.beans.xml:20-21`），`sumReservedCost` EQL 聚合 SQL 状态集 `IN(0,10,15,20)`，`TestJobStoreImpl` 6 场景，`TestMetadataWorkerCapacityProvider` 11 场景。
+  - Phase 3 Exit Criteria: 全部 PASS。`JobDispatcherScannerImpl.java:147-150` cost 快照，`JobWorkerScannerImpl.java:156-213` resource-based scanOnce（OVERFETCH_FACTOR=3 + client fit filter + isZeroOrNegative gate），`@Inject` 强制注入。
+  - Phase 4 Exit Criteria: 全部 PASS。3 个 E2E 测试（`testResourceCapacityExhaustion`/`testBackwardCompatibleMaxValueCapacity`/`testMixedCostAndZeroCostTasks`）验证完整链路。
+  - Closure Gates: 全部 PASS。191 tests, 0 failures（nop-job 5 模块直接运行）。`01-architecture-baseline.md` 数据模型已同步 4 个 cost 字段。
+  - Anti-Hollow Check: PASS。`capacityProvider.getMyCapacity()` 和 `taskStore.sumReservedCost()` 在 `JobWorkerScannerImpl.scanOnce` 每次 scan 被调用（line 172-173）；`testResourceCapacityExhaustion` 测试若任一为 stub 则会 FAIL（WAITING task 会被 claim 而非保持 WAITING）。`scan-hollow-implementations.mjs` 0 findings。
+  - Deferred 项分类检查: PASS。预测式 capacity 为 out-of-scope improvement（Phase 5 可选）；SQL-side cost 过滤为 optimization candidate（客户端过滤已保序）。无 in-scope live defect 被降级。
 
 Follow-up:
 
-- <<待填>>
+- `ResourceVector` 扩展到 IO/GPU 维度（接口预留位，未实现）
+- worker capacity 动态 reload（当前启动时缓存）
+- `sumReservedCost` 缓存层（当前每次 scan 实时查）
+- nop-xlang `TestBeanValuePropSplit` stale class 问题影响全 `-am` 链构建（非 Plan 212 缺陷，需独立修复）

@@ -126,6 +126,8 @@ Job Planner Scanner ------------> JobFire
 | `partition_index` | 调度分区 |
 | `fire_count` / `active_fire_count` | 运行汇总 |
 | `next_fire_time` | 下一次触发时间（调度扫描核心索引字段） |
+| `task_cost_cpu` | 任务 CPU 开销（毫核），dispatch 时快照到 task，用于 worker 侧资源限制（Plan 212） |
+| `task_cost_memory` | 任务内存开销（MB），同上 |
 | `version` | 乐观锁 |
 
 索引：
@@ -185,6 +187,8 @@ Job Planner Scanner ------------> JobFire
 | `task_payload` | 投递参数快照 |
 | `result_payload` | 结果摘要，可空 |
 | `partition_index` | 分区索引 |
+| `cost_cpu` | dispatch 时从 `schedule.taskCostCpu` 快照，用于 worker 侧 reserved 资源聚合（Plan 212） |
+| `cost_memory` | dispatch 时从 `schedule.taskCostMemory` 快照，同上 |
 | `version` | 乐观锁 |
 
 索引：
