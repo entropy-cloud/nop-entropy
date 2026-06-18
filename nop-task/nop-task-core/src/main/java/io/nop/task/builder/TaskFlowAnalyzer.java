@@ -54,7 +54,7 @@ public class TaskFlowAnalyzer {
                 }
 
                 if (subStep.getNextOnError() != null) {
-                    if (!stepsModel.hasStep(subStep.getNext())) {
+                    if (!stepsModel.hasStep(subStep.getNextOnError())) {
                         throw new NopException(ERR_TASK_UNKNOWN_NEXT_STEP)
                                 .source(subStep)
                                 .param(ARG_STEP_NAME, stepModel.getName())
