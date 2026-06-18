@@ -22,6 +22,8 @@ import io.nop.task.dao.entity.NopTaskStepInstance;
 import io.nop.task.state.TaskStateBean;
 import io.nop.task.state.TaskStepStateBean;
 import io.nop.task.utils.TaskStepHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 
@@ -40,6 +42,13 @@ import static io.nop.task.dao.entity._gen._NopTaskStepInstance.PROP_NAME_stepPat
  * 持久化与完整历史 entity 模型为独立优化（plan 257 Non-Goals）。
  */
 public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateStore {
+
+    static final Logger LOG = LoggerFactory.getLogger(DaoTaskStateStore.class);
+
+    /**
+     * plan 261: errorBeanData 列允许的最大 JSON 长度（与 step 级 errMsg / stateBeanData precision 对齐）。
+     */
+    static final int ERROR_BEAN_DATA_MAX_LEN = 4000;
 
     protected IEntityDao<NopTaskInstance> taskDao() {
         return daoFor(NopTaskInstance.class);
@@ -108,12 +117,17 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         }
 
         // exception（FAILED）提取 errCode + errMsg（镜像 step 级 copyStepStateToEntity exception 持久化）
+        // plan 261: 追加完整 ErrorBean JSON（含 params + cause chain）持久化到 errorBeanData，使 cross-restart resume
+        // 重抛的 exception 保留诊断属性与 cause chain。errCode + errMsg 仍写入（设计裁定 5：向后兼容 + 简单查询）。
         Throwable exp = state.exception();
         if (exp != null) {
             ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, exp, false, false);
             if (errorBean != null) {
                 entity.setErrCode(errorBean.getErrorCode());
                 entity.setErrMsg(errorBean.getDescription());
+                String errorBeanJson = serializeErrorBeanData(exp, errorBean);
+                if (errorBeanJson != null)
+                    entity.setErrorBeanData(errorBeanJson);
             }
         }
 
@@ -224,14 +238,10 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             }
         }
 
-        // exception 从 errCode + errMsg 重构（镜像 step 级 toStepStateBean exception 重构）
-        String errCode = entity.getErrCode();
-        if (!StringHelper.isEmpty(errCode)) {
-            NopException exp = new NopException(errCode, null, true, true);
-            if (!StringHelper.isEmpty(entity.getErrMsg()))
-                exp.description(entity.getErrMsg());
+        // plan 261: exception 优先从 errorBeanData 重构（保留 params + cause chain）；为空时回退 errCode + errMsg（兼容历史行）
+        NopException exp = loadException(entity.getErrorBeanData(), entity.getErrCode(), entity.getErrMsg());
+        if (exp != null)
             state.exception(exp);
-        }
 
         return state;
     }
@@ -260,14 +270,10 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             }
         }
 
-        // exception 从 errCode + errMsg 重构（plan 257 Non-Goals：不优化 exception 持久化序列化细节）
-        String errCode = entity.getErrCode();
-        if (!StringHelper.isEmpty(errCode)) {
-            NopException exp = new NopException(errCode, null, true, true);
-            if (!StringHelper.isEmpty(entity.getErrMsg()))
-                exp.description(entity.getErrMsg());
+        // plan 261: exception 优先从 errorBeanData 重构（保留 params + cause chain）；为空时回退 errCode + errMsg（兼容历史行）
+        NopException exp = loadException(entity.getErrorBeanData(), entity.getErrCode(), entity.getErrMsg());
+        if (exp != null)
             state.exception(exp);
-        }
 
         if (entity.getRetryCount() != null)
             state.setRetryAttempt(entity.getRetryCount());
@@ -306,12 +312,17 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         }
 
         // exception 提取 errCode + errMsg
+        // plan 261: 追加完整 ErrorBean JSON（含 params + cause chain）持久化到 errorBeanData，使 cross-restart resume
+        // 重抛的 exception 保留诊断属性与 cause chain。errCode + errMsg 仍写入（设计裁定 5：向后兼容 + 简单查询）。
         Throwable exp = state.exception();
         if (exp != null) {
             ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, exp, false, false);
             if (errorBean != null) {
                 entity.setErrCode(errorBean.getErrorCode());
                 entity.setErrMsg(errorBean.getDescription());
+                String errorBeanJson = serializeErrorBeanData(exp, errorBean);
+                if (errorBeanJson != null)
+                    entity.setErrorBeanData(errorBeanJson);
             }
         }
 
@@ -342,5 +353,112 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 || status == TaskConstants.TASK_STATUS_KILLED
                 || status == TaskConstants.TASK_STATUS_FAILED
                 || status == TaskConstants.TASK_STATUS_TIMEOUT;
+    }
+
+    // ==================== ErrorBean persistence helpers (plan 261) ====================
+    //
+    // 闭合 cross-restart exception 持久化的 transient lossy gap：save 时序列化完整 ErrorBean（params + cause chain）
+    // 到 errorBeanData 列，load 时优先从 errorBeanData 重构含 params + cause chain 的 NopException，使 resume 重抛的
+    // exception 诊断信息与 in-process 执行时对齐。
+
+    /**
+     * plan 261: 序列化完整 ErrorBean（params + cause chain）为 JSON。
+     *
+     * <p>{@code ErrorMessageManager.buildErrorMessage} 仅在存在 {@code includeCause=true} 的 ErrorCodeMapping 时才填充
+     * {@link ErrorBean#getCause()}，普通场景下 cause 为 null。此处从 {@code throwable.getCause()} 递归补充 cause chain，
+     * 使 cross-restart 持久化保留完整诊断链。
+     *
+     * <p>超 {@link #ERROR_BEAN_DATA_MAX_LEN} 字符或序列化失败时返回 null（非致命跳过，调用方仅写 errCode + errMsg；
+     * 跳过原因有日志，非静默吞掉——Minimum Rules #24）。
+     */
+    protected String serializeErrorBeanData(Throwable exp, ErrorBean errorBean) {
+        if (errorBean == null || StringHelper.isEmpty(errorBean.getErrorCode()))
+            return null;
+        ErrorBean full = errorBean.cloneInstance();
+        if (full.getCause() == null)
+            full.setCause(buildCauseErrorBean(exp.getCause()));
+        try {
+            String json = JsonTool.serialize(full, false);
+            if (json == null)
+                return null;
+            if (json.length() <= ERROR_BEAN_DATA_MAX_LEN)
+                return json;
+            LOG.warn("nop.task.error-bean-data-too-long:skip persisting errorBeanData,errCode={},length={}",
+                    errorBean.getErrorCode(), json.length());
+        } catch (Exception e) {
+            LOG.warn("nop.task.serialize-error-bean-failed:skip persisting errorBeanData,errCode={}",
+                    errorBean.getErrorCode(), e);
+        }
+        return null;
+    }
+
+    /**
+     * plan 261: 递归从 throwable 的 cause chain 构建 {@link ErrorBean} 链。
+     * 复用 {@link ErrorMessageManager#defaultBuildErrorMessage} 提取每层 cause 的 errorCode / description / params。
+     * Java {@link Throwable} 不允许循环 cause（initCause 会检测），递归安全。
+     */
+    protected ErrorBean buildCauseErrorBean(Throwable cause) {
+        if (cause == null)
+            return null;
+        Throwable next = cause.getCause();
+        if (cause == next)
+            return null;
+        ErrorBean causeBean = ErrorMessageManager.instance().defaultBuildErrorMessage(null, cause, false);
+        causeBean.setCause(buildCauseErrorBean(next));
+        return causeBean;
+    }
+
+    /**
+     * plan 261: 从 entity 的 errorBeanData / errCode / errMsg 重构 exception。
+     *
+     * <p>优先从 {@code errorBeanData}（完整 ErrorBean JSON）重构（保留 params + cause chain）；为 null 或解析失败时回退
+     * errCode + errMsg 重构（兼容历史行，行为与 plan 258/259 一致）。解析失败有日志（非静默吞掉——Minimum Rules #24）。
+     *
+     * @return 重构的 exception；errCode 与 errorBeanData 均为空时返回 null
+     */
+    protected NopException loadException(String errorBeanData, String errCode, String errMsg) {
+        if (!StringHelper.isEmpty(errorBeanData)) {
+            try {
+                ErrorBean errorBean = JsonTool.parseBeanFromText(errorBeanData, ErrorBean.class);
+                if (errorBean != null && !StringHelper.isEmpty(errorBean.getErrorCode()))
+                    return rebuildExceptionFromErrorBean(errorBean);
+            } catch (Exception e) {
+                LOG.warn("nop.task.parse-error-bean-failed:fallback to errCode+errMsg,errCode={}", errCode, e);
+            }
+        }
+        if (StringHelper.isEmpty(errCode))
+            return null;
+        NopException exp = new NopException(errCode, null, true, true);
+        if (!StringHelper.isEmpty(errMsg))
+            exp.description(errMsg);
+        return exp;
+    }
+
+    /**
+     * plan 261 设计裁定 3 选项 (b)：从 {@link ErrorBean} 递归重构含 params + cause chain 的 {@link NopException}。
+     *
+     * <p>{@link io.nop.api.core.exceptions.NopRebuildException#rebuild(ErrorBean)}（kernel public static，全仓库多处调用）
+     * 重构时 cause 传 null，不恢复 cause chain。增强它会改变所有调用方行为，属跨模块公共 API 变更，不在本计划 scope。
+     * 故在 DaoTaskStateStore 内部递归构造并通过 {@link Throwable#initCause(Throwable)} 恢复 cause chain，
+     * 将变更限定在 nop-task-dao 模块内。
+     */
+    protected NopException rebuildExceptionFromErrorBean(ErrorBean errorBean) {
+        // 先递归构造 cause（如有），再直接传入构造器。
+        // 不可先构造 null-cause 再调 initCause：Throwable(String, Throwable, boolean, boolean) 构造器即使传 null
+        // 也会将 cause 标记为「已初始化」，导致后续 initCause 抛 IllegalStateException("Can't overwrite cause")。
+        // 故将 cause 经构造器传入，绕过 initCause 的状态检查。
+        ErrorBean causeBean = errorBean.getCause();
+        Throwable cause = null;
+        if (causeBean != null && !StringHelper.isEmpty(causeBean.getErrorCode())) {
+            cause = rebuildExceptionFromErrorBean(causeBean);
+        }
+        NopException exp = new NopException(errorBean.getErrorCode(), cause, true, true);
+        if (!StringHelper.isEmpty(errorBean.getDescription()))
+            exp.description(errorBean.getDescription());
+        if (errorBean.getParams() != null)
+            exp.params(errorBean.getParams());
+        if (errorBean.isBizFatal())
+            exp.bizFatal(errorBean.isBizFatal());
+        return exp;
     }
 }

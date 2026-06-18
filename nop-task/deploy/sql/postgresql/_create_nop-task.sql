@@ -53,6 +53,7 @@ CREATE TABLE nop_task_instance(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  error_bean_data VARCHAR(4000)  ,
   constraint PK_nop_task_instance primary key (task_instance_id)
 );
 
@@ -107,6 +108,7 @@ CREATE TABLE nop_task_step_instance(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  error_bean_data VARCHAR(4000)  ,
   constraint PK_nop_task_step_instance primary key (step_instance_id)
 );
 
@@ -213,6 +215,8 @@ CREATE TABLE nop_task_step_instance(
                     
       COMMENT ON COLUMN nop_task_instance.remark IS '备注';
                     
+      COMMENT ON COLUMN nop_task_instance.error_bean_data IS '错误Bean数据';
+                    
       COMMENT ON TABLE nop_task_definition_auth IS '逻辑流定义权限';
                 
       COMMENT ON COLUMN nop_task_definition_auth.sid IS '主键';
@@ -308,4 +312,6 @@ CREATE TABLE nop_task_step_instance(
       COMMENT ON COLUMN nop_task_step_instance.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_task_step_instance.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_task_step_instance.error_bean_data IS '错误Bean数据';
                     
