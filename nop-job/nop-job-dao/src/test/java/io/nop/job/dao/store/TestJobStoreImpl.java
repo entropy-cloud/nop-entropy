@@ -275,6 +275,51 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals(ResourceVector.ZERO, absent);
     }
 
+    // ========== Plan 213 Phase 3: enforceAttribution filter tests ==========
+
+    @Test
+    void testFetchWaitingTasksEnforceAttributionFiltersByWorker() {
+        NopJobSchedule schedule = newSchedule("sched-attrib", "job-attrib");
+
+        NopJobTask myTask = newTask("task-mine", newFire("fire-mine", schedule));
+        myTask.setWorkerInstanceId("worker-A");
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(myTask);
+
+        NopJobTask otherTask = newTask("task-other", newFire("fire-other", schedule));
+        otherTask.setWorkerInstanceId("worker-B");
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(otherTask);
+
+        NopJobTask nullTask = newTask("task-null", newFire("fire-null", schedule));
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(nullTask);
+
+        List<NopJobTask> all = taskStore.fetchWaitingTasks(10, IntRangeSet.parse("1"));
+        assertEquals(3, all.size(), "Without filter, all 3 WAITING tasks visible");
+
+        List<NopJobTask> mine = taskStore.fetchWaitingTasks(
+                10, IntRangeSet.parse("1"), "worker-A", true);
+        assertEquals(2, mine.size(), "With enforceAttribution, only own + null-worker tasks visible");
+        assertTrue(mine.stream().anyMatch(t -> "task-mine".equals(t.getJobTaskId())));
+        assertTrue(mine.stream().anyMatch(t -> "task-null".equals(t.getJobTaskId())));
+        assertTrue(mine.stream().noneMatch(t -> "task-other".equals(t.getJobTaskId())));
+    }
+
+    @Test
+    void testFetchWaitingTasksEnforceAttributionFalseShowsAll() {
+        NopJobSchedule schedule = newSchedule("sched-attrib2", "job-attrib2");
+
+        NopJobTask myTask = newTask("task-mine2", newFire("fire-mine2", schedule));
+        myTask.setWorkerInstanceId("worker-A");
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(myTask);
+
+        NopJobTask otherTask = newTask("task-other2", newFire("fire-other2", schedule));
+        otherTask.setWorkerInstanceId("worker-B");
+        daoProvider.daoFor(NopJobTask.class).saveEntityDirectly(otherTask);
+
+        List<NopJobTask> result = taskStore.fetchWaitingTasks(
+                10, IntRangeSet.parse("1"), "worker-A", false);
+        assertEquals(2, result.size(), "enforceAttribution=false → competing-consumer, all tasks visible");
+    }
+
     private void saveCostTask(String taskId, NopJobSchedule schedule, String workerId,
                               int taskStatus, int cpu, int memory) {
         NopJobFire fire = newFire("fire-" + taskId, schedule);

@@ -49,6 +49,7 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     private int batchSize = 100;
     private long lockTimeoutMs = 60000;
     private int maxConcurrency = 0;
+    private boolean enforceAttribution = false;
     private IntRangeSet assignedPartitions;
     private volatile boolean running;
     private Future<?> scanFuture;
@@ -126,6 +127,11 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         this.maxConcurrency = maxConcurrency;
     }
 
+    @InjectValue("@cfg:nop.job.fetch.enforce-attribution|false")
+    public void setEnforceAttribution(boolean enforceAttribution) {
+        this.enforceAttribution = enforceAttribution;
+    }
+
     @Override
     public synchronized void startScanning() {
         if (running) {
@@ -181,7 +187,8 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
 
             // 3. Overfetch candidates, client-side fit filter
             int overfetchBatchSize = effectiveBatchSize * OVERFETCH_FACTOR;
-            List<NopJobTask> candidates = taskStore.fetchWaitingTasks(overfetchBatchSize, assignedPartitions);
+            List<NopJobTask> candidates = taskStore.fetchWaitingTasks(
+                    overfetchBatchSize, assignedPartitions, AppConfig.hostId(), enforceAttribution);
             if (candidates.isEmpty()) {
                 return;
             }

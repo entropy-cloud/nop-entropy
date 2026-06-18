@@ -53,9 +53,21 @@ public class JobTaskStoreImpl implements IJobTaskStore {
 
     @Override
     public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) {
+        return fetchWaitingTasks(limit, partitions, null, false);
+    }
+
+    @Override
+    public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions,
+                                              String workerInstanceId, boolean enforceAttribution) {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, _NopJobCoreConstants.TASK_STATUS_WAITING));
+        if (enforceAttribution && workerInstanceId != null) {
+            query.addFilter(FilterBeans.or(
+                    FilterBeans.eq(PROP_NAME_workerInstanceId, workerInstanceId),
+                    FilterBeans.isNull(PROP_NAME_workerInstanceId)
+            ));
+        }
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_createTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);

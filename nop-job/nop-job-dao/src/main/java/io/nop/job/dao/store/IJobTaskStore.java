@@ -11,6 +11,17 @@ public interface IJobTaskStore {
 
     List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions);
 
+    /**
+     * 带可选 worker 归因过滤的 fetchWaitingTasks 重载。
+     * <p>
+     * 当 {@code enforceAttribution=true} 时，SQL 追加
+     * {@code AND (workerInstanceId = ? OR workerInstanceId IS NULL)}，
+     * 用于 dedicated worker 池场景（partition/bestFit 模式下强制分配）。
+     * 默认 {@code false} 保留 competing-consumer 行为（向后兼容）。
+     */
+    List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions,
+                                       String workerInstanceId, boolean enforceAttribution);
+
     List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs);
 
     List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions);
