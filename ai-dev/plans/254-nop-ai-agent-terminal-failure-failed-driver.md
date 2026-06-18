@@ -199,3 +199,7 @@ Follow-up:
 ## Follow-up handled by 255-nop-ai-agent-task-flow-analyzer-nextOnError-validation.md
 
 `TaskFlowAnalyzer.checkStepRef` nextOnError 字段错配 bug 的 follow-up 已由 `ai-dev/plans/255-nop-ai-agent-task-flow-analyzer-nextOnError-validation.md` 接管（carry-over，priority P1）。本节为 traceability forward-link（Rule #20 exception：当前 carry-over 任务明确要求记录 follow-up 归属），不回写本 completed 计划的执行内容。
+
+## Follow-up handled by 256-nop-ai-agent-xpl-cancellation-wrap-preserve.md
+
+> **Traceability note**（added 2026-06-19，非历史 closure 记录的回写）：本计划 §Closure Follow-up line 196 + §Non-Goals line 44 + §Closure line 187 Deferred 项分类检查 三处一致标记的「xpl 方法调用包装穿透 cancellation 字符（与 plan 249 前 bizFatal 同类已知限制）——独立 successor」已由 `ai-dev/plans/256-nop-ai-agent-xpl-cancellation-wrap-preserve.md` 接管（carry-over，priority P1）。此 section 仅为旧→新 plan 可追溯链接（Rule #20 exception：当前 carry-over 任务明确要求记录 follow-up 归属），不改动上方已审计的 closure 记录。注：plan 256 经 carry-over framing correction 将修复定位在消费侧（`isCancelledException` cause-chain 解包）而非 producer 侧（`wrapInvokeException`），因 cancellation 是类型检查而非可拷贝 flag——详见 plan 256 §Carry-over framing correction。
