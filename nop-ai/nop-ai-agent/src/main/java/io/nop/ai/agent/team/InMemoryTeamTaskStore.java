@@ -22,16 +22,17 @@ import java.util.concurrent.atomic.AtomicReference;
  * a corresponding team-index entry (and vice-versa is harmless since
  * {@code getTasksByTeam} re-resolves each id against the primary index).
  *
- * <h2>State transitions (plan 227 / team-task-update)</h2>
- * {@link #claimTask} / {@link #completeTask} / {@link #abandonTask} perform an
- * atomic compare-and-swap on the primary index via {@code tasks.compute}: the
- * remapping function validates the current status is a legal source state and
- * — only on success — replaces the value with a new immutable {@link TeamTask}
- * carrying the target status. On a failed CAS (illegal source status or missing
- * task) the value is left unchanged and the method returns
- * {@code Optional.empty()}. {@code ConcurrentHashMap.compute} serialises the
- * remapping per key, so at most one concurrent claimer wins a CREATED→CLAIMED
- * race.
+ * <h2>State transitions (plan 227 / team-task-update, plan 240 / reclaim)</h2>
+ * {@link #claimTask} / {@link #completeTask} / {@link #abandonTask} /
+ * {@link #reclaimTask} perform an atomic compare-and-swap on the primary
+ * index via {@code tasks.compute}: the remapping function validates the
+ * current status is a legal source state and — only on success — replaces
+ * the value with a new immutable {@link TeamTask} carrying the target
+ * status. On a failed CAS (illegal source status or missing task) the
+ * value is left unchanged and the method returns {@code Optional.empty()}.
+ * {@code ConcurrentHashMap.compute} serialises the remapping per key, so at
+ * most one concurrent claimer wins a CREATED→CLAIMED race (and at most one
+ * concurrent reclaimer wins a CLAIMED→CREATED race).
  *
  * <h2>Snapshot semantics</h2>
  * {@link #getTasksByTeam} and {@link #getTasksByCreator} return unmodifiable
@@ -164,6 +165,38 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
         }
         return transition(taskId, TeamTaskStatus.CREATED,
                 TeamTaskStatus.ABANDONED, abandonedBy, false);
+    }
+
+    @Override
+    public Optional<TeamTask> reclaimTask(String taskId, String reclaimedBy) {
+        if (taskId == null) {
+            return Optional.empty();
+        }
+        Objects.requireNonNull(reclaimedBy, "reclaimedBy");
+        // reclaim is CLAIMED→CREATED: reset the task to re-claimable state by
+        // clearing claimedBy (overwriteClaimedBy=true with a null-cleared
+        // value is not how the transition helper works — it sets claimedBy
+        // to actorSessionId when overwriteClaimedBy=true). To clear
+        // claimedBy we cannot use the generic transition helper's
+        // overwriteClaimedBy=true path; inline the CAS here.
+        AtomicReference<TeamTask> resultHolder = new AtomicReference<>();
+        tasks.compute(taskId, (id, existing) -> {
+            if (existing == null) {
+                return null;
+            }
+            if (existing.getStatus() != TeamTaskStatus.CLAIMED) {
+                return existing;
+            }
+            TeamTask updated = new TeamTask(
+                    existing.getTaskId(), existing.getTeamId(),
+                    existing.getSubject(), existing.getDescription(),
+                    existing.getBlockedBy(), TeamTaskStatus.CREATED,
+                    existing.getCreatedBy(), null, // claimedBy cleared
+                    existing.getCreatedAt());
+            resultHolder.set(updated);
+            return updated;
+        });
+        return Optional.ofNullable(resultHolder.get());
     }
 
     /**

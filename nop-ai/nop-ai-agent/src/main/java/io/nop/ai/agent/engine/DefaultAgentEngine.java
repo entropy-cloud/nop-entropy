@@ -112,6 +112,8 @@ import io.nop.ai.agent.team.TeamMember;
 import io.nop.ai.agent.team.TeamModelConverter;
 import io.nop.ai.agent.team.TeamSpec;
 import io.nop.ai.agent.team.TeamStatus;
+import io.nop.ai.agent.team.scheduler.ITeamTaskSchedulerDaemon;
+import io.nop.ai.agent.team.scheduler.NoOpTeamTaskSchedulerDaemon;
 import io.nop.ai.agent.usage.IUsageRecorder;
 import io.nop.ai.agent.usage.NoOpUsageRecorder;
 import io.nop.ai.api.chat.IChatService;
@@ -382,6 +384,23 @@ public class DefaultAgentEngine implements IAgentEngine {
     // no insecure-default WARN is emitted (consistent with
     // IActorRuntime / ISessionTakeoverLock adjudication).
     private IRecoveryManager recoveryManager = NoOpRecoveryManager.noOp();
+    // Plan 236 (L4-blockedBy-resolution-engine): optional team-task auto-
+    // scheduling daemon that continuously sweeps dependency-ready team tasks
+    // and auto-claims + auto-dispatches them, closing the "unattended multi-
+    // agent orchestration" loop. Defaults to NoOpTeamTaskSchedulerDaemon
+    // (start/stop are no-ops, scanOnce returns an all-zero result — zero
+    // behaviour regression) so engine behaviour is unchanged unless a
+    // functional daemon (e.g. TeamTaskSchedulerDaemon) is explicitly wired
+    // via setTeamTaskSchedulerDaemon. The engine does NOT call
+    // daemon.start()/stop() — per the same design contract as
+    // IRecoveryManager / IAgentEngine (lifecycle management is a
+    // deployment-layer decision). Integrators wire the daemon and call
+    // start()/stop() from the deployment layer (e.g. after app startup /
+    // before app shutdown). The daemon is incremental capability (NoOp →
+    // engine runs unchanged), so no insecure-default WARN is emitted
+    // (consistent with recoveryManager / teamManager / teamTaskStore
+    // adjudication).
+    private ITeamTaskSchedulerDaemon teamTaskSchedulerDaemon = NoOpTeamTaskSchedulerDaemon.noOp();
     // Plan 192: max token budget for budgeted working-memory auto-injection into
     // the system prompt. Shipped default gives memory a reasonable share of the
     // context without dominating it. A value <= 0 disables injection (explicit
@@ -1506,6 +1525,53 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public IRecoveryManager getRecoveryManager() {
         return recoveryManager;
+    }
+
+    /**
+     * Plan 236 (L4-blockedBy-resolution-engine): wire an optional
+     * {@link ITeamTaskSchedulerDaemon} that continuously sweeps dependency-
+     * ready team tasks and auto-claims + auto-dispatches them in dependency
+     * order, closing the "unattended multi-agent orchestration" loop (a
+     * successor to plan 233's manual {@code TeamTaskFlowOrchestrator.execute}
+     * entry point).
+     *
+     * <p>The engine does <b>not</b> call {@code start()}/{@code stop()} on
+     * the daemon — per the same design contract as
+     * {@link #setRecoveryManager} (deployment-layer lifecycle decision,
+     * see {@code IAgentEngine.java:166-171}). Integrators wire the daemon
+     * here, then call {@code start()} (e.g. after app startup) and
+     * {@code stop()} (e.g. before app shutdown) from the deployment layer.
+     *
+     * <p>The functional {@link io.nop.ai.agent.team.scheduler.TeamTaskSchedulerDaemon}
+     * consumes the engine's already-wired {@link #getTeamManager()},
+     * {@link #getTeamTaskStore()}, and this engine itself (as the
+     * {@link IAgentEngine} for member-agent delegation). It does NOT call
+     * {@code TeamTaskFlowOrchestrator.execute(teamId)}; instead each scan
+     * resolves ready tasks via {@link io.nop.ai.agent.team.flow.TeamTaskTopology}
+     * and dispatches each CAS-claimed task to a bound member agent (plan
+     * 236 design 裁定 1). See plan 236 for the full scheduling / dependency-
+     * order / lifecycle / failure adjudication.
+     *
+     * <p>Optional: when null, falls back to
+     * {@link NoOpTeamTaskSchedulerDaemon} ({@code scanOnce} returns an
+     * all-zero {@link io.nop.ai.agent.team.scheduler.SchedulerScanResult},
+     * {@code start}/{@code stop} are no-ops — zero behaviour regression).
+     * The daemon is incremental capability, so no insecure-default WARN is
+     * emitted.
+     */
+    public void setTeamTaskSchedulerDaemon(ITeamTaskSchedulerDaemon teamTaskSchedulerDaemon) {
+        this.teamTaskSchedulerDaemon = teamTaskSchedulerDaemon != null
+                ? teamTaskSchedulerDaemon
+                : NoOpTeamTaskSchedulerDaemon.noOp();
+    }
+
+    /**
+     * Return the {@link ITeamTaskSchedulerDaemon} wired into this engine, or
+     * the {@link NoOpTeamTaskSchedulerDaemon} default if none was explicitly
+     * set.
+     */
+    public ITeamTaskSchedulerDaemon getTeamTaskSchedulerDaemon() {
+        return teamTaskSchedulerDaemon;
     }
 
     /**

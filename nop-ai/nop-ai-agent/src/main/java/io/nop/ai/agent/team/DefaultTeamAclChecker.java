@@ -44,6 +44,7 @@ import java.util.Optional;
  *  team-task-update   | complete          | EXECUTE         |  ✓   |   ✓    |
  *  team-task-update   | abandon-claimed   | EXECUTE         |  ✓   |   ✓    |
  *  team-task-update   | abandon-unclaimed | ADMIN           |  ✓   |   ✗    |
+ *  team-execute-flow  | execute           | WRITE           |  ✓   |   ✓    |
  * </pre>
  *
  * <p>The only operation a MEMBER is denied is {@code abandon-unclaimed}
@@ -78,6 +79,10 @@ public final class DefaultTeamAclChecker implements ITeamAclChecker {
         m.put(key("team-task-update", "complete"), TeamAclAction.EXECUTE);
         m.put(key("team-task-update", "abandon-claimed"), TeamAclAction.EXECUTE);
         m.put(key("team-task-update", "abandon-unclaimed"), TeamAclAction.ADMIN);
+        // Plan 239 (L4-team-execute-flow-llm-tool): team-execute-flow drives
+        // the orchestrator, which mutates task state (CLAIMED→COMPLETED) —
+        // equivalent to WRITE (LEAD/MEMBER allowed, non-members denied).
+        m.put(key("team-execute-flow", "execute"), TeamAclAction.WRITE);
         return Map.copyOf(m);
     }
 

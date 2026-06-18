@@ -371,6 +371,11 @@ public class TestTeamTaskFlowOrchestrator {
             public java.util.Optional<TeamTask> abandonTask(String t, String b) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public java.util.Optional<TeamTask> reclaimTask(String t, String b) {
+                throw new UnsupportedOperationException();
+            }
         };
     }
 
@@ -423,6 +428,11 @@ public class TestTeamTaskFlowOrchestrator {
             public java.util.Optional<TeamTask> abandonTask(String t, String b) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public java.util.Optional<TeamTask> reclaimTask(String t, String b) {
+                throw new UnsupportedOperationException();
+            }
         };
 
         TeamTaskFlowOrchestrator orchestrator =
@@ -433,6 +443,19 @@ public class TestTeamTaskFlowOrchestrator {
                 "cyclic blockedBy must be rejected before execution: " + ex.getMessage());
     }
 
+    /**
+     * Plan 238: an unbound-member team with the NoOp shipped default spawner
+     * no longer fast-fails at build time. Instead the unbound node spawns-on-
+     * demand at run time, the NoOp spawner honestly declines (NO_SPAWN), and
+     * the node throws → the orchestrator's try/catch returns an honest
+     * {@code TeamTaskFlowResult{success=false}}. This is the documented
+     * intentional API change (pre-238 threw {@link NopAiAgentException} at
+     * build time; plan 238 decision 4 moves the failure to run time so a
+     * functional spawner can spawn at the correct DAG point). The failure
+     * semantics ("unbound member = honest failure") are preserved — only the
+     * observable failure shape changes (throw → failed result). The bound-
+     * member path is unaffected (zero regression, covered by the tests above).
+     */
     @Test
     void noBoundMemberFailsFast() {
         InMemoryTeamManager mgr = new InMemoryTeamManager();
@@ -443,13 +466,23 @@ public class TestTeamTaskFlowOrchestrator {
                         new TeamMemberSpec("lead", "lead-agent", MemberRole.LEAD)),
                 0);
         Team team = mgr.createTeam(spec);
-        createTask(store, team.getTeamId(), "A", Collections.emptyList());
+        String taskId = createTask(store, team.getTeamId(), "A", Collections.emptyList());
 
         TeamTaskFlowOrchestrator orchestrator =
                 new TeamTaskFlowOrchestrator(new RecordingAgentEngine(), store, mgr);
-        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
-                () -> orchestrator.execute(team.getTeamId()));
-        assertTrue(ex.getMessage().contains("no-bound-member"),
-                "unbound team must fail fast, not silently skip: " + ex.getMessage());
+        // Intentional API change (plan 238 decision 4): throw -> honest failed result.
+        TeamTaskFlowResult result = orchestrator.execute(team.getTeamId());
+
+        assertFalse(result.isSuccess(),
+                "unbound team with NoOp spawner must honestly fail, not silently succeed: " + result);
+        assertEquals(taskId, result.getFailedTaskId(),
+                "the unbound-member task is reported as the failed task: " + result);
+        // Honest failure: the failed task is left in CLAIMED (claimed by the
+        // orchestrator session, then the NoOp spawner's NO_SPAWN threw), NOT
+        // abandoned — consistent with the MemberAgentTaskStep failure model
+        // (plan 238 decision 3).
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(taskId).orElseThrow().getStatus(),
+                "failed unbound-member task is left CLAIMED (not abandoned), per decision 3: "
+                        + store.getTask(taskId));
     }
 }

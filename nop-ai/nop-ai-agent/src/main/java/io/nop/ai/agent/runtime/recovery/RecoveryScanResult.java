@@ -46,10 +46,20 @@ import java.util.Objects;
  *       timed-out sessions were detected or when the shipped
  *       {@link NoOpRecoveryManager} default returns an all-zero result. Every
  *       timed-out session has an outcome (Minimum Rules #24 — non-silent).</li>
+ *   <li>{@code teamTaskRecoveryActions} — the per-stuck-task
+ *       {@link TeamTaskRecoveryOutcome} list produced by the configured
+ *       {@link ITeamTaskRecoveryHandler} during this scan (plan 240). One
+ *       outcome per detected stuck CLAIMED team task (status=CLAIMED +
+ *       UPDATED_AT older than the handler's configured threshold), in
+ *       detection order. Empty list when no stuck tasks were detected or
+ *       when the shipped {@link NoOpTeamTaskRecoveryHandler} default returns
+ *       an empty list (SKIP semantic — zero DB access). Every acted-upon
+ *       task has an outcome (Minimum Rules #24 — non-silent).</li>
  * </ul>
  *
  * <p>See plan 222 (L4-8-P4-RecoveryDaemon), plan 226
- * (L4-8-P4-RecoveryStrategy), plan 229 (L4-8-P4-TimeoutAbort), and design
+ * (L4-8-P4-RecoveryStrategy), plan 229 (L4-8-P4-TimeoutAbort), plan 240
+ * (L4-team-task-reclaim-and-timeout-abandon), and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3 / §10 Phase 4.
  */
 public final class RecoveryScanResult {
@@ -61,11 +71,13 @@ public final class RecoveryScanResult {
     private final long scannedAt;
     private final List<RecoveryOutcome> recoveryActions;
     private final List<TimeoutOutcome> timeoutActions;
+    private final List<TeamTaskRecoveryOutcome> teamTaskRecoveryActions;
 
     public RecoveryScanResult(int staleLocksCleaned, int orphanSessionsDetected,
                               List<String> orphanSessionIds, long scanDurationMs, long scannedAt,
                               List<RecoveryOutcome> recoveryActions,
-                              List<TimeoutOutcome> timeoutActions) {
+                              List<TimeoutOutcome> timeoutActions,
+                              List<TeamTaskRecoveryOutcome> teamTaskRecoveryActions) {
         this.staleLocksCleaned = staleLocksCleaned;
         this.orphanSessionsDetected = orphanSessionsDetected;
         this.orphanSessionIds = Collections.unmodifiableList(
@@ -76,17 +88,19 @@ public final class RecoveryScanResult {
                 Objects.requireNonNull(recoveryActions, "recoveryActions must not be null"));
         this.timeoutActions = Collections.unmodifiableList(
                 Objects.requireNonNull(timeoutActions, "timeoutActions must not be null"));
+        this.teamTaskRecoveryActions = Collections.unmodifiableList(
+                Objects.requireNonNull(teamTaskRecoveryActions, "teamTaskRecoveryActions must not be null"));
     }
 
     /**
      * All-zero result for the {@link NoOpRecoveryManager} default — an
      * explicit "no recovery scanning" semantic (empty id list, zero counts,
      * zero duration, zero timestamp, empty recovery actions, empty timeout
-     * actions), not a silent no-op.
+     * actions, empty team-task recovery actions), not a silent no-op.
      */
     public static RecoveryScanResult empty() {
         return new RecoveryScanResult(0, 0, Collections.emptyList(), 0L, 0L,
-                Collections.emptyList(), Collections.emptyList());
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     }
 
     public int getStaleLocksCleaned() {
@@ -134,6 +148,22 @@ public final class RecoveryScanResult {
         return timeoutActions;
     }
 
+    /**
+     * The per-stuck-task outcomes produced by the configured
+     * {@link ITeamTaskRecoveryHandler} during this scan (plan 240). One
+     * outcome per detected stuck CLAIMED team task (status=CLAIMED +
+     * UPDATED_AT older than the handler's configured threshold), in
+     * detection order. Empty when no stuck tasks were detected, or when the
+     * shipped {@link NoOpTeamTaskRecoveryHandler} default is wired (SKIP
+     * semantic — zero DB access).
+     *
+     * @return an unmodifiable, non-null list of
+     *         {@link TeamTaskRecoveryOutcome}
+     */
+    public List<TeamTaskRecoveryOutcome> getTeamTaskRecoveryActions() {
+        return teamTaskRecoveryActions;
+    }
+
     @Override
     public String toString() {
         return "RecoveryScanResult{staleLocksCleaned=" + staleLocksCleaned
@@ -142,6 +172,7 @@ public final class RecoveryScanResult {
                 + ", scanDurationMs=" + scanDurationMs
                 + ", scannedAt=" + scannedAt
                 + ", recoveryActions=" + recoveryActions
-                + ", timeoutActions=" + timeoutActions + '}';
+                + ", timeoutActions=" + timeoutActions
+                + ", teamTaskRecoveryActions=" + teamTaskRecoveryActions + '}';
     }
 }

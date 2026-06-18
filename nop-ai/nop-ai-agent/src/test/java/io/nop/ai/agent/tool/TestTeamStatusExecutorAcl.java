@@ -155,6 +155,11 @@ public class TestTeamStatusExecutorAcl {
             public java.util.Optional<io.nop.ai.agent.team.TeamTask> abandonTask(String taskId, String abandonedBy) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public java.util.Optional<io.nop.ai.agent.team.TeamTask> reclaimTask(String taskId, String reclaimedBy) {
+                throw new UnsupportedOperationException();
+            }
         };
         io.nop.ai.agent.team.ITeamAclChecker denyAll = (teamId, sess, tool, action) ->
                 io.nop.ai.agent.team.TeamAclDecision.deny(MemberRole.MEMBER,

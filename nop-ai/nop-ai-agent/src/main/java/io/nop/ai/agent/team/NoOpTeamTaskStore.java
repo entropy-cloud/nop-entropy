@@ -6,12 +6,13 @@ import java.util.Optional;
 /**
  * Shipped no-op default for {@link ITeamTaskStore}.
  *
- * <p>The {@link #createTask} write operation and the three state-transition
- * operations ({@link #claimTask} / {@link #completeTask} / {@link #abandonTask})
- * throw {@link UnsupportedOperationException} — a fast failure that signals
- * "team task store is not enabled", not a silent success. This honours Minimum
- * Rules #24 (No Silent No-Op): a caller that depends on shared task mutation
- * would otherwise mistake a silent null/empty for a real effect.
+ * <p>The {@link #createTask} write operation and the four state-transition
+ * operations ({@link #claimTask} / {@link #completeTask} / {@link #abandonTask}
+ * / {@link #reclaimTask}) throw {@link UnsupportedOperationException} — a
+ * fast failure that signals "team task store is not enabled", not a silent
+ * success. This honours Minimum Rules #24 (No Silent No-Op): a caller that
+ * depends on shared task mutation would otherwise mistake a silent
+ * null/empty for a real effect.
  *
  * <p>All <strong>read</strong> operations ({@link #getTask},
  * {@link #getTasksByTeam}, {@link #getTasksByCreator}) return empty results,
@@ -75,6 +76,11 @@ public final class NoOpTeamTaskStore implements ITeamTaskStore {
 
     @Override
     public Optional<TeamTask> abandonTask(String taskId, String abandonedBy) {
+        throw notEnabled();
+    }
+
+    @Override
+    public Optional<TeamTask> reclaimTask(String taskId, String reclaimedBy) {
         throw notEnabled();
     }
 }

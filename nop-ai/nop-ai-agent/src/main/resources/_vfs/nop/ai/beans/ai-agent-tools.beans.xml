@@ -25,4 +25,14 @@
     <bean id="ai-agent-tools:team-task-create" class="io.nop.ai.agent.tool.TeamTaskCreateExecutor"/>
     <bean id="ai-agent-tools:team-task-update" class="io.nop.ai.agent.tool.TeamTaskUpdateExecutor"/>
 
+    <!-- Team-execute-flow tool executor (plan 239 / L4-team-execute-flow-llm-tool).
+         The top Layer 4 LLM entry point that drives TeamTaskFlowOrchestrator
+         to execute the caller's team task DAG via a tool call. Resolves the
+         caller's team from the session (no teamId parameter), enforces the
+         WRITE ACL, then per-invocation constructs the orchestrator with the
+         wire-at-consumer member spawner (NoOp shipped default → zero
+         regression; functional spawner → run-time auto-spawn of unbound
+         members). Same auto-collect path. -->
+    <bean id="ai-agent-tools:team-execute-flow" class="io.nop.ai.agent.tool.TeamExecuteFlowExecutor"/>
+
 </beans>

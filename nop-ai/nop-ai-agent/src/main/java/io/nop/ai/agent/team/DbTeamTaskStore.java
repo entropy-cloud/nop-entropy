@@ -33,9 +33,9 @@ import java.util.UUID;
  * required from integrators).
  *
  * <p><b>State-machine CAS</b> ({@link #claimTask} / {@link #completeTask} /
- * {@link #abandonTask}, design 裁定 3): each transition is a single
- * <b>conditional {@code UPDATE}</b> on {@code STATUS}, with the
- * affected-row-count determining success:
+ * {@link #abandonTask} / {@link #reclaimTask}, design 裁定 3): each
+ * transition is a single <b>conditional {@code UPDATE}</b> on
+ * {@code STATUS}, with the affected-row-count determining success:
  * <ul>
  *   <li>{@code claimTask}: {@code UPDATE ... SET STATUS='CLAIMED',
  *       CLAIMED_BY=?, UPDATED_AT=? WHERE TASK_ID=? AND STATUS='CREATED'}.
@@ -45,6 +45,10 @@ import java.util.UUID;
  *       UPDATED_AT=? WHERE TASK_ID=? AND STATUS='CLAIMED'}.</li>
  *   <li>{@code abandonTask}: {@code UPDATE ... SET STATUS='ABANDONED',
  *       UPDATED_AT=? WHERE TASK_ID=? AND STATUS IN ('CREATED','CLAIMED')}.</li>
+ *   <li>{@code reclaimTask} (plan 240): {@code UPDATE ... SET STATUS='CREATED',
+ *       CLAIMED_BY=NULL, UPDATED_AT=? WHERE TASK_ID=? AND STATUS='CLAIMED'}.
+ *       Recovery transition that un-sticks a CLAIMED task whose claimer has
+ *       disappeared, clearing claimedBy so the task is re-claimable.</li>
  * </ul>
  * When {@code executeUpdate() == 1} the transition succeeded and the updated
  * row is re-read via a single SELECT to return the fresh {@link TeamTask};
@@ -319,6 +323,41 @@ public class DbTeamTaskStore implements ITeamTaskStore {
             stmt.setString(3, taskId);
             if (abandonTenant != null) {
                 stmt.setString(4, abandonTenant);
+            }
+        });
+        if (!applied) {
+            return Optional.empty();
+        }
+        return getTask(taskId);
+    }
+
+    @Override
+    public Optional<TeamTask> reclaimTask(String taskId, String reclaimedBy) {
+        requireTaskId(taskId);
+        Objects.requireNonNull(reclaimedBy, "reclaimedBy");
+
+        long now = System.currentTimeMillis();
+        String tenant = currentTenant();
+        // reclaim is CLAIMED→CREATED: reset to re-claimable state by clearing
+        // CLAIMED_BY (plan 240). Terminal statuses (COMPLETED / ABANDONED)
+        // and CREATED are not affected (WHERE STATUS='CLAIMED' guard).
+        String sql = "UPDATE " + AiAgentTeamTaskTable.TABLE_NAME
+                + " SET " + AiAgentTeamTaskTable.COL_STATUS + " = ?, "
+                + AiAgentTeamTaskTable.COL_CLAIMED_BY + " = NULL, "
+                + AiAgentTeamTaskTable.COL_UPDATED_AT + " = ? "
+                + "WHERE " + AiAgentTeamTaskTable.COL_TASK_ID + " = ? "
+                + "AND " + AiAgentTeamTaskTable.COL_STATUS + " = ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentTeamTaskTable.COL_TENANT_ID);
+        }
+        String reclaimTenant = tenant;
+        boolean applied = conditionalUpdate(sql, stmt -> {
+            stmt.setString(1, TeamTaskStatus.CREATED.name());
+            stmt.setLong(2, now);
+            stmt.setString(3, taskId);
+            stmt.setString(4, TeamTaskStatus.CLAIMED.name());
+            if (reclaimTenant != null) {
+                stmt.setString(5, reclaimTenant);
             }
         });
         if (!applied) {

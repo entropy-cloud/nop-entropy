@@ -333,6 +333,11 @@ public class TestTeamTaskUpdateExecutorAcl {
             public java.util.Optional<TeamTask> abandonTask(String id, String by) {
                 return realStore.abandonTask(id, by);
             }
+
+            @Override
+            public java.util.Optional<TeamTask> reclaimTask(String id, String by) {
+                return realStore.reclaimTask(id, by);
+            }
         };
         io.nop.ai.agent.team.ITeamAclChecker denyAll = (teamId, sess, tool, action) ->
                 io.nop.ai.agent.team.TeamAclDecision.deny(MemberRole.MEMBER,

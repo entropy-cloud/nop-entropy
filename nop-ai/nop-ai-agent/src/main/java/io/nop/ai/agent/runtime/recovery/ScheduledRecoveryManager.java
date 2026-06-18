@@ -62,15 +62,31 @@ import java.util.concurrent.TimeUnit;
  *       (e.g. {@link DefaultOrphanRecoveryHandler} for RESUME/ABORT) via
  *       {@link #setOrphanRecoveryHandler}. Outcomes are aggregated into
  *       {@link RecoveryScanResult#getRecoveryActions()}.</li>
+ *   <li><b>Stuck team-task recovery (plan 240)</b>: the configured
+ *       {@link ITeamTaskRecoveryHandler} (shipped default
+ *       {@link NoOpTeamTaskRecoveryHandler} — SKIP, returns an empty
+ *       outcome list, zero DB access, zero regression) is invoked once.
+ *       Unlike the per-session handlers above, the team-task handler is
+ *       <em>self-contained</em> — it performs its own detection SELECT on
+ *       {@code ai_agent_team_task} and per-task raw JDBC action (RECLAIM /
+ *       ABORT) internally; scanOnce only aggregates the returned outcome
+ *       list into {@link RecoveryScanResult#getTeamTaskRecoveryActions()}.
+ *       Integrators inject a functional handler (e.g.
+ *       {@code DefaultTeamTaskRecoveryHandler}) via
+ *       {@link #setTeamTaskRecoveryHandler}.</li>
  * </ol>
  *
- * <p><b>Step ordering (plan 229 design 裁定 3)</b>: timeout detection runs
- * <em>after</em> stale-lock cleanup and <em>before</em> orphan detection.
- * This ensures a timed-out orphan session force-marked {@code failed}
- * (terminal) by the timeout handler is automatically excluded by the
- * subsequent orphan-detection SQL (which filters
- * {@code STATUS IN ('running','pending')}), avoiding double-handling
- * between the timeout handler and the orphan handler.
+ * <p><b>Step ordering (plan 229 design 裁定 3, plan 240 design 裁定 6)</b>:
+ * timeout detection runs <em>after</em> stale-lock cleanup and
+ * <em>before</em> orphan detection. This ensures a timed-out orphan session
+ * force-marked {@code failed} (terminal) by the timeout handler is
+ * automatically excluded by the subsequent orphan-detection SQL (which
+ * filters {@code STATUS IN ('running','pending')}), avoiding double-handling
+ * between the timeout handler and the orphan handler. Stuck team-task
+ * recovery runs <em>last</em> (after orphan detection): it is an
+ * independent domain table ({@code ai_agent_team_task}) with no data
+ * dependency on session recovery, so running it last minimises interference
+ * with the existing session-recovery steps.
  *
  * <p><b>No silent no-op</b> (Minimum Rules #24): a failed stale-lock
  * DELETE propagates as {@link NopAiAgentException} (never swallowed); a
@@ -87,7 +103,7 @@ import java.util.concurrent.TimeUnit;
  * construction (mirrors {@code DbSessionTakeoverLock}). The session table
  * is assumed to already exist (created by {@code DBSessionStore}).
  *
- * <p>See plan 222, plan 226, plan 229 and design
+ * <p>See plan 222, plan 226, plan 229, plan 240 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3 / §10 Phase 4.
  */
 public class ScheduledRecoveryManager implements IRecoveryManager {
@@ -139,6 +155,20 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      * classification) via {@link #setSessionTimeoutHandler}.
      */
     private ISessionTimeoutHandler sessionTimeoutHandler = NoOpSessionTimeoutHandler.noOp();
+
+    /**
+     * Pluggable stuck-team-task recovery strategy (plan 240 /
+     * L4-team-task-reclaim-and-timeout-abandon). Invoked once inside
+     * {@link #scanOnce} (step 4, after orphan detection). The handler is
+     * <em>self-contained</em> — it performs its own detection SELECT on
+     * {@code ai_agent_team_task} and per-task raw JDBC action internally;
+     * scanOnce only aggregates the returned outcome list. Shipped default
+     * is {@link NoOpTeamTaskRecoveryHandler} (SKIP — returns an empty
+     * outcome list, zero DB access, zero behaviour regression). Integrators
+     * inject a functional handler (e.g. {@code DefaultTeamTaskRecoveryHandler}
+     * for RECLAIM / ABORT) via {@link #setTeamTaskRecoveryHandler}.
+     */
+    private ITeamTaskRecoveryHandler teamTaskRecoveryHandler = NoOpTeamTaskRecoveryHandler.noOp();
 
     /**
      * Wall-clock timeout threshold in seconds, applied by the
@@ -271,6 +301,41 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
         return timeoutSeconds;
     }
 
+    /**
+     * Set the stuck-team-task recovery handler invoked once per
+     * {@link #scanOnce} (plan 240 / L4-team-task-reclaim-and-timeout-abandon).
+     * When not set, the shipped default {@link NoOpTeamTaskRecoveryHandler}
+     * (SKIP — returns an empty outcome list, zero DB access, no recovery
+     * action) is used, preserving zero behaviour regression with plan 229.
+     *
+     * <p>The handler is self-contained: it performs its own detection
+     * SELECT on {@code ai_agent_team_task} and per-task raw JDBC action
+     * (RECLAIM / ABORT) internally; scanOnce only aggregates the returned
+     * outcome list.
+     *
+     * @param handler the stuck-team-task recovery strategy; never null
+     *                (null is rejected to prevent silent fallback to the
+     *                default)
+     */
+    public void setTeamTaskRecoveryHandler(ITeamTaskRecoveryHandler handler) {
+        if (handler == null) {
+            throw new NopAiAgentException(
+                    "ScheduledRecoveryManager.setTeamTaskRecoveryHandler: handler must not be null");
+        }
+        this.teamTaskRecoveryHandler = handler;
+    }
+
+    /**
+     * Return the currently configured stuck-team-task recovery handler
+     * (exposed for testability and integrator inspection).
+     *
+     * @return the non-null handler (shipped default
+     *         {@link NoOpTeamTaskRecoveryHandler} unless overridden)
+     */
+    public ITeamTaskRecoveryHandler getTeamTaskRecoveryHandler() {
+        return teamTaskRecoveryHandler;
+    }
+
     private void initLockSchema() {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
@@ -317,10 +382,11 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
         try {
             RecoveryScanResult result = scanOnce();
             if (result.getStaleLocksCleaned() > 0 || result.getOrphanSessionsDetected() > 0
-                    || !result.getTimeoutActions().isEmpty()) {
+                    || !result.getTimeoutActions().isEmpty()
+                    || !result.getTeamTaskRecoveryActions().isEmpty()) {
                 LOG.info("ScheduledRecoveryManager: scan complete: {}", result);
             } else {
-                LOG.debug("ScheduledRecoveryManager: scan complete (no stale locks / orphans / timeouts): {}", result);
+                LOG.debug("ScheduledRecoveryManager: scan complete (no stale locks / orphans / timeouts / stuck team tasks): {}", result);
             }
         } catch (RuntimeException e) {
             LOG.warn("ScheduledRecoveryManager: periodic scan failed (will retry next interval): {}",
@@ -380,6 +446,16 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
             recoveryActions.add(outcome);
         }
 
+        // Step 4 (plan 240): stuck team-task recovery. The handler is
+        // self-contained — it performs its own detection SELECT on
+        // ai_agent_team_task and per-task raw JDBC action (RECLAIM / ABORT)
+        // internally; scanOnce only aggregates the returned outcome list.
+        // Runs after orphan detection (last step) because team-task is an
+        // independent domain table with no data dependency on session
+        // recovery (design 裁定 6). The shipped NoOp handler returns an
+        // empty list with zero DB access (zero regression).
+        List<TeamTaskRecoveryOutcome> teamTaskRecoveryActions = teamTaskRecoveryHandler.recoverStuckTasks();
+
         long scanDurationMs = System.currentTimeMillis() - start;
         return new RecoveryScanResult(
                 staleLocksCleaned,
@@ -388,7 +464,8 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
                 scanDurationMs,
                 scannedAt,
                 recoveryActions,
-                timeoutActions);
+                timeoutActions,
+                teamTaskRecoveryActions);
     }
 
     /**
