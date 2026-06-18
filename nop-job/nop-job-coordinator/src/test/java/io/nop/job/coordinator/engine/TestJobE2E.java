@@ -288,6 +288,7 @@ public class TestJobE2E {
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> t, String w, long l) { return t; }
         @Override public NopJobTask loadTask(String id) { return null; }
         @Override public long countInFlightTasks(String w) { return 0; }
+        @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String w) { return io.nop.job.api.resource.ResourceVector.ZERO; }
     }
 
     static class MockNamingService implements INamingService {

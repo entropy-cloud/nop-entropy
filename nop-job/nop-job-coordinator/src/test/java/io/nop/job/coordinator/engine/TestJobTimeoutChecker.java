@@ -543,6 +543,7 @@ public class TestJobTimeoutChecker {
         @Override public List<NopJobTask> findTasksByFireId(String jobFireId) { return Collections.emptyList(); }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
+        @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String workerInstanceId) { return io.nop.job.api.resource.ResourceVector.ZERO; }
     }
 
     static class MockFireStore implements IJobFireStore {

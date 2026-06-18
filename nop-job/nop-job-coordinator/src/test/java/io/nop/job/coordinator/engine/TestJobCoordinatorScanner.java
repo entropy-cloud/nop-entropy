@@ -93,6 +93,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
+        dispatcher.setScheduleStore(scheduleStore);
         dispatcher.scanOnce();
 
         List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll();
@@ -440,6 +441,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
+        dispatcher.setScheduleStore(scheduleStore);
         dispatcher.scanOnce();
 
         NopJobTask task = daoProvider.daoFor(NopJobTask.class).findAll().stream()

@@ -306,6 +306,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
+        dispatcher.setScheduleStore(scheduleStore);
         return dispatcher;
     }
 

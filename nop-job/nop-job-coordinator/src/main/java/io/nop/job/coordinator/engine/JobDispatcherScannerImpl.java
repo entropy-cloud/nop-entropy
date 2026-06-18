@@ -8,8 +8,10 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.job.dao.entity.NopJobFire;
+import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
+import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.coordinator.metrics.EmptyJobDispatcherMetrics;
 import io.nop.job.coordinator.metrics.IJobDispatcherMetrics;
 import jakarta.inject.Inject;
@@ -26,6 +28,7 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
     private IJobFireStore fireStore;
     private IJobTaskBuilder defaultTaskBuilder;
+    private IJobScheduleStore scheduleStore;
     private IJobDispatcherMetrics dispatcherMetrics = new EmptyJobDispatcherMetrics();
     private JobPartitionResolver partitionResolver;
     private int scanIntervalMs = 5000;
@@ -42,6 +45,11 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     @Inject
     public void setDefaultTaskBuilder(IJobTaskBuilder defaultTaskBuilder) {
         this.defaultTaskBuilder = defaultTaskBuilder;
+    }
+
+    @Inject
+    public void setScheduleStore(IJobScheduleStore scheduleStore) {
+        this.scheduleStore = scheduleStore;
     }
 
     public void setDispatcherMetrics(IJobDispatcherMetrics dispatcherMetrics) {
@@ -135,6 +143,11 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
             for (NopJobFire fire : locked) {
                 IJobTaskBuilder builder = resolveTaskBuilder(fire);
                 List<NopJobTask> tasks = builder.buildTasks(fire);
+                NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
+                for (NopJobTask task : tasks) {
+                    task.setCostCpu(schedule.getTaskCostCpu());
+                    task.setCostMemory(schedule.getTaskCostMemory());
+                }
                 fireStore.insertTasksAndMarkFireDispatching(fire, tasks);
             }
 
