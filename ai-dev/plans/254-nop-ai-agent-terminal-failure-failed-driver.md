@@ -195,3 +195,7 @@ Follow-up:
 - result/success/exception 跨重启持久化（serialization）——optimization candidate
 - xpl 方法调用包装穿透 cancellation 字符（与 plan 249 前 bizFatal 同类已知限制）——独立 successor
 - `TaskFlowAnalyzer.checkStepRef` nextOnError 校验 bug（用 `getNext()` 代替 `getNextOnError()`）——独立 successor
+
+## Follow-up handled by 255-nop-ai-agent-task-flow-analyzer-nextOnError-validation.md
+
+`TaskFlowAnalyzer.checkStepRef` nextOnError 字段错配 bug 的 follow-up 已由 `ai-dev/plans/255-nop-ai-agent-task-flow-analyzer-nextOnError-validation.md` 接管（carry-over，priority P1）。本节为 traceability forward-link（Rule #20 exception：当前 carry-over 任务明确要求记录 follow-up 归属），不回写本 completed 计划的执行内容。

@@ -63,6 +63,7 @@ ai-dev/logs/
 ## 索引（倒序）
 
 ### 2026-06
+- [06-19](2026/06-19.md) — Plan 255 nop-task `TaskFlowAnalyzer.checkStepRef` nextOnError 字段错配修复（hasStep `getNext()`→`getNextOnError()`）+ `TestTaskFlowAnalyzer` 5 focused 测试 + 独立 closure-audit APPROVED
 - [06-02](2026/06-02.md) — 外部 Nop 应用项目默认规则、owner-doc 边界和领域设计方法纳入 `docs-for-ai`
 
 ### 2026-05
