@@ -179,6 +179,10 @@ Closure Audit Evidence:
 Follow-up:
 
 - **xpl 函数调用异常包装丢失 bizFatal 标记**（新增 successor，本计划执行中发现）：`AbstractObjFunctionExecutable.doInvoke*` 把被调用方法抛出的 NopException 包装为 `NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)`，导致 bizFatal 标记丢失。修复后 plan 247 的 state.exception() 持久化能保存真实异常，但 xpl 端到端路径下 RetryPolicy 收到的是包装后的 NopEvalException（非 bizFatal → 可恢复），bizFatal 分类在 .task.xml E2E 路径不生效。Classification: successor plan required（需改 xpl exec 包装行为或提供 bypass 机制）。
-- **retry loop 同步成功路径不 return**（plan 246 carry-over）：Classification: successor plan required（成功路径 re-execute 修复）。
+- **retry loop 同步成功路径不 return**（plan 246 carry-over）：Classification: successor plan required（成功路径 re-execute 修复）。**→ 已由 `ai-dev/plans/248-nop-ai-agent-retry-sync-success-return.md` 接管。**
 - **succeed/isDone/isSuccess/result 完整生命周期实现**：Classification: successor plan required（result/success 持久化 + continuation）。
 - **exception 跨重启持久化**（移除 `transient` + 异常序列化方案）：Classification: optimization candidate（in-memory retry 不依赖跨重启异常传递）。
+
+## Follow-up handled by 248-nop-ai-agent-retry-sync-success-return.md
+
+plan 247 §Non-Goals line 41 / §Deferred But Adjudicated line 140-145 / §Non-Blocking Follow-ups line 156 切出的 carry-over「retry loop 同步成功路径不 return 的 quirk」由 successor plan `ai-dev/plans/248-nop-ai-agent-retry-sync-success-return.md` 接管（修复 `TaskStepHelper.retry()` 同步成功路径缺 `return result;`，独立结果面：成功路径 return vs 本计划的失败路径 exception 持久化）。本链接仅为可追溯性标注，不回写 plan 247 的历史结论。
