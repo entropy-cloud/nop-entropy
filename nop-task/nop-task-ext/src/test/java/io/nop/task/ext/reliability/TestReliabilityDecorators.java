@@ -131,6 +131,24 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
                 "recoverable exception with maxRetryCount=2 should execute 1 + 2 = 3 times before exhaustion");
     }
 
+    // -------- plan 248: retry-wrapped 同步成功 step 执行恰好一次（sync success return 修复） --------
+
+    @Test
+    public void retry_syncSuccessExecutesExactlyOnce() {
+        // plan 248 端到端验证（#22, #23）：从 `.task.xml` 声明 `<decorator name="retry"/>` 包装一个同步成功 step →
+        // RetryTaskStepWrapper.execute → TaskStepHelper.retry → sync 成功 `return result;` 首轮返回。
+        //
+        // 修复前：sync 成功不 return → 循环重执行至 retry policy 耗尽 → 抛 ERR_TASK_RETRY_TIMES_EXCEED_LIMIT，
+        // 且 counter == 1 + maxRetryCount = 3（成功 step 被重复执行）。
+        // 修复后：首轮 sync 成功即 return → counter == 1，返回 "OK"。
+        Map<String, Object> ret = runTask("test/retry-decorator-sync-success");
+        assertEquals("OK", ret.get(TaskConstants.VAR_RESULT),
+                "retry-wrapped sync success step must return the real success result on first execution");
+        assertEquals(1, counter().get(),
+                "retry-wrapped sync success step must execute exactly once. "
+                        + "Pre-fix this was 1 + maxRetryCount = 3 and ultimately threw ERR_TASK_RETRY_TIMES_EXCEED_LIMIT.");
+    }
+
     // -------- timeout decorator --------
 
     @Test
