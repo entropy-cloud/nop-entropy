@@ -31,6 +31,21 @@
 | `*-meta` | 刷新 XMeta 与 i18n |
 | `*-web` | 刷新页面文件 |
 
+文件级生成顺序（以 `*-codegen/postcompile/gen-orm.xgen` 为核心）：
+
+```text
+model/{app}.orm.xml                          ← 唯一源（手编辑入口）
+    │  gen-orm.xgen 第 1 步 (/nop/templates/orm)
+    ▼
+{app}-dao/_vfs/.../orm/_app.orm.xml          ← 生成物（聚合 ORM，不可手改）
+    │  app.orm.xml 通过 x:extends 继承 _app.orm.xml
+    │  gen-orm.xgen 第 2 步 (/nop/templates/orm-entity)
+    ▼
+{app}-dao/.../entity/_gen/_Nop*.java          ← 生成物（实体类，不可手改）
+```
+
+> **绝对不要手改 `_app.orm.xml`**。它含完整实体/字段/dict 定义，看起来像“源”，但它是 gen-orm.xgen 第 1 步从 `model/*.orm.xml` 生成的聚合 ORM，手改会在重新构建时被覆盖。改字段只改 `model/*.orm.xml`，然后重新生成。
+
 ### 4. 检查结果
 
 至少检查一个下游点位是否更新：

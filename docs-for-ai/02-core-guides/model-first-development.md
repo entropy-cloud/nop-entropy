@@ -102,15 +102,48 @@ nop-cli gen model/{appName}.orm.xml -t=/nop/templates/orm -o=.
 
 ## 真实链路
 
+### 模块级（谁生成谁）
+
 ```text
 model/{app}.orm.xml
   -> {app}-codegen/postcompile/gen-orm.xgen
-  -> {app}-dao / {app}-service / {app}-meta / {app}-web
+  -> {app}-dao / {app}-service / {app}-meta / {app}-web 的基础产物
   -> {app}-meta/precompile/gen-meta.xgen
+  -> XMeta
   -> {app}-meta/postcompile/gen-i18n.xgen
+  -> i18n
   -> {app}-web/precompile/gen-page.xgen
-  -> {app}-web/precompile2/gen-i18n.xgen  (当 web i18n 依赖最终 action-auth.xml 时)
+  -> view/page 文件
 ```
+
+### 文件级（gen-orm.xgen 内部三步）
+
+`{app}-codegen/postcompile/gen-orm.xgen` 内部依次执行三次 `renderModel`，这一段是“改了 model 之后到底生成哪些文件”的核心。以 nop-job 为例（其他业务模块同理）：
+
+```text
+第 1 步：  model/{app}.orm.xml
+            -- 模板 /nop/templates/orm -->
+          {app}-dao/_vfs/.../orm/_app.orm.xml   （聚合 ORM，生成物）
+          以及 beans、api 骨架等项目级产物
+
+第 2 步：  {app}-dao/_vfs/.../orm/app.orm.xml   （x:extends _app.orm.xml）
+            -- 模板 /nop/templates/orm-entity -->
+          {app}-dao/src/main/java/.../entity/_gen/_Nop*.java   （实体类，生成物）
+
+第 3 步：  app.orm.xml
+            -- 模板 /nop/templates/orm-model -->
+          其他模型派生产物
+```
+
+要点：
+
+1. **唯一的手编辑入口是 `model/{app}.orm.xml`**。改数据结构（表、字段、dict、关系）只改这里。
+2. **`_app.orm.xml` 是第 1 步的生成物，不是源**。它聚合了 model 的内容，并加上 `orm-gen` 宏展开的标准列。手改它会在下次生成时被覆盖。
+3. **`app.orm.xml` 通过 `x:extends="_app.orm.xml"` 继承** `_app.orm.xml`，自身通常只有一个空 `<entities/>`，用于运行时承载 delta。第 2 步从它出发生成实体，实际内容仍来自 `_app.orm.xml`。
+4. **`_gen/_Nop*.java` 是第 2 步的生成物**，含 `PROP_NAME_*` 常量、字段、getter/setter。需要新字段的 getter/setter，就改 model 重新生成，不要手改 `_gen`。
+5. 改完 model 后，实体的新 getter/setter 不是立刻出现的，必须触发 gen-orm.xgen（重新构建）之后才能在代码里引用。
+
+> **易错点**：`_app.orm.xml` 包含完整的实体/字段/dict 定义，看起来像“源”，但它是从 `model/*.orm.xml` 生成的。判断一个 ORM 文件是不是源，只看路径：在 `model/` 目录下的是源；在 `_vfs/.../orm/` 下且以 `_` 开头的是生成物。
 
 ## AI 的默认修改顺序
 
@@ -133,10 +166,14 @@ model/{app}.orm.xml
 
 ## 不能手改的典型文件
 
-- `_gen/` 目录。
-- `_app.orm.xml`。
+以下文件都是 codegen 生成物，手改会在下次 `mvn install` 时被覆盖。改数据结构一律回到 `model/*.orm.xml`：
+
+- `_gen/` 目录（`_Nop*.java` 等实体类，gen-orm.xgen 第 2 步产物）。
+- `_app.orm.xml`（聚合 ORM，gen-orm.xgen 第 1 步产物）。**这是最容易被误当成“源”去手改的文件**——它含完整实体/字段/dict 定义，但都是从 `model/*.orm.xml` 生成的。
 - `_service.beans.xml`。
 - `_*.xbiz`、`_*.view.xml`、`_*.java`。
+
+判断一个 ORM 文件能不能改，只看路径：`model/*.orm.xml` 是源（可改）；`_vfs/.../orm/` 下以 `_` 开头的是生成物（不可改）。
 
 ## ORM 列类型与 JSON 组件
 

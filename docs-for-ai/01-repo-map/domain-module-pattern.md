@@ -99,8 +99,10 @@ model/{app}.orm.xml
 |------|------|
 | `_gen/` 目录 | `entity/_gen/_Xxx.java` |
 | `_` 前缀 Java / XML | `_NopAuthUser.xbiz`、`_service.beans.xml` |
-| 聚合 ORM 生成物 | `_app.orm.xml` |
+| 聚合 ORM 生成物 | `_app.orm.xml`（最易被误当成“源”手改） |
 | 页面生成物 | `_gen/_Xxx.view.xml` |
+
+> `_app.orm.xml` 含完整实体/字段/dict 定义，看起来像源，但它是 gen-orm.xgen 第 1 步从 `model/*.orm.xml` 生成的聚合 ORM，手改会在重新构建时被覆盖。改数据结构只改 `model/*.orm.xml`。文件级生成顺序详见 `../02-core-guides/model-first-development.md` 的“真实链路”一节。
 
 ## AI 默认修改位置
 

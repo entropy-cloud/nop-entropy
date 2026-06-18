@@ -16,7 +16,7 @@
 
 | 你要找什么 | 典型位置 | 是否默认可编辑 |
 |-----------|---------|----------------|
-| 生成后的 ORM 聚合文件 | `*-dao/src/main/resources/_vfs/.../_app.orm.xml` | 否 |
+| 生成后的 ORM 聚合文件 | `*-dao/src/main/resources/_vfs/.../_app.orm.xml` | 否（从 `model/*.orm.xml` 生成，勿手改） |
 | 保留层 Entity | `*-dao/src/main/java/.../entity/Xxx.java` | 是 |
 | 生成的 `I*Biz` 接口 | `*-dao/src/main/java/.../biz/I*Biz.java` | 通常读多写少 |
 | BizModel | `*-service/src/main/java/.../entity/*BizModel.java` | 是 |
