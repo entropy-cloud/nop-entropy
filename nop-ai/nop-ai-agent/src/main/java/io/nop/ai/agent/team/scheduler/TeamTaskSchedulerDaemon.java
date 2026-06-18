@@ -1,22 +1,24 @@
 package io.nop.ai.agent.team.scheduler;
 
-import io.nop.ai.agent.engine.AgentExecutionResult;
-import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
-import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.runtime.coordination.IDaemonCoordinator;
 import io.nop.ai.agent.runtime.coordination.NoOpDaemonCoordinator;
+import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.team.IMemberSpawner;
 import io.nop.ai.agent.team.ITeamManager;
 import io.nop.ai.agent.team.ITeamTaskStore;
-import io.nop.ai.agent.team.MemberRole;
 import io.nop.ai.agent.team.NoOpMemberSpawner;
 import io.nop.ai.agent.team.Team;
-import io.nop.ai.agent.team.TeamMember;
 import io.nop.ai.agent.team.TeamStatus;
 import io.nop.ai.agent.team.TeamTask;
 import io.nop.ai.agent.team.TeamTaskStatus;
+import io.nop.ai.agent.team.flow.AllMustSucceedReduction;
+import io.nop.ai.agent.team.flow.ITaskMemberRouter;
+import io.nop.ai.agent.team.flow.MemberDispatchOutcome;
+import io.nop.ai.agent.team.flow.MemberDispatchPlan;
+import io.nop.ai.agent.team.flow.MemberFanOutDispatcher;
+import io.nop.ai.agent.team.flow.NoOpTaskMemberRouter;
 import io.nop.ai.agent.team.flow.TeamTaskTopology;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import org.slf4j.Logger;
@@ -25,18 +27,21 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Functional implementation of {@link ITeamTaskSchedulerDaemon} — a
@@ -236,6 +241,59 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
      */
     private IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
 
+    /**
+     * Pluggable per-task member router (plan 245 / daemon dispatch parity).
+     * Consulted at dispatch time for each claimed task to decide which N
+     * member targets the task fans out to (bound +/or spawn) + which reduction
+     * strategy combines their results. Shipped default is
+     * {@link NoOpTaskMemberRouter} (singleton single-member plan — bound
+     * priority + spawn fallback, line-for-line identical to the pre-245 daemon
+     * single-member dispatch). Integrators opt into multi-member fan-out via
+     * the router-aware setter / constructor.
+     *
+     * <p>Mutable via {@link #setTaskMemberRouter} so a daemon can be built with
+     * the default and re-wired later (mirrors the orchestrator's
+     * {@code setTaskMemberRouter} and the other Layer 4 extension-point setter
+     * patterns). Reads in {@code scanOnce} go through the field directly.
+     */
+    private ITaskMemberRouter taskMemberRouter = NoOpTaskMemberRouter.noOp();
+
+    /**
+     * Dedicated executor for spawn-target {@code supplyAsync} offload (plan 245,
+     * reusing plan 243 design 裁定 3). MUST be independent of the
+     * {@code commonPool} so spawn workers that synchronously join an engine
+     * future (via {@code DefaultMemberSpawner.spawnMember} →
+     * {@code engine.execute(req).join()}) do not stall when concurrent spawn
+     * targets ≥ commonPool parallelism.
+     *
+     * <p>Wire-at-consumer: integrators may inject their own executor via
+     * {@link #setSpawnStepExecutor}. When not injected, the daemon lazily
+     * creates a dedicated bounded daemon-thread pool
+     * ({@link #ownedSpawnExecutor}) sized to the spawn concurrency cap; that
+     * owned pool is released by {@link #stop()}.
+     */
+    private Executor spawnStepExecutor;
+
+    /**
+     * Tracks the spawn executor pool created by this daemon (when none was
+     * injected) so {@link #stop()} can shut it down. {@code null} when an
+     * executor was injected or before any spawn-target dispatch has required
+     * it.
+     */
+    private ExecutorService ownedSpawnExecutor;
+
+    /**
+     * In-flight fan-out dispatch futures fired during {@code scanOnce} that
+     * had not completed synchronously at scan-return time (plan 245 async
+     * per-cycle dispatch). The daemon does NOT block on these inside
+     * {@code scanOnce}; it tracks them here so callers (tests, graceful
+     * shutdown) can await their resolution via
+     * {@link #awaitInFlightDispatches(long)}. A future is removed once it
+     * settles (the {@code whenComplete} callback removes it).
+     */
+    private final ConcurrentLinkedQueue<CompletableFuture<MemberDispatchOutcome>> inFlightDispatches =
+            new ConcurrentLinkedQueue<>();
+
     private volatile Future<?> scheduleHandle;
 
     /**
@@ -388,6 +446,132 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
     }
 
     // ========================================================================
+    // Per-task member router + dedicated spawn executor wiring (plan 245)
+    // ========================================================================
+
+    /**
+     * @return the per-task member router wired into this daemon (plan 245).
+     *         Never {@code null}: a daemon constructed without an explicit
+     *         router returns the shipped {@link NoOpTaskMemberRouter}
+     *         singleton (single-member plan — zero regression).
+     */
+    public ITaskMemberRouter getTaskMemberRouter() {
+        return taskMemberRouter;
+    }
+
+    /**
+     * Wire (or re-wire) the per-task member router (plan 245 / daemon dispatch
+     * parity). Passing {@code null} resets to the shipped
+     * {@link NoOpTaskMemberRouter} single-member default (line-for-line
+     * identical to the pre-245 daemon single-member dispatch — zero
+     * regression). Passing a multi-member router opts the daemon into N-target
+     * fan-out per task, reduced under the plan's strategy (shipped default
+     * {@link AllMustSucceedReduction}).
+     *
+     * <p>This mirrors {@code TeamTaskFlowOrchestrator.setTaskMemberRouter} and
+     * the established Layer 4 wire-at-consumer convention: the router's only
+     * consumer is the daemon's per-task dispatch loop, so the daemon owns its
+     * injection (not the engine).
+     *
+     * @param taskMemberRouter the router to wire; {@code null} falls back to
+     *                         {@link NoOpTaskMemberRouter#noOp()}
+     */
+    public void setTaskMemberRouter(ITaskMemberRouter taskMemberRouter) {
+        this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : NoOpTaskMemberRouter.noOp();
+    }
+
+    /**
+     * @return the dedicated executor wired for spawn-target supplyAsync, or
+     *         {@code null} when none has been injected (the daemon will then
+     *         lazily create an owned bounded pool on first spawn-target
+     *         dispatch — plan 245 reusing plan 243 design 裁定 3).
+     */
+    public Executor getSpawnStepExecutor() {
+        return spawnStepExecutor;
+    }
+
+    /**
+     * Wire (or re-wire) the dedicated executor used for spawn-target
+     * supplyAsync (plan 245 reusing plan 243 design 裁定 3). The supplied
+     * executor MUST be independent of the {@code commonPool}. When
+     * {@code null}, the daemon lazily creates and owns a dedicated bounded
+     * daemon-thread pool (released by {@link #stop()}).
+     *
+     * @param executor the dedicated executor (independent of the commonPool);
+     *                 {@code null} resets to the lazily-created owned pool
+     */
+    public void setSpawnStepExecutor(Executor executor) {
+        this.spawnStepExecutor = executor;
+    }
+
+    /**
+     * Resolve the executor for spawn-target supplyAsync: use the injected one
+     * if present, otherwise lazily create a dedicated bounded daemon-thread
+     * pool independent of the commonPool (plan 243 design 裁定 3, reused).
+     */
+    private Executor resolveSpawnExecutor() {
+        if (spawnStepExecutor != null) {
+            return spawnStepExecutor;
+        }
+        if (ownedSpawnExecutor == null) {
+            int poolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
+            ThreadFactory factory = new SpawnWorkerThreadFactory();
+            ownedSpawnExecutor = Executors.newFixedThreadPool(poolSize, factory);
+        }
+        return ownedSpawnExecutor;
+    }
+
+    /**
+     * Daemon thread factory for the owned spawn pool (mirrors the orchestrator
+     * naming so tests can assert the spawn worker ran off the calling thread /
+     * off the commonPool).
+     */
+    private static final class SpawnWorkerThreadFactory implements ThreadFactory {
+        private final AtomicInteger counter = new AtomicInteger();
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r, "ai-agent-daemon-spawn-worker-" + counter.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        }
+    }
+
+    /**
+     * Await all in-flight fan-out dispatch futures fired during the last
+     * {@code scanOnce} (plan 245 async per-cycle dispatch). The daemon does
+     * NOT block on these inside {@code scanOnce}; this method lets callers
+     * (tests, graceful shutdown) deterministically observe the final task
+     * store state after async dispatches settle.
+     *
+     * <p>A future that already completed synchronously at scan-return time is
+     * not tracked here (it was resolved + counted immediately). Only futures
+     * that were still in-flight at scan-return are awaited.
+     *
+     * @param timeoutMs the maximum total time to wait, in milliseconds
+     * @return {@code true} if all in-flight futures settled within the
+     *         timeout; {@code false} if the timeout elapsed first (the
+     *         futures remain tracked and may still settle later)
+     */
+    public boolean awaitInFlightDispatches(long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        for (CompletableFuture<MemberDispatchOutcome> f : inFlightDispatches) {
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                return false;
+            }
+            try {
+                f.get(remaining, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                // the dispatcher never completes exceptionally (it returns
+                // a FAILED outcome), so this is a timeout / interruption —
+                // continue awaiting the rest up to the deadline.
+            }
+        }
+        return System.currentTimeMillis() <= deadline;
+    }
+
+    // ========================================================================
     // Cross-process scan-lease coordinator wiring (plan 242)
     // ========================================================================
 
@@ -509,6 +693,17 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
         // periodic schedule is cancelled so no NEW tasks are claimed.
         scheduleHandle.cancel(false);
         scheduleHandle = null;
+        // Release the owned spawn executor pool (plan 245). An injected
+        // executor is left alone — its owner manages its lifecycle.
+        if (ownedSpawnExecutor != null) {
+            ownedSpawnExecutor.shutdownNow();
+            try {
+                ownedSpawnExecutor.awaitTermination(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            ownedSpawnExecutor = null;
+        }
         LOG.info("TeamTaskSchedulerDaemon: stopped periodic team-task scheduling scan "
                 + "(in-progress dispatched tasks, if any, continue until natural completion)");
     }
@@ -550,9 +745,18 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
         int dispatched = 0;
         int completed = 0;
         int abandoned = 0;
+        int failed = 0;
         int skippedCoordinated = 0;
         List<String> completedIds = new ArrayList<>();
         List<String> abandonedIds = new ArrayList<>();
+        List<String> failedIds = new ArrayList<>();
+
+        // Plan 243 design 裁定 2 (explicit-propagation tenant capture): capture
+        // the caller's tenant ONCE here, on the scan thread, so spawn-target
+        // supplyAsync workers can re-apply it inside the worker regardless of
+        // the dispatch topology. Null = no tenant context (all data visible,
+        // backward compatible).
+        final String capturedTenant = ThreadLocalTenantResolver.current();
 
         for (String teamId : teamIdsToScan) {
             Optional<Team> teamOpt = teamManager.getTeam(teamId);
@@ -589,15 +793,9 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                 TeamTaskTopology topology = new TeamTaskTopology(tasks);
                 List<TeamTask> ready = topology.getReadyTasks();
 
-                // Resolve one bound member for the whole team (daemon delegates
-                // each ready task to a bound member; multi-member routing is a
-                // successor). Resolved once per team per scan — the bound roster
-                // does not change within a scan.
-                ResolvedMember member = resolveBoundMember(team);
-
                 for (TeamTask task : ready) {
                     // design 裁定 4 关键安全约束: skip CLAIMED tasks (another
-                    // member is executing them) — never claim, never abandon.
+                    // member is executing them) — never claim, never touch.
                     if (task.getStatus() != TeamTaskStatus.CREATED) {
                         continue;
                     }
@@ -606,37 +804,40 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                     String taskId = task.getTaskId();
 
                     // CAS claim (idempotent). Empty = lost the race to another
-                    // claimer — legitimate concurrency, not an error: skip silently.
+                    // claimer OR the task is already COMPLETED (idempotent
+                    // success — plan 245 preserves this honest signal).
                     Optional<TeamTask> claimedOpt = taskStore.claimTask(taskId, daemonSessionId);
                     if (claimedOpt.isEmpty()) {
+                        Optional<TeamTask> current = taskStore.getTask(taskId);
+                        if (current.isPresent()
+                                && current.get().getStatus() == TeamTaskStatus.COMPLETED) {
+                            // Idempotent: a prior partial run already COMPLETED
+                            // this task — honest explicit success.
+                            completed++;
+                            completedIds.add(taskId);
+                            continue;
+                        }
                         claimLost++;
                         continue;
                     }
                     claimed++;
 
                     // From here on we OWN this task (CREATED → CLAIMED by us).
-                    // Any dispatch failure is handled by abandoning — only tasks
-                    // we CAS-claimed are ever abandoned (design 裁定 4).
-                    DispatchOutcome outcome = dispatchClaimedTask(team, task, member);
-                    switch (outcome) {
-                        case COMPLETED:
-                            completed++;
-                            completedIds.add(taskId);
-                            dispatched++;
-                            break;
-                        case DISPATCH_FAILED:
-                            abandoned++;
-                            abandonedIds.add(taskId);
-                            dispatched++;
-                            break;
-                        case UNBOUND_MEMBER:
-                            abandoned++;
-                            abandonedIds.add(taskId);
-                            // execute was NOT invoked — do not count as dispatched.
-                            break;
-                        default:
-                            throw new IllegalStateException("unhandled dispatch outcome: " + outcome);
-                    }
+                    // Plan 245: dispatch consumes the per-task member router
+                    // + the shared fan-out + reduce + complete chain. The
+                    // router's NoOp shipped default produces a singleton
+                    // single-member plan → bound priority + spawn fallback,
+                    // line-for-line identical to the pre-245 daemon
+                    // single-member dispatch (zero regression). A multi-member
+                    // router produces an N-target plan fanned out + reduced.
+                    DispatchTally tally = dispatchClaimedTask(team, task, capturedTenant);
+                    completed += tally.completed;
+                    failed += tally.failed;
+                    abandoned += tally.abandoned;
+                    dispatched += tally.dispatched;
+                    completedIds.addAll(tally.completedIds);
+                    failedIds.addAll(tally.failedIds);
+                    abandonedIds.addAll(tally.abandonedIds);
                 }
             } finally {
                 // Active release = fast failover (the next instance can
@@ -656,8 +857,8 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
         long scanDurationMs = System.currentTimeMillis() - start;
         return new SchedulerScanResult(
                 teamIdsToScan.size(), readyCreated, claimed, claimLost,
-                dispatched, completed, abandoned, skippedCoordinated,
-                completedIds, abandonedIds, scannedAt, scanDurationMs);
+                dispatched, completed, abandoned, failed, skippedCoordinated,
+                completedIds, abandonedIds, failedIds, scannedAt, scanDurationMs);
     }
 
     private List<String> resolveTeamIdsToScan() {
@@ -676,293 +877,221 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
     }
 
     /**
-     * Resolve one bound member of the team to delegate ready tasks to (plan
-     * 236 裁定 4 — consume already-bound members; plan 237 adds the
-     * spawned-member fallback on the dispatch path when this returns null).
-     * Strategy: prefer the first bound MEMBER-role member; fall back to the
-     * first bound member of any role; return {@code null} if no member is
-     * bound.
+     * Dispatch a task this daemon has just CAS-claimed, consuming the per-task
+     * member router + the shared fan-out + reduce + complete chain (plan 245
+     * / daemon dispatch parity).
      *
-     * <p>This is the daemon-side equivalent of
-     * {@code TeamTaskFlowOrchestrator.resolveMember}, simplified to a single
-     * resolved member per team per scan (the daemon does not check
-     * {@code task.getClaimedBy()} because it only processes CREATED tasks,
-     * whose {@code claimedBy} is null). When this returns {@code null} the
-     * dispatch path consults the wired {@link IMemberSpawner} (plan 237).
-     */
-    private ResolvedMember resolveBoundMember(Team team) {
-        TeamMember fallback = null;
-        for (TeamMember m : team.getMembers().values()) {
-            if (!m.isBound()) {
-                continue;
-            }
-            if (m.getRole() == MemberRole.MEMBER) {
-                return new ResolvedMember(m.getMemberName(), m.getSessionId(),
-                        agentModelOf(team, m.getMemberName()));
-            }
-            if (fallback == null) {
-                fallback = m;
-            }
-        }
-        if (fallback != null) {
-            return new ResolvedMember(fallback.getMemberName(), fallback.getSessionId(),
-                    agentModelOf(team, fallback.getMemberName()));
-        }
-        return null;
-    }
-
-    private String agentModelOf(Team team, String memberName) {
-        if (team.getSpec() == null) {
-            return null;
-        }
-        for (io.nop.ai.agent.team.TeamMemberSpec spec : team.getSpec().getMemberSpecs()) {
-            if (spec.getMemberName().equals(memberName)) {
-                return spec.getAgentModel();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Dispatch a task this daemon has just CAS-claimed. Synchronous join
-     * (design 裁定 1 — same delegation mechanism as plan 233
-     * {@code MemberAgentTaskStep}). Honesty contract (design 裁定 4):
-     * <ul>
-     *   <li>Bound member present ({@code member != null}) → dispatch to bound
-     *       member agent; success COMPLETED, any failure abandon.</li>
-     *   <li>No bound member + functional {@link IMemberSpawner} (plan 237):
-     *     <ul>
-     *       <li>{@link SpawnMemberResult.Status#DISPATCHED} → dispatch to the
-     *           spawned agent (the spawner already executed the agent; here we
-     *           just interpret the wrapped {@link AgentExecutionResult} for
-     *           complete/abandon — design 裁定 4: spawned path shares the
-     *           bound-member complete/abandon logic).</li>
-     *       <li>{@link SpawnMemberResult.Status#NO_SPAWN} → abandon
-     *           ({@code UNBOUND_MEMBER} — same as NoOp spawner, zero
-     *           regression for the "spawner honestly declined" case).</li>
-     *       <li>{@link SpawnMemberResult.Status#SPAWN_FAILED} → abandon
-     *           ({@code DISPATCH_FAILED} — same as a bound-member dispatch
-     *           failure).</li>
-     *     </ul>
-     *   </li>
-     *   <li>No bound member + NoOp spawner shipped default → abandon
-     *       ({@code UNBOUND_MEMBER}, zero regression — pre-spawn behaviour).</li>
-     *   <li>{@code completeTask} CAS lost → abandon.</li>
-     * </ul>
-     * Per-task isolation: any failure here is contained — the caller continues
-     * to the next ready task.
-     */
-    private DispatchOutcome dispatchClaimedTask(Team team, TeamTask task, ResolvedMember member) {
-        String taskId = task.getTaskId();
-
-        // --- Bound-member priority (design 裁定 3): if a bound member was
-        // resolved, dispatch to it directly (the spawner is NEVER consulted
-        // for teams with a bound member — zero behaviour change for the
-        // bound-member path).
-        if (member != null) {
-            return dispatchToBoundMember(task, member);
-        }
-
-        // --- No bound member: consult the spawner (plan 237 / design 裁定 5).
-        // NoOp shipped default returns NO_SPAWN, so this falls through to the
-        // pre-spawn UNBOUND_MEMBER abandon (zero regression). A functional
-        // spawner (DefaultMemberSpawner) attempts to spawn based on the team's
-        // declarative memberSpec.agentModel.
-        SpawnMemberRequest spawnReq = new SpawnMemberRequest(team, task, daemonSessionId);
-        SpawnMemberResult spawnResult;
-        try {
-            spawnResult = memberSpawner.spawnMember(spawnReq);
-        } catch (RuntimeException e) {
-            // A spawner that throws (rather than returning SPAWN_FAILED) is
-            // a contract violation, but we still handle it honestly: the
-            // task is abandoned (not silently swallowed).
-            LOG.warn("TeamTaskSchedulerDaemon: memberSpawner threw for taskId={}, teamId={} — abandoning",
-                    taskId, team.getTeamId(), e);
-            abandonClaimed(taskId, "memberSpawner threw: " + e.toString());
-            return DispatchOutcome.DISPATCH_FAILED;
-        }
-        if (spawnResult == null) {
-            // Defensive: a well-behaved spawner never returns null (Minimum
-            // Rules #24), but treat a null as honest NO_SPAWN-equivalent
-            // abandon rather than NPE.
-            LOG.warn("TeamTaskSchedulerDaemon: memberSpawner returned null for taskId={}, teamId={} — "
-                    + "abandoning (spawner contract violation)", taskId, team.getTeamId());
-            abandonClaimed(taskId, "memberSpawner returned null");
-            return DispatchOutcome.UNBOUND_MEMBER;
-        }
-
-        switch (spawnResult.getStatus()) {
-            case NO_SPAWN:
-                LOG.warn("TeamTaskSchedulerDaemon: no bound member for team teamId={} and spawner "
-                                + "declined to spawn (reason={}) — abandoning claimed task taskId={}",
-                        team.getTeamId(), spawnResult.getReason(), taskId);
-                abandonClaimed(taskId, "no spawn: " + spawnResult.getReason());
-                return DispatchOutcome.UNBOUND_MEMBER;
-            case SPAWN_FAILED:
-                LOG.warn("TeamTaskSchedulerDaemon: spawner attempted spawn but failed for taskId={}, "
-                                + "teamId={} (reason={}) — abandoning",
-                        taskId, team.getTeamId(), spawnResult.getReason());
-                abandonClaimed(taskId, "spawn failed: " + spawnResult.getReason());
-                return DispatchOutcome.DISPATCH_FAILED;
-            case DISPATCHED:
-                // Spawner executed the agent; interpret the wrapped result
-                // for complete/abandon (design 裁定 4 — shared with the
-                // bound-member path).
-                return completeOrAbandonAfterExecution(task, spawnResult.getExecutionResult(),
-                        spawnResult.getSpawnedSessionId(), /*spawned=*/true);
-            default:
-                throw new IllegalStateException("unhandled spawn result status: "
-                        + spawnResult.getStatus());
-        }
-    }
-
-    /**
-     * Dispatch a claimed task to an already-resolved bound member (design
-     * 裁定 1 — synchronous join via {@code IAgentEngine.execute}). The
-     * spawner is NOT consulted on this path (bound-member priority,
-     * design 裁定 3).
-     */
-    private DispatchOutcome dispatchToBoundMember(TeamTask task, ResolvedMember member) {
-        String taskId = task.getTaskId();
-
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("teamTaskId", taskId);
-        metadata.put("teamId", task.getTeamId());
-        AgentMessageRequest request = new AgentMessageRequest(
-                member.agentName, buildPrompt(task), member.sessionId, metadata);
-
-        AgentExecutionResult result;
-        try {
-            CompletableFuture<AgentExecutionResult> future = agentEngine.execute(request);
-            result = future.join();
-        } catch (CompletionException e) {
-            Throwable cause = e.getCause() != null ? e.getCause() : e;
-            LOG.warn("TeamTaskSchedulerDaemon: member agent threw for taskId={}, sessionId={} — abandoning",
-                    taskId, member.sessionId, cause);
-            abandonClaimed(taskId, "member agent threw: " + cause.toString());
-            return DispatchOutcome.DISPATCH_FAILED;
-        }
-
-        return completeOrAbandonAfterExecution(task, result, member.sessionId, /*spawned=*/false);
-    }
-
-    /**
-     * Shared complete/abandon logic for the bound-member and spawned-member
-     * dispatch paths (design 裁定 4 — unified post-execution handling).
-     * Inspects the {@link AgentExecutionResult} status to decide
-     * {@code completeTask} (success) vs. {@code abandonTask} (any non-completed
-     * terminal status), then handles the {@code completeTask} CAS-loss case.
+     * <p><b>Async per-cycle dispatch (plan 245 design 裁定 2)</b>: the fan-out
+     * future is fired via {@link MemberFanOutDispatcher#dispatch}. The daemon
+     * thread does NOT block on {@code engine.execute().join()} for a single
+     * task. When every underlying member future was already complete at
+     * construction time (e.g. a fast test engine returning completed futures,
+     * or a bound-member plan whose engine returned synchronously), the
+     * dispatcher's whole chain — including the single {@code completeTask}
+     * CAS — runs synchronously, so the outcome is observed and counted inside
+     * this method (zero regression for the pre-245 synchronous happy path).
+     * When any underlying future is genuinely async (real engine, or a
+     * spawn-target {@code supplyAsync}), the outcome is NOT observed here;
+     * the future is tracked in {@link #inFlightDispatches} for later
+     * resolution (the store transition happens inside the dispatcher's chain
+     * regardless of timing).
      *
-     * @param task           the claimed task being dispatched
-     * @param result         the execution result from the agent (non-null)
-     * @param sessionLabel   the session id (bound) or spawned session id, used
-     *                       for logging/audit
-     * @param spawned        {@code true} if this is the spawned-member path
-     *                       (for log clarity); {@code false} for bound-member
+     * <p><b>Honest failure semantics (plan 245 design 裁定 3)</b>: empty plan
+     * / member failure / spawner three-state (NO_SPAWN / SPAWN_FAILED /
+     * throws / null) / {@code completeTask} CAS loss → the task is LEFT IN
+     * CLAIMED (NOT abandoned — the recovery model is plan 240 reclaim,
+     * aligning the daemon failure semantics with the orchestrator line-for-
+     * line). An empty plan is a synchronous honest failure (no fan-out fired).
+     * No silent skip / no empty body / no swallowed exception (Minimum Rules
+     * #24).
+     *
+     * <p><b>Single-member zero regression</b>: the NoOp shipped router default
+     * produces a singleton plan (bound priority + spawn fallback). A singleton
+     * BOUND plan with an already-complete engine future completes
+     * synchronously → the task is COMPLETED within this method, line-for-line
+     * matching the pre-245 daemon bound-member dispatch. A singleton SPAWN
+     * plan (NoOp spawner) is an honest failure → task stays CLAIMED (the
+     * spawn {@code supplyAsync} is tracked in-flight; the durable store state
+     * is CLAIMED either way).
+     *
+     * @return the tally of resolved outcomes for this one task (the caller
+     *         folds it into the scan-wide counters)
      */
-    private DispatchOutcome completeOrAbandonAfterExecution(TeamTask task,
-                                                             AgentExecutionResult result,
-                                                             String sessionLabel,
-                                                             boolean spawned) {
+    private DispatchTally dispatchClaimedTask(Team team, TeamTask task, String capturedTenant) {
         String taskId = task.getTaskId();
 
-        if (result == null) {
-            // Defensive: engine returned null from a completed future. Treat
-            // as dispatch failure rather than NPE.
-            LOG.warn("TeamTaskSchedulerDaemon: {} agent returned null result for taskId={}, "
-                            + "sessionId={} — abandoning",
-                    spawned ? "spawned" : "bound", taskId, sessionLabel);
-            abandonClaimed(taskId, (spawned ? "spawned" : "bound")
-                    + " agent returned null result");
-            return DispatchOutcome.DISPATCH_FAILED;
-        }
-
-        if (result.getStatus() != AgentExecStatus.completed) {
-            LOG.warn("TeamTaskSchedulerDaemon: {} agent did not complete for taskId={}, "
-                            + "sessionId={}, status={}{} — abandoning",
-                    spawned ? "spawned" : "bound", taskId, sessionLabel, result.getStatus(),
-                    result.getError() != null ? ", error=" + result.getError() : "");
-            abandonClaimed(taskId, (spawned ? "spawned" : "bound")
-                    + " agent status=" + result.getStatus());
-            return DispatchOutcome.DISPATCH_FAILED;
-        }
-
-        Optional<TeamTask> completedOpt = taskStore.completeTask(taskId, daemonSessionId);
-        if (completedOpt.isEmpty()) {
-            LOG.warn("TeamTaskSchedulerDaemon: completeTask CAS lost for taskId={} "
-                            + "(not in CLAIMED status — possible concurrent transition) — abandoning",
-                    taskId);
-            abandonClaimed(taskId, "completeTask CAS lost");
-            return DispatchOutcome.DISPATCH_FAILED;
-        }
-
-        return DispatchOutcome.COMPLETED;
-    }
-
-    /**
-     * Transition a task this daemon has claimed (CLAIMED) to ABANDONED. If
-     * the abandon CAS loses (e.g. the task was concurrently completed by
-     * another path), the failure is LOG.warn'd — the task is left in its
-     * current state and the caller still records it as "abandoned" in the
-     * scan result (the dispatch <em>did</em> fail; the honest signal is
-     * preserved even if the state transition raced).
-     */
-    private void abandonClaimed(String taskId, String reason) {
+        // Plan 245: route via the per-task member router. The router runs at
+        // dispatch time, non-executing (it never calls the engine nor the
+        // spawner). NoOp shipped default → singleton plan = bound priority +
+        // spawn fallback (line-for-line zero regression).
+        MemberDispatchPlan plan;
         try {
-            Optional<TeamTask> abandoned = taskStore.abandonTask(taskId, daemonSessionId);
-            if (abandoned.isEmpty()) {
-                LOG.warn("TeamTaskSchedulerDaemon: abandonTask returned empty for taskId={} "
-                        + "(already terminal) — dispatch failure still recorded: {}", taskId, reason);
-            }
+            plan = taskMemberRouter.route(team, task);
         } catch (RuntimeException e) {
-            // Never let an abandon failure abort the scan.
-            LOG.warn("TeamTaskSchedulerDaemon: abandonTask threw for taskId={} — dispatch failure "
-                    + "still recorded ({}): {}", taskId, reason, e.toString());
+            // A router that throws is a contract violation (the contract says
+            // return an empty plan for the no-member case). Honest failure:
+            // task stays CLAIMED, no fan-out fired.
+            LOG.warn("TeamTaskSchedulerDaemon: taskMemberRouter threw for taskId={}, teamId={} — "
+                    + "task left CLAIMED (honest failure)", taskId, team.getTeamId(), e);
+            return DispatchTally.failedNoDispatch(taskId);
         }
-    }
+        if (plan == null) {
+            // Defensive: contract says never null. Treat as honest failure.
+            LOG.warn("TeamTaskSchedulerDaemon: taskMemberRouter returned null for taskId={}, teamId={} — "
+                    + "task left CLAIMED (router contract violation)", taskId, team.getTeamId());
+            return DispatchTally.failedNoDispatch(taskId);
+        }
 
-    private String buildPrompt(TeamTask task) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Execute team task: ").append(task.getSubject());
-        if (task.getDescription() != null && !task.getDescription().isEmpty()) {
-            sb.append("\n").append(task.getDescription());
+        if (plan.isEmpty()) {
+            // Honest failure: empty plan (no dispatchable member). The task
+            // stays CLAIMED (recovery via plan 240 reclaim). No fan-out fired.
+            LOG.warn("TeamTaskSchedulerDaemon: dispatch plan produced zero targets for taskId={}, "
+                            + "teamId={} — task left CLAIMED (no dispatchable member; router={})",
+                    taskId, team.getTeamId(), taskMemberRouter.getClass().getName());
+            return DispatchTally.failedNoDispatch(taskId);
         }
-        return sb.toString();
+
+        // Determine whether any spawn target is present (requires the
+        // dedicated spawn executor). Bound-only plans do not need it.
+        boolean hasSpawn = false;
+        for (io.nop.ai.agent.team.flow.DispatchTarget t : plan.getTargets()) {
+            if (t.isSpawn()) {
+                hasSpawn = true;
+                break;
+            }
+        }
+        Executor spawnExecutor = hasSpawn ? resolveSpawnExecutor() : null;
+
+        // Fire the shared fan-out + reduce + complete chain. The dispatcher
+        // never throws — it returns a MemberDispatchOutcome (COMPLETED or
+        // FAILED). For already-complete underlying futures the returned
+        // future IS DONE at construction time and the chain (including
+        // completeTask) has run synchronously.
+        CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
+                task, team, plan.getTargets(), plan.getReductionStrategy(),
+                agentEngine, memberSpawner, taskStore, daemonSessionId,
+                spawnExecutor, capturedTenant);
+
+        if (dispatched.isDone()) {
+            // Synchronous resolution (already-complete futures). Record the
+            // outcome immediately. join() is safe — the future is done and
+            // the dispatcher never completes exceptionally.
+            try {
+                MemberDispatchOutcome outcome = dispatched.join();
+                if (outcome.isCompleted()) {
+                    return DispatchTally.completed(taskId);
+                }
+                LOG.warn("TeamTaskSchedulerDaemon: fan-out reduction failed for taskId={}, teamId={} — "
+                                + "task left CLAIMED (recovery via plan 240 reclaim): {}",
+                        taskId, team.getTeamId(), outcome.getCause().toString());
+                return DispatchTally.failedAfterDispatch(taskId);
+            } catch (RuntimeException e) {
+                // Defensive: the dispatcher's exceptionally() guarantees this
+                // never happens, but defend against an unexpected propagation.
+                LOG.warn("TeamTaskSchedulerDaemon: dispatch future threw unexpectedly for taskId={} — "
+                                + "task left CLAIMED",
+                        taskId, e);
+                return DispatchTally.failedAfterDispatch(taskId);
+            }
+        }
+
+        // Genuinely async — do NOT block the scan thread. Track in-flight so
+        // callers (tests / graceful shutdown) can await. The dispatcher's
+        // chain performs the store transition (completeTask on success /
+        // leave CLAIMED on failure) regardless of timing. Remove from the
+        // in-flight queue once settled to keep the queue bounded across scans.
+        inFlightDispatches.add(dispatched);
+        dispatched.whenComplete((outcome, ex) -> {
+            inFlightDispatches.remove(dispatched);
+            if (ex != null) {
+                LOG.warn("TeamTaskSchedulerDaemon: in-flight dispatch settled exceptionally for "
+                                + "taskId={} — task left CLAIMED",
+                        taskId, ex);
+            } else if (outcome != null && !outcome.isCompleted()) {
+                LOG.warn("TeamTaskSchedulerDaemon: in-flight fan-out reduction failed for taskId={} — "
+                                + "task left CLAIMED (recovery via plan 240 reclaim): {}",
+                        taskId, outcome.getCause().toString());
+            }
+        });
+        // The task is CLAIMED and dispatched (in-flight). Its final
+        // completed/failed outcome will be observed in a later scan's
+        // idempotent already-COMPLETED path (on success) or reclaim (on
+        // failure). No synchronous completed/failed counter increment here.
+        return DispatchTally.inFlight();
     }
 
     // ========================================================================
     // Internal helpers
     // ========================================================================
 
-    private static final class ResolvedMember {
-        final String memberName;
-        final String sessionId;
-        final String agentName;
-
-        ResolvedMember(String memberName, String sessionId, String agentName) {
-            this.memberName = memberName;
-            this.sessionId = sessionId;
-            this.agentName = agentName;
-        }
-    }
-
     /**
-     * Internal per-task dispatch outcome. Used only inside {@link #scanOnce}
-     * to fold outcomes into the {@link SchedulerScanResult} counters.
+     * Per-task dispatch tally folded into the scan-wide counters by
+     * {@link #scanOnce}. One of:
      * <ul>
-     *   <li>{@link #COMPLETED} — dispatched (execute invoked) and
-     *       {@code completeTask} succeeded. Increments completed + dispatched.</li>
-     *   <li>{@link #DISPATCH_FAILED} — dispatched (execute invoked) but the
-     *       member agent threw / returned non-completed / {@code completeTask}
-     *       CAS lost; the task was abandoned. Increments abandoned +
-     *       dispatched.</li>
-     *   <li>{@link #UNBOUND_MEMBER} — no bound member so execute was NOT
-     *       invoked; the task was abandoned. Increments abandoned only.</li>
+     *   <li>{@link #completed} — fan-out succeeded + single completeTask CAS
+     *       succeeded (task transitioned CLAIMED → COMPLETED, observed
+     *       synchronously). {@code dispatched=1}.</li>
+     *   <li>{@link #failedAfterDispatch} — honest failure observed after a
+     *       fan-out was fired (sync reduction failure / completeTask CAS loss
+     *       on already-complete futures). Task LEFT IN CLAIMED.
+     *       {@code dispatched=1}.</li>
+     *   <li>{@link #failedNoDispatch} — honest failure with NO fan-out fired
+     *       (empty plan / router threw / router returned null). Task LEFT IN
+     *       CLAIMED. {@code dispatched=0}.</li>
+     *   <li>{@link #inFlight} — dispatched but genuinely async (underlying
+     *       futures not complete at scan time). The store transition happens
+     *       inside the dispatcher's chain regardless of timing; the final
+     *       outcome is observed in a later scan. {@code dispatched=1}.</li>
      * </ul>
      */
-    private enum DispatchOutcome {
-        COMPLETED,
-        DISPATCH_FAILED,
-        UNBOUND_MEMBER
+    private static final class DispatchTally {
+        final int completed;
+        final int failed;
+        final int abandoned;
+        final int dispatched;
+        final List<String> completedIds;
+        final List<String> failedIds;
+        final List<String> abandonedIds;
+
+        private DispatchTally(int completed, int failed, int abandoned, int dispatched,
+                              List<String> completedIds, List<String> failedIds,
+                              List<String> abandonedIds) {
+            this.completed = completed;
+            this.failed = failed;
+            this.abandoned = abandoned;
+            this.dispatched = dispatched;
+            this.completedIds = completedIds;
+            this.failedIds = failedIds;
+            this.abandonedIds = abandonedIds;
+        }
+
+        /** Fan-out fired + succeeded (CLAIMED → COMPLETED, observed sync). */
+        static DispatchTally completed(String taskId) {
+            return new DispatchTally(1, 0, 0, 1,
+                    Collections.singletonList(taskId),
+                    Collections.emptyList(), Collections.emptyList());
+        }
+
+        /** Fan-out fired but reduction failed sync (task LEFT IN CLAIMED). */
+        static DispatchTally failedAfterDispatch(String taskId) {
+            return new DispatchTally(0, 1, 0, 1,
+                    Collections.emptyList(),
+                    Collections.singletonList(taskId),
+                    Collections.emptyList());
+        }
+
+        /** No fan-out fired (empty plan / router threw); task LEFT IN CLAIMED. */
+        static DispatchTally failedNoDispatch(String taskId) {
+            return new DispatchTally(0, 1, 0, 0,
+                    Collections.emptyList(),
+                    Collections.singletonList(taskId),
+                    Collections.emptyList());
+        }
+
+        /** Fan-out fired but genuinely async (outcome observed in a later scan). */
+        static DispatchTally inFlight() {
+            return new DispatchTally(0, 0, 0, 1,
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        }
     }
 }

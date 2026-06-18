@@ -30,18 +30,34 @@ import java.util.Objects;
  *       legitimate concurrency, not an error; the daemon silently skips
  *       these without abandoning them (it never owned them).</li>
  *   <li>{@code dispatchedTasks} — number of claimed tasks for which the
- *       daemon invoked {@link io.nop.ai.agent.engine.IAgentEngine#execute}
- *       on a bound member agent this scan.</li>
+ *       daemon fired a fan-out dispatch this scan (engine.execute for bound
+ *       targets, supplyAsync(spawnMember) for spawn targets). Under the
+ *       plan 245 async model a dispatched task may complete within the scan
+ *       (already-complete futures) or remain in-flight (genuinely async) —
+ *       see {@code completedTasks} / {@code failedTasks} for the resolved
+ *       outcomes observed within this scan.</li>
  *   <li>{@code completedTasks} — number of dispatched tasks that
- *       successfully transitioned CLAIMED → COMPLETED this scan.</li>
- *   <li>{@code abandonedTasks} — number of claimed tasks that failed
- *       dispatch (member agent threw / returned non-completed terminal
- *       status / completeTask CAS lost) and were transitioned to
- *       ABANDONED by this daemon. Only tasks this daemon CAS-claimed are
- *       ever abandoned — never another member's CLAIMED task.</li>
- *   <li>{@code completedTaskIds} / {@code abandonedTaskIds} — the task IDs
- *       backing {@code completedTasks} / {@code abandonedTasks} (for test
- *       assertions and audit). Bounded by the scan result set.</li>
+ *       successfully transitioned CLAIMED → COMPLETED this scan (the fan-out
+ *       reduction succeeded + the single completeTask CAS succeeded,
+ *       observed synchronously when the underlying futures were already
+ *       complete).</li>
+ *   <li>{@code failedTasks} — number of dispatched tasks whose fan-out
+ *       reduction failed (empty plan / member failure / spawner three-state
+ *       / completeTask CAS loss) this scan. Per plan 245 design 裁定 3 these
+ *       tasks are LEFT IN CLAIMED (not abandoned — the recovery model is
+ *       plan 240 reclaim), aligning the daemon failure semantics with the
+ *       orchestrator. {@code failedTaskIds} backs this counter.</li>
+ *   <li>{@code abandonedTasks} — retained for backward compatibility. Under
+ *       the plan 245 fan-out dispatch path no task is abandoned on fan-out
+ *       failure (failed tasks stay CLAIMED and are counted in
+ *       {@code failedTasks}); this counter is kept zero by the fan-out path
+ *       and remains non-zero only if a future non-fan-out abandon path is
+ *       (re)introduced.</li>
+ *   <li>{@code completedTaskIds} / {@code abandonedTaskIds} /
+ *       {@code failedTaskIds} — the task IDs backing
+ *       {@code completedTasks} / {@code abandonedTasks} /
+ *       {@code failedTasks} (for test assertions and audit). Bounded by the
+ *       scan result set.</li>
  *   <li>{@code skippedCoordinatedTeams} — number of teams skipped this scan
  *       because another daemon instance held the active scan lease (plan
  *       242 / {@code L4-cross-process-daemon-coordination}). Zero when the
@@ -55,8 +71,9 @@ import java.util.Objects;
  *       milliseconds.</li>
  * </ul>
  *
- * <p>See plan 236 (L4-blockedBy-resolution-engine) and plan 242
- * ({@code L4-cross-process-daemon-coordination}).
+ * <p>See plan 236 (L4-blockedBy-resolution-engine), plan 242
+ * ({@code L4-cross-process-daemon-coordination}), and plan 245
+ * (daemon dispatch parity — fan-out + retain-CLAIMED failure semantics).
  */
 public final class SchedulerScanResult {
 
@@ -67,9 +84,11 @@ public final class SchedulerScanResult {
     private final int dispatchedTasks;
     private final int completedTasks;
     private final int abandonedTasks;
+    private final int failedTasks;
     private final int skippedCoordinatedTeams;
     private final List<String> completedTaskIds;
     private final List<String> abandonedTaskIds;
+    private final List<String> failedTaskIds;
     private final long scannedAt;
     private final long scanDurationMs;
 
@@ -79,8 +98,9 @@ public final class SchedulerScanResult {
                                 List<String> completedTaskIds, List<String> abandonedTaskIds,
                                 long scannedAt, long scanDurationMs) {
         this(teamsScanned, readyCreatedTasks, claimedTasks, claimLostTasks,
-                dispatchedTasks, completedTasks, abandonedTasks, 0,
-                completedTaskIds, abandonedTaskIds, scannedAt, scanDurationMs);
+                dispatchedTasks, completedTasks, abandonedTasks, 0, 0,
+                completedTaskIds, abandonedTaskIds, Collections.emptyList(),
+                scannedAt, scanDurationMs);
     }
 
     /**
@@ -98,6 +118,33 @@ public final class SchedulerScanResult {
                                 int skippedCoordinatedTeams,
                                 List<String> completedTaskIds, List<String> abandonedTaskIds,
                                 long scannedAt, long scanDurationMs) {
+        this(teamsScanned, readyCreatedTasks, claimedTasks, claimLostTasks,
+                dispatchedTasks, completedTasks, abandonedTasks, 0, skippedCoordinatedTeams,
+                completedTaskIds, abandonedTaskIds, Collections.emptyList(),
+                scannedAt, scanDurationMs);
+    }
+
+    /**
+     * Fully-parameterized constructor with both the
+     * {@code skippedCoordinatedTeams} counter (plan 242) and the
+     * {@code failedTasks} / {@code failedTaskIds} counter (plan 245 — fan-out
+     * reduction failures that leave the task CLAIMED).
+     *
+     * @param failedTasks           number of dispatched tasks whose fan-out
+     *                              reduction failed this scan (task LEFT IN
+     *                              CLAIMED — plan 245 design 裁定 3)
+     * @param skippedCoordinatedTeams number of teams skipped this scan
+     *                                because another daemon instance held the
+     *                                active scan lease
+     * @param failedTaskIds         the task IDs backing {@code failedTasks}
+     */
+    public SchedulerScanResult(int teamsScanned, int readyCreatedTasks,
+                                int claimedTasks, int claimLostTasks,
+                                int dispatchedTasks, int completedTasks, int abandonedTasks,
+                                int failedTasks, int skippedCoordinatedTeams,
+                                List<String> completedTaskIds, List<String> abandonedTaskIds,
+                                List<String> failedTaskIds,
+                                long scannedAt, long scanDurationMs) {
         this.teamsScanned = teamsScanned;
         this.readyCreatedTasks = readyCreatedTasks;
         this.claimedTasks = claimedTasks;
@@ -105,11 +152,14 @@ public final class SchedulerScanResult {
         this.dispatchedTasks = dispatchedTasks;
         this.completedTasks = completedTasks;
         this.abandonedTasks = abandonedTasks;
+        this.failedTasks = failedTasks;
         this.skippedCoordinatedTeams = skippedCoordinatedTeams;
         this.completedTaskIds = Collections.unmodifiableList(
                 Objects.requireNonNull(completedTaskIds, "completedTaskIds must not be null"));
         this.abandonedTaskIds = Collections.unmodifiableList(
                 Objects.requireNonNull(abandonedTaskIds, "abandonedTaskIds must not be null"));
+        this.failedTaskIds = Collections.unmodifiableList(
+                Objects.requireNonNull(failedTaskIds, "failedTaskIds must not be null"));
         this.scannedAt = scannedAt;
         this.scanDurationMs = scanDurationMs;
     }
@@ -120,8 +170,9 @@ public final class SchedulerScanResult {
      * lists, zero duration, zero timestamp), not a silent no-op.
      */
     public static SchedulerScanResult empty() {
-        return new SchedulerScanResult(0, 0, 0, 0, 0, 0, 0, 0,
-                Collections.emptyList(), Collections.emptyList(), 0L, 0L);
+        return new SchedulerScanResult(0, 0, 0, 0, 0, 0, 0, 0, 0,
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                0L, 0L);
     }
 
     public int getTeamsScanned() {
@@ -153,6 +204,16 @@ public final class SchedulerScanResult {
     }
 
     /**
+     * @return number of dispatched tasks whose fan-out reduction failed this
+     *         scan (task LEFT IN CLAIMED — plan 245 design 裁定 3: the
+     *         recovery model is plan 240 reclaim, not terminal abandon).
+     *         Aligns daemon failure semantics with the orchestrator.
+     */
+    public int getFailedTasks() {
+        return failedTasks;
+    }
+
+    /**
      * @return number of teams skipped this scan because another daemon
      *         instance held the active scan lease (plan 242). Zero with the
      *         shipped NoOp coordinator.
@@ -167,6 +228,13 @@ public final class SchedulerScanResult {
 
     public List<String> getAbandonedTaskIds() {
         return abandonedTaskIds;
+    }
+
+    /**
+     * @return the task IDs backing {@link #getFailedTasks()} (plan 245).
+     */
+    public List<String> getFailedTaskIds() {
+        return failedTaskIds;
     }
 
     public long getScannedAt() {
@@ -186,9 +254,11 @@ public final class SchedulerScanResult {
                 + ", dispatchedTasks=" + dispatchedTasks
                 + ", completedTasks=" + completedTasks
                 + ", abandonedTasks=" + abandonedTasks
+                + ", failedTasks=" + failedTasks
                 + ", skippedCoordinatedTeams=" + skippedCoordinatedTeams
                 + ", completedTaskIds=" + completedTaskIds
                 + ", abandonedTaskIds=" + abandonedTaskIds
+                + ", failedTaskIds=" + failedTaskIds
                 + ", scannedAt=" + scannedAt
                 + ", scanDurationMs=" + scanDurationMs + '}';
     }

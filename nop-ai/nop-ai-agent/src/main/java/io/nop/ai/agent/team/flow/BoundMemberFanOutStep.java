@@ -1,10 +1,7 @@
 package io.nop.ai.agent.team.flow;
 
-import io.nop.ai.agent.engine.AgentExecutionResult;
-import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
-import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.team.TeamTask;
 import io.nop.ai.agent.team.TeamTaskStatus;
@@ -14,9 +11,7 @@ import io.nop.task.step.AbstractTaskStep;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -153,75 +148,38 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
                             + " (missing or not in CREATED status)");
         }
 
-        // 2. Fan out: submit one engine.execute per bound target. Each call
-        //    returns its own CompletableFuture (the engine is already async),
-        //    so the N submissions run concurrently without supplyAsync.
-        List<CompletableFuture<MemberExecOutcome>> perMember = new ArrayList<>(boundTargets.size());
-        for (DispatchTarget target : boundTargets) {
-            perMember.add(executeBoundMember(target, taskId));
-        }
+        // 2. Fan out + reduce + complete via the shared dispatcher (plan 245
+        //    design 裁定 1: the dispatcher is the single canonical fan-out +
+        //    reduce + complete chain, consumed by both the orchestrator step
+        //    variants and the daemon — no dual code path). The dispatcher
+        //    builds one engine.execute future per bound target, reduces under
+        //    the plan's strategy, and performs the single completeTask CAS on
+        //    success under the caller's tenant. Bound-only: no team / no spawn
+        //    executor is needed.
+        CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
+                task, /*team=*/null, boundTargets, reductionStrategy,
+                agentEngine, io.nop.ai.agent.team.NoOpMemberSpawner.noOp(),
+                taskStore, orchestratorSessionId, /*spawnExecutor=*/null, capturedTenant);
 
-        // 3. Reduce: when every member future has settled, run the reduction
-        //    strategy + the single completeTask CAS (shared helper handles
-        //    tenant re-application around completeTask). The step owns the
-        //    whenComplete that records markFailed on any exception path.
-        CompletableFuture<TaskStepReturn> steppedFuture = FanOutReduceComplete.reduceAndComplete(
-                perMember, reductionStrategy, taskId, orchestratorSessionId,
-                taskStore, recorder, capturedTenant);
-
-        // Ensure markFailed is called on ANY exceptional completion of the
-        // chain (reduction failure, completeTask CAS loss, etc.). The
-        // AllMustSucceedReduction throws by completing its returned future
-        // exceptionally; the thenApply after it is skipped, so this
-        // whenComplete is the single point that records markFailed for any
-        // exception path before it propagates to the orchestrator's
-        // exceptionally handler.
-        steppedFuture = steppedFuture.whenComplete((result, ex) -> {
+        // Adapt to a nop-task TaskStepReturn + record markComplete/markFailed
+        // on the STEP's shared recorder (the dispatcher uses a throwaway
+        // recorder only to satisfy custom-strategy contracts — the step owns
+        // the real execution-sequence recording for DAG-order verification).
+        CompletableFuture<TaskStepReturn> steppedFuture = dispatched.handle((outcome, ex) -> {
             if (ex != null) {
                 recorder.markFailed(taskId);
+                throw ex instanceof CompletionException
+                        ? (CompletionException) ex
+                        : new CompletionException(ex);
             }
+            if (outcome.isCompleted()) {
+                recorder.markComplete(taskId);
+                return TaskStepReturn.RETURN_RESULT("completed:" + taskId);
+            }
+            recorder.markFailed(taskId);
+            throw new CompletionException(outcome.getCause());
         });
 
         return TaskStepReturn.ASYNC_RETURN(steppedFuture);
-    }
-
-    /**
-     * Execute one bound dispatch target: submit the request to the engine
-     * and map the engine future to a {@link MemberExecOutcome}. The mapping
-     * mirrors {@link MemberAgentTaskStep}'s honest-failure semantics (engine
-     * exception → ENGINE_FAILED; non-completed status → NOT_COMPLETED;
-     * otherwise COMPLETED), but lifted into the outcome type so the
-     * reduction strategy can decide over the collected set.
-     */
-    private CompletableFuture<MemberExecOutcome> executeBoundMember(DispatchTarget target, String taskId) {
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("teamTaskId", taskId);
-        metadata.put("teamId", task.getTeamId());
-        metadata.put("fanoutMember", target.getMemberName());
-        AgentMessageRequest request = new AgentMessageRequest(target.getAgentName(),
-                buildPrompt(task), target.getSessionId(), metadata);
-
-        CompletableFuture<AgentExecutionResult> engineFuture = agentEngine.execute(request);
-
-        return engineFuture.handle((result, ex) -> {
-            if (ex != null) {
-                Throwable cause = (ex instanceof CompletionException && ex.getCause() != null)
-                        ? ex.getCause() : ex;
-                return MemberExecOutcome.engineFailed(target, cause);
-            }
-            if (result.getStatus() != AgentExecStatus.completed) {
-                return MemberExecOutcome.notCompleted(target, result);
-            }
-            return MemberExecOutcome.completed(target, result);
-        });
-    }
-
-    private String buildPrompt(TeamTask task) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Execute team task: ").append(task.getSubject());
-        if (task.getDescription() != null && !task.getDescription().isEmpty()) {
-            sb.append("\n").append(task.getDescription());
-        }
-        return sb.toString();
     }
 }

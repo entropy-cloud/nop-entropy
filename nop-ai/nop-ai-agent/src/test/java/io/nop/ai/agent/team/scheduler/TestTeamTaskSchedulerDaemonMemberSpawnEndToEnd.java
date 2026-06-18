@@ -188,11 +188,16 @@ public class TestTeamTaskSchedulerDaemonMemberSpawnEndToEnd {
     }
 
     private static int runScansUntilAllComplete(TeamTaskSchedulerDaemon daemon,
-                                                 ITeamTaskStore store,
-                                                 Set<String> expectedIds) {
+                                                  ITeamTaskStore store,
+                                                  Set<String> expectedIds) {
         int maxScans = expectedIds.size() + 2;
         for (int i = 0; i < maxScans; i++) {
             daemon.scanOnce();
+            // Plan 245: the spawn path is async (supplyAsync) — await the
+            // in-flight dispatches fired this scan before checking task
+            // status, so a spawn-completed task is observed COMPLETED.
+            assertTrue(daemon.awaitInFlightDispatches(10_000),
+                    "in-flight spawn dispatches settled within timeout (scan " + (i + 1) + ")");
             boolean allComplete = true;
             for (String id : expectedIds) {
                 TeamTask t = store.getTask(id).orElseThrow();
@@ -318,8 +323,11 @@ public class TestTeamTaskSchedulerDaemonMemberSpawnEndToEnd {
     }
 
     // ========================================================================
-    // 3. Zero-regression: NoOp spawner + unbound team = abandon
-    //    (the pre-237 behaviour, preserved verbatim)
+    // 3. NoOp spawner + unbound team = task left CLAIMED (plan 245 parity:
+    //    the daemon's failure model aligns with the orchestrator — retain
+    //    CLAIMED for reclaim, not abandon. NoOp shipped default honest-failure
+    //    semantics preserved (No Silent No-Op); only the terminal state
+    //    changed from ABANDONED to CLAIMED.)
     // ========================================================================
 
     @Test
@@ -341,14 +349,18 @@ public class TestTeamTaskSchedulerDaemonMemberSpawnEndToEnd {
 
         assertEquals(1, r.getReadyCreatedTasks());
         assertEquals(1, r.getClaimedTasks());
-        assertEquals(1, r.getAbandonedTasks(),
-                "NoOp spawner → UNBOUND_MEMBER abandon (zero regression vs pre-237)");
+        assertEquals(1, r.getDispatchedTasks(),
+                "fan-out dispatch fired (singleton SPAWN plan, supplyAsync offloaded)");
         assertEquals(0, r.getCompletedTasks());
-        assertEquals(0, r.getDispatchedTasks(),
-                "engine.execute NOT invoked (spawner honestly declined)");
-        assertEquals(0, engine.capturedRequests.size());
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus(),
-                "A abandoned — pre-spawn behaviour preserved (NoOp shipped default)");
+        assertEquals(0, r.getAbandonedTasks(),
+                "plan 245: NoOp spawner decline leaves task CLAIMED (not abandoned)");
+        assertEquals(0, engine.capturedRequests.size(),
+                "engine.execute NOT invoked (NoOp spawner honestly declined)");
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED — plan 245 retain-CLAIMED failure semantics (recoverable via "
+                        + "plan 240 reclaim); NoOp shipped default honest failure preserved");
 
         daemon.stop();
     }
@@ -414,6 +426,9 @@ public class TestTeamTaskSchedulerDaemonMemberSpawnEndToEnd {
         daemon.setMemberSpawner(spawner);
 
         daemon.scanOnce();
+        // Plan 245: spawn path is async (supplyAsync) — await before checking.
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
 
         assertEquals(1, engine.capturedRequests.size());
         AgentMessageRequest captured = engine.capturedRequests.get(0);

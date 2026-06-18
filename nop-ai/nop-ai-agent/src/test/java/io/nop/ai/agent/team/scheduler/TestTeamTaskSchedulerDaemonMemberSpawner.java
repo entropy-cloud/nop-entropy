@@ -278,10 +278,13 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
 
         assertEquals(1, r.getReadyCreatedTasks(), "A is CREATED + ready");
         assertEquals(1, r.getClaimedTasks(), "daemon claimed A");
-        assertEquals(1, r.getCompletedTasks(),
-                "task COMPLETED via the spawned-member path");
-        assertEquals(0, r.getAbandonedTasks(),
-                "spawn-and-dispatch succeeded — no abandon");
+        assertEquals(1, r.getDispatchedTasks(),
+                "fan-out dispatch fired (singleton SPAWN plan, supplyAsync offloaded)");
+        // Plan 245: the spawn path is async (supplyAsync). The COMPLETED
+        // transition happens in the spawn worker; await it, then assert the
+        // durable store state.
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
         assertEquals(TeamTaskStatus.COMPLETED, store.getTask(a).orElseThrow().getStatus(),
                 "A transitioned to COMPLETED via the spawn path");
         assertEquals(1, engine.capturedRequests.size(),
@@ -289,8 +292,11 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
     }
 
     // ========================================================================
-    // 3. No bound member + NoOp spawner = abandon (zero regression)
-    //    (NoOp shipped default = pre-spawn behaviour preserved)
+    // 3. No bound member + NoOp spawner = task left CLAIMED (plan 245 parity
+    //    with the orchestrator's retain-CLAIMED failure model; recovery via
+    //    plan 240 reclaim). NoOp shipped default honest-failure semantics
+    //    preserved (No Silent No-Op) — only the terminal state changed from
+    //    ABANDONED to CLAIMED.
     // ========================================================================
 
     @Test
@@ -310,19 +316,22 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
 
         assertEquals(1, r.getReadyCreatedTasks());
         assertEquals(1, r.getClaimedTasks());
-        assertEquals(1, r.getAbandonedTasks(),
-                "NoOp spawner → UNBOUND_MEMBER abandon (zero regression)");
-        assertEquals(0, r.getDispatchedTasks(),
-                "engine.execute NOT invoked (no spawn, no bound member)");
+        assertEquals(1, r.getDispatchedTasks(),
+                "fan-out dispatch fired (singleton SPAWN plan, supplyAsync offloaded)");
+        assertEquals(0, r.getAbandonedTasks(),
+                "plan 245: NoOp spawner decline leaves task CLAIMED (not abandoned)");
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
         assertEquals(0, engine.capturedRequests.size(),
                 "engine NOT invoked when NoOp spawner declines");
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus(),
-                "A transitioned to ABANDONED (pre-spawn behaviour preserved)");
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (plan 245 honest failure — recoverable via plan 240 reclaim)");
     }
 
     // ========================================================================
-    // 4. No bound member + no spawner wired = abandon (shipped default = NoOp,
-    //    zero regression even if integrator never calls setMemberSpawner)
+    // 4. No bound member + no spawner wired = task left CLAIMED (shipped
+    //    default = NoOp, zero regression even if integrator never calls
+    //    setMemberSpawner)
     // ========================================================================
 
     @Test
@@ -341,18 +350,18 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
         assertTrue(daemon.getMemberSpawner() instanceof NoOpMemberSpawner,
                 "shipped default spawner field = NoOp (zero regression without explicit wiring)");
 
-        SchedulerScanResult r = daemon.scanOnce();
-
-        assertEquals(1, r.getAbandonedTasks(),
-                "shipped-default NoOp spawner → UNBOUND_MEMBER abandon");
-        assertEquals(0, r.getCompletedTasks());
+        daemon.scanOnce();
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
         assertEquals(0, engine.capturedRequests.size());
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus());
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (plan 245 honest failure — recoverable via plan 240 reclaim)");
     }
 
     // ========================================================================
-    // 5. Spawn DISPATCHED but non-completed → honest abandon
-    //    (daemon's complete/abandon logic shared between bound and spawned paths)
+    // 5. Spawn DISPATCHED but non-completed → honest failure (task left
+    //    CLAIMED). Plan 245: the daemon's failure model aligns with the
+    //    orchestrator — non-completed = retain CLAIMED for reclaim.
     // ========================================================================
 
     @Test
@@ -374,15 +383,17 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
         SchedulerScanResult r = daemon.scanOnce();
 
         assertEquals(1, r.getDispatchedTasks(),
+                "fan-out dispatch fired (singleton SPAWN plan)");
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
+        assertEquals(1, engine.capturedRequests.size(),
                 "execute WAS invoked (then returned non-completed)");
-        assertEquals(1, r.getAbandonedTasks(),
-                "spawn DISPATCHED non-completed = honest abandon (not silent skip)");
-        assertEquals(0, r.getCompletedTasks());
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus());
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (plan 245 honest failure — non-completed spawn status)");
     }
 
     // ========================================================================
-    // 6. Spawn SPAWN_FAILED → honest abandon (DISPATCH_FAILED semantics)
+    // 6. Spawn SPAWN_FAILED → honest failure (task left CLAIMED)
     // ========================================================================
 
     @Test
@@ -404,16 +415,20 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
         SchedulerScanResult r = daemon.scanOnce();
 
         assertEquals(1, r.getDispatchedTasks(),
-                "execute WAS invoked (then threw) — DISPATCH_FAILED counts as dispatched");
-        assertEquals(1, r.getAbandonedTasks(),
-                "SPAWN_FAILED = honest abandon (DISPATCH_FAILED semantics)");
-        assertEquals(0, r.getCompletedTasks());
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus());
+                "fan-out dispatch fired (singleton SPAWN plan)");
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
+        assertEquals(1, engine.capturedRequests.size(),
+                "execute WAS invoked (then threw) — SPAWN_FAILED path");
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (plan 245 honest failure — SPAWN_FAILED)");
     }
 
     // ========================================================================
-    // 7. Spawn NO_SPAWN (functional spawner honestly declined) = abandon
-    //    (UNBOUND_MEMBER semantics — same as NoOp)
+    // 7. Empty plan (team with NO memberSpec) → synchronous honest failure
+    //    (task left CLAIMED). The NoOp router returns an empty plan when
+    //    there is no bound member AND no declarative memberSpec; the daemon
+    //    reports it synchronously without firing any fan-out.
     // ========================================================================
 
     @Test
@@ -421,8 +436,8 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
         InMemoryTeamManager mgr = new InMemoryTeamManager();
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         RecordingAgentEngine engine = new RecordingAgentEngine().returningCompleted();
-        // Team with NO memberSpecs — the functional spawner will honestly
-        // decline (NO_SPAWN) because there is no declarative member to spawn.
+        // Team with NO memberSpecs — the NoOp router returns an empty plan
+        // (no bound member AND no declarative memberSpec to spawn from).
         TeamSpec emptySpec = new TeamSpec("empty-spec-team", "d", "lead-agent",
                 Collections.emptyList(), 0);
         Team team = mgr.createTeam(emptySpec);
@@ -436,16 +451,19 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
 
         SchedulerScanResult r = daemon.scanOnce();
 
-        assertEquals(1, r.getAbandonedTasks(),
-                "functional spawner NO_SPAWN (no memberSpec) = honest UNBOUND_MEMBER abandon");
+        assertEquals(1, r.getFailedTasks(),
+                "empty plan = synchronous honest failure (task left CLAIMED)");
+        assertTrue(r.getFailedTaskIds().contains(a));
         assertEquals(0, r.getDispatchedTasks(),
-                "engine.execute NOT invoked (spawner honestly declined before invocation)");
+                "no fan-out fired for an empty plan (synchronous honest failure)");
         assertEquals(0, engine.capturedRequests.size());
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus());
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (empty plan — recoverable via plan 240 reclaim)");
     }
 
     // ========================================================================
-    // 8. Spawner throws (contract violation) — defensive honest abandon
+    // 8. Spawner throws (contract violation) — defensive honest failure
+    //    (task left CLAIMED)
     // ========================================================================
 
     @Test
@@ -462,11 +480,11 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
                 engine, store, mgr, new RecordingScheduler());
         daemon.setMemberSpawner(spawner);
 
-        SchedulerScanResult r = daemon.scanOnce();
-
-        assertEquals(1, r.getAbandonedTasks(),
-                "spawner contract violation (throw) = honest abandon, not silent skip or NPE propagation");
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus());
+        daemon.scanOnce();
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (spawner contract violation — honest failure, not silent skip)");
     }
 
     // ========================================================================
@@ -541,6 +559,10 @@ public class TestTeamTaskSchedulerDaemonMemberSpawner {
         daemon.setMemberSpawner(spawner);
 
         daemon.scanOnce();
+        // Plan 245: the spawn path is async (supplyAsync) — await the
+        // in-flight dispatch so the spawn worker has invoked engine.execute.
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
 
         // Wiring #23: the daemon really consulted the spawner, which really
         // invoked IAgentEngine.execute (not just returned a state change).

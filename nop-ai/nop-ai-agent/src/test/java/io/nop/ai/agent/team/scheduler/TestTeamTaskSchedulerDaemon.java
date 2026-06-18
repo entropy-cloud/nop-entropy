@@ -588,8 +588,9 @@ public class TestTeamTaskSchedulerDaemon {
     }
 
     // ========================================================================
-    // 7. Unbound member — fast-failure (abandon), No Silent No-Op
-    //    (distinct from legitimate idle)
+    // 7. Unbound member — honest failure, No Silent No-Op
+    //    (plan 245: fan-out failure leaves the task CLAIMED, recoverable via
+    //     plan 240 reclaim — no longer abandoned. Distinct from legitimate idle.)
     // ========================================================================
 
     @Test
@@ -612,19 +613,31 @@ public class TestTeamTaskSchedulerDaemon {
         SchedulerScanResult r = daemon.scanOnce();
         assertEquals(1, r.getReadyCreatedTasks(), "A is ready + CREATED");
         assertEquals(1, r.getClaimedTasks(), "daemon claimed A (CREATED → CLAIMED)");
-        assertEquals(1, r.getAbandonedTasks(),
-                "unbound member → task abandoned (honest failure, not silent skip)");
-        assertTrue(r.getAbandonedTaskIds().contains(a));
-        assertEquals(0, r.getDispatchedTasks(),
-                "engine.execute NOT invoked (no member to dispatch to)");
-        assertEquals(0, engine.invocationOrder.size());
+        // Plan 245: the NoOp router produces a singleton SPAWN plan (lead
+        // memberSpec fallback), fired as an in-flight supplyAsync. The NoOp
+        // shipped spawner honestly declines (NO_SPAWN) → reduction fails →
+        // task LEFT IN CLAIMED (recovery via plan 240 reclaim). No abandon.
+        assertEquals(1, r.getDispatchedTasks(),
+                "fan-out dispatch WAS fired (singleton SPAWN plan)");
+        assertEquals(0, r.getAbandonedTasks(),
+                "plan 245: no task is abandoned on fan-out failure (retained CLAIMED)");
+        assertEquals(0, engine.invocationOrder.size(),
+                "engine.execute NOT invoked (NoOp spawner declined before any engine call)");
 
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus(),
-                "A transitioned CLAIMED → ABANDONED by the daemon");
+        // Await the in-flight supplyAsync so the spawn worker's NO_SPAWN
+        // interpretation settles, then assert the durable store state.
+        assertTrue(daemon.awaitInFlightDispatches(5_000),
+                "in-flight spawn dispatch settled within timeout");
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (plan 245 honest failure — recoverable via plan 240 reclaim, "
+                        + "not abandoned)");
     }
 
     // ========================================================================
-    // 8. Dispatch failure (exception / non-completed) → honest abandon
+    // 8. Dispatch failure (exception / non-completed) → honest failure
+    //    (plan 245: task LEFT IN CLAIMED, not abandoned — recovery via
+    //     plan 240 reclaim; aligns daemon failure semantics with the
+    //     orchestrator line-for-line.)
     // ========================================================================
 
     @Test
@@ -643,10 +656,12 @@ public class TestTeamTaskSchedulerDaemon {
         SchedulerScanResult r = daemon.scanOnce();
         assertEquals(1, r.getClaimedTasks());
         assertEquals(1, r.getDispatchedTasks(), "execute WAS invoked (then threw)");
-        assertEquals(1, r.getAbandonedTasks(),
-                "member-agent exception → task abandoned (not silently swallowed)");
+        assertEquals(1, r.getFailedTasks(),
+                "member-agent exception → task left CLAIMED (honest failure, not abandoned)");
+        assertTrue(r.getFailedTaskIds().contains(a));
         assertEquals(0, r.getCompletedTasks());
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus());
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (recovery via plan 240 reclaim)");
     }
 
     @Test
@@ -664,10 +679,11 @@ public class TestTeamTaskSchedulerDaemon {
 
         SchedulerScanResult r = daemon.scanOnce();
         assertEquals(1, r.getDispatchedTasks());
-        assertEquals(1, r.getAbandonedTasks(),
-                "non-completed terminal status → task abandoned (honest failure)");
+        assertEquals(1, r.getFailedTasks(),
+                "non-completed terminal status → task left CLAIMED (honest failure)");
         assertEquals(0, r.getCompletedTasks());
-        assertEquals(TeamTaskStatus.ABANDONED, store.getTask(a).orElseThrow().getStatus());
+        assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
+                "A left CLAIMED (recovery via plan 240 reclaim)");
     }
 
     // ========================================================================

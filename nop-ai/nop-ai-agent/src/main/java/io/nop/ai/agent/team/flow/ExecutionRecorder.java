@@ -25,12 +25,15 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>Thread-safe: graph nodes may run concurrently (diamond branches), so
  * all state is backed by {@link ConcurrentHashMap} and {@link AtomicInteger}.
  *
- * <p>Package-private — an internal implementation detail of
- * {@link TeamTaskFlowOrchestrator}.
+ * <p>Public so it can be referenced from the public {@link ReductionContext}
+ * and shared with {@link MemberFanOutDispatcher} (plan 245 — daemon dispatch
+ * parity reuses the fan-out / reduce / complete chain; the dispatcher creates
+ * a throwaway recorder per dispatch to satisfy custom-strategy contracts).
  *
- * <p>See plan 233 (L4-nop-task-dag-integration) Phase 2.
+ * <p>See plan 233 (L4-nop-task-dag-integration) Phase 2; plan 245
+ * (daemon dispatch parity).
  */
-final class ExecutionRecorder {
+public final class ExecutionRecorder {
 
     private final AtomicInteger startSeq = new AtomicInteger();
     private final AtomicInteger completionSeq = new AtomicInteger();
@@ -42,31 +45,34 @@ final class ExecutionRecorder {
 
     private final AtomicReference<String> firstFailedTaskId = new AtomicReference<>();
 
-    void markStart(String taskId) {
+    public ExecutionRecorder() {
+    }
+
+    public void markStart(String taskId) {
         if (started.add(taskId)) {
             startOrder.put(taskId, startSeq.incrementAndGet());
         }
     }
 
-    void markComplete(String taskId) {
+    public void markComplete(String taskId) {
         if (completed.add(taskId)) {
             completionOrder.put(taskId, completionSeq.incrementAndGet());
         }
     }
 
-    void markFailed(String taskId) {
+    public void markFailed(String taskId) {
         firstFailedTaskId.compareAndSet(null, taskId);
     }
 
-    boolean didStart(String taskId) {
+    public boolean didStart(String taskId) {
         return started.contains(taskId);
     }
 
-    boolean didComplete(String taskId) {
+    public boolean didComplete(String taskId) {
         return completed.contains(taskId);
     }
 
-    String getFirstFailedTaskId() {
+    public String getFirstFailedTaskId() {
         return firstFailedTaskId.get();
     }
 
