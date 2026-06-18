@@ -26,9 +26,12 @@ import static io.nop.xlang.XLangErrors.ARG_ATTR_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ARG_OP;
+import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_SUPPORTED_OPERATOR;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_ATTR_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_PROP_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_ATTR_FAIL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_FAIL;
 
 public abstract class AbstractExecutable implements IExecutableExpression {
     private static final Object[] EMPTY_ARGS = new Object[0];
@@ -173,6 +176,21 @@ public abstract class AbstractExecutable implements IExecutableExpression {
         NopException err = newError(errorCode, e).forWrap()
                 .param(ARG_CLASS_NAME, obj.getClass().getName())
                 .param(ARG_ATTR_VALUE, attrValue);
+        if (e instanceof NopException && ((NopException) e).isBizFatal())
+            err.bizFatal(true);
+        return err;
+    }
+
+    /**
+     * 将属性读/写异常包装为 {@code NopEvalException(errorCode)}，保留 {@code wrapException} /
+     * cause / errorCode 全部既有语义。当属性 getter/setter 抛出 bizFatal
+     * {@link NopException} 时，将 bizFatal 标记传播到包装异常，使下游分类器（如
+     * {@code RetryPolicy.isRecoverableException}）能正确识别不可恢复异常。
+     */
+    protected NopException wrapPropException(ErrorCode errorCode, Throwable e, String className, String propName) {
+        NopException err = newError(errorCode, e).forWrap()
+                .param(ARG_CLASS_NAME, className)
+                .param(ARG_PROP_NAME, propName);
         if (e instanceof NopException && ((NopException) e).isBizFatal())
             err.bizFatal(true);
         return err;

@@ -14,8 +14,6 @@ import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertyGetter;
 
-import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
-import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_READ_PROP_FAIL;
 
 public class StaticGetterGetPropertyExecutable extends AbstractExecutable {
@@ -43,8 +41,7 @@ public class StaticGetterGetPropertyExecutable extends AbstractExecutable {
         try {
             return getter.getProperty(null, propName, rt.getScope());
         } catch (Exception e) {
-            throw newError(ERR_EXEC_READ_PROP_FAIL, e).forWrap().param(ARG_CLASS_NAME, className).param(ARG_PROP_NAME,
-                    propName);
+            throw wrapPropException(ERR_EXEC_READ_PROP_FAIL, e, className, propName);
         }
     }
 

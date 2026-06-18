@@ -74,4 +74,31 @@ public class FailureSimulatorBean {
         counter.incrementAndGet();
         throw new NopException(ERR_TEST_RECOVERABLE);
     }
+
+    /**
+     * 属性 getter 抛 bizFatal NopException（plan 251 prop/dot 路径 fixture）。
+     *
+     * <p>区别于 {@link #getBizFatalAttr()}（bracket 记法 {@code sim['bizFatalAttr']} → {@code GetAttrExecutable}
+     * → {@code readAttr}，plan 250 路径）和 {@link #throwBizFatal()}（方法调用 → {@code doInvoke*}，plan 249 路径）：
+     * 本 getter 经 xpl <b>dot 记法</b> {@code sim.bizFatalProp}（编译为 {@code GetPropertyExecutable}
+     * → 基类 {@code AbstractPropertyExecutable.readProp}，经 {@code IPropertyGetter} 反射调用）访问时触发。
+     * plan 251 修复后，{@code readProp} 包装异常保留 bizFatal 标记 →
+     * {@code RetryPolicy.isRecoverableException} 判定不可恢复 → 执行次数 = 1。
+     *
+     * <p>同时递增 execution counter，供测试断言执行次数。
+     */
+    public Object getBizFatalProp() {
+        counter.incrementAndGet();
+        throw new NopException(ERR_TEST_BIZ_FATAL).bizFatal(true);
+    }
+
+    /**
+     * 属性 getter 抛非 bizFatal NopException（plan 251 prop/dot 路径对偶回归 fixture）。
+     * 经 xpl dot 记法 {@code sim.recoverableProp}（{@code GetPropertyExecutable} → 基类 {@code readProp}）访问触发，
+     * 包装后仍非 bizFatal → 可恢复 → 按 maxRetryCount 重试至耗尽。
+     */
+    public Object getRecoverableProp() {
+        counter.incrementAndGet();
+        throw new NopException(ERR_TEST_RECOVERABLE);
+    }
 }

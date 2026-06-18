@@ -65,8 +65,7 @@ public abstract class AbstractPropertyExecutable extends AbstractExecutable {
         try {
             setter.setProperty(obj, propName, value, scope);
         } catch (Exception e) {
-            throw newError(ERR_EXEC_WRITE_PROP_FAIL, e).forWrap().param(ARG_CLASS_NAME, obj.getClass().getName())
-                    .param(ARG_PROP_NAME, propName).forWrap();
+            throw wrapPropException(ERR_EXEC_WRITE_PROP_FAIL, e, obj.getClass().getName(), propName);
         }
     }
 
@@ -114,8 +113,7 @@ public abstract class AbstractPropertyExecutable extends AbstractExecutable {
         try {
             return reader.getProperty(obj, propName, scope);
         } catch (Exception e) {
-            throw newError(ERR_EXEC_READ_PROP_FAIL, e).forWrap().param(ARG_CLASS_NAME, obj.getClass().getName())
-                    .param(ARG_PROP_NAME, propName);
+            throw wrapPropException(ERR_EXEC_READ_PROP_FAIL, e, obj.getClass().getName(), propName);
         }
     }
 }

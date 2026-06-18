@@ -195,6 +195,40 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
                         + "Pre-fix this was 1 + maxRetryCount = 3 because bizFatal was lost in xpl attr-read wrap.");
     }
 
+    // -------- plan 251: bizFatal fail-fast E2E（prop/dot 路径端到端修复） --------
+
+    @Test
+    public void retry_bizFatalPropFailFastE2e() {
+        // plan 251 端到端验证（#22, #23）：从 `.task.xml` 声明 `<decorator name="retry" maxRetryCount=2>` →
+        // step 经 xpl **dot 属性访问** `sim.bizFatalProp`（编译为 `GetPropertyExecutable`，区别于 plan 249 的方法调用
+        // 和 plan 250 的 bracket 记法）→ 基类 `AbstractPropertyExecutable.readProp` 经 `IPropertyGetter` 反射调用
+        // `FailureSimulatorBean.getBizFatalProp()` 抛 bizFatal NopException →
+        // readProp 包装为 NopEvalException（plan 251 修复后 bizFatal 标记保留）→
+        // TaskStepHelper.retry:176 state.fail(e) → state.exception() 返回包装异常（isBizFatal()==true）→
+        // :138 retryPolicy.getRetryDelay → RetryPolicy.isRecoverableException 判定不可恢复 → delay < 0 →
+        // 立即 honest throw（执行次数 = 1，不重试）。
+        //
+        // 修复前（plan 251 前）：readProp 包装异常 bizFatal 丢失 → isRecoverableException 返回 true →
+        // 重试至 retryCount 耗尽 → 执行次数 = 1 + maxRetryCount(2) = 3，抛出 state.exception()（非 bizFatal）。
+        try {
+            runTask("test/retry-decorator-prop-bizfatal-failfast");
+            fail("bizFatal prop-getter exception should fail-fast without retry");
+        } catch (NopException e) {
+            assertNotNull(e, "bizFatal prop exception must propagate honestly (fail-fast)");
+            // 接线验证（#23）：修复后 readProp 包装异常保留 bizFatal → 分类器判定不可恢复 → 抛出的异常 isBizFatal()==true。
+            // 这是 plan 251 核心价值主张的端到端可观测证据（prop/dot 路径）。
+            assertTrue(e.isBizFatal(),
+                    "plan 251 fix: bizFatal flag must be preserved through xpl prop-read wrap, "
+                            + "so the honest-thrown exception reports isBizFatal()==true. got errorCode="
+                            + e.getErrorCode());
+        }
+        // 端到端验证（#22）：bizFatal = 不可恢复 → 立即 honest throw → 执行次数 = 1（不重试）。
+        // 修复前此处为 3（1 + maxRetryCount），修复后为 1。
+        assertEquals(1, counter().get(),
+                "bizFatal prop-getter exception must fail-fast: execute exactly once (no retry). "
+                        + "Pre-fix this was 1 + maxRetryCount = 3 because bizFatal was lost in xpl prop-read wrap.");
+    }
+
     // -------- plan 248: retry-wrapped 同步成功 step 执行恰好一次（sync success return 修复） --------
 
     @Test
