@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -437,7 +436,9 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
                                           String workerInstanceId,
                                           int costCpu, int costMemory) {
         long now = System.currentTimeMillis();
-        String sid = scheduleId + "-" + UUID.randomUUID();
+        // JOB_SCHEDULE_ID is VARCHAR(32); each test method runs in an isolated local DB,
+        // so the caller-provided scheduleId is already unique within the test.
+        String sid = scheduleId;
         String fid = "fire-" + sid;
         String tid = "task-" + sid;
 
