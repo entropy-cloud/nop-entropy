@@ -157,6 +157,10 @@ Exit Criteria:
 - step-state 全量字段持久化 / 完整历史 entity 模型（optimization candidate，plans 257/258/259 carry-over）。
 - afterLoad/beforeSave task 生命周期 hook 的语义实现（successor plan candidate，plans 254/255/259 carry-over）。
 
+## Follow-up handled by 261-nop-ai-agent-exception-transient-error-bean-persist.md
+
+「跨重启 exception 持久化 transient 优化」（line 156）由 `ai-dev/plans/261-nop-ai-agent-exception-transient-error-bean-persist.md` 接续处理：新增 ORM `errorBeanData` 列持久化完整 ErrorBean（params + cause chain），load 重构保留诊断属性。
+
 ## Closure
 
 Status Note: plan 260 闭合 plans 254-259（5× carry-over）反复裁定为 out-of-scope improvement 的「EXPIRED/KILLED/TIMEOUT 终态 driver」read-but-never-written 缺口。step 层 cancel-check 两处出口从 bare-rethrow 改为按 reason 映射 EXPIRED(50)/KILLED(70) driver（设计裁定 1，对称 plan 254 FAILED-driver）；task 层 execute 出口从无条件 driveTaskFailed 改为 driveTaskTerminal 分发 cancellation→KILLED(40)/TIMEOUT(60)（设计裁定 2，按 Phase-1 exception-carried reason 区分）；resume 短路区分 FAILED/KILLED/TIMEOUT（设计裁定 3，非一律 already-failed）。reason 经 NopTaskCancelledException 改造为 reason-carrying + TaskStepHelper.encodeCancelReason 编码进传播 exception，使 reader 的 EXPIRED/KILLED 死代码分支变为可达。两 Phase Exit Criteria 全勾选 + Closure Gates 全勾选 + 独立子 agent closure-audit APPROVED。
