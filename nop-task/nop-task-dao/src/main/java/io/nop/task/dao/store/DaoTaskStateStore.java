@@ -93,6 +93,36 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         if (state.getTaskStatus() != null)
             entity.setStatus(state.getTaskStatus());
         entity.setUpdateTime(CoreMetrics.currentTimestamp());
+
+        // plan 259 设计裁定 4: 终态 result/exception 持久化，使 cross-restart resume 可恢复并被短路逻辑消费。
+        // result（COMPLETED）序列化到 remark（JSON，非致命：超长/序列化失败跳过，与 step 级 stateBeanData 一致）。
+        Object resultValue = state.getResultValue();
+        if (resultValue != null) {
+            try {
+                String json = JsonTool.serialize(resultValue, false);
+                if (json != null && json.length() <= 4000)
+                    entity.setRemark(json);
+            } catch (Exception e) {
+                // 非致命：跳过 result 序列化（plan Non-Goals：不优化序列化细节）
+            }
+        }
+
+        // exception（FAILED）提取 errCode + errMsg（镜像 step 级 copyStepStateToEntity exception 持久化）
+        Throwable exp = state.exception();
+        if (exp != null) {
+            ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, exp, false, false);
+            if (errorBean != null) {
+                entity.setErrCode(errorBean.getErrorCode());
+                entity.setErrMsg(errorBean.getDescription());
+            }
+        }
+
+        // 终态时记录完成时间
+        Integer status = state.getTaskStatus();
+        if (status != null && isTerminalTaskStatus(status)) {
+            entity.setEndTime(CoreMetrics.currentTimestamp());
+        }
+
         if (isNew)
             taskDao().saveEntityDirectly(entity);
         else
@@ -182,6 +212,27 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             state.setTaskVersion(entity.getTaskVersion());
         if (entity.getStatus() != null)
             state.setTaskStatus(entity.getStatus());
+
+        // plan 259 设计裁定 4: 终态 result/exception 恢复。result 从 remark 反序列化（JSON）。
+        String remark = entity.getRemark();
+        if (!StringHelper.isEmpty(remark)) {
+            try {
+                state.setResultValue(JsonTool.parse(remark));
+            } catch (Exception e) {
+                // 非致命：保留原始文本作为 resultValue（plan Non-Goals：不优化序列化细节）
+                state.setResultValue(remark);
+            }
+        }
+
+        // exception 从 errCode + errMsg 重构（镜像 step 级 toStepStateBean exception 重构）
+        String errCode = entity.getErrCode();
+        if (!StringHelper.isEmpty(errCode)) {
+            NopException exp = new NopException(errCode, null, true, true);
+            if (!StringHelper.isEmpty(entity.getErrMsg()))
+                exp.description(entity.getErrMsg());
+            state.exception(exp);
+        }
+
         return state;
     }
 
@@ -281,5 +332,15 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 || status == _NopTaskCoreConstants.TASK_STEP_STATUS_FAILED
                 || status == _NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED
                 || status == _NopTaskCoreConstants.TASK_STEP_STATUS_KILLED;
+    }
+
+    /**
+     * plan 259: task 级终态判定（基于 {@link TaskConstants} 状态常量，与 step 级不同的状态码体系）。
+     */
+    protected boolean isTerminalTaskStatus(int status) {
+        return status == TaskConstants.TASK_STATUS_COMPLETED
+                || status == TaskConstants.TASK_STATUS_KILLED
+                || status == TaskConstants.TASK_STATUS_FAILED
+                || status == TaskConstants.TASK_STATUS_TIMEOUT;
     }
 }
