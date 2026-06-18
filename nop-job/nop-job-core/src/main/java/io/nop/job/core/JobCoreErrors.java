@@ -11,6 +11,9 @@ public interface JobCoreErrors {
     String ARG_CRON_EXPR = "cronExpr";
     String ARG_EXECUTOR_REF = "executorRef";
     String ARG_EXECUTOR_KIND = "executorKind";
+    String ARG_METADATA_KEY = "metadataKey";
+    String ARG_METADATA_VALUE = "metadataValue";
+    String ARG_WORKER_INSTANCE_ID = "workerInstanceId";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
             "Trigger calculation loop count exceeded limit", ARG_LOOP_COUNT);
@@ -83,4 +86,10 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_CALENDAR_NULL_DAYS = define("nop.err.job.calendar.null-days",
             "Days parameter cannot be null");
+
+    ErrorCode ERR_JOB_WORKER_CAPACITY_MALFORMED = define("nop.err.job.worker-capacity-malformed",
+            "Worker capacity metadata value is not a valid integer: {metadataKey}={metadataValue}", ARG_METADATA_KEY, ARG_METADATA_VALUE);
+
+    ErrorCode ERR_JOB_WORKER_CAPACITY_PROVIDER_REQUIRED = define("nop.err.job.worker-capacity-provider-required",
+            "IWorkerCapacityProvider is not injected; cannot evaluate worker-side resource limit");
 }
