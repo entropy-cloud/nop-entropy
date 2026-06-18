@@ -7,6 +7,7 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
+import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,10 +41,16 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
     @BeforeEach
     public void resetCounter() {
         counter().reset();
+        stateStore().reset();
     }
 
     private ExecutionCounterBean counter() {
         return (ExecutionCounterBean) io.nop.api.core.ioc.BeanContainer.instance().getBean("testExecutionCounter");
+    }
+
+    private StateCapturingTaskStateStore stateStore() {
+        return (StateCapturingTaskStateStore) io.nop.api.core.ioc.BeanContainer.instance()
+                .getBean(StateCapturingTaskStateStore.BEAN_NAME);
     }
 
     private Map<String, Object> runTask(String taskName) {
@@ -245,6 +252,44 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
         assertEquals(1, counter().get(),
                 "retry-wrapped sync success step must execute exactly once. "
                         + "Pre-fix this was 1 + maxRetryCount = 3 and ultimately threw ERR_TASK_RETRY_TIMES_EXCEED_LIMIT.");
+    }
+
+    // -------- plan 252: succeed-driver state machine runtime verification (#22, #23) --------
+
+    @Test
+    public void retry_syncSuccessSucceedDriver_stateMachineObservable() {
+        // plan 252 核心端到端验证（#22 端到端, #23 接线, #24 无静默跳过）：
+        // 从 `.task.xml` 声明 `<decorator name="retry"/>` 包装同步成功 step →
+        // RetryTaskStepWrapper.execute → TaskStepHelper.retry sync-success 路径（:175）→
+        // state.succeed(result.getResult(), nextStepName, taskRt) →
+        // state.setResultValue("OK") + state.setStepStatus(COMPLETED=40)
+        //
+        // 修复前（plan 252 前）：succeed() 为空方法体 → state.stepStatus 保持 ACTIVE(10) →
+        // isDone()==false, isSuccess()==false, result()==null（状态机无 caller → 空壳）。
+        // 修复后：succeed-driver runtime 连通 → state 可观测终态：
+        //   stepStatus == COMPLETED(40), isDone == true, isSuccess == true, result() 非 null
+        //
+        // 这是 succeed-driver Anti-Hollow 的端到端 Proof（闭合独立审计 Round 1 Blocker）。
+        Map<String, Object> ret = runTask("test/retry-decorator-sync-success");
+        assertEquals("OK", ret.get(TaskConstants.VAR_RESULT),
+                "retry-wrapped sync success step must still return the real success result");
+        assertEquals(1, counter().get(),
+                "retry-wrapped sync success step must execute exactly once (plan 248 behavior unchanged)");
+
+        // 接线验证（#23）：succeed-driver 在 runtime 确实被调用——state 状态转移可观测
+        ITaskStepState stepState = stateStore().getCapturedState("syncSuccessStep");
+        assertNotNull(stepState,
+                "StateCapturingTaskStateStore must have captured the step state for 'syncSuccessStep'");
+        assertEquals(Integer.valueOf(40), stepState.getStepStatus(),
+                "succeed-driver must set stepStatus=COMPLETED(40). Pre-fix this stayed at ACTIVE(10).");
+        assertTrue(stepState.isDone(),
+                "after succeed-driver, isDone() must be true (COMPLETED is terminal). Pre-fix always false.");
+        assertTrue(stepState.isSuccess(),
+                "after succeed-driver, isSuccess() must be true. Pre-fix always false.");
+        assertNotNull(stepState.result(),
+                "after succeed-driver, result() must be non-null (derived from 'OK'). Pre-fix always null.");
+        assertEquals("OK", stepState.result().getResult(),
+                "result() must derive from the value passed to succeed('OK', ...)");
     }
 
     // -------- timeout decorator --------

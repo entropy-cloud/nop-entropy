@@ -10,6 +10,7 @@ package io.nop.task.state;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.core._NopTaskCoreConstants;
 
 public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskStepState {
     private String taskInstanceId;
@@ -38,7 +39,8 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public void succeed(Object result, String nextStepId, ITaskRuntime taskRt) {
-
+        setResultValue(result);
+        setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_COMPLETED);
     }
 
     @Override
@@ -48,12 +50,18 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public boolean isDone() {
-        return false;
+        Integer status = getStepStatus();
+        if (status == null)
+            return false;
+        return status.equals(_NopTaskCoreConstants.TASK_STEP_STATUS_COMPLETED)
+                || status.equals(_NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED)
+                || status.equals(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED)
+                || status.equals(_NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
     }
 
     @Override
     public boolean isSuccess() {
-        return false;
+        return Integer.valueOf(_NopTaskCoreConstants.TASK_STEP_STATUS_COMPLETED).equals(getStepStatus());
     }
 
     @Override
@@ -63,7 +71,9 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public TaskStepReturn result() {
-        return null;
+        if (getResultValue() == null)
+            return null;
+        return TaskStepReturn.RETURN_RESULT(getResultValue());
     }
 
     @Override
@@ -188,7 +198,7 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public void result(TaskStepReturn result) {
-
+        setResultValue(result == null ? null : result.getResult());
     }
 
 }

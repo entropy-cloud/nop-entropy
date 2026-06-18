@@ -172,6 +172,7 @@ public class TaskStepHelper {
                     return result.thenCompose((v, err) -> doRetry(v, err, loc,
                             stepRt, retryPolicy, action));
                 }
+                state.succeed(result.getResult(), result.getNextStepName(), stepRt.getTaskRuntime());
                 return result;
             } catch (Exception e) {
                 state.fail(e, stepRt.getTaskRuntime());
