@@ -128,8 +128,16 @@ public class _NopJobFire extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 27;
     
+    /* 任务CPU开销(毫核): TASK_COST_CPU INTEGER */
+    public static final String PROP_NAME_taskCostCpu = "taskCostCpu";
+    public static final int PROP_ID_taskCostCpu = 28;
+    
+    /* 任务内存开销(MB): TASK_COST_MEMORY INTEGER */
+    public static final String PROP_NAME_taskCostMemory = "taskCostMemory";
+    public static final int PROP_ID_taskCostMemory = 29;
+    
 
-    private static int _PROP_ID_BOUND = 28;
+    private static int _PROP_ID_BOUND = 30;
 
     
     /* relation: 调度定义 */
@@ -142,7 +150,7 @@ public class _NopJobFire extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobFireId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobFireId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[28];
+    private static final String[] PROP_ID_TO_NAME = new String[30];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -227,6 +235,12 @@ public class _NopJobFire extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_taskCostCpu] = PROP_NAME_taskCostCpu;
+          PROP_NAME_TO_ID.put(PROP_NAME_taskCostCpu, PROP_ID_taskCostCpu);
+      
+          PROP_ID_TO_NAME[PROP_ID_taskCostMemory] = PROP_NAME_taskCostMemory;
+          PROP_NAME_TO_ID.put(PROP_NAME_taskCostMemory, PROP_ID_taskCostMemory);
+      
     }
 
     
@@ -310,6 +324,12 @@ public class _NopJobFire extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 任务CPU开销(毫核): TASK_COST_CPU */
+    private java.lang.Integer _taskCostCpu;
+    
+    /* 任务内存开销(MB): TASK_COST_MEMORY */
+    private java.lang.Integer _taskCostMemory;
     
 
     public _NopJobFire(){
@@ -465,6 +485,12 @@ public class _NopJobFire extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_taskCostCpu:
+               return getTaskCostCpu();
+        
+            case PROP_ID_taskCostMemory:
+               return getTaskCostMemory();
         
            default:
               return super.orm_propValue(propId);
@@ -747,6 +773,26 @@ public class _NopJobFire extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_taskCostCpu:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_taskCostCpu));
+               }
+               setTaskCostCpu(typedValue);
+               break;
+            }
+        
+            case PROP_ID_taskCostMemory:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_taskCostMemory));
+               }
+               setTaskCostMemory(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -941,6 +987,20 @@ public class _NopJobFire extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_taskCostCpu:{
+               onInitProp(propId);
+               this._taskCostCpu = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_taskCostMemory:{
+               onInitProp(propId);
+               this._taskCostMemory = (java.lang.Integer)value;
                
                break;
             }
@@ -1460,6 +1520,44 @@ public class _NopJobFire extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 任务CPU开销(毫核): TASK_COST_CPU
+     */
+    public final java.lang.Integer getTaskCostCpu(){
+         onPropGet(PROP_ID_taskCostCpu);
+         return _taskCostCpu;
+    }
+
+    /**
+     * 任务CPU开销(毫核): TASK_COST_CPU
+     */
+    public final void setTaskCostCpu(java.lang.Integer value){
+        if(onPropSet(PROP_ID_taskCostCpu,value)){
+            this._taskCostCpu = value;
+            internalClearRefs(PROP_ID_taskCostCpu);
+            
+        }
+    }
+    
+    /**
+     * 任务内存开销(MB): TASK_COST_MEMORY
+     */
+    public final java.lang.Integer getTaskCostMemory(){
+         onPropGet(PROP_ID_taskCostMemory);
+         return _taskCostMemory;
+    }
+
+    /**
+     * 任务内存开销(MB): TASK_COST_MEMORY
+     */
+    public final void setTaskCostMemory(java.lang.Integer value){
+        if(onPropSet(PROP_ID_taskCostMemory,value)){
+            this._taskCostMemory = value;
+            internalClearRefs(PROP_ID_taskCostMemory);
             
         }
     }

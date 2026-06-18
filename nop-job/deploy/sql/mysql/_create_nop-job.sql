@@ -38,6 +38,8 @@ CREATE TABLE nop_job_schedule(
   TOTAL_FIRE_COUNT BIGINT default 0  NULL    COMMENT '总触发次数',
   SUCCESS_FIRE_COUNT BIGINT default 0  NULL    COMMENT '成功触发次数',
   FAIL_FIRE_COUNT BIGINT default 0  NULL    COMMENT '失败触发次数',
+  TASK_COST_CPU INTEGER default 0  NULL    COMMENT '任务CPU开销(毫核)',
+  TASK_COST_MEMORY INTEGER default 0  NULL    COMMENT '任务内存开销(MB)',
   constraint PK_nop_job_schedule primary key (JOB_SCHEDULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -69,6 +71,8 @@ CREATE TABLE nop_job_fire(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  TASK_COST_CPU INTEGER default 0  NULL    COMMENT '任务CPU开销(毫核)',
+  TASK_COST_MEMORY INTEGER default 0  NULL    COMMENT '任务内存开销(MB)',
   constraint PK_nop_job_fire primary key (JOB_FIRE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -98,6 +102,8 @@ CREATE TABLE nop_job_task(
   TARGET_HOST VARCHAR(200) NULL    COMMENT '目标节点地址',
   SHARDING_INDEX INTEGER NULL    COMMENT '分片索引',
   SHARDING_TOTAL INTEGER NULL    COMMENT '总分片数',
+  COST_CPU INTEGER default 0  NULL    COMMENT 'CPU开销(毫核)',
+  COST_MEMORY INTEGER default 0  NULL    COMMENT '内存开销(MB)',
   constraint PK_nop_job_task primary key (JOB_TASK_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 

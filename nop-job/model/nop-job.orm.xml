@@ -146,6 +146,13 @@
                 <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex"
                         propId="22" stdDataType="short" stdSqlType="SMALLINT"
                         i18n-en:displayName="Partition Index"/>
+                <!-- 资源开销声明（worker 侧资源限制与 dispatcher 侧 best-fit 派发的共同前提，0 表示未声明） -->
+                <column code="TASK_COST_CPU" defaultValue="0" displayName="任务CPU开销(毫核)" name="taskCostCpu"
+                        propId="39" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Task Cost Cpu(Millicore)"/>
+                <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
+                        propId="40" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Task Cost Memory(MB)"/>
                 <!-- 调度游标 -->
                 <column code="FIRE_COUNT" defaultValue="0" displayName="已触发次数" mandatory="true" name="fireCount"
                         propId="23" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Fire Count"/>
@@ -270,6 +277,13 @@
                 <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex"
                         propId="21" stdDataType="short" stdSqlType="SMALLINT"
                         i18n-en:displayName="Partition Index"/>
+                <!-- 任务资源开销快照（dispatch 时由 task builder 从 schedule 读取，便于 worker 侧资源核算） -->
+                <column code="TASK_COST_CPU" defaultValue="0" displayName="任务CPU开销(毫核)" name="taskCostCpu"
+                        propId="28" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Task Cost Cpu(Millicore)"/>
+                <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
+                        propId="29" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Task Cost Memory(MB)"/>
                 <!-- 审计字段 -->
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
                         propId="22" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
@@ -381,6 +395,13 @@
                 <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex"
                         propId="14" stdDataType="short" stdSqlType="SMALLINT"
                         i18n-en:displayName="Partition Index"/>
+                <!-- 任务实际资源开销快照（dispatch 时从 fire/schedule 写入，worker 侧 sumReservedCost 聚合） -->
+                <column code="COST_CPU" defaultValue="0" displayName="CPU开销(毫核)" name="costCpu"
+                        propId="26" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Cost Cpu(Millicore)"/>
+                <column code="COST_MEMORY" defaultValue="0" displayName="内存开销(MB)" name="costMemory"
+                        propId="27" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Cost Memory(MB)"/>
                 <column code="PROGRESS" displayName="执行进度" name="progress" propId="21"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Progress"/>
                 <column code="PROGRESS_MESSAGE" displayName="进度消息" name="progressMessage" precision="500"

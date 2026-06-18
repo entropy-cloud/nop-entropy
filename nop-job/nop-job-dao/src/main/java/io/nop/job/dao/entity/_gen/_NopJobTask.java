@@ -120,8 +120,16 @@ public class _NopJobTask extends DynamicOrmEntity{
     public static final String PROP_NAME_shardingTotal = "shardingTotal";
     public static final int PROP_ID_shardingTotal = 25;
     
+    /* CPU开销(毫核): COST_CPU INTEGER */
+    public static final String PROP_NAME_costCpu = "costCpu";
+    public static final int PROP_ID_costCpu = 26;
+    
+    /* 内存开销(MB): COST_MEMORY INTEGER */
+    public static final String PROP_NAME_costMemory = "costMemory";
+    public static final int PROP_ID_costMemory = 27;
+    
 
-    private static int _PROP_ID_BOUND = 26;
+    private static int _PROP_ID_BOUND = 28;
 
     
     /* relation: 触发批次 */
@@ -137,7 +145,7 @@ public class _NopJobTask extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobTaskId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobTaskId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[26];
+    private static final String[] PROP_ID_TO_NAME = new String[28];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -216,6 +224,12 @@ public class _NopJobTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_shardingTotal] = PROP_NAME_shardingTotal;
           PROP_NAME_TO_ID.put(PROP_NAME_shardingTotal, PROP_ID_shardingTotal);
       
+          PROP_ID_TO_NAME[PROP_ID_costCpu] = PROP_NAME_costCpu;
+          PROP_NAME_TO_ID.put(PROP_NAME_costCpu, PROP_ID_costCpu);
+      
+          PROP_ID_TO_NAME[PROP_ID_costMemory] = PROP_NAME_costMemory;
+          PROP_NAME_TO_ID.put(PROP_NAME_costMemory, PROP_ID_costMemory);
+      
     }
 
     
@@ -293,6 +307,12 @@ public class _NopJobTask extends DynamicOrmEntity{
     
     /* 总分片数: SHARDING_TOTAL */
     private java.lang.Integer _shardingTotal;
+    
+    /* CPU开销(毫核): COST_CPU */
+    private java.lang.Integer _costCpu;
+    
+    /* 内存开销(MB): COST_MEMORY */
+    private java.lang.Integer _costMemory;
     
 
     public _NopJobTask(){
@@ -442,6 +462,12 @@ public class _NopJobTask extends DynamicOrmEntity{
         
             case PROP_ID_shardingTotal:
                return getShardingTotal();
+        
+            case PROP_ID_costCpu:
+               return getCostCpu();
+        
+            case PROP_ID_costMemory:
+               return getCostMemory();
         
            default:
               return super.orm_propValue(propId);
@@ -704,6 +730,26 @@ public class _NopJobTask extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_costCpu:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_costCpu));
+               }
+               setCostCpu(typedValue);
+               break;
+            }
+        
+            case PROP_ID_costMemory:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_costMemory));
+               }
+               setCostMemory(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -884,6 +930,20 @@ public class _NopJobTask extends DynamicOrmEntity{
             case PROP_ID_shardingTotal:{
                onInitProp(propId);
                this._shardingTotal = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_costCpu:{
+               onInitProp(propId);
+               this._costCpu = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_costMemory:{
+               onInitProp(propId);
+               this._costMemory = (java.lang.Integer)value;
                
                break;
             }
@@ -1365,6 +1425,44 @@ public class _NopJobTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_shardingTotal,value)){
             this._shardingTotal = value;
             internalClearRefs(PROP_ID_shardingTotal);
+            
+        }
+    }
+    
+    /**
+     * CPU开销(毫核): COST_CPU
+     */
+    public final java.lang.Integer getCostCpu(){
+         onPropGet(PROP_ID_costCpu);
+         return _costCpu;
+    }
+
+    /**
+     * CPU开销(毫核): COST_CPU
+     */
+    public final void setCostCpu(java.lang.Integer value){
+        if(onPropSet(PROP_ID_costCpu,value)){
+            this._costCpu = value;
+            internalClearRefs(PROP_ID_costCpu);
+            
+        }
+    }
+    
+    /**
+     * 内存开销(MB): COST_MEMORY
+     */
+    public final java.lang.Integer getCostMemory(){
+         onPropGet(PROP_ID_costMemory);
+         return _costMemory;
+    }
+
+    /**
+     * 内存开销(MB): COST_MEMORY
+     */
+    public final void setCostMemory(java.lang.Integer value){
+        if(onPropSet(PROP_ID_costMemory,value)){
+            this._costMemory = value;
+            internalClearRefs(PROP_ID_costMemory);
             
         }
     }

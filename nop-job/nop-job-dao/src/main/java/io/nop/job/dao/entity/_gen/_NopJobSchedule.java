@@ -172,8 +172,16 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     public static final String PROP_NAME_failFireCount = "failFireCount";
     public static final int PROP_ID_failFireCount = 38;
     
+    /* 任务CPU开销(毫核): TASK_COST_CPU INTEGER */
+    public static final String PROP_NAME_taskCostCpu = "taskCostCpu";
+    public static final int PROP_ID_taskCostCpu = 39;
+    
+    /* 任务内存开销(MB): TASK_COST_MEMORY INTEGER */
+    public static final String PROP_NAME_taskCostMemory = "taskCostMemory";
+    public static final int PROP_ID_taskCostMemory = 40;
+    
 
-    private static int _PROP_ID_BOUND = 39;
+    private static int _PROP_ID_BOUND = 41;
 
     
     /* component:  */
@@ -186,7 +194,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobScheduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobScheduleId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[39];
+    private static final String[] PROP_ID_TO_NAME = new String[41];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -304,6 +312,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_failFireCount] = PROP_NAME_failFireCount;
           PROP_NAME_TO_ID.put(PROP_NAME_failFireCount, PROP_ID_failFireCount);
       
+          PROP_ID_TO_NAME[PROP_ID_taskCostCpu] = PROP_NAME_taskCostCpu;
+          PROP_NAME_TO_ID.put(PROP_NAME_taskCostCpu, PROP_ID_taskCostCpu);
+      
+          PROP_ID_TO_NAME[PROP_ID_taskCostMemory] = PROP_NAME_taskCostMemory;
+          PROP_NAME_TO_ID.put(PROP_NAME_taskCostMemory, PROP_ID_taskCostMemory);
+      
     }
 
     
@@ -420,6 +434,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     
     /* 失败触发次数: FAIL_FIRE_COUNT */
     private java.lang.Long _failFireCount;
+    
+    /* 任务CPU开销(毫核): TASK_COST_CPU */
+    private java.lang.Integer _taskCostCpu;
+    
+    /* 任务内存开销(MB): TASK_COST_MEMORY */
+    private java.lang.Integer _taskCostMemory;
     
 
     public _NopJobSchedule(){
@@ -608,6 +628,12 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         
             case PROP_ID_failFireCount:
                return getFailFireCount();
+        
+            case PROP_ID_taskCostCpu:
+               return getTaskCostCpu();
+        
+            case PROP_ID_taskCostMemory:
+               return getTaskCostMemory();
         
            default:
               return super.orm_propValue(propId);
@@ -1000,6 +1026,26 @@ public class _NopJobSchedule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_taskCostCpu:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_taskCostCpu));
+               }
+               setTaskCostCpu(typedValue);
+               break;
+            }
+        
+            case PROP_ID_taskCostMemory:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_taskCostMemory));
+               }
+               setTaskCostMemory(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1271,6 +1317,20 @@ public class _NopJobSchedule extends DynamicOrmEntity{
             case PROP_ID_failFireCount:{
                onInitProp(propId);
                this._failFireCount = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_taskCostCpu:{
+               onInitProp(propId);
+               this._taskCostCpu = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_taskCostMemory:{
+               onInitProp(propId);
+               this._taskCostMemory = (java.lang.Integer)value;
                
                break;
             }
@@ -1999,6 +2059,44 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_failFireCount,value)){
             this._failFireCount = value;
             internalClearRefs(PROP_ID_failFireCount);
+            
+        }
+    }
+    
+    /**
+     * 任务CPU开销(毫核): TASK_COST_CPU
+     */
+    public final java.lang.Integer getTaskCostCpu(){
+         onPropGet(PROP_ID_taskCostCpu);
+         return _taskCostCpu;
+    }
+
+    /**
+     * 任务CPU开销(毫核): TASK_COST_CPU
+     */
+    public final void setTaskCostCpu(java.lang.Integer value){
+        if(onPropSet(PROP_ID_taskCostCpu,value)){
+            this._taskCostCpu = value;
+            internalClearRefs(PROP_ID_taskCostCpu);
+            
+        }
+    }
+    
+    /**
+     * 任务内存开销(MB): TASK_COST_MEMORY
+     */
+    public final java.lang.Integer getTaskCostMemory(){
+         onPropGet(PROP_ID_taskCostMemory);
+         return _taskCostMemory;
+    }
+
+    /**
+     * 任务内存开销(MB): TASK_COST_MEMORY
+     */
+    public final void setTaskCostMemory(java.lang.Integer value){
+        if(onPropSet(PROP_ID_taskCostMemory,value)){
+            this._taskCostMemory = value;
+            internalClearRefs(PROP_ID_taskCostMemory);
             
         }
     }

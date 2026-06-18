@@ -38,6 +38,8 @@ CREATE TABLE nop_job_schedule(
   total_fire_count INT8 default 0   ,
   success_fire_count INT8 default 0   ,
   fail_fire_count INT8 default 0   ,
+  task_cost_cpu INT4 default 0   ,
+  task_cost_memory INT4 default 0   ,
   constraint PK_nop_job_schedule primary key (job_schedule_id)
 );
 
@@ -69,6 +71,8 @@ CREATE TABLE nop_job_fire(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  task_cost_cpu INT4 default 0   ,
+  task_cost_memory INT4 default 0   ,
   constraint PK_nop_job_fire primary key (job_fire_id)
 );
 
@@ -98,6 +102,8 @@ CREATE TABLE nop_job_task(
   target_host VARCHAR(200)  ,
   sharding_index INT4  ,
   sharding_total INT4  ,
+  cost_cpu INT4 default 0   ,
+  cost_memory INT4 default 0   ,
   constraint PK_nop_job_task primary key (job_task_id)
 );
 
@@ -180,6 +186,10 @@ CREATE TABLE nop_job_task(
                     
       COMMENT ON COLUMN nop_job_schedule.fail_fire_count IS '失败触发次数';
                     
+      COMMENT ON COLUMN nop_job_schedule.task_cost_cpu IS '任务CPU开销(毫核)';
+                    
+      COMMENT ON COLUMN nop_job_schedule.task_cost_memory IS '任务内存开销(MB)';
+                    
       COMMENT ON TABLE nop_job_fire IS '触发批次';
                 
       COMMENT ON COLUMN nop_job_fire.job_fire_id IS '触发批次ID';
@@ -236,6 +246,10 @@ CREATE TABLE nop_job_task(
                     
       COMMENT ON COLUMN nop_job_fire.remark IS '备注';
                     
+      COMMENT ON COLUMN nop_job_fire.task_cost_cpu IS '任务CPU开销(毫核)';
+                    
+      COMMENT ON COLUMN nop_job_fire.task_cost_memory IS '任务内存开销(MB)';
+                    
       COMMENT ON TABLE nop_job_task IS '执行任务';
                 
       COMMENT ON COLUMN nop_job_task.job_task_id IS '任务ID';
@@ -287,4 +301,8 @@ CREATE TABLE nop_job_task(
       COMMENT ON COLUMN nop_job_task.sharding_index IS '分片索引';
                     
       COMMENT ON COLUMN nop_job_task.sharding_total IS '总分片数';
+                    
+      COMMENT ON COLUMN nop_job_task.cost_cpu IS 'CPU开销(毫核)';
+                    
+      COMMENT ON COLUMN nop_job_task.cost_memory IS '内存开销(MB)';
                     

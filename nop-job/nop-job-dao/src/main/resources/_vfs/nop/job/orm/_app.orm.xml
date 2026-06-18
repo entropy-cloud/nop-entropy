@@ -179,6 +179,10 @@
                         propId="37" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Success Fire Count"/>
                 <column code="FAIL_FIRE_COUNT" defaultValue="0" displayName="失败触发次数" name="failFireCount" propId="38"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Fail Fire Count"/>
+                <column code="TASK_COST_CPU" defaultValue="0" displayName="任务CPU开销(毫核)" name="taskCostCpu" propId="39"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Cpu(Millicore)"/>
+                <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
+                        propId="40" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Memory(MB)"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_SCHEDULE_SCAN" unique="false">
@@ -259,6 +263,10 @@
                         propId="26" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="27"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="TASK_COST_CPU" defaultValue="0" displayName="任务CPU开销(毫核)" name="taskCostCpu" propId="28"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Cpu(Millicore)"/>
+                <column code="TASK_COST_MEMORY" defaultValue="0" displayName="任务内存开销(MB)" name="taskCostMemory"
+                        propId="29" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Cost Memory(MB)"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_FIRE_DISPATCH_SCAN" unique="false">
@@ -353,6 +361,10 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Sharding Index"/>
                 <column code="SHARDING_TOTAL" displayName="总分片数" name="shardingTotal" propId="25" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Sharding Total"/>
+                <column code="COST_CPU" defaultValue="0" displayName="CPU开销(毫核)" name="costCpu" propId="26"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Cost Cpu(Millicore)"/>
+                <column code="COST_MEMORY" defaultValue="0" displayName="内存开销(MB)" name="costMemory" propId="27"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Cost Memory(MB)"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_JOB_TASK_RUN_SCAN" unique="false">
