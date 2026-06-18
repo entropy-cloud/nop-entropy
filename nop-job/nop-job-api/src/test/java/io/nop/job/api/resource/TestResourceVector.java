@@ -10,14 +10,14 @@ class TestResourceVector {
 
     @Test
     void testZeroConstant() {
-        assertEquals(0, ResourceVector.ZERO.cpu());
-        assertEquals(0, ResourceVector.ZERO.memory());
+        assertEquals(0, ResourceVector.ZERO.getCpu());
+        assertEquals(0, ResourceVector.ZERO.getMemory());
     }
 
     @Test
     void testMaxValueConstant() {
-        assertEquals(Integer.MAX_VALUE, ResourceVector.MAX_VALUE.cpu());
-        assertEquals(Integer.MAX_VALUE, ResourceVector.MAX_VALUE.memory());
+        assertEquals(Integer.MAX_VALUE, ResourceVector.MAX_VALUE.getCpu());
+        assertEquals(Integer.MAX_VALUE, ResourceVector.MAX_VALUE.getMemory());
     }
 
     @Test
@@ -25,11 +25,11 @@ class TestResourceVector {
         ResourceVector a = new ResourceVector(500, 1024);
         ResourceVector b = new ResourceVector(300, 2048);
         ResourceVector sum = a.add(b);
-        assertEquals(800, sum.cpu());
-        assertEquals(3072, sum.memory());
+        assertEquals(800, sum.getCpu());
+        assertEquals(3072, sum.getMemory());
         // 不可变：原实例不变
-        assertEquals(500, a.cpu());
-        assertEquals(1024, a.memory());
+        assertEquals(500, a.getCpu());
+        assertEquals(1024, a.getMemory());
     }
 
     @Test
@@ -38,8 +38,8 @@ class TestResourceVector {
         ResourceVector reserved = new ResourceVector(1500, 1024);
         ResourceVector remaining = capacity.subtract(reserved);
         // 允许负值，不 clamp
-        assertEquals(-500, remaining.cpu());
-        assertEquals(1024, remaining.memory());
+        assertEquals(-500, remaining.getCpu());
+        assertEquals(1024, remaining.getMemory());
     }
 
     @Test
@@ -47,8 +47,8 @@ class TestResourceVector {
         ResourceVector v = new ResourceVector(1000, 2048);
         // 减 ZERO 不影响（向后兼容未声明 cost 的 task）
         ResourceVector r = v.subtract(ResourceVector.ZERO);
-        assertEquals(1000, r.cpu());
-        assertEquals(2048, r.memory());
+        assertEquals(1000, r.getCpu());
+        assertEquals(2048, r.getMemory());
     }
 
     @Test

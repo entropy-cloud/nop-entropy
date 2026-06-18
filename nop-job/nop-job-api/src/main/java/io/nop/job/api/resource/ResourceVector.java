@@ -1,5 +1,7 @@
 package io.nop.job.api.resource;
 
+import java.util.Objects;
+
 /**
  * 多维资源向量（至少 CPU 毫核 + 内存 MB 两维），用于 worker 侧资源自限制
  * （Plan 212）和 dispatcher 侧 best-fit 派发（Plan 215）的成本/容量建模。
@@ -15,7 +17,7 @@ package io.nop.job.api.resource;
  * <p>缺失维度按 0 处理（向后兼容未配置的任务/worker）：cost=0 的任务 always fit，
  * capacity=MAX_VALUE 的 worker 退化为 count-based 行为。
  */
-public record ResourceVector(int cpu, int memory) {
+public final class ResourceVector {
 
     /**
      * 零资源：用于未声明 cost 的任务。与任何 capacity 相减不影响剩余，fits 任何 remaining。
@@ -27,6 +29,28 @@ public record ResourceVector(int cpu, int memory) {
      */
     public static final ResourceVector MAX_VALUE =
             new ResourceVector(Integer.MAX_VALUE, Integer.MAX_VALUE);
+
+    private final int cpu;
+    private final int memory;
+
+    public ResourceVector(int cpu, int memory) {
+        this.cpu = cpu;
+        this.memory = memory;
+    }
+
+    /**
+     * CPU 维（毫核）。
+     */
+    public int getCpu() {
+        return cpu;
+    }
+
+    /**
+     * 内存维（MB）。
+     */
+    public int getMemory() {
+        return memory;
+    }
 
     /**
      * 逐维相加，返回新实例。用于聚合多个 task 的 reserved 成本。
@@ -70,5 +94,23 @@ public record ResourceVector(int cpu, int memory) {
         double cpuScore = capacity.cpu == Integer.MAX_VALUE ? 0.0 : (double) this.cpu / capacity.cpu;
         double memScore = capacity.memory == Integer.MAX_VALUE ? 0.0 : (double) this.memory / capacity.memory;
         return Math.max(cpuScore, memScore);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ResourceVector)) return false;
+        ResourceVector that = (ResourceVector) o;
+        return cpu == that.cpu && memory == that.memory;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(cpu, memory);
+    }
+
+    @Override
+    public String toString() {
+        return "ResourceVector{cpu=" + cpu + ", memory=" + memory + '}';
     }
 }
