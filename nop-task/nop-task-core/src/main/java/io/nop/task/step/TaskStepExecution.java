@@ -262,8 +262,20 @@ public class TaskStepExecution implements ITaskStepExecution {
                             CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                             stepRt.getStepPath(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), err);
 
-                    if (TaskStepHelper.isCancelledException(err))
-                        throw NopException.adapt(err);
+                    if (TaskStepHelper.isCancelledException(err)) {
+                        // plan 260 设计裁定 1: step 层 EXPIRED/KILLED driver wiring（对称 plan 254 FAILED-driver）。
+                        // cancel-check 命中后按 cancel reason 映射终态：CANCEL_REASON_TIMEOUT → EXPIRED(50)，
+                        // kill/其它 → KILLED(70)；先 fail(err) 保存 exception，再设终态 status，再 saveTerminalStateIfDone，
+                        // 最后 rethrow 编码了 reason 的 exception（使 task seam 可区分 timeout/kill，裁定 2，#24 非静默）。
+                        // reason 来源：exception cause chain（已编码）优先，回退 step token（step seam 可靠）。
+                        String reason = TaskStepHelper.resolveStepCancelReason(stepRt, err);
+                        stepRt.getState().fail(err, taskRt);
+                        stepRt.getState().setStepStatus(TaskStepHelper.isTimeoutReason(reason)
+                                ? _NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED
+                                : _NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
+                        saveTerminalStateIfDone(stepRt);
+                        throw NopException.adapt(TaskStepHelper.encodeCancelReason(err, reason));
+                    }
 
                     // plan 254: 终态失败 FAILED driver wiring（对称 plan 252/253 succeed-driver）。
                     // cancel-check 之后（cancelled != failed）、nextStepNameOnError/rethrow 之前，
@@ -318,8 +330,16 @@ public class TaskStepExecution implements ITaskStepExecution {
             if (meter != null)
                 metrics.endStep(meter, false);
 
-            if (TaskStepHelper.isCancelledException(e))
-                throw NopException.adapt(e);
+            if (TaskStepHelper.isCancelledException(e)) {
+                // plan 260 设计裁定 1: step 层 EXPIRED/KILLED driver wiring（sync 出口，对称 async 出口）。
+                String reason = TaskStepHelper.resolveStepCancelReason(stepRt, e);
+                stepRt.getState().fail(e, taskRt);
+                stepRt.getState().setStepStatus(TaskStepHelper.isTimeoutReason(reason)
+                        ? _NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED
+                        : _NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
+                saveTerminalStateIfDone(stepRt);
+                throw NopException.adapt(TaskStepHelper.encodeCancelReason(e, reason));
+            }
 
             if (e instanceof NopException)
                 ((NopException) e).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());

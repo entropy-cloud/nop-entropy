@@ -68,7 +68,10 @@ public class TaskStepHelper {
         if (stepRt.isCancelled()) {
             LOG.warn("nop.task.step.cancelled:taskName={},stepPath={},taskId={},runId={}",
                     stepRt.getTaskRuntime().getTaskName(), stepRt.getStepPath(), stepRt.getTaskInstanceId(), stepRt.getRunId());
-            throw NopTaskCancelledException.INSTANCE;
+            // plan 260: 抛 reason-carrying exception，使传播到 task seam 的 cancellation 携带 cancel reason
+            // （task 层 KILLED/TIMEOUT driver 据此区分 timeout/kill，裁定 1/2）
+            String reason = stepRt.getCancelToken() != null ? stepRt.getCancelToken().getCancelReason() : null;
+            throw NopTaskCancelledException.forReason(reason);
         }
     }
 
@@ -82,6 +85,66 @@ public class TaskStepHelper {
             e = e.getCause();
         }
         return false;
+    }
+
+    /**
+     * plan 260 设计裁定 2: 从 exception cause chain 中提取 cancel reason。
+     * <p>task seam 处 {@code taskRt.getCancelReason()} 与 step token reason 均不可靠
+     * （step-timeout 时 task 未被 cancel、step token 可能被 {@link #withCancellable} 的 whenComplete 复位），
+     * 唯一可靠信号是 step driver（裁定 1）编码进传播 exception 的 reason。
+     *
+     * <p>遍历 cause chain（含 anti-cycle 保护），返回首个携带非 null reason 的
+     * {@link NopTaskCancelledException} 的 reason；未找到返回 null（调用方按 kill 默认处理）。
+     */
+    public static String getCancelReason(Throwable e) {
+        Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        while (e != null) {
+            if (!visited.add(e))
+                return null;
+            if (e instanceof NopTaskCancelledException) {
+                String reason = ((NopTaskCancelledException) e).getCancelReason();
+                if (reason != null)
+                    return reason;
+            }
+            e = e.getCause();
+        }
+        return null;
+    }
+
+    /**
+     * plan 260 设计裁定 1: 在 step seam 解析 cancel reason（可靠来源）。
+     * 优先取 exception cause chain 中已编码的 reason；否则回退 step 自身 cancel token 的 reason
+     * （step seam 处可靠：timeout 经 {@link #timeout} :125、kill 经 {@link #withCancellable} :235 直接 cancel）。
+     */
+    public static String resolveStepCancelReason(ITaskStepRuntime stepRt, Throwable err) {
+        String reason = getCancelReason(err);
+        if (reason == null && stepRt.getCancelToken() != null)
+            reason = stepRt.getCancelToken().getCancelReason();
+        return reason;
+    }
+
+    /**
+     * plan 260: reason 是否为 timeout（映射 step EXPIRED(50) / task TIMEOUT(60)）。
+     * 非 timeout（kill/stop/suspend/skip/null 等）映射 step KILLED(70) / task KILLED(40)。
+     */
+    public static boolean isTimeoutReason(String reason) {
+        return ICancellable.CANCEL_REASON_TIMEOUT.equals(reason);
+    }
+
+    /**
+     * plan 260 设计裁定 1: 把已判定的 reason 编码进 rethrow 的 exception（若未已携带）。
+     * <p>若 err 已是携带相同 reason 的 {@link NopTaskCancelledException}，原样返回；
+     * 否则包装为 {@link NopTaskCancelledException#forReason(String, Throwable)}（err 作 cause），
+     * 使 task seam 经 {@link #getCancelReason} 可取到 reason。包装后仍被 {@link #isCancelledException}
+     * 识别（顶层 instanceof NopTaskCancelledException）。
+     */
+    public static Throwable encodeCancelReason(Throwable err, String reason) {
+        if (err instanceof NopTaskCancelledException) {
+            String existing = ((NopTaskCancelledException) err).getCancelReason();
+            if (reason == null ? existing == null : reason.equals(existing))
+                return err;
+        }
+        return NopTaskCancelledException.forReason(reason, err);
     }
 
     private static boolean isCancelledExceptionSingleLevel(Throwable e) {

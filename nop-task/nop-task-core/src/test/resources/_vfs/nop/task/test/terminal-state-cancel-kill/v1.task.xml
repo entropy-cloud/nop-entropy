@@ -1,0 +1,18 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="cancelKillStep">
+            <source><![CDATA[
+                import io.nop.task.exceptions.NopTaskCancelledException;
+                import io.nop.api.core.util.ICancellable;
+                throw new NopTaskCancelledException(ICancellable.CANCEL_REASON_KILL);
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

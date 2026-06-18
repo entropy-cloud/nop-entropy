@@ -1,5 +1,6 @@
 package io.nop.task.impl;
 
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.util.Guard;
@@ -13,6 +14,7 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.metrics.ITaskFlowMetrics;
+import io.nop.task.utils.TaskStepHelper;
 import io.nop.xlang.xdsl.action.IActionInputModel;
 import io.nop.xlang.xdsl.action.IActionOutputModel;
 import org.slf4j.Logger;
@@ -27,6 +29,8 @@ import static io.nop.task.TaskErrors.ARG_STEP_PATH;
 import static io.nop.task.TaskErrors.ARG_TASK_INSTANCE_ID;
 import static io.nop.task.TaskErrors.ARG_TASK_NAME;
 import static io.nop.task.TaskErrors.ERR_TASK_ALREADY_FAILED;
+import static io.nop.task.TaskErrors.ERR_TASK_ALREADY_KILLED;
+import static io.nop.task.TaskErrors.ERR_TASK_ALREADY_TIMEOUT;
 import static io.nop.task.TaskErrors.ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY;
 
 public class TaskImpl implements ITask {
@@ -98,14 +102,16 @@ public class TaskImpl implements ITask {
                         taskRt.getTaskName(), taskRt.getTaskInstanceId(), cached);
                 return cached == null ? TaskStepReturn.CONTINUE : TaskStepReturn.RETURN_RESULT(cached);
             } else {
+                // plan 260 设计裁定 3: resume 短路区分 FAILED / KILLED / TIMEOUT（非一律合成 ERR_TASK_ALREADY_FAILED）。
+                // KILLED/TIMEOUT 终态在本计划前不可达，本计划使它们可达后必须同步修正误报。
+                // 终态判定基于 DB load 的 snapshot，mainStep 不重跑（非静默跳过）。
+                Integer status = taskState.getTaskStatus();
                 Throwable exp = taskState.exception();
                 if (exp == null) {
-                    exp = new NopException(ERR_TASK_ALREADY_FAILED)
-                            .param(ARG_TASK_NAME, taskRt.getTaskName())
-                            .param(ARG_TASK_INSTANCE_ID, taskRt.getTaskInstanceId());
+                    exp = synthesizeResumeException(status, taskRt);
                 }
-                LOG.info("nop.task.resume-skip:taskName={},taskInstanceId={},taskStatus=FAILED",
-                        taskRt.getTaskName(), taskRt.getTaskInstanceId(), exp);
+                LOG.info("nop.task.resume-skip:taskName={},taskInstanceId={},taskStatus={}",
+                        taskRt.getTaskName(), taskRt.getTaskInstanceId(), status, exp);
                 throw NopException.adapt(exp);
             }
         }
@@ -136,8 +142,8 @@ public class TaskImpl implements ITask {
         } catch (Exception e) {
             taskRt.runCleanup();
             metrics.endTask(meter, false);
-            // plan 259 设计裁定 1: task 终态 FAILED driver（sync exception）—— mainStep 抛错 → task 进入 FAILED + 捕获 exception。
-            driveTaskFailed(taskRt, taskState, e);
+            // plan 260 设计裁定 2: task 终态 driver 出口区分 cancellation（KILLED/TIMEOUT）与普通失败（FAILED）。
+            driveTaskTerminal(taskRt, taskState, e);
             throw NopException.adapt(e);
         }
 
@@ -150,8 +156,8 @@ public class TaskImpl implements ITask {
                 driveTaskCompleted(taskRt, taskState, ret);
                 return ret;
             }
-            // plan 259 设计裁定 1: task 终态 FAILED driver（async exception）—— mainStep async 抛错 → task 进入 FAILED + 捕获 exception。
-            driveTaskFailed(taskRt, taskState, err);
+            // plan 260 设计裁定 2: async 出口同样区分 cancellation（KILLED/TIMEOUT）与普通失败（FAILED）。
+            driveTaskTerminal(taskRt, taskState, err);
             throw NopException.adapt(err);
         });
     }
@@ -176,6 +182,66 @@ public class TaskImpl implements ITask {
         taskState.exception(err);
         taskState.setTaskStatus(TaskConstants.TASK_STATUS_FAILED);
         taskRt.saveTaskState();
+    }
+
+    /**
+     * plan 260 设计裁定 2: task 终态 driver 出口分发——区分 cancellation（KILLED/TIMEOUT）与普通失败（FAILED）。
+     * <p>reason 来源限定为 Phase-1 step driver 编码进 exception 的 reason（{@link TaskStepHelper#getCancelReason}），
+     * 非 {@code taskRt.getCancelReason()}（step-timeout 时它未被 cancel，恒为 null）/ 非 step token（可能被复位）。
+     * {@code CANCEL_REASON_TIMEOUT} → {@link #driveTaskTimeout}（TIMEOUT(60)），kill/其它 → {@link #driveTaskKilled}（KILLED(40)），
+     * 非 cancellation → 维持 {@link #driveTaskFailed}（FAILED(50)）。
+     */
+    private void driveTaskTerminal(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
+        if (TaskStepHelper.isCancelledException(err)) {
+            String reason = TaskStepHelper.getCancelReason(err);
+            if (TaskStepHelper.isTimeoutReason(reason)) {
+                driveTaskTimeout(taskRt, taskState, err);
+            } else {
+                driveTaskKilled(taskRt, taskState, err);
+            }
+        } else {
+            driveTaskFailed(taskRt, taskState, err);
+        }
+    }
+
+    /**
+     * plan 260 设计裁定 2: task 终态 KILLED driver（对称 plan 259 driveTaskFailed）。
+     * kill-cancel 的 cancellation → setTaskStatus(KILLED(40)) + 捕获 exception + saveTaskState。
+     */
+    private void driveTaskKilled(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
+        taskState.exception(err);
+        taskState.setTaskStatus(TaskConstants.TASK_STATUS_KILLED);
+        taskRt.saveTaskState();
+    }
+
+    /**
+     * plan 260 设计裁定 2: task 终态 TIMEOUT driver（对称 plan 259 driveTaskFailed）。
+     * step-timeout 上浮的 cancellation → setTaskStatus(TIMEOUT(60)) + 捕获 exception + saveTaskState。
+     */
+    private void driveTaskTimeout(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
+        taskState.exception(err);
+        taskState.setTaskStatus(TaskConstants.TASK_STATUS_TIMEOUT);
+        taskRt.saveTaskState();
+    }
+
+    /**
+     * plan 260 设计裁定 3: resume 短路区分非 COMPLETED 终态的合成 exception。
+     * FAILED → ERR_TASK_ALREADY_FAILED / KILLED → ERR_TASK_ALREADY_KILLED / TIMEOUT → ERR_TASK_ALREADY_TIMEOUT
+     * （非一律 ERR_TASK_ALREADY_FAILED，#24 非静默）。
+     */
+    private NopException synthesizeResumeException(Integer status, ITaskRuntime taskRt) {
+        int s = status == null ? TaskConstants.TASK_STATUS_FAILED : status;
+        ErrorCode code;
+        if (s == TaskConstants.TASK_STATUS_KILLED) {
+            code = ERR_TASK_ALREADY_KILLED;
+        } else if (s == TaskConstants.TASK_STATUS_TIMEOUT) {
+            code = ERR_TASK_ALREADY_TIMEOUT;
+        } else {
+            code = ERR_TASK_ALREADY_FAILED;
+        }
+        return new NopException(code)
+                .param(ARG_TASK_NAME, taskRt.getTaskName())
+                .param(ARG_TASK_INSTANCE_ID, taskRt.getTaskInstanceId());
     }
 
     void checkInputs(ITaskRuntime taskRt) {

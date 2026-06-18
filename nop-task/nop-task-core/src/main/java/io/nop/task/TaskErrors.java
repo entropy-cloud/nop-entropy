@@ -153,4 +153,10 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_ALREADY_FAILED = define("nop.err.task.already-failed",
             "任务[{taskName}]在历史状态中已终态失败，恢复执行时重抛终态异常", ARG_TASK_NAME, ARG_TASK_INSTANCE_ID);
+
+    ErrorCode ERR_TASK_ALREADY_KILLED = define("nop.err.task.already-killed",
+            "任务[{taskName}]在历史状态中已中止，恢复执行时重抛终态异常", ARG_TASK_NAME, ARG_TASK_INSTANCE_ID);
+
+    ErrorCode ERR_TASK_ALREADY_TIMEOUT = define("nop.err.task.already-timeout",
+            "任务[{taskName}]在历史状态中已超时，恢复执行时重抛终态异常", ARG_TASK_NAME, ARG_TASK_INSTANCE_ID);
 }

@@ -85,6 +85,14 @@ public class TaskLevelSnapshotTaskStateStore extends SnapshotTaskStateStore {
         return history.get(index);
     }
 
+    /**
+     * plan 260: 预载一个 task snapshot（模拟从 DB load 一个已存在的终态 task，exception 可控），
+     * 供 resume 短路区分（FAILED/KILLED/TIMEOUT）与合成 exception 路径的 focused 测试。
+     */
+    public void preloadTaskSnapshot(String taskInstanceId, ITaskState state) {
+        taskSnapshotHistory.computeIfAbsent(taskInstanceId, k -> new ArrayList<>()).add(copyTaskSnapshot(state));
+    }
+
     @Override
     public void reset() {
         super.reset();
