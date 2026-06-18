@@ -1,0 +1,16 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="invalidRateLimit">
+            <decorator name="rateLimit" rateLimit:requestPerSecond="0"/>
+            <source>
+                return "OK"
+            </source>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

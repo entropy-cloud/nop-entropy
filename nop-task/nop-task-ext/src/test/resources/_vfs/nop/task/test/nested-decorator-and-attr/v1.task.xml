@@ -1,0 +1,21 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="nestedStep">
+            <decorator name="retry" retry:maxRetryCount="1" retry:retryDelay="0"/>
+            <retry maxRetryCount="1" retryDelay="0"/>
+            <source><![CDATA[
+                import io.nop.api.core.exceptions.NopException;
+                const counter = inject("testExecutionCounter");
+                counter.incrementAndGet();
+                throw new NopException("nop.err.test.always-fail");
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

@@ -18,4 +18,13 @@
         </ioc:condition>
     </bean>
 
+    <bean id="nopTaskStepDecorator_retry" class="io.nop.task.ext.retry.RetryTaskStepDecorator">
+    </bean>
+
+    <bean id="nopTaskStepDecorator_timeout" class="io.nop.task.ext.timeout.TimeoutTaskStepDecorator">
+    </bean>
+
+    <bean id="nopTaskStepDecorator_rateLimit" class="io.nop.task.ext.ratelimit.RateLimitTaskStepDecorator">
+    </bean>
+
 </beans>

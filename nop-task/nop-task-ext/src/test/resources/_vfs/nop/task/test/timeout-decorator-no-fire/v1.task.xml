@@ -1,0 +1,19 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="fastStep">
+            <decorator name="timeout" timeout:timeout="5000"/>
+            <source><![CDATA[
+                const counter = inject("testExecutionCounter");
+                counter.incrementAndGet();
+                return "OK";
+            ]]></source>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>
