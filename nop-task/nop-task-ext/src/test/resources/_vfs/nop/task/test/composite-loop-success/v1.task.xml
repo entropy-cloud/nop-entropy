@@ -1,0 +1,20 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <loop name="loopStep" varName="a" itemsExpr="[1,2]">
+            <steps>
+                <xpl name="body">
+                    <source>return 1</source>
+                </xpl>
+            </steps>
+            <output name="RESULT">
+                <source>return "OK"</source>
+            </output>
+        </loop>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

@@ -4,6 +4,11 @@
         <property name="counter" ref="testExecutionCounter"/>
     </bean>
 
+    <!-- Plan 253: async + fail-then-succeed helper for succeed-driver E2E -->
+    <bean id="testStepStateHelper" class="io.nop.task.ext.reliability.StepStateTestHelper">
+        <property name="counter" ref="testExecutionCounter"/>
+    </bean>
+
     <!-- Plan 252: state-capturing store for E2E step-state assertions -->
     <bean id="testStateCapturingStore" class="io.nop.task.ext.reliability.StateCapturingTaskStateStore"/>
 

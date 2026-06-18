@@ -42,6 +42,7 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
     public void resetCounter() {
         counter().reset();
         stateStore().reset();
+        stepStateHelper().reset();
     }
 
     private ExecutionCounterBean counter() {
@@ -51,6 +52,11 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
     private StateCapturingTaskStateStore stateStore() {
         return (StateCapturingTaskStateStore) io.nop.api.core.ioc.BeanContainer.instance()
                 .getBean(StateCapturingTaskStateStore.BEAN_NAME);
+    }
+
+    private StepStateTestHelper stepStateHelper() {
+        return (StepStateTestHelper) io.nop.api.core.ioc.BeanContainer.instance()
+                .getBean(StepStateTestHelper.BEAN_NAME);
     }
 
     private Map<String, Object> runTask(String taskName) {
@@ -290,6 +296,137 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
                 "after succeed-driver, result() must be non-null (derived from 'OK'). Pre-fix always null.");
         assertEquals("OK", stepState.result().getResult(),
                 "result() must derive from the value passed to succeed('OK', ...)");
+    }
+
+    // -------- plan 253: retry async succeed-driver + 非 retry step succeed-driver (#22, #23, #24, #25) --------
+
+    @Test
+    public void retry_asyncSuccessSucceedDriver_stateMachineObservable() {
+        // plan 253 Phase 1 + Phase 3 端到端验证（#22 端到端, #23 接线, #24 无静默跳过, #25 新功能测试）：
+        // 从 `.task.xml` 声明 `<decorator name="retry"/>` 包装一个返回 CompletableFuture 的 async step →
+        // EvalTaskStep.execute → TaskStepReturn.of(CompletableFuture) → async TaskStepReturn →
+        // RetryTaskStepWrapper.execute → TaskStepHelper.retry → primary async 路径（:172-173 thenCompose）→
+        // doRetry(success) → state.succeed(result, nextStepName, taskRt) →
+        // state.setResultValue + state.setStepStatus(COMPLETED=40)
+        //
+        // 修复前（plan 253 前）：retry async 成功路径不调 succeed → stepStatus 保持 ACTIVE(10) →
+        // isDone()==false, isSuccess()==false（状态机不对称：sync 成功转 COMPLETED，async 成功不转）。
+        // 修复后：doRetry 公共 choke-point 成功分支调用 succeed → async 成功后 state 可观测终态。
+        //
+        // asyncSuccess 使用 supplyAsync + 10ms delay 确保 future 在 isDone() 检查时尚未完成，
+        // 从而走 :172-173 thenCompose → doRetry 路径（而非 :170 already-done 快捷路径）。
+        Map<String, Object> ret = runTask("test/retry-decorator-async-success");
+        assertEquals("OK", ret.get(TaskConstants.VAR_RESULT),
+                "retry-wrapped async success step must return the real success result");
+
+        ITaskStepState stepState = stateStore().getCapturedState("asyncSuccessStep");
+        assertNotNull(stepState,
+                "StateCapturingTaskStateStore must have captured the step state for 'asyncSuccessStep'");
+        assertEquals(Integer.valueOf(40), stepState.getStepStatus(),
+                "async succeed-driver must set stepStatus=COMPLETED(40). Pre-fix stayed at ACTIVE(10).");
+        assertTrue(stepState.isDone(),
+                "after async succeed-driver, isDone() must be true. Pre-fix always false.");
+        assertTrue(stepState.isSuccess(),
+                "after async succeed-driver, isSuccess() must be true. Pre-fix always false.");
+    }
+
+    @Test
+    public void retry_delayScheduledSuccessSucceedDriver_stateMachineObservable() {
+        // plan 253 Phase 1 + Phase 3 端到端验证（含 delay>0 scheduled-retry 路径）：
+        // 从 `.task.xml` 声明 `<decorator name="retry" retry:retryDelay="10"/>` 包装一个 fail-then-succeed step →
+        // 第一次执行失败 → state.fail → retryAttempt=1 → getRetryDelay 返回 10 (>0) →
+        // 进入 delay>0 scheduled-retry 分支（:146-163）→ schedule(action, 10ms) → 延迟后 action 成功 →
+        // result.thenCompose → doRetry(success) → state.succeed → stepStatus COMPLETED
+        //
+        // 验证 delay>0 scheduled-retry async 成功路径的 succeed-driver 接线。
+        Map<String, Object> ret = runTask("test/retry-decorator-delay-success");
+        assertEquals("OK", ret.get(TaskConstants.VAR_RESULT),
+                "retry-wrapped delay-scheduled success step must return the real success result");
+
+        ITaskStepState stepState = stateStore().getCapturedState("delayRetryStep");
+        assertNotNull(stepState,
+                "StateCapturingTaskStateStore must have captured the step state for 'delayRetryStep'");
+        assertEquals(Integer.valueOf(40), stepState.getStepStatus(),
+                "delay>0 scheduled-retry succeed-driver must set stepStatus=COMPLETED(40).");
+        assertTrue(stepState.isDone(),
+                "after delay>0 scheduled-retry succeed-driver, isDone() must be true.");
+        assertTrue(stepState.isSuccess(),
+                "after delay>0 scheduled-retry succeed-driver, isSuccess() must be true.");
+    }
+
+    @Test
+    public void nonRetry_sequentialStep_succeedDriver_stateMachineObservable() {
+        // plan 253 Phase 2 + Phase 3 端到端验证：
+        // 非 retry composite step（SequentialTaskStep）成功后 stepStatus COMPLETED 可观测。
+        // 从 `.task.xml` 声明 `<sequential name="seqStep">` → SequentialTaskStep.execute 成功返回 →
+        // TaskStepExecution.executeWithParentRt thenCompose 成功分支 → state.succeed → COMPLETED
+        //
+        // TaskStepExecution 是所有 step 类型的公共 choke-point（DRY wiring），
+        // composite step（多返回点）经此单一 wiring 点统一覆盖，无遗漏返回点风险。
+        runTask("test/composite-sequential-success");
+
+        ITaskStepState stepState = stateStore().getCapturedState("seqStep");
+        assertNotNull(stepState,
+                "StateCapturingTaskStateStore must have captured the step state for 'seqStep'");
+        assertEquals(Integer.valueOf(40), stepState.getStepStatus(),
+                "non-retry sequential step succeed-driver must set stepStatus=COMPLETED(40).");
+        assertTrue(stepState.isDone(),
+                "after succeed-driver, isDone() must be true.");
+        assertTrue(stepState.isSuccess(),
+                "after succeed-driver, isSuccess() must be true.");
+    }
+
+    @Test
+    public void nonRetry_selectorStep_succeedDriver_stateMachineObservable() {
+        // plan 253 Phase 2 + Phase 3 端到端验证：
+        // 非 retry composite step（SelectorTaskStep）成功后 stepStatus COMPLETED 可观测。
+        runTask("test/composite-selector-success");
+
+        ITaskStepState stepState = stateStore().getCapturedState("selStep");
+        assertNotNull(stepState,
+                "StateCapturingTaskStateStore must have captured the step state for 'selStep'");
+        assertEquals(Integer.valueOf(40), stepState.getStepStatus(),
+                "non-retry selector step succeed-driver must set stepStatus=COMPLETED(40).");
+        assertTrue(stepState.isDone(),
+                "after succeed-driver, isDone() must be true.");
+        assertTrue(stepState.isSuccess(),
+                "after succeed-driver, isSuccess() must be true.");
+    }
+
+    @Test
+    public void nonRetry_loopStep_succeedDriver_stateMachineObservable() {
+        // plan 253 Phase 2 + Phase 3 端到端验证：
+        // 非 retry composite step（LoopTaskStep）成功后 stepStatus COMPLETED 可观测。
+        runTask("test/composite-loop-success");
+
+        ITaskStepState stepState = stateStore().getCapturedState("loopStep");
+        assertNotNull(stepState,
+                "StateCapturingTaskStateStore must have captured the step state for 'loopStep'");
+        assertEquals(Integer.valueOf(40), stepState.getStepStatus(),
+                "non-retry loop step succeed-driver must set stepStatus=COMPLETED(40).");
+        assertTrue(stepState.isDone(),
+                "after succeed-driver, isDone() must be true.");
+        assertTrue(stepState.isSuccess(),
+                "after succeed-driver, isSuccess() must be true.");
+    }
+
+    @Test
+    public void nonRetry_simpleXplStep_succeedDriver_stateMachineObservable() {
+        // plan 253 Phase 2 + Phase 3 端到端验证：
+        // 非 retry simple/bean-backed step（EvalTaskStep via xpl）成功后 stepStatus COMPLETED 可观测。
+        // 复用既有 no-decorator-baseline fixture，增加 step state 断言。
+        Map<String, Object> ret = runTask("test/no-decorator-baseline");
+        assertEquals("OK", ret.get(TaskConstants.VAR_RESULT));
+
+        ITaskStepState stepState = stateStore().getCapturedState("plainStep");
+        assertNotNull(stepState,
+                "StateCapturingTaskStateStore must have captured the step state for 'plainStep'");
+        assertEquals(Integer.valueOf(40), stepState.getStepStatus(),
+                "non-retry simple/xpl step succeed-driver must set stepStatus=COMPLETED(40).");
+        assertTrue(stepState.isDone(),
+                "after succeed-driver, isDone() must be true.");
+        assertTrue(stepState.isSuccess(),
+                "after succeed-driver, isSuccess() must be true.");
     }
 
     // -------- timeout decorator --------

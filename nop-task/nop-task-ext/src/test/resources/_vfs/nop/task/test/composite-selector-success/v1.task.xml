@@ -1,0 +1,20 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <selector name="selStep">
+            <steps>
+                <xpl name="s1">
+                    <source>return false</source>
+                </xpl>
+                <xpl name="s2">
+                    <source>return "OK"</source>
+                </xpl>
+            </steps>
+        </selector>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

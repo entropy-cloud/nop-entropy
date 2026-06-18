@@ -256,6 +256,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                             CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                             stepRt.getStepPath(), stepRt.getRunId(), ret.getNextStepName(), ret.getOutputs(),
                             step.getLocation());
+                    stepRt.getState().succeed(ret.getResult(), ret.getNextStepName(), taskRt);
                     return ret;
                 }
             });

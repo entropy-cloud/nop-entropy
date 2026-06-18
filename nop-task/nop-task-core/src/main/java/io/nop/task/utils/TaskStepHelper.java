@@ -150,7 +150,7 @@ public class TaskStepHelper {
                                     TaskStepReturn ret = action.call();
                                     if (ret.isAsync()) {
                                         if (ret.isDone())
-                                            return result.sync();
+                                            return doRetry(result.sync(), null, loc, stepRt, retryPolicy, action);
                                     }
                                     return (Object) result.thenCompose((v, err) -> doRetry(v, err, loc,
                                             stepRt, retryPolicy, action));
@@ -167,7 +167,7 @@ public class TaskStepHelper {
                 TaskStepReturn result = action.call();
                 if (result.isAsync()) {
                     if (result.isDone())
-                        return result.sync();
+                        return doRetry(result.sync(), null, loc, stepRt, retryPolicy, action);
 
                     return result.thenCompose((v, err) -> doRetry(v, err, loc,
                             stepRt, retryPolicy, action));
@@ -192,6 +192,8 @@ public class TaskStepHelper {
             stepRt.saveState();
             return retry(loc, stepRt, retryPolicy, action);
         } else {
+            ITaskStepState state = stepRt.getState();
+            state.succeed(value.getResult(), value.getNextStepName(), stepRt.getTaskRuntime());
             return value;
         }
     }
