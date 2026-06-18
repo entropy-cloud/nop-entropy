@@ -24,6 +24,7 @@
 
     <bean id="nopJobTaskBuilder_default" class="io.nop.job.coordinator.engine.DefaultJobTaskBuilder"/>
     <bean id="nopJobTaskBuilder_rpcBroadcast" class="io.nop.job.coordinator.engine.RpcBroadcastTaskBuilder"/>
+    <bean id="nopJobTaskBuilder_partition" class="io.nop.job.coordinator.engine.PartitionTaskBuilder"/>
 
     <bean id="io.nop.job.coordinator.engine.IJobDispatcherScanner"
           class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl">
