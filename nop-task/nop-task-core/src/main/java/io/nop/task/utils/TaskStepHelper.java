@@ -23,7 +23,10 @@ import io.nop.task.exceptions.NopTaskFailException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
@@ -70,6 +73,18 @@ public class TaskStepHelper {
     }
 
     public static boolean isCancelledException(Throwable e) {
+        Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        while (e != null) {
+            if (!visited.add(e))
+                return false;
+            if (isCancelledExceptionSingleLevel(e))
+                return true;
+            e = e.getCause();
+        }
+        return false;
+    }
+
+    private static boolean isCancelledExceptionSingleLevel(Throwable e) {
         if (e instanceof CancellationException)
             return true;
         if (e instanceof NopTaskFailException || e instanceof NopTaskCancelledException)

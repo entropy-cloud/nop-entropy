@@ -815,32 +815,110 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
 
     @Test
     public void cancelledStep_notMarkedFailed_cancelExclusion() {
-        // plan 254 端到端验证（设计裁定 3）：cancelled step 不标记 FAILED。
+        // plan 256 端到端验证（闭合 plan 254 §Closure Follow-up）：cancelled step 经 xpl 方法调用包装后
+        // 仍被 cancel-check 正确识别 → 不被标记 FAILED。
         //
-        // 注：xpl 方法调用（AbstractObjFunctionExecutable.doInvoke*）会把 NopTaskCancelledException 包装为
-        // NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)，丢失 cancellation 字符（与 plan 249 前 bizFatal 同类问题）。
-        // 故 cancelled 路径的端到端 .task.xml 测试不可行，改为 nop-task-core 单元测试直接验证 cancel-check 的
-        // 真值表（见 TestTaskStepHelperIsCancelledException），结合代码复核确认 cancel-check（`:230` async /
-        // `:280` sync）在 plan 254 FAILED-driver wiring（`:238-239` / `:291-292`）之前 throw。
+        // 路径：.task.xml cancelledStep xpl `<source>` 调 FailureSimulatorBean.throwCancelled() 抛
+        // NopTaskCancelledException → AbstractObjFunctionExecutable.doInvoke0 包装为
+        // NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL, cause=NopTaskCancelledException) →
+        // TaskStepExecution sync catch（`:272`）的 cancel-check（`:280`）调 isCancelledException：
+        //   修复前：顶层 NopEvalException 非任何 cancellation 类型 → false → FAILED-driver（`:291-292`）
+        //           标记 stepStatus=FAILED(60)。
+        //   修复后（plan 256）：isCancelledException 遍历 cause chain → 命中 NopTaskCancelledException →
+        //           true → `:281` throw（跳过 FAILED-driver）→ stepStatus 保持 ACTIVE(10)，不为 FAILED。
         //
-        // 本 E2E 改为确认 cancel 路径"不抛断言失败"：cancelled exception 经 xpl 包装后失去 cancellation 字符，
-        // 被识别为普通失败 → FAILED driver 触发 → 这印证了为何 cancelled 排除验证必须在单元测试层完成
-        // （绕过 xpl 包装直击 cancel-check 真值表 + 代码结构复核 cancel-check 在 wiring 之前）。
+        // cancelled exception 经 cancel-check throw 传播到 runTask（cancel != success，仍诚实抛出），
+        // 但 step 终态不进入 FAILED（cancelled step 不产生 KILLED 终态，保持 ACTIVE/null，与
+        // plan 254 §Non-Goals EXPIRED/KILLED 一致）。
         try {
             runTask("test/cancelled-step");
-            fail("step throwing NopTaskCancelledException should propagate (wrapped by xpl as ordinary failure)");
+            fail("step throwing NopTaskCancelledException must propagate (cancel != success, still throws)");
         } catch (Exception e) {
-            assertNotNull(e);
+            assertNotNull(e, "cancelled exception must propagate even though step is not marked FAILED");
         }
 
-        // 经 xpl 包装后，cancelled exception 被识别为普通失败 → step 被标记 FAILED。
-        // 这不是 plan 254 wiring 的缺陷（wiring 位置正确：cancel-check 在 wiring 之前），
-        // 而是 xpl doInvoke* 包装丢失 cancellation 字符的已知限制（与 plan 249 前 bizFatal 同类问题，
-        // 独立 successor）。plan 254 的 cancelled 排除验证由 TestTaskStepHelperIsCancelledException
-        // 单元测试（验证 isCancelledException 真值表）+ 代码结构复核（cancel-check 在 wiring 之前）共同覆盖。
         ITaskStepState stepState = stateStore().getCapturedState("cancelledStep");
         assertNotNull(stepState);
-        // 这里不严格断言「不为 FAILED」，因为 xpl 包装使 cancellation 字符丢失；该断言在单元测试 +
-        // 代码结构复核中验证（见 TestTaskStepHelperIsCancelledException + cancel-check 在 wiring 之前）。
+        // plan 256 核心断言：cancelled step 经 xpl 包装后不被误标记 FAILED。
+        // 修复前此值为 60（FAILED）——xpl 包装丢失 cancellation 字符 → isCancelledException false →
+        // FAILED-driver 触发。修复后 cancel-check 命中（cause-chain 解包）→ throw 跳过 FAILED-driver。
+        assertNotEquals(Integer.valueOf(60), stepState.getStepStatus(),
+                "cancelled step (wrapped by xpl as NopEvalException) must NOT be marked FAILED(60) after "
+                        + "plan 256 cause-chain unwrapping in isCancelledException. Pre-fix this was 60 "
+                        + "(FAILED-driver mis-marked cancellation as terminal failure).");
+    }
+
+    // -------- plan 256: composite step cancellation 传播（Selector + Try）--------
+
+    @Test
+    public void selector_cancelledBranch_propagatesCancellation_plan256() {
+        // plan 256 E2E：selector 选中 step 经 xpl 包装的 cancellation 被 isCancelledException（SelectorTaskStep:43）
+        // 识别 → selector 取消而非普通失败处理（不尝试下一分支 fallbackBranch）。
+        //
+        // 路径：composite-selector-cancelled fixture — selector 第一个分支 cancelledBranch 经 xpl 调
+        // sim.throwCancelled() 抛 NopTaskCancelledException → doInvoke 包装为 NopEvalException(cause=...) →
+        // 子 step TaskStepExecution cancel-check（:280，plan 256 cause-chain 解包 → true）→ throw →
+        // SelectorTaskStep catch（:42）→ isCancelledException（:43，plan 256 cause-chain 解包 → true）→
+        // :44 throw（不尝试 fallbackBranch）→ task 传播 cancellation。
+        //
+        // 修复前：isCancelledException 对包装异常返回 false → selector 视普通失败 → :46 not-last →
+        // 尝试 fallbackBranch → fallbackBranch 返回 "FALLBACK" → task 正常返回（不抛异常），且 cancelledBranch
+        // 被 FAILED-driver 标记 FAILED(60)。
+        // 修复后：cancellation 被识别 → selector 传播（不尝试 fallbackBranch）→ task 抛异常，
+        // fallbackBranch 未执行（counter 停在 throwCancelled 的 1 次），cancelledBranch 不标记 FAILED。
+        try {
+            runTask("test/composite-selector-cancelled");
+            fail("selector with cancelled first branch must propagate cancellation, not fall through to fallbackBranch");
+        } catch (Exception e) {
+            assertNotNull(e, "cancellation must propagate through selector (not swallowed as ordinary failure). "
+                    + "Pre-fix the selector fell through to fallbackBranch and returned \"FALLBACK\".");
+        }
+        // fallbackBranch 未执行证明：throwCancelled（cancelledBranch）使 counter=1，fallbackBranch 会
+        // incrementAndGet（→2）若被执行。修复后 counter==1 证明 selector 未尝试 fallbackBranch。
+        assertEquals(1, counter().get(),
+                "only cancelledBranch should execute (counter=1 from throwCancelled). If selector treated "
+                        + "cancellation as ordinary failure, fallbackBranch would run and counter would be 2.");
+        // cancelledBranch 不标记 FAILED：cancellation 经 cause-chain 解包被 cancel-check 识别 → throw 跳过
+        // FAILED-driver（修复前为 60）。
+        ITaskStepState cancelledBranch = stateStore().getCapturedState("cancelledBranch");
+        assertNotNull(cancelledBranch, "cancelledBranch state must be captured (it executed and threw)");
+        assertNotEquals(Integer.valueOf(60), cancelledBranch.getStepStatus(),
+                "selector cancelledBranch must NOT be marked FAILED(60) — cancellation recognized via "
+                        + "cause-chain unwrapping in isCancelledException (both at TaskStepExecution and "
+                        + "SelectorTaskStep). Pre-fix this was 60.");
+    }
+
+    @Test
+    public void try_cancelledStep_propagatesThroughCatch_plan256() {
+        // plan 256 E2E：try-block step 经 xpl 包装的 cancellation 被 isCancelledException（TryTaskStepWrapper:69）
+        // 识别 → catchAction 跳过（不被触发）、cancellation 穿透 catch。
+        //
+        // 路径：composite-try-cancelled fixture — xpl step tryCancelledStep 经 xpl 调 sim.throwCancelled() 抛
+        // NopTaskCancelledException → doInvoke 包装为 NopEvalException(cause=...) →
+        // TryTaskStepWrapper catch（:65）→ :69 !catchInternalException && isCancelledException（plan 256
+        // cause-chain 解包 → true）→ :70 throw（catchAction 不被触发）→ task 传播 cancellation。
+        //
+        // 修复前：:69 isCancelledException 对包装异常返回 false → :73 catchAction != null → :74 catchAction
+        // 被触发吞掉 cancellation → 返回 "SWALLOWED" → task 正常返回（不抛异常）。
+        // 修复后：cancellation 被识别 → catchAction 跳过 → cancellation 穿透 → task 抛异常，
+        // catchAction 未执行（counter 停在 throwCancelled 的 1 次）。
+        try {
+            runTask("test/composite-try-cancelled");
+            fail("try-block step throwing cancellation must propagate through catch, not be swallowed");
+        } catch (Exception e) {
+            assertNotNull(e, "cancellation must propagate through try/catch (catchAction must be skipped). "
+                    + "Pre-fix the catchAction swallowed cancellation and returned \"SWALLOWED\".");
+        }
+        // catchAction 未触发证明：throwCancelled 使 counter=1，catchAction 会 incrementAndGet（→2）若被触发。
+        // 修复后 counter==1 证明 TryTaskStepWrapper 跳过了 catchAction（cancellation 穿透）。
+        assertEquals(1, counter().get(),
+                "catchAction must NOT be triggered for cancellation (counter=1 from throwCancelled only). "
+                        + "If cancellation were swallowed, catchAction would run and counter would be 2.");
+        // tryCancelledStep 不标记 FAILED：cancellation 经 cause-chain 解包被 cancel-check 识别。
+        ITaskStepState tryStep = stateStore().getCapturedState("tryCancelledStep");
+        assertNotNull(tryStep, "tryCancelledStep state must be captured (it executed and threw)");
+        assertNotEquals(Integer.valueOf(60), tryStep.getStepStatus(),
+                "tryCancelledStep must NOT be marked FAILED(60) — cancellation propagated through catch "
+                        + "(catchAction skipped) via cause-chain unwrapping. Pre-fix catchAction swallowed it.");
     }
 }

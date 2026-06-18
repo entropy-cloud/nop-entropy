@@ -1,6 +1,7 @@
 package io.nop.task.utils;
 
 import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.task.exceptions.NopTaskCancelledException;
 import org.junit.jupiter.api.Test;
@@ -8,34 +9,35 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.CancellationException;
 
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_INVOKE_METHOD_FAIL;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Plan 254 Phase 2 focused 单元测试：验证 {@link TaskStepHelper#isCancelledException} 的 cancel 识别逻辑。
+ * Plan 254 Phase 2 + Plan 256 Phase 1 focused 单元测试：验证 {@link TaskStepHelper#isCancelledException} 的 cancel 识别逻辑。
  *
  * <p>背景：plan 254 在 {@link io.nop.task.step.TaskStepExecution} 终态失败 choke-point 接入 FAILED-driver wiring，
- * 设计裁定 3 要求「FAILED 标记点在 cancel-check 之后」。{@code TaskStepExecution} sync catch（{@code :280}）和
+ * 设计裁定 3 要求「FAILED 标记点在 cancel-check 之后」。{@code TaskStepExecution} sync catch（{@code :280`）和
  * async err!=null 分支（{@code :230`）的 cancel-check 调 {@link TaskStepHelper#isCancelledException}：
- * 若返回 true 则立即 throw（plan 254 FAILED-driver wiring 在 {@code :291-292` / {@code :238-239} 之后，
+ * 若返回 true 则立即 throw（plan 254 FAILED-driver wiring 在 {@code :291-292`} / {@code :238-239`} 之后，
  * 被 cancel-check throw 跳过）→ cancelled step 不被误标记 FAILED。
  *
- * <p>本测试验证 cancel-check 的真值表（证明 wiring 之前的 cancel-check 确实识别 cancelled 异常）：
+ * <p>Plan 256 修复：原 {@code isCancelledException} 直接检查顶层异常、不解包 cause。当 cancelled step 经 xpl
+ * 方法调用（{@code AbstractObjFunctionExecutable.doInvoke*}）抛 {@link NopTaskCancelledException} 时，
+ * {@code wrapInvokeException} 将其包装为 {@code NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL, cause=...)}，
+ * 原实现顶层 {@code NopEvalException} 非任何 cancellation 类型 → 返回 false → cancel-check 未命中 → FAILED-driver
+ * 误标记 cancelled step FAILED。Plan 256 让 {@code isCancelledException} 遍历 cause chain，使包装 cancellation 仍被识别。
+ *
+ * <p>本测试覆盖两层语义：
  * <ul>
- *   <li>{@link CancellationException} → true（第一档匹配）。</li>
- *   <li>{@link NopTaskCancelledException}（step body 经 checkNotCancelled 抛出）→ true（第二档匹配）。</li>
- *   <li>{@link NopException} 带 {@code ERR_TASK_CANCELLED} errorCode → true（第三档匹配）。</li>
- *   <li>{@link NopException} 带其他 errorCode → false（普通失败，非 cancelled）。</li>
- *   <li>普通 {@link RuntimeException} → false。</li>
+ *   <li><b>顶层匹配</b>（plan 254 真值表）：{@link CancellationException} / {@link NopTaskCancelledException} /
+ *       {@link NopException} 带 {@code ERR_TASK_CANCELLED} errorCode → true；普通 {@link NopException} /
+ *       普通 {@link RuntimeException} → false。</li>
+ *   <li><b>cause-chain 解包</b>（plan 256 新行为）：包装异常
+ *       {@code NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL, cause=cancellation)} → true；
+ *       包装非 cancellation → false（无 over-matching）；多层嵌套 / {@code CancellationException} cause 变体
+ *       各有断言。</li>
  * </ul>
- *
- * <p>结合代码复核：{@code TaskStepExecution} 的 cancel-check（{@code :230}/{@code :280`）在 FAILED-driver
- * wiring（{@code :238-239`/{@code :291-292`}）之前，本测试证明 cancel-check 真值表正确识别 cancelled 异常，
- * 故 cancelled step 不被误标记 FAILED（cancel 排除语义成立）。
- *
- * <p>注：xpl 方法调用（{@code AbstractObjFunctionExecutable.doInvoke*}）会把 {@code NopTaskCancelledException}
- * 包装为 {@code NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL)}，丢失 cancellation 字符（与 plan 249 前 bizFatal
- * 同类问题）。故端到端 {@code .task.xml} cancelled 测试不可行——cancelled 排除语义在单元测试层验证（本测试）。
  */
 public class TestTaskStepHelperIsCancelledException {
 
@@ -73,5 +75,48 @@ public class TestTaskStepHelperIsCancelledException {
         assertFalse(TaskStepHelper.isCancelledException(new RuntimeException("ordinary")),
                 "ordinary RuntimeException must NOT be recognized as cancelled. "
                         + "It is a terminal failure → plan 254 FAILED-driver wiring should mark step FAILED.");
+    }
+
+    @Test
+    public void xplWrappedCancellation_isCancelled_plan256() {
+        NopEvalException wrapped = new NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL,
+                NopTaskCancelledException.INSTANCE);
+        assertTrue(TaskStepHelper.isCancelledException(wrapped),
+                "NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL) wrapping NopTaskCancelledException must be "
+                        + "recognized as cancelled via cause-chain unwrapping (plan 256 core new behavior). "
+                        + "This is the exact shape produced by AbstractObjFunctionExecutable.wrapInvokeException "
+                        + "when a bean method throws NopTaskCancelledException through xpl method invocation.");
+    }
+
+    @Test
+    public void xplWrappedOrdinaryException_notCancelled_plan256() {
+        NopException ordinaryCause = new NopException(
+                ErrorCode.define("nop.err.test.ordinary.cause", "ordinary cause"));
+        NopEvalException wrapped = new NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL, ordinaryCause);
+        assertFalse(TaskStepHelper.isCancelledException(wrapped),
+                "NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL) wrapping an ordinary (non-cancellation) NopException "
+                        + "must NOT be recognized as cancelled. Prevents over-matching: only cause chain containing "
+                        + "a cancellation type/errorCode should match.");
+    }
+
+    @Test
+    public void deeplyNestedCancellation_isCancelled_plan256() {
+        NopEvalException inner = new NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL,
+                NopTaskCancelledException.INSTANCE);
+        NopEvalException outer = new NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL, inner);
+        assertTrue(TaskStepHelper.isCancelledException(outer),
+                "Deeply nested (>=2 layers) cancellation wrapping must be recognized as cancelled. "
+                        + "Verifies cause-chain traversal iterates beyond a single level (design adjudication 3: "
+                        + "anti-cycle + depth coverage).");
+    }
+
+    @Test
+    public void xplWrappedCancellationException_isCancelled_plan256() {
+        NopEvalException wrapped = new NopEvalException(ERR_EXEC_INVOKE_METHOD_FAIL,
+                new CancellationException());
+        assertTrue(TaskStepHelper.isCancelledException(wrapped),
+                "NopEvalException wrapping a CancellationException cause must be recognized as cancelled. "
+                        + "Covers the cause-chain first-arm variant (CancellationException instanceof check applies "
+                        + "at the cause level, not only the top level).");
     }
 }

@@ -1,0 +1,27 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <selector name="selCancelledStep">
+            <steps>
+                <xpl name="cancelledBranch">
+                    <source><![CDATA[
+                        const sim = inject("testFailureSimulator");
+                        sim.throwCancelled();
+                    ]]></source>
+                </xpl>
+                <xpl name="fallbackBranch">
+                    <source><![CDATA[
+                        const c = inject("testExecutionCounter");
+                        c.incrementAndGet();
+                        return "FALLBACK";
+                    ]]></source>
+                </xpl>
+            </steps>
+        </selector>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

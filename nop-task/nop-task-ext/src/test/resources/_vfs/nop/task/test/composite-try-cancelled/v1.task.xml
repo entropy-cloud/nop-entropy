@@ -1,0 +1,22 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="tryCancelledStep">
+            <source><![CDATA[
+                const sim = inject("testFailureSimulator");
+                sim.throwCancelled();
+            ]]></source>
+            <catch><![CDATA[
+                const c = inject("testExecutionCounter");
+                c.incrementAndGet();
+                return "SWALLOWED";
+            ]]></catch>
+            <output name="RESULT"/>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>
