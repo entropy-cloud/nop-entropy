@@ -290,6 +290,7 @@ public class TestJobE2E {
         @Override public NopJobTask loadTask(String id) { return null; }
         @Override public long countInFlightTasks(String w) { return 0; }
         @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String w) { return io.nop.job.api.resource.ResourceVector.ZERO; }
+        @Override public java.util.List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker() { return java.util.Collections.emptyList(); }
     }
 
     static class MockNamingService implements INamingService {

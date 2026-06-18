@@ -168,11 +168,6 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     IJobTaskBuilder resolveTaskBuilder(NopJobFire fire) {
         String dispatchMode = fire.getDispatchMode();
         if (dispatchMode != null && !dispatchMode.isBlank() && !"single".equals(dispatchMode)) {
-            if ("bestFit".equals(dispatchMode)) {
-                throw new NopException(ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED)
-                        .param(ARG_DISPATCH_MODE, dispatchMode)
-                        .param(ARG_JOB_FIRE_ID, fire.getJobFireId());
-            }
             String beanName = TASK_BUILDER_PREFIX + dispatchMode;
             Object bean = BeanContainer.tryGetBean(beanName);
             if (bean instanceof IJobTaskBuilder) {

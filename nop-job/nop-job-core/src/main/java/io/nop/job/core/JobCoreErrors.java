@@ -16,6 +16,7 @@ public interface JobCoreErrors {
     String ARG_WORKER_INSTANCE_ID = "workerInstanceId";
     String ARG_DISPATCH_MODE = "dispatchMode";
     String ARG_JOB_FIRE_ID = "jobFireId";
+    String ARG_TASK_COST = "taskCost";
 
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
             "Trigger calculation loop count exceeded limit", ARG_LOOP_COUNT);
@@ -98,4 +99,8 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED = define("nop.err.job.dispatch-mode-not-implemented",
             "dispatchMode '{dispatchMode}' is not yet implemented (jobFireId={jobFireId}); use 'single', 'partition', or 'broadcast' instead",
             ARG_DISPATCH_MODE, ARG_JOB_FIRE_ID);
+
+    ErrorCode ERR_JOB_NO_FITTING_WORKER = define("nop.err.job.no-fitting-worker",
+            "No worker can fit task cost {taskCost} for service '{serviceName}'; either reduce cost, add workers, or switch dispatchMode to single",
+            ARG_TASK_COST);
 }

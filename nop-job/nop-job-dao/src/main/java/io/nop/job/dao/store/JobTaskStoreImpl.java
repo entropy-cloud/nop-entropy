@@ -141,6 +141,11 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         return new ResourceVector(cpu, memory);
     }
 
+    @Override
+    public List<WorkerReservedCost> sumReservedCostByWorker() {
+        return taskMapper.sumReservedCostByWorker(NopJobCoreConstants.RESERVED_TASK_STATUSES);
+    }
+
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
         if (partitions == null || partitions.isEmpty()) {
             return;

@@ -27,6 +27,13 @@
     <bean id="nopJobTaskBuilder_broadcast" class="io.nop.job.coordinator.engine.RpcBroadcastTaskBuilder"/>
     <bean id="nopJobTaskBuilder_partition" class="io.nop.job.coordinator.engine.PartitionTaskBuilder"/>
 
+    <bean id="workerLoadProvider" class="io.nop.job.coordinator.engine.DefaultWorkerLoadProvider"/>
+    <bean id="workerAssignmentStrategy" class="io.nop.job.coordinator.engine.SingleBestFitStrategy"/>
+    <bean id="nopJobTaskBuilder_bestFit" class="io.nop.job.coordinator.engine.AdaptiveJobTaskBuilder">
+        <property name="loadProvider" ref="workerLoadProvider"/>
+        <property name="strategy" ref="workerAssignmentStrategy"/>
+    </bean>
+
     <bean id="io.nop.job.coordinator.engine.IJobDispatcherScanner"
           class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl">
         <property name="defaultTaskBuilder" ref="nopJobTaskBuilder_default"/>

@@ -487,6 +487,7 @@ public class TestJobCompletionProcessor {
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
         @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String workerInstanceId) { return io.nop.job.api.resource.ResourceVector.ZERO; }
+        @Override public java.util.List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker() { return java.util.Collections.emptyList(); }
     }
 
     @Test

@@ -42,4 +42,12 @@ public interface IJobTaskStore {
      * @param workerInstanceId worker 实例 id（通常为 {@code AppConfig.hostId()}）
      */
     ResourceVector sumReservedCost(String workerInstanceId);
+
+    /**
+     * 跨 worker 已归因 task cost 聚合求和，按 workerInstanceId 分组。
+     * 用于 dispatcher 侧 WorkerLoad 派生（Plan 215）。
+     * <p>
+     * worker_instance_id 为 NULL 的历史行不返回。
+     */
+    java.util.List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker();
 }
