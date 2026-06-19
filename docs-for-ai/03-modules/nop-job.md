@@ -286,7 +286,9 @@ public interface IJobInvoker {
 
 **NopJobFire 关键字段**：`triggerSource`（SCHEDULE/MANUAL/RECOVERY）、`fireStatus`、`durationMs`。
 
-**NopJobTask 关键字段**：`taskStatus`、`shardingIndex`/`shardingTotal`、`progress`。
+**NopJobTask 关键字段**：`taskStatus`、`shardingIndex`/`shardingTotal`、`progress`、`costCpu`（CPU 毫核，资源限制用）、`costMemory`（内存 MB）、`priority`（优先级，越大越优先）。
+
+> **cost/priority 归一约定**：dispatcher 落库 task 行时，对 schedule 中可空的 `taskCostCpu`/`taskCostMemory`/`priority` 做 null→0 归一（`JobDispatcherScannerImpl.scanOnce` 单点）。worker fit-check 亦对历史脏行（null cost）防御性归一为 0。因此 task 行的 `costCpu`/`costMemory`/`priority` 恒非 null，未配置时为 0。
 
 ## 架构
 

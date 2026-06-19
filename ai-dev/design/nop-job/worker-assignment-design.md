@@ -363,12 +363,13 @@ JobWorkerScannerImpl.scanOnce():
 | 要点 | 说明 |
 |------|------|
 | **`maxConcurrency` 不去掉** | 保留为 count-based hard ceiling 安全网。资源限制是**主约束**，条数限制是**兜底**，defense in depth |
-| **per-scan 评估，不 per-task** | 一个 scan batch 内 `myRemaining` 评估一次，不去逐 task 重算。CAS 失败的 task 不影响下一次 scan |
+| **per-scan 评估，不 per-task** | 一个 scan batch 内 `myRemaining` 评估一次，不去逐 task 重算。CAS 失败的 task 不影响下一次 scan。**例外（AR-83 修正）**：对**新负载**（非自身归因的候选）逐 task 递减 `myRemaining`，使同一次 scan 的累计认领不超过 capacity；对**自身归因**的候选不递减（其 cost 已在 reserved 中） |
 | **race 由 CAS 兜底** | fetch 和 CAS 之间其他 worker 可能抢走，CAS 失败就静默跳过，与现有模型一致 |
 | **stale reserved 可接受** | 本次 scan 拿到的 reserved 不含本 batch 刚 CAS 的 task。下一次 scan 会反映。短暂高估不致灾难 |
 | **未声明 cost 的 task** | costCpu/costMemory = 0 → always fit。只受 `maxConcurrency` 约束，**完全向后兼容** |
 | **未声明 capacity 的 worker** | capacity = MAX_VALUE → 总是 fit。退化为现有 count-based 行为 |
 | **客户端过滤而非 SQL 过滤** | SQL-side `WHERE cost_cpu <= ?` 会跳过队首大 task、破坏 `priority DESC, createTime ASC` 顺序，导致大 task 饿死。客户端过滤保序，但用 `OVERFETCH_FACTOR`（如 3-5x）多拉再筛 |
+| **自身归因候选去重计（AR-83）** | `fetchWaitingTasks` 在 `enforceAttribution=true` 时返回 `workerInstanceId=self OR NULL` 的候选，其中 self 归因的 WAITING 候选 cost 已计入 `sumReservedCost(hostId)`（WAITING ∈ RESERVED_TASK_STATUSES）。若 fit 校验再减一次，则单个任务 cost 被算两遍，使 `cost > capacity/2` 的任务永不被认领。修正：fit 校验时对 `workerInstanceId == hostId` 的候选把其自身 cost 加回 `myRemaining`（消除双重计算），空闲 worker 即可认领接近 capacity 的大任务。**共享常量 `RESERVED_TASK_STATUSES` 不变**（dispatcher best-fit 决策依赖 WAITING 计入），double-count 仅在 worker scanner 内部解决 |
 
 #### 3.4.4 与模式 B 的关系 + single 模式的边界条件
 
