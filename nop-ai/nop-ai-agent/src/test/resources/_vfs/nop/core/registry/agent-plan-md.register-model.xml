@@ -1,0 +1,17 @@
+<!--
+  Test-only delta for the "agent-plan" register-model.
+  使用与 main agent-plan.register-model.xml 相同的 name="agent-plan"，
+  RegisterModelDiscovery.discover() 会按 name 聚合并经 DeltaMerger 合并，
+  因此本文件声明的 .agent-plan.md loader 会被追加到 main 的 xml/yaml loader 之后，
+  仅在 test classpath（含 nop-record-mapping）下注册。
+  文件名与 main 不同（agent-plan-md vs agent-plan），避免 VFS 同路径去重。
+-->
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="agent-plan">
+
+    <loaders>
+        <loader fileType="agent-plan.md" mappingName="agentPlan.Markdown_to_AgentPlanModel"
+                class="io.nop.record_mapping.md.MarkdownDslResourceLoaderFactory"/>
+    </loaders>
+
+</model>

@@ -1,0 +1,18 @@
+<plan x:schema="/nop/schema/ai/agent-plan.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      title="Test Agent Plan XML" status="pending">
+
+    <purpose>XML-format plan for production-context loading test</purpose>
+
+    <goal>Verify production .agent-plan.xml loading</goal>
+
+    <phases>
+        <phase name="Phase 1" status="pending">
+            <tasks>
+                <task taskNo="T001" title="First task" status="pending">
+                    <instructions>Do the first thing</instructions>
+                </task>
+            </tasks>
+        </phase>
+    </phases>
+
+</plan>
