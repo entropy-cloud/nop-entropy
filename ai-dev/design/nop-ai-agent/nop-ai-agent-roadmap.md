@@ -1,7 +1,7 @@
 # nop-ai-agent 组件分解与开发路线
 
 > Status: active
-> Updated: 2026-06-19（plan 271 完成——deep audit dimension-14 可靠性缺陷收口：14-01 call-agent 超时取消子 agent / 14-02 markConsumed 消息可靠性 / 14-03 ReAct LLM/工具超时 / 14-04 引擎专用线程池替代 commonPool，见 §5d）
+> Updated: 2026-06-20（plan 273 完成——carry-over 14-06 收口：DbSessionTakeoverLock 心跳续期，执行期间按 lockRenewIntervalMs 周期 tryRenew 推后 LOCK_EXPIRES_AT 防长时执行租约过期 double-execution + lease-lost 中止 session=failed，见 §5d）
 > Parent: `ai-dev/design/nop-ai-agent/README.md`
 
 ---
@@ -369,6 +369,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | AUDIT-14-02 | P1 | ✅ 已修复 | plan 271 Phase 1：`DBMessageService.markConsumed`/`releaseClaim` 不再吞 `SQLException`（抛出/标记 FAILED），新增 `sweepStaleClaimedMessages` 清扫 stale CLAIMED 消息重置为 PENDING（at-least-once 交付保证）；focused 测试 `TestDBMessageServiceReliability`（markConsumed 失败路径 + stale CLAIMED 清扫） |
 | AUDIT-14-03 | P1 | ✅ 已修复 | plan 271 Phase 2：`ReActAgentExecutor.callChatWithTimeout`（`supplyAsync` + 可中断 `f.get(llmTimeoutMs)`，超时 `f.cancel(true)` 抛 CompletionException→failed）；工具 fanout per-tool `.orTimeout(toolTimeoutMs)` + `.exceptionally` 转错误结果。配置 `llmTimeoutMs`(默认 120000)/`toolTimeoutMs`(默认 300000)，`<=0` 禁用。focused 测试 `TestPlan271AsyncTimeoutReliability#reactLlmTimeoutDoesNotPermanentlyBlock` |
 | AUDIT-14-04 | P1 | ✅ 已修复 | plan 271 Phase 2：`DefaultAgentEngine.getAgentExecutor()` 专用 cached 守护线程池（`nop-ai-agent-exec-*`），三入口点（doExecute/resumeSession/restoreSession）`supplyAsync(…, getAgentExecutor())` 替代 `ForkJoinPool.commonPool()`；ReAct LLM 超时 wrapper 同用此 executor。focused 测试 `TestPlan271AsyncTimeoutReliability#engineUsesDedicatedExecutorNotCommonPool` + `#executionRunsOnDedicatedAgentThread`。完整 executor 架构重设计 = optimization candidate（deferred，当前隔离方案满足 baseline） |
+| AUDIT-14-06 | P2 | ✅ 已修复 | plan 273：`DbSessionTakeoverLock` 心跳续期——引擎在执行期间按 `lockRenewIntervalMs`（默认 600000=10min，租约 30min 的安全 1/3 分数）周期调用 `tryRenew` 推后 `LOCK_EXPIRES_AT`，使长时执行（>30min）租约不过期被另一实例抢占（double-execution 收口）。新增 `lockRenewIntervalMs` 配置 + 专用 `lockRenewExecutor`（`ScheduledExecutorService`）+ `startLockRenewal`/`renewOnceSafe`（try-catch WARN 不杀调度）/`cancelLockRenewalQuietly`，三入口点（doExecute/resumeSession/restoreSession）在 tryAcquire 成功后启动续期、所有 release 路径取消（9 处 `cancelLockRenewalQuietly`）。`tryRenew` 返回 false（lease-lost/被抢占）时 `handleLeaseLost` 经 `ctx.setLeaseLost(true)`+`setCancelRequested(true)`+interrupt 中止本侧执行，inner finally override `ctx.isLeaseLost() ? failed : ctx.getStatus()` 强制 session `failed`（复用 cancel/abort 机制 + failed 终态）。NoOp 默认零回归。focused 测试 `TestTakeoverLockHeartbeatRenewal` 6 tests（3 入口点续期计数 + disabled 逃生舱 + tryRenew 推后 LOCK_EXPIRES_AT + lease-lost session=failed）。`<=0` 禁用续期（向后兼容逃生舱）。owner docs（nop-ai.md + source-anchors AIREL-001）+ Javadoc（ISessionTakeoverLock/DbSessionTakeoverLock）已同步 |
 
 ---
 

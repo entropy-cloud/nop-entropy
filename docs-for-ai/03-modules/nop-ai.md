@@ -65,6 +65,8 @@
 | `callAgentTimeoutMs` | `60000`（60s） | call-agent 子 agent 执行的 wall-clock 超时。超时后调用 `engine.cancelSession(childSessionId, forced=true)` 取消子 agent，释放 LLM/DB 资源（非僵尸执行）。必须为正数 |
 | `llmTimeoutMs` | `120000`（120s） | ReAct 主循环单次 LLM 调用的 wall-clock 超时（经 `callChatWithTimeout` 用可中断的 `f.get(timeout)` 包裹）。`<= 0` 禁用（向后兼容逃生舱） |
 | `toolTimeoutMs` | `300000`（300s） | ReAct dispatch fanout 中单次工具调用的 per-tool `.orTimeout`。超时转为 LLM 可见的工具错误响应。`<= 0` 禁用（向后兼容逃生舱） |
+| `lockLeaseMs` | `1800000`（30min） | 跨进程 takeover lock 的租约时长（ms）。持有者崩溃时租约被动过期，另一实例可抢占。仅在功能性 lock（如 `DbSessionTakeoverLock`）接入时生效；`NoOpSessionTakeoverLock` 默认下无行为 |
+| `lockRenewIntervalMs` | `600000`（10min） | takeover lock 心跳续期间隔（ms，租约 30min 的安全 1/3 分数）。执行期间引擎周期调用 `tryRenew` 把 `LOCK_EXPIRES_AT` 推到 `now + lockLeaseMs`，使长时执行（>30min）的租约不会中途过期被另一实例抢占（double-execution 防护，plan 273）。`tryRenew` 返回 false（租约丢失/被抢占）时中止本侧执行并把 session 置 `failed`。`<= 0` 禁用续期（纯被动 TTL，向后兼容逃生舱）。仅在功能性 lock 接入时生效；`NoOpSessionTakeoverLock` 默认下续期为无害 no-op |
 
 超时发生时执行显式失败（`AgentExecStatus.failed` 或工具错误响应），不静默跳过。接线锚点见 `AIREL-001`。
 
