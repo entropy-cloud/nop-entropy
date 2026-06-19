@@ -139,6 +139,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -371,6 +374,29 @@ public class DefaultAgentEngine implements IAgentEngine {
     // auto-expires and another instance can preempt — no background sweeper
     // thread is needed.
     private long lockLeaseMs = 1_800_000L;
+    // Plan 273 (carry-over 14-06): heartbeat renewal interval (ms) for the
+    // takeover lock. While an execution is running, the engine schedules a
+    // periodic tryRenew at this interval so long-running agents (>30min)
+    // do not let their lease expire and get preempted by another JVM
+    // instance (double-execution). Default = 10 minutes (600_000 ms) — a
+    // safe fraction of the default 30min lease (1/3), leaving ample retry
+    // margin. A value <= 0 disables the renewal scheduler (backward-
+    // compatible escape hatch; the lease then behaves as pure passive TTL).
+    // Only takes effect when a functional takeover lock is wired; under the
+    // shipped NoOpSessionTakeoverLock default the renewal task is a harmless
+    // no-op (NoOp.tryRenew returns true unconditionally — zero behaviour
+    // regression, no insecure-default WARN).
+    private long lockRenewIntervalMs = 600_000L;
+    // Plan 273 (carry-over 14-06): dedicated single-thread daemon scheduled
+    // executor for the heartbeat renewal task. Lazily initialized on first
+    // use (getLockRenewExecutor); integrators may override via
+    // setLockRenewExecutor (e.g. a controllable scheduler for tests). NOT
+    // reused from agentExecutor — that one is a plain ExecutorService (not
+    // Scheduled), so scheduleWithFixedDelay is unavailable on it. A single
+    // daemon thread is sufficient because tryRenew is a quick CAS UPDATE
+    // and renewals for concurrent sessions are short and never block each
+    // other meaningfully.
+    private ScheduledExecutorService lockRenewExecutor;
     // Plan 222 (L4-8-P4-RecoveryDaemon): RecoveryManager daemon for
     // continuous periodic stale-lock cleanup + orphan-session detection.
     // Defaults to NoOpRecoveryManager — single-process deployments keep
@@ -1560,6 +1586,28 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Plan 273 (carry-over 14-06): set the heartbeat renewal interval (in
+     * ms) for the takeover lock. While an execution is running, the engine
+     * schedules a periodic {@link ISessionTakeoverLock#tryRenew} at this
+     * interval so long-running agents (&gt; {@code lockLeaseMs}) do not let
+     * their lease expire and get preempted by another JVM instance
+     * (double-execution). Default = {@code 600_000L} (10 min, 1/3 of the
+     * default 30min lease). A value {@code <= 0} disables the renewal
+     * scheduler (the lease then behaves as pure passive TTL — backward-
+     * compatible escape hatch). Only takes effect when a functional
+     * takeover lock is wired; under the shipped
+     * {@link NoOpSessionTakeoverLock} default the renewal task is a
+     * harmless no-op.
+     */
+    public void setLockRenewIntervalMs(long lockRenewIntervalMs) {
+        this.lockRenewIntervalMs = lockRenewIntervalMs;
+    }
+
+    public long getLockRenewIntervalMs() {
+        return lockRenewIntervalMs;
+    }
+
+    /**
      * Plan 222 (L4-8-P4-RecoveryDaemon): wire an optional
      * {@link IRecoveryManager} daemon that continuously sweeps stale
      * takeover locks and detects orphan sessions in multi-instance
@@ -1672,6 +1720,132 @@ public class DefaultAgentEngine implements IAgentEngine {
             LOG.warn("DefaultAgentEngine: failed to release takeover lock for sessionId={}, "
                     + "ownerId={} (the lease will auto-expire via TTL): {}", sessionId, ownerId,
                     e.toString());
+        }
+    }
+
+    /**
+     * Plan 273 (carry-over 14-06): lazily initialize and return the
+     * dedicated lock-renewal scheduler. The first call creates a single-
+     * thread daemon scheduled executor; a subsequent
+     * {@link #setLockRenewExecutor} overrides it. NOT reused from
+     * {@link #getAgentExecutor} — that one is a plain {@link ExecutorService}
+     * (not {@link ScheduledExecutorService}), so
+     * {@code scheduleWithFixedDelay} is unavailable on it.
+     */
+    synchronized ScheduledExecutorService getLockRenewExecutor() {
+        if (lockRenewExecutor == null) {
+            lockRenewExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "nop-ai-agent-lock-renew");
+                t.setDaemon(true);
+                return t;
+            });
+        }
+        return lockRenewExecutor;
+    }
+
+    /**
+     * Plan 273 (carry-over 14-06): override the dedicated lock-renewal
+     * scheduler (e.g. with a controllable executor for tests). The supplied
+     * executor is used as-is; the caller owns its lifecycle. Must be
+     * non-null.
+     */
+    public void setLockRenewExecutor(ScheduledExecutorService lockRenewExecutor) {
+        this.lockRenewExecutor = Objects.requireNonNull(lockRenewExecutor,
+                "lockRenewExecutor must not be null");
+    }
+
+    /**
+     * Plan 273 (carry-over 14-06): start the heartbeat renewal task for an
+     * in-flight execution. The task periodically calls
+     * {@link ISessionTakeoverLock#tryRenew} at {@link #lockRenewIntervalMs}
+     * so a long-running agent's lease does not expire mid-execution
+     * (double-execution prevention). When {@code tryRenew} returns
+     * {@code false} (lease lost / preempted by another instance), the
+     * local execution is aborted via {@link #handleLeaseLost} (Phase 2).
+     *
+     * <p>The periodic task wraps {@code tryRenew} in try-catch (mirrors
+     * {@code ScheduledRecoveryManager.scanOnceSafe}) so a transient
+     * renewal failure is logged at WARN and retried on the next tick
+     * rather than silently killing the scheduled task.
+     *
+     * @param handle    the in-flight execution's {@link CancelHandle}
+     *                  (used by {@link #handleLeaseLost} to abort the
+     *                  execution thread); never null
+     * @param sessionId the persistent session identity; never null
+     * @param ownerId   the engine {@code instanceId}; never null
+     * @return the scheduled future, or {@code null} when renewal is
+     *         disabled ({@code lockRenewIntervalMs <= 0})
+     */
+    private ScheduledFuture<?> startLockRenewal(CancelHandle handle, String sessionId, String ownerId) {
+        if (lockRenewIntervalMs <= 0) {
+            // Explicit opt-out: renewal disabled, lease behaves as pure
+            // passive TTL (backward-compatible escape hatch).
+            return null;
+        }
+        ScheduledExecutorService exec = getLockRenewExecutor();
+        return exec.scheduleWithFixedDelay(() -> renewOnceSafe(handle, sessionId, ownerId),
+                lockRenewIntervalMs, lockRenewIntervalMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Plan 273 (carry-over 14-06): one renewal tick. Wraps
+     * {@link ISessionTakeoverLock#tryRenew} in try-catch so a transient
+     * failure is logged and retried on the next tick rather than silently
+     * terminating the scheduled task (mirrors
+     * {@code ScheduledRecoveryManager.scanOnceSafe}). On lease loss
+     * ({@code tryRenew == false}), delegates to {@link #handleLeaseLost}.
+     */
+    private void renewOnceSafe(CancelHandle handle, String sessionId, String ownerId) {
+        try {
+            boolean renewed = sessionTakeoverLock.tryRenew(sessionId, ownerId, lockLeaseMs);
+            if (!renewed) {
+                handleLeaseLost(handle, sessionId, ownerId);
+            }
+        } catch (RuntimeException e) {
+            LOG.warn("DefaultAgentEngine: takeover lock renewal failed for sessionId={}, "
+                    + "ownerId={} (will retry next interval): {}", sessionId, ownerId, e.toString());
+        }
+    }
+
+    /**
+     * Plan 273 (carry-over 14-06, Phase 2): abort the local execution when
+     * the takeover lease has been lost ({@code tryRenew} returned
+     * {@code false} — another JVM instance preempted the lock or the lease
+     * expired). Marks the context lease-lost so the engine's cleanup path
+     * forces terminal status {@link AgentExecStatus#failed}, sets
+     * {@code cancelRequested} + interrupts the execution thread (reuses
+     * the existing cancel/abort mechanism) so the in-flight LLM/tool call
+     * aborts promptly and does not double-execute against the instance
+     * that legitimately took over the session.
+     */
+    private void handleLeaseLost(CancelHandle handle, String sessionId, String ownerId) {
+        LOG.warn("DefaultAgentEngine: takeover lease lost for sessionId={}, ownerId={} "
+                + "(preempted by another instance or expired) — aborting local execution "
+                + "to prevent double-execution", sessionId, ownerId);
+        AgentExecutionContext ctx = handle.context;
+        ctx.setLeaseLost(true);
+        ctx.setCancelRequested(true);
+        ctx.setCancelReason("takeover lease lost");
+        Thread t = handle.thread;
+        if (t != null) {
+            t.interrupt();
+        }
+    }
+
+    /**
+     * Plan 273 (carry-over 14-06): fault-tolerant renewal cancellation —
+     * null-safe best-effort {@code cancel(false)}. Wraps in try-catch so a
+     * cancellation failure never blocks the execution cleanup path.
+     * Passing {@code null} (renewal disabled / never started) is a no-op.
+     */
+    private static void cancelLockRenewalQuietly(Future<?> renewHandle) {
+        if (renewHandle == null) {
+            return;
+        }
+        try {
+            renewHandle.cancel(false);
+        } catch (RuntimeException e) {
+            LOG.warn("DefaultAgentEngine: failed to cancel lock renewal task: {}", e.toString());
         }
     }
 
@@ -1917,10 +2091,20 @@ public class DefaultAgentEngine implements IAgentEngine {
      * to {@code Thread.currentThread()} at entry. {@code cancelSession}
      * null-checks before {@code interrupt()} so a forced cancel during the
      * enqueue window does not interrupt the calling thread.
+     *
+     * <p>Plan 273 (carry-over 14-06): {@code renewHandle} is {@code volatile}
+     * and lazily bound in the synchronous phase right after the takeover lock
+     * is acquired. It is read by the supplyAsync lambda's cleanup finally
+     * (which runs on the worker thread) — storing it on the handle (rather
+     * than a local) lets the lambda capture the effectively-final handle and
+     * still observe the renewal task set in the synchronous phase. The
+     * happens-before edge from supplyAsync-submission → task-execution
+     * guarantees the worker sees the assigned value.
      */
     private static final class CancelHandle {
         final AgentExecutionContext context;
         volatile Thread thread;
+        volatile Future<?> renewHandle;
 
         CancelHandle(AgentExecutionContext context, Thread thread) {
             this.context = context;
@@ -2025,6 +2209,12 @@ public class DefaultAgentEngine implements IAgentEngine {
         // restoring/executing this session, fail-fast (裁定 4 路径 a/b).
         // tryAcquire + putIfAbsent are wrapped together so the catch path
         // can release the lock when putIfAbsent fails (裁定 5 路径 1).
+        //
+        // Plan 273 (carry-over 14-06): heartbeat renewal. Once the lock is
+        // acquired + the execution slot is reserved, start a periodic
+        // tryRenew task so long-running agents do not let the lease expire.
+        // The renewHandle is cancelled on every release path (mirrors
+        // releaseLockQuietly) so no scheduler thread leaks.
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
@@ -2037,8 +2227,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                 throw new NopAiAgentException(
                         "doExecute failed: session already executing: sessionId=" + sessionId);
             }
+            handle.renewHandle = startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
             releaseLockQuietly(sessionId, instanceId);
+            cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
 
@@ -2089,7 +2281,12 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // [14-1] mutual-clobber race where the first execution's
                     // finally removes the second execution's handle).
                     runningExecutions.remove(sessionId, handle);
-                    session.setStatus(ctx.getStatus());
+                    // Plan 273 (carry-over 14-06, Phase 2): when the lease
+                    // was lost mid-execution, force terminal status to
+                    // failed (the executor's cancel path would otherwise
+                    // set cancelled — lease-lost is a system-level failure,
+                    // not a user-initiated cancel).
+                    session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // Plan 214 (L2-13a): release this session's write intents
                     // so finished sessions do not block future sessions from
                     // writing the same files. Safe to call on every exit path
@@ -2106,6 +2303,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // 路径 3 — inner finally). Fault-tolerant: a failed
                     // release only LOG.warn (the lease auto-expires via TTL).
                     releaseLockQuietly(sessionId, instanceId);
+                    // Plan 273 (carry-over 14-06): cancel the heartbeat
+                    // renewal task (裁定 mirrors releaseLockQuietly path 3)
+                    // so no scheduler thread leaks past execution end.
+                    cancelLockRenewalQuietly(handle.renewHandle);
                 }
 
             // Plan 183 Phase 1: replaceMessages replaces the session's message
@@ -2140,6 +2341,9 @@ public class DefaultAgentEngine implements IAgentEngine {
             // — outer catch / supplyAsync submission failure). Same
             // fault-tolerant releaseLockQuietly as the inner finally.
             releaseLockQuietly(sessionId, instanceId);
+            // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
+            // task (裁定 mirrors releaseLockQuietly path 2).
+            cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
     }
@@ -2331,6 +2535,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         // Plan 221 (L4-8-P4): cross-process takeover lock (see doExecute for
         // full rationale — tryAcquire before putIfAbsent, release on every
         // cleanup path).
+        //
+        // Plan 273 (carry-over 14-06): heartbeat renewal (see doExecute).
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
@@ -2343,8 +2549,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                 throw new NopAiAgentException(
                         "resumeSession failed: session already executing: sessionId=" + sessionId);
             }
+            handle.renewHandle = startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
             releaseLockQuietly(sessionId, instanceId);
+            cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
 
@@ -2379,7 +2587,9 @@ public class DefaultAgentEngine implements IAgentEngine {
                 } finally {
                     // Plan 197: value-comparison remove — only remove our own handle.
                     runningExecutions.remove(sessionId, handle);
-                    session.setStatus(ctx.getStatus());
+                    // Plan 273 (carry-over 14-06, Phase 2): force failed when
+                    // lease was lost (see doExecute).
+                    session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // Plan 214 (L2-13a): release this session's write intents
                     // (mirrors doExecute / restoreSession finally cleanup).
                     writeIntentRegistry.releaseSession(sessionId);
@@ -2391,6 +2601,9 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
                     // 路径 3 — inner finally).
                     releaseLockQuietly(sessionId, instanceId);
+                    // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
+                    // (mirrors releaseLockQuietly path 3).
+                    cancelLockRenewalQuietly(handle.renewHandle);
                 }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
@@ -2414,6 +2627,9 @@ public class DefaultAgentEngine implements IAgentEngine {
             runningExecutions.remove(sessionId, handle);
             // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2).
             releaseLockQuietly(sessionId, instanceId);
+            // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
+            // (mirrors releaseLockQuietly path 2).
+            cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
     }
@@ -2511,6 +2727,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         // Plan 221 (L4-8-P4): cross-process takeover lock (see doExecute for
         // full rationale — tryAcquire before putIfAbsent, release on every
         // cleanup path).
+        //
+        // Plan 273 (carry-over 14-06): heartbeat renewal (see doExecute).
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
@@ -2523,8 +2741,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                 throw new NopAiAgentException(
                         "restoreSession failed: session already executing: sessionId=" + sessionId);
             }
+            handle.renewHandle = startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
             releaseLockQuietly(sessionId, instanceId);
+            cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
 
@@ -2557,7 +2777,9 @@ public class DefaultAgentEngine implements IAgentEngine {
                 } finally {
                     // Plan 197: value-comparison remove — only remove our own handle.
                     runningExecutions.remove(sessionId, handle);
-                    session.setStatus(ctx.getStatus());
+                    // Plan 273 (carry-over 14-06, Phase 2): force failed when
+                    // lease was lost (see doExecute).
+                    session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // Plan 214 (L2-13a): release this session's write intents
                     // (mirrors doExecute / resumeSession finally cleanup).
                     writeIntentRegistry.releaseSession(sessionId);
@@ -2569,6 +2791,9 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
                     // 路径 3 — inner finally).
                     releaseLockQuietly(sessionId, instanceId);
+                    // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
+                    // (mirrors releaseLockQuietly path 3).
+                    cancelLockRenewalQuietly(handle.renewHandle);
                 }
 
             // Plan 183 Phase 1: replaceMessages unifies the post-execution
@@ -2590,6 +2815,9 @@ public class DefaultAgentEngine implements IAgentEngine {
             runningExecutions.remove(sessionId, handle);
             // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2).
             releaseLockQuietly(sessionId, instanceId);
+            // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
+            // (mirrors releaseLockQuietly path 2).
+            cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
     }

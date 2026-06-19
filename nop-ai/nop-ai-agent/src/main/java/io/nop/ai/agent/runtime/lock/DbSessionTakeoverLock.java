@@ -72,9 +72,11 @@ import java.util.Objects;
  * <p><b>tryRenew</b> ({@link #tryRenew}): a conditional
  * {@code UPDATE ... SET LOCK_EXPIRES_AT=? WHERE SESSION_ID=? AND
  * LOCK_OWNER=?}. Only succeeds when {@code ownerId} currently holds the
- * lease (active or expired). Reserved for manual / future use — the engine
- * does not auto-call it during ReAct iterations (auto heart-beat renew is
- * an explicit successor — see plan 221 Non-Goals).
+ * lease (active or expired). The engine auto-calls it during execution
+ * at {@code lockRenewIntervalMs} (plan 273) so long-running agents do
+ * not let the lease expire mid-execution; when it returns {@code false}
+ * (lease lost / preempted) the engine aborts the local execution and
+ * marks the session {@code failed} (double-execution prevention).
  *
  * <p><b>Thread safety</b>: guaranteed by atomic SQL CAS operations
  * (PK uniqueness + conditional UPDATE/DELETE with affected-row counts).

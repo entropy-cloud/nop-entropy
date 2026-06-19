@@ -43,9 +43,13 @@ package io.nop.ai.agent.runtime.lock;
  * Each successful acquire sets {@code LOCK_EXPIRES_AT = now + leaseMs}.
  * If the lock holder crashes, the lock auto-expires when {@code now}
  * crosses {@code LOCK_EXPIRES_AT}; the next {@link #tryAcquire} (any
- * owner) preempts the stale lock. This is a passive fail-safe: there is no
- * background sweeper thread in this version (auto-renew / liveness probe
- * are explicit successors — see plan 221 Non-Goals).
+ * owner) preempts the stale lock. During normal execution the engine
+ * auto-renews the lease via {@link #tryRenew} at
+ * {@code lockRenewIntervalMs} (plan 273) so a long-running agent's lease
+ * does not expire mid-execution. There is no background sweeper thread
+ * for stale locks in this interface (passive TTL expiry is the
+ * fail-safe; {@code ScheduledRecoveryManager.deleteStaleLocks} is an
+ * optional deployment-layer complement).
  *
  * <h2>Thread safety</h2>
  * Implementations must be safe for concurrent calls. DB-backed
@@ -107,11 +111,15 @@ public interface ISessionTakeoverLock {
      * an active lock for {@code sessionId}; otherwise returns
      * {@code false}.
      *
-     * <p><b>Reserved for manual / future use</b>: this version defines
-     * the interface but the engine does not auto-call it during ReAct
-     * iterations (auto heart-beat renew is an explicit successor — see
-     * plan 221 Non-Goals). Integrators may call it manually for long
-     * executions (e.g. once per N ReAct iterations).
+     * <p>The engine auto-calls this during execution: once an execution
+     * starts (after {@link #tryAcquire} succeeds), the engine schedules a
+     * periodic {@code tryRenew} at {@code lockRenewIntervalMs} (default
+     * 10min — a safe fraction of the default 30min lease) so a long-
+     * running agent's lease does not expire mid-execution and get
+     * preempted by another JVM instance (double-execution prevention,
+     * plan 273). When {@code tryRenew} returns {@code false} (lease lost
+     * / preempted), the engine aborts the local execution and marks the
+     * session {@code failed}.
      *
      * @param sessionId the persistent session identity; never null
      * @param ownerId   the owner identity that originally acquired the

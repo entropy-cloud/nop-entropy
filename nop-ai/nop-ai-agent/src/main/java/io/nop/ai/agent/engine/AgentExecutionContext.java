@@ -33,6 +33,15 @@ public class AgentExecutionContext {
     private long startTimeMs;
     private volatile boolean cancelRequested;
     private volatile String cancelReason;
+    // Plan 273 (carry-over 14-06, Phase 2): set by the heartbeat renewal
+    // task when tryRenew returns false (takeover lease lost / preempted by
+    // another JVM instance). The engine's execution cleanup path reads this
+    // to force the terminal session status to {@code failed} (the ReAct
+    // executor's cancel path would otherwise set {@code cancelled} —
+    // lease-lost is a system-level double-execution-prevention failure, not
+    // a user-initiated cancel). Volatile so the renewal-scheduler thread's
+    // write is visible to the execution thread's cleanup finally.
+    private volatile boolean leaseLost;
     private ChannelKind channelKind;
     private Principal principal;
     // Plan 206 (L2-22): per-iteration budget snapshot refreshed by the ReAct
@@ -194,6 +203,20 @@ public class AgentExecutionContext {
 
     public void setCancelReason(String cancelReason) {
         this.cancelReason = cancelReason;
+    }
+
+    /**
+     * Plan 273 (carry-over 14-06, Phase 2): whether the takeover lease was
+     * lost mid-execution (the heartbeat renewal task's tryRenew returned
+     * false). The engine's cleanup path forces terminal status
+     * {@code failed} when this is true.
+     */
+    public boolean isLeaseLost() {
+        return leaseLost;
+    }
+
+    public void setLeaseLost(boolean leaseLost) {
+        this.leaseLost = leaseLost;
     }
 
     public ChannelKind getChannelKind() {
