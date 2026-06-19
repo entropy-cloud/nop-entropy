@@ -35,6 +35,12 @@ public class DefaultWorkerLoadProvider implements IWorkerLoadProvider {
     private IDiscoveryClient discoveryClient;
     private IJobTaskStore taskStore;
 
+    /**
+     * AR-96 per-scan 缓存：beginScan..endScan 作用域内按 serviceName 缓存发现 + 聚合结果。
+     * ThreadLocal 以支持多 coordinator 共享同一 singleton loadProvider bean 时各 scan 线程隔离。
+     */
+    private final ThreadLocal<Map<String, List<WorkerLoad>>> scanCache = ThreadLocal.withInitial(HashMap::new);
+
     @Inject
     public void setDiscoveryClient(@Nullable IDiscoveryClient discoveryClient) {
         this.discoveryClient = discoveryClient;
@@ -46,10 +52,35 @@ public class DefaultWorkerLoadProvider implements IWorkerLoadProvider {
     }
 
     @Override
+    public void beginScan() {
+        scanCache.get().clear();
+    }
+
+    @Override
+    public void endScan() {
+        scanCache.get().clear();
+    }
+
+    @Override
     public List<WorkerLoad> getWorkerLoads(String serviceName) {
         if (discoveryClient == null || serviceName == null || serviceName.isBlank()) {
             return Collections.emptyList();
         }
+
+        Map<String, List<WorkerLoad>> cache = scanCache.get();
+        // an empty cache + a prior miss sentinel: use a key presence check. We store the computed list
+        // (possibly empty) so repeated calls within one scan reuse it (AR-96: discovery + GROUP BY run
+        // once per serviceName per scan, not once per fire).
+        List<WorkerLoad> cached = cache.get(serviceName);
+        if (cached != null) {
+            return cached;
+        }
+        List<WorkerLoad> loads = computeWorkerLoads(serviceName);
+        cache.put(serviceName, loads);
+        return loads;
+    }
+
+    private List<WorkerLoad> computeWorkerLoads(String serviceName) {
 
         List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
         if (instances == null || instances.isEmpty()) {

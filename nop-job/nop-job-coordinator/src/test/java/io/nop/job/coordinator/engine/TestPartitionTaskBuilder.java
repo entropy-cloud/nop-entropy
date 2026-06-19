@@ -110,6 +110,7 @@ public class TestPartitionTaskBuilder {
         assertEquals(3, tasks.size(), "partitionCount=3 → 3 tasks");
 
         int totalLimit = 0;
+        int maxLast = -1;
         for (int i = 0; i < tasks.size(); i++) {
             NopJobTask task = tasks.get(i);
             assertEquals(i + 1, task.getTaskNo());
@@ -120,8 +121,49 @@ public class TestPartitionTaskBuilder {
 
             IntRangeBean range = IntRangeBean.parse(task.getPartitionRange());
             totalLimit += range.getLimit();
+            maxLast = Math.max(maxLast, range.getLast());
         }
-        assertEquals(Short.MAX_VALUE, totalLimit, "Union of all partition ranges should cover [0, 32766]");
+        assertEquals(Short.MAX_VALUE + 1, totalLimit,
+                "AR-98: union of partition ranges must cover the full SMALLINT range [0, 32767]");
+        assertEquals(Short.MAX_VALUE, maxLast,
+                "AR-98: the upper boundary 32767 must be covered (was dropped before fix)");
+    }
+
+    /**
+     * AR-98：覆盖完整 SMALLINT 范围（含 32767），且未修改共享 {@code IntRangeBean.shortRange()}。
+     */
+    @Test
+    void testPartitionRangeCoversFullSmallintBoundary() {
+        List<ServiceInstance> instances = List.of(createInstance("w1", true, true));
+        builder.setDiscoveryClient(mockClient(instances));
+        scheduleStore.partitionCount = 1;
+
+        NopJobFire fire = createFire("test-svc");
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+
+        IntRangeBean range = IntRangeBean.parse(tasks.get(0).getPartitionRange());
+        assertEquals(0, range.getOffset());
+        assertEquals(Short.MAX_VALUE, range.getLast(),
+                "single partition must cover [0, 32767] inclusive (AR-98 boundary fix)");
+        // guard: the shared shortRange() is unchanged ([0, 32766]); only PartitionTaskBuilder's local
+        // constant was widened.
+        assertEquals(32766, IntRangeBean.shortRange().getLast(),
+                "shared IntRangeBean.shortRange() must remain [0, 32766] (not modified, no cross-module drift)");
+    }
+
+    /**
+     * AR-99：serviceName 为非 String 类型（如 Integer）时不抛 ClassCastException，优雅 fallback。
+     */
+    @Test
+    void testNonStringServiceNameDoesNotThrowCCE() {
+        builder.setDiscoveryClient(mockClient(List.of(createInstance("w1", true, true))));
+        NopJobFire fire = new NopJobFire();
+        fire.setJobFireId("f-ar99");
+        fire.setJobScheduleId("s1");
+        fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", 12345)); // non-String
+
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+        assertEquals(1, tasks.size(), "non-String serviceName must fallback (no CCE)");
     }
 
     @Test

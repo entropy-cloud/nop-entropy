@@ -26,6 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -328,6 +329,56 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         @Override public void onFireDispatchFailed(int count) { fireDispatchFailed += count; }
     }
 
+    /** AR-96: 计数服务发现调用次数的 IDiscoveryClient。 */
+    private static final class CountingDiscoveryClient implements io.nop.cluster.discovery.IDiscoveryClient {
+        int getInstancesCount;
+
+        @Override
+        public List<ServiceInstance> getInstances(String serviceName) {
+            getInstancesCount++;
+            ServiceInstance inst = new ServiceInstance();
+            inst.setInstanceId(AppConfig.hostId());
+            inst.setAddr("localhost");
+            inst.setPort(8080);
+            inst.setHealthy(true);
+            inst.setEnabled(true);
+            return List.of(inst);
+        }
+
+        @Override
+        public List<String> getServices() {
+            return Collections.emptyList();
+        }
+    }
+
+    /** AR-96: 包装真实 provider，计数 beginScan/endScan 调用（接线验证）。 */
+    private static final class RecordingWorkerLoadProvider implements IWorkerLoadProvider {
+        int beginScanCount;
+        int endScanCount;
+        private final IWorkerLoadProvider delegate;
+
+        RecordingWorkerLoadProvider(IWorkerLoadProvider delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void beginScan() {
+            beginScanCount++;
+            delegate.beginScan();
+        }
+
+        @Override
+        public void endScan() {
+            endScanCount++;
+            delegate.endScan();
+        }
+
+        @Override
+        public List<WorkerLoad> getWorkerLoads(String serviceName) {
+            return delegate.getWorkerLoads(serviceName);
+        }
+    }
+
     // ========== AR-94: 多 coordinator 超额派发（dispatcher 侧竞态存在性证明）==========
 
     /**
@@ -390,6 +441,137 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
                 "stale-read race causes over-assignment beyond capacity (total={" + totalCpu + "," + totalMem + "})");
     }
 
+    /**
+     * AR-96 接线验证：scanOnce 在批处理开始/结束调用 workerLoadProvider.beginScan/endScan，
+     * 且共享同一 provider 实例的 AdaptiveJobTaskBuilder 在 scan 作用域内的多次 getWorkerLoads
+     * 命中缓存（服务发现 + 聚合各只执行一次，不随 fire 数线性增长）。
+     */
+    @Test
+    public void testScanOnceInvokesWorkerLoadProviderLifecycleAndCachesAcrossFires() {
+        rememberOriginalBeanContainer();
+
+        CountingDiscoveryClient discovery = new CountingDiscoveryClient();
+        DefaultWorkerLoadProvider realProvider = new DefaultWorkerLoadProvider();
+        realProvider.setDiscoveryClient(discovery);
+        realProvider.setTaskStore(taskStore);
+        RecordingWorkerLoadProvider recording = new RecordingWorkerLoadProvider(realProvider);
+
+        // bestFit builder 共用同一 provider 实例（与 app-engine.beans.xml 的 ref="workerLoadProvider" 一致）
+        AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
+        bestFitBuilder.setScheduleStore(scheduleStore);
+        bestFitBuilder.setLoadProvider(recording);
+
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobTaskBuilder_bestFit", bestFitBuilder);
+        BeanContainer.registerInstance(container);
+
+        // 3 个 WAITING bestFit fire（同一 serviceName）
+        for (int i = 0; i < 3; i++) {
+            NopJobSchedule schedule = newSchedule("sched-ar96-" + i, "job-ar96-" + i);
+            schedule.setTaskCostCpu(100);
+            daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+            daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(newWaitingBestFitFire(schedule, "svc"));
+        }
+
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        dispatcher.setWorkerLoadProvider(recording); // 接线：dispatcher 持有同一 provider 做生命周期管理
+        dispatcher.scanOnce();
+
+        assertEquals(1, recording.beginScanCount, "AR-96 wiring: scanOnce calls beginScan exactly once");
+        assertEquals(1, recording.endScanCount, "AR-96 wiring: scanOnce calls endScan exactly once");
+        assertEquals(1, discovery.getInstancesCount,
+                "AR-96 cache: discovery runs once for the whole scan, not once per bestFit fire (3 fires)");
+
+        List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll();
+        assertEquals(3, tasks.size(), "all 3 bestFit fires dispatched (each via cached load snapshot)");
+    }
+
+    /**
+     * AR-98 端到端验证：partition 模式 fire 经 dispatcher（scanOnce → resolveTaskBuilder →
+     * PartitionTaskBuilder）派发后，落库的 task 的 partitionRange 并集覆盖完整 SMALLINT 范围
+     * [0, 32767]（含上界 32767），不丢边界。
+     */
+    @Test
+    public void testPartitionDispatchEndToEndCoversFullSmallintBoundary() {
+        rememberOriginalBeanContainer();
+
+        // 注册带 mock discovery client 的 PartitionTaskBuilder（2 个 healthy worker → 2 分片）
+        PartitionTaskBuilder partitionBuilder = new PartitionTaskBuilder();
+        partitionBuilder.setScheduleStore(scheduleStore);
+        partitionBuilder.setDiscoveryClient(new io.nop.cluster.discovery.IDiscoveryClient() {
+            @Override
+            public List<ServiceInstance> getInstances(String serviceName) {
+                ServiceInstance w1 = new ServiceInstance();
+                w1.setInstanceId("worker-1");
+                w1.setAddr("h1");
+                w1.setPort(8080);
+                w1.setHealthy(true);
+                w1.setEnabled(true);
+                ServiceInstance w2 = new ServiceInstance();
+                w2.setInstanceId("worker-2");
+                w2.setAddr("h2");
+                w2.setPort(8080);
+                w2.setHealthy(true);
+                w2.setEnabled(true);
+                return List.of(w1, w2);
+            }
+
+            @Override
+            public List<String> getServices() {
+                return Collections.emptyList();
+            }
+        });
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobTaskBuilder_partition", partitionBuilder);
+        BeanContainer.registerInstance(container);
+
+        // schedule + partition 模式 fire
+        NopJobSchedule schedule = newSchedule("sched-ar98", "job-ar98");
+        schedule.setPartitionCount(2);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        long now = System.currentTimeMillis();
+        NopJobFire fire = new NopJobFire();
+        fire.setJobScheduleId(schedule.getJobScheduleId());
+        fire.setNamespaceId(schedule.getNamespaceId());
+        fire.setGroupId(schedule.getGroupId());
+        fire.setJobName(schedule.getJobName());
+        fire.setTriggerSource(1);
+        fire.setScheduledFireTime(new Timestamp(now - 1000));
+        fire.setFireStatus(FIRE_STATUS_WAITING);
+        fire.setDispatchMode("partition");
+        fire.setJobParamsSnapshot(JsonTool.stringify(Map.of("serviceName", "svc-ar98")));
+        fire.setPartitionIndex(schedule.getPartitionIndex());
+        fire.setVersion(0L);
+        fire.setCreatedBy("test");
+        fire.setCreateTime(new Timestamp(now));
+        fire.setUpdatedBy("test");
+        fire.setUpdateTime(new Timestamp(now));
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
+
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        dispatcher.scanOnce();
+
+        List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll().stream()
+                .filter(t -> fire.getJobFireId().equals(t.getJobFireId()))
+                .collect(Collectors.toList());
+        assertEquals(2, tasks.size(), "partition dispatch end-to-end: 2 sharded tasks created");
+
+        int totalLimit = 0;
+        int maxLast = -1;
+        for (NopJobTask task : tasks) {
+            assertNotNull(task.getPartitionRange(), "partitionRange set by builder and persisted");
+            io.nop.api.core.beans.IntRangeBean range =
+                    io.nop.api.core.beans.IntRangeBean.parse(task.getPartitionRange());
+            totalLimit += range.getLimit();
+            maxLast = Math.max(maxLast, range.getLast());
+        }
+        assertEquals(Short.MAX_VALUE + 1, totalLimit,
+                "AR-98 end-to-end: union of partition ranges covers full SMALLINT range [0, 32767]");
+        assertEquals(Short.MAX_VALUE, maxLast,
+                "AR-98 end-to-end: boundary partition 32767 is covered (not dropped)");
+    }
+
     private JobDispatcherScannerImpl newDispatcher(int batchSize) {
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
@@ -413,7 +595,10 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         fire.setFireStatus(FIRE_STATUS_WAITING);
         fire.setDispatchMode("bestFit");
         fire.setExecutorKind("bestFit");
-        fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", serviceName));
+        // 与生产路径一致（JobScheduleStoreImpl.newFire.setJobParamsSnapshot(schedule.getJobParams())）：
+        // 直接写 String 列而非 component.set_jsonValue(Map)——后者经 markDirty 延迟 flushToEntity，
+        // 在 saveEntityDirectly 时不一定刷入列，导致 DB round-trip 丢 jobParamsSnapshot → bestFit 误 fallback。
+        fire.setJobParamsSnapshot(JsonTool.stringify(Map.of("serviceName", serviceName)));
         fire.setPartitionIndex(schedule.getPartitionIndex());
         fire.setVersion(0L);
         fire.setCreatedBy("test");

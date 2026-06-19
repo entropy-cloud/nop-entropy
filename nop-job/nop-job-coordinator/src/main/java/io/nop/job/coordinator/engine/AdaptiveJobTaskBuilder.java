@@ -63,7 +63,7 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
             return fallback.buildTasks(fire);
         }
 
-        String serviceName = (String) jobParams.get("serviceName");
+        String serviceName = IJobTaskBuilder.resolveServiceName(jobParams);
         if (serviceName == null || serviceName.isBlank()) {
             return fallback.buildTasks(fire);
         }

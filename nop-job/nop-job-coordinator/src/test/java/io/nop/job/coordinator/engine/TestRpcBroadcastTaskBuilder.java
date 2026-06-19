@@ -124,6 +124,30 @@ public class TestRpcBroadcastTaskBuilder {
         }
     }
 
+    /**
+     * AR-99：serviceName 为非 String 类型（如 Boolean）时不抛 ClassCastException，fallback。
+     */
+    @Test
+    void testNonStringServiceNameDoesNotThrowCCE() {
+        builder.setDiscoveryClient(new IDiscoveryClient() {
+            @Override
+            public List<ServiceInstance> getInstances(String serviceName) {
+                return List.of(createInstance("h1", 8080, true, true));
+            }
+
+            @Override
+            public List<String> getServices() {
+                return Collections.emptyList();
+            }
+        });
+        NopJobFire fire = new NopJobFire();
+        fire.setJobFireId("f-ar99");
+        fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", true)); // non-String
+
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+        assertEquals(1, tasks.size(), "non-String serviceName must fallback (no CCE)");
+    }
+
     @Test
     void testNullDiscoveryClientFallsBack() {
         builder.setDiscoveryClient(null);

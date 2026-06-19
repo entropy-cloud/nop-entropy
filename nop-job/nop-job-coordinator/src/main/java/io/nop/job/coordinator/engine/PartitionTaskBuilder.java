@@ -39,6 +39,14 @@ import java.util.stream.Collectors;
  */
 public class PartitionTaskBuilder implements IJobTaskBuilder {
 
+    /**
+     * AR-98: 覆盖完整 SMALLINT 哈希范围 [0, 32767]（含上界 32767）。{@code IntRangeBean.shortRange()}
+     * 返回 [0, 32766]（off-by-one，丢哈希到 32767 的数据）；但 shortRange() 是被 nop-cluster
+     * {@code PartitionAssignHelper.SHORT_HASH_RANGE} 等共享的方法，**禁止修改**（改它会跨模块漂移）。
+     * 故在此局部定义覆盖全范围的常量。
+     */
+    private static final IntRangeBean PARTITION_HASH_RANGE = IntRangeBean.intRange(0, Short.MAX_VALUE + 1);
+
     private IDiscoveryClient discoveryClient;
     private IPartitionAssigner partitionAssigner = new WeightedPartitionAssigner();
     private IJobScheduleStore scheduleStore;
@@ -65,7 +73,7 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
             return fallback.buildTasks(fire);
         }
 
-        String serviceName = (String) jobParams.get("serviceName");
+        String serviceName = IJobTaskBuilder.resolveServiceName(jobParams);
         if (serviceName == null || serviceName.isBlank()) {
             return fallback.buildTasks(fire);
         }
@@ -91,7 +99,7 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
         List<ServiceInstance> selected = healthyInstances.subList(0, n);
 
         List<IntRangeBean> ranges = partitionAssigner.assignPartitions(
-                IntRangeBean.shortRange(), selected);
+                PARTITION_HASH_RANGE, selected);
 
         long now = System.currentTimeMillis();
         List<NopJobTask> tasks = new ArrayList<>(n);

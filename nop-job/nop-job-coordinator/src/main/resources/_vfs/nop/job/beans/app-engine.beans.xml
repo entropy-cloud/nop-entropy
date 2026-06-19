@@ -38,6 +38,9 @@
           class="io.nop.job.coordinator.engine.JobDispatcherScannerImpl">
         <property name="defaultTaskBuilder" ref="nopJobTaskBuilder_default"/>
         <property name="partitionResolver" ref="jobPartitionResolver"/>
+        <!-- AR-96: 共用 workerLoadProvider 实例，使 scanOnce 的 beginScan/endScan 控制
+             AdaptiveJobTaskBuilder（ref 同一 bean）的 per-scan 缓存生命周期 -->
+        <property name="workerLoadProvider" ref="workerLoadProvider"/>
     </bean>
 
     <bean id="io.nop.job.coordinator.engine.IJobCancelHandler"

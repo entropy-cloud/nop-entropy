@@ -20,4 +20,16 @@ public interface IWorkerLoadProvider {
      * @return worker 负载列表，可能为空
      */
     List<WorkerLoad> getWorkerLoads(String serviceName);
+
+    /**
+     * AR-96 per-scan 缓存生命周期：dispatcher 在一次 {@code scanOnce} 批处理开始时调用
+     * {@code beginScan}、结束时调用 {@code endScan}。实现可在 scan 作用域内缓存服务发现 + 聚合结果，
+     * 使同一 scan 内对同一 serviceName 的多次 {@code getWorkerLoads} 调用不随 fire 数线性增长
+     *（batchSize=100 时避免 100 次发现 + 100 次 GROUP BY 聚合）。默认空实现（向后兼容）。
+     */
+    default void beginScan() {
+    }
+
+    default void endScan() {
+    }
 }

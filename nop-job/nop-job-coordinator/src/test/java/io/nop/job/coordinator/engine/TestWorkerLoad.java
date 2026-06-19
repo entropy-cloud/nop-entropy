@@ -1,9 +1,18 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.job.api.resource.ResourceVector;
+import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.job.dao.store.WorkerReservedCost;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

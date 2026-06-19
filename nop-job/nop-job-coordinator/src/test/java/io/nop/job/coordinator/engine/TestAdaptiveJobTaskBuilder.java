@@ -68,6 +68,21 @@ public class TestAdaptiveJobTaskBuilder {
                 "Task workerInstanceId must be set to the assigned worker");
     }
 
+    /**
+     * AR-99：serviceName 为非 String 类型（如数字）时不抛 ClassCastException，fallback 到 default builder。
+     */
+    @Test
+    void testNonStringServiceNameDoesNotThrowCCE() {
+        builder.setLoadProvider(new MockLoadProvider(List.of()));
+        NopJobFire fire = new NopJobFire();
+        fire.setJobFireId("f-ar99");
+        fire.setJobScheduleId("s1");
+        fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", 999)); // non-String
+
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+        assertEquals(1, tasks.size(), "non-String serviceName must fallback to default builder (no CCE)");
+    }
+
     // === Mocks ===
 
     private static class MockLoadProvider implements IWorkerLoadProvider {

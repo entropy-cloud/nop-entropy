@@ -37,6 +37,7 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     private IJobScheduleStore scheduleStore;
     private IJobDispatcherMetrics dispatcherMetrics = new EmptyJobDispatcherMetrics();
     private JobPartitionResolver partitionResolver;
+    private IWorkerLoadProvider workerLoadProvider;
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long lockTimeoutMs = 60000;
@@ -66,6 +67,15 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     @Inject
     public void setPartitionResolver(JobPartitionResolver partitionResolver) {
         this.partitionResolver = partitionResolver;
+    }
+
+    /**
+     * AR-96：可选注入 worker load provider，用于在 scanOnce 批处理作用域内做 per-scan 缓存
+     *（bestFit 派发的服务发现 + 聚合不随 fire 数线性增长）。未启用 bestFit 时可不注入。
+     */
+    @Inject
+    public void setWorkerLoadProvider(@jakarta.annotation.Nullable IWorkerLoadProvider workerLoadProvider) {
+        this.workerLoadProvider = workerLoadProvider;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.scan-interval-ms|5000")
@@ -162,7 +172,14 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
             }
 
             int dispatchedCount = 0;
-            for (NopJobFire fire : locked) {
+            // AR-96: snapshot worker loads once per scan so bestFit dispatch (AdaptiveJobTaskBuilder →
+            // loadProvider.getWorkerLoads per fire) reuses discovery + aggregation across the batch
+            // instead of re-querying per fire.
+            if (workerLoadProvider != null) {
+                workerLoadProvider.beginScan();
+            }
+            try {
+                for (NopJobFire fire : locked) {
                 // per-fire isolation (AR-86): a single fire's failure (deleted schedule, no-fitting-worker,
                 // etc.) must NOT abort the remaining fires in this batch — they were already pre-locked to
                 // DISPATCHING and would otherwise sit stuck until the 5-min dispatch-timeout.
@@ -205,6 +222,11 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
             if (dispatchedCount > 0) {
                 dispatcherMetrics.onFiresDispatched(dispatchedCount);
+            }
+            } finally {
+                if (workerLoadProvider != null) {
+                    workerLoadProvider.endScan();
+                }
             }
         } catch (Exception e) {
             LOG.error("nop.job.dispatcher.scan-failed", e);
