@@ -421,7 +421,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 - [ ] `agent.xdef` 字段语义稳定，无 ambiguous 字段（注意：`availableSkills` / `requiredSkills`，不是 `skills`）
 - [ ] `agent-plan.xdef` 字段语义稳定
 - [ ] `AgentModel` 可从 `.agent.xml` 正确装载
-- [ ] `AgentPlanModel` 可从 `.agent-plan.xml`/`.yaml`/`.md` 正确装载
+- [x] `AgentPlan` 可从 `.agent-plan.xml`/`.yaml`/`.md` 正确装载（plan 272 修复 mappingName 连字符 + record-mapping 字段漂移，端到端 markdown 加载测试 `TestAgentPlanMarkdownLoader` 通过）
 - [x] 缺失枚举 `AgentTaskStatus`, `AgentPlanStatus` 已创建（或已与 `AgentExecStatus` 统一）
 - [ ] ReAct 循环可以完整跑通：LLM 调用 → 工具调用 → 结果回灌 → 继续推理
 - [ ] 至少 1 个 `.agent.xml` 示例文件可被加载执行
@@ -429,7 +429,7 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 
 ### Maven 依赖正确性
 
-- [ ] `nop-ai-agent` pom.xml 的依赖列表与实际代码 import 一一致
+- [x] `nop-ai-agent` pom.xml 的依赖列表与实际代码 import 一致（plan 272 将 `nop-dao`/`nop-message-core` 改为 test scope——main source 无 import 引用，仅测试需要）
 
 ### 整体
 
