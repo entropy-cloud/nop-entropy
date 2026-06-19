@@ -108,11 +108,14 @@ public class MetadataWorkerCapacityProvider implements IWorkerCapacityProvider {
             memory = configMemory;
         }
 
-        // 默认：未声明该维度退化为 MAX_VALUE（向后兼容）
-        int cpuValue = cpu != null ? cpu : NopJobCoreConstants.DEFAULT_CAPACITY_IF_UNDECLARED;
-        int memoryValue = memory != null ? memory : NopJobCoreConstants.DEFAULT_CAPACITY_IF_UNDECLARED;
+        boolean bothUnset = isUnset(cpu) && isUnset(memory);
+        // AR-90: unify "0" semantics — a dimension value of 0 means "unset/unlimited" (→ MAX_VALUE) on
+        // BOTH config and metadata paths (previously metadata "0" was a real-zero black hole). Negative
+        // capacity is a config error → throw (previously silently made the worker reject everything).
+        int cpuValue = normalizeDimension(cpu, NopJobCoreConstants.METADATA_KEY_CAPACITY_CPU);
+        int memoryValue = normalizeDimension(memory, NopJobCoreConstants.METADATA_KEY_CAPACITY_MEMORY);
 
-        if (cpu == null && memory == null) {
+        if (bothUnset) {
             LOG.warn("nop.job.worker.capacity-undeclared: worker capacity not declared in metadata or config, "
                     + "falling back to MAX_VALUE (count-based behavior). "
                     + "Set metadata keys [{}, {}] or config [nop.job.capacity.cpu, nop.job.capacity.memory] "
@@ -122,6 +125,26 @@ public class MetadataWorkerCapacityProvider implements IWorkerCapacityProvider {
         }
 
         return new ResourceVector(cpuValue, memoryValue);
+    }
+
+    /**
+     * 单维 capacity 归一（AR-90）：null/0 → 未设 → {@code MAX_VALUE}（无限）；负数 → 抛
+     * {@link NopException}（配置错误，不静默退化为黑洞 worker）。
+     */
+    private static int normalizeDimension(Integer value, String key) {
+        if (value == null || value == 0) {
+            return NopJobCoreConstants.DEFAULT_CAPACITY_IF_UNDECLARED;
+        }
+        if (value < 0) {
+            throw new NopException(ERR_JOB_WORKER_CAPACITY_MALFORMED)
+                    .param(ARG_METADATA_KEY, key)
+                    .param(ARG_METADATA_VALUE, String.valueOf(value));
+        }
+        return value;
+    }
+
+    private static boolean isUnset(Integer value) {
+        return value == null || value == 0;
     }
 
     /**

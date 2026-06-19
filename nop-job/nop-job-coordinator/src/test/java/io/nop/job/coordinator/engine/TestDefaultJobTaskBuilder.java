@@ -46,4 +46,23 @@ public class TestDefaultJobTaskBuilder {
         assertEquals(1, tasks.size());
         assertNotNull(tasks.get(0).getTaskPayloadComponent().get_jsonMap());
     }
+
+    /**
+     * AR-91：single 模式 task 的 workerInstanceId 必须为 NULL（走 competing-consumer IS NULL 分支，
+     * 被 enforceAttribution=true 的非同地部署 worker 认领），不再写 coordinator hostId 造成饥饿。
+     */
+    @Test
+    void testSingleTaskLeavesWorkerInstanceIdNull() {
+        DefaultJobTaskBuilder builder = new DefaultJobTaskBuilder();
+
+        NopJobFire fire = new NopJobFire();
+        fire.setJobFireId("fire-ar91");
+        fire.setPartitionIndex((short) 1);
+
+        List<NopJobTask> tasks = builder.buildTasks(fire);
+
+        NopJobTask task = tasks.get(0);
+        assertNull(task.getWorkerInstanceId(),
+                "single-mode task must leave workerInstanceId NULL (AR-91), not the coordinator hostId");
+    }
 }

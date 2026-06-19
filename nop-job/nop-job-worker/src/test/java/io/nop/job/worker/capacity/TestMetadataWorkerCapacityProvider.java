@@ -155,6 +155,57 @@ class TestMetadataWorkerCapacityProvider {
         assertEquals(6144, capacity.getMemory());
     }
 
+    // ========== AR-90: capacity "0" 语义统一 + 负数校验 ==========
+
+    /**
+     * AR-90：metadata 字面量 "0" 与 config "0" 语义一致——均视为"未设→MAX_VALUE"（无限），
+     * 不再是真实零黑洞。
+     */
+    @Test
+    void testMetadataLiteralZeroMeansUnsetMaxValue() {
+        MetadataWorkerCapacityProvider provider = newProvider();
+        provider.setMetadataSource(Map.of(
+                NopJobCoreConstants.METADATA_KEY_CAPACITY_CPU, "0",
+                NopJobCoreConstants.METADATA_KEY_CAPACITY_MEMORY, "0"));
+
+        ResourceVector capacity = provider.getMyCapacity();
+        assertEquals(ResourceVector.MAX_VALUE.getCpu(), capacity.getCpu(),
+                "metadata '0' must mean unset→MAX_VALUE, not a real-zero black hole (AR-90)");
+        assertEquals(ResourceVector.MAX_VALUE.getMemory(), capacity.getMemory());
+    }
+
+    @Test
+    void testConfigZeroMeansUnsetMaxValue() {
+        MetadataWorkerCapacityProvider provider = newProvider();
+        provider.setConfigCpu(0);
+        provider.setConfigMemory(0);
+
+        ResourceVector capacity = provider.getMyCapacity();
+        assertEquals(ResourceVector.MAX_VALUE, capacity, "config 0 = unset = MAX_VALUE");
+    }
+
+    /**
+     * AR-90：负数 capacity 是配置错误，抛 NopException（不静默退化为拒绝一切的黑洞 worker）。
+     */
+    @Test
+    void testNegativeMetadataCapacityThrows() {
+        MetadataWorkerCapacityProvider provider = newProvider();
+        provider.setMetadataSource(Map.of(
+                NopJobCoreConstants.METADATA_KEY_CAPACITY_CPU, "-1"));
+
+        NopException ex = assertThrows(NopException.class, provider::getMyCapacity);
+        assertEquals("nop.err.job.worker-capacity-malformed", ex.getErrorCode());
+    }
+
+    @Test
+    void testNegativeConfigCapacityThrows() {
+        MetadataWorkerCapacityProvider provider = newProvider();
+        provider.setConfigCpu(-100);
+
+        assertThrows(NopException.class, provider::getMyCapacity,
+                "negative config capacity must throw, not silently disable the worker");
+    }
+
     /**
      * 工厂方法：每次返回新实例，确保 cached 状态隔离。
      */

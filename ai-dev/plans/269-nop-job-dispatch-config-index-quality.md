@@ -87,24 +87,24 @@ Exit Criteria:
 
 > **方向裁定（回应对抗审查 Blocker-2 / Major-4）**：AR-90 的 config-vs-metadata "0" 语义分叉在 worker 侧（`MetadataWorkerCapacityProvider`）与 **dispatcher 侧（`DefaultWorkerLoadProvider.parseCapacity`）各有一处**，必须同修否则语义分叉被搬家。AR-91 single 模式 workerInstanceId 留 NULL 的交互已验证：SUSPICIOUS 探活只对 RUNNING 生效且认领后 workerInstanceId 被设为 worker hostId（探活不破坏）；`sumReservedCostByWorker` SQL `where workerInstanceId is not null` 会排除 NULL 行（single 任务本不归因具体 worker，correct 行为）。
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/capacity/MetadataWorkerCapacityProvider.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/DefaultWorkerLoadProvider.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/DefaultJobTaskBuilder.java`
 
 - Item Types: `Fix`
 
-- [ ] 统一 capacity "0" 语义（worker 侧 `MetadataWorkerCapacityProvider` 与 dispatcher 侧 `DefaultWorkerLoadProvider.parseCapacity` 一致：同为"未设→MAX_VALUE"或同为真实零，并文档化）；两侧对负数 capacity 抛明确异常
-- [ ] 修复 single 模式 enforceAttribution 饥饿：`DefaultJobTaskBuilder`（single 模式）`workerInstanceId` 留 NULL（走 IS NULL 分支被任意 worker 认领）；保留认领后由 `tryLockTasksForExecute` 设为 worker hostId 的既有行为（SUSPICIOUS 探活不受影响）
+- [x] 统一 capacity "0" 语义（worker 侧 `MetadataWorkerCapacityProvider` 与 dispatcher 侧 `DefaultWorkerLoadProvider.parseCapacity` 一致：同为"未设→MAX_VALUE"或同为真实零，并文档化）；两侧对负数 capacity 抛明确异常
+- [x] 修复 single 模式 enforceAttribution 饥饿：`DefaultJobTaskBuilder`（single 模式）`workerInstanceId` 留 NULL（走 IS NULL 分支被任意 worker 认领）；保留认领后由 `tryLockTasksForExecute` 设为 worker hostId 的既有行为（SUSPICIOUS 探活不受影响）
 
 Exit Criteria:
 
-- [ ] 回归测试：config 与 metadata 同填 `0` 行为**两侧一致**；新增字面量 "0" 的 metadata 用例（worker 侧 + dispatcher 侧）
-- [ ] 回归测试：负数 capacity 在两侧均被拒绝并抛明确错误
-- [ ] 回归测试：分离部署 worker 开 `enforceAttribution=true` 时，single 模式任务能被认领（不再饿死）
-- [ ] **接线验证**：single 模式任务认领后 SUSPICIOUS 探活仍生效（workerInstanceId 认领后被设为 hostId，探活路径未被破坏）
-- [ ] **无静默跳过**：负数 capacity 抛异常而非静默退化为某默认值
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] 相关 owner doc 同步（capacity 配置语义、enforceAttribution 适用范围）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 回归测试：config 与 metadata 同填 `0` 行为**两侧一致**（worker 侧 `testMetadataLiteralZeroMeansUnsetMaxValue`/`testConfigZeroMeansUnsetMaxValue` + dispatcher 侧 `testDispatcherParseCapacityLiteralZeroMeansMaxValue`）
+- [x] 回归测试：负数 capacity 在两侧均被拒绝并抛明确错误（worker `testNegativeMetadataCapacityThrows`/`testNegativeConfigCapacityThrows` + dispatcher `testDispatcherParseCapacityNegativeThrows`）
+- [x] 回归测试：分离部署 worker 开 `enforceAttribution=true` 时，single 模式任务能被认领（不再饿死）（`TestJobWorkerScanner#testSingleModeTaskClaimableUnderEnforceAttribution`）
+- [x] **接线验证**：single 模式任务认领后 SUSPICIOUS 探活仍生效（认领后 workerInstanceId 被设为 hostId，断言 `assertEquals(AppConfig.hostId(), saved.getWorkerInstanceId())`；探活路径未破坏）
+- [x] **无静默跳过**：负数 capacity 抛 NopException 而非静默退化为某默认值
+- [x] `./mvnw test -pl nop-job -am` 全过（worker 15 + capacity 15 + default-task 3 + worker-load 7，0 failures）
+- [x] 相关 owner doc 同步（capacity 配置语义 + enforceAttribution 适用范围）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 索引/缓存/边界/类型安全
 

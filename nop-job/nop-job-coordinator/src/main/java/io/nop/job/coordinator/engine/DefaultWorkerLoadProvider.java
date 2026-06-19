@@ -103,15 +103,29 @@ public class DefaultWorkerLoadProvider implements IWorkerLoadProvider {
         return new ResourceVector(cpu, memory);
     }
 
-    private static int parseCapacity(String value) {
+    /**
+     * 解析单维 capacity（AR-90 与 worker 侧 {@code MetadataWorkerCapacityProvider} 语义统一）：
+     * null/blank/"0" → 未设 → {@code MAX_VALUE}（无限）；负数 → 抛 {@link NopException}（配置错误，
+     * 不静默退化为黑洞）。非数字保留既有 MAX_VALUE 回退（向后兼容）。package-private 以便单元测试。
+     */
+    static int parseCapacity(String value) {
         if (value == null || value.isBlank()) {
             return Integer.MAX_VALUE;
         }
+        int parsed;
         try {
-            return Integer.parseInt(value.trim());
+            parsed = Integer.parseInt(value.trim());
         } catch (NumberFormatException e) {
             return Integer.MAX_VALUE;
         }
+        if (parsed < 0) {
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.job.core.JobCoreErrors.ERR_JOB_WORKER_CAPACITY_MALFORMED)
+                    .param(io.nop.job.core.JobCoreErrors.ARG_METADATA_KEY, "capacity")
+                    .param(io.nop.job.core.JobCoreErrors.ARG_METADATA_VALUE, value);
+        }
+        // 0 = 未设 = 无限（消除 dispatcher 侧 metadata "0"=零 的黑洞，与 worker 侧一致）
+        return parsed == 0 ? Integer.MAX_VALUE : parsed;
     }
 
     private static ResourceVector resolveReserved(Map<String, WorkerReservedCost> reservedMap, String workerInstanceId) {

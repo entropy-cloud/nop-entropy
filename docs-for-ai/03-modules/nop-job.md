@@ -292,6 +292,8 @@ public interface IJobInvoker {
 
 > **cost/priority 归一约定**：dispatcher 落库 task 行时，对 schedule 中可空的 `taskCostCpu`/`taskCostMemory`/`priority` 做 null→0 归一（`JobDispatcherScannerImpl.scanOnce` 单点）。worker fit-check 亦对历史脏行（null cost）防御性归一为 0。因此 task 行的 `costCpu`/`costMemory`/`priority` 恒非 null，未配置时为 0。
 
+> **capacity 配置语义**（worker `nop.job.capacity.cpu/memory` 配置或 `ServiceInstance.metadata`，两侧一致）：`0` 或未声明 → 视为"未设/无限"（`MAX_VALUE`，退化为 count-based）；负数视为配置错误抛异常（不静默退化为拒绝一切的黑洞 worker）。`nop.job.fetch.enforce-attribution=true` 用于 dedicated worker 池；single 模式 task 的 `workerInstanceId` 留 NULL（走 competing-consumer IS NULL 分支被任意 worker 认领，含分离部署），认领后被设为认领 worker 的 hostId。
+
 ## 架构
 
 ```

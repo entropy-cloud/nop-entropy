@@ -648,6 +648,53 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
     }
 
     /**
+     * AR-91：single 模式 task（workerInstanceId=NULL，DefaultJobTaskBuilder 现产物）在
+     * enforceAttribution=true 的非同地部署 worker 下必须可被认领（IS NULL 分支），不再饥饿。
+     * 认领后 workerInstanceId 被设为 worker hostId（SUSPICIOUS 探活路径不破坏）。
+     */
+    @Test
+    public void testSingleModeTaskClaimableUnderEnforceAttribution() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask pt = prepareWaitingTask("sched-ar91", "job-ar91");
+        // single-mode: workerInstanceId is NULL (as DefaultJobTaskBuilder now produces)
+        assertNull(taskStore.loadTask(pt.task.getJobTaskId()).getWorkerInstanceId(),
+                "guard: single-mode task is null-attributed before claim");
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setEnforceAttribution(true); // <-- key: non-co-deployed dedicated-worker scenario
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
+        worker.scanOnce();
+
+        NopJobTask saved = taskStore.loadTask(pt.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, saved.getTaskStatus(),
+                "single-mode (null-attribution) task must be claimable under enforceAttribution=true (AR-91)");
+        assertEquals(AppConfig.hostId(), saved.getWorkerInstanceId(),
+                "after claim workerInstanceId set to claiming worker (SUSPICIOUS liveness path intact)");
+    }
+
+    /**
      * AR-93：overfetch 有候选但无一 fit 时产生可观测信号（WARN + onRejected），候选保持 WAITING，
      * 与"无候选"（正常空闲）场景区分。
      */

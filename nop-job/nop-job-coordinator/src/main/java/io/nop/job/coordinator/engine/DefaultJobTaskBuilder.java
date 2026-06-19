@@ -1,6 +1,5 @@
 package io.nop.job.coordinator.engine;
 
-import io.nop.api.core.config.AppConfig;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
@@ -24,13 +23,13 @@ public class DefaultJobTaskBuilder implements IJobTaskBuilder {
         task.setTaskNo(1);
         task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
 
-        // NOTE: workerInstanceId is set to the coordinator's hostId here.
-        // The SUSPICIOUS detection in JobTimeoutCheckerImpl compares this value
-        // against live instances in the naming service. This mechanism works
-        // correctly only when coordinator and worker are co-deployed (same JVM).
-        // In non-co-deployed scenarios, the timeout checker's worker liveness
-        // check is not applicable for tasks created by DefaultJobTaskBuilder.
-        task.setWorkerInstanceId(AppConfig.hostId());
+        // AR-91: leave workerInstanceId NULL in single mode. The task is then claimable by any worker
+        // via the competing-consumer IS-NULL branch, including under enforceAttribution=true on a
+        // non-co-deployed worker (previously the coordinator hostId was written here, which under
+        // enforceAttribution != worker hostId and non-NULL starved every single task forever).
+        // After a worker claims the task, tryLockTasksForExecute sets workerInstanceId to that worker's
+        // hostId, so SUSPICIOUS liveness detection (which only applies to RUNNING tasks) is unaffected.
+        task.setWorkerInstanceId(null);
 
         // targetHost is reserved for future use: populate when a naming service
         // is available to resolve workerInstanceId to a network address.
