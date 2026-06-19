@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * {@link SandboxConfig#getMaxOutputBytes()} cap and discards the overflow
  * so the child cannot block on a full pipe before its parent can kill it.
  *
- * <p><b>What is NOT enforced</b>: {@link SandboxConfig#getCpuSeconds()},
+ * <p><b>What is NOT enforced</b>: {@link SandboxConfig#getCpuCores()},
  * {@link SandboxConfig#getMemoryMb()}, and
  * {@link SandboxConfig#getNetworkMode()} require an isolator (cgroup /
  * namespace). The host backend records the configured values on the

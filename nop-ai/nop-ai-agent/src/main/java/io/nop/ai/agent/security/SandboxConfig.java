@@ -4,14 +4,20 @@ import java.util.Objects;
 
 /**
  * Resource-limit envelope for a sandbox execution (plan 219 Phase 1, design
- * §7.1). Defaults match the design table (cpuSeconds=30, memoryMb=1024,
+ * §7.1). Defaults match the design table (cpuCores=1.0, memoryMb=1024,
  * wallSeconds=60, network=DENY) and an output-capture ceiling of 1 MiB.
+ *
+ * <p>The {@code cpuCores} field expresses a <b>CPU core-count quota</b>
+ * following Docker {@code --cpus} semantics (Docker 1.13+): the value is a
+ * fractional number of cores the sandboxed command may use (e.g.
+ * {@code 1.0} = one full core, {@code 0.5} = half a core, {@code 2.5} =
+ * two-and-a-half cores). It is NOT a CPU time budget in seconds.
  *
  * <p>Two ways to obtain an instance:
  * <ul>
  *   <li>{@link #defaults()} — the design-table baseline;</li>
- *   <li>{@link #builder()} — for per-call overrides (e.g. a longer wall
- *       budget for a slow compilation).</li>
+ *   <li>{@link #builder()} — for per-call overrides (e.g. a larger core
+ *       quota for a compute-heavy compilation).</li>
  * </ul>
  *
  * <p>The envelope is honoured differently per backend:
@@ -32,8 +38,8 @@ public final class SandboxConfig {
 
     /** Default wall-time budget in seconds (design §7.1). */
     public static final int DEFAULT_WALL_SECONDS = 60;
-    /** Default CPU budget in seconds (design §7.1). */
-    public static final int DEFAULT_CPU_SECONDS = 30;
+    /** Default CPU core-count quota (Docker {@code --cpus} semantics, design §7.1). */
+    public static final double DEFAULT_CPU_CORES = 1.0;
     /** Default memory ceiling in MiB (design §7.1). */
     public static final int DEFAULT_MEMORY_MB = 1024;
     /** Default per-stream output ceiling: 1 MiB. */
@@ -47,20 +53,22 @@ public final class SandboxConfig {
         ALLOW
     }
 
-    private final int cpuSeconds;
+    private final double cpuCores;
     private final int memoryMb;
     private final int wallSeconds;
     private final NetworkMode networkMode;
     private final int maxOutputBytes;
 
     private SandboxConfig(Builder b) {
-        this.cpuSeconds = b.cpuSeconds;
+        this.cpuCores = b.cpuCores;
         this.memoryMb = b.memoryMb;
         this.wallSeconds = b.wallSeconds;
         this.networkMode = Objects.requireNonNull(b.networkMode, "networkMode");
         this.maxOutputBytes = b.maxOutputBytes;
-        if (this.cpuSeconds <= 0) {
-            throw new IllegalArgumentException("cpuSeconds must be > 0: " + this.cpuSeconds);
+        // `!(x > 0)` rejects 0, negatives, AND NaN (NaN comparisons are
+        // always false) — a NaN core quota must not silently pass.
+        if (!(this.cpuCores > 0)) {
+            throw new IllegalArgumentException("cpuCores must be > 0: " + this.cpuCores);
         }
         if (this.memoryMb <= 0) {
             throw new IllegalArgumentException("memoryMb must be > 0: " + this.memoryMb);
@@ -73,7 +81,7 @@ public final class SandboxConfig {
         }
     }
 
-    /** The design-table baseline (cpuSeconds=30, memoryMb=1024, wallSeconds=60, network=DENY). */
+    /** The design-table baseline (cpuCores=1.0, memoryMb=1024, wallSeconds=60, network=DENY). */
     public static SandboxConfig defaults() {
         return builder().build();
     }
@@ -82,8 +90,13 @@ public final class SandboxConfig {
         return new Builder();
     }
 
-    public int getCpuSeconds() {
-        return cpuSeconds;
+    /**
+     * The CPU core-count quota (Docker {@code --cpus} semantics). A value
+     * of {@code 1.0} means one full core, {@code 0.5} half a core, etc.
+     * Always strictly positive (validated at construction).
+     */
+    public double getCpuCores() {
+        return cpuCores;
     }
 
     public int getMemoryMb() {
@@ -103,14 +116,14 @@ public final class SandboxConfig {
     }
 
     public static final class Builder {
-        private int cpuSeconds = DEFAULT_CPU_SECONDS;
+        private double cpuCores = DEFAULT_CPU_CORES;
         private int memoryMb = DEFAULT_MEMORY_MB;
         private int wallSeconds = DEFAULT_WALL_SECONDS;
         private NetworkMode networkMode = NetworkMode.DENY;
         private int maxOutputBytes = DEFAULT_MAX_OUTPUT_BYTES;
 
-        public Builder cpuSeconds(int cpuSeconds) {
-            this.cpuSeconds = cpuSeconds;
+        public Builder cpuCores(double cpuCores) {
+            this.cpuCores = cpuCores;
             return this;
         }
 

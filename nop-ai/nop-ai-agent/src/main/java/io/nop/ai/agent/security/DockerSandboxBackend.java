@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 /**
  * Functional opt-in {@link ISandboxBackend} that isolates command execution
@@ -68,7 +69,11 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p><b>Resource limits mapping</b>:
  * <ul>
- *   <li>{@link SandboxConfig#getCpuSeconds()} → {@code --cpus=<n>}</li>
+ *   <li>{@link SandboxConfig#getCpuCores()} → {@code --cpus=<n>}, where
+ *       {@code <n>} is a fractional CPU core-count quota (Docker 1.13+
+ *       semantics: {@code 1.0} = one full core, {@code 0.5} = half a
+ *       core, {@code 2.5} = two-and-a-half cores). NOT a CPU time
+ *       budget.</li>
  *   <li>{@link SandboxConfig#getMemoryMb()} → {@code --memory=<n>m}</li>
  *   <li>{@link SandboxConfig#getWallSeconds()} → enforced via
  *       {@link Process#waitFor} + {@code docker kill} on timeout
@@ -91,6 +96,19 @@ import java.util.concurrent.atomic.AtomicReference;
  * directory, no {@code -v}/{@code --workdir} flags are emitted (the
  * container's image-default workdir applies).
  *
+ * <p><b>Environment overlay mapping</b>: each entry in
+ * {@link SandboxRequest#getEnvironmentVariables()} is emitted as a
+ * {@code -e KEY=VALUE} argument. Before the argument is assembled, the key
+ * is validated against the POSIX environment-variable name grammar
+ * ({@link #ENV_KEY_PATTERN}, plan 274 finding 13-9). A key that starts with
+ * {@code -} (which Docker could interpret as a flag, e.g.
+ * {@code --privileged}), starts with a digit, is empty, or contains
+ * whitespace / control characters / {@code =} is fail-closed rejected with
+ * {@link SandboxFailureReason#INVALID_ENVIRONMENT_VARIABLE} <i>before</i>
+ * the {@code docker} process is launched (precedent:
+ * {@link #validateHostPath}). Variable values are passed through verbatim —
+ * they are a single argv element and need no character restriction.
+ *
  * <p><b>Thread safety</b>: stateless after construction — safe for
  * concurrent use across sessions. Each {@link #execute} call owns its own
  * container name, Process, and reader thread.
@@ -99,6 +117,15 @@ public final class DockerSandboxBackend implements ISandboxBackend {
 
     /** Canonical workdir mount point inside the container. */
     public static final String CONTAINER_WORKDIR = "/workspace";
+
+    /**
+     * POSIX environment-variable name grammar. A key that does not match is
+     * rejected before it can reach {@code docker run -e} (plan 274 finding
+     * 13-9), preventing argument-injection via attacker/LLM-controlled keys
+     * across Docker versions / Podman-compatible CLI backends.
+     */
+    static final Pattern ENV_KEY_PATTERN =
+            Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
     private final String dockerImage;
     private final SandboxConfig defaultConfig;
@@ -336,6 +363,35 @@ public final class DockerSandboxBackend implements ISandboxBackend {
     }
 
     /**
+     * Validate an environment-variable name before assembling a
+     * {@code -e KEY=VALUE} argument (plan 274 finding 13-9). Fail-closed:
+     * a key that does not match the POSIX environment-variable name grammar
+     * ({@link #ENV_KEY_PATTERN}) raises a {@link SandboxException} with
+     * reason {@link SandboxFailureReason#INVALID_ENVIRONMENT_VARIABLE} so
+     * the key never reaches {@code docker run -e}. Precedent:
+     * {@link #validateHostPath}; both reject the request <i>before</i> the
+     * {@code docker} process is launched.
+     *
+     * <p>Rejected examples: a key starting with {@code -} (e.g.
+     * {@code --privileged}, which Docker could interpret as a flag), a key
+     * starting with a digit, an empty key, or a key containing whitespace /
+     * control characters / {@code =}.
+     *
+     * <p>Visible for testing so focused tests can exercise the rule without
+     * a Docker daemon.
+     *
+     * @param key the environment-variable name; never {@code null} in
+     *            practice ({@link SandboxRequest} defensively copies via
+     *            {@code Map.copyOf} which rejects nulls)
+     */
+    static void validateEnvironmentVariableKey(String key) {
+        if (key == null || !ENV_KEY_PATTERN.matcher(key).matches()) {
+            throw new SandboxException(SandboxFailureReason.INVALID_ENVIRONMENT_VARIABLE,
+                    "DockerSandboxBackend: invalid environment variable name rejected: " + key);
+        }
+    }
+
+    /**
      * Build the {@code docker run} argv list for the given request. Visible
      * for testing (the tests assert the exact flag mapping).
      *
@@ -354,7 +410,7 @@ public final class DockerSandboxBackend implements ISandboxBackend {
         cmd.add(containerName);
         // Resource limits.
         cmd.add("--cpus");
-        cmd.add(Integer.toString(config.getCpuSeconds()));
+        cmd.add(Double.toString(config.getCpuCores()));
         cmd.add("--memory");
         cmd.add(config.getMemoryMb() + "m");
         if (config.getNetworkMode() == SandboxConfig.NetworkMode.DENY) {
@@ -369,8 +425,13 @@ public final class DockerSandboxBackend implements ISandboxBackend {
             cmd.add("--workdir");
             cmd.add(CONTAINER_WORKDIR);
         }
-        // Environment overlay.
+        // Environment overlay. Each key is validated (plan 274 finding
+        // 13-9) BEFORE the -e argument is assembled, so an
+        // attacker/LLM-controlled key that would inject an extra Docker
+        // flag (e.g. "--privileged") or otherwise violate the POSIX env-name
+        // grammar is fail-closed rejected before the docker process starts.
         for (Map.Entry<String, String> e : request.getEnvironmentVariables().entrySet()) {
+            validateEnvironmentVariableKey(e.getKey());
             cmd.add("-e");
             cmd.add(e.getKey() + "=" + e.getValue());
         }

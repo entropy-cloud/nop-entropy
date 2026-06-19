@@ -56,5 +56,20 @@ public enum SandboxFailureReason {
      * {@code DockerSandboxBackend} {@code allowedBaseDirs} whitelist.
      * Fail-closed: the mount never reaches {@code docker run}.
      */
-    HOST_PATH_NOT_ALLOWED
+    HOST_PATH_NOT_ALLOWED,
+
+    /**
+     * An environment-variable name in the {@link SandboxRequest} overlay
+     * was rejected before the container could start (plan 274 finding
+     * 13-9). A key that did not match the POSIX environment-variable name
+     * grammar ({@code ^[A-Za-z_][A-Za-z0-9_]*$} — e.g. a key starting with
+     * {@code -}, starting with a digit, or containing whitespace / control
+     * characters / {@code =}) is refused, because a key that an attacker
+     * (or a misbehaving LLM) can influence could otherwise inject
+     * additional Docker flags or ambiguous {@code -e} arguments. Fail-closed
+     * (precedent: {@link #HOST_PATH_NOT_ALLOWED}): the offending overlay
+     * never reaches {@code docker run -e}, and the request is rejected
+     * before the {@code docker} process is launched.
+     */
+    INVALID_ENVIRONMENT_VARIABLE
 }

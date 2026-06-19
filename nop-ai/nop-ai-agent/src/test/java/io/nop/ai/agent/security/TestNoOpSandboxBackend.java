@@ -75,7 +75,7 @@ public class TestNoOpSandboxBackend {
         // return timedOut=true AND not block for the full 30 seconds.
         SandboxConfig oneSecond = SandboxConfig.builder()
                 .wallSeconds(1)
-                .cpuSeconds(30)
+                .cpuCores(1.0)
                 .memoryMb(64)
                 .build();
         SandboxRequest req = SandboxRequest.of(
@@ -243,8 +243,14 @@ public class TestNoOpSandboxBackend {
                 () -> SandboxConfig.builder().wallSeconds(0).build(),
                 "wallSeconds=0 must be rejected");
         assertThrows(IllegalArgumentException.class,
-                () -> SandboxConfig.builder().cpuSeconds(-1).build(),
-                "cpuSeconds<0 must be rejected");
+                () -> SandboxConfig.builder().cpuCores(-1).build(),
+                "cpuCores<0 must be rejected");
+        assertThrows(IllegalArgumentException.class,
+                () -> SandboxConfig.builder().cpuCores(0).build(),
+                "cpuCores=0 must be rejected");
+        assertThrows(IllegalArgumentException.class,
+                () -> SandboxConfig.builder().cpuCores(Double.NaN).build(),
+                "cpuCores=NaN must be rejected");
         assertThrows(IllegalArgumentException.class,
                 () -> SandboxConfig.builder().memoryMb(0).build(),
                 "memoryMb=0 must be rejected");
@@ -256,7 +262,7 @@ public class TestNoOpSandboxBackend {
     @Test
     void defaultsMatchDesignTable() {
         SandboxConfig d = SandboxConfig.defaults();
-        assertEquals(30, d.getCpuSeconds(), "design §7.1 default cpuSeconds=30");
+        assertEquals(1.0, d.getCpuCores(), 1e-9, "design §7.1 default cpuCores=1.0 (one core)");
         assertEquals(1024, d.getMemoryMb(), "design §7.1 default memoryMb=1024");
         assertEquals(60, d.getWallSeconds(), "design §7.1 default wallSeconds=60");
         assertEquals(SandboxConfig.NetworkMode.DENY, d.getNetworkMode(),

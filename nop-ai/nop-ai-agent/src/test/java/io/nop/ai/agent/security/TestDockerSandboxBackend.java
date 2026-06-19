@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -56,7 +57,7 @@ public class TestDockerSandboxBackend {
     @Test
     void buildCommandIncludesAllResourceLimitFlags() {
         SandboxConfig config = SandboxConfig.builder()
-                .cpuSeconds(2)
+                .cpuCores(1.5)
                 .memoryMb(512)
                 .wallSeconds(45)
                 .networkMode(SandboxConfig.NetworkMode.DENY)
@@ -76,8 +77,9 @@ public class TestDockerSandboxBackend {
         assertTrue(cmd.contains("run"), () -> "missing 'run' in " + cmd);
         assertTrue(cmd.contains("--rm"), () -> "missing '--rm' in " + cmd);
         assertEquals("ctr-1", nextOf(cmd, "--name"), "--name value");
-        // --cpus <value>
-        assertEquals("2", nextOf(cmd, "--cpus"), "--cpus value");
+        // --cpus <value> : fractional CPU core-count quota (Docker --cpus
+        // semantics). cpuCores(1.5) must surface verbatim as "1.5".
+        assertEquals("1.5", nextOf(cmd, "--cpus"), "--cpus value");
         // --memory <value>m
         assertEquals("512m", nextOf(cmd, "--memory"), "--memory value");
         // --network none (DENY)
@@ -101,6 +103,45 @@ public class TestDockerSandboxBackend {
 
         assertFalse(cmd.contains("--network"),
                 "--network flag must be absent when networkMode=ALLOW; got " + cmd);
+    }
+
+    // ========================================================================
+    // 1b. Plan 274 AUDIT-13-8: --cpus = fractional CPU core-count quota
+    // (NOT a CPU-seconds budget). Docker --cpus semantics: 1.0 = one full
+    // core, 0.5 = half a core.
+    // ========================================================================
+
+    @Test
+    void cpusFlagCarriesFractionalCoreCountQuota() {
+        // A sub-core quota (0.5) must surface verbatim as "0.5" — proving
+        // the value is a fractional core-count, not an int seconds budget.
+        SandboxConfig halfCore = SandboxConfig.builder().cpuCores(0.5).build();
+        SandboxRequest req = SandboxRequest.of(List.of("true"), halfCore);
+        List<String> cmd = DockerSandboxBackend.buildDockerCommand(
+                "ctr-cpu-half", "alpine", req, halfCore);
+        assertEquals("0.5", nextOf(cmd, "--cpus"),
+                "--cpus must carry the fractional core-count quota verbatim");
+
+        // A multi-core quota (2.5).
+        SandboxConfig twoAndHalf = SandboxConfig.builder().cpuCores(2.5).build();
+        List<String> cmd2 = DockerSandboxBackend.buildDockerCommand(
+                "ctr-cpu-25", "alpine",
+                SandboxRequest.of(List.of("true"), twoAndHalf), twoAndHalf);
+        assertEquals("2.5", nextOf(cmd2, "--cpus"),
+                "--cpus must carry 2.5 for cpuCores(2.5)");
+    }
+
+    @Test
+    void cpusFlagDefaultsToOneCore() {
+        // The default config must produce --cpus 1.0 (one full core), NOT
+        // the old default of 30 (which Docker read as "30 cores" — an
+        // effectively-unlimited quota on most hosts).
+        SandboxConfig defaults = SandboxConfig.defaults();
+        SandboxRequest req = SandboxRequest.of(List.of("true"), defaults);
+        List<String> cmd = DockerSandboxBackend.buildDockerCommand(
+                "ctr-cpu-default", "alpine", req, defaults);
+        assertEquals("1.0", nextOf(cmd, "--cpus"),
+                "default config must map to --cpus 1.0 (one core)");
     }
 
     @Test
@@ -153,6 +194,78 @@ public class TestDockerSandboxBackend {
         assertEquals(2, eCount, "expected 2 '-e' entries; cmd=" + cmd);
         assertTrue(cmd.contains("FOO=bar"), "missing FOO=bar in " + cmd);
         assertTrue(cmd.contains("BAZ=qux"), "missing BAZ=qux in " + cmd);
+    }
+
+    // ========================================================================
+    // 1c. Plan 274 AUDIT-13-9: environment-variable key injection guard
+    // (fail-closed POSIX name validation before -e is assembled).
+    // ========================================================================
+
+    @Test
+    void buildCommandAcceptsPosixValidEnvKeys() {
+        // FOO, _BAR, BAZ123 are all POSIX-valid env-var names and must
+        // produce -e KEY=VALUE entries.
+        SandboxRequest req = SandboxRequest.builder()
+                .command(List.of("env"))
+                .environmentVariables(Map.of(
+                        "FOO", "bar",
+                        "_BAR", "b",
+                        "BAZ123", "qux"))
+                .config(SandboxConfig.defaults())
+                .build();
+        List<String> cmd = DockerSandboxBackend.buildDockerCommand(
+                "ctr-env-valid", "alpine", req, SandboxConfig.defaults());
+        long eCount = cmd.stream().filter(s -> s.equals("-e")).count();
+        assertEquals(3, eCount, "all 3 valid keys must produce -e entries; cmd=" + cmd);
+        assertTrue(cmd.contains("FOO=bar"), "missing FOO=bar in " + cmd);
+        assertTrue(cmd.contains("_BAR=b"), "missing _BAR=b in " + cmd);
+        assertTrue(cmd.contains("BAZ123=qux"), "missing BAZ123=qux in " + cmd);
+    }
+
+    @Test
+    void buildCommandRejectsFlagLikeEnvKeyBeforeDockerStarts() {
+        // A key that starts with '-' (e.g. "--privileged") would, if
+        // concatenated naively, inject an extra Docker flag. It MUST be
+        // rejected before the docker process is launched.
+        for (String badKey : new String[]{
+                "--privileged",   // flag-injection attempt
+                "1ABC",           // starts with a digit
+                "A B",            // contains whitespace
+                "A=B",            // contains '='
+                ""                // empty
+        }) {
+            SandboxRequest req = SandboxRequest.builder()
+                    .command(List.of("true"))
+                    .environmentVariables(Map.of(badKey, "v"))
+                    .config(SandboxConfig.defaults())
+                    .build();
+            SandboxException ex = assertThrows(SandboxException.class,
+                    () -> DockerSandboxBackend.buildDockerCommand(
+                            "ctr-env-bad", "alpine", req, SandboxConfig.defaults()),
+                    "invalid env key must be rejected: '" + badKey + "'");
+            assertEquals(SandboxFailureReason.INVALID_ENVIRONMENT_VARIABLE, ex.getReason(),
+                    "invalid env key -> INVALID_ENVIRONMENT_VARIABLE (key='" + badKey + "')");
+            assertNotNull(ex.getMessage(), "exception message must be populated");
+        }
+    }
+
+    @Test
+    void validateEnvKeyHelperAcceptsAndRejects() {
+        // Direct helper test (no Docker daemon) covering the POSIX grammar.
+        // Valid keys pass silently.
+        for (String ok : new String[]{"FOO", "_BAR", "BAZ123", "_", "A_B_C"}) {
+            DockerSandboxBackend.validateEnvironmentVariableKey(ok);
+        }
+        // Invalid keys raise with the dedicated reason.
+        for (String bad : new String[]{
+                "--privileged", "1ABC", "A B", "A=B", "", "A-B", "A.B", "A\bB"
+        }) {
+            SandboxException ex = assertThrows(SandboxException.class,
+                    () -> DockerSandboxBackend.validateEnvironmentVariableKey(bad),
+                    "helper must reject invalid env key: '" + bad + "'");
+            assertEquals(SandboxFailureReason.INVALID_ENVIRONMENT_VARIABLE, ex.getReason(),
+                    "helper invalid key -> INVALID_ENVIRONMENT_VARIABLE (key='" + bad + "')");
+        }
     }
 
     @Test
@@ -427,7 +540,7 @@ public class TestDockerSandboxBackend {
                 .workingDirectory(tempDir.toFile())
                 .config(SandboxConfig.builder()
                         .wallSeconds(60)
-                        .cpuSeconds(1)
+                        .cpuCores(1.0)
                         .memoryMb(128)
                         .build())
                 .build();
