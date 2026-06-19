@@ -1,6 +1,6 @@
 # 267 nop-job 资源限制特性 worker 侧正确性修复
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-06-19
 > Source: `ai-dev/audits/2026-06-19-0931-adversarial-review-nop-job/01-open-findings.md`（AR-83, AR-84, AR-88, AR-94, AR-95）
 > Related: `ai-dev/archived/2026-06/111-nop-job-r9-and-deep-audit-remediation.md`（completed，R9 P1 修复）
@@ -145,18 +145,18 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] AR-83/84/88/95 的 confirmed live defect 已修复且有回归测试
-- [ ] AR-94 已裁定（worker 侧强制为守卫）并有证据
-- [ ] 资源限制特性在"声明 capacity + 大任务 + 存量 null-cost schedule"组合下端到端可用
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect
-- [ ] 受影响 owner docs（`docs-for-ai/03-modules/nop-job.md`）与 design 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：调用链运行时连通，无空方法体/静默跳过
-- [ ] `./mvnw compile -pl nop-job -am`
-- [ ] `./mvnw test -pl nop-job -am`
-- [ ] checkstyle 通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/267-nop-job-resource-limit-worker-correctness.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0
+- [x] AR-83/84/88/95 的 confirmed live defect 已修复且有回归测试
+- [x] AR-94 已裁定（worker 侧强制为守卫）并有证据
+- [x] 资源限制特性在"声明 capacity + 大任务 + 存量 null-cost schedule"组合下端到端可用
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect
+- [x] 受影响 owner docs（`docs-for-ai/03-modules/nop-job.md`）与 design 已同步
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：调用链运行时连通，无空方法体/静默跳过
+- [x] `./mvnw compile -pl nop-job -am`
+- [x] `./mvnw test -pl nop-job -am`（全模块 BUILD SUCCESS，0 failures）
+- [x] checkstyle 通过（commit 时 ast-grep Java lint 通过）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/267-nop-job-resource-limit-worker-correctness.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（0 findings）
 
 ## Non-Blocking Follow-ups
 
@@ -164,8 +164,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待 closure audit 填写)
-Completed: (待定)
+Status Note: Plan 267 收口——4 个 Phase 全部 completed，5 个 confirmed defect（AR-83/84/88/94/95）均已修复并有回归测试。AR-94 经裁定以 worker 侧 fit-check 为容量不变量权威守卫（dispatcher 跨事务读为建议），超额派发自愈链路（AR-88 重派发）端到端验证。独立 closure audit PASS，无 blocker。
+Completed: 2026-06-19
 
 Closure Audit Evidence:
-- (待独立子 agent closure audit 后写入)
+
+- Reviewer / Agent: independent-closure-auditor（独立子 agent，fresh session `ses_122182356ffeZKlPt4dyWqPDCO`，未参与实现）
+- Audit Session: ses_122182356ffeZKlPt4dyWqPDCO
+- Verdict: PASS（无 blocker）
+- Evidence:
+  - 每条 Phase Exit Criterion（4 Phase 共 25 项）：均 PASS，含 live code 位置与 test 方法名（详见 audit 报告 per-exit-criterion 表）。例：AR-83 → `JobWorkerScannerImpl.java:216-225` + `TestJobWorkerScanner#testLargeSelfAttributedTaskClaimedWhenIdle`；AR-84 → `JobWorkerScannerImpl.java:205-207` + `#testNullCostTaskDoesNotNpeAndIsExecuted`；AR-88 → `JobTaskStoreImpl.java:149-178` + `JobTimeoutCheckerImpl.java:170,180-191` + `TestJobTimeoutChecker#testStaleWaitingTaskReDispatchedWhenAttributedToGoneWorker`；AR-95 → `JobDispatcherScannerImpl.java:152-161` + `TestJobCoordinatorScanner#testDispatcherNormalizesNullCostScheduleToZeroSingle/BestFit`。
+  - 每条 Closure Gate：均 PASS。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/267-nop-job-resource-limit-worker-correctness.md --strict` 退出码 0。
+  - Anti-Hollow 检查：无空方法体/静默 continue/吞异常；`scanStaleWaitingTasks` 在 scanOnce 运行时被调用（接线经 resetCallCount 断言）；self-attribution 去重计分支是真实算术非 no-op。`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（0 findings）。
+  - Deferred 项分类检查：无 in-scope live defect 被降级（out-of-scope AR-86→Plan 268、AR-89/90→Plan 269 已在 Non-Goals 声明）。
+  - 关键常量守卫：`NopJobCoreConstants.RESERVED_TASK_STATUSES` 未改（仍含 WAITING），dispatcher best-fit 输入不变，由 `TestJobStoreImpl#testSumReservedCostByWorkerStillIncludesWaiting` 守卫。
+
+Follow-up:
+
+- no remaining plan-owned work（in-scope 全部收口；dispatcher 跨事务并发模型重构为 non-blocking follow-up，见 Non-Blocking Follow-ups）
