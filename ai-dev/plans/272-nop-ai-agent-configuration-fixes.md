@@ -150,3 +150,7 @@ Follow-up:
 - 20-5 `nop-record-mapping` test-scope issue: successor plan required to evaluate whether to make compile scope or restructure register-model reference
 - 05-2 plan model xdef codegen pipeline redesign: optimization candidate, current delete-and-migrate approach satisfies baseline
 - 15-1 `Team.members` ConcurrentMap: optimization candidate for future cleanup PR
+
+## Follow-up handled by 275-nop-ai-agent-record-mapping-scope-fix.md
+
+- **20-5**（`nop-record-mapping` test-scope 被 main resource `register-model.xml` 引用）：已由 plan 275 收口。方案 B 落地——`.agent-plan.md` loader 与 `agentPlan.record-mappings.xml` 从 `src/main/resources` 迁移到 `src/test/resources`，`nop-record-mapping` 维持 test scope；新增 test-only `agent-plan-md.register-model.xml`（同 `name="agent-plan"`，文件名不同避免 VFS 去重）经 `discover()` name 聚合 + DeltaMerger 在 test classpath 追加注册 md loader。main resource 不再引用任何 test-scope 依赖类，消除生产环境 Silent No-Op。
