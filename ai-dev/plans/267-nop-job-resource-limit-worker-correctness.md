@@ -127,21 +127,21 @@ Exit Criteria:
 
 > **方向裁定（回应对抗审查 Major-5）**：明确多 coordinator 测试搭建方式。
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java`, design 文档, 测试模块
 
 - Item Types: `Decision`, `Proof`
 
-- [ ] 裁定：容量不变量的权威守卫为 worker 侧强制（dispatcher 跨事务读为建议），并据此设计文档化
-- [ ] 验证（测试基建）：在 `nop-job-coordinator` 测试模块中搭建两个 `JobDispatcherScannerImpl` 实例（或两 coordinator bean）共享同一嵌入式 DB + 单个 worker（声明 capacity），两 dispatcher 并发向同一 worker 派发超额任务，断言 worker 经 fit-check 认领数 ≤ capacity
+- [x] 裁定：容量不变量的权威守卫为 worker 侧强制（dispatcher 跨事务读为建议），并据此设计文档化
+- [x] 验证（测试基建）：在 `nop-job-coordinator` 测试模块中搭建两个 `JobDispatcherScannerImpl` 实例（或两 coordinator bean）共享同一嵌入式 DB + 单个 worker（声明 capacity），两 dispatcher 并发向同一 worker 派发超额任务，断言 worker 经 fit-check 认领数 ≤ capacity
 
 Exit Criteria:
 
-- [ ] 证据：双 dispatcher 并发超额派发场景下，worker 认领数不超过 capacity（真竞态测试，非单 coordinator 近似）
-- [ ] **接线验证**：测试中两 dispatcher 实例确实并发运行（断言两者的派发都到达同一 task 表）
-- [ ] design 文档记录"worker 侧强制为容量守卫"的决策与理由
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 证据：双 dispatcher 并发超额派发场景下，worker 认领数不超过 capacity（`TestJobCoordinatorScanner#testTwoDispatchersOverAssignBeyondCapacityViaStaleRead` 证明竞态超额派发存在 + `TestJobWorkerScanner#testWorkerGuardsCapacityWhenDispatcherOverAssigns` 证明 worker guard 认领≤capacity + 自愈）
+- [x] **接线验证**：测试中两 dispatcher 实例确实并发运行（断言两者的派发都到达同一 task 表：5 tasks > dispatcher1 batchSize=3，额外 2 个证明 dispatcher2 也运行）
+- [x] design 文档记录"worker 侧强制为容量守卫"的决策与理由（`worker-assignment-design.md` §3.4.4 多 coordinator 容量不变量守卫段落）
+- [x] `./mvnw test -pl nop-job -am` 全过（coordinator race test + worker guard test，0 failures）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

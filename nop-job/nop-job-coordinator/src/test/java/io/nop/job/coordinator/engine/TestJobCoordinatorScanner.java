@@ -3,12 +3,16 @@ package io.nop.job.coordinator.engine;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.ioc.StaticBeanContainer;
+import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core.JobCoreErrors;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
@@ -212,6 +216,101 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         dispatcher.setAssignedPartitions("1");
         dispatcher.setScheduleStore(scheduleStore);
         dispatcher.scanOnce();
+    }
+
+    // ========== AR-94: 多 coordinator 超额派发（dispatcher 侧竞态存在性证明）==========
+
+    /**
+     * AR-94：两个 dispatcher 实例共享同一 DB，bestFit 模式下均通过 stale-read（MockLoadProvider
+     * 恒报 reserved=ZERO）向同一 worker 派发任务，**累计派发成本超过 worker capacity**
+     *（模拟跨事务 check-then-act 竞态的后果）。证明：竞态真实存在——两个 dispatcher 都把任务
+     * 写入同一 task 表、归因给同一 worker、且总成本超出 capacity。容量不变量的权威守卫由
+     * worker 侧 fit-check 承担（见 TestJobWorkerScanner 中的 guard 用例与本计划 design 决策）。
+     */
+    @Test
+    public void testTwoDispatchersOverAssignBeyondCapacityViaStaleRead() {
+        rememberOriginalBeanContainer();
+        // Shared bestFit builder: load provider恒报 worker 空闲（reserved=ZERO），模拟 stale-read 竞态
+        AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
+        bestFitBuilder.setScheduleStore(scheduleStore);
+        bestFitBuilder.setLoadProvider(serviceName -> {
+            WorkerLoad load = new WorkerLoad();
+            ServiceInstance inst = new ServiceInstance();
+            inst.setInstanceId(AppConfig.hostId());
+            load.setInstance(inst);
+            load.setCapacity(new ResourceVector(1000, 2000));
+            load.setReserved(ResourceVector.ZERO); // stale-read: 永远认为 worker 空闲
+            return List.of(load);
+        });
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobTaskBuilder_bestFit", bestFitBuilder);
+        BeanContainer.registerInstance(container);
+
+        // 5 个 schedule（cost {300,500}）+ 5 个 WAITING bestFit fire
+        for (int i = 0; i < 5; i++) {
+            NopJobSchedule schedule = newSchedule("sched-ar94-" + i, "job-ar94-" + i);
+            schedule.setTaskCostCpu(300);
+            schedule.setTaskCostMemory(500);
+            daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+            daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(
+                    newWaitingBestFitFire(schedule, "svc"));
+        }
+
+        // 两个 dispatcher 实例，batchSize=3 → dispatcher1 锁 3 个 fire，dispatcher2 锁剩余 2 个
+        JobDispatcherScannerImpl dispatcher1 = newDispatcher(3);
+        JobDispatcherScannerImpl dispatcher2 = newDispatcher(3);
+        dispatcher1.scanOnce();
+        dispatcher2.scanOnce();
+
+        List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll();
+        // 接线验证：两个 dispatcher 都把派发写入了同一 task 表
+        assertEquals(5, tasks.size(),
+                "both dispatchers must reach the same task table; dispatcher1 alone (batchSize=3) "
+                        + "could produce at most 3, the extra 2 prove dispatcher2 also ran");
+        for (NopJobTask task : tasks) {
+            assertEquals(AppConfig.hostId(), task.getWorkerInstanceId(),
+                    "all bestFit-dispatched tasks attributed to the single worker");
+            assertEquals(300, task.getCostCpu());
+            assertEquals(500, task.getCostMemory());
+        }
+        // 超额派发后果：5 × {300,500} = {1500,2500} > worker capacity {1000,2000}
+        int totalCpu = tasks.stream().mapToInt(NopJobTask::getCostCpu).sum();
+        int totalMem = tasks.stream().mapToInt(NopJobTask::getCostMemory).sum();
+        assertTrue(totalCpu > 1000 && totalMem > 2000,
+                "stale-read race causes over-assignment beyond capacity (total={" + totalCpu + "," + totalMem + "})");
+    }
+
+    private JobDispatcherScannerImpl newDispatcher(int batchSize) {
+        JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
+        dispatcher.setFireStore(fireStore);
+        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
+        dispatcher.setBatchSize(batchSize);
+        dispatcher.setLockTimeoutMs(1000);
+        dispatcher.setAssignedPartitions("1");
+        dispatcher.setScheduleStore(scheduleStore);
+        return dispatcher;
+    }
+
+    private NopJobFire newWaitingBestFitFire(NopJobSchedule schedule, String serviceName) {
+        long now = System.currentTimeMillis();
+        NopJobFire fire = new NopJobFire();
+        fire.setJobScheduleId(schedule.getJobScheduleId());
+        fire.setNamespaceId(schedule.getNamespaceId());
+        fire.setGroupId(schedule.getGroupId());
+        fire.setJobName(schedule.getJobName());
+        fire.setTriggerSource(1);
+        fire.setScheduledFireTime(new Timestamp(now - 1000));
+        fire.setFireStatus(FIRE_STATUS_WAITING);
+        fire.setDispatchMode("bestFit");
+        fire.setExecutorKind("bestFit");
+        fire.getJobParamsSnapshotComponent().set_jsonValue(Map.of("serviceName", serviceName));
+        fire.setPartitionIndex(schedule.getPartitionIndex());
+        fire.setVersion(0L);
+        fire.setCreatedBy("test");
+        fire.setCreateTime(new Timestamp(now));
+        fire.setUpdatedBy("test");
+        fire.setUpdateTime(new Timestamp(now));
+        return fire;
     }
 
     @Test

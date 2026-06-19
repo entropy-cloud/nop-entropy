@@ -31,6 +31,7 @@ import java.util.concurrent.CompletionStage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestJobWorkerScanner extends JunitBaseTestCase {
@@ -515,6 +516,83 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
                 "third task (cumulative 1100/1900 exceeds capacity 1000 cpu) must be rejected");
     }
 
+    /**
+     * AR-94 守卫证明：dispatcher（多 coordinator 竞态）超额派发后，worker 侧 fit-check 是容量
+     * 不变量的权威守卫。本用例模拟超额派发的后果（5 个自身归因 WAITING 任务，累计成本 >
+     * capacity）：(a) worker 拒绝认领（不超额执行）；(b) 经 Phase 3 重派发（workerInstanceId 置 null）
+     * 后，worker 按累计递减认领不超过 capacity 的数量。
+     */
+    @Test
+    public void testWorkerGuardsCapacityWhenDispatcherOverAssigns() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        // 模拟两个 dispatcher 超额派发的后果：5 个自身归因 WAITING 任务，每个 {300,500}
+        PreparedTask[] overAssigned = new PreparedTask[5];
+        for (int i = 0; i < 5; i++) {
+            overAssigned[i] = prepareWaitingTaskWithCost("sched-ar94-g-" + i, "job-ar94-g-" + i, 300, 500);
+            NopJobTask t = taskStore.loadTask(overAssigned[i].task.getJobTaskId());
+            t.setWorkerInstanceId(AppConfig.hostId());
+            daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(t);
+        }
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> new ResourceVector(1000, 2000));
+
+        // (a) 守卫：reserved {1500,2500} > capacity {1000,2000} → worker 拒绝认领，全部保持 WAITING
+        worker.scanOnce();
+        for (PreparedTask pt : overAssigned) {
+            assertEquals(TASK_STATUS_WAITING, taskStore.loadTask(pt.task.getJobTaskId()).getTaskStatus(),
+                    "guard: worker must NOT claim when dispatcher over-assigned beyond capacity");
+        }
+
+        // (b) 自愈：经 Phase 3 重派发（age + reset 置 null）后，worker 按累计递减认领不超过 capacity
+        for (PreparedTask pt : overAssigned) {
+            NopJobTask t = taskStore.loadTask(pt.task.getJobTaskId());
+            t.setCreateTime(new Timestamp(System.currentTimeMillis() - 600_000));
+            daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(t);
+        }
+        int reset = taskStore.resetStaleWaitingTasks(100, null, System.currentTimeMillis() - 300_000);
+        assertEquals(5, reset, "all over-assigned tasks re-dispatched (workerInstanceId cleared)");
+
+        worker.scanOnce();
+        int claimedSuccess = 0;
+        int totalClaimedCpu = 0;
+        int totalClaimedMem = 0;
+        for (PreparedTask pt : overAssigned) {
+            NopJobTask t = taskStore.loadTask(pt.task.getJobTaskId());
+            if (t.getTaskStatus() == TASK_STATUS_SUCCESS) {
+                claimedSuccess++;
+                totalClaimedCpu += t.getCostCpu();
+                totalClaimedMem += t.getCostMemory();
+            }
+        }
+        assertEquals(3, claimedSuccess,
+                "after re-dispatch, worker claims exactly capacity-fitting count (cumulative {900,1500} <= {1000,2000})");
+        assertTrue(totalClaimedCpu <= 1000 && totalClaimedMem <= 2000,
+                "guard: total claimed cost never exceeds capacity");
+    }
+
     private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {
         long now = System.currentTimeMillis();
         NopJobSchedule schedule = new NopJobSchedule();
@@ -773,7 +851,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
             assertEquals("JOB_INVOKER_RETURNED_NULL", savedTask.getErrorCode());
         }
 
-        private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {
+    private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {
             long now = System.currentTimeMillis();
 
             NopJobSchedule schedule = new NopJobSchedule();

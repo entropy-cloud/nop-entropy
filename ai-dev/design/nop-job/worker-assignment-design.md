@@ -383,6 +383,8 @@ JobWorkerScannerImpl.scanOnce():
 
 **single 模式受益的边界条件**：`DefaultJobTaskBuilder` 把 `workerInstanceId` 写成 coordinator 的 hostId（`DefaultJobTaskBuilder.java:33`）。在 **co-deployed（worker 和 coordinator 同 JVM）** 场景下，worker 自查 `sumReservedCost(hostId)` 能看到这些 WAITING task；在**非 co-deployed** 场景下看不到（WAITING task 归在 coordinator 名下）。所以"single 模式也受益"的准确表述是：**single 模式下 worker 侧资源限制对 CLAIMED+RUNNING 永远生效，对 WAITING 仅在 co-deployed 时生效**。`partition`/`bestFit` 模式下 WAITING task 在 dispatch 时就指向目标 worker，reserved 能完整反映。
 
+**多 coordinator 容量不变量守卫（AR-94 决策）**：dispatcher 的 reserved 读取（EQL `sumReservedCostByWorker`，无锁）与 task 插入（`REQUIRES_NEW` 事务）不在同一事务。多 coordinator 各自处理不同 fire、各自读到同一 worker 的 stale reserved 快照，可能都判定"该 worker 有余量"并都向其派发，导致**超额派发**（累计成本超过 capacity）。**容量不变量的权威守卫裁定为 worker 侧 fit-check**（`JobWorkerScannerImpl.scanOnce`）：dispatcher 侧 best-fit 决策只是**建议性**（advisory），即便 dispatcher 因竞态超额派发，worker 经 §3.4.2 的 `myRemaining.fits(cost)` + 自身归因去重计（AR-83）后认领的任务累计成本不会超过其 capacity。超额但未被认领的 WAITING task 由 `task-dispatch-wait-timeout-ms`（AR-88）重派发（`workerInstanceId` 置 null）回到 competing-consumer，由有剩余容量的 worker 认领，系统自愈。**不改 dispatcher 跨事务并发模型**（更强一致性的 worker 行锁/乐观复检留作后续优化，当前 worker 侧强制已足够）。
+
 #### 3.4.5 fetch-side 过滤：模式 B 强制分配的执行路径
 
 **问题**：competing-consumer 模型下，`fetchWaitingTasks` 不按 `workerInstanceId` 过滤（`JobTaskStoreImpl.java:44-52`），且 `tryLockTasksForExecute` 会**覆盖** `workerInstanceId` 为抢到者的 hostId（`JobTaskStoreImpl.java:65`）。这意味着 dispatcher 的"派给谁"决策如果不配合 fetch-side 改动，就只是 **advisory（建议性）** 的，任何 worker 都能抢走。
