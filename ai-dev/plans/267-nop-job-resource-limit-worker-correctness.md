@@ -102,26 +102,26 @@ Exit Criteria:
 
 > **方向裁定（回应对抗审查 Major-3）**：明确回收语义，避免执行者各自发明。
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobTimeoutCheckerImpl.java`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/IJobTaskStore.java`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobTaskStoreImpl.java`
 
 - Item Types: `Fix`, `Decision`
 
-- [ ] 超时基线：`task.createTime`（task 作为 WAITING 插入的时间）
-- [ ] 配置项：新增 `nop.job.coordinator.task-dispatch-wait-timeout-ms`，默认 `600000`（10 分钟，远大于 `scan-interval`，避免误杀正常等待）
-- [ ] 回收动作：**重派发**——把超时 WAITING 任务的 `workerInstanceId` 置 null（回到 competing-consumer，任意 worker 可认领），重置 `updateTime` 租约；用版本检查避免覆盖已流转的任务。不直接判 FAILED（保留可执行机会）
-- [ ] 新增 store 方法：`resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs)` 返回重置条数；签名过滤 `taskStatus=WAITING AND createTime < deadline`
-- [ ] `JobTimeoutCheckerImpl` 新增扫描步骤调用上述方法；归因给已下线 worker 的 WAITING 任务同样被重派发
+- [x] 超时基线：`task.createTime`（task 作为 WAITING 插入的时间）
+- [x] 配置项：新增 `nop.job.coordinator.task-dispatch-wait-timeout-ms`，默认 `600000`（10 分钟，远大于 `scan-interval`，避免误杀正常等待）
+- [x] 回收动作：**重派发**——把超时 WAITING 任务的 `workerInstanceId` 置 null（回到 competing-consumer，任意 worker 可认领），重置 `updateTime` 租约；用版本检查避免覆盖已流转的任务。不直接判 FAILED（保留可执行机会）
+- [x] 新增 store 方法：`resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs)` 返回重置条数；签名过滤 `taskStatus=WAITING AND createTime < deadline`
+- [x] `JobTimeoutCheckerImpl` 新增扫描步骤调用上述方法；归因给已下线 worker 的 WAITING 任务同样被重派发
 
 Exit Criteria:
 
-- [ ] 回归测试：构造一个永不被认领的 WAITING 任务（归属不存在的 worker），在派发超时窗口后被重派发（workerInstanceId 置 null），不再永久滞留，可被其他 worker 认领
-- [ ] 回归测试：正常等待中的 WAITING 任务（未超窗口）不被误重置
-- [ ] **接线验证**：`JobTimeoutCheckerImpl` 在运行时确实调用 `resetStaleWaitingTasks`（计数器/标志位断言）
-- [ ] **无静默跳过**：回收分支显式重置并记录，非空操作/静默 continue
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] 相关 design/owner doc 同步：`docs-for-ai/03-modules/nop-job.md` 配置项表 + WAITING 回收行为
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 回归测试：构造一个永不被认领的 WAITING 任务（归属不存在的 worker），在派发超时窗口后被重派发（workerInstanceId 置 null），不再永久滞留，可被其他 worker 认领（`TestJobTimeoutChecker#testStaleWaitingTaskReDispatchedWhenAttributedToGoneWorker` + DB 级 `TestJobStoreImpl#testResetStaleWaitingTasksReDispatchesAndPreservesClaimable`）
+- [x] 回归测试：正常等待中的 WAITING 任务（未超窗口）不被误重置（`TestJobTimeoutChecker#testFreshWaitingTaskNotReset`）
+- [x] **接线验证**：`JobTimeoutCheckerImpl` 在运行时确实调用 `resetStaleWaitingTasks`（`resetCallCount`/`lastResetDeadline` 断言）
+- [x] **无静默跳过**：回收分支显式重置并记录（reset>0 时 INFO 日志 `nop.job.timeout.stale-waiting-task-reset`），非空操作/静默 continue；禁用时显式 `<=0` 早返回
+- [x] `./mvnw test -pl nop-job -am` 全过（coordinator 45 + dao 18，0 failures）
+- [x] 相关 design/owner doc 同步：`docs-for-ai/03-modules/nop-job.md` 配置项表 + WAITING 回收行为
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 多 coordinator 超额派发守卫裁定
 

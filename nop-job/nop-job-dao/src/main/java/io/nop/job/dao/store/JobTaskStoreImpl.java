@@ -146,6 +146,37 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         return taskMapper.sumReservedCostByWorker(NopJobCoreConstants.RESERVED_TASK_STATUSES);
     }
 
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) {
+        QueryBean query = new QueryBean();
+        query.setLimit(batchSize);
+        query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, _NopJobCoreConstants.TASK_STATUS_WAITING));
+        query.addFilter(FilterBeans.lt(PROP_NAME_createTime, new java.sql.Timestamp(deadlineMs)));
+        addPartitionFilter(query, partitions);
+        query.addOrderField(PROP_NAME_createTime, false);
+        query.addOrderField(PROP_NAME_jobTaskId, false);
+
+        List<NopJobTask> stale = taskDao().findAllByQuery(query);
+        if (stale.isEmpty()) {
+            return 0;
+        }
+
+        // Re-dispatch: clear workerInstanceId so any worker (competing-consumer) can claim.
+        // Keep taskStatus=WAITING (no FAILED) to preserve the executable opportunity.
+        // Optimistic version check (tryUpdateManyWithVersionCheck) protects against concurrent
+        // transitions (e.g. a worker that just claimed a task flips it to CLAIMED + bumps version,
+        // failing our update so we don't clobber live state).
+        java.sql.Timestamp now = new java.sql.Timestamp(
+                taskDao().getDbEstimatedClock().getMaxCurrentTimeMillis());
+        for (NopJobTask task : stale) {
+            task.setWorkerInstanceId(null);
+            task.setUpdatedBy("system");
+            task.setUpdateTime(now);
+        }
+        return taskDao().tryUpdateManyWithVersionCheck(stale).size();
+    }
+
     private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
         if (partitions == null || partitions.isEmpty()) {
             return;

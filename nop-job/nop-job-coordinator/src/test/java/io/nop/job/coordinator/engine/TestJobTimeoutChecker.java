@@ -491,6 +491,80 @@ public class TestJobTimeoutChecker {
                 "executionTimeoutMs should be preferred over dispatchTimeoutMs for task execution timeout");
     }
 
+    // ========== AR-88: WAITING-task 派发超时回收 ==========
+
+    /**
+     * AR-88: 一个 WAITING 任务归因给不存在的 worker，超过派发等待窗口后被重派发
+     *（workerInstanceId 置 null，回到 competing-consumer），不再永久滞留。
+     */
+    @Test
+    void testStaleWaitingTaskReDispatchedWhenAttributedToGoneWorker() {
+        checker.setTaskDispatchWaitTimeoutMs(5000);
+
+        NopJobTask stale = createTask("t-stale", "f-stale", _NopJobCoreConstants.TASK_STATUS_WAITING);
+        stale.setWorkerInstanceId("worker-gone");
+        stale.setCreateTime(new Timestamp(currentTime - 10000));
+        taskStore.addWaitingTask(stale);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertNull(stale.getWorkerInstanceId(),
+                "stale WAITING task attributed to gone worker must be re-dispatched (workerInstanceId cleared)");
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_WAITING, stale.getTaskStatus(),
+                "re-dispatch keeps WAITING (not FAILED) to preserve the executable opportunity");
+        assertEquals(1, taskStore.resetCallCount,
+                "wiring: resetStaleWaitingTasks must be called during scanOnce");
+        assertEquals(currentTime - 5000, taskStore.lastResetDeadline,
+                "deadline passed to store must be now - taskDispatchWaitTimeoutMs");
+    }
+
+    /**
+     * AR-88 防误杀：正常等待中的 WAITING 任务（未超窗口）不被重置。
+     */
+    @Test
+    void testFreshWaitingTaskNotReset() {
+        checker.setTaskDispatchWaitTimeoutMs(5000);
+
+        NopJobTask fresh = createTask("t-fresh", "f-fresh", _NopJobCoreConstants.TASK_STATUS_WAITING);
+        fresh.setWorkerInstanceId("worker-a");
+        fresh.setCreateTime(new Timestamp(currentTime - 1000));
+        taskStore.addWaitingTask(fresh);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals("worker-a", fresh.getWorkerInstanceId(),
+                "fresh WAITING task (within window) must NOT be reset");
+        assertEquals(1, taskStore.resetCallCount,
+                "resetStaleWaitingTasks is invoked once even when nothing matches");
+    }
+
+    /**
+     * AR-88 禁用语义：task-dispatch-wait-timeout-ms <= 0 时跳过回收。
+     */
+    @Test
+    void testStaleWaitingTaskResetDisabledWhenZero() {
+        checker.setTaskDispatchWaitTimeoutMs(0);
+
+        NopJobTask stale = createTask("t-stale-disabled", "f-stale-disabled",
+                _NopJobCoreConstants.TASK_STATUS_WAITING);
+        stale.setWorkerInstanceId("worker-gone");
+        stale.setCreateTime(new Timestamp(currentTime - 100000));
+        taskStore.addWaitingTask(stale);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals("worker-gone", stale.getWorkerInstanceId(),
+                "when task-dispatch-wait-timeout-ms <= 0, stale reset must be skipped");
+        assertEquals(0, taskStore.resetCallCount,
+                "resetStaleWaitingTasks must NOT be called when disabled");
+    }
+
     private NopJobTask createTask(String taskId, String fireId, int status) {
         NopJobTask task = new NopJobTask();
         task.setJobTaskId(taskId);
@@ -527,14 +601,40 @@ public class TestJobTimeoutChecker {
 
     static class MockTaskStore implements IJobTaskStore {
         private List<NopJobTask> runningTasks = new ArrayList<>();
+        private List<NopJobTask> waitingTasks = new ArrayList<>();
+        int resetCallCount = 0;
+        long lastResetDeadline = 0L;
 
         void addRunningTask(NopJobTask task) {
             runningTasks.add(task);
         }
 
+        void addWaitingTask(NopJobTask task) {
+            waitingTasks.add(task);
+        }
+
         @Override
         public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) {
             return new ArrayList<>(runningTasks);
+        }
+
+        @Override
+        public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) {
+            resetCallCount++;
+            lastResetDeadline = deadlineMs;
+            int count = 0;
+            for (NopJobTask task : waitingTasks) {
+                if (count >= batchSize) {
+                    break;
+                }
+                Integer status = task.getTaskStatus();
+                if (status != null && status == _NopJobCoreConstants.TASK_STATUS_WAITING
+                        && task.getCreateTime() != null && task.getCreateTime().getTime() < deadlineMs) {
+                    task.setWorkerInstanceId(null);
+                    count++;
+                }
+            }
+            return count;
         }
 
         @Override public boolean updateTask(NopJobTask task) { return true; }

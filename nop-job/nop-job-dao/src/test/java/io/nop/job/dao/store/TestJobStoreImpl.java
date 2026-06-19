@@ -298,6 +298,46 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals(500, w1.getMemory());
     }
 
+    // ========== AR-88: resetStaleWaitingTasks 重派发 ==========
+
+    /**
+     * AR-88：超时滞留的 WAITING 任务（归因给已下线 worker）被重派发：workerInstanceId 置 null、
+     * 状态保持 WAITING（不判 FAILED）、可被 competing-consumer 再次认领；窗口内的 fresh 任务不动。
+     */
+    @Test
+    public void testResetStaleWaitingTasksReDispatchesAndPreservesClaimable() {
+        NopJobSchedule schedule = newSchedule("sched-ar88", "job-ar88");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        // stale: WAITING, attributed to gone worker, createTime forced old
+        saveCostTask("task-ar88-stale", schedule, "worker-gone", _NopJobCoreConstants.TASK_STATUS_WAITING, 100, 200);
+        NopJobTask stale = taskStore.loadTask("task-ar88-stale");
+        stale.setCreateTime(new Timestamp(System.currentTimeMillis() - 600_000)); // 10 min ago
+        daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(stale);
+
+        // fresh: WAITING, attributed to alive worker, createTime now
+        saveCostTask("task-ar88-fresh", schedule, "worker-alive", _NopJobCoreConstants.TASK_STATUS_WAITING, 100, 200);
+
+        long deadline = System.currentTimeMillis() - 300_000; // 5 min ago
+        int reset = taskStore.resetStaleWaitingTasks(100, null, deadline);
+        assertEquals(1, reset, "only the stale task matches the deadline");
+
+        NopJobTask reDispatched = taskStore.loadTask("task-ar88-stale");
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_WAITING, reDispatched.getTaskStatus(),
+                "re-dispatch keeps WAITING (not FAILED) to preserve executable opportunity");
+        assertNull(reDispatched.getWorkerInstanceId(),
+                "stale task re-dispatched: workerInstanceId cleared back to competing-consumer");
+
+        NopJobTask freshLoaded = taskStore.loadTask("task-ar88-fresh");
+        assertEquals("worker-alive", freshLoaded.getWorkerInstanceId(),
+                "fresh task (within window) must NOT be touched");
+
+        // re-dispatched task is now claimable by any worker (appears in fetchWaitingTasks)
+        List<NopJobTask> waiting = taskStore.fetchWaitingTasks(100, null);
+        assertTrue(waiting.stream().anyMatch(t -> "task-ar88-stale".equals(t.getJobTaskId())),
+                "re-dispatched task must be fetchable as a WAITING candidate");
+    }
+
     // ========== Plan 213 Phase 3: enforceAttribution filter tests ==========
 
     @Test

@@ -50,4 +50,18 @@ public interface IJobTaskStore {
      * worker_instance_id 为 NULL 的历史行不返回。
      */
     java.util.List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker();
+
+    /**
+     * 重派发超时滞留的 WAITING 任务（AR-88）。筛选
+     * {@code taskStatus=WAITING AND createTime < deadline}（含归因给已下线 worker 的任务），
+     * 把 {@code workerInstanceId} 置 null（回到 competing-consumer，任意 worker 可认领），
+     * 重置 {@code updateTime} 租约；用乐观版本检查避免覆盖已并发流转（CLAIMED/RUNNING）的任务。
+     * 不直接判 FAILED——保留可执行机会。
+     *
+     * @param batchSize   本轮最多重置的条数
+     * @param partitions  分区过滤（与本节点负责分区对齐）
+     * @param deadlineMs  createTime 早于该时刻（毫秒）的 WAITING 任务视为超时滞留
+     * @return 实际重置的条数（版本检查通过者）
+     */
+    int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs);
 }

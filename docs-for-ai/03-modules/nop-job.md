@@ -330,6 +330,7 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.coordinator.timeout.batch-size` | 100 | 超时检查器批量大小 |
 | `nop.job.coordinator.dispatch-timeout-ms` | 300000 | 调度超时（5 分钟） |
 | `nop.job.coordinator.execution-timeout-ms` | -1 | 全局执行超时（-1 不限制，单作业可用 `timeoutSeconds` 字段覆盖） |
+| `nop.job.coordinator.task-dispatch-wait-timeout-ms` | 600000 | WAITING 任务派发等待超时（10 分钟）；超时后重派发（`workerInstanceId` 置 null 回到 competing-consumer），含归因给已下线 worker 的任务；`<=0` 禁用 |
 | `nop.job.coordinator.assigned-partitions` | （空） | 本节点负责的分区，逗号分隔 |
 
 ### 工作者（Worker）

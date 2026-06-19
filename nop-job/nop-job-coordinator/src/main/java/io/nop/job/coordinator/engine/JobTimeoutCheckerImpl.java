@@ -47,6 +47,7 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     private int batchSize = 100;
     private long dispatchTimeoutMs = 300000;
     private long executionTimeoutMs = -1;
+    private long taskDispatchWaitTimeoutMs = 600000;
     private volatile boolean running;
     private Future<?> scanFuture;
 
@@ -111,6 +112,21 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         this.executionTimeoutMs = executionTimeoutMs;
     }
 
+    /**
+     * WAITING-task 派发超时回收窗口（AR-88）。超过此窗口仍滞留 WAITING（含归因给已下线
+     * worker、或被 AR-83 double-count 卡死的）的任务被重派发（workerInstanceId 置 null）。
+     * 默认 600000ms（10 分钟），远大于 scan-interval，避免误杀正常等待。{@code <=0} 表示禁用。
+     */
+    @InjectValue("@cfg:nop.job.coordinator.task-dispatch-wait-timeout-ms|600000")
+    public void setTaskDispatchWaitTimeoutMs(long taskDispatchWaitTimeoutMs) {
+        if (taskDispatchWaitTimeoutMs > 0 && taskDispatchWaitTimeoutMs < 1000) {
+            throw new IllegalArgumentException(
+                    "nop.job.coordinator.task-dispatch-wait-timeout-ms must be >= 1000 or <= 0 (disabled), got "
+                            + taskDispatchWaitTimeoutMs);
+        }
+        this.taskDispatchWaitTimeoutMs = taskDispatchWaitTimeoutMs;
+    }
+
     @InjectValue("@cfg:nop.job.coordinator.assigned-partitions|")
     public void setAssignedPartitions(String partitions) {
         if (partitionResolver == null) {
@@ -151,8 +167,26 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
             IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
             scanTaskTimeouts(partitions);
             scanDispatchTimeouts(partitions);
+            scanStaleWaitingTasks(partitions);
         } catch (Exception e) {
             LOG.error("nop.job.timeout.scan-failed", e);
+        }
+    }
+
+    /**
+     * WAITING-task 派发超时回收（AR-88）。把滞留超过 {@code taskDispatchWaitTimeoutMs} 的
+     * WAITING 任务重派发（workerInstanceId 置 null），含归因给已下线 worker 的任务。
+     */
+    private void scanStaleWaitingTasks(IntRangeSet partitions) {
+        if (taskDispatchWaitTimeoutMs <= 0) {
+            return;
+        }
+        long now = scheduleStore.getCurrentTime();
+        long deadline = now - taskDispatchWaitTimeoutMs;
+        int reset = taskStore.resetStaleWaitingTasks(batchSize, partitions, deadline);
+        if (reset > 0) {
+            LOG.info("nop.job.timeout.stale-waiting-task-reset:count={},waitTimeoutMs={}",
+                    reset, taskDispatchWaitTimeoutMs);
         }
     }
 
