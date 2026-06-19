@@ -1,7 +1,7 @@
 # nop-ai-agent 组件分解与开发路线
 
 > Status: active
-> Updated: 2026-06-15（L3-4d DB-backed session store 完成 — Plan 185；`DBSessionStore` 使任何共享 DB 的服务实例可接管恢复 session；L2-17~L2-22 用量追踪与按模型计费设计完成 — 见 `nop-ai-agent-usage-and-billing.md`）
+> Updated: 2026-06-19（plan 271 完成——deep audit dimension-14 可靠性缺陷收口：14-01 call-agent 超时取消子 agent / 14-02 markConsumed 消息可靠性 / 14-03 ReAct LLM/工具超时 / 14-04 引擎专用线程池替代 commonPool，见 §5d）
 > Parent: `ai-dev/design/nop-ai-agent/README.md`
 
 ---
@@ -356,6 +356,19 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | AUDIT-13-12 | P1 | ✅ 已修复 | plan 270：`DefaultAgentEngine.resumeSession` 从 `loadedSession.getTenantId()` 重建租户上下文（`AgentSession.tenantId` 序列化 + `DBSessionStore` 回填 + `doExecute` 捕获），reset 前 set/finally 恢复；`DBDenialLedger.reset` 的 `AND tenant_id=?` 真正生效，不再跨租户清除 denial 记录 |
 | AUDIT-13-6 | P2 | ✅ 已修复 | plan 270：`Slf4jAuditLogger` 写入前 `sanitize` 清除所有字段 `\r`/`\n`（防日志注入，一事件=一行），日志行新增 `timestamp` 与 `actorId` 字段（设计 §4.5） |
 | AUDIT-13-8 | P2 | ⏸ deferred | plan 271：Docker `--cpus` 语义（cpuSeconds → core count）属资源限制语义修正，不影响安全 baseline，归入 reliability plan |
+
+---
+
+## 5d. 可靠性审计发现追踪（2026-06-19 deep audit dimension 14）
+
+来源：`ai-dev/audits/2026-06-19-1355-deep-audit-nop-ai-agent/`（dimension 14 = async/transaction）。每个发现的修复状态在此追踪，修复后 ❌→✅ 并标注落地 plan。
+
+| 发现 ID | 严重程度 | 修复状态 | 落地 plan / 说明 |
+|---------|---------|---------|-----------------|
+| AUDIT-14-01 | P1 | ✅ 已修复 | plan 271 Phase 2：`CallAgentExecutor.executeSubAgent` 前置解析 `childSessionId`，`.orTimeout` 触发 `TimeoutException` 时在 `.exceptionally` 调用 `engine.cancelSession(childSessionId, reason, forced=true)` 取消子 agent（非僵尸执行）；`DefaultAgentEngine.handleCallAgentRequest` 对称实现。focused 测试 `TestPlan271AsyncTimeoutReliability#callAgentTimeoutCancelsChildSession`（recording engine + cancelSession 计数断言） |
+| AUDIT-14-02 | P1 | ✅ 已修复 | plan 271 Phase 1：`DBMessageService.markConsumed`/`releaseClaim` 不再吞 `SQLException`（抛出/标记 FAILED），新增 `sweepStaleClaimedMessages` 清扫 stale CLAIMED 消息重置为 PENDING（at-least-once 交付保证）；focused 测试 `TestDBMessageServiceReliability`（markConsumed 失败路径 + stale CLAIMED 清扫） |
+| AUDIT-14-03 | P1 | ✅ 已修复 | plan 271 Phase 2：`ReActAgentExecutor.callChatWithTimeout`（`supplyAsync` + 可中断 `f.get(llmTimeoutMs)`，超时 `f.cancel(true)` 抛 CompletionException→failed）；工具 fanout per-tool `.orTimeout(toolTimeoutMs)` + `.exceptionally` 转错误结果。配置 `llmTimeoutMs`(默认 120000)/`toolTimeoutMs`(默认 300000)，`<=0` 禁用。focused 测试 `TestPlan271AsyncTimeoutReliability#reactLlmTimeoutDoesNotPermanentlyBlock` |
+| AUDIT-14-04 | P1 | ✅ 已修复 | plan 271 Phase 2：`DefaultAgentEngine.getAgentExecutor()` 专用 cached 守护线程池（`nop-ai-agent-exec-*`），三入口点（doExecute/resumeSession/restoreSession）`supplyAsync(…, getAgentExecutor())` 替代 `ForkJoinPool.commonPool()`；ReAct LLM 超时 wrapper 同用此 executor。focused 测试 `TestPlan271AsyncTimeoutReliability#engineUsesDedicatedExecutorNotCommonPool` + `#executionRunsOnDedicatedAgentThread`。完整 executor 架构重设计 = optimization candidate（deferred，当前隔离方案满足 baseline） |
 
 ---
 

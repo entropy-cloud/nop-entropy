@@ -108,6 +108,7 @@
 | `AISEC-001` | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/DefaultPathAccessChecker.java` (`checkAccess` + `resolveSymlinkRealPath`) | 路径访问检查默认实现：词法规范化 + 敏感前缀/文件名检查 + symlink 真实路径解析（`toRealPath`，解析失败 fail-closed 拒绝）。设计 §4.3「符号链接绕过」防御锚点 |
 | `AISEC-002` | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/DockerSandboxBackend.java` (`execute` + `validateHostPath` + `allowedBaseDirs`) | Docker sandbox 工作目录挂载前必须通过 `validateHostPath` 白名单校验（禁 `..`、必须真实路径、必须在 `allowedBaseDirs` 内），失败抛 `SandboxException(HOST_PATH_NOT_ALLOWED)`，绝不静默挂载 |
 | `AISEC-003` | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/Slf4jAuditLogger.java` (`buildMessage` + `sanitize`) | 审计日志默认实现：写入前清理所有字段的 `\n`/`\r`（防日志注入），日志行包含 `timestamp` 与 `actorId`。设计 §4.5 审计字段锚点 |
+| `AIREL-001` | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/DefaultAgentEngine.java` (`agentExecutor` / `callAgentTimeoutMs` / `llmTimeoutMs` / `toolTimeoutMs` + `getAgentExecutor`) | 引擎可靠性/超时配置锚点：三个入口点（`doExecute`/`resumeSession`/`restoreSession`）使用专用 executor（`nop-ai-agent-exec` 守护线程池，替代 `ForkJoinPool.commonPool()`）；`callChatWithTimeout` 给 LLM 调用加 wall-clock 超时；工具 fanout per-tool `.orTimeout`；call-agent 超时时 `engine.cancelSession(forced=true)` 取消子 agent。默认值：`callAgentTimeoutMs=60000`、`llmTimeoutMs=120000`、`toolTimeoutMs=300000`（`<=0` 禁用 LLM/工具超时） |
 
 ## 当前最重要的校准点
 
