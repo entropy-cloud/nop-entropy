@@ -345,6 +345,20 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 
 ---
 
+## 5c. 安全审计发现追踪（2026-06-19 deep audit）
+
+来源：`ai-dev/audits/2026-06-19-1355-deep-audit-nop-ai-agent/`（dimension 13 = security）。每个发现的修复状态在此追踪，修复后 ❌→✅ 并标注落地 plan。
+
+| 发现 ID | 严重程度 | 修复状态 | 落地 plan / 说明 |
+|---------|---------|---------|-----------------|
+| AUDIT-13-1 | P1 | ✅ 已修复 | plan 270：`DefaultPathAccessChecker.checkAccess` 新增 symlink 防护层 `resolveSymlinkRealPath`（`toRealPath` + 不存在路径最深祖先回退），对真实路径复用敏感前缀/文件名检查；解析失败 fail-closed 拒绝（非静默放行） |
+| AUDIT-13-7 | P1 | ✅ 已修复 | plan 270：`DockerSandboxBackend` 新增 `allowedBaseDirs` 白名单 + `validateHostPath`（禁 `..`、必须 `toRealPath` 真实存在、必须在白名单内含 symlink 解析），`execute()` mount 前校验，失败抛 `SandboxException(HOST_PATH_NOT_ALLOWED)` |
+| AUDIT-13-12 | P1 | ✅ 已修复 | plan 270：`DefaultAgentEngine.resumeSession` 从 `loadedSession.getTenantId()` 重建租户上下文（`AgentSession.tenantId` 序列化 + `DBSessionStore` 回填 + `doExecute` 捕获），reset 前 set/finally 恢复；`DBDenialLedger.reset` 的 `AND tenant_id=?` 真正生效，不再跨租户清除 denial 记录 |
+| AUDIT-13-6 | P2 | ✅ 已修复 | plan 270：`Slf4jAuditLogger` 写入前 `sanitize` 清除所有字段 `\r`/`\n`（防日志注入，一事件=一行），日志行新增 `timestamp` 与 `actorId` 字段（设计 §4.5） |
+| AUDIT-13-8 | P2 | ⏸ deferred | plan 271：Docker `--cpus` 语义（cpuSeconds → core count）属资源限制语义修正，不影响安全 baseline，归入 reliability plan |
+
+---
+
 ## 6. 设计决策记录
 
 ### D1：为什么 Agent 是配置对象而非执行体

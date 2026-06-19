@@ -105,6 +105,9 @@
 | `MOD-003` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/ModuleNamespaceHandler.java` | 实现 `module:` VFS 名字空间；`getResource()` 按模块隔离查找 |
 | `MOD-004` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/ResourceHelper.java` | `getModuleId()`、`getModuleName()`、`getModuleIdFromModuleName()` 等转换方法 |
 | `MOD-005` | `nop-kernel/nop-core/src/main/java/io/nop/core/CoreConfigs.java` | `CFG_MODULE_ENABLED_MODULE_NAMES`、`CFG_MODULE_DISABLED_MODULE_NAMES` 配置定义 |
+| `AISEC-001` | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/DefaultPathAccessChecker.java` (`checkAccess` + `resolveSymlinkRealPath`) | 路径访问检查默认实现：词法规范化 + 敏感前缀/文件名检查 + symlink 真实路径解析（`toRealPath`，解析失败 fail-closed 拒绝）。设计 §4.3「符号链接绕过」防御锚点 |
+| `AISEC-002` | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/DockerSandboxBackend.java` (`execute` + `validateHostPath` + `allowedBaseDirs`) | Docker sandbox 工作目录挂载前必须通过 `validateHostPath` 白名单校验（禁 `..`、必须真实路径、必须在 `allowedBaseDirs` 内），失败抛 `SandboxException(HOST_PATH_NOT_ALLOWED)`，绝不静默挂载 |
+| `AISEC-003` | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/Slf4jAuditLogger.java` (`buildMessage` + `sanitize`) | 审计日志默认实现：写入前清理所有字段的 `\n`/`\r`（防日志注入），日志行包含 `timestamp` 与 `actorId`。设计 §4.5 审计字段锚点 |
 
 ## 当前最重要的校准点
 
