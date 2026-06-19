@@ -70,36 +70,40 @@ public final class LlmErrorClassifier {
             return ErrorClassification.NON_TRANSIENT;
         }
 
-        // Explicit timeout → transient.
-        if (error instanceof NopTimeoutException) {
-            return ErrorClassification.TRANSIENT;
-        }
-        // Walk the cause chain for timeout markers (the http client may
-        // wrap a SocketTimeoutException / InterruptedIOException inside a
-        // NopException or CompletionException).
+        // Walk the cause chain: async dispatch (CompletableFuture.supplyAsync
+        // + .join/.get) wraps the original error in a CompletionException or
+        // ExecutionException, and HTTP clients may further wrap
+        // SocketTimeoutException inside a NopException. We must unwrap every
+        // level to reach the actual timeout marker or NopException carrying
+        // ARG_HTTP_STATUS.
         Throwable e = error;
         while (e != null) {
+            // Explicit timeout → transient.
+            if (e instanceof NopTimeoutException) {
+                return ErrorClassification.TRANSIENT;
+            }
             String name = e.getClass().getName();
             if (name.equals("java.net.SocketTimeoutException")
                     || name.equals("java.io.InterruptedIOException")) {
                 return ErrorClassification.TRANSIENT;
             }
-            e = e.getCause();
-        }
 
-        // NopException carrying an HTTP status code → classify by code.
-        Integer httpStatus = readHttpStatus(error);
-        if (httpStatus != null) {
-            int code = httpStatus;
-            if (code == 429) {
-                return ErrorClassification.RATE_LIMITED;
+            // NopException carrying an HTTP status code → classify by code.
+            Integer httpStatus = readHttpStatus(e);
+            if (httpStatus != null) {
+                int code = httpStatus;
+                if (code == 429) {
+                    return ErrorClassification.RATE_LIMITED;
+                }
+                if (code >= 500 && code < 600) {
+                    return ErrorClassification.TRANSIENT;
+                }
+                if (code >= 400 && code < 500) {
+                    return ErrorClassification.NON_TRANSIENT;
+                }
             }
-            if (code >= 500 && code < 600) {
-                return ErrorClassification.TRANSIENT;
-            }
-            if (code >= 400 && code < 500) {
-                return ErrorClassification.NON_TRANSIENT;
-            }
+
+            e = e.getCause();
         }
 
         // Unknown failure on a network call → assume transient.

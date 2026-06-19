@@ -348,8 +348,16 @@ public class CallAgentExecutor implements IToolExecutor {
             ParentPermissionConstraint parentConstraint) {
 
         String message = input != null ? input : "";
+        // Plan 271 (finding 14-01): resolve the child session id upfront so that
+        // on timeout we can call engine.cancelSession(childSessionId) to cancel
+        // the sub-agent execution (the .orTimeout below only cancels the Future,
+        // not the underlying engine.execute). When subSessionId is null/empty
+        // (create-new mode), generate a UUID — engine.execute would generate one
+        // anyway via resolveSessionId, so this is behavior-preserving.
+        String childSessionId = (subSessionId != null && !subSessionId.isEmpty())
+                ? subSessionId : UUID.randomUUID().toString();
         AgentMessageRequest execRequest = new AgentMessageRequest(
-                targetAgentId, message, subSessionId, buildConstraintMetadata(parentConstraint));
+                targetAgentId, message, childSessionId, buildConstraintMetadata(parentConstraint));
 
         CompletableFuture<AgentExecutionResult> future;
         try {
@@ -364,10 +372,30 @@ public class CallAgentExecutor implements IToolExecutor {
         CompletableFuture<AgentExecutionResult> withTimeout = future.orTimeout(timeoutMs, TimeUnit.MILLISECONDS);
 
         return withTimeout
-                .<AiToolCallResult>thenApply(result -> toToolCallResult(call, result, subSessionId))
-                .exceptionally(e -> AiToolCallResult.errorResult(call.getId(),
-                        "call-agent sub-agent execution failed or timed out: agentId=" + targetAgentId
-                                + ", error=" + e.getMessage()));
+                .<AiToolCallResult>thenApply(result -> toToolCallResult(call, result, childSessionId))
+                .exceptionally(e -> {
+                    // Plan 271 (finding 14-01): on timeout, cancel the sub-agent
+                    // so its execution does not continue as a zombie consuming
+                    // LLM API quota and database resources. .orTimeout completes
+                    // the Future exceptionally with a TimeoutException (wrapped in
+                    // CompletionException); without this cancel the underlying
+                    // engine.execute Future keeps running. cancelSession failures
+                    // are logged but never mask the original timeout error.
+                    Throwable cause = (e.getCause() != null) ? e.getCause() : e;
+                    if (cause instanceof java.util.concurrent.TimeoutException) {
+                        try {
+                            engine.cancelSession(childSessionId,
+                                    "call-agent timeout after " + timeoutMs + "ms", true);
+                        } catch (RuntimeException cancelEx) {
+                            LOG.warn("call-agent: failed to cancel sub-agent after timeout: "
+                                            + "agentId={}, childSessionId={}",
+                                    targetAgentId, childSessionId, cancelEx);
+                        }
+                    }
+                    return AiToolCallResult.errorResult(call.getId(),
+                            "call-agent sub-agent execution failed or timed out: agentId=" + targetAgentId
+                                    + ", error=" + cause.getMessage());
+                });
     }
 
     private AiAgentCallResult toToolCallResult(AiToolCall call, AgentExecutionResult result, String providedSessionId) {

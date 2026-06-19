@@ -157,7 +157,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class ReActAgentExecutor implements IAgentExecutor {
 
@@ -295,6 +300,33 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // engine wires in resolveExecutor.
     private final io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
 
+    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single LLM call
+    // inside the ReAct loop. The synchronous chatService.call(...) is wrapped
+    // in a CompletableFuture.supplyAsync(..., timeoutExecutor) + .orTimeout so
+    // a permanently hung LLM connection cannot block the agent session, worker
+    // thread, and takeover lock indefinitely. A value <= 0 disables the timeout
+    // (backward-compatible escape hatch). The shipped default (120s) is set by
+    // DefaultAgentEngine.resolveExecutor via the Builder.
+    private final long llmTimeoutMs;
+
+    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single tool call
+    // in the dispatch fanout. Each toolManager.callTool(...) future gets
+    // .orTimeout(toolTimeoutMs) so a permanently hung tool cannot block the
+    // agent session indefinitely. A value <= 0 disables the timeout
+    // (backward-compatible escape hatch). The shipped default (300s) is set by
+    // DefaultAgentEngine.resolveExecutor via the Builder.
+    private final long toolTimeoutMs;
+
+    // Plan 271 (finding 14-03 / 14-04): the executor used to run the
+    // CompletableFuture that wraps the synchronous chatService.call. This is
+    // the engine's dedicated agent executor (virtual threads by default), NOT
+    // ForkJoinPool.commonPool(), so the LLM-call timeout wrapper does not
+    // contend with other commonPool users. Virtual threads guarantee no
+    // self-deadlock when a ReAct task running on this executor dispatches the
+    // LLM-call wrapper back to the same executor. May be null only when
+    // llmTimeoutMs <= 0 (no timeout wrapping is needed).
+    private final Executor timeoutExecutor;
+
     // Plan 225 (L4-8-team-tools): team manager + team task store made
     // available to team-aware tools (team-send-message / team-status /
     // team-task-create) via the dispatch loop's AgentToolExecuteContext. The
@@ -349,7 +381,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                            io.nop.ai.agent.security.ISandboxBackend sandboxBackend,
                                            ITeamManager teamManager,
                                            ITeamTaskStore teamTaskStore,
-                                           ITeamAclChecker teamAclChecker) {
+                                           ITeamAclChecker teamAclChecker,
+                                           long llmTimeoutMs,
+                                           long toolTimeoutMs,
+                                           Executor timeoutExecutor) {
         this.chatService = chatService;
         this.toolManager = toolManager;
         this.eventPublisher = eventPublisher;
@@ -415,6 +450,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.teamManager = teamManager;
         this.teamTaskStore = teamTaskStore;
         this.teamAclChecker = teamAclChecker;
+        this.llmTimeoutMs = llmTimeoutMs;
+        this.toolTimeoutMs = toolTimeoutMs;
+        this.timeoutExecutor = timeoutExecutor;
     }
 
     public static Builder builder() {
@@ -465,6 +503,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private ITeamTaskStore teamTaskStore;
         // Plan 228 (L4-team-acl-enforcement)
         private ITeamAclChecker teamAclChecker;
+        // Plan 271 (finding 14-03 / 14-04): LLM/tool wall-clock timeouts and
+        // the executor used to wrap the synchronous chatService.call.
+        private long llmTimeoutMs;
+        private long toolTimeoutMs;
+        private Executor timeoutExecutor;
 
         public Builder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -913,6 +956,40 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return this;
         }
 
+        /**
+         * Plan 271 (finding 14-03): wall-clock timeout (ms) for a single LLM
+         * call inside the ReAct loop. A value {@code <= 0} disables the timeout
+         * (backward-compatible escape hatch). The engine wires the shipped
+         * default (120s) via {@code DefaultAgentEngine.resolveExecutor}.
+         */
+        public Builder llmTimeoutMs(long llmTimeoutMs) {
+            this.llmTimeoutMs = llmTimeoutMs;
+            return this;
+        }
+
+        /**
+         * Plan 271 (finding 14-03): wall-clock timeout (ms) for a single tool
+         * call in the dispatch fanout. A value {@code <= 0} disables the timeout
+         * (backward-compatible escape hatch). The engine wires the shipped
+         * default (300s) via {@code DefaultAgentEngine.resolveExecutor}.
+         */
+        public Builder toolTimeoutMs(long toolTimeoutMs) {
+            this.toolTimeoutMs = toolTimeoutMs;
+            return this;
+        }
+
+        /**
+         * Plan 271 (finding 14-03 / 14-04): the executor used to run the
+         * CompletableFuture that wraps the synchronous chatService.call for
+         * wall-clock timeout enforcement. Should be the engine's dedicated
+         * agent executor (virtual threads by default) so the LLM-call wrapper
+         * does not contend with other {@code ForkJoinPool.commonPool()} users.
+         */
+        public Builder timeoutExecutor(Executor timeoutExecutor) {
+            this.timeoutExecutor = timeoutExecutor;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -965,7 +1042,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE,
                     teamManager,
                     teamTaskStore,
-                    teamAclChecker
+                    teamAclChecker,
+                    llmTimeoutMs,
+                    toolTimeoutMs,
+                    timeoutExecutor
             );
         }
     }
@@ -1273,7 +1353,16 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     while (true) {
                         try {
                             llmCallStart = System.currentTimeMillis();
-                            attemptResponse = chatService.call(request, null);
+                            // Plan 271 (finding 14-03): wrap the synchronous
+                            // chatService.call in a CompletableFuture with a
+                            // wall-clock timeout so a permanently hung LLM
+                            // connection cannot block the agent session, worker
+                            // thread, and takeover lock indefinitely. On timeout
+                            // the Future completes exceptionally with a
+                            // TimeoutException (wrapped in CompletionException
+                            // by .join), which the existing catch below
+                            // classifies and routes through the retry policy.
+                            attemptResponse = callChatWithTimeout(request);
                             break;
                         } catch (RuntimeException | Error ex) {
                             // Plan 210 (L3-1): record this attempt's failure
@@ -1806,8 +1895,34 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         aiToolCall.setToolName(chatToolCall.getName());
                         aiToolCall.setInput(chatToolCall.getArgumentsText());
 
-                        futures.add(toolManager.callTool(chatToolCall.getName(), aiToolCall, toolExecCtx)
-                                .thenApply(result -> new ToolCallOutput(chatToolCall, result)));
+                        // Plan 271 (finding 14-03): bound each tool call with a
+                        // wall-clock timeout so a permanently hung tool cannot
+                        // block the agent session, worker thread, and takeover
+                        // lock indefinitely. On timeout the Future completes
+                        // exceptionally with a TimeoutException; the
+                        // .exceptionally(...) below converts it into an error
+                        // ToolCallOutput so the fanout's allOf().join() never
+                        // throws and the timed-out tool is surfaced to the LLM
+                        // as a normal tool error response. A value <= 0 disables
+                        // the timeout (backward-compatible escape hatch).
+                        CompletableFuture<ToolCallOutput> toolFuture = toolManager.callTool(
+                                        chatToolCall.getName(), aiToolCall, toolExecCtx)
+                                .thenApply(result -> new ToolCallOutput(chatToolCall, result));
+                        if (toolTimeoutMs > 0) {
+                            final ChatToolCall timedCall = chatToolCall;
+                            toolFuture = toolFuture.orTimeout(toolTimeoutMs, TimeUnit.MILLISECONDS)
+                                    .exceptionally(ex -> {
+                                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                                        String errMsg = cause instanceof java.util.concurrent.TimeoutException
+                                                ? "tool timed out after " + toolTimeoutMs + "ms: tool=" + timedCall.getName()
+                                                : "tool execution failed: tool=" + timedCall.getName()
+                                                        + ", error=" + cause.getMessage();
+                                        int resultId = parseToolCallId(timedCall.getId());
+                                        return new ToolCallOutput(timedCall,
+                                                AiToolCallResult.errorResult(resultId, errMsg));
+                                    });
+                        }
+                        futures.add(toolFuture);
                     }
 
                     @SuppressWarnings("unchecked")
@@ -2126,6 +2241,67 @@ public class ReActAgentExecutor implements IAgentExecutor {
         String provider = options.getProvider() != null ? options.getProvider() : "";
         String model = options.getModel() != null ? options.getModel() : "";
         return provider + ":" + model;
+    }
+
+    /**
+     * Plan 271 (finding 14-03): invoke {@link IChatService#call} with a
+     * wall-clock timeout. When {@code llmTimeoutMs > 0} and a
+     * {@code timeoutExecutor} is configured, the synchronous call is dispatched
+     * to the executor and bounded by {@code f.get(llmTimeoutMs)}; on timeout a
+     * {@link CompletionException} wrapping a {@link TimeoutException} is thrown
+     * and handled by the caller's retry/error-classification path. When the
+     * timeout is disabled ({@code llmTimeoutMs <= 0}) or no executor is wired,
+     * the call is invoked directly (backward-compatible).
+     *
+     * <p>Uses {@link CompletableFuture#get(long, TimeUnit)} instead of
+     * {@code .orTimeout().join()} so that a forced cancel (which interrupts
+     * the ReAct-loop thread via {@code cancelSession(forced=true)}) breaks the
+     * wait immediately. {@code .join()} is not interruptible and would block
+     * until the LLM call completes or the timeout fires, defeating the purpose
+     * of a forced cancel.
+     */
+    private ChatResponse callChatWithTimeout(ChatRequest request) {
+        if (llmTimeoutMs <= 0 || timeoutExecutor == null) {
+            return chatService.call(request, null);
+        }
+        CompletableFuture<ChatResponse> f = CompletableFuture.supplyAsync(
+                () -> chatService.call(request, null), timeoutExecutor);
+        try {
+            return f.get(llmTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new NopAiAgentException(
+                    "LLM call interrupted (forced cancel or thread interrupt)", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            throw new CompletionException(cause != null ? cause : e);
+        } catch (TimeoutException e) {
+            f.cancel(true);
+            throw new CompletionException(e);
+        }
+    }
+
+    /**
+     * Plan 271 (finding 14-03): parse a {@link ChatToolCall#getId()} (String)
+     * into the {@code int} expected by {@link AiToolCallResult#errorResult}.
+     * Returns 0 when the id is non-numeric (the id is only used for result-to-
+     * call matching, which is already satisfied by the ToolCallOutput wrapper).
+     */
+    private static int parseToolCallId(String id) {
+        if (id == null || id.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(id);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     /**

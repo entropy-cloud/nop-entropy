@@ -71,6 +71,17 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     private static final int DEFAULT_POLL_INTERVAL_MS = 50;
     private static final int DEFAULT_MAX_BATCH = 10;
 
+    /**
+     * Plan 271 (finding 14-02): a CLAIMED message older than this threshold is
+     * considered "stale" (the consumer that claimed it crashed or failed to
+     * mark it consumed/released) and is reset to PENDING by the sweep task so
+     * it can be redelivered. This is the safety net that guarantees
+     * at-least-once delivery even when {@code markConsumed}/{@code releaseClaim}
+     * themselves fail.
+     */
+    static final long DEFAULT_STALE_CLAIM_TIMEOUT_MS = 5 * 60 * 1000L;
+    static final long DEFAULT_SWEEP_INTERVAL_MS = 60 * 1000L;
+
     private final DataSource dataSource;
     private final String consumerId;
     private final ITenantResolver tenantResolver;
@@ -83,6 +94,8 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     private long pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
     private int maxBatch = DEFAULT_MAX_BATCH;
+    private long staleClaimTimeoutMs = DEFAULT_STALE_CLAIM_TIMEOUT_MS;
+    private long sweepIntervalMs = DEFAULT_SWEEP_INTERVAL_MS;
 
     public DBMessageService(DataSource dataSource) {
         this(dataSource, "db-msg-" + UUID.randomUUID(), NullTenantResolver.INSTANCE);
@@ -127,6 +140,33 @@ public class DBMessageService implements IMessageService, AutoCloseable {
         this.maxBatch = maxBatch;
     }
 
+    /**
+     * Plan 271 (finding 14-02): how long a CLAIMED message may remain
+     * un-consumed before the sweep task resets it to PENDING for redelivery.
+     * Must be positive.
+     */
+    public void setStaleClaimTimeoutMs(long staleClaimTimeoutMs) {
+        if (staleClaimTimeoutMs <= 0) {
+            throw new NopAiAgentException("staleClaimTimeoutMs must be positive, got: " + staleClaimTimeoutMs);
+        }
+        this.staleClaimTimeoutMs = staleClaimTimeoutMs;
+    }
+
+    /**
+     * Plan 271 (finding 14-02): how often the stale-CLAIMED sweep task runs.
+     * Must be positive.
+     */
+    public void setSweepIntervalMs(long sweepIntervalMs) {
+        if (sweepIntervalMs <= 0) {
+            throw new NopAiAgentException("sweepIntervalMs must be positive, got: " + sweepIntervalMs);
+        }
+        this.sweepIntervalMs = sweepIntervalMs;
+    }
+
+    long getStaleClaimTimeoutMs() {
+        return staleClaimTimeoutMs;
+    }
+
     public String getConsumerId() {
         return consumerId;
     }
@@ -146,6 +186,12 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             return t;
         });
         poller.scheduleWithFixedDelay(this::pollAllTopics, pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
+        // Plan 271 (finding 14-02): periodic sweep resets stale CLAIMED
+        // messages back to PENDING so a consumer that crashed or failed to
+        // mark-consume/release does not permanently strand a message. This is
+        // the at-least-once-delivery safety net.
+        poller.scheduleWithFixedDelay(this::sweepStaleClaimedMessagesSafely,
+                sweepIntervalMs, sweepIntervalMs, TimeUnit.MILLISECONDS);
         started = true;
         LOG.info("nop.ai.agent.message.db-message-service-started:consumerId={}", consumerId);
     }
@@ -357,7 +403,19 @@ public class DBMessageService implements IMessageService, AutoCloseable {
         }
     }
 
-    private void releaseClaim(String sid) {
+    /**
+     * Reset a claimed message back to PENDING (release the claim) so it can be
+     * redelivered.
+     *
+     * <p>Plan 271 (finding 14-02): a {@link SQLException} here is no longer
+     * silently swallowed. It is wrapped in a {@link NopAiAgentException} and
+     * propagated so the failure is visible. If this reset fails, the message
+     * stays CLAIMED; the periodic stale-CLAIMED sweep
+     * ({@link #sweepStaleClaimedMessages(long)}) is the safety net that
+     * eventually redelivers it, preserving at-least-once delivery rather than
+     * permanently stranding it.
+     */
+    void releaseClaim(String sid) {
         String tenant = currentTenant();
         String sql = "UPDATE " + AiAgentMessageTable.TABLE_NAME
                 + " SET " + AiAgentMessageTable.COL_STATUS + " = ?, "
@@ -377,11 +435,39 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
+            throw new NopAiAgentException(
+                    "DBMessageService: failed to release claim for message " + sid + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Best-effort {@link #releaseClaim} that never throws — used from recovery
+     * paths (e.g. the async consume callback) where a throw would be lost. A
+     * failure is logged; the message stays CLAIMED and is recovered by the
+     * stale-CLAIMED sweep.
+     */
+    private void releaseClaimQuietly(String sid) {
+        try {
+            releaseClaim(sid);
+        } catch (RuntimeException e) {
             LOG.error("nop.ai.agent.message.db-release-claim-error:sid={}", sid, e);
         }
     }
 
-    private void markConsumed(String sid) {
+    /**
+     * Mark a claimed message as consumed (terminal).
+     *
+     * <p>Plan 271 (finding 14-02): a {@link SQLException} here is no longer
+     * silently swallowed (the original code only logged it, leaving the
+     * message permanently stranded in CLAIMED with no redelivery). It is now
+     * wrapped in a {@link NopAiAgentException} and propagated. In the
+     * synchronous delivery path the caller ({@code pollTopic}) catches it and
+     * calls {@link #releaseClaim} to reset the message to PENDING for
+     * redelivery; in the asynchronous path the message stays CLAIMED until the
+     * stale-CLAIMED sweep ({@link #sweepStaleClaimedMessages(long)}) resets
+     * it. Either way the message is never permanently lost.
+     */
+    void markConsumed(String sid) {
         String tenant = currentTenant();
         String sql = "UPDATE " + AiAgentMessageTable.TABLE_NAME
                 + " SET " + AiAgentMessageTable.COL_STATUS + " = ?, "
@@ -401,7 +487,75 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            LOG.error("nop.ai.agent.message.db-mark-consumed-error:sid={}", sid, e);
+            throw new NopAiAgentException(
+                    "DBMessageService: failed to mark message consumed: sid=" + sid + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Plan 271 (finding 14-02): reset stale CLAIMED messages back to PENDING so
+     * they can be redelivered. A message is "stale" when it has been in
+     * CLAIMED status longer than {@code staleTimeoutMs} (its
+     * {@code CLAIMED_AT} timestamp predates {@code now - staleTimeoutMs}).
+     *
+     * <p>This is the safety net that guarantees at-least-once delivery when a
+     * consumer crashes or when {@code markConsumed}/{@code releaseClaim}
+     * themselves fail: rather than leaving the message permanently stranded in
+     * CLAIMED, it is returned to PENDING for any competing consumer (including
+     * a restarted instance) to pick up.
+     *
+     * @param staleTimeoutMs the age (in milliseconds) after which a CLAIMED
+     *                       message is considered stale; must be positive
+     * @return the number of messages reset from CLAIMED to PENDING
+     */
+    int sweepStaleClaimedMessages(long staleTimeoutMs) {
+        if (staleTimeoutMs <= 0) {
+            throw new NopAiAgentException("staleTimeoutMs must be positive, got: " + staleTimeoutMs);
+        }
+        String tenant = currentTenant();
+        String sql = "UPDATE " + AiAgentMessageTable.TABLE_NAME
+                + " SET " + AiAgentMessageTable.COL_STATUS + " = ?, "
+                + AiAgentMessageTable.COL_CONSUMER_ID + " = NULL, "
+                + AiAgentMessageTable.COL_CLAIMED_AT + " = NULL"
+                + " WHERE " + AiAgentMessageTable.COL_STATUS + " = ?"
+                + " AND " + AiAgentMessageTable.COL_CLAIMED_AT + " < ?";
+        if (tenant != null) {
+            sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
+        }
+
+        Timestamp cutoff = new Timestamp(System.currentTimeMillis() - staleTimeoutMs);
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, AiAgentMessageTable.STATUS_PENDING);
+            ps.setInt(2, AiAgentMessageTable.STATUS_CLAIMED);
+            ps.setTimestamp(3, cutoff);
+            if (tenant != null) {
+                ps.setString(4, tenant);
+            }
+            int reset = ps.executeUpdate();
+            if (reset > 0) {
+                LOG.info("nop.ai.agent.message.db-sweep-stale-claimed:reset={}, consumerId={}, staleTimeoutMs={}",
+                        reset, consumerId, staleTimeoutMs);
+            }
+            return reset;
+        } catch (SQLException e) {
+            throw new NopAiAgentException(
+                    "DBMessageService: failed to sweep stale claimed messages: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Sweep wrapper used by the scheduled task: never throws (a throw would
+     * suppress subsequent scheduled executions). Logs and continues.
+     */
+    private void sweepStaleClaimedMessagesSafely() {
+        if (closed) {
+            return;
+        }
+        try {
+            sweepStaleClaimedMessages(staleClaimTimeoutMs);
+        } catch (Exception e) {
+            LOG.error("nop.ai.agent.message.db-sweep-stale-claimed-error:consumerId={}", consumerId, e);
         }
     }
 
@@ -411,13 +565,24 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             ((CompletionStage<Object>) result).whenComplete((r, e) -> {
                 if (e != null) {
                     LOG.error("nop.ai.agent.message.db-async-consume-error:sid={}", sid, e);
-                    releaseClaim(sid);
+                    releaseClaimQuietly(sid);
                 } else {
-                    handleConsumerResult(sid, r);
+                    // Plan 271 (finding 14-02): if mark-consume fails here we
+                    // are on the async completion thread with no enclosing
+                    // try/catch, so fall back to releasing the claim (reset to
+                    // PENDING for redelivery). releaseClaimQuietly never
+                    // throws; if it also fails the stale-CLAIMED sweep is the
+                    // final safety net.
+                    try {
+                        handleConsumerResult(sid, r);
+                    } catch (RuntimeException ex) {
+                        LOG.error("nop.ai.agent.message.db-async-mark-consumed-error:sid={}", sid, ex);
+                        releaseClaimQuietly(sid);
+                    }
                 }
             });
         } else if (result instanceof ConsumeLater) {
-            releaseClaim(sid);
+            releaseClaimQuietly(sid);
         } else {
             markConsumed(sid);
         }

@@ -133,9 +133,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -406,6 +409,42 @@ public class DefaultAgentEngine implements IAgentEngine {
     // context without dominating it. A value <= 0 disables injection (explicit
     // opt-out / backward-compatible escape hatch).
     private int memoryInjectionBudgetTokens = 1024;
+
+    // Plan 271 (finding 14-04): dedicated executor for the three engine entry
+    // points (doExecute / resumeSession / restoreSession) so they no longer
+    // share ForkJoinPool.commonPool() (default ~3-7 threads). Multiple
+    // concurrent agents quickly exhausted the commonPool, causing cross-JVM
+    // functional starvation. The shipped default is a virtual-thread-per-task
+    // executor (Java 21) — unbounded, daemon, cheap to block — so concurrent
+    // agent executions never starve each other. Integrators may override via
+    // setAgentExecutor (e.g. a fixed-size pool for resource-constrained
+    // deployments). The same executor is propagated to the ReAct executor for
+    // wrapping the synchronous LLM call with a wall-clock timeout (finding
+    // 14-03); virtual threads guarantee no self-deadlock when a task running on
+    // this executor dispatches the LLM-call wrapper back to the same executor.
+    private ExecutorService agentExecutor;
+
+    // Plan 271 (finding 14-01): wall-clock timeout (ms) for a call-agent
+    // sub-agent execution. On timeout the sub-agent's session is cancelled via
+    // engine.cancelSession(forced=true) so its LLM/DB resources are released
+    // rather than left running as a zombie. The default mirrors the
+    // CallAgentExecutor's historical default (60s).
+    private long callAgentTimeoutMs = 60_000L;
+
+    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single LLM call
+    // inside the ReAct loop. A value <= 0 disables the timeout (backward-
+    // compatible escape hatch). The shipped default (120s) is generous enough
+    // for slow first-token latencies while still bounding a permanently hung
+    // connection so the agent session / worker thread / takeover lock are not
+    // blocked indefinitely.
+    private long llmTimeoutMs = 120_000L;
+
+    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single tool call
+    // inside the ReAct dispatch fanout. A value <= 0 disables the timeout
+    // (backward-compatible escape hatch). The shipped default (300s) tolerates
+    // long-running tools (e.g. shell-exec / code-exec) while still bounding a
+    // permanently hung tool so the agent session is not blocked indefinitely.
+    private long toolTimeoutMs = 300_000L;
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
 
@@ -755,18 +794,28 @@ public class DefaultAgentEngine implements IAgentEngine {
                             + (payload == null ? "null" : payload.getClass().getName()));
         }
         CallAgentRequestPayload req = (CallAgentRequestPayload) payload;
+        // Plan 271 (finding 14-01): resolve the child session id upfront so
+        // that on timeout the handler can call cancelSession to release the
+        // sub-agent's LLM/DB resources (not just abandon the Future). When
+        // req.getResolvedSessionId() is null (create-new mode), generate a
+        // UUID — engine.execute would generate one anyway via resolveSessionId,
+        // so this is behavior-preserving.
+        String childSessionId = req.getResolvedSessionId();
+        if (childSessionId == null || childSessionId.isEmpty()) {
+            childSessionId = UUID.randomUUID().toString();
+        }
         try {
             AgentMessageRequest execRequest = new AgentMessageRequest(
                     req.getTargetAgentId(),
                     req.getInput(),
-                    req.getResolvedSessionId(),
+                    childSessionId,
                     req.getParentConstraintMetadata());
             CompletableFuture<AgentExecutionResult> future = this.execute(execRequest);
             AgentExecutionResult result = future.orTimeout(req.getTimeoutMs(), TimeUnit.MILLISECONDS).join();
             String finalMessage = extractFinalAssistantMessage(result);
             String sessionId = result.getSessionId() != null
                     ? result.getSessionId()
-                    : req.getResolvedSessionId();
+                    : childSessionId;
             boolean success = result.getStatus() == AgentExecStatus.completed;
             String status = success ? "success" : "failure";
             String error = success ? null
@@ -774,10 +823,27 @@ public class DefaultAgentEngine implements IAgentEngine {
                             : "sub-agent did not complete: status=" + result.getStatus());
             return new CallAgentResponsePayload(status, sessionId, finalMessage, error);
         } catch (Exception e) {
+            // Plan 271 (finding 14-01): on timeout, cancel the sub-agent so its
+            // execution does not continue as a zombie consuming LLM/DB
+            // resources. .orTimeout above completes the Future exceptionally
+            // with a TimeoutException (wrapped in CompletionException by join);
+            // without this cancel the underlying engine.execute Future keeps
+            // running. cancelSession failures are logged but never mask the
+            // original timeout error.
+            Throwable cause = (e.getCause() != null) ? e.getCause() : e;
+            if (cause instanceof java.util.concurrent.TimeoutException) {
+                try {
+                    this.cancelSession(childSessionId,
+                            "call-agent handler timeout after " + req.getTimeoutMs() + "ms", true);
+                } catch (RuntimeException cancelEx) {
+                    LOG.warn("nop.ai.agent.call-agent.handler.cancel-failed: childSessionId={}",
+                            childSessionId, cancelEx);
+                }
+            }
             LOG.warn("nop.ai.agent.call-agent.handler.execution-failed: targetAgentId={}, correlationId={}",
                     req.getTargetAgentId(), envelope.getCorrelationId(), e);
             return new CallAgentResponsePayload(
-                    "failure", req.getResolvedSessionId(), "",
+                    "failure", childSessionId, "",
                     "call-agent handler execution failed: agentId=" + req.getTargetAgentId()
                             + ", error=" + e);
         }
@@ -1624,6 +1690,88 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Plan 271 (finding 14-04): lazily initialize and return the dedicated
+     * agent executor. The first call creates a virtual-thread-per-task
+     * executor (the shipped default); a subsequent {@link #setAgentExecutor}
+     * overrides it. The three engine entry points (doExecute / resumeSession /
+     * restoreSession) and the ReAct LLM-call timeout wrapper all consume this
+     * executor so the engine no longer shares {@code ForkJoinPool.commonPool()}
+     * and concurrent agents do not starve each other.
+     */
+    synchronized ExecutorService getAgentExecutor() {
+        if (agentExecutor == null) {
+            // Plan 271 (finding 14-04): dedicated cached thread pool with
+            // daemon threads replaces ForkJoinPool.commonPool() (default ~3-7
+            // threads) so concurrent agent executions do not starve each other.
+            // Cached pools grow on demand and reuse idle threads, providing
+            // effectively-unbounded concurrency for blocking agent work (each
+            // agent blocks on LLM/DB calls). Virtual threads (Java 21) would be
+            // ideal but the module targets Java 11. Integrators may override via
+            // setAgentExecutor (e.g. a fixed-size pool for resource-constrained
+            // deployments — note a fixed pool risks self-deadlock if the ReAct
+            // LLM-call timeout wrapper dispatches back to the same saturated
+            // pool, so a cached/virtual-thread executor is recommended).
+            agentExecutor = Executors.newCachedThreadPool(r -> {
+                Thread t = new Thread(r, "nop-ai-agent-exec");
+                t.setDaemon(true);
+                return t;
+            });
+        }
+        return agentExecutor;
+    }
+
+    /**
+     * Plan 271 (finding 14-04): override the dedicated agent executor (e.g.
+     * with a fixed-size pool for resource-constrained deployments, or a
+     * direct/synchronous executor for tests). The supplied executor is used
+     * as-is; the caller owns its lifecycle. Must be non-null.
+     */
+    public void setAgentExecutor(ExecutorService agentExecutor) {
+        this.agentExecutor = Objects.requireNonNull(agentExecutor, "agentExecutor must not be null");
+    }
+
+    /**
+     * Plan 271 (finding 14-01): wall-clock timeout (ms) for a call-agent
+     * sub-agent execution. Must be positive.
+     */
+    public void setCallAgentTimeoutMs(long callAgentTimeoutMs) {
+        if (callAgentTimeoutMs <= 0) {
+            throw new NopAiAgentException("callAgentTimeoutMs must be positive, got: " + callAgentTimeoutMs);
+        }
+        this.callAgentTimeoutMs = callAgentTimeoutMs;
+    }
+
+    public long getCallAgentTimeoutMs() {
+        return callAgentTimeoutMs;
+    }
+
+    /**
+     * Plan 271 (finding 14-03): wall-clock timeout (ms) for a single LLM call
+     * inside the ReAct loop. A value {@code <= 0} disables the timeout
+     * (backward-compatible escape hatch).
+     */
+    public void setLlmTimeoutMs(long llmTimeoutMs) {
+        this.llmTimeoutMs = llmTimeoutMs;
+    }
+
+    public long getLlmTimeoutMs() {
+        return llmTimeoutMs;
+    }
+
+    /**
+     * Plan 271 (finding 14-03): wall-clock timeout (ms) for a single tool call
+     * inside the ReAct dispatch fanout. A value {@code <= 0} disables the
+     * timeout (backward-compatible escape hatch).
+     */
+    public void setToolTimeoutMs(long toolTimeoutMs) {
+        this.toolTimeoutMs = toolTimeoutMs;
+    }
+
+    public long getToolTimeoutMs() {
+        return toolTimeoutMs;
+    }
+
+    /**
      * Test-only accessor for the engine's own tool access checker. Used by
      * integration tests to verify that
      * {@link #resolveEffectiveToolAccessChecker} wraps (or does not wrap) this
@@ -1895,6 +2043,9 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         try {
+            // Plan 271 (finding 14-04): use the dedicated agent executor instead
+            // of ForkJoinPool.commonPool() so concurrent agents do not starve
+            // each other (commonPool defaults to ~3-7 threads JVM-wide).
             return CompletableFuture.supplyAsync(() -> {
                 // Plan 232 (L4-multi-tenant-isolation): set the thread-local
                 // tenant context on the worker thread BEFORE any DB store
@@ -1979,7 +2130,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // pooled thread does not leak tenant state to the next task.
                     ThreadLocalTenantResolver.clear();
                 }
-        });
+        }, getAgentExecutor());
         } catch (RuntimeException e) {
             // Plan 197: if supplyAsync itself fails to submit the task
             // (e.g. RejectedExecutionException), clean up the pre-registered
@@ -2198,6 +2349,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         try {
+            // Plan 271 (finding 14-04): use the dedicated agent executor (see doExecute).
             return CompletableFuture.supplyAsync(() -> {
                 // Plan 232 + Plan 270 finding 13-12: set/clear tenant context
                 // on the worker thread. resumeSession has no request/Principal
@@ -2256,7 +2408,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                 } finally {
                     ThreadLocalTenantResolver.clear();
                 }
-        });
+        }, getAgentExecutor());
         } catch (RuntimeException e) {
             // Plan 197: clean up pre-registered handle if supplyAsync fails.
             runningExecutions.remove(sessionId, handle);
@@ -2377,6 +2529,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         try {
+            // Plan 271 (finding 14-04): use the dedicated agent executor (see doExecute).
             return CompletableFuture.supplyAsync(() -> {
                 // Plan 232: set/clear tenant context on the worker thread.
                 // restoreSession has no Principal source in the foundational
@@ -2431,7 +2584,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                 } finally {
                     ThreadLocalTenantResolver.clear();
                 }
-        });
+        }, getAgentExecutor());
         } catch (RuntimeException e) {
             // Plan 197: clean up pre-registered handle if supplyAsync fails.
             runningExecutions.remove(sessionId, handle);
@@ -2734,6 +2887,13 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .teamManager(this.teamManager)
                     .teamTaskStore(this.teamTaskStore)
                     .teamAclChecker(this.teamAclChecker)
+                    // Plan 271 (finding 14-03 / 14-04): propagate the wall-clock
+                    // LLM/tool timeouts and the dedicated executor (used to wrap
+                    // the synchronous chatService.call with a timeout) to the
+                    // ReAct executor.
+                    .llmTimeoutMs(this.llmTimeoutMs)
+                    .toolTimeoutMs(this.toolTimeoutMs)
+                    .timeoutExecutor(getAgentExecutor())
                     .build();
         }
         if ("single-turn".equals(mode)) {
