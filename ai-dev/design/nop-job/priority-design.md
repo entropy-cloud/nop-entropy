@@ -2,8 +2,8 @@
 
 **日期**：2026-06-18
 **范围**：nop-job 的任务调度优先级（WAITING task 的拉取排序）
-**状态**：草案
-**关联**：`01-architecture-baseline.md`（核心流程）、`worker-assignment-design.md`（正交维度）、`block-strategy-design.md`（正交维度）
+**状态**：active（§3.2.1 索引/filesort 评估 AR-92 已收口）
+**关联**：`01-architecture-baseline.md`（核心流程）、`worker-assignment-design.md`（正交维度）、`block-strategy-design.md`（正交维度）、`ai-dev/plans/269-nop-job-dispatch-config-index-quality.md`（AR-92）、`ai-dev/plans/267-nop-job-resource-limit-worker-correctness.md`（AR-95 priority null→0 归一）
 
 ---
 
@@ -66,6 +66,34 @@ ORDER BY priority DESC, createTime ASC, jobTaskId ASC
 - `priority DESC`：高优先级先被 worker 看到
 - `createTime ASC`：同优先级时，先触发的先被拉取（保留 FIFO 公平性）
 - `jobTaskId ASC`：同 createTime 的最后 tiebreaker，保证排序稳定
+
+### 3.2.1 索引与 filesort 评估（AR-92）
+
+`fetchWaitingTasks` 的实际 SQL 形态（`JobTaskStoreImpl.fetchWaitingTasks:56-77`）：
+
+```
+WHERE taskStatus = 0  [WAITING]
+  AND partitionIndex BETWEEN ? AND ?        -- 仅当 partitions 非空（addPartitionFilter BETWEEN 范围谓词）
+ORDER BY priority DESC, createTime ASC, jobTaskId ASC
+LIMIT ?
+```
+
+现有索引（`nop-job.orm.xml` NopJobTask.indexes）：
+
+- `IX_NOP_JOB_TASK_RUN_SCAN(taskStatus, partitionIndex, createTime)`
+
+**结论：filesort 不可消除（watch-only residual）。** 理由（非"合理等效"，是索引结构事实）：
+
+1. `taskStatus` 是等值谓词（`= WAITING`），可用作索引前导列。
+2. `partitionIndex` 是 **BETWEEN 范围谓词**（`addPartitionFilter` 产 `partitionIndex BETWEEN offset AND last`）。复合索引中**范围列之后的所有列不能用于满足 ORDER BY**（MySQL/PostgreSQL/Oracle 的一致行为：range scan 打破了后续列的有序性）。
+3. 因此把 `priority` 加入 `IX_NOP_JOB_TASK_RUN_SCAN`（无论置于 `partitionIndex` 之前或之后）都无法让 `priority DESC` 走索引排序：
+   - 置于 `partitionIndex` 之后 → 被范围列阻断（理由 2）。
+   - 置于 `partitionIndex` 之前 → 索引无法再用 `partitionIndex` 做范围定位，且 `taskStatus` 之后再是 `priority` 时，`partitionIndex` BETWEEN 仍需回表/filesort。
+4. 无分区过滤（单节点全分区）时，`IX(taskStatus, priority DESC, createTime)` 理论上可消 filesort，但这会引入一条额外的写时维护索引，且与有分区过滤路径行为不一致（两套路径）。代价/收益不划算——`fetchWaitingTasks` 带 `LIMIT batchSize`，filesort 是有界排序（bounded），非全表排序。
+
+故**不新增 priority 复合索引**，归类为 `watch-only residual`：filesort 为有界代价（batchSize 限制），不影响正确性；若未来 batchSize 显著增大或高并发 worker 抢占成为瓶颈，再评估专用索引。
+
+**跨库 NULL 排序一致性：由 Plan 267 AR-95 的 null→0 归一兜底，不依赖索引。** `priority` 列 `defaultValue=0`（`nop-job.orm.xml:423`），且 dispatcher 在落库前对 schedule 可空 `priority` 做 null→0 归一（`JobDispatcherScannerImpl.normalizeCost`），故 `NopJobTask.priority` **永不为 NULL**。因此 MySQL（NULLs first）/PostgreSQL（NULLs last）/Oracle（NULLs last）的 NULL 排序差异在本列上不会触发——排序输入恒为非空 int，跨库行为一致。
 
 ### 3.3 dispatch 时的快照
 

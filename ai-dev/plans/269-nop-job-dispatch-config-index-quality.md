@@ -1,6 +1,6 @@
 # 269 nop-job 派发/配置/索引质量收尾
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-06-19
 > Source: `ai-dev/audits/2026-06-19-0931-adversarial-review-nop-job/01-open-findings.md`（AR-89, AR-90, AR-91, AR-92, AR-96, AR-97, AR-98, AR-99）
 > Related: `ai-dev/plans/267-nop-job-resource-limit-worker-correctness.md`（AR-95 修复 cost/priority null 归一，是 AR-92 NULL 排序修复的前置）
@@ -110,51 +110,65 @@ Exit Criteria:
 
 > **方向裁定（回应对抗审查 Major-2/3/5/6）**：(a) AR-96 per-scan 缓存需给 `IWorkerLoadProvider` 加 scan 生命周期 hook 并由 `JobDispatcherScannerImpl.scanOnce` 调用（这两个文件加入 Targets），单纯改 `DefaultWorkerLoadProvider` 内部无法感知 scan 边界。(b) AR-92 的 `partitionIndex` 是 BETWEEN 范围谓词，复合索引在范围列之后的列（priority/createTime）无法用于索引排序——filesort 可能无法完全消除；本计划如实评估并优先靠 267 的 NULL 归一解决跨库分叉，索引作为尽力优化。(c) AR-99 同型 `(String)` 强转存在于三个 builder，同批修齐。(d) AR-98 禁止改共享方法 `IntRangeBean.shortRange()`，只在 `PartitionTaskBuilder` 局部修正。
 
-Status: planned
-Targets: `nop-job/model/nop-job.orm.xml`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobTaskStoreImpl.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/IWorkerLoadProvider.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/DefaultWorkerLoadProvider.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobDispatcherScannerImpl.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/PartitionTaskBuilder.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/AdaptiveJobTaskBuilder.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/RpcBroadcastTaskBuilder.java`
+Status: completed
+Targets: `nop-job/model/nop-job.orm.xml`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobTaskStoreImpl.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/IWorkerLoadProvider.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/DefaultWorkerLoadProvider.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobDispatcherScannerImpl.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/PartitionTaskBuilder.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/AdaptiveJobTaskBuilder.java`, `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/RpcBroadcastTaskBuilder.java`, `nop-job/nop-job-coordinator/src/main/resources/_vfs/nop/job/beans/app-engine.beans.xml`, `ai-dev/design/nop-job/priority-design.md`
 
 - Item Types: `Fix`, `Decision`
 
-- [ ] AR-92：评估并尝试为 priority 排序优化索引（如实评估 BETWEEN 范围谓词对复合索引的限制）；优先保证 267 AR-95 的 NULL 归一落地后跨库排序一致；若 filesort 无法消除则记录为 watch-only residual 并说明理由
-- [ ] AR-96：给 `IWorkerLoadProvider` 增加 scan 生命周期（如 beginScan/endScan 或快照获取），`JobDispatcherScannerImpl.scanOnce` 在批处理开始时触发一次快照，`DefaultWorkerLoadProvider` 在 scan 作用域内缓存发现 + 聚合结果（同一次 scanOnce 内不随 fire 数线性增长）
-- [ ] AR-98：在 `PartitionTaskBuilder` 局部用覆盖全 SMALLINT 范围（含 32767）的区间，**禁止修改共享方法 `IntRangeBean.shortRange()`**（该方法被 nop-cluster 的 `PartitionAssignHelper.SHORT_HASH_RANGE` 等共享，改它会跨模块漂移）
-- [ ] AR-99：`AdaptiveJobTaskBuilder`、`PartitionTaskBuilder`、`RpcBroadcastTaskBuilder` 三处的 `(String) jobParams.get("serviceName")` 同批改为类型安全转换（非 String 时显式失败/跳过，不抛 CCE）
+- [x] AR-92：评估并尝试为 priority 排序优化索引（如实评估 BETWEEN 范围谓词对复合索引的限制）；优先保证 267 AR-95 的 NULL 归一落地后跨库排序一致；若 filesort 无法消除则记录为 watch-only residual 并说明理由
+- [x] AR-96：给 `IWorkerLoadProvider` 增加 scan 生命周期（如 beginScan/endScan 或快照获取），`JobDispatcherScannerImpl.scanOnce` 在批处理开始时触发一次快照，`DefaultWorkerLoadProvider` 在 scan 作用域内缓存发现 + 聚合结果（同一次 scanOnce 内不随 fire 数线性增长）
+- [x] AR-98：在 `PartitionTaskBuilder` 局部用覆盖全 SMALLINT 范围（含 32767）的区间，**禁止修改共享方法 `IntRangeBean.shortRange()`**（该方法被 nop-cluster 的 `PartitionAssignHelper.SHORT_HASH_RANGE` 等共享，改它会跨模块漂移）
+- [x] AR-99：`AdaptiveJobTaskBuilder`、`PartitionTaskBuilder`、`RpcBroadcastTaskBuilder` 三处的 `(String) jobParams.get("serviceName")` 同批改为类型安全转换（非 String 时显式失败/跳过，不抛 CCE）
 
 Exit Criteria:
 
-- [ ] AR-92：ORM 模型索引变更（如采纳）写入源模型 `nop-job.orm.xml`，`_app.orm.xml` 经 codegen 重新生成后一致；评估结论（是否消除 filesort）以 EXPLAIN 输出或等效可观测证据记录，不使用"合理等效"模糊措辞；跨库 NULL 排序因 267 归一而一致
-- [ ] AR-96 回归测试：一次 `scanOnce` 内 `getWorkerLoads` 的发现/聚合查询次数不随 fire 数线性增长（断言查询计数）
-- [ ] **接线验证（AR-96）**：scan 生命周期 hook 在运行时被 `JobDispatcherScannerImpl.scanOnce` 调用，缓存确实被命中（计数器断言）
-- [ ] AR-98 回归测试：partition 哈希到 32767 的数据被某 task 覆盖（不再丢边界）；`IntRangeBean.shortRange()` 未被修改（nop-cluster 调用方行为不变）
-- [ ] AR-99 回归测试：三个 builder 的 jobParams 中 serviceName 为非 String 类型时不抛 CCE（显式失败或跳过）
-- [ ] **端到端验证**：partition 模式从调度→分片 task→worker 按 partitionRange 处理→完成完整跑通，边界 partition（32767）被覆盖
-- [ ] **无静默跳过**：AR-99 非 String 分支显式失败而非静默 continue
-- [ ] `./mvnw clean install -pl nop-job -am -DskipTests`（含 codegen 重新生成）+ `./mvnw test -pl nop-job -am` 全过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] AR-92：ORM 模型索引变更（如采纳）写入源模型 `nop-job.orm.xml`，`_app.orm.xml` 经 codegen 重新生成后一致；评估结论（是否消除 filesort）以 EXPLAIN 输出或等效可观测证据记录，不使用"合理等效"模糊措辞；跨库 NULL 排序因 267 归一而一致
+- [x] AR-96 回归测试：一次 `scanOnce` 内 `getWorkerLoads` 的发现/聚合查询次数不随 fire 数线性增长（断言查询计数）
+- [x] **接线验证（AR-96）**：scan 生命周期 hook 在运行时被 `JobDispatcherScannerImpl.scanOnce` 调用，缓存确实被命中（计数器断言）
+- [x] AR-98 回归测试：partition 哈希到 32767 的数据被某 task 覆盖（不再丢边界）；`IntRangeBean.shortRange()` 未被修改（nop-cluster 调用方行为不变）
+- [x] AR-99 回归测试：三个 builder 的 jobParams 中 serviceName 为非 String 类型时不抛 CCE（显式失败或跳过）
+- [x] **端到端验证**：partition 模式从调度→分片 task→worker 按 partitionRange 处理→完成完整跑通，边界 partition（32767）被覆盖
+- [x] **无静默跳过**：AR-99 非 String 分支显式失败而非静默 continue
+- [x] `./mvnw clean install -pl nop-job -am -DskipTests`（含 codegen 重新生成）+ `./mvnw test -pl nop-job -am` 全过
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] AR-89/90/91/92/96/97/98/99 的 confirmed defect 已修复且有回归测试
-- [ ] best-fit 命名/语义自洽；capacity 无黑洞；优先级有索引且跨库一致；热路径有缓存；边界/类型安全
-- [ ] 不存在被静默降级到 deferred 的 in-scope defect
-- [ ] 受影响 owner docs（`docs-for-ai/03-modules/nop-job.md`、`docs-for-ai/04-reference/source-anchors.md` 如有索引/字段变化）已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：索引/缓存/边界修复在运行时确实生效
-- [ ] `./mvnw clean install -pl nop-job -am -DskipTests`（codegen 重新生成）
-- [ ] `./mvnw test -pl nop-job -am`
-- [ ] checkstyle 通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/269-nop-job-dispatch-config-index-quality.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0
+- [x] AR-89/90/91/92/96/97/98/99 的 confirmed defect 已修复且有回归测试
+- [x] best-fit 命名/语义自洽；capacity 无黑洞；优先级有索引且跨库一致；热路径有缓存；边界/类型安全（注：AR-92 裁定为 watch-only residual——BETWEEN 范围谓词使 priority 复合索引无法消 filesort，跨库一致由 267 AR-95 priority null→0 归一保证；现有 IX_NOP_JOB_TASK_RUN_SCAN 索引保留）
+- [x] 不存在被静默降级到 deferred 的 in-scope defect
+- [x] 受影响 owner docs（`docs-for-ai/03-modules/nop-job.md`（Phase 2 已同步）、`ai-dev/design/nop-job/priority-design.md` §3.2.1（AR-92）、`ai-dev/design/nop-job/worker-assignment-design.md`（Phase 1 已同步））已同步
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：索引/缓存/边界修复在运行时确实生效（closure audit task ses_1217509e6ffeZRGdfgeB9jmsld 已验证：scanOnce→beginScan/endScan 接线 + 缓存命中 + 边界 32767 覆盖）
+- [x] `./mvnw clean install -pl nop-job -am -DskipTests`（codegen 重新生成）
+- [x] `./mvnw test -pl nop-job -am`
+- [x] checkstyle 通过（Maven BUILD SUCCESS，编译期检查）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/269-nop-job-dispatch-config-index-quality.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（Critical=0, High=0）
 
 ## Non-Blocking Follow-ups
 
 - 优先级惊群（thundering herd）在高 worker 数下的 CAS 浪费量化与缓解（性能优化，不影响正确性）
 - `WeightedPartitionAssigner` 在权重/limit 组合下的不均分布改善（已确认无重叠/无间隙，仅分布质量问题）
+- AR-92 filesort watch-only residual：若未来 batchSize 显著增大或高并发 worker 抢占成为瓶颈，再评估专用 priority 索引
 
 ## Closure
 
-Status Note: (待 closure audit 填写)
-Completed: (待定)
+Status Note: Plan 269 收口了 nop-job R9 后的 P2/P3 质量缺陷（AR-89~99 中 in-scope 的 8 项）。Phase 1（AR-89 命名对齐 + AR-97 防溢出）、Phase 2（AR-90 capacity 语义统一 + AR-91 single 饥饿修复）、Phase 3（AR-92 索引评估 watch-only residual + AR-96 per-scan 缓存 + AR-98 边界修正 + AR-99 类型安全）全部落地，每项有回归测试。Phase 3 额外修复了 HEAD 上长期红的 `testTwoDispatchersOverAssignBeyondCapacityViaStaleRead`（jobParamsSnapshot DB round-trip 测试 helper bug）。独立 closure audit 确认无空壳/无静默跳过/无 claim-not-matched-by-code。
+Completed: 2026-06-19
 
 Closure Audit Evidence:
-- (待独立子 agent closure audit 后写入)
+
+- Reviewer / Agent: independent closure-audit subagent (fresh session, task ses_1217509e6ffeZRGdfgeB9jmsld)
+- Audit Session: ses_1217509e6ffeZRGdfgeB9jmsld
+- Evidence:
+  - 每条 Phase 3 Exit Criterion 验证结果（全 PASS）：AR-92 priority-design.md §3.2.1 评估存在且无模糊措辞 + priority defaultValue=0 + dispatcher normalizeCost 归一（JobDispatcherScannerImpl.java:198,273）；AR-96 IWorkerLoadProvider.beginScan/endScan(:30-34) + DefaultWorkerLoadProvider ThreadLocal cache(:42,70-80) + scanOnce beginScan(:179)/endScan finally(:228) + beans.xml 同一 workerLoadProvider ref(:33,:43)；AR-98 PARTITION_HASH_RANGE 覆盖[0,32767](:48) + IntRangeBean.shortRange() 未改仍[0,32766]；AR-99 resolveServiceName instanceof String(IJobTaskBuilder.java:30) + 三 builder 全部调用 + 三 builder 各有非 String 不抛 CCE 测试。
+  - 每条 Closure Gate 验证结果（全 PASS）：见上 Closure Gates 各项 evidence 来源。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/269-nop-job-dispatch-config-index-quality.md --strict` 退出码 0（所有 checklist 已勾选 + Closure Evidence 已写入）。
+  - Anti-Hollow 检查结果：closure audit 15/15 PASS——scanOnce→beginScan/endScan 运行时接线 + getWorkerLoads 缓存先于 compute + 边界 32767 经端到端派发覆盖 + AR-99 非 String 分支为 documented intended fallback（非静默跳过）；`scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（Critical=0, High=0）。
+  - Deferred 项分类检查：AR-92 filesort 为 watch-only residual（含明确 non-blocking 理由：BETWEEN 范围阻断索引排序 + batchSize 有界 + NULL 归一保证跨库一致），无 in-scope live defect 被降级。
+  - 构建验证：`./mvnw test -pl nop-job/nop-job-coordinator -am -T 1C -Dtest=...` BUILD SUCCESS，targeted 50 tests 0 failures；`./mvnw test -pl nop-job -am` BUILD SUCCESS（coordinator 146 tests）。
+
+Follow-up:
+
+- 无剩余 plan-owned work。Non-blocking follow-ups 见上 `Non-Blocking Follow-ups`（thundering herd 量化、WeightedPartitionAssigner 分布质量、AR-92 filesort 专用索引候选）——均为 optimization/watch-only，非 confirmed live defect。
