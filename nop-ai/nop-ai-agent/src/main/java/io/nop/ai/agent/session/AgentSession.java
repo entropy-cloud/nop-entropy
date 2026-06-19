@@ -23,6 +23,17 @@ public class AgentSession {
     private String parentSessionId;
     private String planId;
     private Long compactedAt;
+    /**
+     * Multi-tenant identifier captured from the request's
+     * {@code Principal.tenantId} at execution time (plan 270 finding 13-12).
+     * Persisted so recovery paths ({@code resumeSession} /
+     * {@code restoreSession} — which have no request/Principal source) can
+     * re-establish the tenant context before any tenant-scoped DB operation
+     * (e.g. {@code DBDenialLedger.reset}). {@code null} means "no tenant
+     * context" (single-tenant / legacy — all data visible, backward
+     * compatible).
+     */
+    private String tenantId;
 
     private AgentSession(String sessionId, String agentName, long createdAt) {
         this.sessionId = sessionId;
@@ -197,5 +208,20 @@ public class AgentSession {
     public void markCompacted() {
         this.compactedAt = System.currentTimeMillis();
         this.touch();
+    }
+
+    /**
+     * @return the tenantId captured from the request's
+     *         {@code Principal.tenantId} at execution time, or {@code null}
+     *         when the session has no tenant context (single-tenant / legacy).
+     *         Recovery paths read this to re-establish the tenant context
+     *         before tenant-scoped DB operations (plan 270 finding 13-12).
+     */
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }

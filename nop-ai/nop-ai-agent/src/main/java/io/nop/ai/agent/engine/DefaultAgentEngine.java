@@ -1823,6 +1823,15 @@ public class DefaultAgentEngine implements IAgentEngine {
         // misconfiguration before entering the async block.
         precheckTeamDeclarations(agentModel);
         AgentSession session = sessionStore.getOrCreate(sessionId, request.getAgentName());
+        // Plan 270 finding 13-12: capture the tenantId onto the session so
+        // recovery paths (resumeSession/restoreSession — which have no
+        // request/Principal source) can re-establish the tenant context
+        // before tenant-scoped DB operations. Only set when the request
+        // carries a tenant, so a follow-up anonymous request does not clobber
+        // a previously captured tenant.
+        if (tenantId != null) {
+            session.setTenantId(tenantId);
+        }
         int historyCount = session.getMessageCount();
 
         if (historyCount == 0) {
@@ -2113,21 +2122,38 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         String agentName = session.getAgentName();
 
-        // Capture the pre-reset denial count for the audit event before clearing.
-        int preResetDenialCount = denialLedger.getDenialCount(sessionId);
+        // Plan 270 finding 13-12: resumeSession has no request/Principal
+        // source, so the tenant context must be re-established from the
+        // persisted session. Without this the ledger's reset/clear SQL would
+        // run with tenant=null and DELETE every tenant's denial rows for this
+        // sessionId (cross-tenant data destruction). Capture the session's
+        // tenantId and scope the count/reset to it, restoring the caller's
+        // context afterward so the synchronous phase never leaks tenant state.
+        String sessionTenantId = session.getTenantId();
+        String previousTenant = ThreadLocalTenantResolver.current();
+        ThreadLocalTenantResolver.set(sessionTenantId);
+        try {
+            // Capture the pre-reset denial count for the audit event before clearing.
+            int preResetDenialCount = denialLedger.getDenialCount(sessionId);
 
-        // Clear the pause by resetting the ledger (design §6.2 sticky recovery).
-        denialLedger.reset(sessionId);
+            // Clear the pause by resetting the ledger (design §6.2 sticky
+            // recovery). With the tenant context now set, the ledger's reset
+            // SQL includes the tenant WHERE — only this tenant's denials are
+            // cleared.
+            denialLedger.reset(sessionId);
 
-        // Transition the session back to running before re-execution.
-        session.setStatus(AgentExecStatus.running);
+            // Transition the session back to running before re-execution.
+            session.setStatus(AgentExecStatus.running);
 
-        Map<String, Object> resumePayload = new HashMap<>();
-        resumePayload.put("approver", approver != null ? approver : "");
-        resumePayload.put("reason", reason != null ? reason : "");
-        resumePayload.put("preResetDenialCount", preResetDenialCount);
-        eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESUMED,
-                sessionId, agentName, resumePayload));
+            Map<String, Object> resumePayload = new HashMap<>();
+            resumePayload.put("approver", approver != null ? approver : "");
+            resumePayload.put("reason", reason != null ? reason : "");
+            resumePayload.put("preResetDenialCount", preResetDenialCount);
+            eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESUMED,
+                    sessionId, agentName, resumePayload));
+        } finally {
+            ThreadLocalTenantResolver.set(previousTenant);
+        }
 
         // Re-execute the session as a transparent continuation: rebuild the
         // context from the agent model + the existing conversation history (NO
@@ -2173,13 +2199,13 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         try {
             return CompletableFuture.supplyAsync(() -> {
-                // Plan 232: set/clear tenant context on the worker thread.
-                // resumeSession has no Principal source in the foundational
-                // slice (no request parameter), so the tenant context is null
-                // = all data visible (recovery-path semantics). The structure
-                // is present so a future principal source only changes the
-                // captured value.
-                ThreadLocalTenantResolver.set(null);
+                // Plan 232 + Plan 270 finding 13-12: set/clear tenant context
+                // on the worker thread. resumeSession has no request/Principal
+                // source, so the tenant context is re-established from the
+                // persisted session (captured above as sessionTenantId) — NOT
+                // forced to null, which would make any tenant-scoped DB
+                // operation on this thread see all tenants' data.
+                ThreadLocalTenantResolver.set(sessionTenantId);
                 try {
                 handle.thread = Thread.currentThread();
 

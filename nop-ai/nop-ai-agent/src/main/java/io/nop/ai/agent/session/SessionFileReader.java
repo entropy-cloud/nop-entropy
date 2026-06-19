@@ -139,6 +139,13 @@ public final class SessionFileReader {
             session.setCompactedAt(compactedAt);
         }
 
+        // Plan 270 finding 13-12: restore the tenantId so recovery paths
+        // (resumeSession/restoreSession) can re-establish the tenant context
+        // before tenant-scoped DB operations. Absent field → null (legacy /
+        // single-tenant, backward compatible).
+        String tenantId = getString(map, SessionFileWriter.FIELD_TENANT_ID);
+        session.setTenantId(tenantId);
+
         return session;
     }
 

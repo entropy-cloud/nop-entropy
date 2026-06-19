@@ -3,6 +3,8 @@ package io.nop.ai.agent.security;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -100,6 +102,7 @@ public final class DockerSandboxBackend implements ISandboxBackend {
 
     private final String dockerImage;
     private final SandboxConfig defaultConfig;
+    private final List<Path> allowedBaseDirs;
 
     /**
      * Build a backend that runs commands in the named Docker image using
@@ -117,17 +120,61 @@ public final class DockerSandboxBackend implements ISandboxBackend {
      *                      case {@link SandboxConfig#defaults()} is used
      */
     public DockerSandboxBackend(String dockerImage, SandboxConfig defaultConfig) {
+        this(dockerImage, defaultConfig, defaultAllowedBaseDirs());
+    }
+
+    /** Convenience: {@code new DockerSandboxBackend(image, SandboxConfig.defaults())}. */
+    public DockerSandboxBackend(String dockerImage) {
+        this(dockerImage, SandboxConfig.defaults(), defaultAllowedBaseDirs());
+    }
+
+    /**
+     * Build a backend with an explicit working-directory host-path
+     * whitelist (plan 270 finding 13-7). Before a working directory is
+     * mounted into the container, {@link #validateHostPath} checks that the
+     * path contains no {@code ..} traversal, resolves to a real existing
+     * path, and is equal to or nested under at least one
+     * {@code allowedBaseDirs} entry (each resolved to its real path).
+     *
+     * <p>A request with no working directory never triggers validation
+     * (no mount is emitted). Pass an empty list to deny every host mount.
+     *
+     * @param dockerImage     the Docker image reference; non-empty
+     * @param defaultConfig   fallback config; {@code null} →
+     *                        {@link SandboxConfig#defaults()}
+     * @param allowedBaseDirs the allowed real base directories for mounts;
+     *                        never {@code null} (use an empty list to deny
+     *                        all mounts)
+     */
+    public DockerSandboxBackend(String dockerImage, SandboxConfig defaultConfig,
+                                List<Path> allowedBaseDirs) {
         this.dockerImage = Objects.requireNonNull(dockerImage,
                 "dockerImage must not be null");
         if (dockerImage.isEmpty()) {
             throw new IllegalArgumentException("dockerImage must not be empty");
         }
         this.defaultConfig = defaultConfig != null ? defaultConfig : SandboxConfig.defaults();
+        this.allowedBaseDirs = List.copyOf(Objects.requireNonNull(allowedBaseDirs,
+                "allowedBaseDirs must not be null (use empty list to deny all mounts)"));
     }
 
-    /** Convenience: {@code new DockerSandboxBackend(image, SandboxConfig.defaults())}. */
-    public DockerSandboxBackend(String dockerImage) {
-        this(dockerImage, SandboxConfig.defaults());
+    /**
+     * Default whitelist: the JVM's temporary-file directory tree. The
+     * integration tests mount a JUnit {@code @TempDir} which lives under
+     * {@code java.io.tmpdir} on every platform. Resolved to its real path
+     * so a {@code tmpdir} that is itself a symlink is normalised once at
+     * construction time.
+     */
+    private static List<Path> defaultAllowedBaseDirs() {
+        String tmp = System.getProperty("java.io.tmpdir");
+        if (tmp == null || tmp.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return List.of(Paths.get(tmp).toRealPath());
+        } catch (IOException e) {
+            return List.of();
+        }
     }
 
     /** The Docker image this backend runs commands in. */
@@ -140,11 +187,21 @@ public final class DockerSandboxBackend implements ISandboxBackend {
         return defaultConfig;
     }
 
+    /** The immutable working-directory host-path whitelist (plan 270 finding 13-7). */
+    public List<Path> getAllowedBaseDirs() {
+        return allowedBaseDirs;
+    }
+
     @Override
     public SandboxResult execute(SandboxRequest request) {
         SandboxConfig config = request.getConfig() != null
                 ? request.getConfig()
                 : defaultConfig;
+        // Plan 270 (finding 13-7): validate the working-directory host path
+        // BEFORE building the docker command so an unverified path can never
+        // reach `docker run -v`. Fail-closed: a violation raises a
+        // SandboxException instead of mounting.
+        validateHostPath(request.getWorkingDirectory(), allowedBaseDirs);
         String containerName = "nop-sandbox-" + UUID.randomUUID();
         List<String> dockerCmd = buildDockerCommand(
                 containerName, dockerImage, request, config);
@@ -210,6 +267,73 @@ public final class DockerSandboxBackend implements ISandboxBackend {
     // Command construction — extracted so tests can verify the Docker flag
     // mapping without launching Docker.
     // ========================================================================
+
+    /**
+     * Validate a working-directory host path before mounting it into the
+     * container (plan 270 finding 13-7). Fail-closed: any violation raises a
+     * {@link SandboxException} with reason
+     * {@link SandboxFailureReason#HOST_PATH_NOT_ALLOWED} so the path never
+     * reaches {@code docker run -v}.
+     *
+     * <p>Rules (all must hold):
+     * <ol>
+     *   <li>{@code null} working directory → no mount requested → valid (no-op).</li>
+     *   <li>The path string must not contain any {@code ..} name component
+     *       (path-traversal defense).</li>
+     *   <li>The path must resolve to a real existing path via
+     *       {@link Path#toRealPath()} (symlinks followed) — a dangling link
+     *       or non-existent path is rejected.</li>
+     *   <li>The resolved real path must be equal to, or nested under, at
+     *       least one entry in {@code allowedBaseDirs}.</li>
+     * </ol>
+     *
+     * <p>Visible for testing so focused tests can exercise each rule without
+     * a Docker daemon.
+     *
+     * @param workingDirectory the host working directory to mount, or
+     *                         {@code null} when no mount is requested
+     * @param allowedBaseDirs  the allowed real base directories; never null
+     */
+    static void validateHostPath(java.io.File workingDirectory, List<Path> allowedBaseDirs) {
+        if (workingDirectory == null) {
+            return;
+        }
+        String pathStr = workingDirectory.getPath();
+        // Rule 2: reject any ".." name component.
+        for (String part : pathStr.replace("\\", "/").split("/")) {
+            if ("..".equals(part)) {
+                throw new SandboxException(SandboxFailureReason.HOST_PATH_NOT_ALLOWED,
+                        "DockerSandboxBackend: hostPath contains '..' traversal component: " + pathStr);
+            }
+        }
+        // Rule 3: resolve the real existing path (symlinks followed).
+        Path real;
+        try {
+            real = workingDirectory.toPath().toRealPath();
+        } catch (IOException e) {
+            throw new SandboxException(SandboxFailureReason.HOST_PATH_NOT_ALLOWED,
+                    "DockerSandboxBackend: hostPath does not resolve to a real path: " + pathStr, e);
+        }
+        // Rule 4: must be under (or equal to) an allowed base dir.
+        if (allowedBaseDirs == null || allowedBaseDirs.isEmpty()) {
+            throw new SandboxException(SandboxFailureReason.HOST_PATH_NOT_ALLOWED,
+                    "DockerSandboxBackend: no allowedBaseDirs configured, hostPath mount denied: " + real);
+        }
+        for (Path base : allowedBaseDirs) {
+            Path normalizedBase = base;
+            try {
+                normalizedBase = base.toRealPath();
+            } catch (IOException ignored) {
+                // an allowedBaseDir that cannot be resolved is treated as its
+                // lexical form; toRealPath below already normalises `real`.
+            }
+            if (real.equals(normalizedBase) || real.startsWith(normalizedBase)) {
+                return;
+            }
+        }
+        throw new SandboxException(SandboxFailureReason.HOST_PATH_NOT_ALLOWED,
+                "DockerSandboxBackend: hostPath outside allowedBaseDirs: " + real);
+    }
 
     /**
      * Build the {@code docker run} argv list for the given request. Visible

@@ -46,5 +46,15 @@ public enum SandboxFailureReason {
      * ceiling (OOM-killer). Distinct from {@link #TIMEOUT} so callers can
      * tell "the command used too much RAM" from "the command ran too long".
      */
-    RESOURCE_LIMIT_EXCEEDED
+    RESOURCE_LIMIT_EXCEEDED,
+
+    /**
+     * The requested working-directory host path was rejected before the
+     * container could start (plan 270 finding 13-7). The path either
+     * contained a {@code ..} traversal component, did not resolve to a real
+     * existing path, or fell outside the configured
+     * {@code DockerSandboxBackend} {@code allowedBaseDirs} whitelist.
+     * Fail-closed: the mount never reaches {@code docker run}.
+     */
+    HOST_PATH_NOT_ALLOWED
 }

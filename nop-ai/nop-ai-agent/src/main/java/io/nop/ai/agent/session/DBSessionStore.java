@@ -369,7 +369,11 @@ public class DBSessionStore implements ISessionStore {
 
     private AgentSession loadFromDb(String sessionId) {
         String tenant = currentTenant();
+        // Plan 270 finding 13-12: also read TENANT_ID so the loaded session
+        // carries its own tenant for recovery paths (resumeSession/
+        // restoreSession) that have no request/Principal source.
         String selectSql = "SELECT " + AiAgentSessionTable.COL_SESSION_DATA
+                + ", " + AiAgentSessionTable.COL_TENANT_ID
                 + " FROM " + AiAgentSessionTable.TABLE_NAME
                 + " WHERE " + AiAgentSessionTable.COL_SESSION_ID + " = ?";
         if (tenant != null) {
@@ -384,7 +388,14 @@ public class DBSessionStore implements ISessionStore {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String json = rs.getString(1);
-                    return SessionFileReader.deserialize(json);
+                    AgentSession loaded = SessionFileReader.deserialize(json);
+                    // The persisted JSON may predate the tenantId field; the
+                    // TENANT_ID column is authoritative, so set it from the
+                    // column when the JSON did not carry one.
+                    if (loaded.getTenantId() == null) {
+                        loaded.setTenantId(rs.getString(2));
+                    }
+                    return loaded;
                 }
             }
         } catch (SQLException e) {

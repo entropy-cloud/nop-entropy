@@ -51,6 +51,7 @@ public final class SessionFileWriter {
     static final String FIELD_PARENT_SESSION_ID = "parentSessionId";
     static final String FIELD_PLAN_ID = "planId";
     static final String FIELD_COMPACTED_AT = "compactedAt";
+    static final String FIELD_TENANT_ID = "tenantId";
 
     private final Object ioLock = new Object();
 
@@ -122,6 +123,7 @@ public final class SessionFileWriter {
         map.put(FIELD_PARENT_SESSION_ID, session.getParentSessionId());
         map.put(FIELD_PLAN_ID, session.getPlanId());
         map.put(FIELD_COMPACTED_AT, session.getCompactedAt());
+        map.put(FIELD_TENANT_ID, session.getTenantId());
         try {
             return JsonTool.stringify(map);
         } catch (Exception e) {

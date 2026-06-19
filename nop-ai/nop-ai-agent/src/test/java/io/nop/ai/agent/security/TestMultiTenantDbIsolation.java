@@ -278,6 +278,42 @@ public class TestMultiTenantDbIsolation {
         assertEquals(1, ledger.getDenialCount("s1"));
     }
 
+    /**
+     * Plan 270 finding 13-12: {@code reset} must be tenant-scoped so a resume
+     * under tenant-A cannot clear tenant-B's denial records for the same
+     * sessionId. With the tenant context set (as resumeSession now does),
+     * {@code reset}'s DELETE includes {@code AND TENANT_ID = ?}; only the
+     * calling tenant's rows are removed.
+     */
+    @Test
+    void denialLedgerResetIsolatesByTenant() {
+        DBDenialLedger ledger = new DBDenialLedger(dataSource, 5, ThreadLocalTenantResolver.INSTANCE);
+
+        // Two tenants each have a denial for the SAME sessionId.
+        tenant("tenant-A");
+        DenialRecord recA = DenialRecord.of("shared-sid", "shell.exec", DenialLayerSource.LAYER1_TOOL_ACCESS,
+                "deny", "rule", System.currentTimeMillis());
+        ledger.recordDenial(recA);
+        assertEquals(1, ledger.getDenialCount("shared-sid"));
+
+        tenant("tenant-B");
+        DenialRecord recB = DenialRecord.of("shared-sid", "shell.exec", DenialLayerSource.LAYER1_TOOL_ACCESS,
+                "deny", "rule", System.currentTimeMillis());
+        ledger.recordDenial(recB);
+        assertEquals(1, ledger.getDenialCount("shared-sid"));
+
+        // tenant-A resumes (resets) — must clear ONLY tenant-A's row.
+        tenant("tenant-A");
+        ledger.reset("shared-sid");
+        assertEquals(0, ledger.getDenialCount("shared-sid"),
+                "tenant-A reset must clear tenant-A's denial for the shared sessionId");
+
+        // tenant-B's denial survives the tenant-A reset.
+        tenant("tenant-B");
+        assertEquals(1, ledger.getDenialCount("shared-sid"),
+                "tenant-B's denial must NOT be cleared by tenant-A's reset (cross-tenant isolation)");
+    }
+
     // ========================================================================
     // DBCheckpointManager
     // ========================================================================

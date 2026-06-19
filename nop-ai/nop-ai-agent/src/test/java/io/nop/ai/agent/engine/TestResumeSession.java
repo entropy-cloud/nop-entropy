@@ -7,6 +7,7 @@ import io.nop.ai.agent.security.DenialRecord;
 import io.nop.ai.agent.security.DenialRecordOutcome;
 import io.nop.ai.agent.security.IDenialLedger;
 import io.nop.ai.agent.security.Principal;
+import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.security.ToolAccessResult;
 import io.nop.ai.agent.security.IToolAccessChecker;
 import io.nop.ai.agent.session.AgentSession;
@@ -119,6 +120,37 @@ public class TestResumeSession {
             if (sessionId == null) return;
             counts.remove(sessionId);
             paused.remove(sessionId);
+        }
+    }
+
+    /**
+     * Test-internal ledger that captures the active
+     * {@link ThreadLocalTenantResolver} tenant at the moment {@code reset} is
+     * invoked, so the resumeSession tenant-wiring (plan 270 finding 13-12)
+     * can be verified without a DB: the captured value must equal the
+     * session's tenantId.
+     */
+    static final class TenantCapturingLedger implements IDenialLedger {
+        volatile String tenantAtReset;
+
+        @Override
+        public DenialRecordOutcome recordDenial(DenialRecord record) {
+            return DenialRecordOutcome.of(0, false);
+        }
+
+        @Override
+        public boolean isPaused(String sessionId) {
+            return false;
+        }
+
+        @Override
+        public int getDenialCount(String sessionId) {
+            return 0;
+        }
+
+        @Override
+        public void reset(String sessionId) {
+            tenantAtReset = ThreadLocalTenantResolver.current();
         }
     }
 
@@ -386,5 +418,80 @@ public class TestResumeSession {
                 "payload.reason must match the resume call argument");
         assertEquals(3, payload.get("preResetDenialCount"),
                 "payload.preResetDenialCount must record the count before reset (audit trail)");
+    }
+
+    // ========================================================================
+    // Plan 270 finding 13-12: resumeSession re-establishes tenant context
+    // from the persisted session before the ledger reset
+    // ========================================================================
+
+    /**
+     * Wiring Verification (#23) + No-Silent-No-Op (#24): resumeSession has no
+     * request/Principal source, so it must read the tenantId from the loaded
+     * session and set the thread-local tenant context BEFORE calling
+     * {@code denialLedger.reset} — otherwise the reset SQL runs with
+     * tenant=null and DELETEs every tenant's denial rows for that sessionId
+     * (cross-tenant data destruction).
+     *
+     * <p>Verified by a {@link TenantCapturingLedger} that records the
+     * thread-local tenant at reset time: it must equal the session's
+     * tenantId, and must NOT be null.
+     */
+    @Test
+    void resumeSession_setsTenantContextFromSessionBeforeReset() throws Exception {
+        InMemorySessionStore store = new InMemorySessionStore();
+        TenantCapturingLedger ledger = new TenantCapturingLedger();
+
+        AgentSession session = store.getOrCreate("tenant-resume-sess", "test-react-agent");
+        session.setTenantId("tenant-A");
+        session.appendMessages(List.of(new io.nop.ai.api.chat.messages.ChatUserMessage("hi")));
+        session.setStatus(AgentExecStatus.paused);
+
+        DefaultAgentEngine engine = newEngine(ledger, store);
+
+        engine.resumeSession("tenant-resume-sess", "operator-1", "false positive")
+                .toCompletableFuture().join();
+
+        assertEquals("tenant-A", ledger.tenantAtReset,
+                "resumeSession must set the thread-local tenant from session.getTenantId() "
+                        + "BEFORE calling denialLedger.reset");
+        assertFalse(ledger.tenantAtReset == null,
+                "resumeSession must NOT leave the tenant context null during reset "
+                        + "(would clear other tenants' denial records)");
+    }
+
+    /**
+     * The synchronous-phase tenant handling must restore the caller's prior
+     * tenant context afterward (no leak across the resume call). Verified by
+     * setting a known tenant on the calling thread and asserting it survives
+     * the resumeSession call.
+     */
+    @Test
+    void resumeSession_restoresCallerTenantContextAfterReset() throws Exception {
+        InMemorySessionStore store = new InMemorySessionStore();
+        TenantCapturingLedger ledger = new TenantCapturingLedger();
+
+        AgentSession session = store.getOrCreate("restore-tenant-sess", "test-react-agent");
+        session.setTenantId("session-tenant");
+        session.appendMessages(List.of(new io.nop.ai.api.chat.messages.ChatUserMessage("hi")));
+        session.setStatus(AgentExecStatus.paused);
+
+        DefaultAgentEngine engine = newEngine(ledger, store);
+
+        ThreadLocalTenantResolver.set("caller-tenant");
+        try {
+            engine.resumeSession("restore-tenant-sess", "operator-1", "test")
+                    .toCompletableFuture().join();
+
+            // reset saw the SESSION's tenant (not the caller's).
+            assertEquals("session-tenant", ledger.tenantAtReset,
+                    "reset must observe the session's tenant, not the caller's");
+            // The caller's tenant context is restored after resumeSession.
+            assertEquals("caller-tenant", ThreadLocalTenantResolver.current(),
+                    "resumeSession must restore the caller's tenant context after reset "
+                            + "(no leak across the resume call)");
+        } finally {
+            ThreadLocalTenantResolver.clear();
+        }
     }
 }

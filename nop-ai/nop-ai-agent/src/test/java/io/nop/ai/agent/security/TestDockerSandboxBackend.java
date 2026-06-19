@@ -304,8 +304,111 @@ public class TestDockerSandboxBackend {
     }
 
     // ========================================================================
+    // 4b. Plan 270 finding 13-7: hostPath whitelist validation (no Docker needed)
+    // ========================================================================
+
+    @Test
+    void validateHostPathRejectsTraversalComponent() {
+        // ".." anywhere in the path is rejected before any filesystem lookup.
+        SandboxException ex = assertThrows(SandboxException.class,
+                () -> DockerSandboxBackend.validateHostPath(
+                        new File("/tmp/legit/../../etc"), List.of()),
+                "a hostPath containing '..' must be rejected");
+        assertEquals(SandboxFailureReason.HOST_PATH_NOT_ALLOWED, ex.getReason(),
+                "traversal hostPath → HOST_PATH_NOT_ALLOWED");
+    }
+
+    @Test
+    void validateHostPathRejectsPathOutsideWhitelist(@TempDir Path tempDir) throws Exception {
+        // tempDir/inside is allowed; a sibling outside is not.
+        Path allowed = tempDir.resolve("inside");
+        Files.createDirectories(allowed);
+        Path outside = tempDir.resolve("outside");
+        Files.createDirectories(outside);
+        Path allowedReal = allowed.toRealPath();
+
+        // A hostPath that exists but is NOT under the whitelist must throw.
+        SandboxException ex = assertThrows(SandboxException.class,
+                () -> DockerSandboxBackend.validateHostPath(
+                        outside.toFile(), List.of(allowedReal)),
+                "a hostPath outside the whitelist must be rejected");
+        assertEquals(SandboxFailureReason.HOST_PATH_NOT_ALLOWED, ex.getReason(),
+                "out-of-whitelist hostPath → HOST_PATH_NOT_ALLOWED");
+        assertTrue(ex.getMessage().contains("outside allowedBaseDirs"),
+                "message must explain the whitelist violation: " + ex.getMessage());
+    }
+
+    @Test
+    void validateHostPathRejectsNonExistentPath(@TempDir Path tempDir) throws Exception {
+        Path allowedReal = tempDir.toRealPath();
+        File ghost = tempDir.resolve("does-not-exist").toFile();
+
+        // A hostPath that does not resolve to a real path (toRealPath throws)
+        // must be rejected — fail-closed, never silently mounted.
+        SandboxException ex = assertThrows(SandboxException.class,
+                () -> DockerSandboxBackend.validateHostPath(ghost, List.of(allowedReal)),
+                "a non-existent hostPath must be rejected");
+        assertEquals(SandboxFailureReason.HOST_PATH_NOT_ALLOWED, ex.getReason(),
+                "non-existent hostPath → HOST_PATH_NOT_ALLOWED");
+    }
+
+    @Test
+    void validateHostPathRejectsSymlinkEscapingWhitelist(@TempDir Path tempDir) throws Exception {
+        // allowed = tempDir/inside; a symlink inside tempDir that points
+        // OUTSIDE the allowed base (to tempDir/secret) must be rejected
+        // because toRealPath follows the link.
+        Path allowed = tempDir.resolve("inside");
+        Files.createDirectories(allowed);
+        Path allowedReal = allowed.toRealPath();
+
+        Path secret = tempDir.resolve("secret");
+        Files.createDirectories(secret);
+        Path linkInsideAllowed = allowed.resolve("escape-link");
+        Files.createSymbolicLink(linkInsideAllowed, secret);
+
+        SandboxException ex = assertThrows(SandboxException.class,
+                () -> DockerSandboxBackend.validateHostPath(
+                        linkInsideAllowed.toFile(), List.of(allowedReal)),
+                "a symlink escaping the whitelist must be rejected");
+        assertEquals(SandboxFailureReason.HOST_PATH_NOT_ALLOWED, ex.getReason(),
+                "symlink-escape hostPath → HOST_PATH_NOT_ALLOWED");
+    }
+
+    @Test
+    void validateHostPathAllowsNullAndWhitelistedPath(@TempDir Path tempDir) throws Exception {
+        Path allowedReal = tempDir.toRealPath();
+
+        // null workingDirectory → no mount requested → no-op (no exception).
+        DockerSandboxBackend.validateHostPath(null, List.of(allowedReal));
+
+        // A path nested under the whitelist is accepted.
+        Path nested = tempDir.resolve("work/sub");
+        Files.createDirectories(nested);
+        DockerSandboxBackend.validateHostPath(nested.toFile(), List.of(allowedReal));
+
+        // The allowed base dir itself is accepted.
+        DockerSandboxBackend.validateHostPath(tempDir.toFile(), List.of(allowedReal));
+    }
+
+    @Test
+    void defaultBackendWhitelistsJvmTempDir(@TempDir Path tempDir) throws Exception {
+        // The default whitelist resolves java.io.tmpdir to a real path. A
+        // @TempDir lives under java.io.tmpdir, so it must be accepted by a
+        // default-constructed backend (validates the default whitelist wiring
+        // and that validation is invoked from execute()'s command-build path
+        // without needing a Docker daemon — we only assert the validation
+        // does not throw).
+        DockerSandboxBackend backend = new DockerSandboxBackend("alpine");
+        assertFalse(backend.getAllowedBaseDirs().isEmpty(),
+                "default backend must whitelist java.io.tmpdir");
+        // @TempDir is under java.io.tmpdir → accepted.
+        DockerSandboxBackend.validateHostPath(tempDir.toFile(), backend.getAllowedBaseDirs());
+    }
+
+    // ========================================================================
     // 5. Conditional integration: real docker run when daemon is up
     // ========================================================================
+
 
     @Test
     void conditionalIntegrationRunsEchoInAlpineWhenDockerAvailable(@TempDir Path tempDir) throws Exception {
