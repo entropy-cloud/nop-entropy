@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestResourceVector {
@@ -12,6 +13,20 @@ class TestResourceVector {
     void testZeroConstant() {
         assertEquals(0, ResourceVector.ZERO.getCpu());
         assertEquals(0, ResourceVector.ZERO.getMemory());
+    }
+
+    /**
+     * AR-97：add 溢出时显式抛 ArithmeticException（Math.addExact），而非静默回绕成负数。
+     */
+    @Test
+    void testAddOverflowThrows() {
+        ResourceVector nearMax = new ResourceVector(Integer.MAX_VALUE, 0);
+        ResourceVector one = new ResourceVector(1, 0);
+        assertThrows(ArithmeticException.class, () -> nearMax.add(one),
+                "cpu overflow must throw ArithmeticException, not silently wrap to negative");
+        ResourceVector nearMaxMem = new ResourceVector(0, Integer.MAX_VALUE);
+        assertThrows(ArithmeticException.class, () -> nearMaxMem.add(new ResourceVector(0, 1)),
+                "memory overflow must throw ArithmeticException");
     }
 
     @Test

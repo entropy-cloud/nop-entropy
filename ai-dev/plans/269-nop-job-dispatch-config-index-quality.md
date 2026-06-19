@@ -1,6 +1,6 @@
 # 269 nop-job 派发/配置/索引质量收尾
 
-> Plan Status: planned
+> Plan Status: in progress
 > Last Reviewed: 2026-06-19
 > Source: `ai-dev/audits/2026-06-19-0931-adversarial-review-nop-job/01-open-findings.md`（AR-89, AR-90, AR-91, AR-92, AR-96, AR-97, AR-98, AR-99）
 > Related: `ai-dev/plans/267-nop-job-resource-limit-worker-correctness.md`（AR-95 修复 cost/priority null 归一，是 AR-92 NULL 排序修复的前置）
@@ -64,24 +64,24 @@ Phase 3 的 AR-92（优先级 NULL 排序收敛）依赖 Plan 267 Phase 1 的 AR
 >
 > **AR-97 裁定（回应 Major-1）**：`ResourceVector` 保持 `int`（现实单 worker 容量远小于 2^31，溢出不现实）；`add` 加 `Math.addExact` 防御性抛错；SQL `SUM` 保持现状（聚合按 worker 分组，单 worker reserved 不会溢出 int），不强制 BIGINT cast（避免 int↔long 阻抗与 row type 链式改动）。
 
-Status: planned
-Targets: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/SingleBestFitStrategy.java`, `nop-job/nop-job-api/src/main/java/io/nop/job/api/resource/ResourceVector.java`, `nop-job/nop-job-coordinator/src/main/resources/_vfs/nop/job/beans/app-engine.beans.xml`, `nop-job/nop-job-meta/src/main/resources/_vfs/dict/job/dispatch-mode.dict.yaml`, `ai-dev/design/nop-job/worker-assignment-design.md`
+Status: completed
+Targets: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/LeastLoadedStrategy.java`（原 SingleBestFitStrategy 重命名）, `nop-job/nop-job-api/src/main/java/io/nop/job/api/resource/ResourceVector.java`, `nop-job/nop-job-coordinator/src/main/resources/_vfs/nop/job/beans/app-engine.beans.xml`, `nop-job/nop-job-meta/src/main/resources/_vfs/dict/job/dispatch-mode.dict.yaml`, `ai-dev/design/nop-job/worker-assignment-design.md`
 
 - Item Types: `Decision`, `Fix`
 
-- [ ] 决策（二选一并记录到 `ai-dev/design/nop-job/worker-assignment-design.md`）：(a) 重命名策略类 `SingleBestFitStrategy`→反映 spread/least-loaded 语义 + 更新 `app-engine.beans.xml` 的 `class` 与策略 bean id `workerAssignmentStrategy`（**不改** `nopJobTaskBuilder_bestFit` 与 dispatchMode 值）；或 (b) 改比较方向为真正 best-fit（最紧）+ 同步改 `ResourceVector.loadScore` 注释。两种均须更新 dispatch-mode.dict.yaml 标签与 design 文档使名实一致
-- [ ] `ResourceVector.add` 改为 `Math.addExact`（溢出显式抛 ArithmeticException 而非静默回绕）
+- [x] 决策（采用 a）：重命名策略类 `SingleBestFitStrategy`→`LeastLoadedStrategy`（反映 spread/least-loaded 语义）+ 更新 `app-engine.beans.xml` 的 `class`（bean id `workerAssignmentStrategy` 已为中性，保留）+ AdaptiveJobTaskBuilder 默认 + dispatch-mode.dict.yaml 描述；**不改** `nopJobTaskBuilder_bestFit` 与 dispatchMode 值 `bestFit`（避免路由断裂 + 存量数据迁移）
+- [x] `ResourceVector.add` 改为 `Math.addExact`（溢出显式抛 ArithmeticException 而非静默回绕）
 
 Exit Criteria:
 
-- [ ] 决策记录写入 `ai-dev/design/nop-job/worker-assignment-design.md`（具体路径，验收可查）
-- [ ] 回归测试：dispatchMode=bestFit 的派发路由仍生效（`nopJobTaskBuilder_bestFit` bean 仍被解析），存量 bestFit schedule 行为不变
-- [ ] 回归测试：`SingleBestFitStrategy` 行为与命名/文档一致（若改方向，新增最紧装箱用例；若改名，原 spread 行为用例保留）
-- [ ] 回归测试：`ResourceVector.add` 溢出场景抛 ArithmeticException 不静默回绕
-- [ ] **接线验证**：重命名/改向后，`nopJobTaskBuilder_bestFit` 在运行时仍被 `resolveTaskBuilder` 解析并调用（断言）
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] design/owner doc 同步（派发策略语义）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 决策记录写入 `ai-dev/design/nop-job/worker-assignment-design.md`（§3.3.6 命名澄清段落 + AR-97 addExact）
+- [x] 回归测试：dispatchMode=bestFit 的派发路由仍生效（`nopJobTaskBuilder_bestFit` bean 仍被解析，存量 bestFit schedule 行为不变；既有 TestJobDispatcherScannerRouting + TestAdaptiveJobTaskBuilder 通过）
+- [x] 回归测试：`LeastLoadedStrategy` 行为与命名/文档一致（改名后原 spread 行为用例保留于 `TestLeastLoadedStrategy`，4 tests 全过）
+- [x] 回归测试：`ResourceVector.add` 溢出场景抛 ArithmeticException 不静默回绕（`TestResourceVector#testAddOverflowThrows`）
+- [x] **接线验证**：重命名后，`nopJobTaskBuilder_bestFit` 在运行时仍被 `resolveTaskBuilder` 解析（AdaptiveJobTaskBuilder 内部用 `LeastLoadedStrategy`，路由测试 6 +1 全过）
+- [x] `./mvnw test -pl nop-job -am` 全过（api 20 + coordinator strategy 4 + adaptive 3，0 failures）
+- [x] design/owner doc 同步（design §3.3.6 + dispatch-mode.dict.yaml bestFit 描述）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - capacity 配置与归因饥饿修复
 

@@ -301,7 +301,7 @@ Worker 启动时通过 `ServiceInstance.metadata` 携带：
 
 #### 3.3.6 策略实现 + dispatchMode/executorKind 共存
 
-`SingleBestFit`：fit check 通过的候选中选 `loadScore` 最小的。
+策略实现为 `LeastLoadedStrategy`：fit check 通过的候选中选 `loadScore` 最<b>小</b>的（最闲 worker），即 least-loaded / spread 语义。**命名澄清（AR-89）**：原类名 `SingleBestFitStrategy` 名实不符（装箱意义上 best-fit 应选最紧，本实现选最闲实为 worst-fit/spread），已重命名为 `LeastLoadedStrategy`。**dispatchMode 值 `bestFit` 与 bean id `nopJobTaskBuilder_bestFit` 保持不变**（避免路由断裂 + 存量数据迁移）；仅策略类名 + 文档对齐。`ResourceVector.add` 用 `Math.addExact` 溢出显式抛 `ArithmeticException`（AR-97，不静默回绕）。
 
 **`dispatchMode` 与 `executorKind` 的共存规则**：
 

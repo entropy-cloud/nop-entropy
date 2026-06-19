@@ -18,7 +18,11 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestSingleBestFitStrategy {
+/**
+ * {@link LeastLoadedStrategy} 行为测试：验证 least-loaded / spread 语义（选 loadScore 最小的最闲 worker）。
+ * 原 {@code TestSingleBestFitStrategy} 的 spread 行为用例保留（AR-89 仅重命名类，行为不变）。
+ */
+public class TestLeastLoadedStrategy {
 
     private WorkerLoad load(String instanceId, int capCpu, int capMem, int resCpu, int resMem) {
         WorkerLoad l = new WorkerLoad();
@@ -37,7 +41,7 @@ public class TestSingleBestFitStrategy {
                 load("w2", 4000, 8000, 800, 1600),  // loadScore = max(0.2, 0.2) = 0.2
                 load("w3", 4000, 8000, 2000, 6400)  // loadScore = max(0.5, 0.8) = 0.8
         );
-        SingleBestFitStrategy strategy = new SingleBestFitStrategy();
+        LeastLoadedStrategy strategy = new LeastLoadedStrategy();
         AssignmentPlan plan = strategy.assign(new ResourceVector(500, 500), workers);
         assertFalse(plan.isEmpty());
         assertEquals("w2", plan.getAssignments().get(0).getWorkerInstanceId(),
@@ -50,7 +54,7 @@ public class TestSingleBestFitStrategy {
                 load("w1", 1000, 2000, 900, 1900), // available = {100, 100}, task needs {500,500} → NOT fit
                 load("w2", 4000, 8000, 2000, 4000) // available = {2000, 4000} → fits
         );
-        SingleBestFitStrategy strategy = new SingleBestFitStrategy();
+        LeastLoadedStrategy strategy = new LeastLoadedStrategy();
         AssignmentPlan plan = strategy.assign(new ResourceVector(500, 500), workers);
         assertFalse(plan.isEmpty());
         assertEquals("w2", plan.getAssignments().get(0).getWorkerInstanceId());
@@ -62,7 +66,7 @@ public class TestSingleBestFitStrategy {
                 load("w1", 100, 200, 50, 100),   // available = {50, 100}
                 load("w2", 200, 400, 100, 200)   // available = {100, 200}
         );
-        SingleBestFitStrategy strategy = new SingleBestFitStrategy();
+        LeastLoadedStrategy strategy = new LeastLoadedStrategy();
         AssignmentPlan plan = strategy.assign(new ResourceVector(500, 500), workers);
         assertTrue(plan.isEmpty(), "No worker can fit → empty plan");
     }
@@ -73,7 +77,7 @@ public class TestSingleBestFitStrategy {
                 load("zzz", 4000, 8000, 1000, 1000), // loadScore = 0.25
                 load("aaa", 4000, 8000, 1000, 1000)  // loadScore = 0.25 (tie)
         );
-        SingleBestFitStrategy strategy = new SingleBestFitStrategy();
+        LeastLoadedStrategy strategy = new LeastLoadedStrategy();
         AssignmentPlan plan = strategy.assign(new ResourceVector(100, 100), workers);
         assertFalse(plan.isEmpty());
         assertEquals("aaa", plan.getAssignments().get(0).getWorkerInstanceId(),

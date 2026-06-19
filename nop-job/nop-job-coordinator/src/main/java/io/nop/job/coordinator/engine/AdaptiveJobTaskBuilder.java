@@ -33,7 +33,7 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
 public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
 
     private IWorkerLoadProvider loadProvider;
-    private IWorkerAssignmentStrategy strategy = new SingleBestFitStrategy();
+    private IWorkerAssignmentStrategy strategy = new LeastLoadedStrategy();
     private IJobScheduleStore scheduleStore;
     private final IJobTaskBuilder fallback = new DefaultJobTaskBuilder();
 

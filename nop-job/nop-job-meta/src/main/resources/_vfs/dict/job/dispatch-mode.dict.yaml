@@ -19,4 +19,4 @@ options:
 
   - label: 最优匹配
     value: bestFit
-    description: dispatcher 侧负载感知派发，显式指定 worker
+    description: dispatcher 侧负载感知派发，显式指定 worker（least-loaded/spread 策略：选最闲 worker，详见 LeastLoadedStrategy）

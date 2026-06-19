@@ -9,14 +9,20 @@ package io.nop.job.coordinator.engine;
 
 import io.nop.job.api.resource.ResourceVector;
 
-import java.util.Comparator;
 import java.util.List;
 
 /**
- * SingleBestFit 策略：在 available.fits(taskCost) 的候选中选 loadScore 最小的。
- * 平手时按 instanceId 字典序 tiebreaker。
+ * 最少负载（least-loaded / spread）派发策略：在 {@code available.fits(taskCost)} 的候选 worker 中
+ * 选 {@code loadScore} 最<b>小</b>的（即利用率最低、最空闲的），把负载铺开到所有 worker。
+ *
+ * <p>命名澄清（AR-89）：装箱（bin-packing）意义上的 best-fit 应选最<b>紧</b>的 worker（最高利用率）；
+ * 本实现选最闲的，实为 worst-fit / spread。原类名 {@code SingleBestFitStrategy} 名实不符，已重命名为
+ * {@code LeastLoadedStrategy}。dispatchMode 值 {@code bestFit} 与 bean id
+ * {@code nopJobTaskBuilder_bestFit} 保持不变（避免路由断裂 + 存量数据迁移）；仅策略类与文档对齐。
+ *
+ * <p>平手时按 instanceId 字典序 tiebreaker（确定性）。
  */
-public class SingleBestFitStrategy implements IWorkerAssignmentStrategy {
+public class LeastLoadedStrategy implements IWorkerAssignmentStrategy {
 
     @Override
     public AssignmentPlan assign(ResourceVector taskCost, List<WorkerLoad> workers) {

@@ -54,9 +54,10 @@ public final class ResourceVector {
 
     /**
      * 逐维相加，返回新实例。用于聚合多个 task 的 reserved 成本。
+     * <p>溢出时显式抛 {@link ArithmeticException}（{@code Math.addExact}）而非静默回绕（AR-97）。
      */
     public ResourceVector add(ResourceVector other) {
-        return new ResourceVector(this.cpu + other.cpu, this.memory + other.memory);
+        return new ResourceVector(Math.addExact(this.cpu, other.cpu), Math.addExact(this.memory, other.memory));
     }
 
     /**
