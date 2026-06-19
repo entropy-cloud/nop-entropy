@@ -200,4 +200,9 @@ Follow-up:
 - step-state 全量字段持久化 / 完整历史 entity 模型（optimization candidate，plans 257/258/259/260 carry-over）
 - loadMainStepState（mainStep envelope intermediate-state restore）（successor plan candidate，plan 259 carry-over）
 - 异常精确子类恢复（exception 类型注册表 type → constructor 映射）（out-of-scope improvement）
+
+## Follow-up handled by 266-nop-ai-agent-exception-subclass-and-cause-stack.md
+
+异常精确子类恢复（exception 类型注册表，限定 nop-task-dao 模块、不增强 kernel `NopRebuildException.rebuild`）已由 plan 266 接管，bundled with cause-chain-per-level-stack-persistence。
+
 - no remaining plan-owned work（本计划 in-scope 全部闭合）

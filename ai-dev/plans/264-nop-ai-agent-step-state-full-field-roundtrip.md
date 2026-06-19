@@ -157,6 +157,12 @@ Exit Criteria:
 - composite step `saveState` 频率校准（out-of-scope improvement，runtime 写频率范畴）。
 - 独立 history / 审计 entity 表（out-of-scope improvement，carry-over 原文「完整历史 entity 模型」的字面解读之一）。
 
+## Follow-up handled by 265-nop-ai-agent-stacktrace-persistence.md
+
+本计划 `## Non-Blocking Follow-ups` 中登记的 **「stacktrace（errorStack）完整持久化与截断策略（optimization candidate，需新增 entity 列）」**（亦见 plan 261 Non-Goals）已由 `ai-dev/plans/265-nop-ai-agent-stacktrace-persistence.md` 接续收口。该项经核对发现 carry-over 置基前提（「需新增 entity 列」）可修正——`ErrorBean` 已有 `errorStack` 字段且 plan 261 的 `errorBeanData` 列已序列化完整 ErrorBean，故存在「无新增 ORM 列」路径。详见 plan 265。
+
+> 本节为向前追溯链接（traceability pointer），不修改 plan 264 的既有 closure 结论。
+
 ## Closure
 
 Status Note: 闭合被 plans 257-263 共 7× 反复登记为 optimization candidate 的「step-state 全量字段持久化 / 完整历史 entity 模型」carry-over。修正 carry-over 置基前提——`stateBeanData` 列已承载 `resultValue`（plan 257），既有 round-trip 字段集已驱动 cross-restart resume 正确性；真正剩余 gap 为既有 entity 列（`internal`/`tagText`/`createTime`/`updateTime`）在 save/load 一侧被丢弃。本计划无新增 ORM 列（非 Protected Area），仅补齐既有列的 Group A 双向 round-trip（`internal`+`tagSet↔tagText` 经 `TagsHelper` CSV 序列化，与 `NopWfStepInstance` 同构）+ Group B 时间历史读回（`createTime`/`updateTime`，save 已写补 load 读回）。经真实 `DaoTaskStateStore` localDb DB round-trip + cross-restart fresh store E2E 证明字段经持久化边界存活，零回归（plans 252-263 + nop-ai-agent 2714 全绿）。
