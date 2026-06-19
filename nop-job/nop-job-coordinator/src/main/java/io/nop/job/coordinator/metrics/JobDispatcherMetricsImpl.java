@@ -8,6 +8,7 @@ public class JobDispatcherMetricsImpl implements IJobDispatcherMetrics {
     private final Counter waitingFiresCounter;
     private final Counter dispatchConflictCounter;
     private final Counter firesDispatchedCounter;
+    private final Counter fireDispatchFailedCounter;
 
     public JobDispatcherMetricsImpl() {
         this(GlobalMeterRegistry.instance());
@@ -17,6 +18,7 @@ public class JobDispatcherMetricsImpl implements IJobDispatcherMetrics {
         this.waitingFiresCounter = registry.counter("nop.job.dispatcher.waiting-fires");
         this.dispatchConflictCounter = registry.counter("nop.job.dispatcher.dispatch-conflict");
         this.firesDispatchedCounter = registry.counter("nop.job.dispatcher.fires-dispatched");
+        this.fireDispatchFailedCounter = registry.counter("nop.job.dispatcher.fire-dispatch-failed");
     }
 
     @Override
@@ -32,5 +34,10 @@ public class JobDispatcherMetricsImpl implements IJobDispatcherMetrics {
     @Override
     public void onFiresDispatched(int count) {
         firesDispatchedCounter.increment(count);
+    }
+
+    @Override
+    public void onFireDispatchFailed(int count) {
+        fireDispatchFailedCounter.increment(count);
     }
 }

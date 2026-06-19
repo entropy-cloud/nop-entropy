@@ -20,4 +20,8 @@ public class EmptyJobWorkerMetrics implements IJobWorkerMetrics {
     @Override
     public void onRejected(int runningCount) {
     }
+
+    @Override
+    public void onTaskExecuteFailed(int count) {
+    }
 }

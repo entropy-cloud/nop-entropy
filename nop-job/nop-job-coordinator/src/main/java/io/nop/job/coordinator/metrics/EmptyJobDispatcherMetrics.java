@@ -12,4 +12,8 @@ public class EmptyJobDispatcherMetrics implements IJobDispatcherMetrics {
     @Override
     public void onFiresDispatched(int count) {
     }
+
+    @Override
+    public void onFireDispatchFailed(int count) {
+    }
 }

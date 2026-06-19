@@ -14,6 +14,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core.JobCoreErrors;
+import io.nop.job.coordinator.metrics.IJobDispatcherMetrics;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -216,6 +218,114 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         dispatcher.setAssignedPartitions("1");
         dispatcher.setScheduleStore(scheduleStore);
         dispatcher.scanOnce();
+    }
+
+    // ========== AR-86: per-fire 错误隔离 + no-fitting-worker defer ==========
+
+    /**
+     * AR-86：dispatcher 批次中第 k 个 fire 抛异常（schedule 已删），第 k+1 个 fire 仍被正常派发。
+     */
+    @Test
+    public void testPerFireIsolationBadFireDoesNotBlockRest() {
+        NopJobSchedule schedule2 = newSchedule("sched-isol-good", "job-isol-good");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule2);
+
+        // fire1 references a non-existent schedule -> loadSchedule throws (UnknownEntity)
+        NopJobFire fire1 = newWaitingFire("sched-isol-bad", "job-isol-bad", null, "testInvoker");
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire1);
+        // fire2 references the real schedule
+        NopJobFire fire2 = newWaitingFire(schedule2.getJobScheduleId(), "job-isol-good", null, "testInvoker");
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire2);
+
+        RecordingDispatcherMetrics metrics = new RecordingDispatcherMetrics();
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        dispatcher.setDispatcherMetrics(metrics);
+        dispatcher.scanOnce();
+
+        // fire2 dispatched (RUNNING + task), fire1 not (stays DISPATCHING, loadSchedule threw)
+        NopJobFire savedFire2 = fireStore.loadFire(fire2.getJobFireId());
+        assertEquals(FIRE_STATUS_RUNNING, savedFire2.getFireStatus(),
+                "good fire must still dispatch despite the bad fire in the same batch");
+        assertEquals(1, taskStore.findTasksByFireId(fire2.getJobFireId()).size(),
+                "good fire's task must be inserted");
+        assertEquals(1, metrics.fireDispatchFailed,
+                "bad fire's failure must be recorded (metric emitted, not silently swallowed)");
+    }
+
+    /**
+     * AR-86：no-fitting-worker（worker 满载的正常瞬态）的 fire 被回退为 WAITING（带 backoff），
+     * 而非留卡 DISPATCHING；在 backoff 窗口内不被重复预锁（无紧循环）。
+     */
+    @Test
+    public void testNoFittingWorkerRevertsToWaitingWithBackoff() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobTaskBuilder_bestFit", (IJobTaskBuilder) fire -> {
+            throw new NopException(ERR_JOB_NO_FITTING_WORKER)
+                    .param("taskCost", "1000")
+                    .param("serviceName", "svc");
+        });
+        BeanContainer.registerInstance(container);
+
+        NopJobSchedule schedule = newSchedule("sched-noWorker", "job-noWorker");
+        schedule.setTaskCostCpu(1000);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+        NopJobFire fire = newWaitingBestFitFire(schedule, "svc");
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
+
+        RecordingDispatcherMetrics metrics = new RecordingDispatcherMetrics();
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        dispatcher.setNoWorkerBackoffMs(30000);
+        dispatcher.setDispatcherMetrics(metrics);
+        dispatcher.scanOnce();
+
+        NopJobFire saved = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_WAITING, saved.getFireStatus(),
+                "no-fitting-worker fire reverted to WAITING (defer), not left DISPATCHING");
+        assertNotNull(saved.getStartTime(),
+                "backoff-until recorded on fire.startTime");
+        assertTrue(saved.getStartTime().getTime() > System.currentTimeMillis(),
+                "startTime is in the future (backoff window active)");
+        assertEquals(1, metrics.fireDispatchFailed,
+                "revert recorded as dispatch-failed metric");
+
+        // second scan: fetchWaitingFires skips future-startTime fires -> not re-locked (no tight loop)
+        dispatcher.scanOnce();
+        NopJobFire saved2 = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_WAITING, saved2.getFireStatus(),
+                "within backoff window the reverted fire must NOT be re-dispatched (no tight loop)");
+    }
+
+    private NopJobFire newWaitingFire(String scheduleId, String jobName, String dispatchMode, String executorKind) {
+        long now = System.currentTimeMillis();
+        NopJobFire fire = new NopJobFire();
+        fire.setJobScheduleId(scheduleId);
+        fire.setNamespaceId("default");
+        fire.setGroupId("default");
+        fire.setJobName(jobName);
+        fire.setTriggerSource(1);
+        fire.setScheduledFireTime(new Timestamp(now - 1000));
+        fire.setFireStatus(FIRE_STATUS_WAITING);
+        fire.setDispatchMode(dispatchMode);
+        fire.setExecutorKind(executorKind);
+        fire.setPartitionIndex((short) 1);
+        fire.setVersion(0L);
+        fire.setCreatedBy("test");
+        fire.setCreateTime(new Timestamp(now));
+        fire.setUpdatedBy("test");
+        fire.setUpdateTime(new Timestamp(now));
+        return fire;
+    }
+
+    private static class RecordingDispatcherMetrics implements IJobDispatcherMetrics {
+        int fireDispatchFailed;
+        int waitingFires;
+        int firesDispatched;
+
+        @Override public void onWaitingFires(int count) { waitingFires += count; }
+        @Override public void onDispatchConflicts(int count) { }
+        @Override public void onFiresDispatched(int count) { firesDispatched += count; }
+        @Override public void onFireDispatchFailed(int count) { fireDispatchFailed += count; }
     }
 
     // ========== AR-94: 多 coordinator 超额派发（dispatcher 侧竞态存在性证明）==========

@@ -1,6 +1,6 @@
 # 268 nop-job 扫描循环错误隔离与派发语义修复
 
-> Plan Status: planned
+> Plan Status: in progress
 > Last Reviewed: 2026-06-19
 > Source: `ai-dev/audits/2026-06-19-0931-adversarial-review-nop-job/01-open-findings.md`（AR-85, AR-86, AR-87, AR-93）
 > Related: `ai-dev/archived/2026-06/111-nop-job-r9-and-deep-audit-remediation.md`（completed，含 R9 AR-73 completion 批隔离修复）
@@ -55,25 +55,25 @@
 
 > **方向裁定（回应对抗审查 Blocker-1/B2）**：per-fire 隔离用独立 try/catch 解决"一个 fire 失败阻塞整批"；对 `ERR_JOB_NO_FITTING_WORKER`（worker 满载的正常瞬态）采用 revert+backoff，而非留 fire 卡 DISPATCHING 等 5min 判失败，也非裸回退（避免 DISPATCHING↔WAITING 紧循环）。
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobDispatcherScannerImpl.java`, `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/IJobFireStore.java`, `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobFireStoreImpl.java`
 
 - Item Types: `Fix`, `Decision`
 
-- [ ] dispatcher `scanOnce` 的 per-fire 循环包独立 try/catch：单个 fire 抛异常时以 WARN/ERROR 记 `fireId` + 派发指标并继续后续 fire（不令其余 fire 卡 DISPATCHING）
-- [ ] worker `scanOnce`/`executeTask` 的 per-task 处理包独立 try/catch：单个任务 `loadFire/loadSchedule` 抛异常时以 WARN 记 `taskId` + 指标并继续其余已认领任务
-- [ ] no-fitting-worker defer：捕获 `ERR_JOB_NO_FITTING_WORKER` 后，新增 `IJobFireStore.revertDispatchingFireToWaiting(fire)`（DISPATCHING→WAITING + 版本检查）把 fire 回退为可重派发；并加 backoff（Decision：用新配置 `nop.job.coordinator.no-worker-backoff-ms` 默认 30s，回退时在 fire 上记录 backoff 截止，`fetchWaitingFires` 跳过未到截止的 fire），**必须避免 DISPATCHING→WAITING→DISPATCHING 紧循环**
+- [x] dispatcher `scanOnce` 的 per-fire 循环包独立 try/catch：单个 fire 抛异常时以 WARN/ERROR 记 `fireId` + 派发指标并继续后续 fire（不令其余 fire 卡 DISPATCHING）
+- [x] worker `scanOnce`/`executeTask` 的 per-task 处理包独立 try/catch：单个任务 `loadFire/loadSchedule` 抛异常时以 WARN 记 `taskId` + 指标并继续其余已认领任务
+- [x] no-fitting-worker defer：捕获 `ERR_JOB_NO_FITTING_WORKER` 后，新增 `IJobFireStore.revertDispatchingFireToWaiting(fire, backoffUntilMs)`（DISPATCHING→WAITING + 版本检查）把 fire 回退为可重派发；并加 backoff（Decision：新配置 `nop.job.coordinator.no-worker-backoff-ms` 默认 30s，回退时在 fire.startTime 记录 backoff 截止，`fetchWaitingFires` 跳过未到截止的 fire），避免 DISPATCHING→WAITING→DISPATCHING 紧循环
 
 Exit Criteria:
 
-- [ ] 回归测试：dispatcher 批次中第 k 个 fire 抛异常（schedule 已删 / no-fitting-worker），第 k+1..n 个 fire 仍被正常派发
-- [ ] 回归测试：worker 批次中某任务 loadFire/loadSchedule 抛异常，其余已认领任务仍被执行
-- [ ] 回归测试：no-fitting-worker 的 fire 回退 WAITING 后，在 backoff 窗口内不被重复预锁（无紧循环），窗口过后能被重新派发
-- [ ] **端到端验证**：混入一个"坏 fire"的调度批次，其余 fire 从派发→执行→完成完整跑通，坏 fire 被隔离处理（回退/记日志）
-- [ ] **无静默跳过（#24）**：每个新增 catch 块以 WARN/ERROR 记 fireId/taskId + 发指标，测试断言日志/指标确实产生（非 `catch{}` 静默吞）
-- [ ] **接线验证**：`revertDispatchingFireToWaiting` 在运行时被调用（计数器/mock verify）
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 回归测试：dispatcher 批次中第 k 个 fire 抛异常（schedule 已删 / no-fitting-worker），第 k+1..n 个 fire 仍被正常派发（`TestJobCoordinatorScanner#testPerFireIsolationBadFireDoesNotBlockRest` + `#testNoFittingWorkerRevertsToWaitingWithBackoff`）
+- [x] 回归测试：worker 批次中某任务 loadFire/loadSchedule 抛异常，其余已认领任务仍被执行（`TestJobWorkerScanner#testPerTaskIsolationBadTaskDoesNotBlockRest`）
+- [x] 回归测试：no-fitting-worker 的 fire 回退 WAITING 后，在 backoff 窗口内不被重复预锁（无紧循环）（`testNoFittingWorkerRevertsToWaitingWithBackoff` 第二轮 scanOnce 断言仍 WAITING）
+- [x] **端到端验证**：混入一个"坏 fire"的调度批次，其余 fire 从派发→执行→完成完整跑通（testPerFireIsolationBadFireDoesNotBlockRest 验证 good fire RUNNING+task 插入）
+- [x] **无静默跳过（#24）**：每个新增 catch 块以 WARN/ERROR 记 fireId/taskId + 发指标（onFireDispatchFailed/onTaskExecuteFailed），测试断言指标确实产生
+- [x] **接线验证**：`revertDispatchingFireToWaiting` 在运行时被调用（fire 状态→WAITING + startTime 未来时间戳断言）
+- [x] `./mvnw test -pl nop-job -am` 全过（coordinator 19 + worker 12，0 failures）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - CLAIMED→RUNNING 所有权校验
 

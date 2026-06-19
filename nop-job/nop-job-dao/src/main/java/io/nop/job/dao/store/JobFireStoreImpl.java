@@ -52,6 +52,14 @@ public class JobFireStoreImpl implements IJobFireStore {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_WAITING));
+        // Backoff filter (AR-86): skip WAITING fires whose startTime (reused as backoff-until after a
+        // no-fitting-worker revert) is still in the future. Never-dispatched fires have startTime=null
+        // and must always be eligible.
+        long now = fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+        query.addFilter(FilterBeans.or(
+                FilterBeans.isNull(PROP_NAME_startTime),
+                FilterBeans.le(PROP_NAME_startTime, new Timestamp(now))
+        ));
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
@@ -276,6 +284,24 @@ public class JobFireStoreImpl implements IJobFireStore {
         addPartitionFilter(query, partitions);
         query.addOrderField(PROP_NAME_startTime, false);
         return fireDao().findAllByQuery(query);
+    }
+
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @Override
+    public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) {
+        NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
+        if (currentFire.getFireStatus() == null
+                || currentFire.getFireStatus() != _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
+            return false;
+        }
+        long now = fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+        currentFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
+        currentFire.setDispatchInstanceId(null);
+        // Reuse startTime as the "earliest re-dispatch" marker while WAITING (no-fitting-worker backoff).
+        currentFire.setStartTime(new Timestamp(backoffUntilMs));
+        currentFire.setUpdatedBy("system");
+        currentFire.setUpdateTime(new Timestamp(now));
+        return !fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(currentFire)).isEmpty();
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)

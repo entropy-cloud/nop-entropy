@@ -235,8 +235,15 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             if (!lockedTasks.isEmpty()) {
                 workerMetrics.onTasksClaimed(lockedTasks.size());
             }
+            // per-task isolation (AR-86): a single task's loadFire/loadSchedule failure must not abort the
+            // remaining already-claimed tasks in this batch.
             for (NopJobTask task : lockedTasks) {
-                executeTask(task);
+                try {
+                    executeTask(task);
+                } catch (Exception e) {
+                    LOG.warn("nop.job.worker.task-execute-failed:taskId={}", task.getJobTaskId(), e);
+                    workerMetrics.onTaskExecuteFailed(1);
+                }
             }
         } catch (Exception e) {
             LOG.error("nop.job.worker.scan-failed", e);

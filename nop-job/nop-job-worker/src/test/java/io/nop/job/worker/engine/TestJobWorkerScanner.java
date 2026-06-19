@@ -19,6 +19,7 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import io.nop.job.worker.metrics.IJobWorkerMetrics;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -591,6 +592,68 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
                 "after re-dispatch, worker claims exactly capacity-fitting count (cumulative {900,1500} <= {1000,2000})");
         assertTrue(totalClaimedCpu <= 1000 && totalClaimedMem <= 2000,
                 "guard: total claimed cost never exceeds capacity");
+    }
+
+    /**
+     * AR-86 worker 侧：已认领批次中某任务 loadSchedule 抛异常，其余已认领任务仍被执行（per-task 隔离）。
+     */
+    @Test
+    public void testPerTaskIsolationBadTaskDoesNotBlockRest() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask pt1 = prepareWaitingTask("sched-pti-1", "job-pti-1");
+        PreparedTask pt2 = prepareWaitingTask("sched-pti-2", "job-pti-2");
+        // sabotage task1: make its fire point to a non-existent schedule so executeTask's loadSchedule throws
+        NopJobFire fire1 = fireStore.loadFire(pt1.fire.getJobFireId());
+        fire1.setJobScheduleId("nonexistent-sched-pti");
+        daoProvider.daoFor(NopJobFire.class).updateEntityDirectly(fire1);
+
+        RecordingWorkerMetrics metrics = new RecordingWorkerMetrics();
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setWorkerMetrics(metrics);
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
+        worker.scanOnce();
+
+        NopJobTask saved2 = taskStore.loadTask(pt2.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, saved2.getTaskStatus(),
+                "good task must still execute despite the bad task in the same claimed batch");
+        NopJobTask saved1 = taskStore.loadTask(pt1.task.getJobTaskId());
+        assertTrue(saved1.getTaskStatus() != TASK_STATUS_SUCCESS,
+                "bad task (loadSchedule threw) must NOT be marked SUCCESS");
+        assertEquals(1, metrics.taskExecuteFailed,
+                "bad task's failure recorded as metric (not silently swallowed)");
+    }
+
+    private static class RecordingWorkerMetrics implements IJobWorkerMetrics {
+        int taskExecuteFailed;
+
+        @Override public void onTasksClaimed(int count) { }
+        @Override public void onTaskSuccess(long durationMs) { }
+        @Override public void onTaskFailure(long durationMs) { }
+        @Override public void onTaskTimeout(long durationMs) { }
+        @Override public void onRejected(int runningCount) { }
+        @Override public void onTaskExecuteFailed(int count) { taskExecuteFailed += count; }
     }
 
     private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {

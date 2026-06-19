@@ -267,6 +267,7 @@ public class TestJobE2E {
             return result;
         }
         @Override public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
+        @Override public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) { return false; }
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> f, String d, long t) { return f; }

@@ -13,6 +13,7 @@ public class JobWorkerMetricsImpl implements IJobWorkerMetrics {
     private final Counter taskFailureCounter;
     private final Counter taskTimeoutCounter;
     private final Counter rejectedCounter;
+    private final Counter taskExecuteFailedCounter;
 
     public JobWorkerMetricsImpl() {
         this(GlobalMeterRegistry.instance());
@@ -24,6 +25,7 @@ public class JobWorkerMetricsImpl implements IJobWorkerMetrics {
         this.taskFailureCounter = registry.counter("nop.job.worker.task-failure");
         this.taskTimeoutCounter = registry.counter("nop.job.worker.task-timeout");
         this.rejectedCounter = registry.counter("nop.job.worker.task-rejected");
+        this.taskExecuteFailedCounter = registry.counter("nop.job.worker.task-execute-failed");
     }
 
     @Override
@@ -49,5 +51,10 @@ public class JobWorkerMetricsImpl implements IJobWorkerMetrics {
     @Override
     public void onRejected(int runningCount) {
         rejectedCounter.increment();
+    }
+
+    @Override
+    public void onTaskExecuteFailed(int count) {
+        taskExecuteFailedCounter.increment(count);
     }
 }
