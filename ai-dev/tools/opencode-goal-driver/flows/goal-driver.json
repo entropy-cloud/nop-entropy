@@ -79,7 +79,7 @@
       "transitions": {
         "pending": {
           "goto": "DRAFT",
-          "append": { "template": "\n\nSelected work item from roadmap check:\n${output}" }
+          "append": { "template": "\n\nSelected work item(s) from roadmap check:\n${output}" }
         },
         "complete": { "goto": "AUDIT" }
       },

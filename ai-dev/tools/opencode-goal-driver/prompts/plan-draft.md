@@ -17,14 +17,14 @@ A plan must have **sufficient workload** to justify the ceremony of drafting, ex
 - **Default**: one work item per plan (for non-trivial items with distinct business semantics)
 - **Bundle** when multiple work items are in the same subsystem/package **and** each individually would result in < ~100 lines of actual code change. Example: adding multiple extension-point interfaces (interface + NoOp impl + Builder wiring + test) that all follow the same pattern — bundle into one "L1 Extension Points" plan.
 - **Split** when a single work item is large enough to have **6+** distinct phases — 2–4 phases is normal, not a reason to split.
+- **Carry-over items**: always apply the Litmus test. Carry-overs are frequently tiny (1–50 lines of production code). Before creating a standalone plan, read the source-plan's §Non-Goals / §Deferred / §Follow-up sections for **sibling carry-overs** (same file, same class, or same fix pattern) and bundle them into this plan until combined workload reaches ~100 lines. A plan that changes only 1–50 lines of production code is **never acceptable** as a standalone plan — merge it into a sibling plan or wait for a larger bundle.
 
 > ⚠️ **Litmus test**: imagine the total ceremony cost (plan doc 150-250 lines + checklist + closure audit + log). If the actual code change is smaller than the plan doc, the item is too small — bundle it.
 
 ### Source selection (priority order)
 
-1. If <NEXT_ITEM type="carry-over">: handle as carry-over (see Carry-Over Workflow below)
-2. If <NEXT_ITEM type="roadmap">: base the plan on that roadmap work item
-3. If there are audit findings (ai-dev/audits/) and no NEXT_ITEM was provided: base the plan on the most critical finding
+1. If one or more `<NEXT_ITEM>` tags were provided: **bundle ALL of them into a single plan**. The ROADMAP step has already pre-grouped bundle-eligible items — respect that grouping and do not split them into separate plans. Carry-over items (type="carry-over") follow the Carry-Over Workflow below.
+2. If there are audit findings (ai-dev/audits/) and no NEXT_ITEM was provided: base the plan on the most critical finding
 
 ### Carry-Over Workflow
 
@@ -34,10 +34,14 @@ When working on a carry-over item (source-plan attribute points to the original 
    - Read the original plan file (`source-plan`) to understand the full context
    - Use grep/glob to check if the work has already been partially or fully implemented
    - If already fully implemented: create a minimal plan documenting "already complete" — no new work needed
-2. **Modify original plan**: Update the original plan to record that followup is being handled:
+2. **Check for bundle siblings (mandatory)**: A carry-over item alone is frequently too small to justify a standalone plan. Before drafting:
+   - If multiple `<NEXT_ITEM>` tags were provided by ROADMAP: they are already pre-bundled — include all of them in this plan.
+   - Otherwise, read the source-plan's §Non-Goals / §Deferred / §Follow-up sections. Sibling carry-overs listed there (same file / same class / same fix pattern) are prime bundle candidates. Search the live codebase to confirm they are still unimplemented.
+   - **Enforce minimum workload**: estimate production-code change lines for the carry-over alone. If < ~100 lines, you MUST find and include at least one bundle sibling. A standalone plan for a 1–50 line change is never acceptable — if no bundle sibling exists anywhere, flag this in the plan header as below-granularity and proceed (ROADMAP will try harder to bundle next cycle).
+3. **Modify original plan(s)**: Update **every** source-plan (primary + bundled siblings) to record that its followup is being handled:
    - Add a section: `## Follow-up handled by {new-plan-filename}`
    - This creates a traceable link from old plan → new plan
-3. **Create new plan**: Draft the plan for the carry-over work (or a minimal plan if already complete) following the standard Requirements below
+4. **Create plan**: Draft the plan for the carry-over work (bundled with siblings if any), following the standard Requirements below. When bundling, add a `## Bundled Items` section listing each item with its source-plan reference.
 
 ### Authoring Requirements
 
@@ -73,7 +77,7 @@ When working on a carry-over item (source-plan attribute points to the original 
 
 1. **Imaginative analysis** — mentally execute the plan; find design↔code gaps.
 2. **Format completeness** — follows the plan guide template; required fields present.
-3. **Content soundness** — Goals/Non-Goals clear; Phase decomposition reasonable; Exit Criteria repo-observable.
+3. **Content soundness** — Goals/Non-Goals clear; Phase decomposition reasonable; Exit Criteria repo-observable; **workload sufficient** (estimated ≥ ~100 lines of production-code change, or a justified exception noted in the plan header). A plan that changes only 1–50 lines of production code without bundled siblings is a **Blocker**.
 4. **Reference accuracy** — referenced paths exist; line numbers / method / class names correct. Verified by the sub-agent against the live repo.
 
 Each finding carries a severity: **Blocker / Major / Minor**.
