@@ -168,3 +168,7 @@ Follow-up:
 - 给更多 composite step（如 Graph）补充/校准 `saveState` 频率以提升续跑粒度（out-of-scope improvement）。
 - step-state 全量字段持久化 / 完整历史 entity 模型（optimization candidate，6× carry-over）。
 - 跨 step 变量 / evalScope 中间状态持久化（out-of-scope improvement，独立 feature）。
+
+## Follow-up handled by 264-nop-ai-agent-step-state-full-field-roundtrip.md
+
+本计划 Non-Goals:43 + Non-Blocking Follow-ups:169 登记的「step-state 全量字段持久化 / 完整历史 entity 模型（optimization candidate，7× carry-over）」由 `ai-dev/plans/264-nop-ai-agent-step-state-full-field-roundtrip.md` 接续收口（仅追加本 traceability 链接，依 Minimum Rules #20 不回写本 plan 正文）。
