@@ -3,6 +3,7 @@ package io.nop.job.worker.engine;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -645,14 +647,161 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
                 "bad task's failure recorded as metric (not silently swallowed)");
     }
 
+    /**
+     * AR-93：overfetch 有候选但无一 fit 时产生可观测信号（WARN + onRejected），候选保持 WAITING，
+     * 与"无候选"（正常空闲）场景区分。
+     */
+    @Test
+    public void testOverfetchNoFittingCandidateEmitsSignal() {
+        PreparedTask pt = prepareWaitingTaskWithCost("sched-ar93", "job-ar93", 2000, 2000);
+
+        RecordingWorkerMetrics metrics = new RecordingWorkerMetrics();
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setWorkerMetrics(metrics);
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        // remaining {1000,2000}; candidate cost {2000,2000} exceeds cpu → none fit
+        worker.setCapacityProvider(() -> new ResourceVector(1000, 2000));
+        worker.scanOnce();
+
+        assertEquals(TASK_STATUS_WAITING, taskStore.loadTask(pt.task.getJobTaskId()).getTaskStatus(),
+                "non-fitting candidate must stay WAITING");
+        assertTrue(metrics.rejectedCount >= 1,
+                "AR-93: candidates-exist-but-none-fit must emit an observable onRejected signal");
+    }
+
+    /**
+     * AR-85：CLAIMED→RUNNING 的 CAS 失败（任务被超时检查器移交给他人）时，worker 不再调用
+     * 该任务的 invoker（消除重复执行）。用 delegating store 使 updateTask 返回 false 模拟 CAS 失败。
+     */
+    @Test
+    public void testClaimCasFailureSkipsInvoker() {
+        rememberOriginalBeanContainer();
+        int[] invokeCount = {0};
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                invokeCount[0]++;
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask pt = prepareWaitingTask("sched-ar85", "job-ar85");
+
+        RecordingWorkerMetrics metrics = new RecordingWorkerMetrics();
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        // wrap the real taskStore: updateTask (CLAIMED→RUNNING CAS) returns false → ownership lost
+        worker.setTaskStore(new FailingCasTaskStore(taskStore));
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setWorkerMetrics(metrics);
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
+        worker.scanOnce();
+
+        assertEquals(0, invokeCount[0],
+                "invoker must NOT be called when CLAIMED→RUNNING CAS failed (ownership lost)");
+        NopJobTask saved = taskStore.loadTask(pt.task.getJobTaskId());
+        assertTrue(saved.getTaskStatus() != TASK_STATUS_SUCCESS,
+                "task must not reach SUCCESS when ownership CAS failed");
+        assertEquals(1, metrics.taskExecuteFailed,
+                "CAS-failure branch emits metric (non-silent return)");
+    }
+
+    /**
+     * Delegating IJobTaskStore that makes updateTask (the CLAIMED→RUNNING CAS) return false,
+     * simulating a concurrent ownership change (timeout checker moved task to SUSPICIOUS).
+     */
+    private static final class FailingCasTaskStore implements IJobTaskStore {
+        private final IJobTaskStore delegate;
+
+        FailingCasTaskStore(IJobTaskStore delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean updateTask(NopJobTask task) {
+            return false;
+        }
+
+        @Override
+        public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) {
+            return delegate.fetchWaitingTasks(limit, partitions);
+        }
+
+        @Override
+        public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions,
+                                                   String workerInstanceId, boolean enforceAttribution) {
+            return delegate.fetchWaitingTasks(limit, partitions, workerInstanceId, enforceAttribution);
+        }
+
+        @Override
+        public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) {
+            return delegate.tryLockTasksForExecute(tasks, workerInstanceId, lockTimeoutMs);
+        }
+
+        @Override
+        public List<NopJobTask> fetchRunningTasks(int limit, IntRangeSet partitions) {
+            return delegate.fetchRunningTasks(limit, partitions);
+        }
+
+        @Override
+        public List<NopJobTask> findTasksByFireId(String jobFireId) {
+            return delegate.findTasksByFireId(jobFireId);
+        }
+
+        @Override
+        public NopJobTask loadTask(String jobTaskId) {
+            return delegate.loadTask(jobTaskId);
+        }
+
+        @Override
+        public long countInFlightTasks(String workerInstanceId) {
+            return delegate.countInFlightTasks(workerInstanceId);
+        }
+
+        @Override
+        public ResourceVector sumReservedCost(String workerInstanceId) {
+            return delegate.sumReservedCost(workerInstanceId);
+        }
+
+        @Override
+        public List<io.nop.job.dao.store.WorkerReservedCost> sumReservedCostByWorker() {
+            return delegate.sumReservedCostByWorker();
+        }
+
+        @Override
+        public int resetStaleWaitingTasks(int batchSize, IntRangeSet partitions, long deadlineMs) {
+            return delegate.resetStaleWaitingTasks(batchSize, partitions, deadlineMs);
+        }
+    }
+
     private static class RecordingWorkerMetrics implements IJobWorkerMetrics {
         int taskExecuteFailed;
+        int rejectedCount;
 
         @Override public void onTasksClaimed(int count) { }
         @Override public void onTaskSuccess(long durationMs) { }
         @Override public void onTaskFailure(long durationMs) { }
         @Override public void onTaskTimeout(long durationMs) { }
-        @Override public void onRejected(int runningCount) { }
+        @Override public void onRejected(int runningCount) { rejectedCount++; }
         @Override public void onTaskExecuteFailed(int count) { taskExecuteFailed += count; }
     }
 

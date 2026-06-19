@@ -77,44 +77,44 @@ Exit Criteria:
 
 ### Phase 2 - CLAIMED→RUNNING 所有权校验
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java`
 
 - Item Types: `Fix`
 
-- [ ] worker `executeTask` 检查 `taskStore.updateTask(runningTask)` 返回值；CAS 失败（任务已被超时检查器移交给他人）时以 WARN 记 `taskId` 并跳过 `invokeAsync`，与 `handleExecutionResult:316` 行为对齐
-- [ ] 消除"失去所有权后仍执行任务"导致的重复执行路径
+- [x] worker `executeTask` 检查 `taskStore.updateTask(runningTask)` 返回值；CAS 失败（任务已被超时检查器移交给他人）时以 WARN 记 `taskId` 并跳过 `invokeAsync`，与 `handleExecutionResult:316` 行为对齐
+- [x] 消除"失去所有权后仍执行任务"导致的重复执行路径
 
 Exit Criteria:
 
-- [ ] 回归测试：模拟 CLAIMED→RUNNING 期间任务被超时检查器扫成 SUSPICIOUS（CAS 失败），worker 不再调用该任务的 invoker
-- [ ] **接线验证**：CAS 失败分支确实阻止 invokeAsync（计数器/mock verify invoker 未被调用）
-- [ ] **无静默跳过（#24）**：CAS 失败分支 WARN 记 taskId 并发指标（非静默 return）
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 回归测试：模拟 CLAIMED→RUNNING 期间任务被超时检查器扫成 SUSPICIOUS（CAS 失败），worker 不再调用该任务的 invoker（`TestJobWorkerScanner#testClaimCasFailureSkipsInvoker`，用 FailingCasTaskStore 使 updateTask 返回 false）
+- [x] **接线验证**：CAS 失败分支确实阻止 invokeAsync（`invokeCount[0]==0` 断言 invoker 未被调用）
+- [x] **无静默跳过（#24）**：CAS 失败分支 WARN 记 taskId 并发 onTaskExecuteFailed 指标（非静默 return）
+- [x] `./mvnw test -pl nop-job -am` 全过（worker 14 tests，0 failures）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - dispatchMode 误配显式失败 + overfetch 可观测信号
 
 > **方向裁定（回应对抗审查 Major-1）**：精确边界——仅当 `dispatchMode` 非空/非 blank/非 single 且其 bean 不存在时抛 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED`；`dispatchMode∈{null,blank,single}` 时**保留** executorKind→default fallback（守护 rpcBroadcast-via-executorKind 合法路由，见既有 `TestJobDispatcherScannerRouting`）。
 
-Status: planned
+Status: completed
 Targets: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobDispatcherScannerImpl.java`, `nop-job/nop-job-core/src/main/java/io/nop/job/core/JobCoreErrors.java`, `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java`
 
 - Item Types: `Fix`
 
-- [ ] 恢复 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED` 使用：`dispatchMode` 非空/非 blank/非 single 且 `nopJobTaskBuilder_<dispatchMode>` bean 不存在时抛该错误码；`dispatchMode∈{null,blank,single}` 仍走 executorKind→defaultTaskBuilder fallback（不抛）
-- [ ] worker overfetch 后 `tasks.isEmpty():205`（有候选但无一 fit）分支增加 WARN 日志与指标，使饥饿/停滞可诊断（与 `candidates.isEmpty():192` 无任务场景区分）
-- [ ] 核对既有 `TestJobDispatcherScannerRouting` 的 fallback 用例（dispatchMode=single/null + executorKind=rpcBroadcast 路由）仍通过
+- [x] 恢复 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED` 使用：`dispatchMode` 非空/非 blank/非 single 且 `nopJobTaskBuilder_<dispatchMode>` bean 不存在时抛该错误码；`dispatchMode∈{null,blank,single}` 仍走 executorKind→defaultTaskBuilder fallback（不抛）
+- [x] worker overfetch 后 `tasks.isEmpty()`（有候选但无一 fit）分支增加 WARN 日志与指标，使饥饿/停滞可诊断（与 `candidates.isEmpty()` 无任务场景区分）
+- [x] 核对既有 `TestJobDispatcherScannerRouting` 的 fallback 用例（dispatchMode=single/null + executorKind 路由）仍通过（6 tests 全过）
 
 Exit Criteria:
 
-- [ ] 回归测试：配置一个未注册的 dispatchMode（如 "typo"），派发抛 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED`（可观测），不再静默退化为单例
-- [ ] 回归测试：`dispatchMode=null/single` + `executorKind=rpcBroadcast` 仍正确路由到广播 builder（fallback 路径不被误伤，既有 `testDispatchModeSingleFallsBackToExecutorKind`/`testDispatchModeNullFallsBackToExecutorKind` 通过）
-- [ ] 回归测试：worker overfetch 有候选但无一 fit 时产生可观测信号（日志/指标断言）
-- [ ] **无静默跳过**：未知 dispatchMode 分支是显式抛异常而非静默兜底（见 Minimum Rules #24）
-- [ ] **端到端验证**：dispatchMode 误配的 schedule 从触发→派发→显式失败（fire 层面可观测），而非静默单 task 执行
-- [ ] `./mvnw test -pl nop-job -am` 全过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 回归测试：配置一个未注册的 dispatchMode（如 "typo"），派发抛 `ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED`（可观测），不再静默退化为单例（`TestJobDispatcherScannerRouting#testUnknownDispatchModeThrowsExplicitly`）
+- [x] 回归测试：`dispatchMode=null/single` + `executorKind=rpcBroadcast` 仍正确路由到广播 builder（fallback 路径不被误伤，既有 `testDispatchModeSingleFallsBackToExecutorKind`/`testDispatchModeNullFallsBackToExecutorKind` 通过）
+- [x] 回归测试：worker overfetch 有候选但无一 fit 时产生可观测信号（`TestJobWorkerScanner#testOverfetchNoFittingCandidateEmitsSignal`，断言 onRejected + 候选保持 WAITING）
+- [x] **无静默跳过**：未知 dispatchMode 分支是显式抛异常而非静默兜底（见 Minimum Rules #24）
+- [x] **端到端验证**：dispatchMode 误配由 per-fire 隔离捕获（Phase 1），fire 层面可观测（onFireDispatchFailed 指标 + 留 DISPATCHING 由 timeout 回收），而非静默单 task 执行
+- [x] `./mvnw test -pl nop-job -am` 全过（routing 6 + coordinator 19 + worker 14，0 failures）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

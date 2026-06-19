@@ -201,6 +201,8 @@ public class MyJobInvoker implements IJobInvoker {
 
 > **bean 命名约定**：Worker 通过 `DefaultJobInvokerResolver` 解析 invoker，bean 名固定前缀为 `nopJobInvoker_`，后缀为作业记录中的 `executorKind` 字段值。上面的例子对应 `executorKind = myJob`。参考 `nop-job-service` 内置的 `nopJobInvoker_rpc`、`nopJobInvoker_rpcBroadcast`、`nopJobInvoker_test`。
 
+> **dispatchMode 路由**：`nop_job_fire.dispatch_mode` 决定 task 拆分方式，dispatcher 用 bean 名 `nopJobTaskBuilder_<dispatchMode>` 解析（如 `partition`/`broadcast`/`bestFit`）。`dispatchMode ∈ {null, blank, "single"}` 时按 `executorKind` 路由再 fallback 到默认 single builder；**非 single 的 dispatchMode 若对应 bean 未注册则显式失败**（抛 `nop.err.job.dispatch-mode-not-implemented`，由 per-fire 隔离捕获、fire 留 DISPATCHING 由超时检查器回收），不静默退化为单例。单个 fire 派发失败不波及同批次其余 fire。
+
 **步骤 2：创建 NopJobSchedule 记录**
 
 往 `nop_job_schedule` 表插入一条记录（通过 GraphQL mutation、BizModel 或直接 SQL）。关键字段：
@@ -331,6 +333,7 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.coordinator.dispatch-timeout-ms` | 300000 | 调度超时（5 分钟） |
 | `nop.job.coordinator.execution-timeout-ms` | -1 | 全局执行超时（-1 不限制，单作业可用 `timeoutSeconds` 字段覆盖） |
 | `nop.job.coordinator.task-dispatch-wait-timeout-ms` | 600000 | WAITING 任务派发等待超时（10 分钟）；超时后重派发（`workerInstanceId` 置 null 回到 competing-consumer），含归因给已下线 worker 的任务；`<=0` 禁用 |
+| `nop.job.coordinator.no-worker-backoff-ms` | 30000 | no-fitting-worker（worker 满载瞬态）回退后 backoff 窗口；回退时把 fire 置回 WAITING 并在 startTime 记录 backoff 截止，`fetchWaitingFires` 在窗口内跳过该 fire，避免紧循环；`0` 不 backoff |
 | `nop.job.coordinator.assigned-partitions` | （空） | 本节点负责的分区，逗号分隔 |
 
 ### 工作者（Worker）

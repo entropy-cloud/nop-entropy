@@ -224,7 +224,15 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
             if (bean instanceof IJobTaskBuilder) {
                 return (IJobTaskBuilder) bean;
             }
+            // AR-87: explicit failure instead of silent fallback to single. A configured dispatchMode
+            // (e.g. "bestFit"/"partition") with a missing bean is a config error (module not loaded, bean
+            // name typo). Fail fast (caught by per-fire isolation) rather than silently degrading.
+            throw new NopException(ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED)
+                    .param(ARG_DISPATCH_MODE, dispatchMode)
+                    .param(ARG_JOB_FIRE_ID, fire.getJobFireId());
         }
+        // dispatchMode ∈ {null, blank, "single"}: keep executorKind → default fallback (guards the
+        // rpcBroadcast-via-executorKind legal route, see TestJobDispatcherScannerRouting).
         String executorKind = fire.getExecutorKind();
         if (executorKind != null && !executorKind.isBlank()) {
             String beanName = TASK_BUILDER_PREFIX + executorKind;

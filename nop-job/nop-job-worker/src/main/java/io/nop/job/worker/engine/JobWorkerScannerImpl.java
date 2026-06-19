@@ -227,6 +227,12 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
             }
 
             if (tasks.isEmpty()) {
+                // AR-93: candidates existed but none fit this worker's remaining capacity (or all exceed
+                // the window). Emit an observable signal so starvation/stall is diagnosable, distinct
+                // from the no-candidates case above (which is normal idle).
+                LOG.warn("nop.job.worker.no-fitting-candidate:candidateCount={},remainingCpu={},remainingMem={}",
+                        candidates.size(), myRemaining.getCpu(), myRemaining.getMemory());
+                workerMetrics.onRejected(0);
                 return;
             }
 
@@ -274,7 +280,17 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         runningTask.setWorkerInstanceId(AppConfig.hostId());
         runningTask.setUpdatedBy("system");
         runningTask.setUpdateTime(new Timestamp(now));
-        taskStore.updateTask(runningTask);
+        // AR-85: check the CLAIMED→RUNNING CAS return value. If it failed the task is no longer ours
+        // (timeout checker moved it to SUSPICIOUS, or another worker claimed it). Invoking now would
+        // execute a task we no longer own → duplicate execution. Skip invokeAsync (aligned with
+        // handleExecutionResult which also checks updateTask's return value).
+        boolean acquired = taskStore.updateTask(runningTask);
+        if (!acquired) {
+            LOG.warn("nop.job.worker.claim-cas-failed-skip-invoke:taskId={},status={}",
+                    runningTask.getJobTaskId(), runningTask.getTaskStatus());
+            workerMetrics.onTaskExecuteFailed(1);
+            return;
+        }
 
         IJobExecutionContext ctx = executionContextBuilder.buildContext(schedule, fire, runningTask);
         try {

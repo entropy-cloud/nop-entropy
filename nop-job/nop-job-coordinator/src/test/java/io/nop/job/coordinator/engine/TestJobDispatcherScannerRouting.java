@@ -1,5 +1,6 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.ioc.StaticBeanContainer;
@@ -11,7 +12,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -99,5 +102,17 @@ public class TestJobDispatcherScannerRouting {
         NopJobFire fire = createFire("bestFit", "test");
         IJobTaskBuilder builder = dispatcher.resolveTaskBuilder(fire);
         assertEquals(STUB_BESTFIT, builder, "dispatchMode=bestFit should route to AdaptiveJobTaskBuilder");
+    }
+
+    /**
+     * AR-87：未注册的 dispatchMode（如拼写错误 "typo"，bean 缺失）必须显式失败（抛
+     * ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED），而非静默退化为单例派发。
+     */
+    @Test
+    void testUnknownDispatchModeThrowsExplicitly() {
+        NopJobFire fire = createFire("typo", "test");
+        NopException ex = assertThrows(NopException.class, () -> dispatcher.resolveTaskBuilder(fire),
+                "unknown dispatchMode with missing bean must throw, not silently fall back");
+        assertEquals(ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED.getErrorCode(), ex.getErrorCode());
     }
 }
