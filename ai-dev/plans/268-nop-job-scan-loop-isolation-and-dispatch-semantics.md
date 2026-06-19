@@ -1,6 +1,6 @@
 # 268 nop-job 扫描循环错误隔离与派发语义修复
 
-> Plan Status: in progress
+> Plan Status: completed
 > Last Reviewed: 2026-06-19
 > Source: `ai-dev/audits/2026-06-19-0931-adversarial-review-nop-job/01-open-findings.md`（AR-85, AR-86, AR-87, AR-93）
 > Related: `ai-dev/archived/2026-06/111-nop-job-r9-and-deep-audit-remediation.md`（completed，含 R9 AR-73 completion 批隔离修复）
@@ -118,17 +118,17 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] AR-85/86/87/93 的 confirmed live defect 已修复且有回归测试
-- [ ] 单点失败不再波及同批次；未知 dispatchMode 显式失败；CAS 失败不再重复执行
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect
-- [ ] 受影响 owner docs 已同步（`docs-for-ai/03-modules/nop-job.md` dispatchMode 行为如有变化）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：错误隔离与显式失败分支在运行时确实被触发（不只是类型存在）
-- [ ] `./mvnw compile -pl nop-job -am`
-- [ ] `./mvnw test -pl nop-job -am`
-- [ ] checkstyle 通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/268-nop-job-scan-loop-isolation-and-dispatch-semantics.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0
+- [x] AR-85/86/87/93 的 confirmed live defect 已修复且有回归测试
+- [x] 单点失败不再波及同批次；未知 dispatchMode 显式失败；CAS 失败不再重复执行
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect（overfetch 深度饥饿升级为 optimization candidate，前提 AR-83/AR-88 已由 Plan 267 修复）
+- [x] 受影响 owner docs 已同步（`docs-for-ai/03-modules/nop-job.md` dispatchMode 显式失败行为 + no-worker-backoff 配置）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：错误隔离与显式失败分支在运行时确实被触发（per-fire/per-task catch 发指标；CAS-fail 经 invokeCount==0 断言；revert 经 fire→WAITING+future startTime 断言）
+- [x] `./mvnw compile -pl nop-job -am`
+- [x] `./mvnw test -pl nop-job -am`（全模块 BUILD SUCCESS，0 failures）
+- [x] checkstyle 通过（commit 时 ast-grep Java lint 通过）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/268-nop-job-scan-loop-isolation-and-dispatch-semantics.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（0 findings）
 
 ## Deferred But Adjudicated
 
@@ -141,8 +141,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待 closure audit 填写)
-Completed: (待定)
+Status Note: Plan 268 收口——3 个 Phase 全部 completed，4 个 confirmed defect（AR-85/86/87/93）均已修复并有回归测试。单点失败经 per-fire/per-task 隔离不再波及同批次；no-fitting-worker 经 revert+backoff defer（不卡 DISPATCHING）；dispatchMode 误配显式失败；CLAIMED→RUNNING CAS 失败不再重复执行。独立 closure audit PASS，无 blocker。
+Completed: 2026-06-19
 
 Closure Audit Evidence:
-- (待独立子 agent closure audit 后写入)
+
+- Reviewer / Agent: closure-auditor-independent（独立子 agent，fresh session `ses_121a8da56ffeAUZJqWIZRAVJSJ`，未参与实现）
+- Audit Session: ses_121a8da56ffeAUZJqWIZRAVJSJ
+- Verdict: PASS（无 blocker）
+- Evidence:
+  - 每条 Phase Exit Criterion（3 Phase 共 19 项）：均 PASS，含 live code 位置与 test 方法名。例：AR-86 → `JobDispatcherScannerImpl.java:165-204`（per-fire try/catch）+ `JobWorkerScannerImpl.java:246-253`（per-task）+ `JobFireStoreImpl.java:289-305`（revert）+ `:55-62`（backoff 过滤）；AR-85 → `JobWorkerScannerImpl.java:287-293`（CAS 返回值检查 + skip invokeAsync）；AR-87 → `JobDispatcherScannerImpl.java:227-232`（显式抛错）；AR-93 → `JobWorkerScannerImpl.java:229-237`（WARN+onRejected）。
+  - 每条 Closure Gate：均 PASS。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/268-...md --strict` 退出码 0。
+  - Anti-Hollow 检查：per-fire/per-task catch 块均发指标（非 catch{}）；revert 接线经 fire→WAITING+future startTime 断言；CAS-fail 经 invokeCount==0 断言证明未执行；dispatchMode 误配经 assertThrows 错误码断言。`scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（0 findings）。
+  - Deferred 项分类检查：overfetch 深度饥饿升级为 optimization candidate，前提 AR-83/AR-88 已由 Plan 267 修复，non-blocking 成立。
+
+Follow-up:
+
+- overfetch 深度饥饿升级算法（successor：可选 P2/P3 优化，不影响正确性契约）
+- no remaining plan-owned correctness work（AR-85/86/87/93 in-scope 全部收口）
