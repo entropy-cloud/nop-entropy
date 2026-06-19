@@ -3,6 +3,9 @@ package io.nop.job.coordinator.engine;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.ioc.BeanContainer;
+import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.api.core.ioc.StaticBeanContainer;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
@@ -14,6 +17,7 @@ import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -59,6 +63,22 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
     @Inject
     IJobTaskStore taskStore;
+
+    private IBeanContainer originalBeanContainer;
+
+    @AfterEach
+    public void restoreBeanContainer() {
+        if (originalBeanContainer != null) {
+            BeanContainer.registerInstance(originalBeanContainer);
+            originalBeanContainer = null;
+        }
+    }
+
+    private void rememberOriginalBeanContainer() {
+        if (originalBeanContainer == null && BeanContainer.isInitialized()) {
+            originalBeanContainer = BeanContainer.instance();
+        }
+    }
 
     @Test
     public void testScheduleToFireToTask() {
@@ -106,6 +126,92 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         NopJobFire savedFire = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_RUNNING, savedFire.getFireStatus());
+    }
+
+    /**
+     * AR-95 / AR-84 根因：未配置 taskCostCpu/taskCostMemory/priority 的存量 schedule（null）
+     * 经 dispatcher 派发后，落库的 task 行 cost/priority 必须为 0（非 null），而非把可空值写回。
+     * 覆盖 single（默认 DefaultJobTaskBuilder）路径：builder 不设 cost，dispatcher 归一后落库。
+     */
+    @Test
+    public void testDispatcherNormalizesNullCostScheduleToZeroSingle() {
+        NopJobSchedule schedule = newSchedule("sched-ar95-single", "job-ar95-single");
+        // cost/priority deliberately left null (legacy pre-Plan-212 schedule)
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        runPlanner();
+        runDispatcher();
+
+        List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll();
+        assertEquals(1, tasks.size());
+        NopJobTask task = tasks.get(0);
+        assertNotNull(task.getCostCpu(), "costCpu must be non-null after dispatch (AR-95)");
+        assertNotNull(task.getCostMemory(), "costMemory must be non-null after dispatch (AR-95)");
+        assertNotNull(task.getPriority(), "priority must be non-null after dispatch (AR-95)");
+        assertEquals(0, task.getCostCpu());
+        assertEquals(0, task.getCostMemory());
+        assertEquals(0, task.getPriority());
+    }
+
+    /**
+     * AR-95 bestFit builder 路径：dispatcher 归一需覆盖 bestFit 派发路由。
+     * 注册一个 stub bestFit builder（不设 cost），验证 dispatcher 在其产出后仍归一为 0。
+     */
+    @Test
+    public void testDispatcherNormalizesNullCostToZeroBestFit() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobTaskBuilder_bestFit", (IJobTaskBuilder) fire -> {
+            NopJobTask task = new NopJobTask();
+            task.setJobFireId(fire.getJobFireId());
+            task.setTaskNo(1);
+            task.setTaskStatus(TASK_STATUS_WAITING);
+            task.setPartitionIndex(fire.getPartitionIndex());
+            // deliberately do NOT set cost/priority — dispatcher normalization must fill 0
+            return List.of(task);
+        });
+        BeanContainer.registerInstance(container);
+
+        NopJobSchedule schedule = newSchedule("sched-ar95-bestfit", "job-ar95-bestfit");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        runPlanner();
+
+        // Set the planned fire's dispatchMode to bestFit so resolveTaskBuilder takes the bestFit route
+        NopJobFire fire = daoProvider.daoFor(NopJobFire.class).findAll().stream()
+                .filter(f -> schedule.getJobScheduleId().equals(f.getJobScheduleId()))
+                .findFirst().orElseThrow();
+        fire.setDispatchMode("bestFit");
+        daoProvider.daoFor(NopJobFire.class).updateEntityDirectly(fire);
+
+        runDispatcher();
+
+        List<NopJobTask> tasks = daoProvider.daoFor(NopJobTask.class).findAll();
+        assertEquals(1, tasks.size());
+        NopJobTask task = tasks.get(0);
+        assertEquals(0, task.getCostCpu(), "bestFit-dispatched task costCpu must be normalized to 0");
+        assertEquals(0, task.getCostMemory());
+        assertEquals(0, task.getPriority());
+    }
+
+    private void runPlanner() {
+        JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
+        planner.setScheduleStore(scheduleStore);
+        planner.setBatchSize(10);
+        planner.setPlanningTimeoutMs(1000);
+        planner.setAssignedPartitions("1");
+        planner.scanOnce();
+    }
+
+    private void runDispatcher() {
+        JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
+        dispatcher.setFireStore(fireStore);
+        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
+        dispatcher.setBatchSize(10);
+        dispatcher.setLockTimeoutMs(1000);
+        dispatcher.setAssignedPartitions("1");
+        dispatcher.setScheduleStore(scheduleStore);
+        dispatcher.scanOnce();
     }
 
     @Test

@@ -275,6 +275,29 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals(ResourceVector.ZERO, absent);
     }
 
+    /**
+     * AR-83 守卫：Plan 267 Phase 2 在 worker 侧修正 double-count，但**不改**共享
+     * {@code RESERVED_TASK_STATUSES}。dispatcher 侧 {@code sumReservedCostByWorker}
+     * （best-fit 决策输入）仍必须包含 WAITING 任务成本。本用例验证该输入未被改变。
+     */
+    @Test
+    public void testSumReservedCostByWorkerStillIncludesWaiting() {
+        NopJobSchedule schedule = newSchedule("schedule-srcrbw", "job-srcrbw");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        // WAITING task attributed to worker-w1 (the bestFit dispatch scenario)
+        saveCostTask("task-srcrbw-w", schedule, "worker-w1", _NopJobCoreConstants.TASK_STATUS_WAITING, 300, 500);
+        // NULL workerInstanceId row must NOT be returned (per sql-lib contract)
+        saveCostTask("task-srcrbw-null", schedule, null, _NopJobCoreConstants.TASK_STATUS_WAITING, 9999, 9999);
+
+        List<WorkerReservedCost> rows = taskStore.sumReservedCostByWorker();
+        assertEquals(1, rows.size(), "only worker-w1 row; null-attribution rows excluded");
+        WorkerReservedCost w1 = rows.get(0);
+        assertEquals("worker-w1", w1.getWorkerInstanceId());
+        assertEquals(300, w1.getCpu());
+        assertEquals(500, w1.getMemory());
+    }
+
     // ========== Plan 213 Phase 3: enforceAttribution filter tests ==========
 
     @Test

@@ -193,12 +193,36 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                 return;
             }
 
+            String myHostId = AppConfig.hostId();
             List<NopJobTask> tasks = new ArrayList<>();
             for (NopJobTask task : candidates) {
                 if (tasks.size() >= effectiveBatchSize)
                     break;
-                if (myRemaining.fits(new ResourceVector(task.getCostCpu(), task.getCostMemory()))) {
+                // Defensive null → 0 normalization (second line of defense): historical
+                // task rows persisted before the dispatcher normalization (AR-95) may
+                // still have null cost. Auto-unboxing a null Integer here would throw
+                // NPE and abort the entire scan batch (AR-84).
+                int costCpu = normalizeCost(task.getCostCpu());
+                int costMemory = normalizeCost(task.getCostMemory());
+                ResourceVector cost = new ResourceVector(costCpu, costMemory);
+
+                // AR-83 double-count fix: WAITING tasks already attributed to this worker
+                // (workerInstanceId == myHostId) are already included in myReserved (WAITING
+                // is in RESERVED_TASK_STATUSES). Claiming them adds no new net load, so add
+                // their own cost back to undo the double-count. An idle worker must be able
+                // to claim a self-attributed task whose cost approaches capacity (the defect:
+                // such a task was previously never claimed because its cost was counted twice,
+                // making any task with cost > capacity/2 unclaimable).
+                boolean selfAttributed = myHostId.equals(task.getWorkerInstanceId());
+                ResourceVector available = selfAttributed ? myRemaining.add(cost) : myRemaining;
+                if (available.fits(cost)) {
                     tasks.add(task);
+                    // Decrement remaining for genuinely new (non-self-attributed) load so
+                    // cumulative claims within one scan do not exceed capacity. Self-attributed
+                    // claims are already accounted in reserved, so no decrement needed.
+                    if (!selfAttributed) {
+                        myRemaining = myRemaining.subtract(cost);
+                    }
                 }
             }
 
@@ -393,5 +417,9 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
 
     protected IScheduledExecutor getExecutor() {
         return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
+    }
+
+    private static int normalizeCost(Integer value) {
+        return value != null ? value : 0;
     }
 }

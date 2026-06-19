@@ -370,9 +370,153 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
                 "Task with cost > remaining must NOT be claimed");
     }
 
+    /**
+     * AR-84: a WAITING task with null costCpu/costMemory (legacy pre-Plan-212 schedule)
+     * must not NPE the worker scan; it should be claimed and executed (normalized to cost=0).
+     * Before the fix, auto-unboxing null Integer in {@code new ResourceVector(...)} threw NPE
+     * and aborted the entire scan batch.
+     */
+    @Test
+    public void testNullCostTaskDoesNotNpeAndIsExecuted() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask prepared = prepareWaitingTask("schedule-ar84", "job-ar84");
+        // Explicitly ensure cost fields are null (simulate legacy pre-Plan-212 persisted row)
+        NopJobTask legacyTask = taskStore.loadTask(prepared.task.getJobTaskId());
+        legacyTask.setCostCpu(null);
+        legacyTask.setCostMemory(null);
+        daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(legacyTask);
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
+        worker.scanOnce();
+
+        NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, savedTask.getTaskStatus(),
+                "Null-cost task must be claimed and executed (normalized to 0), not NPE the scan");
+    }
+
+    /**
+     * AR-83: capacity=4000m, a self-attributed WAITING task with cost=3000m (> capacity/2)
+     * must be claimed and executed by an idle worker. Before the fix, double-counting
+     * (cost counted in myReserved AND in fits check) made any task with cost > capacity/2
+     * permanently stuck.
+     */
+    @Test
+    public void testLargeSelfAttributedTaskClaimedWhenIdle() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        PreparedTask prepared = prepareWaitingTaskWithCost("schedule-ar83-large", "job-ar83-large", 3000, 3000);
+        // Attribute the WAITING task to self (as a bestFit dispatcher would).
+        NopJobTask selfTask = taskStore.loadTask(prepared.task.getJobTaskId());
+        selfTask.setWorkerInstanceId(AppConfig.hostId());
+        daoProvider.daoFor(NopJobTask.class).updateEntityDirectly(selfTask);
+
+        // Sanity: the self-attributed WAITING cost is in reserved (WAITING ∈ RESERVED_TASK_STATUSES)
+        ResourceVector reserved = taskStore.sumReservedCost(AppConfig.hostId());
+        assertEquals(3000, reserved.getCpu(), "guard: self-attributed WAITING cost counted in reserved");
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> new ResourceVector(4000, 4000));
+        worker.scanOnce();
+
+        NopJobTask saved = taskStore.loadTask(prepared.task.getJobTaskId());
+        assertEquals(TASK_STATUS_SUCCESS, saved.getTaskStatus(),
+                "Self-attributed task cost=3000m with capacity=4000m must be claimed by idle worker "
+                        + "(was stuck before AR-83 fix because cost > capacity/2)");
+    }
+
+    /**
+     * AR-83 防退化：资源限制仍生效，不退化为无限。cumulative claims within capacity all
+     * claimed; the task that would push cumulative beyond capacity is rejected.
+     * Uses non-self-attributed (null workerInstanceId) candidates so each claim adds new load.
+     */
+    @Test
+    public void testResourceLimitCumulativeRejectsExcess() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobInvoker_test", new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE(123456L));
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext jobCtx) {
+                return CompletableFuture.completedFuture(Boolean.TRUE);
+            }
+        });
+        BeanContainer.registerInstance(container);
+
+        // capacity {1000, 2000}; candidates are non-self (null attribution) so each claim is new load
+        PreparedTask t1 = prepareWaitingTaskWithCost("schedule-ar83-c1", "job-ar83-c1", 300, 500);
+        PreparedTask t2 = prepareWaitingTaskWithCost("schedule-ar83-c2", "job-ar83-c2", 300, 500);
+        PreparedTask t3 = prepareWaitingTaskWithCost("schedule-ar83-c3", "job-ar83-c3", 500, 900);
+
+        JobWorkerScannerImpl worker = new JobWorkerScannerImpl();
+        worker.setTaskStore(taskStore);
+        worker.setFireStore(fireStore);
+        worker.setScheduleStore(scheduleStore);
+        worker.setInvokerResolver(new DefaultJobInvokerResolver());
+        worker.setExecutionContextBuilder(new DefaultJobExecutionContextBuilder());
+        worker.setBatchSize(10);
+        worker.setAssignedPartitions("1");
+        worker.setLockTimeoutMs(1000);
+        worker.setCapacityProvider(() -> new ResourceVector(1000, 2000));
+        worker.scanOnce();
+
+        assertEquals(TASK_STATUS_SUCCESS, taskStore.loadTask(t1.task.getJobTaskId()).getTaskStatus(),
+                "first task (cumulative 300/500) within capacity must be claimed");
+        assertEquals(TASK_STATUS_SUCCESS, taskStore.loadTask(t2.task.getJobTaskId()).getTaskStatus(),
+                "second task (cumulative 600/1000) within capacity must be claimed");
+        assertEquals(TASK_STATUS_WAITING, taskStore.loadTask(t3.task.getJobTaskId()).getTaskStatus(),
+                "third task (cumulative 1100/1900 exceeds capacity 1000 cpu) must be rejected");
+    }
+
     private PreparedTask prepareWaitingTask(String scheduleId, String jobName) {
         long now = System.currentTimeMillis();
-
         NopJobSchedule schedule = new NopJobSchedule();
         schedule.setJobScheduleId(scheduleId);
         schedule.setNamespaceId("default");
