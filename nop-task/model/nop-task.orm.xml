@@ -237,6 +237,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
                 <column code="ERROR_BEAN_DATA" displayName="错误Bean数据" name="errorBeanData" precision="4000" propId="38"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Error Bean Data"/>
+                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="39"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Error Stack"/>
             </columns>
             <relations>
                 <to-one displayName="父流程" name="parentTaskInstance"
@@ -331,6 +333,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="SL" i18n-en:displayName="Remark"/>
                 <column code="ERROR_BEAN_DATA" displayName="错误Bean数据" name="errorBeanData" precision="4000" propId="54"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Error Bean Data"/>
+                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="55"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="SL" i18n-en:displayName="Error Stack"/>
             </columns>
             <relations>
                 <to-one displayName="逻辑流实例" name="taskInstance" refEntityName="io.nop.task.dao.entity.NopTaskInstance"

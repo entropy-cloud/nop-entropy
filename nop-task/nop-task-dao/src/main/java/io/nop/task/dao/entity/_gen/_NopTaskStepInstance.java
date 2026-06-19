@@ -148,8 +148,12 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_errorBeanData = "errorBeanData";
     public static final int PROP_ID_errorBeanData = 54;
     
+    /* 错误堆栈: ERROR_STACK VARCHAR */
+    public static final String PROP_NAME_errorStack = "errorStack";
+    public static final int PROP_ID_errorStack = 55;
+    
 
-    private static int _PROP_ID_BOUND = 55;
+    private static int _PROP_ID_BOUND = 56;
 
     
     /* relation: 逻辑流实例 */
@@ -168,7 +172,7 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepInstanceId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepInstanceId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[55];
+    private static final String[] PROP_ID_TO_NAME = new String[56];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -268,6 +272,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_errorBeanData] = PROP_NAME_errorBeanData;
           PROP_NAME_TO_ID.put(PROP_NAME_errorBeanData, PROP_ID_errorBeanData);
       
+          PROP_ID_TO_NAME[PROP_ID_errorStack] = PROP_NAME_errorStack;
+          PROP_NAME_TO_ID.put(PROP_NAME_errorStack, PROP_ID_errorStack);
+      
     }
 
     
@@ -366,6 +373,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     
     /* 错误Bean数据: ERROR_BEAN_DATA */
     private java.lang.String _errorBeanData;
+    
+    /* 错误堆栈: ERROR_STACK */
+    private java.lang.String _errorStack;
     
 
     public _NopTaskStepInstance(){
@@ -536,6 +546,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_errorBeanData:
                return getErrorBeanData();
+        
+            case PROP_ID_errorStack:
+               return getErrorStack();
         
            default:
               return super.orm_propValue(propId);
@@ -868,6 +881,16 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_errorStack:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errorStack));
+               }
+               setErrorStack(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1097,6 +1120,13 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
             case PROP_ID_errorBeanData:{
                onInitProp(propId);
                this._errorBeanData = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errorStack:{
+               onInitProp(propId);
+               this._errorStack = (java.lang.String)value;
                
                break;
             }
@@ -1711,6 +1741,25 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_errorBeanData,value)){
             this._errorBeanData = value;
             internalClearRefs(PROP_ID_errorBeanData);
+            
+        }
+    }
+    
+    /**
+     * 错误堆栈: ERROR_STACK
+     */
+    public final java.lang.String getErrorStack(){
+         onPropGet(PROP_ID_errorStack);
+         return _errorStack;
+    }
+
+    /**
+     * 错误堆栈: ERROR_STACK
+     */
+    public final void setErrorStack(java.lang.String value){
+        if(onPropSet(PROP_ID_errorStack,value)){
+            this._errorStack = value;
+            internalClearRefs(PROP_ID_errorStack);
             
         }
     }
