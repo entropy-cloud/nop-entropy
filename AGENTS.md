@@ -18,6 +18,10 @@
 - This includes **all** `_`-prefixed files such as `_*.xml`, `_*.java`, `_*.xmeta`, `_app.orm.xml`, `_service.beans.xml`, and anything under `_gen/`.
 - If a change appears to require editing one of those files, stop and move one level up: edit the source model, Delta, non-underscore retention file, or generator template, then regenerate.
 
+## Mandatory Full-Read Before Execution
+
+**执行 `docs-for-ai/` 或 `ai-dev/` 下的任何 `.md` 文件描述的工作流前，必须完整读取该文件全文，不得只读一部分就开始执行。文件大小不是跳过阅读的理由。**
+
 **`docs-for-ai/INDEX.md` is the authoritative docs navigation baseline.** 下表覆盖最常见的 agent 工作流。**当 By Task 和 By Code Location 都命中时，合并去重阅读清单。**
 
 ### By Task
