@@ -101,6 +101,7 @@
       "flow": "deep-audit-loop",
       "transitions": {
         "clean": { "goto": "PLANS" },
+        "complete": { "goto": "PLANS" },
         "failed": { "goto": "PLANS" }
       },
       "onError": { "goto": "PLANS" }
