@@ -108,8 +108,6 @@ import io.nop.ai.agent.security.Principal;
 import io.nop.ai.agent.security.SecurityLevel;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
 import io.nop.ai.agent.security.ToolAccessResult;
-import io.nop.ai.agent.security.DefaultPathAccessChecker;
-import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.security.ToolPathArgKeys;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.DbModelSwitchedMessageWriter;

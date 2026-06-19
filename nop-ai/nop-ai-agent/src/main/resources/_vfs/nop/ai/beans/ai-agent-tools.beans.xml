@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns:ioc="urn: nop-ioc:1.0">
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
 
     <!-- Engine-aware tool executors that require access to IAgentEngine / IAgentMessenger.
          These beans are auto-collected by the existing <ioc:collect-beans by-type="...IToolExecutor"/>

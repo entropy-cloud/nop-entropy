@@ -4,7 +4,7 @@ import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.model.AgentConstraintsModel;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
-import io.nop.ai.agent.model.AgentPlanModel;
+import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.Principal;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -21,7 +21,7 @@ public class AgentExecutionContext {
 
     private final AgentModel agentModel;
     private final List<ChatMessage> messages;
-    private AgentPlanModel plan;
+    private AgentPlan plan;
     private String sessionId;
     private ChatOptionsModel chatOptionsModel;
     private int currentIteration;
@@ -100,11 +100,11 @@ public class AgentExecutionContext {
         this.messages.add(message);
     }
 
-    public AgentPlanModel getPlan() {
+    public AgentPlan getPlan() {
         return plan;
     }
 
-    public void setPlan(AgentPlanModel plan) {
+    public void setPlan(AgentPlan plan) {
         this.plan = plan;
     }
 

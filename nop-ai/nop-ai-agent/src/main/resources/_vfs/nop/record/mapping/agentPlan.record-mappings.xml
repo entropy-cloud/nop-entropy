@@ -16,10 +16,6 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="overview" from="任务概述">
-                <schema stdDomain="string"/>
-            </field>
-
             <field name="status" from="任务状态">
                 <schema dict="io.nop.ai.agent.model.AgentExecStatus"/>
             </field>
@@ -28,11 +24,7 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="instructions" from="指令" >
-            </field>
-
-            <field name="notes" from="备注" itemMapping="Markdown_to_AgentPlanNoteModel">
-                <schema/>
+            <field name="instructions" from="指令">
             </field>
 
             <field name="subTasks" from="子任务" keyProp="taskNo"
@@ -42,39 +34,43 @@
         </fields>
     </mapping>
 
-
-    <mapping name="Markdown_to_AgentPlanNoteModel">
+    <mapping name="Markdown_to_AgentPlanPhase" md:titleField="name">
         <fields>
-            <field name="name" from="备注名称" mandatory="true">
+            <field name="name" from="阶段名称" mandatory="true">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="content" from="备注内容" mandatory="true">
-                <schema stdDomain="string"/>
+            <field name="status" from="阶段状态">
+                <schema dict="io.nop.ai.agent.model.AgentExecStatus"/>
+            </field>
+
+            <field name="tasks" from="任务" keyProp="taskNo"
+                   itemMapping="Markdown_to_AgentPlanTaskModel">
+                <schema/>
             </field>
         </fields>
     </mapping>
 
     <mapping name="Markdown_to_AgentPlanModel" md:titleField="title">
         <fields>
-            <field name="path" from="存储路径">
-                <schema stdDomain="string"/>
-            </field>
-
             <field name="title" from="计划标题" mandatory="true">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="overview" from="计划概述">
-                <schema stdDomain="string"/>
-            </field>
-
-            <field name="planStatus" from="计划状态">
+            <field name="status" from="计划状态">
                 <schema dict="io.nop.ai.agent.model.AgentExecStatus"/>
             </field>
 
-            <field name="tasks" from="任务" keyProp="taskNo"
-                   itemMapping="Markdown_to_AgentPlanTaskModel">
+            <field name="goal" from="计划目标">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="purpose" from="计划概述">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="phases" from="阶段" keyProp="name"
+                   itemMapping="Markdown_to_AgentPlanPhase">
                 <schema/>
             </field>
         </fields>

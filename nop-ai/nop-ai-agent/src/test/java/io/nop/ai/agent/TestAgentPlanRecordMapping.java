@@ -36,14 +36,12 @@ public class TestAgentPlanRecordMapping {
     @Test
     public void testParsePlanStatus() {
         String markdown = "# My Plan\n\n"
-                + "- 存储路径: /tmp/plan\n"
-                + "- 计划概述: test overview\n"
                 + "- 计划状态: pending\n";
 
         Map<String, Object> model = parsePlan(markdown);
         assertNotNull(model);
         assertEquals("My Plan", model.get("title"));
-        assertEquals(AgentExecStatus.pending.name(), model.get("planStatus"));
+        assertEquals(AgentExecStatus.pending.name(), model.get("status"));
     }
 
     @Test
@@ -51,26 +49,50 @@ public class TestAgentPlanRecordMapping {
         for (AgentExecStatus status : AgentExecStatus.values()) {
             String markdown = "# Plan\n\n- 计划状态: " + status.name() + "\n";
             Map<String, Object> model = parsePlan(markdown);
-            assertEquals(status.name(), model.get("planStatus"),
-                    "planStatus should be '" + status.name() + "'");
+            assertEquals(status.name(), model.get("status"),
+                    "status should be '" + status.name() + "'");
         }
     }
 
     @Test
-    public void testParseTaskStatus() {
+    public void testParseGoalAndPurpose() {
+        String markdown = "# Plan\n\n"
+                + "- 计划目标: achieve something\n"
+                + "- 计划概述: this is the purpose\n";
+
+        Map<String, Object> model = parsePlan(markdown);
+        assertEquals("achieve something", model.get("goal"));
+        assertEquals("this is the purpose", model.get("purpose"));
+    }
+
+    @Test
+    public void testParsePhasesWithTasks() {
         String markdown = "# Plan\n\n"
                 + "- 计划状态: pending\n"
-                + "\n## 任务\n"
-                + "\n### T001\n"
+                + "\n## 阶段\n"
+                + "\n### Phase 1\n"
+                + "\n- 阶段名称: Phase 1\n"
+                + "- 阶段状态: running\n"
+                + "\n#### 任务\n"
+                + "\n##### T001\n"
                 + "\n- 任务编号: T001\n"
                 + "- 任务标题: Task 1\n"
                 + "- 任务状态: running\n";
 
         Map<String, Object> model = parsePlan(markdown);
-        assertEquals(AgentExecStatus.pending.name(), model.get("planStatus"));
+        assertEquals(AgentExecStatus.pending.name(), model.get("status"));
 
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> tasks = (List<Map<String, Object>>) model.get("tasks");
+        List<Map<String, Object>> phases = (List<Map<String, Object>>) model.get("phases");
+        assertNotNull(phases);
+        assertEquals(1, phases.size());
+
+        Map<String, Object> phase = phases.get(0);
+        assertEquals("Phase 1", phase.get("name"));
+        assertEquals(AgentExecStatus.running.name(), phase.get("status"));
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tasks = (List<Map<String, Object>>) phase.get("tasks");
         assertNotNull(tasks);
         assertEquals(1, tasks.size());
 
@@ -81,63 +103,13 @@ public class TestAgentPlanRecordMapping {
     }
 
     @Test
-    public void testParseAllTaskStatusValues() {
-        for (AgentExecStatus status : AgentExecStatus.values()) {
-            String markdown = "# Plan\n\n"
-                    + "- 计划状态: pending\n"
-                    + "\n## 任务\n"
-                    + "\n### T-" + status.name() + "\n"
-                    + "\n- 任务编号: T-" + status.name() + "\n"
-                    + "- 任务标题: Task for " + status.name() + "\n"
-                    + "- 任务状态: " + status.name() + "\n";
-
-            Map<String, Object> model = parsePlan(markdown);
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> tasks = (List<Map<String, Object>>) model.get("tasks");
-            assertNotNull(tasks, "tasks should not be null for status " + status);
-            assertEquals(1, tasks.size());
-            assertEquals(status.name(), tasks.get(0).get("status"),
-                    "task status should be '" + status.name() + "'");
-        }
-    }
-
-    @Test
     public void testParseEmptyStatus() {
         String markdown = "# Plan\n\n"
-                + "- 存储路径: /tmp/plan\n";
+                + "- 计划目标: do something\n";
 
         Map<String, Object> model = parsePlan(markdown);
         assertNotNull(model);
-        assertNull(model.get("planStatus"));
-    }
-
-    @Test
-    public void testParseMultipleTasksWithDifferentStatuses() {
-        String markdown = "# Plan\n\n"
-                + "- 计划状态: running\n"
-                + "\n## 任务\n"
-                + "\n### T001\n"
-                + "\n- 任务编号: T001\n"
-                + "- 任务标题: Done Task\n"
-                + "- 任务状态: completed\n"
-                + "\n### T002\n"
-                + "\n- 任务编号: T002\n"
-                + "- 任务标题: Failed Task\n"
-                + "- 任务状态: failed\n"
-                + "\n### T003\n"
-                + "\n- 任务编号: T003\n"
-                + "- 任务标题: Pending Task\n"
-                + "- 任务状态: pending\n";
-
-        Map<String, Object> model = parsePlan(markdown);
-        assertEquals(AgentExecStatus.running.name(), model.get("planStatus"));
-
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> tasks = (List<Map<String, Object>>) model.get("tasks");
-        assertEquals(3, tasks.size());
-        assertEquals(AgentExecStatus.completed.name(), tasks.get(0).get("status"));
-        assertEquals(AgentExecStatus.failed.name(), tasks.get(1).get("status"));
-        assertEquals(AgentExecStatus.pending.name(), tasks.get(2).get("status"));
+        assertNull(model.get("status"));
     }
 
     @Test
@@ -150,28 +122,7 @@ public class TestAgentPlanRecordMapping {
         RecordMappingContext ctx = new RecordMappingContext();
         ctx.setForceUseMap(true);
         Map<String, Object> result = (Map<String, Object>) parser.map(doc.getRootSection(), ctx);
-        assertEquals(AgentExecStatus.completed.name(), result.get("planStatus"));
-    }
-
-    @Test
-    public void testTaskStatusFieldIsNamedStatus() {
-        String markdown = "# Plan\n\n"
-                + "- 计划状态: pending\n"
-                + "\n## 任务\n"
-                + "\n### T001\n"
-                + "\n- 任务编号: T001\n"
-                + "- 任务标题: Check\n"
-                + "- 任务状态: failed\n";
-
-        Map<String, Object> model = parsePlan(markdown);
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> tasks = (List<Map<String, Object>>) model.get("tasks");
-        Map<String, Object> task = tasks.get(0);
-
-        assertNotNull(task.get("status"),
-                "Task must have 'status' field (not 'taskStatus'). "
-                + "If this assertion fails, the field name fix was not applied correctly.");
-        assertEquals(AgentExecStatus.failed.name(), task.get("status"));
+        assertEquals(AgentExecStatus.completed.name(), result.get("status"));
     }
 
     private Map<String, Object> parsePlan(String markdownText) {
@@ -186,7 +137,7 @@ public class TestAgentPlanRecordMapping {
 
     private RecordMappingConfig getMappingConfig() {
         RecordMappingDefinitions defs = (RecordMappingDefinitions) ResourceComponentManager.instance()
-                .loadComponentModel("/nop/record/mapping/agent-plan.record-mappings.xml");
+                .loadComponentModel("/nop/record/mapping/agentPlan.record-mappings.xml");
         return defs.getMapping("Markdown_to_AgentPlanModel");
     }
 }

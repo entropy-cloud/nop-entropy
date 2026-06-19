@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <!-- Import the actual agent tools beans (the file under test) -->
+    <import resource="/nop/ai/beans/ai-agent-tools.beans.xml"/>
+
+    <!-- Provider that collects all IToolExecutor beans by type,
+         mirroring nop-ai-toolkit's ai-tools-defaults.beans.xml collect-beans -->
+    <bean id="testToolExecutorProvider" class="io.nop.ai.toolkit.executor.DefaultToolExecutorProvider">
+        <property name="executors">
+            <ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolExecutor"/>
+        </property>
+    </bean>
+</beans>

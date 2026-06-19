@@ -4,7 +4,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
-import io.nop.ai.agent.model.AgentPlanModel;
+import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -53,7 +53,7 @@ public class TestLlmCompletionJudge {
         ctx.setCurrentIteration(0);
         ctx.setStatus(AgentExecStatus.running);
         if (goal != null) {
-            AgentPlanModel plan = new AgentPlanModel();
+            AgentPlan plan = new AgentPlan();
             plan.setGoal(goal);
             ctx.setPlan(plan);
         }

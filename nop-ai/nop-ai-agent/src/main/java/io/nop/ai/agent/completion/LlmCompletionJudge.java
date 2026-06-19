@@ -3,7 +3,7 @@ package io.nop.ai.agent.completion;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
-import io.nop.ai.agent.model.AgentPlanModel;
+import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -165,7 +165,7 @@ public final class LlmCompletionJudge implements ICompletionJudge {
 
     private String resolveGoal(AgentExecutionContext ctx) {
         if (ctx != null) {
-            AgentPlanModel plan = ctx.getPlan();
+            AgentPlan plan = ctx.getPlan();
             if (plan != null && plan.getGoal() != null && !plan.getGoal().trim().isEmpty()) {
                 return plan.getGoal();
             }
