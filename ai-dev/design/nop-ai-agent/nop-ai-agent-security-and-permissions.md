@@ -592,10 +592,12 @@ DenialResult {
 
 | 参数 | 默认 |
 |------|------|
-| `cpuSeconds` | 30 |
+| `cpuCores` | 1.0 |
 | `memoryMb` | 1024 |
 | `wallSeconds` | 60 |
 | `network` | deny |
+
+> 实现约定：`cpuCores` 遵循 Docker `--cpus` 语义（Docker 1.13+），是分数核心配额（`1.0` = 一个完整核心，`0.5` = 半个核心，`2.5` = 两个半核心），**不是** CPU 时间预算（秒）。`DockerSandboxBackend` 将该值原样传给 `--cpus`。
 
 **默认实现**：`NoOpSandboxBackend`（直接在 host 执行——Layer 1 无沙箱）。
 
@@ -604,6 +606,7 @@ DenialResult {
 - 接口与全部数据对象（`SandboxRequest`/`SandboxResult`/`SandboxConfig`/`SandboxException`/`SandboxFailureReason`）位于 `io.nop.ai.agent.security` 包，与其他纵深防御链接口同包（裁定：保持链组件内聚，避免新建 `io.nop.ai.agent.sandbox` 包；`SandboxException extends NopAiAgentException` 已跨包）。
 - `DockerSandboxBackend` 通过 Docker CLI（`ProcessBuilder` 调用 `docker run`/`docker kill`/`docker rm`）与容器交互，不引入 Docker Java client 依赖（裁定：CLI 是服务器端通用前提；与 `NoOpSandboxBackend` 的 `ProcessBuilder` 模型对称）。
 - 失败分类（`SandboxFailureReason`）：`IOException` 或 daemon 连接错误 → `DOCKER_UNAVAILABLE`；镜像缺失 / OCI runtime / 权限拒绝 → `CONTAINER_START_FAILED`；exit code 137（OOM-killer SIGKILL）→ `RESOURCE_LIMIT_EXCEEDED`；exit code 124（`timeout` SIGTERM）/ wall-budget 超时 → `TIMEOUT`；其余非零 exit → `CONTAINER_START_FAILED`（保守 fail-closed，绝不静默吞掉）。
+- 调用前校验（plan 270 / 274）：`execute()` 在启动 `docker` 进程之前对请求做 fail-closed 校验，违法请求抛 `SandboxException` 且绝不触达 `docker run`。`HOST_PATH_NOT_ALLOWED`（plan 270）：hostPath 含 `..` / 非真实存在路径 / 不在 `allowedBaseDirs` 白名单内。`INVALID_ENVIRONMENT_VARIABLE`（plan 274 AUDIT-13-9）：环境变量键不匹配 POSIX 名语法 `^[A-Za-z_][A-Za-z0-9_]*$`（如以 `-`/数字开头、含空格/控制字符/`=`/空串），防止攻击者或 LLM 可控的键注入额外 Docker 标志（如 `--privileged`）。
 - 容器清理：`--rm` 保证自然退出后自动删除；超时路径走 `docker kill <name>` + `docker rm -f` 兜底。
 - `DefaultAgentEngine.setSandboxBackend` 不调用 `warnIfInsecureDefaults`：`NoOpSandboxBackend` 是 Layer 1 设计性基线（从未被更安全的 shipped 替代取代），与 `AutoApproveGate`（已被 `DefaultApprovalGate` 取代 → 回退是降级）的语义不同。
 - 高风险工具执行器（shell-exec / code-exec `IToolExecutor`）如何消费 `ISandboxBackend` 是独立 successor plan；本契约仅提供平台级隔离能力。

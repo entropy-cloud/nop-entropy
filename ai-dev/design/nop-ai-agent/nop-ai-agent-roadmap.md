@@ -355,7 +355,8 @@ Layer 1 之前必须先解决 §4 Layer 0 的 2 个阻塞项（L0-1 agent.regist
 | AUDIT-13-7 | P1 | ✅ 已修复 | plan 270：`DockerSandboxBackend` 新增 `allowedBaseDirs` 白名单 + `validateHostPath`（禁 `..`、必须 `toRealPath` 真实存在、必须在白名单内含 symlink 解析），`execute()` mount 前校验，失败抛 `SandboxException(HOST_PATH_NOT_ALLOWED)` |
 | AUDIT-13-12 | P1 | ✅ 已修复 | plan 270：`DefaultAgentEngine.resumeSession` 从 `loadedSession.getTenantId()` 重建租户上下文（`AgentSession.tenantId` 序列化 + `DBSessionStore` 回填 + `doExecute` 捕获），reset 前 set/finally 恢复；`DBDenialLedger.reset` 的 `AND tenant_id=?` 真正生效，不再跨租户清除 denial 记录 |
 | AUDIT-13-6 | P2 | ✅ 已修复 | plan 270：`Slf4jAuditLogger` 写入前 `sanitize` 清除所有字段 `\r`/`\n`（防日志注入，一事件=一行），日志行新增 `timestamp` 与 `actorId` 字段（设计 §4.5） |
-| AUDIT-13-8 | P2 | ⏸ deferred | plan 271：Docker `--cpus` 语义（cpuSeconds → core count）属资源限制语义修正，不影响安全 baseline，归入 reliability plan |
+| AUDIT-13-8 | P2 | ✅ 已修复 | plan 274：`SandboxConfig` 控制 `--cpus` 的公共契约从"CPU 秒级预算（int，默认 30）"改为"CPU 核心数配额（double，默认 1.0，Docker `--cpus` 语义）"——常量/字段/getter/Builder 方法/默认值/构造校验全改名并调整（`cpuSeconds`→`cpuCores`、`DEFAULT_CPU_SECONDS`→`DEFAULT_CPU_CORES`、`getCpuSeconds()`→`getCpuCores()`）；`buildDockerCommand` `--cpus` 取值改为 `Double.toString(config.getCpuCores())`（如 `1.0`/`1.5`）；Javadoc + 设计 §7.1 表同步；focused 测试覆盖小数核心数 + 默认 1.0 + NaN/0/负数 fail-closed |
+| AUDIT-13-9 | P3 | ✅ 已修复 | plan 274：`DockerSandboxBackend.buildDockerCommand` 拼接 `-e KEY=VALUE` 前对每个环境变量键做 POSIX 名校验 `^[A-Za-z_][A-Za-z0-9_]*$`，非法键（`--privileged`/`1ABC`/`A B`/`A=B`/空串等）在 `docker` 进程启动前 fail-closed 拒绝；新增专用 `SandboxFailureReason.INVALID_ENVIRONMENT_VARIABLE`（与 `HOST_PATH_NOT_ALLOWED` 并列）；focused 测试覆盖合法键通过 + 非法键拒绝（经 `buildDockerCommand` 与专用校验入口两条路径） |
 
 ---
 
