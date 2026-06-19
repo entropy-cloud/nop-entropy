@@ -6,6 +6,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
@@ -37,9 +38,10 @@ import static io.nop.task.dao.entity._gen._NopTaskStepInstance.PROP_NAME_stepPat
  * step-state 持久化 + resume load 路径。save→load round-trip 后 {@link ITaskStepState#isDone()} 反映持久化终态
  * （COMPLETED / FAILED），使 reader 在 resume 时命中缓存结果跳过 step body。
  *
- * <p>持久化范围限定为 reader + FAILED-重抛所依赖的字段：{@code stepStatus} / {@code resultValue}（经 JSON 序列化到
- * {@code stateBeanData}）/ {@code exception}（经 {@link ErrorBean} 提取 errCode + errMsg）。全量 step-state 字段
- * 持久化与完整历史 entity 模型为独立优化（plan 257 Non-Goals）。
+ * <p>持久化范围：reader + FAILED-重抛所依赖的字段（{@code stepStatus} / {@code resultValue}（经 JSON 序列化到
+ * {@code stateBeanData}）/ {@code exception}（经 {@link ErrorBean} 提取 errCode + errMsg + 完整 errorBeanData）），
+ * 以及既有 entity 列的 round-trip 补齐——{@code internal} + {@code tagSet}（经 {@link TagsHelper} CSV 序列化到
+ * {@code tagText}）+ {@code createTime}/{@code updateTime} 时间历史读回（plan 264，闭合 7× carry-over）。
  */
 public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateStore {
 
@@ -317,6 +319,18 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         if (entity.getRetryCount() != null)
             state.setRetryAttempt(entity.getRetryCount());
 
+        // plan 264: Group A round-trip read — internal + tagText→tagSet（既有 entity 列，闭合 7× carry-over）。
+        // TagsHelper.parse 为 TagsHelper.toString 的逆运算，经真实 entity↔bean 边界 round-trip 可逆。
+        state.setInternal(entity.getInternal());
+        state.setTagSet(TagsHelper.parse(entity.getTagText(), ','));
+
+        // plan 264: Group B 时间历史读回（save 侧 copyStepStateToEntity 已写 createTime/updateTime，
+        // 补 load 侧读回，使 loaded bean 反映 entity 已记录的时间历史，消除「写而不读」）。
+        if (entity.getCreateTime() != null)
+            state.setCreateTime(entity.getCreateTime().toLocalDateTime());
+        if (entity.getUpdateTime() != null)
+            state.setUpdateTime(entity.getUpdateTime().toLocalDateTime());
+
         return state;
     }
 
@@ -337,6 +351,11 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         entity.setPriority(0);
         entity.setWorkerId(state.getWorkerId());
         entity.setRetryCount(state.getRetryAttempt() == null ? 0 : state.getRetryAttempt());
+
+        // plan 264: Group A round-trip write — internal + tagSet→tagText（既有 entity 列，闭合 7× carry-over）。
+        // TagsHelper.toString 产出既定 CSV 格式 `,tag1,tag2,`（与 NopWfStepInstance.getTagSet 同构，设计裁定 2）。
+        entity.setInternal(state.getInternal());
+        entity.setTagText(TagsHelper.toString(state.getTagSet()));
 
         // resultValue 序列化到 stateBeanData（JSON）
         Object resultValue = state.getResultValue();
