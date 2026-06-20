@@ -11,6 +11,75 @@
 3. 视图层改动仍然优先遵守 Delta 思路，而不是复制整份生成页面。
 4. 影响字段显示、表单布局、按钮和 CRUD 页面结构时，优先改 XView，而不是先写 AMIS JSON。
 
+## 页面生成机制总览
+
+`page.yaml` **本身不是 AMIS 配置**，只是入口 wrapper。真正生成 AMIS JSON 的是 `web:GenPage` XPL 标签，**输入是 `view.xml` + `xmeta`，输出是 AMIS schema**。整个过程分两个阶段。
+
+### 两阶段生成
+
+| 阶段 | 时机 | 输入 | 输出 | 触发点 |
+|------|------|------|------|--------|
+| 构建时 codegen | `mvn install` 的 `precompile` 阶段 | `*.xmeta` | `_gen/_Xxx.view.xml`、`Xxx.view.xml`、`main.page.yaml` | `*-web/precompile/gen-page.xgen` |
+| 运行时渲染 | 前端请求 `PageProvider__getPage` | `view.xml` + `xmeta` | AMIS JSON | `main.page.yaml` 的 `x:gen-extends` → `web:GenPage` |
+
+### 构建时：从 xmeta 生成 view/page 骨架
+
+`*-web/precompile/gen-page.xgen`（如 `nop-auth/nop-auth-web/precompile/gen-page.xgen`）调用：
+
+```js
+codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/auth" },$scope);
+```
+
+模板位于 `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/orm-web/`，从 `*.xmeta` 自动生成：
+
+| 模板 | 生成产物 | 作用 |
+|------|---------|------|
+| `_gen/_{objName}.view.xml.xgen` | `_gen/_Xxx.view.xml` | view 基线，含 grid/form/crud/picker/simple 全套，从 xmeta 字段元数据自动推导 |
+| `{objName}.view.xml.xgen` | `Xxx.view.xml` | 保留层，仅 `x:extends` 继承 _gen，留给手写定制 |
+| `main.page.yaml.xgen` | `main.page.yaml` | 入口 wrapper |
+
+生成的 `main.page.yaml` 极其简单，只有 1 行核心内容：
+
+```yaml
+x:gen-extends: |
+  <web:GenPage view="NopAuthUser.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+```
+
+### 运行时：从 view.xml + xmeta 渲染 AMIS
+
+前端通过 GraphQL 请求 `GET /p/PageProvider__getPage?path=.../main.page.yaml`。后端调用链：
+
+1. `PageProviderBizModel.getPage()` → `PageProvider.getPage()`
+2. 加载 `main.page.yaml`，触发 `x:gen-extends` 执行 `web:GenPage`
+3. `web:GenPage`（实现见 `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/web/impl_GenPage.xpl`）加载 `view.xml` + `xmeta`，按 `pageModel.type` 分发：
+   - `crud` → `page_crud.xpl`
+   - `picker` → `page_picker.xpl`
+   - `simple` → `page_simple.xpl`
+   - `tabs` → `page_tabs.xpl`
+4. 子模板读取 view 的 grid/form/page 配置 + objMeta 字段元数据，组装最终 AMIS JSON
+5. `PageProvider` 再做 i18n 解析、`xui:permissions` → `xui:roles` 权限转换、清理空值
+
+### 三层 Delta 架构
+
+```
+xmeta (实体元数据,源)
+  ↓ [构建时 codegen]
+_gen/_Xxx.view.xml  (自动生成的 view 基线,会被覆盖)
+  ↓ x:extends
+Xxx.view.xml        (保留层,手写定制)
+  ↓ 运行时被 web:GenPage 读取
+main.page.yaml      (入口 wrapper)
+  ↓ x:gen-extends 触发
+AMIS JSON           (运行时输出,可缓存)
+```
+
+### 关键事实
+
+- **手写顺序**：优先改非下划线 `Xxx.view.xml`，**绝不**手改 `_gen/_*` 文件（下次 `mvn install` 会被覆盖）
+- **`page.yaml` 通常不动**：只有在需要 page 级 `x:gen-extends`、自定义 title/body 包装、`fixedProps` 子表关联时才改（见 `./external-app-examples.md` 第 9 节）
+- **复杂页面**（设计器、编辑器）：用 `x:gen-extends` 混合生成 + 大块手写 AMIS，见 `nop-wf/.../designer.page.yaml` 和 `../03-runbooks/build-designer-or-special-page.md`
+- **`web:GenPage` 定义**：在 `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/web.xlib`，具体 page 类型实现在同目录 `page_*.xpl`
+
 ## 当前仓库里的真实位置
 
 | 你要找什么 | 典型位置 |
