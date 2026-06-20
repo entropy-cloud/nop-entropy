@@ -158,3 +158,7 @@ Follow-up:
   - Why Not Blocking Closure: 来自 security plan 270 deferred，资源限制语义修正不阻断 reliability baseline
   - Successor Required: yes
   - Successor Path: 顺带修复或独立后续 plan
+
+## Follow-up handled by 273-nop-ai-agent-takeover-lock-heartbeat-renewal.md
+
+- **14-06** `DbSessionTakeoverLock` 租约 30min 无自动续期 → 已由 `ai-dev/plans/273-nop-ai-agent-takeover-lock-heartbeat-renewal.md` 接管（心跳续期 + lease-lost 中止）。本 traceability 标记仅作前向链接，不回写本 completed 计划的其余内容。

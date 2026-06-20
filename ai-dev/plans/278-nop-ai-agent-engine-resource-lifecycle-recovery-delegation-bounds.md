@@ -202,3 +202,10 @@ Follow-up:
 - AR-18（FingerprintPostDenialGuard 指纹集无 tenant 维度，P3）：多租户隔离一致性专题计划（含 13-01、13-03、14-04）。
 - 深度审核 02-02 DefaultAgentEngine God Object 渐进拆分（提取 SessionTakeoverLockManager/TeamAutoBinder）。
 - 深度审核 14-02 lease-lost 中断打不断 fan-out join（与 AR-15 相关，不同根因）。
+
+## Follow-up handled by 280-nop-ai-agent-react-fanout-orphan-cancel-and-interruptible-join.md
+
+> 追溯链接（append-only forward-pointer，不改动上文历史记录）：
+> - AR-15（§Deferred But Adjudicated）→ 由 Plan 280 Phase 1 接管。
+> - 14-02（§Non-Blocking Follow-ups / 本节）→ 由 Plan 280 Phase 2 接管。
+> - AR-18（§Deferred But Adjudicated）维持 watch-only，归属多租户专题计划，**不**在 Plan 280。
