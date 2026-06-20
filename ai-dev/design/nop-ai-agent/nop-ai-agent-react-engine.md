@@ -231,20 +231,23 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
   -> before_acting (事件通知, 不允许重入)
   -> execute tools
   -> after_acting / per tool result (事件通知, 不允许重入)
-  -> 【新增】before_tool_result_processed:
-     -> 允许返回 "reenter: <injection message>"
-     -> 引擎收到 reenter 时, 注入消息, 跳过当前轮的 append, 进入下一轮
-  -> append tool result messages
-  -> 【新增】after_tool_result_processed:
-     -> 允许返回 "reenter: <injection message>"
-     -> 引擎收到 reenter 时, 注入消息, 进入下一轮
+   -> 【新增】before_tool_result_processed:
+      -> 允许返回 "reenter: <injection message>"
+      -> 引擎收到 reenter 时, 注入该消息 (用真实 tool_call_id, 保持配对), 跳过当前 tool 的真实结果,
+         继续处理本批其余 tool 结果 (不丢弃), 全部处理完后在 iteration 层级注入重入标记消息
+   -> append tool result messages
+   -> 【新增】after_tool_result_processed:
+      -> 允许返回 "reenter: <injection message>"
+      -> 引擎收到 reenter 时, 设重入标志, 继续处理本批其余 tool 结果,
+         全部处理完后在 iteration 层级注入重入标记消息
   -> check token budget
   -> next iteration
 ```
 
 **重入语义**：
-- Hook 返回 `ReenterResult(message)` → 引擎注入该消息，跳过当前轮剩余步骤，进入下一轮 ReAct
+- Hook 返回 `ReenterResult(message)` → 引擎注入该消息（BEFORE 分支用真实 tool_call_id 保持配对），设重入标志，继续处理本批全部 tool 结果（不丢弃任何一个，保持 tool_call_id 配对完整），全部处理完后在 iteration 层级注入一条重入标记 user 消息，进入下一轮 ReAct
 - Hook 返回 `PassResult` → 继续正常流程
+- 达配额上限（`DEFAULT_MAX_REENTRIES`，per-iteration 窗口）→ 降级为 PassResult + WARN 日志
 - Hook 超时 → 默认 Pass（与现有超时策略一致）
 - Phase 1：两个新 Hook 点默认无实现，不改变现有行为
 - Phase 2：用于工具结果修复、结果评审等场景
