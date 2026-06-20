@@ -465,6 +465,12 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     }
 
     private void doSuspend(SuspendedThread thread) {
+        // Mark the per-thread suspended flag BEFORE publishing the volatile global flag,
+        // so that any observer that sees suspended==true is guaranteed to also see this
+        // thread as suspended (the volatile write establishes a happens-before barrier).
+        // Without this ordering, getSuspendedThreads() could observe suspended==true but
+        // an empty thread list, since thread.setSuspended(true) previously lagged behind.
+        thread.setSuspended(true);
         suspended = true;
         lastSuspendThread = thread;
         monitorWait(thread);
