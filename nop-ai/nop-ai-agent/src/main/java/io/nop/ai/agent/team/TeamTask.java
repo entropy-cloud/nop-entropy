@@ -32,6 +32,13 @@ import java.util.Objects;
  *   <li>{@code createdBy} — the sessionId of the caller that created the task.</li>
  *   <li>{@code claimedBy} — the sessionId of the member that claimed the task
  *       (null until the first CLAIMED transition; preserved thereafter).</li>
+ *   <li>{@code claimEpoch} — the claim-generation epoch assigned at the most
+ *       recent {@code claimTask} (plan 279 / AR-01). {@code null} while the
+ *       task is CREATED (never claimed, or reclaimed back to CREATED); a
+ *       positive integer once claimed. Bound in the {@code completeTask} /
+ *       {@code abandonTask} CAS so a stale in-flight dispatcher holding a
+ *       pre-reclaim epoch cannot complete/abandon a task that was reclaimed
+ *       and re-claimed by another owner.</li>
  *   <li>{@code createdAt} — wall-clock timestamp (millis) at creation.</li>
  * </ul>
  *
@@ -48,6 +55,7 @@ public final class TeamTask {
     private final TeamTaskStatus status;
     private final String createdBy;
     private final String claimedBy;
+    private final Long claimEpoch;
     private final long createdAt;
 
     /**
@@ -64,11 +72,15 @@ public final class TeamTask {
      * @param claimedBy   the sessionId of the member that claimed the task
      *                    (null until the first CLAIMED transition; preserved
      *                    by subsequent complete/abandon transitions)
+     * @param claimEpoch  the claim-generation epoch (plan 279 / AR-01):
+     *                    {@code null} while CREATED (never claimed / reclaimed),
+     *                    a positive integer once claimed. Bound in the
+     *                    {@code completeTask} / {@code abandonTask} CAS.
      * @param createdAt   wall-clock timestamp (millis) at creation
      */
     public TeamTask(String taskId, String teamId, String subject, String description,
                     List<String> blockedBy, TeamTaskStatus status, String createdBy,
-                    String claimedBy, long createdAt) {
+                    String claimedBy, Long claimEpoch, long createdAt) {
         this.taskId = Objects.requireNonNull(taskId, "taskId");
         this.teamId = Objects.requireNonNull(teamId, "teamId");
         this.subject = Objects.requireNonNull(subject, "subject");
@@ -77,6 +89,7 @@ public final class TeamTask {
         this.status = Objects.requireNonNull(status, "status");
         this.createdBy = Objects.requireNonNull(createdBy, "createdBy");
         this.claimedBy = claimedBy;
+        this.claimEpoch = claimEpoch;
         this.createdAt = createdAt;
     }
 
@@ -141,6 +154,19 @@ public final class TeamTask {
     }
 
     /**
+     * @return the claim-generation epoch (plan 279 / AR-01), or {@code null}
+     *         while the task is CREATED (never claimed / reclaimed). A
+     *         positive integer once claimed; bound in the
+     *         {@code completeTask} / {@code abandonTask} CAS so a stale
+     *         in-flight dispatcher holding a pre-reclaim epoch cannot
+     *         complete/abandon a task reclaimed and re-claimed by another
+     *         owner.
+     */
+    public Long getClaimEpoch() {
+        return claimEpoch;
+    }
+
+    /**
      * @return wall-clock timestamp (millis) at creation.
      */
     public long getCreatedAt() {
@@ -152,6 +178,7 @@ public final class TeamTask {
         return "TeamTask{taskId='" + taskId + "', teamId='" + teamId
                 + "', subject='" + subject + "', status=" + status
                 + ", blockedBy=" + blockedBy + ", createdBy='" + createdBy
-                + "', claimedBy='" + claimedBy + "', createdAt=" + createdAt + '}';
+                + "', claimedBy='" + claimedBy + "', claimEpoch=" + claimEpoch
+                + ", createdAt=" + createdAt + '}';
     }
 }

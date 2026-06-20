@@ -653,13 +653,13 @@ public class TestTeamExecuteFlowExecutor {
                     return new io.nop.ai.agent.team.TeamTask(
                             p, t.getTeamId(), t.getSubject(), t.getDescription(),
                             Collections.singletonList(q), t.getStatus(),
-                            t.getCreatedBy(), t.getClaimedBy(), t.getCreatedAt());
+                            t.getCreatedBy(), t.getClaimedBy(), t.getClaimEpoch(), t.getCreatedAt());
                 }
                 if (q.equals(t.getTaskId())) {
                     return new io.nop.ai.agent.team.TeamTask(
                             q, t.getTeamId(), t.getSubject(), t.getDescription(),
                             Collections.singletonList(p), t.getStatus(),
-                            t.getCreatedBy(), t.getClaimedBy(), t.getCreatedAt());
+                            t.getCreatedBy(), t.getClaimedBy(), t.getClaimEpoch(), t.getCreatedAt());
                 }
                 return t;
             }
@@ -675,13 +675,13 @@ public class TestTeamExecuteFlowExecutor {
             }
 
             @Override
-            public java.util.Optional<io.nop.ai.agent.team.TeamTask> completeTask(String taskId, String completedBy) {
-                return delegate.completeTask(taskId, completedBy);
+            public java.util.Optional<io.nop.ai.agent.team.TeamTask> completeTask(String taskId, String completedBy, Long claimEpoch) {
+                return delegate.completeTask(taskId, completedBy, claimEpoch);
             }
 
             @Override
-            public java.util.Optional<io.nop.ai.agent.team.TeamTask> abandonTask(String taskId, String abandonedBy) {
-                return delegate.abandonTask(taskId, abandonedBy);
+            public java.util.Optional<io.nop.ai.agent.team.TeamTask> abandonTask(String taskId, String abandonedBy, Long claimEpoch) {
+                return delegate.abandonTask(taskId, abandonedBy, claimEpoch);
             }
 
             @Override

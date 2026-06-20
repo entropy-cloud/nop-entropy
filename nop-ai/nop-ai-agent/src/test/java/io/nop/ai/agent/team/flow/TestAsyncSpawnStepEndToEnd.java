@@ -403,7 +403,7 @@ public class TestAsyncSpawnStepEndToEnd {
             if (t != null && t.getTaskId().equals(claimedTaskId)
                     && t.getStatus() == TeamTaskStatus.CREATED) {
                 return new TeamTask(t.getTaskId(), t.getTeamId(), t.getSubject(), t.getDescription(),
-                        t.getBlockedBy(), t.getStatus(), t.getCreatedBy(), claimedBy, t.getCreatedAt());
+                        t.getBlockedBy(), t.getStatus(), t.getCreatedBy(), claimedBy, null, t.getCreatedAt());
             }
             return t;
         }
@@ -438,13 +438,13 @@ public class TestAsyncSpawnStepEndToEnd {
         }
 
         @Override
-        public Optional<TeamTask> completeTask(String t, String b) {
-            return delegate.completeTask(t, b);
+        public Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
+            return delegate.completeTask(t, b, claimEpoch);
         }
 
         @Override
-        public Optional<TeamTask> abandonTask(String t, String b) {
-            return delegate.abandonTask(t, b);
+        public Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
+            return delegate.abandonTask(t, b, claimEpoch);
         }
 
         @Override

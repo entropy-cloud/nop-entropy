@@ -112,16 +112,18 @@ public class TestDbTeamTaskStoreReclaim {
 
         TeamTask claimedTask = store.createTask("team-1", "claimed", "desc",
                 Collections.emptyList(), "creator-sess");
-        store.claimTask(claimedTask.getTaskId(), "claimer-sess");
-        store.completeTask(claimedTask.getTaskId(), "completer-sess");
+        Long epoch = store.claimTask(claimedTask.getTaskId(), "claimer-sess")
+                .orElseThrow().getClaimEpoch();
+        store.completeTask(claimedTask.getTaskId(), "completer-sess", epoch);
         assertTrue(store.reclaimTask(claimedTask.getTaskId(), "reclaimer-sess").isEmpty(),
                 "reclaim on a COMPLETED (terminal) task must fail (affected=0)");
         assertEquals(TeamTaskStatus.COMPLETED, store.getTask(claimedTask.getTaskId()).orElseThrow().getStatus());
 
         TeamTask claimedTask2 = store.createTask("team-1", "claimed2", "desc",
                 Collections.emptyList(), "creator-sess");
-        store.claimTask(claimedTask2.getTaskId(), "claimer-sess");
-        store.abandonTask(claimedTask2.getTaskId(), "abandoner-sess");
+        Long epoch2 = store.claimTask(claimedTask2.getTaskId(), "claimer-sess")
+                .orElseThrow().getClaimEpoch();
+        store.abandonTask(claimedTask2.getTaskId(), "abandoner-sess", epoch2);
         assertTrue(store.reclaimTask(claimedTask2.getTaskId(), "reclaimer-sess").isEmpty(),
                 "reclaim on an ABANDONED (terminal) task must fail (affected=0)");
         assertEquals(TeamTaskStatus.ABANDONED, store.getTask(claimedTask2.getTaskId()).orElseThrow().getStatus());

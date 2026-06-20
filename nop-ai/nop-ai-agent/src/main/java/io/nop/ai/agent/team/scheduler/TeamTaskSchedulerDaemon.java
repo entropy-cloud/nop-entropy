@@ -823,6 +823,11 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                     claimed++;
 
                     // From here on we OWN this task (CREATED → CLAIMED by us).
+                    // Pass the CLAIMED task (carrying the claim epoch, plan 279
+                    // / AR-01) so the dispatcher binds the epoch into the single
+                    // completeTask CAS — a stale in-flight dispatcher holding a
+                    // pre-reclaim epoch cannot complete a reclaimed+re-claimed
+                    // task (closes the shared-daemon-id double-execution window).
                     // Plan 245: dispatch consumes the per-task member router
                     // + the shared fan-out + reduce + complete chain. The
                     // router's NoOp shipped default produces a singleton
@@ -830,7 +835,7 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                     // line-for-line identical to the pre-245 daemon
                     // single-member dispatch (zero regression). A multi-member
                     // router produces an N-target plan fanned out + reduced.
-                    DispatchTally tally = dispatchClaimedTask(team, task, capturedTenant);
+                    DispatchTally tally = dispatchClaimedTask(team, task, claimedOpt.get(), capturedTenant);
                     completed += tally.completed;
                     failed += tally.failed;
                     abandoned += tally.abandoned;
@@ -917,16 +922,26 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
      * @return the tally of resolved outcomes for this one task (the caller
      *         folds it into the scan-wide counters)
      */
-    private DispatchTally dispatchClaimedTask(Team team, TeamTask task, String capturedTenant) {
-        String taskId = task.getTaskId();
+    private DispatchTally dispatchClaimedTask(Team team, TeamTask routingTask, TeamTask claimedTask,
+                                              String capturedTenant) {
+        String taskId = routingTask.getTaskId();
 
         // Plan 245: route via the per-task member router. The router runs at
         // dispatch time, non-executing (it never calls the engine nor the
         // spawner). NoOp shipped default → singleton plan = bound priority +
         // spawn fallback (line-for-line zero regression).
+        //
+        // Plan 279 / AR-01: route on the PRE-CLAIM task view (routingTask —
+        // the ready-CREATED snapshot with claimedBy=null). The router's
+        // bound-priority inspects task.getClaimedBy() to detect a MEMBER
+        // binding; the daemon's OWN claim (claimedBy=daemonSessionId on
+        // claimedTask) is an internal ownership marker, NOT a member binding,
+        // so routing on the claimed task would mis-detect a bound member and
+        // dispatch to the engine with a null agentModel. The claim epoch
+        // threaded into the completeTask CAS comes from claimedTask (below).
         MemberDispatchPlan plan;
         try {
-            plan = taskMemberRouter.route(team, task);
+            plan = taskMemberRouter.route(team, routingTask);
         } catch (RuntimeException e) {
             // A router that throws is a contract violation (the contract says
             // return an empty plan for the no-member case). Honest failure:
@@ -968,7 +983,7 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
         // future IS DONE at construction time and the chain (including
         // completeTask) has run synchronously.
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
-                task, team, plan.getTargets(), plan.getReductionStrategy(),
+                claimedTask, team, plan.getTargets(), plan.getReductionStrategy(),
                 agentEngine, memberSpawner, taskStore, daemonSessionId,
                 spawnExecutor, capturedTenant);
 

@@ -30,6 +30,11 @@ public class TestInMemoryTeamTaskStoreTransitions {
                 Collections.emptyList(), "creator-sess");
     }
 
+    /** Claim a task and return the assigned claim epoch (plan 279 / AR-01). */
+    private static Long claimEpoch(InMemoryTeamTaskStore store, TeamTask task, String claimer) {
+        return store.claimTask(task.getTaskId(), claimer).orElseThrow().getClaimEpoch();
+    }
+
     @Test
     void claimTransitionsCreatedToClaimedAndRecordsClaimedBy() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
@@ -69,8 +74,9 @@ public class TestInMemoryTeamTaskStoreTransitions {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newTask(store);
 
-        // CREATED → complete is illegal (must claim first).
-        Optional<TeamTask> directComplete = store.completeTask(task.getTaskId(), "someone");
+        // CREATED → complete is illegal (must claim first). A null epoch never
+        // matches a CLAIMED row's epoch, so it honestly fails the CAS.
+        Optional<TeamTask> directComplete = store.completeTask(task.getTaskId(), "someone", null);
         assertTrue(directComplete.isEmpty(),
                 "complete on a CREATED task must fail (CLAIMED is required first)");
         assertEquals(TeamTaskStatus.CREATED, store.getTask(task.getTaskId()).orElseThrow().getStatus());
@@ -80,9 +86,9 @@ public class TestInMemoryTeamTaskStoreTransitions {
     void completeTransitionsClaimedToCompletedPreservingClaimedBy() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newTask(store);
-        store.claimTask(task.getTaskId(), "claimer-sess");
+        Long epoch = claimEpoch(store, task, "claimer-sess");
 
-        Optional<TeamTask> updated = store.completeTask(task.getTaskId(), "completer-sess");
+        Optional<TeamTask> updated = store.completeTask(task.getTaskId(), "completer-sess", epoch);
 
         assertTrue(updated.isPresent(), "complete on a CLAIMED task must succeed");
         assertEquals(TeamTaskStatus.COMPLETED, updated.get().getStatus());
@@ -94,9 +100,9 @@ public class TestInMemoryTeamTaskStoreTransitions {
     void abandonFromClaimedTransitionsToAbandoned() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newTask(store);
-        store.claimTask(task.getTaskId(), "claimer-sess");
+        Long epoch = claimEpoch(store, task, "claimer-sess");
 
-        Optional<TeamTask> updated = store.abandonTask(task.getTaskId(), "abandoner-sess");
+        Optional<TeamTask> updated = store.abandonTask(task.getTaskId(), "abandoner-sess", epoch);
 
         assertTrue(updated.isPresent(), "abandon on a CLAIMED task must succeed");
         assertEquals(TeamTaskStatus.ABANDONED, updated.get().getStatus());
@@ -109,7 +115,8 @@ public class TestInMemoryTeamTaskStoreTransitions {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newTask(store);
 
-        Optional<TeamTask> updated = store.abandonTask(task.getTaskId(), "lead-sess");
+        // CREATED abandon: null epoch matches the CLAIM_EPOCH IS NULL branch.
+        Optional<TeamTask> updated = store.abandonTask(task.getTaskId(), "lead-sess", null);
 
         assertTrue(updated.isPresent(),
                 "abandon on a CREATED task must succeed (lead may abandon an unclaimed task)");
@@ -122,14 +129,14 @@ public class TestInMemoryTeamTaskStoreTransitions {
     void completedTerminalStateRejectsAllTransitions() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newTask(store);
-        store.claimTask(task.getTaskId(), "claimer-sess");
-        store.completeTask(task.getTaskId(), "completer-sess");
+        Long epoch = claimEpoch(store, task, "claimer-sess");
+        store.completeTask(task.getTaskId(), "completer-sess", epoch);
 
         assertTrue(store.claimTask(task.getTaskId(), "x").isEmpty(),
                 "COMPLETED is terminal — claim must fail");
-        assertTrue(store.completeTask(task.getTaskId(), "x").isEmpty(),
+        assertTrue(store.completeTask(task.getTaskId(), "x", null).isEmpty(),
                 "COMPLETED is terminal — complete must fail");
-        assertTrue(store.abandonTask(task.getTaskId(), "x").isEmpty(),
+        assertTrue(store.abandonTask(task.getTaskId(), "x", null).isEmpty(),
                 "COMPLETED is terminal — abandon must fail");
     }
 
@@ -137,13 +144,13 @@ public class TestInMemoryTeamTaskStoreTransitions {
     void abandonedTerminalStateRejectsAllTransitions() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newTask(store);
-        store.abandonTask(task.getTaskId(), "lead-sess");
+        store.abandonTask(task.getTaskId(), "lead-sess", null);
 
         assertTrue(store.claimTask(task.getTaskId(), "x").isEmpty(),
                 "ABANDONED is terminal — claim must fail");
-        assertTrue(store.completeTask(task.getTaskId(), "x").isEmpty(),
+        assertTrue(store.completeTask(task.getTaskId(), "x", null).isEmpty(),
                 "ABANDONED is terminal — complete must fail");
-        assertTrue(store.abandonTask(task.getTaskId(), "x").isEmpty(),
+        assertTrue(store.abandonTask(task.getTaskId(), "x", null).isEmpty(),
                 "ABANDONED is terminal — abandon must fail");
     }
 
@@ -153,9 +160,9 @@ public class TestInMemoryTeamTaskStoreTransitions {
 
         assertTrue(store.claimTask("nonexistent", "x").isEmpty(),
                 "claim on a missing task returns empty");
-        assertTrue(store.completeTask("nonexistent", "x").isEmpty(),
+        assertTrue(store.completeTask("nonexistent", "x", null).isEmpty(),
                 "complete on a missing task returns empty");
-        assertTrue(store.abandonTask("nonexistent", "x").isEmpty(),
+        assertTrue(store.abandonTask("nonexistent", "x", null).isEmpty(),
                 "abandon on a missing task returns empty");
     }
 
@@ -163,8 +170,8 @@ public class TestInMemoryTeamTaskStoreTransitions {
     void nullTaskIdReturnsEmpty() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         assertTrue(store.claimTask(null, "x").isEmpty());
-        assertTrue(store.completeTask(null, "x").isEmpty());
-        assertTrue(store.abandonTask(null, "x").isEmpty());
+        assertTrue(store.completeTask(null, "x", null).isEmpty());
+        assertTrue(store.abandonTask(null, "x", null).isEmpty());
     }
 
     @Test

@@ -126,7 +126,7 @@ public class TestTeamTaskCreateExecutorAcl {
                 return new TeamTask("stub-id", teamId, subject, description,
                         Collections.emptyList(),
                         io.nop.ai.agent.team.TeamTaskStatus.CREATED,
-                        createdBy, null, 0L);
+                        createdBy, null, null, 0L);
             }
 
             @Override
@@ -150,12 +150,12 @@ public class TestTeamTaskCreateExecutorAcl {
             }
 
             @Override
-            public java.util.Optional<TeamTask> completeTask(String taskId, String completedBy) {
+            public java.util.Optional<TeamTask> completeTask(String taskId, String completedBy, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public java.util.Optional<TeamTask> abandonTask(String taskId, String abandonedBy) {
+            public java.util.Optional<TeamTask> abandonTask(String taskId, String abandonedBy, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 

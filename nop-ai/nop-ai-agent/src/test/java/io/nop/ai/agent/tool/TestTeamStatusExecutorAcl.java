@@ -147,12 +147,12 @@ public class TestTeamStatusExecutorAcl {
             }
 
             @Override
-            public java.util.Optional<io.nop.ai.agent.team.TeamTask> completeTask(String taskId, String completedBy) {
+            public java.util.Optional<io.nop.ai.agent.team.TeamTask> completeTask(String taskId, String completedBy, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public java.util.Optional<io.nop.ai.agent.team.TeamTask> abandonTask(String taskId, String abandonedBy) {
+            public java.util.Optional<io.nop.ai.agent.team.TeamTask> abandonTask(String taskId, String abandonedBy, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 

@@ -72,7 +72,7 @@ public class TestInMemoryTeamTaskStoreReclaim {
     void reclaimOnCompletedReturnsEmpty() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newClaimedTask(store);
-        store.completeTask(task.getTaskId(), "completer-sess");
+        store.completeTask(task.getTaskId(), "completer-sess", task.getClaimEpoch());
 
         Optional<TeamTask> updated = store.reclaimTask(task.getTaskId(), "reclaimer-sess");
 
@@ -85,7 +85,7 @@ public class TestInMemoryTeamTaskStoreReclaim {
     void reclaimOnAbandonedReturnsEmpty() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTask task = newClaimedTask(store);
-        store.abandonTask(task.getTaskId(), "abandoner-sess");
+        store.abandonTask(task.getTaskId(), "abandoner-sess", task.getClaimEpoch());
 
         Optional<TeamTask> updated = store.reclaimTask(task.getTaskId(), "reclaimer-sess");
 

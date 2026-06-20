@@ -304,13 +304,13 @@ public class TestTeamTaskSchedulerDaemon {
             }
 
             @Override
-            public java.util.Optional<io.nop.ai.agent.team.TeamTask> completeTask(String t, String b) {
-                return store.completeTask(t, b);
+            public java.util.Optional<io.nop.ai.agent.team.TeamTask> completeTask(String t, String b, Long claimEpoch) {
+                return store.completeTask(t, b, claimEpoch);
             }
 
             @Override
-            public java.util.Optional<io.nop.ai.agent.team.TeamTask> abandonTask(String t, String b) {
-                return store.abandonTask(t, b);
+            public java.util.Optional<io.nop.ai.agent.team.TeamTask> abandonTask(String t, String b, Long claimEpoch) {
+                return store.abandonTask(t, b, claimEpoch);
             }
 
             @Override

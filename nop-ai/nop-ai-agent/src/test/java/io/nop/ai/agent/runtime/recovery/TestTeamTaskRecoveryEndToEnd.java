@@ -184,8 +184,10 @@ public class TestTeamTaskRecoveryEndToEnd {
         assertEquals(TeamTaskStatus.CLAIMED, reclaimed.get().getStatus());
         assertEquals("member-2-sess", reclaimed.get().getClaimedBy());
 
-        // And member-2 can complete it — full self-heal verified.
-        Optional<TeamTask> completed = store.completeTask(task.getTaskId(), "member-2-sess");
+        // And member-2 can complete it — full self-heal verified. The
+        // complete CAS binds the epoch captured at the re-claim (plan 279).
+        Optional<TeamTask> completed = store.completeTask(
+                task.getTaskId(), "member-2-sess", reclaimed.get().getClaimEpoch());
         assertTrue(completed.isPresent());
         assertEquals(TeamTaskStatus.COMPLETED, completed.get().getStatus());
     }
@@ -263,8 +265,9 @@ public class TestTeamTaskRecoveryEndToEnd {
                 "DAG self-heal: stuck t1 reclaimed to CREATED");
 
         // Member-2 claims + completes t1 → the DAG can now advance to t2.
-        store.claimTask(t1.getTaskId(), "member-2-sess");
-        store.completeTask(t1.getTaskId(), "member-2-sess");
+        Long t1Epoch = store.claimTask(t1.getTaskId(), "member-2-sess")
+                .orElseThrow().getClaimEpoch();
+        store.completeTask(t1.getTaskId(), "member-2-sess", t1Epoch);
         assertEquals(TeamTaskStatus.COMPLETED, store.getTask(t1.getTaskId()).orElseThrow().getStatus(),
                 "DAG self-heal: member-2 completed t1 after reclaim");
 
@@ -272,7 +275,7 @@ public class TestTeamTaskRecoveryEndToEnd {
         Optional<TeamTask> t2Claim = store.claimTask(t2.getTaskId(), "member-2-sess");
         assertTrue(t2Claim.isPresent(),
                 "DAG self-heal: t2 is now claimable after t1 was recovered + completed (DAG unblocked)");
-        store.completeTask(t2.getTaskId(), "member-2-sess");
+        store.completeTask(t2.getTaskId(), "member-2-sess", t2Claim.get().getClaimEpoch());
         assertEquals(TeamTaskStatus.COMPLETED, store.getTask(t2.getTaskId()).orElseThrow().getStatus(),
                 "DAG self-heal: t2 completed — full DAG advanced after self-heal");
     }

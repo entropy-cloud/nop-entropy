@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -521,6 +522,80 @@ public class TestDBCheckpointManager {
                             + " > session.messageCount=" + sessionMessageCount
                             + " for watermark=" + cp.getWatermark());
         }
+    }
+
+    // ========================================================================
+    // Plan 279 / AR-08: cross-takeover latest-checkpoint ordering
+    // ========================================================================
+
+    @Test
+    void getLatestCheckpointAcrossTakeoverReturnsMostRecentExecution() {
+        // Instance A runs first: seq 0..5 at an EARLIER wall-clock time.
+        DBCheckpointManager instanceA = new DBCheckpointManager(dataSource);
+        long tA = 1_000_000L;
+        for (int i = 0; i <= 5; i++) {
+            instanceA.saveCheckpoint(Checkpoint.of(
+                    "sess-takeover", "wm-a-" + i, i, tA + i,
+                    CheckpointType.TOOL_EXECUTION, "toolA", "call-a-" + i,
+                    "in", "out", i + 1, 10L * (i + 1)));
+        }
+
+        // Instance B takes over after A crashed: a fresh execute() resets SEQ
+        // to 0, runs seq 0..2 at a LATER wall-clock time.
+        DBCheckpointManager instanceB = new DBCheckpointManager(dataSource);
+        long tB = 9_000_000L;
+        for (int i = 0; i <= 2; i++) {
+            instanceB.saveCheckpoint(Checkpoint.of(
+                    "sess-takeover", "wm-b-" + i, i, tB + i,
+                    CheckpointType.TOOL_EXECUTION, "toolB", "call-b-" + i,
+                    "in", "out", i + 1, 10L * (i + 1)));
+        }
+
+        // Instance C reconstructs from the DB (fresh cache) and asks for the
+        // latest checkpoint — the restoreSession path (DefaultAgentEngine).
+        DBCheckpointManager instanceC = new DBCheckpointManager(dataSource);
+        Checkpoint latest = instanceC.getLatestCheckpoint("sess-takeover");
+
+        assertNotNull(latest);
+        // AR-08: the latest is instance B's most recent (seq=2, latest
+        // timestamp), NOT instance A's seq=5 (earlier timestamp despite the
+        // higher per-execution-local seq).
+        assertEquals("wm-b-2", latest.getWatermark(),
+                "cross-takeover latest must be the most-recent-execution checkpoint "
+                        + "(B seq=2), not the highest-seq (A seq=5)");
+        assertEquals(2, latest.getSeq());
+        assertEquals("toolB", latest.getToolName());
+    }
+
+    @Test
+    void getCheckpointsStillAscendingSeqAndDecoupledFromLatestSelection() {
+        // Save checkpoints with seq and timestamp OUT OF SYNC to prove the two
+        // selections are independent: getCheckpoints orders by SEQ (ascending,
+        // via loadSessionRowsFromDb which is intentionally unchanged), while
+        // getLatestCheckpoint selects by CHECKPOINT_TIMESTAMP.
+        DBCheckpointManager mgr1 = new DBCheckpointManager(dataSource);
+        mgr1.saveCheckpoint(Checkpoint.of("sess-order", "wm-2", 2, 100L,
+                CheckpointType.TOOL_EXECUTION, "t", "c2", "in", "out", 3, 30L));
+        mgr1.saveCheckpoint(Checkpoint.of("sess-order", "wm-0", 0, 300L,
+                CheckpointType.TOOL_EXECUTION, "t", "c0", "in", "out", 1, 10L));
+        mgr1.saveCheckpoint(Checkpoint.of("sess-order", "wm-1", 1, 200L,
+                CheckpointType.TOOL_EXECUTION, "t", "c1", "in", "out", 2, 20L));
+
+        DBCheckpointManager mgr2 = new DBCheckpointManager(dataSource);
+        List<Checkpoint> cps = mgr2.getCheckpoints("sess-order");
+        assertEquals(3, cps.size());
+        // getCheckpoints: ascending SEQ order preserved (AR-08 isolation).
+        assertEquals(0, cps.get(0).getSeq());
+        assertEquals(1, cps.get(1).getSeq());
+        assertEquals(2, cps.get(2).getSeq());
+
+        // getLatestCheckpoint: timestamp-based, decoupled from the list's last
+        // element (which is seq=2 / wm-2 @100 — NOT the latest).
+        Checkpoint latest = mgr2.getLatestCheckpoint("sess-order");
+        assertEquals("wm-0", latest.getWatermark(),
+                "latest is the greatest-timestamp checkpoint (wm-0 @300), not the last-by-seq (wm-2 @100)");
+        assertNotEquals(cps.get(2).getWatermark(), latest.getWatermark(),
+                "getLatestCheckpoint is decoupled from getCheckpoints' last element (AR-08 isolation)");
     }
 
     // ========================================================================

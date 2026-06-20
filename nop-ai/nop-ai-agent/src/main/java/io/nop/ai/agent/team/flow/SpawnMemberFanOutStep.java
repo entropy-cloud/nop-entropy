@@ -168,9 +168,11 @@ public class SpawnMemberFanOutStep extends AbstractTaskStep {
         //    one supplyAsync(spawnMember) future per spawn target on the
         //    dedicated executor (with tenant re-application), reduces under
         //    the plan's strategy, and performs the single completeTask CAS on
-        //    success under the caller's tenant.
+        //    success under the caller's tenant. The claimed task (carrying the
+        //    claim epoch, plan 279 / AR-01) is passed so the dispatcher binds
+        //    the epoch into the single completeTask CAS.
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
-                task, team, spawnTargets, reductionStrategy,
+                claimed.get(), team, spawnTargets, reductionStrategy,
                 /*agentEngine=*/null /* spawn-only: no bound targets, no engine needed */,
                 memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant);
 

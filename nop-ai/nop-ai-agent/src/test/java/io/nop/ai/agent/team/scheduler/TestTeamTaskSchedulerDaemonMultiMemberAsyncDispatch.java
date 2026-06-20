@@ -813,14 +813,14 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
         }
 
         @Override
-        public Optional<TeamTask> completeTask(String taskId, String completedBy) {
+        public Optional<TeamTask> completeTask(String taskId, String completedBy, Long claimEpoch) {
             completeTaskCount.incrementAndGet();
-            return delegate.completeTask(taskId, completedBy);
+            return delegate.completeTask(taskId, completedBy, claimEpoch);
         }
 
         @Override
-        public Optional<TeamTask> abandonTask(String taskId, String abandonedBy) {
-            return delegate.abandonTask(taskId, abandonedBy);
+        public Optional<TeamTask> abandonTask(String taskId, String abandonedBy, Long claimEpoch) {
+            return delegate.abandonTask(taskId, abandonedBy, claimEpoch);
         }
 
         @Override

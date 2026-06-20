@@ -114,7 +114,9 @@ public class TestDefaultTeamTaskRecoveryHandler {
 
     /**
      * Insert a team-task row directly via raw JDBC with explicit UPDATED_AT
-     * (to simulate a stuck task without waiting in real time).
+     * (to simulate a stuck task without waiting in real time). A CLAIMED row
+     * is given {@code CLAIM_EPOCH = 1} so it is completeable/abandonable via
+     * the store's epoch-bound CAS (plan 279); other statuses leave it null.
      */
     private String insertTaskRow(String taskId, String status, String claimedBy,
                                  long updatedAt, String tenantId) {
@@ -127,10 +129,11 @@ public class TestDefaultTeamTaskRecoveryHandler {
                              + ", " + AiAgentTeamTaskTable.COL_STATUS
                              + ", " + AiAgentTeamTaskTable.COL_CREATED_BY
                              + ", " + AiAgentTeamTaskTable.COL_CLAIMED_BY
+                             + ", " + AiAgentTeamTaskTable.COL_CLAIM_EPOCH
                              + ", " + AiAgentTeamTaskTable.COL_CREATED_AT
                              + ", " + AiAgentTeamTaskTable.COL_UPDATED_AT
                              + (tenantId != null ? ", " + AiAgentTeamTaskTable.COL_TENANT_ID : "")
-                             + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?"
+                             + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?"
                              + (tenantId != null ? ", ?" : "") + ")")) {
             ps.setString(1, taskId);
             ps.setString(2, "team-1");
@@ -142,10 +145,15 @@ public class TestDefaultTeamTaskRecoveryHandler {
             } else {
                 ps.setNull(6, java.sql.Types.VARCHAR);
             }
-            ps.setLong(7, updatedAt - 10000L);
-            ps.setLong(8, updatedAt);
+            if (TeamTaskStatus.CLAIMED.name().equals(status)) {
+                ps.setLong(7, 1L);
+            } else {
+                ps.setNull(7, java.sql.Types.INTEGER);
+            }
+            ps.setLong(8, updatedAt - 10000L);
+            ps.setLong(9, updatedAt);
             if (tenantId != null) {
-                ps.setString(9, tenantId);
+                ps.setString(10, tenantId);
             }
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -297,7 +305,8 @@ public class TestDefaultTeamTaskRecoveryHandler {
         // task → 0 stuck tasks detected. This proves the detection-level CAS
         // guard excludes transitioned tasks.
         DbTeamTaskStore store = new DbTeamTaskStore(dataSource);
-        store.completeTask(taskId, "claimer-sess");
+        // The inserted CLAIMED row has CLAIM_EPOCH=1 (insertTaskRow); bind it.
+        store.completeTask(taskId, "claimer-sess", 1L);
 
         DefaultTeamTaskRecoveryHandler handler = new DefaultTeamTaskRecoveryHandler(
                 dataSource, 60L, TeamTaskRecoveryAction.RECLAIM);

@@ -836,15 +836,15 @@ public class TestMultiMemberFanOut {
         }
 
         @Override
-        public Optional<TeamTask> completeTask(String t, String b) {
+        public Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
             tenantAtComplete.put(t, ThreadLocalTenantResolver.current());
             completeCount.incrementAndGet();
-            return delegate.completeTask(t, b);
+            return delegate.completeTask(t, b, claimEpoch);
         }
 
         @Override
-        public Optional<TeamTask> abandonTask(String t, String b) {
-            return delegate.abandonTask(t, b);
+        public Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
+            return delegate.abandonTask(t, b, claimEpoch);
         }
 
         @Override
@@ -1046,16 +1046,16 @@ public class TestMultiMemberFanOut {
         }
 
         @Override
-        public Optional<TeamTask> completeTask(String t, String b) {
+        public Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
             if (watchedTaskId.equals(t) && ghostCompleted.compareAndSet(0, 1)) {
-                delegate.completeTask(t, ghostSessionId);
+                delegate.completeTask(t, ghostSessionId, claimEpoch);
             }
-            return delegate.completeTask(t, b);
+            return delegate.completeTask(t, b, claimEpoch);
         }
 
         @Override
-        public Optional<TeamTask> abandonTask(String t, String b) {
-            return delegate.abandonTask(t, b);
+        public Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
+            return delegate.abandonTask(t, b, claimEpoch);
         }
 
         @Override
@@ -1114,8 +1114,8 @@ public class TestMultiMemberFanOut {
         String a = createTask(store, teamId, "A", Collections.emptyList());
 
         // Pre-complete the task.
-        store.claimTask(a, "pre-completer");
-        store.completeTask(a, "pre-completer");
+        Long epoch = store.claimTask(a, "pre-completer").orElseThrow().getClaimEpoch();
+        store.completeTask(a, "pre-completer", epoch);
         assertEquals(TeamTaskStatus.COMPLETED, store.getTask(a).orElseThrow().getStatus());
 
         ITaskMemberRouter router = new FixedPlanRouter(

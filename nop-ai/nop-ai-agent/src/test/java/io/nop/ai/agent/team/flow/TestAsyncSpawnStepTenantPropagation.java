@@ -142,14 +142,14 @@ public class TestAsyncSpawnStepTenantPropagation {
         }
 
         @Override
-        public Optional<TeamTask> completeTask(String t, String b) {
+        public Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
             tenantObservedAtComplete.put(t, ThreadLocalTenantResolver.current());
-            return delegate.completeTask(t, b);
+            return delegate.completeTask(t, b, claimEpoch);
         }
 
         @Override
-        public Optional<TeamTask> abandonTask(String t, String b) {
-            return delegate.abandonTask(t, b);
+        public Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
+            return delegate.abandonTask(t, b, claimEpoch);
         }
 
         @Override

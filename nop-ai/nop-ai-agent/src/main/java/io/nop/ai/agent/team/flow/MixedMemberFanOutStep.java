@@ -133,9 +133,11 @@ public class MixedMemberFanOutStep extends AbstractTaskStep {
         //    BOUND → engine.execute async, SPAWN → supplyAsync(spawnMember)
         //    on the dedicated executor with tenant re-application, then
         //    reduces the unified outcomes + performs the single completeTask
-        //    CAS on success.
+        //    CAS on success. The claimed task (carrying the claim epoch,
+        //    plan 279 / AR-01) is passed so the dispatcher binds the epoch
+        //    into the single completeTask CAS.
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
-                task, team, targets, reductionStrategy,
+                claimed.get(), team, targets, reductionStrategy,
                 agentEngine, memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant);
 
         // Adapt to a nop-task TaskStepReturn + record markComplete/markFailed

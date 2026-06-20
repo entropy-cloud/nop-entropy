@@ -70,12 +70,12 @@ public final class NoOpTeamTaskStore implements ITeamTaskStore {
     }
 
     @Override
-    public Optional<TeamTask> completeTask(String taskId, String completedBy) {
+    public Optional<TeamTask> completeTask(String taskId, String completedBy, Long claimEpoch) {
         throw notEnabled();
     }
 
     @Override
-    public Optional<TeamTask> abandonTask(String taskId, String abandonedBy) {
+    public Optional<TeamTask> abandonTask(String taskId, String abandonedBy, Long claimEpoch) {
         throw notEnabled();
     }
 

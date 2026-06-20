@@ -21,20 +21,33 @@ import java.util.Optional;
  * vision §8.2). The {@code blockedBy} dependency list is stored verbatim but
  * not resolved — dependency resolution is a successor.
  *
- * <h2>State machine (plan 227 / team-task-update, plan 240 / reclaim)</h2>
+ * <h2>State machine (plan 227 / team-task-update, plan 240 / reclaim,
+ * plan 279 / claim-epoch CAS)</h2>
  * The four transition methods {@link #claimTask} / {@link #completeTask} /
  * {@link #abandonTask} / {@link #reclaimTask} drive the {@link TeamTaskStatus}
  * state machine. Legal transitions:
  * <ul>
- *   <li>{@code claimTask}: {@code CREATED → CLAIMED} (records claimedBy).</li>
- *   <li>{@code completeTask}: {@code CLAIMED → COMPLETED}.</li>
+ *   <li>{@code claimTask}: {@code CREATED → CLAIMED} (records claimedBy and
+ *       assigns a fresh monotonically-increasing {@code claimEpoch} — plan 279
+ *       / AR-01). The assigned epoch is returned on the resulting
+ *       {@link TeamTask#getClaimEpoch()}.</li>
+ *   <li>{@code completeTask}: {@code CLAIMED → COMPLETED}. The CAS verifies
+ *       the caller-supplied {@code claimEpoch} matches the row's current
+ *       {@code CLAIM_EPOCH}, so a stale in-flight dispatcher holding an epoch
+ *       from a pre-reclaim claim cannot complete a task that was reclaimed
+ *       and re-claimed by another owner — closing the shared-daemon-id
+ *       double-execution window.</li>
  *   <li>{@code abandonTask}: {@code CREATED → ABANDONED} or
- *       {@code CLAIMED → ABANDONED}.</li>
- *   <li>{@code reclaimTask} (plan 240): {@code CLAIMED → CREATED} — recovery
- *       transition that un-sticks a CLAIMED task whose claimer has
- *       disappeared (crash / orphaned session / timeout). Clears
- *       {@code claimedBy} to {@code null} so the task is re-claimable by
- *       another member via {@link #claimTask}.</li>
+ *       {@code CLAIMED → ABANDONED}. The CLAIMED branch verifies the epoch
+ *       (owner binding); the CREATED branch is epoch-agnostic (matches any
+ *       CREATED task, including one reclaimed back to CREATED).</li>
+ *   <li>{@code reclaimTask} (plan 240, augmented by plan 279):
+ *       {@code CLAIMED → CREATED} — recovery transition that un-sticks a
+ *       CLAIMED task whose claimer has disappeared (crash / orphaned session
+ *       / timeout). Clears {@code claimedBy} to {@code null} but
+ *       <b>preserves</b> {@code claimEpoch} (keeps it monotonic) so the task
+ *       is re-claimable by another member via {@link #claimTask} under a
+ *       strictly-larger epoch.</li>
  * </ul>
  * An illegal transition (wrong source status), a missing task, or a CAS race
  * loss returns {@code Optional.empty()} — non-exception control flow. The
@@ -95,32 +108,48 @@ public interface ITeamTaskStore {
 
     /**
      * Claim a task: transition {@link TeamTaskStatus#CREATED} →
-     * {@link TeamTaskStatus#CLAIMED} and record the claimer's sessionId in
-     * {@code claimedBy}. Concurrency control is an atomic compare-and-swap —
-     * at most one concurrent claimer wins a race for the same task.
+     * {@link TeamTaskStatus#CLAIMED}, record the claimer's sessionId in
+     * {@code claimedBy}, and assign a fresh monotonically-increasing
+     * {@code claimEpoch} (plan 279 / AR-01). Concurrency control is an atomic
+     * compare-and-swap — at most one concurrent claimer wins a race for the
+     * same task. The assigned epoch is available on the returned
+     * {@link TeamTask#getClaimEpoch()} and MUST be threaded by the caller
+     * into the subsequent {@link #completeTask} / {@link #abandonTask} CAS
+     * so a stale in-flight dispatcher cannot complete/abandon a task that
+     * was reclaimed and re-claimed under a new epoch.
      *
      * @param taskId    the UUID task identity
      * @param claimedBy the sessionId of the claiming member (non-null)
-     * @return the updated task with status CLAIMED and claimedBy set, or
-     *         empty if the task does not exist or its current status is not
-     *         CREATED (already claimed / completed / abandoned, or lost a CAS
-     *         race)
+     * @return the updated task with status CLAIMED, claimedBy set, and
+     *         claimEpoch populated; or empty if the task does not exist or
+     *         its current status is not CREATED (already claimed / completed
+     *         / abandoned, or lost a CAS race)
      */
     Optional<TeamTask> claimTask(String taskId, String claimedBy);
 
     /**
      * Complete a claimed task: transition {@link TeamTaskStatus#CLAIMED} →
-     * {@link TeamTaskStatus#COMPLETED}. The recorded {@code claimedBy} is
+     * {@link TeamTaskStatus#COMPLETED}. The CAS verifies the caller-supplied
+     * {@code claimEpoch} matches the row's current {@code CLAIM_EPOCH}
+     * (plan 279 / AR-01), so a stale in-flight dispatcher holding an epoch
+     * from a pre-reclaim claim cannot complete a task that was reclaimed and
+     * re-claimed by another owner. The recorded {@code claimedBy} is
      * preserved (design 裁定 6: complete does not overwrite claimedBy).
      *
      * @param taskId      the UUID task identity
-     * @param completedBy the sessionId of the completing member (non-null;
-     *                    recorded for validation only — claimedBy is preserved)
+     * @param completedBy the sessionId of the completing member (non-null);
+     *                    recorded for audit only — claimedBy is preserved
+     * @param claimEpoch  the claim epoch captured by the caller at
+     *                    {@link #claimTask} time (non-null for a genuinely
+     *                    CLAIMED task; passing {@code null} or a stale epoch
+     *                    makes the CAS fail honestly and return empty)
      * @return the updated task with status COMPLETED, or empty if the task
-     *         does not exist or its current status is not CLAIMED (a CREATED
-     *         task must be claimed first; a terminal task cannot transition)
+     *         does not exist, its current status is not CLAIMED, or the
+     *         epoch does not match (a CREATED task must be claimed first; a
+     *         terminal task cannot transition; a reclaimed+re-claimed task
+     *         has a newer epoch)
      */
-    Optional<TeamTask> completeTask(String taskId, String completedBy);
+    Optional<TeamTask> completeTask(String taskId, String completedBy, Long claimEpoch);
 
     /**
      * Abandon a task: transition {@link TeamTaskStatus#CREATED} or
@@ -129,12 +158,24 @@ public interface ITeamTaskStore {
      * may give up (CLAIMED → ABANDONED). Terminal statuses (COMPLETED /
      * ABANDONED) cannot transition.
      *
+     * <p>For the CLAIMED branch the CAS verifies the caller-supplied
+     * {@code claimEpoch} (plan 279 / AR-01, owner binding); the CREATED
+     * branch is epoch-agnostic (matches any CREATED task, including one
+     * reclaimed back to CREATED — a CREATED task has no owner to bind).
+     *
      * @param taskId       the UUID task identity
      * @param abandonedBy  the sessionId of the abandoning member (non-null)
+     * @param claimEpoch   the claim epoch captured at {@link #claimTask}
+     *                     time for a CLAIMED-task abandon (owner binding);
+     *                     {@code null} for a CREATED-task abandon (an
+     *                     unclaimed task, or one reclaimed back to CREATED).
+     *                     A stale epoch for a CLAIMED task makes the CAS fail
+     *                     honestly and return empty.
      * @return the updated task with status ABANDONED, or empty if the task
-     *         does not exist or is already terminal (COMPLETED / ABANDONED)
+     *         does not exist, is already terminal (COMPLETED / ABANDONED),
+     *         or the CLAIMED-branch epoch does not match
      */
-    Optional<TeamTask> abandonTask(String taskId, String abandonedBy);
+    Optional<TeamTask> abandonTask(String taskId, String abandonedBy, Long claimEpoch);
 
     /**
      * Reclaim a stuck task: transition {@link TeamTaskStatus#CLAIMED} →
@@ -153,7 +194,10 @@ public interface ITeamTaskStore {
      * missing task returns {@code Optional.empty()} (CAS-failure semantics,
      * non-exception control flow). Terminal statuses (COMPLETED /
      * ABANDONED) are not recoverable — reclaim only resets a stuck
-     * non-terminal CLAIMED task, it never resurrects a terminal task.
+     * non-terminal CLAIMED task, it never resurrects a terminal task. Plan
+     * 279 PRESERVES {@code claimEpoch} across reclaim (rather than nulling
+     * it) so the next claim assigns a strictly-larger epoch — closing the
+     * shared-daemon-id double-execution window.
      *
      * @param taskId       the UUID task identity
      * @param reclaimedBy  the sessionId / actor identity driving the

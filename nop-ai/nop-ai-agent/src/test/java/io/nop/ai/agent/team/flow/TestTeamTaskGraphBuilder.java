@@ -42,7 +42,7 @@ public class TestTeamTaskGraphBuilder {
     private static TeamTask task(String id, String teamId, List<String> blockedBy,
                                  TeamTaskStatus status) {
         return new TeamTask(id, teamId, "task-" + id, "desc",
-                blockedBy, status, "creator", null, System.currentTimeMillis());
+                blockedBy, status, "creator", null, null, System.currentTimeMillis());
     }
 
     private static TeamTask created(String id, String teamId, String... deps) {

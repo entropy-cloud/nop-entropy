@@ -320,7 +320,7 @@ public class TestTeamTaskFlowOrchestrator {
         io.nop.ai.agent.team.ITeamTaskStore store = storeReturning(
                 "nonexistent-team-id",
                 new TeamTask("orphan", "nonexistent-team-id", "A", "d",
-                        Collections.emptyList(), TeamTaskStatus.CREATED, "lead", null, 1L));
+                        Collections.emptyList(), TeamTaskStatus.CREATED, "lead", null, null, 1L));
 
         TeamTaskFlowOrchestrator orchestrator =
                 new TeamTaskFlowOrchestrator(new RecordingAgentEngine(), store, mgr);
@@ -363,12 +363,12 @@ public class TestTeamTaskFlowOrchestrator {
             }
 
             @Override
-            public java.util.Optional<TeamTask> completeTask(String t, String b) {
+            public java.util.Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public java.util.Optional<TeamTask> abandonTask(String t, String b) {
+            public java.util.Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 
@@ -403,9 +403,9 @@ public class TestTeamTaskFlowOrchestrator {
             @Override
             public List<TeamTask> getTasksByTeam(String tid) {
                 TeamTask ca = new TeamTask("CA", tid, "A", "d",
-                        Collections.singletonList("CB"), TeamTaskStatus.CREATED, "lead", null, 1L);
+                        Collections.singletonList("CB"), TeamTaskStatus.CREATED, "lead", null, null, 1L);
                 TeamTask cb = new TeamTask("CB", tid, "B", "d",
-                        Collections.singletonList("CA"), TeamTaskStatus.CREATED, "lead", null, 1L);
+                        Collections.singletonList("CA"), TeamTaskStatus.CREATED, "lead", null, null, 1L);
                 return Arrays.asList(ca, cb);
             }
 
@@ -420,12 +420,12 @@ public class TestTeamTaskFlowOrchestrator {
             }
 
             @Override
-            public java.util.Optional<TeamTask> completeTask(String t, String b) {
+            public java.util.Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public java.util.Optional<TeamTask> abandonTask(String t, String b) {
+            public java.util.Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
                 throw new UnsupportedOperationException();
             }
 

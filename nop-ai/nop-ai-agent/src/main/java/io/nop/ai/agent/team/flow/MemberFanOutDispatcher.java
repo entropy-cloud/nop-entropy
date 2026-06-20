@@ -114,7 +114,13 @@ public final class MemberFanOutDispatcher {
      * immediately to record synchronous outcomes, or attach a
      * {@code whenComplete} for async tracking.
      *
-     * @param task            the claimed team task (non-null)
+     * @param task            the claimed team task (non-null). MUST be the
+     *                        task returned by {@code claimTask} (carrying the
+     *                        claim epoch on {@link TeamTask#getClaimEpoch()},
+     *                        plan 279 / AR-01) — the dispatcher binds this
+     *                        epoch into the single {@code completeTask} CAS so
+     *                        a stale in-flight dispatcher cannot complete a
+     *                        task reclaimed and re-claimed under a new epoch.
      * @param team            the live team snapshot (non-null when the plan
      *                        contains any SPAWN target — the spawner needs it
      *                        to build the {@link SpawnMemberRequest}; may be
@@ -253,8 +259,14 @@ public final class MemberFanOutDispatcher {
                                 // tenant context (spawn worker's finally) — re-apply.
                                 ThreadLocalTenantResolver.set(capturedTenant);
                                 try {
+                                    // completeTask CAS binds the claim epoch
+                                    // captured at claim time on this task
+                                    // (plan 279 / AR-01). A stale in-flight
+                                    // dispatcher holding a pre-reclaim epoch
+                                    // is rejected → empty → honest failure.
                                     Optional<TeamTask> completed =
-                                            taskStore.completeTask(task.getTaskId(), dispatchSessionId);
+                                            taskStore.completeTask(task.getTaskId(), dispatchSessionId,
+                                                    task.getClaimEpoch());
                                     if (completed.isEmpty()) {
                                         throw new NopAiAgentException(
                                                 "nop.ai.team.flow.complete-failed: cannot complete team task taskId="

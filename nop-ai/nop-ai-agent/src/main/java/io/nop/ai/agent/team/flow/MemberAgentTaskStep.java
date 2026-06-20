@@ -188,8 +188,12 @@ public class MemberAgentTaskStep extends AbstractTaskStep {
                 }
 
                 // 4. Complete the task (CLAIMED -> COMPLETED) in the async
-                //    callback. Honest failure on CAS loss.
-                Optional<TeamTask> completed = taskStore.completeTask(taskId, memberSessionId);
+                //    callback. Honest failure on CAS loss. Bind the claim
+                //    epoch captured at claim time (plan 279 / AR-01) so a
+                //    stale in-flight dispatcher cannot complete a task
+                //    reclaimed and re-claimed under a new epoch.
+                Optional<TeamTask> completed = taskStore.completeTask(taskId, memberSessionId,
+                        claimed.get().getClaimEpoch());
                 if (completed.isEmpty()) {
                     recorder.markFailed(taskId);
                     steppedFuture.completeExceptionally(new NopAiAgentException(

@@ -191,10 +191,19 @@ public class TeamTaskUpdateExecutor implements IToolExecutor {
                 updated = taskStore.claimTask(taskId, callerSessionId);
                 break;
             case "complete":
-                updated = taskStore.completeTask(taskId, callerSessionId);
+                // Bind the claim epoch captured on the loaded task (plan 279 /
+                // AR-01). For a CLAIMED task current.getClaimEpoch() is the
+                // live epoch; a null/stale epoch makes the CAS fail honestly
+                // (returns empty → honest cas-result below), never a silent
+                // success.
+                updated = taskStore.completeTask(taskId, callerSessionId, current.getClaimEpoch());
                 break;
             case "abandon":
-                updated = taskStore.abandonTask(taskId, callerSessionId);
+                // CLAIMED-branch abandon binds the epoch (owner); CREATED-branch
+                // abandon passes null (unclaimed / reclaimed task — epoch IS NULL).
+                Long abandonEpoch = current.getStatus() == TeamTaskStatus.CLAIMED
+                        ? current.getClaimEpoch() : null;
+                updated = taskStore.abandonTask(taskId, callerSessionId, abandonEpoch);
                 break;
             default:
                 return fail(call.getId(),

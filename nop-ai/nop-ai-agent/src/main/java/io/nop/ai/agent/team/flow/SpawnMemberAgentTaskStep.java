@@ -219,7 +219,7 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
         CompletableFuture<TaskStepReturn> steppedFuture = CompletableFuture.supplyAsync(() -> {
             ThreadLocalTenantResolver.set(capturedTenant);
             try {
-                return spawnAndComplete(taskId);
+                return spawnAndComplete(taskId, claimed.get().getClaimEpoch());
             } finally {
                 ThreadLocalTenantResolver.clear();
             }
@@ -238,7 +238,7 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
      * orchestrator's {@code exceptionally} handler, which converts it into an
      * honest {@code TeamTaskFlowResult{success=false}}.
      */
-    private TaskStepReturn spawnAndComplete(String taskId) {
+    private TaskStepReturn spawnAndComplete(String taskId, Long claimEpoch) {
         // spawnMember executes the member agent synchronously
         // (DefaultMemberSpawner does execute(request).join()) and returns a
         // three-state result. This call happens here — inside the supplyAsync
@@ -308,8 +308,9 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
         }
 
         // Complete the task (CLAIMED -> COMPLETED) with the orchestrator
-        // session id.
-        Optional<TeamTask> completed = taskStore.completeTask(taskId, orchestratorSessionId);
+        // session id. Bind the claim epoch captured at claim time
+        // (plan 279 / AR-01).
+        Optional<TeamTask> completed = taskStore.completeTask(taskId, orchestratorSessionId, claimEpoch);
         if (completed.isEmpty()) {
             recorder.markFailed(taskId);
             throw new NopAiAgentException(

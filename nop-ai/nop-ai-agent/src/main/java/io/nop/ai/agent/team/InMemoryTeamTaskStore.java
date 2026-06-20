@@ -68,7 +68,7 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
         String taskId = UUID.randomUUID().toString();
         long now = System.currentTimeMillis();
         TeamTask task = new TeamTask(taskId, teamId, subject, description,
-                blockedBy, TeamTaskStatus.CREATED, createdBy, null, now);
+                blockedBy, TeamTaskStatus.CREATED, createdBy, null, null, now);
 
         TeamTask prev = tasks.putIfAbsent(taskId, task);
         // taskId is a fresh UUID, so prev is always null; defensive check.
@@ -133,38 +133,57 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
             return Optional.empty();
         }
         Objects.requireNonNull(claimedBy, "claimedBy");
-        return transition(taskId, TeamTaskStatus.CREATED, TeamTaskStatus.CLAIMED,
-                claimedBy, true);
+        // Claim assigns a fresh epoch atomically inside the per-key compute
+        // CAS (plan 279 / AR-01). The new epoch is returned on the result.
+        AtomicReference<TeamTask> resultHolder = new AtomicReference<>();
+        tasks.compute(taskId, (id, existing) -> {
+            if (existing == null || existing.getStatus() != TeamTaskStatus.CREATED) {
+                return existing;
+            }
+            long prevEpoch = existing.getClaimEpoch() != null ? existing.getClaimEpoch() : 0L;
+            long newEpoch = prevEpoch + 1;
+            TeamTask updated = new TeamTask(
+                    existing.getTaskId(), existing.getTeamId(),
+                    existing.getSubject(), existing.getDescription(),
+                    existing.getBlockedBy(), TeamTaskStatus.CLAIMED,
+                    existing.getCreatedBy(), claimedBy, newEpoch,
+                    existing.getCreatedAt());
+            resultHolder.set(updated);
+            return updated;
+        });
+        return Optional.ofNullable(resultHolder.get());
     }
 
     @Override
-    public Optional<TeamTask> completeTask(String taskId, String completedBy) {
+    public Optional<TeamTask> completeTask(String taskId, String completedBy, Long claimEpoch) {
         if (taskId == null) {
             return Optional.empty();
         }
         Objects.requireNonNull(completedBy, "completedBy");
-        // complete preserves claimedBy (design 裁定 6) — doNotOverwriteClaimedBy=true
-        // but source is CLAIMED so the value is already set; pass a placeholder actor
-        // and keep the existing claimedBy.
+        // CAS verifies the caller's epoch matches the row's current epoch
+        // (plan 279 / AR-01). A stale in-flight owner is rejected.
         return transition(taskId, TeamTaskStatus.CLAIMED, TeamTaskStatus.COMPLETED,
-                completedBy, false);
+                completedBy, false, claimEpoch);
     }
 
     @Override
-    public Optional<TeamTask> abandonTask(String taskId, String abandonedBy) {
+    public Optional<TeamTask> abandonTask(String taskId, String abandonedBy, Long claimEpoch) {
         if (taskId == null) {
             return Optional.empty();
         }
         Objects.requireNonNull(abandonedBy, "abandonedBy");
-        // abandon is legal from CREATED or CLAIMED. Try CLAIMED→ABANDONED first
-        // (preserves claimedBy), then CREATED→ABANDONED (claimedBy stays null).
+        // abandon is legal from CLAIMED (epoch-bound owner) or CREATED
+        // (epoch-agnostic: any unclaimed / reclaimed CREATED task — a CREATED
+        // task has no owner to bind, so the CREATED branch ignores epoch).
+        // Try CLAIMED→ABANDONED first with the epoch CAS; on failure try
+        // CREATED→ABANDONED (which matches regardless of epoch value).
         Optional<TeamTask> fromClaimed = transition(taskId,
-                TeamTaskStatus.CLAIMED, TeamTaskStatus.ABANDONED, abandonedBy, false);
+                TeamTaskStatus.CLAIMED, TeamTaskStatus.ABANDONED, abandonedBy, false, claimEpoch);
         if (fromClaimed.isPresent()) {
             return fromClaimed;
         }
         return transition(taskId, TeamTaskStatus.CREATED,
-                TeamTaskStatus.ABANDONED, abandonedBy, false);
+                TeamTaskStatus.ABANDONED, abandonedBy, false, claimEpoch);
     }
 
     @Override
@@ -173,12 +192,16 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
             return Optional.empty();
         }
         Objects.requireNonNull(reclaimedBy, "reclaimedBy");
-        // reclaim is CLAIMED→CREATED: reset the task to re-claimable state by
-        // clearing claimedBy (overwriteClaimedBy=true with a null-cleared
-        // value is not how the transition helper works — it sets claimedBy
-        // to actorSessionId when overwriteClaimedBy=true). To clear
-        // claimedBy we cannot use the generic transition helper's
-        // overwriteClaimedBy=true path; inline the CAS here.
+        // reclaim is CLAIMED→CREATED: clear claimedBy (plan 240) but PRESERVE
+        // claimEpoch. claimTask assigns the next epoch via prevEpoch+1, so
+        // keeping the prior epoch across a reclaim makes the next claim's
+        // epoch strictly larger than the abandoned claim's epoch. Nulling it
+        // here would reset the next epoch back to 1 — collapsing it with the
+        // stale in-flight owner's epoch and REOPENING the shared-daemon-id
+        // double-execution window that plan 279 exists to close. The abandon
+        // CREATED branch is epoch-agnostic, so a preserved epoch does not
+        // block a lead's CREATED abandon after reclaim. Inlined CAS (the
+        // generic transition helper's overwriteClaimedBy path does not fit).
         AtomicReference<TeamTask> resultHolder = new AtomicReference<>();
         tasks.compute(taskId, (id, existing) -> {
             if (existing == null) {
@@ -192,6 +215,7 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
                     existing.getSubject(), existing.getDescription(),
                     existing.getBlockedBy(), TeamTaskStatus.CREATED,
                     existing.getCreatedBy(), null, // claimedBy cleared
+                    existing.getClaimEpoch(), // claimEpoch PRESERVED (monotonic)
                     existing.getCreatedAt());
             resultHolder.set(updated);
             return updated;
@@ -204,8 +228,8 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
      * {@code expectedStatus} to {@code targetStatus} via a single
      * {@code tasks.compute} (per-key CAS). On a legal transition the value
      * is replaced with a new immutable {@link TeamTask}; on an illegal
-     * transition (wrong source status) or a missing task the value is left
-     * unchanged and {@code Optional.empty()} is returned.
+     * transition (wrong source status / epoch mismatch) or a missing task
+     * the value is left unchanged and {@code Optional.empty()} is returned.
      *
      * @param taskId              the task identity
      * @param expectedStatus      the required current status (CAS guard)
@@ -217,13 +241,19 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
      *                            when {@code false}, the existing
      *                            {@code claimedBy} is preserved
      *                            (complete/abandon, design 裁定 6)
+     * @param expectedClaimEpoch  the claim epoch the caller captured at claim
+     *                            time (plan 279 / AR-01). The CAS fails
+     *                            (returns empty) unless it equals the row's
+     *                            current epoch; {@code null} matches only a
+     *                            null row epoch (CREATED source).
      * @return the updated task, or empty on illegal transition / missing task
      */
     private Optional<TeamTask> transition(String taskId,
                                           TeamTaskStatus expectedStatus,
                                           TeamTaskStatus targetStatus,
                                           String actorSessionId,
-                                          boolean overwriteClaimedBy) {
+                                          boolean overwriteClaimedBy,
+                                          Long expectedClaimEpoch) {
         AtomicReference<TeamTask> resultHolder = new AtomicReference<>();
         tasks.compute(taskId, (id, existing) -> {
             if (existing == null) {
@@ -234,6 +264,17 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
                 // Illegal source status: leave the value unchanged.
                 return existing;
             }
+            // Epoch CAS (plan 279): the caller's captured epoch must match the
+            // row's current epoch — but ONLY for CLAIMED-source transitions
+            // (complete / CLAIMED-branch abandon), where an owner must be
+            // bound. A CREATED-source abandon has no current owner, so it is
+            // epoch-agnostic (matches any CREATED task, including a reclaimed
+            // one whose epoch was preserved to stay monotonic). Enforcing the
+            // epoch CAS on a CREATED abandon would drop reclaimed tasks.
+            if (expectedStatus == TeamTaskStatus.CLAIMED
+                    && !java.util.Objects.equals(existing.getClaimEpoch(), expectedClaimEpoch)) {
+                return existing;
+            }
             String newClaimedBy = overwriteClaimedBy
                     ? actorSessionId
                     : existing.getClaimedBy();
@@ -242,6 +283,7 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
                     existing.getSubject(), existing.getDescription(),
                     existing.getBlockedBy(), targetStatus,
                     existing.getCreatedBy(), newClaimedBy,
+                    existing.getClaimEpoch(),
                     existing.getCreatedAt());
             resultHolder.set(updated);
             return updated;

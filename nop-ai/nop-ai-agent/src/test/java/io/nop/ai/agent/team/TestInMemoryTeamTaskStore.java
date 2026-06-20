@@ -204,6 +204,6 @@ public class TestInMemoryTeamTaskStore {
 
     private static TeamTask t1() {
         return new TeamTask("x", "t", "s", null, Collections.emptyList(),
-                TeamTaskStatus.CREATED, "c", null, 0L);
+                TeamTaskStatus.CREATED, "c", null, null, 0L);
     }
 }

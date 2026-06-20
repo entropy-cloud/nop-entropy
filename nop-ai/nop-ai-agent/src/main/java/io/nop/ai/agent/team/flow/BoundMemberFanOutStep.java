@@ -155,9 +155,11 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
         //    builds one engine.execute future per bound target, reduces under
         //    the plan's strategy, and performs the single completeTask CAS on
         //    success under the caller's tenant. Bound-only: no team / no spawn
-        //    executor is needed.
+        //    executor is needed. The claimed task (carrying the claim epoch,
+        //    plan 279 / AR-01) is passed so the dispatcher can bind the epoch
+        //    into the single completeTask CAS.
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
-                task, /*team=*/null, boundTargets, reductionStrategy,
+                claimed.get(), /*team=*/null, boundTargets, reductionStrategy,
                 agentEngine, io.nop.ai.agent.team.NoOpMemberSpawner.noOp(),
                 taskStore, orchestratorSessionId, /*spawnExecutor=*/null, capturedTenant);
 

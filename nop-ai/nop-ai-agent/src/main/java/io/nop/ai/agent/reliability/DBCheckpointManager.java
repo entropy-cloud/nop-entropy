@@ -54,12 +54,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p><b>Write-through cache</b>: a {@link ConcurrentHashMap} byWatermark index
  * + a {@link ConcurrentHashMap} bySession list + a loadedSessions negative
  * cache. {@code saveCheckpoint} writes through (DB + cache).
- * {@code getLatestCheckpoint} returns from cache when the session is loaded;
- * on cache-miss it loads the full session checkpoint set from the DB
- * ({@code WHERE SESSION_ID = ? ORDER BY SEQ DESC}, no {@code LIMIT 1}) into the
- * warm cache, then returns the highest-seq entry. {@code getCheckpoint} does
- * a PK lookup on cache-miss. The {@code loadedSessions} negative cache
- * prevents repeated DB round-trips for sessions that have no checkpoints.
+ * {@code getLatestCheckpoint} returns the checkpoint with the greatest
+ * {@code CHECKPOINT_TIMESTAMP} (WATERMARK DESC tie-break) — selected from the
+ * warm cache when the session is loaded, or via a DB
+ * {@code ORDER BY CHECKPOINT_TIMESTAMP DESC, WATERMARK DESC FETCH FIRST 1}
+ * on cache-miss / tenant-active. This "most recent execution" ordering is
+ * cross-takeover correct: {@code SEQ} is per-execution-local (reset to 0 each
+ * run), so ordering by SEQ would wrongly return a prior instance's last
+ * checkpoint. {@code getCheckpoint} does a PK lookup on cache-miss. The
+ * {@code loadedSessions} negative cache prevents repeated DB round-trips for
+ * sessions that have no checkpoints.
  *
  * <p><b>Anonymous session</b>: a null {@code sessionId} is persisted to the DB
  * with a null {@code SESSION_ID} column (the column is nullable). Such
@@ -214,8 +218,25 @@ public class DBCheckpointManager implements ICheckpointManager {
         if (list == null || list.isEmpty()) {
             return null;
         }
+        // Plan 279 / AR-08: the loaded list is kept in ascending SEQ order for
+        // getCheckpoints / CompactionAwareTruncation, but SEQ is
+        // per-execution-local (each execute() resets it to 0), so the last
+        // element is NOT necessarily the most recent across a takeover. Select
+        // the entry with the greatest CHECKPOINT_TIMESTAMP (WATERMARK DESC as
+        // a deterministic tie-break, matching loadLatestCheckpointFromDb) so
+        // getLatestCheckpoint returns the checkpoint from the most recent
+        // execution even if a prior instance reached a higher SEQ.
         synchronized (list) {
-            return list.get(list.size() - 1);
+            Checkpoint latest = null;
+            for (Checkpoint cp : list) {
+                if (latest == null
+                        || cp.getTimestamp() > latest.getTimestamp()
+                        || (cp.getTimestamp() == latest.getTimestamp()
+                                && cp.getWatermark().compareTo(latest.getWatermark()) > 0)) {
+                    latest = cp;
+                }
+            }
+            return latest;
         }
     }
 
@@ -282,7 +303,21 @@ public class DBCheckpointManager implements ICheckpointManager {
         if (tenant != null) {
             sql += TenantSql.whereTenant(AiAgentCheckpointTable.COL_TENANT_ID);
         }
-        sql += " ORDER BY " + AiAgentCheckpointTable.COL_SEQ + " DESC FETCH FIRST 1 ROWS ONLY";
+        // Plan 279 / AR-08: order by CHECKPOINT_TIMESTAMP DESC (the wall-clock
+        // time the checkpoint was recorded) with WATERMARK DESC as a
+        // deterministic tie-break (the table has no ID column, so WATERMARK —
+        // the PK — is the stable secondary key). This makes getLatestCheckpoint
+        // return the checkpoint from the MOST RECENT execution even across a
+        // takeover: a prior instance's high-seq run (e.g. seq=5) is superseded
+        // by a newer instance's low-seq run (e.g. seq=2) because the newer run
+        // recorded a later CHECKPOINT_TIMESTAMP. SEQ is per-execution-local
+        // (each execute() resets it to 0), so SEQ DESC would wrongly return the
+        // prior instance's last checkpoint. loadSessionRowsFromDb (below) STILL
+        // orders by SEQ DESC to preserve getCheckpoints' ascending-seq contract
+        // and CompactionAwareTruncation's seq-based reasoning — the two loaders
+        // are intentionally independent.
+        sql += " ORDER BY " + AiAgentCheckpointTable.COL_CHECKPOINT_TIMESTAMP + " DESC, "
+                + AiAgentCheckpointTable.COL_WATERMARK + " DESC FETCH FIRST 1 ROWS ONLY";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, sessionId);

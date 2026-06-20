@@ -325,13 +325,13 @@ public class TestTeamTaskUpdateExecutorAcl {
             }
 
             @Override
-            public java.util.Optional<TeamTask> completeTask(String id, String by) {
-                return realStore.completeTask(id, by);
+            public java.util.Optional<TeamTask> completeTask(String id, String by, Long claimEpoch) {
+                return realStore.completeTask(id, by, claimEpoch);
             }
 
             @Override
-            public java.util.Optional<TeamTask> abandonTask(String id, String by) {
-                return realStore.abandonTask(id, by);
+            public java.util.Optional<TeamTask> abandonTask(String id, String by, Long claimEpoch) {
+                return realStore.abandonTask(id, by, claimEpoch);
             }
 
             @Override

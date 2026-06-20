@@ -400,13 +400,13 @@ public class TestTeamTaskFlowOrchestratorAutoSpawn {
             }
 
             @Override
-            public java.util.Optional<TeamTask> completeTask(String t, String b) {
-                return delegate.completeTask(t, b);
+            public java.util.Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
+                return delegate.completeTask(t, b, claimEpoch);
             }
 
             @Override
-            public java.util.Optional<TeamTask> abandonTask(String t, String b) {
-                return delegate.abandonTask(t, b);
+            public java.util.Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
+                return delegate.abandonTask(t, b, claimEpoch);
             }
 
             @Override

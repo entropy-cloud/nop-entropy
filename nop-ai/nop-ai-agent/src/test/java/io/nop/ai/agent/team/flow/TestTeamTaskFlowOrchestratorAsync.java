@@ -334,7 +334,7 @@ public class TestTeamTaskFlowOrchestratorAsync {
         // Unknown team — set up a store that returns a task for a nonexistent team
         String unknownTeamId = "nonexistent-" + UUID.randomUUID();
         TeamTask orphan = new TeamTask("orphan", unknownTeamId, "A", "d",
-                Collections.emptyList(), TeamTaskStatus.CREATED, "lead", null, 1L);
+                Collections.emptyList(), TeamTaskStatus.CREATED, "lead", null, null, 1L);
         ITeamTaskStoreStub stubStore = new ITeamTaskStoreStub(unknownTeamId, orphan);
         TeamTaskFlowOrchestrator stubOrchestrator =
                 new TeamTaskFlowOrchestrator(new RecordingAgentEngine(), stubStore, mgr);
@@ -356,9 +356,9 @@ public class TestTeamTaskFlowOrchestratorAsync {
         String cycleTeamId = teamId;
         ITeamTaskStoreStub cycleStore = new ITeamTaskStoreStub(cycleTeamId,
                 new TeamTask("CA", cycleTeamId, "A", "d",
-                        Collections.singletonList("CB"), TeamTaskStatus.CREATED, "lead", null, 1L),
+                        Collections.singletonList("CB"), TeamTaskStatus.CREATED, "lead", null, null, 1L),
                 new TeamTask("CB", cycleTeamId, "B", "d",
-                        Collections.singletonList("CA"), TeamTaskStatus.CREATED, "lead", null, 1L));
+                        Collections.singletonList("CA"), TeamTaskStatus.CREATED, "lead", null, null, 1L));
 
         TeamTaskFlowOrchestrator orchestrator =
                 new TeamTaskFlowOrchestrator(new RecordingAgentEngine(), cycleStore, mgr);
@@ -450,12 +450,12 @@ public class TestTeamTaskFlowOrchestratorAsync {
         }
 
         @Override
-        public java.util.Optional<TeamTask> completeTask(String t, String b) {
+        public java.util.Optional<TeamTask> completeTask(String t, String b, Long claimEpoch) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public java.util.Optional<TeamTask> abandonTask(String t, String b) {
+        public java.util.Optional<TeamTask> abandonTask(String t, String b, Long claimEpoch) {
             throw new UnsupportedOperationException();
         }
 
