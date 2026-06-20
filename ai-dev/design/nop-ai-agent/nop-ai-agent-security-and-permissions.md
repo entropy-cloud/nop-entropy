@@ -611,6 +611,13 @@ DenialResult {
 - `DefaultAgentEngine.setSandboxBackend` 不调用 `warnIfInsecureDefaults`：`NoOpSandboxBackend` 是 Layer 1 设计性基线（从未被更安全的 shipped 替代取代），与 `AutoApproveGate`（已被 `DefaultApprovalGate` 取代 → 回退是降级）的语义不同。
 - 高风险工具执行器（shell-exec / code-exec `IToolExecutor`）如何消费 `ISandboxBackend` 是独立 successor plan；本契约仅提供平台级隔离能力。
 
+**威胁模型注记（plan 276 追溯收口）**：对 `SandboxRequest.environmentVariables` 键的来源做了一次显式链路追溯，结论如下。
+
+- **(a) 当前来源**：截至本注记，`SandboxRequest` 在 main src 中**无任何生产构造点**（grep `SandboxRequest.builder()/SandboxRequest.of()/new SandboxRequest` 于 `nop-ai/nop-ai-agent/src/main/java/` 仅命中 `SandboxRequest.java` 自身的 `Builder.build()`）。`ISandboxBackend.execute(...)` 在 main src 中**从未被调用**（grep `sandboxBackend.execute` / `getSandboxBackend().execute` / `*.execute(...sandbox` 于 main src = 0 命中）。`DefaultAgentEngine.sandboxBackend` 默认 `NoOpSandboxBackend.INSTANCE`（`DefaultAgentEngine.java:346-347`），经 `setSandboxBackend` setter（`:1520`）与 `ReActAgentExecutor.Builder.sandboxBackend`（`:3114`）透传到 `ReActAgentExecutor.sandboxBackend`（`:299`）后**仅存储、从不调用**。因此 `environmentVariables` 当前仅来源于测试 fixture（`TestDockerSandboxBackend`/`TestNoOpSandboxBackend`/`TestSandboxWiring` 构造 `SandboxRequest` 时直接传入 env map）与 `Builder` 默认空 map。
+- **(b) 键当前非 LLM 可控**：由于不存在从 LLM tool call 到达 `SandboxRequest.environmentVariables` 的任何路径（无生产构造点 + `execute` 从未被调用），env 键当前**不可被 LLM 攻击者控制**。
+- **(c) plan 274 校验的 defense-in-depth 定位**：`DockerSandboxBackend.buildDockerCommand` 的 POSIX 键校验（`^[A-Za-z_][A-Za-z0-9_]*$`，`INVALID_ENVIRONMENT_VARIABLE` reason，plan 274 AUDIT-13-9）与 host-path 白名单（`HOST_PATH_NOT_ALLOWED`，plan 270）在当前无活跃攻击面的前提下仍属**正确的 defense-in-depth**——fail-closed 消费侧校验保证：即使未来构造点接入引入了 LLM 可控的键，校验已在消费侧成立，不需要再回填补丁。
+- **(d) 前瞻说明（独立 successor 接入时）**：当 shell-exec / code-exec 工具执行器（设计上文已声明的独立 successor plan）接入 `ISandboxBackend`，将 `IToolExecutor` 的参数映射进 `SandboxRequest.environmentVariables` 时，env 键将**变为 LLM 可控**。届时 plan 274 的 POSIX 键校验即从 defense-in-depth 升级为**活跃防线**——这正是其 fail-closed 校验被提前落地于消费侧的价值。该 successor 接线不在本注记范围。
+
 ### 7.2 ISensitivePathProvider — 敏感路径配置
 
 **职责**：外部化敏感路径 denylist，支持 Delta 覆盖。

@@ -146,3 +146,7 @@ Closure Audit Evidence:
 Follow-up:
 
 - no remaining plan-owned work（15-1 / env-source / 05-2 为显式 Non-Blocking Follow-ups，各自独立 successor 或无 successor）
+
+## Follow-up handled by 276-nop-ai-agent-carryover-batch-r2-sandbox-threatmodel-roadmap-reconcile-team-members.md
+
+- **15-1**（`Team.members` ConcurrentMap 类型收敛，本文件 §Closure Audit Evidence "Deferred 项分类检查" 中列为 optimization candidate）：已由 plan 276 Phase 3 收口。`Team.java` 字段/构造参数/getter 返回类型收敛为 `ConcurrentMap<String, TeamMember>`；生产构造点零破坏，测试构造点 `Collections.emptyMap()` 迁移为 `new ConcurrentHashMap<>()`；focused 测试 `TestTeam` 覆盖。

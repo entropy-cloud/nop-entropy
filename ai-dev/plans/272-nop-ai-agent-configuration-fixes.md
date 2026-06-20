@@ -154,3 +154,7 @@ Follow-up:
 ## Follow-up handled by 275-nop-ai-agent-record-mapping-scope-fix.md
 
 - **20-5**（`nop-record-mapping` test-scope 被 main resource `register-model.xml` 引用）：已由 plan 275 收口。方案 B 落地——`.agent-plan.md` loader 与 `agentPlan.record-mappings.xml` 从 `src/main/resources` 迁移到 `src/test/resources`，`nop-record-mapping` 维持 test scope；新增 test-only `agent-plan-md.register-model.xml`（同 `name="agent-plan"`，文件名不同避免 VFS 去重）经 `discover()` name 聚合 + DeltaMerger 在 test classpath 追加注册 md loader。main resource 不再引用任何 test-scope 依赖类，消除生产环境 Silent No-Op。
+
+## Follow-up handled by 276-nop-ai-agent-carryover-batch-r2-sandbox-threatmodel-roadmap-reconcile-team-members.md
+
+- **15-1**（`Team.members` ConcurrentMap 类型收敛，本文件 §Deferred But Adjudicated / §Follow-up 中的 "optimization candidate for future cleanup PR"）：已由 plan 276 Phase 3 收口。`Team.java` 字段/构造参数/getter 返回类型从 `Map<String, TeamMember>` 收敛为 `ConcurrentMap<String, TeamMember>`，使 Javadoc 已声明的线程安全契约在类型系统中显式化；生产构造点（`DbTeamManager`/`InMemoryTeamManager` 已传 `ConcurrentHashMap`）零破坏（`DbTeamManager:804` 局部变量声明类型同步窄化为 `ConcurrentMap`），测试构造点 `TestTeamExecuteFlowExecutor:505` 的 `Collections.emptyMap()` 迁移为 `new ConcurrentHashMap<>()`；新增 focused 测试 `TestTeam` 断言 `getMembers()` 为 `ConcurrentMap`。

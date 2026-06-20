@@ -170,3 +170,7 @@ Follow-up:
 - env 键来源链路追溯（independent successor，不影响本计划消费侧校验正确性）。
 - CPU/memory/wall 限额 XDSL 外部化（optimization candidate）。
 - 模块级 pre-existing hollow 发现（20 个，无关文件）需独立 plan 治理（watch-only residual）。
+
+## Follow-up handled by 276-nop-ai-agent-carryover-batch-r2-sandbox-threatmodel-roadmap-reconcile-team-members.md
+
+- **env 键来源链路追溯**（本文件 §Non-Blocking Follow-ups 第 1 条）：已由 `276-nop-ai-agent-carryover-batch-r2-sandbox-threatmodel-roadmap-reconcile-team-members.md` Phase 1 收口。追溯结论：main src 0 生产构造点 + `ISandboxBackend.execute` 从未被调用 → 键当前非 LLM 可控，本计划 fail-closed POSIX 键校验定位为 defense-in-depth。结论固化于设计 `nop-ai-agent-security-and-permissions.md` §7.1 威胁模型注记 + roadmap §5c env-source 行（标 ✅ 已追溯）。
