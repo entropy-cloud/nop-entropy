@@ -58,6 +58,11 @@
 | AR-12 | P2 | ✅ | plan 277（PRE 点测试修正） |
 | AR-13 | P2 | ✅ | plan 277（re-enter 测试强断言） |
 | AR-14 | P2 | ✅ | plan 277（truncated 状态 + post-loop gate + isTerminalStatus） |
+| AR-02 | P1 | ✅ | plan 278（resumeSession 补 postDenialGuard.reset，完整恢复） |
+| AR-04 | P1 | ✅ | plan 278（三入口 createActor+autoBindTeam 移进内层 try，对称清理） |
+| AR-05 | P1 | ✅ | plan 278（CallAgentExecutor 委派递归深度守卫，经 metadata 传递） |
+| AR-09 | P2 | ✅ | plan 278（IAgentEngine extends AutoCloseable + default close + DefaultAgentEngine.close） |
+| AR-10 | P2 | ✅ | plan 278（ICheckpointManager.remove default + FileBacked/ToolExecution override + 引擎 terminal-only 调用） |
 
 ## Rule
 

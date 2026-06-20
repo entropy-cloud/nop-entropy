@@ -1,6 +1,6 @@
 # nop-ai-agent Implementation Roadmap
 
-> Last Updated: 2026-06-20 (plan 277: ReAct loop message contract & lifecycle semantics — AR-03/06/07/11/12/13/14 all fixed)
+> Last Updated: 2026-06-20 (plan 278: 引擎资源生命周期/恢复/委派边界 — AR-02/04/05/09/10 全部修复；plan 277: ReAct loop message contract & lifecycle semantics — AR-03/06/07/11/12/13/14 all fixed)
 > Source: 设计体系 `ai-dev/design/nop-ai-agent/00-vision.md` 等；完整逐项历史（含 plan 级实现描述）见 `ai-dev/archive/design/nop-ai-agent/nop-ai-agent-roadmap-2026-06-20.md`
 
 ## Purpose

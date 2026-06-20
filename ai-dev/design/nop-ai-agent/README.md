@@ -64,6 +64,8 @@ Layer 1: Core Interfaces (核心接口层)
   - Hook / Skill 的引擎层组织方式
 - `nop-ai-agent-session-engine.md`
   - Session 的引擎层设计
+- `engine-lifecycle.md`
+  - 引擎生命周期终止入口（`IAgentEngine.close`）与 checkpoint cache 有界化（`ICheckpointManager.remove` terminal-only 调用门）
 
 ## 语义映射层
 
