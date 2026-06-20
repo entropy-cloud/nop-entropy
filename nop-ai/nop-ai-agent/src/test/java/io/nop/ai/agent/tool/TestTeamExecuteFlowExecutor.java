@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -502,7 +503,7 @@ public class TestTeamExecuteFlowExecutor {
                 new TeamSpec("phantom", "d", "lead-agent",
                         Arrays.asList(new TeamMemberSpec("lead", "lead-agent", MemberRole.LEAD)),
                         0),
-                Collections.emptyMap(),
+                new ConcurrentHashMap<>(),
                 io.nop.ai.agent.team.TeamStatus.ACTIVE,
                 System.currentTimeMillis());
 

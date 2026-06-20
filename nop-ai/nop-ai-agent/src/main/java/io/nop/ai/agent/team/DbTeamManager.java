@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Database-backed functional implementation of {@link ITeamManager} — the
@@ -801,7 +802,7 @@ public class DbTeamManager implements ITeamManager {
     private Team rebuildTeam(TeamRow row) {
         List<MemberRow> memberRows = selectMemberRows(row.teamId);
 
-        Map<String, TeamMember> members = new ConcurrentHashMap<>(memberRows.size());
+        ConcurrentMap<String, TeamMember> members = new ConcurrentHashMap<>(memberRows.size());
         // Use an order-preserving spec list keyed by insertion order of rows.
         Map<String, TeamMemberSpec> specMap = new LinkedHashMap<>();
         for (MemberRow mr : memberRows) {

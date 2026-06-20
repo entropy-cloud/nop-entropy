@@ -1,7 +1,7 @@
 package io.nop.ai.agent.team;
 
-import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Runtime instance of an agent team, created by
@@ -17,10 +17,12 @@ import java.util.Objects;
  *
  * <h2>Runtime state (mutable, guarded by the owning ITeamManager)</h2>
  * <ul>
- *   <li>{@code members} — the live member map (memberName → TeamMember).
- *       The map itself is the one owned by the manager; the manager
- *       serialises access via {@code ConcurrentHashMap}. Callers must not
- *       mutate this map directly.</li>
+ *   <li>{@code members} — the live member map (memberName → TeamMember),
+ *       statically typed as {@link ConcurrentMap} so the thread-safety
+ *       contract is expressed in the type system. The map itself is the one
+ *       owned by the manager; the manager serialises access via
+ *       {@code ConcurrentHashMap}. Callers must not mutate this map
+ *       directly.</li>
  *   <li>{@code status} — the {@link TeamStatus}; transitions follow the
  *       state machine documented on the enum.</li>
  *   <li>{@code disbandedAt} — wall-clock timestamp (millis) recorded when
@@ -31,11 +33,15 @@ import java.util.Objects;
  * {@code createdAt} are immutable after construction. {@code members},
  * {@code status}, and {@code disbandedAt} are non-final and are mutated
  * only by the owning {@link ITeamManager} implementation (which serialises
- * mutations via its own {@code ConcurrentHashMap}). This mirrors the
- * {@code AgentActor} volatile-field pattern: the data object itself does
- * not synchronise; thread safety is the manager's responsibility. In
- * particular, {@code status} and {@code disbandedAt} are read by query
- * methods after the manager has published a consistent snapshot.
+ * mutations via its own {@code ConcurrentHashMap}). The {@code members}
+ * field is statically typed as {@link ConcurrentMap} to make this
+ * thread-safety contract visible in the type system — every construction
+ * site supplies a {@code ConcurrentHashMap} (a {@code ConcurrentMap}
+ * subtype). This mirrors the {@code AgentActor} volatile-field pattern:
+ * the data object itself does not synchronise; thread safety is the
+ * manager's responsibility. In particular, {@code status} and
+ * {@code disbandedAt} are read by query methods after the manager has
+ * published a consistent snapshot.
  *
  * <p>See plan 223 (L4-8-team-manager) and vision §8.
  */
@@ -45,7 +51,7 @@ public final class Team {
     private final TeamSpec spec;
     private final long createdAt;
 
-    private final Map<String, TeamMember> members;
+    private final ConcurrentMap<String, TeamMember> members;
     private TeamStatus status;
     private long disbandedAt;
 
@@ -55,11 +61,13 @@ public final class Team {
      * @param teamId    UUID-generated runtime identity (non-null)
      * @param spec      the immutable team specification (non-null)
      * @param members   the live member map owned by the manager (non-null;
-     *                  callers must not mutate directly)
+     *                  typed {@link ConcurrentMap} to express the
+     *                  thread-safety contract in the type system; callers
+     *                  must not mutate directly)
      * @param status    the initial status (non-null)
      * @param createdAt wall-clock timestamp (millis) at creation
      */
-    public Team(String teamId, TeamSpec spec, Map<String, TeamMember> members,
+    public Team(String teamId, TeamSpec spec, ConcurrentMap<String, TeamMember> members,
                 TeamStatus status, long createdAt) {
         this.teamId = Objects.requireNonNull(teamId, "teamId");
         this.spec = Objects.requireNonNull(spec, "spec");
@@ -83,10 +91,12 @@ public final class Team {
     }
 
     /**
-     * @return the live member map (memberName → TeamMember). The map is the
-     *         one owned by the manager; callers must treat it as read-only.
+     * @return the live member map (memberName → TeamMember), statically
+     *         typed as {@link ConcurrentMap} to express the thread-safety
+     *         contract. The map is the one owned by the manager; callers
+     *         must treat it as read-only.
      */
-    public Map<String, TeamMember> getMembers() {
+    public ConcurrentMap<String, TeamMember> getMembers() {
         return members;
     }
 
