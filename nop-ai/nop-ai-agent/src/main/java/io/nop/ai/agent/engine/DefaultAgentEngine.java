@@ -143,6 +143,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class DefaultAgentEngine implements IAgentEngine {
@@ -397,6 +398,10 @@ public class DefaultAgentEngine implements IAgentEngine {
     // and renewals for concurrent sessions are short and never block each
     // other meaningfully.
     private ScheduledExecutorService lockRenewExecutor;
+    // Plan 278 (AR-09): tracks whether lockRenewExecutor was self-created
+    // (lazy init) vs externally injected (setLockRenewExecutor). close()
+    // only shuts down self-created pools.
+    private volatile boolean ownLockRenewExecutor;
     // Plan 222 (L4-8-P4-RecoveryDaemon): RecoveryManager daemon for
     // continuous periodic stale-lock cleanup + orphan-session detection.
     // Defaults to NoOpRecoveryManager — single-process deployments keep
@@ -449,6 +454,10 @@ public class DefaultAgentEngine implements IAgentEngine {
     // 14-03); virtual threads guarantee no self-deadlock when a task running on
     // this executor dispatches the LLM-call wrapper back to the same executor.
     private ExecutorService agentExecutor;
+    // Plan 278 (AR-09): tracks whether agentExecutor was self-created
+    // (lazy init) vs externally injected (setAgentExecutor). close() only
+    // shuts down self-created pools.
+    private volatile boolean ownAgentExecutor;
 
     // Plan 271 (finding 14-01): wall-clock timeout (ms) for a call-agent
     // sub-agent execution. On timeout the sub-agent's session is cancelled via
@@ -473,6 +482,10 @@ public class DefaultAgentEngine implements IAgentEngine {
     private long toolTimeoutMs = 300_000L;
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
+
+    // Plan 278 (AR-09): close() idempotency guard. Once true, subsequent
+    // close() calls are a no-op (LOG.debug).
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public DefaultAgentEngine(IChatService chatService, IToolManager toolManager) {
         this(chatService, toolManager, new InMemorySessionStore());
@@ -1739,6 +1752,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                 t.setDaemon(true);
                 return t;
             });
+            ownLockRenewExecutor = true;
         }
         return lockRenewExecutor;
     }
@@ -1752,6 +1766,7 @@ public class DefaultAgentEngine implements IAgentEngine {
     public void setLockRenewExecutor(ScheduledExecutorService lockRenewExecutor) {
         this.lockRenewExecutor = Objects.requireNonNull(lockRenewExecutor,
                 "lockRenewExecutor must not be null");
+        this.ownLockRenewExecutor = false;
     }
 
     /**
@@ -1874,22 +1889,12 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     synchronized ExecutorService getAgentExecutor() {
         if (agentExecutor == null) {
-            // Plan 271 (finding 14-04): dedicated cached thread pool with
-            // daemon threads replaces ForkJoinPool.commonPool() (default ~3-7
-            // threads) so concurrent agent executions do not starve each other.
-            // Cached pools grow on demand and reuse idle threads, providing
-            // effectively-unbounded concurrency for blocking agent work (each
-            // agent blocks on LLM/DB calls). Virtual threads (Java 21) would be
-            // ideal but the module targets Java 11. Integrators may override via
-            // setAgentExecutor (e.g. a fixed-size pool for resource-constrained
-            // deployments — note a fixed pool risks self-deadlock if the ReAct
-            // LLM-call timeout wrapper dispatches back to the same saturated
-            // pool, so a cached/virtual-thread executor is recommended).
             agentExecutor = Executors.newCachedThreadPool(r -> {
                 Thread t = new Thread(r, "nop-ai-agent-exec");
                 t.setDaemon(true);
                 return t;
             });
+            ownAgentExecutor = true;
         }
         return agentExecutor;
     }
@@ -1902,6 +1907,7 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public void setAgentExecutor(ExecutorService agentExecutor) {
         this.agentExecutor = Objects.requireNonNull(agentExecutor, "agentExecutor must not be null");
+        this.ownAgentExecutor = false;
     }
 
     /**
@@ -2014,6 +2020,11 @@ public class DefaultAgentEngine implements IAgentEngine {
                 String agentName = session.getAgentName();
                 publishCancelRequested(sessionId, agentName, reason, forced);
                 publishCancelled(sessionId, agentName, reason);
+                // Plan 278 (AR-10): cancel-without-handle reaches a terminal
+                // status (cancelled) but does NOT enter the inner finally
+                // (no handle was registered). Clean up the checkpoint cache
+                // symmetrically so cancelled sessions do not leak cache entries.
+                checkpointManager.remove(sessionId);
             }
 
             return CompletableFuture.completedFuture(null);
@@ -2188,6 +2199,14 @@ public class DefaultAgentEngine implements IAgentEngine {
         ctx.setChannelKind(request.getChannelKind());
         ctx.setPrincipal(request.getPrincipal());
 
+        // Plan 278 (AR-05): extract the delegation depth from the request
+        // metadata (propagated by CallAgentExecutor via a dedicated key) and
+        // expose it on the context so the ReAct executor can pass it to
+        // AgentToolExecuteContext for CallAgentExecutor's depth guard. Absent
+        // = top-level agent (depth 0). Fail-fast on malformed values (non-
+        // Integer) — never silently ignore.
+        ctx.setDelegationDepth(extractDelegationDepth(request));
+
         ctx.addMessage(new ChatUserMessage(request.getUserMessage()));
 
         IToolAccessChecker effectiveToolAccessChecker = resolveEffectiveToolAccessChecker(request);
@@ -2253,27 +2272,35 @@ public class DefaultAgentEngine implements IAgentEngine {
                 // running. cancelSession(forced=true) reads this volatile field.
                 handle.thread = Thread.currentThread();
 
-                // Plan 218 (L4-8): opt-in Actor registration. The engine gates
-                // on isEnabled() (NoOp default returns false → skipped, no
-                // exception-based control flow). When enabled, createActor
-                // registers an AgentActor that runs a mailbox consumption loop
-                // on a dedicated thread. The Actor is a container/observer,
-                // not a replacement for the ReAct executor.
-                // Plan 220 (L4-8-steering): bind the ctx steering queue to the
-                // Actor immediately after createActor returns and before
-                // execute(ctx), so the consumption loop can inject polled
-                // messages into the ReAct reasoning context.
-                if (actorRuntime.isEnabled()) {
-                    AgentActor actor = actorRuntime.createActor(sessionId, request.getAgentName());
-                    actor.setSteeringQueue(ctx.getSteeringQueue());
-                }
-
-                // Plan 231: declarative team auto-bind (lead and/or member).
-                // Runs after createActor so the actorId is available.
-                autoBindTeam(agentModel, sessionId, request.getAgentName());
-
                 AgentExecutionResult result;
                 try {
+                    // Plan 278 (AR-04): createActor + autoBindTeam moved INSIDE
+                    // this inner try so a failure in either triggers the
+                    // symmetric cleanup in the finally below (handle / actor /
+                    // takeover lock / heartbeat renewal). Previously both sat
+                    // BEFORE the inner try — a failure bypassed the finally and
+                    // permanently leaked all four resources, bricking the
+                    // sessionId ("session already executing" on every retry).
+                    //
+                    // Plan 218 (L4-8): opt-in Actor registration. The engine gates
+                    // on isEnabled() (NoOp default returns false → skipped, no
+                    // exception-based control flow). When enabled, createActor
+                    // registers an AgentActor that runs a mailbox consumption loop
+                    // on a dedicated thread. The Actor is a container/observer,
+                    // not a replacement for the ReAct executor.
+                    // Plan 220 (L4-8-steering): bind the ctx steering queue to the
+                    // Actor immediately after createActor returns and before
+                    // execute(ctx), so the consumption loop can inject polled
+                    // messages into the ReAct reasoning context.
+                    if (actorRuntime.isEnabled()) {
+                        AgentActor actor = actorRuntime.createActor(sessionId, request.getAgentName());
+                        actor.setSteeringQueue(ctx.getSteeringQueue());
+                    }
+
+                    // Plan 231: declarative team auto-bind (lead and/or member).
+                    // Runs after createActor so the actorId is available.
+                    autoBindTeam(agentModel, sessionId, request.getAgentName());
+
                     result = executor.execute(ctx).toCompletableFuture().join();
                 } finally {
                     // Plan 197: value-comparison remove — only remove our own
@@ -2292,6 +2319,13 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // writing the same files. Safe to call on every exit path
                     // (release of an unknown/empty session is a no-op).
                     writeIntentRegistry.releaseSession(sessionId);
+                    // Plan 278 (AR-10): clean up the checkpoint cache for
+                    // terminal sessions so it does not grow unbounded.
+                    // NOT called for paused — paused is non-terminal and must
+                    // retain checkpoints for restoreSession recovery.
+                    if (isTerminalStatus(session.getStatus())) {
+                        checkpointManager.remove(sessionId);
+                    }
                     // Plan 218 (L4-8): destroy the Actor registered at lambda
                     // entry. The actorId is reverse-looked-up via sessionId
                     // (no CancelHandle or AgentExecutionContext modification).
@@ -2497,6 +2531,16 @@ public class DefaultAgentEngine implements IAgentEngine {
             // cleared.
             denialLedger.reset(sessionId);
 
+            // Plan 278 (AR-02): also reset the post-denial guard's per-session
+            // denied-fingerprint set. Without this, a resumed session's next
+            // identical tool call is treated as a blind retry and blocked by
+            // the guard before Layer 1 — driving the session straight back to
+            // pause within 3 iterations, making the recovery path useless.
+            // Placed inside the tenant-scoped try, right after the ledger
+            // reset, so future tenant-aware guard implementations inherit the
+            // correct tenant context.
+            postDenialGuard.reset(sessionId);
+
             // Transition the session back to running before re-execution.
             session.setStatus(AgentExecStatus.running);
 
@@ -2569,20 +2613,24 @@ public class DefaultAgentEngine implements IAgentEngine {
                 try {
                 handle.thread = Thread.currentThread();
 
-                // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
-                // Plan 220 (L4-8-steering): bind the ctx steering queue to the
-                // Actor (see doExecute).
-                if (actorRuntime.isEnabled()) {
-                    AgentActor actor = actorRuntime.createActor(sessionId, agentName);
-                    actor.setSteeringQueue(ctx.getSteeringQueue());
-                }
-
-                // Plan 231: declarative team auto-bind (lead and/or member).
-                // Runs after createActor so the actorId is available.
-                autoBindTeam(agentModel, sessionId, agentName);
-
                 AgentExecutionResult result;
                 try {
+                    // Plan 278 (AR-04): createActor + autoBindTeam moved INSIDE
+                    // this inner try (see doExecute) so a failure in either
+                    // triggers the symmetric cleanup in the finally below.
+                    //
+                    // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
+                    // Plan 220 (L4-8-steering): bind the ctx steering queue to the
+                    // Actor (see doExecute).
+                    if (actorRuntime.isEnabled()) {
+                        AgentActor actor = actorRuntime.createActor(sessionId, agentName);
+                        actor.setSteeringQueue(ctx.getSteeringQueue());
+                    }
+
+                    // Plan 231: declarative team auto-bind (lead and/or member).
+                    // Runs after createActor so the actorId is available.
+                    autoBindTeam(agentModel, sessionId, agentName);
+
                     result = executor.execute(ctx).toCompletableFuture().join();
                 } finally {
                     // Plan 197: value-comparison remove — only remove our own handle.
@@ -2593,6 +2641,13 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // Plan 214 (L2-13a): release this session's write intents
                     // (mirrors doExecute / restoreSession finally cleanup).
                     writeIntentRegistry.releaseSession(sessionId);
+                    // Plan 278 (AR-10): clean up the checkpoint cache for
+                    // terminal sessions so it does not grow unbounded.
+                    // NOT called for paused — paused is non-terminal and must
+                    // retain checkpoints for restoreSession recovery.
+                    if (isTerminalStatus(session.getStatus())) {
+                        checkpointManager.remove(sessionId);
+                    }
                     // Plan 218 (L4-8): destroy the Actor (see doExecute).
                     if (actorRuntime.isEnabled()) {
                         actorRuntime.getActorBySession(sessionId)
@@ -2759,20 +2814,24 @@ public class DefaultAgentEngine implements IAgentEngine {
                 try {
                 handle.thread = Thread.currentThread();
 
-                // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
-                // Plan 220 (L4-8-steering): bind the ctx steering queue to the
-                // Actor (see doExecute).
-                if (actorRuntime.isEnabled()) {
-                    AgentActor actor = actorRuntime.createActor(sessionId, agentName);
-                    actor.setSteeringQueue(ctx.getSteeringQueue());
-                }
-
-                // Plan 231: declarative team auto-bind (lead and/or member).
-                // Runs after createActor so the actorId is available.
-                autoBindTeam(agentModel, sessionId, agentName);
-
                 AgentExecutionResult result;
                 try {
+                    // Plan 278 (AR-04): createActor + autoBindTeam moved INSIDE
+                    // this inner try (see doExecute) so a failure in either
+                    // triggers the symmetric cleanup in the finally below.
+                    //
+                    // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
+                    // Plan 220 (L4-8-steering): bind the ctx steering queue to the
+                    // Actor (see doExecute).
+                    if (actorRuntime.isEnabled()) {
+                        AgentActor actor = actorRuntime.createActor(sessionId, agentName);
+                        actor.setSteeringQueue(ctx.getSteeringQueue());
+                    }
+
+                    // Plan 231: declarative team auto-bind (lead and/or member).
+                    // Runs after createActor so the actorId is available.
+                    autoBindTeam(agentModel, sessionId, agentName);
+
                     result = executor.execute(ctx).toCompletableFuture().join();
                 } finally {
                     // Plan 197: value-comparison remove — only remove our own handle.
@@ -2783,6 +2842,13 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // Plan 214 (L2-13a): release this session's write intents
                     // (mirrors doExecute / resumeSession finally cleanup).
                     writeIntentRegistry.releaseSession(sessionId);
+                    // Plan 278 (AR-10): clean up the checkpoint cache for
+                    // terminal sessions so it does not grow unbounded.
+                    // NOT called for paused — paused is non-terminal and must
+                    // retain checkpoints for restoreSession recovery.
+                    if (isTerminalStatus(session.getStatus())) {
+                        checkpointManager.remove(sessionId);
+                    }
                     // Plan 218 (L4-8): destroy the Actor (see doExecute).
                     if (actorRuntime.isEnabled()) {
                         actorRuntime.getActorBySession(sessionId)
@@ -2924,6 +2990,57 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * Plan 278 (AR-09): lifecycle termination entry point. Shuts down the
+     * engine's self-created thread pools ({@code lockRenewExecutor} and
+     * {@code agentExecutor}). Externally injected pools (set via
+     * {@code setLockRenewExecutor} / {@code setAgentExecutor}) are NOT
+     * closed — the caller owns their lifecycle.
+     *
+     * <p><b>Idempotent</b>: a second close is a no-op (LOG.debug). Does NOT
+     * cancel in-flight executions (the caller's responsibility — use
+     * {@code cancelSession} or wait for executions to complete before close).
+     *
+     * <p><b>InterruptedException handling</b>: restores the interrupt flag,
+     * logs at WARN, and does NOT rethrow (per plan 278 contract — close
+     * should be best-effort and never block the caller with a checked
+     * exception from pool shutdown).
+     */
+    @Override
+    public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            LOG.debug("DefaultAgentEngine.close() called more than once — no-op (idempotent)");
+            return;
+        }
+        // Shut down self-created pools only. Externally injected pools
+        // (setXxxExecutor cleared the own* flag) are left untouched.
+        if (ownLockRenewExecutor && lockRenewExecutor != null) {
+            try {
+                lockRenewExecutor.shutdown();
+                LOG.debug("DefaultAgentEngine.close(): shut down self-created lockRenewExecutor");
+            } catch (RuntimeException e) {
+                LOG.warn("DefaultAgentEngine.close(): failed to shut down lockRenewExecutor: {}",
+                        e.toString());
+            }
+        }
+        if (ownAgentExecutor && agentExecutor != null) {
+            try {
+                agentExecutor.shutdown();
+                LOG.debug("DefaultAgentEngine.close(): shut down self-created agentExecutor");
+            } catch (RuntimeException e) {
+                LOG.warn("DefaultAgentEngine.close(): failed to shut down agentExecutor: {}",
+                        e.toString());
+            }
+        }
+    }
+
+    /**
+     * Plan 278 (AR-09): whether {@link #close()} has been called.
+     */
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+    /**
      * Returns true if the status is terminal (the session has finished and
      * cannot be restored). A session in a terminal state has no reason to be
      * restored — it already reached a final outcome.
@@ -2974,6 +3091,32 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
         ParentPermissionConstraint constraint = (ParentPermissionConstraint) raw;
         return new ParentConstrainedToolAccessChecker(constraint, this.toolAccessChecker);
+    }
+
+    /**
+     * Plan 278 (AR-05): extract the delegation depth from the request's
+     * metadata. The depth is propagated by {@code CallAgentExecutor} via
+     * {@link io.nop.ai.agent.tool.CallAgentExecutor#DELEGATION_DEPTH_METADATA_KEY}.
+     * Absent = top-level agent (depth 0). Fail-fast on malformed values —
+     * never silently ignore a non-Integer depth.
+     */
+    private static int extractDelegationDepth(AgentMessageRequest request) {
+        if (request.getMetadata() == null || request.getMetadata().isEmpty()) {
+            return 0;
+        }
+        Object raw = request.getMetadata().get(
+                io.nop.ai.agent.tool.CallAgentExecutor.DELEGATION_DEPTH_METADATA_KEY);
+        if (raw == null) {
+            return 0;
+        }
+        if (!(raw instanceof Integer)) {
+            throw new NopAiAgentException(
+                    "doExecute failed: metadata key '"
+                            + io.nop.ai.agent.tool.CallAgentExecutor.DELEGATION_DEPTH_METADATA_KEY
+                            + "' is present but not an Integer (got: "
+                            + raw.getClass().getName() + ")");
+        }
+        return (Integer) raw;
     }
 
     /**

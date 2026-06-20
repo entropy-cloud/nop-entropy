@@ -165,7 +165,14 @@ public class TestCheckpointDispatchPathWiring {
      */
     @Test
     void saveCheckpointInvokedViaBuilderWiring() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         RecordingChatService chat = new RecordingChatService(List.of(
                 assistantWithToolCalls(toolCall("call_w1", "echo")),
@@ -212,7 +219,14 @@ public class TestCheckpointDispatchPathWiring {
      */
     @Test
     void multipleToolExecutionsProduceMultipleCheckpointsWithIncreasingSeq() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         // Iteration 1: one tool call "echo". Iteration 2: one tool call "ls".
         // Iteration 3: final message (no tool call).
@@ -285,7 +299,14 @@ public class TestCheckpointDispatchPathWiring {
      */
     @Test
     void endToEndEngineExecuteRecordsCheckpointWithToolPayload() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 new RecordingChatService(List.of(
@@ -414,7 +435,14 @@ public class TestCheckpointDispatchPathWiring {
      */
     @Test
     void perSessionCheckpointsAreIsolatedAcrossEngineExecutions() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         // Run session A with an explicit sessionId.
         DefaultAgentEngine engineA = new DefaultAgentEngine(

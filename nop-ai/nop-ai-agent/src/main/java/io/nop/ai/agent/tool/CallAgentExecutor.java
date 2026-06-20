@@ -81,9 +81,55 @@ import java.util.concurrent.TimeUnit;
 public class CallAgentExecutor implements IToolExecutor {
     public static final String TOOL_NAME = "call-agent";
 
+    /**
+     * Plan 278 (AR-05): metadata key under which the delegation depth is
+     * propagated from a parent agent to a sub-agent via
+     * {@link AgentMessageRequest#getMetadata()}. The depth is an Integer
+     * (1 for first-level sub-agent, 2 for second-level, etc.). Absent =
+     * top-level agent (depth 0). Using a dedicated metadata key (rather than
+     * riding inside {@link ParentPermissionConstraint}) ensures the depth is
+     * ALWAYS propagated, even when no permission constraint is present
+     * (e.g. a top-level agent with no declared tools/path-rules).
+     */
+    public static final String DELEGATION_DEPTH_METADATA_KEY = "__nopAiAgent.delegationDepth";
+
+    /**
+     * Plan 278 (AR-05): conservative default maximum delegation depth for
+     * call-agent chains. With the {@code >=} check, this allows up to 3
+     * levels of LLM-initiated delegation (depth 1, 2, 3) — sufficient for
+     * typical lead → member → helper patterns while preventing unbounded
+     * recursion / stack overflow on self-referencing or mutually-recursive
+     * agents. Team-flow delegation (SpawnMemberAgentTaskStep /
+     * MemberAgentTaskStep) does NOT go through this executor — it has its
+     * own DAG cycle detection, so this limit does not affect team-flow
+     * chains. Configurable via {@link #setMaxDelegationDepth(int)}.
+     */
+    public static final int DEFAULT_MAX_DELEGATION_DEPTH = 4;
+
     private static final Logger LOG = LoggerFactory.getLogger(CallAgentExecutor.class);
 
     private static final long DEFAULT_TIMEOUT_MS = 60_000L;
+
+    private int maxDelegationDepth = DEFAULT_MAX_DELEGATION_DEPTH;
+
+    /**
+     * Plan 278 (AR-05): set the maximum delegation depth for call-agent
+     * chains. Must be {@code >= 1}. When a sub-agent call would result in
+     * a depth {@code >= maxDelegationDepth}, the call is rejected with a
+     * structured error result (not a stack overflow).
+     *
+     * @param maxDelegationDepth the maximum depth; must be {@code >= 1}
+     */
+    public void setMaxDelegationDepth(int maxDelegationDepth) {
+        if (maxDelegationDepth < 1) {
+            throw new IllegalArgumentException("maxDelegationDepth must be >= 1, got: " + maxDelegationDepth);
+        }
+        this.maxDelegationDepth = maxDelegationDepth;
+    }
+
+    public int getMaxDelegationDepth() {
+        return maxDelegationDepth;
+    }
 
     @Override
     public String getToolName() {
@@ -116,12 +162,39 @@ public class CallAgentExecutor implements IToolExecutor {
                             + "Ensure the ReAct executor is wired with an engine via the Builder.");
         }
 
+        // Plan 278 (AR-05): delegation depth guard. Read the parent's depth
+        // and compute the child's depth. If the child's depth would meet or
+        // exceed the configured maximum, reject immediately with a structured
+        // error result — never a StackOverflowError. This prevents self-
+        // referencing agents (agentId="self") and A↔B mutual recursion from
+        // overflowing the call stack. Each level still gets its own session/
+        // actor/lock (no orphan leak) because the rejected call never reaches
+        // engine.execute.
+        int parentDepth = agentCtx.getDelegationDepth();
+        int childDepth = parentDepth + 1;
+        if (childDepth >= maxDelegationDepth) {
+            LOG.warn("call-agent rejected: delegation depth {} would reach or exceed max {} "
+                            + "(parentDepth={}, targetAgent={})",
+                    childDepth, maxDelegationDepth, parentDepth, agentCtx.getAgentName());
+            return fail(call.getId(),
+                    "call-agent rejected: delegation depth limit reached (depth=" + childDepth
+                            + ", max=" + maxDelegationDepth + "). "
+                            + "Circular or excessively deep agent delegation is not permitted.");
+        }
+
         // Capture the parent agent's effective (clamped) allowed tool set and
         // build a permission constraint to propagate to the sub-agent (design
         // §4.4). When allowedTools is null (backward-compatible caller that did
         // not opt into the constraint field), no constraint is propagated and
         // the sub-agent executes with the engine's default permission pipeline.
         ParentPermissionConstraint parentConstraint = buildParentConstraint(agentCtx);
+
+        // Plan 278 (AR-05): always build the propagation metadata carrying the
+        // child's delegation depth, even when no permission constraint is
+        // present. This ensures the depth auto-propagates through both the
+        // sync (engine.execute) and async (messenger) pathways — the metadata
+        // map is carried verbatim by CallAgentRequestPayload.
+        Map<String, Object> childMetadata = buildPropagationMetadata(parentConstraint, childDepth);
 
         Map<String, Object> args = resolveArguments(call);
 
@@ -157,9 +230,10 @@ public class CallAgentExecutor implements IToolExecutor {
         }
 
         if (sessionId != null && !sessionId.isEmpty()) {
-            LOG.debug("call-agent continuing existing sub-session: targetAgentId={}, sessionId={}",
-                    targetAgentId, sessionId);
-            return dispatch(call, agentCtx, engine, targetAgentId, input, sessionId, timeoutMs, parentConstraint);
+            LOG.debug("call-agent continuing existing sub-session: targetAgentId={}, sessionId={}, childDepth={}",
+                    targetAgentId, sessionId, childDepth);
+            return dispatch(call, agentCtx, engine, targetAgentId, input, sessionId, timeoutMs,
+                    parentConstraint, childMetadata);
         }
 
         if ("self".equals(agentId) && inheritContext) {
@@ -168,18 +242,20 @@ public class CallAgentExecutor implements IToolExecutor {
                 return fail(call.getId(),
                         "call-agent with inheritContext=true requires a non-null sessionId in the execution context");
             }
-            LOG.debug("call-agent forking from parent session: parentSessionId={}, targetAgentId={}",
-                    parentSessionId, targetAgentId);
+            LOG.debug("call-agent forking from parent session: parentSessionId={}, targetAgentId={}, childDepth={}",
+                    parentSessionId, targetAgentId, childDepth);
             AgentMessageRequest forkRequest = new AgentMessageRequest(
-                    targetAgentId, "", parentSessionId, buildConstraintMetadata(parentConstraint));
+                    targetAgentId, "", parentSessionId, childMetadata);
             return engine.forkSession(forkRequest, true)
                     .thenCompose(childSessionId ->
                             dispatch(call, agentCtx, engine, targetAgentId, input, childSessionId,
-                                    timeoutMs, parentConstraint));
+                                    timeoutMs, parentConstraint, childMetadata));
         }
 
-        LOG.debug("call-agent creating new sub-session: targetAgentId={}", targetAgentId);
-        return dispatch(call, agentCtx, engine, targetAgentId, input, null, timeoutMs, parentConstraint);
+        LOG.debug("call-agent creating new sub-session: targetAgentId={}, childDepth={}",
+                targetAgentId, childDepth);
+        return dispatch(call, agentCtx, engine, targetAgentId, input, null, timeoutMs,
+                parentConstraint, childMetadata);
     }
 
     /**
@@ -197,13 +273,14 @@ public class CallAgentExecutor implements IToolExecutor {
             AiToolCall call, AgentToolExecuteContext agentCtx,
             IAgentEngine engine, String targetAgentId,
             String input, String resolvedSessionId, long timeoutMs,
-            ParentPermissionConstraint parentConstraint) {
+            ParentPermissionConstraint parentConstraint,
+            Map<String, Object> childMetadata) {
         IAgentMessenger messenger = agentCtx.getMessenger();
         if (messenger != null && !(messenger instanceof NoOpAgentMessenger)) {
             return executeViaMessenger(call, agentCtx, messenger, targetAgentId, input,
-                    resolvedSessionId, timeoutMs, parentConstraint);
+                    resolvedSessionId, timeoutMs, childMetadata);
         }
-        return executeSubAgent(engine, call, targetAgentId, input, resolvedSessionId, timeoutMs, parentConstraint);
+        return executeSubAgent(engine, call, targetAgentId, input, resolvedSessionId, timeoutMs, childMetadata);
     }
 
     /**
@@ -223,7 +300,7 @@ public class CallAgentExecutor implements IToolExecutor {
             AiToolCall call, AgentToolExecuteContext agentCtx,
             IAgentMessenger messenger, String targetAgentId,
             String input, String resolvedSessionId, long timeoutMs,
-            ParentPermissionConstraint parentConstraint) {
+            Map<String, Object> childMetadata) {
 
         String senderId = agentCtx.getSessionId();
         if (senderId == null || senderId.isEmpty()) {
@@ -236,7 +313,7 @@ public class CallAgentExecutor implements IToolExecutor {
                 targetAgentId,
                 input != null ? input : "",
                 resolvedSessionId,
-                buildConstraintMetadata(parentConstraint),
+                childMetadata,
                 timeoutMs);
 
         AgentMessageEnvelope envelope = new AgentMessageEnvelope(
@@ -329,23 +406,32 @@ public class CallAgentExecutor implements IToolExecutor {
     }
 
     /**
-     * Build a metadata map carrying the parent permission constraint under the
-     * well-known metadata key, or {@code null} when there is no constraint to
-     * propagate.
+     * Plan 278 (AR-05): build the metadata map that propagates from the
+     * parent to the sub-agent via {@link AgentMessageRequest#getMetadata()}.
+     * Always returns a non-null map carrying the delegation depth under
+     * {@link #DELEGATION_DEPTH_METADATA_KEY}. When a non-null
+     * {@code ParentPermissionConstraint} is provided, it is also included
+     * under its well-known key.
+     *
+     * <p>This replaces the former {@code buildConstraintMetadata} which
+     * returned {@code null} when no constraint was present — losing the
+     * delegation depth. The depth MUST always be propagated so the
+     * recursion guard works even for agents without declared tools/path-rules.
      */
-    private static Map<String, Object> buildConstraintMetadata(ParentPermissionConstraint constraint) {
-        if (constraint == null) {
-            return null;
-        }
+    private static Map<String, Object> buildPropagationMetadata(
+            ParentPermissionConstraint constraint, int childDepth) {
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put(ParentPermissionConstraint.METADATA_KEY, constraint);
+        metadata.put(DELEGATION_DEPTH_METADATA_KEY, childDepth);
+        if (constraint != null) {
+            metadata.put(ParentPermissionConstraint.METADATA_KEY, constraint);
+        }
         return metadata;
     }
 
     private CompletionStage<AiToolCallResult> executeSubAgent(
             IAgentEngine engine, AiToolCall call, String targetAgentId,
             String input, String subSessionId, long timeoutMs,
-            ParentPermissionConstraint parentConstraint) {
+            Map<String, Object> childMetadata) {
 
         String message = input != null ? input : "";
         // Plan 271 (finding 14-01): resolve the child session id upfront so that
@@ -357,7 +443,7 @@ public class CallAgentExecutor implements IToolExecutor {
         String childSessionId = (subSessionId != null && !subSessionId.isEmpty())
                 ? subSessionId : UUID.randomUUID().toString();
         AgentMessageRequest execRequest = new AgentMessageRequest(
-                targetAgentId, message, childSessionId, buildConstraintMetadata(parentConstraint));
+                targetAgentId, message, childSessionId, childMetadata);
 
         CompletableFuture<AgentExecutionResult> future;
         try {

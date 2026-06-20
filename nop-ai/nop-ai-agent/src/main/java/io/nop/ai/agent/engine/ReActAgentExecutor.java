@@ -1719,6 +1719,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         teamManager,
                         teamTaskStore,
                         teamAclChecker);
+                // Plan 278 (AR-05): propagate the delegation depth from the
+                // execution context so CallAgentExecutor can enforce
+                // MAX_DELEGATION_DEPTH and compute the child's depth.
+                toolExecCtx.setDelegationDepth(ctx.getDelegationDepth());
 
                 // The workDir string used for action-fingerprint computation
                 // (design §6.3). Resolved once per iteration so all dispatch-loop

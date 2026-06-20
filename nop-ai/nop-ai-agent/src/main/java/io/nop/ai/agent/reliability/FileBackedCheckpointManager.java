@@ -181,6 +181,41 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
     }
 
     /**
+     * Plan 278 (AR-10): clear all five in-memory caches for a session so
+     * they do not grow unbounded across long-running deployments. Called
+     * by the engine only when the session reaches a terminal status
+     * (completed / failed / cancelled / forced_stopped / escalated /
+     * truncated) — NOT for paused sessions (which must retain checkpoints
+     * for restoreSession recovery).
+     *
+     * <p>The on-disk journal.md / snapshot.json are NOT deleted (they are
+     * the persistent audit trail); only the in-memory caches are cleared.
+     * A subsequent access (getLatestCheckpoint / getCheckpoint) for the
+     * same session re-loads from disk via {@link #ensureSessionLoaded}.
+     *
+     * @param sessionId the session identifier; null is a no-op
+     */
+    @Override
+    public void remove(String sessionId) {
+        if (sessionId == null) {
+            return;
+        }
+        // Capture the session's checkpoints before removing from bySession,
+        // so we can also clean their byWatermark entries.
+        List<Checkpoint> sessionCheckpoints = bySession.remove(sessionId);
+        if (sessionCheckpoints != null) {
+            synchronized (sessionCheckpoints) {
+                for (Checkpoint cp : sessionCheckpoints) {
+                    byWatermark.remove(cp.getWatermark());
+                }
+            }
+        }
+        snapshotCache.remove(sessionId);
+        saveCounters.remove(sessionId);
+        loadedSessions.remove(sessionId);
+    }
+
+    /**
      * Return an unmodifiable snapshot copy of all checkpoints recorded for a
      * session, in insertion (seq) order. Mirrors
      * {@link ToolExecutionCheckpoint#getCheckpoints(String)} so callers can

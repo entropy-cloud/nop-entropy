@@ -272,7 +272,14 @@ public class TestFileBackedCheckpointDispatchPath {
      */
     @Test
     void toolExecutionCheckpointWritesNoFiles() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 new RecordingChatService(List.of(

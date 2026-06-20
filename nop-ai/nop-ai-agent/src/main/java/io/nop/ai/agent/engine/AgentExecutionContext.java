@@ -51,6 +51,16 @@ public class AgentExecutionContext {
     // default makes this a non-null unlimited snapshot after the first refresh.
     private BudgetSnapshot budgetSnapshot;
 
+    // Plan 278 (AR-05): delegation depth of this execution within a
+    // call-agent chain. 0 = top-level agent (no parent), 1 = first-level
+    // sub-agent, etc. Extracted from AgentMessageRequest.metadata by
+    // DefaultAgentEngine.doExecute and propagated to AgentToolExecuteContext
+    // so CallAgentExecutor can enforce MAX_DELEGATION_DEPTH and pass the
+    // child's depth (parent + 1) onward. Independent of the tool/path
+    // permission constraint — it is always propagated via a dedicated
+    // metadata key, even when no ParentPermissionConstraint is present.
+    private int delegationDepth;
+
     // Plan 220 (L4-8-steering): thread-safe steering message queue. External
     // messages (injected via the Actor mailbox consumption loop) are enqueued
     // here by the Actor's consumption thread and drained by the ReAct loop at
@@ -303,5 +313,17 @@ public class AgentExecutionContext {
             drained.add(msg);
         }
         return drained;
+    }
+
+    /**
+     * Plan 278 (AR-05): the delegation depth of this execution within a
+     * call-agent chain. 0 = top-level agent. See {@link #delegationDepth}.
+     */
+    public int getDelegationDepth() {
+        return delegationDepth;
+    }
+
+    public void setDelegationDepth(int delegationDepth) {
+        this.delegationDepth = delegationDepth;
     }
 }

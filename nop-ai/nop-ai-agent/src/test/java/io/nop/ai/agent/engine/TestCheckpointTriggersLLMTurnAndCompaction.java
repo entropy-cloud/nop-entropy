@@ -194,7 +194,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void llmTurnEmittedOnSuccessfulLlmResponse() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         RecordingChatService chat = new RecordingChatService(List.of(
                 finalAssistant("done")));
@@ -218,7 +225,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void llmTurnNotEmittedOnFailure() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         RecordingChatService chat = new RecordingChatService(List.of(
                 failureResponse("LLM unavailable")));
@@ -243,7 +257,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void llmTurnFieldCompleteness() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         RecordingChatService chat = new RecordingChatService(List.of(
                 finalAssistant("The answer is 42")));
@@ -274,7 +295,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void llmTurnAndToolExecutionSeqInterleaving() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         // Turn 1: tool call; Turn 2: final response.
         RecordingChatService chat = new RecordingChatService(List.of(
@@ -331,7 +359,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void intraExecutionPersistenceAfterLLMTurnDoesNotThrow() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
         InMemorySessionStore store = new InMemorySessionStore();
         store.getOrCreate("persist-session", "persist-test");
 
@@ -364,7 +399,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void compactionEmittedOnRealCompaction() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         MicroCompressionCompactor realCompactor = new MicroCompressionCompactor();
 
@@ -401,7 +443,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void compactionNotEmittedWithNoOpCompactor() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         RecordingChatService chat = new RecordingChatService(List.of(
                 finalAssistant("done")));
@@ -430,7 +479,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void compactionNotEmittedWhenNoReduction() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         RecordingChatService chat = new RecordingChatService(List.of(
                 finalAssistant("done")));
@@ -459,7 +515,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void compactionFieldCompleteness() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         MicroCompressionCompactor realCompactor = new MicroCompressionCompactor();
 
@@ -499,7 +562,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void threeTypeSeqInterleavingMonotonicallyIncreases() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         MicroCompressionCompactor realCompactor = new MicroCompressionCompactor();
 
@@ -540,7 +610,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void compactionEmittedViaForcedStopPath() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         MicroCompressionCompactor realCompactor = new MicroCompressionCompactor();
 
@@ -591,7 +668,14 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
     @Test
     void multiTypeCheckpointEndToEndViaEngine() {
-        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
+        // Plan 278 (AR-10): override remove() so post-execution inspection
+        // still sees the recorded checkpoints. AR-10's remove-on-terminal
+        // behavior is tested separately in TestEngineLifecycleAndCheckpointBounded.
+        ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint() {
+            @Override
+            public void remove(String sessionId) {
+            }
+        };
 
         MicroCompressionCompactor realCompactor = new MicroCompressionCompactor();
 

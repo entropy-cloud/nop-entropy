@@ -1,0 +1,10 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-recursive-a">
+
+    <description>Test agent A for delegation recursion depth guard (AR-05).</description>
+
+    <tools>call-agent</tools>
+
+    <prompt>You are recursive test agent A. Delegate to agent B.</prompt>
+
+</agent>

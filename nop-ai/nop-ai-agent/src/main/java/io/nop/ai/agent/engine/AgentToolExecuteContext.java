@@ -52,6 +52,11 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
     private final ITeamManager teamManager;
     private final ITeamTaskStore teamTaskStore;
     private final ITeamAclChecker teamAclChecker;
+    // Plan 278 (AR-05): delegation depth of the current execution within a
+    // call-agent chain. Set by ReActAgentExecutor from AgentExecutionContext
+    // before the dispatch loop so CallAgentExecutor can read it and enforce
+    // MAX_DELEGATION_DEPTH. Defaults to 0 (top-level) when not explicitly set.
+    private int delegationDepth;
 
     public AgentToolExecuteContext(File workDir,
                                    Map<String, String> envs,
@@ -437,5 +442,18 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
      */
     public ITeamAclChecker getTeamAclChecker() {
         return teamAclChecker;
+    }
+
+    /**
+     * Plan 278 (AR-05): the delegation depth of the current execution within
+     * a call-agent chain. 0 = top-level agent. CallAgentExecutor reads this
+     * to enforce MAX_DELEGATION_DEPTH and compute the child's depth.
+     */
+    public int getDelegationDepth() {
+        return delegationDepth;
+    }
+
+    public void setDelegationDepth(int delegationDepth) {
+        this.delegationDepth = delegationDepth;
     }
 }

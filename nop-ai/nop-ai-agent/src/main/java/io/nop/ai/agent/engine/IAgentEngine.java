@@ -4,7 +4,7 @@ import io.nop.ai.agent.model.AgentExecStatus;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface IAgentEngine {
+public interface IAgentEngine extends AutoCloseable {
 
     AgentMessageAck sendMessage(AgentMessageRequest request);
 
@@ -185,5 +185,27 @@ public interface IAgentEngine {
     default SessionRestoreSummary restorePendingSessions(String approver, String reason) {
         throw new UnsupportedOperationException(
                 "restorePendingSessions requires a DefaultAgentEngine with a discovery-capable session store");
+    }
+
+    /**
+     * Plan 278 (AR-09): lifecycle termination entry point. The default
+     * implementation is a no-op so existing {@link IAgentEngine}
+     * implementations (including ~32 in-tree test stubs) continue to compile
+     * and behave identically without source changes.
+     *
+     * <p>{@link DefaultAgentEngine} overrides this to shut down its
+     * self-created thread pools ({@code lockRenewExecutor} /
+     * {@code agentExecutor}). Externally injected pools are NOT closed (the
+     * caller owns their lifecycle). The override is idempotent (a second
+     * close is a no-op). In-flight executions are NOT cancelled (that is
+     * the caller's responsibility, e.g. via {@code cancelSession} or
+     * {@code restorePendingSessions} before close).
+     *
+     * <p>Extending {@link AutoCloseable} makes {@link IAgentEngine}
+     * try-with-resources compatible and provides a legal
+     * {@code @Override} target for the default method.
+     */
+    @Override
+    default void close() throws Exception {
     }
 }

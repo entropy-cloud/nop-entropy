@@ -90,4 +90,29 @@ public interface ICheckpointManager {
      *         default)
      */
     Checkpoint getCheckpoint(String watermark);
+
+    /**
+     * Plan 278 (AR-10): remove all in-memory cached state for a session
+     * (checkpoints, snapshots, counters). Called by the engine when a
+     * session reaches a terminal status (completed / failed / cancelled /
+     * forced_stopped / escalated / truncated) so the cache does not grow
+     * unbounded across long-running deployments.
+     *
+     * <p><b>NOT called for paused sessions</b> — a paused session is a
+     * non-terminal state that must retain its checkpoints for
+     * {@code restoreSession} recovery.
+     *
+     * <p>The default implementation is a no-op, so existing implementations
+     * (NoOp, DB) and future stubs continue to compile and behave identically.
+     * Implementations with in-memory caches (e.g.
+     * {@link FileBackedCheckpointManager}, {@link ToolExecutionCheckpoint})
+     * override this to clear their per-session state.
+     *
+     * <p>Idempotent: calling remove for a session with no cached state is a
+     * safe no-op.
+     *
+     * @param sessionId the session identifier; may be null (no-op)
+     */
+    default void remove(String sessionId) {
+    }
 }

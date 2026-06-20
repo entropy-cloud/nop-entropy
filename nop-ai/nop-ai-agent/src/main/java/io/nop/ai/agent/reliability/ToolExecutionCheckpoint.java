@@ -79,6 +79,29 @@ public class ToolExecutionCheckpoint implements ICheckpointManager {
     }
 
     /**
+     * Plan 278 (AR-10): clear the in-memory per-session checkpoint list and
+     * the corresponding watermark index entries. Called by the engine when
+     * a session reaches a terminal status so the in-memory maps do not grow
+     * unbounded.
+     *
+     * @param sessionId the session identifier; null is a no-op
+     */
+    @Override
+    public void remove(String sessionId) {
+        if (sessionId == null) {
+            return;
+        }
+        List<Checkpoint> sessionCheckpoints = bySession.remove(sessionId);
+        if (sessionCheckpoints != null) {
+            synchronized (sessionCheckpoints) {
+                for (Checkpoint cp : sessionCheckpoints) {
+                    byWatermark.remove(cp.getWatermark());
+                }
+            }
+        }
+    }
+
+    /**
      * Return an unmodifiable snapshot copy of all checkpoints recorded for a
      * session, in insertion (seq) order. Enables callers (tests, restore
      * successor) to inspect the full checkpoint history of a session and
