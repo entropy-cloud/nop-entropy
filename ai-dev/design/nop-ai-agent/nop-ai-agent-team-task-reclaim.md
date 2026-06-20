@@ -102,6 +102,16 @@ reclaimTask 只作用于 CLAIMED（卡死态），重置为 CREATED + `claimedBy
 - per-task RECLAIM/ABORT UPDATE 的 SQLException → catch + 返回 `succeeded=false` outcome（不抛出——单 task 的 UPDATE 失败不阻断同批次其他 task 的恢复）。
 - CAS 失败（task 已转换，affected=0）→ 返回 `succeeded=false` outcome（诚实，非静默）。
 
+### 决策 9：claim-epoch CAS 绑定 complete/abandon（plan 279 / AR-01）
+
+`completeTask` / `abandonTask`(CLAIMED 分支) 的 CAS 在 STATUS 之外**绑定 `CLAIM_EPOCH`**（claim 时 `COALESCE(CLAIM_EPOCH,0)+1` 在同一条 conditional UPDATE 内原子自增，不得用 `SELECT MAX+1` 后再 UPDATE 的 TOCTOU 形态）。调用方沿 claim→dispatch→execute→complete 透传 epoch。CAS 失败仍返回 `Optional.empty()`（非异常控制流，调用方转带上下文异常）。
+
+**选了 `CLAIM_EPOCH`（方案 B）而非仅 `CLAIMED_BY`（方案 A）**：daemon 路径的 claim 与 complete 用同一身份 `DEFAULT_DAEMON_SESSION_ID`（多实例共享），reclaim 清 `CLAIMED_BY` 后实例 B 重新 claim 用**同一** daemon id → 仅 `AND CLAIMED_BY=?` 在共享 daemon id 下仍匹配，双重执行窗口不关闭。每次 claim 自增的 epoch 在 reclaim+re-claim 后产生**严格更大**的新 epoch，使旧在途 dispatcher 持有的旧 epoch 不再匹配 → CAS 失败。
+
+**reclaim 保留 epoch（非置 NULL）**：这是关闭窗口的关键不变量。`reclaimTask` 清 `CLAIMED_BY` 但**保留** `CLAIM_EPOCH`，使下一次 claim 的 `COALESCE(prev,0)+1` 严格大于任何已废弃 claim 的 epoch。若 reclaim 置 epoch 为 NULL，则 `COALESCE(NULL,0)+1` 复位为 1，与旧在途 owner 的 epoch 重合 → 窗口重新打开。`DefaultTeamTaskRecoveryHandler` 的 raw-JDBC RECLAIM UPDATE 同样不动 epoch（双路径语义一致）。abandon 的 CREATED 分支因此为 epoch-agnostic（`STATUS='CREATED'`，无 owner 可绑定），匹配任意未认领 / 已 reclaim 的 CREATED 任务。
+
+raw-JDBC `ai_agent_team_task` 表的幂等迁移：`CREATE TABLE IF NOT EXISTS` 不会给已部署表加列，故 `initSchema` 用 JDBC metadata 检测（**大小写不敏感**——各 RDBMS 存储未引号标识符的规范大小写不同：H2/Oracle 大写、MySQL-on-Linux/Postgres 小写）后按需 `ALTER TABLE ADD COLUMN CLAIM_EPOCH INTEGER`。
+
 ## 4. 拒绝的替代方案
 
 | 被拒绝方案 | 理由 |
@@ -112,6 +122,7 @@ reclaimTask 只作用于 CLAIMED（卡死态），重置为 CREATED + `claimedBy
 | ABANDONED → CREATED 终态复活 | 破坏状态机终态不变性（plan 227）。RECLAIM 只作用于 CLAIMED 非终态的卡死态（决策 1）。 |
 | handler 复用 store 方法（不经 raw JDBC） | recovery 包既有约定——所有 handler 动作（ABORT session / FORCE_FAILED session）均 raw JDBC（决策 4）。store 的 reclaimTask 独立存在，两者语义等价。 |
 | scanOnce 做 SELECT + handler 做 per-item 动作（镜像 plan 226/229） | team-task 是不同域表，封装在 handler 中保持 daemon 聚焦于 session 域（决策 3）。 |
+| 仅 `AND CLAIMED_BY=?` 的 owner CAS（方案 A，plan 279 AR-01） | 共享 `DEFAULT_DAEMON_SESSION_ID` 场景下 reclaim→re-claim 后 CLAIMED_BY 相同，CAS 仍成功，双重执行窗口不关闭。已被 live code 证伪，仅可作 epoch 之外的附加校验。 |
 
 ## 5. 边界（Non-Goals，均为独立 successor）
 
