@@ -1,0 +1,13 @@
+{
+  "name": "ai-agent",
+  "description": "Nop AI Agent: prompt engineering, architecture design, and ai-ops source code",
+  "roadmapPath": "design/nop-ai-agent/nop-ai-agent-roadmap.md",
+  "plansDir": "plans",
+  "sourceDir": "../nop-ai",
+  "commands": {
+    "test": "cd .. && mvn test -pl nop-ai/nop-ai-core -am -q 2>/dev/null || echo 'no tests configured yet'",
+    "build": "cd .. && mvn compile -pl nop-ai/nop-ai-core -am -q 2>/dev/null || echo 'no build configured yet'",
+    "lint": "echo 'lint not configured'",
+    "typecheck": "echo 'typecheck not configured'"
+  }
+}
