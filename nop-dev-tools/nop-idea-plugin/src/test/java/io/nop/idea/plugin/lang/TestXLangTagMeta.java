@@ -19,6 +19,7 @@ import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
+import org.junit.Test;
 
 /**
  *
@@ -27,6 +28,7 @@ import io.nop.xlang.xdef.IXDefNode;
  */
 public class TestXLangTagMeta extends BaseXLangPluginTestCase {
 
+    @Test
     public void testCreateTagMeta() {
         // xdef.xdef
         assertTagMeta("""
@@ -682,6 +684,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testCreateUnknownTagMeta() {
         assertTagMeta("""
                               <meta:un<caret>known-tag>
@@ -894,6 +897,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testDefAttrByTagMeta() {
         assertDefAttr("""
                               <example
@@ -1046,6 +1050,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testAllowedChildTagByTagMeta() {
         // 检查父节点是否允许多个子节点
         assertTagMeta("""

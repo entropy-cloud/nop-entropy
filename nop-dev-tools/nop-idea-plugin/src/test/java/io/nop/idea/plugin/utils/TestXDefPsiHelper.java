@@ -11,6 +11,7 @@ package io.nop.idea.plugin.utils;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.xlang.xdef.IXDefinition;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -18,6 +19,7 @@ import io.nop.xlang.xdef.IXDefinition;
  */
 public class TestXDefPsiHelper extends BaseXLangPluginTestCase {
 
+    @Test
     public void testGetXdefDef() {
         IXDefinition xdef = ProjectEnv.withProject(getProject(), XDefPsiHelper::getXdefDef);
 

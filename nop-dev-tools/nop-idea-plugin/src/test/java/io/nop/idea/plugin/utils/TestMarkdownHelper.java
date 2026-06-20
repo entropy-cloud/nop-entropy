@@ -11,15 +11,19 @@ package io.nop.idea.plugin.utils;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-10
  */
-public class TestMarkdownHelper extends LightJavaCodeInsightFixtureTestCase {
+@RunWith(JUnit4.class)
+public class TestMarkdownHelper {
 
+    @Test
     public void testRenderHtml() {
         Map<String, String> samples = new HashMap<>() {{
             put("[Abc](https://a.b.c/abc)",

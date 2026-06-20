@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * 参考 https://github.com/JetBrains/intellij-community/blob/master/xml/tests/src/com/intellij/html/HtmlDocumentationTest.java
@@ -21,6 +22,7 @@ import junit.framework.TestCase;
  */
 public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
 
+    @Test
     public void testGenerateDocForTag() {
         assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
                                      "<meta:unknown-tag x:schema", //

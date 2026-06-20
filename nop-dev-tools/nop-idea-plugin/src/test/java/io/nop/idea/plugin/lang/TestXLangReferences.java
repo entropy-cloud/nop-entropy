@@ -16,6 +16,7 @@ import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -23,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class TestXLangReferences extends BaseXLangPluginTestCase {
 
+    @Test
     public void testTagDefReferences() {
         // 名字空间保持名字引用
         assertReference(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
@@ -193,6 +195,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testXplReferences() {
         // xlib 中的 source 标签内的引用
         assertReference("""
@@ -354,6 +357,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testAttributeReferences() {
         // xdef.xdef 属性的交叉定义识别
         // - 名字空间引用其自身
@@ -599,6 +603,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testAttributeValueReferences() {
         // 对 v-path 属性值的引用
         // - x:schema=v-path
@@ -1145,6 +1150,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testAttributeValueDefTypeReferences() {
 //        assertReference(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
 //                                           "xdef:default-override=\"enum:io.nop.xlang.xdef.XDefOverride\"", //
@@ -1301,6 +1307,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testTextReferences() {
         assertReference(insertCaretIntoVfs("/test/reference/user.view.xml", //
                                            "<objMeta>", //
@@ -1353,6 +1360,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testVfsPathReferencesInJava() {
         assertReference("""
                                 package io.nop.xlang.xdef;
