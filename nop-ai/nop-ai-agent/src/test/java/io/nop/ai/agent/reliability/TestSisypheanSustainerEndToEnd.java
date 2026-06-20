@@ -207,10 +207,10 @@ public class TestSisypheanSustainerEndToEnd {
                         + " additional rounds. Expected total budget="
                         + expectedTotalBudget + " (originalMaxIterations=" + originalMaxIterations
                         + " * (1 + maxSustainCount=" + maxSustainCount + ")). Actual calls: " + chatCallCount.get());
-        // No silent skip: STOP at the ceiling lets the loop exit as completed
-        // (terminal-state change running → completed).
-        assertEquals(AgentExecStatus.completed, result.getStatus(),
-                "At the ceiling the sustainer returns STOP → terminal-state change running → completed");
+        // No silent skip: STOP at the ceiling lets the loop exit as truncated
+        // (AR-14/plan 277: terminal-state change running → truncated, not completed).
+        assertEquals(AgentExecStatus.truncated, result.getStatus(),
+                "At the ceiling the sustainer returns STOP → terminal-state change running → truncated");
         // Total iterations == the full sustained budget (fail-safe: bounded,
         // not infinite).
         assertEquals(expectedTotalBudget, result.getTotalIterations(),

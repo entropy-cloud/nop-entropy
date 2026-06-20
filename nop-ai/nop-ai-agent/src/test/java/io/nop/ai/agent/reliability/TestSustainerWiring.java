@@ -166,9 +166,9 @@ public class TestSustainerWiring {
         // terminal-state change running → completed).
         assertEquals(3, chatCallCount.get(),
                 "The reactLoop must have run exactly maxIterations=3 iterations before exiting");
-        assertEquals(AgentExecStatus.completed, result.getStatus(),
-                "With the default NoOpSustainer a MAX_ITERATIONS exit must complete normally "
-                        + "(STOP → terminal-state change running → completed). Zero-regression.");
+        assertEquals(AgentExecStatus.truncated, result.getStatus(),
+                "AR-14 (plan 277): With the default NoOpSustainer a MAX_ITERATIONS exit is now reported as "
+                        + "truncated (STOP → terminal-state change running → truncated).");
     }
 
     // ========================================================================
@@ -239,9 +239,9 @@ public class TestSustainerWiring {
                 "The first consult must carry sustainCountSoFar=0 (no prior sustain rounds)");
         assertEquals(3, chatCallCount.get(),
                 "The reactLoop must have run exactly maxIterations=3 iterations before exiting");
-        // Zero-regression: STOP → terminal-state change running → completed.
-        assertEquals(AgentExecStatus.completed, result.getStatus(),
-                "A STOP-returning recording sustainer must let the loop exit as completed");
+        // AR-14 (plan 277): STOP → terminal-state change running → truncated.
+        assertEquals(AgentExecStatus.truncated, result.getStatus(),
+                "A STOP-returning recording sustainer must let the loop exit as truncated");
     }
 
     // ========================================================================

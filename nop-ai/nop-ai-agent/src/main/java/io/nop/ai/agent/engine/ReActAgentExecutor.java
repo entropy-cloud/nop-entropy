@@ -166,6 +166,17 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReActAgentExecutor.class);
 
+    /**
+     * AR-06 (plan 277): maximum number of re-enter requests honored per
+     * re-entrant hook point (BEFORE_TOOL_RESULT_PROCESSED /
+     * AFTER_TOOL_RESULT_PROCESSED) within a single ReAct iteration. The
+     * counter is scoped per-iteration (reset at the start of each reactLoop
+     * iteration), so a long session with legitimate per-iteration re-enter
+     * hooks is not silently starved by a cumulative session-wide cap.
+     * Within one iteration, after this many re-enter requests are honored
+     * for a given hook point, subsequent re-enter requests for that point
+     * are downgraded to PassResult with a WARN log.
+     */
     public static final int DEFAULT_MAX_REENTRIES = 3;
     public static final int DEFAULT_MAX_COMPLETION_CONTINUES = 3;
     public static final double DEFAULT_TRIGGER_TOKEN_PERCENT = 0.8;
@@ -1078,7 +1089,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
         consultPromptContributions(ctx);
         ChatOptions options = buildChatOptions(agentModel.getChatOptions(), toolDefs);
 
-        Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
+        // AR-06 (plan 277): reentryCounters is declared per-iteration (inside
+        // the reactLoop body below), NOT here. The old per-execute declaration
+        // accumulated across all iterations and was never reset, silently
+        // starving legitimate re-enter hooks after DEFAULT_MAX_REENTRIES uses.
 
         int consecutiveContinues = 0;
 
@@ -1088,9 +1102,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
         // key) so a change between iterations is detected. messageSeq is the
         // per-execution monotonically increasing sequence counter for
         // nop_ai_session_message rows written by this execution. Both are
-        // loop-local (not promoted to AgentExecutionContext) because there is
-        // no fork/restore of the context within execute(), consistent with
-        // the checkpointSeq precedent.
+        // per-execute locals (not promoted to AgentExecutionContext) because
+        // there is no fork/restore of the context within execute(), consistent
+        // with the checkpointSeq precedent. (Note: reentryCounters was moved
+        // to per-iteration scope inside reactLoop — see AR-06 / plan 277.)
         String lastModelKey = null;
         long[] messageSeq = {0};
 
@@ -1143,6 +1158,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
             while (true) {
             reactLoop:
             while (ctx.getCurrentIteration() < ctx.getMaxIterations()) {
+                // AR-06 (plan 277): per-iteration re-entry counter. Reset at
+                // the start of each iteration so a long session is not silently
+                // starved by a cumulative session-wide cap. Each re-entrant
+                // hook point (BEFORE/AFTER_TOOL_RESULT_PROCESSED) has its own
+                // independent count within the iteration.
+                Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
+
                 if (ctx.isCancelRequested()) {
                     handleCancellation(ctx, sessionId, agentName);
                     break;
@@ -1199,9 +1221,17 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 GuardrailResult inputGuardrailResult = checkInputGuardrail(ctx);
                 if (inputGuardrailResult.isBlock()) {
                     String blockReason = ((GuardrailResult.BlockResult) inputGuardrailResult).getReason();
-                    ctx.addMessage(ChatToolResponseMessage.error(
-                            "guardrail-block-input", "guardrail",
-                            "Input blocked by content guardrail: " + (blockReason != null ? blockReason : "unspecified")));
+                    // AR-11 (plan 277): inject an assistant text message
+                    // describing the block instead of an orphan role:"tool"
+                    // message whose id ("guardrail-block-input") matches no
+                    // assistant tool_call. At this checkpoint no LLM call has
+                    // been made this iteration, so there is no assistant
+                    // tool_call to pair a tool response with — injecting a
+                    // role:"tool" message would break the tool_call_id pairing
+                    // invariant and cause an HTTP 400 on the next LLM call.
+                    ctx.addMessage(new ChatAssistantMessage(
+                            "Input blocked by content guardrail: "
+                                    + (blockReason != null ? blockReason : "unspecified")));
                     ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
                     continue;
                 }
@@ -1580,9 +1610,26 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 GuardrailResult outputGuardrailResult = contentGuardrail.check(GuardrailDirection.OUTPUT, outputContent, ctx);
                 if (outputGuardrailResult.isBlock()) {
                     String blockReason = ((GuardrailResult.BlockResult) outputGuardrailResult).getReason();
-                    ctx.addMessage(ChatToolResponseMessage.error(
-                            "guardrail-block-output", "guardrail",
-                            "Output blocked by content guardrail: " + (blockReason != null ? blockReason : "unspecified")));
+                    String blockText = "Output blocked by content guardrail: "
+                            + (blockReason != null ? blockReason : "unspecified");
+                    // AR-11 (plan 277): the assistant message is already
+                    // committed to ctx (added above before this check). If it
+                    // carries tool_calls, every tool_call_id MUST receive a
+                    // matching tool response — otherwise the next
+                    // buildChatRequest sends an unpaired assistant tool_call
+                    // to the LLM (HTTP 400 tool_call_id mismatch). Respond to
+                    // each REAL tool_call_id with a "blocked by guardrail"
+                    // tool response to maintain pairing. If the assistant
+                    // message is text-only, mutate its content to describe the
+                    // block (no orphan tool message).
+                    if (assistantMsg.hasToolCalls()) {
+                        for (ChatToolCall tc : assistantMsg.getToolCalls()) {
+                            ctx.addMessage(ChatToolResponseMessage.error(
+                                    tc.getId(), tc.getName(), blockText));
+                        }
+                    } else {
+                        assistantMsg.setContent(blockText);
+                    }
                     ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
                     continue;
                 }
@@ -1887,6 +1934,15 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 }
 
                 if (!allowedCalls.isEmpty()) {
+                    // AR-03 (plan 277): re-enter requested by any hook in this
+                    // tool-batch's result processing. When set, after the for
+                    // loop finishes committing ALL tool results (so
+                    // tool_call_id pairing is complete), an iteration-level
+                    // re-enter marker message is injected before the next LLM
+                    // call. The flag replaces the old `break` that dropped
+                    // same-batch tool results and broke the tool_call_id
+                    // pairing invariant.
+                    boolean reenterRequested = false;
                     List<CompletableFuture<ToolCallOutput>> futures = new ArrayList<>();
                     for (ChatToolCall chatToolCall : allowedCalls) {
                         AiToolCall aiToolCall = new AiToolCall();
@@ -1965,9 +2021,19 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             } else {
                                 reentryCounters.put(AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED, count + 1);
                                 String reenterMsg = ((HookResult.ReenterResult) beforeResult).getMessage();
+                                // AR-03 (plan 277): the synthetic re-enter
+                                // message uses the REAL tool_call_id (via
+                                // fromToolCall), so pairing for THIS tool is
+                                // maintained. Use `continue` (not `break`) so
+                                // the remaining tools in the batch still get
+                                // their results committed — `break` would
+                                // drop them and break the tool_call_id
+                                // pairing invariant for the assistant's
+                                // multi-tool call message.
                                 ctx.addMessage(ChatToolResponseMessage.fromToolCall(chatToolCall,
                                         reenterMsg != null ? reenterMsg : "hook re-enter"));
-                                break;
+                                reenterRequested = true;
+                                continue;
                             }
                         }
 
@@ -2027,13 +2093,34 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                         DEFAULT_MAX_REENTRIES);
                             } else {
                                 reentryCounters.put(AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED, count + 1);
-                                break;
+                                // AR-03 (plan 277): the real tool result is
+                                // already committed to ctx (with proper
+                                // tool_call_id pairing). Do NOT `break` — that
+                                // would drop same-batch tool results. Just set
+                                // the flag; the for loop continues to process
+                                // remaining tools, then the iteration-level
+                                // re-enter marker is injected after the loop.
+                                reenterRequested = true;
                             }
                         }
 
                         publishEvent(AgentEventType.TOOL_CALL_COMPLETED, sessionId, agentName,
                                 Map.of("toolName", chatToolCall.getName(),
                                         "status", toolStatus));
+                    }
+
+                    // AR-03 (plan 277): after ALL tool results in the batch
+                    // are committed (tool_call_id pairing intact), inject a
+                    // single iteration-level re-enter marker message if any
+                    // hook requested re-enter. This is the unified re-entry
+                    // trigger for both BEFORE_TOOL_RESULT_PROCESSED and
+                    // AFTER_TOOL_RESULT_PROCESSED — consistent behaviour
+                    // across both re-entrant hook points. The marker is a
+                    // user message (not a tool message) so it does not
+                    // interfere with tool_call_id pairing, and the LLM sees
+                    // the re-enter request in the next iteration's context.
+                    if (reenterRequested) {
+                        ctx.addMessage(new ChatUserMessage("[re-enter requested by lifecycle hook]"));
                     }
                 }
 
@@ -2118,18 +2205,29 @@ public class ReActAgentExecutor implements IAgentExecutor {
             break sustainLoop;
             } // end sustainLoop
 
+            // AR-14-a (plan 277): if the reactLoop exited because
+            // currentIteration >= maxIterations and the sustainer declined to
+            // continue (STOP), the status is still "running" — meaning the
+            // agent hit its iteration budget without the completion judge
+            // declaring completion. Report this as "truncated" (not
+            // "completed"), so downstream consumers can distinguish a
+            // successful completion from a budget-truncated session.
             if (ctx.getStatus() == AgentExecStatus.running) {
-                ctx.setStatus(AgentExecStatus.completed);
+                ctx.setStatus(AgentExecStatus.truncated);
             }
 
-            // Post-loop bookkeeping (design §6.2): a paused session must NOT
-            // publish EXECUTION_COMPLETED or run POST_CALL hooks, consistent
-            // with cancelled / forced_stopped / escalated. The session is
-            // suspended, not finished.
+            // Post-loop bookkeeping (design §6.2): a paused / cancelled /
+            // forced_stopped / escalated session must NOT publish
+            // EXECUTION_COMPLETED or run POST_CALL hooks — the session is
+            // suspended or aborted, not finished. AR-14-b (plan 277):
+            // "truncated" is also excluded — a truncated session should not
+            // publish an "execution completed" event (it was budget-limited,
+            // not successfully completed).
             if (ctx.getStatus() != AgentExecStatus.cancelled
                     && ctx.getStatus() != AgentExecStatus.forced_stopped
                     && ctx.getStatus() != AgentExecStatus.escalated
-                    && ctx.getStatus() != AgentExecStatus.paused) {
+                    && ctx.getStatus() != AgentExecStatus.paused
+                    && ctx.getStatus() != AgentExecStatus.truncated) {
                 invokeHooks(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
 
                 Map<String, Object> completedPayload = new HashMap<>();
@@ -2493,6 +2591,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
      * status to {@code escalated}, record a non-empty lastError describing the
      * abort cause, and emit an event so the escalation is observable (no
      * silent skip — Minimum Rules #24).
+     *
+     * <p>AR-07 (plan 277): publishes {@link AgentEventType#SESSION_ESCALATED}
+     * (not {@link AgentEventType#SESSION_PAUSED}). Escalated is a terminal
+     * outcome (human re-evaluation required), semantically distinct from a
+     * denial-ledger pause (recoverable via resumeSession).
      */
     private void handleGoalStuck(AgentExecutionContext ctx, String sessionId, String agentName) {
         ctx.setStatus(AgentExecStatus.escalated);
@@ -2503,7 +2606,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         Map<String, Object> payload = new HashMap<>();
         payload.put("reason", "goal tracker STUCK assessment");
         payload.put("iteration", ctx.getCurrentIteration());
-        publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
+        publishEvent(AgentEventType.SESSION_ESCALATED, sessionId, agentName, payload);
         LOG.warn("Session aborted by goal tracker (stuck/looping): session={}, iteration={}",
                 sessionId, ctx.getCurrentIteration());
     }

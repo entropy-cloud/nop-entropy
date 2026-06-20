@@ -54,6 +54,20 @@ public enum AgentEventType {
     SESSION_RESUMED,
 
     /**
+     * Session escalated by goal-tracker stuck detection (plan 211 / plan 277
+     * AR-07): the goal tracker assessed the session as STUCK (looping /
+     * no-progress), so autonomous execution is halted with an escalation
+     * outcome. Semantically distinct from {@link #SESSION_PAUSED} (denial-
+     * ledger governance, recoverable via resumeSession): escalated is a
+     * terminal outcome requiring human re-evaluation, not a simple ledger
+     * reset. Before plan 277, {@code handleGoalStuck} incorrectly published
+     * {@link #SESSION_PAUSED}; it now publishes this dedicated event so
+     * {@code SESSION_PAUSED} subscribers do not misinterpret an escalation
+     * as a recoverable pause.
+     */
+    SESSION_ESCALATED,
+
+    /**
      * Session restored after a process crash/restart (plan 183
      * crash/restart durable session restore protocol, design §1.1 / §5.4a):
      * an explicit {@code IAgentEngine.restoreSession(sessionId, approver, reason)}

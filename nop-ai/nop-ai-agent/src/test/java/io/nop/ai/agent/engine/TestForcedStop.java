@@ -206,8 +206,9 @@ public class TestForcedStop {
 
         AgentExecutionResult result = executor.execute(buildContext()).toCompletableFuture().join();
 
-        assertEquals(AgentExecStatus.completed, result.getStatus(),
-                "Below 90% the executor must complete normally");
+        assertEquals(AgentExecStatus.truncated, result.getStatus(),
+                "AR-14 (plan 277): Below 90% forced-stop does not fire, so the executor reaches "
+                        + "max-iterations and exits as truncated (not completed)");
         boolean foundForcedStop = events.stream()
                 .anyMatch(e -> e.getEventType() == AgentEventType.FORCED_STOP);
         assertFalse(foundForcedStop, "No FORCED_STOP event when below 90%");

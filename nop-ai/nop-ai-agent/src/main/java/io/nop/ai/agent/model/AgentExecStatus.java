@@ -24,5 +24,19 @@ public enum AgentExecStatus {
      * and {@link #escalated} (escalation path) — paused is a governance policy
      * action triggered automatically by accumulated denials.
      */
-    paused
+    paused,
+
+    /**
+     * AR-14 (plan 277): the ReAct loop reached the configured max-iterations
+     * budget without the completion judge declaring completion. Before plan
+     * 277, this was silently reported as {@link #completed}, which misled
+     * downstream consumers (sub-agent success flags, billing, UI status)
+     * into treating a truncated session as a successful completion.
+     * Semantically distinct from {@link #completed} (the agent voluntarily
+     * finished) and {@link #failed} (an error occurred) — truncated means
+     * the agent ran out of iteration budget, not that it succeeded or
+     * errored. Terminal: a truncated session is not restored by
+     * {@code restorePendingSessions} (it reached a final outcome).
+     */
+    truncated
 }

@@ -2927,13 +2927,18 @@ public class DefaultAgentEngine implements IAgentEngine {
      * Returns true if the status is terminal (the session has finished and
      * cannot be restored). A session in a terminal state has no reason to be
      * restored — it already reached a final outcome.
+     *
+     * <p>AR-14-c (plan 277): {@code truncated} is terminal. A truncated
+     * session reached its max-iterations budget — it is not "running" or
+     * "pending" and should not be restored by {@code restorePendingSessions}.
      */
     private static boolean isTerminalStatus(AgentExecStatus status) {
         return status == AgentExecStatus.completed
                 || status == AgentExecStatus.failed
                 || status == AgentExecStatus.cancelled
                 || status == AgentExecStatus.forced_stopped
-                || status == AgentExecStatus.escalated;
+                || status == AgentExecStatus.escalated
+                || status == AgentExecStatus.truncated;
     }
 
     /**

@@ -245,10 +245,18 @@ public class TestContentGuardrailInReActLoop {
         assertFalse(llmCalled.get(), "LLM should not have been called when INPUT guardrail blocks");
 
         boolean hasGuardrailBlock = ctx.getMessages().stream()
-                .filter(m -> m instanceof ChatToolResponseMessage)
-                .map(m -> (ChatToolResponseMessage) m)
+                .filter(m -> m instanceof ChatAssistantMessage)
+                .map(m -> (ChatAssistantMessage) m)
                 .anyMatch(m -> m.getContent() != null && m.getContent().contains("Input blocked by content guardrail"));
         assertTrue(hasGuardrailBlock, "A guardrail block message should be present in context");
+
+        // AR-11 (plan 277): input guardrail block must NOT inject an orphan
+        // role:"tool" message (whose id matches no assistant tool_call).
+        boolean hasOrphanToolMsg = ctx.getMessages().stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .anyMatch(m -> "guardrail-block-input".equals(m.getToolCallId()));
+        assertFalse(hasOrphanToolMsg, "No orphan guardrail-block-input tool message should exist");
     }
 
     @Test
@@ -322,6 +330,23 @@ public class TestContentGuardrailInReActLoop {
                 .map(m -> (ChatToolResponseMessage) m)
                 .anyMatch(m -> m.getContent() != null && m.getContent().contains("Output blocked by content guardrail"));
         assertTrue(hasOutputBlock, "An output guardrail block message should be present in context");
+
+        // AR-11 (plan 277): output guardrail block must respond with the REAL
+        // tool_call_id (call_1), not an orphan "guardrail-block-output" id.
+        boolean hasOrphanToolMsg = ctx.getMessages().stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .anyMatch(m -> "guardrail-block-output".equals(m.getToolCallId()));
+        assertFalse(hasOrphanToolMsg, "No orphan guardrail-block-output tool message should exist");
+
+        boolean hasPairedBlockResponse = ctx.getMessages().stream()
+                .filter(m -> m instanceof ChatToolResponseMessage)
+                .map(m -> (ChatToolResponseMessage) m)
+                .anyMatch(m -> "call_1".equals(m.getToolCallId())
+                        && m.getContent() != null
+                        && m.getContent().contains("Output blocked by content guardrail"));
+        assertTrue(hasPairedBlockResponse,
+                "Output block tool response must use the real tool_call_id (call_1)");
     }
 
     @Test
