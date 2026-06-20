@@ -995,6 +995,9 @@ nop.err.socket.read-fail: 网络读取数据失败
 nop.err.socket.read-timeout: 读取数据超时
 nop.err.socket.write-fail: 网络写数据失败
 nop.err.sql.unknown-lib-path: sql库文件不存在:{path}
+nop.err.task.already-failed: 任务[{taskName}]在历史状态中已终态失败，恢复执行时重抛终态异常
+nop.err.task.already-killed: 任务[{taskName}]在历史状态中已中止，恢复执行时重抛终态异常
+nop.err.task.already-timeout: 任务[{taskName}]在历史状态中已超时，恢复执行时重抛终态异常
 nop.err.task.cancelled: 任务已经被取消
 nop.err.task.graph-no-active-step: 流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束
 nop.err.task.graph-step-contains-loop: 流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}
@@ -1008,6 +1011,7 @@ nop.err.task.request-rate-exceed-limit: 访问速率超过限制：TPS={requestP
 nop.err.task.static-method-not-found: 类[{className}]中没有找到静态方法[{methodName}({argCount})]
 nop.err.task.step-mandatory-output-is-empty: 步骤[{stepPath}]的输出[{output}]不允许为空
 nop.err.task.step-timeout: 步骤已超时
+nop.err.task.step.already-failed: 步骤[{stepPath}]在历史状态中已终态失败，恢复执行时重抛终态异常
 nop.err.task.step.async-return-next-step-should-no-be-async: 异步步骤的返回结果不应为ASYNC标记
 nop.err.task.step.not-restartable: 步骤[{stepName}]不允许多次执行
 nop.err.task.step.null-async-promise: 异步步骤的线程局部变量[asyncPromise]不应该为null

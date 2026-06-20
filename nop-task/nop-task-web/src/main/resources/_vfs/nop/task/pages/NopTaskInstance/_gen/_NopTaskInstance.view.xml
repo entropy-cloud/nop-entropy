@@ -113,6 +113,12 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--错误Bean数据-->
+                <col id="errorBeanData" sortable="true"/>
+
+                <!--错误堆栈-->
+                <col id="errorStack" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -138,6 +144,8 @@
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
+ errorBeanData[错误Bean数据] 
+                errorStack[错误堆栈]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-逻辑流实例" i18n-en:title="Add TaskFlow Instance" x:prototype="edit"/>
@@ -158,6 +166,8 @@
  errCode[错误码] errMsg[错误消息]
  workerId[Worker ID] 
                 remark[备注]
+ errorBeanData[错误Bean数据] 
+                errorStack[错误堆栈]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

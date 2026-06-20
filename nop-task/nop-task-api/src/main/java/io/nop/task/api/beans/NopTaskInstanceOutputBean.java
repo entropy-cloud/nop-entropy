@@ -530,6 +530,34 @@
         }
 
 
+        private String _errorBeanData;
+
+    
+        @PropMeta(propId=38)
+    
+        public String getErrorBeanData(){
+            return _errorBeanData;
+        }
+
+        public void setErrorBeanData(String value){
+            this._errorBeanData = value;
+        }
+
+
+        private String _errorStack;
+
+    
+        @PropMeta(propId=39)
+    
+        public String getErrorStack(){
+            return _errorStack;
+        }
+
+        public void setErrorStack(String value){
+            this._errorStack = value;
+        }
+
+
         private Map<String,Object> _parentTaskInstance;
 
         public Map<String,Object> getParentTaskInstance(){

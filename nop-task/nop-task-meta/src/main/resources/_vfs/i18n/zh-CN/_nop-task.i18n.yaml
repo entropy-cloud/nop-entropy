@@ -50,6 +50,8 @@ prop:
       endTime: 结束时间
       errCode: 错误码
       errMsg: 错误消息
+      errorBeanData: 错误Bean数据
+      errorStack: 错误堆栈
       jobInstanceId: Job ID
       managerDeptId: 管理者单位ID
       managerId: 管理者ID
@@ -89,6 +91,8 @@ prop:
       dueTime: 到期时间
       errCode: 错误码
       errMsg: 错误消息
+      errorBeanData: 错误Bean数据
+      errorStack: 错误堆栈
       finishTime: 结束时间
       internal: 是否内部
       nextRetryTime: 下次重试时间

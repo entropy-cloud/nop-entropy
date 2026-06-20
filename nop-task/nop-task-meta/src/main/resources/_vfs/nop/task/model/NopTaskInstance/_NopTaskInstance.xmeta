@@ -164,6 +164,14 @@
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="errorBeanData" displayName="错误Bean数据" propId="38" i18n-en:displayName="Error Bean Data"
+              queryable="true" sortable="true" insertable="true" updatable="true" ui:show="S">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="errorStack" displayName="错误堆栈" propId="39" i18n-en:displayName="Error Stack" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="S">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
         <prop name="parentTaskInstance" displayName="父流程" i18n-en:displayName="Parent TaskFlow" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentTaskId"
               ext:joinRightProp="taskInstanceId" insertable="false" updatable="false" lazy="true">

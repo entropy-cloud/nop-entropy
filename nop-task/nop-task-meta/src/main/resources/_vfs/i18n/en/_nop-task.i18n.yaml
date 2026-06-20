@@ -78,6 +78,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      errorBeanData: Error Bean Data
+      errorStack: Error Stack
       parentTaskInstance: Parent TaskFlow
       steps: null
     NopTaskStepInstance:
@@ -113,6 +115,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      errorBeanData: Error Bean Data
+      errorStack: Error Stack
       taskInstance: TaskFlow Instance
       subTaskInstance: Sub TaskFlow Instance
       parentStepInstance: Parent  Step
