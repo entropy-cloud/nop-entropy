@@ -29,6 +29,11 @@ Layer 1: Core Interfaces (核心接口层)
   - 部署模型（单进程/多实例）、通信模型（IMessageService）、存储模型（VFS + 持久化接口）
   - Session 模型、Agent 身份模型、多租户与资源隔离、Plan 与 Todo 系统
   - 与传统 Actor 框架的对应关系
+- `03-extension-matrix.md`
+  - **扩展点全景矩阵**：全部 66 个接口的闭合度索引（NoOp / 功能 / DB 实现 + 消费者 + 闭合状态）
+  - vision §4「渐进式增强」约束的反向审计工具
+  - 跨包断点识别（半闭合 / 未闭合 / 命名异味 / 接线缺口）
+  - 与 `glossary.md`（术语）和 `nop-ai-agent-roadmap.md`（Layer 阶段）互补
 - `nop-ai-agent-context-model.md`
   - Agent 上下文模型：组成维度、Tool 可见性、Agent-as-Subprocess 隐喻、上下文继承与 fork、内部 Agent 化
 - `nop-ai-agent-multi-agent.md`
@@ -99,6 +104,12 @@ Layer 1: Core Interfaces (核心接口层)
   - IChannelAdapter 接口、信道会话映射、消息流转、与 IMessageService 的关系
   - Gateway 层设计，不属于引擎 Layer 1~4
 
+## 评测层
+
+- `nop-ai-agent-eval-design.md`
+  - Agent 端到端行为评测：声明式 YAML eval 描述（`*.eval.yaml`）、steps 驱动 + assertions 断言、gate/soft 二分、LLM-judge、verdict 三态
+  - 走真实 agent session（非 mock），与 AutoTest（方法层录制回放）互补
+
 ## 愿景层
 
 - `nop-ai-agent-actor-runtime-vision.md`
@@ -115,21 +126,23 @@ Layer 1: Core Interfaces (核心接口层)
 1. `00-vision.md` — 设计原则和约束
 2. `01-architecture-baseline.md` — 架构基线和核心决策
 3. `02-execution-model.md` — 执行模型
+4. `03-extension-matrix.md` — 扩展点全景与闭合度（架构审计/扩展点查询入口）
 
 **按需深入**：
 
-4. `nop-ai-agent-llm-layer.md` — LLM 层接口设计
-5. `nop-ai-agent-usage-and-billing.md` — 用量追踪与按模型计费
-6. `nop-ai-agent-context-model.md` — 上下文模型
-7. `04-tool-invocation.md` — 工具调用架构
-8. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
-9. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
-10. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
-11. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
-12. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`nop-ai-agent-branch-affinity-scheduling.md`、`skill-system-design.md`
+5. `nop-ai-agent-llm-layer.md` — LLM 层接口设计
+6. `nop-ai-agent-usage-and-billing.md` — 用量追踪与按模型计费
+7. `nop-ai-agent-context-model.md` — 上下文模型
+8. `04-tool-invocation.md` — 工具调用架构
+9. `nop-ai-agent-dsl.md` → `nop-ai-agent-plan-dsl.md` → `nop-ai-tool-dsl.md` → `nop-ai-call-agent-dsl.md` — DSL 详细设计
+10. `nop-ai-agent-react-engine.md` → `nop-ai-agent-hook-skill-engine.md` → `nop-ai-agent-session-engine.md` — 引擎详细设计
+11. `nop-ai-agent-runtime-semantics.md` — DSL 到运行时的语义映射
+12. `nop-ai-agent-multi-agent.md` — 多 Agent 协同
+13. 策略层：`nop-ai-agent-session-and-storage.md`、`nop-ai-agent-security-and-permissions.md`、`nop-ai-agent-reliability.md`、`nop-ai-agent-branch-affinity-scheduling.md`、`skill-system-design.md`
 
 **扩展方向**：
 
-13. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
-14. `nop-ai-agent-channel-connector.md` — 外部信道连接器设计
-15. `nop-ai-agent-roadmap.md` — 分层架构与实施路线
+14. `nop-ai-agent-actor-runtime-vision.md` — Platform Layer 组件设计
+15. `nop-ai-agent-channel-connector.md` — 外部信道连接器设计
+16. `nop-ai-agent-roadmap.md` — 分层架构与实施路线
+17. `nop-ai-agent-eval-design.md` — Agent 端到端行为评测系统
