@@ -308,4 +308,4 @@ Goal Driver 的核心是 **marker 路由（M3）+ 状态持久化 + AI 可读写
 - `~/ai/agno/libs/agno/agno/workflow/step.py:766-979` — Step.execute 重试逻辑
 - `~/ai/agno/libs/agno/agno/workflow/router.py:566-599` — Router._route_steps 路由逻辑
 - `~/ai/agno/libs/agno/agno/workflow/router.py:48-94` — Router dataclass（choices + selector）
-- `ai-dev/design/nop-ai-agent/agent-survey.md` §6.4 — 三系统执行模型内部对比
+- `ai-dev/analysis/agent-survey/2026-06-13-agno-vs-goal-driver-vs-nop-agent-survey.md` §6.4 — 三系统执行模型内部对比

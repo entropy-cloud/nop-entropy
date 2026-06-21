@@ -164,7 +164,7 @@
 ```md
 # NN <<计划标题>>
 
-> Plan Status: planned
+> Plan Status: draft
 > Last Reviewed: YYYY-MM-DD
 > Source: <<关联 architecture / analysis / logs>>
 > Related: <<相关计划，可选>>
