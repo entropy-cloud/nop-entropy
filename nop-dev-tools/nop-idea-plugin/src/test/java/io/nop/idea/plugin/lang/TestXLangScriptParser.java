@@ -3,6 +3,7 @@ package io.nop.idea.plugin.lang;
 import com.intellij.psi.PsiFile;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.lang.script.XLangScriptFileType;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -11,6 +12,7 @@ import io.nop.idea.plugin.lang.script.XLangScriptFileType;
 public class TestXLangScriptParser extends BaseXLangPluginTestCase {
     private static final String ext = XLangScriptFileType.INSTANCE.getDefaultExtension();
 
+    @Test
     public void testParseStatement() {
         assertASTTree("""
                               import java.lang.;

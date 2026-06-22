@@ -8,6 +8,7 @@
 package io.nop.idea.plugin.lang;
 
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
+import org.junit.Test;
 
 /**
  * TODO 对 xlib 函数及参数名的重命名支持
@@ -17,13 +18,16 @@ import io.nop.idea.plugin.BaseXLangPluginTestCase;
  */
 public class TestXLangRename extends BaseXLangPluginTestCase {
 
+    @Test
     public void testRenameXdefName() {
     }
 
+    @Test
     public void testRenameTag() {
     }
 
-    public void _testRenameXlibTag() {
+//    @Test
+    public void testRenameXlibTag() {
         // 从定义侧更名
         assertRename("NewCall", //
                      """
@@ -81,7 +85,8 @@ public class TestXLangRename extends BaseXLangPluginTestCase {
         );
     }
 
-    public void _testRenameXlibAttr() {
+//    @Test
+    public void testRenameXlibAttr() {
         // 从定义侧更名
         assertRename("newArg", //
                      """

@@ -11,6 +11,7 @@ import java.util.List;
 
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.lang.script.XLangScriptFileType;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -19,6 +20,7 @@ import io.nop.idea.plugin.lang.script.XLangScriptFileType;
 public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
     private static final String ext = XLangScriptFileType.INSTANCE.getDefaultExtension();
 
+    @Test
     public void testImportCompletion() {
         // Note: 不能构造仅匹配唯一结果的样本，以避免 myFixture.getLookupElementStrings() 返回 null 或空结果
         String[] samples = new String[] {
@@ -43,6 +45,7 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
         }
     }
 
+    @Test
     public void testObjectMemberCompletion() {
         assertCompletion("""
                                  let s = "abc";
@@ -112,6 +115,7 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testCompletionInXLib() {
         assertCompletionInXLib("""
                                        <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"

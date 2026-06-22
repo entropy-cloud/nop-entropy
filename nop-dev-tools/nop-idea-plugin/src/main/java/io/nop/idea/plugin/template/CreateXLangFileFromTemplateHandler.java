@@ -12,6 +12,7 @@ import java.util.Map;
 
 import com.intellij.ide.fileTemplates.DefaultCreateFromTemplateHandler;
 import com.intellij.ide.fileTemplates.FileTemplate;
+import com.intellij.ide.highlighter.XmlFileType;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.FileTypeRegistry;
@@ -48,9 +49,14 @@ public class CreateXLangFileFromTemplateHandler extends DefaultCreateFromTemplat
             @NotNull String templateText, @NotNull Map<String, Object> props
     ) throws IncorrectOperationException {
         FileType type = FileTypeRegistry.getInstance().getFileTypeByFileName(fileName);
-        if (type != XLangFileType.INSTANCE) {
-            String ext = StringHelper.fileExt(fileName);
-            FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, ext);
+
+        // 将创建的文件关联为 XML 类型，再由 XLangLanguageSubstitutor 根据其内容动态决定是否绑定 XLang，
+        // 避免将 xml 后缀全部关联为 XLang 类型。注意，在 IDEA 2025+ 中该方案不会立即生效，暂时无法解决
+        if (type != XmlFileType.INSTANCE && type != XLangFileType.INSTANCE) {
+            String fileType = StringHelper.fileType(fileName);
+            if (!StringHelper.isEmpty(fileType)) {
+                FileTypeManager.getInstance().associateExtension(XmlFileType.INSTANCE, fileType);
+            }
         }
 
         return super.createFromTemplate(project, directory, fileName, template, templateText, props);

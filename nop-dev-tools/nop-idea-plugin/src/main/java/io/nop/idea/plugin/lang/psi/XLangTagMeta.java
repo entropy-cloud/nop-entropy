@@ -267,6 +267,8 @@ public class XLangTagMeta {
 
     /** 检查是否允许包含指定的子标签，并返回检查结果 */
     public ChildTagAllowedMode checkChildTagAllowed(XLangTagMeta childTagMeta) {
+        // Note: 元元模型 xdef:define 已经显式只能在根节点内定义，被嵌套的 xdef:define 将会无定义，
+        // 从而强制其不能被嵌套，以下判断仅作为向前兼容 @2026-06-22
         String xdefDefineTagName = childTagMeta.xdefKeys != null ? childTagMeta.xdefKeys.DEFINE : null;
         // 在元模型中不能在 xdef:define 中嵌套 xdef:define
         if (xdefDefineTagName != null //
@@ -344,7 +346,7 @@ public class XLangTagMeta {
         String attrName = attr.getName();
 
         // 在元元模型 /nop/schema/xdef.xdef 中，名字空间为 meta 的属性均由同名但以 xdef 为名字空间的属性定义，
-        // 而以 xdef 为名字空间的属性，则均由 meta:unknown-attr 定义。也即，二者形成交叉定义
+        // 而以 xdef 为名字空间的属性，则均由 xdef-meta:unknown-attr 定义。也即，二者形成交叉定义
         if (isInXdefSchema() && attrName.startsWith(XDefKeys.DEFAULT.NS + ':')) {
             attrName = "*";
         } else if (isInAnySchema()) {
@@ -675,7 +677,7 @@ public class XLangTagMeta {
             }
         }
 
-        // 3. 在元元模型中，以 xdef 为名字空间的标签， 需以 meta:unknown-tag 作为其节点定义，即，交叉定义
+        // 3. 在元元模型中，以 xdef 为名字空间的标签， 需以 xdef-meta:unknown-tag 作为其节点定义，即，交叉定义
         if (defNodeInSchema == null && parentTagMeta.isInXdefSchema() //
             && XDefKeys.DEFAULT.NS.equals(tagNs) //
         ) {

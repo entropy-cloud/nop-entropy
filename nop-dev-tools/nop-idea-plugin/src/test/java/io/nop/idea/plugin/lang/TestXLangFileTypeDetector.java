@@ -12,9 +12,11 @@ import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.psi.PsiFile;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import org.junit.Assert;
+import org.junit.Test;
 
 public class TestXLangFileTypeDetector extends BaseXLangPluginTestCase {
 
+    @Test
     public void testDetectXLangByExtension() {
         String[] extensions = "xdef;xpl;xgen;xui;xlib;xrun;xwf;xmeta;xpage;xrule".split(";");
 
@@ -23,6 +25,7 @@ public class TestXLangFileTypeDetector extends BaseXLangPluginTestCase {
         }
     }
 
+    @Test
     public void testDetectXLangFromXml() {
         String[] samples = new String[] {
                 "", //

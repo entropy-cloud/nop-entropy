@@ -2,6 +2,7 @@ package io.nop.idea.plugin.lang;
 
 import com.intellij.psi.PsiFile;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -9,6 +10,7 @@ import io.nop.idea.plugin.BaseXLangPluginTestCase;
  */
 public class TestXLangParser extends BaseXLangPluginTestCase {
 
+    @Test
     public void testParseASTTree() {
         assertASTTree("""
                               <example xmlns:x="/nop/schema/xdsl.xdef"

@@ -4,3 +4,7 @@
 > support_markdown_here
 >
 -->
+<example xmlns:x="/nop/schema/xdsl.xdef"
+         x:schema=""
+>
+</example>

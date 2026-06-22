@@ -16,6 +16,7 @@ import com.intellij.psi.PsiReference;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.lang.script.XLangScriptFileType;
 import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
+import org.junit.Test;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -25,6 +26,7 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
     private static final String ext = XLangScriptFileType.INSTANCE.getDefaultExtension();
 
     /** 测试对导入包/类的引用 */
+    @Test
     public void testImportReference() {
         // Note: 需确保语法完整
 
@@ -37,6 +39,7 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
     }
 
     /** 测试对对象成员的引用 */
+    @Test
     public void testObjectMemberReference() {
         assertReference("""
                                 let a = b;
@@ -114,6 +117,7 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testVarReference() {
         assertReference("""
                                 let abc = "abc";
@@ -230,6 +234,7 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testFunctionReference() {
         assertReference("""
                                 function fn1(a, b) { return a + b; }
@@ -364,6 +369,7 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
 //        );
     }
 
+    @Test
     public void testGenericTypeReference() {
         assertReference("""
                                 import java.util.HashMap;

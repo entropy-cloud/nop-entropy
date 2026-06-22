@@ -14,7 +14,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
-import io.nop.xlang.xdef.parse.XDefinitionParser;
+import io.nop.xlang.xdef.parse.XDefinitionLoader;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -82,7 +82,7 @@ public class XDefPsiHelper {
         IResource resource = new InMemoryTextResource("/" + file.getText().hashCode() + ".xdef", content);
 
         try {
-            return new XDefinitionParser().parseFromResource(resource);
+            return new XDefinitionLoader().loadObjectFromResource(resource);
         } catch (Exception e) {
             LOG.debug("nop.load-schema-fail", e);
             return null;

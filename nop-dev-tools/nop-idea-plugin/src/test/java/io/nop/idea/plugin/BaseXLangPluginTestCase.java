@@ -37,7 +37,7 @@ import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.DebugUtil;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture;
-import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
+import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixture4TestCase;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.FileHelper;
@@ -56,7 +56,7 @@ import io.nop.xlang.debugger.initialize.XLangDebuggerInitializer;
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-17
  */
-public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtureTestCase {
+public abstract class BaseXLangPluginTestCase extends LightPlatformCodeInsightFixture4TestCase {
     private static final String XLANG_EXT = "xtest";
 
     private final Cancellable cleanup = new Cancellable();
@@ -168,7 +168,8 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     }
 
     protected File getVfsDir() {
-        return new File(getClass().getResource("/_vfs").getFile());
+        // Note: src/test/ 下的目录资源的名字必须加后缀 /，否则，将可能会定位到 jar 中的资源
+        return new File(getClass().getResource("/_vfs/").getFile());
     }
 
     /** 将 vfs 测试资源全部复制到 Project 中 */
@@ -201,7 +202,11 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
     protected void addVfsResourceToProject(String path, String text) {
         if (path.endsWith(".java")) {
-            myFixture.addClass(text);
+//            myFixture.addClass(text);
+            String pkgName = text.split("\n")[0].replaceAll("package (.+);", "$1").replace('.', '/');
+            String javaName = pkgName + "/" + StringHelper.fileName(path);
+
+            myFixture.addFileToProject(javaName, text);
         } else {
             myFixture.addFileToProject("_vfs" + path, text);
         }

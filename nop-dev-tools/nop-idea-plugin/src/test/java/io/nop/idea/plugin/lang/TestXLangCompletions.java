@@ -10,11 +10,13 @@ package io.nop.idea.plugin.lang;
 import java.util.Arrays;
 
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
+import org.junit.Test;
 
 import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
 
 public class TestXLangCompletions extends BaseXLangPluginTestCase {
 
+    @Test
     public void testNameSort() {
         String[] names = new String[] {
                 "x:name", //
@@ -41,6 +43,7 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
         }), String.join(", ", names));
     }
 
+    @Test
     public void testTagCompletion() {
         // 从名字空间开始补全
         assertCompletion("xdef:unknown-tag", //
@@ -121,6 +124,7 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  """);
     }
 
+    @Test
     public void testAttributeCompletion() {
         // 从名字空间开始补全
         assertCompletion("xdsl:dump", //
@@ -323,14 +327,14 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                           x:schema="/nop/schema/xdef.xdef"
                                  >
-                                     <refs xdef:val<caret>
+                                     <refs xdef:uniqu<caret>
                                  </example>
                                  """, //
                          """
                                  <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                           x:schema="/nop/schema/xdef.xdef"
                                  >
-                                     <refs xdef:value=""
+                                     <refs xdef:unique-attr=""
                                  </example>
                                  """);
         assertCompletion("unknown-attr", //
@@ -390,6 +394,7 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  """);
     }
 
+    @Test
     public void testAttributeValueCompletion() {
         // 对 x:prototype 属性值的补全
         // - 引用兄弟节点标签名
@@ -526,6 +531,7 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  """);
     }
 
+    @Test
     public void testAttributeValueCompletionForDefType() {
         // 对 xdef-ref 引用目标的补全
         // - 引用当前 *.xdef 中的节点
@@ -752,6 +758,7 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  """);
     }
 
+    @Test
     public void testXlibTagCompletion() {
         // - xpl:lib 导入库的补全
         assertCompletion("Query", //
