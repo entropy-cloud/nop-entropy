@@ -20,6 +20,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiNamedElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
+import io.nop.commons.util.ArrayHelper;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
@@ -37,6 +38,9 @@ import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_
  * @date 2025-07-13
  */
 public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
+    // Note: xdef-ref 引用的只能是 xdef:name 命名的节点
+    private final static String[] XDEF_REF_PROPS = new String[] { "xdef:name", "xdef-meta:name" };
+
     private final String attrValue;
 
     public XLangStdDomainXdefRefReference(PsiElement myElement, TextRange myRangeInElement, String attrValue) {
@@ -115,8 +119,7 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
                 String name = attr.getName();
                 String value = attr.getValue();
 
-                // Note: xdef-ref 引用的只能是 xdef:name 命名的节点
-                if ("xdef:name".equals(name) || "meta:name".equals(name)) {
+                if (ArrayHelper.indexOf(XDEF_REF_PROPS, name) >= 0) {
                     names.add(value);
                 }
             }
@@ -136,12 +139,13 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
             return null;
         }
 
-        XmlAttribute attr = tag.getAttribute("xdef:name");
-
-        if (attr == null) {
-            attr = tag.getAttribute("meta:name");
+        for (String name : XDEF_REF_PROPS) {
+            XmlAttribute attr = tag.getAttribute(name);
+            if (attr != null) {
+                return attr;
+            }
         }
-        return attr;
+        return null;
     }
 
     private Function<PsiFile, PsiElement> createTargetResolver(String ref) {
@@ -150,10 +154,7 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
                 String name = attr.getName();
                 String value = attr.getValue();
 
-                // Note: xdef-ref 引用的只能是 xdef:name 命名的节点
-                return ("xdef:name".equals(name) //
-                        || "meta:name".equals(name) //
-                       ) && ref.equals(value);
+                return ArrayHelper.indexOf(XDEF_REF_PROPS, name) >= 0 && ref.equals(value);
             }
             return false;
         });
