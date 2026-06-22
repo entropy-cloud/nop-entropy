@@ -24,40 +24,40 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
 
     @Test
     public void testGenerateDocForTag() {
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "<meta:unknown-tag x:schema", //
-                                     "<meta:unkn<caret>own-tag x:schema"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "<xdef-meta:unknown-tag x:schema", //
+                                     "<xdef-meta:unkn<caret>own-tag x:schema"), //
                   (doc) -> {
                       assertTrue(doc.contains("自举定义"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "<meta:unknown-tag meta:ref", //
-                                     "<me<caret>ta:unknown-tag meta:ref"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "<xdef-meta:unknown-tag xdef-meta:ref", //
+                                     "<xdef-me<caret>ta:unknown-tag xdef-meta:ref"), //
                   (doc) -> {
                       assertTrue(doc.contains("不会匹配xdef:unknown-tag"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "<meta:define meta:name", //
-                                     "<meta:def<caret>ine meta:name"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "<xdef-meta:define xdef-meta:name", //
+                                     "<xdef-meta:def<caret>ine xdef-meta:name"), //
                   (doc) -> {
-                      assertTrue(doc.contains("meta:define"));
+                      assertTrue(doc.contains("xdef-meta:define"));
                       assertTrue(doc.contains("def-type"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "<xdef:unknown-tag meta:ref", //
-                                     "<xd<caret>ef:unknown-tag meta:ref"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "<xdef:unknown-tag xdef-meta:ref", //
+                                     "<xd<caret>ef:unknown-tag xdef-meta:ref"), //
                   (doc) -> {
                       assertTrue(doc.contains("所有属性和节点都必须明确声明"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
                                      "<xdef:define xdef:name", //
                                      "<xdef:de<caret>fine xdef:name"), //
                   (doc) -> {
@@ -65,18 +65,18 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
                                      "<xdef:prop name", //
                                      "<xd<caret>ef:prop name"), //
                   (doc) -> {
-                      assertTrue(doc.contains("扩展属性"));
+                      assertTrue(doc.contains("附加属性"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
 
         assertDoc(insertCaretIntoVfs("/nop/schema/xdsl.xdef", //
-                                     "<x:post-parse xdef:value", //
-                                     "<x:post-<caret>parse xdef:value"), //
+                                     "<x:post-parse xdef:", //
+                                     "<x:post-<caret>parse xdef:"), //
                   (doc) -> {
                       assertTrue(doc.contains("之后执行此回调函数"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
@@ -239,65 +239,66 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testGenerateDocForAttribute() {
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "xmlns:meta", //
-                                     "xmlns:me<caret>ta"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "xmlns:x", //
+                                     "xmlns:x<caret>"), //
                   TestCase::assertNull //
         );
 
-        // xdef.xdef 中的 meta:xxx 属性显示相应的 xdef:xxx 属性文档
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "meta:check-ns=\"xdef\"", //
-                                     "meta:che<caret>ck-ns=\"xdef\""), //
+        // xdef.xdef 中的 xdef-meta:xxx 属性显示相应的 xdef:xxx 属性文档
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "xdef-meta:check-ns=\"xdef\"", //
+                                     "xdef-meta:che<caret>ck-ns=\"xdef\""), //
                   (doc) -> {
                       assertTrue(doc.contains("必须要校验的名字空间"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "<meta:unknown-tag meta:ref=\"XDefNode\"/>", //
-                                     "<meta:unknown-tag meta:re<caret>f=\"XDefNode\"/>"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "<xdef-meta:unknown-tag xdef-meta:ref=\"XDefNode\"/>", //
+                                     "<xdef-meta:unknown-tag xdef-meta:re<caret>f=\"XDefNode\"/>"), //
                   (doc) -> {
                       assertTrue(doc.contains("引用本文件中"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "<xdef:unknown-tag meta:ref=\"XDefNode\"/>", //
-                                     "<xdef:unknown-tag m<caret>eta:ref=\"XDefNode\"/>"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "<xdef:unknown-tag xdef-meta:ref=\"XDefNode\"/>", //
+                                     "<xdef:unknown-tag xdef-m<caret>eta:ref=\"XDefNode\"/>"), //
                   (doc) -> {
                       assertTrue(doc.contains("引用本文件中"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "meta:unknown-attr=\"!xdef-attr\"", //
-                                     "meta:unknown<caret>-attr=\"!xdef-attr\""), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "xdef-meta:unknown-attr=\"!xdef-attr\"", //
+                                     "xdef-meta:unknown<caret>-attr=\"!xdef-attr\""), //
                   (doc) -> {
                       assertTrue(doc.contains("具有未明确定义"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "meta:unknown-attr=\"string\"", //
-                                     "meta:unknown<caret>-attr=\"string\""), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "xdef-meta:unknown-attr=\"string\"", //
+                                     "xdef-meta:unknown<caret>-attr=\"string\""), //
                   (doc) -> {
                       assertTrue(doc.contains("具有未明确定义"));
                       assertTrue(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "<xdef:pre-parse meta:value", //
-                                     "<xdef:pre-parse me<caret>ta:value"), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "<xdef:pre-parse xdef-meta:value", //
+                                     "<xdef:pre-parse xdef-me<caret>ta:value"), //
                   (doc) -> {
                       assertTrue(doc.contains("body的数据类型"));
                       assertTrue(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                     "meta:value=\"def-type\"", //
-                                     "meta:va<caret>lue=\"def-type\""), //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
+                                     "xdef-meta:value=\"def-type\"", //
+                                     "xdef-meta:va<caret>lue=\"def-type\""), //
                   (doc) -> {
                       assertTrue(doc.contains("body的数据类型"));
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
@@ -305,7 +306,7 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
         );
 
         // *.xdef 中，xdef/x/xpl 名字空间的属性，始终显示其定义的文档
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
                                      "xdef:check-ns=\"word-set\"", //
                                      "xdef:chec<caret>k-ns=\"word-set\""), //
                   (doc) -> {
@@ -314,7 +315,7 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                   } //
         );
 
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
                                      "xdef:name=\"var-name\"", //
                                      "xdef:na<caret>me=\"var-name\""), //
                   (doc) -> {
@@ -322,8 +323,8 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                       assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
-        // - Note: xdef:define 节点上的 xdef:name 属性与 meta:define 节点上的 xdef:name 共享文档
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+        // - Note: xdef:define 节点上的 xdef:name 属性与 xdef-meta:define 节点上的 xdef:name 共享文档
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
                                      "<xdef:define xdef:name=\"!var-name\"", //
                                      "<xdef:define x<caret>def:name=\"!var-name\""), //
                   (doc) -> {
@@ -448,7 +449,7 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
         );
 
         // *.xdef 中，非 xdef/x/xpl 名字空间的属性，显示其自身的文档
-        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+        assertDoc(insertCaretIntoVfs("/test/schema/nop-xdef.xdef", //
                                      "<xdef:prop name=\"!xml-name\"", //
                                      "<xdef:prop na<caret>me=\"!xml-name\""), //
                   (doc) -> {
@@ -564,6 +565,7 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
         );
     }
 
+    @Test
     public void testGenerateDocForXmlAttributeValue() {
 //        // TODO 暂时不显示属性类型的文档
 //        assertDoc(insertCaretIntoVfs("/test/doc/example.xdef", //

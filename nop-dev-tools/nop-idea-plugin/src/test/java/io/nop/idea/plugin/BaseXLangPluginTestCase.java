@@ -168,7 +168,8 @@ public abstract class BaseXLangPluginTestCase extends LightPlatformCodeInsightFi
     }
 
     protected File getVfsDir() {
-        return new File(getClass().getResource("/_vfs").getFile());
+        // Note: src/test/ 下的目录资源的名字必须加后缀 /，否则，将可能会定位到 jar 中的资源
+        return new File(getClass().getResource("/_vfs/").getFile());
     }
 
     /** 将 vfs 测试资源全部复制到 Project 中 */
@@ -202,7 +203,10 @@ public abstract class BaseXLangPluginTestCase extends LightPlatformCodeInsightFi
     protected void addVfsResourceToProject(String path, String text) {
         if (path.endsWith(".java")) {
 //            myFixture.addClass(text);
-            myFixture.addFileToProject(StringHelper.fileName(path), text);
+            String pkgName = text.split("\n")[0].replaceAll("package (.+);", "$1").replace('.', '/');
+            String javaName = pkgName + "/" + StringHelper.fileName(path);
+
+            myFixture.addFileToProject(javaName, text);
         } else {
             myFixture.addFileToProject("_vfs" + path, text);
         }

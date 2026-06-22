@@ -164,7 +164,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                                 <meta:define meta:name="XDefNode">
                                   <meta:unknown-tag meta:ref="XDefNode"/>
                                   <xdef:unknow<caret>n-tag meta:ref="XDefNode"/>
-                                  <xdef:define xdef:name="!var-name" meta:ref="XDefNode" meta:unique-attr="xdef:name"/>
                                 </meta:define>
                               </meta:unknown-tag>
                               """, //
@@ -1066,6 +1065,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
@@ -1085,6 +1085,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.only_at_most_one,
@@ -1104,6 +1105,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
@@ -1123,25 +1125,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
-
-                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
-                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
-                                       parentTagMeta.checkChildTagAllowed(tagMeta));
-                      } //
-        );
-        assertTagMeta("""
-                              <example
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/test/lang/lang.xdef"
-                              >
-                                <union>
-                                  <a<caret>bc/>
-                                  <u2/>
-                                </union>
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
@@ -1161,63 +1145,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
-
-                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
-                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
-                                       parentTagMeta.checkChildTagAllowed(tagMeta));
-                      } //
-        );
-        assertTagMeta("""
-                              <example
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/test/lang/lang.xdef"
-                              >
-                                <union>
-                                  <xui:a<caret>bc/>
-                                  <u2/>
-                                </union>
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          assertNotNull(tag.getParentTag());
-
-                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
-                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
-                                       parentTagMeta.checkChildTagAllowed(tagMeta));
-                      } //
-        );
-        assertTagMeta("""
-                              <example
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/test/lang/lang.xdef"
-                              >
-                                <union>
-                                  <u1/>
-                                  <a<caret>bc/>
-                                </union>
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          assertNotNull(tag.getParentTag());
-
-                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
-                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
-                                       parentTagMeta.checkChildTagAllowed(tagMeta));
-                      } //
-        );
-        assertTagMeta("""
-                              <example
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/test/lang/lang.xdef"
-                              >
-                                <union>
-                                  <u1/>
-                                  <xui:a<caret>bc/>
-                                </union>
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
@@ -1240,6 +1168,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
@@ -1260,6 +1189,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
@@ -1280,6 +1210,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_multiple,
@@ -1301,6 +1232,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
@@ -1308,7 +1240,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       } //
         );
 
-        // 检查节点可嵌套性
+        // 检查节点可嵌套性（仅针对 xdef:define）
         assertTagMeta("""
                               <example
                                 xmlns:x="/nop/schema/xdsl.xdef"
@@ -1321,47 +1253,10 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
-                                       parentTagMeta.checkChildTagAllowed(tagMeta));
-                      } //
-        );
-        assertTagMeta("""
-                              <example
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
-                              >
-                                <xdef:define xdef:name="A">
-                                  <xdef:de<caret>fine xdef:name="B"/>
-                                </xdef:define>
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          assertNotNull(tag.getParentTag());
-
-                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
-                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_nested_by_same_name_tag,
-                                       parentTagMeta.checkChildTagAllowed(tagMeta));
-                      } //
-        );
-        assertTagMeta("""
-                              <example
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
-                              >
-                                <xdef:define xdef:name="A">
-                                  <child>
-                                    <xdef:de<caret>fine xdef:name="B"/>
-                                  </child>
-                                </xdef:define>
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          assertNotNull(tag.getParentTag());
-
-                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
-                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_nested_by_same_name_tag,
                                        parentTagMeta.checkChildTagAllowed(tagMeta));
                       } //
         );
@@ -1380,6 +1275,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertNotNull(tag.getParentTag());
+                          assertFalse(tagMeta.hasError());
 
                           XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
                           assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,

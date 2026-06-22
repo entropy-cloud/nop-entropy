@@ -327,14 +327,14 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                           x:schema="/nop/schema/xdef.xdef"
                                  >
-                                     <refs xdef:val<caret>
+                                     <refs xdef:uniqu<caret>
                                  </example>
                                  """, //
                          """
                                  <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                           x:schema="/nop/schema/xdef.xdef"
                                  >
-                                     <refs xdef:value=""
+                                     <refs xdef:unique-attr=""
                                  </example>
                                  """);
         assertCompletion("unknown-attr", //

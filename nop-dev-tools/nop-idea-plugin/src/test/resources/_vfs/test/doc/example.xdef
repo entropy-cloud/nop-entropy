@@ -27,7 +27,7 @@
     -->
     <child name="string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
 
-    <refs>v-path-list</refs>
+    <refs xdef:value="v-path-list"/>
 
     <var com="!var-name=@attr:name,type" name="#!var-name" type="!string"/>
 
