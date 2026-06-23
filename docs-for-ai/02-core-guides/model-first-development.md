@@ -91,6 +91,57 @@ nop-cli gen model/{appName}.orm.xml -t=/nop/templates/orm -o=.
 2. 只要资源显式声明为 `TOPM` 或 `SUBM`，就不要省略 `icon`。
 3. 手写菜单不能假设生成链会自动替它补 icon；需要在 source 文件中自行给出。
 
+## 跨模块实体引用与 `biz:moduleId` 约定
+
+多模块项目里，当一个域跨模块引用另一个域的实体（通过 `<entity notGenCode="true">` 外部实体引用），被引用实体必须在声明上标注它真正归属的模块，否则生成的页面会按"消费方域"推导路径，找不到 owner 域的页面。
+
+### `biz:moduleId` 是什么
+
+`biz:moduleId` 是扩展属性（`biz:` 命名空间），声明"本实体/本关联字段引用的目标对象归属哪个 VFS 模块"：
+
+- 写在 ORM `<entity>` 上（`nop/schema/orm/entity.xdef` 的 `biz:moduleId`），声明该实体本身归属的模块。这是 codegen 读取的权威源。
+- 写在 xmeta 的 to-one/to-many `<prop>` 上（`nop/schema/xui/disp.xdef` 的 `biz:moduleId`），由 codegen 从被引用实体的 `biz:moduleId` 透传而来，供前端运行时读取。
+
+### 取值格式
+
+两级斜杠 VFS 模块路径，如 `erp/md`、`nop/auth`、`erp/purchase`——对应 `_module-meta.json` 的 `moduleId` 字段（注意不是 `moduleName` 的 `-` 形式，也不是 Maven 包名）。例如 `nop-auth` 模块生成的资源在 `/_vfs/nop/auth`，moduleId 是 `nop/auth`。
+
+### 如何影响 picker 路径
+
+运行时 `XuiHelper.getRelationPickerUrl` 按 `biz:moduleId` + `bizObjName` 拼出关联字段的 picker 页面路径：
+
+```
+"/" + biz:moduleId + "/pages/" + bizObjName + "/picker.page.yaml"
+```
+
+例如 `biz:moduleId="erp/md"`、`bizObjName="ErpMdPartner"` → `/erp/md/pages/ErpMdPartner/picker.page.yaml`。
+
+推导有三层优先级：
+1. 若 `<prop>` 或 `<disp>` 上显式设了 `ui:pickerUrl`（完整路径），直接用，跳过 `biz:moduleId` 推导。
+2. 否则用 `<prop>` 上的 `biz:moduleId`（codegen 透传来）。
+3. 若 `biz:moduleId` 为空，回退为从当前 xmeta 文件路径取前两段（`ResourceHelper.getModuleIdFromStdPath`）。
+
+### 为什么多模块跨域引用必须显式设置
+
+跨域引用的外部实体（`<entity notGenCode="true">`）若不声明 `biz:moduleId`，codegen 模板 `_{shortName}.xmeta.xgen` 中 `biz:moduleId="${rel.refEntityModel['biz:moduleId']}"` 取到空值，生成的 prop 上 `biz:moduleId` 为空。运行时落入回退分支 3，用消费方域的 xmeta 路径推导，于是 picker 指向消费方域（例如 purchase 域引用 ErpMdPartner，picker 被错误拼成 `/erp/pur/pages/ErpMdPartner/picker.page.yaml`），而 owner 域的页面（`/erp/md/...`）找不到，启动期 `PageModelValidator` 报 `parse-missing-resource`。
+
+单模块项目不受影响，因为回退分支 3 推出的前缀恰好就是 owner 模块。
+
+### 正确写法
+
+在消费方域的 `model/*.orm.xml` 里，外部实体引用必须带上 `biz:moduleId` 指向 owner 域（根 `<orm>` 需声明 `xmlns:biz="biz"`）：
+
+```xml
+<orm ... xmlns:biz="biz">
+  <entity displayName="往来单位" name="app.erp.md.dao.entity.ErpMdPartner"
+          notGenCode="true" biz:moduleId="erp/md" tableName="erp_md_partner">
+    <columns>...</columns>
+  </entity>
+</orm>
+```
+
+改完后重新生成 meta/web，生成的 xmeta 的 to-one prop 会带上 `biz:moduleId="erp/md"`，picker 路径随之正确。个别需要指向非标准页面的关联，用 `ui:pickerUrl` 精确覆盖即可。
+
 如果只想理解生成职责，可以按模块顺序看：
 
 1. `{appName}-codegen` 刷新项目级生成产物。

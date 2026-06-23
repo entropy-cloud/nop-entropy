@@ -72,6 +72,13 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
         this.siteCache = ResourceTenantManager.instance().makeLoadingCache("sitemap-cache", useTenant,
                 this::loadSiteData, null, CFG_AUTH_SITE_MAP_CACHE_MAX_SIZE, CFG_AUTH_SITE_MAP_CACHE_TIMEOUT);
         GlobalCacheRegistry.instance().register(siteCache);
+
+        // debug 模式启动时主动触发一次 site-map 加载，及早暴露 action-auth.xml 合并问题，
+        // 并把合并结果输出到 _dump（见 loadSiteData 中的 ResourceHelper.dumpResource）。
+        if (AppConfig.isDebugMode()) {
+            String locale = I18nMessageManager.instance().getDefaultLocale();
+            siteCache.get(locale);
+        }
     }
 
     boolean isUseTenant() {
