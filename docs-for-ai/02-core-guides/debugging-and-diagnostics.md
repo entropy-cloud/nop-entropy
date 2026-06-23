@@ -37,10 +37,19 @@ nop:
 
 调试模式下（`nop.debug=true`），平台会把以下内容输出到 `_dump/{appName}/...`：
 
-- 所有 XDSL 模型经过差量合并后的最终结果（XML + LOC 注释）
-- 所有 IoC bean 配置合并后的最终 `merged-app.beans.xml`
-- GraphQL schema 定义（SDL 格式文本）
-- 其他调试期中间产物（i18n 合并结果等）
+| 资源类型 | dump 路径 | 说明 |
+|---------|-----------|------|
+| XDSL 模型合并结果 | `_dump/{appName}/{moduleId}/...`（xmeta/view/orm 等） | 所有 XDSL 模型差量合并后的最终结果（XML + LOC 注释） |
+| IoC bean 配置 | `_dump/{appName}/nop/.../merged-app.beans.xml` | 所有 bean 配置合并后的最终结果 |
+| GraphQL schema | `_dump/{appName}/nop/main/graphql/schema.graphql` | 完整 GraphQL schema（SDL 格式） |
+| i18n 合并结果 | `_dump/{appName}/i18n/...` | 各 locale 的 i18n 合并产物 |
+| **site-map 菜单树** | `_dump/{appName}/nop/main/site/{locale}-menu.yaml` | action-auth.xml 合并后的**最终菜单树**（如 `zh-CN-menu.yaml`） |
+
+**关于 site-map dump 的特殊性**（调试菜单时最易踩的坑）：
+
+- 菜单合并产物文件名是 **`{locale}-menu.yaml`**（如 `zh-CN-menu.yaml`），**不是** `action-auth.xml`。`DslModelParser` 解析 `static-config-path` 指向的 action-auth.xml 的过程不单独 dump，只 dump 合并后的最终菜单树。
+- 想看"运行时实际菜单结构"（测试 TOPM 是否删除、业务分组是否正确、图标是否生效），看 `{locale}-menu.yaml`，而不是 `_dump` 里的 action-auth.xml。
+- **触发时机**：`SiteMapProviderImpl` 用懒加载缓存。debug 模式下 `@PostConstruct init()` 会主动预加载一次（把合并问题暴露在启动期并产出 dump）；非 debug 模式需首次调用 `getSiteMap` 才合并。详见 `./auth-and-permissions.md` 的"site-map 加载时机与调试 dump"。
 
 `_dump/` 是调试期临时输出目录，不是源码目录：
 
