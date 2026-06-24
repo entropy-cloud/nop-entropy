@@ -1,7 +1,9 @@
 <c:unit xpl:outputMode="text">
-<c:script>
+<c:script><![CDATA[
     import io.nop.xlang.xmeta.SchemaLoader;
     import io.nop.core.lang.json.JsonTool;
+    import io.nop.core.resource.component.ResourceComponentManager;
+    import io.nop.core.resource.VirtualFileSystem;
 
     const root = { entity: {label: {} }, prop: {label: {}}};
     const entityLabel = root.entity.label;
@@ -18,7 +20,50 @@
             propsMap[prop.name] = prop.getExtProp('i18n-en:displayName') || prop['i18n-en:displayName'];
         }
     }
-</c:script>
+
+    // load ORM model to generate dict i18n
+    let ormPath = "/" + moduleId + "/orm/app.orm.xml";
+    let ormRes = VirtualFileSystem.instance().getResource(ormPath);
+    if (ormRes != null && ormRes.exists()) {
+        let ormModel = ResourceComponentManager.instance().loadComponentModel(ormPath);
+        if (ormModel != null && ormModel.dicts != null && ormModel.dicts.length > 0) {
+            let dictLabelMap = {};
+            let dictOptionLabelMap = {};
+            let dictLabelCount = 0;
+            let optDictCount = 0;
+
+            for(let dict of ormModel.dicts){
+                let enLabel = dict['i18n-en:label'];
+                if (enLabel) {
+                    dictLabelMap[dict.name] = enLabel;
+                    dictLabelCount++;
+                }
+                if (dict.options != null && dict.options.length > 0) {
+                    let optMap = {};
+                    let optCount = 0;
+                    for(let option of dict.options){
+                        let optEn = option['i18n-en:label'];
+                        if (optEn) {
+                            optMap[option.value] = optEn;
+                            optCount++;
+                        }
+                    }
+                    if (optCount > 0) {
+                        dictOptionLabelMap[dict.name] = optMap;
+                        optDictCount++;
+                    }
+                }
+            }
+
+            if (dictLabelCount > 0) {
+                root.dict = { label: dictLabelMap };
+            }
+            if (optDictCount > 0) {
+                root['dict.option.label'] = dictOptionLabelMap;
+            }
+        }
+    }
+]]></c:script>
 
 <c:unit>${JsonTool.serializeToYaml(root)}</c:unit>
 
