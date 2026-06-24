@@ -75,3 +75,18 @@ prop:
     Voyage:
       id: Id
       voyageNumber: VoyageNumber
+dict:
+  label:
+    ddd/routing-status: Routing Status
+    ddd/transport-status: Transport Status
+dict.option.label:
+  ddd/routing-status:
+    NOT_ROUTED: Not Routed
+    ROUTED: Routed
+    MISROUTED: Misrouted
+  ddd/transport-status:
+    NOT_RECEIVED: Not Received
+    IN_PORT: In Port
+    ONBOARD_CARRIER: Onboard Carrier
+    CLAIMED: Claimed
+    UNKNOWN: Unknown

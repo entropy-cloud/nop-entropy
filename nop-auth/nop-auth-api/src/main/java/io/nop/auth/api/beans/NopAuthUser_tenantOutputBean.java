@@ -526,6 +526,20 @@
         }
 
 
+        private String _extFlags;
+
+    
+        @PropMeta(propId=37)
+    
+        public String getExtFlags(){
+            return _extFlags;
+        }
+
+        public void setExtFlags(String value){
+            this._extFlags = value;
+        }
+
+
         private io.nop.api.core.beans.file.FileStatusBean _avatarComponentFileStatus;
 
     

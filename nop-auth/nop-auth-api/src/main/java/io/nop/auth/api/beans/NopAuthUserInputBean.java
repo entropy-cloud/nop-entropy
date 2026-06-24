@@ -433,6 +433,20 @@
         }
 
 
+        private String _extFlags;
+
+    
+        @PropMeta(propId=37)
+    
+        public String getExtFlags(){
+            return _extFlags;
+        }
+
+        public void setExtFlags(String value){
+            this._extFlags = value;
+        }
+
+
         private java.util.List<java.lang.String> _relatedRoleList_ids;
 
     

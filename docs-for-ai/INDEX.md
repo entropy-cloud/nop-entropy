@@ -69,6 +69,7 @@
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
 | 理解 ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计） | `02-core-guides/orm-model-design.md` |
+| **跨模块引用其他模块的实体（主数据/业务单据）、关联查询、条件过滤怎么做** | `02-core-guides/cross-module-entity-reference.md`（四种机制：本模块实体 / `notGenCode` 外部实体引用 / `ext:baseClass` Delta 扩展 / 纯外键 + `I*Biz`） |
 | 理解 EQL 语法、`<eql>` 与 `<sql>` 区别、数据库兼容性（空字符串转 NULL、VARCHAR 自动提升 CLOB、Dialect 特性标志） | `02-core-guides/eql-and-database-compatibility.md` |
 | 理解逻辑删除（delFlag / delVersion / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
 | 理解多租户机制（自动过滤、自动填充、临时切换、跨租户保护） | `02-core-guides/tenant-model.md` |
@@ -149,7 +150,8 @@
 | 理解 nop-sys（字典/序列号/锁/事件） | `03-modules/nop-sys.md` |
 | 理解 nop-report（报表引擎） | `03-modules/nop-report.md` |
 | 理解 nop-rule（规则引擎） | `03-modules/nop-rule.md` |
-| 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md` |
+| 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
+| 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |
 | 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` |
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |

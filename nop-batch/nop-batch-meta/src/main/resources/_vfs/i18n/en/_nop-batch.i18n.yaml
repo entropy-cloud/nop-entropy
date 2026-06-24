@@ -90,3 +90,15 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       task: Batch Task
+dict:
+  label:
+    batch/task-status: Batch Task Status
+dict.option.label:
+  batch/task-status:
+    '0': Created
+    '10': Running
+    '20': Suspended
+    '30': Completed
+    '40': Failed
+    '50': Cancelled
+    '60': Killed

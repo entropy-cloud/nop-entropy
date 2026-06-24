@@ -141,3 +141,43 @@ prop:
       updateTime: Update Time
       records: Retry Records
       backoffConfigComponent: null
+dict:
+  label:
+    retry/retry-record-status: Retry Record Status
+    retry/retry-attempt-status: Retry Attempt Status
+    retry/retry-task-type: Retry Task Type
+    retry/backoff-strategy: Backoff Strategy
+    retry/block-strategy: Block Strategy
+    retry/callback-trigger-type: Callback Trigger Type
+    retry/save-record-strategy: Save Record Strategy
+dict.option.label:
+  retry/retry-record-status:
+    '0': Pending
+    '1': Retrying
+    '2': Completed
+    '3': Max Retries
+    '4': Suspended
+  retry/retry-attempt-status:
+    '0': Waiting
+    '1': Running
+    '2': Success
+    '3': Failed
+    '4': Stopped
+    '5': Canceled
+  retry/retry-task-type:
+    '1': Retry
+    '2': Callback
+  retry/backoff-strategy:
+    '1': Fixed Interval
+    '2': Exponential Backoff
+  retry/block-strategy:
+    '1': Discard
+    '2': Overwrite
+    '3': Parallel
+  retry/callback-trigger-type:
+    '1': On Success
+    '2': On Failure
+    '3': Always
+  retry/save-record-strategy:
+    '1': Before Call
+    '2': After Failure

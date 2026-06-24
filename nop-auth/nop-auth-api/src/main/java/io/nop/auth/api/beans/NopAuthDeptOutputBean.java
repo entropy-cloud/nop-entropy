@@ -224,6 +224,20 @@
         }
 
 
+        private String _extFlags;
+
+    
+        @PropMeta(propId=16)
+    
+        public String getExtFlags(){
+            return _extFlags;
+        }
+
+        public void setExtFlags(String value){
+            this._extFlags = value;
+        }
+
+
         private java.util.List<java.lang.String> _relatedGroupList_ids;
 
     

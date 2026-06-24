@@ -121,3 +121,8 @@ prop:
       subTaskInstance: Sub TaskFlow Instance
       parentStepInstance: Parent  Step
       childSteps: Child Steps
+dict:
+  label:
+    task/task-step-status: TaskFlow Step Status
+    task/task-status: TaskFlow Status
+    task/task-def-status: TaskFlow Definition Status

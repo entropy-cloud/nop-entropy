@@ -4,6 +4,7 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.${entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity'};
 import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import io.nop.orm.IOrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
+<c:if test="${entityModel.columns.some(col => col.domain === 'compactExt')}">import io.nop.orm.support.IOrmCompactExtFieldSupport;</c:if>
 import io.nop.api.core.convert.ConvertHelper;
 import java.util.Map;
 import java.util.HashMap;
@@ -18,7 +19,7 @@ import ${entityModel.classPackageName}.${entityModel.simpleClassName};
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
-public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClass'] ||  (entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity')}{
+public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClass'] ||  (entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity')}<c:if test="${entityModel.columns.some(col => col.domain === 'compactExt')}"> implements IOrmCompactExtFieldSupport</c:if>{
     <c:for var="col" items="${entityModel.columns}">
         <c:script> if(col.notGenCode) continue</c:script>
     /* ${col.displayName}: ${col.code} ${col.stdSqlType} */

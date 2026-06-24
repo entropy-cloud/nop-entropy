@@ -35,6 +35,7 @@
         <domain name="roleIds" precision="250" stdSqlType="VARCHAR"/>
         <domain name="file" precision="100" stdDomain="file" stdSqlType="VARCHAR"/>
         <domain name="file-list" precision="500" stdDomain="file-list" stdSqlType="VARCHAR"/>
+        <domain name="compactExt" precision="10" stdSqlType="VARCHAR"/>
     </domains>
 
     <entities>
@@ -130,6 +131,9 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="36"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="SL" i18n-en:displayName="Remark"/>
+                <column code="EXT_FLAGS" displayName="扩展标记" domain="compactExt" name="extFlags" precision="10"
+                        propId="37" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Ext Flags"/>
             </columns>
             <relations>
                 <to-one displayName="部门" name="dept" refDisplayName="部门用户"
@@ -796,6 +800,9 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+                <column code="EXT_FLAGS" displayName="扩展标记" domain="compactExt" name="extFlags" precision="10"
+                        propId="16" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Ext Flags"/>
             </columns>
             <relations>
                 <to-one displayName="父资源" name="parent" refDisplayName="子资源"

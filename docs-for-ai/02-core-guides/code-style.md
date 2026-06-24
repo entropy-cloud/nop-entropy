@@ -53,8 +53,9 @@
 |------|------|------|
 | column code | UPPER_SNAKE_CASE | `JOB_SCHEDULE_ID` |
 | column name | camelCase | `jobScheduleId` |
-| 主键 | `id`, VARCHAR(36), `tagSet="seq"` | — |
+| 主键 | `id`, VARCHAR(36)+`tagSet="seq"` 或 BIGINT+`tagSet="seq-default"` | — |
 | propId | 从 1 开始连续递增 | — |
+| `id` 保留规则 | `id` 是系统保留属性名，专用于主键；主键列名为 `id` 时必须设置 `ext:allowIdAsColName="true"`，否则会被重命名为 `id_` | — |
 
 ### Dict
 

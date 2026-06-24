@@ -169,6 +169,10 @@
               insertable="true" updatable="true" ui:show="SL">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="extFlags" displayName="扩展标记" propId="37" i18n-en:displayName="Ext Flags" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema domain="compactExt" type="java.lang.String" precision="10"/>
+        </prop>
         <prop name="dept" displayName="部门" i18n-en:displayName="Department" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="deptId" ext:joinRightProp="deptId"
               ext:joinRightDisplayProp="deptName" insertable="false" updatable="false" lazy="true">

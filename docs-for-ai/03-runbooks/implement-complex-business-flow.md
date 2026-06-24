@@ -64,11 +64,15 @@ public class OrderSubmitProcessor {
 | 问题 | 默认做法 |
 |------|---------|
 | 只是一个几十行内的普通动作 | 先留在 BizModel |
-| 明显是多步骤流程 | 拆 Processor |
-| 同一单步会被多个流程复用 | 抽 Step |
+| 明显是多步骤流程，且**拓扑稳定**（不会随客户/上线后调整） | 拆 Processor |
+| 明显是多步骤流程，且**拓扑需要可变**（产品化、不同客户不同流程、上线后要调步骤顺序/增删步骤） | 用 task flow 编排（见 `03-modules/nop-task.md`），拓扑通过 VFS 动态更新，不重发版 |
+| 多步骤流程需要断点重启 / 并行 / 限流 / 挂起等人工 | task flow（这些是 Processor 不具备的能力） |
+| 同一单步会被多个流程复用 | 抽 Step（task flow 的 `<simple>`/`<call-step>`，或 Processor 的 protected 方法） |
 | 需要明确状态图和转换约束 | 状态机 |
 | 有审批、异步、人机协作、长时运行 | Workflow |
 | 决策逻辑频繁变化且希望配置化 | Rule / XLang |
+
+**Processor 与 task flow 的关键区别**：两者都是 BizModel 内部的编排手段，事务上都默认跟随外层 `@BizMutation`。区别在编排是否可脱离代码动态变化——Processor 是 Java，改拓扑要重发版；task flow 是 VFS 上的模型，改拓扑失效缓存即生效。因此"拓扑可变"几乎总是指向 task flow。无论用哪种，**事务入口、状态真相源写回、post-commit 事件这三件事都钉在 BizModel，不下放到编排层**；编排层内部的 step / Processor 方法都只调 `I*Biz` / `CrudBizModel` 安全能力，不直接 `dao()`，也不直接写状态字段。
 
 ## 复杂流程里的默认规则
 

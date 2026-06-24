@@ -253,6 +253,24 @@ CREATE TABLE nop_sys_tag(
   constraint PK_nop_sys_tag primary key (SID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_sys_compact_ext_field(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  ENTITY_NAME VARCHAR(200) NOT NULL    COMMENT '实体名',
+  PROP_NAME VARCHAR(100) NOT NULL    COMMENT '属性名',
+  POSITION INTEGER NOT NULL    COMMENT '位置',
+  DISPLAY_NAME VARCHAR(100) NULL    COMMENT '显示名',
+  DICT_NAME VARCHAR(150) NULL    COMMENT '字典名',
+  DEFAULT_VALUE VARCHAR(10) NULL    COMMENT '默认值',
+  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_sys_compact_ext_field primary key (SID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   DICT_ID VARCHAR(32) NOT NULL    COMMENT '字典ID',
@@ -314,6 +332,8 @@ CREATE TABLE nop_sys_obj_tag(
    ALTER TABLE nop_sys_change_log COMMENT '变更跟踪日志';
                 
    ALTER TABLE nop_sys_tag COMMENT '标签';
+                
+   ALTER TABLE nop_sys_compact_ext_field COMMENT '紧凑扩展字段配置';
                 
    ALTER TABLE nop_sys_dict_option COMMENT '字典明细';
                 

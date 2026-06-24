@@ -29,6 +29,8 @@ alter table nop_sys_change_log add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NUL
 
 alter table nop_sys_tag add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_sys_compact_ext_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_sys_dict_option add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_obj_tag add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -77,6 +79,9 @@ alter table nop_sys_change_log add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_tag drop primary key;
 alter table nop_sys_tag add primary key (NOP_TENANT_ID, SID);
+
+alter table nop_sys_compact_ext_field drop primary key;
+alter table nop_sys_compact_ext_field add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_dict_option drop primary key;
 alter table nop_sys_dict_option add primary key (NOP_TENANT_ID, SID);

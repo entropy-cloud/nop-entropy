@@ -115,6 +115,14 @@
         <property name="bizObjName" value="NopSysTag"/>
     </bean>
 
+    <bean id="io.nop.sys.service.entity.NopSysCompactExtFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysCompactExtField" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.sys.biz.INopSysCompactExtFieldBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopSysCompactExtField"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysDictOptionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopSysDictOption" class="io.nop.biz.proxy.BizProxyFactoryBean"

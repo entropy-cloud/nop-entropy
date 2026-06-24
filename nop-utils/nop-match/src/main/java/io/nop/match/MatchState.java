@@ -38,6 +38,11 @@ public class MatchState extends JsonVisitState implements ISourceLocationGetter 
      * 是否忽略模板中没有定义的字段
      */
     private boolean ignoreUnknown;
+
+    /**
+     * 是否忽略模板中没有定义、且值为null的多余字段。仅在额外字段值为null时容许不报错，比ignoreUnknown更宽松。
+     */
+    private boolean ignoreNullUnknown;
     private IValidationErrorCollector errorCollector = IValidationErrorCollector.THROW_ERROR;
 
     public MatchState(Object root) {
@@ -117,5 +122,13 @@ public class MatchState extends JsonVisitState implements ISourceLocationGetter 
 
     public void setIgnoreUnknown(boolean ignoreUnknown) {
         this.ignoreUnknown = ignoreUnknown;
+    }
+
+    public boolean isIgnoreNullUnknown() {
+        return ignoreNullUnknown;
+    }
+
+    public void setIgnoreNullUnknown(boolean ignoreNullUnknown) {
+        this.ignoreNullUnknown = ignoreNullUnknown;
     }
 }

@@ -37,6 +37,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      extFlags: Ext Flags
       parent: Parent
       parent.deptName: Parent
       manager: Manager
@@ -383,6 +384,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      extFlags: Ext Flags
       dept: Department
       dept.deptName: Department
       relatedDept: Related Department
@@ -441,6 +443,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      extFlags: Ext Flags
       dept: Department
       dept.deptName: Department
       relatedDept: Related Department

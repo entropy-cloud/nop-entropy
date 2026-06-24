@@ -1,2 +1,4 @@
 nop:
   debug: true
+  orm:
+    init-database-schema: true

@@ -116,6 +116,9 @@ public class MapMatchPattern implements IMatchPattern {
                         continue;
 
                     Object value = entry.getValue();
+                    if (value == null && state.isIgnoreNullUnknown())
+                        continue;
+
                     state.enter(name);
                     state.setParent(map);
                     state.setValue(value);
@@ -195,6 +198,9 @@ public class MapMatchPattern implements IMatchPattern {
                         continue;
 
                     Object value = beanModel.getExtProperty(bean, name);
+                    if (value == null && state.isIgnoreNullUnknown())
+                        continue;
+
                     state.enter(name);
                     state.setParent(bean);
                     state.setValue(value);

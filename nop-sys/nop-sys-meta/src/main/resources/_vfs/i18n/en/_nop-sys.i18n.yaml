@@ -4,6 +4,7 @@ entity:
     NopSysCheckerRecord: Maker Checker Record
     NopSysClusterLeader: Cluster Leader
     NopSysCodeRule: Code Rule
+    NopSysCompactExtField: Compact Ext Field
     NopSysDict: Dictionary
     NopSysDictOption: Dictionay Item
     NopSysEvent: System Event
@@ -72,6 +73,21 @@ prop:
       displayName: Display Name
       codePattern: Code Pattern
       seqName: Seq Name
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysCompactExtField:
+      sid: SID
+      entityName: Entity Name
+      propName: Property Name
+      position: Position
+      displayName: Display Name
+      dictName: Dictionary Name
+      defaultValue: Default Value
       delFlag: Deleted
       version: Version
       createdBy: Created By
@@ -261,3 +277,6 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+dict:
+  label:
+    core/sys-event-status: Sys Event Status

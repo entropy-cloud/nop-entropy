@@ -31,6 +31,7 @@ prop:
       deptType: 类型
       deptUsers: 部门用户
       email: 邮件
+      extFlags: 扩展标记
       groupMappings: 分组映射
       manager: 部门负责人
       manager.userName: 部门负责人
@@ -357,6 +358,7 @@ prop:
       email: 邮件
       emailVerified: 邮件已验证
       expireAt: 用户过期时间
+      extFlags: 扩展标记
       gender: 性别
       gender_label: 性别
       groupMappings: 分组映射
@@ -446,6 +448,7 @@ prop:
       email: 邮件
       emailVerified: 邮件已验证
       expireAt: 用户过期时间
+      extFlags: 扩展标记
       gender: 性别
       gender_label: 性别
       groupMappings: 分组映射

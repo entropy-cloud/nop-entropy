@@ -540,6 +540,10 @@
 /nop/sys/model/NopSysCodeRule/NopSysCodeRule.xmeta
 /nop/sys/model/NopSysCodeRule/_NopSysCodeRule.xbiz
 /nop/sys/model/NopSysCodeRule/_NopSysCodeRule.xmeta
+/nop/sys/model/NopSysCompactExtField/NopSysCompactExtField.xbiz
+/nop/sys/model/NopSysCompactExtField/NopSysCompactExtField.xmeta
+/nop/sys/model/NopSysCompactExtField/_NopSysCompactExtField.xbiz
+/nop/sys/model/NopSysCompactExtField/_NopSysCompactExtField.xmeta
 /nop/sys/model/NopSysDict/NopSysDict.xbiz
 /nop/sys/model/NopSysDict/NopSysDict.xmeta
 /nop/sys/model/NopSysDict/_NopSysDict.xbiz
@@ -618,6 +622,11 @@
 /nop/sys/pages/NopSysCodeRule/_gen/_NopSysCodeRule.view.xml
 /nop/sys/pages/NopSysCodeRule/main.page.yaml
 /nop/sys/pages/NopSysCodeRule/picker.page.yaml
+/nop/sys/pages/NopSysCompactExtField/NopSysCompactExtField.lib.xjs
+/nop/sys/pages/NopSysCompactExtField/NopSysCompactExtField.view.xml
+/nop/sys/pages/NopSysCompactExtField/_gen/_NopSysCompactExtField.view.xml
+/nop/sys/pages/NopSysCompactExtField/main.page.yaml
+/nop/sys/pages/NopSysCompactExtField/picker.page.yaml
 /nop/sys/pages/NopSysDict/NopSysDict.lib.js
 /nop/sys/pages/NopSysDict/NopSysDict.lib.xjs
 /nop/sys/pages/NopSysDict/NopSysDict.view.xml

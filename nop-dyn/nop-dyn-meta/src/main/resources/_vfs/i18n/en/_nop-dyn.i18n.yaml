@@ -367,3 +367,10 @@ prop:
       module: Module
       module.displayName: Module
       argsComponent: null
+dict:
+  label:
+    dyn/app-status: App Status
+    dyn/module-status: Module Status
+    dyn/page-schema-type: Page Schema Type
+    dyn/entity-store-type: Entity Store Type
+    dyn/function-type: Function Type

@@ -34,6 +34,7 @@ public class AutoTestMatchChecker {
         MatchState state = new MatchState(value);
         state.setScope(scope);
         state.setErrorCollector(collector);
+        state.setIgnoreNullUnknown(true);
         boolean matched = pattern.matchValue(state, true);
 
         if (!collector.getErrors().isEmpty()) {

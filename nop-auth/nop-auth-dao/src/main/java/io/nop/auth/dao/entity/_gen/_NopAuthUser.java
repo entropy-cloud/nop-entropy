@@ -4,6 +4,7 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
 import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import io.nop.orm.IOrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.orm.support.IOrmCompactExtFieldSupport;
 import io.nop.api.core.convert.ConvertHelper;
 import java.util.Map;
 import java.util.HashMap;
@@ -18,7 +19,7 @@ import io.nop.auth.dao.entity.NopAuthUser;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
-public class _NopAuthUser extends DynamicOrmEntity{
+public class _NopAuthUser extends DynamicOrmEntity implements IOrmCompactExtFieldSupport{
     
     /* 用户ID: USER_ID VARCHAR */
     public static final String PROP_NAME_userId = "userId";
@@ -164,8 +165,12 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 36;
     
+    /* 扩展标记: EXT_FLAGS VARCHAR */
+    public static final String PROP_NAME_extFlags = "extFlags";
+    public static final int PROP_ID_extFlags = 37;
+    
 
-    private static int _PROP_ID_BOUND = 37;
+    private static int _PROP_ID_BOUND = 38;
 
     
     /* relation: 部门 */
@@ -196,7 +201,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[37];
+    private static final String[] PROP_ID_TO_NAME = new String[38];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -308,6 +313,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_extFlags] = PROP_NAME_extFlags;
+          PROP_NAME_TO_ID.put(PROP_NAME_extFlags, PROP_ID_extFlags);
+      
     }
 
     
@@ -418,6 +426,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 扩展标记: EXT_FLAGS */
+    private java.lang.String _extFlags;
     
 
     public _NopAuthUser(){
@@ -600,6 +611,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_extFlags:
+               return getExtFlags();
         
            default:
               return super.orm_propValue(propId);
@@ -972,6 +986,16 @@ public class _NopAuthUser extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_extFlags:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_extFlags));
+               }
+               setExtFlags(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1229,6 +1253,13 @@ public class _NopAuthUser extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_extFlags:{
+               onInitProp(propId);
+               this._extFlags = (java.lang.String)value;
                
                break;
             }
@@ -1919,6 +1950,25 @@ public class _NopAuthUser extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 扩展标记: EXT_FLAGS
+     */
+    public final java.lang.String getExtFlags(){
+         onPropGet(PROP_ID_extFlags);
+         return _extFlags;
+    }
+
+    /**
+     * 扩展标记: EXT_FLAGS
+     */
+    public final void setExtFlags(java.lang.String value){
+        if(onPropSet(PROP_ID_extFlags,value)){
+            this._extFlags = value;
+            internalClearRefs(PROP_ID_extFlags);
             
         }
     }

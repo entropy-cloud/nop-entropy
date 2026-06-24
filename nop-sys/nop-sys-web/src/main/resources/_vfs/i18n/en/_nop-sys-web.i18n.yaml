@@ -16,6 +16,10 @@ site:
       displayName: Modify Code Rule
     FNPT:NopSysCodeRule:query:
       displayName: Query Code Rule
+    FNPT:NopSysCompactExtField:mutation:
+      displayName: Modify Compact Ext Field
+    FNPT:NopSysCompactExtField:query:
+      displayName: Query Compact Ext Field
     FNPT:NopSysDict:mutation:
       displayName: Modify Dictionary
     FNPT:NopSysDict:query:
@@ -76,6 +80,8 @@ site:
       displayName: Cluster Leader
     NopSysCodeRule-main:
       displayName: Code Rule
+    NopSysCompactExtField-main:
+      displayName: Compact Ext Field
     NopSysDict-main:
       displayName: Dictionary
     NopSysDictOption-main:

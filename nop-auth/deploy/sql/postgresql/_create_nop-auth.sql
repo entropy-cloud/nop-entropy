@@ -15,6 +15,7 @@ CREATE TABLE nop_auth_dept(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  ext_flags VARCHAR(10)  ,
   constraint PK_nop_auth_dept primary key (dept_id)
 );
 
@@ -135,6 +136,7 @@ CREATE TABLE nop_auth_user(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  ext_flags VARCHAR(10)  ,
   constraint UK_NOP_AUTH_USER_NAME unique (user_name),
   constraint PK_nop_auth_user primary key (user_id)
 );
@@ -346,6 +348,8 @@ CREATE TABLE nop_auth_group_user(
                     
       COMMENT ON COLUMN nop_auth_dept.remark IS '备注';
                     
+      COMMENT ON COLUMN nop_auth_dept.ext_flags IS '扩展标记';
+                    
       COMMENT ON TABLE nop_auth_position IS '岗位';
                 
       COMMENT ON COLUMN nop_auth_position.position_id IS '主键';
@@ -547,6 +551,8 @@ CREATE TABLE nop_auth_group_user(
       COMMENT ON COLUMN nop_auth_user.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_user.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_auth_user.ext_flags IS '扩展标记';
                     
       COMMENT ON TABLE nop_auth_resource IS '菜单资源';
                 

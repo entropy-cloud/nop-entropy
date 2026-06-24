@@ -337,3 +337,9 @@ prop:
       parentWfVersion: Parent Workflow Version
       parentWfId: Parent Workflow ID
       parentWfStepId: Parent Workflow Step ID
+dict:
+  label:
+    wf/work-status: Work Status
+    wf/wf-step-status: Workflow Step Status
+    wf/wf-status: Workflow Status
+    wf/wf-def-status: Workflow Definition Status

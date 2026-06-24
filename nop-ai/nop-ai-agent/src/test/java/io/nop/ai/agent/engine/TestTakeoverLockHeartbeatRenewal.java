@@ -352,7 +352,7 @@ public class TestTakeoverLockHeartbeatRenewal {
                 noOpToolManager(),
                 store);
         engine.setSessionTakeoverLock(lock);
-        engine.setLockRenewIntervalMs(20L); // first renewal at ~20ms → lease-lost
+        engine.setLockRenewIntervalMs(500L); // first renewal at ~500ms → lease-lost (must be large enough for the worker thread to enter the blocking LLM call under CI load)
 
         long startNs = System.nanoTime();
         CompletableFuture<AgentExecutionResult> future = engine.execute(
@@ -362,7 +362,7 @@ public class TestTakeoverLockHeartbeatRenewal {
         assertTrue(chatEntered.await(30, TimeUnit.SECONDS),
                 "Execution should enter the LLM call");
 
-        // The first heartbeat renewal (at ~20ms) returns false →
+        // The first heartbeat renewal (at ~500ms) returns false →
         // handleLeaseLost → interrupt → blocking call throws → executor
         // aborts. The future must resolve promptly (not hang for 30s).
         AgentExecutionResult result = future.get(60, TimeUnit.SECONDS);

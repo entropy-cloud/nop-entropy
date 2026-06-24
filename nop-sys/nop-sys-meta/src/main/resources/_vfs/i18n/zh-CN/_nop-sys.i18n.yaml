@@ -4,6 +4,7 @@ entity:
     NopSysCheckerRecord: MakerChecker审批记录
     NopSysClusterLeader: 集群选举
     NopSysCodeRule: 编码规则
+    NopSysCompactExtField: 紧凑扩展字段配置
     NopSysDict: 字典表
     NopSysDictOption: 字典明细
     NopSysEvent: 事件队列
@@ -75,6 +76,21 @@ prop:
       name: 名称
       remark: 备注
       seqName: 序列号名称
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysCompactExtField:
+      createTime: 创建时间
+      createdBy: 创建人
+      defaultValue: 默认值
+      delFlag: 删除标识
+      dictName: 字典名
+      displayName: 显示名
+      entityName: 实体名
+      position: 位置
+      propName: 属性名
+      remark: 备注
       sid: 主键
       updateTime: 修改时间
       updatedBy: 修改人

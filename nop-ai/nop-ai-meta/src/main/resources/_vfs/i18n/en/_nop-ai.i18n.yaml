@@ -383,3 +383,20 @@ prop:
       updateTime: Update Time
       session: null
       dependsOnComponent: null
+dict:
+  label:
+    ai/message-type: Message Type
+    ai/project-language: Project Language
+    ai/rule-type: Rule Type
+    ai/config-type: Config Type
+    ai/model-provider: Model Provider
+    ai/requirement-type: Requirement Type
+    ai/status-type: Status Type
+    ai/file-format: File Format
+    ai/module-type: Module Type
+    ai/session-status: Session Status
+    ai/todo-status: Todo Status
+    ai/todo-priority: Todo Priority
+    ai/input-delivery: Input Delivery
+    ai/event-type: Event Type
+    ai/compaction-type: Compaction Type

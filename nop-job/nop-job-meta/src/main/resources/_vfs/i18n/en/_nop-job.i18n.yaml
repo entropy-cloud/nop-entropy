@@ -129,3 +129,19 @@ prop:
       progress: Progress
       progressMessage: Progress Message
       targetHost: Target Host
+dict:
+  label:
+    job/schedule-status: Schedule Status
+    job/fire-status: Fire Status
+    job/task-status: Task Status
+    job/trigger-source: Trigger Source
+    job/executor-kind: Executor Kind
+    job/block-strategy: Block Strategy
+    job/trigger-type: Trigger Type
+dict.option.label:
+  job/task-status:
+    '15': Suspicious
+  job/executor-kind:
+    test: Test Executor
+    rpc: RPC Executor
+    rpcBroadcast: RPC Broadcast Executor

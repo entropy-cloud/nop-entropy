@@ -253,6 +253,24 @@ CREATE TABLE nop_sys_tag(
   constraint PK_nop_sys_tag primary key (SID)
 );
 
+CREATE TABLE nop_sys_compact_ext_field(
+  SID VARCHAR2(32) NOT NULL ,
+  ENTITY_NAME VARCHAR2(200) NOT NULL ,
+  PROP_NAME VARCHAR2(100) NOT NULL ,
+  POSITION INTEGER NOT NULL ,
+  DISPLAY_NAME VARCHAR2(100)  ,
+  DICT_NAME VARCHAR2(150)  ,
+  DEFAULT_VALUE VARCHAR2(10)  ,
+  DEL_FLAG SMALLINT NOT NULL ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_sys_compact_ext_field primary key (SID)
+);
+
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR2(32) NOT NULL ,
   DICT_ID VARCHAR2(32) NOT NULL ,
@@ -702,6 +720,36 @@ CREATE TABLE nop_sys_obj_tag(
       COMMENT ON COLUMN nop_sys_tag.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_sys_tag.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_sys_compact_ext_field IS '紧凑扩展字段配置';
+                
+      COMMENT ON COLUMN nop_sys_compact_ext_field.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.ENTITY_NAME IS '实体名';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.PROP_NAME IS '属性名';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.POSITION IS '位置';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.DICT_NAME IS '字典名';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.DEFAULT_VALUE IS '默认值';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.DEL_FLAG IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_sys_compact_ext_field.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
                 

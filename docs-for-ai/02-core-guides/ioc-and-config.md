@@ -131,6 +131,64 @@ java -Dquarkus.profile=dev \
 7. `_service.beans.xml` 这类生成文件通常是被 `app-service.beans.xml` 导入，而不是自己被自动发现。
 8. **所有以 `_` 开头的文件都是 codegen 管线自动生成的，不允许手动修改**。包括但不限于 `_service.beans.xml`、`_dao.beans.xml`、`_app.orm.xml`、`_gen/*.java` 等。如需定制 IoC 注册，修改对应的非下划线文件（如 `app-service.beans.xml`）。如需添加新 BizModel 但 `codegen` 尚未生成，在 `app-service.beans.xml` 中手动添加 bean 定义。
 
+## `<ioc:collect-beans>`：按类型/注解自动收集 Bean
+
+Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式地收集容器中所有符合条件的 bean，无需手写 `@Inject List<T>`。
+
+### 基本用法
+
+```xml
+<bean id="myRegistry" class="...MyRegistry">
+    <property name="providers">
+        <!-- 按接口类型收集所有实现 -->
+        <ioc:collect-beans by-type="io.nop.erp.api.IErpFinAcctDocProvider"/>
+    </property>
+    <property name="listeners">
+        <!-- 按注解收集所有标注了 @MyAnnotation 的 bean -->
+        <ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel"/>
+    </property>
+</bean>
+```
+
+### 属性说明
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `by-type` | class-name | 空 | 按接口/父类类型收集所有匹配的 bean |
+| `by-annotation` | class-name | 空 | 按注解类型收集所有标注该注解的 bean |
+| `only-concrete-classes` | boolean | false | 为 true 时忽略抽象类和接口代理 |
+| `as-map` | boolean | false | 为 true 时返回 Map（key=bean id），为 false 时返回 List |
+| `name-prefix` | string | 空 | 按 bean id 前缀过滤 |
+| `include-tag` | word-set | 空 | 只收集包含指定 tag 的 bean |
+| `exclude-tag` | word-set | 空 | 排除包含指定 tag 的 bean |
+| `ioc:ignore-depends` | boolean | false | 为 true 时忽略依赖检查（用于打破循环依赖） |
+
+### 排序规则
+
+当 `as-map="false"`（默认）时，收集结果按每个 bean 定义上的 **`ioc:sort-order`** 属性升序排序，默认值为 `100`。
+
+```xml
+<bean id="myFirstInitializer" class="..." ioc:sort-order="90"/>
+<bean id="mySecondInitializer" class="..."/>  <!-- 默认 100 -->
+<!-- 收集结果：myFirstInitializer(90) → mySecondInitializer(100) -->
+```
+
+当 `as-map="true"` 时，结果为 `LinkedHashMap`，按 bean 注册顺序排列（不排序）。
+
+### 仓库中的典型用法
+
+```xml
+<!-- 收集所有 BizModel（biz-defaults.beans.xml） -->
+<ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel"
+                   ioc:ignore-depends="true" only-concrete-classes="true"/>
+
+<!-- 收集所有 ORM 拦截器（orm-defaults.beans.xml） -->
+<ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>
+
+<!-- 收集所有工具执行器（ai-tools-defaults.beans.xml） -->
+<ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolExecutor"/>
+```
+
 ## 不要默认传播的模式
 
 1. Spring `@Value`

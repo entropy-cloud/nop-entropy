@@ -133,3 +133,6 @@ prop:
       ruleMatch: Rule Match
       outputs: Outputs
       logMessages: Log Messages
+dict:
+  label:
+    rule/rule-type: Rule Type
