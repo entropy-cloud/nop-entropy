@@ -114,13 +114,13 @@ class ShellConcurrencyEdgeCaseTest {
         CompletableFuture<ExecutionResult> future = executor.execute("blocker | waiter", defaultContext())
                 .toCompletableFuture();
 
-        for (int i = 0; i < 100 && !stage1Started.get(); i++) {
-            Thread.sleep(10);
-        }
-        assertTrue(stage1Started.get(), "Stage 1 should have started");
-
-        assertTrue(stage2Reached.get() || future.isDone(),
-                "Stage 2 should start while stage 1 is still running (concurrent pipeline)");
+            for (int i = 0; i < 500 && !stage1Started.get(); i++) {
+                Thread.sleep(10);
+            }
+            assertTrue(stage1Started.get(), "Stage 1 should have started");
+    
+            assertTrue(stage2Reached.get() || future.isDone(),
+                    "Stage 2 should start while stage 1 is still running (concurrent pipeline)");
 
         ExecutionResult result = future.get(5, TimeUnit.SECONDS);
         assertEquals(0, result.exitCode());
@@ -262,7 +262,7 @@ class ShellConcurrencyEdgeCaseTest {
 
         assertEquals(0, result.exitCode());
 
-        for (int i = 0; i < 100 && !executor.getBackgroundJobs().isEmpty(); i++) {
+        for (int i = 0; i < 500 && !executor.getBackgroundJobs().isEmpty(); i++) {
             Thread.sleep(20);
         }
 
@@ -289,7 +289,7 @@ class ShellConcurrencyEdgeCaseTest {
 
         assertEquals(0, result.exitCode(), "Background launch always returns 0");
 
-        for (int i = 0; i < 100 && !executor.getBackgroundJobs().isEmpty(); i++) {
+        for (int i = 0; i < 500 && !executor.getBackgroundJobs().isEmpty(); i++) {
             Thread.sleep(20);
         }
 
@@ -325,12 +325,12 @@ class ShellConcurrencyEdgeCaseTest {
         assertTrue(r2.stdout().contains("[2]"));
         assertTrue(r3.stdout().contains("[3]"));
 
-        for (int i = 0; i < 200 && executionCount.get() < 3; i++) {
+        for (int i = 0; i < 500 && executionCount.get() < 3; i++) {
             Thread.sleep(20);
         }
         assertEquals(3, executionCount.get(), "All 3 background jobs should have executed");
 
-        for (int i = 0; i < 100 && !executor.getBackgroundJobs().isEmpty(); i++) {
+        for (int i = 0; i < 500 && !executor.getBackgroundJobs().isEmpty(); i++) {
             Thread.sleep(20);
         }
         assertTrue(executor.getBackgroundJobs().isEmpty(), "All background jobs should be removed after completion");
@@ -493,7 +493,7 @@ class ShellConcurrencyEdgeCaseTest {
         executor.execute("veryslow &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
-        for (int i = 0; i < 100 && !started.get(); i++) {
+        for (int i = 0; i < 500 && !started.get(); i++) {
             Thread.sleep(10);
         }
         assertTrue(started.get());

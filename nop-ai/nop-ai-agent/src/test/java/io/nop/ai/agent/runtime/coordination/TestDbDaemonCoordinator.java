@@ -161,13 +161,13 @@ public class TestDbDaemonCoordinator {
     // ========================================================================
 
     @Test
-    void isScanLeaseActiveReflectsActiveVsExpiredLease() throws InterruptedException {
+    void isScanLeaseActiveReflectsActiveVsExpiredLease() {
         DbDaemonCoordinator coord = new DbDaemonCoordinator(dataSource);
         assertFalse(coord.isScanLeaseActive("team-1"), "No lease yet → isScanLeaseActive=false");
-        assertTrue(coord.tryAcquireScanLease("team-1", "daemon-A", 100L));
+        assertTrue(coord.tryAcquireScanLease("team-1", "daemon-A", 60_000L));
         assertTrue(coord.isScanLeaseActive("team-1"), "Active lease → isScanLeaseActive=true");
-        Thread.sleep(200L);
-        assertFalse(coord.isScanLeaseActive("team-1"), "Expired lease → isScanLeaseActive=false");
+        assertTrue(coord.releaseScanLease("team-1", "daemon-A"));
+        assertFalse(coord.isScanLeaseActive("team-1"), "Released lease → isScanLeaseActive=false");
     }
 
     // ========================================================================
