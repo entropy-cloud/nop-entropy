@@ -39,6 +39,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-core/` | Core Reflection & Type System | [README](nop-core/README.md) | active — record 类型支持设计 |
 | `nop-ai-shell/` | AI Shell Command Execution | [README](nop-ai-shell/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / IO & Pipeline / Executor & Async / Bash Syntax). Supports optional fallback to OS shell via `nop-shell` |
 | `nop-nosql/` | NoSQL Data Access | [README](nop-nosql/README.md) | active — business-semantic NoSQL abstraction, Redis driver comparison |
+| `xlang-scope-access-design.md` | XLang Scope 变量显式访问 | — | active — `$scope.x` / `$scope.x = expr` 语法决策与局部实现锚点 |
 | `crud/` | CRUD Relation Write Mode | *(not yet created)* | active |
 | `crud/crud-api-codegen-design.md` | CRUD API 代码生成 | — | 草案 — ICrudApi 泛型接口 + codegen 模板 + Input/Output 决策 |
 | `word-editor/` | Online Word Editor Model | *(not yet created)* | active |

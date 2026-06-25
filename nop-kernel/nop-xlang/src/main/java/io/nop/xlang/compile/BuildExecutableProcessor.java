@@ -1055,8 +1055,18 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
     private IExecutableExpression buildMemberAssign(XLangASTNode node, MemberExpression left, XLangOperator operator,
                                                     IExecutableExpression expr, IXLangCompileScope context) {
         Expression owner = left.getObject();
-        IExecutableExpression ownerExpr = processNotNullAST(owner, context);
         Expression id = left.getProperty();
+
+        if (!left.getComputed() && isScopeVarAccess(owner)) {
+            String name = ((Identifier) id).getName();
+            if (operator == XLangOperator.ASSIGN) {
+                return new ScopeAssignExecutable(node.getLocation(), name, notNull(expr));
+            } else {
+                return ScopeSelfAssignExecutable.build(node.getLocation(), name, operator, notNull(expr));
+            }
+        }
+
+        IExecutableExpression ownerExpr = processNotNullAST(owner, context);
         if (!left.getComputed()) {
             String name = ((Identifier) id).getName();
             if (operator == XLangOperator.ASSIGN) {
@@ -1129,8 +1139,20 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
         return BinaryExecutable.valueOf(node.getLocation(), node.getOperator(), leftExpr, rightExpr);
     }
 
+    private boolean isScopeVarAccess(Expression expr) {
+        if (expr.getASTKind() != XLangASTKind.Identifier) {
+            return false;
+        }
+        return XLangConstants.SYS_VAR_SCOPE.equals(((Identifier) expr).getName());
+    }
+
     @Override
     public IExecutableExpression processMemberExpression(MemberExpression node, IXLangCompileScope context) {
+        if (!node.getComputed() && isScopeVarAccess(node.getObject())) {
+            String varName = ((Identifier) node.getProperty()).getName();
+            return new ScopeIdentifierExecutable(node.getLocation(), varName);
+        }
+
         if (isClassRef(node.getObject())) {
             IClassModel classModel = getRefClass((Identifier) node.getObject());
             if (node.getComputed()) {
