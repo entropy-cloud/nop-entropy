@@ -63,11 +63,15 @@
 |------|------|------|
 | dict name | `{模块简称}/{kebab-case名称}` | `job/schedule-status` |
 | dict option code | UPPER_SNAKE_CASE | `RUNNING`, `AUTO_CANCEL` |
-| dict option value | 整数 10/20/30 递增 | `10`, `20`, `30` |
-| dict valueType | `int`（状态/枚举字段统一） | — |
+| dict option value | 推荐语义字符串（如 `"ENABLED"`），允许传统整数 10/20/30 递增 | `"ENABLED"`, `"DRAFT"` |
+| dict valueType | **推荐 `string`**（新模块优先），允许 `int`（已有模块兼容） | — |
 | 字段引用 | `ext:dict="{模块简称}/{kebab-case名称}"` | `ext:dict="job/schedule-status"` |
 | 禁止 | boolean 型字段不设 dict | — |
 
+> **选择指引**：
+> - **新模块 / 新字段优先使用 `valueType="string"`**，数据库列对应 `VARCHAR`。值使用语义完整的英文单词（如 `"ENABLED"`、`"DRAFT"`、`"APPROVED"`），提升代码自描述性和 SQL 可读性。
+> - **已有模块可继续使用 `valueType="int"`**，数据库列对应 `INTEGER`，值使用步进整数（10/20/30...）。如需迁移，应作为全模块改造计划统一执行。
+>
 > **关键约束**：dict name 斜杠后的部分**必须用 kebab-case**（如 `schedule-status`），不能用 snake_case（如 ~~`schedule_status`~~）。全平台无一例外。
 
 ### Domain

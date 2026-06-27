@@ -61,7 +61,7 @@
 
 | 反模式 | 默认替代做法 |
 |--------|-------------|
-| `System.currentTimeMillis()` / `System.nanoTime()` | `CoreMetrics.currentTimeMillis()` / `CoreMetrics.nanoTime()` |
+| `System.currentTimeMillis()` / `System.nanoTime()` / `LocalDateTime.now()` / `LocalDate.now()` / `new Date()` / `new Timestamp(...)` | 对应 `CoreMetrics.currentTimeMillis()` / `CoreMetrics.nanoTime()` / `CoreMetrics.currentDateTime()` / `CoreMetrics.currentDate()`（别名 `today()`）/ `CoreMetrics.currentTimestamp()`。**所有获取当前时间的写法一律走 `CoreMetrics`**，否则自外于 `IClock` 时间线（autotest 注入的 `TestClock` 保证时间戳单调递增、与 ORM 自动 `createTime`/`updateTime` 同源；混用 `LocalDateTime.now()` 等会读到不同时钟，导致过期/调度类查询在测试里 `count=0`、在生产埋下时钟不一致）。详见 `04-reference/common-java-helpers.md` |
 | 手写 JSON 拼接 / 引入第三方 JSON 库 | `JsonTool.stringify()` / `JsonTool.parseMap()` |
 | 手写字符串工具逻辑 / Apache Commons `StringUtils` | `StringHelper`（`isBlank`、`join`、`splitToArray` 等） |
 | 手写日期解析格式化 | `DateHelper`（`parseDate`、`formatDate` 等） |

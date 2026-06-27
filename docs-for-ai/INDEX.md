@@ -147,7 +147,11 @@
 | 查询安全 API | `04-reference/safe-api-reference.md` |
 | **选择可复用业务模块** | **`03-modules/reusable-modules-overview.md`**（总览 + 场景→模块路由） |
 | 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md`（多租户核心机制见 `02-core-guides/tenant-model.md`） |
-| 理解 nop-sys（字典/序列号/锁/事件） | `03-modules/nop-sys.md` |
+| 理解 nop-sys（字典/序列号/编码规则/锁/事件） | `03-modules/nop-sys.md` |
+| **生成业务编码 / 单据编号（CodeRule）** | **`03-runbooks/generate-business-code.md`**（模式 `{@year}{@seq:5}` + `tagSet="code"` autoExpr 自动集成 + Sequence 并发模型） |
+| **记录字段级变更日志 / 字段级审计** | **`03-runbooks/audit-field-changes.md`**（实体加 `tagSet="audit"` 自动记 old→new 到 `NopSysChangeLog`，默认启用） |
+| **用 ORM 拦截器实现应用层 trigger / 拦截所有写路径** | **`03-runbooks/orm-interceptor-trigger.md`**（`IOrmInterceptor` + `orm-interceptor.xml` 配置式回调，trigger 概念与选型） |
+| **生成报表 / 单据打印（含套打）** | **`03-runbooks/generate-report.md`**（XPT 单元格展开语法 + 数据集 + 三种输出 xlsx/pdf/html + 套打 `ExcelImage.print=false` + 调用范例） |
 | 理解 nop-report（报表引擎） | `03-modules/nop-report.md` |
 | 理解 nop-rule（规则引擎） | `03-modules/nop-rule.md` |
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |

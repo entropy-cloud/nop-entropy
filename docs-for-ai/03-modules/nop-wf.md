@@ -61,3 +61,4 @@ nop-wf 是独立工作流引擎，不依赖 nop-task。
 
 - `../nop-task.md`
 - `../reusable-modules-overview.md`
+- 审批流设计文档见 ai-dev/design/nop-wf/approval-flow-design.md（串签/并签/会签/条件路由/驳回等模式映射，仅平台开发者参考）

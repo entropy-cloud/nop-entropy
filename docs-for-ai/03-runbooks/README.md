@@ -25,6 +25,7 @@
 | `create-new-entity.md` | 新建实体 |
 | `add-field-and-validation.md` | 新增字段与校验 |
 | `add-dict-and-constants.md` | 新增字典与常量 |
+| `generate-business-code.md` | 生成业务编码 / 单据编号（CodeRule + Sequence） |
 | `change-model-and-regenerate.md` | 模型变更后重新生成 |
 | `debug-codegen-and-generated-files.md` | 调试生成链路与生成文件 |
 
@@ -38,6 +39,9 @@
 | `implement-complex-business-flow.md` | 实现多步骤复杂业务流程 |
 | `custom-query-with-querybean.md` | 自定义查询 |
 | `extend-crud-with-hooks.md` | 扩展 CRUD 钩子 |
+| `audit-field-changes.md` | 记录字段级变更日志（实体加 `tagSet="audit"`） |
+| `orm-interceptor-trigger.md` | 用 ORM 拦截器实现应用层 trigger（IOrmInterceptor / orm-interceptor.xml） |
+| `generate-report.md` | 生成报表 / 单据打印（XPT 模板 + 三种输出 + 套打） |
 | `add-bizloader-field.md` | 给返回类型新增 BizLoader 字段 |
 | `extend-api-with-delta-bizloader.md` | 用 Delta 扩展既有 API 字段 |
 | `create-request-response-dto.md` | 创建 Request / Response DTO |

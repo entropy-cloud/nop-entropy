@@ -66,7 +66,7 @@
 
 | # | 检查项 | 通过条件 |
 |---|--------|---------|
-| 18 | 是否用了 `System.currentTimeMillis()`？ | 否 → 通过。是 → **改为 `CoreMetrics.currentTimeMillis()`** |
+| 18 | 是否用了 `System.currentTimeMillis()` / `System.nanoTime()` / `LocalDateTime.now()` / `LocalDate.now()` / `new Date()` / `new Timestamp(...)`？ | 否 → 通过。是 → **按返回类型改为对应的 `CoreMetrics` 方法**（`currentTimeMillis`/`nanoTime`/`currentDateTime`/`currentDate`/`currentTimestamp`，详见 `common-java-helpers.md`）。所有获取当前时间的写法都必须走 `CoreMetrics`，否则自外于 `IClock`/`TestClock` 时间线，导致与 ORM 自动时间戳不同源 |
 | 19 | 是否用了第三方 JSON 库？ | 否 → 通过。是 → **改为 `JsonTool`** |
 | 20 | 是否用了 `Apache Commons StringXxx`？ | 否 → 通过。是 → **改为 `StringHelper`** |
 

@@ -4,15 +4,23 @@
 
 全功能报表引擎，支持类 Excel 报表定义、多格式输出。
 
-- 报表定义管理（rptText 存储 XML/JSON 模型）
-- 多数据源支持（SQL、文件）
-- 数据集定义与子数据集关联
-- 输出格式：XLSX、PDF、DOCX
-- 角色级报表访问权限
+- 报表模板是 Excel 工作簿（`.xpt.xlsx`/`.xpt.xml`），用 Excel 思维设计（格子 + 展开 + 公式），不写代码
+- **三种输出载体**：XLSX、PDF（PDFBox 直接渲染）、HTML（屏幕预览）—— 均可作打印载体
+- **套打**：背景图（`ExcelImage.print=false`）屏幕可见、打印隐藏，动态文字对位填表单
+- 数据集支持程序构造 / 原生 SQL / ORM / query-bean（`xpt-rt.xlib` 标签）
+- 角色级报表与数据源访问权限
 - 报表结果文件缓存
-- 数据源权限控制
+- 可从导入模板（Excel + `imp.xml`）自动生成报表模型
+
+## 主要能力入口
+
+| 能力 | 怎么做 | 入口 |
+|------|--------|------|
+| **生成报表 / 单据打印（含套打）** | 注入 `IReportEngine`，`getRenderer(path, renderType)` 渲染 xlsx/pdf/html | **`../03-runbooks/generate-report.md`**（XPT 单元格语法 / 数据集 / 套打 / 调用范例 / imp 模板自动生成） |
 
 ## 核心实体
+
+> 运行时管理的报表（通过 CRUD 页面定义数据集/数据源）：实体表见下。**渲染入口不是这些 CRUD BizModel，而是 `IReportEngine`**（见上方 runbook）。
 
 | 实体 | 表名 | 用途 |
 |------|------|------|
@@ -24,14 +32,6 @@
 | NopReportDatasource | `nop_report_datasource` | 数据源定义 |
 | NopReportDatasourceAuth | `nop_report_datasource_auth` | 数据源权限（按角色） |
 | NopReportResultFile | `nop_report_result_file` | 缓存的报表结果文件 |
-
-## 使用方式
-
-1. 在管理页面定义数据源（支持 SQL 类型、文件类型）
-2. 创建数据集，配置查询语句
-3. 创建报表定义，设计报表布局（Excel 风格）
-4. 配置角色访问权限
-5. 通过 API 或页面渲染报表
 
 ## 子模块
 
