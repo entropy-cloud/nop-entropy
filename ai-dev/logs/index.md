@@ -13,6 +13,7 @@ ai-dev/logs/
 ├── index.md
 ├── 00-log-writing-guide.md
 └── 2026/
+    ├── 06-26.md
     ├── 05-25.md
     ├── 05-24.md
     ├── 05-23.md
