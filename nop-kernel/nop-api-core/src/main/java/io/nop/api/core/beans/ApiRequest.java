@@ -138,4 +138,29 @@ public final class ApiRequest<T> extends ApiMessage {
             this.properties = new HashMap<>(this.properties);
         return ret;
     }
+
+    // ApiMessage 默认 toString() 只输出对象 hash，调用方拼 "..." + request 时看不到 data/属性/headers。
+    // 这里暴露核心字段，便于调试与日志排查。
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ApiRequest[");
+        if (data != null) {
+            // data 可能是整棵请求体，截断避免日志爆炸。需查看完整内容请用 JsonTool.stringify
+            sb.append("data=").append(truncate(data, 200));
+        }
+        if (selection != null) {
+            if (sb.length() > "ApiRequest[".length())
+                sb.append(",");
+            sb.append("selection=").append(selection);
+        }
+        if (properties != null) {
+            if (sb.length() > "ApiRequest[".length())
+                sb.append(",");
+            sb.append("properties=").append(properties);
+        }
+        appendHeaders(sb);
+        sb.append("]");
+        return sb.toString();
+    }
 }

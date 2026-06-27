@@ -258,4 +258,31 @@ public final class ApiResponse<T> extends ApiMessage {
     public void setWrapper(boolean wrapper) {
         this.wrapper = wrapper;
     }
+
+    // ApiMessage 默认 toString() 只输出对象 hash，失败时调用方拼 "..." + response 只能看到
+    // ApiResponse@hash，真正的 msg/code/errors 完全不可见，调试/日志排查极困难。这里暴露核心字段。
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ApiResponse[status=").append(status);
+        if (httpStatus != 0) {
+            sb.append(",httpStatus=").append(httpStatus);
+        }
+        if (code != null) {
+            sb.append(",code=").append(code);
+        }
+        if (msg != null) {
+            sb.append(",msg=").append(msg);
+        }
+        if (errors != null) {
+            sb.append(",errors=").append(errors);
+        }
+        if (data != null) {
+            // data 可能是整棵订单树/大列表，截断避免日志爆炸。需查看完整内容请用 JsonTool.stringify
+            sb.append(",data=").append(truncate(data, 200));
+        }
+        appendHeaders(sb);
+        sb.append("]");
+        return sb.toString();
+    }
 }

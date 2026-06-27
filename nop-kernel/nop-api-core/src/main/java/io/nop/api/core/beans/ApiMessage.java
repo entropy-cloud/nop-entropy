@@ -119,4 +119,28 @@ public abstract class ApiMessage implements Serializable, ICloneable {
     public abstract Object getData();
 
     public abstract ApiMessage cloneInstance(boolean includeHeaders);
+
+    // 默认 toString() 只输出对象 hash，错误/调试信息完全不可见。子类应重写 toString() 暴露核心字段，
+    // 并通过此方法统一附加 headers，避免散落的拼接逻辑。
+
+    /**
+     * 将 headers 以 ",headers={k=v,...}" 形式追加到 sb。仅在存在 header 时追加，避免无 header 时产生噪音。
+     */
+    protected void appendHeaders(StringBuilder sb) {
+        if (hasHeaders()) {
+            sb.append(",headers=").append(getHeadersOrNull());
+        }
+    }
+
+    /**
+     * 对可能很大的字段（如 data）做定长截断，避免日志爆炸。超长部分以 "..." 标记。
+     */
+    protected static String truncate(Object value, int maxLen) {
+        if (value == null)
+            return null;
+        String s = String.valueOf(value);
+        if (s.length() <= maxLen)
+            return s;
+        return s.substring(0, maxLen) + "...(" + s.length() + ")";
+    }
 }
