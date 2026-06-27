@@ -82,22 +82,22 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
 
     @Test
     void testPause_shouldSucceedForPendingRecord() {
-        NopRetryRecord record = createTestRecord("record-1", RETRY_RECORD_STATUS_PENDING);
+        NopRetryRecord record = createTestRecord("pause-record", RETRY_RECORD_STATUS_PENDING);
         recordStore.saveRecord(record);
 
-        retryEngine.pause("record-1");
+        retryEngine.pause("pause-record");
 
-        assertEquals(RETRY_RECORD_STATUS_SUSPENDED, recordStore.loadRecord("record-1").getStatus());
+        assertEquals(RETRY_RECORD_STATUS_SUSPENDED, recordStore.loadRecord("pause-record").getStatus());
     }
 
     @Test
     void testResume_shouldSucceedForSuspendedRecord() {
-        NopRetryRecord record = createTestRecord("record-1", RETRY_RECORD_STATUS_SUSPENDED);
+        NopRetryRecord record = createTestRecord("resume-record", RETRY_RECORD_STATUS_SUSPENDED);
         recordStore.saveRecord(record);
 
-        retryEngine.resume("record-1");
+        retryEngine.resume("resume-record");
 
-        NopRetryRecord resumed = recordStore.loadRecord("record-1");
+        NopRetryRecord resumed = recordStore.loadRecord("resume-record");
         assertEquals(RETRY_RECORD_STATUS_PENDING, resumed.getStatus());
         assertNotNull(resumed.getNextTriggerTime());
     }
