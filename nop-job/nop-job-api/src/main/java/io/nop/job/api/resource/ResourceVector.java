@@ -1,5 +1,8 @@
 package io.nop.job.api.resource;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.nop.api.core.annotations.data.DataBean;
+
 import java.util.Objects;
 
 /**
@@ -17,6 +20,7 @@ import java.util.Objects;
  * <p>缺失维度按 0 处理（向后兼容未配置的任务/worker）：cost=0 的任务 always fit，
  * capacity=MAX_VALUE 的 worker 退化为 count-based 行为。
  */
+@DataBean
 public final class ResourceVector {
 
     /**
@@ -33,7 +37,7 @@ public final class ResourceVector {
     private final int cpu;
     private final int memory;
 
-    public ResourceVector(int cpu, int memory) {
+    public ResourceVector(@JsonProperty("cpu") int cpu, @JsonProperty("memory") int memory) {
         this.cpu = cpu;
         this.memory = memory;
     }
