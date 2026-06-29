@@ -1,5 +1,9 @@
 <c:script xpl:ignoreTag="true">
+// CRUD API generation is disabled by default.
+// To enable, uncomment the following code or pass generateCrudApi=true.
+/*
 codeGenerator.withTplDir('/nop/templates/crud-api')
     .withTargetDir("../${appName}-api/src/main/java")
     .execute("/", { moduleId: "${moduleId}", apiPackageName: "${basePackageName}.api" }, $scope);
+*/
 </c:script>
