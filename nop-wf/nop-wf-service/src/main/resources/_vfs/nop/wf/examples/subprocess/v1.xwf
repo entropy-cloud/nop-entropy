@@ -5,8 +5,8 @@
     <description>子流程：人事审批后调用工作交接子流程，子流程完成后由主管确认</description>
 
     <start startStepName="submit">
-        <arg name="employeeId" type="String" displayName="员工ID"/>
-        <arg name="handoverItems" type="String" displayName="交接事项"/>
+        <arg name="employeeId" type="String" persist="true" displayName="员工ID"/>
+        <arg name="handoverItems" type="String" persist="true" displayName="交接事项"/>
     </start>
 
     <end/>
@@ -18,9 +18,6 @@
                     <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="hr-approval"/>
             </transition>
@@ -32,10 +29,6 @@
                     <actor actorModelId="hr" actorType="role" actorId="hr-manager" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
-            </ref-actions>
             <!-- splitType="or": only the FIRST matching branch is taken.
                  If handoverItems is non-empty, go to sub-flow; otherwise skip directly to manager-confirm.
                  Note: handoverItems is String type, so we use string-length check. -->
@@ -61,7 +54,7 @@
                 <!-- Capture sub-flow output -->
                 <return var="handoverResult" output="result"/>
             </start>
-            <transition onAppStates="agree" splitType="and">
+            <transition splitType="and">
                 <to-step stepName="manager-confirm"/>
             </transition>
         </flow>
@@ -73,10 +66,6 @@
                            wf:upLevel="1"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-end/>
             </transition>

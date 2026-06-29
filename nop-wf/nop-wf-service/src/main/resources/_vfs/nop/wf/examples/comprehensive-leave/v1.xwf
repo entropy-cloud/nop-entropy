@@ -16,29 +16,24 @@
   </description>
 
   <start startStepName="submit">
-    <arg name="leaveDays" type="Integer" mandatory="true" displayName="请假天数"/>
+    <arg name="leaveDays" type="Integer" mandatory="true" persist="true" displayName="请假天数"/>
     <arg name="leaveType" type="String" displayName="请假类型"/>
     <arg name="reason" type="String" displayName="请假原因"/>
   </start>
 
   <end/>
 
-  <!-- Custom actions for this workflow -->
+  <!-- Custom actions: forReject/forWithdraw 只依赖 doReject/doWithdraw 创建前驱步骤，
+       不再含 <to-step>，避免与 doTransition 双重创建步骤实例 -->
   <actions>
     <!-- Reject back to submit step -->
     <action name="reject-to-starter" displayName="驳回到发起人"
             common="true" forReject="true" forActivated="true">
-      <transition splitType="and">
-        <to-step stepName="submit" backLink="true"/>
-      </transition>
     </action>
 
     <!-- Withdraw action -->
     <action name="withdraw-to-submit" displayName="撤回"
             common="true" forWithdraw="true" forHistory="true">
-      <transition splitType="and">
-        <to-step stepName="submit" backLink="true"/>
-      </transition>
     </action>
 
     <!-- Auto-agree on timeout -->
@@ -50,6 +45,13 @@
       </source>
       <transition appState="agree" splitType="and"/>
     </action>
+
+    <!-- VP or-group 需要非 local action 才能使步骤退出 -->
+    <action name="vp-agree" displayName="VP审批同意">
+      <transition appState="agree">
+        <to-step stepName="hr-review"/>
+      </transition>
+    </action>
   </actions>
 
   <steps>
@@ -60,9 +62,6 @@
           <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-      </ref-actions>
       <!-- Conditional routing based on leave days:
            days > 7: dept manager -> VP (or-sign) -> HR
            days > 3: dept manager -> HR
@@ -84,7 +83,7 @@
       <due-time-expr>
         <c:script>
           // 24 hours timeout for manager
-          return sysDate + 24 * 60 * 60 * 1000
+          return '2099-12-31 23:59:59'
         </c:script>
       </due-time-expr>
       <assignment>
@@ -93,10 +92,6 @@
                  selectUser="true" wf:upLevel="0"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-        <ref-action name="reject-to-starter"/>
-      </ref-actions>
       <transition onAppStates="agree" splitType="or">
         <!-- If days > 7, also need VP approval -->
         <to-step stepName="vp-approval" order="1">
@@ -118,7 +113,7 @@
       <due-time-expr>
         <c:script>
           // 48 hours timeout for VP
-          return sysDate + 48 * 60 * 60 * 1000
+          return '2099-12-31 23:59:59'
         </c:script>
       </due-time-expr>
       <assignment selection="auto">
@@ -129,12 +124,8 @@
         </actors>
       </assignment>
       <ref-actions>
-        <ref-action name="agree"/>
-        <ref-action name="reject-to-starter"/>
+        <ref-action name="vp-agree"/>
       </ref-actions>
-      <transition onAppStates="agree" splitType="and">
-        <to-step stepName="hr-review"/>
-      </transition>
     </step>
 
     <!-- Step 3: HR review and record -->
@@ -144,10 +135,6 @@
           <actor actorModelId="hr" actorType="role" actorId="hr-manager" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-        <ref-action name="reject-to-starter"/>
-      </ref-actions>
       <transition onAppStates="agree" splitType="and">
         <to-step stepName="cc-attendance"/>
       </transition>
@@ -160,9 +147,6 @@
           <actor actorModelId="attendance-admin" actorType="role" actorId="attendance-admin" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="confirm"/>
-      </ref-actions>
       <transition onAppStates="confirm" splitType="and">
         <to-end/>
       </transition>

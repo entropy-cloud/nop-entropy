@@ -10,20 +10,15 @@
 
     <end/>
 
-    <!-- Custom reject actions with explicit targets (overrides oa.xwf default reject) -->
+    <!-- Custom reject actions: forReject/forWithdraw 只依赖 doReject/doWithdraw 创建前驱步骤，
+         不再含 <to-step>，避免与 doTransition 双重创建步骤实例 -->
     <actions>
         <action name="reject-to-start" displayName="驳回到发起人" common="true" forReject="true"
                 forActivated="true">
-            <transition splitType="and">
-                <to-step stepName="submit" backLink="true"/>
-            </transition>
         </action>
 
         <action name="withdraw" displayName="撤回" common="true" forWithdraw="true"
                 forHistory="true">
-            <transition splitType="and">
-                <to-step stepName="submit" backLink="true"/>
-            </transition>
         </action>
     </actions>
 
@@ -34,9 +29,6 @@
                     <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="dept-approval"/>
             </transition>
@@ -51,10 +43,6 @@
                            selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject-to-start"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="finance-approval"/>
             </transition>
@@ -68,10 +56,6 @@
                            selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject-to-start"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-end/>
             </transition>

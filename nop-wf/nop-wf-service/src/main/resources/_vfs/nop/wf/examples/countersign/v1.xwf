@@ -10,6 +10,16 @@
 
     <end/>
 
+    <!-- execGroup 步骤需要非 local 的 action 才能使步骤退出（execGroup 通过步骤退出追踪完成）。
+         oa.xwf 的 agree 是 local=true，故定义专用的 review-agree。 -->
+    <actions>
+        <action name="review-agree" displayName="会签同意">
+            <transition appState="agree">
+                <to-step stepName="confirm"/>
+            </transition>
+        </action>
+    </actions>
+
     <steps>
         <step name="submit" displayName="提交申请">
             <assignment>
@@ -17,9 +27,6 @@
                     <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="countersign-review"/>
             </transition>
@@ -39,12 +46,8 @@
                 </actors>
             </assignment>
             <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
+                <ref-action name="review-agree"/>
             </ref-actions>
-            <transition onAppStates="agree" splitType="and">
-                <to-step stepName="confirm"/>
-            </transition>
         </step>
 
         <step name="confirm" displayName="确认" allowWithdraw="true">
@@ -54,9 +57,6 @@
                            selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-end/>
             </transition>

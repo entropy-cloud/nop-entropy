@@ -46,7 +46,7 @@
             <transition appState="complete"/>
         </action>
 
-        <action name="reject" displayName="退回" forReject="true" common="true" local="true">
+        <action name="reject" displayName="退回" forReject="true" common="true">
             <when>
                 <oa:WhenAllowReject/>
             </when>

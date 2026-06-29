@@ -623,4 +623,144 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflowStep step = workflow.getActivatedSteps().get(0);
         assertEquals(2, step.getAllowedActions(context).size());
     }
+
+    // ==================== Exec Group 回归测试 ====================
+
+    /**
+     * and-group: 3 个 actor 全部 agree 后才 transition
+     */
+    @Test
+    public void testExecGroupAnd() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupAnd", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
+        assertEquals(3, activeSteps.size());
+
+        IWorkflowStep step1 = null, step2 = null, step3 = null;
+        for (IWorkflowStep step : activeSteps) {
+            String actorId = step.getRecord().getActorId();
+            if ("1".equals(actorId)) step1 = step;
+            else if ("2".equals(actorId)) step2 = step;
+            else step3 = step;
+        }
+
+        // actor 1 agree: 组未完成，无下游
+        context.getContext().setUserId("1");
+        invokeAction(step1, "sp", null, null, null, context);
+        assertFalse(workflow.isEnded());
+        assertEquals(2, workflow.getActivatedSteps().size());
+
+        // actor 2 agree: 组仍未完成，无下游
+        context.getContext().setUserId("2");
+        invokeAction(step2, "sp", null, null, null, context);
+        assertFalse(workflow.isEnded());
+        assertEquals(1, workflow.getActivatedSteps().size());
+
+        // actor 3 agree: 组完成，transition to end
+        context.getContext().setUserId("3");
+        invokeAction(step3, "sp", null, null, null, context);
+        workflow.runAutoTransitions(context);
+        assertTrue(workflow.isEnded());
+    }
+
+    /**
+     * or-group: 任意 1 个 actor agree 后，其余 skipped，仅 1 个下游步骤
+     */
+    @Test
+    public void testExecGroupOr() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupOr", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
+        assertEquals(3, activeSteps.size());
+
+        // 任意 1 个 agree: 组完成（or），skip 其余 2 个，transition to end
+        IWorkflowStep firstStep = activeSteps.get(0);
+        context.getContext().setUserId(firstStep.getRecord().getActorId());
+        invokeAction(firstStep, "sp", null, null, null, context);
+        workflow.runAutoTransitions(context);
+        assertTrue(workflow.isEnded());
+    }
+
+    /**
+     * vote-group: 权重和 >= passPercent(0.5) 后 transition，其余 skipped
+     */
+    @Test
+    public void testExecGroupVote() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupVote", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
+        assertEquals(3, activeSteps.size());
+
+        IWorkflowStep step1 = null, step2 = null;
+        for (IWorkflowStep step : activeSteps) {
+            String actorId = step.getRecord().getActorId();
+            if ("1".equals(actorId)) step1 = step;
+            else if ("2".equals(actorId)) step2 = step;
+        }
+
+        // actor 1 agree: 权重 1/3 < 0.5，组未完成，无下游
+        context.getContext().setUserId("1");
+        invokeAction(step1, "sp", null, null, null, context);
+        assertFalse(workflow.isEnded());
+
+        // actor 2 agree: 权重 2/3 >= 0.5，组完成，skip step3，transition to end
+        context.getContext().setUserId("2");
+        invokeAction(step2, "sp", null, null, null, context);
+        workflow.runAutoTransitions(context);
+        assertTrue(workflow.isEnded());
+    }
+
+    /**
+     * seq-group: 3 个 actor 按 execOrder 依次激活
+     */
+    @Test
+    public void testExecGroupSeq() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupSeq", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        // 仅 execOrder 最小的步骤 ACTIVATED，其余 WAITING
+        assertEquals(1, workflow.getActivatedSteps().size());
+        assertEquals(2, workflow.getWaitingSteps().size());
+
+        IWorkflowStep step1 = workflow.getActivatedSteps().get(0);
+
+        // step1 agree: exit，激活下一个 WAITING 步骤，无下游（组未完成）
+        context.getContext().setUserId(step1.getRecord().getActorId());
+        invokeAction(step1, "sp", null, null, null, context);
+        assertFalse(workflow.isEnded());
+        assertEquals(1, workflow.getActivatedSteps().size());
+        assertEquals(1, workflow.getWaitingSteps().size());
+
+        IWorkflowStep step2 = workflow.getActivatedSteps().get(0);
+
+        // step2 agree: exit，激活下一个 WAITING 步骤，无下游
+        context.getContext().setUserId(step2.getRecord().getActorId());
+        invokeAction(step2, "sp", null, null, null, context);
+        assertFalse(workflow.isEnded());
+        assertEquals(1, workflow.getActivatedSteps().size());
+        assertEquals(0, workflow.getWaitingSteps().size());
+
+        IWorkflowStep step3 = workflow.getActivatedSteps().get(0);
+
+        // step3 agree: 组完成，transition to end
+        context.getContext().setUserId(step3.getRecord().getActorId());
+        invokeAction(step3, "sp", null, null, null, context);
+        workflow.runAutoTransitions(context);
+        assertTrue(workflow.isEnded());
+    }
 }

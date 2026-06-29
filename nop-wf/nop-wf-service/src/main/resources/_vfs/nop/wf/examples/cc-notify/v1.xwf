@@ -17,9 +17,6 @@
                     <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="approval"/>
             </transition>
@@ -32,10 +29,6 @@
                            wf:upLevel="1"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="cc-notify"/>
             </transition>
@@ -51,9 +44,6 @@
                            selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="confirm"/>
-            </ref-actions>
             <transition onAppStates="confirm" splitType="and">
                 <to-end/>
             </transition>

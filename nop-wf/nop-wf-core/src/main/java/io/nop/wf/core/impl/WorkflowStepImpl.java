@@ -327,7 +327,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
                 if (step == WorkflowStepImpl.this)
                     return true;
             }
-            return Objects.equals(step.getRecord().getExecGroup(), stepGroup);
+            return !Objects.equals(step.getRecord().getExecGroup(), stepGroup);
         });
         return ret;
     }

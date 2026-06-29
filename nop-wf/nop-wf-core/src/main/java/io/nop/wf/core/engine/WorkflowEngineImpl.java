@@ -40,6 +40,7 @@ import io.nop.wf.core.model.WfActionModel;
 import io.nop.wf.core.model.WfArgVarModel;
 import io.nop.wf.core.model.WfAssignmentModel;
 import io.nop.wf.core.model.WfEndModel;
+import io.nop.wf.core.model.WfExecGroupType;
 import io.nop.wf.core.model.WfJoinType;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.model.WfModelAuth;
@@ -288,10 +289,23 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         String stepGroup = StringHelper.generateUUID();
         int execOrder = 0;
+        List<IWorkflowStepImplementor> createdSteps = new ArrayList<>();
         // 对每一个actor生成一个步骤实例
         for (WfActorWithWeight actor : actors) {
-            newStepForActor(stepGroup, execOrder, currentStep, stepModel, fromAction, actor, null, wfRt);
+            IWorkflowStepImplementor newStep = newStepForActor(stepGroup, execOrder, currentStep, stepModel, fromAction, actor, null, wfRt);
+            createdSteps.add(newStep);
             execOrder += 1000;
+        }
+
+        // SEQ_GROUP 顺序控制：仅 execOrder 最小的步骤保持 ACTIVATED，其余设为 WAITING
+        if (stepModel.getExecGroupType() == WfExecGroupType.SEQ_GROUP && createdSteps.size() > 1) {
+            for (int i = 1; i < createdSteps.size(); i++) {
+                IWorkflowStepImplementor s = createdSteps.get(i);
+                if (s.isActivated()) {
+                    s.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
+                    saveStepRecord(s);
+                }
+            }
         }
 
         return true;
@@ -1130,7 +1144,23 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             if (actionModel.isSaveActionRecord())
                 step.getStore().saveActionRecord(actionRecord);
 
-            if (actionModel.getTransition() != null) {
+            // exec group 完成检查：仅在普通 action（非 reject/withdraw）且步骤显式声明了 execGroupType 时执行。
+            // 注意：所有步骤都有 execGroup UUID（newSteps 自动生成），但只有 execGroupType != null 才是真正的执行分组。
+            // 应在 doTransition 之前判断：组未完成则跳过下游创建，但步骤仍正常 exit（用户 action 已执行）
+            boolean shouldTransition = true;
+            WfExecGroupType execGroupType = step.getExecGroupType();
+            if (execGroupType != null && !actionModel.isForReject() && !actionModel.isForWithdraw()) {
+                boolean groupComplete = ExecGroupSupport.shouldExecGroupComplete(step);
+                if (!groupComplete) {
+                    shouldTransition = false;
+                } else if (execGroupType == WfExecGroupType.OR_GROUP
+                        || execGroupType == WfExecGroupType.VOTE_GROUP) {
+                    ExecGroupSupport.skipExecGroupMembers(this, step, wfRt);
+                }
+                // and-group / seq-group: fall through to normal transition
+            }
+
+            if (shouldTransition && actionModel.getTransition() != null) {
                 WfTransitionModel transModel = actionModel.getTransition();
 
                 boolean hasTrans = this.doTransition(step, actionModel.getName(), transModel, wfRt);
@@ -1153,6 +1183,12 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                     }
                     doExitStep(step, status, wfRt);
                     exitStep = true;
+
+                    // SEQ_GROUP 顺序推进：仅正常完成时激活下一个顺序步骤（不含 reject/withdraw/kill）
+                    if (status == NopWfCoreConstants.WF_STEP_STATUS_COMPLETED
+                            && step.getExecGroupType() == WfExecGroupType.SEQ_GROUP) {
+                        ExecGroupSupport.activateNextSeqStep(this, step, wfRt);
+                    }
                 }
             }
 
@@ -1198,6 +1234,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             List<? extends IWorkflowStepImplementor> prevSteps = step.getPrevNormalStepsInTree();
             for (IWorkflowStepImplementor prevStep : prevSteps) {
                 doRejectStep(step, prevStep, actionName, wfRt);
+            }
+        }
+
+        // reject 分组检查：当前步骤 reject 后，若步骤显式声明了 execGroupType 且整个组也应拒绝
+        // （如 vote-group 无法达到 passPercent），则跳过组内其余未完成成员
+        if (step.getExecGroupType() != null) {
+            if (ExecGroupSupport.shouldExecGroupReject(step)) {
+                ExecGroupSupport.skipExecGroupMembers(this, step, wfRt);
             }
         }
 
@@ -1525,6 +1569,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     private void saveStepRecord(IWorkflowStepImplementor step) {
         step.getStore().saveStepRecord(step.getRecord());
+    }
+
+    /**
+     * 将步骤从 WAITING 状态激活为 ACTIVATED 并保存记录。供 ExecGroupSupport.activateNextSeqStep 调用。
+     */
+    void activateSeqStep(IWorkflowStepImplementor step) {
+        step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
+        saveStepRecord(step);
     }
 
     private WfActionModel requireActionModel(WfRuntime wfRt, String actionName) {

@@ -5,7 +5,7 @@
   <description>条件分支：根据请假天数走不同的审批路径。3天以内只需HR审批，超过3天需要经理和HR同时审批</description>
 
   <start startStepName="submit">
-    <arg name="leaveDays" type="Integer" mandatory="true" displayName="请假天数"/>
+    <arg name="leaveDays" type="Integer" mandatory="true" persist="true" displayName="请假天数"/>
     <arg name="reason" type="String" displayName="请假原因"/>
   </start>
 
@@ -18,9 +18,6 @@
           <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-      </ref-actions>
       <!-- splitType="or": only the FIRST matching to-step branch is taken -->
       <transition onAppStates="agree" splitType="or">
         <to-step stepName="manager-approval" order="1">
@@ -42,10 +39,6 @@
           <actor actorModelId="manager" actorType="wf-actor:StarterManager" selectUser="true" wf:upLevel="1"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-        <ref-action name="reject"/>
-      </ref-actions>
       <transition onAppStates="agree" splitType="and">
         <to-step stepName="hr-approval"/>
       </transition>
@@ -57,10 +50,6 @@
           <actor actorModelId="hr" actorType="role" actorId="hr-manager" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-        <ref-action name="reject"/>
-      </ref-actions>
       <transition onAppStates="agree" splitType="and">
         <to-end/>
       </transition>

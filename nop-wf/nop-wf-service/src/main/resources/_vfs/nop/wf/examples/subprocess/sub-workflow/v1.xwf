@@ -11,7 +11,7 @@
 
     <end>
         <output name="result" type="String" displayName="交接结果">
-            <source>wfVars.setVar('result', 'completed')</source>
+            <source>'completed'</source>
         </output>
     </end>
 
@@ -23,9 +23,6 @@
                            selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="sender-confirm"/>
             </transition>
@@ -37,9 +34,6 @@
                     <actor actorModelId="sender" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-end/>
             </transition>

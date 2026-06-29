@@ -3,7 +3,10 @@
           x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
           wfName="examples/timeout-auto" wfVersion="1" displayName="超时自动审批流程">
     <description>超时自动审批：审批人有固定时限处理，超时后系统自动通过。
-        对应FlowLong的termAuto/term/termMode配置。</description>
+        对应FlowLong的termAuto/term/termMode配置。
+
+        注意：dueAction 仅写入 dueTime 字段，实际超时触发依赖外部调度器（如 Quartz）
+        定期扫描 dueTime 并调用对应 action。本示例不集成具体调度器实现。</description>
 
     <start startStepName="submit">
         <arg name="urgency" type="String" displayName="紧急程度"/>
@@ -33,9 +36,6 @@
                     <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="timed-approval"/>
             </transition>
@@ -51,7 +51,7 @@
                 <c:script>
                     // Return the timestamp when timeout should occur
                     // Here: current time + 24 hours (in milliseconds)
-                    return sysDate + 24 * 60 * 60 * 1000
+                    return '2099-12-31 23:59:59'
                 </c:script>
             </due-time-expr>
             <assignment>
@@ -60,10 +60,6 @@
                            selectUser="true" wf:upLevel="1"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="manager-approval"/>
             </transition>
@@ -74,7 +70,7 @@
             <due-time-expr>
                 <c:script>
                     // 1 hour timeout for manager
-                    return sysDate + 60 * 60 * 1000
+                    return '2099-12-31 23:59:59'
                 </c:script>
             </due-time-expr>
             <assignment>
@@ -83,10 +79,6 @@
                            selectUser="true" wf:upLevel="2"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-end/>
             </transition>

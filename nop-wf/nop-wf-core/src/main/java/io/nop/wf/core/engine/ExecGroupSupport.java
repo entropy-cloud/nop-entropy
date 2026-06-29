@@ -45,8 +45,9 @@ public class ExecGroupSupport {
 
             totalWeight += weight;
 
-            // 仅考虑成功完成的步骤
-            if (member.isCompleted())
+            // 仅考虑成功完成的步骤。member == step 为当前正在执行 agree 的步骤，
+            // 调用本方法时尚未 doExitStep，但语义上应视为已完成
+            if (member == step || member.isCompleted())
                 completeWeight += weight;
         }
 
@@ -62,7 +63,7 @@ public class ExecGroupSupport {
             passPercent = 0.5;
 
         if (passPercent != null) {
-            return completeWeight * 1.0 / totalWeight >= passWeight;
+            return completeWeight * 1.0 / totalWeight >= passPercent;
         }
 
         return false;
@@ -95,6 +96,12 @@ public class ExecGroupSupport {
 
             totalWeight += weight;
 
+            // member == step: 当前步骤正在 reject，不会通过，计入 rejectWeight
+            if (member == step) {
+                rejectWeight += weight;
+                continue;
+            }
+
             if (member.isCompleted() || member.isActivated() || member.isWaiting())
                 continue;
 
@@ -115,7 +122,7 @@ public class ExecGroupSupport {
             passPercent = 0.5;
 
         if (passPercent != null) {
-            return (1.0 - rejectWeight * 1.0 / totalWeight) < passWeight;
+            return (1.0 - rejectWeight * 1.0 / totalWeight) < passPercent;
         }
 
         return false;
@@ -125,6 +132,37 @@ public class ExecGroupSupport {
         List<? extends IWorkflowStep> members = step.getStepsInSameExecGroup(false, false);
         for (IWorkflowStep member : members) {
             engine.doExitStep((IWorkflowStepImplementor) member, NopWfCoreConstants.WF_STEP_STATUS_SKIPPED, wfRt);
+        }
+    }
+
+    /**
+     * SEQ_GROUP 顺序推进：当组内某个步骤正常完成时，激活同组中 execOrder 仅次于它的 WAITING 步骤。
+     * 仅在 doExitStep 且 status=COMPLETED 的路径上调用（不包括 reject/withdraw/kill）。
+     */
+    public static void activateNextSeqStep(WorkflowEngineImpl engine, IWorkflowStepImplementor step, WfRuntime wfRt) {
+        List<? extends IWorkflowStep> members = step.getStepsInSameExecGroup(false, false);
+        Integer currentOrder = step.getRecord().getExecOrder();
+        if (currentOrder == null)
+            return;
+
+        IWorkflowStepImplementor nextStep = null;
+        Integer nextOrder = null;
+        for (IWorkflowStep member : members) {
+            if (!member.isWaiting())
+                continue;
+            Integer memberOrder = member.getRecord().getExecOrder();
+            if (memberOrder == null)
+                continue;
+            if (memberOrder > currentOrder) {
+                if (nextOrder == null || memberOrder < nextOrder) {
+                    nextOrder = memberOrder;
+                    nextStep = (IWorkflowStepImplementor) member;
+                }
+            }
+        }
+
+        if (nextStep != null) {
+            engine.activateSeqStep(nextStep);
         }
     }
 }

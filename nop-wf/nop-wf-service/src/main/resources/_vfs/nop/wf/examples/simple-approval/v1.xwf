@@ -17,25 +17,18 @@
                     <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="manager-approval"/>
             </transition>
         </step>
 
-        <step name="manager-approval" displayName="主管审批" allowWithdraw="true" allowReject="true">
+        <step name="manager-approval" displayName="主管审批" allowReject="true">
             <assignment>
                 <actors>
                     <actor actorModelId="manager" actorType="wf-actor:StarterManager" selectUser="true"
                            wf:upLevel="1"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-end/>
             </transition>

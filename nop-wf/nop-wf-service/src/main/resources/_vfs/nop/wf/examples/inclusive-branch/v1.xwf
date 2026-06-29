@@ -10,7 +10,7 @@
   splitType="and" 让每个 to-step 的 when 条件独立评估，满足条件的分支都会被执行（包容网关）。</description>
 
   <start startStepName="submit">
-    <arg name="riskLevel" type="Integer" displayName="风险等级(1-10)"/>
+    <arg name="riskLevel" type="Integer" persist="true" displayName="风险等级(1-10)"/>
     <arg name="amount" type="BigDecimal" displayName="金额"/>
   </start>
 
@@ -23,9 +23,6 @@
           <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-      </ref-actions>
       <!-- splitType="and" with when conditions: EACH branch is evaluated independently.
            Multiple branches can be activated simultaneously (inclusive gateway semantics).
            Unlike splitType="or" which only fires the FIRST matching branch. -->
@@ -55,9 +52,6 @@
           <actor actorModelId="security" actorType="user" actorId="test001" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-      </ref-actions>
       <transition onAppStates="agree" splitType="and">
         <to-step stepName="final-review"/>
       </transition>
@@ -69,9 +63,6 @@
           <actor actorModelId="compliance" actorType="user" actorId="test002" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-      </ref-actions>
       <transition onAppStates="agree" splitType="and">
         <to-step stepName="final-review"/>
       </transition>
@@ -86,10 +77,6 @@
           <actor actorModelId="reviewer" actorType="user" actorId="test003" selectUser="true"/>
         </actors>
       </assignment>
-      <ref-actions>
-        <ref-action name="agree"/>
-        <ref-action name="reject"/>
-      </ref-actions>
       <transition onAppStates="agree" splitType="and">
         <to-end/>
       </transition>

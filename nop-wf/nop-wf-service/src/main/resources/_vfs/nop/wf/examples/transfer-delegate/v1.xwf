@@ -33,9 +33,6 @@
                     <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="approval"/>
             </transition>
@@ -52,12 +49,6 @@
                            wf:permissions="transfer,delegate"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="agree"/>
-                <ref-action name="reject"/>
-                <ref-action name="my-delegate"/>
-                <ref-action name="my-delegate-return"/>
-            </ref-actions>
             <transition onAppStates="agree" splitType="and">
                 <to-step stepName="cc-result"/>
             </transition>
@@ -69,9 +60,6 @@
                     <actor actorModelId="notify" actorType="user" actorId="test001" selectUser="true"/>
                 </actors>
             </assignment>
-            <ref-actions>
-                <ref-action name="confirm"/>
-            </ref-actions>
             <transition onAppStates="confirm" splitType="and">
                 <to-end/>
             </transition>
