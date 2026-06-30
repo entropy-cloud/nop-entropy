@@ -161,7 +161,7 @@ Phase 5  生态与上层
 | 0.5 | FIX | 启用 `BarrierAligner`（已实现未启用），替换 `InputGate` 内联对齐逻辑，统一多输入对齐实现。同步修复 `findCompletedCheckpointId` 的 O(输入数×待完成数) 复杂度 | `checkpoint-design.md` §13.2「多输入对齐统一」 |
 | 0.6 | **BUILD** | abort 控制通道：独立于数据流的控制通道传播 cancel 信号。local 路径用直接方法调用，distributed 路径复用 `IStreamTaskRpcService.cancelTask`（Phase 3 提供跨 JVM）。解决「对齐等待时数据队列读不到 marker」问题 | `checkpoint-design.md` §13.2「abort 传播通道」 |
 | 0.7 | FIX | 端到端并行度 > 1 通过 DataStream API 验证：`KeySelectorPartitioner` 多并行度 key hash 分区、多 sink/union 管线编译、`assignTimestampsAndWatermarks` 自动插入。当前 infra 存在但未端到端打通 | `graph-model-design.md` §10 |
-| 0.8 | FIX | 移除 runtime → cep 幽灵依赖；清理 `GraphModelCheckpointExecutor` 代码重复；统一 `Task` 与 `Invokable` 的 OperatorChain 生命周期管理（`SubtaskTask.cancel` 状态机规范化） | `component-roadmap.md` §5 |
+| 0.8 | FIX | ~~移除 runtime → cep 幽灵依赖~~（✅ 已消除）；清理 `GraphModelCheckpointExecutor` 代码重复；统一 `Task` 与 `Invokable` 的 OperatorChain 生命周期管理（`SubtaskTask.cancel` 状态机规范化） | `component-roadmap.md` §5 |
 
 **前置依赖**：无（本 Phase 是后续所有 Phase 的语义基础）。
 

@@ -208,7 +208,7 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 **待完善**：
 - `CepOperator` 使用自建 `SimpleKeyedStateStore`，需对接 C4 的标准 `IKeyedStateBackend`
 - 需要实现 `DslModelParser` 对接 `pattern.xdef`——当前 XDEF schema 和 `_gen` 模型类存在但无加载器
-- runtime → cep 幽灵依赖需移除
+- ~~runtime → cep 幽灵依赖需移除~~（✅ 已消除，pom 中无 cep 依赖）
 
 #### C7 连接器
 
@@ -297,7 +297,7 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 
 | 问题 | 状态 | 优先级 |
 |------|------|--------|
-| `runtime` 依赖 `cep`（零代码引用） | 未修复 | P2 |
+| `runtime` 依赖 `cep`（零代码引用） | ✅ 已修复（pom 中无 cep 依赖） | — |
 | 4 个空壳模块（api/checkpoint/flink/flow） | 保留占位 | P3 |
 | `JdbcCheckpointStorage` 已改用 `IJdbcTemplate` | ✅ 已修复 | — |
 | `WindowOperator` 累加器类型腐蚀 | ✅ 已修复（Plan 51） | — |
