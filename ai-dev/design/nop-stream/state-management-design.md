@@ -250,7 +250,55 @@ class MemoryBudgetMonitor {
 | `REJECT_NEW_DATA` | 拒绝接收新数据，直到内存恢复 |
 | `SPILL_TO_DISK` | 将队列数据写入磁盘（暂不实现） |
 
-## 10. 已知限制
+## 10. Operator State（非键控状态）
+
+Operator State 是**非键控**的算子级状态，与 key 无关，按 subtask 实例存储。与 `core-design.md` §7 对应。
+
+### 10.1 设计接口
+
+```java
+interface CheckpointedFunction {
+    void snapshotState(FunctionSnapshotContext context) throws Exception;
+    void initializeState(FunctionInitializationContext context) throws Exception;
+}
+
+interface OperatorStateStore {
+    <T> ListState<T> getListState(ListStateDescriptor<T> descriptor) throws Exception;
+    <T> ListState<T> getUnionListState(ListStateDescriptor<T> descriptor) throws Exception;
+    <T> ListState<T> getBroadcastState(ListStateDescriptor<T> descriptor) throws Exception;
+}
+```
+
+### 10.2 重分布模式
+
+| 模式 | 方法 | 并行度变化时的语义 |
+|------|------|-------------------|
+| `SPLIT_DISTRIBUTE` | `getListState()` | round-robin 分配给新旧 subtask 列表 |
+| `UNION` | `getUnionListState()` | 所有 subtask 获取完整状态列表，自行过滤 |
+| `BROADCAST` | `getBroadcastState()` | 所有 subtask 获得完全相同的一份状态 |
+
+### 10.3 典型用途
+
+| 用途 | 状态内容 | 模式 |
+|------|---------|------|
+| Source offset checkpoint | 每个 split 的消费位置 | SPLIT_DISTRIBUTE |
+| Kafka partition 注册表 | 已知 partition 列表 | BROADCAST |
+| 发现进度 | CDC 快照阶段进度 | SPLIT_DISTRIBUTE |
+| 全局计数器 | 跨 key 的计数器 | UNION |
+
+### 10.4 与 Keyed State 的关系
+
+| 维度 | Keyed State | Operator State |
+|------|------------|---------------|
+| 范围 | 按 key 隔离 | 按 subtask 实例 |
+| 分片 | StateShard（确定性 hash） | subtask（不确定，重分配改变归属） |
+| 重分布 | Key-Group range 交集 | SPLIT_DISTRIBUTE / UNION / BROADCAST |
+| 状态大小 | 大（O(key count × state per key)） | 小（O(splits × offset size)） |
+| 实现 | `IKeyedStateBackend` → `IInternalStateBackend` | `OperatorStateStore` → `MemoryOperatorStateBackend` |
+
+**当前缺口**：Operator State 尚未实现。实现计划见 `completion-roadmap.md` Phase 0.3。
+
+## 11. 已知限制
 
 1. **无内存控制** — 状态只增长不收缩（除窗口触发清理），无 TTL/驱逐/spill。大状态场景可能 OOM
 2. **JSON 序列化性能** — Checkpoint 持久化使用 JSON，体积和速度均不如二进制格式
@@ -260,3 +308,4 @@ class MemoryBudgetMonitor {
 6. **无状态恢复路径** — `AbstractUdfStreamOperator.snapshotState()` 被注释掉，当前运行时不实际执行状态快照
 7. **无状态重分布** — 不支持并行度变更后重新分配状态
 8. **仅 Memory 后端** — `IStateBackend` 接口注释中提到 `RedisStateBackend`，未实现
+9. **无 Operator State 实现** — `OperatorStateStore` 接口未实现，source offset checkpoint 缺口。见 `completion-roadmap.md` Phase 0.3

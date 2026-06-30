@@ -51,6 +51,16 @@ class StreamComponents {
 4. checkpointParticipants 集合记录哪些 operator 实现了 `CheckpointParticipant`，用于 checkpoint 时发现和调用
 5. components registry 的所有内容参与 `PartitionedPlan` fingerprint，确保 savepoint 恢复时的兼容性
 
+### 1.2.1 StreamComponents 的所有权与传递
+
+**设计决策**：`StreamComponents` 由 `StreamExecutionEnvironment` 持有为字段，在构造时通过 SPI 加载填充。它随 API 调用链向下传递：`StreamExecutionEnvironment` → `DataStream` → `KeyedStream` → `WindowedStream`。
+
+**为什么不是局部变量**：如果 `StreamComponents` 仅在 `buildStreamModel()` 中局部创建，那么在 API 构建阶段（`keyBy().window().aggregate()`）创建的 `WindowedStreamImpl` 无法获取 `WindowOperatorFactory` 等运行时组件，只能回退到 core 内部的简化实现，绕过统一状态后端。这会使 DataStream API 的窗口路径不走 checkpoint 集成的 `WindowOperator`，违反"图模型为唯一执行路径"的约束。
+
+**SPI 加载机制**：`StreamComponents` 中的可插拔组件（如 `IWindowOperatorFactory`、`IDeploymentPlanProvider`、`ICheckpointExecutorFactory`）通过 `ServiceLoader` 从 classpath 自动发现。当 runtime 模块在 classpath 中时，对应的实现类被自动注册。这与 nop-stream 现有的 SPI 模式一致。
+
+**core-only 场景**：当 classpath 中只有 core 没有 runtime 时，SPI 不会发现 `WindowOperatorFactory`。此时窗口操作必须**快速失败**（抛出异常），而非静默回退到不支持 checkpoint 的简化实现。core 模块定义接口和 API，不提供需要状态后端集成的算子实现。
+
 ### 1.3 StreamRequirement：能力声明
 
 ```java
@@ -161,13 +171,31 @@ KeyedStream<T, KEY>              按键分区流
   └── 继承 DataStream 的所有操作
 
 WindowedStream<T, K, W>          窗口化流
-  ├── apply(WindowFunction)     → 通过 WindowOperatorFactory 代理（core 定义接口）
-  ├── aggregate(AggregateFunction) → 通过 WindowOperatorFactory 代理
-  ├── reduce(ReduceFunction)     → 通过 WindowOperatorFactory 代理
+  ├── apply(WindowFunction)     → 通过 IWindowOperatorFactory 创建算子
+  ├── aggregate(AggregateFunction) → 通过 IWindowOperatorFactory 创建算子
+  ├── reduce(ReduceFunction)     → 通过 IWindowOperatorFactory 创建算子
   └── transform(name, typeInfo, operator) → 直接构造
 ```
 
-`WindowedStreamImpl` 的 `apply()`/`aggregate()`/`reduce()` 需要通过 `WindowOperatorFactory` 接口连接 runtime 模块。当前是 core 模块接口定义与 runtime 实现的边界点，不是 API 缺口——DSL 路径通过图模型配置窗口参数，不需要这个 API。
+### 2.2.1 窗口算子工厂注入
+
+`WindowedStream` 的 `apply()`/`aggregate()`/`reduce()` 通过 `IWindowOperatorFactory` 创建窗口算子（`WindowOperator`），而非直接实例化。工厂的获取路径：
+
+1. `StreamExecutionEnvironment` 构造时通过 SPI 加载 `IWindowOperatorFactory` 到 `StreamComponents`
+2. `KeyedStreamImpl.window()` 创建 `WindowedStreamImpl` 时，将 `StreamComponents` 传递给它
+3. `WindowedStreamImpl` 从 `StreamComponents` 获取工厂，委托创建算子
+
+**为什么需要工厂而非直接构造**：`WindowOperator` 依赖 `IInternalStateBackend` 和 `InternalTimerService`，这些在 runtime 模块中。core 模块不能直接引用 runtime 的实现类。工厂模式保持 `runtime → core` 的单向依赖。
+
+**工厂缺失时的行为**：如果 SPI 未发现工厂（core-only 场景），窗口操作抛出异常而非静默回退。这是硬约束——不允许在用户不知情的情况下走不支持 checkpoint 的窗口路径。
+
+**拒绝了什么**：
+
+| 方案 | 拒绝理由 |
+|------|---------|
+| core 内置简化 `WindowAggregationOperator` 作为默认 | 不参与 keyed state 生命周期管理（checkpoint、恢复），静默回退会让用户误以为窗口聚合支持 exactly-once |
+| 将 `WindowOperator` 移到 core | 违反分层设计，core 不应包含依赖 `IInternalStateBackend` 的重型算子实现 |
+| `StreamComponents` 仅在 `execute()` 时创建 | API 构建阶段创建的 `WindowedStreamImpl` 无法获取工厂，时间点不匹配 |
 
 ### 2.3 Transformation DAG
 
@@ -198,6 +226,7 @@ Transformation 通过 `getInputs()` 构成 DAG。执行时从 Sink 回溯到 Sou
 |---|---|---|
 | `deploymentMode` | `DeploymentMode` | LOCAL（线程池）或 DISTRIBUTED（多 TaskManager） |
 | `executionDispatcher` | `IStreamExecutionDispatcher` | 执行分发 SPI，runtime 模块实现 |
+| `components` | `StreamComponents` | 统一组件注册表，构造时通过 SPI 加载。随 API 调用链向下传递（见 §1.2.1） |
 
 **`execute()` 的分发路径**：
 
@@ -327,7 +356,78 @@ class TaskLocation {
 
 所有函数接口都是 `Serializable`，保持与 Flink 的兼容性。虽然当前单 JVM 执行不需要序列化函数，但接口约束不变。
 
-## 6. 关联设计
+## 6. Side Output
+
+当前 nop-stream 不支持侧输出（Side Output）。迟到数据、split 路由等场景使用以下替代方案：
+
+| 场景 | 替代方案 | 与 Flink 的关系 |
+|------|---------|----------------|
+| 窗口迟到数据 | `allowedLateness` 机制开启时默认丢弃（无侧输出） | Flink 通过 `OutputTag` + `SideOutputDataStream` |
+| 分支处理 | 使用 `flatMap()` + `Collector` 多次 `collect()` | Flink 通过 `OutputTag` + `sideOutput()` |
+| 异常记录路由 | 在算子中显式路由到不同 sink | Flink 通过侧输出 tag |
+
+**不实现侧输出的原因**：
+1. 侧输出需要维护一套 OutputTag → StreamEdge 的映射，增加 Transformation DAG 管理复杂度
+2. 可以通过 `flatMap()` + 显式多 sink 路由替代
+3. 当前阶段不需要侧输出的核心用例
+
+如果未来需要，可参考 Flink 的 `OutputTag<T>` + `SideOutputOutput<T>` + `SideOutputTransformation<T>` 模式实现。设计要点：
+- `OutputTag` 需要 `TypeInformation` 和稳定 ID
+- `SideOutputTransformation` 是 virtual transformation（不产生独立 StreamNode）
+- 侧输出边在 StreamGraph 中作为额外的 StreamEdge（带 outputTag）处理
+
+## 7. Operator State 模型
+
+Operator State（非键控状态）存储算子的全局状态，与 key 无关。典型场景：
+
+| 场景 | 状态内容 | Operator State 类型 |
+|------|---------|-------------------|
+| Source offset | 每个 source split 的消费位置 | `ListState<SplitState>`（SPLIT_DISTRIBUTE 模式） |
+| Kafka partition 分配 | partition → subtask 映射 | `ListState<PartitionMapping>`（BROADCAST 模式） |
+| 窗口元数据 | 合并窗口的映射集合 | `ListState<MergedWindow>` |
+| CDC 快照阶段 | 表快照的发现进度 | `ListState<SnapshotProgress>` |
+| 自定义 sink | 批处理计数器 | `ListState<BatchCounter>` |
+
+### 7.1 与 Keyed State 的区别
+
+| 维度 | Keyed State | Operator State |
+|------|------------|---------------|
+| 范围 | 每个 key 独立 | 每个 subtask 全局 |
+| 分片 | 按 StateShard 确定性分片 | 按 subtask 实例（不按 key） |
+| 并发放大镜 | subtask 内按 key 隔离 | subtask 间隔离 |
+| 恢复模式 | key→shard 路由（确定性） | SPLIT_DISTRIBUTE / UNION / BROADCAST |
+
+### 7.2 重分布模式
+
+Operator State 的恢复需要指定重分布模式，以适应并行度变化：
+
+| 模式 | 语义 | 使用场景 |
+|------|------|---------|
+| `SPLIT_DISTRIBUTE` | 状态按 subtask index round-robin 分配 | Source split 位置（最常用） |
+| `UNION` | 所有新 subtask 获取所有旧 subtask 的状态全集，自行过滤 | 全局视图 |
+| `BROADCAST` | 所有新 subtask 获取完全相同的一份状态拷贝 | 规则/配置信息 |
+
+### 7.3 与 Flink 的差异
+
+| 维度 | Flink | nop-stream（设计） |
+|------|-------|-------------------|
+| 接口 | `CheckpointedFunction` + `OperatorStateStore` | `CheckpointedFunction` + `OperatorStateStore`（接口一致） |
+| 状态后端 | 与 Keyed State 共享 StateBackend | 与 Keyed State 共享 IStateBackend |
+| 重分布 | `ListCheckpointed`（split）+ `UnionListState` / `BroadcastState` | 三模式：SPLIT_DISTRIBUTE / UNION / BROADCAST |
+| 快照 | operatorStateBackend.snapshot() | operatorStateBackend.snapshot() |
+| 恢复 | operatorStateBackend.restore() | operatorStateBackend.restore() |
+
+**当前缺口**：Operator State 尚未实现（见 `completion-roadmap.md` Phase 0.3）。
+
+### 7.4 实现要求
+
+1. `OperatorStateStore` 提供 `getOperatorState(ListStateDescriptor)` → `ListState<T>` 三种重分布模式
+2. Operator State 参与 `TaskEpochSnapshot`，进入 checkpoint 持久化
+3. 恢复时按重分布模式重新分配状态到各 subtask
+4. `StreamComponents.checkpointParticipants` 记录使用 Operator State 的 operator
+5. source offset checkpoint 必须通过 Operator State 实现（不可使用 keyed state 的 fake key 替代）
+
+## 8. 关联设计
 
 | 主题 | 文档 |
 |------|------|

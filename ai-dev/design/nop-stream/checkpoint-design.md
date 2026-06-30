@@ -924,3 +924,52 @@ source 必须声明可重放（§5.1）。若 source 声明可重放但实际 of
 - **容错契约（§13.2）**：健壮性约束。违反 → 可用性损失（hang/崩溃/静默降级），但 fencing、manifest durable 前不 commit、恢复从 durable epoch 等不变量仍兜底，不破坏数据一致性。
 
 容错契约当前部分未满足（实现状态见 `component-roadmap.md`），其未满足不影响 §12 不变量保证的 exactly-once 正确性，只影响故障场景下的可用性与恢复速度。
+
+## 14. 与 SeaTunnel Checkpoint 的对比
+
+SeaTunnel (Zeta Engine) 的 checkpoint 机制与 nop-stream 有共同的血统（都受 Flink 影响），但在实现上有几个关键差异：
+
+### 14.1 Checkpoint 粒度
+
+| 维度 | SeaTunnel | nop-stream |
+|------|-----------|------------|
+| 范围 | **per Pipeline**（Execution Plan 中按 shuffle 边界切分） | **per Job**（整个 JobGraph 一个 checkpoint） |
+| 隔离性 | 不同 Pipeline 的 checkpoint 互不干扰，故障恢复仅影响对应 Pipeline | 整个作业统一 checkpoint |
+| 复杂度 | 需要维护多 Pipeline 的 checkpoint 状态机 | 更简单，但故障爆炸半径更大 |
+
+### 14.2 Barrier 结构
+
+SeaTunnel 的 `CheckpointBarrier` 比 nop-stream 携带更多信息：
+
+```java
+// SeaTunnel
+class CheckpointBarrier implements Barrier {
+    long id;
+    long timestamp;
+    CheckpointType checkpointType;
+    Set<Long> prepareCloseTasks;  // 此 checkpoint 后需要关闭的 task
+    Set<Long> closedTasks;        // 已经关闭的 task
+}
+
+// nop-stream
+class CheckpointBarrier {
+    long id;
+    long timestamp;
+}
+```
+
+`prepareCloseTasks` / `closedTasks` 机制使 SeaTunnel 可以在 checkpoint 完成后精确控制哪些 task 应该关闭（对 bounded source 的优雅终止很重要）。nop-stream 当前通过 `JobTerminationMode.DRAIN` 处理有界输入终止，不如 SeaTunnel 的粒度精确。
+
+### 14.3 存储模型
+
+| 维度 | SeaTunnel | nop-stream |
+|------|-----------|------------|
+| 状态序列化 | Java 序列化（`byte[]`） | JSON（`JsonTool`） |
+| 状态聚合 | `ActionSubtaskState` = `List<byte[]>` | `TaskEpochSnapshot` = 结构化数据 |
+| Coordinator 状态 | Hazelcast IMap（分布式内存，自动恢复） | `EpochManifest` 持久化到 ICheckpointStorage |
+| Checkpoint 触发 | 由 `CheckpointCoordinator.scheduleTriggerPendingCheckpoint()` 定时触发 | 同 |
+| Pipeline 级隔离 | 每个 Pipeline 独立 checkpoint | 无 Pipeline 概念 |
+
+### 14.4 Task 级恢复
+
+SeaTunnel 的 `SourceSplitEnumeratorTask` 是独立的 coordinator task，在 `JobMaster` 侧运行。这意味著 Split Enumerator 可以独立 checkpoint/恢复。nop-stream 的 Split 管理当前在设计阶段（`connector-design.md` §4），还没有独立 Enumerator Task 的等价物。

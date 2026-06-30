@@ -343,7 +343,15 @@ processWatermark(watermark)
 4. 包装用户函数为 `InternalWindowFunction`（见 §9）
 5. 构造 `WindowOperator` 实例
 
-### 10.1 无 Evictor 构建
+### 10.1 工厂注入
+
+`WindowedStream` API 通过 `IWindowOperatorFactory` 获取 `WindowOperatorBuilder`，而非直接实例化。工厂在 runtime 模块实现，通过 SPI 注册。`WindowedStreamImpl` 从 `StreamComponents` 获取工厂（见 `core-design.md` §2.2.1）。
+
+**设计约束**：工厂缺失时窗口操作必须快速失败，不允许静默回退到不支持 checkpoint 的简化路径。
+
+**core-only 场景**：`WindowOperator` 依赖 `IInternalStateBackend` 和 `InternalTimerService`（runtime 模块）。core 模块不提供窗口算子的运行时实现，只定义接口和 API。core-only 测试如需验证窗口逻辑，使用 `OperatorTestHarness` 直接构造算子，不走 `WindowedStream` API 路径。
+
+### 10.2 无 Evictor 构建
 
 | 构建方法 | 状态描述符 | 内部函数 |
 |---|---|---|
@@ -354,9 +362,9 @@ processWatermark(watermark)
 | `apply(WindowFunction)` | `ListStateDescriptor` | `InternalIterableWindowFunction` |
 | `process(ProcessWindowFunction)` | `ListStateDescriptor` | `InternalIterableProcessWindowFunction` |
 
-### 10.2 有 Evictor 构建
+### 10.3 有 Evictor 构建
 
-所有方法统一使用 `ListStateDescriptor`。函数包装不变（同 §10.1 对应行），算子在 `emitWindowContents` 中处理中间聚合。
+所有方法统一使用 `ListStateDescriptor`。函数包装不变（同 §10.2 对应行），算子在 `emitWindowContents` 中处理中间聚合。
 
 ## 11. Evictor
 

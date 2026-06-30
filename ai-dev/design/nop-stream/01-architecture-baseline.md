@@ -323,18 +323,44 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 - **payload**：默认使用 `JsonTool`，允许通过状态后端声明可替换 payload codec
 - **约束**：每个 state name 必须记录 value schema version 和 checksum
 
-## 八、与已有设计的关系
+## 八、与其他流处理引擎的架构对比
 
-| 主题 | 文档 |
-|------|------|
-| 设计原则、non-goals、约束、不变量 | `00-vision.md` |
-| 核心模型（StreamModel、DataStream API、算子、稳定身份） | `core-design.md` |
-| 图模型（StreamGraph、JobGraph、算子链化） | `graph-model-design.md` |
-| Checkpoint 与 Exactly-Once | `checkpoint-design.md` |
-| 状态管理 | `state-management-design.md` |
-| 窗口机制 | `window-design.md` |
-| 时间与 Watermark | `time-model-design.md` |
-| 连接器 | `connector-design.md` |
-| CEP 引擎 | `cep-design.md` |
-| 架构对比 | `comparison.md` |
-| 组件路线 | `component-roadmap.md` |
+### 8.1 核心架构差异
+
+| 维度 | Flink | SeaTunnel (Zeta) | nop-stream |
+|------|-------|-------------------|------------|
+| **图模型层级** | 3 层（StreamGraph → JobGraph → ExecutionGraph） | 4 层（Action DAG → LogicalDag → ExecutionPlan → PhysicalPlan） | 2 层（StreamGraph → JobGraph）+ PartitionedPlan/DeploymentPlan |
+| **调度模型** | JobManager（全局调度）+ TaskManager（多机多进程）+ Slot 资源管理 | JobMaster（Pipeline 调度）+ Hazelcast 分布式协程 | LOCAL: TaskExecutor 线程池；DISTRIBUTED: IStreamExecutionDispatcher SPI |
+| **算子链化** | ChainingStrategy（ALWAYS/NEVER/HEAD）+ 6 条件 | TransformChainAction（自动链化相邻 Transform） | 6 条件自动判定 |
+| **Task 执行** | 每个 Task 独立线程 + Mailbox 事件循环 | 多个 Task 共享 TaskGroup 线程（协程式） | 每个 Task 独立线程 |
+| **RPC** | Akka/RPC 抽象 | Hazelcast Operations | IStreamTaskRpcService 强类型接口 |
+| **数据交换** | Netty + MemorySegments + NetworkBufferPool | Hazelcast IntermediateQueue | LOCAL: BlockingQueue；DISTRIBUTED: IMessageService |
+| **分布式 HA** | ZooKeeper + Standalone HA / K8s | Hazelcast IMap 自动恢复 | 规划中：Nop ILeaderElector + SysDaoLeaderElector |
+
+### 8.2 Flink Translator 模式参考
+
+Flink 的 `StreamGraphGenerator` 使用 **Translator 模式**（策略模式）将 `Transformation` 子类映射到 `TransformationTranslator`：
+
+```java
+// Flink 模式：每个 Transformation 子类有对应 Translator
+translatorMap.put(OneInputTransformation.class, new OneInputTransformationTranslator<>());
+translatorMap.put(SourceTransformation.class, new SourceTransformationTranslator<>());
+translatorMap.put(SinkTransformation.class, new SinkTransformationTranslator<>());
+translatorMap.put(PartitionTransformation.class, new PartitionTransformationTranslator<>());
+```
+
+nop-stream 当前在 `StreamGraphGenerator` 中直接用 `instanceof` 分支处理。如果未来新增 Transformation 类型（如 `UnionTransformation`、`SideOutputTransformation`），建议迁移到 Translator 模式。
+
+### 8.3 SeaTunnel Pipeline 隔离参考
+
+SeaTunnel 的 `ExecutionPlan` 按 shuffle 边界切分为多个 `Pipeline`，每个 Pipeline：
+- 独立触发 checkpoint
+- 独立故障恢复
+- 独立调度
+
+nop-stream 当前按 JobGraph 整体调度和 checkpoint。如果未来需要 Pipeline 级别隔离（如多 source 作业中一个 source 失败不影响其他 source），可参考 SeaTunnel 的 Pipeline 模型。设计要点：
+- Pipeline 边界 = shuffle 边（keyBy、rebalance 等需要跨 channel 传递的边）
+- 每个 Pipeline 有独立的 CheckpointPlan 和 CheckpointCoordinator
+- Pipeline 间的数据交换通过中间队列或消息服务
+
+## 九、与已有设计的关系
