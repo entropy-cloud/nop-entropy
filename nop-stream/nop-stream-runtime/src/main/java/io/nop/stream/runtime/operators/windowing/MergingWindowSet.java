@@ -33,7 +33,8 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.windows.Window;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 
 /**
  * Utility for keeping track of merging {@link Window Windows} when using a {@link

@@ -11,12 +11,15 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_HASH_NOT_AVAILABLE;
 
 @DataBean
 public class StreamModelFingerprint implements Serializable {

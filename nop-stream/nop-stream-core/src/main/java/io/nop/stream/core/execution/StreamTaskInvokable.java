@@ -32,7 +32,9 @@ import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
  * Invokable that executes a streaming pipeline through the graph model path,

@@ -20,7 +20,8 @@ import io.nop.stream.core.common.state.ListStateDescriptor;
 
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 class MemoryInternalListState<K, N, T>
         implements InternalListState<K, N, T>, Serializable {

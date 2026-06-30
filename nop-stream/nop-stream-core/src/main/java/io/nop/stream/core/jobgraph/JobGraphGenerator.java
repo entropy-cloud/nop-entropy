@@ -30,7 +30,8 @@ import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
  * Generates an optimized JobGraph from a StreamGraph through operator chaining.

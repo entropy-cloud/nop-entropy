@@ -22,7 +22,9 @@ import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 
 /**
  * A Watermark Status element informs stream tasks whether or not they should continue to expect

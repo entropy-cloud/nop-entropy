@@ -16,7 +16,11 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATOR_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_OPERATOR_ERROR;
 
 /**
  * Represents a chain of operators that are executed together in a single task for optimization.

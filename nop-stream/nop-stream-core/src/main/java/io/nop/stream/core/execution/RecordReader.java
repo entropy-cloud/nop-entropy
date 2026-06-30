@@ -13,7 +13,9 @@ import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INTERRUPTED_WRITE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
  * Reads stream elements from a single {@link InputChannel}.

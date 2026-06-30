@@ -50,7 +50,11 @@ import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.configuration.Configuration;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.cep.NopCepErrors;
-import static io.nop.stream.cep.NopCepErrors.*;
+import static io.nop.stream.cep.NopCepErrors.ARG_STATE_NAME;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NFA_FINAL_STATE_CHECK_FAILED;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NFA_FILTER_EXECUTION_FAILED;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NFA_START_STATE_CHECK_FAILED;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NFA_STOP_STATE_CHECK_FAILED;
 import io.nop.stream.core.util.FunctionUtils;
 
 /**

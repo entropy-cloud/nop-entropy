@@ -16,7 +16,8 @@ import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ACCUMULATOR_CREATE_FAILED;
 
 class MemoryReducingState<T> implements ReducingState<T>, Serializable {
     private static final long serialVersionUID = 1L;

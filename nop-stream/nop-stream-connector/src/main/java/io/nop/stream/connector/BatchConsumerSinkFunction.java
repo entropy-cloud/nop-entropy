@@ -23,7 +23,12 @@ import io.nop.stream.core.exceptions.StreamException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_FLUSH_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
  * Adapts nop-batch's {@link IBatchConsumerProvider} to nop-stream's {@link SinkFunction}.

@@ -9,7 +9,12 @@ package io.nop.stream.core.datastream;
 
 import java.lang.reflect.Field;
 
-import io.nop.stream.core.common.functions.*;
+import io.nop.stream.core.common.functions.FilterFunction;
+import io.nop.stream.core.common.functions.FlatMapFunction;
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.functions.MapFunction;
+import io.nop.stream.core.common.functions.ReduceFunction;
+import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.OneInputStreamOperator;
@@ -28,7 +33,12 @@ import io.nop.stream.core.windowing.windows.Window;
 
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_FIELD;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_COMPARABLE_REQUIRED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NUMBER_REQUIRED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TUPLE_FIELD_REQUIRED;
 
 public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedStream<T, KEY> {
     private static final long serialVersionUID = 1L;

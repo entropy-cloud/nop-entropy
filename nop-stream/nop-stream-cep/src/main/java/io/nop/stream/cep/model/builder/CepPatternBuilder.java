@@ -16,12 +16,23 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.stream.cep.pattern.MalformedPatternException;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 
-import io.nop.stream.cep.model.*;
+import io.nop.stream.cep.model.CepPatternGroupModel;
+import io.nop.stream.cep.model.CepPatternModel;
+import io.nop.stream.cep.model.CepPatternPartModel;
+import io.nop.stream.cep.model.CepPatternSingleModel;
+import io.nop.stream.cep.model.FollowKind;
+import io.nop.stream.cep.model.ICepPatternGroupModel;
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.WithinType;
-import static io.nop.stream.cep.NopCepErrors.*;
+import static io.nop.stream.cep.NopCepErrors.ARG_FOLLOW_KIND;
+import static io.nop.stream.cep.NopCepErrors.ARG_NEXT;
+import static io.nop.stream.cep.NopCepErrors.ARG_PART_NAME;
+import static io.nop.stream.cep.NopCepErrors.ARG_PATTERN_DETAIL;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_MALFORMED_PATTERN;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NOT_CONDITION_DOES_NOT_SUPPORT_GROUP;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_PATTERN_PART_NOT_ALLOW_LOOP;
 
 public class CepPatternBuilder {
 

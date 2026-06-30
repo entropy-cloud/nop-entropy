@@ -21,7 +21,7 @@ package io.nop.stream.cep.nfa.aftermatch;
 import java.util.Optional;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_NAME;
 
 /**
  * Discards every partial match that started before the last event of emitted match mapped to

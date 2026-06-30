@@ -17,7 +17,8 @@ import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 class MemoryInternalAggregatingState<K, N, IN, ACC, OUT>
         implements InternalAppendingState<K, N, IN, ACC, OUT>, Serializable {

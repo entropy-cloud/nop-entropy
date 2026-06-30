@@ -1,6 +1,15 @@
 package io.nop.stream.core.operators;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +24,14 @@ import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DESCRIPTOR_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_WINDOW_AGGREGATOR_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_WINDOW_AGGREGATOR_NOT_INITIALIZED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_WINDOW_AGGREGATOR_STATE_RESTORE_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.ClassNameValidator;

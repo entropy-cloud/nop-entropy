@@ -19,7 +19,12 @@ import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ACCUMULATOR_CREATE_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 class MemoryInternalAppendingState<K, N, IN, ACC>
         implements InternalAppendingState<K, N, IN, ACC, ACC>, Serializable {

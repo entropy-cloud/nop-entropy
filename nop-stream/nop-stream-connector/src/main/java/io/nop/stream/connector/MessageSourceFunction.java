@@ -22,7 +22,13 @@ import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 /**
  * Adapts nop-message's {@link IMessageService} to nop-stream's {@link SourceFunction}.

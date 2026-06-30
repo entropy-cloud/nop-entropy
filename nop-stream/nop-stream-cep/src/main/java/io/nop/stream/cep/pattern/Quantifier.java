@@ -27,7 +27,7 @@ import jakarta.annotation.Nullable;
 
 import io.nop.api.core.util.Guard;
 
-import static io.nop.stream.cep.NopCepErrors.*;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_MALFORMED_PATTERN;
 
 /**
  * A quantifier describing the Pattern. There are three main groups of {@link Quantifier}.

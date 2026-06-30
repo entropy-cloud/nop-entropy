@@ -12,7 +12,11 @@ import java.io.Serializable;
 import io.nop.commons.partition.IPartitioner;
 
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
-import io.nop.stream.core.common.functions.*;
+import io.nop.stream.core.common.functions.FilterFunction;
+import io.nop.stream.core.common.functions.FlatMapFunction;
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.functions.MapFunction;
+import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
 import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
@@ -35,7 +39,7 @@ import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_PARTITION_KEY_FAILED;
 
 /**
  * The implementation of the {@link DataStream} interface. This class represents a data stream

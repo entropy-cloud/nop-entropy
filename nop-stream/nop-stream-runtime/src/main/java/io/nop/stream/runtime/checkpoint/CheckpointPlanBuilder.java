@@ -7,9 +7,16 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.checkpoint.CheckpointPlan;
+import io.nop.stream.core.checkpoint.OperatorStateMapping;
+import io.nop.stream.core.checkpoint.ProcessingGuarantee;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.Subtask;
@@ -22,7 +29,10 @@ import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 public class CheckpointPlanBuilder {
 

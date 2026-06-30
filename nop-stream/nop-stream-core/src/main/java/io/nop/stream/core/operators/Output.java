@@ -28,7 +28,8 @@ import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ELEMENT_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED_ELEMENT_TYPE;
 
 /**
  * A {@link io.nop.stream.core.operators.StreamOperator} is supplied with an object of

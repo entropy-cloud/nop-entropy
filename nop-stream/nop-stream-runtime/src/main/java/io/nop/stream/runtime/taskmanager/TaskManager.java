@@ -12,7 +12,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -21,13 +28,17 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.message.IMessageService;
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.core.execution.*;
+import io.nop.stream.core.execution.CheckpointBarrierTracker;
+import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;

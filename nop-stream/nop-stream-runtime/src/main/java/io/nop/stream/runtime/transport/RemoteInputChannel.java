@@ -24,7 +24,8 @@ import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.streamrecord.StreamElement;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
  * Consumer-side channel that receives data from a {@link RemoteResultPartition}

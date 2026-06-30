@@ -26,7 +26,8 @@ import io.nop.stream.core.configuration.Configuration;
 
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 
 /**
  * An abstract stub implementation for rich user-defined functions. Rich functions have additional

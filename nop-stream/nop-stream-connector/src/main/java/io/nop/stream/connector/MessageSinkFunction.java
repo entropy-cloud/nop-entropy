@@ -13,7 +13,8 @@ import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
  * Adapts nop-message's {@link IMessageService} to nop-stream's {@link SinkFunction}.

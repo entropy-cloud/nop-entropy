@@ -49,7 +49,8 @@ import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.Quantifier;
 import io.nop.stream.cep.pattern.WithinType;
 
-import static io.nop.stream.cep.NopCepErrors.*;
+import static io.nop.stream.cep.NopCepErrors.ARG_PATTERN_DETAIL;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_MALFORMED_PATTERN;
 
 /**
  * Compiler class containing methods to compile a {@link Pattern} into a {@link NFA} or a {@link

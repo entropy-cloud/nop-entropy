@@ -7,8 +7,17 @@
  */
 package io.nop.stream.runtime.coordinator;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -16,11 +25,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.api.core.message.*;
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.JobTerminationMode;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;

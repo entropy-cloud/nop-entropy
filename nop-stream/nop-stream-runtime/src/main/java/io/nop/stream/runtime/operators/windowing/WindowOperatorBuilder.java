@@ -41,7 +41,8 @@ import io.nop.stream.runtime.operators.windowing.functions.InternalIterableWindo
 import io.nop.stream.runtime.operators.windowing.functions.InternalSingleValueWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 public class WindowOperatorBuilder<IN, K, W extends Window> {
 

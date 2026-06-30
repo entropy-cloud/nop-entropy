@@ -8,18 +8,28 @@
 package io.nop.stream.runtime.checkpoint.storage;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.EpochManifest;
+import io.nop.stream.core.checkpoint.EpochState;
+import io.nop.stream.core.checkpoint.StateSegmentDescriptor;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.model.StreamModelFingerprint;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 
 @Internal
 public class CheckpointSerDe {

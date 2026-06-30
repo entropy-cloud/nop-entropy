@@ -7,7 +7,12 @@
  */
 package io.nop.stream.core.graph;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
@@ -19,7 +24,8 @@ import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 public class PartitionedPlanGenerator {
 

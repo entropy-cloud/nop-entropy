@@ -7,7 +7,8 @@ import java.util.List;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CLASS_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CLASS_NOT_ALLOWED;
 
 @Internal
 public class ClassNameValidator {

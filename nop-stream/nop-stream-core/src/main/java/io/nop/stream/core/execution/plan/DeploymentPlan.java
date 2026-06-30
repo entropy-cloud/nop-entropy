@@ -8,7 +8,9 @@
 package io.nop.stream.core.execution.plan;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import io.nop.api.core.annotations.data.DataBean;
 

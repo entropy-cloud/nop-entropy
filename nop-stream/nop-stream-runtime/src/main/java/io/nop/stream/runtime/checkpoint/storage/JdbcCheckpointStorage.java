@@ -7,7 +7,10 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -19,11 +22,16 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IDataRow;
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.EpochManifest;
+import io.nop.stream.core.checkpoint.SavepointMetadata;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ERROR;
 
 /**
  * JDBC-backed checkpoint storage for durable checkpoint persistence.

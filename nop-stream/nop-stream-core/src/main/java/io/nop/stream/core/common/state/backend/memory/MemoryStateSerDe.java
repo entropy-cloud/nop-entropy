@@ -29,7 +29,11 @@ import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.common.state.backend.IKeyedStateBackend.DEFAULT_NAMESPACE;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 class MemoryStateSerDe {
 

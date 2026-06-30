@@ -22,7 +22,12 @@ import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATOR_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_OPERATOR_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 public class StreamReduceOperator<T>
         extends AbstractUdfStreamOperator<T, ReduceFunction<T>>

@@ -17,7 +17,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.OperatorStateMapping;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;

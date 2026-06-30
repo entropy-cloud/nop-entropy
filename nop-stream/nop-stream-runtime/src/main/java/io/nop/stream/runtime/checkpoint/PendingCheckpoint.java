@@ -7,7 +7,10 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,7 +18,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;

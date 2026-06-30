@@ -25,7 +25,8 @@ import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_BARRIER_INJECTION_FAILED;
 
 /**
  * A stream operator that wraps a {@link SourceFunction} and emits elements through the

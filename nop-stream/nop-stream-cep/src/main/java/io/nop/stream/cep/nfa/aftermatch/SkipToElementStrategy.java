@@ -29,7 +29,7 @@ import static io.nop.api.core.util.Guard.notNull;
 import io.nop.stream.cep.nfa.sharedbuffer.EventId;
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SKIP_NO_MATCH;
 
 abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
     private static final long serialVersionUID = 7127107527654629026L;

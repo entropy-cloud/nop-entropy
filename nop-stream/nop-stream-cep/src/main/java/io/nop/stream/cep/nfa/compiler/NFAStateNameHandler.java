@@ -26,7 +26,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.pattern.MalformedPatternException;
 
-import static io.nop.stream.cep.NopCepErrors.*;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_MALFORMED_PATTERN;
 
 /**
  * A utility class used to handle name conventions and guarantee unique names for the states of our

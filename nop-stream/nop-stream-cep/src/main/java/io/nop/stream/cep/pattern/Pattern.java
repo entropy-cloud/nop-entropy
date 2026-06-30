@@ -36,7 +36,8 @@ import io.nop.stream.cep.pattern.conditions.RichAndCondition;
 import io.nop.stream.cep.pattern.conditions.RichOrCondition;
 import io.nop.stream.cep.pattern.conditions.SubtypeCondition;
 
-import static io.nop.stream.cep.NopCepErrors.*;
+import static io.nop.stream.cep.NopCepErrors.ARG_PATTERN_DETAIL;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_MALFORMED_PATTERN;
 
 /**
  * Base class for a pattern definition.
