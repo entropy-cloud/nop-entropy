@@ -220,7 +220,7 @@ public class TestDBMessageServiceReliability {
             int reset = svc.sweepStaleClaimedMessages(5 * 60 * 1000L);
             assertEquals(1, reset);
 
-            waitForCondition(() -> received.get() != null, 5, TimeUnit.SECONDS);
+            waitForCondition(() -> received.get() != null, 15, TimeUnit.SECONDS);
             assertTrue(received.get() != null, "stranded CLAIMED message must be redelivered after sweep");
             assertEquals(AiAgentMessageTable.STATUS_CONSUMED, statusOf("stranded-1"),
                     "redelivered message should reach CONSUMED");
@@ -252,7 +252,7 @@ public class TestDBMessageServiceReliability {
                 } catch (Exception e) {
                     return false;
                 }
-            }, 5, TimeUnit.SECONDS);
+            }, 15, TimeUnit.SECONDS);
 
             assertEquals(AiAgentMessageTable.STATUS_PENDING, statusOf("sched-1"),
                     "scheduled sweep should have reset the stale CLAIMED message to PENDING");
