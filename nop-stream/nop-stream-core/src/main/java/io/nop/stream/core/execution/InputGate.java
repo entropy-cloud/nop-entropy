@@ -23,7 +23,14 @@ import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TIMEOUT_MS;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
  * Manages multiple {@link InputChannel} instances and provides merged reading
@@ -254,7 +261,7 @@ public class InputGate {
                                     barrierReceived[channelIndex] = true;
                                     barriersRemaining--;
                                     Optional<StreamElement> result = checkBarrierAlignmentComplete();
-                                    if (result != null) return result;
+                                    if (result.isPresent()) return result;
                                 }
                             }
                         }
@@ -263,13 +270,13 @@ public class InputGate {
 
                     if (element.isCheckpointBarrier()) {
                         Optional<StreamElement> result = handleBarrierNonRecursive(channelIndex, element.asCheckpointBarrier());
-                        if (result != null) return result;
+                        if (result.isPresent()) return result;
                         continue retry;
                     }
 
                     if (element.isWatermark()) {
                         Optional<StreamElement> result = handleWatermarkNonRecursive(channelIndex, element.asWatermark());
-                        if (result != null) return result;
+                        if (result.isPresent()) return result;
                         continue retry;
                     }
 
@@ -317,7 +324,7 @@ public class InputGate {
                 if (barriersRemaining <= 0) {
                     resetBarrierState();
                 }
-                return null;
+                return Optional.empty();
             }
 
             if (barriersRemaining <= 0) {
@@ -333,13 +340,13 @@ public class InputGate {
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     private Optional<StreamElement> handleWatermarkNonRecursive(int channelIndex, Watermark watermark) {
         long oldWatermark = currentWatermarks[channelIndex];
         if (watermark.getTimestamp() <= oldWatermark) {
-            return null;
+            return Optional.empty();
         }
         currentWatermarks[channelIndex] = watermark.getTimestamp();
 
@@ -350,7 +357,7 @@ public class InputGate {
             return Optional.of(new Watermark(newMin));
         }
 
-        return null;
+        return Optional.empty();
     }
 
     private long minWatermarkExcluding(int excludeIndex, long oldValue) {
@@ -383,6 +390,6 @@ public class InputGate {
         if (!barrierAlignment && barriersRemaining <= 0 && pendingBarrier != null) {
             resetBarrierState();
         }
-        return null;
+        return Optional.empty();
     }
 }
