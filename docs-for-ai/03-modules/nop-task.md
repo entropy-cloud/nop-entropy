@@ -109,10 +109,11 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 |-----------|------|------|
 | `<simple bean="...">` | 从 BeanContainer 取 `ITaskStep` bean 执行 | 复用的 Java step bean |
 | `<invoke bean="..." method="...">` | 调用任意 bean 的指定方法 | 直接复用现有 service 方法，无需实现 `ITaskStep` |
-| `<step>` / `<xpl>` | 内联 xpl 脚本 | 轻量逻辑、数据转换、简单判断 |
+| `<step>` | 内联 xpl 脚本（`<step>` 是推荐名，`<xpl>` 已弃用），支持 `customType` 扩展 | 轻量逻辑、数据转换、简单判断，或通过 `customType` 调用任意 XLib 标签 |
 | `<script lang="...">` | 执行注册的脚本语言 | 多语言脚本 |
 | `<call-task>` | 调用子 task flow | 子流程 |
 | `<call-step>` | 调用步骤库中的步骤 | 跨流程复用单步 |
+| `<step customType="ns:Tag">` | 通过 `customType` 引用 XLib 标签，自动转为 `<source>` 内调用 | 调用任意 xlib 标签（如 `rule:Execute`）|
 
 控制结构（作为容器 step）：`sequential`（顺序）、`selector`（行为树选择，取第一个非空返回）、`choose`（switch）、`if`、`loop`/`loop-n`、`fork`/`fork-n`（动态分片并行）、`parallel`（并行+聚合）、`graph`（数据驱动 DAG）、`suspend`（挂起）、`exit`/`end`。
 
@@ -140,6 +141,52 @@ public class DeductStockStep extends AbstractTaskStep {
 
 step 的 input/output 在 XML 里声明，`persist="true"` 的变量随 `saveState` 持久化，支持断点重启。
 
+### `customType` 扩展机制
+
+通过 `customType="ns:TagName"` 可以在 `<step>` 上直接引用任意 XLib 标签作为步骤执行体，无需写 Java 或显式写 `<source>`。由 `common.task.xml` 的 `x:post-extends` 触发 `TransformCustomStepHelper` 在 XDEF 加载期自动转换。
+
+转换规则（`transformCustomStepToXpl`）：
+
+1. 克隆节点，tag 转为 `step`，移除 `customType`
+2. 创建 `<source>` → `<ns:TagName>`（即 `customType` 的值）
+3. 命名空间 `ns` 的 URL 映射到 `xpl:lib`，自动设为 `xmlns:xpl="..."` 属性
+4. `<input name="x">` 自动展开为 `x="${x}"` 属性加到 `<ns:TagName>` 上
+5. **`ns:*` 前缀的属性**从 `<step>` 搬到 `<ns:TagName>`，前缀被剥掉（如 `rule:ruleModelPath` → `ruleModelPath`）
+6. **`ns:*` 前缀的子节点**从 `<step>` 搬到 `<ns:TagName>`，前缀被剥掉
+7. 如果 xlib 中存在 `{TagName}-generator` 标签（如 `Execute-generator`），优先走 generator 做精确转换
+
+示例——调用 `rule:Execute` 执行规则：
+
+```xml
+<step name="calcDiscount" customType="rule:Execute"
+      rule:ruleModelPath="/nop/demo/rule/discount.rule.xlsx"
+      rule:inputs="${{order: order}}">
+    <input name="order"/>
+    <output name="discount"/>
+</step>
+```
+
+转换后等价于：
+
+```xml
+<step name="calcDiscount">
+    <input name="order"/>
+    <output name="discount"/>
+    <source>
+        <rule:Execute ruleModelPath="/nop/demo/rule/discount.rule.xlsx"
+                      inputs="${{order: order}}"
+                      order="${order}"
+                      xpl:lib="/nop/rule/xlib/rule.xlib"/>
+    </source>
+</step>
+```
+
+注意：`ruleModelPath` 和 `inputs` 等 `rule:Execute` 标签的参数必须用 `rule:` 前缀写在 `<step>` 上，否则不会被搬到 `<rule:Execute>`。非名字空间的属性（如 `displayName`）保留在 `<step>` 上，作为步骤元数据。
+
+如果目标 XLib 标签的 `<attr>` 定义中不包含输入变量名（如 `rule:Execute` 只认 `inputs` 不认单个变量名），多出的 `order="${order}"` 属性可能产生警告或错误。此时有两种解法：
+- 在 `rule.xlib` 中添加 `Execute-generator` 标签做精确映射（推荐长期方案）
+- 临时用 `<xpl>` 直接写 `<source>` 绕过 customType 转换
+
 ## 与其他机制的关系
 
 ### 与 nop-wf
@@ -163,6 +210,7 @@ nop-task 与 nop-wf 是**两个相互独立的引擎**。nop-wf 并非基于 nop
 - task flow 编排"步骤结构"（拓扑、顺序、分支、重试）。
 - nop-rule 解决"决策点"（容差校验、信用额度、科目映射等），决策矩阵运行时可配置、带版本与执行日志。
 - 两者正交：task flow 的某步可以调用 nop-rule 做决策；nop-rule 不编排步骤，task flow 不替代规则配置。
+- **集成方式**：通过 `<step customType="rule:Execute">` 调用 `rule:Execute` XLib 标签（见上面 `customType` 扩展机制节）。此时 `rule:*` 前缀的参数自动映射到规则标签，`<input>` 自动传入规则输入。
 
 ## 源码锚点
 

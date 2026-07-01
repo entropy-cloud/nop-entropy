@@ -100,7 +100,7 @@
 | 理解 VFS 路径解析与资源加载 | `02-core-guides/vfs-and-resource-resolution.md` |
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
-| 理解 XLang / XPL / xrun / xgen 基本写法 | `02-core-guides/xlang-and-xpl-basics.md` |
+| 理解 XLang / XPL / xrun / xgen 基本写法 + XScript 语法与 `xpl\`...\`` 标签模板 | `02-core-guides/xlang-and-xpl-basics.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
 | 编写 E2E 测试 | `02-core-guides/e2e-testing.md` |
@@ -153,7 +153,7 @@
 | **用 ORM 拦截器实现应用层 trigger / 拦截所有写路径** | **`03-runbooks/orm-interceptor-trigger.md`**（`IOrmInterceptor` + `orm-interceptor.xml` 配置式回调，trigger 概念与选型） |
 | **生成报表 / 单据打印（含套打）** | **`03-runbooks/generate-report.md`**（XPT 单元格展开语法 + 数据集 + 三种输出 xlsx/pdf/html + 套打 `ExcelImage.print=false` + 调用范例） |
 | 理解 nop-report（报表引擎） | `03-modules/nop-report.md` |
-| 理解 nop-rule（规则引擎） | `03-modules/nop-rule.md` |
+| 理解 nop-rule（规则引擎：决策树/矩阵、二重 DSL、Excel 编辑） | `03-modules/nop-rule.md` |
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
 | 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |
 | 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` |

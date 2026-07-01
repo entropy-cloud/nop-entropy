@@ -10,12 +10,16 @@ package io.nop.rule.core.model.compile;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalPredicate;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.eval.predicate.AndEvalPredicate;
 import io.nop.core.lang.eval.predicate.OrEvalPredicate;
 import io.nop.core.model.query.FilterBeanVisitor;
 import io.nop.core.model.query.FilterOp;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.XLangASTBuilder;
@@ -28,8 +32,11 @@ import java.util.List;
 
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_EXCLUDE_MAX;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_EXCLUDE_MIN;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_EXPR;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE;
 import static io.nop.api.core.convert.ConvertHelper.defaults;
 import static io.nop.api.core.convert.ConvertHelper.toBoolean;
+import static io.nop.api.core.convert.ConvertHelper.toTruthy;
 
 public class FilterBeanToPredicateTransformer extends FilterBeanVisitor<IEvalPredicate> {
     private final XLangCompileTool compileTool;
@@ -156,5 +163,22 @@ public class FilterBeanToPredicateTransformer extends FilterBeanVisitor<IEvalPre
     @Override
     public IEvalPredicate visitNot(ITreeBean filter, IVariableScope scope) {
         return visitAnd(filter, scope).not();
+    }
+
+    @Override
+    public IEvalPredicate visitUnknown(String op, ITreeBean filter, IVariableScope scope) {
+        if (FILTER_OP_EXPR.equals(op)) {
+            SourceLocation loc = filter.getLocation();
+            Expression expr = (Expression) filter.getAttr(FILTER_ATTR_VALUE);
+            IExecutableExpression executable = compileTool.buildExecutable(expr);
+            return evalCtx -> {
+                IEvalScope evalScope = evalCtx.getEvalScope();
+                IExpressionExecutor executor = XLang.getExecutor();
+                EvalRuntime rt = new EvalRuntime(evalScope);
+                Object value = executable.execute(executor, rt);
+                return toTruthy(value);
+            };
+        }
+        return super.visitUnknown(op, filter, scope);
     }
 }
