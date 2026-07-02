@@ -182,8 +182,6 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), cancelTime));
         fire.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
         fire.setErrorMessage(ERR_JOB_CANCELED.getDescription());
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(cancelTime);
         if (!fireDao().tryUpdateWithVersionCheck(fire)) {
             return false;
         }
@@ -198,8 +196,6 @@ public class JobFireStoreImpl implements IJobFireStore {
             task.setDurationMs(DateHelper.durationMs(task.getStartTime(), cancelTime));
             task.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
             task.setErrorMessage(ERR_JOB_CANCELED.getDescription());
-            task.setUpdatedBy("system");
-            task.setUpdateTime(cancelTime);
 
             if (!taskDao().tryUpdateWithVersionCheck(task)) {
                 NopJobTask freshTask = taskDao().requireEntityById(task.getJobTaskId());
@@ -222,8 +218,6 @@ public class JobFireStoreImpl implements IJobFireStore {
             if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
                 schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, cancelTime));
             }
-            schedule.setUpdatedBy("system");
-            schedule.setUpdateTime(cancelTime);
 
             if (scheduleDao().tryUpdateWithVersionCheck(schedule)) {
                 return true;
@@ -279,13 +273,10 @@ public class JobFireStoreImpl implements IJobFireStore {
                 || currentFire.getFireStatus() != _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
             return false;
         }
-        long now = fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
         currentFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_WAITING);
         currentFire.setDispatchInstanceId(null);
         // Reuse startTime as the "earliest re-dispatch" marker while WAITING (no-fitting-worker backoff).
         currentFire.setStartTime(new Timestamp(backoffUntilMs));
-        currentFire.setUpdatedBy("system");
-        currentFire.setUpdateTime(new Timestamp(now));
         return fireDao().tryUpdateWithVersionCheck(currentFire);
     }
 
@@ -306,8 +297,6 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), fire.getEndTime()));
         fire.setErrorCode(errorCode);
         fire.setErrorMessage(errorMessage);
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(fire.getEndTime());
         fireDao().updateEntityDirectly(fire);
     }
 

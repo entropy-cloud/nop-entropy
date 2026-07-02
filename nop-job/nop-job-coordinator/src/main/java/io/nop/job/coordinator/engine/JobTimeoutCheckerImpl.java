@@ -273,8 +273,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         }
 
         task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
-        task.setUpdatedBy("system");
-        task.setUpdateTime(new Timestamp(scheduleStore.getCurrentTime()));
         if (!taskStore.updateTask(task)) {
             LOG.warn("nop.job.timeout.worker-suspicious-update-conflict:taskId={}", task.getJobTaskId());
         }
@@ -333,8 +331,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
                 task.setEndTime(endTime);
                 task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
                 task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
-                task.setUpdatedBy("system");
-                task.setUpdateTime(endTime);
                 if (!taskStore.updateTask(task)) {
                     LOG.warn("nop.job.timeout.dispatch-deleted-task-update-conflict:taskId={}", task.getJobTaskId());
                 }
@@ -348,8 +344,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         fire.setDurationMs(startTimeOrNow(fire, now));
         fire.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
         fire.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(endTime);
 
         schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
         schedule.setLastEndTime(endTime);
@@ -357,8 +351,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         schedule.setLastDurationMs(fire.getDurationMs());
         schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
         schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(endTime);
 
         fireStore.completeFireAndUpdateSchedule(fire, schedule);
 
@@ -383,8 +375,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
             task.setEndTime(endTime);
             task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
             task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
-            task.setUpdatedBy("system");
-            task.setUpdateTime(endTime);
             if (task.getStartTime() != null) {
                 task.setDurationMs(Math.max(endTime.getTime() - task.getStartTime().getTime(), 0L));
             }
@@ -441,8 +431,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         task.setDurationMs(startTime != null ? Math.max(now - startTime.getTime(), 0L) : 0L);
         task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
         task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
-        task.setUpdatedBy("system");
-        task.setUpdateTime(endTime);
         if (!taskStore.updateTask(task)) {
             LOG.warn("nop.job.timeout.suspicious-update-conflict:taskId={}", task.getJobTaskId());
         }
@@ -515,8 +503,6 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         task.setDurationMs(Math.max(endTime.getTime() - startTime.getTime(), 0L));
         task.setErrorCode(ERR_JOB_TIMEOUT.getErrorCode());
         task.setErrorMessage(ERR_JOB_TIMEOUT.getDescription());
-        task.setUpdatedBy("system");
-        task.setUpdateTime(endTime);
         if (!taskStore.updateTask(task)) {
             LOG.warn("nop.job.timeout.task-update-conflict:taskId={}", task.getJobTaskId());
         }

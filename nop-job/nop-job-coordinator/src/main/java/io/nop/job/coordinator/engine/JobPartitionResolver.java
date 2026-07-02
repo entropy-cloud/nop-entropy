@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
 import io.nop.cluster.naming.PartitionAssignHelper;
@@ -81,7 +82,7 @@ public class JobPartitionResolver {
             return null;
         }
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (cachedPartitions != null && (now - lastResolveTime) < CACHE_TTL_MS) {
             return cachedPartitions;
         }
@@ -105,24 +106,24 @@ public class JobPartitionResolver {
         this.lastSeenServers = current;
 
         if (prev == null) {
-            this.lastChangeTime = System.currentTimeMillis();
+            this.lastChangeTime = CoreMetrics.currentTimeMillis();
             return true;
         }
 
         if (current.size() != prev.size()) {
-            this.lastChangeTime = System.currentTimeMillis();
+            this.lastChangeTime = CoreMetrics.currentTimeMillis();
             return true;
         }
 
         for (int i = 0; i < current.size(); i++) {
             if (!current.get(i).getInstanceId().equals(prev.get(i).getInstanceId())) {
-                this.lastChangeTime = System.currentTimeMillis();
+                this.lastChangeTime = CoreMetrics.currentTimeMillis();
                 return true;
             }
         }
 
         if (this.lastChangeTime > 0) {
-            long elapsed = System.currentTimeMillis() - this.lastChangeTime;
+            long elapsed = CoreMetrics.currentTimeMillis() - this.lastChangeTime;
             if (elapsed < stableWindowMs) {
                 return true;
             }

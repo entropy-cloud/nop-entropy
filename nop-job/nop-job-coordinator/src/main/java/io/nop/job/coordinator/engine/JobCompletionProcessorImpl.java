@@ -203,8 +203,6 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             fire.setErrorCode(null);
             fire.setErrorMessage(null);
         }
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(new Timestamp(scheduleStore.getCurrentTime()));
 
         schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
         schedule.setLastEndTime(fireEndTime);
@@ -224,8 +222,6 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         } else if (isFixedDelay(schedule)) {
             schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, fireEndTime));
         }
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(new Timestamp(scheduleStore.getCurrentTime()));
 
         fireStore.completeFireAndUpdateSchedule(fire, schedule);
 

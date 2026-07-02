@@ -81,13 +81,9 @@ public class JobTaskStoreImpl implements IJobTaskStore {
             return List.of();
         }
 
-        java.sql.Timestamp lockTime = new java.sql.Timestamp(
-                taskDao().getDbEstimatedClock().getMaxCurrentTimeMillis() + Math.max(lockTimeoutMs, 1L));
         for (NopJobTask task : tasks) {
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CLAIMED);
             task.setWorkerInstanceId(workerInstanceId);
-            task.setUpdatedBy("system");
-            task.setUpdateTime(lockTime);
         }
         return taskDao().tryUpdateManyWithVersionCheck(tasks);
     }
@@ -165,12 +161,8 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         // Optimistic version check (tryUpdateManyWithVersionCheck) protects against concurrent
         // transitions (e.g. a worker that just claimed a task flips it to CLAIMED + bumps version,
         // failing our update so we don't clobber live state).
-        java.sql.Timestamp now = new java.sql.Timestamp(
-                taskDao().getDbEstimatedClock().getMaxCurrentTimeMillis());
         for (NopJobTask task : stale) {
             task.setWorkerInstanceId(null);
-            task.setUpdatedBy("system");
-            task.setUpdateTime(now);
         }
         return taskDao().tryUpdateManyWithVersionCheck(stale).size();
     }

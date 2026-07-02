@@ -20,7 +20,6 @@ import io.nop.job.dao.store.IJobScheduleStore;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +100,6 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
         List<IntRangeBean> ranges = partitionAssigner.assignPartitions(
                 PARTITION_HASH_RANGE, selected);
 
-        long now = System.currentTimeMillis();
         List<NopJobTask> tasks = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
             ServiceInstance instance = selected.get(i);
@@ -116,11 +114,6 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
             task.setShardingIndex(i);
             task.setShardingTotal(n);
             task.setPartitionRange(range.toString());
-
-            task.setCreatedBy("system");
-            task.setCreateTime(new Timestamp(now));
-            task.setUpdatedBy("system");
-            task.setUpdateTime(new Timestamp(now));
 
             tasks.add(task);
         }

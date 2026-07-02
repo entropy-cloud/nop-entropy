@@ -6,7 +6,6 @@ import io.nop.job.dao.entity.NopJobTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -16,8 +15,6 @@ public class DefaultJobTaskBuilder implements IJobTaskBuilder {
 
     @Override
     public List<NopJobTask> buildTasks(NopJobFire fire) {
-        long now = System.currentTimeMillis();
-
         NopJobTask task = new NopJobTask();
         task.setJobFireId(fire.getJobFireId());
         task.setTaskNo(1);
@@ -38,10 +35,6 @@ public class DefaultJobTaskBuilder implements IJobTaskBuilder {
                 "jobParamsSnapshot", emptyIfNull(fire.getJobParamsSnapshotComponent().get_jsonMap())
         ));
         task.setPartitionIndex(fire.getPartitionIndex());
-        task.setCreatedBy("system");
-        task.setCreateTime(new Timestamp(now));
-        task.setUpdatedBy("system");
-        task.setUpdateTime(new Timestamp(now));
 
         return Collections.singletonList(task);
     }

@@ -16,7 +16,6 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobScheduleStore;
 import jakarta.inject.Inject;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -82,7 +81,6 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
         }
 
         Assignment assignment = plan.getAssignments().get(0);
-        long now = System.currentTimeMillis();
 
         NopJobTask task = new NopJobTask();
         task.setJobFireId(fire.getJobFireId());
@@ -95,10 +93,6 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
         if (schedule != null) {
             task.setPriority(schedule.getPriority());
         }
-        task.setCreatedBy("system");
-        task.setCreateTime(new Timestamp(now));
-        task.setUpdatedBy("system");
-        task.setUpdateTime(new Timestamp(now));
 
         return List.of(task);
     }
