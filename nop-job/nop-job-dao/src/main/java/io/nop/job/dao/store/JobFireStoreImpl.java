@@ -3,10 +3,9 @@ package io.nop.job.dao.store;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
-import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.commons.util.DateHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerEvalContext;
@@ -16,6 +15,8 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.entity._gen._NopJobTask;
+import io.nop.job.dao.helper.JobQueryHelper;
+import io.nop.job.dao.helper.JobStatusHelper;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
@@ -60,7 +61,7 @@ public class JobFireStoreImpl implements IJobFireStore {
                 FilterBeans.isNull(PROP_NAME_startTime),
                 FilterBeans.le(PROP_NAME_startTime, new Timestamp(now))
         ));
-        addPartitionFilter(query, partitions);
+        JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
         return fireDao().findAllByQuery(query);
@@ -71,7 +72,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_RUNNING));
-        addPartitionFilter(query, partitions);
+        JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_scheduledFireTime, false);
         query.addOrderField(PROP_NAME_jobFireId, false);
         return fireDao().findAllByQuery(query);
@@ -116,18 +117,11 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
     }
 
-    private static final Set<Integer> TERMINAL_FIRE_STATUSES = Set.of(
-            _NopJobCoreConstants.FIRE_STATUS_SUCCESS,
-            _NopJobCoreConstants.FIRE_STATUS_FAILED,
-            _NopJobCoreConstants.FIRE_STATUS_CANCELED,
-            _NopJobCoreConstants.FIRE_STATUS_TIMEOUT
-    );
-
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
         NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-        if (TERMINAL_FIRE_STATUSES.contains(currentFire.getFireStatus())) {
+        if (JobStatusHelper.isTerminalFire(currentFire.getFireStatus())) {
             return;
         }
 
@@ -189,7 +183,7 @@ public class JobFireStoreImpl implements IJobFireStore {
 
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
         fire.setEndTime(cancelTime);
-        fire.setDurationMs(calculateDuration(fire.getStartTime(), cancelTime));
+        fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), cancelTime));
         fire.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
         fire.setErrorMessage(ERR_JOB_CANCELED.getDescription());
         fire.setUpdatedBy("system");
@@ -200,13 +194,13 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
 
         for (NopJobTask task : tasks) {
-            if (isTaskFinished(task.getTaskStatus())) {
+            if (JobStatusHelper.isFinishedTask(task.getTaskStatus())) {
                 continue;
             }
 
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CANCELED);
             task.setEndTime(cancelTime);
-            task.setDurationMs(calculateDuration(task.getStartTime(), cancelTime));
+            task.setDurationMs(DateHelper.durationMs(task.getStartTime(), cancelTime));
             task.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
             task.setErrorMessage(ERR_JOB_CANCELED.getDescription());
             task.setUpdatedBy("system");
@@ -216,7 +210,7 @@ public class JobFireStoreImpl implements IJobFireStore {
                     Collections.singletonList(task));
             if (updatedTasks.isEmpty()) {
                 NopJobTask freshTask = taskDao().requireEntityById(task.getJobTaskId());
-                if (isTaskFinished(freshTask.getTaskStatus())) {
+                if (JobStatusHelper.isFinishedTask(freshTask.getTaskStatus())) {
                     LOG.debug("nop.job.cancel.task-already-terminal:taskId={},status={}",
                             task.getJobTaskId(), freshTask.getTaskStatus());
                     continue;
@@ -281,7 +275,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
         query.addFilter(FilterBeans.eq(PROP_NAME_fireStatus, _NopJobCoreConstants.FIRE_STATUS_DISPATCHING));
-        addPartitionFilter(query, partitions);
+        JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_startTime, false);
         return fireDao().findAllByQuery(query);
     }
@@ -318,24 +312,12 @@ public class JobFireStoreImpl implements IJobFireStore {
         NopJobFire fire = fireDao().requireEntityById(jobFireId);
         fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);
         fire.setEndTime(new Timestamp(fireDao().getDbEstimatedClock().getMaxCurrentTimeMillis()));
-        fire.setDurationMs(calculateDuration(fire.getStartTime(), fire.getEndTime()));
+        fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), fire.getEndTime()));
         fire.setErrorCode(errorCode);
         fire.setErrorMessage(errorMessage);
         fire.setUpdatedBy("system");
         fire.setUpdateTime(fire.getEndTime());
         fireDao().updateEntityDirectly(fire);
-    }
-
-    private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
-        if (partitions == null || partitions.isEmpty()) {
-            return;
-        }
-
-        List<TreeBean> rangeFilters = new ArrayList<>();
-        for (IntRangeBean range : partitions.getRanges()) {
-            rangeFilters.add(FilterBeans.between(PROP_NAME_partitionIndex, range.getOffset(), range.getLast()));
-        }
-        query.addFilter(FilterBeans.or(rangeFilters));
     }
 
     private IOrmEntityDao<NopJobFire> fireDao() {
@@ -360,31 +342,21 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     private boolean isCancelableFire(NopJobFire fire, List<NopJobTask> tasks) {
         Integer fireStatus = fire.getFireStatus();
-        if (fireStatus == null) {
+        if (!JobStatusHelper.isActiveFire(fireStatus)) {
             return false;
-        }
-        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_WAITING || fireStatus == _NopJobCoreConstants.FIRE_STATUS_DISPATCHING) {
-            return true;
         }
         if (fireStatus != _NopJobCoreConstants.FIRE_STATUS_RUNNING) {
-            return false;
+            return true;
         }
         if (tasks.isEmpty()) {
             return true;
         }
         for (NopJobTask task : tasks) {
-            if (!isTaskFinished(task.getTaskStatus())) {
+            if (!JobStatusHelper.isFinishedTask(task.getTaskStatus())) {
                 return true;
             }
         }
         return false;
-    }
-
-    private boolean isTaskFinished(Integer taskStatus) {
-        return taskStatus != null
-                && taskStatus != _NopJobCoreConstants.TASK_STATUS_WAITING
-                && taskStatus != _NopJobCoreConstants.TASK_STATUS_CLAIMED
-                && taskStatus != _NopJobCoreConstants.TASK_STATUS_RUNNING;
     }
 
     private boolean shouldAdvanceFixedDelaySchedule(NopJobSchedule schedule, NopJobFire fire) {
@@ -412,13 +384,6 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     private ITriggerEvalContext toEvalContext(NopJobSchedule schedule) {
         return TriggerSpecHelper.toEvalContext(schedule);
-    }
-
-    private Long calculateDuration(Timestamp startTime, Timestamp endTime) {
-        if (startTime == null || endTime == null) {
-            return null;
-        }
-        return Math.max(endTime.getTime() - startTime.getTime(), 0L);
     }
 
     private long toTime(Timestamp value) {

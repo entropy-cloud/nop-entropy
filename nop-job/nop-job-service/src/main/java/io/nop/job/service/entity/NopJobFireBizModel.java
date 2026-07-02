@@ -13,6 +13,7 @@ import io.nop.job.biz.INopJobFireBiz;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.helper.JobStatusHelper;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.service.JobContextHelper;
@@ -56,7 +57,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @BizMutation
     public void cancelFire(@Name("id") String id, IServiceContext context) {
         NopJobFire fire = requireEntity(id, "cancelFire", context);
-        if (!isCancelableStatus(fire.getFireStatus())) {
+        if (!JobStatusHelper.isActiveFire(fire.getFireStatus())) {
             throwCancelNotAllowed(fire, "cancelFire");
         }
 
@@ -71,7 +72,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @BizMutation
     public void rerunFire(@Name("id") String id, IServiceContext context) {
         NopJobFire sourceFire = requireEntity(id, "rerunFire", context);
-        if (!isRerunnableStatus(sourceFire.getFireStatus())) {
+        if (!JobStatusHelper.isTerminalFire(sourceFire.getFireStatus())) {
             throwRerunNotAllowed(sourceFire, "rerunFire");
         }
 
@@ -86,21 +87,6 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
                     .param("jobName", schedule.getJobName());
         }
         afterEntityChange(rerunFire, "rerunFire", context);
-    }
-
-    private boolean isCancelableStatus(Integer fireStatus) {
-        return fireStatus != null
-                && (fireStatus == _NopJobCoreConstants.FIRE_STATUS_WAITING
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_DISPATCHING
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_RUNNING);
-    }
-
-    private boolean isRerunnableStatus(Integer fireStatus) {
-        return fireStatus != null
-                && (fireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_FAILED
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_CANCELED);
     }
 
     private void validateRerunSchedule(NopJobSchedule schedule, String action) {

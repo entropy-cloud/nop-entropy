@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.util.DateHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
@@ -192,7 +193,7 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         fire.setFireStatus(finalFireStatus);
         fire.setStartTime(fireStartTime);
         fire.setEndTime(fireEndTime);
-        fire.setDurationMs(calculateDuration(fireStartTime, fireEndTime));
+        fire.setDurationMs(DateHelper.durationMs(fireStartTime, fireEndTime));
 
         NopJobTask errorTask = findFirstErrorTask(tasks);
         if (errorTask != null) {
@@ -410,13 +411,6 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             }
         }
         return result == null ? fallback : result;
-    }
-
-    private Long calculateDuration(Timestamp startTime, Timestamp endTime) {
-        if (startTime == null || endTime == null) {
-            return null;
-        }
-        return Math.max(endTime.getTime() - startTime.getTime(), 0L);
     }
 
     private Timestamp calculateFixedDelayNextFireTime(NopJobSchedule schedule, Timestamp fireEndTime) {
