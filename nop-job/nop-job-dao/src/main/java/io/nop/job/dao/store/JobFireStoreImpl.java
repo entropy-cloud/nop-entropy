@@ -205,7 +205,9 @@ public class JobFireStoreImpl implements IJobFireStore {
                     continue;
                 }
                 task.setVersion(freshTask.getVersion());
-                taskDao().tryUpdateWithVersionCheck(task);
+                if (!taskDao().tryUpdateWithVersionCheck(task)) {
+                    LOG.warn("nop.job.cancel.task-update-failed-after-retry:taskId={}", task.getJobTaskId());
+                }
             }
         }
 

@@ -8,6 +8,7 @@ import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.core._NopJobCoreConstants;
@@ -314,9 +315,11 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
         NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
         if (schedule == null) {
             LOG.warn("nop.job.timeout.dispatch-schedule-deleted:fireId={}", fire.getJobFireId());
+            String localized = ErrorMessageManager.instance().getLocalizedDescription(null,
+                    ERR_JOB_SCHEDULE_DELETED.getErrorCode());
             fireStore.failFireWithoutSchedule(fire.getJobFireId(),
                     ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
-                    ERR_JOB_SCHEDULE_DELETED.getDescription());
+                    localized != null ? localized : ERR_JOB_SCHEDULE_DELETED.getDescription());
 
             List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
             Timestamp endTime = new Timestamp(now);

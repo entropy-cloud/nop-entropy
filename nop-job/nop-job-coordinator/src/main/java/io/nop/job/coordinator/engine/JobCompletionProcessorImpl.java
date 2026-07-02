@@ -7,6 +7,7 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.util.DateHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.api.retry.IJobRetryBridge;
@@ -174,9 +175,11 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
         if (schedule == null) {
             LOG.warn("nop.job.completion.schedule-deleted:fireId={}", fire.getJobFireId());
+            String localized = ErrorMessageManager.instance().getLocalizedDescription(null,
+                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode());
             fireStore.failFireWithoutSchedule(fire.getJobFireId(),
                     JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
-                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
+                    localized != null ? localized : JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
             return _NopJobCoreConstants.FIRE_STATUS_FAILED;
         }
 

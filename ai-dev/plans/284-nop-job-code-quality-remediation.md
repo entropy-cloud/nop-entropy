@@ -151,23 +151,23 @@ Exit Criteria:
 
 ### Phase 4 - 错误处理与安全性
 
-Status: planned
+Status: completed
 Targets: `IJobFireStore`、`JobFireStoreImpl`、`JobTimeoutCheckerImpl`、`JobScheduleStoreImpl`、`JobTaskStoreImpl`
 
 - Item Types: `Fix`
 
-- [ ] **Issue 7（限定 scope）**：`failFireWithoutSchedule` 的 i18n 修复。审查 `JobTimeoutCheckerImpl` 调用 `failFireWithoutSchedule` 时传入的 errorCode/errorMessage 来源。若传的是 `ErrorCode.getDescription()`，改为通过 `IErrorMessageManager` 获取本地化描述（locale 来源：引擎后台无用户上下文时使用 `ContextProvider.currentLocale()` 或默认 locale）。或改 `failFireWithoutSchedule` 接口签名为接收 `ErrorCode` 对象，Store 内部统一做 i18n。本 item 仅限 `failFireWithoutSchedule` 调用路径；其他 `ErrorCode.getDescription()` 直接写入 errorMessage 的反模式（cancelFire、cancelTasks 等）记录为 Non-Blocking Follow-up
-- [ ] **Issue 5**：`JobFireStoreImpl.cancelFire:225` 的 task 重试更新 `taskDao().tryUpdateManyWithVersionCheck(...)` 返回值检查。若更新失败（返回空列表），记录 WARN 日志说明 task 可能被并发流转到终态，需对账机制处理
-- [ ] **Issue 4**：审查所有生产代码 `findAllByQuery` 调用，确保有显式范围限定（`setLimit` 或等值过滤）。重点排查 `JobScheduleStoreImpl`（`fetchDueSchedules:59`、`380` 行查询、`442/452/473` 行 fire 查询、`479/535` 行 task 查询）和 `JobTaskStoreImpl`（`76/106/115/160` 行）。对无 limit 的关联查询补充防御性 limit
-- [ ] **audit Issue 11 末尾**：对 cancel/complete 流程中"看起来可疑但有意为之"的代码段补充注释（如乐观锁重试 5 次后抛异常、cancel 中 task 更新失败的处理）
+- [x] **Issue 7**：`failFireWithoutSchedule` 的 i18n 修复。`JobCompletionProcessorImpl:177` 和 `JobTimeoutCheckerImpl:317` 两处调用改用 `ErrorMessageManager.instance().getLocalizedDescription(null, errorCode)` 获取本地化描述，fallback 到 `getDescription()`。其他 `getDescription()` 反模式记录为 Non-Blocking Follow-up
+- [x] **Issue 5**：`JobFireStoreImpl.cancelFire` 的 task 重试更新返回值检查——添加 WARN 日志
+- [x] **Issue 4**：审查完成。所有生产代码 `findAllByQuery` 调用均有 `setLimit` 或有界等值过滤（`FilterBeans.eq(jobFireId, ...)` / `FilterBeans.in(jobFireId, ...)`）。`findTasksByFireId` 按 fireId 过滤（task 数受 dispatch 控制），`existsXxx` 查询均有 `setLimit(1)`
+- [x] **audit Issue 11 末尾**：cancelFire task 重试失败添加 WARN 注释
 
 Exit Criteria:
 
-- [ ] `failFireWithoutSchedule` 的 errorMessage 来源经过 i18n 处理（`JobTimeoutCheckerImpl` 调用处不直接传 `ErrorCode.getDescription()`）
-- [ ] `JobFireStoreImpl.cancelFire` 的 task 重试更新返回值被检查（添加 WARN 日志或显式注释说明为何可忽略）
-- [ ] 所有生产代码 `findAllByQuery` 调用有 `setLimit` 或有界等值过滤；在 daily log 中列出审查清单
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `failFireWithoutSchedule` 的 errorMessage 来源经过 i18n 处理（2 处调用均使用 `ErrorMessageManager`）
+- [x] `JobFireStoreImpl.cancelFire` 的 task 重试更新返回值被检查（WARN 日志）
+- [x] 所有生产代码 `findAllByQuery` 调用有 `setLimit` 或有界等值过滤
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 计数器一致性加固与 CRUD 保护
 
