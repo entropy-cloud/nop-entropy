@@ -109,23 +109,23 @@ Exit Criteria:
 
 ### Phase 2 - Dao/JSON API 正确使用
 
-Status: planned
+Status: completed
 Targets: `JobFireStoreImpl`、`NopJobScheduleBizModel`、`NopJobFireBizModel`
 
 - Item Types: `Fix`
 
-- [ ] `JobFireStoreImpl` 中所有单实体 `tryUpdateManyWithVersionCheck(Collections.singletonList(x))` 改为 `tryUpdateWithVersionCheck(x)` 返回 boolean（约 8 处：`insertTasksAndMarkFireDispatching`、`completeFireAndUpdateSchedule`、`cancelFire` 中的 fire/task/schedule 更新、`revertDispatchingFireToWaiting`）。保留 `tryLockFiresForDispatch` 的批量调用
-- [ ] `JobFireStoreImpl.batchLoadFires` 改用 `fireDao().batchGetEntityMapByIds(fireIds)`，注意返回 `Map<Object, T>` 的 key 是实体 id 的 Object 形式，需转为 `Map<String, NopJobFire>`（按 `jobFireId` 字符串 key）
-- [ ] `NopJobScheduleBizModel.resolveJobParams` 删除冗余回退分支（`261-266` 行手工 `JsonTool.parseMap`），直接使用 `getJobParamsComponent().get_jsonMap()`，返回 null 时用 `Collections.emptyMap()`
-- [ ] 排查 `getJobParamsComponent().get_jsonMap()` 后接 `.get(name)` 的模式，替换为 `getJobParamsComponent().getValue(name)`（Issue 9）
+- [x] `JobFireStoreImpl` 中所有单实体 `tryUpdateManyWithVersionCheck(Collections.singletonList(x))` 改为 `tryUpdateWithVersionCheck(x)` 返回 boolean（8 处）。保留 `tryLockFiresForDispatch` 的批量调用
+- [x] ~~`JobFireStoreImpl.batchLoadFires` 改用 `batchGetEntityMapByIds`~~ → **移入 Non-Blocking Follow-ups**：`tryBatchGetEntitiesByIds` 返回 session 缓存实体而非 DB 最新数据，导致 timeout checker 看到过时的 fire 状态。`findAllByQuery` 始终发起新 SQL 查询保证数据新鲜。在 Store 层需要最新数据的场景不能安全替换。
+- [x] `NopJobScheduleBizModel.resolveJobParams` 删除冗余回退分支，直接使用 `getJobParamsComponent().get_jsonMap()`
+- [x] Issue 9 排查完成：nop-job 生产代码中无 `get_jsonMap().get(name)` 模式（全部读取完整 Map），无可修改项
 
 Exit Criteria:
 
-- [ ] grep `Collections.singletonList` 在 `JobFireStoreImpl` 中仅出现在 `tryLockFiresForDispatch`（批量场景）
-- [ ] `batchLoadFires` 使用 `batchGetEntityMapByIds` 且返回类型正确为 `Map<String, NopJobFire>`
-- [ ] `resolveJobParams` 方法体不超过 5 行，无 `JsonTool.parseMap` 调用
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] grep `Collections.singletonList` 在 `JobFireStoreImpl` 中仅出现在 `tryLockFiresForDispatch`（批量场景）和 `batchLoadFires`（已裁定保留）
+- [x] ~~`batchLoadFires` 使用 `batchGetEntityMapByIds`~~ → 裁定为保留 `findAllByQuery`（理由见上），移入 Non-Blocking Follow-ups
+- [x] `resolveJobParams` 方法体不超过 5 行，无 `JsonTool.parseMap` 调用
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 框架约定对齐：审计字段与时间获取
 
@@ -235,6 +235,7 @@ Exit Criteria:
 ## Non-Blocking Follow-ups
 
 - **Issue 10（NopJobTask 补充字段）**：需调研 `completed`、`nextScheduleTime` 当前存储位置和使用频率后决定是否补充为实体列。属 ORM 模型变更（plan-first），不在本 plan 内执行。
+- **Issue 13（batchLoadFires → batchGetEntityMapByIds）**：`tryBatchGetEntitiesByIds` 返回 session 缓存实体而非 DB 最新数据，在 timeout checker 等需要新鲜数据的场景不安全。需要评估是否在调用前 `orm_unload` 或使用其他方式保证数据新鲜度，属优化项。
 - **广泛的 `ErrorCode.getDescription()` i18n**：Issue 7 仅修复 `failFireWithoutSchedule` 路径。cancelFire（`JobFireStoreImpl:194,211`）、cancelTasks（`JobScheduleStoreImpl:521,545`）、`JobCompletionProcessorImpl:177-178`、`JobTimeoutCheckerImpl` 的其他 `getDescription()` 直接写入 errorMessage 的反模式，应统一走 i18n 处理。
 - `DateHelper.currentTimeMillis()` 内部使用 `System.currentTimeMillis()`（`DateHelper.java:116`），应改为 `CoreMetrics.currentTimeMillis()`。属 `nop-commons` scope，不在本 plan 内修复。
 - 测试代码中大量使用 `System.currentTimeMillis()`，可考虑统一为 mock-friendly 的时钟获取，但不影响生产行为。

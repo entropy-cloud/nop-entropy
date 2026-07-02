@@ -254,17 +254,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         }
 
         Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
-        if (scheduleParams != null) {
-            return scheduleParams;
-        }
-
-        if (schedule.getJobParams() != null && !schedule.getJobParams().isEmpty()) {
-            Map<String, Object> parsed = JsonTool.parseMap(schedule.getJobParams());
-            if (parsed != null) {
-                return parsed;
-            }
-        }
-        return Collections.emptyMap();
+        return scheduleParams != null ? scheduleParams : Collections.emptyMap();
     }
 
     private Timestamp recalculateNextFireTime(NopJobSchedule schedule) {

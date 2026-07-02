@@ -105,8 +105,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
 
         currentFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_RUNNING);
-        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(currentFire));
-        if (updated.isEmpty()) {
+        if (!fireDao().tryUpdateWithVersionCheck(currentFire)) {
             throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
                     .param("jobFireId", fire.getJobFireId())
                     .param("expectedStatus", _NopJobCoreConstants.FIRE_STATUS_DISPATCHING);
@@ -125,8 +124,7 @@ public class JobFireStoreImpl implements IJobFireStore {
             return;
         }
 
-        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fire));
-        if (updated.isEmpty()) {
+        if (!fireDao().tryUpdateWithVersionCheck(fire)) {
             return;
         }
 
@@ -145,9 +143,7 @@ public class JobFireStoreImpl implements IJobFireStore {
             Long successTarget = schedule.getSuccessFireCount();
             Long failTarget = schedule.getFailFireCount();
 
-            List<NopJobSchedule> updatedSchedules = scheduleDao().tryUpdateManyWithVersionCheck(
-                    Collections.singletonList(schedule));
-            if (!updatedSchedules.isEmpty()) {
+            if (scheduleDao().tryUpdateWithVersionCheck(schedule)) {
                 return;
             }
             baseline = scheduleDao().requireEntityById(schedule.getJobScheduleId());
@@ -188,8 +184,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setErrorMessage(ERR_JOB_CANCELED.getDescription());
         fire.setUpdatedBy("system");
         fire.setUpdateTime(cancelTime);
-        List<NopJobFire> updated = fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(fire));
-        if (updated.isEmpty()) {
+        if (!fireDao().tryUpdateWithVersionCheck(fire)) {
             return false;
         }
 
@@ -206,9 +201,7 @@ public class JobFireStoreImpl implements IJobFireStore {
             task.setUpdatedBy("system");
             task.setUpdateTime(cancelTime);
 
-            List<NopJobTask> updatedTasks = taskDao().tryUpdateManyWithVersionCheck(
-                    Collections.singletonList(task));
-            if (updatedTasks.isEmpty()) {
+            if (!taskDao().tryUpdateWithVersionCheck(task)) {
                 NopJobTask freshTask = taskDao().requireEntityById(task.getJobTaskId());
                 if (JobStatusHelper.isFinishedTask(freshTask.getTaskStatus())) {
                     LOG.debug("nop.job.cancel.task-already-terminal:taskId={},status={}",
@@ -216,7 +209,7 @@ public class JobFireStoreImpl implements IJobFireStore {
                     continue;
                 }
                 task.setVersion(freshTask.getVersion());
-                taskDao().tryUpdateManyWithVersionCheck(Collections.singletonList(task));
+                taskDao().tryUpdateWithVersionCheck(task);
             }
         }
 
@@ -232,9 +225,7 @@ public class JobFireStoreImpl implements IJobFireStore {
             schedule.setUpdatedBy("system");
             schedule.setUpdateTime(cancelTime);
 
-            List<NopJobSchedule> updatedSchedules = scheduleDao().tryUpdateManyWithVersionCheck(
-                    Collections.singletonList(schedule));
-            if (!updatedSchedules.isEmpty()) {
+            if (scheduleDao().tryUpdateWithVersionCheck(schedule)) {
                 return true;
             }
 
@@ -295,7 +286,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         currentFire.setStartTime(new Timestamp(backoffUntilMs));
         currentFire.setUpdatedBy("system");
         currentFire.setUpdateTime(new Timestamp(now));
-        return !fireDao().tryUpdateManyWithVersionCheck(Collections.singletonList(currentFire)).isEmpty();
+        return fireDao().tryUpdateWithVersionCheck(currentFire);
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
