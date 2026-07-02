@@ -108,8 +108,79 @@ public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> 
 这种模式是**安全的**，因为：
 
 1. 整个方法在 `REQUIRES_NEW` 事务中执行。
-2. `requireEntityById` 在事务内读取，后续 UPDATE 在同一事务中，数据库行锁保证一致性。
+2. `requireEntityById` 在事务内读取（若实体未在 Session 缓存中则从 DB 加载），后续 UPDATE 在同一事务中，数据库行锁保证一致性。
 3. 状态检查是幂等的：如果状态已变，直接跳过，不产生副作用。
+
+> **注意**：如果实体在同一 Session 中已被加载过，`requireEntityById` 返回缓存对象而非 DB 最新值（见模式四）。在乐观锁重试循环中，需要先 `orm_unload()` 再 `requireEntityById` 才能获得 DB 最新值。
+
+## 模式四：ORM Session 一级缓存与数据新鲜度
+
+### 核心规则
+
+Nop ORM 的 Session 维护一级缓存（按 `entityName + id` 索引）。**一旦实体进入 Session 缓存并完成字段初始化，后续任何读取操作都不会从 DB 覆盖已初始化的字段值。** 这是 Session 级别的 repeatable-read 语义，确保同一 Session 内看到的数据一致。
+
+### 受影响的 API（行为相同）
+
+| API | 缓存行为 | 说明 |
+|-----|---------|------|
+| `dao.getEntityById(id)` / `requireEntityById(id)` | 返回缓存实体 | 若实体已在 Session 中，直接返回，不查 DB |
+| `dao.findAllByQuery(query)` | 返回缓存实体（不覆盖已初始化字段） | SQL 查询结果经 `internalAssemble` 组装，但已初始化字段不被覆盖 |
+| `dao.batchGetEntitiesByIds(ids)` / `tryBatchGetEntitiesByIds(ids)` | 返回缓存实体 | 内部用 `session.load()` 检查缓存 |
+| `dao.loadEntityById(id)` | 返回 proxy 或缓存实体 | proxy 是未加载的占位对象 |
+
+> **关键结论**：`findAllByQuery` 和 `tryBatchGetEntitiesByIds` 在缓存行为上**没有区别**。两者都不会刷新 Session 中已存在实体的字段值。不要认为 `findAllByQuery` 比 `getEntityById` "更新鲜"。
+
+### 实现机制
+
+`OrmSessionImpl.internalAssemble` 是字段组装的核心逻辑（`OrmSessionImpl.java:365`）：
+
+```java
+if (!entity.orm_state().isManaged()) {
+    // 新实体或 proxy：从 DB 值设置所有字段
+    entity.orm_internalSet(propId, values[i]);
+} else {
+    // 已 managed（已在 Session 缓存中）：
+    // "如果已经设置过，不再更新，确保 session 范围内看到的数据具有一致性"
+    if (!entity.orm_propInited(propId)) {
+        entity.orm_internalSet(propId, values[i]);  // 只填充未初始化的字段
+    }
+}
+```
+
+### 如何强制从 DB 重新加载
+
+| 方法 | 适用场景 | 说明 |
+|------|---------|------|
+| `entity.orm_unload()` + `dao.getEntityById(id)` | 乐观锁重试循环中刷新 baseline | `orm_unload()` 将实体状态重置为 proxy，下次 `getEntityById` 重新从 DB 加载所有字段 |
+| `session.refresh(entity)` | 显式刷新单个实体 | 内部调用 `orm_unload()` + `internalLoad()` |
+| `session.evict(entity)` + `dao.getEntityById(id)` | 从缓存中移除后重新加载 | evict 后实体不在缓存中，`getEntityById` 创建新实例 |
+
+### 常见误区
+
+| 误区 | 实际行为 | 正确做法 |
+|------|---------|---------|
+| "`findAllByQuery` 比 `getEntityById` 数据更新" | 两者返回相同缓存实体，字段不覆盖 | 需要新鲜数据时先 `orm_unload()` |
+| "`tryBatchGetEntitiesByIds` 返回旧数据所以不能用" | 与 `findAllByQuery` 行为一致 | 两者可互换，缓存行为不影响选择 |
+| "在 `REQUIRES_NEW` 事务中 `requireEntityById` 一定读到 DB 最新值" | 若实体已在 Session 缓存中则返回缓存 | 先 `orm_unload()` 再 `requireEntityById` |
+| "`@Transactional(REQUIRES_NEW)` 会自动刷新缓存" | `REQUIRES_NEW` 控制数据库事务，不等于新 Session | 取决于 Session 管理策略，需验证 |
+
+### 在乐观锁重试循环中的应用
+
+```java
+for (int attempt = 0; attempt < 5; attempt++) {
+    // 基于 baseline 计算增量
+    int delta = target - baseline.getValue();
+
+    if (dao.tryUpdateWithVersionCheck(entity)) {
+        return; // 成功
+    }
+
+    // 失败后刷新 baseline：
+    // 必须 orm_unload()，否则 requireEntityById 返回缓存旧值
+    entity.orm_unload();
+    baseline = dao.requireEntityById(entity.get_id());
+}
+```
 
 ## 审计误报排除清单
 
@@ -128,8 +199,11 @@ public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> 
 | API | 用途 |
 |-----|------|
 | `IOrmEntityDao.tryUpdateManyWithVersionCheck(entities)` | 乐观锁批量更新，只返回成功更新的实体 |
+| `IOrmEntityDao.tryUpdateWithVersionCheck(entity)` | 乐观锁单实体更新，返回 boolean |
 | `@SingleSession` | 绑定 ORM Session 到方法生命周期（非数据库事务） |
 | `@Transactional(propagation = REQUIRES_NEW)` | 开启独立新事务，与外层事务隔离 |
 | `dao.updateEntityDirectly(entity)` | 直接更新实体（跳过某些中间层，在 Store 层使用） |
 | `dao.saveEntityDirectly(entity)` | 直接保存实体 |
 | `dao.requireEntityById(id)` | 按 ID 查询，不存在则抛异常 |
+| `entity.orm_unload()` | 将实体重置为 proxy 状态，下次读取时从 DB 重新加载（见模式四） |
+| `session.refresh(entity)` | 显式从 DB 刷新实体字段（内部调用 `orm_unload()` + `internalLoad()`）|
