@@ -6,7 +6,6 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.util.DateHelper;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
@@ -289,16 +288,8 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         boolean allowResultCompletion = isAllowResultCompletion(schedule);
         Timestamp nextScheduleTime = null;
         for (NopJobTask task : tasks) {
-            String resultPayload = task.getResultPayload();
-            if (resultPayload == null || resultPayload.isEmpty()) {
-                continue;
-            }
-
-            Map<String, Object> payload;
-            try {
-                payload = JsonTool.parseMap(resultPayload);
-            } catch (Exception e) {
-                LOG.warn("nop.job.completion.malformed-result-payload:taskId={}", task.getJobTaskId(), e);
+            Map<String, Object> payload = task.getResultPayloadComponent().get_jsonMap();
+            if (payload == null || payload.isEmpty()) {
                 continue;
             }
 

@@ -219,22 +219,20 @@ Exit Criteria:
 
 ### 计数器 EQL 原子更新（Issue 16）
 
-- Classification: `optimization candidate`
-- Why Not Blocking Closure: 当前计数器更新通过读-改-写 + 乐观锁重试（5 次）实现，Issue 12 的 baseline 刷新修复了缓存旧版本导致的 delta 计算错误。EQL 原子更新（`UPDATE ... SET col = col + delta`）是简化并发逻辑的优化方向，但 schedule 计数器更新涉及条件分支（`shouldAdvanceFixedDelaySchedule`、`calculateFixedDelayNextFireTime`）、多 caller 差异（`JobCompletionProcessorImpl` vs `JobTimeoutCheckerImpl` vs `JobFireStoreImpl.cancelFire`）、以及 `JobScheduleStoreImpl.updateScheduleWithRetry` 的平行模式，需独立设计文档明确 EQL schema、version 策略、条件字段拆分方案。
-- Successor Required: `yes`
-- Successor Path: 待开 `ai-dev/design/nop-job/counter-eql-update-design.md` + 对应 plan
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: 调研后裁定**不做**。理由：(1) `OrmEntityDao.updateByQuery` 仅支持绝对值赋值（`SET col = ?`），不支持增量表达式（`SET col = col + ?`），原子增量需 raw SQL 绕过 ORM session 管理；(2) schedule 计数器更新混合了纯增量字段（`activeFireCount ±1`）和条件字段（`lastEndTime`/`lastFireStatus`/`nextFireTime` 依赖 `shouldAdvanceFixedDelaySchedule`），拆分为两条 SQL 破坏原子性；(3) Issue 12 的 `orm_unload()` 修复已消除乐观锁重试中的缓存旧版本根因，retry loop 是本代码库的标准 ORM 并发模式（`JobScheduleStoreImpl.updateScheduleWithRetry` 同样使用）；(4) 切换为 raw SQL 会与代码库其余部分不一致。
+- Successor Required: `no`
 
 ## Non-Blocking Follow-ups
 
-- **Issue 10（NopJobTask 补充字段）**：需调研 `completed`、`nextScheduleTime` 当前存储位置和使用频率后决定是否补充为实体列。属 ORM 模型变更（plan-first），不在本 plan 内执行。
-- **Issue 13（batchLoadFires → batchGetEntityMapByIds）**：`tryBatchGetEntitiesByIds` 返回 session 缓存实体而非 DB 最新数据，在 timeout checker 等需要新鲜数据的场景不安全。需要评估是否在调用前 `orm_unload` 或使用其他方式保证数据新鲜度，属优化项。
-- **广泛的 `ErrorCode.getDescription()` i18n**：Issue 7 仅修复 `failFireWithoutSchedule` 路径。cancelFire（`JobFireStoreImpl:194,211`）、cancelTasks（`JobScheduleStoreImpl:521,545`）、`JobCompletionProcessorImpl:177-178`、`JobTimeoutCheckerImpl` 的其他 `getDescription()` 直接写入 errorMessage 的反模式，应统一走 i18n 处理。
-- `DateHelper.currentTimeMillis()` 内部使用 `System.currentTimeMillis()`（`DateHelper.java:116`），应改为 `CoreMetrics.currentTimeMillis()`。属 `nop-commons` scope，不在本 plan 内修复。
-- 测试代码中大量使用 `System.currentTimeMillis()`，可考虑统一为 mock-friendly 的时钟获取，但不影响生产行为。
+- **Issue 10（已补充修复）**：调研确认 `completed`/`nextScheduleTime` 存储在 `NopJobTask.resultPayload` JSON 中。**不补充为 ORM 列**（属 task 结果载荷字段，非一等实体属性，补充列需 worker 侧双写 + ORM 模型变更）。**已修复**：`JobCompletionProcessorImpl.resolveCompletionDecision` 改用 `task.getResultPayloadComponent().get_jsonMap()` 替代 `JsonTool.parseMap(task.getResultPayload())`，利用已有的 `JsonOrmComponent` 避免手工 JSON 解析。
+- **Issue 13（已调研裁定）**：`tryBatchGetEntitiesByIds` 返回 session 缓存实体（by design，用于批量加载关联实体）。`findAllByQuery` 始终发起新 SQL 查询（correct for fresh data needs）。在 timeout checker 等需要 DB 最新数据的场景，`findAllByQuery` 是正确选择。**不修改**——当前实现正确。
+- **广泛的 `ErrorCode.getDescription()` i18n**：Issue 7 仅修复 `failFireWithoutSchedule` 路径。cancelFire、cancelTasks、其他 `getDescription()` 直接写入 errorMessage 的反模式，应统一走 i18n 处理。
+- `DateHelper.currentTimeMillis()` 内部使用 `System.currentTimeMillis()`，应改为 `CoreMetrics.currentTimeMillis()`。属 `nop-commons` scope，不在本 plan 内修复。
 
 ## Closure
 
-Status Note: 16 项 audit 发现全部修复（13 landed）或裁定为 deferred-with-justification（3 adjudicated-deferred）。5 个 Phase 全部完成，187 tests pass（146 coordinator + 41 service），0 failures。独立 closure audit 全部 6 项 Closure Gates PASS，无 Blocker。
+Status Note: 16 项 audit 发现全部处置完毕：14 landed（含 Issue 10 补充修复），2 adjudicated-no-change（Issue 13 当前实现正确、Issue 16 调研后裁定不做）。5 个 Phase 全部完成，146 coordinator tests pass，0 failures。独立 closure audit 全部 6 项 Closure Gates PASS，无 Blocker。
 Completed: 2026-07-02
 
 Closure Audit Evidence:
