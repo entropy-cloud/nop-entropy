@@ -129,6 +129,8 @@ Nop ORM 的 Session 维护一级缓存（按 `entityName + id` 索引）。**一
 | `dao.loadEntityById(id)` | 返回 proxy 或缓存实体 | proxy 是未加载的占位对象 |
 
 > **关键结论**：`findAllByQuery` 和 `tryBatchGetEntitiesByIds` 在缓存行为上**没有区别**。两者都不会刷新 Session 中已存在实体的字段值。不要认为 `findAllByQuery` 比 `getEntityById` "更新鲜"。
+>
+> **补充澄清**：`findAllByQuery` 仍会执行 SQL（有 DB I/O 成本），可能填充此前未初始化的 lazy 字段——使数据"更完整"，但对已初始化字段而言并不比 `getEntityById` 新鲜。
 
 ### 实现机制
 
