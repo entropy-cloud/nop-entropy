@@ -26,7 +26,11 @@ import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_SAVE_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_UPDATE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
+
+import java.util.Map;
 
 @BizModel("NopJobFire")
 public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INopJobFireBiz{
@@ -41,6 +45,16 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     public boolean delete(String id, IServiceContext context) {
         throw new NopException(ERR_JOB_FIRE_DELETE_NOT_ALLOWED)
                 .param("jobFireId", id);
+    }
+
+    @Override
+    public NopJobFire save(Map<String, Object> data, IServiceContext context) {
+        throw new NopException(ERR_JOB_FIRE_SAVE_NOT_ALLOWED);
+    }
+
+    @Override
+    public NopJobFire update(Map<String, Object> data, IServiceContext context) {
+        throw new NopException(ERR_JOB_FIRE_UPDATE_NOT_ALLOWED);
     }
 
     @Inject

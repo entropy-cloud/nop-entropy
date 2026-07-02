@@ -146,6 +146,9 @@ public class JobFireStoreImpl implements IJobFireStore {
             if (scheduleDao().tryUpdateWithVersionCheck(schedule)) {
                 return;
             }
+            // Issue 12: unload cached entity to force DB re-read on next requireEntityById,
+            // avoiding stale baseline values in the optimistic lock retry loop.
+            schedule.orm_unload();
             baseline = scheduleDao().requireEntityById(schedule.getJobScheduleId());
             schedule.setVersion(baseline.getVersion());
             schedule.setActiveFireCount(baseline.getActiveFireCount() + activeDelta);
@@ -225,6 +228,8 @@ public class JobFireStoreImpl implements IJobFireStore {
                 return true;
             }
 
+            // Issue 12: unload cached entity to force DB re-read
+            schedule.orm_unload();
             NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
             schedule.setVersion(fresh.getVersion());
             schedule.setActiveFireCount(fresh.getActiveFireCount());

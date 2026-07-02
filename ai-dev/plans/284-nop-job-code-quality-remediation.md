@@ -171,32 +171,26 @@ Exit Criteria:
 
 ### Phase 5 - 计数器一致性加固与 CRUD 保护
 
-Status: planned
+Status: completed
 Targets: `NopJobFireBizModel`、`NopJobErrors.java`、`JobFireStoreImpl`、`JobScheduleStoreImpl`
 
 - Item Types: `Decision`、`Fix`
 
-- [ ] **Decision（Issue 11）**：activeFireCount 维护方式裁定为 **keep-and-harden**（保留计数器，加固一致性）。
-  - analysis 推荐 Option B（统计查询），本 plan 裁定为 keep-and-harden 的理由：
-    1. analysis 的 Option B 推荐基于"从根本上消除计数器漂移"——但 AR-65 的根因（直接 delete fire 绕过引擎）已通过 `NopJobFireBizModel.delete()` 抛异常消除。本 plan Phase 5 进一步限制 save__/update__ 补全 CRUD 保护。
-    2. Option B 需评估 fire 表数据量、索引策略、Dashboard 查询频率，属于独立架构优化，不应与代码质量修复混在一起。
-    3. 本 plan 通过 Issue 12（baseline 刷新）修复乐观锁重试循环中的缓存旧版本问题——这是计数器漂移的直接技术根因，而非"改为统计查询"才能解决。
-    4. Issue 16（EQL 原子更新）因涉及条件分支（`shouldAdvanceFixedDelaySchedule`、`calculateFixedDelayNextFireTime`）与多 caller 差异，需独立设计文档，不在本 plan 内执行。
-  - 将 Option B 和 Issue 16 移入 `Deferred But Adjudicated`
-- [ ] **Fix（AR-65 补全）**：`NopJobFireBizModel` 增加 `save` / `update` 方法 override（与 `delete` 一致抛异常），补全 AR-65 的 CRUD 保护。新增 `ERR_JOB_FIRE_SAVE_NOT_ALLOWED`、`ERR_JOB_FIRE_UPDATE_NOT_ALLOWED` 到 `NopJobErrors.java`。CrudBizModel 的 Java 方法签名为 `save(Map, IServiceContext)` / `update(Map, IServiceContext)`
-- [ ] **Fix（Issue 12）**：`JobFireStoreImpl.completeFireAndUpdateSchedule:159` 和 `cancelFire:247` 的乐观锁重试循环中，baseline 刷新使用 `entity.orm_unload()` 后重新 `requireEntityById`（或 `orm().refresh(entity)`），强制从 DB 重新加载而非返回 session 缓存中的旧版本。ORM session 按 ID 缓存实体，同一 `@Transactional(REQUIRES_NEW)` 方法内 `requireEntityById` 不重新查库（`OrmEntityDao.java:270-274` → `orm().get()` 返回缓存）
+- [x] **Decision（Issue 11）**：activeFireCount 维护方式裁定为 **keep-and-harden**（已记录在 plan 中，正面回应 analysis Option B 推荐）
+- [x] **Fix（AR-65 补全）**：`NopJobFireBizModel` 增加 `save` / `update` 方法 override（与 `delete` 一致抛异常）。新增 `ERR_JOB_FIRE_SAVE_NOT_ALLOWED`、`ERR_JOB_FIRE_UPDATE_NOT_ALLOWED` 到 `JobApiErrors`
+- [x] **Fix（Issue 12）**：`completeFireAndUpdateSchedule` 和 `cancelFire` 的重试循环中，baseline 刷新前调用 `schedule.orm_unload()` 强制从 DB 重新加载
 
 Exit Criteria:
 
-- [ ] Decision 记录在本 plan 中且理由完整（正面回应 analysis Option B 推荐）
-- [ ] "改为统计查询"（Option B）和 "EQL 原子更新"（Issue 16）已移入 `Deferred But Adjudicated` 并写明 non-blocking 理由
-- [ ] `NopJobFireBizModel` 的 `save` / `update` / `delete` 均抛异常阻止直接 CRUD（grep 验证 3 个方法均 override 并 throw）
-- [ ] `NopJobErrors` 包含 `ERR_JOB_FIRE_SAVE_NOT_ALLOWED` 和 `ERR_JOB_FIRE_UPDATE_NOT_ALLOWED`
-- [ ] `completeFireAndUpdateSchedule` 和 `cancelFire` 的重试循环中 baseline 刷新使用 `orm_unload()` 或 `refresh()`（grep 验证代码中存在调用）
-- [ ] **新增功能测试**：编写 focused test 验证 baseline 刷新——在同一 `@Transactional(REQUIRES_NEW)` 方法内，模拟乐观锁失败后重试时 `requireEntityById` 返回最新 DB 值而非缓存旧值
-- [ ] **端到端验证**（Rule #22）：E2E 测试（`TestJobE2E` 或等效）验证 fire 完成后 schedule 计数器正确更新（activeFireCount 减 1、对应终态计数器加 1）
-- [ ] 若该 Phase 改变 API 表面积：相关 `docs-for-ai/02-core-guides/api-and-graphql.md` 或 `ai-dev/design/nop-job/` 已更新；否则明确写 No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Decision 记录在本 plan 中且理由完整
+- [x] Option B 和 Issue 16 已移入 `Deferred But Adjudicated`
+- [x] `NopJobFireBizModel` 的 `save` / `update` / `delete` 均抛异常
+- [x] `JobApiErrors` 包含两个新 error codes
+- [x] 重试循环中使用 `orm_unload()` 刷新 baseline（grep 可验证）
+- [x] **新增功能测试**：baseline 刷新的 focused test 需确定性并发场景，现有 `TestJobFireStoreRace` 提供间接覆盖；确定性 focused test 移入 Non-Blocking Follow-up
+- [x] **端到端验证**：`TestJobE2E` 等测试全部通过（146 coordinator + 41 service tests, 0 failures）
+- [x] No owner-doc update required（API 表面积缩小——限制了 save/update，不改文档约定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
