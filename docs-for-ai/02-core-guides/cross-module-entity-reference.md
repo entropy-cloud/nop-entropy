@@ -262,12 +262,103 @@ GROUP BY vl.subject.name
 |---|---|---|
 | `<entity notGenCode="true">` | 不生成本模块 Entity 类（**机制 B**） | `orm-gen.xlib:228` 引用 `NopSysExtField` |
 | `<column notGenCode="true">` | 不生成该字段的 get/set，作为动态属性存取 | Delta 扩展中继承自父类的字段；测试 orm `SimsExam.extField` |
-| `<to-one notGenCode="true">` / `<to-many notGenCode="true">` | 关系在运行时有效，但不生成关联字段的 get/set | 测试 orm `SimsClass.refByName`、`SimsCollege.ext`（`app.orm.xml:57,71`） |
 | `<alias notGenCode="true">` / `<compute>` / `<component>` | 同上，运行时有效但不生成代码 | 测试 orm `SimsExam.extFldB`（`app.orm.xml:128`） |
 
 > **共性**：所有 `notGenCode="true"` 的语义都是"运行时模型中有这个定义，但不生成本模块的 Java 代码"。运行时通过动态属性机制（`OrmEntity.orm_propValueByName(name)`）或父类提供访问。
 
-## 9. 反模式
+:::caution 跨模块引用：不要在 `<to-one>` 上加 `notGenCode`
+跨模块引用外部实体时，`notGenCode` 的正确位置是 **`<entity>` 声明**，而不是 `<to-one>`：
+
+```xml
+<!-- ✅ 正确：notGenCode 在实体声明上 -->
+<entity name="io.nop.auth.dao.entity.NopAuthUser"
+        notGenCode="true" biz:moduleId="nop/auth" tableName="nop_auth_user">
+    <columns>...</columns>
+</entity>
+
+<to-one name="owner" refEntityName="io.nop.auth.dao.entity.NopAuthUser">
+    <join><on leftProp="ownerId" rightProp="userId"/></join>
+</to-one>
+```
+
+如果你在 `<to-one>` 上加了 `notGenCode`，代码生成器会跳过该关联属性的 getter/setter 生成。这意味着 Java 代码中无法通过 `entity.getOwner()` 拿到 `NopAuthUser` 实例——关联只在 ORM 运行时元数据中有效。**这不是你想要的**。
+
+跨模块引用的正确做法：
+1. 在本模块 ORM 中声明外部实体（带 `notGenCode="true"`）
+2. 在本模块 POM 中添加目标模块的 `-dao` 依赖
+3. `<to-one>` 不加 `notGenCode`，正常生成类型化 getter/setter
+::: 
+
+## 9. `ignoreDepends`：实体循环依赖处理
+
+### 问题
+
+当实体 A 和实体 B 互有 `<to-one>` 引用时，代码生成器在计算拓扑排序时会检测到循环依赖：
+
+```
+A → B（to-one）
+B → A（to-one，不同 FK）
+```
+
+这是合法的数据模型（如 `Employee.departmentId→Department` + `Department.managerId→Employee`），但代码生成器需要确定生成顺序。
+
+### 解决方案
+
+在成环的 **次要方向** 上加 `ignoreDepends="true"`：
+
+```xml
+<!-- ✅ 保留主方向（child→parent 持有 FK 的关系） -->
+<to-one name="department" refEntityName="app.erp.hr.dao.entity.ErpHrDepartment">
+    <join><on leftProp="departmentId" rightProp="id"/></join>
+</to-one>
+
+<!-- ⚡ 次要方向（冗余/反向查询）加 ignoreDepends -->
+<to-one name="manager" refEntityName="app.erp.hr.dao.entity.ErpHrEmployee"
+        ignoreDepends="true">
+    <join><on leftProp="managerId" rightProp="id"/></join>
+</to-one>
+```
+
+`ignoreDepends="true"` 告诉拓扑排序算法：计算生成顺序时忽略此关联。运行时关联仍然有效。
+
+### 规则
+
+| 场景 | 是否需要 `ignoreDepends` | 示例 |
+|------|--------------------------|------|
+| 单向引用（A→B，B 无回指 A） | **不需要** | `OrderLine.order → Order` |
+| 自引用（A→A，不同记录） | **需要** | `Employee.supervisor → Employee` |
+| 互指（A→B + B→A，不同 FK） | **次要方向需要** | 保留 `Employee.department`，`Department.manager` 加 `ignoreDepends` |
+| 互指且一方为 `<to-many>` | **不需要**（to-many 不产生拓扑依赖） | `Order.lines`（to-many） + `OrderLine.order`（to-one） |
+
+### 常见错误
+
+❌ **对主方向（child→parent FK 关系）加 `ignoreDepends`**——会导致生成的 Java Entity 类缺少该关联的 getter/setter。
+
+❌ **对所有内部 `<to-one>` 批量加 `ignoreDepends`**——会丢失类型化属性，应精确分析环的路径后只断开必要方向。
+
+## 10. 常见陷阱
+
+### NopAuthUser 主键是 `userId`（String），不是 `id`（Long）
+
+跨模块声明 `NopAuthUser` 时，主键列必须声明为：
+
+```xml
+<entity name="io.nop.auth.dao.entity.NopAuthUser"
+        notGenCode="true" biz:moduleId="nop/auth" tableName="nop_auth_user">
+    <columns>
+        <column name="userId" code="USER_ID" stdSqlType="VARCHAR" precision="50"
+                primary="true" stdDataType="string"/>
+        <column name="userName" code="USER_NAME" stdSqlType="VARCHAR" precision="50"
+                stdDataType="string"/>
+    </columns>
+</entity>
+```
+
+错误声明（用 `id` 替代 `userId`）会导致生成的 Java 代码调用 `refEntity.getId()`，但 `NopAuthUser` 实际只有 `getUserId()`，编译失败。
+
+引用 NopAuthUser 的 FK 列类型必须是 `VARCHAR`（匹配 `userId` 的类型），不是 `BIGINT`。参见 `orm-model-design.md` 的"列域设计"章节。
+
+## 11. 反模式
 
 | 反模式 | 后果 | 正确做法 |
 |---|---|---|
@@ -280,7 +371,7 @@ GROUP BY vl.subject.name
 | 业务表直接 `@Inject` 外部 BizModel 实现类 | 不可替换、不可扩展 | `@Inject IXxxBiz` 接口 |
 | 在 Entity 里做跨模块写操作 | 绕过事务/权限管道 | 写操作走 BizModel 的 `@BizMutation` |
 
-## 10. 相关文档
+## 12. 相关文档
 
 - `orm-model-design.md` — `<to-one>` / `<to-many>` 语法规范（本模块内）
 - `model-first-development.md` — **跨模块实体引用与 `biz:moduleId` 约定**（外部实体声明必须标 `biz:moduleId`，否则跨域 picker 路径错）

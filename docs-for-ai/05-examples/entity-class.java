@@ -17,7 +17,7 @@ import demo.dao.entity._gen._Order;
 import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.context.IServiceContext;
+import io.nop.core.context.IServiceContext;
 import io.nop.orm.biz.ICrudBiz;
 
 import java.math.BigDecimal;

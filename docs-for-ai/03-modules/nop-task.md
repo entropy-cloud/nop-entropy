@@ -63,13 +63,10 @@ NopTaskFlow **默认复用外部环境中的事务**，不自带事务边界：
 xbiz schema 原生支持把一个 BizModel action 直接绑定到 task flow 定义，无需写 Java。`BizActionModel` 上有 `task:name` 与 `task:version` 属性（见 `nop/schema/biz/xbiz.xdef`，`xmlns:task="task"`）：
 
 ```xml
-<mutation name="approveOrder" task:name="approve-order" task:version="1">
-    <arg name="orderId" type="String" kind="FIELD"/>
-    <return type="ApproveOrderResult"/>
-</mutation>
+<mutation name="approveOrder" task:name="approve-order" task:version="1"/>
 ```
 
-绑定后，该 action 的执行体就是这个 task flow。事务由 action 的 `<txn>`（或 `@BizMutation` 默认）开启，task flow 内部所有 step 默认复用。适合"整个 action 就是多步骤业务流程"的场景——这是把流程编排从 Java 移到声明式模型、并获得 VFS 动态更新能力的主要方式。
+绑定后，`<arg>` 和 `<return>` 由 task flow 的 `<input>` / `<output>` 定义**自动生成**（实现见 `BizActionGenHelper.buildBizActionFromActionModel`），不需要手写。task 的 input name/type/mandatory/schema 直接映射为 xbiz 的 arg 属性。该 action 的执行体就是这个 task flow。事务由 action 的 `<txn>`（或 `@BizMutation` 默认）开启，task flow 内部所有 step 默认复用。
 
 ### 用法二：在 BizModel/Processor Java 内调用 task flow（命令式）
 

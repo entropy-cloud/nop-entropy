@@ -122,6 +122,8 @@ F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A
 | `x:gen-extends` | 编译期执行 | XPL 模板动态生成模型节点，结果作为新的基础 | D 覆盖 C |
 | 当前模型体 | 合并到 gen-extends 结果上 | 手写的差量内容 | 当前模型覆盖 gen-extends 结果 |
 | `x:post-extends` | 编译期执行 | XPL 模板再次生成，覆盖当前模型 | F 覆盖 E |
+| `x:config` | 合并完成后执行 | 通过 `<c:import>` 引入标签库和 Java 类定义 | — |
+| `x:post-parse` | 模型解析后执行 | 领域特定的验证或模型增强 | — |
 
 ### `x:gen-extends` vs `x:post-extends`
 
@@ -142,6 +144,32 @@ DSL = Delta x-extends Generator<DSLx>
 描述业务时使用扩展语法 DSLx，`x:post-extends` 负责将其转化为已有 DSL 语法。**合并完成后，所有 x 名字空间的属性和子节点都会被自动删除**——底层运行时引擎完全不需要知道扩展语法的存在。
 
 典型场景：工作流引擎的 OA 会签节点——底层引擎只有普通步骤节点 + Join 合并节点，会签的 UI 简化配置由 `x:post-extends` 在编译期展开为底层引擎可识别的模型。
+
+### `x:config` — 引入标签库和常量
+
+`<x:config>` 是所有 XDSL 模型的公共语法（定义在 `xdsl.xdef` 中），在合并过程完成后执行，用于通过 `<c:import>` 引入标签库和 Java 类定义，使其在模型的 XPL 表达式中可用：
+
+```xml
+<task x:schema="/nop/schema/task/task.xdef">
+    <x:config>
+        <c:import from="/nop/rule/xlib/rule.xlib"/>
+    </x:config>
+
+    <steps>
+        <step name="checkRule">
+            <source>
+                <rule:Execute ruleName="my-rule" inputs="${{amount: order.totalAmount}}"/>
+            </source>
+        </step>
+    </steps>
+</task>
+```
+
+`<c:import>` 将标签库注册到编译作用域，`<source>` 中的 `rule:Execute` 标签即可直接使用，无需在每个标签上写 `xpl:lib`。**合并完成后，所有 `x:` 名字空间的属性和子节点都会被自动删除**——`<x:config>` 引入的定义只在编译期有效，不影响运行时。
+
+### `x:post-parse` — 模型解析后回调
+
+根据 xdef 元模型将 XML 解析为具体的模型对象之后执行，可用于领域特定的验证或模型增强。
 
 ### 合并算子 `x:override`
 

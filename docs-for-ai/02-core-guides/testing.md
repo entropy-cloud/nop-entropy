@@ -22,6 +22,32 @@
 | 需要容器+DB，不需要快照 | `JunitBaseTestCase` |
 | 需要录制和校验 `_cases/` 快照 | `JunitAutoTestCase` |
 
+## 测试 BizModel 服务方法必须经 `IGraphQLEngine`
+
+**不要在测试里直接调用 `bizObj.method(args, context)`（注入的 BizModel/I*Biz 代理 + 裸 `new ServiceContextImpl()`）。** BizModel 的 `@BizQuery`/`@BizMutation` 方法依赖执行环境提供的 ORM Session、事务、`IUserContext`，直调时这些都不存在：
+
+- 多步方法（`saveEntity` 后再 `updateEntity`）会报 `nop.err.orm.dao.update-entity-no-current-session`；
+- 裸 `ServiceContextImpl` 不携带身份/权限/缓存，数据权限校验失效；
+- 绕过了 GraphQL schema 暴露验证（方法是否真能被前端调用）。
+
+**正确做法**：经 `IGraphQLEngine.newRpcContext` + `executeRpc`，引擎负责建 session、注入 context、走完整管道（权限/Meta/事务）。这正是 CRUD 冒烟测试一直用的方式：
+
+```java
+@Inject IGraphQLEngine graphQLEngine;
+
+ApiResponse<?> result = executeRpc(GraphQLOperationType.mutation, "ErpInvStockMove__generateMove",
+        ApiRequest.build(Map.of("request", requestData)));
+
+private ApiResponse<?> executeRpc(GraphQLOperationType opType, String action, ApiRequest<?> request) {
+    IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(opType, action, request);
+    return graphQLEngine.executeRpc(ctx);
+}
+```
+
+完整模板见 `../05-examples/test-examples.java` 示例 2b/4/5。需要用户身份时用 `ContextProvider.getOrCreateContext().setUserId(...)`。
+
+> **常见误判**：方法多步 ORM 报 `no-current-session` 时，不要给 BizModel 加 `@SingleSession`——那是 non-BizModel bean 的注解。根因是测试直调缺 session 环境，改用 `IGraphQLEngine` 即可。
+
 ## `@NopTestConfig` 的关键点
 
 边界先记住：
