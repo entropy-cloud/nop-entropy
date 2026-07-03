@@ -1,0 +1,22 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 审批状态
+locale: zh-CN
+valueType: string
+description: 业务实体审批状态四态
+options:
+
+  - label: 未提交
+    value: UNSUBMITTED
+    description:
+
+  - label: 待审批
+    value: SUBMITTED
+    description:
+
+  - label: 已通过
+    value: APPROVED
+    description:
+
+  - label: 已驳回
+    value: REJECTED
+    description:

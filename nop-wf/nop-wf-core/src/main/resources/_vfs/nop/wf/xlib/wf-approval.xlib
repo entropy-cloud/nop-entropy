@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <tags>
+        <notifyResult>
+            <attr name="bizObj" type="String" mandatory="true"/>
+            <attr name="approved" type="Boolean" mandatory="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <attr name="svcCtx" implicit="true"/>
+
+            <description>
+                wf 结束事件中回调业务实体的 approve/reject action。
+                审批通过/驳回经此标签回调 IApprovableBiz 的 approve/reject action。
+            </description>
+
+            <source>
+                <c:script><![CDATA[
+                    const bizObjManager = inject('nopBizObjectManager');
+                    const entityBizObj = bizObjManager.getBizObject(bizObj);
+                    const entityId = wfRt.wf.bizEntityId;
+                    const actionName = approved ? 'approve' : 'reject';
+                    entityBizObj.invoke(actionName, {id: entityId}, null, svcCtx);
+                ]]></c:script>
+            </source>
+        </notifyResult>
+    </tags>
+</lib>

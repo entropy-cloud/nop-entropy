@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:c="c" xmlns:bo="bo">
+
+    <actions>
+        <mutation name="submitForApproval" displayName="提交审批">
+            <arg name="id" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <return>
+                <schema bizObjName="THIS_OBJ"/>
+            </return>
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.wf.core.support.ApprovalFlowHelper;
+
+                    const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    const status = entity.approveStatus;
+
+                    if (status !== 'UNSUBMITTED' && status !== null) {
+                        throw new NopScriptError("nop.err.wf.approve.invalid-status")
+                            .param("bizObjName", thisObj.bizObjName)
+                            .param("bizObjId", entity.id)
+                            .param("action", "submitForApproval")
+                            .param("currentStatus", status)
+                            .param("expectedStatus", "UNSUBMITTED");
+                    }
+
+                    entity.approveStatus = 'SUBMITTED';
+
+                    const wfName = thisObj.objMeta['wf:wfName'];
+                    if (wfName) {
+                        const wfManager = inject('nopWorkflowManager');
+                        const wf = wfManager.newWorkflow(wfName, null);
+                        const args = {
+                            bizObjName: thisObj.bizObjName,
+                            bizObjId: entity.id
+                        };
+                        ApprovalFlowHelper.start(wf, args, svcCtx);
+                    }
+
+                    return entity;
+                ]]></c:script>
+            </source>
+        </mutation>
+
+        <mutation name="withdrawApproval" displayName="撤回审批">
+            <arg name="id" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <return>
+                <schema bizObjName="THIS_OBJ"/>
+            </return>
+            <source>
+                <c:script><![CDATA[
+                    const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    const status = entity.approveStatus;
+
+                    if (status !== 'SUBMITTED') {
+                        throw new NopScriptError("nop.err.wf.approve.invalid-status")
+                            .param("bizObjName", thisObj.bizObjName)
+                            .param("bizObjId", entity.id)
+                            .param("action", "withdrawApproval")
+                            .param("currentStatus", status)
+                            .param("expectedStatus", "SUBMITTED");
+                    }
+
+                    entity.approveStatus = 'UNSUBMITTED';
+                    return entity;
+                ]]></c:script>
+            </source>
+        </mutation>
+
+        <mutation name="approve" displayName="通过">
+            <arg name="id" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <return>
+                <schema bizObjName="THIS_OBJ"/>
+            </return>
+            <source>
+                <c:script><![CDATA[
+                    const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    const status = entity.approveStatus;
+
+                    if (status !== 'SUBMITTED') {
+                        throw new NopScriptError("nop.err.wf.approve.invalid-status")
+                            .param("bizObjName", thisObj.bizObjName)
+                            .param("bizObjId", entity.id)
+                            .param("action", "approve")
+                            .param("currentStatus", status)
+                            .param("expectedStatus", "SUBMITTED");
+                    }
+
+                    entity.approveStatus = 'APPROVED';
+                    return entity;
+                ]]></c:script>
+            </source>
+        </mutation>
+
+        <mutation name="reject" displayName="驳回">
+            <arg name="id" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <return>
+                <schema bizObjName="THIS_OBJ"/>
+            </return>
+            <source>
+                <c:script><![CDATA[
+                    const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    const status = entity.approveStatus;
+
+                    if (status !== 'SUBMITTED') {
+                        throw new NopScriptError("nop.err.wf.approve.invalid-status")
+                            .param("bizObjName", thisObj.bizObjName)
+                            .param("bizObjId", entity.id)
+                            .param("action", "reject")
+                            .param("currentStatus", status)
+                            .param("expectedStatus", "SUBMITTED");
+                    }
+
+                    entity.approveStatus = 'REJECTED';
+                    return entity;
+                ]]></c:script>
+            </source>
+        </mutation>
+
+        <mutation name="reverseApprove" displayName="反审核">
+            <arg name="id" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <return>
+                <schema bizObjName="THIS_OBJ"/>
+            </return>
+            <source>
+                <c:script><![CDATA[
+                    const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    const status = entity.approveStatus;
+
+                    if (status !== 'APPROVED') {
+                        throw new NopScriptError("nop.err.wf.approve.invalid-status")
+                            .param("bizObjName", thisObj.bizObjName)
+                            .param("bizObjId", entity.id)
+                            .param("action", "reverseApprove")
+                            .param("currentStatus", status)
+                            .param("expectedStatus", "APPROVED");
+                    }
+
+                    entity.approveStatus = 'SUBMITTED';
+                    return entity;
+                ]]></c:script>
+            </source>
+        </mutation>
+    </actions>
+</biz>
