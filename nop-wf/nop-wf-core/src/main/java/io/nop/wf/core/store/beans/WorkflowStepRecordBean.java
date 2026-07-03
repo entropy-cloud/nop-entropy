@@ -54,6 +54,10 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private Timestamp dueTime;
 
+    private Timestamp remindTime;
+
+    private Integer remindCount;
+
     private String lastAction;
     private Timestamp finishTime;
 
@@ -410,6 +414,26 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     @Override
     public void setDueTime(Timestamp dueTime) {
         this.dueTime = dueTime;
+    }
+
+    @Override
+    public Timestamp getRemindTime() {
+        return remindTime;
+    }
+
+    @Override
+    public void setRemindTime(Timestamp remindTime) {
+        this.remindTime = remindTime;
+    }
+
+    @Override
+    public Integer getRemindCount() {
+        return remindCount;
+    }
+
+    @Override
+    public void setRemindCount(Integer remindCount) {
+        this.remindCount = remindCount;
     }
 
     public String getLastAction() {

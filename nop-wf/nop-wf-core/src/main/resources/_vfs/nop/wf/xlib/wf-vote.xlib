@@ -1,0 +1,68 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <passCount>
+            <attr name="count" type="Integer" mandatory="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    const steps = wfRt.currentStep.getStepsInSameExecGroup(true, true);
+                    let passed = 0;
+                    steps.forEach(step => {
+                        if(step.isExcludeInExecGroup())
+                            return;
+                        if(step == wfRt.currentStep || step.isCompleted())
+                            passed++;
+                    });
+                    return passed >= count;
+                ]]></c:script>
+            </source>
+        </passCount>
+
+        <passPercent>
+            <attr name="percent" type="Double" mandatory="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    const steps = wfRt.currentStep.getStepsInSameExecGroup(true, true);
+                    let total = 0;
+                    let passed = 0;
+                    steps.forEach(step => {
+                        if(step.isExcludeInExecGroup())
+                            return;
+                        total++;
+                        if(step == wfRt.currentStep || step.isCompleted())
+                            passed++;
+                    });
+                    return total > 0 && passed * 1.0 / total >= percent;
+                ]]></c:script>
+            </source>
+        </passPercent>
+
+        <rejectCount>
+            <attr name="count" type="Integer" mandatory="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    const steps = wfRt.currentStep.getStepsInSameExecGroup(true, true);
+                    let rejected = 0;
+                    steps.forEach(step => {
+                        if(step.isExcludeInExecGroup())
+                            return;
+                        if(step == wfRt.currentStep || step.isRejected())
+                            rejected++;
+                    });
+                    return rejected >= count;
+                ]]></c:script>
+            </source>
+        </rejectCount>
+
+        <expr>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script>
+                    return value
+                </c:script>
+            </source>
+        </expr>
+    </tags>
+</lib>

@@ -22,6 +22,7 @@ import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.model.WfAssignmentActorModel;
 import io.nop.wf.core.model.WfAssignmentModel;
 import io.nop.wf.core.model.WfStepModel;
+import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import jakarta.annotation.Nonnull;
 
@@ -154,6 +155,12 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     @Override
     public List<? extends IWorkflowStepImplementor> getPrevSteps() {
         return wf.getStepsByRecords(wf.getStore().getPrevStepRecords(record));
+    }
+
+    @Nonnull
+    @Override
+    public List<? extends IWorkflowActionRecord> getActionRecords() {
+        return wf.getStore().getActionRecords(record);
     }
 
     @Nonnull

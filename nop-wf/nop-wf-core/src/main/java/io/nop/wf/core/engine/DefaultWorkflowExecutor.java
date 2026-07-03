@@ -33,9 +33,9 @@ public class DefaultWorkflowExecutor implements IWorkflowExecutor {
 
         IWorkflow wf;
         if (StringHelper.isEmpty(wfRef.getWfId())) {
-            wf = workflowManager.getWorkflow(wfRef.getWfId());
-        } else {
             wf = workflowManager.newWorkflow(wfRef.getWfName(), wfRef.getWfVersion());
+        } else {
+            wf = workflowManager.getWorkflow(wfRef.getWfId());
         }
 
         T ret = task.apply(wf);

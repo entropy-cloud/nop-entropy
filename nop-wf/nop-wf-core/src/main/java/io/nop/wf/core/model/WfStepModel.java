@@ -9,6 +9,7 @@ package io.nop.wf.core.model;
 
 import io.nop.commons.collections.KeyedList;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.wf.core.model._gen._WfStepModel;
 import jakarta.annotation.Nonnull;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Comparable<WfStepModel> {
     private KeyedList<WfActionModel> actions = KeyedList.emptyList();
+    private IEvalPredicate checkExecGroupReject;
 
     private int stepIndex;
     private boolean nextToEnd;
@@ -84,6 +86,14 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
 
     public void setActions(List<WfActionModel> actions) {
         this.actions = KeyedList.fromList(actions, WfActionModel::getName);
+    }
+
+    public IEvalPredicate getCheckExecGroupReject() {
+        return checkExecGroupReject;
+    }
+
+    public void setCheckExecGroupReject(IEvalPredicate checkExecGroupReject) {
+        this.checkExecGroupReject = checkExecGroupReject;
     }
 
     @Override

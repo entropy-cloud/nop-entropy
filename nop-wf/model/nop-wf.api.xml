@@ -21,6 +21,11 @@
                     requestMessage="io.nop.wf.api.beans.WfCommandRequestBean" responseMessage="void"/>
             <method mutation="true" name="resumeWorkflow" i18n-en:displayName="Resume" displayName="继续工作流"
                     requestMessage="io.nop.wf.api.beans.WfCommandRequestBean" responseMessage="void"/>
+            <method mutation="true" name="signalWf" i18n-en:displayName="Signal Workflow" displayName="流程信号"
+                    requestMessage="io.nop.wf.api.beans.WfSignalRequestBean" responseMessage="void"/>
+            <method mutation="true" name="transferActors" i18n-en:displayName="Transfer Actors" displayName="批量转办"
+                    requestMessage="io.nop.wf.api.beans.WfTransferActorsRequestBean"
+                    responseMessage="io.nop.wf.api.beans.WfTransferResultBean"/>
         </service>
     </services>
 
@@ -164,6 +169,59 @@
             </field>
             <field propId="5" name="args" i18n-en:displayName="Action Args" displayName="执行参数">
                 <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
+            </field>
+        </message>
+        <message name="WfSignalRequestBean" displayName="流程信号请求消息" i18n-en:displayName="Workflow Signal Request">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称" mandatory="true">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本" mandatory="true">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="wfId" i18n-en:displayName="Workflow ID" displayName="工作流ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="4" name="signals" i18n-en:displayName="Signals" displayName="信号集合" mandatory="true">
+                <schema type="Set&lt;java.lang.String&gt;" precision="2000"/>
+            </field>
+            <field propId="5" name="on" i18n-en:displayName="On" displayName="是否开启" mandatory="true">
+                <schema type="boolean"/>
+            </field>
+        </message>
+        <message name="WfTransferActorsRequestBean" displayName="批量转办请求消息" i18n-en:displayName="Transfer Actors Request">
+            <field propId="1" name="fromUserId" i18n-en:displayName="From User ID" displayName="原处理人ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="2" name="toUserId" i18n-en:displayName="To User ID" displayName="目标处理人ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="3" name="wfIds" i18n-en:displayName="Workflow IDs" displayName="限定工作流ID集合">
+                <schema type="Set&lt;java.lang.String&gt;" precision="4000"/>
+            </field>
+        </message>
+        <message name="WfTransferResultBean" displayName="批量转办结果消息" i18n-en:displayName="Transfer Actors Result">
+            <field propId="1" name="successCount" i18n-en:displayName="Success Count" displayName="成功数量" mandatory="true">
+                <schema type="int"/>
+            </field>
+            <field propId="2" name="failedItems" i18n-en:displayName="Failed Items" displayName="失败明细">
+                <schema type="List&lt;io.nop.wf.api.beans.WfTransferFailedItemBean&gt;" precision="4000"/>
+            </field>
+        </message>
+        <message name="WfTransferFailedItemBean" displayName="批量转办失败项" i18n-en:displayName="Transfer Actors Failed Item">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="wfId" i18n-en:displayName="Workflow ID" displayName="工作流ID">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="4" name="stepId" i18n-en:displayName="Step ID" displayName="步骤ID">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="5" name="reason" i18n-en:displayName="Reason" displayName="失败原因">
+                <schema type="String" precision="4000"/>
             </field>
         </message>
     </messages>

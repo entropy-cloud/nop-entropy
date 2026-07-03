@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MockWorkflowStore extends AbstractWorkflowStore {
@@ -212,5 +213,62 @@ public class MockWorkflowStore extends AbstractWorkflowStore {
         return ret;
     }
 
+    @Override
+    public List<? extends IWorkflowStepRecord> findActivatedStepsByOwner(String ownerId, Set<String> wfIds) {
+        List<WorkflowStepRecordBean> ret = new ArrayList<>();
+        workflowBeans.values().forEach(wf -> {
+            if (wfIds != null && !wfIds.isEmpty() && !wfIds.contains(wf.getWfId()))
+                return;
+
+            wf.getSteps().forEach(step -> {
+                if (!step.isActivated())
+                    return;
+                if (!ownerId.equals(step.getOwnerId()))
+                    return;
+                ret.add(step);
+            });
+        });
+        return ret;
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findDueActivatedSteps() {
+        List<WorkflowStepRecordBean> ret = new ArrayList<>();
+        workflowBeans.values().forEach(wf -> wf.getSteps().forEach(step -> {
+            if (step.isActivated() && step.getDueTime() != null) {
+                ret.add(step);
+            }
+        }));
+        return ret;
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findRemindActivatedSteps() {
+        List<WorkflowStepRecordBean> ret = new ArrayList<>();
+        workflowBeans.values().forEach(wf -> wf.getSteps().forEach(step -> {
+            if (step.isActivated() && step.getReadTime() != null) {
+                ret.add(step);
+            }
+        }));
+        return ret;
+    }
+
+    @Override
+    public void saveTransferAction(IWorkflowStepRecord stepRecord, String fromOwnerId, String toOwnerId,
+                                   String callerId, String callerName) {
+        WorkflowActionRecordBean actionRecord = newManualActionRecord(stepRecord, "transfer", "transfer");
+        actionRecord.setSid(StringHelper.generateUUID());
+        actionRecord.setExecTime(CoreMetrics.currentTimestamp());
+        actionRecord.setCallerId(callerId);
+        actionRecord.setCallerName(callerName);
+        actionRecord.setOpinion("ownerId: " + fromOwnerId + " -> " + toOwnerId);
+        saveActionRecord(actionRecord);
+    }
+
+    @Override
+    public List<? extends IWorkflowActionRecord> getActionRecords(IWorkflowStepRecord stepRecord) {
+        WorkflowStepRecordBean record = (WorkflowStepRecordBean) stepRecord;
+        return new ArrayList<>(record.getActions());
+    }
 
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="批量转办失败项"
+      i18n-en:displayName="Transfer Actors Failed Item" ext:model="api">
+
+    <props>
+        <prop name="wfName" displayName="工作流名称" i18n-en:displayName="Workflow Name">
+            <schema type="String" precision="500"/>
+        </prop>
+        <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version">
+            <schema type="Long"/>
+        </prop>
+        <prop name="wfId" displayName="工作流ID" i18n-en:displayName="Workflow ID">
+            <schema type="String" precision="50"/>
+        </prop>
+        <prop name="stepId" displayName="步骤ID" i18n-en:displayName="Step ID">
+            <schema type="String" precision="50"/>
+        </prop>
+        <prop name="reason" displayName="失败原因" i18n-en:displayName="Reason">
+            <schema type="String" precision="4000"/>
+        </prop>
+    </props>
+</meta>

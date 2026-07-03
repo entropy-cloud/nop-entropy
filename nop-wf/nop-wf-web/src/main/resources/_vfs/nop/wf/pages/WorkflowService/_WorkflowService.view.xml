@@ -110,6 +110,42 @@
                 <cell id="args" label="执行参数"/>
             </cells>
         </form>
+        <form id="WfSignalRequestBean" editMode="edit">
+            <objMeta>/nop/wf/model/WorkflowService/WfSignalRequestBean.xmeta</objMeta>
+            <layout>
+                        wfName
+                    
+                        wfVersion
+                    
+                        wfId
+                    
+                        signals
+                    
+                        on
+                    </layout>
+            <cells>
+                <cell id="wfName" label="工作流名称"/>
+                <cell id="wfVersion" label="工作流版本"/>
+                <cell id="wfId" label="工作流ID"/>
+                <cell id="signals" label="信号集合"/>
+                <cell id="on" label="是否开启"/>
+            </cells>
+        </form>
+        <form id="WfTransferActorsRequestBean" editMode="edit">
+            <objMeta>/nop/wf/model/WorkflowService/WfTransferActorsRequestBean.xmeta</objMeta>
+            <layout>
+                        fromUserId
+                    
+                        toUserId
+                    
+                        wfIds
+                    </layout>
+            <cells>
+                <cell id="fromUserId" label="原处理人ID"/>
+                <cell id="toUserId" label="目标处理人ID"/>
+                <cell id="wfIds" label="限定工作流ID集合"/>
+            </cells>
+        </form>
     </forms>
 
     <pages>
@@ -215,6 +251,40 @@
                 </action>
             </actions>
         </simple>
+        <simple name="signalWf" form="WfSignalRequestBean">
+            <actions>
+                <action id="WorkflowService__signalWf-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__signalWf-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__signalWf">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
+        <simple name="transferActors" form="WfTransferActorsRequestBean">
+            <actions>
+                <action id="WorkflowService__transferActors-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__transferActors-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__transferActors">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
         <tabs name="main" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
             <tab name="startWorkflow" page="startWorkflow" title="启动工作流"/>
             <tab name="notifySubFlowEnd" page="notifySubFlowEnd" title="通知子工作流结束"/>
@@ -222,6 +292,8 @@
             <tab name="killWorkflow" page="killWorkflow" title="中止工作流"/>
             <tab name="suspendWorkflow" page="suspendWorkflow" title="暂停工作流"/>
             <tab name="resumeWorkflow" page="resumeWorkflow" title="继续工作流"/>
+            <tab name="signalWf" page="signalWf" title="流程信号"/>
+            <tab name="transferActors" page="transferActors" title="批量转办"/>
         </tabs>
     </pages>
 </view>

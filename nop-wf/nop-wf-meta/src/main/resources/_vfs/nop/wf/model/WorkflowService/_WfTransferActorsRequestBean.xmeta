@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="批量转办请求消息"
+      i18n-en:displayName="Transfer Actors Request" ext:model="api">
+
+    <props>
+        <prop name="fromUserId" displayName="原处理人ID" i18n-en:displayName="From User ID" mandatory="true">
+            <schema type="String" precision="50"/>
+        </prop>
+        <prop name="toUserId" displayName="目标处理人ID" i18n-en:displayName="To User ID" mandatory="true">
+            <schema type="String" precision="50"/>
+        </prop>
+        <prop name="wfIds" displayName="限定工作流ID集合" i18n-en:displayName="Workflow IDs">
+            <schema type="Set&lt;String&gt;" precision="4000"/>
+        </prop>
+    </props>
+</meta>

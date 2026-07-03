@@ -13,6 +13,7 @@ import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
+import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.util.List;
@@ -105,6 +106,8 @@ public interface IWorkflow {
     List<? extends IWorkflowStep> getWaitingSteps();
 
     List<? extends IWorkflowStep> getSteps(boolean includeHistory);
+
+    List<? extends IWorkflowActionRecord> getActionRecords();
 
     /**
      * 重新从数据库中加载

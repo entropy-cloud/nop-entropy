@@ -12,8 +12,10 @@ import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
+import io.nop.wf.core.store.beans.WorkflowActionRecordBean;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -107,4 +109,37 @@ public interface IWorkflowStore {
     void addSignals(IWorkflowRecord wfRecord, Set<String> signals);
 
     boolean removeSignals(IWorkflowRecord wfRecord, Set<String> signals);
+
+    List<? extends IWorkflowStepRecord> findActivatedStepsByOwner(String ownerId, Set<String> wfIds);
+
+    List<? extends IWorkflowStepRecord> findDueActivatedSteps();
+
+    List<? extends IWorkflowStepRecord> findRemindActivatedSteps();
+
+    void saveTransferAction(IWorkflowStepRecord stepRecord, String fromOwnerId, String toOwnerId, String callerId,
+                            String callerName);
+
+    List<? extends IWorkflowActionRecord> getActionRecords(IWorkflowStepRecord stepRecord);
+
+    default List<? extends IWorkflowActionRecord> getActionRecords(IWorkflowRecord wfRecord,
+                                                                   Predicate<? super IWorkflowActionRecord> filter) {
+        java.util.List<IWorkflowActionRecord> ret = new java.util.ArrayList<>();
+        for (IWorkflowStepRecord stepRecord : getStepRecords(wfRecord, true, null)) {
+            for (IWorkflowActionRecord actionRecord : getActionRecords(stepRecord)) {
+                if (filter == null || filter.test(actionRecord)) {
+                    ret.add(actionRecord);
+                }
+            }
+        }
+        return ret;
+    }
+
+    default WorkflowActionRecordBean newManualActionRecord(IWorkflowStepRecord stepRecord, String actionName,
+                                                           String displayName) {
+        WorkflowActionRecordBean actionRecord = new WorkflowActionRecordBean();
+        actionRecord.setStepRecord(stepRecord);
+        actionRecord.setActionName(actionName);
+        actionRecord.setDisplayName(displayName);
+        return actionRecord;
+    }
 }

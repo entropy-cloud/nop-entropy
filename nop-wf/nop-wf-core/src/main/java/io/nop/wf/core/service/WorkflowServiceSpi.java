@@ -16,6 +16,12 @@
     
         import io.nop.wf.api.beans.WfCommandRequestBean;
     
+        import io.nop.wf.api.beans.WfSignalRequestBean;
+    
+        import io.nop.wf.api.beans.WfTransferActorsRequestBean;
+    
+        import io.nop.wf.api.beans.WfTransferResultBean;
+    
 
     /**
      * 工作流服务 
@@ -58,6 +64,18 @@
       * 继续工作流 
       */
      CompletionStage<Void> resumeWorkflowAsync(WfCommandRequestBean request,
+            FieldSelectionBean selection, IServiceContext ctx);
+            
+     /**
+      * 流程信号 
+      */
+     CompletionStage<Void> signalWfAsync(WfSignalRequestBean request,
+            FieldSelectionBean selection, IServiceContext ctx);
+            
+     /**
+      * 批量转办 
+      */
+     CompletionStage<WfTransferResultBean> transferActorsAsync(WfTransferActorsRequestBean request,
             FieldSelectionBean selection, IServiceContext ctx);
             
     }

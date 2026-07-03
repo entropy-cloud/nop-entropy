@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.wf.core.IWorkflow;
@@ -21,6 +22,7 @@ import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.engine.WorkflowEngineImpl;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
+import io.nop.wf.core.model.WfStepModel;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.service.mock.MockWfActorResolver;
 import io.nop.wf.service.mock.MockWorkflowStore;
@@ -720,6 +722,78 @@ public class TestWorkflowEngine extends BaseTestCase {
         invokeAction(step2, "sp", null, null, null, context);
         workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());
+    }
+
+    @Test
+    public void testExecGroupVoteSlotOverridesFallback() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupVoteSlot", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
+        assertEquals(3, activeSteps.size());
+
+        IWorkflowStep step1 = null, step2 = null, step3 = null;
+        for (IWorkflowStep step : activeSteps) {
+            String actorId = step.getRecord().getActorId();
+            if ("1".equals(actorId)) step1 = step;
+            else if ("2".equals(actorId)) step2 = step;
+            else if ("3".equals(actorId)) step3 = step;
+        }
+
+        context.getContext().setUserId("1");
+        invokeAction(step1, "sp", null, null, null, context);
+        assertFalse(workflow.isEnded());
+
+        context.getContext().setUserId("2");
+        invokeAction(step2, "sp", null, null, null, context);
+        assertFalse(workflow.isEnded());
+        assertEquals(1, workflow.getActivatedSteps().size());
+
+        context.getContext().setUserId("3");
+        invokeAction(step3, "sp", null, null, null, context);
+        workflow.runAutoTransitions(context);
+        assertTrue(workflow.isEnded());
+    }
+
+    @Test
+    public void testExecGroupVoteRejectSlot() {
+        IServiceContext context = new ServiceContextImpl();
+        WfStepModel reviewModel = (WfStepModel) workflowManager.getWorkflowModel("test/execGroupVoteRejectRuntime", 1L).getStep("review");
+        IEvalPredicate original = reviewModel.getCheckExecGroupReject();
+        reviewModel.setCheckExecGroupReject(ctx -> {
+            IWorkflow workflow = ((io.nop.wf.core.engine.IWfRuntime) ctx).getWf();
+            long rejected = workflow.getStepsByName("review", true).stream().filter(IWorkflowStep::isRejected).count();
+            return rejected >= 1;
+        });
+
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupVoteRejectRuntime", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
+        assertEquals(3, activeSteps.size());
+
+        IWorkflowStep step1 = null, step2 = null;
+        for (IWorkflowStep step : activeSteps) {
+            String actorId = step.getRecord().getActorId();
+            if ("1".equals(actorId)) {
+                step1 = step;
+            } else if ("2".equals(actorId)) {
+                step2 = step;
+            }
+        }
+
+        context.getContext().setUserId("1");
+        invokeAction(step1, "_rejectAction", null, null, null, context);
+        workflow.runAutoTransitions(context);
+        assertFalse(workflow.isEnded());
+        assertNotNull(workflow.getLatestStepByName("wf-start"));
+
+        reviewModel.setCheckExecGroupReject(original);
     }
 
     /**

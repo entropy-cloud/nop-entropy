@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <tags>
+        <decide>
+            <attr name="prompt" type="String" mandatory="true"/>
+            <attr name="confidenceThreshold" type="Double" optional="true"/>
+            <attr name="onLowConfidence" type="String" optional="true"/>
+            <attr name="onError" type="String" optional="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.wf.ai.WfAiHelper;
+                    return WfAiHelper.decide(prompt, confidenceThreshold, onLowConfidence, onError, wfRt);
+                ]]></c:script>
+            </source>
+        </decide>
+
+        <route>
+            <attr name="prompt" type="String" mandatory="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.wf.ai.WfAiHelper;
+                    return WfAiHelper.route(prompt, wfRt);
+                ]]></c:script>
+            </source>
+        </route>
+
+        <extract>
+            <attr name="prompt" type="String" mandatory="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.wf.ai.WfAiHelper;
+                    return WfAiHelper.extract(prompt, wfRt);
+                ]]></c:script>
+            </source>
+        </extract>
+
+        <judge>
+            <attr name="prompt" type="String" mandatory="true"/>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.wf.ai.WfAiHelper;
+                    return WfAiHelper.judge(prompt, wfRt);
+                ]]></c:script>
+            </source>
+        </judge>
+    </tags>
+</lib>

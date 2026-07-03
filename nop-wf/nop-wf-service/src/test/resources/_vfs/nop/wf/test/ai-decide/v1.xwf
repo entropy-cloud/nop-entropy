@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:wf-ai="wf-ai">
+
+    <x:config>
+        <c:import from="/nop/wf/ai/xlib/wf-ai.xlib" />
+    </x:config>
+
+    <start startStepName="ai-review"/>
+    <end/>
+
+    <steps>
+        <step displayName="AI审批" name="ai-review">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <source>
+                <wf-ai:decide prompt="expense-review" confidenceThreshold="0.85"/>
+            </source>
+            <transition onAppStates="agree">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

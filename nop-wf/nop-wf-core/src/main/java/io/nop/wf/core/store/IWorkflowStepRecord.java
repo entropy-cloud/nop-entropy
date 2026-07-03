@@ -109,6 +109,14 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     void setDueTime(Timestamp dueTime);
 
+    Timestamp getRemindTime();
+
+    void setRemindTime(Timestamp remindTime);
+
+    Integer getRemindCount();
+
+    void setRemindCount(Integer remindCount);
+
     void setSubWfRef(WfReference wfRef);
 
     void setLastAction(String lastAction);

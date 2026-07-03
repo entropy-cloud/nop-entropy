@@ -46,6 +46,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ASSIGNMENT_OWNER_EXPR_RESULT
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_DYNAMIC_ACTOR_RESOLVE_TO_MULTIPLE_ACTOR;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_SELECTED_ACTOR_COUNT_NOT_ONE;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNSUPPORTED_ASSIGNMENT_SELECTION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_USER_NOT_EXISTS;
 
 public class WfActorAssignSupport {
@@ -243,7 +244,9 @@ public class WfActorAssignSupport {
                         found == null ? 1 : found.getVoteWeight()));
             }
             default:
-                throw new UnsupportedOperationException("nop.err.wf.unsupported-assignment-selection");
+                throw wfRt.newError(ERR_WF_UNSUPPORTED_ASSIGNMENT_SELECTION)
+                        .source(assignment)
+                        .param(ARG_VALUE, selection);
         }
     }
 

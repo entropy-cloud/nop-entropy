@@ -18,6 +18,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -218,5 +219,20 @@ public abstract class AbstractWorkflowStore implements IWorkflowStore {
     @Override
     public boolean isSignalOn(IWorkflowRecord wfRecord, String signal) {
         return wfRecord.isSignalOn(signal);
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findActivatedStepsByOwner(String ownerId, Set<String> wfIds) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findDueActivatedSteps() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findRemindActivatedSteps() {
+        return Collections.emptyList();
     }
 }

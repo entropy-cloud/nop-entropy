@@ -23,6 +23,8 @@
         <module>nop-wf-codegen</module>
         <module>nop-wf-dao</module>
         <module>nop-wf-service</module>
+        <module>nop-wf-scheduler</module>
+        <module>nop-wf-ai</module>
         <module>nop-wf-app</module>
         <module>nop-wf-meta</module>
     </modules>

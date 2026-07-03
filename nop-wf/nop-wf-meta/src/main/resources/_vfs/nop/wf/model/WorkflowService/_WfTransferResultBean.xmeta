@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="批量转办结果消息"
+      i18n-en:displayName="Transfer Actors Result" ext:model="api">
+
+    <props>
+        <prop name="successCount" displayName="成功数量" i18n-en:displayName="Success Count" mandatory="true">
+            <schema type="int"/>
+        </prop>
+        <prop name="failedItems" displayName="失败明细" i18n-en:displayName="Failed Items">
+            <schema type="List" precision="4000"/>
+        </prop>
+    </props>
+</meta>

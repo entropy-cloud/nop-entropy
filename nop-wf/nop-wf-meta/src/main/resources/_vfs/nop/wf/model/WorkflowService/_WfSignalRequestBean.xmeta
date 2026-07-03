@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="流程信号请求消息"
+      i18n-en:displayName="Workflow Signal Request" ext:model="api">
+
+    <props>
+        <prop name="wfName" displayName="工作流名称" i18n-en:displayName="Workflow Name" mandatory="true">
+            <schema type="String" precision="500"/>
+        </prop>
+        <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true">
+            <schema type="Long"/>
+        </prop>
+        <prop name="wfId" displayName="工作流ID" i18n-en:displayName="Workflow ID" mandatory="true">
+            <schema type="String" precision="50"/>
+        </prop>
+        <prop name="signals" displayName="信号集合" i18n-en:displayName="Signals" mandatory="true">
+            <schema type="Set&lt;String&gt;" precision="2000"/>
+        </prop>
+        <prop name="on" displayName="是否开启" i18n-en:displayName="On" mandatory="true">
+            <schema type="boolean"/>
+        </prop>
+    </props>
+</meta>
