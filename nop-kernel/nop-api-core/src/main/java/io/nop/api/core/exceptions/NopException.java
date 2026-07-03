@@ -12,6 +12,7 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.ISourceLocationGetter;
+import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.api.core.util.SourceLocation;
 import org.slf4j.Logger;
 
@@ -28,7 +29,7 @@ import java.util.function.Consumer;
  * 平台定义的所有异常类都统一继承此类
  */
 @SuppressWarnings("java:S1165")
-public class NopException extends RuntimeException implements IException {
+public class NopException extends RuntimeException implements IException, ISourceLocationSetter {
     private static final long serialVersionUID = 618317480866467022L;
 
     static IErrorMessageManager s_errorMessageManager;
@@ -130,6 +131,11 @@ public class NopException extends RuntimeException implements IException {
             ne.setAlreadyTraced(true);
         }
         logger.error(message, e);
+    }
+
+    @Override
+    public void setLocation(SourceLocation loc){
+        this.loc = loc;
     }
 
     /**

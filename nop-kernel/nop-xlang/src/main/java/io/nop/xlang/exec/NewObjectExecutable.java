@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.exec;
 
+import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
@@ -22,11 +23,13 @@ import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_CONSTRUCTOR;
 public class NewObjectExecutable extends AbstractExecutable {
     private final IClassModel classModel;
     private final IExecutableExpression[] argExprs;
+    private final boolean locSetter;
 
     public NewObjectExecutable(SourceLocation loc, IClassModel classModel, IExecutableExpression[] argExprs) {
         super(loc);
         this.classModel = classModel;
         this.argExprs = argExprs;
+        this.locSetter = classModel.isAssignableTo(ISourceLocationSetter.class);
     }
 
     @Override
@@ -50,7 +53,11 @@ public class NewObjectExecutable extends AbstractExecutable {
         if (constructor == null)
             throw newError(ERR_EXEC_CLASS_NO_CONSTRUCTOR).param(ARG_CLASS_NAME, classModel.getClassName())
                     .param(ARG_ARG_COUNT, argExprs.length);
-        return constructor.invoke(null, argValues, rt.getScope());
+        Object ret = constructor.invoke(null, argValues, rt.getScope());
+        if (locSetter) {
+            ((ISourceLocationSetter) ret).setLocation(getLocation());
+        }
+        return ret;
     }
 
     @Override
