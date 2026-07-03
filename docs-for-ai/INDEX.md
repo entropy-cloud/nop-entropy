@@ -106,7 +106,7 @@
 | 理解 VFS 路径解析与资源加载 | `02-core-guides/vfs-and-resource-resolution.md` |
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
-| 理解 XLang / XPL / xrun / xgen 基本写法 + XScript 语法与 `xpl\`...\`` 标签模板 | `02-core-guides/xlang-and-xpl-basics.md` |
+| 理解 XLang / XPL / xrun / xgen 基本写法 + XScript 语法与 `xpl\`...\`` 标签模板 + **xbiz action source 内置变量**（`svcCtx`/`$context`/`thisObj`/全局变量） | `02-core-guides/xlang-and-xpl-basics.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
 | 编写 E2E 测试 | `02-core-guides/e2e-testing.md` |

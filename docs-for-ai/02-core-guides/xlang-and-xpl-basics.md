@@ -139,6 +139,121 @@ objMeta['wf:wfName'];                      // 含有冒号的命名空间属性
 | 导入 Java 类 | `import full.ClassName;` | `Java.type('full.ClassName')` |
 | 获取实体 ID | `entity.id` | `entity.orm_idString()` |
 
+## xbiz action source 内置变量
+
+xbiz 的 `<mutation>`/`<query>` 的 `<source>`（`<c:script>`）在执行时，求值作用域（`IEvalScope`）中注入了以下变量。这些变量不需要声明，可直接使用。
+
+### 局部变量（作用域继承或参数注入）
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| `svcCtx` | `IServiceContext` | 服务请求上下文。承载 `IUserContext`（用户身份/角色/数据权限）、缓存与事务上下文。用 `svcCtx.getUserId()` 获取用户 ID，`svcCtx.getUserContext()` 获取完整用户上下文（含 `userName`/`deptId`/`roles` 等） |
+| `thisObj` | `IBizObject` | 当前 BizObject 实例。用 `thisObj.invoke(actionName, args, request, svcCtx)` 调用其他 action（如 `thisObj.invoke("requireEntity", {id}, null, svcCtx)`） |
+| `gqlCtx` | `IGraphQLExecutionContext` | GraphQL 执行上下文 |
+| 各 `<arg>` 声明的参数名 | 声明类型 | action 参数按名称注入。如 `<arg name="id" type="String"/>` → source 中直接用 `id` |
+
+### 全局变量（`$` 前缀，通过 `EvalGlobalRegistry` 注册）
+
+全局变量以 `$` 开头，在任意 XScript 求值环境中可用（不限于 xbiz）：
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| `$context` | `IContext` | kernel 线程上下文（`ContextProvider.currentContext()`）。承载 `locale`/`tenantId`/`userId`/`traceId` 等 |
+| `$scope` | `IEvalScope` | 当前求值作用域 |
+| `$JSON` | `JsonTool`（静态方法） | JSON 序列化/反序列化工具 |
+| `$Math` | `MathHelper`（静态方法） | 数学工具 |
+| `$Date` | `DateHelper`（静态方法） | 日期工具 |
+| `$String` | `StringHelper`（静态方法） | 字符串工具 |
+| `_` | `Underscore`（静态方法） | underscore.js 风格集合/对象工具 |
+| `$config` | `AppConfig`（静态方法） | 应用配置 |
+| `$beans` | BeanProvider | IoC 容器 Bean 访问 |
+
+### 全局函数（无 `$` 前缀，通过 `EvalGlobalRegistry.registerStaticFunctions` 注册）
+
+全局函数不带 `$` 前缀，在任意 XScript 求值环境中可直接调用：
+
+| 函数 | 返回类型 | 说明 |
+|------|---------|------|
+| `now()` | `java.sql.Timestamp` | 当前时间戳（委托 `CoreMetrics.currentTimestamp()`） |
+| `today()` | `LocalDate` | 当前日期 |
+| `currentDateTime()` | `LocalDateTime` | 当前日期时间 |
+| `inject('beanName')` | Object | 获取 IoC 容器中的 Bean（含 `I*Biz` 接口） |
+| `optional(expr)` | Object | 安全访问，null 时返回 null 不报错 |
+
+> 完整列表见 `GlobalFunctions.java`（`nop-xlang/.../functions/GlobalFunctions.java`），包含 `now`/`today`/`currentDateTime`/`inject`/`optional`/`OR`/`AND`/`IF`/`SWITCH`/`get`/`getByPropPath` 等。
+
+### 关键区别：`svcCtx` vs `$context`
+
+| | `svcCtx` | `$context` |
+|---|---|---|
+| 类型 | `IServiceContext`（nop-core） | `IContext`（nop-api-core） |
+| 层级 | 服务请求上下文 | kernel 线程上下文 |
+| 承载 | `IUserContext`、缓存、事务、ORM Session | locale、tenantId、traceId、userId/userName |
+| 获取用户 ID | `svcCtx.getUserId()` | `$context.getUserId()` |
+| 获取机制 | 作用域继承（`ServiceContextImpl` 构造时注入 `CoreConstants.VAR_SVC_CTX`） | 全局变量（`EvalGlobalRegistry` 注册，`ContextProvider.currentContext()` 惰性解析） |
+
+两者都能获取 `userId`，但 `svcCtx` 是首选——它额外提供 `getUserContext()`（含角色/部门）、缓存和事务上下文。`$context` 用于只需 locale/tenantId 的轻量场景。
+
+### 获取当前用户与时间的正确写法
+
+```javascript
+// 用户 ID（两种等价方式，svcCtx 首选）
+svcCtx.getUserId()
+$context.getUserId()
+
+// 完整用户上下文（含 userName/deptId/roles）
+const userCtx = svcCtx.getUserContext();
+userCtx.getUserName();
+userCtx.getDeptId();
+userCtx.isUserInRole("manager");
+
+// 当前时间（全局函数 now()，委托 CoreMetrics.currentTimestamp()，返回 java.sql.Timestamp）
+now()
+today()              // LocalDate
+currentDateTime()    // LocalDateTime
+
+// 当前日期字符串（用 $Date 全局变量）
+$Date.formatJavaDate(now(), 'yyyy-MM-dd');
+```
+
+> `now()`/`today()`/`currentDateTime()` 是 XLang 全局函数（`GlobalFunctions` 静态方法，经 `EvalGlobalRegistry.registerStaticFunctions` 注册），最终委托 `CoreMetrics`——测试时可通过 `CoreMetrics.registerClock()` 替换为 mock clock。
+
+### 完整示例
+
+以下展示 xbiz action source 中内置变量的典型用法：
+
+```xml
+<mutation name="approve" displayName="通过">
+    <arg name="id" type="String" mandatory="true"/>
+    <arg name="svcCtx" kind="ServiceContext"/>
+    <source>
+        <c:script><![CDATA[
+            // thisObj: 调用 requireEntity 获取实体
+            const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+
+            // 状态守卫
+            if (entity.approveStatus !== 'SUBMITTED') {
+                throw new NopScriptError("nop.err.wf.approve.invalid-status")
+                    .param("bizObjName", thisObj.bizObjName)
+                    .param("currentStatus", entity.approveStatus);
+            }
+
+            // 状态迁移
+            entity.approveStatus = 'APPROVED';
+
+            // 回写审计字段（svcCtx 获取当前用户，now() 获取当前时间）
+            entity.approvedBy = svcCtx.getUserId();
+            entity.approvedAt = now();
+
+            // inject() 获取 IoC Bean 做业务联动
+            inject('biz_LeaveBalance').deduct(entity.userId, entity.days);
+
+            return entity;
+        ]]></c:script>
+    </source>
+</mutation>
+```
+
 ## 仓库里的真实参考
 
 1. `nop-wf/nop-wf-web/src/main/resources/_vfs/nop/wf/xlib/dingflow-gen/impl_GenComponents.xpl`
