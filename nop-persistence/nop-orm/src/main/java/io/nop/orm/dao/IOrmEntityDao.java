@@ -36,4 +36,10 @@ public interface IOrmEntityDao<T extends IOrmEntity> extends IEntityDao<T> {
         updateEntitiesDirectly(entities);
         return entities.stream().filter(entity -> !entity.orm_readonly()).collect(Collectors.toList());
     }
+
+    default boolean tryUpdateWithVersionCheck(T entity) {
+        entity.orm_disableVersionCheckError(true);
+        updateEntityDirectly(entity);
+        return !entity.orm_readonly();
+    }
 }
