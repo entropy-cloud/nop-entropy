@@ -110,6 +110,35 @@ xpl`<c:if test="${x > 0}">positive</c:if>`
 <run:GenWithCache xpl:lib="/nop/codegen/xlib/run.xlib" .../>
 ```
 
+## 实体属性访问 (Entity Property Access in XScript)
+
+### `entity.id` 固定返回主键
+
+`OrmEntity` 对 `id` 做了特殊识别，不经过 JavaBean 属性映射，直接返回主键值：
+
+- 单列主键（如 `userId`）→ 返回值本身（`String`/`Long` 等）
+- 复合主键 → 返回 `OrmCompositePk` 对象
+
+不存在 `set_id()`，主键通过具体列 setter 设置（`entity.userId = 'xxx'`）。
+
+### 普通列用点号，命名空间属性用括号
+
+```javascript
+entity.approveStatus = 'SUBMITTED';        // 动态扩展列
+objMeta['wf:wfName'];                      // 含有冒号的命名空间属性
+```
+
+### XScript 推荐写法速查
+
+| 场景 | 推荐 | 不推荐 |
+|------|------|--------|
+| 读写实体扩展列 | `entity.approveStatus` | `entity.prop_get('approveStatus')` |
+| 读 objMeta 命名空间属性 | `objMeta['wf:wfName']` | `objMeta.prop_get('wf:wfName')` |
+| 抛异常 | `throw new NopScriptError("code").param(...)` | `throw new Error(...)` |
+| 构造 Map | `{}` | `new java.util.HashMap()` |
+| 导入 Java 类 | `import full.ClassName;` | `Java.type('full.ClassName')` |
+| 获取实体 ID | `entity.id` | `entity.orm_idString()` |
+
 ## 仓库里的真实参考
 
 1. `nop-wf/nop-wf-web/src/main/resources/_vfs/nop/wf/xlib/dingflow-gen/impl_GenComponents.xpl`
