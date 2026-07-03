@@ -10,6 +10,7 @@
 |------|------|------|
 | `approval-flow-design.md` | Architecture Baseline | 审批流核心模式：步骤类型、执行分组（会签/或签/串签/票签）、分支路由、action 系统、actor 模型、ORM 持久化、状态机、DAG 约束 |
 | `extensions-design.md` | Architecture Baseline | 扩展机制：AI 审批集成、调度器集成、离职转办、票签策略标签库、动态审批模式。回答"如何不改引擎核心地补齐功能缺口" |
+| `approvable-entity-design.md` | Architecture Baseline | 业务实体集成审批能力：`use-approval` tag、`IApprovableBiz` 接口、objMeta 流程配置、codegen 生成骨架、两流正交分离（wf 审批 + task 业务）、状态归业务处理、wf 结束事件回调串联、DIRECT/WORKFLOW 双模。回答"业务实体如何集成审批能力" |
 | `dingflow-json-format.md` | Interface Contract | DingFlow JSON 格式规格：审批流 JSON 导入格式的完整定义（节点类型、审批人分配、协作模式、条件路由、表单权限、转换映射规则）。所有枚举值使用字符串类型 |
 
 ### Vision 层

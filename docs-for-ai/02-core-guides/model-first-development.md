@@ -167,7 +167,7 @@ model/{app}.orm.xml
   -> view/page 文件
 ```
 
-### 文件级（gen-orm.xgen 内部三步）
+### 文件级（gen-orm.xgen 内部：标准实体三步）
 
 `{app}-codegen/postcompile/gen-orm.xgen` 内部依次执行三次 `renderModel`，这一段是“改了 model 之后到底生成哪些文件”的核心。以 nop-job 为例（其他业务模块同理）：
 
@@ -195,6 +195,104 @@ model/{app}.orm.xml
 5. 改完 model 后，实体的新 getter/setter 不是立刻出现的，必须触发 gen-orm.xgen（重新构建）之后才能在代码里引用。
 
 > **易错点**：`_app.orm.xml` 包含完整的实体/字段/dict 定义，看起来像“源”，但它是从 `model/*.orm.xml` 生成的。判断一个 ORM 文件是不是源，只看路径：在 `model/` 目录下的是源；在 `_vfs/.../orm/` 下且以 `_` 开头的是生成物。
+
+### 扩展已有实体：Delta 模式的生成管线
+
+当你想在**已有实体（平台模块或其他模块的实体）基础上增加业务字段**时，标准的三步流水线不够用，需要引入 Delta 扩展模式。以 `nop-app-mall` 扩展平台 `NopAuthUser` 为例：
+
+**源模型**（如 `nop-auth-delta.orm.xml`）：
+
+```xml
+<entity className="app.mall.delta.dao.entity.NopAuthUserEx"
+        name="io.nop.auth.dao.entity.NopAuthUser"              <!-- 同名，运行时替换平台实体 -->
+        registerShortName="true"                                  <!-- 用新类替换旧类的 ORM 注册 -->
+        tableName="nop_auth_user"
+        ext:baseClass="io.nop.auth.dao.entity.NopAuthUser">      <!-- 生成类继承平台实体 -->
+    <columns>
+        <!-- 继承自基类的字段：标记 notGenCode，不从基类重新生成 -->
+        <column name="userId" notGenCode="true" propId="1" .../>
+        <!-- 新增字段：propId 从 101 开始，避免与基类冲突 -->
+        <column name="picUrl" propId="101" .../>
+        <column name="lastLoginTime" propId="102" .../>
+    </columns>
+</entity>
+```
+
+**生成的继承链**：
+
+```
+NopAuthUser (平台模块实体)
+    └── _NopAuthUserEx (生成，在 _gen/，extends NopAuthUser — ext:baseClass 决定)
+            └── NopAuthUserEx (手写，@BizObjName("NopAuthUser"))
+```
+
+**四个关键属性**：
+
+| 属性 | 作用 | 必须 |
+|------|------|------|
+| `ext:baseClass="..."` | 生成的 `_Xxx` 类继承此基类（替代默认的 `DynamicOrmEntity`） | ✅ |
+| `registerShortName="true"` | 用新 `className` 替换原实体名的 ORM 注册，运行时所有引用 `NopAuthUser` 的地方拿到 `NopAuthUserEx` | ✅ |
+| `name="原实体全名"` | 与平台实体同名，Delta 覆盖时替换原定义 | ✅ |
+| 继承列加 `notGenCode="true"` | 跳过基类已有字段的生成，这些字段由基类提供 | 继承列都需要 |
+| 新增列 `propId` 从 **101** 起 | 避免与基类的 propId 冲突 | 强烈建议 |
+
+**Delta 模式在 `gen-orm.xgen` 中需要额外的两步**（共 4 步）：
+
+```text
+第 1 步：  model/app-mall.orm.xml
+             -- 模板 /nop/templates/orm -->
+           app-mall-dao 等标准产物
+
+第 2 步：  app-mall-dao/.../app.orm.xml
+             -- 模板 /nop/templates/orm-entity -->
+           标准实体 Java 类
+
+第 3 步：  model/nop-auth-delta.orm.xml                            ← 新增
+             -- 模板 /nop/templates/orm-delta -->                   ← 新增
+           app-mall-delta/.../default/_app.orm.xml                  ← 生成物
+           app-mall-delta/.../_gen/_NopAuthUserEx.java              ← 生成物
+
+第 4 步：  app-mall-delta/.../app.orm.xml
+             -- 模板 /nop/templates/meta-delta -->                  ← 新增
+           app-mall-delta/.../NopAuthUserEx.xmeta 等元数据           ← 生成物
+```
+
+**Delta 入口文件** `app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml`：
+
+```xml
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     x:extends="raw:/nop/auth/orm/app.orm.xml,default/_app.orm.xml">
+    <entities/>
+</orm>
+```
+
+- `raw:` 前缀绕过 Delta 解析，加载平台原始的 `app.orm.xml`
+- `_app.orm.xml`（位于 `default/` 下）是第 3 步生成的 delta 模型
+
+**Maven 依赖**（`app-mall-delta/pom.xml`）：
+
+```xml
+<dependency>
+    <groupId>io.github.entropy-cloud</groupId>
+    <artifactId>nop-auth-dao</artifactId>      <!-- 编译时引用基类 NopAuthUser -->
+</dependency>
+<dependency>
+    <groupId>io.github.entropy-cloud</groupId>
+    <artifactId>nop-auth-service</artifactId>   <!-- 运行时需要 -->
+</dependency>
+```
+
+**codegen 模块**（`app-mall-codegen/pom.xml`）也需要 `nop-auth-dao` 依赖，否则 codegen 运行时无法解析 `refEntityName`。
+
+**生成操作顺序**：
+
+1. 在 `model/` 下创建 Delta ORM 模型文件（如 `nop-auth-delta.orm.xml`）
+2. 在 `app-mall-codegen/postcompile/gen-orm.xgen` 中添加第 3、4 步的 `renderModel` 调用
+3. 手写 Delta 入口 `app.orm.xml`（`_vfs/_delta/...` 下的非下划线文件）
+4. 运行 codegen（`mvn exec:java -pl app-mall-codegen` 或直接运行 `AppMallCodeGen.main()`）
+5. codegen 生成 `_NopAuthUserEx.java` 和 delta 模块下的 `_app.orm.xml`
+6. 若 `NopAuthUserEx.java`（保留层）还不存在，手写一个继承 `_NopAuthUserEx` 的空类
+7. `mvn install` 编译
 
 ## AI 的默认修改顺序
 

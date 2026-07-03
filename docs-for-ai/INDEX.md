@@ -93,6 +93,7 @@
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
 | **理解工作流 XML 配置（step/transition/action/assignment）** | **`02-core-guides/workflow-configuration.md`** |
 | **构建审批流（串签/并签/会签/驳回/抄送等）** | **`03-runbooks/build-approval-flow.md`** |
+| **让业务实体具备审批能力（use-approval tag、IApprovableBiz、objMeta 流程配置、wf 回调）** | **`03-runbooks/enable-approval-on-entity.md`**（设计原理见 `ai-dev/design/nop-wf/approvable-entity-design.md`） |
 | 判断并发控制与事务边界 | `02-core-guides/concurrency-and-transactions.md` |
 | 查询当前仓库代码风格 | `02-core-guides/code-style.md` |
 | 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
@@ -161,7 +162,7 @@
 | 理解 nop-rule（规则引擎：决策树/矩阵、二重 DSL、Excel 编辑） | `03-modules/nop-rule.md` |
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
 | 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |
-| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） |
+| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） + `03-runbooks/enable-approval-on-entity.md`（实体审批能力集成，设计见 `ai-dev/design/nop-wf/approvable-entity-design.md`） |
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
