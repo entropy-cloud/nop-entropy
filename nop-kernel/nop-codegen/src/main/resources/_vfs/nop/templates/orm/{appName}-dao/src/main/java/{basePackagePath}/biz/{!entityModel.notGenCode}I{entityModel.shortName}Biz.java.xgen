@@ -4,8 +4,11 @@ package ${basePackageName}.biz;
 import io.nop.orm.biz.ICrudBiz;
 
 import ${entityModel.name};
+<c:if test="${entityModel.containsTag('use-approval')}">
+import io.nop.wf.core.biz.IApprovableBiz;
+</c:if>
 
-public interface I${entityModel.shortName}Biz extends ICrudBiz&lt;${entityModel.shortName}>{
+public interface I${entityModel.shortName}Biz extends ICrudBiz&lt;${entityModel.shortName}><c:if test="${entityModel.containsTag('use-approval')}">, IApprovableBiz&lt;${entityModel.shortName}></c:if>{
 
 }
 </c:unit>
