@@ -101,5 +101,5 @@ graph TD
 - 本文档是状态索引和粗粒度分层划分，不是 execution plan。实现细节在 plan 文件，不在本 roadmap。
 - **可标记单位是 Layer**（L0–L4），当前全部 `done`。新工作项出现时在 Phase Status 追加（如 `L5. <后续方向>: todo`）。
 - **唯一动态块是 Phase Status**（顶部）。状态不散落到 Work Items 表、Pointers 或别处。
-- 审计发现不在此追踪（在 `audits/nop-ai-agent-audit-tracker.md`）；设计决策不在此重述（在 `00-vision.md`）；逐项实现描述不在此复制（在归档原文/plan）。
+- 审计发现不在此追踪（在 `../../audits/nop-ai-agent-audit-tracker.md`）；设计决策不在此重述（在 `00-vision.md`）；逐项实现描述不在此复制（在归档原文/plan）。
 - 不得在 closure audit 通过前把 Layer 标为 `done`。

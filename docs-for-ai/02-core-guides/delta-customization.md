@@ -2,6 +2,8 @@
 
 当你的目标是“在不破坏升级路径的前提下定制现有产品或生成结果”时，默认先考虑 Delta。
 
+如果你要理解 Delta 在整个平台可扩展体系中的位置，先读 `../06-extensibility/platform-extensibility-mechanism.md`。本页只讲 Delta 这一个层面的操作规则，不重复讲平台总原理。
+
 ## Delta 的默认结论
 
 1. 覆盖已有模型、beans、xbiz、view 时，优先 `_vfs/_delta/...`。
@@ -71,6 +73,13 @@ src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml
 1. 如果是在自己的模块里扩展生成保留层，优先非下划线文件。
 2. 如果是在已有产品或基础模块上做差量覆盖，优先 Delta。
 
+换句话说：
+
+- **Delta** 解决“我想在原资源之上做差量覆盖”
+- **保留层** 解决“我想稳定覆盖生成结果，但不直接改生成物”
+
+两者都属于平台通用可扩展机制的一部分，只是落位不同。
+
 ## 常见坑
 
 1. 直接修改基础产品源码。
@@ -88,6 +97,7 @@ src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml
 
 ## 相关文档
 
+- `../06-extensibility/platform-extensibility-mechanism.md` — Delta 在平台扩展体系中的位置
 - `./vfs-and-resource-resolution.md` — VFS 路径解析完整链路、类扫描机制、重复检测规则
 - `./xdef-and-xdsl.md` — x-extends 合并算法、`x:gen-extends` / `x:post-extends` 语义
 - `./debugging-and-diagnostics.md` — `_dump` 输出和属性来源追踪

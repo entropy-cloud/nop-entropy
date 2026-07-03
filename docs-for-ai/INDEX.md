@@ -83,11 +83,16 @@
 | 理解 RPC 机制、分布式代理（/px/）、IRpcService、token 转发 | `02-core-guides/rpc-and-distributed-rpc.md` |
 | 判断领域逻辑和 DDD 落位 | `02-core-guides/domain-logic-and-ddd.md` |
 | 理解跨切面架构原则（聚合根与表、模块依赖方向、DSL优先等） | `02-core-guides/architecture-principles.md` |
+| 做业务实现时，判断应优先利用哪些 Nop 可扩展机制 | `06-extensibility/how-to-use-extensibility-in-business-implementation.md` |
+| 理解平台级可扩展设计（XDef/XDSL/Delta/元编程/保留层） | `06-extensibility/platform-extensibility-mechanism.md` |
+| 用 nop-wf 观察平台可扩展机制如何落地 | `06-extensibility/nop-wf-as-example.md` |
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
 | 判断报表和通知集成默认路线 | `02-core-guides/reporting-and-notification-integration.md` |
 | 判断 IoC 注入和配置写法 | `02-core-guides/ioc-and-config.md` |
 | 理解模型加载后的 `INeedInit` 初始化约定 | `02-core-guides/model-init-and-ineedinit.md` |
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
+| **理解工作流 XML 配置（step/transition/action/assignment）** | **`02-core-guides/workflow-configuration.md`** |
+| **构建审批流（串签/并签/会签/驳回/抄送等）** | **`03-runbooks/build-approval-flow.md`** |
 | 判断并发控制与事务边界 | `02-core-guides/concurrency-and-transactions.md` |
 | 查询当前仓库代码风格 | `02-core-guides/code-style.md` |
 | 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
@@ -156,7 +161,7 @@
 | 理解 nop-rule（规则引擎） | `03-modules/nop-rule.md` |
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
 | 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |
-| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` |
+| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） |
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
@@ -179,6 +184,7 @@
 | `03-modules/` | 可复用业务模块文档，回答"这个模块能做什么、怎么用" |
 | `03-runbooks/` | 任务型手册，回答“这件事具体怎么做” |
 | `04-reference/` | 速查与实现锚点，回答“需要看哪个类/方法定义” |
+| `06-extensibility/` | 平台级可扩展设计，回答“为什么很多能力可以外置到 DSL / Delta / 元编程” |
 | `90-maintenance/` | 文档治理规则，不是日常开发入口 |
 | `05-examples/` | 精简代码示例，回答"各类文件实际长什么样" |
 

@@ -4,6 +4,8 @@
 
 完整的工作流/BPM 引擎。nop-wf 是独立引擎，**并非基于 nop-task 构建**（`nop-wf` 各模块 pom 不依赖 `nop-task`，源码不引用 `io.nop.task`）。
 
+`nop-wf` 相比很多传统工作流引擎的一个关键差异是：它大量复用了 Nop 平台通用的 XDSL、Delta、模板继承和编译期元编程机制，而不是为 workflow 单独发明一套扩展体系。详见 `../06-extensibility/platform-extensibility-mechanism.md` 与 `../06-extensibility/nop-wf-as-example.md`。
+
 - 复杂审批工作流
 - 多步骤类型（人工步骤、自动步骤、子流程）
 - 参与者分配（指定人、角色、部门）
@@ -61,4 +63,8 @@ nop-wf 是独立工作流引擎，不依赖 nop-task。
 
 - `../nop-task.md`
 - `../reusable-modules-overview.md`
+- `../06-extensibility/platform-extensibility-mechanism.md`
+- `../06-extensibility/nop-wf-as-example.md`
+- `../02-core-guides/workflow-configuration.md`
+- `../03-runbooks/build-approval-flow.md`
 - 审批流设计文档见 ai-dev/design/nop-wf/approval-flow-design.md（串签/并签/会签/条件路由/驳回等模式映射，仅平台开发者参考）

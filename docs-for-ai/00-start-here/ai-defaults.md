@@ -18,6 +18,8 @@
 3. 只有模型和 Delta 都不足时，才写 Java 或其他保留层代码。
 4. 写 Java 时，优先走 BizModel 的安全路径，而不是先复制底层 DAO 写法。
 
+如果你需要理解这套顺序背后的平台设计原因，而不只是记规则，请读 `../06-extensibility/platform-extensibility-mechanism.md`。
+
 ## 默认查找顺序
 1. 再看 `00-start-here/project-context.md`（当前项目状态快照）
 2. 再看 `03-runbooks/` 中最贴近当前任务的手册

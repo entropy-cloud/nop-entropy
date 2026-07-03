@@ -4,14 +4,17 @@
 
 ## 目录命名规范
 
+按日期归档到 `{year}-{month}/` 子目录：
+
 ```
 ai-dev/audits/
-├── YYYY-MM-DD-HHMM-{type}-{module}/    # 深度审计（含多份报告）
-│   ├── summary.md                       # 总体发现摘要
-│   ├── {detail-report}.md               # 分项报告
-│   └── ...
-├── YYYY-MM-DD-HHMM-{type}-{module}.md   # 独立审计记录
-└── README.md
+├── YYYY-MM/                             # 每月的审计都放在这里
+│   ├── YYYY-MM-DD-HHMM-{type}-{module}/   # 深度审计（含多份报告）
+│   │   ├── summary.md                      # 总体发现摘要
+│   │   ├── {detail-report}.md              # 分项报告
+│   │   └── ...
+│   └── YYYY-MM-DD-HHMM-{type}-{module}.md  # 独立审计记录
+├── README.md
 ```
 
 - `{type}`: `deep-audit` / `adversarial-review` / `plan-closure-audit` / `doc-age-audit`

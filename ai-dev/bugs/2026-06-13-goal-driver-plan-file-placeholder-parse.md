@@ -14,7 +14,7 @@
   - “AI 没创建文件” —— 排除：log 末尾 `Write ai-dev/plans/160-nop-ai-agent-talent.md` + `ls -la` 确认磁盘上文件真实存在（18454 bytes，23:11 创建）。
   - “AI 返回了占位符” —— 排除：log 第 304–306 行 AI 真实输出是 `<PLAN_FILE>/Users/abc/.../160-nop-ai-agent-talent.md</PLAN_FILE>`，是正确绝对路径。
 - **确认根因的直接证据**：`grep -n "FLOW_VARS\|PLAN_FILE\|AI_STEP_RESULT"` 该 log 文件，发现 `<FLOW_VARS>` 出现两次：
-  - 第 45–47 行：**prompt 里的示例文本**（`/path/to/plan.md` 占位符），来自 `ai-dev/tools/opencode-goal-driver/prompts/plan-draft.md:45-47`。
+  - 第 45–47 行：**prompt 里的示例文本**（`/path/to/plan.md` 占位符），来自已删除的 goal-driver plan-draft 提示词文件对应片段。
   - 第 304–306 行：AI 真实输出（正确路径）。
   - engine 只取了**第一个**匹配 → 永远拿到占位符。
 - **辅助铁证**：同一文件里 `extractTag`（marker 提取）取的是**最后一个**匹配，所以 marker `created` 提取正确；两个提取函数行为不一致本身就是 bug 信号。
@@ -30,7 +30,7 @@
   ```js
   const header = [`# cmd: ${cmd} ${args.join(" ")}`, ...];  // prompt 作为 args 末尾被原样写入
   ```
-  `ai-dev/tools/opencode-goal-driver/prompts/plan-draft.md` 为了教 AI 输出格式，自身含一段 `<FLOW_VARS><PLAN_FILE>/path/to/plan.md</PLAN_FILE></FLOW_VARS>` 示例。该示例随 prompt 被写进 log 文件头部，排在 AI 真实输出之前，于是成为“第一个”匹配。
+  当时的 goal-driver plan-draft 提示词为了教 AI 输出格式，自身含一段 `<FLOW_VARS><PLAN_FILE>/path/to/plan.md</PLAN_FILE></FLOW_VARS>` 示例。该示例随 prompt 被写进 log 文件头部，排在 AI 真实输出之前，于是成为“第一个”匹配。
 - **retry 无效且误导**：每次 retry 重新跑，prompt 头永远在 log 最前面，第一个匹配永远是占位符。更糟的是 `engine.js:637` 追加的 feedback “the file you specified does not exist” 指责 AI，但 AI 指定的文件明明存在 —— feedback 本身是错的。
 
 ## Fix
@@ -45,7 +45,7 @@
 
 已新增 5 个回归测试，全部通过（`node --test test/core.test.js`）：
 
-- `ai-dev/tools/opencode-goal-driver/test/core.test.js`
+- 已删除的 goal-driver `core.test.js`
   - `FlowEngine — flowVars extraction takes LAST block`：
     - “prompt-example 块在 AI 输出之前时，返回真实值” —— 直接复现本 bug 场景（text 含两个 FLOW_VARS 块，第一个是 `/path/to/plan.md` 占位符），断言取最后一个。
     - “无 FLOW_VARS 块时返回空对象”。
@@ -56,11 +56,11 @@
 
 ## Affected Files
 
-- `ai-dev/tools/opencode-goal-driver/src/engine.js`（`_extractFlowVars` line 90-100；feedback line 637）
-- `ai-dev/tools/opencode-goal-driver/src/executor.js`（header line 44-50）
-- `ai-dev/tools/opencode-goal-driver/test/core.test.js`（新增 5 个回归测试）
+- 已删除的 goal-driver `engine.js`（`_extractFlowVars` line 90-100；feedback line 637）
+- 已删除的 goal-driver `executor.js`（header line 44-50）
+- 已删除的 goal-driver `core.test.js`（新增 5 个回归测试）
 - 相关证据 log：`_tmp/2026-06-13-223030-goal-driver/oc-PLAN_DRAFT-1781363088281-0tw337.log`
-- 受影响的 prompt（无需改，但需理解其示例文本会进 log）：`ai-dev/tools/opencode-goal-driver/prompts/plan-draft.md`
+- 受影响的 prompt（无需改，但需理解其示例文本会进 log）：已删除的 goal-driver plan-draft 提示词文件
 
 ## Notes For Future Refactors
 
