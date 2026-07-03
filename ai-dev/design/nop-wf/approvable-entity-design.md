@@ -189,10 +189,14 @@ xbiz 的 `<observes>/<observe>`（`xbiz.xdef` §observes）监听 BizModel actio
 
 | 字段 | 类型 | 用途 |
 |------|------|------|
-| `approveStatus` | 字典 `wf/approve-status`（四态，**nop-wf 模块统一定义**） | 审批状态，业务处理流唯一写者 |
+| `approveStatus` | 字典 `wf/approve-status`（四态，**nop-wf 模块统一定义**） | 审批状态，业务处理流（BizModel/xbiz）唯一写者 |
+| `approvedBy` | VARCHAR(36)，`stdDomain="userId"` | 审批人，`approve`/`reject` action 写入 `svcCtx.getUserId()`，`reverseApprove` 清空 |
+| `approvedAt` | DATETIME | 审批时间，`approve`/`reject` action 写入 `now()`（全局函数，委托 `CoreMetrics.currentTimestamp()`），`reverseApprove` 清空 |
 | `nopFlowId` | VARCHAR(32) | 由平台 `OrmEntityModelInitializer` 对 `useWorkflow="true"` 实体自动补齐，wf 引擎经 `bizEntityFlowIdProp="nopFlowId"` 自动反写；DIRECT 模式为空 |
 
-`approveStatus` 的字典 `wf/approve-status` 由 nop-wf 模块统一定义（对齐 nop-wf 既有的 `wf/wf-status`/`wf/wf-def-status` 等字典），四态值标准化：`UNSUBMITTED`/`SUBMITTED`/`APPROVED`/`REJECTED`。所有 `use-approval` 实体引用此标准字典（`ext:dict="wf/approve-status"`），不各自定义。字段集权威源为各模块 `<domain>/model/*.orm.xml`；`use-approval` 实体必须含 `approveStatus`，WORKFLOW 模式须配 `useWorkflow="true"` 以触发 nopFlowId 自动补齐。
+`approveStatus` 的字典 `wf/approve-status` 由 nop-wf 模块统一定义（对齐 nop-wf 既有的 `wf/wf-status`/`wf/wf-def-status` 等字典），四态值标准化：`UNSUBMITTED`/`SUBMITTED`/`APPROVED`/`REJECTED`。所有 `use-approval` 实体引用此标准字典（`ext:dict="wf/approve-status"`），不各自定义。字段集权威源为各模块 `<domain>/model/*.orm.xml`；`use-approval` 实体必须含 `approveStatus`/`approvedBy`/`approvedAt`，WORKFLOW 模式须配 `useWorkflow="true"` 以触发 nopFlowId 自动补齐。
+
+`approvedBy`/`approvedAt` 由 `approval-support.xbiz` 的 `approve`/`reject` action 自动写入（`svcCtx.getUserId()` / `now()`），`reverseApprove` 清空。业务无需在 xbiz `append` 中重复设置。
 
 ## objMeta 承载流程配置（不用配置表）
 

@@ -27,6 +27,8 @@
 <entity name="...LeaveRequest" tagSet="use-approval" useWorkflow="true" ...>
     <columns>
         <column name="approveStatus" ext:dict="wf/approve-status" mandatory="true" .../>
+        <column name="approvedBy" stdDomain="userId" stdSqlType="VARCHAR" precision="36" .../>
+        <column name="approvedAt" stdSqlType="DATETIME" .../>
         <!-- WORKFLOW 模式才需要 useWorkflow="true"（OrmEntityModelInitializer 自动补 nopFlowId 列） -->
         <!-- 其他业务字段 -->
     </columns>
@@ -35,7 +37,7 @@
 
 **tag 命名说明**：`use-approval` 对齐 nop 官方 entity 能力 tag 先例 `use-ext-field`（`use-` 前缀 + kebab-case）。不要写成 camelCase 的 `approveFlow`。
 
-> `approveStatus` 字段集权威在 `<domain>/model/*.orm.xml`。`nopFlowId` 列由平台 `OrmEntityModelInitializer` 对 `useWorkflow="true"` 实体自动补齐（无需 codegen）。
+> 字段集权威在 `<domain>/model/*.orm.xml`。`use-approval` 实体必须含 `approveStatus`/`approvedBy`/`approvedAt`（由 `approval-support.xbiz` 的标准 action 自动读写）。`nopFlowId` 列由平台 `OrmEntityModelInitializer` 对 `useWorkflow="true"` 实体自动补齐（无需 codegen）。
 
 ---
 
@@ -77,7 +79,7 @@
 
 ## 步骤 4：注入业务联动（xbiz 层，非 Java 钩子）
 
-标准 action 的状态迁移由 codegen 生成的 source 处理。**业务联动不写 Java 钩子，在 xbiz 层注入**（XDSL，随 Delta 定制）。
+标准 action 的状态迁移与审计字段（`approveStatus`/`approvedBy`/`approvedAt`）由 `approval-support.xbiz` 统一处理。**业务联动不写 Java 钩子，在 xbiz 层注入**（XDSL，随 Delta 定制）。
 
 ### 方式 A：在 action source 追加
 
@@ -88,6 +90,7 @@
 <mutation name="approve">
     <source x:override="append"><![CDATA[
         // 审批通过后联动（扣减额度、发通知等）
+        // approveStatus/approvedBy/approvedAt 已由 approval-support.xbiz 设置，无需重复
         inject('biz_LeaveBalance').deduct(entity.userId, entity.days);
     ]]></source>
 </mutation>
@@ -108,6 +111,8 @@
 ```
 
 联动代码内部可调 task（[`service-layer.md`](../02-core-guides/service-layer.md)）或 `I*Biz`。纯审批、无联动的实体跳过此步。
+
+> **xbiz source 内置变量**：`source` 中可用 `thisObj`（当前 BizObject）、`svcCtx`（`IServiceContext`，获取当前用户/上下文）、`entity`（`append` 场景下由基类 source 已声明）、`inject('beanName')`（获取 IoC Bean）、`now()`（全局函数，当前时间）。详见 [`xlang-and-xpl-basics.md`](../02-core-guides/xlang-and-xpl-basics.md) 的"xbiz action source 内置变量"章节。
 
 ---
 
@@ -187,7 +192,8 @@ WORKFLOW 模式:
 | 误区 | 正确做法 |
 |------|---------|
 | 手写 submit/approve 状态迁移 | 标 `use-approval`，由 codegen 生成标准 action source，联动用 xbiz `append`/`observe` 注入 |
-| 用 wf 的 `bizEntityStateProp` 让引擎改 approveStatus | 审批状态由业务 action 改，wf 只回调 |
+| 手写 approvedBy/approvedAt 回写 | `approval-support.xbiz` 的 `approve`/`reject` action 已自动设置（`svcCtx.getUserId()` / `now()`），`reverseApprove` 自动清空 |
+| 用 wf 的 `bizEntityStateProp` 让引擎改 approveStatus | 审批状态由业务 action（BizModel/xbiz 层）改，wf 只回调 |
 | 在 `.xwf` source 写业务联动（扣额度/通知） | 联动在 xbiz 层注入（action source `append` / `<observes>`），wf 只编排审批 |
 | 用 Java 钩子（`onApproved`）做业务联动 | 联动在 xbiz 层注入（XDSL，随 Delta 定制），不写 Java 钩子 |
 | 建 ApprovalConfig 配置表 | 流程属性挂 objMeta 扩展属性 |
