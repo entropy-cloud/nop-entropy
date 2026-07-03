@@ -81,6 +81,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: check-exec-group-reject
+     * 判断整个执行分组是否应该拒绝
+     */
+    private io.nop.core.lang.eval.IEvalPredicate _checkExecGroupReject ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -188,7 +195,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: passWeight
-     * 所有同意的参与者投票权重超过多少记为通过
+     * 所有同意的参与者投票权重超过多少记为通过。若配置了check-exec-group-complete/reject槽位，则优先使用槽位判定
      */
     private java.lang.Integer _passWeight ;
     
@@ -429,6 +436,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._checkExecGroupComplete = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: check-exec-group-reject
+     *  判断整个执行分组是否应该拒绝
+     */
+    
+    public io.nop.core.lang.eval.IEvalPredicate getCheckExecGroupReject(){
+      return _checkExecGroupReject;
+    }
+
+    
+    public void setCheckExecGroupReject(io.nop.core.lang.eval.IEvalPredicate value){
+        checkAllowChange();
+        
+        this._checkExecGroupReject = value;
            
     }
 
@@ -722,7 +748,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: passWeight
-     *  所有同意的参与者投票权重超过多少记为通过
+     *  所有同意的参与者投票权重超过多少记为通过。若配置了check-exec-group-complete/reject槽位，则优先使用槽位判定
      */
     
     public java.lang.Integer getPassWeight(){
@@ -986,6 +1012,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("bizEntityState",this.getBizEntityState());
         out.putNotNull("checkComplete",this.getCheckComplete());
         out.putNotNull("checkExecGroupComplete",this.getCheckExecGroupComplete());
+        out.putNotNull("checkExecGroupReject",this.getCheckExecGroupReject());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("dueAction",this.getDueAction());
@@ -1032,6 +1059,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setBizEntityState(this.getBizEntityState());
         instance.setCheckComplete(this.getCheckComplete());
         instance.setCheckExecGroupComplete(this.getCheckExecGroupComplete());
+        instance.setCheckExecGroupReject(this.getCheckExecGroupReject());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setDueAction(this.getDueAction());

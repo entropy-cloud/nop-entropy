@@ -13,6 +13,7 @@ import io.nop.job.biz.INopJobFireBiz;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.helper.JobStatusHelper;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.service.JobContextHelper;
@@ -25,7 +26,11 @@ import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_CANCEL_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_RERUN_DISCARDED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_SAVE_NOT_ALLOWED;
+import static io.nop.job.service.NopJobErrors.ERR_JOB_FIRE_UPDATE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
+
+import java.util.Map;
 
 @BizModel("NopJobFire")
 public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INopJobFireBiz{
@@ -42,6 +47,16 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
                 .param("jobFireId", id);
     }
 
+    @Override
+    public NopJobFire save(Map<String, Object> data, IServiceContext context) {
+        throw new NopException(ERR_JOB_FIRE_SAVE_NOT_ALLOWED);
+    }
+
+    @Override
+    public NopJobFire update(Map<String, Object> data, IServiceContext context) {
+        throw new NopException(ERR_JOB_FIRE_UPDATE_NOT_ALLOWED);
+    }
+
     @Inject
     public void setFireStore(IJobFireStore fireStore) {
         this.fireStore = fireStore;
@@ -56,7 +71,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @BizMutation
     public void cancelFire(@Name("id") String id, IServiceContext context) {
         NopJobFire fire = requireEntity(id, "cancelFire", context);
-        if (!isCancelableStatus(fire.getFireStatus())) {
+        if (!JobStatusHelper.isActiveFire(fire.getFireStatus())) {
             throwCancelNotAllowed(fire, "cancelFire");
         }
 
@@ -71,7 +86,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @BizMutation
     public void rerunFire(@Name("id") String id, IServiceContext context) {
         NopJobFire sourceFire = requireEntity(id, "rerunFire", context);
-        if (!isRerunnableStatus(sourceFire.getFireStatus())) {
+        if (!JobStatusHelper.isTerminalFire(sourceFire.getFireStatus())) {
             throwRerunNotAllowed(sourceFire, "rerunFire");
         }
 
@@ -86,21 +101,6 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
                     .param("jobName", schedule.getJobName());
         }
         afterEntityChange(rerunFire, "rerunFire", context);
-    }
-
-    private boolean isCancelableStatus(Integer fireStatus) {
-        return fireStatus != null
-                && (fireStatus == _NopJobCoreConstants.FIRE_STATUS_WAITING
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_DISPATCHING
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_RUNNING);
-    }
-
-    private boolean isRerunnableStatus(Integer fireStatus) {
-        return fireStatus != null
-                && (fireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_FAILED
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT
-                || fireStatus == _NopJobCoreConstants.FIRE_STATUS_CANCELED);
     }
 
     private void validateRerunSchedule(NopJobSchedule schedule, String action) {

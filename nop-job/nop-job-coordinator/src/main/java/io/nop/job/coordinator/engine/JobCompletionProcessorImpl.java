@@ -5,7 +5,8 @@ import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
-import io.nop.core.lang.json.JsonTool;
+import io.nop.commons.util.DateHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.api.retry.IJobRetryBridge;
@@ -173,9 +174,11 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
         if (schedule == null) {
             LOG.warn("nop.job.completion.schedule-deleted:fireId={}", fire.getJobFireId());
+            String localized = ErrorMessageManager.instance().getLocalizedDescription(null,
+                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode());
             fireStore.failFireWithoutSchedule(fire.getJobFireId(),
                     JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
-                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
+                    localized != null ? localized : JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
             return _NopJobCoreConstants.FIRE_STATUS_FAILED;
         }
 
@@ -192,7 +195,7 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         fire.setFireStatus(finalFireStatus);
         fire.setStartTime(fireStartTime);
         fire.setEndTime(fireEndTime);
-        fire.setDurationMs(calculateDuration(fireStartTime, fireEndTime));
+        fire.setDurationMs(DateHelper.durationMs(fireStartTime, fireEndTime));
 
         NopJobTask errorTask = findFirstErrorTask(tasks);
         if (errorTask != null) {
@@ -202,8 +205,6 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             fire.setErrorCode(null);
             fire.setErrorMessage(null);
         }
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(new Timestamp(scheduleStore.getCurrentTime()));
 
         schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
         schedule.setLastEndTime(fireEndTime);
@@ -223,8 +224,6 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         } else if (isFixedDelay(schedule)) {
             schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, fireEndTime));
         }
-        schedule.setUpdatedBy("system");
-        schedule.setUpdateTime(new Timestamp(scheduleStore.getCurrentTime()));
 
         fireStore.completeFireAndUpdateSchedule(fire, schedule);
 
@@ -289,16 +288,8 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
         boolean allowResultCompletion = isAllowResultCompletion(schedule);
         Timestamp nextScheduleTime = null;
         for (NopJobTask task : tasks) {
-            String resultPayload = task.getResultPayload();
-            if (resultPayload == null || resultPayload.isEmpty()) {
-                continue;
-            }
-
-            Map<String, Object> payload;
-            try {
-                payload = JsonTool.parseMap(resultPayload);
-            } catch (Exception e) {
-                LOG.warn("nop.job.completion.malformed-result-payload:taskId={}", task.getJobTaskId(), e);
+            Map<String, Object> payload = task.getResultPayloadComponent().get_jsonMap();
+            if (payload == null || payload.isEmpty()) {
                 continue;
             }
 
@@ -410,13 +401,6 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
             }
         }
         return result == null ? fallback : result;
-    }
-
-    private Long calculateDuration(Timestamp startTime, Timestamp endTime) {
-        if (startTime == null || endTime == null) {
-            return null;
-        }
-        return Math.max(endTime.getTime() - startTime.getTime(), 0L);
     }
 
     private Timestamp calculateFixedDelayNextFireTime(NopJobSchedule schedule, Timestamp fireEndTime) {

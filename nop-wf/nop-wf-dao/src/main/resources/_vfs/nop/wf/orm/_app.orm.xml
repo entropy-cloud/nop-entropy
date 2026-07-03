@@ -482,6 +482,16 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="52"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="SL" i18n-en:displayName="Remark"/>
             </columns>
+            <indexes>
+                <index name="IX_WF_STEP_DUE_TIME">
+                    <column name="status"/>
+                    <column name="dueTime"/>
+                </index>
+                <index name="IX_WF_STEP_REMIND_TIME">
+                    <column name="status"/>
+                    <column name="remindTime"/>
+                </index>
+            </indexes>
             <relations>
                 <to-one displayName="工作流实例" name="wfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
                         refPropName="steps" tagSet="pub,ref-pub,ref-cascade-delete"

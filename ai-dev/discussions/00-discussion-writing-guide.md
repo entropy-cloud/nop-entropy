@@ -31,11 +31,11 @@
 
 ## File Naming Rule
 
-使用 `YYYY-MM-DD` 日期前缀：
+按日期归档到 `{year}-{month}/` 子目录，文件名以 `YYYY-MM-DD` 开头：
 
-示例名称（如 2026-04-14-ai-agent-core-requirements.md、2026-04-15-tool-calling-design.md）。
+示例名称（如 `2026-04-14-ai-agent-core-requirements`、`2026-04-15-tool-calling-design`）。
 
-同一天多个讨论加序号后缀（如 2026-04-14a-ai-agent-core-requirements.md、2026-04-14b-agent-memory-model.md）。
+同一天多个讨论加序号后缀（如 `2026-04-14a-ai-agent-core-requirements`、`2026-04-14b-agent-memory-model`）。
 
 ## Discussion Flow
 

@@ -184,7 +184,7 @@
           @execGroupType [执行分组类型] 如果指定了执行分组类型，则步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
                 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
           @dueAction [超时动作] 超时动作
-          @passWeight 所有同意的参与者投票权重超过多少记为通过
+          @passWeight 所有同意的参与者投票权重超过多少记为通过。若配置了check-exec-group-complete/reject槽位，则优先使用槽位判定
         -->
         <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
               internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
@@ -242,6 +242,9 @@
 
             <!-- 判断整个执行分组是否已经结束 -->
             <check-exec-group-complete>xpl-predicate</check-exec-group-complete>
+
+            <!-- 判断整个执行分组是否应该拒绝 -->
+            <check-exec-group-reject>xpl-predicate</check-exec-group-reject>
 
             <!--
 

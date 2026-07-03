@@ -16,6 +16,7 @@ import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.model.WfAssignmentActorModel;
 import io.nop.wf.core.model.WfExecGroupType;
 import io.nop.wf.core.model.WfStepType;
+import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import jakarta.annotation.Nonnull;
 
@@ -153,6 +154,9 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     @Nonnull
     List<? extends IWorkflowStep> getPrevSteps();
+
+    @Nonnull
+    List<? extends IWorkflowActionRecord> getActionRecords();
 
     @Nonnull
     List<? extends IWorkflowStep> getNextSteps();

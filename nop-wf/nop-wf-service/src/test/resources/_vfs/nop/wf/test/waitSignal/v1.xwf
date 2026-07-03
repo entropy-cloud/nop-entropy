@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="wf-start"/>
+
+    <end/>
+
+    <steps>
+        <step displayName="启动" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="starter"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="submit"/>
+            </ref-actions>
+        </step>
+
+        <step displayName="等待信号" name="wait-review" waitSignals="ai-done">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user" actorModelId="reviewer"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="approve"/>
+            </ref-actions>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+
+    <actions>
+        <action displayName="提交" name="submit">
+            <transition>
+                <to-step stepName="wait-review"/>
+            </transition>
+        </action>
+        <action displayName="审批" name="approve">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+</workflow>

@@ -19,6 +19,7 @@ import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.engine.IWorkflowEngine;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
+import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
@@ -244,6 +245,11 @@ public class WorkflowImpl implements IWorkflowImplementor {
     public List<? extends IWorkflowStepImplementor> getSteps(boolean includeHistory) {
         Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecords(wfRecord, includeHistory, null);
         return getStepsByRecords(stepRecords);
+    }
+
+    @Override
+    public List<? extends IWorkflowActionRecord> getActionRecords() {
+        return wfStore.getActionRecords(wfRecord, null);
     }
 
     @Override

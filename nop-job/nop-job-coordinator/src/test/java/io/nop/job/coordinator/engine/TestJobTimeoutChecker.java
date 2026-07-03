@@ -71,7 +71,6 @@ public class TestJobTimeoutChecker {
         checker.scanOnce();
 
         assertEquals(_NopJobCoreConstants.FIRE_STATUS_TIMEOUT, fire.getFireStatus());
-        assertEquals("system", fire.getUpdatedBy());
         assertNotNull(fire.getEndTime());
     }
 
@@ -216,7 +215,6 @@ public class TestJobTimeoutChecker {
 
         assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus());
         assertNotNull(task.getEndTime());
-        assertEquals("system", task.getUpdatedBy());
     }
 
     @Test

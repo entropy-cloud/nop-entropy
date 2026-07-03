@@ -3,21 +3,19 @@ package io.nop.job.dao.store;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
-import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.helper.JobQueryHelper;
 import io.nop.job.dao.mapper.NopJobTaskMapper;
 import io.nop.job.dao.mapper.ReservedCostRow;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static io.nop.job.dao.entity._gen._NopJobTask.PROP_NAME_createTime;
@@ -69,7 +67,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
                     FilterBeans.isNull(PROP_NAME_workerInstanceId)
             ));
         }
-        addPartitionFilter(query, partitions);
+        JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_priority, true);
         query.addOrderField(PROP_NAME_createTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
@@ -83,13 +81,9 @@ public class JobTaskStoreImpl implements IJobTaskStore {
             return List.of();
         }
 
-        java.sql.Timestamp lockTime = new java.sql.Timestamp(
-                taskDao().getDbEstimatedClock().getMaxCurrentTimeMillis() + Math.max(lockTimeoutMs, 1L));
         for (NopJobTask task : tasks) {
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CLAIMED);
             task.setWorkerInstanceId(workerInstanceId);
-            task.setUpdatedBy("system");
-            task.setUpdateTime(lockTime);
         }
         return taskDao().tryUpdateManyWithVersionCheck(tasks);
     }
@@ -100,7 +94,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         query.setLimit(limit);
         query.addFilter(FilterBeans.in(PROP_NAME_taskStatus,
                 List.of(_NopJobCoreConstants.TASK_STATUS_RUNNING, _NopJobCoreConstants.TASK_STATUS_CLAIMED, _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS)));
-        addPartitionFilter(query, partitions);
+        JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_startTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
         return taskDao().findAllByQuery(query);
@@ -153,7 +147,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         query.setLimit(batchSize);
         query.addFilter(FilterBeans.eq(PROP_NAME_taskStatus, _NopJobCoreConstants.TASK_STATUS_WAITING));
         query.addFilter(FilterBeans.lt(PROP_NAME_createTime, new java.sql.Timestamp(deadlineMs)));
-        addPartitionFilter(query, partitions);
+        JobQueryHelper.addPartitionFilter(query, partitions, PROP_NAME_partitionIndex);
         query.addOrderField(PROP_NAME_createTime, false);
         query.addOrderField(PROP_NAME_jobTaskId, false);
 
@@ -167,26 +161,10 @@ public class JobTaskStoreImpl implements IJobTaskStore {
         // Optimistic version check (tryUpdateManyWithVersionCheck) protects against concurrent
         // transitions (e.g. a worker that just claimed a task flips it to CLAIMED + bumps version,
         // failing our update so we don't clobber live state).
-        java.sql.Timestamp now = new java.sql.Timestamp(
-                taskDao().getDbEstimatedClock().getMaxCurrentTimeMillis());
         for (NopJobTask task : stale) {
             task.setWorkerInstanceId(null);
-            task.setUpdatedBy("system");
-            task.setUpdateTime(now);
         }
         return taskDao().tryUpdateManyWithVersionCheck(stale).size();
-    }
-
-    private void addPartitionFilter(QueryBean query, IntRangeSet partitions) {
-        if (partitions == null || partitions.isEmpty()) {
-            return;
-        }
-
-        List<TreeBean> rangeFilters = new ArrayList<>();
-        for (IntRangeBean range : partitions.getRanges()) {
-            rangeFilters.add(FilterBeans.between(PROP_NAME_partitionIndex, range.getOffset(), range.getLast()));
-        }
-        query.addFilter(FilterBeans.or(rangeFilters));
     }
 
     private IOrmEntityDao<NopJobTask> taskDao() {

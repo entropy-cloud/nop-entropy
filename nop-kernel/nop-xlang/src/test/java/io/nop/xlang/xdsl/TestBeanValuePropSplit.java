@@ -1,9 +1,9 @@
+package io.nop.xlang.xdsl;
+
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.unittest.BaseTestCase;
-import io.nop.xlang.xdsl.DslModelHelper;
-import io.nop.xlang.xdsl.DslModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;

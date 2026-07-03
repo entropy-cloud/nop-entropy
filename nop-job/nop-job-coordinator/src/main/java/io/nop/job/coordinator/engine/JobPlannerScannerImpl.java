@@ -209,8 +209,6 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     }
 
     private NopJobFire buildFire(NopJobSchedule schedule, Timestamp dueFireTime) {
-        long now = scheduleStore.getCurrentTime();
-
         NopJobFire fire = new NopJobFire();
         fire.setJobScheduleId(schedule.getJobScheduleId());
         fire.setNamespaceId(schedule.getNamespaceId());
@@ -222,10 +220,6 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
         fire.setPlannerInstanceId(AppConfig.hostId());
         fire.setPartitionIndex(schedule.getPartitionIndex());
         fire.setRetryPolicyId(schedule.getRetryPolicyId());
-        fire.setCreatedBy("system");
-        fire.setCreateTime(new Timestamp(now));
-        fire.setUpdatedBy("system");
-        fire.setUpdateTime(new Timestamp(now));
         fire.getJobParamsSnapshotComponent().set_jsonValue(copyMap(schedule.getJobParamsComponent().get_jsonMap()));
         fire.setExecutorKind(schedule.getExecutorKind());
         fire.setDispatchMode(schedule.getDispatchMode());

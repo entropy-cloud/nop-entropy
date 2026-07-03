@@ -27,16 +27,15 @@
 
 ## File Naming Rule
 
-使用 `YYYY-MM-DD` 日期前缀：
+按日期归档到 `{year}-{month}/` 子目录，文件名以 `YYYY-MM-DD` 开头：
 
-- `2026-04-02-nop-stream-review.md`
-- `2026-05-17-snail-job-vs-nop-job-comparison.md`
-- `2026-05-18-fault-tolerance-deep-dive.md`
+- `2026-05/2026-05-17-snail-job-vs-nop-job-comparison.md`
+- `2026-05/2026-05-18-fault-tolerance-deep-dive.md`
 
 同一天多个分析加序号后缀：
 
-- `2026-04-02-nop-stream-design-review.md`
-- `2026-05-18a-powerjob-vs-nop-job-features.md`
+- `2026-04/2026-04-02a-nop-stream-design-review.md`
+- `2026-05/2026-05-18b-powerjob-vs-nop-job-features.md`
 
 ## Required Sections
 

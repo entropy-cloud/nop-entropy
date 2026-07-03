@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:wf-ai="wf-ai">
+
+    <x:config>
+        <c:import from="/nop/wf/ai/xlib/wf-ai.xlib" />
+    </x:config>
+
+    <start startStepName="router"/>
+    <end/>
+
+    <steps>
+        <step displayName="路由" name="router">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <source>
+                <wf-ai:route prompt="route-review"/>
+            </source>
+            <transition splitType="or">
+                <to-step stepName="approved">
+                    <when>
+                        <eq name="wfVars.__aiRouteResult.decision" value="PASS"/>
+                    </when>
+                </to-step>
+                <to-step stepName="rejected"/>
+            </transition>
+        </step>
+        <step displayName="通过" name="approved">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user" actorModelId="actor2"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+        <step displayName="拒绝" name="rejected">
+            <assignment>
+                <actors>
+                    <actor actorId="3" actorType="user" actorModelId="actor3"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

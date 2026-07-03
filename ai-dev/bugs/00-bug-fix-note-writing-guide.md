@@ -30,9 +30,9 @@
 
 ## File Naming Rule
 
-使用 `YYYY-MM-DD-` 日期前缀加简短描述：
+按日期归档到 `{year}-{month}/` 子目录，文件名以 `YYYY-MM-DD-` 日期前缀加简短描述：
 
-示例名称（如 2026-04-02-stream-operator-npe-fix.md、2026-04-05-cron-expression-timezone-fix.md、2026-04-10-dialect-exists-sql-compat-fix.md），应包含用户可见症状或修复主题，简短可搜索。
+示例名称（如 `2026-04-02-stream-operator-npe-fix`、`2026-04-05-cron-expression-timezone-fix`），应包含用户可见症状或修复主题，简短可搜索。
 
 ## Required Sections
 

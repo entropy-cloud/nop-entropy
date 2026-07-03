@@ -1150,7 +1150,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             boolean shouldTransition = true;
             WfExecGroupType execGroupType = step.getExecGroupType();
             if (execGroupType != null && !actionModel.isForReject() && !actionModel.isForWithdraw()) {
-                boolean groupComplete = ExecGroupSupport.shouldExecGroupComplete(step);
+                boolean groupComplete = isExecGroupComplete(step, wfRt);
                 if (!groupComplete) {
                     shouldTransition = false;
                 } else if (execGroupType == WfExecGroupType.OR_GROUP
@@ -1208,7 +1208,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfStepModel stepModel = (WfStepModel) step.getModel();
         if (stepModel.getCheckExecGroupComplete() != null)
             return stepModel.getCheckExecGroupComplete().passConditions(wfRt);
-        return true;
+        return ExecGroupSupport.shouldExecGroupComplete(step);
+    }
+
+    private boolean isExecGroupReject(IWorkflowStepImplementor step, WfRuntime wfRt) {
+        WfStepModel stepModel = (WfStepModel) step.getModel();
+        if (stepModel.getCheckExecGroupReject() != null)
+            return stepModel.getCheckExecGroupReject().passConditions(wfRt);
+        return ExecGroupSupport.shouldExecGroupReject(step);
     }
 
     private void doReject(IWorkflowStepImplementor step, WfActionModel actionModel, WfRuntime wfRt) {
@@ -1240,7 +1247,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         // reject 分组检查：当前步骤 reject 后，若步骤显式声明了 execGroupType 且整个组也应拒绝
         // （如 vote-group 无法达到 passPercent），则跳过组内其余未完成成员
         if (step.getExecGroupType() != null) {
-            if (ExecGroupSupport.shouldExecGroupReject(step)) {
+            if (isExecGroupReject(step, wfRt)) {
                 ExecGroupSupport.skipExecGroupMembers(this, step, wfRt);
             }
         }

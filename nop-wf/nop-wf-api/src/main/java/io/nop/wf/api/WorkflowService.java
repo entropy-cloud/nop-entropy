@@ -30,6 +30,12 @@
     
         import io.nop.wf.api.beans.WfCommandRequestBean;
     
+        import io.nop.wf.api.beans.WfSignalRequestBean;
+    
+        import io.nop.wf.api.beans.WfTransferActorsRequestBean;
+    
+        import io.nop.wf.api.beans.WfTransferResultBean;
+    
 
     /**
      * 工作流服务 
@@ -176,6 +182,52 @@
              @QueryParam(SYS_PARAM_SELECTION) String selection);
 
     
+
+        /**
+         * 流程信号 
+         */
+        @POST
+        @Path("/r/WorkflowService__signalWf")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("signalWf")
+        CompletionStage<ApiResponse<Void>> signalWfAsync(@RequestBean WfSignalRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+
+        /**
+         * 流程信号 
+         */
+        @POST
+        @Path("/r/WorkflowService__signalWf")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("signalWf")
+        ApiResponse<Void> signalWf(@RequestBean WfSignalRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
+
+        /**
+         * 批量转办 
+         */
+        @POST
+        @Path("/r/WorkflowService__transferActors")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("transferActors")
+        CompletionStage<ApiResponse<WfTransferResultBean>> transferActorsAsync(@RequestBean WfTransferActorsRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+
+        /**
+         * 批量转办 
+         */
+        @POST
+        @Path("/r/WorkflowService__transferActors")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("transferActors")
+        ApiResponse<WfTransferResultBean> transferActors(@RequestBean WfTransferActorsRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
         /**
          * 启动工作流 
          */
@@ -294,6 +346,46 @@
         @Consumes(MediaType.APPLICATION_JSON)
         @BizMutation("resumeWorkflow")
         ApiResponse<Void> api_resumeWorkflow(ApiRequest<WfCommandRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 流程信号 
+         */
+        @POST
+        @Path("/r/WorkflowService__signalWf")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("signalWf")
+        CompletionStage<ApiResponse<Void>> api_signalWfAsync(ApiRequest<WfSignalRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 流程信号 
+         */
+        @POST
+        @Path("/r/WorkflowService__signalWf")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("signalWf")
+        ApiResponse<Void> api_signalWf(ApiRequest<WfSignalRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 批量转办 
+         */
+        @POST
+        @Path("/r/WorkflowService__transferActors")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("transferActors")
+        CompletionStage<ApiResponse<WfTransferResultBean>> api_transferActorsAsync(ApiRequest<WfTransferActorsRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 批量转办 
+         */
+        @POST
+        @Path("/r/WorkflowService__transferActors")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("transferActors")
+        ApiResponse<WfTransferResultBean> api_transferActors(ApiRequest<WfTransferActorsRequestBean> request,
             ICancelToken cancelToken);
 
     }

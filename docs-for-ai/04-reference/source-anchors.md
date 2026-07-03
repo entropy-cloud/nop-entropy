@@ -21,6 +21,13 @@
 | `GEN-007` | `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/orm-web/@init.xrun` + `nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/_{moduleName}.action-auth.xml.xgen` + `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java` (`loadDeltaJson`) | ORM web 模板通过 `loadDeltaJson("/{moduleId}/model/module-meta.json")` 读取模块级 meta，TOPM icon 取 `moduleMeta.icon` |
 | `GEN-008` | 维护脚本 | 仓库内固定检查 source `model/*.orm.xml` 的 root/entity icon，以及 source `*.action-auth.xml` 中显式 `TOPM` / `SUBM` 资源的 icon；该脚本属于维护层，不作为普通开发 AI 的源码阅读入口 |
 | `GEN-009` | `pom.xml` (`exec-maven-plugin` 的 `precompile` / `precompile2` / `postcompile` executions) | 根 POM 定义 codegen 任务绑定的 Maven phase、classpath 可见性与 `CodeGenTask` 入口；排查“为什么没执行/为什么读不到资源”时先校准这里 |
+| `EXT-001` | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/` + `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef` | 平台所有 DSL 的元模型定义入口；理解“先有 XDef 再有 XDSL”时从这里开始 |
+| `EXT-002` | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdsl/XDslExtender.java` | `x:extends`、`x:gen-extends`、`x:post-extends`、`x:override` 的核心展开与合并执行链 |
+| `EXT-003` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java` + `DeltaResourceStoreBuilder.java` | Delta/VFS 分层资源解析的核心实现；`super:`、tenant 层、delta 层都从这里落地 |
+| `EXT-004` | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdsl/DslModelParser.java` + `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/INeedInit.java` | XDSL 模型到运行时对象的统一解析与初始化链 |
+| `EXT-005` | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java` (`loadDeltaJson`) | JSON/YAML 类模型同样可复用 Delta 机制，不局限于 XML DSL |
+| `EXT-006` | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/xlib/XplLibTagCompiler.java` (`isAllowedUnknownAttr`) | 编译器对带名字空间的属性默认放宽校验；除显式 `checkNs` 外，这些属性可作为扩展属性参与编译期元编程 |
+| `EXT-007` | `nop-kernel/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib` + `meta-prop.xlib` + `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib` | 扩展属性驱动的编译期元编程真实案例：读取节点上的名字空间属性并展开 meta / control 等标准结构 |
 | `BIZ-001` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/biz/ICrudBiz.java` | 标准 CRUD 业务接口契约 |
 | `BIZ-002` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java` | 实体型服务默认基类 |
 | `BIZ-003` | `CrudBizModel#requireEntity` | 普通 BizModel 获取实体的安全路径 |
@@ -69,6 +76,12 @@
 | `UI-002` | `nop-job/nop-job-web/src/main/resources/_vfs/nop/job/pages/NopJobSchedule/NopJobSchedule.view.xml` | row action 直连业务 API、运行态 drawer + vertical tabs、关联子页组合的综合参考 |
 | `UI-003` | `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/NopRuleNode.view.xml` + `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml` | `gen-control` 高阶控件、`add-child` 上下文传递、`fixedProps` 关联子表页参考 |
 | `UI-004` | `nop-wf/nop-wf-web/src/main/resources/_vfs/nop/wf/designer/designer.page.yaml` | `x:gen-extends` 与大块手写 page schema 混合的专用设计器页面参考 |
+| `WF-001` | `nop-wf/nop-wf-core/src/main/resources/_vfs/nop/wf/base/oa.xwf` | `oa.xwf` 基模板：workflow 领域把审批共性沉淀为 base XDSL 的代表案例 |
+| `WF-002` | `nop-wf/nop-wf-core/src/main/resources/_vfs/nop/wf/xlib/oa.xlib` + `nop-wf/nop-wf-core/src/main/resources/_vfs/nop/wf/xlib/wf-actor.xlib` | `oa:*` 与 `wf-actor:*` 说明领域规则可以外置为标签库，而不是写死在引擎里 |
+| `WF-003` | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef` | workflow 只是平台 XDSL 体系中的一个 schema；适合拿来观察通用机制在具体领域的落地 |
+| `WF-004` | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WorkflowEngineImpl.java` (`doInvokeAction` / `doReject`) + `nop-wf/nop-wf-core/src/main/resources/_vfs/nop/wf/xlib/wf-vote.xlib` | vote-group 的完成/拒绝判定槽位接线与 `wf-vote:*` 标签库实现锚点 |
+| `WF-005` | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/service/impl/WorkflowServiceImpl.java` + `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/store/IWorkflowStore.java` | `signalWf` / `transferActors` 公共 API 与跨工作流 store 扩展锚点 |
+| `WF-006` | `nop-wf/nop-wf-scheduler/src/main/java/io/nop/wf/scheduler/WfTaskScanner.java` + `nop-wf/nop-wf-scheduler/src/main/resources/_vfs/nop/job/conf/scheduler.yaml` | 调度器模块、定时扫描与 nop-job YAML 注册锚点 |
 | `XLANG-001` | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef` | XPL 模板文件的基础 schema |
 | `XLANG-002` | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xlib.xdef` | XLib 文件的基础 schema |
 | `XLANG-003` | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef` | 通用 XDSL 扩展语法 schema |

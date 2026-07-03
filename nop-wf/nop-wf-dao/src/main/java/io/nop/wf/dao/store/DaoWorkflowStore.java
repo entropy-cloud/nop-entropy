@@ -9,6 +9,8 @@ package io.nop.wf.dao.store;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.time.CoreMetrics;
@@ -28,6 +30,7 @@ import io.nop.wf.core.store.AbstractWorkflowStore;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
+import io.nop.wf.core.store.beans.WorkflowActionRecordBean;
 import io.nop.wf.dao.entity.NopWfAction;
 import io.nop.wf.dao.entity.NopWfInstance;
 import io.nop.wf.dao.entity.NopWfLog;
@@ -41,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class DaoWorkflowStore extends AbstractWorkflowStore {
     private static final Logger LOG = LoggerFactory.getLogger(DaoWorkflowStore.class);
@@ -144,7 +148,68 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
 
     @Override
     public void saveActionRecord(IWorkflowActionRecord actionRecord) {
-        actionDao().saveOrUpdateEntity((NopWfAction) actionRecord);
+        if (actionRecord instanceof NopWfAction) {
+            actionDao().saveOrUpdateEntity((NopWfAction) actionRecord);
+            return;
+        }
+
+        NopWfAction entity = actionDao().newEntity();
+        entity.setSid(actionRecord.getSid());
+        entity.setWfId(actionRecord.getWfId());
+        entity.setStepId(actionRecord.getStepId());
+        entity.setActionName(actionRecord.getActionName());
+        entity.setDisplayName(actionRecord.getDisplayName());
+        entity.setExecTime(actionRecord.getExecTime());
+        entity.setCallerId(actionRecord.getCallerId());
+        entity.setCallerName(actionRecord.getCallerName());
+        entity.setOpinion(actionRecord.getOpinion());
+        actionDao().saveOrUpdateEntity(entity);
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findActivatedStepsByOwner(String ownerId, Set<String> wfIds) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_ownerId, ownerId));
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
+        if (wfIds != null && !wfIds.isEmpty()) {
+            query.addFilter(FilterBeans.in(NopWfStepInstance.PROP_NAME_wfId, wfIds));
+        }
+        return stepDao().findAllByQuery(query);
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findDueActivatedSteps() {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
+        query.addFilter(FilterBeans.le(NopWfStepInstance.PROP_NAME_dueTime, CoreMetrics.currentTimestamp()));
+        return stepDao().findAllByQuery(query);
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findRemindActivatedSteps() {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
+        query.addFilter(FilterBeans.le(NopWfStepInstance.PROP_NAME_remindTime, CoreMetrics.currentTimestamp()));
+        return stepDao().findAllByQuery(query);
+    }
+
+    @Override
+    public void saveTransferAction(IWorkflowStepRecord stepRecord, String fromOwnerId, String toOwnerId,
+                                   String callerId, String callerName) {
+        WorkflowActionRecordBean actionRecord = newManualActionRecord(stepRecord, "transfer", "transfer");
+        actionRecord.setSid(StringHelper.generateUUID());
+        actionRecord.setExecTime(CoreMetrics.currentTimestamp());
+        actionRecord.setCallerId(callerId);
+        actionRecord.setCallerName(callerName);
+        actionRecord.setOpinion("ownerId: " + fromOwnerId + " -> " + toOwnerId);
+        saveActionRecord(actionRecord);
+    }
+
+    @Override
+    public List<? extends IWorkflowActionRecord> getActionRecords(IWorkflowStepRecord stepRecord) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfAction.PROP_NAME_stepId, stepRecord.getStepId()));
+        return actionDao().findAllByQuery(query);
     }
 
     @Override

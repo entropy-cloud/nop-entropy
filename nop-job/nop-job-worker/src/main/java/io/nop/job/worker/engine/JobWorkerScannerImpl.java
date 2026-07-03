@@ -278,8 +278,6 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         runningTask.setTaskStatus(io.nop.job.core._NopJobCoreConstants.TASK_STATUS_RUNNING);
         runningTask.setStartTime(new Timestamp(now));
         runningTask.setWorkerInstanceId(AppConfig.hostId());
-        runningTask.setUpdatedBy("system");
-        runningTask.setUpdateTime(new Timestamp(now));
         // AR-85: check the CLAIMED→RUNNING CAS return value. If it failed the task is no longer ours
         // (timeout checker moved it to SUSPICIOUS, or another worker claimed it). Invoking now would
         // execute a task we no longer own → duplicate execution. Skip invokeAsync (aligned with
@@ -358,8 +356,6 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                 }
                 task.setResultPayload(JsonTool.stringify(resultPayload));
             }
-            task.setUpdatedBy("system");
-            task.setUpdateTime(endTime);
             boolean updated = taskStore.updateTask(task);
             if (!updated) {
                 NopJobTask freshTask = taskStore.loadTask(jobTaskId);
@@ -393,8 +389,6 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                     }
                     freshTask.setResultPayload(JsonTool.stringify(resultPayload));
                 }
-                freshTask.setUpdatedBy("system");
-                freshTask.setUpdateTime(endTime);
                 if (!taskStore.updateTask(freshTask)) {
                     LOG.warn("nop.job.worker.update-task-conflict-after-retry:taskId={},status={},resultStatus={}",
                             jobTaskId, freshTask.getTaskStatus(), update.getTaskStatus());
@@ -431,8 +425,6 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         freshTask.setErrorCode(errorCode);
         freshTask.setErrorMessage(errorMessage);
         freshTask.setWorkerInstanceId(AppConfig.hostId());
-        freshTask.setUpdatedBy("system");
-        freshTask.setUpdateTime(endTime);
         if (!taskStore.updateTask(freshTask)) {
             LOG.warn("nop.job.worker.complete-task-failure-update-conflict:taskId={}", freshTask.getJobTaskId());
         }

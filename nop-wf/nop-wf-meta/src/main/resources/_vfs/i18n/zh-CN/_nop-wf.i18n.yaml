@@ -14,9 +14,13 @@ entity:
     WfActionRequestBean: 执行动作请求消息
     WfChangeActorRequestBean: 执行动作请求消息
     WfCommandRequestBean: 执行命令请求消息
+    WfSignalRequestBean: 流程信号请求消息
     WfStartRequestBean: 启动工作流请求消息
     WfStartResponseBean: 启动工作流响应消息
     WfSubFlowEndRequestBean: 通知子工作流完成请求消息
+    WfTransferActorsRequestBean: 批量转办请求消息
+    WfTransferFailedItemBean: 批量转办失败项
+    WfTransferResultBean: 批量转办结果消息
 prop:
   label:
     NopWfAction:
@@ -311,6 +315,12 @@ prop:
       wfId: 工作流ID
       wfName: 工作流名称
       wfVersion: 工作流版本
+    WfSignalRequestBean:
+      'on': 是否开启
+      signals: 信号集合
+      wfId: 工作流ID
+      wfName: 工作流名称
+      wfVersion: 工作流版本
     WfStartRequestBean:
       parentWfId: 父工作流ID
       parentWfName: 父工作流名称
@@ -337,3 +347,16 @@ prop:
       wfId: 工作流ID
       wfName: 工作流名称
       wfVersion: 工作流版本
+    WfTransferActorsRequestBean:
+      fromUserId: 原处理人ID
+      toUserId: 目标处理人ID
+      wfIds: 限定工作流ID集合
+    WfTransferFailedItemBean:
+      reason: 失败原因
+      stepId: 步骤ID
+      wfId: 工作流ID
+      wfName: 工作流名称
+      wfVersion: 工作流版本
+    WfTransferResultBean:
+      failedItems: 失败明细
+      successCount: 成功数量

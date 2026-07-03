@@ -125,7 +125,7 @@ public interface IWorkflowRecord extends ITagSetSupport {
         if (onSignals == null)
             return false;
 
-        return onSignals.retainAll(signals);
+        return onSignals.containsAll(signals);
     }
 
     default boolean isSignalOn(String signal) {

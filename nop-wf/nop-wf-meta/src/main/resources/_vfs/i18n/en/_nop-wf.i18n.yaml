@@ -14,9 +14,13 @@ entity:
     WfActionRequestBean: Workflow Action Request
     WfChangeActorRequestBean: Change Actor Request
     WfCommandRequestBean: Workflow Command Request
+    WfSignalRequestBean: Workflow Signal Request
     WfStartRequestBean: Workflow Start Request
     WfStartResponseBean: Workflow Start Response
     WfSubFlowEndRequestBean: Notify SubFlow End Request
+    WfTransferActorsRequestBean: Transfer Actors Request
+    WfTransferFailedItemBean: Transfer Actors Failed Item
+    WfTransferResultBean: Transfer Actors Result
 prop:
   label:
     NopWfAction:
@@ -311,6 +315,12 @@ prop:
       wfVersion: Workflow Version
       wfId: Workflow ID
       args: Action Args
+    WfSignalRequestBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfId: Workflow ID
+      signals: Signals
+      'on': 'On'
     WfStartRequestBean:
       wfName: Workflow Name
       wfVersion: Workflow Version
@@ -337,6 +347,19 @@ prop:
       parentWfVersion: Parent Workflow Version
       parentWfId: Parent Workflow ID
       parentWfStepId: Parent Workflow Step ID
+    WfTransferActorsRequestBean:
+      fromUserId: From User ID
+      toUserId: To User ID
+      wfIds: Workflow IDs
+    WfTransferFailedItemBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfId: Workflow ID
+      stepId: Step ID
+      reason: Reason
+    WfTransferResultBean:
+      successCount: Success Count
+      failedItems: Failed Items
 dict:
   label:
     wf/work-status: Work Status

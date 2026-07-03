@@ -217,6 +217,9 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_NO_ACTOR_ASSIGNED_FOR_TRANSFER =
             define("nop.err.wf.no-actor-assigned-for-transfer", "没有指定参与者");
 
+    ErrorCode ERR_WF_UNSUPPORTED_ASSIGNMENT_SELECTION =
+            define("nop.err.wf.unsupported-assignment-selection", "不支持的参与者选择模式:{value}", ARG_VALUE);
+
     ErrorCode ERR_WF_TRANSIT_TO_NO_TARGETS =
             define("nop.err.wf.transit-to-no-targets", "步骤迁移没有目标参与者，迁移失败", ARG_STEP_NAME);
 

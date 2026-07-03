@@ -15,7 +15,6 @@ import io.nop.job.dao.entity.NopJobTask;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -68,8 +67,6 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             return fallback.buildTasks(fire);
         }
 
-        long now = System.currentTimeMillis();
-
         List<NopJobTask> tasks = new ArrayList<>();
         int total = healthyInstances.size();
         for (int i = 0; i < total; i++) {
@@ -86,11 +83,6 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             task.setTargetHost(instance.getAddr() + ":" + instance.getPort());
             task.setShardingIndex(i);
             task.setShardingTotal(total);
-
-            task.setCreatedBy("system");
-            task.setCreateTime(new Timestamp(now));
-            task.setUpdatedBy("system");
-            task.setUpdateTime(new Timestamp(now));
 
             tasks.add(task);
         }

@@ -364,38 +364,6 @@ step.transferToActor(new WfActorAndOwner("user", "delegateUserId"), false, ctx);
 
 CC 步骤通过 `specialType="cc"` 标记，前端会将其渲染为只读/确认模式。`confirm` action 为 `local="true"`，仅标记已阅，不结束当前步骤（由 `confirm` action 的 transition 驱动前进）。
 
-### 11. 会签（Cosign）— 代码生成方式
-
-nop-wf 提供另一种会签实现方式：通过 `x:post-extends` + `wf-gen:CosignSupport` 动态生成 join 步骤。
-
-```xml
-<step name="cosign-step" specialType="co-sign">
-    <assignment>
-        <actors>
-            <actor actorType="user" actorId="u1" actorModelId="a1"/>
-            <actor actorType="user" actorId="u2" actorModelId="a2"/>
-        </actors>
-    </assignment>
-    <ref-actions>
-        <ref-action name="sp"/>
-    </ref-actions>
-</step>
-
-<x:post-extends>
-    <wf-gen:CosignSupport xpl:lib="/nop/wf/xlib/wf-gen.xlib"/>
-</x:post-extends>
-```
-
-**代码生成逻辑（`wf-gen.xlib:CosignSupport`）：**
-1. 找到所有 `specialType="co-sign"` 的步骤
-2. 对于每个非 local 的 ref-action：
-   - 创建一个 `join` 步骤（`joinType="and"`，`waitStepNames=cosignStepName`）
-   - 将 action 原本的 transition 移到这个 join 步骤上
-   - action 的 transition 改为指向 join 步骤
-3. 在 step 的 `on-exit` 中添加 `oa:ExitCosignStep` 处理逻辑（驳回时 kill 同组步骤和 join 步骤）
-
-这样所有 actor 都完成后，join 步骤才激活并执行 transition，实现"所有人同意才通过"的会签语义。
-
 ## Action 系统设计
 
 ### Action 分类
@@ -489,61 +457,6 @@ checkAllowedAction (状态/权限/when条件/waitSignals)
 - `nop_wf_step_instance.execGroup`：分组 UUID，同一组内的步骤实例共享此值
 - `nop_wf_step_instance.execOrder`：执行顺序（串签时按此排序）
 - `nop_wf_step_instance.voteWeight`：投票权重
-
-## 已知问题和未完成功能
-
-以下问题基于源码分析发现，需要后续修复：
-
-### P0 - `ExecGroupSupport` 未被引擎调用
-
-`ExecGroupSupport.shouldExecGroupComplete()`、`shouldExecGroupReject()`、`skipExecGroupMembers()` 以及 `WorkflowEngineImpl.isExecGroupComplete()` 均已实现但**从未被引擎调用**。
-引擎的 `doInvokeAction` 和 `doTransition` 中没有任何检查 exec group 是否完成的逻辑。
-
-**影响：** 目前 `execGroupType="and-group|seq-group|vote-group"` 的步骤状态转换控制未生效。表现上每个 actor 的步骤实例独立完成，不会等待同组其他成员。
-
-**修复方向：** 在 `doInvokeAction` 的非 local action 执行 `doExitStep` 之前，需要调用 `shouldExecGroupComplete` 检查组是否完成。如果组未完成，则不执行 `doExitStep` 和 transition。
-
-### P1 - `getStepsInSameExecGroup` 过滤逻辑反向
-
-在 `WorkflowStepImpl.getStepsInSameExecGroup()` 中：
-
-```java
-ret.removeIf(step -> {
-    if (!includeSelf) {
-        if (step == WorkflowStepImpl.this)
-            return true;  // 正确：排除自身
-    }
-    return Objects.equals(step.getRecord().getExecGroup(), stepGroup);  // BUG: 应取反
-});
-```
-
-当前逻辑**移除了**同 execGroup 的成员，保留了不同组的。正确逻辑应该是只保留同组的，移除不同组的。
-
-**影响：** `ExecGroupSupport` 中所有调用 `getStepsInSameExecGroup` 的方法（包括 `shouldExecGroupComplete`、`isVoteGroupComplete`、`isVoteGroupReject`、`skipExecGroupMembers`）都拿到错误的数据集。
-
-### P2 - `isVoteGroupComplete`/`isVoteGroupReject` 百分比比较变量名错误
-
-```java
-// BUG: 应使用 passPercent 而非 passWeight
-return completeWeight * 1.0 / totalWeight >= passWeight;
-return (1.0 - rejectWeight * 1.0 / totalWeight) < passWeight;
-```
-
-当 `passWeight` 为 null 而 `passPercent` 非 null 时，百分比的比较使用了 `passWeight` 变量（null），导致 NullPointerException。
-
-### P3 - `oa.xlib` 中调用不存在的 `getStepsWithSameStepGroup`
-
-在 `oa.xlib` 的 `ExitCosignStep` 标签中：
-
-```javascript
-const otherSteps = currentStep.getStepsWithSameStepGroup(currentStep.name, false, false);
-```
-
-方法 `getStepsWithSameStepGroup` 在 Java 代码中不存在。可能是意图调用 `getStepsInSameExecGroup`。
-
-### P4 - `TestCountersign` 被 `@Disabled`
-
-`nop-wf-service/.../flowlong/TestCountersign.java` 标记为 `@Disabled`，表明会签相关的集成测试未通过。
 
 ## 设计约束
 
@@ -695,4 +608,4 @@ const otherSteps = currentStep.getStepsWithSameStepGroup(currentStep.name, false
 - 引擎实现: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WorkflowEngineImpl.java`
 - ExecGroup: `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/ExecGroupSupport.java`
 - 测试用例: `nop-wf/nop-wf-service/src/test/java/io/nop/wf/service/TestBeeflowCase.java`
-- 会签测试: `nop-wf/nop-wf-service/src/test/java/io/nop/wf/service/flowlong/TestCountersign.java`
+- 示例测试: `nop-wf/nop-wf-service/src/test/java/io/nop/wf/service/TestWorkflowExamples.java`

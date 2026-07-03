@@ -66,6 +66,16 @@ public interface JobApiErrors {
             "Job fires must be managed via the Store layer, not through direct CRUD operations"
     );
 
+    ErrorCode ERR_JOB_FIRE_SAVE_NOT_ALLOWED = define(
+            "nop.err.job.fire.save-not-allowed",
+            "Job fires must be created via the engine (planner/manual trigger), not through direct save"
+    );
+
+    ErrorCode ERR_JOB_FIRE_UPDATE_NOT_ALLOWED = define(
+            "nop.err.job.fire.update-not-allowed",
+            "Job fires must be managed via domain commands (cancelFire/rerunFire), not through direct update"
+    );
+
     ErrorCode ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED = define(
             "nop.err.job.schedule.delete-not-allowed",
             "Job schedules must be archived, not directly deleted"

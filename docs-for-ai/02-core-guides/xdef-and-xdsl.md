@@ -4,6 +4,8 @@
 
 XDef 是 Nop 平台的**统一元模型语言**。Nop 平台中的所有 DSL（ORM、IoC beans、工作流、页面、xBiz 等）都通过 XDef 定义，定义文件统一存放在 `nop-xdefs` 模块的 `_vfs/nop/schema/` 下。
 
+如果你要先理解“为什么 XDef/XDSL 是平台通用可扩展机制的根”，先读 `../06-extensibility/platform-extensibility-mechanism.md`。本页只负责把 XDef/XDSL 的局部规则讲清楚。
+
 XDef 的目标不是再造一层与最终 DSL 完全不同的 schema，而是让模型结构与最终 XML 基本同构，只是把具体值替换为类型声明。定义了 XDef 元模型后，自动获得：
 
 - XML 和 JSON 的双向转换
@@ -29,6 +31,23 @@ XDef 的目标不是再造一层与最终 DSL 完全不同的 schema，而是让
 典型路径：看到 `x:schema="/nop/schema/xui/xview.xdef"` → 读该 xdef → 理解 `<objMeta>v-path</objMeta>` 等定义 → 再按需查 Java 实现。
 
 ## 最适合 AI 记住的几条规则
+
+### 0. 节点默认可带名字空间扩展属性
+
+这是理解 Nop 元编程的关键前提：
+
+- XDSL 中的任意节点，默认都可以增加带名字空间的扩展属性
+- **除非特殊指定要检查的名字空间，否则这类属性通常不参与 xdef 校验**
+- 这些属性经常在编译期被 `x:gen-extends` / `x:post-extends` / XLib / XPL 读取，用来生成正式 DSL 结构
+
+因此，很多扩展的第一步不是新增节点，而是先在现有节点上挂一个扩展属性。
+
+真实例子：
+
+- `model-first-development.md` 中的 `biz:moduleId`
+- `workflow-configuration.md` 中的 `wf:upLevel`、`wf:permissions`
+- `generate-report.md` 中的 `xpt:*` 扩展属性
+- `control.xlib`、`meta-gen.xlib`、`meta-prop.xlib` 一类编译期库会读取这些属性并展开元编程结果
 
 ### 1. 简单标量优先写成属性
 
@@ -88,7 +107,7 @@ XDef 的目标不是再造一层与最终 DSL 完全不同的 schema，而是让
 
 ## x-extends 合并算法：App = Delta x-extends Generator\<DSL\>
 
-这是可逆计算理论的核心公式。Nop 平台与传统框架（Spring 等）的本质区别就在于此：**应用不是通过代码组装出来的，而是通过差量合并从生成器产出中推导出来的**。
+这是可逆计算理论的核心公式。这里不展开整个平台的理论背景，只聚焦它在 XDef/XDSL 合并中的具体含义；平台级解释见 `../06-extensibility/platform-extensibility-mechanism.md`。
 
 ### 合并顺序
 
@@ -143,6 +162,8 @@ DSL = Delta x-extends Generator<DSLx>
 
 描述业务时使用扩展语法 DSLx，`x:post-extends` 负责将其转化为已有 DSL 语法。**合并完成后，所有 x 名字空间的属性和子节点都会被自动删除**——底层运行时引擎完全不需要知道扩展语法的存在。
 
+注意：这里的“扩展语法”不一定表现为新增节点，也经常表现为“现有节点 + 一组名字空间扩展属性”。编译期库先读这些属性，再生成标准节点/属性结构。
+
 典型场景：工作流引擎的 OA 会签节点——底层引擎只有普通步骤节点 + Join 合并节点，会签的 UI 简化配置由 `x:post-extends` 在编译期展开为底层引擎可识别的模型。
 
 ### `x:config` — 引入标签库和常量
@@ -196,6 +217,7 @@ DSL = Delta x-extends Generator<DSLx>
 
 ## 相关文档
 
+- `../06-extensibility/platform-extensibility-mechanism.md` — 平台级可扩展机制总览
 - `./delta-customization.md` — Delta 定制的文件位置和操作方式
 - `./debugging-and-diagnostics.md` — `_dump` 输出和属性来源追踪
 - `./model-first-development.md` — 从模型到代码的生成链路

@@ -29,7 +29,6 @@ public class TestDefaultJobTaskBuilder {
         assertEquals(1, task.getTaskNo());
         assertEquals(0, task.getTaskStatus());
         assertEquals((short) 1, task.getPartitionIndex());
-        assertEquals("system", task.getCreatedBy());
         assertNotNull(task.getTaskPayloadComponent().get_jsonMap());
     }
 

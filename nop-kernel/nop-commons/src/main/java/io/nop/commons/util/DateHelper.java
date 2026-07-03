@@ -292,7 +292,7 @@ public class DateHelper {
             try {
                 DateTimeFormatter formatter = buildFormatter(pattern);
                 return LocalDate.parse(s, formatter);
-            } catch (Exception ignore) {
+            } catch (Exception ignore) { // NOSONAR
             }
         }
         return null;
@@ -438,4 +438,16 @@ public class DateHelper {
     // return ConvertHelper.stringToLong(s) * factor;
     // return (long) (ConvertHelper.stringToDouble(s) * factor);
     // }
+
+    /**
+     * Calculate the duration in milliseconds between two timestamps. Returns null if either
+     * argument is null. The result is clamped to non-negative (returns 0 if endTime is before
+     * startTime, e.g. due to clock skew).
+     */
+    public static Long durationMs(Timestamp startTime, Timestamp endTime) {
+        if (startTime == null || endTime == null) {
+            return null;
+        }
+        return Math.max(endTime.getTime() - startTime.getTime(), 0L);
+    }
 }
