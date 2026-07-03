@@ -90,6 +90,8 @@
                     }
 
                     entity.approveStatus = 'APPROVED';
+                    entity.approvedBy = svcCtx.getUserId();
+                    entity.approvedAt = now();
                     return entity;
                 ]]></c:script>
             </source>
@@ -116,6 +118,8 @@
                     }
 
                     entity.approveStatus = 'REJECTED';
+                    entity.approvedBy = svcCtx.getUserId();
+                    entity.approvedAt = now();
                     return entity;
                 ]]></c:script>
             </source>
@@ -142,6 +146,8 @@
                     }
 
                     entity.approveStatus = 'SUBMITTED';
+                    entity.approvedBy = null;
+                    entity.approvedAt = null;
                     return entity;
                 ]]></c:script>
             </source>
