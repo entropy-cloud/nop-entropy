@@ -256,10 +256,19 @@ public class LocalJobScheduler implements IJobScheduler {
         if (future == null) {
             handleResult(job, null, null);
         } else {
-            job.running = future.whenComplete((result, err) -> {
+            // 先用占位 future 占住 job.running，再注册回调。否则当 invoker 返回的是
+            // 已完成的 future 时，whenComplete 会同步执行回调把 job.running 置 null，
+            // 随后的外层赋值又把它覆盖回非空，导致 job.running 永远清不掉。
+            final CompletableFuture<?> done = new CompletableFuture<>();
+            job.running = done;
+            future.whenComplete((result, err) -> {
                 synchronized (job) {
                     job.running = null;
                     handleResult(job, result, err);
+                    if (err == null)
+                        done.complete(null);
+                    else
+                        done.completeExceptionally(err);
                 }
             });
         }
@@ -315,6 +324,77 @@ public class LocalJobScheduler implements IJobScheduler {
     protected long currentTime() {
         return CoreMetrics.currentTimeMillis();
     }
+
+    // ---- 等待辅助方法 ----
+    // 主要用于测试和嵌入式场景，阻塞等待 job 进入稳定状态，避免竞态导致的断言不稳定。
+
+    /**
+     * 等待 job 进入指定状态。job 不存在时仅当 state 为 null 才返回 true。
+     */
+    public boolean awaitState(String jobName, JobState state, long timeout, TimeUnit unit) throws InterruptedException {
+        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+        do {
+            ScheduledJob job = jobs.get(jobName);
+            if (job == null) {
+                if (state == null)
+                    return true;
+            } else {
+                synchronized (job) {
+                    if (job.state.toJobState() == state)
+                        return true;
+                }
+            }
+            long remaining = deadlineNanos - System.nanoTime();
+            if (remaining <= 0)
+                break;
+            Thread.sleep(Math.min(POLL_INTERVAL_MS, Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remaining))));
+        } while (true);
+        return false;
+    }
+
+    /**
+     * 等待 job 当前没有正在执行的实例（{@code running == null}）。job 不存在视为已空闲。
+     */
+    public boolean awaitIdle(String jobName, long timeout, TimeUnit unit) throws InterruptedException {
+        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+        do {
+            ScheduledJob job = jobs.get(jobName);
+            if (job == null)
+                return true;
+            synchronized (job) {
+                if (job.running == null)
+                    return true;
+            }
+            long remaining = deadlineNanos - System.nanoTime();
+            if (remaining <= 0)
+                break;
+            Thread.sleep(Math.min(POLL_INTERVAL_MS, Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remaining))));
+        } while (true);
+        return false;
+    }
+
+    /**
+     * 等待 job 的累计触发次数达到 {@code minCount}。
+     */
+    public boolean awaitFireCount(String jobName, long minCount, long timeout, TimeUnit unit) throws InterruptedException {
+        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+        do {
+            ScheduledJob job = jobs.get(jobName);
+            if (job != null) {
+                synchronized (job) {
+                    if (job.state.fireCount >= minCount)
+                        return true;
+                }
+            }
+            long remaining = deadlineNanos - System.nanoTime();
+            if (remaining <= 0)
+                break;
+            Thread.sleep(Math.min(POLL_INTERVAL_MS, Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remaining))));
+        } while (true);
+        return false;
+    }
+
+    private static final long POLL_INTERVAL_MS = 5L;
 
     // ---- inner classes ----
 

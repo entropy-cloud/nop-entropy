@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -109,11 +108,8 @@ public class TestLocalJobScheduler {
             JobSpec spec = newSpec("test-periodic", 10, true);
             sched.addJob(spec, false);
 
-            assertTimeoutPreemptively(Duration.ofSeconds(2), () -> {
-                while (invoker.invokeCount.get() <= 5) {
-                    Thread.sleep(20);
-                }
-            }, "expected > 5 invocations but got " + invoker.invokeCount.get());
+            assertTrue(sched.awaitFireCount("test-periodic", 6, 5, TimeUnit.SECONDS),
+                    "expected > 5 invocations but got " + invoker.invokeCount.get());
         } finally {
             sched.deactivate();
         }
@@ -121,14 +117,12 @@ public class TestLocalJobScheduler {
 
     @Test
     void testFireNow() throws Exception {
-        CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger count = new AtomicInteger();
 
         IJobInvoker fireOnceInvoker = new IJobInvoker() {
             @Override
             public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
                 count.incrementAndGet();
-                latch.countDown();
                 return CompletableFuture.completedFuture(JobFireResult.CONTINUE);
             }
 
@@ -146,13 +140,19 @@ public class TestLocalJobScheduler {
 
         try {
             JobSpec spec = newSpec("test-fireNow", 100000, true);
-            sched.suspendJob("test-fireNow"); // won't exist yet, but addJob auto-schedules
             sched.addJob(spec, false);
-            sched.suspendJob("test-fireNow"); // suspend so it doesn't auto-fire
+
+            // fixedDelay 的 PeriodicTrigger 首次触发在 now+1ms，addJob 会立刻自动触发一次。
+            // 先等它落地到稳定状态，再以当前 count 作为基线，避免竞态导致的断言不稳定。
+            assertTrue(sched.awaitIdle("test-fireNow", 2, TimeUnit.SECONDS));
+            int baseline = count.get();
+
+            sched.suspendJob("test-fireNow");
+            assertEquals(JobState.SUSPENDED, sched.getJobState("test-fireNow"));
 
             assertTrue(sched.fireNow("test-fireNow"));
-            assertTrue(latch.await(2, TimeUnit.SECONDS));
-            assertEquals(1, count.get());
+            assertTrue(sched.awaitIdle("test-fireNow", 2, TimeUnit.SECONDS));
+            assertEquals(baseline + 1, count.get());
         } finally {
             sched.deactivate();
         }
@@ -178,7 +178,8 @@ public class TestLocalJobScheduler {
             spec.setTriggerSpec(ts);
 
             sched.addJob(spec, false);
-            Thread.sleep(500);
+            assertTrue(sched.awaitFireCount("test-max-count", 3, 5, TimeUnit.SECONDS));
+            assertTrue(sched.awaitState("test-max-count", JobState.COMPLETED, 5, TimeUnit.SECONDS));
 
             assertEquals(3, invoker.invokeCount.get());
             assertEquals(JobState.COMPLETED, sched.getJobState("test-max-count"));
@@ -236,7 +237,7 @@ public class TestLocalJobScheduler {
             assertEquals(JobState.COMPLETED, sched.getJobState("test-cancel-running"));
 
             allowComplete.countDown();
-            Thread.sleep(200);
+            assertTrue(sched.awaitIdle("test-cancel-running", 2, TimeUnit.SECONDS));
 
             assertEquals(JobState.COMPLETED, sched.getJobState("test-cancel-running"));
             assertEquals(1, invokeCount.get());
@@ -286,7 +287,7 @@ public class TestLocalJobScheduler {
             assertNull(sched.getJobDetail("test-remove-running"));
 
             allowComplete.countDown();
-            Thread.sleep(200);
+            assertTrue(sched.awaitIdle("test-remove-running", 2, TimeUnit.SECONDS));
 
             assertNull(sched.getJobDetail("test-remove-running"));
             assertEquals(1, invokeCount.get());
@@ -357,7 +358,7 @@ public class TestLocalJobScheduler {
             sched.addJob(newSpec, true);
 
             allowComplete.countDown();
-            Thread.sleep(300);
+            assertTrue(sched.awaitFireCount("test-update-running", 2, 5, TimeUnit.SECONDS));
 
             assertNotNull(sched.getJobDetail("test-update-running"));
             assertTrue(invokeCount.get() >= 2);
