@@ -28,7 +28,7 @@
           @idempotent 多次执行不会产生不同的结果
         -->
         <query xdef:name="BizActionModel" name="!string" displayName="string"
-               executor="string" bizSequential="!boolean=false" task:name="string" task:version="long"
+               executor="string" bizSequential="!boolean=false" task:name="string" task:version="long" task:path="string"
                timeout="long" disabled="!boolean=false" idempotent="!boolean=false" safe="!boolean=false"
                async="!boolean=false" xdef:bean-tag-prop="type" argsNormalizer="bean-name">
 

@@ -22,6 +22,19 @@ public class TaskGenHelper {
         });
     }
 
+    public static XNode buildBizActionFromTaskModelWithPath(XNode actionNode, TaskFlowModel taskFlowModel, String taskPath) {
+        return BizActionGenHelper.buildBizActionFromActionModel(actionNode, taskFlowModel, (argNames, useResult) -> {
+
+            String source = "\nconst taskFlowManager = inject('nopTaskFlowManager');\n" +
+                    "const task = taskFlowManager.loadTaskFromPath('" + taskPath + "');\n" +
+                    "const taskRt = taskFlowManager.newTaskRuntime(task,"
+                    + taskFlowModel.isDefaultSaveState() + ",svcCtx);\n"
+                    + argNames.stream().map(argName -> "taskRt.setInput('" + argName + "'," + argName + ");").collect(Collectors.joining("\n"))
+                    + buildReturnCode(useResult);
+            return source;
+        });
+    }
+
     // 如果task的输出定义中有名为RESULT的变量，则以它为返回值，否则以整个Outputs为返回值
     private static String buildReturnCode(boolean useResult) {
         if (useResult) {

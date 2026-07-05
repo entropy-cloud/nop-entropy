@@ -44,22 +44,42 @@
 
             <source>
                 <c:script>
-                    const taskActions = _dsl_root.childByTag('actions').findChildren(node=>node.attrText('task:name'));
+                    const taskActions = _dsl_root.childByTag('actions')
+                        .findChildren(node=>node.attrText('task:path') || node.attrText('task:name'));
                 </c:script>
                 <biz xpl:if="!taskActions.empty">
                     <c:script>
                         import io.nop.task.utils.TaskGenHelper;
+                        import io.nop.core.resource.component.ResourceComponentManager;
                         const taskFlowManager = inject('nopTaskFlowManager');
                     </c:script>
                     <actions>
                         <c:for var="taskAction" items="${taskActions}">
                             <c:script>
-                                const taskName = taskAction.attrText('task:name');
-                                const taskVersion = taskAction.attrInt('task:version',0);
-                                const taskFlowModel = taskFlowManager.getTaskFlowModel(taskName, taskVersion);
+                                const taskPath = taskAction.attrText('task:path');
                             </c:script>
-                            <c:out escape="none"
-                                   value="${TaskGenHelper.buildBizActionFromTaskModel(taskAction, taskFlowModel)}"/>
+                            <c:if test="${taskPath}">
+                                <c:script>
+                                    if (taskAction.attrText('task:name'))
+                                        throw new NopScriptError("nop.err.biz.task-conflict-path-and-name")
+                                            .param("actionName", taskAction.attrText('name'))
+                                            .param("taskName", taskAction.attrText('task:name'))
+                                            .param("taskPath", taskAction.attrText('task:path'))
+                                            .loc(taskAction.getLocation());
+                                    const taskFlowModel = ResourceComponentManager.instance().loadComponentModel(taskPath);
+                                </c:script>
+                                <c:out escape="none"
+                                       value="${TaskGenHelper.buildBizActionFromTaskModelWithPath(taskAction, taskFlowModel, taskPath)}"/>
+                            </c:if>
+                            <c:if test="${!taskPath}">
+                                <c:script>
+                                    const taskName = taskAction.attrText('task:name');
+                                    const taskVersion = taskAction.attrInt('task:version',0);
+                                    const taskFlowModel = taskFlowManager.getTaskFlowModel(taskName, taskVersion);
+                                </c:script>
+                                <c:out escape="none"
+                                       value="${TaskGenHelper.buildBizActionFromTaskModel(taskAction, taskFlowModel)}"/>
+                            </c:if>
                         </c:for>
                     </actions>
                 </biz>
