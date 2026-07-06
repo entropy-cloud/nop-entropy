@@ -148,10 +148,14 @@ public class DeltaResourceStore implements IDeltaResourceStore {
         return resource;
     }
 
-    IResourceStore getTenantStore0(String tenantId) {
+    protected IResourceStore getTenantStore0(String tenantId) {
+        IResourceStore tenantStore = null;
         if (tenantStoreSupplier != null)
-            return tenantStoreSupplier.getTenantResourceStore(tenantId);
-        return null;
+            tenantStore = tenantStoreSupplier.getTenantResourceStore(tenantId);
+
+        if (tenantStore == null)
+            tenantStore = store;
+        return tenantStore;
     }
 
     @Override
