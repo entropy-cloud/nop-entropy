@@ -15,7 +15,7 @@
 - `submitForApproval` / `withdrawApproval` / `approve` / `reject` / `reverseApprove`
 - 通用审批 source（状态守卫 + wf 启动 + 幂等），业务联动在 xbiz 注入（`append`/`observe`）
 
-审批状态四态：`UNSUBMITTED`（未提交）/ `SUBMITTED`（已提交待审批）/ `APPROVED`（已批准）/ `REJECTED`（已驳回）。
+审批状态四态：`UNSUBMITTED`（未提交）/ `SUBMITTED`（已提交待审批）/ `APPROVED`（已批准）/ `REJECTED`（已驳回，可经 `submitForApproval` 重提修正）。
 
 ---
 
@@ -198,6 +198,8 @@ WORKFLOW 模式:
 | 用 Java 钩子（`onApproved`）做业务联动 | 联动在 xbiz 层注入（XDSL，随 Delta 定制），不写 Java 钩子 |
 | 建 ApprovalConfig 配置表 | 流程属性挂 objMeta 扩展属性 |
 | action 命名 `submit` | 用 `submitForApproval`（避免与保存混淆） |
+| 假设 REJECTED 是终态不可重提 | `submitForApproval` 接受 `REJECTED` 源态，允许驳回后修正重审（守卫放行 `UNSUBMITTED`/`null`/`REJECTED` 三态） |
+| 期望 `reverseApprove` 回到 `SUBMITTED`（待审队列） | `reverseApprove` 目标态为 `REJECTED`（保留审计语义：审批被作废而非回到待审）。清空 `approvedBy`/`approvedAt` 表示作废，与 `reject`（写入驳回人审计字段）区分 |
 
 ---
 

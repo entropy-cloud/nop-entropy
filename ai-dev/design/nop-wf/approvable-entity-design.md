@@ -139,13 +139,15 @@ public interface IApprovableBiz<T> {
 
 | action | 状态迁移 | 语义 |
 |--------|---------|------|
-| `submitForApproval` | UNSUBMITTED→SUBMITTED | 提交审批（按 objMeta 是否配 `wf:wfName` 决定是否启动 wf） |
+| `submitForApproval` | UNSUBMITTED→SUBMITTED，或 REJECTED→SUBMITTED（重提） | 提交审批（按 objMeta 是否配 `wf:wfName` 决定是否启动 wf）。允许从 REJECTED 重提，便于驳回后修正重审 |
 | `withdrawApproval` | SUBMITTED→UNSUBMITTED | 撤回审批 |
 | `approve` | SUBMITTED→APPROVED | 审批通过 |
 | `reject` | SUBMITTED→REJECTED | 驳回 |
-| `reverseApprove` | APPROVED→SUBMITTED | 反审核（回到待审批） |
+| `reverseApprove` | APPROVED→REJECTED（保留审计语义，区别于"撤回到待审"） | 反审核（审批被作废，落入已驳回终态，可经 `submitForApproval` 重提修正） |
 
 > 命名避免 `submit`（与"提交表单/保存"语义混淆，脱离上下文不表意）；`submitForApproval` 明确"为审批而提交"。`approve`/`reject`/`reverseApprove` 本身是审批动词，在审批上下文足够明确，无需再加后缀。
+
+> **5 态语义说明**：状态值仍为四态（`UNSUBMITTED`/`SUBMITTED`/`APPROVED`/`REJECTED`），但 `submitForApproval` 接受两种源态（`UNSUBMITTED`/`REJECTED`），`reverseApprove` 目标态为 `REJECTED`（非 `SUBMITTED`），从而支持"驳回后重提"和"反审核进入已驳回"两条业务路径。`reverseApprove` 清空 `approvedBy`/`approvedAt`，与 `reject`（写入审计字段）形成区分：REJECTED 态的审计字段非空表示被驳回方，空表示反审核作废。
 
 ### 标准 action 与业务联动注入（xbiz 层，非 Java 钩子）
 
@@ -276,6 +278,8 @@ biz.approve(id) / biz.reject(id)
 | 命名 action 为 `submit`（与保存混淆） | 用 `submitForApproval` |
 | 用 camelCase tag（`approveFlow`） | 用 `use-approval`（对齐 `use-ext-field`） |
 | listener 回调不做幂等 | `approve`/`reject` 入口由 guardTransition 守卫（wf 事件可能重试） |
+| 假设 `reverseApprove` 回到 `SUBMITTED`（业务需重新进入待审队列） | `reverseApprove` 目标态为 `REJECTED`（保留审计语义：审批被作废）。如需回到待审，应使用 `withdrawApproval`（仅 SUBMITTED 态可撤回，不能从 APPROVED 直接撤回到 SUBMITTED） |
+| 假设 REJECTED 是终态不可重提 | `submitForApproval` 接受 `REJECTED` 源态，允许驳回后修正重审 |
 
 ## 设计约束（继承 nop-wf Vision）
 
