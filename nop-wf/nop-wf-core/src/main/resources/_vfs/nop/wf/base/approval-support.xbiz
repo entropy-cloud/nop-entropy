@@ -16,13 +16,13 @@
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
                     const status = entity.approveStatus;
 
-                    if (status !== 'UNSUBMITTED' && status !== null) {
+                    if (status !== 'UNSUBMITTED' && status !== null && status !== 'REJECTED') {
                         throw new NopScriptError("nop.err.wf.approve.invalid-status")
                             .param("bizObjName", thisObj.bizObjName)
                             .param("bizObjId", entity.id)
                             .param("action", "submitForApproval")
                             .param("currentStatus", status)
-                            .param("expectedStatus", "UNSUBMITTED");
+                            .param("expectedStatus", "UNSUBMITTED or REJECTED");
                     }
 
                     entity.approveStatus = 'SUBMITTED';
@@ -145,7 +145,7 @@
                             .param("expectedStatus", "APPROVED");
                     }
 
-                    entity.approveStatus = 'SUBMITTED';
+                    entity.approveStatus = 'REJECTED';
                     entity.approvedBy = null;
                     entity.approvedAt = null;
                     return entity;
