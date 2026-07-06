@@ -63,11 +63,13 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_DATA_TYPE_NOT_MA
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_NO_STD_SQL_TYPE;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_COLUMN_DOMAIN;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_PROP_NAME;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_PROP_NOT_COLUMN;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_UNKNOWN_ENTITY;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_PROP;
 
 public class OrmModelInitializer {
     static final Logger LOG = LoggerFactory.getLogger(OrmModelInitializer.class);
@@ -276,6 +278,9 @@ public class OrmModelInitializer {
 
                 IEntityPropModel refProp = refEntityModel.getProp(refPropName, true);
                 if (refProp == null) {
+                    if(ref.isToManyRelation())
+                        throw new NopException(ERR_ORM_UNKNOWN_PROP).param(ARG_ENTITY_NAME, refEntityModel.getName()).param(ARG_PROP_NAME, refPropName)
+                                .param(ARG_REF_NAME, ref);
                     // 反向关联的属性不存在，可以创建
                     boolean toOne = ref.isOneToOne() || ref.isToManyRelation();
                     OrmReferenceModel relRef = createReference(ref, refEntityModel, toOne);

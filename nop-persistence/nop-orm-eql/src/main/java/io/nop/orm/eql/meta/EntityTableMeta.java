@@ -321,7 +321,7 @@ public class EntityTableMeta implements ISqlTableMeta {
             List<String> colNames = new ArrayList<>();
             for (IEntityJoinConditionModel join : propModel.getJoin()) {
                 if (join.getLeftPropModel() != null) {
-                    if (join.getLeftPropModel().isColumnModel()) {
+                    if (join.getLeftPropModel().isColumnModel() && join.getRightPropModel() != null) {
                         colNames.add(getColumnName(dialect, (IColumnModel) join.getLeftPropModel()));
                         binders.add(colBinders[join.getRightPropModel().getColumnPropId()]);
                     } else {

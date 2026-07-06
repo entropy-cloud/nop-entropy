@@ -80,6 +80,14 @@
                         <on leftProp="collegeId" rightProp="sid"/>
                     </join>
                 </to-one>
+
+                <to-one name="testRef" refEntityName="io.nop.app.SimsExtField" notGenCode="true" ignoreDepends="true">
+                    <join>
+                        <on leftProp="id" rightProp="entityId"/>
+                        <on leftValue="io.nop.app.SimsCollege" rightProp="entityName"/>
+                        <on leftValue="A" rightProp="fieldName" />
+                    </join>
+                </to-one>
             </relations>
         </entity>
 
@@ -216,7 +224,8 @@
             <columns>
                 <column propId="1" name="studentId" code="student_id" displayName="学号" mandatory="true" primary="true"
                         stdSqlType="INTEGER" precision="11" scale="0"/>
-                <column propId="2" name="name" code="name" displayName="姓名" mandatory="true" primary="false" stdSqlType="VARCHAR"
+                <column propId="2" name="name" code="name" displayName="姓名" mandatory="true" primary="false"
+                        stdSqlType="VARCHAR"
                         precision="50" scale="0"/>
             </columns>
         </entity>
@@ -225,7 +234,8 @@
             <columns>
                 <column propId="1" name="courseId" code="course_id" displayName="课程号" mandatory="true" primary="true"
                         stdSqlType="INTEGER" precision="11" scale="0"/>
-                <column propId="2" name="courseName" code="course_name" displayName="课程名" mandatory="true" primary="false"
+                <column propId="2" name="courseName" code="course_name" displayName="课程名" mandatory="true"
+                        primary="false"
                         stdSqlType="VARCHAR" precision="100" scale="0"/>
             </columns>
         </entity>
@@ -255,13 +265,16 @@
         <entity name="StudentFollow" tableName="student_follow" displayName="关注的学生"
                 className="io.nop.orm.support.DynamicOrmEntity">
             <columns>
-                <column propId="4" name="sid" code="sid" mandatory="true" primary="true" stdSqlType="INTEGER" />
-                <column propId="1" name="studentId" code="student_id" displayName="学号" mandatory="true" primary="false"
+                <column propId="4" name="sid" code="sid" mandatory="true" primary="true" stdSqlType="INTEGER"/>
+                <column propId="1" name="studentId" code="student_id" displayName="学号" mandatory="true"
+                        primary="false"
                         stdSqlType="INTEGER" precision="11" scale="0" orm:ref-table="student"/>
-                <column propId="2" name="followTime" code="follow_time" displayName="关注时间" mandatory="true" primary="false"
+                <column propId="2" name="followTime" code="follow_time" displayName="关注时间" mandatory="true"
+                        primary="false"
                         stdSqlType="DATETIME" precision="0" scale="0"/>
-                <column propId="3" name="followerId" code="follower_id" displayName="关注人" mandatory="true" primary="false"
-                        stdSqlType="INTEGER" precision="11" scale="0" />
+                <column propId="3" name="followerId" code="follower_id" displayName="关注人" mandatory="true"
+                        primary="false"
+                        stdSqlType="INTEGER" precision="11" scale="0"/>
             </columns>
             <relations>
                 <to-one name="student" refEntityName="Student">
