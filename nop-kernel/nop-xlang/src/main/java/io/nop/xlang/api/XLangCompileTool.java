@@ -22,10 +22,12 @@ import io.nop.core.type.IFunctionType;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.ast.ArrowFunctionExpression;
 import io.nop.xlang.ast.Expression;
+import io.nop.xlang.ast.ExpressionStatement;
 import io.nop.xlang.ast.Literal;
 import io.nop.xlang.ast.ParameterDeclaration;
 import io.nop.xlang.ast.Program;
 import io.nop.xlang.ast.XLangASTBuilder;
+import io.nop.xlang.ast.XLangASTNode;
 import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.ast.XLangTypeHelper;
 import io.nop.xlang.exec.GenXJsonExecutable;
@@ -44,7 +46,10 @@ import java.util.List;
 
 import static io.nop.core.type.PredefinedGenericTypes.X_NODE_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
+import static io.nop.xlang.XLangErrors.ARG_NODE;
+import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_LITERAL_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_XPL_FN_BODY_IS_FUNCTION;
 import static io.nop.xlang.ast.definition.ScopeVarDefinition.readOnly;
 
 public class XLangCompileTool implements IStdDomainRegistry {
@@ -317,6 +322,21 @@ public class XLangCompileTool implements IStdDomainRegistry {
 
     public IEvalFunction compileEvalFunction(XNode node, IFunctionType functionType, XLangOutputMode outputMode) {
         Expression body = parseTagBody(node, outputMode);
+
+        Expression coreExpr = body;
+        if (body instanceof Program) {
+            List<XLangASTNode> stmts = ((Program) body).getBody();
+            if (stmts.size() == 1 && stmts.get(0) instanceof ExpressionStatement) {
+                coreExpr = ((ExpressionStatement) stmts.get(0)).getExpression();
+            }
+        }
+
+        if (coreExpr instanceof ArrowFunctionExpression) {
+            throw new NopException(ERR_XPL_FN_BODY_IS_FUNCTION)
+                    .source(node)
+                    .param(ARG_STD_DOMAIN, "xpl:fn")
+                    .param(ARG_NODE, node);
+        }
 
         ArrowFunctionExpression func = new ArrowFunctionExpression();
         func.setLocation(node.getLocation());
