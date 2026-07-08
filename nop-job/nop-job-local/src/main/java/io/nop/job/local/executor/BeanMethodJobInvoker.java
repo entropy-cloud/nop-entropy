@@ -3,14 +3,18 @@ package io.nop.job.local.executor;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
+import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.IMethodModelCollection;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.execution.JobFireResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -37,7 +41,7 @@ public class BeanMethodJobInvoker implements IJobInvoker {
         }
 
         String beanName = requireString(params, PARAM_BEAN_NAME);
-        String methodName = requireString(params, PARAM_METHOD_NAME);
+        String methodName = getMethodName(params);
 
         Object bean = BeanContainer.tryGetBean(beanName);
         if (bean == null) {
@@ -47,10 +51,11 @@ public class BeanMethodJobInvoker implements IJobInvoker {
 
         Map<String, Object> methodParams = extractMethodParams(params);
 
-        Method method = resolveMethod(bean.getClass(), methodName, methodParams);
+        IFunctionModel fn = resolveMethod(bean, methodName, methodParams);
 
+        Object result;
         try {
-            invokeSafely(method, bean, methodParams);
+            result = invokeMethod(fn, bean, methodParams);
         } catch (Exception e) {
             LOG.error("nop.job.bean-method-invoke-failed:beanName={},methodName={}", beanName, methodName, e);
             return CompletableFuture.completedFuture(
@@ -59,7 +64,27 @@ public class BeanMethodJobInvoker implements IJobInvoker {
                             .description(e.getMessage())));
         }
 
-        return CompletableFuture.completedFuture(JobFireResult.CONTINUE(-1));
+        return toJobFireResult(result, beanName, methodName);
+    }
+
+    CompletionStage<JobFireResult> toJobFireResult(Object result, String beanName, String methodName) {
+        if (result instanceof CompletionStage) {
+            return ((CompletionStage<?>) result)
+                    .thenApply(this::toJobFireResultSync)
+                    .exceptionally(e -> {
+                        LOG.error("nop.job.bean-method-invoke-failed:beanName={},methodName={}", beanName, methodName, e);
+                        return JobFireResult.ERROR(new ErrorBean(
+                                "nop.err.job.bean-method-invoke-failed")
+                                .description(e.getMessage()));
+                    });
+        }
+        return CompletableFuture.completedFuture(toJobFireResultSync(result));
+    }
+
+    JobFireResult toJobFireResultSync(Object result) {
+        if (result instanceof JobFireResult)
+            return (JobFireResult) result;
+        return JobFireResult.CONTINUE(-1);
     }
 
     @Override
@@ -67,52 +92,60 @@ public class BeanMethodJobInvoker implements IJobInvoker {
         return CompletableFuture.completedFuture(Boolean.TRUE);
     }
 
-    Method resolveMethod(Class<?> clazz, String methodName, Map<String, Object> methodParams) {
-        Method noArgMethod = findMethod(clazz, methodName, 0);
-        Method withParamMethod = findMethod(clazz, methodName, 1);
-
-        if (noArgMethod != null && (methodParams == null || methodParams.isEmpty())) {
-            return noArgMethod;
+    IFunctionModel resolveMethod(Object bean, String methodName, Map<String, Object> methodParams) {
+        IClassModel classModel = ReflectionManager.instance().getClassModel(bean.getClass());
+        IMethodModelCollection methods = classModel.getMethodsByName(methodName);
+        if (methods == null || methods.getMethods().isEmpty()) {
+            throw new NopException(ERR_JOB_METHOD_NOT_FOUND)
+                    .param(ARG_BEAN_NAME, bean.getClass().getName())
+                    .param(ARG_METHOD_NAME, methodName);
         }
 
-        if (withParamMethod != null
-                && withParamMethod.getParameterTypes()[0].isAssignableFrom(Map.class)) {
-            return withParamMethod;
+        IFunctionModel noArgFn = null;
+        IFunctionModel singleMapFn = null;
+        IFunctionModel otherFn = null;
+        for (IFunctionModel m : methods.getMethods()) {
+            if (m.getArgCount() == 0) {
+                noArgFn = m;
+            } else if (m.getArgCount() == 1) {
+                IFunctionArgument arg = m.getArgs().get(0);
+                if (Map.class.isAssignableFrom(arg.getRawClass())) {
+                    singleMapFn = m;
+                } else {
+                    otherFn = m;
+                }
+            } else {
+                otherFn = m;
+            }
         }
 
-        if (noArgMethod != null) {
-            return noArgMethod;
-        }
+        if (noArgFn != null && methodParams.isEmpty())
+            return noArgFn;
+
+        if (singleMapFn != null)
+            return singleMapFn;
+
+        if (otherFn != null)
+            return otherFn;
+
+        if (noArgFn != null)
+            return noArgFn;
 
         throw new NopException(ERR_JOB_METHOD_NOT_FOUND)
-                .param(ARG_BEAN_NAME, clazz.getName())
+                .param(ARG_BEAN_NAME, bean.getClass().getName())
                 .param(ARG_METHOD_NAME, methodName);
     }
 
-    private void invokeSafely(Method method, Object bean, Map<String, Object> methodParams) throws Exception {
-        try {
-            if (method.getParameterCount() == 0) {
-                method.invoke(bean);
-            } else {
-                method.invoke(bean, methodParams);
-            }
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof Exception) {
-                throw (Exception) cause;
-            }
-            throw new RuntimeException(cause);
+    Object invokeMethod(IFunctionModel fn, Object bean, Map<String, Object> methodParams) {
+        if (fn.getArgCount() == 0) {
+            return fn.call0(bean, DisabledEvalScope.INSTANCE);
+        } else if (fn.getArgCount() == 1
+                && Map.class.isAssignableFrom(fn.getArgs().get(0).getRawClass())) {
+            return fn.call1(bean, methodParams, DisabledEvalScope.INSTANCE);
+        } else {
+            Object[] args = fn.buildArgValues(methodParams);
+            return fn.invoke(bean, args, DisabledEvalScope.INSTANCE);
         }
-    }
-
-    private Method findMethod(Class<?> clazz, String methodName, int paramCount) {
-        for (Method method : clazz.getMethods()) {
-            if (method.getName().equals(methodName)
-                    && method.getParameterCount() == paramCount) {
-                return method;
-            }
-        }
-        return null;
     }
 
     Map<String, Object> extractMethodParams(Map<String, Object> params) {
@@ -120,6 +153,13 @@ public class BeanMethodJobInvoker implements IJobInvoker {
         result.remove(PARAM_BEAN_NAME);
         result.remove(PARAM_METHOD_NAME);
         return result;
+    }
+
+    private String getMethodName(Map<String, Object> params) {
+        Object value = params.get(PARAM_METHOD_NAME);
+        if (value instanceof String && !((String) value).isBlank())
+            return (String) value;
+        return "execute";
     }
 
     private String requireString(Map<String, Object> params, String key) {

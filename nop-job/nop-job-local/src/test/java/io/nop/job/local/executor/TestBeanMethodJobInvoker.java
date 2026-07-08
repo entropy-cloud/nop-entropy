@@ -130,12 +130,16 @@ public class TestBeanMethodJobInvoker {
     }
 
     @Test
-    void testMissingMethodName() {
+    void testMissingMethodNameDefaultsToExecute() {
         setupContainer();
         Map<String, Object> jobParams = new HashMap<>();
         jobParams.put("beanName", "testService");
 
-        assertThrows(NopException.class, () -> invoker.invokeAsync(new TestJobContext(jobParams)));
+        CompletionStage<JobFireResult> result = invoker.invokeAsync(new TestJobContext(jobParams));
+        JobFireResult fireResult = result.toCompletableFuture().join();
+
+        assertFalse(fireResult.isErrorResult());
+        assertTrue(testService.isNoArgCalled());
     }
 
     @Test
