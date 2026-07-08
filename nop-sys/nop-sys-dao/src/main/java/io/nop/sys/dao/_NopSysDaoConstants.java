@@ -9,6 +9,11 @@ public interface _NopSysDaoConstants {
     int SYS_EVENT_STATUS_WAITING = 0;
                     
     /**
+     * 事件状态: 已认领 
+     */
+    int SYS_EVENT_STATUS_CLAIMED = 5;
+                    
+    /**
      * 事件状态: 已处理 
      */
     int SYS_EVENT_STATUS_PROCESSED = 10;

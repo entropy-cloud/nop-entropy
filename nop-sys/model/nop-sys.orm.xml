@@ -7,6 +7,7 @@
     <dicts>
         <dict label="事件状态" name="core/sys-event-status" valueType="int" i18n-en:label="Sys Event Status">
             <option code="WAITING" label="待处理" value="0"/>
+            <option code="CLAIMED" label="已认领" value="5"/>
             <option code="PROCESSED" label="已处理" value="10"/>
             <option code="EXPIRED" description="已超时" label="已过期" value="20"/>
             <option code="FAILED" description="经过多次尝试后仍然处理失败" label="已失败" value="30"/>
@@ -494,7 +495,7 @@
             </columns>
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysEvent" createTimeProp="createTime" createrProp="createdBy"
-                displayName="事件队列" name="io.nop.sys.dao.entity.NopSysEvent" registerShortName="true"
+                displayName="普通事件队列" name="io.nop.sys.dao.entity.NopSysEvent" registerShortName="true"
                 tableName="nop_sys_event" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
                 ext:icon="workflow" i18n-en:displayName="System Event">
             <columns>
@@ -532,19 +533,103 @@
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Partition Index"/>
                 <column code="RETRY_TIMES" displayName="重试次数" mandatory="true" name="retryTimes" propId="16"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Retry Times"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="17"
+                <column code="LEASE_OWNER" displayName="租约持有者" name="leaseOwner" precision="100" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Lease Owner"/>
+                <column code="LEASE_EXPIRE_TIME" displayName="租约过期时间" name="leaseExpireTime" propId="18"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Lease Expire Time"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="19"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="20" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="21" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="20" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="22" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="21" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
+        </entity>
+        <entity className="io.nop.sys.dao.entity.NopSysBroadcastEvent" createTimeProp="createTime" createrProp="createdBy"
+                displayName="广播事件流" name="io.nop.sys.dao.entity.NopSysBroadcastEvent" registerShortName="true"
+                tableName="nop_sys_broadcast_event" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="radio" i18n-en:displayName="Broadcast Event Stream">
+            <columns>
+                <column code="EVENT_ID" displayName="事件ID" mandatory="true" name="eventId" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="seq-default" i18n-en:displayName="Event ID"/>
+                <column code="EVENT_TOPIC" displayName="事件主题" mandatory="true" name="eventTopic" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Event Topic"/>
+                <column code="EVENT_NAME" displayName="事件名称" mandatory="true" name="eventName" precision="100"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Event Name"/>
+                <column code="EVENT_HEADERS" displayName="事件元数据" mandatory="true" name="eventHeaders" precision="4000"
+                        propId="4" stdDataType="string" stdSqlType="JSON" i18n-en:displayName="Headers"/>
+                <column code="EVENT_DATA" displayName="数据" mandatory="true" name="eventData" precision="4000" propId="5"
+                        stdDataType="string" stdSqlType="JSON" i18n-en:displayName="Data"/>
+                <column code="SELECTION" displayName="字段选择" name="selection" precision="1000" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Field Selections"/>
+                <column code="EVENT_TIME" displayName="事件时间" mandatory="true" name="eventTime" propId="7"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Event Time"/>
+                <column code="BIZ_OBJ_NAME" displayName="业务对象名" name="bizObjName" precision="100" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjName"/>
+                <column code="BIZ_KEY" displayName="业务标识" name="bizKey" precision="50" propId="9" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="BizKey"/>
+                <column code="BIZ_DATE" displayName="业务日期" mandatory="true" name="bizDate" propId="10"
+                        stdDataType="date" stdSqlType="DATE" tagSet="clock" i18n-en:displayName="Biz Date"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+            </columns>
+        </entity>
+        <entity className="io.nop.sys.dao.entity.NopSysBroadcastCursor" createTimeProp="createTime" createrProp="createdBy"
+                displayName="广播订阅游标" name="io.nop.sys.dao.entity.NopSysBroadcastCursor" registerShortName="true"
+                tableName="nop_sys_broadcast_cursor" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="waypoints" i18n-en:displayName="Broadcast Cursor">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="200" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                <column code="SUBSCRIBER_ID" displayName="订阅者ID" mandatory="true" name="subscriberId" precision="150"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Subscriber ID"/>
+                <column code="EVENT_TOPIC" displayName="事件主题" mandatory="true" name="eventTopic" precision="100"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Event Topic"/>
+                <column code="LAST_CONSUMED_EVENT_ID" displayName="最后消费事件ID" name="lastConsumedEventId" propId="4"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Last Consumed Event ID"/>
+                <column code="LEASE_OWNER" displayName="租约持有者" name="leaseOwner" precision="100" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Lease Owner"/>
+                <column code="LEASE_EXPIRE_TIME" displayName="租约过期时间" name="leaseExpireTime" propId="6"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Lease Expire Time"/>
+                <column code="LAST_CONSUME_TIME" displayName="最后消费时间" name="lastConsumeTime" propId="7"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Consume Time"/>
+                <column code="LAST_ERROR" displayName="最后错误" name="lastError" precision="4000" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Last Error"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+            </columns>
+            <indexes>
+                <index name="uk_sys_brd_cursor_sub_tp" unique="true">
+                    <column name="subscriberId"/>
+                    <column name="eventTopic"/>
+                </index>
+            </indexes>
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysServiceInstance" createTimeProp="createTime" displayName="服务实例"
                 name="io.nop.sys.dao.entity.NopSysServiceInstance" registerShortName="true"

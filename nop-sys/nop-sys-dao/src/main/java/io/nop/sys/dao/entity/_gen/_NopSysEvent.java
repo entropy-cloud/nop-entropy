@@ -15,7 +15,7 @@ import io.nop.sys.dao.entity.NopSysEvent;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  事件队列: nop_sys_event
+ *  普通事件队列: nop_sys_event
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
@@ -85,35 +85,43 @@ public class _NopSysEvent extends DynamicOrmEntity{
     public static final String PROP_NAME_retryTimes = "retryTimes";
     public static final int PROP_ID_retryTimes = 16;
     
+    /* 租约持有者: LEASE_OWNER VARCHAR */
+    public static final String PROP_NAME_leaseOwner = "leaseOwner";
+    public static final int PROP_ID_leaseOwner = 17;
+    
+    /* 租约过期时间: LEASE_EXPIRE_TIME TIMESTAMP */
+    public static final String PROP_NAME_leaseExpireTime = "leaseExpireTime";
+    public static final int PROP_ID_leaseExpireTime = 18;
+    
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 17;
+    public static final int PROP_ID_version = 19;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 18;
+    public static final int PROP_ID_createdBy = 20;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 19;
+    public static final int PROP_ID_createTime = 21;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 20;
+    public static final int PROP_ID_updatedBy = 22;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 21;
+    public static final int PROP_ID_updateTime = 23;
     
 
-    private static int _PROP_ID_BOUND = 22;
+    private static int _PROP_ID_BOUND = 24;
 
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_eventId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_eventId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[22];
+    private static final String[] PROP_ID_TO_NAME = new String[24];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -164,6 +172,12 @@ public class _NopSysEvent extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_retryTimes] = PROP_NAME_retryTimes;
           PROP_NAME_TO_ID.put(PROP_NAME_retryTimes, PROP_ID_retryTimes);
+      
+          PROP_ID_TO_NAME[PROP_ID_leaseOwner] = PROP_NAME_leaseOwner;
+          PROP_NAME_TO_ID.put(PROP_NAME_leaseOwner, PROP_ID_leaseOwner);
+      
+          PROP_ID_TO_NAME[PROP_ID_leaseExpireTime] = PROP_NAME_leaseExpireTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_leaseExpireTime, PROP_ID_leaseExpireTime);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -230,6 +244,12 @@ public class _NopSysEvent extends DynamicOrmEntity{
     
     /* 重试次数: RETRY_TIMES */
     private java.lang.Integer _retryTimes;
+    
+    /* 租约持有者: LEASE_OWNER */
+    private java.lang.String _leaseOwner;
+    
+    /* 租约过期时间: LEASE_EXPIRE_TIME */
+    private java.sql.Timestamp _leaseExpireTime;
     
     /* 数据版本: VERSION */
     private java.lang.Long _version;
@@ -367,6 +387,12 @@ public class _NopSysEvent extends DynamicOrmEntity{
         
             case PROP_ID_retryTimes:
                return getRetryTimes();
+        
+            case PROP_ID_leaseOwner:
+               return getLeaseOwner();
+        
+            case PROP_ID_leaseExpireTime:
+               return getLeaseExpireTime();
         
             case PROP_ID_version:
                return getVersion();
@@ -554,6 +580,26 @@ public class _NopSysEvent extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_leaseOwner:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_leaseOwner));
+               }
+               setLeaseOwner(typedValue);
+               break;
+            }
+        
+            case PROP_ID_leaseExpireTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_leaseExpireTime));
+               }
+               setLeaseExpireTime(typedValue);
+               break;
+            }
+        
             case PROP_ID_version:{
                java.lang.Long typedValue = null;
                if(value != null){
@@ -721,6 +767,20 @@ public class _NopSysEvent extends DynamicOrmEntity{
             case PROP_ID_retryTimes:{
                onInitProp(propId);
                this._retryTimes = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_leaseOwner:{
+               onInitProp(propId);
+               this._leaseOwner = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_leaseExpireTime:{
+               onInitProp(propId);
+               this._leaseExpireTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -1066,6 +1126,44 @@ public class _NopSysEvent extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_retryTimes,value)){
             this._retryTimes = value;
             internalClearRefs(PROP_ID_retryTimes);
+            
+        }
+    }
+    
+    /**
+     * 租约持有者: LEASE_OWNER
+     */
+    public final java.lang.String getLeaseOwner(){
+         onPropGet(PROP_ID_leaseOwner);
+         return _leaseOwner;
+    }
+
+    /**
+     * 租约持有者: LEASE_OWNER
+     */
+    public final void setLeaseOwner(java.lang.String value){
+        if(onPropSet(PROP_ID_leaseOwner,value)){
+            this._leaseOwner = value;
+            internalClearRefs(PROP_ID_leaseOwner);
+            
+        }
+    }
+    
+    /**
+     * 租约过期时间: LEASE_EXPIRE_TIME
+     */
+    public final java.sql.Timestamp getLeaseExpireTime(){
+         onPropGet(PROP_ID_leaseExpireTime);
+         return _leaseExpireTime;
+    }
+
+    /**
+     * 租约过期时间: LEASE_EXPIRE_TIME
+     */
+    public final void setLeaseExpireTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_leaseExpireTime,value)){
+            this._leaseExpireTime = value;
+            internalClearRefs(PROP_ID_leaseExpireTime);
             
         }
     }

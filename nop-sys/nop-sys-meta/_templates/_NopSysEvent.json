@@ -16,6 +16,8 @@
   "bizDate": "2000-01-01",
   "partitionIndex": 0,
   "retryTimes": 0,
+  "leaseOwner": "",
+  "leaseExpireTime": "2000-01-01 14:00:00",
   "version": 0,
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",

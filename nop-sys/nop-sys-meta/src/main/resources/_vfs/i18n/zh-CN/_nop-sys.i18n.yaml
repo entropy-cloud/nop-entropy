@@ -1,5 +1,7 @@
 entity:
   label:
+    NopSysBroadcastCursor: 广播订阅游标
+    NopSysBroadcastEvent: 广播事件流
     NopSysChangeLog: 变更跟踪日志
     NopSysCheckerRecord: MakerChecker审批记录
     NopSysClusterLeader: 集群选举
@@ -7,7 +9,7 @@ entity:
     NopSysCompactExtField: 紧凑扩展字段配置
     NopSysDict: 字典表
     NopSysDictOption: 字典明细
-    NopSysEvent: 事件队列
+    NopSysEvent: 普通事件队列
     NopSysExtField: 扩展字段
     NopSysI18n: 多语言消息
     NopSysLock: 资源锁
@@ -20,6 +22,36 @@ entity:
     NopSysVariable: 系统变量
 prop:
   label:
+    NopSysBroadcastCursor:
+      createTime: 创建时间
+      createdBy: 创建人
+      eventTopic: 事件主题
+      lastConsumeTime: 最后消费时间
+      lastConsumedEventId: 最后消费事件ID
+      lastError: 最后错误
+      leaseExpireTime: 租约过期时间
+      leaseOwner: 租约持有者
+      sid: 主键
+      subscriberId: 订阅者ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysBroadcastEvent:
+      bizDate: 业务日期
+      bizKey: 业务标识
+      bizObjName: 业务对象名
+      createTime: 创建时间
+      createdBy: 创建人
+      eventData: 数据
+      eventHeaders: 事件元数据
+      eventId: 事件ID
+      eventName: 事件名称
+      eventTime: 事件时间
+      eventTopic: 事件主题
+      selection: 字段选择
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopSysChangeLog:
       appId: 应用ID
       approverId: 审核人
@@ -140,6 +172,8 @@ prop:
       eventTime: 事件时间
       eventTopic: 事件主题
       isBroadcast: 是否广播
+      leaseExpireTime: 租约过期时间
+      leaseOwner: 租约持有者
       partitionIndex: 数据分区
       processTime: 处理时间
       retryTimes: 重试次数

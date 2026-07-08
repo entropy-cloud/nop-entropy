@@ -23,6 +23,10 @@ alter table nop_sys_cluster_leader add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NO
 
 alter table nop_sys_event add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_sys_broadcast_event add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
+alter table nop_sys_broadcast_cursor add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_sys_service_instance add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_change_log add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
@@ -70,6 +74,12 @@ alter table nop_sys_cluster_leader add constraint PK_nop_sys_cluster_leader prim
 
 alter table nop_sys_event drop constraint PK_nop_sys_event;
 alter table nop_sys_event add constraint PK_nop_sys_event primary key (NOP_TENANT_ID, EVENT_ID);
+
+alter table nop_sys_broadcast_event drop constraint PK_nop_sys_broadcast_event;
+alter table nop_sys_broadcast_event add constraint PK_nop_sys_broadcast_event primary key (NOP_TENANT_ID, EVENT_ID);
+
+alter table nop_sys_broadcast_cursor drop constraint PK_nop_sys_broadcast_cursor;
+alter table nop_sys_broadcast_cursor add constraint PK_nop_sys_broadcast_cursor primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_service_instance drop constraint PK_nop_sys_service_instance;
 alter table nop_sys_service_instance add constraint PK_nop_sys_service_instance primary key (NOP_TENANT_ID, INSTANCE_ID);

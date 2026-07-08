@@ -249,10 +249,38 @@
         }
 
 
-        private Long _version;
+        private String _leaseOwner;
 
     
         @PropMeta(propId=17)
+    
+        public String getLeaseOwner(){
+            return _leaseOwner;
+        }
+
+        public void setLeaseOwner(String value){
+            this._leaseOwner = value;
+        }
+
+
+        private java.sql.Timestamp _leaseExpireTime;
+
+    
+        @PropMeta(propId=18)
+    
+        public java.sql.Timestamp getLeaseExpireTime(){
+            return _leaseExpireTime;
+        }
+
+        public void setLeaseExpireTime(java.sql.Timestamp value){
+            this._leaseExpireTime = value;
+        }
+
+
+        private Long _version;
+
+    
+        @PropMeta(propId=19)
     
         public Long getVersion(){
             return _version;
@@ -266,7 +294,7 @@
         private String _createdBy;
 
     
-        @PropMeta(propId=18)
+        @PropMeta(propId=20)
     
         public String getCreatedBy(){
             return _createdBy;
@@ -280,7 +308,7 @@
         private java.sql.Timestamp _createTime;
 
     
-        @PropMeta(propId=19)
+        @PropMeta(propId=21)
     
         public java.sql.Timestamp getCreateTime(){
             return _createTime;
@@ -294,7 +322,7 @@
         private String _updatedBy;
 
     
-        @PropMeta(propId=20)
+        @PropMeta(propId=22)
     
         public String getUpdatedBy(){
             return _updatedBy;
@@ -308,7 +336,7 @@
         private java.sql.Timestamp _updateTime;
 
     
-        @PropMeta(propId=21)
+        @PropMeta(propId=23)
     
         public java.sql.Timestamp getUpdateTime(){
             return _updateTime;

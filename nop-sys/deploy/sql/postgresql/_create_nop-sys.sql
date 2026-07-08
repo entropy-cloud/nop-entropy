@@ -198,12 +198,50 @@ CREATE TABLE nop_sys_event(
   biz_date DATE NOT NULL ,
   partition_index INT4 NOT NULL ,
   retry_times INT4 NOT NULL ,
+  lease_owner VARCHAR(100)  ,
+  lease_expire_time TIMESTAMP  ,
   version INT8 NOT NULL ,
   created_by VARCHAR(50) NOT NULL ,
   create_time TIMESTAMP NOT NULL ,
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   constraint PK_nop_sys_event primary key (event_id)
+);
+
+CREATE TABLE nop_sys_broadcast_event(
+  event_id INT8 NOT NULL ,
+  event_topic VARCHAR(100) NOT NULL ,
+  event_name VARCHAR(100) NOT NULL ,
+  event_headers JSON NOT NULL ,
+  event_data JSON NOT NULL ,
+  selection VARCHAR(1000)  ,
+  event_time TIMESTAMP NOT NULL ,
+  biz_obj_name VARCHAR(100)  ,
+  biz_key VARCHAR(50)  ,
+  biz_date DATE NOT NULL ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_broadcast_event primary key (event_id)
+);
+
+CREATE TABLE nop_sys_broadcast_cursor(
+  sid VARCHAR(200) NOT NULL ,
+  subscriber_id VARCHAR(150) NOT NULL ,
+  event_topic VARCHAR(100) NOT NULL ,
+  last_consumed_event_id INT8  ,
+  lease_owner VARCHAR(100)  ,
+  lease_expire_time TIMESTAMP  ,
+  last_consume_time TIMESTAMP  ,
+  last_error VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_broadcast_cursor primary key (sid)
 );
 
 CREATE TABLE nop_sys_service_instance(
@@ -601,7 +639,7 @@ CREATE TABLE nop_sys_obj_tag(
                     
       COMMENT ON COLUMN nop_sys_cluster_leader.app_name IS '应用名';
                     
-      COMMENT ON TABLE nop_sys_event IS '事件队列';
+      COMMENT ON TABLE nop_sys_event IS '普通事件队列';
                 
       COMMENT ON COLUMN nop_sys_event.event_id IS '事件ID';
                     
@@ -635,6 +673,10 @@ CREATE TABLE nop_sys_obj_tag(
                     
       COMMENT ON COLUMN nop_sys_event.retry_times IS '重试次数';
                     
+      COMMENT ON COLUMN nop_sys_event.lease_owner IS '租约持有者';
+                    
+      COMMENT ON COLUMN nop_sys_event.lease_expire_time IS '租约过期时间';
+                    
       COMMENT ON COLUMN nop_sys_event.version IS '数据版本';
                     
       COMMENT ON COLUMN nop_sys_event.created_by IS '创建人';
@@ -644,6 +686,66 @@ CREATE TABLE nop_sys_obj_tag(
       COMMENT ON COLUMN nop_sys_event.updated_by IS '修改人';
                     
       COMMENT ON COLUMN nop_sys_event.update_time IS '修改时间';
+                    
+      COMMENT ON TABLE nop_sys_broadcast_event IS '广播事件流';
+                
+      COMMENT ON COLUMN nop_sys_broadcast_event.event_id IS '事件ID';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.event_topic IS '事件主题';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.event_name IS '事件名称';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.event_headers IS '事件元数据';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.event_data IS '数据';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.selection IS '字段选择';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.event_time IS '事件时间';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.biz_obj_name IS '业务对象名';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.biz_key IS '业务标识';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.biz_date IS '业务日期';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_event.update_time IS '修改时间';
+                    
+      COMMENT ON TABLE nop_sys_broadcast_cursor IS '广播订阅游标';
+                
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.sid IS '主键';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.subscriber_id IS '订阅者ID';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.event_topic IS '事件主题';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.last_consumed_event_id IS '最后消费事件ID';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.lease_owner IS '租约持有者';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.lease_expire_time IS '租约过期时间';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.last_consume_time IS '最后消费时间';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.last_error IS '最后错误';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_broadcast_cursor.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_service_instance IS '服务实例';
                 

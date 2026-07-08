@@ -236,4 +236,32 @@
         }
 
 
+        private String _leaseOwner;
+
+    
+        @PropMeta(propId=17)
+    
+        public String getLeaseOwner(){
+            return _leaseOwner;
+        }
+
+        public void setLeaseOwner(String value){
+            this._leaseOwner = value;
+        }
+
+
+        private java.sql.Timestamp _leaseExpireTime;
+
+    
+        @PropMeta(propId=18)
+    
+        public java.sql.Timestamp getLeaseExpireTime(){
+            return _leaseExpireTime;
+        }
+
+        public void setLeaseExpireTime(java.sql.Timestamp value){
+            this._leaseExpireTime = value;
+        }
+
+
     }
