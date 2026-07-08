@@ -243,6 +243,30 @@ public class PartitionDispatchQueue<T> {
         return sb.toString();
     }
 
+    /**
+     * 删除指定 partitionIndex 对应的队列，从内存中移除所有已加载但尚未派发的记录。
+     * <p>
+     * 已通过 {@link #takeBatch} 派发出去的 batch 不受影响——它们照常走 {@link #completeBatch}，
+     * 而 {@code completeBatch} 中 {@code partitions.get(index) == null} 时安全跳过。
+     * <p>
+     * 语义等价于：丢弃该 partition 所有排队中的 item，释放其 semaphore 许可。
+     */
+    public void removePartition(int partitionIndex) {
+        lock.lock();
+        try {
+            PartitionQueue<T> pq = partitions.remove(partitionIndex);
+            if (pq != null) {
+                int undelivered = pq.queue.size();
+                pq.queue.clear();
+                count -= undelivered;
+                semaphore.release(undelivered);
+                pq.threadId = -1;
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public void completeBatch(MapOfInt<List<T>> batch, long threadId) {
         lock.lock();
         try {
